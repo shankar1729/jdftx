@@ -1,0 +1,22 @@
+find_path(CBLAS_INCLUDE_DIR cblas.h /usr/include /usr/local/include)
+find_library(CBLAS_LIBRARY NAMES cblas PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64 /usr/lib64/atlas /usr/lib/atlas)
+
+if(CBLAS_INCLUDE_DIR AND CBLAS_LIBRARY)
+	set(CBLAS_FOUND TRUE)
+endif(CBLAS_INCLUDE_DIR AND CBLAS_LIBRARY)
+
+
+if(CBLAS_FOUND)
+	if(NOT CBLAS_FIND_QUIETLY)
+		message(STATUS "Found CBLAS: ${CBLAS_LIBRARY}")
+	endif(NOT CBLAS_FIND_QUIETLY)
+else(CBLAS_FOUND)
+	if(CBLAS_FIND_REQUIRED)
+		if(NOT CBLAS_INCLUDE_DIR)
+			message(FATAL_ERROR "Could not find the CBLAS header")
+		endif(NOT CBLAS_INCLUDE_DIR)
+		if(NOT CBLAS_LIBRARY)
+			MESSAGE(FATAL_ERROR "Could not find the BLAS shared libraries")
+		endif(NOT CBLAS_LIBRARY)
+	endif(CBLAS_FIND_REQUIRED)
+endif(CBLAS_FOUND)
