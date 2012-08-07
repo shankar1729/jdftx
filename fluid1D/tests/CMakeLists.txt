@@ -1,0 +1,2 @@
+add_executable(TestOperators TestOperators.cpp)
+target_link_libraries(TestOperators fluid1D)
