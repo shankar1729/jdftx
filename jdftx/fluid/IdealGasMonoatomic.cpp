@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 IdealGasMonoatomic::IdealGasMonoatomic(Fex* fex, double xBulk): IdealGas(1,fex,xBulk)
-{	assert(molecule->nSites!=1); //IdealGasMonoatomic must be used only with single site molecules.
+{	assert(molecule->nSites==1); //IdealGasMonoatomic must be used only with single site molecules.
 	assert(molecule->site[0].pos==vector3<>(0,0,0)); //The single site for IdealGasMonoatomic must be the origin
 }
 

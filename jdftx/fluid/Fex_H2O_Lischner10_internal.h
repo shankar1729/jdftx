@@ -49,8 +49,8 @@ double Fex_H2O_Lischner10_calc(int i, const double* NObar, const double* NHbar, 
 {	using namespace Fex_H2O_Lischner10_internal;
 	double Nmean = (1.0/3)*(NObar[i] + NHbar[i]);
 	double fDotMean = fexDot(Nmean);
-	grad_NObar[i] += ((1.0/3)*pMean*fDotMean + pObar*fexDot(NObar[i]));
-	grad_NHbar[i] += ((1.0/3)*pMean*fDotMean + pHbar*fexDot(NHbar[i]*0.5)*0.5);
+	grad_NObar[i] = ((1.0/3)*pMean*fDotMean + pObar*fexDot(NObar[i]));
+	grad_NHbar[i] = ((1.0/3)*pMean*fDotMean + pHbar*fexDot(NHbar[i]*0.5)*0.5);
 	return pMean*fex(Nmean) + pObar*fex(NObar[i]) + pHbar*fex(NHbar[i]*0.5);
 }
 

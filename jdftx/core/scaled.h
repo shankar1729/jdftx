@@ -30,8 +30,8 @@ template<typename T> struct scaled
 	scaled<T>& operator*=(double s) { scale *= s; return *this; }
 };
 
-template<typename T> T& operator+=(T& y, const scaled<T>& x) { axpy(x.scale, x.data, y); return y; }
-template<typename T> T& operator-=(T& y, const scaled<T>& x) { axpy(-x.scale, x.data, y); return y; }
+template<typename T> T& operator+=(T& y, const scaled<T>& x) { if(y) axpy(x.scale, x.data, y); else y = x.scale * x.data; return y; }
+template<typename T> T& operator-=(T& y, const scaled<T>& x) { if(y) axpy(-x.scale, x.data, y); else y = (-x.scale) * x.data; return y; }
 template<typename T> T operator+(const scaled<T>& x, const scaled<T>& y) { T ret(x); ret += y; return ret; }
 template<typename T> T operator-(const scaled<T>& x, const scaled<T>& y) { T ret(x); ret += y; return ret; }
 

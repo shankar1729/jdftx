@@ -52,8 +52,8 @@ int main(int argc, char** argv)
 	
 	//Setup fluid:
 	SO3quad quad(quadType, 2, nBeta);
-	//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	TranslationOperatorFourier trans(gInfo);
+	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
+	//TranslationOperatorFourier trans(gInfo);
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 	Fex_H2O_ScalarEOS fex(fluidMixture);
 	IdealGas* idgas;

@@ -28,8 +28,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 
 void initHardSphere(int i, vector3<> r, const vector3<>& r0, double radius, double height, double* phi)
-{	//phi[i] = ((r - r0).length() < radius ? height : 0.0);
-	phi[i] = height/(1+pow((r - r0).length()/radius,6));
+{	phi[i] = ((r - r0).length() < radius ? height : 0.0);
+	//phi[i] = height/(1+pow((r - r0).length()/radius,6));
 }
 
 
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	IdealGasMonoatomic idAr(&fexAr, 2.0);
 	//Neon component:
 	Fex_LJ fexNe(fluidMixture, 3.2135e-3*eV, 2.782*Angstrom, "Ne", -2*0); //params from SLOGwiki
-	IdealGasMonoatomic idNe(&fexNe, 1.0e-6);
+	IdealGasMonoatomic idNe(&fexNe, 1.0);
 	//Interaction between them:
 	Fmix_LJ fmixLJ(fexAr, fexNe);
 	//based on mole fractions, this should create a 2:1 Ar:Ne mixture
@@ -144,8 +144,9 @@ int main(int argc, char** argv)
 	applyFunc_r(gInfo, initHardSphere, rCenter, 6.0, 1.016177/(4*M_PI*pow(6.0,3)/3), rhoExternal->data());
 	//fluidMixture.rhoExternal = J(rhoExternal);
 
-	//idNe.set_Nnorm(52);
+	idNe.set_Nnorm(52);
 
+	//fluidMixture.verboseLog = true;
 	fluidMixture.initState(0.15);
 	//fluidMixture.loadState("random.state");
 

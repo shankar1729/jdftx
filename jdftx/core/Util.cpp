@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <cmath>
 #include <csignal>
+#include <sys/prctl.h>
 
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>
@@ -155,15 +156,29 @@ void gdbStackTraceExit(int code)
 {	// From http://stackoverflow.com/questions/4636456/stack-trace-for-c-using-gcc/4732119#4732119
 	char pid_buf[30]; sprintf(pid_buf, "%d", getpid());
     char name_buf[512]; name_buf[readlink("/proc/self/exe", name_buf, 511)]=0;
+	int fdPipe[2]; if(pipe(fdPipe)) { printf("Error creating pipe.\n"); exit(code); }
+	char message = '\n'; //some random character for sync
     int child_pid = fork();
     if(!child_pid)
 	{	dup2(2,1); //redirect output to stderr
+		//Wait for ptrace permissions to be set by parent:
+		close(fdPipe[1]);
+		while(!read(fdPipe[0], &message, 1));
+		close(fdPipe[0]);
+		//Attach gdb:
 		fprintf(stdout,"\n\nStack trace:\n");
 		execlp("gdb", "gdb", "--batch", "-n", "-ex", "bt", name_buf, pid_buf, NULL);
 		abort(); //If gdb failed to start
     }
     else
-	{	waitpid(child_pid,NULL,0);
+	{	prctl(PR_SET_PTRACER, child_pid, 0, 0, 0);
+		close(fdPipe[0]);
+		if(write(fdPipe[1], &message, 1) != 1)
+		{	printf("Error communicating with debugger.\n");
+			exit(code);
+		}
+		close(fdPipe[1]);
+		waitpid(child_pid,NULL,0);
     }
     exit(code);
 }
