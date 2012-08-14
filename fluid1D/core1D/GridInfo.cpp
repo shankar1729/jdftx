@@ -120,3 +120,12 @@ GridInfo::~GridInfo()
 			break;
 	}
 }
+
+double GridInfo::Volume() const
+{	switch(coord)
+	{	case Spherical: return (4*M_PI/3) * pow(rMax,3);
+		case Cylindrical: return M_PI * pow(rMax,2);
+		case Planar: return rMax;
+	}
+	return 0.;
+}

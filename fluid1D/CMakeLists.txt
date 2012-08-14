@@ -42,13 +42,15 @@ include_directories(${CMAKE_SOURCE_DIR})
 FILE(GLOB coreSources core1D/*.cpp)
 add_library(core1D SHARED ${coreSources}
 	${JDFTX_SRC}/core/Util.cpp ${JDFTX_SRC}/core/AutoThreadCount.cpp
-	${JDFTX_SRC}/core/BlasExtra.cpp ${JDFTX_SRC}/core/Random.cpp 
+	${JDFTX_SRC}/core/BlasExtra.cpp ${JDFTX_SRC}/core/Random.cpp
 )
 target_link_libraries(core1D ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${GSL_LIBRARY} ${CBLAS_LIBRARY})
 
 #Fluid library:
 FILE(GLOB fluidSources fluid1D/*.cpp)
-add_library(fluid1D SHARED ${fluidSources})
+add_library(fluid1D SHARED ${fluidSources}
+	${JDFTX_SRC}/fluid/SO3quad.cpp ${JDFTX_SRC}/fluid/S2quad.cpp
+)
 target_link_libraries(fluid1D core1D)
 
 #Executables

@@ -77,8 +77,10 @@ void ManagedMemory::memInit(size_t nElem)
 {	if(nElements==nElem) return; //already in required state
 	memFree();
 	nElements = nElem;
-	pData = (double*)fftw_malloc(sizeof(double)*nElements);
-	if(!pData) assert(!"Memory allocation failed (out of memory)\n");
+	if(nElements)
+	{	pData = (double*)fftw_malloc(sizeof(double)*nElements);
+		if(!pData) assert(!"Memory allocation failed (out of memory)\n");
+	}
 }
 void ManagedMemory::memMove(ManagedMemory&& other)
 {	std::swap(nElements, other.nElements);

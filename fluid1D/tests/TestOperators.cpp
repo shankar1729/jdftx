@@ -31,7 +31,8 @@ int main(int argc, char** argv)
 		initRandom(r1);
 		printf("\tNorm of random vector = %le (expectation value: %le)\n", nrm2(r1), sqrt(gInfo.S));
 		printf("\tSelf dot product = %le (expectation value: %le)\n", dot(r1, r1), double(gInfo.S));
-
+		printf("\tintegral(x): %le  integral(xTilde): %le\n", integral(r1), integral(J(r1)));
+		
 		puts("\nTest 2: Linear combines");
 		ScalarField r2 = 3.0*r1 - r1;
 		ScalarField r3 = r1 + r2;

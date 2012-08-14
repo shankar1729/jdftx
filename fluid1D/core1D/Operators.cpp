@@ -30,6 +30,13 @@ inline void dmul(const std::vector<double>& d, ManagedMemory& Y)
 	eblas_dmul(Y.nData(), d.data(),1, Y.data(),1);
 }
 
+//Elementwise divide on a ManagedMemory object (used by many operators below)
+inline void ddiv(const std::vector<double>& d, ManagedMemory& Y)
+{	assert(Y);
+	assert(d.size() == Y.nData());
+	eblas_ddiv(Y.nData(), d.data(),1, Y.data(),1);
+}
+
 //Row-major Dense-Matrix multiply (Y = A.X) on ManagedMemory objects (used by transform operators below)
 inline void dgemv(bool transpose, const std::vector<double>& A, const ManagedMemory& X, ManagedMemory& Y)
 {	assert(X);
@@ -47,6 +54,14 @@ ScalarFieldTilde O(const ScalarFieldTilde& Y)
 }
 ScalarFieldTilde O(ScalarFieldTilde&& Y)
 {	dmul(Y.gInfo->wTilde, Y);
+	return Y;
+}
+ScalarFieldTilde Oinv(const ScalarFieldTilde& Y)
+{	ScalarFieldTilde tmp(Y);
+	return Oinv((ScalarFieldTilde&&)tmp);
+}
+ScalarFieldTilde Oinv(ScalarFieldTilde&& Y)
+{	ddiv(Y.gInfo->wTilde, Y);
 	return Y;
 }
 
@@ -256,6 +271,28 @@ ScalarField JdagOJ(ScalarField&& Y)
 {	dmul(Y.gInfo->w, Y);
 	return Y;
 }
+ScalarField DiagJdagOJ1(const ScalarField& Y)
+{	ScalarField tmp(Y);
+	return DiagJdagOJ1((ScalarField&&)tmp);
+}
+ScalarField DiagJdagOJ1(ScalarField&& Y)
+{	dmul(Y.gInfo->w, Y);
+	return Y;
+}
+ScalarField DiagJdagOJ1(double s, const GridInfo& gInfo)
+{	ScalarField ret(&gInfo);
+	ret.zero();
+	eblas_daxpy(gInfo.S, s, gInfo.w.data(),1, ret.data(),1);
+	return ret;
+}
+ScalarField DiagJdagOJ1inv(const ScalarField& Y)
+{	ScalarField tmp(Y);
+	return DiagJdagOJ1inv((ScalarField&&)tmp);
+}
+ScalarField DiagJdagOJ1inv(ScalarField&& Y)
+{	ddiv(Y.gInfo->w, Y);
+	return Y;
+}
 
 ScalarFieldTilde L(const ScalarFieldTilde& Y)
 {	ScalarFieldTilde tmp(Y);
@@ -354,14 +391,29 @@ ScalarFieldTilde operator*(const SphericalKernel& K, ScalarFieldTilde&& Y)
 	return Y;
 }
 
+//Elementwise multiply
+ScalarField DiagScalarField::operator*(const ScalarField& X) const
+{	ScalarField Xcopy(X);
+	return (*this) * ((ScalarField&&)Xcopy);
+}
+ScalarField DiagScalarField::operator*(ScalarField&& X) const
+{	assert(X.gInfo == d.gInfo);
+	eblas_dmul(X.nData(), d.data(),1, X.data(),1);
+	return X;
+}
+DiagScalarField Diag(const ScalarField& X)
+{	assert(X);
+	return DiagScalarField(X);
+}
+
 //------------------------------ Linear combine operators ------------------------------
 
-ScalarField& operator+=(ScalarField& Y, const ScalarField &X) { if(Y) axpy(1.0, X, Y); else Y=X; return Y; }
-ScalarField& operator-=(ScalarField& Y, const ScalarField &X) { if(Y) axpy(-1.0, X, Y); else Y=-X; return Y; }
+ScalarField& operator+=(ScalarField& Y, const ScalarField &X) { if(Y) { if(X) axpy(1.0, X, Y); } else Y=X; return Y; }
+ScalarField& operator-=(ScalarField& Y, const ScalarField &X) { if(Y) { if(X) axpy(-1.0, X, Y); } else Y=-X; return Y; }
 ScalarField operator+(const ScalarField &Y1, const ScalarField &Y2) { ScalarField Ysum(Y1); Ysum += Y2; return Ysum; }
 ScalarField operator-(const ScalarField &Y1,const ScalarField &Y2) { ScalarField Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
-ScalarFieldTilde& operator+=(ScalarFieldTilde& Y, const ScalarFieldTilde &X) { if(Y) axpy(1.0, X, Y); else Y=X; return Y; }
-ScalarFieldTilde& operator-=(ScalarFieldTilde& Y, const ScalarFieldTilde &X) { if(Y) axpy(-1.0, X, Y); else Y=-X; return Y; }
+ScalarFieldTilde& operator+=(ScalarFieldTilde& Y, const ScalarFieldTilde &X) { if(Y) { if(X) axpy(1.0, X, Y); } else Y=X; return Y; }
+ScalarFieldTilde& operator-=(ScalarFieldTilde& Y, const ScalarFieldTilde &X) { if(Y) { if(X) axpy(-1.0, X, Y); } else Y=-X; return Y; }
 ScalarFieldTilde operator+(const ScalarFieldTilde &Y1, const ScalarFieldTilde &Y2) { ScalarFieldTilde Ysum(Y1); Ysum += Y2; return Ysum; }
 ScalarFieldTilde operator-(const ScalarFieldTilde &Y1,const ScalarFieldTilde &Y2) { ScalarFieldTilde Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
 
@@ -372,11 +424,27 @@ ScalarField& operator+=(ScalarField& Y, double a)
 }
 ScalarField operator+(double a, const ScalarField& Y) { ScalarField X(Y); return X += a; }
 ScalarField operator+(const ScalarField& Y, double a) { ScalarField X(Y); return X += a; }
-ScalarField& operator-=(ScalarField& Y, double a) { return Y -= a; }
+ScalarField& operator-=(ScalarField& Y, double a) { return Y += -a; }
 ScalarField operator-(double a, const ScalarField& Y) { ScalarField X(Y); return (X -= a) *= (-1.); }
 ScalarField operator-(const ScalarField& Y, double a) { ScalarField X(Y); return X -= a; }
 
+double integral(const ScalarField& x)
+{	assert(x);
+	const GridInfo& gInfo = *(x.gInfo);
+	return eblas_ddot(gInfo.S, gInfo.w.data(),1, x.data(),1);
+}
+
+double integral(const ScalarFieldTilde& xTilde)
+{	assert(xTilde);
+	return xTilde.data()[0]; //Just the G=0 component for all plane-wave related bases
+}
+
+
 //------------------------- Initialization utilties ---------------------------------
+
+void nullToZero(ScalarField& X, const GridInfo& gInfo)
+{	if(!X) X.init(&gInfo);
+}
 
 void initRandom(ScalarField& X, double cap)
 {	double* Xdata = X.data();

@@ -54,6 +54,8 @@ public:
 	std::vector<double> w; //!< Weights on quadrature grid
 	std::vector<double> wTilde; //!< Normalization of basis functions
 
+	double Volume() const; //!< Simulation cell volume (per unit length for cylindrical, or unit area for planar)
+	
 	fftw_plan planPlanarI, planPlanarIdag, planPlanarID, planPlanarIDdag; //!< FFTW plans for planar transforms
 	std::vector<double> matI, matID, matIDD; //!< Dense SxS row-major matrices for spherical/cylindrical transforms
 };
