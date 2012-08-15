@@ -1,20 +1,20 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2012 Ravishankar Sundararaman
 
-This file is part of JDFTx.
+This file is part of Fluid1D.
 
-JDFTx is free software: you can redistribute it and/or modify
+Fluid1D is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-JDFTx is distributed in the hope that it will be useful,
+Fluid1D is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/Minimize.h>
