@@ -27,7 +27,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 
 #define TDEP
-#define ChosenFex BondedVoids
+#define ChosenFex ScalarEOS
 
 
 #define FEX_NAME_quoter(FexSuffix) #FexSuffix

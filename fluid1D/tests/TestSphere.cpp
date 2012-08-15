@@ -39,21 +39,21 @@ int main(int argc, char** argv)
 	//----- Translation operator -----
 	TranslationOperatorLspline trans(gInfo);
 	
-	FluidMixture fluidMixture(gInfo, 343.16*Kelvin); //298*Kelvin);
+	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 	//----- Excess functional -----
 	//Fex_H2O_Lischner10 fex(fluidMixture); string fexName = "Lischner10";
-	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
-	Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
+	Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
 	//----- Ideal gas -----
 	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
 	//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
 	IdealGasPomega idgas(&fex, 1.0, quad, trans);
 
-	//double p = 1.01325*Bar;
-	//fluidMixture.setPressure(p);
-	double p = fluidMixture.setBoilingPressure(); return 0;
+	double p = 1.01325*Bar;
+	fluidMixture.setPressure(p);
+	//double p = fluidMixture.setBoilingPressure();
 	
 	//----- FDtest and CG parameters -----
 	MinimizeParams mp;

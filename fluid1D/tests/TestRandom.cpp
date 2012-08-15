@@ -31,6 +31,7 @@ int main(int argc, char** argv)
 	//double T=298*Kelvin;
 	//double T=130*Kelvin;
 	double T=75*Kelvin;
+	//double T=25*Kelvin;
 	const double rMax = 64./pow(4*M_PI/3,1./3);
 	const int S = 256;
 	GridInfo gInfo(GridInfo::Spherical, S, rMax/S);
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
 	//based on mole fractions, this should create a 2:1 Ar:Ne mixture
 
 	fluidMixture.setPressure(1000*Bar);
-	//fluidMixture.setBoilingPressure(0, 1e-6, 3e-3, 1e-6);
+	//fluidMixture.setBoilingPressure();
 
 	nullToZero(idAr.V[0], gInfo);
 	double* Vdata = idAr.V[0].data();
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
 		Vdata[i] = gInfo.r[i]<6.0 ? 0.005 : 0.;
 	idNe.V[0] = idAr.V[0];
 
-	idNe.set_Nnorm(52);
+	//idNe.set_Nnorm(52);
 
 	//fluidMixture.verboseLog = true;
 	fluidMixture.initState(0.15);

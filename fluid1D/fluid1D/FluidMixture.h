@@ -47,11 +47,11 @@ public:
 	//! Set the pressure to the boiling point at given temperature
 	//! The liquid phase is constrained to have the supplied mole fractions
 	//! @param Nvap If non-null, conatins the equilibirum vapor densities on return
-	//! @param muTol Tolerance on the chemical potential differences between liquid and vapor
+	//! @param tol Tolerance on the solve (on Delta(P)/NT and Delta(mu)/T)
 	//! @param NliqGuess A guess for the total liquid density at equilibrium
 	//! @param NvapGuess A guess for the total vapor density at equilibrium
 	//! @return The pressure corresponding to chemical and physical equilibrium
-	double setBoilingPressure(std::vector<double>* Nvap=0, double muTol=1e-6, double NliqGuess=5e-3, double NvapGuess=1e-6);
+	double setBoilingPressure(std::vector<double>* Nvap=0, double tol=1e-8, double NliqGuess=5e-3, double NvapGuess=1e-6);
 	
 	unsigned get_nIndep() const { return nIndep; }  //!< get the number of scalar fields used as independent variables
 	unsigned get_nDensities() const { return nDensities; } //!< get the total number of site densities
@@ -137,7 +137,7 @@ private:
 	//! Compute the pressure of the uniform fluid mixture of total molecular density Ntot
 	double compute_p(double Ntot) const;
 	
-	friend class BoilingPointMinimizer;
+	friend class BoilingPressureSolver;
 };
 
 #endif // FLUID1D_FLUID1D_FLUIDMIXTURE_H

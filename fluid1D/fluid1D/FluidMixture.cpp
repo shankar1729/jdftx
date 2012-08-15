@@ -23,7 +23,9 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/EnergyComponents.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>
-    
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_multiroots.h>
+
 FluidMixture::FluidMixture(const GridInfo& gInfo, const double T)
 :gInfo(gInfo),T(T),verboseLog(false),nIndep(0),nDensities(0)
 {	logPrintf("Initializing fluid mixture at T=%lf K ...\n", T/Kelvin);
@@ -91,82 +93,79 @@ void FluidMixture::setPressure(double p, double Nguess)
 
 //-------- Helper utilities for adjusting fluid mixture to vapor-liquid equilibrium
 
-struct BoilingPoint : public std::vector<double>
-{	BoilingPoint(size_t n=0) : std::vector<double>(n) {}
-	BoilingPoint& operator*=(double s) { for(size_t i=0; i<size(); i++) at(i) *= s; return *this; }
-};
-BoilingPoint clone(const BoilingPoint& bp) { return bp; }
-void axpy(double a, const BoilingPoint& x, BoilingPoint& y) { eblas_daxpy(x.size(), a, x.data(),1, y.data(),1); }
-double dot(const BoilingPoint& x, const BoilingPoint& y) { return eblas_ddot(x.size(), x.data(),1, y.data(),1); }
-void randomize(BoilingPoint& x) { for(size_t i=0; i<x.size(); i++) x[i] = Random::normal(); }
-
-struct BoilingPointMinimizer : public Minimizable<BoilingPoint>
+struct BoilingPressureSolver
 {	const FluidMixture& fm;
 	int nComponents;
 	std::vector<double> xLiq;
-	BoilingPoint state;
-	MinimizeParams mp;
-	std::vector<double> Nliq, Nvap, aPrimeLiq, aPrimeVap; double Pliq, Pvap; //Dependent quantities set by compute:
-	
-	BoilingPointMinimizer(const FluidMixture& fm, std::vector<double> xLiq, double muTol, double NliqGuess, double NvapGuess)
-	: fm(fm), nComponents(fm.component.size()), xLiq(xLiq), state(nComponents+1),
+	std::vector<double> Nliq, Nvap, aPrimeLiq, aPrimeVap; double Pliq, Pvap, NliqTot; //Dependent quantities set by compute:
+	gsl_multiroot_fsolver* fsolver;
+		
+	BoilingPressureSolver(const FluidMixture& fm, std::vector<double> xLiq, double NliqGuess, double NvapGuess)
+	: fm(fm), nComponents(fm.component.size()), xLiq(xLiq),
 	Nliq(nComponents), Nvap(nComponents), aPrimeLiq(nComponents), aPrimeVap(nComponents)
 	{
-		//Minimize parameters:
-		mp.alphaTstart = 1e-3;
-		mp.nDim = nComponents + 1;
-		mp.energyLabel = "Residual";
-		mp.linePrefix = "\tBoilingPointMinimize: ";
-		mp.nIterations=100;
-		mp.energyDiffThreshold=0.1*pow(muTol,2);
-		
 		//Initialize state:
+		gsl_vector* params = gsl_vector_alloc(nComponents+1);
 		for(int i=0; i<nComponents; i++)
-			state[i] = log(NvapGuess * xLiq[i]); //Use liquid mole fractions as guess for vapor
-		state.back() = log(NliqGuess);
+			gsl_vector_set(params, i, log(NvapGuess * xLiq[i])); //Use liquid mole fractions as guess for vapor
+		gsl_vector_set(params, nComponents, log(NliqGuess));
+		//Create solver:
+		fsolver = gsl_multiroot_fsolver_alloc(gsl_multiroot_fsolver_hybrids, nComponents+1);
+		gsl_multiroot_function solverFunc = {&BoilingPressureSolver::errFunc, nComponents+1, this};
+		gsl_multiroot_fsolver_set(fsolver, &solverFunc, params);
+		gsl_vector_free(params);
 	}
 	
-	void step(const BoilingPoint& dir, double a) { axpy(a, dir, state); }
+	~BoilingPressureSolver()
+	{	gsl_multiroot_fsolver_free(fsolver);
+	}
 	
-	//residual-only computation
-	double compute()
+	void solve(double tol)
+	{	printState(0);
+		for(int iter=1; iter<100; iter++)
+		{	int status = gsl_multiroot_fsolver_iterate(fsolver);
+			printState(iter);
+			if(status) die("Boiling Pressure solver stuck - try different guesses for the densities.\n");
+			if(gsl_multiroot_test_residual(fsolver->f, tol) != GSL_CONTINUE) break;
+		}
+		if(gsl_multiroot_test_residual(fsolver->f, tol) != GSL_SUCCESS)
+			die("Boiling Pressure solver failed to converge - try different guesses for the densities.\n");
+	}
+	
+	static int errFunc(const gsl_vector *params, void *bpSolver, gsl_vector* err)
+	{	((BoilingPressureSolver*)bpSolver)->compute(params, err);
+		return 0;
+	}
+	
+	void compute(const gsl_vector* params, gsl_vector* err)
 	{	//Set the densities:
-		for(int i=0; i<nComponents; i++) Nvap[i] = exp(state[i]);
-		double NliqTot = exp(state.back());
+		for(int i=0; i<nComponents; i++) Nvap[i] = exp(gsl_vector_get(params, i));
+		NliqTot = exp(gsl_vector_get(params, nComponents));
 		for(int i=0; i<nComponents; i++) Nliq[i] = NliqTot * xLiq[i];
 		//Compute the bulk excess free energy density and gradient
 		double aVap = fm.computeUniformEx(Nvap, aPrimeVap);
 		double aLiq = fm.computeUniformEx(Nliq, aPrimeLiq);
-		//Compute the pressures and residual including chemical potential differences:
-		double res = 0.;
+		//Compute the differences in pressures and chemical potentials:
 		Pvap = -aVap;
 		Pliq = -aLiq;
 		for(int i=0; i<nComponents; i++)
 		{	Pvap += Nvap[i] * (fm.T + aPrimeVap[i]);
 			Pliq += Nliq[i] * (fm.T + aPrimeLiq[i]);
-			res += pow(log(Nliq[i]/Nvap[i]) + (aPrimeLiq[i]-aPrimeVap[i])/fm.T, 2); //chemical potential difference / T (dimensionless)
+			gsl_vector_set(err, i, log(Nliq[i]/Nvap[i]) + (aPrimeLiq[i]-aPrimeVap[i])/fm.T); //chemical potential difference / T (dimensionless)
 		}
-		res += pow((Pliq-Pvap)/(NliqTot*fm.T), 2); //dimensionless pressure difference
-		return res;
+		gsl_vector_set(err, nComponents, (Pliq-Pvap)/(NliqTot*fm.T)); //dimensionless pressure difference
 	}
 	
-	//residual with finite-difference gradient calculation
-	double compute(BoilingPoint* grad)
-	{	const double eps = 1e-8; //sensible relative-tolerance (note parameters are all on log-scale)
-		if(grad)
-		{	grad->resize(state.size());
-			for(size_t i=0; i<state.size(); i++)
-			{	state[i]+=1*eps; double resPlus = compute();
-				state[i]-=2*eps; double resMinus = compute();
-				state[i]+=1*eps;
-				(*grad)[i] = (resPlus - resMinus) / (2*eps);
-			}
-		}
-		return compute();
+	void printState(size_t iter)
+	{	logPrintf("\tBPsolve: Iter: %lu  NliqTot: %.3le  Nvap: (", iter, exp(gsl_vector_get(fsolver->x, nComponents)));
+		for(int i=0; i<nComponents; i++) logPrintf(" %.3le", exp(gsl_vector_get(fsolver->x, i)));
+		logPrintf(")  DeltaP/NliqT: %.3le  DeltaMu/T: (", gsl_vector_get(fsolver->f, nComponents));
+		for(int i=0; i<nComponents; i++) logPrintf(" %.3le", gsl_vector_get(fsolver->f, i));
+		logPrintf(")\n");
 	}
 };
 
-double FluidMixture::setBoilingPressure(std::vector<double>* Nvap, double muTol, double NliqGuess, double NvapGuess)
+double FluidMixture::setBoilingPressure(std::vector<double>* Nvap, double tol, double NliqGuess, double NvapGuess)
 {	logPrintf("Finding vapor-liquid equilibrium state points:\n"); logFlush();
 	//Collect and normalize mole fractions:
 	double xTot = 0.; std::vector<double> xLiq(component.size());
@@ -176,18 +175,18 @@ double FluidMixture::setBoilingPressure(std::vector<double>* Nvap, double muTol,
 	}
 	for(size_t i=0; i<component.size(); i++) xLiq[i] /= xTot;
 	
-	BoilingPointMinimizer bpMin(*this, xLiq, muTol, NliqGuess, NvapGuess);
-	bpMin.minimize(bpMin.mp);
+	BoilingPressureSolver bpSolver(*this, xLiq, NliqGuess, NvapGuess);
+	bpSolver.solve(tol);
 	
-	logPrintf("At equilibrium:\n\tPliq = %le bar, Pvap = %le bar\n", bpMin.Pliq/Bar, bpMin.Pvap/Bar);
+	logPrintf("At equilibrium:\n\tPliq = %le bar, Pvap = %le bar\n", bpSolver.Pliq/Bar, bpSolver.Pvap/Bar);
 	for(size_t ic=0; ic<component.size(); ic++)
 	{	Component& c = component[ic];
 		logPrintf("\tComponent '%s': Nliq = %le bohr^-3, Nvap = %le bohr^-3\n",
-			c.molecule->name.c_str(), bpMin.Nliq[ic], bpMin.Nvap[ic]);
+			c.molecule->name.c_str(), bpSolver.Nliq[ic], bpSolver.Nvap[ic]);
 	}
-	setPressure(bpMin.Pliq, exp(bpMin.state.back())); //set the pressure
-	if(Nvap) *Nvap = bpMin.Nvap;
-	return bpMin.Pliq;
+	setPressure(bpSolver.Pliq, bpSolver.NliqTot); //set the pressure
+	if(Nvap) *Nvap = bpSolver.Nvap;
+	return bpSolver.Pliq;
 }
 
 
