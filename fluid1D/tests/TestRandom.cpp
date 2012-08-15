@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 	//based on mole fractions, this should create a 2:1 Ar:Ne mixture
 
 	fluidMixture.setPressure(1000*Bar);
+	//fluidMixture.setBoilingPressure(0, 1e-6, 3e-3, 1e-6);
 
 	nullToZero(idAr.V[0], gInfo);
 	double* Vdata = idAr.V[0].data();

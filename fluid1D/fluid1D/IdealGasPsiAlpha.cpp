@@ -111,7 +111,7 @@ double IdealGasPsiAlpha::compute(const ScalarField* psi, const ScalarField* N, S
 	for(int j=0; j<molecule->nIndices; j++)
 	{	ScalarField PhiNI_Nj;
 		int i = densityToIndep[j];
-		PhiNI_Nj += JdagOJ(V[j]); //all site densities may have an external potential
+		if(V[j]) PhiNI_Nj += JdagOJ(V[j]); //all site densities may have an external potential
 		if(i>=0)
 		{	PhiNI_Nj += DiagJdagOJ1(T*psi[i] - (muAdded ? 0. : mu/indepMult[i])); //entropy and mu
 			if(!muAdded)

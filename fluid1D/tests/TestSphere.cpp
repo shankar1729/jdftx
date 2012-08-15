@@ -39,56 +39,63 @@ int main(int argc, char** argv)
 	//----- Translation operator -----
 	TranslationOperatorLspline trans(gInfo);
 	
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
+	FluidMixture fluidMixture(gInfo, 343.16*Kelvin); //298*Kelvin);
 
 	//----- Excess functional -----
-	//Fex_H2O_Lischner10 fex(fluidMixture);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-	//Fex_H2O_BondedVoids fex(fluidMixture);
+	//Fex_H2O_Lischner10 fex(fluidMixture); string fexName = "Lischner10";
+	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
 	//----- Ideal gas -----
 	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
 	//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
 	IdealGasPomega idgas(&fex, 1.0, quad, trans);
 
-	double p = 1.01325*Bar;
-	fluidMixture.setPressure(p);
-
-	//----- Initialize external potential -----
-	double radius = 4.0*Angstrom;
-	nullToZero(idgas.V, gInfo);
-	double* Vdata = idgas.V[0].data();
-	for(int i=0; i<gInfo.S; i++)
-		Vdata[i] = gInfo.r[i]<radius ? 1. : 0.;
-
-	//----- Initialize state -----
-	bool loadState = false; //true;
-	if(loadState) fluidMixture.loadState("TestSphere.psiEff");
-	else fluidMixture.initState(0.15);
-
-	//----- FDtest and CG -----
+	//double p = 1.01325*Bar;
+	//fluidMixture.setPressure(p);
+	double p = fluidMixture.setBoilingPressure(); return 0;
+	
+	//----- FDtest and CG parameters -----
 	MinimizeParams mp;
 	mp.alphaTstart = 3e4;
 	mp.nDim = gInfo.S * fluidMixture.get_nIndep();
 	mp.energyLabel = "Phi";
 	mp.nIterations=100;
 	mp.energyDiffThreshold=1e-11;
-	mp.fdTest = !loadState;
+	
+	#define QUICKTEST
+	#ifdef QUICKTEST
+	int iRadius = 2;
+	#else
+	for(int iRadius=1; iRadius<=5; iRadius++)
+	#endif
+	{
+		logPrintf("\n\nStarting solve for radius %dA:\n", 2*iRadius);
+		
+		//----- Initialize external potential -----
+		double radius = (2*iRadius)*Angstrom;
+		nullToZero(idgas.V, gInfo);
+		double* Vdata = idgas.V[0].data();
+		for(int i=0; i<gInfo.S; i++)
+			Vdata[i] = gInfo.r[i]<radius ? 1. : 0.;
 
-	puts("Starting CG:");
-	TIME("minimize", stdout,
+		//----- Initialize state -----
+		fluidMixture.initState(0.15);
+		mp.fdTest = (iRadius==1);
+
 		fluidMixture.minimize(mp);
-	);
-
-	ScalarFieldCollection N, psiEff;
-	TIME("getFreeEnergy", stdout,
-		fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, &psiEff));
-	);
-
-	double Nbulk = idgas.get_Nbulk();
-	N[0] *= (1./Nbulk);
-	N[1] *= (0.5/Nbulk);
-	if(N.size()>2) N[2] *= (0.5/Nbulk);
-	printToFile(N, "TestSphere.N.spherical");
-	saveToFile(psiEff, "TestSphere.psiEff");
+		
+		ScalarFieldCollection N;
+		fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
+		
+		double Nbulk = idgas.get_Nbulk();
+		N[0] *= (1./Nbulk);
+		N[1] *= (0.5/Nbulk);
+		if(N.size()>2) N[2] *= (0.5/Nbulk);
+		#ifdef QUICKTEST
+		printToFile(N, (fexName + "/hardsphere.nTest").c_str());
+		#else
+		printToFile(N, (fexName + "/hardsphere.n").c_str(), iRadius!=1);
+		#endif
+	}
 }

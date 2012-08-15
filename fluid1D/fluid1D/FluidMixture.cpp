@@ -22,7 +22,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/MixedFMT.h>
 #include <core/EnergyComponents.h>
 #include <core/BlasExtra.h>
-
+#include <core/Random.h>
+    
 FluidMixture::FluidMixture(const GridInfo& gInfo, const double T)
 :gInfo(gInfo),T(T),verboseLog(false),nIndep(0),nDensities(0)
 {	logPrintf("Initializing fluid mixture at T=%lf K ...\n", T/Kelvin);
@@ -88,6 +89,108 @@ void FluidMixture::setPressure(double p, double Nguess)
 	this->p = p;
 }
 
+//-------- Helper utilities for adjusting fluid mixture to vapor-liquid equilibrium
+
+struct BoilingPoint : public std::vector<double>
+{	BoilingPoint(size_t n=0) : std::vector<double>(n) {}
+	BoilingPoint& operator*=(double s) { for(size_t i=0; i<size(); i++) at(i) *= s; return *this; }
+};
+BoilingPoint clone(const BoilingPoint& bp) { return bp; }
+void axpy(double a, const BoilingPoint& x, BoilingPoint& y) { eblas_daxpy(x.size(), a, x.data(),1, y.data(),1); }
+double dot(const BoilingPoint& x, const BoilingPoint& y) { return eblas_ddot(x.size(), x.data(),1, y.data(),1); }
+void randomize(BoilingPoint& x) { for(size_t i=0; i<x.size(); i++) x[i] = Random::normal(); }
+
+struct BoilingPointMinimizer : public Minimizable<BoilingPoint>
+{	const FluidMixture& fm;
+	int nComponents;
+	std::vector<double> xLiq;
+	BoilingPoint state;
+	MinimizeParams mp;
+	std::vector<double> Nliq, Nvap, aPrimeLiq, aPrimeVap; double Pliq, Pvap; //Dependent quantities set by compute:
+	
+	BoilingPointMinimizer(const FluidMixture& fm, std::vector<double> xLiq, double muTol, double NliqGuess, double NvapGuess)
+	: fm(fm), nComponents(fm.component.size()), xLiq(xLiq), state(nComponents+1),
+	Nliq(nComponents), Nvap(nComponents), aPrimeLiq(nComponents), aPrimeVap(nComponents)
+	{
+		//Minimize parameters:
+		mp.alphaTstart = 1e-3;
+		mp.nDim = nComponents + 1;
+		mp.energyLabel = "Residual";
+		mp.linePrefix = "\tBoilingPointMinimize: ";
+		mp.nIterations=100;
+		mp.energyDiffThreshold=0.1*pow(muTol,2);
+		
+		//Initialize state:
+		for(int i=0; i<nComponents; i++)
+			state[i] = log(NvapGuess * xLiq[i]); //Use liquid mole fractions as guess for vapor
+		state.back() = log(NliqGuess);
+	}
+	
+	void step(const BoilingPoint& dir, double a) { axpy(a, dir, state); }
+	
+	//residual-only computation
+	double compute()
+	{	//Set the densities:
+		for(int i=0; i<nComponents; i++) Nvap[i] = exp(state[i]);
+		double NliqTot = exp(state.back());
+		for(int i=0; i<nComponents; i++) Nliq[i] = NliqTot * xLiq[i];
+		//Compute the bulk excess free energy density and gradient
+		double aVap = fm.computeUniformEx(Nvap, aPrimeVap);
+		double aLiq = fm.computeUniformEx(Nliq, aPrimeLiq);
+		//Compute the pressures and residual including chemical potential differences:
+		double res = 0.;
+		Pvap = -aVap;
+		Pliq = -aLiq;
+		for(int i=0; i<nComponents; i++)
+		{	Pvap += Nvap[i] * (fm.T + aPrimeVap[i]);
+			Pliq += Nliq[i] * (fm.T + aPrimeLiq[i]);
+			res += pow(log(Nliq[i]/Nvap[i]) + (aPrimeLiq[i]-aPrimeVap[i])/fm.T, 2); //chemical potential difference / T (dimensionless)
+		}
+		res += pow((Pliq-Pvap)/(NliqTot*fm.T), 2); //dimensionless pressure difference
+		return res;
+	}
+	
+	//residual with finite-difference gradient calculation
+	double compute(BoilingPoint* grad)
+	{	const double eps = 1e-8; //sensible relative-tolerance (note parameters are all on log-scale)
+		if(grad)
+		{	grad->resize(state.size());
+			for(size_t i=0; i<state.size(); i++)
+			{	state[i]+=1*eps; double resPlus = compute();
+				state[i]-=2*eps; double resMinus = compute();
+				state[i]+=1*eps;
+				(*grad)[i] = (resPlus - resMinus) / (2*eps);
+			}
+		}
+		return compute();
+	}
+};
+
+double FluidMixture::setBoilingPressure(std::vector<double>* Nvap, double muTol, double NliqGuess, double NvapGuess)
+{	logPrintf("Finding vapor-liquid equilibrium state points:\n"); logFlush();
+	//Collect and normalize mole fractions:
+	double xTot = 0.; std::vector<double> xLiq(component.size());
+	for(size_t i=0; i<component.size(); i++)
+	{	xLiq[i] = component[i].idealGas->xBulk;
+		xTot += xLiq[i];
+	}
+	for(size_t i=0; i<component.size(); i++) xLiq[i] /= xTot;
+	
+	BoilingPointMinimizer bpMin(*this, xLiq, muTol, NliqGuess, NvapGuess);
+	bpMin.minimize(bpMin.mp);
+	
+	logPrintf("At equilibrium:\n\tPliq = %le bar, Pvap = %le bar\n", bpMin.Pliq/Bar, bpMin.Pvap/Bar);
+	for(size_t ic=0; ic<component.size(); ic++)
+	{	Component& c = component[ic];
+		logPrintf("\tComponent '%s': Nliq = %le bohr^-3, Nvap = %le bohr^-3\n",
+			c.molecule->name.c_str(), bpMin.Nliq[ic], bpMin.Nvap[ic]);
+	}
+	setPressure(bpMin.Pliq, exp(bpMin.state.back())); //set the pressure
+	if(Nvap) *Nvap = bpMin.Nvap;
+	return bpMin.Pliq;
+}
+
+
 unsigned FluidMixture::get_offsetDensity(const Fex* fex) const
 {	for(std::vector<Component>::const_iterator c=component.begin(); c!=component.end(); c++)
 		if(fex==c->fex)
@@ -147,26 +250,6 @@ FluidMixture::Outputs::Outputs(ScalarFieldCollection* N, double* electricP, Scal
 :N(N),electricP(electricP),psiEff(psiEff)
 {
 }
-
-
-//! Compute the total charge of a set of components: original number of molecules N0 and charge per molecule Q
-//! given as the vector of pairs N0Q, where the actual number of molecules of each component is N = N0 exp(-Q betaV)
-//! Also return the gradient w.r.t betaV
-double Qtot(double betaV, double& grad_betaV, const std::vector<std::pair<double,double> > N0Q,
-			const std::vector<string>* names=0, const GridInfo* gInfo=0, const bool verboseLog=0)
-{	double Qsum=0.0, Qsum_betaV=0.0;
-	for(unsigned i=0; i<N0Q.size(); i++)
-	{	double N0 = N0Q[i].first;
-		double Q = N0Q[i].second;
-		double N = N0*exp(-Q*betaV);
-		if(verboseLog) logPrintf("%s N0: %le Q: %le N: %le\n", (*names)[i].c_str(), N0, Q, N);
-		Qsum += Q*N;
-		Qsum_betaV += -Q*Q*N;
-	}
-	grad_betaV = Qsum_betaV;
-	return Qsum;
-}
-
 
 double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldCollection& grad_indep, Outputs outputs) const
 {	

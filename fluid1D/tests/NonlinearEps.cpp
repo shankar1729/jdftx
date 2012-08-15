@@ -41,9 +41,9 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 	//----- Excess functional -----
-	//Fex_H2O_Lischner10 fex(fluidMixture);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-	//Fex_H2O_BondedVoids fex(fluidMixture);
+	Fex_H2O_Lischner10 fex(fluidMixture); string fexName = "Lischner10";
+	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
 	//----- Ideal gas -----
 	IdealGasMuEps idgas(&fex, 1.0, quad, trans);
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 	mp.nDim = gInfo.S * fluidMixture.get_nIndep();
 	mp.nIterations=200;
 
-	FILE* fpEps = fopen("nonlineareps", "w");
+	FILE* fpEps = fopen((fexName + "/nonlineareps").c_str(), "w");
 	double Dfield=1e-4;
 	bool stateInitialized = false;
 	for(; Dfield<5e-2; Dfield+=2e-3)

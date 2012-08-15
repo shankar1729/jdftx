@@ -44,7 +44,8 @@ void IdealGasMonoatomic::getDensities(const ScalarField* psi, ScalarField* N, do
 
 double IdealGasMonoatomic::compute(const ScalarField* psi, const ScalarField* N, ScalarField* grad_N,
 	const double& P, double& grad_P, const double Nscale, double& grad_Nscale) const
-{	ScalarField PhiNI_N = DiagJdagOJ1(T*psi[0] - mu) + JdagOJ(V[0]);
+{	ScalarField PhiNI_N = DiagJdagOJ1(T*psi[0] - mu);
+	if(V[0]) PhiNI_N += JdagOJ(V[0]);
 	grad_N[0] += PhiNI_N;
 	return dot(N[0], PhiNI_N) - T*integral(N[0]);
 }

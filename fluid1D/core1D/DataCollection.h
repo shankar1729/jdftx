@@ -106,7 +106,7 @@ template<typename T> void saveToFile(const TCollection& x, const char* filename)
 inline const std::vector<double>& getRadialCoordinate(const ScalarField& X) { return X.gInfo->r; }
 inline const std::vector<double>& getRadialCoordinate(const ScalarFieldTilde& X) { return X.gInfo->G; }
 
-template<typename T> void printToFile(const TCollection& x, const char* filename)
+template<typename T> void printToFile(const TCollection& x, const char* filename, bool append=false)
 {	//Check sizes and get access pointers:
 	assert(x.size()>0);
 	assert(x[0].gInfo);
@@ -117,8 +117,9 @@ template<typename T> void printToFile(const TCollection& x, const char* filename
 		xData[i] = x[i].data();
 	}
 	//Write file:
-	FILE* fp = fopen(filename, "w");
-	if(!fp) die("Could not open %s for writing.\n", filename)
+	FILE* fp = fopen(filename, append ? "a" : "w");
+	if(!fp) die("Could not open %s for %s.\n", filename, append ? "appending" : "writing")
+	if(append) fprintf(fp, "\n\n"); //separator between data sets for programs like gnuplot
 	for(int j=0; j<x[0].gInfo->S; j++)
 	{	fprintf(fp, "%le", radialCoord[j]);
 		for(unsigned i=0; i<x.size(); i++)
