@@ -34,7 +34,7 @@ public:
 	double get_aDiel() const;
 	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const;
 	double computeUniform(const double* N, double* grad_N) const;
-
+	void directCorrelations(const double* N, ScalarFieldTildeCollection& C) const;
 private:
 	const double RV; //!< void radius at current temperature
 	SphericalKernel siteChargeKernel, Ua;

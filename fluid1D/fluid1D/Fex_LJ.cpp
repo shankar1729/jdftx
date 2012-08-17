@@ -83,6 +83,10 @@ double Fex_LJ::computeUniform(const double* N, double* grad_N) const
 {	grad_N[0] += ljatt.data()[0]*N[0];
 	return 0.5*N[0]*ljatt.data()[0]*N[0];
 }
+void Fex_LJ::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
+{	ScalarFieldTilde ljattTilde(ljatt, gInfo);
+	C[fluidMixture.corrFuncIndex(0,0,this)] += ljattTilde;
+}
 
 
 Fmix_LJ::Fmix_LJ(const Fex_LJ& fluid1, const Fex_LJ& fluid2)
@@ -109,5 +113,11 @@ double Fmix_LJ::computeUniform(const std::vector<double>& N, std::vector<double>
 	grad_N[i1] += ljatt.data()[0]*N[i2];
 	grad_N[i2] += ljatt.data()[0]*N[i1];
 	return N[i1]*ljatt.data()[0]*N[i2];
+}
+void Fmix_LJ::directCorrelations(const std::vector<double>& N, ScalarFieldTildeCollection& C) const
+{	ScalarFieldTilde ljattTilde(ljatt, gInfo);
+	unsigned i1 = fluidMixture.get_offsetDensity(&fluid1);
+	unsigned i2 = fluidMixture.get_offsetDensity(&fluid2);
+	C[fluidMixture.corrFuncIndex(i1,i2)] += ljattTilde;
 }
 

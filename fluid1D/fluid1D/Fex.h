@@ -21,7 +21,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #define FLUID1D_FLUID1D_FEX_H
 
 #include <fluid1D/Molecule.h>
-#include <core1D/Data.h>
+#include <core1D/DataCollection.h>
+
 class FluidMixture;
 
 //! Abstract base class for excess functionals
@@ -49,6 +50,12 @@ public:
 	//! result corresponding to calling compute() with a uniform scalar field.
 	//! This is called several times during FluidMixture::setPressure() to get the desired bulk properties
 	virtual double computeUniform(const double* N, double* grad_N) const=0;
+	
+	//! Accumulate contributions to C, the second variational derivative of the excess functional
+	//! evaluated at the uniform fluid (for which site densities are provided in N)
+	//! The components of c are indexed according to FluidMixture::corrFuncIndex()
+	//! N is a pointer to the site densities only for the current fluid component
+	virtual void directCorrelations(const double* N, ScalarFieldTildeCollection& C) const=0;
 };
 
 #endif // FLUID1D_FLUID1D_FEX_H

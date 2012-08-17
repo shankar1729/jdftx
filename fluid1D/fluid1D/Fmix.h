@@ -53,6 +53,14 @@ public:
 	//! is Fmix's responsibility to pick up the correct site densities
 	//! (perhaps using FluidMixture::get_offsetDensity())
 	virtual double computeUniform(const std::vector<double>& N, std::vector<double>& grad_N) const=0;
+	
+	//! Accumulate contributions to C, the second variational derivative of the excess functional
+	//! evaluated at the uniform fluid (for which site densities are provided in N)
+	//! The components of c are indexed according to FluidMixture::corrFuncIndex()
+	//! Note that unlike Fex, all site densities are handed to an Fmix and it
+	//! is Fmix's responsibility to pick up the correct site densities
+	//! (perhaps using FluidMixture::get_offsetDensity())
+	virtual void directCorrelations(const std::vector<double>& N, ScalarFieldTildeCollection& C) const=0;
 };
 
 #endif // FLUID1D_FLUID1D_FMIX_H

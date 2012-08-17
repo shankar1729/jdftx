@@ -88,6 +88,8 @@ public:
 	ScalarFieldTilde(ScalarFieldTilde&&); //!< move constructor
 	ScalarFieldTilde& operator=(const ScalarFieldTilde&); //!< copy-assignment
 	ScalarFieldTilde& operator=(ScalarFieldTilde&&); //!< move-assignment
+	
+	ScalarFieldTilde(const SphericalKernel&, const GridInfo&); //!< convert a spherical kernel to a basis-space scalar field
 };
 
 #endif // FLUID1D_CORE1D_DATA_H

@@ -19,6 +19,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 #include <fluid1D/Fex_LJ.h>
+#include <fluid1D/FluidMixture.h>
 #include <core/Units.h>
 #include <core1D/Operators.h>
 
@@ -60,5 +61,9 @@ double Fex_H2O_BondedVoids::compute(const ScalarFieldTilde* Ntilde, ScalarFieldT
 double Fex_H2O_BondedVoids::computeUniform(const double* N, double* grad_N) const
 {	grad_N[0] += (-kappa)*Ua.data()[0]*N[0];
 	return 0.5*(-kappa)*N[0]*Ua.data()[0]*N[0];
+}
+void Fex_H2O_BondedVoids::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
+{	ScalarFieldTilde UaTilde(Ua, gInfo);
+	C[fluidMixture.corrFuncIndex(0,0,this)] += (-kappa) * UaTilde;
 }
 

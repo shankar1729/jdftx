@@ -20,6 +20,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_H2O_ScalarEOS_internal.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_LJ.h>
+#include <fluid1D/FluidMixture.h>
 #include <core/Units.h>
 #include <core1D/Operators.h>
 
@@ -64,4 +65,16 @@ double Fex_H2O_ScalarEOS::computeUniform(const double* N, double* grad_N) const
 	(*eval)(0, &N[0], &Aex, &AexPrime);
 	grad_N[0] += Aex + N[0]*AexPrime;
 	return N[0]*Aex;
+}
+
+void Fex_H2O_ScalarEOS::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
+{	//Compute upto second derivative of per-particle free energy:
+	double AexPrime, Aex; (*eval)(0, &N[0], &Aex, &AexPrime);
+	const double dN = N[0]*1e-7;
+	double AexPrimePlus,  AexPlus,  Nplus  = N[0]+dN; (*eval)(0, &Nplus,  &AexPlus,  &AexPrimePlus);
+	double AexPrimeMinus, AexMinus, Nminus = N[0]-dN; (*eval)(0, &Nminus, &AexMinus, &AexPrimeMinus);
+	double AexDblPrime = (AexPrimePlus - AexPrimeMinus) / (2*dN);
+	//Accumulate correlations:
+	ScalarFieldTilde fex_LJattTilde(fex_LJatt, gInfo); //A scalar field version of kernel to ease arithmetic
+	C[fluidMixture.corrFuncIndex(0,0,this)] += (2*AexPrime*fex_LJattTilde + N[0]*AexDblPrime*(fex_LJatt*fex_LJattTilde));
 }

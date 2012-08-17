@@ -169,3 +169,8 @@ ScalarFieldTilde& ScalarFieldTilde::operator=(ScalarFieldTilde&& other)
 	memMove((ManagedMemory&&)other); //move data
 	return *this;
 }
+ScalarFieldTilde::ScalarFieldTilde(const SphericalKernel& kernel, const GridInfo& gInfo)
+{	assert(kernel.size() == size_t(gInfo.S));
+	init(&gInfo);
+	eblas_copy(data(), kernel.data(), gInfo.S);
+}

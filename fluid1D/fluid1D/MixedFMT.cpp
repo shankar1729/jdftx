@@ -54,6 +54,7 @@ double phiFMT_calc(int i, const double* wArr,
 	double n2 = n2arr[i];
 	double n3 = n3arr[i];
 	if(n0<0. || n1<0. || n2<0. || n3<0.) return 0.;
+	if(n3>1.) return 0./0;
 	double n1v = n1vArr[i];
 	double n2v = n2vArr[i];
 	double n2m = n2mArr[i];

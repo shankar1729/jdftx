@@ -15,3 +15,6 @@ target_link_libraries(TestRandom fluid1D)
 
 add_executable(NonlinearEps NonlinearEps.cpp)
 target_link_libraries(NonlinearEps fluid1D)
+
+add_executable(CorrFunc CorrFunc.cpp)
+target_link_libraries(CorrFunc fluid1D)

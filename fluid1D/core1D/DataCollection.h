@@ -82,6 +82,20 @@ template<typename T> void randomize(TCollection& x)
 {	for(unsigned i=0; i<x.size(); i++) initRandom(x[i], 3.0);
 }
 
+//! Data-pointer access:
+template<typename T> std::vector<double*> getData(TCollection& x)
+{	std::vector<double*> data(x.size());
+	for(unsigned i=0; i<x.size(); i++) data[i] = x[i].data();
+	return data;
+}
+
+//! Const Data-pointer access:
+template<typename T> std::vector<const double*> getConstData(const TCollection& x)
+{	std::vector<const double*> data(x.size());
+	for(unsigned i=0; i<x.size(); i++) data[i] = x[i].data();
+	return data;
+}
+
 template<typename T> void loadFromFile(TCollection& x, const char* filename)
 {	FILE* fp = fopen(filename, "rb");
 	if(!fp) die("Could not open %s for reading.\n", filename)

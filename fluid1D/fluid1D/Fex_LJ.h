@@ -47,6 +47,7 @@ public:
 	double get_aDiel() const { return 1.0; };
 	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const;
 	double computeUniform(const double* N, double* grad_N) const;
+	void directCorrelations(const double* N, ScalarFieldTildeCollection& C) const;
 private:
 	friend class Fmix_LJ; //allow Fmix_LJ to peek at eps and sigma to select coupling parameters
 	double eps, sigma;
@@ -68,6 +69,7 @@ public:
 
 	double compute(const ScalarFieldTildeCollection& Ntilde, ScalarFieldTildeCollection& grad_Ntilde) const;
 	double computeUniform(const std::vector<double>& N, std::vector<double>& grad_N) const;
+	void directCorrelations(const std::vector<double>& N, ScalarFieldTildeCollection& C) const;
 private:
 	const Fex_LJ &fluid1, &fluid2;
 	SphericalKernel ljatt;

@@ -19,6 +19,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Fex_H2O_Lischner10_internal.h>
 #include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid1D/FluidMixture.h>
 #include <core1D/Operators.h>
 #include <core/Units.h>
 #include <core/Util.h>
@@ -102,7 +103,7 @@ double Fex_H2O_Lischner10::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTi
 	//Compute gaussian weighted densities:
 	ScalarField NObar = I(fex_gauss*Ntilde[0]), grad_NObar; nullToZero(grad_NObar, gInfo);
 	ScalarField NHbar = I(fex_gauss*Ntilde[1]), grad_NHbar; nullToZero(grad_NHbar, gInfo);
-	//Evaluated weighted denisty functional:
+	//Evaluated weighted density functional:
 	PhiEx += serialAccumulate(Fex_H2O_Lischner10_calc1D, gInfo.S, gInfo.w.data(),
 		 NObar.data(), NHbar.data(), grad_NObar.data(), grad_NHbar.data());
 	//Convert gradients:
@@ -113,4 +114,23 @@ double Fex_H2O_Lischner10::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTi
 
 double Fex_H2O_Lischner10::computeUniform(const double* N, double* grad_N) const
 {	return Fex_H2O_Lischner10_calc(0, &N[0], &N[1], &grad_N[0], &grad_N[1]);
+}
+
+void Fex_H2O_Lischner10::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
+{	//Compute second derivatives of free energy density:
+	double NO = N[0], NH = N[1], dN = 1e-7*NO;
+	NO += 1*dN; double Op_aO, Op_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Op_aO, &Op_aH);
+	NO -= 2*dN; double Om_aO, Om_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Om_aO, &Om_aH);
+	NO += 1*dN;
+	NH += 1*dN; double Hp_aO, Hp_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Hp_aO, &Hp_aH);
+	NH -= 2*dN; double Hm_aO, Hm_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Hm_aO, &Hm_aH);
+	NH += 1*dN;
+	double a_OO = (Op_aO - Om_aO) / (2*dN);
+	double a_OH = (Op_aH - Om_aH + Hp_aO - Hm_aO) / (4*dN);
+	double a_HH = (Hp_aH - Hm_aH) / (2*dN);
+	//Accumulate correlations:
+	ScalarFieldTilde fex_gaussSq = fex_gauss * ScalarFieldTilde(fex_gauss, gInfo); //square of weight function
+	C[fluidMixture.corrFuncIndex(0,0,this)] += (ScalarFieldTilde(COO,gInfo) + a_OO * fex_gaussSq);
+	C[fluidMixture.corrFuncIndex(0,1,this)] += (ScalarFieldTilde(COH,gInfo) + a_OH * fex_gaussSq);
+	C[fluidMixture.corrFuncIndex(1,1,this)] += (ScalarFieldTilde(CHH,gInfo) + a_HH * fex_gaussSq);
 }

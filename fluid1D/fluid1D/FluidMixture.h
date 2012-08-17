@@ -116,7 +116,23 @@ public:
 
 	//! Preconditioner: scale by inverse quadrature weights on each channel
     ScalarFieldCollection precondition(const ScalarFieldCollection& grad);
+
+
+	//! Get the direct correlations c = (-1/T) times the second variational derivative of the excess free energy
+	//! evaluated at the uniform fluid mixture with component densities Nmol (implemented in FluidMixtureCorrFunc.cpp)
+	//! The output is nDensities*(nDensities+1)/2 in order (11),(21),(22),(31),(32),(33),...
+	ScalarFieldTildeCollection getDirectCorrelations(const std::vector<double>& Nmol) const;
 	
+	//! Get the partial pair correlations g evaluated at the uniform fluid mixture
+	//! with component densities Nmol (implemented in FluidMixtureCorrFunc.cpp)
+	//! The output is nDensities*(nDensities+1)/2 in order (11),(21),(22),(31),(32),(33),...
+	ScalarFieldCollection getPairCorrelations(const std::vector<double>& Nmol) const;
+	
+	//! Indexing scheme for correlation functions (implemented in FluidMixtureCorrFunc.cpp)
+	//! i1 and i2 are absolute density indices of fex is null
+	//! and are component relative indices if fex is non-null
+	int corrFuncIndex(unsigned i1, unsigned i2, const Fex* fex=0) const;
+
 private:
 	unsigned nIndep; //!< number of scalar fields used as independent variables
 	unsigned nDensities; //!< total number of site densities
