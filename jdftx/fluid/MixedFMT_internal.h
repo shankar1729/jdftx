@@ -116,6 +116,7 @@ __hostanddev__ double phiFMT_calc(int i,
 	double n2 = n2arr[i];
 	double n3 = n3arr[i];
 	if(n0<0. || n1<0. || n2<0. || n3<0.) return 0.;
+	if(n3>=1.) return 0./0;
 	vector3<> n1v = loadVector(n1vArr, i);
 	vector3<> n2v = loadVector(n2vArr, i);
 	tensor3<> n2m = loadTensor(n2mArr, i);

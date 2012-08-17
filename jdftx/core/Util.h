@@ -111,10 +111,13 @@ extern FILE* globalLog;
 #define logFlush() fflush(globalLog)
 #define die(...) \
 	{	fprintf(globalLog, __VA_ARGS__); \
-		fputs("\nFailed.\n", globalLog); \
+		time_t timenow = time(0); \
+		fprintf(globalLog, "\nEnd date and time: %s", ctime(&timenow)); \
+		fputs("Failed.\n", globalLog); \
 		if(globalLog != stdout) \
 		{	fprintf(stderr, __VA_ARGS__); \
-			fputs("\nFailed.\n", stderr); \
+			fprintf(stderr, "\nEnd date and time: %s", ctime(&timenow)); \
+			fputs("Failed.\n", stderr); \
 		} \
 		exit(1); \
 	}

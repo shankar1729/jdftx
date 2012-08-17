@@ -125,7 +125,10 @@ int main(int argc, char** argv, char** argp)
 	//Final dump:
 	e.dump(DumpFreq_End);
 	
-	logPrintf("\nDone!\n");
+	time_t timenow = time(0);
+	logPrintf("\nEnd date and time: %s", ctime(&timenow));
+	logPrintf("Done!\n");
+	
 	if(globalLog != stdout) fclose(globalLog);
 	return 0;
 }
