@@ -240,6 +240,24 @@ ColumnBundle L(const ColumnBundle &Y)
 	return LY;
 }
 
+//Inverse-Laplacian of a column bundle
+#ifdef GPU_ENABLED
+void reducedLinv_gpu(int nbasis, int ncols, const complex* Y, complex* LinvY,
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR);
+#endif
+ColumnBundle Linv(const ColumnBundle &Y)
+{	ColumnBundle LinvY = Y.similar();
+	const Basis& basis = *(Y.basis);
+	const matrix3<>& GGT = basis.gInfo->GGT;
+	#ifdef GPU_ENABLED
+	reducedLinv_gpu(Y.colLength(), Y.nCols(), Y.dataGpu(), LinvY.dataGpu(), GGT, basis.iGarrGpu, Y.qnum->k, basis.gInfo->detR);
+	#else
+	threadedLoop(reducedLinv_calc, Y.colLength(),
+		Y.colLength(), Y.nCols(), Y.data(), LinvY.data(), GGT, basis.iGarr, Y.qnum->k, basis.gInfo->detR);
+	#endif
+	return LinvY;
+}
+
 
 // Overlap operator (scale by unit cell volume in PW basis)
 ColumnBundle O(const ColumnBundle &Y)

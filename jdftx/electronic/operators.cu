@@ -106,6 +106,19 @@ void reducedL_gpu(int nbasis, int ncols, const complex* Y, complex* LY,
 	gpuErrorCheck();
 }
 
+__global__
+void reducedLinv_kernel(int nbasis, int ncols, const complex* Y, complex* LinvY,
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
+{	int j = kernelIndex1D();
+	if(j<nbasis) reducedLinv_calc(j, nbasis, ncols, Y, LinvY, GGT, iGarr, k, detR);
+}
+void reducedLinv_gpu(int nbasis, int ncols, const complex* Y, complex* LinvY,
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
+{	GpuLaunchConfig1D glc(reducedLinv_kernel, nbasis);
+	reducedLinv_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, LinvY, GGT, iGarr, k, detR);
+	gpuErrorCheck();
+}
+
 
 __global__
 void precond_inv_kinetic_kernel(int nbasis, int ncols, const complex* Y, complex* KY, 

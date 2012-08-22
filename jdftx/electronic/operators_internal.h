@@ -58,6 +58,13 @@ __hostanddev__ void reducedL_calc(int j, int nbasis, int ncols, const complex* Y
 {	for (int i=0; i < ncols; i++)
 		LY[nbasis*i+j] = (-detR * GGT.metric_length_squared(iGarr[j]+k)) * Y[nbasis*i+j];
 }
+__hostanddev__ void reducedLinv_calc(int j, int nbasis, int ncols, const complex* Y, complex* LinvY,
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
+{	for (int i=0; i < ncols; i++)
+	{	double G2 = GGT.metric_length_squared(iGarr[j]+k);
+		LinvY[nbasis*i+j] = (G2 ? -1./(detR*G2) : 0.) * Y[nbasis*i+j];
+	}
+}
 
 __hostanddev__ void precond_inv_kinetic_calc(int j, int nbasis, int ncols, const complex* Ydata, complex* KYdata,
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)

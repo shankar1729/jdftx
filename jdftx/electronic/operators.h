@@ -72,6 +72,7 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V);
 ColumnBundle Pbar(const ColumnBundle &C,const ColumnBundle &Y); 
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
+ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
 ColumnBundle O(const ColumnBundle &Y); //!< Apply overlap 
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 

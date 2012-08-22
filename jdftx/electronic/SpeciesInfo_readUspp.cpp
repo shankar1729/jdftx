@@ -223,7 +223,7 @@ void SpeciesInfo::readUspp(istream& is)
 	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
 	int nGridNL = int(ceil(e->iInfo.GmaxNL/dGnl))+5;
 	
-	//Core denisty:
+	//Core density:
 	if(haveCore)
 	{	nCore.set(rGrid, drGrid);
 		for(int i=0; i<nGrid; i++)
