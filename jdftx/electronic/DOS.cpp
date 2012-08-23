@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/DataIO.h>
 #include <array>
-#include <CGAL/Plane_3.h>
 
 #ifdef TRIANGULATE_ENABLED
 #include <core/opt/Triangulate.h>
