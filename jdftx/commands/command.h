@@ -138,7 +138,8 @@ template<typename Enum> struct LinkDescription
 	//! Look name up in nameMap, and return the corresponding description in descMap
 	string operator()(const string& name) const
 	{	Enum type = Enum();
-		assert(nameMap.getEnum(name.c_str(), type));
+		bool nameFound = nameMap.getEnum(name.c_str(), type);
+		assert(nameFound);
 		return descMap.getString(type);
 	}
 };

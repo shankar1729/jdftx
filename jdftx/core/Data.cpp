@@ -38,7 +38,7 @@ Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
 	}
 	else
 	{	pData = fftw_malloc(nDoubles*sizeof(double));
-		if(!pData) assert(!"Memory allocation failed (out of memory)\n");
+		if(!pData) die("Memory allocation failed (out of memory)\n");
 	}
 }
 Data::~Data()
@@ -112,7 +112,7 @@ void Data::toCpu()
 {	if(!onGpu) return; //already on cpu
 	assert(isGpuMine()); //Cannot initiate GPU->CPU transfer from non-gpu-owner thread
 	complex* pDataCpu = (complex*)fftw_malloc(nDoubles*sizeof(double));
-	if(!pDataCpu) assert(!"Memory allocation failed (out of memory)\n");
+	if(!pDataCpu) die("Memory allocation failed (out of memory)\n");
 	cudaMemcpy(pDataCpu, pData, nDoubles*sizeof(double), cudaMemcpyDeviceToHost); gpuErrorCheck();
 	cudaFree(pData); gpuErrorCheck(); //Free GPU mem
 	pData = pDataCpu; //Make pData a cpu pointer

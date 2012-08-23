@@ -52,7 +52,7 @@ struct CommandWavefunction : public Command
 			"  <kdepOld>="+kdepMap.optionList()+" specifies whether the input wavefunction has a k-point dependent basis\n"
 			"     default: kpoint-dependent\n"
 			"  <N*old> specifies fftbox size of the input data when reading real-space wavefunctions\n"
-			"     the wavefunction will be appropriately up/down-sampled in Foruier space\n"
+			"     the wavefunction will be appropriately up/down-sampled in Fourier space\n"
 			"     default: 0 => old and current fftbox must match exactly";
 		hasDefault = false;
 		

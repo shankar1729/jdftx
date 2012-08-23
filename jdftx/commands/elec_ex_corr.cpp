@@ -205,8 +205,9 @@ EnumStringMap<int> xcMap_XC(
 
 //Get description by temporarily initializing functional:
 string getLibXCdescription(const string& name, const EnumStringMap<int>& map)
-{	int xcCode;
-	assert(map.getEnum(name.c_str(), xcCode));
+{	int xcCode = 0;
+	bool xcFound = map.getEnum(name.c_str(), xcCode);
+	assert(xcFound && xcCode);
 	xc_func_type func;
 	if(xc_func_init(&func, xcCode, XC_UNPOLARIZED) != 0)
 		die("Error obtaining description for LibXC functional %s.\n", name.c_str());

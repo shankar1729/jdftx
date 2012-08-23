@@ -73,7 +73,7 @@ void ManagedMemory::memInit(size_t nElem, bool ontoGpu)
 	}
 	else
 	{	c = (complex*)fftw_malloc(sizeof(complex)*nElements);
-		if(!c) assert(!"Memory allocation failed (out of memory)\n");
+		if(!c) die("Memory allocation failed (out of memory)\n");
 	}
 }
 
@@ -119,7 +119,7 @@ void ManagedMemory::toCpu()
 {	if(!onGpu || !c) return; //already on cpu, or no data
 	assert(isGpuMine());
 	complex* cCpu = (complex*)fftw_malloc(sizeof(complex)*nElements);
-	if(!cCpu) assert(!"Memory allocation failed (out of memory)\n");
+	if(!cCpu) die("Memory allocation failed (out of memory)\n");
 	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost); gpuErrorCheck();
 	cudaFree(c); gpuErrorCheck(); //Free GPU mem
 	c = cCpu; //Make c a cpu pointer
