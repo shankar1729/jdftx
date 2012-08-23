@@ -98,7 +98,7 @@ double Fex_H2O_Lischner10::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde
 	//Compute gaussian weighted densities:
 	DataRptr NObar = I(Ntilde[0]*fex_gauss), grad_NObar; nullToZero(grad_NObar, gInfo);
 	DataRptr NHbar = I(Ntilde[1]*fex_gauss), grad_NHbar; nullToZero(grad_NHbar, gInfo);
-	//Evaluated weighted denisty functional:
+	//Evaluated weighted density functional:
 	#ifdef GPU_ENABLED
 	DataRptr fex(DataR::alloc(gInfo,isGpuEnabled()));
 	Fex_H20_Lischner10_gpu(gInfo.nr, NObar->dataGpu(), NHbar->dataGpu(),

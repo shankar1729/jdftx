@@ -80,7 +80,7 @@ private:
 	double Nnorm; //!< If non-zero, constrain total number of molecules to be this value (constraint handled by fluidMixture)
 
 protected:
-	double Nbulk; //!< equilibirum denisty of this molecule in the bulk mixture
+	double Nbulk; //!< equilibirum density of this molecule in the bulk mixture
 	double mu; //!< chemical potential for this molecule
 	friend class FluidMixture; //!< FluidMixture::setPressure() adjusts Nbulk and mu to get target pressure and mole fractions
 };

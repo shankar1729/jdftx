@@ -1,6 +1,15 @@
 project(dft)
 
 cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.6.2)                                                                                                                                                                                                                                          
+if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" VERSION_GREATER 2.6)                                                                                                                                                                                                        
+	if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" VERSION_GREATER 2.8.3)                                                                                                                                                                             
+		cmake_policy(VERSION 2.8.4)                                                                                                                                                                                                                                                
+	else()                                                                                                                                                                                                                                                                       
+		cmake_policy(VERSION 2.6)                                                                                                                                                                                                                                                  
+	endif()                                                                                                                                                                                                                                                                      
+endif()
+
 enable_language (Fortran)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 
@@ -19,7 +28,7 @@ if(Subversion_FOUND)
         Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} ER)
         set(SUBVERSION_REVISION ${ER_WC_REVISION})
         message(STATUS "SVN revision number: ${SUBVERSION_REVISION}")
-endif(Subversion_FOUND)
+endif()
 
 find_package(LAPACK REQUIRED)
 
@@ -36,9 +45,25 @@ find_package(LIBXC)
 if(LIBXC_FOUND)
 	include_directories(${LIBXC_INCLUDE_DIR})
 	add_definitions("-DLIBXC_ENABLED")
-else(LIBXC_FOUND)
+else()
 	set(LIBXC_LIBRARY "")
-endif(LIBXC_FOUND)
+endif()
+
+find_package(CGAL QUIET COMPONENTS Core )
+if(CGAL_FOUND)
+	include(${CGAL_USE_FILE})
+	add_library(jdftxTriangulate SHARED core/opt/Triangulate.cpp)
+	if(CGAL_AUTO_LINK_ENABLED)
+		target_link_libraries(jdftxTriangulate ${CGAL_3RD_PARTY_LIBRARIES} )
+	else()
+		target_link_libraries(jdftxTriangulate ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
+    endif()
+    add_definitions("-DTRIANGULATE_ENABLED")
+	set(TRIANGULATE_LIBRARY "jdftxTriangulate")
+else()
+	message(WARNING "Density-of-states capability disabled due to missing Computational Geometry Algorithms Library (CGAL)")
+endif()
+
 
 #Process configuration information into config.h (with config.in.h as a template)
 configure_file(${CMAKE_SOURCE_DIR}/config.in.h ${CMAKE_BINARY_DIR}/config.h)
@@ -48,7 +73,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 option(EnableProfiling "Optionally enable profiling to determine ideal functions to optimize (for developers)")
 if(EnableProfiling)
 	add_definitions("-DENABLE_PROFILING")
-endif(EnableProfiling)
+endif()
 
 #Compilation flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-result -g -O3")
@@ -56,7 +81,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-result -g -O3")
 #----------------------- Regular CPU stuff ----------------
 
 #Set of libraries used by each target
-set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LIBRARY} ${GSL_LIBRARY} ${LAPACK_LIBRARIES} ${LIBXC_LIBRARY})
+set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LIBRARY} ${GSL_LIBRARY} ${LAPACK_LIBRARIES} ${LIBXC_LIBRARY} ${TRIANGULATE_LIBRARY})
 
 #Core Library:
 FILE(GLOB coreSources core/*.cpp)
@@ -131,7 +156,7 @@ if(CUDA_FOUND)
 	#Target properties for Gpu versions:
 	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES COMPILE_FLAGS "-std=c++0x -DGPU_ENABLED")
 
-endif(CUDA_FOUND)
+endif()
 
 #-----------------------------------------------------------------------------
 
@@ -145,7 +170,7 @@ if(DOXYGEN_FOUND)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                 COMMENT "Generating API documentation with Doxygen" VERBATIM
         )
-endif (DOXYGEN_FOUND)
+endif()
 
 #Additional test executables, mostly related to the fluid
 add_subdirectory(tests)

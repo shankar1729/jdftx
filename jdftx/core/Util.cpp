@@ -91,12 +91,15 @@ void sigErrorHandler(int sig)
 	gdbStackTraceExit(1);
 }
 
+static double startTime_us; //Time at which system was initialized in microseconds
+
 void initSystem(int argc, char** argv)
 {
 	//Print a welcome banner with useful information
 	printVersionBanner();
-	time_t timenow = time(0);
-	logPrintf("Start date and time: %s", ctime(&timenow)); //note ctime output has a "\n" at the end
+	time_t startTime = time(0);
+	startTime_us = clock_us();
+	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
 	char hostname[256]; gethostname(hostname, 256);
 	logPrintf("Running on host: %s\n", hostname);
 	logPrintf("Executable %s with ", argv[0]);
@@ -125,6 +128,25 @@ void initSystem(int argc, char** argv)
 	logPrintf("Will run with a maximum of %d cpu threads.\n", nProcsAvailable);
 }
 
+void finalizeSystem(bool successful)
+{
+	time_t endTime = time(0);
+	char* endTimeString = ctime(&endTime);
+	endTimeString[strlen(endTimeString)-1] = 0; //get rid of the newline in output of ctime
+	double durationSec = 1e-6*(clock_us() - startTime_us);
+	int durationDays = floor(durationSec/86400.); durationSec -= 86400.*durationDays;
+	int durationHrs  = floor(durationSec/3600.);  durationSec -= 3600.*durationHrs;
+	int durationMin  = floor(durationSec/60.);    durationSec -= 60.*durationMin;
+	logPrintf("End date and time: %s  (Duration: %d-%d:%02d:%05.2lf)\n",
+		endTimeString, durationDays, durationHrs, durationMin, durationSec);
+	
+	if(successful) logPrintf("Done!\n");
+	else
+	{	logPrintf("Failed.\n");
+		if(globalLog != stdout)
+			fprintf(stderr, "Failed.\n");
+	}
+}
 
 
 #ifdef ENABLE_PROFILING

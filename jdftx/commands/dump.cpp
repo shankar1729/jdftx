@@ -65,7 +65,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpSpinOrbit, "SpinOrbit",
 	DumpProjectors, "Projectors",
 	DumpWannier, "Wannier",
-	DumpOptVext, "optVext"
+	DumpOptVext, "optVext",
+	DumpDOS, "DOS"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -95,7 +96,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpSpinOrbit,      "Compute spin-orbit matrix elements [not in All]",
 	DumpProjectors,     "Compute PAW projectors [not in All]",
 	DumpWannier,        "Compute Maximally-Localized Wannier Functions (see wannier) [not in All]",
-	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]"
+	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
+	DumpDOS,            "Density of States (see density-of-states) [not in All]"
 );
 
 struct CommandDump : public Command

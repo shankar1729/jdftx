@@ -40,6 +40,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
 void printVersionBanner(); //!< Print package name, version, revision etc. to log
 void initSystem(int argc, char** argv); //!< Print banner, set up threads (play nice with job schedulers), GPU and signal handlers
+void finalizeSystem(bool successful=true); //!< Clean-up corresponding to initSystem() and final messages (depending on successful)
 
 //----------------- Profiling --------------------------
 
@@ -111,14 +112,9 @@ extern FILE* globalLog;
 #define logFlush() fflush(globalLog)
 #define die(...) \
 	{	fprintf(globalLog, __VA_ARGS__); \
-		time_t timenow = time(0); \
-		fprintf(globalLog, "\nEnd date and time: %s", ctime(&timenow)); \
-		fputs("Failed.\n", globalLog); \
 		if(globalLog != stdout) \
-		{	fprintf(stderr, __VA_ARGS__); \
-			fprintf(stderr, "\nEnd date and time: %s", ctime(&timenow)); \
-			fputs("Failed.\n", stderr); \
-		} \
+			fprintf(stderr, __VA_ARGS__); \
+		finalizeSystem(false); \
 		exit(1); \
 	}
 

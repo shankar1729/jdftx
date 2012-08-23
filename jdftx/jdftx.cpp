@@ -96,6 +96,7 @@ int main(int argc, char** argv, char** argp)
 	e.setup();
 	if(dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
+		finalizeSystem();
 		return 0;
 	}
 	
@@ -125,10 +126,7 @@ int main(int argc, char** argv, char** argp)
 	//Final dump:
 	e.dump(DumpFreq_End);
 	
-	time_t timenow = time(0);
-	logPrintf("\nEnd date and time: %s", ctime(&timenow));
-	logPrintf("Done!\n");
-	
+	finalizeSystem();
 	if(globalLog != stdout) fclose(globalLog);
 	return 0;
 }

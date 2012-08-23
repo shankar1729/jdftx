@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/operators.h>
 #include <electronic/ExactExchange.h>
+#include <electronic/DOS.h>
 #include <core/DataMultiplet.h>
 #include <sstream>
 
@@ -38,6 +39,16 @@ void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(wannier.group.size())
 		wannier.setup(everything);
+	
+	//Check if DOS calculator is needed:
+	if(!dos)
+	{	for(auto dumpPair: *this)
+			if(dumpPair.second == DumpDOS)
+			{	dos = std::make_shared<DOS>();
+				break;
+			}
+	}
+	if(dos) dos->setup(everything);
 }
 
 
@@ -47,6 +58,8 @@ void Dump::operator()(DumpFrequency freq)
 	const ElecVars &eVars = e->eVars;
 	const IonInfo &iInfo = e->iInfo;
 
+	bool isCevec = (freq==DumpFreq_Gummel) || (freq==DumpFreq_Ionic) || (freq==DumpFreq_End); //whether C has been set to eigenfunctions
+	
 	//Macro to determine which variables should be dumped:
 	//(Drop the "Dump" from the DumpVariables enum name to use as var)
 	#define ShouldDump(var) (  ShouldDumpNoAll(var) || count(std::make_pair(freq,DumpAll)) )
@@ -192,7 +205,7 @@ void Dump::operator()(DumpFrequency freq)
 		if(eVars.fluidSolver)
 			eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
 	
-	if(ShouldDump(QMC)) dumpQMC();
+	if(ShouldDump(QMC) && isCevec) dumpQMC();
 
 	//----------------- The following are not included in 'All' -----------------------
 	
@@ -283,6 +296,10 @@ void Dump::operator()(DumpFrequency freq)
 			DUMP(eVars.Vexternal[1], "optVextDn", OptVext)
 		}
 		else DUMP(eVars.Vexternal[0], "optVext", OptVext)
+	}
+	
+	if(ShouldDumpNoAll(DOS))
+	{	dos->dump();
 	}
 }
 

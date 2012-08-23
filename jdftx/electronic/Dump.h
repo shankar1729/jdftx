@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/Wannier.h>
 #include <set>
+#include <memory>
 
 //! Dump frequency options:
 enum DumpFrequency
@@ -44,7 +45,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs,
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
-	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext,
+	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext, DumpDOS,
 	DumpDelim //special value used as a delimiter during command processing
 };
 
@@ -64,6 +65,7 @@ public:
 	bool shouldDump(DumpFrequency freq, int iter) const; //!< whether dump of a particular frequency should happen at a given iteration
 
 	Wannier wannier; //!< wannier function calculator
+	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.

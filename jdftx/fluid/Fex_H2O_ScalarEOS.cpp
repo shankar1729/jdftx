@@ -54,7 +54,7 @@ void Fex_H20_ScalarEOS_gpu(int nr, const double* Nbar, double* Fex, double* grad
 double Fex_H2O_ScalarEOS::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const
 {	//Compute LJatt weighted density:
 	DataRptr Nbar = I(Ntilde[0]*fex_LJatt), grad_Nbar; nullToZero(grad_Nbar, gInfo);
-	//Evaluated weighted denisty functional:
+	//Evaluated weighted density functional:
 	DataRptr Aex(DataR::alloc(gInfo,isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	Fex_H20_ScalarEOS_gpu(gInfo.nr, Nbar->dataGpu(), Aex->dataGpu(), grad_Nbar->dataGpu(), *eval);
