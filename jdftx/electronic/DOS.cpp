@@ -251,8 +251,10 @@ struct EvalDOS
 		cspline.insert(combined.begin(), combined.end());
 	}
 	
-	typedef std::vector< std::pair<double, std::vector<double> > > Lspline; //set of linear splines (energies, and vector of DOS values for each weight function)
-
+	typedef std::pair<double, std::vector<double> > LsplineElem;
+	typedef std::vector<LsplineElem> Lspline; //set of linear splines (energies, and vector of DOS values for each weight function)
+	static bool LsplineCmp(const LsplineElem& l1, const LsplineElem& l2) { return l1.first < l2.first; }
+	
 	//Convert cubic splines to integrated linear splines which handle discontinuities and singularities better:
 	//The Cspline object must be coalesced before passing to this function
 	Lspline convertLspline(const Cspline& cspline) const
@@ -285,7 +287,11 @@ struct EvalDOS
 			}
 		}
 		//Include contributions from deltas:
-		//TODO
+		for(const LsplineElem& delta: cspline.deltas)
+		{	Lspline::iterator lIter = std::lower_bound(lspline.begin(), lspline.end(), delta, LsplineCmp);
+			for(int i=0; i<nWeights; i++)
+				lIter->second[i] += delta.second[i];
+		}
 		//Convert interval integrals to linear spline coefficients:
 		for(unsigned j=0; j<lspline.size(); j++)
 		{	double eStart = (j==0) ? lspline[j].first : lspline[j-1].first;
@@ -317,12 +323,8 @@ struct EvalDOS
 		}
 		assert(cIter == combined.end());
 		//Collect contributions from each linear spline:
-		struct LsplineCmp
-		{	typedef std::pair<double, std::vector<double> > LsplineElem;
-			bool operator()(const LsplineElem& l1, const LsplineElem& l2) { return l1.first < l2.first; }
-		};
 		for(const Lspline& lspline: lsplines)
-		{	Lspline::iterator cIter = std::upper_bound(combined.begin(), combined.end(), lspline.front(), LsplineCmp());
+		{	Lspline::iterator cIter = std::upper_bound(combined.begin(), combined.end(), lspline.front(), LsplineCmp);
 			cIter--; //Now this points to the second of the duplicate entries for the starting energy
 			double eStop = lspline.back().first; //end energy of current input spline
 			Lspline::const_iterator leftIter = lspline.begin();
@@ -543,7 +545,7 @@ void DOS::dump()
 			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 				eval.w(iWeight, iState, iBand) = weightFuncs[iWeight]
 					? e->gInfo.dV * dot(weightFuncs[iWeight], n) //mode with explicit wieght function
-					: 1.; //Total DOS
+					: F[0]; //Total DOS
 		}
 	}
 	eval.weldEigenvalues();
