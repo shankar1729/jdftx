@@ -305,12 +305,37 @@ struct EvalDOS
 	//Collect contributions from multiple linear splines (one for each band)
 	Lspline mergeLsplines(const std::vector<Lspline>& lsplines) const
 	{	//Collect list of energy nodes and interval boundaries:
-		std::set<double> eSet, boundarySet;
+		std::set<double> eSet, leftBoundarySet, rightBoundarySet;
 		for(const Lspline& lspline: lsplines)
-		{	boundarySet.insert(lspline.front().first);
-			boundarySet.insert(lspline.back().first);
+		{	leftBoundarySet.insert(lspline.front().first);
+			rightBoundarySet.insert(lspline.back().first);
 			for(unsigned j=0; j<lspline.size(); j++)
 				eSet.insert(lspline[j].first);
+		}
+		std::set<double> boundarySet; //points that are in left or right boundaries, but not both
+		std::set_symmetric_difference( //this eliminates edge-discontinuities in DOS from bands that meet at one energy
+			leftBoundarySet.begin(), leftBoundarySet.end(),
+			rightBoundarySet.begin(), rightBoundarySet.end(),
+			std::inserter(boundarySet, boundarySet.end()) );
+		//Compute merging weights for the left and right boundary weights:
+		std::map<double,double> startScale, stopScale;
+		for(double e: leftBoundarySet)
+		{	if(boundarySet.count(e)) startScale[e] = 1.; //unmerged boundary
+			else //merge weighted by interval length (preserves integral under trapezoidal rule):
+			{	auto eIter = eSet.find(e);
+				auto eIterMinus = eIter; eIterMinus--; double eMinus = *eIterMinus;
+				auto eIterPlus = eIter; eIterPlus++; double ePlus = *eIterPlus;
+				startScale[e] = (ePlus-e) / (ePlus-eMinus);
+			}
+		}
+		for(double e: rightBoundarySet)
+		{	if(boundarySet.count(e)) stopScale[e] = 1.; //unmerged boundary
+			else //merge weighted by interval length (preserves integral under trapezoidal rule):
+			{	auto eIter = eSet.find(e);
+				auto eIterMinus = eIter; eIterMinus--; double eMinus = *eIterMinus;
+				auto eIterPlus = eIter; eIterPlus++; double ePlus = *eIterPlus;
+				stopScale[e] = (e-eMinus) / (ePlus-eMinus);
+			}
 		}
 		//Create output linear spline with duplicate nodes for each boundary node (to represent discontinuities)
 		Lspline combined(eSet.size() + boundarySet.size(), std::make_pair(0., std::vector<double>(nWeights,0.)));
@@ -324,19 +349,25 @@ struct EvalDOS
 		//Collect contributions from each linear spline:
 		for(const Lspline& lspline: lsplines)
 		{	Lspline::iterator cIter = std::upper_bound(combined.begin(), combined.end(), lspline.front(), LsplineCmp);
-			cIter--; //Now this points to the second of the duplicate entries for the starting energy
+			cIter--; //Now this points to the last of the possibly duplicate entries for the starting energy
+			double eStart = lspline.front().first; //start energy of current input spline
 			double eStop = lspline.back().first; //end energy of current input spline
 			Lspline::const_iterator leftIter = lspline.begin();
 			Lspline::const_iterator rightIter = leftIter + 1;
+			double e = eStart;
 			while(true)
-			{	double t = (cIter->first - leftIter->first) / (rightIter->first - leftIter->first);
+			{	double t = (e - leftIter->first) / (rightIter->first - leftIter->first);
+				double endpointScale = 1.;
+				if(e == eStart) endpointScale = startScale[eStart];
+				if(e == eStop) endpointScale = stopScale[eStop];
 				for(int i=0; i<nWeights; i++)
-					cIter->second[i] += (1.-t) * leftIter->second[i] + t * rightIter->second[i];
+					cIter->second[i] += endpointScale * ((1.-t) * leftIter->second[i] + t * rightIter->second[i]);
 				//Check for end of input spline:
-				if(cIter->first == eStop) break; //note this ends at the earlier of the duplicate entries for the ending energy
+				if(e == eStop) break; //note this ends at the first of the possibly duplicate entries for the ending energy
 				//Advance and update input interval if required:
 				cIter++;
-				if(cIter->first > rightIter->first)
+				e = cIter->first;
+				if(e > rightIter->first)
 				{	leftIter++;
 					rightIter++;
 				}
@@ -413,7 +444,7 @@ struct EvalDOS
 			int iGdotd = dot(iG, d);
 			if(iGsq * dSq == iGdotd * iGdotd) // => iG || d (Cauchy-Schwarz)
 			{	double GR = R * sqrt(GGT.metric_length_squared(iG));
-				w[i] = prefac * cis(-dot(iG,r0)) * bessel_jl(0,GR);
+				w[i] = prefac * cis(-(2.*M_PI)*dot(iG,r0)) * bessel_jl(0,GR);
 			}
 			else w[i] = 0.;
 		)
@@ -426,7 +457,7 @@ struct EvalDOS
 		double prefac = (4./3)*M_PI * pow(R,3) / cellVolume;
 		THREAD_halfGspaceLoop
 		(	double GR = R * sqrt(GGT.metric_length_squared(iG));
-			w[i] = prefac * cis(-dot(iG,r0)) * (bessel_jl(0,GR) + bessel_jl(2,GR));
+			w[i] = prefac * cis(-(2.*M_PI)*dot(iG,r0)) * (bessel_jl(0,GR) + bessel_jl(2,GR));
 		)
 	}
 };
