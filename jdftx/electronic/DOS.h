@@ -28,9 +28,18 @@ class DOS
 {
 public:
 	
+	
 	//! Weight-function definition
 	struct Weight
-	{	//!Weight-function type
+	{	
+		//!Treatment of band/state fillings
+		enum FillingMode
+		{	Complete, //!< Do not weight density of states by fillings
+			Occupied, //!< Weight density of states by fillings
+		};
+		FillingMode fillingMode; //!< treatment of band/state fillings
+		
+		//!Weight-function type
 		enum Type
 		{	Total, //!< total density of states in unit cell
 			Slice, //!< density of states within an arbitrary planar slice
@@ -38,10 +47,9 @@ public:
 			AtomSlice, //!< density of states in a planar slice centered on an atom
 			AtomSphere, //!< density of states in a sphere centered on an atom
 			File, //!< density of states with an arbitrary weight function read from a file
-			Delim //!< delimiter used by command parser (not a valid weight type)
 		};
-		
 		Type type; //!< weight function type
+		
 		vector3<int> direction; //!< lattice plane specification for slice mode
 		
 		vector3<> center; //!< center of slice/sphere in lattice coordinates
@@ -50,11 +58,12 @@ public:
 		size_t specieIndex; //!< Specie index for atom-centered modes
 		size_t atomIndex; //!< Atom index for atom-centered modes
 		
-		string filename; //!< Weight-function filename
+		string filename; //!< Weight-function input filename for File mode
+		
+		string getDescription(const Everything&) const; //!< return a descriptive string
 	};
 	
 	std::vector<Weight> weights; //!< list of weight functions (default: total DOS only)
-	bool occupied; //!< whether to weight the density of states by fillings (default: no)
 	double Etol; //!< tolerance for identifying eigenvalues (energy resolution) (default: 1e-6)
 	
 	DOS();

@@ -34,7 +34,7 @@ struct CommandDensityOfStates : public Command
 {
 	CommandDensityOfStates() : Command("density-of-states")
 	{
-		format = "[<occupied>=" + boolMap.optionList() + "] [<Etol>=1e-6] [<weightType1> ...] [<weightType2> ...] ...";
+		format = "[<key1> ...] [<key2> ...] [<key3> ...] ... ";
 		comments =
 			"Compute density of states. The results are printed to a text file\n"
 			"with name corresponding to variable name 'dos' (see dump-name).\n"
@@ -44,13 +44,9 @@ struct CommandDensityOfStates : public Command
 			"in the same order that they appear in this command, with the energy\n"
 			"in the first column. The energy is in Hartrees, and the density of\n"
 			"states is in electrons/UnitCell/Hartree.\n"
-			"   Compute occupied density of states if <occupied> = yes, and total\n"
-			"density of states otherwise. <Etol> specifies the resolution in energy\n"
-			"within which eigenvalues are identified, and is used as the band width\n"
-			"for Gamma-point only calculations. The remaining arguments list the\n"
-			"weight functions, and each function is specified by a mode followed\n"
-			"by arguments specific to that mode. The available modes and their\n"
-			"arguments are:\n"
+			"   This command is organized into subcommands, each with a keyword\n"
+			"followed by subcommand-specific arguments. The keywords that lead to a\n"
+			"column in the output file (various weighting modes) and arguments are:\n"
 			"   Total\n"
 			"      Compute the total density of states (no arguments)\n"
 			"   Slice  <c0> <c1> <c2>   <r>   <i0> <i1> <i2>\n"
@@ -65,17 +61,26 @@ struct CommandDensityOfStates : public Command
 			"      Like Slice mode, with center located at atom number <atomIndex>\n"
 			"      (1-based index, in input file order) of species name <species>.\n"
 			"   AtomSphere  <species> <atomIndex>   <r>\n"
-			"      Like Sphere mode, with center located at atom number <atomIndex>\n"
-			"      (1-based index, in input file order) of species name <species>.\n"
+			"      Like Sphere mode, but centered on an atom (specified as in AtomSlice)\n"
 			"   File <filename>\n"
 			"      Arbitrary real-space weight function read from file <filename>.\n"
 			"      (double-precision binary, same format as electron density output)\n"
 			"      A file with all 1.0's would yield the same result as mode Total.\n"
 			"Any number of weight functions may be specified; only the total density\n"
-			"of states is output if no weight functions are specified. By default,\n"
-			"dumping occurs only at end of calculation, but this may be altered by\n"
-			"explicitly including DOS in a dump command of appropriate frequency.\n"
-			"(see command dump).";
+			"of states is output if no weight functions are specified. Other flags\n"
+			"that control aspects of the density of states computation are:\n"
+			"   Etol <Etol>\n"
+			"      Resolution in energy within which eigenvalues are identified,\n"
+			"      and is used as the band width for Gamma-point only calculations.\n"
+			"      This flag affects all columns of output, and is 1e-6 by default.\n"
+			"   Occupied\n"
+			"      All subsequent columns are occupied density of states, that is\n"
+			"      they are weighted by the band fillings.\n"
+			"   Complete\n"
+			"      All subsequent columns are complete density of states, that is\n"
+			"      they do not depend on band fillings: this is the default mode.\n"
+			"This command adds DOS to dump-frequency End, but this may be altered\n"
+			"within a dump command of appropriate frequency (see command dump).";
 		hasDefault = false;
 		
 		require("ion"); //This ensures that this command is processed after all ion commands 
@@ -83,15 +88,28 @@ struct CommandDensityOfStates : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	e.dump.dos = std::make_shared<DOS>();
+	{	e.dump.insert(std::make_pair(DumpFreq_End, DumpDOS)); //Add DOS to dump-ferequency End
+		e.dump.dos = std::make_shared<DOS>();
 		DOS& dos = *(e.dump.dos);
-		pl.get(dos.occupied, false, boolMap, "occupied");
-		pl.get(dos.Etol, 1e-6, "Etol");
-		//Check for weight functions:
+		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
+		//Process subcommands:
 		while(true)
-		{	DOS::Weight weight;
-			pl.get(weight.type, DOS::Weight::Delim, weightTypeMap, "weightType");
-			if(weight.type==DOS::Weight::Delim) break; //end of input
+		{	//Get the keyword:
+			string key; pl.get(key, string(), "key");
+			if(!key.length())
+				break; //end of command
+			
+			//Check if it is a flag:
+			if(key == "Etol") { pl.get(dos.Etol, 0., "Etol", true); continue; }
+			if(key == "Occupied") { fillingMode = DOS::Weight::Occupied; continue; }
+			if(key == "Complete") { fillingMode = DOS::Weight::Complete; continue; }
+			
+			//Otherwise it should be a weight function:
+			DOS::Weight weight;
+			weight.fillingMode = fillingMode;
+			if(!weightTypeMap.getEnum(key.c_str(), weight.type))
+				throw "'"+key+"' is not a valid subcommand of density-of-states.";
+			
 			//Get center coordinates for Slice or Sphere mode:
 			if(weight.type==DOS::Weight::Slice || weight.type==DOS::Weight::Sphere)
 			{	vector3<> center;
@@ -100,7 +118,7 @@ struct CommandDensityOfStates : public Command
 				pl.get(center[2], 0., "c2", true);
 				weight.center = (e.iInfo.coordsType==CoordsCartesian) ? inv(e.gInfo.R) * center : center; //internally store in lattice coordinates
 			}
-			//Get species and atom index for AtomSlice or AtomSphere mode
+			//Get species and atom index for all atom-centered modes:
 			if(weight.type==DOS::Weight::AtomSlice || weight.type==DOS::Weight::AtomSphere)
 			{	//Find specie:
 				string spName; pl.get(spName, string(), "species", true);
@@ -146,18 +164,24 @@ struct CommandDensityOfStates : public Command
 			}
 			dos.weights.push_back(weight);
 		}
-		e.dump.insert(std::make_pair(DumpFreq_End, DumpDOS)); //dump at end
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	assert(e.dump.dos);
 		DOS& dos = *(e.dump.dos);
-		logPrintf("%s", boolMap.getString(dos.occupied));
-		for(const DOS::Weight& weight: dos.weights)
-		{	logPrintf(" \\\n\t%s", weightTypeMap.getString(weight.type));
+		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
+		logPrintf("Etol %le", dos.Etol);
+		for(unsigned iWeight=0; iWeight<dos.weights.size(); iWeight++)
+		{	const DOS::Weight& weight = dos.weights[iWeight];
+			//Check for changed filling mode:
+			if(iWeight==0 || weight.fillingMode != fillingMode)
+			{	fillingMode = weight.fillingMode;
+				logPrintf(" \\\n\t\t%s", fillingMode==DOS::Weight::Complete ? "Complete" : "Occupied");
+			}
+			//Output weight function subcommand:
+			logPrintf(" \\\n\t%s", weightTypeMap.getString(weight.type));
 			switch(weight.type)
 			{	case DOS::Weight::Total:
-				case DOS::Weight::Delim: //never encountered, just to suppress compiler warning
 					break; //no arguments
 				case DOS::Weight::Slice:
 				case DOS::Weight::Sphere:

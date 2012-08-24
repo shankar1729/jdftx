@@ -29,18 +29,48 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/opt/Triangulate.h>
 #endif
 
-DOS::DOS() : occupied(false), Etol(1e-6)
+DOS::DOS() : Etol(1e-6)
 {
 }
 
 void DOS::setup(const Everything& everything)
 {	e = &everything;
 	if(!weights.size()) //Add the default of just total density of states:
-	{	Weight weight; weight.type = Weight::Total;
+	{	Weight weight;
+		weight.type = Weight::Total;
+		weight.fillingMode = Weight::Complete;
 		weights.push_back(weight);
 	}
 }
 
+string DOS::Weight::getDescription(const Everything& e) const
+{	ostringstream oss;
+	if(type==Total) oss << "Total";
+	if(type==Slice || type==AtomSlice)
+		oss << "(" << direction[0] << "," << direction[1] << "," << direction[2] << ") slice of half-width ";
+	if(type==Sphere || type==AtomSphere) oss << "Sphere of radius ";
+	if(type==Slice || type==AtomSlice || type==Sphere || type==AtomSphere)
+		oss << radius << " bohr at ";
+	if(type==Sphere || type==Slice)
+	{	vector3<> c;
+		if(e.iInfo.coordsType == CoordsLattice)
+		{	c = center;
+			oss << "lattice";
+		}
+		else
+		{	c = e.gInfo.invR * center;
+			oss << "cartesian";
+		}
+		oss << " (" << c[0] << "," << c[1] << "," << c[2] << ")";
+	}
+	if(type==AtomSphere || type==AtomSlice)
+		oss << e.iInfo.species[specieIndex]->name << " #" << (atomIndex+1);
+	if(type==File)
+		oss << "Weighted by '" << filename << "'";
+	if(fillingMode == Occupied)
+		oss << " (Occupied)";
+	return oss.str();
+}
 
 #ifdef TRIANGULATE_ENABLED
 
@@ -401,13 +431,16 @@ struct EvalDOS
 	}
 	
 	//Write the density of states to a file, for a given state offset:
-	void printDOS(int stateOffset, string filename)
+	void printDOS(int stateOffset, string filename, string header)
 	{	logPrintf("Dumping '%s' ... ", filename.c_str()); logFlush();
 		//Compute DOS:
 		Lspline wdos = getDOS(stateOffset);
 		//Output DOS:
 		FILE* fp = fopen(filename.c_str(), "w");
 		if(!fp) die("Could not open '%s' for writing.\n", filename.c_str());
+		//Header:
+		fprintf(fp, "%s\n", header.c_str());
+		//Data:
 		for(Lspline::const_iterator iter=wdos.begin(); iter!=wdos.end(); iter++)
 		{	fprintf(fp, "%.15le", iter->first); 
 			for(int i=0; i<nWeights; i++)
@@ -557,7 +590,6 @@ void DOS::dump()
 				loadRawBinary(weightFunc, weight.filename.c_str());
 				break;
 			}
-			case Weight::Delim: break; //never encountered, just to suppress compiler warning
 		}
 	}
 	
@@ -565,7 +597,7 @@ void DOS::dump()
 	for(int iState=0; iState<eInfo.nStates; iState++)
 	{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
 		{	ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
-			diagMatrix F(1, occupied ? e->eVars.F[iState][iBand] : 1.); //weight by filling if occupied, by 1 if total
+			diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 			//Store the eigenvalue for this state and band:
 			eval.e(iState, iBand) = e->eVars.Hsub_eigs[iState][iBand];
 			//Compute the density for this state and band:
@@ -573,16 +605,26 @@ void DOS::dump()
 			e->iInfo.augmentDensity(F, C, n); //pseudopotential contribution
 			//Compute the weights:
 			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-				eval.w(iWeight, iState, iBand) = weightFuncs[iWeight]
+			{	double completeWeight
+					= weightFuncs[iWeight]
 					? e->gInfo.dV * dot(weightFuncs[iWeight], n) //mode with explicit wieght function
 					: F[0]; //Total DOS
+				double fillingsWeight
+					= (weights[iWeight].fillingMode == Weight::Complete)
+					? 1.
+					: e->eVars.F[iState][iBand];
+				eval.w(iWeight, iState, iBand) = completeWeight * fillingsWeight;
+			}
 		}
 	}
 	eval.weldEigenvalues();
 	
 	//Compute and print density of states:
+	string header = "\"Energy\"";
+	for(const Weight& weight: weights)
+		header += ("\t\"" + weight.getDescription(*e) + "\"");
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
-		eval.printDOS(iSpin*qCount, e->dump.getFilename(nSpins==1 ? "dos" : (iSpin==0 ? "dosUp" : "dosDn")));
+		eval.printDOS(iSpin*qCount, e->dump.getFilename(nSpins==1 ? "dos" : (iSpin==0 ? "dosUp" : "dosDn")), header);
 }
 
 #else // TRIANGULATE_ENABLED
