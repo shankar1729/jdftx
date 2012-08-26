@@ -73,7 +73,7 @@ namespace FhiFile
 			return RVR.transform(0, 0.)/(4*M_PI); //the l=0, G=0 bessel transform is just the integral
 		}
 		
-		//!Get the radial wavefunction on the logPrintf grid:
+		//!Get the radial wavefunction on the log grid:
 		RadialFunctionR getPsi() const
 		{	RadialFunctionR psi(r, dlogr);
 			psi.f = R;

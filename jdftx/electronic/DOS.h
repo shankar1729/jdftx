@@ -47,6 +47,7 @@ public:
 			AtomSlice, //!< density of states in a planar slice centered on an atom
 			AtomSphere, //!< density of states in a sphere centered on an atom
 			File, //!< density of states with an arbitrary weight function read from a file
+			Orbital //!< atomic-orbital projected density of states
 		};
 		Type type; //!< weight function type
 		
@@ -59,6 +60,13 @@ public:
 		size_t atomIndex; //!< Atom index for atom-centered modes
 		
 		string filename; //!< Weight-function input filename for File mode
+		
+		struct OrbitalDesc
+		{	int l, m; unsigned n; //!< pseudo-atom quantum numbers (m = l+1 is used to signify total l-contribution)
+			void parse(string desc); //!< set values from a string (throws a string exception on invalid input)
+			operator string() const; //!< convert to a string description
+		};
+		OrbitalDesc orbitalDesc;
 		
 		string getDescription(const Everything&) const; //!< return a descriptive string
 	};

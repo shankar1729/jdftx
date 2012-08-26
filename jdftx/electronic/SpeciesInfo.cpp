@@ -348,6 +348,7 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
 void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 {	if(!atpos.size()) return;
+	assert(Y.basis); assert(Y.qnum);
 	const Basis& basis = *Y.basis;
 	int iCol = colOffset; //current column
 	for(int l=0; l<int(psiRadial.size()); l++)
@@ -362,11 +363,33 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 			}
 		}
 }
+void SpeciesInfo::setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const
+{	//Check inputs:
+	assert(Y.basis); assert(Y.qnum);
+	assert(col >= 0); assert(col < Y.nCols());
+	assert(iAtom < atpos.size());
+	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
+	assert(n < psiRadial[l].size());
+	assert(m >= -l); assert(m <= l);
+	//Call Vnl() to set the column:
+	const Basis& basis = *Y.basis;
+	size_t offs = col * basis.nbasis;
+	size_t atomStride = basis.nbasis;
+	callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
+		atposPref+iAtom, psiRadial[l][n], Y.dataPref()+offs, false, vector3<complex*>());
+}
 int SpeciesInfo::nAtomicOrbitals() const
 {	int nOrbitals = 0;
 	for(int l=0; l<int(psiRadial.size()); l++)
 		nOrbitals += (2*l+1)*psiRadial[l].size();
 	return nOrbitals * atpos.size();
+}
+int SpeciesInfo::lMaxAtomicOrbitals() const
+{	return int(psiRadial.size()) - 1;
+}
+int SpeciesInfo::nAtomicOrbitals(int l) const
+{	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
+	return psiRadial[l].size();
 }
 
 // Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m

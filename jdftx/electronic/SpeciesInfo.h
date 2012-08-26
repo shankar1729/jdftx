@@ -67,9 +67,13 @@ public:
 	void augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
 		ColumnBundle& HCq, std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
 	
-	//! Calculate atomic orbitals (store in C with an optional column offset)
+	//! Calculate atomic orbitals (store in Y with an optional column offset)
 	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
+	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
+	void setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const;
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
+	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
+	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
 	
 	//! Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
 	void writeProjectors(const ColumnBundle& Cq, FILE* fp) const;

@@ -133,6 +133,7 @@ void SpeciesInfo::readPot(istream& in)
 				if(temp != lInfoMap[temp.l])
 					die("Pseudopotential breaks spherical symmetry at l=%d (info is m-dependent).\n", temp.l);
 		}
+		if(lMax>3) die("Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
 		//Now read the radial functions for each l (have ensured no m dependence)
 		VnlRadial.resize(lMax+1);
 		Mnl.resize(lMax+1);

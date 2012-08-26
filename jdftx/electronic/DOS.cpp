@@ -41,6 +41,22 @@ void DOS::setup(const Everything& everything)
 		weight.fillingMode = Weight::Complete;
 		weights.push_back(weight);
 	}
+	//Check compatibility of orbital modes with pseudopotentials:
+	for(const Weight& weight: weights)
+		if(weight.type == Weight::Orbital)
+		{	const SpeciesInfo& sp = *(e->iInfo.species[weight.specieIndex]);
+			const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
+			int lMax = sp.lMaxAtomicOrbitals();
+			if(lMax < 0)
+				die("Species %s has no atomic orbitals and cannot be used for orbital-projected density of states.\n", sp.name.c_str());
+			if(oDesc.l > lMax)
+				die("Angular momentum of density-of-states projection orbital %s exceeds lMax=%d of species %s.\n",
+					string(oDesc).c_str(), lMax, sp.name.c_str());
+			int nAOl = sp.nAtomicOrbitals(oDesc.l);
+			if(oDesc.n >= unsigned(nAOl))
+				die("Principal quantum number (%d) of density-of-states projection orbital %s exceeds maximum value (%d) for l=%d of species %s.\n",
+					oDesc.n+1, string(oDesc).c_str(), nAOl, oDesc.l, sp.name.c_str());
+		}
 }
 
 string DOS::Weight::getDescription(const Everything& e) const
@@ -51,6 +67,8 @@ string DOS::Weight::getDescription(const Everything& e) const
 	if(type==Sphere || type==AtomSphere) oss << "Sphere of radius ";
 	if(type==Slice || type==AtomSlice || type==Sphere || type==AtomSphere)
 		oss << radius << " bohr at ";
+	if(type==Orbital)
+		oss << orbitalDesc << " orbital at ";
 	if(type==Sphere || type==Slice)
 	{	vector3<> c;
 		if(e.iInfo.coordsType == CoordsLattice)
@@ -63,12 +81,65 @@ string DOS::Weight::getDescription(const Everything& e) const
 		}
 		oss << " (" << c[0] << "," << c[1] << "," << c[2] << ")";
 	}
-	if(type==AtomSphere || type==AtomSlice)
+	if(type==AtomSphere || type==AtomSlice || type==Orbital)
 		oss << e.iInfo.species[specieIndex]->name << " #" << (atomIndex+1);
 	if(type==File)
 		oss << "Weighted by '" << filename << "'";
 	if(fillingMode == Occupied)
 		oss << " (Occupied)";
+	return oss.str();
+}
+
+//Connection between string representations of orbitals and (l,m) pairs:
+const EnumStringMap< std::pair<int,int> >& getOrbitalDescMap()
+{	static EnumStringMap< std::pair<int,int> > orbitalDescMap
+	(	std::make_pair(0,0), "s",
+		std::make_pair(1,-1), "py",
+		std::make_pair(1, 0), "pz",
+		std::make_pair(1, 1), "px",
+		std::make_pair(1,2), "p",
+		std::make_pair(2,-2), "dxy",
+		std::make_pair(2,-1), "dyz",
+		std::make_pair(2, 0), "dz2",
+		std::make_pair(2, 1), "dxz",
+		std::make_pair(2, 2), "dx2-y2",
+		std::make_pair(2,3), "d",
+		std::make_pair(3,-3), "fy(3x2-y2)",
+		std::make_pair(3,-2), "fxyz",
+		std::make_pair(3,-1), "fyz2",
+		std::make_pair(3, 0), "fz3",
+		std::make_pair(3, 1), "fxz2",
+		std::make_pair(3, 2), "fz(x2-y2)",
+		std::make_pair(3, 3), "fx(x2-3y2)",
+		std::make_pair(3,4), "f"
+	);
+	return orbitalDescMap;
+}
+
+void DOS::Weight::OrbitalDesc::parse(string desc)
+{	//Extract the principal quantum number:
+	size_t orbStart = desc.find_first_not_of("0123456789");
+	if(orbStart)
+	{	int nPlus1 = atoi(desc.substr(0, orbStart).c_str());
+		if(nPlus1<=0) throw string("Principal quantum number in orbital description must be a positive integer");
+		n = nPlus1 - 1;
+	}
+	else n = 0;
+	//Get l and m from the textual description:
+	if(orbStart == string::npos)
+		throw "Orbital description '" + desc + "' does not have an orbital code.";
+	string orbCode = desc.substr(orbStart);
+	std::pair<int,int> lmPair;
+	if(!getOrbitalDescMap().getEnum(orbCode.c_str(), lmPair))
+		throw "'" + orbCode + "' is not a valid orbital code for an orbital description.";
+	l = lmPair.first;
+	m = lmPair.second;
+}
+
+DOS::Weight::OrbitalDesc::operator string() const
+{	ostringstream oss;
+	if(n>0) oss << (n+1); //optional pseudo-principal quantum number 
+	oss << getOrbitalDescMap().getString(std::make_pair(l,m));
 	return oss.str();
 }
 
@@ -555,16 +626,21 @@ void DOS::dump()
 	for(EvalDOS::Tetrahedron& t: eval.tetrahedra)
 		t.V *= VnormFac; //normalize volume of tetrahedra to add up to 2/nSpins
 	
-	//Compute the weight functions on the real-space grid:
+	//Set uniform weights for Total mode:
+	for(int iState=0; iState<eInfo.nStates; iState++)
+		for(int iBand=0; iBand<eInfo.nBands; iBand++)
+			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+				if(weights[iWeight].type == Weight::Total)
+					eval.w(iWeight, iState, iBand) = 1.;
+	
+	//Compute the weight functions on the real-space grid for weighted-density modes:
 	std::vector<DataRptr> weightFuncs(weights.size());
+	bool needDensity = false; //check if any of the modes need the density
 	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 	{	Weight& weight = weights[iWeight];
 		DataRptr& weightFunc = weightFuncs[iWeight];
 		switch(weight.type)
-		{	case Weight::Total:
-				weightFunc = 0; //uniform weights, no field needed
-				break;
-			case Weight::Slice:
+		{	case Weight::Slice:
 			case Weight::Sphere:
 			case Weight::AtomSlice:
 			case Weight::AtomSphere:
@@ -583,40 +659,70 @@ void DOS::dump()
 						wData, weight.center, weight.radius, fabs(gInfo.detR));
 				//Store weight function in real space:
 				weightFunc = I(weightFuncTilde, true);
+				needDensity = true;
 				break;
 			}
 			case Weight::File:
 			{	nullToZero(weightFunc, e->gInfo);
 				loadRawBinary(weightFunc, weight.filename.c_str());
+				needDensity = true;
+				break;
+			}
+			default: //Total and orbital modes do not weight the density:
+			{	weightFunc = 0;
 				break;
 			}
 		}
 	}
-	
-	//Compute the overlap of the density for each states and band, with each of the weight functions:
-	for(int iState=0; iState<eInfo.nStates; iState++)
-	{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
-		{	ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
-			diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
-			//Store the eigenvalue for this state and band:
-			eval.e(iState, iBand) = e->eVars.Hsub_eigs[iState][iBand];
-			//Compute the density for this state and band:
-			DataRptr n = diagouterI(F, C);
-			e->iInfo.augmentDensity(F, C, n); //pseudopotential contribution
-			//Compute the weights:
-			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-			{	double completeWeight
-					= weightFuncs[iWeight]
-					? e->gInfo.dV * dot(weightFuncs[iWeight], n) //mode with explicit wieght function
-					: F[0]; //Total DOS
-				double fillingsWeight
-					= (weights[iWeight].fillingMode == Weight::Complete)
-					? 1.
-					: e->eVars.F[iState][iBand];
-				eval.w(iWeight, iState, iBand) = completeWeight * fillingsWeight;
+	//Compute the overlap of the density for each states and band, with each of the density weight functions:
+	if(needDensity)
+	{	for(int iState=0; iState<eInfo.nStates; iState++)
+		{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
+			{	ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
+				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
+				//Compute the density for this state and band:
+				DataRptr n = diagouterI(F, C);
+				e->iInfo.augmentDensity(F, C, n); //pseudopotential contribution
+				//Compute the weights:
+				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+					if(weightFuncs[iWeight])
+						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n);
 			}
 		}
 	}
+	
+	//Compute projections for orbital mode:
+	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+	{	const Weight& weight = weights[iWeight];
+		if(weight.type == Weight::Orbital)
+		{	const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
+			int l = oDesc.l;
+			int mMin = (oDesc.m==l+1) ? -l : oDesc.m;
+			int mMax = (oDesc.m==l+1) ? +l : oDesc.m;
+			for(int iState=0; iState<eInfo.nStates; iState++)
+			{	const ColumnBundle& C = e->eVars.C[iState];
+				//Obtain the atomic orbitals:
+				ColumnBundle psi = C.similar(mMax+1-mMin);
+				for(int m=mMin; m<=mMax; m++)
+					e->iInfo.species[weight.specieIndex]->setAtomicOrbital(
+						psi, m-mMin, weight.atomIndex, oDesc.n, l, m);
+				//Compute projections of all the bands:
+				const matrix proj = C ^ psi; // nBands x (mMax+1-mMin) matrix
+				const diagMatrix projSq = diag(proj * dagger(proj)); //diagonal nBands x nBands matrix
+				for(int iBand=0; iBand<eInfo.nBands; iBand++)
+					eval.w(iWeight, iState, iBand) = projSq[iBand];
+			}
+		}
+	}
+	
+	//Apply the filling weights and set the eigenvalues:
+	for(int iState=0; iState<eInfo.nStates; iState++)
+		for(int iBand=0; iBand<eInfo.nBands; iBand++)
+		{	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+				if(weights[iWeight].fillingMode == Weight::Occupied)
+					eval.w(iWeight, iState, iBand) *= e->eVars.F[iState][iBand];
+			eval.e(iState, iBand) = e->eVars.Hsub_eigs[iState][iBand];
+		}
 	eval.weldEigenvalues();
 	
 	//Compute and print density of states:

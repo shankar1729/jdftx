@@ -121,6 +121,7 @@ void SpeciesInfo::readUspp(istream& is)
 	double QijEcut; reader.get(QijEcut); QijEcut *= 0.5; //energy cutoff used for Qij pseudization
 	reader.endRecord();
 	logPrintf("  lMax: %d  lLocal: %d  QijEcut: %lg\n", lMax, lLocal, QijEcut);
+	if(lMax>3) die("Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
 	
 	int nL = 2*lMax+1; //number of l-channels in pair products of Ylm's (0 to 2 lMax)
 	reader.newRecord();
