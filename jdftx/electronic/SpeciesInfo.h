@@ -74,6 +74,7 @@ public:
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
 	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
+	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species
 	
 	//! Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
 	void writeProjectors(const ColumnBundle& Cq, FILE* fp) const;

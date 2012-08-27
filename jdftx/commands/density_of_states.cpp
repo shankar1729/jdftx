@@ -28,7 +28,8 @@ EnumStringMap<DOS::Weight::Type> weightTypeMap
 	DOS::Weight::AtomSlice, "AtomSlice",
 	DOS::Weight::AtomSphere, "AtomSphere",
 	DOS::Weight::File, "File",
-	DOS::Weight::Orbital, "Orbital"
+	DOS::Weight::Orbital, "Orbital",
+	DOS::Weight::OrthoOrbital, "OrthoOrbital"
 );
 
 struct CommandDensityOfStates : public Command
@@ -79,6 +80,10 @@ struct CommandDensityOfStates : public Command
 			"      orbitals per angular momentum eg. '2px' selects the second px orbital\n"
 			"      in a psuedopotential with 2 l=1 orbitals, while '1px' or 'px' select\n"
 			"      the first of the two.\n"
+			"   OrthoOrbital  <species> <atomIndex>   <orbDesc>\n"
+			"      Similar to Orbital, except the projectors are Lowdin-orthonormalized\n"
+			"      atomic orbitals. This orthonormalization ensures that the sum of DOS\n"
+			"      projected on all OrthoOrbitals is <= the total DOS.\n"
 			"Any number of weight functions may be specified; only the total density\n"
 			"of states is output if no weight functions are specified. Other flags\n"
 			"that control aspects of the density of states computation are:\n"
@@ -132,7 +137,8 @@ struct CommandDensityOfStates : public Command
 				weight.center = (e.iInfo.coordsType==CoordsCartesian) ? inv(e.gInfo.R) * center : center; //internally store in lattice coordinates
 			}
 			//Get species and atom index for all atom-centered modes:
-			if(weight.type==DOS::Weight::AtomSlice || weight.type==DOS::Weight::AtomSphere || weight.type==DOS::Weight::Orbital)
+			if(weight.type==DOS::Weight::AtomSlice || weight.type==DOS::Weight::AtomSphere
+				|| weight.type==DOS::Weight::Orbital || weight.type==DOS::Weight::OrthoOrbital)
 			{	//Find specie:
 				string spName; pl.get(spName, string(), "species", true);
 				bool spFound = false;
@@ -175,8 +181,8 @@ struct CommandDensityOfStates : public Command
 				if(!fp) throw "File '"+weight.filename+"' cannot be opened for reading.\n";
 				fclose(fp);
 			}
-			//Get orbital description for Orbital mode:
-			if(weight.type==DOS::Weight::Orbital)
+			//Get orbital description for Orbital modes:
+			if(weight.type==DOS::Weight::Orbital || weight.type==DOS::Weight::OrthoOrbital)
 			{	string orbDesc; pl.get(orbDesc, string(), "orbDesc", true);
 				weight.orbitalDesc.parse(orbDesc);
 			}
@@ -212,12 +218,13 @@ struct CommandDensityOfStates : public Command
 				case DOS::Weight::AtomSlice:
 				case DOS::Weight::AtomSphere:
 				case DOS::Weight::Orbital:
+				case DOS::Weight::OrthoOrbital:
 				{	logPrintf(" %s %lu", e.iInfo.species[weight.specieIndex]->name.c_str(), weight.atomIndex+1);
 					if(weight.type == DOS::Weight::AtomSlice)
 						logPrintf("   %lg   %d %d %d", weight.radius, weight.direction[0], weight.direction[1], weight.direction[2]);
 					if(weight.type == DOS::Weight::AtomSphere)
 						logPrintf("   %lg", weight.radius);
-					if(weight.type == DOS::Weight::Orbital)
+					if(weight.type == DOS::Weight::Orbital || weight.type == DOS::Weight::OrthoOrbital)
 						logPrintf("   %s", string(weight.orbitalDesc).c_str());
 					break;
 				}

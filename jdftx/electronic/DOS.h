@@ -47,7 +47,8 @@ public:
 			AtomSlice, //!< density of states in a planar slice centered on an atom
 			AtomSphere, //!< density of states in a sphere centered on an atom
 			File, //!< density of states with an arbitrary weight function read from a file
-			Orbital //!< atomic-orbital projected density of states
+			Orbital, //!< atomic-orbital projected density of states
+			OrthoOrbital //!< Lowdin orthonormalized-atomic-orbital projected density of states
 		};
 		Type type; //!< weight function type
 		

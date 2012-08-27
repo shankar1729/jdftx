@@ -391,6 +391,16 @@ int SpeciesInfo::nAtomicOrbitals(int l) const
 {	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
 	return psiRadial[l].size();
 }
+int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m) const
+{	assert(iAtom < atpos.size());
+	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
+	assert(n < psiRadial[l].size());
+	assert(m >= -l); assert(m <= l);
+	int iProj = l + m; //#projectors before this one at current l,n
+	for(int L=0; L<=l; L++) //#projectors from previous l,n:
+		iProj += (L==l ? n : psiRadial[l].size()) * (2*L+1);
+	return iProj * atpos.size() + iAtom;
+}
 
 // Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
 void SpeciesInfo::writeProjectors(const ColumnBundle& Cq, FILE* fp) const
