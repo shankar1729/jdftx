@@ -178,13 +178,15 @@ void matrix::print_real(FILE* fp, const char* fmt) const
 
 //declaration for fortran LAPACK routine for eigenvalues
 extern "C"
-{	void zheev_(char* JOBZ, char* UPLO, int* N, complex* A, int* LDA,
-		double* W, complex* WORK, int* LWORK, double* RWORK, int* INFO);
+{	void zheevr_(char* JOBZ, char* RANGE, char* UPLO, int * N, complex* A, int * LDA,
+		double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
+		double* W, complex* Z, int* LDZ, int* ISUPPZ, complex* WORK, int* LWORK,
+		double* RWORK, int* LRWORK, int* IWORK, int* LIWORK, int* INFO);
 }
 void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 {	assert(nCols()==nRows());
 	int N = nRows();
-	eigs.resize(N);
+	assert(N > 0);
 	
 	//Check hermiticity
 	const complex* thisData = data();
@@ -198,17 +200,30 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	if(hermErr > 1e-10)
 		die("Relative hermiticity error of %le (>1e-10) encountered in diagonalize\n", hermErr);
 
-	char uplo = 'U'; //use upper-traingular part
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
-	evecs = *this; //copy input matrix (will be converted to eigenvectors in place)
-	int lwork = 56*(2*N-1); //Magic number 56 obtained by running ILAENV as suggested in doc of zheev
-	complex* work = new complex[lwork];
-	double* rwork = new double[std::max(3*N-2,1)];
+	char range = 'A'; //compute all eigenvalues
+	char uplo = 'U'; //use upper-triangular part
+	matrix Acopy = *this; //copy input matrix (zheevr destroys input matrix)
+	double eigMin = 0., eigMax = 0.; //eigenvalue range (not used for range-type 'A')
+	int indexMin = 0, indexMax = 0; //eignevalue index range (not used for range-type 'A')
+	double absTol = 0.; int nEigsFound;
+	eigs.resize(N);
+	evecs.init(N, N);
+	int* iSuppz = new int[2*N];
+	int lwork = (64+1)*N; complex* work = new complex[lwork]; //Magic number 64 obtained by running ILAENV as suggested in doc of zheevr (and taking the max over all N)
+	int lrwork = 24*N; double* rwork = new double[lrwork]; //from doc of zheevr
+	int liwork = 10*N; int* iwork = new int[liwork]; //from doc of zheevr
 	int info=0;
-	zheev_(&jobz, &uplo, &N, evecs.data(), &N, &eigs[0], work, &lwork, rwork, &info);
+	zheevr_(&jobz, &range, &uplo, &N, Acopy.data(), &N,
+		&eigMin, &eigMax, &indexMin, &indexMax, &absTol, &nEigsFound,
+		eigs.data(), evecs.data(), &N, iSuppz, work, &lwork,
+		rwork, &lrwork, iwork, &liwork, &info);
+	delete[] iSuppz;
 	delete[] work;
 	delete[] rwork;
-	if(info) die("Error code %d in LAPACK eigenvalue routine ZHEEV.\n", info);
+	delete[] iwork;
+	if(info<0) die("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info);
+	if(info>0) die("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info);
 }
 
 //Apply pending transpose / dagger operations:
