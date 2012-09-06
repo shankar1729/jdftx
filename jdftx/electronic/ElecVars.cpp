@@ -123,11 +123,12 @@ void ElecVars::setup(const Everything &everything)
 				{	sp->setAtomicOrbitals(psi, iCol);
 					iCol += sp->nAtomicOrbitals();
 				}
+				psi = psi * invsqrt(psi^O(psi));
 				//Compute the Hamiltonian:
 				ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
 				iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
 				Hpsi += Idag_DiagV_I(psi, 
-					Jdag(O(iInfo.Vlocps - 4.0*M_PI*Linv(O(iInfo.rhoIon + rhoExternal))), true) //local potential
+					Jdag(O(iInfo.Vlocps + (rhoExternal ? -4.0*M_PI*Linv(O(rhoExternal)) : DataGptr())), true) //local potential
 					+ (Vexternal.size() ? JdagOJ(Vexternal[eInfo.qnums[q].index()]) : DataRptr())); //external potential
 				//Diagonalize and set to eigenvectors:
 				matrix evecs; diagMatrix eigs;
