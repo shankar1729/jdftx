@@ -56,6 +56,9 @@ public:
 		return xWS;
 	}
 	
+	//! Radius of largest sphere centered at origin contained within the Wigner-Seitz cell
+	double inRadius() const;
+	
 	//! Write a wireframe plot to file (for gnuplot)
 	void writeWireframePlot(const char* filename) const;
 	

@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
+#include <float.h>
 
 static const double minDistSq = 1e-16; //threshold on distance squared
 
@@ -161,6 +162,16 @@ std::vector<Simplex<3>> WignerSeitz::getSimplices3D() const
 	}
 	assert(fabs(Vtot-Vcell) < Vtol); //Check total volume
 	return sArr;
+}
+
+//Radius of largest inscribable sphere centered at origin
+double WignerSeitz::inRadius() const
+{	double rSqMin = DBL_MAX;
+	for(const Face* f: faceHalf)
+	{	double rSq = RTR.metric_length_squared(f->img);
+		if(rSq < rSqMin) rSqMin = rSq;
+	}
+	return 0.5*sqrt(rSqMin);
 }
 
 //Write a wireframe plot to file (for gnuplot)

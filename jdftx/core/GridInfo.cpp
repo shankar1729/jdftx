@@ -55,18 +55,6 @@ GridInfo::~GridInfo()
 	}
 }
 
-//Determine whether N is suitable for FFTs
-bool fftSuitable(int N)
-{	static int primes[] = {2,3,5,7};
-	static const int nPrimes = sizeof(primes)/sizeof(int);
-	int tmpN = N;
-	for(int p=0; p<nPrimes; p++)
-		while(tmpN % primes[p] == 0)
-			tmpN /= primes[p];
-	//All suitable prime factors taken out, we should be left with 1 for a suitable N:
-	return (tmpN==1);
-}
-
 void GridInfo::initialize()
 {
 	this->~GridInfo(); //cleanup previously initialized quantities

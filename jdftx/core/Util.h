@@ -24,8 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 @brief Miscellaneous utilities
 */
 
-#include <map>
 #include <core/string.h>
+#include <map>
+#include <array>
 #include <cstring>
 #include <cstdio>
 #include <cstdint>
@@ -128,6 +129,14 @@ inline uint16_t positiveRemainder(int16_t x, uint16_t y)
 	else return xMody;
 }
 
+//! Check if an integer is suitable for Fast Fourier Transforms (small prime factors only)
+inline bool fftSuitable(int N)
+{	static std::array<int,4> primes = {{2,3,5,7}};
+	int tmpN = N;
+	for(int p: primes) while(tmpN % p == 0) tmpN /= p;
+	//All suitable prime factors taken out, we should be left with 1 for a suitable N:
+	return (tmpN==1);
+}
 
 //! A template to ease option parsing (maps enums <--> strings)
 template<typename Enum>
