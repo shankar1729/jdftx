@@ -28,6 +28,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/string.h>
 
+
+
+
 class SpeciesInfo
 {
 public:
@@ -43,9 +46,21 @@ public:
 	vector3<>* atposPref; //!< points to atposGpu in GPU mode and atpos otherwise
 	
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
-	double mass; //!< ionic mass (currently unused)
-	std::vector<double> moveScale; //!< preconditioner for ion motion (use zero to fix an ion)
+	double mass; //!< ionic mass (currently unused)	
 
+	struct Constraint
+	{	
+		double moveScale;
+		vector3<> x; //! The direction or plane normal of the constraint
+		enum ConstraintType {None, Linear, Planar} type; //! Type of the constraint that is being applied to the ion
+		
+		vector3<> operator()(const vector3<>& grad);
+		bool isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const;
+		int getDimension() const;
+		void print(FILE* fp) const;
+	};
+	std::vector<Constraint> constraints; //! Constraint that is on the motion of the ions
+	
 	SpeciesInfo();
 	~SpeciesInfo();
 	void setup(const Everything&);
@@ -144,4 +159,12 @@ private:
 	friend class CommandWavefunction;
 	
 };
+
+
+static EnumStringMap<SpeciesInfo::Constraint::ConstraintType> constraintTypeMap
+(	SpeciesInfo::Constraint::None, "None",
+	SpeciesInfo::Constraint::Linear, "Linear",
+	SpeciesInfo::Constraint::Planar, "Planar"
+);
+
 #endif // JDFTX_ELECTRONIC_SPECIESINFO_H

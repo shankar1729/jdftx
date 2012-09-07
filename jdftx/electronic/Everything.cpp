@@ -90,8 +90,8 @@ void Everything::setup()
 	ionicMinParams.nDim = 0;
 	for(auto sp: iInfo.species)
 		for(unsigned at=0; at<sp->atpos.size(); at++)
-			if(sp->moveScale[at])
-				ionicMinParams.nDim += 3;
+			ionicMinParams.nDim += sp->constraints[at].getDimension();
+	if(!ionicMinParams.nDim) ionicMinParams.nDim = 1;
 	ionicMinParams.fpLog = globalLog;
 	ionicMinParams.linePrefix = "IonicMinimize: ";
 	ionicMinParams.energyLabel = relevantFreeEnergyName(*this);

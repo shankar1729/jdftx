@@ -37,6 +37,41 @@ void SpeciesInfo::sync_atposGpu()
 }
 #endif
 
+inline bool isParallel(vector3<> x, vector3<> y)
+{	return fabs(1.-fabs(dot(x, y)/(x.length() * y.length()))) < MIN_SYMM_TOL;
+}
+
+bool SpeciesInfo::Constraint::isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const
+{ 	if(moveScale != otherConstraint.moveScale) return false; //Ensure same moveSCale
+	if(type != otherConstraint.type) return false; //Ensure same constraint type
+	return (type==None) or isParallel(transform*x, otherConstraint.x);
+}
+
+int SpeciesInfo::Constraint::getDimension() const
+{	if(not moveScale) return 0;
+	switch(type)
+	{	case Linear: return 1;
+		case Planar: return 2;
+		default: return 3;
+	}
+}
+
+void SpeciesInfo::Constraint::print(FILE* fp) const
+{
+	fprintf(fp, " %s %.14lg %.14lg %.14lg", constraintTypeMap.getString(type),
+				x[0], x[1], x[2]);
+}
+
+vector3<> SpeciesInfo::Constraint::operator()(const vector3<>& grad)
+{	vector3<> scaledGrad = moveScale * grad;
+	switch(type)
+	{	case Linear: return dot(scaledGrad, x)*x/ x.length_squared();
+		case Planar: return  scaledGrad - dot(scaledGrad, x)*x/x.length_squared();	
+		default: return scaledGrad;
+	}
+}
+
+
 SpeciesInfo::SpeciesInfo()
 {
 	Z = 0.0;
@@ -100,8 +135,12 @@ void SpeciesInfo::print(FILE* fp) const
 	{	vector3<> pos = atpos[at]; //always in gInfo coordinates
 		if(e->iInfo.coordsType == CoordsCartesian)
 			pos = e->gInfo.R * pos; //convert to Cartesian coordinates
-		fprintf(fp, "ion %s %19.15lf %19.15lf %19.15lf %lg\n",
-			name.c_str(), pos[0], pos[1], pos[2], moveScale[at]);
+		fprintf(fp, "ion %s %19.15lf %19.15lf %19.15lf %lg",
+			name.c_str(), pos[0], pos[1], pos[2], constraints[at].moveScale);
+		if(constraints[at].type != Constraint::None)
+			constraints[at].print(globalLog);
+		fprintf(fp, "\n");
+			
 	}
 }
 

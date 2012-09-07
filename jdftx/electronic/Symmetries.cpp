@@ -30,11 +30,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Symmetry detection code based on that of Nikolaj Moll, April 1999 (symm.c in Sohrab's version)
 
-
-#define MIN_KPT_DISTANCE 1e-8
-#define MIN_SYMM_TOL     1e-4
-
-
 Symmetries::Symmetries()
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
@@ -403,10 +398,11 @@ void Symmetries::initAtomMaps()
 					if(circDistanceSquared(mapped_pos1, spInfo.atpos[at2]) < MIN_SYMM_TOL)
 					{	atomMap[sp][at1][iRot] = at2;
 				
-						if(spInfo.moveScale[at1]!=spInfo.moveScale[at2])
-							die("Species %s atom# %u and %u are related by symmetry "
-							"but have different move scale factors %lf != %lf.\n",
-								spInfo.name.c_str(), at1, at2, spInfo.moveScale[at1], spInfo.moveScale[at2]);
+						if(not spInfo.constraints[at1].isEquivalent(spInfo.constraints[at2], e->gInfo.R*sym[iRot]*e->gInfo.invR))
+							die("Species %s atoms %u and %u are related by symmetry "
+							"but have different move scale factors or inconsistent move constraints.\n\n",
+								spInfo.name.c_str(), at1, at2);
+							
 					}
 				
 				if(shouldPrintMatrices) logPrintf(" %3u", atomMap[sp][at1][iRot]);

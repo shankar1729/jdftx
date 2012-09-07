@@ -26,6 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Data.h>
 #include <vector>
 
+static const double MIN_KPT_DISTANCE = 1e-8;
+static const double MIN_SYMM_TOL = 1e-4;
 
 enum SymmetryMode {SymmetriesNone, SymmetriesAutomatic, SymmetriesManual}; //!< symmetry modes
 
