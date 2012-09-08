@@ -36,7 +36,7 @@ struct CommandIonWidth : public Command
 		else if(key=="fftbox") e.iInfo.ionWidthMethod = IonInfo::IonWidthFFTbox;
 		else
 		{	istringstream iss(key);
-			iss >> e.iInfo.ionChargeWidth;
+			iss >> e.iInfo.ionWidth;
 			if(iss.fail()) throw string("<width> must be Ecut, fftbox or a value in bohrs");
 			e.iInfo.ionWidthMethod = IonInfo::IonWidthManual;
 		}
@@ -46,7 +46,7 @@ struct CommandIonWidth : public Command
 	{	switch(e.iInfo.ionWidthMethod)
 		{	case IonInfo::IonWidthFFTbox: logPrintf("fftbox"); break;
 			case IonInfo::IonWidthEcut: logPrintf("Ecut"); break;
-			case IonInfo::IonWidthManual: logPrintf("%lg", e.cntrl.Ecut); break;
+			case IonInfo::IonWidthManual: logPrintf("%lg", e.iInfo.ionWidth); break;
 		}
 	}
 }

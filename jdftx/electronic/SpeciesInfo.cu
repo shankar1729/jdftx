@@ -70,24 +70,24 @@ __global__
 void updateLocal_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG nCoreRadial, const RadialFunctionG tauCoreRadial,
+	double Z, const RadialFunctionG nCoreRadial, const RadialFunctionG tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {
 	COMPUTE_halfGindices
 	updateLocal_calc(i, iG, GGT, Vlocps, rhoIon, nChargeball,
 		nCore, tauCore, nAtoms, atpos, invVol, VlocRadial,
-		Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	GpuLaunchConfigHalf3D glc(updateLocal_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
 		updateLocal_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, Vlocps, rhoIon, nChargeball,
 			nCore, tauCore, nAtoms, atpos, invVol, VlocRadial,
-			Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+			Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 	gpuErrorCheck();
 }
 
@@ -96,26 +96,26 @@ __global__
 void gradLocalToSG_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG VlocRadial, double Z,
 	const RadialFunctionG nCoreRadial, const RadialFunctionG tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {
 	COMPUTE_halfGindices
 	gradLocalToSG_calc(i, iG, GGT, ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z, ionWidth,
+		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z,
 		nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	GpuLaunchConfigHalf3D glc(gradLocalToSG_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
 		gradLocalToSG_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT,
 			ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-			ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z, ionWidth,
+			ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z,
 			nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 	gpuErrorCheck();
 }

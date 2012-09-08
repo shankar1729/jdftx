@@ -133,6 +133,8 @@ struct DataG : public Data
 	DECLARE_DATA_PREF_ACCESS
 	DataGptr clone() const; //!< clone the data (NOTE: assigning DataGptr's makes a new reference to the same data)
 	static DataGptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
+	double getGzero() const; //!< get the G=0 component
+	void setGzero(double Gzero); //!< set the G=0 component
 private:
 	DataG(const GridInfo& gInfo, bool onGpu); //!< called only by DataG::alloc()
 };

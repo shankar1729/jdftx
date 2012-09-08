@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/matrix3.h>
 #include <core/Simplex.h>
+#include <float.h>
 #include <list>
 #include <set>
 
@@ -54,6 +55,17 @@ public:
 			}
 		}
 		return xWS;
+	}
+	
+	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface
+	inline double boundaryDistance(const vector3<>& x) const
+	{	double minDistSq = DBL_MAX;
+		for(const Face* f: faceHalf)
+		{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
+			double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
+			if(distSq<minDistSq) minDistSq = distSq;
+		}
+		return sqrt(minDistSq);
 	}
 	
 	//! Radius of largest sphere centered at origin contained within the Wigner-Seitz cell

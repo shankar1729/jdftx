@@ -62,48 +62,48 @@ bool Qr(int l1, int m1, int l2, int m2, int l,
 void updateLocal_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	THREAD_halfGspaceLoop(
 		updateLocal_calc(i, iG, GGT,
 			Vlocps, rhoIon, nChargeball, nCore, tauCore,
 			nAtoms, atpos, invVol, VlocRadial,
-			Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
+			Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
 }
 void updateLocal(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	threadLaunch(updateLocal_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
 		Vlocps, rhoIon, nChargeball, nCore, tauCore,
 		nAtoms, atpos, invVol, VlocRadial,
-		Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 
 //Forces due to local pseudopotential, ionic charge, chargeball and partial cores (to gradient w.r.t structure factor)
 void gradLocalToSG_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	THREAD_halfGspaceLoop(
 		gradLocalToSG_calc(i, iG, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
 		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial,
-		Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
 }
 void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	threadLaunch(gradLocalToSG_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
 		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial,
-		Z, ionWidth, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 
 //Gradient w.r.t structure factor -> gradient w.r.t atom positions

@@ -19,13 +19,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
-#include <float.h>
 
 static const double minDistSq = 1e-16; //threshold on distance squared
 
 //Construct Wigner-Seitz cell given lattice vectors
 WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
-{	//Initialize with parallelopiped formed from nearest neighbours:
+{	logPrintf("Constructing Wigner-Seitz cell: "); logFlush();
+	//Initialize with parallelopiped formed from nearest neighbours:
 	matrix3<> eqns = matrix3<>(2./RTR(0,0), 2./RTR(1,1), 2./RTR(2,2)) * RTR;
 	matrix3<> eqnsInv = inv(eqns);
 	Vertex* vInit[2][2][2];
@@ -128,6 +128,14 @@ WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
 		}
 	}
 	assert(imgFace.size() == 0); //Check that all faces occur in inversion symmetric pairs
+	
+	//Print summary:
+	int nQuad=0, nHex=0;
+	for(const Face* f: faceHalf)
+	{	if(f->edge.size()==4) nQuad += 2;
+		if(f->edge.size()==6) nHex += 2;
+	}
+	logPrintf("%lu faces (%d quadrilaterals, %d hexagons)\n", face.size(), nQuad, nHex);
 }
 
 WignerSeitz::~WignerSeitz()

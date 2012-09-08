@@ -87,7 +87,7 @@ bool Qr_gpu(int l1, int m1, int l2, int m2, int l,
 __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix3<>& GGT,
 	complex *Vlocps, complex *rhoIon, complex *nChargeball, complex* nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {
 	double Gsq = GGT.metric_length_squared(iG);
@@ -98,11 +98,11 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 		SGinvVol += cis(-2*M_PI*dot(iG,atpos[atom]));
 	SGinvVol *= invVol;
 
-	//Local potential (short ranged part in the radial function - Z/r):
-	Vlocps[i] += SGinvVol * ( VlocRadial(sqrt(Gsq)) - Z * (i ? 4*M_PI/Gsq : 2*M_PI*pow(ionWidth,2)) );
+	//Short-ranged part of Local potential (long-ranged part added on later in IonInfo.cpp):
+	Vlocps[i] += SGinvVol * VlocRadial(sqrt(Gsq));
 
-	//Nuclear charge (optionally widened to a gaussian (if ionWidth!=0)):
-	rhoIon[i] += SGinvVol * (-Z) * exp(-0.5*Gsq*pow(ionWidth,2));
+	//Nuclear charge (optionally widened to a gaussian later in IonInfo.cpp):
+	rhoIon[i] += SGinvVol * (-Z);
 
 	//Chargeball:
 	if(nChargeball)
@@ -116,13 +116,13 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 void updateLocal(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *n_chargeball, complex* n_core, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #ifdef GPU_ENABLED
 void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *n_chargeball, complex* n_core, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
-	double Z, double ionWidth, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #endif
 
@@ -131,7 +131,7 @@ void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {
@@ -139,11 +139,11 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 	complex ccgrad_SGinvVol(0,0); //result for this G value (gradient w.r.t structure factor/volume)
 
 	//Local potential (short ranged part in the radial function - Z/r):
-	ccgrad_SGinvVol += ccgrad_Vlocps[i] * ( VlocRadial(sqrt(Gsq)) - Z * (i ? 4*M_PI/Gsq : 0) );
+	ccgrad_SGinvVol += ccgrad_Vlocps[i] * VlocRadial(sqrt(Gsq));
 
-	//Nuclear charge (optionally widened to a gaussian (if ionWidth!=0)):
+	//Nuclear charge
 	if(ccgrad_rhoIon)
-		ccgrad_SGinvVol += ccgrad_rhoIon[i] * (-Z) * exp(-0.5*Gsq*pow(ionWidth,2));
+		ccgrad_SGinvVol += ccgrad_rhoIon[i] * (-Z);
 
 	//Chargeball:
 	if(ccgrad_nChargeball)
@@ -160,14 +160,14 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #ifdef GPU_ENABLED
 void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
-	const RadialFunctionG& VlocRadial, double Z, double ionWidth,
+	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #endif

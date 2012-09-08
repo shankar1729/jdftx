@@ -33,9 +33,6 @@ IonInfo::IonInfo()
 {	shouldPrintForceComponents = false;
 }
 
-//
-// Do the setup for the ionic information (read psps, alloc space, blah blah)
-//
 void IonInfo::setup(const Everything &everything)
 {	e = &everything;
 
@@ -64,17 +61,17 @@ void IonInfo::setup(const Everything &everything)
 	{	case IonWidthManual: break; //manually specified value
 		case IonWidthFFTbox:
 			//set to a multiple of the maximum grid spacing
-			ionChargeWidth = 0.0;
+			ionWidth = 0.0;
 			for (int i=0; i<3; i++)
 			{	double dRi = e->gInfo.h[i].length();
-				ionChargeWidth = std::max(ionChargeWidth, 1.6*dRi);
+				ionWidth = std::max(ionWidth, 1.6*dRi);
 			}
 			break;
 		case IonWidthEcut:
-			ionChargeWidth = 0.8*M_PI / sqrt(2*e->cntrl.Ecut);
+			ionWidth = 0.8*M_PI / sqrt(2*e->cntrl.Ecut);
 			break;
 	}
-	logPrintf("Width of ionic core gaussian charges set to %lg\n", ionChargeWidth);
+	logPrintf("Width of ionic core gaussian charges set to %lg\n", ionWidth);
 	
 	// Call the species setup routines
 	int nAtomsTot=0;
@@ -84,28 +81,9 @@ void IonInfo::setup(const Everything &everything)
 	}
 	if(!nAtomsTot) logPrintf("Warning: no atoms in the calculation.\n");
 	
-	logPrintf("\n---------- Setting up ewald sum ----------\n");
-	//Determine optimum gaussian width for Ewald sums:
-	// From below, the number of reciprocal cells ~ Prod_k |R.column[k]|
-	//    and number of real space cells ~ Prod_k |G.row[k]|
-	// including the fact that the real space cost ~ Natoms^2/cell
-	//    and the reciprocal space cost ~ Natoms/cell
-	sigma = 1.;
-	for(int k=0; k<3; k++)
-		sigma *= e->gInfo.R.column(k).length() / e->gInfo.G.row(k).length();
-	sigma = pow(sigma/std::max(1,nAtomsTot), 1./6);
-	logPrintf("Optimum gaussian width for ewald sums = %lf bohr.\n", sigma);
-	
-	//Carry real space sums to Rmax = 10 sigma and Gmax = 10/sigma
-	//This leads to relative errors ~ 1e-22 in both sums, well within double precision limits
-	for(int k=0; k<3; k++)
-	{	Nreal[k] = 1+ceil(10. * e->gInfo.G.row(k).length() * sigma / (2*M_PI));
-		Nrecip[k] = 1+ceil(10. * e->gInfo.R.column(k).length() / (2*M_PI*sigma));
-	}
-	logPrintf("Real space sums over %d unit cells with max indices ", 8*Nreal[0]*Nreal[1]*Nreal[2]);
-	Nreal.print(globalLog, " %d ");
-	logPrintf("Reciprocal space sums over %d unit cells with max indices ", 8*Nrecip[0]*Nrecip[1]*Nrecip[2]);
-	Nrecip.print(globalLog, " %d ");
+	if(ionWidth && (e->eVars.fluidType != FluidNone) &&
+		(e->eVars.fluidParams.ionicConcentration || e->eVars.fluidParams.hSIons.size()))
+		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
 }
 
 void IonInfo::printPositions(FILE* fp) const
@@ -139,14 +117,15 @@ void IonInfo::checkPositions() const
 	if(err) die("Coincident atoms found, please check lattice and atom positions.\n");
 }
 
-//Correction corresponding to the G=0 regularization of Vlocps provided by gaussian nuclei
-//Note that this exactly cancels the energy of the Vlocps correction for a neutral system
-//(i.e. when nElectrons = Ztot)
-double IonInfo::ElocCorrection() const
+double IonInfo::getZtot() const
 {	double Ztot=0.;
 	for(auto sp: species)
 		Ztot += sp->Z * sp->atpos.size();
-	return 2*M_PI*pow(Ztot*ionChargeWidth, 2)/e->gInfo.detR;
+	return Ztot;
+}
+
+double IonInfo::ionWidthMuCorrection() const
+{	return (4*M_PI/ e->gInfo.detR) * (-0.5*ionWidth*ionWidth) * getZtot();
 }
 
 
@@ -160,6 +139,9 @@ void IonInfo::update(Energies& ener)
 	DataGptr nCoreTilde, tauCoreTilde;
 	for(auto sp: species) //collect contributions to the above from all species
 		sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde);
+	//Add long-range part to Vlocps and smoothen rhoIon:
+	Vlocps += (*e->coulomb)(rhoIon);
+	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
 	if(nCoreTilde) nCore = I(nCoreTilde, true); // put in real space
 	if(tauCoreTilde)
@@ -204,8 +186,10 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	//---------- local part: Vlocps, chargeball, partial core etc.: --------------
 	//compute the complex-conjugate gradient w.r.t the relevant densities/potentials:
 	const DataGptr ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
-	const DataGptr ccgrad_rhoIon = eVars.d_fluid; //electrostatic potential due to fluid for rhoIon
 	const DataGptr ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
+	DataGptr ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps); //long-range portion of Vlocps for rhoIon
+	if(eVars.d_fluid) //and electrostatic potential due to fluid (if any):
+		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
 	DataGptr ccgrad_nCore, ccgrad_tauCore;
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
 	{	ccgrad_nCore = eVars.V_cavity;
@@ -281,78 +265,19 @@ void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, c
 
 double IonInfo::ewaldAndGrad(IonicGradient* forces) const
 {
-	//Obtain the list of atomic positions and charges in the first unit cell:
-	struct Atom
-	{	vector3<> pos;
-		double Z;
-		vector3<> force;
-		
-		Atom(const vector3<>& pos, double Z): pos(toFirstUnitCell(pos)), Z(Z), force(0,0,0) {}
-		
-		static vector3<> toFirstUnitCell(const vector3<>& in)
-		{	vector3<> out;
-			for(int k=0; k<3; k++)
-				out[k] = in[k] - floor(in[k]);
-			return out;
-		}
-	};
-	std::vector<Atom> atom;
-	double Ztot = 0., ZsqTot = 0.;
+	//Obtain the list of atomic positions and charges:
+	std::vector<Coulomb::PointCharge> pointCharges;
 	for(auto sp: species)
-	{	Ztot += sp->Z * sp->atpos.size();
-		ZsqTot += (sp->Z * sp->Z) * sp->atpos.size();
-		for(vector3<> pos: sp->atpos)
-			atom.push_back(Atom(pos, sp->Z));
-	}
-	double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
-	double sigmaSq = sigma * sigma;
-	
-	//Position independent terms:
-	double E
-		= 0.5 * 4*M_PI * Ztot*Ztot * (-0.5*sigmaSq) / e->gInfo.detR //G=0 correction
-		- 0.5 * ZsqTot * eta * (2./sqrt(M_PI)); //Self-energy correction
-
-	//Real space sum:
-	vector3<int> iR; //integer cell number
-	for(iR[0]=-Nreal[0]+1; iR[0]<=Nreal[0]; iR[0]++)
-		for(iR[1]=-Nreal[1]+1; iR[1]<=Nreal[1]; iR[1]++)
-			for(iR[2]=-Nreal[2]+1; iR[2]<=Nreal[2]; iR[2]++)
-				for(const Atom& a2: atom)
-					for(Atom& a1: atom)
-					{	vector3<> x = iR + a1.pos - a2.pos;
-						double rSq = e->gInfo.RTR.metric_length_squared(x);
-						double r = sqrt(rSq);
-						if(!r) continue; //exclude self-interaction
-						E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-						a1.force += (e->gInfo.RTR * x) *
-							(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
-					}
-	
-	//Reciprocal space sum:
-	vector3<int> iG; //integer reciprocal cell number
-	for(iG[0]=-Nrecip[0]+1; iG[0]<=Nrecip[0]; iG[0]++)
-		for(iG[1]=-Nrecip[1]+1; iG[1]<=Nrecip[1]; iG[1]++)
-			for(iG[2]=-Nrecip[2]+1; iG[2]<=Nrecip[2]; iG[2]++)
-			{	double Gsq = e->gInfo.GGT.metric_length_squared(iG);
-				if(!Gsq) continue; //skip G=0
-				//Compute structure factor:
-				complex SG = 0.;
-				for(const Atom& a: atom)
-					SG += a.Z * cis(-2*M_PI*dot(iG,a.pos));
-				//Accumulate energy:
-				double eG = 4*M_PI * exp(-0.5*sigmaSq*Gsq)/(Gsq * e->gInfo.detR);
-				E += 0.5 * eG * SG.norm();
-				//Accumulate forces:
-				for(Atom& a: atom)
-					a.force -= (eG * a.Z * 2*M_PI * (SG.conj() * cis(-2*M_PI*dot(iG,a.pos))).imag()) * iG;
-			}
-	
+		for(const vector3<>& pos: sp->atpos)
+			pointCharges.push_back({sp->Z, pos, vector3<>(0.,0.,0.)});
+	//Compute Ewald sum and gradients
+	double E = e->coulomb->energyAndGrad(pointCharges);
 	//Store forces if requested:
 	if(forces)
-	{	auto a = atom.begin();
+	{	auto pc = pointCharges.begin();
 		for(unsigned sp=0; sp<species.size(); sp++)
 			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
-				(*forces)[sp][at] = (a++)->force;
+				(*forces)[sp][at] = (pc++)->force;
 	}
 	return E;
 }

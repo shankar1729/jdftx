@@ -222,6 +222,8 @@ void initRandom(DataRptr&, double cap=0.0); //!< initialize element-wise with a 
 void initRandomFlat(DataRptr&); //!< initialize element-wise with a unit-flat [0:1) random number
 void initGaussianKernel(RealKernel&, double x0); //!< initialize to gaussian kernel exp(-(G x0/2)^2)
 void initTranslation(DataGptr&, const vector3<>& r);  //!< initialize to translation operator exp(-i G.r)
+DataGptr gaussConvolve(const DataGptr&, double sigma); //!< convolve with a gaussian
+DataGptr gaussConvolve(DataGptr&&, double sigma); //!< convolve with a gaussian (destructible input)
 
 //! Evaluate a function f(i, Gsq, args...) at each point in reciprocal space indexed by i
 template<typename Func, typename... Args> void applyFuncGsq(const GridInfo& gInfo, const Func& f, Args... args);

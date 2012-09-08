@@ -18,17 +18,56 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/CoulombIsolated.h>
+#include <core/Coulomb_internal.h>
 #include <core/Operators.h>
 #include <core/Util.h>
 #include <core/Thread.h>
 #include <core/LoopMacros.h>
+#include <core/BlasExtra.h>
 
-//Compute erf(x)/x (with x~0 handled properly)
-inline double erf_by_x(double x)
-{	double xSq = x*x;
-	if(xSq<1e-6) return (1./sqrt(M_PI))*(2. - xSq*(2./3 + 0.2*xSq));
-	else return erf(x)/x;
-}
+//! Analog of ewald sum for isolated systems
+//! (no Ewald trick required, just for consistent naming)
+struct EwaldIsolated
+{	const GridInfo& gInfo;
+	const WignerSeitz& ws;
+	bool wsTruncated; //true => Wigner-Seitz truncation, false => spherical
+	double criticalDist; //borderWidth for Wigner-Seitz, Rc for spherical
+	
+	EwaldIsolated(const GridInfo& gInfo, const WignerSeitz& ws, bool wsTruncated, double criticalDist)
+	: gInfo(gInfo), ws(ws), wsTruncated(wsTruncated), criticalDist(criticalDist)
+	{
+	}
+	
+	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+	{	double E = 0.;
+		//Loop over all pairs of pointcharges:
+		for(unsigned i=0; i<pointCharges.size(); i++)
+		{	Coulomb::PointCharge& pc1 = pointCharges[i];
+			for(unsigned j=0; j<i; j++)
+			{	Coulomb::PointCharge& pc2 = pointCharges[j];
+				//Find nearest-image distance (by picking image within Wigner-Seitz cell centered on one):
+				vector3<> x = ws.restrict(pc1.pos - pc2.pos); //lattice coords
+				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
+				if(wsTruncated)
+				{	if(ws.boundaryDistance(x) <= criticalDist)
+						die("Separation between atoms %d and %d lies in the truncation border.\n", i, j);
+				}
+				else
+				{	if(r >= criticalDist)
+						die("Atoms %d and %d are separated by r = %lg >= Rc = %lg bohrs.\n", i, j, r, criticalDist);
+				}
+				double dE = (pc1.Z * pc2.Z) / r;
+				vector3<> dF = (gInfo.RTR * x) * (dE/rSq);
+				E += dE;
+				pc1.force += dF;
+				pc2.force -= dF;
+			}
+		}
+		return E;
+	}
+};
+
+//----------------- class CoulombIsolated ---------------------
 
 //Set the fourier transform of the simplex theta function
 inline void simplexTheta_thread(int iStart, int iStop, const vector3<int> S, const matrix3<> GT, double Vcell,
@@ -88,41 +127,41 @@ inline void downSample_thread(int iStart, int iStop, const vector3<int>& S, cons
 
 
 
-CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, double borderWidth, string filename)
-: gInfo(gInfo), ws(gInfo.R), Vc(gInfo)
+CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationParams& params)
+: Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {
 	//Read precomputed kernel from file if supplied
-	if(filename.length())
-	{	FILE* fp = fopen(filename.c_str(), "rb");
+	if(params.filename.length())
+	{	FILE* fp = fopen(params.filename.c_str(), "rb");
 		if(fp)
 		{	matrix3<> R; vector3<int> S; double bw;
 			fread(&R, sizeof(matrix3<>), 1, fp);
 			fread(&S, sizeof(vector3<int>), 1, fp);
 			fread(&bw, sizeof(double), 1, fp);
 			if(R != gInfo.R)
-				logPrintf("Precomputed coulomb kernel file '%s' has different lattice vectors (recomputing it now)\n", filename.c_str());
+				logPrintf("Precomputed coulomb kernel file '%s' has different lattice vectors (recomputing it now)\n", params.filename.c_str());
 			else if(!(S == gInfo.S))
-				logPrintf("Precomputed coulomb kernel file '%s' has different sample count (recomputing it now)\n", filename.c_str());
-			else if(bw != borderWidth)
-				logPrintf("Precomputed coulomb kernel file '%s' has different border width (recomputing it now)\n", filename.c_str());
+				logPrintf("Precomputed coulomb kernel file '%s' has different sample count (recomputing it now)\n", params.filename.c_str());
+			else if(bw != params.borderWidth)
+				logPrintf("Precomputed coulomb kernel file '%s' has different border width (recomputing it now)\n", params.filename.c_str());
 			else if(fread(Vc.data, sizeof(double), gInfo.nG, fp) != unsigned(gInfo.nG))
-				logPrintf("Error reading precomputed coulomb kernel from '%s' (computing it now)\n", filename.c_str());
+				logPrintf("Error reading precomputed coulomb kernel from '%s' (computing it now)\n", params.filename.c_str());
 			else
-			{	logPrintf("Successfully read precomputed coulomb kernel from '%s'\n", filename.c_str());
+			{	logPrintf("Successfully read precomputed coulomb kernel from '%s'\n", params.filename.c_str());
 				Vc.set();
 				return;
 			}
 		}
-		else logPrintf("Could not open precomputed coulomb kernel file '%s' (computing it now)\n", filename.c_str());
+		else logPrintf("Could not open precomputed coulomb kernel file '%s' (computing it now)\n", params.filename.c_str());
 	}
 	
 	//Select gauss-smoothing parameter:
 	double maxBorderWidth = 0.5 * ws.inRadius();
-	if(borderWidth > maxBorderWidth)
+	if(params.borderWidth > maxBorderWidth)
 		die("Border width %lg bohrs must be less than half the Wigner-Seitz cell in-radius = %lg bohrs.\n",
-			borderWidth, maxBorderWidth);
-	double sigma = 0.1 * borderWidth;
-	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigma, borderWidth);
+			params.borderWidth, maxBorderWidth);
+	double sigma = 0.1 * params.borderWidth;
+	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigma, params.borderWidth);
 	
 	//Set up supercell:
 	logPrintf("Setting up 2x2x2 supercell: ");
@@ -145,6 +184,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, double borderWidth, stri
 	if(!fftArr)
 		die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n", 1.6e-8*nGsup);
 	logPrintf("Planning supercell fourier transforms ... "); logFlush();
+	fftw_plan_with_nthreads(nProcsAvailable);
 	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_3d(Ssup[0], Ssup[1], Ssup[2], fftArr, (double*)fftArr, FFTW_ESTIMATE);
 	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Ssup[0], Ssup[1], Ssup[2], (double*)fftArr, fftArr, FFTW_ESTIMATE);
 	logPrintf("Done.\n");
@@ -168,19 +208,41 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, double borderWidth, stri
 	Vc.set();
 	
 	//Save kernel if requested:
-	if(filename.length())
-	{	logPrintf("Saving isolated coulomb kernel to '%s' ... ", filename.c_str()); logFlush();
-		FILE* fp = fopen(filename.c_str(), "wb");
+	if(params.filename.length())
+	{	logPrintf("Saving isolated coulomb kernel to '%s' ... ", params.filename.c_str()); logFlush();
+		FILE* fp = fopen(params.filename.c_str(), "wb");
 		if(!fp) die("could not open file for writing.\n");
 		fwrite(&gInfo.R, sizeof(matrix3<>), 1, fp);
 		fwrite(&gInfo.S, sizeof(vector3<int>), 1, fp);
-		fwrite(&borderWidth, sizeof(double), 1, fp);
+		fwrite(&params.borderWidth, sizeof(double), 1, fp);
 		fwrite(Vc.data, sizeof(double), gInfo.nG, fp);
 		fclose(fp);
 		logPrintf("Done.\n");
 	}
 }
 
-DataGptr CoulombIsolated::operator()(const DataGptr& in)
+DataGptr CoulombIsolated::operator()(DataGptr&& in) const
 {	return Vc * in;
+}
+
+double CoulombIsolated::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+{	return EwaldIsolated(gInfo, ws, true, params.borderWidth).energyAndGrad(pointCharges);
+}
+
+
+//----------------- class CoulombSpherical ---------------------
+
+CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombTruncationParams& params)
+: Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc)
+{	if(!Rc) Rc = ws.inRadius();
+	logPrintf("Initialized spherical truncation of radius %lg bohrs\n", Rc);
+}
+
+DataGptr CoulombSpherical::operator()(DataGptr&& in) const
+{	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSpherical_calc(Rc), in->dataPref(false));
+	return in;
+}
+
+double CoulombSpherical::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+{	return EwaldIsolated(gInfo, ws, false, Rc).energyAndGrad(pointCharges);
 }

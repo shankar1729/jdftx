@@ -161,6 +161,18 @@ void pow_gpu(int N, double* X, double scale, double alpha)
 }
 
 __global__
+void gaussConvolve_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT, complex* data, double sigma)
+{	COMPUTE_halfGindices
+	data[i] *= exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG));
+}
+void gaussConvolve_gpu(const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
+{	GpuLaunchConfig3D glc(gaussConvolve_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		gaussConvolve_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, data, sigma);
+}
+
+
+__global__
 void gradient_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const complex* Xtilde, vector3<complex*> gradTilde)
 {	COMPUTE_halfGindices
 	gradient_calc(i, iG, IS_NYQUIST, G, Xtilde, gradTilde);

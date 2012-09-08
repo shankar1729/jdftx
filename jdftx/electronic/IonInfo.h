@@ -51,17 +51,18 @@ public:
 	IonicGradient forces; //!< forces at current atomic positions
 	
 	DataGptr Vlocps; //!< Net local pseudopotential
-	DataGptr rhoIon; //!< Total ionic charge density (with width ionChargeWidth, used for interactions with fluid)
+	DataGptr rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)
 	DataGptr nChargeball; //!< Extra electron density around ionic cores to keep fluid out (DEPRECATED)
 	DataRptr nCore; //!< Core electron density for partial (nonlinear) core correction
 	DataRptr tauCore; //!< Model for the KE density of the core (TF+vW applied to nCore) (used by meta-GGAs)
 	
 	IonInfo();
-
+	
 	void setup(const Everything&);
 	void printPositions(FILE*) const; 
 	void checkPositions() const; //!< check for overlapping atoms
-	double ElocCorrection() const; //!< get constant correction to Eloc due to nuclear width
+	double getZtot() const; //!< get total Z of all species and atoms
+	double ionWidthMuCorrection() const; //!< correction to electron chemical potential due to finite ion width in fluid interaction
 	
 	//! Update Vlocps, rhoIon, nChargeball, nCore and the energies dependent only on ionic positions
 	void update(Energies&); 
@@ -98,16 +99,10 @@ private:
 		IonWidthManual //!< manually specify the ion width
 	}
 	ionWidthMethod; //!< method for determining ion charge width
-	double ionChargeWidth; //!< width for gaussian representation of nuclei
+	double ionWidth; //!< width for gaussian representation of nuclei
 	
-	friend class IonicMinimizer;
-	friend class SpeciesInfo;
 	friend class CommandIonWidth;
 	friend class CommandDebug;
-	
-	double sigma; //!< gaussian width for Ewald sums
-	vector3<int> Nreal; //!< max unit cell indices for real-space part of Ewald sum
-	vector3<int> Nrecip; //!< max unit cell indices for reciprocal-space part of Ewald sum
 	
 	//! Compute the ewald energy (nuclear-nuclear eletcrostatics) and optionally its gradient
 	double ewaldAndGrad(IonicGradient* forces=0) const;

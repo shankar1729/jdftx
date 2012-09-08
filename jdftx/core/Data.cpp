@@ -154,6 +154,29 @@ DataGptr DataG::clone() const
 }
 DataGptr DataG::alloc(const GridInfo& gInfo, bool onGpu) { return DataGptr(new DataG(gInfo, onGpu)); }
 
+double DataG::getGzero() const
+{	
+	#ifdef GPU_ENABLED
+	if(isOnGpu())
+	{	double ret;
+		cudaMemcpy(&ret, dataGpu(false), sizeof(double), cudaMemcpyDeviceToHost);
+		return ret * scale;
+	}
+	#endif
+	return data(false)[0].real() * scale;
+}
+void DataG::setGzero(double Gzero)
+{	if(!scale) absorbScale(); //otherwise division by zero below
+	double scaledGzero = Gzero / scale;
+	#ifdef GPU_ENABLED
+	if(isOnGpu())
+	{	cudaMemcpy(dataGpu(false), &scaledGzero, sizeof(double), cudaMemcpyHostToDevice);
+		return;
+	}
+	#endif
+	data(false)[0].real() = scaledGzero;
+}
+
 
 
 complexDataR::complexDataR(const GridInfo& gInfo, bool onGpu) : Data(gInfo, gInfo.nr, 2, onGpu)

@@ -128,7 +128,7 @@ void ElecVars::setup(const Everything &everything)
 				ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
 				iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
 				Hpsi += Idag_DiagV_I(psi, 
-					Jdag(O(iInfo.Vlocps + (rhoExternal ? -4.0*M_PI*Linv(O(rhoExternal)) : DataGptr())), true) //local potential
+					Jdag(O(iInfo.Vlocps + (rhoExternal ? (*e->coulomb)(rhoExternal) : DataGptr())), true) //local potential
 					+ (Vexternal.size() ? JdagOJ(Vexternal[eInfo.qnums[q].index()]) : DataRptr())); //external potential
 				//Diagonalize and set to eigenvectors:
 				matrix evecs; diagMatrix eigs;
@@ -208,22 +208,22 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 	DataGptr nTilde = J(eInfo.spinType==SpinNone ? n[0] : n[0]+n[1]);
 	
 	// Local part of pseudopotential:
-	ener.Eloc = dot(nTilde, O(iInfo.Vlocps)) + iInfo.ElocCorrection();
+	ener.Eloc = dot(nTilde, O(iInfo.Vlocps));
 	DataGptr VsclocTilde = clone(iInfo.Vlocps);
 	
 	// Hartree term:
-	d_vac = -4.0*M_PI*Linv(O(nTilde)); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
+	d_vac = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
 	ener.EH = 0.5*dot(nTilde, O(d_vac));
 	VsclocTilde += d_vac;
 	
 	//Include nuclear charge into d_vac so dumped quantity has asymptoptic properties 
 	//of the electrostatic potential as defined in http://arxiv.org/abs/1205.0526
-	d_vac += -4.0*M_PI*Linv(O(iInfo.rhoIon));
+	d_vac += (*e->coulomb)(iInfo.rhoIon);
 
 	// External charge:
 	ener.Eexternal = 0.;
 	if(rhoExternal)
-	{	DataGptr phiExternal = -4.0*M_PI*Linv(O(rhoExternal));
+	{	DataGptr phiExternal = (*e->coulomb)(rhoExternal);
 		ener.Eexternal += dot(nTilde + iInfo.rhoIon, O(phiExternal));
 		VsclocTilde += phiExternal;
 		d_vac += phiExternal;
@@ -238,11 +238,8 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 
 		//Net electric charge:
 		DataGptr rhoExplicitTilde = nTilde + iInfo.rhoIon + rhoExternal;
-		if((fluidParams.hSIons.size()==0)&&(fluidParams.ionicConcentration==0.0))
-		{
-			//if there are no ions present apply neutralizing background charge		
-			rhoExplicitTilde->data()[0]=0.0;
-		}
+		if(!(fluidParams.ionicConcentration || fluidParams.hSIons.size()))
+			rhoExplicitTilde->setGzero(0.); //No screening => apply neutralizing background charge
 		fluidSolver->set(rhoExplicitTilde, nCavityTilde);
 		// If the fluid doesn't have a gummel loop, minimize it each time:
 		if(!fluidSolver->needsGummel()) fluidSolver->minimizeFluid();
@@ -250,6 +247,13 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 		ener.A_diel = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity);
 		VsclocTilde += d_fluid;
 		VsclocTilde += V_cavity;
+		
+		//Chemical-potential correction due to finite nuclear width in fluid interaction:
+		if(fluidParams.ionicConcentration || fluidParams.hSIons.size())
+		{	double muCorrection = iInfo.ionWidthMuCorrection();
+			ener.A_diel += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
+			VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
+		}
 	}
 
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:

@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/GridInfo.h>
 #include <core/MinimizeParams.h>
+#include <core/Coulomb.h>
 #include <electronic/common.h>
 #include <electronic/Control.h>
 #include <electronic/Basis.h>
@@ -55,6 +56,9 @@ public:
 	MinimizeParams ionicMinParams; //!< ionic minimization parameters
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
+	
+	CoulombTruncationParams coulombTrunctaionParams; //!< Coulomb truncation parameters
+	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
 	
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();

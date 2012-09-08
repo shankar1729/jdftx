@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/GridInfo.h>
 #include <core/DataIO.h>
+#include <core/Coulomb.h>
 #include <fluid/SO3quad.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ExCorr_internal_GGA.h>
@@ -74,11 +75,13 @@ public:
 			DataRptr gauss1, gauss2;
 			{	DataGptr translateCenter(DataG::alloc(gInfo)); RealKernel gaussian(gInfo);
 				initTranslation(translateCenter, 0.5*(gInfo.R.column(0)+gInfo.R.column(1)+gInfo.R.column(2)));
-				initGaussianKernel(gaussian, sigma1*sqrt(2)); gauss1 = I(translateCenter*gaussian*(1/gInfo.detR));
-				initGaussianKernel(gaussian, sigma2*sqrt(2)); gauss2 = I(translateCenter*gaussian*(1/gInfo.detR));
+				gauss1 = I(gaussConvolve(translateCenter*(1./gInfo.detR), sigma1));
+				gauss2 = I(gaussConvolve(translateCenter*(1./gInfo.detR), sigma2));
 			}
 			DataRptr n = gauss2 - gauss1;
-			DataRptr phi = I(Linv(-4*M_PI * O(J(n))));
+			CoulombTruncationParams ctp; ctp.type = CoulombTruncationParams::Periodic;
+			DataRptr phi = I((*ctp.createCoulomb(gInfo))(J(n)));
+			//DataRptr phi = I(Linv(-4*M_PI * O(J(n))));
 			printf("\tNormalization check on g1: %20.16lf\n", sum(gauss1)*gInfo.detR/gInfo.nr);
 			printf("\tNormalization check on g2: %20.16lf\n", sum(gauss2)*gInfo.detR/gInfo.nr);
 			printf("\tTotal charge check: %20.16lf\n", sum(n)*gInfo.detR/gInfo.nr);
@@ -267,7 +270,7 @@ int main(int argc, char** argv)
 	gInfo.R.set_col(1, vector3<>(12.0, 0.0, 12.0));
 	gInfo.R.set_col(2, vector3<>(12.0, 12.0, 0.0));
 	gInfo.initialize();
-	testCavitation(gInfo); return 0;
+	//testCavitation(gInfo); return 0;
 	
 	//timeEblas3(gInfo);
 	

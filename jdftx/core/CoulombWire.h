@@ -17,17 +17,17 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_COULOMBISOLATED_H
-#define JDFTX_CORE_COULOMBISOLATED_H
+#ifndef JDFTX_CORE_COULOMBWIRE_H
+#define JDFTX_CORE_COULOMBWIRE_H
 
 #include <core/Coulomb.h>
 #include <core/WignerSeitz.h>
 
-//! Coulomb interaction for an isolated system (no periodicity), truncated on the Wigner-Seitz cell
-class CoulombIsolated : public Coulomb
+//! Coulomb interaction for a 1D periodic system, truncated on the transverse Wigner-Seitz cell
+class CoulombWire : public Coulomb
 {
 public:
-	CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationParams& params);
+	CoulombWire(const GridInfo& gInfo, const CoulombTruncationParams& params);
 	
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
@@ -40,21 +40,4 @@ private:
 	RealKernel Vc;
 };
 
-//! Coulomb interaction for an isolated system (no periodicity), truncated on a sphere
-class CoulombSpherical : public Coulomb
-{
-public:
-	CoulombSpherical(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
-	//!Apply isolated Coulomb kernel
-	DataGptr operator()(DataGptr&&) const;
-	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<PointCharge>& pointCharges) const;
-
-private:
-	WignerSeitz ws;
-	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
-};
-
-#endif // JDFTX_CORE_COULOMBISOLATED_H
+#endif // JDFTX_CORE_COULOMBWIRE_H

@@ -556,6 +556,27 @@ void initTranslation(DataGptr& X, const vector3<>& r)
 		initTranslation_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
 }
 
+
+void gaussConvolve_sub(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
+{	THREAD_halfGspaceLoop( data[i] *= exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG)); )
+}
+void gaussConvolve(const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
+{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+		gaussConvolve_sub, S[0]*S[1]*(1+S[2]/2), S, GGT, data, sigma);
+}
+#ifdef GPU_ENABLED
+void gaussConvolve_gpu(const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma);
+#endif
+DataGptr gaussConvolve(DataGptr&& in, double sigma)
+{	assert(in);
+	callPref(gaussConvolve)(in->gInfo.S, in->gInfo.GGT, in->dataPref(false), sigma);
+	return in;
+}
+DataGptr gaussConvolve(const DataGptr& in, double sigma)
+{	DataGptr out(in->clone());
+	return gaussConvolve((DataGptr&&)out, sigma);
+}
+
 //------------------------------ Debug utilities ------------------------------
 
 void printStats(const DataRptr& X, const char* name, FILE* fp)

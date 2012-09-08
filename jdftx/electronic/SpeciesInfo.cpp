@@ -486,7 +486,7 @@ void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nCha
 	callPref(::updateLocal)(gInfo.S, gInfo.GGT,
 		Vlocps->dataPref(), rhoIon->dataPref(), nChargeballData, nCoreData, tauCoreData,
 		atpos.size(), atposPref, invVol, VlocRadial,
-		Z, e->iInfo.ionChargeWidth, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
+		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
 }
 
 
@@ -507,7 +507,7 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 	callPref(gradLocalToSG)(gInfo.S, gInfo.GGT,
 		ccgrad_Vlocps->dataPref(), ccgrad_rhoIonData, ccgrad_nChargeballData,
 		ccgrad_nCoreData, ccgrad_tauCoreData, grad_SG->dataPref(), VlocRadial,
-		Z, e->iInfo.ionChargeWidth, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
+		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
 	
 	//Now propagate that gradient to each atom of this species:
 	DataGptr gradAtpos[3]; vector3<complex*> gradAtposData;

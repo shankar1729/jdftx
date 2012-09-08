@@ -35,6 +35,9 @@ void Everything::setup()
 			ec->setup(*this); //comparison functionals evaluated at the end
 	}
 
+	//Coulomb-interaction setup:
+	coulomb = coulombTrunctaionParams.createCoulomb(gInfo);
+	
 	//Arom positions, pseudopotentials
 	iInfo.setup(*this);
 	

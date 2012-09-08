@@ -41,10 +41,14 @@ struct CommandFluid : public Command
 			"\t<type> = " + fluidTypeMap.optionList() + "\n"
 			"\t<Temperature> in Kelvin";
 		hasDefault = true;
+		require("coulomb-interaction");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eVars.fluidType, FluidNone, fluidTypeMap, "type");
+		if((e.coulombTrunctaionParams.type != CoulombTruncationParams::Periodic)
+			&& (e.eVars.fluidType != FluidNone))
+			throw string("Fluids cannot be used with a truncated coulomb interaction");
 		FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.T, 298.0, "Temperature"); fsp.T *= Kelvin; //convert to atomic units
 	}
