@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataMultiplet.h>
 #include <core/Random.h>
 #include <string.h>
-#include <cblas.h>
 
 //------------------------------ Conversion operators ------------------------------
 

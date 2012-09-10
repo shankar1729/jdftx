@@ -63,6 +63,8 @@ public:
 		vector3<> force; //!< force in lattice coordinates (contravariant)
 	};
 	//!Get the energy of a point charge configurtaion, and set the corresponding forces
+	//!The implementation may shift each PointCharge::pos by lattice vectors
+	//!and may assume that PointCharge::force is set to zero on input
 	virtual double energyAndGrad(std::vector<PointCharge>& pointCharges) const=0; 
 
 protected:

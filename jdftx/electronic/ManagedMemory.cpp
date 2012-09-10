@@ -17,9 +17,6 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <cblas.h>
-
-
 #include <electronic/ManagedMemory.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>

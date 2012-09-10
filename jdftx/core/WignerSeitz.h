@@ -58,10 +58,12 @@ public:
 	}
 	
 	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface
+	//! Returns 0 if the point is outside the Wigner-Seitz cell
 	inline double boundaryDistance(const vector3<>& x) const
 	{	double minDistSq = DBL_MAX;
 		for(const Face* f: faceHalf)
 		{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
+			if(dDiff < 0.) return 0.; //point outside Wigner Seitz cell
 			double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
 			if(distSq<minDistSq) minDistSq = distSq;
 		}

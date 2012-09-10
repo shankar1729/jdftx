@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/BlasExtra.h>
-#include <cblas.h>
 #include <cstring>
 
 void eblas_lincomb_sub(int iMin, int iMax,

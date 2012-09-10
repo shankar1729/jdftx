@@ -40,13 +40,17 @@ struct EwaldIsolated
 	
 	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
 	{	double E = 0.;
+		//Shift all points into a Wigner-Seitz cell centered on one of the atoms; choice of this atom
+		//is irrelevant if every atom lies in the WS cell of the other with a consistent translation:
+		vector3<> pos0 = pointCharges[0].pos;
+		for(Coulomb::PointCharge& pc: pointCharges)
+			pc.pos = pos0 + ws.restrict(pc.pos - pos0);
 		//Loop over all pairs of pointcharges:
 		for(unsigned i=0; i<pointCharges.size(); i++)
 		{	Coulomb::PointCharge& pc1 = pointCharges[i];
 			for(unsigned j=0; j<i; j++)
 			{	Coulomb::PointCharge& pc2 = pointCharges[j];
-				//Find nearest-image distance (by picking image within Wigner-Seitz cell centered on one):
-				vector3<> x = ws.restrict(pc1.pos - pc2.pos); //lattice coords
+				vector3<> x = pc1.pos - pc2.pos; //lattice coords
 				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
 				if(wsTruncated)
 				{	if(ws.boundaryDistance(x) <= criticalDist)
@@ -234,7 +238,10 @@ double CoulombIsolated::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCh
 
 CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombTruncationParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc)
-{	if(!Rc) Rc = ws.inRadius();
+{	double RcMax = ws.inRadius();
+	if(Rc > RcMax)
+		die("Spherical truncation radius %lg exceeds Wigner-Seitz cell in-radius of %lg bohrs.\n", Rc, RcMax);
+	if(!Rc) Rc = RcMax;
 	logPrintf("Initialized spherical truncation of radius %lg bohrs\n", Rc);
 }
 

@@ -20,9 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <core/scalar.h>
 #include <algorithm>
-#include <cblas.h>
 #include <cublas.h>
 #include <cfloat>
+#include <core/cblas_wrapper.h>
 
 template<typename Tx, typename Ty> __global__
 void eblas_mul_kernel(const int N, const Tx* X, const int incX, Ty* Y, const int incY)

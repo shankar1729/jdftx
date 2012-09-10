@@ -40,7 +40,7 @@ struct CoulombSlab_calc
 	{	double Gsq = GGT.metric_length_squared(iG);
 		double Gplane = Gsq - GGT(iDir,iDir) * iG[iDir]*iG[iDir]; //G along the non-truncated directions
 		Gplane = Gplane>0. ? sqrt(Gplane) : 0.; //safe sqrt to prevent NaN from roundoff errors
-		return Gsq ? (4*M_PI) * (1. - exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]))/Gsq : 0.;
+		return (4*M_PI) * (Gsq ? (1. - exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]))/Gsq : -0.5*hlfL*hlfL);
 	}
 };
 
