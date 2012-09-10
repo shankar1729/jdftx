@@ -74,7 +74,7 @@ double Molecule::get_dipole() const
 	}
 	//Check that dipole (if any) is lined up with z-axis
 	double dipoleOffZaxis = fabs(electricP[0]) + fabs(electricP[1]);
-	assert(dipoleOffZaxis < 1e-10*electricP.length());
+	assert(dipoleOffZaxis <= 1e-10*electricP.length());
 	return electricP[2];
 }
 
