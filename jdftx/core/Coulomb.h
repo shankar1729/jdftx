@@ -36,6 +36,7 @@ struct CoulombTruncationParams
 	Type type; //!< Truncation geometry
 	int iDir; //!< Truncated lattice direction for Slab; Periodic direction for Wire
 	double borderWidth; //!< Border width in smoothed Wigner-Seitz truncation (used by Wire, Isolated)
+	double ionMargin; //!< Extra margin for the separation between ions from the truncation boundary (all truncated modes)
 	double Rc; //!< Truncation radius for spherical mode (0 => in-radius of Wigner-Seitz cell)
 	string filename; //!< File to cache computed kernel in (used only by Wire, Isolated)
 	

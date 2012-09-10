@@ -54,11 +54,11 @@ struct EwaldIsolated
 				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
 				if(wsTruncated)
 				{	if(ws.boundaryDistance(x) <= criticalDist)
-						die("Separation between atoms %d and %d lies in the truncation border.\n", i, j);
+						die("Separation between atoms %d and %d lies in the truncation border + margin.\n", i, j);
 				}
 				else
 				{	if(r >= criticalDist)
-						die("Atoms %d and %d are separated by r = %lg >= Rc = %lg bohrs.\n", i, j, r, criticalDist);
+						die("Atoms %d and %d are separated by r = %lg >= Rc-ionMargin = %lg bohrs.\n", i, j, r, criticalDist);
 				}
 				double dE = (pc1.Z * pc2.Z) / r;
 				vector3<> dF = (gInfo.RTR * x) * (dE/rSq);
@@ -230,7 +230,7 @@ DataGptr CoulombIsolated::operator()(DataGptr&& in) const
 }
 
 double CoulombIsolated::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-{	return EwaldIsolated(gInfo, ws, true, params.borderWidth).energyAndGrad(pointCharges);
+{	return EwaldIsolated(gInfo, ws, true, params.borderWidth + params.ionMargin).energyAndGrad(pointCharges);
 }
 
 
@@ -251,5 +251,5 @@ DataGptr CoulombSpherical::operator()(DataGptr&& in) const
 }
 
 double CoulombSpherical::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-{	return EwaldIsolated(gInfo, ws, false, Rc).energyAndGrad(pointCharges);
+{	return EwaldIsolated(gInfo, ws, false, Rc - params.ionMargin).energyAndGrad(pointCharges);
 }

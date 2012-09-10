@@ -44,17 +44,17 @@ struct CommandCoulombInteraction : public Command
 			"and the corresponding arguments are:\n"
 			"   Periodic\n"
 			"      Standard periodic (untruncated) coulomb interaction (Default)\n"
-			"   Slab <dir>=" + truncationDirMap.optionList() + "\n"
+			"   Slab <dir>=" + truncationDirMap.optionList() + " [<ionMargin>=3]\n"
 			"      Truncate coulomb interaction along the specified lattice direction.\n"
 			"      The other two lattice directions must be orthogonal to this one.\n"
 			"      Useful for slab-like geometries.\n"
-			"   Wire <dir>=" + truncationDirMap.optionList() + " <borderWidth> [<filename>]\n"
+			"   Wire <dir>=" + truncationDirMap.optionList() + " <borderWidth> [<ionMargin>=3] [<filename>]\n"
 			"      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane\n"
 			"      perpendicular to <dir>. The other two lattice directions must be\n"
 			"      orthogonal to this one. Useful for wire-like geometries.\n"
-			"   Isolated <borderWidth> [<filename>]\n"
+			"   Isolated <borderWidth> [<ionMargin>=3] [<filename>]\n"
 			"      Truncate coulomb interaction on the 3D Wigner-Seitz cell.\n"
-			"   Spherical [<Rc>=0]\n"
+			"   Spherical [<Rc>=0] [<ionMargin>=3]\n"
 			"      Truncate coulomb interaction on a sphere of radius <Rc> bohrs.\n"
 			"      Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.\n"
 			"The Periodic, Slab and Spherical coulomb interaction kernels are computed\n"
@@ -72,8 +72,14 @@ struct CommandCoulombInteraction : public Command
 			"direction, where L is the length of the unit cell in that direction\n"
 			"or 2 Rc for Spherical mode, and <borderWidth> is the truncation boundary\n"
 			"width for the Slab and Isolated modes and zero for the rest. The center\n"
-			"of the charge density is not important and may cross unit cell boundaries.";
-		
+			"of the charge density is not important and may cross unit cell boundaries.\n"
+			"    The <ionMargin> option helps ensure that the charge density satisfies\n"
+			"the constraints mentioned above. This option checks that the ions (nuclei)\n"
+			"satisfy the truncation constraints with an additional margin of <ionMargin>\n"
+			"bohrs; the latter should therefore be set to a typical distance from nuclei\n"
+			"where the electron density becomes negligible. The Slab and Wire geometries\n"
+			"use this margin to optimize Ewald summation, and using a larger margin is\n"
+			"more efficient, particularly for Wire as it affects memory usage as well.";
 		hasDefault = true;
 	}
 
@@ -85,19 +91,24 @@ struct CommandCoulombInteraction : public Command
 				break;
 			case CoulombTruncationParams::Slab:
 				pl.get(ctp.iDir, 0, truncationDirMap, "dir", true);
+				pl.get(ctp.ionMargin, 3., "ionMargin");
 				break;
 			case CoulombTruncationParams::Wire:
 			case CoulombTruncationParams::Isolated:
 				if(ctp.type == CoulombTruncationParams::Wire)
 					pl.get(ctp.iDir, 0, truncationDirMap, "dir", true);
 				pl.get(ctp.borderWidth, 0., "borderWidth", true);
+				pl.get(ctp.ionMargin, 3., "ionMargin");
 				pl.get(ctp.filename, string(), "filename");
 				if(ctp.borderWidth <= 0.)
 					throw string("Border width must be positive, recommend at least 3 bohrs.\n");
 				break;
 			case CoulombTruncationParams::Spherical:
 				pl.get(ctp.Rc, 0., "Rc");
+				pl.get(ctp.ionMargin, 3., "ionMargin");
 		}
+		if(ctp.type!=CoulombTruncationParams::Periodic && ctp.ionMargin<=0.)
+			throw string("Ion margin must be positive");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -107,16 +118,16 @@ struct CommandCoulombInteraction : public Command
 		{	case CoulombTruncationParams::Periodic:
 				break;
 			case CoulombTruncationParams::Slab:
-				logPrintf(" %s", truncationDirMap.getString(ctp.iDir));
+				logPrintf(" %s %lg", truncationDirMap.getString(ctp.iDir), ctp.ionMargin);
 				break;
 			case CoulombTruncationParams::Wire:
 			case CoulombTruncationParams::Isolated:
 				if(ctp.type == CoulombTruncationParams::Wire)
 					logPrintf(" %s", truncationDirMap.getString(ctp.iDir));
-				logPrintf(" %lg %s", ctp.borderWidth, ctp.filename.c_str());
+				logPrintf(" %lg  %lg %s", ctp.borderWidth, ctp.ionMargin, ctp.filename.c_str());
 				break;
 			case CoulombTruncationParams::Spherical:
-				if(ctp.Rc) logPrintf(" %lg", ctp.Rc);
+				if(ctp.Rc) logPrintf(" %lg %lg", ctp.Rc, ctp.ionMargin);
 		}
 	}
 }
