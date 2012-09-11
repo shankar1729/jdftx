@@ -29,7 +29,7 @@ CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombTruncationParams& p
 
 DataGptr CoulombSlab::operator()(DataGptr&& in) const
 {	int iDir = params.iDir;
-	double hlfL = 0.5*gInfo.R(iDir,iDir);
+	double hlfL = 0.5*sqrt(gInfo.RTR(iDir,iDir));
 	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSlab_calc(iDir, hlfL), in->dataPref(false));
 	return in;
 }

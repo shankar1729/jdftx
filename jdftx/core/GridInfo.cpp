@@ -43,12 +43,14 @@ GridInfo::~GridInfo()
 		fftw_destroy_plan(planInverseInPlaceSingle);
 		fftw_destroy_plan(planCtoRsingle);
 		fftw_destroy_plan(planRtoCsingle);
-		fftw_destroy_plan(planForwardMulti);
-		fftw_destroy_plan(planInverseMulti);
-		fftw_destroy_plan(planForwardInPlaceMulti);
-		fftw_destroy_plan(planInverseInPlaceMulti);
-		fftw_destroy_plan(planCtoRmulti);
-		fftw_destroy_plan(planRtoCmulti);
+		if(nProcsAvailable > 1)
+		{	fftw_destroy_plan(planForwardMulti);
+			fftw_destroy_plan(planInverseMulti);
+			fftw_destroy_plan(planForwardInPlaceMulti);
+			fftw_destroy_plan(planInverseInPlaceMulti);
+			fftw_destroy_plan(planCtoRmulti);
+			fftw_destroy_plan(planRtoCmulti);
+		}
 		fftw_cleanup_threads();
 		fftw_cleanup();
 		#endif
