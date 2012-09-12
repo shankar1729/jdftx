@@ -39,7 +39,8 @@ struct EwaldIsolated
 	}
 	
 	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-	{	double E = 0.;
+	{	if(!pointCharges.size()) return 0.;
+		double E = 0.;
 		//Shift all points into a Wigner-Seitz cell centered on one of the atoms; choice of this atom
 		//is irrelevant if every atom lies in the WS cell of the other with a consistent translation:
 		vector3<> pos0 = pointCharges[0].pos;

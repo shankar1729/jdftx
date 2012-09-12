@@ -48,9 +48,9 @@ struct EwaldPeriodic
 		{	Nreal[k] = 1+ceil(10. * gInfo.G.row(k).length() * sigma / (2*M_PI));
 			Nrecip[k] = 1+ceil(10. * gInfo.R.column(k).length() / (2*M_PI*sigma));
 		}
-		logPrintf("Real space sums over %d unit cells with max indices ", 8*Nreal[0]*Nreal[1]*Nreal[2]);
+		logPrintf("Real space sums over %d unit cells with max indices ", (2*Nreal[0]+1)*(2*Nreal[1]+1)*(2*Nreal[2]+1));
 		Nreal.print(globalLog, " %d ");
-		logPrintf("Reciprocal space sums over %d unit cells with max indices ", 8*Nrecip[0]*Nrecip[1]*Nrecip[2]);
+		logPrintf("Reciprocal space sums over %d unit cells with max indices ", (2*Nrecip[0]+1)*(2*Nrecip[1]+1)*(2*Nrecip[2]+1));
 		Nrecip.print(globalLog, " %d ");
 	}
 	
@@ -66,30 +66,30 @@ struct EwaldPeriodic
 		double E
 			= 0.5 * 4*M_PI * Ztot*Ztot * (-0.5*sigmaSq) / gInfo.detR //G=0 correction
 			- 0.5 * ZsqTot * eta * (2./sqrt(M_PI)); //Self-energy correction
-		//Reduce positions to first unit cell:
+		//Reduce positions to first centered unit cell:
 		for(Coulomb::PointCharge& pc: pointCharges)
 			for(int k=0; k<3; k++)
-				pc.pos[k] -= floor(pc.pos[k]);
+				pc.pos[k] -= floor(0.5 + pc.pos[k]);
 		//Real space sum:
 		vector3<int> iR; //integer cell number
-		for(iR[0]=-Nreal[0]+1; iR[0]<=Nreal[0]; iR[0]++)
-			for(iR[1]=-Nreal[1]+1; iR[1]<=Nreal[1]; iR[1]++)
-				for(iR[2]=-Nreal[2]+1; iR[2]<=Nreal[2]; iR[2]++)
-					for(const Coulomb::PointCharge& pc2: pointCharges)
-						for(Coulomb::PointCharge& pc1: pointCharges)
-						{	vector3<> x = iR + pc1.pos - pc2.pos;
+		for(const Coulomb::PointCharge& pc2: pointCharges)
+			for(Coulomb::PointCharge& pc1: pointCharges)
+				for(iR[0]=-Nreal[0]; iR[0]<=Nreal[0]; iR[0]++)
+					for(iR[1]=-Nreal[1]; iR[1]<=Nreal[1]; iR[1]++)
+						for(iR[2]=-Nreal[2]; iR[2]<=Nreal[2]; iR[2]++)
+						{	vector3<> x = iR + (pc1.pos - pc2.pos);
 							double rSq = gInfo.RTR.metric_length_squared(x);
+							if(!rSq) continue; //exclude self-interaction
 							double r = sqrt(rSq);
-							if(!r) continue; //exclude self-interaction
 							E += 0.5 * pc1.Z * pc2.Z * erfc(eta*r)/r;
 							pc1.force += (gInfo.RTR * x) *
 								(pc1.Z * pc2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
 						}
 		//Reciprocal space sum:
 		vector3<int> iG; //integer reciprocal cell number
-		for(iG[0]=-Nrecip[0]+1; iG[0]<=Nrecip[0]; iG[0]++)
-			for(iG[1]=-Nrecip[1]+1; iG[1]<=Nrecip[1]; iG[1]++)
-				for(iG[2]=-Nrecip[2]+1; iG[2]<=Nrecip[2]; iG[2]++)
+		for(iG[0]=-Nrecip[0]; iG[0]<=Nrecip[0]; iG[0]++)
+			for(iG[1]=-Nrecip[1]; iG[1]<=Nrecip[1]; iG[1]++)
+				for(iG[2]=-Nrecip[2]; iG[2]<=Nrecip[2]; iG[2]++)
 				{	double Gsq = gInfo.GGT.metric_length_squared(iG);
 					if(!Gsq) continue; //skip G=0
 					//Compute structure factor:

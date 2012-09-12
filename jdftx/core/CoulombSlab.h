@@ -33,6 +33,9 @@ public:
 	
 	//!Energy and forces of a point-charge assembly
 	double energyAndGrad(std::vector<PointCharge>& pointCharges) const;
+
+private:
+	std::shared_ptr<class EwaldSlab> ewald;
 };
 
 
