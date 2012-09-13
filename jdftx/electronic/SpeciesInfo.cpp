@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
 Copyright 1996-2003 Sohrab Ismail-Beigi
 
 This file is part of JDFTx.

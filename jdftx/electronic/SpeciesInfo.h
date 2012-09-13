@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
 Copyright 1996-2003 Sohrab Ismail-Beigi
 
 This file is part of JDFTx.
@@ -35,7 +35,7 @@ class SpeciesInfo
 {
 public:
 
-	double Z; //!< Nuclear charge of the species
+	double Z; //!< Valence charge of the species. NOT the atomic number.
 	string name; //!< Identifier
 
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
@@ -48,9 +48,11 @@ public:
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
 	double mass; //!< ionic mass (currently unused)	
 
+	//! Contains the information on the constraints of motion for each ion.
+	//! Constraints are for each ion, not to all ions in the species.
 	struct Constraint
 	{	
-		double moveScale;
+		double moveScale; //! 0 means ion is fixed, 1 means that it is free to move.
 		vector3<> x; //! The direction or plane normal of the constraint
 		enum ConstraintType {None, Linear, Planar} type; //! Type of the constraint that is being applied to the ion
 		
@@ -59,7 +61,7 @@ public:
 		int getDimension() const;
 		void print(FILE* fp) const;
 	};
-	std::vector<Constraint> constraints; //! Constraint that is on the motion of the ions
+	std::vector<Constraint> constraints; //! List of all constraints on ions of this species
 	
 	SpeciesInfo();
 	~SpeciesInfo();

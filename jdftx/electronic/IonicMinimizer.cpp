@@ -205,7 +205,7 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 	for(unsigned sp=0; sp<grad.size(); sp++)
 	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(unsigned atom=0; atom<grad[sp].size(); atom++)
-			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);
+			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);  // Applies move constraints to the force gradient.
 	}
 	
 	return Kgrad;

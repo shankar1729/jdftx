@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -60,6 +60,7 @@ struct CommandIon : public Command
 				//Look for constraints
 				SpeciesInfo::Constraint constraint;
 				pl.get(constraint.moveScale, 0.0, "moveScale", true);
+				if(constraint.moveScale < 0.) throw string("You can't have a negative moveScale for an ion!")
 				pl.get(constraint.type, SpeciesInfo::Constraint::None, constraintTypeMap, "Type");
 				if(constraint.type != SpeciesInfo::Constraint::None)
 				{	if(!constraint.moveScale)
