@@ -60,7 +60,8 @@ struct CommandIon : public Command
 				//Look for constraints
 				SpeciesInfo::Constraint constraint;
 				pl.get(constraint.moveScale, 0.0, "moveScale", true);
-				if(constraint.moveScale < 0.) throw string("You can't have a negative moveScale for an ion!")
+				if(constraint.moveScale < 0.)   // Check for negative moveScales
+					throw string("You can't have a negative moveScale for an ion!");
 				pl.get(constraint.type, SpeciesInfo::Constraint::None, constraintTypeMap, "Type");
 				if(constraint.type != SpeciesInfo::Constraint::None)
 				{	if(!constraint.moveScale)
@@ -71,7 +72,7 @@ struct CommandIon : public Command
 					if(not constraint.x.length_squared())
 						throw string("Constraint vector must be non-null");
 					if(e.iInfo.coordsType == CoordsLattice)
-						constraint.x = ~inv(e.gInfo.R) * constraint.x;
+						constraint.x = ~inv(e.gInfo.R) * constraint.x;  // Constraints transform like forces
 				}
 				sp->constraints.push_back(constraint);
 				return;
