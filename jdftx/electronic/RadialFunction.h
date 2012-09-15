@@ -20,8 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_RADIALFUNCTION_H
 #define JDFTX_ELECTRONIC_RADIALFUNCTION_H
 
-#include <core/scalar.h>
-#include <vector>
+#include <core/Bspline.h>
 
 //! G-space radial function stored on a uniform grid (of |G|)
 class RadialFunctionG
@@ -36,30 +35,11 @@ public:
 	void init(int l, const std::vector<double>& samples, double dG); //!< initialize from an array of samples in memory
 	void free();
 	
-	//! Blip (cubic spline evaluation)
+	//! Blip (quintic spline evaluation)
 	__hostanddev__ double operator()(double G) const
 	{	double Gindex = G * dGinv;
-		int j = (int)Gindex;
-		double tR = Gindex-j; //right weight for interval
-		double tL = 1.-tR; //left weight for interval
-		//Load blip coefficients:
-		if(j+4 > nCoeff) return 0.;
-		double c0 = coeff[j], c1 = coeff[j+1], c2 = coeff[j+2], c3 = coeff[j+3];
-		//Convert to bernstein polynomial coefficients:
-		double b0 = c0 + 4*c1 + c2;
-		double b1 = 4*c1 + 2*c2;
-		double b2 = 2*c1 + 4*c2;
-		double b3 = c1 + 4*c2 + c3;
-		//Evaluate bernstein polynomial by de Casteljau's reduction (for best numerical stability)
-		//3->2
-		double d0 = tL*b0 + tR*b1;
-		double d1 = tL*b1 + tR*b2;
-		double d2 = tL*b2 + tR*b3;
-		//2->1
-		double e0 = tL*d0 + tR*d1;
-		double e1 = tL*d1 + tR*d2;
-		//1->0 (result with scale factor)
-		return 0.25*(tL*e0 + tR*e1);
+		if(Gindex >= nCoeff-1) return 0.;
+		else return QuinticSpline::value(coeff, Gindex);
 	}
 };
 

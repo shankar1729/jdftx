@@ -45,37 +45,16 @@ void RadialFunctionG::init(int l, int nSamples, double dG, const char* filename,
 }
 
 void RadialFunctionG::init(int l, const std::vector<double>& samples, double dG)
-{	dGinv = 1.0/dG;
-	
-	//Mirror the samples for negative G:
-	std::vector<double> b(samples.rbegin(), samples.rend()-1);
-	if(l%2==1) for(double& bi: b) bi = -bi; //odd extension for odd l
-	b.insert(b.end(), samples.begin(), samples.end()); //copy of samples for positive G
-	
-	//Convert to blip coefficients by solve against [1/4 1 1/4] tridiagonal matrix
-	std::vector<double> D(b.size(), 1.0); //diagonals
-	//Forward elimination:
-	for(unsigned i=1; i<b.size(); i++)
-	{	double m = 0.25/D[i-1];
-		D[i] -= m*0.25;
-		b[i] -= m*b[i-1];
-	}
-	//Backward elimination (store results in coeff, but need only the G>0 part with one extra point)
-	nCoeff = samples.size()+1;
-	coeff = new double[nCoeff];
-	auto bi = b.rbegin();
-	auto Di = D.rbegin();
-	coeff[nCoeff-1] = (*(bi++))/(*(Di++));
-	for(int i=nCoeff-2; i>=0; i--)
-		coeff[i] = (*(bi++) - 0.25*coeff[i+1])/(*(Di++));
-	
+{	std::vector<double> c = QuinticSpline::getCoeff(samples, l%2==1);
+	dGinv = 1.0/dG;
+	nCoeff = c.size();
 	#ifdef GPU_ENABLED
-	//Move coefficients to gpu:
-	double* coeffCpu = coeff;
 	cudaMalloc(&coeff, sizeof(double)*nCoeff);
-	cudaMemcpy(coeff, coeffCpu, sizeof(double)*nCoeff, cudaMemcpyHostToDevice);
+	cudaMemcpy(coeff, c.data(), sizeof(double)*nCoeff, cudaMemcpyHostToDevice);
 	gpuErrorCheck();
-	delete[] coeffCpu;
+	#else
+	coeff = new double[nCoeff];
+	memcpy(coeff, c.data(), sizeof(double)*nCoeff);
 	#endif
 }
 
