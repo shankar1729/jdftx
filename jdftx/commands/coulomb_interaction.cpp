@@ -21,11 +21,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 
 EnumStringMap<CoulombTruncationParams::Type> truncationTypeMap
-(	CoulombTruncationParams::Periodic,  "Periodic",
-	CoulombTruncationParams::Slab,      "Slab",
-	CoulombTruncationParams::Wire,      "Wire",
-	CoulombTruncationParams::Isolated,  "Isolated",
-	CoulombTruncationParams::Spherical, "Spherical"
+(	CoulombTruncationParams::Periodic,    "Periodic",
+	CoulombTruncationParams::Slab,        "Slab",
+	CoulombTruncationParams::Cylindrical, "Cylindrical",
+	CoulombTruncationParams::Wire,        "Wire",
+	CoulombTruncationParams::Isolated,    "Isolated",
+	CoulombTruncationParams::Spherical,   "Spherical"
 );
 
 EnumStringMap<int> truncationDirMap
@@ -48,6 +49,11 @@ struct CommandCoulombInteraction : public Command
 			"      Truncate coulomb interaction along the specified lattice direction.\n"
 			"      The other two lattice directions must be orthogonal to this one.\n"
 			"      Useful for slab-like geometries.\n"
+			"   Cylindrical <dir>=" + truncationDirMap.optionList() + " [<Rc>=0] [<ionMargin>=3]\n"
+			"      Truncate coulomb interaction on a cylinder of radius <Rc> bohrs\n"
+			"      with axis along specified lattice direction. The other two lattice\n"
+			"      directions must be orthogonal to this one. Rc=0 is understood to be\n"
+			"      the in-radius of the 2D Wigner-Seitz cell perpendicular to <dir>.\n"
 			"   Wire <dir>=" + truncationDirMap.optionList() + " <borderWidth> [<ionMargin>=3] [<filename>]\n"
 			"      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane\n"
 			"      perpendicular to <dir>. The other two lattice directions must be\n"
@@ -77,9 +83,7 @@ struct CommandCoulombInteraction : public Command
 			"the constraints mentioned above. This option checks that the ions (nuclei)\n"
 			"satisfy the truncation constraints with an additional margin of <ionMargin>\n"
 			"bohrs; the latter should therefore be set to a typical distance from nuclei\n"
-			"where the electron density becomes negligible. The Slab and Wire geometries\n"
-			"use this margin to optimize Ewald summation, and using a larger margin is\n"
-			"more efficient, particularly for Wire as it affects memory usage as well.";
+			"where the electron density becomes negligible.";
 		hasDefault = true;
 	}
 
@@ -103,7 +107,10 @@ struct CommandCoulombInteraction : public Command
 				if(ctp.borderWidth <= 0.)
 					throw string("Border width must be positive, recommend at least 3 bohrs.\n");
 				break;
+			case CoulombTruncationParams::Cylindrical:
 			case CoulombTruncationParams::Spherical:
+				if(ctp.type == CoulombTruncationParams::Cylindrical)
+					pl.get(ctp.iDir, 0, truncationDirMap, "dir", true);
 				pl.get(ctp.Rc, 0., "Rc");
 				pl.get(ctp.ionMargin, 3., "ionMargin");
 		}
@@ -126,8 +133,11 @@ struct CommandCoulombInteraction : public Command
 					logPrintf(" %s", truncationDirMap.getString(ctp.iDir));
 				logPrintf(" %lg  %lg %s", ctp.borderWidth, ctp.ionMargin, ctp.filename.c_str());
 				break;
+			case CoulombTruncationParams::Cylindrical:
 			case CoulombTruncationParams::Spherical:
-				if(ctp.Rc) logPrintf(" %lg %lg", ctp.Rc, ctp.ionMargin);
+				if(ctp.type == CoulombTruncationParams::Cylindrical)
+					logPrintf(" %s", truncationDirMap.getString(ctp.iDir));
+				logPrintf(" %lg %lg", ctp.Rc, ctp.ionMargin);
 		}
 	}
 }

@@ -196,7 +196,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 	
 	//Initialize smoothed theta function:
 	logPrintf("Computing truncation shape function ... "); logFlush();
-	std::vector<Simplex<3>> sArr = ws.getSimplices3D();
+	std::vector<Simplex<3>> sArr = ws.getSimplices();
 	threadLaunch(simplexTheta_thread, nGsup, Ssup, GTsup, Vcell, fftArr, &sArr, sigma);
 	fftw_execute(fftPlanC2R);
 	logPrintf("Done.\n");

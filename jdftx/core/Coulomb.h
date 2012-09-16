@@ -30,6 +30,7 @@ struct CoulombTruncationParams
 	{	Periodic, //!< Fully periodic calculation (default)
 		Slab, //!< Truncated along one lattice direction, periodic in two
 		Wire, //!< Truncated along two lattice directions, periodic in one
+		Cylindrical, //!< Cylindrical truncation, with 1D periodicity along axis
 		Isolated, //!< Isolated system (all directions truncated)
 		Spherical //!< Spherical isolation in all directions
 	};
@@ -37,7 +38,7 @@ struct CoulombTruncationParams
 	int iDir; //!< Truncated lattice direction for Slab; Periodic direction for Wire
 	double borderWidth; //!< Border width in smoothed Wigner-Seitz truncation (used by Wire, Isolated)
 	double ionMargin; //!< Extra margin for the separation between ions from the truncation boundary (all truncated modes)
-	double Rc; //!< Truncation radius for spherical mode (0 => in-radius of Wigner-Seitz cell)
+	double Rc; //!< Truncation radius for cylindrical / spherical modes (0 => in-radius of Wigner-Seitz cell)
 	string filename; //!< File to cache computed kernel in (used only by Wire, Isolated)
 	
 	//! Create a Coulomb object corresponding to the parameters of this class

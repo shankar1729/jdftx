@@ -37,8 +37,18 @@ public:
 	~WignerSeitz();
 	
 	//! Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
-	std::vector<Simplex<3>> getSimplices3D() const;
+	std::vector<Simplex<3>> getSimplices() const;
 
+	//! Output a list of simplexes that tesselate half the 2D Weigner-Seitz cell
+	//! (remainder filled by inversion symmetry) after ignoring lattice direction iDir
+	//! The simplices are in rotated cartesian coordinates such that iDIr is mapped to z-axis
+	//! corresponding to lattice vectors returned by getRplanar(iDir)
+	std::vector<Simplex<2>> getSimplices(int iDir) const;
+	
+	//!Get rotated lattice vectors such that iDir is along the z-axis
+	//!Note that iDir must be orthogonal to the other two directions.
+	matrix3<> getRplanar(int iDir) const;
+	
 	//! Find the point within the Wigner-Seitz cell equivalent to x (lattice coordinates)
 	inline vector3<> restrict(const vector3<>& x) const
 	{	static const double tol = 1e-8;
@@ -59,19 +69,26 @@ public:
 	
 	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface
 	//! Returns 0 if the point is outside the Wigner-Seitz cell
-	inline double boundaryDistance(const vector3<>& x) const
+	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
+	inline double boundaryDistance(const vector3<>& x, int iDir=-1) const
 	{	double minDistSq = DBL_MAX;
 		for(const Face* f: faceHalf)
-		{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
-			if(dDiff < 0.) return 0.; //point outside Wigner Seitz cell
-			double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
-			if(distSq<minDistSq) minDistSq = distSq;
-		}
+			if(iDir<0 || !f->img[iDir])
+			{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
+				if(dDiff < 0.) return 0.; //point outside Wigner Seitz cell
+				double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
+				if(distSq<minDistSq) minDistSq = distSq;
+			}
 		return sqrt(minDistSq);
 	}
 	
 	//! Radius of largest sphere centered at origin contained within the Wigner-Seitz cell
-	double inRadius() const;
+	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
+	double inRadius(int iDir=-1) const;
+	
+	//! Radius of smallest sphere centered at origin that contains the Wigner-Seitz cell
+	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
+	double circumRadius(int iDir=-1) const;
 	
 	//! Write a wireframe plot to file (for gnuplot)
 	void writeWireframePlot(const char* filename) const;

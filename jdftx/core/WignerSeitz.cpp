@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 
 static const double minDistSq = 1e-16; //threshold on distance squared
+static const double geomRelTol = 1e-14; //relative tolerance to geometry (tesselation volumes, orthogonality checks etc)
 
 //Construct Wigner-Seitz cell given lattice vectors
 WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
@@ -145,9 +146,9 @@ WignerSeitz::~WignerSeitz()
 }
 
 //Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
-std::vector<Simplex<3>> WignerSeitz::getSimplices3D() const
+std::vector<Simplex<3>> WignerSeitz::getSimplices() const
 {	const double Vcell = fabs(det(R)); //expected volume of Wigner-Seitz cell
-	const double Vtol = 1e-12 * Vcell;
+	const double Vtol = geomRelTol * Vcell;
 	std::vector<Simplex<3>> sArr;
 	double Vtot = 0.;
 	for(const Face* f: faceHalf)
@@ -172,14 +173,74 @@ std::vector<Simplex<3>> WignerSeitz::getSimplices3D() const
 	return sArr;
 }
 
-//Radius of largest inscribable sphere centered at origin
-double WignerSeitz::inRadius() const
+//Output a list of simplexes that tesselate half the 2D Weigner-Seitz cell
+//(remainder filled by inversion symmetry) after ignoring lattice direction iDir
+std::vector<Simplex<2>> WignerSeitz::getSimplices(int iDir) const
+{	matrix3<> Rplanar = getRplanar(iDir);
+	const double Acell = fabs(det(R)) / R.column(iDir).length(); //expected area of 2D Wigner-Seitz cell
+	const double Atol = geomRelTol * Acell;
+	std::vector<Simplex<2>> sArr;
+	double Atot = 0.;
+	for(const Face* f: faceHalf)
+		if(f->img[iDir]==1 && f->img.length_squared()==1)
+		{	//Collect vertices in order:
+			std::vector<Simplex<2>::Point> v;
+			for(const Edge* e: f->edge)
+			{	vector3<> vCart = Rplanar * e->vertex[(e->face[0]==f) ? 0 : 1]->pos; //in rotated cartesian coordinates
+				v.push_back({{vCart[0], vCart[1]}}); //convert to Simplex<2>::Point, dropping iDir (which is z after rotation)
+			}
+			//Add simplices:
+			for(unsigned i=0; i<v.size(); i++)
+			{	Simplex<2> s;
+				s.v[0] = v[i ? i-1 : v.size()-1];
+				s.v[1] = v[i];
+				s.init();
+				Atot += s.V;
+				sArr.push_back(s);
+			}
+			break;
+		}
+	assert(fabs(Atot-Acell) < Atol); //Check total volume
+	return sArr;
+}
+
+//Rotated lattice vectors such that iDir maps onto z-axis
+matrix3<> WignerSeitz::getRplanar(int iDir) const
+{	int jDir = (iDir+1)%3;
+	int kDir = (iDir+2)%3;
+	//Construct an orthogonal matrix that takes z-axis to iDir and x-axis to jDir
+	matrix3<> rot;
+	rot.set_col(2, R.column(iDir) / R.column(iDir).length());
+	rot.set_col(0, R.column(jDir) / R.column(jDir).length());
+	assert(fabs(dot(rot.column(2), rot.column(0))) < geomRelTol);
+	assert(fabs(dot(rot.column(2), R.column(kDir))) < geomRelTol * R.column(kDir).length());
+	rot.set_col(1, cross(rot.column(2), rot.column(0)));
+	//Apply inverse rotation to R to get new lattice vectors:
+	return (~rot) * R;
+}
+
+
+//Radius of largest inscribable sphere (circle) centered at origin
+double WignerSeitz::inRadius(int iDir) const
 {	double rSqMin = DBL_MAX;
 	for(const Face* f: faceHalf)
-	{	double rSq = RTR.metric_length_squared(f->img);
-		if(rSq < rSqMin) rSqMin = rSq;
-	}
+		if(iDir<0 || !f->img[iDir]) //ignore direction iDir, if non-negative
+		{	double rSq = RTR.metric_length_squared(f->img);
+			if(rSq < rSqMin) rSqMin = rSq;
+		}
 	return 0.5*sqrt(rSqMin);
+}
+
+//Radius of smallest circumscribable sphere (circle) centered at origin
+double WignerSeitz::circumRadius(int iDir) const
+{	double rSqMax = 0.;
+	for(const Vertex* v: vertex)
+	{	vector3<> pos = v->pos;
+		if(iDir>=0) pos[iDir] = 0.; //project out iDir, if non-negative
+		double rSq = RTR.metric_length_squared(pos);
+		if(rSq > rSqMax) rSqMax = rSq;
+	}
+	return sqrt(rSqMax);
 }
 
 //Write a wireframe plot to file (for gnuplot)

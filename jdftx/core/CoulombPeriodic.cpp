@@ -48,9 +48,9 @@ struct EwaldPeriodic
 		{	Nreal[k] = 1+ceil(10. * gInfo.G.row(k).length() * sigma / (2*M_PI));
 			Nrecip[k] = 1+ceil(10. * gInfo.R.column(k).length() / (2*M_PI*sigma));
 		}
-		logPrintf("Real space sums over %d unit cells with max indices ", (2*Nreal[0]+1)*(2*Nreal[1]+1)*(2*Nreal[2]+1));
+		logPrintf("Real space sum over %d unit cells with max indices ", (2*Nreal[0]+1)*(2*Nreal[1]+1)*(2*Nreal[2]+1));
 		Nreal.print(globalLog, " %d ");
-		logPrintf("Reciprocal space sums over %d unit cells with max indices ", (2*Nrecip[0]+1)*(2*Nrecip[1]+1)*(2*Nrecip[2]+1));
+		logPrintf("Reciprocal space sum over %d terms with max indices ", (2*Nrecip[0]+1)*(2*Nrecip[1]+1)*(2*Nrecip[2]+1));
 		Nrecip.print(globalLog, " %d ");
 	}
 	

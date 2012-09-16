@@ -29,11 +29,12 @@ std::shared_ptr<Coulomb> CoulombTruncationParams::createCoulomb(const GridInfo& 
 {	if(type != Periodic)
 		logPrintf("\n---------- Setting up coulomb interaction ----------\n");
 	switch(type)
-	{	case Periodic:  return std::make_shared<CoulombPeriodic>(gInfo, *this);
-		case Slab:      return std::make_shared<CoulombSlab>(gInfo, *this);
-		case Wire:      return std::make_shared<CoulombWire>(gInfo, *this);
-		case Isolated:  return std::make_shared<CoulombIsolated>(gInfo, *this);
-		case Spherical: return std::make_shared<CoulombSpherical>(gInfo, *this);
+	{	case Periodic:    return std::make_shared<CoulombPeriodic>(gInfo, *this);
+		case Slab:        return std::make_shared<CoulombSlab>(gInfo, *this);
+		case Wire:        return std::make_shared<CoulombWire>(gInfo, *this);
+		case Cylindrical: return std::make_shared<CoulombCylindrical>(gInfo, *this);
+		case Isolated:    return std::make_shared<CoulombIsolated>(gInfo, *this);
+		case Spherical:   return std::make_shared<CoulombSpherical>(gInfo, *this);
 		default: return 0; //never encountered (to suppress warning)
 	}
 }

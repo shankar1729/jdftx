@@ -53,7 +53,7 @@ struct EwaldSlab
 		}
 		logPrintf("Real space sums over %d unit cells with max indices ", (2*Nreal[0]+1)*(2*Nreal[1]+1)*(2*Nreal[2]+1));
 		Nreal.print(globalLog, " %d ");
-		logPrintf("Reciprocal space sums over %d unit cells with max indices ", (2*Nrecip[0]+1)*(2*Nrecip[1]+1)*(2*Nrecip[2]+1));
+		logPrintf("Reciprocal space sums over %d terms with max indices ", (2*Nrecip[0]+1)*(2*Nrecip[1]+1)*(2*Nrecip[2]+1));
 		Nrecip.print(globalLog, " %d ");
 	}
 	
@@ -141,13 +141,17 @@ struct EwaldSlab
 	}
 };
 
+//Check orthogonality and return lattice direction name
+string checkOrthogonality(const GridInfo& gInfo, int iDir)
+{	string dirName(3, '0'); dirName[iDir] = '1';
+	if(fabs(gInfo.GGT(iDir,iDir) * gInfo.RTR(iDir,iDir) - 4*M_PI*M_PI) > 1e-14)
+		die("Lattice direction %s is not perpendicular to the other two basis vectors.\n", dirName.c_str());
+	return dirName;
+}
 
 CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombTruncationParams& params)
 : Coulomb(gInfo, params)
-{	int iDir = params.iDir;
-	string dirName(3, '0'); dirName[iDir] = '1';
-	if(fabs(gInfo.GGT(iDir,iDir) * gInfo.RTR(iDir,iDir) - 4*M_PI*M_PI) > 1e-14)
-		die("Lattice direction %s is not perpendicular to the other two basis vectors.\n", dirName.c_str());
+{	string dirName = checkOrthogonality(gInfo, params.iDir);
 	logPrintf("Initialized slab truncation along lattice direction %s\n", dirName.c_str());
 }
 
