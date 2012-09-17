@@ -90,46 +90,66 @@ inline void simplexTheta_thread(int iStart, int iStop, const vector3<int> S, con
 	)
 }
 
-//Multiply by the erf-smoothened coulomb potential in real space (twice the Wigner-Seitz cell)
-inline void multErfCoulomb_thread(int iStart, int iStop, const vector3<int> S, const matrix3<> RTR,
-	double* data, WignerSeitz* ws, double sigma, double dV)
+//Multiply by the erf-smoothened coulomb potential in real space, and initialize the index map
+inline void multErfCoulomb_thread(int iStart, int iStop, vector3<int> Spad, matrix3<> Rpad,
+	double* data, const WignerSeitz* wsPad, double sigma, double dV,
+	int* densePadMap, vector3<int> Sdense, const WignerSeitz* wsDense)
 {
-	matrix3<> invDiagS = inv(Diag(vector3<>(S)));
-	vector3<int> pitch;
-	pitch[2] = 1;
-	pitch[1] = pitch[2] * 2*(1+S[2]/2);
-	pitch[0] = pitch[1] * S[1];
+	vector3<int> pitchPad;
+	pitchPad[2] = 1;
+	pitchPad[1] = pitchPad[2] * 2*(1+Spad[2]/2);
+	pitchPad[0] = pitchPad[1] * Spad[1];
+	vector3<int> pitchDense;
+	pitchDense[2] = 1;
+	pitchDense[1] = pitchDense[2] * 2*(1+Sdense[2]/2);
+	pitchDense[0] = pitchDense[1] * Sdense[1];
+	vector3<> invSpad, invSdense;
+	for(int k=0; k<3; k++)
+	{	invSpad[k] = 1./Spad[k];
+		invSdense[k] = 1./Sdense[k];
+	}
+	matrix3<> hPad; //mesh offset vectors
+	for(int k=0; k<3; k++)
+		hPad.set_col(k, Rpad.column(k) / Spad[k]);
+	matrix3<> hThPad = (~hPad) * hPad; //metric in mesh coordinates
+	
 	double a = sqrt(0.5)/sigma;
+	const vector3<int>& S = Spad; //dimensions for THREAD_rLoop
 	THREAD_rLoop
-	(	vector3<> x = ws->restrict(invDiagS * iv); //position in lattice coordinates within WignerSeitz cell
-		double ar = a * sqrt(RTR.metric_length_squared(x)); //distance of minmal periodic image from origin
-		data[dot(pitch,iv)] *= (dV*a) * erf_by_x(ar); //include normalization factor for subsequent Fourier transform
+	(	//Compute index mappings:
+		vector3<int> ivPad = wsPad->restrict(iv, Spad, invSpad); //position in mesh coordinates within padded WignerSeitz cell
+		vector3<int> ivDense = wsDense->restrict(ivPad, Sdense, invSdense); //position in mesh coordinates within orig WS cell
+		for(int k=0; k<3; k++)
+		{	ivDense[k] = ivDense[k] % Sdense[k];
+			if(ivDense[k]<0) ivDense[k] += Sdense[k];
+		}
+		int iPad = dot(iv, pitchPad);
+		densePadMap[iPad] = dot(ivDense, pitchDense);
+		//Multiply data by erf/r:
+		double ar = a * sqrt(hThPad.metric_length_squared(ivPad)); //distance of minmal periodic image from origin
+		data[iPad] *= (dV*a) * erf_by_x(ar); //include normalization factor for subsequent Fourier transform
 	)
 }
 
 //Restrict from supercell to original cell, and add contribution from erfc/r
 inline void downSample_thread(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT,
-	const fftw_complex* in, const vector3<int>& Ssup, double* out, double sigma)
+	const fftw_complex* in, const vector3<int>& Sdense, double* out, double sigma)
 {
-	vector3<int> pitchSup;
-	pitchSup[2] = 1;
-	pitchSup[1] = pitchSup[2] * (1+Ssup[2]/2);
-	pitchSup[0] = pitchSup[1] * Ssup[1];
+	vector3<int> pitchDense;
+	pitchDense[2] = 1;
+	pitchDense[1] = pitchDense[2] * (1+Sdense[2]/2);
+	pitchDense[0] = pitchDense[1] * Sdense[1];
 	double hlfSigmaSq = 0.5*sigma*sigma;
 	THREAD_halfGspaceLoop
-	(	//Find corresponding point in supercell fourier transform:
-		int iSup = 0;
+	(	//Find corresponding point in dense cell fourier transform:
+		int iDense = 0;
 		for(int k=0; k<3; k++)
-		{	int ik = 2 * iG[k];
-			if(ik<0) ik += Ssup[k];
-			iSup += pitchSup[k] * ik;
-		}
+			iDense += pitchDense[k] * (iG[k]<0 ? iG[k]+Sdense[k] : iG[k]);
 		//Store in smaller cell, along with short-ranged part:
 		double Gsq = GGT.metric_length_squared(iG);
-		out[i] = in[iSup][0] + (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
+		out[i] = in[iDense][0] + (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
 	)
 }
-
 
 
 CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationParams& params)
@@ -165,52 +185,86 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 	if(params.borderWidth > maxBorderWidth)
 		die("Border width %lg bohrs must be less than half the Wigner-Seitz cell in-radius = %lg bohrs.\n",
 			params.borderWidth, maxBorderWidth);
-	double sigma = 0.1 * params.borderWidth;
-	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigma, params.borderWidth);
+	double sigmaBorder = 0.1 * params.borderWidth;
+	double sigma = 0.1*ws.inRadius() - sigmaBorder; //so that 10(sigma+sigmaBorder) < inRadius
+	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
 	
-	//Set up supercell:
-	logPrintf("Setting up 2x2x2 supercell: ");
-	matrix3<> Rsup = 2.*gInfo.R;
-	matrix3<> GTsup = (2*M_PI)*~inv(Rsup);
-	double Gnyq = 10./sigma; //lower bound on Nyquist frequency
-	vector3<int> Ssup;
+	//Set up dense integration grids:
+	logPrintf("Setting up FFT grids: ");
+	double Gnyq = 10./sigmaBorder; //lower bound on Nyquist frequency
+	vector3<int> Sdense; //dense fft sample count
+	matrix3<> Rpad; vector3<int> Spad; //padded lattice vectors and sample count
 	for(int k=0; k<3; k++)
-	{	Ssup[k] = 2*int(ceil(Gnyq * Rsup.column(k).length() / (2*M_PI)));
-		if(Ssup[k] < 2*gInfo.S[k]) Ssup[k] = 2*gInfo.S[k]; //ensure sufficient resolution for final result
-		while(!fftSuitable(Ssup[k])) Ssup[k]+=2; //pick the next even number suitable for FFT
+	{	Sdense[k] = std::max(gInfo.S[k], 2*int(ceil(Gnyq * gInfo.R.column(k).length() / (2*M_PI))));
+		while(!fftSuitable(Sdense[k])) Sdense[k]+=2; //pick the next even number suitable for FFT
+		//Pad the super cell by border width:
+		Spad[k] = Sdense[k] + 2*ceil(Sdense[k]*params.borderWidth/gInfo.R.column(k).length());
+		while(!fftSuitable(Spad[k])) Spad[k]+=2;
+		Rpad.set_col(k, gInfo.R.column(k) * (Spad[k]*1./Sdense[k]));
 	}
-	logPrintf("sample count = "); Ssup.print(globalLog, " %d ");
-	int nGsup = Ssup[0] * Ssup[1] * (1+Ssup[2]/2); //number of symmetry reduced reciprocal lattice vectors
-	int nrSup = Ssup[0] * Ssup[1] * Ssup[2]; //number of real space points
-	double Vcell = fabs(det(Rsup));
+	logPrintf("[ %d %d %d ], and [ %d %d %d ] padded.\n",
+		Sdense[0], Sdense[1], Sdense[2], Spad[0], Spad[1], Spad[2]);
+	int nGdense = Sdense[0] * Sdense[1] * (1+Sdense[2]/2);
+	int nGpad = Spad[0] * Spad[1] * (1+Spad[2]/2); //number of symmetry reduced reciprocal lattice vectors
+	int nrPad = Spad[0] * Spad[1] * Spad[2]; //number of real space points
+	double detRpad = fabs(det(Rpad));
+	
+	//Construct padded Wigner-Seitz cell, and check border:
+	logPrintf("For padded lattice, "); WignerSeitz wsPad(Rpad);
+	std::vector<vector3<>> vArr = ws.getVertices();
+	matrix3<> invRpad = inv(Rpad);
+	for(vector3<> v: vArr)
+		if(wsPad.boundaryDistance(wsPad.restrict(invRpad*v)) < 0.9*params.borderWidth)
+			die("Padded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
+				"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
+				"if different from the input lattice vectors, are printed during Symmetry setup.\n");
 	
 	//Plan Fourier transforms:
-	fftw_complex* fftArr = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nGsup);
-	if(!fftArr)
-		die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n", 1.6e-8*nGsup);
-	logPrintf("Planning supercell fourier transforms ... "); logFlush();
+	assert(nrPad > 0); //overflow check
+	fftw_complex* padArr = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nGpad);
+	fftw_complex* denseArr = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nGdense);
+	int* densePadMap = new int[nGpad*2]; //index map from padded to dense grid
+	double* padRealArr = (double*)padArr;
+	double* denseRealArr = (double*)denseArr;
+	if(!padArr || !denseArr || !densePadMap)
+		die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n",
+			(nGpad+nGdense)*sizeof(complex)*1e-9 + 2*nGpad*sizeof(int)*1e-9);
+	logPrintf("Planning fourier transforms ... "); logFlush();
 	fftw_plan_with_nthreads(nProcsAvailable);
-	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_3d(Ssup[0], Ssup[1], Ssup[2], fftArr, (double*)fftArr, FFTW_ESTIMATE);
-	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Ssup[0], Ssup[1], Ssup[2], (double*)fftArr, fftArr, FFTW_ESTIMATE);
+	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_3d(Spad[0], Spad[1], Spad[2], padArr, padRealArr, FFTW_ESTIMATE);
+	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Sdense[0], Sdense[1], Sdense[2], denseRealArr, denseArr, FFTW_ESTIMATE);
 	logPrintf("Done.\n");
 	
-	//Initialize smoothed theta function:
+	//Initialize smoothed theta function on padded lattice:
 	logPrintf("Computing truncation shape function ... "); logFlush();
 	std::vector<Simplex<3>> sArr = ws.getSimplices();
-	threadLaunch(simplexTheta_thread, nGsup, Ssup, GTsup, Vcell, fftArr, &sArr, sigma);
+	threadLaunch(simplexTheta_thread, nGpad, Spad, (2.0*M_PI)*(~invRpad), detRpad, padArr, &sArr, sigmaBorder);
 	fftw_execute(fftPlanC2R);
 	logPrintf("Done.\n");
 	
-	//Multiply by long-ranged erf/r:
+	//Multiply by long-ranged erf/r and initialize index map (periodic map via Wigner-Seitz restrictions):
 	logPrintf("Applying truncation to Coulomb kernel ... "); logFlush();
-	threadLaunch(multErfCoulomb_thread, nrSup, Ssup, (~Rsup)*Rsup, (double*)fftArr, &ws, sigma, Vcell/nrSup);
+	threadLaunch(multErfCoulomb_thread, nrPad, Spad, Rpad, padRealArr, &wsPad, sigma, detRpad/nrPad, densePadMap, Sdense, &ws);
+	//Collect values from points in padded grid into dense grid using index map:
+	//(This involves scatter operations, so cannot be threaded (easily))
+	memset(denseArr, 0, sizeof(complex)*nGdense);
+	int pitchPad2 = 2*(1+Spad[2]/2);
+	for(int i01=0; i01<Spad[0]*Spad[1]; i01++)
+	{	int iPad = i01*pitchPad2;
+		for(int i2=0; i2<Spad[2]; i2++)
+		{	denseRealArr[densePadMap[iPad]] += padRealArr[iPad];
+			iPad++;
+		}
+	}
+	fftw_free(padArr);
+	delete[] densePadMap;
 	fftw_execute(fftPlanR2C);
-	logPrintf("Done.\n");
 	
-	//Restrict to original sample count and add short-ranged erfc/r:
-	threadLaunch(downSample_thread, gInfo.nG, gInfo.S, gInfo.GGT, fftArr, Ssup, Vc.data, sigma);
-	fftw_free(fftArr);
+	//Restrict to original sample count and add short-ranged erfc/r in reciprocal space:
+	threadLaunch(downSample_thread, gInfo.nG, gInfo.S, gInfo.GGT, denseArr, Sdense, Vc.data, sigma);
+	fftw_free(denseArr);
 	Vc.set();
+	logPrintf("Done.\n");
 	
 	//Save kernel if requested:
 	if(params.filename.length())

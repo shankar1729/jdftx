@@ -36,6 +36,12 @@ public:
 	WignerSeitz(const matrix3<>& R); //!< Construct Wigner-Seitz cell given lattice vectors
 	~WignerSeitz();
 	
+	//! Get the vertices of the Wigner-Seitz cell in cartesian coordinates
+	//! If iDir>=0, return the vertices of the 2D wigner seitz cell ignoring
+	//! lattice direction iDir: the coordinates are still in 3D, but the
+	//! component along direction iDir will be projected out
+	std::vector<vector3<>> getVertices(int iDir=-1) const;
+	
 	//! Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
 	std::vector<Simplex<3>> getSimplices() const;
 
@@ -65,6 +71,29 @@ public:
 			}
 		}
 		return xWS;
+	}
+	
+	//! Find the point within the Wigner-Seitz cell equivalent to iv (mesh coordinates with sample count S)
+	inline vector3<int> restrict(const vector3<int>& iv, const vector3<int>& S, const vector3<>& invS) const
+	{	static const double tol = 1e-8;
+		vector3<int> ivWS = iv;
+		bool changed = true;
+		while(changed)
+		{	changed = false;
+			for(const Face* f: faceHalf)
+			{	double xDotEqn = 0.;
+				for(int k=0; k<3; k++)
+					xDotEqn += f->eqn[k] * ivWS[k] * invS[k];
+				double d = 0.5 * (1. + xDotEqn);
+				if(d<-tol || d>1.+tol) //not in fundamental zone
+				{	int id = int(floor(d));
+					for(int k=0; k<3; k++)
+						ivWS[k] -= id * f->img[k] * S[k];
+					changed = true;
+				}
+			}
+		}
+		return ivWS;
 	}
 	
 	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface

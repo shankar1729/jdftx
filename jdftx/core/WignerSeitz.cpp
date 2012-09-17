@@ -145,6 +145,26 @@ WignerSeitz::~WignerSeitz()
 	for(Face* f: face) delete f;
 }
 
+std::vector<vector3<>> WignerSeitz::getVertices(int iDir) const
+{	std::vector<vector3<>> result;
+	if(iDir >=0) //2D:
+	{	for(const Face* f: faceHalf)
+		if(f->img[iDir]==1 && f->img.length_squared()==1)
+		{	for(const Edge* e: f->edge)
+			{	vector3<> pos = e->vertex[(e->face[0]==f) ? 0 : 1]->pos;
+				pos[iDir] = 0; //project out iDir
+				result.push_back(R * pos);
+			}
+			break;
+		}
+	}
+	else //3D:
+	{	for(const Vertex* v: vertex)
+			result.push_back(R * v->pos);
+	}
+	return result;
+}
+
 //Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
 std::vector<Simplex<3>> WignerSeitz::getSimplices() const
 {	const double Vcell = fabs(det(R)); //expected volume of Wigner-Seitz cell
@@ -181,7 +201,7 @@ std::vector<Simplex<2>> WignerSeitz::getSimplices(int iDir) const
 	const double Atol = geomRelTol * Acell;
 	std::vector<Simplex<2>> sArr;
 	double Atot = 0.;
-	for(const Face* f: faceHalf)
+	for(const Face* f: face)
 		if(f->img[iDir]==1 && f->img.length_squared()==1)
 		{	//Collect vertices in order:
 			std::vector<Simplex<2>::Point> v;
