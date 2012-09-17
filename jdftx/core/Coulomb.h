@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 
 struct CoulombTruncationParams
-{	//! Trunctaion geometry
+{	//! Truncation geometry
 	enum Type
 	{	Periodic, //!< Fully periodic calculation (default)
 		Slab, //!< Truncated along one lattice direction, periodic in two
@@ -45,6 +45,16 @@ struct CoulombTruncationParams
 	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo) const;
 };
 
+
+//! Information required for pair-potential evaluations
+struct Atom
+{	double Z; //!< charge
+	int atomicNumber; //!< atomic number
+	vector3<> pos; //!< position in lattice coordinates (covariant)
+	vector3<> force; //!< force in lattice coordinates (contravariant)
+};
+
+
 //! Abstract base class for the (optionally truncated) Coulomb interaction
 class Coulomb
 {
@@ -58,16 +68,10 @@ public:
 	//! Apply Coulomb kernel (implemented in base class using virtual destructible input version)
 	DataGptr operator()(const DataGptr&) const;
 	
-	//! Point charge description
-	struct PointCharge
-	{	double Z; //!< charge
-		vector3<> pos; //!< position in lattice coordinates (covariant)
-		vector3<> force; //!< force in lattice coordinates (contravariant)
-	};
-	//!Get the energy of a point charge configurtaion, and set the corresponding forces
-	//!The implementation may shift each PointCharge::pos by lattice vectors
-	//!and may assume that PointCharge::force is set to zero on input
-	virtual double energyAndGrad(std::vector<PointCharge>& pointCharges) const=0; 
+	//!Get the energy of a point charge configurtaion, and accumulate corresponding forces
+	//!The implementation will shift each Atom::pos by lattice vectors to bring it to
+	//!the fundamental zone (or Wigner-Seitz cell as appropriate)
+	virtual double energyAndGrad(std::vector<Atom>& atoms) const=0; 
 
 protected:
 	const GridInfo& gInfo;

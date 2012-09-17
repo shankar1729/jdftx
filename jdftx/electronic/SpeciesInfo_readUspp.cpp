@@ -78,6 +78,7 @@ void SpeciesInfo::readUspp(istream& is)
 	reader.newRecord();
 	string title; reader.get<20>(title); trim(title);
 	double Zae; reader.get(Zae); //total electron count
+	atomicNumber = int(round(Zae));
 	reader.get(Z); //valence electron count
 	double excorrCode; reader.get(excorrCode); //exchange-correlation code
 	int nValence; reader.get(nValence); //number of valence orbitals

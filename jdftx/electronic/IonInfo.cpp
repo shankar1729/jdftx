@@ -155,8 +155,8 @@ void IonInfo::update(Energies& ener)
 	//Energies due to partial electronic cores:
 	ener.Exc_core = nCore ? -e->exCorr(nCore, 0, false, &tauCore) : 0.0;
 	
-	//Ewald sum:
-	ener.Eewald = ewaldAndGrad();
+	//Energies from pair-potential terms (Ewald etc.):
+	pairPotentialsAndGrad(&ener);
 	
 	//Pulay corrections:
 	double dEtot_dnG = 0.0; //derivative of Etot w.r.t nG  (G-vectors/unit volume)
@@ -175,13 +175,13 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 {	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
 	
-	//---------- Ewald forces ---------
-	IonicGradient forcesEwald; forcesEwald.init(*this);
-	ewaldAndGrad(&forcesEwald);
-	e->symm.symmetrize(forcesEwald);
-	forces = forcesEwald;
+	//---------- Forces from pair potential terms (Ewald etc.) ---------
+	IonicGradient forcesPairPot; forcesPairPot.init(*this);
+	pairPotentialsAndGrad(0, &forcesPairPot);
+	e->symm.symmetrize(forcesPairPot);
+	forces = forcesPairPot;
 	if(shouldPrintForceComponents)
-		forcesEwald.print(*e, globalLog, "forceEwald");
+		forcesPairPot.print(*e, globalLog, "forcePairPot");
 	
 	//---------- local part: Vlocps, chargeball, partial core etc.: --------------
 	//compute the complex-conjugate gradient w.r.t the relevant densities/potentials:
@@ -263,21 +263,26 @@ void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, c
 }
 
 
-double IonInfo::ewaldAndGrad(IonicGradient* forces) const
+void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 {
 	//Obtain the list of atomic positions and charges:
-	std::vector<Coulomb::PointCharge> pointCharges;
+	std::vector<Atom> atoms;
 	for(auto sp: species)
 		for(const vector3<>& pos: sp->atpos)
-			pointCharges.push_back({sp->Z, pos, vector3<>(0.,0.,0.)});
-	//Compute Ewald sum and gradients
-	double E = e->coulomb->energyAndGrad(pointCharges);
-	//Store forces if requested:
+			atoms.push_back({sp->Z, sp->atomicNumber, pos, vector3<>(0.,0.,0.)});
+	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
+	double Eewald = e->coulomb->energyAndGrad(atoms);
+	//Compute optional pair-potential terms:
+	double EvdW = 0.; //TODO: call vanDerWaals energy+force calculator here
+	//Store energies and/or forces if requested:
+	if(ener)
+	{	ener->Eewald = Eewald;
+		ener->EvdW = EvdW;
+	}
 	if(forces)
-	{	auto pc = pointCharges.begin();
+	{	auto atom = atoms.begin();
 		for(unsigned sp=0; sp<species.size(); sp++)
 			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
-				(*forces)[sp][at] = (pc++)->force;
+				(*forces)[sp][at] = (atom++)->force;
 	}
-	return E;
 }

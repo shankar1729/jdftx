@@ -57,48 +57,48 @@ struct EwaldSlab
 		Nrecip.print(globalLog, " %d ");
 	}
 	
-	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-	{	if(!pointCharges.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms) const
+	{	if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta, etaSqrtPiInv = 1./(eta*sqrt(M_PI));
 		double sigmaSq = sigma * sigma;
 		//Position independent terms: (Self-energy correction)
 		double ZsqTot = 0.;
-		for(const Coulomb::PointCharge& pc: pointCharges)
-			ZsqTot += pc.Z * pc.Z;
+		for(const Atom& a: atoms)
+			ZsqTot += a.Z * a.Z;
 		double E = -0.5 * ZsqTot * eta * (2./sqrt(M_PI));
 		//Reduce positions to first unit cell:
 		//Shift all points in the truncated direction into the 1D Wigner-Seitz cell
 		//centered on one of the atoms; choice of this atom is irrelevant if every atom
 		//lies in the WS cell of the other with a consistent translation:
 		vector3<> pos0(0.,0.,0.);
-		pos0[iDir] = pointCharges[0].pos[iDir];
-		for(Coulomb::PointCharge& pc: pointCharges)
+		pos0[iDir] = atoms[0].pos[iDir];
+		for(Atom& a: atoms)
 			for(int k=0; k<3; k++)
-				pc.pos[k] -= floor(0.5 + pc.pos[k] - pos0[k]);
+				a.pos[k] -= floor(0.5 + a.pos[k] - pos0[k]);
 		//Real space sum:
 		vector3<int> iR; //integer cell number
-		for(const Coulomb::PointCharge& pc2: pointCharges)
-			for(Coulomb::PointCharge& pc1: pointCharges)
+		for(const Atom& a2: atoms)
+			for(Atom& a1: atoms)
 				for(iR[0]=-Nreal[0]; iR[0]<=Nreal[0]; iR[0]++)
 					for(iR[1]=-Nreal[1]; iR[1]<=Nreal[1]; iR[1]++)
 						for(iR[2]=-Nreal[2]; iR[2]<=Nreal[2]; iR[2]++)
-						{	vector3<> x = iR + (pc1.pos - pc2.pos);
+						{	vector3<> x = iR + (a1.pos - a2.pos);
 							double rSq = gInfo.RTR.metric_length_squared(x);
 							if(!rSq) continue; //exclude self-interaction
 							double r = sqrt(rSq);
-							E += 0.5 * pc1.Z * pc2.Z * erfc(eta*r)/r;
-							pc1.force += (gInfo.RTR * x) *
-								(pc1.Z * pc2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
+							E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
+							a1.force += (gInfo.RTR * x) *
+								(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
 						}
 		//Reciprocal space sum:
 		double L = sqrt(gInfo.RTR(iDir,iDir)); //length of truncated direction
 		double volPrefac = M_PI * L / gInfo.detR;
-		for(unsigned i1=0; i1<pointCharges.size(); i1++)
-		{	Coulomb::PointCharge& pc1 = pointCharges[i1];
+		for(unsigned i1=0; i1<atoms.size(); i1++)
+		{	Atom& a1 = atoms[i1];
 			for(unsigned i2=0; i2<=i1; i2++)
-			{	Coulomb::PointCharge& pc2 = pointCharges[i2];
-				double prefac = volPrefac * pc1.Z * pc2.Z * (i1==i2 ? 1 : 2);
-				vector3<> r12 = pc1.pos - pc2.pos;
+			{	Atom& a2 = atoms[i2];
+				double prefac = volPrefac * a1.Z * a2.Z * (i1==i2 ? 1 : 2);
+				vector3<> r12 = a1.pos - a2.pos;
 				double z12 = L * r12[iDir];
 				if(fabs(z12) >= 0.5*L-ionMargin)
 					die("Separation between atoms %d and %d lies in the truncation margin.\n", i1, i2);
@@ -133,8 +133,8 @@ struct EwaldSlab
 							E12_r12[iDir] += prefac * c * zTermPrime * L;
 						}
 				E += E12;
-				pc1.force -= E12_r12;
-				pc2.force += E12_r12;
+				a1.force -= E12_r12;
+				a2.force += E12_r12;
 			}
 		}
 		return E;
@@ -162,8 +162,8 @@ DataGptr CoulombSlab::operator()(DataGptr&& in) const
 	return in;
 }
 
-double CoulombSlab::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+double CoulombSlab::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
 		((CoulombSlab*)this)->ewald = std::make_shared<EwaldSlab>(gInfo, params.iDir, params.ionMargin);
-	return ewald->energyAndGrad(pointCharges);
+	return ewald->energyAndGrad(atoms);
 }

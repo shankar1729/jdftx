@@ -171,9 +171,11 @@ void SpeciesInfo::readFhi(istream& in)
 	using namespace FhiFile;
 	
 	//Read the FHI header:
-	int iDump; double dDump; //for unused params
+	int iDump; //for unused params
 	logPrintf("  Title: %s.\n", getLine(in).c_str()); //line 1
-	istringstream(getLine(in)) >> dDump >> Z; //line 2
+	double Zae; //all-electron charge (atomic number)
+	istringstream(getLine(in)) >> Zae >> Z; //line 2
+	atomicNumber = int(round(Zae));
 	istringstream(getLine(in)) >> iDump >> iDump >> iDump >> lLocCpi; //line 3
 	for(int line=4; line<=7; line++)
 		getLine(in); //Ignore lines 4 through 7

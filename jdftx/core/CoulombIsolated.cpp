@@ -38,20 +38,20 @@ struct EwaldIsolated
 	{
 	}
 	
-	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-	{	if(!pointCharges.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms) const
+	{	if(!atoms.size()) return 0.;
 		double E = 0.;
 		//Shift all points into a Wigner-Seitz cell centered on one of the atoms; choice of this atom
 		//is irrelevant if every atom lies in the WS cell of the other with a consistent translation:
-		vector3<> pos0 = pointCharges[0].pos;
-		for(Coulomb::PointCharge& pc: pointCharges)
-			pc.pos = pos0 + ws.restrict(pc.pos - pos0);
+		vector3<> pos0 = atoms[0].pos;
+		for(Atom& a: atoms)
+			a.pos = pos0 + ws.restrict(a.pos - pos0);
 		//Loop over all pairs of pointcharges:
-		for(unsigned i=0; i<pointCharges.size(); i++)
-		{	Coulomb::PointCharge& pc1 = pointCharges[i];
+		for(unsigned i=0; i<atoms.size(); i++)
+		{	Atom& a1 = atoms[i];
 			for(unsigned j=0; j<i; j++)
-			{	Coulomb::PointCharge& pc2 = pointCharges[j];
-				vector3<> x = pc1.pos - pc2.pos; //lattice coords
+			{	Atom& a2 = atoms[j];
+				vector3<> x = a1.pos - a2.pos; //lattice coords
 				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
 				if(wsTruncated)
 				{	if(ws.boundaryDistance(x) <= criticalDist)
@@ -61,11 +61,11 @@ struct EwaldIsolated
 				{	if(r >= criticalDist)
 						die("Atoms %d and %d are separated by r = %lg >= Rc-ionMargin = %lg bohrs.\n", i, j, r, criticalDist);
 				}
-				double dE = (pc1.Z * pc2.Z) / r;
+				double dE = (a1.Z * a2.Z) / r;
 				vector3<> dF = (gInfo.RTR * x) * (dE/rSq);
 				E += dE;
-				pc1.force += dF;
-				pc2.force -= dF;
+				a1.force += dF;
+				a2.force -= dF;
 			}
 		}
 		return E;
@@ -284,8 +284,8 @@ DataGptr CoulombIsolated::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombIsolated::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-{	return EwaldIsolated(gInfo, ws, true, params.borderWidth + params.ionMargin).energyAndGrad(pointCharges);
+double CoulombIsolated::energyAndGrad(std::vector<Atom>& atoms) const
+{	return EwaldIsolated(gInfo, ws, true, params.borderWidth + params.ionMargin).energyAndGrad(atoms);
 }
 
 
@@ -305,6 +305,6 @@ DataGptr CoulombSpherical::operator()(DataGptr&& in) const
 	return in;
 }
 
-double CoulombSpherical::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-{	return EwaldIsolated(gInfo, ws, false, Rc - params.ionMargin).energyAndGrad(pointCharges);
+double CoulombSpherical::energyAndGrad(std::vector<Atom>& atoms) const
+{	return EwaldIsolated(gInfo, ws, false, Rc - params.ionMargin).energyAndGrad(atoms);
 }

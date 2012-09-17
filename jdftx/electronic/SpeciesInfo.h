@@ -35,9 +35,10 @@ class SpeciesInfo
 {
 public:
 
-	double Z; //!< Valence charge of the species. NOT the atomic number.
+	double Z; //!< Valence charge of the species (prefactor to 1/r in long-range part of pseudopotential)
+	int atomicNumber; //!< Atomic number of the species (0 if unavailable)
 	string name; //!< Identifier
-
+	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	#ifdef GPU_ENABLED
 	vector3<> *atposGpu; //!< copy of atomic positions on the gpu

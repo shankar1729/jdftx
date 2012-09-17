@@ -75,6 +75,7 @@ vector3<> SpeciesInfo::Constraint::operator()(const vector3<>& grad)
 SpeciesInfo::SpeciesInfo()
 {
 	Z = 0.0;
+	atomicNumber = 0;
 	Z_chargeball = 0.0; width_chargeball = 0.0;
 	dE_dnG = 0.0;
 	mass = 0.0;

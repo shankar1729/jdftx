@@ -175,42 +175,42 @@ struct EwaldWire
 		}
 	}
 	
-	double energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
-	{	if(!pointCharges.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms) const
+	{	if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
 		//Position independent terms: (Self-energy correction)
 		double ZsqTot = 0.;
-		for(const Coulomb::PointCharge& pc: pointCharges)
-			ZsqTot += pc.Z * pc.Z;
+		for(const Atom& a: atoms)
+			ZsqTot += a.Z * a.Z;
 		double E = -0.5 * ZsqTot * eta * (2./sqrt(M_PI));
 		//Reduce positions to first unit cell:
 		//Shift all points in the truncated directions into the 2D Wigner-Seitz cell
 		//centered on one of the atoms; choice of this atom is irrelevant if every atom
 		//lies in the WS cell of the other with a consistent translation:
-		vector3<> pos0 = pointCharges[0].pos;
-		for(Coulomb::PointCharge& pc: pointCharges)
-			pc.pos = pos0 + ws.restrict(pc.pos - pos0);
+		vector3<> pos0 = atoms[0].pos;
+		for(Atom& a: atoms)
+			a.pos = pos0 + ws.restrict(a.pos - pos0);
 		//Real space sum:
 		vector3<int> iR(0,0,0); //integer cell number
-		for(const Coulomb::PointCharge& pc2: pointCharges)
-			for(Coulomb::PointCharge& pc1: pointCharges)
+		for(const Atom& a2: atoms)
+			for(Atom& a1: atoms)
 				for(iR[iDir]=-Nreal[iDir]; iR[iDir]<=Nreal[iDir]; iR[iDir]++)
-				{	vector3<> x = iR + (pc1.pos - pc2.pos);
+				{	vector3<> x = iR + (a1.pos - a2.pos);
 					double rSq = gInfo.RTR.metric_length_squared(x);
 					if(!rSq) continue; //exclude self-interaction
 					double r = sqrt(rSq);
-					E += 0.5 * pc1.Z * pc2.Z * erfc(eta*r)/r;
-					pc1.force += (gInfo.RTR * x) *
-						(pc1.Z * pc2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
+					E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
+					a1.force += (gInfo.RTR * x) *
+						(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
 				}
 		//Reciprocal space sum:
 		double volPrefac = 0.5 / sqrt(gInfo.RTR(iDir,iDir));
-		for(unsigned i1=0; i1<pointCharges.size(); i1++)
-		{	Coulomb::PointCharge& pc1 = pointCharges[i1];
+		for(unsigned i1=0; i1<atoms.size(); i1++)
+		{	Atom& a1 = atoms[i1];
 			for(unsigned i2=0; i2<=i1; i2++)
-			{	Coulomb::PointCharge& pc2 = pointCharges[i2];
-				double prefac = volPrefac * pc1.Z * pc2.Z * (i1==i2 ? 1 : 2);
-				vector3<> r12 = pc1.pos - pc2.pos;
+			{	Atom& a2 = atoms[i2];
+				double prefac = volPrefac * a1.Z * a2.Z * (i1==i2 ? 1 : 2);
+				vector3<> r12 = a1.pos - a2.pos;
 				vector3<> rho12vec = r12; rho12vec[iDir] = 0.; //projected to truncation plane
 				double rho12 = sqrt(gInfo.RTR.metric_length_squared(rho12vec));
 				if(wsTruncated)
@@ -236,8 +236,8 @@ struct EwaldWire
 						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * rho12vec;
 				}
 				E += E12;
-				pc1.force -= E12_r12;
-				pc2.force += E12_r12;
+				a1.force -= E12_r12;
+				a2.force += E12_r12;
 			}
 		}
 		return E;
@@ -259,10 +259,10 @@ DataGptr CoulombWire::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombWire::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+double CoulombWire::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
 		((CoulombWire*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, true, params.borderWidth + params.ionMargin);
-	return ewald->energyAndGrad(pointCharges);
+	return ewald->energyAndGrad(atoms);
 }
 
 //----------------- class CoulombCylindrical ---------------------
@@ -306,8 +306,8 @@ DataGptr CoulombCylindrical::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombCylindrical::energyAndGrad(std::vector<Coulomb::PointCharge>& pointCharges) const
+double CoulombCylindrical::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
 		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, false, Rc - params.ionMargin);
-	return ewald->energyAndGrad(pointCharges);
+	return ewald->energyAndGrad(atoms);
 }

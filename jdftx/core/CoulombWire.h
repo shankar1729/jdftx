@@ -33,7 +33,7 @@ public:
 	DataGptr operator()(DataGptr&&) const;
 	
 	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<PointCharge>& pointCharges) const;
+	double energyAndGrad(std::vector<Atom>& atoms) const;
 	
 private:
 	WignerSeitz ws;
@@ -51,7 +51,7 @@ public:
 	DataGptr operator()(DataGptr&&) const;
 	
 	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<PointCharge>& pointCharges) const;
+	double energyAndGrad(std::vector<Atom>& atoms) const;
 	
 private:
 	WignerSeitz ws;

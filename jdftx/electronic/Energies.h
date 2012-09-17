@@ -36,6 +36,7 @@ struct Energies
 	
 	double Exc_core; //!< Exchange-correlation energy subtraction for partial cores
 	double Epulay; //!< Pulay correction energy
+	double EvdW; //!< Pair-potential Van der Waals corrections
 	
 	double Etot; //!< Total: sum of all above
 	

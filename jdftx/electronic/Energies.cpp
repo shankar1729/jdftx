@@ -27,7 +27,7 @@ Energies::Energies()
 
 
 void Energies::updateTotals()
-{	Etot = KE + Enl + Eloc + EH + Eewald + A_diel + Eexternal + EXX + Exc + Exc_core + Epulay;
+{	Etot = KE + Enl + Eloc + EH + Eewald + A_diel + Eexternal + EXX + Exc + Exc_core + Epulay + EvdW;
 	F = Etot - TS;
 	G = F - muN;
 }
@@ -47,6 +47,7 @@ void Energies::print(FILE* fp) const
 		if(Exc)       fprintf(fp, "Exc       = %25.16lf\n", Exc);
 		if(Exc_core)  fprintf(fp, "Exc_core  = %25.16lf\n", Exc_core);
 		if(Epulay)    fprintf(fp, "Epulay    = %25.16lf\n", Epulay);
+		if(EvdW)      fprintf(fp, "EvdW      = %25.16lf\n", EvdW);
 		fprintf(fp, "-------------------------------------\n");
 		fprintf(fp, "Etot      = %25.16lf\n", Etot);
 		if(TS)

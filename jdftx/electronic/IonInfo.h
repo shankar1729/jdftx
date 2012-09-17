@@ -104,8 +104,8 @@ private:
 	friend class CommandIonWidth;
 	friend class CommandDebug;
 	
-	//! Compute the ewald energy (nuclear-nuclear eletcrostatics) and optionally its gradient
-	double ewaldAndGrad(IonicGradient* forces=0) const;
+	//! Compute all pair-potential terms in the energy or forces (electrostatic, and optionally vdW)
+	void pairPotentialsAndGrad(Energies* ener=0, IonicGradient* forces=0) const;
 };
 
 #endif // JDFTX_ELECTRONIC_IONINFO_H
