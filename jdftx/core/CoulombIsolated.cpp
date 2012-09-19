@@ -76,7 +76,7 @@ struct EwaldIsolated
 
 //Set the fourier transform of the simplex theta function
 inline void simplexTheta_thread(int iStart, int iStop, const vector3<int> S, const matrix3<> GT, double Vcell,
-	fftw_complex* theta, const std::vector<Simplex<3>>* simplexArr, double sigma)
+	complex* theta, const std::vector<Simplex<3>>* simplexArr, double sigma)
 {
 	double volPrefac = 1./Vcell;
 	THREAD_halfGspaceLoop
@@ -85,8 +85,7 @@ inline void simplexTheta_thread(int iStart, int iStop, const vector3<int> S, con
 		double curTheta = 0.;
 		for(const Simplex<3>& simplex: *simplexArr)
 			curTheta += simplex.getTilde(Gpoint);
-		theta[i][0] = volPrefac * curTheta * exp(-0.5*G.length_squared()*sigma*sigma);
-		theta[i][1] = 0.; //no imaginary part by inversion symmetry
+		theta[i] = volPrefac * curTheta * exp(-0.5*G.length_squared()*sigma*sigma);
 	)
 }
 
@@ -133,7 +132,7 @@ inline void multErfCoulomb_thread(int iStart, int iStop, vector3<int> Spad, matr
 
 //Restrict from supercell to original cell, and add contribution from erfc/r
 inline void downSample_thread(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT,
-	const fftw_complex* in, const vector3<int>& Sdense, double* out, double sigma)
+	const complex* in, const vector3<int>& Sdense, double* out, double sigma)
 {
 	vector3<int> pitchDense;
 	pitchDense[2] = 1;
@@ -147,7 +146,7 @@ inline void downSample_thread(int iStart, int iStop, const vector3<int>& S, cons
 			iDense += pitchDense[k] * (iG[k]<0 ? iG[k]+Sdense[k] : iG[k]);
 		//Store in smaller cell, along with short-ranged part:
 		double Gsq = GGT.metric_length_squared(iG);
-		out[i] = in[iDense][0] + (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
+		out[i] = in[iDense].real() + (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
 	)
 }
 
@@ -163,12 +162,13 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 			fread(&R, sizeof(matrix3<>), 1, fp);
 			fread(&S, sizeof(vector3<int>), 1, fp);
 			fread(&bw, sizeof(double), 1, fp);
-			if(R != gInfo.R)
-				logPrintf("Precomputed coulomb kernel file '%s' has different lattice vectors (recomputing it now)\n", params.filename.c_str());
-			else if(!(S == gInfo.S))
-				logPrintf("Precomputed coulomb kernel file '%s' has different sample count (recomputing it now)\n", params.filename.c_str());
-			else if(bw != params.borderWidth)
-				logPrintf("Precomputed coulomb kernel file '%s' has different border width (recomputing it now)\n", params.filename.c_str());
+			#define CHECKerror(errorCondition, paramName) \
+				else if(errorCondition) \
+					logPrintf("Precomputed coulomb kernel file '%s' has different " paramName " (recomputing it now)\n", params.filename.c_str());
+			if(false) {} //dummy condition to start a chain of else-if's
+			CHECKerror(R != gInfo.R, "lattice vectors")
+			CHECKerror(!(S == gInfo.S), "sample count")
+			CHECKerror(bw != params.borderWidth, "border width")
 			else if(fread(Vc.data, sizeof(double), gInfo.nG, fp) != unsigned(gInfo.nG))
 				logPrintf("Error reading precomputed coulomb kernel from '%s' (computing it now)\n", params.filename.c_str());
 			else
@@ -176,6 +176,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 				Vc.set();
 				return;
 			}
+			#undef CHECKerror
 		}
 		else logPrintf("Could not open precomputed coulomb kernel file '%s' (computing it now)\n", params.filename.c_str());
 	}
@@ -183,7 +184,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 	//Select gauss-smoothing parameter:
 	double maxBorderWidth = 0.5 * ws.inRadius();
 	if(params.borderWidth > maxBorderWidth)
-		die("Border width %lg bohrs must be less than half the Wigner-Seitz cell in-radius = %lg bohrs.\n",
+		die("Border width %lg bohrs must be less than %lg bohrs (half the Wigner-Seitz cell in-radius).\n",
 			params.borderWidth, maxBorderWidth);
 	double sigmaBorder = 0.1 * params.borderWidth;
 	double sigma = 0.1*ws.inRadius() - sigmaBorder; //so that 10(sigma+sigmaBorder) < inRadius
@@ -215,24 +216,24 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 	matrix3<> invRpad = inv(Rpad);
 	for(vector3<> v: vArr)
 		if(wsPad.boundaryDistance(wsPad.restrict(invRpad*v)) < 0.9*params.borderWidth)
-			die("Padded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
+			die("\nPadded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
 				"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
 				"if different from the input lattice vectors, are printed during Symmetry setup.\n");
 	
 	//Plan Fourier transforms:
 	assert(nrPad > 0); //overflow check
-	fftw_complex* padArr = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nGpad);
-	fftw_complex* denseArr = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nGdense);
+	complex* padArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
+	complex* denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
 	int* densePadMap = new int[nGpad*2]; //index map from padded to dense grid
 	double* padRealArr = (double*)padArr;
 	double* denseRealArr = (double*)denseArr;
 	if(!padArr || !denseArr || !densePadMap)
 		die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n",
-			(nGpad+nGdense)*sizeof(complex)*1e-9 + 2*nGpad*sizeof(int)*1e-9);
+			(nGpad+nGdense)*1e-9*sizeof(complex) + nGpad*1e-9*2*sizeof(int));
 	logPrintf("Planning fourier transforms ... "); logFlush();
 	fftw_plan_with_nthreads(nProcsAvailable);
-	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_3d(Spad[0], Spad[1], Spad[2], padArr, padRealArr, FFTW_ESTIMATE);
-	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Sdense[0], Sdense[1], Sdense[2], denseRealArr, denseArr, FFTW_ESTIMATE);
+	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_3d(Spad[0], Spad[1], Spad[2], (fftw_complex*)padArr, padRealArr, FFTW_ESTIMATE);
+	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Sdense[0], Sdense[1], Sdense[2], denseRealArr, (fftw_complex*)denseArr, FFTW_ESTIMATE);
 	logPrintf("Done.\n");
 	
 	//Initialize smoothed theta function on padded lattice:
@@ -264,6 +265,8 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 	threadLaunch(downSample_thread, gInfo.nG, gInfo.S, gInfo.GGT, denseArr, Sdense, Vc.data, sigma);
 	fftw_free(denseArr);
 	Vc.set();
+	fftw_destroy_plan(fftPlanC2R);
+	fftw_destroy_plan(fftPlanR2C);
 	logPrintf("Done.\n");
 	
 	//Save kernel if requested:

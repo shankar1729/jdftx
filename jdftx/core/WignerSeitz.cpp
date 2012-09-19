@@ -209,11 +209,16 @@ std::vector<Simplex<2>> WignerSeitz::getSimplices(int iDir) const
 			{	vector3<> vCart = Rplanar * e->vertex[(e->face[0]==f) ? 0 : 1]->pos; //in rotated cartesian coordinates
 				v.push_back({{vCart[0], vCart[1]}}); //convert to Simplex<2>::Point, dropping iDir (which is z after rotation)
 			}
+			//Make sure that the vertices are in inversion-symmetric pairs:
+			for(unsigned i=0; i<v.size()/2; i++)
+			{	unsigned j = i + v.size()/2;
+				assert(hypot(v[i][0]+v[j][0], v[i][1]+v[j][1]) < minDistSq);
+			}
 			//Add simplices:
-			for(unsigned i=0; i<v.size(); i++)
+			for(unsigned i=0; i<v.size()/2; i++)
 			{	Simplex<2> s;
-				s.v[0] = v[i ? i-1 : v.size()-1];
-				s.v[1] = v[i];
+				s.v[0] = v[i];
+				s.v[1] = v[i+1];
 				s.init();
 				Atot += s.V;
 				sArr.push_back(s);
