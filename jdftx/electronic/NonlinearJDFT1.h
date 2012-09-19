@@ -32,8 +32,6 @@ typedef DataMultiplet<DataR,4> DataRMuEps;
 //Some extra quantities specific to NonlinearJDFT1 added here
 struct NonlinearJDFT1params : public FluidSolverParams
 {
-	double Nbulk; //!< Bulk density of water molecules (currently a constant = 4.9383e-3)
-	double pMol; //!< Dipole moment of water molecule (currently a constant = the SPC/E value)
 	double Kdip; //! dipole correlation prefactor (adjusted to obtain bulk dielectric constant for a given temperature)
 	double k2factor; //! inverse bulk ionic screening length squared
 

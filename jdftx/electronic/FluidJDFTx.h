@@ -75,7 +75,9 @@ struct FluidSolverParams
 	//For Nonlinear1.0 alone:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
-
+	double Nbulk; //!< Bulk number-density of molecules in bohr^-3
+	double pMol; //!< Dipole moment of each molecule in e-bohr
+	
 	//For JDFT3.0 alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water
 	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature

@@ -281,8 +281,6 @@ NonlinearJDFT1::NonlinearJDFT1(const Everything& e, const FluidSolverParams& fsp
 : FluidSolver(e), params(fsp), MuKernel(e.gInfo)
 {	
 	//Initialize extra parameters:
-	params.Nbulk = 4.9383e-3; //bulk density of water
-	params.pMol = 0.92466; //rismGeometrySPCE().getDipoleMoment(); //SPC/E dipole moment
 	params.Kdip = 3*params.T - 4*M_PI*pow(params.pMol,2)*params.Nbulk/(params.epsilonBulk-1);
 	params.k2factor= (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
 }
