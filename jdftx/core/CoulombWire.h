@@ -27,8 +27,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombWire : public Coulomb
 {
 public:
-	CoulombWire(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombWire(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
@@ -45,8 +45,8 @@ private:
 class CoulombCylindrical : public Coulomb
 {
 public:
-	CoulombCylindrical(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombCylindrical(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	

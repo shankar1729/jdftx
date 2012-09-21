@@ -362,6 +362,12 @@ void ExCorr::setup(const Everything& everything)
 			break;
 	}
 	
+	if(exxScale)
+	{	logPrintf("Will include %lg x ", exxScale);
+		if(!exxOmega) logPrintf("exact exchange.\n");
+		else logPrintf("screened exact exchange with range-parameter %lg\n", exxOmega);
+	}
+	
 	switch(kineticType)
 	{	case KineticNone:
 			break;

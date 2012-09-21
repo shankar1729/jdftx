@@ -270,12 +270,8 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 			//Find offset that brings it into centered zone
 			vector3<int> offset;
 			for(int i=0; i<3; i++)
-			{	offset[i] = -floor(k[i]);
+			{	offset[i] = -floor(k[i]+0.5);
 				k[i] += offset[i];
-				if(k[i]>0.5)
-				{	offset[i]--;
-					k[i] -= 1.;
-				}
 			}
 			//Check if this k-vector has already been encountered:
 			bool found = false;

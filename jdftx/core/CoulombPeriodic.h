@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombPeriodic : public Coulomb
 {
 public:
-	CoulombPeriodic(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombPeriodic(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	

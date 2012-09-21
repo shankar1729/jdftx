@@ -46,7 +46,7 @@ struct CommandFluid : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eVars.fluidType, FluidNone, fluidTypeMap, "type");
-		if((e.coulombTrunctaionParams.type != CoulombTruncationParams::Periodic)
+		if((e.coulombParams.geometry != CoulombParams::Periodic)
 			&& (e.eVars.fluidType != FluidNone))
 			throw string("Fluids cannot be used with a truncated coulomb interaction");
 		FluidSolverParams& fsp = e.eVars.fluidParams;

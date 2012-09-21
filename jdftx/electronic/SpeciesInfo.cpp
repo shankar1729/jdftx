@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 #include <electronic/ColumnBundle.h>
+#include <core/LatticeUtils.h>
 #include <core/Util.h>
 #include <fstream>
 #include <sstream>
@@ -38,7 +39,7 @@ void SpeciesInfo::sync_atposGpu()
 #endif
 
 inline bool isParallel(vector3<> x, vector3<> y)
-{	return fabs(1.-fabs(dot(x, y)/(x.length() * y.length()))) < MIN_SYMM_TOL;
+{	return fabs(1.-fabs(dot(x, y)/(x.length() * y.length()))) < symmThreshold;
 }
 
 bool SpeciesInfo::Constraint::isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const

@@ -37,7 +37,7 @@ __hostanddev__ complex blochPhase_calc(const vector3<int>& iv, const vector3<>& 
 }
 
 template<typename scalar> __hostanddev__
-void pointGroupGather_calc(int i, const vector3<int>& iv, const vector3<int>& S,
+void pointGroupScatter_calc(int i, const vector3<int>& iv, const vector3<int>& S,
 	const scalar* in, scalar* out, const matrix3<int>& mMesh)
 {	vector3<int> ivRot = mMesh * iv; //rotated index vector
 	//Project back into range:
@@ -46,7 +46,7 @@ void pointGroupGather_calc(int i, const vector3<int>& iv, const vector3<int>& S,
 		if(ivRot[j]<0) ivRot[j] += S[j];
 	}
 	int iRot = ivRot[2]+S[2]*(ivRot[1]+S[1]*ivRot[0]); //rotated index
-	out[i] = in[iRot];
+	out[iRot] = in[i];
 }
 
 __hostanddev__ complex radialFunction_calc(const vector3<int>& iG, const matrix3<>& GGT, const RadialFunctionG& f, const vector3<>& r0)

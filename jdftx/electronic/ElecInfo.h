@@ -45,7 +45,7 @@ public:
 	int nStates, nBands; //!< Number of bands and number of states
 	SpinType spinType; //!< tells us what sort of spins we are using if any
 	double nElectrons; //!< the number of electrons = Sum w Tr[F]
-	std::vector<QuantumNumber> qnums; //!< k-pointm, spins and weights for each state
+	std::vector<QuantumNumber> qnums; //!< k-points, spins and weights for each state
 	
 	enum FillingsUpdate
 	{	ConstantFillings, //!< constant fillings (T=0)

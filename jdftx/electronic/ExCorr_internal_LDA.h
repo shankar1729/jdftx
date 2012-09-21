@@ -207,7 +207,7 @@ template<> __hostanddev__
 double LDA_eval<LDA_C_PW>(double rs, double zeta, double& e_rs, double& e_zeta)
 {	return spinInterpolate(rs, zeta, e_rs, e_zeta,
 		LDA_eval_C_PW<0,false>(), LDA_eval_C_PW<1,false>(), LDA_eval_C_PW<2,false>(),
-		1.709921); //trunctaion of 4./(9*(2^(1./3) - 1)) at ~ single precision
+		1.709921); //truncation of 4./(9*(2^(1./3) - 1)) at ~ single precision
 }
 //! Perdew-Wang correlation (extended precision version, for numerical compatibility with LibXC's PBE)
 template<> __hostanddev__

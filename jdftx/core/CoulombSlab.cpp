@@ -149,10 +149,11 @@ string checkOrthogonality(const GridInfo& gInfo, int iDir)
 	return dirName;
 }
 
-CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params)
 {	string dirName = checkOrthogonality(gInfo, params.iDir);
 	logPrintf("Initialized slab truncation along lattice direction %s\n", dirName.c_str());
+	initExchangeEval();
 }
 
 DataGptr CoulombSlab::operator()(DataGptr&& in) const

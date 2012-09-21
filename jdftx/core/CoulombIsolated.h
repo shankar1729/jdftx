@@ -27,8 +27,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombIsolated : public Coulomb
 {
 public:
-	CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombIsolated(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
@@ -38,14 +38,15 @@ public:
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
+	friend class ExchangeEval;
 };
 
 //! Coulomb interaction for an isolated system (no periodicity), truncated on a sphere
 class CoulombSpherical : public Coulomb
 {
 public:
-	CoulombSpherical(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombSpherical(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
@@ -55,6 +56,7 @@ public:
 private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
+	friend class ExchangeEval;
 };
 
 #endif // JDFTX_CORE_COULOMBISOLATED_H

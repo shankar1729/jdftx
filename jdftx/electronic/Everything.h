@@ -47,7 +47,7 @@ public:
 	Symmetries symm;
 	ExCorr exCorr; //!< Exchange and correlation functional
 	std::vector<std::shared_ptr<ExCorr> > exCorrDiff; //!< Other exchange and correlation functionals for comparison
-	std::map<double, std::shared_ptr<ExactExchange> > exx; //!< Exact exchange (optionally screened, with possibly different range parameters)
+	std::shared_ptr<ExactExchange> exx; //!< Exact exchange
 	ElecInfo eInfo;
 	ElecVars eVars;
 	Energies ener;
@@ -57,7 +57,7 @@ public:
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
 	
-	CoulombTruncationParams coulombTrunctaionParams; //!< Coulomb truncation parameters
+	CoulombParams coulombParams; //!< Coulomb truncation parameters
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
 	
 	//! Call the setup/initialize routines of all the above in the necessray order

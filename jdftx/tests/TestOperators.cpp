@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/DataIO.h>
 #include <core/Coulomb.h>
+#include <core/LatticeUtils.h>
 #include <fluid/SO3quad.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ExCorr_internal_GGA.h>
@@ -79,8 +80,8 @@ public:
 				gauss2 = I(gaussConvolve(translateCenter*(1./gInfo.detR), sigma2));
 			}
 			DataRptr n = gauss2 - gauss1;
-			CoulombTruncationParams ctp; ctp.type = CoulombTruncationParams::Periodic;
-			DataRptr phi = I((*ctp.createCoulomb(gInfo))(J(n)));
+			CoulombParams cp; cp.geometry = CoulombParams::Periodic;
+			DataRptr phi = I((*cp.createCoulomb(gInfo))(J(n)));
 			//DataRptr phi = I(Linv(-4*M_PI * O(J(n))));
 			printf("\tNormalization check on g1: %20.16lf\n", sum(gauss1)*gInfo.detR/gInfo.nr);
 			printf("\tNormalization check on g2: %20.16lf\n", sum(gauss2)*gInfo.detR/gInfo.nr);
@@ -253,6 +254,30 @@ void testCavitation(const GridInfo& gInfo)
 	cm.minimize(mp);
 }
 
+void timePointGroupOps(const GridInfo& gInfo)
+{
+	std::vector<matrix3<int>> sym = getSymmetries(gInfo.R);
+	matrix3<int> m = sym[3]; //some random symmetry matrix
+	m.print(globalLog, " %2d ");
+	matrix3<int> mInv = det(m) * adjugate(m); //since |det(m)| = 0
+	
+	DataRptr x(DataR::alloc(gInfo)); initRandom(x);
+	logPrintf("Rel. error in implementations = %le\n",
+		nrm2(pointGroupGather(x, m) - pointGroupScatter(x, mInv)) / nrm2(x));
+	
+	int nRepetitions = int(1e8/gInfo.nr);
+	logPrintf("Timing %d repetitions.\n", nRepetitions);
+	DataRptr y;
+	
+	TIME("Gather", globalLog,
+		for(int iRep=0; iRep<nRepetitions; iRep++)
+			 y = pointGroupGather(x, m);
+	)
+	TIME("Scatter", globalLog,
+		for(int iRep=0; iRep<nRepetitions; iRep++)
+			 y = pointGroupScatter(x, mInv);
+	)
+}
 
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
@@ -265,13 +290,13 @@ int main(int argc, char** argv)
 // 	return 0;
 	
 	GridInfo gInfo;
-	gInfo.S = vector3<int>(64, 64, 64);
+	gInfo.S = vector3<int>(128, 128, 128);
 	gInfo.R.set_col(0, vector3<>(0.0, 12.0, 12.0));
 	gInfo.R.set_col(1, vector3<>(12.0, 0.0, 12.0));
 	gInfo.R.set_col(2, vector3<>(12.0, 12.0, 0.0));
 	gInfo.initialize();
 	//testCavitation(gInfo); return 0;
-	
+	timePointGroupOps(gInfo); return 0;
 	//timeEblas3(gInfo);
 	
 	OperatorTest op(gInfo);

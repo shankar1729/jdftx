@@ -585,10 +585,7 @@ void DOS::dump()
 		{	vector3<> k = (~mat) * kState;
 			//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
 			for(int i=0; i<3; i++)
-			{	k[i] -= floor(k[i]);
-				if(k[i]>=0.5)
-					k[i] -= 1.;
-			}
+				k[i] -= floor(0.5+k[i]);
 			//Check if this k-vector has already been encountered:
 			bool found = false;
 			for(const auto& kIndexPair: kpointMap)

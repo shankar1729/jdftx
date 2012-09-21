@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/IonInfo.h>
 #include <electronic/Basis.h>
 #include <electronic/operators.h>
+#include <core/LatticeUtils.h>
 #include <core/GridInfo.h>
 #include <core/Thread.h>
 #include <list>
@@ -75,7 +76,7 @@ void Symmetries::setup(const Everything& everything)
 bool Symmetries::kpointsEquivalent(const vector3<>& k1, const vector3<>& k2) const
 {	if(mode==SymmetriesNone) return false;
 	for(const matrix3<int>& m: sym)
-		if(circDistanceSquared((~m)*k1,k2)<MIN_KPT_DISTANCE)
+		if(circDistanceSquared((~m)*k1,k2)<symmThresholdSq)
 			return true;
 	return false;
 }
@@ -130,7 +131,12 @@ void Symmetries::calcSymmetries()
 	logPrintf("Searching for point group symmetries:\n");
 
 	//Find symmetries of bravais lattice
-	std::vector< matrix3<int> > symLattice = latticeSymmetries();
+	matrix3<> Rreduced; matrix3<int> transmission;
+	std::vector<matrix3<int>> symLattice = getSymmetries(e->gInfo.R, &Rreduced, &transmission);
+	if(nrm2(Rreduced - e->gInfo.R) > symmThreshold * nrm2(Rreduced)) //i.e. if R != Rreduced
+	{	logPrintf("Non-trivial transmission matrix:\n"); transmission.print(globalLog," %2d ");
+		logPrintf("with reduced lattice vectors:\n"); Rreduced.print(globalLog," %12.6f ");
+	}
 	logPrintf("\n%lu symmetries of the bravais lattice\n", symLattice.size()); logFlush();
 
 	//Find symmetries commensurate with atom positions:
@@ -183,60 +189,6 @@ void Symmetries::calcSymmetries()
 	}
 }
 
-std::vector< matrix3<int> > Symmetries::latticeSymmetries() const
-{	const GridInfo& gInfo = e->gInfo;
-	
-	//Find the reduced basis (linearly combine lattice vectors till norm(R) is minimized)
-	matrix3<> Rreduced = gInfo.R;
-	matrix3<int> transmission(1,1,1), invTransmission(1,1,1);
-	while(true)
-	{	bool changed = false;
-		for(int k1 = 0; k1 < 3; k1 ++)
-		{	int k2 = (k1+1)%3;
-			int k3 = (k1+2)%3;
-			for(int i=-1; i<=1; i++)
-				for(int j=-1; j<=1; j++)
-				{	//Add/subtract upto one each of k2 and k3'th directions to the k1st direction:
-					matrix3<int> d(1,1,1), dInv(1,1,1);
-					d(k2,k1)=i; d(k3,k1)=j; 
-					dInv(k2,k1)=-i; dInv(k3,k1)=-j; 
-					
-					//Check if that transformation reduces R:
-					matrix3<> Rproposed = Rreduced * d;
-					if(nrm2(Rproposed) < nrm2(Rreduced) - MIN_SYMM_TOL)
-					{	changed = true;
-						Rreduced = Rproposed;
-						transmission = transmission * d;
-						invTransmission = dInv * invTransmission;
-					}
-				}
-		}
-		if(!changed) break;
-	}
-	
-	//Check symmetries by finding integer matrices that leave the metric invariant:
-	matrix3<> metric = (~Rreduced)*Rreduced;
-	std::vector< matrix3<int> > symLattice;
-	//loop over integer components for each matrix entry
-	matrix3<int> m;
-	#define iLOOP(x) for(x=-1; x<=1; x++)
-	iLOOP(m(0,0)) iLOOP(m(0,1)) iLOOP(m(0,2))
-	iLOOP(m(1,0)) iLOOP(m(1,1)) iLOOP(m(1,2))
-	iLOOP(m(2,0)) iLOOP(m(2,1)) iLOOP(m(2,2))
-		if( nrm2(metric - (~m) * metric * m) < MIN_SYMM_TOL ) //leaves metric invariant
-			symLattice.push_back(m);
-	
-	// If R was reduced, transform the symmetries appropriately
-	if(nrm2(Rreduced-gInfo.R) > MIN_SYMM_TOL * nrm2(Rreduced))
-	{	logPrintf("Non-trivial transmission matrix:\n"); transmission.print(globalLog," %2d ");
-		logPrintf("with reduced lattice vectors:\n"); Rreduced.print(globalLog," %12.6f ");
-		for(matrix3<int>& m: symLattice)
-			m = transmission * m * invTransmission;
-	}
-	return symLattice;
-}
-
-
 std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset) const
 {	std::vector< matrix3<int> > symBasis;
 	//Loop over lattice symmetries:
@@ -247,7 +199,7 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 			{	bool foundImage = false;
 				vector3<> mapped_pos1 = offset + m * (pos1-offset);
 				for(auto pos2: sp->atpos) //Check if the image exists:
-					if(circDistanceSquared(mapped_pos1, pos2) < MIN_SYMM_TOL)
+					if(circDistanceSquared(mapped_pos1, pos2) < symmThresholdSq)
 					{	foundImage = true;
 						break;
 					}
@@ -270,8 +222,8 @@ void Symmetries::checkKmesh() const
 		for(const QuantumNumber& q1: e->eInfo.qnums)
 		{	bool foundImage = false;
 			for(const QuantumNumber& q2: e->eInfo.qnums)
-				if(circDistanceSquared((~m)*q1.k,q2.k)<MIN_KPT_DISTANCE
-					&& fabs(q1.weight-q2.weight)<MIN_KPT_DISTANCE)
+				if(circDistanceSquared((~m)*q1.k,q2.k)<symmThresholdSq
+					&& fabs(q1.weight-q2.weight)<symmThreshold)
 				{	foundImage = true;
 					break;
 				}
@@ -368,7 +320,7 @@ void Symmetries::checkSymmetries() const
 			{	bool foundImage = false;
 				vector3<> mapped_pos1 = m * pos1;
 				for(auto pos2: sp->atpos) //Check if the image exists:
-					if(circDistanceSquared(mapped_pos1, pos2) < MIN_SYMM_TOL)
+					if(circDistanceSquared(mapped_pos1, pos2) < symmThresholdSq)
 					{	foundImage = true;
 						break;
 					}
@@ -395,7 +347,7 @@ void Symmetries::initAtomMaps()
 			{	vector3<> mapped_pos1 = sym[iRot] * spInfo.atpos[at1];
 				
 				for(unsigned at2=0; at2<spInfo.atpos.size(); at2++)
-					if(circDistanceSquared(mapped_pos1, spInfo.atpos[at2]) < MIN_SYMM_TOL)
+					if(circDistanceSquared(mapped_pos1, spInfo.atpos[at2]) < symmThresholdSq)
 					{	atomMap[sp][at1][iRot] = at2;
 				
 						if(not spInfo.constraints[at1].isEquivalent(spInfo.constraints[at2], e->gInfo.R*sym[iRot]*e->gInfo.invR))

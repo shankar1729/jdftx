@@ -36,3 +36,27 @@ DECLARE_coulombAnalytic_gpu(Periodic)
 DECLARE_coulombAnalytic_gpu(Slab)
 DECLARE_coulombAnalytic_gpu(Spherical)
 #undef DECLARE_coulombAnalytic_gpu
+
+
+template<typename Exchange_calc> __global__
+void exchangeAnalytic_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const Exchange_calc calc,
+	complex* data, const vector3<> kDiff, double Vzero, double thresholdSq)
+{
+	COMPUTE_fullGindices
+	double kplusGsq = GGT.metric_length_squared(iG + kDiff);
+	data[i] *= kplusGsq<thresholdSq ? Vzero : calc(kplusGsq);
+}
+#define DECLARE_exchangeAnalytic_gpu(Type) \
+	void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const Exchange##Type##_calc& calc, \
+		complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq) \
+	{	\
+		GpuLaunchConfig3D glc(exchangeAnalytic_kernel<Exchange##Type##_calc>, S); \
+		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++) \
+			exchangeAnalytic_kernel<Exchange##Type##_calc><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, calc, \
+				data, kDiff, Vzero, thresholdSq); \
+	}
+DECLARE_exchangeAnalytic_gpu(Periodic)
+DECLARE_exchangeAnalytic_gpu(PeriodicScreened)
+DECLARE_exchangeAnalytic_gpu(Spherical)
+DECLARE_exchangeAnalytic_gpu(SphericalScreened)
+#undef DECLARE_exchangeAnalytic_gpu

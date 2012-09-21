@@ -107,9 +107,10 @@ struct EwaldPeriodic
 	}
 };
 
-CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params)
 {
+	initExchangeEval();
 }
 
 DataGptr CoulombPeriodic::operator()(DataGptr&& in) const

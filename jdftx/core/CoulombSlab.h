@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombSlab : public Coulomb
 {
 public:
-	CoulombSlab(const GridInfo& gInfo, const CoulombTruncationParams& params);
-	
+	CoulombSlab(const GridInfo& gInfo, const CoulombParams& params);
+
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	

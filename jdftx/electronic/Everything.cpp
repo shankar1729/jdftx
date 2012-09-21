@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
+#include <core/LatticeUtils.h>
 
 void Everything::setup()
 {
@@ -30,14 +31,11 @@ void Everything::setup()
 	logPrintf("\n---------- Exchange Correlation functional ----------\n");
 	exCorr.setup(*this); //main functional
 	if(exCorrDiff.size())
-	{	logPrintf("\n---------- Auxilliary functionals for error estimation ----------\n");
+	{	logPrintf("\n---------- Auxiliary functionals for error estimation ----------\n");
 		for(auto ec: exCorrDiff)
 			ec->setup(*this); //comparison functionals evaluated at the end
 	}
 
-	//Coulomb-interaction setup:
-	coulomb = coulombTrunctaionParams.createCoulomb(gInfo);
-	
 	//Arom positions, pseudopotentials
 	iInfo.setup(*this);
 	
@@ -66,13 +64,25 @@ void Everything::setup()
 		pow(sqrt(2*cntrl.Ecut),3)*(gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
 
-	//Exact exchange (if required)
+	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
 	if(exCorr.exxFactor()) //Check main functional first
-		exx[exCorr.exxRange()] = std::make_shared<ExactExchange>(*this, exCorr.exxFactor(), exCorr.exxRange());
+		coulombParams.omegaSet.insert(exCorr.exxRange());
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
-		if(ec->exxFactor() && (exx.find(ec->exxRange()) == exx.end()) ) //needs Exx with a range not yet encountered
-			exx[ec->exxRange()] = std::make_shared<ExactExchange>(*this, 1., ec->exxRange());
+		if(ec->exxFactor())
+			coulombParams.omegaSet.insert(exCorr.exxRange());
+	if(coulombParams.omegaSet.size())
+	{	//Initialize k-point sampled supercell:
+		std::vector<vector3<>> kmeshUnreduced;
+		for(const QuantumNumber& qnum: eInfo.qnums)
+			kmeshUnreduced.push_back(qnum.k);
+		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices());
+	}
+	coulomb = coulombParams.createCoulomb(gInfo);
 	
+	//Exact exchange (if required)
+	if(coulombParams.omegaSet.size())
+		exx = std::make_shared<ExactExchange>(*this);
+
 	//Setup wavefunctions, densities, fluid, output module etc:
 	iInfo.update(ener); //needs to happen before eVars setup for LCAO
 	eVars.setup(*this);

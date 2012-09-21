@@ -116,7 +116,7 @@ bool ElecMinimizer::report(int iter)
 		logPrintf("\n"); logFlush();
 	}
 	
-	//Auxilliary hamiltonian fillings printout:
+	//Auxiliary hamiltonian fillings printout:
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 	{	double mu = isnan(eInfo.mu)
 			? eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons) //get mu from eigenvalues

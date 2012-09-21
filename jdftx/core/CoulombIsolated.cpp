@@ -151,7 +151,7 @@ inline void downSample_thread(int iStart, int iStop, const vector3<int>& S, cons
 }
 
 
-CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {
 	//Read precomputed kernel from file if supplied
@@ -174,6 +174,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 			else
 			{	logPrintf("Successfully read precomputed coulomb kernel from '%s'\n", params.filename.c_str());
 				Vc.set();
+				initExchangeEval();
 				return;
 			}
 			#undef CHECKerror
@@ -281,6 +282,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombTruncationP
 		fclose(fp);
 		logPrintf("Done.\n");
 	}
+	initExchangeEval();
 }
 
 DataGptr CoulombIsolated::operator()(DataGptr&& in) const
@@ -294,13 +296,14 @@ double CoulombIsolated::energyAndGrad(std::vector<Atom>& atoms) const
 
 //----------------- class CoulombSpherical ---------------------
 
-CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc)
 {	double RcMax = ws.inRadius();
 	if(Rc > RcMax)
 		die("Spherical truncation radius %lg exceeds Wigner-Seitz cell in-radius of %lg bohrs.\n", Rc, RcMax);
 	if(!Rc) Rc = RcMax;
 	logPrintf("Initialized spherical truncation of radius %lg bohrs\n", Rc);
+	initExchangeEval();
 }
 
 DataGptr CoulombSpherical::operator()(DataGptr&& in) const

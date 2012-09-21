@@ -360,9 +360,10 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Exact exchange if required:
 	ener.EXX = 0.;
 	if(e->exCorr.exxFactor())
-	{	auto relevantExx = e->exx.find(e->exCorr.exxRange());
-		assert(relevantExx != e->exx.end());
-		ener.EXX = (*relevantExx->second)(F, C, need_Hsub ? &HC : 0);
+	{	double aXX = e->exCorr.exxFactor();
+		double omega = e->exCorr.exxRange();
+		assert(e->exx);
+		ener.EXX = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
 	//Do the rest one state at a time to save memory (and for better cache warmth):
 	ener.Enl = 0.0;

@@ -233,9 +233,7 @@ void Dump::operator()(DumpFrequency freq)
 			{	double omega = exc->exxRange();
 				//Exact exchange not yet computed for this range parameter:
 				logPrintf("\tComputing exact exchange with range-parameter %lg  ... ", omega);
-				logFlush();
-				auto relevantExx = e->exx.find(omega);
-				unscaledEXX[omega] = (*relevantExx->second)(eVars.F, eVars.C);
+				unscaledEXX[omega] = (*e->exx)(1., omega, eVars.F, eVars.C);
 				logPrintf("EXX = %.16lf (unscaled)\n", unscaledEXX[omega]);
 			}
 		//KE density for meta-GGAs, if required

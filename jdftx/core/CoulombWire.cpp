@@ -267,7 +267,7 @@ struct CoulombWire_init
 	void computePlane(int iPlane)
 	{
 		double kz = iPlane * (2*M_PI/Rplanar.column(iDir).length());
-		//Short-cut numerical trunctaion if K_0(kz rho) becomes zero well inside WS cell:
+		//Short-cut numerical truncation if K_0(kz rho) becomes zero well inside WS cell:
 		vector3<int> pitch;
 		pitch[2] = 1;
 		pitch[1] = pitch[2] * (1 + S[2]/2);
@@ -383,7 +383,7 @@ struct CoulombWire_init
 	}
 };
 
-CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
@@ -410,6 +410,7 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombTruncationParams& p
 			else
 			{	logPrintf("Successfully read precomputed coulomb kernel from '%s'\n", params.filename.c_str());
 				Vc.set();
+				initExchangeEval();
 				return;
 			}
 			#undef CHECKparam
@@ -533,6 +534,7 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombTruncationParams& p
 		fclose(fp);
 		logPrintf("Done.\n");
 	}
+	initExchangeEval();
 }
 
 DataGptr CoulombWire::operator()(DataGptr&& in) const
@@ -567,7 +569,7 @@ void setVcylindrical(int iStart, int iStop, vector3<int> S, const matrix3<> GGT,
 	)
 }
 
-CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfo, const CoulombTruncationParams& params)
+CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc), Vc(gInfo)
 {	//Check orthogonality:
 	string dirName = checkOrthogonality(gInfo, params.iDir);
@@ -580,6 +582,7 @@ CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfo, const CoulombTrunc
 	threadLaunch(setVcylindrical, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, Vc.data);
 	Vc.set();
 	logPrintf("Initialized cylindrical truncation of radius %lg bohrs with axis along lattice direction %s\n", Rc, dirName.c_str());
+	initExchangeEval();
 }
 
 DataGptr CoulombCylindrical::operator()(DataGptr&& in) const

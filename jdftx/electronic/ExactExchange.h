@@ -27,11 +27,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class ExactExchange
 {
 public:
-	ExactExchange(const Everything& e, double aXX, double omega);
+	ExactExchange(const Everything& e);
 	~ExactExchange();
 	
-	//! Compute scaled exact exchange energy (and optionally accumulate gradients) given fillings and wavefunctions
-	double operator()(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+	//! Compute scaled exact exchange energy with scale aXX and range omega
+	//! (and optionally accumulate gradients) given fillings and wavefunctions
+	double operator()(double aXX, double omega,
+		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC = 0) const;
 private:
 	const Everything& e;

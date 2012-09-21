@@ -121,48 +121,50 @@ void multiplyBlochPhase(complexDataRptr& v, const vector3<>& k)
 }
 
 
-//point group gather
-template<typename scalar> void pointGroupGather_sub(int iStart, int iStop,
+//point group scatter
+template<typename scalar> void pointGroupScatter_sub(int iStart, int iStop,
 	const vector3<int>& S, const scalar* in, scalar* out, const matrix3<int>& mMesh)
-{	THREAD_rLoop( pointGroupGather_calc(i, iv, S, in, out, mMesh); )
+{	THREAD_rLoop( pointGroupScatter_calc(i, iv, S, in, out, mMesh); )
 }
 #ifdef GPU_ENABLED
-void pointGroupGather_gpu(const vector3<int>& S, const double* in, double* out, const matrix3<int>& mMesh);
-void pointGroupGather_gpu(const vector3<int>& S, const complex* in, complex* out, const matrix3<int>& mMesh);
+void pointGroupScatter_gpu(const vector3<int>& S, const double* in, double* out, const matrix3<int>& mMesh);
+void pointGroupScatter_gpu(const vector3<int>& S, const complex* in, complex* out, const matrix3<int>& mMesh);
 #endif
-template<typename T> std::shared_ptr<T> pointGroupGather(const std::shared_ptr<T>& in, const matrix3<int>& mMesh)
+template<typename T> std::shared_ptr<T> pointGroupScatter(const std::shared_ptr<T>& in, const matrix3<int>& mMesh)
 {	if(mMesh == matrix3<int>(1,1,1)) return in; //shortcut for identity
 	const GridInfo& gInfo = in->gInfo;
 	std::shared_ptr<T> out(T::alloc(gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
-	pointGroupGather_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), mMesh);
+	pointGroupScatter_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), mMesh);
 	#else
 	threadLaunch(threadOperators ? 0 : 1,
-		pointGroupGather_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
+		pointGroupScatter_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
 	#endif
 	return out;
 }
-DataRptr pointGroupGather(const DataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<DataR>(in, mMesh);
+DataRptr pointGroupScatter(const DataRptr& in, const matrix3<int>& mMesh)
+{	return pointGroupScatter<DataR>(in, mMesh);
 }
-complexDataRptr pointGroupGather(const complexDataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<complexDataR>(in, mMesh);
+complexDataRptr pointGroupScatter(const complexDataRptr& in, const matrix3<int>& mMesh)
+{	return pointGroupScatter<complexDataR>(in, mMesh);
 }
 
-//point group scatter
-template<typename Tptr> Tptr pointGroupScatter(const Tptr& in, const matrix3<int>& mMesh)
+
+//point group gather
+template<typename Tptr> Tptr pointGroupGather(const Tptr& in, const matrix3<int>& mMesh)
 {	if(mMesh == matrix3<int>(1,1,1)) return in; //shortcut for identity
-	//Scattering is equivalent to gathering with inverse rotation
+	//Gathering is equivalent to gathering with inverse rotation
+	//Scattered stores are faster than scattered loads (so implement scatter in terms of gather)
 	int mMeshDet = det(mMesh);
 	assert(abs(mMeshDet)==1);
 	matrix3<int> mMeshInv = adjugate(mMesh)*mMeshDet; //inverse = adjugate*det since |det|=1
-	return pointGroupGather(in, mMeshInv);
+	return pointGroupScatter(in, mMeshInv);
 }
-DataRptr pointGroupScatter(const DataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<DataRptr>(in, mMesh);
+DataRptr pointGroupGather(const DataRptr& in, const matrix3<int>& mMesh)
+{	return pointGroupGather<DataRptr>(in, mMesh);
 }
-complexDataRptr pointGroupScatter(const complexDataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<complexDataRptr>(in, mMesh);
+complexDataRptr pointGroupGather(const complexDataRptr& in, const matrix3<int>& mMesh)
+{	return pointGroupGather<complexDataRptr>(in, mMesh);
 }
 
 

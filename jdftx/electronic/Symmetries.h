@@ -26,9 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Data.h>
 #include <vector>
 
-static const double MIN_KPT_DISTANCE = 1e-8;
-static const double MIN_SYMM_TOL = 1e-4;
-
 enum SymmetryMode {SymmetriesNone, SymmetriesAutomatic, SymmetriesManual}; //!< symmetry modes
 
 class Symmetries
@@ -61,7 +58,6 @@ private:
 	
 	int nSpecies;
 	void calcSymmetries(); //!< Calculate symmetries of the entire system
-	std::vector< matrix3<int> > latticeSymmetries() const; //!< Return symmetry matrices of the bravais lattice
 	
 	//! Find subgroup of lattice symmetries for the lattice with basis (optionally offset by some amount)
 	std::vector< matrix3<int> > basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset=vector3<>()) const; 

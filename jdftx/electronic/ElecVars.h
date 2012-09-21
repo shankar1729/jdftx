@@ -76,7 +76,7 @@ public:
 	int NxOld, NyOld, NzOld; //!< fftbox size for the input wavefunction in double space
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 
-	//Auxilliary hamiltonian initialization
+	//Auxiliary hamiltonian initialization
 	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed
 	
