@@ -30,6 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Which parameter set to use for the convolution coupling for this site
 typedef enum  
 {	ConvCouplingExponential, //!< Exponential model for site electron density with charge couplingZnuc + chargeZ and width ConvCouplingWidth
+	ConvCouplingExpCuspless, //!< Cuspless Exponential model for site electron density with charge couplingZnuc + chargeZ and width ConvCouplingWidth
 	ConvCouplingBinaryKernel, //!<Read *kernel.bin (*=site e.g. O/H) [for debugging and Kendra]
 	ConvCouplingRadialFunction, //!<Read in electron density radial function (r,functionVal) and interpolate onto the grid
 	ConvCouplingNone //!< No convolution coupling

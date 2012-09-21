@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
 	ConvCouplingExponential, "Exponential",
+	ConvCouplingExpCuspless, "ExpCuspless",
 	ConvCouplingRadialFunction, "ReadRadialFunction",
 	ConvCouplingBinaryKernel, "ReadBinaryKernel" );
 
@@ -32,10 +33,10 @@ struct CommandFluidCoupling : public Command
 {
 	CommandFluidCoupling() : Command("fluid-coupling")
 	{
-		format = "Exponential [<oxygenWidth>=0.39285] [<hydrogenWidth>=0.46108] [oxygenFilename] [hydrogenFilename] \n"
+		format = "Exponential/ExpCuspless [<oxygenWidth>=0.35003] [<hydrogenWidth>=0.26342] [oxygenFilename] [hydrogenFilename] \n"
 				 "| ReadRadialFunction/ReadBinaryKernel <oxygenFilename> <hydrogenFilename> ";
-		comments = "Specify electron density model for coupling (default: Exponential)\n"
-					"	If Exponential, the oxygen <oxygenWidth> and hydrogen <hydrogenWidth>\n"
+		comments = "Specify electron density model for coupling (default: ExpCuspless)\n"
+					"	If Exponential or ExpCuspless, the oxygen <oxygenWidth> and hydrogen <hydrogenWidth>\n"
 					"	exponential widths may also be specified. Radial functions contained in\n"
 					"   [oxygenFilename] and [hydrogenFilename] may be added to the exponential models.\n"
 					"	If ReadRadialFunction/ReadBinaryKernel, the filenames containing the \n" 
@@ -44,11 +45,13 @@ struct CommandFluidCoupling : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.eVars.fluidParams.convCouplingH2OModel, ConvCouplingExponential, couplingMap, "couplingType");
-		if (e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExponential)
-		{
-			pl.get(e.eVars.fluidParams.oxygenWidth, 0.39285, "oxygenWidth");
-			pl.get(e.eVars.fluidParams.hydrogenWidth, 0.46108, "hydrogenWidth");
+	{	pl.get(e.eVars.fluidParams.convCouplingH2OModel, ConvCouplingExpCuspless, couplingMap, "couplingType");
+		if (e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExponential || e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExpCuspless )
+		{	
+			//pl.get(e.eVars.fluidParams.oxygenWidth, 0.39285, "oxygenWidth");
+			//pl.get(e.eVars.fluidParams.hydrogenWidth, 0.46108, "hydrogenWidth");
+			pl.get(e.eVars.fluidParams.oxygenWidth, 0.35003, "oxygenWidth"); // nonlinear fits to Wannier functions in cubic Ice constrained to SPCE site charges
+			pl.get(e.eVars.fluidParams.hydrogenWidth, 0.26342, "hydrogenWidth");
 			pl.get(e.eVars.fluidParams.oxygenFilename, string(""), "oxygenFilename");
 			pl.get(e.eVars.fluidParams.hydrogenFilename, string(""), "hydrogenFilename");
 			return;
@@ -64,7 +67,7 @@ struct CommandFluidCoupling : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	fputs(couplingMap.getString(e.eVars.fluidParams.convCouplingH2OModel), globalLog);
-		if(e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExponential)
+		if(e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExponential || e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExpCuspless )
 			logPrintf(" %lg %lg %s %s", e.eVars.fluidParams.oxygenWidth, e.eVars.fluidParams.hydrogenWidth,
 					  e.eVars.fluidParams.oxygenFilename.c_str(), e.eVars.fluidParams.hydrogenFilename.c_str());
 		if ((e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingRadialFunction)
@@ -80,12 +83,12 @@ struct CommandFluidIonCoupling : public Command
 	CommandFluidIonCoupling() : Command("fluid-ion-coupling")
 	{
 						
-		format = "<fluid-ion-id>  Exponential <width> <Znuc> [filename]\n"
+		format = "<fluid-ion-id>  Exponential/ExpCuspless <width> <Znuc> [filename]\n"
 				 "| ReadRadialFunction/ReadBinaryKernel <filename>";
 		comments =
 			"Add a convolution coupling functional between <fluid-ion-id> and electrons by specifying an \n"
 			"ion radial electron density model.\n"
-			"	If Exponential, the  exponential width <width> and nuclear charge <Znuc> must be specified.\n"
+			"	If Exponential or ExpCuspless, the  exponential width <width> and nuclear charge <Znuc> must be specified.\n"
 			"	Optionally, a radial function contained in [filename] may be added to the exponential model.\n"
 			"	If ReadRadialFunction/ReadBinaryKernel, the filename containing the \n" 
 			"	electron density model must be specified.\n"
@@ -109,8 +112,8 @@ struct CommandFluidIonCoupling : public Command
 				HardSphereIon& hSIon = e.eVars.fluidParams.hSIons[i];
 				if(hSIon.name == id)
 				{
-					pl.get(hSIon.convCouplingModel, ConvCouplingExponential, couplingMap, "couplingType", true);
-					if (hSIon.convCouplingModel == ConvCouplingExponential)
+					pl.get(hSIon.convCouplingModel, ConvCouplingExpCuspless, couplingMap, "couplingType", true);
+					if (hSIon.convCouplingModel == ConvCouplingExponential || e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExpCuspless )
 					{
 						pl.get(hSIon.CouplingWidth, 0.0, "width", true);
 						pl.get(hSIon.Znuc, 0.0, "Znuc", true);
@@ -137,7 +140,7 @@ struct CommandFluidIonCoupling : public Command
 		while (iIon<int(e.eVars.fluidParams.hSIons.size()))
 		{
 			HardSphereIon& hSIon = e.eVars.fluidParams.hSIons[iIon];
-			if((iCpl==iRep)&&(hSIon.convCouplingModel==ConvCouplingExponential))
+			if((iCpl==iRep)&&(hSIon.convCouplingModel==ConvCouplingExponential || e.eVars.fluidParams.convCouplingH2OModel == ConvCouplingExpCuspless))
 			{
 				logPrintf("%s ", hSIon.name.c_str()),
 				fputs(couplingMap.getString(hSIon.convCouplingModel), globalLog);

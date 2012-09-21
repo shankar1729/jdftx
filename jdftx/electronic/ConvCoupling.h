@@ -42,6 +42,9 @@ public:
 	//! Set the electron density kernel for a particular site to an exponential
 	void setExponentialKernel(SiteProperties& s);
 	
+	//! Set the electron density kernel for a particular site to an exponential
+	void setExpCusplessKernel(SiteProperties& s);
+	
 	//! Set the electron density kernel for a particular site from a binary file (must be created on correct grid)
 	void setBinaryKernel(SiteProperties& s);
 	

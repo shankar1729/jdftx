@@ -132,6 +132,12 @@ inline void setExpKernelFunc(int i, double G2, double* kernel, double Z, double 
 	kernel[i] = Z/pow(1 + a*a*G2, 2);
 }
 
+//function for setting an exponential kernel for a given site with charge Z and width a => Z/(8*pi*a^3)*exp(-r/a)
+inline void setExpCusplessKernelFunc(int i, double G2, double* kernel, double Z, double a)
+{	
+	kernel[i] = Z/pow(1 + a*a*G2, 3);
+}
+
 void ConvCoupling::setExponentialKernel(SiteProperties& s)
 {	
 	//allocate the kernel
@@ -146,6 +152,23 @@ void ConvCoupling::setExponentialKernel(SiteProperties& s)
 			logPrintf("Warning: classical site charges and electron kernel charges not balanced in convolution coupling.\n");
 	}
 	applyFuncGsq(gInfo, setExpKernelFunc, s.couplingElecKernel->data,elecCharge,s.convCouplingWidth);
+	s.couplingElecKernel->set();
+}
+
+void ConvCoupling::setExpCusplessKernel(SiteProperties& s)
+{	
+	//allocate the kernel
+	s.couplingElecKernel = new RealKernel(gInfo);
+	
+	double elecCharge = s.couplingZnuc+s.convCouplingSiteCharge;
+	logPrintf("Created exponential electron density model for %s site with width %.12lf and norm %.12lf.\n",
+			  s.siteName.c_str(),s.convCouplingWidth,elecCharge);
+	if (s.kernelFilename.length() == 0) //If there is not another filename to be added in addition to this one.
+	{
+		if (fabs(s.convCouplingSiteCharge-s.chargeZ*s.chargeKernel->data[0])>1e-12)
+			logPrintf("Warning: classical site charges and electron kernel charges not balanced in convolution coupling.\n");
+	}
+	applyFuncGsq(gInfo, setExpCusplessKernelFunc, s.couplingElecKernel->data,elecCharge,s.convCouplingWidth);
 	s.couplingElecKernel->set();
 }
 

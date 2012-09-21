@@ -173,7 +173,28 @@ public:
 				
 				break;
 				
-			}	
+			}
+			case ConvCouplingExpCuspless: 
+			{		
+				Osite.convCouplingSiteCharge = 0.8476;
+				Osite.convCouplingWidth = params.oxygenWidth;
+				Osite.kernelFilename = params.oxygenFilename;
+				coupling->setExpCusplessKernel(Osite);
+				
+				if(Osite.kernelFilename.length()!=0)
+					coupling->setRadialKernel(Osite);
+				
+				Hsite.convCouplingSiteCharge = -Osite.convCouplingSiteCharge/2.0;
+				Hsite.convCouplingWidth = params.hydrogenWidth;
+				Hsite.kernelFilename = params.hydrogenFilename;
+				coupling->setExpCusplessKernel(Hsite);
+				
+				if(Hsite.kernelFilename.length()!=0)
+					coupling->setRadialKernel(Hsite);
+				
+				break;
+				
+			}
 			case ConvCouplingRadialFunction:
 			{	
 				Osite.kernelFilename = params.oxygenFilename;
@@ -219,6 +240,17 @@ public:
 						IonSite.convCouplingWidth = Ion->CouplingWidth;
 						IonSite.kernelFilename = Ion->CouplingFilename;
 						coupling->setExponentialKernel(IonSite);
+						
+						if(IonSite.kernelFilename.length()!=0)
+						coupling->setRadialKernel(IonSite);
+						break;
+					}
+					case ConvCouplingExpCuspless:
+					{
+						IonSite.couplingZnuc = Ion->Znuc;
+						IonSite.convCouplingWidth = Ion->CouplingWidth;
+						IonSite.kernelFilename = Ion->CouplingFilename;
+						coupling->setExpCusplessKernel(IonSite);
 						
 						if(IonSite.kernelFilename.length()!=0)
 						coupling->setRadialKernel(IonSite);
