@@ -31,11 +31,11 @@ TranslationOperatorSpline::TranslationOperatorSpline(const GridInfo& gInfo, Spli
 {
 }
 
-void constantSplineTaxpy_sub(int iStart, int iStop, const vector3<int> S,
+void constantSplineTaxpy_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	double alpha, const double* x, double* y, const vector3<int> Tint)
 {	THREAD_rLoop(constantSplineTaxpy_calc(i, iv, S, alpha, x, y, Tint);)
 }
-void linearSplineTaxpy_sub(int iStart, int iStop, const vector3<int> S,
+void linearSplineTaxpy_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	double alpha, const double* x, double* y, const vector3<int> Tint, const vector3<> Tfrac)
 {	THREAD_rLoop(linearSplineTaxpy_calc(i, iv, S, alpha, x, y, Tint, Tfrac);)
 }
@@ -94,7 +94,7 @@ TranslationOperatorFourier::TranslationOperatorFourier(const GridInfo& gInfo)
 : TranslationOperator(gInfo)
 {
 }
-inline void fourierTranslate_sub(int iStart, int iStop, const vector3<int> S, const vector3<> Gt, complex* xTilde)
+inline void fourierTranslate_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gt, complex* xTilde)
 {	THREAD_halfGspaceLoop( fourierTranslate_calc(i, iG, S, Gt, xTilde); )
 }
 #ifdef GPU_ENABLED //implemented in TranslationOperator.cu

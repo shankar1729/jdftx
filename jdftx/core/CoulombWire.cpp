@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/CoulombWire.h>
+#include <core/CoulombKernel.h>
 #include <core/Operators.h>
 #include <core/Util.h>
 #include <core/Bspline.h>
@@ -261,7 +262,7 @@ struct CoulombWire_init
 	vector3<int> S, Spad, Sdense;
 	matrix3<> Rplanar, RpadPlanar, GGT;
 	std::vector<Simplex<2>>* simplexArr; //2D Wigner-Seitz cell simplicial tesselation
-	WignerSeitz *wsDense, *wsPad; //2D wigner-Seitz cells
+	const WignerSeitz *wsDense, *wsPad; //2D wigner-Seitz cells
 	double sigma, sigmaBorder;
 	
 	void computePlane(int iPlane)
@@ -381,159 +382,136 @@ struct CoulombWire_init
 			cwInitArr[iThread].computePlane(iPlane);
 		}
 	}
+	
+	static void initialize(const CoulombKernelDesc& desc, double* Vc, const WignerSeitz& ws)
+	{	//Pick up geometry:
+		int iDir=-1;
+		for(int k=0; k<3; k++) if(!desc.isTruncated[k]) iDir = k;
+		assert(iDir >= 0);
+		int jDir = (iDir+1)%3;
+		int kDir = (iDir+2)%3;
+		double sigmaBorder = desc.sigmaBorder[jDir];
+		assert(sigmaBorder == desc.sigmaBorder[kDir]);
+		double borderWidth = sigmaBorder * CoulombKernelDesc::nSigmasPerWidth;
+		double sigma = (ws.inRadius(iDir) - borderWidth) / CoulombKernelDesc::nSigmasPerWidth;
+		
+		//Set up dense integration grids:
+		logPrintf("Setting up FFT grids: ");
+		double Gnyq = 10./sigmaBorder; //lower bound on Nyquist frequency
+		vector3<int> Sdense; //dense fft sample count
+		matrix3<> Rpad; vector3<int> Spad; //padded lattice vectors and sample count
+		for(int k=0; k<3; k++)
+			if(k == iDir)
+			{	Sdense[k] = desc.S[k];
+				Spad[k] = desc.S[k];
+				Rpad.set_col(k, desc.R.column(k));
+			}
+			else
+			{	Sdense[k] = std::max(desc.S[k], 2*int(ceil(Gnyq * desc.R.column(k).length() / (2*M_PI))));
+				while(!fftSuitable(Sdense[k])) Sdense[k]+=2; //pick the next even number suitable for FFT
+				//Pad the super cell by border width:
+				Spad[k] = Sdense[k] + 2*ceil(Sdense[k]*borderWidth/desc.R.column(k).length());
+				while(!fftSuitable(Spad[k])) Spad[k]+=2;
+				Rpad.set_col(k, desc.R.column(k) * (Spad[k]*1./Sdense[k]));
+			}
+		logPrintf("%d x %d, and %d x %d padded.\n", Sdense[jDir], Sdense[kDir], Spad[jDir], Spad[kDir]);
+		int nGdense = Sdense[jDir] * (1+Sdense[kDir]/2);
+		int nGpad = Spad[jDir] * (1+Spad[kDir]/2); //number of symmetry reduced planar reciprocal lattice vectors
+		int nrPad = Spad[jDir] * Spad[kDir]; //number of planar real space points
+		matrix3<> G = (2*M_PI)*inv(desc.R);
+		matrix3<> GGT = G * (~G);
+		
+		//Construct padded Wigner-Seitz cell, and check border:
+		logPrintf("For padded lattice, "); WignerSeitz wsPad(Rpad);
+		std::vector<vector3<>> vArr = ws.getVertices();
+		matrix3<> invRpad = inv(Rpad);
+		for(vector3<> v: vArr)
+			if(wsPad.boundaryDistance(wsPad.restrict(invRpad*v), iDir) < 0.9*borderWidth)
+				die("\nPadded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
+					"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
+					"if different from the input lattice vectors, are printed during Symmetry setup.\n");
+		
+		//Plan Fourier transforms:
+		assert(nrPad > 0); //overflow check
+		complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
+		#define INSUFFICIENT_MEMORY_ERROR \
+			die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n", \
+				(nGpad+nGdense)*1e-9*nProcsAvailable*sizeof(complex));
+		if(!tempArr) INSUFFICIENT_MEMORY_ERROR
+		logPrintf("Planning fourier transforms ... "); logFlush();
+		fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
+		fftw_plan fftPlanC2R = fftw_plan_dft_c2r_2d(Spad[jDir], Spad[kDir], (fftw_complex*)tempArr, (double*)tempArr, FFTW_ESTIMATE);
+		fftw_plan fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
+		fftw_free(tempArr);
+		logPrintf("Done.\n");
+		
+		//Setup threads for initializing each plane perpendicular to truncated direction:
+		string dirName(3,'0'); dirName[iDir]='1';
+		logPrintf("Computing wire[%s]-truncated coulomb kernel ... ", dirName.c_str()); logFlush();
+		std::vector<CoulombWire_init> cwInitArr(nProcsAvailable);
+		std::vector<Simplex<2>> simplexArr = ws.getSimplices(iDir);
+		for(CoulombWire_init& c: cwInitArr)
+		{	//Allocate data arrays:
+			c.padArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
+			c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
+			if(!c.padArr || !c.denseArr) INSUFFICIENT_MEMORY_ERROR
+			#undef INSUFFICIENT_MEMORY_ERROR
+			c.padRealArr = (double*)c.padArr;
+			c.denseRealArr = (double*)c.denseArr;
+			c.Vc = Vc;
+			c.fftPlanC2R = fftPlanC2R;
+			c.fftPlanR2C = fftPlanR2C;
+			//Copy geometry definitions:
+			c.iDir = iDir; c.jDir = jDir; c.kDir = kDir;
+			c.S = desc.S; c.Sdense = Sdense; c.Spad = Spad;
+			c.Rplanar = ws.getRplanar(iDir);
+			c.RpadPlanar = wsPad.getRplanar(iDir);
+			c.GGT = GGT;
+			c.simplexArr = &simplexArr;
+			c.wsDense = &ws; c.wsPad = &wsPad;
+			c.sigma = sigma; c.sigmaBorder = sigmaBorder;
+		}
+		
+		//Launch threads:
+		std::mutex mJobCount; int nPlanesDone = 0; //for job management
+		threadLaunch(thread, 0, cwInitArr.data(), 1+desc.S[iDir]/2, &nPlanesDone, &mJobCount);
+		fftw_destroy_plan(fftPlanC2R);
+		fftw_destroy_plan(fftPlanR2C);
+		
+		//Cleanup threads:
+		for(CoulombWire_init& c: cwInitArr)
+		{	fftw_free(c.padArr);
+			fftw_free(c.denseArr);
+		}
+		logPrintf("Done.\n");
+	}
 };
+
+
 
 CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
 	
-	//Read precomputed kernel from file if supplied
-	if(params.filename.length())
-	{	FILE* fp = fopen(params.filename.c_str(), "rb");
-		if(fp)
-		{	matrix3<> R; int iDir; vector3<int> S; double bw;
-			fread(&R, sizeof(matrix3<>), 1, fp);
-			fread(&iDir, sizeof(int), 1, fp);
-			fread(&S, sizeof(vector3<int>), 1, fp);
-			fread(&bw, sizeof(double), 1, fp);
-			#define CHECKerror(errorCondition, paramName) \
-				else if(errorCondition) \
-					logPrintf("Precomputed coulomb kernel file '%s' has different " paramName " (recomputing it now)\n", params.filename.c_str());
-			if(false) {} //dummy condition to start a chain of else-if's
-			CHECKerror(R != gInfo.R, "lattice vectors")
-			CHECKerror(iDir != params.iDir, "truncation direction")
-			CHECKerror(!(S == gInfo.S), "sample count")
-			CHECKerror(bw != params.borderWidth, "border width")
-			else if(fread(Vc.data, sizeof(double), gInfo.nG, fp) != unsigned(gInfo.nG))
-				logPrintf("Error reading precomputed coulomb kernel from '%s' (computing it now)\n", params.filename.c_str());
-			else
-			{	logPrintf("Successfully read precomputed coulomb kernel from '%s'\n", params.filename.c_str());
-				Vc.set();
-				initExchangeEval();
-				return;
-			}
-			#undef CHECKparam
-		}
-		else logPrintf("Could not open precomputed coulomb kernel file '%s' (computing it now)\n", params.filename.c_str());
-	}
-	
-	//Direction indices:
-	int iDir = params.iDir;
-	int jDir = (iDir + 1) % 3;
-	int kDir = (iDir + 2) % 3;
-	
 	//Select gauss-smoothing parameter:
-	double maxBorderWidth = 0.5 * ws.inRadius(iDir);
+	double maxBorderWidth = 0.5 * ws.inRadius(params.iDir);
 	if(params.borderWidth > maxBorderWidth)
 		die("Border width %lg bohrs must be less than %lg bohrs (half the Wigner-Seitz cell in-radius).\n",
 			params.borderWidth, maxBorderWidth);
 	double sigmaBorder = 0.1 * params.borderWidth;
-	double sigma = 0.1*ws.inRadius(iDir) - sigmaBorder; //so that 10(sigma+sigmaBorder) < inRadius
 	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
 
-	//Set up dense integration grids:
-	logPrintf("Setting up FFT grids: ");
-	double Gnyq = 10./sigmaBorder; //lower bound on Nyquist frequency
-	vector3<int> Sdense; //dense fft sample count
-	matrix3<> Rpad; vector3<int> Spad; //padded lattice vectors and sample count
-	for(int k=0; k<3; k++)
-		if(k == iDir)
-		{	Sdense[k] = gInfo.S[k];
-			Spad[k] = gInfo.S[k];
-			Rpad.set_col(k, gInfo.R.column(k));
-		}
-		else
-		{	Sdense[k] = std::max(gInfo.S[k], 2*int(ceil(Gnyq * gInfo.R.column(k).length() / (2*M_PI))));
-			while(!fftSuitable(Sdense[k])) Sdense[k]+=2; //pick the next even number suitable for FFT
-			//Pad the super cell by border width:
-			Spad[k] = Sdense[k] + 2*ceil(Sdense[k]*params.borderWidth/gInfo.R.column(k).length());
-			while(!fftSuitable(Spad[k])) Spad[k]+=2;
-			Rpad.set_col(k, gInfo.R.column(k) * (Spad[k]*1./Sdense[k]));
-		}
-	logPrintf("%d x %d, and %d x %d padded.\n", Sdense[jDir], Sdense[kDir], Spad[jDir], Spad[kDir]);
-	int nGdense = Sdense[jDir] * (1+Sdense[kDir]/2);
-	int nGpad = Spad[jDir] * (1+Spad[kDir]/2); //number of symmetry reduced planar reciprocal lattice vectors
-	int nrPad = Spad[jDir] * Spad[kDir]; //number of planar real space points
+	//Create kernel description:
+	vector3<bool> isTruncated(true, true, true); isTruncated[params.iDir] = false;
+	vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
+	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, isTruncated, sigmaBorders);
 	
-	//Construct padded Wigner-Seitz cell, and check border:
-	logPrintf("For padded lattice, "); WignerSeitz wsPad(Rpad);
-	std::vector<vector3<>> vArr = ws.getVertices();
-	matrix3<> invRpad = inv(Rpad);
-	for(vector3<> v: vArr)
-		if(wsPad.boundaryDistance(wsPad.restrict(invRpad*v), iDir) < 0.9*params.borderWidth)
-			die("\nPadded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
-				"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
-				"if different from the input lattice vectors, are printed during Symmetry setup.\n");
-	
-	//Plan Fourier transforms:
-	assert(nrPad > 0); //overflow check
-	complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
-	#define INSUFFICIENT_MEMORY_ERROR \
-		die("Insufficient memory (need %.1fGB). Hint: try increasing border width.\n", \
-			(nGpad+nGdense)*1e-9*nProcsAvailable*sizeof(complex));
-	if(!tempArr) INSUFFICIENT_MEMORY_ERROR
-	logPrintf("Planning fourier transforms ... "); logFlush();
-	fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
-	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_2d(Spad[jDir], Spad[kDir], (fftw_complex*)tempArr, (double*)tempArr, FFTW_ESTIMATE);
-	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
-	fftw_free(tempArr);
-	logPrintf("Done.\n");
-	
-	//Setup threads for initializing each plane perpendicular to truncated direction:
-	logPrintf("Computing wire[%s]-truncated coulomb kernel ... ", dirName.c_str()); logFlush();
-	std::vector<CoulombWire_init> cwInitArr(nProcsAvailable);
-	std::vector<Simplex<2>> simplexArr = ws.getSimplices(iDir);
-	for(CoulombWire_init& c: cwInitArr)
-	{	//Allocate data arrays:
-		c.padArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
-		c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
-		if(!c.padArr || !c.denseArr) INSUFFICIENT_MEMORY_ERROR
-		#undef INSUFFICIENT_MEMORY_ERROR
-		c.padRealArr = (double*)c.padArr;
-		c.denseRealArr = (double*)c.denseArr;
-		c.Vc = Vc.data;
-		c.fftPlanC2R = fftPlanC2R;
-		c.fftPlanR2C = fftPlanR2C;
-		//Copy geometry definitions:
-		c.iDir = iDir; c.jDir = jDir; c.kDir = kDir;
-		c.S = gInfo.S; c.Sdense = Sdense; c.Spad = Spad;
-		c.Rplanar = ws.getRplanar(iDir);
-		c.RpadPlanar = wsPad.getRplanar(iDir);
-		c.GGT = gInfo.GGT;
-		c.simplexArr = &simplexArr;
-		c.wsDense = &ws; c.wsPad = &wsPad;
-		c.sigma = sigma; c.sigmaBorder = sigmaBorder;
+	if(!kernelDesc.loadKernel(Vc.data, params.filename)) //Try reading the kernel
+	{	CoulombWire_init::initialize(kernelDesc, Vc.data, ws); //Compute the kernel
+		kernelDesc.saveKernel(Vc.data, params.filename); //Save kernel if requested
 	}
-	
-	//Launch threads:
-	std::mutex mJobCount; int nPlanesDone = 0; //for job management
-	threadLaunch(CoulombWire_init::thread, 0, cwInitArr.data(),
-		1+gInfo.S[iDir]/2, &nPlanesDone, &mJobCount);
 	Vc.set();
-	fftw_destroy_plan(fftPlanC2R);
-	fftw_destroy_plan(fftPlanR2C);
-	
-	//Cleanup threads:
-	for(CoulombWire_init& c: cwInitArr)
-	{	fftw_free(c.padArr);
-		fftw_free(c.denseArr);
-	}
-	logPrintf("Done.\n");
-	
-	//Save kernel if requested:
-	if(params.filename.length())
-	{	logPrintf("Saving wire[%s]-truncated coulomb kernel to '%s' ... ", dirName.c_str(), params.filename.c_str()); logFlush();
-		FILE* fp = fopen(params.filename.c_str(), "wb");
-		if(!fp) die("could not open file for writing.\n");
-		fwrite(&gInfo.R, sizeof(matrix3<>), 1, fp);
-		fwrite(&params.iDir, sizeof(int), 1, fp);
-		fwrite(&gInfo.S, sizeof(vector3<int>), 1, fp);
-		fwrite(&params.borderWidth, sizeof(double), 1, fp);
-		fwrite(Vc.data, sizeof(double), gInfo.nG, fp);
-		fclose(fp);
-		logPrintf("Done.\n");
-	}
 	initExchangeEval();
 }
 
@@ -549,7 +527,7 @@ double CoulombWire::energyAndGrad(std::vector<Atom>& atoms) const
 
 //----------------- class CoulombCylindrical ---------------------
 
-void setVcylindrical(int iStart, int iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc, double* Vc)
+void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc, double* Vc)
 {	THREAD_halfGspaceLoop
 	(	double Gsq = GGT.metric_length_squared(iG);
 		double GaxisSq = GGT(iDir,iDir) * iG[iDir] * iG[iDir];

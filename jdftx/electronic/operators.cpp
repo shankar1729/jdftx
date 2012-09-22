@@ -68,7 +68,7 @@ void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase,
 //------------------------------ Spatial gradients of vectors ---------------------------------
 
 //first cartesian derivative
-void D_sub(int iStart, int iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge)
+void D_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge)
 {	THREAD_halfGspaceLoop( D_calc(i, iG, in, out, Ge); )
 }
 #ifdef GPU_ENABLED
@@ -86,7 +86,7 @@ DataGptr D(const DataGptr& in, int iDir)
 }
 
 //second cartesian derivative
-void DD_sub(int iStart, int iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge1, vector3<> Ge2)
+void DD_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge1, vector3<> Ge2)
 {	THREAD_halfGspaceLoop( DD_calc(i, iG, in, out, Ge1, Ge2); )
 }
 #ifdef GPU_ENABLED
@@ -103,7 +103,7 @@ DataGptr DD(const DataGptr& in, int iDir, int jDir)
 	return out;
 }
 
-void multiplyBlochPhase_sub(int iStart, int iStop,
+void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
 	const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k)
 {	THREAD_rLoop( v[i] *= blochPhase_calc(iv, invS, k); )
 }
@@ -122,7 +122,7 @@ void multiplyBlochPhase(complexDataRptr& v, const vector3<>& k)
 
 
 //point group scatter
-template<typename scalar> void pointGroupScatter_sub(int iStart, int iStop,
+template<typename scalar> void pointGroupScatter_sub(size_t iStart, size_t iStop,
 	const vector3<int>& S, const scalar* in, scalar* out, const matrix3<int>& mMesh)
 {	THREAD_rLoop( pointGroupScatter_calc(i, iv, S, in, out, mMesh); )
 }
@@ -168,7 +168,7 @@ complexDataRptr pointGroupGather(const complexDataRptr& in, const matrix3<int>& 
 }
 
 
-void radialFunction_sub(int iStart, int iStop, const vector3<int> S, const matrix3<>& GGT,
+void radialFunction_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT,
 	complex* F, const RadialFunctionG& f, vector3<> r0 )
 {	THREAD_halfGspaceLoop( F[i] = radialFunction_calc(iG, GGT, f, r0); )
 }

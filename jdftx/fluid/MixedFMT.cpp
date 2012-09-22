@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataMultiplet.h>
 
 //Compute the tensor weighted density (threaded/gpu):
-inline void tensorKernel_sub(int iStart, int iStop, vector3<int> S, const matrix3<> G,
+inline void tensorKernel_sub(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> G,
 	const complex* nTilde, tensor3<complex*> mTilde)
 {	THREAD_halfGspaceLoop( tensorKernel_calc(i, iG, IS_NYQUIST, G, nTilde, mTilde); )
 }
@@ -42,7 +42,7 @@ DataGptrTensor tensorKernel(const DataGptr& nTilde)
 }
 
 //Propagate gradient w.r.t tensor weighted density (threaded/gpu):
-inline void tensorKernel_grad_sub(int iStart, int iStop, vector3<int> S, const matrix3<> G,
+inline void tensorKernel_grad_sub(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> G,
 	tensor3<const complex*> grad_mTilde, complex* grad_nTilde)
 {	THREAD_halfGspaceLoop( tensorKernel_grad_calc(i, iG, IS_NYQUIST, G, grad_mTilde, grad_nTilde); )
 }

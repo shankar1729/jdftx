@@ -82,9 +82,9 @@ bool Symmetries::kpointsEquivalent(const vector3<>& k1, const vector3<>& k2) con
 }
 
 //Symmetrize scalar fields:
-void symmetrize_sub(int iStart, int iStop, int nRot, double* x, int* symmIndex)
+void symmetrize_sub(size_t iStart, size_t iStop, int nRot, double* x, int* symmIndex)
 {	double nrotInv = 1.0/nRot;
-	for(int i=iStart; i<iStop; i++)
+	for(size_t i=iStart; i<iStop; i++)
 	{	double xSum=0.0;
 		for(int j=0; j<nRot; j++) xSum += x[symmIndex[nRot*i+j]];
 		xSum *= nrotInv; //average n in the equivalence class

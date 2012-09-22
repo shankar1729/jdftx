@@ -254,8 +254,8 @@ void TptrMul::saveToFile(const char* filename) const
 namespace DataMultipletPrivate
 {
 	template<typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
-	void threadUnary_sub(int iStart, int iStop, FuncOut (*func)(FuncIn,Args...), Out* out, In in, Args... args)
-	{	for(int i=iStart; i<iStop; i++) (*out)[i] = func((FuncIn)in[i], args...);
+	void threadUnary_sub(size_t iStart, size_t iStop, FuncOut (*func)(FuncIn,Args...), Out* out, In in, Args... args)
+	{	for(size_t i=iStart; i<iStop; i++) (*out)[i] = func((FuncIn)in[i], args...);
 	}
 
 	template<int N, typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>

@@ -539,7 +539,7 @@ struct EvalDOS
 	}
 	
 	//Thread function for setting fourier transform of slice of half-width R centered at r0 parallel to lattice-plane d:
-	inline static void sliceWeight_thread(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT,
+	inline static void sliceWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
 		complex* w, const vector3<>& r0, double R, const vector3<int>& d)
 	{
 		double planeSpacing = (2*M_PI) / sqrt(GGT.metric_length_squared(gcdReduce(d))); //lattice-plane spacing
@@ -557,7 +557,7 @@ struct EvalDOS
 	}
 	
 	//Thread function for setting fourier transform of sphere of radius R centered at r0:
-	inline static void sphereWeight_thread(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT,
+	inline static void sphereWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
 		complex* w, const vector3<>& r0, double R, double cellVolume)
 	{
 		double prefac = (4./3)*M_PI * pow(R,3) / cellVolume;

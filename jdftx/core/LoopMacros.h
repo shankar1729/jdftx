@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! One thread of a loop over real space (see applyFunc_r_sub for example)
 #define THREAD_rLoop(code) \
-	int i=iStart; \
+	size_t i=iStart; \
 	vector3<int> iv( \
 		i / (S[2]*S[1]), \
 		(i/S[2]) % S[1], \
@@ -50,12 +50,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 		kernelIndex(y), \
 		kernelIndex(x) ); \
 	if(iv[0]>=S[0] || iv[1]>=S[1] || iv[2]>=S[2]) return; \
-	int i = iv[2] + S[2]*(iv[1] + S[1]*iv[0]);
+	size_t i = iv[2] + S[2]*size_t(iv[1] + S[1]*iv[0]);
 
 
 //! One thread of a loop over G-space (see L_sub in PHLO.cpp for example)
 #define THREAD_fullGspaceLoop(code) \
-	int i=iStart; \
+	size_t i=iStart; \
 	vector3<int> iG( i / (S[2]*S[1]), (i/S[2]) % S[1], i % S[2] ); \
 	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j]; \
 	while(true) \
@@ -83,14 +83,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 		kernelIndex(y), \
 		kernelIndex(x) ); \
 	if(iG[0]>=S[0] || iG[1]>=S[1] || iG[2]>=S[2]) return; \
-	int i = iG[2] + S[2]*(iG[1] + S[1]*iG[0]); \
+	size_t i = iG[2] + S[2]*size_t(iG[1] + S[1]*iG[0]); \
 	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j];
 
 
 //! One thread of a loop over symmetry-reduced G-space (see applyFuncGsq_sub in Operators.h for example)
 #define THREAD_halfGspaceLoop(code) \
 	int size2 = S[2]/2+1; \
-	int i=iStart; \
+	size_t i=iStart; \
 	vector3<int> iG( i / (size2*S[1]), (i/size2) % S[1], i % size2 ); \
 	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j]; \
 	while(i<iStop) \
@@ -119,7 +119,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 		kernelIndex(y), \
 		kernelIndex(x) ); \
 	if(iG[0]>=S[0] || iG[1]>=S[1] || iG[2]>=size2) return; \
-	int i = iG[2] + size2*(iG[1] + S[1]*iG[0]); \
+	size_t i = iG[2] + size2*size_t(iG[1] + S[1]*iG[0]); \
 	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j];
 
 //! Determine if this is a nyquist component

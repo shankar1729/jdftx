@@ -35,7 +35,7 @@ DataRptr Real(const complexDataRptr& C)
 	return R;
 }
 
-void RealG_sub(int iStart, int iStop, const vector3<int> S, const complex* vFull, complex* vHalf, double scaleFac)
+void RealG_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* vFull, complex* vHalf, double scaleFac)
 {	THREAD_halfGspaceLoop( RealG_calc(i, iG, S, vFull, vHalf, scaleFac); )
 }
 #ifdef GPU_ENABLED
@@ -62,7 +62,7 @@ DataRptr Imag(const complexDataRptr& C)
 	return I;
 }
 
-void ImagG_sub(int iStart, int iStop, const vector3<int> S, const complex* vFull, complex* vHalf, double scaleFac)
+void ImagG_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* vFull, complex* vHalf, double scaleFac)
 {	THREAD_halfGspaceLoop( ImagG_calc(i, iG, S, vFull, vHalf, scaleFac); )
 }
 #ifdef GPU_ENABLED
@@ -89,7 +89,7 @@ complexDataRptr Complex(const DataRptr& R)
 	return C;
 }
 
-void ComplexG_sub(int iStart, int iStop, const vector3<int> S, const complex* vHalf, complex* vFull, double scaleFac)
+void ComplexG_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* vHalf, complex* vFull, double scaleFac)
 {	THREAD_halfGspaceLoop( ComplexG_calc(i, iG, S, vHalf, vFull, scaleFac); )
 }
 #ifdef GPU_ENABLED
@@ -251,7 +251,7 @@ DataGptr Linv(DataGptr&& in)
 DataGptr Linv(const DataGptr& in) { return Linv(in->clone()); }
 
 
-void fullL_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
+void fullL_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
 {	THREAD_fullGspaceLoop( v[i] *= GGT.metric_length_squared(iG); )
 }
 #ifdef GPU_ENABLED //implemented in Operators.cu
@@ -270,7 +270,7 @@ complexDataGptr L(complexDataGptr&& in)
 }
 complexDataGptr L(const complexDataGptr& in) { return L(in->clone()); }
 
-void fullLinv_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
+void fullLinv_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
 {	THREAD_fullGspaceLoop( v[i] *= i ? (1.0/GGT.metric_length_squared(iG)) : 0.0; )
 }
 #ifdef GPU_ENABLED //implemented in Operators.cu
@@ -291,7 +291,7 @@ complexDataGptr Linv(const complexDataGptr& in) { return Linv(in->clone()); }
 
 
 
-template<typename Scalar> void zeroNyquist_sub(int iStart, int iStop, const vector3<int> S, Scalar* data)
+template<typename Scalar> void zeroNyquist_sub(size_t iStart, size_t iStop, const vector3<int> S, Scalar* data)
 {	THREAD_halfGspaceLoop( if(IS_NYQUIST) data[i] = Scalar(0.0); )
 }
 void zeroNyquist(RealKernel& K)
@@ -546,7 +546,7 @@ void initGaussianKernel(RealKernel& X, double x0)
 	X.set();
 }
 
-void initTranslation_sub(int iStart, int iStop, const vector3<int> S, const vector3<> Gr, complex* X)
+void initTranslation_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gr, complex* X)
 {	THREAD_halfGspaceLoop( X[i] = cis(-dot(iG,Gr)); )
 }
 void initTranslation(DataGptr& X, const vector3<>& r)
@@ -556,7 +556,7 @@ void initTranslation(DataGptr& X, const vector3<>& r)
 }
 
 
-void gaussConvolve_sub(int iStart, int iStop, const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
+void gaussConvolve_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
 {	THREAD_halfGspaceLoop( data[i] *= exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG)); )
 }
 void gaussConvolve(const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
@@ -587,7 +587,7 @@ void printStats(const DataRptr& X, const char* name, FILE* fp)
 
 //------------------------------ From DataMultiplet.h ------------------------------
 
-inline void gradient_sub(int iStart, int iStop, const vector3<int> S,
+inline void gradient_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	const matrix3<> G, const complex* Xtilde, vector3<complex*> gradTilde)
 {	THREAD_halfGspaceLoop( gradient_calc(i, iG, IS_NYQUIST, G, Xtilde, gradTilde); )
 }
@@ -608,7 +608,7 @@ DataGptrVec gradient(const DataGptr& Xtilde)
 DataRptrVec gradient(const DataRptr& X) { return I(gradient(J(X))); }
 
 
-inline void divergence_sub(int iStart, int iStop, const vector3<int> S,
+inline void divergence_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	const matrix3<> G, vector3<const complex*> Vtilde, complex* divTilde)
 {	THREAD_halfGspaceLoop( divergence_calc(i, iG, IS_NYQUIST, G, Vtilde, divTilde); )
 }
@@ -629,7 +629,7 @@ DataGptr divergence(const DataGptrVec& Vtilde)
 DataRptr divergence(const DataRptrVec& V) { return I(divergence(J(V))); }
 
 
-inline void tensorGradient_sub(int iStart, int iStop, const vector3<int> S,
+inline void tensorGradient_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	const matrix3<> G, const complex* Xtilde, tensor3<complex*> gradTilde)
 {	THREAD_halfGspaceLoop( tensorGradient_calc(i, iG, IS_NYQUIST, G, Xtilde, gradTilde); )
 }
@@ -649,7 +649,7 @@ DataGptrTensor tensorGradient(const DataGptr& Xtilde)
 }
 
 
-inline void tensorDivergence_sub(int iStart, int iStop, const vector3<int> S,
+inline void tensorDivergence_sub(size_t iStart, size_t iStop, const vector3<int> S,
 	const matrix3<> G, tensor3<const complex*> Vtilde, complex* divTilde)
 {	THREAD_halfGspaceLoop( tensorDivergence_calc(i, iG, IS_NYQUIST, G, Vtilde, divTilde); )
 }

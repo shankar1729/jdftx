@@ -199,16 +199,16 @@ struct CommandExchangeRegularization : public Command
 		pl.get(exReg.method, exReg.method, exRegMethodMap, "method");
 		//Check compatibility of method and geometry:
 		if(isIsolated && exReg.method!=ExchangeRegularization::None)
-			throw "exchange-regularization <method> must be None for non-periodic\n"
-				"coulomb-interaction <geometry> = " + string(truncationDirMap.getString(cp.geometry));
+			throw string("exchange-regularization <method> must be None for non-periodic"
+				" coulomb-interaction <geometry> = Spherical or Isolated");
 		if(exReg.method==ExchangeRegularization::None
 			&& !(isIsolated || cp.geometry==CoulombParams::Periodic))
-			throw string("exchange-regularization <method> = None is supported only for\n"
-				"non-periodic or 3D periodic values of coulomb-interaction <geometry>");
+			throw string("exchange-regularization <method> = None is supported only for"
+				" non-periodic or 3D periodic values of coulomb-interaction <geometry>");
 		if(exReg.method==ExchangeRegularization::AuxiliaryFunction
 			&& !(cp.geometry==CoulombParams::Periodic))
-			throw string("exchange-regularization <method> = AuxiliaryFunction is supported\n"
-				"only for coulomb-interaction <geometry> = Periodic");
+			throw string("exchange-regularization <method> = AuxiliaryFunction is supported"
+				" only for coulomb-interaction <geometry> = Periodic");
 		//Read optional parameters:
 		if(exReg.method==ExchangeRegularization::WignerSeitzTruncated)
 		{	pl.get(exReg.sigma, 1., "sigma");

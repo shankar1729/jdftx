@@ -103,7 +103,7 @@ void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename
 		memset(mean[c], 0, nRadial*sizeof(double));
 		double* curData = dataR[c]->data();
 		//Loop over all the lattice points and accumulate the above sums:
-		int iStart=0, iStop=g.nr; const vector3<int> &S = g.S;
+		size_t iStart=0, iStop=g.nr; const vector3<int> &S = g.S;
 		THREAD_rLoop //not actually threaded, but convenient nonetheless
 		(	vector3<> ri = iv[0]*h[0] + iv[1]*h[1] + iv[2]*h[2];
 			double rRel = (ri - center).length() * drInv;
@@ -141,7 +141,7 @@ void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename
 
 void saveSphericalized(const DataGptr* dataG, int nColumns, const char* filename, double dGFac)
 {	const GridInfo& g = dataG[0]->gInfo;
-	int iStart=0, iStop=g.nG; const vector3<int>& S=g.S; const matrix3<>& GGT=g.GGT;
+	size_t iStart=0, iStop=g.nG; const vector3<int>& S=g.S; const matrix3<>& GGT=g.GGT;
 
 	double Gmax = 0.0;
 	THREAD_halfGspaceLoop(

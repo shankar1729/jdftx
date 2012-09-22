@@ -36,7 +36,7 @@ void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k
 
 //Initialize radial augmentation function for a pair product of 2 Ylm's, projected to a given total l
 template<int l1,int m1, int l2,int m2, int l>
-void Qr_sub(int iStart, int iStop, const vector3<int> S, const matrix3<>& G,  const RadialFunctionG& Qradial,
+void Qr_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,  const RadialFunctionG& Qradial,
 	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
 {
 	THREAD_halfGspaceLoop( (Qr_calc<l1,m1,l2,m2,l>)(i, iG, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale); )
@@ -59,7 +59,7 @@ bool Qr(int l1, int m1, int l2, int m2, int l,
 
 
 //Local pseudopotential, ionic charge, chargeball and partial cores (CPU thread and launcher)
-void updateLocal_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT,
+void updateLocal_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
@@ -82,7 +82,7 @@ void updateLocal(const vector3<int> S, const matrix3<> GGT,
 }
 
 //Forces due to local pseudopotential, ionic charge, chargeball and partial cores (to gradient w.r.t structure factor)
-void gradLocalToSG_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT,
+void gradLocalToSG_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
@@ -107,7 +107,7 @@ void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 }
 
 //Gradient w.r.t structure factor -> gradient w.r.t atom positions
-void gradSGtoAtpos_sub(int iStart, int iStop, const vector3<int> S, const vector3<> atpos,
+void gradSGtoAtpos_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> atpos,
 	const complex* grad_SG, vector3<complex*> grad_atpos)
 {	THREAD_halfGspaceLoop( gradSGtoAtpos_calc(i, iG, atpos, grad_SG, grad_atpos); )
 }

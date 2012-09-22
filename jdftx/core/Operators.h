@@ -254,7 +254,7 @@ template<typename Callable, typename Vec> void checkSymmetry(Callable* func, con
 
 
 template<typename Func, typename... Args>
-void applyFuncGsq_sub(int iStart, int iStop, const vector3<int> S, const matrix3<> GGT, const Func* f, Args... args)
+void applyFuncGsq_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, const Func* f, Args... args)
 {	THREAD_halfGspaceLoop( (*f)(i, GGT.metric_length_squared(iG), args...); )
 }
 template<typename Func, typename... Args> void applyFuncGsq(const GridInfo& gInfo, const Func& f, Args... args)
@@ -263,7 +263,7 @@ template<typename Func, typename... Args> void applyFuncGsq(const GridInfo& gInf
 }
 
 template<typename Func, typename... Args>
-void applyFunc_r_sub(int iStart, int iStop, const vector3<int> S, const vector3<> h[3], const Func* f, Args... args)
+void applyFunc_r_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> h[3], const Func* f, Args... args)
 {	THREAD_rLoop
 	(	vector3<> ri = iv[0]*h[0] + iv[1]*h[1] + iv[2]*h[2];
 		(*f)(i, ri, args...);

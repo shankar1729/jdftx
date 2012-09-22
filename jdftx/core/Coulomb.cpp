@@ -108,7 +108,7 @@ void Coulomb::initExchangeEval()
 //-------- CPU implementation of Coulomb_internal.h --------
 
 template<typename Coulomb_calc>
-void coulombAnalytic_thread(int iStart, int iStop, vector3<int> S, const matrix3<>& GGT, const Coulomb_calc& calc, complex* data)
+void coulombAnalytic_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const Coulomb_calc& calc, complex* data)
 {	THREAD_halfGspaceLoop
 	(	data[i] *= calc(iG, GGT);
 	)
@@ -124,7 +124,7 @@ DECLARE_coulombAnalytic(Spherical)
 
 
 template<typename Exchange_calc>
-void exchangeAnalytic_thread(int iStart, int iStop, vector3<int> S, const matrix3<>& GGT, const Exchange_calc& calc,
+void exchangeAnalytic_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const Exchange_calc& calc,
 	complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq)
 {	THREAD_fullGspaceLoop
 	(	double kplusGsq = GGT.metric_length_squared(iG + kDiff);
