@@ -69,7 +69,7 @@ void Everything::setup()
 		coulombParams.omegaSet.insert(exCorr.exxRange());
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
-			coulombParams.omegaSet.insert(exCorr.exxRange());
+			coulombParams.omegaSet.insert(ec->exxRange());
 	if(coulombParams.omegaSet.size())
 	{	//Initialize k-point sampled supercell:
 		std::vector<vector3<>> kmeshUnreduced;

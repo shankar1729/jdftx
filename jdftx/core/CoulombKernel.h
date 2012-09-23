@@ -55,13 +55,16 @@ struct CoulombKernelDesc
 	
 	static const double nSigmasPerWidth; //!< number of gaussian widths within border width
 	
+	//! Compute maximum sigma such that gaussians of sigma and sigmaOther
+	//! with centers separated by L have negligible overlap at working precision
+	static double getMaxSigma(double L, double sigmaOther);
+	
 private:
 	std::vector<matrix3<int>> sym; //!< symmetry matrices
 	//Various indiviudally optimized cases of computeIsolatedKernel
-	void computeTriclinic(double* data, const WignerSeitz& ws) const; //!< Arbitrary angles between directions
-	void computeMonoclinic(double* data, const WignerSeitz& ws) const; //!< 1 direction orthogonal to other 2
-	void computeOrthorhombic(double* data, const WignerSeitz& ws) const; //!< All 3 directions orthogonal
-	void computeCylindrical(double* data, const WignerSeitz& ws) const; //!< Capped cylinder (for exchange in Cylindrical truncation)
+	void computeNonOrtho(double* data, const WignerSeitz& ws) const; //!< No lattice direction orthogonal to other two
+	void computeRightPrism(double* data, const WignerSeitz& ws) const; //!< 1 lattice direction orthogonal to other 2
+	void computeCylinder(double* data, const WignerSeitz& ws) const; //!< Capped cylinder (for exchange in Cylindrical truncation)
 };
 
 #endif // JDFTX_CORE_COULOMBKERNEL_H

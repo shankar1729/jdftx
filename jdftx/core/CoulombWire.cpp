@@ -393,7 +393,8 @@ struct CoulombWire_init
 		double sigmaBorder = desc.sigmaBorder[jDir];
 		assert(sigmaBorder == desc.sigmaBorder[kDir]);
 		double borderWidth = sigmaBorder * CoulombKernelDesc::nSigmasPerWidth;
-		double sigma = (ws.inRadius(iDir) - borderWidth) / CoulombKernelDesc::nSigmasPerWidth;
+		double sigma = CoulombKernelDesc::getMaxSigma(ws.inRadius(iDir), sigmaBorder);
+		assert(sigma >= sigmaBorder);
 		
 		//Set up dense integration grids:
 		logPrintf("Setting up FFT grids: ");
@@ -495,11 +496,11 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 	string dirName = checkOrthogonality(gInfo, params.iDir);
 	
 	//Select gauss-smoothing parameter:
-	double maxBorderWidth = 0.5 * ws.inRadius(params.iDir);
+	double maxBorderWidth = sqrt(0.5) * ws.inRadius(params.iDir);
 	if(params.borderWidth > maxBorderWidth)
-		die("Border width %lg bohrs must be less than %lg bohrs (half the Wigner-Seitz cell in-radius).\n",
+		die("Border width %lg bohrs must be less than %lg bohrs (Wigner-Seitz cell in-radius/sqrt(2)).\n",
 			params.borderWidth, maxBorderWidth);
-	double sigmaBorder = 0.1 * params.borderWidth;
+	double sigmaBorder = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
 	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
 
 	//Create kernel description:

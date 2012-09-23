@@ -79,11 +79,11 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombParams& par
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {
 	//Select gauss-smoothing parameter:
-	double maxBorderWidth = 0.5 * ws.inRadius();
+	double maxBorderWidth = sqrt(0.5) * ws.inRadius();
 	if(params.borderWidth > maxBorderWidth)
-		die("Border width %lg bohrs must be less than %lg bohrs (half the Wigner-Seitz cell in-radius).\n",
+		die("Border width %lg bohrs must be less than %lg bohrs (Wigner-Seitz cell in-radius/sqrt(2)).\n",
 			params.borderWidth, maxBorderWidth);
-	double sigmaBorder = 0.1 * params.borderWidth;
+	double sigmaBorder = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
 	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
 
 	//Create kernel description:
