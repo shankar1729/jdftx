@@ -68,6 +68,15 @@ public:
 	~SpeciesInfo();
 	void setup(const Everything&);
 	void print(FILE* fp) const;
+	
+	enum PseudopotentialFormat
+	{	Pot, //!< Old DFT++ format (.pot files)
+		Cpi, //!< FHI98 format (.cpi files)
+		Fhi, //!< FHI format with ABINIT header (.fhi files)
+		Uspp //!< USPP format ultrasoft pseudopotential
+	};
+	//! Returns the pseudopotential format
+	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
 	//! Return non-local energy for this species and quantum number q an doptionally accumulate
 	//! electronic gradient in HCq (if non-null) and ionic gradient in forces (if non-null)
@@ -130,13 +139,7 @@ private:
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	
-	enum PseudopotentialFormat
-	{	Pot, //!< Old DFT++ format (.pot files)
-		Cpi, //!< FHI98 format (.cpi files)
-		Fhi, //!< FHI format with ABINIT header (.fhi files)
-		Uspp //!< USPP format ultrasoft pseudopotential
-	}
-	pspFormat;
+	PseudopotentialFormat pspFormat;
 	string potfilename, pulayfilename;
 	int lLocCpi; //!< local channel l for CPI files (Default: -1 => last channel in file)
 	int recStartLen, recStopLen; //!< record marker lengths for fortran binary sequential file format (for uspp)

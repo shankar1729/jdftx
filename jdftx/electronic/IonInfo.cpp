@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/ExCorr.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/VanDerWaals.h>
 #include <cstdio>
 #include <cmath>
 #include <core/Units.h>
@@ -235,7 +236,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	forces += forcesNL;
 	if(shouldPrintForceComponents)
 		forcesNL.print(*e, globalLog, "forceNL");
-	
+		
 	return relevantFreeEnergy(*e);
 }
 
@@ -265,6 +266,7 @@ void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, c
 
 void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 {
+	
 	//Obtain the list of atomic positions and charges:
 	std::vector<Atom> atoms;
 	for(auto sp: species)
@@ -273,7 +275,7 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
 	double Eewald = e->coulomb->energyAndGrad(atoms);
 	//Compute optional pair-potential terms:
-	double EvdW = 0.; //TODO: call vanDerWaals energy+force calculator here
+	double EvdW = e->vanDerWaals ? e->vanDerWaals->VDWEnergyAndGrad(atoms, e->exCorr.getName()) : 0.; //vanDerWaals energy+force
 	//Store energies and/or forces if requested:
 	if(ener)
 	{	ener->Eewald = Eewald;
@@ -285,4 +287,5 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
 				(*forces)[sp][at] = (atom++)->force;
 	}
+	
 }

@@ -59,6 +59,8 @@ public:
 	
 	CoulombParams coulombParams; //!< Coulomb truncation parameters
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
+
+	std::shared_ptr<VanDerWaals> vanDerWaals; //! Pair potential for vdw correction
 	
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();

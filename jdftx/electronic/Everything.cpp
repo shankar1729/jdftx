@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
+#include <electronic/VanDerWaals.h>
 #include <core/LatticeUtils.h>
 
 void Everything::setup()
@@ -83,6 +84,10 @@ void Everything::setup()
 	if(coulombParams.omegaSet.size())
 		exx = std::make_shared<ExactExchange>(*this);
 
+	//Setup VanDerWaals corrections
+	if(vanDerWaals)
+		vanDerWaals->setup(*this);
+	
 	//Setup wavefunctions, densities, fluid, output module etc:
 	iInfo.update(ener); //needs to happen before eVars setup for LCAO
 	eVars.setup(*this);
@@ -98,7 +103,7 @@ void Everything::setup()
 	elecMinParams.fpLog = globalLog;
 	elecMinParams.linePrefix = "ElecMinimize: ";
 	elecMinParams.energyLabel = relevantFreeEnergyName(*this);
-
+	
 	//Setup ionic minimization parameters:
 	ionicMinParams.nDim = 0;
 	for(auto sp: iInfo.species)

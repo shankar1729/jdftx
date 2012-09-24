@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/scalar.h>
 #include <core/Util.h>
 
+class VanDerWaals;     // the pair-potential van der waals corrections
 class matrix;			// general purpose matrix.
 class diagMatrix; 		// real diagonal matrix
 class ColumnBundle;	// stores wavefunctions
