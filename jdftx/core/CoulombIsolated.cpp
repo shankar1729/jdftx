@@ -92,7 +92,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombParams& par
 	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, isTruncated, sigmaBorders);
 	
 	if(!kernelDesc.loadKernel(Vc.data, params.filename)) //Try reading the kernel
-	{	kernelDesc.computeIsolatedKernel(Vc.data, ws); //Compute the kernel
+	{	kernelDesc.computeKernel(Vc.data, ws); //Compute the kernel
 		kernelDesc.saveKernel(Vc.data, params.filename); //Save kernel if requested
 	}
 	Vc.set();

@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/matrix3.h>
 #include <core/Bspline.h>
+#include <gsl/gsl_integration.h>
 
 //! Periodic coulomb interaction (4 pi/G^2)
 struct CoulombPeriodic_calc
@@ -70,6 +71,24 @@ __hostanddev__ double erf_by_x(double x)
 	if(xSq<1e-6) return (1./sqrt(M_PI))*(2. - xSq*(2./3 + 0.2*xSq));
 	else return erf(x)/x;
 }
+
+
+
+//--------------- Special function for cylinder mode ------------
+//                 (implemented in CoulombWire.cpp)
+//! Compute Cbar_k^sigma - the gaussian convolved cylindrical coulomb kernel - by numerical quadrature
+struct Cbar
+{	Cbar();
+	~Cbar();
+	double operator()(double k, double sigma, double rho); //!< Compute Cbar_k^sigma(rho)
+private:
+	static const size_t maxIntervals = 1000; //!< Size of integration workspace
+	gsl_integration_workspace* iWS; //!< Integration workspace
+	static double integrandSmallRho(double t, void* params); //!< Integrand for rho < sigma
+	static double integrandLargeRho(double t, void* params); //!< Integrand for rho > sigma
+};
+
+
 
 //---------------------- Exchange Kernels --------------------
 

@@ -48,10 +48,16 @@ struct CoulombKernelDesc
 	//! data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order)
 	bool loadKernel(double* data, string filename) const;
 	
-	//! Compute the kernel in the fully isolated case (all entries of isTruncated = true)
-	//! data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order)
-	//! ws is the Wigner-Seitz cell corresponding to lattice vectors R
-	void computeIsolatedKernel(double* data, const WignerSeitz& ws) const;
+	//! Compute the described kernel.
+	//! data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order).
+	//! ws is the Wigner-Seitz cell corresponding to lattice vectors R.
+	//! Supported modes include fully truncated and one direction periodic (Wire geometry).
+	//! The fully truncated geometries can have one sigmaBorder = 0,
+	//! if that direction is orthogonal to the other two.
+	//! Additionally, a finite cylinder mode is supported as well,
+	//! selected by negative sigmaBorders in the transverse directions,
+	//! which is used for the exchange kernel with cylinder truncation.
+	void computeKernel(double* data, const WignerSeitz& ws) const;
 	
 	static const double nSigmasPerWidth; //!< number of gaussian widths within border width
 	
@@ -61,10 +67,9 @@ struct CoulombKernelDesc
 	
 private:
 	std::vector<matrix3<int>> sym; //!< symmetry matrices
-	//Various indiviudally optimized cases of computeIsolatedKernel
+	//Various indiviudally optimized cases of computeKernel:
 	void computeNonOrtho(double* data, const WignerSeitz& ws) const; //!< No lattice direction orthogonal to other two
 	void computeRightPrism(double* data, const WignerSeitz& ws) const; //!< 1 lattice direction orthogonal to other 2
-	void computeCylinder(double* data, const WignerSeitz& ws) const; //!< Capped cylinder (for exchange in Cylindrical truncation)
 };
 
 #endif // JDFTX_CORE_COULOMBKERNEL_H

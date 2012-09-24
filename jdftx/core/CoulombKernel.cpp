@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LoopMacros.h>
 #include <core/Util.h>
 #include <core/Thread.h>
-#include <gsl/gsl_integration.h>
 
 const double CoulombKernelDesc::nSigmasPerWidth = 10.;
 
@@ -211,19 +210,12 @@ bool CoulombKernelDesc::loadKernel(double* data, string filename) const
 }
 
 
-void CoulombKernelDesc::computeIsolatedKernel(double* data, const WignerSeitz& ws) const
-{	//Make sure all directions are truncated:
-	for(int k=0; k<3; k++) assert(isTruncated[k]);
-	//Count number of orthogonal pairs of directions:
+void CoulombKernelDesc::computeKernel(double* data, const WignerSeitz& ws) const
+{	//Count number of orthogonal pairs of directions:
 	int nOrtho = 0;
 	for(int k=0; k<3; k++)
 		if(isOrthogonal(R.column(k), R.column((k+1)%2)))
 			nOrtho++;
-	//Chekc for speical case of cylinder (signaled by a negative borderSigma)
-	for(int k=0; k<3; k++)
-		if(sigmaBorder[k] < 0.)
-		{	computeCylinder(data, ws); return;
-		}
 	//Call appropriate specialized routine:
 	if(nOrtho<2) { computeNonOrtho(data, ws); return; }
 	else { computeRightPrism(data, ws); return; }
@@ -319,6 +311,7 @@ namespace CoulombNonOrtho
 
 void CoulombKernelDesc::computeNonOrtho(double* data, const WignerSeitz& ws) const
 {
+	for(int k=0; k<3; k++) assert(isTruncated[k]); //Make sure all directions are truncated
 	assert(sigmaBorder[0] == sigmaBorder[1]);
 	assert(sigmaBorder[0] == sigmaBorder[2]);
 	double borderWidth = sigmaBorder[0] * nSigmasPerWidth;
@@ -327,7 +320,7 @@ void CoulombKernelDesc::computeNonOrtho(double* data, const WignerSeitz& ws) con
 	
 	//Set up dense integration grids:
 	logPrintf("Setting up FFT grids: ");
-	double Gnyq = 10./sigmaBorder[0]; //lower bound on Nyquist frequency
+	double Gnyq = nSigmasPerWidth/sigmaBorder[0]; //lower bound on Nyquist frequency
 	vector3<int> Sdense; //dense fft sample count
 	matrix3<> Rpad; vector3<int> Spad; //padded lattice vectors and sample count
 	for(int k=0; k<3; k++)
@@ -406,72 +399,91 @@ void CoulombKernelDesc::computeNonOrtho(double* data, const WignerSeitz& ws) con
 	logPrintf("Done.\n");
 }
 
-
-
 //--------- Right-prism geometry: at least one lattice vector orthogonal to other two ---------
+
+//1D fourier transform of sharply truncated erf/r:
+struct TruncatedErfTilde
+{
+	TruncatedErfTilde(double k, double sigma, double omega, double hlfL)
+	: aPot(sqrt(0.5)/sigma), omega(omega), absTol(1e-13), relTol(1e-12*std::max(0.1,k*hlfL))
+	{	iWS = gsl_integration_workspace_alloc(nBisections);
+		qawoTable = gsl_integration_qawo_table_alloc(k, hlfL, GSL_INTEG_COSINE, nBisections);
+	}
+	~TruncatedErfTilde()
+	{	gsl_integration_qawo_table_free(qawoTable);
+		gsl_integration_workspace_free(iWS);
+	}
+	double operator()(double rho)
+	{	double params[3] = { rho, aPot, omega }, result, err;
+		gsl_function f = { &integrand, params };
+		gsl_integration_qawo(&f, 0., absTol, relTol, nBisections, iWS, qawoTable, &result, &err);
+		return 2. * result; //factor of 2 for symmetric z<0
+	}
+private:
+	const double aPot, omega, absTol, relTol;
+	static const int nBisections = 50;
+	gsl_integration_workspace* iWS; //integration workspace
+	gsl_integration_qawo_table* qawoTable; //integration table for oscillatory integrand
+	
+	static double integrand(double z, void* params)
+	{	const double* p = (const double*)params;
+		const double& rho     = p[0]; //distance from axis
+		const double& aPot    = p[1]; //sqrt(0.5)/sigma
+		const double& omega   = p[2]; //erf-screening parameter in potential (0 for unscreened)
+		double r = hypot(z, rho);
+		return screenedPotential(r, aPot, omega);
+	}
+};
 
 //Threaded computation of kernel for RightPrism geometry
 struct CoulombRightPrism
-{	//Data arrays:
+{	
+	//Data arrays:
 	complex* padArr; double* padRealArr; //fft array on padded grid
 	complex* denseArr; double* denseRealArr; //fft array on dense (unpadded) grid
 	double* Vc; //output kernel (3D fftw c2r layout)
 	fftw_plan fftPlanC2R, fftPlanR2C;
+	const double* radialPot; double drho; int nSamples; //Radial potential look-up table
+	
 	//Geometry:
 	int iDir, jDir, kDir;
 	vector3<int> S, Spad, Sdense;
 	matrix3<> Rplanar, RpadPlanar, GGT;
 	std::vector<Simplex<2>>* simplexArr; //2D Wigner-Seitz cell simplicial tesselation
 	const WignerSeitz *wsDense, *wsPad; //Wigner-Seitz cells
-	double sigma, omega; vector3<> sigmaBorder;
+	double sigma, omega; vector3<> sigmaBorder; vector3<bool> isTruncated;
 	
-	//!Integrand for axial fourier transform:
-	static double zIntegrand(double z, void* params)
-	{	const double* p = (const double*)params;
-		const double& rho     = p[0]; //distance from axis
-		const double& aPot    = p[1]; //sqrt(0.5)/sigma
-		const double& omega   = p[2]; //erf-screening parameter in potential (0 for unscreened)
-		const double& hlfL    = p[3]; //half length of axial direction (i.e. iDir'th one)
-		const double& aBorder = p[4]; //sqrt(0.5)/sigmaBorder[iDir] or 0 if sharp border
-		double r = hypot(z, rho);
-		double pot = screenedPotential(r, aPot, omega);
-		double theta = aBorder ? erfc(aBorder*(z-hlfL)) : 2.; //for sharp border, theta obtained from domain of integration
-		return pot * theta;
-	}
 	
 	void computePlane(int iPlane)
 	{
 		//Initialize look-up table (in rho) for the axial Fourier transform of truncated potential:
-		std::vector<double> coeff; double drhoInv;
-		{	double hlfL = 0.5 * Rplanar.column(iDir).length();
-			double kz = iPlane * (M_PI/hlfL);
-			double aPot = sqrt(0.5) / sigma;
-			double aBorder = sigmaBorder[iDir] ? sqrt(0.5)/sigmaBorder[iDir] : 0.;
-			double hlfLpad = hlfL + sigmaBorder[iDir] * CoulombKernelDesc::nSigmasPerWidth;
-			double params[5] = { 0., aPot, omega, hlfL, aBorder };
-			//Initialize numerical integrator:
-			const int nBisections = 50;
-			gsl_integration_workspace* iWS = gsl_integration_workspace_alloc(nBisections);
-			gsl_integration_qawo_table* qawoTable = gsl_integration_qawo_table_alloc(kz, hlfLpad, GSL_INTEG_COSINE, nBisections);
-			gsl_function f = { &zIntegrand, params };
-			//Initialize sample values:
-			double drho = 0.03 * sigma;
-			double rhoMax = wsPad->circumRadius(iDir);
-			int nSamples = ceil(rhoMax/drho) + 10;
-			std::vector<double> samples(nSamples);
-			for(int i=0; i<nSamples; i++)
-			{	params[0] = i*drho; double err;
-				gsl_integration_qawo(&f, 0., 1e-13, 1e-12*std::max(0.1,kz*hlfLpad), nBisections, iWS, qawoTable, &samples[i], &err);
+		std::vector<double> coeff; double drhoInv = 1./drho; bool logSpline = false;
+		{	std::vector<double> samples(nSamples);
+			if(radialPot) //smooth truncation along iDir
+				samples.assign(radialPot+iPlane*nSamples, radialPot+(iPlane+1)*nSamples);
+			else //sharp truncation or no truncation
+			{	double hlfL = 0.5*Rplanar.column(iDir).length();
+				double kz = iPlane * (M_PI/hlfL);
+				if(isTruncated[iDir]) //sharp truncation
+				{	TruncatedErfTilde erfTilde(kz, sigma, omega, hlfL);
+					for(int i=0; i<nSamples; i++)
+						samples[i] = erfTilde(i*drho);
+				}
+				else //no truncation
+				{	logSpline = (kz != 0.); //Logarithmic spline more stable for large kz
+					Cbar cbar;
+					for(int i=0; i<nSamples; i++)
+					{	double s = cbar(kz, sigma, i*drho);
+						samples[i] = logSpline ? log(s) : s;
+					}
+				}
 			}
-			gsl_integration_qawo_table_free(qawoTable);
-			gsl_integration_workspace_free(iWS);
 			//Initialize coefficients:
 			coeff = QuinticSpline::getCoeff(samples);
-			drhoInv = 1./drho;
 		}
 		
 		//Compute smoothed WignerSeitz-shaped theta function in Fourier space (non-orthorhombic case):
-		if(padArr)
+		if(padArr) //exclude orthorhombic case
 		{	const double invApad = RpadPlanar.column(iDir).length() / fabs(det(RpadPlanar));
 			const double sigmaBorderSq = pow(sigmaBorder[jDir], 2);
 			assert(sigmaBorder[jDir] == sigmaBorder[kDir]);
@@ -495,48 +507,51 @@ struct CoulombRightPrism
 		}
 		
 		//Multiply by 1D fourier transform of potential in real-space and fold into dense array:
-		int pitchPad = 2*(1+Spad[kDir]/2);
-		int pitchDense = 2*(1+Sdense[kDir]/2);
-		vector3<> invSpad, invSdense;
-		for(int k=0; k<3; k++)
-		{	invSpad[k] = 1./Spad[k];
-			invSdense[k] = 1./Sdense[k];
-		}
-		matrix3<> hPad; //mesh offset vectors
-		vector3<> haBorder; //sqrt(0.5)/sigmaBorder in mesh coordinates
-		for(int k=0; k<3; k++)
-		{	hPad.set_col(k, RpadPlanar.column(k) / Spad[k]);
-			haBorder[k] = hPad.column(k).length() * sqrt(0.5)/sigmaBorder[k];
-		}
-		#define SmoothTheta1D(k) 0.5*erfc(haBorder[k] * (abs(ivPad[k])-Sdense[k]/2))
-		matrix3<> hThPad = (~hPad) * hPad; //metric in mesh coordinates
-		double dA = fabs(det(Rplanar)) / (Rplanar.column(iDir).length() * Sdense[jDir] * Sdense[kDir]);
-		vector3<int> iv(0,0,0);
-		memset(denseArr, 0, sizeof(complex)*Sdense[jDir]*(1+Sdense[kDir]/2));
-		for(iv[jDir]=0; iv[jDir]<Spad[jDir]; iv[jDir]++)
-			for(iv[kDir]=0; iv[kDir]<Spad[kDir]; iv[kDir]++)
-			{	//Compute index mappings:
-				vector3<int> ivPad = wsPad->restrict(iv, Spad, invSpad); //position in mesh coordinates within padded WignerSeitz cell
-				vector3<int> ivDense = wsDense->restrict(ivPad, Sdense, invSdense); //position in mesh coordinates within orig WS cell
-				for(int k=0; k<3; k++)
-				{	ivDense[k] = ivDense[k] % Sdense[k];
-					if(ivDense[k]<0) ivDense[k] += Sdense[k];
-				}
-				int iPad = iv[kDir] + pitchPad * iv[jDir];
-				int iDense = ivDense[kDir] + pitchDense * ivDense[jDir];
-				//Accumulate theta multiplied by potential to the mapped position:
-				double rho = sqrt(hThPad.metric_length_squared(ivPad)); //distance of minmal periodic image from origin
-				double pot = QuinticSpline::value(coeff.data(), drhoInv*rho); //1D fourier transform of 1D-truncated potential
-				double theta = padArr //2D theta function
-					? padRealArr[iPad] //From simplices in fourier space
-					: SmoothTheta1D(jDir) * SmoothTheta1D(kDir); //Analytical (orthorhombic case)
-				denseRealArr[iDense] += dA * pot * theta;
+		if(denseArr) //exclude capped-cylinder case
+		{	int pitchPad = 2*(1+Spad[kDir]/2);
+			int pitchDense = 2*(1+Sdense[kDir]/2);
+			vector3<> invSpad, invSdense;
+			for(int k=0; k<3; k++)
+			{	invSpad[k] = 1./Spad[k];
+				invSdense[k] = 1./Sdense[k];
 			}
-		#undef SmoothTheta1D
-		fftw_execute_dft_r2c(fftPlanR2C, denseRealArr, (fftw_complex*)denseArr);
+			matrix3<> hPad; //mesh offset vectors
+			vector3<> haBorder; //sqrt(0.5)/sigmaBorder in mesh coordinates
+			for(int k=0; k<3; k++)
+			{	hPad.set_col(k, RpadPlanar.column(k) / Spad[k]);
+				haBorder[k] = hPad.column(k).length() * sqrt(0.5)/sigmaBorder[k];
+			}
+			#define SmoothTheta1D(k) 0.5*erfc(haBorder[k] * (abs(ivPad[k])-Sdense[k]/2))
+			matrix3<> hThPad = (~hPad) * hPad; //metric in mesh coordinates
+			double dA = fabs(det(Rplanar)) / (Rplanar.column(iDir).length() * Sdense[jDir] * Sdense[kDir]);
+			vector3<int> iv(0,0,0);
+			memset(denseArr, 0, sizeof(complex)*Sdense[jDir]*(1+Sdense[kDir]/2));
+			for(iv[jDir]=0; iv[jDir]<Spad[jDir]; iv[jDir]++)
+				for(iv[kDir]=0; iv[kDir]<Spad[kDir]; iv[kDir]++)
+				{	//Compute index mappings:
+					vector3<int> ivPad = wsPad->restrict(iv, Spad, invSpad); //position in mesh coordinates within padded WignerSeitz cell
+					vector3<int> ivDense = wsDense->restrict(ivPad, Sdense, invSdense); //position in mesh coordinates within orig WS cell
+					for(int k=0; k<3; k++)
+					{	ivDense[k] = ivDense[k] % Sdense[k];
+						if(ivDense[k]<0) ivDense[k] += Sdense[k];
+					}
+					int iPad = iv[kDir] + pitchPad * iv[jDir];
+					int iDense = ivDense[kDir] + pitchDense * ivDense[jDir];
+					//Accumulate theta multiplied by potential to the mapped position:
+					double rho = sqrt(hThPad.metric_length_squared(ivPad)); //distance of minmal periodic image from origin
+					double splineVal = QuinticSpline::value(coeff.data(), drhoInv*rho); //evaluate radial spline
+					double pot = logSpline ? exp(splineVal) : splineVal; //1D fourier transform of 1D-truncated potential
+					double theta = padArr //2D theta function
+						? padRealArr[iPad] //From simplices in fourier space
+						: SmoothTheta1D(jDir) * SmoothTheta1D(kDir); //Analytical (orthorhombic case)
+					denseRealArr[iDense] += dA * pot * theta;
+				}
+			#undef SmoothTheta1D
+			fftw_execute_dft_r2c(fftPlanR2C, denseRealArr, (fftw_complex*)denseArr);
+		}
 		
 		//Add analytic short-ranged parts in fourier space (and down-sample to final resolution):
-		pitchDense = 1+Sdense[kDir]/2;
+		int pitchDense = 1+Sdense[kDir]/2;
 		vector3<int> pitch;
 		pitch[2] = 1;
 		pitch[1] = pitch[2] * (1 + S[2]/2);
@@ -545,7 +560,8 @@ struct CoulombRightPrism
 		for(iG[jDir]=1-S[jDir]/2; iG[jDir]<=S[jDir]/2; iG[jDir]++)
 			for(iG[kDir]=0; iG[kDir]<=S[kDir]/2; iG[kDir]++)
 			{	//Collect the data from the dense grid transform:
-				double curV = denseArr[iG[kDir] + pitchDense*(iG[jDir]<0 ? iG[jDir]+Sdense[jDir] : iG[jDir])].real();
+				int iDense = iG[kDir] + pitchDense*(iG[jDir]<0 ? iG[jDir]+Sdense[jDir] : iG[jDir]);
+				double curV = denseArr[iDense].real();
 				//Add the analytical short-ranged part:
 				double Gsq = GGT.metric_length_squared(iG);
 				curV += (4*M_PI) * (Gsq ? (1.-exp(-0.5*sigma*sigma*Gsq))/Gsq : 0.5*sigma*sigma);
@@ -580,57 +596,103 @@ struct CoulombRightPrism
 };
 
 void CoulombKernelDesc::computeRightPrism(double* data, const WignerSeitz& ws) const
-{	
-	//Pick iDir to be direction orthogonal to ther two with smallest sigmaBorder:
-	int iDir = -1; double sigmaAxis = DBL_MAX;
+{	//This function has 3 distinct modes which share common pieces:
+	// * 2D-truncated wire geometry
+	// * Capped cylinder geometry
+	// * 3D truncated geometry with at least one axis orthogonal
+	//   to the other two, which in turn has two sub-modes:
+	//    - Orthorhombic (all three axes orthogonal)
+	//    - Hexagonal right-prism (general 2D wigner-sitz cell is a hexagon)
+
+	//Determine mode and pick axis:
+	int iDir = -1; bool cylinderMode = false;
+	double sigmaBorderMin = *std::min_element(&sigmaBorder[0], &sigmaBorder[0]+3);
+	double sigmaBorderMax = *std::max_element(&sigmaBorder[0], &sigmaBorder[0]+3);
+	//--- Check for wire geometry:
 	for(int k=0; k<3; k++)
-		if( isOrthogonal(R.column(k), R.column((k+1)%3))
-		&&  isOrthogonal(R.column(k), R.column((k+2)%3))
-		&&  (sigmaBorder[k] < sigmaAxis) )
-		{	iDir = k;
-			sigmaAxis = sigmaBorder[k];
+		if(!isTruncated[k])
+		{	assert(iDir < 0); //there should be at most one untruncated direction
+			assert(!omega); //not implemented for unregularized screened-exchange
+			iDir = k; //axis is along untruncated direction
 		}
-	assert(iDir >= 0);
-	assert(sigmaAxis >= 0);
+	//--- Check for capped cylinder:
+	if(iDir<0 && sigmaBorderMin<0.)
+	{	for(int k=0; k<3; k++)
+			if(sigmaBorder[k] >= 0.)
+				iDir = k; //axis is along direction with non-negative sigma
+		assert(iDir >= 0);
+		cylinderMode = true;
+		die("Cylinder geometry exchange-regularization implementation incomplete.\n");
+	}
+	//--- Check for finite prism:
+	if(iDir<0)
+	{	//Pick iDir to be direction orthogonal to ther two with smallest sigmaBorder:
+		double sigmaAxis = DBL_MAX;
+		for(int k=0; k<3; k++)
+			if( isOrthogonal(R.column(k), R.column((k+1)%3))
+			&&  isOrthogonal(R.column(k), R.column((k+2)%3))
+			&&  (sigmaBorder[k] < sigmaAxis) )
+			{	iDir = k;
+				sigmaAxis = sigmaBorder[k];
+			}
+		assert(iDir >= 0);
+		assert(sigmaAxis >= 0);
+	}
 	
 	//Check transverse geometry:
 	int jDir = (iDir+1)%3;
 	int kDir = (iDir+2)%3;
+	assert(isOrthogonal(R.column(iDir), R.column(jDir)));
+	assert(isOrthogonal(R.column(iDir), R.column(kDir)));
 	double sigmaPlaneMin = std::min(sigmaBorder[jDir], sigmaBorder[kDir]);
 	assert(sigmaPlaneMin > 0.); //this determines Nyquist frequency for planar FFT
 	bool jkOrtho = isOrthogonal(R.column(jDir), R.column(kDir));
-	if(!jkOrtho) assert(sigmaBorder[jDir] == sigmaBorder[kDir]);
-	double borderWidth = sigmaPlaneMin * nSigmasPerWidth;
-	double sigmaBorderMax = *std::max_element(&sigmaBorder[0], &sigmaBorder[0]+3);
+	if(!jkOrtho || cylinderMode) assert(sigmaBorder[jDir] == sigmaBorder[kDir]);
+	if(cylinderMode) assert(-sigmaBorder[jDir] <= ws.inRadius(iDir));
 	double sigma = getMaxSigma_overlapCheck(ws.inRadius(), sigmaBorderMax);
 	
+	//Print mode-dependent startup message:
 	string dirName(3,'0'); dirName[iDir]='1';
-	if(jkOrtho)
-		logPrintf("Using Orthorhombic geometry algorithm (%s-axis x erfc x erfc)\n", dirName.c_str());
+	if(cylinderMode)
+		logPrintf("Computing kernel truncated on finite cylinder (%s-axis x %lg bohrs radius)\n",
+			dirName.c_str(), -sigmaBorder[jDir]);
 	else
-		logPrintf("Using Right-Prism geometry algorithm (%s-axis x 2D simplices)\n", dirName.c_str());
+	{	string axisMode = isTruncated[iDir] ? "truncated" : "infinite";
+		string geomName = jkOrtho ? "Orthorhombic" : "Right-Prism";
+		string geomDesc = jkOrtho ? "erfc x erfc" : "2D simplices";
+		logPrintf("Using %s geometry algorithm (%s %s-axis x %s)\n",
+			geomName.c_str(), axisMode.c_str(), dirName.c_str(), geomDesc.c_str());
+	}
 	
 	//Set up dense integration grids:
-	logPrintf("Setting up FFT grids: ");
-	double Gnyq = 10./sigmaPlaneMin; //lower bound on Nyquist frequency
 	vector3<int> Sdense; //dense fft sample count
 	matrix3<> Rpad; vector3<int> Spad; //padded lattice vectors and sample count
-	for(int k=0; k<3; k++)
-		if(k == iDir)
-		{	Sdense[k] = S[k];
-			Spad[k] = S[k];
-			Rpad.set_col(k, R.column(k));
-		}
-		else
-		{	Sdense[k] = std::max(S[k], 2*int(ceil(Gnyq * R.column(k).length() / (2*M_PI))));
-			while(!fftSuitable(Sdense[k])) Sdense[k]+=2; //pick the next even number suitable for FFT
-			//Pad the super cell by border width:
-			double borderWidth = sigmaBorder[k] * nSigmasPerWidth;
-			Spad[k] = Sdense[k] + 2*ceil(Sdense[k]*borderWidth/R.column(k).length());
-			while(!fftSuitable(Spad[k])) Spad[k]+=2;
-			Rpad.set_col(k, R.column(k) * (Spad[k]*1./Sdense[k]));
-		}
-	logPrintf("%d x %d, and %d x %d padded.\n", Sdense[jDir], Sdense[kDir], Spad[jDir], Spad[kDir]);
+	if(cylinderMode) 
+	{	//Don't need any 2D/3D grids besides the original one:
+		Sdense = S;
+		Spad = S;
+		Rpad = R;
+	}
+	else
+	{	logPrintf("Setting up FFT grids: ");
+		double Gnyq = nSigmasPerWidth/sigmaPlaneMin; //lower bound on Nyquist frequency
+		for(int k=0; k<3; k++)
+			if(k == iDir)
+			{	Sdense[k] = S[k];
+				Spad[k] = S[k];
+				Rpad.set_col(k, R.column(k));
+			}
+			else
+			{	Sdense[k] = std::max(S[k], 2*int(ceil(Gnyq * R.column(k).length() / (2*M_PI))));
+				while(!fftSuitable(Sdense[k])) Sdense[k]+=2; //pick the next even number suitable for FFT
+				//Pad the super cell by border width:
+				double borderWidth = sigmaBorder[k] * nSigmasPerWidth;
+				Spad[k] = Sdense[k] + 2*ceil(Sdense[k]*borderWidth/R.column(k).length());
+				while(!fftSuitable(Spad[k])) Spad[k]+=2;
+				Rpad.set_col(k, R.column(k) * (Spad[k]*1./Sdense[k]));
+			}
+		logPrintf("%d x %d, and %d x %d padded.\n", Sdense[jDir], Sdense[kDir], Spad[jDir], Spad[kDir]);
+	}
 	int nGdense = Sdense[jDir] * (1+Sdense[kDir]/2);
 	int nGpad = Spad[jDir] * (1+Spad[kDir]/2); //number of symmetry reduced planar reciprocal lattice vectors
 	int nrPad = Spad[jDir] * Spad[kDir]; //number of planar real space points
@@ -638,89 +700,127 @@ void CoulombKernelDesc::computeRightPrism(double* data, const WignerSeitz& ws) c
 	matrix3<> GGT = G * (~G);
 	
 	//Construct padded Wigner-Seitz cell, and check border:
-	logPrintf("For padded lattice, "); WignerSeitz wsPad(Rpad);
-	std::vector<vector3<>> vArr = ws.getVertices();
-	matrix3<> invRpad = inv(Rpad);
-	for(vector3<> v: vArr)
-		if(wsPad.boundaryDistance(wsPad.restrict(invRpad*v), iDir) < 0.9*borderWidth)
-			die("\nPadded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
-				"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
-				"if different from the input lattice vectors, are printed during Symmetry setup.\n");
-	
+	WignerSeitz* wsPad = 0;
+	if(!cylinderMode)
+	{	logPrintf("For padded lattice, "); wsPad = new WignerSeitz(Rpad);
+		double borderWidthMin = sigmaPlaneMin * nSigmasPerWidth;
+		std::vector<vector3<>> vArr = ws.getVertices();
+		matrix3<> invRpad = inv(Rpad);
+		for(vector3<> v: vArr)
+			if(wsPad->boundaryDistance(wsPad->restrict(invRpad*v), iDir) < 0.9*borderWidthMin)
+				die("\nPadded Wigner-Seitz cell does not fit inside Wigner-Seitz cell of padded lattice.\n"
+					"This can happen for reducible lattice vectors; HINT: the reduced lattice vectors,\n"
+					"if different from the input lattice vectors, are printed during Symmetry setup.\n");
+	}
 	//Plan Fourier transforms:
-	assert(nrPad > 0); //overflow check
-	complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
-	#define INSUFFICIENT_MEMORY_ERROR \
-		die("Insufficient memory (will need %.1fGB). Hint: try increasing border width.\n", \
-			(jkOrtho ? 0 : nGpad + nGdense)*1e-9*nProcsAvailable*sizeof(complex));
-	if(!tempArr) INSUFFICIENT_MEMORY_ERROR
-	logPrintf("Planning fourier transforms ... "); logFlush();
-	fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
-	fftw_plan fftPlanC2R = fftw_plan_dft_c2r_2d(Spad[jDir], Spad[kDir], (fftw_complex*)tempArr, (double*)tempArr, FFTW_ESTIMATE);
-	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
-	fftw_free(tempArr);
-	logPrintf("Done.\n");
+	fftw_plan fftPlanC2R = 0, fftPlanR2C = 0;
+	if(!cylinderMode)
+	{	assert(nrPad > 0); //overflow check
+		complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGpad);
+		#define INSUFFICIENT_MEMORY_ERROR \
+			die("Insufficient memory (will need %.1fGB). Hint: try increasing border width.\n", \
+				((jkOrtho ? 0 : nGpad) + nGdense)*1e-9*nProcsAvailable*sizeof(complex));
+		if(!tempArr) INSUFFICIENT_MEMORY_ERROR
+		logPrintf("Planning fourier transforms ... "); logFlush();
+		fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
+		fftPlanC2R = fftw_plan_dft_c2r_2d(Spad[jDir], Spad[kDir], (fftw_complex*)tempArr, (double*)tempArr, FFTW_ESTIMATE);
+		fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
+		fftw_free(tempArr);
+		logPrintf("Done.\n");
+	}
+
+	//Compute radial look-up table from a 1D FFT if iDir is truncated smoothly:
+	double drho = 0.03 * sigma;
+	double rhoMax = cylinderMode ? -sigmaBorder[jDir] : wsPad->circumRadius(iDir);
+	int nSamples = ceil(rhoMax/drho) + 10;
+	double* radialPot = 0;
+	if(isTruncated[iDir] && sigmaBorder[iDir] > 0.)
+	{	radialPot = new double[nSamples * (1+S[iDir]/2)];
+		if(!radialPot) INSUFFICIENT_MEMORY_ERROR
+		//Setup a fine grid for z-integration:
+		double Gnyq = nSigmasPerWidth/std::min(sigma,sigmaBorder[iDir]);
+		double hlfL = 0.5 * R.column(iDir).length(); //half-length along axis
+		int nAxis = std::max(S[iDir]/2, int(ceil(Gnyq * hlfL / M_PI)));
+		while(!fftSuitable(2*nAxis)) nAxis++;
+		double hAxis = hlfL / nAxis;
+		int nPad = std::min(int(sigmaBorder[iDir]*nSigmasPerWidth/hAxis), nAxis);
+		//Plan FFT (reduces to Discrete Cosine Transform):
+		double* fftArr = (double*)fftw_malloc(sizeof(double)*(nAxis+1));
+		if(!fftArr) INSUFFICIENT_MEMORY_ERROR
+		fftw_plan fftPlanDCT1 = fftw_plan_r2r_1d(nAxis+1, fftArr, fftArr, FFTW_REDFT00, FFTW_ESTIMATE);
+		//1D FFT for each radial location:
+		double aPot = sqrt(0.5)/sigma;
+		double aBorder = sqrt(0.5)/sigmaBorder[iDir];
+		for(int iRho=0; iRho<nSamples; iRho++)
+		{	double rho = drho * iRho;
+			//Fill fftArr in real space:
+			for(int iz=0; iz<nAxis+nPad; iz++)
+			{	double z = iz * hAxis;
+				double r = hypot(z, rho);
+				double term = hAxis //sum -> integral
+					* screenedPotential(r, aPot, omega) //long-ranged part of potential (smooth)
+					* (0.5 * erfc(aBorder*(z-hlfL))); //smooth theta function for truncating iDir
+				if(iz<=nAxis) fftArr[iz] = term;
+				else fftArr[2*nAxis-iz] += term; //fold tail using periodicity
+			}
+			fftArr[nAxis] *= 2; //this sample gets half-weighted by the FFT routine
+			fftw_execute(fftPlanDCT1);
+			//Save 1D fourier transform to radialPot:
+			for(int iz=0; iz<=S[iDir]/2; iz++)
+				radialPot[iRho+iz*nSamples] = fftArr[iz];
+		}
+		//Cleanup:
+		fftw_destroy_plan(fftPlanDCT1);
+		fftw_free(fftArr);
+	}
 	
-	//Setup threads for initializing each plane perpendicular to truncated direction:
+	//Setup threads for initializing each plane perpendicular to axis:
 	logPrintf("Computing truncated kernel ... "); logFlush();
 	std::vector<CoulombRightPrism> crpArr(nProcsAvailable);
 	std::vector<Simplex<2>> simplexArr = ws.getSimplices(iDir);
 	for(CoulombRightPrism& c: crpArr)
 	{	//Allocate data arrays (padded array not needed for orthorhombic case):
-		c.padArr = jkOrtho ? 0 : (complex*)fftw_malloc(sizeof(complex)*nGpad);
-		c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
-		if(!c.denseArr) INSUFFICIENT_MEMORY_ERROR
-		#undef INSUFFICIENT_MEMORY_ERROR
+		if(cylinderMode)
+		{	c.padArr = c.denseArr = 0;
+		}
+		else
+		{	c.padArr = jkOrtho ? 0 : (complex*)fftw_malloc(sizeof(complex)*nGpad);
+			c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
+			if(!c.denseArr) INSUFFICIENT_MEMORY_ERROR
+			#undef INSUFFICIENT_MEMORY_ERROR
+		}
 		c.padRealArr = (double*)c.padArr;
 		c.denseRealArr = (double*)c.denseArr;
 		c.Vc = data;
 		c.fftPlanC2R = fftPlanC2R;
 		c.fftPlanR2C = fftPlanR2C;
+		c.radialPot = radialPot; c.drho = drho; c.nSamples = nSamples;
 		//Copy geometry definitions:
 		c.iDir = iDir; c.jDir = jDir; c.kDir = kDir;
 		c.S = S; c.Sdense = Sdense; c.Spad = Spad;
 		c.Rplanar = ws.getRplanar(iDir);
-		c.RpadPlanar = wsPad.getRplanar(iDir);
+		c.RpadPlanar = (wsPad ? wsPad->getRplanar(iDir) : c.Rplanar);
 		c.GGT = GGT;
 		c.simplexArr = &simplexArr;
-		c.wsDense = &ws; c.wsPad = &wsPad;
-		c.sigma = sigma; c.omega = omega; c.sigmaBorder = sigmaBorder;
+		c.wsDense = &ws; c.wsPad = wsPad;
+		c.sigma = sigma; c.omega = omega;
+		c.sigmaBorder = sigmaBorder; c.isTruncated = isTruncated;
 	}
 	
 	//Launch threads:
 	std::mutex mJobCount; int nPlanesDone = 0; //for job management
 	threadLaunch(CoulombRightPrism::thread, 0, crpArr.data(), 1+S[iDir]/2, &nPlanesDone, &mJobCount);
-	fftw_destroy_plan(fftPlanC2R);
-	fftw_destroy_plan(fftPlanR2C);
+	if(fftPlanC2R) fftw_destroy_plan(fftPlanC2R);
+	if(fftPlanR2C) fftw_destroy_plan(fftPlanR2C);
+	if(radialPot) delete[] radialPot;
+	if(wsPad) delete wsPad;
 	
 	//Cleanup threads:
 	for(CoulombRightPrism& c: crpArr)
-	{	if(!jkOrtho) fftw_free(c.padArr);
-		fftw_free(c.denseArr);
+	{	if(!cylinderMode)
+		{	if(!jkOrtho) fftw_free(c.padArr);
+			fftw_free(c.denseArr);
+		}
 	}
 	logPrintf("Done.\n");
 }
-
-
-
-//--------- Cylindrical geometry: truncation on a finite length cylinder  ---------
-void CoulombKernelDesc::computeCylinder(double* data, const WignerSeitz& ws) const
-{	
-	//Determine and verify geometry:
-	int iDir = -1;
-	for(int k=0; k<3; k++)
-		if(sigmaBorder[k] > 0.)
-			iDir = k;
-	assert(iDir >= 0);
-	int jDir = (iDir+1)%3;
-	int kDir = (iDir+2)%3;
-	double Rc = -sigmaBorder[jDir];
-	assert(Rc > 0.);
-	assert(Rc <= ws.inRadius(iDir));
-	assert(Rc == -sigmaBorder[kDir]);
-	assert(isOrthogonal(R.column(iDir), R.column(jDir)));
-	assert(isOrthogonal(R.column(iDir), R.column(kDir)));
-	
-	die("Wigner-Seitz exchange regularization for cylindrical truncation not yet implemented.\n");
-}
-
