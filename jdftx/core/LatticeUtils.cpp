@@ -161,19 +161,23 @@ Supercell::Supercell(const GridInfo& gInfo,
 	
 	//Check if kmesh forms a Bravais lattice:
 	kBasis = reduceLatticeVectors(kBasis);
-	kBasisInv = inv(kBasis);
+	matrix3<> kBasisInv = inv(kBasis);
 	//--- check that each kpoint is integral in above basis
+	#define kMeshErrorMsg \
+		"k-point mesh is not a Bravais lattice, which is required for exact-exchange.\n" \
+		"HINT: This might be caused by an off-Gamma k-point mesh (eg. Monkhorst-Pack)\n" \
+		"   with a folding incommensurate with the symmerties of the system. Switch to\n" \
+		"   Gamma-centered sampling or commensurate folding, or disable symmetries.\n"
 	for(vector3<> kpoint: kmesh)
 	{	vector3<> ik = kBasisInv * (kpoint-kmesh.front());
 		for(int k=0; k<3; k++)
 			if(fabs(ik[k] - round(ik[k])) > symmThreshold)
-				die("k-point mesh is not a Bravais lattice.\n"
-					"This is required for exact-exchange evaluation.\n");
+				die(kMeshErrorMsg);
 	}
 	//--- check that the k-mesh covers the Brillouin zone
 	if(fabs(fabs(det(kBasisInv)) - kmesh.size()) > kmesh.size() * symmThreshold)
-		die("k-point mesh is not a Bravais lattice.\n"
-			"This is required for exact-exchange evaluation.\n");
+		die(kMeshErrorMsg);
+	#undef kMeshErrorMsg
 	
 	//Compute the supercell matrix:
 	matrix3<> superTemp = inv(gInfo.R) * reduceLatticeVectors(gInfo.R * ~kBasisInv);
@@ -181,8 +185,8 @@ Supercell::Supercell(const GridInfo& gInfo,
 		for(int j=0; j<3; j++)
 		{	super(i,j) = int(round(superTemp(i,j)));
 			if(fabs(superTemp(i,j) - super(i,j)) > symmThreshold)
-				die("k-mesh does not correspond to a commensurate (integer) super-cell.\n"
-					"This is required for exact-exchange evaluation.\n");
+				die("k-point mesh does not correspond to a commensurate (integer)\n"
+					"super-cell. This is required for exact-exchange evaluation.\n");
 		}
 	
 	//Pivot columns to get closest to identity:

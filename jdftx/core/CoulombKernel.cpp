@@ -24,6 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/Thread.h>
 
+//Number of gaussian sigma's to include in border width,
+//so as to make overlap negligible at working precision
 const double CoulombKernelDesc::nSigmasPerWidth = 10.;
 
 double CoulombKernelDesc::getMaxSigma(double L, double sigmaOther)
@@ -73,7 +75,7 @@ CoulombKernelDesc::CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 	}
 	
 	//Compute symmetries for kernel I/O compression:
-	std::vector<matrix3<int>> symLattice = getSymmetries(R); //symmetries of the Bravais lattice
+	std::vector<matrix3<int>> symLattice = ::getSymmetries(R); //symmetries of the Bravais lattice
 	for(const matrix3<int>& m: symLattice)
 	{	//Check if matrix connects directions whose symmetry is broken by truncation geometry
 		bool broken = false;
@@ -85,6 +87,11 @@ CoulombKernelDesc::CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 		if(!broken) sym.push_back(m);
 	}
 }
+
+std::vector<matrix3<int>> CoulombKernelDesc::getSymmetries() const
+{	return sym;
+}
+
 
 //! Loop over the symmetric images of a reciprocal lattice vector iG
 #define LOOP_symImagesG(code) \
@@ -210,15 +217,20 @@ bool CoulombKernelDesc::loadKernel(double* data, string filename) const
 }
 
 
-void CoulombKernelDesc::computeKernel(double* data, const WignerSeitz& ws) const
+void CoulombKernelDesc::computeKernel(double* data, const WignerSeitz& ws, string filename) const
 {	//Count number of orthogonal pairs of directions:
 	int nOrtho = 0;
 	for(int k=0; k<3; k++)
 		if(isOrthogonal(R.column(k), R.column((k+1)%2)))
 			nOrtho++;
+	//Try loading from file:
+	if(loadKernel(data, filename))
+		return; //successfully loaded
 	//Call appropriate specialized routine:
 	if(nOrtho<2) { computeNonOrtho(data, ws); return; }
 	else { computeRightPrism(data, ws); return; }
+	//Save kernel to file:
+	saveKernel(data, filename);
 }
 
 //! Compute erfc(omega r)/r - erfc(a r)/r

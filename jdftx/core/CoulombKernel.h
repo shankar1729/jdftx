@@ -39,6 +39,9 @@ struct CoulombKernelDesc
 	CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 		const vector3<bool> isTruncated, const vector3<> sigmaBorder, double omega=0.);
 	
+	//! Get symmetries of the kernel on the supercell:
+	std::vector<matrix3<int>> getSymmetries() const;
+	
 	//! Save kernel to file.
 	//! data must contain kernel in Fourier space in fftw c2r order (S[0]*S[1]*(1+S[2]/2) entries)
 	//! data will be symmetrized appropriately, irrespective of whether filename is null.
@@ -51,13 +54,16 @@ struct CoulombKernelDesc
 	//! Compute the described kernel.
 	//! data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order).
 	//! ws is the Wigner-Seitz cell corresponding to lattice vectors R.
-	//! Supported modes include fully truncated and one direction periodic (Wire geometry).
+	//! If filename is non-null, the kernel will be loaded if possible,
+	//!and computed and saved to that file if not.
+	//!      Supported modes include fully truncated (Isolated or Wigner-Seitz
+	//! truncated exchange kernel) and one direction periodic (Wire geometry).
 	//! The fully truncated geometries can have one sigmaBorder = 0,
 	//! if that direction is orthogonal to the other two.
 	//! Additionally, a finite cylinder mode is supported as well,
 	//! selected by negative sigmaBorders in the transverse directions,
 	//! which is used for the exchange kernel with cylinder truncation.
-	void computeKernel(double* data, const WignerSeitz& ws) const;
+	void computeKernel(double* data, const WignerSeitz& ws, string filename=string()) const;
 	
 	static const double nSigmasPerWidth; //!< number of gaussian widths within border width
 	

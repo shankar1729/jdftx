@@ -60,3 +60,28 @@ DECLARE_exchangeAnalytic_gpu(PeriodicScreened)
 DECLARE_exchangeAnalytic_gpu(Spherical)
 DECLARE_exchangeAnalytic_gpu(SphericalScreened)
 #undef DECLARE_exchangeAnalytic_gpu
+
+
+__global__
+void multRealKernel_kernel(int zBlock, vector3<int> S, const double* kernel, complex* data)
+{	COMPUTE_fullGindices
+	multRealKernel_calc(i, iG, S, kernel, data);
+}
+void multRealKernel_gpu(vector3<int> S, const double* kernel, complex* data)
+{	GpuLaunchConfig3D glc(multRealKernel_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		multRealKernel_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel, data);
+}
+
+__global__
+void multTransformedKernel_kernel(int zBlock, vector3<int> S, const double* kernel, complex* data,
+	const vector3<int> offset, const matrix3<int> rot)
+{	COMPUTE_fullGindices
+	multTransformedKernel_calc(i, iG, S, kernel, data, offset, rot);
+}
+void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data,
+	const vector3<int>& offset, const matrix3<int>& rot)
+{	GpuLaunchConfig3D glc(multTransformedKernel_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		multTransformedKernel_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel, data, offset, rot);
+}

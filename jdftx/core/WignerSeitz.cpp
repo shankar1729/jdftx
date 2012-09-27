@@ -459,21 +459,50 @@ void WignerSeitz::addPlane(const vector3<int>& a)
 				edge.erase(e); //remove from global list
 				delete e;
 				//Replace vOther with v, and get rid of vOther:
-				for(Edge* eOther: vOther->edge)
-				{	eOther->vertex[(eOther->vertex[0]==vOther) ? 0 : 1] = v;
-					v->edge.push_back(eOther);
+				if(vOther != v)
+				{	for(Edge* eOther: vOther->edge)
+					{	eOther->vertex[(eOther->vertex[0]==vOther) ? 0 : 1] = v;
+						v->edge.push_back(eOther);
+					}
+					vertex.remove(vOther);
+					delete vOther;
 				}
-				vertex.remove(vOther);
-				delete vOther;
 			}
 		}
 	}
 	//Remove null faces (could have been caused by welding)
 	for(auto fIter=face.begin(); fIter!=face.end();)
-		if(!(*fIter)->edge.size())
-			fIter = face.erase(fIter);
+	{	Face* f = *fIter;
+		//Cancel adjacent retracing edges:
+		for(auto eIter=f->edge.begin(); eIter!=f->edge.end();)
+		{	Edge* e = *eIter;
+			auto eIterNext = eIter;
+			eIterNext++; if(eIterNext==f->edge.end()) eIterNext=f->edge.begin();
+			Edge* eNext = *eIterNext;
+			int fIndex = e->face[0]==f ? 0 : 1;
+			int fIndexNext = eNext->face[0]==f ? 0 : 1;
+			if(e->vertex[fIndex]==eNext->vertex[1-fIndexNext]
+			&& eNext->vertex[fIndexNext]==e->vertex[1-fIndex])
+			{	//Weld eNext and e:
+				//--- Replace f in e with the other face of eNext:
+				Face* fOther = eNext->face[1-fIndexNext];
+				e->face[fIndex] = fOther;
+				std::replace(fOther->edge.begin(), fOther->edge.end(), eNext, e);
+				//--- Delete eNext:
+				for(Vertex* eNext_v: eNext->vertex) eNext_v->edge.remove(eNext);
+				f->edge.remove(eNext);
+				edge.erase(eNext);
+				delete eNext;
+				//--- Remove e from f (f has been replaced by fOther above)
+				eIter = f->edge.erase(eIter);
+			}
+			else eIter++;
+		}
+		//Remove face if empty:
+		if(!f->edge.size()) fIter = face.erase(fIter);
 		else fIter++;
-
+	}
+	checkGraph();
 }
 
 //Add a edge from vStart towards vEnd in face f

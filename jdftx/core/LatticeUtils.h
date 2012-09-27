@@ -50,7 +50,6 @@ struct Supercell
 	std::vector<vector3<>> kmesh; //!< closure of kmeshReduced under symmetry group sym
 	matrix3<> Rsuper; //!< super-cell lattice vectors
 	matrix3<int> super; //!< linear combinations to get Rsuper (Rsuper = R * super)
-	matrix3<> kBasisInv; //!< basis vectors for k-point mesh (in reciprocal lattice coordinates)
 	
 	//! Construct supercell given the unit cell and grid definition,
 	//! symmetry-reduced k-point mesh and list of symmetries

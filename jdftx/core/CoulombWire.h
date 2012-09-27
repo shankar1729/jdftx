@@ -58,6 +58,7 @@ private:
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
 	RealKernel Vc;
 	std::shared_ptr<class EwaldWire> ewald;
+	friend class ExchangeEval;
 };
 
 #endif // JDFTX_CORE_COULOMBWIRE_H

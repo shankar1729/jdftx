@@ -155,4 +155,43 @@ void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSp
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSphericalScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 #endif
 
+//Multiply a complexDataGptr's data by a RealKernel (real-symmetry reduced)
+__hostanddev__ void multRealKernel_calc(size_t i, const vector3<int>& iG,
+	const vector3<int>& S, const double* kernel, complex* data)
+{	//Compute index on the real kernel:
+	vector3<int> iGreal = iG;
+	if(iGreal[2]<0) iGreal = -iGreal; //inversion symmetry in G-space for real-kernels
+	if(iGreal[1]<0) iGreal[1] += S[1];
+	if(iGreal[0]<0) iGreal[0] += S[0];
+	size_t iReal = iGreal[2] + size_t(1+S[2]/2) * (iGreal[1] + S[1]*iGreal[0]);
+	//Multiply:
+	data[i] *= kernel[iReal];
+}
+void multRealKernel(vector3<int> S, const double* kernel, complex* data);
+#ifdef GPU_ENABLED
+void multRealKernel_gpu(vector3<int> S, const double* kernel, complex* data);
+#endif
+
+//Multiply a complexDataGptr's data by a kernel sampled with offset and rotation by rot
+__hostanddev__ void multTransformedKernel_calc(size_t i, const vector3<int>& iG,
+	const vector3<int>& S, const double* kernel, complex* data,
+	const vector3<int>& offset, const matrix3<int>& rot)
+{	//Compute index on the real kernel:
+	vector3<int> iGkernel = rot * (iG - offset);
+	//Reduce to [0,S-1) in each dimension:
+	for(int k=0; k<3; k++)
+	{	iGkernel[k] = iGkernel[k] % S[k];
+		if(iGkernel[k]<0) iGkernel[k] += S[k];
+	}
+	size_t iReal = iGkernel[2] + S[2]*size_t(iGkernel[1] + S[1]*iGkernel[0]);
+	//Multiply:
+	data[i] *= kernel[iReal];
+}
+void multTransformedKernel(vector3<int> S, const double* kernel, complex* data,
+	const vector3<int>& offset, const matrix3<int>& rot);
+#ifdef GPU_ENABLED
+void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data,
+	const vector3<int>& offset, const matrix3<int>& rot);
+#endif
+
 #endif // JDFTX_CORE_COULOMB_INTERNAL_H

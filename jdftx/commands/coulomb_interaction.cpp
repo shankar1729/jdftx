@@ -155,7 +155,7 @@ struct CommandExchangeRegularization : public Command
 {
 	CommandExchangeRegularization() : Command("exchange-regularization")
 	{
-		format = "<method>=" + exRegMethodMap.optionList() + " [<sigma>=1 <filename>]";
+		format = "<method>=" + exRegMethodMap.optionList() + " [<sigma>=0.33 <filename>]";
 		comments =
 			"Regularization / singularity correction method for exact exchange.\n"
 			"The allowed methods and defaults depend on the setting of <geometry>\n"
@@ -211,7 +211,7 @@ struct CommandExchangeRegularization : public Command
 				" only for coulomb-interaction <geometry> = Periodic");
 		//Read optional parameters:
 		if(exReg.method==ExchangeRegularization::WignerSeitzTruncated)
-		{	pl.get(exReg.sigma, 1., "sigma");
+		{	pl.get(exReg.sigma, 0.33, "sigma");
 			pl.get(exReg.filename, string(), "filename");
 			if(exReg.sigma <= 0.)
 				throw string("Wigner-seitz boundary gaussian width <sigma> must be positive.\n");

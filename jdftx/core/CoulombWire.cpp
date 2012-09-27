@@ -263,11 +263,8 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 	vector3<bool> isTruncated(true, true, true); isTruncated[params.iDir] = false;
 	vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
 	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, isTruncated, sigmaBorders);
-	
-	if(!kernelDesc.loadKernel(Vc.data, params.filename)) //Try reading the kernel
-	{	kernelDesc.computeKernel(Vc.data, ws); //Compute the kernel
-		kernelDesc.saveKernel(Vc.data, params.filename); //Save kernel if requested
-	}
+	//Load or compute the kernel:
+	kernelDesc.computeKernel(Vc.data, ws, params.filename);
 	Vc.set();
 	initExchangeEval();
 }
