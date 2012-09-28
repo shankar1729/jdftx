@@ -478,7 +478,32 @@ struct CoulombRightPrism
 						samples[i] = erfTilde(i*drho);
 				}
 				else //no truncation
-				{	logSpline = (kz != 0.); //Logarithmic spline more stable for large kz
+				{	double sigmaMax = wsDense->inRadius(iDir) / CoulombKernelDesc::nSigmasPerWidth;
+					double kzMin = 1./(sigmaMax + sqrt(sigmaMax*sigmaMax - sigmaBorder[jDir]*sigmaBorder[jDir]));
+					//Short-cut numerical truncation if K_0(kz rho) becomes zero well inside WS cell:
+					if(kz > kzMin) // => overlap of K_0 and borders negligible at working preciison
+					{	vector3<int> pitch;
+						pitch[2] = 1;
+						pitch[1] = pitch[2] * (1 + S[2]/2);
+						pitch[0] = pitch[1] * S[1];
+						vector3<int> iG; iG[iDir] = iPlane;
+						for(iG[jDir]=1-S[jDir]/2; iG[jDir]<=S[jDir]/2; iG[jDir]++)
+							for(iG[kDir]=1-S[kDir]/2; iG[kDir]<=S[kDir]/2; iG[kDir]++)
+							{	double curV = erfcTilde(GGT.metric_length_squared(iG), omega*omega);
+								//Save to the appropriate locations in Vc (2 sign combinations):
+								for(int si=0; si<2; si++)
+								{	vector3<int> iv = iG;
+									if(si && iv[iDir]) { iv[iDir] = S[iDir] - iv[iDir]; }
+									if(iv[jDir] < 0) iv[jDir] += S[jDir];
+									if(iv[kDir] < 0) iv[kDir] += S[kDir];
+									if(iv[2] <= S[2]/2)
+										Vc[dot(iv, pitch)] = curV;
+								}
+							}
+						return;
+					}
+					
+					logSpline = (kz != 0.); //Logarithmic spline more stable for large kz
 					Cbar cbar;
 					for(int i=0; i<nSamples; i++)
 					{	double s = cbar(kz, sigma, i*drho);
@@ -659,7 +684,8 @@ void CoulombKernelDesc::computeRightPrism(double* data, const WignerSeitz& ws) c
 	bool jkOrtho = WignerSeitz::isOrthogonal(R.column(jDir), R.column(kDir));
 	if(!jkOrtho || cylinderMode) assert(sigmaBorder[jDir] == sigmaBorder[kDir]);
 	if(cylinderMode) assert(-sigmaBorder[jDir] <= ws.inRadius(iDir));
-	double sigma = getMaxSigma_overlapCheck(ws.inRadius(), sigmaBorderMax);
+	double inRadius = isTruncated[iDir] ? ws.inRadius() : ws.inRadius(iDir);
+	double sigma = getMaxSigma_overlapCheck(inRadius, sigmaBorderMax);
 	
 	//Print mode-dependent startup message:
 	string dirName(3,'0'); dirName[iDir]='1';

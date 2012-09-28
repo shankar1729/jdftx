@@ -27,7 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LoopMacros.h>
 #include <core/BlasExtra.h>
 #include <core/Thread.h>
-#include <CGAL/Plane_3.h>
 
 std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) const
 {	if(geometry != Periodic)
