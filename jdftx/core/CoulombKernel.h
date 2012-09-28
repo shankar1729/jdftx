@@ -70,7 +70,7 @@ struct CoulombKernelDesc
 	//! Compute maximum sigma such that gaussians of sigma and sigmaOther
 	//! with centers separated by L have negligible overlap at working precision
 	static double getMaxSigma(double L, double sigmaOther);
-	
+
 private:
 	std::vector<matrix3<int>> sym; //!< symmetry matrices
 	//Various indiviudally optimized cases of computeKernel:

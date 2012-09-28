@@ -141,13 +141,8 @@ struct EwaldSlab
 	}
 };
 
-//Check orthogonality and return lattice direction name
-string checkOrthogonality(const GridInfo& gInfo, int iDir)
-{	string dirName(3, '0'); dirName[iDir] = '1';
-	if(fabs(gInfo.GGT(iDir,iDir) * gInfo.RTR(iDir,iDir) - 4*M_PI*M_PI) > 1e-14)
-		die("Lattice direction %s is not perpendicular to the other two basis vectors.\n", dirName.c_str());
-	return dirName;
-}
+//Check orthogonality and return lattice direction name (declared in CoulombWire.cpp)
+extern string checkOrthogonality(const GridInfo& gInfo, int iDir);
 
 CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params)

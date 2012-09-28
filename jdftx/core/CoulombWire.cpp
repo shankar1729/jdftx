@@ -26,8 +26,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LoopMacros.h>
 #include <gsl/gsl_sf.h>
 
-//!Check orthogonality and return lattice direction name (declared in CoulombSlab.cpp)
-extern string checkOrthogonality(const GridInfo& gInfo, int iDir);
+//Check orthogonality and return lattice direction name
+string checkOrthogonality(const GridInfo& gInfo, int iDir)
+{	string dirName(3, '0'); dirName[iDir] = '1';
+	if((!WignerSeitz::isOrthogonal(gInfo.R.column(iDir),gInfo.R.column((iDir+1)%3)))
+	|| (!WignerSeitz::isOrthogonal(gInfo.R.column(iDir),gInfo.R.column((iDir+2)%3))) )
+		die("Lattice direction %s is not perpendicular to the other two basis vectors.\n", dirName.c_str());
+	return dirName;
+}
 
 
 

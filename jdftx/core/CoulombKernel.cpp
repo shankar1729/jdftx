@@ -54,10 +54,6 @@ double getMaxSigma_overlapCheck(double L, double sigmaOther)
 }
 
 
-bool isOrthogonal(const vector3<>& a, const vector3<>& b)
-{	return pow(dot(a, b), 2) < symmThresholdSq * a.length_squared() * b.length_squared();
-}
-
 CoulombKernelDesc::CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 	const vector3<bool> isTruncated, const vector3<> sigmaBorder, double omega)
 : R(R), S(S), isTruncated(isTruncated), sigmaBorder(sigmaBorder), omega(omega)
@@ -67,7 +63,7 @@ CoulombKernelDesc::CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 	for(int iDir=0; iDir<3; iDir++)
 	{	int jDir = (iDir+1)%3;
 		//make sure non-orthogonal ones have same sigmaBorder
-		if(!isOrthogonal(R.column(iDir), R.column(jDir)))
+		if(!WignerSeitz::isOrthogonal(R.column(iDir), R.column(jDir)))
 			assert(sigmaBorder[iDir] == sigmaBorder[jDir]);
 		if( (isTruncated[iDir]!=isTruncated[jDir])
 			|| (sigmaBorder[iDir]!=sigmaBorder[jDir]) )
@@ -221,7 +217,7 @@ void CoulombKernelDesc::computeKernel(double* data, const WignerSeitz& ws, strin
 {	//Count number of orthogonal pairs of directions:
 	int nOrtho = 0;
 	for(int k=0; k<3; k++)
-		if(isOrthogonal(R.column(k), R.column((k+1)%2)))
+		if(WignerSeitz::isOrthogonal(R.column(k), R.column((k+1)%3)))
 			nOrtho++;
 	//Try loading from file:
 	if(loadKernel(data, filename))
@@ -638,27 +634,29 @@ void CoulombKernelDesc::computeRightPrism(double* data, const WignerSeitz& ws) c
 	}
 	//--- Check for finite prism:
 	if(iDir<0)
-	{	//Pick iDir to be direction orthogonal to ther two with smallest sigmaBorder:
-		double sigmaAxis = DBL_MAX;
+	{	//Pick iDir to be direction orthogonal to other two with smallest sigmaBorder/length:
+		double relSigmaMin = DBL_MAX;
 		for(int k=0; k<3; k++)
-			if( isOrthogonal(R.column(k), R.column((k+1)%3))
-			&&  isOrthogonal(R.column(k), R.column((k+2)%3))
-			&&  (sigmaBorder[k] < sigmaAxis) )
+		{	double relSigma = sigmaBorder[k]/R.column(k).length();
+			if( WignerSeitz::isOrthogonal(R.column(k), R.column((k+1)%3))
+			&&  WignerSeitz::isOrthogonal(R.column(k), R.column((k+2)%3))
+			&&  (relSigma < relSigmaMin) )
 			{	iDir = k;
-				sigmaAxis = sigmaBorder[k];
+				relSigmaMin = relSigma;
 			}
+		}
 		assert(iDir >= 0);
-		assert(sigmaAxis >= 0);
+		assert(relSigmaMin >= 0);
 	}
 	
 	//Check transverse geometry:
 	int jDir = (iDir+1)%3;
 	int kDir = (iDir+2)%3;
-	assert(isOrthogonal(R.column(iDir), R.column(jDir)));
-	assert(isOrthogonal(R.column(iDir), R.column(kDir)));
+	assert(WignerSeitz::isOrthogonal(R.column(iDir), R.column(jDir)));
+	assert(WignerSeitz::isOrthogonal(R.column(iDir), R.column(kDir)));
 	double sigmaPlaneMin = std::min(sigmaBorder[jDir], sigmaBorder[kDir]);
 	assert(sigmaPlaneMin > 0.); //this determines Nyquist frequency for planar FFT
-	bool jkOrtho = isOrthogonal(R.column(jDir), R.column(kDir));
+	bool jkOrtho = WignerSeitz::isOrthogonal(R.column(jDir), R.column(kDir));
 	if(!jkOrtho || cylinderMode) assert(sigmaBorder[jDir] == sigmaBorder[kDir]);
 	if(cylinderMode) assert(-sigmaBorder[jDir] <= ws.inRadius(iDir));
 	double sigma = getMaxSigma_overlapCheck(ws.inRadius(), sigmaBorderMax);

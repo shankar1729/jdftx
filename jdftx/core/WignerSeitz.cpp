@@ -20,8 +20,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
 
-static const double minDistSq = 1e-16; //threshold on distance squared
-static const double geomRelTol = 1e-14; //relative tolerance to geometry (tesselation volumes, orthogonality checks etc)
+const double WignerSeitz::minDistSq = 1e-24; //threshold on distance squared
+const double WignerSeitz::geomRelTol = 1e-12; //relative tolerance to geometry (tesselation volumes, orthogonality checks etc)
+
+bool WignerSeitz::isOrthogonal(const vector3<>& a, const vector3<>& b)
+{	return fabs(dot(a, b)) < WignerSeitz::geomRelTol * a.length() * b.length();
+}
+
 
 //Construct Wigner-Seitz cell given lattice vectors
 WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
@@ -212,7 +217,7 @@ std::vector<Simplex<2>> WignerSeitz::getSimplices(int iDir) const
 			//Make sure that the vertices are in inversion-symmetric pairs:
 			for(unsigned i=0; i<v.size()/2; i++)
 			{	unsigned j = i + v.size()/2;
-				assert(hypot(v[i][0]+v[j][0], v[i][1]+v[j][1]) < minDistSq);
+				assert(hypot(v[i][0]+v[j][0], v[i][1]+v[j][1]) < sqrt(minDistSq));
 			}
 			//Add simplices:
 			for(unsigned i=0; i<v.size()/2; i++)
