@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGasPsiAlpha.h>
+#include <fluid/IdealGasMuEps.h>
 #include <fluid/IdealGasPomega.h>
 #include <fluid/Fex_H2O_ScalarEOS.h>
 
@@ -61,7 +62,11 @@ int main(int argc, char** argv)
 	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 	Fex_H2O_ScalarEOS fex(fluidMixture);
+	
+	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
+	//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
 	IdealGasPomega idgas(&fex, 1.0, quad, trans);
+	
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.setPressure(p);

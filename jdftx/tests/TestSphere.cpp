@@ -98,6 +98,8 @@ struct TestSphere
 		saveDX(N[1], "TestSphere.NH");
 		saveSphericalized(&N[0], N.size(), "TestSphere.N.spherical", 0.25);
 		saveToFile(psiEff, "TestSphere.psiEff");
+		
+		//saveSphericalized(&N[0], N.size(), "Octahedron.Nspherical", 0.25);
 	}
 };
 

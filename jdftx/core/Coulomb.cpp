@@ -434,10 +434,12 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				for(int k=0; k<3; k++)
 					if(k != params.iDir) //sigma based on params.borderWidth for truncated directions
 						sigmaBorders[k] = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
+				break;
 			case CoulombParams::Cylindrical:
 				for(int k=0; k<3; k++)
 					if(k != params.iDir) //cylinder indicated by setting borderwidth = -Rc
 						sigmaBorders[k] = -((CoulombCylindrical&)coulomb).Rc;
+				break;
 			default:
 				assert(!"Exchange in Isolated / Spherical geometries should not be Wigner-Seitz truncated.\n");
 		}
