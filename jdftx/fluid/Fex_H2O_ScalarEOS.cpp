@@ -53,8 +53,8 @@ molecule("H2O",
 
 double Fex_H2O_ScalarEOS::get_aDiel() const
 {
-	//return 1 - T/(7.35e3*Kelvin); 
-	return 1 - T/(3.9962e3*Kelvin); //HACK WARNING
+	return 1 - T/(7.35e3*Kelvin); 
+	//return 1 - T/(3.9962e3*Kelvin); //HACK WARNING
 }
 
 #ifdef GPU_ENABLED
