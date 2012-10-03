@@ -23,8 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 #include <core/Operators.h>
 
-static const double rOH = 1.0*Angstrom;
-static const double thetaHOH = acos(-1.0/3);
+
+static const double rOH = 1.0*Angstrom; 
+static const double thetaHOH = acos(-1.0/3); 
+//static const double rOH = 0.96719*Angstrom; //HACK WARNING
+//static const double thetaHOH = 1.8069; //103.53 degrees HACK WARNING
 
 Fex_H2O_ScalarEOS::Fex_H2O_ScalarEOS(FluidMixture& fluidMixture)
 : Fex(fluidMixture),
@@ -32,6 +35,10 @@ fex_LJatt(gInfo), siteChargeKernel(gInfo),
 eval(new ScalarEOS_eval(T)),
 propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel),
 propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel),
+//propO(gInfo, eval->sphereRadius,0.0, 0.81036,&siteChargeKernel),
+//propH(gInfo, 0.0,0.0,-0.40518,&siteChargeKernel),
+//propO(gInfo, eval->sphereRadius,0.0, 0.66,&siteChargeKernel),  //HACK WARNING
+//propH(gInfo, 0.0,0.0,-0.33,&siteChargeKernel), //HACK WARNING
 molecule("H2O",
 	&propO,
 		 vector3<>(0,0,0),
@@ -45,7 +52,9 @@ molecule("H2O",
 }
 
 double Fex_H2O_ScalarEOS::get_aDiel() const
-{	return 1 - T/(7.35e3*Kelvin);
+{
+	//return 1 - T/(7.35e3*Kelvin); 
+	return 1 - T/(3.9962e3*Kelvin); //HACK WARNING
 }
 
 #ifdef GPU_ENABLED

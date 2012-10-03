@@ -86,6 +86,10 @@ struct FluidSolverParams
 	double nuclearWidth; //!< Gaussian width of fluid site nuclear charge densities for coupling
 	double oxygenWidth; //!< Exponential width of electron distribution of oxygen atom in fluid
 	double hydrogenWidth; //!< Exponential width of electron distribution of hydrogen atom in fluid
+	double oxygenSiteCharge; //!< Oxygen site charge in water convolution coupling
+	double hydrogenSiteCharge; //!< Hydrogen site charge in water convolution coupling
+	double oxygenZnuc; //!< Oxygen nuclear charge in water convolution coupling
+	double hydrogenZnuc; //!< Hydrogen nuclear charge in water convolution coupling
 	string oxygenFilename; //!<  Filename which contains electron distribution of oxygen atom in fluid
 	string hydrogenFilename; //!< Filename which contains electron distribution of hydrogen atom in fluid
 	

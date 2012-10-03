@@ -161,7 +161,7 @@ void ConvCoupling::setExpCusplessKernel(SiteProperties& s)
 	s.couplingElecKernel = new RealKernel(gInfo);
 	
 	double elecCharge = s.couplingZnuc+s.convCouplingSiteCharge;
-	logPrintf("Created exponential electron density model for %s site with width %.12lf and norm %.12lf.\n",
+	logPrintf("Created cuspless exponential electron density model for %s site with width %.12lf and norm %.12lf.\n",
 			  s.siteName.c_str(),s.convCouplingWidth,elecCharge);
 	if (s.kernelFilename.length() == 0) //If there is not another filename to be added in addition to this one.
 	{

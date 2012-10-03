@@ -75,8 +75,38 @@ struct CommandFluidCoupling : public Command
 			logPrintf(" %s %s", e.eVars.fluidParams.oxygenFilename.c_str(), e.eVars.fluidParams.hydrogenFilename.c_str());
 		
 	}
+	
+	
 }
 commandFluidCoupling;
+
+struct CommandFluidCharge : public Command
+{
+	CommandFluidCharge() : Command("fluid-charge")
+	{
+		format = "[<ZO>=0.8476] [<ZH>=-0.4238] [<Znuc_O>=8.0] [<Znuc_H>=1.0]";
+		comments = "For water-based fluids, sets oxygen and hydrogen site charges (<ZO> and <ZH>)\n"
+					"and nuclear charges (<Znuc_O> and <Znuc_H>) for convolution coupling purposes only.\n"
+					"Eventually, classical DFT site charges should match coupling site charges.";
+		hasDefault = true;
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		pl.get(e.eVars.fluidParams.oxygenSiteCharge, 0.8476, "ZO");
+		pl.get(e.eVars.fluidParams.hydrogenSiteCharge, -0.4238, "ZH");
+		pl.get(e.eVars.fluidParams.oxygenZnuc, 8.0, "Znuc_O");
+		pl.get(e.eVars.fluidParams.hydrogenZnuc, 1.0, "Znuc_H");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+			logPrintf(" %lg %lg %lg %lg", e.eVars.fluidParams.oxygenSiteCharge, e.eVars.fluidParams.hydrogenSiteCharge,
+					  e.eVars.fluidParams.oxygenZnuc, e.eVars.fluidParams.hydrogenZnuc);	
+	}
+}
+commandFluidCharge;
+
 
 struct CommandFluidIonCoupling : public Command
 {

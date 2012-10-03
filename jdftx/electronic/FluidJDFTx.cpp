@@ -145,17 +145,17 @@ public:
 		//For now set to be the bad model used as default in the older versions of JDFTx 	
 		SiteProperties& Osite = *water.indexedSite[0];
 		Osite.siteName="O";
-		Osite.couplingZnuc = 8.0;
+		Osite.couplingZnuc = params.oxygenZnuc;
 						
 		SiteProperties& Hsite = *water.indexedSite[1];
 		Hsite.siteName="H";
-		Hsite.couplingZnuc = 1.0;
+		Hsite.couplingZnuc = params.hydrogenZnuc;
 		
 		switch(params.convCouplingH2OModel)
 		{	
 			case ConvCouplingExponential: 
 			{		
-				Osite.convCouplingSiteCharge = 0.8476;
+				Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
 				Osite.convCouplingWidth = params.oxygenWidth;
 				Osite.kernelFilename = params.oxygenFilename;
 				coupling->setExponentialKernel(Osite);
@@ -163,7 +163,9 @@ public:
 				if(Osite.kernelFilename.length()!=0)
 					coupling->setRadialKernel(Osite);
 				
-				Hsite.convCouplingSiteCharge = -Osite.convCouplingSiteCharge/2.0;
+				Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
+				if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
+					die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
 				Hsite.convCouplingWidth = params.hydrogenWidth;
 				Hsite.kernelFilename = params.hydrogenFilename;
 				coupling->setExponentialKernel(Hsite);
@@ -176,7 +178,7 @@ public:
 			}
 			case ConvCouplingExpCuspless: 
 			{		
-				Osite.convCouplingSiteCharge = 0.8476;
+				Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
 				Osite.convCouplingWidth = params.oxygenWidth;
 				Osite.kernelFilename = params.oxygenFilename;
 				coupling->setExpCusplessKernel(Osite);
@@ -184,7 +186,9 @@ public:
 				if(Osite.kernelFilename.length()!=0)
 					coupling->setRadialKernel(Osite);
 				
-				Hsite.convCouplingSiteCharge = -Osite.convCouplingSiteCharge/2.0;
+				Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
+				if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
+					die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
 				Hsite.convCouplingWidth = params.hydrogenWidth;
 				Hsite.kernelFilename = params.hydrogenFilename;
 				coupling->setExpCusplessKernel(Hsite);
