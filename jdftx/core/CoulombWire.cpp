@@ -238,8 +238,8 @@ struct EwaldWire
 					double rhoTermPrime = cbar_k_sigma[iG[iDir]]->deriv(rho12);
 					//Update energy and forces:
 					E12 += prefac * c * rhoTerm;
-					E12_r12 += (prefac * -s * rhoTerm * (2*M_PI)) * iG;
-						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * rho12vec;
+					E12_r12 += (prefac * -s * rhoTerm * (2*M_PI)) * iG
+						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * (gInfo.RTR * rho12vec);
 				}
 				E += E12;
 				a1.force -= E12_r12;
