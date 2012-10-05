@@ -163,7 +163,9 @@ void ElecVars::setup(const Everything &everything)
 
 	//Orthogonalize initial wavefunctions:
 	for(int q=0; q<eInfo.nStates; q++)
-		Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q]));
+	{	Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q]));
+		C[q] = Y[q];
+	}
 	
 	// Read in electron (spin) density if needed
 	if(e->cntrl.fixed_n)
@@ -176,6 +178,14 @@ void ElecVars::setup(const Everything &everything)
 			loadRawBinary(n[k], nFilename[k].c_str());
 			logPrintf("done\n"); logFlush();
 		}
+		//Check if fix-occupied has been specified when required (hyrbids or meta-GGAs):
+		if( (e->exCorr.exxFactor() || e->exCorr.needsKEdensity())
+			&& (! e->cntrl.fixOccupied) )
+			die("Band-structure (fixed electron density) calculations with meta-GGAs\n"
+				"or hybrid functionals require fixed occupied states (command fix-occupied)\n");
+		//Check if wavefunctions have been read in if occupied orbitals are fixed:
+		if(e->cntrl.fixOccupied && (! wfnsFilename.length()))
+			die("Fixed occupied orbitals require wavefunctions to be read from file\n");
 	}
 
 	//Fluid setup:
@@ -342,12 +352,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		
 		//Calculate kinetic energy density if required
 		if(e->exCorr.needsKEdensity())
-		{	tau = KEdensity();
-			if(e->iInfo.tauCore)
-			{	for(unsigned s=0; s<tau.size(); s++)
-					tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
-			}
-		}
+			tau = KEdensity();
 		
 		//Calculate density functional and its gradient:
 		EdensityAndVscloc(ener);
@@ -404,18 +409,6 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		{	double KErollover = 2.0 * (trace(Fq) ? KEq / trace(Fq) : 1.);
 			ColumnBundle OC = O(Cq); //Note: O is not cheap for ultrasoft pseudopotentials
 			ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
-			if(e->cntrl.fixOccupied)
-			{	//Project out fixed directions from gradient:
-				int nOcc = nOccupiedBands(q);
-				if(nOcc)
-				{	//Apply projector to unoccupied orbital gradients:
-					ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
-					PbarHC = Pbar(fixedYq, PbarHC);
-					//Zero out occupied orbital gradients:
-					fixedYq.zero();
-					PbarHC.setSub(0, fixedYq);
-				}
-			}
 			matrix gradCtoY = eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
 			
 			//First term of grad_Y, proportional to F:
@@ -443,6 +436,21 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			//Scale wavefunction gradients by state weight:
 			grad->Y[q] *= qnum.weight;
 			if(Kgrad) Kgrad->Y[q] *= qnum.weight;
+
+			//Project out fixed directions from gradient (if any):
+			if(e->cntrl.fixOccupied)
+			{	int nOcc = nOccupiedBands(q);
+				if(nOcc)
+				{	//Apply projector to unoccupied orbital gradients:
+					ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
+					grad->Y[q] = Pbar(fixedYq, grad->Y[q]);
+					if(Kgrad) Kgrad->Y[q] = Pbar(fixedYq, Kgrad->Y[q]);
+					//Zero out occupied orbital gradients:
+					fixedYq.zero();
+					grad->Y[q].setSub(0, fixedYq);
+					if(Kgrad) Kgrad->Y[q].setSub(0, fixedYq);
+				}
+			}
 		}
 	}
 	
@@ -507,9 +515,15 @@ int ElecVars::nOccupiedBands(int q) const
 
 DataRptrCollection ElecVars::KEdensity() const
 {	DataRptrCollection tau; nullToZero(tau, e->gInfo, n.size());
+	//Compute KE density from valence electrons:
 	for(int q=0; q<e->eInfo.nStates; q++)
 		for(int iDir=0; iDir<3; iDir++)
 			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir));
+	//Add core KE density model:
+	if(e->iInfo.tauCore)
+		{	for(unsigned s=0; s<tau.size(); s++)
+				tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
+		}
 	for(unsigned s=0; s<n.size(); s++) e->symm.symmetrize(tau[s]); //Symmetrize
 	return tau;
 }

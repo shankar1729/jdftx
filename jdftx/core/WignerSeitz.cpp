@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
 
-const double WignerSeitz::minDistSq = 1e-24; //threshold on distance squared
 const double WignerSeitz::geomRelTol = 1e-12; //relative tolerance to geometry (tesselation volumes, orthogonality checks etc)
 
 bool WignerSeitz::isOrthogonal(const vector3<>& a, const vector3<>& b)
@@ -29,7 +28,8 @@ bool WignerSeitz::isOrthogonal(const vector3<>& a, const vector3<>& b)
 
 
 //Construct Wigner-Seitz cell given lattice vectors
-WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
+WignerSeitz::WignerSeitz(const matrix3<>& R)
+: R(R), invR(inv(R)), RTR((~R)*R), minDistSq(pow(geomRelTol*pow(fabs(det(R)),1./3), 2))
 {	logPrintf("Constructing Wigner-Seitz cell: "); logFlush();
 	//Initialize with parallelopiped formed from nearest neighbours:
 	matrix3<> eqns = matrix3<>(2./RTR(0,0), 2./RTR(1,1), 2./RTR(2,2)) * RTR;
@@ -139,7 +139,8 @@ WignerSeitz::WignerSeitz(const matrix3<>& R) : R(R), invR(inv(R)), RTR((~R)*R)
 	int nQuad=0, nHex=0;
 	for(const Face* f: faceHalf)
 	{	if(f->edge.size()==4) nQuad += 2;
-		if(f->edge.size()==6) nHex += 2;
+		else if(f->edge.size()==6) nHex += 2;
+		else assert(!"Wigner-Setz cell has a face with vertex count different from 4 or 6");
 	}
 	logPrintf("%lu faces (%d quadrilaterals, %d hexagons)\n", face.size(), nQuad, nHex);
 }
@@ -365,6 +366,14 @@ void WignerSeitz::writeGraph(FILE* fp) const
 //Slice the current polyhedron by the perpendicular bisector of 0->a (a in lattice coordinates)
 void WignerSeitz::addPlane(const vector3<int>& a)
 {	vector3<> eqn = (2./RTR.metric_length_squared(a))*(RTR*a); //eqn.x==1 is perpendicular bisector plane
+	//Check if the plane intersects the existing cell:
+	double dMax = -DBL_MAX;
+	for(const Vertex* v: vertex)
+	{	double d = dot(eqn, v->pos) - 1.; //projected distance of vertex (0 on plane, <0 interior)
+		if(d > dMax) dMax = d;
+	}
+	if(dMax < geomRelTol) //negligible intersection
+		return;
 	//Check each vertex for removal:
 	std::set<Vertex*> onPlane; //set of vertices on new plane
 	for(std::list<Vertex*>::iterator vIter=vertex.begin(); vIter!=vertex.end();)

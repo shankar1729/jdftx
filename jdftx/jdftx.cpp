@@ -102,6 +102,8 @@ int main(int argc, char** argv, char** argp)
 	
 	if(e.cntrl.fixed_n)
 	{	//Band structure calculation - ion and fluid minimization need to be handled differently
+		if(e.exCorr.needsKEdensity()) //compute (fixed) KE density for meta-GGAs
+			eVars.tau = eVars.KEdensity();
 		eVars.EdensityAndVscloc(e.ener);
 		if(eVars.fluidSolver && eVars.fluidSolver->needsGummel())
 		{	//Relies on the gummel loop, so EdensityAndVscloc would not have invoked minimize

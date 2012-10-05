@@ -57,9 +57,6 @@ private:
 ExactExchange::ExactExchange(const Everything& e) : e(e)
 {
 	logPrintf("\n---------- Setting up exact exchange ----------\n");
-	if(e.cntrl.fixed_n && !e.cntrl.fixOccupied)
-		die("Exact exchange band structure calculations need fixed occupied states (command fix-occupied)\n");
-	
 	eval = new ExactExchangeEval(e);
 }
 

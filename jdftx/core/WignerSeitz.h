@@ -131,7 +131,6 @@ public:
 	//! Output vertex, edge and face connectivity info:
 	void writeGraph(FILE* fp=stdout) const;
 
-	static const double minDistSq; //!< threshold on distance squared for welding vertices
 	static const double geomRelTol; //!< relative tolerance for orthogonality and volume checks
 	
 	//! Check whether lattice vectors are orthogonal (within relative tolerance geomRelTol)
@@ -143,6 +142,7 @@ private:
 	struct Face; //!<Polygonal facet
 
 	matrix3<> R, invR, RTR; //!< matrix of lattice vectors, and its combinations
+	double minDistSq; //!< threshold on distance squared for welding vertices
 	std::list<Vertex*> vertex; //!< set of all vertices
 	std::set<Edge*> edge; //!< set of all edges
 	std::set<Face*> face; //!< set of all faces

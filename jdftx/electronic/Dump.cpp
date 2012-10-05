@@ -245,11 +245,7 @@ void Dump::operator()(DumpFrequency freq)
 		{	if(e->exCorr.needsKEdensity()) //Used by main functional i.e. already computed in ElecVars
 				tau = eVars.tau;
 			else //Not used by main functional, need to compute:
-			{	tau = eVars.KEdensity();
-				if(iInfo.tauCore)
-					for(unsigned s=0; s<tau.size(); s++)
-						tau[s] += (1.0/tau.size()) * iInfo.tauCore;
-			}
+				tau = eVars.KEdensity();
 		}
 		//Print main functional energy:
 		fprintf(fp, "%s(%s) = %.16lf\n", relevantFreeEnergyName(*e),

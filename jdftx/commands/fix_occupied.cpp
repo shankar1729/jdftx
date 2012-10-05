@@ -26,16 +26,14 @@ struct CommandFixOccupied : public Command
 	{
 		format = "[<fThreshold>=0]";
 		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations\n"
-			"The occupied orbitals must therefore be read in using the wavefunction command.\n";
+			"The occupied orbitals must be read in using the wavefunction / initial-state commands.\n";
 		
-		require("wavefunction");
 		require("fix-electron-density");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.cntrl.occupiedThreshold, 0., "fThreshold");
 		if(e.cntrl.occupiedThreshold<0) throw string("fThreshold must be >= 0");
-		if(!e.eVars.wfnsFilename.length()) throw string("wavefunctions must be read in from file for fixed occupied states.");
 		e.cntrl.fixOccupied = true;
 	}
 
