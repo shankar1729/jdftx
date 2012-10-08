@@ -50,17 +50,15 @@ public:
 	double mass; //!< ionic mass (currently unused)	
 
 	//! Contains the information on the constraints of motion for each ion.
-	//! Constraints are for each ion, not to all ions in the species.
 	struct Constraint
-	{	
-		double moveScale; //! 0 means ion is fixed, 1 means that it is free to move.
-		vector3<> x; //! The direction or plane normal of the constraint
+	{	double moveScale; //! preconditioning factor (0 fixes ion)
+		vector3<> d; //! The direction or plane normal of the constraint (in cartesian coordinates)
 		enum ConstraintType {None, Linear, Planar} type; //! Type of the constraint that is being applied to the ion
 		
 		vector3<> operator()(const vector3<>& grad);
 		bool isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const;
 		int getDimension() const;
-		void print(FILE* fp) const;
+		void print(FILE* fp, const Everything&) const;
 	};
 	std::vector<Constraint> constraints; //! List of all constraints on ions of this species
 	

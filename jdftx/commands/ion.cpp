@@ -25,12 +25,12 @@ struct CommandIon : public Command
 	CommandIon() : Command("ion")
 	{
 		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
-			+ constraintTypeMap.optionList() + " <c0> <c1> <c2>]";
+			+ constraintTypeMap.optionList() + " <d0> <d1> <d2>]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
 			"<moveScale> preconditions the motion of this ion (set 0 to hold fixed)\n"
 			"In addition, the ion may be constrained to a line or a plane with line\n"
-			"direction or plane normal equal to (<c0>,<c1>,<c2>) in the coordinate\n"
+			"direction or plane normal equal to (<d0>,<d1>,<d2>) in the coordinate\n"
 			"system selected by command coords-type. Note that the constraints must\n"
 			"be consistent with respect to symmetries (if enabled).";
 		allowMultiple = true;
@@ -66,13 +66,13 @@ struct CommandIon : public Command
 				if(constraint.type != SpeciesInfo::Constraint::None)
 				{	if(!constraint.moveScale)
 						throw string("Constraint specified after moveScale = 0");
-					pl.get(constraint.x[0], 0.0, "c0", true);				  
-					pl.get(constraint.x[1], 0.0, "c1", true);
-					pl.get(constraint.x[2], 0.0, "c2", true);
-					if(not constraint.x.length_squared())
+					pl.get(constraint.d[0], 0.0, "d0", true);				  
+					pl.get(constraint.d[1], 0.0, "d1", true);
+					pl.get(constraint.d[2], 0.0, "d2", true);
+					if(not constraint.d.length_squared())
 						throw string("Constraint vector must be non-null");
-					if(e.iInfo.coordsType == CoordsLattice)
-						constraint.x = ~inv(e.gInfo.R) * constraint.x;  // Constraints transform like forces
+					if(e.iInfo.coordsType == CoordsLattice) //Constraints transform like forces:
+						constraint.d = ~inv(e.gInfo.R) * constraint.d; 
 				}
 				sp->constraints.push_back(constraint);
 				return;
@@ -91,7 +91,7 @@ struct CommandIon : public Command
 					logPrintf("%s %19.15lf %19.15lf %19.15lf %lg", sp->name.c_str(),
 						pos[0], pos[1], pos[2], sp->constraints[at].moveScale);
 					if(sp->constraints[at].type != SpeciesInfo::Constraint::None)
-						sp->constraints[at].print(globalLog);
+						sp->constraints[at].print(globalLog, e);
 				}
 				iIon++;
 			}

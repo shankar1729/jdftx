@@ -49,7 +49,7 @@ void IonicGradient::print(const Everything& e, FILE* fp, const char* prefix) con
 			fprintf(fp, "%s %s %19.15lf %19.15lf %19.15lf %lg", prefix,
 				sinfo.name.c_str(), ff[0], ff[1], ff[2], sinfo.constraints[atom].moveScale);
 			if(sinfo.constraints[atom].type != SpeciesInfo::Constraint::None)
-				sinfo.constraints[atom].print(fp);
+				sinfo.constraints[atom].print(fp, e);
 			fprintf(fp, "\n");
 		}
 	}
@@ -205,9 +205,8 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 	for(unsigned sp=0; sp<grad.size(); sp++)
 	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(unsigned atom=0; atom<grad[sp].size(); atom++)
-			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);  // Applies move constraints to the force gradient.
+			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);  //Apply move constraints to the force gradient.
 	}
-	
 	return Kgrad;
 }
 
