@@ -326,6 +326,7 @@ struct CommandElecExCorrCompare : public CommandElecExCorr
 		#ifdef LIBXC_ENABLED
 		format += "\n\t| <funcX> <funcC>\n\t| <funcXC>";
 		#endif
+		forbid("fix-electron-density");
 	}
 	
 	void process(ParamList& pl, Everything& e)

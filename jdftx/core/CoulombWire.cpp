@@ -43,7 +43,7 @@ Cbar::Cbar() { iWS = gsl_integration_workspace_alloc(maxIntervals); }
 Cbar::~Cbar() { gsl_integration_workspace_free(iWS); }
 	
 //Compute Cbar_k^sigma(rho)
-double Cbar::operator()(double k, double sigma, double rho)
+double Cbar::operator()(double k, double sigma, double rho, double rho0)
 {	assert(k >= 0.);
 	assert(sigma > 0.);
 	assert(rho >= 0.);
@@ -51,8 +51,9 @@ double Cbar::operator()(double k, double sigma, double rho)
 	{	const double xMax = 700.; //threshold (with some margin) to underflow in expint_E1
 		double hlfSigmaInvSq = 0.5/(sigma*sigma);
 		double x = hlfSigmaInvSq*rho*rho;
-		if(x < 3.5e-3) return (M_EULER + log(hlfSigmaInvSq)) - x*(1. - x*(1./4 - x*(1./18 - x*(1./96))));
-		else return -2.*log(rho) - (x>xMax ? 0. : gsl_sf_expint_E1(x));
+		double x0 = hlfSigmaInvSq*rho0*rho0;
+		if(x < 3.5e-3) return (M_EULER + log(x0)) - x*(1. - x*(1./4 - x*(1./18 - x*(1./96))));
+		else return -2.*log(rho/rho0) - (x>xMax ? 0. : gsl_sf_expint_E1(x));
 	}
 	else
 	{	double R = rho/sigma;
@@ -98,7 +99,7 @@ double Cbar::integrandLargeRho(double t, void* params)
 //! Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma
 struct Cbar_k_sigma
 {
-	Cbar_k_sigma(double k, double sigma, double rhoMax)
+	Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0=1.)
 	{	assert(rhoMax > 0.);
 		//Pick grid and initialize sample values:
 		drho = 0.03*sigma; //With 5th order splines, this guarantees rel error ~ 1e-14 typical, 1e-12 max
@@ -107,7 +108,7 @@ struct Cbar_k_sigma
 		std::vector<double> x(size_t(drhoInv*rhoMax)+10);
 		Cbar cbar;
 		for(size_t i=0; i<x.size(); i++)
-		{	double c = cbar(k, sigma, i*drho);
+		{	double c = cbar(k, sigma, i*drho, rho0);
 			if(isLog) x[i] = (c>0 ? log(c) : (i ? x[i-1] : log(DBL_MIN)));
 			else x[i] = c;
 		}
@@ -149,7 +150,7 @@ struct EwaldWire
 	
 	std::vector<std::shared_ptr<Cbar_k_sigma>> cbar_k_sigma;
 	
-	EwaldWire(const GridInfo& gInfo, int iDir, const WignerSeitz& ws, bool wsTruncated, double criticalDist)
+	EwaldWire(const GridInfo& gInfo, int iDir, const WignerSeitz& ws, bool wsTruncated, double criticalDist, double rho0=1.)
 	: gInfo(gInfo), iDir(iDir), ws(ws), wsTruncated(wsTruncated), criticalDist(criticalDist)
 	{	logPrintf("\n---------- Setting up 1D ewald sum ----------\n");
 		//Determine optimum gaussian width for 1D Ewald sums:
@@ -177,7 +178,7 @@ struct EwaldWire
 		double rhoMax = ws.circumRadius(iDir);
 		for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
 		{	double k = sqrt(gInfo.GGT.metric_length_squared(iG));
-			cbar_k_sigma[iG[iDir]] = std::make_shared<Cbar_k_sigma>(k, sigma, rhoMax);
+			cbar_k_sigma[iG[iDir]] = std::make_shared<Cbar_k_sigma>(k, sigma, rhoMax, rho0);
 		}
 	}
 	
@@ -300,9 +301,8 @@ void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<
 				- RGaxis * gsl_sf_bessel_J0(RGplane) * gsl_sf_bessel_K1(RGaxis) );
 		else
 		{	Vc[i] = GplaneSq
-				? (4*M_PI/GplaneSq) * (1. - gsl_sf_bessel_J0(RGplane)
-					- (RGplane) * gsl_sf_bessel_J1(RGplane) * log(Rc) )
-				: M_PI*Rc*Rc * (1. - 2*log(Rc));
+				? (4*M_PI/GplaneSq) * (1. - gsl_sf_bessel_J0(RGplane))
+				: M_PI*Rc*Rc;
 		}
 	)
 }
@@ -329,6 +329,6 @@ DataGptr CoulombCylindrical::operator()(DataGptr&& in) const
 
 double CoulombCylindrical::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
-		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, false, Rc - params.ionMargin);
+		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, false, Rc - params.ionMargin, Rc);
 	return ewald->energyAndGrad(atoms);
 }

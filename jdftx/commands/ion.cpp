@@ -24,15 +24,15 @@ struct CommandIon : public Command
 {
 	CommandIon() : Command("ion")
 	{
-		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type> <x0> <x1> <x2>]";
+		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
+			+ constraintTypeMap.optionList() + " <c0> <c1> <c2>]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
 			"<moveScale> preconditions the motion of this ion (set 0 to hold fixed)\n"
-			"\nYou can specify a constraint to the direction which the ions can relax in.\n"
-			"There are 2 types of constraints, planar and linear.\nThese options constrain the motion "
-			"of the ions to the input direction, or the input plane specified by its normal.  "
-			"\nIn both cases, the coordinates are the same as the ionic coordinates.\n"
-			"If the symmetries are turned on, consistency of these constraints wrt to symmetries will be checked.";
+			"In addition, the ion may be constrained to a line or a plane with line\n"
+			"direction or plane normal equal to (<c0>,<c1>,<c2>) in the coordinate\n"
+			"system selected by command coords-type. Note that the constraints must\n"
+			"be consistent with respect to symmetries (if enabled).";
 		allowMultiple = true;
 
 		require("ion-species");
@@ -66,9 +66,9 @@ struct CommandIon : public Command
 				if(constraint.type != SpeciesInfo::Constraint::None)
 				{	if(!constraint.moveScale)
 						throw string("Constraint specified after moveScale = 0");
-					pl.get(constraint.x[0], 0.0, "x0", true);				  
-					pl.get(constraint.x[1], 0.0, "x1", true);
-					pl.get(constraint.x[2], 0.0, "x2", true);
+					pl.get(constraint.x[0], 0.0, "c0", true);				  
+					pl.get(constraint.x[1], 0.0, "c1", true);
+					pl.get(constraint.x[2], 0.0, "c2", true);
 					if(not constraint.x.length_squared())
 						throw string("Constraint vector must be non-null");
 					if(e.iInfo.coordsType == CoordsLattice)

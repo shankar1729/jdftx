@@ -80,7 +80,7 @@ __hostanddev__ double erf_by_x(double x)
 struct Cbar
 {	Cbar();
 	~Cbar();
-	double operator()(double k, double sigma, double rho); //!< Compute Cbar_k^sigma(rho)
+	double operator()(double k, double sigma, double rho, double rho0=1.); //!< Compute Cbar_k^sigma(rho)
 private:
 	static const size_t maxIntervals = 1000; //!< Size of integration workspace
 	gsl_integration_workspace* iWS; //!< Integration workspace
