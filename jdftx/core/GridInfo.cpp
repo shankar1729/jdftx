@@ -128,7 +128,7 @@ void GridInfo::initialize()
 	int systemWisdom = fftw_import_system_wisdom();
 	FILE* fp = fopen(".fftw-wisdom", "r");
 	if(fp) { fftw_import_wisdom_from_file(fp); fclose(fp); }
-	else if(!systemWisdom) logPrintf("No local or system FFTW wisdom found, planning might take a while ...\n");
+	else if(!systemWisdom) logPrintf("\nNo local or system FFTW wisdom found, planning might take a while ... ");
 
 	//Temp data for planning:
 	fftw_complex* testData = (fftw_complex*)fftw_malloc(nr*sizeof(complex));
