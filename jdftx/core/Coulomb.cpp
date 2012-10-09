@@ -42,6 +42,27 @@ std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) con
 	}
 }
 
+vector3<bool> CoulombParams::isTruncated() const
+{	switch(geometry)
+	{	case Isolated:
+		case Spherical:
+			return vector3<bool>(true, true, true);
+		case Cylindrical:
+		case Wire:
+		{	vector3<bool> result(true, true, true);
+			result[iDir] = false;
+			return result;
+		}
+		case Slab:
+		{	vector3<bool> result(false, false, false);
+			result[iDir] = true;
+			return result;
+		}
+		case Periodic:
+		default:
+			return vector3<bool>(false, false, false);
+	}
+}
 
 
 //! Helper class for evaluating regularized Coulomb kernel for exchange
@@ -402,9 +423,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n",
 				sigmaBorder, params.borderWidth);
 			//Create kernel description:
-			vector3<bool> isTruncated(true, true, true);
 			vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
-			CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, isTruncated, sigmaBorders, omega);
+			CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, params.isTruncated(), sigmaBorders, omega);
 			//Load or compute the kernel:
 			VcGamma = new RealKernel(gInfo);
 			kernelDesc.computeKernel(VcGamma->data, ((CoulombIsolated&)coulomb).ws, kernelFilename);

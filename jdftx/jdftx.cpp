@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <electronic/Dump.h>
 #include <electronic/ElecMinimizer.h>
+#include <electronic/LatticeMinimizer.h>
 #include <electronic/InverseKohnSham.h>
 #include <core/Util.h>
 #include <commands/parser.h>
@@ -118,6 +119,11 @@ int main(int argc, char** argv, char** argp)
 		{	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 			elecMinimize(e); // Do the band-structure minimization
 		}
+	}
+	else if(e.latticeMinParams.nIterations)
+	{	//Lattice minimization loop (which invokes the ionic minimization loop)
+		LatticeMinimizer lmin(e);
+		lmin.minimize(e.latticeMinParams);
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)

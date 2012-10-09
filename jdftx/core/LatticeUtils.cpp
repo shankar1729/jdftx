@@ -56,8 +56,8 @@ matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, m
 }
 
 //Determine symmetries of Bravais lattice:
-std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, matrix3<>* Rreduced,
-	matrix3<int>* transmission, matrix3<int>* invTransmission)
+std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, vector3<bool> isTruncated,
+	matrix3<>* Rreduced, matrix3<int>* transmission, matrix3<int>* invTransmission)
 {
 	//Get reduced lattice vectors:
 	matrix3<int> t, tInv;
@@ -74,7 +74,15 @@ std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, matrix3<>* Rreduced,
 	iLOOP(m(1,0)) iLOOP(m(1,1)) iLOOP(m(1,2))
 	iLOOP(m(2,0)) iLOOP(m(2,1)) iLOOP(m(2,2))
 		if(nrm2(metric - (~m)*metric*m) < symmThreshold * nrm2(metric)) //leaves metric invariant
-			sym.push_back(t * m * tInv);
+		{	matrix3<int> mOrig = t * m * tInv; //in original lattice coordinates
+			//Check if symmetry connects truncated and untruncated directions:
+			bool symBroken = false;
+			for(int i=0; i<3; i++)
+				for(int j=0; j<3; j++)
+					if(mOrig(i,j) && isTruncated[i]!=isTruncated[j])
+						symBroken = true;
+			if(!symBroken) sym.push_back(mOrig);
+		}
 	#undef  iLOOP
 	
 	if(Rreduced) *Rreduced = Rred;

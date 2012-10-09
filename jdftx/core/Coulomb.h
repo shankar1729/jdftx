@@ -65,6 +65,9 @@ struct CoulombParams
 	
 	//! Create a Coulomb object corresponding to the parameters of this class
 	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo) const;
+	
+	//! Get a list of which directions are truncated:
+	vector3<bool> isTruncated() const;
 };
 
 

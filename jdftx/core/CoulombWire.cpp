@@ -267,9 +267,8 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
 
 	//Create kernel description:
-	vector3<bool> isTruncated(true, true, true); isTruncated[params.iDir] = false;
 	vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
-	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, isTruncated, sigmaBorders);
+	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, params.isTruncated(), sigmaBorders);
 	//Load or compute the kernel:
 	kernelDesc.computeKernel(Vc.data, ws, params.filename);
 	Vc.set();

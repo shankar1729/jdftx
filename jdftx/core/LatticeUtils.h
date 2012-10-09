@@ -36,12 +36,14 @@ static const double symmThresholdSq = symmThreshold * symmThreshold;
 matrix3<> reduceLatticeVectors(const matrix3<>& R,
 	matrix3<int>* transmission=0, matrix3<int>* invTransmission=0);
 
-//! Find the symmetries of a Bravais lattice
+//! Find the symmetries of a Bravais lattice, where some
+//! of the lattice directions may optionally be truncated.
 //! Optionally retrieve the reduced lattice vectors
 //! and transmission matrices which are computed as
 //! an intermediate step in determining symmetries.
-std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, matrix3<>* Rreduced=0,
-	matrix3<int>* transmission=0, matrix3<int>* invTransmission=0);
+std::vector<matrix3<int>> getSymmetries(const matrix3<>& R,
+	vector3<bool> isTruncated=vector3<bool>(false,false,false),
+	matrix3<>* Rreduced=0, matrix3<int>* transmission=0, matrix3<int>* invTransmission=0);
 
 //! Supercell corresponding to a given k-point mesh
 struct Supercell

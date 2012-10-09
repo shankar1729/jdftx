@@ -191,6 +191,20 @@ struct CommandFluidMinimize : public CommandMinimize
 }
 commandFluidMinimize;
 
+struct CommandLatticeMinimize : public CommandMinimize
+{	CommandLatticeMinimize() : CommandMinimize("lattice")
+	{	emptyParamError =
+			"   Note: nIterations defaults to 0 for lattice minimization,\n"
+			"      and must be set manually to enable this feature.";
+	}
+    MinimizeParams& target(Everything& e) { return e.latticeMinParams; }
+    void process(ParamList& pl, Everything& e)
+	{	e.latticeMinParams.nIterations = 0; //override default value (100) in MinimizeParams.h
+		CommandMinimize::process(pl, e);
+	}
+}
+commandLatticeMinimize;
+
 struct CommandWannierMinimize : public CommandMinimize
 {	CommandWannierMinimize() : CommandMinimize("wannier") {}
     MinimizeParams& target(Everything& e) { return e.dump.wannier.minParams; }

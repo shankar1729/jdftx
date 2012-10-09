@@ -40,6 +40,7 @@ public:
 	double Ecut; //!< energy cutoff
 
 	double dragRadius; //!< typical region of space around each atom "dragged" on each ionic step (0 to disable)
+	vector3<> lattMoveScale; //!< preconditioning factor for each lattice vector during lattice minimization
 	
 	int fluidGummel_nIterations; //!< max iterations of the fluid<->electron self-consistency loop
 	double fluidGummel_Atol; //!< stopping free-energy tolerance for the fluid<->electron self-consistency loop

@@ -55,6 +55,7 @@ public:
 	MinimizeParams elecMinParams; //!< electronic minimization parameters
 	MinimizeParams ionicMinParams; //!< ionic minimization parameters
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
+	MinimizeParams latticeMinParams; //!< lattice minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
 	
 	CoulombParams coulombParams; //!< Coulomb truncation parameters

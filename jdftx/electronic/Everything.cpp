@@ -136,5 +136,11 @@ void Everything::setup()
 		if(!eVars.fluidParams.verboseLog)
 			fluidMinParams.fpLog = fopen("/dev/null", "w");
 	}
+	
+	//Setup lattice minimization parameters:
+	latticeMinParams.fpLog = globalLog;
+	latticeMinParams.linePrefix = "LatticeMinimize: ";
+	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
+
 	logPrintf("\n"); logFlush();
 }

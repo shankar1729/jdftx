@@ -65,13 +65,12 @@ CoulombKernelDesc::CoulombKernelDesc(const matrix3<> R, const vector3<int> S,
 		//make sure non-orthogonal ones have same sigmaBorder
 		if(!WignerSeitz::isOrthogonal(R.column(iDir), R.column(jDir)))
 			assert(sigmaBorder[iDir] == sigmaBorder[jDir]);
-		if( (isTruncated[iDir]!=isTruncated[jDir])
-			|| (sigmaBorder[iDir]!=sigmaBorder[jDir]) )
+		if(sigmaBorder[iDir]!=sigmaBorder[jDir])
 			brokenSym.push_back(std::make_pair(iDir, jDir));
 	}
 	
 	//Compute symmetries for kernel I/O compression:
-	std::vector<matrix3<int>> symLattice = ::getSymmetries(R); //symmetries of the Bravais lattice
+	std::vector<matrix3<int>> symLattice = ::getSymmetries(R, isTruncated); //symmetries of the truncated Bravais lattice
 	for(const matrix3<int>& m: symLattice)
 	{	//Check if matrix connects directions whose symmetry is broken by truncation geometry
 		bool broken = false;

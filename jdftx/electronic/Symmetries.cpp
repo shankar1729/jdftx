@@ -132,7 +132,7 @@ void Symmetries::calcSymmetries()
 
 	//Find symmetries of bravais lattice
 	matrix3<> Rreduced; matrix3<int> transmission;
-	std::vector<matrix3<int>> symLattice = getSymmetries(e->gInfo.R, &Rreduced, &transmission);
+	std::vector<matrix3<int>> symLattice = getSymmetries(e->gInfo.R, e->coulombParams.isTruncated(), &Rreduced, &transmission);
 	if(nrm2(Rreduced - e->gInfo.R) > symmThreshold * nrm2(Rreduced)) //i.e. if R != Rreduced
 	{	logPrintf("Non-trivial transmission matrix:\n"); transmission.print(globalLog," %2d ");
 		logPrintf("with reduced lattice vectors:\n"); Rreduced.print(globalLog," %12.6f ");

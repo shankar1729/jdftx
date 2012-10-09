@@ -38,15 +38,18 @@ public:
 	//Virtual functions from Minimizable:
 	void step(const matrix3<>& dir, double alpha);
 	double compute(matrix3<>* grad);
+	matrix3<> precondition(const matrix3<>& grad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
 
 private:
 	Everything& e;
+	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
+	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	
-	 //!Set of independent directions in the space of all lattice vectors.
+	 //!Set of independent directions in the space of all allowed strains.
 	//!Their span is consistent with symmetries and truncation (if any).
-	std::vector<matrix3<>> dirBasis;
+	std::vector<matrix3<>> strainBasis;
 	
 	//! Updates lattice dependent quantities, but does not
 	//! reconverge ionic positions or wavefunctions
