@@ -47,6 +47,9 @@ private:
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	
+	double h; //! Finite difference step size
+	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain
+	
 	 //!Set of independent directions in the space of all allowed strains.
 	//!Their span is consistent with symmetries and truncation (if any).
 	std::vector<matrix3<>> strainBasis;

@@ -56,7 +56,11 @@ void IonInfo::setup(const Everything &everything)
 		double G = sqrt(e->gInfo.GGT.metric_length_squared(f));
 		if(G>GmaxLoc) GmaxLoc=G;
 	}
-
+	if(e->latticeMinParams.nIterations)
+	{	GmaxNL *= 2.;
+		GmaxLoc *= 2;
+	}
+	
 	//Choose width of the nuclear gaussian:
 	switch(ionWidthMethod)
 	{	case IonWidthManual: break; //manually specified value

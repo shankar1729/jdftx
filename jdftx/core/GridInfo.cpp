@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -22,6 +22,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <core/Operators.h>
 #include <algorithm>
+
+void GridInfo::update()
+{
+	detR = fabs(det(R));
+
+	RT = ~R;
+	RTR = RT*R;
+	invR = inv(R);
+	invRT = inv(RT);
+	invRTR = inv(RTR);
+
+	G = (2.0*M_PI)*inv(R);
+	GT = ~G;
+	GGT = G*GT;
+	invGGT = inv(GGT);
+}
+
+void GridInfo::printLattice()
+{
+	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
+	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
+	logPrintf("unit cell volume = %lg\n", detR);
+}
+
 
 GridInfo::GridInfo():Gmax(0),initialized(false)
 {
@@ -60,24 +84,10 @@ GridInfo::~GridInfo()
 void GridInfo::initialize()
 {
 	this->~GridInfo(); //cleanup previously initialized quantities
-
-	detR = fabs(det(R));
-
-	RT = ~R;
-	RTR = RT*R;
-	invR = inv(R);
-	invRT = inv(RT);
-	invRTR = inv(RTR);
-
-	G = (2.0*M_PI)*inv(R);
-	GT = ~G;
-	GGT = G*GT;
-	invGGT = inv(GGT);
-
+	
+	update();
 	logPrintf("\n---------- Initializing the Grid ----------\n");
-	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
-	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
-	logPrintf("unit cell volume = %lg\n", detR);
+	printLattice();
 	
 	//Choose / verify validity of sample count S (fftbox size)
 	vector3<int> Smin;

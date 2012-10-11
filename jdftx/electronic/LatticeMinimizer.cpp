@@ -42,7 +42,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 			for(int j=0; j<3; j++)
 				if(m(i,j) && e.cntrl.lattMoveScale[i] != e.cntrl.lattMoveScale[j])
 					die("latt-move-scale is not commensurate with symmetries:\n"
-						"\tLattice vectors #%d and #%d are connected by symmetry,\n"
+						"\t(Lattice vectors #%d and #%d are connected by symmetry,\n"
 						"\tbut have different move scale factors %lg != %lg).\n",
 						i, j, e.cntrl.lattMoveScale[i], e.cntrl.lattMoveScale[j]);
 	
@@ -90,8 +90,10 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 	{	s.print(globalLog, " %lg ");
 		logPrintf("\n");
 	}
+
+	h = 1e-3;
 	
-	die("Implementation in progress!\n"); //TODO: delete after completing implementation
+	logPrintf("WARNING!!! LATTICE MINIMIZE IS UNDER DEVELOPMENT AND BUGGY!!!");
 }
 
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
@@ -100,7 +102,48 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
-	return 0.;
+
+	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	updateLatticeDependent(); // Updates lattice information and gets the energy	
+	
+	//! Run an ionic minimizer at the current strain
+	IonicMinimizer ionicMinimizer(e);
+	ionicMinimizer.minimize(e.ionicMinParams);
+	
+	//! If asked for, returns the gradient of the strain tensor
+	if(grad)
+	{	//! Loop over all basis vectors and get the gradient.
+		*grad = matrix3<>();
+		for(const matrix3<>& s: strainBasis)
+			*grad += centralDifference(s)*s;
+	}
+	
+	return relevantFreeEnergy(e);
+}
+
+double LatticeMinimizer::centralDifference(matrix3<> direction)
+{ //! Implements a central difference derivative with O(h^4)
+	
+	e.gInfo.R = Rorig + Rorig*(strain+(-2*h*direction));
+	updateLatticeDependent();
+	const double En2h = relevantFreeEnergy(e);
+	
+	e.gInfo.R = Rorig + Rorig*(strain+(-h*direction));
+	updateLatticeDependent();
+	const double Enh = relevantFreeEnergy(e);
+	
+	e.gInfo.R = Rorig + Rorig*(strain+(h*direction));
+	updateLatticeDependent();
+	const double Eph = relevantFreeEnergy(e);
+	
+	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
+	updateLatticeDependent();
+	const double Ep2h = relevantFreeEnergy(e);
+	
+	e.gInfo.R = Rorig + Rorig*strain;
+	updateLatticeDependent();
+	
+	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
 
 matrix3<> LatticeMinimizer::precondition(const matrix3<>& grad)
@@ -108,7 +151,11 @@ matrix3<> LatticeMinimizer::precondition(const matrix3<>& grad)
 }
 
 bool LatticeMinimizer::report(int iter)
-{	return false;
+{	logPrintf("\n");
+	e.gInfo.printLattice();
+	logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
+	logPrintf("\n");
+	return false;
 }
 
 void LatticeMinimizer::constrain(matrix3<>& dir)
@@ -116,4 +163,12 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 	for(const matrix3<>& s: strainBasis)
 		result += s * dot(s, dir); //projection in basis
 	dir = result;
+}
+
+void LatticeMinimizer::updateLatticeDependent()
+{	
+	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
+	e.gInfo.update();
+	e.iInfo.update(e.ener);
+	e.eVars.elecEnergyAndGrad(e.ener);
 }
