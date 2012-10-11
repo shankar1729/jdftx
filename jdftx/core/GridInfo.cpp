@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 void GridInfo::update()
 {
 	detR = fabs(det(R));
-
+	
 	RT = ~R;
 	RTR = RT*R;
 	invR = inv(R);
@@ -37,6 +37,9 @@ void GridInfo::update()
 	GT = ~G;
 	GGT = G*GT;
 	invGGT = inv(GGT);
+	
+	dV = detR/nr;
+	for(int k=0; k<3; k++) h[k] = R.column(k)/S[k];
 }
 
 void GridInfo::printLattice()

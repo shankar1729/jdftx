@@ -116,8 +116,9 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		*grad = matrix3<>();
 		for(const matrix3<>& s: strainBasis)
 			*grad += centralDifference(s)*s;
+		e.gInfo.R = Rorig + Rorig*strain;
+		updateLatticeDependent();
 	}
-	
 	return relevantFreeEnergy(e);
 }
 
@@ -139,9 +140,6 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
 	updateLatticeDependent();
 	const double Ep2h = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*strain;
-	updateLatticeDependent();
 	
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
@@ -167,8 +165,8 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 
 void LatticeMinimizer::updateLatticeDependent()
 {	
-	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.gInfo.update();
+	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	e.eVars.elecEnergyAndGrad(e.ener);
 }
