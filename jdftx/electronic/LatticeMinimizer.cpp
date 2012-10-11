@@ -91,9 +91,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 		logPrintf("\n");
 	}
 
-	h = 1e-3;
-	
-	logPrintf("WARNING!!! LATTICE MINIMIZE IS UNDER DEVELOPMENT AND BUGGY!!!");
+	h = 1e-5;
 }
 
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)

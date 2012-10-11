@@ -17,40 +17,35 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <utility>
+#ifndef JDFTX_ELECTRONIC_VANDERWAALS_H
+#define JDFTX_ELECTRONIC_VANDERWAALS_H
 
+#include <electronic/common.h>
 #include <core/vector3.h>
 #include <core/Util.h>
 #include <core/Coulomb.h>
 
-#include <electronic/common.h>
-#include <string.h>
-
-
 class VanDerWaals
 {
-	public:
-		
-		void vanDerWaals();
-		void setup(const Everything &everything);
-		
-		//! Returns the Van der Waals energy and gradient (in cartesian coordinates)
-		//! s6 is the scaling parameter that depends on the Ex-Corr functional used
-		double VDWEnergyAndGrad(std::vector<Atom>& atoms, string EXCorr);
-		
-	private:
-		
-		const Everything* e;
-		
-		//! C6 and R0 parameters for the VDW interactions
-		struct VDWParameters
-		{	double C6;
-			double R0;
-		};
-		//! Returns the C6 coefficient and R0
-		std::vector<VDWParameters> vdwParams;
-		std::pair<double, double> getC6AndR0(int atomicNumber);
-		
-		//! Scaling factor that depends on the EXCorr functional
-		std::map<string, double> scalingFactor;
+public:
+	void setup(const Everything &everything);
+	
+	//! Returns the Van der Waals energy and gradient (in cartesian coordinates)
+	//! s6 is the scaling parameter that depends on the Ex-Corr functional used
+	double energyAndGrad(std::vector<Atom>& atoms, string EXCorr);
+	
+private:
+	const Everything* e;
+	
+	//! C6 and R0 parameters for the VDW interactions
+	struct AtomParams
+	{	double C6;
+		double R0;
+		//!Construct given C6 in J-nm^6/mol and R0 in Angstrom
+		AtomParams(double SI_C6=0., double SI_R0=0.);
+	};
+	std::vector<AtomParams> atomParams; //!< Returns the C6 coefficient and R0
+	std::map<string,double> scalingFactor; //!< ExCorr dependent scale factor
 };
+
+#endif // JDFTX_ELECTRONIC_VANDERWAALS_H
