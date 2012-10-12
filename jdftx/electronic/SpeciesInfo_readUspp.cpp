@@ -320,4 +320,12 @@ void SpeciesInfo::readUspp(istream& is)
 			}
 		}
 	}
+	
+	//Determine max core radius:
+	std::set<double> coreRadii; //collection of all relevant radii that should not be allowed to overlap
+	coreRadii.insert(rInner.begin(), rInner.end()); //Qij pesudization radius
+	coreRadii.insert(rcNL.begin(), rcNL.end()); //Non-local projector radius
+	coreRadii.insert(rcLoc); //Local channel pseudization radius
+	coreRadii.insert(rcCore); //Partial-core pseudization radius
+	coreRadius = *coreRadii.rbegin(); //max of all radii above
 }

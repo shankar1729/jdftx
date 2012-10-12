@@ -73,15 +73,28 @@ namespace FhiFile
 			return RVR.transform(0, 0.)/(4*M_PI); //the l=0, G=0 bessel transform is just the integral
 		}
 		
-		//!Get the radial wavefunction on the log grid:
+		//! Get the radial wavefunction on the log grid:
 		RadialFunctionR getPsi() const
 		{	RadialFunctionR psi(r, dlogr);
 			psi.f = R;
 			return psi;
 		}
-		//!Check if this channel has a wavefunction (custom local channel won't)
+		
+		//! Check if this channel has a wavefunction (custom local channel won't)
 		bool hasPsi() const
 		{	return (cblas_dnrm2(R.size(), &R[0], 1) > 1e-10);
+		}
+		
+		//! Get the radius of the non-local projector
+		double getCoreRadius(const LogGridChannel& loc) const
+		{	const double Etol = 1e-3;
+			//Stop when integral of non-local energy density crosses threshold:
+			double E = 0.;
+			for(int i=r.size()-1; i>0; i--)
+			{	E += (4*M_PI*r[i]*r[i]) * (r[i]*dlogr) * R[i]*(V[i] - loc.V[i])*R[i];
+				if(fabs(E) > Etol) return r[i];
+			}
+			return 0.;
 		}
 	};
 };
@@ -132,7 +145,7 @@ void SpeciesInfo::readCpi(istream& in)
 	channels[lLoc].VplusZbyr(Z).transform(0, dGloc, nGridLoc, VlocRadial);
 	
 	//Non-local potentials
-	if(lLoc==lCount-1) lCount--; //projetcor array shortens if last channel is local
+	if(lLoc==lCount-1) lCount--; //projector array shortens if last channel is local
 	VnlRadial.resize(lCount);
 	Mnl.resize(lCount);
 	int nGridNL = int(ceil(e->iInfo.GmaxNL/dGnl))+5;
@@ -164,6 +177,13 @@ void SpeciesInfo::readCpi(istream& in)
 			break;
 		}
 	}
+	
+	//Determine max core radius of all the nonlocal projectors:
+	for(int l=0; l<lCount; l++)
+		if(l != lLoc)
+		{	double rcNL = channels[l].getCoreRadius(channels[lLoc]);
+			if(rcNL > coreRadius) coreRadius = rcNL;
+		}
 }
 
 void SpeciesInfo::readFhi(istream& in)

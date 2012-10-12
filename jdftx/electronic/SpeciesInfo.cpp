@@ -81,7 +81,8 @@ SpeciesInfo::SpeciesInfo()
 	Z_chargeball = 0.0; width_chargeball = 0.0;
 	dE_dnG = 0.0;
 	mass = 0.0;
-
+	coreRadius = 0.;
+	
 	lLocCpi = -1; //default: custom channel / highest l channel
 	dGloc = 0.02; // default grid seperation for full G functions.
 	dGnl  = 0.02; // default grid separation for reduced G operations
@@ -118,7 +119,9 @@ void SpeciesInfo::setup(const Everything &everything)
 		case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
 	}
-	
+	if(coreRadius) logPrintf("  Core radius for overlap checks: %.2lf bohrs.\n", coreRadius);
+	else if(!VnlRadial.size()) logPrintf("  Disabling overlap check for local pseudopotential.\n");
+	else logPrintf("  Warning: could not determine core radius; disabling overlap check for this species.\n");
 	setupPulay(); //Pulay info
 
 	#ifdef GPU_ENABLED
