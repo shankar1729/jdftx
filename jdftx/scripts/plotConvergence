@@ -1,0 +1,66 @@
+#!/bin/bash
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	Plot the convergence of JDFTx from its output files using gnuplot. Usage:
+		plotConvergence <file1> <file2> ...
+	If multiple output files are specified, they will be plotted alongside.
+	The behavior is controlled by several environment variables:
+		nLines      Plot the final $nLines iterations (default: 200)
+		skipLines   Ignore the first $skipLines iterations (default: 0)
+		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
+		logTarget   Plot energy difference from $logTarget on a log axis.
+	'
+	exit 0
+fi
+
+if [ -z $logTarget ]; then
+	using='0:2'
+	yformat='"%.6f"'
+else
+	logCommand="Final=$logTarget; set logscale y"
+	using='0:($2-Final)'
+	yformat='"%g"'
+fi
+
+if [ -z $skipLines ]; then
+        skipLines=0
+fi
+
+if [ -z $nLines ]; then
+	nLines=200
+fi
+
+if [ -z $iterType ]; then
+	iterType="Elec"
+fi
+
+if [ -z $DISPLAY ]; then
+	term="dumb"
+else
+	term="wxt"
+fi
+
+for outFile in $@; do
+	tmpFile="/tmp/${outFile////_._}.dat"
+	
+	awk "\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print \$3,\$5 }" $outFile | tail --lines=+$skipLines | tail -$nLines > $tmpFile
+	
+	if  [ -z "$plotCommand" ]; then
+		plotCommand="plot"
+	else
+		plotCommand="$plotCommand,"
+	fi
+	plotCommand="$plotCommand \"$tmpFile\" u $using w l title \"$outFile\""
+done
+
+#Plot output
+gnuplot -persist << EOF
+set term $term
+set format y $yformat
+set ylabel "Energy"
+set xlabel "Iteration number"
+$logCommand
+$plotCommand
+EOF
+

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	List the latest energy from JDFTx output files. Usage:
+		listEnergy <file1> <file2> ...
+	For each output file, one line with the energy and the
+	name of the output file will be printed.
+	'
+	exit 0
+fi
+
+for FILE in $@; do
+	awk '$1=="ElecMinimize:" && $2=="Iter:" { Energy=$5 } END {printf("%.15f",Energy)}' $FILE
+	echo " $FILE"
+done
+

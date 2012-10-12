@@ -109,7 +109,7 @@ void SpeciesInfo::readCpi(istream& in)
 	//Valence charge and number of angular momentum channels
 	double Zvalence; int lCount;
 	istringstream(getLine(in)) >> Zvalence >> lCount;
-	if(Zvalence != Z) die("Valence charge in pseudopotential = %lg != %lg (specified Z).\n", Zvalence, Z);
+	if(Zvalence != Z) die("  Valence charge in pseudopotential = %lg != %lg (specified Z).\n", Zvalence, Z);
 
 	//Skip 10 unused lines
 	for(int i=0; i<10; i++) getLine(in);
@@ -140,7 +140,7 @@ void SpeciesInfo::readCpi(istream& in)
 		setCore(nCoreLog);
 	//Local potential:
 	int lLoc = lLocCpi>=0 ? lLocCpi : (lCount-1); //specified channel, or last channel if unspecified
-	if(lLoc>=lCount) die("Local channel l=%d is invalid (max l=%d in file).\n", lLoc, lCount);
+	if(lLoc>=lCount) die("  Local channel l=%d is invalid (max l=%d in file).\n", lLoc, lCount);
 	logPrintf("  Transforming local potential (l=%d) to a uniform radial grid of dG=%lg with %d points.\n", lLoc, dGloc, nGridLoc);
 	channels[lLoc].VplusZbyr(Z).transform(0, dGloc, nGridLoc, VlocRadial);
 	
@@ -153,7 +153,7 @@ void SpeciesInfo::readCpi(istream& in)
 	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
 		for(int l=0; l<lCount; l++)
 			if(l != lLoc)
-			{	if(l>3) die("Nonlocal projectors with l>3 not implemented.\n");
+			{	if(l>3) die("  Nonlocal projectors with l>3 not implemented.\n");
 				double Minv = channels[l].projectorM(channels[lLoc]);
 				if(Minv) //to handle the special case when custom local channel happens to equal one of the l's!
 				{	VnlRadial[l].resize(1); //single projector per angular momentum
@@ -168,7 +168,7 @@ void SpeciesInfo::readCpi(istream& in)
 	psiRadial.resize(channels.size());
 	for(unsigned l=0; l<channels.size(); l++)
 	{	if(channels[l].hasPsi())
-		{	if(l>3) die("Atomic orbitals with l>3 not implemented.\n");
+		{	if(l>3) die("  Atomic orbitals with l>3 not implemented.\n");
 			psiRadial[l].push_back(RadialFunctionG());
 			channels[l].getPsi().transform(l, dGnl, nGridNL, psiRadial[l].back());
 		}

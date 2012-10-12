@@ -44,8 +44,8 @@ namespace PotFile
 			logPrintf("nPoints: %d   dG: %g  file: %s\n", nPoints, dG, fname.c_str());
 			//Check if q-grid is sufficient:
 			if((nPoints-5)*dG < Gmax)
-			{	logPrintf("      WARNING: Insufficient resolution for this %s:\n", local ? "FFT box" : "Ecut");
-				logPrintf("      (nPoints-5)*dG = %lg < Gmax%s = %lg\n", (nPoints-5)*dG, local?"Loc":"NL", Gmax);
+			{	logPrintf("        WARNING: Insufficient resolution for this %s:\n", local ? "FFT box" : "Ecut");
+				logPrintf("        (nPoints-5)*dG = %lg < Gmax%s = %lg\n", (nPoints-5)*dG, local?"Loc":"NL", Gmax);
 			}
 		}
 		
@@ -68,7 +68,7 @@ namespace PotFile
 		{	int m; //read in but not used
 			int nProj;
 			istringstream(PotFile::getLine(in)) >> l >> m >> nProj;
-			logPrintf("  l: %d  m: %d  nProj: %d\n", l, m, nProj);
+			logPrintf("    l: %d  m: %d  nProj: %d\n", l, m, nProj);
 			//Matrix:
 			M.init(nProj, nProj);
 			complex* Mdata = M.data();
@@ -78,21 +78,21 @@ namespace PotFile
 					in >> c.real();
 					c.imag() = 0;
 				}
-			logPrintf("    M: \n");
-			M.print_real(globalLog, "      %lg");
+			logPrintf("      M: \n");
+			M.print_real(globalLog, "        %lg");
 			//Radial functions:
-			logPrintf("    Radial functions:\n");
+			logPrintf("      Radial functions:\n");
 			proj.resize(nProj);
-			for(RadialInfo& p: proj) { logPrintf("      "); p.readInfo(in, false, GmaxNL); }
+			for(RadialInfo& p: proj) { logPrintf("        "); p.readInfo(in, false, GmaxNL); }
 		}
 		
 		void readInfoPAW(istream& in, double GmaxNL)
 		{	int nProj;
 			istringstream(PotFile::getLine(in)) >> l >> nProj;
-			logPrintf("  l: %d  nProj: %d\n", l, nProj);
-			logPrintf("    Radial functions:\n");
+			logPrintf("    l: %d  nProj: %d\n", l, nProj);
+			logPrintf("      Radial functions:\n");
 			proj.resize(nProj);
-			for(RadialInfo& p: proj) { logPrintf("      "); p.readInfo(in, false, GmaxNL); }
+			for(RadialInfo& p: proj) { logPrintf("        "); p.readInfo(in, false, GmaxNL); }
 		}
 		
 		void readFunctions(std::vector<RadialFunctionG>& funcs) const
@@ -119,7 +119,7 @@ void SpeciesInfo::readPot(istream& in)
 	
 	//Non-local potential:
 	int nlm; istringstream(getLine(in)) >> nlm;
-	logPrintf("Non-local potential:  nlm: %d\n", nlm);
+	logPrintf("  Non-local potential:  nlm: %d\n", nlm);
 	if(nlm != 0)
 	{	//First read by combined lm index:
 		std::map<int, AngularInfo> lInfoMap; //map from angular momentum l to info
@@ -127,13 +127,13 @@ void SpeciesInfo::readPot(istream& in)
 		for(int lm=0; lm<nlm; lm++)
 		{	AngularInfo temp; temp.readInfoVnl(in, e->iInfo.GmaxNL);
 			if(temp.l > lMax) lMax = temp.l;
-			if(temp.l < 0) die("Encountered l<0 in pseudopotential.\n");
+			if(temp.l < 0) die("  Encountered l<0 in pseudopotential.\n");
 			if(lInfoMap.find(temp.l)==lInfoMap.end()) lInfoMap[temp.l] = temp; //new l
 			else //existing l, make sure info agrees
 				if(temp != lInfoMap[temp.l])
-					die("Pseudopotential breaks spherical symmetry at l=%d (info is m-dependent).\n", temp.l);
+					die("  Pseudopotential breaks spherical symmetry at l=%d (info is m-dependent).\n", temp.l);
 		}
-		if(lMax>3) die("Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
+		if(lMax>3) die("  Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
 		//Now read the radial functions for each l (have ensured no m dependence)
 		VnlRadial.resize(lMax+1);
 		Mnl.resize(lMax+1);
@@ -152,10 +152,11 @@ void SpeciesInfo::setupPulay()
 {	
 	using namespace PotFile;
 
-	if(pulayfilename!="none")
-	{	ifstream ifs(pulayfilename.c_str());
-		if(!ifs.is_open()) die("Can't open pulay file %s for reading.\n", pulayfilename.c_str());
-		logPrintf("Reading pulay file %s ... ", pulayfilename.c_str());
+	if(pulayfilename != "none")
+	{
+		ifstream ifs(pulayfilename.c_str());
+		if(!ifs.is_open()) die("  Can't open pulay file %s for reading.\n", pulayfilename.c_str());
+		logPrintf("  Reading pulay file %s ... ", pulayfilename.c_str());
 		istringstream iss;
 		int nEcuts; istringstream(getLine(ifs)) >> nEcuts;
 		for(int i=0; i<nEcuts; i++)
@@ -165,7 +166,7 @@ void SpeciesInfo::setupPulay()
 				return;
 			}
 		}
-		die("\nCan't find Ecut=%lg in pulay file %s.\n", e->cntrl.Ecut, pulayfilename.c_str());
+		die("\n  Ecut=%lg not found in pulay file %s.\n", e->cntrl.Ecut, pulayfilename.c_str());
 	}
 }
 

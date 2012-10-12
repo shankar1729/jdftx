@@ -61,7 +61,7 @@ void Everything::setup()
 		}
 		avg_nbasis += 0.5*eInfo.qnums[q].weight * basis[q].nbasis;
 	}
-	logPrintf("average nbasis = %7.3f , ideal nbasis = %7.3f\n", avg_nbasis,
+	logPrintf("average nbasis = %7.3lf , ideal nbasis = %7.3lf\n", avg_nbasis,
 		pow(sqrt(2*cntrl.Ecut),3)*(gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
 

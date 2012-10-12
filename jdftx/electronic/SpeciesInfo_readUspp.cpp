@@ -36,22 +36,22 @@ struct UsppReader
 	
 	//!Fortran record start
 	void newRecord()
-	{	is.read(recBuf, recStartLen);  if(is.eof()) die("File ended prematurely.\n");
+	{	is.read(recBuf, recStartLen);  if(is.eof()) die("  File ended prematurely.\n");
 	}
 	//!Fortran record end
 	void endRecord()
-	{	is.read(recBuf, recStopLen);  if(is.eof()) die("Error reading file.\n");
+	{	is.read(recBuf, recStopLen);  if(is.eof()) die("  Error reading file.\n");
 	}
 	
 	//!Get a single element of type T
 	template<typename T> void get(T& t)
 	{	is.read((char*)&t, sizeof(T));
-		if(is.eof()) die("Error reading file.\n");
+		if(is.eof()) die("  Error reading file.\n");
 	}
 	//!Get an array of length N of type T
 	template<typename T> void get(T* t, size_t N)
 	{	is.read((char*)t, sizeof(T)*N);
-		if(is.eof()) die("Error reading file.\n");
+		if(is.eof()) die("  Error reading file.\n");
 	}
 	//!Get an vector of length N of type T
 	template<typename T> void get(std::vector<T>& tVec)
@@ -122,7 +122,7 @@ void SpeciesInfo::readUspp(istream& is)
 	double QijEcut; reader.get(QijEcut); QijEcut *= 0.5; //energy cutoff used for Qij pseudization
 	reader.endRecord();
 	logPrintf("  lMax: %d  lLocal: %d  QijEcut: %lg\n", lMax, lLocal, QijEcut);
-	if(lMax>3) die("Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
+	if(lMax>3) die("  Nonlocal projectors with l>3 not implemented (lMax = %d not supported).\n", lMax);
 	
 	int nL = 2*lMax+1; //number of l-channels in pair products of Ylm's (0 to 2 lMax)
 	reader.newRecord();
