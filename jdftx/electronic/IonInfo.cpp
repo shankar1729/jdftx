@@ -167,9 +167,12 @@ void IonInfo::update(Energies& ener)
 	double dEtot_dnG = 0.0; //derivative of Etot w.r.t nG  (G-vectors/unit volume)
 	for(auto sp: species)
 		dEtot_dnG += sp->atpos.size() * sp->dE_dnG;
+	double nbasisAvg = 0.0;
+	for(int q=0; q<e->eInfo.nStates; q++)
+		nbasisAvg += 0.5*e->eInfo.qnums[q].weight * e->basis[q].nbasis;
 	ener.Epulay = dEtot_dnG * 
 		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
-		-  e->basis[0].nbasis/e->gInfo.detR ); //actual nG
+		-  nbasisAvg/e->gInfo.detR ); //actual nG
 	
 	//Update totals:
 	ener.updateTotals();

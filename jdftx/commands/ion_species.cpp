@@ -34,8 +34,8 @@ struct CommandIonSpecies : public Command
 	{
 		format = "<id> <Z> <mass> <pot-file> <pulayfile> <projector>\n"
 			"\t | <id> <Z> <mass> <cpi-file> <pulayfile> fhi [<unused> <local-l>]\n"
-			"\t | [<path>/]<id>.fhi\n"
-			"\t | [<path>/]<id>.uspp [<startBytes>=4] [<endBytes>=4]";
+			"\t | [<path>/]<id>.fhi [<pulayfile>]\n"
+			"\t | [<path>/]<id>.uspp [<startBytes>=4] [<endBytes>=4] [<pulayfile>]";
 		comments =
 			"Define ion species identified by <id> with valence charge <Z> and mass <mass>.\n"
 			"  <pulayfile>: filename for pulay info (\"none\" to disable)\n"
@@ -43,6 +43,8 @@ struct CommandIonSpecies : public Command
 			"  <local-l> = "+lCodeMap.optionList()+", select local channel (for fhi psp's)\n"
 			"In the .fhi/.uspp options (recommended), all the info is obtained from the file,\n"
 			"including the <id>, which is obtained from the filename (minus path/extension).\n"
+			"If <pulayfile> is not specified and [<path>/]<id>.pulay exists, pulay data will\n"
+			"be read from that file; set <pulayfile> to \"none\" to ignore such files.\n"
 			"The USPP format is a fortran sequential binary file with start and end markers\n"
 			"with fortran-compiler dependent lengths. The defaults are valid for gfortran";
 		allowMultiple = true;
@@ -74,6 +76,15 @@ struct CommandIonSpecies : public Command
 			size_t lastSlash = specie->name.find_last_of("\\/");
 			if(lastSlash != string::npos)
 				specie->name = specie->name.substr(lastSlash+1);
+			//Check for a pulay file:
+			pl.get(specie->pulayfilename, string(), "pulayfile"); //manual pulay file override
+			if(!specie->pulayfilename.length()) //check for default pulay file:
+			{	specie->pulayfilename =
+					specie->potfilename.substr(0, specie->potfilename.find_last_of("."))
+					+ ".pulay";
+				FILE* fpPulay = fopen(specie->pulayfilename.c_str(), "r");
+				if(!fpPulay) specie->pulayfilename = "none"; //disable if such a file does not exist
+			}
 			//Everything else is obtained from the smart pseudopotential during SpeciesInfo::setup()
 		}
 		else

@@ -151,22 +151,42 @@ void SpeciesInfo::readPot(istream& in)
 void SpeciesInfo::setupPulay()
 {	
 	using namespace PotFile;
-
-	if(pulayfilename != "none")
-	{
-		ifstream ifs(pulayfilename.c_str());
-		if(!ifs.is_open()) die("  Can't open pulay file %s for reading.\n", pulayfilename.c_str());
-		logPrintf("  Reading pulay file %s ... ", pulayfilename.c_str());
-		istringstream iss;
-		int nEcuts; istringstream(getLine(ifs)) >> nEcuts;
-		for(int i=0; i<nEcuts; i++)
-		{	double Ecut; istringstream(getLine(ifs)) >> Ecut >> dE_dnG;
-			if(Ecut == e->cntrl.Ecut)
-			{	logPrintf("using dE_dnG = %le for Ecut = %lg.\n", dE_dnG, Ecut);
-				return;
-			}
-		}
-		die("\n  Ecut=%lg not found in pulay file %s.\n", e->cntrl.Ecut, pulayfilename.c_str());
+	if(pulayfilename == "none") return;
+	
+	ifstream ifs(pulayfilename.c_str());
+	if(!ifs.is_open()) die("  Can't open pulay file %s for reading.\n", pulayfilename.c_str());
+	logPrintf("  Reading pulay file %s ... ", pulayfilename.c_str());
+	istringstream iss;
+	int nEcuts; istringstream(getLine(ifs)) >> nEcuts;
+	std::map<double,double> pulayMap;
+	for(int i=0; i<nEcuts; i++)
+	{	double Ecut, dE_dnG;
+		istringstream(getLine(ifs)) >> Ecut >> dE_dnG;
+		pulayMap[Ecut] = dE_dnG;
+	}
+	
+	double minEcut = pulayMap.begin()->first;
+	double maxEcut = pulayMap.rbegin()->first;
+	double Ecut = e->cntrl.Ecut;
+	if(pulayMap.find(Ecut) != pulayMap.end())
+	{	dE_dnG = pulayMap[Ecut];
+		logPrintf("using dE_dnG = %le computed for Ecut = %lg.\n", dE_dnG, Ecut);
+	}
+	else if(Ecut < minEcut)
+	{	die("\n  Ecut=%lg < smallest Ecut=%lg in pulay file %s.\n",
+			Ecut, minEcut, pulayfilename.c_str());
+	}
+	else if(Ecut > maxEcut)
+	{	dE_dnG = 0;
+		logPrintf("using dE_dnG = 0 for Ecut=%lg > largest Ecut=%lg in file.\n",
+			Ecut, maxEcut);
+	}
+	else
+	{	auto iRight = pulayMap.upper_bound(Ecut); //iterator just > Ecut
+		auto iLeft = iRight; iLeft--; //iterator just < Ecut
+		double t = (Ecut - iLeft->first) / (iRight->first - iLeft->first);
+		dE_dnG = (1.-t) * iLeft->second + t * iRight->second;
+		logPrintf("using dE_dnG = %le interpolated from Ecut = %lg and %lg.\n",
+			dE_dnG, iLeft->first, iRight->first);
 	}
 }
-

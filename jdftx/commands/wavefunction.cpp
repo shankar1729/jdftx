@@ -63,9 +63,10 @@ struct CommandWavefunction : public Command
 	{	WfnsInit wfnsInit; pl.get(wfnsInit, WfnsRandom, wfnsInitMap, "option", true);
 		switch(wfnsInit)
 		{	case WfnsLCAO:
-				//ElecVars constructor defaults to initLCAO=true with no wfnsFilename
+				e.eVars.initLCAO = true;
 				break;
 			case WfnsRandom:
+				//ElecVars constructor defaults to initLCAO=false with no wfnsFilename
 				e.eVars.initLCAO = false;
 				break;
 			case WfnsRead:

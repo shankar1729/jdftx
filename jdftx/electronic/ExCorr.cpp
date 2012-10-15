@@ -278,7 +278,7 @@ struct FunctionalList
 
 //-------------- ExCorr members ----------------
 
-ExCorr::ExCorr() : exCorrType(ExCorrLDA_PZ), kineticType(KineticNone),
+ExCorr::ExCorr() : exCorrType(ExCorrGGA_PBE), kineticType(KineticNone),
 exxScale(0.), exxOmega(0.),
 functionals(std::make_shared<FunctionalList>())
 #ifdef LIBXC_ENABLED

@@ -261,7 +261,11 @@ protected:
 	void process(ParamList& pl, ExCorr& exCorr)
 	{	string key;
 		pl.get(key, string(), "functional");
-		if(!key.length()) return;
+		if(!key.length()) //Default functional (set by ExCorr constructor)
+		{	//Set the functional name:
+			exCorr.xcName = string(exCorrTypeMap.getString(exCorr.exCorrType));
+			return;
+		}
 		else
 		{	if(exCorrTypeMap.getEnum(key.c_str(), exCorr.exCorrType)) //Found internal ExCorr functional
 			{	//Set the functional name:
