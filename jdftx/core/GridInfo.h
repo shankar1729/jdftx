@@ -48,6 +48,7 @@ public:
 
 	void update(); //! Update the grid information on changing the lattice vectors
 	void printLattice(); //! Print the lattice vectors
+	void printReciprocalLattice(); //! Print the lattice vectors
 	
 	matrix3<> R; //!< lattice vectors
 	double Gmax; //!< radius of wavefunction G-sphere, whode density sphere (double the radius) must be inscribable within the FFT box

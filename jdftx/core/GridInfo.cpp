@@ -43,10 +43,12 @@ void GridInfo::update()
 }
 
 void GridInfo::printLattice()
-{
-	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
-	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
+{	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
 	logPrintf("unit cell volume = %lg\n", detR);
+}
+
+void GridInfo::printReciprocalLattice()
+{	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
 }
 
 
@@ -91,6 +93,7 @@ void GridInfo::initialize()
 	update();
 	logPrintf("\n---------- Initializing the Grid ----------\n");
 	printLattice();
+	printReciprocalLattice();
 	
 	//Choose / verify validity of sample count S (fftbox size)
 	vector3<int> Smin;

@@ -102,6 +102,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 {
 
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	
 	updateLatticeDependent(); // Updates lattice information and gets the energy	
 	
 	//! Run an ionic minimizer at the current strain
@@ -117,11 +118,24 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		e.gInfo.R = Rorig + Rorig*strain;
 		updateLatticeDependent();
 	}
+	
+	// Check for large lattice strain
+	if(sqrt(dot(strain, strain)) > maxAllowedStrain)
+	{
+		logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
+		logPrintf("\n\nERROR!\nLattice strain has become very large!\nRestart calculation with these lattice vectors to prevent Pulay errors!\n");
+		e.gInfo.printLattice();
+		logPrintf("\n\n");
+		killFlag = true;
+	}
+	
 	return relevantFreeEnergy(e);
 }
 
 double LatticeMinimizer::centralDifference(matrix3<> direction)
 { //! Implements a central difference derivative with O(h^4)
+	
+	logPrintf("\n\nCalculating the Energy gradient wrt lattice strain...\n");
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(-2*h*direction));
 	updateLatticeDependent();
@@ -139,6 +153,8 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	updateLatticeDependent();
 	const double Ep2h = relevantFreeEnergy(e);
 	
+	logPrintf("\n\nFinished calculating Energy gradient wrt strain\n\n");
+	
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
 
@@ -149,6 +165,7 @@ matrix3<> LatticeMinimizer::precondition(const matrix3<>& grad)
 bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n");
 	e.gInfo.printLattice();
+	e.gInfo.printReciprocalLattice();
 	logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
 	logPrintf("\n");
 	return false;
