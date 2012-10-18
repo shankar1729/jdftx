@@ -24,7 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 EnumStringMap<FluidType> fluidTypeMap
 (	FluidNone, "None",
 	FluidLinear, "Linear",
-	FluidNonlinear, "Nonlinear",
+	FluidLinearPCM, "LinearPCM",
+	FluidNonlinearPCM, "NonlinearPCM",
 	FluidNonlocalPCM, "NonlocalPCM",
 	FluidLischner10, "Lischner10",
 	FluidScalarEOS, "ScalarEOS",

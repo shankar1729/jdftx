@@ -39,22 +39,22 @@ int main(int argc, char** argv)
 {
 	if(argc != 3)
 	{	printf("\tUsage: CavitationLJ <output-file> <binary-density-file>\n"
-			"\t\t<output-file>: JDFT1 output file (used to get lattice vectors and sample counts)\n"
-			"\t\t<binary-density-file>: Electron-density (JDFT1 format) which is thresholded to form cavity\n");
+			"\t\t<output-file>: JDFTx output file (used to get lattice vectors and sample counts)\n"
+			"\t\t<binary-density-file>: Electron-density (JDFTx format) which is thresholded to form cavity\n");
 		return 1;
 	}
 
 	ifstream ifs(argv[1]);
 	if(!ifs.is_open()) { printf("Could not open '%s' for reading\n", argv[1]); return 1; }
 
-	GridInfo gInfo; double jdft1_nc, jdft1_sigma;
+	GridInfo gInfo; double pcm_nc, pcm_sigma;
 
 	bool gotR=false, gotS=false, got_nc=false;
 	while(!ifs.eof())
 	{	string line; getline(ifs, line);
-		if(line.substr(0,11)=="jdft1-shape")
+		if(line.substr(0,11)=="jdft1-shape")  //TODO: change command name to pcm-params
 		{	istringstream ss(line.substr(11));
-			ss >> jdft1_nc >> jdft1_sigma;
+			ss >> pcm_nc >> pcm_sigma;
 			got_nc=true;
 		}
 	/*	if(line=="R = ")
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 		gInfo.R = Diag(gInfo.S*hgrid);	
 		gotR=true;
 	}
-	if(!got_nc) printf("Could not read critical density for JDFT1 shape (nc) from '%s'\n", argv[1]);
+	if(!got_nc) printf("Could not read critical density nc for PCM shape from '%s'\n", argv[1]);
 	if(!gotR) printf("Could not read lattice vectors (R[][]) from '%s'\n", argv[1]);
 	if(!gotS) printf("Could not read sample counts (S[]) from '%s'\n", argv[1]);
 	if(!(got_nc && gotR && gotS)) return 1;
@@ -109,9 +109,9 @@ int main(int argc, char** argv)
 	loadRawBinary(nElectronic, argv[2]);
 	printf("SumCheck: %lf electrons\n\n", integral(nElectronic));
 
-	printf("Initializing cavity with nc = %le ... ", jdft1_nc); fflush(stdout);
+	printf("Initializing cavity with nc = %le ... ", pcm_nc); fflush(stdout);
 	nullToZero(idgas.V, gInfo);
-	threadedLoop(initCavity, gInfo.nr, jdft1_nc, nElectronic->data(), idgas.V[0]->data());
+	threadedLoop(initCavity, gInfo.nr, pcm_nc, nElectronic->data(), idgas.V[0]->data());
 	double CavityVolume = integral(idgas.V[0]);	
 	double CavityRadius = pow(CavityVolume/(4*M_PI),1.0/3.0);
 	printf("Cavity Volume: %lf bohr^3\nCavity Radius: %lf bohr\n\n", CavityVolume, CavityRadius);

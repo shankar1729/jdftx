@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <core/Units.h>
-#include <electronic/FluidJDFTx.h>
+#include <electronic/FluidSolver.h>
 
 struct CommandFluidIonMixing : public Command
 {

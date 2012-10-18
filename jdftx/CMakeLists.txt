@@ -123,12 +123,12 @@ if(CUDA_FOUND)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED;--compiler-options;-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels SHARED ${gpukernelsSources})
 	target_link_libraries(gpukernels ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
-
+	
 	#Core Library (Gpu Version):
 	FILE(GLOB coreSources core/*.cpp)
 	add_library(jdftxCore_gpu SHARED ${coreSources})

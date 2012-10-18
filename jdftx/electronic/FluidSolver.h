@@ -17,16 +17,15 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_FLUIDJDFTX_H
-#define JDFTX_ELECTRONIC_FLUIDJDFTX_H
+#ifndef JDFTX_ELECTRONIC_FLUIDSOLVER_H
+#define JDFTX_ELECTRONIC_FLUIDSOLVER_H
 
-//! @file FluidJDFTx.h
-//! The entry point for the interaction of the fluid code with the electronic code
+//! @file FluidSolver.h
+//! Common interface for all the fluids to the electronic code
 
 #include <cstdio>
 #include <core/GridInfo.h>
 #include <core/DataIO.h>
-#include <core/matrix3.h>
 #include <core/MinimizeParams.h>
 #include <electronic/ExCorr.h>
 #include <fluid/FluidMixture.h>
@@ -37,15 +36,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 typedef enum
 {
 	FluidNone, //!< No fluid
-	FluidLinear, //!< Linear dielectric fluid (Solver implemented in LinearJDFT1.*)
-	FluidNonlinear, //!< Nonlinear local-dielectric fluid ("JDFT1.1" or "JDFT1.0NL") (Solver implemented in NonlinearJDFT1.*)
+	FluidLinear, //!< Linear local-dielectric fluid [K. Letchworth-Weaver and T. A. Arias, Phys. Rev. B 86, 075140 (2012)]
+	FluidLinearPCM, //!< Reparametrized linear local-dielectric fluid including non-electrostatic terms (EXPERIMENTAL)
+	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms (EXPERIMENTAL)
 	FluidNonlocalPCM, //!< Nonlocal Polarizable Continuum Model (EXPERIMENTAL)
 	FluidLischner10, //!< Functional from [J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010)]
 	FluidScalarEOS, //!< Scalar EOS functional
-	FluidBondedVoids, //!< Functional from [arXiv:1112.1442v1 [cond-mat.soft]]
-	FluidHSIonic //!<functional of optionally charged hard spheres
+	FluidBondedVoids, //!< Functional from [R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012)]
+	FluidHSIonic //!< Functional of optionally charged hard spheres (EXPERIMENTAL)
 }
 FluidType; //!< Fluid type
+
 
 //! Parameters controlling Non-local PCM 
 struct NonlocalPCMparams
@@ -54,6 +55,7 @@ struct NonlocalPCMparams
 	
 	NonlocalPCMparams() : lMax(2) {}
 };
+
 
 //! Extra parameters for fluids:
 struct FluidSolverParams
@@ -68,8 +70,10 @@ struct FluidSolverParams
 	int ionicZelectrolyte; //!< Magnitude of charge on each ion
 	double nc; //!< critical density for the 1.0 fluid shape function
 	double sigma; //!< smoothing factor for the  1.0 fluid shape function
-
-	//For NonlocalPCM alone:
+	double cavityTension; //! Surface tension (hartree per bohr^2) of the cavity
+	double cavityPressure;  //! Volume dependent energy/tension of the cavity (simulates vdw)
+	
+	//For Nonlocal PCM (SaLSA) alone:
 	NonlocalPCMparams npcmParams;
 	
 	//For Nonlinear1.0 alone:
@@ -78,7 +82,7 @@ struct FluidSolverParams
 	double Nbulk; //!< Bulk number-density of molecules in bohr^-3
 	double pMol; //!< Dipole moment of each molecule in e-bohr
 	
-	//For JDFT3.0 alone:
+	//For Explicit Fluid JDFT alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water
 	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature
 	unsigned quad_nBeta, quad_nAlpha, quad_nGamma; //!< Subdivisions for euler angle outer-product quadrature
@@ -95,9 +99,8 @@ struct FluidSolverParams
 	
 	ExCorr exCorr; //!< Fluid exchange, correlation. and kinetic energy functional
 	
-	//For Ionic fluid in JDFT3.0
+	//For Ionic fluid in Explicit Fluid JDFT
 	std::vector<HardSphereIon> hSIons; //!< vector of hard sphere ion objects to be initialized in fluidMixture
-	
 	
 	FluidSolverParams() : verboseLog(false) {}
 };
@@ -108,7 +111,7 @@ struct FluidSolver
 {
 	const Everything& e;
 
-	//! Abstract base class constructor - do not use directly - see FluidJDFTx::createSolver
+	//! Abstract base class constructor - do not use directly - see FluidSolver::createSolver
 	FluidSolver(const Everything &everything);
 		
 	virtual ~FluidSolver() {}
@@ -145,9 +148,6 @@ struct FluidSolver
 
 	//! Minimize fluid side (holding explicit electronic system fixed)
 	virtual void minimizeFluid()=0;
-
-protected:
-
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)
@@ -159,4 +159,4 @@ protected:
 //! @param params Extra parameters, some functional specific
 FluidSolver* createFluidSolver(FluidType type, const Everything& e, FluidSolverParams& params);
 
-#endif // JDFTX_ELECTRONIC_FLUIDJDFTX_H
+#endif // JDFTX_ELECTRONIC_FLUIDSOLVER_H

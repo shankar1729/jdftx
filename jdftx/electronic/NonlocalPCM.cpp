@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/DataMultiplet.h>
 #include <electronic/NonlocalPCM.h>
-#include <electronic/LinearJDFT1.h>
+#include <electronic/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/operators.h>
@@ -171,7 +171,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	
 	//Compute cavity shape function (0 to 1)
 	nProduct = I(nFluid * nCavityTilde);
-	JDFT1_shapeFunc(nProduct, shape, nc, sqrt(0.5));
+	pcmShapeFunc(nProduct, shape, nc, sqrt(0.5));
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
@@ -226,7 +226,7 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
 		}
 	}
-	DataRptr grad_nProduct; JDFT1_shapeFunc_grad(nProduct, grad_shape, grad_nProduct, nc, sqrt(0.5));
+	DataRptr grad_nProduct; pcmShapeFunc_grad(nProduct, grad_shape, grad_nProduct, nc, sqrt(0.5));
 	grad_nCavityTilde = nFluid * J(grad_nProduct);
 
 	//Compute and return A_diel:

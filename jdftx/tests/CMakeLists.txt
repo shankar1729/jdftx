@@ -6,7 +6,7 @@ ADD_EXECUTABLE(         TestPlanar            TestPlanar.cpp) #Parallel plate ca
 ADD_EXECUTABLE(      TestOperators         TestOperators.cpp) #Test operators and memory management
 ADD_EXECUTABLE( SO3quadConvergence    SO3quadConvergence.cpp) #Test SO3 quadrature convergence
 ADD_EXECUTABLE(       NonlinearEps          NonlinearEps.cpp) #Nonlinear dielectric constant
-ADD_EXECUTABLE(    CavitationJDFT1       CavitationJDFT1.cpp) #Compute cavitation energy given electron density (to complement JDFT1)
+ADD_EXECUTABLE(      CavitationH2O         CavitationH2O.cpp) #Compute cavitation energy given electron density (to complement JDFT1)
 ADD_EXECUTABLE(    CavitationLJ             CavitationLJ.cpp) #Compute hard sphere cavitation energy given electron density
 ADD_EXECUTABLE(         TestFixedN            TestFixedN.cpp) #Attemping Fixed N capability
 ADD_EXECUTABLE(       TestGaussian          TestGaussian.cpp) #Tests water functionals with parabolic potential well
@@ -17,7 +17,7 @@ TARGET_LINK_LIBRARIES(         TestPlanar   jdftxFluid)
 TARGET_LINK_LIBRARIES(      TestOperators   jdftxElectronic)
 TARGET_LINK_LIBRARIES( SO3quadConvergence   jdftxFluid)
 TARGET_LINK_LIBRARIES(       NonlinearEps   jdftxFluid)
-TARGET_LINK_LIBRARIES(    CavitationJDFT1   jdftxFluid)
+TARGET_LINK_LIBRARIES(      CavitationH2O   jdftxFluid)
 TARGET_LINK_LIBRARIES(    CavitationLJ      jdftxFluid)
 TARGET_LINK_LIBRARIES(         TestFixedN   jdftxFluid)
 TARGET_LINK_LIBRARIES(       TestGaussian   jdftxFluid)
@@ -30,7 +30,7 @@ set_target_properties(
             TestOperators
        SO3quadConvergence
              NonlinearEps
-          CavitationJDFT1
+            CavitationH2O
              CavitationLJ
                TestFixedN
              TestGaussian
@@ -49,7 +49,7 @@ if(CUDA_FOUND)
 	ADD_EXECUTABLE(      TestOperators_gpu         TestOperators.cpp) #Test operators and memory management
 	ADD_EXECUTABLE( SO3quadConvergence_gpu    SO3quadConvergence.cpp) #Test operators and memory management
 	ADD_EXECUTABLE(       NonlinearEps_gpu          NonlinearEps.cpp) #Nonlinear dielectric constant
-	ADD_EXECUTABLE(    CavitationJDFT1_gpu       CavitationJDFT1.cpp) #Compute cavitation energy given electron density (to complement JDFT1)
+	ADD_EXECUTABLE(      CavitationH2O_gpu         CavitationH2O.cpp) #Compute cavitation energy given electron density (to complement JDFT1)
 	ADD_EXECUTABLE(       CavitationLJ_gpu          CavitationLJ.cpp) #Compute cavitation energy given electron density
 	ADD_EXECUTABLE(         TestFixedN_gpu            TestFixedN.cpp) #Attemping Fixed N capability
 	ADD_EXECUTABLE(       TestGaussian_gpu          TestGaussian.cpp) #Tests water functionals with parabolic potential well
@@ -61,7 +61,7 @@ if(CUDA_FOUND)
 	TARGET_LINK_LIBRARIES(      TestOperators_gpu   jdftxElectronic_gpu)
 	TARGET_LINK_LIBRARIES( SO3quadConvergence_gpu   jdftxFluid_gpu)
 	TARGET_LINK_LIBRARIES(       NonlinearEps_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(    CavitationJDFT1_gpu   jdftxFluid_gpu)
+	TARGET_LINK_LIBRARIES(      CavitationH2O_gpu   jdftxFluid_gpu)
 	TARGET_LINK_LIBRARIES(       CavitationLJ_gpu   jdftxFluid_gpu)
 	TARGET_LINK_LIBRARIES(         TestFixedN_gpu   jdftxFluid_gpu)
 	TARGET_LINK_LIBRARIES(       TestGaussian_gpu   jdftxFluid_gpu)
@@ -74,7 +74,7 @@ if(CUDA_FOUND)
 	            TestOperators_gpu
 	       SO3quadConvergence_gpu
 	             NonlinearEps_gpu
-	          CavitationJDFT1_gpu
+	            CavitationH2O_gpu
                  CavitationLJ_gpu
 	               TestFixedN_gpu
 	             TestGaussian_gpu

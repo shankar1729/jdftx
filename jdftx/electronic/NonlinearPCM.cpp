@@ -18,16 +18,38 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Everything.h>
-#include <electronic/NonlinearJDFT1.h>
-#include <electronic/LinearJDFT1.h> // for JDFT1 shape function
+#include <electronic/NonlinearPCM.h>
+#include <electronic/PCM_internal.h>
 #include <core/Units.h>
 #include <core/DataIO.h>
+#include <core/Operators.h>
+#include <electronic/operators.h>
+#include <core/Util.h>
+#include <core/DataMultiplet.h>
 
 inline DataRptr& getMu(DataRMuEps& X) { return X[0]; }
 inline const DataRptr& getMu(const DataRMuEps& X) { return X[0]; }
 inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+1); }
 inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+1); }
 inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
+
+//! Returns the cavitation energy contribution (volume and surface terms)
+inline double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure){
+		
+	//DataRptr surface = pow(I(D(J(shape), 0)), 2) + pow(I(D(J(shape), 1)), 2) + pow(I(D(J(shape), 2)), 2);
+	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+	double surfaceArea = integral(surfaceDensity);
+	double volume = integral(1.-shape);
+
+	if(grad)
+	{	DataRptr invSurfaceDensity = inv(surfaceDensity);
+		grad += -cavityTension*divergence(shape_x*invSurfaceDensity); // Surface term
+		grad += -cavityPressure;
+	}
+	
+	return surfaceArea*cavityTension + volume*cavityPressure;
+}
 
 //Ratio of the fractional polarization (p/shape*pMol) to eps
 //(with regulariztaion around 0)
@@ -130,7 +152,7 @@ inline double myxcosh(double x, bool linearScreening)
 
 //calculates f[mu] (the G=0 component of mu required to allow charge balance between ions and explicit system)
 inline double calc_grad_fmu(size_t i, double rhoExplicitGzero, double nNegGzero, double nPosGzero,
-	const double* shapeData, const double* muData, const NonlinearJDFT1params* params)
+	const double* shapeData, const double* muData, const NonlinearPCMparams* params)
 {
 	const double &shape=shapeData[i];
 	const double &mu=muData[i];
@@ -159,7 +181,7 @@ inline double calc_grad_fmu(size_t i, double rhoExplicitGzero, double nNegGzero,
 
 //calculates derivative of f[mu] with respect to the shape function
 inline double calc_derivfmu_shape(size_t i, double rhoExplicitGzero, double nNegGzero, double nPosGzero,
-	const double* muData, const NonlinearJDFT1params* params)
+	const double* muData, const NonlinearPCMparams* params)
 {
 	const double &mu=muData[i];
 	double betaPos = +params->ionicConcentration*myexp(+mu,params->linearScreening) / nPosGzero;
@@ -187,7 +209,7 @@ inline double calc_derivfmu_shape(size_t i, double rhoExplicitGzero, double nNeg
 //Compute polarization density, entropy and dipole correlation terms, and their gradient
 inline double dipoleCorrEntropy(size_t i, vector3<const double*> epsData, const double* shapeData,
 		vector3<double*> pData, vector3<double*> grad_epsData, double* grad_shapeData,
-		const NonlinearJDFT1params* params)
+		const NonlinearPCMparams* params)
 {	const double &shape=shapeData[i];
 	vector3<> epsVec = loadVector(epsData, i);
 	register double eps = epsVec.length();
@@ -208,7 +230,7 @@ inline double dipoleCorrEntropy(size_t i, vector3<const double*> epsData, const 
 
 //Compute polarization density, entropy and dipole correlation terms, (ionic screening terms if present) and their gradient
 inline double IonEnergy(size_t i,const double* muEffData, const double* shapeData, double* grad_muEffData,
-						double* grad_shapeData, const NonlinearJDFT1params* params)
+						double* grad_shapeData, const NonlinearPCMparams* params)
 {
 	const double &shape=shapeData[i];
 	const double &muEff=muEffData[i];
@@ -225,9 +247,9 @@ inline double IonEnergy(size_t i,const double* muEffData, const double* shapeDat
 }
 
 //Accumulate contributions from grad_p into grad_eps:
-inline void convert_grad_p_eps_JDFT1(size_t i, vector3<const double*> epsData, const double* shapeData,
+inline void convert_grad_p_eps(size_t i, vector3<const double*> epsData, const double* shapeData,
 		vector3<const double*> grad_pData, vector3<double*> grad_epsData, double* grad_shapeData,
-		const NonlinearJDFT1params* params)
+		const NonlinearPCMparams* params)
 {	const double &shape=shapeData[i];
 	vector3<> epsVec = loadVector(epsData, i);
 	vector3<> grad_pVec = loadVector(grad_pData, i);
@@ -247,7 +269,7 @@ inline void convert_grad_p_eps_JDFT1(size_t i, vector3<const double*> epsData, c
 //Accumulate contributions from grad_muEff into grad_mu:
 inline void convert_grad_muEff_mu(size_t i, const double* muData, const double* shapeData,
 		const double* grad_muEffData, double* grad_muData, double* grad_shapeData, const double rhoExplicitGzero,
-		const double nNegGzero, const double nPosGzero, const double sumGradMuEff, const NonlinearJDFT1params* params)
+		const double nNegGzero, const double nPosGzero, const double sumGradMuEff, const NonlinearPCMparams* params)
 {
 	double grad_muEff=grad_muEffData[i];
 	double grad_fmu=calc_grad_fmu(i, rhoExplicitGzero, nNegGzero, nPosGzero, shapeData, muData, params);
@@ -261,7 +283,7 @@ inline void convert_grad_muEff_mu(size_t i, const double* muData, const double* 
 
 //Accumulate contributions from grad_muEff into grad_mu:
 inline void calc_rhoIon(size_t i, const double* muEffData, const double* shapeData,
-		double* rhoIonData, double* grad_rhoIon_muEffData, double* deriv_rhoIon_shapeData,const NonlinearJDFT1params* params)
+		double* rhoIonData, double* grad_rhoIon_muEffData, double* deriv_rhoIon_shapeData,const NonlinearPCMparams* params)
 {
 	register double muEff, shape;
 	muEff = muEffData[i];
@@ -277,7 +299,7 @@ inline void calc_rhoIon(size_t i, const double* muEffData, const double* shapeDa
 	}
 }
 
-NonlinearJDFT1::NonlinearJDFT1(const Everything& e, const FluidSolverParams& fsp)
+NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : FluidSolver(e), params(fsp), MuKernel(e.gInfo)
 {	
 	//Initialize extra parameters:
@@ -291,12 +313,12 @@ inline void setMuKernel(int i, double G2, double* MuKernel, double meanKsq)
 	else MuKernel[i] = 1.0/(G2 + meanKsq);
 }
 
-void NonlinearJDFT1::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {	this->rhoExplicitTilde = rhoExplicitTilde;
 	this->nCavity = I(nCavityTilde);
 	//Initialize point-dipole density
 	nullToZero(shape,e.gInfo);
-	JDFT1_shapeFunc(nCavity, shape, params.nc, params.sigma);
+	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
 	DataRptr epsilon = 1 + (params.epsilonBulk-1)*shape;
 	DataRptr kappaSq = params.ionicConcentration ? params.k2factor*shape : 0;
@@ -317,7 +339,7 @@ void NonlinearJDFT1::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavi
 	}
 }
 
-double NonlinearJDFT1::operator()(const DataRMuEps& state, DataRMuEps& grad_state, DataGptr* grad_rhoExplicitTilde, DataGptr* grad_nCavityTilde) const
+double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state, DataGptr* grad_rhoExplicitTilde, DataGptr* grad_nCavityTilde) const
 {
 	DataRptr grad_shape; if(grad_nCavityTilde) nullToZero(grad_shape, e.gInfo);
 
@@ -335,6 +357,9 @@ double NonlinearJDFT1::operator()(const DataRMuEps& state, DataRMuEps& grad_stat
 	double nPosGzero = 0.0, nNegGzero = 0.0,rhoExplicitGzero = 0.0;
 	DataRptr muEff, grad_muEff, grad_rhoIon_muEff, grad_rhoIon_shape;
 
+	//! The cavitation energy
+	double Acavity = cavitationEnergyAndGrad(shape, grad_shape, params.cavityTension, params.cavityPressure);
+	
 	if(params.ionicConcentration)
 	{
 
@@ -383,7 +408,7 @@ double NonlinearJDFT1::operator()(const DataRMuEps& state, DataRMuEps& grad_stat
 
 	DataRptrVec grad_p = -I(gradient(phiBound+phiExplicit));
 
-	threadedLoop(convert_grad_p_eps_JDFT1, e.gInfo.nr, eps.const_data(), shape->data(), grad_p.const_data(),
+	threadedLoop(convert_grad_p_eps, e.gInfo.nr, eps.const_data(), shape->data(), grad_p.const_data(),
 		         grad_eps.data(),(grad_shape ? grad_shape->data() : 0), &params);
 
     double Aion = 0.0;
@@ -406,50 +431,50 @@ double NonlinearJDFT1::operator()(const DataRMuEps& state, DataRMuEps& grad_stat
 	}
 	if(grad_nCavityTilde)
 	{	DataRptr grad_nCavity(DataR::alloc(e.gInfo));
-		JDFT1_shapeFunc_grad(nCavity, grad_shape, grad_nCavity, params.nc, params.sigma);
+		pcmShapeFunc_grad(nCavity, grad_shape, grad_nCavity, params.nc, params.sigma);
 		*grad_nCavityTilde = J(grad_nCavity);
 	}
 	setMuEps(grad_state, grad_mu, grad_eps);
 	grad_state *= e.gInfo.dV; //converts variational derivative to total derivative
-	return AcorrNI + Acoulomb + Aion;
+	return AcorrNI + Acoulomb + Aion + Acavity;
 }
 
-void NonlinearJDFT1::minimizeFluid()
+void NonlinearPCM::minimizeFluid()
 {
-	TIME("NonlinearJDFT1 minimize", globalLog,
+	TIME("NonlinearPCM minimize", globalLog,
 		minimize(e.fluidMinParams);
 	)
 }
 
-void NonlinearJDFT1::loadState(const char* filename)
+void NonlinearPCM::loadState(const char* filename)
 {
 	nullToZero(state, e.gInfo);
 	state.loadFromFile(filename);
 }
 
-void NonlinearJDFT1::saveState(const char* filename) const
+void NonlinearPCM::saveState(const char* filename) const
 {
 	state.saveToFile(filename);
 }
 
-double NonlinearJDFT1::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)
+double NonlinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)
 {
 	DataRMuEps grad_state;//change to grad_state
 	return (*this)(state, grad_state, &grad_rhoExplicitTilde, &grad_nCavityTilde);
 }
 
-void NonlinearJDFT1::step(const DataRMuEps& dir, double alpha)
+void NonlinearPCM::step(const DataRMuEps& dir, double alpha)
 {
 	axpy(alpha, dir, state);
 }
 
-double NonlinearJDFT1::compute(DataRMuEps* grad)
+double NonlinearPCM::compute(DataRMuEps* grad)
 {
 	DataRMuEps gradUnused;
 	return (*this)(state, grad ? *grad : gradUnused);
 }
 
-DataRMuEps NonlinearJDFT1::precondition(const DataRMuEps& in) const
+DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in) const
 {	DataRMuEps PreconIn;
 	setMuEps(PreconIn, I(MuKernel*J(getMu(in))), getEps(in));
 	return PreconIn;

@@ -17,11 +17,11 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/FluidJDFTx.h>
+#include <electronic/FluidSolver.h>
 #include <electronic/Everything.h>
 #include <electronic/NonlocalPCM.h>
-#include <electronic/NonlinearJDFT1.h>
-#include <electronic/LinearJDFT1.h>
+#include <electronic/NonlinearPCM.h>
+#include <electronic/LinearPCM.h>
 #include <electronic/ConvCoupling.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/FluidMixture.h>
@@ -427,8 +427,9 @@ FluidSolver* createFluidSolver(FluidType type, const Everything& e, FluidSolverP
 {	switch(type)
 	{
 		case FluidNone: return 0; //No solver needed
-		case FluidLinear: return new LinearJDFT1(e, params);
-		case FluidNonlinear: return new NonlinearJDFT1(e, params);
+		case FluidLinear: return new LinearPCM(e, params);
+		case FluidLinearPCM: return new LinearPCM(e, params);
+		case FluidNonlinearPCM: return new NonlinearPCM(e, params);
 		case FluidNonlocalPCM: return new NonlocalPCM(e, params);
 		default: //All JDFT3 functionals:
 			return new ConvolutionJDFT(e, params, type);

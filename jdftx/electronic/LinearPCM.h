@@ -17,35 +17,27 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_LINEARJDFT1_H
-#define JDFTX_ELECTRONIC_LINEARJDFT1_H
+#ifndef JDFTX_ELECTRONIC_LINEARPCM_H
+#define JDFTX_ELECTRONIC_LINEARPCM_H
 
-#include <electronic/FluidJDFTx.h>
+#include <electronic/FluidSolver.h>
 #include <core/Minimize.h>
 
 
-//! Compute the shape function (0 to 1) given the cavity-determining electron density
-void JDFT1_shapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, const double sigma);
-
-//!Compute derivative with respect to cavity-determining electron density, given derivative with respect to shape function
-void JDFT1_shapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma);
-
-
-
-//! Some extra quantities specific to LinearJDFT1 added here
-struct LinearJDFT1params : public FluidSolverParams
+//! Some extra quantities specific to LinearPCM added here
+struct LinearPCMparams : public FluidSolverParams
 {
 	double k2factor; //!< Prefactor to kappaSq (computed from T, ionicConcentration and ionicZelectrolyte)
 
 	//! A copy constructor to set base-class variables
-	LinearJDFT1params(const FluidSolverParams& p) : FluidSolverParams(p) {}
+	LinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p) {}
 };
 
 
-class LinearJDFT1 : public FluidSolver, public LinearSolvable<DataGptr>
+class LinearPCM : public FluidSolver, public LinearSolvable<DataGptr>
 {
 public:
-	LinearJDFT1(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
 	bool needsGummel() { return false; }
 
 	DataGptr hessian(const DataGptr&); //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
@@ -67,8 +59,8 @@ public:
 private:
 	DataRptr nCavity, epsilon, kappaSq;
 	DataGptr rhoExplicitTilde;
-	LinearJDFT1params params;
+	LinearPCMparams params;
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
 };
 
-#endif // JDFTX_ELECTRONIC_LINEARJDFT1_H
+#endif // JDFTX_ELECTRONIC_LINEARPCM_H

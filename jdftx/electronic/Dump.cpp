@@ -187,7 +187,7 @@ void Dump::operator()(DumpFrequency freq)
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
 		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+		if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
 		e->ener.print(fp);
 		fclose(fp);
 		EndDump

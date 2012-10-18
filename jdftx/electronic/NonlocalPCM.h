@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_NONLOCALPCM_H
 #define JDFTX_ELECTRONIC_NONLOCALPCM_H
 
-#include <electronic/FluidJDFTx.h>
+#include <electronic/FluidSolver.h>
 #include <core/Minimize.h>
 
 class NonlocalPCM : public FluidSolver, public LinearSolvable<DataGptr>

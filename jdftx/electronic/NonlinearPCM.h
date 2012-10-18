@@ -18,36 +18,36 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 
-#ifndef JDFTX_ELECTRONIC_NONLINEARJDFT1_H
-#define JDFTX_ELECTRONIC_NONLINEARJDFT1_H
+#ifndef JDFTX_ELECTRONIC_NONLINEARPCM_H
+#define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
 #include <core/GridInfo.h>
 #include <core/DataMultiplet.h>
 #include <core/Minimize.h>
-#include <electronic/FluidJDFTx.h>
+#include <electronic/FluidSolver.h>
 #include <cstdio>
 
 typedef DataMultiplet<DataR,4> DataRMuEps;
 
-//Some extra quantities specific to NonlinearJDFT1 added here
-struct NonlinearJDFT1params : public FluidSolverParams
+//Some extra quantities specific to NonlinearPCM added here
+struct NonlinearPCMparams : public FluidSolverParams
 {
 	double Kdip; //! dipole correlation prefactor (adjusted to obtain bulk dielectric constant for a given temperature)
 	double k2factor; //! inverse bulk ionic screening length squared
-
+	
 	//! A copy constructor to set base-class variables
-	NonlinearJDFT1params(const FluidSolverParams& p) : FluidSolverParams(p) {}
+	NonlinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p) {}
 };
 
 
 
-class NonlinearJDFT1 : public FluidSolver, public Minimizable<DataRMuEps>
+class NonlinearPCM : public FluidSolver, public Minimizable<DataRMuEps>
 {
 public:
 	DataRMuEps state; //!< State of the solver = the legendre multipliers to the polarization field (and ionic concentrations)
 
 	//! See createFluidSolver()
-	NonlinearJDFT1(const Everything& e, const FluidSolverParams& params);
+	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
 	
 	bool needsGummel() { return true; }
 
@@ -72,9 +72,9 @@ public:
 private:
 	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;
-	NonlinearJDFT1params params;
+	NonlinearPCMparams params;
 	RealKernel MuKernel;
 };
 
 
-#endif // JDFTX_ELECTRONIC_NONLINEARJDFT1_H
+#endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

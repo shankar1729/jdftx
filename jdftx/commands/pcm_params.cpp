@@ -21,22 +21,40 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 
 
-struct CommandJdft1shape : public Command
+struct CommandPcmParams : public Command
 {
-	CommandJdft1shape() : Command("jdft1-shape")
+	CommandPcmParams() : Command("jdft1-shape") //TODO: Change name to pcm-params and update documentation
 	{
 		format = "[<nc>=7e-4] [<sigma>=0.6]";
-		comments = "Control the critical density <nc> and smoothing parameter <sigma> for the JDFT1 cavity";
+		comments = "Control the critical density <nc> and smoothing parameter <sigma> for PCM cavities";
 		hasDefault = true;
+		require("fluid");
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.eVars.fluidParams.nc, 7e-4, "nc");
-		pl.get(e.eVars.fluidParams.sigma, 0.6, "sigma");
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		double nc=7e-4, sigma=0.6, cavityPressure=0., cavityTension=0.; //defaults for FluidLinear
+		switch(e.eVars.fluidType)
+		{	case FluidLinear: //defaults set above
+				break;
+			case FluidLinearPCM:
+				//TODO
+				break;
+			case FluidNonlinearPCM:
+				//TODO
+				break;
+			default: //Other fluids do not use these parameters
+				break;
+		}
+		pl.get(fsp.nc, nc, "nc");
+		pl.get(fsp.sigma, sigma, "sigma");
+		pl.get(fsp.cavityTension, cavityTension, "cavityTension");
+		pl.get(fsp.cavityPressure, cavityPressure, "cavityPressure");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg %lg", e.eVars.fluidParams.nc, e.eVars.fluidParams.sigma);
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%lg %lg %lg %lg", fsp.nc, fsp.sigma, fsp.cavityTension, fsp.cavityPressure);
 	}
 }
-commandJdft1shape;
+commandPcmParams;
