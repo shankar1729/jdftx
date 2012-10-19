@@ -121,8 +121,7 @@ void InverseKohnSham::constrain(DataRptrCollection& dir)
 }
 
 bool InverseKohnSham::report(int iter)
-{	if(e.dump.shouldDump(DumpFreq_Ionic, iter))
-		e.dump(DumpFreq_Ionic); //Each step is an electronic solve, so this roughly equivalent to an ionic step in cost
+{	e.dump(DumpFreq_Ionic, iter); //Each step is an electronic solve, so this roughly equivalent to an ionic step in cost
 	return false;
 }
 

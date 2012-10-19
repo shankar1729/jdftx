@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid/Fex_H2O_Lischner10_internal.h>
-#include <fluid/Fex_H2O_Lischner10.h>
+#include <fluid/Fex_H2O_FittedCorrelations_internal.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
 #include <core/Units.h>
 #include <core/Operators.h>
 
@@ -58,7 +58,7 @@ inline void setKernels(int i, double G2, double* COO, double* COH, double* CHH, 
 }
 
 
-Fex_H2O_Lischner10::Fex_H2O_Lischner10(FluidMixture& fluidMixture)
+Fex_H2O_FittedCorrelations::Fex_H2O_FittedCorrelations(FluidMixture& fluidMixture)
 : Fex(fluidMixture),
 COO(gInfo), COH(gInfo), CHH(gInfo), fex_gauss(gInfo), siteChargeKernel(gInfo),
 propO(gInfo, 0.0,0.0, 0.8476,&siteChargeKernel),
@@ -71,24 +71,25 @@ molecule("H2O",
 		 vector3<>(0, +rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)) )
 {
 	if(fabs(T/Kelvin-298)>1)
-		die("The Lischner10 functional is only valid at T=298K.\n")
+		die("The FittedCorrelations functional is only valid at T=298K.\n")
 	
 	//Initialize the kernels:
 	applyFuncGsq(gInfo, setKernels, COO.data, COH.data, CHH.data, fex_gauss.data, siteChargeKernel.data);
 	COO.set(); COH.set(); CHH.set(); fex_gauss.set(), siteChargeKernel.set();
 
-
+	Citations::add("Fitted-Correlations water functional",
+		"J. Lischner and T.A. Arias, J Phys Chem B. 114, 1946 (2010)");
 }
 
-double Fex_H2O_Lischner10::get_aDiel() const
+double Fex_H2O_FittedCorrelations::get_aDiel() const
 {	return 0.959572098592; //Evaluating eps/(eps-1) - epsNI/(epsNI-1) for eps=78.4 and epsNI at STP
 }
 
 #ifdef GPU_ENABLED
-void Fex_H20_Lischner10_gpu(int nr, const double* NObar, const double* NHbar,
+void Fex_H20_FittedCorrelations_gpu(int nr, const double* NObar, const double* NHbar,
 	double* Fex, double* grad_NObar, double* grad_NHbar);
 #endif
-double Fex_H2O_Lischner10::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const
+double Fex_H2O_FittedCorrelations::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const
 {	double PhiEx = 0.0;
 	//Quadratic part:
 	DataGptr V_O = double(gInfo.nr)*(COO*Ntilde[0] + COH*Ntilde[1]); grad_Ntilde[0] += V_O;
@@ -101,11 +102,11 @@ double Fex_H2O_Lischner10::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde
 	//Evaluated weighted density functional:
 	#ifdef GPU_ENABLED
 	DataRptr fex(DataR::alloc(gInfo,isGpuEnabled()));
-	Fex_H20_Lischner10_gpu(gInfo.nr, NObar->dataGpu(), NHbar->dataGpu(),
+	Fex_H20_FittedCorrelations_gpu(gInfo.nr, NObar->dataGpu(), NHbar->dataGpu(),
 		 fex->dataGpu(), grad_NObar->dataGpu(), grad_NHbar->dataGpu());
 	PhiEx += integral(fex);
 	#else
-	PhiEx += gInfo.dV*threadedAccumulate(Fex_H2O_Lischner10_calc, gInfo.nr,
+	PhiEx += gInfo.dV*threadedAccumulate(Fex_H2O_FittedCorrelations_calc, gInfo.nr,
 		 NObar->data(), NHbar->data(), grad_NObar->data(), grad_NHbar->data());
 	#endif
 	//Convert gradients:
@@ -114,6 +115,6 @@ double Fex_H2O_Lischner10::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde
 	return PhiEx;
 }
 
-double Fex_H2O_Lischner10::computeUniform(const double* N, double* grad_N) const
-{	return Fex_H2O_Lischner10_calc(0, &N[0], &N[1], &grad_N[0], &grad_N[1]);
+double Fex_H2O_FittedCorrelations::computeUniform(const double* N, double* grad_N) const
+{	return Fex_H2O_FittedCorrelations_calc(0, &N[0], &N[1], &grad_N[0], &grad_N[1]);
 }

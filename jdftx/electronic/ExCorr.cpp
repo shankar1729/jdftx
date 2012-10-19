@@ -177,8 +177,13 @@ public:
 		if(xc_func_init(&funcPolarized, xcCode, XC_POLARIZED) != 0)
 			die("Error initializing LibXC polarized %s functional\n", typeName);
 		
-		logPrintf("Initialized LibXC %s functional '%s'\n[ %s ]\n\n",
-			typeName, funcUnpolarized.info->name, funcUnpolarized.info->refs);
+		logPrintf("Initialized LibXC %s functional '%s'\n", typeName, funcUnpolarized.info->name);
+		
+		Citations::add("LibXC library of exchange-correlation functions",
+			"M. A. L. Marques, M. J. T. Oliveira and T. Burnus, Comput. Phys. Commun. 183, 2272 (2012)");
+		Citations::add(
+			funcUnpolarized.info->name + string(" ") + typeName + string(" functional"),
+			funcUnpolarized.info->refs);
 	}
 	~FunctionalLibXC()
 	{	xc_func_end(&funcUnpolarized);
@@ -289,6 +294,9 @@ functionals(std::make_shared<FunctionalList>())
 
 void ExCorr::setup(const Everything& everything)
 {	e = &everything;
+	
+	string citeReason = xcName + " exchange-correlation functional";
+
 	switch(exCorrType)
 	{
 		#ifdef LIBXC_ENABLED
@@ -309,46 +317,57 @@ void ExCorr::setup(const Everything& everything)
 		case ExCorrLDA_PZ:
 			functionals->add(LDA_X_Slater);
 			functionals->add(LDA_C_PZ);
+			Citations::add(citeReason, "J.P. Perdew and A. Zunger, Phys. Rev. B 23, 5048 (1981)");
 			break;
 		case ExCorrLDA_PW:
 			functionals->add(LDA_X_Slater);
 			functionals->add(LDA_C_PW);
+			Citations::add(citeReason, "J.P. Perdew and Y. Wang, Phys. Rev. B 45, 13244 (1992)");
 			break;
 		case ExCorrLDA_PW_prec:
 			functionals->add(LDA_X_Slater);
 			functionals->add(LDA_C_PW_prec);
+			Citations::add(citeReason, "J.P. Perdew and Y. Wang, Phys. Rev. B 45, 13244 (1992)");
 			break;
 		case ExCorrLDA_VWN:
 			functionals->add(LDA_X_Slater);
 			functionals->add(LDA_C_VWN);
+			Citations::add(citeReason, "S.H. Vosko, L. Wilk and M. Nusair, Can. J. Phys. 58, 1200 (1980)");
 			break;
 		case ExCorrLDA_Teter:
 			functionals->add(LDA_XC_Teter);
+			Citations::add(citeReason, "S. Goedecker, M. Teter and J. Hutter, Phys. Rev. B 54, 1703 (1996)");
 			break;
 		case ExCorrGGA_PBE:
 			functionals->add(GGA_X_PBE);
 			functionals->add(GGA_C_PBE);
+			Citations::add(citeReason, "J.P. Perdew, K. Burke and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996)");
 			break;
 		case ExCorrGGA_PBEsol:
 			functionals->add(GGA_X_PBEsol);
 			functionals->add(GGA_C_PBEsol);
+			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. Lett. 100, 136406 (2008)");
 			break;
 		case ExCorrGGA_PW91:
 			functionals->add(GGA_X_PW91);
 			functionals->add(GGA_C_PW91);
+			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. B 46, 6671 (1992)");
 			break;
 		case ExCorrMGGA_TPSS:
 			functionals->add(mGGA_X_TPSS);
 			functionals->add(mGGA_C_TPSS);
+			Citations::add(citeReason, "J. Tao, J.P. Perdew, V.N. Staroverov and G. Scuseria, Phys. Rev. Lett. 91, 146401 (2003)");
 			break;
 		case ExCorrMGGA_revTPSS:
 			functionals->add(mGGA_X_revTPSS);
 			functionals->add(mGGA_C_revTPSS);
+			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. Lett. 103, 026403 (2009)");
 			break;
 		case ExCorrHYB_PBE0:
 			exxScale = 1./4;
 			functionals->add(GGA_X_PBE, 3./4);
 			functionals->add(GGA_C_PBE);
+			Citations::add(citeReason, "M. Ernzerhof and G. E. Scuseria, J. Chem. Phys. 110, 5029 (1999)");
 			break;
 		case ExCorrHYB_HSE06:
 			exxOmega = 0.11;
@@ -356,6 +375,7 @@ void ExCorr::setup(const Everything& everything)
 			functionals->add(GGA_X_wPBE_SR, -1./4);
 			functionals->add(GGA_X_PBE);
 			functionals->add(GGA_C_PBE);
+			Citations::add(citeReason, "A.V. Krukau, O.A. Vydrov, A.F. Izmaylov and G.E. Scuseria, J. Chem. Phys. 125, 224106 (2006)");
 			break;
 		case ExCorrHF:
 			exxScale = 1.;
@@ -373,13 +393,20 @@ void ExCorr::setup(const Everything& everything)
 			break;
 		case KineticTF:
 			functionals->add(LDA_KE_TF);
+			Citations::add("Thomas-Fermi kinetic energy functional",
+				"L.H. Thomas, Proc. Cambridge Phil. Soc. 23, 542 (1927)\n"
+				"E. Fermi, Rend. Accad. Naz. Lincei 6, 602 (1927)");
 			break;
 		case KineticVW:
 			functionals->add(LDA_KE_TF);
 			functionals->add(GGA_KE_VW);
+			Citations::add("Thomas-Fermi-von-Weisacker kinetic energy functional",
+				"C.F.v. Weizsacker, Z. Phys. 96, 431 (1935)");
 			break;
 		case KineticPW91:
 			functionals->add(GGA_KE_PW91);
+			Citations::add("PW91K kinetic energy functional",
+				"A. Lembarki and H. Chermette, Phys. Rev. A 50, 5328 (1994)");
 			break;
 	}
 }

@@ -40,7 +40,7 @@ struct CommandFluidIon : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	
-		if((e.eVars.fluidType==FluidHSIonic)||(e.eVars.fluidType==FluidLischner10)
+		if((e.eVars.fluidType==FluidHSIonic)||(e.eVars.fluidType==FluidFittedCorrelations)
 			||(e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidBondedVoids))			
 		{
 			HardSphereIon ion;

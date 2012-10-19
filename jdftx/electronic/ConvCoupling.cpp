@@ -33,6 +33,8 @@ ConvCoupling::ConvCoupling(FluidMixture& fluidMixture)
 	//nullToZero(nFluid,gInfo);
 	//initialize the pointer in FluidMixture to point to the CouplingData structure in ConvCoupling
 	fluidMixture.ConvCouplingPtr = &CouplingData;
+	Citations::add("Convolution-coupling for Joint Density Functoinal Theory",
+		"K. Letchworth-Weaver, R. Sundararaman and T.A. Arias, (under preparation)");
 }
 
 

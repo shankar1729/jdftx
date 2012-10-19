@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <csignal>
 #include <sys/prctl.h>
+#include <list>
 
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>
@@ -126,6 +127,10 @@ void initSystem(int argc, char** argv)
 			logPrintf("Could not determine thread count from SLURM_JOB_CPUS_PER_NODE=\"%s\".\n", slurmCpusPerNode);
 	}
 	logPrintf("Will run with a maximum of %d cpu threads.\n", nProcsAvailable);
+	
+	//Add citations to the code and general framework:
+	Citations::add("Software package", "R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
+	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
 }
 
 void finalizeSystem(bool successful)
@@ -215,3 +220,63 @@ int assertStackTraceExit(const char* expr, const char* function, const char* fil
 
 FILE* globalLog = stdout; // this might be replaced by a file pointer in main
 
+
+namespace Citations
+{
+	//Single function whose static variable contains the list of citations
+	//(Done this way, so that add may be called during static initialization safely)
+	//If addCitation is non-null, enter the pair into the list
+	//If getCitationList is non-null, retrieve the list
+	void manage(std::pair<string,string>* addCitation=0, std::list<std::pair<string,string>>* getCitationList=0)
+	{	static std::list<std::pair<string,string>> citationList; //pair.first = paper, pair.second = reason
+		if(addCitation)
+		{	auto iter=citationList.begin();
+			bool foundPrev = false, duplicate = false;
+			for(; iter!=citationList.end(); iter++)
+			{	if(foundPrev && iter->second!=addCitation->second)
+					break; //End of chain of citations with current paper
+				if(iter->second==addCitation->second)
+				{	foundPrev = true;
+					if(iter->first==addCitation->first)
+					{	duplicate = true;
+						break;
+					}
+				}
+			}
+			if(!duplicate) citationList.insert(iter, *addCitation);
+		}
+		if(getCitationList) *getCitationList = citationList;
+	}
+	
+	void add(string reason, string paper)
+	{	std::pair<string,string> citation(paper, reason);
+		manage(&citation, 0);
+	}
+
+	void print(FILE* fp)
+	{	fprintf(fp, "\n---- Citations for features of the code used in this run ----\n\n");
+		//Get the citation map:
+		std::list<std::pair<string,string>> citationList;
+		manage(0, &citationList);
+		//Print entries:
+		for(auto iter=citationList.begin(); iter!=citationList.end();)
+		{	string paper = iter->first;
+			for(;;iter++)
+			{	if(iter==citationList.end() || iter->first != paper)
+				{	//End the current chain of reasons for this paper
+					istringstream iss(paper);
+					while(!iss.eof())
+					{	string line; getline(iss, line);
+						fprintf(fp, "      %s\n", line.c_str());
+					}
+					fprintf(fp, "\n");
+					break;
+				}
+				fprintf(fp, "   %s:\n", iter->second.c_str());
+			}
+		}
+		fprintf(fp,
+			"This list may not be complete. Please suggest additional citations and report\n"
+			"any other bugs by creating a ticket at https://sourceforge.net/p/jdftx/tickets\n\n");
+	}
+}

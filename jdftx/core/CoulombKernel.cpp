@@ -222,8 +222,8 @@ void CoulombKernelDesc::computeKernel(double* data, const WignerSeitz& ws, strin
 	if(loadKernel(data, filename))
 		return; //successfully loaded
 	//Call appropriate specialized routine:
-	if(nOrtho<2) { computeNonOrtho(data, ws); return; }
-	else { computeRightPrism(data, ws); return; }
+	if(nOrtho<2) computeNonOrtho(data, ws);
+	else computeRightPrism(data, ws);
 	//Save kernel to file:
 	saveKernel(data, filename);
 }

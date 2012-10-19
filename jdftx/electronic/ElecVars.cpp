@@ -198,6 +198,13 @@ void ElecVars::setup(const Everything &everything)
 			fluidSolver->loadState(fluidInitialStateFilename.c_str());
 		}
 	}
+	
+	//Citations:
+	Citations::add("Total energy minimization",
+		"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");
+	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		Citations::add("Direct minimization with Fermi fillings",
+			"C. Freysoldt, S. Boeck, and J. Neugebauer, Phys. Rev. B 79, 241103(R) (2009)");
 }
 
 DataRptrCollection ElecVars::get_nXC() const

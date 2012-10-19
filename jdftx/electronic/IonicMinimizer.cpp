@@ -213,8 +213,7 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 bool IonicMinimizer::report(int iter)
 {	e.iInfo.printPositions(globalLog);
 	e.iInfo.forces.print(e, globalLog);
-	if(e.dump.shouldDump(DumpFreq_Ionic, iter))
-		e.dump(DumpFreq_Ionic);
+	e.dump(DumpFreq_Ionic, iter);
 	return false;
 }
 

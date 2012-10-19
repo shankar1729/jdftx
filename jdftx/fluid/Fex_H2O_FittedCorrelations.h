@@ -17,16 +17,16 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_FLUID_FEX_H2O_LISCHNER10_H
-#define JDFTX_FLUID_FEX_H2O_LISCHNER10_H
+#ifndef JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_H
+#define JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_H
 #include <fluid/Fex.h>
 
-class Fex_H2O_Lischner10 : public Fex
+class Fex_H2O_FittedCorrelations : public Fex
 {
 public:
 	//! Create water with the excess functional from:
 	//! J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010).
-	Fex_H2O_Lischner10(FluidMixture& fluidMixture);
+	Fex_H2O_FittedCorrelations(FluidMixture& fluidMixture);
 
 	const Molecule* getMolecule() const { return &molecule; }
 	double get_aDiel() const;
@@ -40,4 +40,4 @@ private:
 };
 
 
-#endif // JDFTX_FLUID_FEX_H2O_LISCHNER10_H
+#endif // JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_H

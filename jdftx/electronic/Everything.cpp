@@ -121,7 +121,7 @@ void Everything::setup()
 		case FluidNonlocalPCM:
 			fluidMinParams.nDim = gInfo.nr; break;
 		case FluidNonlinearPCM: fluidMinParams.nDim = 4 * gInfo.nr; break;
-		case FluidLischner10:
+		case FluidFittedCorrelations:
 		case FluidScalarEOS:
 			fluidMinParams.nDim = 4 * gInfo.nr; 
 			break;

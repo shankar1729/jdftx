@@ -120,6 +120,17 @@ extern FILE* globalLog;
 	}
 
 
+//--------------- Citations --------------------
+namespace Citations
+{	//!Add a citation to a paper with a reason
+	//!(The same paper could be cited multiple times for different reasons)
+	void add(string reason, string paper);
+	
+	//!Print the list of citations (with reasons) to the specified stream
+	void print(FILE* fp=globalLog);
+}
+
+
 //--------------- Miscellaneous ------------------
 
 //! For any x and y>0, compute z = x % y such that 0 <= z < y

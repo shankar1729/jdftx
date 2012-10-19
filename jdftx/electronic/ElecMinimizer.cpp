@@ -133,8 +133,7 @@ bool ElecMinimizer::report(int iter)
 	}
 	
 	//Dump:
-	if(e.dump.shouldDump(DumpFreq_Electronic, iter))
-		e.dump(DumpFreq_Electronic);
+	e.dump(DumpFreq_Electronic, iter);
 	
 	return stateModified;
 }
@@ -227,8 +226,7 @@ void elecFluidMinimize(Everything &e)
 			logPrintf("\nElectronic minimization # %d changed total free energy by %le\n", iGummel+1, dAelec);
 			
 			//Dump:
-			if(e.dump.shouldDump(DumpFreq_Gummel, iGummel))
-				e.dump(DumpFreq_Gummel);
+			e.dump(DumpFreq_Gummel, iGummel);
 
 			//Check self-consistency:
 			if(fabs(dAelec)<cntrl.fluidGummel_Atol && fabs(dAfluid)<cntrl.fluidGummel_Atol)

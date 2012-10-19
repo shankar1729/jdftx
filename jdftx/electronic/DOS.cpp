@@ -57,6 +57,8 @@ void DOS::setup(const Everything& everything)
 				die("Principal quantum number (%d) of density-of-states projection orbital %s exceeds maximum value (%d) for l=%d of species %s.\n",
 					oDesc.n+1, string(oDesc).c_str(), nAOl, oDesc.l, sp.name.c_str());
 		}
+	Citations::add("Linear-tetrahedron sampling for density of states",
+		"G. Lehmann and M. Taut, Phys. status solidi (b) 54, 469 (1972)");
 }
 
 string DOS::Weight::getDescription(const Everything& e) const

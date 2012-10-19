@@ -155,7 +155,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		logPrintf("Turning on subspace rotations for fermi fillings.\n");
 	}
 	else
-	{	//make sure there are suficient bands:
+	{	//make sure there are sufficient bands:
 		int nBandsMin = (int)ceil(nElectrons/2.0);
 		if(nBands < nBandsMin)
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",

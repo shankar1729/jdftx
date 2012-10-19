@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 	PreconditionedFluidMixture fluidMixture(gInfo, 298*Kelvin, 1.0);
 
 	//----- Excess functional -----
-	//Fex_H2O_Lischner10 fex(fluidMixture);
+	//Fex_H2O_FittedCorrelations fex(fluidMixture);
 	Fex_H2O_ScalarEOS fex(fluidMixture);
 
 	//----- Ideal gas -----

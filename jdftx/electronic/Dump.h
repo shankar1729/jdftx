@@ -32,13 +32,14 @@ enum DumpFrequency
 	DumpFreq_Electronic, //!< Every (few) electronic step(s)
 	DumpFreq_Fluid, //!< Every (few) fluid step(s)
 	DumpFreq_Ionic, //!< Every (few) ionic step(s)
+	DumpFreq_Lattice, //!< Every (few) lattice step(s)
 	DumpFreq_Gummel, //!< Every (few) gummel step(s)
 	DumpFreq_Delim  //special value used as a delimiter during command processing
 };
 
 //! Dump variable selection options:
 enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those required to restart calculation
-	DumpIonicPositions, DumpForces, DumpIonicDensity, //Ionic positions, Forces, Nuclear charge density
+	DumpIonicPositions, DumpForces, DumpLattice, DumpIonicDensity, //Ionic positions, Forces, Lattice vectors, Nuclear charge density
 	DumpElecDensity, DumpCoreDensity, DumpFluidDensity, // electronic valence and core densities, fluid densities
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
@@ -56,14 +57,13 @@ class Dump : public std::set<std::pair<DumpFrequency,DumpVariable> >
 public:
 	void setup(const Everything&);
 	
-	//! Dump all variables that should be dumped at the given DumpFrequency type (End/Gummel/Ionic)
-	void operator()(DumpFrequency freq);
+	//! Dump all variables that should be dumped at the given DumpFrequency type
+	//!(End/Gummel/Ionic) at the iter'th iteration at that frequency
+	void operator()(DumpFrequency freq, int iter);
 	
 	//! Get the dump filename corresponding to a particular variable name
 	string getFilename(string varName) const;
 	
-	bool shouldDump(DumpFrequency freq, int iter) const; //!< whether dump of a particular frequency should happen at a given iteration
-
 	Wannier wannier; //!< wannier function calculator
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 private:

@@ -79,7 +79,7 @@ struct TestGaussian
 		FluidMixture fluidMixture(gInfo, T);
 
 		//----- Excess functional -----
-		//Fex_H2O_Lischner10 fex(fluidMixture);
+		//Fex_H2O_FittedCorrelations fex(fluidMixture);
 		Fex_H2O_ScalarEOS fex(fluidMixture);
 		//Fex_H2O_BondedVoids fex(fluidMixture);
 		//Fex_HardSphere fex(fluidMixture, 1.3*Angstrom);

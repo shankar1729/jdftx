@@ -48,6 +48,8 @@ molecule("H2O",
 	//Initialize the kernels: 
 	applyFuncGsq(gInfo, setCoulombCutoffKernel, siteChargeKernel.data); siteChargeKernel.set();
 	setLJatt(Ua, -9.0/(32*sqrt(2)*M_PI*pow(sigmaU,3)), sigmaU);
+	Citations::add("Bonded-Voids water functional",
+		"R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012) and arXiv:1112.1442");
 }
 
 double Fex_H2O_BondedVoids::get_aDiel() const

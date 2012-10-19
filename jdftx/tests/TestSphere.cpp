@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/IdealGasPomega.h>
-#include <fluid/Fex_H2O_Lischner10.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
 #include <fluid/Fex_H2O_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
 
@@ -51,7 +51,7 @@ struct TestSphere
 		FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 		//----- Excess functional -----
-		//Fex_H2O_Lischner10 fex(fluidMixture);
+		//Fex_H2O_FittedCorrelations fex(fluidMixture);
 		Fex_H2O_ScalarEOS fex(fluidMixture);
 		//Fex_H2O_BondedVoids fex(fluidMixture);
 

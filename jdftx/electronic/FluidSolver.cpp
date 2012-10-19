@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ConvCoupling.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/FluidMixture.h>
-#include <fluid/Fex_H2O_Lischner10.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
 #include <fluid/Fex_H2O_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
 #include <fluid/Fex_HardSphereIon.h>
@@ -64,8 +64,7 @@ public:
 	{	//Call base class report:
 		bool stateModified = FluidMixture::report(iter);
 		//Dump, if required:
-		if(e.dump.shouldDump(DumpFreq_Fluid, iter))
-			((Dump&)e.dump)(DumpFreq_Fluid);
+		((Dump&)e.dump)(DumpFreq_Fluid, iter);
 		return stateModified;
 	}
 private:
@@ -98,8 +97,7 @@ public:
 		
 		//Initialize excess functional:
 		switch(type)
-		{	
-			case FluidLischner10: fex = new Fex_H2O_Lischner10(*fluidMixture); break;
+		{	case FluidFittedCorrelations: fex = new Fex_H2O_FittedCorrelations(*fluidMixture); break;
 			case FluidScalarEOS: fex = new Fex_H2O_ScalarEOS(*fluidMixture); break;
 			case FluidBondedVoids: fex = new Fex_H2O_BondedVoids(*fluidMixture); break;
 			case FluidHSIonic: break;
@@ -424,13 +422,22 @@ FluidSolver::FluidSolver(const Everything& e) : e(e)
 }
 
 FluidSolver* createFluidSolver(FluidType type, const Everything& e, FluidSolverParams& params)
-{	switch(type)
-	{
-		case FluidNone: return 0; //No solver needed
-		case FluidLinear: return new LinearPCM(e, params);
-		case FluidLinearPCM: return new LinearPCM(e, params);
-		case FluidNonlinearPCM: return new NonlinearPCM(e, params);
-		case FluidNonlocalPCM: return new NonlocalPCM(e, params);
+{	string JDFTpaper = "S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)";
+	if(type != FluidNone)
+		Citations::add("Framework of Joint Density Functional Theory", JDFTpaper);
+	switch(type)
+	{	case FluidNone:
+			return 0; //No solver needed
+		case FluidLinear:
+			if(!params.ionicConcentration) Citations::add("Linear continuum fluid model", JDFTpaper);
+			else Citations::add("Linear continuum fluid model with ionic screening", "K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
+			return new LinearPCM(e, params);
+		case FluidLinearPCM:
+			return new LinearPCM(e, params);
+		case FluidNonlinearPCM:
+			return new NonlinearPCM(e, params);
+		case FluidNonlocalPCM:
+			return new NonlocalPCM(e, params);
 		default: //All JDFT3 functionals:
 			return new ConvolutionJDFT(e, params, type);
 	}

@@ -58,6 +58,7 @@ struct CommandInvertKohnSham : public Command
 		pl.get(fname, string(), "chiGuessFilename");
 		if(fname.length() && fname.find("$VAR")==string::npos)
 			throw "<chiGuessFilename> = " + fname + " doesn't contain '$VAR'";
+		Citations::add("Inverse Kohn-Sham algorithm", "Q. Wu and W. Yang, J Chem Phys 118, 2498 (2003)");
 	}
 
 	void printStatus(Everything& e, int iRep)

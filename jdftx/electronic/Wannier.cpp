@@ -162,6 +162,8 @@ void Wannier::setup(const Everything& everything)
 	minParams.energyLabel = "rVariance";
 	//Initialize evaluator:
 	eval = new WannierEval(*e);
+	Citations::add("Maximally-localized Wannier functions",
+		"N. Marzari and D. Vanderbilt, Phys. Rev. B 56, 12847 (1997)");
 }
 
 void Wannier::saveMLWF()

@@ -40,7 +40,7 @@ typedef enum
 	FluidLinearPCM, //!< Reparametrized linear local-dielectric fluid including non-electrostatic terms (EXPERIMENTAL)
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms (EXPERIMENTAL)
 	FluidNonlocalPCM, //!< Nonlocal Polarizable Continuum Model (EXPERIMENTAL)
-	FluidLischner10, //!< Functional from [J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010)]
+	FluidFittedCorrelations, //!< Functional from [J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010)]
 	FluidScalarEOS, //!< Scalar EOS functional
 	FluidBondedVoids, //!< Functional from [R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012)]
 	FluidHSIonic //!< Functional of optionally charged hard spheres (EXPERIMENTAL)

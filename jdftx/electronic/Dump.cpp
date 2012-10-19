@@ -49,11 +49,23 @@ void Dump::setup(const Everything& everything)
 			}
 	}
 	if(dos) dos->setup(everything);
+	
+	//Add citation for QMC coupling if required (done here so that it works in dry run):
+	for(auto dumpPair: *this)
+		if(dumpPair.second == DumpQMC)
+			Citations::add("Quantum Monte Carlo solvation",
+				"K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig, Phys. Rev. B 85, 201102(R) (2012)");
 }
 
 
-void Dump::operator()(DumpFrequency freq)
+void Dump::operator()(DumpFrequency freq, int iter)
 {
+	//Check if dumping should occur at this iteration
+	auto intervalFreq = interval.find(freq);
+	if(intervalFreq!=interval.end() //interval found
+		&& ((iter+1) % intervalFreq->second != 0)) //and iteration number is not divisible by it
+		return; // => don't dump this time
+
 	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
 	const IonInfo &iInfo = e->iInfo;
@@ -138,6 +150,20 @@ void Dump::operator()(DumpFrequency freq)
 		FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 		iInfo.forces.print(*e, fp);
+		fclose(fp);
+		EndDump
+	}
+	if(ShouldDump(Lattice) || (ShouldDump(State) && e->latticeMinParams.nIterations>0))
+	{	StartDump("lattice")
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+		fprintf(fp, "lattice");
+		for(int j=0; j<3; j++)
+		{	fprintf(fp, " \\\n\t");
+			for(int k=0; k<3; k++)
+				fprintf(fp, "%20.15lf ", e->gInfo.R(j,k));
+		}
+		fprintf(fp, "#Note: latt-scale has been absorbed into these lattice vectors.\n");
 		fclose(fp);
 		EndDump
 	}
@@ -316,12 +342,6 @@ string Dump::getFilename(string varName) const
 		if(!found) break; //no matches in this pass
 	}
 	return fname;
-}
-
-bool Dump::shouldDump(DumpFrequency freq, int iter) const
-{	auto intervalFreq = interval.find(freq);
-	if(intervalFreq==interval.end()) return true; //no interval => every iteration
-	else return ((iter+1) % intervalFreq->second == 0); //every interval[freq] iterations
 }
 
 

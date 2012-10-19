@@ -17,14 +17,14 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_FLUID_FEX_H2O_LISCHNER10_INTERNAL_H
-#define JDFTX_FLUID_FEX_H2O_LISCHNER10_INTERNAL_H
+#ifndef JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_INTERNAL_H
+#define JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_INTERNAL_H
 
 #include <core/scalar.h>
 
-namespace Fex_H2O_Lischner10_internal
+namespace Fex_H2O_FittedCorrelations_internal
 {
-	//Coefficients from Table II of [Lischner10]:
+	//Coefficients from Table II of [FittedCorrelations]:
 	static const double f0 = 3.83929979127276e-18;
 	static const double f1 = -1.01124264551199e-10;
 	static const double f2 = 8.87857550440045e-04;
@@ -45,8 +45,8 @@ namespace Fex_H2O_Lischner10_internal
 }
 //Compute the gaussian weighted density energy and gradients
 __hostanddev__
-double Fex_H2O_Lischner10_calc(int i, const double* NObar, const double* NHbar, double* grad_NObar, double* grad_NHbar)
-{	using namespace Fex_H2O_Lischner10_internal;
+double Fex_H2O_FittedCorrelations_calc(int i, const double* NObar, const double* NHbar, double* grad_NObar, double* grad_NHbar)
+{	using namespace Fex_H2O_FittedCorrelations_internal;
 	double Nmean = (1.0/3)*(NObar[i] + NHbar[i]);
 	double fDotMean = fexDot(Nmean);
 	grad_NObar[i] = ((1.0/3)*pMean*fDotMean + pObar*fexDot(NObar[i]));
@@ -54,4 +54,4 @@ double Fex_H2O_Lischner10_calc(int i, const double* NObar, const double* NHbar, 
 	return pMean*fex(Nmean) + pObar*fex(NObar[i]) + pHbar*fex(NHbar[i]*0.5);
 }
 
-#endif // JDFTX_FLUID_FEX_H2O_LISCHNER10_INTERNAL_H
+#endif // JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_INTERNAL_H

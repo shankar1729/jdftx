@@ -61,7 +61,7 @@ struct CommandIon : public Command
 				SpeciesInfo::Constraint constraint;
 				pl.get(constraint.moveScale, 0.0, "moveScale", true);
 				if(constraint.moveScale < 0.)   // Check for negative moveScales
-					throw string("You can't have a negative moveScale for an ion!");
+					throw string("moveScale cannot be negative");
 				pl.get(constraint.type, SpeciesInfo::Constraint::None, constraintTypeMap, "Type");
 				if(constraint.type != SpeciesInfo::Constraint::None)
 				{	if(!constraint.moveScale)

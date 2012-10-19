@@ -51,7 +51,7 @@ void VanDerWaals::setup(const Everything &everything){
 	// Checks for the pseudopotential format.  Only Fhi and USPP are allowed.
 	for(auto sp: e->iInfo.species)
 	{	if(not sp->atomicNumber)
-			die("\nYou can use the Van der Waals corrections only for pseudopotentials that contain atomic number!\n");
+			die("\nVan der Waals corrections require pseudopotentials that contain atomic number!\n");
 		if(sp->atomicNumber > maximumSupportedAtomicNumber)
 			die("\nAtomic numbers greater than %i are not yet supported!\n", maximumSupportedAtomicNumber);
 	}
@@ -133,6 +133,8 @@ void VanDerWaals::setup(const Everything &everything){
 	atomParams[53] = AtomParams(31.50 , 1.892);
 	atomParams[54] = AtomParams(29.99 , 1.881);
 	logPrintf("Done!\n");
+	
+	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
 }
 
 double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string EXCorr)

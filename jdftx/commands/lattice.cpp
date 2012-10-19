@@ -36,9 +36,10 @@ struct CommandLattice : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for (int j=0; j < 3; j++)
+	{	for(int j=0; j<3; j++)
 		{	logPrintf(" \\\n\t");
-			for (int k=0; k < 3; k++) logPrintf("%20.15le ",e.gInfo.R(j,k));
+			for(int k=0; k<3; k++)
+				logPrintf("%20.15lf ",e.gInfo.R(j,k));
 		}
 	}
 }

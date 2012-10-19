@@ -168,6 +168,7 @@ bool LatticeMinimizer::report(int iter)
 	e.gInfo.printReciprocalLattice();
 	logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
 	logPrintf("\n");
+	e.dump(DumpFreq_Lattice, iter);
 	return false;
 }
 

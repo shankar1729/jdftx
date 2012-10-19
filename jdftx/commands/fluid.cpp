@@ -27,7 +27,7 @@ EnumStringMap<FluidType> fluidTypeMap
 	FluidLinearPCM, "LinearPCM",
 	FluidNonlinearPCM, "NonlinearPCM",
 	FluidNonlocalPCM, "NonlocalPCM",
-	FluidLischner10, "Lischner10",
+	FluidFittedCorrelations, "FittedCorrelations",
 	FluidScalarEOS, "ScalarEOS",
 	FluidBondedVoids, "BondedVoids",
 	FluidHSIonic, "HSIonic"

@@ -95,6 +95,7 @@ int main(int argc, char** argv, char** argp)
 	ElecVars& eVars = e.eVars;
 	parse(inputFilename.c_str(), e);
 	e.setup();
+	Citations::print();
 	if(dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 		finalizeSystem();
@@ -132,7 +133,7 @@ int main(int argc, char** argv, char** argp)
 	}
 
 	//Final dump:
-	e.dump(DumpFreq_End);
+	e.dump(DumpFreq_End, 0);
 	
 	finalizeSystem();
 	if(globalLog != stdout) fclose(globalLog);

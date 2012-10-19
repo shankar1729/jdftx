@@ -22,9 +22,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/MixedFMT.h>
 #include <core/EnergyComponents.h>
 
+extern string rigidMoleculeCDFT_ScalarEOSpaper;
+
 FluidMixture::FluidMixture(const GridInfo& gInfo, const double T)
 :gInfo(gInfo),T(T),verboseLog(false),ConvCouplingPtr(0),Qtol(1e-12),d0calc(0),nIndep(0),nDensities(0)
 {	logPrintf("Initializing fluid mixture at T=%lf K ...\n", T/Kelvin);
+	Citations::add("Rigid-molecule density functional theory framework", rigidMoleculeCDFT_ScalarEOSpaper);
 }
 
 void FluidMixture::setPressure(double p, double Nguess)

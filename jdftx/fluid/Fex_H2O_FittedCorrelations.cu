@@ -18,18 +18,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/GpuKernelUtils.h>
-#include <fluid/Fex_H2O_Lischner10_internal.h>
+#include <fluid/Fex_H2O_FittedCorrelations_internal.h>
 
 __global__
-void Fex_H20_Lischner10_kernel(int nr, const double* NObar, const double* NHbar,
+void Fex_H20_FittedCorrelations_kernel(int nr, const double* NObar, const double* NHbar,
 	double* Fex, double* grad_NObar, double* grad_NHbar)
 {	int i = kernelIndex1D();
 	if(i<nr)
-		Fex[i] = Fex_H2O_Lischner10_calc(i, NObar, NHbar, grad_NObar, grad_NHbar);
+		Fex[i] = Fex_H2O_FittedCorrelations_calc(i, NObar, NHbar, grad_NObar, grad_NHbar);
 }
-void Fex_H20_Lischner10_gpu(int nr, const double* NObar, const double* NHbar,
+void Fex_H20_FittedCorrelations_gpu(int nr, const double* NObar, const double* NHbar,
 	double* Fex, double* grad_NObar, double* grad_NHbar)
-{	GpuLaunchConfig1D glc(Fex_H20_Lischner10_kernel, nr);
-	Fex_H20_Lischner10_kernel<<<glc.nBlocks, glc.nPerBlock>>>(nr, NObar, NHbar, Fex, grad_NObar, grad_NHbar);
+{	GpuLaunchConfig1D glc(Fex_H20_FittedCorrelations_kernel, nr);
+	Fex_H20_FittedCorrelations_kernel<<<glc.nBlocks, glc.nPerBlock>>>(nr, NObar, NHbar, Fex, grad_NObar, grad_NHbar);
 }
 

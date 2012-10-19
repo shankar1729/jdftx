@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
+	DumpFreq_Lattice, "Lattice",
 	DumpFreq_Ionic, "Ionic",
 	DumpFreq_Gummel, "Gummel",
 	DumpFreq_Fluid, "Fluid",
@@ -30,6 +31,7 @@ EnumStringMap<DumpFrequency> freqMap
 );
 EnumStringMap<DumpFrequency> freqDescMap
 (	DumpFreq_End, "Dump specified vars at the end of the calculation",
+	DumpFreq_Lattice, "Dump specified vars every (few) lattice minimization step(s)",
 	DumpFreq_Ionic, "Dump specified vars every (few) ionic step(s)",
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
@@ -43,6 +45,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpState, "State",
 	DumpIonicPositions, "IonicPositions",
 	DumpForces, "Forces",
+	DumpLattice, "Lattice",
 	DumpIonicDensity, "IonicDensity",
 	DumpElecDensity, "ElecDensity",
 	DumpCoreDensity, "CoreDensity",
@@ -74,6 +77,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpState,          "All variables needed to restart calculation: wavefunction and fluid state/fillings if any",
 	DumpIonicPositions, "Ionic positions in the same format (and coordinate system) as the input file",
 	DumpForces,         "Forces on the ions in the coordinate system selected by command forces-output-coords",
+	DumpLattice,        "Lattice vectors in the same format as the input file",
 	DumpIonicDensity,   "Nuclear charge density (with gaussians)",
 	DumpElecDensity,    "Electronic densities (n or nup,ndn)",
 	DumpCoreDensity,    "Total core electron density (from partial core corrections)",
@@ -186,3 +190,29 @@ struct CommandDumpInterval : public Command
 	}
 }
 commandDumpInterval;
+
+
+struct CommandDumpName : public Command
+{
+	CommandDumpName() : Command("dump-name")
+	{
+		format = "<format>";
+		comments = 
+			"  Control the filename pattern for dump output:\n"
+			"    <format> is an arbitrary format string that will be substituted according to:\n"
+			"       $VAR -> name of the variable being dumped (this must be present somewhere in the string)\n"
+			"       $STAMP -> time-stamp at the start of dump";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.dump.format, string("$STAMP.$VAR"), "format");
+		if(e.dump.format.find("$VAR")==string::npos)
+			throw "<format> = " + e.dump.format + " doesn't contain the pattern $VAR";
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", e.dump.format.c_str());
+	}
+}
+commandDumpName;

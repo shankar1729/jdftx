@@ -39,7 +39,7 @@ struct CommandFluidIonMixing : public Command
 	{
 		string id;
 		pl.get(id, string(), "fluid-ion-id", true);
-		if((e.eVars.fluidType==FluidLischner10)||(e.eVars.fluidType==FluidScalarEOS)
+		if((e.eVars.fluidType==FluidFittedCorrelations)||(e.eVars.fluidType==FluidScalarEOS)
 			||(e.eVars.fluidType==FluidBondedVoids))			
 		{
 			for(int i=0; i<int(e.eVars.fluidParams.hSIons.size()); i++)

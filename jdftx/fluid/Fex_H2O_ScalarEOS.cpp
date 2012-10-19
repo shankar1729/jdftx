@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 #include <core/Operators.h>
 
+string rigidMoleculeCDFT_ScalarEOSpaper =  "R. Sundararaman and T.A. Arias, (to be submitted to Comp. Phys. Comm.)";
 
 static const double rOH = 1.0*Angstrom; 
 static const double thetaHOH = acos(-1.0/3); 
@@ -49,6 +50,7 @@ molecule("H2O",
 	//Initialize the kernels:
 	applyFuncGsq(gInfo, setCoulombCutoffKernel, siteChargeKernel.data); siteChargeKernel.set();
 	setLJatt(fex_LJatt, -9.0/(32*sqrt(2)*M_PI*pow(2*eval->sphereRadius,3)), 2*eval->sphereRadius);
+	Citations::add("Scalar-EOS water functional", rigidMoleculeCDFT_ScalarEOSpaper);
 }
 
 double Fex_H2O_ScalarEOS::get_aDiel() const
