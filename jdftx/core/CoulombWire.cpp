@@ -36,7 +36,6 @@ string checkOrthogonality(const GridInfo& gInfo, int iDir)
 }
 
 
-
 //--------------- class Cbar ----------
 
 Cbar::Cbar() { iWS = gsl_integration_workspace_alloc(maxIntervals); }
@@ -95,44 +94,23 @@ double Cbar::integrandLargeRho(double t, void* params)
 }
 
 
+//--------------- class Cbar_k_sigma ----------
 
-//! Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma
-struct Cbar_k_sigma
-{
-	Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0=1.)
-	{	assert(rhoMax > 0.);
-		//Pick grid and initialize sample values:
-		drho = 0.03*sigma; //With 5th order splines, this guarantees rel error ~ 1e-14 typical, 1e-12 max
-		drhoInv = 1./drho;
-		isLog = (k != 0.); //When k!=0, samples are positive and interpolate on the logarithm
-		std::vector<double> x(size_t(drhoInv*rhoMax)+10);
-		Cbar cbar;
-		for(size_t i=0; i<x.size(); i++)
-		{	double c = cbar(k, sigma, i*drho, rho0);
-			if(isLog) x[i] = (c>0 ? log(c) : (i ? x[i-1] : log(DBL_MIN)));
-			else x[i] = c;
-		}
-		coeff = QuinticSpline::getCoeff(x);
+Cbar_k_sigma::Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0)
+{	assert(rhoMax > 0.);
+	//Pick grid and initialize sample values:
+	double drho = 0.03*sigma; //With 5th order splines, this guarantees rel error ~ 1e-14 typical, 1e-12 max
+	drhoInv = 1./drho;
+	isLog = (k != 0.); //When k!=0, samples are positive and interpolate on the logarithm
+	std::vector<double> x(size_t(drhoInv*rhoMax)+10);
+	Cbar cbar;
+	for(size_t i=0; i<x.size(); i++)
+	{	double c = cbar(k, sigma, i*drho, rho0);
+		if(isLog) x[i] = (c>0 ? log(c) : (i ? x[i-1] : log(DBL_MIN)));
+		else x[i] = c;
 	}
-	
-	//! Get value:
-	double value(double rho) const
-	{	double f = QuinticSpline::value(coeff.data(), drhoInv * rho);
-		return isLog ? exp(f) : f;
-	}
-	
-	//! Get derivative:
-	double deriv(double rho) const
-	{	double fp = QuinticSpline::deriv(coeff.data(), drhoInv * rho) * drhoInv;
-		return isLog ? fp * value(rho) : fp;
-	}
-	
-private:
-	friend int main();
-	double drho, drhoInv; bool isLog;
-	std::vector<double> coeff;
-};
-
+	coeff = QuinticSpline::getCoeff(x);
+}
 
 
 //! 1D Ewald sum
@@ -141,8 +119,7 @@ struct EwaldWire
 	const GridInfo& gInfo;
 	int iDir; //!< truncated direction
 	const WignerSeitz& ws; //!< Wigner-Seitz cell
-	bool wsTruncated; //!< true => Wigner-Seitz truncation, false => cylindrical
-	double criticalDist; //!< borderWidth+ionMargin for Wigner-Seitz, Rc-ionMargin for cylindrical
+	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
 
 	double sigma; //!< gaussian width for Ewald sums
 	vector3<int> Nreal; //!< max unit cell indices for real-space sum
@@ -150,8 +127,8 @@ struct EwaldWire
 	
 	std::vector<std::shared_ptr<Cbar_k_sigma>> cbar_k_sigma;
 	
-	EwaldWire(const GridInfo& gInfo, int iDir, const WignerSeitz& ws, bool wsTruncated, double criticalDist, double rho0=1.)
-	: gInfo(gInfo), iDir(iDir), ws(ws), wsTruncated(wsTruncated), criticalDist(criticalDist)
+	EwaldWire(const GridInfo& gInfo, int iDir, const WignerSeitz& ws, double Rc=0., double rho0=1.)
+	: gInfo(gInfo), iDir(iDir), ws(ws), Rc(Rc)
 	{	logPrintf("\n---------- Setting up 1D ewald sum ----------\n");
 		//Determine optimum gaussian width for 1D Ewald sums:
 		// From below, the number of reciprocal cells ~ |R.column[iDir]|
@@ -220,14 +197,8 @@ struct EwaldWire
 				vector3<> r12 = a1.pos - a2.pos;
 				vector3<> rho12vec = r12; rho12vec[iDir] = 0.; //projected to truncation plane
 				double rho12 = sqrt(gInfo.RTR.metric_length_squared(rho12vec));
-				if(wsTruncated)
-				{	if(ws.boundaryDistance(rho12vec, iDir) <= criticalDist)
-						die("Separation between atoms %d and %d lies in the truncation border + margin.\n", i1, i2);
-				}
-				else
-				{	if(rho12 >= criticalDist)
-						die("Atoms %d and %d are separated by rho = %lg >= Rc-ionMargin = %lg bohrs.\n", i1, i2, rho12, criticalDist);
-				}
+				if((!(ws.restrict(rho12vec)==rho12vec)) || (Rc && (rho12>=Rc)))
+					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i1, i2);
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
 				vector3<int> iG(0,0,0); //integer reciprocal cell number (only iG[iDir] will be non-zero)
 				for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
@@ -257,20 +228,8 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
-	
-	//Select gauss-smoothing parameter:
-	double maxBorderWidth = sqrt(0.5) * ws.inRadius(params.iDir);
-	if(params.borderWidth > maxBorderWidth)
-		die("Border width %lg bohrs must be less than %lg bohrs (Wigner-Seitz cell in-radius/sqrt(2)).\n",
-			params.borderWidth, maxBorderWidth);
-	double sigmaBorder = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
-	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
-
-	//Create kernel description:
-	vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
-	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, params.isTruncated(), sigmaBorders);
-	//Load or compute the kernel:
-	kernelDesc.computeKernel(Vc.data, ws, params.filename);
+	//Create kernel:
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data, ws);
 	Vc.set();
 	initExchangeEval();
 }
@@ -281,7 +240,7 @@ DataGptr CoulombWire::operator()(DataGptr&& in) const
 
 double CoulombWire::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
-		((CoulombWire*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, true, params.borderWidth + params.ionMargin);
+		((CoulombWire*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws);
 	return ewald->energyAndGrad(atoms);
 }
 
@@ -328,6 +287,6 @@ DataGptr CoulombCylindrical::operator()(DataGptr&& in) const
 
 double CoulombCylindrical::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
-		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, false, Rc - params.ionMargin, Rc);
+		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, Rc, Rc);
 	return ewald->energyAndGrad(atoms);
 }

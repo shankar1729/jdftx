@@ -74,8 +74,9 @@ __hostanddev__ double erf_by_x(double x)
 
 
 
-//--------------- Special function for cylinder mode ------------
+//--------------- Special function for cylinder/wire modes ------------
 //                 (implemented in CoulombWire.cpp)
+
 //! Compute Cbar_k^sigma - the gaussian convolved cylindrical coulomb kernel - by numerical quadrature
 struct Cbar
 {	Cbar();
@@ -88,6 +89,23 @@ private:
 	static double integrandLargeRho(double t, void* params); //!< Integrand for rho > sigma
 };
 
+//! Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma
+struct Cbar_k_sigma
+{	Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0=1.);
+	//! Get value:
+	inline double value(double rho) const
+	{	double f = QuinticSpline::value(coeff.data(), drhoInv * rho);
+		return isLog ? exp(f) : f;
+	}
+	//! Get derivative:
+	inline double deriv(double rho) const
+	{	double fp = QuinticSpline::deriv(coeff.data(), drhoInv * rho) * drhoInv;
+		return isLog ? fp * value(rho) : fp;
+	}
+private:
+	double drhoInv; bool isLog;
+	std::vector<double> coeff;
+};
 
 
 //---------------------- Exchange Kernels --------------------

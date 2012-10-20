@@ -26,12 +26,11 @@ struct EwaldSlab
 {
 	const GridInfo& gInfo;
 	int iDir; //!< truncated direction
-	double ionMargin; //!< margin between min image distance between ions and half truncation length
 	double sigma; //!< gaussian width for Ewald sums
 	vector3<int> Nreal; //!< max unit cell indices for real-space sum
 	vector3<int> Nrecip; //!< max unit cell indices for reciprocal-space sum
 	
-	EwaldSlab(const GridInfo& gInfo, int iDir, double ionMargin) : gInfo(gInfo), iDir(iDir), ionMargin(ionMargin)
+	EwaldSlab(const GridInfo& gInfo, int iDir) : gInfo(gInfo), iDir(iDir)
 	{	logPrintf("\n---------- Setting up 2D ewald sum ----------\n");
 		//Determine optimum gaussian width for 2D Ewald sums:
 		// From below, the number of reciprocal cells ~ Prod_{k!=iDir} |R.column[k]|
@@ -100,8 +99,8 @@ struct EwaldSlab
 				double prefac = volPrefac * a1.Z * a2.Z * (i1==i2 ? 1 : 2);
 				vector3<> r12 = a1.pos - a2.pos;
 				double z12 = L * r12[iDir];
-				if(fabs(z12) >= 0.5*L-ionMargin)
-					die("Separation between atoms %d and %d lies in the truncation margin.\n", i1, i2);
+				if(fabs(z12) >= 0.5*L)
+					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i1, i2);
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
 				vector3<int> iG; //integer reciprocal cell number (iG[iDir] will remain 0)
 				for(iG[0]=-Nrecip[0]; iG[0]<=Nrecip[0]; iG[0]++)
@@ -160,6 +159,6 @@ DataGptr CoulombSlab::operator()(DataGptr&& in) const
 
 double CoulombSlab::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald)
-		((CoulombSlab*)this)->ewald = std::make_shared<EwaldSlab>(gInfo, params.iDir, params.ionMargin);
+		((CoulombSlab*)this)->ewald = std::make_shared<EwaldSlab>(gInfo, params.iDir);
 	return ewald->energyAndGrad(atoms);
 }

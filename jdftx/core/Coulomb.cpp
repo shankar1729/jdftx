@@ -328,23 +328,21 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 {
 	if(!omega) logPrintf("\n-------- Setting up exchange kernel --------\n");
 	else logPrintf("\n--- Setting up screened exchange kernel (omega = %lg) ---\n", omega);
-
-	const ExchangeRegularization& exReg = params.exchangeRegularization;
 	assert(params.supercell);
 	
-	if(exReg.method==ExchangeRegularization::None)
+	if(params.exchangeRegularization==CoulombParams::None)
 	{	assert(params.geometry==CoulombParams::Periodic
 			|| params.geometry==CoulombParams::Isolated
 			|| params.geometry==CoulombParams::Spherical);
 	}
 	
-	if(exReg.method==ExchangeRegularization::None && params.geometry==CoulombParams::Periodic)
+	if(params.exchangeRegularization==CoulombParams::None && params.geometry==CoulombParams::Periodic)
 	{	Vzero = omega ? M_PI/(omega*omega) : 0.;
 		kernelMode = PeriodicKernel;
 		logPrintf("No singularity correction.\n");
 	}
 	
-	if(exReg.method==ExchangeRegularization::AuxiliaryFunction)
+	if(params.exchangeRegularization==CoulombParams::AuxiliaryFunction)
 	{	assert(params.geometry==CoulombParams::Periodic);
 		double omegaSq = omega*omega;
 		//Compute the integral of fSingular over the brillouin zone
@@ -362,10 +360,10 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		logPrintf("Singular Vxx(G=0) correction = %le\n", Vzero/(kmesh.size() * gInfo.detR));
 	}
 	
-	if( (exReg.method==ExchangeRegularization::None && params.geometry==CoulombParams::Spherical)
-		|| exReg.method==ExchangeRegularization::SphericalTruncated)
+	if( (params.exchangeRegularization==CoulombParams::None && params.geometry==CoulombParams::Spherical)
+		|| params.exchangeRegularization==CoulombParams::SphericalTruncated)
 	{
-		if(exReg.method==ExchangeRegularization::None)
+		if(params.exchangeRegularization==CoulombParams::None)
 			Rc = ((CoulombSpherical&)coulomb).Rc;
 		else
 		{	double Vsuper = fabs(det(params.supercell->Rsuper)); //supercell volume
@@ -405,29 +403,12 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		logPrintf("Truncated on a sphere of radius %lg bohrs.\n", Rc);
 	}
 	
-	//Determine filename to save kernel to:
-	string kernelFilename;
-	if(params.filename.length())
-	{	ostringstream oss;
-		oss << params.filename;
-		if(omega)
-			oss << ".omega=" << omega;
-		kernelFilename = oss.str();
-	}
-	
-	if(exReg.method==ExchangeRegularization::None && params.geometry==CoulombParams::Isolated)
+	if(params.exchangeRegularization==CoulombParams::None && params.geometry==CoulombParams::Isolated)
 	{	if(fabs(det(params.supercell->super)) != 1)
 			die("Exact-exchange in Isolated geometry should be used only with a single k-point.\n");
 		if(omega) //Create an omega-screened version (but gamma-point only):
-		{	double sigmaBorder = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
-			logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n",
-				sigmaBorder, params.borderWidth);
-			//Create kernel description:
-			vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
-			CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, params.isTruncated(), sigmaBorders, omega);
-			//Load or compute the kernel:
-			VcGamma = new RealKernel(gInfo);
-			kernelDesc.computeKernel(VcGamma->data, ((CoulombIsolated&)coulomb).ws, kernelFilename);
+		{	VcGamma = new RealKernel(gInfo);
+			CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data, ((CoulombIsolated&)coulomb).ws);
 			VcGamma->set();
 		}
 		else //use the same kernel as hartree/Vloc
@@ -437,32 +418,11 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		kernelMode = WignerSeitzGammaKernel;
 	}
 	
-	if(exReg.method==ExchangeRegularization::WignerSeitzTruncated)
+	if(params.exchangeRegularization==CoulombParams::WignerSeitzTruncated)
 	{
-		//Describe and create the kernel on the k-point supercell:
+		//Create the kernel on the k-point supercell:
 		const Supercell& supercell = *(params.supercell);
 		vector3<bool> isTruncated(true, true, true);
-		//--- set up the truncation border-widths:
-		vector3<> sigmaBorders(exReg.sigma, exReg.sigma, exReg.sigma);
-		switch(params.geometry)
-		{	case CoulombParams::Periodic: //all directions use exReg.sigma
-				break;
-			case CoulombParams::Slab:
-				sigmaBorders[params.iDir] = 0.; //sharp truncation for Slab
-				break;
-			case CoulombParams::Wire:
-				for(int k=0; k<3; k++)
-					if(k != params.iDir) //sigma based on params.borderWidth for truncated directions
-						sigmaBorders[k] = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
-				break;
-			case CoulombParams::Cylindrical:
-				for(int k=0; k<3; k++)
-					if(k != params.iDir) //cylinder indicated by setting borderwidth = -Rc
-						sigmaBorders[k] = -((CoulombCylindrical&)coulomb).Rc;
-				break;
-			default:
-				assert(!"Exchange in Isolated / Spherical geometries should not be Wigner-Seitz truncated.\n");
-		}
 		//--- set up supercell sample count:
 		vector3<int> Ssuper(0,0,0), s; //loop over vertices of parallelopiped:
 		for(s[0]=-1; s[0]<=1; s[0]+=2)
@@ -480,21 +440,18 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		}
 		logPrintf("Creating Wigner-Seitz truncated kernel on k-point supercell with sample count ");
 		Ssuper.print(globalLog, " %d");
-		//Note: No FFTs of dimensions Ssup are required (so no need to make it fftSuitable())
-		//--- create kernel description and kernel on supercell:
+		//Note: No FFTs of dimensions Ssuper are required (so no need to make it fftSuitable())
+		//--- create kernel on supercell:
 		size_t nGsuper = Ssuper[0]*(Ssuper[1]*size_t(1+Ssuper[2]/2));
 		double* dataSuper = new double[nGsuper];
-		if(!dataSuper)
-			die("Out of memory. (need %.1lfGB for supercell exchange kernel)\n",
-				nGsuper*1e-9*sizeof(double));
+		if(!dataSuper) die("Out of memory. (need %.1lfGB for supercell exchange kernel)\n", nGsuper*1e-9*sizeof(double));
 		WignerSeitz wsSuper(supercell.Rsuper);
-		CoulombKernelDesc kernelDesc(supercell.Rsuper, Ssuper, isTruncated, sigmaBorders, omega);
-		kernelDesc.computeKernel(dataSuper, wsSuper, kernelFilename);
+		CoulombKernel(supercell.Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
 		
 		//Find symmetries for reducing kernel storage:
 		logPrintf("Compressing exchange kernel using symmetries:\n");
 		//--- Get symmetries of supercell kernel (in supercell lattice coords):
-		std::vector<matrix3<int>> symSuper = kernelDesc.getSymmetries();
+		std::vector<matrix3<int>> symSuper = getSymmetries(supercell.Rsuper, isTruncated);
 		logPrintf("\t%lu symmetries of the supercell kernel\n", symSuper.size());
 		//--- Find symmetries of unit cell common with those above (in unit-cell lattice coords):
 		std::vector<matrix3<int>> sym, symLattice = getSymmetries(gInfo.R);

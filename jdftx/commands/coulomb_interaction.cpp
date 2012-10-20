@@ -20,11 +20,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
-EnumStringMap<ExchangeRegularization::Method> exRegMethodMap
-(	ExchangeRegularization::None,                 "None",
-	ExchangeRegularization::AuxiliaryFunction,    "AuxiliaryFunction",
-	ExchangeRegularization::SphericalTruncated,   "SphericalTruncated",
-	ExchangeRegularization::WignerSeitzTruncated, "WignerSeitzTruncated"
+EnumStringMap<CoulombParams::ExchangeRegularization> exRegMethodMap
+(	CoulombParams::None,                 "None",
+	CoulombParams::AuxiliaryFunction,    "AuxiliaryFunction",
+	CoulombParams::SphericalTruncated,   "SphericalTruncated",
+	CoulombParams::WignerSeitzTruncated, "WignerSeitzTruncated"
 );
 
 EnumStringMap<CoulombParams::Geometry> truncationTypeMap
@@ -52,101 +52,60 @@ struct CommandCoulombInteraction : public Command
 			"and the corresponding arguments are:\n"
 			"   Periodic\n"
 			"      Standard periodic (untruncated) coulomb interaction (Default)\n"
-			"   Slab <dir>=" + truncationDirMap.optionList() + " [<ionMargin>=3]\n"
+			"   Slab <dir>=" + truncationDirMap.optionList() + "\n"
 			"      Truncate coulomb interaction along the specified lattice direction.\n"
 			"      The other two lattice directions must be orthogonal to this one.\n"
 			"      Useful for slab-like geometries.\n"
-			"   Cylindrical <dir>=" + truncationDirMap.optionList() + " [<Rc>=0] [<ionMargin>=3]\n"
+			"   Cylindrical <dir>=" + truncationDirMap.optionList() + " [<Rc>=0]\n"
 			"      Truncate coulomb interaction on a cylinder of radius <Rc> bohrs\n"
 			"      with axis along specified lattice direction. The other two lattice\n"
 			"      directions must be orthogonal to this one. Rc=0 is understood to be\n"
 			"      the in-radius of the 2D Wigner-Seitz cell perpendicular to <dir>.\n"
-			"   Wire <dir>=" + truncationDirMap.optionList() + " <borderWidth> [<ionMargin>=3] [<filename>]\n"
+			"   Wire <dir>=" + truncationDirMap.optionList() + "\n"
 			"      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane\n"
 			"      perpendicular to <dir>. The other two lattice directions must be\n"
 			"      orthogonal to this one. Useful for wire-like geometries.\n"
-			"   Isolated <borderWidth> [<ionMargin>=3] [<filename>]\n"
+			"   Isolated\n"
 			"      Truncate coulomb interaction on the 3D Wigner-Seitz cell.\n"
-			"   Spherical [<Rc>=0] [<ionMargin>=3]\n"
+			"   Spherical [<Rc>=0]\n"
 			"      Truncate coulomb interaction on a sphere of radius <Rc> bohrs.\n"
 			"      Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.\n"
-			"The Periodic, Slab and Spherical coulomb interaction kernels are computed\n"
-			"analytically, whereas the Wire and Isolated use a numerically precomputed\n"
-			"kernel using the O(NlogN) convolved Wigner-Seitz truncation scheme.\n"
-			"This scheme smoothens the truncation boundary within a region of width\n"
-			"<borderWidth>, which must be free of any charge density. Reducing this\n"
-			"width increases the usable fraction of the unit cell, but increase the\n"
-			"memory and time required to precompute the kernel, both of which scale as\n"
-			"1/<borderWidth>^d with d=2 whenever one lattice direction is perpendicular\n"
-			"to the other two, and d=3 otherwise (general Isolated case). These kernels\n"
-			"can optionally be saved to <filename>. If such a file exists and matches\n"
-			"the specified parameters, the kernel will be loaded from this file.\n"
-			"    Note that for all the truncated modes, the charge density must be\n"
-			"confined to a maximum separation of L/2-<borderWidth> in each truncated\n"
-			"direction, where L is the length of the unit cell in that direction\n"
-			"or 2 Rc for Spherical mode, and <borderWidth> is the truncation boundary\n"
-			"width for the Slab and Isolated modes and zero for the rest. The center\n"
-			"of the charge density is not important and may cross unit cell boundaries.\n"
-			"    The <ionMargin> option helps ensure that the charge density satisfies\n"
-			"the constraints mentioned above. This option checks that the ions (nuclei)\n"
-			"satisfy the truncation constraints with an additional margin of <ionMargin>\n"
-			"bohrs; the latter should therefore be set to a typical distance from nuclei\n"
-			"where the electron density becomes negligible.";
+			"For all the truncated modes, the charge density must be confined to a\n"
+			"maximum separation of L/2 in each truncated direction, where L is the\n"
+			"length of the unit cell in that direction or 2 Rc for Spherical and\n"
+			"Cylindrical modes. The center of the charge density is not important\n"
+			"and may cross unit cell boundaries.";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	CoulombParams& cp = e.coulombParams;
 		pl.get(cp.geometry, CoulombParams::Periodic, truncationTypeMap, "truncationType");
-		switch(cp.geometry)
-		{	case CoulombParams::Periodic:
-				break;
-			case CoulombParams::Slab:
-				pl.get(cp.iDir, 0, truncationDirMap, "dir", true);
-				pl.get(cp.ionMargin, 3., "ionMargin");
-				break;
-			case CoulombParams::Wire:
-			case CoulombParams::Isolated:
-				if(cp.geometry == CoulombParams::Wire)
-					pl.get(cp.iDir, 0, truncationDirMap, "dir", true);
-				pl.get(cp.borderWidth, 0., "borderWidth", true);
-				pl.get(cp.ionMargin, 3., "ionMargin");
-				pl.get(cp.filename, string(), "filename");
-				if(cp.borderWidth <= 0.)
-					throw string("Border width must be positive, recommend at least 3 bohrs.\n");
-				break;
-			case CoulombParams::Cylindrical:
-			case CoulombParams::Spherical:
-				if(cp.geometry == CoulombParams::Cylindrical)
-					pl.get(cp.iDir, 0, truncationDirMap, "dir", true);
-				pl.get(cp.Rc, 0., "Rc");
-				pl.get(cp.ionMargin, 3., "ionMargin");
-		}
-		if(cp.geometry!=CoulombParams::Periodic && cp.ionMargin<=0.)
-			throw string("Ion margin must be positive");
+		if(cp.geometry==CoulombParams::Periodic) return; //no parameters
+		//Get direction for the partially periodic modes:
+		if(cp.geometry==CoulombParams::Slab
+		|| cp.geometry==CoulombParams::Wire
+		|| cp.geometry==CoulombParams::Cylindrical)
+			pl.get(cp.iDir, 0, truncationDirMap, "dir", true);
+		//Get optional radius for the cylindrical/spherical modes:
+		if(cp.geometry==CoulombParams::Cylindrical
+		|| cp.geometry==CoulombParams::Spherical)
+			pl.get(cp.Rc, 0., "Rc");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	CoulombParams& cp = e.coulombParams;
 		logPrintf("%s", truncationTypeMap.getString(cp.geometry));
-		switch(cp.geometry)
-		{	case CoulombParams::Periodic:
-				break;
-			case CoulombParams::Slab:
-				logPrintf(" %s %lg", truncationDirMap.getString(cp.iDir), cp.ionMargin);
-				break;
-			case CoulombParams::Wire:
-			case CoulombParams::Isolated:
-				if(cp.geometry == CoulombParams::Wire)
-					logPrintf(" %s", truncationDirMap.getString(cp.iDir));
-				logPrintf(" %lg  %lg %s", cp.borderWidth, cp.ionMargin, cp.filename.c_str());
-				break;
-			case CoulombParams::Cylindrical:
-			case CoulombParams::Spherical:
-				if(cp.geometry == CoulombParams::Cylindrical)
-					logPrintf(" %s", truncationDirMap.getString(cp.iDir));
-				logPrintf(" %lg %lg", cp.Rc, cp.ionMargin);
-		}
+		if(cp.geometry==CoulombParams::Periodic) return; //no parameters
+		//Print direction for the partially periodic modes:
+		if(cp.geometry==CoulombParams::Slab
+		|| cp.geometry==CoulombParams::Wire
+		|| cp.geometry==CoulombParams::Cylindrical)
+			logPrintf(" %s", truncationDirMap.getString(cp.iDir));
+		//Print optional radius for the cylindrical/spherical modes:
+		if(cp.geometry==CoulombParams::Cylindrical
+		|| cp.geometry==CoulombParams::Spherical)
+			logPrintf(" %lg", cp.Rc);
 	}
 }
 commandCoulombInteraction;
@@ -156,7 +115,7 @@ struct CommandExchangeRegularization : public Command
 {
 	CommandExchangeRegularization() : Command("exchange-regularization")
 	{
-		format = "<method>=" + exRegMethodMap.optionList() + " [<sigma>=0.33 <filename>]";
+		format = "<method>=" + exRegMethodMap.optionList();
 		comments =
 			"Regularization / singularity correction method for exact exchange.\n"
 			"The allowed methods and defaults depend on the setting of <geometry>\n"
@@ -179,51 +138,36 @@ struct CommandExchangeRegularization : public Command
 			"   WignerSeitzTruncated\n"
 			"      Truncate exchange kernel on the Wigner-Seitz cell of the k-point\n"
 			"      sampled supercell, as in R. Sundararaman et al (under preparation).\n"
-			"      Default for any (partially) periodic <geometry>.\n"
-			"<sigma> is the gaussian smoothing width (in bohrs) for the Wigner-Seitz\n"
-			"cell boundary and <filename>, if specified, will be used to cache the\n"
-			"computed kernel for the WignerSeitzTruncated method.";
-		
+			"      Default for any (partially) periodic <geometry>.";
 		hasDefault = true;
 		require("coulomb-interaction");
 	};
 
 	void process(ParamList& pl, Everything& e)
-	{	const CoulombParams& cp = e.coulombParams;
-		ExchangeRegularization& exReg = e.coulombParams.exchangeRegularization;
-		//Select default method based on geometry:
+	{	CoulombParams& cp = e.coulombParams;
+		//Select default regularization based on geometry:
 		bool isIsolated = cp.geometry==CoulombParams::Isolated
 				|| cp.geometry==CoulombParams::Spherical;
-		exReg.method = isIsolated
-			? ExchangeRegularization::None
-			: ExchangeRegularization::WignerSeitzTruncated;
-		pl.get(exReg.method, exReg.method, exRegMethodMap, "method");
-		//Check compatibility of method and geometry:
-		if(isIsolated && exReg.method!=ExchangeRegularization::None)
+		cp.exchangeRegularization = isIsolated
+			? CoulombParams::None
+			: CoulombParams::WignerSeitzTruncated;
+		pl.get(cp.exchangeRegularization, cp.exchangeRegularization, exRegMethodMap, "method");
+		//Check compatibility of regularization with geometry:
+		if(isIsolated && cp.exchangeRegularization!=CoulombParams::None)
 			throw string("exchange-regularization <method> must be None for non-periodic"
 				" coulomb-interaction <geometry> = Spherical or Isolated");
-		if(exReg.method==ExchangeRegularization::None
+		if(cp.exchangeRegularization==CoulombParams::None
 			&& !(isIsolated || cp.geometry==CoulombParams::Periodic))
 			throw string("exchange-regularization <method> = None is supported only for"
 				" non-periodic or 3D periodic values of coulomb-interaction <geometry>");
-		if(exReg.method==ExchangeRegularization::AuxiliaryFunction
+		if(cp.exchangeRegularization==CoulombParams::AuxiliaryFunction
 			&& !(cp.geometry==CoulombParams::Periodic))
 			throw string("exchange-regularization <method> = AuxiliaryFunction is supported"
 				" only for coulomb-interaction <geometry> = Periodic");
-		//Read optional parameters:
-		if(exReg.method==ExchangeRegularization::WignerSeitzTruncated)
-		{	pl.get(exReg.sigma, 0.33, "sigma");
-			pl.get(exReg.filename, string(), "filename");
-			if(exReg.sigma <= 0.)
-				throw string("Wigner-seitz boundary gaussian width <sigma> must be positive.\n");
-		}
 	}
 	
 	void printStatus(Everything& e, int iRep)
-	{	const ExchangeRegularization& exReg = e.coulombParams.exchangeRegularization;
-		logPrintf("%s", exRegMethodMap.getString(exReg.method));
-		if(exReg.method==ExchangeRegularization::WignerSeitzTruncated)
-			logPrintf(" %lg %s", exReg.sigma, exReg.filename.c_str());
+	{	logPrintf("%s", exRegMethodMap.getString(e.coulombParams.exchangeRegularization));
 	}
 }
-commandExchangeRegularization;
+commandCoulombParams;

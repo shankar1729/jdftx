@@ -27,15 +27,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 //! Analog of ewald sum for isolated systems
-//! (no Ewald trick required, just for consistent naming)
+//! (no Ewald trick required; prefixed 'Ewald' for consistent naming)
 struct EwaldIsolated
 {	const GridInfo& gInfo;
-	const WignerSeitz& ws;
-	bool wsTruncated; //true => Wigner-Seitz truncation, false => spherical
-	double criticalDist; //borderWidth for Wigner-Seitz, Rc for spherical
+	const WignerSeitz& ws; //!< Wigner-Seitz cell
+	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
 	
-	EwaldIsolated(const GridInfo& gInfo, const WignerSeitz& ws, bool wsTruncated, double criticalDist)
-	: gInfo(gInfo), ws(ws), wsTruncated(wsTruncated), criticalDist(criticalDist)
+	EwaldIsolated(const GridInfo& gInfo, const WignerSeitz& ws, double Rc=0.)
+	: gInfo(gInfo), ws(ws), Rc(Rc)
 	{
 	}
 	
@@ -47,21 +46,15 @@ struct EwaldIsolated
 		vector3<> pos0 = atoms[0].pos;
 		for(Atom& a: atoms)
 			a.pos = pos0 + ws.restrict(a.pos - pos0);
-		//Loop over all pairs of pointcharges:
+		//Loop over all pairs of atoms:
 		for(unsigned i=0; i<atoms.size(); i++)
 		{	Atom& a1 = atoms[i];
 			for(unsigned j=0; j<i; j++)
 			{	Atom& a2 = atoms[j];
 				vector3<> x = a1.pos - a2.pos; //lattice coords
 				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
-				if(wsTruncated)
-				{	if(ws.boundaryDistance(x) <= criticalDist)
-						die("Separation between atoms %d and %d lies in the truncation border + margin.\n", i, j);
-				}
-				else
-				{	if(r >= criticalDist)
-						die("Atoms %d and %d are separated by r = %lg >= Rc-ionMargin = %lg bohrs.\n", i, j, r, criticalDist);
-				}
+				if((!(ws.restrict(x)==x)) || (Rc && (r>=Rc)))
+					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i, j);
 				double dE = (a1.Z * a2.Z) / r;
 				vector3<> dF = (gInfo.RTR * x) * (dE/rSq);
 				E += dE;
@@ -77,20 +70,8 @@ struct EwaldIsolated
 
 CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombParams& params)
 : Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
-{
-	//Select gauss-smoothing parameter:
-	double maxBorderWidth = sqrt(0.5) * ws.inRadius();
-	if(params.borderWidth > maxBorderWidth)
-		die("Border width %lg bohrs must be less than %lg bohrs (Wigner-Seitz cell in-radius/sqrt(2)).\n",
-			params.borderWidth, maxBorderWidth);
-	double sigmaBorder = params.borderWidth / CoulombKernelDesc::nSigmasPerWidth;
-	logPrintf("Selecting gaussian width %lg bohrs (for border width %lg bohrs).\n", sigmaBorder, params.borderWidth);
-
-	//Create kernel description:
-	vector3<> sigmaBorders(sigmaBorder, sigmaBorder, sigmaBorder);
-	CoulombKernelDesc kernelDesc(gInfo.R, gInfo.S, params.isTruncated(), sigmaBorders);
-	//Load or compute the kernel:
-	kernelDesc.computeKernel(Vc.data, ws, params.filename);
+{	//Compute kernel:
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data, ws);
 	Vc.set();
 	initExchangeEval();
 }
@@ -100,7 +81,7 @@ DataGptr CoulombIsolated::operator()(DataGptr&& in) const
 }
 
 double CoulombIsolated::energyAndGrad(std::vector<Atom>& atoms) const
-{	return EwaldIsolated(gInfo, ws, true, params.borderWidth + params.ionMargin).energyAndGrad(atoms);
+{	return EwaldIsolated(gInfo, ws).energyAndGrad(atoms);
 }
 
 
@@ -122,5 +103,5 @@ DataGptr CoulombSpherical::operator()(DataGptr&& in) const
 }
 
 double CoulombSpherical::energyAndGrad(std::vector<Atom>& atoms) const
-{	return EwaldIsolated(gInfo, ws, false, Rc - params.ionMargin).energyAndGrad(atoms);
+{	return EwaldIsolated(gInfo, ws, Rc).energyAndGrad(atoms);
 }

@@ -26,21 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 
 
-struct ExchangeRegularization
-{	//! Regularization method (for G=0 singularities in exchange)
-	enum Method
-	{	None, //!< No regularization (3D periodic or non-periodic systems only)
-		AuxiliaryFunction, //!< Auxiliary function method (3D periodic systems only) [P. Carrier et al, PRB 75, 205126 (2007)]
-		SphericalTruncated, //!< Wigner-Seitz volume spherical truncation  [J. Spencer et al, PRB 77, 193110 (2008)]
-		WignerSeitzTruncated //!< Wigner-Seitz cell truncation [R. Sundararaman et al, (under preparation)]
-	};
-	Method method; //!< Regularization method
-	
-	double sigma; //!< Gaussian width for Wigner-Seitz truncated method
-	string filename; //!< File to cache computed exchange kernel (used only by method WignerSeitzTruncated)
-};
-
-
 struct CoulombParams
 {	//! Truncation geometry
 	enum Geometry
@@ -52,13 +37,17 @@ struct CoulombParams
 		Spherical //!< Spherical isolation in all directions
 	};
 	Geometry geometry; //!< Truncation geometry
-	int iDir; //!< Truncated lattice direction for Slab; Periodic direction for Wire
-	double borderWidth; //!< Border width in smoothed Wigner-Seitz truncation (used by Wire, Isolated)
-	double ionMargin; //!< Extra margin for the separation between ions from the truncation boundary (all truncated modes)
+	int iDir; //!< Truncated lattice direction for Slab or periodic direction for Wire
 	double Rc; //!< Truncation radius for cylindrical / spherical modes (0 => in-radius of Wigner-Seitz cell)
-	string filename; //!< File to cache computed kernel in (used only by Wire, Isolated)
 	
 	//Parameters for computing exchange integrals:
+	//! Regularization method for G=0 singularities in exchange
+	enum ExchangeRegularization
+	{	None, //!< No regularization (3D periodic or non-periodic systems only)
+		AuxiliaryFunction, //!< Auxiliary function method (3D periodic systems only) [P. Carrier et al, PRB 75, 205126 (2007)]
+		SphericalTruncated, //!< Wigner-Seitz volume spherical truncation  [J. Spencer et al, PRB 77, 193110 (2008)]
+		WignerSeitzTruncated //!< Wigner-Seitz cell truncation [R. Sundararaman et al, (under preparation)]
+	};
 	ExchangeRegularization exchangeRegularization; //!< exchange regularization method
 	std::set<double> omegaSet; //!< set of exchange erf-screening parameters
 	std::shared_ptr<class Supercell> supercell; //!< Description of k-point supercell for exchange

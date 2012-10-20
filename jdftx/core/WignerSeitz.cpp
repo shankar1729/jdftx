@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
+#include <algorithm>
 
 const double WignerSeitz::geomRelTol = 1e-12; //relative tolerance to geometry (tesselation volumes, orthogonality checks etc)
 
@@ -150,106 +151,6 @@ WignerSeitz::~WignerSeitz()
 	for(Edge* e: edge) delete e;
 	for(Face* f: face) delete f;
 }
-
-std::vector<vector3<>> WignerSeitz::getVertices(int iDir) const
-{	std::vector<vector3<>> result;
-	if(iDir >=0) //2D:
-	{	for(const Face* f: faceHalf)
-		if(f->img[iDir]==1 && f->img.length_squared()==1)
-		{	for(const Edge* e: f->edge)
-			{	vector3<> pos = e->vertex[(e->face[0]==f) ? 0 : 1]->pos;
-				pos[iDir] = 0; //project out iDir
-				result.push_back(R * pos);
-			}
-			break;
-		}
-	}
-	else //3D:
-	{	for(const Vertex* v: vertex)
-			result.push_back(R * v->pos);
-	}
-	return result;
-}
-
-//Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
-std::vector<Simplex<3>> WignerSeitz::getSimplices() const
-{	const double Vcell = fabs(det(R)); //expected volume of Wigner-Seitz cell
-	const double Vtol = geomRelTol * Vcell;
-	std::vector<Simplex<3>> sArr;
-	double Vtot = 0.;
-	for(const Face* f: faceHalf)
-	{	//Collect vertices in order:
-		std::vector<Simplex<3>::Point> v;
-		for(const Edge* e: f->edge)
-		{	vector3<> vCart = R * e->vertex[(e->face[0]==f) ? 0 : 1]->pos; //in cartesian coordinates
-			v.push_back({{vCart[0], vCart[1], vCart[2]}}); //convert to Simplex<3>::Point
-		}
-		//Collect simplices from this face:
-		for(unsigned i=2; i<v.size(); i++)
-		{	Simplex<3> s;
-			s.v[0] = v[0];
-			s.v[1] = v[i-1];
-			s.v[2] = v[i];
-			s.init();
-			Vtot += (2./6) * s.V; //Factor of 2 includes inversion partner
-			sArr.push_back(s);
-		}
-	}
-	assert(fabs(Vtot-Vcell) < Vtol); //Check total volume
-	return sArr;
-}
-
-//Output a list of simplexes that tesselate half the 2D Weigner-Seitz cell
-//(remainder filled by inversion symmetry) after ignoring lattice direction iDir
-std::vector<Simplex<2>> WignerSeitz::getSimplices(int iDir) const
-{	matrix3<> Rplanar = getRplanar(iDir);
-	const double Acell = fabs(det(R)) / R.column(iDir).length(); //expected area of 2D Wigner-Seitz cell
-	const double Atol = geomRelTol * Acell;
-	std::vector<Simplex<2>> sArr;
-	double Atot = 0.;
-	for(const Face* f: face)
-		if(f->img[iDir]==1 && f->img.length_squared()==1)
-		{	//Collect vertices in order:
-			std::vector<Simplex<2>::Point> v;
-			for(const Edge* e: f->edge)
-			{	vector3<> vCart = Rplanar * e->vertex[(e->face[0]==f) ? 0 : 1]->pos; //in rotated cartesian coordinates
-				v.push_back({{vCart[0], vCart[1]}}); //convert to Simplex<2>::Point, dropping iDir (which is z after rotation)
-			}
-			//Make sure that the vertices are in inversion-symmetric pairs:
-			for(unsigned i=0; i<v.size()/2; i++)
-			{	unsigned j = i + v.size()/2;
-				assert(hypot(v[i][0]+v[j][0], v[i][1]+v[j][1]) < sqrt(minDistSq));
-			}
-			//Add simplices:
-			for(unsigned i=0; i<v.size()/2; i++)
-			{	Simplex<2> s;
-				s.v[0] = v[i];
-				s.v[1] = v[i+1];
-				s.init();
-				Atot += s.V;
-				sArr.push_back(s);
-			}
-			break;
-		}
-	assert(fabs(Atot-Acell) < Atol); //Check total volume
-	return sArr;
-}
-
-//Rotated lattice vectors such that iDir maps onto z-axis
-matrix3<> WignerSeitz::getRplanar(int iDir) const
-{	int jDir = (iDir+1)%3;
-	int kDir = (iDir+2)%3;
-	//Construct an orthogonal matrix that takes z-axis to iDir and x-axis to jDir
-	matrix3<> rot;
-	rot.set_col(2, R.column(iDir) / R.column(iDir).length());
-	rot.set_col(0, R.column(jDir) / R.column(jDir).length());
-	assert(fabs(dot(rot.column(2), rot.column(0))) < geomRelTol);
-	assert(fabs(dot(rot.column(2), R.column(kDir))) < geomRelTol * R.column(kDir).length());
-	rot.set_col(1, cross(rot.column(2), rot.column(0)));
-	//Apply inverse rotation to R to get new lattice vectors:
-	return (~rot) * R;
-}
-
 
 //Radius of largest inscribable sphere (circle) centered at origin
 double WignerSeitz::inRadius(int iDir) const

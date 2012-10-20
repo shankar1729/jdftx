@@ -22,10 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file WignerSeitz.h
 
-#include <core/vector3.h>
 #include <core/matrix3.h>
-#include <core/Simplex.h>
 #include <float.h>
+#include <array>
 #include <list>
 #include <set>
 
@@ -35,26 +34,7 @@ class WignerSeitz
 public:
 	WignerSeitz(const matrix3<>& R); //!< Construct Wigner-Seitz cell given lattice vectors
 	~WignerSeitz();
-	
-	//! Get the vertices of the Wigner-Seitz cell in cartesian coordinates
-	//! If iDir>=0, return the vertices of the 2D wigner seitz cell ignoring
-	//! lattice direction iDir: the coordinates are still in 3D, but the
-	//! component along direction iDir will be projected out
-	std::vector<vector3<>> getVertices(int iDir=-1) const;
-	
-	//! Output a list of simplexes that tesselate half the Weigner-Seitz cell (remainder filled by inversion symmetry)
-	std::vector<Simplex<3>> getSimplices() const;
 
-	//! Output a list of simplexes that tesselate half the 2D Weigner-Seitz cell
-	//! (remainder filled by inversion symmetry) after ignoring lattice direction iDir
-	//! The simplices are in rotated cartesian coordinates such that iDIr is mapped to z-axis
-	//! corresponding to lattice vectors returned by getRplanar(iDir)
-	std::vector<Simplex<2>> getSimplices(int iDir) const;
-	
-	//!Get rotated lattice vectors such that iDir is along the z-axis
-	//!Note that iDir must be orthogonal to the other two directions.
-	matrix3<> getRplanar(int iDir) const;
-	
 	//! Find the point within the Wigner-Seitz cell equivalent to x (lattice coordinates)
 	inline vector3<> restrict(const vector3<>& x) const
 	{	static const double tol = 1e-8;
@@ -71,44 +51,6 @@ public:
 			}
 		}
 		return xWS;
-	}
-	
-	//! Find the point within the Wigner-Seitz cell equivalent to iv (mesh coordinates with sample count S)
-	inline vector3<int> restrict(const vector3<int>& iv, const vector3<int>& S, const vector3<>& invS) const
-	{	static const double tol = 1e-8;
-		vector3<int> ivWS = iv;
-		bool changed = true;
-		while(changed)
-		{	changed = false;
-			for(const Face* f: faceHalf)
-			{	double xDotEqn = 0.;
-				for(int k=0; k<3; k++)
-					xDotEqn += f->eqn[k] * ivWS[k] * invS[k];
-				double d = 0.5 * (1. + xDotEqn);
-				if(d<-tol || d>1.+tol) //not in fundamental zone
-				{	int id = int(floor(d));
-					for(int k=0; k<3; k++)
-						ivWS[k] -= id * f->img[k] * S[k];
-					changed = true;
-				}
-			}
-		}
-		return ivWS;
-	}
-	
-	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface
-	//! Returns 0 if the point is outside the Wigner-Seitz cell
-	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
-	inline double boundaryDistance(const vector3<>& x, int iDir=-1) const
-	{	double minDistSq = DBL_MAX;
-		for(const Face* f: faceHalf)
-			if(iDir<0 || !f->img[iDir])
-			{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
-				if(dDiff < 0.) return 0.; //point outside Wigner Seitz cell
-				double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
-				if(distSq<minDistSq) minDistSq = distSq;
-			}
-		return sqrt(minDistSq);
 	}
 	
 	//! Radius of largest sphere centered at origin contained within the Wigner-Seitz cell
