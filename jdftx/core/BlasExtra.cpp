@@ -37,7 +37,7 @@ void eblas_lincomb(const int N,
 
 
 void eblas_zgemm_sub(size_t iMin, size_t iMax,
-	const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
+	const CBLAS_TRANSPOSE TransA, const CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
 	const complex* alpha, const complex *A, const int lda, const complex *B, const int ldb,
 	const complex* beta, complex *C, const int ldc)
 {
@@ -59,7 +59,7 @@ void eblas_zgemm_sub(size_t iMin, size_t iMax,
 	cblas_zgemm(CblasColMajor, TransA, TransB, Msub, Nsub, K, alpha, Asub, lda, Bsub, ldb, beta, Csub, ldc);
 }
 void eblas_zgemm(
-	const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
+	const CBLAS_TRANSPOSE TransA, const CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
 	const complex& alpha, const complex *A, const int lda, const complex *B, const int ldb,
 	const complex& beta, complex *C, const int ldc)
 {
