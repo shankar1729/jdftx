@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 EnumStringMap<CoulombParams::ExchangeRegularization> exRegMethodMap
 (	CoulombParams::None,                 "None",
 	CoulombParams::AuxiliaryFunction,    "AuxiliaryFunction",
+	CoulombParams::ProbeChargeEwald,     "ProbeChargeEwald",
 	CoulombParams::SphericalTruncated,   "SphericalTruncated",
 	CoulombParams::WignerSeitzTruncated, "WignerSeitzTruncated"
 );
@@ -121,15 +122,17 @@ struct CommandExchangeRegularization : public Command
 			"The allowed methods and defaults depend on the setting of <geometry>\n"
 			"in command coulomb-interaction\n"
 			"   None\n"
-			"      No singularity correction. This is the default and only option\n"
-			"      for non-periodic systems (<geometry> = Spherical / Isolated),\n"
-			"      which have no G=0 singularity. This is allowed for 3D periodic\n"
-			"      systems (<geometry> = Periodic), but is not recommended due to\n"
-			"      extremely poor convergence with number of k-points.\n"
+			"      No singularity correction: default and only option for non-periodic\n"
+			"      systems with no G=0 singularity (<geometry> = Spherical / Isolated).\n"
+			"      This is allowed for fully or partially periodic systems, but is not\n"
+			"      recommended due to extremely poor convergence with number of k-points.\n"
 			"   AuxiliaryFunction\n"
 			"      G=0 modification based on numerical integrals of an auxiliary\n"
 			"      function, as described in P. Carrier et al, PRB 75, 205126 (2007).\n"
-			"      This is allowed only for 3D periodic systems.\n"
+			"      Allowed for 3D/2D/1D periodic systems.\n"
+			"   ProbeChargeEwald\n"
+			"      G=0 modification based on the Ewald sum of a single point charge\n"
+			"      per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.\n"
 			"   SphericalTruncated\n"
 			"      Truncate exchange kernel on a sphere whose volume equals the k-point\n"
 			"      sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).\n"
@@ -156,14 +159,6 @@ struct CommandExchangeRegularization : public Command
 		if(isIsolated && cp.exchangeRegularization!=CoulombParams::None)
 			throw string("exchange-regularization <method> must be None for non-periodic"
 				" coulomb-interaction <geometry> = Spherical or Isolated");
-		if(cp.exchangeRegularization==CoulombParams::None
-			&& !(isIsolated || cp.geometry==CoulombParams::Periodic))
-			throw string("exchange-regularization <method> = None is supported only for"
-				" non-periodic or 3D periodic values of coulomb-interaction <geometry>");
-		if(cp.exchangeRegularization==CoulombParams::AuxiliaryFunction
-			&& !(cp.geometry==CoulombParams::Periodic))
-			throw string("exchange-regularization <method> = AuxiliaryFunction is supported"
-				" only for coulomb-interaction <geometry> = Periodic");
 	}
 	
 	void printStatus(Everything& e, int iRep)

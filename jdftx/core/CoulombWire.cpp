@@ -114,9 +114,9 @@ Cbar_k_sigma::Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0)
 
 
 //! 1D Ewald sum
-struct EwaldWire
+class EwaldWire : public Ewald
 {
-	const GridInfo& gInfo;
+	matrix3<> R, G, RTR, GGT; //!< Lattice vectors, reciprocal lattice vectors and corresponding metrics
 	int iDir; //!< truncated direction
 	const WignerSeitz& ws; //!< Wigner-Seitz cell
 	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
@@ -127,22 +127,23 @@ struct EwaldWire
 	
 	std::vector<std::shared_ptr<Cbar_k_sigma>> cbar_k_sigma;
 	
-	EwaldWire(const GridInfo& gInfo, int iDir, const WignerSeitz& ws, double Rc=0., double rho0=1.)
-	: gInfo(gInfo), iDir(iDir), ws(ws), Rc(Rc)
+public:
+	EwaldWire(const matrix3<>& R, int iDir, const WignerSeitz& ws, double Rc=0., double rho0=1.)
+	: R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir), ws(ws), Rc(Rc)
 	{	logPrintf("\n---------- Setting up 1D ewald sum ----------\n");
 		//Determine optimum gaussian width for 1D Ewald sums:
 		// From below, the number of reciprocal cells ~ |R.column[iDir]|
 		//    and number of real space cells ~ |G.row[iDir]|
 		// including the fact that a term in the reciprocal space sum
 		// costs roughly 10 times as much as that in the real space sum
-		sigma = sqrt(10.*gInfo.R.column(iDir).length() / gInfo.G.row(iDir).length());
+		sigma = sqrt(10.*R.column(iDir).length() / G.row(iDir).length());
 		logPrintf("Optimum gaussian width for ewald sums = %lf bohr.\n", sigma);
 		
 		//Carry real space sums to Rmax = 10 sigma and Gmax = 10/sigma
 		//This leads to relative errors ~ 1e-22 in both sums, well within double precision limits
 		for(int k=0; k<3; k++)
-		{	Nreal[k]  = (k!=iDir) ? 0 : 1+ceil(10. * gInfo.G.row(k).length() * sigma / (2*M_PI));
-			Nrecip[k] = (k!=iDir) ? 0 : 1+ceil(10. * gInfo.R.column(k).length() / (2*M_PI*sigma));
+		{	Nreal[k]  = (k!=iDir) ? 0 : 1+ceil(CoulombKernel::nSigmasPerWidth * G.row(k).length() * sigma / (2*M_PI));
+			Nrecip[k] = (k!=iDir) ? 0 : 1+ceil(CoulombKernel::nSigmasPerWidth * R.column(k).length() / (2*M_PI*sigma));
 		}
 		logPrintf("Real space sums over %d unit cells with max indices ", 2*Nreal[iDir]+1);
 		Nreal.print(globalLog, " %d ");
@@ -154,7 +155,7 @@ struct EwaldWire
 		vector3<int> iG(0,0,0);
 		double rhoMax = ws.circumRadius(iDir);
 		for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
-		{	double k = sqrt(gInfo.GGT.metric_length_squared(iG));
+		{	double k = sqrt(GGT.metric_length_squared(iG));
 			cbar_k_sigma[iG[iDir]] = std::make_shared<Cbar_k_sigma>(k, sigma, rhoMax, rho0);
 		}
 	}
@@ -180,15 +181,15 @@ struct EwaldWire
 			for(Atom& a1: atoms)
 				for(iR[iDir]=-Nreal[iDir]; iR[iDir]<=Nreal[iDir]; iR[iDir]++)
 				{	vector3<> x = iR + (a1.pos - a2.pos);
-					double rSq = gInfo.RTR.metric_length_squared(x);
+					double rSq = RTR.metric_length_squared(x);
 					if(!rSq) continue; //exclude self-interaction
 					double r = sqrt(rSq);
 					E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-					a1.force += (gInfo.RTR * x) *
+					a1.force += (RTR * x) *
 						(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
 				}
 		//Reciprocal space sum:
-		double volPrefac = 0.5 / sqrt(gInfo.RTR(iDir,iDir));
+		double volPrefac = 0.5 / sqrt(RTR(iDir,iDir));
 		for(unsigned i1=0; i1<atoms.size(); i1++)
 		{	Atom& a1 = atoms[i1];
 			for(unsigned i2=0; i2<=i1; i2++)
@@ -196,7 +197,7 @@ struct EwaldWire
 				double prefac = volPrefac * a1.Z * a2.Z * (i1==i2 ? 1 : 2);
 				vector3<> r12 = a1.pos - a2.pos;
 				vector3<> rho12vec = r12; rho12vec[iDir] = 0.; //projected to truncation plane
-				double rho12 = sqrt(gInfo.RTR.metric_length_squared(rho12vec));
+				double rho12 = sqrt(RTR.metric_length_squared(rho12vec));
 				if((!(ws.restrict(rho12vec)==rho12vec)) || (Rc && (rho12>=Rc)))
 					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i1, i2);
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
@@ -211,7 +212,7 @@ struct EwaldWire
 					//Update energy and forces:
 					E12 += prefac * c * rhoTerm;
 					E12_r12 += (prefac * -s * rhoTerm * (2*M_PI)) * iG
-						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * (gInfo.RTR * rho12vec);
+						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * (RTR * rho12vec);
 				}
 				E += E12;
 				a1.force -= E12_r12;
@@ -238,11 +239,10 @@ DataGptr CoulombWire::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombWire::energyAndGrad(std::vector<Atom>& atoms) const
-{	if(!ewald)
-		((CoulombWire*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws);
-	return ewald->energyAndGrad(atoms);
+std::shared_ptr<Ewald> CoulombWire::createEwald(matrix3<> R, size_t nAtoms) const
+{	return std::make_shared<EwaldWire>(R, params.iDir, ws);
 }
+
 
 //----------------- class CoulombCylindrical ---------------------
 
@@ -285,8 +285,6 @@ DataGptr CoulombCylindrical::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombCylindrical::energyAndGrad(std::vector<Atom>& atoms) const
-{	if(!ewald)
-		((CoulombCylindrical*)this)->ewald = std::make_shared<EwaldWire>(gInfo, params.iDir, ws, Rc, Rc);
-	return ewald->energyAndGrad(atoms);
+std::shared_ptr<Ewald> CoulombCylindrical::createEwald(matrix3<> R, size_t nAtoms) const
+{	return std::make_shared<EwaldWire>(R, params.iDir, ws, Rc, Rc);
 }

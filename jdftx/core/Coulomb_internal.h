@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_COULOMB_INTERNAL_H
 #define JDFTX_CORE_COULOMB_INTERNAL_H
 
-//! @file Coulomb_internal.h Shared inline functions for anlaytical truncated Coulomb kernels
+//! @file Coulomb_internal.h Shared inline functions / internal declarations for Coulomb framework
 
 #include <core/matrix3.h>
 #include <core/Bspline.h>
@@ -149,11 +149,10 @@ struct ExchangeSpherical_calc
 
 //! Erfc-screened Spherical-truncated exchange
 struct ExchangeSphericalScreened_calc
-{	const double* coeff; //!< quintic spline coefficients
+{	double* coeff; //!< quintic spline coefficients
 	double dGinv; //!< inverse of coefficient spacing
 	size_t nSamples; //!< number of coefficients
-	ExchangeSphericalScreened_calc(const double* coeff, double dGinv, size_t nSamples)
-	: coeff(coeff), dGinv(dGinv), nSamples(nSamples) {}
+	ExchangeSphericalScreened_calc() : coeff(0) {}
 	
 	__hostanddev__ double operator()(double kSq) const
 	{	double t = dGinv * sqrt(kSq);
@@ -162,15 +161,41 @@ struct ExchangeSphericalScreened_calc
 	}
 };
 
+//! Slab-truncated exchange
+struct ExchangeSlab_calc
+{	int iDir; double hlfL;
+	double* coeff; double dGinv; size_t nSamples, nCoeff; //quintic-spline coefficients for screened mode
+	ExchangeSlab_calc() : coeff(0) {}
+	__hostanddev__ double operator()(const vector3<int>& iG, const matrix3<>& GGT, const vector3<>& kDiff, double Vzero, double thresholdSq) const
+	{	vector3<> g = iG + kDiff; //net G-vector in reciprocal lattice coordinates including k-point
+		double Gsq = GGT.metric_length_squared(g);
+		if(Gsq < thresholdSq)
+			return Vzero;
+		double Gplane = Gsq - GGT(iDir,iDir) * iG[iDir]*iG[iDir]; //G along the non-truncated directions (note kDiff[iDir]=0)
+		Gplane = Gplane>0. ? sqrt(Gplane) : 0.; //safe sqrt to prevent NaN from roundoff errors
+		double Vc = (4*M_PI) * (1. - exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]))/Gsq; //Unscreened exchange (calculate analytically)
+		if(coeff)
+		{	//Correct for Screened exchange using lookup table:
+			const double* coeffPlane = coeff + abs(iG[iDir]) * nCoeff; //coefficients for this plane
+			double t = dGinv * Gplane;
+			if(t<nSamples) Vc += QuinticSpline::value(coeffPlane, t);
+		}
+		return Vc;
+	}
+};
+
+
 void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const ExchangePeriodic_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const ExchangePeriodicScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const ExchangeSpherical_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const ExchangeSphericalScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
+void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const ExchangeSlab_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 #ifdef GPU_ENABLED
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangePeriodic_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangePeriodicScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSpherical_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSphericalScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
+void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSlab_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 #endif
 
 //Multiply a complexDataGptr's data by a RealKernel (real-symmetry reduced)

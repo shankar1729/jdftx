@@ -30,12 +30,9 @@ public:
 
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
-	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<Atom>& atoms) const;
 
-private:
-	std::shared_ptr<class EwaldSlab> ewald;
+protected:
+	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 };
 
 

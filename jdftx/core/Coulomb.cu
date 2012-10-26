@@ -46,6 +46,14 @@ void exchangeAnalytic_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, co
 	double kplusGsq = GGT.metric_length_squared(iG + kDiff);
 	data[i] *= kplusGsq<thresholdSq ? Vzero : calc(kplusGsq);
 }
+//Specialization for slab mode:
+template<> void exchangeAnalytic_kernel<ExchangeSlab_calc>(int zBlock,
+	vector3<int> S, const matrix3<> GGT, const ExchangeSlab_calc calc,
+	complex* data, const vector3<> kDiff, double Vzero, double thresholdSq)
+{
+	COMPUTE_fullGindices
+	data[i] *= calc(iG, GGT, kDiff, Vzero, thresholdSq);
+}
 #define DECLARE_exchangeAnalytic_gpu(Type) \
 	void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const Exchange##Type##_calc& calc, \
 		complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq) \
@@ -59,8 +67,8 @@ DECLARE_exchangeAnalytic_gpu(Periodic)
 DECLARE_exchangeAnalytic_gpu(PeriodicScreened)
 DECLARE_exchangeAnalytic_gpu(Spherical)
 DECLARE_exchangeAnalytic_gpu(SphericalScreened)
+DECLARE_exchangeAnalytic_gpu(Slab)
 #undef DECLARE_exchangeAnalytic_gpu
-
 
 __global__
 void multRealKernel_kernel(int zBlock, vector3<int> S, const double* kernel, complex* data)

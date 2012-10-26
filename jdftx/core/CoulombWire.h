@@ -32,13 +32,11 @@ public:
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<Atom>& atoms) const;
-	
+protected:
+	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
-	std::shared_ptr<class EwaldWire> ewald;
 };
 
 //! Coulomb interaction for a 1D periodic system, truncated on a cylinder
@@ -50,14 +48,12 @@ public:
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<Atom>& atoms) const;
-	
+protected:
+	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
 	RealKernel Vc;
-	std::shared_ptr<class EwaldWire> ewald;
 	friend class ExchangeEval;
 };
 

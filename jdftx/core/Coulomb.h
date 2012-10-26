@@ -45,6 +45,7 @@ struct CoulombParams
 	enum ExchangeRegularization
 	{	None, //!< No regularization (3D periodic or non-periodic systems only)
 		AuxiliaryFunction, //!< Auxiliary function method (3D periodic systems only) [P. Carrier et al, PRB 75, 205126 (2007)]
+		ProbeChargeEwald, //!< Ewald sum on a probe charge per unit cell (3D/2D/1D periodic systems)
 		SphericalTruncated, //!< Wigner-Seitz volume spherical truncation  [J. Spencer et al, PRB 77, 193110 (2008)]
 		WignerSeitzTruncated //!< Wigner-Seitz cell truncation [R. Sundararaman et al, (under preparation)]
 	};
@@ -69,6 +70,17 @@ struct Atom
 };
 
 
+//! Abstract base class for Ewald summation in arbitrary dimension
+class Ewald
+{
+public:
+	//!Get the energy of a point charge configurtaion, and accumulate corresponding forces
+	//!The implementation will shift each Atom::pos by lattice vectors to bring it to
+	//!the fundamental zone (or Wigner-Seitz cell as appropriate)
+	virtual double energyAndGrad(std::vector<Atom>& atoms) const=0;
+};
+
+
 //! Abstract base class for the (optionally truncated) Coulomb interaction
 class Coulomb
 {
@@ -79,10 +91,8 @@ public:
 	//! Apply Coulomb kernel (implemented in base class using virtual destructible input version)
 	DataGptr operator()(const DataGptr&) const;
 	
-	//!Get the energy of a point charge configurtaion, and accumulate corresponding forces
-	//!The implementation will shift each Atom::pos by lattice vectors to bring it to
-	//!the fundamental zone (or Wigner-Seitz cell as appropriate)
-	virtual double energyAndGrad(std::vector<Atom>& atoms) const=0; 
+	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
+	double energyAndGrad(std::vector<Atom>& atoms) const; 
 
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
@@ -95,13 +105,21 @@ public:
 protected:
 	const GridInfo& gInfo;
 	const CoulombParams& params;
+	std::shared_ptr<Ewald> ewald;
 	std::map<double, std::shared_ptr<struct ExchangeEval>> exchangeEval;
+	friend class ExchangeEval;
 	
 	Coulomb(const GridInfo& gInfo, const CoulombParams& params);
 	
 	//! Call to initialize exchangeEval if exact exchange is required
 	//! NOTE: this must be called from the end of each derived class constructor
 	void initExchangeEval();
+	
+	//!Each implementation must create and return the corresponding Ewald evaluator
+	//!for the supplied lattice vectors R which may correspond to a supercell of
+	//!gInfo.R along the periodic directions (the truncated directions will be identical)
+	//!The number of atoms may be used for choosing the optimum gaussian width sigma
+	virtual std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const=0;
 };
 
 #endif // JDFTX_CORE_COULOMB_H

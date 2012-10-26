@@ -27,14 +27,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 //! Analog of ewald sum for isolated systems
-//! (no Ewald trick required; prefixed 'Ewald' for consistent naming)
-struct EwaldIsolated
-{	const GridInfo& gInfo;
+struct EwaldIsolated : public Ewald
+{	matrix3<> R, RTR; //!< Lattice vectors and metric
 	const WignerSeitz& ws; //!< Wigner-Seitz cell
 	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
 	
-	EwaldIsolated(const GridInfo& gInfo, const WignerSeitz& ws, double Rc=0.)
-	: gInfo(gInfo), ws(ws), Rc(Rc)
+	EwaldIsolated(const matrix3<>& R, const WignerSeitz& ws, double Rc=0.)
+	: R(R), RTR((~R)*R), ws(ws), Rc(Rc)
 	{
 	}
 	
@@ -52,11 +51,11 @@ struct EwaldIsolated
 			for(unsigned j=0; j<i; j++)
 			{	Atom& a2 = atoms[j];
 				vector3<> x = a1.pos - a2.pos; //lattice coords
-				double rSq = gInfo.RTR.metric_length_squared(x), r = sqrt(rSq);
+				double rSq = RTR.metric_length_squared(x), r = sqrt(rSq);
 				if((!(ws.restrict(x)==x)) || (Rc && (r>=Rc)))
 					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i, j);
 				double dE = (a1.Z * a2.Z) / r;
-				vector3<> dF = (gInfo.RTR * x) * (dE/rSq);
+				vector3<> dF = (RTR * x) * (dE/rSq);
 				E += dE;
 				a1.force += dF;
 				a2.force -= dF;
@@ -80,8 +79,8 @@ DataGptr CoulombIsolated::operator()(DataGptr&& in) const
 {	return Vc * in;
 }
 
-double CoulombIsolated::energyAndGrad(std::vector<Atom>& atoms) const
-{	return EwaldIsolated(gInfo, ws).energyAndGrad(atoms);
+std::shared_ptr<Ewald> CoulombIsolated::createEwald(matrix3<> R, size_t nAtoms) const
+{	return std::make_shared<EwaldIsolated>(R, ws);
 }
 
 
@@ -102,6 +101,6 @@ DataGptr CoulombSpherical::operator()(DataGptr&& in) const
 	return in;
 }
 
-double CoulombSpherical::energyAndGrad(std::vector<Atom>& atoms) const
-{	return EwaldIsolated(gInfo, ws, Rc).energyAndGrad(atoms);
+std::shared_ptr<Ewald> CoulombSpherical::createEwald(matrix3<> R, size_t nAtoms) const
+{	return std::make_shared<EwaldIsolated>(R, ws, Rc);
 }

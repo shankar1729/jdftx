@@ -32,9 +32,8 @@ public:
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<Atom>& atoms) const;
-	
+protected:
+	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
@@ -50,9 +49,8 @@ public:
 	//!Apply isolated Coulomb kernel
 	DataGptr operator()(DataGptr&&) const;
 	
-	//!Energy and forces of a point-charge assembly
-	double energyAndGrad(std::vector<Atom>& atoms) const;
-
+protected:
+	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)

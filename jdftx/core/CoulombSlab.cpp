@@ -19,18 +19,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/CoulombSlab.h>
 #include <core/Coulomb_internal.h>
+#include <core/CoulombKernel.h>
 #include <core/BlasExtra.h>
 
 //! 2D Ewald sum
-struct EwaldSlab
+class EwaldSlab : public Ewald
 {
-	const GridInfo& gInfo;
+	matrix3<> R, G, RTR, GGT; //!< Lattice vectors, reciprocal lattice vectors and corresponding metrics
 	int iDir; //!< truncated direction
 	double sigma; //!< gaussian width for Ewald sums
 	vector3<int> Nreal; //!< max unit cell indices for real-space sum
 	vector3<int> Nrecip; //!< max unit cell indices for reciprocal-space sum
-	
-	EwaldSlab(const GridInfo& gInfo, int iDir) : gInfo(gInfo), iDir(iDir)
+
+public:
+	EwaldSlab(const matrix3<>& R, int iDir) : R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir)
 	{	logPrintf("\n---------- Setting up 2D ewald sum ----------\n");
 		//Determine optimum gaussian width for 2D Ewald sums:
 		// From below, the number of reciprocal cells ~ Prod_{k!=iDir} |R.column[k]|
@@ -40,15 +42,15 @@ struct EwaldSlab
 		sigma = 1.;
 		for(int k=0; k<3; k++)
 			if(k != iDir)
-				sigma *= gInfo.R.column(k).length() / gInfo.G.row(k).length();
+				sigma *= R.column(k).length() / G.row(k).length();
 		sigma = pow(5.*sigma, 1./4);
 		logPrintf("Optimum gaussian width for ewald sums = %lf bohr.\n", sigma);
 		
 		//Carry real space sums to Rmax = 10 sigma and Gmax = 10/sigma
 		//This leads to relative errors ~ 1e-22 in both sums, well within double precision limits
 		for(int k=0; k<3; k++)
-		{	Nreal[k]  = (k==iDir) ? 0 : 1+ceil(10. * gInfo.G.row(k).length() * sigma / (2*M_PI));
-			Nrecip[k] = (k==iDir) ? 0 : 1+ceil(10. * gInfo.R.column(k).length() / (2*M_PI*sigma));
+		{	Nreal[k]  = (k==iDir) ? 0 : 1+ceil(CoulombKernel::nSigmasPerWidth * G.row(k).length() * sigma / (2*M_PI));
+			Nrecip[k] = (k==iDir) ? 0 : 1+ceil(CoulombKernel::nSigmasPerWidth * R.column(k).length() / (2*M_PI*sigma));
 		}
 		logPrintf("Real space sums over %d unit cells with max indices ", (2*Nreal[0]+1)*(2*Nreal[1]+1)*(2*Nreal[2]+1));
 		Nreal.print(globalLog, " %d ");
@@ -82,16 +84,16 @@ struct EwaldSlab
 					for(iR[1]=-Nreal[1]; iR[1]<=Nreal[1]; iR[1]++)
 						for(iR[2]=-Nreal[2]; iR[2]<=Nreal[2]; iR[2]++)
 						{	vector3<> x = iR + (a1.pos - a2.pos);
-							double rSq = gInfo.RTR.metric_length_squared(x);
+							double rSq = RTR.metric_length_squared(x);
 							if(!rSq) continue; //exclude self-interaction
 							double r = sqrt(rSq);
 							E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-							a1.force += (gInfo.RTR * x) *
+							a1.force += (RTR * x) *
 								(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
 						}
 		//Reciprocal space sum:
-		double L = sqrt(gInfo.RTR(iDir,iDir)); //length of truncated direction
-		double volPrefac = M_PI * L / gInfo.detR;
+		double L = sqrt(RTR(iDir,iDir)); //length of truncated direction
+		double volPrefac = M_PI * L / fabs(det(R));
 		for(unsigned i1=0; i1<atoms.size(); i1++)
 		{	Atom& a1 = atoms[i1];
 			for(unsigned i2=0; i2<=i1; i2++)
@@ -109,7 +111,7 @@ struct EwaldSlab
 						{	//2D structure factor term and derivative
 							double c, s; sincos((2*M_PI)*dot(iG,r12), &s, &c);
 							//Contribution from truncated direction:
-							double Gsq = gInfo.GGT.metric_length_squared(iG);
+							double Gsq = GGT.metric_length_squared(iG);
 							double zTerm, zTermPrime;
 							if(Gsq)
 							{	double G = sqrt(Gsq);
@@ -157,8 +159,6 @@ DataGptr CoulombSlab::operator()(DataGptr&& in) const
 	return in;
 }
 
-double CoulombSlab::energyAndGrad(std::vector<Atom>& atoms) const
-{	if(!ewald)
-		((CoulombSlab*)this)->ewald = std::make_shared<EwaldSlab>(gInfo, params.iDir);
-	return ewald->energyAndGrad(atoms);
+std::shared_ptr<Ewald> CoulombSlab::createEwald(matrix3<> R, size_t nAtoms) const
+{	return std::make_shared<EwaldSlab>(R, params.iDir);
 }
