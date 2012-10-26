@@ -257,7 +257,7 @@ void safeProcess(Command& c, string params, Everything& everything,
 	}
 }
 
-void parse(const char* filename, Everything& everything)
+void parse(const char* filename, Everything& everything, bool printDefaults)
 {	//Read the contents of the file into command-parameter pairs, handling includes recursively:
 	std::vector<string> filenameList; filenameList.push_back(filename);
 	std::vector< pair<string,string> > input;
@@ -318,10 +318,12 @@ void parse(const char* filename, Everything& everything)
 		die("\n\nInput parsing failed with %lu errors (run with -t for command syntax)\n\n", errTot);
 	}
 	//Print status:
-	logPrintf("\n\nInput parsed successfully to the following command list (including defaults):\n\n");
-	for(map<string,int>::iterator i=encountered.begin(); i!=encountered.end(); i++)
-	{	for(int iRep=0; iRep<i->second; iRep++) //handle repetitions
-		{	Command& c = *(cmap[i->first].second);
+	std::map<string,int> explicitlyEncountered; //List of commands explicitly in input file (with corresponding multiplicities)
+	if(!printDefaults) for(auto cmd: input) explicitlyEncountered[cmd.first]++;
+	logPrintf("\n\nInput parsed successfully to the following command list (%sincluding defaults):\n\n", printDefaults ? "" : "not ");
+	for(auto i: (printDefaults ? encountered : explicitlyEncountered))
+	{	for(int iRep=0; iRep<i.second; iRep++) //handle repetitions
+		{	Command& c = *(cmap[i.first].second);
 			logPrintf("%s ", c.name.c_str());
 			c.printStatus(everything, iRep);
 			logPrintf("\n");

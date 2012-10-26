@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Parse the input file, and initialize everything
 //! Read from stdin if filename is empty
-void parse(const char* filename, Everything &everything);
+void parse(const char* filename, Everything &everything, bool printDefaults=false);
 
 //! Produce an input file template
 void printDefaultTemplate(Everything &e);

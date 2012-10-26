@@ -98,13 +98,9 @@ public:
 void printStack(); //!< Print a minimal stack trace (convenient for debugging)
 void gdbStackTraceExit(int code); //!< Exit on error with a more in-depth stack trace
 int assertStackTraceExit(const char* expr, const char* function, const char* file, long line); //!< stack trace on failed assertions
-//A custom assertion with stack trace
-#ifdef NDEBUG
-	#define assert(expr) //do nothing
-#else
-	#define assert(expr) \
-		(void)((expr) ? 0 : assertStackTraceExit(#expr, __func__, __FILE__, __LINE__))
-#endif
+//! A custom assertion with stack trace (NOTE: enabled in release modes as well)
+#define assert(expr) \
+	(void)((expr) ? 0 : assertStackTraceExit(#expr, __func__, __FILE__, __LINE__))
 
 
 // -----------  Logging ---------------
