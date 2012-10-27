@@ -81,5 +81,5 @@ if(CUDA_FOUND)
                  SolvatedCMOS_gpu
 	PROPERTIES COMPILE_FLAGS "-std=c++0x -DGPU_ENABLED")
 
-endif(CUDA_FOUND)
+endif()
 

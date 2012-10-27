@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/GpuUtil.h>
 #include <core/Util.h>
-#include <core/cblas_wrapper.h>
+#include <gsl/gsl_cblas.h>
 #include <string.h>
 
 Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)

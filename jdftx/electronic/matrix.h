@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ManagedMemory.h>
 #include <core/matrix3.h>
 #include <core/scaled.h>
-#include <core/cblas_wrapper.h>
+#include <gsl/gsl_cblas.h>
 
 //! Real diagonal matrix
 class diagMatrix : public std::vector<double>

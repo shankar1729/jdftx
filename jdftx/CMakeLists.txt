@@ -7,7 +7,6 @@ else()
 	cmake_policy(VERSION 2.6)
 endif()
 
-enable_language (Fortran)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 
 #Package configuration:
@@ -27,16 +26,26 @@ if(Subversion_FOUND)
         message(STATUS "SVN revision number: ${SUBVERSION_REVISION}")
 endif()
 
-find_package(LAPACK REQUIRED)
-
-find_package(CBLAS REQUIRED)
-include_directories(${CBLAS_INCLUDE_DIR})
+find_package(GSL REQUIRED)
+include_directories(${GSL_INCLUDE_DIR})
 
 find_package(FFTW3 REQUIRED)
 include_directories(${FFTW3_INCLUDE_DIR})
 
-find_package(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIR})
+#Use indepedent CBLAS and LAPACK (default) or MKL for both
+if(MKL_PATH)
+	find_package(MKL)
+endif()
+if(MKL_FOUND)
+	set(CBLAS_LAPACK_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS and LAPACK
+else()
+	if(MKL_PATH)
+		message(WARNING "Could not find MKL in specified MKL_PATH; searching for alternate CBLAS and LAPACK libraries")
+	endif()
+	find_package(LAPACK REQUIRED)
+	find_package(CBLAS REQUIRED)
+	set(CBLAS_LAPACK_LIBRARIES ${CBLAS_LIBRARY} ${LAPACK_LIBRARIES})
+endif()
 
 find_package(LIBXC)
 if(LIBXC_FOUND)
@@ -78,7 +87,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-result -g -O3")
 #----------------------- Regular CPU stuff ----------------
 
 #Set of libraries used by each target
-set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LIBRARY} ${GSL_LIBRARY} ${LAPACK_LIBRARIES} ${LIBXC_LIBRARY} ${TRIANGULATE_LIBRARY})
+set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LAPACK_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY} ${TRIANGULATE_LIBRARY})
 
 #Core Library:
 FILE(GLOB coreSources core/*.cpp)

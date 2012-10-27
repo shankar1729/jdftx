@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 @brief Commonly used BLAS-like routines
 */
 
-#include <core/cblas_wrapper.h>
+#include <gsl/gsl_cblas.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cfloat>

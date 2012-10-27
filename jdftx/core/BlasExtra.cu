@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <cublas.h>
 #include <cfloat>
-#include <core/cblas_wrapper.h>
+#include <gsl/gsl_cblas.h>
 
 template<typename Tx, typename Ty> __global__
 void eblas_mul_kernel(const int N, const Tx* X, const int incX, Ty* Y, const int incY)

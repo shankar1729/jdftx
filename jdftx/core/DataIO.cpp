@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/GridInfo.h>
 #include <core/Operators.h>
-#include <core/cblas_wrapper.h>
+#include <gsl/gsl_cblas.h>
 #include <string.h>
 #include <algorithm>
 
