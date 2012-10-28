@@ -53,7 +53,8 @@ void registerHandlers()
 	signal(SIGABRT, sigErrorHandler);
 }
 void sigIntHandler(int sig)
-{	resetHandlers();
+{	if(feof(stdin)) exit(0);
+	resetHandlers();
 	printf(
 		"\n---------------------------------------------\n"
 		"Received SIGINT (Ctrl+C), do you want to:\n"
