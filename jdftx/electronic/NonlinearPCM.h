@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -34,6 +34,7 @@ struct NonlinearPCMparams : public FluidSolverParams
 {
 	double Kdip; //! dipole correlation prefactor (adjusted to obtain bulk dielectric constant for a given temperature)
 	double k2factor; //! inverse bulk ionic screening length squared
+	double chiFactor; //! Linear contribuiton of p that does not saturate (simulates electronic polarizability)
 	
 	//! A copy constructor to set base-class variables
 	NonlinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p) {}

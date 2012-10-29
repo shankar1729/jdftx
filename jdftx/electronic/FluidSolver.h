@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -81,6 +81,7 @@ struct FluidSolverParams
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
 	double Nbulk; //!< Bulk number-density of molecules in bohr^-3
 	double pMol; //!< Dipole moment of each molecule in e-bohr
+	double epsInf; //! Optical-frequency dielectric constant
 	
 	//For Explicit Fluid JDFT alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water

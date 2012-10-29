@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -34,9 +34,8 @@ inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.comp
 inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
 
 //! Returns the cavitation energy contribution (volume and surface terms)
-inline double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure){
-		
-	//DataRptr surface = pow(I(D(J(shape), 0)), 2) + pow(I(D(J(shape), 1)), 2) + pow(I(D(J(shape), 2)), 2);
+inline double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure)
+{
 	DataRptrVec shape_x = gradient(shape);
 	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
 	double surfaceArea = integral(surfaceDensity);
@@ -52,48 +51,36 @@ inline double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, dou
 }
 
 //Ratio of the fractional polarization (p/shape*pMol) to eps
-//(with regulariztaion around 0)
-inline double polFrac(double x, bool linearDielectric)
-{
-	if(linearDielectric)
-	{	return 1.0/3;
-	}
+//(with regularization around 0)
+inline double polFrac(double x, double chiFactor, bool linearDielectric)
+{	if(linearDielectric) return 1.0/3;
 	else
 	{	register double xSq=x*x;
-		if(x<1e-1) return 1.0/3 + xSq*(-1.0/45 + xSq*(2.0/945 + xSq*(-1.0/4725)));
-		return (x/tanh(x)-1)/xSq;
+		if(x<1e-1) return 1.0/3 + chiFactor + xSq*(-1.0/45 + xSq*(2.0/945 + xSq*(-1.0/4725)));
+		return (x/tanh(x)-1)/xSq + chiFactor;
 	}
 }
 
-inline double polFracPrime(double x, bool linearDielectric)
-{
-	if(linearDielectric)
-	{	return 0.0;
-	}
+inline double polFrac_x(double x, bool linearDielectric)
+{	if(linearDielectric) return 0.0;
 	else
 	{	register double xSq=x*x;
 		if(x<1e-1) return x*(-2.0/45 + xSq*(8.0/945 + xSq*(-6.0/4725)));
-		return (2 - x/tanh(x) - pow(x/sinh(x),2))/pow(x,3);
+		return (2 - x/tanh(x) - pow(x/sinh(x),2))/(x*xSq);
 	}
 }
 
-inline double polFracPrime_by_x(double x, bool linearDielectric)
-{
-	if(linearDielectric)
-	{	return 0.0;
-	}
+inline double polFrac_x_over_x(double x, bool linearDielectric)
+{	if(linearDielectric) return 0.0;
 	else
 	{	register double xSq=x*x;
 		if(x<1e-1) return -2.0/45 + xSq*(8.0/945 + xSq*(-6.0/4725));
-		return (2 - x/tanh(x) - pow(x/sinh(x),2))/pow(x,4);
+		return (2 - x/tanh(x) - pow(x/sinh(x),2))/(xSq*xSq);
 	}
 }
 
 inline double logsinch(double x, bool linearDielectric)
-{
-	if(linearDielectric)
-	{	return x*x/6;
-	}
+{	if(linearDielectric)return x*x/6;
 	else
 	{	register double xSq=x*x;
 		if(x<1e-1) return xSq*(1.0/6 + xSq*(-1.0/180 + xSq*(1.0/2835)));
@@ -101,53 +88,16 @@ inline double logsinch(double x, bool linearDielectric)
 	}
 }
 
-inline double myexp(double x, bool linearScreening)
-{
-	if(linearScreening)
-	{
-		return 1.0+x;
-	}
-	else
-	{
-		return exp(x);
-	}
-}
-
-inline double mysinh(double x, bool linearScreening)
-{
-	if(linearScreening)
-	{
-		return x;
-	}
-	else
-	{
-		return sinh(x);
-	}
-}
-
-inline double mycosh(double x, bool linearScreening)
-{
-	if(linearScreening)
-	{
-		return 1.0+x*x/2.0;
-	}
-	else
-	{
-		return cosh(x);
-	}
-}
-
-inline double myxcosh(double x, bool linearScreening)
-{
-	if(linearScreening)
-	{
-		return x;
-	}
-	else
-	{
-		return x*cosh(x);
-	}
-}
+//! Switch between nonlinear and linear screening
+struct ScreeningFunctions
+{	bool linearScreening; //! Whether screening is linearized
+	ScreeningFunctions(bool linearScreening) : linearScreening(linearScreening) {}
+	
+	inline double exp(double x) { return linearScreening ? 1.+x : ::exp(x); }
+	inline double sinh(double x) { return linearScreening ? x : ::sinh(x); }
+	inline double cosh(double x) { return linearScreening ? 1.+0.5*x*x : ::cosh(x); }
+	inline double xcosh(double x) { return linearScreening ? x : x*::cosh(x); }
+};
 
 
 //calculates f[mu] (the G=0 component of mu required to allow charge balance between ions and explicit system)
@@ -156,26 +106,11 @@ inline double calc_grad_fmu(size_t i, double rhoExplicitGzero, double nNegGzero,
 {
 	const double &shape=shapeData[i];
 	const double &mu=muData[i];
-	double alphaPos = shape * params->ionicConcentration*myexp(+mu,params->linearScreening) / nPosGzero;
-	double alphaNeg = shape * params->ionicConcentration*myexp(-mu,params->linearScreening) / nNegGzero;
+	ScreeningFunctions screenFunc(params->linearScreening);
+	double alphaPos = shape * params->ionicConcentration*screenFunc.exp(+mu) / nPosGzero;
+	double alphaNeg = shape * params->ionicConcentration*screenFunc.exp(-mu) / nNegGzero;
 	double rhoFac = rhoExplicitGzero / sqrt(4*nPosGzero*nNegGzero + rhoExplicitGzero*rhoExplicitGzero);
 	return 0.5 * (alphaPos*(1+rhoFac) + alphaNeg*(1-rhoFac));
-// 	NOTE: Simplified the branched expressions below to the branchless one above
-// 	double grad_fmu;
-// 	register double nPos,nNeg;
-// 	nPos=params->ionicConcentration*shape*myexp(mu,params->linearScreening);
-// 	nNeg=params->ionicConcentration*shape*myexp(-mu,params->linearScreening);
-// 	if (rhoExplicitGzero == 0.0)
-// 		grad_fmu=(nNegGzero*nPos+nPosGzero*nNeg)/(2.0*nPosGzero*nNegGzero);
-// 	else if (rhoExplicitGzero < 0.0)
-// 		grad_fmu=nPos/nPosGzero-2.0*(nNegGzero*nPos-nPosGzero*nNeg)/
-// 			(4.0*nNegGzero*nPosGzero+rhoExplicitGzero*(rhoExplicitGzero+
-// 			sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero)));
-// 	else // (rhoExplicitGzero > 0.0)
-// 		grad_fmu=nNeg/nNegGzero+2.0*(nNegGzero*nPos-nPosGzero*nNeg)/
-// 			(4.0*nNegGzero*nPosGzero+rhoExplicitGzero*(rhoExplicitGzero-
-// 			sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero)));
-// 	return grad_fmu;
 }
 
 
@@ -184,26 +119,11 @@ inline double calc_derivfmu_shape(size_t i, double rhoExplicitGzero, double nNeg
 	const double* muData, const NonlinearPCMparams* params)
 {
 	const double &mu=muData[i];
-	double betaPos = +params->ionicConcentration*myexp(+mu,params->linearScreening) / nPosGzero;
-	double betaNeg = -params->ionicConcentration*myexp(-mu,params->linearScreening) / nNegGzero;
+	ScreeningFunctions screenFunc(params->linearScreening);
+	double betaPos = +params->ionicConcentration*screenFunc.exp(+mu) / nPosGzero;
+	double betaNeg = -params->ionicConcentration*screenFunc.exp(-mu) / nNegGzero;
 	double rhoFac = rhoExplicitGzero / sqrt(4*nPosGzero*nNegGzero + rhoExplicitGzero*rhoExplicitGzero);
 	return 0.5 * (betaPos*(1+rhoFac) + betaNeg*(1-rhoFac));
-// 	NOTE: Simplified the branched expressions below to the branchless one above
-// 	double grad_fmu_shape=0.0;
-// 	register double Pos,Neg;
-// 	Pos=params->ionicConcentration*myexp(mu,params->linearScreening);
-// 	Neg=params->ionicConcentration*myexp(-mu,params->linearScreening);
-// 	if (rhoExplicitGzero == 0.0)
-// 		grad_fmu_shape=(nNegGzero*Pos-nPosGzero*Neg)/(2.0*nPosGzero*nNegGzero);
-// 	else if (rhoExplicitGzero < 0.0)
-// 		grad_fmu_shape=Pos/nPosGzero-2.0*(nNegGzero*Pos+nPosGzero*Neg)/
-// 			(4.0*nNegGzero*nPosGzero+rhoExplicitGzero*(rhoExplicitGzero+
-// 			sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero)));
-// 	else // (rhoExplicitGzero > 0.0)
-// 		grad_fmu_shape=-Neg/nNegGzero+2.0*(nNegGzero*Pos+nPosGzero*Neg)/
-// 			(4.0*nNegGzero*nPosGzero+rhoExplicitGzero*(rhoExplicitGzero-
-// 			sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero)));
-// 	return grad_fmu_shape;
 }
 
 //Compute polarization density, entropy and dipole correlation terms, and their gradient
@@ -213,8 +133,8 @@ inline double dipoleCorrEntropy(size_t i, vector3<const double*> epsData, const 
 {	const double &shape=shapeData[i];
 	vector3<> epsVec = loadVector(epsData, i);
 	register double eps = epsVec.length();
-	register double frac = polFrac(eps, params->linearDielectric);
-	register double fracPrime = polFracPrime(eps, params->linearDielectric);
+	register double frac = polFrac(eps, params->chiFactor, params->linearDielectric);
+	register double fracPrime = polFrac_x(eps, params->linearDielectric);
 
 	vector3<> pVec = epsVec * params->Nbulk * shape * params->pMol * frac;
 	register double grad_shape = params->Nbulk*(params->T*(eps*eps*frac - logsinch(eps, params->linearDielectric)) - 0.5*params->Kdip*pow(eps*frac,2));
@@ -234,13 +154,12 @@ inline double IonEnergy(size_t i,const double* muEffData, const double* shapeDat
 {
 	const double &shape=shapeData[i];
 	const double &muEff=muEffData[i];
-
-	register double grad_shape = 2.0*params->ionicConcentration*params->T*(muEff*mysinh(muEff,params->linearScreening)-mycosh(muEff,params->linearScreening));
+	ScreeningFunctions screenFunc(params->linearScreening);
+	
+	register double grad_shape = 2.0*params->ionicConcentration*params->T*(muEff*screenFunc.sinh(muEff)-screenFunc.cosh(muEff));
 	register double A = shape*grad_shape;
 
-	register double grad_muEff =  2.0*params->ionicConcentration*params->T*shape*myxcosh(muEff,params->linearScreening);
-	//register double grad_muEff =  0.0;
-
+	register double grad_muEff =  2.0*params->ionicConcentration*params->T*shape*screenFunc.xcosh(muEff);
 	grad_muEffData[i] += grad_muEff;
 	if(grad_shapeData) grad_shapeData[i] += grad_shape;
 	return A;
@@ -255,8 +174,8 @@ inline void convert_grad_p_eps(size_t i, vector3<const double*> epsData, const d
 	vector3<> grad_pVec = loadVector(grad_pData, i);
 
 	register double eps = epsVec.length();
-	register double frac=polFrac(eps, params->linearDielectric);
-	register double fracPrime_by_eps=polFracPrime_by_x(eps, params->linearDielectric);
+	register double frac=polFrac(eps, params->chiFactor, params->linearDielectric);
+	register double fracPrime_by_eps=polFrac_x_over_x(eps, params->linearDielectric);
 
 	vector3<> grad_epsVec = shape*params->Nbulk*params->pMol*(grad_pVec*frac + fracPrime_by_eps*epsVec*dot(epsVec,grad_pVec));
 	accumVector(grad_epsVec, grad_epsData, i);
@@ -288,25 +207,27 @@ inline void calc_rhoIon(size_t i, const double* muEffData, const double* shapeDa
 	register double muEff, shape;
 	muEff = muEffData[i];
 	shape = shapeData[i];
-
-	rhoIonData[i]=2.0*params->ionicConcentration*shape*mysinh(muEff,params->linearScreening);
-	grad_rhoIon_muEffData[i]=2.0*params->ionicConcentration*shape*myxcosh(muEff,params->linearScreening)/muEff;
-
+	ScreeningFunctions screenFunc(params->linearScreening);
+	rhoIonData[i]=2.0*params->ionicConcentration*shape*screenFunc.sinh(muEff);
+	grad_rhoIon_muEffData[i]=2.0*params->ionicConcentration*shape*screenFunc.xcosh(muEff)/muEff;
 
 	if(deriv_rhoIon_shapeData)
-	{
-		deriv_rhoIon_shapeData[i] = 2.0*params->ionicConcentration*mysinh(muEff,params->linearScreening);
-	}
+		deriv_rhoIon_shapeData[i] = 2.0*params->ionicConcentration*screenFunc.sinh(muEff);
 }
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : FluidSolver(e), params(fsp), MuKernel(e.gInfo)
 {	
 	//Initialize extra parameters:
-	params.Kdip = 3*params.T - 4*M_PI*pow(params.pMol,2)*params.Nbulk/(params.epsilonBulk-1);
+	params.Kdip = (3.0 * params.T * (params.epsilonBulk - params.epsInf) - 4.*M_PI*params.Nbulk*pow(params.pMol, 2))/(params.epsilonBulk - 1.);
 	params.k2factor= (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
+	params.chiFactor = (params.T/pow(params.pMol, 2))*(params.epsInf - 1.)/(4*M_PI*params.Nbulk);
+	
+	// Check whether the linear response makes sense
+	if(params.Kdip < 0.)
+		die("\nCurrent Nonlinear PCM parameters imply negative correlation for dipole rotations.\n"
+			"\tHINT: Reduce solvent molecule dipole or epsInf to fix this");
 }
-
 
 inline void setMuKernel(int i, double G2, double* MuKernel, double meanKsq)
 {	if(i==0) MuKernel[i] = meanKsq ? 1.0/meanKsq : 0.0;
@@ -330,9 +251,6 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 
 	if(!state)
 	{	//Initialize eps using a linear response approx:
-		//DataGptr phiTilde = -4*M_PI*Linv(O(rhoExplicitTilde)); //potential due to explicit system
-		//DataRptrVec eps = I(gradient((params.pMol/(params.epsilonBulk*(params.T-params.Kdip/3)))*phiTilde));
-		//DataRptr mu = -I(phiTilde)*(1.0/params.T); //nullToZero(mu,e.gInfo); //should initialize mu to a constant times tha shape function??
 		RealKernel gauss(e.gInfo); initGaussianKernel(gauss, 2.0);
 		nullToZero(state, e.gInfo); initRandomFlat(state); state=e.gInfo.dV*I(gauss*J(state));
 		//setMuEps(state, mu, eps);
@@ -362,7 +280,6 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 	
 	if(params.ionicConcentration)
 	{
-
 		nullToZero(muEff,e.gInfo);
 		nullToZero(grad_muEff,e.gInfo);
 
@@ -371,25 +288,15 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 		//rhoExplicitGzero=0.0;
 
 		if (params.linearScreening)
-		{
-			nNegGzero=params.ionicConcentration*dot(shape,1.0-mu+0.5*mu*mu)*e.gInfo.dV;
+		{	nNegGzero=params.ionicConcentration*dot(shape,1.0-mu+0.5*mu*mu)*e.gInfo.dV;
 			nPosGzero=params.ionicConcentration*dot(shape,1.0+mu+0.5*mu*mu)*e.gInfo.dV;
 		}
 		else
-		{
-			nNegGzero=params.ionicConcentration*dot(shape,exp(-mu))*e.gInfo.dV;
+		{	nNegGzero=params.ionicConcentration*dot(shape,exp(-mu))*e.gInfo.dV;
 			nPosGzero=params.ionicConcentration*dot(shape,exp(mu))*e.gInfo.dV;
 		}
 
 		double fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
-// 		NOTE: Branches below are unneccessary
-// 		double fmu;
-// 		if(rhoExplicitGzero == 0.0)
-// 			fmu = 0.5*log(nPosGzero/nNegGzero);
-// 		else if (rhoExplicitGzero < 0.0)
-// 			fmu = -log((rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nPosGzero));
-// 		else //rhoExplicitGzero > 0.0)
-// 			fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
 		muEff=mu-fmu;
 
 		//compute rhoIon from muEff=mu+f[mu]
@@ -440,37 +347,29 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 }
 
 void NonlinearPCM::minimizeFluid()
-{
-	TIME("NonlinearPCM minimize", globalLog,
-		minimize(e.fluidMinParams);
-	)
+{	minimize(e.fluidMinParams);
 }
 
 void NonlinearPCM::loadState(const char* filename)
-{
-	nullToZero(state, e.gInfo);
+{	nullToZero(state, e.gInfo);
 	state.loadFromFile(filename);
 }
 
 void NonlinearPCM::saveState(const char* filename) const
-{
-	state.saveToFile(filename);
+{	state.saveToFile(filename);
 }
 
 double NonlinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)
-{
-	DataRMuEps grad_state;//change to grad_state
+{	DataRMuEps grad_state;//change to grad_state
 	return (*this)(state, grad_state, &grad_rhoExplicitTilde, &grad_nCavityTilde);
 }
 
 void NonlinearPCM::step(const DataRMuEps& dir, double alpha)
-{
-	axpy(alpha, dir, state);
+{	axpy(alpha, dir, state);
 }
 
 double NonlinearPCM::compute(DataRMuEps* grad)
-{
-	DataRMuEps gradUnused;
+{	DataRMuEps gradUnused;
 	return (*this)(state, grad ? *grad : gradUnused);
 }
 
