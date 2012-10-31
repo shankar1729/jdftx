@@ -76,7 +76,7 @@ template<class T, int N> struct DataMultiplet
 	std::vector<const typename T::DataType*> const_dataGpu() const { return dataGpu(); } //!< Get the component GPU data pointers in an std::vector (const version)
 	#endif
 
-	operator const bool() const { bool ret=true; Nloop(ret = ret && component[i];) return ret; } //!< Cast to bool: true if all components are non-null
+	operator bool() const { bool ret=true; Nloop(ret = ret && component[i];) return ret; } //!< Cast to bool: true if all components are non-null
 	void loadFromFile(const char* fileName); //!< Load all components from a single binary file
 	void saveToFile(const char* fileName) const; //!< Save all components from a single binary file
 };

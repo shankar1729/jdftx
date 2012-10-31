@@ -55,21 +55,23 @@ else()
 	set(LIBXC_LIBRARY "")
 endif()
 
-find_package(CGAL QUIET COMPONENTS Core )
-if(CGAL_FOUND)
-	include(${CGAL_USE_FILE})
-	add_library(jdftxTriangulate SHARED core/opt/Triangulate.cpp)
-	if(CGAL_AUTO_LINK_ENABLED)
-		target_link_libraries(jdftxTriangulate ${CGAL_3RD_PARTY_LIBRARIES} )
+option(DisableCGAL "Optionally disable CGAL even if it is installed (necessary for some compilers)")
+find_package(CGAL QUIET COMPONENTS Core)
+if(NOT DisableCGAL)
+	if(CGAL_FOUND)
+		include(${CGAL_USE_FILE})
+		add_library(jdftxTriangulate SHARED core/opt/Triangulate.cpp)
+		if(CGAL_AUTO_LINK_ENABLED)
+			target_link_libraries(jdftxTriangulate ${CGAL_3RD_PARTY_LIBRARIES} )
+		else()
+			target_link_libraries(jdftxTriangulate ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
+		endif()
+		add_definitions("-DTRIANGULATE_ENABLED")
+		set(TRIANGULATE_LIBRARY "jdftxTriangulate")
 	else()
-		target_link_libraries(jdftxTriangulate ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
-    endif()
-    add_definitions("-DTRIANGULATE_ENABLED")
-	set(TRIANGULATE_LIBRARY "jdftxTriangulate")
-else()
-	message(WARNING "Density-of-states capability disabled due to missing Computational Geometry Algorithms Library (CGAL)")
+		message(WARNING "Density-of-states capability disabled due to missing Computational Geometry Algorithms Library (CGAL)")
+	endif()
 endif()
-
 
 #Process configuration information into config.h (with config.in.h as a template)
 configure_file(${CMAKE_SOURCE_DIR}/config.in.h ${CMAKE_BINARY_DIR}/config.h)
@@ -81,8 +83,45 @@ if(EnableProfiling)
 	add_definitions("-DENABLE_PROFILING")
 endif()
 
-#Compilation flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-result -g -O3")
+#------------------------- Compilation flags ------------------------
+
+#Base flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -O3")
+set(JDFTX_CPU_FLAGS "-std=c++0x") #Flags used for host compiler alone (i.e. not for gpu device code)
+
+#Additional compiler-dependent flags:
+include(CheckCXXCompilerFlag)
+#--- Suppress gcc warning
+check_cxx_compiler_flag(-Wno-unused-result HAS_NO_UNUSED_RESULT)
+if(HAS_NO_UNUSED_RESULT)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-result")
+endif()
+#--- Link-time optimizations (GCC)
+check_cxx_compiler_flag(-flto HAS_FLTO)
+if(HAS_FLTO)
+	set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -flto")
+endif()
+#--- Link-time optimizations (ICC)
+check_cxx_compiler_flag(-ipo HAS_IPO)
+if(HAS_IPO)
+	set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -ipo")
+endif()
+
+#Architecture dependent optimizations
+option(CompileNative "Enable aggressive architecture-dependent optimizations for current CPU.")
+if(CompileNative)
+	#--- GCC architecture-dependent optimization
+	check_cxx_compiler_flag(-march=native HAS_MARCH_NATIVE)
+	if(HAS_MARCH_NATIVE)
+		set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -march=native")
+	endif()
+	#--- Intel architecture-dependent optimization
+	check_cxx_compiler_flag(-fast HAS_FAST)
+	if(HAS_FAST)
+		set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -fast")
+	endif()
+endif()
+
 
 #----------------------- Regular CPU stuff ----------------
 
@@ -114,7 +153,7 @@ add_executable(jdftx jdftx.cpp)
 target_link_libraries(jdftx jdftxCommands)
 
 #Target properties:
-set_target_properties(jdftx jdftxCore jdftxFluid jdftxElectronic jdftxCommands  PROPERTIES COMPILE_FLAGS "-std=c++0x")
+set_target_properties(jdftx jdftxCore jdftxFluid jdftxElectronic jdftxCommands  PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS}")
 
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
@@ -160,7 +199,7 @@ if(CUDA_FOUND)
 	target_link_libraries(jdftx_gpu jdftxCommands_gpu)
 
 	#Target properties for Gpu versions:
-	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES COMPILE_FLAGS "-std=c++0x -DGPU_ENABLED")
+	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS} -DGPU_ENABLED")
 
 endif()
 

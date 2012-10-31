@@ -75,6 +75,8 @@ struct Site
 {	int index; //!< Site density index: sites related by symmetry in a molecule will share the same value
 	SiteProperties* prop; //!< Site properties: multiple symmetry classes and different same species in different molecules could share the same
 	vector3<> pos; //!< Position w.r.t molecular origin in the reference orientation
+	
+	Site(int index, SiteProperties* prop, vector3<> pos) : index(index), prop(prop), pos(pos) {}
 };
 
 //! Molecule: a collection of sites
@@ -108,21 +110,21 @@ private:
 	//Template recursion entry point for the magic constructor above:
 	template<typename... Args> std::vector<Site> make_site(SiteProperties* prop, vector3<> pos, Args... args)
 	{	std::vector<Site> site;
-		site.push_back(Site({0,prop,pos}));
+		site.push_back(Site(0,prop,pos));
 		add_site(site, args...);
 		return site;
 	}
 	//Initialize a new symmetry equivalence class in the recursion:
 	template<typename... Args> void add_site(std::vector<Site>& site, SiteProperties* prop, vector3<> pos, Args... args)
 	{	int index = site.back().index+1;
-		site.push_back(Site({index,prop,pos}));
+		site.push_back(Site(index,prop,pos));
 		add_site(site, args...);
 	}
 	//Continue previous symmetry equivalence class in the recursion:
 	template<typename... Args> void add_site(std::vector<Site>& site, vector3<> pos, Args... args)
 	{	int index = site.back().index;
 		SiteProperties* prop = site.back().prop;
-		site.push_back(Site({index,prop,pos}));
+		site.push_back(Site(index,prop,pos));
 		add_site(site, args...);
 	}
 	//End recursion (all the arguments have been processed):

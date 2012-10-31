@@ -64,9 +64,14 @@ struct CoulombParams
 //! Information required for pair-potential evaluations
 struct Atom
 {	double Z; //!< charge
-	int atomicNumber; //!< atomic number
 	vector3<> pos; //!< position in lattice coordinates (covariant)
 	vector3<> force; //!< force in lattice coordinates (contravariant)
+	int atomicNumber; //!< atomic number
+	
+	Atom(double Z, vector3<> pos, vector3<> force=vector3<>(0,0,0), int atomicNumber=0)
+	: Z(Z), pos(pos), force(force), atomicNumber(atomicNumber)
+	{
+	}
 };
 
 

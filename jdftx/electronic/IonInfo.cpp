@@ -278,7 +278,7 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 	std::vector<Atom> atoms;
 	for(auto sp: species)
 		for(const vector3<>& pos: sp->atpos)
-			atoms.push_back({sp->Z, sp->atomicNumber, pos, vector3<>(0.,0.,0.)});
+			atoms.push_back(Atom(sp->Z, pos, vector3<>(0.,0.,0.), sp->atomicNumber));
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
 	double Eewald = e->coulomb->energyAndGrad(atoms);
 	//Compute optional pair-potential terms:

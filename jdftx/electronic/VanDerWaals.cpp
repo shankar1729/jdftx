@@ -140,21 +140,10 @@ void VanDerWaals::setup(const Everything &everything){
 double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string EXCorr)
 {
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
-	int n[3];
+	vector3<bool> isTruncated = e->coulombParams.isTruncated();
+	vector3<int> n;
 	for(int k=0; k<3; k++)
-		n[k] = (int)ceil(100. / e->gInfo.R.column(k).length());
-	
-	//Checks for Coulomb truncation
-	switch(e->coulombParams.geometry)
-	{
-		case e->coulombParams.Slab:
-			n[e->coulombParams.iDir] = 0;
-		case e->coulombParams.Wire:
-			n[(e->coulombParams.iDir+1)%3] = 0;
-			n[(e->coulombParams.iDir+2)%3] = 0;
-		default:
-			break;
-	}
+		n[k] = isTruncated[k] ? 0 : (int)ceil(100. / e->gInfo.R.column(k).length());
 	
 	const double scaleFac = scalingFactor[EXCorr]; //Prefactor depending on exchange-correlation
 	double Etot = 0.;  //Total VDW Energy

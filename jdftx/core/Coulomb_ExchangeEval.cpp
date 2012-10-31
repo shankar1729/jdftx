@@ -296,8 +296,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					}
 		}
 		else //Use the appropriate Ewald method
-		{	std::vector<Atom> atoms;
-			atoms.push_back({1., 0, vector3<>(), vector3<>()}); //single unit point charge
+		{	std::vector<Atom> atoms(1, Atom(1., vector3<>())); //single unit point charge
 			FILE* fpNull = fopen("/dev/null", "w"); //suppress Ewald initialization log
 			std::swap(globalLog, fpNull);
 			Eperiodic = coulomb.createEwald(supercell.Rsuper, 1)->energyAndGrad(atoms);

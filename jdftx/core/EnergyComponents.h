@@ -35,7 +35,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class EnergyComponents : public std::map<string,double>
 {
 public:
-
+	//! Access by C-style string (need this to prevent ambiguous overload)
+	double& operator[](const char* key) { return std::map<string,double>::operator[](string(key)); }
+	//! Expose base-class function hidden by the C-style string version above.
+	double& operator[](const string& key) { return std::map<string,double>::operator[](key); }
+	
 	//! Set to a simple complex
 	void operator=(const double& value)
 	{	clear(); //remove all named components

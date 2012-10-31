@@ -35,7 +35,7 @@ set_target_properties(
                TestFixedN
              TestGaussian
              SolvatedCMOS
-	PROPERTIES COMPILE_FLAGS "-std=c++0x")
+	PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS}")
 
 #---------------------------------------------------------------------------------------------------
 if(CUDA_FOUND)
@@ -79,7 +79,7 @@ if(CUDA_FOUND)
 	               TestFixedN_gpu
 	             TestGaussian_gpu
                  SolvatedCMOS_gpu
-	PROPERTIES COMPILE_FLAGS "-std=c++0x -DGPU_ENABLED")
+	PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS} -DGPU_ENABLED")
 
 endif()
 
