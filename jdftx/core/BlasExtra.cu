@@ -160,16 +160,16 @@ void eblas_capMinMax_kernel(int N, double* x, double* xMinBlk, double* xMaxBlk, 
 		xMaxLoc[iThread] = -DBL_MAX;
 	}
 	//Min-max within block:
-	int stride = (blockDim.x+1)/2;
 	int extent = blockDim.x/2;
-	while(extent>1)
+	int stride = (blockDim.x+1)/2;
+	while(extent)
 	{	__syncthreads();
 		if(iThread<extent)
 		{	if(xMinLoc[iThread+stride]<xMinLoc[iThread]) xMinLoc[iThread]=xMinLoc[iThread+stride];
 			if(xMaxLoc[iThread+stride]>xMaxLoc[iThread]) xMaxLoc[iThread]=xMaxLoc[iThread+stride];
 		}
-		stride = (stride+1)/2;
 		extent = stride/2;
+		stride = (stride+1)/2;
 	}
 	__syncthreads();
 	//Save to the global min-max:
