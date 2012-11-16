@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/PCM_internal.h>
 #include <core/Operators.h>
+#include <core/DataMultiplet.h>
 
 //----------------------- The JDFT `shape function' and gradient ------------------
 
@@ -39,4 +40,18 @@ void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, con
 void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma)
 {	nullToZero(grad_nCavity, nCavity->gInfo);
 	callPref(pcmShapeFunc_grad)(nCavity->gInfo.nr, nCavity->dataPref(), grad_shape->dataPref(), grad_nCavity->dataPref(), nc, sigma);
+}
+
+double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, double cavityTension, double cavityPressure)
+{
+	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+	double surfaceArea = integral(surfaceDensity);
+	double volume = integral(1.-shape);
+
+	DataRptr invSurfaceDensity = inv(surfaceDensity);
+	Acavity_shape += -cavityTension*divergence(shape_x*invSurfaceDensity); // Surface term
+	Acavity_shape += -cavityPressure;
+	
+	return surfaceArea*cavityTension + volume*cavityPressure;
 }

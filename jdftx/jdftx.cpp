@@ -39,12 +39,12 @@ void printUsage(const char *name)
 	logPrintf("options:\n\n");
 	logPrintf("\t-h --help               help (this output)\n");
 	logPrintf("\t-v --version            version\n");
-	logPrintf("\t-i --input <filename>   specifies command input file, default = stdin\n");
-	logPrintf("\t-o --output <filename>  specifies output log file, default = stdout\n");
+	logPrintf("\t-i --input <filename>   specify command input file, default = stdin\n");
+	logPrintf("\t-o --output <filename>  specify output log file, default = stdout\n");
 	logPrintf("\t-d --no-append          overwrite output file instead of appending\n");
-	logPrintf("\t-t --template           prints an input file template\n");
+	logPrintf("\t-t --template           print an input file template\n");
 	logPrintf("\t-n --dry-run            quit after initialization (to verify commands and other input files)\n");
-	logPrintf("\t-p --print-defaults     print status of default commands issued automatically.\n");
+	logPrintf("\t-s --skip-defaults      skip printing status of default commands issued automatically.\n");
 	logPrintf("\n");
 }
 
@@ -54,7 +54,7 @@ int main(int argc, char** argv, char** argp)
 	Everything e; //the parent data structure for, well, everything
 	
 	//Parse command line:
-	string inputFilename, logFilename; bool appendOutput=true, dryRun=false, printDefaults=false;
+	string inputFilename, logFilename; bool appendOutput=true, dryRun=false, printDefaults=true;
 	option long_options[] =
 		{	{"help", no_argument, 0, 'h'},
 			{"version", no_argument, 0, 'v'},
@@ -63,11 +63,11 @@ int main(int argc, char** argv, char** argp)
 			{"no-append", no_argument, 0, 'd'},
 			{"template", no_argument, 0, 't'},
 			{"dry-run", no_argument, 0, 'n'},
-			{"print-defaults", no_argument, 0, 'p'},
+			{"skip-defaults", no_argument, 0, 's'},
 			{0, 0, 0, 0}
 		};
 	while (1)
-	{	int c = getopt_long(argc, argv, "hvi:o:dtnp", long_options, 0);
+	{	int c = getopt_long(argc, argv, "hvi:o:dtns", long_options, 0);
 		if (c == -1) break; //end of options
 		switch (c)
 		{	case 'v': printVersionBanner(); return 0;
@@ -77,7 +77,7 @@ int main(int argc, char** argv, char** argp)
 			case 'd': appendOutput=false; break;
 			case 't': printDefaultTemplate(e); return 0;
 			case 'n': dryRun=true; break;
-			case 'p': printDefaults=true; break;
+			case 's': printDefaults=false; break;
 			default: printUsage(argv[0]); return 1;
 		}
 	}

@@ -25,15 +25,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 
 
+LinearPCMparams::LinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p)
+{	//Initialize extra parameters:
+	k2factor = (8*M_PI/T) * ionicConcentration * pow(ionicZelectrolyte,2);
+}
+
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : FluidSolver(e), params(fsp), Kkernel(e.gInfo)
-{	//Initialize extra parameters:
-	params.k2factor = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
+{	
 }
 
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
-{	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde)))); //poisson term
-	if(kappaSq) rhoTilde -= J(kappaSq*I(phiTilde)); // screening term
+{	DataRptr epsilon = 1. + (params.epsilonBulk-1.) * shape;
+	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
+	if(params.k2factor) rhoTilde -= params.k2factor * J(shape*I(phiTilde)); // screening term
 	return rhoTilde;
 }
 
@@ -53,19 +58,23 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	this->nCavity = I(nCavityTilde);
 
 	//Compute cavity shape function (0 to 1)
-	DataRptr shape(DataR::alloc(e.gInfo,isGpuEnabled()));
+	shape = DataRptr(DataR::alloc(e.gInfo,isGpuEnabled()));
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 	
+	// Compute the cavitation energy and gradient
+	nullToZero(Acavity_shape, e.gInfo);
+	Acavity = (e.eVars.fluidType == FluidLinearPCM) ? cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure) : 0.;
+	
 	//Compute epsilon and kappaSq:
-	epsilon = 1 + (params.epsilonBulk-1)*shape;
-	kappaSq = params.ionicConcentration ? params.k2factor*shape : 0; //set kappaSq to null pointer if no screening
-
+	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsilonBulk);
 	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsilonBulk/params.k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/e.gInfo.detR); logFlush();
 
 	//Update the preconditioner
+	DataRptr epsilon = 1 + (params.epsilonBulk-1)*shape;
+	DataRptr kappaSq = params.ionicConcentration ? params.k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
 	applyFuncGsq(Kkernel.gInfo, setPreconditionerKernel, Kkernel.data, kRMS);
@@ -94,6 +103,10 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& 
 	DataRptrVec gradPhi = I(gradient(phi));
 	DataRptr gradPhiSq = gradPhi[0]*gradPhi[0] + gradPhi[1]*gradPhi[1] + gradPhi[2]*gradPhi[2];
 	DataRptr grad_shape = (-(params.epsilonBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
+	
+	// Add the cavitation contribution to grad_shape
+	grad_shape += Acavity_shape;
+	
 	if(params.ionicConcentration)
 	{	DataRptr Iphi = I(phi); //potential in real space
 		grad_shape += (params.k2factor/(8*M_PI)) * (Iphi*Iphi); //screening part
@@ -103,7 +116,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& 
 	grad_nCavityTilde = J(grad_nCavity);
 
 	//Compute and return A_diel:
-	return 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
+	return 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde)) + Acavity;
 }
 
 void LinearPCM::loadState(const char* filename)
@@ -118,9 +131,9 @@ void LinearPCM::saveState(const char* filename) const
 
 void LinearPCM::dumpDensities(const char* filenamePattern) const
 {	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Epsilon");
+	filename.replace(filename.find("%s"), 2, "Shape");
 	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-	saveRawBinary(epsilon, filename.c_str());
+	saveRawBinary(shape, filename.c_str());
 	logPrintf("done.\n"); logFlush();
 }
 

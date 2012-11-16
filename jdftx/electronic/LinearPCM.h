@@ -29,8 +29,8 @@ struct LinearPCMparams : public FluidSolverParams
 {
 	double k2factor; //!< Prefactor to kappaSq (computed from T, ionicConcentration and ionicZelectrolyte)
 
-	//! A copy constructor to set base-class variables
-	LinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p) {}
+	//! A copy constructor to set base-class variables and initialize dependent variables above
+	LinearPCMparams(const FluidSolverParams& p);
 };
 
 
@@ -57,10 +57,13 @@ public:
 	void dumpDensities(const char* filenamePattern) const;
 	
 private:
-	DataRptr nCavity, epsilon, kappaSq;
+	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;
 	LinearPCMparams params;
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
+	
+	double Acavity; //! Cavitation energy contribution
+	DataRptr Acavity_shape; //! Gradient of the cavitation energy wrt the shape function
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

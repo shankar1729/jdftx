@@ -33,6 +33,9 @@ void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, con
 //!Compute derivative with respect to cavity-determining electron density, given derivative with respect to shape function
 void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma);
 
+//! Returns the cavitation energy contribution (volume and surface terms)
+double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure);
+
 #endif
 
 

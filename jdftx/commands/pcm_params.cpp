@@ -23,38 +23,85 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandPcmParams : public Command
 {
-	CommandPcmParams() : Command("jdft1-shape") //TODO: Change name to pcm-params and update documentation
+	CommandPcmParams() : Command("pcm-params")
 	{
-		format = "[<nc>=7e-4] [<sigma>=0.6]";
-		comments = "Control the critical density <nc> and smoothing parameter <sigma> for PCM cavities";
+		format = "[<nc>] [<sigma>]";
+		comments =  "Parameters for the PCM Cavity\n"
+					"Control the critical density <nc> and smoothing parameter <sigma> for PCM cavities\n"
+					"Defaults are set by the fluid chosen, but can be manually overwritten";
 		hasDefault = true;
 		require("fluid");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		double nc=7e-4, sigma=0.6, cavityPressure=0., cavityTension=0.; //defaults for FluidLinear
+		double nc=7e-4, sigma=0.6; //defaults for FluidLinear
 		switch(e.eVars.fluidType)
 		{	case FluidLinear: //defaults set above
 				break;
 			case FluidLinearPCM:
-				//TODO
+				nc = 0.000413567616685;
+				sigma = 0.6;
 				break;
 			case FluidNonlinearPCM:
-				//TODO
+				nc = 0.00138635228123;
+				sigma = 0.6;
 				break;
 			default: //Other fluids do not use these parameters
 				break;
 		}
 		pl.get(fsp.nc, nc, "nc");
 		pl.get(fsp.sigma, sigma, "sigma");
-		pl.get(fsp.cavityTension, cavityTension, "cavityTension");
-		pl.get(fsp.cavityPressure, cavityPressure, "cavityPressure");
+		
+		// Set the cavitation terms to 0. These can be overwritten by the cavitation command
+		fsp.cavityTension = 0;
+		fsp.cavityPressure = 0;
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		logPrintf("%lg %lg %lg %lg", fsp.nc, fsp.sigma, fsp.cavityTension, fsp.cavityPressure);
+		logPrintf("%lg %lg", fsp.nc, fsp.sigma);
 	}
 }
 commandPcmParams;
+
+struct CommandCavitation : public Command
+{
+	CommandCavitation() : Command("cavitation")
+	{	format = "<cavity tension> <cavity pressure>";
+		comments =  "Overwrites the non-electrostatic (cavitation + van der waals) terms for solvation.\n"
+					"If not explicitly called, defaults are set by the fluid type chosen.";
+		hasDefault = true;
+		require("pcm-params");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		double cavityTension=0., cavityPressure=0.; // Defaults for fluid linear
+		
+		switch(e.eVars.fluidType)
+		{	case FluidLinear: //defaults set above
+				break;
+			case FluidLinearPCM:
+				cavityTension = 1.96639422455e-05;
+				cavityPressure = -4.33957737175e-06;
+				break;
+			case FluidNonlinearPCM:
+				cavityTension = 1.750693083e-05;
+				cavityPressure = -3.1819825875e-06;
+				break;
+			default: //Other fluids do not use these parameters
+				break;
+		}
+		
+		pl.get(fsp.cavityTension, cavityTension, "cavityTension");
+		pl.get(fsp.cavityPressure, cavityPressure, "cavityPressure");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%lg %lg", fsp.cavityTension, fsp.cavityPressure);
+	}
+	
+}
+commandCavitation;

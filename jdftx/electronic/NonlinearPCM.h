@@ -36,8 +36,8 @@ struct NonlinearPCMparams : public FluidSolverParams
 	double k2factor; //! inverse bulk ionic screening length squared
 	double chiFactor; //! Linear contribuiton of p that does not saturate (simulates electronic polarizability)
 	
-	//! A copy constructor to set base-class variables
-	NonlinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p) {}
+	//! A copy constructor to set base-class variables and initialize dependent variables above
+	NonlinearPCMparams(const FluidSolverParams& p);
 };
 
 
@@ -58,6 +58,8 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
+	void dumpDensities(const char* filenamePattern) const;
+
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde); //!< Get the minimized free energy and the n-gradient
@@ -75,6 +77,10 @@ private:
 	DataGptr rhoExplicitTilde;
 	NonlinearPCMparams params;
 	RealKernel MuKernel;
+	
+	double Acavity; //! Cavitation energy contribution
+	DataRptr Acavity_shape; //! Gradient of the cavitation energy wrt the shape function
+	
 };
 
 

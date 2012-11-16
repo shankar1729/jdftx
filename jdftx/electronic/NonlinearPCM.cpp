@@ -33,31 +33,14 @@ inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+1); }
 inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+1); }
 inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
 
-//! Returns the cavitation energy contribution (volume and surface terms)
-inline double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure)
-{
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	double surfaceArea = integral(surfaceDensity);
-	double volume = integral(1.-shape);
-
-	if(grad)
-	{	DataRptr invSurfaceDensity = inv(surfaceDensity);
-		grad += -cavityTension*divergence(shape_x*invSurfaceDensity); // Surface term
-		grad += -cavityPressure;
-	}
-	
-	return surfaceArea*cavityTension + volume*cavityPressure;
-}
-
 //Ratio of the fractional polarization (p/shape*pMol) to eps
 //(with regularization around 0)
-inline double polFrac(double x, double chiFactor, bool linearDielectric)
+inline double polFrac(double x, bool linearDielectric)
 {	if(linearDielectric) return 1.0/3;
 	else
 	{	register double xSq=x*x;
-		if(x<1e-1) return 1.0/3 + chiFactor + xSq*(-1.0/45 + xSq*(2.0/945 + xSq*(-1.0/4725)));
-		return (x/tanh(x)-1)/xSq + chiFactor;
+		if(x<1e-1) return 1.0/3 + xSq*(-1.0/45 + xSq*(2.0/945 + xSq*(-1.0/4725)));
+		return (x/tanh(x)-1)/xSq;
 	}
 }
 
@@ -84,6 +67,7 @@ inline double logsinch(double x, bool linearDielectric)
 	else
 	{	register double xSq=x*x;
 		if(x<1e-1) return xSq*(1.0/6 + xSq*(-1.0/180 + xSq*(1.0/2835)));
+		else if(x>20.) return fabs(x) - log(2.*fabs(x));
 		return log(sinh(x)/x);
 	}
 }
@@ -128,23 +112,23 @@ inline double calc_derivfmu_shape(size_t i, double rhoExplicitGzero, double nNeg
 
 //Compute polarization density, entropy and dipole correlation terms, and their gradient
 inline double dipoleCorrEntropy(size_t i, vector3<const double*> epsData, const double* shapeData,
-		vector3<double*> pData, vector3<double*> grad_epsData, double* grad_shapeData,
+		vector3<double*> pData, vector3<double*> A_epsData, double* A_shapeData,
 		const NonlinearPCMparams* params)
 {	const double &shape=shapeData[i];
 	vector3<> epsVec = loadVector(epsData, i);
 	register double eps = epsVec.length();
-	register double frac = polFrac(eps, params->chiFactor, params->linearDielectric);
+	register double frac = polFrac(eps, params->linearDielectric);
 	register double fracPrime = polFrac_x(eps, params->linearDielectric);
 
-	vector3<> pVec = epsVec * params->Nbulk * shape * params->pMol * frac;
-	register double grad_shape = params->Nbulk*(params->T*(eps*eps*frac - logsinch(eps, params->linearDielectric)) - 0.5*params->Kdip*pow(eps*frac,2));
-	register double A = shape*grad_shape;
-	register double grad_eps_by_eps = shape*params->Nbulk*(params->T*(frac + eps*fracPrime) - params->Kdip*frac*(frac+eps*fracPrime));
-	vector3<> grad_epsVec = grad_eps_by_eps*epsVec;
+	register double A_shape = params->Nbulk*(params->T*(eps*eps*(frac+0.5*params->chiFactor) - logsinch(eps, params->linearDielectric)) - 0.5*params->Kdip*pow(eps*frac,2));
+	register double A = shape*A_shape;
+	register double A_eps_by_eps = shape*params->Nbulk*(params->T*(frac + params->chiFactor + eps*fracPrime) - params->Kdip*frac*(frac+eps*fracPrime));
+	vector3<> A_epsVec = A_eps_by_eps*epsVec;
 
+	vector3<> pVec = epsVec * params->Nbulk * shape * params->pMol * (frac + params->chiFactor);
 	storeVector(pVec, pData, i);
-	storeVector(grad_epsVec, grad_epsData, i);
-	if(grad_shapeData) grad_shapeData[i] += grad_shape;
+	storeVector(A_epsVec, A_epsData, i);
+	if(A_shapeData) A_shapeData[i] += A_shape;
 	return A;
 }
 
@@ -174,10 +158,10 @@ inline void convert_grad_p_eps(size_t i, vector3<const double*> epsData, const d
 	vector3<> grad_pVec = loadVector(grad_pData, i);
 
 	register double eps = epsVec.length();
-	register double frac=polFrac(eps, params->chiFactor, params->linearDielectric);
-	register double fracPrime_by_eps=polFrac_x_over_x(eps, params->linearDielectric);
+	register double frac = polFrac(eps, params->linearDielectric);
+	register double fracPrime_by_eps = polFrac_x_over_x(eps, params->linearDielectric);
 
-	vector3<> grad_epsVec = shape*params->Nbulk*params->pMol*(grad_pVec*frac + fracPrime_by_eps*epsVec*dot(epsVec,grad_pVec));
+	vector3<> grad_epsVec = shape*params->Nbulk*params->pMol*(grad_pVec*(frac + params->chiFactor) + fracPrime_by_eps*epsVec*dot(epsVec,grad_pVec));
 	accumVector(grad_epsVec, grad_epsData, i);
 
 	if(grad_shapeData) grad_shapeData[i] += dot(epsVec,grad_pVec)*params->pMol*frac*params->Nbulk;
@@ -215,19 +199,26 @@ inline void calc_rhoIon(size_t i, const double* muEffData, const double* shapeDa
 		deriv_rhoIon_shapeData[i] = 2.0*params->ionicConcentration*screenFunc.sinh(muEff);
 }
 
-NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: FluidSolver(e), params(fsp), MuKernel(e.gInfo)
-{	
+
+NonlinearPCMparams::NonlinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p)
+{
 	//Initialize extra parameters:
-	params.Kdip = (3.0 * params.T * (params.epsilonBulk - params.epsInf) - 4.*M_PI*params.Nbulk*pow(params.pMol, 2))/(params.epsilonBulk - 1.);
-	params.k2factor= (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
-	params.chiFactor = (params.T/pow(params.pMol, 2))*(params.epsInf - 1.)/(4*M_PI*params.Nbulk);
+	k2factor= (8*M_PI/T) * ionicConcentration * pow(ionicZelectrolyte,2);
+	double chiPrefac = T/(4*M_PI*Nbulk*pow(pMol, 2));
+	chiFactor = (epsInf - 1.) * chiPrefac;
+	Kdip = T * (1.+3.*chiFactor) * (3. - (1./chiPrefac + 3.*(epsInf-1.))/(epsilonBulk-1.));
 	
 	// Check whether the linear response makes sense
-	if(params.Kdip < 0.)
+	if(Kdip < 0.)
 		die("\nCurrent Nonlinear PCM parameters imply negative correlation for dipole rotations.\n"
 			"\tHINT: Reduce solvent molecule dipole or epsInf to fix this");
 }
+
+NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
+: FluidSolver(e), params(fsp), MuKernel(e.gInfo)
+{
+}
+
 
 inline void setMuKernel(int i, double G2, double* MuKernel, double meanKsq)
 {	if(i==0) MuKernel[i] = meanKsq ? 1.0/meanKsq : 0.0;
@@ -241,6 +232,10 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	nullToZero(shape,e.gInfo);
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
+	// Compute the cavitation energy and gradient
+	nullToZero(Acavity_shape, e.gInfo);
+	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
+	
 	DataRptr epsilon = 1 + (params.epsilonBulk-1)*shape;
 	DataRptr kappaSq = params.ionicConcentration ? params.k2factor*shape : 0;
 
@@ -251,8 +246,8 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 
 	if(!state)
 	{	//Initialize eps using a linear response approx:
-		RealKernel gauss(e.gInfo); initGaussianKernel(gauss, 2.0);
-		nullToZero(state, e.gInfo); initRandomFlat(state); state=e.gInfo.dV*I(gauss*J(state));
+		//RealKernel gauss(e.gInfo); initGaussianKernel(gauss, 2.0);
+		nullToZero(state, e.gInfo); //initRandomFlat(state); state=e.gInfo.dV*I(gauss*J(state));
 		//setMuEps(state, mu, eps);
 	}
 }
@@ -261,6 +256,9 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 {
 	DataRptr grad_shape; if(grad_nCavityTilde) nullToZero(grad_shape, e.gInfo);
 
+	// Add the cavitation contribution to grad_shape
+	grad_shape += Acavity_shape;
+	
 	//Calculate the energy contribution/gradient from the dipole entropy
 	DataRptrVec p(e.gInfo);
 	const DataRptrVec& eps = getEps(state);
@@ -274,9 +272,6 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 	//declare those parameters needed outside the loop
 	double nPosGzero = 0.0, nNegGzero = 0.0,rhoExplicitGzero = 0.0;
 	DataRptr muEff, grad_muEff, grad_rhoIon_muEff, grad_rhoIon_shape;
-
-	//! The cavitation energy
-	double Acavity = cavitationEnergyAndGrad(shape, grad_shape, params.cavityTension, params.cavityPressure);
 	
 	if(params.ionicConcentration)
 	{
@@ -377,4 +372,12 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in) const
 {	DataRMuEps PreconIn;
 	setMuEps(PreconIn, I(MuKernel*J(getMu(in))), getEps(in));
 	return PreconIn;
+}
+
+void NonlinearPCM::dumpDensities(const char* filenamePattern) const
+{	string filename(filenamePattern);
+	filename.replace(filename.find("%s"), 2, "Shape");
+	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
+	saveRawBinary(shape, filename.c_str());
+	logPrintf("done.\n"); logFlush();
 }
