@@ -44,7 +44,7 @@ struct CommandPcmParams : public Command
 				sigma = 0.6;
 				break;
 			case FluidNonlinearPCM:
-				nc = 0.00138635228123;
+				nc = 0.0013516934742;
 				sigma = 0.6;
 				break;
 			default: //Other fluids do not use these parameters
@@ -87,8 +87,8 @@ struct CommandCavitation : public Command
 				cavityPressure = -4.33957737175e-06;
 				break;
 			case FluidNonlinearPCM:
-				cavityTension = 1.750693083e-05;
-				cavityPressure = -3.1819825875e-06;
+				cavityTension = 1.77987130105e-05;
+				cavityPressure = -3.23501563062e-06;
 				break;
 			default: //Other fluids do not use these parameters
 				break;
