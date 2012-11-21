@@ -22,11 +22,59 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 
 
+int get_nSites(std::vector<std::vector<vector3<>>>& PositionList)
+{
+	int counter = 0;
+	for (uint i=0; i<PositionList.size(); i++){	counter += PositionList[i].size();	}
+	return counter;
+}
+
+std::vector<Site> get_Site(std::vector<SiteProperties*>& PropList,std::vector<std::vector<vector3<>>>& PositionList)
+{
+	std::vector<Site> site;
+	for (uint i=0; i<PropList.size(); i++)
+	{
+		for (uint j=0; j<PositionList[i].size(); j++) { site.push_back(Site(i, PropList[i], PositionList[i][j])); }
+	}
+	return site;	
+}
+
+Molecule::Molecule(std::vector<SiteProperties*>& PropList, std::vector<std::vector<vector3<>>>& PositionList, string name)
+: name(name), site(get_Site(PropList,PositionList)), nSites(get_nSites(PositionList)), nIndices(PropList.size())
+{
+}
+
 SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma, double chargeZ,
 	RealKernel* chargeKernel, bool indepSite)
 : sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(chargeZ), chargeKernel(chargeKernel), indepSite(indepSite),
 couplingZnuc(0), couplingElecKernel(0)
-{	if(sphereRadius)
+{	
+	if(sphereRadius)
+	{	w0 = new RealKernel(gInfo);
+		w1 = new RealKernel(gInfo);
+		w2 = new RealKernel(gInfo);
+		w3 = new RealKernel(gInfo);
+		w1v = new RealKernel(gInfo);
+		w2m = new RealKernel(gInfo);
+		ErfFMTweight erfFMTweight(sphereRadius, sphereSigma);
+		applyFuncGsq(gInfo, erfFMTweight, w0->data, w1->data, w2->data, w3->data, w1v->data, w2m->data);
+		w0->set();
+		w1->set();
+		w2->set();
+		w3->set();
+		w1v->set();
+		w2m->set();
+	}
+}
+
+//probably will go when H2Osites gets replaced by SiteProperties
+SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma,
+	H2OSite& water_site, RealKernel* chargeKernel, bool indepSite)
+: sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(water_site.Z), chargeKernel(chargeKernel), indepSite(indepSite),
+couplingZnuc(water_site.Znuc), couplingElecKernel(0), siteName(water_site.name), convCouplingWidth(water_site.CouplingWidth),
+convCouplingSiteCharge(water_site.Z), convCouplingSiteModel(water_site.ccSiteModel) 
+{
+	if(sphereRadius)
 	{	w0 = new RealKernel(gInfo);
 		w1 = new RealKernel(gInfo);
 		w2 = new RealKernel(gInfo);
@@ -74,7 +122,9 @@ double Molecule::get_dipole() const
 	}
 	//Check that dipole (if any) is lined up with z-axis
 	double dipoleOffZaxis = fabs(electricP[0]) + fabs(electricP[1]);
-	assert(dipoleOffZaxis <= 1e-10*electricP.length());
+	if(dipoleOffZaxis > 1e-10*electricP.length())
+		die("Water molecule dipole moment component off z-axis is %lg.\n Please orient water dipole moment along z-axis\n",dipoleOffZaxis);
+	//assert(dipoleOffZaxis <= 1e-10*electricP.length());
 	return electricP[2];
 }
 

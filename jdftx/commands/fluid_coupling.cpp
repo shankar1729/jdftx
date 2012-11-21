@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
 
 This file is part of JDFTx.cd 
 
@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <core/Units.h>
 #include <electronic/FluidSolver.h>
+#include <fluid/Fex_H2O_ScalarEOS.h>
 
 
 EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
@@ -28,6 +29,152 @@ EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
 	ConvCouplingExpCuspless, "ExpCuspless",
 	ConvCouplingRadialFunction, "ReadRadialFunction",
 	ConvCouplingBinaryKernel, "ReadBinaryKernel" );
+
+struct CommandFluidCouplingScale : public Command
+{
+	CommandFluidCouplingScale() : Command("fluid-coupling-scale")
+	{
+		format = "<scale>";
+		comments = "Scale Convolution Coupling kinetic energy and exhange-correlation by a constant factor <scale>.\n";
+		hasDefault = true; 
+		allowMultiple = false;
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		pl.get(e.eVars.fluidParams.convCouplingScale, 1.0, "scale");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+		logPrintf(" %lg", e.eVars.fluidParams.convCouplingScale);	
+	}
+	
+}commandFluidCouplingScale;
+
+struct CommandFluidSitePosition : public Command
+{
+	CommandFluidSitePosition() : Command("fluid-site-position")
+	{
+		format = "<fluid-site-id> <x0> <x1> <x2>";
+		comments = "Specify a site of type <fluid-site-id> at location <x0> <x1> <x2> in Bohr.\n";
+		hasDefault = false; 
+		allowMultiple = true;
+		require("fluid-site");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		string id;
+		pl.get(id, string(), "fluid-site-id", true);
+		if((e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidScalarEOSCustom))			
+		{
+			for(int i=0; i<int(e.eVars.fluidParams.H2OSites.size()); i++)
+			{
+				H2OSite& site = e.eVars.fluidParams.H2OSites[i];
+				if(site.name == id)
+				{
+						vector3<> pos;
+						pl.get(pos[0], 0.0, "x0");
+						pl.get(pos[1], 0.0, "x1");
+						pl.get(pos[2], 0.0, "x2");
+						site.Positions.push_back(pos);
+						return;	
+				}
+			}
+			throw string("fluid site "+id+" has not been defined.");
+		}
+		throw string("fluid-site-position must be used with a ScalarEOS Fluid\n");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+		int iSite = 0;
+		int counter = 0;
+		while (iSite<int(e.eVars.fluidParams.H2OSites.size()))
+		{
+			int iPos = 0;
+			H2OSite& site = e.eVars.fluidParams.H2OSites[iSite];
+			while (iPos<int(site.Positions.size()))
+			{
+				vector3<> pos = site.Positions[iPos];
+				if (iRep == counter)
+				{
+					logPrintf("%s %19.15lf %19.15lf %19.15lf",site.name.c_str(),pos[0],pos[1],pos[2]);
+					return;
+				}
+				iPos++;
+				counter++;
+			}
+			iSite++;
+		}		
+	}
+}commandFluidSitePosition;
+
+struct CommandFluidSite : public Command
+{
+	CommandFluidSite() : Command("fluid-site")
+	{
+		format = "<fluid-site-id> <Z_nuc> <Z_site> Exponential/ExpCuspless <width> [filename]\n"
+				 "| ReadRadialFunction/ReadBinaryKernel <filename>";
+		comments = "Specify site <fluid-site-id> with nuclear charge <Z_nuc>, site charge <Z_site>,\n"
+					"   and coupling electron density model specified by\n" 
+					"   Exponential|ExpCuspless|ReadRadialFunction|ReadBinaryKernel\n"
+					"	If Exponential or ExpCuspless, the exponential width must be specified and\n"
+					"	a radial function contained in [filename] may be added to the exponential model.\n"
+					"	If ReadRadialFunction/ReadBinaryKernel, the filename containing the \n" 
+					"	electron density model must be specified.\n"
+					"	Note that any dipole must be along the z-direction.\n";
+		hasDefault = false;
+		allowMultiple = true;
+		require("fluid");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		if((e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidScalarEOSCustom))			
+		{
+			H2OSite site;
+			pl.get(site.name, string(), "fluid-site-id", true);
+			//later make special cases here for O and H
+			pl.get(site.Znuc, 0.0, "Z_nuc",true);
+			pl.get(site.Z, 0.0, "Z_site",true);
+			pl.get(site.ccSiteModel, ConvCouplingExpCuspless, couplingMap, "couplingType");
+			if (site.ccSiteModel == ConvCouplingExponential || site.ccSiteModel == ConvCouplingExpCuspless )
+			{	
+				pl.get(site.CouplingWidth, 0.0, "width", true);  
+				pl.get(site.CouplingFilename, string(""), "filename");
+			}
+			else if ((site.ccSiteModel == ConvCouplingRadialFunction)
+				||(site.ccSiteModel == ConvCouplingBinaryKernel))
+			{
+				pl.get(site.CouplingFilename, string(""), "filename", true);
+			}
+			e.eVars.fluidParams.H2OSites.push_back(site);
+			e.eVars.fluidType = FluidScalarEOSCustom;
+			return;
+		}
+		throw string("fluid-site must be used with a ScalarEOS Fluid\n");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+		for(int iSite=0; iSite<int(e.eVars.fluidParams.H2OSites.size()); iSite++)
+			{	if(iSite==iRep)
+				{	
+					H2OSite &site = e.eVars.fluidParams.H2OSites[iSite];
+					logPrintf("%s %16.10lf %16.10lf ", site.name.c_str(), site.Znuc, site.Z);
+					fputs(couplingMap.getString(site.ccSiteModel), globalLog);
+					if(site.ccSiteModel == ConvCouplingExponential || site.ccSiteModel == ConvCouplingExpCuspless )
+						logPrintf(" %lg %s", site.CouplingWidth, site.CouplingFilename.c_str());
+					if ((site.ccSiteModel == ConvCouplingRadialFunction) || (site.ccSiteModel == ConvCouplingBinaryKernel))
+						logPrintf(" %s", site.CouplingFilename.c_str());
+				}
+			}
+	}
+	
+}commandFluidSite;
+
 
 struct CommandFluidCoupling : public Command
 {

@@ -260,6 +260,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 		fluidSolver->set(rhoExplicitTilde, nCavityTilde);
 		// If the fluid doesn't have a gummel loop, minimize it each time:
 		if(!fluidSolver->needsGummel()) fluidSolver->minimizeFluid();
+		
 		// Compute the energy and accumulate gradients:
 		ener.A_diel = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity);
 		VsclocTilde += d_fluid;

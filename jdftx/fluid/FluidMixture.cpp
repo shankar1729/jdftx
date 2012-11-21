@@ -159,7 +159,8 @@ double Qtot(double betaV, double& grad_betaV, const std::vector<std::pair<double
 			const std::vector<string>* names=0, const GridInfo* gInfo=0, const bool verboseLog=0)
 {	double Qsum=0.0, Qsum_betaV=0.0;
 	for(unsigned i=0; i<N0Q.size(); i++)
-	{	double N0 = N0Q[i].first;
+	{	
+		double N0 = N0Q[i].first;
 		double Q = N0Q[i].second;
 		double N = N0*exp(-Q*betaV);
 		if(verboseLog) logPrintf("%s N0: %le Q: %le N: %le\n", (*names)[i].c_str(), N0, Q, N);
@@ -207,6 +208,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	{
 		const Component& c = component[ic];
 		double Qmolecule = c.molecule->get_charge();
+		if ( fabs(Qmolecule) < 1e-14 ) Qmolecule = 0.0; //create neutrality constraint
 		if(c.idealGas->Nnorm>0 || Qmolecule)
 		{
 			double N0 = integral(Ntilde[c.offsetDensity])/c.indexedSiteMultiplicity[0];
@@ -310,14 +312,14 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 				for(int j=0; j<c.molecule->nIndices; j++)
 				{	
 					const SiteProperties& s = *c.indexedSite[j];
-					if(s.couplingZnuc && s.couplingElecKernel)
+					if(s.couplingElecKernel) //if there is no Znuc, what do we do? //make sure that couplingElecKernel is allocated null
 					{
-						rho_cCoupling += (*s.couplingElecKernel * Ntilde[c.offsetDensity+j])
-							-s.couplingZnuc * Ntilde[c.offsetDensity+j];
+						rho_cCoupling += (*s.couplingElecKernel * Ntilde[c.offsetDensity+j]);
+						if(s.couplingZnuc) 
+							rho_cCoupling -= s.couplingZnuc * Ntilde[c.offsetDensity+j];
 						if(ConvCouplingPtr)
 							ConvCouplingPtr->nFluidTilde += (*s.couplingElecKernel * Ntilde[c.offsetDensity+j]);
 					}
-
 					else if(s.chargeZ && s.chargeKernel)
 						rho_cCoupling += s.chargeZ * (*s.chargeKernel * Ntilde[c.offsetDensity+j]);
 				}
@@ -329,13 +331,13 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					}
 					Phi["ExtCoulomb"] += dot(rho_cCoupling, OdExternal);
 					for(int j=0; j<c.molecule->nIndices; j++)
-					{	const SiteProperties& s = *c.indexedSite[j];
-						if(s.couplingZnuc && s.couplingElecKernel)
+					{	
+						const SiteProperties& s = *c.indexedSite[j];
+						if(s.couplingElecKernel)
 						{
-							//coupling nuclei
-							axpy(-s.couplingZnuc/gInfo.dV, OdExternal, grad_Ntilde[c.offsetDensity+j]); 
-							//coupling electrons
-							grad_Ntilde[c.offsetDensity+j] += (1.0/gInfo.dV) * (*s.couplingElecKernel * OdExternal); 
+							grad_Ntilde[c.offsetDensity+j] += (1.0/gInfo.dV) * (*s.couplingElecKernel * OdExternal); //coupling electrons
+							if(s.couplingZnuc)	
+								axpy(-s.couplingZnuc/gInfo.dV, OdExternal, grad_Ntilde[c.offsetDensity+j]); //coupling nuclei
 						}
 						else if(s.chargeZ && s.chargeKernel)
 							grad_Ntilde[c.offsetDensity+j] += (s.chargeZ/gInfo.dV) * (*s.chargeKernel * OdExternal);

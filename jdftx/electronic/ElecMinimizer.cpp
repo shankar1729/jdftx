@@ -152,6 +152,7 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 void elecMinimize(Everything& e)
 {	ElecMinimizer emin(e);
+	//emin.fdTest(e.elecMinParams);
 	emin.minimize(e.elecMinParams); 
 	e.eVars.setEigenvectors();
 	e.eVars.isRandom = false; //wavefunctions are no longer random

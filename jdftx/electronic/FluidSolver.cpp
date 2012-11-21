@@ -99,10 +99,12 @@ public:
 		switch(type)
 		{	case FluidFittedCorrelations: fex = new Fex_H2O_FittedCorrelations(*fluidMixture); break;
 			case FluidScalarEOS: fex = new Fex_H2O_ScalarEOS(*fluidMixture); break;
+			case FluidScalarEOSCustom: fex = new Fex_H2O_Custom(*fluidMixture, params.H2OSites); break;
 			case FluidBondedVoids: fex = new Fex_H2O_BondedVoids(*fluidMixture); break;
 			case FluidHSIonic: break;
 			default: assert(!"This is not a JDFT3 functional");
 		}
+		
 		
 		if (type != FluidHSIonic)
 		{
@@ -128,7 +130,7 @@ public:
 		}	
 		
 		//Initialize coupling:
-		coupling = new ConvCoupling(*fluidMixture);
+		coupling = new ConvCoupling(*fluidMixture, params.convCouplingScale);
 
 		//set fluid exCorr
 		logPrintf("\n------- Fluid Exchange Correlation functional -------\n");
@@ -138,91 +140,141 @@ public:
 		
 		//Set the electronic site density model for the coupling -- specific for scalarEOS water
 		FluidMixture::Component& water = (FluidMixture::Component&) fluidMixture->get_component(0);
-		
-		//Set the electronic site density model for the coupling
-		//For now set to be the bad model used as default in the older versions of JDFTx 	
-		SiteProperties& Osite = *water.indexedSite[0];
-		Osite.siteName="O";
-		Osite.couplingZnuc = params.oxygenZnuc;
-						
-		SiteProperties& Hsite = *water.indexedSite[1];
-		Hsite.siteName="H";
-		Hsite.couplingZnuc = params.hydrogenZnuc;
-		
-		switch(params.convCouplingH2OModel)
-		{	
-			case ConvCouplingExponential: 
-			{		
-				Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
-				Osite.convCouplingWidth = params.oxygenWidth;
-				Osite.kernelFilename = params.oxygenFilename;
-				coupling->setExponentialKernel(Osite);
-				
-				if(Osite.kernelFilename.length()!=0)
-					coupling->setRadialKernel(Osite);
-				
-				Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
-				if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
-					die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
-				Hsite.convCouplingWidth = params.hydrogenWidth;
-				Hsite.kernelFilename = params.hydrogenFilename;
-				coupling->setExponentialKernel(Hsite);
-				
-				if(Hsite.kernelFilename.length()!=0)
-					coupling->setRadialKernel(Hsite);
-				
-				break;
-				
-			}
-			case ConvCouplingExpCuspless: 
-			{		
-				Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
-				Osite.convCouplingWidth = params.oxygenWidth;
-				Osite.kernelFilename = params.oxygenFilename;
-				coupling->setExpCusplessKernel(Osite);
-				
-				if(Osite.kernelFilename.length()!=0)
-					coupling->setRadialKernel(Osite);
-				
-				Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
-				if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
-					die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
-				Hsite.convCouplingWidth = params.hydrogenWidth;
-				Hsite.kernelFilename = params.hydrogenFilename;
-				coupling->setExpCusplessKernel(Hsite);
-				
-				if(Hsite.kernelFilename.length()!=0)
-					coupling->setRadialKernel(Hsite);
-				
-				break;
-				
-			}
-			case ConvCouplingRadialFunction:
-			{	
-				Osite.kernelFilename = params.oxygenFilename;
-				Hsite.kernelFilename = params.hydrogenFilename;
-				
-				coupling->setRadialKernel(Osite);
-				coupling->setRadialKernel(Hsite);
-				
-				break;
-			}
-			case ConvCouplingBinaryKernel:
-			{	
-				Osite.kernelFilename = params.oxygenFilename;
-				Hsite.kernelFilename = params.hydrogenFilename;
-				
-				coupling->setBinaryKernel(Osite);
-				coupling->setBinaryKernel(Hsite);
-				break;
-			}
-			case ConvCouplingNone: break;
-			default:
-			{
-				die("Unknown convolution coupling model specified for water.\n")
-			}
 			
+		if (type == FluidScalarEOSCustom) //for right now keep this separate to avoid creating bugs.
+		{
+			for (int iSite=0; iSite < water.molecule->nIndices; iSite++)
+			{
+				//Set the electronic site density model for the coupling
+				SiteProperties& water_site = *water.indexedSite[iSite];
+				
+		
+				switch(water_site.convCouplingSiteModel)
+				{	
+					case ConvCouplingExponential: 
+					{		
+						coupling->setExponentialKernel(water_site);
+				
+						if(water_site.kernelFilename.length()!=0)
+							coupling->setRadialKernel(water_site);
+				
+						break;
+					}
+					case ConvCouplingExpCuspless: 
+					{	
+						coupling->setExpCusplessKernel(water_site);
+				
+						if(water_site.kernelFilename.length()!=0)
+							coupling->setRadialKernel(water_site);
+				
+						break;				
+					}
+					case ConvCouplingRadialFunction:
+					{				
+						coupling->setRadialKernel(water_site);
+				
+						break;
+					}
+					case ConvCouplingBinaryKernel:
+					{				
+						coupling->setBinaryKernel(water_site);
+						break;
+					}
+					case ConvCouplingNone: break; //right now unused, but could be useful someday.
+					default:
+					{
+						die("Unknown convolution coupling model specified for water.\n")
+					}
+				}	
+			}
 		}
+		
+		if (type != FluidScalarEOSCustom)
+		{
+		
+			//Set the electronic site density model for the coupling
+			SiteProperties& Osite = *water.indexedSite[0];
+			Osite.siteName="O";
+			Osite.couplingZnuc = params.oxygenZnuc;
+						
+			SiteProperties& Hsite = *water.indexedSite[1];
+			Hsite.siteName="H";
+			Hsite.couplingZnuc = params.hydrogenZnuc;
+		
+			switch(params.convCouplingH2OModel)
+			{	
+				case ConvCouplingExponential: 
+				{		
+					Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
+					Osite.convCouplingWidth = params.oxygenWidth;
+					Osite.kernelFilename = params.oxygenFilename;
+					coupling->setExponentialKernel(Osite);
+				
+					if(Osite.kernelFilename.length()!=0)
+						coupling->setRadialKernel(Osite);
+				
+					Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
+					if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
+						die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
+					Hsite.convCouplingWidth = params.hydrogenWidth;
+					Hsite.kernelFilename = params.hydrogenFilename;
+					coupling->setExponentialKernel(Hsite);
+				
+					if(Hsite.kernelFilename.length()!=0)
+						coupling->setRadialKernel(Hsite);
+				
+					break;
+				
+				}
+				case ConvCouplingExpCuspless: 
+				{		
+					Osite.convCouplingSiteCharge = params.oxygenSiteCharge;
+					Osite.convCouplingWidth = params.oxygenWidth;
+					Osite.kernelFilename = params.oxygenFilename;
+					coupling->setExpCusplessKernel(Osite);
+				
+					if(Osite.kernelFilename.length()!=0)
+						coupling->setRadialKernel(Osite);
+				
+					Hsite.convCouplingSiteCharge = params.hydrogenSiteCharge;
+					if(params.hydrogenSiteCharge+Osite.convCouplingSiteCharge/2.0>1e-12)
+						die("Water molecule has net charge due to unbalanced site charges in fluid coupling.\n");
+					Hsite.convCouplingWidth = params.hydrogenWidth;
+					Hsite.kernelFilename = params.hydrogenFilename;
+					coupling->setExpCusplessKernel(Hsite);
+				
+					if(Hsite.kernelFilename.length()!=0)
+						coupling->setRadialKernel(Hsite);
+				
+					break;
+				}
+				case ConvCouplingRadialFunction:
+				{	
+					Osite.kernelFilename = params.oxygenFilename;
+					Hsite.kernelFilename = params.hydrogenFilename;
+				
+					coupling->setRadialKernel(Osite);
+					coupling->setRadialKernel(Hsite);
+				
+					break;
+				}
+				case ConvCouplingBinaryKernel:
+				{	
+					Osite.kernelFilename = params.oxygenFilename;
+					Hsite.kernelFilename = params.hydrogenFilename;
+				
+					coupling->setBinaryKernel(Osite);
+					coupling->setBinaryKernel(Hsite);
+					break;
+				}
+				case ConvCouplingNone: break;
+				default:
+				{
+					die("Unknown convolution coupling model specified for water.\n")
+				}
+			}
+		}	
+	
 		
 		for(int iIon = 0; iIon < nIons; iIon++)
 		{  
@@ -387,6 +439,7 @@ public:
 	void minimizeFluid()
 	{	
 		assert(AwaterCached); //Ensure that set() was called before calling minimize_fluid()
+		fluidMixture->fdTest(e.fluidMinParams);
 		TIME("Fluid minimize", globalLog,
 			fluidMixture->minimize(e.fluidMinParams);
 			

@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/RadialFunction.h>
 #include <electronic/operators.h>
 
-ConvCoupling::ConvCoupling(FluidMixture& fluidMixture)
-: Fmix(fluidMixture),CouplingData(gInfo)
+ConvCoupling::ConvCoupling(FluidMixture& fluidMixture, double CouplingScale)
+: Fmix(fluidMixture),CouplingData(gInfo),CouplingScale(CouplingScale)
 {
 	//initialize nFluid
 	//nullToZero(nFluid,gInfo);
@@ -99,12 +99,13 @@ double ConvCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollectio
 
 	//Calculate exchange, correlation, and kinetic energy
 	DataRptr Vxc_tot, Vxc_fluid;
-	PhiCoupling = 
+	PhiCoupling =
 	+ (*exCorr)(nTot, &Vxc_tot, true)
 	- (*exCorr)(nFluid, &Vxc_fluid, true)
 	- (*exCorr)(nCavity, 0,  true);
+	PhiCoupling *= CouplingScale;
 		
-	grad_nFluidTilde = O(J(Vxc_tot - Vxc_fluid));
+	grad_nFluidTilde = CouplingScale*O(J(Vxc_tot - Vxc_fluid));
 	
 	
 	//loop over sites and use the chain rule to calculate nonlinear contribution to the coupling.
@@ -114,7 +115,7 @@ double ConvCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollectio
 		for(int j=0; j<c.molecule->nIndices; j++)
 		{
 			const SiteProperties& s = *c.indexedSite[j];
-			if(s.couplingZnuc && s.couplingElecKernel)
+			if(s.couplingElecKernel)
 			{
 				grad_Ntilde[c.offsetDensity+j] += 1.0/gInfo.dV*(*s.couplingElecKernel *grad_nFluidTilde);
 			}	
@@ -307,9 +308,11 @@ double ConvCoupling::computeElectronic(DataGptr* grad_nCavityTilde)
 		+ (*exCorr)(nTot, grad_nCavityTilde ? &Vxc_tot : 0, true)
 		- (*exCorr)(nCavity, grad_nCavityTilde ? &Vxc_cavity : 0, true)
 		- (*exCorr)(nFluid, 0, true);
+		
+	Acoupling *= CouplingScale;
 	
 	if(grad_nCavityTilde)
-		*grad_nCavityTilde = J(Vxc_tot - Vxc_cavity);
+		*grad_nCavityTilde = CouplingScale*J(Vxc_tot - Vxc_cavity);
 
 	return Acoupling;
 }

@@ -32,6 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/S2quad.h>
 #include <fluid/Molecule.h>
 #include <fluid/Fex_HardSphereIon.h>
+#include <fluid/Fex_H2O_ScalarEOS.h>
 
 typedef enum
 {
@@ -42,6 +43,7 @@ typedef enum
 	FluidNonlocalPCM, //!< Nonlocal Polarizable Continuum Model (EXPERIMENTAL)
 	FluidFittedCorrelations, //!< Functional from [J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010)]
 	FluidScalarEOS, //!< Scalar EOS functional
+	FluidScalarEOSCustom, //!< Scalar EOS functional with custom geometry or sites 
 	FluidBondedVoids, //!< Functional from [R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012)]
 	FluidHSIonic //!< Functional of optionally charged hard spheres (EXPERIMENTAL)
 }
@@ -85,10 +87,13 @@ struct FluidSolverParams
 	
 	//For Explicit Fluid JDFT alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water
+	double convCouplingScale;
 	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature
 	unsigned quad_nBeta, quad_nAlpha, quad_nGamma; //!< Subdivisions for euler angle outer-product quadrature
 	
 	double nuclearWidth; //!< Gaussian width of fluid site nuclear charge densities for coupling
+	
+//Kendra: probably get rid of block below and replace with H2OSites	
 	double oxygenWidth; //!< Exponential width of electron distribution of oxygen atom in fluid
 	double hydrogenWidth; //!< Exponential width of electron distribution of hydrogen atom in fluid
 	double oxygenSiteCharge; //!< Oxygen site charge in water convolution coupling
@@ -99,6 +104,9 @@ struct FluidSolverParams
 	string hydrogenFilename; //!< Filename which contains electron distribution of hydrogen atom in fluid
 	
 	ExCorr exCorr; //!< Fluid exchange, correlation. and kinetic energy functional
+
+	//For water in Explicit Fluid JDFT
+	std::vector<H2OSite> H2OSites; //!< vector of H2OSite objects to be initialized in fluidMixture
 	
 	//For Ionic fluid in Explicit Fluid JDFT
 	std::vector<HardSphereIon> hSIons; //!< vector of hard sphere ion objects to be initialized in fluidMixture

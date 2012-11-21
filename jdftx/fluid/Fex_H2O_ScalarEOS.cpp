@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
 
 This file is part of JDFTx.
 
@@ -36,10 +36,6 @@ fex_LJatt(gInfo), siteChargeKernel(gInfo),
 eval(new ScalarEOS_eval(T)),
 propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel),
 propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel),
-//propO(gInfo, eval->sphereRadius,0.0, 0.81036,&siteChargeKernel),
-//propH(gInfo, 0.0,0.0,-0.40518,&siteChargeKernel),
-//propO(gInfo, eval->sphereRadius,0.0, 0.66,&siteChargeKernel),  //HACK WARNING
-//propH(gInfo, 0.0,0.0,-0.33,&siteChargeKernel), //HACK WARNING
 molecule("H2O",
 	&propO,
 		 vector3<>(0,0,0),
@@ -56,8 +52,8 @@ molecule("H2O",
 double Fex_H2O_ScalarEOS::get_aDiel() const
 {
 	return 1 - T/(7.35e3*Kelvin); 
-	//return 1 - T/(3.9962e3*Kelvin); //HACK WARNING
 }
+
 
 #ifdef GPU_ENABLED
 void Fex_H20_ScalarEOS_gpu(int nr, const double* Nbar, double* Fex, double* grad_Nbar, ScalarEOS_eval eval);
@@ -81,6 +77,126 @@ double Fex_H2O_ScalarEOS::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde)
 double Fex_H2O_ScalarEOS::computeUniform(const double* N, double* grad_N) const
 {	double AexPrime, Aex;
 	(*eval)(0, &N[0], &Aex, &AexPrime);
-	grad_N[0] += Aex + N[0]*AexPrime;
+	grad_N[0] += Aex + N[0]*AexPrime;	
 	return N[0]*Aex;
 }
+
+std::vector<std::vector<vector3<>>> getPositionList(std::vector<H2OSite>& H2OSites)
+{
+	int OsiteCounter = 0, HsiteCounter = 0, siteCounter = 0, siteIndex = 0;	
+	std::vector<std::vector<vector3<>>> PositionList;
+	PositionList.resize(H2OSites.size(),H2OSites[0].Positions);
+	
+	for (uint iSite=0; iSite<H2OSites.size(); iSite++)
+	{	
+		if(H2OSites[iSite].name == "O")
+		{
+			//assumes oxygen is first in the list of site properties
+			siteIndex = 0;
+			OsiteCounter = H2OSites[iSite].Positions.size();
+		}
+		else if(H2OSites[iSite].name == "H")
+		{
+			//assumes hydrogen is second in the list of site properties
+			siteIndex = 1;
+			HsiteCounter =  H2OSites[iSite].Positions.size();
+		}
+		else
+		{
+			siteCounter++;
+			siteIndex = siteCounter+1;
+		}
+		
+		PositionList[siteIndex] = H2OSites[iSite].Positions;
+		
+		logPrintf("Initialized water sites of type %s at positions (in Bohr):\n", H2OSites[iSite].name.c_str());
+		for (uint iPos=0; iPos<PositionList[siteIndex].size(); iPos++)
+			logPrintf("\t %lg %lg %lg \n",PositionList[siteIndex][iPos][0] ,PositionList[siteIndex][iPos][1], PositionList[siteIndex][iPos][2]); 
+	}
+	
+	if (!((HsiteCounter == 2) && (OsiteCounter==1)))
+		die("Need to specify one O site and two H sites for custom designed ScalarEOS water functional.");
+	
+	return PositionList;
+} 
+
+std::vector<SiteProperties*> getSitePropList(const GridInfo& gInfo, std::vector<H2OSite>& H2OSites, RealKernel* siteChargeKernelPtr, const double& OsphereRadius)
+{
+	bool Osite = false, Hsite = false;
+	int siteCounter = 0,siteIndex = 0;
+	double sphereRadius = 0.0;
+	double sphereSigma=0.0;
+	std::vector<SiteProperties*> PropList;
+	PropList.resize(H2OSites.size(),0);
+	
+	for (uint iSite=0; iSite<H2OSites.size(); iSite++)
+	{
+		if(H2OSites[iSite].name == "O")
+		{
+			//assumes oxygen is first in the list of site properties
+			siteIndex = 0;
+			sphereRadius = OsphereRadius;
+			Osite=true;
+		}
+		else if(H2OSites[iSite].name == "H")
+		{
+			//assumes hydrogen is second in the list of site properties
+			siteIndex = 1;
+			sphereRadius = 0.0;
+			Hsite=true;
+		}
+		else
+		{
+			siteCounter++;
+			sphereRadius = 0.0;
+			siteIndex = siteCounter+1;
+		}
+		
+		logPrintf("Custom ScalarEOS water site %s initialized with sphere radius %lg and sigma %lg\n", H2OSites[iSite].name.c_str(), sphereRadius, sphereSigma);
+		
+					
+		PropList[siteIndex] = new SiteProperties(gInfo, sphereRadius, sphereSigma, H2OSites[iSite], siteChargeKernelPtr);
+	}	
+	
+	if (!(Hsite && Osite))
+		die("Need to specify both O and H sites for custom designed ScalarEOS water functional");
+		
+	return PropList;
+} 
+
+double calc_aDielFactor(double dipoleMoment)
+{
+	//use function fit from octave for dipole moments between 0 and 1.5 ea_0
+	double polyCoeff[] = {4.4266e+04,  -2.9262e+05,   8.3304e+05,  -1.3257e+06,   1.2890e+06,  -7.8496e+05,
+	2.9834e+05,  -6.6193e+04,   1.4463e+04,  -4.1945e+02,   6.1205e+00};
+	int nCoeff = 11;
+	double factor=0.0;
+	for (int i=0; i<nCoeff; i++)
+	{
+		factor += polyCoeff[nCoeff-i-1]*pow(dipoleMoment,double(i));
+	}
+	return factor;
+}
+
+Fex_H2O_Custom::Fex_H2O_Custom(FluidMixture& fluidMixture, std::vector<H2OSite>& H2OSites)
+: Fex_H2O_ScalarEOS(fluidMixture), prop(getSitePropList(gInfo, H2OSites, &siteChargeKernel, eval->sphereRadius)),
+pos(getPositionList(H2OSites)),customMolecule(prop, pos, "H2O")
+{
+			//put remainder of constructor here
+			if ( fabs(customMolecule.get_charge()) > 1e-14)
+				die("Custom designed ScalarEOS water functional requires neutral water molecule");
+			
+			double dipoleMoment = fabs(customMolecule.get_dipole());
+			
+			aDielFactor = calc_aDielFactor(dipoleMoment);
+			
+			logPrintf("Custom ScalarEOS functional created with charge: %lg, dipole moment: %lg and aDiel factor: %lg\n",
+					  customMolecule.get_charge(),dipoleMoment,aDielFactor);
+				
+}
+
+double Fex_H2O_Custom::get_aDiel() const
+{
+	return 1 - T/(aDielFactor*Kelvin); 
+}
+

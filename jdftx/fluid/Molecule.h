@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Data.h>
 #include <vector>
 #include <map>
+//#include <fluid/Fex_H2O_ScalarEOS.h>
 
 
 //! Which parameter set to use for the convolution coupling for this site
@@ -36,6 +37,18 @@ typedef enum
 	ConvCouplingNone //!< No convolution coupling
 }
 ConvolutionCouplingSiteModel;
+
+//!temporary struct by Kendra, to be merged with SiteProperties
+struct H2OSite 
+{
+	string name; //!< name of the site  
+	double Z; //!< site charge in electrons. Total electronic charge is Znuc + Z 
+	double Znuc; //!< Nuclear charge of ion in coupling functional electron density model
+	double CouplingWidth; //!< Exponential width of electron density model in convolution coupling
+	string CouplingFilename; //!< Filename to specify electron density model for convolution coupling
+	ConvolutionCouplingSiteModel ccSiteModel; //!<type of model used for convolution coupling
+	std::vector<vector3<>> Positions; //!<vector which holds list of positions of this type of site
+};
 
 //! Properties of a site in a multi-site molecule model
 struct SiteProperties
@@ -50,6 +63,11 @@ struct SiteProperties
 	//! Initailize all the const members above, and create kernels for FMT if sphereRadius is non-zero
 	SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma,
 		double chargeZ, RealKernel* chargeKernel, bool indepSite=true);
+	
+	SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma, //probably will go when H2Osites gets replaced by SiteProperties 
+		H2OSite& water_site, RealKernel* chargeKernel, bool indepSite=true);
+	
+	
 	~SiteProperties();
 
 //The above are controlled by the functional, the following can be adjusted externally:
@@ -85,6 +103,10 @@ struct Molecule
 	const std::vector<Site> site; //!< list of sites
 	const int nSites; //!< total number of sites (including multiplicities) equal to site.size()
 	const int nIndices; //!< number of distinguishable sites after symmetry, which is the same as number of site densities/psi's required
+	
+	/** More straightforward constructor for Molecule used when the number of arguments is unknown at compile time.
+	*/
+	Molecule(std::vector<SiteProperties*>& PropList, std::vector<std::vector<vector3<>>>& PositionList, string name);
 
 	/** Template-Magic constructor, for example to construct the bonded-void geometry
 	which consists of O, 2x H and 2x V with Z2 symmetry:
@@ -98,7 +120,7 @@ struct Molecule
 	: name(name), site(make_site(args...)), nSites(site.size()), nIndices(site.back().index+1)
 	{
 	}
-
+	
 	double get_charge() const; //!< return the total charge (sum of chargeZ*chargeKernel->data[0] over all the sites)
 
 	double get_dipole() const; //!< electric dipole moment (will be along +/- z by assumed Z2 symmetry)

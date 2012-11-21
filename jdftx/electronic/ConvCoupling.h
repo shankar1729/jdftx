@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class ConvCoupling : public Fmix
 {
 public:
-	ConvCoupling(FluidMixture& fluidMixture);
+	ConvCoupling(FluidMixture& fluidMixture, double CouplingScale=1.0);
 	
 	//! Destructor
 	~ConvCoupling();
@@ -77,6 +77,7 @@ public:
 	
 	private:
 	DataRptr nCavity;
+	double CouplingScale;
 	
 };
 
