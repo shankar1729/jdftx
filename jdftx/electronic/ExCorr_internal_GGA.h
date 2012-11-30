@@ -543,8 +543,8 @@ __hostanddev__ double TFKinetic(double rs, double& e_rs)
 //! von Weisacker gradient correction to Thomas Fermi LDA kinetic energy (with correct gradient expansion parameter lambda)
 template<> __hostanddev__ double GGA_eval<GGA_KE_VW>(double rs, double s2, double& e_rs, double& e_s2)
 {	
-	const double lambda = 1.0/9.0; //proper coefficient in gradient expansion <Sov. Phys. -- JETP 5,64 (1957)>
-	//const double lambda = 1.0; //original Von Weisacker correction <Z. Phys. 96, 431 (1935)>
+	//const double lambda = 1.0/9.0; //proper coefficient in gradient expansion <Sov. Phys. -- JETP 5,64 (1957)>
+	const double lambda = 1.0; //original Von Weisacker correction <Z. Phys. 96, 431 (1935)>
 	//const double lambda = 1.0/5.0; //Empirical "best fit" < J. Phys. Soc. Jpn. 20, 1051, (1965)>
 
 	double rsInv = 1./rs;

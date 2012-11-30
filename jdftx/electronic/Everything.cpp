@@ -123,6 +123,7 @@ void Everything::setup()
 		case FluidNonlinearPCM: fluidMinParams.nDim = 4 * gInfo.nr; break;
 		case FluidFittedCorrelations:
 		case FluidScalarEOS:
+		case FluidScalarEOSCustom:
 			fluidMinParams.nDim = 4 * gInfo.nr; 
 			break;
 		default:

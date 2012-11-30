@@ -103,9 +103,10 @@ double ConvCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollectio
 	+ (*exCorr)(nTot, &Vxc_tot, true)
 	- (*exCorr)(nFluid, &Vxc_fluid, true)
 	- (*exCorr)(nCavity, 0,  true);
-	PhiCoupling *= CouplingScale;
-		
-	grad_nFluidTilde = CouplingScale*O(J(Vxc_tot - Vxc_fluid));
+	//PhiCoupling *= CouplingScale;
+	
+	grad_nFluidTilde = O(J(Vxc_tot - Vxc_fluid));
+	//grad_nFluidTilde = CouplingScale*O(J(Vxc_tot - Vxc_fluid));
 	
 	
 	//loop over sites and use the chain rule to calculate nonlinear contribution to the coupling.
@@ -309,16 +310,17 @@ double ConvCoupling::computeElectronic(DataGptr* grad_nCavityTilde)
 		- (*exCorr)(nCavity, grad_nCavityTilde ? &Vxc_cavity : 0, true)
 		- (*exCorr)(nFluid, 0, true);
 		
-	Acoupling *= CouplingScale;
+	//Acoupling *= CouplingScale;
 	
 	if(grad_nCavityTilde)
-		*grad_nCavityTilde = CouplingScale*J(Vxc_tot - Vxc_cavity);
+		*grad_nCavityTilde = J(Vxc_tot - Vxc_cavity);
+		//*grad_nCavityTilde = CouplingScale*J(Vxc_tot - Vxc_cavity);
 
 	return Acoupling;
 }
 
 void ConvCoupling::dumpDebug(const char* filenamePattern) const
 {
-
+	
 }
 

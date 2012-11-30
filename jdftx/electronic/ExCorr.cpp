@@ -399,7 +399,7 @@ void ExCorr::setup(const Everything& everything)
 			break;
 		case KineticVW:
 			functionals->add(LDA_KE_TF);
-			functionals->add(GGA_KE_VW);
+			functionals->add(GGA_KE_VW,e->eVars.fluidParams.convCouplingScale);
 			Citations::add("Thomas-Fermi-von-Weisacker kinetic energy functional",
 				"C.F.v. Weizsacker, Z. Phys. 96, 431 (1935)");
 			break;

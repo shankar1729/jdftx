@@ -373,7 +373,8 @@ public:
 			string moleculeName = c.molecule->name;
 			if (c.molecule->nIndices == 1)
 			{
-				sprintf(filename, "%sN_%s", filenamePattern, moleculeName.c_str());
+				ostringstream oss; oss << "N_" << moleculeName;
+				sprintf(filename, filenamePattern, oss.str().c_str());
 				logPrintf("Dumping %s... ", filename); logFlush();
 				saveRawBinary(N[c.offsetDensity], filename); logPrintf("Done.\n"); logFlush();
 			}
@@ -382,7 +383,8 @@ public:
 				for(int j=0; j<c.molecule->nIndices; j++)
 				{
 					const SiteProperties& s = *c.indexedSite[j];
-					sprintf(filename, "%sN_%s_%s", filenamePattern, moleculeName.c_str(), s.siteName.c_str());
+					ostringstream oss; oss << "N_" << moleculeName << "_" << s.siteName;
+					sprintf(filename, filenamePattern, oss.str().c_str());
 					logPrintf("Dumping %s... ", filename); logFlush();
 					saveRawBinary(N[c.offsetDensity+j], filename); logPrintf("Done.\n"); logFlush();
 				}
@@ -391,8 +393,43 @@ public:
 	}
 
 	void dumpDebug(const char* filenamePattern) const
-	{	/*
-		coupling.dumpDebug(filenamePattern);
+	{	
+		DataRptrCollection N; char filename[256];
+		FluidMixture::Outputs outputs(&N,0,0);		
+		fluidMixture->getFreeEnergy(outputs);
+		
+		//coupling.dumpDebug(filenamePattern);
+				
+		//loop over sites
+		//Compute sphericalized site densities
+		for(unsigned ic=0; ic<fluidMixture->get_nComponents(); ic++)
+		{
+			const FluidMixture::Component& c = fluidMixture->get_component(ic);
+			string moleculeName = c.molecule->name;
+			if (c.molecule->nIndices == 1)
+			{
+				ostringstream oss; oss << "Nspherical_" << moleculeName;
+				sprintf(filename, filenamePattern, oss.str().c_str());
+				logPrintf("Dumping %s... ", filename); logFlush();	
+				saveSphericalized(&N[c.offsetDensity], 1, filename);
+				logPrintf("Done.\n"); logFlush();
+			}
+			else
+			{
+				for(int j=0; j<c.molecule->nIndices; j++)
+				{
+					const SiteProperties& s = *c.indexedSite[j];
+					ostringstream oss; oss << "Nspherical_" << moleculeName << "_" << s.siteName;
+					sprintf(filename, filenamePattern, oss.str().c_str());
+					logPrintf("Dumping %s... ", filename); logFlush();
+					saveSphericalized(&N[c.offsetDensity+j], 1, filename);
+					logPrintf("Done.\n"); logFlush();
+				}
+			}
+		}
+				
+		
+		/*
 		//Compute potential on O and H sites (done here instead of inside coupling, since need access to densities)
 		DataRptrOH N, grad_N; fluidMixture->getFreeEnergy(&N); EnergyComponents omega;
 		DataGptrOH Ntilde=J(N), grad_Ntilde; DataRptrVec p, grad_p, eps, grad_eps;
@@ -439,7 +476,6 @@ public:
 	void minimizeFluid()
 	{	
 		assert(AwaterCached); //Ensure that set() was called before calling minimize_fluid()
-		fluidMixture->fdTest(e.fluidMinParams);
 		TIME("Fluid minimize", globalLog,
 			fluidMixture->minimize(e.fluidMinParams);
 			
