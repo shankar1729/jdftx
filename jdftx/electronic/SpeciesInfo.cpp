@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
 #include <core/Util.h>
+#include <core/DataMultiplet.h>
 #include <fstream>
 #include <sstream>
 
@@ -509,21 +510,18 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 	complex* ccgrad_tauCoreData = (tauCoreRadial && ccgrad_tauCore) ? ccgrad_tauCore->dataPref() : 0;
 	
 	//Propagate ccgrad* to gradient w.r.t structure factor:
-	DataGptr grad_SG(DataG::alloc(gInfo, isGpuEnabled())); //gradient w.r.t structure factor
+	DataGptr ccgrad_SG(DataG::alloc(gInfo, isGpuEnabled())); //complex conjugate gradient w.r.t structure factor
 	callPref(gradLocalToSG)(gInfo.S, gInfo.GGT,
 		ccgrad_Vlocps->dataPref(), ccgrad_rhoIonData, ccgrad_nChargeballData,
-		ccgrad_nCoreData, ccgrad_tauCoreData, grad_SG->dataPref(), VlocRadial,
+		ccgrad_nCoreData, ccgrad_tauCoreData, ccgrad_SG->dataPref(), VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
 	
 	//Now propagate that gradient to each atom of this species:
-	DataGptr gradAtpos[3]; vector3<complex*> gradAtposData;
-	for(int k=0; k<3; k++)
-	{	gradAtpos[k] = DataG::alloc(gInfo, isGpuEnabled());
-		gradAtposData[k] = gradAtpos[k]->dataPref();
-	}
+	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+	vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
 	std::vector< vector3<> > forces(atpos.size());
 	for(unsigned at=0; at<atpos.size(); at++)
-	{	callPref(gradSGtoAtpos)(gInfo.S, atpos[at], grad_SG->dataPref(), gradAtposData);
+	{	callPref(gradSGtoAtpos)(gInfo.S, atpos[at], ccgrad_SG->dataPref(), gradAtposData);
 		for(int k=0; k<3; k++)
 			forces[at][k] = -sum(gradAtpos[k]); //negative gradient
 	}

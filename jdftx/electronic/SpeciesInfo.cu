@@ -108,19 +108,19 @@ void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 __global__
 void gradLocalToSG_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG VlocRadial, double Z,
 	const RadialFunctionG nCoreRadial, const RadialFunctionG tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {
 	COMPUTE_halfGindices
 	gradLocalToSG_calc(i, iG, GGT, ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z,
+		ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial, Z,
 		nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
@@ -128,7 +128,7 @@ void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
 		gradLocalToSG_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT,
 			ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-			ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial, Z,
+			ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial, Z,
 			nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 	gpuErrorCheck();
 }
@@ -136,15 +136,15 @@ void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 //Calculate forces from gradient w.r.t structure factor
 __global__
 void gradSGtoAtpos_kernel(int zBlock, const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos)
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
 {
 	COMPUTE_halfGindices
-	gradSGtoAtpos_calc(i, iG, atpos, grad_SG, grad_atpos);
+	gradSGtoAtpos_calc(i, iG, atpos, ccgrad_SG, grad_atpos);
 }
 void gradSGtoAtpos_gpu(const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos)
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
 {	GpuLaunchConfigHalf3D glc(gradSGtoAtpos_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		gradSGtoAtpos_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, atpos, grad_SG, grad_atpos);
+		gradSGtoAtpos_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, atpos, ccgrad_SG, grad_atpos);
 	gpuErrorCheck();
 }

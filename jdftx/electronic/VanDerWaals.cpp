@@ -198,8 +198,8 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 	//            E_Ntilde = (-scaleFac) * radialFunc * SG (this operator exists in electronic/operators.h)
 	//            E += dV * dot(Ntilde, E_Ntilde);
 	//            grad_Ntilde += E_Ntilde; (if non-null)
-	//            if(forces) grad_SG += (-scaleFac) * radialFunc * Ntilde
-	//        if(forces) compute forces from grad_SG (using gradSGtoAtpos/gradSGtoAtpos_gpu from SpeciesInfo_internal.h)
+	//            if(forces) ccgrad_SG += (-scaleFac) * radialFunc * Ntilde
+	//        if(forces) compute forces from ccgrad_SG (using gradSGtoAtpos/gradSGtoAtpos_gpu from SpeciesInfo_internal.h)
 	
 	assert(!"Implementation incomplete");
 	return 0.;

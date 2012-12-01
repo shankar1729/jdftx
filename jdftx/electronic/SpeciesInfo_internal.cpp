@@ -92,34 +92,34 @@ void updateLocal(const vector3<int> S, const matrix3<> GGT,
 //Forces due to local pseudopotential, ionic charge, chargeball and partial cores (to gradient w.r.t structure factor)
 void gradLocalToSG_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	THREAD_halfGspaceLoop(
 		gradLocalToSG_calc(i, iG, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial,
+		ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
 }
 void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
 {	threadLaunch(gradLocalToSG_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
-		ccgrad_nCore, ccgrad_tauCore, grad_SG, VlocRadial,
+		ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
 }
 
 //Gradient w.r.t structure factor -> gradient w.r.t atom positions
 void gradSGtoAtpos_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos)
-{	THREAD_halfGspaceLoop( gradSGtoAtpos_calc(i, iG, atpos, grad_SG, grad_atpos); )
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
+{	THREAD_halfGspaceLoop( gradSGtoAtpos_calc(i, iG, atpos, ccgrad_SG, grad_atpos); )
 }
 void gradSGtoAtpos(const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos)
-{	threadLaunch(gradSGtoAtpos_sub, S[0]*S[1]*(S[2]/2+1), S, atpos, grad_SG, grad_atpos);
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
+{	threadLaunch(gradSGtoAtpos_sub, S[0]*S[1]*(S[2]/2+1), S, atpos, ccgrad_SG, grad_atpos);
 }

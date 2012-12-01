@@ -136,10 +136,10 @@ void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 #endif
 
 
-//! Propagate (complex conjugates of) gradients w.r.t Vlocps, rhoIon etc to gradient w.r.t SG (the strutcure factor)
+//! Propagate (complex conjugates of) gradients w.r.t Vlocps, rhoIon etc to complex conjugate gradient w.r.t SG (the strutcure factor)
 __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball)
@@ -164,37 +164,37 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 	if(ccgrad_tauCore) ccgrad_SGinvVol += ccgrad_tauCore[i] * tauCoreRadial(sqrt(Gsq));
 	
 	//Store result:
-	grad_SG[i] = ccgrad_SGinvVol.conj();
+	ccgrad_SG[i] = ccgrad_SGinvVol;
 }
 void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #ifdef GPU_ENABLED
 void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
-	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* grad_SG,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
 	double Zchargeball, double wChargeball);
 #endif
 
 
-//! Propagate the gradient form the structure factor to the given atomic position
+//! Propagate the complex conjugate gradient w.r.t the structure factor to the given atomic position
 //! this is still per G-vector, need to sum grad_atpos over G to get the force on that atom
 __hostanddev__ void gradSGtoAtpos_calc(int i, const vector3<int> iG, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos)
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
 {
-	complex term = complex(0,-2*M_PI) * cis(-2*M_PI*dot(iG,atpos)) * grad_SG[i];
+	complex term = complex(0,-2*M_PI) * cis(-2*M_PI*dot(iG,atpos)) * ccgrad_SG[i].conj();
 	storeVector(iG * term, grad_atpos, i);
 }
 void gradSGtoAtpos(const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos);
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos);
 #ifdef GPU_ENABLED
 void gradSGtoAtpos_gpu(const vector3<int> S, const vector3<> atpos,
-	const complex* grad_SG, vector3<complex*> grad_atpos);
+	const complex* ccgrad_SG, vector3<complex*> grad_atpos);
 #endif
 
 
