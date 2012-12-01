@@ -49,7 +49,7 @@ public:
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 
 	//! Get the minimized free energy and the electronic n-gradient
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde);
+	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces);
 
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file

@@ -62,7 +62,7 @@ public:
 
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde); //!< Get the minimized free energy and the n-gradient
+	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
 
 	//! Compute gradient and free energy (used for the CG)  (optionally gradient w.r.t nElectronic)
 	double operator()( const DataRMuEps& state, DataRMuEps& grad_state, DataGptr* grad_rhoExplicitTilde = 0, DataGptr* grad_nCavityTilde = 0) const;

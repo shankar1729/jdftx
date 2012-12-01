@@ -191,7 +191,7 @@ void NonlocalPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)
+double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)
 {
 	const DataGptr& phiTilde = state; // that's what we solved for in minimize
 

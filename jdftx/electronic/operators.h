@@ -61,6 +61,11 @@ void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel);  //calls Dat
 //! Create a spherically symmetric G-space scalar field centered at lattice coordinates r0 given its radial form f 
 DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0);
 
+//! Convolve a scalar field by a radial function (preserve input)
+DataGptr operator*(const RadialFunctionG&, const DataGptr&);
+
+//! Convolve a scalar field by a radial function (destructible input)
+DataGptr operator*(const RadialFunctionG&, DataGptr&&);
 
 
 //------------------------------ ColumnBundle operators ---------------------------------

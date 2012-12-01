@@ -82,6 +82,18 @@ bool Qr_gpu(int l1, int m1, int l2, int m2, int l,
 	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale=1.);
 #endif
 
+//!Get structure factor for a specific iG, given a list of atoms
+__hostanddev__ complex getSG_calc(const vector3<int>& iG, const int& nAtoms, const vector3<>* atpos)
+{	complex SG = complex(0,0);
+	for(int atom=0; atom<nAtoms; atom++)
+		SG += cis(-2*M_PI*dot(iG,atpos[atom]));
+	return SG;
+}
+//!Get structure factor in a DataGptr's data/dataGpu (with 1/vol normalization factor)
+void getSG(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG);
+#ifdef GPU_ENABLED
+void getSG_gpu(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG);
+#endif
 
 //! Calculate local pseudopotential, ionic density and chargeball due to one species at a given G-vector
 __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix3<>& GGT,
@@ -93,10 +105,7 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 	double Gsq = GGT.metric_length_squared(iG);
 
 	//Compute structure factor (scaled by 1/detR):
-	complex SGinvVol = complex(0,0);
-	for(int atom=0; atom<nAtoms; atom++)
-		SGinvVol += cis(-2*M_PI*dot(iG,atpos[atom]));
-	SGinvVol *= invVol;
+	complex SGinvVol = getSG_calc(iG, nAtoms, atpos) * invVol;
 
 	//Short-ranged part of Local potential (long-ranged part added on later in IonInfo.cpp):
 	Vlocps[i] += SGinvVol * VlocRadial(sqrt(Gsq));

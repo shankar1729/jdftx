@@ -203,6 +203,29 @@ void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel)
 }
 
 
+void radialFunctionMultiply_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT,
+	complex* in, const RadialFunctionG& f)
+{	THREAD_halfGspaceLoop( in[i] *= f(sqrt(GGT.metric_length_squared(iG))); )
+}
+#ifdef GPU_ENABLED
+void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, complex* in, const RadialFunctionG& f);
+#endif
+
+DataGptr operator*(const RadialFunctionG& f, DataGptr&& in)
+{	const GridInfo& gInfo = in->gInfo;
+	#ifdef GPU_ENABLED
+	radialFunctionMultiply_gpu(gInfo.S, gInfo.GGT, in->dataGpu(), f);
+	#else
+	threadLaunch(radialFunctionMultiply_sub, gInfo.nG, gInfo.S, gInfo.GGT, in->data(), f);
+	#endif
+	return in;
+}
+
+DataGptr operator*(const RadialFunctionG& f, const DataGptr& in)
+{	DataGptr out(in); //destructible copy
+	return f * ((DataGptr&&)out);
+}
+
 
 //------------------------------ ColumnBundle operators ---------------------------------
 

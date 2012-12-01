@@ -57,6 +57,14 @@ bool Qr(int l1, int m1, int l2, int m2, int l,
 	return nonZero;
 }
 
+//Structure factor
+void getSG_sub(size_t iStart, size_t iStop, const vector3<int> S,
+	int nAtoms, const vector3<>* atpos, double invVol, complex* SG)
+{	THREAD_halfGspaceLoop( SG[i] = invVol * getSG_calc(iG, nAtoms, atpos); )
+}
+void getSG(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG)
+{	threadLaunch(getSG_sub, S[0]*S[1]*(S[2]/2+1), S, nAtoms, atpos, invVol, SG);
+}
 
 //Local pseudopotential, ionic charge, chargeball and partial cores (CPU thread and launcher)
 void updateLocal_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT,

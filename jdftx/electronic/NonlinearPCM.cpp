@@ -354,7 +354,7 @@ void NonlinearPCM::saveState(const char* filename) const
 {	state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)
+double NonlinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)
 {	DataRMuEps grad_state;//change to grad_state
 	return (*this)(state, grad_state, &grad_rhoExplicitTilde, &grad_nCavityTilde);
 }

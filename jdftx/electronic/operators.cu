@@ -95,6 +95,19 @@ void radialFunction_gpu(const vector3<int> S, const matrix3<>& GGT,
 }
 
 __global__
+void radialFunctionMultiply_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT, complex* in, const RadialFunctionG f)
+{	COMPUTE_halfGindices
+	in[i] *= f(sqrt(GGT.metric_length_squared(iG)));
+}
+void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, complex* in, const RadialFunctionG& f)
+{	GpuLaunchConfigHalf3D glc(radialFunctionMultiply_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		radialFunctionMultiply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, in, f);
+	gpuErrorCheck();
+}
+
+
+__global__
 void reducedL_kernel(int nbasis, int ncols, const complex* Y, complex* LY,
 	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
 {	int j = kernelIndex1D();

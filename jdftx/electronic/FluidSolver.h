@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/MinimizeParams.h>
 #include <electronic/ExCorr.h>
+#include <electronic/IonicMinimizer.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/S2quad.h>
 #include <fluid/Molecule.h>
@@ -125,11 +126,12 @@ struct FluidSolver
 		
 	virtual ~FluidSolver() {}
 
-	//!  Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
+	//! Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
 	virtual void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)=0;
 
-	//!  Compute gradients with respect to electronic side variables, and return fluid+coupling free energy:
-	virtual double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde)=0;
+	//! Compute gradients with respect to electronic side variables, and return fluid+coupling free energy
+	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces
+	virtual double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)=0;
 
 	//grad_rhoExplicitTilde is d_fluid and grad_nCavityTilde is V_cavity
 

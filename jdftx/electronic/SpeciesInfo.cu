@@ -65,6 +65,19 @@ bool Qr_gpu(int l1, int m1, int l2, int m2, int l,
 	return nonZero;
 }
 
+//Structure factor
+__global__
+void getSG_kernel(int zBlock, const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG)
+{	COMPUTE_halfGindices
+	SG[i] = invVol * getSG_calc(iG, nAtoms, atpos);
+}
+void getSG_gpu(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG)
+{	GpuLaunchConfigHalf3D glc(getSG_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		getSG_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, nAtoms, atpos, invVol, SG);
+	gpuErrorCheck();
+}
+
 //Calculate local pseudopotetial, ionic charge, charge ball and partial core density
 __global__
 void updateLocal_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT,
