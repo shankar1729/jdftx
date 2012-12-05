@@ -518,13 +518,13 @@ public:
 		grad_rhoExplicitTilde = clone(*grad_rhoExplicitTildeCached);	
 		//Uncomment to print the components of Adiel (fluid alone, electrostatic coupling, convolution coupling) 
 		
-//		logPrintf("Awater: %le ExtCoulomb: %le ConvCoupling: %le ", *AwaterCached, 
+/*		logPrintf("Awater: %le ExtCoulomb: %le ConvCoupling: %le ", *AwaterCached, 
 				dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)), coupling->computeElectronic());
 		if(vdwCoupling)
-//			logPrintf("VDWCoupling: %le\n", vdwCoupling->computeElectronic(NCached));
+			logPrintf("VDWCoupling: %le\n", vdwCoupling->computeElectronic(NCached));
 		else
-//			logPrintf("\n"); 
-		
+			logPrintf("\n"); 
+*/		
 		double Adiel = *AwaterCached + dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached))
 				+ coupling->computeElectronic(&grad_nCavityTilde);
 		if(vdwCoupling)
