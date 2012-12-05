@@ -222,9 +222,24 @@ DataGptr operator*(const RadialFunctionG& f, DataGptr&& in)
 }
 
 DataGptr operator*(const RadialFunctionG& f, const DataGptr& in)
-{	DataGptr out(in); //destructible copy
+{	DataGptr out(in->clone()); //destructible copy
 	return f * ((DataGptr&&)out);
 }
+
+/*complexDataGptr operator*(const RadialFunctionG& f, complexDataGptr&& in)
+{	const GridInfo& gInfo = in->gInfo;
+	#ifdef GPU_ENABLED
+	radialFunctionMultiply_gpu(gInfo.S, gInfo.GGT, in->dataGpu(), f);
+	#else
+	threadLaunch(radialFunctionMultiply_sub, gInfo.nG, gInfo.S, gInfo.GGT, in->data(), f);
+	#endif
+	return in;
+}
+
+complexDataGptr operator*(const RadialFunctionG& f, const complexDataGptr& in)
+{	complexDataGptr out(in->clone()); //destructible copy
+	return f * ((complexDataGptr&&)out);
+}*/
 
 
 //------------------------------ ColumnBundle operators ---------------------------------

@@ -64,8 +64,14 @@ DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector
 //! Convolve a scalar field by a radial function (preserve input)
 DataGptr operator*(const RadialFunctionG&, const DataGptr&);
 
+//! Convolve a scalar field by a radial function (preserve input)
+//complexDataGptr operator*(const RadialFunctionG&, const complexDataGptr&);
+
 //! Convolve a scalar field by a radial function (destructible input)
 DataGptr operator*(const RadialFunctionG&, DataGptr&&);
+
+//! Convolve a scalar field by a radial function (destructible input)
+//complexDataGptr operator*(const RadialFunctionG&, complexDataGptr&&);
 
 
 //------------------------------ ColumnBundle operators ---------------------------------

@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2012 Deniz Gunceler
+Copyright 2012 Deniz Gunceler, Kendra Letchworth Weaver
 
 This file is part of JDFTx.
 

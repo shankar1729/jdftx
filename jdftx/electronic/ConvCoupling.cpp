@@ -26,14 +26,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/RadialFunction.h>
 #include <electronic/operators.h>
 
-ConvCoupling::ConvCoupling(FluidMixture& fluidMixture, double CouplingScale)
-: Fmix(fluidMixture),CouplingData(gInfo),CouplingScale(CouplingScale)
+ConvCoupling::ConvCoupling(FluidMixture& fluidMixture)
+: Fmix(fluidMixture),CouplingData(gInfo)
 {
 	//initialize nFluid
 	//nullToZero(nFluid,gInfo);
 	//initialize the pointer in FluidMixture to point to the CouplingData structure in ConvCoupling
 	fluidMixture.ConvCouplingPtr = &CouplingData;
-	Citations::add("Convolution-coupling for Joint Density Functoinal Theory",
+	Citations::add("Convolution-coupling for Joint Density Functional Theory",
 		"K. Letchworth-Weaver, R. Sundararaman and T.A. Arias, (under preparation)");
 }
 
@@ -127,7 +127,7 @@ double ConvCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollectio
 	}
 
 string ConvCoupling::getName() const
-{	return "Coupling";
+{	return "ConvCoupling";
 }
 
 //function for setting an exponential kernel for a given site with charge Z and width a => Z/(8*pi*a^3)*exp(-r/a)
@@ -310,11 +310,8 @@ double ConvCoupling::computeElectronic(DataGptr* grad_nCavityTilde)
 		- (*exCorr)(nCavity, grad_nCavityTilde ? &Vxc_cavity : 0, true)
 		- (*exCorr)(nFluid, 0, true);
 		
-	//Acoupling *= CouplingScale;
-	
-	if(grad_nCavityTilde)
+		if(grad_nCavityTilde)
 		*grad_nCavityTilde = J(Vxc_tot - Vxc_cavity);
-		//*grad_nCavityTilde = CouplingScale*J(Vxc_tot - Vxc_cavity);
 
 	return Acoupling;
 }

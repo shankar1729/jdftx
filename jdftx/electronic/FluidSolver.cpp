@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/NonlinearPCM.h>
 #include <electronic/LinearPCM.h>
 #include <electronic/ConvCoupling.h>
+#include <electronic/VDWCoupling.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/Fex_H2O_FittedCorrelations.h>
@@ -82,13 +83,15 @@ class ConvolutionJDFT : public FluidSolver
 	IdealGasMuEps* idgas;
 	
 	ConvCoupling* coupling;
+	VDWCoupling* vdwCoupling;
 	
 	double* AwaterCached; //cached free energy of fluidMixture (without the coupling part)
 	DataGptr* grad_rhoExplicitTildeCached; //cached gradient of free energy of fluidMixture wrt rhoExplicit
+	DataRptrCollection* NCached; //cached densities of fluid for use in van der Waals correction
 	
 public:
 	ConvolutionJDFT(const Everything& e, FluidSolverParams& params, FluidType type)
-	: FluidSolver(e), AwaterCached(0), grad_rhoExplicitTildeCached(0)
+	: FluidSolver(e), AwaterCached(0), grad_rhoExplicitTildeCached(0), NCached(0)
 	{
 		
 		//Initialize fluid mixture:
@@ -130,7 +133,7 @@ public:
 		}	
 		
 		//Initialize coupling:
-		coupling = new ConvCoupling(*fluidMixture, params.convCouplingScale);
+		coupling = new ConvCoupling(*fluidMixture);
 
 		//set fluid exCorr
 		logPrintf("\n------- Fluid Exchange Correlation functional -------\n");
@@ -196,10 +199,12 @@ public:
 			SiteProperties& Osite = *water.indexedSite[0];
 			Osite.siteName="O";
 			Osite.couplingZnuc = params.oxygenZnuc;
+			Osite.atomicNumber = 8;
 						
 			SiteProperties& Hsite = *water.indexedSite[1];
 			Hsite.siteName="H";
 			Hsite.couplingZnuc = params.hydrogenZnuc;
+			Hsite.atomicNumber = 1;
 		
 			switch(params.convCouplingH2OModel)
 			{	
@@ -331,6 +336,14 @@ public:
 			}
 		}
 		
+		//Create van der Waals mixing functional
+		if(e.vanDerWaals) //assuming that shared_ptr is 0 if it does not manage any objects
+		{
+			vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
+			vdwCoupling->exCorr = &params.exCorr;
+		}
+			
+		
 		fluidMixture->setPressure(1.01325*Bar);
 		
 		//---- G=0 constraint -----
@@ -340,6 +353,7 @@ public:
 	~ConvolutionJDFT()
 	{	
 		delete coupling;
+		delete vdwCoupling;
 		delete idgas;
 		delete trans;
 		delete quad;
@@ -348,6 +362,7 @@ public:
 		
 		if(AwaterCached) delete AwaterCached;
 		if(grad_rhoExplicitTildeCached) delete grad_rhoExplicitTildeCached;
+		if(NCached) delete NCached;
 	}
 
 	bool needsGummel() { return true; }
@@ -457,17 +472,24 @@ public:
 		fluidMixture->rhoExternal=clone(rhoExplicitTilde);
 		if((fluidMixture->state.size())==0) fluidMixture->initState(0.05);
 		if(!AwaterCached)
-		{	
+		{		
 			AwaterCached = new double;
 			*AwaterCached=0.0;
 			grad_rhoExplicitTildeCached = new DataGptr;
-			nullToZero(*grad_rhoExplicitTildeCached,e.gInfo);
+			nullToZero(*grad_rhoExplicitTildeCached,e.gInfo);			
+			if(vdwCoupling)
+			{
+				NCached = new DataRptrCollection;				
+				nullToZero(*NCached,e.gInfo,fluidMixture->get_nDensities());
+			}
 			
-			FluidMixture::Outputs outputs(0,0,grad_rhoExplicitTildeCached);
+			FluidMixture::Outputs outputs(NCached,0,grad_rhoExplicitTildeCached);
 			
 			*AwaterCached = fluidMixture->getFreeEnergy(outputs); //Fluid free energy including coupling
 			*AwaterCached -= dot(rhoExplicitTilde,O(*grad_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
 			*AwaterCached -= coupling->computeElectronic(); //subtract Nonlinear coupling energy
+			if(vdwCoupling)
+				*AwaterCached -= vdwCoupling->computeElectronic(NCached);
 			
 		}
 		
@@ -479,24 +501,35 @@ public:
 		TIME("Fluid minimize", globalLog,
 			fluidMixture->minimize(e.fluidMinParams);
 			
-			FluidMixture::Outputs outputs(0,0,grad_rhoExplicitTildeCached);
+			FluidMixture::Outputs outputs(NCached,0,grad_rhoExplicitTildeCached);
 			
 			*AwaterCached = fluidMixture->getFreeEnergy(outputs); //Fluid free energy including coupling
 			*AwaterCached -= dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
 			*AwaterCached -= coupling->computeElectronic(); //subtract Nonlinear coupling energy
+			if(vdwCoupling)
+				*AwaterCached -= vdwCoupling->computeElectronic(NCached);
 		)
 	}
-
+	
 	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)
 	{
 		assert(AwaterCached); //Ensure that set() was called before calling get_Adiel_and_grad()
 		
 		grad_rhoExplicitTilde = clone(*grad_rhoExplicitTildeCached);	
 		//Uncomment to print the components of Adiel (fluid alone, electrostatic coupling, convolution coupling) 
-		//logPrintf("Awater: %le ExtCoulomb: %le Coupling: %le\n", *AwaterCached, 
-		//		dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)), coupling->computeElectronic());
-		return *AwaterCached + dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached))
+		
+//		logPrintf("Awater: %le ExtCoulomb: %le ConvCoupling: %le ", *AwaterCached, 
+				dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)), coupling->computeElectronic());
+		if(vdwCoupling)
+//			logPrintf("VDWCoupling: %le\n", vdwCoupling->computeElectronic(NCached));
+		else
+//			logPrintf("\n"); 
+		
+		double Adiel = *AwaterCached + dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached))
 				+ coupling->computeElectronic(&grad_nCavityTilde);
+		if(vdwCoupling)
+			Adiel += vdwCoupling->computeElectronic(NCached, &extraForces);
+		return Adiel;
 	}
 };
 

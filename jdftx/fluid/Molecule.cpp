@@ -47,7 +47,7 @@ Molecule::Molecule(std::vector<SiteProperties*>& PropList, std::vector<std::vect
 SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma, double chargeZ,
 	RealKernel* chargeKernel, bool indepSite)
 : sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(chargeZ), chargeKernel(chargeKernel), indepSite(indepSite),
-couplingZnuc(0), couplingElecKernel(0)
+couplingZnuc(0), atomicNumber(0), couplingElecKernel(0)
 {	
 	if(sphereRadius)
 	{	w0 = new RealKernel(gInfo);
@@ -71,7 +71,7 @@ couplingZnuc(0), couplingElecKernel(0)
 SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma,
 	H2OSite& water_site, RealKernel* chargeKernel, bool indepSite)
 : sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(water_site.Z), chargeKernel(chargeKernel), indepSite(indepSite),
-couplingZnuc(water_site.Znuc), couplingElecKernel(0), siteName(water_site.name), convCouplingWidth(water_site.CouplingWidth),
+couplingZnuc(water_site.Znuc), atomicNumber(water_site.atomicNumber), couplingElecKernel(0), siteName(water_site.name), convCouplingWidth(water_site.CouplingWidth),
 convCouplingSiteCharge(water_site.Z), convCouplingSiteModel(water_site.ccSiteModel) 
 {
 	if(sphereRadius)

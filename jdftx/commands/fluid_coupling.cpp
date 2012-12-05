@@ -57,7 +57,7 @@ struct CommandFluidSitePosition : public Command
 	CommandFluidSitePosition() : Command("fluid-site-position")
 	{
 		format = "<fluid-site-id> <x0> <x1> <x2>";
-		comments = "Specify a site of type <fluid-site-id> at location <x0> <x1> <x2> in Bohr.\n";
+		comments = "Specify a site of type <fluid-site-id> at location <x0> <x1> <x2> in Bohr.\n"; 
 		hasDefault = false; 
 		allowMultiple = true;
 		require("fluid-site");
@@ -115,15 +115,17 @@ struct CommandFluidSite : public Command
 {
 	CommandFluidSite() : Command("fluid-site")
 	{
-		format = "<fluid-site-id> <Z_nuc> <Z_site> Exponential/ExpCuspless <width> [filename]\n"
+		format = "<fluid-site-id> <Z_nuc> <Z_site> <Z_at> <Exponential/ExpCuspless <width> [filename]\n"
 				 "| ReadRadialFunction/ReadBinaryKernel <filename>";
 		comments = "Specify site <fluid-site-id> with nuclear charge <Z_nuc>, site charge <Z_site>,\n"
-					"   and coupling electron density model specified by\n" 
+					"   atomic number <Z_at>, and coupling electron density model specified by\n" 
 					"   Exponential|ExpCuspless|ReadRadialFunction|ReadBinaryKernel\n"
 					"	If Exponential or ExpCuspless, the exponential width must be specified and\n"
 					"	a radial function contained in [filename] may be added to the exponential model.\n"
 					"	If ReadRadialFunction/ReadBinaryKernel, the filename containing the \n" 
 					"	electron density model must be specified.\n"
+					"	<Z_at> specifies the atomic number of the element used for van Der Waals corrections between the fluid and explicit system.\n"
+					"	If Z_at = 0, there are no van der Waals corrections between a site of this type and the explicit system.\n"
 					"	Note that any dipole must be along the z-direction.\n";
 		hasDefault = false;
 		allowMultiple = true;
@@ -139,6 +141,7 @@ struct CommandFluidSite : public Command
 			//later make special cases here for O and H
 			pl.get(site.Znuc, 0.0, "Z_nuc",true);
 			pl.get(site.Z, 0.0, "Z_site",true);
+			pl.get(site.atomicNumber, 0, "Z_at",true);
 			pl.get(site.ccSiteModel, ConvCouplingExpCuspless, couplingMap, "couplingType");
 			if (site.ccSiteModel == ConvCouplingExponential || site.ccSiteModel == ConvCouplingExpCuspless )
 			{	
@@ -163,7 +166,7 @@ struct CommandFluidSite : public Command
 			{	if(iSite==iRep)
 				{	
 					H2OSite &site = e.eVars.fluidParams.H2OSites[iSite];
-					logPrintf("%s %16.10lf %16.10lf ", site.name.c_str(), site.Znuc, site.Z);
+					logPrintf("%s %16.10lf %16.10lf %d ", site.name.c_str(), site.Znuc, site.Z, site.atomicNumber);
 					fputs(couplingMap.getString(site.ccSiteModel), globalLog);
 					if(site.ccSiteModel == ConvCouplingExponential || site.ccSiteModel == ConvCouplingExpCuspless )
 						logPrintf(" %lg %s", site.CouplingWidth, site.CouplingFilename.c_str());

@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/DataIO.h>
 #include <core/MinimizeParams.h>
+#include <core/Coulomb.h>
 #include <electronic/ExCorr.h>
 #include <electronic/IonicMinimizer.h>
 #include <fluid/FluidMixture.h>
@@ -127,6 +128,7 @@ struct FluidSolver
 	virtual ~FluidSolver() {}
 
 	//! Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
+	//!  and set list of explicit atoms to use in van der Waals corrections
 	virtual void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)=0;
 
 	//! Compute gradients with respect to electronic side variables, and return fluid+coupling free energy

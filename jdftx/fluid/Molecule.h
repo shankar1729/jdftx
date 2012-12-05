@@ -44,6 +44,7 @@ struct H2OSite
 	string name; //!< name of the site  
 	double Z; //!< site charge in electrons. Total electronic charge is Znuc + Z 
 	double Znuc; //!< Nuclear charge of ion in coupling functional electron density model
+	int atomicNumber; //! Atomic number of the site for use in van der Waals coupling
 	double CouplingWidth; //!< Exponential width of electron density model in convolution coupling
 	string CouplingFilename; //!< Filename to specify electron density model for convolution coupling
 	ConvolutionCouplingSiteModel ccSiteModel; //!<type of model used for convolution coupling
@@ -72,6 +73,7 @@ struct SiteProperties
 
 //The above are controlled by the functional, the following can be adjusted externally:
 	double couplingZnuc; //!< nuclear charge for convolution coupling
+	int atomicNumber;
 	RealKernel* couplingElecKernel; //!< electron density kernel for convolution coupling
 	string siteName; //!< string containing unique site name (Kendra would like to move this into constructor)
 	string kernelFilename; //!< If ConvCouplingRadialFunction/BinaryKernel, the filename from which the electron density site model is read.

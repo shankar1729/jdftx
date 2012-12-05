@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2012 Deniz Gunceler
+Copyright 2012 Deniz Gunceler, Kendra Letchworth Weaver
 
 This file is part of JDFTx.
 
@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/operators.h>
+#include <core/DataMultiplet.h>
 
 const static int maximumSupportedAtomicNumber = 54;
 
@@ -188,21 +189,54 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string exCorrName) c
 
 double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, string exCorrName,
 	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
-{
-	//TODO
-	//Optimum way to do this is probably:
-	//    Loop over SpeciesInfo's
-	//        Get structure factor SG (using getSG/getSG_gpu from SpeciesInfo_internal.h)
-	//        Loop over fluid sites
-	//            Get relevant RadialFunctionG using VanDerWaals::getRadialFunction()
-	//            E_Ntilde = (-scaleFac) * radialFunc * SG (this operator exists in electronic/operators.h)
-	//            E += dV * dot(Ntilde, E_Ntilde);
-	//            grad_Ntilde += E_Ntilde; (if non-null)
-	//            if(forces) ccgrad_SG += (-scaleFac) * radialFunc * Ntilde
-	//        if(forces) compute forces from ccgrad_SG (using gradSGtoAtpos/gradSGtoAtpos_gpu from SpeciesInfo_internal.h)
+{		
+	//Get the appropriate scale factor (which depends on exchange-correlation):
+	auto scalingFactorIter = scalingFactor.find(exCorrName);
+	if(scalingFactorIter == scalingFactor.end())
+		die("\n%s Exchange-Correlation is not supported by Grimme Van der Waals corrections!\n", exCorrName.c_str());
+	const double scaleFac = scalingFactorIter->second;
 	
-	assert(!"Implementation incomplete");
-	return 0.;
+	double Etot = 0.;  //Total VDW Energy
+	const GridInfo& gInfo = e->gInfo;
+	std::vector< std::shared_ptr<SpeciesInfo> > species = e->iInfo.species; //vector containing all species
+	
+	for(uint i=0; i<species.size(); i++) //Loop over SpeciesInfo's of explicit system
+	{	
+		std::shared_ptr<SpeciesInfo> sp = species[i];
+		DataGptr SG(DataG::alloc(gInfo, isGpuEnabled()));
+		DataGptr ccgrad_SG; //set grad wrt structure factor
+		int nAtoms = sp->atpos.size(); //number of atoms of ith species
+		
+		callPref(getSG)(gInfo.S, nAtoms, sp->atposPref, 1.0/gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i	
+				
+		for(uint j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
+		{
+			if(atomicNumber[j]!=0) //Check to make sure fluid site should include van der Waals corrections
+			{
+				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j]); //get ij radial function				
+				DataGptr E_Ntilde = (-scaleFac * gInfo.nr) * (Kernel_ij * SG); //calculate effect of ith explicit atom on gradient wrt jth site density
+				Etot += gInfo.dV * dot(Ntilde[j], E_Ntilde); //accumulate into total energy
+				if(grad_Ntilde)
+					(*grad_Ntilde)[j] += E_Ntilde; //accumulate into gradient wrt jth site density
+				if(forces)
+					ccgrad_SG += (-scaleFac) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
+			}
+		}
+			//TODO: verify that forces are correct!
+		if(forces && ccgrad_SG) //calculate forces due to ith atom
+		{
+			DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+			vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
+			for(int at=0; at<nAtoms; at++)
+			{	
+				callPref(gradSGtoAtpos)(gInfo.S, sp->atpos[at], ccgrad_SG->dataPref(), gradAtposData);
+				for(int k=0; k<3; k++)
+					(*forces)[i][at][k] -= sum(gradAtpos[k]); //negative gradient on ith atom type
+			}			
+		}
+	}
+	
+	return Etot;
 }
 
 
@@ -237,14 +271,17 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	double R0 = params1.R0 + params2.R0;
 	
 	//Initialize function on real-space logarithmic radial grid:
-	const double rMin = 1e-2;
+	const double rMin = 1e-4; //1e-2;
 	const double rMax = 1e+3;
 	const double dlogr = 0.01;
 	size_t nSamples = ceil(log(rMax/rMin)/dlogr);
+//	logPrintf("nSamples: %d\n",nSamples);
 	RadialFunctionR func(nSamples);
 	double r = rMin, rRatio = exp(dlogr), E_r;
+//	logPrintf("Radial Grid\n");
 	for(size_t i=0; i<nSamples; i++)
 	{	func.r[i] = r; //radial position
+//		logPrintf("r[%d]: %lg\n",i,r);
 		func.dr[i] = r * dlogr; //integration weight
 		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r); //sample value
 		r *= rRatio;
