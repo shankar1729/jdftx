@@ -186,15 +186,25 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string exCorrName) c
 	return Etot;
 }
 
-
-double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, string exCorrName,
+double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber, string exCorrName, 
 	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
-{		
+{
 	//Get the appropriate scale factor (which depends on exchange-correlation):
 	auto scalingFactorIter = scalingFactor.find(exCorrName);
 	if(scalingFactorIter == scalingFactor.end())
-		die("\n%s Exchange-Correlation is not supported by Grimme Van der Waals corrections!\n", exCorrName.c_str());
+		die("\n%s fluid Exchange-Correlation is not supported by Grimme Van der Waals corrections!\n"
+			"Try adjusting scale factor manually using command fluid-vdWCoupling-scale.\n", exCorrName.c_str());
+	
 	const double scaleFac = scalingFactorIter->second;
+	
+	return VanDerWaals::energyAndGrad(Ntilde, atomicNumber, scaleFac, grad_Ntilde, forces);
+}
+
+
+
+double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber, const double scaleFac,
+	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
+{		
 	
 	double Etot = 0.;  //Total VDW Energy
 	const GridInfo& gInfo = e->gInfo;
@@ -271,17 +281,14 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	double R0 = params1.R0 + params2.R0;
 	
 	//Initialize function on real-space logarithmic radial grid:
-	const double rMin = 1e-4; //1e-2;
+	const double rMin = 1e-2;
 	const double rMax = 1e+3;
 	const double dlogr = 0.01;
 	size_t nSamples = ceil(log(rMax/rMin)/dlogr);
-//	logPrintf("nSamples: %d\n",nSamples);
 	RadialFunctionR func(nSamples);
 	double r = rMin, rRatio = exp(dlogr), E_r;
-//	logPrintf("Radial Grid\n");
 	for(size_t i=0; i<nSamples; i++)
 	{	func.r[i] = r; //radial position
-//		logPrintf("r[%d]: %lg\n",i,r);
 		func.dr[i] = r * dlogr; //integration weight
 		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r); //sample value
 		r *= rRatio;

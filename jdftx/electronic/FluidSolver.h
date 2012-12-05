@@ -89,7 +89,8 @@ struct FluidSolverParams
 	
 	//For Explicit Fluid JDFT alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water
-	double convCouplingScale;
+	double convCouplingScale; //!< scales von Weisacker correction in kinetic energy functional for fluid coupling 
+	double VDWCouplingScale; //!< scales van der Waals correction for fluid coupling
 	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature
 	unsigned quad_nBeta, quad_nAlpha, quad_nGamma; //!< Subdivisions for euler angle outer-product quadrature
 	

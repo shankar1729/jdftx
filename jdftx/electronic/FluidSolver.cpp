@@ -340,7 +340,8 @@ public:
 		if(e.vanDerWaals) //assuming that shared_ptr is 0 if it does not manage any objects
 		{
 			vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
-			vdwCoupling->exCorr = &params.exCorr;
+			vdwCoupling->exCorr = &(params.exCorr);
+			vdwCoupling->scaleFac = &(params.VDWCouplingScale);
 		}
 			
 		

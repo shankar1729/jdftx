@@ -53,21 +53,22 @@ double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< 
 
 double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const
 {
-	return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), &grad_Ntilde);
+	if(scaleFac)
+		return vdW->energyAndGrad(Ntilde, atomicNumber, *scaleFac, &grad_Ntilde);
+	else
+		return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), &grad_Ntilde);
 }
 
 double VDWCoupling::computeElectronic(const DataRptrCollection* N, IonicGradient* forces) 
 {
 	DataGptrCollection Ntilde(fluidMixture.get_nDensities());
 	for(unsigned i=0; i<fluidMixture.get_nDensities(); i++)
-	{	
-		//Replace negative densities with 0:
-		//double Nmin, Nmax;
-		//callPref(eblas_capMinMax)(gInfo.nr, (*N)[i]->dataPref(), Nmin, Nmax, 0.);
 		Ntilde[i] = J((*N)[i]);
-	}
 	
-	return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), 0, forces);
+	if(scaleFac)
+		return vdW->energyAndGrad(Ntilde, atomicNumber, *scaleFac, 0, forces);
+	else
+		return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), 0, forces);
 }
 
 void VDWCoupling::dumpDebug(const char* filenamePattern) const

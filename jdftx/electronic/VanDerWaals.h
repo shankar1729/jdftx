@@ -40,7 +40,15 @@ public:
 	//! The specified exchange-correlation functional selects the appropriate scale factor
 	//! The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and
 	//! the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null)
-	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, string exCorrName,
+	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, string exCorrName, 
+		DataGptrCollection* grad_Ntilde=0, IonicGradient* forces=0) const;
+		
+	//! Van der Waal correction to the interaction energy between the explicit atoms
+	//! (from IonInfo) and the continuous fields Ntilde with specified atomic numbers.
+	//! The specified exchange-correlation functional selects the appropriate scale factor
+	//! The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and
+	//! the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null)
+	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber,const double scaleFac=0.75,
 		DataGptrCollection* grad_Ntilde=0, IonicGradient* forces=0) const;
 	
 	~VanDerWaals();

@@ -34,15 +34,18 @@ struct CommandFluidCouplingScale : public Command
 {
 	CommandFluidCouplingScale() : Command("fluid-coupling-scale")
 	{
-		format = "<scale>";
-		comments = "Scale Convolution Coupling kinetic energy and exhange-correlation by a constant factor <scale>.\n";
+		format = "<scale=1/9>";
+		comments = "Scale Von Weisacker correction to kinetic energy by a constant factor <scale>.\n"
+					"	Default is 1/9, corresponding to the gradient expansion for homogeneous electron gas.\n";
 		hasDefault = true; 
 		allowMultiple = false;
 	}
 	
 	void process(ParamList& pl, Everything& e)
 	{
-		pl.get(e.eVars.fluidParams.convCouplingScale, 1.0, "scale");
+		pl.get(e.eVars.fluidParams.convCouplingScale, 1.0/9.0, "scale");
+		if(e.eVars.fluidParams.convCouplingScale == 0.0)
+			die("Must specify nonzero scale for Von Weisacker correction.\nTo use bare Thomas-Fermi use command fluid-ex-corr instead.\n"); 
 	}
 	
 	void printStatus(Everything& e, int iRep)
@@ -51,6 +54,30 @@ struct CommandFluidCouplingScale : public Command
 	}
 	
 }commandFluidCouplingScale;
+
+struct CommandFluidVDWCouplingScale : public Command
+{
+	CommandFluidVDWCouplingScale() : Command("fluid-vdWcoupling-scale")
+	{
+		format = "<scale=0.75>";
+		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
+					"	Default is scale=0.75, corresponding to the value of the scale factor for PBE.\n";
+		hasDefault = false; 
+		allowMultiple = false;
+		require("van-der-waals");	
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		pl.get(e.eVars.fluidParams.VDWCouplingScale, 0.75, "scale");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+		logPrintf(" %lg", e.eVars.fluidParams.VDWCouplingScale);	
+	}
+	
+}commandFluidVDWCouplingScale;
 
 struct CommandFluidSitePosition : public Command
 {

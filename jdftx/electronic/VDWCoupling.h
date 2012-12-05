@@ -52,11 +52,13 @@ class VDWCoupling : public Fmix
 	void dumpDebug(const char* filenamePattern) const;
 	
 	const ExCorr* exCorr;
+	const double* scaleFac;
 	
 	private:
 		
 	std::shared_ptr<VanDerWaals> vdW;
 	std::vector<int> atomicNumber; 
+	
 	
 	
 };
