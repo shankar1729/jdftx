@@ -50,8 +50,8 @@ double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, d
 	double volume = integral(1.-shape);
 
 	DataRptr invSurfaceDensity = inv(surfaceDensity);
-	Acavity_shape += -cavityTension*divergence(shape_x*invSurfaceDensity); // Surface term
-	Acavity_shape += -cavityPressure;
+	Acavity_shape = (-cavityTension)*divergence(shape_x*invSurfaceDensity); // Surface term
+	Acavity_shape += (-cavityPressure); // Volume term
 	
 	return surfaceArea*cavityTension + volume*cavityPressure;
 }

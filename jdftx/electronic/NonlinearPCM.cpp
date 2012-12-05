@@ -233,7 +233,6 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
 	// Compute the cavitation energy and gradient
-	nullToZero(Acavity_shape, e.gInfo);
 	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
 	
 	DataRptr epsilon = 1 + (params.epsilonBulk-1)*shape;
@@ -281,7 +280,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 		complex* rhoPtr = rhoExplicitTilde->data();
 		rhoExplicitGzero = rhoPtr[0].real();
 		//rhoExplicitGzero=0.0;
-
+		
 		if (params.linearScreening)
 		{	nNegGzero=params.ionicConcentration*dot(shape,1.0-mu+0.5*mu*mu)*e.gInfo.dV;
 			nPosGzero=params.ionicConcentration*dot(shape,1.0+mu+0.5*mu*mu)*e.gInfo.dV;
@@ -301,7 +300,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 		threadedLoop(calc_rhoIon, e.gInfo.nr, muEff->data(), shape->data(), rhoIon->data(), grad_rhoIon_muEff->data(),
 		         (grad_rhoIon_shape ? grad_rhoIon_shape->data() : 0), &params);
 	}
-
+	
 	DataGptr nBound = divergence(J(p))+J(rhoIon); //adds rhoIon here if we have ionic screening
 
 	DataGptr phiBound = -4*M_PI*Linv(O(nBound)); //d_fluid

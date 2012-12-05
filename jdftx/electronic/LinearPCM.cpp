@@ -62,7 +62,6 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 	
 	// Compute the cavitation energy and gradient
-	nullToZero(Acavity_shape, e.gInfo);
 	Acavity = (e.eVars.fluidType == FluidLinearPCM) ? cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure) : 0.;
 	
 	//Compute epsilon and kappaSq:
