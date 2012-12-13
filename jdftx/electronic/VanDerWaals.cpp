@@ -229,7 +229,7 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 				if(grad_Ntilde)
 					(*grad_Ntilde)[j] += E_Ntilde; //accumulate into gradient wrt jth site density
 				if(forces)
-					ccgrad_SG += (-scaleFac) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
+					ccgrad_SG += (-scaleFac / gInfo.dV) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
 			}
 		}
 			//TODO: verify that forces are correct!

@@ -214,7 +214,8 @@ void elecFluidMinimize(Everything &e)
 			logPrintf("\n---------------------- Fluid Minimization # %d -----------------------\n", iGummel+1); logFlush();
 			double A_diel_prev = ener.A_diel;
 			eVars.fluidSolver->minimizeFluid();
-			ener.A_diel = eVars.fluidSolver->get_Adiel_and_grad(eVars.d_fluid, eVars.V_cavity, eVars.fluidForces);
+			ener.A_diel = eVars.fluidSolver->get_Adiel_and_grad(eVars.d_fluid, eVars.V_cavity, eVars.fluidForces)
+						+ (eInfo.nElectrons - e.iInfo.getZtot())*e.iInfo.ionWidthMuCorrection() ;
 			double dAfluid = ener.A_diel - A_diel_prev;
 			logPrintf("\nFluid minimization # %d changed total free energy by %le\n", iGummel+1, dAfluid);
 

@@ -51,7 +51,6 @@ double zeroCenter(const DataRptr& dtot, DataRptr& dd0_ddtot)
 	return d0;
 }
 
-
 //Extend FluidMixture to provide per-iteration dump option
 class FluidMixtureJDFT : public FluidMixture
 {

@@ -53,7 +53,8 @@ double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< 
 
 double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const
 {
-	if(scaleFac)
+	//logPrintf("scale factor: %lg, Exchange-correlation: %s\n", *scaleFac, exCorr->getName().c_str());
+	if(*scaleFac > 1e-6)
 		return vdW->energyAndGrad(Ntilde, atomicNumber, *scaleFac, &grad_Ntilde);
 	else
 		return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), &grad_Ntilde);
@@ -65,7 +66,7 @@ double VDWCoupling::computeElectronic(const DataRptrCollection* N, IonicGradient
 	for(unsigned i=0; i<fluidMixture.get_nDensities(); i++)
 		Ntilde[i] = J((*N)[i]);
 	
-	if(scaleFac)
+	if(*scaleFac > 1e-6)
 		return vdW->energyAndGrad(Ntilde, atomicNumber, *scaleFac, 0, forces);
 	else
 		return vdW->energyAndGrad(Ntilde, atomicNumber, exCorr->getName(), 0, forces);

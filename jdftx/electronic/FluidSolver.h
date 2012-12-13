@@ -61,6 +61,7 @@ struct NonlocalPCMparams
 };
 
 
+
 //! Extra parameters for fluids:
 struct FluidSolverParams
 {

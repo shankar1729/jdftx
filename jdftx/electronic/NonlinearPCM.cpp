@@ -192,11 +192,37 @@ inline void calc_rhoIon(size_t i, const double* muEffData, const double* shapeDa
 	muEff = muEffData[i];
 	shape = shapeData[i];
 	ScreeningFunctions screenFunc(params->linearScreening);
-	rhoIonData[i]=2.0*params->ionicConcentration*shape*screenFunc.sinh(muEff);
-	grad_rhoIon_muEffData[i]=2.0*params->ionicConcentration*shape*screenFunc.xcosh(muEff)/muEff;
+	rhoIonData[i]=-2.0*params->ionicConcentration*shape*screenFunc.sinh(muEff);
+	grad_rhoIon_muEffData[i]=-2.0*params->ionicConcentration*shape*screenFunc.xcosh(muEff)/muEff;
 
 	if(deriv_rhoIon_shapeData)
-		deriv_rhoIon_shapeData[i] = 2.0*params->ionicConcentration*screenFunc.sinh(muEff);
+		deriv_rhoIon_shapeData[i] = -2.0*params->ionicConcentration*screenFunc.sinh(muEff);
+}
+
+inline void calc_Nion(size_t i, const double* muEffData, const double* shapeData,
+					   double* nNegData, double* nPosData, const NonlinearPCMparams* params)
+{
+	register double muEff, shape;
+	muEff = muEffData[i];
+	shape = shapeData[i];
+	ScreeningFunctions screenFunc(params->linearScreening);
+	nNegData[i] = params->ionicConcentration*shape*screenFunc.exp(-muEff);
+	nPosData[i] = params->ionicConcentration*shape*screenFunc.exp(muEff);
+}
+
+//Constrain center of cell to be at a certain electrostatic potential
+void constrainCenter(DataRptr& phi, const double C=0)
+{
+	const GridInfo& gInfo = phi->gInfo;
+	int centerIndex = gInfo.fullRindex(vector3<int>(gInfo.S[0]/2, gInfo.S[1]/2, gInfo.S[2]/2));
+	phi->data()[centerIndex] = C; 
+}
+
+double getCenter(DataRptr& phi)
+{
+	const GridInfo& gInfo = phi->gInfo;
+	int centerIndex = gInfo.fullRindex(vector3<int>(gInfo.S[0]/2, gInfo.S[1]/2, gInfo.S[2]/2));
+	return phi->data()[centerIndex]; 
 }
 
 
@@ -271,14 +297,16 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 	//declare those parameters needed outside the loop
 	double nPosGzero = 0.0, nNegGzero = 0.0,rhoExplicitGzero = 0.0;
 	DataRptr muEff, grad_muEff, grad_rhoIon_muEff, grad_rhoIon_shape;
+	double fmu;
 	
 	if(params.ionicConcentration)
 	{
 		nullToZero(muEff,e.gInfo);
 		nullToZero(grad_muEff,e.gInfo);
-
+		
 		complex* rhoPtr = rhoExplicitTilde->data();
-		rhoExplicitGzero = rhoPtr[0].real();
+		rhoExplicitGzero = rhoPtr[0].real()*e.gInfo.detR;
+		//logPrintf("Total explicit charge: %lg\n",rhoExplicitGzero); logFlush();
 		//rhoExplicitGzero=0.0;
 		
 		if (params.linearScreening)
@@ -289,9 +317,21 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 		{	nNegGzero=params.ionicConcentration*dot(shape,exp(-mu))*e.gInfo.dV;
 			nPosGzero=params.ionicConcentration*dot(shape,exp(mu))*e.gInfo.dV;
 		}
+		//logPrintf("Total negative ion charge for determining f[mu]: %lg\n",nNegGzero); logFlush();
+		//logPrintf("Total positive ion charge for determining f[mu]: %lg\n",nPosGzero); logFlush();
 
-		double fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
+		fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
+			
+		logPrintf("f[mu]: %lg\n",fmu); logFlush();
 		muEff=mu-fmu;
+		
+		DataRptr nPos;  nullToZero(nPos,e.gInfo);
+		DataRptr nNeg;  nullToZero(nNeg,e.gInfo);
+		
+		threadedLoop(calc_Nion, e.gInfo.nr, muEff->data(), shape->data(), nNeg->data(), nPos->data(), &params);
+		
+		//logPrintf("Total negative ion charge: %lg\n",integral(nNeg)); logFlush();
+		//logPrintf("Total positive ion charge: %lg\n",integral(nPos)); logFlush();
 
 		//compute rhoIon from muEff=mu+f[mu]
 		nullToZero(grad_rhoIon_muEff, e.gInfo);
@@ -302,12 +342,25 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
 	}
 	
 	DataGptr nBound = divergence(J(p))+J(rhoIon); //adds rhoIon here if we have ionic screening
+	
+	//logPrintf("Total bound charge: %lg\n",integral(nBound)); logFlush();
 
-	DataGptr phiBound = -4*M_PI*Linv(O(nBound)); //d_fluid
+	DataGptr phiBound = -4*M_PI*Linv(O(nBound)); //d_fluid //Kendra: I think this is wrong when there is charge (G=0 problem)
+	/*DataRptr dphiB0_dphiB;
+	double phiB0 = zeroCenter(phiBound,dphiB0_dphiB);
+	logPrintf("zero in center of d_fluid: %lg\n",phiB0);
+	phiBound->setGzero(phiBound->getGzero() + phiB0);*/
+	
+	
 	DataGptr phiExplicit = -4*M_PI*Linv(O(rhoExplicitTilde)); //d_vac
-	double Acoulomb = 0.5*dot(nBound,O(phiBound)) + dot(rhoExplicitTilde,O(phiBound));
+	/*DataRptr dphiE0_dphiE;
+	double phiE0 = zeroCenter(phiExplicit,dphiE0_dphiE);
+	logPrintf("zero in center of d_vac: %lg\n",phiE0);
+	phiExplicit->setGzero(phiExplicit->getGzero() + phiE0);*/
+	
+	double Acoulomb = 0.5*dot(nBound,O(phiBound)) + dot(rhoExplicitTilde,O(phiBound)); //phibound[0]*(nBound[0]-rhoExplicitTilde[0])=0 regardless of phiBound[0]
 
-	DataRptrVec grad_p = -I(gradient(phiBound+phiExplicit));
+	DataRptrVec grad_p = -I(gradient(phiBound+phiExplicit)); 
 
 	threadedLoop(convert_grad_p_eps, e.gInfo.nr, eps.const_data(), shape->data(), grad_p.const_data(),
 		         grad_eps.data(),(grad_shape ? grad_shape->data() : 0), &params);
@@ -315,11 +368,19 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& grad_state,
     double Aion = 0.0;
 	if(params.ionicConcentration)
 	{
+		
+		DataRptr phiTot = I(phiBound+phiExplicit);
+		//logPrintf("Value at center of grad_rhoIon_muEff: %lg\n",getCenter(grad_rhoIon_muEff));	
+		//constrainCenter(phiTot,-1.0*fmu);
+		
 		Aion = e.gInfo.dV*threadedAccumulate(IonEnergy, e.gInfo.nr, muEff->data(), shape->data(), grad_muEff->data(),
 				(grad_shape ? grad_shape->data() : 0), &params);
 		//calculate the gradient with respect to muEff & shape if necessary of the coulomb piece here
-		grad_muEff += grad_rhoIon_muEff*I(phiBound+phiExplicit);
-		if (grad_shape) grad_shape += grad_rhoIon_shape*I(phiBound+phiExplicit);
+		grad_muEff = grad_rhoIon_muEff*phiTot;
+		//saveRawBinary(grad_muEff,"grad_muEff-test.bin");
+		//saveRawBinary(muEff,"muEff-test.bin");
+		//die("ending.\n")
+		if (grad_shape) grad_shape += grad_rhoIon_shape*phiTot;
 		//convert mu_eff to mu here.
 		double sumGradMuEff = sum(grad_muEff)*e.gInfo.dV;
 		threadedLoop(convert_grad_muEff_mu, e.gInfo.nr, mu->data(), shape->data(),
@@ -374,9 +435,51 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in) const
 }
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
-{	string filename(filenamePattern);
+{	
+	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Shape");
 	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
 	saveRawBinary(shape, filename.c_str());
 	logPrintf("done.\n"); logFlush();
+	
+	if (params.ionicConcentration)
+	{
+		double nPosGzero = 0.0, nNegGzero = 0.0, rhoExplicitGzero = 0.0;
+		complex* rhoPtr = rhoExplicitTilde->data();
+		rhoExplicitGzero = rhoPtr[0].real()*e.gInfo.detR;		
+		
+		const DataRptr& mu = getMu(state);	
+		DataRptr muEff;	 nullToZero(muEff,e.gInfo);
+		DataRptr nPos;  nullToZero(nPos,e.gInfo);
+		DataRptr nNeg;  nullToZero(nNeg,e.gInfo);
+		
+		if (params.linearScreening)
+		{	nNegGzero=params.ionicConcentration*dot(shape,1.0-mu+0.5*mu*mu)*e.gInfo.dV;
+			nPosGzero=params.ionicConcentration*dot(shape,1.0+mu+0.5*mu*mu)*e.gInfo.dV;
+		}
+		else
+		{	nNegGzero=params.ionicConcentration*dot(shape,exp(-mu))*e.gInfo.dV;
+			nPosGzero=params.ionicConcentration*dot(shape,exp(mu))*e.gInfo.dV;
+		}
+
+		double fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
+		muEff = mu-fmu;
+		
+		threadedLoop(calc_Nion, e.gInfo.nr, muEff->data(), shape->data(), nNeg->data(), nPos->data(), &params);
+				
+		filename = filenamePattern;
+		filename.replace(filename.find("%s"), 2, "N+");
+		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
+		saveRawBinary(nPos, filename.c_str());
+		logPrintf("done.\n"); logFlush();
+		
+		filename = filenamePattern;
+		filename.replace(filename.find("%s"), 2, "N-");
+		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
+		saveRawBinary(nNeg, filename.c_str());
+		logPrintf("done.\n"); logFlush();
+	}
+	
+
+	
 }
