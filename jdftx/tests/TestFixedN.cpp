@@ -47,7 +47,7 @@ public:
 	{	applyFuncGsq(gInfo, setK, K.data, aTyp);
 	}
 
-	DataRptrCollection precondition(const DataRptrCollection& grad) const
+	DataRptrCollection precondition(const DataRptrCollection& grad)
 	{	DataRptrCollection Kgrad(grad.size());
 		for(unsigned i=0; i<Kgrad.size(); i++) Kgrad[i] = I(K*J(grad[i]));
 		return Kgrad;

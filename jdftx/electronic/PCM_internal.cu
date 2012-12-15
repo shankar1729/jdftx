@@ -39,3 +39,47 @@ void pcmShapeFunc_grad_gpu(int N, const double* nCavity, const double* grad_shap
 	pcmShapeFunc_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, grad_shape, grad_nCavity, nc, sigma);
 	gpuErrorCheck();
 }
+
+//------------- Helper classes for NonlinearPCM  -------------
+namespace NonlinearPCMeval
+{
+	__global__
+	void ScreeningFreeEnergy_kernel(size_t N, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, phi, s, rho, A, A_phi, A_s);
+	}
+	void Screening::freeEnergy_gpu(size_t N, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s) const
+	{	GpuLaunchConfig1D glc(ScreeningFreeEnergy_kernel, N);
+		ScreeningFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, rho, A, A_phi, A_s, *this);
+		gpuErrorCheck();
+	}
+	
+	__global__
+	void ScreeningConvertDerivative_kernel(size_t N, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, phi, s, A_rho, A_phi, A_s);
+	}
+	void Screening::convertDerivative_gpu(size_t N, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s) const
+	{	GpuLaunchConfig1D glc(ScreeningConvertDerivative_kernel, N);
+		ScreeningConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, A_rho, A_phi, A_s, *this);
+		gpuErrorCheck();
+	}
+	
+	__global__
+	void DielectricFreeEnergy_kernel(size_t N, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s, const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, gradPhi, s, p, A, A_gradPhi, A_s);
+	}
+	void Dielectric::freeEnergy_gpu(size_t N, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s) const
+	{	GpuLaunchConfig1D glc(DielectricFreeEnergy_kernel, N);
+		DielectricFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, gradPhi, s, p, A, A_gradPhi, A_s, *this);
+		gpuErrorCheck();
+	}
+	
+	__global__
+	void DielectricConvertDerivative_kernel(size_t N, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s, const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, gradPhi, s, A_p, A_gradPhi, A_s);
+	}
+	void Dielectric::convertDerivative_gpu(size_t N, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s) const
+	{	GpuLaunchConfig1D glc(DielectricConvertDerivative_kernel, N);
+		DielectricConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, gradPhi, s, A_p, A_gradPhi, A_s, *this);
+		gpuErrorCheck();
+	}
+}

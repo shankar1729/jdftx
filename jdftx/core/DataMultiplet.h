@@ -76,6 +76,18 @@ template<class T, int N> struct DataMultiplet
 	std::vector<const typename T::DataType*> const_dataGpu() const { return dataGpu(); } //!< Get the component GPU data pointers in an std::vector (const version)
 	#endif
 
+	//Preferred data access (on GPU if available, on CPU otherwise)
+	#ifdef GPU_ENABLED
+	std::vector<typename T::DataType*> dataPref() { return dataGpu(); }
+	std::vector<const typename T::DataType*> dataPref() const { return dataGpu(); }
+	std::vector<const typename T::DataType*> const_dataPref() const { return dataGpu(); }
+	#else
+	std::vector<typename T::DataType*> dataPref()  { return data(); }
+	std::vector<const typename T::DataType*> dataPref() const { return data(); }
+	std::vector<const typename T::DataType*> const_dataPref() const { return data(); }
+	#endif
+
+	
 	operator bool() const { bool ret=true; Nloop(ret = ret && component[i];) return ret; } //!< Cast to bool: true if all components are non-null
 	void loadFromFile(const char* fileName); //!< Load all components from a single binary file
 	void saveToFile(const char* fileName) const; //!< Save all components from a single binary file

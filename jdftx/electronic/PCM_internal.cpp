@@ -55,3 +55,78 @@ double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, d
 	
 	return surfaceArea*cavityTension + volume*cavityPressure;
 }
+
+//------------- Helper classes for NonlinearPCM  -------------
+namespace NonlinearPCMeval
+{
+	Screening::Screening(bool linear, double T, double Nion, double Zion)
+	: linear(linear), NT2(Nion*T*2.), ZbyT(Zion/T), m2NZ(-2.*Nion*Zion)
+	{
+	}
+	
+	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, phi, s, rho, A, A_phi, A_s);
+	}
+	void Screening::freeEnergy(size_t N, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s) const
+	{	threadLaunch(ScreeningFreeEnergy_sub, N, phi, s, rho, A, A_phi, A_s, *this);
+	}
+	
+	void ScreeningConvertDerivative_sub(size_t iStart, size_t iStop, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, phi, s, A_rho, A_phi, A_s);
+	}
+	void Screening::convertDerivative(size_t N, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s) const
+	{	threadLaunch(ScreeningConvertDerivative_sub, N, phi, s, A_rho, A_phi, A_s, *this);
+	}
+	
+	
+	Dielectric::Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf)
+	: linear(linear), Np(Nmol * pMol), pByT(pMol / T), NT(Nmol * T),
+		Nchi((epsInf-1.)/(4*M_PI)), alpha(3 - 4*M_PI*Np*pByT/(epsBulk-epsInf))
+	{	//Check parameter validity:
+		if(alpha < 0.)
+			die("\nCurrent Nonlinear PCM parameters imply negative correlation for dipole rotations.\n"
+				"\tHINT: Reduce solvent molecule dipole or epsInf to fix this");
+		
+		logPrintf("alpha=%lf  Np=%le  p/T=%le  NT=%le  Nchi=%lf   4pi(Npp/T(3-alpha)+Nchi)=%lf\n",
+			alpha, Np, pByT, NT, Nchi, 4*M_PI*(Np*pByT/(3.-alpha)+Nchi));
+		
+		double x = 2.9869354;
+		double F, F_x, Chi, Chi_x;
+		compute(x, F, F_x, Chi, Chi_x);
+		printf("FD testing Dielectric::Compute:\n"); 
+		for(double d=1e-1; d>1e-12; d*=0.1)
+		{	//+
+			double Fplus, Fplus_x, ChiPlus, ChiPlus_x;
+			compute(x+d, Fplus, Fplus_x, ChiPlus, ChiPlus_x);
+			//-
+			double Fminus, Fminus_x, ChiMinus, ChiMinus_x;
+			compute(x-d, Fminus, Fminus_x, ChiMinus, ChiMinus_x);
+			//report
+			double F_xNum = (0.5/d)*(Fplus-Fminus);
+			double Chi_xNum = (0.5/d)*(ChiPlus-ChiMinus);
+			printf("\td: %le  RelErr(F): %le  RelErr(Chi): %le\n", d, F_xNum/F_x-1, Chi_xNum/Chi_x-1);
+		}
+	}
+	
+	void Dielectric::initLookupTables()
+	{
+	}
+	void Dielectric::freeLookupTables()
+	{
+	}
+	
+	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s, const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, gradPhi, s, p, A, A_gradPhi, A_s);
+	}
+	void Dielectric::freeEnergy(size_t N,
+		vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s) const
+	{	threadLaunch(DielectricFreeEnergy_sub, N, gradPhi, s, p, A, A_gradPhi, A_s, *this);
+	}
+	
+	void DielectricConvertDerivative_sub(size_t iStart, size_t iStop, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s, const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, gradPhi, s, A_p, A_gradPhi, A_s);
+	}
+	void Dielectric::convertDerivative(size_t N, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s) const
+	{	threadLaunch(DielectricConvertDerivative_sub, N, gradPhi, s, A_p, A_gradPhi, A_s, *this);
+	}
+}

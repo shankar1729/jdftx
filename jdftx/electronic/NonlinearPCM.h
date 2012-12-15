@@ -27,28 +27,23 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/FluidSolver.h>
 #include <cstdio>
 
-typedef DataMultiplet<DataR,4> DataRMuEps;
-
-//Some extra quantities specific to NonlinearPCM added here
-struct NonlinearPCMparams : public FluidSolverParams
+//Forward declaration of helper classes:
+namespace NonlinearPCMeval
 {
-	double Kdip; //! dipole correlation prefactor (adjusted to obtain bulk dielectric constant for a given temperature)
-	double k2factor; //! inverse bulk ionic screening length squared
-	double chiFactor; //! Linear contribuiton of p that does not saturate (simulates electronic polarizability)
-	
-	//! A copy constructor to set base-class variables and initialize dependent variables above
-	NonlinearPCMparams(const FluidSolverParams& p);
-};
+	struct Screening;
+	struct Dielectric;
+}
 
 
 
-class NonlinearPCM : public FluidSolver, public Minimizable<DataRMuEps>
+class NonlinearPCM : public FluidSolver, public Minimizable<DataGptr>
 {
 public:
-	DataRMuEps state; //!< State of the solver = the legendre multipliers to the polarization field (and ionic concentrations)
+	DataGptr state; //!< State of the solver = the total electrostatic potential
 
 	//! See createFluidSolver()
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
+    ~NonlinearPCM();
 	
 	bool needsGummel() { return true; }
 
@@ -62,25 +57,26 @@ public:
 
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
+	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
 
-	//! Compute gradient and free energy (used for the CG)  (optionally gradient w.r.t nElectronic)
-	double operator()( const DataRMuEps& state, DataRMuEps& grad_state, DataGptr* grad_rhoExplicitTilde = 0, DataGptr* grad_nCavityTilde = 0) const;
+	//! Compute gradient and free energy (with optional outputs)
+	double operator()(const DataGptr& phi, DataGptr& Adiel_phi, DataGptr* Adiel_rhoExplicitTilde = 0, DataGptr* Adiel_nCavityTilde = 0) const;
 
 	// Interface for Minimizable:
-	void step(const DataRMuEps& dir, double alpha);
-	double compute(DataRMuEps* grad);
-	DataRMuEps precondition(const DataRMuEps& in) const;
+	void step(const DataGptr& dir, double alpha);
+	double compute(DataGptr* grad);
+	DataGptr precondition(const DataGptr& in);
 	
 private:
+	const FluidSolverParams& params;
 	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;
-	NonlinearPCMparams params;
-	RealKernel MuKernel;
+	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
+	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
+	RealKernel preconditioner;
 	
 	double Acavity; //! Cavitation energy contribution
 	DataRptr Acavity_shape; //! Gradient of the cavitation energy wrt the shape function
-	
 };
 
 

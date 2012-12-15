@@ -200,8 +200,8 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	DataRptr grad_shape;
-	double Ecavity = cavitationEnergy(shape, grad_shape);
-	logPrintf("\tNonlocalPCM cavitation energy: %25.16lf\n", Ecavity);
+	double Ecavity = 0.; /*cavitationEnergy(shape, grad_shape);
+	logPrintf("\tNonlocalPCM cavitation energy: %25.16lf\n", Ecavity);*/
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	switch(resp->l)
 		{	case 0:
