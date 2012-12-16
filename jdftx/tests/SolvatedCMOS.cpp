@@ -183,7 +183,7 @@ int main(int argc, char** argv)
 	fluidMixture.rhoExternal = J(rhoFloatingGate + rhoDopantBG + rhoBuiltin);
 
 	//---- G=0 constraint -----
-	fluidMixture.d0calc = zeroCenter;
+	//fluidMixture.d0calc = zeroCenter;
 
 	//----- Initialize state -----
 	fluidMixture.initState(0.15);
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 	MinimizeParams mp;
 	mp.alphaTstart = 3e1;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
-	mp.nIterations=300;
+	mp.nIterations=1000;
 	mp.knormThreshold=1e-14*pow(hGrid,2);
 	mp.fdTest = true;
 	
@@ -216,12 +216,13 @@ int main(int argc, char** argv)
 	}
 
 	DataRptr dtot = I(grad_rhoExternalTilde - 4*M_PI*Linv(O(fluidMixture.rhoExternal)));
+	DataRptr dtotNoGzero = dtot - integral(dtot)/gInfo.detR;
 	FILE* fp = fopen("SolvatedCMOS.N", "w");
-	for(int i=0; i<gInfo.nr/2; i++)
+	for(int i=0; i<gInfo.nr; i++)
 	{	fprintf(fp, "%le", hGrid*i/Angstrom);
 		for(unsigned j=0; j<N.size(); j++)
 			fprintf(fp, "\t%le", N[j]->data()[i]);
-		fprintf(fp, "\t%le", dtot->data()[i]/eV);
+		fprintf(fp, "\t%le\t%le", dtot->data()[i]/eV, dtotNoGzero->data()[i]/eV);
 		fprintf(fp, "\n");
 	}
 	fclose(fp);

@@ -196,8 +196,8 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 
 	//----------- Handle density constraints ------------
 	std::vector<double> Nscale(component.size(), 1.0); //density scale factor that satisfies the constraint
-	std::vector<std::vector<double> > NscalePrime(component.size(),
-		std::vector<double>(component.size(),0.0)); //jacobian of Nscale w.r.t the uncorrected molecule counts
+	std::vector<double> Nscale_Qfixed(component.size(), 0.); //derivative of Nscale w.r.t the fixed charge
+	std::vector<std::vector<double> > Nscale_N0(component.size(), std::vector<double>(component.size(),0.0)); //jacobian of Nscale w.r.t the uncorrected molecule counts
 	std::vector<string> names; //list of molecule names
 	
 	//Find fixed N and charged species:
@@ -215,7 +215,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			if(c.idealGas->Nnorm>0)
 			{
 				Nscale[ic] = c.idealGas->Nnorm/N0;
-				NscalePrime[ic][ic] = -c.idealGas->Nnorm/pow(N0,2);
+				Nscale_N0[ic][ic] = -c.idealGas->Nnorm/pow(N0,2);
 				Qfixed += Qmolecule*c.idealGas->Nnorm;
 			}
 			else
@@ -250,11 +250,12 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			double Qi = ci.molecule->get_charge();
 			if(Qi && ci.idealGas->Nnorm<=0)
 			{	Nscale[ic] = exp(-Qi*betaV);
+				Nscale_Qfixed[ic] = exp(-Qi*betaV) * Qi / Qprime;
 				for(unsigned jc=0; jc<component.size(); jc++)
 				{	const Component& cj = component[jc];
 					double Qj = cj.molecule->get_charge();
 					if(Qj && cj.idealGas->Nnorm<=0)
-						NscalePrime[ic][jc] += Qi*Qj*exp(-(Qi+Qj)*betaV)/Qprime;
+						Nscale_N0[ic][jc] += Qi*Qj*exp(-(Qi+Qj)*betaV)/Qprime;
 				}
 			}
 		}
@@ -373,7 +374,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 		}
 		if(outputs.electricP) *outputs.electricP = electricPtot;
 
-		//HACK: temporary G=0 solution (manual constraint)
+		//Over-ride with a manual constraint on G=0: (HACK-ish)
 		if(d0calc)
 		{	DataGptr Odtot = Od; if(rhoExternal) Odtot += OdExternal;
 			DataRptr dtot = Jdag(Odtot), dd0_ddtot;
@@ -415,7 +416,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					}
 				}
 			}
-			//Update the external gradients (not sure about normalization):
+			//Update the external gradients:
 			if(outputs.grad_rhoExternal) *outputs.grad_rhoExternal += grad_rho;
 		}
 	}
@@ -559,7 +560,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	{	const Component& ci = component[ic];
 		bool anyNonzero=false;
 		for(unsigned jc=0; jc<component.size(); jc++)
-			if(NscalePrime[ic][jc])
+			if(Nscale_N0[ic][jc])
 				anyNonzero=true;
 		if(anyNonzero)
 		{	grad_Nscale[ic] += dot(P[ic], grad_P[ic]);
@@ -572,8 +573,8 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	{	const Component& cj = component[jc];
 		double grad_Ncontrib = 0.0;
 		for(unsigned ic=0; ic<component.size(); ic++)
-			if(NscalePrime[ic][jc])
-				grad_Ncontrib += grad_Nscale[ic] * NscalePrime[ic][jc];
+			if(Nscale_N0[ic][jc])
+				grad_Ncontrib += grad_Nscale[ic] * Nscale_N0[ic][jc];
 		if(grad_Ncontrib)
 			grad_N[cj.offsetDensity] += grad_Ncontrib / (Nscale[jc] * cj.indexedSiteMultiplicity[0]);
 	}
@@ -586,6 +587,14 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			&grad_N[c.offsetDensity], grad_P[ic], &grad_indep[c.offsetIndep], Nscale[ic]);
 	}
 
+	//Propagate gradients from Nscale to Qfixed / rhoExternal (Natural G=0 solution)
+	if(outputs.grad_rhoExternal && (!d0calc))
+	{	double grad_Qfixed = 0.;
+		for(unsigned ic=0; ic<component.size(); ic++)
+			grad_Qfixed += grad_Nscale[ic] * Nscale_Qfixed[ic];
+		(*outputs.grad_rhoExternal)->setGzero(grad_Qfixed);
+	}
+	
 	Phi["+pV"] += p * gInfo.detR; //background correction
 
 	if(verboseLog) Phi.print(globalLog, true, "\t\t\t\t%15s = %25.16lf\n");

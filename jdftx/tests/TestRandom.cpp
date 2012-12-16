@@ -125,10 +125,10 @@ int main(int argc, char** argv)
 
 	FluidMixture fluidMixture(gInfo, T);
 	//Argon component:
-	Fex_LJ fexAr(fluidMixture, 119.8*Kelvin, 3.405*Angstrom, "Ar", +1*0); //params from SLOGwiki
+	Fex_LJ fexAr(fluidMixture, 119.8*Kelvin, 3.405*Angstrom, "Ar", +1); //params from SLOGwiki
 	IdealGasMonoatomic idAr(&fexAr, 2.0);
 	//Neon component:
-	Fex_LJ fexNe(fluidMixture, 3.2135e-3*eV, 2.782*Angstrom, "Ne", -2*0); //params from SLOGwiki
+	Fex_LJ fexNe(fluidMixture, 3.2135e-3*eV, 2.782*Angstrom, "Ne", -2); //params from SLOGwiki
 	IdealGasMonoatomic idNe(&fexNe, 1.0);
 	//Interaction between them:
 	Fmix_LJ fmixLJ(fexAr, fexNe);
@@ -136,33 +136,34 @@ int main(int argc, char** argv)
 
 	fluidMixture.setPressure(1000*Bar);
 
+	const double Radius = 3.;
 	nullToZero(idAr.V[0], gInfo);
-	applyFunc_r(gInfo, initHardSphere, rCenter, 6.0, 0.005, idAr.V[0]->data());
+	applyFunc_r(gInfo, initHardSphere, rCenter, Radius, 1, idAr.V[0]->data());
 	idNe.V[0] = idAr.V[0];
 
 	DataRptr rhoExternal(DataR::alloc(gInfo));
-	applyFunc_r(gInfo, initHardSphere, rCenter, 6.0, 1.016177/(4*M_PI*pow(6.0,3)/3), rhoExternal->data());
-	//fluidMixture.rhoExternal = J(rhoExternal);
+	applyFunc_r(gInfo, initHardSphere, rCenter, Radius, 1.016177/(4*M_PI*pow(Radius,3)/3), rhoExternal->data());
+	fluidMixture.rhoExternal = J(rhoExternal);
 
-	idNe.set_Nnorm(52);
+	//idNe.set_Nnorm(52);
 
 	//fluidMixture.verboseLog = true;
-	fluidMixture.initState(0.15);
-	//fluidMixture.loadState("random.state");
+	//fluidMixture.initState(0.15);
+	fluidMixture.loadState("random.state");
 
 	MinimizeParams mp;
 	mp.alphaTstart = 3e1;
 	mp.nDim = gInfo.nr*fluidMixture.get_nIndep();
-	mp.nIterations=100;
+	mp.nIterations=200;
 	mp.knormThreshold=5e-12;
 	mp.dirUpdateScheme=MinimizeParams::HestenesStiefel;
 	mp.fdTest = true;
 
 	fluidMixture.minimize(mp);
-	//fluidMixture.saveState("random.state");
+	fluidMixture.saveState("random.state");
 
-	DataRptrCollection N;
-	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
+	DataRptrCollection N; DataGptr grad_rhoExternalTilde;
+	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, &grad_rhoExternalTilde));
 
 	printf("Qext    = %lf\n", integral(rhoExternal));
 	printf("num(Ar) = %lf\n", integral(N[0]));
@@ -171,6 +172,8 @@ int main(int argc, char** argv)
 	N[0] *= 1.0/idAr.get_Nbulk();
 	N[1] *= 1.0/idNe.get_Nbulk();
 	saveSphericalized(&N[0], N.size(), "random-ArNe", 0.25);
+	DataRptr dTot = I(grad_rhoExternalTilde - 4*M_PI*Linv(O(J(rhoExternal))));
+	saveSphericalized(&dTot, 1, "random-dTot", 0.25);
 
 	//-------- Test translation operators
 	//vector3<> offset = 1.5*gInfo.h[0]-0.5*gInfo.h[1]+0.5*gInfo.h[2];
