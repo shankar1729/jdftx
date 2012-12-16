@@ -183,6 +183,7 @@ struct CommandFluidMinimize : public CommandMinimize
     void process(ParamList& pl, Everything& e)
 	{	if(e.eVars.fluidType==FluidLinear
 		|| e.eVars.fluidType==FluidLinearPCM
+		|| e.eVars.fluidType==FluidNonlinearPCM
 		|| e.eVars.fluidType==FluidNonlocalPCM)
 			e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
 		e.fluidMinParams.knormThreshold = (e.eVars.fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;

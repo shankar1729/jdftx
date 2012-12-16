@@ -34,12 +34,13 @@ namespace NonlinearPCMeval
 	struct Dielectric;
 }
 
+typedef DataMultiplet<DataR,4> DataRMuEps;
 
 
-class NonlinearPCM : public FluidSolver, public Minimizable<DataGptr>
+class NonlinearPCM : public FluidSolver, public Minimizable<DataRMuEps>
 {
 public:
-	DataGptr state; //!< State of the solver = the total electrostatic potential
+	DataRMuEps state; //!< State of the solver = the total electrostatic potential
 
 	//! See createFluidSolver()
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
@@ -60,12 +61,12 @@ public:
 	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
 
 	//! Compute gradient and free energy (with optional outputs)
-	double operator()(const DataGptr& phi, DataGptr& Adiel_phi, DataGptr* Adiel_rhoExplicitTilde = 0, DataGptr* Adiel_nCavityTilde = 0) const;
+	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde = 0, DataGptr* Adiel_nCavityTilde = 0) const;
 
 	// Interface for Minimizable:
-	void step(const DataGptr& dir, double alpha);
-	double compute(DataGptr* grad);
-	DataGptr precondition(const DataGptr& in);
+	void step(const DataRMuEps& dir, double alpha);
+	double compute(DataRMuEps* grad);
+	DataRMuEps precondition(const DataRMuEps& in);
 	
 private:
 	const FluidSolverParams& params;

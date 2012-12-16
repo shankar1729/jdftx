@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //----------- Common PCM functions (top level interface not seen by .cu files) ------------
 #ifndef __in_a_cu_file__
 
-#include <core/Data.h>
+#include <core/Operators.h>
 
 //! Compute the shape function (0 to 1) given the cavity-determining electron density
 void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, const double sigma);
@@ -58,52 +58,98 @@ namespace NonlinearPCMeval
 	struct Screening
 	{
 		bool linear; //!< whether ionic screening is linearized
-		double NT2, ZbyT, m2NZ; //!< 2NT, Z/T and -2NZ, where T=temperature, N=bulk ionic concentration and Z=charge (assumed balanced)
+		double NT, NZ; //!< NT and NZ, where T=temperature, N=bulk ionic concentration and Z=charge (assumed balanced)
 		
-		Screening(bool linear, double T, double Nion, double Zion);
+		Screening(bool linear, double T, double Nion, double Zion, double epsBulk); //epsBulk is used only for printing screening length
 		
-		//! Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function
-		__hostanddev__ void compute(double phi, double& F, double& F_phi, double& Rho, double& Rho_phi) const
-		{	double Phi = ZbyT * phi; //dimensionless combination
+		#ifndef __in_a_cu_file__
+		//! Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives
+		inline double neutralityConstraint(const DataRptr& mu, const DataRptr& shape, double Qexp,
+			DataRptr* mu0_mu=0, DataRptr* mu0_shape=0, double* mu0_Qexp=0)
+		{
 			if(linear)
-			{	F = NT2 * (0.5*Phi*Phi);
-				F_phi = NT2 * Phi * ZbyT;
-				Rho = m2NZ * Phi;
-				Rho_phi = m2NZ * ZbyT;
+			{	double Qsum = 2.*NZ * integral(shape);
+				double Qdiff = 2.*NZ * integral(shape * mu);
+				//Compute the constraint function and its derivatives w.r.t above moments:
+				double mu0 = -(Qexp + Qdiff)/Qsum;
+				double mu0_Qdiff = -1./Qsum;
+				double mu0_Qsum = (Qexp + Qdiff)/(Qsum*Qsum);
+				//Collect reuslt and optional gradients:
+				if(mu0_mu) *mu0_mu = (mu0_Qdiff * 2.*NZ) * shape;
+				if(mu0_shape) *mu0_shape = 2.*NZ * (mu0_Qdiff * mu + mu0_Qsum);
+				if(mu0_Qexp) *mu0_Qexp = -1./Qsum;
+				return mu0;
 			}
 			else
-			{	double s = sinh(Phi), c = cosh(Phi);
-				F = NT2 * (Phi*s + 1. - c);
-				F_phi = NT2 * (Phi*c) * ZbyT;
-				Rho = m2NZ * s;
-				Rho_phi = m2NZ * c * ZbyT;
+			{	DataRptr etaPlus  = exp(mu);
+				DataRptr etaMinus = exp(-mu);
+				double Qplus  = +NZ * integral(shape * etaPlus);
+				double Qminus = -NZ * integral(shape * etaMinus);
+				//Compute the constraint function and its derivatives w.r.t above moments:
+				double mu0, mu0_Qplus, mu0_Qminus;
+				double disc = sqrt(Qexp*Qexp - 4.*Qplus*Qminus); //discriminant for quadratic
+				//Pick the numerically stable path (to avoid roundoff problems when |Qplus*Qminus| << Qexp^2):
+				if(Qexp<0) 
+				{	mu0 = log((disc-Qexp)/(2.*Qplus));
+					mu0_Qplus  = -2.*Qminus/(disc*(disc-Qexp)) - 1./Qplus;
+					mu0_Qminus = -2.*Qplus/(disc*(disc-Qexp));
+				}
+				else
+				{	mu0 = log(-2.*Qminus/(disc+Qexp));
+					mu0_Qplus  = 2.*Qminus/(disc*(disc+Qexp));
+					mu0_Qminus = 2.*Qplus/(disc*(disc+Qexp)) + 1./Qminus;
+				}
+				//Collect result and optional gradients:
+				if(mu0_mu) *mu0_mu = NZ * shape * (mu0_Qplus * etaPlus  + mu0_Qminus * etaMinus);
+				if(mu0_shape) *mu0_shape = NZ * (mu0_Qplus * etaPlus - mu0_Qminus * etaMinus);
+				if(mu0_Qexp) *mu0_Qexp = -1./disc;
+				return mu0;
+			}
+		}
+		#endif
+		
+		//! Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function
+		//! Note that x here is muEff = mu(r) + mu0, i.e. after imposing charge neutrality constraint
+		__hostanddev__ void compute(double x, double& F, double& F_x, double& Rho, double& Rho_x) const
+		{	if(linear)
+			{	F = 2.*NT * (0.5*x*x);
+				F_x = 2.*NT * x;
+				Rho = 2.*NZ * x;
+				Rho_x = 2.*NZ;
+			}
+			else
+			{	double s = sinh(x), c = cosh(x);
+				F = 2.*NT * (x*s + 1. - c);
+				F_x = 2.*NT * (x*c);
+				Rho = 2.*NZ * s;
+				Rho_x = 2.*NZ * c;
 			}
 		}
 		
-		//! Given shape function s and potential phi, compute induced charge rho, free energy density A and accumulate its derivatives
-		__hostanddev__ void freeEnergy_calc(size_t i, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s) const
-		{	double F, F_phi, Rho, Rho_phi;
-			compute(phi[i], F, F_phi, Rho, Rho_phi);
+		//! Given shape function s and potential mu, compute induced charge rho, free energy density A and accumulate its derivatives
+		__hostanddev__ void freeEnergy_calc(size_t i, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const
+		{	double F, F_mu, Rho, Rho_mu;
+			compute(mu[i]+mu0, F, F_mu, Rho, Rho_mu);
 			A[i] = s[i] * F;
-			A_phi[i] += s[i] * F_phi;
+			A_mu[i] += s[i] * F_mu;
 			if(A_s) A_s[i] += F;
 			rho[i] = s[i] * Rho;
 		}
-		void freeEnergy(size_t N, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s) const;
+		void freeEnergy(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void freeEnergy_gpu(size_t N, const double* phi, const double* s, double* rho, double* A, double* A_phi, double* A_s) const;
+		void freeEnergy_gpu(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const;
 		#endif
 		
-		//! Propagate derivative A_rho and accumulate to A_phi and A_s
-		__hostanddev__ void convertDerivative_calc(size_t i, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s) const
-		{	double F, F_phi, Rho, Rho_phi;
-			compute(phi[i], F, F_phi, Rho, Rho_phi);
-			A_phi[i] += s[i] * Rho_phi * A_rho[i];
+		//! Propagate derivative A_rho and accumulate to A_mu and A_s
+		__hostanddev__ void convertDerivative_calc(size_t i, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const
+		{	double F, F_mu, Rho, Rho_mu;
+			compute(mu[i]+mu0, F, F_mu, Rho, Rho_mu);
+			A_mu[i] += s[i] * Rho_mu * A_rho[i];
 			if(A_s) A_s[i] += Rho * A_rho[i];
 		}
-		void convertDerivative(size_t N, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s) const;
+		void convertDerivative(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void convertDerivative_gpu(size_t N, const double* phi, const double* s, const double* A_rho, double* A_phi, double* A_s) const;
+		void convertDerivative_gpu(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const;
 		#endif
 	};
 	
@@ -111,35 +157,16 @@ namespace NonlinearPCMeval
 	struct Dielectric
 	{
 		bool linear; //!< whether dielectric is linearized
-		double Np, pByT, NT, Nchi; //!< N*p, p/T, N*T and N*chi where N is molecular density, p is molceular dipole and chi is molecular polarizability
-		double alpha; //!< dipole correlation factor
+		double Np, NT; //!< N*p, p/T, N*T and N*chi where N is molecular density, p is molecular dipole and chi is molecular polarizability
+		double alpha, X; //!< dipole correlation factor and chi*T/p^2 where chi is the molecular susceptibility
 		
 		Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf);
-		void initLookupTables(); //!< Initialize fBar lookup tables
-		void freeLookupTables(); //!< Free fBar lookup tables
 		
-		//! Compute the screening factor due to correlations for the electric field squared
-		__hostanddev__ double get_fBarSq(double Esq, double& fBarSq_Esq) const
-		{	//if(linear)
-			{	double fBar = 3./(3-alpha);
-				fBarSq_Esq = 0.;
-				return fBar * fBar;
-			}
-		}
-		
-		//! Compute the nonlinear functions in the free energy and effective susceptibility prior to scaling by shape function
-		__hostanddev__ void compute(double gradPhiSqHlf, double& F, double& F_gradPhiSqHlf, double& ChiEff, double& ChiEff_gradPhiSqHlf) const
-		{	//Contribution from molecular polarizability:
-			F = Nchi * gradPhiSqHlf;
-			F_gradPhiSqHlf = Nchi;
-			ChiEff = Nchi;
-			ChiEff_gradPhiSqHlf = 0.;
-			//Contribution from rotations:
-			double Esq = pByT*pByT * gradPhiSqHlf*2; //dimensionless field magnitude
-			double fBarSq_Esq, fBarSq = get_fBarSq(Esq, fBarSq_Esq); //local field screening factor
-			double epsSq = fBarSq * Esq, eps = sqrt(epsSq);
+		//! Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function
+		__hostanddev__ void compute(double epsSqHlf, double& F, double& F_epsSqHlf, double& ChiEff, double& ChiEff_epsSqHlf) const
+		{	double epsSq = 2.*epsSqHlf, eps = sqrt(epsSq);
+			//----- Nonlinear functions of eps
 			double frac, frac_epsSqHlf, logsinch;
-			//----- Nonlinear functions in th escreened field eps
 			if(linear)
 			{	frac = 1.0/3;
 				frac_epsSqHlf = 0.;
@@ -157,47 +184,45 @@ namespace NonlinearPCMeval
 					logsinch = eps<20. ? log(sinh(eps)/eps) : eps - log(2.*eps);
 				}
 			}
-			//----- Rotational free energy and derivative
-			F += NT * (epsSq*frac*(1.-0.5*alpha*frac) - logsinch);
-			double F_epsSqHlf = NT * (frac + epsSq*frac_epsSqHlf) * (1.-alpha*frac); //Simplified using logsinch_epsSqHlf = frac
-			double epsSq_Esq = fBarSq + Esq*fBarSq_Esq;
-			F_gradPhiSqHlf += F_epsSqHlf * epsSq_Esq * pByT*pByT;
+			//----- Free energy and derivative
+			double screen = 1 - alpha*frac; //correlation screening factor = (pE/T) / eps where E is the real electric field
+			F = NT * (epsSq*(frac - 0.5*alpha*frac*frac + 0.5*X*screen*screen) - logsinch);
+			F_epsSqHlf = NT * (frac + X*screen + epsSq*frac_epsSqHlf*(1.-X*alpha)) * screen; //Simplified using logsinch_epsSqHlf = frac
 			//----- Effective susceptibility and derivative
-			double fBar = sqrt(fBarSq);
-			ChiEff += (Np*pByT) * frac * fBar;
-			ChiEff_gradPhiSqHlf += (Np*pByT) * (frac_epsSqHlf*epsSq_Esq*fBar + frac*fBarSq_Esq/fBar) * pByT*pByT;
+			ChiEff = Np * (frac + X*screen);
+			ChiEff_epsSqHlf = Np * frac_epsSqHlf * (1.-X*alpha);
 		}
 		
-		//! Given shape function s and gradient of phi gradPhi, compute polarization p, free energy density A and accumulate its derivatives
-		__hostanddev__ void freeEnergy_calc(size_t i, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s) const
-		{	vector3<> gradPhiVec = loadVector(gradPhi, i);
-			double gradPhiSqHlf = 0.5*gradPhiVec.length_squared();
-			double F, F_gradPhiSqHlf, ChiEff, ChiEff_gradPhiSqHlf;
-			compute(gradPhiSqHlf, F, F_gradPhiSqHlf, ChiEff, ChiEff_gradPhiSqHlf);
+		//! Given shape function s and gradient of phi eps, compute polarization p, free energy density A and accumulate its derivatives
+		__hostanddev__ void freeEnergy_calc(size_t i, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const
+		{	vector3<> epsVec = loadVector(eps, i);
+			double epsSqHlf = 0.5*epsVec.length_squared();
+			double F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf;
+			compute(epsSqHlf, F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf);
 			A[i] = F * s[i];
-			accumVector((F_gradPhiSqHlf * s[i]) * gradPhiVec, A_gradPhi, i);
+			accumVector((F_epsSqHlf * s[i]) * epsVec, A_eps, i);
 			if(A_s) A_s[i] += F;
-			storeVector((-ChiEff * s[i]) * gradPhiVec, p, i);
+			storeVector((ChiEff * s[i]) * epsVec, p, i);
 		}
-		void freeEnergy(size_t N, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s) const;
+		void freeEnergy(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void freeEnergy_gpu(size_t N, vector3<const double*> gradPhi, const double* s, vector3<double*> p, double* A, vector3<double*> A_gradPhi, double* A_s) const;
+		void freeEnergy_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const;
 		#endif
 		
-		//! Propagate derivative A_p and accumulate to A_gradPhi and A_s
-		__hostanddev__ void convertDerivative_calc(size_t i, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s) const
-		{	vector3<> gradPhiVec = loadVector(gradPhi, i);
-			double gradPhiSqHlf = 0.5*gradPhiVec.length_squared();
-			double F, F_gradPhiSqHlf, ChiEff, ChiEff_gradPhiSqHlf;
-			compute(gradPhiSqHlf, F, F_gradPhiSqHlf, ChiEff, ChiEff_gradPhiSqHlf);
+		//! Propagate derivative A_p and accumulate to A_eps and A_s
+		__hostanddev__ void convertDerivative_calc(size_t i, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
+		{	vector3<> epsVec = loadVector(eps, i);
+			double epsSqHlf = 0.5*epsVec.length_squared();
+			double F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf;
+			compute(epsSqHlf, F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf);
 			//Propagate derivatives:
 			vector3<> A_pVec = loadVector(A_p, i);
-			accumVector(-s[i]*( ChiEff*A_pVec + ChiEff_gradPhiSqHlf*gradPhiVec*dot(A_pVec, gradPhiVec)), A_gradPhi, i);
-			if(A_s) A_s[i] += (-ChiEff) * dot(A_pVec, gradPhiVec);
+			accumVector(s[i]*( ChiEff*A_pVec + ChiEff_epsSqHlf*epsVec*dot(A_pVec, epsVec)), A_eps, i);
+			if(A_s) A_s[i] += ChiEff * dot(A_pVec, epsVec);
 		}
-		void convertDerivative(size_t N, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s) const;
+		void convertDerivative(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void convertDerivative_gpu(size_t N, vector3<const double*> gradPhi, const double* s, vector3<const double*> A_p, vector3<double*> A_gradPhi, double* A_s) const;
+		void convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
 		#endif
 	};
 }

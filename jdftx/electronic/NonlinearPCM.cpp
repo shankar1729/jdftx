@@ -27,10 +27,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/DataMultiplet.h>
 
-void randomize(DataGptr& X)
-{	DataRptr tmp(DataR::alloc(X->gInfo));
-	initRandom(tmp);
-	X = J(tmp);
+//Utility functions to extract/set the members of a MuEps
+inline DataRptr& getMu(DataRMuEps& X) { return X[0]; }
+inline const DataRptr& getMu(const DataRMuEps& X) { return X[0]; }
+inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+1); }
+inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+1); }
+inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
+
+
+inline void setPreconditioner(int i, double G2, double* preconditioner, double epsilon, double kappaSq)
+{	preconditioner[i] = (i || kappaSq) ? (4*M_PI)/(epsilon*G2 + kappaSq) : 0.;
 }
 
 
@@ -40,31 +46,26 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	//Initialize dielectric evaluation class:
 	dielectricEval = new NonlinearPCMeval::Dielectric(params.linearDielectric,
 		params.T, params.Nbulk, params.pMol, params.epsilonBulk, params.epsInf);
-	dielectricEval->initLookupTables();
 	
 	//Optionally initialize screening evaluation class:
 	screeningEval = 0;
 	if(params.ionicConcentration)
 		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
-			params.T, params.ionicConcentration, params.ionicZelectrolyte);
+			params.T, params.ionicConcentration, params.ionicZelectrolyte, params.epsilonBulk);
+		
+	//Initialize preconditioner:
+	double bulkKappaSq = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
+	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.epsilonBulk, bulkKappaSq);
+	preconditioner.set();
 }
 
 NonlinearPCM::~NonlinearPCM()
 {
-	dielectricEval->freeLookupTables();
 	delete dielectricEval;
 	if(screeningEval)
 		delete screeningEval;
 }
 
-
-inline void setPreconditioner(int i, double G2, double* preconditioner, double epsilon, double kappaSq)
-{	preconditioner[i] = (i || kappaSq) ? (4*M_PI)/(epsilon*G2 + kappaSq) : 0.;
-}
-
-// inline void setPreconditioner(int i, double G2, double* preconditioner, double epsilon, double kappaSq)
-// {	preconditioner[i] = (i || kappaSq) ? sqrt((4*M_PI)/((epsilon-1)*G2 + kappaSq)) : 0.;
-// }
 
 void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {	this->rhoExplicitTilde = rhoExplicitTilde;
@@ -73,48 +74,43 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	nullToZero(shape,e.gInfo);
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
-	// Compute the cavitation energy and gradient
+	//Compute the cavitation energy and gradient
 	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
 	
-	//Update preconditioner:
-	double bulkKappaSq = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
-// 	double fluidFraction = integral(shape)/e.gInfo.detR; //fraction of cell occupied by fluid
-// 	double meanEpsilon = 1. + (params.epsilonBulk-1.)*fluidFraction;
-// 	double meanKappaSq = fluidFraction * bulkKappaSq;
-// 	logPrintf("meanEpsilon = %lf    meanKappaSq = %lf\n", meanEpsilon, meanKappaSq);
-// 	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, meanEpsilon, meanKappaSq);
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.epsilonBulk, bulkKappaSq);
-	preconditioner.set();
-
-	if(!state) initZero(state, e.gInfo); // = preconditioner * rhoExplicitTilde; //initialize using bulk linear-response approx
+	//Initialize state if required:
+	if(!state) nullToZero(state, e.gInfo);
 }
 
-double NonlinearPCM::operator()(const DataGptr& phiTilde, DataGptr& Adiel_phiTilde, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
+double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
 {
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
 	
-	//Compute the ionic free energy and bound charge:
 	DataGptr rhoFluidTilde;
-	DataRptr phi = I(phiTilde), Adiel_phi; double Akappa = 0.;
-	initZero(Adiel_phi, e.gInfo);
+	DataRptr mu, Adiel_mu; initZero(Adiel_mu, e.gInfo);
+	double Akappa = 0., mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
 	if(screeningEval)
-	{	DataRptr Aout, rhoIon;
+	{	//Get neutrality Lagrange multiplier:
+		mu = getMu(state);
+		Qexp = integral(rhoExplicitTilde);
+		mu0 = screeningEval->neutralityConstraint(mu, shape, Qexp);
+		//Compute ionic free energy and bound charge
+		DataRptr Aout, rhoIon;
 		initZero(Aout, e.gInfo);
 		initZero(rhoIon, e.gInfo);
-		callPref(screeningEval->freeEnergy)(e.gInfo.nr, phi->dataPref(), shape->dataPref(),
-			rhoIon->dataPref(), Aout->dataPref(), Adiel_phi->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(screeningEval->freeEnergy)(e.gInfo.nr, mu0, mu->dataPref(), shape->dataPref(),
+			rhoIon->dataPref(), Aout->dataPref(), Adiel_mu->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Akappa = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
 	}
 	
 	//Compute the dielectric free energy and bound charge:
-	DataRptrVec gradPhi = I(gradient(phiTilde), true), Adiel_gradPhi; double Aeps = 0.;
+	DataRptrVec eps = getEps(state), Adiel_eps; double Aeps = 0.;
 	{	DataRptr Aout; DataRptrVec p;
 		initZero(Aout, e.gInfo);
 		nullToZero(p, e.gInfo);
-		nullToZero(Adiel_gradPhi, e.gInfo);
-		callPref(dielectricEval->freeEnergy)(e.gInfo.nr, gradPhi.const_dataPref(), shape->dataPref(),
-			p.dataPref(), Aout->dataPref(), Adiel_gradPhi.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		nullToZero(Adiel_eps, e.gInfo);
+		callPref(dielectricEval->freeEnergy)(e.gInfo.nr, eps.const_dataPref(), shape->dataPref(),
+			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Aeps = integral(Aout);
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
 	} //scoped to automatically deallocate temporaries
@@ -124,22 +120,29 @@ double NonlinearPCM::operator()(const DataGptr& phiTilde, DataGptr& Adiel_phiTil
 	DataGptr phiExplicitTilde = (*e.coulomb)(rhoExplicitTilde);
 	double U = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	
-	//Propagate gradients from rhoIon to phi, shape
 	if(screeningEval)
-	{	DataRptr Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
-		callPref(screeningEval->convertDerivative)(e.gInfo.nr, phi->dataPref(), shape->dataPref(),
-			Adiel_rhoIon->dataPref(), Adiel_phi->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+	{	//Propagate gradients from rhoIon to mu, shape
+		DataRptr Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
+		callPref(screeningEval->convertDerivative)(e.gInfo.nr, mu0, mu->dataPref(), shape->dataPref(),
+			Adiel_rhoIon->dataPref(), Adiel_mu->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		//Propagate gradients from mu0 to mu, shape, Qexp:
+		double Adiel_mu0 = integral(Adiel_mu), mu0_Qexp; DataRptr mu0_mu, mu0_shape;
+		screeningEval->neutralityConstraint(mu, shape, Qexp, &mu0_mu, &mu0_shape, &mu0_Qexp);
+		Adiel_mu += Adiel_mu0 * mu0_mu;
+		if(Adiel_shape) Adiel_shape += Adiel_mu0 * mu0_shape;
+		Adiel_Qexp = Adiel_mu0 * mu0_Qexp;
 	}
 	
-	//Propagate gradients from p to gradPhi, shape
+	//Propagate gradients from p to eps, shape
 	{	DataRptrVec Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde), true); //Because dagger(-divergence) = gradient
-		callPref(dielectricEval->convertDerivative)(e.gInfo.nr, gradPhi.const_dataPref(), shape->dataPref(),
-			Adiel_p.const_dataPref(), Adiel_gradPhi.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(dielectricEval->convertDerivative)(e.gInfo.nr, eps.const_dataPref(), shape->dataPref(),
+			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 	}
 	
 	//Optional outputs:
 	if(Adiel_rhoExplicitTilde)
 	{	*Adiel_rhoExplicitTilde = phiFluidTilde;
+		(*Adiel_rhoExplicitTilde)->setGzero(Adiel_Qexp);
 	}
 	if(Adiel_nCavityTilde)
 	{	Adiel_shape  += Acavity_shape; // Add the cavitation contribution to Adiel_shape
@@ -149,7 +152,8 @@ double NonlinearPCM::operator()(const DataGptr& phiTilde, DataGptr& Adiel_phiTil
 	}
 	
 	//Collect energy and gradient pieces:
-	Adiel_phiTilde = e.gInfo.dV * (Idag(Adiel_phi) - divergence(Idag(Adiel_gradPhi))); //Because dagger(gradient) = -divergence
+	setMuEps(Adiel_state, Adiel_mu, Adiel_eps);
+	Adiel_state *= e.gInfo.dV; //converts variational derivative to total derivative
 	return Akappa + Aeps + U + Acavity;
 }
 
@@ -158,31 +162,32 @@ void NonlinearPCM::minimizeFluid()
 }
 
 void NonlinearPCM::loadState(const char* filename)
-{	DataRptr Istate(DataR::alloc(e.gInfo));
-	loadRawBinary(Istate, filename);
-	state = J(Istate);
+{	nullToZero(state, e.gInfo);
+	state.loadFromFile(filename);
 }
 
 void NonlinearPCM::saveState(const char* filename) const
-{	saveRawBinary(I(state), filename);
+{	state.saveToFile(filename);
 }
 
 double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
-{	DataGptr Adiel_state;
+{	DataRMuEps Adiel_state;
 	return (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
 }
 
-void NonlinearPCM::step(const DataGptr& dir, double alpha)
+void NonlinearPCM::step(const DataRMuEps& dir, double alpha)
 {	axpy(alpha, dir, state);
 }
 
-double NonlinearPCM::compute(DataGptr* grad)
-{	DataGptr gradUnused;
+double NonlinearPCM::compute(DataRMuEps* grad)
+{	DataRMuEps gradUnused;
 	return (*this)(state, grad ? *grad : gradUnused);
 }
 
-DataGptr NonlinearPCM::precondition(const DataGptr& in)
-{	return preconditioner * in;
+DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
+{	DataRMuEps out;
+	setMuEps(out, I(preconditioner*J(getMu(in))), getEps(in));
+	return out;
 }
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
