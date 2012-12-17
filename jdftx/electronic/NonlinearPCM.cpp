@@ -35,10 +35,10 @@ inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.comp
 inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
 
 
-inline void setPreconditioner(int i, double G2, double* preconditioner, double epsilon, double kappaSq)
-{	preconditioner[i] = (i || kappaSq) ? (4*M_PI)/(epsilon*G2 + kappaSq) : 0.;
+inline void setPreconditioner(int i, double G2, double* preconditioner, double kappaSqByEpsilon, double muByEpsSq)
+{	double den = G2 + kappaSqByEpsilon;
+	preconditioner[i] = den ? muByEpsSq*G2/(den*den) : 0.;
 }
-
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : FluidSolver(e), params(fsp), preconditioner(e.gInfo)
@@ -53,9 +53,9 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
 			params.T, params.ionicConcentration, params.ionicZelectrolyte, params.epsilonBulk);
 		
-	//Initialize preconditioner:
-	double bulkKappaSq = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.epsilonBulk, bulkKappaSq);
+	//Initialize preconditioner (for mu channel):
+	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
+	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.k2factor/params.epsilonBulk, muByEps*muByEps);
 	preconditioner.set();
 }
 
@@ -68,7 +68,33 @@ NonlinearPCM::~NonlinearPCM()
 
 
 void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
-{	this->rhoExplicitTilde = rhoExplicitTilde;
+{	
+	//Initialize state if required:
+	if(!state) //nullToZero(state, e.gInfo);
+	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
+		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
+		fpLog = fopen("/dev/null", "w"); //disable iteration log from LinearPCM
+		LinearPCM linearPCM(e, params);
+		linearPCM.set(rhoExplicitTilde, nCavityTilde);
+		linearPCM.minimizeFluid();
+		fclose(fpLog);
+		fpLog = globalLog; //retsore usual iteration log
+		//Guess nonlinear states based on the electrostatic potential of the linear version:
+		//mu:
+		DataRptr mu = (-params.ionicZelectrolyte/params.T) * I(linearPCM.state);
+		mu = log(mu + sqrt(1.+mu*mu)); //apply saturation (sinh^-1)
+		mu -= integral(mu)/e.gInfo.detR; //project out G=0
+		//eps:
+		DataRptrVec eps = (-params.pMol/params.T) * I(gradient(linearPCM.state));
+		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
+		DataRptr Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
+		DataRptr epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
+		eps *= epsByE; //enhancement due to correlations
+		//collect:
+		setMuEps(state, mu, eps);
+	}
+	
+	this->rhoExplicitTilde = rhoExplicitTilde;
 	this->nCavity = I(nCavityTilde);
 	//Initialize point-dipole density
 	nullToZero(shape,e.gInfo);
@@ -76,9 +102,6 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 
 	//Compute the cavitation energy and gradient
 	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
-	
-	//Initialize state if required:
-	if(!state) nullToZero(state, e.gInfo);
 }
 
 double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const

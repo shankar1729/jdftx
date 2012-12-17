@@ -21,11 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_NONLINEARPCM_H
 #define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
-#include <core/GridInfo.h>
+#include <electronic/LinearPCM.h>
 #include <core/DataMultiplet.h>
-#include <core/Minimize.h>
-#include <electronic/FluidSolver.h>
-#include <cstdio>
 
 //Forward declaration of helper classes:
 namespace NonlinearPCMeval
@@ -69,7 +66,7 @@ public:
 	DataRMuEps precondition(const DataRMuEps& in);
 	
 private:
-	const FluidSolverParams& params;
+	LinearPCMparams params;
 	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
