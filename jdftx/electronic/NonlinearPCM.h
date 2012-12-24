@@ -52,7 +52,8 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 	void dumpDensities(const char* filenamePattern) const;
-
+	void dumpDebug(const char* filenamePattern) const;
+ 
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient

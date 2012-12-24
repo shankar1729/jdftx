@@ -213,6 +213,64 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 	return out;
 }
 
+void rx(int i, vector3<> r, int dir, matrix3<> R, double* rx)
+{	vector3<> lx = inv(R)*r;
+	for(int j = 0; j<3; j++)
+		lx[j] = lx[j]<0.5 ? lx[j] : lx[j]-1.;
+	rx[i] = (R*lx)[dir];
+}
+
+
+void NonlinearPCM::dumpDebug(const char* filenamePattern) const
+{
+	const GridInfo& g = e.gInfo;
+	
+	// Prepares to dump
+	string filename(filenamePattern);
+	filename.replace(filename.find("%s"), 2, "Debug");
+	logPrintf("Dumping '%s'... \n", filename.c_str());  logFlush();
+
+	FILE* fp = fopen(filename.c_str(), "w");
+	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
+	
+	// Calculates the electronic moment about the origin
+	DataRptr r0, r1, r2;
+	nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
+	applyFunc_r(g, rx, 0, g.R, r0->dataPref());
+	applyFunc_r(g, rx, 1, g.R, r1->dataPref());
+	applyFunc_r(g, rx, 2, g.R, r2->dataPref());
+	double min, max; eblas_capMinMax(g.S[0]*g.S[1]*g.S[2], r0->dataPref(), min, max);
+	vector3<> elecMoment;
+	elecMoment[0] = g.detR * dot(J(e.eVars.n[0]), J(r0));
+	elecMoment[1] = g.detR * dot(J(e.eVars.n[0]), J(r1));
+	elecMoment[2] = g.detR * dot(J(e.eVars.n[0]), J(r2));
+	fprintf(fp, "Elec moment: %f\t%f\t%f", elecMoment[0], elecMoment[1], elecMoment[2]);
+	
+	// Calculates the ionic moment about the origin
+	vector3<> ionMoment(0., 0., 0.);
+	for(auto sp: e.iInfo.species)
+		for(unsigned n=0; n < sp->atpos.size(); n++)
+		{	for(int j = 0; j<3; j++)
+				ionMoment[j] += -sp->Z * (sp->atpos[n][j]<0.5 ? sp->atpos[n][j] : sp->atpos[n][j]-1);
+		}
+	ionMoment = g.R*ionMoment;
+	fprintf(fp, "\nIon moment: %f\t%f\t%f", ionMoment[0], ionMoment[1], ionMoment[2]);
+	fprintf(fp, "\nDipole moment: %f\t%f\t%f", ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);	
+		
+	// Dumps the polarization fraction
+	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+	DataRptrVec eps = getEps(state);
+	DataRptr eps_mag = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
+	double Eaveraged = integral(eps_mag*shape*surfaceDensity)/integral(surfaceDensity);
+	double Eaveraged2 = integral(eps_mag*surfaceDensity)/integral(surfaceDensity);
+	fprintf(fp, "\n\nSurface averaged epsilon: %f", Eaveraged);
+	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f", Eaveraged2);
+	
+	fclose(fp);
+	
+}
+
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 {	
 	string filename(filenamePattern);
