@@ -239,7 +239,7 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	applyFunc_r(g, rx, 0, g.R, r0->data());
 	applyFunc_r(g, rx, 1, g.R, r1->data());
 	applyFunc_r(g, rx, 2, g.R, r2->data());
-	double min, max; eblas_capMinMax(g.S[0]*g.S[1]*g.S[2], r0->dataPref(), min, max);
+	double min, max; eblas_capMinMax(g.S[0]*g.S[1]*g.S[2], r0->data(), min, max);
 	vector3<> elecMoment;
 	elecMoment[0] = g.detR * dot(J(e.eVars.n[0]), J(r0));
 	elecMoment[1] = g.detR * dot(J(e.eVars.n[0]), J(r1));
