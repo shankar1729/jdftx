@@ -228,7 +228,7 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	// Prepares to dump
 	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... \n", filename.c_str());  logFlush();
+	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
 
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
@@ -239,7 +239,6 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	applyFunc_r(g, rx, 0, g.R, r0->data());
 	applyFunc_r(g, rx, 1, g.R, r1->data());
 	applyFunc_r(g, rx, 2, g.R, r2->data());
-	double min, max; eblas_capMinMax(g.S[0]*g.S[1]*g.S[2], r0->data(), min, max);
 	vector3<> elecMoment;
 	elecMoment[0] = g.detR * dot(J(e.eVars.n[0]), J(r0));
 	elecMoment[1] = g.detR * dot(J(e.eVars.n[0]), J(r1));
@@ -255,6 +254,8 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 		}
 	ionMoment = g.R*ionMoment;
 	fprintf(fp, "\nIon moment: %f\t%f\t%f", ionMoment[0], ionMoment[1], ionMoment[2]);
+	
+	// Calculates the total (elec+ion) dipole moment
 	fprintf(fp, "\nDipole moment: %f\t%f\t%f", ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);	
 		
 	// Dumps the polarization fraction
@@ -269,7 +270,7 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	
 	fclose(fp);
 	
-	logPrintf("done.\n"); logFlush();
+	logPrintf("done\n"); logFlush();
 	
 }
 
