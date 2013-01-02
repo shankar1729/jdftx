@@ -268,8 +268,11 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\n\nSurface averaged epsilon: %f", Eaveraged);
 	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);
 	
-	fclose(fp);
+	fprintf(fp, "\nCavity Information:\n");
+	fprintf(fp, "Volume = %f\n", integral(1.-shape));
+	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
 	
+	fclose(fp);	
 	logPrintf("done\n"); logFlush();
 	
 }
