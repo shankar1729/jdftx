@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
 #include <electronic/VanDerWaals.h>
+#include <electronic/DOS.h>
 #include <core/LatticeUtils.h>
 
 void Everything::setup()
@@ -65,13 +66,24 @@ void Everything::setup()
 		pow(sqrt(2*cntrl.Ecut),3)*(gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
 
-	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
+	//Check if DOS calculator is needed:
+	if(!dump.dos)
+	{	for(auto dumpPair: dump)
+			if(dumpPair.second == DumpDOS)
+			{	dump.dos = std::make_shared<DOS>();
+				break;
+			}
+	}
+	
+	//Check exact exchange requirements:
 	if(exCorr.exxFactor()) //Check main functional first
 		coulombParams.omegaSet.insert(exCorr.exxRange());
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
 			coulombParams.omegaSet.insert(ec->exxRange());
-	if(coulombParams.omegaSet.size())
+
+	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
+	if(coulombParams.omegaSet.size() || dump.dos)
 	{	//Initialize k-point sampled supercell:
 		std::vector<vector3<>> kmeshUnreduced;
 		for(const QuantumNumber& qnum: eInfo.qnums)

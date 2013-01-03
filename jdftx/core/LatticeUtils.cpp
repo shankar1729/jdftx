@@ -100,12 +100,17 @@ Supercell::Supercell(const GridInfo& gInfo,
 	logPrintf("\n----- Initializing Supercell corresponding to k-point mesh -----\n");
 	
 	//Compute kmesh = closure of kmeshReduced under symmetry group, sym:
-	for(const vector3<>& kOrig: kmeshReduced)
-	{	for(const matrix3<int>& m: sym)
-		{	vector3<> k = (~m) * kOrig;
+	for(unsigned iReduced=0; iReduced<kmeshReduced.size(); iReduced++)
+	{	const vector3<>& kOrig = kmeshReduced[iReduced];
+		for(unsigned iSym=0; iSym<sym.size(); iSym++)
+		{	const matrix3<int>& m = sym[iSym];
+			vector3<> k = (~m) * kOrig;
 			//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
+			vector3<int> offset;
 			for(int i=0; i<3; i++)
-				k[i] -= floor(0.5+k[i]);
+			{	offset[i] = -floor(0.5+k[i]);
+				k[i] += offset[i];
+			}
 			//Check if this k-vector has already been encountered:
 			bool found = false;
 			for(const vector3<>& kPrev: kmesh)
@@ -114,7 +119,11 @@ Supercell::Supercell(const GridInfo& gInfo,
 					break;
 				}
 			//Add to map if not yet encountered:
-			if(!found) kmesh.push_back(k);
+			if(!found)
+			{	kmesh.push_back(k);
+				KmeshTransform kTransform = { iReduced, iSym, offset };
+				kmeshTransform.push_back(kTransform);
+			}
 		}
 	}
 	
@@ -172,10 +181,11 @@ Supercell::Supercell(const GridInfo& gInfo,
 	matrix3<> kBasisInv = inv(kBasis);
 	//--- check that each kpoint is integral in above basis
 	#define kMeshErrorMsg \
-		"k-point mesh is not a Bravais lattice, which is required for exact-exchange.\n" \
+		"k-point mesh is not a Bravais lattice, which is currently required for\n" \
+		"exact-exchange and density-of-states calculations.\n" \
 		"HINT: This might be caused by an off-Gamma k-point mesh (eg. Monkhorst-Pack)\n" \
-		"   with a folding incommensurate with the symmerties of the system. Switch to\n" \
-		"   Gamma-centered sampling or commensurate folding, or disable symmetries.\n"
+		"   whose symmetries are a subgroup of that of the system. Try switching to\n" \
+		"   Gamma-centered sampling or disabling symmetries.\n"
 	for(vector3<> kpoint: kmesh)
 	{	vector3<> ik = kBasisInv * (kpoint-kmesh.front());
 		for(int k=0; k<3; k++)
@@ -194,7 +204,8 @@ Supercell::Supercell(const GridInfo& gInfo,
 		{	super(i,j) = int(round(superTemp(i,j)));
 			if(fabs(superTemp(i,j) - super(i,j)) > symmThreshold)
 				die("k-point mesh does not correspond to a commensurate (integer)\n"
-					"super-cell. This is required for exact-exchange evaluation.\n");
+					"super-cell. This is currently required for exact-exchange\n"
+					"and density-of-states calculations.\n");
 		}
 	
 	//Pivot columns to get closest to identity:

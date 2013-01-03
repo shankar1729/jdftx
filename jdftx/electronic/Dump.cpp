@@ -40,14 +40,6 @@ void Dump::setup(const Everything& everything)
 	if(wannier.group.size())
 		wannier.setup(everything);
 	
-	//Check if DOS calculator is needed:
-	if(!dos)
-	{	for(auto dumpPair: *this)
-			if(dumpPair.second == DumpDOS)
-			{	dos = std::make_shared<DOS>();
-				break;
-			}
-	}
 	if(dos) dos->setup(everything);
 	
 	//Add citation for QMC coupling if required (done here so that it works in dry run):

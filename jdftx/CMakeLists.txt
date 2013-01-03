@@ -1,11 +1,6 @@
 project(dft)
 
 cmake_minimum_required(VERSION 2.8)
-if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" VERSION_GREATER 2.8.3)
-	cmake_policy(VERSION 2.8.4)
-else()
-	cmake_policy(VERSION 2.6)
-endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 
@@ -53,24 +48,6 @@ if(LIBXC_FOUND)
 	add_definitions("-DLIBXC_ENABLED")
 else()
 	set(LIBXC_LIBRARY "")
-endif()
-
-option(DisableCGAL "Optionally disable CGAL even if it is installed (necessary for some compilers)")
-find_package(CGAL QUIET COMPONENTS Core)
-if(NOT DisableCGAL)
-	if(CGAL_FOUND)
-		include(${CGAL_USE_FILE})
-		add_library(jdftxTriangulate SHARED core/opt/Triangulate.cpp)
-		if(CGAL_AUTO_LINK_ENABLED)
-			target_link_libraries(jdftxTriangulate ${CGAL_3RD_PARTY_LIBRARIES} )
-		else()
-			target_link_libraries(jdftxTriangulate ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
-		endif()
-		add_definitions("-DTRIANGULATE_ENABLED")
-		set(TRIANGULATE_LIBRARY "jdftxTriangulate")
-	else()
-		message(WARNING "Density-of-states capability disabled due to missing Computational Geometry Algorithms Library (CGAL)")
-	endif()
 endif()
 
 #Process configuration information into config.h (with config.in.h as a template)
@@ -126,7 +103,7 @@ endif()
 #----------------------- Regular CPU stuff ----------------
 
 #Set of libraries used by each target
-set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LAPACK_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY} ${TRIANGULATE_LIBRARY})
+set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LAPACK_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
 #Core Library:
 FILE(GLOB coreSources core/*.cpp)

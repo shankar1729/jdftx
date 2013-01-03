@@ -23,11 +23,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
 #include <core/DataIO.h>
+#include <core/LatticeUtils.h>
 #include <array>
-
-#ifdef TRIANGULATE_ENABLED
-#include <core/opt/Triangulate.h>
-#endif
 
 DOS::DOS() : Etol(1e-6)
 {
@@ -146,8 +143,6 @@ DOS::Weight::OrbitalDesc::operator string() const
 	oss << getOrbitalDescMap().getString(std::make_pair(l,m));
 	return oss.str();
 }
-
-#ifdef TRIANGULATE_ENABLED
 
 //Density of states evaluation helper class
 struct EvalDOS
@@ -571,57 +566,91 @@ struct EvalDOS
 };
 
 
+//Check that a 3-vector i sintegral within tolerance and return integer version
+inline vector3<int> round(const vector3<> v, const double tol)
+{	vector3<int> vInt;
+	for(int k=0; k<3; k++)
+	{	vInt[k] = round(v[k]);
+		assert(fabs(v[k]-vInt[k]) < tol);
+	}
+	return vInt;
+}
+
 void DOS::dump()
 {
 	const ElecInfo& eInfo = e->eInfo;
 	int nSpins = (eInfo.spinType==SpinNone) ? 1 : 2;
 	int qCount = eInfo.qnums.size()/nSpins;
+	const Supercell& supercell = *(e->coulombParams.supercell);
 	
-	//Create full-list of k-points (from those in symmetry-irreducible wedge):
-	std::map<vector3<>, int> kpointMap; //map from unreduced kpoints to state index
-	const std::vector<matrix3<int> >& sym = e->symm.getMatrices();
-	const double kpointTol = 1e-4, kpointTolSq = kpointTol*kpointTol; //threshold for identifying kpoints
-	for(int q=0; q<qCount; q++)
-	{	vector3<> kState = eInfo.qnums[q].k;
-		for(const matrix3<int>& mat: sym)
-		{	vector3<> k = (~mat) * kState;
-			//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
-			for(int i=0; i<3; i++)
-				k[i] -= floor(0.5+k[i]);
-			//Check if this k-vector has already been encountered:
-			bool found = false;
-			for(const auto& kIndexPair: kpointMap)
-				if(circDistanceSquared(k, kIndexPair.first) < kpointTolSq)
-				{	found = true;
-					break;
-				}
-			//Add to map if not yet encountered:
-			if(!found) kpointMap[k] = q;
+	//Pick optimum tetrahedral tesselation of each parallelopiped cell in BZ:
+	vector3<> dk[8]; //k-point offsets of basis parallelopiped relative to its first vertex
+	{	//There are 4 distinct tesselations listed by signs of each basis vector (upto an overall sign)
+		//Pick the one with the shortest common body-diagonal to yield the most suitable aspect ratios
+		vector3<int> sBest;
+		double dMin = DBL_MAX;
+		matrix3<> GTsup = ~((2*M_PI) * inv(supercell.Rsuper));
+		vector3<int> s;
+		s[0] = 1;
+		for(s[1]=-1; s[1]<=1; s[1]+=2)
+		for(s[2]=-1; s[2]<=1; s[2]+=2)
+		{	double d = (GTsup * s).length();
+			if(d < dMin)
+			{	dMin = d;
+				sBest = s;
+			}
 		}
+		//Compute the offsets:
+		matrix3<> invGT_GTsup = inv(e->gInfo.GT) * GTsup;
+		vector3<int> i;
+		int ik = 0;
+		for(i[0]=0; abs(i[0])<2; i[0]+=sBest[0])
+		for(i[1]=0; abs(i[1])<2; i[1]+=sBest[1])
+		for(i[2]=0; abs(i[2])<2; i[2]+=sBest[2])
+			dk[ik++] = invGT_GTsup * i;
 	}
+	//--- parallelopiped vertex indices of the 6 tetrahedra in its tesselation
+	int cellVerts[6][4] = {
+		{0, 2, 3, 7},
+		{0, 3, 1, 7},
+		{0, 1, 5, 7},
+		{0, 5, 4, 7},
+		{0, 4, 6, 7},
+		{0, 6, 2, 7} };
 	
-	//Triangulate the Brillouin zone
-	std::vector< vector3<> > kpointVec; //flat list of kpoints
-	std::vector<int> stateIndexVec; //flat list of state indices (same order as kpointVec)
-	for(const auto& kIndexPair: kpointMap)
-	{	kpointVec.push_back(kIndexPair.first);
-		stateIndexVec.push_back(kIndexPair.second);
-	}
-	std::vector<Triangulation::Cell> cells;
-	Triangulation::triangulate(kpointVec, cells); //wraps CGAL's Periodic 3D Delaunay triangulation
-	
-	//Convert the triangulation to an EvalDOS object:
-	EvalDOS eval(cells.size(), weights.size(), eInfo.nStates, eInfo.nBands, Etol);
+	//Construct Brillouin zone triangulation in an EvalDOS object:
+	//--- lookup table of k-points using (integral) reciprocal superlattice coordinates
+	std::map<vector3<int>,int> kpointMap;
+	const std::vector<vector3<>>& kmesh = supercell.kmesh;
+	for(unsigned i=0; i<kmesh.size(); i++)
+		kpointMap[round((kmesh[i]-kmesh[0])*supercell.super, symmThreshold)] = i;
+	//--- add 6 tetrahedra per parallelopiped cell
+	EvalDOS eval(6*kmesh.size(), weights.size(), eInfo.nStates, eInfo.nBands, Etol);
 	double Vtot = 0.;
-	for(unsigned c=0; c<cells.size(); c++)
-	{	const Triangulation::Cell& cell = cells[c];
-		EvalDOS::Tetrahedron& t = eval.tetrahedra[c];
-		for(int i=0; i<4; i++) t.q[i] = stateIndexVec[cell.vertex[i].index];
-		t.V = box(
-			e->gInfo.GT * (cell.vertex[1].pos - cell.vertex[0].pos),
-			e->gInfo.GT * (cell.vertex[2].pos - cell.vertex[0].pos),
-			e->gInfo.GT * (cell.vertex[3].pos - cell.vertex[0].pos) );
-		Vtot += t.V;
+	for(unsigned i=0; i<kmesh.size(); i++)
+	{	const vector3<>& v0 = kmesh[i];
+		//initialize the parallelopiped vertices and look up their indices:
+		vector3<> v[8]; int iv[8];
+		for(int j=0; j<8; j++)
+		{	v[j] = v0 + dk[j];
+			vector3<> vWrapped; for(int k=0; k<3; k++) vWrapped[k] = v[j][k] - floor(0.5+v[j][k]);
+			auto ivIter = kpointMap.find(round((vWrapped-kmesh[0])*supercell.super, symmThreshold));
+			assert(ivIter != kpointMap.end());
+			iv[j] = ivIter->second;
+		}
+		//loop over tetrahedra:
+		for(unsigned t=0; t<6; t++)
+		{	EvalDOS::Tetrahedron& tet = eval.tetrahedra[6*i+t];
+			for(int p=0; p<4; p++)
+			{	const Supercell::KmeshTransform& kTransform = supercell.kmeshTransform[iv[cellVerts[t][p]]];
+				tet.q[p] = kTransform.iReduced;
+			}
+			tet.V = box(
+				e->gInfo.GT * (v[cellVerts[t][1]] - v[cellVerts[t][0]]),
+				e->gInfo.GT * (v[cellVerts[t][2]] - v[cellVerts[t][0]]),
+				e->gInfo.GT * (v[cellVerts[t][3]] - v[cellVerts[t][0]]) );
+			Vtot += tet.V;
+		}
 	}
 	double VnormFac = 2./(nSpins*Vtot);
 	for(EvalDOS::Tetrahedron& t: eval.tetrahedra)
@@ -764,12 +793,3 @@ void DOS::dump()
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 		eval.printDOS(iSpin*qCount, e->dump.getFilename(nSpins==1 ? "dos" : (iSpin==0 ? "dosUp" : "dosDn")), header);
 }
-
-#else // TRIANGULATE_ENABLED
-
-void DOS::dump()
-{	string filename = e->dump.getFilename(e->eInfo.spinType==SpinNone ? "dos" : "dos*");
-	logPrintf("Dumping '%s' ... Unavailable: please recompile JDFTx with CGAL enabled.\n", filename.c_str());
-}
-
-#endif // TRIANGULATE_ENABLED

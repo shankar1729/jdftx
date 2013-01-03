@@ -53,6 +53,15 @@ struct Supercell
 	matrix3<> Rsuper; //!< super-cell lattice vectors
 	matrix3<int> super; //!< linear combinations to get Rsuper (Rsuper = R * super)
 	
+	//! Transformation from reduced k-point mesh to full one. The resulting k-point
+	//! in the full mesh is (~sym[iSym]) * kmeshReduced[iReduced] + offset
+	struct KmeshTransform
+	{	unsigned iReduced; //!< corresponding reduced index
+		unsigned iSym; //!< symmetry matrix for transforming reduced to current value
+		vector3<int> offset; //!< additional translation to get to kmesh from reduced one
+	};
+	std::vector<KmeshTransform> kmeshTransform;
+	
 	//! Construct supercell given the unit cell and grid definition,
 	//! symmetry-reduced k-point mesh and list of symmetries
 	Supercell(const GridInfo& gInfo,
