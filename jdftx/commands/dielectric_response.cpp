@@ -25,7 +25,7 @@ struct CommandDielectricResponse : public Command
 {
 	CommandDielectricResponse() : Command("dielectric-response")
 	{
-		format = "[<epsilon-bulk>=80] [<Nbulk>=4.9383e-3] [<pMol>=0.92466] [<epsInf> = 1.77] [<linear>=no]";
+		format = "[<epsilon-bulk>=80] [<Nbulk>=4.9383e-3] [<pMol>=0.944169] [<epsInf> = 1.77] [<linear>=no]";
 		comments =
 			"Options for the dielectric response of the fluid (defaults to water)\n"
 			"\t<epsilon-bulk>: Bulk dielectric constant\n"
