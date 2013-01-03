@@ -30,6 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 #include <thread>
+#include <mutex>
 #include <unistd.h>
 
 extern int nProcsAvailable; //!< number of available processors (initialized to number of online processors, can be overriden)
