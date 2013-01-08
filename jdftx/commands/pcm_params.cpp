@@ -40,7 +40,7 @@ struct CommandPcmParams : public Command
 		{	case FluidLinear: //defaults set above
 				break;
 			case FluidLinearPCM:
-				nc = 0.000441138791131;
+				nc = 3.7e-4;
 				sigma = 0.6;
 				break;
 			case FluidNonlinearPCM:
@@ -83,8 +83,8 @@ struct CommandCavitation : public Command
 		{	case FluidLinear: //defaults set above
 				break;
 			case FluidLinearPCM:
-				cavityTension = 1.83530127625e-05;
-				cavityPressure = -4.62888252987e-06;
+				cavityTension = 5.4e-7;
+				cavityPressure = 0.;
 				break;
 			case FluidNonlinearPCM:
 				cavityTension = 9.5e-6;
