@@ -199,7 +199,10 @@ void gdbStackTraceExit(int code)
 		abort(); //If gdb failed to start
     }
     else
-	{	prctl(PR_SET_PTRACER, child_pid, 0, 0, 0);
+	{	
+		#ifdef PR_SET_PTRACER //Required only for newer kernels that limit ptrace
+		prctl(PR_SET_PTRACER, child_pid, 0, 0, 0);
+		#endif
 		close(fdPipe[0]);
 		if(write(fdPipe[1], &message, 1) != 1)
 		{	printf("Error communicating with debugger.\n");

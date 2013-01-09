@@ -130,7 +130,9 @@ add_executable(jdftx jdftx.cpp)
 target_link_libraries(jdftx jdftxCommands)
 
 #Target properties:
-set_target_properties(jdftx jdftxCore jdftxFluid jdftxElectronic jdftxCommands  PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS}")
+set_target_properties(jdftx jdftxCore jdftxFluid jdftxElectronic jdftxCommands PROPERTIES 
+	COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS}"
+	LINK_FLAGS "${EXTRA_CXX_FLAGS}")
 
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
@@ -176,7 +178,9 @@ if(CUDA_FOUND)
 	target_link_libraries(jdftx_gpu jdftxCommands_gpu)
 
 	#Target properties for Gpu versions:
-	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES COMPILE_FLAGS "${JDFTX_CPU_FLAGS} -DGPU_ENABLED")
+	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES
+		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} -DGPU_ENABLED"
+		LINK_FLAGS "${EXTRA_CXX_FLAGS}")
 
 endif()
 

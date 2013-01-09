@@ -1,5 +1,5 @@
-find_path(GSL_INCLUDE_DIR gsl/gsl_cblas.h /usr/include /usr/local/include)
-find_library(GSL_LIBRARY NAMES gsl PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+find_path(GSL_INCLUDE_DIR gsl/gsl_cblas.h /usr/include /usr/local/include ${GSL_PATH}/include)
+find_library(GSL_LIBRARY NAMES gsl PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64 ${GSL_PATH}/lib)
 
 if(GSL_INCLUDE_DIR AND GSL_LIBRARY)
 	set(GSL_FOUND TRUE)
