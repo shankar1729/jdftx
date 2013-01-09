@@ -55,7 +55,8 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 	void dumpDensities(const char* filenamePattern) const;
-	
+	void dumpDebug(const char* filenamePattern) const;
+ 
 private:
 	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;

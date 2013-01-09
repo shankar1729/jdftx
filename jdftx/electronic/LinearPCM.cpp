@@ -136,3 +136,23 @@ void LinearPCM::dumpDensities(const char* filenamePattern) const
 	logPrintf("done.\n"); logFlush();
 }
 
+void LinearPCM::dumpDebug(const char* filenamePattern) const
+{
+	string filename(filenamePattern);
+	filename.replace(filename.find("%s"), 2, "Debug");
+	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
+
+	FILE* fp = fopen(filename.c_str(), "w");
+	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
+	
+	// Dumps the polarization fraction
+	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+	fprintf(fp, "\nCavity Information:\n");
+	fprintf(fp, "Volume = %f\n", integral(1.-shape));
+	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
+	fprintf(fp, "Cavitation energy = %f\n", Acavity);
+	
+	fclose(fp);
+	logPrintf("done\n"); logFlush();
+}

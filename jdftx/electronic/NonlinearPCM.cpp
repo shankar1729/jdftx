@@ -271,10 +271,10 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\nCavity Information:\n");
 	fprintf(fp, "Volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
+	fprintf(fp, "Cavitation energy = %f\n", Acavity);
 	
 	fclose(fp);	
 	logPrintf("done\n"); logFlush();
-	
 }
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
