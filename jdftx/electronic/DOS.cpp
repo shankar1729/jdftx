@@ -207,7 +207,8 @@ struct EvalDOS
 		
 		//Allocate and initializie to zero if unallocated, otherwise leave unchanged
 		void nullToZero(int nWeights)
-		{	if(!bArr.size()) bArr.assign(nWeights, double4({{0.,0.,0.,0.}}));
+		{	double4 zero4 = {{0.,0.,0.,0.}};
+			if(!bArr.size()) bArr.assign(nWeights, zero4);
 		}
 		
 		double value(double t, int i) const
