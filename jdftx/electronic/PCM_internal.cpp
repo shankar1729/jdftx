@@ -60,26 +60,28 @@ double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, d
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {
-	Screening::Screening(bool linear, double T, double Nion, double Zion, double epsBulk)
-	: linear(linear), NT(Nion*T), NZ(Nion*Zion)
+	Screening::Screening(bool linear, double T, double Nion, double Zion, double Rion, double epsBulk)
+	: linear(linear), NT(Nion*T), NZ(Nion*Zion), NV(Nion * (4.*M_PI/3)*pow(Rion,3)), fHS0(fHS(2.*NV, invNV)), invNV(1./NV)
 	{
+		if(NV >= 0.5) die("Bulk ionic concentration exceeds hard sphere limit = %lg mol/liter.\n", (0.5*Nion/NV) / (mol/liter));
+		
 		double screenLength = sqrt(T*epsBulk/(8*M_PI*Nion*Zion*Zion));
 		if(linear) logPrintf("   Linear ions with screening length = %lg bohrs.\n", screenLength);
 		else logPrintf("   Nonlinear ions with screening length = %lg bohrs and Z = %lg at T = %lg K.\n", screenLength, Zion, T/Kelvin);
 	}
 	
-	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, mu0, mu, s, rho, A, A_mu, A_s);
+	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
 	}
-	void Screening::freeEnergy(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const
-	{	threadLaunch(ScreeningFreeEnergy_sub, N, mu0, mu, s, rho, A, A_mu, A_s, *this);
+	void Screening::freeEnergy(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
+	{	threadLaunch(ScreeningFreeEnergy_sub, N, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s, *this);
 	}
 	
-	void ScreeningConvertDerivative_sub(size_t iStart, size_t iStop, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, mu0, mu, s, A_rho, A_mu, A_s);
+	void ScreeningConvertDerivative_sub(size_t iStart, size_t iStop, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s);
 	}
-	void Screening::convertDerivative(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const
-	{	threadLaunch(ScreeningConvertDerivative_sub, N, mu0, mu, s, A_rho, A_mu, A_s, *this);
+	void Screening::convertDerivative(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const
+	{	threadLaunch(ScreeningConvertDerivative_sub, N, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s, *this);
 	}
 	
 	

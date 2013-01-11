@@ -31,7 +31,7 @@ namespace NonlinearPCMeval
 	struct Dielectric;
 }
 
-typedef DataMultiplet<DataR,4> DataRMuEps;
+typedef DataMultiplet<DataR,5> DataRMuEps;
 
 
 class NonlinearPCM : public FluidSolver, public Minimizable<DataRMuEps>

@@ -28,11 +28,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataMultiplet.h>
 
 //Utility functions to extract/set the members of a MuEps
-inline DataRptr& getMu(DataRMuEps& X) { return X[0]; }
-inline const DataRptr& getMu(const DataRMuEps& X) { return X[0]; }
-inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+1); }
-inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+1); }
-inline void setMuEps(DataRMuEps& mueps, DataRptr mu, DataRptrVec eps) { mueps[0]=mu; for(int k=0; k<3; k++) mueps[k+1]=eps[k]; }
+inline DataRptr& getMuPlus(DataRMuEps& X) { return X[0]; }
+inline const DataRptr& getMuPlus(const DataRMuEps& X) { return X[0]; }
+inline DataRptr& getMuMinus(DataRMuEps& X) { return X[1]; }
+inline const DataRptr& getMuMinus(const DataRMuEps& X) { return X[1]; }
+inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+2); }
+inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+2); }
+inline void setMuEps(DataRMuEps& mueps, DataRptr muPlus, DataRptr muMinus, DataRptrVec eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
 
 inline void setPreconditioner(int i, double G2, double* preconditioner, double kappaSqByEpsilon, double muByEpsSq)
@@ -51,7 +53,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	screeningEval = 0;
 	if(params.ionicConcentration)
 		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
-			params.T, params.ionicConcentration, params.ionicZelectrolyte, params.epsilonBulk);
+			params.T, params.ionicConcentration, params.ionicZelectrolyte, params.ionicRadius, params.epsilonBulk);
 		
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
@@ -81,9 +83,12 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		fpLog = globalLog; //retsore usual iteration log
 		//Guess nonlinear states based on the electrostatic potential of the linear version:
 		//mu:
-		DataRptr mu = (-params.ionicZelectrolyte/params.T) * I(linearPCM.state);
-		mu = log(mu + sqrt(1.+mu*mu)); //apply saturation (sinh^-1)
-		mu -= integral(mu)/e.gInfo.detR; //project out G=0
+		DataRptr mu;
+		if(screeningEval && screeningEval->linear)
+		{	mu = (-params.ionicZelectrolyte/params.T) * I(linearPCM.state);
+			mu -= integral(mu)/e.gInfo.detR; //project out G=0
+		}
+		else initZero(mu, e.gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
 		DataRptrVec eps = (-params.pMol/params.T) * I(gradient(linearPCM.state));
 		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
@@ -91,12 +96,13 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		DataRptr epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
 		eps *= epsByE; //enhancement due to correlations
 		//collect:
-		setMuEps(state, mu, eps);
+		setMuEps(state, mu, clone(mu), eps);
 	}
 	
 	this->rhoExplicitTilde = rhoExplicitTilde;
 	this->nCavity = I(nCavityTilde);
-	//Initialize point-dipole density
+
+	//Initialize shape function
 	nullToZero(shape,e.gInfo);
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
@@ -109,19 +115,21 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
 	
 	DataGptr rhoFluidTilde;
-	DataRptr mu, Adiel_mu; initZero(Adiel_mu, e.gInfo);
+	DataRptr muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
+	initZero(Adiel_muPlus, e.gInfo); initZero(Adiel_muMinus, e.gInfo);
 	double Akappa = 0., mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
 	if(screeningEval)
 	{	//Get neutrality Lagrange multiplier:
-		mu = getMu(state);
+		muPlus = getMuPlus(state);
+		muMinus = getMuMinus(state);
 		Qexp = integral(rhoExplicitTilde);
-		mu0 = screeningEval->neutralityConstraint(mu, shape, Qexp);
+		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
 		//Compute ionic free energy and bound charge
 		DataRptr Aout, rhoIon;
 		initZero(Aout, e.gInfo);
 		initZero(rhoIon, e.gInfo);
-		callPref(screeningEval->freeEnergy)(e.gInfo.nr, mu0, mu->dataPref(), shape->dataPref(),
-			rhoIon->dataPref(), Aout->dataPref(), Adiel_mu->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(screeningEval->freeEnergy)(e.gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
+			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Akappa = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
 	}
@@ -146,12 +154,14 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
 		DataRptr Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
-		callPref(screeningEval->convertDerivative)(e.gInfo.nr, mu0, mu->dataPref(), shape->dataPref(),
-			Adiel_rhoIon->dataPref(), Adiel_mu->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(screeningEval->convertDerivative)(e.gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
+			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		//Propagate gradients from mu0 to mu, shape, Qexp:
-		double Adiel_mu0 = integral(Adiel_mu), mu0_Qexp; DataRptr mu0_mu, mu0_shape;
-		screeningEval->neutralityConstraint(mu, shape, Qexp, &mu0_mu, &mu0_shape, &mu0_Qexp);
-		Adiel_mu += Adiel_mu0 * mu0_mu;
+		double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
+		DataRptr mu0_muPlus, mu0_muMinus, mu0_shape;
+		screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
+		Adiel_muPlus += Adiel_mu0 * mu0_muPlus;
+		Adiel_muMinus += Adiel_mu0 * mu0_muMinus;
 		if(Adiel_shape) Adiel_shape += Adiel_mu0 * mu0_shape;
 		Adiel_Qexp = Adiel_mu0 * mu0_Qexp;
 	}
@@ -175,7 +185,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	}
 	
 	//Collect energy and gradient pieces:
-	setMuEps(Adiel_state, Adiel_mu, Adiel_eps);
+	setMuEps(Adiel_state, Adiel_muPlus, Adiel_muMinus, Adiel_eps);
 	Adiel_state *= e.gInfo.dV; //converts variational derivative to total derivative
 	return Akappa + Aeps + U + Acavity;
 }
@@ -209,7 +219,10 @@ double NonlinearPCM::compute(DataRMuEps* grad)
 
 DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 {	DataRMuEps out;
-	setMuEps(out, I(preconditioner*J(getMu(in))), getEps(in));
+	setMuEps(out,
+		I(preconditioner*J(getMuPlus(in))),
+		I(preconditioner*J(getMuMinus(in))),
+		getEps(in));
 	return out;
 }
 
@@ -273,8 +286,14 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
 	fprintf(fp, "Cavitation energy = %f\n", Acavity);
 	
+	if(screeningEval)
+	{	fprintf(fp, "IonicScreening debug: mu0 = %.15le, NZ = %.15le, NV = %.15le\n",
+			screeningEval->neutralityConstraint(getMuPlus(state), getMuMinus(state), shape, integral(rhoExplicitTilde)),
+			screeningEval->NZ, screeningEval->NV);
+	}
 	fclose(fp);	
 	logPrintf("done\n"); logFlush();
+	
 }
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const

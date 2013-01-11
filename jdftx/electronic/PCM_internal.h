@@ -58,31 +58,33 @@ namespace NonlinearPCMeval
 	struct Screening
 	{
 		bool linear; //!< whether ionic screening is linearized
-		double NT, NZ; //!< NT and NZ, where T=temperature, N=bulk ionic concentration and Z=charge (assumed balanced)
+		double NT, NZ, NV; //!< where T=temperature, N=bulk ionic concentration, Z=charge and V=hard sphere volume (all assumed +/- symmetric)
+		double fHS0, invNV; //!< Hard sphere free enregy function evaluated at bulk condition and 1/NV
 		
-		Screening(bool linear, double T, double Nion, double Zion, double epsBulk); //epsBulk is used only for printing screening length
+		Screening(bool linear, double T, double Nion, double Zion, double Rion, double epsBulk); //epsBulk is used only for printing screening length
 		
 		#ifndef __in_a_cu_file__
 		//! Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives
-		inline double neutralityConstraint(const DataRptr& mu, const DataRptr& shape, double Qexp,
-			DataRptr* mu0_mu=0, DataRptr* mu0_shape=0, double* mu0_Qexp=0)
+		inline double neutralityConstraint(const DataRptr& muPlus, const DataRptr& muMinus, const DataRptr& shape, double Qexp,
+			DataRptr* mu0_muPlus=0, DataRptr* mu0_muMinus=0, DataRptr* mu0_shape=0, double* mu0_Qexp=0)
 		{
 			if(linear)
-			{	double Qsum = 2.*NZ * integral(shape);
-				double Qdiff = 2.*NZ * integral(shape * mu);
+			{	double Qsum = NZ * (2.*integral(shape) + integral(shape*(muPlus-muMinus)));
+				double Qdiff = NZ * integral(shape*(muPlus+muMinus));
 				//Compute the constraint function and its derivatives w.r.t above moments:
 				double mu0 = -(Qexp + Qdiff)/Qsum;
 				double mu0_Qdiff = -1./Qsum;
 				double mu0_Qsum = (Qexp + Qdiff)/(Qsum*Qsum);
 				//Collect reuslt and optional gradients:
-				if(mu0_mu) *mu0_mu = (mu0_Qdiff * 2.*NZ) * shape;
-				if(mu0_shape) *mu0_shape = 2.*NZ * (mu0_Qdiff * mu + mu0_Qsum);
+				if(mu0_muPlus) *mu0_muPlus = ((mu0_Qdiff+mu0_Qsum) * NZ) * shape;
+				if(mu0_muMinus) *mu0_muMinus = ((mu0_Qdiff-mu0_Qsum) * NZ) * shape;
+				if(mu0_shape) *mu0_shape = NZ * (mu0_Qdiff*(muPlus+muMinus) + mu0_Qsum*(2.+(muPlus-muMinus)));
 				if(mu0_Qexp) *mu0_Qexp = -1./Qsum;
 				return mu0;
 			}
 			else
-			{	DataRptr etaPlus  = exp(mu);
-				DataRptr etaMinus = exp(-mu);
+			{	DataRptr etaPlus  = exp(muPlus);
+				DataRptr etaMinus = exp(-muMinus);
 				double Qplus  = +NZ * integral(shape * etaPlus);
 				double Qminus = -NZ * integral(shape * etaMinus);
 				//Compute the constraint function and its derivatives w.r.t above moments:
@@ -100,7 +102,8 @@ namespace NonlinearPCMeval
 					mu0_Qminus = 2.*Qplus/(disc*(disc+Qexp)) + 1./Qminus;
 				}
 				//Collect result and optional gradients:
-				if(mu0_mu) *mu0_mu = NZ * shape * (mu0_Qplus * etaPlus  + mu0_Qminus * etaMinus);
+				if(mu0_muPlus)  *mu0_muPlus  = (mu0_Qplus * NZ)  * shape * etaPlus;
+				if(mu0_muMinus) *mu0_muMinus = (mu0_Qminus * NZ) * shape * etaMinus;
 				if(mu0_shape) *mu0_shape = NZ * (mu0_Qplus * etaPlus - mu0_Qminus * etaMinus);
 				if(mu0_Qexp) *mu0_Qexp = -1./disc;
 				return mu0;
@@ -108,48 +111,64 @@ namespace NonlinearPCMeval
 		}
 		#endif
 		
+		//! Percus-Yevick hard sphere free energy function and its derivative
+		__hostanddev__ double fHS(double n3, double& f_n3) const
+		{	if(n3>=1.) { f_n3 = NAN; return NAN; }
+			double den = 1./(1-n3), logden = log(den);
+			double f = n3*logden + 1.5*n3*n3*(2-n3)*den*den;
+			f_n3 = logden + den*(n3 + 1.5*den*n3*(4.-3.*n3 + 2.*den*n3*(2-n3)));
+			return f;
+		}
+		
 		//! Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function
-		//! Note that x here is muEff = mu(r) + mu0, i.e. after imposing charge neutrality constraint
-		__hostanddev__ void compute(double x, double& F, double& F_x, double& Rho, double& Rho_x) const
+		//! Note that each x here is muEff = mu(r) + mu0, i.e. after imposing charge neutrality constraint
+		__hostanddev__ void compute(double xPlus, double xMinus, double& F, double& F_xPlus, double& F_xMinus, double& Rho, double& Rho_xPlus, double& Rho_xMinus) const
 		{	if(linear)
-			{	F = 2.*NT * (0.5*x*x);
-				F_x = 2.*NT * x;
-				Rho = 2.*NZ * x;
-				Rho_x = 2.*NZ;
+			{	F = NT * 0.5*(xPlus*xPlus + xMinus*xMinus);
+				F_xPlus = NT * xPlus;
+				F_xMinus = NT * xMinus;
+				Rho = NZ * (xPlus + xMinus);
+				Rho_xPlus = NZ;
+				Rho_xMinus = NZ;
 			}
 			else
-			{	double s = sinh(x), c = cosh(x);
-				F = 2.*NT * (x*s + 1. - c);
-				F_x = 2.*NT * (x*c);
-				Rho = 2.*NZ * s;
-				Rho_x = 2.*NZ * c;
+			{	double etaPlus = exp(xPlus), etaMinus=exp(-xMinus);
+				double f_n3, f = fHS(NV*(etaPlus + etaMinus), f_n3);
+				F = NT * (2. + etaPlus*(xPlus-1.) + etaMinus*(-xMinus-1.) + invNV*(f - fHS0));
+				F_xPlus  = NT * etaPlus *(xPlus  + f_n3);
+				F_xMinus = NT * etaMinus*(xMinus - f_n3);
+				Rho = NZ * (etaPlus - etaMinus);
+				Rho_xPlus  = NZ * etaPlus;
+				Rho_xMinus = NZ * etaMinus;
 			}
 		}
 		
 		//! Given shape function s and potential mu, compute induced charge rho, free energy density A and accumulate its derivatives
-		__hostanddev__ void freeEnergy_calc(size_t i, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const
-		{	double F, F_mu, Rho, Rho_mu;
-			compute(mu[i]+mu0, F, F_mu, Rho, Rho_mu);
+		__hostanddev__ void freeEnergy_calc(size_t i, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
+		{	double F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus;
+			compute(muPlus[i]+mu0, muMinus[i]+mu0, F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus);
 			A[i] = s[i] * F;
-			A_mu[i] += s[i] * F_mu;
+			A_muPlus[i] += s[i] * F_muPlus;
+			A_muMinus[i] += s[i] * F_muMinus;
 			if(A_s) A_s[i] += F;
 			rho[i] = s[i] * Rho;
 		}
-		void freeEnergy(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const;
+		void freeEnergy(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void freeEnergy_gpu(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const;
+		void freeEnergy_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#endif
 		
 		//! Propagate derivative A_rho and accumulate to A_mu and A_s
-		__hostanddev__ void convertDerivative_calc(size_t i, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const
-		{	double F, F_mu, Rho, Rho_mu;
-			compute(mu[i]+mu0, F, F_mu, Rho, Rho_mu);
-			A_mu[i] += s[i] * Rho_mu * A_rho[i];
+		__hostanddev__ void convertDerivative_calc(size_t i, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const
+		{	double F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus;
+			compute(muPlus[i]+mu0, muMinus[i]+mu0, F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus);
+			A_muPlus[i] += s[i] * Rho_muPlus * A_rho[i];
+			A_muMinus[i] += s[i] * Rho_muMinus * A_rho[i];
 			if(A_s) A_s[i] += Rho * A_rho[i];
 		}
-		void convertDerivative(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const;
+		void convertDerivative(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#ifdef GPU_ENABLED
-		void convertDerivative_gpu(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const;
+		void convertDerivative_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#endif
 	};
 	

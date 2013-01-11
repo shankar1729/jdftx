@@ -267,11 +267,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 		VsclocTilde += d_fluid;
 		VsclocTilde += V_cavity;
 		
-		DataRptr d_tot = I(d_fluid + d_vac); //Total electrostatic potential in real space
-		int centerIndex = e->gInfo.fullRindex(vector3<int>(e->gInfo.S[0]/2, e->gInfo.S[1]/2, e->gInfo.S[2]/2));
-		double d0 = -d_tot->data()[centerIndex];
-		VsclocTilde->setGzero(d0 + VsclocTilde->getGzero()); //set boundary condition Vscloc=0 at the center of the unit cell
-		
 		//Chemical-potential correction due to finite nuclear width in fluid interaction:
 		if(fluidParams.ionicConcentration || fluidParams.hSIons.size())
 		{	double muCorrection = iInfo.ionWidthMuCorrection();

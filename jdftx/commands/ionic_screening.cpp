@@ -26,11 +26,12 @@ struct CommandIonicScreening : public Command
 {
 	CommandIonicScreening() : Command("ionic-screening")
 	{
-		format = "<concentration> <Zelectrolyte> [<linear>]";
+		format = "<concentration> <Zelectrolyte> <Radius> [<linear>]";
 		comments =
 			"\t<concentration>: molar concentration of ions (default: 0.0, which turns off ionic screening)\n"
 			"\t<Zelectrolyte>: magnitude of charge of the cations and anions (assumed equal)\n"
 			"\t<linear>: linearity of screening = " + boolMap.optionList() + " (default: no)\n"
+			"\t<Radius>: hard-sphere radius of ion in Angstrom (default: 1.5 Angstroms)\n"
 			" Note: <linear> only affects the Nonlinear1.0 fluid (fluid 'Linear' is always linear!)";
 		hasDefault = true;
 	}
@@ -39,15 +40,18 @@ struct CommandIonicScreening : public Command
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.ionicConcentration, 0.0, "concentration");
 		pl.get(fsp.ionicZelectrolyte, 1, "Zelectrolyte");
+		pl.get(fsp.ionicRadius, 1.5, "Radius");
 		pl.get(fsp.linearScreening, false, boolMap, "linear");
 		//convert to atomic units
 		fsp.ionicConcentration *= mol/liter;
+		fsp.ionicRadius *= Angstrom;
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg %d %s",
+	{	logPrintf("%lg %d %lg %s",
 			e.eVars.fluidParams.ionicConcentration/(mol/liter), //report back in mol/liter
 			e.eVars.fluidParams.ionicZelectrolyte,
+			e.eVars.fluidParams.ionicRadius/Angstrom,
 			boolMap.getString(e.eVars.fluidParams.linearScreening));
 	}
 }

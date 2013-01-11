@@ -44,22 +44,22 @@ void pcmShapeFunc_grad_gpu(int N, const double* nCavity, const double* grad_shap
 namespace NonlinearPCMeval
 {
 	__global__
-	void ScreeningFreeEnergy_kernel(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s, const Screening eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, mu0, mu, s, rho, A, A_mu, A_s);
+	void ScreeningFreeEnergy_kernel(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
 	}
-	void Screening::freeEnergy_gpu(size_t N, double mu0, const double* mu, const double* s, double* rho, double* A, double* A_mu, double* A_s) const
+	void Screening::freeEnergy_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
 	{	GpuLaunchConfig1D glc(ScreeningFreeEnergy_kernel, N);
-		ScreeningFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, mu, s, rho, A, A_mu, A_s, *this);
+		ScreeningFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s, *this);
 		gpuErrorCheck();
 	}
 	
 	__global__
-	void ScreeningConvertDerivative_kernel(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s, const Screening eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, mu0, mu, s, A_rho, A_mu, A_s);
+	void ScreeningConvertDerivative_kernel(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s);
 	}
-	void Screening::convertDerivative_gpu(size_t N, double mu0, const double* mu, const double* s, const double* A_rho, double* A_mu, double* A_s) const
+	void Screening::convertDerivative_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const
 	{	GpuLaunchConfig1D glc(ScreeningConvertDerivative_kernel, N);
-		ScreeningConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, mu, s, A_rho, A_mu, A_s, *this);
+		ScreeningConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s, *this);
 		gpuErrorCheck();
 	}
 	
