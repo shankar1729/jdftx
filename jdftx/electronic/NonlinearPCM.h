@@ -59,7 +59,7 @@ public:
 	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
 
 	//! Compute gradient and free energy (with optional outputs)
-	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde = 0, DataGptr* Adiel_nCavityTilde = 0) const;
+	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0, DataRptr* rhoIon=0) const;
 
 	// Interface for Minimizable:
 	void step(const DataRMuEps& dir, double alpha);

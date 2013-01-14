@@ -110,7 +110,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
 }
 
-double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
+double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, DataRptr* rhoIonPtr) const
 {
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
 	
@@ -132,6 +132,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Akappa = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
+		if(rhoIonPtr) *rhoIonPtr = rhoIon;
 	}
 	
 	//Compute the dielectric free energy and bound charge:
@@ -241,7 +242,7 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	// Prepares to dump
 	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
+	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
 
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
@@ -304,43 +305,15 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 	saveRawBinary(shape, filename.c_str());
 	logPrintf("done.\n"); logFlush();
 	
-	/*
-	if (params.ionicConcentration)
+	if(screeningEval)
 	{
-		double nPosGzero = 0.0, nNegGzero = 0.0, rhoExplicitGzero = 0.0;
-		complex* rhoPtr = rhoExplicitTilde->data();
-		rhoExplicitGzero = rhoPtr[0].real()*e.gInfo.detR;		
-		
-		const DataRptr& mu = getMu(state);	
-		DataRptr muEff;	 nullToZero(muEff,e.gInfo);
-		DataRptr nPos;  nullToZero(nPos,e.gInfo);
-		DataRptr nNeg;  nullToZero(nNeg,e.gInfo);
-		
-		if (params.linearScreening)
-		{	nNegGzero=params.ionicConcentration*dot(shape,1.0-mu+0.5*mu*mu)*e.gInfo.dV;
-			nPosGzero=params.ionicConcentration*dot(shape,1.0+mu+0.5*mu*mu)*e.gInfo.dV;
-		}
-		else
-		{	nNegGzero=params.ionicConcentration*dot(shape,exp(-mu))*e.gInfo.dV;
-			nPosGzero=params.ionicConcentration*dot(shape,exp(mu))*e.gInfo.dV;
-		}
-
-		double fmu = log((-rhoExplicitGzero+sqrt(rhoExplicitGzero*rhoExplicitGzero+4.0*nNegGzero*nPosGzero))/(2.0*nNegGzero));
-		muEff = mu-fmu;
-		
-		threadedLoop(calc_Nion, e.gInfo.nr, muEff->data(), shape->data(), nNeg->data(), nPos->data(), &params);
-				
-		filename = filenamePattern;
-		filename.replace(filename.find("%s"), 2, "N+");
-		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-		saveRawBinary(nPos, filename.c_str());
-		logPrintf("done.\n"); logFlush();
+		DataRptr rhoIon; DataRMuEps gradUnused;
+		(*this)(state, gradUnused, 0, 0, &rhoIon);
 		
 		filename = filenamePattern;
-		filename.replace(filename.find("%s"), 2, "N-");
+		filename.replace(filename.find("%s"), 2, "Nion");
 		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-		saveRawBinary(nNeg, filename.c_str());
+		saveRawBinary(rhoIon, filename.c_str());
 		logPrintf("done.\n"); logFlush();
 	}
-	*/
 }

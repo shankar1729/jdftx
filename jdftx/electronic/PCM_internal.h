@@ -69,16 +69,16 @@ namespace NonlinearPCMeval
 			DataRptr* mu0_muPlus=0, DataRptr* mu0_muMinus=0, DataRptr* mu0_shape=0, double* mu0_Qexp=0)
 		{
 			if(linear)
-			{	double Qsum = NZ * (2.*integral(shape) + integral(shape*(muPlus-muMinus)));
+			{	double Qsum = NZ * 2.*integral(shape);
 				double Qdiff = NZ * integral(shape*(muPlus+muMinus));
 				//Compute the constraint function and its derivatives w.r.t above moments:
 				double mu0 = -(Qexp + Qdiff)/Qsum;
 				double mu0_Qdiff = -1./Qsum;
 				double mu0_Qsum = (Qexp + Qdiff)/(Qsum*Qsum);
 				//Collect reuslt and optional gradients:
-				if(mu0_muPlus) *mu0_muPlus = ((mu0_Qdiff+mu0_Qsum) * NZ) * shape;
-				if(mu0_muMinus) *mu0_muMinus = ((mu0_Qdiff-mu0_Qsum) * NZ) * shape;
-				if(mu0_shape) *mu0_shape = NZ * (mu0_Qdiff*(muPlus+muMinus) + mu0_Qsum*(2.+(muPlus-muMinus)));
+				if(mu0_muPlus) *mu0_muPlus = (mu0_Qdiff * NZ) * shape;
+				if(mu0_muMinus) *mu0_muMinus = (mu0_Qdiff * NZ) * shape;
+				if(mu0_shape) *mu0_shape = NZ * (mu0_Qdiff*(muPlus+muMinus) + mu0_Qsum*2.);
 				if(mu0_Qexp) *mu0_Qexp = -1./Qsum;
 				return mu0;
 			}
