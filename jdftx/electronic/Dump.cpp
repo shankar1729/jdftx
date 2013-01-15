@@ -35,6 +35,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void dumpSpinorbit(const Everything& e);
 
+namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}
+
 void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(wannier.group.size())
@@ -224,6 +226,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
 	
 	if(ShouldDump(QMC) && isCevec) dumpQMC();
+	
+	if(ShouldDump(Dipole))
+	{	StartDump("Moments")
+		Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
+		EndDump
+	}
 
 	//----------------- The following are not included in 'All' -----------------------
 	
@@ -382,4 +390,58 @@ void dumpSpinorbit(const Everything& e)
 		Hso.write(filename);
 	}
 	EndDump
+}
+
+namespace Moments{
+	inline double map_to_interval(double x)
+	{	double temp =  modf(x, new double);
+		if(temp>0.5)
+			return temp-1.;
+		else if(temp<-0.5)
+			return temp+1.;
+		else
+			return temp;
+	}
+	inline vector3<> map_to_interval(vector3<> x)
+	{	for(int j=0;j<3;j++)
+			x[j] = map_to_interval(x[j]);
+		return x;
+	}
+
+	void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx)
+	{	vector3<> lx = map_to_interval(inv(R)*(r-r0));
+		rx[i] = pow((R*lx)[dir], moment);
+	}
+	
+	void dumpMoment(const Everything& e, const char* filename, int moment, vector3<> origin)
+	{	const GridInfo& g = e.gInfo;
+		
+		FILE* fp = fopen(filename, "w");
+		if(!fp) die("Error opening %s for writing.\n", filename);	
+		
+		// Calculates the electronic moment about origin
+		DataRptr r0, r1, r2;
+		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
+		applyFunc_r(g, rn_pow_x, 0, g.R, moment, origin, r0->data());
+		applyFunc_r(g, rn_pow_x, 1, g.R, moment, origin, r1->data());
+		applyFunc_r(g, rn_pow_x, 2, g.R, moment, origin, r2->data());
+		vector3<> elecMoment;
+		elecMoment[0] = integral(e.eVars.n[0]*r0);
+		elecMoment[1] = integral(e.eVars.n[0]*r1);
+		elecMoment[2] = integral(e.eVars.n[0]*r2);
+		fprintf(fp, "Electron moment of order %i: %f\t%f\t%f", moment, elecMoment[0], elecMoment[1], elecMoment[2]);
+		
+		// Calculates the ionic moment about the origin
+		vector3<> ionMoment(0., 0., 0.);
+		for(auto sp: e.iInfo.species)
+			for(unsigned n=0; n < sp->atpos.size(); n++)
+			{	vector3<> cartesianCoord = g.R * map_to_interval(sp->atpos[n]);
+				for(int j=0; j<3; j++)
+					ionMoment[j] += -sp->Z * pow(cartesianCoord[j], moment); 
+			}
+		fprintf(fp, "\nIon moment of order %i: %f\t%f\t%f", moment, ionMoment[0], ionMoment[1], ionMoment[2]);
+		
+		// Calculates the total (elec+ion) dipole moment
+		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
+	}
 }

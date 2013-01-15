@@ -69,7 +69,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpProjectors, "Projectors",
 	DumpWannier, "Wannier",
 	DumpOptVext, "optVext",
-	DumpDOS, "DOS"
+	DumpDOS, "DOS",
+  	DumpDipole, "Dipole"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -101,7 +102,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpProjectors,     "Compute PAW projectors [not in All]",
 	DumpWannier,        "Compute Maximally-Localized Wannier Functions (see wannier) [not in All]",
 	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
-	DumpDOS,            "Density of States (see density-of-states) [not in All]"
+	DumpDOS,            "Density of States (see density-of-states) [not in All]",
+	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)"
 );
 
 struct CommandDump : public Command

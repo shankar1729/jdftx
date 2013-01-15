@@ -236,42 +236,15 @@ void rx(int i, vector3<> r, int dir, matrix3<> R, double* rx)
 
 
 void NonlinearPCM::dumpDebug(const char* filenamePattern) const
-{
-	const GridInfo& g = e.gInfo;
-	
+{	
 	// Prepares to dump
 	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
+	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
 
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
-	
-	// Calculates the electronic moment about the origin
-	DataRptr r0, r1, r2;
-	nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
-	applyFunc_r(g, rx, 0, g.R, r0->data());
-	applyFunc_r(g, rx, 1, g.R, r1->data());
-	applyFunc_r(g, rx, 2, g.R, r2->data());
-	vector3<> elecMoment;
-	elecMoment[0] = g.detR * dot(J(e.eVars.n[0]), J(r0));
-	elecMoment[1] = g.detR * dot(J(e.eVars.n[0]), J(r1));
-	elecMoment[2] = g.detR * dot(J(e.eVars.n[0]), J(r2));
-	fprintf(fp, "Elec moment: %f\t%f\t%f", elecMoment[0], elecMoment[1], elecMoment[2]);
-	
-	// Calculates the ionic moment about the origin
-	vector3<> ionMoment(0., 0., 0.);
-	for(auto sp: e.iInfo.species)
-		for(unsigned n=0; n < sp->atpos.size(); n++)
-		{	for(int j = 0; j<3; j++)
-				ionMoment[j] += -sp->Z * (sp->atpos[n][j]<0.5 ? sp->atpos[n][j] : sp->atpos[n][j]-1);
-		}
-	ionMoment = g.R*ionMoment;
-	fprintf(fp, "\nIon moment: %f\t%f\t%f", ionMoment[0], ionMoment[1], ionMoment[2]);
-	
-	// Calculates the total (elec+ion) dipole moment
-	fprintf(fp, "\nDipole moment: %f\t%f\t%f", ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);	
-		
+
 	// Dumps the polarization fraction
 	DataRptrVec shape_x = gradient(shape);
 	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
@@ -279,19 +252,13 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	DataRptr eps_mag = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 	double Eaveraged = integral(eps_mag*shape*surfaceDensity)/integral(surfaceDensity);
 	double Eaveraged2 = integral(eps_mag*surfaceDensity)/integral(surfaceDensity);
-	fprintf(fp, "\n\nSurface averaged epsilon: %f", Eaveraged);
+	
+	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
+	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
+	
+	fprintf(fp, "\nSurface averaged epsilon: %f", Eaveraged);
 	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);
-	
-	fprintf(fp, "\nCavity Information:\n");
-	fprintf(fp, "Volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
-	fprintf(fp, "Cavitation energy = %f\n", Acavity);
-	
-	if(screeningEval)
-	{	fprintf(fp, "IonicScreening debug: mu0 = %.15le, NZ = %.15le, NV = %.15le\n",
-			screeningEval->neutralityConstraint(getMuPlus(state), getMuMinus(state), shape, integral(rhoExplicitTilde)),
-			screeningEval->NZ, screeningEval->NV);
-	}
+
 	fclose(fp);	
 	logPrintf("done\n"); logFlush();
 	

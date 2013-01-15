@@ -47,6 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
 	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext, DumpDOS,
+	DumpDipole, // Dumps the dipole moment of the explicit charge distribution
 	DumpDelim //special value used as a delimiter during command processing
 };
 
