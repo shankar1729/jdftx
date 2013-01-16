@@ -53,8 +53,9 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	screeningEval = 0;
 	if(params.ionicConcentration)
 		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
-			params.T, params.ionicConcentration, params.ionicZelectrolyte, params.ionicRadius, params.epsilonBulk);
-		
+			params.T, params.ionicConcentration, params.ionicZelectrolyte,
+			params.ionicRadiusPlus, params.ionicRadiusMinus, params.epsilonBulk);
+	
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
 	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.k2factor/params.epsilonBulk, muByEps*muByEps);

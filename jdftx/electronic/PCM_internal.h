@@ -58,10 +58,10 @@ namespace NonlinearPCMeval
 	struct Screening
 	{
 		bool linear; //!< whether ionic screening is linearized
-		double NT, NZ, NV; //!< where T=temperature, N=bulk ionic concentration, Z=charge and V=hard sphere volume (all assumed +/- symmetric)
-		double fHS0, invNV; //!< Hard sphere free enregy function evaluated at bulk condition and 1/NV
+		double NT, NZ; //!< where T=temperature, N=bulk ionic concentration, Z=charge (all assumed +/- symmetric)
+		double x0plus, x0minus, x0; //!< anion, cation and total packing fractions
 		
-		Screening(bool linear, double T, double Nion, double Zion, double Rion, double epsBulk); //epsBulk is used only for printing screening length
+		Screening(bool linear, double T, double Nion, double Zion, double Rplus, double Rminus, double epsBulk); //epsBulk is used only for printing screening length
 		
 		#ifndef __in_a_cu_file__
 		//! Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives
@@ -111,35 +111,38 @@ namespace NonlinearPCMeval
 		}
 		#endif
 		
-		//! Percus-Yevick hard sphere free energy function and its derivative
-		__hostanddev__ double fHS(double n3, double& f_n3) const
-		{	if(n3>=1.) { f_n3 = NAN; return NAN; }
-			double den = 1./(1-n3), logden = log(den);
-			double f = n3*logden + 1.5*n3*n3*(2-n3)*den*den;
-			f_n3 = logden + den*(n3 + 1.5*den*n3*(4.-3.*n3 + 2.*den*n3*(2-n3)));
+		//! Hard sphere free energy per particle and derivative, where x is total packing fraction
+		__hostanddev__ double fHS(double x, double& f_x) const
+		{	if(x>=1.) { f_x = NAN; return NAN; }
+			double den = 1./(1-x), den0 = 1./(1-x0);
+			double comb = (x-x0)*den*den0, comb_x = den*den;
+			double prefac = (3./x0);
+			double f = prefac * comb*comb;
+			f_x = prefac * 2.*comb*comb_x;
 			return f;
 		}
 		
 		//! Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function
-		//! Note that each x here is muEff = mu(r) + mu0, i.e. after imposing charge neutrality constraint
-		__hostanddev__ void compute(double xPlus, double xMinus, double& F, double& F_xPlus, double& F_xMinus, double& Rho, double& Rho_xPlus, double& Rho_xMinus) const
+		//! Note that each mu here is mu(r) + mu0, i.e. after imposing charge neutrality constraint
+		__hostanddev__ void compute(double muPlus, double muMinus, double& F, double& F_muPlus, double& F_muMinus, double& Rho, double& Rho_muPlus, double& Rho_muMinus) const
 		{	if(linear)
-			{	F = NT * 0.5*(xPlus*xPlus + xMinus*xMinus);
-				F_xPlus = NT * xPlus;
-				F_xMinus = NT * xMinus;
-				Rho = NZ * (xPlus + xMinus);
-				Rho_xPlus = NZ;
-				Rho_xMinus = NZ;
+			{	F = NT * 0.5*(muPlus*muPlus + muMinus*muMinus);
+				F_muPlus = NT * muPlus;
+				F_muMinus = NT * muMinus;
+				Rho = NZ * (muPlus + muMinus);
+				Rho_muPlus = NZ;
+				Rho_muMinus = NZ;
 			}
 			else
-			{	double etaPlus = exp(xPlus), etaMinus=exp(-xMinus);
-				double f_n3, f = fHS(NV*(etaPlus + etaMinus), f_n3);
-				F = NT * (2. + etaPlus*(xPlus-1.) + etaMinus*(-xMinus-1.) + invNV*(f - fHS0));
-				F_xPlus  = NT * etaPlus *(xPlus  + f_n3);
-				F_xMinus = NT * etaMinus*(xMinus - f_n3);
+			{	double etaPlus = exp(muPlus), etaMinus=exp(-muMinus);
+				double x = x0plus*etaPlus + x0minus*etaMinus; //packing fraction
+				double f_x, f = fHS(x, f_x); //hard sphere free energy per particle
+				F = NT * (2. + etaPlus*(muPlus-1.) + etaMinus*(-muMinus-1.) + f);
+				F_muPlus  = NT * etaPlus *(muPlus  + f_x * x0plus);
+				F_muMinus = NT * etaMinus*(muMinus - f_x * x0minus);
 				Rho = NZ * (etaPlus - etaMinus);
-				Rho_xPlus  = NZ * etaPlus;
-				Rho_xMinus = NZ * etaMinus;
+				Rho_muPlus  = NZ * etaPlus;
+				Rho_muMinus = NZ * etaMinus;
 			}
 		}
 		

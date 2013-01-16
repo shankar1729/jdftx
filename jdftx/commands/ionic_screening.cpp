@@ -26,13 +26,14 @@ struct CommandIonicScreening : public Command
 {
 	CommandIonicScreening() : Command("ionic-screening")
 	{
-		format = "<concentration> <Zelectrolyte> <Radius> [<linear>]";
+		format = "<concentration> <Zelectrolyte> <linear> <Rcation> <Ranion>";
 		comments =
 			"\t<concentration>: molar concentration of ions (default: 0.0, which turns off ionic screening)\n"
 			"\t<Zelectrolyte>: magnitude of charge of the cations and anions (assumed equal)\n"
 			"\t<linear>: linearity of screening = " + boolMap.optionList() + " (default: no)\n"
-			"\t<Radius>: hard-sphere radius of ion in Angstrom (default: 1.5 Angstroms)\n"
-			" Note: <linear> only affects the Nonlinear1.0 fluid (fluid 'Linear' is always linear!)";
+			"\t<Rcation>: Cation ionic radius in Angstroms (default: 1.16 [Na+])\n"
+			"\t<Ranion>: Anion ionic radius in Angstroms (default: 1.67 [Cl-])\n"
+			" Note: <linear> only affects NonlinearPCM (LinearPCM is always linear!)";
 		hasDefault = true;
 	}
 
@@ -40,19 +41,27 @@ struct CommandIonicScreening : public Command
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.ionicConcentration, 0.0, "concentration");
 		pl.get(fsp.ionicZelectrolyte, 1, "Zelectrolyte");
-		pl.get(fsp.ionicRadius, 1.5, "Radius");
 		pl.get(fsp.linearScreening, false, boolMap, "linear");
+		pl.get(fsp.ionicRadiusMinus, 1.16, "Rcation"); //Note 'minus' is wrt electron-positive convention
+		pl.get(fsp.ionicRadiusPlus, 1.67, "Ranion"); //Note 'plus' is wrt electron-positive convention
+		//Check parameters
+		if(fsp.ionicConcentration < 0.) throw("Ionic concentration must be non-negative");
+		if(fsp.ionicZelectrolyte <= 0.) throw("Ionic charge magnitude must be positive");
+		if(fsp.ionicRadiusMinus <= 0.) throw("Cation radius must be positive");
+		if(fsp.ionicRadiusPlus <= 0.) throw("Anion radius must be positive");
 		//convert to atomic units
 		fsp.ionicConcentration *= mol/liter;
-		fsp.ionicRadius *= Angstrom;
+		fsp.ionicRadiusPlus *= Angstrom;
+		fsp.ionicRadiusMinus *= Angstrom;
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg %d %lg %s",
+	{	logPrintf("%lg %d %s %lg %lg",
 			e.eVars.fluidParams.ionicConcentration/(mol/liter), //report back in mol/liter
 			e.eVars.fluidParams.ionicZelectrolyte,
-			e.eVars.fluidParams.ionicRadius/Angstrom,
-			boolMap.getString(e.eVars.fluidParams.linearScreening));
+			boolMap.getString(e.eVars.fluidParams.linearScreening),
+			e.eVars.fluidParams.ionicRadiusMinus/Angstrom,
+			e.eVars.fluidParams.ionicRadiusPlus/Angstrom);
 	}
 }
 commandIonicScreening;

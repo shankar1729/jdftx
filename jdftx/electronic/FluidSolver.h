@@ -73,7 +73,8 @@ struct FluidSolverParams
 	double epsilonBulk; //!< Bulk dielectric constant
 	double ionicConcentration; //!< Concentration of ions
 	int ionicZelectrolyte; //!< Magnitude of charge on each ion
-	double ionicRadius; //!< Hard-sphere radius of ion
+	double ionicRadiusPlus; //!< Hard-sphere radius of anion (Plus is wrt electron-positive convention)
+	double ionicRadiusMinus; //!< Hard-sphere radius of cation (Minus is wrt electron-positive convention)
 	double nc; //!< critical density for the 1.0 fluid shape function
 	double sigma; //!< smoothing factor for the  1.0 fluid shape function
 	double cavityTension; //! Surface tension (hartree per bohr^2) of the cavity

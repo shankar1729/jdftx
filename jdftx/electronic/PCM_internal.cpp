@@ -60,10 +60,13 @@ double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, d
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {
-	Screening::Screening(bool linear, double T, double Nion, double Zion, double Rion, double epsBulk)
-	: linear(linear), NT(Nion*T), NZ(Nion*Zion), NV(Nion * (4.*M_PI/3)*pow(Rion,3)), fHS0(fHS(2.*NV, invNV)), invNV(1./NV)
+	Screening::Screening(bool linear, double T, double Nion, double Zion, double Rplus, double Rminus, double epsBulk)
+	: linear(linear), NT(Nion*T), NZ(Nion*Zion),
+	x0plus(Nion * (4.*M_PI/3)*pow(Rplus,3)),
+	x0minus(Nion * (4.*M_PI/3)*pow(Rminus,3)),
+	x0(x0plus + x0minus)
 	{
-		if(NV >= 0.5) die("Bulk ionic concentration exceeds hard sphere limit = %lg mol/liter.\n", (0.5*Nion/NV) / (mol/liter));
+		if(x0 >= 1.) die("Bulk ionic concentration exceeds hard sphere limit = %lg mol/liter.\n", (Nion/x0) / (mol/liter));
 		
 		double screenLength = sqrt(T*epsBulk/(8*M_PI*Nion*Zion*Zion));
 		if(linear) logPrintf("   Linear ions with screening length = %lg bohrs.\n", screenLength);
