@@ -116,7 +116,7 @@ namespace NonlinearPCMeval
 		{	if(x>=1.) { f_x = NAN; return NAN; }
 			double den = 1./(1-x), den0 = 1./(1-x0);
 			double comb = (x-x0)*den*den0, comb_x = den*den;
-			double prefac = (3./x0);
+			double prefac = (2./x0);
 			double f = prefac * comb*comb;
 			f_x = prefac * 2.*comb*comb_x;
 			return f;
