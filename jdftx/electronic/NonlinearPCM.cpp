@@ -111,7 +111,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
 }
 
-double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, DataRptr* rhoIonPtr) const
+double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
 {
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
 	
@@ -133,7 +133,6 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Akappa = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
-		if(rhoIonPtr) *rhoIonPtr = rhoIon;
 	}
 	
 	//Compute the dielectric free energy and bound charge:
@@ -266,22 +265,27 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 }
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
-{	
-	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Shape");
-	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-	saveRawBinary(shape, filename.c_str());
-	logPrintf("done.\n"); logFlush();
-	
+{
+	string filename;
+	#define DUMP(object, suffix) \
+		filename = filenamePattern; \
+		filename.replace(filename.find("%s"), 2, suffix); \
+		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush(); \
+		saveRawBinary(object, filename.c_str()); \
+		logPrintf("done.\n"); logFlush();
+	DUMP(shape, "Shape");
+
 	if(screeningEval)
 	{
-		DataRptr rhoIon; DataRMuEps gradUnused;
-		(*this)(state, gradUnused, 0, 0, &rhoIon);
-		
-		filename = filenamePattern;
-		filename.replace(filename.find("%s"), 2, "Nion");
-		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-		saveRawBinary(rhoIon, filename.c_str());
-		logPrintf("done.\n"); logFlush();
+		DataRptr Nplus, Nminus;
+		{	DataRptr muPlus = getMuPlus(state);
+			DataRptr muMinus = getMuMinus(state);
+			double Qexp = integral(rhoExplicitTilde);
+			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
+			Nplus = params.ionicConcentration * shape * (params.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
+			Nminus = params.ionicConcentration * shape * (params.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
+		}
+		DUMP(Nplus, "N+");
+		DUMP(Nminus, "N-");
 	}
 }
