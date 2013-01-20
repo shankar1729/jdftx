@@ -19,11 +19,11 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid1D/FluidMixture.h>
 #include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 
-#define ChosenFex Lischner10
+#define ChosenFex FittedCorrelations
 
 #define FEX_NAME_quoter(FexSuffix) #FexSuffix
 #define FEX_NAME(FexSuffix) FEX_NAME_quoter(FexSuffix)
@@ -37,10 +37,10 @@ string fexName = FEX_NAME(ChosenFex);
 //Compute and return pair correlations for a specific temperature and bulk density
 ScalarFieldCollection pairCorrelations(const GridInfo& gInfo, double T, double Nbulk)
 {
-	if(fexName=="Lischner10" && fabs(T/Kelvin-298)>1)
-	{	//provide NaN correlations for Lischner10 at invalid temperatures: (eases plot scripts)
+	if(fexName=="FittedCorrelations" && fabs(T/Kelvin-298)>1)
+	{	//provide NaN correlations for FittedCorrelations at invalid temperatures: (eases plot scripts)
 		ScalarFieldCollection g; nullToZero(g, gInfo, 3);
-		g *= (0./0);
+		g *= NAN;
 		return g;
 	}
 	

@@ -22,7 +22,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/IdealGasPsiAlpha.h>
 #include <fluid1D/IdealGasMuEps.h>
 #include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 	//----- Excess functional -----
-	Fex_H2O_Lischner10 fex(fluidMixture); string fexName = "Lischner10";
+	Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
 	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
 	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 

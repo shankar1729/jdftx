@@ -19,7 +19,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid1D/FluidMixture.h>
 #include <fluid1D/IdealGasMuEps.h>
-#include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 #include <core1D/DataCollection.h>
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 	//----- Excess functional -----
-	Fex_H2O_Lischner10 fex(fluidMixture); string fexName = "Lischner10";
+	Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
 	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
 	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	FILE* fpEps = fopen((fexName + "/nonlineareps").c_str(), "w");
 	double Dfield=1e-4;
 	bool stateInitialized = false;
-	for(; Dfield<5e-2; Dfield+=2e-3)
+	for(; Dfield<6.5e-2; Dfield+=2e-3)
 	{
 		mp.energyDiffThreshold = 1e-9 * gInfo.Volume() * pow(Dfield,2);
 		idgas.Eexternal = Dfield;

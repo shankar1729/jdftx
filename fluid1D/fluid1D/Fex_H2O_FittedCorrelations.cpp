@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid/Fex_H2O_Lischner10_internal.h>
-#include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid/Fex_H2O_FittedCorrelations_internal.h>
+#include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/FluidMixture.h>
 #include <core1D/Operators.h>
 #include <core/Units.h>
@@ -60,7 +60,7 @@ inline void setKernels(int i, const double* Garr, double* COO, double* COH, doub
 }
 
 
-Fex_H2O_Lischner10::Fex_H2O_Lischner10(FluidMixture& fluidMixture)
+Fex_H2O_FittedCorrelations::Fex_H2O_FittedCorrelations(FluidMixture& fluidMixture)
 : Fex(fluidMixture),
 COO(gInfo.S), COH(gInfo.S), CHH(gInfo.S), fex_gauss(gInfo.S), siteChargeKernel(gInfo.S),
 propO(gInfo, 0.0,0.0, 0.8476,&siteChargeKernel),
@@ -73,27 +73,27 @@ molecule("H2O",
 		 vector3<>(0, +rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)) )
 {
 	if(fabs(T/Kelvin-298)>1)
-		die("The Lischner10 functional is only valid at T=298K.\n")
+		die("The FittedCorrelations functional is only valid at T=298K.\n")
 	
 	//Initialize the kernels:
 	serialLoop(setKernels, gInfo.S, gInfo.G.data(),
 		COO.data(), COH.data(), CHH.data(), fex_gauss.data(), siteChargeKernel.data());
 }
 
-double Fex_H2O_Lischner10::get_aDiel() const
+double Fex_H2O_FittedCorrelations::get_aDiel() const
 {	return 0.959572098592; //Evaluating eps/(eps-1) - epsNI/(epsNI-1) for eps=78.4 and epsNI at STP
 }
 
 //1D wrapper to the function in the 3D code - multiplies by the non-uniform quadrature weights
-inline double Fex_H2O_Lischner10_calc1D(int i, const double* wArr, const double* NObar, const double* NHbar, double* grad_NObar, double* grad_NHbar)
-{	double Fex = Fex_H2O_Lischner10_calc(i, NObar, NHbar, grad_NObar, grad_NHbar);
+inline double Fex_H2O_FittedCorrelations_calc1D(int i, const double* wArr, const double* NObar, const double* NHbar, double* grad_NObar, double* grad_NHbar)
+{	double Fex = Fex_H2O_FittedCorrelations_calc(i, NObar, NHbar, grad_NObar, grad_NHbar);
 	double w = wArr[i];
 	grad_NObar[i] *= w;
 	grad_NHbar[i] *= w;
 	return Fex * w;
 }
 
-double Fex_H2O_Lischner10::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const
+double Fex_H2O_FittedCorrelations::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const
 {	double PhiEx = 0.0;
 	//Quadratic part:
 	ScalarFieldTilde V_O = O(COO*Ntilde[0] + COH*Ntilde[1]); grad_Ntilde[0] += V_O;
@@ -104,7 +104,7 @@ double Fex_H2O_Lischner10::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTi
 	ScalarField NObar = I(fex_gauss*Ntilde[0]), grad_NObar; nullToZero(grad_NObar, gInfo);
 	ScalarField NHbar = I(fex_gauss*Ntilde[1]), grad_NHbar; nullToZero(grad_NHbar, gInfo);
 	//Evaluated weighted density functional:
-	PhiEx += serialAccumulate(Fex_H2O_Lischner10_calc1D, gInfo.S, gInfo.w.data(),
+	PhiEx += serialAccumulate(Fex_H2O_FittedCorrelations_calc1D, gInfo.S, gInfo.w.data(),
 		 NObar.data(), NHbar.data(), grad_NObar.data(), grad_NHbar.data());
 	//Convert gradients:
 	grad_Ntilde[0] += fex_gauss*Idag(grad_NObar);
@@ -112,18 +112,18 @@ double Fex_H2O_Lischner10::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTi
 	return PhiEx;
 }
 
-double Fex_H2O_Lischner10::computeUniform(const double* N, double* grad_N) const
-{	return Fex_H2O_Lischner10_calc(0, &N[0], &N[1], &grad_N[0], &grad_N[1]);
+double Fex_H2O_FittedCorrelations::computeUniform(const double* N, double* grad_N) const
+{	return Fex_H2O_FittedCorrelations_calc(0, &N[0], &N[1], &grad_N[0], &grad_N[1]);
 }
 
-void Fex_H2O_Lischner10::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
+void Fex_H2O_FittedCorrelations::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
 {	//Compute second derivatives of free energy density:
 	double NO = N[0], NH = N[1], dN = 1e-7*NO;
-	NO += 1*dN; double Op_aO, Op_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Op_aO, &Op_aH);
-	NO -= 2*dN; double Om_aO, Om_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Om_aO, &Om_aH);
+	NO += 1*dN; double Op_aO, Op_aH; Fex_H2O_FittedCorrelations_calc(0, &NO, &NH, &Op_aO, &Op_aH);
+	NO -= 2*dN; double Om_aO, Om_aH; Fex_H2O_FittedCorrelations_calc(0, &NO, &NH, &Om_aO, &Om_aH);
 	NO += 1*dN;
-	NH += 1*dN; double Hp_aO, Hp_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Hp_aO, &Hp_aH);
-	NH -= 2*dN; double Hm_aO, Hm_aH; Fex_H2O_Lischner10_calc(0, &NO, &NH, &Hm_aO, &Hm_aH);
+	NH += 1*dN; double Hp_aO, Hp_aH; Fex_H2O_FittedCorrelations_calc(0, &NO, &NH, &Hp_aO, &Hp_aH);
+	NH -= 2*dN; double Hm_aO, Hm_aH; Fex_H2O_FittedCorrelations_calc(0, &NO, &NH, &Hm_aO, &Hm_aH);
 	NH += 1*dN;
 	double a_OO = (Op_aO - Om_aO) / (2*dN);
 	double a_OH = (Op_aH - Om_aH + Hp_aO - Hm_aO) / (4*dN);

@@ -22,11 +22,11 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/IdealGasPsiAlpha.h>
 #include <fluid1D/IdealGasMuEps.h>
 #include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_Lischner10.h>
+#include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 
-#define TDEP
+//#define TDEP
 #define ChosenFex ScalarEOS
 
 
