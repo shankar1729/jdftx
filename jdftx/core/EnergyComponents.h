@@ -40,6 +40,12 @@ public:
 	//! Expose base-class function hidden by the C-style string version above.
 	double& operator[](const string& key) { return std::map<string,double>::operator[](key); }
 	
+	//const versions of above
+	//! Access by C-style string (need this to prevent ambiguous overload)
+	double operator[](const char* key) const { auto iter = find(string(key)); assert(iter != end()); return iter->second; }
+	//! Expose base-class function hidden by the C-style string version above.
+	double operator[](const string& key) const { auto iter = find(key); assert(iter != end()); return iter->second; }
+	
 	//! Set to a simple complex
 	void operator=(const double& value)
 	{	clear(); //remove all named components
@@ -65,7 +71,7 @@ public:
 	//! @param fp Output stream
 	//! @param nonzeroOnly If true, print only non-zero components
 	//! @param format Output format for each component - must have one string and one floating point conversion spec each
-	void print(FILE* fp, bool nonzeroOnly, const char* format="\t%s = %le\n")
+	void print(FILE* fp, bool nonzeroOnly, const char* format="\t%s = %le\n") const
 	{	for(const_iterator i=begin(); i!=end(); i++)
 			if(!nonzeroOnly || i->second!=0.0)
 				fprintf(fp, format, i->first.c_str(), i->second);

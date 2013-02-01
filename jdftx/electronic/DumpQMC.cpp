@@ -63,7 +63,7 @@ void Dump::dumpQMC()
 	nullToZero(Vdiel, gInfo);
 	
 	//Correction term "Atilde_diel" for QMC:
-	const double& A_diel = e->ener.A_diel;
+	const double& A_diel = e->ener.E["A_diel"];
 												  //Legendre transform to get final correction
 	double Atilde_diel = A_diel - dot(nTilde,O(J(Vdiel)));
 	logPrintf("QMC energy correction:\n\tA_diel      = %20.12le\n\tAtilde_diel = %20.12le\n", A_diel, Atilde_diel);
@@ -153,17 +153,17 @@ void Dump::dumpQMC()
 		" Spin polarized:\n"
 		"  " << (eInfo.spinType==SpinNone ? 'F' : 'T') << "\n"
 		" Total energy (au per primitive cell)\n"
-		"  " << ener.Etot << "\n"
+		"  " << ener.E["Etot"] << "\n"
 		" Kinetic energy (au per primitive cell)\n"
-		"  " << ener.KE << "\n"
+		"  " << ener.E["KE"] << "\n"
 		" Local potential energy (au per primitive cell)\n"
-		"  " << ener.Eloc + A_diel - Atilde_diel << "\n"
+		"  " << ener.E["Eloc"] + A_diel - Atilde_diel << "\n"
 		" Non local potential energy (au per primitive cell)\n"
-		"  " << ener.Enl + ener.Exc << "\n"
+		"  " << ener.E["Enl"] + ener.E["Exc"] << "\n"
 		" Electron electron energy (au per primitive cell)\n"
-		"  " << ener.EH << "\n"
+		"  " << ener.E["EH"] << "\n"
 		" Ion-ion energy (au per primitive cell)\n"
-		"  " << ener.Eewald + Atilde_diel << "\n"
+		"  " << ener.E["Eewald"] + Atilde_diel << "\n"
 		" Number of electrons per primitive cell\n"
 		"  " << int(eInfo.nElectrons+0.5) << "\n"
 		"\n"

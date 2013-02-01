@@ -391,6 +391,14 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 	watch.stop();
 }
 
+//Compute DFT+U corrections:
+double SpeciesInfo::computeU(const std::vector< diagMatrix >& F, const std::vector< ColumnBundle >& C, std::vector< ColumnBundle >* HC) const
+{	if(!plusU.size()) return 0.; //no U for this species
+	die("TODO: DFT+U yet to be implemented.\n");
+	return 0.;
+}
+
+
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
 void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 {	if(!atpos.size()) return;
@@ -400,7 +408,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 	for(int l=0; l<int(psiRadial.size()); l++)
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
 		{	for(int m=-l; m<=l; m++)
-			{	// Calculate the nonlocal projectors (and optionally their spatial derivatives):
+			{	//Set atomic orbitals for all atoms at specified (n,l,m):
 				size_t offs = iCol * basis.nbasis;
 				size_t atomStride = basis.nbasis;
 				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
@@ -408,6 +416,21 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 				iCol += atpos.size();
 			}
 		}
+}
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, unsigned n, int l, int colOffset) const
+{	if(!atpos.size()) return;
+	assert(Y.basis); assert(Y.qnum);
+	assert(colOffset >= 0); assert(colOffset + (2*l+1)*int(atpos.size()) < Y.nCols());
+	const Basis& basis = *Y.basis;
+	int iCol = colOffset; //current column
+	for(int m=-l; m<=l; m++)
+	{	//Set atomic orbitals for all atoms at specified (n,l,m):
+		size_t offs = iCol * basis.nbasis;
+		size_t atomStride = basis.nbasis;
+		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
+			atposPref, psiRadial[l][n], Y.dataPref()+offs, false, vector3<complex*>());
+		iCol += atpos.size();
+	}
 }
 void SpeciesInfo::setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const
 {	//Check inputs:

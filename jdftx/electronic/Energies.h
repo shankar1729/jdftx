@@ -21,24 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_ENERGIES_H
 
 #include <electronic/common.h>
+#include <core/EnergyComponents.h>
 
 struct Energies
 {
-	double KE; //!<!< Kinetic energy
-	double Enl; //!< Non-local pseudopotential energy
-	double Eloc; //!< Local pseudopotential energy (includes electron-nuclear electrostatic piece)
-	double EH; //!< Hartree energy (mean field electron-electron electrostatic interaction)
-	double Eewald; //!< Ewald sum  (nuclear-nuclear electrostatic interaction)
-	double A_diel; //!< Free energy of fluid + coupling
-	double Eexternal; //!< Energy due to coupling with the external potential and charge
-	double EXX; //!< exact exchange energy
-	double Exc; //!< Exchange-correlation energy
-	
-	double Exc_core; //!< Exchange-correlation energy subtraction for partial cores
-	double Epulay; //!< Pulay correction energy
-	double EvdW; //!< Pair-potential Van der Waals corrections
-	
-	double Etot; //!< Total: sum of all above
+	EnergyComponents E; //!< All components of the internal energy (excluding TS and muN)
 	
 	double TS; //!< Fillings entropy
 	double F; //!< Helmholtz energy (Etot-TS)

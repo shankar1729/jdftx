@@ -253,7 +253,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		//Compute exact exchange if required:
 		std::map<double,double> unscaledEXX; //exact exchange energies for each range parameter
 		if(e->exCorr.exxFactor()) //use the main functional Exx when available
-			unscaledEXX[e->exCorr.exxRange()] = e->ener.EXX / e->exCorr.exxFactor();
+			unscaledEXX[e->exCorr.exxRange()] = e->ener.E["EXX"] / e->exCorr.exxFactor();
 		for(auto exc: e->exCorrDiff)
 			if(exc->exxFactor() && unscaledEXX.find(exc->exxRange())==unscaledEXX.end())
 			{	double omega = exc->exxRange();
@@ -278,7 +278,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				e->exCorr.getName().c_str(), relevantFreeEnergy(*e));
 		//Compute all the functionals in the list:
 		for(auto exc: e->exCorrDiff)
-		{	double Enew = relevantFreeEnergy(*e) - (e->ener.Exc + e->ener.EXX + e->ener.Exc_core)
+		{	double Enew = relevantFreeEnergy(*e) - (e->ener.E["Exc"] + e->ener.E["EXX"] + e->ener.E["Exc_core"])
 				+ (*exc)(eVars.get_nXC(), 0, false, &tau)
 				+ (iInfo.nCore ? -(*exc)(iInfo.nCore, 0, false, &iInfo.tauCore) : 0)
 				+ exc->exxFactor() * unscaledEXX[exc->exxRange()];

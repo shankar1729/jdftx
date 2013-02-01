@@ -226,12 +226,12 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 	DataGptr nTilde = J(eInfo.spinType==SpinNone ? n[0] : n[0]+n[1]);
 	
 	// Local part of pseudopotential:
-	ener.Eloc = dot(nTilde, O(iInfo.Vlocps));
+	ener.E["Eloc"] = dot(nTilde, O(iInfo.Vlocps));
 	DataGptr VsclocTilde = clone(iInfo.Vlocps);
 	
 	// Hartree term:
 	d_vac = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
-	ener.EH = 0.5*dot(nTilde, O(d_vac));
+	ener.E["EH"] = 0.5*dot(nTilde, O(d_vac));
 	VsclocTilde += d_vac;
 	
 	//Include nuclear charge into d_vac so dumped quantity has asymptoptic properties 
@@ -239,10 +239,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 	d_vac += (*e->coulomb)(iInfo.rhoIon);
 
 	// External charge:
-	ener.Eexternal = 0.;
+	ener.E["Eexternal"] = 0.;
 	if(rhoExternal)
 	{	DataGptr phiExternal = (*e->coulomb)(rhoExternal);
-		ener.Eexternal += dot(nTilde + iInfo.rhoIon, O(phiExternal));
+		ener.E["Eexternal"] += dot(nTilde + iInfo.rhoIon, O(phiExternal));
 		VsclocTilde += phiExternal;
 		d_vac += phiExternal;
 	}
@@ -263,14 +263,14 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 		if(!fluidSolver->needsGummel()) fluidSolver->minimizeFluid();
 		
 		// Compute the energy and accumulate gradients:
-		ener.A_diel = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity, fluidForces);
+		ener.E["A_diel"] = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity, fluidForces);
 		VsclocTilde += d_fluid;
 		VsclocTilde += V_cavity;
 		
 		//Chemical-potential correction due to finite nuclear width in fluid interaction:
 		if(fluidParams.ionicConcentration || fluidParams.hSIons.size())
 		{	double muCorrection = iInfo.ionWidthMuCorrection();
-			ener.A_diel += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
+			ener.E["A_diel"] += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
 			VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
 		}
 		
@@ -278,12 +278,12 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
 	DataRptrCollection Vxc;
-	ener.Exc = e->exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
+	ener.E["Exc"] = e->exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	for(unsigned s=0; s<Vxc.size(); s++)
 	{	Vscloc[s] = Jdag(O(VsclocTilde), true) + JdagOJ(Vxc[s]);
 		//External potential contributions:
 		if(Vexternal.size())
-		{	ener.Eexternal += e->gInfo.dV * dot(n[s], Vexternal[s]);
+		{	ener.E["Eexternal"] += e->gInfo.dV * dot(n[s], Vexternal[s]);
 			Vscloc[s] += JdagOJ(Vexternal[s]);
 		}
 		e->symm.symmetrize(Vscloc[s]);
@@ -372,17 +372,20 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	std::vector<ColumnBundle> HC(eInfo.nStates); //gradient w.r.t C (upto weights and fillings)
 	
+	//DFT+U corrections, if required:
+	ener.E["U"] = iInfo.computeU(F, C, need_Hsub ? &HC : 0);
+	
 	//Exact exchange if required:
-	ener.EXX = 0.;
+	ener.E["EXX"] = 0.;
 	if(e->exCorr.exxFactor())
 	{	double aXX = e->exCorr.exxFactor();
 		double omega = e->exCorr.exxRange();
 		assert(e->exx);
-		ener.EXX = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
+		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
 	//Do the rest one state at a time to save memory (and for better cache warmth):
-	ener.Enl = 0.0;
-	ener.KE = 0.0;
+	ener.E["Enl"] = 0.0;
+	ener.E["KE"] = 0.0;
 	for(int q=0; q<eInfo.nStates; q++)
 	{	const QuantumNumber& qnum = eInfo.qnums[q];
 		diagMatrix Fq = e->cntrl.fixed_n ? eye(eInfo.nBands) : F[q]; //override fillings for band structure
@@ -403,10 +406,10 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		ColumnBundle minushalfLCq = -0.5*L(Cq);
 		if(HCq) HCq += minushalfLCq;
 		double KEq = traceinner(Fq, Cq, minushalfLCq).real();
-		ener.KE += qnum.weight * KEq;
+		ener.E["KE"] += qnum.weight * KEq;
 		
 		//Nonlocal pseudopotentials:
-		ener.Enl += qnum.weight * iInfo.EnlAndGrad(Fq, Cq, HCq);
+		ener.E["Enl"] += qnum.weight * iInfo.EnlAndGrad(Fq, Cq, HCq);
 		
 		//Compute subspace hamiltonian if needed:
 		if(need_Hsub)

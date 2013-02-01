@@ -158,7 +158,7 @@ void IonInfo::update(Energies& ener)
 	//---------- energies dependent on ionic positions alone ----------------
 	
 	//Energies due to partial electronic cores:
-	ener.Exc_core = nCore ? -e->exCorr(nCore, 0, false, &tauCore) : 0.0;
+	ener.E["Exc_core"] = nCore ? -e->exCorr(nCore, 0, false, &tauCore) : 0.0;
 	
 	//Energies from pair-potential terms (Ewald etc.):
 	pairPotentialsAndGrad(&ener);
@@ -170,7 +170,7 @@ void IonInfo::update(Energies& ener)
 	double nbasisAvg = 0.0;
 	for(int q=0; q<e->eInfo.nStates; q++)
 		nbasisAvg += 0.5*e->eInfo.qnums[q].weight * e->basis[q].nbasis;
-	ener.Epulay = dEtot_dnG * 
+	ener.E["Epulay"] = dEtot_dnG * 
 		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
 		-  nbasisAvg/e->gInfo.detR ); //actual nG
 	
@@ -271,10 +271,15 @@ void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, c
 		species[sp]->augmentDensityGrad(Fq, Cq, Vscloc, HCq, forces ? &forces->at(sp) : 0, gradCdagOCq);
 }
 
+double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const
+{	double U = 0.;
+	for(auto sp: species)
+		U += sp->computeU(F, C, HC);
+	return U;
+}
 
 void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 {
-	
 	//Obtain the list of atomic positions and charges:
 	std::vector<Atom> atoms;
 	for(auto sp: species)
@@ -286,8 +291,8 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 	double EvdW = e->vanDerWaals ? e->vanDerWaals->energyAndGrad(atoms, e->exCorr.getName()) : 0.; //vanDerWaals energy+force
 	//Store energies and/or forces if requested:
 	if(ener)
-	{	ener->Eewald = Eewald;
-		ener->EvdW = EvdW;
+	{	ener->E["Eewald"] = Eewald;
+		ener->E["EvdW"] = EvdW;
 	}
 	if(forces)
 	{	auto atom = atoms.begin();

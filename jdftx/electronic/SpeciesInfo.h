@@ -93,8 +93,13 @@ public:
 	void augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
 		ColumnBundle& HCq, std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
 	
+	//! Perform IonInfo::computeU() for this species
+	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC = 0) const;
+	
 	//! Calculate atomic orbitals (store in Y with an optional column offset)
 	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
+	//! Calculate atomic orbitals of specific n and l (store in Y with an optional column offset)
+	void setAtomicOrbitals(ColumnBundle& Y, unsigned n, int l, int colOffset=0) const;
 	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
 	void setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const;
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
@@ -138,6 +143,13 @@ private:
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	
+	//!Parameters for optional DFT+U corrections
+	struct PlusU
+	{	int n, l; //!< Principal and angular quantum numbers
+		double UminusJ; //!< U - J [Dudarev et al, Phys. Rev. B 57, 1505] scheme
+	};
+	std::vector<PlusU> plusU; //!< list of +U corrections
+	
 	PseudopotentialFormat pspFormat;
 	string potfilename, pulayfilename;
 	int lLocCpi; //!< local channel l for CPI files (Default: -1 => last channel in file)
@@ -160,9 +172,9 @@ private:
 	void setupPulay(); // Implemented in SpeciesInfo_readPot.cpp
 	
 	friend class CommandIonSpecies;
+	friend class CommandAddU;
 	friend class CommandChargeball;
 	friend class CommandWavefunction;
-	
 };
 
 

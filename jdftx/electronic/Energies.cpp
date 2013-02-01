@@ -21,14 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 
-Energies::Energies()
-{	memset(this, 0, sizeof(*this)); 
+Energies::Energies() : TS(0), F(0), muN(0), G(0), Eband(0)
+{
 }
 
 
 void Energies::updateTotals()
-{	Etot = KE + Enl + Eloc + EH + Eewald + A_diel + Eexternal + EXX + Exc + Exc_core + Epulay + EvdW;
-	F = Etot - TS;
+{	F = double(E) - TS;
 	G = F - muN;
 }
 
@@ -36,29 +35,18 @@ void Energies::print(FILE* fp) const
 {	if(Eband)
 		fprintf(fp, "Eband = %25.16lf\n\n", Eband);
 	else
-	{	if(KE)        fprintf(fp, "KE        = %25.16lf\n", KE);
-		if(Enl)       fprintf(fp, "Enl       = %25.16lf\n", Enl);
-		if(Eloc)      fprintf(fp, "Eloc      = %25.16lf\n", Eloc);
-		if(EH)        fprintf(fp, "EH        = %25.16lf\n", EH);
-		if(Eewald)    fprintf(fp, "Eewald    = %25.16lf\n", Eewald);
-		if(A_diel)    fprintf(fp, "A_diel    = %25.16lf\n", A_diel);
-		if(Eexternal) fprintf(fp, "Eexternal = %25.16lf\n", Eexternal);
-		if(EXX)       fprintf(fp, "EXX       = %25.16lf\n", EXX);
-		if(Exc)       fprintf(fp, "Exc       = %25.16lf\n", Exc);
-		if(Exc_core)  fprintf(fp, "Exc_core  = %25.16lf\n", Exc_core);
-		if(Epulay)    fprintf(fp, "Epulay    = %25.16lf\n", Epulay);
-		if(EvdW)      fprintf(fp, "EvdW      = %25.16lf\n", EvdW);
+	{	E.print(fp, true, "%9s = %25.16lf\n");
 		fprintf(fp, "-------------------------------------\n");
-		fprintf(fp, "Etot      = %25.16lf\n", Etot);
+		fprintf(fp, "     Etot = %25.16lf\n", double(E));
 		if(TS)
-		{	fprintf(fp, "TS        = %25.16lf\n", TS);
+		{	fprintf(fp, "       TS = %25.16lf\n", TS);
 			fprintf(fp, "-------------------------------------\n");
-			fprintf(fp, "F         = %25.16lf\n", F);
+			fprintf(fp, "        F = %25.16lf\n", F);
 		}
 		if(muN)
-		{	fprintf(fp, "muN       = %25.16lf\n", muN);
+		{	fprintf(fp, "      muN = %25.16lf\n", muN);
 			fprintf(fp, "-------------------------------------\n");
-			fprintf(fp, "G         = %25.16lf\n", G);
+			fprintf(fp, "        G = %25.16lf\n", G);
 		}
 	}
 	fflush(fp);
@@ -67,7 +55,7 @@ void Energies::print(FILE* fp) const
 
 double relevantFreeEnergy(const Everything& e)
 {	if(e.cntrl.fixed_n) return e.ener.Eband;
-	else if(e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) return e.ener.Etot;
+	else if(e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) return double(e.ener.E);
 	else if(isnan(e.eInfo.mu)) return e.ener.F;
 	else return e.ener.G;
 }
