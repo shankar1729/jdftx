@@ -30,6 +30,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 	#include <cuda_runtime.h>
 #endif
 
+//! Ceiling of a positive integer division, templated over int types
+template<class T> T ceildiv(T num, T den) { return (num + den - 1)/den; }
+
+//! Return largest multiple of den smaller than num, templated over int types
+template<class T> T floorMultiple(T num, T den) { return (num/den)*den; }
+
 
 //! Complex number (need to define our own because we need operators for gpu code as well)
 struct complex

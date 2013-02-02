@@ -30,12 +30,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file GpuKernelUtils.h
 //! @brief Common utility functions/macros for the gpu kernels and launchers in the .cu files
 
-//! Ceiling of a positive integer division, templated over int types
-template<class T> T ceildiv(T num, T den) { return (num + den - 1)/den; }
-
-//! Return largest multiple of den smaller than num, templated over int types
-template<class T> T floorMultiple(T num, T den) { return (num/den)*den; }
-
 //! Base-class for launch configuration for gpu kernels
 struct GpuLaunchConfig
 {	cudaFuncAttributes attr; //!< attributes of the function
