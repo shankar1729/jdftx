@@ -65,9 +65,15 @@ public:
 
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop)
 	matrix operator()(int iStart, int iStop, int jStart, int jStop) const;
+	
+	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop) with arbitrary increments
+	matrix operator()(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop) const;
 
 	//! set submatrix to m
 	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m);
+	
+	//! set submatrix to m at arbitrary increments
+	void set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m);
 	
 	void scan(FILE* fp, const char* fmt="%lg%+lgi"); //!< read (ascii) from stream
 	void scan_real(FILE* fp); //!< read (ascii) real parts from stream, setting imaginary parts to 0
@@ -127,13 +133,13 @@ matrix operator*(const matrix&, const diagMatrix&);
 matrix operator*(const diagMatrix&, const matrix&);
 diagMatrix operator*(const diagMatrix&, const diagMatrix&);
 
-inline matrix& operator+=(matrix &m1, const matrix &m2) { axpy(1.0, m2, m1); return m1; }
-inline matrix& operator-=(matrix &m1, const matrix &m2) { axpy(-1.0, m2, m1); return m1; }
+inline matrix& operator+=(matrix &m1, const matrix &m2) { if(m1) axpy(1.0, m2, m1); else m1 = m2; return m1; }
+inline matrix& operator-=(matrix &m1, const matrix &m2) { if(m1) axpy(-1.0, m2, m1); else m1 = -m2; return m1; }
 inline matrix operator+(const matrix &m1, const matrix &m2) { matrix tm(m1); tm += m2; return tm; }
 inline matrix operator-(const matrix &m1, const matrix &m2) { matrix tm(m1); tm -= m2; return tm; }
 void axpy(double alpha, const diagMatrix& x, matrix& y);
-inline matrix& operator+=(matrix& m, const diagMatrix& d) { axpy(1., d, m); return m; }
-inline matrix& operator-=(matrix& m, const diagMatrix& d) { axpy(-1., d, m); return m; }
+inline matrix& operator+=(matrix& m, const diagMatrix& d) { if(m) axpy(1., d, m); else m = d; return m; }
+inline matrix& operator-=(matrix& m, const diagMatrix& d) { if(m) axpy(-1., d, m); else m=-d; return m; }
 inline matrix operator+(const matrix& m, const diagMatrix& d) { matrix ret(m); ret+=d; return ret; }
 inline matrix operator+(const diagMatrix& d, const matrix& m) { matrix ret(m); ret+=d; return ret; }
 inline matrix operator-(const matrix& m, const diagMatrix& d) { matrix ret(m); ret-=d; return ret; }

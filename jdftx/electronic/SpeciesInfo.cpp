@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
+#include <electronic/operators.h>
 #include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
 #include <core/Util.h>
@@ -392,10 +393,46 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 }
 
 //Compute DFT+U corrections:
-double SpeciesInfo::computeU(const std::vector< diagMatrix >& F, const std::vector< ColumnBundle >& C, std::vector< ColumnBundle >* HC) const
+double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const
 {	if(!plusU.size()) return 0.; //no U for this species
-	die("TODO: DFT+U yet to be implemented.\n");
-	return 0.;
+	const ElecInfo& eInfo = e->eInfo;
+	int nSpins = eInfo.spinType==SpinNone ? 1 : 2; //number of spins
+	int qCount = eInfo.nStates/nSpins; //number of states of each spin
+	double wSpinless = 0.5*nSpins; //factor multiplying state weights to get to spinless weights
+	double Utot = 0.;
+	for(int s=0; s<nSpins; s++)
+		for(auto Uparams: plusU)
+		{	int mCount = 2*Uparams.l+1; //number of m's at given l
+			double prefac = 0.5 * Uparams.UminusJ / wSpinless;
+			//Compute the density matrix:
+			matrix rho;
+			for(int q=s*qCount; q<(s+1)*qCount; q++)
+			{	ColumnBundle psi(C[q].similar(atpos.size() * mCount));
+				setAtomicOrbitals(psi, Uparams.n, Uparams.l);
+				matrix M = (1./e->gInfo.detR) * (C[q] ^ O(psi));
+				rho += (eInfo.qnums[q].weight*wSpinless) * dagger(M) * F[q] * M;
+			}
+			//Compute contributions to U and its derivative w.r.t density matrix rho:
+			matrix U_rho = zeroes(rho.nRows(), rho.nCols());
+			for(unsigned a=0; a<atpos.size(); a++)
+			{	matrix rhoSub = rho(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols());
+				Utot += prefac * trace(rhoSub - rhoSub*rhoSub).real();
+				U_rho.set(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols(), prefac * (eye(mCount) - 2.*rhoSub));
+			}
+			//Propagate gradient from U_rho to wavefunctions if required:
+			if(HC)
+			{	for(int q=s*qCount; q<(s+1)*qCount; q++)
+				{	ColumnBundle Opsi;
+					{	ColumnBundle psi(C[q].similar(atpos.size() * mCount));
+						setAtomicOrbitals(psi, Uparams.n, Uparams.l);
+						Opsi = O(psi);
+					}
+					matrix M = (1./e->gInfo.detR) * (C[q] ^ Opsi);
+					HC->at(q) += (wSpinless/e->gInfo.detR) * Opsi * (U_rho * dagger(M)); //gradient upto state weight and fillings
+				}
+			}
+		}
+	return Utot;
 }
 
 
@@ -420,7 +457,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, unsigned n, int l, int colOffset) const
 {	if(!atpos.size()) return;
 	assert(Y.basis); assert(Y.qnum);
-	assert(colOffset >= 0); assert(colOffset + (2*l+1)*int(atpos.size()) < Y.nCols());
+	assert(colOffset >= 0); assert(colOffset + (2*l+1)*int(atpos.size()) <= Y.nCols());
 	const Basis& basis = *Y.basis;
 	int iCol = colOffset; //current column
 	for(int m=-l; m<=l; m++)

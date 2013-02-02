@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
+#include <core/GpuKernelUtils.h>
 #include <electronic/matrix.h>
 
 //---------------------- class diagMatrix --------------------------
@@ -131,6 +132,39 @@ void matrix::set(int iStart, int iStop, int jStart, int jStop, const matrix& m)
 	for(int i=0; i<iDelta; i++)
 		for(int j=0; j<jDelta; j++)
 			thisData[this->index(i+iStart, j+jStart)] = mData[m.index(i,j)];
+}
+
+matrix matrix::operator()(int iStart, int iStep,  int iStop, int jStart, int jStep, int jStop) const
+{	assert(iStart>=0 && iStart<nr);
+	assert(iStop>iStart && iStop<=nr);
+	assert(iStep>0);
+	assert(jStart>=0 || jStart<nc);
+	assert(jStop>jStart || jStop<=nc);
+	assert(jStep>0);
+	
+	int iDelta = ceildiv(iStop-iStart, iStep), jDelta = ceildiv(jStop-jStart, jStep);
+	matrix ret(iDelta,jDelta); complex* retData = ret.data(); const complex* thisData = this->data();
+	for(int i=0; i<iDelta; i++)
+		for(int j=0; j<jDelta; j++)
+			retData[ret.index(i,j)] = thisData[this->index(i*iStep+iStart, j*jStep+jStart)];
+	return ret;
+}
+
+void matrix::set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m)
+{	assert(iStart>=0 && iStart<nr);
+	assert(iStop>iStart && iStop<=nr);
+	assert(iStep>0);
+	assert(jStart>=0 || jStart<nc);
+	assert(jStop>jStart || jStop<=nc);
+	assert(jStep>0);
+	int iDelta = ceildiv(iStop-iStart, iStep), jDelta = ceildiv(jStop-jStart, jStep);
+	assert(iDelta==m.nr);
+	assert(jDelta==m.nc);
+
+	const complex* mData = m.data(); complex* thisData = this->data();
+	for(int i=0; i<iDelta; i++)
+		for(int j=0; j<jDelta; j++)
+			thisData[this->index(i*iStep+iStart, j*jStep+jStart)] = mData[m.index(i,j)];
 }
 
 //----------- Formatted (ascii) read/write ----------

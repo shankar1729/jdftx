@@ -128,3 +128,106 @@ struct CommandIonSpecies : public Command
 	}
 }
 commandIonSpecies;
+
+
+struct CommandChargeball : public Command
+{
+	CommandChargeball() : Command("chargeball")
+	{
+		format = "<species-id> <unusedInteger> <width> [<norm>=2.0]";
+		comments =
+			"Gaussian chargeball of norm <norm> and width <width> for species <id>\n"
+			"(<unusedInteger> used to be the unused <Z_core>, and has been retained for compatibility)\n"
+			"This feature is deprecated, use a pseudopotential with partial core correction instead.";
+		allowMultiple = true;
+
+		require("ion-species");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	string id;
+		pl.get(id, string(), "species-id", true);
+		for(auto sp: e.iInfo.species)
+			if(sp->name == id)
+			{	int unusedInteger;
+				pl.get(unusedInteger, 0, "unusedInteger", true);
+				pl.get(sp->width_chargeball, 0.0, "width", true);
+				pl.get(sp->Z_chargeball, 2.0, "norm");
+				return;
+			}
+		throw string("Species "+id+" has not been defined");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	if(unsigned(iRep) < e.iInfo.species.size())
+		{	const SpeciesInfo& sp = *(e.iInfo.species[iRep]);
+			logPrintf("%s -1 %lg %lg", sp.name.c_str(), sp.width_chargeball, sp.Z_chargeball);
+		}
+	}
+}
+commandChargeball;
+
+
+struct CommandAddU : public Command
+{
+	CommandAddU() : Command("add-U")
+	{	format = "<species> <orbDesc> <UminusJ> [ <species2> ... ]";
+		comments =
+			"Add U correction (DFT+U) to specified species and orbitals, in the simplified\n"
+			"rotationally-invariant scheme of [Dudarev et al, Phys. Rev. B 57, 1505], where\n"
+			"the correction depends only on U - J.\n"
+			"  <species> is one of the pseudopotential identifiers.\n"
+			"  <orbDesc> is one of s,p,d or f.\n"
+			"  <UminusJ> = U-J is the on-site correction energy in hartrees.\n"
+			"Repeat the sequence for corrections to multiple species.\n"
+			"If pseudoatom has multiple shells of same angular momentum, prefix <orbDesc>\n"
+			"with a number e.g. 1p or 2p to select the first or second p shell respectively.";
+		
+		require("ion-species");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	string id;
+		pl.get(id, string(), "species", true);
+		while(id.length())
+		{	bool spFound = false;
+			for(auto sp: e.iInfo.species)
+				if(sp->name == id)
+				{	SpeciesInfo::PlusU plusU;
+					//Get the orbital description:
+					string orbCode; pl.get(orbCode, string(), "orbDesc", true);
+					size_t lPos = string("spdf").find_first_of(orbCode.back());
+					if(lPos==string::npos) throw  "'" + orbCode + "' is not a valid orbital code.";
+					plusU.l = int(lPos);
+					plusU.n = 0;
+					if(orbCode.length() > 1)
+					{	plusU.n = atoi(orbCode.substr(0, orbCode.length()-1).c_str()) - 1;
+						if(plusU.n<0) throw string("Principal quantum number in orbital description must be a positive integer");
+					}
+					//Get the value:
+					pl.get(plusU.UminusJ, 0., "UminusJ", true);
+					//Add U decsriptor to species:
+					sp->plusU.push_back(plusU);
+					spFound = true;
+					break;
+				}
+			if(!spFound) throw string("Species "+id+" has not been defined");
+			//Check for additional species:
+			pl.get(id, string(), "species");
+		}
+		Citations::add("Simplified rotationally-invariant DFT+U", "S. L. Dudarev et al., Phys. Rev. B 57, 1505 (1998)");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	bool first = true;
+		for(auto sp: e.iInfo.species)
+			for(auto plusU: sp->plusU)
+			{	if(!first) logPrintf(" \\\n"); first = false;
+				ostringstream oss;
+				if(plusU.n) oss << (plusU.n + 1);
+				oss << string("spdf")[plusU.l];
+				logPrintf("\t%s %s %lg", sp->name.c_str(), oss.str().c_str(), plusU.UminusJ);
+			}
+	}
+}
+commandAddU;
