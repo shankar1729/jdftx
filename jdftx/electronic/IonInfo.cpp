@@ -240,6 +240,8 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	IonicGradient forcesNL; forcesNL.init(*this);
 	for(int q=0; q<eInfo.nStates; q++)
 		EnlAndGrad(eVars.F[q], eVars.C[q], nullHC, &forcesNL);
+	//Include DFT+U contribution if any:
+	computeU(eVars.F, eVars.C, 0, &forcesNL);
 	e->symm.symmetrize(forcesNL);
 	forces += forcesNL;
 	if(shouldPrintForceComponents)
@@ -271,10 +273,11 @@ void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, c
 		species[sp]->augmentDensityGrad(Fq, Cq, Vscloc, HCq, forces ? &forces->at(sp) : 0, gradCdagOCq);
 }
 
-double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const
+double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+	std::vector<ColumnBundle>* HC, IonicGradient* forces) const
 {	double U = 0.;
-	for(auto sp: species)
-		U += sp->computeU(F, C, HC);
+	for(unsigned sp=0; sp<species.size(); sp++)
+		U += species[sp]->computeU(F, C, HC, forces ? &forces->at(sp) : 0);
 	return U;
 }
 

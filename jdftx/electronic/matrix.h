@@ -37,6 +37,12 @@ public:
 	
 	diagMatrix& operator*=(double s) { for(double& d: *this) d*=s; return *this; }
 	
+	//Splicing operations:
+	diagMatrix operator()(int iStart, int iStop) const; //! get submatrix of elements (iStart \<= i \< iStop)
+	diagMatrix operator()(int iStart, int iStep, int iStop) const; //! get submatrix of elements (iStart \<= i \< iStop) with arbitrary increments
+	void set(int iStart, int iStop, const diagMatrix& m); //! set submatrix to m
+	void set(int iStart, int iStep, int iStop, const diagMatrix& m); //! set submatrix to m at arbitrary increments
+
 	void scan(FILE* fp); //!< read (ascii) from stream
 	void print(FILE* fp, const char* fmt="%lg\t") const; //!< print (ascii) to stream
 };

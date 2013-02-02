@@ -34,6 +34,39 @@ bool diagMatrix::isScalar(double absTol, double relTol) const
 	return true;
 }
 
+diagMatrix diagMatrix::operator()(int iStart, int iStop) const
+{	assert(iStart>=0 && iStart<nRows());
+	assert(iStop>iStart && iStop<=nRows());
+	int iDelta = iStop-iStart;
+	diagMatrix ret(iDelta);
+	for(int i=0; i<iDelta; i++) ret[i] = at(i+iStart);
+	return ret;
+}
+void diagMatrix::set(int iStart, int iStop, const diagMatrix& m)
+{	assert(iStart>=0 && iStart<nRows());
+	assert(iStop>iStart && iStop<=nRows());
+	int iDelta = iStop-iStart;
+	assert(iDelta==m.nRows());
+	for(int i=0; i<iDelta; i++) at(i+iStart) = m[i];
+}
+diagMatrix diagMatrix::operator()(int iStart, int iStep,  int iStop) const
+{	assert(iStart>=0 && iStart<nRows());
+	assert(iStop>iStart && iStop<=nRows());
+	assert(iStep>0);
+	int iDelta = ceildiv(iStop-iStart, iStep);
+	diagMatrix ret(iDelta);
+	for(int i=0; i<iDelta; i++) ret[i] = at(i*iStep+iStart);
+	return ret;
+}
+void diagMatrix::set(int iStart, int iStep, int iStop, const diagMatrix& m)
+{	assert(iStart>=0 && iStart<nRows());
+	assert(iStop>iStart && iStop<=nRows());
+	assert(iStep>0);
+	int iDelta = ceildiv(iStop-iStart, iStep);
+	assert(iDelta==m.nRows());
+	for(int i=0; i<iDelta; i++) at(i*iStep+iStart) = m[i];
+}
+
 void diagMatrix::scan(FILE* fp)
 {	for(double& d: *this) fscanf(fp, "%lg", &d);
 }

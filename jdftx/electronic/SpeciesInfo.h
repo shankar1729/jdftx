@@ -94,12 +94,11 @@ public:
 		ColumnBundle& HCq, std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
 	
 	//! Perform IonInfo::computeU() for this species
-	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC = 0) const;
+	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+		std::vector<ColumnBundle>* HC = 0, std::vector<vector3<> >* forces=0) const;
 	
 	//! Calculate atomic orbitals (store in Y with an optional column offset)
 	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
-	//! Calculate atomic orbitals of specific n and l (store in Y with an optional column offset)
-	void setAtomicOrbitals(ColumnBundle& Y, unsigned n, int l, int colOffset=0) const;
 	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
 	void setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const;
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
@@ -142,6 +141,10 @@ private:
 	std::vector< std::vector<RadialFunctionG> > projRadial; //!< PAW projectors (outer index l, inner index projetcor)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
+	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
+	
+	//! Calculate O(atomic orbitals) of specific n and l. and optionally retrieve spatial gradient in dY
+	void setOpsi(ColumnBundle& Y, unsigned n, int l, std::vector<ColumnBundle>* dY=0) const;
 	
 	//!Parameters for optional DFT+U corrections
 	struct PlusU

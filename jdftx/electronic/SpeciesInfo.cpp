@@ -89,6 +89,7 @@ SpeciesInfo::SpeciesInfo()
 	dGloc = 0.02; // default grid seperation for full G functions.
 	dGnl  = 0.02; // default grid separation for reduced G operations
 	pulayfilename ="none";
+	OpsiRadial = &psiRadial;
 }
 
 SpeciesInfo::~SpeciesInfo()
@@ -103,6 +104,10 @@ SpeciesInfo::~SpeciesInfo()
 		for(auto& Qijl: Qradial) Qijl.second.free();
 		for(auto& proj_l: projRadial) for(auto& proj_lp: proj_l) proj_lp.free();
 		for(auto& psi_l: psiRadial) for(auto& psi_lp: psi_l) psi_lp.free();
+		if(OpsiRadial != &psiRadial)
+		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
+			delete OpsiRadial;
+		}
 	}
 }
 
@@ -392,8 +397,35 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 	watch.stop();
 }
 
+
+void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l, std::vector<ColumnBundle>* dOpsi) const
+{	if(!atpos.size()) return;
+	assert(Opsi.basis); assert(Opsi.qnum);
+	assert((2*l+1)*int(atpos.size()) <= Opsi.nCols());
+	const Basis& basis = *Opsi.basis;
+	vector3<complex*> dOpsiData;
+	if(dOpsi)
+	{	dOpsi->resize(3);
+		for(int k=0; k<3; k++)
+		{	if(!dOpsi->at(k)) dOpsi->at(k) = Opsi.similar();
+			assert((2*l+1)*int(atpos.size()) <= dOpsi->at(k).nCols());
+			dOpsiData[k] = dOpsi->at(k).dataPref();
+		}
+	}
+	int iCol = 0; //current column
+	for(int m=-l; m<=l; m++)
+	{	//Set atomic orbitals for all atoms at specified (n,l,m):
+		size_t offs = iCol * basis.nbasis;
+		size_t atomStride = basis.nbasis;
+		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Opsi.qnum->k, basis.iGarrPref, e->gInfo.G,
+			atposPref, OpsiRadial->at(l)[n], Opsi.dataPref()+offs, dOpsi, dOpsiData+offs);
+		iCol += atpos.size();
+	}
+}
+
 //Compute DFT+U corrections:
-double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const
+double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+	std::vector<ColumnBundle>* HC, std::vector<vector3<> >* forces) const
 {	if(!plusU.size()) return 0.; //no U for this species
 	const ElecInfo& eInfo = e->eInfo;
 	int nSpins = eInfo.spinType==SpinNone ? 1 : 2; //number of spins
@@ -407,10 +439,10 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 			//Compute the density matrix:
 			matrix rho;
 			for(int q=s*qCount; q<(s+1)*qCount; q++)
-			{	ColumnBundle psi(C[q].similar(atpos.size() * mCount));
-				setAtomicOrbitals(psi, Uparams.n, Uparams.l);
-				matrix M = (1./e->gInfo.detR) * (C[q] ^ O(psi));
-				rho += (eInfo.qnums[q].weight*wSpinless) * dagger(M) * F[q] * M;
+			{	ColumnBundle Opsi(C[q].similar(atpos.size() * mCount));
+				setOpsi(Opsi, Uparams.n, Uparams.l);
+				matrix CdagOpsi = C[q] ^ Opsi;
+				rho += (eInfo.qnums[q].weight*wSpinless) * dagger(CdagOpsi) * F[q] * CdagOpsi;
 			}
 			//Compute contributions to U and its derivative w.r.t density matrix rho:
 			matrix U_rho = zeroes(rho.nRows(), rho.nCols());
@@ -419,16 +451,21 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 				Utot += prefac * trace(rhoSub - rhoSub*rhoSub).real();
 				U_rho.set(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols(), prefac * (eye(mCount) - 2.*rhoSub));
 			}
-			//Propagate gradient from U_rho to wavefunctions if required:
-			if(HC)
+			//Propagate gradient from U_rho to wavefunctions or ionic positions if required:
+			if(HC || forces)
 			{	for(int q=s*qCount; q<(s+1)*qCount; q++)
-				{	ColumnBundle Opsi;
-					{	ColumnBundle psi(C[q].similar(atpos.size() * mCount));
-						setAtomicOrbitals(psi, Uparams.n, Uparams.l);
-						Opsi = O(psi);
+				{	ColumnBundle Opsi(C[q].similar(atpos.size() * mCount));
+					std::vector<ColumnBundle> dOpsi;
+					setOpsi(Opsi, Uparams.n, Uparams.l, forces ? &dOpsi : 0);
+					matrix CdagOpsi = C[q] ^ Opsi;
+					if(HC) HC->at(q) += wSpinless * Opsi * (U_rho * dagger(CdagOpsi)); //gradient upto state weight and fillings
+					if(forces)
+					{	for(int k=0; k<3; k++)
+						{	diagMatrix fMat = wSpinless * diag(U_rho * dagger(CdagOpsi) * F[q] * (C[q]^dOpsi[k]));
+							for(unsigned a=0; a<atpos.size(); a++)
+								(*forces)[a][k] -= 2.0*C[q].qnum->weight * trace(fMat(a,atpos.size(),fMat.nRows()));
+						}
 					}
-					matrix M = (1./e->gInfo.detR) * (C[q] ^ Opsi);
-					HC->at(q) += (wSpinless/e->gInfo.detR) * Opsi * (U_rho * dagger(M)); //gradient upto state weight and fillings
 				}
 			}
 		}
@@ -453,21 +490,6 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 				iCol += atpos.size();
 			}
 		}
-}
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, unsigned n, int l, int colOffset) const
-{	if(!atpos.size()) return;
-	assert(Y.basis); assert(Y.qnum);
-	assert(colOffset >= 0); assert(colOffset + (2*l+1)*int(atpos.size()) <= Y.nCols());
-	const Basis& basis = *Y.basis;
-	int iCol = colOffset; //current column
-	for(int m=-l; m<=l; m++)
-	{	//Set atomic orbitals for all atoms at specified (n,l,m):
-		size_t offs = iCol * basis.nbasis;
-		size_t atomStride = basis.nbasis;
-		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
-			atposPref, psiRadial[l][n], Y.dataPref()+offs, false, vector3<complex*>());
-		iCol += atpos.size();
-	}
 }
 void SpeciesInfo::setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const
 {	//Check inputs:
