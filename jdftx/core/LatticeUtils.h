@@ -58,6 +58,7 @@ struct Supercell
 	struct KmeshTransform
 	{	unsigned iReduced; //!< corresponding reduced index
 		unsigned iSym; //!< symmetry matrix for transforming reduced to current value
+		int invert; //!< sign of transformation to include inversion symmetry in k-space
 		vector3<int> offset; //!< additional translation to get to kmesh from reduced one
 	};
 	std::vector<KmeshTransform> kmeshTransform;
@@ -66,7 +67,7 @@ struct Supercell
 	//! symmetry-reduced k-point mesh and list of symmetries
 	Supercell(const GridInfo& gInfo,
 		const std::vector<vector3<>>& kmeshReduced,
-		const std::vector<matrix3<int>>& sym);
+		const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList);
 };
 
 #endif // JDFTX_CORE_LATTICEUTILS_H

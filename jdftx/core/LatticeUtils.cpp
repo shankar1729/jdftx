@@ -94,38 +94,39 @@ std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, vector3<bool> isTrun
 
 Supercell::Supercell(const GridInfo& gInfo,
 	const std::vector<vector3<>>& kmeshReduced,
-	const std::vector<matrix3<int>>& sym)
+	const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList)
 : gInfo(gInfo)
 {
 	logPrintf("\n----- Initializing Supercell corresponding to k-point mesh -----\n");
-	
+
 	//Compute kmesh = closure of kmeshReduced under symmetry group, sym:
-	for(unsigned iReduced=0; iReduced<kmeshReduced.size(); iReduced++)
-	{	const vector3<>& kOrig = kmeshReduced[iReduced];
-		for(unsigned iSym=0; iSym<sym.size(); iSym++)
-		{	const matrix3<int>& m = sym[iSym];
-			vector3<> k = (~m) * kOrig;
-			//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
-			vector3<int> offset;
-			for(int i=0; i<3; i++)
-			{	offset[i] = -floor(0.5+k[i]);
-				k[i] += offset[i];
-			}
-			//Check if this k-vector has already been encountered:
-			bool found = false;
-			for(const vector3<>& kPrev: kmesh)
-				if(circDistanceSquared(k, kPrev) < symmThresholdSq)
-				{	found = true;
-					break;
+	for(int invert: invertList)
+		for(unsigned iReduced=0; iReduced<kmeshReduced.size(); iReduced++)
+		{	const vector3<>& kOrig = kmeshReduced[iReduced];
+			for(unsigned iSym=0; iSym<sym.size(); iSym++)
+			{	const matrix3<int>& m = sym[iSym];
+				vector3<> k = (~m) * kOrig * invert;
+				//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
+				vector3<int> offset;
+				for(int i=0; i<3; i++)
+				{	offset[i] = -floor(0.5+k[i]);
+					k[i] += offset[i];
 				}
-			//Add to map if not yet encountered:
-			if(!found)
-			{	kmesh.push_back(k);
-				KmeshTransform kTransform = { iReduced, iSym, offset };
-				kmeshTransform.push_back(kTransform);
+				//Check if this k-vector has already been encountered:
+				bool found = false;
+				for(const vector3<>& kPrev: kmesh)
+					if(circDistanceSquared(k, kPrev) < symmThresholdSq)
+					{	found = true;
+						break;
+					}
+				//Add to map if not yet encountered:
+				if(!found)
+				{	kmesh.push_back(k);
+					KmeshTransform kTransform = { iReduced, iSym, invert, offset };
+					kmeshTransform.push_back(kTransform);
+				}
 			}
 		}
-	}
 	
 	//Construct a linearly-independent basis for the k-points:
 	matrix3<> kBasis;

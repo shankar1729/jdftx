@@ -420,27 +420,13 @@ void ElecInfo::kpointsFold()
 
 
 void ElecInfo::kpointsReduce()
-{	//Convert to a list for efficient removal:
-	std::list<QuantumNumber> qlist(qnums.begin(), qnums.end());
-	typedef std::list<QuantumNumber>::iterator Iter;
-	//For each state, gobble up the weights of all subsequent equivalent states:
-	for(Iter i=qlist.begin(); i!=qlist.end(); i++)
-	{	//start at the next element
-		Iter j=i; j++;
-		while(j!=qlist.end())
-		{	if(e->symm.kpointsEquivalent(i->k, j->k))
-			{	i->weight += j->weight;
-				j = qlist.erase(j); //after this j points to the element just after the one rmeoved
-			}
-			else j++;
-		}
-	}
+{	//Reduce under symmetries:
+	std::list<QuantumNumber> qlist = e->symm.reduceKmesh(qnums);
 	if(qnums.size()==qlist.size())
 		logPrintf("No reducable k-points. ");
 	else
 		logPrintf("Reduced to %lu k-points under symmetry. ", qlist.size());
-	//Convert back to a vector for efficient addressing:
-	qnums.assign(qlist.begin(), qlist.end());
+	qnums.assign(qlist.begin(), qlist.end()); //Convert back to a vector for efficient addressing
 	//Handle spin states / spin dgeneracy:
 	if(spinType==SpinNone)
 	{	for(unsigned i=0; i<qnums.size(); i++)

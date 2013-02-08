@@ -88,7 +88,7 @@ void Everything::setup()
 		std::vector<vector3<>> kmeshUnreduced;
 		for(const QuantumNumber& qnum: eInfo.qnums)
 			kmeshUnreduced.push_back(qnum.k);
-		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices());
+		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices(), symm.getKpointInvertList());
 	}
 	coulomb = coulombParams.createCoulomb(gInfo);
 	

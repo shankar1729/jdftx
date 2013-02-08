@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <core/Data.h>
 #include <vector>
+#include <list>
 
 enum SymmetryMode {SymmetriesNone, SymmetriesAutomatic, SymmetriesManual}; //!< symmetry modes
 
@@ -36,18 +37,20 @@ public:
 	~Symmetries();
 	void setup(const Everything& everything);
 
-	//! Calculate whether two k-points are equivalent under periodicity and symmetry
-	bool kpointsEquivalent(const vector3<>& k1, const vector3<>& k2) const;
+	//! Reduce a k-point mesh (and remember its inversion symmetry property in kpointInvertList)
+	std::list<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
 	void symmetrize(DataRptr&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector< matrix3<int> >& getMeshMatrices() const; //!< directly access the symmetry matrices (in mesh coords)
+	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
 	
 private:
 	const Everything* e;
 	std::vector< matrix3<int> > sym; //!< symmetry matrices in covariant lattice coordinates
 	std::vector< matrix3<int> > symMesh; //!< symmetry matrices in covariant mesh coordinates (lattice / sample counts)
+	std::vector<int> kpointInvertList; //!< Contains +1 for empty or inversion-containing symmetry group, and contains +1 and -1 otherwise
 	friend class CommandSymmetries;
 	friend class CommandSymmetryMatrix;
 	friend class CommandDebug;

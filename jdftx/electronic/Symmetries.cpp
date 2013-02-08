@@ -27,7 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/GridInfo.h>
 #include <core/Thread.h>
-#include <list>
 
 //Symmetry detection code based on that of Nikolaj Moll, April 1999 (symm.c in Sohrab's version)
 
@@ -72,13 +71,40 @@ void Symmetries::setup(const Everything& everything)
 	initSymmIndex(); //Initialize the equivalence classes for scalar field symmetrization (using mesh matrices)
 }
 
-
-bool Symmetries::kpointsEquivalent(const vector3<>& k1, const vector3<>& k2) const
-{	if(mode==SymmetriesNone) return false;
-	for(const matrix3<int>& m: sym)
-		if(circDistanceSquared((~m)*k1,k2)<symmThresholdSq)
-			return true;
-	return false;
+std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
+{	//Convert to a list for efficient removal:
+	std::list<QuantumNumber> qlist(qnums.begin(), qnums.end());
+	typedef std::list<QuantumNumber>::iterator Iter;
+	bool usedInversion = false; //whether inversion was used in reducing k-point mesh
+	std::vector<int> invertList;
+	invertList.push_back(+1);
+	if(sym.size()>1)
+		invertList.push_back(-1);
+	for(int invert: invertList) //First try without inversion, and then if required, try again with inversion
+	{	//For each state, gobble up the weights of all subsequent equivalent states:
+		for(Iter i=qlist.begin(); i!=qlist.end(); i++)
+		{	//start at the next element
+			Iter j=i; j++;
+			while(j!=qlist.end())
+			{	bool found = false;
+				for(const matrix3<int>& m: sym)
+					if(circDistanceSquared((~m)*i->k, invert*j->k)<symmThresholdSq)
+					{	found = true;
+						if(invert<0) usedInversion = true;
+						break;
+					}
+				if(found)
+				{	i->weight += j->weight;
+					j = qlist.erase(j); //after this j points to the element just after the one rmeoved
+				}
+				else j++;
+			}
+		}
+	}
+	if(usedInversion) logPrintf("Adding inversion symmetry to k-mesh for non-inversion-symmetric unit cell.\n");
+	else invertList.resize(1); //drop explicit inversion if not required
+	((Symmetries*)this)->kpointInvertList = invertList; //Set kpointInvertList
+	return qlist;
 }
 
 //Symmetrize scalar fields:
@@ -122,6 +148,9 @@ const std::vector< matrix3<int> >& Symmetries::getMatrices() const
 }
 const std::vector< matrix3<int> >& Symmetries::getMeshMatrices() const
 {	return symMesh;
+}
+const std::vector<int>& Symmetries::getKpointInvertList() const
+{	return kpointInvertList;
 }
 
 

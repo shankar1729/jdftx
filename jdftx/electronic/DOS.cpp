@@ -624,7 +624,18 @@ void DOS::dump()
 	std::map<vector3<int>,int> kpointMap;
 	const std::vector<vector3<>>& kmesh = supercell.kmesh;
 	for(unsigned i=0; i<kmesh.size(); i++)
-		kpointMap[round((kmesh[i]-kmesh[0])*supercell.super, symmThreshold)] = i;
+	{	//Add kRange and its periodic images if it's too close to the edge (to catch roundoff issues in wrapping):
+		vector3<> kRange[2];
+		kRange[0] = kRange[1] = kmesh[i];
+		for(int j=0; j<3; j++)
+		{	if(fabs(+0.5-kRange[0][j])<symmThreshold) kRange[1][j] -= 1.;
+			if(fabs(-0.5-kRange[0][j])<symmThreshold) kRange[1][j] += 1.;
+		}
+		for(int s0=0; s0<2; s0++)
+		for(int s1=0; s1<2; s1++)
+		for(int s2=0; s2<2; s2++)
+			kpointMap[round((vector3<>(kRange[s0][0],kRange[s1][1],kRange[s2][2])-kmesh[0])*supercell.super, symmThreshold)] = i;
+	}
 	//--- add 6 tetrahedra per parallelopiped cell
 	EvalDOS eval(6*kmesh.size(), weights.size(), eInfo.nStates, eInfo.nBands, Etol);
 	double Vtot = 0.;

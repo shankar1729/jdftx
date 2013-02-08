@@ -82,6 +82,7 @@ private:
 	{	vector3<> k; //!< k-point in reciprocal lattice coordinates
 		int q; //!< source state
 		int iRot; //!< symmetry matrix index from state q to this kpoint
+		int invert; //!< sign of transformation matrix (if inversion symmetry of k-mesh is being used)
 		vector3<int> offset; //!< translation after rotation to bring to k
 		
 		bool operator<(const Kpoint& other) const;
@@ -265,28 +266,30 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 	logPrintf("Setting up finite difference formula on k-mesh ...\n"); logFlush();
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
 	//Create the list of images (closed under the symmetry group):
+	const std::vector<int>& invertList = e.symm.getKpointInvertList();
 	std::vector<Kpoint> kpoints;
-	for(int q=0; q<qCount; q++)
-		for(unsigned iRot=0; iRot<sym.size(); iRot++)
-		{	vector3<> k = (~sym[iRot]) * qnums[q].k;
-			//Find offset that brings it into centered zone
-			vector3<int> offset;
-			for(int i=0; i<3; i++)
-			{	offset[i] = -floor(k[i]+0.5);
-				k[i] += offset[i];
-			}
-			//Check if this k-vector has already been encountered:
-			bool found = false;
-			for(const Kpoint& kpoint: kpoints)
-				if(circDistanceSquared(k, kpoint.k) < kpointTolSq)
-				{	found = true;
-					break;
+	for(int invert: invertList)
+		for(int q=0; q<qCount; q++)
+			for(unsigned iRot=0; iRot<sym.size(); iRot++)
+			{	vector3<> k = (~sym[iRot]) * qnums[q].k * invert;
+				//Find offset that brings it into centered zone
+				vector3<int> offset;
+				for(int i=0; i<3; i++)
+				{	offset[i] = -floor(k[i]+0.5);
+					k[i] += offset[i];
 				}
-			if(!found)
-			{	Kpoint kpoint = { k, q, iRot, offset };
-				kpoints.push_back(kpoint);
+				//Check if this k-vector has already been encountered:
+				bool found = false;
+				for(const Kpoint& kpoint: kpoints)
+					if(circDistanceSquared(k, kpoint.k) < kpointTolSq)
+					{	found = true;
+						break;
+					}
+				if(!found)
+				{	Kpoint kpoint = { k, q, iRot, invert, offset };
+					kpoints.push_back(kpoint);
+				}
 			}
-		}
 	
 	for(unsigned i=0; i<kpoints.size(); i++)
 	{	//Create a list of neighbours for FD formula:
@@ -350,10 +353,11 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 		}
 		//Find the Brillouin zone integration weight for the k-point:
 		int nStabilizer = 0; //size of the stabilizer subgroup
-		for(const matrix3<int>& m: sym)
-			if(circDistanceSquared(kpoints[i].k, (~m)*qnums[kpoints[i].q].k) < kpointTolSq)
-				nStabilizer++;
-		kMeshEntry.wk = nStabilizer * qnums[kpoints[i].q].weight * (0.5*nSpins) / sym.size();
+		for(int invert: invertList)
+			for(const matrix3<int>& m: sym)
+				if(circDistanceSquared(kpoints[i].k, (~m)*qnums[kpoints[i].q].k*invert) < kpointTolSq)
+						nStabilizer++;
+		kMeshEntry.wk = nStabilizer * qnums[kpoints[i].q].weight * (0.5*nSpins) / (sym.size() * invertList.size());
 		kMesh.push_back(kMeshEntry);
 	}
 	
@@ -611,6 +615,7 @@ WannierGradient WannierEval::precondition(const WannierGradient& grad)
 bool WannierEval::Kpoint::operator<(const WannierEval::Kpoint& other) const
 {	if(q!=other.q) return q<other.q;
 	if(iRot!=other.iRot) return iRot<other.iRot;
+	if(invert!=other.invert) return invert<other.invert;
 	if(!(offset==other.offset)) return offset<other.offset;
 	return false; //all equal
 }
@@ -618,6 +623,7 @@ bool WannierEval::Kpoint::operator<(const WannierEval::Kpoint& other) const
 bool WannierEval::Kpoint::operator==(const WannierEval::Kpoint& other) const
 {	if(q!=other.q) return false;
 	if(iRot!=other.iRot) return false;
+	if(invert!=other.invert) return false;
 	if(!(offset==other.offset)) return false;
 	return true;
 }
@@ -651,7 +657,7 @@ void WannierEval::addIndex(const WannierEval::Kpoint& kpoint)
 	//Compute transformed index array (mapping to full G-space)
 	const Basis& basis = e.basis[kpoint.q];
 	std::shared_ptr<Index> index(new Index(basis.nbasis));
-	const matrix3<int> mRot = ~sym[kpoint.iRot];
+	const matrix3<int> mRot = (~sym[kpoint.iRot]) * kpoint.invert;
 	for(int j=0; j<index->nIndices; j++)
 		index->data[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kpoint.offset);
 	//Save to map:
@@ -667,6 +673,9 @@ ColumnBundle WannierEval::getWfns(const WannierEval::Kpoint& kpoint, const std::
 	for(unsigned c=0; c<centers.size(); c++)
 		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., index.dataPref,
 			C.dataPref()+C.index(centers[c].band,0), ret.dataPref()+ret.index(c,0));
+	//Complex conjugate if inversion symmetry employed:
+	if(kpoint.invert < 0)
+		callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
 	return ret;
 }
 

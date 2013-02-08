@@ -48,6 +48,7 @@ private:
 	const Everything& e;
 	const std::vector< matrix3<int> >& sym; //!< symmetry matrices in lattice coordinates
 	const std::vector< matrix3<int> >& symMesh; //!< symmetry matrices in mesh coordinates
+	const std::vector<int>& invertList; //!< whether to add inversion explicitly over the symmetry group
 	int nSpins;
 	int qCount; //!< number of states of each spin
 	double wSpinless; //!< factor multiplying state weights to get to spinless weights = nSpins/2
@@ -98,6 +99,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 : e(e),
 	sym(e.symm.getMatrices()),
 	symMesh(e.symm.getMeshMatrices()),
+	invertList(e.symm.getKpointInvertList()),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), 
 	qCount(e.eInfo.nStates/nSpins),
 	wSpinless(0.5*nSpins)
@@ -120,7 +122,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX, double omega,
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC)
 {
-	double scale = -aXX * wSpinless / sym.size(); 
+	double scale = -aXX * wSpinless / (sym.size() * invertList.size()); 
 	//includes negative sign for exchange, empirical scale, weight for the restricted case and symmetries
 
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
@@ -138,19 +140,21 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 			bool diag = q1==q2 && b1==b2; // whether this is a diagonal (self) term
 			complexDataRptr Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2)), grad_Ipsi2;
 			double wF2 = F[q2][b2] * qnums[q2].weight;
-			for(unsigned iSym=0; iSym<sym.size(); iSym++)
-			{	vector3<> k2 = (~sym[iSym]) * qnums[q2].k;
-				complexDataRptr RIpsi2 = pointGroupGather(Ipsi2, symMesh[iSym]);
-				complexDataGptr n = J(conj(Ipsi1) * RIpsi2); //Compute state-pair 'density'
-				complexDataGptr Kn = O((*e.coulomb)(n, k2-k1, omega)); //Electrostatic potential due to n
-				EXX += (diag ? 0.5 : 1.) * scale*wF1*wF2 * dot(n,Kn).real();
-				if(HC)
-				{	complexDataRptr EXX_In = Jdag(Kn);
-					grad_Ipsi1 += (scale*wF2) * conj(EXX_In) * RIpsi2;
-					if(!diag)
-						grad_Ipsi2 += pointGroupScatter((scale*wF1) * EXX_In * Ipsi1, symMesh[iSym]);
+			for(int invert: invertList)
+				for(unsigned iSym=0; iSym<sym.size(); iSym++)
+				{	vector3<> k2 = (~sym[iSym]) * qnums[q2].k * invert;
+					complexDataRptr RIpsi2 = pointGroupGather(Ipsi2, symMesh[iSym]);
+					if(invert==-1) RIpsi2 = conj(RIpsi2); //complex-conjugate for explicitly inverted k-point
+					complexDataGptr n = J(conj(Ipsi1) * RIpsi2); //Compute state-pair 'density'
+					complexDataGptr Kn = O((*e.coulomb)(n, k2-k1, omega)); //Electrostatic potential due to n
+					EXX += (diag ? 0.5 : 1.) * scale*wF1*wF2 * dot(n,Kn).real();
+					if(HC)
+					{	complexDataRptr EXX_In = Jdag(Kn);
+						grad_Ipsi1 += (scale*wF2) * conj(EXX_In) * RIpsi2;
+						if(!diag)
+							grad_Ipsi2 += pointGroupScatter((scale*wF1) * EXX_In * Ipsi1, symMesh[iSym]);
+					}
 				}
-			}
 			if(HC && grad_Ipsi2)
 			{	complexDataGptr grad_psi2 = Idag(grad_Ipsi2);
 				lock->lock();
