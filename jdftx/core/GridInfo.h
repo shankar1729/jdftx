@@ -50,7 +50,33 @@ public:
 	void printLattice(); //! Print the lattice vectors
 	void printReciprocalLattice(); //! Print the lattice vectors
 	
-	matrix3<> R; //!< lattice vectors
+	enum LatticeType
+	{	Manual, //!< Directly specify R
+		//7 lattice systems specified using sides a,b,c and alpha,beta,gamma
+		Triclinic,
+		Monoclinic,
+		Orthorhombic,
+		Tetragonal,
+		Rhombohedral,
+		Hexagonal,
+		Cubic
+	}
+	latticeType;
+	
+	enum LatticeModification
+	{	Simple,
+		BodyCentered,
+		BaseCentered,
+		FaceCentered
+	}
+	latticeModification;
+	
+	double a, b, c, alpha, beta, gamma; //!< lattice specified by type, modification and standard side lengths, angles in degrees
+	void setLatticeVectors(); //!< Set lattice vectors based on lattice type, modification and parameters above
+	
+	vector3<> lattScale; //!< Remember lattice scale specified at input (Note R always includes scale, once latt-scale has processed)
+	
+	matrix3<> R; //!< directly specified lattice vectors
 	double Gmax; //!< radius of wavefunction G-sphere, whode density sphere (double the radius) must be inscribable within the FFT box
 	vector3<int> S; //!< sample points in each dimension (if 0, will be determined automatically based on Gmax)
 

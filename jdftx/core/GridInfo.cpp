@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
+#include <core/LatticeUtils.h>
 #include <algorithm>
 
 void GridInfo::update()
@@ -85,6 +86,75 @@ GridInfo::~GridInfo()
 		#endif
 	}
 }
+
+void GridInfo::setLatticeVectors()
+{	//Check manually specified lattice vectors
+	if(latticeType == Manual)
+	{	if(fabs(det(R)) < symmThresholdSq) throw string("Specified lattice vectors seem to be linearly dependent");
+		return;
+	}
+	//Check parameter ranges:
+	if(a <= 0.) throw string("Lattice dimension a must be positive.");
+	if(b <= 0.) throw string("Lattice dimension b must be positive.");
+	if(c <= 0.) throw string("Lattice dimension c must be positive.");
+	if(alpha <= 0.) throw string("Lattice angle alpha must be positive.");
+	if(beta  <= 0.) throw string("Lattice angle beta must be positive.");
+	if(gamma <= 0.) throw string("Lattice angle gamma must be positive.");
+	if(alpha >= 180.) throw string("Lattice angle alpha must be < 180 degrees.");
+	if(beta  >= 180.) throw string("Lattice angle beta must be < 180 degrees.");
+	if(gamma >= 180.) throw string("Lattice angle gamma must be < 180 degrees.");
+	if(alpha > beta + gamma) throw string("Lattice angles must satisfy beta + gamma > alpha");
+	if(beta > gamma + alpha) throw string("Lattice angles must satisfy gamma + alpha > beta");
+	if(gamma > alpha + beta) throw string("Lattice angles must satisfy alpha + beta > gamma");
+	//Compute base lattice vectors:
+	double cosAlpha = cos(alpha * M_PI/180.);
+	double cosBeta = cos(beta * M_PI/180.);
+	double sinGamma, cosGamma; sincos(gamma * M_PI/180., &sinGamma, &cosGamma);
+	R.set_col(0, a * vector3<>(1., 0., 0.));
+	R.set_col(1, b * vector3<>(cosGamma, sinGamma, 0));
+	R.set_col(2, c * vector3<>(cosBeta, (cosAlpha-cosBeta*cosGamma)/sinGamma, 0.));
+	R(2,2) = sqrt(c*c - R(0,2)*R(0,2) - R(1,2)*R(1,2));
+	//Set lattice vectors with appropriate modification:
+	switch(latticeModification)
+	{	case Simple: //No modification
+			break;
+		case BodyCentered:
+		{	switch(latticeType)
+			{	case Orthorhombic: case Tetragonal: case Cubic: break;
+				default: throw string("Body-centered modification is valid only for Orthorhombic, Tetragonal or Cubic lattices");
+			}
+			R = R * 0.5 * matrix3<>
+				(	-1, 1, 1,
+					1, -1, 1,
+					1, 1, -1 );
+			break;
+		}
+		case BaseCentered:
+		{	switch(latticeType)
+			{	case Monoclinic: case Orthorhombic: break;
+				default: throw string("Base-centered modification is valid only for Monoclinic or Orthorhombic lattices");
+			}
+			R = R * 0.5 * matrix3<>
+				(	1, -1, 0,
+					1, 1, 0,
+					0, 0, 2 );
+			break;
+		}
+		case FaceCentered:
+		{	switch(latticeType)
+			{	case Orthorhombic: case Cubic: break;
+				default: throw string("Face-centered modification is valid only for Orthorhombic or Cubic lattices");
+			}
+			R = R * 0.5 * matrix3<>
+				(	0, 1, 1,
+					1, 0, 1,
+					1, 1, 0 );
+			break;
+		}
+	}
+	for(int j=0; j<3; j++) for(int k=0; k<3; k++) if(fabs(R(j,k))<symmThresholdSq) R(j,k) = 0.; //Prevent annoying scientific notation printouts of almost zeros
+}
+
 
 void GridInfo::initialize()
 {

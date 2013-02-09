@@ -30,25 +30,31 @@ public:
 	//! Construct given the string with all the parameters
 	ParamList(string params) : iss(params) {}
 
+	//! Rewind to beginning of stream (useful for commands with multiple alternate syntaxes)
+	void rewind() { iss.seekg(0, std::ios_base::beg); }
+	
 	//! Retreive a paremeter of type T in t, with default value tDefault if the stream ends
 	//! paramName is used to report an error if conversion failed
-	//! If required=true, error will be reported instead of setting the default value on eof()
+	//! If required=true, error will be reported instead of just setting the default value on eof()
+	//! Note that t is set to tDefault on failure of any sort
 	template<typename T>
 	void get(T& t, T tDefault, string paramName, bool required=false)
 	{	iss.clear(); //clear previous errors
 		iss >> t;
 		if(iss.bad()) throw string("I/O error while reading parameter <"+paramName+">.");
 		if(iss.eof())
-		{	if(required) throw string("Parameter <"+paramName+"> must be specified.");
-			else { t = tDefault; return; }
+		{	t = tDefault;
+			if(required) throw string("Parameter <"+paramName+"> must be specified.");
+			else return;
 		}
-		if(iss.fail()) throw string("Conversion of parameter <"+paramName+"> failed.");
+		if(iss.fail()) { t = tDefault; throw string("Conversion of parameter <"+paramName+"> failed."); }
 	}
 
 	//! Retreive an enum paremeter of type T in t, with default value tDefault if the stream ends
 	//! tMap is used to convert the string to the enum
 	//! paramName is used to report an error if conversion failed
 	//! If required=true, error will be reported instead of setting the default value on eof()
+	//! Note that t is set to tDefault on failure of any sort
 	template<typename T>
 	void get(T& t, T tDefault, EnumStringMap<T>& tMap, string paramName, bool required=false)
 	{	iss.clear(); //clear previous errors
@@ -56,11 +62,14 @@ public:
 		iss >> key;
 		if(iss.bad()) throw string("I/O error while reading parameter <"+paramName+">.");
 		if(iss.eof())
-		{	if(required) throw string("Parameter <"+paramName+"> must be specified.");
-			else { t = tDefault; return; }
+		{	t = tDefault;
+			if(required) throw string("Parameter <"+paramName+"> must be specified.");
+			else return;
 		}
 		if(!tMap.getEnum(key.c_str(), t))
+		{	t = tDefault;
 			throw string("Parameter <"+paramName+"> must be one of "+tMap.optionList());
+		}
 	}
 };
 

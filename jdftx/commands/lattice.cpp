@@ -20,26 +20,145 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
+EnumStringMap<GridInfo::LatticeType> lattTypeMap
+(	GridInfo::Triclinic, "Triclinic",
+	GridInfo::Monoclinic, "Monoclinic",
+	GridInfo::Orthorhombic, "Orthorhombic",
+	GridInfo::Tetragonal, "Tetragonal",
+	GridInfo::Rhombohedral, "Rhombohedral",
+	GridInfo::Hexagonal, "Hexagonal",
+	GridInfo::Cubic, "Cubic"
+);
+
+EnumStringMap<GridInfo::LatticeModification> lattModMap
+(	GridInfo::BodyCentered, "Body-Centered",
+	GridInfo::BaseCentered, "Base-Centered",
+	GridInfo::FaceCentered, "Face-Centered"
+);
+
 struct CommandLattice : public Command
 {
 	CommandLattice() : Command("lattice")
 	{
-		format = " \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
-		comments = "Specify lattice vectors (in columns)";
+		format = " [<modification>] <lattice> <parameters...>\n"
+			" | \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
+		comments = "Specify lattice by name and parameters, or manually lattice vectors (in columns).\n"
+			"The options for the [<modification>] <lattice> <parameters...> scheme are:\n"
+			"   Triclinic <a> <b> <c> <alpha> <beta> <gamma>\n"
+			"   [Base-Centered] Monoclinic <a> <b> <c> <beta>\n"
+			"   [Base|Body|Face-Centered] Orthorhombic <a> <b> <c>\n"
+			"   [Body-Centered] Tetragonal <a> <c>\n"
+			"   Rhombohedral <a> <alpha>\n"
+			"   Hexagonal <a> <c>\n"
+			"   [Body|Face-Centered] Cubic <a>";
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	for(int j=0; j<3; j++) for(int k=0; k<3; k++)
-		{	ostringstream oss; oss << "R" << j << k;
-			pl.get(e.gInfo.R(j,k), 0.0, oss.str(), true);
+	{	GridInfo& g = e.gInfo;
+		//Check for named lattice specification:
+		try { pl.get(g.latticeModification, GridInfo::Simple, lattModMap, "modification", true); } catch(string) { pl.rewind(); } //no modification
+		try { pl.get(g.latticeType, GridInfo::Manual, lattTypeMap, "type", true); } catch(string) { pl.rewind(); } //Not a named lattice
+		//Read parameters:
+		g.alpha = 90.;
+		g.beta  = 90.;
+		g.gamma = 90.;
+		switch(g.latticeType)
+		{
+			case GridInfo::Manual:
+			{	for(int j=0; j<3; j++) for(int k=0; k<3; k++)
+				{	ostringstream oss; oss << "R" << j << k;
+					try
+					{	pl.get(g.R(j,k), 0.0, oss.str(), true);
+					}
+					catch(string)
+					{	if(j==0 && k<2) throw string("First two parameters match neither <R00> <R01> ..., nor valid [<modification>] <lattice> ...");
+						else throw; //propagate Rjk parse error
+					}
+				}
+				break;
+			}
+			case GridInfo::Triclinic:
+			{	pl.get(g.a, 0., "a", true);
+				pl.get(g.b, 0., "b", true);
+				pl.get(g.c, 0., "c", true);
+				pl.get(g.alpha, 0., "alpha", true);
+				pl.get(g.beta,  0., "beta", true);
+				pl.get(g.gamma, 0., "gamma", true);
+				break;
+			}
+			case GridInfo::Monoclinic:
+			{	pl.get(g.a, 0., "a", true);
+				pl.get(g.b, 0., "b", true);
+				pl.get(g.c, 0., "c", true);
+				pl.get(g.beta,  0., "beta", true);
+				break;
+			}
+			case GridInfo::Orthorhombic:
+			{	pl.get(g.a, 0., "a", true);
+				pl.get(g.b, 0., "b", true);
+				pl.get(g.c, 0., "c", true);
+				break;
+			}
+			case GridInfo::Tetragonal:
+			{	pl.get(g.a, 0., "a", true);
+				g.b = g.a;
+				pl.get(g.c, 0., "c", true);
+				break;
+			}
+			case GridInfo::Rhombohedral:
+			{	pl.get(g.a, 0., "a", true);
+				g.b = g.a;
+				g.c = g.a;
+				pl.get(g.alpha, 0., "alpha", true);
+				g.beta  = g.alpha;
+				g.gamma = g.alpha;
+				break;
+			}
+			case GridInfo::Hexagonal:
+			{	pl.get(g.a, 0., "a", true);
+				g.b = g.a;
+				pl.get(g.c, 0., "c", true);
+				g.gamma = 120.;
+				break;
+			}
+			case GridInfo::Cubic:
+			{	pl.get(g.a, 0., "a", true);
+				g.b = g.a;
+				g.c = g.a;
+				break;
+			}
 		}
+		//Check parameters and compute the lattice vectors:
+		if(g.latticeType != GridInfo::Manual)
+			g.setLatticeVectors();
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for(int j=0; j<3; j++)
-		{	logPrintf(" \\\n\t");
+	{	const GridInfo& g = e.gInfo;
+		if(g.latticeType == GridInfo::Manual)
+		{	matrix3<> Runscaled;
 			for(int k=0; k<3; k++)
-				logPrintf("%20.15lf ",e.gInfo.R(j,k));
+				Runscaled.set_col(k, (1./g.lattScale[k]) * g.R.column(k));
+			for(int j=0; j<3; j++)
+			{	logPrintf(" \\\n\t");
+				for(int k=0; k<3; k++)
+					logPrintf("%20.15lf ", Runscaled(j,k));
+			}
+		}
+		else
+		{	if(g.latticeModification != GridInfo::Simple)
+				logPrintf("%s ", lattModMap.getString(g.latticeModification));
+			logPrintf("%s ", lattTypeMap.getString(g.latticeType));
+			switch(g.latticeType)
+			{	case GridInfo::Manual: break; //never encountered
+				case GridInfo::Triclinic: logPrintf("%lg %lg %lg %lg %lg %lg", g.a, g.b, g.c, g.alpha, g.beta, g.gamma); break;
+				case GridInfo::Monoclinic: logPrintf("%lg %lg %lg %lg", g.a, g.b, g.c, g.beta); break;
+				case GridInfo::Orthorhombic: logPrintf("%lg %lg %lg", g.a, g.b, g.c); break;
+				case GridInfo::Tetragonal: logPrintf("%lg %lg", g.a, g.c); break;
+				case GridInfo::Rhombohedral: logPrintf("%lg %lg", g.a, g.alpha); break;
+				case GridInfo::Hexagonal: logPrintf("%lg %lg", g.a, g.c); break;
+				case GridInfo::Cubic: logPrintf("%lg", g.a); break;
+			}
 		}
 	}
 }
@@ -58,16 +177,19 @@ struct CommandLattScale : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	for(int k=0; k<3; k++)
+	{	//check if any parameters have been specified:
+		string key; pl.get(key, string(), ""); pl.rewind();
+		if(!key.length()) { e.gInfo.lattScale = vector3<>(1.,1.,1.); return; }
+		//Read parameters:
+		for(int k=0; k<3; k++)
 		{	ostringstream oss; oss << "s" << k;
-			double scale;
-			pl.get(scale, 1.0, oss.str());
-			e.gInfo.R.set_col(k, scale * e.gInfo.R.column(k));
+			pl.get(e.gInfo.lattScale[k], 1., oss.str(), true);
+			e.gInfo.R.set_col(k, e.gInfo.lattScale[k] * e.gInfo.R.column(k));
 		}
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("1 1 1  # Scale has been absorbed into lattice");
+	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.gInfo.lattScale[k]);
 	}
 }
 commandLattScale;
