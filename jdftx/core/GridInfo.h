@@ -46,9 +46,12 @@ class GridInfo
 {
 public:
 
+	GridInfo();
+	~GridInfo();
+
 	void update(); //! Update the grid information on changing the lattice vectors
 	void printLattice(); //! Print the lattice vectors
-	void printReciprocalLattice(); //! Print the lattice vectors
+	void printReciprocalLattice(); //! Print the reciprocal lattice vectors
 	
 	enum LatticeType
 	{	Manual, //!< Directly specify R
@@ -82,8 +85,8 @@ public:
 
 	//! Initialize the dependent quantities below.
 	//! If S is specified and is too small for the given Gmax, the call will abort.
-	void initialize();
-
+	//! If sym is specified, then auto-computed S will be ensured commensurate with those symmetries
+	void initialize(const std::vector< matrix3<int> > sym = std::vector< matrix3<int> >(1, matrix3<int>(1,1,1)));
 
 	double detR; //!< cell volume
 	matrix3<> RT, RTR, invR, invRT, invRTR; //!< various combinations of lattice-vectors
@@ -133,9 +136,6 @@ public:
 		return iGwrapped[2] + (S[2]/2+1)*(iGwrapped[1] + S[1]*iGwrapped[0]);
 	}
 
-	GridInfo();
-	~GridInfo();
-	
 private:
 	bool initialized; //!< keep track of whether initialize() has been called
 };

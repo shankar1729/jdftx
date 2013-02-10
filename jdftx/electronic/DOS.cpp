@@ -522,20 +522,6 @@ struct EvalDOS
 		logPrintf("Done.\n"); logFlush();
 	}
 	
-	//Reduce an integer vector by its gcd:
-	inline static int gcd(int x, int y)
-	{	while(y != 0)
-		{	int yPrev = y;
-			y = x % y;
-			x = yPrev;
-		}
-		return x;
-	}
-	inline static vector3<int> gcdReduce(const vector3<int>& d)
-	{	int g = gcd(gcd(d[0], d[1]), d[2]);
-		return vector3<int>(d[0]/g, d[1]/g, d[2]/g);
-	}
-	
 	//Thread function for setting fourier transform of slice of half-width R centered at r0 parallel to lattice-plane d:
 	inline static void sliceWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
 		complex* w, const vector3<>& r0, double R, const vector3<int>& d)

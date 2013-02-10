@@ -24,35 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <algorithm>
 
-void GridInfo::update()
-{
-	detR = fabs(det(R));
-	
-	RT = ~R;
-	RTR = RT*R;
-	invR = inv(R);
-	invRT = inv(RT);
-	invRTR = inv(RTR);
-
-	G = (2.0*M_PI)*inv(R);
-	GT = ~G;
-	GGT = G*GT;
-	invGGT = inv(GGT);
-	
-	dV = detR/nr;
-	for(int k=0; k<3; k++) h[k] = R.column(k)/S[k];
-}
-
-void GridInfo::printLattice()
-{	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
-	logPrintf("unit cell volume = %lg\n", detR);
-}
-
-void GridInfo::printReciprocalLattice()
-{	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
-}
-
-
 GridInfo::GridInfo():Gmax(0),initialized(false)
 {
 }
@@ -86,6 +57,35 @@ GridInfo::~GridInfo()
 		#endif
 	}
 }
+
+void GridInfo::update()
+{
+	detR = fabs(det(R));
+	
+	RT = ~R;
+	RTR = RT*R;
+	invR = inv(R);
+	invRT = inv(RT);
+	invRTR = inv(RTR);
+
+	G = (2.0*M_PI)*inv(R);
+	GT = ~G;
+	GGT = G*GT;
+	invGGT = inv(GGT);
+	
+	dV = detR/nr;
+	for(int k=0; k<3; k++) h[k] = R.column(k)/S[k];
+}
+
+void GridInfo::printLattice()
+{	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
+	logPrintf("unit cell volume = %lg\n", detR);
+}
+
+void GridInfo::printReciprocalLattice()
+{	logPrintf("G =\n"); G.print(globalLog, "%10lg ");
+}
+
 
 void GridInfo::setLatticeVectors()
 {	//Check manually specified lattice vectors
@@ -155,8 +155,32 @@ void GridInfo::setLatticeVectors()
 	for(int j=0; j<3; j++) for(int k=0; k<3; k++) if(fabs(R(j,k))<symmThresholdSq) R(j,k) = 0.; //Prevent annoying scientific notation printouts of almost zeros
 }
 
+//recursive function for symmetry-constrained S determination (see below)
+void processSb(vector3<int>& Sb, int j, const matrix3<int>& ratios, vector3<bool>& dimsDone)
+{	dimsDone[j] = true;
+	for(int k=0; k<3; k++)
+		if(j!=k && (ratios(j,k) || ratios(k,j)))
+		{	if(Sb[k]) //verify consistency of pre-existing basis entry
+			{	if( (ratios(j,k)*Sb[j])%Sb[k] || (ratios(k,j)*Sb[k])%Sb[j] ) //basis violates constraints between j and k
+				{	logPrintf("WARNING: Could not find anisotropic solution for S commensurate with symmetries. Falling back to an isotropic solution.\n");
+					Sb = vector3<int>(1,1,1);
+				}
+			}
+			else //add k to this basis entry
+			{	if(ratios(k,j))
+				{	int x = Sb[j];
+					Sb *= ratios(k,j); 
+					Sb[k] = x * std::max(1, ratios(j,k));
+				}
+				else //ratios(j,k) is non-zero
+				{	Sb[k] = ratios(j,k) * Sb[j];
+				}
+				processSb(Sb, k, ratios, dimsDone);
+			}
+		}
+}
 
-void GridInfo::initialize()
+void GridInfo::initialize(const std::vector< matrix3<int> > sym)
 {
 	this->~GridInfo(); //cleanup previously initialized quantities
 	
@@ -167,6 +191,7 @@ void GridInfo::initialize()
 	
 	//Choose / verify validity of sample count S (fftbox size)
 	vector3<int> Smin;
+	bool autoS = (S[0]<=0) || (S[1]<=0) || (S[2]<=0); //whether to auto-compute sample count
 	if(Gmax) //Determine minimum sampling corresponding to Gmax:
 	{	//The integer coefficient of the nyquist component (half S) in each direction
 		//when multiplied by the spacing between the reciprocal lattice plane spacings
@@ -174,13 +199,41 @@ void GridInfo::initialize()
 		for(int k=0; k<3; k++) Smin[k] = std::max(1, 4*int(Gmax * R.column(k).length() / (2*M_PI)));
 		logPrintf("Minimum fftbox size, Smin = "); Smin.print(globalLog, " %d ");
 	}
-	for(int k=0; k<3; k++)
-	{	if(S[k]<=0) //this component not set, pick minimal FFT-suitable size
-		{	assert(Smin[k]>0); //One of Gmax or S must be specified
-			S[k] = Smin[k];
-			while(!fftSuitable(S[k])) S[k]+=2; //move through even numbers
+	if(autoS) //pick minimal FFT-suitable size
+	{	//Determine constraints on S due to symmetries:
+		matrix3<int> ratios;
+		for(const matrix3<int>& m: sym)
+			for(int j=0; j<3; j++)
+				for(int k=0; k<3; k++)
+					if(m(j,k))
+						ratios(j,k) = gcd(ratios(j,k), abs(m(j,k)));
+		//Construct integer basis of S's that satisfy these constraints:
+		S = vector3<int>(0,0,0);
+		vector3<bool> dimsDone(false,false,false); //dimensions yet to be covered by Sbasis
+		for(int j=0; j<3; j++) if(!dimsDone[j])
+		{	vector3<int> Sb; Sb[j] = 1;
+			processSb(Sb, j, ratios, dimsDone);
+			Sb = gcdReduce(Sb);
+			//Check FFT suitability of the integers in Sb:
+			bool isSuitable = true;
+			for(int k=0; k<3; k++) if(Sb[k]) isSuitable = isSuitable && fftSuitable(Sb[k]);
+			if(!isSuitable)
+			{	logPrintf("WARNING: Symmetries require anisotropic S to include FFT-unsupported factors. Falling back to isotropic solution.\n");
+				for(int k=0; k<3; k++) if(Sb[k]) Sb[k] = 1;
+			}
+			//For each basis entry, determine smallest fft-suitable scale factor that satisfies Smin constraint:
+			int scaleSb = 0;
+			for(int k=0; k<3; k++) if(Sb[k])
+			{	int s = 2*ceildiv(Smin[k], 2*Sb[k]); //ensure even
+				if(s > scaleSb) scaleSb = s;
+			}
+			while(!fftSuitable(scaleSb)) scaleSb += 2; //move through even numbers
+			Sb *= scaleSb;
+			S += Sb;
 		}
-		else //check validity:
+	}
+	else //Manually-specified sample count, only check validity:
+	{	for(int k=0; k<3; k++)
 		{	if(S[k]<Smin[k])
 				die("Specified fftbox dimension S[%d] = %d < %d = Smin[%d] for the G-sphere.\n",
 					k, S[k], Smin[k], k)

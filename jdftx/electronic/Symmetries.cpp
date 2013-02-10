@@ -65,11 +65,15 @@ void Symmetries::setup(const Everything& everything)
 			sym.assign(1, matrix3<int>(1,1,1)); 
 	}
 	
-	checkFFTbox(); //Check that the FFT box is commensurate with the symmetries and initialize mesh matrices
-	checkKmesh(); //Check symmetries of k-point mesh (and warn if lower than basis symmetries)
 	initAtomMaps(); // Map atoms to symmetry related ones
+}
+
+void Symmetries::setupMesh()
+{	checkFFTbox(); //Check that the FFT box is commensurate with the symmetries and initialize mesh matrices
+	checkKmesh(); //Check symmetries of k-point mesh (and warn if lower than basis symmetries)
 	initSymmIndex(); //Initialize the equivalence classes for scalar field symmetrization (using mesh matrices)
 }
+
 
 std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
 {	//Convert to a list for efficient removal:

@@ -35,8 +35,9 @@ public:
 
 	Symmetries();
 	~Symmetries();
-	void setup(const Everything& everything);
-
+	void setup(const Everything& everything); //!< Phase 1 of setup which computes/checks lattice+basis symmetries
+	void setupMesh(); //!< Phase 2 of setup which computes / checks FFTbox and k-mesh dependent symmetries
+	
 	//! Reduce a k-point mesh (and remember its inversion symmetry property in kpointInvertList)
 	std::list<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	

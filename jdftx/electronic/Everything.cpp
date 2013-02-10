@@ -25,9 +25,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void Everything::setup()
 {
+	//Symmetries (phase 1: lattice+basis dependent)
+	symm.setup(*this);
+	
 	//Initialize the grid:
 	gInfo.Gmax = sqrt(2*cntrl.Ecut); //Ecut = 0.5 Gmax^2
-	gInfo.initialize();
+	gInfo.initialize(symm.getMatrices());
 
 	//Exchange correlation setup
 	logPrintf("\n---------- Exchange Correlation functional ----------\n");
@@ -38,12 +41,12 @@ void Everything::setup()
 			ec->setup(*this); //comparison functionals evaluated at the end
 	}
 
-	//Arom positions, pseudopotentials
+	//Atom positions, pseudopotentials
 	iInfo.setup(*this);
 	
-	//Symmetries
+	//Symmetries (phase 2: fftbox and k-mesh dependent)
 	eInfo.kpointsFold();
-	symm.setup(*this);
+	symm.setupMesh();
 	
 	//Set up k-points, bands and fillings
 	eInfo.setup(*this, eVars.F, ener);

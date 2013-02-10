@@ -133,6 +133,24 @@ __hostanddev__ double circDistanceSquared(const vector3<>& a, const vector3<>& b
 		+ (cis(2*M_PI*a[2]) - cis(2*M_PI*b[2])).norm();
 }
 
+
+//! GCD of integers, templated over integer types
+template<typename T> T gcd(T x, T y)
+{	while(y != 0)
+	{	T yPrev = y;
+		y = x % y;
+		x = yPrev;
+	}
+	return x;
+}
+
+//! Reduce an integer vector by its gcd
+template<typename T> vector3<T> gcdReduce(const vector3<T>& d)
+{	T g = gcd(gcd(d[0], d[1]), d[2]);
+	return vector3<T>(d[0]/g, d[1]/g, d[2]/g);
+}
+
+
 //! Load vector from a constant vector field
 template<typename scalar> __hostanddev__ vector3<scalar> loadVector(const vector3<const scalar*>& vArr, int i)
 {	return vector3<scalar>( vArr[0][i], vArr[1][i], vArr[2][i] );
