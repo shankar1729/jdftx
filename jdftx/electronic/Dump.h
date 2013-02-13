@@ -41,6 +41,7 @@ enum DumpFrequency
 enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those required to restart calculation
 	DumpIonicPositions, DumpForces, DumpLattice, DumpIonicDensity, //Ionic positions, Forces, Lattice vectors, Nuclear charge density
 	DumpElecDensity, DumpCoreDensity, DumpFluidDensity, // electronic valence and core densities, fluid densities
+	DumpKEDensity, // Dumps tau (positive kinetic energy density)
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs,

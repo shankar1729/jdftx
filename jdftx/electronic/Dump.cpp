@@ -190,7 +190,17 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		write(eVars.Hsub_evecs, fname.c_str());
 		EndDump
 	}
-
+	
+	// Dumps tau (positive Kinetic Energy density)
+	if(ShouldDump(KEDensity))
+	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
+		if(eInfo.spinType == SpinZ)
+		{	DUMP(tau[0], "KEDensity_up", KEDensity)
+			DUMP(tau[1], "KEDensity_dn", KEDensity)
+		}
+		else DUMP(tau[0], "KEDensity", KEDensity)
+	}
+	
 	if(ShouldDump(BandEigs))
 	{	StartDump("eigenvals")
 		FILE* fp = fopen(fname.c_str(), "w");

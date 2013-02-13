@@ -70,7 +70,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpWannier, "Wannier",
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
-  	DumpDipole, "Dipole"
+  	DumpDipole, "Dipole",
+	DumpKEDensity, "KEDensity"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -103,7 +104,9 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpWannier,        "Compute Maximally-Localized Wannier Functions (see wannier) [not in All]",
 	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see density-of-states) [not in All]",
-	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)"
+	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
+	DumpKEDensity, 		 "The Kohn-Sham kinetic energy density of the valence electrons (reduces to the exact von Weizsäcker KE for a one-electron systems)"
+	
 );
 
 struct CommandDump : public Command
