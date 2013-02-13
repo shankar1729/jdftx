@@ -24,23 +24,24 @@ endif()
 find_package(GSL REQUIRED)
 include_directories(${GSL_INCLUDE_DIR})
 
-find_package(FFTW3 REQUIRED)
-include_directories(${FFTW3_INCLUDE_DIR})
-
-#Use indepedent CBLAS and LAPACK (default) or MKL for both
+#Use indepedent CBLAS, LAPACK and FFTW (default) or MKL for all three
 if(MKL_PATH)
 	find_package(MKL)
 endif()
 if(MKL_FOUND)
-	set(CBLAS_LAPACK_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS and LAPACK
+	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
+	add_definitions("-DMKL_PROVIDES_FFTW3") #Some special handling is required for multi-threaded plans
+	include_directories(${MKL_INCLUDE_DIR})
 else()
 	if(MKL_PATH)
-		message(WARNING "Could not find MKL in specified MKL_PATH; searching for alternate CBLAS and LAPACK libraries")
+		message(WARNING "Could not find MKL in specified MKL_PATH; searching for alternate CBLAS, LAPACK and FFTW libraries")
 	endif()
+	find_package(FFTW3 REQUIRED)
 	find_package(LAPACK REQUIRED)
 	find_package(CBLAS REQUIRED)
-	set(CBLAS_LAPACK_LIBRARIES ${CBLAS_LIBRARY} ${LAPACK_LIBRARIES})
+	set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LIBRARY} ${LAPACK_LIBRARIES})
 endif()
+include_directories(${FFTW3_INCLUDE_DIR})
 
 find_package(LIBXC)
 if(LIBXC_FOUND)
@@ -103,7 +104,7 @@ endif()
 #----------------------- Regular CPU stuff ----------------
 
 #Set of libraries used by each target
-set(CORE_LIBS ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LAPACK_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
+set(CORE_LIBS ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
 #Core Library:
 FILE(GLOB coreSources core/*.cpp)

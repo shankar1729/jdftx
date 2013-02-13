@@ -25,6 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <cfloat>
 
+#ifdef MKL_PROVIDES_FFTW3
+#include <fftw3_mkl.h>
+#endif
+
 const double CoulombKernel::nSigmasPerWidth = 1.+sqrt(-2.*log(DBL_EPSILON)); //gaussian negligible at double precision (+1 sigma for safety)
 
 CoulombKernel::CoulombKernel(const matrix3<> R, const vector3<int> S, const vector3<bool> isTruncated, double omega)

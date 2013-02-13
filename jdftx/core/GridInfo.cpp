@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <algorithm>
 
+#ifdef MKL_PROVIDES_FFTW3
+#include <fftw3_mkl.h>
+#endif
+
 GridInfo::GridInfo():Gmax(0),initialized(false)
 {
 }
@@ -262,7 +266,10 @@ void GridInfo::initialize(const std::vector< matrix3<int> > sym)
 	//########## FFTW Initialization ##############
 	#define PLANNER_FLAGS FFTW_MEASURE
 	fftw_init_threads();
-	
+	#ifdef MKL_PROVIDES_FFTW3
+	fftw3_mkl.number_of_user_threads = nProcsAvailable; //Single-threaded transforms may be called from multiple threads
+	#endif
+
 	//Check for previously saved wisdom (this file should not be copied from one machine to another)
 	int systemWisdom = fftw_import_system_wisdom();
 	FILE* fp = fopen(".fftw-wisdom", "r");
