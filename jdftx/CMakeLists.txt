@@ -200,3 +200,6 @@ endif()
 
 #Additional test executables, mostly related to the fluid
 add_subdirectory(tests)
+
+#Optional features: primarily interfaces to other codes
+add_subdirectory(opt)

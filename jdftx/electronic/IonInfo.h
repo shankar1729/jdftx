@@ -94,10 +94,6 @@ public:
 	double GmaxNL; //!< maximum G extent for non-local projetcors (corresponds to Ecut)
 	double GmaxLoc; //!< maximum G extent for local functions (corresponds to furthest fft-box vertex)
 
-private:
-	const Everything* e;
-	bool shouldPrintForceComponents;
-	
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
 		IonWidthFFTbox, //!< determine ion width from grid spacing
@@ -105,8 +101,11 @@ private:
 	}
 	ionWidthMethod; //!< method for determining ion charge width
 	double ionWidth; //!< width for gaussian representation of nuclei
+
+private:
+	const Everything* e;
+	bool shouldPrintForceComponents;
 	
-	friend class CommandIonWidth;
 	friend class CommandDebug;
 	
 	//! Compute all pair-potential terms in the energy or forces (electrostatic, and optionally vdW)
