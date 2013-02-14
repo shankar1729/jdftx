@@ -33,9 +33,9 @@ DeclareFortranFunction(minimizefluid)(double* Adiel, double* nCavity, double* rh
 int main()
 {
 	double Rx[3] = {10., 0., 0.};
-	double Ry[3] = {0., 8., 6.};
-	double Rz[3] = {0., 8, -6.};
-	int Sx = 80, Sy = 64, Sz = 72;
+	double Ry[3] = {0., 10., 0.};
+	double Rz[3] = {0., 0., 10.};
+	int Sx = 14, Sy = 14, Sz = 14;
 	initjdftx_(Rx, Ry, Rz, &Sx, &Sy, &Sz);
 	
 	double ionWidth;

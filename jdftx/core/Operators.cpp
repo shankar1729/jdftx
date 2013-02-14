@@ -431,7 +431,7 @@ void axpy(double alpha, const DataRptr& X, DataRptr& Y)
 	//if X is null, nothing needs to be done, Y remains unchanged
 }
 DataRptr& operator+=(DataRptr& in, double scalar)
-{	Data dataScalar(in->gInfo, 1, 1, false); *((complex*)dataScalar.data()) = scalar;
+{	Data dataScalar(in->gInfo, 1, 1, false); *((double*)dataScalar.data()) = scalar;
 	callPref(eblas_daxpy)(in->nElem, 1.0, (double*)dataScalar.dataPref(), 0, in->dataPref(), 1);
 	return in;
 }

@@ -74,6 +74,7 @@ DeclareFortranFunction(initjdftx)(double* Rx, double* Ry, double* Rz, int* Sx, i
 	//Initialize system:
 	parse("FLUCAR.in", e);
 	system("rm FLUCAR.in");
+	if(e.eVars.fluidType == FluidNone) die("No fluid model specified in FLUCAR.\n");
 	if(e.iInfo.ionWidthMethod == IonInfo::IonWidthEcut)
 	{	logPrintf("JDFTx interface does not have access to VASP energy cutoff:\n"
 			"\tUsing FFTbox to determine nuclear width instead.\n");
@@ -81,7 +82,7 @@ DeclareFortranFunction(initjdftx)(double* Rx, double* Ry, double* Rz, int* Sx, i
 	}
 	e.setup();
 	Citations::add("JDFTx-VASP interface",
-		"K. Matthew, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R.G. Hennig (under preparation)");
+		"K. Mathew, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R.G. Hennig (under preparation)");
 	Citations::print();
 }
 
