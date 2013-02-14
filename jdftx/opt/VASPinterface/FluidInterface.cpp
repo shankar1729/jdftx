@@ -116,6 +116,7 @@ DeclareFortranFunction(minimizefluid)(double* Adiel,
 	e.eVars.fluidSolver->minimizeFluid();
 	DataGptr A_n, A_rho; IonicGradient extraForces;
 	double A = e.eVars.fluidSolver->get_Adiel_and_grad(A_n, A_rho, extraForces);
+	e.dump(DumpFreq_Electronic, -1);
 	
 	//Convert outputs:
 	*Adiel = A/eV;
