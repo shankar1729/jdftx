@@ -178,7 +178,8 @@ struct ExchangeSlab_calc
 		{	//Correct for Screened exchange using lookup table:
 			const double* coeffPlane = coeff + abs(iG[iDir]) * nCoeff; //coefficients for this plane
 			double t = dGinv * Gplane;
-			if(t<nSamples) Vc += QuinticSpline::value(coeffPlane, t);
+			double prefac = iG[iDir] ? 1. : 1./Gplane;
+			if(t<nSamples) Vc += prefac * QuinticSpline::value(coeffPlane, t);
 		}
 		return Vc;
 	}

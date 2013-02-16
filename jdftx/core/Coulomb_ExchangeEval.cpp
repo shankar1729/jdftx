@@ -406,6 +406,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				fftw_destroy_plan(planDCT);
 				//--- Initialize splines for each iAxis:
 				Vzero = samples[0][0] + (-2.*M_PI)*pow(slabCalc.hlfL,2) + VzeroCorrection;
+				for(int iSample=0; iSample<nSamples; iSample++) samples[0][iSample] *= (iSample * dG); //handle 1/Gplane sinbularity in the Gz=0 plane
+				samples[0][0] = (-4.*M_PI)*slabCalc.hlfL; //replace regularized version with limit of singular one multiplied out as above
 				std::vector<double> coeff, coeffSub;
 				for(int iAxis=0; iAxis<nAxis; iAxis++)
 				{	coeffSub = QuinticSpline::getCoeff(samples[iAxis]); //coefficients for a given iAxis
