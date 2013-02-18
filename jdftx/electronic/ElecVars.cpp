@@ -106,40 +106,7 @@ void ElecVars::setup(const Everything &everything)
 		isRandom = (nBandsOld<eInfo.nBands);
 	}
 	else if(initLCAO)
-	{	//Count total atomic orbitals:
-		int nAtomic = 0;
-		for(auto sp: iInfo.species)
-			nAtomic += sp->nAtomicOrbitals();
-		if(nAtomic) //Initialize each state separately:
-		{	logPrintf("linear combination of atomic orbitals\n");
-			if(nAtomic < eInfo.nBands)
-				logPrintf("Note: number of bands (%d) exceeds available atomic orbitals (%d)\n",
-					eInfo.nBands, nAtomic);
-			for(int q=0; q<eInfo.nStates; q++)
-			{	ColumnBundle psi(nAtomic, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q], isGpuEnabled());
-				//Fill with atomic orbitals:
-				int iCol=0;
-				for(auto sp: iInfo.species)
-				{	sp->setAtomicOrbitals(psi, iCol);
-					iCol += sp->nAtomicOrbitals();
-				}
-				psi = psi * invsqrt(psi^O(psi));
-				//Compute the Hamiltonian:
-				ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
-				iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
-				Hpsi += Idag_DiagV_I(psi, 
-					Jdag(O(iInfo.Vlocps + (rhoExternal ? (*e->coulomb)(rhoExternal) : DataGptr())), true) //local potential
-					+ (Vexternal.size() ? JdagOJ(Vexternal[eInfo.qnums[q].index()]) : DataRptr())); //external potential
-				//Diagonalize and set to eigenvectors:
-				matrix evecs; diagMatrix eigs;
-				(psi^Hpsi).diagonalize(evecs, eigs);
-				psi = psi * evecs;
-				//Pick the first nBands columns (which have the lowest eigenvalues:
-				Y[q].setSub(0, psi);
-			}
-			nBandsInited = std::min(eInfo.nBands, nAtomic);
-		}
-		else logPrintf("(No orbitals for LCAO)  ");
+	{	nBandsInited = LCAO();
 	}
 	
 	//Randomize and orthogonalize any uninitialized bands:
@@ -340,6 +307,15 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		}
 		C[q] = Yq * (eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q]);
 	}
+	
+	//Update overlap condition number:
+	double UeigMin = DBL_MAX, UeigMax = 0.;
+	for(int q=0; q<eInfo.nStates; q++)
+	{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
+		UeigMin = std::min(UeigMin, *(extremes.first));
+		UeigMax = std::max(UeigMax, *(extremes.second));
+	}
+	overlapCondition = UeigMax / UeigMin;
 	
 	//Compute fillings if required:
 	double mu = 0.0;

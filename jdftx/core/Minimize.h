@@ -396,7 +396,11 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	for(iter=0; !killFlag; iter++)
 	{	
 		if(report(iter)) //optional reporting/processing
-			E = compute(&g); //update energy and gradient if state was modified
+		{	E = compute(&g); //update energy and gradient if state was modified
+			fprintf(p.fpLog, "%s\tState modified externally: resetting search direction.\n", p.linePrefix);
+			fflush(p.fpLog);
+			forceGradDirection = true; //reset search direction
+		}
 		
 		Vector Kg = precondition(g);
 		gKNorm = dot(g,Kg);

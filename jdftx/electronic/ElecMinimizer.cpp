@@ -135,6 +135,17 @@ bool ElecMinimizer::report(int iter)
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
 	
+	//Re-orthogonalize wavefunctions if necessary:
+	if(e.cntrl.overlapCheckInterval
+		&& (iter % e.cntrl.overlapCheckInterval == 0)
+		&& (eVars.overlapCondition > e.cntrl.overlapConditionThreshold) )
+	{
+		logPrintf("%s\tCondition number of orbital overlap matrix (%lg) exceeds threshold (%lg): ",
+			e.elecMinParams.linePrefix, eVars.overlapCondition, e.cntrl.overlapConditionThreshold);
+		eVars.setEigenvectors();
+		return true;
+	}
+	
 	return stateModified;
 }
 

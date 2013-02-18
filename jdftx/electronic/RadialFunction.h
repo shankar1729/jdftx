@@ -22,25 +22,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Bspline.h>
 
+struct RadialFunctionR;
+
 //! G-space radial function stored on a uniform grid (of |G|)
 class RadialFunctionG
 {
 	double dGinv; //!< inverse sample spacing
 	int nCoeff; //!< number of coefficients
 	double* coeff; //!< coefficients (either on cpu or gpu depending on isGpuEnabled())
+
 public:
 	RadialFunctionG();
 	operator bool() const; //!< test null-ness
 	void init(int l, int nSamples, double dG, const char* filename, double scale=1.0); //!< read and initialize from an ascii file (DFT PSP format)
 	void init(int l, const std::vector<double>& samples, double dG); //!< initialize from an array of samples in memory
 	void free();
-	
+
 	//! Blip (quintic spline evaluation)
 	__hostanddev__ double operator()(double G) const
 	{	double Gindex = G * dGinv;
 		if(Gindex >= nCoeff-1) return 0.;
 		else return QuinticSpline::value(coeff, Gindex);
 	}
+	
+	RadialFunctionR* rFunc; //!< copy of the real-space radial version (if created from one)
 };
 
 //! A function on a non-uniform real-space radial grid

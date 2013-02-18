@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/GpuUtil.h>
 
-RadialFunctionG::RadialFunctionG() : nCoeff(0), coeff(0)
+RadialFunctionG::RadialFunctionG() : nCoeff(0), coeff(0), rFunc(0)
 {
 }
 
@@ -67,6 +67,7 @@ void RadialFunctionG::free()
 		delete[] coeff;
 		#endif
 	}
+	if(rFunc) delete rFunc;
 }
 
 RadialFunctionR::RadialFunctionR(int nSamples) : r(nSamples), dr(nSamples), f(nSamples)
@@ -157,6 +158,8 @@ void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& fu
 {	std::vector<double> fTilde(nGrid);
 	for(int iG=0; iG<nGrid; iG++)
 		fTilde[iG] = transform(l, iG*dG);
+	func.free();
 	func.init(l, fTilde, dG);
+	func.rFunc = new RadialFunctionR(*this);
 }
 

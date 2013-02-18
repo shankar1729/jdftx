@@ -126,6 +126,7 @@ void SpeciesInfo::setup(const Everything &everything)
 		case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
 	}
+	setupAtomFillings();
 	if(coreRadius) logPrintf("  Core radius for overlap checks: %.2lf bohrs.\n", coreRadius);
 	else if(!VnlRadial.size()) logPrintf("  Disabling overlap check for local pseudopotential.\n");
 	else logPrintf("  Warning: could not determine core radius; disabling overlap check for this species.\n");
@@ -264,8 +265,8 @@ void SpeciesInfo::augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, D
 		matrix VdagC = V ^ Cq;
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
 		
-		int i1 = 0;
 		//Triple loop over first projector:
+		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
 		for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
 		for(int m1=-l1; m1<=l1; m1++)
@@ -472,11 +473,23 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 	return Utot;
 }
 
+void SpeciesInfo::accumulateAtomicDensity(DataGptr& nTilde) const
+{	//Compute structure factor:
+	DataGptr SG; nullToZero(SG, e->gInfo);
+	callPref(getSG)(e->gInfo.S, atpos.size(), atposPref, 1./e->gInfo.detR, SG->dataPref());
+	//Accumulate density:
+	nTilde += atom_nRadial * SG;
+}
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset, std::vector<AtomConfig>* atomConfig) const
 {	if(!atpos.size()) return;
 	assert(Y.basis); assert(Y.qnum);
+	//Check sizes:
+	int colMax = colOffset; for(int l=0; l<int(psiRadial.size()); l++) colMax += psiRadial[l].size() * (2*l+1) * atpos.size();
+	assert(colMax <= Y.nCols());
+	if(atomConfig && atomConfig->size()<size_t(colMax)) atomConfig->resize(colMax);
+	//Set orbitals and associated info if requested:
 	const Basis& basis = *Y.basis;
 	int iCol = colOffset; //current column
 	for(int l=0; l<int(psiRadial.size()); l++)
@@ -487,6 +500,14 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 				size_t atomStride = basis.nbasis;
 				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
 					atposPref, psiRadial[l][p], Y.dataPref()+offs, false, vector3<complex*>());
+				if(atomConfig)
+					for(unsigned a=0; a<atpos.size(); a++)
+					{	AtomConfig& ac = atomConfig->at(iCol + a);
+						ac.n = p;
+						ac.l = l;
+						ac.iAtom = a;
+						ac.F = atomF[l][p];
+					}
 				iCol += atpos.size();
 			}
 		}

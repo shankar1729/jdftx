@@ -45,6 +45,9 @@ public:
 	int fluidGummel_nIterations; //!< max iterations of the fluid<->electron self-consistency loop
 	double fluidGummel_Atol; //!< stopping free-energy tolerance for the fluid<->electron self-consistency loop
 
+	double overlapConditionThreshold; //!< Threshold for overlap condition number at which wavefunctions are re-orthogonalized
+	int overlapCheckInterval; //!< Number of electronic steps between overlap condition checks
+	
 	bool shouldPrintEigsFillings; //!< whether eigenvalues and fillings should be printed at each iteration
 	bool shouldPrintEcomponents; //!< whether energy components should be printed at each iteration
 	bool shouldPrintMuSearch; //!< whether mu bisection progress should be printed
@@ -59,6 +62,7 @@ public:
 		fixOccupied(false), occupiedThreshold(0),
 		basisKdep(BasisKpointDep), Ecut(0), dragRadius(0),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
+		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false),
 		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.)
 	{

@@ -264,8 +264,10 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		}
 	double hermErr = sqrt(errNum / (errDen*N));
 	if(hermErr > 1e-10)
-		die("Relative hermiticity error of %le (>1e-10) encountered in diagonalize\n", hermErr);
-
+	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in diagonalize\n", hermErr);
+		gdbStackTraceExit(1);
+	}
+	
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
 	char range = 'A'; //compute all eigenvalues
 	char uplo = 'U'; //use upper-triangular part
@@ -288,8 +290,8 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	delete[] work;
 	delete[] rwork;
 	delete[] iwork;
-	if(info<0) die("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info);
-	if(info>0) die("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); gdbStackTraceExit(1); }
 }
 
 //Apply pending transpose / dagger operations:
@@ -426,8 +428,8 @@ void randomize(matrix& x)
 matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs)
 {	MATRIX_FUNC
 	(	if(eigs[i]<=0.0)
-		{	die("Eigenvalue# %d negative (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
-			eigOut[i] = 0.0;
+		{	logPrintf("Eigenvalue# %d negative (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
+			gdbStackTraceExit(1);
 		}
 		else eigOut[i] = pow(eigs[i], exponent);
 	)

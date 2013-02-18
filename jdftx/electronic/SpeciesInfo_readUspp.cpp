@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 
 //Overlap of two radial functions (assumes same grid configuration, but one grid could be shorter)
-inline double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
+double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
 {	size_t nr = std::min(X.f.size(), Y.f.size());
 	assert(X.r.size() >= nr);
 	assert(X.dr.size() >= nr);
@@ -34,8 +34,8 @@ inline double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
 	}
 	return ret;
 }
-//Accumulate radial functions (assuems same grid configuration, but X could be shorter)
-inline void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
+//Accumulate radial functions (assumes same grid configuration, but X could be shorter)
+void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
 {	size_t nr = X.f.size();
 	assert(Y.f.size() >= nr);
 	for(size_t i=0; i<nr; i++) Y.f[i] += alpha * X.f[i];
@@ -334,12 +334,14 @@ void SpeciesInfo::readUspp(istream& is)
 		OpsiRadial = new std::vector<std::vector<RadialFunctionG> >;
 		psiRadial.resize(lMax+1);
 		OpsiRadial->resize(lMax+1);
+		atomEigs.resize(lMax+1);
 		for(int v=0; v<nValence; v++)
 		{	int l = (voCode[v]/10)%10; //l is 2nd digit of orbital code (ie. |210> is l=1)
 			voPsi[v].set(rGrid, drGrid);
 			for(int i=0; i<nGrid; i++)
 				voPsi[v].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
 			psiRadial[l].push_back(RadialFunctionG());
+			voPsi[v].transform(l, dGnl, nGridNL, psiRadial[l].back());
 			//Create O(psi) on the radial grid:
 			RadialFunctionR Opsi = voPsi[v];
 			std::vector<double> VdagPsi(lBeta[l].size());
@@ -351,6 +353,8 @@ void SpeciesInfo::readUspp(istream& is)
 					axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], Vnl[lBeta[l][p1]], Opsi);
 			OpsiRadial->at(l).push_back(RadialFunctionG());
 			Opsi.transform(l, dGnl, nGridNL, OpsiRadial->at(l).back());
+			//Store eigenvalue:
+			atomEigs[l].push_back(voWeight[v]);
 		}
 	}
 	

@@ -97,15 +97,25 @@ public:
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC = 0, std::vector<vector3<> >* forces=0) const;
 	
-	//! Calculate atomic orbitals (store in Y with an optional column offset)
-	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
+	//!Pseudo-atom configuration (retrieved along with atomic orbitals using setAtomicOrbitals)
+	struct AtomConfig
+	{	unsigned n; //!< pseudo-atom principal quantum number
+		int l; //!< angular momentum
+		unsigned iAtom; //!< atom index (within all atoms of this species)
+		double F; //!< occupation in the atomic state (summed over m)
+	};
+
+	//! Accumulate atomic density from this species
+	void accumulateAtomicDensity(DataGptr& nTilde) const;
+	//! Calculate atomic orbitals (store in Y with an optional column offset, and optionally retrieve the pseudo-atom configuration)
+	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0, std::vector<AtomConfig>* atomConfig=0) const;
 	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
 	void setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const;
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
 	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
 	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species
-	
+
 	//! Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
 	void writeProjectors(const ColumnBundle& Cq, FILE* fp) const;
 	
@@ -142,6 +152,9 @@ private:
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
+	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by setupAtomFillings)
+	std::vector<std::vector<double> > atomF; //!< Fillings of the atomic orbitals in the atomic state (computed by setupAtomFillings)
+	RadialFunctionG atom_nRadial; //!< Radial electron density of the atom (computed by setupAtomFillings)
 	
 	//! Calculate O(atomic orbitals) of specific n and l. and optionally retrieve spatial gradient in dY
 	void setOpsi(ColumnBundle& Y, unsigned n, int l, std::vector<ColumnBundle>* dY=0) const;
@@ -173,6 +186,7 @@ private:
 	void readFhi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
 	void setupPulay(); // Implemented in SpeciesInfo_readPot.cpp
+	void setupAtomFillings(); //Implemented in SpeciesInfo_atomFillings.cpp
 	
 	friend class CommandIonSpecies;
 	friend class CommandAddU;

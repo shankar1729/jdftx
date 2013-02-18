@@ -81,6 +81,8 @@ public:
 	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed
 	
+	double overlapCondition; //!< Current condition number of the orbital overlap matrix (over all states)
+	
 	std::vector<string> nFilename; //!< file(s) to read electron (spin) density from
 
 	ElecVars();
@@ -115,6 +117,7 @@ private:
 	friend class CommandRhoExternal;
 
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
+	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)
 	friend class CommandWavefunction;
 	friend class Dump;
 };
