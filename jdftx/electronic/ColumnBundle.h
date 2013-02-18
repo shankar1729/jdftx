@@ -43,6 +43,7 @@ public:
 	const Basis *basis;
 
 	void init(int nc, size_t len, const Basis* b, const QuantumNumber* q, bool onGpu=false); //!< onGpu MUST remain false if no GPU_ENABLED!
+	void free(); //!< Force cleanup
 	ColumnBundle(int nc=0, size_t len=0, const Basis* b=NULL, const QuantumNumber* q=NULL, bool onGpu=false); //!< onGpu MUST remain false if no GPU_ENABLED!
 	ColumnBundle(const ColumnBundle&); //!< copy constructor
 	ColumnBundle(ColumnBundle&&); //!< move constructor

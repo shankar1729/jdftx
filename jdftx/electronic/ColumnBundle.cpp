@@ -38,6 +38,14 @@ void ColumnBundle::init(int nc, size_t len, const Basis *b, const QuantumNumber*
 	memInit(nCols()*colLength(), onGpu); //in base class ManagedMemory
 }
 
+void ColumnBundle::free()
+{	ncols = 0;
+	col_length = 0;
+	basis = 0;
+	qnum = 0;
+	memFree();
+}
+
 // (Default) Constructor
 ColumnBundle::ColumnBundle(int nc, size_t len, const Basis *b, const QuantumNumber* q, bool onGpu)
 {	reader = 0;

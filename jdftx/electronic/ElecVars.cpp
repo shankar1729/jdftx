@@ -299,6 +299,10 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
+	//Cleanup old gradients:
+	if(grad) { grad->Y.clear(); grad->Y.resize(eInfo.nStates); }
+	if(Kgrad) { Kgrad->Y.clear(); Kgrad->Y.resize(eInfo.nStates); }
+	
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_n;
 	
@@ -465,6 +469,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 				}
 			}
 		}
+		HCq.free();
 	}
 	
 	//Subspace hamiltonian gradient:
