@@ -24,11 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
 #include <electronic/matrix.h>
-#include <core/Data.h>
+#include <core/DataCollection.h>
 #include <core/vector3.h>
 #include <core/string.h>
-
-
 
 
 class SpeciesInfo
@@ -61,7 +59,9 @@ public:
 		int getDimension() const;
 		void print(FILE* fp, const Everything&) const;
 	};
-	std::vector<Constraint> constraints; //! List of all constraints on ions of this species
+	std::vector<Constraint> constraints; //!< List of all constraints on ions of this species
+	
+	std::vector<double> initialMagneticMoments; //!< Initial magnetic moments of each atom in number of electrons (used only for LCAO and symmetries)
 	
 	SpeciesInfo();
 	~SpeciesInfo();
@@ -106,7 +106,7 @@ public:
 	};
 
 	//! Accumulate atomic density from this species
-	void accumulateAtomicDensity(DataGptr& nTilde) const;
+	void accumulateAtomicDensity(DataGptrCollection& nTilde) const;
 	//! Calculate atomic orbitals (store in Y with an optional column offset, and optionally retrieve the pseudo-atom configuration)
 	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0, std::vector<AtomConfig>* atomConfig=0) const;
 	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
@@ -152,9 +152,7 @@ private:
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
-	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by setupAtomFillings)
-	std::vector<std::vector<double> > atomF; //!< Fillings of the atomic orbitals in the atomic state (computed by setupAtomFillings)
-	RadialFunctionG atom_nRadial; //!< Radial electron density of the atom (computed by setupAtomFillings)
+	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
 	
 	//! Calculate O(atomic orbitals) of specific n and l. and optionally retrieve spatial gradient in dY
 	void setOpsi(ColumnBundle& Y, unsigned n, int l, std::vector<ColumnBundle>* dY=0) const;
@@ -186,7 +184,10 @@ private:
 	void readFhi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
 	void setupPulay(); // Implemented in SpeciesInfo_readPot.cpp
-	void setupAtomFillings(); //Implemented in SpeciesInfo_atomFillings.cpp
+	
+	//Following implemented in SpeciesInfo_atomFillings.cpp
+	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.
+	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const; //!< Compute the atomic density per spin channel, given the magnetic moment
 	
 	friend class CommandIonSpecies;
 	friend class CommandAddU;

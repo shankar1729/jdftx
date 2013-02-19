@@ -186,7 +186,7 @@ DataRptrCollection ElecVars::get_nXC() const
 }
 
 //Electronic density functional and gradient
-void ElecVars::EdensityAndVscloc(Energies& ener)
+void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 {	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
@@ -240,12 +240,12 @@ void ElecVars::EdensityAndVscloc(Energies& ener)
 			ener.E["A_diel"] += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
 			VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
 		}
-		
 	}
 
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
 	DataRptrCollection Vxc;
-	ener.E["Exc"] = e->exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
+	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
+	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	for(unsigned s=0; s<Vxc.size(); s++)
 	{	Vscloc[s] = Jdag(O(VsclocTilde), true) + JdagOJ(Vxc[s]);
 		//External potential contributions:

@@ -98,3 +98,55 @@ struct CommandIon : public Command
 	}
 }
 commandIon;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandInitialMagneticMoments : public Command
+{
+	CommandInitialMagneticMoments() : Command("initial-magnetic-moments")
+	{
+		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]";
+		comments =
+			"Specify initial magnetic moments, defined as the difference between\n"
+			"up and down electron counts, on each atom of one or more species.\n"
+			"For each species, the initial magnetic moments are applied to the\n"
+			"atoms in the order of ion commands for that species.\n"
+			"This may be used to construct a spin-polarized reference density\n"
+			"for LCAO initialization of the Kohn-Sham orbitals.";
+		
+		require("ion");
+		require("spintype");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	if(e.eInfo.spinType == SpinNone)
+			throw string("Cannot specify magnetic moments in an unpolarized calculation");
+		string id;
+		pl.get(id, string(), "species", true);
+		while(id.length())
+		{	bool spFound = false;
+			for(auto sp: e.iInfo.species)
+				if(sp->name == id)
+				{	sp->initialMagneticMoments.resize(sp->atpos.size());
+					for(unsigned a=0; a<sp->atpos.size(); a++)
+					{	ostringstream oss; oss << "M" << (a+1);
+						pl.get(sp->initialMagneticMoments[a], 0., oss.str(), true);
+					}
+					spFound = true;
+					break;
+				}
+			if(!spFound) throw string("Species "+id+" has not been defined");
+			//Check for additional species:
+			pl.get(id, string(), "species");
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(auto sp: e.iInfo.species)
+			if(sp->initialMagneticMoments.size())
+			{	logPrintf(" \\\n\t%s", sp->name.c_str());
+				for(double M: sp->initialMagneticMoments) logPrintf(" %lg", M);
+			}
+	}
+}
+commandInitialMagneticMoments;

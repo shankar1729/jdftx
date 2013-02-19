@@ -126,7 +126,7 @@ void SpeciesInfo::setup(const Everything &everything)
 		case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
 	}
-	setupAtomFillings();
+	estimateAtomEigs();
 	if(coreRadius) logPrintf("  Core radius for overlap checks: %.2lf bohrs.\n", coreRadius);
 	else if(!VnlRadial.size()) logPrintf("  Disabling overlap check for local pseudopotential.\n");
 	else logPrintf("  Warning: could not determine core radius; disabling overlap check for this species.\n");
@@ -473,12 +473,45 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 	return Utot;
 }
 
-void SpeciesInfo::accumulateAtomicDensity(DataGptr& nTilde) const
-{	//Compute structure factor:
-	DataGptr SG; nullToZero(SG, e->gInfo);
-	callPref(getSG)(e->gInfo.S, atpos.size(), atposPref, 1./e->gInfo.detR, SG->dataPref());
-	//Accumulate density:
-	nTilde += atom_nRadial * SG;
+void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
+{	//Collect list of distinct magnetizations and corresponding atom positions:
+	std::map<double, std::vector< vector3<> > > Matpos;
+	if(initialMagneticMoments.size())
+	{	for(unsigned a=0; a<atpos.size(); a++)
+			Matpos[initialMagneticMoments[a]].push_back(atpos[a]);
+	}
+	else Matpos[0.] = atpos;
+	//Scratch space for atom positions on GPU:
+	#ifdef GPU_ENABLED
+	vector3<>* atposCurPref;
+	cudaMalloc(&atposCurPref, sizeof(vector3<>)*atpos.size());
+	#endif
+	//For each magnetization:
+	for(auto mapEntry: Matpos)
+	{	double M = mapEntry.first; if(e->eInfo.spinType == SpinNone) assert(!M);
+		const std::vector< vector3<> >& atposCur = mapEntry.second;
+		#ifdef GPU_ENABLED
+		cudaMemcpy(atposCurPref, atposCur.data(), atposCur.size()*sizeof(vector3<>), cudaMemcpyHostToDevice);
+		#else
+		const vector3<>* atposCurPref = atposCur.data();
+		#endif
+		//Compute structure factor for atoms with current magnetization:
+		DataGptr SG; nullToZero(SG, e->gInfo);
+		callPref(getSG)(e->gInfo.S, atposCur.size(), atposCurPref, 1./e->gInfo.detR, SG->dataPref());
+		//Collect contributions:
+		for(int s=0; s<(M ? 2 : 1); s++)
+		{	RadialFunctionG nRadial;
+			getAtom_nRadial(s, M, nRadial);
+			DataGptr nTilde_s = nRadial * SG; //contribution per spin 
+			nRadial.free();
+			nTilde[s] += nTilde_s;
+			if(!M) nTilde.back() += nTilde_s; //same contribution to both spins (irrespective of spinType)
+		}
+	}
+	//Cleanup:
+	#ifdef GPU_ENABLED
+	cudaFree(atposCurPref);
+	#endif
 }
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
@@ -506,7 +539,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset, std::vector<
 						ac.n = p;
 						ac.l = l;
 						ac.iAtom = a;
-						ac.F = atomF[l][p];
+						//ac.F = atomF[l][p];
 					}
 				iCol += atpos.size();
 			}

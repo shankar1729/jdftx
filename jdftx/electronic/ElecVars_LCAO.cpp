@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>
 #include <electronic/operators.h>
+#include <core/DataIO.h>
 
 int ElecVars::LCAO()
 {
@@ -54,11 +55,21 @@ int ElecVars::LCAO()
 	else exCorr = &e->exCorr;
 	
 	//Get electron density obtained by adding those of the atoms:
-	DataGptr nTilde;
+	DataGptrCollection nTilde(n.size());
 	for(auto sp: e->iInfo.species)
 		sp->accumulateAtomicDensity(nTilde);
-	DataRptr V_LCAO; (*exCorr)(I(nTilde)+iInfo.nCore, &V_LCAO); //get exchange-correlation potential
-	V_LCAO += I(iInfo.Vlocps + (*e->coulomb)(nTilde + rhoExternal), true); //add local-pseudopotential and mean-field electrostatic terms
+	for(unsigned s=0; s<n.size(); s++)
+	{	n[s] = I(nTilde[s]);
+		nTilde[s] = 0; //free memory
+		e->symm.symmetrize(n[s]);
+	}
+	
+	//Compute local-potential at the atomic reference density:
+	FluidType fluidTypeTemp = FluidNone;
+	std::swap(fluidType, fluidTypeTemp); //Temporarily disable the fluid (which is yet to be initialized)
+	Energies ener;
+	EdensityAndVscloc(ener, exCorr);
+	std::swap(fluidType, fluidTypeTemp); //Restore the fluid type
 	
 	//Initialize one state at a time:
 	for(int q=0; q<eInfo.nStates; q++)
@@ -73,7 +84,7 @@ int ElecVars::LCAO()
 		//Compute the Hamiltonian:
 		ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
 		iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
-		Hpsi += Idag_DiagV_I(psi, JdagOJ(V_LCAO + (Vexternal.size() ? Vexternal[eInfo.qnums[q].index()] : DataRptr())));
+		Hpsi += Idag_DiagV_I(psi, Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
 		//Diagonalize and set to eigenvectors:
 		matrix evecs; diagMatrix eigs;
 		(psi^Hpsi).diagonalize(evecs, eigs);

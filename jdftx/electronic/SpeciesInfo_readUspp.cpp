@@ -354,7 +354,7 @@ void SpeciesInfo::readUspp(istream& is)
 			OpsiRadial->at(l).push_back(RadialFunctionG());
 			Opsi.transform(l, dGnl, nGridNL, OpsiRadial->at(l).back());
 			//Store eigenvalue:
-			atomEigs[l].push_back(voWeight[v]);
+			atomEigs[l].push_back(voEnergy[v]);
 		}
 	}
 	

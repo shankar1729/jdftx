@@ -25,7 +25,7 @@ double dot(const RadialFunctionR& X, const RadialFunctionR& Y);
 void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
 
 
-void SpeciesInfo::setupAtomFillings()
+void SpeciesInfo::estimateAtomEigs()
 {	if(!psiRadial.size()) return; //no orbitals
 
 	//Compute eigenvalues if unavailable
@@ -69,29 +69,43 @@ void SpeciesInfo::setupAtomFillings()
 		for(auto invalidPsi: invalidPsis)
 			logPrintf("  WARNING: Discarded %d l=%d unbound projectors from atomic orbital set.\n", invalidPsi.second, invalidPsi.first);
 	}
+}
+
+void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const
+{
+	int spinCount = (e->eInfo.spinType==SpinNone ? 1 : 2);
+	assert(spin >= 0); assert(spin < spinCount);
 	
 	//Determine occupations:
 	std::map< double, std::pair<unsigned,unsigned> > eigMap; //map from eigenvalues to (l,p)
-	atomF.resize(psiRadial.size());
+	std::vector<std::vector<double> > atomF(psiRadial.size());
 	for(unsigned l=0; l<psiRadial.size(); l++)
 	{	atomF[l].resize(psiRadial[l].size());
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
 			eigMap[atomEigs[l][p]] = std::make_pair(l,p);
 	}
-	double Favail = Z; //number of electrons to fill
+	if(spinCount>1 && magneticMoment)
+		logPrintf("%s (M=%lg) pseudo-atom spin=%+d occupations: ", name.c_str(), magneticMoment, 1-2*spin);
+	else
+		logPrintf("%s pseudo-atom occupations: ", name.c_str());
+	double N = 0.5*(Z + (1-2*spin)*magneticMoment); //total electrons to fill
+	if(N < 0.)
+		die("Magnetic moment (%lg) exceeds pseudo-atom valence electron count (%lg) [per spin channel].\n", magneticMoment, Z);
+	double Favail = N; //electrons yet to be filled
 	for(auto eigEntry: eigMap) //in ascending order of eigenvalues
 	{	unsigned l = eigEntry.second.first;
 		unsigned p = eigEntry.second.second;
-		double capacity = 2*(2*l+1);
+		double capacity = (2*l+1);
 		atomF[l][p] = std::min(Favail, capacity);
 		Favail -= atomF[l][p];
 	}
-	if(Favail > 0.) logPrintf("  WARNING: Insufficient atomic orbitals to occupy Z=%lg electrons (%lg excess elecrtons).\n", Z, Favail);
-	logPrintf("  Pseudo-atom occupations: ");
+	if(Favail > 0.)
+		die("Insufficient atomic orbitals to occupy %lg electrons (%lg excess electrons) [per spin channel].\n", N, Favail);
+	double spinFactor = (spinCount>1 && magneticMoment) ? 1. : 2.; //if unpolarized, print total occupations over both spin channels
 	for(unsigned l=0; l<psiRadial.size(); l++)
 	{	logPrintf(" l=%d: (", l);
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
-			logPrintf(" %.2lg", atomF[l][p]);
+			logPrintf(" %.2lg", atomF[l][p] * spinFactor);
 		logPrintf(" )");
 	}
 	logPrintf("\n");
@@ -123,9 +137,9 @@ void SpeciesInfo::setupAtomFillings()
 		}
 	}
 	//Fix normalization:
-	double normFac = Z/n.transform(0,0);
+	double normFac = 1./(4.*M_PI);
 	for(unsigned i=0; i<n.r.size(); i++) n.f[i] *= normFac;
 	//Transform density:
 	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
-	n.transform(0, dGloc, nGridLoc, atom_nRadial);
+	n.transform(0, dGloc, nGridLoc, nRadial);
 }

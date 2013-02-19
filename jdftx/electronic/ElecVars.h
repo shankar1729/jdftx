@@ -89,7 +89,8 @@ public:
 	void setup(const Everything &everything);
 
 	//! Compute the terms written as a functional of the electronic density, and its gradient i.e. Vscloc
-	void EdensityAndVscloc(Energies& ener);
+	//! If supplied, alternateExCorr replaces the main exchange and correlaton functional
+	void EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr=0);
 	
 	//! Update and return the electronic system/band structure energy.
 	//! Optionally compute the gradient, preconditioned gradient and/or the subspace hamiltonian

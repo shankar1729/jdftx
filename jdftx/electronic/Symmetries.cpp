@@ -228,14 +228,17 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 	for(const matrix3<int>& m: symLattice)
 	{	bool symmetric = true;
 		for(auto sp: e->iInfo.species) //For each species
-		{	for(auto pos1: sp->atpos) //For each atom
+		{	for(unsigned a1=0; a1<sp->atpos.size(); a1++) //For each atom
 			{	bool foundImage = false;
-				vector3<> mapped_pos1 = offset + m * (pos1-offset);
-				for(auto pos2: sp->atpos) //Check if the image exists:
-					if(circDistanceSquared(mapped_pos1, pos2) < symmThresholdSq)
-					{	foundImage = true;
-						break;
-					}
+				vector3<> mapped_pos1 = offset + m * (sp->atpos[a1]-offset);
+				for(unsigned a2=0; a2<sp->atpos.size(); a2++)
+					if(circDistanceSquared(mapped_pos1, sp->atpos[a2]) < symmThresholdSq) //Check if the image exists
+						if(!sp->initialMagneticMoments.size()
+							|| (sp->initialMagneticMoments[a1]==sp->initialMagneticMoments[a2]) ) //Check spin symmetry
+						{
+							foundImage = true;
+							break;
+						}
 				if(!foundImage) { symmetric = false; break; }
 			}
 			if(!symmetric) break;
