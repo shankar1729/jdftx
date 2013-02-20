@@ -132,6 +132,18 @@ void SpeciesInfo::setup(const Everything &everything)
 	else logPrintf("  Warning: could not determine core radius; disabling overlap check for this species.\n");
 	setupPulay(); //Pulay info
 
+	//Check for augmentation:
+	if(Qint.size())
+	{	bool needKE = e->exCorr.needsKEdensity();
+		bool needEXX = (e->exCorr.exxFactor()!=0.);
+		for(auto exCorr: e->exCorrDiff)
+		{	needKE |= e->exCorr.needsKEdensity();
+			needEXX |= (e->exCorr.exxFactor()!=0.);
+		}
+		if(needKE || needEXX)
+			die("\nUltrasoft pseudopotentials do not currently support meta-GGA or hybrid functionals.\n");
+	}
+	
 	#ifdef GPU_ENABLED
 	//Alloc and init GPU atomic positions:
 	cudaMalloc(&atposGpu, sizeof(vector3<>)*atpos.size());
@@ -154,7 +166,32 @@ void SpeciesInfo::print(FILE* fp) const
 		if(constraints[at].type != Constraint::None)
 			constraints[at].print(fp, *e);
 		fprintf(fp, "\n");
-			
+	}
+	
+	//Output magnetic moments for spin-polarized calculations:
+	//--- Only supported for pseudopotentials with atomic orbitals
+	if(e->eInfo.spinType == SpinZ && OpsiRadial->size())
+	{	diagMatrix M(atpos.size(), 0.); //magnetic moments
+		for(int q=0; q<e->eInfo.nStates; q++) //states
+		{	const ColumnBundle& Cq = e->eVars.C[q];
+			const diagMatrix& Fq = e->eVars.F[q];
+			ColumnBundle Opsi = Cq.similar(atpos.size()); //space for atomic orbitals
+			const QuantumNumber& qnum = *(Cq.qnum);
+			const Basis& basis = *(Cq.basis);
+			for(int l=0; l<int(OpsiRadial->size()); l++) //angular momenta
+				for(const RadialFunctionG& curOpsiRadial: OpsiRadial->at(l)) //principal quantum number (shells of pseudo-atom)
+					for(int m=-l; m<=+l; m++) //angular momentum directions
+					{	//Compute the atomic orbitals:
+						callPref(Vnl)(basis.nbasis, basis.nbasis, atpos.size(), l, m, qnum.k, basis.iGarrPref, e->gInfo.G,
+							atposPref, curOpsiRadial, Opsi.dataPref(), false, vector3<complex*>());
+						//Accumulate electron counts:
+						matrix CdagOpsi = Cq ^ Opsi;
+						M += (qnum.spin * qnum.weight) * diag(dagger(CdagOpsi) * Fq * CdagOpsi);
+					}
+		}
+		fprintf(fp, "# magnetic-moments %s", name.c_str());
+		for(double m: M) fprintf(fp, " %+lg", m);
+		fprintf(fp, "\n");
 	}
 }
 
