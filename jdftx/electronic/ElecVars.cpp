@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 ElecVars::ElecVars()
 : readWfnsRealspace(false), nBandsOld(0), EcutOld(0), kdepOld(BasisKpointDep), NxOld(0), NyOld(0), NzOld(0),
-isRandom(true), HauxInitialized(false), initLCAO(false)
+isRandom(true), HauxInitialized(false), initLCAO(true)
 {
 }
 

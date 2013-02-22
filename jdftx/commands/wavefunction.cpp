@@ -60,7 +60,7 @@ struct CommandWavefunction : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	WfnsInit wfnsInit; pl.get(wfnsInit, WfnsRandom, wfnsInitMap, "option", true);
+	{	WfnsInit wfnsInit; pl.get(wfnsInit, WfnsLCAO, wfnsInitMap, "option", true);
 		switch(wfnsInit)
 		{	case WfnsLCAO:
 				e.eVars.initLCAO = true;
