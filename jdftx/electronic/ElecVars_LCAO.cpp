@@ -57,7 +57,8 @@ int ElecVars::LCAO()
 	//Get electron density obtained by adding those of the atoms:
 	DataGptrCollection nTilde(n.size());
 	for(auto sp: e->iInfo.species)
-		sp->accumulateAtomicDensity(nTilde);
+		if(sp->atpos.size())  // Check for unused species
+			sp->accumulateAtomicDensity(nTilde);
 	for(unsigned s=0; s<n.size(); s++)
 	{	n[s] = I(nTilde[s]);
 		nTilde[s] = 0; //free memory
