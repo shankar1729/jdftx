@@ -386,7 +386,7 @@ void Symmetries::initAtomMaps()
 					if(circDistanceSquared(mapped_pos1, spInfo.atpos[at2]) < symmThresholdSq)
 					{	atomMap[sp][at1][iRot] = at2;
 				
-						if(not spInfo.constraints[at1].isEquivalent(spInfo.constraints[at2], e->gInfo.R*sym[iRot]*e->gInfo.invR))
+						if(not spInfo.constraints[at1].isEquivalent(spInfo.constraints[at2], e->gInfo.R*sym[iRot]*inv(e->gInfo.R)))
 							die("Species %s atoms %u and %u are related by symmetry "
 							"but have different move scale factors or inconsistent move constraints.\n\n",
 								spInfo.name.c_str(), at1, at2);
