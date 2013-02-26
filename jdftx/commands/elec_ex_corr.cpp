@@ -36,6 +36,8 @@ EnumStringMap<ExCorrType> exCorrTypeMap(
 	ExCorrMGGA_revTPSS, "mgga-revTPSS",
 	ExCorrHYB_PBE0, "hyb-PBE0",
 	ExCorrHYB_HSE06, "hyb-HSE06",
+	ExCorrHYB_HSE12, "hyb-HSE12",
+	ExCorrHYB_HSE12s, "hyb-HSE12s",
 	ExCorrHF, "Hartree-Fock"
 );
 EnumStringMap<ExCorrType> exCorrDescriptionMap(
@@ -51,6 +53,8 @@ EnumStringMap<ExCorrType> exCorrDescriptionMap(
 	ExCorrMGGA_revTPSS, "revised Tao-Perdew-Staroverov-Scuseria meta GGA",
 	ExCorrHYB_PBE0, "Hybrid PBE with 1/4 exact exchange",
 	ExCorrHYB_HSE06, "HSE06 'wPBEh' hybrid with 1/4 screened exact exchange",
+	ExCorrHYB_HSE12, "Reparametrized screened exchange functional for accuracy (w=0.185 A^-1 and a=0.313)",
+	ExCorrHYB_HSE12s, "Reparametrized screened exchange functional for k-point convergence (w=0.408 A^-1 and a=0.425)",
 	ExCorrHF, "Full exact exchange with no correlation"
 );
 

@@ -41,6 +41,8 @@ enum ExCorrType
 #endif
 	ExCorrHYB_PBE0, //!< PBE0 Hybrid GGA functional
 	ExCorrHYB_HSE06, //!< HSE06 Screened Hybrid GGA functional
+	ExCorrHYB_HSE12, //! Reparametrized screened exchange functional for accuracy
+	ExCorrHYB_HSE12s, //! Reparametrized screened exchange functional for minimum screening length
 	ExCorrHF //!< Hartree-Fock
 };
 

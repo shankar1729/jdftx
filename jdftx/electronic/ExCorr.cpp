@@ -377,6 +377,22 @@ void ExCorr::setup(const Everything& everything)
 			functionals->add(GGA_C_PBE);
 			Citations::add(citeReason, "A.V. Krukau, O.A. Vydrov, A.F. Izmaylov and G.E. Scuseria, J. Chem. Phys. 125, 224106 (2006)");
 			break;
+		case ExCorrHYB_HSE12:
+			exxOmega = 0.185;
+			exxScale = 0.313;
+			functionals->add(GGA_X_wPBE_SR, -exxScale);
+			functionals->add(GGA_X_PBE);
+			functionals->add(GGA_C_PBE);
+			Citations::add(citeReason, "J.E. Moussa, P.A. Schultz and J.R. Chelikowsky, J. Chem. Phys. 136, 204117 (2012)");
+			break;
+		case ExCorrHYB_HSE12s:
+			exxOmega = 0.408;
+			exxScale = 0.425;
+			functionals->add(GGA_X_wPBE_SR, -exxScale);
+			functionals->add(GGA_X_PBE);
+			functionals->add(GGA_C_PBE);
+			Citations::add(citeReason, "J.E. Moussa, P.A. Schultz and J.R. Chelikowsky, J. Chem. Phys. 136, 204117 (2012)");
+			break;
 		case ExCorrHF:
 			exxScale = 1.;
 			break;
