@@ -357,7 +357,9 @@ ColumnBundle operator*(complex s, const ColumnBundle &Y) { ColumnBundle sY(Y); s
 ColumnBundle operator*(const ColumnBundle &Y, complex s) { ColumnBundle sY(Y); sY *= s; return sY; }
 
 ColumnBundle operator*(const scaled<ColumnBundle> &sY, const matrixScaledTransOp &Mst)
-{	const ColumnBundle& Y = sY.data;
+{	static StopWatch watch("Y*M");
+	watch.start();
+	const ColumnBundle& Y = sY.data;
 	assert(Y.nCols()==Mst.nRows());
 	const matrix& M = Mst.mat;
 	double scaleFac = sY.scale * Mst.scale;
@@ -365,6 +367,7 @@ ColumnBundle operator*(const scaled<ColumnBundle> &sY, const matrixScaledTransOp
 	callPref(eblas_zgemm)(CblasNoTrans, Mst.op, YM.colLength(), YM.nCols(), Y.nCols(),
 		scaleFac, Y.dataPref(), Y.colLength(), M.dataPref(), M.nRows(),
 		0.0, YM.dataPref(), YM.colLength());
+	watch.stop();
 	return YM;
 }
 ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)
@@ -376,7 +379,9 @@ ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)
 	return Yd;
 }
 matrix operator^(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY2)
-{	const ColumnBundle& Y1 = sY1.data;
+{	static StopWatch watch("Y1^Y2");
+	watch.start();
+	const ColumnBundle& Y1 = sY1.data;
 	const ColumnBundle& Y2 = sY2.data;
 	double scaleFac = sY1.scale * sY2.scale;
 	assert(Y1.colLength() == Y2.colLength());
@@ -384,5 +389,6 @@ matrix operator^(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY
 	callPref(eblas_zgemm)(CblasConjTrans, CblasNoTrans, Y1.nCols(), Y2.nCols(), Y1.colLength(),
 		scaleFac, Y1.dataPref(), Y1.colLength(), Y2.dataPref(), Y2.colLength(),
 		0.0, Y1dY2.dataPref(), Y1dY2.nRows());
+	watch.stop();
 	return Y1dY2;
 }
