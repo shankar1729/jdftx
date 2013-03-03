@@ -97,13 +97,20 @@ public:
 class Coulomb
 {
 public:
+	//! Special point-charge handling mode when using embedded truncation
+	enum PointChargeMode
+	{	PointChargeNone, //!< smooth charge distributions, no handling required
+		PointChargeLeft, //!< point charge distribution on left end of operator (use for pointCharge^ K smooth)
+		PointChargeRight //!< point charge distribution on right end of operator (use for smooth^ K pointCharge, hermitian conjugate of PointChargeLeft)
+	};
+	
 	//! Apply Coulomb kernel (destructible input).
-	//! Pass pointCharges=true when applying to nucelar densities for special handling of high-frequency
+	//! Pass appropriate pointChargeMode when applying to nucelar densities for special handling of high-frequency
 	//! components necessary in the non-translationally invariant scheme i.e. when params.embed==true
-	DataGptr operator()(DataGptr&&, bool pointCharges=false) const;
+	DataGptr operator()(DataGptr&&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Apply Coulomb kernel (implemented in base class using virtual destructible input version)
-	DataGptr operator()(const DataGptr&, bool pointCharges=false) const;
+	DataGptr operator()(const DataGptr&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
 	double energyAndGrad(std::vector<Atom>& atoms) const; 

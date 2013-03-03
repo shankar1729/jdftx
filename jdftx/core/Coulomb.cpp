@@ -85,31 +85,31 @@ template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<i
 			callPref(eblas_symmetrize)(symmIndex[n].first, n, symmIndex[n].second, data);
 }
 
-DataGptr Coulomb::operator()(DataGptr&& in, bool pointCharges) const
+DataGptr Coulomb::operator()(DataGptr&& in, PointChargeMode pointChargeMode) const
 {	if(params.embed)
-	{	DataGptr outSR;
-		if(pointCharges) //Special handling (range separation) to avoid Nyquist frequency issues
-		{	outSR = (*ionKernel) * in; //short-ranged (high-frequency) Coulomb potential
-			in = gaussConvolve(in, ionWidth); //bandwidth-limit point charges and compute long-ranged part below
-		}
+	{	DataGptr outSR, outLR;
+		if(pointChargeMode!=PointChargeNone) outSR = (*ionKernel) * in; //Special handling (range separation) to avoid Nyquist frequency issues
+		if(pointChargeMode==PointChargeRight) in = gaussConvolve(in, ionWidth); //bandwidth-limit point charge to the right and compute long-ranged part below
 		//Expand to large grid:
 		DataRptr inLarge; nullToZero(inLarge, gInfo);
-		callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in)->dataPref(), inLarge->dataPref());
+		callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), inLarge->dataPref());
 		//Apply truncated Coulomb:
 		boundarySymmetrize(symmIndex, inLarge->dataPref());
 		inLarge = I(apply(J(inLarge)), true);
 		boundarySymmetrize(symmIndex, inLarge->dataPref());
 		//Reduce to original grid:
 		DataRptr out; nullToZero(out, gInfoOrig);
-		callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, inLarge->dataPref(), out->dataPref());
-		return J(out) + outSR;
+		callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, inLarge->dataPref(), out->dataPref()); inLarge=0;
+		outLR = J(out); out=0;
+		if(pointChargeMode==PointChargeLeft) outLR = gaussConvolve(outLR, ionWidth); //since point-charge to left, bandwidth-limit long-range part computed above
+		return outLR + outSR;
 	}
 	else return apply((DataGptr&&)in);
 }
 
-DataGptr Coulomb::operator()(const DataGptr& in, bool pointCharges) const
+DataGptr Coulomb::operator()(const DataGptr& in, PointChargeMode pointChargeMode) const
 {	DataGptr out(in->clone()); //create destructible copy
-	return (*this)((DataGptr&&)out, pointCharges);
+	return (*this)((DataGptr&&)out, pointChargeMode);
 }
 
 complexDataGptr Coulomb::operator()(complexDataGptr&& in, vector3<> kDiff, double omega) const
