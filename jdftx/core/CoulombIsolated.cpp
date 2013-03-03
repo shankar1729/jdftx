@@ -30,10 +30,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct EwaldIsolated : public Ewald
 {	matrix3<> R, RTR; //!< Lattice vectors and metric
 	const WignerSeitz& ws; //!< Wigner-Seitz cell
+	double ionMargin; //!< Safety margin around ions
 	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
 	
-	EwaldIsolated(const matrix3<>& R, const WignerSeitz& ws, double Rc=0.)
-	: R(R), RTR((~R)*R), ws(ws), Rc(Rc)
+	EwaldIsolated(const matrix3<>& R, const WignerSeitz& ws, double ionMargin, double Rc=0.)
+	: R(R), RTR((~R)*R), ws(ws), ionMargin(ionMargin), Rc(Rc)
 	{
 	}
 	
@@ -52,8 +53,14 @@ struct EwaldIsolated : public Ewald
 			{	Atom& a2 = atoms[j];
 				vector3<> x = a1.pos - a2.pos; //lattice coords
 				double rSq = RTR.metric_length_squared(x), r = sqrt(rSq);
-				if((!(ws.restrict(x)==x)) || (Rc && (r>=Rc)))
-					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i, j);
+				if(Rc)
+				{	if(r >= Rc - ionMargin)
+						die("Atoms %d and %d are separated by r = %lg >= Rc-ionMargin = %lg bohrs.\n" ionMarginMessage, i+1, j+1, r, Rc-ionMargin);
+				}
+				else
+				{	if(ws.boundaryDistance(x) <= ionMargin)
+						die("Separation between atoms %d and %d lies within the margin of %lg bohrs from the Wigner-Seitz boundary.\n" ionMarginMessage, i+1, j+1, ionMargin);
+				}
 				double dE = (a1.Z * a2.Z) / r;
 				vector3<> dF = (RTR * x) * (dE/rSq);
 				E += dE;
@@ -67,27 +74,27 @@ struct EwaldIsolated : public Ewald
 
 //----------------- class CoulombIsolated ---------------------
 
-CoulombIsolated::CoulombIsolated(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
+CoulombIsolated::CoulombIsolated(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params), ws(gInfo.R), Vc(gInfo)
 {	//Compute kernel:
 	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data, ws);
 	Vc.set();
 	initExchangeEval();
 }
 
-DataGptr CoulombIsolated::operator()(DataGptr&& in) const
+DataGptr CoulombIsolated::apply(DataGptr&& in) const
 {	return Vc * in;
 }
 
 std::shared_ptr<Ewald> CoulombIsolated::createEwald(matrix3<> R, size_t nAtoms) const
-{	return std::make_shared<EwaldIsolated>(R, ws);
+{	return std::make_shared<EwaldIsolated>(R, ws, params.ionMargin);
 }
 
 
 //----------------- class CoulombSpherical ---------------------
 
-CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc)
+CoulombSpherical::CoulombSpherical(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params), ws(gInfo.R), Rc(params.Rc)
 {	double RcMax = ws.inRadius();
 	if(Rc > RcMax)
 		die("Spherical truncation radius %lg exceeds Wigner-Seitz cell in-radius of %lg bohrs.\n", Rc, RcMax);
@@ -96,11 +103,11 @@ CoulombSpherical::CoulombSpherical(const GridInfo& gInfo, const CoulombParams& p
 	initExchangeEval();
 }
 
-DataGptr CoulombSpherical::operator()(DataGptr&& in) const
+DataGptr CoulombSpherical::apply(DataGptr&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSpherical_calc(Rc), in->dataPref(false));
 	return in;
 }
 
 std::shared_ptr<Ewald> CoulombSpherical::createEwald(matrix3<> R, size_t nAtoms) const
-{	return std::make_shared<EwaldIsolated>(R, ws, Rc);
+{	return std::make_shared<EwaldIsolated>(R, ws, params.ionMargin, Rc);
 }

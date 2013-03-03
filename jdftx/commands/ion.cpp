@@ -36,7 +36,7 @@ struct CommandIon : public Command
 		allowMultiple = true;
 
 		require("ion-species");
-		require("lattice");
+		//Dependencies due to coordinate system option:
 		require("latt-scale");
 		require("coords-type");
 	}

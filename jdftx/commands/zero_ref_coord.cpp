@@ -27,6 +27,10 @@ struct CommandZeroRefCoord : public Command
 		format = "<x0> <x1> <x2>";
 		comments = "Specify zero reference of potential (in coordinates specified by coords-type)\n"
 				   "Default zero reference at center of cell.";
+		
+		//Dependencies due to coordinate system option:
+		require("latt-scale");
+		require("coords-type");
 	}
 
 	void process(ParamList& pl, Everything& e)

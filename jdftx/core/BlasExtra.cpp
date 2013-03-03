@@ -68,21 +68,28 @@ void eblas_zgemm(
  		TransA, TransB, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 }
 
-void eblas_scatter_zdaxpy_sub(size_t iStart, size_t iStop, double a, const int* index, const complex* x, complex* y)
-{	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a*x[i];
-}
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y)
-{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
-		eblas_scatter_zdaxpy_sub, Nindex, a, index, x, y);
-}
 
-void eblas_gather_zdaxpy_sub(size_t iStart, size_t iStop, double a, const int* index, const complex* x, complex* y)
-{	for(size_t i=iStart; i<iStop; i++) y[i] += a*x[index[i]];
+template<typename scalar> void eblas_scatter_axpy_sub(size_t iStart, size_t iStop, double a, const int* index, const scalar* x, scalar* y)
+{	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * x[i];
 }
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y)
-{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
-		eblas_gather_zdaxpy_sub, Nindex, a, index, x, y);
+template<typename scalar> void eblas_scatter_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
+{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0,  //force single threaded for small problem sizes
+		eblas_scatter_axpy_sub<scalar>, Nindex, a, index, x, y);
 }
+void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_scatter_axpy<complex>(Nindex, a, index, x, y); }
+void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_scatter_axpy<double>(Nindex, a, index, x, y); }
+
+
+template<typename scalar> void eblas_gather_axpy_sub(size_t iStart, size_t iStop, double a, const int* index, const scalar* x, scalar* y)
+{	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[index[i]];
+}
+template<typename scalar> void eblas_gather_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
+{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0,  //force single threaded for small problem sizes
+		eblas_gather_axpy_sub<scalar>, Nindex, a, index, x, y);
+}
+void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_gather_axpy<complex>(Nindex, a, index, x, y); }
+void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_gather_axpy<double>(Nindex, a, index, x, y); }
+
 
 void eblas_accumNorm_sub(size_t iStart, size_t iStop, const double& a, const complex* x, double* y)
 {	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[i].norm();
@@ -91,6 +98,24 @@ void eblas_accumNorm(int N, const double& a, const complex* x, double* y)
 {	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_accumNorm_sub, N, a, x, y);
 }
+
+
+template<typename scalar> void eblas_symmetrize_sub(size_t iStart, size_t iStop, int n, const int* symmIndex, scalar* x)
+{	double nInv = 1./n;
+	for(size_t i=iStart; i<iStop; i++)
+	{	scalar xSum=0.0;
+		for(int j=0; j<n; j++) xSum += x[symmIndex[n*i+j]];
+		xSum *= nInv; //average n in the equivalence class
+		for(int j=0; j<n; j++) x[symmIndex[n*i+j]] = xSum;
+	}
+}
+template<typename scalar> void eblas_symmetrize(int N, int n, const int* symmIndex, scalar* x)
+{	threadLaunch((N*n<10000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
+		eblas_symmetrize_sub<scalar>, N, n, symmIndex, x);
+}
+void eblas_symmetrize(int N, int n, const int* symmIndex, double* x) { eblas_symmetrize<double>(N, n, symmIndex, x); }
+void eblas_symmetrize(int N, int n, const int* symmIndex, complex* x) { eblas_symmetrize<complex>(N, n, symmIndex, x); }
+
 
 //BLAS-1 threaded wrappers
 template<typename T>

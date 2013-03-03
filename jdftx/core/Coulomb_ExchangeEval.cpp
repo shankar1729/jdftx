@@ -202,8 +202,12 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 {
 	if(!omega) logPrintf("\n-------- Setting up exchange kernel --------\n");
 	else logPrintf("\n--- Setting up screened exchange kernel (omega = %lg) ---\n", omega);
+	
+	//Obtain supercell parameters, and adjust for mesh embedding where necessary:
 	assert(params.supercell);
-	const Supercell& supercell = *(params.supercell);
+	const matrix3<int>& super = params.supercell->super;
+	const std::vector< vector3<> >& kmesh = params.supercell->kmesh;
+	matrix3<> Rsuper = gInfo.R * super; //this could differ from supercell->Rsuper, because the embedding gInfo.R is scaled up from the original gInfo.R
 	
 	//Check supercell:
 	if(params.geometry != CoulombParams::Periodic)
@@ -211,7 +215,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		//Make sure that the supercell and unit cell are identical in truncated directions:
 		for(int k=0; k<3; k++)
 			if(isTruncated[k])
-			{	vector3<int> comb = supercell.super.column(k); //linear combinations of lattice-vectors in k^th supercell vector
+			{	vector3<int> comb = super.column(k); //linear combinations of lattice-vectors in k^th supercell vector
 				if((comb.length_squared()!=1) || (abs(comb[k])!=1))
 				{	string dirName(3, '0'); dirName[k] = '1';
 					die("More than one k-point along truncated lattice direction %s\n", dirName.c_str());
@@ -238,18 +242,27 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				case CoulombParams::Isolated:
 					kernelMode = WignerSeitzGammaKernel; break;
 			}
+			if(params.geometry==CoulombParams::Periodic)
+			{	if(params.exchangeRegularization==CoulombParams::AuxiliaryFunction)
+					Citations::add("Auxiliary function method for exact exchange in arbitrary lattice systems", "P. Carrier et al., Phys. Rev. B 75, 205126 (2007)");
+				if(params.exchangeRegularization==CoulombParams::ProbeChargeEwald)
+					Citations::add("Probe-charge Ewald method for exact exchange", "J. Paier et al, J. Chem. Phys. 122, 234102 (2005)");
+			}
+			else if(params.exchangeRegularization!=CoulombParams::None)
+				Citations::add("Exact exchange in reduced dimensionality systems", wsTruncationPaper);
 			break;
 		//Truncation based modes:
 		case CoulombParams::SphericalTruncated:
+			Citations::add("Spherical truncated method for exact exchange", "J. Spencer et al, Phys. Rev. B 77, 193110 (2008)");
 			kernelMode = SphericalKernel; break;
 		case CoulombParams::WignerSeitzTruncated:
+			Citations::add("Wigner-Seitz truncated method for exact exchange", wsTruncationPaper);
 			kernelMode = NumericalKernel; break;
 	}
 	
-	
 	//Perform G=0 handling if required
 	double VzeroCorrection = 0.;
-	double detRsuper = fabs(det(supercell.Rsuper));
+	double detRsuper = fabs(det(Rsuper));
 	
 	if(params.exchangeRegularization==CoulombParams::AuxiliaryFunction)
 	{	double omegaSq = omega*omega;
@@ -261,14 +274,14 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				break;
 			case 1:
 				VzeroCorrection = (gInfo.detR/gInfo.R.column(params.iDir).length()) //transverse area to untruncated axis
-					* fSingularIntegralMinusSum(fSingular1D, isTruncated, gInfo.GGT, omegaSq, supercell.kmesh);
+					* fSingularIntegralMinusSum(fSingular1D, isTruncated, gInfo.GGT, omegaSq, kmesh);
 				break;
 			case 2:
 				VzeroCorrection = gInfo.R.column(params.iDir).length() //truncated axis length
-					* fSingularIntegralMinusSum(fSingular2D, isTruncated, gInfo.GGT, omegaSq, supercell.kmesh);
+					* fSingularIntegralMinusSum(fSingular2D, isTruncated, gInfo.GGT, omegaSq, kmesh);
 				break;
 			case 3:
-				VzeroCorrection = fSingularIntegralMinusSum(fSingular3D, isTruncated, gInfo.GGT, omegaSq, supercell.kmesh);
+				VzeroCorrection = fSingularIntegralMinusSum(fSingular3D, isTruncated, gInfo.GGT, omegaSq, kmesh);
 				break;
 		}
 	}
@@ -276,7 +289,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 	if(params.exchangeRegularization==CoulombParams::ProbeChargeEwald)
 	{	double Eperiodic = 0.; //Periodic interaction of a point charge in supercell geometry
 		if(omega) //Directly compute the periodic interaction in real space
-		{	matrix3<> invRsuper = inv(supercell.Rsuper);
+		{	matrix3<> invRsuper = inv(Rsuper);
 			vector3<bool> isTruncated = params.isTruncated();
 			vector3<int> Nreal(0,0,0);
 			double rMax = CoulombKernel::nSigmasPerWidth * sqrt(0.5)/omega;
@@ -284,7 +297,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				if(!isTruncated[k]) //no sampling along truncated directions
 					Nreal[k] = 1+ceil(rMax * invRsuper.row(k).length());
 			//Loop over neighbouring cells in real space:
-			matrix3<> RsuperTRsuper = (~supercell.Rsuper)*supercell.Rsuper;
+			matrix3<> RsuperTRsuper = (~Rsuper)*Rsuper;
 			vector3<int> iR; //integer cell number
 			for(iR[0]=-Nreal[0]; iR[0]<=Nreal[0]; iR[0]++)
 				for(iR[1]=-Nreal[1]; iR[1]<=Nreal[1]; iR[1]++)
@@ -299,13 +312,13 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		{	std::vector<Atom> atoms(1, Atom(1., vector3<>())); //single unit point charge
 			FILE* fpNull = fopen("/dev/null", "w"); //suppress Ewald initialization log
 			std::swap(globalLog, fpNull);
-			Eperiodic = coulomb.createEwald(supercell.Rsuper, 1)->energyAndGrad(atoms);
+			Eperiodic = coulomb.createEwald(Rsuper, 1)->energyAndGrad(atoms);
 			std::swap(globalLog, fpNull);
 			fclose(fpNull);
 			//Correction for G=0 difference between cylinder and wire truncation modes:
 			if(params.geometry == CoulombParams::Cylindrical)
 			{	double rho0 = ((CoulombCylindrical&)coulomb).Rc; //cylinder mode uses this as reference rho in logarithmic singularity
-				double L = supercell.Rsuper.column(params.iDir).length();
+				double L = Rsuper.column(params.iDir).length();
 				Eperiodic -= log(rho0) / L;
 			}
 		}
@@ -429,7 +442,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			break;
 		}
 		case WignerSeitzGammaKernel:
-		{	if(abs(det(supercell.super)) != 1)
+		{	if(abs(det(super)) != 1)
 				die("Exact-exchange in Isolated geometry should be used only with a single k-point.\n");
 			if(omega) //Create an omega-screened version (but gamma-point only):
 			{	VcGamma = new RealKernel(gInfo);
@@ -454,7 +467,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			{	vector3<> iG;
 				for(int k=0; k<3; k++)
 					iG[k] = s[k] * (gInfo.S[k]/2 + 1); //include margin for k-point
-				vector3<> iGsuper = (~supercell.super) * iG;
+				vector3<> iGsuper = (~super) * iG;
 				for(int k=0; k<3; k++)
 				{	int Ssuper_k = 2*abs(iGsuper[k]);
 					if(Ssuper_k > Ssuper[k])
@@ -468,14 +481,14 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			size_t nGsuper = Ssuper[0]*(Ssuper[1]*size_t(1+Ssuper[2]/2));
 			double* dataSuper = new double[nGsuper];
 			if(!dataSuper) die("Out of memory. (need %.1lfGB for supercell exchange kernel)\n", nGsuper*1e-9*sizeof(double));
-			WignerSeitz wsSuper(supercell.Rsuper);
-			CoulombKernel(supercell.Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
+			WignerSeitz wsSuper(Rsuper);
+			CoulombKernel(Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
 			dataSuper[0] += VzeroCorrection; //For slab/wire geometry kernels in AuxiliaryFunction/ProbeChargeEwald methods
 			
 			//Find symmetries for reducing kernel storage:
 			logPrintf("Compressing exchange kernel using symmetries:\n");
 			//--- Get symmetries of supercell kernel (in supercell lattice coords):
-			std::vector<matrix3<int>> symSuper = getSymmetries(supercell.Rsuper, isTruncated);
+			std::vector<matrix3<int>> symSuper = getSymmetries(Rsuper, isTruncated);
 			logPrintf("\t%lu symmetries of the supercell kernel\n", symSuper.size());
 			//--- Find symmetries of unit cell common with those above (in unit-cell lattice coords):
 			std::vector<matrix3<int>> sym, symLattice = getSymmetries(gInfo.R);
@@ -489,7 +502,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				//Check if symmetry is also a symmetry of the supercell kernel:
 				bool isSymSuper = false;
 				for(const matrix3<int>& mSuper: symSuper)
-					if(supercell.super * mSuper == m * supercell.super)
+					if(super * mSuper == m * super)
 					{	isSymSuper = true;
 						break;
 					}
@@ -500,9 +513,9 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			logPrintf("\treduced to %lu common with the unit cell.\n", sym.size());
 			//--- Reduce k-point difference mesh under these symmetries:
 			std::vector<vector3<>> dkReduced; //list of symmetry reduced k-point differences
-			for(const vector3<>& kpoint: supercell.kmesh)
+			for(const vector3<>& kpoint: kmesh)
 			{	KdiffDesc kDiffDesc;
-				kDiffDesc.dk = kpoint - supercell.kmesh.front();
+				kDiffDesc.dk = kpoint - kmesh.front();
 				for(int k=0; k<3; k++) //reduce to fundamental zone:
 					kDiffDesc.dk[k] -= floor(kDiffDesc.dk[k] + 0.5);
 				//Search previously added dk's:
@@ -545,7 +558,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					nKernelData*1e-9*sizeof(double));
 			for(size_t i=0; i<dkReduced.size(); i++)
 				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkReduced[i],
-					gInfo.S, Ssuper, supercell.super, dataSuper, kernelData + i*gInfo.nr);
+					gInfo.S, Ssuper, super, dataSuper, kernelData + i*gInfo.nr);
 			delete[] dataSuper;
 			#ifdef GPU_ENABLED //Move to GPU if required:
 			double* kernelDataCpu = kernelData;

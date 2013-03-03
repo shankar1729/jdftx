@@ -112,6 +112,72 @@ struct CommandCoulombInteraction : public Command
 commandCoulombInteraction;
 
 
+struct CommandCoulombTruncationEmbed : public Command
+{
+	CommandCoulombTruncationEmbed() : Command("coulomb-truncation-embed")
+	{
+		format = "<c0> <c1> <c2>";
+		comments =
+			"Compute truncated Coulomb interaction in a double-sized box (doubled only\n"
+			"along truncated directions). This relaxes the L/2 localization constraint\n"
+			"otherwise required by truncated potentials (see command coulomb-interaction),\n"
+			"but breaks translational invariance and requires the specification of a center.\n"
+			"Coordinate system for center (<c0> <c1> <c2>) is as specified by coords-type.\n"
+			"(Default: not enabled i.e. employs translationally invariant scheme)";
+		
+		hasDefault = false;
+		require("coulomb-interaction");
+		//Dependencies due to coordinate system option:
+		require("latt-scale");
+		require("coords-type");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.coulombParams.embed = true;
+		vector3<>& c = e.coulombParams.embedCenter;
+		pl.get(c[0], 0., "c0", true);
+		pl.get(c[1], 0., "c1", true);
+		pl.get(c[2], 0., "c2", true);
+		if(e.iInfo.coordsType==CoordsCartesian) c = inv(e.gInfo.R) * c; //Transform coordinates if necessary
+		if(e.coulombParams.geometry==CoulombParams::Periodic)
+			throw string("coulomb-truncation-embed should only be specified for truncated geometries");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	vector3<> c = e.coulombParams.embedCenter;
+		if(e.iInfo.coordsType==CoordsCartesian) c = e.gInfo.R * c; //Print in coordinate system chosen by user
+		logPrintf("%lg %lg %lg", c[0], c[1], c[2]);
+	}
+}
+commandCoulombTruncationEmbed;
+
+
+struct CommandCoulombTruncationIonMargin : public Command
+{
+	CommandCoulombTruncationIonMargin() : Command("coulomb-truncation-ion-margin")
+	{
+		format = "<margin>";
+		comments =
+			"Extra margin (in bohrs) around the ions, when checking localization constraints\n"
+			"for truncated Coulomb potentials (see coulomb-interaction). Set to a typical\n"
+			"distance from nuclei where the electron density becomes negligible, so as to\n"
+			"ensure the electron density satisfies those localization constraints.\n"
+			"(Default: 5 bohrs, minimum allowed: 1 bohr)";
+		hasDefault = false;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.coulombParams.ionMargin, 0., "margin", true);
+		if(e.coulombParams.ionMargin < 1.) throw string("<margin> must be at least 1 bohr.");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg", e.coulombParams.ionMargin);
+	}
+}
+commandCoulombTruncationIonMargin;
+
+
 struct CommandExchangeRegularization : public Command
 {
 	CommandExchangeRegularization() : Command("exchange-regularization")

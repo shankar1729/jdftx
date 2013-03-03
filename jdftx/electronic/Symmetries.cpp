@@ -112,26 +112,10 @@ std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber
 }
 
 //Symmetrize scalar fields:
-void symmetrize_sub(size_t iStart, size_t iStop, int nRot, double* x, int* symmIndex)
-{	double nrotInv = 1.0/nRot;
-	for(size_t i=iStart; i<iStop; i++)
-	{	double xSum=0.0;
-		for(int j=0; j<nRot; j++) xSum += x[symmIndex[nRot*i+j]];
-		xSum *= nrotInv; //average n in the equivalence class
-		for(int j=0; j<nRot; j++) x[symmIndex[nRot*i+j]] = xSum;
-	}
-}
-#ifdef GPU_ENABLED //implemented in Symmetries.cu:
-extern void symmetrize_gpu(int nSymmClasses, int nRot, double* x, int* symmIndex);
-#endif
 void Symmetries::symmetrize(DataRptr& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
 	int nSymmClasses = nSymmIndex / sym.size(); //number of equivalence classes
-	#ifdef GPU_ENABLED
-	symmetrize_gpu(nSymmClasses, sym.size(), x->dataGpu(), symmIndex);
-	#else
-	threadLaunch(symmetrize_sub, nSymmClasses, sym.size(), x->data(), symmIndex);
-	#endif
+	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex, x->dataPref());
 }
 
 //Symmetrize forces:
@@ -342,8 +326,49 @@ void Symmetries::checkFFTbox()
 				else
 				{	logPrintf("FFT box not commensurate with symmetry matrix:\n");
 					sym[iRot].print(globalLog, " %2d ");
-					die("FFT box not commensurate with symmetries\n");
+					die("FFT box not commensurate with symmetries.\n");
 				}
+	}
+	
+	//Check embedded truncation center:
+	if(e->coulombParams.embed)
+	{	const vector3<>& c = e->coulombParams.embedCenter;
+		for(unsigned iRot = 0; iRot<sym.size(); iRot++)
+			if(circDistanceSquared(c, sym[iRot]*c) > symmThresholdSq)
+			{	logPrintf("Coulomb truncation embedding center is not invariant under symmetry matrix:\n");
+				sym[iRot].print(globalLog, " %2d ");
+				die("Coulomb truncation embedding center is not invariant under symmetries.\n");
+			}
+		
+		//Find the nearest grid point to embedCenter that is commensurate with symmetries:
+		vector3<int> iv0; for(int k=0; k<3; k++) iv0[k] = round(c[k]*S[k]);
+		matrix3<> invDiagS = inv(Diag(vector3<>(S)));
+		vector3<int> dv;
+		bool done = false;
+		for(int d=0; d<=(S[0]+S[1]+S[2])/2+1 && !done; d++) //search outwards (sorted by a Manhattan metric)
+			for(dv[0]=-d; dv[0]<=d && !done; dv[0]++)
+			{	int d0 = d - abs(dv[0]);
+				for(dv[1]=-d0; dv[1]<=d0 && !done; dv[1]++)
+				{	int d1 = d0 - abs(dv[1]);
+					for(dv[2]=-d1; dv[2]<=d1 && !done; dv[2]+=2*std::max(1,d1)) //only points that satisfy abs(dv[0])+abs(dv[1])+abs(dv[2])==d
+					{	vector3<int> iv = iv0 + dv;
+						vector3<> x = invDiagS * iv;
+						bool valid = true;
+						for(const matrix3<int>& m: sym)
+							if(circDistanceSquared(x, m*x) > symmThresholdSq)
+							{	valid = false;
+								break;
+							}
+						if(valid)
+						{	((CoulombParams&)e->coulombParams).embedCenter = x;
+							done = true; //terminate the search (4 loops)
+						}
+					}
+				}
+			}
+		if(!done)
+			die("Could not find a (integer) grid point to use as the truncation embedding center that\n"
+				"is invariant under symmetries. HINT: center on the origin, or disable symmetries.\n");
 	}
 }
 

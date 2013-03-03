@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <core/LoopMacros.h>
 
+
 template<typename Coulomb_calc> __global__
 void coulombAnalytic_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const Coulomb_calc calc, complex* data)
 {	COMPUTE_halfGindices

@@ -38,7 +38,6 @@ struct CommandWannier : public Command
 		require("wannier-supercell");
 		
 		//Dependencies due to optional conversion from cartesian coords:
-		require("lattice");
 		require("latt-scale");
 		require("coords-type");
 	}

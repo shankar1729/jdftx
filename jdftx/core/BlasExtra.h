@@ -117,16 +117,16 @@ void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int 
 	const complex& beta, complex *C, const int ldc);
 #endif
 
-//Sparse-dense vector operations:
-//! Perform a scatter axpy operation: y(index) += a*x (in Octave notation)
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y);
-//! Perform a gather axpy operation: y += a*x(index) (in Octave notation)
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y);
+//Sparse<->dense vector operations:
+void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Scatter y(index) = x (in Octave notation)
+void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) = x (in Octave notation)
+void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Gather y = x(index) (in Octave notation)
+void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y = x(index) (in Octave notation)
 #ifdef GPU_ENABLED
-//! Perform a GPU scatter axpy operation: y(index) += a*x (in Octave notation)
-void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y);
-//! Perform a GPU gather axpy operation: y += a*x(index) (in Octave notation)
-void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y);
+void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Scatter y(index) += a*x (in Octave notation)
+void eblas_scatter_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) += a*x (in Octave notation)
+void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Gather y += a*x(index) (in Octave notation)
+void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y += a*x(index) (in Octave notation)
 #endif
 
 
@@ -137,6 +137,12 @@ void eblas_accumNorm(int N, const double& a, const complex* x, double* y);
 void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y);
 #endif
 
+void eblas_symmetrize(int N, int n, const int* symmIndex, double* x); //!< Symmetrize an array x, using N n-fold equivalence classes in symmIndex
+void eblas_symmetrize(int N, int n, const int* symmIndex, complex* x); //!< Symmetrize an array x, using N n-fold equivalence classes in symmIndex
+#ifdef GPU_ENABLED
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, double* x); //!< Symmetrize an array x, using N n-fold equivalence classes in symmIndex
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, complex* x); //!< Symmetrize an array x, using N n-fold equivalence classes in symmIndex
+#endif
 
 //Threaded-wrappers for BLAS1 functions (Cblas)
 template<typename T> void eblas_copy(T* dest, const T* src, int N) { memcpy(dest, src, N*sizeof(T)); }

@@ -26,12 +26,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombSlab : public Coulomb
 {
 public:
-	CoulombSlab(const GridInfo& gInfo, const CoulombParams& params);
-
-	//!Apply isolated Coulomb kernel
-	DataGptr operator()(DataGptr&&) const;
-
+	CoulombSlab(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
+	DataGptr apply(DataGptr&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 };
 

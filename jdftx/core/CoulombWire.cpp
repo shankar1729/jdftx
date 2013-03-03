@@ -119,6 +119,7 @@ class EwaldWire : public Ewald
 	matrix3<> R, G, RTR, GGT; //!< Lattice vectors, reciprocal lattice vectors and corresponding metrics
 	int iDir; //!< truncated direction
 	const WignerSeitz& ws; //!< Wigner-Seitz cell
+	double ionMargin; //!< Safety margin around ions
 	double Rc; //!< cutoff radius for spherical mode (used for ion overlap checks only)
 
 	double sigma; //!< gaussian width for Ewald sums
@@ -128,8 +129,8 @@ class EwaldWire : public Ewald
 	std::vector<std::shared_ptr<Cbar_k_sigma>> cbar_k_sigma;
 	
 public:
-	EwaldWire(const matrix3<>& R, int iDir, const WignerSeitz& ws, double Rc=0., double rho0=1.)
-	: R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir), ws(ws), Rc(Rc)
+	EwaldWire(const matrix3<>& R, int iDir, const WignerSeitz& ws, double ionMargin, double Rc=0., double rho0=1.)
+	: R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir), ws(ws), ionMargin(ionMargin), Rc(Rc)
 	{	logPrintf("\n---------- Setting up 1D ewald sum ----------\n");
 		//Determine optimum gaussian width for 1D Ewald sums:
 		// From below, the number of reciprocal cells ~ |R.column[iDir]|
@@ -198,8 +199,14 @@ public:
 				vector3<> r12 = a1.pos - a2.pos;
 				vector3<> rho12vec = r12; rho12vec[iDir] = 0.; //projected to truncation plane
 				double rho12 = sqrt(RTR.metric_length_squared(rho12vec));
-				if((!(ws.restrict(rho12vec)==rho12vec)) || (Rc && (rho12>=Rc)))
-					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i1, i2);
+				if(Rc)
+				{	if(rho12 >= Rc - ionMargin)
+						die("Atoms %d and %d are separated by rho = %lg >= Rc-ionMargin = %lg bohrs.\n" ionMarginMessage, i1+1, i2+1, rho12, Rc-ionMargin);
+				}
+				else
+				{	if(ws.boundaryDistance(rho12vec, iDir) <= ionMargin)
+						die("Separation between atoms %d and %d lies within the margin of %lg bohrs from the Wigner-Seitz boundary.\n" ionMarginMessage, i1+1, i2+1, ionMargin);
+				}
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
 				vector3<int> iG(0,0,0); //integer reciprocal cell number (only iG[iDir] will be non-zero)
 				for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
@@ -225,8 +232,8 @@ public:
 
 
 
-CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params), ws(gInfo.R), Vc(gInfo)
+CoulombWire::CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params), ws(gInfo.R), Vc(gInfo)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
 	//Create kernel:
@@ -235,12 +242,12 @@ CoulombWire::CoulombWire(const GridInfo& gInfo, const CoulombParams& params)
 	initExchangeEval();
 }
 
-DataGptr CoulombWire::operator()(DataGptr&& in) const
+DataGptr CoulombWire::apply(DataGptr&& in) const
 {	return Vc * in;
 }
 
 std::shared_ptr<Ewald> CoulombWire::createEwald(matrix3<> R, size_t nAtoms) const
-{	return std::make_shared<EwaldWire>(R, params.iDir, ws);
+{	return std::make_shared<EwaldWire>(R, params.iDir, ws, params.ionMargin);
 }
 
 
@@ -265,8 +272,8 @@ void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<
 	)
 }
 
-CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params), ws(gInfo.R), Rc(params.Rc), Vc(gInfo)
+CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params), ws(gInfo.R), Rc(params.Rc), Vc(gInfo)
 {	//Check orthogonality:
 	string dirName = checkOrthogonality(gInfo, params.iDir);
 	//Check the truncation radius:
@@ -281,10 +288,10 @@ CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfo, const CoulombParam
 	initExchangeEval();
 }
 
-DataGptr CoulombCylindrical::operator()(DataGptr&& in) const
+DataGptr CoulombCylindrical::apply(DataGptr&& in) const
 {	return Vc * in;
 }
 
 std::shared_ptr<Ewald> CoulombCylindrical::createEwald(matrix3<> R, size_t nAtoms) const
-{	return std::make_shared<EwaldWire>(R, params.iDir, ws, Rc, Rc);
+{	return std::make_shared<EwaldWire>(R, params.iDir, ws, params.ionMargin, Rc, Rc);
 }

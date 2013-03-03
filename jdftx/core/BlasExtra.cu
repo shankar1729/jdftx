@@ -79,27 +79,31 @@ void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int 
 }
 
 
-__global__
-void eblas_scatter_zdaxpy_kernel(const int N, double a, const int* index, const complex* x, complex* y)
+template<typename scalar> __global__ void eblas_scatter_axpy_kernel(const int N, double a, const int* index, const scalar* x, scalar* y)
 {	int i = kernelIndex1D();
-	if(i<N) y[index[i]] += x[i] * a;
+	if(i<N) y[index[i]] += a * x[i];
 }
-void eblas_scatter_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y)
-{	GpuLaunchConfig1D glc(eblas_scatter_zdaxpy_kernel, N);
-	eblas_scatter_zdaxpy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
+template<typename scalar> void eblas_scatter_axpy_gpu(const int N, double a, const int* index, const scalar* x, scalar* y)
+{	GpuLaunchConfig1D glc(eblas_scatter_axpy_kernel<scalar>, N);
+	eblas_scatter_axpy_kernel<scalar><<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
 	gpuErrorCheck();
 }
+void eblas_scatter_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y) { eblas_scatter_axpy_gpu<complex>(N, a, index, x, y); }
+void eblas_scatter_daxpy_gpu(const int N, double a, const int* index, const double* x, double* y) { eblas_scatter_axpy_gpu<double>(N, a, index, x, y); }
 
-__global__
-void eblas_gather_zdaxpy_kernel(const int N, double a, const int* index, const complex* x, complex* y)
+
+template<typename scalar> __global__ void eblas_gather_axpy_kernel(const int N, double a, const int* index, const scalar* x, scalar* y)
 {	int i = kernelIndex1D();
-	if(i<N) y[i] += x[index[i]] * a;
+	if(i<N) y[i] += a * x[index[i]];
 }
-void eblas_gather_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y)
-{	GpuLaunchConfig1D glc(eblas_gather_zdaxpy_kernel, N);
-	eblas_gather_zdaxpy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
+template<typename scalar> void eblas_gather_axpy_gpu(const int N, double a, const int* index, const scalar* x, scalar* y)
+{	GpuLaunchConfig1D glc(eblas_gather_axpy_kernel<scalar>, N);
+	eblas_gather_axpy_kernel<scalar><<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
 	gpuErrorCheck();
 }
+void eblas_gather_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y) { eblas_gather_axpy_gpu<complex>(N, a, index, x, y); }
+void eblas_gather_daxpy_gpu(const int N, double a, const int* index, const double* x, double* y) { eblas_gather_axpy_gpu<double>(N, a, index, x, y); }
+
 
 __global__
 void eblas_accumNorm_kernel(int N, double a, const complex* x, double* y)
@@ -111,6 +115,24 @@ void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y)
 	eblas_accumNorm_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, a, x, y);
 	gpuErrorCheck();
 }
+
+template<typename scalar> __global__
+void eblas_symmetrize_kernel(int N, int n, const int* symmIndex, scalar* x, double nInv)
+{	int i=kernelIndex1D();
+	if(i<N)
+	{	scalar xSum = 0.0;
+		for(int j=0; j<n; j++) xSum += x[symmIndex[n*i+j]];
+		xSum *= nInv; //average n in the equivalence class
+		for(int j=0; j<n; j++) x[symmIndex[n*i+j]] = xSum;
+	}
+}
+template<typename scalar> void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, scalar* x)
+{	GpuLaunchConfig1D glc(eblas_symmetrize_kernel<scalar>, N);
+	eblas_symmetrize_kernel<scalar><<<glc.nBlocks,glc.nPerBlock>>>(N, n, symmIndex, x, 1./n);
+	gpuErrorCheck();
+}
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, double* x) { eblas_symmetrize_gpu<double>(N, n, symmIndex, x); }
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, complex* x) { eblas_symmetrize_gpu<complex>(N, n, symmIndex, x); }
 
 //BLAS-1 wrappers:
 void eblas_zero_gpu(int N, complex* x)

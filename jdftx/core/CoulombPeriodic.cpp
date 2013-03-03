@@ -114,13 +114,13 @@ public:
 
 //------------- class CoulombPeriodic ---------------
 
-CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params)
+CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params)
 {
 	initExchangeEval();
 }
 
-DataGptr CoulombPeriodic::operator()(DataGptr&& in) const
+DataGptr CoulombPeriodic::apply(DataGptr&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombPeriodic_calc(), in->dataPref(false));
 	return in;
 }

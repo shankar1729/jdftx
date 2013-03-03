@@ -27,12 +27,13 @@ class EwaldSlab : public Ewald
 {
 	matrix3<> R, G, RTR, GGT; //!< Lattice vectors, reciprocal lattice vectors and corresponding metrics
 	int iDir; //!< truncated direction
+	double ionMargin; //!< Safety-margin around ions
 	double sigma; //!< gaussian width for Ewald sums
 	vector3<int> Nreal; //!< max unit cell indices for real-space sum
 	vector3<int> Nrecip; //!< max unit cell indices for reciprocal-space sum
 
 public:
-	EwaldSlab(const matrix3<>& R, int iDir) : R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir)
+	EwaldSlab(const matrix3<>& R, int iDir, double ionMargin) : R(R), G((2*M_PI)*inv(R)), RTR((~R)*R), GGT(G*(~G)), iDir(iDir), ionMargin(ionMargin)
 	{	logPrintf("\n---------- Setting up 2D ewald sum ----------\n");
 		//Determine optimum gaussian width for 2D Ewald sums:
 		// From below, the number of reciprocal cells ~ Prod_{k!=iDir} |R.column[k]|
@@ -101,8 +102,8 @@ public:
 				double prefac = volPrefac * a1.Z * a2.Z * (i1==i2 ? 1 : 2);
 				vector3<> r12 = a1.pos - a2.pos;
 				double z12 = L * r12[iDir];
-				if(fabs(z12) >= 0.5*L)
-					die("Separation between atoms %d and %d lies outside extent of coulomb truncation.\n", i1, i2);
+				if(fabs(z12) >= 0.5*L-ionMargin)
+					die("Separation between atoms %d and %d lies within the margin of %lg bohrs from the Wigner-Seitz boundary.\n" ionMarginMessage, i1+1, i2+1, ionMargin);
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
 				vector3<int> iG; //integer reciprocal cell number (iG[iDir] will remain 0)
 				for(iG[0]=-Nrecip[0]; iG[0]<=Nrecip[0]; iG[0]++)
@@ -145,14 +146,14 @@ public:
 //Check orthogonality and return lattice direction name (declared in CoulombWire.cpp)
 extern string checkOrthogonality(const GridInfo& gInfo, int iDir);
 
-CoulombSlab::CoulombSlab(const GridInfo& gInfo, const CoulombParams& params)
-: Coulomb(gInfo, params)
+CoulombSlab::CoulombSlab(const GridInfo& gInfoOrig, const CoulombParams& params)
+: Coulomb(gInfoOrig, params)
 {	string dirName = checkOrthogonality(gInfo, params.iDir);
 	logPrintf("Initialized slab truncation along lattice direction %s\n", dirName.c_str());
 	initExchangeEval();
 }
 
-DataGptr CoulombSlab::operator()(DataGptr&& in) const
+DataGptr CoulombSlab::apply(DataGptr&& in) const
 {	int iDir = params.iDir;
 	double hlfL = 0.5*sqrt(gInfo.RTR(iDir,iDir));
 	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSlab_calc(iDir, hlfL), in->dataPref(false));
@@ -160,5 +161,5 @@ DataGptr CoulombSlab::operator()(DataGptr&& in) const
 }
 
 std::shared_ptr<Ewald> CoulombSlab::createEwald(matrix3<> R, size_t nAtoms) const
-{	return std::make_shared<EwaldSlab>(R, params.iDir);
+{	return std::make_shared<EwaldSlab>(R, params.iDir, params.ionMargin);
 }

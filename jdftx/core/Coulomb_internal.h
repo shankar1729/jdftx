@@ -26,6 +26,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Bspline.h>
 #include <gsl/gsl_integration.h>
 
+//Common citations for Coulomb truncation
+#define wsTruncationPaper "R. Sundararaman and T.A. Arias, arXiv:1302.6204"
+#define invariantTruncationPaper "S. Ismail-Beigi, Phys. Rev. B 73, 233103 (2006)"
+#define expandedTruncationPaper "C.A. Rozzi et al., Phys. Rev. B 73, 205119 (2006)"
+
+//Ion-margin error message
+#define ionMarginMessage "Expand unit cell, or if absolutely sure, reduce coulomb-truncation-ion-margin.\n"
+
 //! Periodic coulomb interaction (4 pi/G^2)
 struct CoulombPeriodic_calc
 {	__hostanddev__ double operator()(const vector3<int>& iG, const matrix3<>& GGT) const

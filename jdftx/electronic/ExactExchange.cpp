@@ -152,7 +152,10 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 					{	complexDataRptr EXX_In = Jdag(Kn);
 						grad_Ipsi1 += (scale*wF2) * conj(EXX_In) * RIpsi2;
 						if(!diag)
-							grad_Ipsi2 += pointGroupScatter((scale*wF1) * EXX_In * Ipsi1, symMesh[iSym]);
+						{	complexDataRptr grad_RIpsi2 = (scale*wF1) * EXX_In * Ipsi1;
+							if(invert==-1) grad_RIpsi2 = conj(grad_RIpsi2); //complex-conjugate for explicitly inverted k-point
+							grad_Ipsi2 += pointGroupScatter(grad_RIpsi2, symMesh[iSym]);
+						}
 					}
 				}
 			if(HC && grad_Ipsi2)

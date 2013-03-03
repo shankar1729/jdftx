@@ -184,12 +184,12 @@ void processSb(vector3<int>& Sb, int j, const matrix3<int>& ratios, vector3<bool
 		}
 }
 
-void GridInfo::initialize(const std::vector< matrix3<int> > sym)
+void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym)
 {
 	this->~GridInfo(); //cleanup previously initialized quantities
 	
 	update();
-	logPrintf("\n---------- Initializing the Grid ----------\n");
+	if(!skipHeader) logPrintf("\n---------- Initializing the Grid ----------\n");
 	printLattice();
 	printReciprocalLattice();
 	

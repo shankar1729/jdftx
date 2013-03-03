@@ -109,7 +109,7 @@ complexDataGptr ColumnBundle::getColumn(int i) const
 {	const GridInfo& gInfo = *(basis->gInfo);
 	complexDataGptr full; nullToZero(full, gInfo); //initialize a full G-space vector to zero
 	//scatter from the i'th column to the full vector:
-	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1, basis->indexPref, dataPref()+index(i,0), full->dataPref());
+	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->indexPref, dataPref()+index(i,0), full->dataPref());
 	return full;
 }
 
@@ -122,7 +122,7 @@ void ColumnBundle::setColumn(int i, const complexDataGptr& full)
 
 void ColumnBundle::accumColumn(int i, const complexDataGptr& full)
 {	//Gather-accumulate from the full vector into the i'th column
-	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1.0, basis->indexPref, full->dataPref(), dataPref()+index(i,0));
+	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1., basis->indexPref, full->dataPref(), dataPref()+index(i,0));
 }
 
 

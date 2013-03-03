@@ -30,7 +30,7 @@ void Everything::setup()
 	
 	//Initialize the grid:
 	gInfo.Gmax = sqrt(2*cntrl.Ecut); //Ecut = 0.5 Gmax^2
-	gInfo.initialize(symm.getMatrices());
+	gInfo.initialize(false, symm.getMatrices());
 
 	//Exchange correlation setup
 	logPrintf("\n---------- Exchange Correlation functional ----------\n");

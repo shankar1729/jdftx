@@ -27,12 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class CoulombWire : public Coulomb
 {
 public:
-	CoulombWire(const GridInfo& gInfo, const CoulombParams& params);
-
-	//!Apply isolated Coulomb kernel
-	DataGptr operator()(DataGptr&&) const;
-	
+	CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
+	DataGptr apply(DataGptr&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
@@ -43,12 +40,9 @@ private:
 class CoulombCylindrical : public Coulomb
 {
 public:
-	CoulombCylindrical(const GridInfo& gInfo, const CoulombParams& params);
-
-	//!Apply isolated Coulomb kernel
-	DataGptr operator()(DataGptr&&) const;
-	
+	CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
+	DataGptr apply(DataGptr&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;

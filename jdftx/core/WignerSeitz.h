@@ -53,6 +53,59 @@ public:
 		return xWS;
 	}
 	
+	//! Find the point within the Wigner-Seitz cell equivalent to iv (mesh coordinates with sample count S)
+	inline vector3<int> restrict(const vector3<int>& iv, const vector3<int>& S, const vector3<>& invS) const
+	{	static const double tol = 1e-8;
+		vector3<int> ivWS = iv;
+		bool changed = true;
+		while(changed)
+		{	changed = false;
+			for(const Face* f: faceHalf)
+			{	double xDotEqn = 0.;
+				for(int k=0; k<3; k++)
+					xDotEqn += f->eqn[k] * ivWS[k] * invS[k];
+				double d = 0.5 * (1. + xDotEqn);
+				if(d<-tol || d>1.+tol) //not in fundamental zone
+				{	int id = int(floor(d));
+					for(int k=0; k<3; k++)
+						ivWS[k] -= id * f->img[k] * S[k];
+					changed = true;
+				}
+			}
+		}
+		return ivWS;
+	}
+	
+	//! Find the smallest distance of a point inside the Wigner-Seitz cell from its surface
+	//! Returns 0 if the point is outside the Wigner-Seitz cell
+	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
+	inline double boundaryDistance(const vector3<>& x, int iDir=-1) const
+	{	double minDistSq = DBL_MAX;
+		for(const Face* f: faceHalf)
+			if(iDir<0 || !f->img[iDir])
+			{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
+				if(dDiff < 0.) return 0.; //point outside Wigner Seitz cell
+				double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
+				if(distSq<minDistSq) minDistSq = distSq;
+			}
+		return sqrt(minDistSq);
+	}
+	
+	//! Return true if point is on th eboundray of the Wigner-Seitz cell
+	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
+	inline bool onBoundary(const vector3<>& x, int iDir=-1) const
+	{	static const double tol = 1e-8;
+		double minDistSq = DBL_MAX;
+		for(const Face* f: faceHalf)
+			if(iDir<0 || !f->img[iDir])
+			{	double dDiff = 0.5*(1. - fabs(dot(f->eqn, x))); //fractional distance from planes
+				if(dDiff < -tol) return false; //point outside Wigner Seitz cell
+				double distSq = dDiff*dDiff * RTR.metric_length_squared(f->img);
+				if(distSq<minDistSq) minDistSq = distSq;
+			}
+		return minDistSq<tol;
+	}
+
 	//! Radius of largest sphere centered at origin contained within the Wigner-Seitz cell
 	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
 	double inRadius(int iDir=-1) const;
