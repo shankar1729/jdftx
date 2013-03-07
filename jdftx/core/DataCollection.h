@@ -82,7 +82,17 @@ template<typename T> void randomize(TptrCollection& x)
 }
 
 template<typename T> void loadFromFile(TptrCollection& x, const char* filename)
-{	FILE* fp = fopen(filename, "rb");
+{	//Checks for the correct filesize
+	off_t expectedLen = 0;
+	for(unsigned i=0; i<x.size(); i++){expectedLen += sizeof(typename T::DataType) * x[i]->nElem;}
+	off_t fLen = fileSize(filename);
+	if(fLen != expectedLen)
+	{	die("\nLength of '%s' was %ld instead of the expected %ld bytes.\n"
+				"Hint: Are you really reading the correct file?\n\n",
+				filename, fLen, expectedLen);
+	}
+	
+	FILE* fp = fopen(filename, "rb");
 	if(!fp) die("Could not open %s for reading.\n", filename)
 	for(unsigned i=0; i<x.size(); i++)
 	{	if(!x[i]) die("x[%d] was null in loadFromFile(x,\"%s\").\n", i, filename)

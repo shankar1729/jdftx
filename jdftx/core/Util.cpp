@@ -30,6 +30,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h> //This file is generated during build based on SVN version etc.
 
+// Get the size of a file
+off_t fileSize(const char *filename)
+{	struct stat st;
+	if(stat(filename, &st) == 0) return st.st_size;
+    return -1;
+}
+
 //Program banner
 void printVersionBanner()
 {	logPrintf("\n*************** " PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH

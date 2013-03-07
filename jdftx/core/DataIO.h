@@ -55,6 +55,15 @@ template<typename T> void loadRawBinary(Tptr& X, FILE* fp)
 template<typename T> void loadRawBinary(Tptr& X, const char* filename)
 {	FILE* fp = fopen(filename, "rb");
 	if(!fp) die("Could not open '%s' for reading.\n", filename)
+	
+	off_t fLen = fileSize(filename);
+	off_t expectedLen = sizeof(typename T::DataType) * X->nElem;
+	if(fLen != expectedLen)
+	{	die("\nLength of '%s' was %ld instead of the expected %ld bytes.\n"
+				"Hint: Are you really reading the correct file?\n\n",
+				filename, fLen, expectedLen);
+	}
+	
 	loadRawBinary(X, fp);
 	fclose(fp);
 }

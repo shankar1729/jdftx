@@ -129,6 +129,11 @@ namespace Citations
 
 //--------------- Miscellaneous ------------------
 
+
+#include <sys/stat.h>
+//! Get the size of a file
+off_t fileSize(const char *filename);
+
 //! For any x and y>0, compute z = x % y such that 0 <= z < y
 inline uint16_t positiveRemainder(int16_t x, uint16_t y)
 {	register int16_t xMody = x % y;

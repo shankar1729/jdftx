@@ -243,10 +243,20 @@ std::vector<const typename T::DataType*> TptrMul::dataGpu() const
 
 template<class T, int N>
 void TptrMul::loadFromFile(const char* filename)
-{	FILE* fp = fopen(filename, "rb");
+{	//Checks for the correct filesize
+	off_t expectedLen = 0;
+	Nloop(expectedLen += sizeof(typename T::DataType) * component[i]->nElem;)
+	off_t fLen = fileSize(filename);
+	if(fLen != expectedLen)
+	{	die("\nLength of '%s' was %ld instead of the expected %ld bytes.\n"
+				"Hint: Are you really reading the correct file?\n\n",
+				filename, fLen, expectedLen);
+	}
+	
+	FILE* fp = fopen(filename, "rb");
 	if(!fp) die("Could not open %s for reading.\n", filename)
 	Nloop(
-		if(!component[i]) die("Component %d was null in loadFromFile(\"%s\").\n", i, filename)
+		if(!component[i]) die("Component %d was null in loadFromFile(\"%s\").\n", i, filename)	
 		if(fread(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp) < unsigned(component[i]->nElem))
 			die("File ended too soon while reading component %d in loadFromFile(\"%s\").\n", i, filename)
 	)

@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/matrix.h>
 
-off_t fsize(const char *filename); //defined in ColumnBundle.cpp
+off_t fileSize(const char *filename); //defined in Util.cpp
 
 //Compute a guess for inv(chi) using wavefunctions, fillings and eigenvalues of a similar system
 class InvertChi : public LinearSolvable<DataRptrCollection>
@@ -178,7 +178,7 @@ InvertChi::InvertChi(const Everything& e) : e(e)
 	size_t expectedLen = 0;
 	for(const ColumnBundle& psi: C)
 		expectedLen += psi.nData() * sizeof(complex);
-	size_t fileLen = fsize(fname.c_str());
+	size_t fileLen = fileSize(fname.c_str());
 	if(fileLen<0)
 		die("Error accessing chiGuess wavefunctions %s.\n", fname.c_str());
 	if(fileLen!=expectedLen)

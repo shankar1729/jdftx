@@ -305,22 +305,13 @@ void readRealSpace(std::vector<ColumnBundle>& Y, const char *fnamePattern, const
 	fftw_destroy_plan(planJ);
 }
 
-//Get the size of a file:
-#include <sys/stat.h>
-off_t fsize(const char *filename)
-{	struct stat st;
-	if(stat(filename, &st) == 0) return st.st_size;
-    return -1;
-}
-
-
 // Read/write an array of ColumnBundles from/to a file
 void read(std::vector<ColumnBundle>& Y, const char *fname, const Everything& e)
 {
 	if(e.eVars.readWfnsRealspace) readRealSpace(Y, fname, e);
 	else
 	{	//Fourier space read:
-		off_t fLen = fsize(fname);
+		off_t fLen = fileSize(fname);
 		if(fLen<0) die("Error accessing '%s'.\n", fname);
 
 		//make sure file size exactly matches expectation
