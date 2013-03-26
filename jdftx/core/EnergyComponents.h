@@ -42,9 +42,9 @@ public:
 	
 	//const versions of above
 	//! Access by C-style string (need this to prevent ambiguous overload)
-	double operator[](const char* key) const { auto iter = find(string(key)); assert(iter != end()); return iter->second; }
+	double operator[](const char* key) const { auto iter = find(string(key)); return iter==end() ? 0. : iter->second; }
 	//! Expose base-class function hidden by the C-style string version above.
-	double operator[](const string& key) const { auto iter = find(key); assert(iter != end()); return iter->second; }
+	double operator[](const string& key) const { auto iter = find(key); return iter==end() ? 0. : iter->second; }
 	
 	//! Set to a simple complex
 	void operator=(const double& value)
