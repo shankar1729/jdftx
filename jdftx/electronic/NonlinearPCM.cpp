@@ -255,10 +255,16 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	
 	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
-	
 	fprintf(fp, "\nSurface averaged epsilon: %f", Eaveraged);
 	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);
 
+	fprintf(fp, "\n\nGradients wrt fit parameters:");
+	DataGptr Adiel_nCavityTilde;
+	DataGptr Adiel_rhoExplicitTilde;
+	DataRMuEps Adiel_state; (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
+	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
+	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
+	
 	fclose(fp);	
 	logPrintf("done\n"); logFlush();
 	
