@@ -100,8 +100,8 @@ void Everything::setup()
 		exx = std::make_shared<ExactExchange>(*this);
 
 	//Setup VanDerWaals corrections
-	if(vanDerWaals)
-		vanDerWaals->setup(*this);
+	if(iInfo.vdWenable || eVars.fluidParams.needsVDW())
+		vanDerWaals = std::make_shared<VanDerWaals>(*this);
 	
 	//Setup wavefunctions, densities, fluid, output module etc:
 	iInfo.update(ener); //needs to happen before eVars setup for LCAO

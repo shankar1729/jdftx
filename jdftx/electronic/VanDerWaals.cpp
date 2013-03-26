@@ -50,12 +50,12 @@ inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r)
 	return C6invr6 * fdamp;
 }
 
-void VanDerWaals::setup(const Everything &everything){
-  
+VanDerWaals::VanDerWaals(const Everything& everything)
+{
 	logPrintf("\nInitializing van der Waals corrections ... ");
 	e = &everything;
 	
-	// Checks for the pseudopotential format.  Only Fhi and USPP are allowed.
+	// Checks whether pseudopotentials contain atomic numbers
 	for(auto sp: e->iInfo.species)
 	{	if(not sp->atomicNumber)
 			die("\nVan der Waals corrections require pseudopotentials that contain atomic number!\n");

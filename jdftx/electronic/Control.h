@@ -38,7 +38,7 @@ public:
 	
 	BasisKdep basisKdep; //!< k-dependence of basis
 	double Ecut; //!< energy cutoff
-
+	
 	double dragRadius; //!< typical region of space around each atom "dragged" on each ionic step (0 to disable)
 	vector3<> lattMoveScale; //!< preconditioning factor for each lattice vector during lattice minimization
 	

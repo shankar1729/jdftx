@@ -47,6 +47,7 @@ public:
 	std::vector< std::shared_ptr<SpeciesInfo> > species; //!< list of ionic species
 	CoordsType coordsType; //!< coordinate system for ionic positions etc.
 	ForcesOutputCoords forcesOutputCoords; //!< coordinate system to print forces in
+	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
 	
 	IonicGradient forces; //!< forces at current atomic positions
 	

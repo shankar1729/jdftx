@@ -28,7 +28,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class VanDerWaals
 {
 public:
-	void setup(const Everything &everything);
+	VanDerWaals(const Everything &everything);
+	~VanDerWaals();
 	
 	//! Van der Waal correction energy for a collection of discrete atoms at fixed locations
 	//! Corresponding forces are accumulated to Atom::force for each atom
@@ -51,7 +52,6 @@ public:
 	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber,const double scaleFac=0.75,
 		DataGptrCollection* grad_Ntilde=0, IonicGradient* forces=0) const;
 	
-	~VanDerWaals();
 	
 private:
 	const Everything* e;

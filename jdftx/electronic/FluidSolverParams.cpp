@@ -21,7 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 FluidSolverParams::FluidSolverParams()
 : verboseLog(false),
-linearDielectric(false), linearScreening(false)
+linearDielectric(false), linearScreening(false),
+VDWCouplingScale(0.75)
 {
 }
 
@@ -115,7 +116,10 @@ void FluidSolverParams::setPCMparams()
 	//Set PCM fit parameters:
 	switch(pcmVariant)
 	{	case PCM_SGA13:
-		{	throw string("Not yet implemented.");
+		{	nc = 1.0e-3;
+			sigma = 0.6;
+			cavityTension = 0.;
+			initWarnings += "WARNING: PCM variant SGA13 is highly experimental!\n";
 			break;
 		}
 		case PCM_GLSSA13:
@@ -152,3 +156,18 @@ void FluidSolverParams::setPCMparams()
 		}
 	}
 }
+
+bool FluidSolverParams::needsVDW() const
+{	switch(fluidType)
+	{	case FluidNone:
+			return false;
+		case FluidLinearPCM:
+		case FluidNonlinearPCM:
+			return (pcmVariant == PCM_SGA13);
+		case FluidNonlocalPCM:
+			return true;
+		default: //All explicit fluid functionals
+			return VDWCouplingScale;
+	}
+}
+

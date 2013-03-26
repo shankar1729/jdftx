@@ -139,6 +139,8 @@ struct FluidSolverParams
 	void setPCMparams();
 	
 	string initWarnings; //!< warnings emitted during parameter initialization, if any
+	
+	bool needsVDW() const; //!< whether pair-potential vdW corrections are required
 };
 
 #endif // JDFTX_ELECTRONIC_FLUIDSOLVERPARAMS_H

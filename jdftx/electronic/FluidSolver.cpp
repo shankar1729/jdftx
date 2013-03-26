@@ -336,13 +336,12 @@ public:
 		}
 		
 		//Create van der Waals mixing functional
-		if(e.vanDerWaals)
-		{
+		if(params.VDWCouplingScale)
+		{	assert(e.vanDerWaals);
 			vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
 			vdwCoupling->exCorr = &(params.exCorr);
 			vdwCoupling->scaleFac = &(params.VDWCouplingScale);
 		}
-			
 		
 		fluidMixture->setPressure(1.01325*Bar);
 		
@@ -556,7 +555,7 @@ FluidSolver* createFluidSolver(const Everything& e, FluidSolverParams& params)
 			return new NonlinearPCM(e, params);
 		case FluidNonlocalPCM:
 			return new NonlocalPCM(e, params);
-		default: //All JDFT3 functionals:
+		default: //All explicit fluid functionals:
 			return new ConvolutionJDFT(e, params);
 	}
 }

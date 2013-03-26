@@ -25,12 +25,13 @@ struct CommandVanDerWaals : public Command
 {
 	CommandVanDerWaals() : Command("van-der-waals")
 	{
-		comments = "Pair-potential corrections for the long range Van der Waals interaction.\nImplementation follows \"S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)\"\nExchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.";
+		comments = "Pair-potential corrections for the long range Van der Waals interaction.\n"
+			"Implementation follows \"S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)\"\n"
+			"Exchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.";
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	
-		e.vanDerWaals = std::make_shared<VanDerWaals>();
+	{	e.iInfo.vdWenable = true;
 	}
 
 	void printStatus(Everything& e, int iRep)

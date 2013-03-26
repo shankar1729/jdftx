@@ -32,6 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 IonInfo::IonInfo()
 {	shouldPrintForceComponents = false;
+	vdWenable = false;
 }
 
 void IonInfo::setup(const Everything &everything)
@@ -291,7 +292,7 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
 	double Eewald = e->coulomb->energyAndGrad(atoms);
 	//Compute optional pair-potential terms:
-	double EvdW = e->vanDerWaals ? e->vanDerWaals->energyAndGrad(atoms, e->exCorr.getName()) : 0.; //vanDerWaals energy+force
+	double EvdW = vdWenable ? e->vanDerWaals->energyAndGrad(atoms, e->exCorr.getName()) : 0.; //vanDerWaals energy+force
 	//Store energies and/or forces if requested:
 	if(ener)
 	{	ener->E["Eewald"] = Eewald;
