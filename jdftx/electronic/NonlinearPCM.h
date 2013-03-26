@@ -68,15 +68,12 @@ public:
 	
 private:
 	LinearPCMparams params;
-	DataRptr nCavity, shape;
+	DataRptr nCavity, shape, Acavity_shape;
 	DataGptr rhoExplicitTilde;
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
 	RealKernel preconditioner;
-	
-	double Acavity; //! Cavitation energy contribution
-	DataRptr Acavity_shape; //! Gradient of the cavitation energy wrt the shape function
+	EnergyComponents Adiel; //!< cached energy components
 };
-
 
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

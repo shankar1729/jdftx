@@ -113,17 +113,18 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 
 	//Compute the cavitation energy and gradient
 	Acavity_shape = 0;
-	Acavity = Cavitation::energyAndGrad(shape, Acavity_shape, params);
+	Cavitation::energyAndGrad(Adiel, shape, Acavity_shape, params);
 }
 
 double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
 {
+	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
 	
 	DataGptr rhoFluidTilde;
 	DataRptr muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
 	initZero(Adiel_muPlus, e.gInfo); initZero(Adiel_muMinus, e.gInfo);
-	double Akappa = 0., mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
+	double mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
 	if(screeningEval)
 	{	//Get neutrality Lagrange multiplier:
 		muPlus = getMuPlus(state);
@@ -136,26 +137,26 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 		initZero(rhoIon, e.gInfo);
 		callPref(screeningEval->freeEnergy)(e.gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
 			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
-		Akappa = integral(Aout);
+		Adiel["Akappa"] = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
 	}
 	
 	//Compute the dielectric free energy and bound charge:
-	DataRptrVec eps = getEps(state), Adiel_eps; double Aeps = 0.;
+	DataRptrVec eps = getEps(state), Adiel_eps;
 	{	DataRptr Aout; DataRptrVec p;
 		initZero(Aout, e.gInfo);
 		nullToZero(p, e.gInfo);
 		nullToZero(Adiel_eps, e.gInfo);
 		callPref(dielectricEval->freeEnergy)(e.gInfo.nr, eps.const_dataPref(), shape->dataPref(),
 			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
-		Aeps = integral(Aout);
+		Adiel["Aeps"] = integral(Aout);
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
 	} //scoped to automatically deallocate temporaries
 	
 	//Compute the electrostatic terms:
 	DataGptr phiFluidTilde = (*e.coulomb)(rhoFluidTilde);
 	DataGptr phiExplicitTilde = (*e.coulomb)(rhoExplicitTilde);
-	double U = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
+	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
@@ -193,7 +194,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	//Collect energy and gradient pieces:
 	setMuEps(Adiel_state, Adiel_muPlus, Adiel_muMinus, Adiel_eps);
 	Adiel_state *= e.gInfo.dV; //converts variational derivative to total derivative
-	return Akappa + Aeps + U + Acavity;
+	return Adiel;
 }
 
 void NonlinearPCM::minimizeFluid()
@@ -232,14 +233,6 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 	return out;
 }
 
-void rx(int i, vector3<> r, int dir, matrix3<> R, double* rx)
-{	vector3<> lx = inv(R)*r;
-	for(int j = 0; j<3; j++)
-		lx[j] = lx[j]<0.5 ? lx[j] : lx[j]-1.;
-	rx[i] = (R*lx)[dir];
-}
-
-
 void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 {	
 	// Prepares to dump
@@ -270,6 +263,9 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
 	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
 	
+	fprintf(fp, "\nComponents of Adiel:\n");
+	Adiel.print(fp, true, "   %13s = %25.16lf\n");
+
 	fclose(fp);	
 	logPrintf("done\n"); logFlush();
 	

@@ -64,10 +64,6 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	shape = DataRptr(DataR::alloc(e.gInfo,isGpuEnabled()));
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 	
-	//Compute the cavitation energy and gradient
-	Acavity_shape = 0;
-	Acavity = Cavitation::energyAndGrad(shape, Acavity_shape, params);
-	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsBulk);
 	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsBulk/params.k2factor));
@@ -99,25 +95,27 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& 
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
 	grad_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
-
-	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
+	Adiel["Electrostatic"] = 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
+	
+	//Compute gradient w.r.t shape function:
+	//--- Dielectric contributions:
 	DataRptrVec gradPhi = I(gradient(phi));
 	DataRptr gradPhiSq = gradPhi[0]*gradPhi[0] + gradPhi[1]*gradPhi[1] + gradPhi[2]*gradPhi[2];
-	DataRptr grad_shape = (-(params.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
-	
-	// Add the cavitation contribution to grad_shape
-	grad_shape += Acavity_shape;
-	
+	DataRptr Adiel_shape = (-(params.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
+	//--- Screening contributions:
 	if(params.ionicConcentration)
 	{	DataRptr Iphi = I(phi); //potential in real space
-		grad_shape += (params.k2factor/(8*M_PI)) * (Iphi*Iphi); //screening part
+		Adiel_shape += (params.k2factor/(8*M_PI)) * (Iphi*Iphi);
 	}
+	//--- Cavitation contributions:
+	Cavitation::energyAndGrad(Adiel, shape, Adiel_shape, params);
+	
+	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	DataRptr grad_nCavity(DataR::alloc(e.gInfo));
-	pcmShapeFunc_grad(nCavity, grad_shape, grad_nCavity, params.nc, params.sigma);
+	pcmShapeFunc_grad(nCavity, Adiel_shape, grad_nCavity, params.nc, params.sigma);
 	grad_nCavityTilde = J(grad_nCavity);
-
-	//Compute and return A_diel:
-	return 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde)) + Acavity;
+	
+	return Adiel;
 }
 
 void LinearPCM::loadState(const char* filename)
@@ -153,7 +151,9 @@ void LinearPCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\nCavity Information:\n");
 	fprintf(fp, "Volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
-	fprintf(fp, "Cavitation energy = %f\n", Acavity);
+	
+	fprintf(fp, "\nComponents of Adiel:\n");
+	Adiel.print(fp, true, "   %13s = %25.16lf\n");
 	
 	fclose(fp);
 	logPrintf("done\n"); logFlush();

@@ -70,31 +70,32 @@ void citePCM(const FluidSolverParams& fsp)
 
 namespace Cavitation
 {
-	double energyAndGrad(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	void energyAndGrad(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
 	{	switch(fsp.pcmVariant)
 		{	case PCM_SGA13:
-				return energyAndGradWDA(shape, E_shape, fsp);
+				energyAndGradWDA(E, shape, E_shape, fsp);
+				break;
 			case PCM_GLSSA13:
-				return energyAndGradEffectiveTension(shape, E_shape, fsp);
+				energyAndGradEffectiveTension(E, shape, E_shape, fsp);
+				break;
 			case PCM_LA12:
 			case PCM_PRA05:
 			default:
-				return 0.;
+				break; //no contribution
 		}
 	}
 	
-	double energyAndGradEffectiveTension(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	void energyAndGradEffectiveTension(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
 	{	DataRptrVec shape_x = gradient(shape);
 		DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
 		double surfaceArea = integral(surfaceDensity);
 		DataRptr invSurfaceDensity = inv(surfaceDensity);
 		E_shape += (-fsp.cavityTension)*divergence(shape_x*invSurfaceDensity); // Surface term
-		return surfaceArea*fsp.cavityTension;
+		E["CavityTension"] = surfaceArea*fsp.cavityTension;
 	}
 	
-	double energyAndGradWDA(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	void energyAndGradWDA(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
 	{	die("Not yet implemented.\n");
-		return 0.;
 	}
 	
 	void print(const FluidSolverParams& fsp)

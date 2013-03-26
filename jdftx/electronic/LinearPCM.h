@@ -21,8 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_LINEARPCM_H
 
 #include <electronic/FluidSolver.h>
+#include <core/EnergyComponents.h>
 #include <core/Minimize.h>
-
 
 //! Some extra quantities specific to LinearPCM added here
 struct LinearPCMparams : public FluidSolverParams
@@ -62,9 +62,7 @@ private:
 	DataGptr rhoExplicitTilde;
 	LinearPCMparams params;
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
-	
-	double Acavity; //! Cavitation energy contribution
-	DataRptr Acavity_shape; //! Gradient of the cavitation energy wrt the shape function
+	EnergyComponents Adiel; //!< cached energy components
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H
