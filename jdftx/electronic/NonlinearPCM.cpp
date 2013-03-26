@@ -47,18 +47,22 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 {
 	//Initialize dielectric evaluation class:
 	dielectricEval = new NonlinearPCMeval::Dielectric(params.linearDielectric,
-		params.T, params.Nbulk, params.pMol, params.epsilonBulk, params.epsInf);
+		params.T, params.Nbulk, params.pMol, params.epsBulk, params.epsInf);
 	
 	//Optionally initialize screening evaluation class:
 	screeningEval = 0;
 	if(params.ionicConcentration)
 		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
 			params.T, params.ionicConcentration, params.ionicZelectrolyte,
-			params.ionicRadiusPlus, params.ionicRadiusMinus, params.epsilonBulk);
+			params.ionicRadiusPlus, params.ionicRadiusMinus, params.epsBulk);
 	
+	citePCM(fsp);
+	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
+	Cavitation::print(fsp);
+
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.k2factor/params.epsilonBulk, muByEps*muByEps);
+	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.k2factor/params.epsBulk, muByEps*muByEps);
 	preconditioner.set();
 }
 
@@ -108,7 +112,8 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 
 	//Compute the cavitation energy and gradient
-	Acavity = cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure);
+	Acavity_shape = 0;
+	Acavity = Cavitation::energyAndGrad(shape, Acavity_shape, params);
 }
 
 double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const

@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
+#include <core/DataIO.h>
 #include <config.h>
 #include <map>
 
@@ -59,7 +60,7 @@ void Dump::dumpQMC()
 	DataGptr nTilde = J(eVars.get_nTot());
 	
 	//Total effective potential on electrons due to fluid:
-	DataRptr Vdiel = eVars.fluidType==FluidNone ? 0 : I(eVars.d_fluid + eVars.V_cavity);
+	DataRptr Vdiel = eVars.fluidParams.fluidType==FluidNone ? 0 : I(eVars.d_fluid + eVars.V_cavity);
 	nullToZero(Vdiel, gInfo);
 	
 	//Correction term "Atilde_diel" for QMC:

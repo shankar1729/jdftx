@@ -169,7 +169,7 @@ struct CommandReorthogonalizeOrbitals : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg", e.cntrl.overlapConditionThreshold);
+	{	logPrintf("%d %lg", e.cntrl.overlapCheckInterval, e.cntrl.overlapConditionThreshold);
 	}
 }
 commandReorthogonalizeOrbitals;

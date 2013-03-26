@@ -20,88 +20,242 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
+EnumStringMap<PCMVariant> pcmVariantMap
+(	PCM_SGA13,   "SGA13", 
+	PCM_GLSSA13, "GLSSA13",
+	PCM_LA12,    "LA12", 
+	PCM_PRA05,   "PRA05"
+);
+EnumStringMap<PCMVariant> pcmVariantDescMap
+(	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]", 
+	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]",
+	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
+	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]"
+);
 
-struct CommandPcmParams : public Command
+struct CommandPcmVariant : public Command
 {
-	CommandPcmParams() : Command("pcm-params")
+	CommandPcmVariant() : Command("pcm-variant")
 	{
-		format = "[<nc>] [<sigma>]";
-		comments =  "Parameters for the PCM Cavity\n"
-					"Control the critical density <nc> and smoothing parameter <sigma> for PCM cavities\n"
-					"Defaults are set by the fluid chosen, but can be manually overwritten";
+		format = "[<variant>=GLSSA13]";
+		comments = "Select LinearPCM or NonlinearPCM <variant> amongst:"
+			+ addDescriptions(pcmVariantMap.optionList(), linkDescription(pcmVariantMap, pcmVariantDescMap));
 		hasDefault = true;
 		require("fluid");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		double nc=7e-4, sigma=0.6; //defaults for FluidLinear
-		switch(e.eVars.fluidType)
-		{	case FluidLinear: //defaults set above
-				break;
-			case FluidLinearPCM:
-				nc = 3.7e-4;
-				sigma = 0.6;
-				break;
-			case FluidNonlinearPCM:
-				nc = 1.0e-3;
-				sigma = 0.6;
-				break;
-			default: //Other fluids do not use these parameters
-				break;
-		}
-		pl.get(fsp.nc, nc, "nc");
-		pl.get(fsp.sigma, sigma, "sigma");
-		
-		// Set the cavitation terms to 0. These can be overwritten by the cavitation command
-		fsp.cavityTension = 0;
-		fsp.cavityPressure = 0;
+		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		logPrintf("%lg %lg", fsp.nc, fsp.sigma);
+		logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
+	}
+}
+commandPcmVariant;
+
+
+EnumStringMap<FluidSolverParams::SolventName> pcmSolventMap
+(
+	FluidSolverParams::H2O,   "H2O",
+	FluidSolverParams::CHCl3, "CHCl3",
+	FluidSolverParams::CCl4,  "CCl4",
+	FluidSolverParams::DMC,   "DMC",
+	FluidSolverParams::EC,    "EC",
+	FluidSolverParams::PC,    "PC",
+	FluidSolverParams::DMF,   "DMF",
+	FluidSolverParams::THF,   "THF"
+);
+EnumStringMap<FluidSolverParams::SolventName> pcmSolventDescMap
+(	FluidSolverParams::H2O,   "Water",
+	FluidSolverParams::CHCl3, "Chloroform",
+	FluidSolverParams::CCl4,  "Carbon tetrachloride",
+	FluidSolverParams::DMC,   "Dimethyl carbonate",
+	FluidSolverParams::EC,    "Ethylene carbonate",
+	FluidSolverParams::PC,    "Propylene carbonate",
+	FluidSolverParams::DMF,   "Dimethylformamide",
+	FluidSolverParams::THF,   "Tetrahydrofuran"
+);
+
+struct CommandPcmSolvent : public Command
+{
+	CommandPcmSolvent() : Command("pcm-solvent")
+	{
+		format = "[<solvent>=H2O]";
+		comments = "Load default PCM parameters for <solvent>, which is one of:"
+			+ addDescriptions(pcmSolventMap.optionList(), linkDescription(pcmSolventMap, pcmSolventDescMap));
+		hasDefault = true;
+		require("pcm-variant");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.solventName, FluidSolverParams::H2O, pcmSolventMap, "solvent");
+		fsp.setPCMparams();
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%s", pcmSolventMap.getString(fsp.solventName));
+	}
+}
+commandPcmSolvent;
+
+
+enum PCMparameter
+{	//Fit parameters:
+	PCMp_nc, //!< critical density for the PCM cavity shape function
+	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
+	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
+	//Physical parameters:
+	PCMp_epsBulk, //!< bulk dielectric constant
+	PCMp_Nbulk, //!< bulk number-density of molecules in bohr^-3
+	PCMp_pMol, //!< dipole moment of each molecule in e-bohr
+	PCMp_epsInf, //!< optical-frequency dielectric constant
+	PCMp_Pvap, //!< vapor pressure in Eh/bohr^3
+	PCMp_sigmaBulk, //!< bulk surface tension in Eh/bohr^2
+	//Delimiter used in parsing:
+	PCMp_Delim
+};
+EnumStringMap<PCMparameter> pcmParamMap
+(	PCMp_nc,            "nc",
+	PCMp_sigma,         "sigma",
+	PCMp_cavityTension, "cavityTension",
+	PCMp_epsBulk,       "epsBulk",
+	PCMp_Nbulk,         "Nbulk",
+	PCMp_pMol,          "pMol",
+	PCMp_epsInf,        "epsInf",
+	PCMp_Pvap,          "Pvap",
+	PCMp_sigmaBulk,     "sigmaBulk"
+);
+EnumStringMap<PCMparameter> pcmParamDescMap
+(	PCMp_nc, "critical density for the PCM cavity shape function",
+	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
+	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
+	PCMp_epsBulk, "bulk dielectric constant",
+	PCMp_Nbulk, "bulk number-density of molecules in bohr^-3",
+	PCMp_pMol, "dipole moment of each molecule in e-bohr",
+	PCMp_epsInf, "optical-frequency dielectric constant",
+	PCMp_Pvap, "vapor pressure in Eh/bohr^3",
+	PCMp_sigmaBulk, "bulk surface tension in Eh/bohr^2"
+);
+
+struct CommandPcmParams : public Command
+{
+	CommandPcmParams() : Command("pcm-params")
+	{	
+		format = "<key1> <value1> <key2> <value2> ...";
+		comments = "Adjust PCM solvent parameters. Possible keys and value types are:"
+			+ addDescriptions(pcmParamMap.optionList(), linkDescription(pcmParamMap, pcmParamDescMap))
+			+ "\nAny number of these key-value pairs may be specified in any order.";
+		require("pcm-solvent");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		while(true)
+		{	PCMparameter key;
+			pl.get(key, PCMp_Delim, pcmParamMap, "key");
+			#define READ_AND_CHECK(param, op, val) \
+				case PCMp_##param: \
+					pl.get(fsp.param, val, #param, true); \
+					if(!(fsp.param op val)) throw string(#param " must be " #op " " #val); \
+					break;
+			switch(key)
+			{	READ_AND_CHECK(nc, >, 0.)
+				READ_AND_CHECK(sigma, >, 0.)
+				READ_AND_CHECK(cavityTension, <, DBL_MAX)
+				READ_AND_CHECK(epsBulk, >, 1.)
+				READ_AND_CHECK(Nbulk, >, 0.)
+				READ_AND_CHECK(pMol, >=, 0.)
+				READ_AND_CHECK(epsInf, >=, 1.)
+				READ_AND_CHECK(Pvap, >, 0.)
+				READ_AND_CHECK(sigmaBulk, >, 0.)
+				case PCMp_Delim: return; //end of input
+			}
+			#undef READ_AND_CHECK
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", fsp.param);
+		PRINT(nc)
+		PRINT(sigma)
+		PRINT(cavityTension)
+		PRINT(epsBulk)
+		PRINT(Nbulk)
+		PRINT(pMol)
+		PRINT(epsInf)
+		PRINT(Pvap)
+		PRINT(sigmaBulk)
+		#undef PRINT
 	}
 }
 commandPcmParams;
 
-struct CommandCavitation : public Command
+
+struct CommandIonicScreening : public Command
 {
-	CommandCavitation() : Command("cavitation")
-	{	format = "<cavity tension> <cavity pressure>";
-		comments =  "Overwrites the non-electrostatic (cavitation + van der waals) terms for solvation.\n"
-					"If not explicitly called, defaults are set by the fluid type chosen.";
+	CommandIonicScreening() : Command("ionic-screening")
+	{
+		format = "<concentration> <Zelectrolyte> <linear> <Rcation> <Ranion>";
+		comments =
+			"\t<concentration>: molar concentration of ions (default: 0.0, which turns off ionic screening)\n"
+			"\t<Zelectrolyte>: magnitude of charge of the cations and anions (assumed equal)\n"
+			"\t<linear>: linearity of screening = " + boolMap.optionList() + " (default: no)\n"
+			"\t<Rcation>: Cation ionic radius in Angstroms (default: 1.16 [Na+])\n"
+			"\t<Ranion>: Anion ionic radius in Angstroms (default: 1.67 [Cl-])";
 		hasDefault = true;
-		require("pcm-params");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.ionicConcentration, 0.0, "concentration");
+		pl.get(fsp.ionicZelectrolyte, 1, "Zelectrolyte");
+		pl.get(fsp.ionicRadiusMinus, 1.16, "Rcation"); //Note 'minus' is wrt electron-positive convention
+		pl.get(fsp.ionicRadiusPlus, 1.67, "Ranion"); //Note 'plus' is wrt electron-positive convention
+		//Check parameters
+		if(fsp.ionicConcentration < 0.) throw("Ionic concentration must be non-negative");
+		if(fsp.ionicZelectrolyte <= 0.) throw("Ionic charge magnitude must be positive");
+		if(fsp.ionicRadiusMinus <= 0.) throw("Cation radius must be positive");
+		if(fsp.ionicRadiusPlus <= 0.) throw("Anion radius must be positive");
+		//convert to atomic units
+		fsp.ionicConcentration *= mol/liter;
+		fsp.ionicRadiusPlus *= Angstrom;
+		fsp.ionicRadiusMinus *= Angstrom;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg %d %lg %lg",
+			e.eVars.fluidParams.ionicConcentration/(mol/liter), //report back in mol/liter
+			e.eVars.fluidParams.ionicZelectrolyte,
+			e.eVars.fluidParams.ionicRadiusMinus/Angstrom,
+			e.eVars.fluidParams.ionicRadiusPlus/Angstrom);
+	}
+}
+commandIonicScreening;
+
+
+struct CommandPCMnonlinearDebug : public Command
+{
+    CommandPCMnonlinearDebug() : Command("pcm-nonlinear-debug")
+	{
+		format = "<linearDielectric>=" + boolMap.optionList() + " <linearScreening>=" + boolMap.optionList();
+		comments = "Emulate linear response of the dielectric or screening within NonlinearPCM (for debugging purposes only)";
 	}
 	
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		double cavityTension=0., cavityPressure=0.; // Defaults for fluid linear
-		
-		switch(e.eVars.fluidType)
-		{	case FluidLinear: //defaults set above
-				break;
-			case FluidLinearPCM:
-				cavityTension = 5.4e-6;
-				cavityPressure = 0.;
-				break;
-			case FluidNonlinearPCM:
-				cavityTension = 9.5e-6;
-				cavityPressure = 0.;
-				break;
-			default: //Other fluids do not use these parameters
-				break;
-		}
-		
-		pl.get(fsp.cavityTension, cavityTension, "cavityTension");
-		pl.get(fsp.cavityPressure, cavityPressure, "cavityPressure");
+		pl.get(fsp.linearDielectric, false, boolMap, "linearDielectric", true);
+		pl.get(fsp.linearScreening, false, boolMap, "linearScreening", true);
 	}
 	
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		logPrintf("%lg %lg", fsp.cavityTension, fsp.cavityPressure);
+		logPrintf("%s %s", boolMap.getString(fsp.linearDielectric), boolMap.getString(fsp.linearScreening));
 	}
-	
 }
-commandCavitation;
+commandPCMnonlinearDebug;

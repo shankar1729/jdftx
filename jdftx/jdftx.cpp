@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/InverseKohnSham.h>
+#include <electronic/FluidSolver.h>
 #include <core/Util.h>
 #include <commands/parser.h>
 

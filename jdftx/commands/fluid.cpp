@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<FluidType> fluidTypeMap
 (	FluidNone, "None",
-	FluidLinear, "Linear",
 	FluidLinearPCM, "LinearPCM",
 	FluidNonlinearPCM, "NonlinearPCM",
 	FluidNonlocalPCM, "NonlocalPCM",
@@ -47,18 +46,18 @@ struct CommandFluid : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.eVars.fluidType, FluidNone, fluidTypeMap, "type");
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.fluidType, FluidNone, fluidTypeMap, "type");
 		if((e.coulombParams.geometry != CoulombParams::Periodic)
-			&& (e.eVars.fluidType != FluidNone))
+			&& (fsp.fluidType != FluidNone))
 			throw string("Fluids cannot be used with a truncated coulomb interaction");
-		FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.T, 298.0, "Temperature"); fsp.T *= Kelvin; //convert to atomic units
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s", fluidTypeMap.getString(e.eVars.fluidType));
-		const FluidSolverParams& fsp = e.eVars.fluidParams;
-		if(e.eVars.fluidType != FluidNone)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%s", fluidTypeMap.getString(fsp.fluidType));
+		if(fsp.fluidType != FluidNone)
 			logPrintf(" %lf", fsp.T/Kelvin);
 	}
 }

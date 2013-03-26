@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/DataMultiplet.h>
 #include <core/Units.h>
+#include <core/Util.h>
 
 //----------------------- The JDFT `shape function' and gradient ------------------
 
@@ -43,18 +44,76 @@ void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, Data
 	callPref(pcmShapeFunc_grad)(nCavity->gInfo.nr, nCavity->dataPref(), grad_shape->dataPref(), grad_nCavity->dataPref(), nc, sigma);
 }
 
-double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& Acavity_shape, double cavityTension, double cavityPressure)
+void citePCM(const FluidSolverParams& fsp)
 {
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	double surfaceArea = integral(surfaceDensity);
-	double volume = integral(1.-shape);
+	switch(fsp.pcmVariant)
+	{	case PCM_SGA13:
+			Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
+				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
+			break;
+		case PCM_GLSSA13:
+			Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
+				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189");
+			break;
+		case PCM_LA12:
+		case PCM_PRA05:
+			if(fsp.ionicConcentration)
+				Citations::add("Linear dielectric fluid model with ionic screening",
+					"K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
+			else
+				Citations::add("Linear dielectric fluid model",
+					"S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
+			break;
+	}
+}
 
-	DataRptr invSurfaceDensity = inv(surfaceDensity);
-	Acavity_shape = (-cavityTension)*divergence(shape_x*invSurfaceDensity); // Surface term
-	Acavity_shape += (-cavityPressure); // Volume term
+
+namespace Cavitation
+{
+	double energyAndGrad(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	{	switch(fsp.pcmVariant)
+		{	case PCM_SGA13:
+				return energyAndGradWDA(shape, E_shape, fsp);
+			case PCM_GLSSA13:
+				return energyAndGradEffectiveTension(shape, E_shape, fsp);
+			case PCM_LA12:
+			case PCM_PRA05:
+			default:
+				return 0.;
+		}
+	}
 	
-	return surfaceArea*cavityTension + volume*cavityPressure;
+	double energyAndGradEffectiveTension(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	{	DataRptrVec shape_x = gradient(shape);
+		DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+		double surfaceArea = integral(surfaceDensity);
+		DataRptr invSurfaceDensity = inv(surfaceDensity);
+		E_shape += (-fsp.cavityTension)*divergence(shape_x*invSurfaceDensity); // Surface term
+		return surfaceArea*fsp.cavityTension;
+	}
+	
+	double energyAndGradWDA(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
+	{	die("Not yet implemented.\n");
+		return 0.;
+	}
+	
+	void print(const FluidSolverParams& fsp)
+	{	switch(fsp.pcmVariant)
+		{	case PCM_SGA13:
+				logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n",
+					fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
+				logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
+				break;
+			case PCM_GLSSA13:
+				logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
+				break;
+			case PCM_LA12:
+			case PCM_PRA05:
+			default:
+				logPrintf("   No cavitation model.\n");
+				break;
+		}
+	}
 }
 
 //------------- Helper classes for NonlinearPCM  -------------

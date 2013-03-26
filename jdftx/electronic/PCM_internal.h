@@ -26,15 +26,32 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef __in_a_cu_file__
 
 #include <core/Operators.h>
+#include <electronic/FluidSolverParams.h>
 
 //! Compute the shape function (0 to 1) given the cavity-determining electron density
 void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, const double sigma);
 
-//!Compute derivative with respect to cavity-determining electron density, given derivative with respect to shape function
+//! Compute derivative with respect to cavity-determining electron density, given derivative with respect to shape function
 void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma);
 
-//! Returns the cavitation energy contribution (volume and surface terms) and sets the gradient to grad
-double cavitationEnergyAndGrad(const DataRptr& shape, DataRptr& grad, double cavityTension, double cavityPressure);
+//! Add citations for relevant variant of PCM:
+void citePCM(const FluidSolverParams& fsp);
+
+namespace Cavitation
+{
+	//! Compute cavitation energy and accumulate its gradient w.r.t cavity shape.
+	//! Top level function that switches depending on fluidType and pcmVariant
+	double energyAndGrad(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
+
+	//! Surface area with effective tension model
+	double energyAndGradEffectiveTension(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
+
+	//! Weighted density model for cavitation with pair-potential vdW corrections
+	double energyAndGradWDA(const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
+	
+	//! Print information about type of cavity nodel (call during initialization)
+	void print(const FluidSolverParams& fsp);
+}
 
 #endif
 

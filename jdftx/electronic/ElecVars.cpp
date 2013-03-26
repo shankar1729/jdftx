@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/ExCorr.h>
 #include <electronic/ExactExchange.h>
+#include <electronic/FluidSolver.h>
 #include <core/Units.h>
 #include <core/DataIO.h>
 #include <cstdio>
@@ -156,9 +157,9 @@ void ElecVars::setup(const Everything &everything)
 	}
 
 	//Fluid setup:
-	if(fluidType != FluidNone)
+	if(fluidParams.fluidType != FluidNone)
 	{	logPrintf("----- createFluidSolver() ----- (Fluid-side solver setup)\n");
-		fluidSolver = std::shared_ptr<FluidSolver>(createFluidSolver(fluidType, *e, fluidParams));
+		fluidSolver = std::shared_ptr<FluidSolver>(createFluidSolver(*e, fluidParams));
 		if(!fluidSolver) die("Failed to create fluid solver.\n");
 		if(fluidInitialStateFilename.length())
 		{	logPrintf("Reading fluid state from '%s'\n", fluidInitialStateFilename.c_str()); logFlush();
@@ -215,7 +216,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	}
 	
 	//Fluid contributions
-	if(fluidType != FluidNone)
+	if(fluidParams.fluidType != FluidNone)
 	{	//Compute n considered for cavity formation (i.e-> include chargeball and partial cores)
 		DataGptr nCavityTilde = clone(nTilde);
 		if(iInfo.nChargeball) nCavityTilde += iInfo.nChargeball;

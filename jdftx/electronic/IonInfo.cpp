@@ -86,7 +86,7 @@ void IonInfo::setup(const Everything &everything)
 	}
 	if(!nAtomsTot) logPrintf("Warning: no atoms in the calculation.\n");
 	
-	if(ionWidth && (e->eVars.fluidType != FluidNone) &&
+	if(ionWidth && (e->eVars.fluidParams.fluidType != FluidNone) &&
 		(e->eVars.fluidParams.ionicConcentration || e->eVars.fluidParams.hSIons.size()))
 		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
 }

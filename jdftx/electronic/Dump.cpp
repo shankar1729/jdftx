@@ -30,7 +30,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/ExactExchange.h>
 #include <electronic/DOS.h>
+#include <electronic/FluidSolver.h>
 #include <core/DataMultiplet.h>
+#include <core/DataIO.h>
 #include <sstream>
 
 void dumpSpinorbit(const Everything& e);
@@ -171,7 +173,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(iInfo.nCore) DUMP(iInfo.nCore, "nCore", CoreDensity)
 	
 	DUMP(I(eVars.d_vac), "d_vac", Dvac);
-	if(eVars.fluidType != FluidNone)
+	if(eVars.fluidParams.fluidType != FluidNone)
 	{	DUMP(I(eVars.d_fluid), "d_fluid", Dfluid);
 		DUMP(I(eVars.d_vac + eVars.d_fluid), "d_tot", Dtot);
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
@@ -223,7 +225,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(BoundCharge) && eVars.fluidType!=FluidNone)
+	if(ShouldDump(BoundCharge) && eVars.fluidParams.fluidType!=FluidNone)
 	{	StartDump("nbound")
 		DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		nboundTilde->data()[0] = -(J(eVars.get_nTot())+iInfo.rhoIon)->data()[0]; //total bound charge will neutralize system

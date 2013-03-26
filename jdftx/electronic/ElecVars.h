@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_ELECVARS_H
 
 #include <electronic/common.h>
-#include <electronic/FluidSolver.h>
+#include <electronic/FluidSolverParams.h>
 #include <core/DataCollection.h>
 #include <string>
 #include <memory>
@@ -64,9 +64,8 @@ public:
 	DataRptrCollection Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
 	//Fluid properties
-	FluidType fluidType;
 	FluidSolverParams fluidParams;
-	std::shared_ptr<FluidSolver> fluidSolver;
+	std::shared_ptr<struct FluidSolver> fluidSolver;
 	string fluidInitialStateFilename;
 
 	//Wavefunction initialization:

@@ -45,5 +45,6 @@ const double Newton = Joule/meter;  //!< @f$ N / (E_h/a_0) @f$
 const double Pascal = Newton/(meter*meter); //!< @f$ Pa / (E_h/a_0^2) @f$
 const double KPascal = 1000*Pascal;  //!< @f$ KPa / (E_h/a_0^2) @f$
 const double Bar = 100*KPascal;   //!< @f$ bar / (E_h/a_0^2) @f$
+const double mmHg = 133.322387415*Pascal;  //!< @f$ mmHg / (E_h/a_0^2) @f$
 
 #endif //JDFTX_CORE_UNITS_H

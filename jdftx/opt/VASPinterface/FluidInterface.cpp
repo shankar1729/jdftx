@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/FluidSolver.h>
 #include <commands/parser.h>
 
 Everything e;
@@ -74,7 +75,7 @@ DeclareFortranFunction(initjdftx)(double* Rx, double* Ry, double* Rz, int* Sx, i
 	//Initialize system:
 	parse("FLUCAR.in", e);
 	system("rm FLUCAR.in");
-	if(e.eVars.fluidType == FluidNone) die("No fluid model specified in FLUCAR.\n");
+	if(e.eVars.fluidParams.fluidType == FluidNone) die("No fluid model specified in FLUCAR.\n");
 	if(e.iInfo.ionWidthMethod == IonInfo::IonWidthEcut)
 	{	logPrintf("JDFTx interface does not have access to VASP energy cutoff:\n"
 			"\tUsing FFTbox to determine nuclear width instead.\n");

@@ -94,7 +94,7 @@ struct CommandFluidSitePosition : public Command
 	{
 		string id;
 		pl.get(id, string(), "fluid-site-id", true);
-		if((e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidScalarEOSCustom))			
+		if((e.eVars.fluidParams.fluidType==FluidScalarEOS)||(e.eVars.fluidParams.fluidType==FluidScalarEOSCustom))			
 		{
 			for(int i=0; i<int(e.eVars.fluidParams.H2OSites.size()); i++)
 			{
@@ -161,7 +161,7 @@ struct CommandFluidSite : public Command
 	
 	void process(ParamList& pl, Everything& e)
 	{
-		if((e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidScalarEOSCustom))			
+		if((e.eVars.fluidParams.fluidType==FluidScalarEOS)||(e.eVars.fluidParams.fluidType==FluidScalarEOSCustom))			
 		{
 			H2OSite site;
 			pl.get(site.name, string(), "fluid-site-id", true);
@@ -181,7 +181,7 @@ struct CommandFluidSite : public Command
 				pl.get(site.CouplingFilename, string(""), "filename", true);
 			}
 			e.eVars.fluidParams.H2OSites.push_back(site);
-			e.eVars.fluidType = FluidScalarEOSCustom;
+			e.eVars.fluidParams.fluidType = FluidScalarEOSCustom;
 			return;
 		}
 		throw string("fluid-site must be used with a ScalarEOS Fluid\n");
@@ -311,8 +311,8 @@ struct CommandFluidIonCoupling : public Command
 	{
 		string id;
 		pl.get(id, string(), "fluid-ion-id", true);
-		if((e.eVars.fluidType==FluidFittedCorrelations)||(e.eVars.fluidType==FluidScalarEOS)
-			||(e.eVars.fluidType==FluidBondedVoids)||(e.eVars.fluidType==FluidHSIonic))			
+		if((e.eVars.fluidParams.fluidType==FluidFittedCorrelations)||(e.eVars.fluidParams.cavityTension==FluidScalarEOS)
+			||(e.eVars.fluidParams.fluidType==FluidBondedVoids)||(e.eVars.fluidParams.fluidType==FluidHSIonic))			
 		{
 			for(int i=0; i<int(e.eVars.fluidParams.hSIons.size()); i++)
 			{

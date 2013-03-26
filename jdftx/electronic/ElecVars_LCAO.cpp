@@ -67,10 +67,10 @@ int ElecVars::LCAO()
 	
 	//Compute local-potential at the atomic reference density:
 	FluidType fluidTypeTemp = FluidNone;
-	std::swap(fluidType, fluidTypeTemp); //Temporarily disable the fluid (which is yet to be initialized)
+	std::swap(fluidParams.fluidType, fluidTypeTemp); //Temporarily disable the fluid (which is yet to be initialized)
 	Energies ener;
 	EdensityAndVscloc(ener, exCorr);
-	std::swap(fluidType, fluidTypeTemp); //Restore the fluid type
+	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
 	
 	//Initialize one state at a time:
 	for(int q=0; q<eInfo.nStates; q++)

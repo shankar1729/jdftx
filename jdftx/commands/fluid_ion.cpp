@@ -39,9 +39,9 @@ struct CommandFluidIon : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	
-		if((e.eVars.fluidType==FluidHSIonic)||(e.eVars.fluidType==FluidFittedCorrelations)
-			||(e.eVars.fluidType==FluidScalarEOS)||(e.eVars.fluidType==FluidBondedVoids))			
+	{	const FluidType& fluidType = e.eVars.fluidParams.fluidType;
+		if((fluidType==FluidHSIonic)||(fluidType==FluidFittedCorrelations)
+			||(fluidType==FluidScalarEOS)||(fluidType==FluidBondedVoids))			
 		{
 			HardSphereIon ion;
 			pl.get(ion.name, string(), "fluid-ion-id", true);

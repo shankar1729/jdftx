@@ -130,9 +130,8 @@ void Everything::setup()
 	ionicMinParams.energyLabel = relevantFreeEnergyName(*this);
 	
 	//Setup fluid minimization parameters:
-	switch(eVars.fluidType)
-	{	case FluidLinear:
-		case FluidLinearPCM:
+	switch(eVars.fluidParams.fluidType)
+	{	case FluidLinearPCM:
 		case FluidNonlocalPCM:
 			fluidMinParams.nDim = gInfo.nr; break;
 		case FluidNonlinearPCM: fluidMinParams.nDim = 4 * gInfo.nr; break;
@@ -148,9 +147,8 @@ void Everything::setup()
 	fluidMinParams.linePrefix = "FluidMinimize: ";
 	fluidMinParams.energyLabel = relevantFreeEnergyName(*this);
 	//Tweak log format for fluid with inner minimization:
-	if(eVars.fluidType==FluidLinear
-	|| eVars.fluidType==FluidLinearPCM
-	|| eVars.fluidType==FluidNonlocalPCM)
+	if(eVars.fluidParams.fluidType==FluidLinearPCM
+	|| eVars.fluidParams.fluidType==FluidNonlocalPCM)
 	{	fluidMinParams.linePrefix = "\tFluidMinimize: ";
 		if(!eVars.fluidParams.verboseLog)
 			fluidMinParams.fpLog = fopen("/dev/null", "w");

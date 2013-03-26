@@ -89,7 +89,7 @@ class ConvolutionJDFT : public FluidSolver
 	DataRptrCollection* NCached; //cached densities of fluid for use in van der Waals correction
 	
 public:
-	ConvolutionJDFT(const Everything& e, FluidSolverParams& params, FluidType type)
+	ConvolutionJDFT(const Everything& e, FluidSolverParams& params)
 	: FluidSolver(e), AwaterCached(0), grad_rhoExplicitTildeCached(0), NCached(0)
 	{
 		
@@ -98,7 +98,7 @@ public:
 		fluidMixture->verboseLog = params.verboseLog;
 		
 		//Initialize excess functional:
-		switch(type)
+		switch(params.fluidType)
 		{	case FluidFittedCorrelations: fex = new Fex_H2O_FittedCorrelations(*fluidMixture); break;
 			case FluidScalarEOS: fex = new Fex_H2O_ScalarEOS(*fluidMixture); break;
 			case FluidScalarEOSCustom: fex = new Fex_H2O_Custom(*fluidMixture, params.H2OSites); break;
@@ -108,7 +108,7 @@ public:
 		}
 		
 		
-		if (type != FluidHSIonic)
+		if (params.fluidType != FluidHSIonic)
 		{
 			//Initialize ideal gas:
 			const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
@@ -119,7 +119,7 @@ public:
 		
 		int nIons = params.hSIons.size();
 
-		if((type == FluidHSIonic) && nIons == 0)	
+		if((params.fluidType == FluidHSIonic) && nIons == 0)	
 			die("At least one fluid-ion must be specified in FluidHSIonic.");
 		
 		for(int iIon = 0; iIon < nIons; iIon++)
@@ -143,7 +143,7 @@ public:
 		//Set the electronic site density model for the coupling -- specific for scalarEOS water
 		FluidMixture::Component& water = (FluidMixture::Component&) fluidMixture->get_component(0);
 			
-		if (type == FluidScalarEOSCustom) //for right now keep this separate to avoid creating bugs.
+		if (params.fluidType == FluidScalarEOSCustom) //for right now keep this separate to avoid creating bugs.
 		{
 			for (int iSite=0; iSite < water.molecule->nIndices; iSite++)
 			{
@@ -191,7 +191,7 @@ public:
 			}
 		}
 		
-		if (type != FluidScalarEOSCustom)
+		if (params.fluidType != FluidScalarEOSCustom)
 		{
 		
 			//Set the electronic site density model for the coupling
@@ -277,7 +277,7 @@ public:
 					die("Unknown convolution coupling model specified for water.\n")
 				}
 			}
-		}	
+		}
 	
 		
 		for(int iIon = 0; iIon < nIons; iIon++)
@@ -336,7 +336,7 @@ public:
 		}
 		
 		//Create van der Waals mixing functional
-		if(e.vanDerWaals) //assuming that shared_ptr is 0 if it does not manage any objects
+		if(e.vanDerWaals)
 		{
 			vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
 			vdwCoupling->exCorr = &(params.exCorr);
@@ -543,17 +543,13 @@ FluidSolver::FluidSolver(const Everything& e) : e(e)
 {
 }
 
-FluidSolver* createFluidSolver(FluidType type, const Everything& e, FluidSolverParams& params)
-{	string JDFTpaper = "S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)";
-	if(type != FluidNone)
-		Citations::add("Framework of Joint Density Functional Theory", JDFTpaper);
-	switch(type)
+FluidSolver* createFluidSolver(const Everything& e, FluidSolverParams& params)
+{	if(params.fluidType != FluidNone)
+		Citations::add("Framework of Joint Density Functional Theory", "S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
+	logPrintf("%s", params.initWarnings.c_str());
+	switch(params.fluidType)
 	{	case FluidNone:
 			return 0; //No solver needed
-		case FluidLinear:
-			if(!params.ionicConcentration) Citations::add("Linear continuum fluid model", JDFTpaper);
-			else Citations::add("Linear continuum fluid model with ionic screening", "K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
-			return new LinearPCM(e, params);
 		case FluidLinearPCM:
 			return new LinearPCM(e, params);
 		case FluidNonlinearPCM:
@@ -561,6 +557,6 @@ FluidSolver* createFluidSolver(FluidType type, const Everything& e, FluidSolverP
 		case FluidNonlocalPCM:
 			return new NonlocalPCM(e, params);
 		default: //All JDFT3 functionals:
-			return new ConvolutionJDFT(e, params, type);
+			return new ConvolutionJDFT(e, params);
 	}
 }

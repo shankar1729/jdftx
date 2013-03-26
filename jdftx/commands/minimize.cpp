@@ -181,12 +181,12 @@ struct CommandFluidMinimize : public CommandMinimize
 	}
     MinimizeParams& target(Everything& e) { return e.fluidMinParams; }
     void process(ParamList& pl, Everything& e)
-	{	if(e.eVars.fluidType==FluidLinear
-		|| e.eVars.fluidType==FluidLinearPCM
-		|| e.eVars.fluidType==FluidNonlinearPCM
-		|| e.eVars.fluidType==FluidNonlocalPCM)
+	{	const FluidType& fluidType = e.eVars.fluidParams.fluidType;
+		if(fluidType==FluidLinearPCM
+		|| fluidType==FluidNonlinearPCM
+		|| fluidType==FluidNonlocalPCM)
 			e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
-		e.fluidMinParams.knormThreshold = (e.eVars.fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;
+		e.fluidMinParams.knormThreshold = (fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;
 		e.fluidMinParams.alphaTstart = 3e6; //override default value (1.) in  MinimizeParams.h
 		CommandMinimize::process(pl, e);
 	}

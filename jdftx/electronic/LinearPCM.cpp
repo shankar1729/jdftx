@@ -32,11 +32,14 @@ LinearPCMparams::LinearPCMparams(const FluidSolverParams& p) : FluidSolverParams
 
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : FluidSolver(e), params(fsp), Kkernel(e.gInfo)
-{	
+{
+	citePCM(fsp);
+	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
+	Cavitation::print(fsp);
 }
 
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
-{	DataRptr epsilon = 1. + (params.epsilonBulk-1.) * shape;
+{	DataRptr epsilon = 1. + (params.epsBulk-1.) * shape;
 	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
 	if(params.k2factor) rhoTilde -= params.k2factor * J(shape*I(phiTilde)); // screening term
 	return rhoTilde;
@@ -61,18 +64,17 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	shape = DataRptr(DataR::alloc(e.gInfo,isGpuEnabled()));
 	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
 	
-	// Compute the cavitation energy and gradient
-	Acavity = (e.eVars.fluidType == FluidLinearPCM) ? cavitationEnergyAndGrad(shape, Acavity_shape, params.cavityTension, params.cavityPressure) : 0.;
-	
-	//Compute epsilon and kappaSq:
+	//Compute the cavitation energy and gradient
+	Acavity_shape = 0;
+	Acavity = Cavitation::energyAndGrad(shape, Acavity_shape, params);
 	
 	//Info:
-	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsilonBulk);
-	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsilonBulk/params.k2factor));
+	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsBulk);
+	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsBulk/params.k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/e.gInfo.detR); logFlush();
 
 	//Update the preconditioner
-	DataRptr epsilon = 1 + (params.epsilonBulk-1)*shape;
+	DataRptr epsilon = 1 + (params.epsBulk-1)*shape;
 	DataRptr kappaSq = params.ionicConcentration ? params.k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
@@ -101,7 +103,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	DataRptrVec gradPhi = I(gradient(phi));
 	DataRptr gradPhiSq = gradPhi[0]*gradPhi[0] + gradPhi[1]*gradPhi[1] + gradPhi[2]*gradPhi[2];
-	DataRptr grad_shape = (-(params.epsilonBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
+	DataRptr grad_shape = (-(params.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
 	
 	// Add the cavitation contribution to grad_shape
 	grad_shape += Acavity_shape;

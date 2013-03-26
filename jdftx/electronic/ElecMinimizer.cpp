@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 #include <electronic/Dump.h>
+#include <electronic/FluidSolver.h>
 #include <core/Random.h>
 #include <core/Data.h>
 #include <ctime>
@@ -200,18 +201,18 @@ void elecFluidMinimize(Everything &e)
 			eVars.B[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	
-	if(eVars.isRandom && eVars.fluidType!=FluidNone)
+	if(eVars.isRandom && eVars.fluidParams.fluidType!=FluidNone)
 	{	logPrintf("Fluid solver invoked on fresh (partially random / LCAO) wavefunctions\n");
 		logPrintf("Running a vacuum solve first:\n");
-		FluidType origType = eVars.fluidType;
-		eVars.fluidType = FluidNone; //temporarily disable the fluid
+		FluidType origType = eVars.fluidParams.fluidType;
+		eVars.fluidParams.fluidType = FluidNone; //temporarily disable the fluid
 		logPrintf("\n-------- Initial electronic minimization -----------\n"); logFlush();
 		elecMinimize(e); //minimize without fluid
-		eVars.fluidType = origType; //restore fluid flag
+		eVars.fluidParams.fluidType = origType; //restore fluid flag
 	}
 	eVars.elecEnergyAndGrad(ener);
 	
-	if(eVars.fluidType==FluidNone || !eVars.fluidSolver->needsGummel())
+	if(eVars.fluidParams.fluidType==FluidNone || !eVars.fluidSolver->needsGummel())
 	{	//no fluid, or fluid doesn't require gummel
 		logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
 		elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see EnergyAndGradient.cpp]
