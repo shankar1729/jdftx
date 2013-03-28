@@ -29,14 +29,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/EnergyComponents.h>
 #include <electronic/FluidSolverParams.h>
 
-//! Compute the shape function (0 to 1) given the cavity-determining electron density
-void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, const double sigma);
-
-//! Compute derivative with respect to cavity-determining electron density, given derivative with respect to shape function
-void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma);
-
 //! Add citations for relevant variant of PCM:
 void citePCM(const FluidSolverParams& fsp);
+
+namespace ShapeFunction
+{
+	//! Compute the shape function (0 to 1) given the cavity-determining electron density
+	void compute(const DataRptr& n, DataRptr& shape, const FluidSolverParams& fsp);
+
+	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density
+	void propagateGradient(const DataRptr& n, const DataRptr& E_shape, DataRptr& E_nCavity, const FluidSolverParams& fsp);
+}
 
 namespace Cavitation
 {
@@ -60,14 +63,16 @@ namespace Cavitation
 //--------- Compute kernels (shared by CPU and GPU implementations) --------
 
 //Cavity shape function and gradient
-__hostanddev__ void pcmShapeFunc_calc(int i, const double* nCavity, double* shape, const double nc, const double sigma)
-{	shape[i] = erfc(sqrt(0.5)*log(fabs(nCavity[i])/nc)/sigma)*0.5;
+namespace ShapeFunction
+{
+	__hostanddev__ void compute_calc(int i, const double* nCavity, double* shape, const double nc, const double sigma)
+	{	shape[i] = erfc(sqrt(0.5)*log(fabs(nCavity[i])/nc)/sigma)*0.5;
+	}
+	__hostanddev__ void propagateGradient_calc(int i, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
+	{	grad_nCavity[i] = (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
+			* exp(0.5*(pow(sigma,2) - pow(log(fabs(nCavity[i])/nc)/sigma + sigma, 2)));
+	}
 }
-__hostanddev__ void pcmShapeFunc_grad_calc(int i, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-{	grad_nCavity[i] = (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
-		* exp(0.5*(pow(sigma,2) - pow(log(fabs(nCavity[i])/nc)/sigma + sigma, 2)));
-}
-
 
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval

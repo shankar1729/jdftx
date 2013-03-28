@@ -46,6 +46,7 @@ void FluidSolverParams::setPCMparams()
 			epsInf = 1.77;
 			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
 			sigmaBulk = 4.62e-5;
+			Rhs = 1.36*Angstrom;
 			break;
 		}
 		case CHCl3:
@@ -154,6 +155,12 @@ void FluidSolverParams::setPCMparams()
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has been fit only for H2O; using nc and sigma from H2O fit.\n";
 			break;
 		}
+	}
+	//--- For nonlocalPCM (variant does not apply)
+	if(fluidType == FluidNonlocalPCM)
+	{	nc = 1.2e-3;
+		sigma = sqrt(0.5);
+		cavityTension = 0.;
 	}
 }
 

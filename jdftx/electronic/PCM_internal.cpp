@@ -25,23 +25,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //----------------------- The JDFT `shape function' and gradient ------------------
 
-void pcmShapeFunc(int N, const double* nCavity, double* shape, const double nc, const double sigma)
-{	threadedLoop(pcmShapeFunc_calc, N, nCavity, shape, nc, sigma);
-}
-void pcmShapeFunc_grad(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-{	threadedLoop(pcmShapeFunc_grad_calc, N, nCavity, grad_shape, grad_nCavity, nc, sigma);
-}
-#ifdef GPU_ENABLED
-void pcmShapeFunc_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma);
-void pcmShapeFunc_grad_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma);
-#endif
-void pcmShapeFunc(const DataRptr& nCavity, DataRptr& shape, const double nc, const double sigma)
-{	nullToZero(shape, nCavity->gInfo);
-	callPref(pcmShapeFunc)(nCavity->gInfo.nr, nCavity->dataPref(), shape->dataPref(), nc, sigma);
-}
-void pcmShapeFunc_grad(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const double nc, const double sigma)
-{	nullToZero(grad_nCavity, nCavity->gInfo);
-	callPref(pcmShapeFunc_grad)(nCavity->gInfo.nr, nCavity->dataPref(), grad_shape->dataPref(), grad_nCavity->dataPref(), nc, sigma);
+namespace ShapeFunction
+{
+	void compute(int N, const double* nCavity, double* shape, const double nc, const double sigma)
+	{	threadedLoop(compute_calc, N, nCavity, shape, nc, sigma);
+	}
+	void propagateGradient(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
+	{	threadedLoop(propagateGradient_calc, N, nCavity, grad_shape, grad_nCavity, nc, sigma);
+	}
+	#ifdef GPU_ENABLED
+	void compute_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma);
+	void propagateGradient_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma);
+	#endif
+	void compute(const DataRptr& nCavity, DataRptr& shape, const FluidSolverParams& fsp)
+	{	nullToZero(shape, nCavity->gInfo);
+		callPref(compute)(nCavity->gInfo.nr, nCavity->dataPref(), shape->dataPref(), fsp.nc, fsp.sigma);
+	}
+	void propagateGradient(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const FluidSolverParams& fsp)
+	{	nullToZero(grad_nCavity, nCavity->gInfo);
+		callPref(propagateGradient)(nCavity->gInfo.nr, nCavity->dataPref(), grad_shape->dataPref(), grad_nCavity->dataPref(), fsp.nc, fsp.sigma);
+	}
 }
 
 void citePCM(const FluidSolverParams& fsp)

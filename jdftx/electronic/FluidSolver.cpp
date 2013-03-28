@@ -85,12 +85,12 @@ class ConvolutionJDFT : public FluidSolver
 	VDWCoupling* vdwCoupling;
 	
 	double* AwaterCached; //cached free energy of fluidMixture (without the coupling part)
-	DataGptr* grad_rhoExplicitTildeCached; //cached gradient of free energy of fluidMixture wrt rhoExplicit
+	DataGptr* Adiel_rhoExplicitTildeCached; //cached gradient of free energy of fluidMixture wrt rhoExplicit
 	DataRptrCollection* NCached; //cached densities of fluid for use in van der Waals correction
 	
 public:
 	ConvolutionJDFT(const Everything& e, FluidSolverParams& params)
-	: FluidSolver(e), AwaterCached(0), grad_rhoExplicitTildeCached(0), NCached(0)
+	: FluidSolver(e), AwaterCached(0), Adiel_rhoExplicitTildeCached(0), NCached(0)
 	{
 		
 		//Initialize fluid mixture:
@@ -360,7 +360,7 @@ public:
 		delete fluidMixture;
 		
 		if(AwaterCached) delete AwaterCached;
-		if(grad_rhoExplicitTildeCached) delete grad_rhoExplicitTildeCached;
+		if(Adiel_rhoExplicitTildeCached) delete Adiel_rhoExplicitTildeCached;
 		if(NCached) delete NCached;
 	}
 
@@ -445,20 +445,20 @@ public:
 		
 		/*
 		//Compute potential on O and H sites (done here instead of inside coupling, since need access to densities)
-		DataRptrOH N, grad_N; fluidMixture->getFreeEnergy(&N); EnergyComponents omega;
-		DataGptrOH Ntilde=J(N), grad_Ntilde; DataRptrVec p, grad_p, eps, grad_eps;
-		MomentFields mf = {omega, N, Ntilde, p, eps, grad_N, grad_Ntilde, grad_p, grad_eps};
-		nullToZero(grad_N, e.gInfo); nullToZero(grad_Ntilde, e.gInfo);
-		((ConvolutionJDFT*)this)->coupling.calculateCoupling(mf); //and now grad_N and grad_Ntilde contain the coupling potential!
-		grad_N += Jdag(grad_Ntilde); grad_Ntilde={0,0}; //now all the coupling potential is in real space
+		DataRptrOH N, Adiel_N; fluidMixture->getFreeEnergy(&N); EnergyComponents omega;
+		DataGptrOH Ntilde=J(N), Adiel_Ntilde; DataRptrVec p, Adiel_p, eps, Adiel_eps;
+		MomentFields mf = {omega, N, Ntilde, p, eps, Adiel_N, Adiel_Ntilde, Adiel_p, Adiel_eps};
+		nullToZero(Adiel_N, e.gInfo); nullToZero(Adiel_Ntilde, e.gInfo);
+		((ConvolutionJDFT*)this)->coupling.calculateCoupling(mf); //and now Adiel_N and Adiel_Ntilde contain the coupling potential!
+		Adiel_N += Jdag(Adiel_Ntilde); Adiel_Ntilde={0,0}; //now all the coupling potential is in real space
 
 		char filename[256];
 		sprintf(filename, filenamePattern, "VO");
 		logPrintf("Dumping %s... ", filename); logFlush();
-		saveRawBinary(grad_N.O(), filename); logPrintf("Done.\n"); logFlush();
+		saveRawBinary(Adiel_N.O(), filename); logPrintf("Done.\n"); logFlush();
 		sprintf(filename, filenamePattern, "VH");
 		logPrintf("Dumping %s... ", filename); logFlush();
-		saveRawBinary(grad_N.H(), filename); logPrintf("Done.\n"); logFlush();
+		saveRawBinary(Adiel_N.H(), filename); logPrintf("Done.\n"); logFlush();
 		*/
 		//--------- if any, add additional JDFT3 debug output here!
 	}
@@ -474,18 +474,18 @@ public:
 		{		
 			AwaterCached = new double;
 			*AwaterCached=0.0;
-			grad_rhoExplicitTildeCached = new DataGptr;
-			nullToZero(*grad_rhoExplicitTildeCached,e.gInfo);			
+			Adiel_rhoExplicitTildeCached = new DataGptr;
+			nullToZero(*Adiel_rhoExplicitTildeCached,e.gInfo);			
 			if(vdwCoupling)
 			{
 				NCached = new DataRptrCollection;				
 				nullToZero(*NCached,e.gInfo,fluidMixture->get_nDensities());
 			}
 			
-			FluidMixture::Outputs outputs(NCached,0,grad_rhoExplicitTildeCached);
+			FluidMixture::Outputs outputs(NCached,0,Adiel_rhoExplicitTildeCached);
 			
 			*AwaterCached = fluidMixture->getFreeEnergy(outputs); //Fluid free energy including coupling
-			*AwaterCached -= dot(rhoExplicitTilde,O(*grad_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
+			*AwaterCached -= dot(rhoExplicitTilde,O(*Adiel_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
 			*AwaterCached -= coupling->computeElectronic(); //subtract Nonlinear coupling energy
 			if(vdwCoupling)
 				*AwaterCached -= vdwCoupling->computeElectronic(NCached);
@@ -500,32 +500,32 @@ public:
 		TIME("Fluid minimize", globalLog,
 			fluidMixture->minimize(e.fluidMinParams);
 			
-			FluidMixture::Outputs outputs(NCached,0,grad_rhoExplicitTildeCached);
+			FluidMixture::Outputs outputs(NCached,0,Adiel_rhoExplicitTildeCached);
 			
 			*AwaterCached = fluidMixture->getFreeEnergy(outputs); //Fluid free energy including coupling
-			*AwaterCached -= dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
+			*AwaterCached -= dot(fluidMixture->rhoExternal,O(*Adiel_rhoExplicitTildeCached)); //subtract Electrostatic coupling energy
 			*AwaterCached -= coupling->computeElectronic(); //subtract Nonlinear coupling energy
 			if(vdwCoupling)
 				*AwaterCached -= vdwCoupling->computeElectronic(NCached);
 		)
 	}
 	
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)
+	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
 	{
 		assert(AwaterCached); //Ensure that set() was called before calling get_Adiel_and_grad()
 		
-		grad_rhoExplicitTilde = clone(*grad_rhoExplicitTildeCached);	
+		Adiel_rhoExplicitTilde = clone(*Adiel_rhoExplicitTildeCached);	
 		//Uncomment to print the components of Adiel (fluid alone, electrostatic coupling, convolution coupling) 
 		
 /*		logPrintf("Awater: %le ExtCoulomb: %le ConvCoupling: %le ", *AwaterCached, 
-				dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached)), coupling->computeElectronic());
+				dot(fluidMixture->rhoExternal,O(*Adiel_rhoExplicitTildeCached)), coupling->computeElectronic());
 		if(vdwCoupling)
 			logPrintf("VDWCoupling: %le\n", vdwCoupling->computeElectronic(NCached));
 		else
 			logPrintf("\n"); 
 */		
-		double Adiel = *AwaterCached + dot(fluidMixture->rhoExternal,O(*grad_rhoExplicitTildeCached))
-				+ coupling->computeElectronic(&grad_nCavityTilde);
+		double Adiel = *AwaterCached + dot(fluidMixture->rhoExternal,O(*Adiel_rhoExplicitTildeCached))
+				+ coupling->computeElectronic(&Adiel_nCavityTilde);
 		if(vdwCoupling)
 			Adiel += vdwCoupling->computeElectronic(NCached, &extraForces);
 		return Adiel;

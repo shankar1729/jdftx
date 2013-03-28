@@ -20,24 +20,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <electronic/PCM_internal.h>
 
-__global__
-void pcmShapeFunc_kernel(int N, const double* nCavity, double* shape, const double nc, const double sigma)
-{	int i = kernelIndex1D(); if(i<N) pcmShapeFunc_calc(i, nCavity, shape, nc, sigma);
-}
-void pcmShapeFunc_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma)
-{	GpuLaunchConfig1D glc(pcmShapeFunc_kernel, N);
-	pcmShapeFunc_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, shape, nc, sigma);
-	gpuErrorCheck();
-}
+namespace ShapeFunction
+{
+	__global__
+	void compute_kernel(int N, const double* nCavity, double* shape, const double nc, const double sigma)
+	{	int i = kernelIndex1D(); if(i<N) compute_calc(i, nCavity, shape, nc, sigma);
+	}
+	void compute_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma)
+	{	GpuLaunchConfig1D glc(compute_kernel, N);
+		compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, shape, nc, sigma);
+		gpuErrorCheck();
+	}
 
-__global__
-void pcmShapeFunc_grad_kernel(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-{	int i = kernelIndex1D(); if(i<N) pcmShapeFunc_grad_calc(i, nCavity, grad_shape, grad_nCavity, nc, sigma);
-}
-void pcmShapeFunc_grad_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-{	GpuLaunchConfig1D glc(pcmShapeFunc_grad_kernel, N);
-	pcmShapeFunc_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, grad_shape, grad_nCavity, nc, sigma);
-	gpuErrorCheck();
+	__global__
+	void propagateGradient_kernel(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
+	{	int i = kernelIndex1D(); if(i<N) propagateGradient_calc(i, nCavity, grad_shape, grad_nCavity, nc, sigma);
+	}
+	void propagateGradient_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
+	{	GpuLaunchConfig1D glc(propagateGradient_kernel, N);
+		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, grad_shape, grad_nCavity, nc, sigma);
+		gpuErrorCheck();
+	}
 }
 
 //------------- Helper classes for NonlinearPCM  -------------

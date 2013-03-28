@@ -62,7 +62,7 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 
 	//Compute cavity shape function (0 to 1)
 	shape = DataRptr(DataR::alloc(e.gInfo,isGpuEnabled()));
-	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
+	ShapeFunction::compute(nCavity, shape, params);
 	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsBulk);
@@ -89,13 +89,13 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces)
+double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
 {
 	DataGptr& phi = state; // that's what we solved for in minimize
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
-	grad_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
-	Adiel["Electrostatic"] = 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
+	Adiel_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
+	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde));
 	
 	//Compute gradient w.r.t shape function:
 	//--- Dielectric contributions:
@@ -111,9 +111,9 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& 
 	Cavitation::energyAndGrad(Adiel, shape, Adiel_shape, params);
 	
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
-	DataRptr grad_nCavity(DataR::alloc(e.gInfo));
-	pcmShapeFunc_grad(nCavity, Adiel_shape, grad_nCavity, params.nc, params.sigma);
-	grad_nCavityTilde = J(grad_nCavity);
+	DataRptr Adiel_nCavity(DataR::alloc(e.gInfo));
+	ShapeFunction::propagateGradient(nCavity, Adiel_shape, Adiel_nCavity, params);
+	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
 	return Adiel;
 }

@@ -82,7 +82,7 @@ std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber
 	bool usedInversion = false; //whether inversion was used in reducing k-point mesh
 	std::vector<int> invertList;
 	invertList.push_back(+1);
-	if(sym.size()>1)
+	if(mode != SymmetriesNone)
 		invertList.push_back(-1);
 	for(int invert: invertList) //First try without inversion, and then if required, try again with inversion
 	{	//For each state, gobble up the weights of all subsequent equivalent states:

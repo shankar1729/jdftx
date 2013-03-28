@@ -109,7 +109,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 
 	//Initialize shape function
 	nullToZero(shape,e.gInfo);
-	pcmShapeFunc(nCavity, shape, params.nc, params.sigma);
+	ShapeFunction::compute(nCavity, shape, params);
 
 	//Compute the cavitation energy and gradient
 	Acavity_shape = 0;
@@ -187,7 +187,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	if(Adiel_nCavityTilde)
 	{	Adiel_shape  += Acavity_shape; // Add the cavitation contribution to Adiel_shape
 		DataRptr Adiel_nCavity(DataR::alloc(e.gInfo));
-		pcmShapeFunc_grad(nCavity, Adiel_shape, Adiel_nCavity, params.nc, params.sigma);
+		ShapeFunction::propagateGradient(nCavity, Adiel_shape, Adiel_nCavity, params);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	

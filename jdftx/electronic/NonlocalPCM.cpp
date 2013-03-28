@@ -26,8 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/NonlocalPCM_internal.h>
 
-const double nc = 1.2e-3; //threshold on electron density convolution that determines cavity
-
 //!Compute the cavitation energy given the shape function
 //!and accumulate gradient w.r.t shape in grad_shape
 double cavitationEnergy(const DataRptr& shape, DataRptr& grad_shape); //implemented at bottom of this file
@@ -171,7 +169,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	
 	//Compute cavity shape function (0 to 1)
 	nProduct = I(nFluid * nCavityTilde);
-	pcmShapeFunc(nProduct, shape, nc, sqrt(0.5));
+	ShapeFunction::compute(nProduct, shape, params);
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
@@ -226,7 +224,7 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
 		}
 	}
-	DataRptr grad_nProduct; pcmShapeFunc_grad(nProduct, grad_shape, grad_nProduct, nc, sqrt(0.5));
+	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, params);
 	grad_nCavityTilde = nFluid * J(grad_nProduct);
 
 	//Compute and return A_diel:
