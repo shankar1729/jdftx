@@ -30,8 +30,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include <map>
 
-extern std::map<string,int> atomicSymbolMap;
-
 int nAtomsTot(const IonInfo& iInfo)
 {	unsigned res=0;
 	for(auto sp: iInfo.species) res += sp->atpos.size();
@@ -176,12 +174,9 @@ void Dump::dumpQMC()
 	for(auto sp: iInfo.species)
 		for(unsigned a=0; a<sp->atpos.size(); a++)
 		{
+			assert(sp->atomicNumber);
 			vector3<> coord(gInfo.R * sp->atpos[a]);
-			std::map<string,int>::iterator iSymbol = atomicSymbolMap.find(sp->name);
-			if(iSymbol==atomicSymbolMap.end())
-				die("Ion species name must be the standard chemical symbol to use dump-QMC.\n"
-					"'%s' is not a valid element symbol.", sp->name.c_str());
-			ofs << "  " << iSymbol->second << " "
+			ofs << "  " << sp->atomicNumber << " "
 				<< coord[0] << " " << coord[1] << " " << coord[2]
 				<< "\n";
 		}

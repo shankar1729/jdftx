@@ -23,9 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 #include <electronic/operators.h>
+#include <electronic/symbols.h>
 #include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
-#include <core/Util.h>
 #include <core/DataMultiplet.h>
 #include <fstream>
 #include <sstream>
@@ -142,6 +142,14 @@ void SpeciesInfo::setup(const Everything &everything)
 		}
 		if(needKE || needEXX)
 			die("\nUltrasoft pseudopotentials do not currently support meta-GGA or hybrid functionals.\n");
+	}
+	
+	//Generate atomic number from symbol, if not stored in pseudopotential:
+	if(!atomicNumber)
+	{	if(!atomicSymbolMap.getEnum(name.c_str(), atomicNumber))
+			die("\nCould not determine atomic number for species '%s'.\n"
+				"Either use a pseudopotential which contains this information,\n"
+				"or set the species name to be the chemical symbol for that atom type.\n", name.c_str());
 	}
 	
 	#ifdef GPU_ENABLED

@@ -134,7 +134,7 @@ struct CommandFluidSitePosition : public Command
 				counter++;
 			}
 			iSite++;
-		}		
+		}
 	}
 }commandFluidSitePosition;
 

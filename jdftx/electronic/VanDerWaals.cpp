@@ -23,7 +23,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/DataMultiplet.h>
 
-const static int maximumSupportedAtomicNumber = 54;
+const static int atomicNumberMaxGrimme = 54;
+const static int atomicNumberMax = 118;
 
 //vdW correction energy upto a factor of -s6 (where s6 is the ExCorr dependnet scale)
 //for a pair of atoms separated by r, given the C6 and R0 parameters for pair.
@@ -57,12 +58,13 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	
 	// Checks whether pseudopotentials contain atomic numbers
 	for(auto sp: e->iInfo.species)
-	{	if(not sp->atomicNumber)
-			die("\nVan der Waals corrections require pseudopotentials that contain atomic number!\n");
-		if(sp->atomicNumber > maximumSupportedAtomicNumber)
-			die("\nAtomic numbers greater than %i are not yet supported!\n", maximumSupportedAtomicNumber);
+	{	assert(sp->atomicNumber);
+		if(sp->atomicNumber > atomicNumberMax) die("\nAtomic numbers > %i not supported!\n", atomicNumberMax);
+		if(sp->atomicNumber > atomicNumberMaxGrimme)
+			logPrintf("WARNING: Using extended vdW params (beyond Grimme's data set) for species %s with atomic number > %d.\n",
+				sp->name.c_str(), atomicNumberMaxGrimme);
 	}
-	
+
    // Constructs the EXCorr -> scaling factor map
    scalingFactor["gga-PBE"] = 0.75;
    scalingFactor["hyb-gga-xc-b3lyp"] = 1.05;
@@ -84,7 +86,7 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	}
 	
 	// Sets up the C6 and R0 parameters
-	atomParams.resize(maximumSupportedAtomicNumber+1);
+	atomParams.resize(atomicNumberMax+1);
 	atomParams[1] = AtomParams(0.14 , 1.001 );
 	atomParams[2] = AtomParams(0.08 , 1.012 );
 	atomParams[3] = AtomParams(1.61 , 0.825 );
@@ -105,16 +107,8 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	atomParams[18] = AtomParams(4.61 , 1.595 );
 	atomParams[19] = AtomParams(10.80 , 1.485);
 	atomParams[20] = AtomParams(10.80 , 1.474);
-	atomParams[21] = AtomParams(10.80 , 1.562);
-	atomParams[22] = AtomParams(10.80 , 1.562);
-	atomParams[23] = AtomParams(10.80 , 1.562);
-	atomParams[24] = AtomParams(10.80 , 1.562);
-	atomParams[25] = AtomParams(10.80 , 1.562);
-	atomParams[26] = AtomParams(10.80 , 1.562);
-	atomParams[27] = AtomParams(10.80 , 1.562);
-	atomParams[28] = AtomParams(10.80 , 1.562);
-	atomParams[29] = AtomParams(10.80 , 1.562);
-	atomParams[30] = AtomParams(10.80 , 1.562);
+	for(int Z=21; Z<=30; Z++)
+		atomParams[Z] = AtomParams(10.80 , 1.562);
 	atomParams[31] = AtomParams(16.99 , 1.650);
 	atomParams[32] = AtomParams(17.10 , 1.727);
 	atomParams[33] = AtomParams(16.37 , 1.760);
@@ -123,22 +117,30 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	atomParams[36] = AtomParams(12.01 , 1.727);
 	atomParams[37] = AtomParams(24.67 , 1.628);
 	atomParams[38] = AtomParams(24.67 , 1.606);
-	atomParams[39] = AtomParams(24.67 , 1.639);
-	atomParams[40] = AtomParams(24.67 , 1.639);
-	atomParams[41] = AtomParams(24.67 , 1.639);
-	atomParams[42] = AtomParams(24.67 , 1.639);
-	atomParams[43] = AtomParams(24.67 , 1.639);
-	atomParams[44] = AtomParams(24.67 , 1.639);
-	atomParams[45] = AtomParams(24.67 , 1.639);
-	atomParams[46] = AtomParams(24.67 , 1.639);
-	atomParams[47] = AtomParams(24.67 , 1.639);
-	atomParams[48] = AtomParams(24.67 , 1.639);
+	for(int Z=39; Z<=48; Z++)
+		atomParams[Z] = AtomParams(24.67 , 1.639);
 	atomParams[49] = AtomParams(37.32 , 1.672);
 	atomParams[50] = AtomParams(38.71 , 1.804);
 	atomParams[51] = AtomParams(38.44 , 1.881);
 	atomParams[52] = AtomParams(31.74 , 1.892);
 	atomParams[53] = AtomParams(31.50 , 1.892);
 	atomParams[54] = AtomParams(29.99 , 1.881);
+	//------ Extending Grimme's set to all remaining elements using his formula:
+	//(with IP data from Hohm et al., J. Phys. Chem. A 116, 697 (2012))
+	atomParams[55] = AtomParams(47 , 1.798);
+	atomParams[56] = AtomParams(47 , 1.764);
+	for(int Z=57; Z<=80; Z++)
+		atomParams[Z] = AtomParams(47 , 1.76);
+	atomParams[81] = AtomParams(63.7 , 1.754);
+	atomParams[82] = AtomParams(50.8 , 1.816);
+	atomParams[83] = AtomParams(51.5 , 1.881);
+	atomParams[84] = AtomParams(53.4 , 1.898);
+	atomParams[85] = AtomParams(56.3 , 1.915);
+	atomParams[86] = AtomParams(54.8 , 1.907);
+	atomParams[87] = AtomParams(55 , 1.851);
+	atomParams[88] = AtomParams(55 , 1.844);
+	for(int Z=89; Z<=atomicNumberMax; Z++)
+		atomParams[Z] = AtomParams(55 , 1.75);
 	logPrintf("Done!\n");
 	
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
@@ -273,8 +275,8 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 		return radialFunctionIter->second;
 	
 	//Get parameters for current pair of species:
-	assert(atomicNumber1>0); assert(atomicNumber1<=maximumSupportedAtomicNumber);
-	assert(atomicNumber2>0); assert(atomicNumber2<=maximumSupportedAtomicNumber);
+	assert(atomicNumber1>0); assert(atomicNumber1<=atomicNumberMax);
+	assert(atomicNumber2>0); assert(atomicNumber2<=atomicNumberMax);
 	const AtomParams& params1 = atomParams[atomicNumber1];
 	const AtomParams& params2 = atomParams[atomicNumber2];
 	double C6 = sqrt(params1.C6 * params2.C6);
