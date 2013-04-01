@@ -101,8 +101,11 @@ public:
 	//! Return the number of occupied bands (f > occupiedThrehsold) for a given state
 	int nOccupiedBands(int q) const; 
 
-	//!Compute the kinetic energy density
+	//! Compute the kinetic energy density
 	DataRptrCollection KEdensity() const;
+	
+	//! Calculate density using current orthonormal wavefunctions (C)
+	DataRptrCollection calcDensity();
 	
 private:
 	const Everything* e;

@@ -334,12 +334,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Update the density and density-dependent pieces if required:
 	if(!e->cntrl.fixed_n)
 	{	//Calculate (spin) densities
-		for(unsigned s=0; s<n.size(); s++) initZero(n[s], e->gInfo); //Initialize to zero
-		for(int q=0; q<eInfo.nStates; q++)
-		{	n[eInfo.qnums[q].index()] += eInfo.qnums[q].weight * diagouterI(F[q], C[q]);
-			iInfo.augmentDensity(F[q], C[q], n[eInfo.qnums[q].index()]); //pseudopotential contribution
-		}
-		for(unsigned s=0; s<n.size(); s++) e->symm.symmetrize(n[s]); //Symmetrize
+		n = calcDensity();
 		
 		//Calculate kinetic energy density if required
 		if(e->exCorr.needsKEdensity())
@@ -521,4 +516,21 @@ DataRptrCollection ElecVars::KEdensity() const
 		}
 	for(unsigned s=0; s<n.size(); s++) e->symm.symmetrize(tau[s]); //Symmetrize
 	return tau;
+}
+
+DataRptrCollection ElecVars::calcDensity()
+{	DataRptrCollection density; nullToZero(density, e->gInfo, n.size());
+	
+	// Initializes both spin channels to 0
+	for(unsigned s=0; s<density.size(); s++) initZero(density[s], e->gInfo); //Initialize to zero
+
+	// Runs over all states and accumulates density to the corresponding spin channel of the total density
+	for(int q=0; q<e->eInfo.nStates; q++)
+	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q]);
+		e->iInfo.augmentDensity(F[q], C[q], density[e->eInfo.qnums[q].index()]); //pseudopotential contribution
+	}
+	
+	for(unsigned s=0; s<density.size(); s++) e->symm.symmetrize(density[s]); //Symmetrize
+
+	return density;
 }
