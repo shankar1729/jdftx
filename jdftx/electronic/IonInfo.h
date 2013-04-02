@@ -40,6 +40,8 @@ static EnumStringMap<ForcesOutputCoords> forcesOutputCoordsMap(
 	ForcesCoordsCartesian, "Cartesian",
 	ForcesCoordsContravariant, "Contravariant");
 
+//! Check method used for determining whether pseudopotential cores overlap
+enum coreOverlapCheck { additive, vector, none };
 
 class IonInfo
 {
@@ -47,6 +49,7 @@ public:
 	std::vector< std::shared_ptr<SpeciesInfo> > species; //!< list of ionic species
 	CoordsType coordsType; //!< coordinate system for ionic positions etc.
 	ForcesOutputCoords forcesOutputCoords; //!< coordinate system to print forces in
+	coreOverlapCheck coreOverlapCondition; //! Check method used for determining whether pseudopotential cores overlap
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
 	
 	IonicGradient forces; //!< forces at current atomic positions
@@ -61,7 +64,7 @@ public:
 	
 	void setup(const Everything&);
 	void printPositions(FILE*) const; 
-	void checkPositions() const; //!< check for overlapping atoms
+	bool checkPositions() const; //!< check for overlapping atoms, return true if okay
 	double getZtot() const; //!< get total Z of all species and atoms
 	double ionWidthMuCorrection() const; //!< correction to electron chemical potential due to finite ion width in fluid interaction
 	

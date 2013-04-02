@@ -38,10 +38,7 @@ IonInfo::IonInfo()
 void IonInfo::setup(const Everything &everything)
 {	e = &everything;
 
-	// Check atomic positions for problems
-	checkPositions();
-
-	 //Force output in same coordinate system as input forces
+	//Force output in same coordinate system as input forces
 	if(forcesOutputCoords==ForcesCoordsPositions)
 		forcesOutputCoords = coordsType==CoordsLattice ? ForcesCoordsLattice : ForcesCoordsCartesian;
 
@@ -87,6 +84,9 @@ void IonInfo::setup(const Everything &everything)
 	}
 	if(!nAtomsTot) logPrintf("Warning: no atoms in the calculation.\n");
 	
+	if(not checkPositions())
+		die("\nAtoms are too close, have overlapping pseudopotential cores.\n\n");
+	
 	if(ionWidth && (e->eVars.fluidParams.fluidType != FluidNone) &&
 		(e->eVars.fluidParams.ionicConcentration || e->eVars.fluidParams.hSIons.size()))
 		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
@@ -97,30 +97,39 @@ void IonInfo::printPositions(FILE* fp) const
 	for(auto sp: species) sp->print(fp);
 }
 
-// Check for overlapping atoms
-void IonInfo::checkPositions() const
-{
-	bool err = false;
+// Check for overlapping atoms, returns true if okay
+bool IonInfo::checkPositions() const
+{	bool okay = true;
 	double sizetest = 0;
 	vector3<> vtest[2];
 
 	for(auto sp: species)
 		for(unsigned n=0; n < sp->atpos.size(); n++)
-		{
+		{	if(sp->coreRadius == 0.) continue;
 			vtest[0] = sp->atpos[n];
 			for(auto sp1: species)
+			{	if(sp1->coreRadius == 0.) continue;
 				for (unsigned n1 = ((sp1==sp) ? (n+1) : 0); n1 < sp1->atpos.size(); n1++)
-				{
-					vtest[1] = vtest[0] - sp1->atpos[n1];
-					sizetest = dot(vtest[1], vtest[1]);
-					if (sizetest < MIN_ION_DISTANCE)
-					{	err = true;
-						logPrintf("Atom# %d of species %s and atom# %d of species %s coincide.\n",
-							n, sp->name.c_str(), n1, sp1->name.c_str());
+				{	vtest[1] = vtest[0] - sp1->atpos[n1];
+					sizetest = sqrt(dot(e->gInfo.R*vtest[1], e->gInfo.R*vtest[1]));
+					if (coreOverlapCondition==additive and (sizetest < (sp->coreRadius + sp1->coreRadius)))
+					{	logPrintf("\nWARNING: %s #%d and %s #%d are closer than the sum of their core radii.",
+							sp->name.c_str(), n, sp1->name.c_str(), n1);
+						okay = false;
+					}
+					else if (coreOverlapCondition==vector and (sizetest < sqrt(pow(sp->coreRadius, 2) + pow(sp1->coreRadius, 2))))
+					{	logPrintf("\nWARNING: %s #%d and %s #%d are closer than the vector-sum of their core radii.",
+							sp->name.c_str(), n, sp1->name.c_str(), n1);
+						okay = false;
 					}
 				}
+			}
 		}
-	if(err) die("Coincident atoms found, please check lattice and atom positions.\n");
+		
+	if(not okay) // Add another line after printing core overlap warnings
+		logPrintf("\n");
+		
+	return okay;
 }
 
 double IonInfo::getZtot() const
@@ -137,7 +146,12 @@ double IonInfo::ionWidthMuCorrection() const
 
 void IonInfo::update(Energies& ener)
 {	const GridInfo &gInfo = e->gInfo;
-	
+
+	if(not checkPositions())
+		ener.E["core-overlap"] = NAN;
+	else
+		ener.E["core-overlap"] = 0.;
+
 	//----------- update Vlocps, rhoIon, nCore and nChargeball --------------
 	initZero(Vlocps, gInfo);
 	initZero(rhoIon, gInfo);
