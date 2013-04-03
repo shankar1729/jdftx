@@ -116,7 +116,7 @@ enum PCMparameter
 	PCMp_epsInf, //!< optical-frequency dielectric constant
 	PCMp_Pvap, //!< vapor pressure in Eh/bohr^3
 	PCMp_sigmaBulk, //!< bulk surface tension in Eh/bohr^2
-	PCMp_Rhs, //!< effective hard sphere radius of the fluid in bohrs
+	PCMp_Rvdw, //!< effective van der Waals radius of the fluid (derived from equation of state) in bohrs
 	//Delimiter used in parsing:
 	PCMp_Delim
 };
@@ -130,7 +130,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_epsInf,        "epsInf",
 	PCMp_Pvap,          "Pvap",
 	PCMp_sigmaBulk,     "sigmaBulk",
-	PCMp_Rhs,           "Rhs"
+	PCMp_Rvdw,          "Rvdw"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_nc, "critical density for the PCM cavity shape function",
@@ -142,7 +142,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_epsInf, "optical-frequency dielectric constant",
 	PCMp_Pvap, "vapor pressure in Eh/bohr^3",
 	PCMp_sigmaBulk, "bulk surface tension in Eh/bohr^2",
-	PCMp_Rhs, "effective hard sphere radius of the fluid in bohrs"
+	PCMp_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs"
 );
 
 struct CommandPcmParams : public Command
@@ -176,7 +176,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(epsInf, >=, 1.)
 				READ_AND_CHECK(Pvap, >, 0.)
 				READ_AND_CHECK(sigmaBulk, >, 0.)
-				READ_AND_CHECK(Rhs, >, 0.)
+				READ_AND_CHECK(Rvdw, >, 0.)
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -195,7 +195,7 @@ struct CommandPcmParams : public Command
 		PRINT(epsInf)
 		PRINT(Pvap)
 		PRINT(sigmaBulk)
-		PRINT(Rhs)
+		PRINT(Rvdw)
 		#undef PRINT
 	}
 }

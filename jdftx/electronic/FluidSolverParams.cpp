@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/FluidSolverParams.h>
+#include <fluid/Fex_H2O_ScalarEOS_internal.h>
 
 FluidSolverParams::FluidSolverParams()
 : verboseLog(false),
@@ -46,7 +47,7 @@ void FluidSolverParams::setPCMparams()
 			epsInf = 1.77;
 			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
 			sigmaBulk = 4.62e-5;
-			Rhs = 1.36*Angstrom;
+			Rvdw = ScalarEOS_eval(T).vdwRadius();
 			break;
 		}
 		case CHCl3:
@@ -56,6 +57,7 @@ void FluidSolverParams::setPCMparams()
 			epsInf = 2.09;
 			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
 			sigmaBulk = 1.71e-5;
+			Rvdw = TaoMasonEOS_eval(T, 536.6*Kelvin, 5328.68*KPascal, 0.216, 0.).vdwRadius();
 			break;
 		}
 		case CCl4:
@@ -64,6 +66,7 @@ void FluidSolverParams::setPCMparams()
 			pMol = 0.;
 			epsInf = 2.13;
 			Pvap = antoinePvap(T, 6.10445, 1265.63, -41.002);
+			Rvdw = TaoMasonEOS_eval(T, 556.4*Kelvin, 4493*KPascal, 0.194, 0.).vdwRadius();
 			sigmaBulk = 1.68e-5;
 			break;
 		}

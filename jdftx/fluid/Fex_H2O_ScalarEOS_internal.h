@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Units.h>
 #include <core/scalar.h>
-#include <fluid/ErfFMTweight.h>
 
 //High freq cutoff on the coulomb kernel expressed as a site charge kernel
 inline void setCoulombCutoffKernel(int i, double G2, double* siteChargeKernel)
@@ -43,7 +42,7 @@ struct ScalarEOS_eval
 	{
 		const double TB = 1408.4 * Kelvin; //Boyle temperature
 		const double vB = 4.1782e-5 * pow(meter,3)/mol; //Boyle volume
-		const double Tf = 273.16 * Kelvin; //Triple point temperatue
+		const double Tf = 273.16 * Kelvin; //Triple point temperature
 
 		//Some of the random Jeff-Austin EOS parameters (see their paper for details)
 		alpha = 2.145*vB;
@@ -69,11 +68,11 @@ struct ScalarEOS_eval
 	}
 
 	//Compute the per-particle free energies at each grid point, and the gradient w.r.t the weighted density
-	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* grad_Nbar) const
+	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar) const
 	{
 		if(Nbar[i]<0.)
 		{	Aex[i] = 0.;
-			grad_Nbar[i] = 0.;
+			Aex_Nbar[i] = 0.;
 			return;
 		}
 		//More Jeff-Austin parameters:
@@ -81,7 +80,6 @@ struct ScalarEOS_eval
 		const double dnHB = 0.1687*nHB;
 		const double C1 = 0.7140;
 		const double lambda = 0.3241;
-		const double NaN = 0.0/0.0; //returned by FMT/VW when beyond pole
 		//HB part:
 		double gaussHB = exp(pow((Nbar[i]-nHB)/dnHB,2));
 		double fHBden = C1 + gaussHB;
@@ -89,7 +87,7 @@ struct ScalarEOS_eval
 		double AHB = prefacHB / fHBden;
 		double AHB_Nbar = -AHB * fHBdenPrime/fHBden;
 		//VW part:
-		double Ginv = 1 - lambda*b*Nbar[i]; if(Ginv<=0.0) { grad_Nbar[i] = NaN; Aex[i]=NaN; return; }
+		double Ginv = 1 - lambda*b*Nbar[i]; if(Ginv<=0.0) { Aex_Nbar[i] = NAN; Aex[i]=NAN; return; }
 		double AVW = prefacVW1*log(Ginv) -  Nbar[i]*prefacVW2;
 		double AVW_Nbar = T*alpha/Ginv - prefacVW2;
 		//FMT part:
@@ -97,8 +95,73 @@ struct ScalarEOS_eval
 		double AFMT_Nbar = T*zi3 * (den*den*den)*2*(2-n3);
 		double AFMT = T * (den*den)*n3*(4-3*n3); //corresponds to Carnahan-Starling EOS
 		//Total
-		grad_Nbar[i] = AHB_Nbar + AVW_Nbar - AFMT_Nbar;
+		Aex_Nbar[i] = AHB_Nbar + AVW_Nbar - AFMT_Nbar;
 		Aex[i] = AHB + AVW - AFMT;
+	}
+	
+	double vdwRadius() const
+	{	return pow(3.*b/(16.*M_PI), 1./3);
+	}
+};
+
+
+//!Tao-Mason equation of state [F. Tao and E. A. Mason, J. Chem. Phys. 100, 9075 (1994)]
+struct TaoMasonEOS_eval
+{
+	double T, sphereRadius;
+	double b, lambda, prefacQuad, prefacVap, prefacPole, zi3;
+	
+	//! Construct the equation of state for temperature T, given critical point, acentricity and hard sphere radius (all in atomic units)
+	TaoMasonEOS_eval(double T, double Tc, double Pc, double omega, double sphereRadius) : T(T), sphereRadius(sphereRadius)
+	{
+		//Constants in vapor pressure correction:
+		double kappa = 1.093 + 0.26*(sqrt(0.002+omega) + 4.5*(0.002+omega));
+		double A1 = 0.143;
+		double A2 = 1.64 + 2.65*(exp(kappa-1.093)-1);
+		//Boyle temperature and volume:
+		double TB = Tc * (2.6455 - 1.1941*omega);
+		double vB = (Tc/Pc) * (0.1646 + 0.1014*omega);
+		//Temperature dependent functions:
+		const double a1 = -0.0648, a2 = 1.8067, c1 = 2.6038, c2 = 0.9726;
+		double alpha = vB*( a1*exp(-c1*T/TB) + a2*(1 - exp(-c2*pow(TB/T,0.25))) );
+		double B = (Tc/Pc) * (0.1445+omega*0.0637 + (Tc/T)*(-0.330 + (Tc/T)*(-0.1385+0.331*omega + (Tc/T)*(-0.0121-0.423*omega + pow(Tc/T,5)*(-0.000607-0.008*omega)))));
+		b = vB*( a1*(1-c1*T/TB)*exp(-c1*T/TB) + a2*(1 - (1+0.25*c2*pow(TB/T,0.25))*exp(-c2*pow(TB/T,0.25))) );
+		lambda = 0.4324 - 0.3331*omega;
+		//Coalesce prefactors for each free energy term:
+		prefacQuad = -T*(alpha - B);
+		prefacVap = prefacQuad * (-A1 * (exp(kappa*Tc/T)-A2)) / (2*sqrt(1.8)*b);
+		prefacPole = alpha*T/(lambda*b);
+		zi3 = (4*M_PI/3) * pow(sphereRadius,3);
+	}
+	
+	//Compute the per-particle free energies at each grid point, and the gradient w.r.t the weighted density
+	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar) const
+	{
+		if(Nbar[i]<0.)
+		{	Aex[i] = 0.;
+			Aex_Nbar[i] = 0.;
+			return;
+		}
+		//VW part:
+		double Ginv = 1 - lambda*b*Nbar[i]; if(Ginv<=0.0) { Aex_Nbar[i] = NAN; Aex[i]=NAN; return; }
+		double AVW = Nbar[i]*prefacQuad + prefacPole*(-log(Ginv));
+		double AVW_Nbar = prefacQuad + prefacPole*(lambda*b/Ginv);
+		//Vapor pressure correction:
+		double b2term = sqrt(1.8)*b*b;
+		double bn2term = b2term*Nbar[i]*Nbar[i];
+		double Avap = prefacVap * atan(bn2term);
+		double Avap_Nbar = prefacVap * b2term*Nbar[i]*2. / (1 + bn2term*bn2term);
+		//FMT part:
+		double n3 = zi3*Nbar[i], den = 1./(1-n3);
+		double AFMT_Nbar = T*zi3 * (den*den*den)*2*(2-n3);
+		double AFMT = T * (den*den)*n3*(4-3*n3); //corresponds to Carnahan-Starling EOS
+		//Total
+		Aex_Nbar[i] = AVW_Nbar + Avap_Nbar - AFMT_Nbar;
+		Aex[i] = AVW + Avap - AFMT;
+	}
+	
+	double vdwRadius() const
+	{	return pow(3.*b/(16.*M_PI), 1./3);
 	}
 };
 

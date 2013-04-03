@@ -75,7 +75,7 @@ struct FluidSolverParams
 	double epsInf; //!< optical-frequency dielectric constant
 	double Pvap; //!< vapor pressure in Eh/bohr^3
 	double sigmaBulk; //!< bulk surface tension in Eh/bohr^2
-	double Rhs; //!< effective hard sphere radius of liquid
+	double Rvdw; //!< effective van der Waals radius of liquid (derived from equation of state) in bohrs
 	
 	//PCM fit parameters:
 	double nc; //!< critical density for the PCM cavity shape function
