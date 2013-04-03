@@ -22,8 +22,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 
 SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma, double chargeZ,
-	SphericalKernel* chargeKernel, bool indepSite)
-: sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(chargeZ), chargeKernel(chargeKernel), indepSite(indepSite)
+	const SphericalKernel* chargeKernel, bool indepSite, double alpha, const SphericalKernel* alphaKernel)
+: sphereRadius(sphereRadius), sphereSigma(sphereSigma), chargeZ(chargeZ), chargeKernel(chargeKernel), indepSite(indepSite), alpha(alpha), alphaKernel(alphaKernel)
 {	if(sphereRadius)
 	{	w0 = new SphericalKernel(gInfo.S);
 		w1 = new SphericalKernel(gInfo.S);
@@ -66,8 +66,9 @@ double Molecule::get_dipole() const
 			electricP += site[i].pos * s.chargeZ * s.chargeKernel->data()[0];
 	}
 	//Check that dipole (if any) is lined up with z-axis
-	double dipoleOffZaxis = fabs(electricP[0]) + fabs(electricP[1]);
-	assert(dipoleOffZaxis < 1e-10*electricP.length());
+	double dipoleOffZaxis = hypot(electricP[0], electricP[1]);
+	if(dipoleOffZaxis > std::max(1e-6, 1e-10*electricP.length()))
+		die("Fluid molecule dipole moment component off z-axis is %lg.\n Please orient fluid dipole along reference z-axis\n", dipoleOffZaxis);
 	return electricP[2];
 }
 

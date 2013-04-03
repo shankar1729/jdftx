@@ -26,7 +26,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_multiroots.h>
 
 FluidMixture::FluidMixture(const GridInfo& gInfo, const double T)
-:gInfo(gInfo),T(T),verboseLog(false),nIndep(0),nDensities(0)
+:gInfo(gInfo),T(T),verboseLog(false),nDensities(0),nIndepIdgas(0),polarizable(false)
 {	logPrintf("Initializing fluid mixture at T=%lf K ...\n", T/Kelvin);
 }
 
@@ -206,16 +206,17 @@ const FluidMixture::Component& FluidMixture::get_component(unsigned int c) const
 
 
 void FluidMixture::addComponent(IdealGas* idealGas, const Fex* fex)
-{	Component comp = {idealGas, fex, fex->getMolecule(), nIndep, nDensities};
+{	Component comp = {idealGas, fex, fex->getMolecule(), nIndepIdgas, nDensities};
 	comp.indexedSite.resize(comp.molecule->nIndices);
 	comp.indexedSiteMultiplicity.resize(comp.molecule->nIndices);
 	for(int i=0; i<comp.molecule->nSites; i++)
 	{	comp.indexedSite[comp.molecule->site[i].index] = comp.molecule->site[i].prop;
 		comp.indexedSiteMultiplicity[comp.molecule->site[i].index]++;
+		polarizable |= (comp.molecule->site[i].prop->alpha && comp.molecule->site[i].prop->alphaKernel);
 	}
 	component.push_back(comp);
 	//Update the totals, which become the offset for the next component
-	nIndep += idealGas->nIndep;
+	nIndepIdgas += idealGas->nIndep;
 	nDensities += comp.molecule->nIndices;
 }
 
@@ -228,7 +229,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 {	//Compute the effective nonlinear coupling potential for the uniform fluid:
 	ScalarFieldCollection Vex(nDensities); //TODO: Interface with the electronic side to get the coupling potential here
 	//Call initState for each component
-	nullToZero(state, gInfo, nIndep);
+	nullToZero(state, gInfo, get_nIndep());
 	logPrintf("\n----- FluidMixture::initState() -----\n");
 	for(std::vector<Component>::iterator c=component.begin(); c!=component.end(); c++)
 		c->idealGas->initState(&Vex[c->offsetDensity], &state[c->offsetIndep], scale, Elo, Ehi);
@@ -236,7 +237,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 }
 
 void FluidMixture::loadState(const char* filename)
-{	nullToZero(state, gInfo, nIndep);
+{	nullToZero(state, gInfo, get_nIndep());
 	loadFromFile(state, filename);
 }
 
@@ -252,7 +253,7 @@ FluidMixture::Outputs::Outputs(ScalarFieldCollection* N, double* electricP, Scal
 double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldCollection& grad_indep, Outputs outputs) const
 {	
 	//logPrintf("indep.size: %d nIndep: %d\n",indep.size(),nIndep);
-	assert(indep.size()==nIndep);
+	assert(indep.size()==get_nIndep());
 
 	//---------- Compute site densities from the independent variables ---------
 	std::vector<double> P(component.size()); //total dipole moment per component
@@ -515,13 +516,14 @@ double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldC
 	}
 
 	//Propagate gradients from grad_N to grad_indep
-	grad_indep.resize(nIndep);
+	grad_indep.resize(get_nIndep());
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const Component& c = component[ic];
 		c.idealGas->convertGradients(&indep[c.offsetIndep], &N[c.offsetDensity],
 			&grad_N[c.offsetDensity], grad_P[ic], &grad_indep[c.offsetIndep], Nscale[ic]);
 	}
-
+	if(polarizable) nullToZero(grad_indep[nIndepIdgas], gInfo);
+	
 	Phi["+pV"] += p * gInfo.Volume(); //background correction
 
 	if(verboseLog) Phi.print(globalLog, true, "\t\t\t\t%15s = %25.16lf\n");

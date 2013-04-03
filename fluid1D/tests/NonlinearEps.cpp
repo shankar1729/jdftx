@@ -19,8 +19,10 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid1D/FluidMixture.h>
 #include <fluid1D/IdealGasMuEps.h>
+#include <fluid1D/IdealGasPomega.h>
 #include <fluid1D/Fex_H2O_FittedCorrelations.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
+#include <fluid1D/Fex_TM_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 #include <core1D/DataCollection.h>
 #include <core1D/Operators.h>
@@ -31,31 +33,37 @@ int main(int argc, char** argv)
 	//Setup simulation grid:
 	GridInfo gInfo(GridInfo::Planar, 1, 0.125);
 	
+	FluidMixture fluidMixture(gInfo, 298*Kelvin);
+
+	double Nguess = 5e-3; //default which works for water
+	int Zn = 2; //default symmetry for water
+	
+	//----- Excess functional -----
+	//Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
+	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
+	//Fex_CHCl3_ScalarEOS fex(fluidMixture); string fexName = "CHCl3"; Nguess=1.1e-3; Zn = 3;
+	Fex_CCl4_ScalarEOS fex(fluidMixture); string fexName = "CCl4"; Nguess=0.9e-3; Zn = 3;
+	
 	//----- Setup quadrature for angular integration -----
-	const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
 	SO3quad quad(QuadEuler, Zn, 20, 1, 1); //use symmetries to construct extremely efficient specific quadrature
 	
 	//----- Translation operator -----
 	TranslationOperatorLspline trans(gInfo);
 	
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
-
-	//----- Excess functional -----
-	Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
-	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
-	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
-
 	//----- Ideal gas -----
 	IdealGasMuEps idgas(&fex, 1.0, quad, trans);
+	//IdealGasPomega idgas(&fex, 1.0, quad, trans);
 
 	double p = 1.01325*Bar;
-	fluidMixture.setPressure(p);
+	fluidMixture.setPressure(p, Nguess);
 
 	MinimizeParams mp;
 	mp.alphaTstart = 3e5;
 	mp.nDim = gInfo.S * fluidMixture.get_nIndep();
 	mp.nIterations=200;
-
+	mp.nAlphaAdjustMax = 10;
+	
 	FILE* fpEps = fopen((fexName + "/nonlineareps").c_str(), "w");
 	double Dfield=1e-4;
 	bool stateInitialized = false;

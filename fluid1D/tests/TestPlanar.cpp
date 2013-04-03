@@ -56,7 +56,8 @@ double testPlanar(double T, double sigmaTarget=0., bool plotDensities=false)
 
 	//----- Excess functional -----
 	FexClass fex(fluidMixture);
-
+	logPrintf("vdwDiameter = %lg A\n", 2.*fex.vdwRadius()/Angstrom);
+	
 	//----- Ideal gas -----
 	IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
 

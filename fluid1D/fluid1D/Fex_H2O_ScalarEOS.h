@@ -25,14 +25,16 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 class Fex_H2O_ScalarEOS : public Fex
 {
 public:
-	//! Create water with the ScalarEOS functional (can choose soft or hard sphere version)
 	Fex_H2O_ScalarEOS(FluidMixture& fluidMixture);
-
+	~Fex_H2O_ScalarEOS();
+	
 	const Molecule* getMolecule() const { return &molecule; }
 	double get_aDiel() const;
 	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const;
 	double computeUniform(const double* N, double* grad_N) const;
 	void directCorrelations(const double* N, ScalarFieldTildeCollection& C) const;
+	
+	double vdwRadius() const; //!< get vdW radius corresponding to equation of state
 private:
 	SphericalKernel fex_LJatt, siteChargeKernel;
 	struct ScalarEOS_eval* eval;

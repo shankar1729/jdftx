@@ -37,9 +37,13 @@ struct SiteProperties
 	const SphericalKernel* chargeKernel; //!< Charge profile within classical DFT (reformulation of high frequency cutoff of coulomb kernel)
 	const bool indepSite; //!< Whether this site contributes to the independent variable list
 
+	const double alpha; //!< site polarizability
+	const SphericalKernel* alphaKernel; //!< polarizability kernel (high-frequency cutoff)
+	
 	//! Initailize all the const members above, and create kernels for FMT if sphereRadius is non-zero
 	SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma,
-		double chargeZ, SphericalKernel* chargeKernel, bool indepSite=true);
+		double chargeZ, const SphericalKernel* chargeKernel, bool indepSite=true,
+		double alpha=0., const SphericalKernel* alphaKernel=0);
 	~SiteProperties();
 
 private:

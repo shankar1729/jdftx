@@ -39,7 +39,8 @@ struct LsplineMatrix
 		for(int j=0; j<gInfo.S; j++)
 		{	int i = index[j];
 			double w = weight[j];
-			yData[j] += alpha * ((1.-w) * xData[i] + w * xData[i+1]);
+			int iNext = w ? i+1 : i;
+			yData[j] += alpha * ((1.-w) * xData[i] + w * xData[iNext]);
 		}
 	}
 	
@@ -51,9 +52,10 @@ struct LsplineMatrix
 		for(int j=0; j<gInfo.S; j++)
 		{	int i = index[j];
 			double w = weight[j];
+			int iNext = w ? i+1 : i;
 			double alpha_xj = alpha * xData[j];
 			yData[i] += alpha_xj * (1.-w);
-			yData[i+1] += alpha_xj * w;
+			yData[iNext] += alpha_xj * w;
 		}
 	}
 	
@@ -75,11 +77,13 @@ struct LsplineMatrix
 			//Find the interval to which r belongs, and assign index and weights appropriately:
 			int i = 0;
 			double w = 0.;
-			if(r <= gInfo.r[0]) { i=0; w=0.; }
-			else if(r >= gInfo.r[gInfo.S-1]) { i=gInfo.S-2; w=1.; }
-			else
-			{	i = int(std::upper_bound(gInfo.r.begin(), gInfo.r.end(), r) - gInfo.r.begin()) - 1;
-				w = (r - gInfo.r[i]) / (gInfo.r[i+1] - gInfo.r[i]);
+			if(gInfo.S > 1) //All data points to the 0th element in the special case of S=1
+			{	if(r <= gInfo.r[0]) { i=0; w=0.; }
+				else if(r >= gInfo.r[gInfo.S-1]) { i=gInfo.S-2; w=1.; }
+				else
+				{	i = int(std::upper_bound(gInfo.r.begin(), gInfo.r.end(), r) - gInfo.r.begin()) - 1;
+					w = (r - gInfo.r[i]) / (gInfo.r[i+1] - gInfo.r[i]);
+				}
 			}
 			index[j] = i;
 			weight[j] = w;

@@ -44,6 +44,11 @@ molecule("H2O",
 	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(2*eval->sphereRadius,3)), 2*eval->sphereRadius);
 }
 
+Fex_H2O_ScalarEOS::~Fex_H2O_ScalarEOS()
+{	delete eval;
+}
+
+
 double Fex_H2O_ScalarEOS::get_aDiel() const
 {	return 1 - T/(7.35e3*Kelvin);
 }
@@ -77,4 +82,8 @@ void Fex_H2O_ScalarEOS::directCorrelations(const double* N, ScalarFieldTildeColl
 	//Accumulate correlations:
 	ScalarFieldTilde fex_LJattTilde(fex_LJatt, gInfo); //A scalar field version of kernel to ease arithmetic
 	C[fluidMixture.corrFuncIndex(0,0,this)] += (2*AexPrime*fex_LJattTilde + N[0]*AexDblPrime*(fex_LJatt*fex_LJattTilde));
+}
+
+double Fex_H2O_ScalarEOS::vdwRadius() const
+{	return eval->vdwRadius();
 }

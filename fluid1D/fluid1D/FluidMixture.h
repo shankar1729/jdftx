@@ -53,7 +53,7 @@ public:
 	//! @return The pressure corresponding to chemical and physical equilibrium
 	double setBoilingPressure(std::vector<double>* Nvap=0, double tol=1e-8, double NliqGuess=5e-3, double NvapGuess=1e-6);
 	
-	unsigned get_nIndep() const { return nIndep; }  //!< get the number of scalar fields used as independent variables
+	unsigned get_nIndep() const { return nIndepIdgas + (polarizable ? 1 : 0); }  //!< get the number of scalar fields used as independent variables
 	unsigned get_nDensities() const { return nDensities; } //!< get the total number of site densities
 
 	unsigned get_offsetDensity(const Fex* fex) const; //!< get the offset for the site densities for a particular component in the fluid
@@ -134,8 +134,9 @@ public:
 	int corrFuncIndex(unsigned i1, unsigned i2, const Fex* fex=0) const;
 
 private:
-	unsigned nIndep; //!< number of scalar fields used as independent variables
 	unsigned nDensities; //!< total number of site densities
+	unsigned nIndepIdgas; //!< number of scalar fields used as independent variables for the component ideal gases
+	bool polarizable; //!< whether additional scalar fields are required due to polarizable components
 	double p;
 
 	std::vector<Component> component; //!< array of fluid components
