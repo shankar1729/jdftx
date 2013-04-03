@@ -28,8 +28,6 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 class IdealGasPomega : public IdealGas
 {
 public:
-	double Eexternal; //!< External uniform electric field (the P_omega fluid can be uniformly polarized!)
-
 	//!Initialize and associate with excess functional fex (and its fluid mixture)
 	//!Also specify the orientation quadrature and translation operator used for the orientation integrals
 	IdealGasPomega(Fex* fex, double xBulk, const SO3quad& quad, const TranslationOperator& trans);

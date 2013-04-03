@@ -28,8 +28,6 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 class IdealGasMuEps : public IdealGas
 {
 public:
-	double Eexternal; //!< External uniform electric field (the Mu-Eps fluid can be uniformly polarized!)
-
 	//!Initialize and associate with excess functional fex (and its fluid mixture)
 	//!Also specify the orientation quadrature and translation operator used for the orientation integrals
 	IdealGasMuEps(Fex* fex, double xBulk, const SO3quad& quad, const TranslationOperator& trans);

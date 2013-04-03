@@ -103,9 +103,10 @@ double testPlanar(double T, double sigmaTarget=0., bool plotDensities=false)
 	mp.energyLabel = "sigma";
 	mp.nIterations = 100;
 	mp.energyDiffThreshold=1e-11;
+	mp.fdTest = true;
 	
 	fluidMixture.minimize(mp);
-		
+	
 	ScalarFieldCollection N;
 	double sigma = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 	

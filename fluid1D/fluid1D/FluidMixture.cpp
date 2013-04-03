@@ -233,6 +233,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 	logPrintf("\n----- FluidMixture::initState() -----\n");
 	for(std::vector<Component>::iterator c=component.begin(); c!=component.end(); c++)
 		c->idealGas->initState(&Vex[c->offsetDensity], &state[c->offsetIndep], scale, Elo, Ehi);
+	if(polarizable) state[nIndepIdgas] += scale * Eexternal;
 	logPrintf("\n");
 }
 
@@ -254,6 +255,7 @@ double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldC
 {	
 	//logPrintf("indep.size: %d nIndep: %d\n",indep.size(),nIndep);
 	assert(indep.size()==get_nIndep());
+	grad_indep.clear(); grad_indep.resize(get_nIndep());
 
 	//---------- Compute site densities from the independent variables ---------
 	std::vector<double> P(component.size()); //total dipole moment per component
@@ -308,11 +310,13 @@ double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldC
 	std::vector<double> grad_P(component.size()); //gradient (partial derivative) w.r.t cell dipole
 
 	//--------- Compute the (scaled) mean field coulomb interaction --------
-	{	ScalarFieldTilde Od; //total electrostatic potential (with a factor of O)
-		ScalarFieldTilde rho; //total charge density
+	{	ScalarFieldTilde rho; //total charge density
 		
 		double electricPtot = 0.; //total electric dipole moment in cell
 		double geomFacPtot = (gInfo.coord==GridInfo::Planar ? 1./gInfo.rMax : 0.); //geometrical factor in dipole-sum contribution
+		
+		ScalarFieldTilde eps, Phi_eps; //auxiliary field for polarizability, and corresponding energy derivative
+		if(polarizable) eps = J(indep[nIndepIdgas]);
 		
 		for(unsigned ic=0; ic<component.size(); ic++)
 		{	const Component& c = component[ic];
@@ -321,40 +325,69 @@ double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldC
 			{	const SiteProperties& s = *c.indexedSite[j];
 				if(s.chargeZ && s.chargeKernel)
 					rho_c += s.chargeZ * (*s.chargeKernel * Ntilde[c.offsetDensity+j]);
+				//Polarization contributions:
+				if(polarizable && s.alpha && s.alphaKernel)
+				{	ScalarField epsBar = I((*s.alphaKernel) * eps);
+					ScalarField Nj = I(Ntilde[c.offsetDensity+j]);
+					ScalarField Phi_Nj = (0.5*s.alpha) * JdagOJ(Diag(epsBar)*epsBar);
+					Phi["Apol"] += dot(Nj, Phi_Nj);
+					Phi_eps += (*s.alphaKernel) * Idag(s.alpha * (Diag(JdagOJ(Nj))*epsBar));
+					grad_Ntilde[c.offsetDensity+j] += Idag(Phi_Nj);
+				}
 			}
-			if(!rho_c) continue;
-			ScalarFieldTilde Od_c = O(-4*M_PI*Linv(O(rho_c))); //total electrostatic potential from this fluid component
-			Od += Od_c;
 			rho += rho_c;
 			electricPtot += c.molecule->get_dipole()*P[ic];
 
 			//Add the extra correlation contribution within component
 			double corrFac = c.fex->get_aDiel() - 1;
-			ScalarFieldTilde Od_cCorr = corrFac * Od_c;
-			Phi["Coulomb"] += 0.5*dot(rho_c, Od_cCorr);
-			for(int j=0; j<c.molecule->nIndices; j++)
-			{	const SiteProperties& s = *c.indexedSite[j];
-				if(s.chargeZ && s.chargeKernel)
-					grad_Ntilde[c.offsetDensity+j] += s.chargeZ * (*s.chargeKernel * Od_cCorr);
+			if(rho_c && corrFac)
+			{	ScalarFieldTilde Od_cCorr = corrFac * O(-4*M_PI*Linv(O(rho_c))); //scaled electrostatic potential from this fluid component
+				Phi["Coulomb"] += 0.5*dot(rho_c, Od_cCorr);
+				for(int j=0; j<c.molecule->nIndices; j++)
+				{	const SiteProperties& s = *c.indexedSite[j];
+					if(s.chargeZ && s.chargeKernel)
+						grad_Ntilde[c.offsetDensity+j] += s.chargeZ * (*s.chargeKernel * Od_cCorr);
+				}
+				Phi["PsqCell"] += 0.5 * 4*M_PI*corrFac * pow(P[ic],2) * pow(c.molecule->get_dipole(),2) * geomFacPtot;
+				grad_P[ic] += 4*M_PI*corrFac * P[ic] * pow(c.molecule->get_dipole(),2) * geomFacPtot;
 			}
-			Phi["PsqCell"] += 0.5 * 4*M_PI*corrFac * pow(P[ic],2) * pow(c.molecule->get_dipole(),2) * geomFacPtot;
-			grad_P[ic] = 4*M_PI*corrFac * P[ic] * pow(c.molecule->get_dipole(),2) * geomFacPtot;
+		}
+		//Collect charge and dipole contributions from polarizability:
+		if(polarizable)
+		{	rho += Oinv(IDdag(Jdag(Phi_eps)));
+			double Ppol = integral(Oinv(Phi_eps));
+			Phi["Apol"] += (-Eexternal)*Ppol;
+			electricPtot += Ppol;
 		}
 		//Now add the true mean-field contribution from Od to all the site densities:
 		if(rho)
-		{	Phi["Coulomb"] += 0.5*dot(rho,Od);
+		{	ScalarFieldTilde Od = O(-4*M_PI*Linv(O(rho)));
+			Phi["Coulomb"] += 0.5*dot(rho,Od);
 			Phi["PsqCell"] += 0.5 * 4*M_PI * pow(electricPtot,2) * geomFacPtot;
+			ScalarFieldTilde Phi_pol;
+			if(polarizable)
+				Phi_pol = J(ID(Oinv(Od))) + Oinv(Idag(DiagJdagOJ1(4*M_PI*electricPtot*geomFacPtot - Eexternal, gInfo)));
+			
 			for(unsigned ic=0; ic<component.size(); ic++)
 			{	const Component& c = component[ic];
 				for(int j=0; j<c.molecule->nIndices; j++)
 				{	const SiteProperties& s = *c.indexedSite[j];
 					if(s.chargeZ && s.chargeKernel)
 						grad_Ntilde[c.offsetDensity+j] += s.chargeZ * (*s.chargeKernel * Od);
+					if(polarizable && s.alpha && s.alphaKernel)
+					{	ScalarField Phi_polBar = s.alpha * I((*s.alphaKernel) * Phi_pol);
+						ScalarField epsBar = I((*s.alphaKernel) * eps);
+						ScalarField Nj = I(Ntilde[c.offsetDensity+j]);
+						Phi_eps += (*s.alphaKernel) * Idag(Diag(JdagOJ(Nj)) * Phi_polBar);
+						grad_Ntilde[c.offsetDensity+j] += Idag(JdagOJ(Diag(epsBar) * Phi_polBar));
+					}
 				}
 				grad_P[ic] += 4*M_PI * electricPtot * c.molecule->get_dipole() * geomFacPtot;
 			}
 		}
 		if(outputs.electricP) *outputs.electricP = electricPtot;
+		
+		if(polarizable) grad_indep[nIndepIdgas] = Jdag(Phi_eps);
 	}
 
 	//--------- Hard sphere mixture and bonding -------------
@@ -516,13 +549,11 @@ double FluidMixture::operator()(const ScalarFieldCollection& indep, ScalarFieldC
 	}
 
 	//Propagate gradients from grad_N to grad_indep
-	grad_indep.resize(get_nIndep());
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const Component& c = component[ic];
 		c.idealGas->convertGradients(&indep[c.offsetIndep], &N[c.offsetDensity],
 			&grad_N[c.offsetDensity], grad_P[ic], &grad_indep[c.offsetIndep], Nscale[ic]);
 	}
-	if(polarizable) nullToZero(grad_indep[nIndepIdgas], gInfo);
 	
 	Phi["+pV"] += p * gInfo.Volume(); //background correction
 
@@ -550,6 +581,7 @@ ScalarFieldCollection FluidMixture::precondition(const ScalarFieldCollection& gr
 {	ScalarFieldCollection Kgrad(grad.size());
 	for(unsigned i=0; i<grad.size(); i++)
 		Kgrad[i] = DiagJdagOJ1inv(grad[i]);
+	if(polarizable) Kgrad[nIndepIdgas] *= (T*grad.size()); //using an approximate guess at relative Hessians
     return Kgrad;
 }
 

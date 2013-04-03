@@ -35,6 +35,8 @@ public:
 	const double T; //!< Temperature
 	bool verboseLog; //!< print energy components etc. if enabled (off by default)
 	
+	double Eexternal; //!< External uniform electric field (Note: do not use IdealGasPsiAlpha with polar fluids and a next external field)
+
 	FluidMixture(const GridInfo& gInfo, const double T=298*Kelvin);
 
 	//! Call after initializing and adding all the components of the fluid mixture

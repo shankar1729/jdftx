@@ -18,6 +18,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <fluid1D/IdealGasMuEps.h>
+#include <fluid1D/FluidMixture.h>
 #include <fluid/Euler.h>
 #include <core/BlasExtra.h>
 
@@ -97,8 +98,8 @@ double IdealGasMuEps::compute(const ScalarField* mueps, const ScalarField* N, Sc
 			PhiNI += dot(N[j], JdagOJV);
 		}
 	//Contributions due to uniform electric field:
-	grad_P -= Eexternal * molecule->get_dipole();
-	PhiNI -= Eexternal * P * molecule->get_dipole();
+	grad_P -= fluidMixture.Eexternal * molecule->get_dipole();
+	PhiNI -= fluidMixture.Eexternal * P * molecule->get_dipole();
 	//KE and mu:
 	grad_N[0] -= DiagJdagOJ1(mu/site0mult, gInfo);
 	PhiNI -= (T+mu)*integral(N[0])/site0mult;

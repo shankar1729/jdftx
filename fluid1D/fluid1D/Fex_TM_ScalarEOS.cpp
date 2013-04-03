@@ -78,9 +78,9 @@ const double thetaHCCl_CHCl3 = 107.98 * M_PI/180;
 
 Fex_CHCl3_ScalarEOS::Fex_CHCl3_ScalarEOS(FluidMixture& fluidMixture)
 : Fex_TM_ScalarEOS(fluidMixture, 536.6*Kelvin, 5328.68*KPascal, 0.216, 2.06*Angstrom),
-propC(gInfo, eval->sphereRadius,0., -0.185,&siteChargeKernel, true, 0.878*pow(Angstrom,3),&siteChargeKernel),
-propH(gInfo, 0.,0.,-0.229,&siteChargeKernel, true, 0.135*pow(Angstrom,3),&siteChargeKernel),
-propCl(gInfo, 0.,0.,0.138,&siteChargeKernel, true, 1.910*pow(Angstrom,3),&siteChargeKernel),
+propC(gInfo, eval->sphereRadius,0., -0.5609,&siteChargeKernel, true, 0.878*pow(Angstrom,3),&siteChargeKernel),
+propH(gInfo, 0.,0.,0.0551,&siteChargeKernel, true, 0.135*pow(Angstrom,3),&siteChargeKernel),
+propCl(gInfo, 0.,0.,0.1686,&siteChargeKernel, true, 1.910*pow(Angstrom,3),&siteChargeKernel),
 molecule("CHCl3",
 	&propC,
 		 vector3<>(0,0,0),

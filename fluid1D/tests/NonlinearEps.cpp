@@ -42,8 +42,8 @@ int main(int argc, char** argv)
 	//Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
 	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
 	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
-	//Fex_CHCl3_ScalarEOS fex(fluidMixture); string fexName = "CHCl3"; Nguess=1.1e-3; Zn = 3;
-	Fex_CCl4_ScalarEOS fex(fluidMixture); string fexName = "CCl4"; Nguess=0.9e-3; Zn = 3;
+	Fex_CHCl3_ScalarEOS fex(fluidMixture); string fexName = "CHCl3"; Nguess=1.1e-3; Zn = 3;
+	//Fex_CCl4_ScalarEOS fex(fluidMixture); string fexName = "CCl4"; Nguess=0.9e-3; Zn = 3;
 	
 	//----- Setup quadrature for angular integration -----
 	SO3quad quad(QuadEuler, Zn, 20, 1, 1); //use symmetries to construct extremely efficient specific quadrature
@@ -58,19 +58,24 @@ int main(int argc, char** argv)
 	double p = 1.01325*Bar;
 	fluidMixture.setPressure(p, Nguess);
 
+	//fluidMixture.verboseLog = true;
+	
 	MinimizeParams mp;
 	mp.alphaTstart = 3e5;
 	mp.nDim = gInfo.S * fluidMixture.get_nIndep();
 	mp.nIterations=200;
 	mp.nAlphaAdjustMax = 10;
+	mp.dirUpdateScheme = MinimizeParams::FletcherReeves;
 	
 	FILE* fpEps = fopen((fexName + "/nonlineareps").c_str(), "w");
 	double Dfield=1e-4;
+	//double Dfield=6.4e-2;
 	bool stateInitialized = false;
 	for(; Dfield<6.5e-2; Dfield+=2e-3)
 	{
-		mp.energyDiffThreshold = 1e-9 * gInfo.Volume() * pow(Dfield,2);
-		idgas.Eexternal = Dfield;
+		mp.knormThreshold = 1e-11;
+		//mp.energyDiffThreshold = 1e-9 * gInfo.Volume() * pow(Dfield,2);
+		fluidMixture.Eexternal = Dfield;
 
 		if(!stateInitialized) //first iteration
 		{	fluidMixture.initState(0.05); stateInitialized=true;
@@ -78,6 +83,7 @@ int main(int argc, char** argv)
 		}
 		else mp.fdTest = false;
 		
+		fluidMixture.minimize(mp);
 		fluidMixture.minimize(mp);
 
 		ScalarFieldCollection N; double electricP;
