@@ -71,7 +71,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
   	DumpDipole, "Dipole",
-	DumpKEDensity, "KEDensity"
+	DumpKEDensity, "KEDensity",
+	DumpSelfInteractionCorrection, "SelfInteractionCorrection"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -105,7 +106,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see density-of-states) [not in All]",
 	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
-	DumpKEDensity, 		 "The Kohn-Sham kinetic energy density of the valence electrons (reduces to the exact von Weizsäcker KE for a one-electron systems)"
+	DumpKEDensity, 		 "The Kohn-Sham kinetic energy density of the valence electrons (reduces to the exact von Weizsäcker KE for a one-electron systems)",
+	DumpSelfInteractionCorrection, "Calculates Perdew-Zunger self interaction errors for the Kohn-Sham orbitals"
 	
 );
 

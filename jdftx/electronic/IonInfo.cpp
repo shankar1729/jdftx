@@ -42,9 +42,8 @@ void IonInfo::setup(const Everything &everything)
 	if(forcesOutputCoords==ForcesCoordsPositions)
 		forcesOutputCoords = coordsType==CoordsLattice ? ForcesCoordsLattice : ForcesCoordsCartesian;
 
-
 	logPrintf("\n---------- Setting up pseudopotentials ----------\n");
-
+		
 	//Determine maximum G extents for local and non-local pseudopotentials:
 	GmaxNL = sqrt(2.0*e->cntrl.Ecut);
 	GmaxLoc = 0.0;
@@ -75,6 +74,18 @@ void IonInfo::setup(const Everything &everything)
 			break;
 	}
 	logPrintf("Width of ionic core gaussian charges set to %lg\n", ionWidth);
+	
+	//Removes unused pseudopotentials
+	double counter = 0;
+	while(counter < species.size())
+	{
+		if(species[counter]->atpos.size() == 0)
+		{	logPrintf("\nIgnoring unused pseudopotential %s.\n", species[counter]->name.c_str());
+			species.erase(species.begin()+counter);
+		}
+		else
+			counter++;
+	}
 	
 	// Call the species setup routines
 	int nAtomsTot=0;

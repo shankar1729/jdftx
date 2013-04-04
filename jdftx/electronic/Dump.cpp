@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/operators.h>
 #include <electronic/ExactExchange.h>
+#include <electronic/SelfInteractionCorrection.h>
 #include <electronic/DOS.h>
 #include <electronic/FluidSolver.h>
 #include <core/DataMultiplet.h>
@@ -243,6 +244,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	{	StartDump("Moments")
 		Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
 		EndDump
+	}
+	
+	if(ShouldDump(SelfInteractionCorrection))
+	{	SelfInteractionCorrection selfInteractionCorrection;  selfInteractionCorrection.setup(*e);
+		selfInteractionCorrection.dump(getFilename("SIC").c_str());
 	}
 
 	//----------------- The following are not included in 'All' -----------------------
