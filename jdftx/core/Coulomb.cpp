@@ -388,12 +388,9 @@ void multRealKernel(vector3<int> S, const double* kernel, complex* data)
 
 //Multiply a complexDataGptr by a kernel sampled with offset and rotation by rot
 void multTransformedKernel_thread(size_t iStart, size_t iStop,
-	vector3<int> S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot)
-{	THREAD_fullGspaceLoop( multTransformedKernel_calc(i, iG, S, kernel, data, offset, rot); )
+	vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
+{	THREAD_fullGspaceLoop( multTransformedKernel_calc(i, iG, S, kernel, data, offset); )
 }
-void multTransformedKernel(vector3<int> S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot)
-{	threadLaunch(threadOperators ? 0 : 1, multTransformedKernel_thread, S[0]*S[1]*S[2],
-		S, kernel, data, offset, rot);
+void multTransformedKernel(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
+{	threadLaunch(threadOperators ? 0 : 1, multTransformedKernel_thread, S[0]*S[1]*S[2], S, kernel, data, offset);
 }

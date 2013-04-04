@@ -226,24 +226,15 @@ void multRealKernel_gpu(vector3<int> S, const double* kernel, complex* data);
 
 //Multiply a complexDataGptr's data by a kernel sampled with offset and rotation by rot
 __hostanddev__ void multTransformedKernel_calc(size_t i, const vector3<int>& iG,
-	const vector3<int>& S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot)
-{	//Compute index on the real kernel:
-	vector3<int> iGkernel = rot * (iG - offset);
-	//Reduce to [0,S-1) in each dimension:
-	for(int k=0; k<3; k++)
-	{	iGkernel[k] = iGkernel[k] % S[k];
-		if(iGkernel[k]<0) iGkernel[k] += S[k];
-	}
-	size_t iReal = iGkernel[2] + S[2]*size_t(iGkernel[1] + S[1]*iGkernel[0]);
-	//Multiply:
+	const vector3<int>& S, const double* kernel, complex* data, const vector3<int>& offset)
+{	vector3<int> iGkernel = (iG - offset); //Compute index on the real kernel
+	for(int k=0; k<3; k++) if(iGkernel[k]<0) iGkernel[k] += S[k]; //Reduce to [0,S-1) in each dimension
+	size_t iReal = iGkernel[2] + S[2]*size_t(iGkernel[1] + S[1]*iGkernel[0]); //net index into kernel
 	data[i] *= kernel[iReal];
 }
-void multTransformedKernel(vector3<int> S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot);
+void multTransformedKernel(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset);
 #ifdef GPU_ENABLED
-void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot);
+void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset);
 #endif
 
 #endif // JDFTX_CORE_COULOMB_INTERNAL_H

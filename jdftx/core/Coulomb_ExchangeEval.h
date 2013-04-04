@@ -54,16 +54,8 @@ private:
 	ExchangeSlab_calc slabCalc;
 	//For Wigner-Seitz Gamma-only truncated mode:
 	RealKernel* VcGamma; //Gamma-point-only kernel (used for Isolated geometry (with no need for regularization))
-	//For Wigner-Seitz mode:
-	struct KdiffDesc
-	{	vector3<> dk; //difference between k-points (unit-cell lattice coords)
-		//dk is related to a point in the symmetry-reduced set by:
-		//   dkReduced[iReduced] = rot * (dk + offset)
-		size_t iReduced;
-		matrix3<int> rot;
-		vector3<int> offset;
-	};
-	std::vector<KdiffDesc> kDiffDescArr; //list of allowed k-point differences (modulo integer offsets)
+	//For precomputed numerical kernel mode:
+	std::vector< vector3<> > dkArr; //list of allowed k-point differences (modulo integer offsets)
 	double* kernelData; //data for all the kernels (either on the CPU or GPU, as appropriate)
 };
 

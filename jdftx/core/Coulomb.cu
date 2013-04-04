@@ -83,14 +83,12 @@ void multRealKernel_gpu(vector3<int> S, const double* kernel, complex* data)
 }
 
 __global__
-void multTransformedKernel_kernel(int zBlock, vector3<int> S, const double* kernel, complex* data,
-	const vector3<int> offset, const matrix3<int> rot)
+void multTransformedKernel_kernel(int zBlock, vector3<int> S, const double* kernel, complex* data, const vector3<int> offset)
 {	COMPUTE_fullGindices
-	multTransformedKernel_calc(i, iG, S, kernel, data, offset, rot);
+	multTransformedKernel_calc(i, iG, S, kernel, data, offset);
 }
-void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data,
-	const vector3<int>& offset, const matrix3<int>& rot)
+void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
 {	GpuLaunchConfig3D glc(multTransformedKernel_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		multTransformedKernel_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel, data, offset, rot);
+		multTransformedKernel_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel, data, offset);
 }

@@ -485,79 +485,22 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			CoulombKernel(Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
 			dataSuper[0] += VzeroCorrection; //For slab/wire geometry kernels in AuxiliaryFunction/ProbeChargeEwald methods
 			
-			//Find symmetries for reducing kernel storage:
-			logPrintf("Compressing exchange kernel using symmetries:\n");
-			//--- Get symmetries of supercell kernel (in supercell lattice coords):
-			std::vector<matrix3<int>> symSuper = getSymmetries(Rsuper, isTruncated);
-			logPrintf("\t%lu symmetries of the supercell kernel\n", symSuper.size());
-			//--- Find symmetries of unit cell common with those above (in unit-cell lattice coords):
-			std::vector<matrix3<int>> sym, symLattice = getSymmetries(gInfo.R);
-			for(const matrix3<int>& m: symLattice)
-			{	//Check if symmetry is commensurate with sample count S:
-				matrix3<int> Sm = Diag(gInfo.S) * m;
-				bool Scommensurate = true;
-				for(int i=0; i<3; i++) for(int j=0; j<3; j++)
-					Scommensurate = Scommensurate && (Sm(i,j) % gInfo.S[j] == 0);
-				if(!Scommensurate) continue;
-				//Check if symmetry is also a symmetry of the supercell kernel:
-				bool isSymSuper = false;
-				for(const matrix3<int>& mSuper: symSuper)
-					if(super * mSuper == m * super)
-					{	isSymSuper = true;
-						break;
-					}
-				if(!isSymSuper) continue;
-				//Add to list of common symmetries:
-				sym.push_back(~m); //as a transformation matrix for k-points
-			}
-			logPrintf("\treduced to %lu common with the unit cell.\n", sym.size());
-			//--- Reduce k-point difference mesh under these symmetries:
-			std::vector<vector3<>> dkReduced; //list of symmetry reduced k-point differences
+			//Construct k-point difference mesh:
 			for(const vector3<>& kpoint: kmesh)
-			{	KdiffDesc kDiffDesc;
-				kDiffDesc.dk = kpoint - kmesh.front();
-				for(int k=0; k<3; k++) //reduce to fundamental zone:
-					kDiffDesc.dk[k] -= floor(kDiffDesc.dk[k] + 0.5);
-				//Search previously added dk's:
-				bool foundPrev = false;
-				for(const matrix3<int>& rot: sym)
-				{	for(size_t i=0; i<dkReduced.size(); i++)
-						if(circDistanceSquared(rot * kDiffDesc.dk, dkReduced[i]) < symmThresholdSq)
-						{	kDiffDesc.iReduced = i;
-							kDiffDesc.rot = rot;
-							assert(abs(det(rot)) == 1); //similarity-related to a rotation matrix (in cartesian coords)
-							matrix3<int> rotInv = adjugate(rot) * det(rot); //true since |det(rot)| == 1
-							vector3<> offset = rotInv * dkReduced[i] - kDiffDesc.dk;
-							for(int k=0; k<3; k++)
-							{	kDiffDesc.offset[k] = int(round(offset[k]));
-								assert(fabs(kDiffDesc.offset[k] - offset[k]) < symmThreshold);
-							}
-							foundPrev = true;
-							break;
-						}
-					if(foundPrev) break;
-				}
-				if(!foundPrev) //add to reduced array:
-				{	kDiffDesc.iReduced = dkReduced.size();
-					kDiffDesc.rot = matrix3<int>(1,1,1); //identity
-					kDiffDesc.offset = vector3<int>(0,0,0); //no offset
-					dkReduced.push_back(kDiffDesc.dk);
-				}
-				kDiffDescArr.push_back(kDiffDesc);
+			{	vector3<> dk = kpoint - kmesh.front();
+				for(int k=0; k<3; k++) dk[k] -= floor(dk[k] + 0.5); //reduce to fundamental zone:
+				 dkArr.push_back(dk);
 			}
-			logPrintf("\tSymmetries reduce %lu k-point differences to %lu\n"
-				"\tin irreducible wedge (compression factor: %.2lg)\n",
-				kDiffDescArr.size(), dkReduced.size(), kDiffDescArr.size()*1./dkReduced.size());
 			
-			//Split supercell kernel into one for each k-points:
+			//Split supercell kernel into one for each k-point difference:
 			logPrintf("Splitting supercell kernel to unit-cell with k-points ... "); logFlush();
-			size_t nKernelData = dkReduced.size() * gInfo.nr;
+			size_t nKernelData = dkArr.size() * gInfo.nr;
 			kernelData = new double[nKernelData];
 			if(!kernelData)
-				die("Out of memory. (need %.1lfGB memory for reduced exchange kernel)\n",
+				die("Out of memory. (need %.1lfGB memory for precomputed exchange kernel)\n",
 					nKernelData*1e-9*sizeof(double));
-			for(size_t i=0; i<dkReduced.size(); i++)
-				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkReduced[i],
+			for(size_t i=0; i<dkArr.size(); i++)
+				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkArr[i],
 					gInfo.S, Ssuper, super, dataSuper, kernelData + i*gInfo.nr);
 			delete[] dataSuper;
 			#ifdef GPU_ENABLED //Move to GPU if required:
@@ -604,13 +547,12 @@ ExchangeEval::~ExchangeEval()
 }
 
 
-void multTransformedKernel(complexDataGptr& X, const double* kernel,
-	const vector3<int>& offset, const matrix3<int>& rot)
+void multTransformedKernel(complexDataGptr& X, const double* kernel, const vector3<int>& offset)
 {	assert(X);
-	if(!offset.length_squared() && rot==matrix3<int>(1,1,1))
+	if(!offset.length_squared())
 		callPref(eblas_zmuld)(X->gInfo.nr, kernel, 1, X->dataPref(false), 1);
 	else
-		callPref(multTransformedKernel)(X->gInfo.S, kernel, X->dataPref(false), offset, rot);
+		callPref(multTransformedKernel)(X->gInfo.S, kernel, X->dataPref(false), offset);
 }
 
 
@@ -640,18 +582,17 @@ complexDataGptr ExchangeEval::operator()(complexDataGptr&& in, vector3<> kDiff) 
 		case NumericalKernel:
 		{	//Find the appropriate kDiff:
 			bool kDiffFound = false;
-			for(const KdiffDesc& kDiffDesc: kDiffDescArr)
-				if(circDistanceSquared(kDiffDesc.dk, kDiff) < symmThresholdSq)
-				{	//Find the additional integer offset, if any:
-					vector3<> extraOffsetTemp = kDiffDesc.dk - kDiff;
-					vector3<int> extraOffset;
+			for(unsigned ik=0; ik<dkArr.size(); ik++)
+				if(circDistanceSquared(dkArr[ik], kDiff) < symmThresholdSq)
+				{	//Find the integer offset, if any:
+					vector3<> offsetTemp = dkArr[ik] - kDiff;
+					vector3<int> offset;
 					for(int k=0; k<3; k++)
-					{	extraOffset[k] = int(round(extraOffsetTemp[k]));
-						assert(fabs(extraOffset[k]-extraOffsetTemp[k]) < symmThreshold);
+					{	offset[k] = int(round(offsetTemp[k]));
+						assert(fabs(offset[k]-offsetTemp[k]) < symmThreshold);
 					}
 					//Multiply kernel:
-					multTransformedKernel(in, kernelData + gInfo.nr * kDiffDesc.iReduced,
-						kDiffDesc.offset + extraOffset, kDiffDesc.rot);
+					multTransformedKernel(in, kernelData + gInfo.nr * ik, offset);
 					kDiffFound = true;
 					break;
 				}
