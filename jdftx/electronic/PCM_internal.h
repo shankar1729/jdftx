@@ -28,6 +28,25 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/EnergyComponents.h>
 #include <electronic/FluidSolverParams.h>
+#include <electronic/FluidSolver.h>
+#include <core/EnergyComponents.h>
+
+//! Base class for all PCMs
+class PCM : public FluidSolver
+{
+	public:
+		PCM(const Everything& e, const FluidSolverParams& fsp);
+
+		void dumpDebug(FILE* fp) const;
+		
+	protected:		
+		DataRptr nCavity;	//! Cavity determining electron density (includes core and chargeball contributions)
+		DataRptr shape;		//! Cavity shape function, i.e. pcm "fluid density"
+		EnergyComponents Adiel;
+		
+		FluidSolverParams params;
+		double k2factor; //!< Prefactor to kappaSq (computed from T, ionicConcentration and ionicZelectrolyte)
+};
 
 //! Add citations for relevant variant of PCM:
 void citePCM(const FluidSolverParams& fsp);

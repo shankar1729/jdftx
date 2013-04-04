@@ -18,10 +18,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/PCM_internal.h>
+#include <electronic/Everything.h>
 #include <core/Operators.h>
 #include <core/DataMultiplet.h>
 #include <core/Units.h>
 #include <core/Util.h>
+
+PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), params(fsp)
+{	k2factor = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
+}
+
+void PCM::dumpDebug(FILE* fp) const
+{	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+	
+	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
+	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
+
+	fprintf(fp, "\nComponents of Adiel:\n");
+	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
+}
 
 //----------------------- The JDFT `shape function' and gradient ------------------
 

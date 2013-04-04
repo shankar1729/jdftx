@@ -43,7 +43,7 @@ inline void setPreconditioner(int i, double G2, double* preconditioner, double k
 }
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: FluidSolver(e), params(fsp), preconditioner(e.gInfo)
+: PCM(e, fsp), preconditioner(e.gInfo)
 {
 	//Initialize dielectric evaluation class:
 	dielectricEval = new NonlinearPCMeval::Dielectric(params.linearDielectric,
@@ -62,7 +62,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, params.k2factor/params.epsBulk, muByEps*muByEps);
+	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, k2factor/params.epsBulk, muByEps*muByEps);
 	preconditioner.set();
 }
 
@@ -210,7 +210,7 @@ void NonlinearPCM::saveState(const char* filename) const
 {	state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
+double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {	DataRMuEps Adiel_state;
 	return (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
 }
@@ -234,7 +234,7 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 }
 
 void NonlinearPCM::dumpDebug(const char* filenamePattern) const
-{	
+{
 	// Prepares to dump
 	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
@@ -242,34 +242,29 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
-
-	// Dumps the polarization fraction
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	DataRptrVec eps = getEps(state);
+	
+    PCM::dumpDebug(fp);
+	
+/*	DataRptrVec eps = getEps(state);
 	DataRptr eps_mag = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 	double Eaveraged = integral(eps_mag*shape*surfaceDensity)/integral(surfaceDensity);
 	double Eaveraged2 = integral(eps_mag*surfaceDensity)/integral(surfaceDensity);
-	
-	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
 	fprintf(fp, "\nSurface averaged epsilon: %f", Eaveraged);
-	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);
+	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);*/
 
 	fprintf(fp, "\n\nGradients wrt fit parameters:");
+	DataRptrVec shape_x = gradient(shape);
+	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
 	DataGptr Adiel_nCavityTilde;
 	DataGptr Adiel_rhoExplicitTilde;
 	DataRMuEps Adiel_state; (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
 	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
 	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
 	
-	fprintf(fp, "\nComponents of Adiel:\n");
-	Adiel.print(fp, true, "   %13s = %25.16lf\n");
-
-	fclose(fp);	
+	fclose(fp);
 	logPrintf("done\n"); logFlush();
-	
 }
+
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 {

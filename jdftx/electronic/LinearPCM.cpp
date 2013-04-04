@@ -24,14 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataMultiplet.h>
 #include <core/Thread.h>
 
-
-LinearPCMparams::LinearPCMparams(const FluidSolverParams& p) : FluidSolverParams(p)
-{	//Initialize extra parameters:
-	k2factor = (8*M_PI/T) * ionicConcentration * pow(ionicZelectrolyte,2);
-}
-
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: FluidSolver(e), params(fsp), Kkernel(e.gInfo)
+: PCM(e, fsp), Kkernel(e.gInfo)
 {
 	citePCM(fsp);
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
@@ -41,7 +35,7 @@ LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
 {	DataRptr epsilon = 1. + (params.epsBulk-1.) * shape;
 	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
-	if(params.k2factor) rhoTilde -= params.k2factor * J(shape*I(phiTilde)); // screening term
+	if(k2factor) rhoTilde -= k2factor * J(shape*I(phiTilde)); // screening term
 	return rhoTilde;
 }
 
@@ -66,12 +60,12 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsBulk);
-	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsBulk/params.k2factor));
+	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsBulk/k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/e.gInfo.detR); logFlush();
 
 	//Update the preconditioner
 	DataRptr epsilon = 1 + (params.epsBulk-1)*shape;
-	DataRptr kappaSq = params.ionicConcentration ? params.k2factor*shape : 0; //set kappaSq to null pointer if no screening
+	DataRptr kappaSq = params.ionicConcentration ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
 	applyFuncGsq(Kkernel.gInfo, setPreconditionerKernel, Kkernel.data, kRMS);
@@ -89,9 +83,10 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
+double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {
-	DataGptr& phi = state; // that's what we solved for in minimize
+	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
+	const DataGptr& phi = state; // that's what we solved for in minimize
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
 	Adiel_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
@@ -105,7 +100,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	//--- Screening contributions:
 	if(params.ionicConcentration)
 	{	DataRptr Iphi = I(phi); //potential in real space
-		Adiel_shape += (params.k2factor/(8*M_PI)) * (Iphi*Iphi);
+		Adiel_shape += (k2factor/(8*M_PI)) * (Iphi*Iphi);
 	}
 	//--- Cavitation contributions:
 	Cavitation::energyAndGrad(Adiel, shape, Adiel_shape, params);
@@ -138,6 +133,7 @@ void LinearPCM::dumpDensities(const char* filenamePattern) const
 
 void LinearPCM::dumpDebug(const char* filenamePattern) const
 {
+	// Prepares to dump
 	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
 	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
@@ -145,15 +141,16 @@ void LinearPCM::dumpDebug(const char* filenamePattern) const
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
 	
-	// Dumps the polarization fraction
+    PCM::dumpDebug(fp);
+	
+	fprintf(fp, "\n\nGradients wrt fit parameters:");
 	DataRptrVec shape_x = gradient(shape);
 	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	fprintf(fp, "\nCavity Information:\n");
-	fprintf(fp, "Volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Surface Area = %f\n", integral(surfaceDensity));
-	
-	fprintf(fp, "\nComponents of Adiel:\n");
-	Adiel.print(fp, true, "   %13s = %25.16lf\n");
+	DataGptr Adiel_nCavityTilde;
+	DataGptr Adiel_rhoExplicitTilde;
+	IonicGradient temp; get_Adiel_and_grad(Adiel_rhoExplicitTilde, Adiel_nCavityTilde, temp);
+	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
+	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
 	
 	fclose(fp);
 	logPrintf("done\n"); logFlush();

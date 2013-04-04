@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/LinearPCM.h>
 #include <core/DataMultiplet.h>
+#include <electronic/PCM_internal.h>
 
 //Forward declaration of helper classes:
 namespace NonlinearPCMeval
@@ -34,7 +35,7 @@ namespace NonlinearPCMeval
 typedef DataMultiplet<DataR,5> DataRMuEps;
 
 
-class NonlinearPCM : public FluidSolver, public Minimizable<DataRMuEps>
+class NonlinearPCM : public PCM, public Minimizable<DataRMuEps>
 {
 public:
 	DataRMuEps state; //!< State of the solver = the total electrostatic potential
@@ -56,7 +57,7 @@ public:
  
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
-	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces); //!< Get the minimized free energy and the n-gradient
+	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const; //!< Get the minimized free energy and the n-gradient
 
 	//! Compute gradient and free energy (with optional outputs)
 	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0) const;
@@ -67,13 +68,11 @@ public:
 	DataRMuEps precondition(const DataRMuEps& in);
 	
 private:
-	LinearPCMparams params;
-	DataRptr nCavity, shape, Acavity_shape;
+	DataRptr Acavity_shape;
 	DataGptr rhoExplicitTilde;
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
 	RealKernel preconditioner;
-	EnergyComponents Adiel; //!< cached energy components
 };
 
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

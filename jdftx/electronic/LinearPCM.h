@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -23,18 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/FluidSolver.h>
 #include <core/EnergyComponents.h>
 #include <core/Minimize.h>
+#include <electronic/PCM_internal.h>
 
-//! Some extra quantities specific to LinearPCM added here
-struct LinearPCMparams : public FluidSolverParams
-{
-	double k2factor; //!< Prefactor to kappaSq (computed from T, ionicConcentration and ionicZelectrolyte)
-
-	//! A copy constructor to set base-class variables and initialize dependent variables above
-	LinearPCMparams(const FluidSolverParams& p);
-};
-
-
-class LinearPCM : public FluidSolver, public LinearSolvable<DataGptr>
+class LinearPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
 	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
@@ -49,7 +40,7 @@ public:
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 
 	//! Get the minimized free energy and the electronic n-gradient
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces);
+	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces) const;
 
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
@@ -58,11 +49,8 @@ public:
 	void dumpDebug(const char* filenamePattern) const;
  
 private:
-	DataRptr nCavity, shape;
 	DataGptr rhoExplicitTilde;
-	LinearPCMparams params;
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
-	EnergyComponents Adiel; //!< cached energy components
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

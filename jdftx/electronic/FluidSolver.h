@@ -43,7 +43,7 @@ struct FluidSolver
 
 	//! Compute gradients with respect to electronic side variables, and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces
-	virtual double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)=0;
+	virtual double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const =0;
 
 	//grad_rhoExplicitTilde is d_fluid and grad_nCavityTilde is V_cavity
 

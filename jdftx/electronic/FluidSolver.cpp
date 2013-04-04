@@ -510,7 +510,7 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces)
+	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 	{
 		assert(AwaterCached); //Ensure that set() was called before calling get_Adiel_and_grad()
 		
