@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class SelfInteractionCorrection
 {
 	public:
-		void setup(const Everything& everything);
+		SelfInteractionCorrection(const Everything& everything);
 		~SelfInteractionCorrection();
 		
 		double operator()(std::vector<diagMatrix>* correctedEigenvalues); //! Evaluates the self interaction energy and (optionally) returns the corrected band eigenvalues

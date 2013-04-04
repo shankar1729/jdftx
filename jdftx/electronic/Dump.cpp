@@ -247,7 +247,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	if(ShouldDump(SelfInteractionCorrection))
-	{	SelfInteractionCorrection selfInteractionCorrection;  selfInteractionCorrection.setup(*e);
+	{	SelfInteractionCorrection selfInteractionCorrection(*e);
 		selfInteractionCorrection.dump(getFilename("SIC").c_str());
 	}
 

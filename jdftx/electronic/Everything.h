@@ -34,7 +34,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Energies.h>
 #include <electronic/ExCorr.h>
 #include <electronic/Dump.h>
-#include <electronic/SelfInteractionCorrection.h>
 #include <memory>
 
 class Everything

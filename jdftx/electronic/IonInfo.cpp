@@ -80,7 +80,7 @@ void IonInfo::setup(const Everything &everything)
 	while(counter < species.size())
 	{
 		if(species[counter]->atpos.size() == 0)
-		{	logPrintf("\nIgnoring unused pseudopotential %s.\n", species[counter]->name.c_str());
+		{	logPrintf("\nIgnoring unused pseudopotential '%s'\n", species[counter]->potfilename.c_str());
 			species.erase(species.begin()+counter);
 		}
 		else

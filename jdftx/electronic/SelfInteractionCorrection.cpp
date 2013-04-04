@@ -24,13 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/Util.h>
 
-void SelfInteractionCorrection::setup(const Everything& everything)
+SelfInteractionCorrection::SelfInteractionCorrection(const Everything& everything)
 {
-	e = &everything;
-	
-	if(e->exCorr.exxFactor())
-		die("Perdew-Zunger self-interaction correction can't be used with exact exchange!");
-	
+	e = &everything;	
 	DC.resize(3);
 }
 
@@ -109,6 +105,12 @@ void SelfInteractionCorrection::dump(const char* filenamePattern)
 {
 	// Prepares to dump
 	string filename(filenamePattern);
+	
+	if(e->exCorr.exxFactor())
+	{	logPrintf("WARNING: Perdew-Zunger self-interaction correction can't be used with exact exchange!\n");
+		return;
+	}
+	
 	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
 	
 	FILE* fp = fopen(filename.c_str(), "w");

@@ -36,6 +36,7 @@ public:
 	double Z; //!< Valence charge of the species (prefactor to 1/r in long-range part of pseudopotential)
 	int atomicNumber; //!< Atomic number of the species (0 if unavailable)
 	string name; //!< Identifier
+	string potfilename, pulayfilename;
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	#ifdef GPU_ENABLED
@@ -165,7 +166,6 @@ private:
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
 	PseudopotentialFormat pspFormat;
-	string potfilename, pulayfilename;
 	int lLocCpi; //!< local channel l for CPI files (Default: -1 => last channel in file)
 	int recStartLen, recStopLen; //!< record marker lengths for fortran binary sequential file format (for uspp)
 	double dGloc; //!< q-spacing for the local channel (default: 0.02)
