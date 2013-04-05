@@ -127,24 +127,51 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_GLSSA13:
-		{	switch(fluidType)
-			{	case FluidLinearPCM:
-					nc = 3.7e-4;
+		{	
+			switch(solventName)
+			{
+				case CHCl3:
+				{	nc = 2.4e-05;
 					sigma = 0.6;
-					cavityTension = 5.4e-6;
+					cavityTension = -9.066e-6;
 					break;
-				case FluidNonlinearPCM:
-					nc = 1.0e-3;
-					sigma = 0.6;
-					cavityTension = 9.5e-6;
+				}
+				case CCl4:
+				{	switch(fluidType)
+					{	case FluidLinearPCM:
+							nc = 1.15e-4;
+							sigma = 0.6;
+							cavityTension = -8.99e-06;
+							break;
+						case FluidNonlinearPCM:
+							die("\nERROR: You can't use NonlinearPCM with CCl4 as it does not have a permanent dipole moment!\n");
+						default: //Other fluids do not use these parameters
+							break;
+					}
 					break;
-				default: //Other fluids do not use these parameters
+				}
+				default: // For water and unparametrized fluids
+				{	switch(fluidType)
+					{	case FluidLinearPCM:
+							nc = 3.7e-4;
+							sigma = 0.6;
+							cavityTension = 5.4e-6;
+							break;
+						case FluidNonlinearPCM:
+							nc = 1.0e-3;
+							sigma = 0.6;
+							cavityTension = 9.5e-6;
+							break;
+						default: //Other fluids do not use these parameters
+							break;
+					}
+					if(solventName != H2O)
+					{	logPrintf("\nWARNING: GLSSA has not been parametrized for this solvent, using bulk surface tension for effective cavity tension and water parameters for cavity size (nc, sigma).\n");
+						cavityTension = sigmaBulk;
+					}
 					break;
-			}
-			if( (fluidType==FluidLinearPCM || fluidType==FluidNonlinearPCM) && solventName != H2O)
-			{	cavityTension = sigmaBulk;
-				initWarnings += "WARNING: PCM variant GLSSA13 has been fit only for H2O; using nc and sigma from H2O fit and bulk value for cavityTension.\n";
-			}
+				}
+			}			
 			break;
 		}
 		case PCM_LA12:
