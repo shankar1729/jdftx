@@ -94,7 +94,8 @@ void Everything::setup()
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
 			coulombParams.omegaSet.insert(ec->exxRange());
-
+	if(dump.polarizability) coulombParams.omegaSet.insert(0.);
+	
 	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
 	if(coulombParams.omegaSet.size() || dump.dos)
 	{	//Initialize k-point sampled supercell:

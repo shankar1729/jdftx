@@ -20,10 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_LINEARPCM_H
 #define JDFTX_ELECTRONIC_LINEARPCM_H
 
-#include <electronic/FluidSolver.h>
-#include <core/EnergyComponents.h>
+#include <electronic/PCM.h>
 #include <core/Minimize.h>
-#include <electronic/PCM_internal.h>
 
 class LinearPCM : public PCM, public LinearSolvable<DataGptr>
 {
@@ -49,7 +47,6 @@ public:
 	void dumpDebug(const char* filenamePattern) const;
  
 private:
-	DataGptr rhoExplicitTilde;
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
 };
 

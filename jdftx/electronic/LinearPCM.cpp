@@ -20,20 +20,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/LinearPCM.h>
 #include <electronic/PCM_internal.h>
-#include <core/DataIO.h>
 #include <core/DataMultiplet.h>
+#include <core/DataIO.h>
 #include <core/Thread.h>
 
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), Kkernel(e.gInfo)
 {
-	citePCM(fsp);
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	Cavitation::print(fsp);
 }
 
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
-{	DataRptr epsilon = 1. + (params.epsBulk-1.) * shape;
+{	DataRptr epsilon = 1. + (fsp.epsBulk-1.) * shape;
 	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
 	if(k2factor) rhoTilde -= k2factor * J(shape*I(phiTilde)); // screening term
 	return rhoTilde;
@@ -54,18 +53,16 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
 	this->nCavity = I(nCavityTilde);
 
-	//Compute cavity shape function (0 to 1)
-	shape = DataRptr(DataR::alloc(e.gInfo,isGpuEnabled()));
-	ShapeFunction::compute(nCavity, shape, params);
+	updateCavity();
 	
 	//Info:
-	logPrintf("\tLinear fluid (dielectric constant: %g", params.epsBulk);
-	if(params.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(params.epsBulk/k2factor));
+	logPrintf("\tLinear fluid (dielectric constant: %g", fsp.epsBulk);
+	if(fsp.ionicConcentration) logPrintf(", screening length: %g Bohr", sqrt(fsp.epsBulk/k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/e.gInfo.detR); logFlush();
 
 	//Update the preconditioner
-	DataRptr epsilon = 1 + (params.epsBulk-1)*shape;
-	DataRptr kappaSq = params.ionicConcentration ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
+	DataRptr epsilon = 1 + (fsp.epsBulk-1)*shape;
+	DataRptr kappaSq = fsp.ionicConcentration ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
 	applyFuncGsq(Kkernel.gInfo, setPreconditionerKernel, Kkernel.data, kRMS);
@@ -96,18 +93,16 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	//--- Dielectric contributions:
 	DataRptrVec gradPhi = I(gradient(phi));
 	DataRptr gradPhiSq = gradPhi[0]*gradPhi[0] + gradPhi[1]*gradPhi[1] + gradPhi[2]*gradPhi[2];
-	DataRptr Adiel_shape = (-(params.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
+	DataRptr Adiel_shape = (-(fsp.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
 	//--- Screening contributions:
-	if(params.ionicConcentration)
+	if(fsp.ionicConcentration)
 	{	DataRptr Iphi = I(phi); //potential in real space
 		Adiel_shape += (k2factor/(8*M_PI)) * (Iphi*Iphi);
 	}
-	//--- Cavitation contributions:
-	Cavitation::energyAndGrad(Adiel, shape, Adiel_shape, params);
 	
-	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
-	DataRptr Adiel_nCavity(DataR::alloc(e.gInfo));
-	ShapeFunction::propagateGradient(nCavity, Adiel_shape, Adiel_nCavity, params);
+	//Propagate shape gradients to A_nCavity:
+	DataRptr Adiel_nCavity;
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
 	return Adiel;
@@ -149,7 +144,7 @@ void LinearPCM::dumpDebug(const char* filenamePattern) const
 	DataGptr Adiel_nCavityTilde;
 	DataGptr Adiel_rhoExplicitTilde;
 	IonicGradient temp; get_Adiel_and_grad(Adiel_rhoExplicitTilde, Adiel_nCavityTilde, temp);
-	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
+	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./fsp.nc)*nCavity)));
 	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
 	
 	fclose(fp);

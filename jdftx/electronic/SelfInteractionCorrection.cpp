@@ -71,17 +71,17 @@ double SelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	nullToZero(orbitalSpinDensity[1], e->gInfo);
 	
 	// Calculate the orbital KE if needed
-	DataRptrCollection KEDensity(2);
+	DataRptrCollection KEdensity(2);
 	if(e->exCorr.needsKEdensity())
-	{	nullToZero(KEDensity[0], e->gInfo); nullToZero(KEDensity[1], e->gInfo);
+	{	nullToZero(KEdensity[0], e->gInfo); nullToZero(KEdensity[1], e->gInfo);
 		for(int iDir=0; iDir<3; iDir++)
 		{	DataRptr tempKE; nullToZero(tempKE, e->gInfo);
 			callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n))->dataPref(), tempKE->dataPref());
-			KEDensity[0] += 0.5 * tempKE;
+			KEdensity[0] += 0.5 * tempKE;
 		}
 	}
 	
-	double xcEnergy = e->exCorr(orbitalSpinDensity, 0, e->exCorr.needsKEdensity(), &KEDensity, 0);
+	double xcEnergy = e->exCorr(orbitalSpinDensity, 0, e->exCorr.needsKEdensity(), &KEdensity, 0);
 	
 	//logPrintf("\n%i\t%i\t%f\t%f\n", q, n, coulombEnergy, xcEnergy);
 	

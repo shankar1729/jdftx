@@ -250,7 +250,10 @@ extern "C"
 		double* RWORK, int* LRWORK, int* IWORK, int* LIWORK, int* INFO);
 }
 void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
-{	assert(nCols()==nRows());
+{	static StopWatch watch("matrix::diagonalize");
+	watch.start();
+	
+	assert(nCols()==nRows());
 	int N = nRows();
 	assert(N > 0);
 	
@@ -292,6 +295,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	delete[] iwork;
 	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); gdbStackTraceExit(1); }
 	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); gdbStackTraceExit(1); }
+	watch.stop();
 }
 
 //Apply pending transpose / dagger operations:

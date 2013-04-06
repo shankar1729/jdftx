@@ -19,13 +19,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/NonlinearPCM.h>
+#include <electronic/LinearPCM.h>
 #include <electronic/PCM_internal.h>
-#include <core/Units.h>
-#include <core/DataIO.h>
-#include <core/Operators.h>
 #include <electronic/operators.h>
+#include <core/DataIO.h>
 #include <core/Util.h>
-#include <core/DataMultiplet.h>
 
 //Utility functions to extract/set the members of a MuEps
 inline DataRptr& getMuPlus(DataRMuEps& X) { return X[0]; }
@@ -46,23 +44,22 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), preconditioner(e.gInfo)
 {
 	//Initialize dielectric evaluation class:
-	dielectricEval = new NonlinearPCMeval::Dielectric(params.linearDielectric,
-		params.T, params.Nbulk, params.pMol, params.epsBulk, params.epsInf);
+	dielectricEval = new NonlinearPCMeval::Dielectric(fsp.linearDielectric,
+		fsp.T, fsp.Nbulk, fsp.pMol, fsp.epsBulk, fsp.epsInf);
 	
 	//Optionally initialize screening evaluation class:
 	screeningEval = 0;
-	if(params.ionicConcentration)
-		screeningEval = new NonlinearPCMeval::Screening(params.linearScreening,
-			params.T, params.ionicConcentration, params.ionicZelectrolyte,
-			params.ionicRadiusPlus, params.ionicRadiusMinus, params.epsBulk);
+	if(fsp.ionicConcentration)
+		screeningEval = new NonlinearPCMeval::Screening(fsp.linearScreening,
+			fsp.T, fsp.ionicConcentration, fsp.ionicZelectrolyte,
+			fsp.ionicRadiusPlus, fsp.ionicRadiusMinus, fsp.epsBulk);
 	
-	citePCM(fsp);
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	Cavitation::print(fsp);
 
 	//Initialize preconditioner (for mu channel):
-	double muByEps = (params.ionicZelectrolyte/params.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, k2factor/params.epsBulk, muByEps*muByEps);
+	double muByEps = (fsp.ionicZelectrolyte/fsp.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
+	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, k2factor/fsp.epsBulk, muByEps*muByEps);
 	preconditioner.set();
 }
 
@@ -81,7 +78,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
 		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
 		fpLog = fopen("/dev/null", "w"); //disable iteration log from LinearPCM
-		LinearPCM linearPCM(e, params);
+		LinearPCM linearPCM(e, fsp);
 		linearPCM.set(rhoExplicitTilde, nCavityTilde);
 		linearPCM.minimizeFluid();
 		fclose(fpLog);
@@ -90,12 +87,12 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		//mu:
 		DataRptr mu;
 		if(screeningEval && screeningEval->linear)
-		{	mu = (-params.ionicZelectrolyte/params.T) * I(linearPCM.state);
+		{	mu = (-fsp.ionicZelectrolyte/fsp.T) * I(linearPCM.state);
 			mu -= integral(mu)/e.gInfo.detR; //project out G=0
 		}
 		else initZero(mu, e.gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
-		DataRptrVec eps = (-params.pMol/params.T) * I(gradient(linearPCM.state));
+		DataRptrVec eps = (-fsp.pMol/fsp.T) * I(gradient(linearPCM.state));
 		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 		DataRptr Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
 		DataRptr epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
@@ -107,13 +104,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 	this->rhoExplicitTilde = rhoExplicitTilde;
 	this->nCavity = I(nCavityTilde);
 
-	//Initialize shape function
-	nullToZero(shape,e.gInfo);
-	ShapeFunction::compute(nCavity, shape, params);
-
-	//Compute the cavitation energy and gradient
-	Acavity_shape = 0;
-	Cavitation::energyAndGrad(Adiel, shape, Acavity_shape, params);
+	updateCavity();
 }
 
 double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
@@ -185,9 +176,8 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 		(*Adiel_rhoExplicitTilde)->setGzero(Adiel_Qexp);
 	}
 	if(Adiel_nCavityTilde)
-	{	Adiel_shape  += Acavity_shape; // Add the cavitation contribution to Adiel_shape
-		DataRptr Adiel_nCavity(DataR::alloc(e.gInfo));
-		ShapeFunction::propagateGradient(nCavity, Adiel_shape, Adiel_nCavity, params);
+	{	DataRptr Adiel_nCavity;
+		propagateCavityGradients(Adiel_shape, Adiel_nCavity);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	
@@ -258,7 +248,7 @@ void NonlinearPCM::dumpDebug(const char* filenamePattern) const
 	DataGptr Adiel_nCavityTilde;
 	DataGptr Adiel_rhoExplicitTilde;
 	DataRMuEps Adiel_state; (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
-	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./params.nc)*nCavity)));
+	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./fsp.nc)*nCavity)));
 	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
 	
 	fclose(fp);
@@ -284,8 +274,8 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 			DataRptr muMinus = getMuMinus(state);
 			double Qexp = integral(rhoExplicitTilde);
 			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
-			Nplus = params.ionicConcentration * shape * (params.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
-			Nminus = params.ionicConcentration * shape * (params.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
+			Nplus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
+			Nminus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
 		}
 		DUMP(Nplus, "N+");
 		DUMP(Nminus, "N-");

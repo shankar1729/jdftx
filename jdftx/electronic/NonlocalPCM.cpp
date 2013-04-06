@@ -169,7 +169,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	
 	//Compute cavity shape function (0 to 1)
 	nProduct = I(nFluid * nCavityTilde);
-	ShapeFunction::compute(nProduct, shape, params);
+	ShapeFunction::compute(nProduct, shape, params.nc, params.sigma);
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
@@ -224,7 +224,7 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
 		}
 	}
-	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, params);
+	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, params.nc, params.sigma);
 	grad_nCavityTilde = nFluid * J(grad_nProduct);
 
 	//Compute and return A_diel:

@@ -21,16 +21,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_NONLINEARPCM_H
 #define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
-#include <electronic/LinearPCM.h>
+#include <electronic/PCM.h>
 #include <core/DataMultiplet.h>
-#include <electronic/PCM_internal.h>
+#include <core/Minimize.h>
 
-//Forward declaration of helper classes:
-namespace NonlinearPCMeval
-{
-	struct Screening;
-	struct Dielectric;
-}
+
+namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward declaration of helper classes
 
 typedef DataMultiplet<DataR,5> DataRMuEps;
 
@@ -68,8 +64,6 @@ public:
 	DataRMuEps precondition(const DataRMuEps& in);
 	
 private:
-	DataRptr Acavity_shape;
-	DataGptr rhoExplicitTilde;
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
 	RealKernel preconditioner;

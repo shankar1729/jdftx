@@ -31,6 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExactExchange.h>
 #include <electronic/SelfInteractionCorrection.h>
 #include <electronic/DOS.h>
+#include <electronic/Polarizability.h>
 #include <electronic/FluidSolver.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
@@ -195,13 +196,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	// Dumps tau (positive Kinetic Energy density)
-	if(ShouldDump(KEDensity))
+	if(ShouldDump(KEdensity))
 	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
 		if(eInfo.spinType == SpinZ)
-		{	DUMP(tau[0], "KEDensity_up", KEDensity)
-			DUMP(tau[1], "KEDensity_dn", KEDensity)
+		{	DUMP(tau[0], "KEdensity_up", KEdensity)
+			DUMP(tau[1], "KEdensity_dn", KEdensity)
 		}
-		else DUMP(tau[0], "KEDensity", KEDensity)
+		else DUMP(tau[0], "KEdensity", KEdensity)
 	}
 	
 	if(ShouldDump(BandEigs))
@@ -246,7 +247,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(SelfInteractionCorrection))
+	if(ShouldDump(SIC))
 	{	SelfInteractionCorrection selfInteractionCorrection(*e);
 		selfInteractionCorrection.dump(getFilename("SIC").c_str());
 	}
@@ -338,6 +339,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDumpNoAll(DOS))
 	{	dos->dump();
+	}
+	
+	if(ShouldDumpNoAll(Polarizability))
+	{	polarizability->dump(*e);
 	}
 }
 

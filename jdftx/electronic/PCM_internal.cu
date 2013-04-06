@@ -23,22 +23,22 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 namespace ShapeFunction
 {
 	__global__
-	void compute_kernel(int N, const double* nCavity, double* shape, const double nc, const double sigma)
-	{	int i = kernelIndex1D(); if(i<N) compute_calc(i, nCavity, shape, nc, sigma);
+	void compute_kernel(int N, const double* n, double* shape, const double nc, const double sigma)
+	{	int i = kernelIndex1D(); if(i<N) compute_calc(i, n, shape, nc, sigma);
 	}
-	void compute_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma)
+	void compute_gpu(int N, const double* n, double* shape, const double nc, const double sigma)
 	{	GpuLaunchConfig1D glc(compute_kernel, N);
-		compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, shape, nc, sigma);
+		compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, shape, nc, sigma);
 		gpuErrorCheck();
 	}
 
 	__global__
-	void propagateGradient_kernel(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-	{	int i = kernelIndex1D(); if(i<N) propagateGradient_calc(i, nCavity, grad_shape, grad_nCavity, nc, sigma);
+	void propagateGradient_kernel(int N, const double* n, const double* grad_shape, double* grad_n, const double nc, const double sigma)
+	{	int i = kernelIndex1D(); if(i<N) propagateGradient_calc(i, n, grad_shape, grad_n, nc, sigma);
 	}
-	void propagateGradient_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
+	void propagateGradient_gpu(int N, const double* n, const double* grad_shape, double* grad_n, const double nc, const double sigma)
 	{	GpuLaunchConfig1D glc(propagateGradient_kernel, N);
-		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, nCavity, grad_shape, grad_nCavity, nc, sigma);
+		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, grad_shape, grad_n, nc, sigma);
 		gpuErrorCheck();
 	}
 }

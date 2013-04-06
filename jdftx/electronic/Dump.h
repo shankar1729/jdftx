@@ -40,17 +40,14 @@ enum DumpFrequency
 //! Dump variable selection options:
 enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those required to restart calculation
 	DumpIonicPositions, DumpForces, DumpLattice, DumpIonicDensity, //Ionic positions, Forces, Lattice vectors, Nuclear charge density
-	DumpElecDensity, DumpCoreDensity, DumpFluidDensity, // electronic valence and core densities, fluid densities
-	DumpKEDensity, // Dumps tau (positive kinetic energy density)
+	DumpElecDensity, DumpCoreDensity, DumpKEdensity, DumpFluidDensity, // electronic valence, core and KE densities, fluid densities
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs,
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
-	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext, DumpDOS,
-	DumpDipole, // Dumps the dipole moment of the explicit charge distribution
+	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, 
 	DumpDelim, //special value used as a delimiter during command processing
-	DumpSelfInteractionCorrection //Perdew-Zunger self interaction errors
 };
 
 
@@ -69,6 +66,7 @@ public:
 	
 	Wannier wannier; //!< wannier function calculator
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
+	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
 private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.

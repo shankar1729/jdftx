@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <electronic/Polarizability.h>
 
 
 EnumStringMap<DumpFrequency> freqMap
@@ -49,6 +50,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpIonicDensity, "IonicDensity",
 	DumpElecDensity, "ElecDensity",
 	DumpCoreDensity, "CoreDensity",
+	DumpKEdensity, "KEdensity",
 	DumpFluidDensity, "FluidDensity",
 	DumpDvac, "Dvac",
 	DumpDfluid, "Dfluid",
@@ -70,9 +72,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpWannier, "Wannier",
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
-  	DumpDipole, "Dipole",
-	DumpKEDensity, "KEDensity",
-	DumpSelfInteractionCorrection, "SelfInteractionCorrection"
+	DumpSIC, "SelfInteractionCorrection",
+	DumpDipole, "Dipole"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -84,6 +85,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpIonicDensity,   "Nuclear charge density (with gaussians)",
 	DumpElecDensity,    "Electronic densities (n or nup,ndn)",
 	DumpCoreDensity,    "Total core electron density (from partial core corrections)",
+	DumpKEdensity,      "Kinetic energy density of the valence electrons",
 	DumpFluidDensity,   "Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)",
 	DumpDvac,           "Electrostatic potential due to explicit system alone",
 	DumpDfluid,         "Electrostatic potential due to fluid alone",
@@ -105,10 +107,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpWannier,        "Compute Maximally-Localized Wannier Functions (see wannier) [not in All]",
 	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see density-of-states) [not in All]",
-	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
-	DumpKEDensity, 		 "The Kohn-Sham kinetic energy density of the valence electrons (reduces to the exact von Weizsäcker KE for a one-electron systems)",
-	DumpSelfInteractionCorrection, "Calculates Perdew-Zunger self interaction errors for the Kohn-Sham orbitals"
-	
+	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
+	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)"
 );
 
 struct CommandDump : public Command
@@ -223,3 +223,55 @@ struct CommandDumpName : public Command
 	}
 }
 commandDumpName;
+
+
+EnumStringMap<Polarizability::EigenBasis> polarizabilityMap
+(	Polarizability::NonInteracting, "NonInteracting",
+	Polarizability::External, "External",
+	Polarizability::Total, "Total"
+);
+
+struct CommandPolarizability : public Command
+{
+    CommandPolarizability() : Command("polarizability")
+	{
+		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
+		comments = "Output polarizability matrix in specified eigeneigenBasis";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.dump.polarizability = std::make_shared<Polarizability>();
+		pl.get(e.dump.polarizability->eigenBasis, Polarizability::NonInteracting, polarizabilityMap, "eigenBasis");
+		pl.get(e.dump.polarizability->Ecut, 0., "Ecut");
+		pl.get(e.dump.polarizability->nEigs, 0, "nEigs");
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpPolarizability));
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %lg %d", polarizabilityMap.getString(e.dump.polarizability->eigenBasis),
+			e.dump.polarizability->Ecut, e.dump.polarizability->nEigs);
+	}
+}
+commandPolarizability;
+
+struct CommandPolarizabilityKdiff : public Command
+{
+    CommandPolarizabilityKdiff() : Command("polarizability-kdiff")
+	{
+		format = "<dk0> <dk1> <dk2>";
+		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.";
+		
+		require("polarizability");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.dump.polarizability->dk[0], 0., "dk0", true);
+		pl.get(e.dump.polarizability->dk[1], 0., "dk1", true);
+		pl.get(e.dump.polarizability->dk[2], 0., "dk2", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(int i=0; i<3; i++) logPrintf("%lg ", e.dump.polarizability->dk[i]);
+	}
+}
+commandPolarizabilityKdiff;

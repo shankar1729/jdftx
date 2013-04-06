@@ -24,65 +24,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 #include <core/Util.h>
 
-PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), params(fsp)
-{	k2factor = (8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2);
-}
-
-void PCM::dumpDebug(FILE* fp) const
-{	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	
-	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
-
-	fprintf(fp, "\nComponents of Adiel:\n");
-	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
-}
-
-//----------------------- The JDFT `shape function' and gradient ------------------
 
 namespace ShapeFunction
 {
-	void compute(int N, const double* nCavity, double* shape, const double nc, const double sigma)
-	{	threadedLoop(compute_calc, N, nCavity, shape, nc, sigma);
+	void compute(int N, const double* n, double* shape, const double nc, const double sigma)
+	{	threadedLoop(compute_calc, N, n, shape, nc, sigma);
 	}
-	void propagateGradient(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-	{	threadedLoop(propagateGradient_calc, N, nCavity, grad_shape, grad_nCavity, nc, sigma);
+	void propagateGradient(int N, const double* n, const double* grad_shape, double* grad_n, const double nc, const double sigma)
+	{	threadedLoop(propagateGradient_calc, N, n, grad_shape, grad_n, nc, sigma);
 	}
 	#ifdef GPU_ENABLED
-	void compute_gpu(int N, const double* nCavity, double* shape, const double nc, const double sigma);
-	void propagateGradient_gpu(int N, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma);
+	void compute_gpu(int N, const double* n, double* shape, const double nc, const double sigma);
+	void propagateGradient_gpu(int N, const double* n, const double* grad_shape, double* grad_n, const double nc, const double sigma);
 	#endif
-	void compute(const DataRptr& nCavity, DataRptr& shape, const FluidSolverParams& fsp)
-	{	nullToZero(shape, nCavity->gInfo);
-		callPref(compute)(nCavity->gInfo.nr, nCavity->dataPref(), shape->dataPref(), fsp.nc, fsp.sigma);
+	void compute(const DataRptr& n, DataRptr& shape, const double nc, const double sigma)
+	{	nullToZero(shape, n->gInfo);
+		callPref(compute)(n->gInfo.nr, n->dataPref(), shape->dataPref(), nc, sigma);
 	}
-	void propagateGradient(const DataRptr& nCavity, const DataRptr& grad_shape, DataRptr& grad_nCavity, const FluidSolverParams& fsp)
-	{	nullToZero(grad_nCavity, nCavity->gInfo);
-		callPref(propagateGradient)(nCavity->gInfo.nr, nCavity->dataPref(), grad_shape->dataPref(), grad_nCavity->dataPref(), fsp.nc, fsp.sigma);
-	}
-}
-
-void citePCM(const FluidSolverParams& fsp)
-{
-	switch(fsp.pcmVariant)
-	{	case PCM_SGA13:
-			Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
-				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
-			break;
-		case PCM_GLSSA13:
-			Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
-				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189");
-			break;
-		case PCM_LA12:
-		case PCM_PRA05:
-			if(fsp.ionicConcentration)
-				Citations::add("Linear dielectric fluid model with ionic screening",
-					"K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
-			else
-				Citations::add("Linear dielectric fluid model",
-					"S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
-			break;
+	void propagateGradient(const DataRptr& n, const DataRptr& grad_shape, DataRptr& grad_n, const double nc, const double sigma)
+	{	nullToZero(grad_n, n->gInfo);
+		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), nc, sigma);
 	}
 }
 
