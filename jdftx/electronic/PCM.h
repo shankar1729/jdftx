@@ -29,6 +29,8 @@ class PCM : public FluidSolver
 public:
 	PCM(const Everything& e, const FluidSolverParams& fsp);
 
+	void dumpDebug(const char* filenamePattern) const; //!< generate fluidDebug text file with common info to all PCMs
+
 protected:
 	FluidSolverParams fsp;
 	double k2factor; //!< Prefactor to kappaSq
@@ -37,12 +39,14 @@ protected:
 	DataGptr rhoExplicitTilde; //!< Charge density of explicit (electronic) system
 	DataRptr nCavity; //!< Cavity determining electron density (includes core and chargeball contributions)
 	DataRptr shape, shapeEx; //!< Cavity shape function (and expanded shape function for the SGA13 variant)
-	DataRptr Acavity_shape, Acavity_shapeEx; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
+
+	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
-	void dumpDebug(FILE* fp) const;
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate gradients w.r.t shape function (including cached cavity gradients) to those w.r.t nCavity
+private:
+	DataRptr Acavity_shape, Acavity_shapeEx; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
+	double A_nc, A_tension, A_vdwScale; //!< Cached deerivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 };
-
 
 #endif // JDFTX_ELECTRONIC_PCM_H

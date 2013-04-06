@@ -44,7 +44,6 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 	void dumpDensities(const char* filenamePattern) const;
-	void dumpDebug(const char* filenamePattern) const;
  
 private:
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner

@@ -48,55 +48,6 @@ namespace ShapeFunction
 }
 
 
-namespace Cavitation
-{
-	void energyAndGrad(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
-	{	switch(fsp.pcmVariant)
-		{	case PCM_SGA13:
-				energyAndGradWDA(E, shape, E_shape, fsp);
-				break;
-			case PCM_GLSSA13:
-				energyAndGradEffectiveTension(E, shape, E_shape, fsp);
-				break;
-			case PCM_LA12:
-			case PCM_PRA05:
-			default:
-				break; //no contribution
-		}
-	}
-	
-	void energyAndGradEffectiveTension(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
-	{	DataRptrVec shape_x = gradient(shape);
-		DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-		double surfaceArea = integral(surfaceDensity);
-		DataRptr invSurfaceDensity = inv(surfaceDensity);
-		E_shape += (-fsp.cavityTension)*divergence(shape_x*invSurfaceDensity); // Surface term
-		E["CavityTension"] = surfaceArea*fsp.cavityTension;
-	}
-	
-	void energyAndGradWDA(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp)
-	{	die("Not yet implemented.\n");
-	}
-	
-	void print(const FluidSolverParams& fsp)
-	{	switch(fsp.pcmVariant)
-		{	case PCM_SGA13:
-				logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n",
-					fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
-				logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
-				break;
-			case PCM_GLSSA13:
-				logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
-				break;
-			case PCM_LA12:
-			case PCM_PRA05:
-			default:
-				logPrintf("   No cavitation model.\n");
-				break;
-		}
-	}
-}
-
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {

@@ -54,9 +54,6 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 			fsp.T, fsp.ionicConcentration, fsp.ionicZelectrolyte,
 			fsp.ionicRadiusPlus, fsp.ionicRadiusMinus, fsp.epsBulk);
 	
-	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
-	Cavitation::print(fsp);
-
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (fsp.ionicZelectrolyte/fsp.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
 	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, k2factor/fsp.epsBulk, muByEps*muByEps);
@@ -223,36 +220,14 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 	return out;
 }
 
-void NonlinearPCM::dumpDebug(const char* filenamePattern) const
+void NonlinearPCM::printDebug(FILE* fp) const
 {
-	// Prepares to dump
-	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
-
-	FILE* fp = fopen(filename.c_str(), "w");
-	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
-	
-    PCM::dumpDebug(fp);
-	
 /*	DataRptrVec eps = getEps(state);
 	DataRptr eps_mag = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 	double Eaveraged = integral(eps_mag*shape*surfaceDensity)/integral(surfaceDensity);
 	double Eaveraged2 = integral(eps_mag*surfaceDensity)/integral(surfaceDensity);
 	fprintf(fp, "\nSurface averaged epsilon: %f", Eaveraged);
-	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2);*/
-
-	fprintf(fp, "\n\nGradients wrt fit parameters:");
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	DataGptr Adiel_nCavityTilde;
-	DataGptr Adiel_rhoExplicitTilde;
-	DataRMuEps Adiel_state; (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
-	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./fsp.nc)*nCavity)));
-	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
-	
-	fclose(fp);
-	logPrintf("done\n"); logFlush();
+	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2); */
 }
 
 

@@ -27,8 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), Kkernel(e.gInfo)
 {
-	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
-	Cavitation::print(fsp);
 }
 
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
@@ -124,29 +122,4 @@ void LinearPCM::dumpDensities(const char* filenamePattern) const
 	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
 	saveRawBinary(shape, filename.c_str());
 	logPrintf("done.\n"); logFlush();
-}
-
-void LinearPCM::dumpDebug(const char* filenamePattern) const
-{
-	// Prepares to dump
-	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
-
-	FILE* fp = fopen(filename.c_str(), "w");
-	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
-	
-    PCM::dumpDebug(fp);
-	
-	fprintf(fp, "\n\nGradients wrt fit parameters:");
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	DataGptr Adiel_nCavityTilde;
-	DataGptr Adiel_rhoExplicitTilde;
-	IonicGradient temp; get_Adiel_and_grad(Adiel_rhoExplicitTilde, Adiel_nCavityTilde, temp);
-	fprintf(fp, "\nE_nc = %f", integral(I(Adiel_nCavityTilde)*(-(1./fsp.nc)*nCavity)));
-	fprintf(fp, "\nE_t = %f", integral(surfaceDensity));
-	
-	fclose(fp);
-	logPrintf("done\n"); logFlush();
 }

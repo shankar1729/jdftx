@@ -25,15 +25,19 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 {
 	k2factor = (8*M_PI/fsp.T) * fsp.ionicConcentration * pow(fsp.ionicZelectrolyte,2);
 
-	//Add relevant citations:
+	//Print common info and add relevant citations:
+	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
 	{	case PCM_SGA13:
 			Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
+			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
+			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
 			break;
 		case PCM_GLSSA13:
 			Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
 				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189");
+			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
 			break;
 		case PCM_LA12:
 		case PCM_PRA05:
@@ -43,6 +47,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 			else
 				Citations::add("Linear dielectric fluid model",
 					"S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
+			logPrintf("   No cavitation model.\n");
 			break;
 	}
 }
@@ -53,17 +58,41 @@ void PCM::updateCavity()
 	ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
 	//Compute and cache cavitation energy and gradients:
-	Acavity_shape = 0;
-	Cavitation::energyAndGrad(Adiel, shape, Acavity_shape, fsp);
+	switch(fsp.pcmVariant)
+	{	case PCM_SGA13:
+		{	die("Not yet implemented.\n");
+			break;
+		}
+		case PCM_GLSSA13:
+		{	DataRptrVec shape_x = gradient(shape);
+			DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+			DataRptr invSurfaceDensity = inv(surfaceDensity);
+			A_tension = integral(surfaceDensity);
+			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
+			Acavity_shape = (-fsp.cavityTension)*divergence(shape_x*invSurfaceDensity);
+			break;
+		}
+		case PCM_LA12:
+		case PCM_PRA05:
+		default:
+			break; //no contribution
+	}
 }
 
 void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const
-{	//Compute nCavity gradient including cached cvaitation gradient:
+{	//Compute nCavity gradient including cached cavitation gradient:
 	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
+	((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 }
 
-void PCM::dumpDebug(FILE* fp) const
-{	DataRptrVec shape_x = gradient(shape);
+void PCM::dumpDebug(const char* filenamePattern) const
+{	string filename(filenamePattern);
+	filename.replace(filename.find("%s"), 2, "Debug");
+	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
+	FILE* fp = fopen(filename.c_str(), "w");
+	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
+
+	DataRptrVec shape_x = gradient(shape);
 	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
 	
 	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
@@ -71,4 +100,13 @@ void PCM::dumpDebug(FILE* fp) const
 
 	fprintf(fp, "\nComponents of Adiel:\n");
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
+	
+	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
+	fprintf(fp, "   E_nc = %f\n", A_nc);
+	fprintf(fp, "   E_t = %f\n", A_tension);
+
+	printDebug(fp);
+	
+	fclose(fp);
+	logPrintf("done\n"); logFlush();
 }

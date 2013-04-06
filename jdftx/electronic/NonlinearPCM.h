@@ -49,7 +49,6 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 	void dumpDensities(const char* filenamePattern) const;
-	void dumpDebug(const char* filenamePattern) const;
  
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
@@ -62,7 +61,9 @@ public:
 	void step(const DataRMuEps& dir, double alpha);
 	double compute(DataRMuEps* grad);
 	DataRMuEps precondition(const DataRMuEps& in);
-	
+
+protected:
+	void printDebug(FILE* fp) const;
 private:
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
