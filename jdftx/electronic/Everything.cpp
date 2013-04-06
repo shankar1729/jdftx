@@ -25,6 +25,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void Everything::setup()
 {
+	//Removes unused pseudopotentials
+	size_t counter = 0;
+	while(counter < iInfo.species.size())
+	{	if(iInfo.species[counter]->atpos.size() == 0)
+		{	iInfo.species.erase(iInfo.species.begin()+counter);
+		}
+		else
+			counter++;
+	}
+	
 	//Symmetries (phase 1: lattice+basis dependent)
 	symm.setup(*this);
 	
