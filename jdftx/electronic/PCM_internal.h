@@ -34,24 +34,11 @@ namespace ShapeFunction
 	//! Compute the shape function (0 to 1) given the cavity-determining electron density
 	void compute(const DataRptr& n, DataRptr& shape, double nc, double sigma);
 
-	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density
+	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density (accumulate to E_n)
 	void propagateGradient(const DataRptr& n, const DataRptr& E_shape, DataRptr& E_n, double nc, double sigma);
-}
-
-namespace Cavitation
-{
-	//! Compute cavitation energy and accumulate its gradient w.r.t cavity shape.
-	//! Top level function that switches depending on fluidType and pcmVariant
-	void energyAndGrad(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
-
-	//! Surface area with effective tension model
-	void energyAndGradEffectiveTension(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
-
-	//! Weighted density model for cavitation with pair-potential vdW corrections
-	void energyAndGradWDA(EnergyComponents& E, const DataRptr& shape, DataRptr& E_shape, const FluidSolverParams& fsp);
 	
-	//! Print information about type of cavity nodel (call during initialization)
-	void print(const FluidSolverParams& fsp);
+	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
+	void expandDensity(const RealKernel& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
 }
 
 #endif
@@ -66,8 +53,21 @@ namespace ShapeFunction
 	{	shape[i] = erfc(sqrt(0.5)*log(fabs(nCavity[i])/nc)/sigma)*0.5;
 	}
 	__hostanddev__ void propagateGradient_calc(int i, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
-	{	grad_nCavity[i] = (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
+	{	grad_nCavity[i] += (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
 			* exp(0.5*(pow(sigma,2) - pow(log(fabs(nCavity[i])/nc)/sigma + sigma, 2)));
+	}
+	
+	__hostanddev__ void expandDensity_calc(int i, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
+	{	double n = nBar[i], D2 = DnBarSq[i];
+		if(n < 1e-9) //Avoid numerical error in low density / gradient regions:
+		{	nEx[i]=1e-9;
+			if(nEx_nBar) nEx_nBar[i]=0.;
+			if(nEx_DnBarSq) nEx_DnBarSq[i]=0.;
+		}
+		double nInv = 1./n;
+		nEx[i] = alpha*n + D2*nInv;
+		if(nEx_nBar) { nEx_nBar[i] = alpha - D2*nInv*nInv; }
+		if(nEx_DnBarSq) { nEx_DnBarSq[i] = nInv; }
 	}
 }
 
@@ -268,5 +268,13 @@ namespace NonlinearPCMeval
 		#endif
 	};
 }
+
+//! Convenient macro for dumping scalar fields in dumpDensities() or dumpDebug()
+#define FLUID_DUMP(object, suffix) \
+		filename = filenamePattern; \
+		filename.replace(filename.find("%s"), 2, suffix); \
+		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush(); \
+		saveRawBinary(object, filename.c_str()); \
+		logPrintf("done.\n"); logFlush();
 
 #endif // JDFTX_ELECTRONIC_PCM_INTERNAL_H

@@ -29,14 +29,14 @@ LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 {
 }
 
-DataGptr LinearPCM::hessian(const DataGptr& phiTilde)
+DataGptr LinearPCM::hessian(const DataGptr& phiTilde) const
 {	DataRptr epsilon = 1. + (fsp.epsBulk-1.) * shape;
 	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
 	if(k2factor) rhoTilde -= k2factor * J(shape*I(phiTilde)); // screening term
-	return rhoTilde;
+	return (-1./(4*M_PI)) * rhoTilde;
 }
 
-DataGptr LinearPCM::precondition(const DataGptr& rTilde)
+DataGptr LinearPCM::precondition(const DataGptr& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
@@ -74,7 +74,7 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 void LinearPCM::minimizeFluid()
 {
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n", e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
-	int nIter = solve((-4*M_PI)*rhoExplicitTilde, e.fluidMinParams);
+	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
@@ -85,17 +85,16 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
 	Adiel_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
-	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde));
+	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde)) //True energy if phi was an exact solution
+		+ 0.5*dot(O(phi), rhoExplicitTilde - hessian(phi)); //First order residual correction (remaining error is second order)
 	
 	//Compute gradient w.r.t shape function:
 	//--- Dielectric contributions:
-	DataRptrVec gradPhi = I(gradient(phi));
-	DataRptr gradPhiSq = gradPhi[0]*gradPhi[0] + gradPhi[1]*gradPhi[1] + gradPhi[2]*gradPhi[2];
-	DataRptr Adiel_shape = (-(fsp.epsBulk-1)/(8*M_PI)) * gradPhiSq; //dielectric part
+	DataRptr Adiel_shape = (-(fsp.epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi)));
 	//--- Screening contributions:
 	if(fsp.ionicConcentration)
-	{	DataRptr Iphi = I(phi); //potential in real space
-		Adiel_shape += (k2factor/(8*M_PI)) * (Iphi*Iphi);
+	{	DataRptr Iphi = I(phi);
+		Adiel_shape -= (k2factor/(8*M_PI)) * (Iphi*Iphi);
 	}
 	
 	//Propagate shape gradients to A_nCavity:
@@ -114,12 +113,4 @@ void LinearPCM::loadState(const char* filename)
 
 void LinearPCM::saveState(const char* filename) const
 {	saveRawBinary(I(state), filename); //saved data is in real space
-}
-
-void LinearPCM::dumpDensities(const char* filenamePattern) const
-{	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Shape");
-	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-	saveRawBinary(shape, filename.c_str());
-	logPrintf("done.\n"); logFlush();
 }

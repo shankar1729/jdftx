@@ -169,6 +169,8 @@ template<class T,int N> double sum(const TptrMul& X) { double ret=0.0; Nloop(ret
 //! Sum of elements (component-wise)
 inline vector3<> sumComponents(const DataRptrVec& X) { return vector3<>(sum(X[0]), sum(X[1]), sum(X[2])); }
 
+//! Elementwise length squared
+inline DataRptr lengthSquared(const DataRptrVec& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; }
 
 //Extra operators in R-space alone for scalar additions:
 template<int N> RptrMul& operator+=(RptrMul& in, double scalar) { Nloop(in[i]+=scalar;) return in; } //!<Increment by scalar

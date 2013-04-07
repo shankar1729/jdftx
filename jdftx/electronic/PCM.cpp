@@ -19,9 +19,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/PCM.h>
 #include <electronic/PCM_internal.h>
+#include <electronic/Everything.h>
+#include <electronic/SphericalHarmonics.h>
 #include <core/DataMultiplet.h>
+#include <core/DataIO.h>
 
-PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp(fsp)
+void wExpand_calc(int i, double G2, double R, double* w)
+{	double GR = sqrt(G2) * R;
+	w[i] = (2./3)*(bessel_jl(0, GR) + bessel_jl(2, GR)); //corresponds to theta(R-r)/(2*pi*R^3)
+}
+
+void wCavity_calc(int i, double G2, double d, double* w)
+{	w[i] = bessel_jl(0, sqrt(G2) * d); //corresponds to delta(d-r)
+}
+
+PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp(fsp), wExpand(0), wCavity(0)
 {
 	k2factor = (8*M_PI/fsp.T) * fsp.ionicConcentration * pow(fsp.ionicZelectrolyte,2);
 
@@ -33,6 +45,14 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
+			//Initialize cavity expansion weight function:
+			wExpand = new RealKernel(e.gInfo);
+			applyFuncGsq(e.gInfo, wExpand_calc, fsp.Rvdw, wExpand->data);
+			wExpand->set();
+			//Initialize nonlocal cavitation weight function:
+			wCavity = new RealKernel(e.gInfo);
+			applyFuncGsq(e.gInfo, wCavity_calc, 2.*fsp.Rvdw, wCavity->data);
+			wCavity->set();
 			break;
 		case PCM_GLSSA13:
 			Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
@@ -52,24 +72,43 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 	}
 }
 
+PCM::~PCM()
+{	if(wExpand) delete wExpand;
+	if(wCavity) delete wCavity;
+}
+
 void PCM::updateCavity()
 {
 	//Compute cavity shape function
 	ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
+	//Expanded cavity for SGA13 variant:
+	if(fsp.pcmVariant == PCM_SGA13)
+	{	ShapeFunction::expandDensity(*wExpand, fsp.Rvdw, nCavity, nCavityEx);
+		ShapeFunction::compute(nCavityEx, shapeEx, fsp.nc, fsp.sigma);
+	}
+	
 	//Compute and cache cavitation energy and gradients:
 	switch(fsp.pcmVariant)
 	{	case PCM_SGA13:
-		{	die("Not yet implemented.\n");
+		{	//Cavitation:
+			const double nlT = fsp.Nbulk * fsp.T;
+			const double Gamma = log(nlT/fsp.Pvap) - 1.;
+			const double Cp = 15. * (fsp.sigmaBulk/(2*fsp.Rvdw * nlT) - (1+Gamma)/6);
+			const double coeff2 = 1. + Cp - 2.*Gamma;
+			const double coeff3 = Gamma - 1. -2.*Cp;
+			DataRptr sbar = I((*wCavity)*J(shapeEx));
+			Adiel["Cavitation"] = nlT * integral(sbar*(Gamma + sbar*(coeff2 + sbar*(coeff3 + sbar*Cp))));
+			Acavity_shapeEx = Jdag((*wCavity)*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp))))));
 			break;
 		}
 		case PCM_GLSSA13:
-		{	DataRptrVec shape_x = gradient(shape);
-			DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
+		{	DataRptrVec Dshape = gradient(shape);
+			DataRptr surfaceDensity = sqrt(lengthSquared(Dshape));
 			DataRptr invSurfaceDensity = inv(surfaceDensity);
 			A_tension = integral(surfaceDensity);
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
-			Acavity_shape = (-fsp.cavityTension)*divergence(shape_x*invSurfaceDensity);
+			Acavity_shape = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
 			break;
 		}
 		case PCM_LA12:
@@ -81,8 +120,28 @@ void PCM::updateCavity()
 
 void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const
 {	//Compute nCavity gradient including cached cavitation gradient:
+	A_nCavity = 0;
 	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 	((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
+	
+	//Propagate cavitation/dispersion gradient w.r.t expanded cavity:
+	if(fsp.pcmVariant == PCM_SGA13)
+	{	//First compute derivative w.r.t expanded electron density:
+		DataRptr A_nCavityEx;
+		ShapeFunction::propagateGradient(nCavityEx, Acavity_shapeEx, A_nCavityEx, fsp.nc, fsp.sigma);
+		((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx);
+		//then propagate to original electron density:
+		DataRptr nCavityExUnused; //unused return value below
+		ShapeFunction::expandDensity(*wExpand, fsp.Rvdw, nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
+	}
+}
+
+void PCM::dumpDensities(const char* filenamePattern) const
+{	string filename;
+	FLUID_DUMP(shape, "Shape");
+    if(fsp.pcmVariant == PCM_SGA13)
+	{	FLUID_DUMP(shapeEx, "ShapeEx");
+	}
 }
 
 void PCM::dumpDebug(const char* filenamePattern) const
@@ -92,12 +151,13 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
 
-	DataRptrVec shape_x = gradient(shape);
-	DataRptr surfaceDensity = sqrt(shape_x[0]*shape_x[0] + shape_x[1]*shape_x[1] + shape_x[2]*shape_x[2]);
-	
 	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Cavity surface Area = %f\n", integral(surfaceDensity));
-
+	fprintf(fp, "Cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
+	if(fsp.pcmVariant == PCM_SGA13)
+	{	fprintf(fp, "Expanded cavity volume = %f\n", integral(1.-shapeEx));
+		fprintf(fp, "Expanded cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeEx)))));
+	}
+	
 	fprintf(fp, "\nComponents of Adiel:\n");
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
 	

@@ -41,6 +41,16 @@ namespace ShapeFunction
 		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, grad_shape, grad_n, nc, sigma);
 		gpuErrorCheck();
 	}
+
+	__global__
+	void expandDensityHelper_kernel(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
+	{	int i = kernelIndex1D(); if(i<N) expandDensity_calc(i, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
+	}
+	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
+	{	GpuLaunchConfig1D glc(expandDensityHelper_kernel, N);
+		expandDensityHelper_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
+		gpuErrorCheck();
+	}
 }
 
 //------------- Helper classes for NonlinearPCM  -------------

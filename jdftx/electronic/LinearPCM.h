@@ -29,8 +29,8 @@ public:
 	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
 	bool needsGummel() { return false; }
 
-	DataGptr hessian(const DataGptr&); //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
-	DataGptr precondition(const DataGptr&); //!< Implements a modified inverse kinetic preconditioner
+	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
+	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
 
 	//! Set the explicit system charge density and effective cavity-formation electron density:
 	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
@@ -43,8 +43,6 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
-	void dumpDensities(const char* filenamePattern) const;
- 
 private:
 	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
 };

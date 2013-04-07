@@ -154,11 +154,11 @@ DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 }
 
 
-DataGptr NonlocalPCM::hessian(const DataGptr& phiTilde)
+DataGptr NonlocalPCM::hessian(const DataGptr& phiTilde) const
 {	return (-1./(4*M_PI*e.gInfo.detR)) * L(phiTilde) - chi(phiTilde);
 }
 
-DataGptr NonlocalPCM::precondition(const DataGptr& rTilde)
+DataGptr NonlocalPCM::precondition(const DataGptr& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 

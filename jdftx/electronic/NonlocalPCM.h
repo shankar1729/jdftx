@@ -30,8 +30,8 @@ public:
 	bool needsGummel() { return false; }
 
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
-	DataGptr hessian(const DataGptr&); //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
-	DataGptr precondition(const DataGptr&); //!< Implements a modified inverse kinetic preconditioner
+	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
+	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
 
 	//! Set the explicit system charge density and effective cavity-formation electron density:
 	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);

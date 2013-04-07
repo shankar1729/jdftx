@@ -94,7 +94,16 @@ struct FluidSolverParams
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
-	
+
+	//Temporary hack for advanced PCMs - eventually combine with explicit fluid moleucle geometries below
+	//this section not controlled by commands - set based on solventName by setPCMparams()
+	struct PcmSite
+	{	int atomicNumber; //!< necessary for vdW parameters
+		//TODO: add more stuff for NonlocalPCM and then combine with explicit fluid structures
+		std::vector< vector3<> > pos; //!< positions of such sites in reference frame
+	};
+	std::vector<PcmSite> pcmSite;
+
 	//For Explicit Fluid JDFT alone:
 	ConvolutionCouplingSiteModel convCouplingH2OModel; //!< selects parameter set for convolution coupling water
 	double convCouplingScale; //!< scales von Weisacker correction in kinetic energy functional for fluid coupling 

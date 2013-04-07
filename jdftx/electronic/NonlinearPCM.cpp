@@ -232,15 +232,7 @@ void NonlinearPCM::printDebug(FILE* fp) const
 
 
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
-{
-	string filename;
-	#define DUMP(object, suffix) \
-		filename = filenamePattern; \
-		filename.replace(filename.find("%s"), 2, suffix); \
-		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush(); \
-		saveRawBinary(object, filename.c_str()); \
-		logPrintf("done.\n"); logFlush();
-	DUMP(shape, "Shape");
+{	PCM::dumpDensities(filenamePattern);
 
 	if(screeningEval)
 	{
@@ -252,7 +244,8 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 			Nplus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
 			Nminus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
 		}
-		DUMP(Nplus, "N+");
-		DUMP(Nminus, "N-");
+		string filename;
+		FLUID_DUMP(Nplus, "N+");
+		FLUID_DUMP(Nminus, "N-");
 	}
 }

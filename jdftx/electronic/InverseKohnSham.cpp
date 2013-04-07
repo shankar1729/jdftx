@@ -31,8 +31,8 @@ class InvertChi : public LinearSolvable<DataRptrCollection>
 {
 public:
 	InvertChi(const Everything& e);
-	DataRptrCollection hessian(const DataRptrCollection&);
-	DataRptrCollection precondition(const DataRptrCollection& v);
+	DataRptrCollection hessian(const DataRptrCollection&) const;
+	DataRptrCollection precondition(const DataRptrCollection& v) const;
 private:
 	const Everything& e;
 	std::vector<ColumnBundle> C;
@@ -191,7 +191,7 @@ InvertChi::InvertChi(const Everything& e) : e(e)
 	#undef setFname
 }
 
-DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV)
+DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
 {	//Compute -dn = -chi * dV (first order perturbation theory)
 	DataRptrCollection dn(dV.size());
 	for(int q=0; q<e.eInfo.nStates; q++)
@@ -213,6 +213,6 @@ DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV)
 	return dn;
 }
 
-DataRptrCollection InvertChi::precondition(const DataRptrCollection& v)
+DataRptrCollection InvertChi::precondition(const DataRptrCollection& v) const
 {	return v;
 }

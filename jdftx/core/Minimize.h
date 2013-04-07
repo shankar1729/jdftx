@@ -81,10 +81,10 @@ template<typename Vector> struct LinearSolvable
 	Vector state; //!< the location of the minimum, obtained by solving hessian * state == rhs
 	
 	//! Return vector multiplied by the hessian of the objective function
-	virtual Vector hessian(const Vector&)=0;
+	virtual Vector hessian(const Vector&) const=0;
 	
 	//! Override to enable preconditioning: return the preconditioned vector, given a vector
-	virtual Vector precondition(const Vector& v) { return clone(v); }
+	virtual Vector precondition(const Vector& v) const { return clone(v); }
 	
 	//! Solve the linear system hessian * state == rhs using conjugate gradients:
 	//! @return the number of iterations taken to achieve target tolerance

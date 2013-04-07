@@ -45,6 +45,37 @@ namespace ShapeFunction
 	{	nullToZero(grad_n, n->gInfo);
 		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), nc, sigma);
 	}
+	
+	void expandDensityHelper(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
+	{	threadedLoop(expandDensity_calc, N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
+	}
+	#ifdef GPU_ENABLED
+	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq);
+	#endif
+	void expandDensity(const RealKernel& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx, DataRptr* A_n)
+	{	//Compute weighted densities:
+		DataGptr nBarTilde = w * J(n);
+		DataRptr nBar = I(nBarTilde);
+		DataRptrVec DnBar = I(gradient(R * nBarTilde));
+		DataRptr DnBarSq = lengthSquared(DnBar);
+		//Compute the elementwise function and optionally its derivatives:
+		nullToZero(nEx, n->gInfo);
+		DataRptr nEx_nBar, nEx_DnBarSq;
+		if(A_n)
+		{	assert(A_nEx);
+			nullToZero(nEx_nBar, n->gInfo);
+			nullToZero(nEx_DnBarSq, n->gInfo);
+		}
+		callPref(expandDensityHelper)(n->gInfo.nr, R*R*R, nBar->dataPref(), DnBarSq->dataPref(), nEx->dataPref(),
+			(A_n ? nEx_nBar->dataPref() : 0), (A_n ? nEx_DnBarSq->dataPref() : 0));
+		//Propagate gradients if necessary:
+		if(A_n)
+		{	DataGptr A_nBarTilde = Idag((*A_nEx) * nEx_nBar); //contribution through nBar
+			DataRptr A_DnBarSq = (*A_nEx) * nEx_DnBarSq;
+			A_nBarTilde -= (2.*R) * divergence(Idag(A_DnBarSq * DnBar)); //contribution through DnBar
+			(*A_n) += Jdag(w * A_nBarTilde);
+		}
+	}
 }
 
 
