@@ -121,6 +121,9 @@ bool IonInfo::checkPositions() const
 							sp->name.c_str(), n, sp1->name.c_str(), n1);
 						okay = false;
 					}
+					else if(sizetest < MIN_ION_DISTANCE)
+					{	die("\nERROR: Ions %s #%d and %s #%d are on top of eachother.\n\n", sp->name.c_str(), n, sp1->name.c_str(), n1);
+					}
 				}
 			}
 		}
