@@ -336,12 +336,10 @@ public:
 		}
 		
 		//Create van der Waals mixing functional
-		if(params.VDWCouplingScale)
-		{	assert(e.vanDerWaals);
-			vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
-			vdwCoupling->exCorr = &(params.exCorr);
-			vdwCoupling->scaleFac = &(params.VDWCouplingScale);
-		}
+		assert(e.vanDerWaals);
+		vdwCoupling = new VDWCoupling(*fluidMixture, e.vanDerWaals);
+		vdwCoupling->exCorr = &(params.exCorr);
+		vdwCoupling->scaleFac = &(params.VDWCouplingScale);
 		
 		fluidMixture->setPressure(1.01325*Bar);
 		
@@ -527,7 +525,9 @@ public:
 		double Adiel = *AwaterCached + dot(fluidMixture->rhoExternal,O(*Adiel_rhoExplicitTildeCached))
 				+ coupling->computeElectronic(&Adiel_nCavityTilde);
 		if(vdwCoupling)
+		{	extraForces.init(e.iInfo);
 			Adiel += vdwCoupling->computeElectronic(NCached, &extraForces);
+		}
 		return Adiel;
 	}
 };

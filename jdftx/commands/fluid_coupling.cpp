@@ -61,10 +61,8 @@ struct CommandFluidVDWCouplingScale : public Command
 	{
 		format = "<scale=0.75>";
 		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
-					"	Default is scale=0.75 (scale factor for PBE). Set to 0 to disable vdW contributions.";
-		hasDefault = false; 
-		allowMultiple = false;
-		require("van-der-waals");	
+					"   Default is scale=0.75 (scale factor for PBE).\n"
+					"   Set to 0 to use prefactor corresponding to fluid exchange-correlation.";
 	}
 	
 	void process(ParamList& pl, Everything& e)

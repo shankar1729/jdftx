@@ -51,6 +51,7 @@ public:
 	ForcesOutputCoords forcesOutputCoords; //!< coordinate system to print forces in
 	coreOverlapCheck coreOverlapCondition; //! Check method used for determining whether pseudopotential cores overlap
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
+	double vdWscale; //!< If non-zero, override the default scale parameter
 	
 	IonicGradient forces; //!< forces at current atomic positions
 	

@@ -199,6 +199,7 @@ void NonlinearPCM::saveState(const char* filename) const
 
 double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {	DataRMuEps Adiel_state;
+	if(vdwForces) extraForces = *vdwForces;
 	return (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
 }
 

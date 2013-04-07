@@ -33,25 +33,18 @@ public:
 	
 	//! Van der Waal correction energy for a collection of discrete atoms at fixed locations
 	//! Corresponding forces are accumulated to Atom::force for each atom
-	//! The specified exchange-correlation functional selects the appropriate scale factor
-	double energyAndGrad(std::vector<Atom>& atoms, string exCorrName) const;
+	double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const;
 	
 	//! Van der Waal correction to the interaction energy between the explicit atoms
 	//! (from IonInfo) and the continuous fields Ntilde with specified atomic numbers.
-	//! The specified exchange-correlation functional selects the appropriate scale factor
 	//! The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and
 	//! the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null)
-	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, string exCorrName, 
-		DataGptrCollection* grad_Ntilde=0, IonicGradient* forces=0) const;
-		
-	//! Van der Waal correction to the interaction energy between the explicit atoms
-	//! (from IonInfo) and the continuous fields Ntilde with specified atomic numbers.
-	//! The specified exchange-correlation functional selects the appropriate scale factor
-	//! The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and
-	//! the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null)
-	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber,const double scaleFac=0.75,
+	double energyAndGrad(const DataGptrCollection& Ntilde, const std::vector<int>& atomicNumber, const double scaleFac,
 		DataGptrCollection* grad_Ntilde=0, IonicGradient* forces=0) const;
 	
+	//! Retrieve the scale factor for a specified exchange-correlation functional (or return scaleOverride if supplied)
+	//! Quits with an appropriate error message suggesting the scale-override if functional not parametrized
+	double getScaleFactor(string exCorrName, double scaleOverride=0.) const;
 	
 private:
 	const Everything* e;

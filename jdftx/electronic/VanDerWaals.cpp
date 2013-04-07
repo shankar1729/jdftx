@@ -69,22 +69,7 @@ VanDerWaals::VanDerWaals(const Everything& everything)
    scalingFactor["gga-PBE"] = 0.75;
    scalingFactor["hyb-gga-xc-b3lyp"] = 1.05;
    scalingFactor["mgga-TPSS"] = 1.;
-   
-	// Checks whether the used EXCorr is supported
-	if(scalingFactor.find(e->exCorr.getName()) == scalingFactor.end())
-		die("\n%s Exchange-Correlation is not supported by Grimme Van der Waals corrections!\n", e->exCorr.getName().c_str());	
-	
-	// Checks to see if the elec-xc-compare command has any unsupported EXCorr
-	if(e->exCorrDiff.size())
-	{
-		string EXCorr;
-		for(int counter = 0; counter < (int) e->exCorrDiff.size(); counter++)
-		{	EXCorr = e->exCorrDiff[counter].get()->getName();
-			if(scalingFactor.find(EXCorr) == scalingFactor.end())
-				die("\nVan der Waals Corrections are not supported for exchange-correlation functional %s!\n", EXCorr.c_str());
-		}
-	}
-	
+
 	// Sets up the C6 and R0 parameters
 	atomParams.resize(atomicNumberMax+1);
 	atomParams[1] = AtomParams(0.14 , 1.001 );
@@ -146,18 +131,13 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
 }
 
-double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string exCorrName) const
+double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const
 {
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
 	vector3<int> n;
 	for(int k=0; k<3; k++)
 		n[k] = isTruncated[k] ? 0 : (int)ceil(100. / e->gInfo.R.column(k).length());
-	
-	//Get the appropriate scale factor (which depends on exchange-correlation):
-	auto scalingFactorIter = scalingFactor.find(exCorrName);
-	assert(scalingFactorIter != scalingFactor.end());
-	const double scaleFac = scalingFactorIter->second;
 	
 	double Etot = 0.;  //Total VDW Energy
 	for(int c1 = 0; c1 < (int) atoms.size(); c1++)
@@ -188,67 +168,58 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, string exCorrName) c
 	return Etot;
 }
 
-double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber, string exCorrName, 
-	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
-{
-	//Get the appropriate scale factor (which depends on exchange-correlation):
-	auto scalingFactorIter = scalingFactor.find(exCorrName);
-	if(scalingFactorIter == scalingFactor.end())
-		die("\n%s fluid Exchange-Correlation is not supported by Grimme Van der Waals corrections!\n"
-			"Try adjusting scale factor manually using command fluid-vdWCoupling-scale.\n", exCorrName.c_str());
-	
-	const double scaleFac = scalingFactorIter->second;
-	
-	return VanDerWaals::energyAndGrad(Ntilde, atomicNumber, scaleFac, grad_Ntilde, forces);
-}
-
-
 
 double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber, const double scaleFac,
 	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
 {		
 	
-	double Etot = 0.;  //Total VDW Energy
+	double Etot = 0.;
 	const GridInfo& gInfo = e->gInfo;
-	std::vector< std::shared_ptr<SpeciesInfo> > species = e->iInfo.species; //vector containing all species
+	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e->iInfo.species;
 	
-	for(uint i=0; i<species.size(); i++) //Loop over SpeciesInfo's of explicit system
+	for(uint i=0; i<species.size(); i++) //Loop over species of explicit system
 	{	
 		std::shared_ptr<SpeciesInfo> sp = species[i];
 		DataGptr SG(DataG::alloc(gInfo, isGpuEnabled()));
 		DataGptr ccgrad_SG; //set grad wrt structure factor
 		int nAtoms = sp->atpos.size(); //number of atoms of ith species
 		
-		callPref(getSG)(gInfo.S, nAtoms, sp->atposPref, 1.0/gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i	
-				
+		callPref(getSG)(gInfo.S, nAtoms, sp->atposPref, 1.0/gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
+
 		for(uint j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
-		{
-			if(atomicNumber[j]!=0) //Check to make sure fluid site should include van der Waals corrections
+			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
 			{
-				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j]); //get ij radial function				
+				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j]); //get ij radial function
 				DataGptr E_Ntilde = (-scaleFac * gInfo.nr) * (Kernel_ij * SG); //calculate effect of ith explicit atom on gradient wrt jth site density
 				Etot += gInfo.dV * dot(Ntilde[j], E_Ntilde); //accumulate into total energy
 				if(grad_Ntilde)
 					(*grad_Ntilde)[j] += E_Ntilde; //accumulate into gradient wrt jth site density
 				if(forces)
-					ccgrad_SG += (-scaleFac / gInfo.dV) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
+					ccgrad_SG += (-scaleFac) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
 			}
-		}
-			//TODO: verify that forces are correct!
+
 		if(forces && ccgrad_SG) //calculate forces due to ith atom
-		{
-			DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+		{	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
 			vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
 			for(int at=0; at<nAtoms; at++)
 			{	
 				callPref(gradSGtoAtpos)(gInfo.S, sp->atpos[at], ccgrad_SG->dataPref(), gradAtposData);
 				for(int k=0; k<3; k++)
 					(*forces)[i][at][k] -= sum(gradAtpos[k]); //negative gradient on ith atom type
-			}			
+			}
 		}
 	}
 	
 	return Etot;
+}
+
+double VanDerWaals::getScaleFactor(string exCorrName, double scaleOverride) const
+{	if(scaleOverride) return scaleOverride;
+	auto iter = scalingFactor.find(exCorrName);
+	if(iter == scalingFactor.end())
+		die("\nGrimme vdW scale factor not known for functional %s.\n"
+			"   HINT: manually override with a scale factor, if known.\n", exCorrName.c_str());
+	return iter->second;
 }
 
 

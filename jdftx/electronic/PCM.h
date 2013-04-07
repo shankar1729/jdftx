@@ -28,7 +28,6 @@ class PCM : public FluidSolver
 {
 public:
 	PCM(const Everything& e, const FluidSolverParams& fsp);
-	virtual ~PCM();
 	
 	void dumpDensities(const char* filenamePattern) const; //!< dump cavity shape functions
 	void dumpDebug(const char* filenamePattern) const; //!< generate fluidDebug text file with common info to all PCMs
@@ -41,16 +40,18 @@ protected:
 	DataGptr rhoExplicitTilde; //!< Charge density of explicit (electronic) system
 	DataRptr nCavity, nCavityEx; //!< Cavity determining electron density (and expanded electron density for the SGA13 variant)
 	DataRptr shape, shapeEx; //!< Cavity shape function (and expanded shape function for the SGA13 variant)
-
+	std::shared_ptr<IonicGradient> vdwForces; //!< cached forces due to dispersion terms (if any)
+	
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate A_shape (+ cached Acavity_shape) to those A_nCavity (set result, not accumulate)
 private:
 	DataRptr Acavity_shape, Acavity_shapeEx; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
-	double A_nc, A_tension, A_vdwScale; //!< Cached deerivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
-	RealKernel* wExpand; //!< weight function for cavity expansion
-	RealKernel* wCavity; //!< weight function for nonlocal cavitation energy
+	double A_nc, A_tension, A_vdwScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	std::shared_ptr<RealKernel> wExpand; //!< weight function for cavity expansion
+	std::shared_ptr<RealKernel> wCavity; //!< weight function for nonlocal cavitation energy
+	std::vector< std::shared_ptr<RealKernel> > Sf; //!< spherically-averaged structure factors for each solvent site
 };
 
 #endif // JDFTX_ELECTRONIC_PCM_H

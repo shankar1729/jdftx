@@ -102,6 +102,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
+	if(vdwForces) extraForces = *vdwForces;
 	return Adiel;
 }
 
