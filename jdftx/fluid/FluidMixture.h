@@ -36,6 +36,7 @@ public:
 	bool verboseLog; //!< print energy components etc. if enabled (off by default)
 	
 	FluidMixture(const GridInfo& gInfo, const double T=298*Kelvin);
+	virtual ~FluidMixture() {}
 
 	//! Call after initializing and adding all the components of the fluid mixture
 	//! This calculates the bulk equilibrium densities for all components and corresponding chemical potentials

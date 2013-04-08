@@ -322,7 +322,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	double mu = 0.0;
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
-		if(isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
+		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
 		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }
 		//Compute fillings from aux hamiltonian eigenvalues:
 		for(int q=0; q<eInfo.nStates; q++)
@@ -448,7 +448,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	if(grad && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 	{
 		diagMatrix dmuContrib(eInfo.nBands, 0.); 
-		if(isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
+		if(std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
 		{	double dmuNum=0.0, dmuDen=0.0;
 			for(int q=0; q<eInfo.nStates; q++)
 			{	diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);

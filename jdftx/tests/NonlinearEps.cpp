@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 		fprintf(fpEps, "%le\t%le\t%le\t%le\n", D_SI, epsilon,
 			pTyp/(nTyp*fex.getMolecule()->get_dipole()), nTyp);
 		fflush(fpEps);
-		if(isnan(epsilon) || epsilon<0.0) break;
+		if(std::isnan(epsilon) || epsilon<0.0) break;
 	}
 	fclose(fpEps);
 	return 0;

@@ -87,7 +87,7 @@ std::vector<std::vector<vector3<>>> getPositionList(std::vector<H2OSite>& H2OSit
 	std::vector<std::vector<vector3<>>> PositionList;
 	PositionList.resize(H2OSites.size(),H2OSites[0].Positions);
 	
-	for (uint iSite=0; iSite<H2OSites.size(); iSite++)
+	for (unsigned iSite=0; iSite<H2OSites.size(); iSite++)
 	{	
 		if(H2OSites[iSite].name == "O")
 		{
@@ -110,7 +110,7 @@ std::vector<std::vector<vector3<>>> getPositionList(std::vector<H2OSite>& H2OSit
 		PositionList[siteIndex] = H2OSites[iSite].Positions;
 		
 		logPrintf("Initialized water sites of type %s at positions (in Bohr):\n", H2OSites[iSite].name.c_str());
-		for (uint iPos=0; iPos<PositionList[siteIndex].size(); iPos++)
+		for (unsigned iPos=0; iPos<PositionList[siteIndex].size(); iPos++)
 			logPrintf("\t %lg %lg %lg \n",PositionList[siteIndex][iPos][0] ,PositionList[siteIndex][iPos][1], PositionList[siteIndex][iPos][2]); 
 	}
 	
@@ -129,7 +129,7 @@ std::vector<SiteProperties*> getSitePropList(const GridInfo& gInfo, std::vector<
 	std::vector<SiteProperties*> PropList;
 	PropList.resize(H2OSites.size(),0);
 	
-	for (uint iSite=0; iSite<H2OSites.size(); iSite++)
+	for (unsigned iSite=0; iSite<H2OSites.size(); iSite++)
 	{
 		if(H2OSites[iSite].name == "O")
 		{

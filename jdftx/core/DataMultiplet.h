@@ -252,7 +252,7 @@ void TptrMul::loadFromFile(const char* filename)
 	if(fLen != expectedLen)
 	{	die("\nLength of '%s' was %ld instead of the expected %ld bytes.\n"
 				"Hint: Are you really reading the correct file?\n\n",
-				filename, fLen, expectedLen);
+				filename, (unsigned long)fLen, (unsigned long)expectedLen);
 	}
 	
 	FILE* fp = fopen(filename, "rb");

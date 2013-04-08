@@ -21,8 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <cmath>
 #include <csignal>
-#include <sys/prctl.h>
 #include <list>
+
+#ifndef __APPLE__
+#include <sys/prctl.h>
+#endif
 
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>

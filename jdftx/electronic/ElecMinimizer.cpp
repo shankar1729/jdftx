@@ -119,7 +119,7 @@ bool ElecMinimizer::report(int iter)
 	
 	//Auxiliary hamiltonian fillings printout:
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-	{	double mu = isnan(eInfo.mu)
+	{	double mu = std::isnan(eInfo.mu)
 			? eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons) //get mu from eigenvalues
 			: eInfo.mu; //report the target mu
 		logPrintf("FillingsAux:  mu: %.15le  nElectrons: %.15le\n", mu, eInfo.nElectrons);
@@ -176,7 +176,7 @@ void elecFluidMinimize(Everything &e)
 	Energies &ener = e.ener;
 
 	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-	{	if(isnan(eInfo.mu)) //Constant nElectrons mode
+	{	if(std::isnan(eInfo.mu)) //Constant nElectrons mode
 		{	logPrintf("\nSetting the auxilliary hamiltonian equal to the subspace hamiltonian.\n");
 			//calculate Hsub at current fillings:
 			eInfo.fillingsUpdate=ElecInfo::ConstantFillings; eInfo.subspaceRotation=false;
@@ -192,7 +192,7 @@ void elecFluidMinimize(Everything &e)
 	}
 	
 	//Prevent change in mu from abruptly changing electron count:
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux && !isnan(eInfo.mu))
+	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux && !std::isnan(eInfo.mu))
 	{	for(int q=0; q<eInfo.nStates; q++)
 			eVars.B[q].diagonalize(eVars.B_evecs[q], eVars.B_eigs[q]);
 		double mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons);

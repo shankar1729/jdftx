@@ -34,6 +34,7 @@ public:
 
 	//! Initialize base for use with this fluidMixture
 	Fex(FluidMixture& fluidMixture);
+	virtual ~Fex() {}
 
 	//! Return the underlying molecule speicfication (MUST be the same reference and value each time it's called)
 	virtual const Molecule* getMolecule() const=0;

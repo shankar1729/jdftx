@@ -40,7 +40,7 @@ bool gpuInit(FILE* fpLog=stdout);
 bool isGpuMine();
 
 //! Check for gpu errors, and if any, abort with a useful messsage
-void gpuErrorCheck();
+extern void gpuErrorCheck();
 
 #endif //GPU_ENABLED
 

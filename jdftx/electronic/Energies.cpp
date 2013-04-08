@@ -56,13 +56,13 @@ void Energies::print(FILE* fp) const
 double relevantFreeEnergy(const Everything& e)
 {	if(e.cntrl.fixed_n) return e.ener.Eband;
 	else if(e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) return double(e.ener.E);
-	else if(isnan(e.eInfo.mu)) return e.ener.F;
+	else if(std::isnan(e.eInfo.mu)) return e.ener.F;
 	else return e.ener.G;
 }
 const char* relevantFreeEnergyName(const Everything& e)
 {	if(e.cntrl.fixed_n) return "Eband";
 	else if(e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) return "Etot";
-	else if(isnan(e.eInfo.mu)) return "F";
+	else if(std::isnan(e.eInfo.mu)) return "F";
 	else return "G";
 }
 

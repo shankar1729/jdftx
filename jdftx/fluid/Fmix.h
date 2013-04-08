@@ -35,6 +35,7 @@ public:
 
 	//! Initialize base and register with this fluidMixture
 	Fmix(FluidMixture& fluidMixture);
+	virtual ~Fmix() {}
 
 	virtual string getName() const=0; //!< A string identifier for this mixing functional (used in EnergyComponent label)
 

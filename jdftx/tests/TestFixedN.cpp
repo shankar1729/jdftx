@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 		DataRptrCollection N;
 		TIME("getOmega calculation (with gradient)", stdout,
 			double omega = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
-			if(isnan(omega)) break; //Don't save state after it has become nan
+			if(std::isnan(omega)) break; //Don't save state after it has become nan
 		);
 		printf("Ntot = %lf\n", gInfo.dV*sum(N[0]));
 
@@ -338,7 +338,7 @@ int main(int argc, char** argv)
 		DataRptrOH n;
 		TIME("getOmega calculation (with gradient)", stdout,
 			double omega = water.getOmega(&n);
-			if(isnan(omega)) break; //Don't save state after it has become nan
+			if(std::isnan(omega)) break; //Don't save state after it has become nan
 		);
 		printf("Ntot = %lf\n", gInfo.dV*sum(n.O()));
 

@@ -33,6 +33,7 @@ public:
 	const GridInfo& gInfo;
 
 	TranslationOperator(const GridInfo& gInfo);
+	virtual ~TranslationOperator() {}
 
 	//! Compute @f$ y += alpha T_t(x) @f$ ,
 	//! where @f$ T_t @f$  is the translation operator @f$ T_t(x(r)) = x(r+t) @f$ modulo the lattice vectors

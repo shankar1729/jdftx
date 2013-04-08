@@ -54,7 +54,7 @@ public:
 	
 	~Fex_H2O_Custom()
 	{
-		for (uint i=0; i < prop.size(); i++)
+		for (unsigned i=0; i < prop.size(); i++)
 		{
 			delete prop[i];
 		}

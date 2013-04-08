@@ -177,7 +177,7 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 	const GridInfo& gInfo = e->gInfo;
 	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e->iInfo.species;
 	
-	for(uint i=0; i<species.size(); i++) //Loop over species of explicit system
+	for(unsigned i=0; i<species.size(); i++) //Loop over species of explicit system
 	{	
 		std::shared_ptr<SpeciesInfo> sp = species[i];
 		DataGptr SG(DataG::alloc(gInfo, isGpuEnabled()));
@@ -186,7 +186,7 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 		
 		callPref(getSG)(gInfo.S, nAtoms, sp->atposPref, 1.0/gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
 
-		for(uint j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
+		for(unsigned j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
 			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
 			{
 				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j]); //get ij radial function

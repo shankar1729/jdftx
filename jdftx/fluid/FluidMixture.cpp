@@ -242,7 +242,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 		{	Qcell = Qfixed+Qtot(betaV,Qprime,N0Q,&names,&gInfo,verboseLog);
 			if(verboseLog) logPrintf("betaV = %le, Qcell = %le, Qprime = %le\n", betaV, Qcell, Qprime);
 			if(fabs(Qcell)<fabs(Qtol)) break;
-			if(isnan(Qcell)) die("NaN encountered in Q convergence.\n")
+			if(std::isnan(Qcell)) die("NaN encountered in Q convergence.\n")
 			betaV -= Qcell/Qprime; //Newton-Raphson update
 		}
 		for(unsigned ic=0; ic<component.size(); ic++)

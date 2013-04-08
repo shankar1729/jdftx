@@ -320,7 +320,7 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const Everything& e)
 		if(expectedLen!=fLen)
 		{	die("Length of '%s' was %ld instead of the expected %ld bytes.\n"
 				"Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n",
-				fname, fLen, expectedLen);
+				fname, (unsigned long)fLen, (unsigned long)expectedLen);
 		}
 
 		FILE *fp = fopen(fname,"rb");

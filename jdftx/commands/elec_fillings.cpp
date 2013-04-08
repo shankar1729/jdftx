@@ -108,7 +108,7 @@ struct CommandElecInitialCharge : public Command
 		e.eInfo.qNet.push_back(qTemp);
 		//Second q (optional):
 		pl.get(qTemp, std::numeric_limits<double>::quiet_NaN(), "QNet");
-		if(!isnan(qTemp)) e.eInfo.qNet.push_back(qTemp);
+		if(!std::isnan(qTemp)) e.eInfo.qNet.push_back(qTemp);
 	}
 
 	void printStatus(Everything& e, int iRep)

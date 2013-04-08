@@ -151,7 +151,7 @@ if(CUDA_FOUND)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED;--compiler-options;-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
-	cuda_add_library(gpukernels SHARED ${gpukernelsSources})
+	cuda_add_library(gpukernels ${gpukernelsSources})
 	target_link_libraries(gpukernels ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
 	
 	#Core Library (Gpu Version):

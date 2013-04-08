@@ -36,6 +36,14 @@ template<class T> T ceildiv(T num, T den) { return (num + den - 1)/den; }
 //! Return largest multiple of den smaller than num, templated over int types
 template<class T> T floorMultiple(T num, T den) { return (num/den)*den; }
 
+#ifndef sincos
+#ifndef __in_a_cu_file__
+inline void sincos(double x, double* s, double* c)
+{	*s = sin(x);
+	*c = cos(x);
+}
+#endif
+#endif
 
 //! Complex number (need to define our own because we need operators for gpu code as well)
 struct complex

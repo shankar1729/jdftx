@@ -195,13 +195,13 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 {	const ElecVars &eVars = e->eVars;
 	double muMix; //A chemical potential whose corresponding fermi distribution is mixed in
 	
-	if(!isnan(mu)) //Fixed mu:
+	if(!std::isnan(mu)) //Fixed mu:
 	{	//Fit a fermi-dirac distribution to the current fillings:
 		double g0, &C = Cmeasured; //density of states at current mu, and measured electrostatic capacitance
 		double muMeasured = fitMu(F, eVars.Hsub_eigs, &g0); //this is the "measured" mu that fits the fillings
 
 		//If not the first iteration, update estimate of Ceff
-		if(!isnan(dnPrev))  //improve the capacitance estimate
+		if(!std::isnan(dnPrev))  //improve the capacitance estimate
 		{	double curC = dnPrev/(muMeasured - muMeasuredPrev);  //observed total effective capacitance
 			double curWeight = fabs(dnPrev); //weight of current measurement
 			C = (Cweight + curWeight)/(Cweight/C + curWeight/curC);
@@ -253,7 +253,7 @@ void ElecInfo::updateFillingsEnergies(Energies& ener) const
 	}
 
 	//Grand canonical multiplier if fixed mu:
-	if(!isnan(mu)) ener.muN = mu * nElectrons;
+	if(!std::isnan(mu)) ener.muN = mu * nElectrons;
 }
 
 //-------------------- Fermi function utilities --------------------------

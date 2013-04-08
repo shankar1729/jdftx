@@ -25,16 +25,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 int get_nSites(std::vector<std::vector<vector3<>>>& PositionList)
 {
 	int counter = 0;
-	for (uint i=0; i<PositionList.size(); i++){	counter += PositionList[i].size();	}
+	for (unsigned i=0; i<PositionList.size(); i++){	counter += PositionList[i].size();	}
 	return counter;
 }
 
 std::vector<Site> get_Site(std::vector<SiteProperties*>& PropList,std::vector<std::vector<vector3<>>>& PositionList)
 {
 	std::vector<Site> site;
-	for (uint i=0; i<PropList.size(); i++)
+	for (unsigned i=0; i<PropList.size(); i++)
 	{
-		for (uint j=0; j<PositionList[i].size(); j++) { site.push_back(Site(i, PropList[i], PositionList[i][j])); }
+		for (unsigned j=0; j<PositionList[i].size(); j++) { site.push_back(Site(i, PropList[i], PositionList[i][j])); }
 	}
 	return site;	
 }

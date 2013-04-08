@@ -122,7 +122,7 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 		if(Qint.size())
 		{	for(unsigned p1=0; p1<VnlRadial[l].size(); p1++)
 				for(unsigned p2=0; p2<=p1; p2++)
-				{	QijIndex qIndex = { l, p1, l, p2, 0 };
+				{	QijIndex qIndex = { (int)l, (int)p1, (int)l, (int)p2, 0 };
 					auto Qijl = Qradial.find(qIndex);
 					if(Qijl==Qradial.end()) continue; //no augmentation for this combination
 					//Collect density matrix element for this pair of projectors:

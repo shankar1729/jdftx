@@ -42,6 +42,7 @@ public:
 	//! xBulk is the mole fraction of this component in the bulk
 	//! (If all the mole fractions don't add to 1, they will be normalized to do so)
 	IdealGas(int nIndep, Fex* fex, double xBulk);
+	virtual ~IdealGas() {}
 
 	//! Create an initial guess for the indep, in presence of V and the extra potential Vex
 	//! The initial guess is typically taken to be scale times what would generate the equilibrium

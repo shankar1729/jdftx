@@ -34,7 +34,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
-#include <malloc.h>
 
 //------------- Common Initialization -----------------
 
