@@ -60,6 +60,7 @@ class WannierEval : public Minimizable<WannierGradient>
 {
 public:
 	WannierEval(const Everything& e);
+	virtual ~WannierEval() {}
 	
 	void saveMLWF(const std::vector<Wannier::Center>& centers); //save wannier functions for all spins
 	void saveMLWF(const std::vector<Wannier::Center>& centers, int iSpin); //save for specified spin
