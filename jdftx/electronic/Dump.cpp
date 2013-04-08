@@ -196,13 +196,23 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	// Dumps tau (positive Kinetic Energy density)
-	if(ShouldDump(KEdensity))
+	if(ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity)))
 	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
 		if(eInfo.spinType == SpinZ)
-		{	DUMP(tau[0], "KEdensity_up", KEdensity)
-			DUMP(tau[1], "KEdensity_dn", KEdensity)
+		{	{	StartDump("KEdensity_up");
+				saveRawBinary(tau[0], fname.c_str());
+				EndDump;
+			}
+			{	StartDump("KEdensity_dn");
+				saveRawBinary(tau[1], fname.c_str());
+				EndDump;
+			}
 		}
-		else DUMP(tau[0], "KEdensity", KEdensity)
+		else
+		{	StartDump("KEdensity");
+			saveRawBinary(tau[0], fname.c_str());
+			EndDump;
+		}
 	}
 	
 	if(ShouldDump(BandEigs))
