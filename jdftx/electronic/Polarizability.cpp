@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Polarizability.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <core/DataIO.h>
 
 Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
 {
@@ -52,7 +53,8 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const C
 
 inline void ldaDblPrime_thread(int iStart, int iStop, const double* n, double* e_nn)
 {	for(int i=iStart; i<iStop; i++)
-	{	double rs = pow((4.*M_PI/3) * n[i], -1./3);
+	{	if(n[i]<1e-4) { e_nn[i] = 0.; continue; }
+		double rs = pow((4.*M_PI/3) * n[i], -1./3);
 		double rsSqrt = sqrt(rs);
 		double rs2 = pow(rs, 2);
 		if(rs > 1.)
@@ -106,7 +108,8 @@ void Polarizability::dump(const Everything& e)
 	matrix KXC;
 	{	DataRptr exc_nn; nullToZero(exc_nn, e.gInfo);
 		threadLaunch(ldaDblPrime_thread, e.gInfo.nr, e.eVars.get_nTot()->data(), exc_nn->data());
-	
+		saveRawBinary(exc_nn, e.dump.getFilename("pol_ExcDblPrime").c_str());
+		
 		ColumnBundle KXCrho = rho.similar();
 		threadOperators = false;
 		threadLaunch(exCorr_thread, nCV, &exc_nn, &rho, &KXCrho);

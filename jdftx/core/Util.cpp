@@ -103,10 +103,26 @@ void sigErrorHandler(int sig)
 	gdbStackTraceExit(1);
 }
 
+FILE* globalLog = stdout; // this might be replaced by a file pointer in main before calling initSystem()
+FILE* globalLogOrig;
+FILE* nullLog = 0;
+
+void logSuspend()
+{	if(nullLog) globalLog = nullLog;
+}
+
+void logResume()
+{	globalLog = globalLogOrig;
+}
+
+
 static double startTime_us; //Time at which system was initialized in microseconds
 
 void initSystem(int argc, char** argv)
 {
+	globalLogOrig = globalLog;
+	nullLog = fopen("/dev/null", "w");
+	
 	//Print a welcome banner with useful information
 	printVersionBanner();
 	time_t startTime = time(0);
@@ -162,6 +178,8 @@ void finalizeSystem(bool successful)
 		if(globalLog != stdout)
 			fprintf(stderr, "Failed.\n");
 	}
+	
+	fclose(nullLog);
 }
 
 
@@ -230,9 +248,6 @@ int assertStackTraceExit(const char* expr, const char* function, const char* fil
 	gdbStackTraceExit(1);
 	return 0;
 }
-
-
-FILE* globalLog = stdout; // this might be replaced by a file pointer in main
 
 
 namespace Citations

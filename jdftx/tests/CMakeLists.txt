@@ -11,17 +11,17 @@ ADD_EXECUTABLE(    CavitationLJ             CavitationLJ.cpp) #Compute hard sphe
 ADD_EXECUTABLE(         TestFixedN            TestFixedN.cpp) #Attemping Fixed N capability
 ADD_EXECUTABLE(       TestGaussian          TestGaussian.cpp) #Tests water functionals with parabolic potential well
 ADD_EXECUTABLE(       SolvatedCMOS          SolvatedCMOS.cpp) #Floating gate transistor in ionic liquid
-TARGET_LINK_LIBRARIES(         TestRandom   jdftxFluid)
-TARGET_LINK_LIBRARIES(         TestSphere   jdftxFluid)
-TARGET_LINK_LIBRARIES(         TestPlanar   jdftxFluid)
-TARGET_LINK_LIBRARIES(      TestOperators   jdftxElectronic)
-TARGET_LINK_LIBRARIES( SO3quadConvergence   jdftxFluid)
-TARGET_LINK_LIBRARIES(       NonlinearEps   jdftxFluid)
-TARGET_LINK_LIBRARIES(      CavitationH2O   jdftxFluid)
-TARGET_LINK_LIBRARIES(    CavitationLJ      jdftxFluid)
-TARGET_LINK_LIBRARIES(         TestFixedN   jdftxFluid)
-TARGET_LINK_LIBRARIES(       TestGaussian   jdftxFluid)
-TARGET_LINK_LIBRARIES(       SolvatedCMOS   jdftxFluid)
+TARGET_LINK_LIBRARIES(         TestRandom   jdftxlib)
+TARGET_LINK_LIBRARIES(         TestSphere   jdftxlib)
+TARGET_LINK_LIBRARIES(         TestPlanar   jdftxlib)
+TARGET_LINK_LIBRARIES(      TestOperators   jdftxlib)
+TARGET_LINK_LIBRARIES( SO3quadConvergence   jdftxlib)
+TARGET_LINK_LIBRARIES(       NonlinearEps   jdftxlib)
+TARGET_LINK_LIBRARIES(      CavitationH2O   jdftxlib)
+TARGET_LINK_LIBRARIES(    CavitationLJ      jdftxlib)
+TARGET_LINK_LIBRARIES(         TestFixedN   jdftxlib)
+TARGET_LINK_LIBRARIES(       TestGaussian   jdftxlib)
+TARGET_LINK_LIBRARIES(       SolvatedCMOS   jdftxlib)
 
 set_target_properties(
                TestRandom
@@ -57,17 +57,17 @@ if(CUDA_FOUND)
 	ADD_EXECUTABLE(       TestGaussian_gpu          TestGaussian.cpp) #Tests water functionals with parabolic potential well
 	ADD_EXECUTABLE(       SolvatedCMOS_gpu          SolvatedCMOS.cpp) #Floating gate transistor in ionic liquid
 
-	TARGET_LINK_LIBRARIES(         TestRandom_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(         TestSphere_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(         TestPlanar_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(      TestOperators_gpu   jdftxElectronic_gpu)
-	TARGET_LINK_LIBRARIES( SO3quadConvergence_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(       NonlinearEps_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(      CavitationH2O_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(       CavitationLJ_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(         TestFixedN_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(       TestGaussian_gpu   jdftxFluid_gpu)
-	TARGET_LINK_LIBRARIES(       SolvatedCMOS_gpu   jdftxFluid_gpu)
+	TARGET_LINK_LIBRARIES(         TestRandom_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(         TestSphere_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(         TestPlanar_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(      TestOperators_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES( SO3quadConvergence_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(       NonlinearEps_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(      CavitationH2O_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(       CavitationLJ_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(         TestFixedN_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(       TestGaussian_gpu   jdftxlib_gpu)
+	TARGET_LINK_LIBRARIES(       SolvatedCMOS_gpu   jdftxlib_gpu)
 
 	set_target_properties(
 	               TestRandom_gpu

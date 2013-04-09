@@ -1,5 +1,5 @@
 add_library(jdftxVASPinterface SHARED FluidInterface.cpp)
-target_link_libraries(jdftxVASPinterface jdftxCommands)
+target_link_libraries(jdftxVASPinterface jdftxlib)
 
 add_executable(test test.cpp)
 target_link_libraries(test jdftxVASPinterface)

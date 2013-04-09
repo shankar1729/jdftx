@@ -101,37 +101,21 @@ if(CompileNative)
 endif()
 
 
-#----------------------- Regular CPU stuff ----------------
+#----------------------- Regular CPU targets ----------------
 
-#Set of libraries used by each target
-set(CORE_LIBS ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
+#External libraries to link to
+set(EXTERNAL_LIBS ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
-#Core Library:
-FILE(GLOB coreSources core/*.cpp)
-add_library(jdftxCore SHARED ${coreSources})
-target_link_libraries(jdftxCore ${CORE_LIBS})
+#Library with all the functionality:
+FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
+add_library(jdftxlib SHARED ${jdftxlibSources})
+target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
+set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
 
-#Fluid library:
-FILE(GLOB fluidSources fluid/*.cpp)
-add_library(jdftxFluid SHARED ${fluidSources})
-target_link_libraries(jdftxFluid jdftxCore)
-
-#Electronic library:
-FILE(GLOB electronicSources electronic/*.cpp)
-add_library(jdftxElectronic SHARED ${electronicSources})
-target_link_libraries(jdftxElectronic jdftxFluid)
-
-#Commands and parser:
-FILE(GLOB commandSources commands/*.cpp)
-add_library(jdftxCommands SHARED ${commandSources})
-target_link_libraries(jdftxCommands jdftxElectronic)
-
-#Main executable:
+#Primary interface executable:
 add_executable(jdftx jdftx.cpp)
-target_link_libraries(jdftx jdftxCommands)
-
-#Target properties:
-set_target_properties(jdftx jdftxCore jdftxFluid jdftxElectronic jdftxCommands PROPERTIES 
+target_link_libraries(jdftx jdftxlib)
+set_target_properties(jdftx jdftxlib PROPERTIES 
 	COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS}"
 	LINK_FLAGS "${EXTRA_CXX_FLAGS}")
 
@@ -148,41 +132,24 @@ if(CUDA_FOUND)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED;--compiler-options;-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})
 	target_link_libraries(gpukernels ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
-	
-	#Core Library (Gpu Version):
-	FILE(GLOB coreSources core/*.cpp)
-	add_library(jdftxCore_gpu SHARED ${coreSources})
-	target_link_libraries(jdftxCore_gpu ${CORE_LIBS} gpukernels)
 
-	#Fluid library (Gpu Version):
-	FILE(GLOB fluidSources fluid/*.cpp)
-	add_library(jdftxFluid_gpu SHARED ${fluidSources})
-	target_link_libraries(jdftxFluid_gpu jdftxCore_gpu)
+	#Library with all the functionality:
+	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
+	add_library(jdftxlib_gpu SHARED ${jdftxlibSources})
+	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
+	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
 
-	#Electronic library (Gpu Version):
-	FILE(GLOB electronicSources electronic/*.cpp)
-	add_library(jdftxElectronic_gpu SHARED ${electronicSources})
-	target_link_libraries(jdftxElectronic_gpu jdftxFluid_gpu)
-
-	#Commands and parser (Gpu version):
-	FILE(GLOB commandSources commands/*.cpp)
-	add_library(jdftxCommands_gpu SHARED ${commandSources})
-	target_link_libraries(jdftxCommands_gpu jdftxElectronic_gpu)
-
-	#Main executable (Gpu version):
+	#Primary interface executable:
 	add_executable(jdftx_gpu jdftx.cpp)
-	target_link_libraries(jdftx_gpu jdftxCommands_gpu)
-
-	#Target properties for Gpu versions:
-	set_target_properties(jdftx_gpu jdftxCore_gpu jdftxFluid_gpu jdftxElectronic_gpu jdftxCommands_gpu PROPERTIES
+	target_link_libraries(jdftx_gpu jdftxlib_gpu)
+	set_target_properties(jdftx_gpu jdftxlib_gpu PROPERTIES 
 		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} -DGPU_ENABLED"
 		LINK_FLAGS "${EXTRA_CXX_FLAGS}")
-
 endif()
 
 #-----------------------------------------------------------------------------

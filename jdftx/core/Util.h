@@ -104,6 +104,9 @@ int assertStackTraceExit(const char* expr, const char* function, const char* fil
 
 // -----------  Logging ---------------
 extern FILE* globalLog;
+extern FILE* nullLog; //!< pointer to /dev/null
+void logSuspend(); //!< temporarily disable all log output (until logResume())
+void logResume(); //!< re-enable logging after a logSuspend() call
 #define logPrintf(...) fprintf(globalLog, __VA_ARGS__)
 #define logFlush() fflush(globalLog)
 #define die(...) \

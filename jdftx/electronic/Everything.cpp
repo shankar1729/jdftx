@@ -162,7 +162,7 @@ void Everything::setup()
 	|| eVars.fluidParams.fluidType==FluidNonlocalPCM)
 	{	fluidMinParams.linePrefix = "\tFluidMinimize: ";
 		if(!eVars.fluidParams.verboseLog)
-			fluidMinParams.fpLog = fopen("/dev/null", "w");
+			fluidMinParams.fpLog = nullLog;
 	}
 	
 	//Setup lattice minimization parameters:
