@@ -448,8 +448,13 @@ void ElecInfo::kpointsReduce()
 
 void ElecInfo::kpointsPrint(bool printSpin) const
 {	for(unsigned q=0; q<qnums.size(); q++)
-	{	logPrintf("%5d\t[ %10.6f %10.6f %10.6f ] %8.6f", q,
-			qnums[q].k[0], qnums[q].k[1], qnums[q].k[2], qnums[q].weight);
-		if(printSpin) logPrintf("  spin %2d\n", qnums[q].spin); else logPrintf("\n");
+	{	kpointPrint(q); logPrintf("\n");
 	}
+}
+
+void ElecInfo::kpointPrint(int q, bool printSpin) const
+{
+	logPrintf("%5d\t[ %10.6f %10.6f %10.6f ] %8.6f", q,
+			qnums[q].k[0], qnums[q].k[1], qnums[q].k[2], qnums[q].weight);
+		if(printSpin) logPrintf("  spin %2d", qnums[q].spin);
 }

@@ -83,6 +83,9 @@ public:
 
 	//!Find the best fit chemical potential (and optionally the density of states) given fillings and eigenvalues
 	double fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu=0) const;
+	
+	void kpointsPrint(bool printSpin=false) const; //!< Output k-points, weights and optionally spins
+	void kpointPrint(int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 
 private:
 	const Everything* e;
@@ -110,7 +113,6 @@ private:
 	friend class Everything;
 	void kpointsFold(); //!< Fold k-points by kfold
 	void kpointsReduce(); //!< Reduce folded k-points under symmetries
-	void kpointsPrint(bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 };
 
 #endif // JDFTX_ELECTRONIC_ELECINFO_H

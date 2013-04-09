@@ -163,8 +163,26 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 
 void elecMinimize(Everything& e)
-{	ElecMinimizer emin(e);
-	emin.minimize(e.elecMinParams); 
+{	ElecMinimizer emin(e, true);
+	if(e.exCorr.exxFactor())
+	{
+		logPrintf("Detected exact exchange, minimising over all states simultaneously\n"); logFlush();
+		emin.minimize(e.elecMinParams);
+	}
+	else
+	{	
+		for(int q = 0; q < e.eInfo.nStates; q++)
+		{	
+			logPrintf("\n---- Starting minimization of state [ kpoint ] weight: ");
+			e.eInfo.kpointPrint(q);
+			logPrintf(" ----\n");
+			e.eVars.activeSubspace = q;
+			emin.minimize(e.elecMinParams);
+		}
+		// Recompute energy to get the same Eband as the simultaneous minimization
+		e.eVars.activeSubspace = -1;
+		e.eVars.elecEnergyAndGrad(e.ener);
+	}
 	e.eVars.setEigenvectors();
 	e.eVars.isRandom = false; //wavefunctions are no longer random
 }

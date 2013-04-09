@@ -168,6 +168,8 @@ void ElecVars::setup(const Everything &everything)
 	}
 	fluidForces.init(iInfo); //initialized to zero
 	
+	activeSubspace = -1;
+	
 	//Citations:
 	Citations::add("Total energy minimization",
 		"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");
@@ -263,7 +265,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 //-----  Electronic energy and (preconditioned) gradient calculation ----------
 
 double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradient* Kgrad, bool calc_Hsub)
-{
+{	
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
@@ -282,7 +284,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	//Compute orthonormal wavefunctions C from Y:
 	for(int q=0; q<eInfo.nStates; q++)
-	{	ColumnBundle projYq;
+	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+		ColumnBundle projYq;
 		if(e->cntrl.fixOccupied) //project out fixed wavefunctions from free ones
 		{	int nOcc = nOccupiedBands(q);
 			if(!nOcc) projYq = Y[q];
@@ -312,7 +315,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Update overlap condition number:
 	double UeigMin = DBL_MAX, UeigMax = 0.;
 	for(int q=0; q<eInfo.nStates; q++)
-	{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
+	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+		auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
 		UeigMin = std::min(UeigMin, *(extremes.first));
 		UeigMax = std::max(UeigMax, *(extremes.second));
 	}
@@ -363,7 +367,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	ener.E["Enl"] = 0.0;
 	ener.E["KE"] = 0.0;
 	for(int q=0; q<eInfo.nStates; q++)
-	{	const QuantumNumber& qnum = eInfo.qnums[q];
+	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+		const QuantumNumber& qnum = eInfo.qnums[q];
 		diagMatrix Fq = e->cntrl.fixed_n ? eye(eInfo.nBands) : F[q]; //override fillings for band structure
 		
 		//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
@@ -451,7 +456,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		if(std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
 		{	double dmuNum=0.0, dmuDen=0.0;
 			for(int q=0; q<eInfo.nStates; q++)
-			{	diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
+			{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+				diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
 				dmuNum += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
 				dmuDen += eInfo.qnums[q].weight * trace(fprime);
 			}
@@ -459,7 +465,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		}
 		
 		for(int q=0; q<eInfo.nStates; q++)
-		{	const QuantumNumber& qnum = eInfo.qnums[q];
+		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+			const QuantumNumber& qnum = eInfo.qnums[q];
 			matrix gradF = Hsub[q]-B_eigs[q]-dmuContrib; //gradient w.r.t fillings
 			grad->B[q] = qnum.weight
 				* dagger_symmetrize(dagger(V[q]) * eInfo.fermiGrad(mu, B_eigs[q], gradF) * V[q]);
@@ -475,7 +482,9 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	{	//Compute band structure energy
 		ener.Eband = 0;
 		for(int q=0; q<eInfo.nStates; q++)
+		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
 			ener.Eband += eInfo.qnums[q].weight * trace(Hsub[q]).real();
+		}
 	}
 	return relevantFreeEnergy(*e);
 }
@@ -484,7 +493,7 @@ void ElecVars::setEigenvectors()
 {	const ElecInfo& eInfo = e->eInfo;
 	logPrintf("Setting wave functions to eigenvectors of Hamiltonian\n"); logFlush();
 	for(int q=0; q<eInfo.nStates; q++)
-	{
+	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
 		Y[q] = (C[q] = C[q] * Hsub_evecs[q]);
 		grad_CdagOC[q] =  dagger(Hsub_evecs[q]) *grad_CdagOC[q] * Hsub_evecs[q];
 		
