@@ -20,26 +20,126 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Polarizability.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <core/LatticeUtils.h>
 #include <core/DataIO.h>
 
 Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
 {
 }
 
-inline void pairDensity_thread(int bStart, int bStop, int nV, int nC, const ColumnBundle* C, const diagMatrix* eig, ColumnBundle* rho, diagMatrix* eigDiff)
-{	int b = bStart;
-	int v = b / nC;
-	int c = b - v*nC;
-	complexDataRptr conjICv = conj(I(C->getColumn(v)));
-	while(b<bStop)
-	{	rho->setColumn(b, J(conjICv * I(C->getColumn(nV+c))));
-		eigDiff->at(b) = eig->at(nV+c) - eig->at(v);
-		//Next cv pair:
-		b++; if(b==bStop) break;
-		c++;
-		if(c==nC) { c=0; v++; conjICv = conj(I(C->getColumn(v))); }
+
+class PairDensityCalculator
+{
+	const Everything& e; int ik, nK;
+	const ColumnBundle *C1, *C2;
+	const diagMatrix *eig1, *eig2;
+	int *index1, *index2;
+	
+	//Setup transformed index array in targetIndex
+	void setupIndex(const Supercell::KmeshTransform kTransform, const Basis& basis, int* &targetIndex) const
+	{	const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym]) * kTransform.invert;
+		std::vector<int> index(basis.nbasis);
+		for(unsigned j=0; j<basis.nbasis; j++)
+			index[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset);
+		#ifdef GPU_ENABLED
+		cudaMalloc(&targetIndex, sizeof(int)*index.size());
+		cudaMemcpy(targetIndex, index.data(), sizeof(int)*index.size(), cudaMemcpyHostToDevice);
+		#else
+		targetIndex = new int[index.size()];
+		eblas_copy(targetIndex, index.data(), index.size());
+		#endif
 	}
-}
+	
+	//ColumnBundle::getColumn with custom index array:
+	static complexDataGptr getColumn(const ColumnBundle* C, int col, const int* index)
+	{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
+		callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
+		return full;
+	}
+	
+public:
+	//Setup to compute pair densities between kmesh[ik] and its partner dk away
+	PairDensityCalculator(const Everything& e, const vector3<>& dk, int ik) : e(e), ik(ik)
+	{
+		//Find the transformations for the two k-points:
+		const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
+		const std::vector<Supercell::KmeshTransform>& kmeshTransform = e.coulombParams.supercell->kmeshTransform;
+		Supercell::KmeshTransform kTransform1 = kmeshTransform[ik], kTransform2;
+		nK = kmesh.size();
+		vector3<> k2 = kmesh[ik] + dk;
+		bool foundk2 = false;
+		for(unsigned ik2=0; ik2<kmesh.size(); ik2++)
+			if(circDistanceSquared(kmesh[ik2],k2) < symmThresholdSq)
+			{	kTransform2 = kmeshTransform[ik2];
+				vector3<> extraOffsetTemp = k2 - kmesh[ik2];
+				vector3<int> extraOffset;
+				for(int k=0; k<3; k++)
+				{	extraOffset[k] = int(round(extraOffsetTemp[k]));
+					assert(fabs(extraOffset[k]-extraOffsetTemp[k]) < symmThreshold);
+				}
+				kTransform2.offset += extraOffset;
+				foundk2 = true;
+				break;
+			}
+		assert(foundk2); //such a partner should always be found for a uniform kmesh
+		
+		//Get pointers to source wavefunctons and eigenvalues:
+		C1 = &(e.eVars.C[kTransform1.iReduced]);
+		C2 = &(e.eVars.C[kTransform2.iReduced]);
+		eig1 = &(e.eVars.Hsub_eigs[kTransform1.iReduced]);
+		eig2 = &(e.eVars.Hsub_eigs[kTransform2.iReduced]);
+		
+		//Setup index arrays for the two k-points:
+		setupIndex(kTransform1, *(C1->basis), index1);
+		setupIndex(kTransform2, *(C2->basis), index2);
+	}
+	
+	~PairDensityCalculator()
+	{
+		#ifdef GPU_ENABLED
+		cudaFree(index1); cudaFree(index2);
+		#else
+		delete[] index1; delete[] index2;
+		#endif
+	}
+
+	//Store resulting pair densities scaled by 2*invsqrt(eigenvalue differences) in rho,
+	//so that the non-interacting susceptibility is negative identity in this basis.
+	void compute(int nV, int nC, ColumnBundle& rho, int kOffset) const
+	{	threadLaunch(isGpuEnabled() ? 1 : 0, compute_thread, nV*nC, nV, nC, &rho, kOffset, this);
+	}
+	
+	//Accumulate contribution from currentkpoint pair to negative of noninteracting susceptibility in plane-wave basis:
+	void accumMinusXniPW(int nV, int nC, const Basis& basis, matrix& minusXni)
+	{	assert(minusXni.nRows() == int(basis.nbasis));
+		assert(minusXni.nCols() == int(basis.nbasis));
+		ColumnBundle rho(nV*nC, basis.nbasis, &basis);
+		compute(nV, nC, rho, 0);
+		//Xni += (detR)*rho*dagger(rho):
+		callPref(eblas_zgemm)(CblasNoTrans, CblasConjTrans, basis.nbasis, basis.nbasis, rho.nCols(),
+			basis.gInfo->detR, rho.dataPref(), rho.colLength(), rho.dataPref(), rho.colLength(),
+			1., minusXni.dataPref(), minusXni.nRows());
+	}
+	
+private:
+	void compute_sub(int bStart, int bStop, int nV, int nC, ColumnBundle* rho, int kOffset) const
+	{	int b = bStart;
+		int v = b / nC;
+		int c = b - v*nC;
+		complexDataRptr conjICv = conj(I(getColumn(C1, v, index1)));
+		while(b<bStop)
+		{	double sqrtEigDen = sqrt(4./(nK * (eig2->at(nV+c) - eig1->at(v))));
+			rho->setColumn(kOffset+b, sqrtEigDen * J(conjICv * I(getColumn(C2, nV+c, index2))));
+			//Next cv pair:
+			b++; if(b==bStop) break;
+			c++;
+			if(c==nC) { c=0; v++; conjICv = conj(I(getColumn(C1, v, index1))); }
+		}
+	}
+	static void compute_thread(int bStart, int bStop, int nV, int nC, ColumnBundle* rho, int kOffset, const PairDensityCalculator* pdc)
+	{	pdc->compute_sub(bStart, bStop, nV, nC, rho, kOffset);
+	}
+};
 
 inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
 {	for(int b=bStart; b<bStop; b++)
@@ -74,34 +174,62 @@ inline void ldaDblPrime_thread(int iStart, int iStop, const double* n, double* e
 void Polarizability::dump(const Everything& e)
 {	
 	logPrintf("Dumping polarizability matrix:\n"); logFlush();
-	
-	if(e.eInfo.qnums.size()>1) die("\nPolarizability currently implemented only for single k-point calculations");
 	if(e.exCorr.getName() != "lda-PZ") die("\nPolarizability currently implemented only for lda-PZ exchange correlation");
-	if(dk.length()) die("\nPolarizability currently implemented only for dk = 0\n");
 	
 	if(Ecut<=0.) Ecut = 4.*e.cntrl.Ecut;
 	logPrintf("\tSetting up reduced basis at Ecut=%lg: ", Ecut);
 	Basis basis; basis.setup(e.gInfo, e.iInfo, Ecut, dk);
 	
-	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities\n"); logFlush();
 	int nV = e.eInfo.nElectrons/2;
 	int nC = e.eInfo.nBands - nV;
+	int nK = e.coulombParams.supercell->kmesh.size();
 	if(nC <= 0) die("\nNo unoccupied states available for polarizability calculation.\n");
-	int nCV = nC * nV;
-	ColumnBundle rho(nCV, basis.nbasis, &basis); //pair density
-	diagMatrix eigDiff(nCV); //eigen-value differences (C-V)
-	threadOperators = false;
-	threadLaunch(pairDensity_thread, nCV, nV, nC, &e.eVars.C[0], &e.eVars.Hsub_eigs[0], &rho, &eigDiff);
-	threadOperators = true;
+	int nCVK = nC * nV * nK;
+	
+	//Determine whether to start out in CV or PW basis:
+	bool pwBasis = (2*nCVK > int(basis.nbasis)); //switch to PW basis a little early since CV basis begins to become numerically unstable
+	int nColumns = pwBasis ? int(basis.nbasis) : nCVK;
+	const char* basisName = pwBasis ? "PW" : "CV";
+	
+	ColumnBundle V(nColumns, basis.nbasis, &basis); //basis vectors (not necessarily orthogonal)
+	matrix invXni, Xni; //inverse of non-interacting susceptibility (in basis V)
+	
+	if(pwBasis)
+	{	logPrintf("\tComputing NonInteracting polarizability in plane-wave basis\n"); logFlush();
+		//Set the basis to an identity matrix:
+		V.zero();
+		complex* Vdata = V.data();
+		double invsqrtVol = 1./sqrt(e.gInfo.detR);
+		for(int i=0; i<nColumns; i++) Vdata[V.index(i,i)] = invsqrtVol;
+		//Get the PW basis non-interacting susceptibility matrix:
+		matrix minusXni(nColumns, nColumns); minusXni.zero();
+		threadOperators = false;
+		for(int ik=0; ik<nK; ik++)
+			PairDensityCalculator(e, dk, ik).accumMinusXniPW(nV, nC, basis, minusXni);
+		threadOperators = true;
+		Xni = -minusXni;
+		Xni.write(e.dump.getFilename("pol_Xni").c_str());
+		invXni = -pow(minusXni, -1.);
+	}
+	else
+	{	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities and NonInteracting polarizability\n"); logFlush();
+		diagMatrix eigDiff(nColumns); //eigen-value differences (C-V)
+		threadOperators = false;
+		for(int ik=0; ik<nK; ik++)
+			PairDensityCalculator(e, dk, ik).compute(nV, nC, V, ik*nV*nC);
+		threadOperators = true;
+		invXni = -eye(nColumns); //inverse of non-interacting susceptibility
+	}
 	
 	logPrintf("\tApplying Coulomb kernel\n"); logFlush();
 	matrix K;
-	{	ColumnBundle Krho = rho.similar();
+	{	ColumnBundle KV = V.similar();
 		threadOperators = false;
-		threadLaunch(coulomb_thread, nCV, &e, dk, &rho, &Krho);
+		threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, nColumns, &e, dk, &V, &KV);
 		threadOperators = true;
-		logPrintf("\tForming Coulomb matrix in CV basis\n"); logFlush();
-		K = e.gInfo.detR * (rho^Krho);
+		logPrintf("\tForming Coulomb matrix in %s basis\n", basisName); logFlush();
+		K = e.gInfo.detR * (V^KV);
+		K.write(e.dump.getFilename("pol_K").c_str());
 	}
 
 	logPrintf("\tApplying Exchange-Correlation kernel\n"); logFlush();
@@ -110,43 +238,49 @@ void Polarizability::dump(const Everything& e)
 		threadLaunch(ldaDblPrime_thread, e.gInfo.nr, e.eVars.get_nTot()->data(), exc_nn->data());
 		saveRawBinary(exc_nn, e.dump.getFilename("pol_ExcDblPrime").c_str());
 		
-		ColumnBundle KXCrho = rho.similar();
+		ColumnBundle KXCV = V.similar();
 		threadOperators = false;
-		threadLaunch(exCorr_thread, nCV, &exc_nn, &rho, &KXCrho);
+		threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, nColumns, &exc_nn, &V, &KXCV);
 		threadOperators = true;
-		logPrintf("\tForming Exchange-Correlation matrix in CV basis\n"); logFlush();
-		KXC = e.gInfo.detR * (rho^KXCrho);
+		logPrintf("\tForming Exchange-Correlation matrix in %s basis\n", basisName); logFlush();
+		KXC = e.gInfo.detR * (V^KXCV);
 	}
 	
 	//Compute operator matrices in current (CV) basis
-	logPrintf("\tComputing polarizability matrices in CV basis\n"); logFlush();
-	matrix invXni = -0.25*eigDiff; //inverse of non-interacting susceptibility
+	logPrintf("\tComputing External and Total polarizability matrices in %s basis\n", basisName); logFlush();
 	matrix invXtot = invXni - KXC; //inverse of charge response to total electrostatic potential
 	matrix invXext = invXtot - K; //inverse of charge response to external electrostatic potential
 
 	//Determine transformation to chosen eigen-basis
-	logPrintf("\tComputing transformation matrix from CV to chosen eigen-basis\n"); logFlush();
-	if(nEigs<=0) nEigs = nCV;
-	matrix Q; //transformation matrix from CV to chosen basis
-	{	matrix Umhalf = invsqrt(e.gInfo.detR*(rho^rho)); //matrix that orthogonalizes CV basis
-		const matrix* invXbasis = 0;
-		switch(eigenBasis)
-		{	case NonInteracting: invXbasis = &invXni; break;
-			case External: invXbasis = &invXext; break;
-			case Total: invXbasis = &invXtot; break;
-			default: assert(!"Invalid eigenBasis");
-		}
-		matrix evecs; diagMatrix eigs;
-		(Umhalf * (*invXbasis) * Umhalf).diagonalize(evecs, eigs);
-		//Truncate eigen-expansion:
-		//--- most negative eigenvalue of neg-definite Xbasis is least negative eigenvalue of invXbasis
-		//--- eigenvalues in ascending order => pick last nEigs eigenvalues
-		Q = Umhalf * evecs(0,nCV, nCV-nEigs,nCV);
+	extern EnumStringMap<EigenBasis> polarizabilityMap;
+	logPrintf("\tComputing transformation matrix from %s to %s polarizability eigen-basis\n", basisName, polarizabilityMap.getString(eigenBasis)); logFlush();
+	const matrix* invXbasis = 0;
+	switch(eigenBasis)
+	{	case NonInteracting: invXbasis = &invXni; break;
+		case External: invXbasis = &invXext; break;
+		case Total: invXbasis = &invXtot; break;
+		default: assert(!"Invalid eigenBasis");
 	}
-
+	if(nEigs<=0 || nEigs>nColumns) nEigs = nColumns;
+	matrix Q; //transformation matrix from CV to chosen basis
+	if(pwBasis)
+	{	matrix evecs; diagMatrix eigs;
+		(*invXbasis).diagonalize(evecs, eigs);
+		Q = evecs(0,nColumns, nColumns-nEigs,nColumns); //basis is already orthogonal
+	}
+	else
+	{	matrix evecs; diagMatrix eigs;
+		matrix Umhalf = invsqrt(e.gInfo.detR*(V^V)); //matrix that orthogonalizes CV basis
+		(Umhalf * (*invXbasis) * Umhalf).diagonalize(evecs, eigs);
+		Q = Umhalf * evecs(0,nColumns, nColumns-nEigs,nColumns);
+	}
+	//In the above truncation of the eigen-expansion:
+	//--- most negative eigenvalue of neg-definite Xbasis is least negative eigenvalue of invXbasis
+	//--- eigenvalues in ascending order => pick last nEigs eigenvalues
+	
 	//Transform all quantities to eigenbasis:
-	logPrintf("\tTransforming output quantities to chosen eigen-basis\n"); logFlush();
-	rho = rho * Q; //now equal to what we call V in derivations
+	logPrintf("\tTransforming output quantities to %s polarizability eigen-basis\n", polarizabilityMap.getString(eigenBasis)); logFlush();
+	V = V * Q; //now equal to what we call V in derivations
 	invXni = dagger(Q) * invXni * Q;
 	invXext = dagger(Q) * invXext * Q;
 	invXtot = dagger(Q) * invXtot * Q;
@@ -155,7 +289,7 @@ void Polarizability::dump(const Everything& e)
 
 	//Dump:
 	logPrintf("\tDumping '%s' ... ", e.dump.getFilename("pol_*").c_str()); logFlush();
-	rho.write(e.dump.getFilename("pol_basis").c_str());
+	V.write(e.dump.getFilename("pol_basis").c_str());
 	invXni.write(e.dump.getFilename("pol_invXni").c_str());
 	invXext.write(e.dump.getFilename("pol_invXext").c_str());
 	invXtot.write(e.dump.getFilename("pol_invXtot").c_str());
@@ -163,4 +297,34 @@ void Polarizability::dump(const Everything& e)
 	KXC.write(e.dump.getFilename("pol_KXC").c_str());
 	logPrintf("Done.\n");
 	logFlush();
+
+	//Compute dielectric band structure:
+// 	{	matrix Kmhalf = invsqrt(dagger_symmetrize(K));
+// 		matrix epsInvEvecs; diagMatrix epsInvEigs;
+// 		(Kmhalf * invXext * Kmhalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv eigs upto inverse and +1
+// 		for(int i=0; i<nEigs; i++)
+// 			epsInvEigs[i] = 1. + 1./epsInvEigs[i];
+// 		string fname = e.dump.getFilename("epsInvEigs");
+// 		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+// 		FILE* fp=fopen(fname.c_str(), "w");
+// 		epsInvEigs.print(fp, "%.15f\n");
+// 		fclose(fp);
+// 		logPrintf("Done.\n"); logFlush();
+// 	}
+	
+	//Compute dielectric band structure:
+	{	Xni  = dagger(Q) * Xni * Q;
+		
+		matrix Xext = dagger_symmetrize(inv(eye(nColumns) - Xni*K) * Xni);
+		matrix epsInvEvecs; diagMatrix epsInvEigs;
+		matrix Khalf = pow(dagger_symmetrize(K), 0.5);
+		(Khalf * Xext * Khalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv eigs upto +1
+		for(int i=0; i<nEigs; i++) epsInvEigs[i] += 1.; //add the 1
+		string fname = e.dump.getFilename("epsInvEigs");
+		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp=fopen(fname.c_str(), "w");
+		epsInvEigs.print(fp, "%.15f\n");
+		fclose(fp);
+		logPrintf("Done.\n"); logFlush();
+	}
 }

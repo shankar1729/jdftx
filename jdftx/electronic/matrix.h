@@ -167,6 +167,9 @@ void randomize(matrix& x);
 
 //------- Nonlinear matrix functions and their gradients ---------
 
+//! Compute inverse of an arbitrary matrix A (via LU decomposition)
+matrix inv(const matrix& A);
+
 //! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
 matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0);
 

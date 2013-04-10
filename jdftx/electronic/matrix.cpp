@@ -412,6 +412,33 @@ void randomize(matrix& x)
 
 //--------- Eigensystem, nonlinear matrix functions, and their gradients ----------
 
+extern "C"
+{	void zgetrf_(int* M, int* N, complex* A, int* LDA, int* IPIV, int* INFO);
+	void zgetri_(int* N, complex* A, int* LDA, int* IPIV, complex* WORK, int* LWORK, int* INFO);
+}
+
+matrix inv(const matrix& A)
+{	int N = A.nRows();
+	assert(N > 0);
+	assert(N == A.nCols());
+	matrix invA(A); //destructible copy
+	int ldA = A.nRows(); //leading dimension
+	std::vector<int> iPivot(N); //pivot info
+	int info; //error code in return
+	//LU decomposition (in place):
+	zgetrf_(&N, &N, invA.data(), &ldA, iPivot.data(), &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info>0) { logPrintf("LAPACK LU decomposition routine ZGETRF found input matrix to be singular at the %d'th step.\n", info); gdbStackTraceExit(1); }
+	//Compute inverse in place:
+	int lWork = (64+1)*N;
+	std::vector<complex> work(lWork);
+	zgetri_(&N, invA.data(), &ldA, iPivot.data(), work.data(), &lWork, &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK matrix inversion routine ZGETRI is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info>0) { logPrintf("LAPACK matrix inversion routine ZGETRI found input matrix to be singular at the %d'th step.\n", info); gdbStackTraceExit(1); }
+	return invA;
+}
+
+
 //Common implementation for the matrix nonlinear functions:
 #define MATRIX_FUNC(code) \
 	assert(A.nRows()==A.nCols()); \
