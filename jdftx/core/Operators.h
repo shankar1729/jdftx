@@ -258,7 +258,7 @@ void applyFuncGsq_sub(size_t iStart, size_t iStop, const vector3<int> S, const m
 {	THREAD_halfGspaceLoop( (*f)(i, GGT.metric_length_squared(iG), args...); )
 }
 template<typename Func, typename... Args> void applyFuncGsq(const GridInfo& gInfo, const Func& f, Args... args)
-{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		applyFuncGsq_sub<Func,Args...>, gInfo.nG, gInfo.S, gInfo.GGT, &f, args...);
 }
 
@@ -270,7 +270,7 @@ void applyFunc_r_sub(size_t iStart, size_t iStop, const vector3<int> S, const ve
 	)
 }
 template<typename Func, typename... Args> void applyFunc_r(const GridInfo& gInfo, const Func& f, Args... args)
-{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		applyFunc_r_sub<Func,Args...>, gInfo.nr, gInfo.S, gInfo.h, f, args...);
 }
 //!@endcond

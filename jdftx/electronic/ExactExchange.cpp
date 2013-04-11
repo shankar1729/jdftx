@@ -82,10 +82,10 @@ double ExactExchange::operator()(double aXX, double omega,
 	int iDone = 0; //integer used for job management
 	std::mutex lock; //lock used for thread synchronization
 	
-	threadOperators = false;
+	suspendOperatorThreading();
 	threadLaunch(isGpuEnabled() ? 1 : 0, ExactExchangeEval::calc_thread, 0,
 		eval, aXX, omega, &EXX, &iDone, &lock, &F, &C, HC);
-	threadOperators = true;
+	resumeOperatorThreading();
 	
 	watch.stop();
 	return EXX;

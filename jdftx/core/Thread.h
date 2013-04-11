@@ -36,21 +36,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 extern int nProcsAvailable; //!< number of available processors (initialized to number of online processors, can be overriden)
 
 /**
-Operators should run multithreaded if this is set to true,
-and should run in a single thread if this is set to false.
-
-Single threaded top-level code that calls operators should
-levae this flag at its default value of true.
-Multi-threaded top-level code which calls operators from
-multiple threads may benefit from setting this to false
-before launching threads, and setting it back to true
-after the threads finish. This is particularly beneficial
-when fourier transforms are being called from multiple threads.
+Operators should run multithreaded if this returns true,
+and should run in a single thread if this returns false.
 
 This only affects CPU threading, GPU operators should
 only be called from a single thread anyway.
 */
-extern bool threadOperators;
+bool shouldThreadOperators();
+
+void suspendOperatorThreading(); //!< call from multi-threaded top-level code to disable threading within operators called from a parallel section
+void resumeOperatorThreading(); //!< call after a parallel section in top-level code to resume threading within subsequent operator calls
 
 
 /**
@@ -121,7 +116,7 @@ be thread safe. (Hint: pass mutexes as a part of args if synchronization
 is required).
 
 As many threads as online processors are launched and the nIter iterations are evenly split
-between all the threads. Threaded loops will become single threaded if threadOperators = false.
+between all the threads. Threaded loops will become single threaded if suspendOperatorThreading().
 
 @param func The function / object with operator() to be looped over
 @param nIter The number of loop 'iterations'
@@ -191,7 +186,7 @@ void threadedLoop_sub(size_t iMin, size_t iMax, Callable* func, Args... args)
 }
 template<typename Callable,typename ... Args>
 void threadedLoop(Callable* func, size_t nIter, Args... args)
-{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		threadedLoop_sub<Callable,Args...>, nIter, func, args...);
 }
 
@@ -205,7 +200,7 @@ template<typename Callable,typename ... Args>
 double threadedAccumulate(Callable* func, size_t nIter, Args... args)
 {	double accumTot=0.0;
 	std::mutex m;
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		threadedAccumulate_sub<Callable,Args...>, nIter, func, &accumTot, &m, args...);
 	return accumTot;
 }

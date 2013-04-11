@@ -203,19 +203,19 @@ void Polarizability::dump(const Everything& e)
 		for(int i=0; i<nColumns; i++) Vdata[V.index(i,i)] = invsqrtVol;
 		//Get the PW basis non-interacting susceptibility matrix:
 		matrix minusXni(nColumns, nColumns); minusXni.zero();
-		threadOperators = false;
+		suspendOperatorThreading();
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).accumMinusXniPW(nV, nC, basis, minusXni);
-		threadOperators = true;
+		resumeOperatorThreading();
 		Xni = -minusXni;
 	}
 	else
 	{	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities and NonInteracting polarizability\n"); logFlush();
 		diagMatrix eigDiff(nColumns); //eigen-value differences (C-V)
-		threadOperators = false;
+		suspendOperatorThreading();
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).compute(nV, nC, V, ik*nV*nC);
-		threadOperators = true;
+		resumeOperatorThreading();
 		matrix invXni = -eye(nColumns); //inverse of non-interacting susceptibility
 		logPrintf("\tOrthonormalizing basis\n"); logFlush();
 		matrix Umhalf = invsqrt(e.gInfo.detR*(V^V));
@@ -226,9 +226,9 @@ void Polarizability::dump(const Everything& e)
 	logPrintf("\tApplying Coulomb kernel\n"); logFlush();
 	matrix K;
 	{	ColumnBundle KV = V.similar();
-		threadOperators = false;
+		suspendOperatorThreading();
 		threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, nColumns, &e, dk, &V, &KV);
-		threadOperators = true;
+		resumeOperatorThreading();
 		logPrintf("\tForming Coulomb matrix in %s basis\n", basisName); logFlush();
 		K = e.gInfo.detR * (V^KV);
 		K.write(e.dump.getFilename("pol_K").c_str());
@@ -241,9 +241,9 @@ void Polarizability::dump(const Everything& e)
 		saveRawBinary(exc_nn, e.dump.getFilename("pol_ExcDblPrime").c_str());
 		
 		ColumnBundle KXCV = V.similar();
-		threadOperators = false;
+		suspendOperatorThreading();
 		threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, nColumns, &exc_nn, &V, &KXCV);
-		threadOperators = true;
+		resumeOperatorThreading();
 		logPrintf("\tForming Exchange-Correlation matrix in %s basis\n", basisName); logFlush();
 		KXC = e.gInfo.detR * (V^KXCV);
 	}

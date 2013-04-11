@@ -367,7 +367,7 @@ template<> void exchangeAnalytic_thread<ExchangeSlab_calc>(size_t iStart, size_t
 	void exchangeAnalytic(vector3<int> S, const matrix3<>& GGT, const Exchange##Type##_calc& calc, \
 		complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq) \
 	{	\
-		threadLaunch(threadOperators ? 0 : 1, exchangeAnalytic_thread<Exchange##Type##_calc>, \
+		threadLaunch(shouldThreadOperators() ? 0 : 1, exchangeAnalytic_thread<Exchange##Type##_calc>, \
 			S[0]*S[1]*S[2], S, GGT, calc, data, kDiff, Vzero, thresholdSq); \
 	}
 DECLARE_exchangeAnalytic(Periodic)
@@ -383,7 +383,7 @@ void multRealKernel_thread(size_t iStart, size_t iStop,
 {	THREAD_fullGspaceLoop( multRealKernel_calc(i, iG, S, kernel, data); )
 }
 void multRealKernel(vector3<int> S, const double* kernel, complex* data)
-{	threadLaunch(threadOperators ? 0 : 1, multRealKernel_thread, S[0]*S[1]*S[2], S, kernel, data);
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, multRealKernel_thread, S[0]*S[1]*S[2], S, kernel, data);
 }
 
 //Multiply a complexDataGptr by a kernel sampled with offset and rotation by rot
@@ -392,5 +392,5 @@ void multTransformedKernel_thread(size_t iStart, size_t iStop,
 {	THREAD_fullGspaceLoop( multTransformedKernel_calc(i, iG, S, kernel, data, offset); )
 }
 void multTransformedKernel(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
-{	threadLaunch(threadOperators ? 0 : 1, multTransformedKernel_thread, S[0]*S[1]*S[2], S, kernel, data, offset);
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, multTransformedKernel_thread, S[0]*S[1]*S[2], S, kernel, data, offset);
 }

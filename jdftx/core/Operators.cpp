@@ -47,7 +47,7 @@ DataGptr Real(const complexDataGptr& full)
 	#ifdef GPU_ENABLED
 	RealG_gpu(gInfo.S, full->dataGpu(false), half->dataGpu(false), full->scale);
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		RealG_sub, gInfo.nG, gInfo.S, full->data(false), half->data(false), full->scale);
 	#endif
 	half->scale = 1;
@@ -74,7 +74,7 @@ DataGptr Imag(const complexDataGptr& full)
 	#ifdef GPU_ENABLED
 	ImagG_gpu(gInfo.S, full->dataGpu(false), half->dataGpu(false), full->scale);
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		ImagG_sub, gInfo.nG, gInfo.S, full->data(false), half->data(false), full->scale);
 	#endif
 	half->scale = 1;
@@ -101,7 +101,7 @@ complexDataGptr Complex(const DataGptr& half)
 	#ifdef GPU_ENABLED
 	ComplexG_gpu(gInfo.S, half->dataGpu(false), full->dataGpu(false), half->scale);
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		ComplexG_sub, gInfo.nG, gInfo.S, half->data(false), full->data(false), half->scale);
 	#endif
 	full->scale = 1;
@@ -124,7 +124,7 @@ DataRptr I(DataGptr&& in, bool compat)
 	#ifdef GPU_ENABLED
 	cufftExecZ2D(compat ? in->gInfo.planZ2Dcompat : in->gInfo.planZ2D, (double2*)in->dataGpu(false), out->dataGpu(false));
 	#else
-	fftw_execute_dft_c2r(threadOperators ? in->gInfo.planCtoRmulti : in->gInfo.planCtoRsingle,
+	fftw_execute_dft_c2r(shouldThreadOperators() ? in->gInfo.planCtoRmulti : in->gInfo.planCtoRsingle,
 		(fftw_complex*)in->data(false), out->data(false));
 	#endif
 	out->scale = in->scale;
@@ -143,7 +143,7 @@ complexDataRptr I(const complexDataGptr& in)
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)out->dataGpu(false), CUFFT_INVERSE);
 	#else
-	fftw_execute_dft(threadOperators ? in->gInfo.planInverseMulti : in->gInfo.planInverseSingle,
+	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planInverseMulti : in->gInfo.planInverseSingle,
 		(fftw_complex*)in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
@@ -154,7 +154,7 @@ complexDataRptr I(complexDataGptr&& in)
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)in->dataGpu(false), CUFFT_INVERSE);
 	#else
-	fftw_execute_dft(threadOperators ? in->gInfo.planInverseInPlaceMulti : in->gInfo.planInverseInPlaceSingle,
+	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planInverseInPlaceMulti : in->gInfo.planInverseInPlaceSingle,
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
 	return (complexDataRptr&&)in;
@@ -167,7 +167,7 @@ DataGptr Idag(const DataRptr& in)
 	#ifdef GPU_ENABLED
 	cufftExecD2Z(in->gInfo.planD2Z, in->dataGpu(false), (double2*)out->dataGpu(false));
 	#else
-	fftw_execute_dft_r2c(threadOperators ? in->gInfo.planRtoCmulti : in->gInfo.planRtoCsingle,
+	fftw_execute_dft_r2c(shouldThreadOperators() ? in->gInfo.planRtoCmulti : in->gInfo.planRtoCsingle,
 		in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
@@ -178,7 +178,7 @@ complexDataGptr Idag(const complexDataRptr& in)
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)out->dataGpu(false), CUFFT_FORWARD);
 	#else
-	fftw_execute_dft(threadOperators ? in->gInfo.planForwardMulti : in->gInfo.planForwardSingle,
+	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planForwardMulti : in->gInfo.planForwardSingle,
 		(fftw_complex*)in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
@@ -189,7 +189,7 @@ complexDataGptr Idag(complexDataRptr&& in)
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)in->dataGpu(false), CUFFT_FORWARD);
 	#else
-	fftw_execute_dft(threadOperators ? in->gInfo.planForwardInPlaceMulti : in->gInfo.planForwardInPlaceSingle,
+	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planForwardInPlaceMulti : in->gInfo.planForwardInPlaceSingle,
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
 	return (complexDataGptr&&)in;
@@ -263,7 +263,7 @@ complexDataGptr L(complexDataGptr&& in)
 	#ifdef GPU_ENABLED
 	fullL_gpu(gInfo.S, gInfo.GGT, in->dataGpu(false));
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		fullL_sub, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false));
 	#endif
 	return in;
@@ -282,7 +282,7 @@ complexDataGptr Linv(complexDataGptr&& in)
 	#ifdef GPU_ENABLED
 	fullLinv_gpu(gInfo.S, gInfo.GGT, in->dataGpu(false));
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		fullLinv_sub, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false));
 	#endif
 	return in;
@@ -295,12 +295,12 @@ template<typename Scalar> void zeroNyquist_sub(size_t iStart, size_t iStop, cons
 {	THREAD_halfGspaceLoop( if(IS_NYQUIST) data[i] = Scalar(0.0); )
 }
 void zeroNyquist(RealKernel& K)
-{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		zeroNyquist_sub<double>, K.gInfo.nG, K.gInfo.S, K.data);
 }
 void zeroNyquist(DataGptr& Gptr)
 {	const GridInfo& gInfo = Gptr->gInfo;
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		zeroNyquist_sub<complex>, gInfo.nG, gInfo.S, Gptr->data());
 }
 void zeroNyquist(DataRptr& Rptr) { DataGptr Rtilde=J(Rptr); zeroNyquist(Rtilde); Rptr = I((DataGptr&&)Rtilde); }
@@ -551,7 +551,7 @@ void initTranslation_sub(size_t iStart, size_t iStop, const vector3<int> S, cons
 }
 void initTranslation(DataGptr& X, const vector3<>& r)
 {	const GridInfo& gInfo = X->gInfo;
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		initTranslation_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
 }
 
@@ -560,7 +560,7 @@ void gaussConvolve_sub(size_t iStart, size_t iStop, const vector3<int>& S, const
 {	THREAD_halfGspaceLoop( data[i] *= exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG)); )
 }
 void gaussConvolve(const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
-{	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		gaussConvolve_sub, S[0]*S[1]*(1+S[2]/2), S, GGT, data, sigma);
 }
 #ifdef GPU_ENABLED
@@ -600,7 +600,7 @@ DataGptrVec gradient(const DataGptr& Xtilde)
 	#ifdef GPU_ENABLED
 	gradient_gpu(gInfo.S, gInfo.G, Xtilde->dataGpu(), gradTilde.dataGpu());
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		gradient_sub, gInfo.nG, gInfo.S, gInfo.G, Xtilde->data(), gradTilde.data());
 	#endif
 	return gradTilde;
@@ -621,7 +621,7 @@ DataGptr divergence(const DataGptrVec& Vtilde)
 	#ifdef GPU_ENABLED
 	divergence_gpu(gInfo.S, gInfo.G, Vtilde.dataGpu(), divTilde->dataGpu());
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		divergence_sub, gInfo.nG, gInfo.S, gInfo.G, Vtilde.data(), divTilde->data());
 	#endif
 	return divTilde;
@@ -642,7 +642,7 @@ DataGptrTensor tensorGradient(const DataGptr& Xtilde)
 	#ifdef GPU_ENABLED
 	tensorGradient_gpu(gInfo.S, gInfo.G, Xtilde->dataGpu(), gradTilde.dataGpu());
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		tensorGradient_sub, gInfo.nG, gInfo.S, gInfo.G, Xtilde->data(), gradTilde.data());
 	#endif
 	return gradTilde;
@@ -662,7 +662,7 @@ DataGptr tensorDivergence(const DataGptrTensor& Vtilde)
 	#ifdef GPU_ENABLED
 	tensorDivergence_gpu(gInfo.S, gInfo.G, Vtilde.dataGpu(), divTilde->dataGpu());
 	#else
-	threadLaunch(threadOperators ? 0 : 1, //0 => max threads
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
 		tensorDivergence_sub, gInfo.nG, gInfo.S, gInfo.G, Vtilde.data(), divTilde->data());
 	#endif
 	return divTilde;

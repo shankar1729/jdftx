@@ -25,6 +25,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 int nProcsAvailable = sysconf(_SC_NPROCESSORS_ONLN);
 bool threadOperators = true;
 
+bool shouldThreadOperators()
+{	return threadOperators;
+}
+
+void suspendOperatorThreading()
+{	threadOperators = false;
+}
+
+void resumeOperatorThreading()
+{	threadOperators = true;
+}
+
+
 AutoThreadCount::AutoThreadCount(int minThreads, int minStats, const char* name, FILE* fpLog)
 : minThreads(minThreads),minStats(minStats),settled(false),name(0),fpLog(fpLog)
 {	nMax = nProcsAvailable;

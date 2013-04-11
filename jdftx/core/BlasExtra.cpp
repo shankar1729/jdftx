@@ -31,7 +31,7 @@ void eblas_lincomb(const int N,
 	const complex& sY, const complex* Y, const int incY,
 	complex* Z, const int incZ)
 {	if(incZ==0) die("incZ cannot be = 0")
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_lincomb_sub, N, sX, X, incX, sY, Y, incY, Z, incZ);
 }
 
@@ -63,7 +63,7 @@ void eblas_zgemm(
 	const complex& alpha, const complex *A, const int lda, const complex *B, const int ldb,
 	const complex& beta, complex *C, const int ldc)
 {
-	threadLaunch(threadOperators ? 0 : 1, //disable threads if called from threaded top-level code
+	threadLaunch(shouldThreadOperators() ? 0 : 1, //disable threads if called from threaded top-level code
 		eblas_zgemm_sub, std::max(M,N), //parallelize along larger dimension of output
  		TransA, TransB, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 }
@@ -73,7 +73,7 @@ template<typename scalar> void eblas_scatter_axpy_sub(size_t iStart, size_t iSto
 {	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * x[i];
 }
 template<typename scalar> void eblas_scatter_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
-{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0,  //force single threaded for small problem sizes
+{	threadLaunch((Nindex<100000 || (!shouldThreadOperators())) ? 1 : 0,  //force single threaded for small problem sizes
 		eblas_scatter_axpy_sub<scalar>, Nindex, a, index, x, y);
 }
 void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_scatter_axpy<complex>(Nindex, a, index, x, y); }
@@ -84,7 +84,7 @@ template<typename scalar> void eblas_gather_axpy_sub(size_t iStart, size_t iStop
 {	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[index[i]];
 }
 template<typename scalar> void eblas_gather_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
-{	threadLaunch((Nindex<100000 || (!threadOperators)) ? 1 : 0,  //force single threaded for small problem sizes
+{	threadLaunch((Nindex<100000 || (!shouldThreadOperators())) ? 1 : 0,  //force single threaded for small problem sizes
 		eblas_gather_axpy_sub<scalar>, Nindex, a, index, x, y);
 }
 void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_gather_axpy<complex>(Nindex, a, index, x, y); }
@@ -95,7 +95,7 @@ void eblas_accumNorm_sub(size_t iStart, size_t iStop, const double& a, const com
 {	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[i].norm();
 }
 void eblas_accumNorm(int N, const double& a, const complex* x, double* y)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_accumNorm_sub, N, a, x, y);
 }
 
@@ -110,7 +110,7 @@ template<typename scalar> void eblas_symmetrize_sub(size_t iStart, size_t iStop,
 	}
 }
 template<typename scalar> void eblas_symmetrize(int N, int n, const int* symmIndex, scalar* x)
-{	threadLaunch((N*n<10000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
+{	threadLaunch((N*n<10000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_symmetrize_sub<scalar>, N, n, symmIndex, x);
 }
 void eblas_symmetrize(int N, int n, const int* symmIndex, double* x) { eblas_symmetrize<double>(N, n, symmIndex, x); }
@@ -123,11 +123,11 @@ void eblas_zero_sub(size_t iStart, size_t iStop, T* x)
 {	memset(x+iStart, 0, (iStop-iStart)*sizeof(T));
 }
 void eblas_zero(int N, complex* x)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_zero_sub<complex>, N, x);
 }
 void eblas_zero(int N, double* x)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_zero_sub<double>, N, x);
 }
 
@@ -135,21 +135,21 @@ void eblas_zscal_sub(size_t iStart, size_t iStop, const complex* a, complex* x, 
 {	cblas_zscal(iStop-iStart, a, x+incx*iStart, incx);
 }
 void eblas_zscal(int N, const complex& a, complex* x, int incx)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, 
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, 
 		eblas_zscal_sub, N, &a, x, incx);
 }
 void eblas_zdscal_sub(size_t iStart, size_t iStop, double a, complex* x, int incx)
 {	cblas_zdscal(iStop-iStart, a, x+incx*iStart, incx);
 }
 void eblas_zdscal(int N, double a, complex* x, int incx)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, 
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, 
 		eblas_zdscal_sub, N, a, x, incx);
 }
 void eblas_dscal_sub(size_t iStart, size_t iStop, double a, double* x, int incx)
 {	cblas_dscal(iStop-iStart, a, x+incx*iStart, incx);
 }
 void eblas_dscal(int N, double a, double* x, int incx)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_dscal_sub, N, a, x, incx);
 }
 
@@ -158,14 +158,14 @@ void eblas_zaxpy_sub(size_t iStart, size_t iStop, const complex* a, const comple
 {	cblas_zaxpy(iStop-iStart, a, x+incx*iStart, incx, y+incy*iStart, incy);
 }
 void eblas_zaxpy(int N, const complex& a, const complex* x, int incx, complex* y, int incy)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_zaxpy_sub, N, &a, x, incx, y, incy);
 }
 void eblas_daxpy_sub(size_t iStart, size_t iStop, double a, const double* x, int incx, double* y, int incy)
 {	cblas_daxpy(iStop-iStart, a, x+incx*iStart, incx, y+incy*iStart, incy);
 }
 void eblas_daxpy(int N, double a, const double* x, int incx, double* y, int incy)
-{	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_daxpy_sub, N, a, x, incx, y, incy);
 }
 
@@ -183,7 +183,7 @@ void eblas_zdotc_sub(size_t iStart, size_t iStop, const complex* x, int incx, co
 complex eblas_zdotc(int N, const complex* x, int incx, const complex* y, int incy)
 {	complex ret = 0.;
 	std::mutex lock;
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_zdotc_sub, N, x, incx, y, incy, &ret, &lock);
 	return ret;
 }
@@ -200,7 +200,7 @@ void eblas_ddot_sub(size_t iStart, size_t iStop, const double* x, int incx, cons
 double eblas_ddot(int N, const double* x, int incx, const double* y, int incy)
 {	double ret = 0.;
 	std::mutex lock;
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0,
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0,
 		eblas_ddot_sub, N, x, incx, y, incy, &ret, &lock);
 	return ret;
 }
@@ -216,7 +216,7 @@ void eblas_dznrm2_sub(size_t iStart, size_t iStop, const complex* x, int incx, d
 double eblas_dznrm2(int N, const complex* x, int incx)
 {	double ret = 0.;
 	std::mutex lock;
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, eblas_dznrm2_sub, N, x, incx, &ret, &lock);
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, eblas_dznrm2_sub, N, x, incx, &ret, &lock);
 	return sqrt(ret);
 }
 
@@ -231,7 +231,7 @@ void eblas_dnrm2_sub(size_t iStart, size_t iStop, const double* x, int incx, dou
 double eblas_dnrm2(int N, const double* x, int incx)
 {	double ret = 0.;
 	std::mutex lock;
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, eblas_dnrm2_sub, N, x, incx, &ret, &lock);
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, eblas_dnrm2_sub, N, x, incx, &ret, &lock);
 	return sqrt(ret);
 }
 
@@ -257,6 +257,6 @@ void eblas_capMinMax(const int N, double* x, double& xMin, double& xMax, double 
 {	xMin = +DBL_MAX;
 	xMax = -DBL_MAX;
 	std::mutex lock;
-	threadLaunch((N<100000 || (!threadOperators)) ? 1 : 0, //force single threaded for small problem sizes
+	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_capMinMax_sub, N, x, &xMin, &xMax, capLo, capHi, &lock);
 }

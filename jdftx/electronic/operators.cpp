@@ -137,7 +137,7 @@ template<typename T> std::shared_ptr<T> pointGroupScatter(const std::shared_ptr<
 	#ifdef GPU_ENABLED
 	pointGroupScatter_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), mMesh);
 	#else
-	threadLaunch(threadOperators ? 0 : 1,
+	threadLaunch(shouldThreadOperators() ? 0 : 1,
 		pointGroupScatter_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
 	#endif
 	return out;
@@ -251,9 +251,9 @@ void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const Dat
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
 	ColumnBundle VC = C.similar();
-	threadOperators = false;
+	suspendOperatorThreading();
 	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, V, &VC);
-	threadOperators = true;
+	resumeOperatorThreading();
 	watch.stop();
 	return VC;
 }
