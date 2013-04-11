@@ -164,10 +164,8 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 void elecMinimize(Everything& e)
 {	ElecMinimizer emin(e, true);
-	if(e.exCorr.exxFactor())
-	{
-		logPrintf("Detected exact exchange, minimising over all states simultaneously\n"); logFlush();
-		emin.minimize(e.elecMinParams);
+	if((not e.cntrl.fixed_n) or e.exCorr.exxFactor())
+	{	emin.minimize(e.elecMinParams);
 	}
 	else
 	{	
