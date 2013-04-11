@@ -418,7 +418,9 @@ extern "C"
 }
 
 matrix inv(const matrix& A)
-{	int N = A.nRows();
+{	static StopWatch watch("inv(matrix)");
+	watch.start();
+	int N = A.nRows();
 	assert(N > 0);
 	assert(N == A.nCols());
 	matrix invA(A); //destructible copy
@@ -435,6 +437,7 @@ matrix inv(const matrix& A)
 	zgetri_(&N, invA.data(), &ldA, iPivot.data(), work.data(), &lWork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK matrix inversion routine ZGETRI is invalid.\n", -info); gdbStackTraceExit(1); }
 	if(info>0) { logPrintf("LAPACK matrix inversion routine ZGETRI found input matrix to be singular at the %d'th step.\n", info); gdbStackTraceExit(1); }
+	watch.stop();
 	return invA;
 }
 
