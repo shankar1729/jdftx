@@ -458,9 +458,13 @@ matrix inv(const matrix& A)
 // Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
 matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs)
 {	MATRIX_FUNC
-	(	if(eigs[i]<=0.0)
-		{	logPrintf("Eigenvalue# %d negative (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
+	(	if(exponent<0. && eigs[i]<=0.0)
+		{	logPrintf("Eigenvalue# %d is non-positive (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
 			gdbStackTraceExit(1);
+		}
+		else if(exponent>=0. && eigs[i]<0.0)
+		{	logPrintf("WARNING: Eigenvalue# %d is negative (%le) in pow (exponent %lg); zeroing it out.\n", i, eigs[i], exponent);
+			eigs[i] = 0.;
 		}
 		else eigOut[i] = pow(eigs[i], exponent);
 	)

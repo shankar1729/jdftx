@@ -191,8 +191,8 @@ void Polarizability::dump(const Everything& e)
 	int nColumns = pwBasis ? int(basis.nbasis) : nCVK;
 	const char* basisName = pwBasis ? "PW" : "CV";
 	
-	ColumnBundle V(nColumns, basis.nbasis, &basis); //basis vectors (not necessarily orthogonal)
-	matrix invXni, Xni; //inverse of non-interacting susceptibility (in basis V)
+	ColumnBundle V(nColumns, basis.nbasis, &basis); //orthonormal basis vectors
+	matrix Xni; //non-interacting susceptibility (in basis V)
 	
 	if(pwBasis)
 	{	logPrintf("\tComputing NonInteracting polarizability in plane-wave basis\n"); logFlush();
@@ -208,8 +208,6 @@ void Polarizability::dump(const Everything& e)
 			PairDensityCalculator(e, dk, ik).accumMinusXniPW(nV, nC, basis, minusXni);
 		threadOperators = true;
 		Xni = -minusXni;
-		Xni.write(e.dump.getFilename("pol_Xni").c_str());
-		invXni = -pow(minusXni, -1.);
 	}
 	else
 	{	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities and NonInteracting polarizability\n"); logFlush();
@@ -218,7 +216,11 @@ void Polarizability::dump(const Everything& e)
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).compute(nV, nC, V, ik*nV*nC);
 		threadOperators = true;
-		invXni = -eye(nColumns); //inverse of non-interacting susceptibility
+		matrix invXni = -eye(nColumns); //inverse of non-interacting susceptibility
+		logPrintf("\tOrthonormalizing basis\n"); logFlush();
+		matrix Umhalf = invsqrt(e.gInfo.detR*(V^V));
+		V = V * Umhalf;
+		Xni = dagger_symmetrize(inv(Umhalf * invXni * Umhalf));
 	}
 	
 	logPrintf("\tApplying Coulomb kernel\n"); logFlush();
@@ -248,83 +250,55 @@ void Polarizability::dump(const Everything& e)
 	
 	//Compute operator matrices in current (CV) basis
 	logPrintf("\tComputing External and Total polarizability matrices in %s basis\n", basisName); logFlush();
-	matrix invXtot = invXni - KXC; //inverse of charge response to total electrostatic potential
-	matrix invXext = invXtot - K; //inverse of charge response to external electrostatic potential
+	matrix Xtot = dagger_symmetrize(inv(eye(nColumns) - Xni*(  KXC  )) * Xni); //charge response to total electrostatic potential
+	matrix Xext = dagger_symmetrize(inv(eye(nColumns) - Xni*(K + KXC)) * Xni); //charge response to external electrostatic potential
+	
+	//Compute dielectric band structure:
+	{	string fname = e.dump.getFilename("epsInvEigs");
+		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+		matrix epsInvEvecs; diagMatrix epsInvEigs;
+		matrix Khalf = pow(dagger_symmetrize(K), 0.5);
+		(eye(nColumns) + Khalf * Xext * Khalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv (symmetrized)
+		FILE* fp=fopen(fname.c_str(), "w");
+		epsInvEigs.print(fp, "%.15f\n");
+		fclose(fp);
+		logPrintf("Done.\n"); logFlush();
+	}
 
 	//Determine transformation to chosen eigen-basis
 	extern EnumStringMap<EigenBasis> polarizabilityMap;
 	logPrintf("\tComputing transformation matrix from %s to %s polarizability eigen-basis\n", basisName, polarizabilityMap.getString(eigenBasis)); logFlush();
-	const matrix* invXbasis = 0;
+	const matrix* Xbasis = 0;
 	switch(eigenBasis)
-	{	case NonInteracting: invXbasis = &invXni; break;
-		case External: invXbasis = &invXext; break;
-		case Total: invXbasis = &invXtot; break;
+	{	case NonInteracting: Xbasis = &Xni; break;
+		case External: Xbasis = &Xext; break;
+		case Total: Xbasis = &Xtot; break;
 		default: assert(!"Invalid eigenBasis");
 	}
 	if(nEigs<=0 || nEigs>nColumns) nEigs = nColumns;
 	matrix Q; //transformation matrix from CV to chosen basis
-	if(pwBasis)
 	{	matrix evecs; diagMatrix eigs;
-		(*invXbasis).diagonalize(evecs, eigs);
-		Q = evecs(0,nColumns, nColumns-nEigs,nColumns); //basis is already orthogonal
+		(*Xbasis).diagonalize(evecs, eigs);
+		Q = evecs(0,nColumns, 0,nEigs); //Largest negative eigenvalues of Xbasis appear in the beginning; select first nEigs of them
 	}
-	else
-	{	matrix evecs; diagMatrix eigs;
-		matrix Umhalf = invsqrt(e.gInfo.detR*(V^V)); //matrix that orthogonalizes CV basis
-		(Umhalf * (*invXbasis) * Umhalf).diagonalize(evecs, eigs);
-		Q = Umhalf * evecs(0,nColumns, nColumns-nEigs,nColumns);
-	}
-	//In the above truncation of the eigen-expansion:
-	//--- most negative eigenvalue of neg-definite Xbasis is least negative eigenvalue of invXbasis
-	//--- eigenvalues in ascending order => pick last nEigs eigenvalues
 	
 	//Transform all quantities to eigenbasis:
 	logPrintf("\tTransforming output quantities to %s polarizability eigen-basis\n", polarizabilityMap.getString(eigenBasis)); logFlush();
-	V = V * Q; //now equal to what we call V in derivations
-	invXni = dagger(Q) * invXni * Q;
-	invXext = dagger(Q) * invXext * Q;
-	invXtot = dagger(Q) * invXtot * Q;
+	V = V * Q;
+	Xni = dagger(Q) * Xni * Q;
+	Xext = dagger(Q) * Xext * Q;
+	Xtot = dagger(Q) * Xtot * Q;
 	K = dagger(Q) * K * Q;
 	KXC = dagger(Q) * KXC * Q;
 
 	//Dump:
 	logPrintf("\tDumping '%s' ... ", e.dump.getFilename("pol_*").c_str()); logFlush();
 	V.write(e.dump.getFilename("pol_basis").c_str());
-	invXni.write(e.dump.getFilename("pol_invXni").c_str());
-	invXext.write(e.dump.getFilename("pol_invXext").c_str());
-	invXtot.write(e.dump.getFilename("pol_invXtot").c_str());
+	Xni.write(e.dump.getFilename("pol_Xni").c_str());
+	Xext.write(e.dump.getFilename("pol_Xext").c_str());
+	Xtot.write(e.dump.getFilename("pol_Xtot").c_str());
 	K.write(e.dump.getFilename("pol_K").c_str());
 	KXC.write(e.dump.getFilename("pol_KXC").c_str());
 	logPrintf("Done.\n");
 	logFlush();
-
-	//Compute dielectric band structure:
-// 	{	matrix Kmhalf = invsqrt(dagger_symmetrize(K));
-// 		matrix epsInvEvecs; diagMatrix epsInvEigs;
-// 		(Kmhalf * invXext * Kmhalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv eigs upto inverse and +1
-// 		for(int i=0; i<nEigs; i++)
-// 			epsInvEigs[i] = 1. + 1./epsInvEigs[i];
-// 		string fname = e.dump.getFilename("epsInvEigs");
-// 		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
-// 		FILE* fp=fopen(fname.c_str(), "w");
-// 		epsInvEigs.print(fp, "%.15f\n");
-// 		fclose(fp);
-// 		logPrintf("Done.\n"); logFlush();
-// 	}
-	
-	//Compute dielectric band structure:
-	{	Xni  = dagger(Q) * Xni * Q;
-		
-		matrix Xext = dagger_symmetrize(inv(eye(nColumns) - Xni*K) * Xni);
-		matrix epsInvEvecs; diagMatrix epsInvEigs;
-		matrix Khalf = pow(dagger_symmetrize(K), 0.5);
-		(Khalf * Xext * Khalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv eigs upto +1
-		for(int i=0; i<nEigs; i++) epsInvEigs[i] += 1.; //add the 1
-		string fname = e.dump.getFilename("epsInvEigs");
-		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp=fopen(fname.c_str(), "w");
-		epsInvEigs.print(fp, "%.15f\n");
-		fclose(fp);
-		logPrintf("Done.\n"); logFlush();
-	}
 }
