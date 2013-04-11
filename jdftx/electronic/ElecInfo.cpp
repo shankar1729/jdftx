@@ -343,7 +343,7 @@ int fitMu_fdf(const gsl_vector* x, void* params, gsl_vector* residual, gsl_matri
 int fitMu_f(const gsl_vector* x, void* params, gsl_vector* residual) { return fitMu_fdf(x,params,residual,0); }
 int fitMu_df(const gsl_vector* x, void* params, gsl_matrix* jacobian) { return fitMu_fdf(x,params,0,jacobian); }
 
-double nrm2(gsl_vector* f) { return cblas_dnrm2(f->size, f->data, f->stride); }
+double nrm2(gsl_vector* f) { return eblas_dnrm2(f->size, f->data, f->stride); }
 
 double ElecInfo::fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu) const
 {	const bool& verbose = e->cntrl.shouldPrintMuSearch;

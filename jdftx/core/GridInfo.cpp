@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <algorithm>
 
-#ifdef MKL_PROVIDES_FFTW3
+#ifdef MKL_ENABLED
 #include <fftw3_mkl.h>
 #endif
 
@@ -266,7 +266,7 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	//########## FFTW Initialization ##############
 	#define PLANNER_FLAGS FFTW_MEASURE
 	fftw_init_threads();
-	#ifdef MKL_PROVIDES_FFTW3
+	#ifdef MKL_ENABLED
 	fftw3_mkl.number_of_user_threads = nProcsAvailable; //Single-threaded transforms may be called from multiple threads
 	#endif
 

@@ -82,7 +82,7 @@ namespace FhiFile
 		
 		//! Check if this channel has a wavefunction (custom local channel won't)
 		bool hasPsi() const
-		{	return (cblas_dnrm2(R.size(), &R[0], 1) > 1e-10);
+		{	return (eblas_dnrm2(R.size(), &R[0], 1) > 1e-10);
 		}
 		
 		//! Get the radius of the non-local projector

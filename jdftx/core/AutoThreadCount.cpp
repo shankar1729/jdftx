@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <float.h>
 #include <string.h>
 
+#ifdef MKL_ENABLED
+#include <mkl.h>
+#endif
+
 int nProcsAvailable = sysconf(_SC_NPROCESSORS_ONLN);
 bool threadOperators = true;
 
@@ -31,10 +35,16 @@ bool shouldThreadOperators()
 
 void suspendOperatorThreading()
 {	threadOperators = false;
+	#ifdef MKL_ENABLED
+	mkl_set_num_threads(1);
+	#endif
 }
 
 void resumeOperatorThreading()
 {	threadOperators = true;
+	#ifdef MKL_ENABLED
+	mkl_set_num_threads(nProcsAvailable);
+	#endif
 }
 
 

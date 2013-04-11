@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/GpuUtil.h>
 #include <core/Util.h>
-#include <gsl/gsl_cblas.h>
+#include <core/BlasExtra.h>
 #include <string.h>
 
 Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
@@ -66,21 +66,13 @@ void Data::copyData(const Data& other)
 void Data::absorbScale() const
 {	if(scale != 1.0)
 	{	Data* X = (Data*)this; //cast to non-const (this function modifies data, but is logically constant)
-		#ifdef GPU_ENABLED
-		cublasDscal(nDoubles, scale, (double*)X->dataGpu(false), 1);
-		#else
-		cblas_dscal(nDoubles, scale, (double*)X->data(false), 1);
-		#endif
+		callPref(eblas_dscal)(nDoubles, scale, (double*)X->dataPref(false), 1);
 		X->scale=1.0;
 	}
 }
 void Data::zero()
 {	scale=1.0;
-	#ifdef GPU_ENABLED
-	cudaMemset(dataGpu(false), 0, nDoubles*sizeof(double));
-	#else
-	memset(data(false), 0, nDoubles*sizeof(double));
-	#endif
+	callPref(eblas_zero)(nDoubles, (double*)dataPref(false));
 }
 void* Data::data(bool shouldAbsorbScale)
 {	if(shouldAbsorbScale) absorbScale();

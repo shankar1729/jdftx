@@ -224,11 +224,11 @@ public:
 			else xc_lda_exc(&func, N, n, &eTemp[0]);
 		}
 		//Accumulate onto final results
-		cblas_daxpy(N, 1., &eTemp[0], 1, e, 1);
-		if(E_nTemp.size()) cblas_daxpy(Nn, 1., &E_nTemp[0], 1, E_n, 1);
-		if(E_sigmaTemp.size()) cblas_daxpy(Nsigma, 1., &E_sigmaTemp[0], 1, E_sigma, 1);
-		if(E_lapTemp.size()) cblas_daxpy(Nn, 1., &E_lapTemp[0], 1, E_lap, 1);
-		if(E_tauTemp.size()) cblas_daxpy(Nn, 1., &E_tauTemp[0], 1, E_tau, 1);
+		eblas_daxpy(N, 1., &eTemp[0], 1, e, 1);
+		if(E_nTemp.size()) eblas_daxpy(Nn, 1., &E_nTemp[0], 1, E_n, 1);
+		if(E_sigmaTemp.size()) eblas_daxpy(Nsigma, 1., &E_sigmaTemp[0], 1, E_sigma, 1);
+		if(E_lapTemp.size()) eblas_daxpy(Nn, 1., &E_lapTemp[0], 1, E_lap, 1);
+		if(E_tauTemp.size()) eblas_daxpy(Nn, 1., &E_tauTemp[0], 1, E_tau, 1);
 	}
 };
 
@@ -585,7 +585,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		}
 		
 		if(needsTau) //LibXC KE density is defined without a factor of 1/2, so scale up by 2
-			cblas_dscal(nCount*gInfo.nr, 2., tauData, 1);
+			eblas_dscal(nCount*gInfo.nr, 2., tauData, 1);
 		
 		//Calculate all the required functionals:
 		for(auto func: functionals->libXC)
@@ -594,9 +594,9 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 					eData, E_nData, E_sigmaData, E_lapData, E_tauData);
 		
 		if(needsTau) //Change KE density (and its gradient) back to our convention
-		{	cblas_dscal(nCount*gInfo.nr, 1./2, tauData, 1);
+		{	eblas_dscal(nCount*gInfo.nr, 1./2, tauData, 1);
 			if(Vxc)
-				cblas_dscal(nCount*gInfo.nr, 2., E_tauData, 1);
+				eblas_dscal(nCount*gInfo.nr, 2., E_tauData, 1);
 		}
 		
 		//Uninterleave spin-vector field results:

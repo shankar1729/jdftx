@@ -248,7 +248,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	//Check solution by substitution:
 	cblas_dgemv(CblasRowMajor, CblasNoTrans, nEquations, shellMax.size(), 1., Lhs->data, Lhs->tda,
 		wPairs->data, wPairs->stride, -1., rhs->data, rhs->stride); //rhs = Lhs*wPairs - rhs
-	if(cblas_dnrm2(nEquations, rhs->data, rhs->stride) > kpointTol)
+	if(eblas_dnrm2(nEquations, rhs->data, rhs->stride) > kpointTol)
 		return std::vector<double>(); //Not an exact solution, so quit (and try with more shells)
 	gsl_vector_free(rhs);
 	gsl_matrix_free(Lhs);

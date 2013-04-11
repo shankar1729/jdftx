@@ -30,7 +30,7 @@ if(MKL_PATH)
 endif()
 if(MKL_FOUND)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
-	add_definitions("-DMKL_PROVIDES_FFTW3") #Some special handling is required for multi-threaded plans
+	add_definitions("-DMKL_ENABLED") #Special handling is required for BLAS and FFT calls from threaded sections
 	include_directories(${MKL_INCLUDE_DIR})
 else()
 	if(MKL_PATH)
