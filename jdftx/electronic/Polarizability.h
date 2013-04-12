@@ -39,8 +39,14 @@ struct Polarizability
 	
 	vector3<> dk; //!< k-point difference at which to obtain results
 	
+	string dkFilenamePattern; //!< if non-null, read wavefunctions and eigenvalues for offset states form here
+	
 	Polarizability();
 	void dump(const Everything& e); //!< compute and dump polarizability eigenvectors and matrix elements
+	
+private:
+	string dkFilename(int ik, string varName) const; //!< get the filename to read specified variable for specified k-point
+	friend class PairDensityCalculator;
 };
 
 #endif // JDFTX_ELECTRONIC_POLARIZABILITY_H

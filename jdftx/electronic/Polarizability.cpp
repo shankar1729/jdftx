@@ -60,6 +60,29 @@ class PairDensityCalculator
 			#endif
 		}
 		
+		void setup(const Everything& e, vector3<> k, string fnameWfns, string fnameEig)
+		{	//Setup basis:
+			logSuspend();
+			basisExt.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, k);
+			logResume();
+			//Read wavefunctions:
+			Cext.init(e.eInfo.nBands, basisExt.nbasis, &basisExt, 0);
+			off_t flen = fileSize(fnameWfns.c_str());
+			int nBytesPerBand = basisExt.nbasis*sizeof(complex);
+			if(flen < long(Cext.nData()*sizeof(complex))) die("\nFile '%s' does not exist or is too short.\n", fnameWfns.c_str());
+			if(flen % nBytesPerBand) die("\nFile '%s' is not a multiple of %d bytes per band (basis mismatch?).\n", fnameWfns.c_str(), nBytesPerBand);
+			((ManagedMemory&)Cext).read(fnameWfns.c_str());
+			C = &Cext;
+			//Read eigenvalues:
+			eigExt.resize(e.eInfo.nBands);
+			if(fileSize(fnameEig.c_str()) < 0) die("\nFile '%s' does not exist.\n", fnameEig.c_str());
+			FILE* fpEig = fopen(fnameEig.c_str(), "r");
+			eigExt.scan(fpEig);
+			if(feof(fpEig))  die("\nFile '%s' ended before all eigenvalues could be read.\n", fnameEig.c_str());
+			fclose(fpEig);
+			eig = &eigExt;
+		}
+		
 		~State()
 		{	if(index)
 				#ifdef GPU_ENABLED
@@ -71,11 +94,17 @@ class PairDensityCalculator
 		
 		//ColumnBundle::getColumn, but with custom index array:
 		complexDataGptr getColumn(int col) const
-		{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
-			callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
-			if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
-			return full;
+		{	if(index)
+			{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
+				callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
+				if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
+				return full;
+			}
+			else return Cext.getColumn(col);
 		}
+		
+	private:
+		ColumnBundle Cext; diagMatrix eigExt; Basis basisExt; //Externally read-in wavefunction, corresponding basis and eigenvalues
 	}
 	state1, state2;
 
@@ -83,31 +112,38 @@ public:
 	//Setup to compute pair densities between kmesh[ik] and its partner dk away
 	PairDensityCalculator(const Everything& e, const vector3<>& dk, int ik) : e(e), ik(ik)
 	{
-		//Find the transformations for the two k-points:
+		//Find the transformations / data sources for the two k-points:
 		const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
 		const std::vector<Supercell::KmeshTransform>& kmeshTransform = e.coulombParams.supercell->kmeshTransform;
-		Supercell::KmeshTransform kTransform1 = kmeshTransform[ik], kTransform2;
 		nK = kmesh.size();
 		vector3<> k2 = kmesh[ik] + dk;
-		bool foundk2 = false;
-		for(unsigned ik2=0; ik2<kmesh.size(); ik2++)
-			if(circDistanceSquared(kmesh[ik2],k2) < symmThresholdSq)
-			{	kTransform2 = kmeshTransform[ik2];
-				vector3<> extraOffsetTemp = k2 - kmesh[ik2];
-				vector3<int> extraOffset;
-				for(int k=0; k<3; k++)
-				{	extraOffset[k] = int(round(extraOffsetTemp[k]));
-					assert(fabs(extraOffset[k]-extraOffsetTemp[k]) < symmThreshold);
-				}
-				kTransform2.offset += extraOffset;
-				foundk2 = true;
-				break;
-			}
-		assert(foundk2); //such a partner should always be found for a uniform kmesh
 		
-		//Setup the two states involved:
-		state1.setup(e, kTransform1);
-		state2.setup(e, kTransform2);
+		state1.setup(e, kmeshTransform[ik]); //setup first state (always from current system's kmesh)
+		
+		if(e.dump.polarizability->dkFilenamePattern.length()) //get second state from external data
+		{	state2.setup(e, k2,
+				e.dump.polarizability->dkFilename(ik,"wfns"),
+				e.dump.polarizability->dkFilename(ik,"eigenvals") );
+		}
+		else //get second state from current system's kmesh as well
+		{	bool foundk2 = false;
+			Supercell::KmeshTransform kTransform2;
+			for(unsigned ik2=0; ik2<kmesh.size(); ik2++)
+				if(circDistanceSquared(kmesh[ik2],k2) < symmThresholdSq)
+				{	kTransform2 = kmeshTransform[ik2];
+					vector3<> extraOffsetTemp = k2 - kmesh[ik2];
+					vector3<int> extraOffset;
+					for(int k=0; k<3; k++)
+					{	extraOffset[k] = int(round(extraOffsetTemp[k]));
+						assert(fabs(extraOffset[k]-extraOffsetTemp[k]) < symmThreshold);
+					}
+					kTransform2.offset += extraOffset;
+					foundk2 = true;
+					break;
+				}
+			assert(foundk2); //such a partner should always be found for a uniform kmesh
+			state2.setup(e, kTransform2);
+		}
 	}
 
 	//Store resulting pair densities scaled by 2*invsqrt(eigenvalue differences) in rho,
@@ -185,13 +221,28 @@ void Polarizability::dump(const Everything& e)
 	logPrintf("Dumping polarizability matrix:\n"); logFlush();
 	if(e.exCorr.getName() != "lda-PZ") die("\nPolarizability currently implemented only for lda-PZ exchange correlation");
 	
+	const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
+	if(dkFilenamePattern.length())
+	{	//Check if the required files seem to exist - if not print the required info for someone to generate them:
+		if(fileSize(dkFilename(0,"wfns").c_str()) <= 0)
+		{	logPrintf("\tSave band structure states for the following k-points in the indicated locations:\n");
+			for(unsigned ik=0; ik<kmesh.size(); ik++)
+			{	vector3<> k2 = kmesh[ik] + dk;
+				for(int j=0; j<3; j++) k2[j] -= ceil(k2[j]-0.5); //Reduce to (-0.5,0.5] (consistent with ElecInfo)
+				logPrintf("\t\t%20.17f %20.17f %20.17f -> %s\n", k2[0], k2[1], k2[2], dkFilename(ik,"$VAR").c_str());
+			}
+			logPrintf("\tRerun after generating above files to get polarizability.\n");
+			return;
+		}
+	}
+	
 	if(Ecut<=0.) Ecut = 4.*e.cntrl.Ecut;
 	logPrintf("\tSetting up reduced basis at Ecut=%lg: ", Ecut);
 	Basis basis; basis.setup(e.gInfo, e.iInfo, Ecut, dk);
 	
 	int nV = e.eInfo.nElectrons/2;
 	int nC = e.eInfo.nBands - nV;
-	int nK = e.coulombParams.supercell->kmesh.size();
+	int nK = kmesh.size();
 	if(nC <= 0) die("\nNo unoccupied states available for polarizability calculation.\n");
 	int nCVK = nC * nV * nK;
 	
@@ -218,7 +269,6 @@ void Polarizability::dump(const Everything& e)
 	}
 	else
 	{	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities and NonInteracting polarizability\n"); logFlush();
-		diagMatrix eigDiff(nColumns); //eigen-value differences (C-V)
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).compute(nV, nC, V, ik*nV*nC);
 		matrix invXni = -eye(nColumns); //inverse of non-interacting susceptibility
@@ -306,4 +356,21 @@ void Polarizability::dump(const Everything& e)
 	KXC.write(e.dump.getFilename("pol_KXC").c_str());
 	logPrintf("Done.\n");
 	logFlush();
+}
+
+string Polarizability::dkFilename(int ik, string varName) const
+{
+	ostringstream ikOss; ikOss << ik;
+	//Create a map of substitutions:
+	std::map<string,string> subMap;
+	subMap["$VAR"] = varName;
+	subMap["$q"] = ikOss.str();
+	//Apply the substitutions:
+	string fname = dkFilenamePattern;
+	for(auto sub: subMap)
+	{	size_t pos = fname.find(sub.first);
+		if(pos != string::npos)
+			fname.replace(pos, sub.first.length(), sub.second);
+	}
+	return fname;
 }

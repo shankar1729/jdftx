@@ -258,8 +258,11 @@ struct CommandPolarizabilityKdiff : public Command
 {
     CommandPolarizabilityKdiff() : Command("polarizability-kdiff")
 	{
-		format = "<dk0> <dk1> <dk2>";
-		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.";
+		format = "<dk0> <dk1> <dk2> [<dkFilenamePattern>]";
+		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.\n"
+			"<dkFilenamePattern> may be specified to read offset band structure calcualations when <dk>\n"
+			"does not belong to the k-point mesh. This string should be a filename pattern containing\n"
+			"$VAR (to be replaced by eigenvals and wfns) and $q (to be replaced by state index)";
 		
 		require("polarizability");
 	}
@@ -268,10 +271,16 @@ struct CommandPolarizabilityKdiff : public Command
 	{	pl.get(e.dump.polarizability->dk[0], 0., "dk0", true);
 		pl.get(e.dump.polarizability->dk[1], 0., "dk1", true);
 		pl.get(e.dump.polarizability->dk[2], 0., "dk2", true);
+		//Optional filename for offset states:
+		string& dkFilenamePattern = e.dump.polarizability->dkFilenamePattern;
+		pl.get(dkFilenamePattern, string(), "dkFilenamePattern");
+		if(dkFilenamePattern.find("$VAR")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $VAR";
+		if(dkFilenamePattern.find("$q")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $q";
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	for(int i=0; i<3; i++) logPrintf("%lg ", e.dump.polarizability->dk[i]);
+		logPrintf("%s", e.dump.polarizability->dkFilenamePattern.c_str());
 	}
 }
 commandPolarizabilityKdiff;

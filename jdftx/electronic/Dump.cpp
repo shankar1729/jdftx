@@ -368,7 +368,7 @@ string Dump::getFilename(string varName) const
 		for(auto sub: subMap)
 		{	size_t pos = fname.find(sub.first);
 			if(pos != string::npos)
-			{	fname.replace(pos, pos + sub.first.length(), sub.second);
+			{	fname.replace(pos, sub.first.length(), sub.second);
 				found = true;
 			}
 		}
