@@ -106,7 +106,9 @@ public:
 	//Store resulting pair densities scaled by 2*invsqrt(eigenvalue differences) in rho,
 	//so that the non-interacting susceptibility is negative identity in this basis.
 	void compute(int nV, int nC, ColumnBundle& rho, int kOffset) const
-	{	threadLaunch(isGpuEnabled() ? 1 : 0, compute_thread, nV*nC, nV, nC, &rho, kOffset, this);
+	{	suspendOperatorThreading();
+		threadLaunch(isGpuEnabled() ? 1 : 0, compute_thread, nV*nC, nV, nC, &rho, kOffset, this);
+		resumeOperatorThreading();
 	}
 	
 	//Accumulate contribution from currentkpoint pair to negative of noninteracting susceptibility in plane-wave basis:
@@ -203,19 +205,15 @@ void Polarizability::dump(const Everything& e)
 		for(int i=0; i<nColumns; i++) Vdata[V.index(i,i)] = invsqrtVol;
 		//Get the PW basis non-interacting susceptibility matrix:
 		matrix minusXni(nColumns, nColumns); minusXni.zero();
-		suspendOperatorThreading();
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).accumMinusXniPW(nV, nC, basis, minusXni);
-		resumeOperatorThreading();
 		Xni = -minusXni;
 	}
 	else
 	{	logPrintf("\tComputing occupied x unoccupied (CV) pair-densities and NonInteracting polarizability\n"); logFlush();
 		diagMatrix eigDiff(nColumns); //eigen-value differences (C-V)
-		suspendOperatorThreading();
 		for(int ik=0; ik<nK; ik++)
 			PairDensityCalculator(e, dk, ik).compute(nV, nC, V, ik*nV*nC);
-		resumeOperatorThreading();
 		matrix invXni = -eye(nColumns); //inverse of non-interacting susceptibility
 		logPrintf("\tOrthonormalizing basis\n"); logFlush();
 		matrix Umhalf = invsqrt(e.gInfo.detR*(V^V));
