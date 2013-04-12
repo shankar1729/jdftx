@@ -31,32 +31,54 @@ Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
 class PairDensityCalculator
 {
 	const Everything& e; int ik, nK;
-	const ColumnBundle *C1, *C2;
-	const diagMatrix *eig1, *eig2;
-	int *index1, *index2;
 	
-	//Setup transformed index array in targetIndex
-	void setupIndex(const Supercell::KmeshTransform kTransform, const Basis& basis, int* &targetIndex) const
-	{	const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym]) * kTransform.invert;
-		std::vector<int> index(basis.nbasis);
-		for(unsigned j=0; j<basis.nbasis; j++)
-			index[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset);
-		#ifdef GPU_ENABLED
-		cudaMalloc(&targetIndex, sizeof(int)*index.size());
-		cudaMemcpy(targetIndex, index.data(), sizeof(int)*index.size(), cudaMemcpyHostToDevice);
-		#else
-		targetIndex = new int[index.size()];
-		eblas_copy(targetIndex, index.data(), index.size());
-		#endif
+	struct State
+	{	const ColumnBundle* C;
+		const diagMatrix* eig;
+		int invert;
+		int* index;
+		
+		State() : index(0) {}
+		
+		void setup(const Everything& e, const Supercell::KmeshTransform& kTransform)
+		{	//get the columnbundle and eigenvalues:
+			C = &(e.eVars.C[kTransform.iReduced]);
+			eig = &(e.eVars.Hsub_eigs[kTransform.iReduced]);
+			invert = kTransform.invert;
+			//compute the index array
+			const Basis& basis = *(C->basis);
+			const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym]) * kTransform.invert;
+			std::vector<int> indexVec(basis.nbasis);
+			for(unsigned j=0; j<basis.nbasis; j++)
+				indexVec[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset);
+			#ifdef GPU_ENABLED
+			cudaMalloc(&index, sizeof(int)*indexVec.size());
+			cudaMemcpy(index, indexVec.data(), sizeof(int)*indexVec.size(), cudaMemcpyHostToDevice);
+			#else
+			index = new int[indexVec.size()];
+			eblas_copy(index, indexVec.data(), indexVec.size());
+			#endif
+		}
+		
+		~State()
+		{	if(index)
+				#ifdef GPU_ENABLED
+				cudaFree(index);
+				#else
+				delete[] index;
+				#endif
+		}
+		
+		//ColumnBundle::getColumn, but with custom index array:
+		complexDataGptr getColumn(int col) const
+		{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
+			callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
+			if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
+			return full;
+		}
 	}
-	
-	//ColumnBundle::getColumn with custom index array:
-	static complexDataGptr getColumn(const ColumnBundle* C, int col, const int* index)
-	{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
-		callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
-		return full;
-	}
-	
+	state1, state2;
+
 public:
 	//Setup to compute pair densities between kmesh[ik] and its partner dk away
 	PairDensityCalculator(const Everything& e, const vector3<>& dk, int ik) : e(e), ik(ik)
@@ -83,24 +105,9 @@ public:
 			}
 		assert(foundk2); //such a partner should always be found for a uniform kmesh
 		
-		//Get pointers to source wavefunctons and eigenvalues:
-		C1 = &(e.eVars.C[kTransform1.iReduced]);
-		C2 = &(e.eVars.C[kTransform2.iReduced]);
-		eig1 = &(e.eVars.Hsub_eigs[kTransform1.iReduced]);
-		eig2 = &(e.eVars.Hsub_eigs[kTransform2.iReduced]);
-		
-		//Setup index arrays for the two k-points:
-		setupIndex(kTransform1, *(C1->basis), index1);
-		setupIndex(kTransform2, *(C2->basis), index2);
-	}
-	
-	~PairDensityCalculator()
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(index1); cudaFree(index2);
-		#else
-		delete[] index1; delete[] index2;
-		#endif
+		//Setup the two states involved:
+		state1.setup(e, kTransform1);
+		state2.setup(e, kTransform2);
 	}
 
 	//Store resulting pair densities scaled by 2*invsqrt(eigenvalue differences) in rho,
@@ -128,14 +135,14 @@ private:
 	{	int b = bStart;
 		int v = b / nC;
 		int c = b - v*nC;
-		complexDataRptr conjICv = conj(I(getColumn(C1, v, index1)));
+		complexDataRptr conjICv = conj(I(state1.getColumn(v)));
 		while(b<bStop)
-		{	double sqrtEigDen = sqrt(4./(nK * (eig2->at(nV+c) - eig1->at(v))));
-			rho->setColumn(kOffset+b, sqrtEigDen * J(conjICv * I(getColumn(C2, nV+c, index2))));
+		{	double sqrtEigDen = sqrt(4./(nK * (state2.eig->at(nV+c) - state1.eig->at(v))));
+			rho->setColumn(kOffset+b, sqrtEigDen * J(conjICv * I(state2.getColumn(nV+c))));
 			//Next cv pair:
 			b++; if(b==bStop) break;
 			c++;
-			if(c==nC) { c=0; v++; conjICv = conj(I(getColumn(C1, v, index1))); }
+			if(c==nC) { c=0; v++; conjICv = conj(I(state1.getColumn(v))); }
 		}
 	}
 	static void compute_thread(int bStart, int bStop, int nV, int nC, ColumnBundle* rho, int kOffset, const PairDensityCalculator* pdc)
