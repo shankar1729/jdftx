@@ -274,8 +274,10 @@ struct CommandPolarizabilityKdiff : public Command
 		//Optional filename for offset states:
 		string& dkFilenamePattern = e.dump.polarizability->dkFilenamePattern;
 		pl.get(dkFilenamePattern, string(), "dkFilenamePattern");
-		if(dkFilenamePattern.find("$VAR")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $VAR";
-		if(dkFilenamePattern.find("$q")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $q";
+		if(dkFilenamePattern.length())
+		{	if(dkFilenamePattern.find("$VAR")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $VAR";
+			if(dkFilenamePattern.find("$q")==string::npos) throw "<dkFilenamePattern> = " + dkFilenamePattern + " doesn't contain the pattern $q";
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)
