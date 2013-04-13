@@ -1,0 +1,96 @@
+#!/usr/bin/octave -qf
+
+function printUsage()
+	printf("Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]\n");
+	printf("   Create <dryRunFile>.PDB and launch pymol to visualize the\n");
+	printf("   system contained in the JDFTx dry-run output file <dryRunFile>.\n");
+	printf("   Optionally specify repetitions along each lattice direction.\n");
+endfunction
+
+
+# Create PDB file from dry run output of JDFTx, with reps specifying repetitions along each of the axes
+function jdftxDryRunToPDB(outfile, reps)
+	
+	#Get the lattice vectors:
+	command = sprintf("awk '$1==\"R\" && $2==\"=\" && Rdone!=1 {Rstart=NR; Rdone=1} Rstart && NR>Rstart && NR<=Rstart+3 { print $2,$3,$4}' %s", outfile);
+	fin = popen(command, "r");
+	R = reshape(fscanf(fin,"%f"), [3 3])';
+	pclose(fin);
+	Ra = R(:,1);
+	Rb = R(:,2);
+	Rc = R(:,3);
+	
+	#Read the ion species names:
+	command = sprintf("awk '$1==\"ion\" {print $2}' %s", outfile);
+	fin = popen(command, "r");
+	nIons = 0;
+	while(!feof(fin))
+		nIons = nIons+1;
+		ionnames{nIons} = fgetl(fin);
+	endwhile
+	pclose(fin);
+	
+	#Read the ion positions:
+	command = sprintf("awk '$1==\"ion\" {print $3, $4, $5}' %s", outfile);
+	fin = popen(command, "r");
+	ionpos = reshape(fscanf(fin,"%f"), 3, nIons);
+	pclose(fin);
+	
+	#figure out coordinate system
+	command = sprintf("awk 'BEGIN {c=0} $1==\"coords-type\" && $2==\"cartesian\" {c++} END { print c}' %s", outfile);
+	fin = popen(command, "r");
+	cartesian = fscanf(fin,"%d");
+	pclose(fin);
+	if(cartesian>0)
+		ionpos = inv(R)*ionpos;
+	endif
+	
+	#Output ions in PDB format, converted to cartesian coordinates, in Angstroms, with repetitions
+	fout = fopen(sprintf("%s.pdb",outfile), "w");
+	rnum=0;
+	for ia = 1:reps(1)
+	for ib = 1:reps(2)
+	for ic = 1:reps(3)
+	resName = sprintf("%1d%1d%1d",ia,ib,ic);
+	for i = 1:nIons
+		rnum = rnum + 1;
+		transformedpos = 0.5291772*((ia-1+ionpos(1,i))*Ra + (ib-1+ionpos(2,i))*Rb + (ic-1+ionpos(3,i))*Rc);
+		fprintf(fout, "HETATM%5d %4s %3s A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f%10s%2s  \n", rnum, ionnames{i}, resName, rnum,
+				transformedpos(1), transformedpos(2), transformedpos(3), 0.0, 0.0, "", ionnames{i});
+	endfor
+	endfor
+	endfor
+	endfor
+	fclose(fout);
+	
+	#For convenience, also invoke pymol to check the generated pdb:
+	fpml = fopen(sprintf("%s.pml",outfile), "w");
+	fprintf(fpml, "load %s.pdb\n", outfile);
+	fprintf(fpml, "show spheres, all\n");
+	fprintf(fpml, "set sphere_quality, 2\n");
+	fprintf(fpml, "set_view (\\\n");
+	fprintf(fpml, "   -0.877227128,   -0.234902740,    0.418676794,\\\n");
+	fprintf(fpml, "    0.474707872,   -0.554466426,    0.683535874,\\\n");
+	fprintf(fpml, "    0.071577206,    0.798368335,    0.597902119,\\\n");
+	fprintf(fpml, "    0.000024524,    0.000004083, -121.695564270,\\\n");
+	fprintf(fpml, "   12.041722298,   -0.376632214,    0.399373919,\\\n");
+	fprintf(fpml, "   91.902992249,  151.485549927,  -20.000000000 )\n");
+	fprintf(fpml, "center\n", outfile);
+	fprintf(fpml, "set ray_opaque_background, off\n", outfile);
+	fprintf(fpml, "ray 640,480\n", outfile);
+	fprintf(fpml, "png %s\n", outfile);
+	fclose(fpml);
+	system(sprintf("pymol %s.pml > /dev/null", outfile));
+endfunction
+
+arg_list = argv();
+if nargin < 1; printUsage(); exit(1); endif
+dryRunFile = arg_list{1};
+reps = [1 1 1];
+if nargin >= 2; reps(1) = uint8(str2double(arg_list{2})); endif
+if nargin >= 3; reps(2) = uint8(str2double(arg_list{3})); endif
+if nargin >= 4; reps(3) = uint8(str2double(arg_list{4})); endif
+reps = max(reps, [1 1 1]);
+printf("Visualizing '%s' with %d x %d x %d repetitions.\n", dryRunFile, reps(1), reps(2), reps(3));
+jdftxDryRunToPDB(dryRunFile, reps);
+
