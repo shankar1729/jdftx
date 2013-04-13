@@ -163,13 +163,9 @@ public:
 	bool needsSigma() const { return funcUnpolarized.info->family != XC_FAMILY_LDA; } //!< gradients needed for GGA and HYB_GGA
 	bool needsLap() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs may need laplacian
 	bool needsTau() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs need KE density
-	bool isKinetic() const { return false; } //!< No kinetic energy functionals in LibXC 1.0
-	double exxFactor() const
-	{	//retrieve exact exchange mixing factor if required
-		if(funcUnpolarized.info->family==XC_FAMILY_HYB_GGA)
-			return xc_hyb_gga_exx_coef(funcUnpolarized.gga);
-		return 0.;
-	}
+	bool isKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
+	double exxScale() const { return funcUnpolarized.cam_alpha; }
+	double exxOmega() const { return funcUnpolarized.cam_omega; }
 	
 	FunctionalLibXC(int xcCode, const char* typeName)
 	{	if(xc_func_init(&funcUnpolarized, xcCode, XC_UNPOLARIZED) != 0)
@@ -287,7 +283,7 @@ ExCorr::ExCorr() : exCorrType(ExCorrGGA_PBE), kineticType(KineticNone), xcName("
 exxScale(0.), exxOmega(0.),
 functionals(std::make_shared<FunctionalList>())
 #ifdef LIBXC_ENABLED
-, xcExchange(0), xcCorr(0), xcExcorr(0)
+, xcExchange(0), xcCorr(0), xcExcorr(0), xcKinetic(0)
 #endif
 {
 }
@@ -303,7 +299,8 @@ void ExCorr::setup(const Everything& everything)
 		case ExCorrLibXC:
 		{	if(xcExcorr)
 			{	functionals->add(xcExcorr, "exchange-correlation");
-				exxScale = functionals->libXC.back()->exxFactor(); //set exact exchange factor
+				exxScale = functionals->libXC.back()->exxScale(); //set exact exchange factor
+				exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange factor
 			}
 			else
 			{	functionals->add(xcExchange, "exchange");
@@ -424,6 +421,11 @@ void ExCorr::setup(const Everything& everything)
 			Citations::add("PW91K kinetic energy functional",
 				"A. Lembarki and H. Chermette, Phys. Rev. A 50, 5328 (1994)");
 			break;
+		#ifdef LIBXC_ENABLED
+		case KineticLibXC:
+			functionals->add(xcKinetic, "kinetic");
+			break;
+		#endif //LIBXC_ENABLED
 	}
 }
 
@@ -584,20 +586,11 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 			}
 		}
 		
-		if(needsTau) //LibXC KE density is defined without a factor of 1/2, so scale up by 2
-			eblas_dscal(nCount*gInfo.nr, 2., tauData, 1);
-		
 		//Calculate all the required functionals:
 		for(auto func: functionals->libXC)
 			if(includeKinetic || !func->isKinetic())
 				func->evaluate(nCount, gInfo.nr, nData, sigmaData, lapData, tauData,
 					eData, E_nData, E_sigmaData, E_lapData, E_tauData);
-		
-		if(needsTau) //Change KE density (and its gradient) back to our convention
-		{	eblas_dscal(nCount*gInfo.nr, 1./2, tauData, 1);
-			if(Vxc)
-				eblas_dscal(nCount*gInfo.nr, 2., E_tauData, 1);
-		}
 		
 		//Uninterleave spin-vector field results:
 		if(nCount != 1)
@@ -665,4 +658,25 @@ double ExCorr::operator()(const DataRptr& n, DataRptr* Vxc, bool includeKinetic,
 	if(Vxc) *Vxc = VxcArr[0];
 	if(Vtau) *Vtau = VtauArr[0];
 	return Exc;
+}
+
+void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut) const
+{
+	//Check for GGAs and meta GGAs:
+	bool needsSigma = false, needsTau=false, needsLap=false;
+	for(auto func: functionals->internal)
+		if(!func->isKinetic())
+		{	needsSigma |= func->needsSigma();
+			needsLap |= func->needsLap();
+			needsTau |= func->needsTau();
+		}
+	#ifdef LIBXC_ENABLED
+	for(auto func: functionals->libXC)
+		if(!func->isKinetic())
+		{	needsSigma |= func->needsSigma();
+			needsLap |= func->needsLap();
+			needsTau |= func->needsTau();
+		}
+	#endif
+	die("Not yet implemented.\n");
 }

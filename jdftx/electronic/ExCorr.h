@@ -49,6 +49,9 @@ enum ExCorrType
 //! Types of kinetic energy functionals
 enum KineticType
 {
+#ifdef LIBXC_ENABLED
+	KineticLibXC,
+#endif
 	KineticNone, //!< No kinetic energy (default)
 	KineticTF, //!< Thomas-Fermi LDA kinetic energy
 	KineticVW, //!< von Weisacker GGA kinetic energy
@@ -83,6 +86,12 @@ public:
 	double exxRange() const; //!< range parameter (omega) for screened exchange (0 for long-range exchange)
 	bool needsKEdensity() const; //!< whether orbital KE density is required as an input (for meta GGAs)
 	
+	//!Compute second derivatives of energy density w.r.t n and sigma=|grad n|^2 
+	//! by finite difference (supported only for spin-unpolarized internal LDAs and GGAs).
+	//! All sigma derivatives will be null on output for LDAs.
+	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
+	void getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut=1e-4) const;
+	
 private:
 	const Everything* e;
 	ExCorrType exCorrType;
@@ -95,7 +104,7 @@ private:
 	double exxOmega; //Range parameter for exact exchange
 	std::shared_ptr<class FunctionalList> functionals; //List of component functionals
 #ifdef LIBXC_ENABLED
-	int xcExchange, xcCorr, xcExcorr; //LibXC codes for various functional components (0 if unused)
+	int xcExchange, xcCorr, xcExcorr, xcKinetic; //LibXC codes for various functional components (0 if unused)
 #endif
 };
 

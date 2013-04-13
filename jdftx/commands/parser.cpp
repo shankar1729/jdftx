@@ -252,9 +252,6 @@ void safeProcess(Command& c, string params, Everything& everything,
 			"\t"+c.name+' '+c.format+'\n'+c.comments ) );
 		return;
 	}
-	catch(...)
-	{	die("BUG: Encountered an exception not of type string\n");
-	}
 }
 
 void parse(const char* filename, Everything& everything, bool printDefaults)
@@ -347,9 +344,6 @@ void printDefaultTemplate(Everything& everything)
 					catch(string str)
 					{	die("BUG in command '%s'; default call raised error:\n\t%s\n",
 							ci.name.c_str(), str.c_str());
-					}
-					catch(...)
-					{	die("BUG: Encountered an exception not of type string\n");
 					}
 				}
 			}
