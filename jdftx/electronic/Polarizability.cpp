@@ -20,7 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Polarizability.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/operators.h>
 #include <core/LatticeUtils.h>
+#include <core/DataMultiplet.h>
 #include <core/DataIO.h>
 
 Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
@@ -191,35 +193,78 @@ inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<>
 		Krho->setColumn(b, (*(e->coulomb))(rho->getColumn(b), dk, 0.));
 }
 
-inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const ColumnBundle* rho, ColumnBundle* KXCrho)
-{	for(int b=bStart; b<bStop; b++)
-		KXCrho->setColumn(b, J((*exc_nn) * I(rho->getColumn(b))));
+//------- Exchange and correlation -----------
+typedef DataMultiplet<complexDataR,3> complexDataRptrVec;
+
+//Get the gradient of one column of a column bundle
+complexDataRptrVec gradient(const ColumnBundle& Y, int col)
+{	ColumnBundle Ysub = Y.getSub(col, col+1);
+	complexDataRptrVec DY;
+	for(int j=0; j<3; j++)
+		DY[j] = I(D(Ysub,j).getColumn(0));
+	return DY;
 }
 
-inline void ldaDblPrime_thread(int iStart, int iStop, const double* n, double* e_nn)
-{	for(int i=iStart; i<iStop; i++)
-	{	if(n[i]<1e-4) { e_nn[i] = 0.; continue; }
-		double rs = pow((4.*M_PI/3) * n[i], -1./3);
-		double rsSqrt = sqrt(rs);
-		double rs2 = pow(rs, 2);
-		if(rs > 1.)
-			e_nn[i] = -0.06105711778985891 * rs2
-				* (1.2067926731475986 + rsSqrt)
-				* (1.7564571615819247 + rsSqrt)
-				* (3.6929643467743336 + 1.5452156337532634*rsSqrt + rs)
-				* (1.78462362335091 + 2.395514389326805*rsSqrt + rs)
-				/ pow(1. + 1.0529*rsSqrt + 0.3334*rs, 3);
-		else
-			e_nn[i] = rs2 *
-				( 0.009866928037941276 * (-11.754965794910463 + rs) * (7.354022398684049 + rs)
-				- 0.001861684535460618 * rs2 * log(rs) );
+//Accumulate the divergence of a complex vector field into one column of a columnbundle
+void axpyDivergence(double alpha, const complexDataRptrVec& x, ColumnBundle& Y, int col)
+{	ColumnBundle Ysub = Y.getSub(col, col+1);
+	ColumnBundle xj = Ysub.similar();
+	for(int j=0; j<3; j++)
+	{	xj.setColumn(0, J(x[j]));
+		Ysub += alpha * D(xj, j);
+	}
+	Y.setSub(col, Ysub);
+}
+
+complexDataRptr dotElemwise(const DataRptrVec& x, const complexDataRptrVec& y)
+{	complexDataRptr ret;
+	for(int j=0; j<3; j++) ret += x[j] * y[j];
+	return ret;
+}
+
+complexDataRptrVec operator*(const DataRptrVec& x, const complexDataRptr& y)
+{	complexDataRptrVec ret;
+	for(int j=0; j<3; j++) ret[j] = x[j] * y;
+	return ret;
+}
+
+complexDataRptrVec operator*(const DataRptr& x, const complexDataRptrVec& y)
+{	complexDataRptrVec ret;
+	for(int j=0; j<3; j++) ret[j] = x * y[j];
+	return ret;
+}
+
+inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const DataRptrVec* Dn,
+	const DataRptr* exc_sigma, const DataRptr* exc_nsigma, const DataRptr* exc_sigmasigma,
+	const ColumnBundle* rho, ColumnBundle* KXCrho)
+{	for(int b=bStart; b<bStop; b++)
+	{	//Get the basis vector (and optionally its gradient) in real space:
+		complexDataRptr V = I(rho->getColumn(b)); complexDataRptrVec DV;
+		if(*exc_sigma) DV = gradient(*rho, b);
+		//Add contributions which are local towards the right:
+		complexDataRptr KV = (*exc_nn) * V, DnDV;
+		if(*exc_sigma)
+		{	DnDV = 2. * dotElemwise(*Dn, DV);
+			KV += (*exc_nsigma) * DnDV;
+		}
+		KXCrho->setColumn(b, J(KV));
+		//Add contributions which have a gradient towards the right:
+		if(*exc_sigma)
+		{	complexDataRptr DnTerm = (*exc_nsigma)*V + (*exc_sigmasigma)*DnDV;
+			axpyDivergence(-2., (*Dn) * DnTerm + (*exc_sigma) * DV, *KXCrho, b);
+		}
 	}
 }
 
 void Polarizability::dump(const Everything& e)
 {	
 	logPrintf("Dumping polarizability matrix:\n"); logFlush();
-	if(e.exCorr.getName() != "lda-PZ") die("\nPolarizability currently implemented only for lda-PZ exchange correlation");
+	if(e.eInfo.spinType != SpinNone) die("\nPolarizability currently implemented only for spin-unpolarized systems\n");
+	
+	DataRptr exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
+	DataRptr n = e.eVars.get_nTot(); DataRptrVec Dn;
+	e.exCorr.getSecondDerivatives(n, exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma);
+	if(exc_sigma) Dn = gradient(n); //needed for GGAs
 	
 	const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
 	if(dkFilenamePattern.length())
@@ -251,7 +296,8 @@ void Polarizability::dump(const Everything& e)
 	int nColumns = pwBasis ? int(basis.nbasis) : nCVK;
 	const char* basisName = pwBasis ? "PW" : "CV";
 	
-	ColumnBundle V(nColumns, basis.nbasis, &basis); //orthonormal basis vectors
+	QuantumNumber qnum; qnum.k = dk; qnum.spin = 0; qnum.weight = 1./nK;
+	ColumnBundle V(nColumns, basis.nbasis, &basis, &qnum); //orthonormal basis vectors
 	matrix Xni; //non-interacting susceptibility (in basis V)
 	
 	if(pwBasis)
@@ -291,13 +337,9 @@ void Polarizability::dump(const Everything& e)
 
 	logPrintf("\tApplying Exchange-Correlation kernel\n"); logFlush();
 	matrix KXC;
-	{	DataRptr exc_nn; nullToZero(exc_nn, e.gInfo);
-		threadLaunch(ldaDblPrime_thread, e.gInfo.nr, e.eVars.get_nTot()->data(), exc_nn->data());
-		saveRawBinary(exc_nn, e.dump.getFilename("pol_ExcDblPrime").c_str());
-		
-		ColumnBundle KXCV = V.similar();
+	{	ColumnBundle KXCV = V.similar();
 		suspendOperatorThreading();
-		threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, nColumns, &exc_nn, &V, &KXCV);
+		threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, nColumns, &exc_nn, &Dn, &exc_sigma, &exc_nsigma, &exc_sigmasigma, &V, &KXCV);
 		resumeOperatorThreading();
 		logPrintf("\tForming Exchange-Correlation matrix in %s basis\n", basisName); logFlush();
 		KXC = e.gInfo.detR * (V^KXCV);

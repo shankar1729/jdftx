@@ -660,7 +660,11 @@ double ExCorr::operator()(const DataRptr& n, DataRptr* Vxc, bool includeKinetic,
 	return Exc;
 }
 
-void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut) const
+inline void setMask(size_t iStart, size_t iStop, const double* n, double* mask, double nCut)
+{	for(size_t i=iStart; i<iStop; i++) mask[i] = (n[i]<nCut ? 0. : 1.);
+}
+
+void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_sigma, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut) const
 {
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
@@ -678,5 +682,80 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 			needsTau |= func->needsTau();
 		}
 	#endif
-	die("Not yet implemented.\n");
+	
+	if(needsTau || needsLap) die("Second derivatives implemented only for LDAs and GGAs.\n");
+	
+	const double eps = 1e-7; //Order sqrt(double-precision epsilon)
+	const double scalePlus = 1.+eps;
+	const double scaleMinus = 1.-eps;
+	const DataRptr nPlus = scalePlus * n;
+	const DataRptr nMinus = scaleMinus * n;
+	
+	//Compute mask to zero out low density regions
+	DataRptr mask(DataR::alloc(e->gInfo));
+	threadLaunch(setMask, e->gInfo.nr, n->data(), mask->data(), nCut);
+	
+	//Compute gradient-squared for GGA
+	DataRptr sigma, sigmaPlus, sigmaMinus;
+	if(needsSigma)
+	{	sigma = lengthSquared(gradient(n));
+		sigmaPlus = scalePlus * sigma;
+		sigmaMinus = scaleMinus * sigma;
+	}
+	
+	//Configurations of n and sigma, and the gradients w.r.t them:
+	struct Config
+	{	const DataRptr *n, *sigma;
+		DataRptr e_n, e_sigma;
+	};
+	std::vector<Config> configs(5);
+	configs[0].n = &n;      configs[0].sigma = &sigma;      //original point
+	configs[1].n = &nPlus;  configs[1].sigma = &sigma;      // + dn
+	configs[2].n = &nMinus; configs[2].sigma = &sigma;      // - dn
+	configs[3].n = &n;      configs[3].sigma = &sigmaPlus;  // + dsigma
+	configs[4].n = &n;      configs[4].sigma = &sigmaMinus; // - dsigma
+	
+	//Compute the gradients at all the configurations:
+	DataRptr eTmp; nullToZero(eTmp, e->gInfo); //temporary energy return value (ignored)
+	for(int i=0; i<(needsSigma ? 5 : 3); i++)
+	{	Config& c = configs[i];
+		std::vector<const double*> nData(1), sigmaData(1), lapData(1), tauData(1);
+		std::vector<double*> e_nData(1), e_sigmaData(1), e_lapData(1), e_tauData(1);
+		double* eData = eTmp->dataPref();
+		nData[0] = (*c.n)->dataPref();
+		nullToZero(c.e_n, e->gInfo);
+		e_nData[0] = c.e_n->dataPref();
+		if(needsSigma)
+		{	sigmaData[0] = (*c.sigma)->dataPref();
+			nullToZero(c.e_sigma, e->gInfo);
+			e_sigmaData[0] = c.e_sigma->dataPref();
+		}
+		#ifdef LIBXC_ENABLED
+		//Compute LibXC functionals:
+		for(auto func: functionals->libXC)
+			if(!func->isKinetic())
+				func->evaluate(1, e->gInfo.nr, nData[0], sigmaData[0], lapData[0], tauData[0],
+					eData, e_nData[0], e_sigmaData[0], e_lapData[0], e_tauData[0]);
+		#endif
+		//Compute internal functionals:
+		for(auto func: functionals->internal)
+			if(!func->isKinetic())
+				func->evaluate(e->gInfo.nr, nData, sigmaData, lapData, tauData,
+					eData, e_nData, e_sigmaData, e_lapData, e_tauData);
+	}
+	
+	//Compute finite difference derivatives:
+	DataRptr nDen = (0.5/eps) * inv(n) * mask;
+	e_nn = nDen * (configs[1].e_n - configs[2].e_n);
+	if(needsSigma)
+	{	DataRptr sigmaDen = (0.5/eps) * inv(sigma) * mask;
+		e_sigma = configs[0].e_sigma; //First derivative available analytically
+		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma) + sigmaDen * (configs[3].e_n - configs[4].e_n));
+		e_sigmasigma = sigmaDen * (configs[3].e_sigma - configs[4].e_sigma);
+	}
+	else
+	{	e_sigma = 0;
+		e_nsigma = 0;
+		e_sigmasigma = 0;
+	}
 }

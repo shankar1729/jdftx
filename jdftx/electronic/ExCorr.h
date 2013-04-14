@@ -90,7 +90,7 @@ public:
 	//! by finite difference (supported only for spin-unpolarized internal LDAs and GGAs).
 	//! All sigma derivatives will be null on output for LDAs.
 	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
-	void getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut=1e-4) const;
+	void getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_sigma, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut=1e-4) const;
 	
 private:
 	const Everything* e;
