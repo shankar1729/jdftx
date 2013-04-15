@@ -34,58 +34,51 @@ struct SphericalFit : public Minimizable<diagMatrix>
 	const ColumnBundle& V;
 	const matrix& X;
 	double alphaTot;
-	diagMatrix state;
-	int nAtoms;
+	diagMatrix width; //exponential widths (this is the 'state' for the minimizer)
+	diagMatrix alpha; //atom polarizabilities (inner linear solve at each width set)
+	int nAtoms, nSpecies;
 	double R0;
 	
 	SphericalFit(const Everything& e, const ColumnBundle& V, const matrix& X, double alphaTot)
 	: e(e), V(V), X(X), alphaTot(alphaTot)
 	{
-		//Guess initial parameters based on the vdW C6 / R0 parameters:
+		//Guess initial exponential width based on the vdW R0 parameter:
 		logSuspend(); VanDerWaals vdW(e); logResume();
-		double C6tot = 0.;
 		nAtoms = 0;
-		for(unsigned i=0; i<e.iInfo.species.size(); i++)
+		nSpecies = e.iInfo.species.size();
+		for(int i=0; i<nSpecies; i++)
 		{	const SpeciesInfo& sp = *(e.iInfo.species[i]);
-			VanDerWaals::AtomParams params = vdW.getParams(sp.atomicNumber);
-			state.push_back(0.15*params.R0); //this is the typical density decay length for atoms
-			state.push_back(params.C6); //guess polarizabilities in proportion to C6
-			C6tot += params.C6 * sp.atpos.size();
+			width.push_back(0.15*vdW.getParams(sp.atomicNumber).R0);
 			nAtoms += sp.atpos.size();
 		}
-		for(unsigned i=0; i<e.iInfo.species.size(); i++)
-			state[2*i+1] *= (alphaTot / C6tot);
+		alpha.resize(nSpecies);
 		
 		//Precompute quantities independent of state:
-		matrix VdagOV = V^O(V);
-		R0 = 0.5*trace(VdagOV * X * VdagOV * X).real();
+		matrix VdagKV = V^K(V);
+		R0 = 0.5*trace(VdagKV * X * VdagKV * X).real();
 	}
 	
 	void step(const diagMatrix& dir, double alpha)
-	{	axpy(alpha, dir, state);
+	{	axpy(alpha, dir, width);
 	}
 	
 	double compute(diagMatrix* grad=0)
-	{	//Initialize model dielectric matrix at current parameters:
-		diagMatrix Y(3*nAtoms); //Diagonal entries for the model response
+	{	//Initialize basis functions for model dielectric matrix at current parameters:
 		ColumnBundle U = V.similar(3*nAtoms); //basis functions for the model response
 		ColumnBundle dU = U.similar(); //derivative of basis functions w.r.t width parameter
 		double dG = 0.02; int nG = int(ceil(e.iInfo.GmaxLoc/dG)) + 5;
 		double normFac = sqrt(4*M_PI/3) / e.gInfo.detR;
+		std::vector<int> colStart, colStop;
 		int colOffset = 0;
-		for(unsigned i=0; i<e.iInfo.species.size(); i++)
+		for(int i=0; i<nSpecies; i++)
 		{	const SpeciesInfo& sp = *(e.iInfo.species[i]);
-			const double& width = state[2*i];
-			const double& alpha = state[2*i+1];
-			if(width <= 0. || width > 5.) return NAN;
-			//Set the magnitudes:
-			std::fill_n(Y.begin()+colOffset, 3*sp.atpos.size(), (1./3)*alpha);
+			if(width[i] <= 0. || width[i] > 5.) return NAN;
 			//Initialize the model radial functions:
 			std::vector<double> f_samples(nG), df_samples(nG);
-			for(int i=0; i<nG; i++)
-			{	double G = i*dG, wG = width*G;
-				f_samples[i] = normFac * G/pow(1+wG*wG, 3);
-				df_samples[i] = -6.*normFac * G*G*wG/pow(1+wG*wG, 4);
+			for(int iG=0; iG<nG; iG++)
+			{	double G = iG*dG, wG = width[i]*G;
+				f_samples[iG] = normFac * G/pow(1+wG*wG, 3);
+				df_samples[iG] = -6.*normFac * G*G*wG/pow(1+wG*wG, 4);
 			}
 			RadialFunctionG f, df;
 			f.init(1, f_samples, dG);
@@ -94,51 +87,69 @@ struct SphericalFit : public Minimizable<diagMatrix>
 			const Basis& basis = *(U.basis);
 			int l = 1;
 			int atomStride = basis.nbasis;
+			colStart.push_back(colOffset);
 			for(int m=-l; m<=l; m++)
 			{	callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarrPref, e.gInfo.G, sp.atposPref, f, U.dataPref()+colOffset*basis.nbasis, false, vector3<complex*>());
 				callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarrPref, e.gInfo.G, sp.atposPref, df, dU.dataPref()+colOffset*basis.nbasis, false, vector3<complex*>());
 				colOffset += sp.atpos.size();
 			}
+			colStop.push_back(colOffset);
 			f.free();
+			df.free();
+		}
+		
+		matrix VdagKU = V^K(U), UdagKV = dagger(VdagKU), UdagKU = U^K(U);
+		diagMatrix diag_UdagKV_X_VdagKU = diag(UdagKV * X * VdagKU);
+		
+		//Solve for the atom polarizabilities at current width: (constrained linear solve)
+		matrix A(nSpecies,nSpecies), b(nSpecies,1), N(nSpecies,1);
+		for(int i=0; i<nSpecies; i++)
+		{	b.data()[b.index(i,0)] = trace(diag_UdagKV_X_VdagKU(colStart[i],colStop[i]));
+			N.data()[N.index(i,0)] = (1./3) * (colStop[i] - colStart[i]);
+			for(int j=0; j<nSpecies; j++)
+			{	matrix UdagKUsub = UdagKU(colStart[i],colStop[i], colStart[j],colStop[j]);
+				A.data()[A.index(i,j)] = (1./3) * trace(UdagKUsub * dagger(UdagKUsub)).real();
+			}
+		}
+		matrix invA = inv(A);
+		double lambda = ((trace(dagger(N)*invA*b) + alphaTot) / trace(dagger(N)*invA*N)).real(); //Lagrange multiplier for net polarizability constraint
+		matrix alphaMat = invA * (lambda*N - b);
+		//Convert above solution to diagonal matrix in the model basis (and store to this->alpha):
+		diagMatrix Y(3*nAtoms);
+		for(int i=0; i<nSpecies; i++)
+		{	alpha[i] = alphaMat.data()[alphaMat.index(i,0)].real();
+			std::fill(Y.data()+colStart[i], Y.data()+colStop[i], (1./3)*alpha[i]);
 		}
 		
 		//Compute residual and gradient:
-		matrix VdagOU = V^O(U), UdagOV = dagger(VdagOU), UdagOU = U^O(U);
-		double R = R0 + 0.5*trace(UdagOU * Y * UdagOU * Y).real() + trace(UdagOV * X * VdagOU * Y).real();
+		double R = R0 + 0.5*trace(UdagKU * Y * UdagKU * Y).real() + trace(diag_UdagKV_X_VdagKU * Y);
 		if(grad)
-		{	diagMatrix R_Y = diag(UdagOV * X * VdagOU + UdagOU * Y * UdagOU);
-			diagMatrix R_w = diag(O(dU) ^ (V * (X * VdagOU * Y) + U * (Y * UdagOU * Y)));
-			int colStart = 0;
-			grad->resize(state.size());
-			for(unsigned i=0; i<e.iInfo.species.size(); i++)
-			{	int colStop = colStart + e.iInfo.species[i]->atpos.size()*3;
-				grad->at(2*i) = 2. * trace(R_w(colStart,colStop));
-				grad->at(2*i+1) = (1./3) * trace(R_Y(colStart,colStop));
-				colStart = colStop;
-			}
+		{	diagMatrix R_w = diag(K(dU) ^ (V * (X * VdagKU * Y) + U * (Y * UdagKU * Y)));
+			grad->resize(nSpecies);
+			for(int i=0; i<nSpecies; i++)
+				grad->at(i) = 2. * trace(R_w(colStart[i],colStop[i]));
 			constrain(*grad);
 		}
 		return R;
 	}
 
-	//project out changes to total alpha:
-	void constrain(diagMatrix& dir)
-	{	double dalphaMean = 0.;
-		for(unsigned i=0; i<e.iInfo.species.size(); i++)
-			dalphaMean += e.iInfo.species[i]->atpos.size() * dir[2*i+1];
-		dalphaMean /= nAtoms;
-		for(unsigned i=0; i<e.iInfo.species.size(); i++)
-			dir[2*i+1] -= dalphaMean;
+	static inline void K_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
+	{	for(int b=bStart; b<bStop; b++)
+			Krho->setColumn(b, e->gInfo.detR * (*(e->coulomb))(rho->getColumn(b), dk, 0.));
 	}
-
+	ColumnBundle K(ColumnBundle Y)
+	{	ColumnBundle KY = Y.similar();
+		suspendOperatorThreading();
+		threadLaunch(K_thread, Y.nCols(), &e, vector3<>(), &Y, &KY);
+		resumeOperatorThreading();
+		return KY;
+	}
+	
 	void print()
 	{	logPrintf("\tSpherical polarizability parameters:\n");
 		for(unsigned i=0; i<e.iInfo.species.size(); i++)
-		{	const SpeciesInfo& sp = *(e.iInfo.species[i]);
-			const double& width = state[2*i];
-			const double& alpha = state[2*i+1];
-			logPrintf("\t   Site '%s'   alpha: %lf   width: %lf\n", sp.name.c_str(), alpha, width);
-		}
+			logPrintf("\t   Site '%s'   alpha: %lf   width: %lf\n",
+				e.iInfo.species[i]->name.c_str(), alpha[i], width[i]);
 	}
 };
 
@@ -202,13 +213,13 @@ int main(int argc, char** argv)
 	
 	logPrintf("Fitting polarizability to spherical atom-centered model\n");
 	MinimizeParams mp;
-	mp.nDim = 2. * e.iInfo.species.size();
+	mp.nDim = e.iInfo.species.size();
 	mp.linePrefix = "\tChiSphericalFit: ";
-	mp.energyLabel = "Residual";
+	mp.energyLabel = "residual";
 	mp.nIterations = 100;
-	mp.knormThreshold = 1e-6;
+	mp.energyDiffThreshold = 1e-8;
 	SphericalFit fit(e, V, Xext, alpha);
-	for(int i=0; i<10; i++) fit.minimize(mp);
+	fit.minimize(mp);
 	fit.print();
 	
 	finalizeSystem();
