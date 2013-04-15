@@ -276,40 +276,17 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_n;
 	
-	std::vector<matrix> U(eInfo.nStates); // U[q] = Y[q]^O(Y[q])
-	std::vector<matrix> U_evecs(eInfo.nStates); // eigenvectors of U[q] in columns
-	std::vector<diagMatrix> U_eigs(eInfo.nStates); // eigenvalues of U[q]
-	std::vector<matrix> Umhalf(eInfo.nStates); // Uhmalf[q] = invsqrt(U[q])
-	std::vector<matrix> V(eInfo.nStates); // V=cis(B) or dagger(B_evecs) for subspace rotations / aux hamiltonian respectively
+	// Overlap matrix U and its cohorts
+	U.resize(eInfo.nStates);
+	U_evecs.resize(eInfo.nStates);
+	U_eigs.resize(eInfo.nStates);
+	Umhalf.resize(eInfo.nStates);
+	V.resize(eInfo.nStates);
 	
-	//Compute orthonormal wavefunctions C from Y:
+	// Orthonormalize Y to compute C, U and cohorts
 	for(int q=0; q<eInfo.nStates; q++)
 	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		ColumnBundle projYq;
-		if(e->cntrl.fixOccupied) //project out fixed wavefunctions from free ones
-		{	int nOcc = nOccupiedBands(q);
-			if(!nOcc) projYq = Y[q];
-			else
-			{	ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
-				projYq = Pbar(fixedYq, Y[q]);
-				projYq.setSub(0, fixedYq);
-			}
-		}
-		const ColumnBundle& Yq = e->cntrl.fixOccupied ? projYq : Y[q];
-		U[q] = Yq^O(Yq); //Compute U:
-		Umhalf[q] = invsqrt(U[q], &U_evecs[q], &U_eigs[q]); //Compute U^-0.5 (and retrieve U's eigensystem)
-		if(eInfo.subspaceRotation)
-		{	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			{	//Diagonalize auxilliary subspace hamiltonian to get V:
-				B[q].diagonalize(B_evecs[q], B_eigs[q]);
-				V[q] = dagger(B_evecs[q]);
-			}
-			else 
-			{	//Old subspace rotations: Compute V = exp(i B) and retrieve B's eigensystem
-				V[q] = cis(B[q], &B_evecs[q], &B_eigs[q]);
-			}
-		}
-		C[q] = Yq * (eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q]);
+		orthonormalizeWavefunctions(q);
 	}
 	
 	//Update overlap condition number:
@@ -542,4 +519,32 @@ DataRptrCollection ElecVars::calcDensity()
 	for(unsigned s=0; s<density.size(); s++) e->symm.symmetrize(density[s]); //Symmetrize
 
 	return density;
+}
+
+void ElecVars::orthonormalizeWavefunctions(int q)
+{	ColumnBundle projYq;
+	if(e->cntrl.fixOccupied) //project out fixed wavefunctions from free ones
+	{	int nOcc = nOccupiedBands(q);
+		if(!nOcc) projYq = Y[q];
+		else
+		{	ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
+			projYq = Pbar(fixedYq, Y[q]);
+			projYq.setSub(0, fixedYq);
+		}
+	}
+	const ColumnBundle& Yq = e->cntrl.fixOccupied ? projYq : Y[q];
+	U[q] = Yq^O(Yq); //Compute U:
+	Umhalf[q] = invsqrt(U[q], &U_evecs[q], &U_eigs[q]); //Compute U^-0.5 (and retrieve U's eigensystem)
+	if(e->eInfo.subspaceRotation)
+	{	if(e->eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		{	//Diagonalize auxilliary subspace hamiltonian to get V:
+			B[q].diagonalize(B_evecs[q], B_eigs[q]);
+			V[q] = dagger(B_evecs[q]);
+		}
+		else 
+		{	//Old subspace rotations: Compute V = exp(i B) and retrieve B's eigensystem
+			V[q] = cis(B[q], &B_evecs[q], &B_eigs[q]);
+		}
+	}
+	C[q] = Yq * (e->eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q]);
 }

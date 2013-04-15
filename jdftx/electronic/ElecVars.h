@@ -109,6 +109,9 @@ public:
 	//! Calculate density using current orthonormal wavefunctions (C)
 	DataRptrCollection calcDensity();
 	
+	//! Orthonormalise Y to compute C, U and its cohorts for a quantum number q
+	void orthonormalizeWavefunctions(int q);
+	
 private:
 	const Everything* e;
 	
@@ -125,5 +128,12 @@ private:
 	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)
 	friend class CommandWavefunction;
 	friend class Dump;
+	
+	//! Overlap matrix U and cohorts
+	std::vector<matrix> U; // U[q] = Y[q]^O(Y[q])
+	std::vector<matrix> U_evecs; // eigenvectors of U[q] in columns
+	std::vector<diagMatrix> U_eigs; // eigenvalues of U[q]
+	std::vector<matrix> Umhalf; // Uhmalf[q] = invsqrt(U[q])
+	std::vector<matrix> V; // V=cis(B) or dagger(B_evecs) for subspace rotations / aux hamiltonian respectively
 };
 #endif // JDFTX_ELECTRONIC_ELECVARS_H
