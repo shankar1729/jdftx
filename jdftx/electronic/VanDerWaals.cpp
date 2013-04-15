@@ -65,10 +65,10 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 				sp->name.c_str(), atomicNumberMaxGrimme);
 	}
 
-   // Constructs the EXCorr -> scaling factor map
-   scalingFactor["gga-PBE"] = 0.75;
-   scalingFactor["hyb-gga-xc-b3lyp"] = 1.05;
-   scalingFactor["mgga-TPSS"] = 1.;
+	// Constructs the EXCorr -> scaling factor map
+	scalingFactor["gga-PBE"] = 0.75;
+	scalingFactor["hyb-gga-xc-b3lyp"] = 1.05;
+	scalingFactor["mgga-TPSS"] = 1.;
 
 	// Sets up the C6 and R0 parameters
 	atomParams.resize(atomicNumberMax+1);
@@ -141,9 +141,9 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 	
 	double Etot = 0.;  //Total VDW Energy
 	for(int c1 = 0; c1 < (int) atoms.size(); c1++)
-	{	const AtomParams& c1params = atomParams[atoms[c1].atomicNumber];
+	{	const AtomParams& c1params = getParams(atoms[c1].atomicNumber);
 		for(int c2 = 0; c2 < (int) atoms.size(); c2++)
-		{	const AtomParams& c2params = atomParams[atoms[c2].atomicNumber];
+		{	const AtomParams& c2params = getParams(atoms[c2].atomicNumber);
 			
 			if(c1 == c2) continue; // No self interaction		
 			double C6 = sqrt(c1params.C6 * c2params.C6);
@@ -222,16 +222,21 @@ double VanDerWaals::getScaleFactor(string exCorrName, double scaleOverride) cons
 	return iter->second;
 }
 
+VanDerWaals::AtomParams::AtomParams(double SI_C6, double SI_R0)
+: C6(SI_C6 * Joule*pow(1e-9*meter,6)/mol), R0(SI_R0 * Angstrom)
+{
+}
+
+VanDerWaals::AtomParams VanDerWaals::getParams(int atomicNumber) const
+{	assert(atomicNumber>0);
+	assert(atomicNumber<=atomicNumberMax);
+	return atomParams[atomicNumber];
+}
+
 
 VanDerWaals::~VanDerWaals()
 {
 	for(auto& iter: radialFunctions) iter.second.free(); //Cleanup cached RadialFunctionG's if any
-}
-
-
-VanDerWaals::AtomParams::AtomParams(double SI_C6, double SI_R0)
-: C6(SI_C6 * Joule*pow(1e-9*meter,6)/mol), R0(SI_R0 * Angstrom)
-{
 }
 
 
@@ -246,10 +251,8 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 		return radialFunctionIter->second;
 	
 	//Get parameters for current pair of species:
-	assert(atomicNumber1>0); assert(atomicNumber1<=atomicNumberMax);
-	assert(atomicNumber2>0); assert(atomicNumber2<=atomicNumberMax);
-	const AtomParams& params1 = atomParams[atomicNumber1];
-	const AtomParams& params2 = atomParams[atomicNumber2];
+	const AtomParams& params1 = getParams(atomicNumber1);
+	const AtomParams& params2 = getParams(atomicNumber2);
 	double C6 = sqrt(params1.C6 * params2.C6);
 	double R0 = params1.R0 + params2.R0;
 	

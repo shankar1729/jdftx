@@ -46,9 +46,6 @@ public:
 	//! Quits with an appropriate error message suggesting the scale-override if functional not parametrized
 	double getScaleFactor(string exCorrName, double scaleOverride=0.) const;
 	
-private:
-	const Everything* e;
-	
 	//! C6 and R0 parameters for the VDW interactions
 	struct AtomParams
 	{	double C6;
@@ -56,7 +53,12 @@ private:
 		//!Construct given C6 in J-nm^6/mol and R0 in Angstrom
 		AtomParams(double SI_C6=0., double SI_R0=0.);
 	};
-	std::vector<AtomParams> atomParams; //!< Returns the C6 coefficient and R0
+	AtomParams getParams(int atomicNumber) const; //!< retrieve vdW parameters for an atom
+	
+private:
+	const Everything* e;
+	
+	std::vector<AtomParams> atomParams; //!< List of C6 coeficients and radii R0 for all atoms
 	std::map<string,double> scalingFactor; //!< ExCorr dependent scale factor
 	
 	//! Get cached RadialFunctionG for interaction kernel between species of
