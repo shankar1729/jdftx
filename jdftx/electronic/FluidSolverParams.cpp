@@ -72,7 +72,7 @@ void FluidSolverParams::setPCMparams()
 		case CHCl3:
 		{	epsBulk = 4.8069;
 			Nbulk = 1.109e-3;
-			pMol = 0.425;
+			pMol = 0.49091;
 			epsInf = 2.09;
 			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
 			sigmaBulk = 1.71e-5;
