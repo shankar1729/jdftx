@@ -110,7 +110,14 @@ public:
 	DataRptrCollection calcDensity();
 	
 	//! Orthonormalise Y to compute C, U and its cohorts for a quantum number q
-	void orthonormalizeWavefunctions(int q);
+	void orthonormalize(int q);
+	
+	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, also computes Hsub if necessary
+	//! Function is implemented for a single quantum number
+	//! WARNING: Does not apply exact exchange or +U.  Those require the all quantum numbers to be done at once.
+	//! If fixed hamiltonian, returns the trace of the subspace hamiltonian multiplied by the weight of that quantum number,
+	//! returns 0 if otherwise.
+	double applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
 	
 private:
 	const Everything* e;

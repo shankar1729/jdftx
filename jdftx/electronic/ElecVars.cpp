@@ -81,6 +81,13 @@ void ElecVars::setup(const Everything &everything)
 	}
 	grad_CdagOC.resize(eInfo.nStates);
 	
+	// Initialize matrix U and its cohorts
+	U.resize(eInfo.nStates);
+	U_evecs.resize(eInfo.nStates);
+	U_eigs.resize(eInfo.nStates);
+	Umhalf.resize(eInfo.nStates);
+	V.resize(eInfo.nStates);
+	
 	//Read auxilliary hamiltonian if required
 	if(HauxFilename.length() && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 	{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
@@ -276,17 +283,10 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_n;
 	
-	// Overlap matrix U and its cohorts
-	U.resize(eInfo.nStates);
-	U_evecs.resize(eInfo.nStates);
-	U_eigs.resize(eInfo.nStates);
-	Umhalf.resize(eInfo.nStates);
-	V.resize(eInfo.nStates);
-	
 	// Orthonormalize Y to compute C, U and cohorts
 	for(int q=0; q<eInfo.nStates; q++)
 	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		orthonormalizeWavefunctions(q);
+		orthonormalize(q);
 	}
 	
 	//Update overlap condition number:
@@ -341,43 +341,20 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
 	//Do the rest one state at a time to save memory (and for better cache warmth):
-	ener.E["Enl"] = 0.0;
-	ener.E["KE"] = 0.0;
 	for(int q=0; q<eInfo.nStates; q++)
 	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		const QuantumNumber& qnum = eInfo.qnums[q];
-		diagMatrix Fq = e->cntrl.fixed_n ? eye(eInfo.nBands) : F[q]; //override fillings for band structure
 		
-		//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 		ColumnBundle& HCq = HC[q];
-		const ColumnBundle& Cq = C[q];
-		if(need_Hsub)
-		{	HCq += Idag_DiagV_I(Cq, Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
-			iInfo.augmentDensityGrad(Fq, Cq, Vscloc[qnum.index()], HCq); //Contribution via pseudopotential density augmentation
-			if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
-			{	for(int iDir=0; iDir<3; iDir++)
-					HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
-			}
-		}
-	
-		//Kinetic energy:
-		ColumnBundle minushalfLCq = -0.5*L(Cq);
-		if(HCq) HCq += minushalfLCq;
-		double KEq = traceinner(Fq, Cq, minushalfLCq).real();
-		ener.E["KE"] += qnum.weight * KEq;
+		diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
+		ColumnBundle& Cq = C[q];
+		const QuantumNumber& qnum = e->eInfo.qnums[q];
 		
-		//Nonlocal pseudopotentials:
-		ener.E["Enl"] += qnum.weight * iInfo.EnlAndGrad(Fq, Cq, HCq);
-		
-		//Compute subspace hamiltonian if needed:
-		if(need_Hsub)
-		{	Hsub[q] = Cq ^ HCq;
-			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
-		}
+		applyHamiltonian(q, Cq, Fq, HCq, ener, need_Hsub);
 
 		//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
 		if(grad)
-		{	double KErollover = 2.0 * (trace(Fq) ? KEq / trace(Fq) : 1.);
+		{	ostringstream KEoss; KEoss << "KE-" << q;
+			double KErollover = 2.0 * (trace(Fq) ? (ener.E[KEoss.str()]/qnum.weight) / trace(Fq) : 1.);
 			ColumnBundle OC = O(Cq); //Note: O is not cheap for ultrasoft pseudopotentials
 			ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
 			matrix gradCtoY = eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
@@ -521,7 +498,7 @@ DataRptrCollection ElecVars::calcDensity()
 	return density;
 }
 
-void ElecVars::orthonormalizeWavefunctions(int q)
+void ElecVars::orthonormalize(int q)
 {	ColumnBundle projYq;
 	if(e->cntrl.fixOccupied) //project out fixed wavefunctions from free ones
 	{	int nOcc = nOccupiedBands(q);
@@ -547,4 +524,44 @@ void ElecVars::orthonormalizeWavefunctions(int q)
 		}
 	}
 	C[q] = Yq * (e->eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q]);
+}
+
+double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
+{
+	const QuantumNumber& qnum = e->eInfo.qnums[q];
+	
+	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
+	if(need_Hsub)
+	{	HCq += Idag_DiagV_I(Cq, Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+		e->iInfo.augmentDensityGrad(Fq, Cq, Vscloc[qnum.index()], HCq); //Contribution via pseudopotential density augmentation
+		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
+		{	for(int iDir=0; iDir<3; iDir++)
+				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
+		}
+	}
+
+	//Kinetic energy:
+	ColumnBundle minushalfLCq = -0.5*L(Cq);
+	if(HCq) HCq += minushalfLCq;
+	double KEq = traceinner(Fq, Cq, minushalfLCq).real();
+	ostringstream KEoss; KEoss << "KE-" << q;
+	ener.E[KEoss.str()] = qnum.weight * KEq;
+	
+	//Nonlocal pseudopotentials:
+	ostringstream Enloss; Enloss << "Enl-" << q;
+	ener.E[Enloss.str()] = qnum.weight * e->iInfo.EnlAndGrad(Fq, Cq, HCq);
+	
+	//Compute subspace hamiltonian if needed:
+	if(need_Hsub)
+	{	Hsub[q] = Cq ^ HCq;
+		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+	}
+	
+	if(e->cntrl.fixed_n)
+	{	double traceHsub = qnum.weight * trace(Hsub[q]).real();
+		ener.E["Eband"] += traceHsub;
+		return traceHsub;
+	}
+	else
+		return 0.;
 }
