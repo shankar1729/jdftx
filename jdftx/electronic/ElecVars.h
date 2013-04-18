@@ -119,6 +119,9 @@ public:
 	//! returns 0 if otherwise.
 	double applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
 	
+	//! Propagates the gradient wrt orthonormal C (HCq) to gradient wrt Y and B (if given).
+	void orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, ColumnBundle& gradYq, ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);
+	
 private:
 	const Everything* e;
 	
@@ -142,5 +145,8 @@ private:
 	std::vector<diagMatrix> U_eigs; // eigenvalues of U[q]
 	std::vector<matrix> Umhalf; // Uhmalf[q] = invsqrt(U[q])
 	std::vector<matrix> V; // V=cis(B) or dagger(B_evecs) for subspace rotations / aux hamiltonian respectively
+	
+	// Used in subspace hamiltonian gradient if the auxillary hamiltonian approach to fillings is used.
+	diagMatrix dmuContrib;
 };
 #endif // JDFTX_ELECTRONIC_ELECVARS_H

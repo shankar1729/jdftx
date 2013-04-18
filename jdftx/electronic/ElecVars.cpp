@@ -89,10 +89,13 @@ void ElecVars::setup(const Everything &everything)
 	V.resize(eInfo.nStates);
 	
 	//Read auxilliary hamiltonian if required
-	if(HauxFilename.length() && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-	{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
-		read(B, HauxFilename.c_str());
-		HauxInitialized = true;
+	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	{	dmuContrib = diagMatrix(eInfo.nBands, 0.);
+		if(HauxFilename.length())
+		{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
+			read(B, HauxFilename.c_str());
+			HauxInitialized = true;
+		}
 	}
 
 	// Initialize ColumnBundle arrays for the electronic wave-functions:
@@ -274,7 +277,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradient* Kgrad, bool calc_Hsub)
 {	
 	const ElecInfo& eInfo = e->eInfo;
-	const IonInfo& iInfo = e->iInfo;
 	
 	//Cleanup old gradients:
 	if(grad) { grad->Y.clear(); grad->Y.resize(eInfo.nStates); }
@@ -330,7 +332,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	std::vector<ColumnBundle> HC(eInfo.nStates); //gradient w.r.t C (upto weights and fillings)
 	
 	//DFT+U corrections, if required:
-	ener.E["U"] = iInfo.computeU(F, C, need_Hsub ? &HC : 0);
+	ener.E["U"] = e->iInfo.computeU(F, C, need_Hsub ? &HC : 0);
 	
 	//Exact exchange if required:
 	ener.E["EXX"] = 0.;
@@ -341,95 +343,46 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
 	//Do the rest one state at a time to save memory (and for better cache warmth):
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=0; q<e->eInfo.nStates; q++)
 	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
 		
-		ColumnBundle& HCq = HC[q];
 		diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-		ColumnBundle& Cq = C[q];
-		const QuantumNumber& qnum = e->eInfo.qnums[q];
-		
-		applyHamiltonian(q, Cq, Fq, HCq, ener, need_Hsub);
-
-		//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
-		if(grad)
-		{	ostringstream KEoss; KEoss << "KE-" << q;
-			double KErollover = 2.0 * (trace(Fq) ? (ener.E[KEoss.str()]/qnum.weight) / trace(Fq) : 1.);
-			ColumnBundle OC = O(Cq); //Note: O is not cheap for ultrasoft pseudopotentials
-			ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
-			matrix gradCtoY = eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
-			
-			//First term of grad_Y, proportional to F:
-			grad->Y[q] = PbarHC * (Fq * gradCtoY);
-			if(Kgrad) Kgrad->Y[q] = precond_inv_kinetic(PbarHC * gradCtoY, KErollover);
-			grad_CdagOC[q] = -(Hsub[q]*Fq);
-			
-			//Second term of grad_Y, proportional to [F,Hsub]:
-			if(eInfo.subspaceRotation) // subspace rotation is on whenever [F,Hsub]!=0
-			{	matrix FcommHsub = Hsub[q] * Fq - Fq * Hsub[q];
-				matrix Q_FcommHsub = eInfo.subspaceRotation
-						? V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q])
-						: sqrt_grad(FcommHsub, U_evecs[q], U_eigs[q]);
-				ColumnBundle OCQ = OC * Q_FcommHsub;
-				grad->Y[q] += OCQ;
-				if(Kgrad) Kgrad->Y[q] += precond_inv_kinetic(OCQ, KErollover);
-				grad_CdagOC[q] += (eInfo.subspaceRotation ? Q_FcommHsub * dagger(V[q]) : Q_FcommHsub) * U[q] * Umhalf[q];
-				
-				//Subspace rotation gradient:
-				if(eInfo.fillingsUpdate!=ElecInfo::FermiFillingsAux)
-				{	grad->B[q] = qnum.weight * dagger_symmetrize(cis_grad(FcommHsub, B_evecs[q], B_eigs[q]));
-					if(Kgrad) Kgrad->B[q] = subspaceRotationFactor * grad->B[q];
-				}
-			}
-			//Scale wavefunction gradients by state weight:
-			grad->Y[q] *= qnum.weight;
-			if(Kgrad) Kgrad->Y[q] *= qnum.weight;
-
-			//Project out fixed directions from gradient (if any):
-			if(e->cntrl.fixOccupied)
-			{	int nOcc = nOccupiedBands(q);
-				if(nOcc)
-				{	//Apply projector to unoccupied orbital gradients:
-					ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
-					grad->Y[q] = Pbar(fixedYq, grad->Y[q]);
-					if(Kgrad) Kgrad->Y[q] = Pbar(fixedYq, Kgrad->Y[q]);
-					//Zero out occupied orbital gradients:
-					fixedYq.zero();
-					grad->Y[q].setSub(0, fixedYq);
-					if(Kgrad) Kgrad->Y[q].setSub(0, fixedYq);
-				}
-			}
-		}
-		HCq.free();
+		applyHamiltonian(q, C[q], Fq, HC[q], ener, need_Hsub);
 	}
 	
-	//Subspace hamiltonian gradient:
-	if(grad && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-	{
-		diagMatrix dmuContrib(eInfo.nBands, 0.); 
-		if(std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
-		{	double dmuNum=0.0, dmuDen=0.0;
-			for(int q=0; q<eInfo.nStates; q++)
-			{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-				diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
-				dmuNum += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
-				dmuDen += eInfo.qnums[q].weight * trace(fprime);
-			}
-			dmuContrib = eye(eInfo.nBands) * (dmuNum/dmuDen);
-		}
-		
+	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
+	{	double dmuNum=0.0, dmuDen=0.0;
 		for(int q=0; q<eInfo.nStates; q++)
 		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-			const QuantumNumber& qnum = eInfo.qnums[q];
-			matrix gradF = Hsub[q]-B_eigs[q]-dmuContrib; //gradient w.r.t fillings
-			grad->B[q] = qnum.weight
-				* dagger_symmetrize(dagger(V[q]) * eInfo.fermiGrad(mu, B_eigs[q], gradF) * V[q]);
-			if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
-				Kgrad->B[q] = (-eInfo.kT * subspaceRotationFactor * qnum.weight)
-					* dagger_symmetrize(dagger(V[q]) * gradF * V[q]);
+			diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
+			dmuNum += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
+			dmuDen += eInfo.qnums[q].weight * trace(fprime);
 		}
+		dmuContrib = eye(eInfo.nBands) * (dmuNum/dmuDen);
 	}
 	
+	//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
+	if(grad)
+		for(int q=0; q<eInfo.nStates; q++)
+		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+			
+			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
+			orthonormalizeGrad(q, C[q], Fq, HC[q], grad->Y[q], &Kgrad->Y[q], &grad->B[q], &Kgrad->B[q]);
+			HC[q].free(); // Deallocate HCq when done.
+			
+			//Subspace hamiltonian gradient:
+			if(grad && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+			{
+				const QuantumNumber& qnum = eInfo.qnums[q];
+				matrix gradF = Hsub[q]-B_eigs[q]-dmuContrib; //gradient w.r.t fillings
+				grad->B[q] = qnum.weight
+					* dagger_symmetrize(dagger(V[q]) * eInfo.fermiGrad(mu, B_eigs[q], gradF) * V[q]);
+				if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
+					Kgrad->B[q] = (-eInfo.kT * subspaceRotationFactor * qnum.weight)
+						* dagger_symmetrize(dagger(V[q]) * gradF * V[q]);
+			}
+		}
+		
 	//Energy totals:
 	ener.updateTotals();
 	if(e->cntrl.fixed_n)
@@ -564,4 +517,58 @@ double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 	}
 	else
 		return 0.;
+}
+
+void ElecVars::orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, 
+								  ColumnBundle& gradYq, ColumnBundle* KgradYq, matrix* gradBq, matrix* KgradBq)
+{
+	const QuantumNumber& qnum = e->eInfo.qnums[q];
+		
+	ostringstream KEoss; KEoss << "KE-" << q;
+	double KErollover = 2.0 * (trace(Fq) ? (e->ener.E[KEoss.str()]/qnum.weight) / trace(Fq) : 1.);
+	ColumnBundle OC = O(Cq); //Note: O is not cheap for ultrasoft pseudopotentials
+	ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
+	matrix gradCtoY = e->eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
+	
+	//First term of grad_Y, proportional to F:
+	gradYq = PbarHC * (Fq * gradCtoY);
+	if(KgradYq) *KgradYq = precond_inv_kinetic(PbarHC * gradCtoY, KErollover);
+	grad_CdagOC[q] = -(Hsub[q]*Fq);
+	
+	//Second term of grad_Y, proportional to [F,Hsub]:
+	if(e->eInfo.subspaceRotation) // subspace rotation is on whenever [F,Hsub]!=0
+	{	matrix FcommHsub = Hsub[q] * Fq - Fq * Hsub[q];
+		matrix Q_FcommHsub = e->eInfo.subspaceRotation
+				? V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q])
+				: sqrt_grad(FcommHsub, U_evecs[q], U_eigs[q]);
+		ColumnBundle OCQ = OC * Q_FcommHsub;
+		gradYq += OCQ;
+		if(KgradYq) *KgradYq += precond_inv_kinetic(OCQ, KErollover);
+		grad_CdagOC[q] += (e->eInfo.subspaceRotation ? Q_FcommHsub * dagger(V[q]) : Q_FcommHsub) * U[q] * Umhalf[q];
+		
+		//Subspace rotation gradient:
+		if(gradBq and e->eInfo.fillingsUpdate!=ElecInfo::FermiFillingsAux)
+		{	*gradBq = qnum.weight * dagger_symmetrize(cis_grad(FcommHsub, B_evecs[q], B_eigs[q]));
+			if(KgradBq) *KgradBq = subspaceRotationFactor * (*gradBq);
+		}
+	}
+
+	//Scale wavefunction gradients by state weight:
+	gradYq *= qnum.weight;
+	if(KgradYq) *KgradYq *= qnum.weight;
+
+	//Project out fixed directions from gradient (if any):
+	if(e->cntrl.fixOccupied)
+	{	int nOcc = nOccupiedBands(q);
+		if(nOcc)
+		{	//Apply projector to unoccupied orbital gradients:
+			ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
+			gradYq = Pbar(fixedYq, gradYq);
+			if(KgradYq) *KgradYq = Pbar(fixedYq, *KgradYq);
+			//Zero out occupied orbital gradients:
+			fixedYq.zero();
+			gradYq.setSub(0, fixedYq);
+			if(KgradYq) KgradYq->setSub(0, fixedYq);
+		}
+	}	
 }
