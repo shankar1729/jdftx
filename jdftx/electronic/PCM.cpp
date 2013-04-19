@@ -43,7 +43,7 @@ void Sf_calc(int i, double G2, const std::vector<double>* rArr, double* Sf)
 }
 
 
-PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp(fsp), wExpand(0), wCavity(0)
+PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp(fsp)
 {
 	k2factor = (8*M_PI/fsp.T) * fsp.ionicConcentration * pow(fsp.ionicZelectrolyte,2);
 
@@ -53,12 +53,17 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 	{	case PCM_SGA13:
 			Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
+			Rex[0] = fsp.Rvdw -fsp.Res;
+			Rex[1] = fsp.Rvdw;
+			logPrintf("   Electrostatic cavity expanded by Rvdw-Res: %lg bohr, and cavitation/dispersion cavity by Rvdw: %lg bohr.\n", Rex[0], Rex[1]);
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
-			//Initialize cavity expansion weight function:
-			wExpand = std::make_shared<RealKernel>(e.gInfo);
-			applyFuncGsq(e.gInfo, wExpand_calc, fsp.Rvdw, wExpand->data);
-			wExpand->set();
+			//Initialize cavity expansion weight functions:
+			for(int i=0; i<2; i++)
+			{	wExpand[i] = std::make_shared<RealKernel>(e.gInfo);
+				applyFuncGsq(e.gInfo, wExpand_calc, Rex[i], wExpand[i]->data);
+				wExpand[i]->set();
+			}
 			//Initialize nonlocal cavitation weight function:
 			wCavity = std::make_shared<RealKernel>(e.gInfo);
 			applyFuncGsq(e.gInfo, wCavity_calc, 2.*fsp.Rvdw, wCavity->data);
@@ -95,20 +100,22 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 
 void PCM::updateCavity()
 {
-	//Compute cavity shape function
-	ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
-	
-	//Expanded cavity for SGA13 variant:
+	//Cavities from expanded densities for SGA13 variant:
 	if(fsp.pcmVariant == PCM_SGA13)
-	{	ShapeFunction::expandDensity(*wExpand, fsp.Rvdw, nCavity, nCavityEx);
-		ShapeFunction::compute(nCavityEx, shapeEx, fsp.nc, fsp.sigma);
+	{	DataRptr* shapeEx[2] = { &shape, &shapeVdw };
+		for(int i=0; i<2; i++)
+		{	ShapeFunction::expandDensity(*(wExpand[i]), Rex[i], nCavity, nCavityEx[i]);
+			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
+		}
 	}
+	else //Cavity from actual electron density:
+		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
 	//Compute and cache cavitation energy and gradients:
 	switch(fsp.pcmVariant)
 	{	case PCM_SGA13:
 		{	//Select relevant shape function:
-			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeEx : shape);
+			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
 			DataGptr A_sTilde;
 			//Cavitation:
 			const double nlT = fsp.Nbulk * fsp.T;
@@ -132,7 +139,7 @@ void PCM::updateCavity()
 			for(unsigned i=0; i<Sf.size(); i++)
 				A_sTilde += fsp.Nbulk * ((*Sf[i]) * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
-			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeEx : Acavity_shape) = Jdag(A_sTilde);
+			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeVdw : Acavity_shape) = Jdag(A_sTilde);
 			break;
 		}
 		case PCM_GLSSA13:
@@ -152,20 +159,25 @@ void PCM::updateCavity()
 }
 
 void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const
-{	//Compute nCavity gradient including cached cavitation gradient:
-	A_nCavity = 0;
-	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
-	((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
-	
-	//Propagate cavitation/dispersion gradient w.r.t expanded cavity:
-	if(fsp.pcmVariant == PCM_SGA13)
-	{	//First compute derivative w.r.t expanded electron density:
-		DataRptr A_nCavityEx;
-		ShapeFunction::propagateGradient(nCavityEx, Acavity_shapeEx, A_nCavityEx, fsp.nc, fsp.sigma);
-		((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx);
-		//then propagate to original electron density:
-		DataRptr nCavityExUnused; //unused return value below
-		ShapeFunction::expandDensity(*wExpand, fsp.Rvdw, nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
+{	if(fsp.pcmVariant == PCM_SGA13)
+	{	//Propagate gradient w.r.t expanded cavities to nCavity:
+		A_nCavity = 0;
+		((PCM*)this)->A_nc = 0;
+		const DataRptr* A_shapeEx[2] = { &A_shape, &Acavity_shapeVdw };
+		for(int i=0; i<2; i++)
+		{	//First compute derivative w.r.t expanded electron density:
+			DataRptr A_nCavityEx;
+			ShapeFunction::propagateGradient(nCavityEx[i], *(A_shapeEx[i]), A_nCavityEx, fsp.nc, fsp.sigma);
+			((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
+			//then propagate to original electron density:
+			DataRptr nCavityExUnused; //unused return value below
+			ShapeFunction::expandDensity(*(wExpand[i]), Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
+		}
+	}
+	else //All gradients are w.r.t the same shape function - propagate them to nCavity
+	{	A_nCavity = 0;
+		ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
+		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 	}
 }
 
@@ -173,7 +185,7 @@ void PCM::dumpDensities(const char* filenamePattern) const
 {	string filename;
 	FLUID_DUMP(shape, "Shape");
     if(fsp.pcmVariant == PCM_SGA13)
-	{	FLUID_DUMP(shapeEx, "ShapeEx");
+	{	FLUID_DUMP(shapeVdw, "ShapeVdw");
 	}
 }
 
@@ -187,8 +199,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
 	if(fsp.pcmVariant == PCM_SGA13)
-	{	fprintf(fp, "Expanded cavity volume = %f\n", integral(1.-shapeEx));
-		fprintf(fp, "Expanded cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeEx)))));
+	{	fprintf(fp, "Expanded cavity volume = %f\n", integral(1.-shapeVdw));
+		fprintf(fp, "Expanded cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeVdw)))));
 	}
 	
 	fprintf(fp, "\nComponents of Adiel:\n");

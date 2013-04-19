@@ -171,7 +171,7 @@ void FluidSolverParams::setPCMparams()
 	//Set PCM fit parameters:
 	switch(pcmVariant)
 	{	case PCM_SGA13:
-		{	nc = 7e-4;
+		{	nc = 7e-3;
 			sigma = 0.6;
 			cavityTension = 0.;
 			initWarnings += "WARNING: PCM variant SGA13 is highly experimental!\n";

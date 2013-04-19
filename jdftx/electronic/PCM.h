@@ -38,8 +38,8 @@ protected:
 	
 	EnergyComponents Adiel; //!< PCM energy components
 	DataGptr rhoExplicitTilde; //!< Charge density of explicit (electronic) system
-	DataRptr nCavity, nCavityEx; //!< Cavity determining electron density (and expanded electron density for the SGA13 variant)
-	DataRptr shape, shapeEx; //!< Cavity shape function (and expanded shape function for the SGA13 variant)
+	DataRptr nCavity, nCavityEx[2]; //!< Cavity determining electron density (and expanded electron densities for the SGA13 variant)
+	DataRptr shape, shapeVdw; //!< Electrostatic cavity shape function (and separate cavitation/dispersion shape function for the SGA13 variant)
 	std::shared_ptr<IonicGradient> vdwForces; //!< cached forces due to dispersion terms (if any)
 	
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
@@ -47,9 +47,10 @@ protected:
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate A_shape (+ cached Acavity_shape) to those A_nCavity (set result, not accumulate)
 private:
-	DataRptr Acavity_shape, Acavity_shapeEx; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
+	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
 	double A_nc, A_tension, A_vdwScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
-	std::shared_ptr<RealKernel> wExpand; //!< weight function for cavity expansion
+	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
+	std::shared_ptr<RealKernel> wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	std::shared_ptr<RealKernel> wCavity; //!< weight function for nonlocal cavitation energy
 	std::vector< std::shared_ptr<RealKernel> > Sf; //!< spherically-averaged structure factors for each solvent site
 };
