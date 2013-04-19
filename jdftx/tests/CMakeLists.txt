@@ -13,6 +13,7 @@ set(targetNameList
 	TestGaussian        #Tests water functionals with parabolic potential well
 	SolvatedCMOS        #Floating gate transistor in ionic liquid
 	SphericalChi        #Compute spherical decomposition of non-local susceptibility
+	ElectrostaticRadius #Estimate electrostatic radius of solvent molecule
 )
 
 foreach(targetName ${targetNameList})

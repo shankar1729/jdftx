@@ -56,6 +56,7 @@ void FluidSolverParams::setPCMparams()
 			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
 			sigmaBulk = 4.62e-5;
 			Rvdw = ScalarEOS_eval(T).vdwRadius();
+			Res = 1.42;
 			//Geometry:
 			const double rOH = 1.0*Angstrom;
 			const double thetaHOH = acos(-1.0/3);
@@ -77,6 +78,7 @@ void FluidSolverParams::setPCMparams()
 			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
 			sigmaBulk = 1.71e-5;
 			Rvdw = TaoMasonEOS_eval(T, 536.6*Kelvin, 5328.68*KPascal, 0.216, 0.).vdwRadius();
+			Res = 2.22;
 			//Geometry:
 			const double zC = 0.523*Angstrom; //distance of C from center
 			const double rCCl = 1.762*Angstrom;
@@ -102,8 +104,9 @@ void FluidSolverParams::setPCMparams()
 			pMol = 0.;
 			epsInf = 2.13;
 			Pvap = antoinePvap(T, 6.10445, 1265.63, -41.002);
-			Rvdw = TaoMasonEOS_eval(T, 556.4*Kelvin, 4493*KPascal, 0.194, 0.).vdwRadius();
 			sigmaBulk = 1.68e-5;
+			Rvdw = TaoMasonEOS_eval(T, 556.4*Kelvin, 4493*KPascal, 0.194, 0.).vdwRadius();
+			Res = 1.90;
 			//Geometry:
 			const double rCCl = 1.7829*Angstrom;
 			PcmSite siteC = { getAtomicNumber("C") };
