@@ -170,11 +170,12 @@ void elecMinimize(Everything& e)
 		emin.minimize(e.elecMinParams);
 	}
 	else
-	{	
+	{	logPrintf("Minimization will be done independently for each quantum number.\n");
 		for(int q = 0; q < e.eInfo.nStates; q++)
-		{	
-			logPrintf("\n---- Starting minimization of quantum number\t[ kpoint ] weight: ");
-			e.eInfo.kpointPrint(q);
+		{	logPrintf("\n---- Minimization of quantum number: %i  kpoint: [%1.6f, %1.6f, %1.6f]  weight: %1.6f",
+						q, e.eInfo.qnums[q].k[0], e.eInfo.qnums[q].k[1], e.eInfo.qnums[q].k[2], e.eInfo.qnums[q].weight);
+			if(e.eInfo.qnums[q].spin)
+				logPrintf("  spin: %i", e.eInfo.qnums[q].spin);
 			logPrintf(" ----\n");
 			BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
