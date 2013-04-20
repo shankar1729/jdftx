@@ -54,7 +54,6 @@ public:
 	
 	ColumnBundle& operator=(const ColumnBundle&); //!< copy-assignment
 	ColumnBundle& operator=(ColumnBundle&&); //!< move-assignment
-
 	
 	// Get/set columns
 	ColumnBundle getSub(int colStart, int colStop) const; //!< get a range of columns as a ColumnBundle 
@@ -79,6 +78,11 @@ void init(std::vector<ColumnBundle>&, int nbundles, int ncols=0, const Basis* ba
 void randomize(std::vector<ColumnBundle>&);
 void write(const std::vector<ColumnBundle>&, const char *fname);
 void read(std::vector<ColumnBundle>&, const char *fname, const Everything&);
+
+// Used in the CG template Minimize.h
+ColumnBundle clone(const ColumnBundle&);  //! Copies the input
+void randomize(ColumnBundle& x); //!< Initialize to random numbers
+double dot(const ColumnBundle& x, const ColumnBundle& y); //!< inner product
 
 
 //----------- Arithmetic ------------

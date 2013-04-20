@@ -85,6 +85,18 @@ ColumnBundle& ColumnBundle::operator=(ColumnBundle&& Y)
 	memMove((ManagedMemory&&)Y); //cannibalize Y's data
 	return *this;
 }
+ColumnBundle clone(const ColumnBundle& Y)
+{	return Y;
+}
+
+void randomize(ColumnBundle& x)
+{	x.randomize(0, x.nCols());
+}
+
+double dot(const ColumnBundle& x, const ColumnBundle& y)
+{	complex result = dotc(x, y)*2.0;
+	return result.real();
+}
 
 ColumnBundle ColumnBundle::getSub(int colStart, int colStop) const
 {	assert(colStart>=0);

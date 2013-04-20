@@ -287,15 +287,13 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	// Orthonormalize Y to compute C, U and cohorts
 	for(int q=0; q<eInfo.nStates; q++)
-	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		orthonormalize(q);
+	{	orthonormalize(q);
 	}
 	
 	//Update overlap condition number:
 	double UeigMin = DBL_MAX, UeigMax = 0.;
 	for(int q=0; q<eInfo.nStates; q++)
-	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
+	{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
 		UeigMin = std::min(UeigMin, *(extremes.first));
 		UeigMax = std::max(UeigMax, *(extremes.second));
 	}
@@ -344,17 +342,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	}
 	//Do the rest one state at a time to save memory (and for better cache warmth):
 	for(int q=0; q<e->eInfo.nStates; q++)
-	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-		
-		diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
+	{	diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
 		applyHamiltonian(q, C[q], Fq, HC[q], ener, need_Hsub);
 	}
 	
 	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
 	{	double dmuNum=0.0, dmuDen=0.0;
 		for(int q=0; q<eInfo.nStates; q++)
-		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-			diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
+		{	diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
 			dmuNum += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
 			dmuDen += eInfo.qnums[q].weight * trace(fprime);
 		}
@@ -364,8 +359,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
 	if(grad)
 		for(int q=0; q<eInfo.nStates; q++)
-		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-			
+		{			
 			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
 			orthonormalizeGrad(q, C[q], Fq, HC[q], grad->Y[q], &Kgrad->Y[q], &grad->B[q], &Kgrad->B[q]);
 			HC[q].free(); // Deallocate HCq when done.
@@ -389,18 +383,17 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	{	//Compute band structure energy
 		ener.Eband = 0;
 		for(int q=0; q<eInfo.nStates; q++)
-		{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
-			ener.Eband += eInfo.qnums[q].weight * trace(Hsub[q]).real();
+		{	ener.Eband += eInfo.qnums[q].weight * trace(Hsub[q]).real();
 		}
 	}
 	return relevantFreeEnergy(*e);
 }
 
-void ElecVars::setEigenvectors()
+void ElecVars::setEigenvectors(int qActive)
 {	const ElecInfo& eInfo = e->eInfo;
 	logPrintf("Setting wave functions to eigenvectors of Hamiltonian\n"); logFlush();
 	for(int q=0; q<eInfo.nStates; q++)
-	{	if((e->cntrl.fixed_n) and (activeSubspace > -1) and (activeSubspace != q)) continue;
+	{	if((qActive > -1) and (qActive != q)) continue;
 		Y[q] = (C[q] = C[q] * Hsub_evecs[q]);
 		grad_CdagOC[q] =  dagger(Hsub_evecs[q]) *grad_CdagOC[q] * Hsub_evecs[q];
 		
@@ -571,4 +564,22 @@ void ElecVars::orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 			if(KgradYq) KgradYq->setSub(0, fixedYq);
 		}
 	}	
+}
+
+double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, ColumnBundle* Kgrad)
+{
+	orthonormalize(q);
+	diagMatrix Fq = eye(e->eInfo.nBands);
+	ColumnBundle Hq;
+	double Eband = applyHamiltonian(q, C[q], Fq, Hq, ener, true);
+	if(grad)
+		orthonormalizeGrad(q, C[q], Fq, Hq, *grad, Kgrad);
+	Hq.free();
+	
+	// Calculate overlap condition
+	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
+	overlapCondition = *extremes.second / *extremes.first;
+	
+	return Eband;
+
 }

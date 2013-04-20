@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/ElecMinimizer.h>
+#include <electronic/BandMinimizer.h>
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 #include <electronic/Dump.h>
@@ -163,19 +164,20 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 
 void elecMinimize(Everything& e)
-{	ElecMinimizer emin(e, true);
+{	
 	if((not e.cntrl.fixed_n) or e.exCorr.exxFactor())
-	{	emin.minimize(e.elecMinParams);
+	{	ElecMinimizer emin(e, true);
+		emin.minimize(e.elecMinParams);
 	}
 	else
 	{	
 		for(int q = 0; q < e.eInfo.nStates; q++)
 		{	
-			logPrintf("\n---- Starting minimization of state [ kpoint ] weight: ");
+			logPrintf("\n---- Starting minimization of quantum number\t[ kpoint ] weight: ");
 			e.eInfo.kpointPrint(q);
 			logPrintf(" ----\n");
-			e.eVars.activeSubspace = q;
-			emin.minimize(e.elecMinParams);
+			BandMinimizer bmin(e, q, true);
+			bmin.minimize(e.elecMinParams);
 		}
 		// Recompute energy to get the same Eband as the simultaneous minimization
 		e.eVars.activeSubspace = -1;

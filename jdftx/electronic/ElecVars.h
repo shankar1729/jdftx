@@ -98,7 +98,8 @@ public:
 	double elecEnergyAndGrad(Energies& ener, ElecGradient* grad=0, ElecGradient* Kgrad=0, bool calc_Hsub=false); 
 	
 	//! Set Y and C to eigenvectors of the subspace hamiltonian
-	void setEigenvectors(); 
+	//! input variable q controls the quantum number, -1 means all.
+	void setEigenvectors(int q=-1); 
 	
 	//! Return the number of occupied bands (f > occupiedThrehsold) for a given state
 	int nOccupiedBands(int q) const; 
@@ -121,6 +122,9 @@ public:
 	
 	//! Propagates the gradient wrt orthonormal C (HCq) to gradient wrt Y and B (if given).
 	void orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, ColumnBundle& gradYq, ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);
+
+	//! Returns the total single particle energy and gradient of all KS orbitals
+	double bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad=0, ColumnBundle* Kgrad=0);
 	
 private:
 	const Everything* e;
