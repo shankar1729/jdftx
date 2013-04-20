@@ -187,7 +187,8 @@ struct CommandAddU : public Command
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	string id;
+	{	e.eInfo.hasU = false;
+		string id;
 		pl.get(id, string(), "species", true);
 		while(id.length())
 		{	bool spFound = false;
@@ -209,6 +210,7 @@ struct CommandAddU : public Command
 					//Add U decsriptor to species:
 					sp->plusU.push_back(plusU);
 					spFound = true;
+					e.eInfo.hasU = true;
 					break;
 				}
 			if(!spFound) throw string("Species "+id+" has not been defined");

@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_integration.h>
 
 //Common citations for Coulomb truncation
-#define wsTruncationPaper "R. Sundararaman and T.A. Arias, arXiv:1302.6204"
+#define wsTruncationPaper "R. Sundararaman and T.A. Arias, Phys. Rev. B 87, 165122 (2013)"
 #define invariantTruncationPaper "S. Ismail-Beigi, Phys. Rev. B 73, 233103 (2006)"
 #define expandedTruncationPaper "C.A. Rozzi et al., Phys. Rev. B 73, 205119 (2006)"
 

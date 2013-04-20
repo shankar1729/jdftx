@@ -165,7 +165,7 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 void elecMinimize(Everything& e)
 {	
-	if((not e.cntrl.fixed_n) or e.exCorr.exxFactor())
+	if((not e.cntrl.fixed_n) or e.exCorr.exxFactor() or e.eInfo.hasU)
 	{	ElecMinimizer emin(e, true);
 		emin.minimize(e.elecMinParams);
 	}

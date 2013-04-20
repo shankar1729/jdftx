@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 ElecInfo::ElecInfo()
 : nStates(0), nBands(0), spinType(SpinNone), nElectrons(0), 
 fillingsUpdate(ConstantFillings), kT(0), mu(std::numeric_limits<double>::quiet_NaN()),
-mixInterval(0), subspaceRotation(false), nBandsOld(0),
+mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
 fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
 Cmeasured(1.), Cweight(0.), dnMixFraction(0.7)
 {

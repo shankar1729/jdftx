@@ -60,6 +60,8 @@ public:
 	int mixInterval; //!< we recalc. fillings every so many iterations
 	bool subspaceRotation; //!< whether subspace variables are required (either rotation or aux hamiltonian)
 	
+	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
+	
 	ElecInfo();
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
 	void printFillings(FILE* fp) const;
