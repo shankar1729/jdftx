@@ -176,7 +176,15 @@ void FluidSolverParams::setPCMparams()
 	
 	//Set PCM fit parameters:
 	switch(pcmVariant)
-	{	case PCM_SGA13:
+	{	case PCM_SLSA13:
+		{	nc = 1.2e-3;
+			sigma = sqrt(0.5);
+			cavityTension = 0.;
+			assert(fluidType == FluidNonlocalPCM);
+			initWarnings += "WARNING: Nonlocal PCM is highly experimental!\n";
+			break;
+		}
+		case PCM_SGA13:
 		{	nc = 7e-3;
 			sigma = 0.6;
 			cavityTension = 0.;
@@ -244,12 +252,6 @@ void FluidSolverParams::setPCMparams()
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has been fit only for H2O; using nc and sigma from H2O fit.\n";
 			break;
 		}
-	}
-	//--- For nonlocalPCM (variant does not apply)
-	if(fluidType == FluidNonlocalPCM)
-	{	nc = 1.2e-3;
-		sigma = sqrt(0.5);
-		cavityTension = 0.;
 	}
 }
 

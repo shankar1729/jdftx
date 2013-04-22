@@ -49,20 +49,25 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 	//Print common info and add relevant citations:
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
-	{	case PCM_SGA13:
-		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
-				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
-			Rex[0] = fsp.Rvdw -fsp.Res;
-			Rex[1] = fsp.Rvdw;
-			logPrintf("   Electrostatic cavity expanded by Rvdw-Res: %lg bohr, and cavitation/dispersion cavity by Rvdw: %lg bohr.\n", Rex[0], Rex[1]);
-			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
+	{	case PCM_SLSA13: //Local PCM that uses weighted-density cavitation+dispersion
+		case PCM_SGA13: //and Nonlocal PCM
+		{	const double dG = 0.02;
+			if(fsp.pcmVariant==PCM_SLSA13)
+				Citations::add("Nonlocal dielectric/ionic fluid model with weighted-density cavitation and dispersion",
+					"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, and T.A. Arias, (under preparation)");
+			else
+			{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
+					"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
+				Rex[0] = fsp.Rvdw -fsp.Res;
+				Rex[1] = fsp.Rvdw;
+				logPrintf("   Electrostatic cavity expanded by Rvdw-Res: %lg bohr, and cavitation/dispersion cavity by Rvdw: %lg bohr.\n", Rex[0], Rex[1]);
+				//Initialize cavity expansion weight functions:
+				for(int i=0; i<2; i++)
+					wExpand[i].init(0, dG, e.iInfo.GmaxLoc, wExpand_calc, Rex[i]);
+			}
+			wCavity.init(0, dG, e.iInfo.GmaxLoc, wCavity_calc, 2.*fsp.Rvdw); //Initialize nonlocal cavitation weight function
+			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.Rvdw, fsp.sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
-			//Initialize cavity expansion weight functions:
-			const double dG = 0.02;
-			for(int i=0; i<2; i++)
-				wExpand[i].init(0, dG, e.iInfo.GmaxLoc, wExpand_calc, Rex[i]);
-			//Initialize nonlocal cavitation weight function:
-			wCavity.init(0, dG, e.iInfo.GmaxLoc, wCavity_calc, 2.*fsp.Rvdw);
 			//Initialize structure factors for dispersion:
 			if(!fsp.pcmSite.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
 			Sf.resize(fsp.pcmSite.size());
@@ -110,12 +115,13 @@ void PCM::updateCavity()
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
 		}
 	}
-	else //Cavity from actual electron density:
+	else //Compute directly from nCavity (which is a density product for nonlocalPCM):
 		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
 	//Compute and cache cavitation energy and gradients:
 	switch(fsp.pcmVariant)
-	{	case PCM_SGA13:
+	{	case PCM_SLSA13:
+		case PCM_SGA13:
 		{	//Select relevant shape function:
 			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
 			DataGptr A_sTilde;
@@ -155,7 +161,6 @@ void PCM::updateCavity()
 		}
 		case PCM_LA12:
 		case PCM_PRA05:
-		default:
 			break; //no contribution
 	}
 }
@@ -176,7 +181,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 			ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
 	}
-	else //All gradients are w.r.t the same shape function - propagate them to nCavity
+	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for NonlocalPCM)
 	{	A_nCavity = 0;
 		ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
@@ -211,7 +216,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
 	fprintf(fp, "   E_nc = %f\n", A_nc);
 	switch(fsp.pcmVariant)
-	{	case PCM_SGA13:
+	{	case PCM_SLSA13:
+		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %f\n", A_vdwScale);
 			break;
 		case PCM_GLSSA13:

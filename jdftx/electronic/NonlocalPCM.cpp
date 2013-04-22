@@ -162,8 +162,9 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
 	
 	//Compute cavity shape function (0 to 1)
-	nProduct = I(nFluid * nCavityTilde);
-	ShapeFunction::compute(nProduct, shape, fsp.nc, fsp.sigma);
+	nCavity = I(nFluid * nCavityTilde);
+	updateCavity();
+	
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
@@ -183,31 +184,35 @@ void NonlocalPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces) const
+double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {
+	EnergyComponents& Adiel = ((NonlocalPCM*)this)->Adiel;
 	const DataGptr& phiTilde = state; // that's what we solved for in minimize
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
-	grad_rhoExplicitTilde = phiTilde - (-4*M_PI)*Linv(O(rhoExplicitTilde));
+	Adiel_rhoExplicitTilde = phiTilde - (-4*M_PI)*Linv(O(rhoExplicitTilde));
+	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde)) //True energy if phi was an exact solution
+		+ 0.5*dot(O(phiTilde), rhoExplicitTilde - hessian(phiTilde)); //First order residual correction (remaining error is second order)
+	
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
-	DataRptr grad_shape;
+	DataRptr Adiel_shape;
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	switch(resp->l)
 		{	case 0:
 			{	DataRptr Iwphi = I(resp->w * phiTilde);
-				grad_shape += (0.5 * -resp->e/(4*M_PI)) * (Iwphi * Iwphi);
+				Adiel_shape += (0.5 * -resp->e/(4*M_PI)) * (Iwphi * Iwphi);
 				break;
 			}
 			case 1:
 			{	DataRptrVec Igradwphi = I(gradient(resp->w * phiTilde));
-				grad_shape += (0.5 * -resp->e/(4*M_PI))
+				Adiel_shape += (0.5 * -resp->e/(4*M_PI))
 					* (Igradwphi[0]*Igradwphi[0] + Igradwphi[1]*Igradwphi[1] + Igradwphi[2]*Igradwphi[2]);
 				break;
 			}
 			case 2:
 			{	DataRptrTensor Itgradwphi = I(tensorGradient(resp->w * phiTilde));
-				grad_shape += (0.5 * -resp->e * 1.5/(4*M_PI))
+				Adiel_shape += (0.5 * -resp->e * 1.5/(4*M_PI))
 					* 2*( Itgradwphi[0]*Itgradwphi[0] + Itgradwphi[1]*Itgradwphi[1] + Itgradwphi[2]*Itgradwphi[2]
 						+ Itgradwphi[3]*Itgradwphi[3] + Itgradwphi[4]*Itgradwphi[4] + Itgradwphi[3]*Itgradwphi[4]);
 				break;
@@ -216,11 +221,14 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
 		}
 	}
-	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, fsp.nc, fsp.sigma);
-	grad_nCavityTilde = nFluid * J(grad_nProduct);
 
-	//Compute and return A_diel:
-	return 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
+	//Propagate shape gradients to A_nCavity:
+	DataRptr Adiel_nCavity;
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity);
+	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
+	
+	if(vdwForces) extraForces = *vdwForces;
+	return Adiel;
 }
 
 void NonlocalPCM::loadState(const char* filename)

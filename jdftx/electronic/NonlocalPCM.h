@@ -47,9 +47,6 @@ public:
 	void dumpDensities(const char* filenamePattern) const;
 	
 private:
-	DataRptr nProduct; //convolution of densities that determines cavity
-	DataRptr shape; //cavity shape function (0 to 1)
-	DataGptr rhoExplicitTilde; //charge density of explicit system
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
 	RealKernel nFluid; //electron density model for the fluid
 	RealKernel Kkernel; DataRptr epsInv; double epsBulk; //for preconditioner

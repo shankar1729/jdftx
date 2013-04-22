@@ -46,12 +46,14 @@ struct CommandPcmVariant : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
+		if(fsp.fluidType==FluidNonlocalPCM) fsp.pcmVariant = PCM_SLSA13; //only option for NonlocalPCM
+		else pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
+		if(fsp.fluidType==FluidNonlocalPCM) logPrintf("SLSA13"); //only option for NonlocalPCM
+		else logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
 	}
 }
 commandPcmVariant;
