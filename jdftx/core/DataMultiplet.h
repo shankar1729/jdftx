@@ -88,7 +88,7 @@ template<class T, int N> struct DataMultiplet
 	#endif
 
 	
-	operator bool() const { bool ret=true; Nloop(ret = ret && component[i];) return ret; } //!< Cast to bool: true if all components are non-null
+	explicit operator bool() const { bool ret=true; Nloop(ret = ret && component[i];) return ret; } //!< Cast to bool: true if all components are non-null
 	void loadFromFile(const char* fileName); //!< Load all components from a single binary file
 	void saveToFile(const char* fileName) const; //!< Save all components from a single binary file
 };

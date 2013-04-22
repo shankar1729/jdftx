@@ -67,7 +67,7 @@ protected:
 private:
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
-	RealKernel preconditioner;
+	RadialFunctionG preconditioner;
 };
 
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

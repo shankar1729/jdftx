@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/PCM_internal.h>
 #include <electronic/Everything.h>
+#include <electronic/operators.h>
 #include <core/Operators.h>
 #include <core/DataMultiplet.h>
 #include <core/Units.h>
@@ -52,7 +53,7 @@ namespace ShapeFunction
 	#ifdef GPU_ENABLED
 	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq);
 	#endif
-	void expandDensity(const RealKernel& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx, DataRptr* A_n)
+	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx, DataRptr* A_n)
 	{	//Compute weighted densities:
 		DataGptr nBarTilde = w * J(n);
 		DataRptr nBar = I(nBarTilde);

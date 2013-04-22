@@ -24,12 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/operators.h>
-#include <electronic/NonlocalPCM_internal.h>
-
-//!Compute the cavitation energy given the shape function
-//!and accumulate gradient w.r.t shape in grad_shape
-double cavitationEnergy(const DataRptr& shape, DataRptr& grad_shape); //implemented at bottom of this file
-
 
 struct MultipoleResponse
 {	int l; //angular momentum
@@ -79,16 +73,16 @@ inline void setPreconditionerKernel(int i, double G2, double* Kkernel,
 }
 
 NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
-: FluidSolver(e), params(fsp), nFluid(e.gInfo), Kkernel(e.gInfo)
+: PCM(e, fsp), nFluid(e.gInfo), Kkernel(e.gInfo)
 {	
 	logPrintf("\tInitializing non-local Polarizable Continuum Model\n");
 	
 	//TODO: Setup fluid parameters from commands (currently hard-coded for water)
 	//Water:
-	const double Nbulk = 4.95e-3 * (1. - 4.74e-6*pow(params.T/Kelvin-277,2)); //Fit to 0-100C range at ambient pressure
-	auto rot0 = std::make_shared<MultipoleResponse>(e.gInfo, 0, Nbulk/params.T);
-	auto rot1 = std::make_shared<MultipoleResponse>(e.gInfo, 1, (3.3e4*Kelvin)/params.T - 34.5);
-	auto rot2 = std::make_shared<MultipoleResponse>(e.gInfo, 2, 3.0553 * Nbulk/params.T);
+	const double Nbulk = 4.95e-3 * (1. - 4.74e-6*pow(fsp.T/Kelvin-277,2)); //Fit to 0-100C range at ambient pressure
+	auto rot0 = std::make_shared<MultipoleResponse>(e.gInfo, 0, Nbulk/fsp.T);
+	auto rot1 = std::make_shared<MultipoleResponse>(e.gInfo, 1, (3.3e4*Kelvin)/fsp.T - 34.5);
+	auto rot2 = std::make_shared<MultipoleResponse>(e.gInfo, 2, 3.0553 * Nbulk/fsp.T);
 	auto el0 = std::make_shared<MultipoleResponse>(e.gInfo, 0, 4*Nbulk);
 	auto el1 = std::make_shared<MultipoleResponse>(e.gInfo, 1, 163*Nbulk);
 	auto el2 = std::make_shared<MultipoleResponse>(e.gInfo, 2, 82*Nbulk);
@@ -96,14 +90,14 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 		rot0->w.data, rot1->w.data, rot2->w.data, el0->w.data, el1->w.data, el2->w.data);
 	nFluid.set();
 	rot0->w.set(); rot1->w.set(); rot2->w.set(); el0->w.set(); el1->w.set(); el2->w.set();
-	if(params.npcmParams.lMax >= 0) { response.push_back(rot0); response.push_back(el0); }
-	if(params.npcmParams.lMax >= 1) { response.push_back(rot1); response.push_back(el1); }
-	if(params.npcmParams.lMax >= 2) { response.push_back(rot2); response.push_back(el2); }
+	if(fsp.npcmParams.lMax >= 0) { response.push_back(rot0); response.push_back(el0); }
+	if(fsp.npcmParams.lMax >= 1) { response.push_back(rot1); response.push_back(el1); }
+	if(fsp.npcmParams.lMax >= 2) { response.push_back(rot2); response.push_back(el2); }
 	
 	//Ionic (monopole response)
-	if(params.ionicConcentration)
+	if(fsp.ionicConcentration)
 	{	auto ionResponse = std::make_shared<MultipoleResponse>(e.gInfo, 0,
-			(8*M_PI/params.T) * params.ionicConcentration * pow(params.ionicZelectrolyte,2));
+			(8*M_PI/fsp.T) * fsp.ionicConcentration * pow(fsp.ionicZelectrolyte,2));
 		initGaussianKernel(ionResponse->w, 1.0); //arbitrary gaussian for now
 		response.push_back(ionResponse);
 	}
@@ -169,7 +163,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	
 	//Compute cavity shape function (0 to 1)
 	nProduct = I(nFluid * nCavityTilde);
-	ShapeFunction::compute(nProduct, shape, params.nc, params.sigma);
+	ShapeFunction::compute(nProduct, shape, fsp.nc, fsp.sigma);
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
@@ -198,8 +192,6 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	DataRptr grad_shape;
-	double Ecavity = 0.; /*cavitationEnergy(shape, grad_shape);
-	logPrintf("\tNonlocalPCM cavitation energy: %25.16lf\n", Ecavity);*/
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	switch(resp->l)
 		{	case 0:
@@ -224,11 +216,11 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr
 				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
 		}
 	}
-	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, params.nc, params.sigma);
+	DataRptr grad_nProduct; ShapeFunction::propagateGradient(nProduct, grad_shape, grad_nProduct, fsp.nc, fsp.sigma);
 	grad_nCavityTilde = nFluid * J(grad_nProduct);
 
 	//Compute and return A_diel:
-	return Ecavity + 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
+	return 0.5*dot(grad_rhoExplicitTilde, O(rhoExplicitTilde));
 }
 
 void NonlocalPCM::loadState(const char* filename)
@@ -247,52 +239,4 @@ void NonlocalPCM::dumpDensities(const char* filenamePattern) const
 	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
 	saveRawBinary(shape, filename.c_str());
 	logPrintf("done.\n"); logFlush();
-}
-
-
-//---------------------------- Cavitation energy --------------------------------
-
-typedef DataMultiplet<DataR,6> DataRptrSymm; //!< Symmetric matrix field (not traceless) (order: xx yy zz yz zx xy)
-
-#ifdef GPU_ENABLED
-void cavitationEnergy_gpu(int N, double* Earr,
-	vector3<const double*> Dshape, symmMatrix3<const double*> DDshape,
-	vector3<double*> grad_Dshape, symmMatrix3<double*> grad_DDshape);
-#endif
-
-double cavitationEnergy(const DataRptr& shape, DataRptr& grad_shape)
-{	const GridInfo& gInfo = shape->gInfo;
-	nullToZero(grad_shape, gInfo);
-	DataGptr shapeTilde = J(shape);
-	//Compute the derivatives of shape function:
-	DataRptrVec Dshape, grad_Dshape; DataRptrSymm DDshape, grad_DDshape;
-	for(int i=0; i<3; i++)
-	{	Dshape[i] = I(D(shapeTilde,i), true);
-		DDshape[i] = I(DD(shapeTilde,i,i), true);
-		DDshape[3+i] = I(DD(shapeTilde,(i+1)%3,(i+2)%3), true); //3+(0,1,2) -> (12,20,01)
-	}
-	//Compute the cavitation energy:
-	double Ecavity; nullToZero(grad_Dshape, gInfo); nullToZero(grad_DDshape, gInfo);
-	#ifdef GPU_ENABLED
-	{	DataRptr Earr; nullToZero(Earr, gInfo);
-		cavitationEnergy_gpu(gInfo.nr, Earr->dataGpu(),
-			Dshape.const_dataGpu(), DDshape.const_dataGpu(),
-			grad_Dshape.dataGpu(), grad_DDshape.dataGpu());
-		Ecavity = integral(Earr);
-	}
-	#else
-	Ecavity = gInfo.dV*threadedAccumulate(cavitationEnergy_calc, gInfo.nr,
-			Dshape.const_data(), DDshape.const_data(),
-			grad_Dshape.data(), grad_DDshape.data());
-	#endif
-	Dshape = 0; DDshape = 0;
-	//Propagate gradients:
-	DataGptr grad_shapeTilde;
-	for(int i=0; i<3; i++)
-	{	grad_shapeTilde -= D(Idag(grad_Dshape[i]), i);
-		grad_shapeTilde += DD(Idag(grad_DDshape[i]), i,i);
-		grad_shapeTilde += 2*DD(Idag(grad_DDshape[3+i]), (i+1)%3,(i+2)%3);
-	}
-	grad_shape += Jdag(grad_shapeTilde, true);
-	return Ecavity;
 }

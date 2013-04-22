@@ -27,6 +27,7 @@ class LinearPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
 	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+    virtual ~LinearPCM();
 	bool needsGummel() { return false; }
 
 	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
@@ -44,7 +45,7 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 private:
-	RealKernel Kkernel; DataRptr epsInv; // for preconditioner
+	RadialFunctionG Kkernel; DataRptr epsInv; // for preconditioner
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

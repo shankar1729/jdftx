@@ -33,11 +33,10 @@ class RadialFunctionG
 
 public:
 	RadialFunctionG();
-	operator bool() const; //!< test null-ness
 	void init(int l, int nSamples, double dG, const char* filename, double scale=1.0); //!< read and initialize from an ascii file (DFT PSP format)
 	void init(int l, const std::vector<double>& samples, double dG); //!< initialize from an array of samples in memory
 	void free();
-
+	
 	//! Blip (quintic spline evaluation)
 	__hostanddev__ double operator()(double G) const
 	{	double Gindex = G * dGinv;
@@ -46,7 +45,19 @@ public:
 	}
 	
 	RadialFunctionR* rFunc; //!< copy of the real-space radial version (if created from one)
+	
+	#ifndef __in_a_cu_file__
+	//! Helper functional for initializing using a function
+	template<typename Func, typename... Args> void init(int l, double dG, double Gmax, const Func& func, Args... args)
+	{	std::vector<double> samples(unsigned(ceil(Gmax/dG))+5);
+		for(unsigned i=0; i<samples.size(); i++) samples[i] = func(i*dG, args...);
+		init(l, samples, dG);
+	}
+	
+	explicit operator bool() const { return coeff; } //!< test null-ness
+	#endif
 };
+
 
 //! A function on a non-uniform real-space radial grid
 struct RadialFunctionR

@@ -20,10 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_NONLOCALPCM_H
 #define JDFTX_ELECTRONIC_NONLOCALPCM_H
 
-#include <electronic/FluidSolver.h>
+#include <electronic/PCM.h>
 #include <core/Minimize.h>
 
-class NonlocalPCM : public FluidSolver, public LinearSolvable<DataGptr>
+class NonlocalPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
 	NonlocalPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
@@ -47,7 +47,6 @@ public:
 	void dumpDensities(const char* filenamePattern) const;
 	
 private:
-	const FluidSolverParams& params;
 	DataRptr nProduct; //convolution of densities that determines cavity
 	DataRptr shape; //cavity shape function (0 to 1)
 	DataGptr rhoExplicitTilde; //charge density of explicit system

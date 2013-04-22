@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/SO3quad.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ExCorr_internal_GGA.h>
+#include <electronic/operators.h>
 #include <gsl/gsl_sf.h>
 #include <stdlib.h>
 
@@ -213,45 +214,6 @@ void fdtestGGAs()
 // 	FDtest2D(integralErfcGaussian<3>);
 // 	FDtest2D(integralErfcGaussian<5>);
 	FDtest2D(GGA_eval<GGA_X_wPBE_SR>);
-}
-
-#include <core/DataMultiplet.h>
-#include <core/Minimize.h>
-#include <electronic/NonlocalPCM_internal.h>
-#include <electronic/operators.h>
-
-typedef DataMultiplet<DataR,6> DataRptrSymm; //!< Symmetric matrix field (not traceless) (order: xx yy zz yz zx xy)
-double cavitationEnergy(const DataRptr& shape, DataRptr& grad_shape);
-
-void randomize(DataRptr& x) { initRandom(x); }
-
-struct CavityMinimizer : public Minimizable<DataRptr>
-{
-	DataRptr shape;
-	
-	void step(const DataRptr& dir, double alpha) { axpy(alpha, dir, shape); }
-	double compute(DataRptr* grad)
-	{	DataRptr grad_shape;
-		double Ecav = cavitationEnergy(shape, grad_shape);
-		if(grad) *grad = grad_shape * shape->gInfo.dV;
-		return Ecav;
-	}
-};
-
-void initSoftSphere(int i, vector3<> r, const vector3<>& r0, double R, double sigma, double* phi)
-{	phi[i] = 0.5*erfc((1./sigma) * (R - (r - r0).length()));
-}
-void testCavitation(const GridInfo& gInfo)
-{
-	const double R = 5.2, sigma=0.7;
-	CavityMinimizer cm;
-	nullToZero(cm.shape, gInfo);
-	applyFunc_r(gInfo, initSoftSphere, gInfo.R*vector3<>(0.5,0.5,0.5), R, sigma, cm.shape->data());
-	
-	MinimizeParams mp;
-	mp.fdTest = true;
-	mp.nIterations = 0;
-	cm.minimize(mp);
 }
 
 void timePointGroupOps(const GridInfo& gInfo)

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_PCM_H
 
 #include <electronic/FluidSolver.h>
+#include <electronic/RadialFunction.h>
 #include <core/EnergyComponents.h>
 
 //! Base class for all PCMs
@@ -28,6 +29,7 @@ class PCM : public FluidSolver
 {
 public:
 	PCM(const Everything& e, const FluidSolverParams& fsp);
+	virtual ~PCM();
 	
 	void dumpDensities(const char* filenamePattern) const; //!< dump cavity shape functions
 	void dumpDebug(const char* filenamePattern) const; //!< generate fluidDebug text file with common info to all PCMs
@@ -50,9 +52,9 @@ private:
 	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
 	double A_nc, A_tension, A_vdwScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
-	std::shared_ptr<RealKernel> wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
-	std::shared_ptr<RealKernel> wCavity; //!< weight function for nonlocal cavitation energy
-	std::vector< std::shared_ptr<RealKernel> > Sf; //!< spherically-averaged structure factors for each solvent site
+	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
+	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
+	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 };
 
 #endif // JDFTX_ELECTRONIC_PCM_H

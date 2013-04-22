@@ -21,25 +21,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
+#include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
 
-void wExpand_calc(int i, double G2, double R, double* w)
-{	double GR = sqrt(G2) * R;
-	w[i] = (2./3)*(bessel_jl(0, GR) + bessel_jl(2, GR)); //corresponds to theta(R-r)/(2*pi*R^3)
+double wExpand_calc(double G, double R)
+{	return (2./3)*(bessel_jl(0, G*R) + bessel_jl(2, G*R)); //corresponds to theta(R-r)/(2*pi*R^3)
 }
 
-void wCavity_calc(int i, double G2, double d, double* w)
-{	w[i] = bessel_jl(0, sqrt(G2) * d); //corresponds to delta(d-r)
+double wCavity_calc(double G, double d)
+{	return bessel_jl(0, G*d); //corresponds to delta(d-r)
 }
 
 //Spherically-averaged structure factor
-void Sf_calc(int i, double G2, const std::vector<double>* rArr, double* Sf)
-{	double G = sqrt(G2);
-	Sf[i] = 0.;
-	for(double r: *rArr)
-		Sf[i] += bessel_jl(0, G*r);
+double Sf_calc(double G, const std::vector<double>* rArr)
+{	double Sf = 0.;
+	for(double r: *rArr) Sf += bessel_jl(0, G*r);
+	return Sf;
 }
 
 
@@ -51,7 +50,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
 	{	case PCM_SGA13:
-			Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
+		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 				"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
 			Rex[0] = fsp.Rvdw -fsp.Res;
 			Rex[1] = fsp.Rvdw;
@@ -59,35 +58,31 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", fsp.Nbulk, fsp.Pvap/KPascal, fsp.sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
 			//Initialize cavity expansion weight functions:
+			const double dG = 0.02;
 			for(int i=0; i<2; i++)
-			{	wExpand[i] = std::make_shared<RealKernel>(e.gInfo);
-				applyFuncGsq(e.gInfo, wExpand_calc, Rex[i], wExpand[i]->data);
-				wExpand[i]->set();
-			}
+				wExpand[i].init(0, dG, e.iInfo.GmaxLoc, wExpand_calc, Rex[i]);
 			//Initialize nonlocal cavitation weight function:
-			wCavity = std::make_shared<RealKernel>(e.gInfo);
-			applyFuncGsq(e.gInfo, wCavity_calc, 2.*fsp.Rvdw, wCavity->data);
-			wCavity->set();
+			wCavity.init(0, dG, e.iInfo.GmaxLoc, wCavity_calc, 2.*fsp.Rvdw);
 			//Initialize structure factors for dispersion:
 			if(!fsp.pcmSite.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
 			Sf.resize(fsp.pcmSite.size());
 			for(unsigned i=0; i<Sf.size(); i++)
 			{	std::vector<double> r; //radial distances of solvent sites from center
 				for(vector3<> pos: fsp.pcmSite[i].pos) r.push_back(pos.length());
-				Sf[i] = std::make_shared<RealKernel>(e.gInfo);
-				applyFuncGsq(e.gInfo, Sf_calc, &r, Sf[i]->data);
-				Sf[i]->set();
+				Sf[i].init(0, dG, e.iInfo.GmaxLoc, Sf_calc, &r);
 			}
 			vdwForces = std::make_shared<IonicGradient>();
 			break;
+		}
 		case PCM_GLSSA13:
-			Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
+		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
 				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189");
 			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
 			break;
+		}
 		case PCM_LA12:
 		case PCM_PRA05:
-			if(fsp.ionicConcentration)
+		{	if(fsp.ionicConcentration)
 				Citations::add("Linear dielectric fluid model with ionic screening",
 					"K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
 			else
@@ -95,7 +90,14 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e), fsp
 					"S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
 			logPrintf("   No cavitation model.\n");
 			break;
+		}
 	}
+}
+
+PCM::~PCM()
+{	for(int i=0; i<2; i++) wExpand[i].free();
+	wCavity.free();
+	for(unsigned i=0; i<Sf.size(); i++) Sf[i].free();
 }
 
 void PCM::updateCavity()
@@ -104,7 +106,7 @@ void PCM::updateCavity()
 	if(fsp.pcmVariant == PCM_SGA13)
 	{	DataRptr* shapeEx[2] = { &shape, &shapeVdw };
 		for(int i=0; i<2; i++)
-		{	ShapeFunction::expandDensity(*(wExpand[i]), Rex[i], nCavity, nCavityEx[i]);
+		{	ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityEx[i]);
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
 		}
 	}
@@ -123,21 +125,21 @@ void PCM::updateCavity()
 			const double Cp = 15. * (fsp.sigmaBulk/(2*fsp.Rvdw * nlT) - (1+Gamma)/6);
 			const double coeff2 = 1. + Cp - 2.*Gamma;
 			const double coeff3 = Gamma - 1. -2.*Cp;
-			DataRptr sbar = I((*wCavity)*sTilde);
+			DataRptr sbar = I(wCavity*sTilde);
 			Adiel["Cavitation"] = nlT * integral(sbar*(Gamma + sbar*(coeff2 + sbar*(coeff3 + sbar*Cp))));
-			A_sTilde += (*wCavity)*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
+			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
 			//Dispersion:
 			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			std::vector<int> atomicNumbers(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
-			{	Ntilde[i] = fsp.Nbulk * ((*Sf[i]) * sTilde);
+			{	Ntilde[i] = fsp.Nbulk * (Sf[i] * sTilde);
 				atomicNumbers[i] = fsp.pcmSite[i].atomicNumber;
 			}
 			vdwForces->init(e.iInfo);
 			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.VDWCouplingScale, &A_Ntilde, &(*vdwForces));
 			A_vdwScale = Adiel["Dispersion"]/fsp.VDWCouplingScale;
 			for(unsigned i=0; i<Sf.size(); i++)
-				A_sTilde += fsp.Nbulk * ((*Sf[i]) * A_Ntilde[i]);
+				A_sTilde += fsp.Nbulk * (Sf[i] * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeVdw : Acavity_shape) = Jdag(A_sTilde);
 			break;
@@ -171,7 +173,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 			((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
 			//then propagate to original electron density:
 			DataRptr nCavityExUnused; //unused return value below
-			ShapeFunction::expandDensity(*(wExpand[i]), Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
+			ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity

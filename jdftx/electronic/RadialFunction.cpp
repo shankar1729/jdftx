@@ -26,11 +26,6 @@ RadialFunctionG::RadialFunctionG() : nCoeff(0), coeff(0), rFunc(0)
 {
 }
 
-RadialFunctionG::operator bool() const
-{	return coeff;
-}
-
-
 void RadialFunctionG::init(int l, int nSamples, double dG, const char* filename, double scale)
 {	std::vector<double> samples(nSamples);
 	FILE* fp = fopen(filename, "r");

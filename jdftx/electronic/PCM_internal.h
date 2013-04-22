@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/EnergyComponents.h>
 #include <electronic/FluidSolverParams.h>
+#include <electronic/RadialFunction.h>
 
 namespace ShapeFunction
 {
@@ -38,7 +39,7 @@ namespace ShapeFunction
 	void propagateGradient(const DataRptr& n, const DataRptr& E_shape, DataRptr& E_n, double nc, double sigma);
 	
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
-	void expandDensity(const RealKernel& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
+	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
 }
 
 #endif

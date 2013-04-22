@@ -20,14 +20,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/LinearPCM.h>
 #include <electronic/PCM_internal.h>
+#include <electronic/operators.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
 #include <core/Thread.h>
 
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), Kkernel(e.gInfo)
+: PCM(e, fsp)
 {
 }
+
+LinearPCM::~LinearPCM()
+{	Kkernel.free();
+}
+
 
 DataGptr LinearPCM::hessian(const DataGptr& phiTilde) const
 {	DataRptr epsilon = 1. + (fsp.epsBulk-1.) * shape;
@@ -41,9 +47,8 @@ DataGptr LinearPCM::precondition(const DataGptr& rTilde) const
 }
 
 //Initialize Kkernel to square-root of the inverse kinetic operator
-inline void setPreconditionerKernel(int i, double G2, double* Kkernel, double kRMS)
-{	if(i==0) Kkernel[i] = kRMS ? 1.0/kRMS : 0.0;
-	else Kkernel[i] = 1.0/sqrt(G2 + pow(kRMS,2));
+inline double setPreconditionerKernel(double G, double kRMS)
+{	return (G || kRMS) ? 1./hypot(G, kRMS) : 0.;
 }
 
 void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
@@ -63,8 +68,7 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	DataRptr kappaSq = fsp.ionicConcentration ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
-	applyFuncGsq(Kkernel.gInfo, setPreconditionerKernel, Kkernel.data, kRMS);
-	Kkernel.set();
+	Kkernel.init(0, 0.02, e.iInfo.GmaxLoc, setPreconditionerKernel, kRMS);
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!state) nullToZero(state, e.gInfo);

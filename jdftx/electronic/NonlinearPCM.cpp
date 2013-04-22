@@ -35,13 +35,14 @@ inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.comp
 inline void setMuEps(DataRMuEps& mueps, DataRptr muPlus, DataRptr muMinus, DataRptrVec eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
 
-inline void setPreconditioner(int i, double G2, double* preconditioner, double kappaSqByEpsilon, double muByEpsSq)
-{	double den = G2 + kappaSqByEpsilon;
-	preconditioner[i] = den ? muByEpsSq*G2/(den*den) : 0.;
+inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEpsSq)
+{	double G2 = G*G;
+	double den = G2 + kappaSqByEpsilon;
+	return den ? muByEpsSq*G2/(den*den) : 0.;
 }
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), preconditioner(e.gInfo)
+: PCM(e, fsp)
 {
 	//Initialize dielectric evaluation class:
 	dielectricEval = new NonlinearPCMeval::Dielectric(fsp.linearDielectric,
@@ -56,12 +57,11 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (fsp.ionicZelectrolyte/fsp.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	applyFuncGsq(e.gInfo, setPreconditioner, preconditioner.data, k2factor/fsp.epsBulk, muByEps*muByEps);
-	preconditioner.set();
+	preconditioner.init(0, 0.02, e.iInfo.GmaxLoc, setPreconditioner, k2factor/fsp.epsBulk, muByEps*muByEps);
 }
 
 NonlinearPCM::~NonlinearPCM()
-{
+{	preconditioner.free();
 	delete dielectricEval;
 	if(screeningEval)
 		delete screeningEval;
