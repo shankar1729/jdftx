@@ -46,6 +46,12 @@ inline int getAtomicNumber(const char* symbol)
 
 void FluidSolverParams::setPCMparams()
 {
+	//Nuclear widths = (1./6) vdW radius
+	const double sigmaNucH = (1./6) * 1.20*Angstrom;
+	const double sigmaNucC = (1./6) * 1.70*Angstrom;
+	const double sigmaNucO = (1./6) * 1.52*Angstrom;
+	const double sigmaNucCl = (1./6) * 1.75*Angstrom;
+
 	//Set physical parameters (in atomic units) decsribing solvent:
 	switch(solventName)
 	{	case H2O:
@@ -60,8 +66,8 @@ void FluidSolverParams::setPCMparams()
 			//Geometry:
 			const double rOH = 1.0*Angstrom;
 			const double thetaHOH = acos(-1.0/3);
-			PcmSite siteO = { getAtomicNumber("O") };
-			PcmSite siteH = { getAtomicNumber("H") };
+			PcmSite siteO(getAtomicNumber("O"), 6.,sigmaNucO, 6.826,0.35, 3.73,0.32);
+			PcmSite siteH(getAtomicNumber("H"), 1.,sigmaNucH, 0.587,0.26, 3.30,0.39);
 			siteO.pos.push_back(vector3<>(0.,0.,0.));
 			siteH.pos.push_back(vector3<>(0, -rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)));
 			siteH.pos.push_back(vector3<>(0, +rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)));
@@ -84,9 +90,9 @@ void FluidSolverParams::setPCMparams()
 			const double rCCl = 1.762*Angstrom;
 			const double rCH = 1.073*Angstrom;
 			const double thetaHCCl = 107.98 * M_PI/180;
-			PcmSite siteC = { getAtomicNumber("C") };
-			PcmSite siteH = { getAtomicNumber("H") };
-			PcmSite siteCl = { getAtomicNumber("Cl") };
+			PcmSite siteC (getAtomicNumber("C"),  4,sigmaNucC,  4.256,0.36, 6.05,0.36);
+			PcmSite siteH (getAtomicNumber("H"),  1,sigmaNucH,  0.756,0.41, 9.13,0.41);
+			PcmSite siteCl(getAtomicNumber("Cl"), 7,sigmaNucCl, 6.996,0.46, 15.8,0.46);
 			siteC.pos.push_back(vector3<>(0.,0.,zC));
 			siteH.pos.push_back(vector3<>(0,0,zC+rCH));
 			siteCl.pos.push_back(vector3<>(0, rCCl*sin(thetaHCCl), zC+rCCl*cos(thetaHCCl)));
@@ -109,8 +115,8 @@ void FluidSolverParams::setPCMparams()
 			Res = 1.90;
 			//Geometry:
 			const double rCCl = 1.7829*Angstrom;
-			PcmSite siteC = { getAtomicNumber("C") };
-			PcmSite siteCl = { getAtomicNumber("Cl") };
+			PcmSite siteC (getAtomicNumber("C"),  4,sigmaNucC,  4.980,0.35, 5.24,0.35);
+			PcmSite siteCl(getAtomicNumber("Cl"), 7,sigmaNucCl, 6.755,0.47, 18.1,0.47);
 			siteC.pos.push_back(vector3<>(0,0,0));
 			siteCl.pos.push_back(vector3<>(0,0,rCCl));
 			siteCl.pos.push_back(vector3<>(0, rCCl*(sqrt(8.)/3), rCCl*(-1./3)));

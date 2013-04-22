@@ -100,7 +100,14 @@ struct FluidSolverParams
 	//this section not controlled by commands - set based on solventName by setPCMparams()
 	struct PcmSite
 	{	int atomicNumber; //!< necessary for vdW parameters
-		//TODO: add more stuff for NonlocalPCM and then combine with explicit fluid structures
+		double Znuc, sigmaNuc; //!< magnitude of the nuclear charge (positive) and corresponding gaussian width
+		double Zel, aEl; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width
+		double alpha, aPol; //!< isotropic polarizability and corresponding cuspless-exponential width
+		
+		PcmSite(int atomicNumber, double Znuc, double sigmaNuc, double Zel, double aEl, double alpha, double aPol)
+		:atomicNumber(atomicNumber), Znuc(Znuc), sigmaNuc(sigmaNuc), Zel(Zel), aEl(aEl), alpha(alpha), aPol(aPol) {}
+		
+		//TODO: combine with explicit fluid structures
 		std::vector< vector3<> > pos; //!< positions of such sites in reference frame
 	};
 	std::vector<PcmSite> pcmSite;

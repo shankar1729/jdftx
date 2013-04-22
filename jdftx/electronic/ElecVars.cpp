@@ -59,7 +59,7 @@ void ElecVars::setup(const Everything &everything)
 			loadRawBinary(Vexternal[s], VexternalFilename[s].c_str());
 		}
 		if(Vexternal.size()==1 && n.size()==2) //Replicate potential for second spin:
-			Vexternal.push_back(Vexternal[1]->clone());
+			Vexternal.push_back(Vexternal[0]->clone());
 	}
 
 	if(rhoExternalFilename.length())
