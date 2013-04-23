@@ -262,13 +262,11 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	const double dlogr = 0.01;
 	size_t nSamples = ceil(log(rMax/rMin)/dlogr);
 	RadialFunctionR func(nSamples);
-	double r = rMin, rRatio = exp(dlogr);
-	double C6byR06 = C6 * pow(R0,-6);
+	double r = rMin, rRatio = exp(dlogr), E_r;
 	for(size_t i=0; i<nSamples; i++)
 	{	func.r[i] = r; //radial position
 		func.dr[i] = r * dlogr; //integration weight
-		double R0byr6 = pow(R0/r, 6);
-		func.f[i] = C6byR06 * (R0byr6>0.5 ? 0.25 : R0byr6*(1.-R0byr6));
+		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r); //sample value
 		r *= rRatio;
 	}
 	
