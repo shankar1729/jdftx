@@ -54,6 +54,7 @@ private:
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
+protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 };
 

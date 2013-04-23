@@ -24,124 +24,197 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/operators.h>
+#include <gsl/gsl_linalg.h>
 
 struct MultipoleResponse
-{	int l; //angular momentum
-	RealKernel w; //weight function in fourier space (with G^l factored out)
-	double e; //prefactor (defined so that 1+e*(w[0]^2) would be dielectric constant for l=1)
+{	int l; //!< angular momentum
+	int iSite; //!< site index (-1 => molecule center)
+	int siteMultiplicity; //!< number of sites sharing index iSite
 	
-	MultipoleResponse(const GridInfo& gInfo, int l, double e) : l(l), w(gInfo), e(e)
+	RadialFunctionG V; //!< radial part of response eigenfunction scaled by square root of eigenvalue and 1/G^l
+	std::vector<double> Vsamples; //!< radial G-samples corresponding to V
+	
+	template<typename Func, typename... Args>
+	MultipoleResponse(int l, int iSite, int siteMultiplicity, double dG, double Gmax, const Func& func, Args... args)
+	: l(l), iSite(iSite), siteMultiplicity(siteMultiplicity), Vsamples(unsigned(ceil(Gmax/dG))+5)
 	{
+		for(unsigned i=0; i<Vsamples.size(); i++)
+			Vsamples[i] = func(i*dG, args...);
+		V.init(0, Vsamples, dG); //note that the G=0 behaviour of V is effectively l=0 since the G^l has been factored out
+	}
+	
+	//version without initializing radial function
+	MultipoleResponse(int l, int iSite, int siteMultiplicity, double dG, double Gmax)
+	: l(l), iSite(iSite), siteMultiplicity(siteMultiplicity), Vsamples(unsigned(ceil(Gmax/dG))+5)
+	{
+	}
+	
+	~MultipoleResponse()
+	{	V.free();
 	}
 };
 
-
-inline void initWaterNPCMkernels(int i, double G2, double* nFluid,
-	double* rot0, double* rot1, double* rot2, double* el0, double* el1, double* el2)
-{
-	double G = sqrt(G2);
-	//Model electron density:
-	nFluid[i] = 7.56 / pow(1 + pow(0.339,2)*G2, 3);
-	
-	//Rotational:
-	const double aO = 0.339, ZO = 7.56, ZnucO = -6.36, sigmaO = (1.52/0.5291772) / 6;
-	const double aH = 0.247, ZH = 0.40, ZnucH = -1.00, sigmaH = (1.10/0.5291772) / 6;
-	const double rOH = 1.888572;
-	double SfO = ZnucO*exp(-0.5*pow(sigmaO,2)*G2) + ZO/pow(1+pow(aO,2)*G2,3);
-	double SfH = ZnucH*exp(-0.5*pow(sigmaH,2)*G2) + ZH/pow(1+pow(aH,2)*G2,3);
-	rot0[i] = sqrt(4*M_PI)*(SfO + 2*SfH *bessel_jl(0,rOH*G));
-	rot1[i] = (SfH/(ZnucH+ZH)) * (G ?  3*bessel_jl(1,rOH*G)/(rOH*G) : 1.);
-	rot2[i] = (SfH/(ZnucH+ZH)) * (G ? 15*bessel_jl(2,rOH*G)/pow(rOH*G,2) : 1.);
-
-	//Electronic:
-	el0[i] = G2*(2.88*exp(-0.5*pow(0.94,2)*G2) + 1.24e-3*G2*exp(-0.5*pow(0.393,2)*G2));
-	el1[i] = exp(-0.5*pow(1.388,2)*G2) + 5.63e-2*G2*exp(-0.5*pow(0.660,2)*G2);
-	el2[i] = exp(-0.5*pow(1.458,2)*G2) + 2.45e-2*G2*exp(-0.5*pow(0.644,2)*G2);
+//Fourier transform of cuspless exponential
+inline double cusplessExpTilde(double G, double norm, double a)
+{	double aG = a*G;
+	double den = 1./(1.+aG*aG);
+	return norm * den*den*den;
 }
 
-static const double GzeroTol = 1e-12;
-
-//Initialize preconditioner kernel to inverse square root of the diagonal part of Vc^-1 + chi
-inline void setPreconditionerKernel(int i, double G2, double* Kkernel,
-	const std::vector< std::shared_ptr<MultipoleResponse> >* response)
-{	//Compute diagonal part of the hessian ( 4pi(Vc^-1 + chi) ):
-	double diagH = G2;
-	for(const std::shared_ptr<MultipoleResponse>& resp: *response)
-		diagH += resp->e * pow(G2,resp->l) * pow(resp->w.data[i],2);
-	//Set the inverse square-root as the preconditioner:
-	Kkernel[i] = (diagH>GzeroTol) ? 1./sqrt(diagH) : 0.;
+//Fourier transform of gaussian
+inline double gaussTilde(double G, double norm, double sigma)
+{	double sigmaG = sigma*G;
+	return norm * exp(-0.5*sigmaG*sigmaG);
 }
+
+//Radial kernel for spherically-averaged electron density of solvent molecule (l=0 only)
+inline double nFluid_calc(double G, const std::vector<FluidSolverParams::PcmSite>* pcmSites)
+{	double nFluid = 0.;
+	for(const auto& site: *pcmSites)
+	{	double nTilde = cusplessExpTilde(G, site.Zel, site.aEl);
+		for(const vector3<>& r: site.pos)
+			nFluid += nTilde * bessel_jl(0, G*r.length());
+	}
+	return nFluid;
+}
+
+template<int l, int m> void set_Ylm(const vector3<> qHat, double& result) { result = Ylm<l,m>(qHat); }
 
 NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), nFluid(e.gInfo), Kkernel(e.gInfo)
+: PCM(e, fsp), siteShape(fsp.pcmSite.size())
 {	
-	logPrintf("\tInitializing non-local Polarizable Continuum Model\n");
+	logPrintf("   Initializing non-local response weight functions:\n");
+	const double dG = 0.02, Gmax = e.iInfo.GmaxLoc;
+	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
+
+	//Initialize fluid molecule's spherically-averaged electron density kernel:
+	nFluid.init(0, dG, e.iInfo.GmaxLoc, nFluid_calc, &(fsp.pcmSite));
 	
-	//TODO: Setup fluid parameters from commands (currently hard-coded for water)
-	//Water:
-	const double Nbulk = 4.95e-3 * (1. - 4.74e-6*pow(fsp.T/Kelvin-277,2)); //Fit to 0-100C range at ambient pressure
-	auto rot0 = std::make_shared<MultipoleResponse>(e.gInfo, 0, Nbulk/fsp.T);
-	auto rot1 = std::make_shared<MultipoleResponse>(e.gInfo, 1, (3.3e4*Kelvin)/fsp.T - 34.5);
-	auto rot2 = std::make_shared<MultipoleResponse>(e.gInfo, 2, 3.0553 * Nbulk/fsp.T);
-	auto el0 = std::make_shared<MultipoleResponse>(e.gInfo, 0, 4*Nbulk);
-	auto el1 = std::make_shared<MultipoleResponse>(e.gInfo, 1, 163*Nbulk);
-	auto el2 = std::make_shared<MultipoleResponse>(e.gInfo, 2, 82*Nbulk);
-	applyFuncGsq(e.gInfo, initWaterNPCMkernels, nFluid.data,
-		rot0->w.data, rot1->w.data, rot2->w.data, el0->w.data, el1->w.data, el2->w.data);
-	nFluid.set();
-	rot0->w.set(); rot1->w.set(); rot2->w.set(); el0->w.set(); el1->w.set(); el2->w.set();
-	if(fsp.npcmParams.lMax >= 0) { response.push_back(rot0); response.push_back(el0); }
-	if(fsp.npcmParams.lMax >= 1) { response.push_back(rot1); response.push_back(el1); }
-	if(fsp.npcmParams.lMax >= 2) { response.push_back(rot2); response.push_back(el2); }
+	//Determine dipole correlation factors:
+	vector3<> pMol; double alphaTot = 0.;
+	for(const auto& site: fsp.pcmSite)
+	{	for(const vector3<>& r: site.pos) pMol += r * (site.Zel-site.Znuc);
+		alphaTot += site.alpha * site.pos.size();
+	}
+	double l1prefac = pMol.length_squared()>1e-6 ? sqrt((fsp.epsBulk-fsp.epsInf)*3./pMol.length_squared()) : 0.;
+	double polPrefac = alphaTot ? sqrt(((l1prefac ? fsp.epsInf : fsp.epsBulk) - 1.)/(4.*M_PI*alphaTot)) : 0.;
+	
+	//Rotational response:
+	const double bessel_jl_by_Gl_zero[3] = {1., 1./3, 1./15}; //G->0 limit of j_l(G)/G^l
+	for(int l=0; l<=fsp.npcmParams.lMax; l++)
+	{	//Calculate radial densities for all m:
+		gsl_matrix* V = gsl_matrix_calloc(nGradial, 2*l+1); //allocate and set to zero
+		double prefac = (l==1 && l1prefac) ? l1prefac : sqrt(4.*M_PI*fsp.Nbulk/fsp.T);
+		for(unsigned iG=0; iG<nGradial; iG++)
+		{	double G = iG*dG;
+			for(const auto& site: fsp.pcmSite)
+			{	double VsiteTilde = prefac * (cusplessExpTilde(G, site.Zel, site.aEl) - gaussTilde(G, site.Znuc, site.sigmaNuc));
+				for(const vector3<>& r: site.pos)
+				{	double rLength = r.length();
+					double bessel_jl_by_Gl = G ? bessel_jl(l,G*rLength)/pow(G,l) : bessel_jl_by_Gl_zero[l]*pow(rLength,l);
+					vector3<> rHat = (rLength ? 1./rLength : 0.) * r;
+					for(int m=-l; m<=+l; m++)
+					{	double Ylm_rHat=0.; SwitchTemplate_lm(l, m, set_Ylm, (rHat, Ylm_rHat))
+						*gsl_matrix_ptr(V,iG,l+m) += VsiteTilde * bessel_jl_by_Gl * Ylm_rHat;
+					}
+				}
+			}
+		}
+		//Get linearly-independent non-zero modes by performing an SVD:
+		gsl_vector* S = gsl_vector_alloc(2*l+1);
+		gsl_matrix* U = gsl_matrix_alloc(2*l+1, 2*l+1);
+		gsl_matrix* tmpMat = gsl_matrix_alloc(2*l+1, 2*l+1);
+		gsl_vector* tmpVec = gsl_vector_alloc(2*l+1);
+		gsl_linalg_SV_decomp_mod(V, tmpMat, U, S, tmpVec);
+		gsl_vector_free(tmpVec);
+		gsl_matrix_free(tmpMat);
+		gsl_matrix_free(U);
+		//Add response functions for non-singular modes:
+		for(int mode=0; mode<2*l+1; mode++)
+		{	double Smode = gsl_vector_get(S, mode);
+			if(Smode*Smode < 1e-3) break;
+			auto resp = std::make_shared<MultipoleResponse>(l, -1, 1, dG, Gmax);
+			for(unsigned iG=0; iG<resp->Vsamples.size(); iG++)
+				resp->Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
+			resp->V.init(0, resp->Vsamples, dG);
+			response.push_back(resp);
+		}
+		gsl_vector_free(S);
+		gsl_matrix_free(V);
+	}
+	
+	//Polarizability response:
+	for(unsigned iSite=0; iSite<fsp.pcmSite.size(); iSite++)
+	{	const auto& site = fsp.pcmSite[iSite];
+		if(site.alpha)
+			response.push_back(std::make_shared<MultipoleResponse>(1, iSite, site.pos.size(), dG, Gmax, cusplessExpTilde, polPrefac*sqrt(site.alpha), site.aPol));
+	}
 	
 	//Ionic (monopole response)
 	if(fsp.ionicConcentration)
-	{	auto ionResponse = std::make_shared<MultipoleResponse>(e.gInfo, 0,
-			(8*M_PI/fsp.T) * fsp.ionicConcentration * pow(fsp.ionicZelectrolyte,2));
-		initGaussianKernel(ionResponse->w, 1.0); //arbitrary gaussian for now
-		response.push_back(ionResponse);
+	{	//Currently add gaussian ions with sigma = (1./4) ionic radius
+		//TODO: get true ion charge density profiles
+		double norm = fsp.ionicZelectrolyte * sqrt(fsp.ionicConcentration / fsp.T);
+		response.push_back(std::make_shared<MultipoleResponse>(0, -1, 1, dG, Gmax, gaussTilde, norm, 0.25*fsp.ionicRadiusPlus));
+		response.push_back(std::make_shared<MultipoleResponse>(0, -1, 1, dG, Gmax, gaussTilde, norm, 0.25*fsp.ionicRadiusMinus));
 	}
 	
+	const double GzeroTol = 1e-12;
+	
 	//Compute bulk properties and print summary:
-	epsBulk = 1.; double k2factor = 0.; std::map<int,int> lCount;
+	double epsBulk = 1.; double k2factor = 0.; std::map<int,int> lCount;
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	lCount[resp->l]++;
-		double respGzero = resp->e * pow(resp->w.data[0], 2);
+		double respGzero = (4*M_PI) * pow(resp->Vsamples[0], 2) * resp->siteMultiplicity;
 		if(resp->l==0) k2factor += respGzero;
 		if(resp->l==1) epsBulk += respGzero;
 	}
 	for(auto lInfo: lCount)
-		logPrintf("\tl: %d  #weight-functions: %d\n", lInfo.first, lInfo.second);
-	logPrintf("\tBulk dielectric-constant: %lg", epsBulk);
+		logPrintf("      l: %d  #weight-functions: %d\n", lInfo.first, lInfo.second);
+	logPrintf("   Bulk dielectric-constant: %lg", epsBulk);
 	if(k2factor > GzeroTol) logPrintf("   screening-length: %lg bohrs.\n", sqrt(epsBulk/k2factor));
 	else logPrintf("\n");
+	assert(fabs(epsBulk-fsp.epsBulk) < 1e-3); //verify consistency of correlation factors
 	
-	//Initialize preconditioner:
-	applyFuncGsq(Kkernel.gInfo, setPreconditionerKernel, Kkernel.data, &response);
-	Kkernel.set();
+	//Initialize preconditioner kernel:
+	std::vector<double> KkernelSamples(nGradial);
+	for(unsigned i=0; i<KkernelSamples.size(); i++)
+	{	double G = i*dG, G2=G*G;
+		//Compute diagonal part of the hessian ( 4pi(Vc^-1 + chi) ):
+		double diagH = G2;
+		for(const auto& resp: response)
+			diagH += pow(G2,resp->l) * resp->Vsamples[i]*resp->Vsamples[i];
+		//Set its inverse square-root as the preconditioner:
+		KkernelSamples[i] = (diagH>GzeroTol) ? 1./sqrt(diagH) : 0.;
+	}
+	Kkernel.init(0, KkernelSamples, dG);
 }
+
+NonlocalPCM::~NonlocalPCM()
+{	nFluid.free();
+	Kkernel.free();
+}
+
 
 DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 {	DataGptr rhoTilde;
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
-	{	switch(resp->l)
+	{	const DataRptr& s = resp->iSite<0 ? shape : siteShape[resp->iSite];
+		switch(resp->l)
 		{	case 0:
-			{	rhoTilde += (-resp->e/(4*M_PI))
-					* (resp->w * J(shape*I(resp->w * phiTilde)));
+			{	rhoTilde -= resp->V * J(s*I(resp->V * phiTilde));
 				break;
 			}
 			case 1:
-			{	rhoTilde += (resp->e/(4*M_PI))
-					* (resp->w * divergence(J(shape*I(gradient(resp->w * phiTilde)))));
+			{	rhoTilde += resp->V * divergence(J(s*I(gradient(resp->V * phiTilde))));
 				break;
 			}
 			case 2:
-			{	rhoTilde += (-resp->e * 1.5/(4*M_PI))
-					* (resp->w * tensorDivergence(J(shape*I(tensorGradient(resp->w * phiTilde)))));
+			{	rhoTilde -= 1.5 * (resp->V * tensorDivergence(J(s*I(tensorGradient(resp->V * phiTilde)))));
 				break;
 			}
 			default:
-				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
+				die("NonlocalPCM: Angular momentum l=%d not implemented.\n", resp->l);
 		}
 	}
 	return rhoTilde;
@@ -165,11 +238,15 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	nCavity = I(nFluid * nCavityTilde);
 	updateCavity();
 	
+	//Compute site shape functions with the spherical ansatz:
+	for(unsigned iSite=0; iSite<fsp.pcmSite.size(); iSite++)
+		siteShape[iSite] = I(Sf[iSite] * J(shape));
+	
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
 	//Update the inhomogeneity factor of the preconditioner
-	epsInv = inv(1. + epsBulk*shape);
+	epsInv = inv(1. + (fsp.epsBulk-1.)*shape);
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!state) nullToZero(state, e.gInfo);
@@ -196,32 +273,34 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
-	DataRptr Adiel_shape;
+	DataRptr Adiel_shape; DataRptrCollection Adiel_siteShape(fsp.pcmSite.size());
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
-	{	switch(resp->l)
+	{	DataRptr& Adiel_s = resp->iSite<0 ? Adiel_shape : Adiel_siteShape[resp->iSite];
+		switch(resp->l)
 		{	case 0:
-			{	DataRptr Iwphi = I(resp->w * phiTilde);
-				Adiel_shape += (0.5 * -resp->e/(4*M_PI)) * (Iwphi * Iwphi);
+			{	DataRptr IVphi = I(resp->V * phiTilde);
+				Adiel_s -= 0.5 * (IVphi * IVphi);
 				break;
 			}
 			case 1:
-			{	DataRptrVec Igradwphi = I(gradient(resp->w * phiTilde));
-				Adiel_shape += (0.5 * -resp->e/(4*M_PI))
-					* (Igradwphi[0]*Igradwphi[0] + Igradwphi[1]*Igradwphi[1] + Igradwphi[2]*Igradwphi[2]);
+			{	DataRptrVec IgradVphi = I(gradient(resp->V * phiTilde));
+				Adiel_s -= 0.5 * lengthSquared(IgradVphi);
 				break;
 			}
 			case 2:
-			{	DataRptrTensor Itgradwphi = I(tensorGradient(resp->w * phiTilde));
-				Adiel_shape += (0.5 * -resp->e * 1.5/(4*M_PI))
-					* 2*( Itgradwphi[0]*Itgradwphi[0] + Itgradwphi[1]*Itgradwphi[1] + Itgradwphi[2]*Itgradwphi[2]
-						+ Itgradwphi[3]*Itgradwphi[3] + Itgradwphi[4]*Itgradwphi[4] + Itgradwphi[3]*Itgradwphi[4]);
+			{	DataRptrTensor ItgradVphi = I(tensorGradient(resp->V * phiTilde));
+				Adiel_s -= 0.5 * 1.5
+					* 2*( ItgradVphi[0]*ItgradVphi[0] + ItgradVphi[1]*ItgradVphi[1] + ItgradVphi[2]*ItgradVphi[2]
+						+ ItgradVphi[3]*ItgradVphi[3] + ItgradVphi[4]*ItgradVphi[4] + ItgradVphi[3]*ItgradVphi[4]);
 				break;
 			}
 			default:
-				die("NonlocalPCM: Angular momentum l=%d not yet implemented.\n", resp->l);
+				die("NonlocalPCM: Angular momentum l=%d not implemented.\n", resp->l);
 		}
 	}
-
+	for(unsigned iSite=0; iSite<fsp.pcmSite.size(); iSite++)
+		Adiel_shape += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
+	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity);

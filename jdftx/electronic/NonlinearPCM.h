@@ -38,7 +38,7 @@ public:
 
 	//! See createFluidSolver()
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
-    ~NonlinearPCM();
+    virtual ~NonlinearPCM();
 	
 	bool needsGummel() { return true; }
 

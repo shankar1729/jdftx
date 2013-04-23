@@ -27,6 +27,7 @@ class NonlocalPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
 	NonlocalPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+    virtual ~NonlocalPCM();
 	bool needsGummel() { return false; }
 
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
@@ -48,8 +49,9 @@ public:
 	
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
-	RealKernel nFluid; //electron density model for the fluid
-	RealKernel Kkernel; DataRptr epsInv; double epsBulk; //for preconditioner
+	RadialFunctionG nFluid; //electron density model for the fluid
+	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
+	DataRptrCollection siteShape; //shape functions for sites
 };
 
 #endif // JDFTX_ELECTRONIC_NONLOCALPCM_H
