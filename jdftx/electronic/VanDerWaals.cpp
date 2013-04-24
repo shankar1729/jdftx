@@ -239,6 +239,33 @@ VanDerWaals::~VanDerWaals()
 	for(auto& iter: radialFunctions) iter.second.free(); //Cleanup cached RadialFunctionG's if any
 }
 
+bool hackedTS = false;
+
+struct HackedTSparams
+{	double C6;
+	double alpha;
+	double R0;
+	
+	HackedTSparams(double C6, double C6free, double alphaFree, double R0free) : C6(C6)
+	{	double Vratio = sqrt(C6/C6free);
+		alpha = alphaFree * Vratio;
+		R0 = R0free * pow(Vratio, 1./3);
+	}
+
+	static HackedTSparams get(int atomicNumber)
+	{	switch(atomicNumber)
+		{	case 1: return HackedTSparams(2.1, 6.5, 4.5, 1.64*Angstrom);
+			case 6: return HackedTSparams(24.1, 46.6, 12, 1.90*Angstrom);
+			case 7: return HackedTSparams(17.1, 24.2, 7.4, 1.77*Angstrom);
+			case 8: return HackedTSparams(11.7, 15.6, 5.4, 1.66*Angstrom);
+			case 16: return HackedTSparams(113, 134, 19.6, 2.04*Angstrom);
+			case 17: return HackedTSparams(88.8, 94.6, 15, 1.96*Angstrom);
+			default:
+				die("No hacked TS params available.\n");
+				return HackedTSparams(0, 0, 0, 0);
+		}
+	}
+};
 
 const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int atomicNumber2) const
 {
@@ -247,7 +274,7 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 		std::min(atomicNumber1, atomicNumber2),
 		std::max(atomicNumber1, atomicNumber2)); //Optimize Z1 <-> Z2 symmetry
 	auto radialFunctionIter = radialFunctions.find(atomicNumberPair);
-	if(radialFunctionIter != radialFunctions.end())
+	if(radialFunctionIter != radialFunctions.end() && !hackedTS)
 		return radialFunctionIter->second;
 	
 	//Get parameters for current pair of species:
@@ -255,6 +282,14 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	const AtomParams& params2 = getParams(atomicNumber2);
 	double C6 = sqrt(params1.C6 * params2.C6);
 	double R0 = params1.R0 + params2.R0;
+	
+	if(hackedTS)
+	{	/*const HackedTSparams& params1 = HackedTSparams::get(atomicNumber1);
+		const HackedTSparams& params2 = HackedTSparams::get(atomicNumber2);
+		C6 = 2.* params1.C6 * params2.C6 / (params1.C6*params2.alpha/params1.alpha + params2.C6*params1.alpha/params2.alpha);
+		R0 = 0.1*(params1.R0 + params2.R0);*/
+		R0 *= 0.1;
+	}
 	
 	//Initialize function on real-space logarithmic radial grid:
 	const double rMin = 1e-2;

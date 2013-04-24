@@ -196,6 +196,8 @@ void PCM::dumpDensities(const char* filenamePattern) const
 	}
 }
 
+extern bool hackedTS;
+
 void PCM::dumpDebug(const char* filenamePattern) const
 {	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
@@ -228,6 +230,24 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			break;
 	}
 
+	//HACK:
+	if(Sf.size())
+	{	fprintf(fp, "\n\nDispersion model comparison:\n");
+		const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
+		DataGptrCollection Ntilde(Sf.size());
+		std::vector<int> atomicNumbers(Sf.size());
+		for(unsigned i=0; i<Sf.size(); i++)
+		{	Ntilde[i] = fsp.Nbulk * (Sf[i] * sTilde);
+			atomicNumbers[i] = fsp.pcmSite[i].atomicNumber;
+		}
+		double vdwGrimme = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.VDWCouplingScale);
+		hackedTS = true;
+		double vdwTS = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.VDWCouplingScale);
+		fprintf(fp, "   vdw-Grimme: %lf\n", vdwGrimme);
+		fprintf(fp, "   vdw-TS:     %lf\n", vdwTS);
+		fprintf(fp, "   TS/Grimme:  %lf\n", vdwTS/vdwGrimme);
+	}
+	
 	printDebug(fp);
 	
 	fclose(fp);

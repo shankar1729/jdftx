@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
+#include <electronic/VanDerWaals.h>
 #include <electronic/operators.h>
 #include <gsl/gsl_linalg.h>
 
@@ -320,10 +321,105 @@ void NonlocalPCM::saveState(const char* filename) const
 {	saveRawBinary(I(state), filename); //saved data is in real space
 }
 
-void NonlocalPCM::dumpDensities(const char* filenamePattern) const
-{	string filename(filenamePattern);
-	filename.replace(filename.find("%s"), 2, "Shape");
-	logPrintf("Dumping '%s'... ", filename.c_str());  logFlush();
-	saveRawBinary(shape, filename.c_str());
-	logPrintf("done.\n"); logFlush();
+void NonlocalPCM::printDebug(FILE* fp) const
+{	
+	//Estimate the vdW rotational response
+	fprintf(fp, "\nLinear rotational-response vdW corrections:\n");
+	//Get the vdW site potentials:
+	DataGptrCollection Vtilde(fsp.pcmSite.size());
+	{	DataGptrCollection Ntilde(fsp.pcmSite.size());
+		std::vector<int> atomicNumbers(fsp.pcmSite.size());
+		for(unsigned i=0; i<fsp.pcmSite.size(); i++)
+		{	nullToZero(Ntilde[i], e.gInfo);
+			atomicNumbers[i] = fsp.pcmSite[i].atomicNumber;
+		}
+		e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.VDWCouplingScale, &Vtilde);
+		Vtilde *= (1./e.gInfo.nr);
+	}
+	
+	//Compute vdW response:
+	const double dG = 0.02, Gmax = e.iInfo.GmaxLoc;
+	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
+	const double bessel_jl_by_Gl_zero[3] = {1., 1./3, 1./15}; //G->0 limit of j_l(G)/G^l
+	double Evdw2_tot = 0.;
+	for(int l=0; l<=2; l++)
+	{	//Calculate vdW response modes for all sites and m:
+		gsl_matrix* V = gsl_matrix_calloc(nGradial * (1+fsp.pcmSite.size()), 2*l+1); //allocate and set to zero
+		double prefac = sqrt(4.*M_PI*fsp.Nbulk/fsp.T);
+		for(unsigned iG=0; iG<nGradial; iG++)
+		{	double G = iG*dG;
+			for(unsigned iSite=0; iSite<fsp.pcmSite.size(); iSite++)
+			{	const auto& site = fsp.pcmSite[iSite];
+				for(const vector3<>& r: site.pos)
+				{	double rLength = r.length();
+					double elTilde = prefac * (cusplessExpTilde(G, site.Zel, site.aEl) - gaussTilde(G, site.Znuc, site.sigmaNuc));
+					double bessel_jl_by_Gl = G ? bessel_jl(l,G*rLength)/pow(G,l) : bessel_jl_by_Gl_zero[l]*pow(rLength,l);
+					vector3<> rHat = (rLength ? 1./rLength : 0.) * r;
+					for(int m=-l; m<=+l; m++)
+					{	double Ylm_rHat=0.; SwitchTemplate_lm(l, m, set_Ylm, (rHat, Ylm_rHat))
+						*gsl_matrix_ptr(V,iG+iSite*nGradial,l+m) += prefac * bessel_jl_by_Gl * Ylm_rHat;
+						*gsl_matrix_ptr(V,iG+fsp.pcmSite.size()*nGradial,l+m) += elTilde * bessel_jl_by_Gl * Ylm_rHat;
+					}
+				}
+			}
+		}
+		//Get linearly-independent non-zero modes by performing an SVD:
+		gsl_vector* S = gsl_vector_alloc(2*l+1);
+		gsl_matrix* U = gsl_matrix_alloc(2*l+1, 2*l+1);
+		gsl_matrix* tmpMat = gsl_matrix_alloc(2*l+1, 2*l+1);
+		gsl_vector* tmpVec = gsl_vector_alloc(2*l+1);
+		gsl_linalg_SV_decomp_mod(V, tmpMat, U, S, tmpVec);
+		gsl_vector_free(tmpVec);
+		gsl_matrix_free(tmpMat);
+		gsl_matrix_free(U);
+		//Compute response from non-singular modes:
+		DataRptr Evdw2_shape[2];
+		for(int mode=0; mode<2*l+1; mode++)
+		{	double Smode = gsl_vector_get(S, mode);
+			if(Smode*Smode < 1e-3) break;
+			DataGptr wVtilde[2];
+			for(unsigned iSite=0; iSite<=fsp.pcmSite.size(); iSite++)
+			{	std::vector<double> samples(nGradial);
+				for(unsigned iG=0; iG<nGradial; iG++)
+					samples[iG] = Smode * gsl_matrix_get(V, iG+iSite*nGradial, mode);
+				RadialFunctionG w; w.init(0, samples, dG);
+				if(iSite==fsp.pcmSite.size())
+				{	wVtilde[0] += w * state;
+					wVtilde[1] += w * state;
+				}
+				else wVtilde[0] += w * Vtilde[iSite];
+				w.free();
+			}
+			for(int j=0; j<2; j++)
+			{	switch(l)
+				{	case 0:
+					{	DataRptr IwV = I(wVtilde[j]);
+						Evdw2_shape[j] -= 0.5 * (IwV * IwV);
+						break;
+					}
+					case 1:
+					{	DataRptrVec IgradwV = I(gradient(wVtilde[j]));
+						Evdw2_shape[j] -= 0.5 * lengthSquared(IgradwV);
+						break;
+					}
+					case 2:
+					{	DataRptrTensor ItgradwV = I(tensorGradient(wVtilde[j]));
+						Evdw2_shape[j] -= 0.5 * 1.5
+							* 2*( ItgradwV[0]*ItgradwV[0] + ItgradwV[1]*ItgradwV[1] + ItgradwV[2]*ItgradwV[2]
+								+ ItgradwV[3]*ItgradwV[3] + ItgradwV[4]*ItgradwV[4] + ItgradwV[3]*ItgradwV[4]);
+						break;
+					}
+					default:
+						die("NonlocalPCM: Angular momentum l=%d not implemented.\n", l);
+				}
+			}
+		}
+		gsl_vector_free(S);
+		gsl_matrix_free(V);
+		if(!Evdw2_shape[0] || !Evdw2_shape[1]) continue;
+		double Evdw2_l = integral(shape * (Evdw2_shape[0] - Evdw2_shape[1]));
+		fprintf(fp, "\tAt l=%d:  %lg\n", l, Evdw2_l);
+		Evdw2_tot += Evdw2_l;
+	}
+	fprintf(fp, "\tTotal:    %lg\n", Evdw2_tot);
 }
