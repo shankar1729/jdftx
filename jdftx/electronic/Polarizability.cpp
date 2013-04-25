@@ -193,6 +193,16 @@ inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<>
 		Krho->setColumn(b, (*(e->coulomb))(rho->getColumn(b), dk, 0.));
 }
 
+matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
+{	ColumnBundle KV = V.similar();
+	suspendOperatorThreading();
+	threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, V.nCols(), &e, dk, &V, &KV);
+	resumeOperatorThreading();
+	logPrintf("\tForming Coulomb matrix\n"); logFlush();
+	return e.gInfo.detR * (V^KV);
+}
+
+
 //------- Exchange and correlation -----------
 typedef DataMultiplet<complexDataR,3> complexDataRptrVec;
 
@@ -256,15 +266,26 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const D
 	}
 }
 
-void Polarizability::dump(const Everything& e)
-{	
-	logPrintf("Dumping polarizability matrix:\n"); logFlush();
-	if(e.eInfo.spinType != SpinNone) die("\nPolarizability currently implemented only for spin-unpolarized systems\n");
-	
+matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
+{	//Get second derivatives w.r.t density (and gradients)
 	DataRptr exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
 	DataRptr n = e.eVars.get_nTot(); DataRptrVec Dn;
 	e.exCorr.getSecondDerivatives(n, exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma);
 	if(exc_sigma) Dn = gradient(n); //needed for GGAs
+	//Compute matrix:
+	ColumnBundle KXCV = V.similar();
+	suspendOperatorThreading();
+	threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, V.nCols(), &exc_nn, &Dn, &exc_sigma, &exc_nsigma, &exc_sigmasigma, &V, &KXCV);
+	resumeOperatorThreading();
+	logPrintf("\tForming Exchange-Correlation matrix\n"); logFlush();
+	return e.gInfo.detR * (V^KXCV);
+}
+
+
+void Polarizability::dump(const Everything& e)
+{	
+	logPrintf("Dumping polarizability matrix:\n"); logFlush();
+	if(e.eInfo.spinType != SpinNone) die("\nPolarizability currently implemented only for spin-unpolarized systems\n");
 	
 	const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
 	if(dkFilenamePattern.length())
@@ -325,25 +346,10 @@ void Polarizability::dump(const Everything& e)
 	}
 	
 	logPrintf("\tApplying Coulomb kernel\n"); logFlush();
-	matrix K;
-	{	ColumnBundle KV = V.similar();
-		suspendOperatorThreading();
-		threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, nColumns, &e, dk, &V, &KV);
-		resumeOperatorThreading();
-		logPrintf("\tForming Coulomb matrix in %s basis\n", basisName); logFlush();
-		K = e.gInfo.detR * (V^KV);
-		K.write(e.dump.getFilename("pol_K").c_str());
-	}
-
+	matrix K = coulombMatrix(V, e, dk);
+	
 	logPrintf("\tApplying Exchange-Correlation kernel\n"); logFlush();
-	matrix KXC;
-	{	ColumnBundle KXCV = V.similar();
-		suspendOperatorThreading();
-		threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, nColumns, &exc_nn, &Dn, &exc_sigma, &exc_nsigma, &exc_sigmasigma, &V, &KXCV);
-		resumeOperatorThreading();
-		logPrintf("\tForming Exchange-Correlation matrix in %s basis\n", basisName); logFlush();
-		KXC = e.gInfo.detR * (V^KXCV);
-	}
+	matrix KXC = exCorrMatrix(V, e, dk);
 	
 	//Compute operator matrices in current (CV) basis
 	logPrintf("\tComputing External and Total polarizability matrices in %s basis\n", basisName); logFlush();
