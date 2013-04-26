@@ -266,10 +266,10 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const D
 	}
 }
 
-matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
+matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const DataRptr& n, vector3<> dk)
 {	//Get second derivatives w.r.t density (and gradients)
 	DataRptr exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
-	DataRptr n = e.eVars.get_nTot(); DataRptrVec Dn;
+	DataRptrVec Dn;
 	e.exCorr.getSecondDerivatives(n, exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma);
 	if(exc_sigma) Dn = gradient(n); //needed for GGAs
 	//Compute matrix:
@@ -349,7 +349,7 @@ void Polarizability::dump(const Everything& e)
 	matrix K = coulombMatrix(V, e, dk);
 	
 	logPrintf("\tApplying Exchange-Correlation kernel\n"); logFlush();
-	matrix KXC = exCorrMatrix(V, e, dk);
+	matrix KXC = exCorrMatrix(V, e, e.eVars.get_nTot(), dk);
 	
 	//Compute operator matrices in current (CV) basis
 	logPrintf("\tComputing External and Total polarizability matrices in %s basis\n", basisName); logFlush();
