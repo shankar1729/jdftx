@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <core/Data.h>
 #include <ctime>
+#include <electronic/SCF.h>
 
 void ElecGradient::init(Everything& e)
 {	init(e.eInfo.nStates);
@@ -165,7 +166,11 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 
 void elecMinimize(Everything& e)
 {	
-	if((not e.cntrl.fixed_n) or e.exCorr.exxFactor() or e.eInfo.hasU)
+	if(e.cntrl.minimisingResidual)
+	{	SCF scf(e);
+		scf.minimize();
+	}
+	else if((not e.cntrl.fixed_n) or e.exCorr.exxFactor() or e.eInfo.hasU)
 	{	ElecMinimizer emin(e, true);
 		emin.minimize(e.elecMinParams);
 	}

@@ -101,6 +101,7 @@ struct CommandFixElectronDensity : public Command
 		require("spintype");
 		forbid("elec-fermi-fillings");
 		forbid("elec-ex-corr-compare");
+		forbid("residual-minimization");
 	}
 
 	void process(ParamList& pl, Everything& e)
