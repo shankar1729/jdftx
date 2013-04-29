@@ -34,6 +34,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Energies.h>
 #include <electronic/ExCorr.h>
 #include <electronic/Dump.h>
+#include <electronic/ResidualMinimizerParams.h>
 #include <memory>
 
 class Everything
@@ -57,6 +58,7 @@ public:
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
 	MinimizeParams latticeMinParams; //!< lattice minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
+	ResidualMinimizerParams residualMinimizerParams; //!< residual minimization parameters
 	
 	CoulombParams coulombParams; //!< Coulomb truncation parameters
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)

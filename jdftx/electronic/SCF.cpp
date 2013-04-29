@@ -25,11 +25,9 @@ SCF::SCF(Everything& e): e(e)
 
 void SCF::minimize()
 {
-	int maxIter = 10;
-	double energyDiffThreshold = 1e-5;
-	
 	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
+	ResidualMinimizerParams& rp = e.residualMinimizerParams;
 	
 	e.cntrl.fixed_n = false;
 	e.ener = Energies();
@@ -42,9 +40,10 @@ void SCF::minimize()
 	DataRptrCollection n_or_Vscloc_prev(eVars.n.size());
 	DataRptrCollection tau_or_Vtau_prev(eVars.n.size());
 	double Eprev = 0, E;
+	bool dEprevBelowThreshold = false;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
-	for(int scfCounter=0; scfCounter<maxIter; scfCounter++)
+	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
 	{	// Cache the old energy and density
 		Eprev = E;
 		for(size_t s=0; s<eVars.n.size(); s++)
@@ -66,8 +65,7 @@ void SCF::minimize()
 		
 		// Compute new density and energy
 		e.iInfo.update(e.ener);
-		eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
-		E = relevantFreeEnergy(e);
+		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
 		// Mix old and new density
 		double mixFraction = 0.5;
@@ -79,13 +77,19 @@ void SCF::minimize()
 
 		// Recompute Vscloc using mixed density
 		eVars.EdensityAndVscloc(e.ener);
-		e.ener.print();
 			
 		logPrintf("SCF Iter: %i\tmixFraction: %f\tEprev: %f\tdE: %.2e\tEtot: %f\n\n", scfCounter, mixFraction, Eprev, fabs(E-Eprev), E);
 		
 		// Check for convergence
-		if(fabs(E-Eprev) < energyDiffThreshold)
-			break;
+		if(fabs(E-Eprev) < rp.energyDiffThreshold)
+			if(dEprevBelowThreshold)
+			{	logPrintf("Residual Minimization Converged (|Delta E|<%le for %d iters).\n", rp.energyDiffThreshold, 2);
+				break;
+			}
+			else
+				dEprevBelowThreshold = true;
+		else
+			dEprevBelowThreshold = false;
 	}
 	
 }
