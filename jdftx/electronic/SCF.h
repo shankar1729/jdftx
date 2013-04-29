@@ -37,8 +37,8 @@ class SCF
 		Everything& e;
 		
 		//! Mixes densities or Vscloc and Vtau
-		//! mixFraction is the farction of the new state
-		//void mixHamiltonian(double mixFraction);
+		void mixHamiltonian(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+							DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);
 	
 };
 

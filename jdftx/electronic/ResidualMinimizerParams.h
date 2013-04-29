@@ -20,6 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_RESIDUALMINIMIZERPARAMS_H
 #define JDFTX_ELECTRONIC_RESIDUALMINIMIZERPARAMS_H
 
+#include <core/Util.h>
+
 enum MixedVariable
 {
 	density, //! Mix electron density (n) and kinetic energy density (tau)

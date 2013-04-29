@@ -29,27 +29,34 @@ void SCF::minimize()
 	ElecVars& eVars = e.eVars;
 	ResidualMinimizerParams& rp = e.residualMinimizerParams;
 	
+	// Compute energy for the initial guess
 	e.cntrl.fixed_n = false;
 	e.ener = Energies();
 	e.iInfo.update(e.ener);
-	eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
-	e.ener.print();			
+	eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);	
 	e.ener = Energies(); 
 	e.cntrl.fixed_n = true;
 	
-	DataRptrCollection n_or_Vscloc_prev(eVars.n.size());
-	DataRptrCollection tau_or_Vtau_prev(eVars.n.size());
+	// Initialize the variable that defines the single particle (Kohn-Sham) Hamiltonian
+	// It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
+	DataRptrCollection& variable_n = (rp.mixedVariable == density ? eVars.n : eVars.Vscloc);
+	DataRptrCollection& variable_tau = (rp.mixedVariable == density ? eVars.tau : eVars.Vtau);
+	logPrintf("\nWill mix electronic and kinetic potential %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
+	DataRptrCollection prevVariable_n(eVars.n.size());
+	DataRptrCollection prevVariable_tau(eVars.n.size());
+	
 	double Eprev = 0, E;
 	bool dEprevBelowThreshold = false;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
-	{	// Cache the old energy and density
+	{	
+		// Cache the old energy and density
 		Eprev = E;
 		for(size_t s=0; s<eVars.n.size(); s++)
-		{	n_or_Vscloc_prev[s] = eVars.n[s];
+		{	prevVariable_n[s] = variable_n[s];
 			if(e.exCorr.needsKEdensity())
-				tau_or_Vtau_prev[s] = e.eVars.tau[s];
+				prevVariable_tau[s] = variable_tau[s];
 		}
 		
 		// Solve at fixed hamiltonian
@@ -66,21 +73,10 @@ void SCF::minimize()
 		// Compute new density and energy
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
+				
+		logPrintf("SCF Iter: %i\tEprev: %f\tdE: %.2e\tEtot: %f\n\n", scfCounter, Eprev, fabs(E-Eprev), E);
 		
-		// Mix old and new density
-		double mixFraction = 0.5;
-		for(size_t s=0; s<eVars.n.size(); s++)
-		{	eVars.n[s] = mixFraction*eVars.n[s] + (1.-mixFraction)*n_or_Vscloc_prev[s];
-			if(e.exCorr.needsKEdensity())
-				eVars.tau[s] = mixFraction*eVars.tau[s] + (1.-mixFraction)*tau_or_Vtau_prev[s];
-		}
-
-		// Recompute Vscloc using mixed density
-		eVars.EdensityAndVscloc(e.ener);
-			
-		logPrintf("SCF Iter: %i\tmixFraction: %f\tEprev: %f\tdE: %.2e\tEtot: %f\n\n", scfCounter, mixFraction, Eprev, fabs(E-Eprev), E);
-		
-		// Check for convergence
+		// Check for convergence, mix density or potential if otherwise
 		if(fabs(E-Eprev) < rp.energyDiffThreshold)
 			if(dEprevBelowThreshold)
 			{	logPrintf("Residual Minimization Converged (|Delta E|<%le for %d iters).\n", rp.energyDiffThreshold, 2);
@@ -89,7 +85,25 @@ void SCF::minimize()
 			else
 				dEprevBelowThreshold = true;
 		else
-			dEprevBelowThreshold = false;
+		{	dEprevBelowThreshold = false;
+			mixHamiltonian(variable_n, variable_tau, prevVariable_n, prevVariable_tau);
+		}
 	}
 	
+}
+
+void SCF::mixHamiltonian(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+						 DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction)
+{
+		// Mix old and new variable
+		for(size_t s=0; s<e.eVars.n.size(); s++)
+		{	variable_n[s] = mixFraction*variable_n[s] + (1.-mixFraction)*prevVariable_n[s];
+			if(e.exCorr.needsKEdensity())
+				e.eVars.tau[s] = mixFraction*variable_tau[s] + (1.-mixFraction)*prevVariable_tau[s];
+		}
+
+		// Recompute Vscloc if mixing density
+		if(e.residualMinimizerParams.mixedVariable == density)
+			e.eVars.EdensityAndVscloc(e.ener);
+
 }
