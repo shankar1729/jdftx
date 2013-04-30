@@ -42,22 +42,28 @@ void SCF::minimize()
 	DataRptrCollection& variable_n = (rp.mixedVariable == density ? eVars.n : eVars.Vscloc);
 	DataRptrCollection& variable_tau = (rp.mixedVariable == density ? eVars.tau : eVars.Vtau);
 	logPrintf("\nWill mix electronic and kinetic potential %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
-	DataRptrCollection prevVariable_n(eVars.n.size());
-	DataRptrCollection prevVariable_tau(eVars.n.size());
+	
+	// Set up variable history for vector extrapolation
+	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals;
+	
+	#define ifTau(command) if(e.exCorr.needsKEdensity()) command;
 	
 	double Eprev = 0, E;
-	bool dEprevBelowThreshold = false;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
 	{	
-		// Cache the old energy and density
-		Eprev = E;
-		for(size_t s=0; s<eVars.n.size(); s++)
-		{	prevVariable_n[s] = variable_n[s];
-			if(e.exCorr.needsKEdensity())
-				prevVariable_tau[s] = variable_tau[s];
+		// Clear history if full
+		if((pastResiduals.size() >= rp.history) or (pastResiduals.size() >= rp.history))
+		{	pastVariables_n.clear();
+			pastVariables_tau.clear();
+			ifTau(pastResiduals.clear())
 		}
+		
+		// Cache the old energy and variables
+		Eprev = E;
+		pastVariables_n.push_back(clone(variable_n));
+		ifTau(pastVariables_tau.push_back(clone(variable_tau)))
 		
 		// Solve at fixed hamiltonian
 		e.cntrl.fixed_n = true; e.ener = Energies();
@@ -78,15 +84,11 @@ void SCF::minimize()
 		
 		// Check for convergence, mix density or potential if otherwise
 		if(fabs(E-Eprev) < rp.energyDiffThreshold)
-			if(dEprevBelowThreshold)
-			{	logPrintf("Residual Minimization Converged (|Delta E|<%le for %d iters).\n", rp.energyDiffThreshold, 2);
-				break;
-			}
-			else
-				dEprevBelowThreshold = true;
+		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n", rp.energyDiffThreshold);
+			break;
+		}
 		else
-		{	dEprevBelowThreshold = false;
-			mixHamiltonian(variable_n, variable_tau, prevVariable_n, prevVariable_tau);
+		{	mixHamiltonian(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
 		}
 	}
 	

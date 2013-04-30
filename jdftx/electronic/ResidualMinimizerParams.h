@@ -28,17 +28,30 @@ enum MixedVariable
 	potential //! Mix the local electronic potential (Vscloc) and the kinetic energy potential (Vtau)
 };
 
+enum VectorExtrapolationMethod
+{
+	plainMixing,  //! No vector extrapolation, just half-mixes the new density
+	DIIS   //! Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
+};
+
 struct ResidualMinimizerParams
 {
 	int nIterations; //! maximum iterations (single point calculation if 0)
 	double energyDiffThreshold; //! convergence threshold for energy difference between successive iterations
 	MixedVariable mixedVariable; //! Whether we are mixing the density or the potential
+	VectorExtrapolationMethod vectorExtrapolationMethod; //! Vector extrapolation method used to construct the new density
+	size_t history; //! How many past residuals and vectors are kept cached
 	
 	ResidualMinimizerParams()
 	{
 		nIterations = 10;
 		energyDiffThreshold = 1e-6;
 		mixedVariable = density;
+		vectorExtrapolationMethod = plainMixing;
+		
+		// Keep history to minimum if no extrapolation is going to be done
+		if(vectorExtrapolationMethod == plainMixing)
+			history = 1;
 	}
 	
 };
