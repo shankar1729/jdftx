@@ -46,12 +46,14 @@ struct ResidualMinimizerParams
 	{
 		nIterations = 10;
 		energyDiffThreshold = 1e-6;
-		mixedVariable = density;
+		mixedVariable = potential;
 		vectorExtrapolationMethod = plainMixing;
 		
 		// Keep history to minimum if no extrapolation is going to be done
 		if(vectorExtrapolationMethod == plainMixing)
 			history = 1;
+		else
+			history = 4;
 	}
 	
 };

@@ -24,7 +24,8 @@ enum  ResMinParameter
 {
 	nIterations, 
 	energyDiffThreshold,
-	mixedVariable, //! whether density or potentials
+	mixedVariable,
+	vectorExtrapolationMethod,
 	//Delimiter used in parsing:
 	scfDelim
 };
@@ -32,17 +33,24 @@ enum  ResMinParameter
 EnumStringMap<ResMinParameter> ResMinParameterMap
 (	nIterations, "nIterations",
 	energyDiffThreshold, "energyDiffThreshold",
-    mixedVariable, "mixingMode"
+    mixedVariable, "mixedVariable",
+    vectorExtrapolationMethod, "vectorExtrapolationMethod"
 );
 EnumStringMap<ResMinParameter> resMinParameterDescrMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
 	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
-    mixedVariable, "whether density or potential will be mixed at each SCF step"
+    mixedVariable, "whether density or potential will be mixed at each step",
+	vectorExtrapolationMethod, "algorithm to use in vector extrapolation: plainMixing, DIIS"
 );
 
 EnumStringMap<MixedVariable> resMinMixing
 (	density, "density",
 	potential, "potential"
+);
+
+EnumStringMap<VectorExtrapolationMethod> resMinExtrapolation
+(	plainMixing, "plainMixing",
+	DIIS, "DIIS"
 );
 
 struct CommandsScfParams: public Command
@@ -64,14 +72,20 @@ struct CommandsScfParams: public Command
 		while(true)
 		{	ResMinParameter key;
 			pl.get(key, scfDelim, ResMinParameterMap, "key", false);
-
+			
 			switch(key)
-			{	case nIterations:
-					pl.get(e.residualMinimizerParams.nIterations, 10, "value");
-				case energyDiffThreshold:
-					pl.get(e.residualMinimizerParams.energyDiffThreshold, 1e-6, "energyDiffThreshold");
+			{	case energyDiffThreshold:
+					pl.get(e.residualMinimizerParams.energyDiffThreshold, 1e-6, "energyDiffThreshold", true);
+					break;
 				case mixedVariable:
-					pl.get(e.residualMinimizerParams.mixedVariable, density, resMinMixing,"mixedVariable");
+					pl.get(e.residualMinimizerParams.mixedVariable, density, resMinMixing, "mixedVariable", true);
+					break;
+				case nIterations:
+					pl.get(e.residualMinimizerParams.nIterations, 10, "nIterations", true);
+					break;
+				case vectorExtrapolationMethod:
+					pl.get(e.residualMinimizerParams.vectorExtrapolationMethod, plainMixing, resMinExtrapolation, "vectorExtrapolationMethod", true);
+					break;
 				case scfDelim: return; //end of input
 			}
 			
@@ -85,6 +99,7 @@ struct CommandsScfParams: public Command
 		PRINT(nIterations, %i)
 		PRINT(energyDiffThreshold, %lg)
 		logPrintf(" \\\n\tmixedVariable\t%s", resMinMixing.getString(e.residualMinimizerParams.mixedVariable));
+		logPrintf(" \\\n\tvectorExtrapolationMethod\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolationMethod));
 	} 
 	
 } commandsScfParams;

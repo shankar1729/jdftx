@@ -151,6 +151,14 @@ matrix matrix::operator()(int iStart, int iStop, int jStart, int jStop) const
 	return ret;
 }
 
+void matrix::set(int i, int j, complex m)
+{	assert(i<nr and i>=0);
+	assert(j<nc and j>=0);
+	
+	complex* thisData = this->data();
+	thisData[this->index(i, j)] = m;
+}
+
 void matrix::set(int iStart, int iStop, int jStart, int jStop, const matrix& m)
 {	assert(iStart>=0 && iStart<nr);
 	assert(iStop>iStart && iStop<=nr);

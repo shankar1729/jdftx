@@ -75,6 +75,9 @@ public:
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop) with arbitrary increments
 	matrix operator()(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop) const;
 
+	//! set element to m
+	void set(int i, int j, complex m);
+	
 	//! set submatrix to m
 	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m);
 	

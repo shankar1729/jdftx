@@ -36,9 +36,16 @@ class SCF
 	private:
 		Everything& e;
 		
+		matrix overlap; //! Overlap matrix of density/potential residuals
+		
 		//! Mixes densities or Vscloc and Vtau
-		void mixHamiltonian(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+		void mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 							DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);
+		
+		//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
+		void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
+				  std::vector<DataRptrCollection>& pastResiduals);
 	
 };
 
