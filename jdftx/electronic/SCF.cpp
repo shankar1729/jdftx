@@ -26,6 +26,7 @@ SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.resi
 	switch(rp.vectorExtrapolationMethod)
 	{	case Anderson:
 			rp.history = 2;
+			Citations::add("Anderson vector extrapolation method for residual minimization.", "J Assoc. Comput. Mach., Vol. 12, No 4, 547-560 (1965)");
 			break;
 		case DIIS:
 			rp.history = 4;
@@ -63,7 +64,7 @@ void SCF::minimize()
 	// It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
 	DataRptrCollection& variable_n = (rp.mixedVariable == density ? eVars.n : eVars.Vscloc);
 	DataRptrCollection& variable_tau = (rp.mixedVariable == density ? eVars.tau : eVars.Vtau);
-	logPrintf("\nWill mix electronic and kinetic potential %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
+	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
 	
 	// Set up variable history for vector extrapolation
 	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals;
@@ -77,7 +78,7 @@ void SCF::minimize()
 		if((pastResiduals.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
 		{	pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
-			if(rp.vectorExtrapolationMethod != plainMixing)
+			if(rp.vectorExtrapolationMethod != plain)
 				pastResiduals.erase(pastResiduals.begin());
 		}
 		
@@ -110,7 +111,7 @@ void SCF::minimize()
 		}
 		else
 		{	
-			if((rp.vectorExtrapolationMethod == plainMixing))
+			if((rp.vectorExtrapolationMethod == plain))
 				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
 			else if(rp.vectorExtrapolationMethod == Anderson)
 			{	cacheResidual
@@ -217,15 +218,12 @@ void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variab
 	// compute the change in the residual
 	DataRptrCollection deltaResidual = pastResiduals[1] - pastResiduals[0];
 	
-	double R0 = dot(pastResiduals[0],pastResiduals[0]);
-	double R1 = dot(pastResiduals[1],pastResiduals[1]);
-	double dR = dot(deltaResidual, deltaResidual);
-	double angle = (180./M_PI)*acos(dot(pastResiduals[0], pastResiduals[1])/sqrt(R0*R1));
-	double alpha = -dot(pastResiduals[0],deltaResidual)/dot(deltaResidual, deltaResidual);
-	logPrintf("\tmixingFraction = %f\tR0: %.3e\tR1: %.3e\tdR: %.3e\tangle: %f\n", alpha, sqrt(R0), sqrt(R1), sqrt(dR), angle);
+	//double alpha = -dot(pastResiduals[0],deltaResidual)/dot(deltaResidual, deltaResidual);
+	double alpha = dot(pastResiduals[1], deltaResidual)/dot(deltaResidual, deltaResidual);
+	logPrintf("\tmixingFraction = %f\n", 1-alpha);
 	
-	if(alpha > 1.)
-	{	logPrintf("\tDetected mixingFraction > 1, probably not in the linear regime.  Doing a plain mixing step, resetting variable history.\n");
+	if((1-alpha) > 0.80 or (1-alpha) < 0.)
+	{	logPrintf("\tDetected too agressive mixing fraction, resetting variable history.\n");
 		mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
 		pastResiduals.clear();
 		pastVariables_n.clear();
@@ -233,6 +231,6 @@ void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variab
 		return;
 	}
 	
-	variable_n = alpha*pastVariables_n[1] + (1-alpha)*pastVariables_n[0];
+	variable_n = (1.-alpha)*(pastVariables_n[1]+pastResiduals[1]) + alpha*(pastVariables_n[0]+pastResiduals[0]);
 	ifTau(variable_tau = alpha*pastVariables_tau[1] + (1-alpha)*pastVariables_tau[0])
 }
