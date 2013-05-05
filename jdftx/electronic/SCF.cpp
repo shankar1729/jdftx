@@ -21,12 +21,29 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.residualMinimizerParams.history, false)
 {
+	// set up the cacheing size
+	ResidualMinimizerParams& rp = e.residualMinimizerParams;
+	switch(rp.vectorExtrapolationMethod)
+	{	case Anderson:
+			rp.history = 2;
+			break;
+		case DIIS:
+			rp.history = 4;
+			break;
+		default:
+			rp.history = 1;	
+			break;
+	}
+	
 }
 
 #define ifTau(command) if(e.exCorr.needsKEdensity()) command;
 
 #define overlapResiduals(r1, r2) \
-	(integral(r1[0]*r2[0]) + (r1.size() == 2 ? integral(r1[1]*r2[1]) : 0.))		
+	(integral(r1[0]*r2[0]) + (r1.size() == 2 ? integral(r1[1]*r2[1]) : 0.))
+	
+#define	cacheResidual \
+	pastResiduals.push_back(variable_n - pastVariables_n.back());
 
 void SCF::minimize()
 {
@@ -58,10 +75,10 @@ void SCF::minimize()
 	{	
 		// Clear history if full
 		if((pastResiduals.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
-		{	pastVariables_n.clear();
-			ifTau(pastVariables_tau.clear())
-			if(rp.vectorExtrapolationMethod == DIIS)
-				pastResiduals.clear();
+		{	pastVariables_n.erase(pastVariables_n.begin());
+			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
+			if(rp.vectorExtrapolationMethod != plainMixing)
+				pastResiduals.erase(pastResiduals.begin());
 		}
 		
 		// Cache the old energy and variables
@@ -71,32 +88,36 @@ void SCF::minimize()
 		
 		// Solve at fixed hamiltonian
 		e.cntrl.fixed_n = true; e.ener = Energies();
-		logSuspend();
+		logSuspend(); e.elecMinParams.fpLog = nullLog;
 		for(int q = 0; q < eInfo.nStates; q++)
 		{	
 			BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
 		}
-		logResume();
+		logResume(); e.elecMinParams.fpLog = globalLog;
 		e.cntrl.fixed_n = false; e.ener = Energies();
 		
 		// Compute new density and energy
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
-		logPrintf("SCF Iter: %i\tEprev: %f\tdE: %.2e\tEtot: %f\n\n", scfCounter, Eprev, E-Eprev, E);
+		logPrintf("ResidualMinimize: Iter:\t%i\tEtot: %.15e\tdE: %.3e\n", scfCounter, E, E-Eprev);
 		
 		// Check for convergence, mix density or potential if otherwise
 		if(fabs(E-Eprev) < rp.energyDiffThreshold)
-		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n", rp.energyDiffThreshold);
+		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n\n", rp.energyDiffThreshold);
 			break;
 		}
 		else
 		{	
 			if((rp.vectorExtrapolationMethod == plainMixing))
 				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
+			else if(rp.vectorExtrapolationMethod == Anderson)
+			{	cacheResidual
+				mixAnderson(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals);
+			}
 			else if(rp.vectorExtrapolationMethod == DIIS)
-			{			
+			{	cacheResidual
 				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals);
 			}
 		
@@ -104,18 +125,16 @@ void SCF::minimize()
 			if(e.residualMinimizerParams.mixedVariable == density)
 				e.eVars.EdensityAndVscloc(e.ener);
 		}
-	}
 	
+		logFlush();
+	}
 }
 
 void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-						 DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction)
+						 DataRptrCollection& mixingVariable, DataRptrCollection& mixingVariable_tau, double mixFraction)
 {		// Mix old and new variable
-		for(size_t s=0; s<e.eVars.n.size(); s++)
-		{	variable_n[s] = mixFraction*variable_n[s] + (1.-mixFraction)*prevVariable_n[s];
-			if(e.exCorr.needsKEdensity())
-				e.eVars.tau[s] = mixFraction*variable_tau[s] + (1.-mixFraction)*prevVariable_tau[s];
-		}
+		variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable;
+		ifTau(variable_n = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau;)
 }
 
 void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
@@ -124,11 +143,6 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 {
 	
 	logPrintf("\nWARNING: DIIS is still very experimental.  Exercise extreme caution when using it.\n");
-	
-	// Cache the current residual
-	DataRptrCollection temp = clone(variable_n);
-	axpy(-1., pastVariables_n.back(), temp);
-	pastResiduals.push_back(clone(temp));
 	
 	// dimension of the subspace over which minimization is done
 	size_t ndim = pastResiduals.size();
@@ -184,4 +198,41 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	
 	logPrintf("\n\tTotal electron check: %f\n\n", integral(e.eVars.n[0]));
 	logPrintf("\n\tThis residual: %f \t New residual: %f\n\n", overlapResiduals(pastResiduals.back(), pastResiduals.back()), overlapResiduals(residual, residual));
+}
+
+void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+					  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
+					  std::vector< DataRptrCollection >& pastResiduals)
+{
+	// do a plain mixing for the first iteration
+	if(pastResiduals.size() == 1)
+	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
+		return;
+	}
+	
+	assert(pastResiduals.size() == 2);
+	assert(pastVariables_n.size() == 2);
+	ifTau(assert(pastVariables_tau.size() == 2))
+	
+	// compute the change in the residual
+	DataRptrCollection deltaResidual = pastResiduals[1] - pastResiduals[0];
+	
+	double R0 = dot(pastResiduals[0],pastResiduals[0]);
+	double R1 = dot(pastResiduals[1],pastResiduals[1]);
+	double dR = dot(deltaResidual, deltaResidual);
+	double angle = (180./M_PI)*acos(dot(pastResiduals[0], pastResiduals[1])/sqrt(R0*R1));
+	double alpha = -dot(pastResiduals[0],deltaResidual)/dot(deltaResidual, deltaResidual);
+	logPrintf("\tmixingFraction = %f\tR0: %.3e\tR1: %.3e\tdR: %.3e\tangle: %f\n", alpha, sqrt(R0), sqrt(R1), sqrt(dR), angle);
+	
+	if(alpha > 1.)
+	{	logPrintf("\tDetected mixingFraction > 1, probably not in the linear regime.  Doing a plain mixing step, resetting variable history.\n");
+		mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
+		pastResiduals.clear();
+		pastVariables_n.clear();
+		ifTau(pastVariables_tau.clear())
+		return;
+	}
+	
+	variable_n = alpha*pastVariables_n[1] + (1-alpha)*pastVariables_n[0];
+	ifTau(variable_tau = alpha*pastVariables_tau[1] + (1-alpha)*pastVariables_tau[0])
 }

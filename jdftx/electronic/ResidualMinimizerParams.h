@@ -31,6 +31,7 @@ enum MixedVariable
 enum VectorExtrapolationMethod
 {
 	plainMixing,  //! No vector extrapolation, just half-mixes the new density
+	Anderson,  //! Caches and mixes the previous density only. (Named after D. G. Anderson)
 	DIIS   //! Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
 };
 
@@ -48,12 +49,6 @@ struct ResidualMinimizerParams
 		energyDiffThreshold = 1e-6;
 		mixedVariable = potential;
 		vectorExtrapolationMethod = plainMixing;
-		
-		// Keep history to minimum if no extrapolation is going to be done
-		if(vectorExtrapolationMethod == plainMixing)
-			history = 1;
-		else
-			history = 4;
 	}
 	
 };

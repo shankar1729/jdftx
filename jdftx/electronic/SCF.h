@@ -47,6 +47,13 @@ class SCF
 				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
 				  std::vector<DataRptrCollection>& pastResiduals);
 	
+		//! Anderson mixing, using only the previous density.
+		void mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
+				  std::vector<DataRptrCollection>& pastResiduals);
+		
+		//! Caches the current residual
+		void cacheResidual();
 };
 
 #endif

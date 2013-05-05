@@ -50,6 +50,7 @@ EnumStringMap<MixedVariable> resMinMixing
 
 EnumStringMap<VectorExtrapolationMethod> resMinExtrapolation
 (	plainMixing, "plainMixing",
+	Anderson, "Anderson",
 	DIIS, "DIIS"
 );
 
@@ -84,7 +85,7 @@ struct CommandsScfParams: public Command
 					pl.get(e.residualMinimizerParams.nIterations, 10, "nIterations", true);
 					break;
 				case vectorExtrapolationMethod:
-					pl.get(e.residualMinimizerParams.vectorExtrapolationMethod, plainMixing, resMinExtrapolation, "vectorExtrapolationMethod", true);
+					pl.get(e.residualMinimizerParams.vectorExtrapolationMethod, plainMixing, resMinExtrapolation, "vectorExtrapolationMethod", true);					
 					break;
 				case scfDelim: return; //end of input
 			}

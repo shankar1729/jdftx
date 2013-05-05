@@ -38,12 +38,43 @@ template<typename T> TptrCollection& operator*=(TptrCollection& x, double alpha)
 { 	for(unsigned i=0; i<x.size(); i++) x[i] *= alpha;
 	return x;
 }
+template<class T> TptrCollection operator*(const TptrCollection& in, double scaleFac) { 
+	 TptrCollection out(clone(in)); return out *= scaleFac;
+}
+template<class T> TptrCollection operator*(double scaleFac, const TptrCollection& in) { 
+	 TptrCollection out(clone(in)); return out *= scaleFac;
+}
+template<class T> TptrCollection operator*(TptrCollection&& in, double scaleFac) { return in *= scaleFac; } //!< Add (destructible input)
+template<class T> TptrCollection operator*(double scaleFac, TptrCollection&& in) { return in *= scaleFac; } //!< Add (destructible input)
 
 //! y += alpha x
 template<typename T> void axpy(double alpha, const TptrCollection& x, TptrCollection& y)
 {	assert(x.size()==y.size());
 	for(unsigned i=0; i<x.size(); i++) axpy(alpha, x[i], y[i]);
 }
+
+//! Increment
+template<class T> TptrCollection& operator+=(TptrCollection& in, const TptrCollection& other) { axpy(+1.0, other, in); return in; }
+//! Decrement
+template<class T> TptrCollection& operator-=(TptrCollection& in, const TptrCollection& other) { axpy(-1.0, other, in); return in; }
+
+// Addition
+template<class T> TptrCollection operator+(const TptrCollection& in1, const TptrCollection& in2) { //!< Add (destructible inputs)
+	TptrCollection out(clone(in1)); 
+	return out += in2; 
+} 
+template<class T> TptrCollection operator+(const TptrCollection& in1, TptrCollection&& in2) { return in2 += in1; } //!< Add (destructible input)
+template<class T> TptrCollection operator+(TptrCollection&& in1, const TptrCollection& in2) { return in1 += in2; } //!< Add (destructible input)
+template<class T> TptrCollection operator+(TptrCollection&& in1, TptrCollection&& in2) { return in1 += in2; } //!< Add (destructible inputs)
+
+// Subtraction
+template<class T> TptrCollection operator-(const TptrCollection& in1, const TptrCollection& in2) { //!< Add (destructible inputs)
+	TptrCollection out(clone(in1)); 
+	return out -= in2; 
+} 
+template<class T> TptrCollection operator-(const TptrCollection& in1, TptrCollection&& in2) { return in2 -= in1; } //!< Add (destructible inputs)
+template<class T> TptrCollection operator-(TptrCollection&& in1, const TptrCollection& in2) { return in1 -= in2; } //!< Add (destructible inputs)
+template<class T> TptrCollection operator-(TptrCollection&& in1, TptrCollection&& in2) { return in1 -= in2; } //!< Add (destructible inputs)
 
 //! Inner product
 template<typename T> double dot(const TptrCollection& x, const TptrCollection& y)
