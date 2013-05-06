@@ -26,7 +26,6 @@ SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.resi
 	switch(rp.vectorExtrapolationMethod)
 	{	case Anderson:
 			rp.history = 2;
-			Citations::add("Anderson vector extrapolation method for residual minimization.", "J Assoc. Comput. Mach., Vol. 12, No 4, 547-560 (1965)");
 			break;
 		case DIIS:
 			rp.history = 4;
@@ -43,8 +42,8 @@ SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.resi
 #define overlapResiduals(r1, r2) \
 	(integral(r1[0]*r2[0]) + (r1.size() == 2 ? integral(r1[1]*r2[1]) : 0.))
 	
-#define	cacheResidual \
-	pastResiduals.push_back(variable_n - pastVariables_n.back());
+#define	cacheResidual(var) \
+	pastResiduals_ ## var.push_back(variable_ ## var - pastVariables_ ## var.back());
 
 void SCF::minimize()
 {
@@ -67,7 +66,7 @@ void SCF::minimize()
 	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
 	
 	// Set up variable history for vector extrapolation
-	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals;
+	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
 	
 	double Eprev = 0, E;
 	
@@ -75,11 +74,13 @@ void SCF::minimize()
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
 	{	
 		// Clear history if full
-		if((pastResiduals.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
+		if((pastResiduals_n.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
 		{	pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
 			if(rp.vectorExtrapolationMethod != plain)
-				pastResiduals.erase(pastResiduals.begin());
+			{	pastResiduals_n.erase(pastResiduals_n.begin());
+				ifTau(pastResiduals_tau.erase(pastResiduals_tau.begin()););
+			}
 		}
 		
 		// Cache the old energy and variables
@@ -112,45 +113,47 @@ void SCF::minimize()
 		else
 		{	
 			if((rp.vectorExtrapolationMethod == plain))
-				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
+				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
 			else if(rp.vectorExtrapolationMethod == Anderson)
-			{	cacheResidual
-				mixAnderson(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals);
+			{	cacheResidual(n)
+				ifTau(cacheResidual(tau))
+				mixAnderson(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
 			}
 			else if(rp.vectorExtrapolationMethod == DIIS)
-			{	cacheResidual
-				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals);
+			{	cacheResidual(n)
+				ifTau(cacheResidual(tau))
+				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
 			}
 		
 			// Recompute Vscloc if mixing density
 			if(e.residualMinimizerParams.mixedVariable == density)
 				e.eVars.EdensityAndVscloc(e.ener);
 		}
-	
+		
 		logFlush();
 	}
 }
 
 void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-						 DataRptrCollection& mixingVariable, DataRptrCollection& mixingVariable_tau, double mixFraction)
+						 DataRptrCollection& mixingVariable_n, DataRptrCollection& mixingVariable_tau, double mixFraction)
 {		// Mix old and new variable
-		variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable;
-		ifTau(variable_n = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau;)
+		variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable_n;
+		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau;)
 }
 
 void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
-				  std::vector< DataRptrCollection >& pastResiduals)
+				  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
 {
 	
 	logPrintf("\nWARNING: DIIS is still very experimental.  Exercise extreme caution when using it.\n");
 	
 	// dimension of the subspace over which minimization is done
-	size_t ndim = pastResiduals.size();
+	size_t ndim = pastResiduals_n.size();
 	
 	// Compute the overlap of the new residual with the older ones
 	for(size_t j=0; j<ndim; j++)
-	{	double tempOverlap = overlapResiduals(pastResiduals[j], pastResiduals.back());
+	{	double tempOverlap = overlapResiduals(pastResiduals_n[j], pastResiduals_n.back());
 		overlap.set(j, ndim-1, tempOverlap);
 		if(j != ndim-1) overlap.set(ndim-1, j, tempOverlap);
 	}
@@ -182,7 +185,7 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	logPrintf("\n\tNorm: %f\n", norm);
 	
 	// updates variables
-	DataRptrCollection residual = clone(pastResiduals.back());
+	DataRptrCollection residual = clone(pastResiduals_n.back());
 	for(size_t s=0; s<e.eVars.n.size(); s++)
 	{	variable_n[s] *= 0.;
 		residual[s] *= 0.;
@@ -192,45 +195,47 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	{	double weight = overlapEvecs.data()[overlapEvecs.index(j, 0)].real()/norm;
 		for(size_t s=0; s<e.eVars.n.size(); s++)
 		{	variable_n[s] += weight*pastVariables_n[j][s];
-			residual[s] += weight*pastResiduals[j][s];
+			residual[s] += weight*pastResiduals_n[j][s];
 			ifTau(variable_tau[s] += weight*pastVariables_tau[j][s])
 		}
 	}
 	
 	logPrintf("\n\tTotal electron check: %f\n\n", integral(e.eVars.n[0]));
-	logPrintf("\n\tThis residual: %f \t New residual: %f\n\n", overlapResiduals(pastResiduals.back(), pastResiduals.back()), overlapResiduals(residual, residual));
+	logPrintf("\n\tThis residual: %f \t New residual: %f\n\n", overlapResiduals(pastResiduals_n.back(), pastResiduals_n.back()), overlapResiduals(residual, residual));
 }
 
 void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 					  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
-					  std::vector< DataRptrCollection >& pastResiduals)
+					  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
 {
 	// do a plain mixing for the first iteration
-	if(pastResiduals.size() == 1)
+	if(pastResiduals_n.size() == 1)
 	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
 		return;
 	}
 	
-	assert(pastResiduals.size() == 2);
+	assert(pastResiduals_n.size() == 2);
 	assert(pastVariables_n.size() == 2);
 	ifTau(assert(pastVariables_tau.size() == 2))
+	ifTau(assert(pastResiduals_tau.size() == 2))
 	
 	// compute the change in the residual
-	DataRptrCollection deltaResidual = pastResiduals[1] - pastResiduals[0];
+	DataRptrCollection deltaResidual = pastResiduals_n[1] - pastResiduals_n[0];
 	
 	//double alpha = -dot(pastResiduals[0],deltaResidual)/dot(deltaResidual, deltaResidual);
-	double alpha = dot(pastResiduals[1], deltaResidual)/dot(deltaResidual, deltaResidual);
+	double alpha = dot(pastResiduals_n[1], deltaResidual)/dot(deltaResidual, deltaResidual);
 	logPrintf("\tmixingFraction = %f\n", 1-alpha);
 	
 	if((1-alpha) > 0.80 or (1-alpha) < 0.)
 	{	logPrintf("\tDetected too agressive mixing fraction, resetting variable history.\n");
 		mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
-		pastResiduals.clear();
+		pastResiduals_n.clear();
 		pastVariables_n.clear();
 		ifTau(pastVariables_tau.clear())
+		ifTau(pastResiduals_tau.clear())
 		return;
 	}
 	
-	variable_n = (1.-alpha)*(pastVariables_n[1]+pastResiduals[1]) + alpha*(pastVariables_n[0]+pastResiduals[0]);
-	ifTau(variable_tau = alpha*pastVariables_tau[1] + (1-alpha)*pastVariables_tau[0])
+	variable_n = (1.-alpha)*(pastVariables_n[1]+pastResiduals_n[1]) + alpha*(pastVariables_n[0]+pastResiduals_n[0]);
+	ifTau(variable_tau = (1.-alpha)*(pastVariables_tau[1]+pastResiduals_tau[1]) + alpha*(pastVariables_tau[0]+pastResiduals_tau[0]))
 }

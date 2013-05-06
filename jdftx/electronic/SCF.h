@@ -45,12 +45,12 @@ class SCF
 		//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
 		void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
-				  std::vector<DataRptrCollection>& pastResiduals);
+				  std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
 	
 		//! Anderson mixing, using only the previous density.
 		void mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
-				  std::vector<DataRptrCollection>& pastResiduals);
+				  std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
 		
 		//! Caches the current residual
 		void cacheResidual();
