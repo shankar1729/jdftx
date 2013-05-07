@@ -547,8 +547,8 @@ void ElecVars::orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 	}
 
 	//Scale wavefunction gradients by state weight:
+	//Preconditioned gradient does not get multiplied by the quantum number weight (increases performance)
 	gradYq *= qnum.weight;
-	if(KgradYq) *KgradYq *= qnum.weight;
 
 	//Project out fixed directions from gradient (if any):
 	if(e->cntrl.fixOccupied)
