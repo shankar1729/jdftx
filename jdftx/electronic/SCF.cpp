@@ -68,7 +68,7 @@ void SCF::minimize()
 	// Set up variable history for vector extrapolation
 	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
 	
-	double Eprev = 0, E;
+	double Eprev = 0., E = 0.;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
