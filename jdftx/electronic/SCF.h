@@ -51,9 +51,6 @@ class SCF
 		void mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
 				  std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
-		
-		//! Caches the current residual
-		void cacheResidual();
 };
 
 #endif

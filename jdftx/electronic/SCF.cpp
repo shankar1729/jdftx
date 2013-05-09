@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SCF.h>
 
-SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.residualMinimizerParams.history, false)
+SCF::SCF(Everything& e): e(e)
 {
 	// set up the cacheing size
 	ResidualMinimizerParams& rp = e.residualMinimizerParams;
@@ -34,6 +34,8 @@ SCF::SCF(Everything& e): e(e), overlap(e.residualMinimizerParams.history, e.resi
 			rp.history = 1;	
 			break;
 	}
+	
+	overlap.init(e.residualMinimizerParams.history, e.residualMinimizerParams.history);
 	
 }
 
@@ -75,7 +77,8 @@ void SCF::minimize()
 	{	
 		// Clear history if full
 		if((pastResiduals_n.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
-		{	pastVariables_n.erase(pastVariables_n.begin());
+		{	double ndim = pastResiduals_n.size(); overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
+			pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
 			if(rp.vectorExtrapolationMethod != plain)
 			{	pastResiduals_n.erase(pastResiduals_n.begin());
@@ -135,73 +138,51 @@ void SCF::minimize()
 }
 
 void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-						 DataRptrCollection& mixingVariable_n, DataRptrCollection& mixingVariable_tau, double mixFraction)
+					DataRptrCollection& mixingVariable_n, DataRptrCollection& mixingVariable_tau, double mixFraction)
 {		// Mix old and new variable
 		variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable_n;
-		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau;)
+		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
 }
 
 void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
 				  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
 {
-	
-	logPrintf("\nWARNING: DIIS is still very experimental.  Exercise extreme caution when using it.\n");
-	
-	// dimension of the subspace over which minimization is done
 	size_t ndim = pastResiduals_n.size();
 	
-	// Compute the overlap of the new residual with the older ones
+	// Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double tempOverlap = overlapResiduals(pastResiduals_n[j], pastResiduals_n.back());
-		overlap.set(j, ndim-1, tempOverlap);
-		if(j != ndim-1) overlap.set(ndim-1, j, tempOverlap);
+	{	double thisOverlap = dot(pastResiduals_n[j], pastResiduals_n.back());
+		overlap.set(j, ndim-1, thisOverlap);
+		if(j != ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}
 	
-	// if only 1 previous density exists, then does plain mixing
-	if(ndim != e.residualMinimizerParams.history)
+	// If the number of dimensions not equal to history, do a plain mixing
+	if(ndim < e.residualMinimizerParams.history)
 	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
 		return;
 	}
 	
 	// diagonalize the residual overlap matrix to get the minimum of residual
-	matrix thisOverlap = overlap(0, ndim, 0, ndim);
-	matrix overlapEvecs(ndim, ndim); diagMatrix overlapEigs(ndim);
-	thisOverlap.diagonalize(overlapEvecs, overlapEigs);
-	
-/*	logPrintf("Overlap Matrix:\n");
-	thisOverlap.print_real(globalLog);
-	logPrintf("\nOverlap Eigs:\n");
-	overlapEigs.print(globalLog);
-	logPrintf("\nOverlap Evecs:\n");
-	overlapEvecs.print_real(globalLog);
-	logPrintf("\n");
-*/
-
-	// normalizes the coefs of the eigenvector so that sum(x_i) = 1.
-	double norm = 0.;
+	matrix constrainedOverlap(ndim+1, ndim+1);
+	constrainedOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
 	for(size_t j=0; j<ndim; j++)
-		norm += overlapEvecs.data()[overlapEvecs.index(j, 0)].real();
-	logPrintf("\n\tNorm: %f\n", norm);
-	
-	// updates variables
-	DataRptrCollection residual = clone(pastResiduals_n.back());
-	for(size_t s=0; s<e.eVars.n.size(); s++)
-	{	variable_n[s] *= 0.;
-		residual[s] *= 0.;
-		ifTau(variable_tau[s] *= 0.)
+	{	constrainedOverlap.set(j, ndim, 1);
+		constrainedOverlap.set(ndim, j, 1);
 	}
+	constrainedOverlap.set(ndim, ndim, 0);
+	
+	matrix constrainedOverlap_inv = inv(constrainedOverlap);
+	
+	initZero(variable_n);
+	ifTau(initZero(variable_tau))
 	for(size_t j=0; j<ndim; j++)
-	{	double weight = overlapEvecs.data()[overlapEvecs.index(j, 0)].real()/norm;
-		for(size_t s=0; s<e.eVars.n.size(); s++)
-		{	variable_n[s] += weight*pastVariables_n[j][s];
-			residual[s] += weight*pastResiduals_n[j][s];
-			ifTau(variable_tau[s] += weight*pastVariables_tau[j][s])
-		}
+	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * (0.5*pastResiduals_n[j] + pastVariables_n[j]);
+		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * (0.5*pastResiduals_tau[j] + pastVariables_tau[j]))
 	}
 	
-	logPrintf("\n\tTotal electron check: %f\n\n", integral(e.eVars.n[0]));
-	logPrintf("\n\tThis residual: %f \t New residual: %f\n\n", overlapResiduals(pastResiduals_n.back(), pastResiduals_n.back()), overlapResiduals(residual, residual));
+	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", constrainedOverlap_inv.data()[constrainedOverlap_inv.index(ndim, ndim)].real());
+	
 }
 
 void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 

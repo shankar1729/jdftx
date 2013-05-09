@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
 
 This file is part of JDFTx.
 
@@ -52,6 +52,25 @@ template<typename T> void axpy(double alpha, const TptrCollection& x, TptrCollec
 {	assert(x.size()==y.size());
 	for(unsigned i=0; i<x.size(); i++) axpy(alpha, x[i], y[i]);
 }
+
+//! elementise multiply
+inline DataRptrCollection operator*(const DataRptrCollection& x, const DataRptrCollection& y)
+{	assert(x.size()==y.size());
+	DataRptrCollection z(x.size());
+	for(unsigned i=0; i<x.size(); i++) z[i] = x[i]*y[i];
+	return x;
+}
+inline DataRptrCollection operator*(DataRptrCollection&& x, const DataRptrCollection& y)
+{	assert(x.size()==y.size());
+	for(unsigned i=0; i<x.size(); i++) x[i] *= y[i];
+	return x;
+}
+inline DataRptrCollection operator*(const DataRptrCollection& x, DataRptrCollection&& y)
+{	assert(x.size()==y.size());
+	for(unsigned i=0; i<x.size(); i++) y[i] *= x[i];
+	return x;
+}
+
 
 //! Increment
 template<class T> TptrCollection& operator+=(TptrCollection& in, const TptrCollection& other) { axpy(+1.0, other, in); return in; }
