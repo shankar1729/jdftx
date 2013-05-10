@@ -48,7 +48,7 @@ struct ResidualMinimizerParams
 		nIterations = 10;
 		energyDiffThreshold = 1e-6;
 		mixedVariable = potential;
-		vectorExtrapolationMethod = Anderson;
+		vectorExtrapolationMethod = DIIS;
 	}
 	
 };
