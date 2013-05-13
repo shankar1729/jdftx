@@ -111,6 +111,8 @@ bool IonInfo::checkPositions() const
 			{	if(sp1->coreRadius == 0.) continue;
 				for (unsigned n1 = ((sp1==sp) ? (n+1) : 0); n1 < sp1->atpos.size(); n1++)
 				{	vtest[1] = vtest[0] - sp1->atpos[n1];
+					for(int i=0; i<3; i++) // Get periodic distance
+						vtest[1][i] = vtest[1][i] - floor(vtest[1][i] + 0.5);
 					sizetest = sqrt(dot(e->gInfo.R*vtest[1], e->gInfo.R*vtest[1]));
 					if (coreOverlapCondition==additive and (sizetest < (sp->coreRadius + sp1->coreRadius)))
 					{	logPrintf("\nWARNING: %s #%d and %s #%d are closer than the sum of their core radii.",
