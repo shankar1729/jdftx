@@ -76,8 +76,6 @@ public:
 	int NxOld, NyOld, NzOld; //!< fftbox size for the input wavefunction in double space
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	
-	int activeSubspace; //! The active subspace (in state index) the calculation is working on (used for fixed-n calculations). -1 means the entire space.
-
 	//Auxiliary hamiltonian initialization
 	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed

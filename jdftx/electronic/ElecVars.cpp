@@ -178,8 +178,6 @@ void ElecVars::setup(const Everything &everything)
 	}
 	fluidForces.init(iInfo); //initialized to zero
 	
-	activeSubspace = -1;
-	
 	//Citations:
 	Citations::add("Total energy minimization",
 		"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");

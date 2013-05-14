@@ -186,7 +186,6 @@ void elecMinimize(Everything& e)
 			bmin.minimize(e.elecMinParams);
 		}
 		// Recompute energy to get the same Eband as the simultaneous minimization
-		e.eVars.activeSubspace = -1;
 		e.eVars.elecEnergyAndGrad(e.ener);
 	}
 	e.eVars.setEigenvectors();
