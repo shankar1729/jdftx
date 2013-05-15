@@ -116,6 +116,7 @@ struct CommandInitialMagneticMoments : public Command
 		
 		require("ion");
 		require("spintype");
+		forbid("custom-filling");
 	}
 
 	void process(ParamList& pl, Everything& e)
