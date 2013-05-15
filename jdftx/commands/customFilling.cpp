@@ -45,7 +45,7 @@ struct CommandCustomFilling : public Command
 			throw oss.str();
 		}
 		
-		e.eInfo.customFillings.push_back(std::make_tuple(qnum, band, filling));
+		e.eInfo.customFillings.push_back(std::make_tuple(qnum, band, filling/(e.eInfo.spinType == SpinZ ? 1. : 2.)));
 		
 	}
 
