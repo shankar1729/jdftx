@@ -370,13 +370,28 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 		
+		// Dump stress in strain basis units
+		fprintf(fp, "%zu strain basis elements\n", lattMin.strainBasis.size());
+		for(const matrix3<>& s: lattMin.strainBasis)
+		{	s.print(fp, " %lg ");
+			fprintf(fp, "\n");
+		}
+		fprintf(fp, "\n\n");
+		
+		fprintf(fp, "stress (in strain units, magnitudes along directions above)\n");
+		for(size_t j=0; j<lattMin.strainBasis.size(); j++)
+		{	fprintf(fp, "%.5e \t ", stress[j]);
+		}
+		fprintf(fp, "\n\n");
+		
 		// Dump stress in lattice units
-		fprintf(fp, "stress (in lattice units)");
+		fprintf(fp, "stress (in strain units)");
 		for(int j=0; j<3; j++)
 		{	fprintf(fp, " \\\n\t");
 			for(int k=0; k<3; k++)
 				fprintf(fp, "%20.15lf ", stressTensor(j,k));
 		}
+
 		fclose(fp);
 		EndDump
 	}
