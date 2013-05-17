@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/VanDerWaals.h>
+#include <electronic/FluidSolver.h>
 #include <cstdio>
 #include <cmath>
 #include <core/Units.h>
@@ -45,20 +46,6 @@ void IonInfo::setup(const Everything &everything)
 
 	logPrintf("\n---------- Setting up pseudopotentials ----------\n");
 		
-	//Determine maximum G extents for local and non-local pseudopotentials:
-	GmaxNL = sqrt(2.0*e->cntrl.Ecut);
-	GmaxLoc = 0.0;
-	vector3<int> c;
-	for(c[0]=-1; c[0]<=1; c[0]+=2) for(c[1]=-1; c[1]<=1; c[1]+=2) for(c[2]=-1; c[2]<=1; c[2]+=2)
-	{	vector3<> f; for(int k=0; k<3; k++) f[k] = c[k]*(e->gInfo.S[k]/2);
-		double G = sqrt(e->gInfo.GGT.metric_length_squared(f));
-		if(G>GmaxLoc) GmaxLoc=G;
-	}
-	if(e->latticeMinParams.nIterations)
-	{	GmaxNL *= 2.;
-		GmaxLoc *= 2;
-	}
-	
 	//Choose width of the nuclear gaussian:
 	switch(ionWidthMethod)
 	{	case IonWidthManual: break; //manually specified value
@@ -87,8 +74,7 @@ void IonInfo::setup(const Everything &everything)
 	if(not checkPositions())
 		die("\nAtoms are too close, have overlapping pseudopotential cores.\n\n");
 	
-	if(ionWidth && (e->eVars.fluidParams.fluidType != FluidNone) &&
-		(e->eVars.fluidParams.ionicConcentration || e->eVars.fluidParams.hSIons.size()))
+	if(ionWidth && (e->eVars.fluidParams.fluidType != FluidNone) && e->eVars.fluidParams.ionicScreening())
 		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
 }
 
@@ -193,9 +179,6 @@ void IonInfo::update(Energies& ener)
 	ener.E["Epulay"] = dEtot_dnG * 
 		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
 		-  nbasisAvg/e->gInfo.detR ); //actual nG
-	
-	//Update totals:
-	ener.updateTotals();
 }
 
 

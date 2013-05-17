@@ -156,6 +156,7 @@ struct CommandElectronicMinimize : public CommandMinimize
     MinimizeParams& target(Everything& e) { return e.elecMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	//Use default value of 100 iterations from MinimizeParams.h
+		e.elecMinParams.energyDiffThreshold = 1e-8;
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -170,6 +171,8 @@ struct CommandIonicMinimize : public CommandMinimize
     MinimizeParams& target(Everything& e) { return e.ionicMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	e.ionicMinParams.nIterations = 0; //override default value (100) in MinimizeParams.h
+		e.ionicMinParams.energyDiffThreshold = 1e-6;
+		e.ionicMinParams.knormThreshold = 1e-4;
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -182,12 +185,14 @@ struct CommandFluidMinimize : public CommandMinimize
     MinimizeParams& target(Everything& e) { return e.fluidMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	const FluidType& fluidType = e.eVars.fluidParams.fluidType;
-		if(fluidType==FluidLinearPCM
-		|| fluidType==FluidNonlinearPCM
-		|| fluidType==FluidNonlocalPCM)
-			e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
-		e.fluidMinParams.knormThreshold = (fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;
-		e.fluidMinParams.alphaTstart = 3e6; //override default value (1.) in  MinimizeParams.h
+		switch(fluidType)
+		{	case FluidLinearPCM:
+			case FluidNonlocalPCM:
+				e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
+				e.fluidMinParams.knormThreshold = (fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;
+				break;
+			default:;
+		}
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -202,6 +207,7 @@ struct CommandLatticeMinimize : public CommandMinimize
     MinimizeParams& target(Everything& e) { return e.latticeMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	e.latticeMinParams.nIterations = 0; //override default value (100) in MinimizeParams.h
+		e.latticeMinParams.energyDiffThreshold = 1e-6;
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -211,7 +217,7 @@ struct CommandWannierMinimize : public CommandMinimize
 {	CommandWannierMinimize() : CommandMinimize("wannier") {}
     MinimizeParams& target(Everything& e) { return e.dump.wannier.minParams; }
     void process(ParamList& pl, Everything& e)
-	{	e.fluidMinParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
+	{	e.dump.wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
 		CommandMinimize::process(pl, e);
 	}
 }

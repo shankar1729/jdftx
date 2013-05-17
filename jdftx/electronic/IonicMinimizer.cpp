@@ -114,7 +114,7 @@ IonicMinimizer::IonicMinimizer(Everything& e) : e(e)
 {	
 	if(e.cntrl.dragRadius)
 	{	//Initialize the drag shape function:
-		const double dG=0.02; int nGridLoc = int(ceil(e.iInfo.GmaxLoc/dG))+5;
+		const double dG=0.02; int nGridLoc = int(ceil(e.gInfo.GmaxGrid/dG))+5;
 		std::vector<double> f(nGridLoc);
 		for(int i=0; i<nGridLoc; i++)
 		{	double G = i*dG;

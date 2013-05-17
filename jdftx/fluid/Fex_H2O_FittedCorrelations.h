@@ -26,17 +26,13 @@ class Fex_H2O_FittedCorrelations : public Fex
 public:
 	//! Create water with the excess functional from:
 	//! J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010).
-	Fex_H2O_FittedCorrelations(FluidMixture& fluidMixture);
-
-	const Molecule* getMolecule() const { return &molecule; }
-	double get_aDiel() const;
-	double compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const;
-	double computeUniform(const double* N, double* grad_N) const;
+	Fex_H2O_FittedCorrelations(const FluidMixture*, const FluidComponent*);
+    virtual ~Fex_H2O_FittedCorrelations();
+	
+	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double computeUniform(const double* N, double* Phi_N) const;
 private:
-	RealKernel COO, COH, CHH, fex_gauss, siteChargeKernel;
-	SiteProperties propO;
-	SiteProperties propH;
-	Molecule molecule;
+	RadialFunctionG COO, COH, CHH, fex_gauss;
 };
 
 

@@ -226,20 +226,16 @@ DataGptr operator*(const RadialFunctionG& f, const DataGptr& in)
 	return f * ((DataGptr&&)out);
 }
 
-/*complexDataGptr operator*(const RadialFunctionG& f, complexDataGptr&& in)
-{	const GridInfo& gInfo = in->gInfo;
-	#ifdef GPU_ENABLED
-	radialFunctionMultiply_gpu(gInfo.S, gInfo.GGT, in->dataGpu(), f);
-	#else
-	threadLaunch(radialFunctionMultiply_sub, gInfo.nG, gInfo.S, gInfo.GGT, in->data(), f);
-	#endif
+DataGptrVec operator*(const RadialFunctionG& f, DataGptrVec&& in)
+{	for(int k=0; k<3; k++) in[k] = f * (DataGptr&&)in[k];
 	return in;
 }
 
-complexDataGptr operator*(const RadialFunctionG& f, const complexDataGptr& in)
-{	complexDataGptr out(in->clone()); //destructible copy
-	return f * ((complexDataGptr&&)out);
-}*/
+DataGptrVec operator*(const RadialFunctionG& f, const DataGptrVec& in)
+{	DataGptrVec out;
+	for(int k=0; k<3; k++) out[k] = f * in[k];
+	return out;
+}
 
 
 //------------------------------ ColumnBundle operators ---------------------------------

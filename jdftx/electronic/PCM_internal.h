@@ -82,7 +82,7 @@ namespace NonlinearPCMeval
 		double NT, NZ; //!< where T=temperature, N=bulk ionic concentration, Z=charge (all assumed +/- symmetric)
 		double x0plus, x0minus, x0; //!< anion, cation and total packing fractions
 		
-		Screening(bool linear, double T, double Nion, double Zion, double Rplus, double Rminus, double epsBulk); //epsBulk is used only for printing screening length
+		Screening(bool linear, double T, double Nion, double Zion, double VhsPlus, double VhsMinus, double epsBulk); //epsBulk is used only for printing screening length
 		
 		#ifndef __in_a_cu_file__
 		//! Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives

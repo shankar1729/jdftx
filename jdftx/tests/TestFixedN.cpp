@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasMuEps.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 #include <core/Units.h>
 #include <core/DataIO.h>
 
@@ -65,41 +65,27 @@ int main(int argc, char** argv)
 	gInfo.R = Diag(gInfo.S * hGrid);
 	gInfo.initialize();
 
-	//========================  Setup quadrature for angular integration
-	const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
-	SO3quad quad(QuadOctahedron, Zn);
-
-	//----- Translation operator -----
-	//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Constant);
-	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	//TranslationOperatorFourier trans(gInfo);
-
-	PreconditionedFluidMixture fluidMixture(gInfo, 298*Kelvin, 1.0);
-
-	//----- Excess functional -----
-	//Fex_H2O_FittedCorrelations fex(fluidMixture);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-
-	//----- Ideal gas -----
-	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-	IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-
+	double T = 298*Kelvin;
+	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	component.s2quadType = QuadOctahedron;
+	component.Nnorm = 270;
+	
+	PreconditionedFluidMixture fluidMixture(gInfo, T, 1.0);
+	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
-	fluidMixture.setPressure(p);
+	fluidMixture.initialize(p);
 
 	#define geomName "AttractiveWall-3bohr-3.0kT/drop_plane"
 
 	bool loadState=false;
 	const char stateFilename[] = "TestFixedN/" geomName "_state.bin";
 
-	idgas.set_Nnorm(270);
-
 	//Initialize potential: planar wall with attractive well:
-	nullToZero(idgas.V, gInfo);
+	nullToZero(component.idealGas->V, gInfo);
 	double xWall = 0.5*gInfo.R(0,0)-21.0;
 	double dxWall = 2.0;
-	applyFunc_r(gInfo, initAttractiveWall, xWall, dxWall, 100*fex.T, 3.0*fex.T, idgas.V[0]->data());
+	applyFunc_r(gInfo, initAttractiveWall, xWall, dxWall, 100*T, 3.*T, component.idealGas->V[0]->data());
 
 	if(loadState)
 		fluidMixture.loadState(stateFilename);
@@ -119,7 +105,6 @@ int main(int argc, char** argv)
 	}
 
 	MinimizeParams mp;
-	mp.alphaTstart = 1e5;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=10;
 	mp.knormThreshold=1e-11;
@@ -226,7 +211,6 @@ int main(int argc, char** argv)
 
 	MinimizeParams mp;
 	mp.fpLog = gInfo.fpLog;
-	mp.alphaTstart = 3e4;
 	mp.alphaMax = 1e300;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=1000;
@@ -319,7 +303,6 @@ int main(int argc, char** argv)
 	}
 
 	MinimizeParams mp;
-	mp.alphaTstart = 1e5;
 	mp.alphaMax = 1e300;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=20;

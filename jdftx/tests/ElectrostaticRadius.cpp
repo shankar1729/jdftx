@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/operators.h>
 #include <electronic/SpeciesInfo_internal.h>
+#include <electronic/FluidSolver.h>
 #include <commands/parser.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
@@ -178,8 +179,9 @@ int main(int argc, char** argv)
 	V.setColumn(V.nCols()-1, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
 	
 	//Get liquid properties:
-	double Nbulk = e.eVars.fluidParams.Nbulk;
-	double epsBulk = e.eVars.fluidParams.epsBulk;
+	if(e.eVars.fluidParams.solvents.size()!=1) die("Fluid must include exactly one solvent component.\n");
+	double Nbulk = e.eVars.fluidParams.solvents[0]->Nbulk;
+	double epsBulk = e.eVars.fluidSolver->epsBulk;
 	DataRptrVec rArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data()); //Create array of r in real space
 	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
 	//Compute mean field dielectric constant

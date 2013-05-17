@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fmix.h>
 
 //! Initialize kernel to the attarctive part of a Lennard-Jones potential
-void setLJatt(RealKernel& kernel, double eps, double sigma);
+void setLJatt(RadialFunctionG& kernel, const GridInfo& gInfo, double eps, double sigma);
 
 
 //! Lennard Jones fluid treated as a mean field perturbation about a soft FMT core
@@ -35,40 +35,34 @@ class Fex_LJ : public Fex
 {
 public:
 
-	//! Create a fluid of Lennard-Jones particles with well-depth eps and diameter sigma
-	//! name sets the label of the single site of the molecule
-	//! The particles can optionally be charged, the charge kernel is set to a gaussian of width equal to the core radius
-	Fex_LJ(FluidMixture& fluidMixture, double eps, double sigma, string name, double Q=0.0);
-	~Fex_LJ();
-
-	const Molecule* getMolecule() const { return &molecule; }
-	double get_aDiel() const { return 1.0; };
-	double compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const;
-	double computeUniform(const double* N, double* grad_N) const;
+	//! Create a fluid of Lennard-Jones particles with well-depth eps
+	//! The range parameter sigma is set to the hard sphere diameter of the first site
+	Fex_LJ(const FluidMixture*, const FluidComponent*, double eps);
+    virtual ~Fex_LJ();
+	
+	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double computeUniform(const double* N, double* Phi_N) const;
 private:
 	friend class Fmix_LJ; //allow Fmix_LJ to peek at eps and sigma to select coupling parameters
 	double eps, sigma;
-	RealKernel* Qkernel;
-	SiteProperties prop;
-	Molecule molecule;
-	RealKernel ljatt;
+	RadialFunctionG ljatt;
 };
 
-//! Interaction functional for two Lennard-Jones fluids
+//! Lennard-Jones interaction functional
 class Fmix_LJ : public Fmix
 {
 public:
 	//! Add a lennard-jones coupling between two LJ fluid
 	//! with parameters set using the Lorentz-Berthelot Mixing Rules
-	Fmix_LJ(const Fex_LJ& fluid1, const Fex_LJ& fluid2);
-
+	Fmix_LJ(FluidMixture*, const FluidComponent* fluid1, const FluidComponent* fluid2, double eps, double sigma);
+    virtual ~Fmix_LJ();
 	string getName() const;
 
-	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const;
-	double computeUniform(const std::vector<double>& N, std::vector<double>& grad_N) const;
+	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
+	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
 private:
-	const Fex_LJ &fluid1, &fluid2;
-	RealKernel ljatt;
+	const FluidComponent &fluid1, &fluid2;
+	RadialFunctionG ljatt;
 };
 
 #endif // JDFTX_FLUID_FEX_LJ_H

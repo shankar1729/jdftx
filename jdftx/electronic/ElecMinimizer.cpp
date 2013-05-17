@@ -243,11 +243,13 @@ void elecFluidMinimize(Everything &e)
 	else
 	{	//gummel loop
 		logPrintf("\n-------- Electron <-> Fluid self-consistency loop -----------\n"); logFlush();
+		double dAtyp = 1.;
 		for(int iGummel=0; iGummel<cntrl.fluidGummel_nIterations && !killFlag; iGummel++)
 		{
 			//Fluid-side:
 			logPrintf("\n---------------------- Fluid Minimization # %d -----------------------\n", iGummel+1); logFlush();
 			double A_diel_prev = ener.E["A_diel"];
+			e.fluidMinParams.energyDiffThreshold = std::min(1e-5, 0.01*dAtyp);
 			eVars.fluidSolver->minimizeFluid();
 			ener.E["A_diel"] = eVars.fluidSolver->get_Adiel_and_grad(eVars.d_fluid, eVars.V_cavity, eVars.fluidForces)
 						+ (eInfo.nElectrons - e.iInfo.getZtot())*e.iInfo.ionWidthMuCorrection() ;
@@ -256,8 +258,9 @@ void elecFluidMinimize(Everything &e)
 
 			//Electron-side:
 			logPrintf("\n-------------------- Electronic Minimization # %d ---------------------\n", iGummel+1); logFlush();
-			double A_JDFT_prev = relevantFreeEnergy(e) + dAfluid; //add dAfluid because change in Adiel not yet included in Etot
-			elecMinimize(e); 
+			double A_JDFT_prev = relevantFreeEnergy(e);
+			e.elecMinParams.energyDiffThreshold = std::min(1e-5, 0.01*dAtyp);
+			elecMinimize(e);
 			double dAelec = relevantFreeEnergy(e) - A_JDFT_prev;
 			logPrintf("\nElectronic minimization # %d changed total free energy by %le\n", iGummel+1, dAelec);
 			
@@ -265,9 +268,9 @@ void elecFluidMinimize(Everything &e)
 			e.dump(DumpFreq_Gummel, iGummel);
 
 			//Check self-consistency:
-			if(fabs(dAelec)<cntrl.fluidGummel_Atol && fabs(dAfluid)<cntrl.fluidGummel_Atol)
-			{
-				logPrintf("\nFluid<-->Electron self-consistency loop converged to %le hartrees after %d minimization pairs.\n",
+			dAtyp = std::max(fabs(dAfluid), fabs(dAelec));
+			if(dAtyp<cntrl.fluidGummel_Atol)
+			{	logPrintf("\nFluid<-->Electron self-consistency loop converged to %le hartrees after %d minimization pairs.\n",
 					cntrl.fluidGummel_Atol, iGummel+1);
 				return;
 			}

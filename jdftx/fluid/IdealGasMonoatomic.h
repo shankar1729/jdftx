@@ -27,14 +27,12 @@ class IdealGasMonoatomic : public IdealGas
 {
 public:
 	//!Initialize and associate with excess functional fex (and its fluid mixture)
-	IdealGasMonoatomic(Fex* fex, double xBulk);
+	IdealGasMonoatomic(const FluidMixture*, const FluidComponent*);
 
 	void initState(const DataRptr* Vex, DataRptr* psi, double scale, double Elo, double Ehi) const;
-	void getDensities(const DataRptr* psi, DataRptr* N, vector3<>& P) const;
-	double compute(const DataRptr* psi, const DataRptr* N, DataRptr* grad_N,
-		const vector3<>& P, vector3<>& grad_P, const double Nscale, double& grad_Nscale) const;
-	void convertGradients(const DataRptr* psi, const DataRptr* N,
-		const DataRptr* grad_N, vector3<> grad_P, DataRptr* grad_psi, const double Nscale) const;
+	void getDensities(const DataRptr* psi, DataRptr* N, vector3<>& P0) const;
+	double compute(const DataRptr* psi, const DataRptr* N, DataRptr* Phi_N, const double Nscale, double& Phi_Nscale) const;
+	void convertGradients(const DataRptr* psi, const DataRptr* N, const DataRptr* Phi_N, const vector3<>&  Phi_P0, DataRptr* Phi_psi, const double Nscale) const;
 };
 
 #endif // JDFTX_FLUID_IDEALGASMONOATOMIC_H

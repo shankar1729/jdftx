@@ -45,13 +45,12 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
-protected:
-	void printDebug(FILE* fp) const;
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
 	RadialFunctionG nFluid; //electron density model for the fluid
 	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
 	DataRptrCollection siteShape; //shape functions for sites
+	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
 #endif // JDFTX_ELECTRONIC_NONLOCALPCM_H

@@ -114,7 +114,7 @@ void SpeciesInfo::readPot(istream& in)
 	//Local potential:
 	logPrintf("  Local potential:  ");
 	RadialInfo VlocInfo;
-	VlocInfo.readInfo(in, true, e->iInfo.GmaxLoc);
+	VlocInfo.readInfo(in, true, e->gInfo.GmaxGrid);
 	VlocInfo.readFunction(0, VlocRadial);
 	
 	//Non-local potential:
@@ -125,7 +125,7 @@ void SpeciesInfo::readPot(istream& in)
 		std::map<int, AngularInfo> lInfoMap; //map from angular momentum l to info
 		int lMax = 0;
 		for(int lm=0; lm<nlm; lm++)
-		{	AngularInfo temp; temp.readInfoVnl(in, e->iInfo.GmaxNL);
+		{	AngularInfo temp; temp.readInfoVnl(in, e->gInfo.GmaxSphere);
 			if(temp.l > lMax) lMax = temp.l;
 			if(temp.l < 0) die("  Encountered l<0 in pseudopotential.\n");
 			if(lInfoMap.find(temp.l)==lInfoMap.end()) lInfoMap[temp.l] = temp; //new l

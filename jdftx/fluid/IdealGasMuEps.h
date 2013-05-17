@@ -20,32 +20,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_IDEALGASMUEPS_H
 #define JDFTX_FLUID_IDEALGASMUEPS_H
 
-#include <fluid/IdealGas.h>
-#include <fluid/SO3quad.h>
-#include <fluid/TranslationOperator.h>
+#include <fluid/IdealGasPomega.h>
 
 //! IdealGas for polyatomic molecules with the monopole-dipole 'MuEps' independent variables
-class IdealGasMuEps : public IdealGas
+class IdealGasMuEps : public IdealGasPomega
 {
 public:
-	vector3<> Eexternal; //!< External uniform electric field (the Mu-Eps fluid can be uniformly polarized!)
-
 	//!Initialize and associate with excess functional fex (and its fluid mixture)
 	//!Also specify the orientation quadrature and translation operator used for the orientation integrals
-	IdealGasMuEps(Fex* fex, double xBulk, const SO3quad& quad, const TranslationOperator& trans);
+	IdealGasMuEps(const FluidMixture*, const FluidComponent*, const SO3quad& quad, const TranslationOperator& trans);
 
-	void initState(const DataRptr* Vex, DataRptr* mueps, double scale, double Elo, double Ehi) const;
-	void getDensities(const DataRptr* mueps, DataRptr* N, vector3<>& P) const;
-	double compute(const DataRptr* mueps, const DataRptr* N, DataRptr* grad_N,
-		const vector3<>& P, vector3<>& grad_P, const double Nscale, double& grad_Nscale) const;
-	void convertGradients(const DataRptr* mueps, const DataRptr* N,
-		const DataRptr* grad_N, vector3<> grad_P, DataRptr* grad_mueps, const double Nscale) const;
-
-private:
-	const SO3quad& quad; //!< quadrature for orientation integral
-	const TranslationOperator& trans; //!< translation operator for orientation integral
-	int site0mult; //!< multiplicity of the first site
-	double S; //!< cache the entropy, because it is most efficiently computed during getDensities()
+protected:
+	string representationName() const;
+	void initState_o(int o, const matrix3<>& rot, double scale, const DataRptr& Eo, DataRptr* mueps) const;
+	void getDensities_o(int o, const matrix3<>& rot, const DataRptr* mueps, DataRptr& logPomega_o) const;
+	void convertGradients_o(int o, const matrix3<>& rot, const DataRptr& Phi_logPomega_o, DataRptr* Phi_mueps) const;
 };
 
 #endif // JDFTX_FLUID_IDEALGASMUEPS_H

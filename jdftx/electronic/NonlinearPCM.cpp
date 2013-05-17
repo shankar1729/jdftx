@@ -44,20 +44,34 @@ inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEp
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp)
 {
+	const auto& solvent = fsp.solvents[0];
+	pMol = solvent->pMol ? solvent->pMol : solvent->molecule.getDipole().length();
+	
 	//Initialize dielectric evaluation class:
 	dielectricEval = new NonlinearPCMeval::Dielectric(fsp.linearDielectric,
-		fsp.T, fsp.Nbulk, fsp.pMol, fsp.epsBulk, fsp.epsInf);
-	
-	//Optionally initialize screening evaluation class:
-	screeningEval = 0;
-	if(fsp.ionicConcentration)
+		fsp.T, solvent->Nbulk, pMol, epsBulk, solvent->epsInf);
+
+	//Check and setup ionic screening:
+	if(fsp.cations.size() > 1) die("NonlinearPCM currently only supports a single cationic component.\n");
+	if(fsp.anions.size() > 1) die("NonlinearPCM currently only supports a single anionic component.\n");
+	assert(fsp.anions.size() == fsp.cations.size()); //this should be ensured by charge neutrality check in FluidSolver constructor
+	if(fsp.cations.size())
+	{	//Ensure charge balanced:
+		if(fabs(fsp.cations[0]->molecule.getCharge() + fsp.anions[0]->molecule.getCharge())>1e-12)
+			die("NonlinearPCM currently only supports charge-balanced (Z:Z) electrolytes.\n");
+		ionNbulk = fsp.cations[0]->Nbulk;
+		ionZ = fsp.cations[0]->molecule.getCharge();
 		screeningEval = new NonlinearPCMeval::Screening(fsp.linearScreening,
-			fsp.T, fsp.ionicConcentration, fsp.ionicZelectrolyte,
-			fsp.ionicRadiusPlus, fsp.ionicRadiusMinus, fsp.epsBulk);
+			fsp.T, ionNbulk, ionZ, fsp.cations[0]->molecule.getVhs(), fsp.anions[0]->molecule.getVhs(), epsBulk);
+	}
+	else
+	{	ionNbulk = 0.;
+		screeningEval = 0;
+	}
 	
 	//Initialize preconditioner (for mu channel):
-	double muByEps = (fsp.ionicZelectrolyte/fsp.pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	preconditioner.init(0, 0.02, e.iInfo.GmaxLoc, setPreconditioner, k2factor/fsp.epsBulk, muByEps*muByEps);
+	double muByEps = (ionZ/pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
+	preconditioner.init(0, 0.02, e.gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
 }
 
 NonlinearPCM::~NonlinearPCM()
@@ -84,12 +98,12 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		//mu:
 		DataRptr mu;
 		if(screeningEval && screeningEval->linear)
-		{	mu = (-fsp.ionicZelectrolyte/fsp.T) * I(linearPCM.state);
+		{	mu = (-ionZ/fsp.T) * I(linearPCM.state);
 			mu -= integral(mu)/e.gInfo.detR; //project out G=0
 		}
 		else initZero(mu, e.gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
-		DataRptrVec eps = (-fsp.pMol/fsp.T) * I(gradient(linearPCM.state));
+		DataRptrVec eps = (-pMol/fsp.T) * I(gradient(linearPCM.state));
 		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 		DataRptr Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
 		DataRptr epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
@@ -214,10 +228,12 @@ double NonlinearPCM::compute(DataRMuEps* grad)
 
 DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 {	DataRMuEps out;
+	double dielPrefac = 1./(e.gInfo.dV * dielectricEval->NT);
+	double ionsPrefac = screeningEval ? 1./(e.gInfo.dV * screeningEval->NT) : 0.;
 	setMuEps(out,
-		I(preconditioner*J(getMuPlus(in))),
-		I(preconditioner*J(getMuMinus(in))),
-		getEps(in));
+		ionsPrefac * I(preconditioner*J(getMuPlus(in))),
+		ionsPrefac * I(preconditioner*J(getMuMinus(in))),
+		dielPrefac * getEps(in));
 	return out;
 }
 
@@ -242,8 +258,8 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 			DataRptr muMinus = getMuMinus(state);
 			double Qexp = integral(rhoExplicitTilde);
 			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
-			Nplus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
-			Nminus = fsp.ionicConcentration * shape * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
+			Nplus = ionNbulk * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
+			Nminus = ionNbulk * shape * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
 		}
 		string filename;
 		FLUID_DUMP(Nplus, "N+");

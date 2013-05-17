@@ -20,8 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fmix.h>
 #include <fluid/FluidMixture.h>
 
-Fmix::Fmix(FluidMixture& fluidMixture)
-: fluidMixture(fluidMixture), gInfo(fluidMixture.gInfo), T(fluidMixture.T)
-{	fluidMixture.addFmix(this);
+Fmix::Fmix(FluidMixture* fluidMixture)
+: gInfo(fluidMixture->gInfo), T(fluidMixture->T)
+{	fluidMixture->addFmix(this);
 }
 

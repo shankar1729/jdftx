@@ -20,140 +20,58 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_MOLECULE_H
 #define JDFTX_FLUID_MOLECULE_H
 
+#include <electronic/RadialFunction.h>
 #include <core/vector3.h>
 #include <core/string.h>
 #include <core/Data.h>
 #include <vector>
 #include <map>
-//#include <fluid/Fex_H2O_ScalarEOS.h>
 
-
-//! Which parameter set to use for the convolution coupling for this site
-typedef enum  
-{	ConvCouplingExponential, //!< Exponential model for site electron density with charge couplingZnuc + chargeZ and width ConvCouplingWidth
-	ConvCouplingExpCuspless, //!< Cuspless Exponential model for site electron density with charge couplingZnuc + chargeZ and width ConvCouplingWidth
-	ConvCouplingBinaryKernel, //!<Read *kernel.bin (*=site e.g. O/H) [for debugging and Kendra]
-	ConvCouplingRadialFunction, //!<Read in electron density radial function (r,functionVal) and interpolate onto the grid
-	ConvCouplingNone //!< No convolution coupling
-}
-ConvolutionCouplingSiteModel;
-
-//!temporary struct by Kendra, to be merged with SiteProperties
-struct H2OSite 
-{
-	string name; //!< name of the site  
-	double Z; //!< site charge in electrons. Total electronic charge is Znuc + Z 
-	double Znuc; //!< Nuclear charge of ion in coupling functional electron density model
-	int atomicNumber; //! Atomic number of the site for use in van der Waals coupling
-	double CouplingWidth; //!< Exponential width of electron density model in convolution coupling
-	string CouplingFilename; //!< Filename to specify electron density model for convolution coupling
-	ConvolutionCouplingSiteModel ccSiteModel; //!<type of model used for convolution coupling
-	std::vector<vector3<>> Positions; //!<vector which holds list of positions of this type of site
-};
-
-//! Properties of a site in a multi-site molecule model
-struct SiteProperties
-{
-	const double sphereRadius; //!< Hard sphere radius for this site in mixed FMT (set 0 to disable)
-	const double sphereSigma; //!< Erf width to soften sphere in mixed FMT (set 0 for hard sphere)
-
-	const double chargeZ; //!< site charge within the classical DFT
-	const RealKernel* chargeKernel; //!< Charge profile within classical DFT (reformulation of high frequency cutoff of coulomb kernel)
-	const bool indepSite; //!< Whether this site contributes to the independent variable list
-
-	//! Initailize all the const members above, and create kernels for FMT if sphereRadius is non-zero
-	SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma,
-		double chargeZ, RealKernel* chargeKernel, bool indepSite=true);
-	
-	SiteProperties(const GridInfo& gInfo, double sphereRadius, double sphereSigma, //probably will go when H2Osites gets replaced by SiteProperties 
-		H2OSite& water_site, RealKernel* chargeKernel, bool indepSite=true);
-	
-	
-	~SiteProperties();
-
-//The above are controlled by the functional, the following can be adjusted externally:
-	double couplingZnuc; //!< nuclear charge for convolution coupling
-	int atomicNumber;
-	RealKernel* couplingElecKernel; //!< electron density kernel for convolution coupling
-	string siteName; //!< string containing unique site name (Kendra would like to move this into constructor)
-	string kernelFilename; //!< If ConvCouplingRadialFunction/BinaryKernel, the filename from which the electron density site model is read.
-	double convCouplingWidth; //!< If ConvCouplingExponential, the width of the electron density site model.
-	double convCouplingSiteCharge; //!< If ConvCouplingExponential, the site charge (norm-couplingZnuc) of the electron density model
-	ConvolutionCouplingSiteModel convCouplingSiteModel; //!<Determines the electron density model for the site
-
-private:
-	RealKernel *w0, *w1, *w2, *w3, *w1v, *w2m; //!< Soft sphere weight functions
-	friend class FluidMixture;
-};
-
-
-//! A single site in a multi-site molecule model
-//! If the molecule has n-fold rotation symmetry about some axis,
-//! then pick that to be the z-axis and use SO3/Zn sampling.
-//! The dipole moment, if any, MUST be along the z-axis.
-struct Site
-{	int index; //!< Site density index: sites related by symmetry in a molecule will share the same value
-	SiteProperties* prop; //!< Site properties: multiple symmetry classes and different same species in different molecules could share the same
-	vector3<> pos; //!< Position w.r.t molecular origin in the reference orientation
-	
-	Site(int index, SiteProperties* prop, vector3<> pos) : index(index), prop(prop), pos(pos) {}
-};
-
-//! Molecule: a collection of sites
+//! Multi-site molecule model
 struct Molecule
-{	const string name; //!< An identifier for molecule (used for EnergyComponent labels)
-	const std::vector<Site> site; //!< list of sites
-	const int nSites; //!< total number of sites (including multiplicities) equal to site.size()
-	const int nIndices; //!< number of distinguishable sites after symmetry, which is the same as number of site densities/psi's required
+{	
+	string name; //!< Molecule name
 	
-	/** More straightforward constructor for Molecule used when the number of arguments is unknown at compile time.
-	*/
-	Molecule(std::vector<SiteProperties*>& PropList, std::vector<std::vector<vector3<>>>& PositionList, string name);
+	struct Site
+	{	string name; //!< site name
+		double Rhs; //!< hard sphere radius
+		int atomicNumber; //!< necessary for vdW parameters
+		double Znuc, sigmaNuc; //!< magnitude of the nuclear charge (positive) and corresponding gaussian width
+		double Zelec, aElec; string elecFilename; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width (or override with file)
+		double alpha, aPol; //!< isotropic polarizability and corresponding cuspless-exponential width
 
-	/** Template-Magic constructor, for example to construct the bonded-void geometry
-	which consists of O, 2x H and 2x V with Z2 symmetry:
+		std::vector< vector3<> > positions; //!< Positions w.r.t molecular origin in the reference orientation
 
-	Molecule(&siteO,posO, &siteH,posH1,posH2, &siteV,posV1,posV2)
+		Site(string name, int atomicNumber=0);
+		~Site();
+		void setup(const GridInfo& gInfo); //!< initialize the radial functions from the properties specified above
+		explicit operator bool() const { return initialized; } //!< return whether site has been setup
+		
+		RadialFunctionG w0, w1, w2, w3, w1v, w2m; //!< Hard sphere weight functions
+		RadialFunctionG elecKernel, chargeKernel, polKernel; //!< Electron density, net charge density and polarizability kernels for the sites
+	private:
+		bool initialized;
+		void free();
+	};
+	std::vector< std::shared_ptr<Site> > sites;
+	RadialFunctionG mfKernel; //!< Mean field interaction kernel (with minimum Coulomb self energy while preserving intermolecular interactions)
 
-	The SiteProperties* arguments delimit the symmetry equivalence classes,
-	and the site density indices are automatically assigned.
-	*/
-	template<typename... Args> Molecule(string name, Args... args)
-	: name(name), site(make_site(args...)), nSites(site.size()), nIndices(site.back().index+1)
-	{
-	}
+	Molecule(string name=string());
+	~Molecule();
+	void setup(const GridInfo& gInfo, double Rmf);
+	explicit operator bool() const { return initialized; } //!< return whether site has been setup
 	
-	double get_charge() const; //!< return the total charge (sum of chargeZ*chargeKernel->data[0] over all the sites)
-
-	double get_dipole() const; //!< electric dipole moment (will be along +/- z by assumed Z2 symmetry)
-
-	//! Get the harmonic sum of radii for spheres in contact, with the multiplicities for each such pair
-	std::map<double,int> getBonds() const;
-
+	bool isMonoatomic() const; //!< whether it is a monoatomic molecule
+	double getCharge() const; //!< total charge on molecule
+	vector3<> getDipole() const; //!< total dipole moment on molecule
+	double getVhs() const; //!< total exclusion volume
+	double getAlphaTot() const; //!< total polarizability
+	
+	std::map<double,int> getBonds() const; //!< get the harmonic sum of radii for spheres in contact, with the multiplicities for each such pair
+	
+	void setModelMonoatomic(string name, double Q, double Rhs); //!< set to a simple monoatomic model (useful for debugging, not for actual solvation)
 private:
-	//Template recursion entry point for the magic constructor above:
-	template<typename... Args> std::vector<Site> make_site(SiteProperties* prop, vector3<> pos, Args... args)
-	{	std::vector<Site> site;
-		site.push_back(Site(0,prop,pos));
-		add_site(site, args...);
-		return site;
-	}
-	//Initialize a new symmetry equivalence class in the recursion:
-	template<typename... Args> void add_site(std::vector<Site>& site, SiteProperties* prop, vector3<> pos, Args... args)
-	{	int index = site.back().index+1;
-		site.push_back(Site(index,prop,pos));
-		add_site(site, args...);
-	}
-	//Continue previous symmetry equivalence class in the recursion:
-	template<typename... Args> void add_site(std::vector<Site>& site, vector3<> pos, Args... args)
-	{	int index = site.back().index;
-		SiteProperties* prop = site.back().prop;
-		site.push_back(Site(index,prop,pos));
-		add_site(site, args...);
-	}
-	//End recursion (all the arguments have been processed):
-	void add_site(std::vector<Site>& site) {}
-
+	bool initialized;
 };
 
 #endif // JDFTX_FLUID_MOLECULE_H

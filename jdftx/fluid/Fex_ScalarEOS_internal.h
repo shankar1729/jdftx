@@ -17,29 +17,34 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_FLUID_FEX_H2O_SCALAREOS_INTERNAL_H
-#define JDFTX_FLUID_FEX_H2O_SCALAREOS_INTERNAL_H
+#ifndef JDFTX_FLUID_FEX_SCALAREOS_INTERNAL_H
+#define JDFTX_FLUID_FEX_SCALAREOS_INTERNAL_H
 
 #include <core/Units.h>
 #include <core/scalar.h>
 
-//High freq cutoff on the coulomb kernel expressed as a site charge kernel
-inline void setCoulombCutoffKernel(int i, double G2, double* siteChargeKernel)
-{	const double Gc = 0.33;
-	double G = sqrt(G2);
-	siteChargeKernel[i] = 1./sqrt(1 + pow(G/Gc,4));
-}
-
 struct ScalarEOS_eval
+{	double T, b; //!< temperature and exclusion volume
+	
+	double vdwRadius() const
+	{	return pow(3.*b/(16.*M_PI), 1./3);
+	}
+	
+	__hostanddev__ double getAhs(double N, double& Ahs_N, double Vhs) const
+	{	double n3 = Vhs*N; if(n3 >= 1.) { Ahs_N = NAN; return NAN; }
+		double den = 1./(1-n3);
+		Ahs_N = T*Vhs * (den*den*den)*2*(2-n3);
+		return T * (den*den)*n3*(4-3*n3); //corresponds to Carnahan-Starling EOS
+	}
+};
+
+struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 {
-	double T, alpha;
-	double b; //!< exclusion volume
-	double prefacHB, prefacVW1, prefacVW2; //!< prefactors to the HB and VW terms
-	
-	double sphereRadius, zi3; //!< Hard sphere radius and volume (= scalar weight function w3 at G=0)
-	
-	ScalarEOS_eval(double T) : T(T)
-	{
+	double alpha, prefacHB, prefacVW1, prefacVW2; //!< prefactors to the HB and VW terms
+
+	JeffereyAustinEOS_eval(double T)
+	{	this->T = T;
+		
 		const double TB = 1408.4 * Kelvin; //Boyle temperature
 		const double vB = 4.1782e-5 * pow(meter,3)/mol; //Boyle volume
 		const double Tf = 273.16 * Kelvin; //Triple point temperature
@@ -61,14 +66,10 @@ struct ScalarEOS_eval
 		prefacHB = -2*T * log((omega0+omegaHB*exp(-epsHB/T))/(omega0+omegaHB)) * exp(-0.18*pow(T/Tf,8)) * (1+C1);
 		prefacVW1 = -T*alpha/(lambda*b);
 		prefacVW2 = bStar*T + aVW;
-		
-		//Hard sphere properties:
-		sphereRadius = 1.36 * Angstrom;
-		zi3 = (4*M_PI/3) * pow(sphereRadius,3);
 	}
 
 	//Compute the per-particle free energies at each grid point, and the gradient w.r.t the weighted density
-	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar) const
+	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar, double Vhs) const
 	{
 		if(Nbar[i]<0.)
 		{	Aex[i] = 0.;
@@ -91,29 +92,25 @@ struct ScalarEOS_eval
 		double AVW = prefacVW1*log(Ginv) -  Nbar[i]*prefacVW2;
 		double AVW_Nbar = T*alpha/Ginv - prefacVW2;
 		//FMT part:
-		double n3 = zi3*Nbar[i], den = 1./(1-n3);
-		double AFMT_Nbar = T*zi3 * (den*den*den)*2*(2-n3);
-		double AFMT = T * (den*den)*n3*(4-3*n3); //corresponds to Carnahan-Starling EOS
+		double AFMT_Nbar, AFMT = getAhs(Nbar[i], AFMT_Nbar, Vhs);
 		//Total
 		Aex_Nbar[i] = AHB_Nbar + AVW_Nbar - AFMT_Nbar;
 		Aex[i] = AHB + AVW - AFMT;
 	}
 	
-	double vdwRadius() const
-	{	return pow(3.*b/(16.*M_PI), 1./3);
-	}
+	
 };
 
 
 //!Tao-Mason equation of state [F. Tao and E. A. Mason, J. Chem. Phys. 100, 9075 (1994)]
-struct TaoMasonEOS_eval
+struct TaoMasonEOS_eval : public ScalarEOS_eval
 {
-	double T, sphereRadius;
-	double b, lambda, prefacQuad, prefacVap, prefacPole, zi3;
+	double lambda, prefacQuad, prefacVap, prefacPole;
 	
-	//! Construct the equation of state for temperature T, given critical point, acentricity and hard sphere radius (all in atomic units)
-	TaoMasonEOS_eval(double T, double Tc, double Pc, double omega, double sphereRadius) : T(T), sphereRadius(sphereRadius)
-	{
+	//! Construct the equation of state for temperature T, given critical point and acentricity (all in atomic units)
+	TaoMasonEOS_eval(double T, double Tc, double Pc, double omega)
+	{	this->T = T;
+		
 		//Constants in vapor pressure correction:
 		double kappa = 1.093 + 0.26*(sqrt(0.002+omega) + 4.5*(0.002+omega));
 		double A1 = 0.143;
@@ -131,11 +128,10 @@ struct TaoMasonEOS_eval
 		prefacQuad = -T*(alpha - B);
 		prefacVap = prefacQuad * (-A1 * (exp(kappa*Tc/T)-A2)) / (2*sqrt(1.8)*b);
 		prefacPole = alpha*T/(lambda*b);
-		zi3 = (4*M_PI/3) * pow(sphereRadius,3);
 	}
 	
 	//Compute the per-particle free energies at each grid point, and the gradient w.r.t the weighted density
-	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar) const
+	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar, double Vhs) const
 	{
 		if(Nbar[i]<0.)
 		{	Aex[i] = 0.;
@@ -152,17 +148,11 @@ struct TaoMasonEOS_eval
 		double Avap = prefacVap * atan(bn2term);
 		double Avap_Nbar = prefacVap * b2term*Nbar[i]*2. / (1 + bn2term*bn2term);
 		//FMT part:
-		double n3 = zi3*Nbar[i], den = 1./(1-n3);
-		double AFMT_Nbar = T*zi3 * (den*den*den)*2*(2-n3);
-		double AFMT = T * (den*den)*n3*(4-3*n3); //corresponds to Carnahan-Starling EOS
+		double AFMT_Nbar, AFMT = getAhs(Nbar[i], AFMT_Nbar, Vhs);
 		//Total
 		Aex_Nbar[i] = AVW_Nbar + Avap_Nbar - AFMT_Nbar;
 		Aex[i] = AVW + Avap - AFMT;
 	}
-	
-	double vdwRadius() const
-	{	return pow(3.*b/(16.*M_PI), 1./3);
-	}
 };
 
-#endif // JDFTX_FLUID_FEX_H2O_SCALAREOS_INTERNAL_H
+#endif // JDFTX_FLUID_FEX_SCALAREOS_INTERNAL_H

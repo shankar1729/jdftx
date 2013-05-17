@@ -27,20 +27,15 @@ public:
 	//! Create water with the BondedVoids functional as per [arXiv:1112.1442]
 	//! which includes a minor update (in the site charge kernel) to
 	//! [R. Sundararaman et al., J. Chem. Phys 137, 044107 (2012)]
-	Fex_H2O_BondedVoids(FluidMixture& fluidMixture);
+	Fex_H2O_BondedVoids(const FluidMixture*, const FluidComponent*);
+    virtual ~Fex_H2O_BondedVoids();
+	
+	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double computeUniform(const double* N, double* Phi_N) const;
 
-	const Molecule* getMolecule() const { return &molecule; }
-	double get_aDiel() const;
-	double compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const;
-	double computeUniform(const double* N, double* grad_N) const;
-
+	static const double RV0, TV, kappa, RO, sigmaU; //!< Functional parameters
 private:
-	const double RV; //!< void radius at current temperature
-	RealKernel siteChargeKernel, Ua;
-	SiteProperties propO;
-	SiteProperties propH;
-	SiteProperties propV;
-	Molecule molecule;
+	RadialFunctionG Ua;
 };
 
 

@@ -134,7 +134,7 @@ void SpeciesInfo::readCpi(istream& in)
 	
 	//---------------- Log R Grid -> Uniform G grid transformations -----------------
 	
-	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
 	//Core density:
 	if(nCoreLog.f.size())
 		setCore(nCoreLog);
@@ -148,7 +148,7 @@ void SpeciesInfo::readCpi(istream& in)
 	if(lLoc==lCount-1) lCount--; //projector array shortens if last channel is local
 	VnlRadial.resize(lCount);
 	Mnl.resize(lCount);
-	int nGridNL = int(ceil(e->iInfo.GmaxNL/dGnl))+5;
+	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dGnl))+5;
 	if(lCount)
 	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
 		for(int l=0; l<lCount; l++)

@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/GpuUtil.h>
 
-RadialFunctionG::RadialFunctionG() : nCoeff(0), coeff(0), rFunc(0)
+RadialFunctionG::RadialFunctionG() : nCoeff(0), rFunc(0)
 {
 }
 
@@ -40,29 +40,21 @@ void RadialFunctionG::init(int l, int nSamples, double dG, const char* filename,
 }
 
 void RadialFunctionG::init(int l, const std::vector<double>& samples, double dG)
-{	std::vector<double> c = QuinticSpline::getCoeff(samples, l%2==1);
+{	coeff = QuinticSpline::getCoeff(samples, l%2==1);
 	dGinv = 1.0/dG;
-	nCoeff = c.size();
+	nCoeff = coeff.size();
 	#ifdef GPU_ENABLED
-	cudaMalloc(&coeff, sizeof(double)*nCoeff);
-	cudaMemcpy(coeff, c.data(), sizeof(double)*nCoeff, cudaMemcpyHostToDevice);
+	cudaMalloc(&coeffGpu, sizeof(double)*nCoeff);
+	cudaMemcpy(coeffGpu, coeff.data(), sizeof(double)*nCoeff, cudaMemcpyHostToDevice);
 	gpuErrorCheck();
-	#else
-	coeff = new double[nCoeff];
-	memcpy(coeff, c.data(), sizeof(double)*nCoeff);
 	#endif
 }
 
 void RadialFunctionG::free()
-{	if(coeff)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(coeff);
-		#else
-		delete[] coeff;
-		#endif
-	}
-	if(rFunc) delete rFunc;
+{	if(rFunc) delete rFunc;
+	#ifdef GPU_ENABLED
+	if(nCoeff) cudaFree(coeffGpu);
+	#endif
 }
 
 RadialFunctionR::RadialFunctionR(int nSamples) : r(nSamples), dr(nSamples), f(nSamples)

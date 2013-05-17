@@ -24,21 +24,22 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 
 /** @file SO3quad.h
-@brief Quadratures for SO(3)/Zn
+@brief Quadratures for SO(3)
 */
 
 #include <fluid/S2quad.h>
+class Molecule;
 
-//! @brief Quadrature for SO(3)/Zn
+//! @brief Quadrature for SO(3)
 class SO3quad
 {
 public:
-	//! Initialize SO3/Zn quadrature from an S2 quadrature decsription
-	SO3quad(const S2quad&, int Zn);
+	//! Initialize SO3 quadrature from an S2 quadrature decsription, reduced by symmetries of the given molecule
+	SO3quad(const S2quad&, const Molecule& molecule);
 	
-	//! Initialize SO3/Zn quadrature from an S2 quadrature name
+	//! Initialize SO3 quadrature from an S2 quadrature name, reduced by symmetries of the given molecule
 	//! (nBeta, nAlpha and nGamma are used only for Euler quadrature)
-	SO3quad(S2quadType type, int Zn, unsigned nBeta=0, unsigned nAlpha=0, unsigned nGamma=0);
+	SO3quad(S2quadType type, const Molecule& molecule, unsigned nBeta=0, unsigned nAlpha=0, unsigned nGamma=0);
 	
 	void print(); //!< Summarize euler angles and weights for the quadrature
 	int nOrientations() const; //!< get cardinality of sampling set
@@ -50,7 +51,7 @@ private:
 	int nS1; //!< effective number of S1 samples (counting symmetric images)
 	std::vector<vector3<> > eulerS2; //!< S2 quadrature points
 	std::vector<double> weightS2; //!< S2 quadrature weights
-	void setup(const S2quad&, int Zn); //!< Initialize SO3/Zn quadrature from an S2 quadrature decsription
+	void setup(const S2quad&, const Molecule& molecule); //!< Initialize SO3 quadrature from an S2 quadrature decsription
 };
 
 //! @}

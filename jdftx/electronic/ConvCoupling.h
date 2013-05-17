@@ -30,54 +30,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class ConvCoupling : public Fmix
 {
 public:
-	ConvCoupling(FluidMixture& fluidMixture);
-	
-	//! Destructor
-	~ConvCoupling();
-	
-	double computeUniform(const std::vector<double>& N, std::vector<double>& grad_N) const;
-	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const;
-	string getName() const;
-	
-	//! Set the electron density kernel for a particular site to an exponential
-	void setExponentialKernel(SiteProperties& s);
-	
-	//! Set the electron density kernel for a particular site to an exponential
-	void setExpCusplessKernel(SiteProperties& s);
-	
-	//! Set the electron density kernel for a particular site from a binary file (must be created on correct grid)
-	void setBinaryKernel(SiteProperties& s);
-	
-	//! Set the electron density kernel for a particular site from a radial function (interpolates onto grid)
-	void setRadialKernel(SiteProperties& s);
-	
-	//! Set explicit system properties
-	//! @param nCavityTilde "Cavity-effective" density of the explicit system (explicit electrons + chargeball)
-	void setExplicit(const DataGptr& nCavityTilde);
+	ConvCoupling(FluidMixture* fluidMixture, const ExCorr& exCorr);
 	
 	//! Set explicit system properties
 	//! @param nCavity "Cavity-effective" density of the explicit system (explicit electrons + chargeball)
-	void setExplicit(const DataRptr& nCavity);
+	void setExplicit(const DataGptr& nCavityTilde);
 
-	//! Compute coupling and gradients (for the electronic side)
-	double computeElectronic(DataGptr* grad_nCavityTilde=0);
+	//! Main energy and gradients function
+	double energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde=0, DataGptr* Phi_nCavityTilde=0) const;
+	
+	//Interface to fluid side (virtual functions from Fmix):
+	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
+	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
+	string getName() const;
 
-	//! For debugging: Output any coupling-related debug info here
-	//! (replace %s in filename pattern with something meaningful and output to that filename)
-	//!   It will be called from the electronic code during FluidDebug dump, if enabled
-	//! DO NOT hack up any of the other functions!
-	void dumpDebug(const char* filenamePattern) const;
-	
-	//DataRptr nFluid;
-	//DataRptr nCavity;
-	//DataRptr grad_nCavity;
-	const ExCorr* exCorr;
-	
-	FluidMixture::ConvCouplingData CouplingData;
-	
-	private:
+private:
+	const ExCorr& exCorr;
+	const std::vector<const FluidComponent*>& component;
 	DataRptr nCavity;
-	
 };
 
 #endif // JDFTX_ELECTRONIC_CONVCOUPLING_H

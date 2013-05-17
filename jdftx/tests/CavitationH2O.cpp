@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/Fex_H2O_FittedCorrelations.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
 
 void initCavity(size_t i,double nc, const double* nEl, double* phiO, double* phiH)
@@ -78,30 +78,16 @@ int main(int argc, char** argv)
 	printf("\tS = [ %d %d %d ];\n\n", gInfo.S[0], gInfo.S[1], gInfo.S[2]);
 	gInfo.initialize();
 
-	//----- Setup quadrature for angular integration -----
-	const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
-	SO3quad quad(Quad7design_24, Zn);
 
-
-	//----- Translation operator -----
-	//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Constant);
-	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	//TranslationOperatorFourier trans(gInfo);
-
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
-
-	//----- Excess functional -----
-	//Fex_H2O_FittedCorrelations fex(fluidMixture);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-	//Fex_H2O_BondedVoids fex(fluidMixture);
-
-	//----- Ideal gas -----
-	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-	IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-
+	double T = 298*Kelvin;
+	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	component.s2quadType = Quad7design_24;
+	
+	FluidMixture fluidMixture(gInfo, T);
+	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
-	fluidMixture.setPressure(p);
+	fluidMixture.initialize(p);
 
 	//----- Initialize external potential -----
 	printf("\nReading electron density from '%s' ... ", argv[1]); fflush(stdout);
@@ -110,6 +96,7 @@ int main(int argc, char** argv)
 	printf("SumCheck: %lf electrons\n\n", integral(nElectronic));
 
 	printf("Initializing cavity with nc = %le ... ", pcm_nc); fflush(stdout);
+	IdealGas& idgas = *(component.idealGas);
 	nullToZero(idgas.V, gInfo);
 	threadedLoop(initCavity, gInfo.nr, pcm_nc, nElectronic->data(), idgas.V[0]->data(), idgas.V[1]->data());
 	printf("CavityVolume: %lf bohr^3\n\n", integral(idgas.V[0]));
@@ -122,7 +109,6 @@ int main(int argc, char** argv)
 	fluidMixture.initState(0.15);
 
 	MinimizeParams mp;
-	mp.alphaTstart = 3e1;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=200;
 	mp.knormThreshold=1e-11;
@@ -136,5 +122,4 @@ int main(int argc, char** argv)
 	DataRptrCollection N(2);
 	double phiFinal = fluidMixture.getFreeEnergy(&N);
 	printf("\nCavitation energy = %le Eh\n\n", phiFinal);
-
 }

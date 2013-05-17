@@ -66,7 +66,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 	{	//Initialize basis functions for model dielectric matrix at current parameters:
 		ColumnBundle U = V.similar(3*nAtoms); //basis functions for the model response
 		ColumnBundle dU = U.similar(); //derivative of basis functions w.r.t width parameter
-		double dG = 0.02; int nG = int(ceil(e.iInfo.GmaxLoc/dG)) + 5;
+		double dG = 0.02; int nG = int(ceil(e.gInfo.GmaxGrid/dG)) + 5;
 		double normFac = sqrt(4*M_PI/3) / e.gInfo.detR;
 		std::vector<int> colStart, colStop;
 		int colOffset = 0;

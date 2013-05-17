@@ -80,7 +80,7 @@ public:
 	vector3<> lattScale; //!< Remember lattice scale specified at input (Note R always includes scale, once latt-scale has processed)
 	
 	matrix3<> R; //!< directly specified lattice vectors
-	double Gmax; //!< radius of wavefunction G-sphere, whode density sphere (double the radius) must be inscribable within the FFT box
+	double Gmax; //!< radius of wavefunction G-sphere, whole density sphere (double the radius) must be inscribable within the FFT box
 	vector3<int> S; //!< sample points in each dimension (if 0, will be determined automatically based on Gmax)
 
 	//! Initialize the dependent quantities below.
@@ -97,6 +97,10 @@ public:
 	vector3<> h[3]; //!< real space sample vectors
 	int nr; //!< position space grid count = S[0]*S[1]*S[2]
 	int nG; //!< reciprocal lattice count = S[0]*S[1]*(S[2]/2+1) [on account of using r2c and c2r ffts]
+
+	double dGradial; //!< recommended spacing of radial G functions
+	double GmaxSphere; //!< recommended maximum G-vector for radial functions for the wavefunction sphere
+	double GmaxGrid; //!< recommended maximum G-vector for radial functions for the density grid
 
 	//FFT plans:
 	fftw_plan planForwardSingle; //!< Single-thread Forward complex transform

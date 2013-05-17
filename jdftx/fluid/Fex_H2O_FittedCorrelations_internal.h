@@ -45,12 +45,12 @@ namespace Fex_H2O_FittedCorrelations_internal
 }
 //Compute the gaussian weighted density energy and gradients
 __hostanddev__
-double Fex_H2O_FittedCorrelations_calc(int i, const double* NObar, const double* NHbar, double* grad_NObar, double* grad_NHbar)
+double Fex_H2O_FittedCorrelations_calc(int i, const double* NObar, const double* NHbar, double* Phi_NObar, double* Phi_NHbar)
 {	using namespace Fex_H2O_FittedCorrelations_internal;
 	double Nmean = (1.0/3)*(NObar[i] + NHbar[i]);
 	double fDotMean = fexDot(Nmean);
-	grad_NObar[i] = ((1.0/3)*pMean*fDotMean + pObar*fexDot(NObar[i]));
-	grad_NHbar[i] = ((1.0/3)*pMean*fDotMean + pHbar*fexDot(NHbar[i]*0.5)*0.5);
+	Phi_NObar[i] = ((1.0/3)*pMean*fDotMean + pObar*fexDot(NObar[i]));
+	Phi_NHbar[i] = ((1.0/3)*pMean*fDotMean + pHbar*fexDot(NHbar[i]*0.5)*0.5);
 	return pMean*fex(Nmean) + pObar*fex(NObar[i]) + pHbar*fex(NHbar[i]*0.5);
 }
 

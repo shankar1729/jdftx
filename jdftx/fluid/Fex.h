@@ -23,33 +23,28 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Molecule.h>
 #include <core/Data.h>
 class FluidMixture;
+class FluidComponent;
 
 //! Abstract base class for excess functionals
 class Fex
 {
 public:
-	FluidMixture& fluidMixture;
+	const Molecule& molecule;
 	const GridInfo& gInfo;
 	const double T;
 
-	//! Initialize base for use with this fluidMixture
-	Fex(FluidMixture& fluidMixture);
+	Fex(const FluidMixture*, const FluidComponent*);
 	virtual ~Fex() {}
 
-	//! Return the underlying molecule speicfication (MUST be the same reference and value each time it's called)
-	virtual const Molecule* getMolecule() const=0;
-
-	virtual double get_aDiel() const=0; //! Return the correlation scale-factor for the coulomb term
-
 	//! Return the excess free energy given the reciprocal space site densities
-	//! and accumulate the gradient (functional derivative) w.r.t them in grad_Ntilde
-	virtual double compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const=0;
+	//! and accumulate the gradient (functional derivative) w.r.t them in Phi_Ntilde
+	virtual double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const=0;
 
 	//! Return the uniform fluid excess free energy density given the site densities N
-	//! and accumulate the derivative w.r.t them in grad_N. This MUST return the
+	//! and accumulate the derivative w.r.t them in Phi_N. This MUST return the
 	//! result corresponding to calling compute() with a uniform scalar field.
-	//! This is called several times during FluidMixture::setPressure() to get the desired bulk properties
-	virtual double computeUniform(const double* N, double* grad_N) const=0;
+	//! This is called several times during FluidMixture::initialize() to get the desired bulk properties
+	virtual double computeUniform(const double* N, double* Phi_N) const=0;
 };
 
 #endif // JDFTX_FLUID_FEX_H

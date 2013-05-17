@@ -28,15 +28,14 @@ struct Energies
 	EnergyComponents E; //!< All components of the internal energy (excluding TS and muN)
 	
 	double TS; //!< Fillings entropy
-	double F; //!< Helmholtz energy (Etot-TS)
+	double F() const { return double(E)-TS; } //!< Helmholtz energy (Etot-TS)
 	
 	double muN; //!< Fixed electron chemical potential Lagrange multiplier
-	double G; //!< Grand free energy (F-muN)
+	double G() const { return F()-muN; } //!< Grand free energy (F-muN)
 	
 	double Eband; //!< band structure energy (tr Hsub)
 	
 	Energies(); //!< initialize all to 0.
-	void updateTotals(); //!< Recompute total energies (Etot, F and G)
 	void print(FILE* fp=globalLog) const; //!< print energies to logPrintf / stream
 };
 

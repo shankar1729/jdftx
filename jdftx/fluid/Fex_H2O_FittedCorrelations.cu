@@ -22,14 +22,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 __global__
 void Fex_H20_FittedCorrelations_kernel(int nr, const double* NObar, const double* NHbar,
-	double* Fex, double* grad_NObar, double* grad_NHbar)
+	double* Fex, double* Phi_NObar, double* Phi_NHbar)
 {	int i = kernelIndex1D();
 	if(i<nr)
-		Fex[i] = Fex_H2O_FittedCorrelations_calc(i, NObar, NHbar, grad_NObar, grad_NHbar);
+		Fex[i] = Fex_H2O_FittedCorrelations_calc(i, NObar, NHbar, Phi_NObar, Phi_NHbar);
 }
 void Fex_H20_FittedCorrelations_gpu(int nr, const double* NObar, const double* NHbar,
-	double* Fex, double* grad_NObar, double* grad_NHbar)
+	double* Fex, double* Phi_NObar, double* Phi_NHbar)
 {	GpuLaunchConfig1D glc(Fex_H20_FittedCorrelations_kernel, nr);
-	Fex_H20_FittedCorrelations_kernel<<<glc.nBlocks, glc.nPerBlock>>>(nr, NObar, NHbar, Fex, grad_NObar, grad_NHbar);
+	Fex_H20_FittedCorrelations_kernel<<<glc.nBlocks, glc.nPerBlock>>>(nr, NObar, NHbar, Fex, Phi_NObar, Phi_NHbar);
 }
 

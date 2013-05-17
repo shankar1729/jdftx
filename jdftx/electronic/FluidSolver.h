@@ -31,10 +31,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct FluidSolver
 {
 	const Everything& e;
-
+	const FluidSolverParams& fsp;
+	double epsBulk, epsInf; //!< bulk dielectric constants of fluid
+	double k2factor; //!< prefactor to screening term (0 => no ionic screening)
+	
 	//! Abstract base class constructor - do not use directly - see FluidSolver::createSolver
-	FluidSolver(const Everything &everything);
-		
+	FluidSolver(const Everything &e, const FluidSolverParams& fsp);
 	virtual ~FluidSolver() {}
 
 	//! Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
@@ -44,8 +46,6 @@ struct FluidSolver
 	//! Compute gradients with respect to electronic side variables, and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces
 	virtual double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const =0;
-
-	//grad_rhoExplicitTilde is d_fluid and grad_nCavityTilde is V_cavity
 
 	//! Dump relevant fluid densities (eg. NO and NH) to file(s)
 	//! the provided pattern will have a single %s which may be substituted
@@ -74,6 +74,6 @@ struct FluidSolver
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)
-FluidSolver* createFluidSolver(const Everything& e, FluidSolverParams& params);
+FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& params);
 
 #endif // JDFTX_ELECTRONIC_FLUIDSOLVER_H

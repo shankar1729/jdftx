@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/IdealGasMonoatomic.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 #include <core/Units.h>
 #include <core/DataIO.h>
 
@@ -37,27 +37,6 @@ void initQuadraticWell(int i, vector3<> r, const vector3<>& r0, double width, do
 	//phi[i] = (0.5*pow(rmr0/sigma,2)-depth);
 }
 
-class Fex_HardSphere : public Fex
-{
-public:
-	Fex_HardSphere(FluidMixture& fluidMixture, double Rhs)
-	: Fex(fluidMixture), propO(gInfo, Rhs, 0., 0., 0), molecule("HS", &propO, vector3<>(0,0,0))
-	{
-	}
-	
-	const Molecule* getMolecule() const { return &molecule; }
-	double get_aDiel() const { return 1.0; }
-	double compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const
-	{	return 0.;
-	}
-	double computeUniform(const double* N, double* grad_N) const
-	{	return 0.;
-	}
-private:
-	SiteProperties propO;
-	Molecule molecule;
-};
-
 
 struct TestGaussian
 {	const GridInfo& gInfo;
@@ -66,32 +45,15 @@ struct TestGaussian
 
 	void test()
 	{
-		//----- Setup quadrature for angular integration -----
-		const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
-		SO3quad quad(QuadOctahedron, Zn);
-
-		//----- Translation operator -----
-		//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Constant);
-		TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-		//TranslationOperatorFourier trans(gInfo);
-
 		double T = 298*Kelvin;
-		FluidMixture fluidMixture(gInfo, T);
-
-		//----- Excess functional -----
-		//Fex_H2O_FittedCorrelations fex(fluidMixture);
-		Fex_H2O_ScalarEOS fex(fluidMixture);
-		//Fex_H2O_BondedVoids fex(fluidMixture);
-		//Fex_HardSphere fex(fluidMixture, 1.3*Angstrom);
+		FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+		component.s2quadType = Quad7design_24;
 		
-		//----- Ideal gas -----
-		//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-		IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-		//IdealGasMonoatomic idgas(&fex, 1.0);
-
-		double p =1.01325*Bar; //Pressure adjusted to get typical water densities
+		FluidMixture fluidMixture(gInfo, T);
+		component.addToFluidMixture(&fluidMixture);
+		double p = 1.01325*Bar;
 		printf("pV = %le\n", p*gInfo.detR);
-		fluidMixture.setPressure(p);
+		fluidMixture.initialize(p);
 
 		//Single configuration test:
 		//#define SINGLE_CONFIG
@@ -137,9 +99,9 @@ struct TestGaussian
 					+ (gInfo.R.column(1)/gInfo.S[1]).length_squared()
 					+ (gInfo.R.column(2)/gInfo.S[2]).length_squared() );
 				
-				nullToZero(idgas.V, gInfo, fluidMixture.get_nDensities());
+				nullToZero(component.idealGas->V, gInfo, fluidMixture.get_nDensities());
 				applyFunc_r(gInfo, initQuadraticWell, gInfo.R*vector3<>(.5,.5,.5),
-					width,depth, dr, 1./T, idgas.V[0]->data());
+					width,depth, dr, 1./T, component.idealGas->V[0]->data());
 
 				//const char* stateFilename ="TestGaussian-EOSScalar/state.%c.bin";
 				//Initial wavefunction
@@ -149,7 +111,6 @@ struct TestGaussian
 				MinimizeParams mp;
 				mp.dirUpdateScheme = MinimizeParams::HestenesStiefel;
 				mp.linminMethod = MinimizeParams::Cubic;
-				mp.alphaTstart = 3e4;
 				mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 				mp.energyLabel = "Phi";
 				mp.nIterations=200;

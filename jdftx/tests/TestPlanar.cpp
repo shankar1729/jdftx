@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/IdealGasPomega.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 
 void setPhi(int i, vector3<> r, double* phiApplied, double* phiWall,
 	double gridLength, double Dfield, double zWall)
@@ -56,20 +56,16 @@ int main(int argc, char** argv)
 	gInfo.R = Diag(hGrid * gInfo.S);
 	gInfo.initialize();
 
-	//Setup fluid:
-	SO3quad quad(quadType, 2, nBeta);
-	//TranslationOperatorFourier trans(gInfo);
-	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-	
-	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-	//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-	IdealGasPomega idgas(&fex, 1.0, quad, trans);
-	
+	double T = 298*Kelvin;
+	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	component.s2quadType = quadType;
+	component.quad_nBeta = nBeta;
+	component.representation = FluidComponent::Pomega;
+	FluidMixture fluidMixture(gInfo, T);
+	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
-	fluidMixture.setPressure(p);
+	fluidMixture.initialize(p);
 
 	//Initialize external potential (repel O from a cube)
 	double Dfield = 1.0 * eV/Angstrom;
@@ -77,16 +73,15 @@ int main(int argc, char** argv)
 	const double& gridLength = gInfo.R(2,2);
 	DataRptr phiApplied(DataR::alloc(gInfo)), phiWall(DataR::alloc(gInfo));
 	applyFunc_r(gInfo, setPhi, phiApplied->data(), phiWall->data(), gridLength, Dfield, zWall);
-	const double ZO = fex.getMolecule()->site[0].prop->chargeZ;
-	idgas.V[0] = ZO * phiApplied + phiWall;
-	idgas.V[1] = -0.5*ZO * phiApplied + phiWall;
+	const double ZO = component.molecule.sites[0]->chargeKernel(0);
+	component.idealGas->V[0] = ZO * phiApplied + phiWall;
+	component.idealGas->V[1] = -0.5*ZO * phiApplied + phiWall;
 
 	//----- Initialize state -----
 	fluidMixture.initState(0.01);
 
 	//----- FDtest and CG -----
 	MinimizeParams mp;
-	mp.alphaTstart = 3e4;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.energyLabel = "Phi";
 	mp.nIterations=1500;
@@ -104,7 +99,7 @@ int main(int argc, char** argv)
 	FILE* fp = fopen((quadName.str()+".Nplanar").c_str(), "w");
 	double* NOdata = N[0]->data();
 	double* NHdata = N[1]->data();
-	double nlInv = 1./idgas.get_Nbulk();
+	double nlInv = 1./component.idealGas->get_Nbulk();
 	for(int i=0; i<gInfo.S[2]/2; i++)
 		fprintf(fp, "%le\t%le\t%le\n", i*hGrid, nlInv*NOdata[i], 0.5*nlInv*NHdata[i]);
 	fclose(fp);

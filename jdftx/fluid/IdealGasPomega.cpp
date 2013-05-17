@@ -19,29 +19,45 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/IdealGasPomega.h>
 #include <fluid/Euler.h>
+#include <electronic/operators.h>
 
-IdealGasPomega::IdealGasPomega(Fex* fex, double xBulk, const SO3quad& quad, const TranslationOperator& trans)
-: IdealGas(quad.nOrientations(),fex,xBulk), quad(quad), trans(trans)
+IdealGasPomega::IdealGasPomega(const FluidMixture* fluidMixture, const FluidComponent* comp, const SO3quad& quad, const TranslationOperator& trans, unsigned nIndepOverride)
+: IdealGas(nIndepOverride ? nIndepOverride : quad.nOrientations(), fluidMixture, comp), quad(quad), trans(trans), pMol(molecule.getDipole())
 {
-	site0mult = 0;
-	while(molecule->site[site0mult].index==0) site0mult++;
 }
 
-void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* logPomega, double scale, double Elo, double Ehi) const
-{	DataRptrCollection Veff(molecule->nIndices); nullToZero(Veff, gInfo);
-	for(int k=0; k<molecule->nIndices; k++)
-	{	Veff[k] += V[k];
-		Veff[k] += Vex[k];
+string IdealGasPomega::representationName() const
+{	return "Pomega";
+}
+
+void IdealGasPomega::initState_o(int o, const matrix3<>& rot, double scale, const DataRptr& Eo, DataRptr* logPomega) const
+{	logPomega[o] += (-scale/T) * Eo;
+}
+
+void IdealGasPomega::getDensities_o(int o, const matrix3<>& rot, const DataRptr* logPomega, DataRptr& logPomega_o) const
+{	logPomega_o += logPomega[o];
+}
+
+void IdealGasPomega::convertGradients_o(int o, const matrix3<>& rot, const DataRptr& Phi_logPomega_o, DataRptr* Phi_logPomega) const
+{	Phi_logPomega[o] += Phi_logPomega_o;
+}
+
+
+void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scale, double Elo, double Ehi) const
+{	for(int k=0; k<nIndep; k++)indep[k]=0;
+	DataRptrCollection Veff(molecule.sites.size()); nullToZero(Veff, gInfo);
+	for(unsigned i=0; i<molecule.sites.size(); i++)
+	{	Veff[i] += V[i];
+		Veff[i] += Vex[i];
 	}
 	double Emin=+DBL_MAX, Emax=-DBL_MAX, Emean=0.0;
 	for(int o=0; o<quad.nOrientations(); o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
 		DataRptr Emolecule;
 		//Sum the potentials collected over sites for each orientation:
-		for(int i=0; i<molecule->nSites; i++)
-		{	const Site& s = molecule->site[i];
-			trans.taxpy(-(rot*s.pos), 1.0, Veff[s.index], Emolecule);
-		}
+		for(unsigned i=0; i<molecule.sites.size(); i++)
+			for(vector3<> pos: molecule.sites[i]->positions)
+				trans.taxpy(-(rot*pos), 1., Veff[i], Emolecule);
 		//Accumulate stats and cap:
 		Emean += quad.weight(o) * sum(Emolecule)/gInfo.nr;
 		double Emin_o, Emax_o;
@@ -49,70 +65,83 @@ void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* logPomega, double 
 		if(Emin_o<Emin) Emin=Emin_o;
 		if(Emax_o>Emax) Emax=Emax_o;
 		//Set contributions to the state (with appropriate scale factor):
-		logPomega[o] = (-scale/T) * Emolecule;
+		initState_o(o, rot, scale, Emolecule, indep);
 	}
 	//Print stats:
-	logPrintf("\tIdealGasPomega[%s] single molecule energy: min = %le, max = %le, mean = %le\n",
-		   molecule->name.c_str(), Emin, Emax, Emean);
+	logPrintf("\tIdealGas%s[%s] single molecule energy: min = %le, max = %le, mean = %le\n",
+		   representationName().c_str(), molecule.name.c_str(), Emin, Emax, Emean);
 }
 
-void IdealGasPomega::getDensities(const DataRptr* logPomega, DataRptr* N, vector3<>& P) const
-{	for(int k=0; k<molecule->nIndices; k++) N[k]=0;
-	P = vector3<>(0,0,0);
+void IdealGasPomega::getDensities(const DataRptr* indep, DataRptr* N, vector3<>& P0) const
+{	for(unsigned i=0; i<molecule.sites.size(); i++) N[i]=0;
 	double& S = ((IdealGasPomega*)this)->S;
 	S=0.0;
+	DataRptrVec P;
 	//Loop over orientations:
 	for(int o=0; o<quad.nOrientations(); o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
-		DataRptr N_o = (quad.weight(o) * Nbulk) * exp(logPomega[o]); //contribution form this orientation
-		//Accumulate N_o to each site dneisty with appropriate translations:
-		for(int i=0; i<molecule->nSites; i++)
-			trans.taxpy(rot*molecule->site[i].pos, 1.0, N_o, N[molecule->site[i].index]);
+		DataRptr logPomega_o; getDensities_o(o, rot, indep,logPomega_o);
+		DataRptr N_o = (quad.weight(o) * Nbulk) * exp(logPomega_o); //contribution form this orientation
+		//Accumulate N_o to each site density with appropriate translations:
+		for(unsigned i=0; i<molecule.sites.size(); i++)
+			for(vector3<> pos: molecule.sites[i]->positions)
+				trans.taxpy(rot*pos, 1., N_o, N[i]);
 		//Accumulate contributions to the entropy:
-		S += gInfo.dV*dot(N_o, logPomega[o]);
-		//Accumulate the cell dipole moments:
-		vector3<> pHat = rot*vector3<>(0,0,1);
-		P += pHat * integral(N_o);
+		S += gInfo.dV*dot(N_o, logPomega_o);
+		//Accumulate the polarization density:
+		if(pMol.length_squared()) P += (rot * pMol) * N_o;
+	}
+	
+	//Compute and cache dipole correlation correction:
+	IdealGasPomega* cache = ((IdealGasPomega*)this);
+	if(pMol.length_squared())
+	{	P0 = sumComponents(P) / gInfo.nr;
+		cache->Ecorr_P = I(molecule.mfKernel*(molecule.mfKernel*(corrPrefac*J(P))));
+		cache->Ecorr = 0.5*gInfo.dV*dot(cache->Ecorr_P, P);
+	}
+	else
+	{	P0 = vector3<>();
+		cache->Ecorr = 0;
+		cache->Ecorr_P = 0;
 	}
 }
 
-double IdealGasPomega::compute(const DataRptr* logPomega, const DataRptr* N, DataRptr* grad_N,
-	const vector3<>& P, vector3<>& grad_P, const double Nscale, double& grad_Nscale) const
+double IdealGasPomega::compute(const DataRptr* indep, const DataRptr* N, DataRptr* Phi_N, const double Nscale, double& Phi_Nscale) const
 {	double PhiNI = 0.0;
 	//Add contributions due to external potentials:
-	for(int j=0; j<molecule->nIndices; j++)
-		if(V[j])
-		{	grad_N[j] += V[j];
-			PhiNI += gInfo.dV*dot(N[j], V[j]);
+	for(unsigned i=0; i<molecule.sites.size(); i++)
+		if(V[i])
+		{	Phi_N[i] += V[i];
+			PhiNI += gInfo.dV*dot(N[i], V[i]);
 		}
-	//Contributions due to uniform electric field:
-	grad_P -= Eexternal * molecule->get_dipole();
-	PhiNI -= dot(Eexternal, P) * molecule->get_dipole();
 	//KE and mu:
-	grad_N[0] -= mu/site0mult;
-	PhiNI -= (T+mu)*integral(N[0])/site0mult;
-	//Entropy (this part deals with Nscale explicitly, so need to increment grad_Nscale):
-	grad_Nscale += T*S;
-	PhiNI += Nscale*T*S;
+	double invSite0mult = 1./molecule.sites[0]->positions.size();
+	Phi_N[0] -= mu * invSite0mult;
+	PhiNI -= (T+mu)*integral(N[0])* invSite0mult;
+	//Entropy and correlation correction (this part deals with Nscale explicitly, so need to increment Phi_Nscale):
+	Phi_Nscale += (T*S + Ecorr);
+	PhiNI += Nscale*(T*S + Ecorr);
 	return PhiNI;
 }
 
-void IdealGasPomega::convertGradients(const DataRptr* logPomega, const DataRptr* N,
-	const DataRptr* grad_N, vector3<> grad_P, DataRptr* grad_logPomega, const double Nscale) const
-{	//Loop over orientations:
+void IdealGasPomega::convertGradients(const DataRptr* indep, const DataRptr* N, const DataRptr* Phi_N, const vector3<>& Phi_P0, DataRptr* Phi_indep, const double Nscale) const
+{	for(int k=0; k<nIndep; k++) Phi_indep[k]=0;
+	//Loop over orientations:
 	for(int o=0; o<quad.nOrientations(); o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
-		DataRptr grad_N_o; //gradient w.r.t N_o (as calculated in getDensities)
-		//Collect the contributions from each grad_N in grad_N_o
-		for(int i=0; i<molecule->nSites; i++)
-			trans.taxpy(-rot*molecule->site[i].pos, 1.0, grad_N[molecule->site[i].index], grad_N_o);
-		//Collect the contributions the entropy:
-		grad_N_o += T*logPomega[o];
-		//Collect the contribution from grad_P:
-		vector3<> pHat = rot*vector3<>(0,0,1);
-		grad_N_o += dot(grad_P, pHat);
-		//Propagate grad_N_o to grad_logPomega[o]:
-		grad_logPomega[o] = (quad.weight(o) * Nbulk * Nscale) * exp(logPomega[o]) * grad_N_o;
+		DataRptr logPomega_o; getDensities_o(o, rot, indep, logPomega_o);
+		DataRptr N_o = (quad.weight(o) * Nbulk * Nscale) * exp(logPomega_o);
+		DataRptr Phi_N_o; //gradient w.r.t N_o (as calculated in getDensities)
+		//Collect the contributions from each Phi_N in Phi_N_o
+		for(unsigned i=0; i<molecule.sites.size(); i++)
+			for(vector3<> pos: molecule.sites[i]->positions)
+				trans.taxpy(-rot*pos, 1., Phi_N[i], Phi_N_o);
+		//Collect the contributions from the entropy:
+		Phi_N_o += T*logPomega_o;
+		//Collect the contribution from Phi_P0 and Ecorr_P:
+		if(pMol.length_squared()) Phi_N_o += dot(rot * pMol, Nscale*Ecorr_P) + dot(rot * pMol, Phi_P0);
+		//Propagate Phi_N_o to Phi_logPomega_o and then to Phi_indep:
+		convertGradients_o(o, rot, N_o*Phi_N_o, Phi_indep);
 	}
 }
 

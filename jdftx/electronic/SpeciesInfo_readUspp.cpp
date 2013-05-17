@@ -243,8 +243,8 @@ void SpeciesInfo::readUspp(istream& is)
 	reader.endRecord();
 	
 	//-------------- Transform and store required quantities in SpeciesInfo ------------
-	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
-	int nGridNL = int(ceil(e->iInfo.GmaxNL/dGnl))+5;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
+	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dGnl))+5;
 	
 	//Core density:
 	if(haveCore)

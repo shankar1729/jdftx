@@ -96,9 +96,6 @@ public:
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC = 0, IonicGradient* forces=0) const;
 	
-	double GmaxNL; //!< maximum G extent for non-local projetcors (corresponds to Ecut)
-	double GmaxLoc; //!< maximum G extent for local functions (corresponds to furthest fft-box vertex)
-
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
 		IonWidthFFTbox, //!< determine ion width from grid spacing

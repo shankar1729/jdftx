@@ -18,161 +18,29 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/FluidSolverParams.h>
-#include <electronic/symbols.h>
-#include <fluid/Fex_H2O_ScalarEOS_internal.h>
+#include <core/Units.h>
 
 FluidSolverParams::FluidSolverParams()
-: verboseLog(false),
-linearDielectric(false), linearScreening(false),
-VDWCouplingScale(0.75)
+: T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
+components(components_), solvents(solvents_), cations(cations_), anions(anions_),
+vdwScale(0.75), lMax(2),
+linearDielectric(false), linearScreening(false)
 {
 }
 
-//! Vapor pressure from the Antoine equation
-//! @param T temperature (in a.u.)
-//! @param A log prefactor for pressure in KPascal
-//! @param B in Kelvin
-//! @param C in Kelvin
-inline double antoinePvap(double T, double A, double B, double C)
-{	return KPascal * pow(10, A - B*Kelvin/(C*Kelvin + T));
+void FluidSolverParams::addComponent(const std::shared_ptr<FluidComponent>& component)
+{	components_.push_back(component);
+	switch(component->type)
+	{	case FluidComponent::Solvent: solvents_.push_back(component); break;
+		case FluidComponent::Cation: cations_.push_back(component); break;
+		case FluidComponent::Anion: anions_.push_back(component); break;
+	}
 }
 
-//Wrapper to atomicSymbolMap
-inline int getAtomicNumber(const char* symbol)
-{	int atNum = 0;
-	atomicSymbolMap.getEnum(symbol, atNum);
-	return atNum;
-}
 
 void FluidSolverParams::setPCMparams()
 {
-	//Nuclear widths = (1./6) vdW radius
-	const double sigmaNucH = (1./6) * 1.20*Angstrom;
-	const double sigmaNucC = (1./6) * 1.70*Angstrom;
-	const double sigmaNucO = (1./6) * 1.52*Angstrom;
-	const double sigmaNucCl = (1./6) * 1.75*Angstrom;
-
-	//Set physical parameters (in atomic units) decsribing solvent:
-	switch(solventName)
-	{	case H2O:
-		{	epsBulk = 78.4;
-			Nbulk = 4.9383e-3;
-			pMol = 0.92466;
-			epsInf = 1.77;
-			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
-			sigmaBulk = 4.62e-5;
-			Rvdw = ScalarEOS_eval(T).vdwRadius();
-			Res = 1.42;
-			//Geometry:
-			const double rOH = 1.0*Angstrom;
-			const double thetaHOH = acos(-1.0/3);
-			PcmSite siteO(getAtomicNumber("O"), 6.,sigmaNucO, 6.826,0.35, 3.73,0.32);
-			PcmSite siteH(getAtomicNumber("H"), 1.,sigmaNucH, 0.587,0.26, 3.30,0.39);
-			siteO.pos.push_back(vector3<>(0.,0.,0.));
-			siteH.pos.push_back(vector3<>(0, -rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)));
-			siteH.pos.push_back(vector3<>(0, +rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)));
-			pcmSite.clear();
-			pcmSite.push_back(siteO);
-			pcmSite.push_back(siteH);
-			break;
-		}
-		case CHCl3:
-		{	epsBulk = 4.8069;
-			Nbulk = 1.109e-3;
-			pMol = 0.49091;
-			epsInf = 2.09;
-			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
-			sigmaBulk = 1.71e-5;
-			Rvdw = TaoMasonEOS_eval(T, 536.6*Kelvin, 5328.68*KPascal, 0.216, 0.).vdwRadius();
-			Res = 2.22;
-			//Geometry:
-			const double zC = 0.523*Angstrom; //distance of C from center
-			const double rCCl = 1.762*Angstrom;
-			const double rCH = 1.073*Angstrom;
-			const double thetaHCCl = 107.98 * M_PI/180;
-			PcmSite siteC (getAtomicNumber("C"),  4,sigmaNucC,  4.256,0.36, 6.05,0.36);
-			PcmSite siteH (getAtomicNumber("H"),  1,sigmaNucH,  0.756,0.41, 9.13,0.41);
-			PcmSite siteCl(getAtomicNumber("Cl"), 7,sigmaNucCl, 6.996,0.46, 15.8,0.46);
-			siteC.pos.push_back(vector3<>(0.,0.,zC));
-			siteH.pos.push_back(vector3<>(0,0,zC+rCH));
-			siteCl.pos.push_back(vector3<>(0, rCCl*sin(thetaHCCl), zC+rCCl*cos(thetaHCCl)));
-			siteCl.pos.push_back(vector3<>(+sqrt(0.75)*rCCl*sin(thetaHCCl), -0.5*rCCl*sin(thetaHCCl), zC+rCCl*cos(thetaHCCl)));
-			siteCl.pos.push_back(vector3<>(-sqrt(0.75)*rCCl*sin(thetaHCCl), -0.5*rCCl*sin(thetaHCCl), zC+rCCl*cos(thetaHCCl)));
-			pcmSite.clear();
-			pcmSite.push_back(siteC);
-			pcmSite.push_back(siteH);
-			pcmSite.push_back(siteCl);
-			break;
-		}
-		case CCl4:
-		{	epsBulk = 2.238;
-			Nbulk = 9.205e-4;
-			pMol = 0.;
-			epsInf = 2.13;
-			Pvap = antoinePvap(T, 6.10445, 1265.63, -41.002);
-			sigmaBulk = 1.68e-5;
-			Rvdw = TaoMasonEOS_eval(T, 556.4*Kelvin, 4493*KPascal, 0.194, 0.).vdwRadius();
-			Res = 1.90;
-			//Geometry:
-			const double rCCl = 1.7829*Angstrom;
-			PcmSite siteC (getAtomicNumber("C"),  4,sigmaNucC,  4.980,0.35, 5.24,0.35);
-			PcmSite siteCl(getAtomicNumber("Cl"), 7,sigmaNucCl, 6.755,0.47, 18.1,0.47);
-			siteC.pos.push_back(vector3<>(0,0,0));
-			siteCl.pos.push_back(vector3<>(0,0,rCCl));
-			siteCl.pos.push_back(vector3<>(0, rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
-			siteCl.pos.push_back(vector3<>(+sqrt(0.75)*rCCl*(sqrt(8.)/3), -0.5*rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
-			siteCl.pos.push_back(vector3<>(-sqrt(0.75)*rCCl*(sqrt(8.)/3), -0.5*rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
-			pcmSite.clear();
-			pcmSite.push_back(siteC);
-			pcmSite.push_back(siteCl);
-			break;
-		}
-		case DMC:
-		{	epsBulk = 3.1;
-			Nbulk   = 1.059e-3;
-			pMol    = 0.16;
-			epsInf  = 1.87;
-			Pvap = 18*mmHg;
-			sigmaBulk = 2.05e-5;
-			break;
-		}
-		case EC:
-		{	epsBulk = 90.5;
-			Nbulk   = 1.339e-3;
-			pMol    = 2.88;
-			epsInf  = 2.00;
-			Pvap = antoinePvap(T, 6.05764, 1705.267, -102.261);
-			sigmaBulk = 3.51e-5;
-			break;
-		}
-		case PC:
-		{	epsBulk = 64.0;
-			Nbulk   = 1.039e-3;
-			pMol    = 2.95;
-			epsInf  = 2.02;
-			Pvap = antoinePvap(T, 6.20181, 1788.900, -88.715);
-			sigmaBulk = 2.88e-5;
-			break;
-		}
-		case DMF:
-		{	epsBulk = 38.0;
-			Nbulk   = 1.153e-3;
-			pMol    = 2.19;
-			epsInf  = 2.05;
-			Pvap = antoinePvap(T, 6.05286, 1400.86, -76.716);
-			sigmaBulk = 2.26e-5;
-			break;
-		}
-		case THF:
-		{	epsBulk = 7.6;
-			Nbulk   = 1.100e-3;
-			pMol    = 0.90;
-			epsInf  = 1.98;
-			Pvap = antoinePvap(T, 6.12142, 1203.11, -46.795);
-			sigmaBulk = 1.78e-5;
-			break;
-		}
-	}
+	assert(solvents.size()==1);
 	
 	//Set PCM fit parameters:
 	switch(pcmVariant)
@@ -193,15 +61,15 @@ void FluidSolverParams::setPCMparams()
 		}
 		case PCM_GLSSA13:
 		{	
-			switch(solventName)
+			switch(solvents[0]->name)
 			{
-				case CHCl3:
+				case FluidComponent::CHCl3:
 				{	nc = 2.4e-05;
 					sigma = 0.6;
 					cavityTension = -9.066e-6;
 					break;
 				}
-				case CCl4:
+				case FluidComponent::CCl4:
 				{	switch(fluidType)
 					{	case FluidLinearPCM:
 							nc = 1.15e-4;
@@ -230,11 +98,11 @@ void FluidSolverParams::setPCMparams()
 						default: //Other fluids do not use these parameters
 							break;
 					}
-					if(solventName != H2O)
+					if(solvents[0]->name != FluidComponent::H2O)
 					{	initWarnings +=
 							"WARNING: PCM variant GLSSA has not been parametrized for this solvent; using bulk\n"
 							"   surface tension as effective cavity tension and water parameters for cavity size.\n";
-						cavityTension = sigmaBulk;
+						cavityTension = solvents[0]->sigmaBulk;
 					}
 					break;
 				}
@@ -248,7 +116,7 @@ void FluidSolverParams::setPCMparams()
 			cavityTension = 0.;
 			if(fluidType == FluidNonlinearPCM)
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has not been parametrized for NonlinearPCM; using LinearPCM fit parameters.\n";
-			if( (fluidType==FluidLinearPCM || fluidType==FluidNonlinearPCM) && solventName != H2O)
+			if( (fluidType==FluidLinearPCM || fluidType==FluidNonlinearPCM) && solvents[0]->name != FluidComponent::H2O)
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has been fit only for H2O; using nc and sigma from H2O fit.\n";
 			break;
 		}
@@ -263,8 +131,12 @@ bool FluidSolverParams::needsVDW() const
 		case FluidNonlinearPCM:
 			return (pcmVariant == PCM_SGA13);
 		case FluidNonlocalPCM:
-		default: //All explicit fluid functionals
+		case FluidClassicalDFT:
+		default:
 			return true;
 	}
 }
 
+bool FluidSolverParams::ionicScreening() const
+{	return cations.size() && anions.size();
+}

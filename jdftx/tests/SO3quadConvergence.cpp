@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGasPomega.h>
 #include <fluid/IdealGasPsiAlpha.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 #include <core/DataIO.h>
 
 void initHardSphere(int i, vector3<> r, const vector3<>& r0, double radius, double height, double* phi)
@@ -50,25 +50,22 @@ int main(int argc, char** argv)
 	gInfo.R = Diag(0.25 * gInfo.S); //32 bohr^3 box
 	gInfo.initialize();
 	
-	//Setup fluid:
-	SO3quad quad(quadType, 2, nBeta);
-	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	//TranslationOperatorFourier trans(gInfo);
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
-	Fex_H2O_ScalarEOS fex(fluidMixture);
-	IdealGas* idgas;
-	if(shouldInit)
-		idgas = new IdealGasPomega(&fex, 1.0, quad, trans);
-	else
-		idgas = new IdealGasPsiAlpha(&fex, 1.0, quad, trans);
+	double T = 298*Kelvin;
+	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	component.s2quadType = quadType;
+	component.quad_nBeta = nBeta;
+	component.representation = shouldInit ? FluidComponent::Pomega : FluidComponent::PsiAlpha;
+	
+	FluidMixture fluidMixture(gInfo, T);
+	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
-	fluidMixture.setPressure(p);
+	fluidMixture.initialize(p);
 
 	//Initialize external potential (repel O from a 4A sphere)
 	double radius = 4*Angstrom;
-	nullToZero(idgas->V, gInfo);
-	applyFunc_r(gInfo, initHardSphere, gInfo.R*vector3<>(0.5,0.5,0.5), radius, 1.0, idgas->V[0]->data());
+	nullToZero(component.idealGas->V, gInfo);
+	applyFunc_r(gInfo, initHardSphere, gInfo.R*vector3<>(0.5,0.5,0.5), radius, 1.0, component.idealGas->V[0]->data());
 	
 	//----- Initialize state -----
 	if(shouldInit) fluidMixture.initState(0.15);
@@ -76,7 +73,6 @@ int main(int argc, char** argv)
 
 	//----- FDtest and CG -----
 	MinimizeParams mp;
-	mp.alphaTstart = 3e4;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.energyLabel = "Phi";
 	mp.nIterations=500;
@@ -92,7 +88,6 @@ int main(int argc, char** argv)
 		saveDX(N[1], "init.NH");
 		saveToFile(psiEff, "init.psiEff");
 	}
-	delete idgas;
 	return 0;
 }
 

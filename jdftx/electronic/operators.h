@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
-#include <core/Data.h>
+#include <core/DataMultiplet.h>
 #include <core/matrix3.h>
 
 //! Convert a complex wavefunction to a real one with optimum phase choice
@@ -64,14 +64,14 @@ DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector
 //! Convolve a scalar field by a radial function (preserve input)
 DataGptr operator*(const RadialFunctionG&, const DataGptr&);
 
-//! Convolve a scalar field by a radial function (preserve input)
-//complexDataGptr operator*(const RadialFunctionG&, const complexDataGptr&);
-
 //! Convolve a scalar field by a radial function (destructible input)
 DataGptr operator*(const RadialFunctionG&, DataGptr&&);
 
-//! Convolve a scalar field by a radial function (destructible input)
-//complexDataGptr operator*(const RadialFunctionG&, complexDataGptr&&);
+//! Convolve a vector field by a radial function (preserve input)
+DataGptrVec operator*(const RadialFunctionG&, const DataGptrVec&);
+
+//! Convolve a vector field by a radial function (destructible input)
+DataGptrVec operator*(const RadialFunctionG&, DataGptrVec&&);
 
 
 //------------------------------ ColumnBundle operators ---------------------------------

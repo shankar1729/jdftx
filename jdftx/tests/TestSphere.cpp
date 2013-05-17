@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/IdealGasPomega.h>
 #include <fluid/Fex_H2O_FittedCorrelations.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
 
 void initHardSphere(int i, vector3<> r, const vector3<>& r0, double radius, double height, double* phi)
@@ -38,36 +38,21 @@ struct TestSphere
 
 	void test()
 	{
-
-		//----- Setup quadrature for angular integration -----
-		const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
-		SO3quad quad(QuadOctahedron, Zn);
-
-		//----- Translation operator -----
-		//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Constant);
-		TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-		//TranslationOperatorFourier trans(gInfo);
-
-		FluidMixture fluidMixture(gInfo, 298*Kelvin);
-
-		//----- Excess functional -----
-		//Fex_H2O_FittedCorrelations fex(fluidMixture);
-		Fex_H2O_ScalarEOS fex(fluidMixture);
-		//Fex_H2O_BondedVoids fex(fluidMixture);
-
-		//----- Ideal gas -----
-		//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-		//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-		IdealGasPomega idgas(&fex, 1.0, quad, trans);
-
+		double T = 298*Kelvin;
+		FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+		component.s2quadType = QuadOctahedron;
+		component.representation = FluidComponent::Pomega;
+		
+		FluidMixture fluidMixture(gInfo, T);
+		component.addToFluidMixture(&fluidMixture);
 		double p = 1.01325*Bar;
 		printf("pV = %le\n", p*gInfo.detR);
-		fluidMixture.setPressure(p);
+		fluidMixture.initialize(p);
 
 		//----- Initialize external potential -----
 		double radius = 4.0*Angstrom;
-		nullToZero(idgas.V, gInfo);
-		applyFunc_r(gInfo, initHardSphere, gInfo.R*vector3<>(0.5,0.5,0.5), radius, 1.0, idgas.V[0]->data());
+		nullToZero(component.idealGas->V, gInfo);
+		applyFunc_r(gInfo, initHardSphere, gInfo.R*vector3<>(0.5,0.5,0.5), radius, 1.0, component.idealGas->V[0]->data());
 
 		//----- Initialize state -----
 		bool loadState = false; //true;
@@ -77,7 +62,6 @@ struct TestSphere
 		//----- FDtest and CG -----
 		MinimizeParams mp;
 		mp.linminMethod = MinimizeParams::Cubic;
-		mp.alphaTstart = 3e4;
 		mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 		mp.energyLabel = "Phi";
 		mp.nIterations=100;

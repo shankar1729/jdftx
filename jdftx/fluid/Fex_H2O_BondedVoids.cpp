@@ -18,51 +18,38 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <fluid/Fex_H2O_BondedVoids.h>
+#include <fluid/Fex_ScalarEOS_internal.h>
 #include <fluid/Fex_LJ.h>
 #include <core/Units.h>
 #include <core/Operators.h>
-#include <fluid/Fex_H2O_ScalarEOS_internal.h>
+#include <electronic/operators.h>
 
 //EOS functional fit parameters:
-const double RV0 = 1.290*Angstrom;
-const double TV = 258.7*Kelvin;
-const double kappa = 1.805e5*Kelvin*pow(Angstrom,3);
-const double RO = 1.419*Angstrom;
-const double sigmaU = 2.62*Angstrom;
+const double Fex_H2O_BondedVoids::RV0 = 1.290*Angstrom;
+const double Fex_H2O_BondedVoids::TV = 258.7*Kelvin;
+const double Fex_H2O_BondedVoids::kappa = 1.805e5*Kelvin*pow(Angstrom,3);
+const double Fex_H2O_BondedVoids::RO = 1.419*Angstrom;
+const double Fex_H2O_BondedVoids::sigmaU = 2.62*Angstrom;
 
-//SPC/E O-H length
-const double rOH = 1.0*Angstrom;
-
-Fex_H2O_BondedVoids::Fex_H2O_BondedVoids(FluidMixture& fluidMixture)
-: Fex(fluidMixture),
-RV(RV0*exp(-T/TV)),
-siteChargeKernel(gInfo), Ua(gInfo),
-propO(gInfo,  RO,0.0, +0.8476,&siteChargeKernel),
-propH(gInfo, 0.0,0.0, -0.4238,&siteChargeKernel),
-propV(gInfo,  RV,0.0, 0,0),
-molecule("H2O",
-		&propO, vector3<>(0,0,0),
-		&propH, vector3<>(-1,-1,1)*(rOH/sqrt(3)), vector3<>(+1,+1,+1)*(rOH/sqrt(3)),
-		&propV, vector3<>(+1,+1,-1)*((RO+RV)/sqrt(3)), vector3<>(-1,-1,-1)*((RO+RV)/sqrt(3)) )
+Fex_H2O_BondedVoids::Fex_H2O_BondedVoids(const FluidMixture* fluidMixture, const FluidComponent* comp)
+: Fex(fluidMixture, comp)
 {
 	//Initialize the kernels: 
-	applyFuncGsq(gInfo, setCoulombCutoffKernel, siteChargeKernel.data); siteChargeKernel.set();
-	setLJatt(Ua, -9.0/(32*sqrt(2)*M_PI*pow(sigmaU,3)), sigmaU);
+	setLJatt(Ua, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(sigmaU,3)), sigmaU);
 	Citations::add("Bonded-Voids water functional",
 		"R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012) and arXiv:1112.1442");
 }
-
-double Fex_H2O_BondedVoids::get_aDiel() const
-{	return 1 - T/(7.35e3*Kelvin);
+Fex_H2O_BondedVoids::~Fex_H2O_BondedVoids()
+{	Ua.free();
 }
 
-double Fex_H2O_BondedVoids::compute(const DataGptr* Ntilde, DataGptr* grad_Ntilde) const
+double Fex_H2O_BondedVoids::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
 {	DataGptr V = (-kappa * gInfo.nr) * (Ua * Ntilde[0]);
-	grad_Ntilde[0] += V;
+	Phi_Ntilde[0] += V;
 	return 0.5*gInfo.dV*dot(V,Ntilde[0]);
 }
-double Fex_H2O_BondedVoids::computeUniform(const double* N, double* grad_N) const
-{	grad_N[0] += (-kappa)*Ua.data[0]*N[0];
-	return 0.5*(-kappa)*N[0]*Ua.data[0]*N[0];
+double Fex_H2O_BondedVoids::computeUniform(const double* N, double* Phi_N) const
+{	Phi_N[0] += (-kappa)*Ua(0)*N[0];
+	return 0.5*(-kappa)*N[0]*Ua(0)*N[0];
 }
 

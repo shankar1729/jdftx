@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
-
+/*
 EnumStringMap<S2quadType> quadDescMap
 (	QuadEuler,       "Euler angles (<nBeta> x <nAlpha> x ceil(<nGamma>/Zn) nodes on S1/Zn)",
 	QuadTetrahedron, "Tetrahedron rotation group (4 S2 nodes x ceil(3/n) on S1/Zn)", 
@@ -78,3 +78,4 @@ struct CommandFluidSO3quad : public Command
 	}
 }
 commandFluidSO3quad;
+*/

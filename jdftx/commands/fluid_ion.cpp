@@ -22,8 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <core/Units.h>
-#include <fluid/Fex_HardSphereIon.h>
-
+/*
 struct CommandFluidIon : public Command
 {
 	CommandFluidIon() : Command("fluid-ion")
@@ -70,3 +69,4 @@ struct CommandFluidIon : public Command
 	}
 }
 CommandFluidIon;
+*/

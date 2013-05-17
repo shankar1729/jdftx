@@ -22,19 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasPomega.h>
 #include <fluid/IdealGasMonoatomic.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
-#include <fluid/Fex_HardSphereIon.h>
-#include <fluid/Fmix_IonSolvation.h>
-
-//Constrain center of cell to be at 0 electrostatic potential
-double zeroCenter(const DataRptr& dtot, DataRptr& dd0_ddtot)
-{	const GridInfo& gInfo = dtot->gInfo;
-	initZero(dd0_ddtot, gInfo);
-	int centerIndex = gInfo.fullRindex(vector3<int>(gInfo.S[0]/2, gInfo.S[1]/2, gInfo.S[2]/2));
-	double d0 = -dtot->data()[centerIndex];
-	dd0_ddtot->data()[centerIndex] = -1.0;
-	return d0;
-}
+#include <fluid/Fex_ScalarEOS.h>
+#include <fluid/Fex_LJ.h>
 
 const double epsSi = 11.8;
 const double epsSiO2 = 3.9;
@@ -90,42 +79,30 @@ int main(int argc, char** argv)
 	gInfo.R = Diag(hGrid * gInfo.S);
 	gInfo.initialize();
 
-	//----- Setup quadrature for angular integration -----
-	const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
-	SO3quad quad(QuadOctahedron, Zn);
+	double T = 298*Kelvin;
+	FluidComponent componentH2O(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	FluidComponent componentCation(FluidComponent::Sodium, T, FluidComponent::MeanFieldLJ);
+	FluidComponent componentAnion(FluidComponent::Chloride, T, FluidComponent::MeanFieldLJ);
+	componentCation.Nbulk = 0.02*mol/liter;
+	componentAnion.Nbulk = 0.02*mol/liter;
+	FluidComponent componentHoles(FluidComponent::CustomCation, T, FluidComponent::MeanFieldLJ);
+	FluidComponent componentElectrons(FluidComponent::CustomAnion, T, FluidComponent::MeanFieldLJ);
+	componentHoles.molecule.setModelMonoatomic("h+", -1., 0*Angstrom);
+	componentElectrons.molecule.setModelMonoatomic("e-", +1., 0*Angstrom);
 
-	//----- Translation operator -----
-	//TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Constant);
-	TranslationOperatorSpline trans(gInfo, TranslationOperatorSpline::Linear);
-	//TranslationOperatorFourier trans(gInfo);
-
-	FluidMixture fluidMixture(gInfo, 298*Kelvin);
-
-	//Water
-	Fex_H2O_ScalarEOS fexH2O(fluidMixture);
-	IdealGasPomega idgasH2O(&fexH2O, 55.0*mol/liter, quad, trans);
-	//Cations
-	Fex_HardSphereIon fexCation(fluidMixture, 1.5*Angstrom, -1.0, "Na+");
-	IdealGasMonoatomic idgasCation(&fexCation, 0.02*mol/liter);
-	//Anions
-	Fex_HardSphereIon fexAnion(fluidMixture, 1.5*Angstrom, +1.0, "Cl-");
-	IdealGasMonoatomic idgasAnion(&fexAnion, 0.02*mol/liter);
-
-	//Holes
-	Fex_HardSphereIon fexHoles(fluidMixture, 0*Angstrom, -1.0, "h+");
-	IdealGasMonoatomic idgasHoles(&fexHoles, 0);
-	//Electrons
-	Fex_HardSphereIon fexElectrons(fluidMixture, 0*Angstrom, +1.0, "e-");
-	IdealGasMonoatomic idgasElectrons(&fexElectrons, 0);
-
+	FluidMixture fluidMixture(gInfo, T);
+	componentH2O.addToFluidMixture(&fluidMixture);
+	componentCation.addToFluidMixture(&fluidMixture);
+	componentAnion.addToFluidMixture(&fluidMixture);
+	componentHoles.addToFluidMixture(&fluidMixture);
+	componentElectrons.addToFluidMixture(&fluidMixture);
 	//Mixing functionals:
-	Fmix_IonSolvation fsolvCation(fluidMixture, fexH2O, fexCation, 2e-3, 3.0*Angstrom);
-	Fmix_IonSolvation fsolvAnion(fluidMixture, fexH2O, fexAnion, 2e-3, 3.0*Angstrom);
-
-
+	Fmix_LJ fsolvCation(&fluidMixture, &componentH2O, &componentCation, 2e-3, 3.0*Angstrom);
+	Fmix_LJ fsolvAnion(&fluidMixture, &componentH2O, &componentAnion, 2e-3, 3.0*Angstrom);
+	
 	double p = 1.01325*Bar;
 	printf("pV = %le\n", p*gInfo.detR);
-	fluidMixture.setPressure(p);
+	fluidMixture.initialize(p);
 
 	//Set semiconductor properties:
 	DataRptr rhoDopantBG, rhoBuiltin;
@@ -141,8 +118,8 @@ int main(int argc, char** argv)
 		printf("\tBulk electron density = %le/cm3\n", Nelectrons*cm3);
 		printf("\tBulk hole density = %le/cm3\n", Nholes*cm3);
 		printf("\tDopant ionic charge density = %le/cm3\n", rhoBG*cm3);
-		idgasHoles.overrideBulk(Nholes, 0);
-		idgasElectrons.overrideBulk(Nelectrons, 0);
+		componentHoles.idealGas->overrideBulk(Nholes, 0);
+		componentElectrons.idealGas->overrideBulk(Nelectrons, 0);
 		nullToZero(rhoDopantBG, gInfo);
 		applyFunc_r(gInfo, setDopantBG, rhoBG, rhoDopantBG->data());
 
@@ -159,15 +136,15 @@ int main(int argc, char** argv)
 	}
 
 	//----- Repulsive potentials to keep things in place -----
-	nullToZero(idgasH2O.V, gInfo);
-	nullToZero(idgasCation.V, gInfo);
-	nullToZero(idgasAnion.V, gInfo);
-	nullToZero(idgasHoles.V, gInfo);
-	nullToZero(idgasElectrons.V, gInfo);
+	nullToZero(componentH2O.idealGas->V, gInfo);
+	nullToZero(componentCation.idealGas->V, gInfo);
+	nullToZero(componentAnion.idealGas->V, gInfo);
+	nullToZero(componentHoles.idealGas->V, gInfo);
+	nullToZero(componentElectrons.idealGas->V, gInfo);
 	applyFunc_r(gInfo, setWalls, 1.0,
-		idgasH2O.V[0]->data(), idgasH2O.V[1]->data(),
-		idgasCation.V[0]->data(), idgasAnion.V[0]->data(),
-		idgasHoles.V[0]->data(), idgasElectrons.V[0]->data() );
+		componentH2O.idealGas->V[0]->data(), componentH2O.idealGas->V[1]->data(),
+		componentCation.idealGas->V[0]->data(), componentAnion.idealGas->V[0]->data(),
+		componentHoles.idealGas->V[0]->data(), componentElectrons.idealGas->V[0]->data() );
 
 	//----- Initialize external charge -----
 	DataRptr rhoFloatingGate;
@@ -190,7 +167,6 @@ int main(int argc, char** argv)
 
 	//----- FDtest and CG -----
 	MinimizeParams mp;
-	mp.alphaTstart = 3e1;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.nIterations=1000;
 	mp.knormThreshold=1e-14*pow(hGrid,2);
@@ -207,12 +183,12 @@ int main(int argc, char** argv)
 	);
 
 	//Scale densities by bulk values:
-	for(unsigned ic=0; ic<fluidMixture.get_nComponents(); ic++)
-	{	const FluidMixture::Component& c = fluidMixture.get_component(ic);
+	const std::vector<const FluidComponent*>& component = fluidMixture.getComponents();
+	for(unsigned ic=0; ic<component.size(); ic++)
+	{	const FluidComponent& c = *(component[ic]);
 		double Nbulk = c.idealGas->get_Nbulk();
-		//double Nbulk = ic<3 ? idgasH2O.get_Nbulk() : idgasElectrons.get_Nbulk();
-		for(int j=0; j<c.molecule->nIndices; j++)
-			N[c.offsetDensity+j] *= 1.0/(Nbulk * c.indexedSiteMultiplicity[j]);
+		for(unsigned j=0; j<c.molecule.sites.size(); j++)
+			N[c.offsetDensity+j] *= 1./(Nbulk * c.molecule.sites[j]->positions.size());
 	}
 
 	DataRptr dtot = I(grad_rhoExternalTilde - 4*M_PI*Linv(O(fluidMixture.rhoExternal)));

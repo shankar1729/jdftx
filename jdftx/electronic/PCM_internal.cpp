@@ -83,10 +83,10 @@ namespace ShapeFunction
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {
-	Screening::Screening(bool linear, double T, double Nion, double Zion, double Rplus, double Rminus, double epsBulk)
+	Screening::Screening(bool linear, double T, double Nion, double Zion, double VhsPlus, double VhsMinus, double epsBulk)
 	: linear(linear), NT(Nion*T), NZ(Nion*Zion),
-	x0plus(Nion * (4.*M_PI/3)*pow(Rplus,3)),
-	x0minus(Nion * (4.*M_PI/3)*pow(Rminus,3)),
+	x0plus(Nion * VhsPlus),
+	x0minus(Nion * VhsMinus),
 	x0(x0plus + x0minus)
 	{
 		if(x0 >= 1.) die("Bulk ionic concentration exceeds hard sphere limit = %lg mol/liter.\n", (Nion/x0) / (mol/liter));
@@ -116,11 +116,12 @@ namespace NonlinearPCMeval
 		alpha(3 - 4*M_PI*Np*pMol/(T*(epsBulk-epsInf))),
 		X((epsInf-1.)*T/(4*M_PI*Np*pMol))
 	{	//Check parameter validity:
+		if(!pMol) die("\nNonlinearPCM shluld only be used for polar solvents with non-zero dipole moment.\n");
 		if(alpha < 0.)
 			die("\nCurrent Nonlinear PCM parameters imply negative correlation for dipole rotations.\n"
 				"\tHINT: Reduce solvent molecule dipole or epsInf to fix this.\n");
 		if(linear) logPrintf("   Linear dielectric with epsBulk = %lg.\n", epsBulk);
-		else logPrintf("   Nonlinear dielectric with epsBulk = %lg and epsInf = %lg at T = %lg K.\n", epsBulk, epsInf, T/Kelvin);
+		else logPrintf("   Nonlinear dielectric with epsBulk = %lg and epsInf = %lg with density Nmol = %lg of dipoles pMol = %lg at T = %lg K.\n", epsBulk, epsInf, Nmol, pMol, T/Kelvin);
 	}
 	
 	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s, const Dielectric& eval)

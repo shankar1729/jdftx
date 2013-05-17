@@ -20,8 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex.h>
 #include <fluid/FluidMixture.h>
 
-Fex::Fex(FluidMixture& fluidMixture)
-:fluidMixture(fluidMixture), gInfo(fluidMixture.gInfo), T(fluidMixture.T)
+Fex::Fex(const FluidMixture* fluidMixture, const FluidComponent* comp)
+: molecule(comp->molecule), gInfo(fluidMixture->gInfo), T(fluidMixture->T)
 {
 }
 

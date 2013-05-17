@@ -21,9 +21,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <core/Units.h>
 #include <electronic/FluidSolver.h>
-#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_ScalarEOS.h>
 
-
+/*
 EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
 	ConvCouplingExponential, "Exponential",
 	ConvCouplingExpCuspless, "ExpCuspless",
@@ -54,10 +54,11 @@ struct CommandFluidCouplingScale : public Command
 	}
 	
 }commandFluidCouplingScale;
+*/
 
-struct CommandFluidVDWCouplingScale : public Command
+struct CommandFluidVDWscale : public Command
 {
-	CommandFluidVDWCouplingScale() : Command("fluid-vdWcoupling-scale")
+	CommandFluidVDWscale() : Command("fluid-vdwScale")
 	{
 		format = "<scale=0.75>";
 		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
@@ -67,16 +68,17 @@ struct CommandFluidVDWCouplingScale : public Command
 	
 	void process(ParamList& pl, Everything& e)
 	{
-		pl.get(e.eVars.fluidParams.VDWCouplingScale, 0.75, "scale");
+		pl.get(e.eVars.fluidParams.vdwScale, 0.75, "scale");
 	}
 	
 	void printStatus(Everything& e, int iRep)
 	{	
-		logPrintf(" %lg", e.eVars.fluidParams.VDWCouplingScale);	
+		logPrintf(" %lg", e.eVars.fluidParams.vdwScale);	
 	}
-	
-}commandFluidVDWCouplingScale;
+}
+commandFluidVDWscale;
 
+/*
 struct CommandFluidSitePosition : public Command
 {
 	CommandFluidSitePosition() : Command("fluid-site-position")
@@ -372,3 +374,4 @@ struct CommandFluidIonCoupling : public Command
 	}
 }
 CommandFluidIonCoupling;
+*/

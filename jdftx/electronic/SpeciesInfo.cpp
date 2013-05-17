@@ -146,10 +146,12 @@ void SpeciesInfo::setup(const Everything &everything)
 	
 	//Generate atomic number from symbol, if not stored in pseudopotential:
 	if(!atomicNumber)
-	{	if(!atomicSymbolMap.getEnum(name.c_str(), atomicNumber))
+	{	AtomicSymbol atSym;
+		if(!atomicSymbolMap.getEnum(name.c_str(), atSym))
 			die("\nCould not determine atomic number for species '%s'.\n"
 				"Either use a pseudopotential which contains this information,\n"
 				"or set the species name to be the chemical symbol for that atom type.\n", name.c_str());
+		atomicNumber = int(atSym);
 	}
 	
 	#ifdef GPU_ENABLED

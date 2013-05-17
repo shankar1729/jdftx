@@ -30,37 +30,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Van der Waals coupling between atoms from electronic DFT and fluid density fields
 class VDWCoupling : public Fmix
 {	
-	public:
-	VDWCoupling(FluidMixture& fluidMixture, std::shared_ptr<VanDerWaals> vdW); 
+public:
+	VDWCoupling(FluidMixture* fluidMixture, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale); 
 	
-	//! Destructor
-	~VDWCoupling();
+	//! Main energy and gradients function
+	double energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde=0, IonicGradient* forces=0) const;
 	
-	double computeUniform(const std::vector<double>& N, std::vector<double>& grad_N) const;
-	
-	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const;
-
+	//Interface to fluid side (virtual functions from Fmix):
+	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
+	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
 	string getName() const;
-	
-	//! Compute ionic gradients (for the electronic side) and return van der Waals coupling energy
-	double computeElectronic(const DataRptrCollection* N, IonicGradient* forces=0);
 
-	//! For debugging: Output any coupling-related debug info here
-	//! (replace %s in filename pattern with something meaningful and output to that filename)
-	//!   It will be called from the electronic code during FluidDebug dump, if enabled
-	//! DO NOT hack up any of the other functions!
-	void dumpDebug(const char* filenamePattern) const;
-	
-	const ExCorr* exCorr;
-	const double* scaleFac;
-	
-	private:
-		
+private:
 	std::shared_ptr<VanDerWaals> vdW;
+	double vdwScale;
 	std::vector<int> atomicNumber; 
-	
-	
-	
 };
 
 #endif // JDFTX_ELECTRONIC_VDWCOUPLING_H

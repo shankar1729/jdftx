@@ -140,6 +140,6 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 	double normFac = 1./(4.*M_PI);
 	for(unsigned i=0; i<n.r.size(); i++) n.f[i] *= normFac;
 	//Transform density:
-	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
 	n.transform(0, dGloc, nGridLoc, nRadial);
 }

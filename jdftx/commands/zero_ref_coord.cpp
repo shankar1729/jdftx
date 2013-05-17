@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
-
+/*
 struct CommandZeroRefCoord : public Command
 {
     CommandZeroRefCoord() : Command("zero-ref-coord")
@@ -50,3 +50,4 @@ struct CommandZeroRefCoord : public Command
 	}
 }
 CommandZeroRefCoord;
+*/

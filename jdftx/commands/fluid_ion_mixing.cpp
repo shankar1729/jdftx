@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 #include <electronic/FluidSolver.h>
 
+/*
 struct CommandFluidIonMixing : public Command
 {
 	CommandFluidIonMixing() : Command("fluid-ion-mixing")
@@ -82,3 +83,4 @@ struct CommandFluidIonMixing : public Command
 	}
 }
 CommandFluidIonMixing;
+*/

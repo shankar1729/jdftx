@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/operators.h>
 #include <core/DataMultiplet.h>
+#include <core/Units.h>
 
 const static int atomicNumberMaxGrimme = 54;
 const static int atomicNumberMax = 118;
@@ -308,7 +309,7 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	//Transform to reciprocal space, cache and return:
 	RadialFunctionG& funcTilde = ((VanDerWaals*)this)->radialFunctions[atomicNumberPair];
 	const double dGloc = 0.02; //same as the default for SpeciesInfo
-	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
 	func.transform(0, dGloc, nGridLoc, funcTilde);
 	return funcTilde;
 }

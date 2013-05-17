@@ -26,54 +26,31 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/VDWCoupling.h>
 
-VDWCoupling::VDWCoupling(FluidMixture& fluidMixture, std::shared_ptr< VanDerWaals > vdW)
-	: Fmix(fluidMixture), vdW(vdW)
+VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale)
+: Fmix(fluidMixture), vdW(vdW), vdwScale(vdwScale)
 {
 	//create a list of fluid atomic numbers to calculate vdW interactions
-	
-	for(unsigned ic=0; ic<fluidMixture.get_nComponents(); ic++)
-		{
-			const FluidMixture::Component& c = fluidMixture.get_component(ic);
-			for(int j=0; j<c.molecule->nIndices; j++)
-			{
-				const SiteProperties& s = *c.indexedSite[j];
-				atomicNumber.push_back(s.atomicNumber); 
-			}
-		}
+	const std::vector<const FluidComponent*>& component = fluidMixture->getComponents();
+	for(unsigned ic=0; ic<component.size(); ic++)
+	{	const FluidComponent& c = *component[ic];
+		for(unsigned i=0; i<c.molecule.sites.size(); i++)
+			atomicNumber.push_back(c.molecule.sites[i]->atomicNumber);
+	}
 }
 
-VDWCoupling::~VDWCoupling()
-{
+double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< double >& Phi_N) const
+{	return 0.; //No electronic system to couple to in the bulk fluid
 }
 
-double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< double >& grad_N) const
-{
-	return 0.0; //No electronic system to couple to in the bulk fluid
+double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
+{	return energyAndGrad(Ntilde, &Phi_Ntilde);
 }
 
-double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& grad_Ntilde) const
-{	double vdwScale = vdW->getScaleFactor(exCorr->getName(), *scaleFac);
-	return vdW->energyAndGrad(Ntilde, atomicNumber, vdwScale, &grad_Ntilde);
+double VDWCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde, IonicGradient* forces) const
+{	return vdW->energyAndGrad(Ntilde, atomicNumber, vdwScale, Phi_Ntilde, forces);
 }
-
-double VDWCoupling::computeElectronic(const DataRptrCollection* N, IonicGradient* forces) 
-{
-	DataGptrCollection Ntilde(fluidMixture.get_nDensities());
-	for(unsigned i=0; i<fluidMixture.get_nDensities(); i++)
-		Ntilde[i] = J((*N)[i]);
-	
-	double vdwScale = vdW->getScaleFactor(exCorr->getName(), *scaleFac);
-	return vdW->energyAndGrad(Ntilde, atomicNumber, vdwScale, 0, forces);
-}
-
-void VDWCoupling::dumpDebug(const char* filenamePattern) const
-{
-
-}
-
 
 string VDWCoupling::getName() const
-{	
-	return "VDWCoupling";
+{	return "VDWCoupling";
 }
 

@@ -250,7 +250,20 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	nG = S[0] * S[1] * (S[2]/2+1);
 	dV = detR/nr;
 	for(int k=0; k<3; k++) h[k] = R.column(k)/S[k];
-
+	
+	//Recommended extent for radial functions:
+	dGradial = 0.02;
+	GmaxSphere = 1.5 * Gmax;
+	GmaxGrid = 0.0;
+	{	vector3<int> c;
+		for(c[0]=-1; c[0]<=1; c[0]+=2) for(c[1]=-1; c[1]<=1; c[1]+=2) for(c[2]=-1; c[2]<=1; c[2]+=2)
+		{	vector3<> f; for(int k=0; k<3; k++) f[k] = c[k]*(S[k]/2);
+			double g = sqrt(GGT.metric_length_squared(f));
+			if(g>GmaxGrid) GmaxGrid=g;
+		}
+	}
+	GmaxGrid *= 1.5;
+	
 	logPrintf("Planning FFTs (this might take a while for a new big problem size) ... "); logFlush();
 
 	#ifdef GPU_ENABLED

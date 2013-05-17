@@ -21,15 +21,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 
-Energies::Energies() : TS(0), F(0), muN(0), G(0), Eband(0)
+Energies::Energies() : TS(0), muN(0), Eband(0)
 {
 }
 
-
-void Energies::updateTotals()
-{	F = double(E) - TS;
-	G = F - muN;
-}
 
 void Energies::print(FILE* fp) const
 {	if(Eband)
@@ -41,12 +36,12 @@ void Energies::print(FILE* fp) const
 		if(TS)
 		{	fprintf(fp, "       TS = %25.16lf\n", TS);
 			fprintf(fp, "-------------------------------------\n");
-			fprintf(fp, "        F = %25.16lf\n", F);
+			fprintf(fp, "        F = %25.16lf\n", F());
 		}
 		if(muN)
 		{	fprintf(fp, "      muN = %25.16lf\n", muN);
 			fprintf(fp, "-------------------------------------\n");
-			fprintf(fp, "        G = %25.16lf\n", G);
+			fprintf(fp, "        G = %25.16lf\n", G());
 		}
 	}
 	fflush(fp);
@@ -56,8 +51,8 @@ void Energies::print(FILE* fp) const
 double relevantFreeEnergy(const Everything& e)
 {	if(e.cntrl.fixed_n) return e.ener.Eband;
 	else if(e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) return double(e.ener.E);
-	else if(std::isnan(e.eInfo.mu)) return e.ener.F;
-	else return e.ener.G;
+	else if(std::isnan(e.eInfo.mu)) return e.ener.F();
+	else return e.ener.G();
 }
 const char* relevantFreeEnergyName(const Everything& e)
 {	if(e.cntrl.fixed_n) return "Eband";

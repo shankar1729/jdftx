@@ -37,7 +37,7 @@ RadialFunctionR getTau(const RadialFunctionR& n)
 
 void SpeciesInfo::setCore(RadialFunctionR& nCore)
 {
-	int nGridLoc = int(ceil(e->iInfo.GmaxLoc/dGloc))+5;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
 	
 	//Truncate the radial grid where the integral of nCore is within double precision of its untruncated value:
 	double nCoreTot = 0.;
