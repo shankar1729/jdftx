@@ -73,7 +73,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
 	DumpSIC, "SelfInteractionCorrection",
-	DumpDipole, "Dipole"
+	DumpDipole, "Dipole",
+	DumpStress, "Stress"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -108,7 +109,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpOptVext,        "Optimized external potentials (see invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see density-of-states) [not in All]",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
-	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)"
+	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
+	DumpStress,         "Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector"
 );
 
 struct CommandDump : public Command

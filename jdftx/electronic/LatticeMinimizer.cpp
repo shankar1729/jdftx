@@ -100,16 +100,17 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
-
+	logSuspend();
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
-	
 	updateLatticeDependent(); // Updates lattice information and gets the energy	
+	logResume();
 	
 	//! Run an ionic minimizer at the current strain
 	IonicMinimizer ionicMinimizer(e);
 	ionicMinimizer.minimize(e.ionicMinParams);
 	
 	//! If asked for, returns the gradient of the strain tensor
+	logSuspend();
 	if(grad)
 	{	//! Loop over all basis vectors and get the gradient.
 		*grad = matrix3<>();
@@ -119,6 +120,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		e.gInfo.R = Rorig + Rorig*strain;
 		updateLatticeDependent();
 	}
+	logResume();
 	
 	// Check for large lattice strain
 	if(sqrt(dot(strain, strain)) > maxAllowedStrain)
@@ -191,11 +193,14 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 }
 
 void LatticeMinimizer::updateLatticeDependent()
-{	
-	logSuspend();
-	e.gInfo.update();
+{	e.gInfo.update();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	e.eVars.elecEnergyAndGrad(e.ener);
-	logResume();
+}
+
+void LatticeMinimizer::restore()
+{	strain *= 0;
+	e.gInfo.R = Rorig;
+	updateLatticeDependent();
 }

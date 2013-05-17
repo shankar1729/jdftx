@@ -32,6 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SelfInteractionCorrection.h>
 #include <electronic/DOS.h>
 #include <electronic/Polarizability.h>
+#include <electronic/LatticeMinimizer.h>
 #include <electronic/FluidSolver.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
@@ -353,6 +354,31 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDumpNoAll(Polarizability))
 	{	polarizability->dump(*e);
+	}
+	
+	if(ShouldDumpNoAll(Stress))
+	{	logSuspend();
+		LatticeMinimizer lattMin(*((Everything*) e));
+		auto stress = lattMin.calculateStress();
+		matrix3<> stressTensor;
+		for(size_t i=0; i<lattMin.strainBasis.size(); i++)
+			stressTensor += stress[i]*lattMin.strainBasis[i];
+		lattMin.restore();
+		logResume();
+		
+		StartDump("stress")
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+		
+		// Dump stress in lattice units
+		fprintf(fp, "stress (in lattice units)");
+		for(int j=0; j<3; j++)
+		{	fprintf(fp, " \\\n\t");
+			for(int k=0; k<3; k++)
+				fprintf(fp, "%20.15lf ", stressTensor(j,k));
+		}
+		fclose(fp);
+		EndDump
 	}
 }
 

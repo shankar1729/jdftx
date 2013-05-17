@@ -41,7 +41,17 @@ public:
 	matrix3<> precondition(const matrix3<>& grad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
+	
+	//! Calculates the stresses along the strain directions
+	std::vector<double> calculateStress();
 
+	//!Set of independent directions in the space of all allowed strains.
+	//!Their span is consistent with symmetries and truncation (if any).
+	std::vector<matrix3<>> strainBasis;
+	
+	//! Restores the lattice to the original state (i.e. strain=0)
+	void restore();
+	
 private:
 	Everything& e;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
@@ -52,12 +62,6 @@ private:
 	
 	double h; //! Finite difference step size
 	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain
-	
-	std::vector<double> calculateStress();
-	
-	 //!Set of independent directions in the space of all allowed strains.
-	//!Their span is consistent with symmetries and truncation (if any).
-	std::vector<matrix3<>> strainBasis;
 	
 	//! Updates lattice dependent quantities, but does not
 	//! reconverge ionic positions or wavefunctions
