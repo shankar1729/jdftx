@@ -53,6 +53,8 @@ private:
 	double h; //! Finite difference step size
 	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain
 	
+	std::vector<double> calculateStress();
+	
 	 //!Set of independent directions in the space of all allowed strains.
 	//!Their span is consistent with symmetries and truncation (if any).
 	std::vector<matrix3<>> strainBasis;

@@ -113,8 +113,9 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 	if(grad)
 	{	//! Loop over all basis vectors and get the gradient.
 		*grad = matrix3<>();
-		for(const matrix3<>& s: strainBasis)
-			*grad += centralDifference(s)*s;
+		auto stress = calculateStress();
+		for(size_t i=0; i<strainBasis.size(); i++)
+			*grad += stress[i]*strainBasis[i];
 		e.gInfo.R = Rorig + Rorig*strain;
 		updateLatticeDependent();
 	}
@@ -132,10 +133,22 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 	return relevantFreeEnergy(e);
 }
 
+std::vector< double > LatticeMinimizer::calculateStress()
+{
+	std::vector<double> stress(strainBasis.size());
+	
+	logPrintf("\nCalculating stress tensor... ");
+	for(size_t i=0; i<strainBasis.size(); i++)
+	{	stress[i] = centralDifference(strainBasis[i]);
+	}
+	logPrintf(" done!\n");
+	
+	return stress;
+
+}
+
 double LatticeMinimizer::centralDifference(matrix3<> direction)
 { //! Implements a central difference derivative with O(h^4)
-	
-	logPrintf("\n\nCalculating the Energy gradient wrt lattice strain...\n");
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(-2*h*direction));
 	updateLatticeDependent();
@@ -152,9 +165,7 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
 	updateLatticeDependent();
 	const double Ep2h = relevantFreeEnergy(e);
-	
-	logPrintf("\n\nFinished calculating Energy gradient wrt strain\n\n");
-	
+		
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
 
@@ -181,8 +192,10 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 
 void LatticeMinimizer::updateLatticeDependent()
 {	
+	logSuspend();
 	e.gInfo.update();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	e.eVars.elecEnergyAndGrad(e.ener);
+	logResume();
 }
