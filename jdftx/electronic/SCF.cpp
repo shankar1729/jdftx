@@ -77,7 +77,9 @@ void SCF::minimize()
 	{	
 		// Clear history if full
 		if((pastResiduals_n.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
-		{	double ndim = pastResiduals_n.size(); overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
+		{	double ndim = pastResiduals_n.size();
+			if((rp.vectorExtrapolationMethod != plain) and (rp.history!=1))
+				overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
 			pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
 			if(rp.vectorExtrapolationMethod != plain)
