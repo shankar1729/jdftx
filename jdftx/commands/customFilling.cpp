@@ -51,7 +51,7 @@ struct CommandCustomFilling : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	std::vector<std::tuple<int,int,double>>& customFillings = e.eInfo.customFillings;
-		logPrintf("%i %i %.2e", std::get<0>(customFillings[iRep]), std::get<1>(customFillings[iRep]), std::get<2>(customFillings[iRep]));
+		logPrintf("%i %i %.2e", std::get<0>(customFillings[iRep]), std::get<1>(customFillings[iRep]), std::get<2>(customFillings[iRep])*(e.eInfo.spinType == SpinZ ? 1. : 2.));
 	}
 }
 commandCustomFilling;
