@@ -33,7 +33,7 @@ SiteProperties::SiteProperties(const GridInfo& gInfo, double sphereRadius, doubl
 		w2m = new SphericalKernel(gInfo.S);
 		ErfFMTweight erfFMTweight(sphereRadius, sphereSigma);
 		for(int i=0; i<gInfo.S; i++)
-			erfFMTweight(i, gInfo.G[i]*gInfo.G[i], w0->data(), w1->data(), w2->data(), w3->data(), w1v->data(), w2m->data());
+			erfFMTweight(gInfo.G[i], w0->at(i), w1->at(i), w2->at(i), w3->at(i), w1v->at(i), w2m->at(i));
 	}
 }
 
