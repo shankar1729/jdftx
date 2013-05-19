@@ -25,6 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file ExCorr_internal_mGGA.h
 //! Shared CPU-GPU implementation of meta GGA functionals
 
+static const double tauCutoff = 1e-8; //!< ignore densities below this value
+
 //! Available mGGA functionals 
 enum mGGA_Variant
 {	mGGA_X_TPSS, //!< TPSS mGGA exchange
@@ -121,7 +123,7 @@ struct mGGA_calc <variant, true, nCount>
 			double s2 = s2_sigma * sigma[2*s][i];
 			double q_lap = pow(ns, -5./3) * ((0.25*nCount) * pow(3.*M_PI*M_PI, -2./3));
 			double q = q_lap * (lap[s] ? lap[s][i] : 0.);
-			if(tau[s] && tau[s][i]<nCutoff) continue;
+			if(tau[s] && tau[s][i]<tauCutoff) continue;
 			double z_sigma = tau[s] ? (0.125*nCount)/(ns * tau[s][i]) : 0.;
 			double z = z_sigma * sigma[2*s][i];
 			bool zOffRange = false;
@@ -186,7 +188,7 @@ struct mGGA_calc <variant, false, nCount>
 		double zi2 = zi2_sigmaDiff * sigmaDiff;
 		//Compute reduced KE density, z = tauW/tau
 		double tauTot = (nCount==1) ? tau[0][i] : tau[0][i]+tau[1][i];
-		if(tauTot<nCutoff) return;
+		if(tauTot<tauCutoff) return;
 		double z_sigma = 0.125/(nTot * tauTot);
 		double z = z_sigma * sigmaTot;
 		bool zOffRange = false;

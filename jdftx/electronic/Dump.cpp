@@ -293,7 +293,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				logPrintf("EXX = %.16lf (unscaled)\n", unscaledEXX[omega]); logFlush();
 			}
 		//KE density for meta-GGAs, if required
-		DataRptrCollection tau, Vxc, Vtau;
+		DataRptrCollection tau;
 		bool needTau = false;
 		for(auto exc: e->exCorrDiff)
 			needTau |= exc->needsKEdensity();

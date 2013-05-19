@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <cstdio>
-#include <cmath>
 #include <electronic/ExCorr.h>
 #include <electronic/Basis.h>
 #include <electronic/operators.h>
@@ -28,7 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr_internal_LDA.h>
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/ExCorr_internal_mGGA.h>
-#include <core/Data.h>
 #include <core/Thread.h>
 #include <core/GpuUtil.h>
 #include <core/DataMultiplet.h>
