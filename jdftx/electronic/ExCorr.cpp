@@ -746,7 +746,7 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	e_nn = nDen * (configs[1].e_n - configs[2].e_n);
 	if(needsSigma)
 	{	DataRptr sigmaDen = (0.5/eps) * inv(sigma) * mask;
-		e_sigma = configs[0].e_sigma; //First derivative available analytically
+		e_sigma = configs[0].e_sigma*mask; //First derivative available analytically
 		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma) + sigmaDen * (configs[3].e_n - configs[4].e_n));
 		e_sigmasigma = sigmaDen * (configs[3].e_sigma - configs[4].e_sigma);
 	}
