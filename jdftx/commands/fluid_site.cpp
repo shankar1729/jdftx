@@ -54,31 +54,7 @@ struct CommandFluidCouplingScale : public Command
 	}
 	
 }commandFluidCouplingScale;
-*/
 
-struct CommandFluidVDWscale : public Command
-{
-	CommandFluidVDWscale() : Command("fluid-vdwScale")
-	{
-		format = "<scale=0.75>";
-		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
-					"   Default is scale=0.75 (scale factor for PBE).\n"
-					"   Set to 0 to use prefactor corresponding to fluid exchange-correlation.";
-	}
-	
-	void process(ParamList& pl, Everything& e)
-	{
-		pl.get(e.eVars.fluidParams.vdwScale, 0.75, "scale");
-	}
-	
-	void printStatus(Everything& e, int iRep)
-	{	
-		logPrintf(" %lg", e.eVars.fluidParams.vdwScale);	
-	}
-}
-commandFluidVDWscale;
-
-/*
 struct CommandFluidSitePosition : public Command
 {
 	CommandFluidSitePosition() : Command("fluid-site-position")
@@ -374,4 +350,112 @@ struct CommandFluidIonCoupling : public Command
 	}
 }
 CommandFluidIonCoupling;
+
+struct CommandFluidIonMixing : public Command
+{
+	CommandFluidIonMixing() : Command("fluid-ion-mixing")
+	{
+		format = "<fluid-ion-id> <rSolv> <ESolv=0.004>";
+		comments =
+			"Add a mixing functional between <fluid-ion-id> and water with interaction strength <ESolv>\n"
+			"and gaussian kernel radius <rSolv> within a joint-density-functional theory fluid.";
+		allowMultiple = true;
+
+		require("fluid-ion");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{
+		string id;
+		pl.get(id, string(), "fluid-ion-id", true);
+		if((e.eVars.fluidParams.fluidType==FluidFittedCorrelations)||(e.eVars.fluidParams.fluidType==FluidScalarEOS)
+			||(e.eVars.fluidParams.fluidType==FluidBondedVoids))			
+		{
+			for(int i=0; i<int(e.eVars.fluidParams.hSIons.size()); i++)
+			{
+				if( e.eVars.fluidParams.hSIons[i].name == id)
+				{
+					e.eVars.fluidParams.hSIons[i].MixFunc = true;
+					pl.get(e.eVars.fluidParams.hSIons[i].Rsolv, 0.0, "rSolv", true);
+					pl.get(e.eVars.fluidParams.hSIons[i].Esolv, 0.004, "ESolv", false);
+					return;
+				}
+			}
+			throw string("Fluid ion "+id+" has not been defined.");
+		}
+		throw string("fluid-ion-mixing must be used with a JDFT3.0 water functional.\n");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	
+		int iIon = 0;
+		int iMix = 0;
+		while (iIon<int(e.eVars.fluidParams.hSIons.size()))
+		{
+			if((iMix==iRep)&&(e.eVars.fluidParams.hSIons[iIon].MixFunc))
+			{
+				logPrintf("%s %16.10lf %16.10lf", e.eVars.fluidParams.hSIons[iIon].name.c_str(),
+					e.eVars.fluidParams.hSIons[iIon].Rsolv, e.eVars.fluidParams.hSIons[iIon].Esolv);
+				return;
+			}
+			else if(e.eVars.fluidParams.hSIons[iIon].MixFunc)
+			{
+				iMix++;
+				iIon++;
+			}
+			else
+			{
+				iIon++;
+			}
+		}		
+	}
+}
+CommandFluidIonMixing;
+
+struct CommandFluidIon : public Command
+{
+	CommandFluidIon() : Command("fluid-ion")
+	{
+		format = "<fluid-ion-id> <rHS> <Z=0.0> <Concentration=1.0 M>";
+		comments =
+			"Add a monoatomic hard sphere of type <fluid-ion-id> with charge <Z> in electrons\n"
+			"and hard sphere radius <rHS> in bohr to the joint-density-functional theory fluid\n"
+		    "with <Concentration> in mol/L.";
+		allowMultiple = true;
+
+		require("fluid");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	const FluidType& fluidType = e.eVars.fluidParams.fluidType;
+		if((fluidType==FluidHSIonic)||(fluidType==FluidFittedCorrelations)
+			||(fluidType==FluidScalarEOS)||(fluidType==FluidBondedVoids))			
+		{
+			HardSphereIon ion;
+			pl.get(ion.name, string(), "fluid-ion-id", true);
+			pl.get(ion.rHS, 0.0, "rHS", true);
+			pl.get(ion.Z, 0.0, "Z", false);
+			double conc;
+			pl.get(conc, 1.0, "Concentration", false);
+			ion.Concentration = conc * mol/liter;
+			ion.MixFunc = false;
+			ion.convCouplingModel = ConvCouplingNone; //Sets default to no Convolution Coupling
+			e.eVars.fluidParams.hSIons.push_back(ion);
+			return;
+		}
+		throw string("fluid-ion must be used with a JDFT3.0 Fluid\n");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	
+		for(int iIon=0; iIon<int(e.eVars.fluidParams.hSIons.size()); iIon++)
+			{	if(iIon==iRep)
+				{	logPrintf("%s %16.10lf %16.10lf %10.4lf", e.eVars.fluidParams.hSIons[iIon].name.c_str(),
+							  e.eVars.fluidParams.hSIons[iIon].rHS, -1.0*e.eVars.fluidParams.hSIons[iIon].Z,
+							  e.eVars.fluidParams.hSIons[iIon].Concentration * liter/mol);
+				}
+			}
+	}
+}
+CommandFluidIon;
 */
