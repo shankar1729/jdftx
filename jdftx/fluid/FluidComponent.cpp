@@ -262,12 +262,30 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			sigmaBulk = 1.78e-5;
 			break;
 		}
-		case CustomCation:
-		{	Nbulk = 1. * mol/liter;
+		case CustomCation: break;
+		case Sodium:
+		{	Rvdw = 1.16*Angstrom;
+			//Site properties:
+			molecule.name = "Na+";
+			auto siteNa = std::make_shared<Molecule::Site>("Na",int(AtomicSymbol::Na));
+				siteNa->Znuc = 9.; siteNa->sigmaNuc = (1./6)*Rvdw;
+				siteNa->Zelec = 8.; siteNa->aElec = 0.206;
+			molecule.sites.push_back(siteNa);
+			//Geometry:
+			siteNa->positions.push_back(vector3<>(0,0,0));
 			break;
 		}
-		case CustomAnion:
-		{	Nbulk = 1. * mol/liter;
+		case CustomAnion: break;
+		case Chloride:
+		{	Rvdw = 1.67*Angstrom;
+			//Site properties:
+			molecule.name = "Cl-";
+			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
+				siteCl->Znuc = 7.; siteCl->sigmaNuc = (1./6)*Rvdw;
+				siteCl->Zelec = 8.; siteCl->aElec = 0.438;
+			molecule.sites.push_back(siteCl);
+			//Geometry:
+			siteCl->positions.push_back(vector3<>(0,0,0));
 			break;
 		}
 		default:

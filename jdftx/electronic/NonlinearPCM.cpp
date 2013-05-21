@@ -60,9 +60,10 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		if(fabs(fsp.cations[0]->molecule.getCharge() + fsp.anions[0]->molecule.getCharge())>1e-12)
 			die("NonlinearPCM currently only supports charge-balanced (Z:Z) electrolytes.\n");
 		ionNbulk = fsp.cations[0]->Nbulk;
-		ionZ = fsp.cations[0]->molecule.getCharge();
-		screeningEval = new NonlinearPCMeval::Screening(fsp.linearScreening,
-			fsp.T, ionNbulk, ionZ, fsp.cations[0]->molecule.getVhs(), fsp.anions[0]->molecule.getVhs(), epsBulk);
+		ionZ = fsp.anions[0]->molecule.getCharge();
+		double VhsCation = fsp.cations[0]->molecule.getVhs(); if(!VhsCation) VhsCation = (4*M_PI/3)*pow(fsp.cations[0]->Rvdw,3);
+		double VhsAnion = fsp.anions[0]->molecule.getVhs(); if(!VhsAnion) VhsAnion = (4*M_PI/3)*pow(fsp.anions[0]->Rvdw,3);
+		screeningEval = new NonlinearPCMeval::Screening(fsp.linearScreening, fsp.T, ionNbulk, ionZ, VhsCation, VhsAnion, epsBulk);
 	}
 	else
 	{	ionNbulk = 0.;

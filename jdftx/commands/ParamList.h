@@ -56,7 +56,7 @@ public:
 	//! If required=true, error will be reported instead of setting the default value on eof()
 	//! Note that t is set to tDefault on failure of any sort
 	template<typename T>
-	void get(T& t, T tDefault, EnumStringMap<T>& tMap, string paramName, bool required=false)
+	void get(T& t, T tDefault, const EnumStringMap<T>& tMap, string paramName, bool required=false)
 	{	iss.clear(); //clear previous errors
 		string key;
 		iss >> key;
