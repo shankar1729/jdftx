@@ -17,13 +17,13 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <electronic/Everything.h>
-#include <electronic/NonlocalPCM.h>
-#include <electronic/NonlinearPCM.h>
-#include <electronic/LinearPCM.h>
-#include <electronic/ConvCoupling.h>
-#include <electronic/VDWCoupling.h>
+#include <fluid/NonlocalPCM.h>
+#include <fluid/NonlinearPCM.h>
+#include <fluid/LinearPCM.h>
+#include <fluid/ConvCoupling.h>
+#include <fluid/VDWCoupling.h>
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/Fex_H2O_FittedCorrelations.h>

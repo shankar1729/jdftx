@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/ExCorr.h>
 #include <electronic/ExactExchange.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <core/Units.h>
 #include <core/DataIO.h>
 #include <cstdio>

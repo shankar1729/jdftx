@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Data.h>
 #include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
-#include <electronic/VDWCoupling.h>
+#include <fluid/VDWCoupling.h>
 
 VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale)
 : Fmix(fluidMixture), vdW(vdW), vdwScale(vdwScale)

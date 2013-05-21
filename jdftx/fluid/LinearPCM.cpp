@@ -18,8 +18,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Everything.h>
-#include <electronic/LinearPCM.h>
-#include <electronic/PCM_internal.h>
+#include <fluid/LinearPCM.h>
+#include <fluid/PCM_internal.h>
 #include <electronic/operators.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>

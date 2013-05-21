@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/DOS.h>
 #include <electronic/Polarizability.h>
 #include <electronic/LatticeMinimizer.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
 #include <sstream>

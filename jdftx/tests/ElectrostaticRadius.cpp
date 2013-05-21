@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/operators.h>
 #include <electronic/SpeciesInfo_internal.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <commands/parser.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>

@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 #include <electronic/Dump.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <core/Random.h>
 #include <core/Data.h>
 #include <ctime>

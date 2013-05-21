@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/ConvCoupling.h>
+#include <fluid/ConvCoupling.h>
 #include <electronic/ExCorr.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/Molecule.h>

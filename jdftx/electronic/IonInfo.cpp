@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/VanDerWaals.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <cstdio>
 #include <cmath>
 #include <core/Units.h>

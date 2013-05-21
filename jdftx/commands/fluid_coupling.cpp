@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <core/Units.h>
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <fluid/Fex_ScalarEOS.h>
 
 /*

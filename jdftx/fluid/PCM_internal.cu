@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/GpuKernelUtils.h>
-#include <electronic/PCM_internal.h>
+#include <fluid/PCM_internal.h>
 
 namespace ShapeFunction
 {

@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Common interface for all the fluids to the electronic code
 
 #include <core/Data.h>
-#include <electronic/FluidSolverParams.h>
+#include <fluid/FluidSolverParams.h>
 #include <electronic/IonicMinimizer.h>
 
 //! Abstract base class for the fluid solvers

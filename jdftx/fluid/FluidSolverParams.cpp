@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/FluidSolverParams.h>
+#include <fluid/FluidSolverParams.h>
 #include <core/Units.h>
 
 FluidSolverParams::FluidSolverParams()

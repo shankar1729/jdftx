@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver, Deniz Gunceler
+Copyright 2012 Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -17,20 +17,21 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_LINEARPCM_H
-#define JDFTX_ELECTRONIC_LINEARPCM_H
+#ifndef JDFTX_ELECTRONIC_NONLOCALPCM_H
+#define JDFTX_ELECTRONIC_NONLOCALPCM_H
 
-#include <electronic/PCM.h>
+#include <fluid/PCM.h>
 #include <core/Minimize.h>
 
-class LinearPCM : public PCM, public LinearSolvable<DataGptr>
+class NonlocalPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
-	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
-    virtual ~LinearPCM();
+	NonlocalPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+    virtual ~NonlocalPCM();
 	bool needsGummel() { return false; }
 
-	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
+	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
+	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
 	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
 
 	//! Set the explicit system charge density and effective cavity-formation electron density:
@@ -45,7 +46,11 @@ public:
 	void saveState(const char* filename) const; //!< Save state to file
 
 private:
-	RadialFunctionG Kkernel; DataRptr epsInv; // for preconditioner
+	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
+	RadialFunctionG nFluid; //electron density model for the fluid
+	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
+	DataRptrCollection siteShape; //shape functions for sites
+	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
-#endif // JDFTX_ELECTRONIC_LINEARPCM_H
+#endif // JDFTX_ELECTRONIC_NONLOCALPCM_H

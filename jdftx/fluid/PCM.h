@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_PCM_H
 #define JDFTX_ELECTRONIC_PCM_H
 
-#include <electronic/FluidSolver.h>
+#include <fluid/FluidSolver.h>
 #include <electronic/RadialFunction.h>
 #include <core/EnergyComponents.h>
 

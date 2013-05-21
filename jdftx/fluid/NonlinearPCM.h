@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_NONLINEARPCM_H
 #define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
-#include <electronic/PCM.h>
+#include <fluid/PCM.h>
 #include <core/DataMultiplet.h>
 #include <core/Minimize.h>
 

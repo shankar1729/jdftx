@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_ELECVARS_H
 
 #include <electronic/common.h>
-#include <electronic/FluidSolverParams.h>
+#include <fluid/FluidSolverParams.h>
 #include <core/DataCollection.h>
 #include <string>
 #include <memory>

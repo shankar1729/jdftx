@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Operators.h>
 #include <core/EnergyComponents.h>
-#include <electronic/FluidSolverParams.h>
+#include <fluid/FluidSolverParams.h>
 #include <electronic/RadialFunction.h>
 
 namespace ShapeFunction

@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/PCM.h>
-#include <electronic/PCM_internal.h>
+#include <fluid/PCM.h>
+#include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/operators.h>

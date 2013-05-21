@@ -19,8 +19,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/DataIO.h>
 #include <core/DataMultiplet.h>
-#include <electronic/NonlocalPCM.h>
-#include <electronic/PCM_internal.h>
+#include <fluid/NonlocalPCM.h>
+#include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/VanDerWaals.h>
