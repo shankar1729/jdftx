@@ -3,7 +3,8 @@
 set(targetNameList
 	TestRandom          #Random tests during develoment (no specific purpose)
 	TestSphere          #Hard sphere (surface tension)
-	TestPlanar          #Parallel plate capacitor (dielectric constant)
+	Capacitor           #Parallel plate capacitor (dielectric constant)
+	TestPlanar          #Liquid-Vapor interface (surface tension)
 	TestOperators       #Test operators and memory management
 	SO3quadConvergence  #Test SO3 quadrature convergence
 	NonlinearEps        #Nonlinear dielectric constant

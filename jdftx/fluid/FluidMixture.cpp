@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGas.h>
 #include <electronic/operators.h>
+#include <gsl/gsl_multiroots.h>
 
 extern string rigidMoleculeCDFT_ScalarEOSpaper;
 
@@ -270,4 +271,101 @@ double FluidMixture::compute_p(double Ntot) const
 	for(unsigned ic=0; ic<component.size(); ic++)
 		p += Nmol[ic]*Phi_Nmol[ic];
 	return p;
+}
+
+//-------- Helper utilities for adjusting fluid mixture to vapor-liquid equilibrium
+
+struct BoilingPressureSolver
+{	const FluidMixture& fm;
+	int nComponents;
+	std::vector<double> xLiq;
+	std::vector<double> Nliq, Nvap, aPrimeLiq, aPrimeVap; double Pliq, Pvap, NliqTot; //Dependent quantities set by compute:
+	gsl_multiroot_fsolver* fsolver;
+		
+	BoilingPressureSolver(const FluidMixture& fm, std::vector<double> xLiq, double NliqGuess, double NvapGuess)
+	: fm(fm), nComponents(fm.component.size()), xLiq(xLiq),
+	Nliq(nComponents), Nvap(nComponents), aPrimeLiq(nComponents), aPrimeVap(nComponents)
+	{
+		//Initialize state:
+		gsl_vector* params = gsl_vector_alloc(nComponents+1);
+		for(int i=0; i<nComponents; i++)
+			gsl_vector_set(params, i, log(NvapGuess * xLiq[i])); //Use liquid mole fractions as guess for vapor
+		gsl_vector_set(params, nComponents, log(NliqGuess));
+		//Create solver:
+		fsolver = gsl_multiroot_fsolver_alloc(gsl_multiroot_fsolver_hybrids, nComponents+1);
+		gsl_multiroot_function solverFunc = {&BoilingPressureSolver::errFunc, nComponents+1, this};
+		gsl_multiroot_fsolver_set(fsolver, &solverFunc, params);
+		gsl_vector_free(params);
+	}
+	
+	~BoilingPressureSolver()
+	{	gsl_multiroot_fsolver_free(fsolver);
+	}
+	
+	void solve(double tol)
+	{	printState(0);
+		for(int iter=1; iter<100; iter++)
+		{	int status = gsl_multiroot_fsolver_iterate(fsolver);
+			printState(iter);
+			if(status) die("Boiling Pressure solver stuck - try different guesses for the densities.\n");
+			if(gsl_multiroot_test_residual(fsolver->f, tol) != GSL_CONTINUE) break;
+		}
+		if(gsl_multiroot_test_residual(fsolver->f, tol) != GSL_SUCCESS)
+			die("Boiling Pressure solver failed to converge - try different guesses for the densities.\n");
+	}
+	
+	static int errFunc(const gsl_vector *params, void *bpSolver, gsl_vector* err)
+	{	((BoilingPressureSolver*)bpSolver)->compute(params, err);
+		return 0;
+	}
+	
+	void compute(const gsl_vector* params, gsl_vector* err)
+	{	//Set the densities:
+		for(int i=0; i<nComponents; i++) Nvap[i] = exp(gsl_vector_get(params, i));
+		NliqTot = exp(gsl_vector_get(params, nComponents));
+		for(int i=0; i<nComponents; i++) Nliq[i] = NliqTot * xLiq[i];
+		//Compute the bulk excess free energy density and gradient
+		double aVap = fm.computeUniformEx(Nvap, aPrimeVap);
+		double aLiq = fm.computeUniformEx(Nliq, aPrimeLiq);
+		//Compute the differences in pressures and chemical potentials:
+		Pvap = -aVap;
+		Pliq = -aLiq;
+		for(int i=0; i<nComponents; i++)
+		{	Pvap += Nvap[i] * (fm.T + aPrimeVap[i]);
+			Pliq += Nliq[i] * (fm.T + aPrimeLiq[i]);
+			gsl_vector_set(err, i, log(Nliq[i]/Nvap[i]) + (aPrimeLiq[i]-aPrimeVap[i])/fm.T); //chemical potential difference / T (dimensionless)
+		}
+		gsl_vector_set(err, nComponents, (Pliq-Pvap)/(NliqTot*fm.T)); //dimensionless pressure difference
+	}
+	
+	void printState(size_t iter)
+	{	logPrintf("\tBPsolve: Iter: %lu  NliqTot: %.3le  Nvap: (", iter, exp(gsl_vector_get(fsolver->x, nComponents)));
+		for(int i=0; i<nComponents; i++) logPrintf(" %.3le", exp(gsl_vector_get(fsolver->x, i)));
+		logPrintf(")  DeltaP/NliqT: %.3le  DeltaMu/T: (", gsl_vector_get(fsolver->f, nComponents));
+		for(int i=0; i<nComponents; i++) logPrintf(" %.3le", gsl_vector_get(fsolver->f, i));
+		logPrintf(")\n");
+	}
+};
+
+double FluidMixture::getBoilingPressure(double NliqGuess, double NvapGuess, std::vector<double>* Nvap) const
+{	logPrintf("Finding vapor-liquid equilibrium state points:\n"); logFlush();
+	//Collect and normalize mole fractions:
+	double xTot = 0.; std::vector<double> xLiq(component.size());
+	for(size_t ic=0; ic<component.size(); ic++)
+	{	xLiq[ic] = component[ic]->Nbulk;
+		xTot += xLiq[ic];
+	}
+	for(double& x: xLiq) x /= xTot;
+	
+	BoilingPressureSolver bpSolver(*this, xLiq, NliqGuess, NvapGuess);
+	bpSolver.solve(1e-8);
+	
+	logPrintf("At equilibrium:\n\tPliq = %le bar, Pvap = %le bar\n", bpSolver.Pliq/Bar, bpSolver.Pvap/Bar);
+	for(size_t ic=0; ic<component.size(); ic++)
+	{	const FluidComponent& c = *component[ic];
+		logPrintf("\tComponent '%s': Nliq = %le bohr^-3, Nvap = %le bohr^-3\n",
+			c.molecule.name.c_str(), bpSolver.Nliq[ic], bpSolver.Nvap[ic]);
+	}
+	if(Nvap) *Nvap = bpSolver.Nvap;
+	return bpSolver.Pliq;
 }

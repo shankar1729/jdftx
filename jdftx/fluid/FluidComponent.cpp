@@ -163,11 +163,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			Res = 2.22;
 			//Site properties:
 			molecule.name = "CHCl3";
+			auto siteCenter = std::make_shared<Molecule::Site>("center",0);
+				siteCenter->Rhs = 2.06*Angstrom;
+			molecule.sites.push_back(siteCenter);
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
 				siteC->Zelec = 4.256; siteC->aElec = 0.36;
 				siteC->alpha = 6.05; siteC->aPol = 0.36;
-				siteC->Rhs = 2.06*Angstrom;
 			molecule.sites.push_back(siteC);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
@@ -184,6 +186,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			const double rCCl = 1.762*Angstrom;
 			const double rCH = 1.073*Angstrom;
 			const double thetaHCCl = 107.98 * M_PI/180;
+			siteCenter->positions.push_back(vector3<>(0.,0.,0.));
 			siteC->positions.push_back(vector3<>(0.,0.,zC));
 			siteH->positions.push_back(vector3<>(0,0,zC+rCH));
 			siteCl->positions.push_back(vector3<>(0, rCCl*sin(thetaHCCl), zC+rCCl*cos(thetaHCCl)));
@@ -206,7 +209,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
 				siteC->Zelec = 4.980; siteC->aElec = 0.35;
 				siteC->alpha = 5.24; siteC->aPol = 0.35;
-				siteC->Rhs = 2.17*Angstrom;
+				siteC->Rhs = 2.19*Angstrom;
 			molecule.sites.push_back(siteC);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;

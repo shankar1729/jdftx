@@ -47,6 +47,10 @@ public:
 	//! The dielectric constants for mixtures is estimated as a weighted combination of the components, and may be overriden by non-zero overrides
 	void initialize(double P=1.01325*Bar, double epsBulkOverride=0., double epsInfOverride=0.);
 
+	//! Compute the boiling pressure (vapor-liquid equilbirum) at current temperature,
+	//! given guesses for the total liquid and vapor densities, and optionally retrieve equilibrium vapor densities
+	double getBoilingPressure(double NliqGuess, double NvapGuess, std::vector<double>* Nvap=0) const;
+	
 	unsigned get_nIndep() const { return nIndepIdgas + (polarizable ? 3 : 0); }  //!< get the number of scalar fields used as independent variables
 	unsigned get_nDensities() const { return nDensities; } //!< get the total number of site densities
 
@@ -131,6 +135,7 @@ private:
 	//! Compute the pressure of the uniform fluid mixture of total molecular density Ntot
 	double compute_p(double Ntot) const;
 	
+	friend class BoilingPressureSolver;
 	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 

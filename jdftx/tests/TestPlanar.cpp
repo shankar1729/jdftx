@@ -36,73 +36,79 @@ void setPhi(int i, vector3<> r, double* phiApplied, double* phiWall,
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 
-	//Parse command-line
-	S2quadType quadType = QuadEuler;
-	int nBeta = 12;
-	if(argc > 1)
-	{	if(!S2quadTypeMap.getEnum(argv[1], quadType))
-			die("<quad> must be one of %s\n", S2quadTypeMap.optionList().c_str());
-		if(quadType==QuadEuler)
-		{	if(argc < 3) die("<nBeta> must be specified for Euler quadratures.\n")
-			nBeta = atoi(argv[2]);
-			if(nBeta <= 0) die("<nBeta> must be non-negative.")
-		}
-	}
-	
 	//Setup simulation grid:
 	GridInfo gInfo;
-	gInfo.S = vector3<int>(1, 1, 4096);
-	const double hGrid = 0.0625;
-	gInfo.R = Diag(hGrid * gInfo.S);
+	gInfo.S = vector3<int>(1, 1, 1536);
+	const double hGrid = 0.125;
+	gInfo.R = Diag(vector3<>(0.5, 1., hGrid * gInfo.S[2])); //transverse dimensions so as to get energy per interface area
 	gInfo.initialize();
 
 	double T = 298*Kelvin;
-	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
-	component.s2quadType = quadType;
-	component.quad_nBeta = nBeta;
-	component.representation = FluidComponent::Pomega;
+	FluidComponent component(FluidComponent::CCl4, T, FluidComponent::ScalarEOS);
+	component.s2quadType = QuadOctahedron;
+	component.representation = FluidComponent::PsiAlpha;
 	FluidMixture fluidMixture(gInfo, T);
 	component.addToFluidMixture(&fluidMixture);
-	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	
+	std::vector<double> Nvap;
+	double p = fluidMixture.getBoilingPressure(component.Nbulk, component.Pvap/T, &Nvap);
 	fluidMixture.initialize(p);
 
-	//Initialize external potential (repel O from a cube)
-	double Dfield = 1.0 * eV/Angstrom;
-	const double zWall = 8.0 - 1e-3;
-	const double& gridLength = gInfo.R(2,2);
-	DataRptr phiApplied(DataR::alloc(gInfo)), phiWall(DataR::alloc(gInfo));
-	applyFunc_r(gInfo, setPhi, phiApplied->data(), phiWall->data(), gridLength, Dfield, zWall);
-	const double ZO = component.molecule.sites[0]->chargeKernel(0);
-	component.idealGas->V[0] = ZO * phiApplied + phiWall;
-	component.idealGas->V[1] = -0.5*ZO * phiApplied + phiWall;
-
-	//----- Initialize state -----
-	fluidMixture.initState(0.01);
-
-	//----- FDtest and CG -----
+	//----- Initialize geometry --------
+	fluidMixture.state.clear();
+	nullToZero(fluidMixture.state, gInfo, fluidMixture.get_nIndep());
+	double L = gInfo.R(2,2);
+	double zWall = 0.125 * L;
+	double Rhs = pow(component.molecule.getVhs()*3./(4*M_PI), 1./3);
+	double Nbulk = component.idealGas->get_Nbulk();
+	double* stateData = fluidMixture.state[0]->data();
+	for(int i=0; i<gInfo.S[2]; i++) //no potential, only initial state difference:
+	{	double z = hGrid*i;
+		z -= L * floor(z/L + 0.5);
+		stateData[i] = log(Nvap[0]/Nbulk + 0.5*erfc((zWall-fabs(z))/Rhs)*(1.-Nvap[0]/Nbulk));
+	}
+	
+	//----- FDtest and CG parameters -----
 	MinimizeParams mp;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
-	mp.energyLabel = "Phi";
-	mp.nIterations=1500;
-	mp.energyDiffThreshold=1e-16;
+	mp.energyLabel = "sigma";
+	mp.nIterations = 200;
+	mp.energyDiffThreshold=1e-11;
 	
 	fluidMixture.minimize(mp);
 	
-	//------ Outputs ---------
-	ostringstream quadName;
-	quadName << S2quadTypeMap.getString(quadType);
-	if(quadType == QuadEuler) quadName << nBeta;
-	
 	DataRptrCollection N;
-	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
-	FILE* fp = fopen((quadName.str()+".Nplanar").c_str(), "w");
-	double* NOdata = N[0]->data();
-	double* NHdata = N[1]->data();
-	double nlInv = 1./component.idealGas->get_Nbulk();
-	for(int i=0; i<gInfo.S[2]/2; i++)
-		fprintf(fp, "%le\t%le\t%le\n", i*hGrid, nlInv*NOdata[i], 0.5*nlInv*NHdata[i]);
-	fclose(fp);
+	double sigma = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 	
+	double sigmaTarget = component.sigmaBulk;
+	if(sigmaTarget) logPrintf("Error in sigma from target value = %le\n", sigma/sigmaTarget-1.);
+	
+	bool plotDensities = true;
+	if(plotDensities)
+	{	string fname = component.molecule.name + "/planar-psi-n";
+		
+		std::vector<const double*> Ndata(N.size());
+		for(unsigned k=0; k<N.size(); k++) Ndata[k] = N[k]->data();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "z");
+		for(unsigned k=0; k<N.size(); k++)
+			fprintf(fp, "\t%s", component.molecule.sites[k]->name.c_str());
+		fprintf(fp, "\n");
+		for(int i=0; i<gInfo.S[2]; i++)
+		{	fprintf(fp, "%lg", i*hGrid);
+			for(unsigned k=0; k<N.size(); k++)
+				fprintf(fp, "\t%lg", Ndata[k][i]/(Nbulk*component.molecule.sites[k]->positions.size()));
+			fprintf(fp, "\n");
+		}
+		fclose(fp);
+		
+		FILE* pp = popen("gnuplot -persist", "w");
+		fprintf(pp, "set xlabel \"z [bohr]\"\n");
+		fprintf(pp, "set ylabel \"N/Nbulk\"\n");
+		fprintf(pp, "set key bottom right autotitle columnhead\n");
+		fprintf(pp, "plot for [i=2:%lu] \"%s\" using 1:i w l\n", N.size()+1, fname.c_str());
+		fclose(pp);
+	}
+
 	return 0;
 }
