@@ -61,7 +61,7 @@ void IonInfo::setup(const Everything &everything)
 			ionWidth = 0.8*M_PI / sqrt(2*e->cntrl.Ecut);
 			break;
 	}
-	logPrintf("Width of ionic core gaussian charges set to %lg\n", ionWidth);
+	logPrintf("Width of ionic core gaussian charges (only for fluid interactions / plotting) set to %lg\n", ionWidth);
 	
 	// Call the species setup routines
 	int nAtomsTot=0;

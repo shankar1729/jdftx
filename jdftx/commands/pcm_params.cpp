@@ -144,3 +144,52 @@ struct CommandPCMnonlinearDebug : public Command
 	}
 }
 commandPCMnonlinearDebug;
+
+
+
+struct CommandIonWidth : public Command
+{
+	CommandIonWidth() : Command("ion-width")
+	{
+		format = "Ecut | fftbox | <width>";
+		comments = "Manually specify width of gaussian representations of nuclear charge in bohr\n"
+			"or set automatically based on either energy cut-off (Ecut) or grid spacing (fftbox).\n"
+			"The widened charges are only used in the interaction with fluids and dumped potentials,\n"
+			"and does not affect the energy of the electronic system. Default is Ecut-based selection\n"
+			"for LinearPCM/NonlinearPCM and 0 (no widening) for all other fluid types.";
+		hasDefault = true;
+		require("fluid");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	string key; pl.get(key, string(), "width");
+		if(!key.length()) //default
+		{	switch(e.eVars.fluidParams.fluidType)
+			{	case FluidLinearPCM:
+				case FluidNonlinearPCM:
+					e.iInfo.ionWidthMethod = IonInfo::IonWidthEcut;
+					break;
+				default:
+					e.iInfo.ionWidthMethod = IonInfo::IonWidthManual;
+					e.iInfo.ionWidth = 0.;
+			}
+		}
+		else if(key=="Ecut") e.iInfo.ionWidthMethod = IonInfo::IonWidthEcut;
+		else if(key=="fftbox") e.iInfo.ionWidthMethod = IonInfo::IonWidthFFTbox;
+		else
+		{	istringstream iss(key);
+			iss >> e.iInfo.ionWidth;
+			if(iss.fail()) throw string("<width> must be Ecut, fftbox or a value in bohrs");
+			e.iInfo.ionWidthMethod = IonInfo::IonWidthManual;
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	switch(e.iInfo.ionWidthMethod)
+		{	case IonInfo::IonWidthFFTbox: logPrintf("fftbox"); break;
+			case IonInfo::IonWidthEcut: logPrintf("Ecut"); break;
+			case IonInfo::IonWidthManual: logPrintf("%lg", e.iInfo.ionWidth); break;
+		}
+	}
+}
+commandIonWidth;
