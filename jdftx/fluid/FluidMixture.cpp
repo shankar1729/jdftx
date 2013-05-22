@@ -81,12 +81,14 @@ void FluidMixture::initialize(double p, double epsBulkOverride, double epsInfOve
 	std::vector<double> Nmol(component.size()), Phi_Nmol(component.size());
 	for(unsigned ic=0; ic<component.size(); ic++) Nmol[ic] = (Ntot/Nguess)*component[ic]->Nbulk;
 	computeUniformEx(Nmol, Phi_Nmol);
+	std::vector<double> Nmol0(component.size(), 0.), Phi_Nmol0(component.size());
+	computeUniformEx(Nmol0, Phi_Nmol0);
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const FluidComponent& c = *component[ic];
 		c.idealGas->Nbulk = Nmol[ic];
 		c.idealGas->mu = Phi_Nmol[ic];
-		logPrintf("   Component '%s' at bulk density %le bohr^-3 (with ideal-vapor pressure ~ %le KPa)\n",
-			c.molecule.name.c_str(), Nmol[ic], c.idealGas->Nbulk*T*exp(c.idealGas->mu/T)/KPascal);
+		logPrintf("   Component '%s' at bulk density %le bohr^-3 (with vapor pressure ~ %.2lg KPa)\n",
+			c.molecule.name.c_str(), Nmol[ic], c.idealGas->Nbulk*T*exp((Phi_Nmol[ic]-Phi_Nmol0[ic])/T)/KPascal);
 	}
 	this->p = p;
 	
