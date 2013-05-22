@@ -384,3 +384,25 @@ struct CommandFluidAnion : public CommandFluidComponent
 	}
 }
 commandFluidAnion;
+
+
+struct CommandFluidDielectricConstant : public Command
+{
+    CommandFluidDielectricConstant() : Command("fluid-dielectric-constant")
+	{
+		format = "[<epsBulkOverride>=0] [<epsInfOverride>=0]";
+		comments = "Override bulk static or high frequency dieelctric constant of fluid (if non-zero values specified)";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.epsBulkOverride, 0., "epsBulkOverride");
+		pl.get(fsp.epsInfOverride, 0., "epsInfOverride");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%lg %lg", fsp.epsBulkOverride, fsp.epsInfOverride);
+	}
+}
+commandFluidDielectricConstant;
