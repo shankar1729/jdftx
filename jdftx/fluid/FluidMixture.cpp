@@ -85,7 +85,8 @@ void FluidMixture::initialize(double p, double epsBulkOverride, double epsInfOve
 	{	const FluidComponent& c = *component[ic];
 		c.idealGas->Nbulk = Nmol[ic];
 		c.idealGas->mu = Phi_Nmol[ic];
-		logPrintf("   Component '%s' at bulk density %le bohr^-3\n", c.molecule.name.c_str(), Nmol[ic]);
+		logPrintf("   Component '%s' at bulk density %le bohr^-3 (with ideal-vapor pressure ~ %le KPa)\n",
+			c.molecule.name.c_str(), Nmol[ic], c.idealGas->Nbulk*T*exp(c.idealGas->mu/T)/KPascal);
 	}
 	this->p = p;
 	

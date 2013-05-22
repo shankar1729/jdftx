@@ -41,7 +41,7 @@ struct TestSphere
 		double T = 298*Kelvin;
 		FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
 		component.s2quadType = QuadOctahedron;
-		component.representation = FluidComponent::Pomega;
+		component.representation = FluidComponent::MuEps;
 		
 		FluidMixture fluidMixture(gInfo, T);
 		component.addToFluidMixture(&fluidMixture);
@@ -66,7 +66,7 @@ struct TestSphere
 		mp.energyLabel = "Phi";
 		mp.nIterations=100;
 		mp.energyDiffThreshold=1e-11;
-		mp.fdTest = !loadState;
+		//mp.fdTest = !loadState;
 
 		puts("Starting CG:");
 		TIME("minimize", stdout,
@@ -94,8 +94,8 @@ int main(int argc, char** argv)
 	//Setup simulation grid:
 	GridInfo gInfo;
 	//gInfo.S = vector3<int>(32, 32, 32); double hGrid=1.0;
-	//gInfo.S = vector3<int>(64, 64, 64); double hGrid=0.5;
-	gInfo.S = vector3<int>(128, 128, 128); double hGrid=0.25;
+	gInfo.S = vector3<int>(64, 64, 64); double hGrid=0.5;
+	//gInfo.S = vector3<int>(128, 128, 128); double hGrid=0.25;
 	//gInfo.S = vector3<int>(256, 256, 256); double hGrid=0.125;
 	//gInfo.S = vector3<int>(192, 192, 192); double hGrid=0.25;
 	gInfo.R = Diag(hGrid * gInfo.S);

@@ -41,6 +41,8 @@ struct ScalarEOS_eval
 struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 {
 	double alpha, prefacHB, prefacVW1, prefacVW2; //!< prefactors to the HB and VW terms
+	double lambda, C1, nHB, dnHB;
+	double nc, VPzi; //!< vapor-pressure correction temperature dependent prefactor
 
 	JeffereyAustinEOS_eval(double T)
 	{	this->T = T;
@@ -53,8 +55,10 @@ struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 		alpha = 2.145*vB;
 		const double bStar = 1.0823*vB;
 		const double aVW = 0.5542 * Joule*pow(meter,3)/pow(mol,2);
-		const double C1 = 0.7140;
-		const double lambda = 0.3241;
+		lambda = 0.3241;
+		C1 = 0.7140;
+		nHB = (0.8447e6/18.01528) * mol/pow(meter,3);
+		dnHB = 0.1687*nHB;
 
 		const double epsHB = -11.49 * KJoule/mol;
 		const double S0 = -61.468 * Joule/(mol*Kelvin), omega0 = exp(-S0);
@@ -66,8 +70,30 @@ struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 		prefacHB = -2*T * log((omega0+omegaHB*exp(-epsHB/T))/(omega0+omegaHB)) * exp(-0.18*pow(T/Tf,8)) * (1+C1);
 		prefacVW1 = -T*alpha/(lambda*b);
 		prefacVW2 = bStar*T + aVW;
+		
+		//vapor pressure correction prefactor:
+		const double A1 = -2.9293;
+		const double A2 = 0.1572;
+		const double A5 = 1.873;
+		const double kappa = 0.8921;
+		const double Tc = 647.096*Kelvin;
+		nc = (322/18.01528) * mol/liter;
+		VPzi = A1*exp(-A5*pow(T/Tc,6)) * (pow(T/Tc - kappa, 2) + A2);
 	}
 
+	__hostanddev__ double getVPphiInt(double n, double& VPphiInt_n) const
+	{	const double A4 = 0.0610;
+		const double d0 = 1.917;
+		const double d1 = 26.01;
+		const double beta = 3.24;
+		double x = n/nc, xPowBetaM1 = pow(x, beta-1.), xPow57 = pow(x,5.7);
+		double den = 1./(d0*(1 + d0*x*(1 + d0*x)) + x*d1*xPowBetaM1);
+		double den_x = -den*den*(d0*d0*(1 + d0*x*2) + beta*d1*xPowBetaM1);
+		double expTerm = exp(-A4*xPow57*x);
+		VPphiInt_n = expTerm*(A4*xPow57*6.7*den-den_x);
+		return -nc*expTerm*den;
+	}
+	
 	//Compute the per-particle free energies at each grid point, and the gradient w.r.t the weighted density
 	__hostanddev__ void operator()(int i, const double* Nbar, double* Aex, double* Aex_Nbar, double Vhs) const
 	{
@@ -76,11 +102,6 @@ struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 			Aex_Nbar[i] = 0.;
 			return;
 		}
-		//More Jeff-Austin parameters:
-		const double nHB = (0.8447e6/18.01528) * mol/pow(meter,3);
-		const double dnHB = 0.1687*nHB;
-		const double C1 = 0.7140;
-		const double lambda = 0.3241;
 		//HB part:
 		double gaussHB = exp(pow((Nbar[i]-nHB)/dnHB,2));
 		double fHBden = C1 + gaussHB;
@@ -89,16 +110,15 @@ struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 		double AHB_Nbar = -AHB * fHBdenPrime/fHBden;
 		//VW part:
 		double Ginv = 1 - lambda*b*Nbar[i]; if(Ginv<=0.0) { Aex_Nbar[i] = NAN; Aex[i]=NAN; return; }
-		double AVW = prefacVW1*log(Ginv) -  Nbar[i]*prefacVW2;
-		double AVW_Nbar = T*alpha/Ginv - prefacVW2;
+		double VPphiInt_Nbar, VPphiInt = getVPphiInt(Nbar[i], VPphiInt_Nbar);
+		double AVW = prefacVW1*log(Ginv) + (VPzi*VPphiInt -  Nbar[i])*prefacVW2;
+		double AVW_Nbar = T*alpha/Ginv + (VPzi*VPphiInt_Nbar - 1.) * prefacVW2;
 		//FMT part:
 		double AFMT_Nbar, AFMT = getAhs(Nbar[i], AFMT_Nbar, Vhs);
 		//Total
 		Aex_Nbar[i] = AHB_Nbar + AVW_Nbar - AFMT_Nbar;
 		Aex[i] = AHB + AVW - AFMT;
 	}
-	
-	
 };
 
 
