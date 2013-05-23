@@ -91,7 +91,7 @@ public:
 	void kpointsPrint(bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	void kpointPrint(int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	
-	int findHOMO(int q); //! Returns the band index of the Highest Occupied Kohn-Sham Orbital
+	int findHOMO(int q) const; //! Returns the band index of the Highest Occupied Kohn-Sham Orbital
 
 private:
 	const Everything* e;

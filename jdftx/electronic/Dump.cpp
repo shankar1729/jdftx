@@ -518,7 +518,7 @@ namespace Moments{
 		// Calculates the total (elec+ion) dipole moment
 		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
 		
-		// Dumps the dipole matrix elements between Kohn-Sham orbitals
+/*		// Dumps the dipole matrix elements between Kohn-Sham orbitals        DEPRACATED
 		fprintf(fp, "\n\n\nKohn-Sham dipole matrix elements (in bohr): \n");
 		for(int q=0; q<e.eInfo.nStates; q++)
 		{	fprintf(fp, "\nq = %i\n", q);
@@ -532,6 +532,22 @@ namespace Moments{
 				}
 				fprintf(fp, "\n");
 			}
+		}
+*/				
+		fprintf(fp, "\n\n\nOptical excitation energies and electric dipole transition strengths\n");
+		fprintf(fp, "initial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2");
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	fprintf(fp, "\n\nq = %i\n", q);
+			int HOMO = e.eInfo.findHOMO(q);
+			for(int o=HOMO; o>0; o--)
+			{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
+				{	vector3<> psi_r_psi(integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o))).norm(),
+										integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o))).norm(),
+										integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o))).norm());
+					fprintf(fp, "%i\t%i\t%.5e\t%.5e\n", o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],psi_r_psi.length_squared());
+				}
+			}
+			fprintf(fp, "\n");
 		}
 			
 	}

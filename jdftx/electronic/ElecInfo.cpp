@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <list>
 
-int ElecInfo::findHOMO(int q)
+int ElecInfo::findHOMO(int q) const
 {	int HOMO = 0;
 	for(int n=(e->eVars.F[q].size()-1); n>=0; n--)
 		if(e->eVars.F[q][n] > 1e-3){ HOMO = n; break;	}
