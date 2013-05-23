@@ -517,5 +517,22 @@ namespace Moments{
 		
 		// Calculates the total (elec+ion) dipole moment
 		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
+		
+		// Dumps the dipole matrix elements between Kohn-Sham orbitals
+		fprintf(fp, "\n\n\nKohn-Sham dipole matrix elements (in bohr): \n");
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	fprintf(fp, "\nq = %i\n", q);
+		
+			for(int i=0; i<e.eInfo.nBands; i++)
+			{	for(int j=0; j<=i; j++)
+				{	vector3<> psi_r_psi(integral(I(e.eVars.C[q].getColumn(i))*r0*I(e.eVars.C[q].getColumn(j))).norm(),
+										integral(I(e.eVars.C[q].getColumn(i))*r1*I(e.eVars.C[q].getColumn(j))).norm(),
+										integral(I(e.eVars.C[q].getColumn(i))*r2*I(e.eVars.C[q].getColumn(j))).norm());
+					fprintf(fp, "%.3e ", psi_r_psi.length());
+				}
+				fprintf(fp, "\n");
+			}
+		}
+			
 	}
 }
