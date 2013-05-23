@@ -39,7 +39,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 
 void dumpSpinorbit(const Everything& e);
-
+void dumpExcitations(const Everything& e, const char* filename);
 namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}
 
 void Dump::setup(const Everything& everything)
@@ -264,6 +264,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 
 	//----------------- The following are not included in 'All' -----------------------
+
+	if(ShouldDumpNoAll(Excitations))
+	{	StartDump("Excitations")
+		dumpExcitations(*e, fname.c_str());
+		EndDump
+	}
 	
 	if(ShouldDumpNoAll(RealSpaceWfns))
 	{	for(int q=0; q<eInfo.nStates; q++)
@@ -517,38 +523,52 @@ namespace Moments{
 		
 		// Calculates the total (elec+ion) dipole moment
 		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
-		
-/*		// Dumps the dipole matrix elements between Kohn-Sham orbitals        DEPRACATED
-		fprintf(fp, "\n\n\nKohn-Sham dipole matrix elements (in bohr): \n");
+	}
+}
+
+void dumpExcitations(const Everything& e, const char* filename)
+{
+		const GridInfo& g = e.gInfo;
+	
+		FILE* fp = fopen(filename, "w");
+		if(!fp) die("Error opening %s for writing.\n", filename);
+	
+		struct excitation
+		{	int q,o,u;
+			double dE;
+			double dipole;
+			
+			excitation(int q, int o, int u, double dE, double dipole): q(q), o(o), u(u), dE(dE), dipole(dipole){};
+			
+			inline bool operator<(const excitation& other) const {return dE<other.dE;}
+		};
+		std::vector<excitation> excitations;
+
+		DataRptr r0, r1, r2;
+		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
+		applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
+		applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
+		applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
 		for(int q=0; q<e.eInfo.nStates; q++)
-		{	fprintf(fp, "\nq = %i\n", q);
-		
-			for(int i=0; i<e.eInfo.nBands; i++)
-			{	for(int j=0; j<=i; j++)
-				{	vector3<> psi_r_psi(integral(I(e.eVars.C[q].getColumn(i))*r0*I(e.eVars.C[q].getColumn(j))).norm(),
-										integral(I(e.eVars.C[q].getColumn(i))*r1*I(e.eVars.C[q].getColumn(j))).norm(),
-										integral(I(e.eVars.C[q].getColumn(i))*r2*I(e.eVars.C[q].getColumn(j))).norm());
-					fprintf(fp, "%.3e ", psi_r_psi.length());
-				}
-				fprintf(fp, "\n");
-			}
-		}
-*/				
-		fprintf(fp, "\n\n\nOptical excitation energies and electric dipole transition strengths\n");
-		fprintf(fp, "initial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2");
-		for(int q=0; q<e.eInfo.nStates; q++)
-		{	fprintf(fp, "\n\nq = %i\n", q);
-			int HOMO = e.eInfo.findHOMO(q);
-			for(int o=HOMO; o>0; o--)
+		{	int HOMO = e.eInfo.findHOMO(q);
+			for(int o=HOMO; o>=0; o--)
 			{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
 				{	vector3<> psi_r_psi(integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o))).norm(),
 										integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o))).norm(),
 										integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o))).norm());
-					fprintf(fp, "%i\t%i\t%.5e\t%.5e\n", o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],psi_r_psi.length_squared());
+					excitations.push_back(excitation(q, o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],psi_r_psi.length_squared()));
 				}
 			}
-			fprintf(fp, "\n");
 		}
-			
-	}
+		std::sort(excitations.begin(), excitations.end());
+
+		fprintf(fp, "Optical excitation energies and corresponding electric dipole transition strengths\n");
+		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2\n");
+		for(size_t i=0; i<excitations.size(); i++)
+			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dipole);
+		
+		logPrintf("\n\n");
+		e.eVars.F[0].print(globalLog);
+		logPrintf("\n\n");
+		e.eVars.F[0].print(globalLog);
 }
