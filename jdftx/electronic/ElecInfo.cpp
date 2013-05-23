@@ -26,6 +26,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <list>
 
+int ElecInfo::findHOMO(int q)
+{	int HOMO = 0;
+	for(int n=(e->eVars.F[q].size()-1); n>=0; n--)
+		if(e->eVars.F[q][n] > 1e-3){ HOMO = n; break;	}
+	return HOMO;
+}
+
 ElecInfo::ElecInfo()
 : nStates(0), nBands(0), spinType(SpinNone), nElectrons(0), 
 fillingsUpdate(ConstantFillings), kT(0), mu(std::numeric_limits<double>::quiet_NaN()),
@@ -146,16 +153,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	// Applies custom fillings, if present
 	if(customFillings.size())
 	{	// macro to find the HOMO of a quantum-number
-		#define HOMO_THRESHOLD 1e-5
-		#define findHOMO(q) \
-			for(int n=(F[q].size()-1); n>=0; n--) \
-				if(F[q][n] > HOMO_THRESHOLD){ HOMO = n; break;	}
 		
-		int HOMO = 0;
 		std::vector<size_t> band_index;
 		for(size_t j=0; j<customFillings.size(); j++)
 		{	int qnum = std::get<0>(customFillings[j]);
-			findHOMO(qnum)
+			int HOMO = findHOMO(qnum);
 			size_t band = std::get<1>(customFillings[j])+HOMO;
 			if(band >= F[qnum].size() or band<0)
 			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
