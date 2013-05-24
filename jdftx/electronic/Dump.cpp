@@ -566,9 +566,4 @@ void dumpExcitations(const Everything& e, const char* filename)
 		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2\n");
 		for(size_t i=0; i<excitations.size(); i++)
 			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dipole);
-		
-		logPrintf("\n\n");
-		e.eVars.F[0].print(globalLog);
-		logPrintf("\n\n");
-		e.eVars.F[0].print(globalLog);
 }

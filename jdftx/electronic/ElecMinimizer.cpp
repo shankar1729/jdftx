@@ -187,6 +187,11 @@ void elecMinimize(Everything& e)
 		}
 		// Recompute energy to get the same Eband as the simultaneous minimization
 		e.eVars.elecEnergyAndGrad(e.ener);
+		if(e.cntrl.shouldPrintEigsFillings)
+		{	//Print the eigenvalues if requested
+			print_Hsub_eigs(e);
+			logPrintf("\n"); logFlush();
+		}
 	}
 	e.eVars.setEigenvectors();
 	e.eVars.isRandom = false; //wavefunctions are no longer random
