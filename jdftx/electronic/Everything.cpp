@@ -97,13 +97,7 @@ void Everything::setup()
 	if(dump.polarizability) coulombParams.omegaSet.insert(0.);
 	
 	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
-	if(coulombParams.omegaSet.size() || dump.dos)
-	{	//Initialize k-point sampled supercell:
-		std::vector<vector3<>> kmeshUnreduced;
-		for(const QuantumNumber& qnum: eInfo.qnums)
-			kmeshUnreduced.push_back(qnum.k);
-		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices(), symm.getKpointInvertList());
-	}
+	updateSupercell();
 	coulomb = coulombParams.createCoulomb(gInfo);
 	
 	//Exact exchange (if required)
@@ -170,3 +164,15 @@ void Everything::setup()
 
 	logPrintf("\n"); logFlush();
 }
+
+
+void Everything::updateSupercell()
+{	if(coulombParams.omegaSet.size() || dump.dos)
+	{	//Initialize k-point sampled supercell:
+		std::vector<vector3<>> kmeshUnreduced;
+		for(const QuantumNumber& qnum: eInfo.qnums)
+			kmeshUnreduced.push_back(qnum.k);
+		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices(), symm.getKpointInvertList());
+	}
+}
+

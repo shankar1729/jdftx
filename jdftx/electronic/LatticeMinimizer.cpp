@@ -194,6 +194,7 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 
 void LatticeMinimizer::updateLatticeDependent()
 {	e.gInfo.update();
+	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	e.eVars.elecEnergyAndGrad(e.ener);

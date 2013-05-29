@@ -536,9 +536,9 @@ void dumpExcitations(const Everything& e, const char* filename)
 		struct excitation
 		{	int q,o,u;
 			double dE;
-			double dipole;
+			double dreal, dimag, dnorm;
 			
-			excitation(int q, int o, int u, double dE, double dipole): q(q), o(o), u(u), dE(dE), dipole(dipole){};
+			excitation(int q, int o, int u, double dE, double dreal, double dimag, double dnorm): q(q), o(o), u(u), dE(dE), dreal(dreal), dimag(dimag), dnorm(dnorm){};
 			
 			inline bool operator<(const excitation& other) const {return dE<other.dE;}
 		};
@@ -553,17 +553,20 @@ void dumpExcitations(const Everything& e, const char* filename)
 		{	int HOMO = e.eInfo.findHOMO(q);
 			for(int o=HOMO; o>=0; o--)
 			{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
-				{	vector3<> psi_r_psi(integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o))).norm(),
-										integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o))).norm(),
-										integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o))).norm());
-					excitations.push_back(excitation(q, o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],psi_r_psi.length_squared()));
+				{	complex x = integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o)));
+					complex y = integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o)));
+					complex z = integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o)));
+					vector3<> dreal(x.real(), y.real(),z.real());
+					vector3<> dimag(x.imag(), y.imag(),z.imag());
+					vector3<> dnorm(sqrt(x.norm()), sqrt(y.norm()),sqrt(z.norm()));
+					excitations.push_back(excitation(q, o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
 				}
 			}
 		}
 		std::sort(excitations.begin(), excitations.end());
 
 		fprintf(fp, "Optical excitation energies and corresponding electric dipole transition strengths\n");
-		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2\n");
+		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2 (real, imag, norm)\n");
 		for(size_t i=0; i<excitations.size(); i++)
-			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dipole);
+			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \t %.5e \t %.5e\n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dreal, excitations[i].dimag, excitations[i].dnorm);
 }
