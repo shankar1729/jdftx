@@ -81,7 +81,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	//Initialize charge kernel:
 	if(elecKernel || Znuc)
 	{	logPrintf("       Charge density: gaussian nuclear width %lg", sigmaNuc);
-		std::vector<double> samples(unsigned(ceil(gInfo.GmaxGrid/gInfo.dGradial))+5, 0.);
+		std::vector<double> samples(unsigned(ceil(gInfo.GmaxGrid/gInfo.dGradial))+5);
 		for(unsigned iG=0; iG<samples.size(); iG++)
 		{	double G = iG * gInfo.dGradial;
 			if(elecKernel) samples[iG] += elecKernel(G);

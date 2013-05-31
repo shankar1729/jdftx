@@ -22,7 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/GpuUtil.h>
 
-RadialFunctionG::RadialFunctionG() : nCoeff(0), rFunc(0)
+RadialFunctionG::RadialFunctionG() : dGinv(0), nCoeff(0),
+#ifdef GPU_ENABLED
+coeffGpu(0),
+#endif
+rFunc(0)
 {
 }
 

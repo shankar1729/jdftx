@@ -53,7 +53,7 @@ public:
 	//! Blip (quintic spline evaluation)
 	__hostanddev__ double operator()(double G) const
 	{	double Gindex = G * dGinv;
-		if(Gindex >= nCoeff-1) return 0.;
+		if(Gindex >= nCoeff-5) return 0.;
 		else return QuinticSpline::value(getCoeff(), Gindex);
 	}
 	
