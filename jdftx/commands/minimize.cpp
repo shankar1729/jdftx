@@ -193,6 +193,11 @@ struct CommandFluidMinimize : public CommandMinimize
 				break;
 			default:;
 		}
+		// Increase the nAlphaAdjustMax to avoid NaN's from hard spehere packing limit of nonlinear ions
+		if( (e.eVars.fluidParams.fluidType == FluidNonlinearPCM or e.eVars.fluidParams.fluidType == FluidLinearPCM) 
+			and (not e.eVars.fluidParams.linearScreening))
+		{	e.fluidMinParams.nAlphaAdjustMax = 6;
+		}
 		CommandMinimize::process(pl, e);
 	}
 }
