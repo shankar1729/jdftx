@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Wannier.h>
 #include <set>
 #include <memory>
+#include <electronic/matrix.h>
 
 //! Dump frequency options:
 enum DumpFrequency
@@ -77,5 +78,7 @@ private:
 	friend class CommandDumpInterval;
 	void dumpQMC(); //!< QMC export implemented in DumpQMC.cpp
 };
+
+namespace Moments{void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx);}
 
 #endif // JDFTX_ELECTRONIC_DUMP_H

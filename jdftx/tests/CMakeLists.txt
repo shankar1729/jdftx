@@ -16,6 +16,7 @@ set(targetNameList
 	SolvatedCMOS        #Floating gate transistor in ionic liquid
 	SphericalChi        #Compute spherical decomposition of non-local susceptibility
 	ElectrostaticRadius #Estimate electrostatic radius of solvent molecule
+	FermiGoldenRule     #Estimate the dipole matrix element of two column bundles
 )
 
 foreach(targetName ${targetNameList})
