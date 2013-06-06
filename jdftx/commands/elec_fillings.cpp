@@ -68,7 +68,8 @@ struct CommandTargetMu : public Command
 			"\tdnMix: Scale the ideal step in n by this factor";
 		hasDefault = false;
 
-		require("fluid");
+		require("fluid-cation");
+		require("fluid-anion");
 		require("elec-fermi-fillings");
 		forbid("elec-initial-charge");
 	}
@@ -77,7 +78,6 @@ struct CommandTargetMu : public Command
 	{	pl.get(e.eInfo.mu, 0.0, "mu", true);
 		pl.get(e.eInfo.Cmeasured, 1.0, "Cinitial");
 		pl.get(e.eInfo.dnMixFraction, 0.7, "dnMix");
-		if(!e.eVars.fluidParams.ionicScreening()) throw string("target-mu requires fluid with ionic screening");
 	}
 
 	void printStatus(Everything& e, int iRep)

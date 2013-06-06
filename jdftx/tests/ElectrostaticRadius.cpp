@@ -90,13 +90,15 @@ struct MultipoleBasis
 	}
 };
 
-inline void rArrSet(size_t iStart, size_t iStop, vector3<int> S, matrix3<> R, vector3<> center, vector3<double*> rArr)
+inline void rArrSet(size_t iStart, size_t iStop, vector3<int> S, matrix3<> R, vector3<> center, vector3<double*> rArr, vector3<double*> rCubedArr)
 {	matrix3<> invS = inv(matrix3<>(Diag(S)));
 	THREAD_rLoop
 	(	vector3<> x = invS * iv;
 		for(int j=0; j<3; j++)
 			x[j] -= floor(x[j]-center[j]+0.5);
-		storeVector(R * (x - center), rArr, i);
+		vector3<> r = R * (x - center);
+		storeVector(r, rArr, i);
+		storeVector(r * r.length_squared(), rCubedArr, i);
 	)
 }
 
@@ -178,12 +180,18 @@ int main(int argc, char** argv)
 	//Replace the last (least significant) polarizability eigencomponent with the rotational one:
 	V.setColumn(V.nCols()-1, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
 	
+	//Quick estimate not based on NonlocalPCM solve:
+	DataRptrVec rArr(e.gInfo), rCubedArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data(), rCubedArr.data()); //Create array of r in real space
+	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
+	ColumnBundle OJrCubed(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJrCubed.setColumn(k, O(J(Complex(rCubedArr[k])))); //Convert to a columnbundle projector
+	matrix rV = OJr ^ V, rCubedV = OJrCubed ^ V;
+	double elRadius = sqrt( trace(dagger(rV) * rCubedV).real() / (5. * trace(dagger(rV) * rV).real()) );
+	logPrintf("Electrostatic radius = %lg bohrs. (quick estimate)\n", elRadius);
+
 	//Get liquid properties:
 	if(e.eVars.fluidParams.solvents.size()!=1) die("Fluid must include exactly one solvent component.\n");
 	double Nbulk = e.eVars.fluidParams.solvents[0]->Nbulk;
 	double epsBulk = e.eVars.fluidSolver->epsBulk;
-	DataRptrVec rArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data()); //Create array of r in real space
-	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
 	//Compute mean field dielectric constant
 	double epsMF = 1. + 4*M_PI * Nbulk * pow(nrm2(OJr ^ V),2)/3.;
 	double Aeps = 1. + 1./(epsBulk-1.) - 1./(epsMF-1.);
