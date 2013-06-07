@@ -42,6 +42,7 @@ struct ResidualMinimizerParams
 	MixedVariable mixedVariable; //! Whether we are mixing the density or the potential
 	VectorExtrapolation vectorExtrapolation; //! Vector extrapolation method used to construct the new density
 	size_t history; //! How many past residuals and vectors are kept cached
+	bool verbose; //! Whether the inner eigensolver will print process
 	
 	ResidualMinimizerParams()
 	{
@@ -49,6 +50,7 @@ struct ResidualMinimizerParams
 		energyDiffThreshold = 1e-6;
 		mixedVariable = potential;
 		vectorExtrapolation = DIIS;
+		verbose = false;
 	}
 	
 };

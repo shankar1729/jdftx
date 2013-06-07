@@ -95,20 +95,22 @@ void SCF::minimize()
 		
 		// Solve at fixed hamiltonian
 		e.cntrl.fixed_n = true; e.ener = Energies();
-		logSuspend(); e.elecMinParams.fpLog = nullLog;
+		if(not rp.verbose) // Silence eigensolver output
+		{	logSuspend(); e.elecMinParams.fpLog = nullLog;}
 		for(int q = 0; q < eInfo.nStates; q++)
 		{	
 			BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
 		}
-		logResume(); e.elecMinParams.fpLog = globalLog;
+		if(not rp.verbose) // Resume output
+		{	logResume(); e.elecMinParams.fpLog = globalLog;}
 		e.cntrl.fixed_n = false; e.ener = Energies();
 		
 		// Compute new density and energy
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
-		logPrintf("ResidualMinimize: Iter:\t%i\tEtot: %.15e\tdE: %.3e\n", scfCounter, E, E-Eprev);
+		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tdE: %.3e\n", (rp.verbose ? "\t" : ""), scfCounter, E, E-Eprev);
 		
 		// Check for convergence, mix density or potential if otherwise
 		if(fabs(E-Eprev) < rp.energyDiffThreshold)
