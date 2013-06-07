@@ -102,6 +102,7 @@ void SCF::minimize()
 			BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
 		}
+		e.eVars.setEigenvectors();
 		if(not rp.verbose) // Resume output
 		{	logResume(); e.elecMinParams.fpLog = globalLog;}
 		e.cntrl.fixed_n = false; e.ener = Energies();
