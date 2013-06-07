@@ -23,7 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 BandMinimizer::BandMinimizer(Everything& e, int qActive, bool precond):
 qActive(qActive), e(e), eVars(e.eVars), eInfo(e.eInfo),
 precond(precond)
-{
+{	assert(e.cntrl.fixed_n); // Check whether the electron density is fixed
+	// Get the correct energy label (removel causes wrong name to be printed during residual minimize)
+	e.elecMinParams.energyLabel = relevantFreeEnergyName(e);
 }
 
 void BandMinimizer::step(const ColumnBundle& dir, double alpha)
