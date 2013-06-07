@@ -46,6 +46,13 @@ void printUsage(const char *name)
 	logPrintf("\n");
 }
 
+inline double determinant(diagMatrix& D)
+{	double det = 1.;
+	for(int i=0; i<D.nCols(); i++)
+		det *= D[i];
+	return det;
+}
+
 int main(int argc, char** argv)
 {
 
@@ -95,16 +102,38 @@ int main(int argc, char** argv)
 	/// ACTUAL CALCULATION HAPPERNS HERE ///
 	
 	int qnums = e.eInfo.qnums.size();
-	
+	int nbands = e.eInfo.nBands;
+	double wInv = e.eInfo.spinType==SpinNone ? 0.5 : 1.0; //normalization factor from external to internal fillings
+
+	// Read wavefunctions
 	std::vector<ColumnBundle> C1(qnums);
 	std::vector<ColumnBundle> C2(qnums);
 	read(C1, "C1.wfns", e);
 	read(C2, "C2.wfns", e);
+
+	// Read fillings
+	std::vector<diagMatrix> F1(qnums);
+	std::vector<diagMatrix> F2(qnums);
+	FILE* fp1 = fopen("F1.fillings","r");
+	if(!fp1) die("Can't open file %s to read initial fillings!\n", "F1.fillings");
+	FILE* fp2 = fopen("F2.fillings","r");
+	if(!fp2) die("Can't open file %s to read initial fillings!\n", "F2.fillings");
+	for (int q=0; q<qnums; q++)
+	{	F1[q].resize(nbands); F2[q].resize(nbands);
+		F1[q].scan(fp1); F2[q].scan(fp2);
+		F1[q] *= wInv; F2[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
+	}
+
+	std::vector<matrix> dipoleXMatrices;
+	std::vector<matrix> dipoleYMatrices;
+	std::vector<matrix> dipoleZMatrices;
+	std::vector<matrix> overlapMatrices;
+	complex detDipoleX = 1;
+	complex detDipoleY = 1;
+	complex detDipoleZ = 1;
+	complex detOverlap = 1;
 	
-	std::vector<matrix> dipole;
-	double det = 1;
-	
-	// Kernels for the dipole calculations
+	// Real-space kernels for the dipole calculations
 	DataRptr r0, r1, r2;
 	nullToZero(r0, e.gInfo); 	nullToZero(r1, e.gInfo); 	nullToZero(r2, e.gInfo);
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 0, e.gInfo.R, 1, vector3<>(0.,0.,0.), r0->data());
@@ -112,22 +141,70 @@ int main(int argc, char** argv)
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 2, e.gInfo.R, 1, vector3<>(0.,0.,0.), r2->data());
 	
 	for(size_t q =0; q<e.eInfo.qnums.size(); q++)
-	{
-		// If any of the blocks has zero determinant, then there's no need to compute others
-		if(det == 0)
-			break;
-		
+	{		
 		int noBands = e.eInfo.nBands;
-		dipole.at(q).init(noBands, noBands);
+		dipoleXMatrices.at(q).init(noBands, noBands);
+		dipoleYMatrices.at(q).init(noBands, noBands);
+		dipoleZMatrices.at(q).init(noBands, noBands);
 		for(int i=0; i<noBands; i++)
-			for(int j=0; j<i; j++)
-			{	//complex moment = dot(C1[q]);
-				//dipole.at(q).set(i,j, dot());
+		{	for(int j=0; j<i; j++)
+			{	
+				double tol = 1e-4;
+				// If either of the orbitals is empty, no need to compute anything
+				if((F1[q][i] < tol) or (F2[q][j] < tol))
+				{	dipoleXMatrices.at(q).set(i,j, 0.);
+					dipoleXMatrices.at(q).set(j,i, 0.);
+					dipoleYMatrices.at(q).set(i,j, 0.);
+					dipoleYMatrices.at(q).set(j,i, 0.);
+					dipoleZMatrices.at(q).set(i,j, 0.);
+					dipoleZMatrices.at(q).set(j,i, 0.);
+					overlapMatrices.at(q).set(i,j, 0.);
+					overlapMatrices.at(q).set(j,i, 0.);
+					continue;
+				}
+				// If both orbitals are occupied, then return the matrix element
+				else if((F1[q][i] > (1.-tol)) or (F2[q][j] < (1.-tol)))
+				{	
+					complexDataRptr psi1 = I(C1.at(q).getColumn(i));
+					complexDataRptr psi2 = I(C2.at(q).getColumn(j));
+					
+					complex dipoleX = (norm(detDipoleX) ? integral(psi1*r0*psi2) : 0.);
+					complex dipoleY = (norm(detDipoleY) ? integral(psi1*r1*psi2) : 0.);
+					complex dipoleZ = (norm(detDipoleZ) ? integral(psi1*r2*psi2) : 0.);
+					complex overlap = (norm(detOverlap) ? integral(psi1*psi2) : 0.);
+					
+					dipoleXMatrices.at(q).set(i,j, dipoleX);
+					dipoleXMatrices.at(q).set(j,i, dipoleX.conj());
+					dipoleYMatrices.at(q).set(i,j, dipoleY);
+					dipoleYMatrices.at(q).set(j,i, dipoleY.conj());
+					dipoleZMatrices.at(q).set(i,j, dipoleZ);
+					dipoleZMatrices.at(q).set(j,i, dipoleZ.conj());
+					overlapMatrices.at(q).set(i,j, overlap);
+					overlapMatrices.at(q).set(j,i, overlap.conj());
+				}
+				else
+				{	die("Non-integer fillings found... Exiting.\n");
+				}
 			}
+		}
+		matrix evecs; diagMatrix eigs;
+		dipoleXMatrices.at(q).diagonalize(evecs, eigs);
+		detDipoleX *= determinant(eigs);
+		dipoleYMatrices.at(q).diagonalize(evecs, eigs);
+		detDipoleY *= determinant(eigs);
+		dipoleZMatrices.at(q).diagonalize(evecs, eigs);
+		detDipoleZ *= determinant(eigs);
+		overlapMatrices.at(q).diagonalize(evecs, eigs);
+		detOverlap *= determinant(eigs);
 	}
 	
 	/// //////////////////////////////// ///
-		
+	
+	logPrintf("\nOverlap: (%.5e, %.5e)\n", real(detOverlap), imag(detOverlap));
+	logPrintf("\nDipole: <(%5.e, %.5e), (%5.e, %.5e), (%5.e, %.5e)>\n",
+			  real(detDipoleX), imag(detDipoleX), real(detDipoleY), imag(detDipoleY), real(detDipoleZ), imag(detDipoleZ));
+	
+	
 	finalizeSystem();
 	if(globalLog != stdout) fclose(globalLog);
 	return 0;

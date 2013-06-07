@@ -28,7 +28,7 @@ enum MixedVariable
 	potential //! Mix the local electronic potential (Vscloc) and the kinetic energy potential (Vtau)
 };
 
-enum VectorExtrapolationMethod
+enum VectorExtrapolation
 {
 	plain,  //! No vector extrapolation, just half-mixes the new density
 	Anderson,  //! Caches and mixes the previous density only. (Named after D. G. Anderson)
@@ -40,7 +40,7 @@ struct ResidualMinimizerParams
 	int nIterations; //! maximum iterations (single point calculation if 0)
 	double energyDiffThreshold; //! convergence threshold for energy difference between successive iterations
 	MixedVariable mixedVariable; //! Whether we are mixing the density or the potential
-	VectorExtrapolationMethod vectorExtrapolationMethod; //! Vector extrapolation method used to construct the new density
+	VectorExtrapolation vectorExtrapolation; //! Vector extrapolation method used to construct the new density
 	size_t history; //! How many past residuals and vectors are kept cached
 	
 	ResidualMinimizerParams()
@@ -48,7 +48,7 @@ struct ResidualMinimizerParams
 		nIterations = 10;
 		energyDiffThreshold = 1e-6;
 		mixedVariable = potential;
-		vectorExtrapolationMethod = DIIS;
+		vectorExtrapolation = DIIS;
 	}
 	
 };

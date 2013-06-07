@@ -25,7 +25,7 @@ enum  ResMinParameter
 	nIterations, 
 	energyDiffThreshold,
 	mixedVariable,
-	vectorExtrapolationMethod,
+	vectorExtrapolation,
 	//Delimiter used in parsing:
 	scfDelim
 };
@@ -34,13 +34,13 @@ EnumStringMap<ResMinParameter> ResMinParameterMap
 (	nIterations, "nIterations",
 	energyDiffThreshold, "energyDiffThreshold",
     mixedVariable, "mixedVariable",
-    vectorExtrapolationMethod, "vectorExtrapolationMethod"
+    vectorExtrapolation, "vectorExtrapolationMethod"
 );
 EnumStringMap<ResMinParameter> resMinParameterDescrMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
 	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
     mixedVariable, "whether density or potential will be mixed at each step",
-	vectorExtrapolationMethod, "algorithm to use in vector extrapolation: plainMixing, DIIS"
+	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS"
 );
 
 EnumStringMap<MixedVariable> resMinMixing
@@ -48,7 +48,7 @@ EnumStringMap<MixedVariable> resMinMixing
 	potential, "potential"
 );
 
-EnumStringMap<VectorExtrapolationMethod> resMinExtrapolation
+EnumStringMap<VectorExtrapolation> resMinExtrapolation
 (	plain, "plain",
 	Anderson, "Anderson",
 	DIIS, "DIIS"
@@ -84,8 +84,8 @@ struct CommandsScfParams: public Command
 				case nIterations:
 					pl.get(e.residualMinimizerParams.nIterations, 10, "nIterations", true);
 					break;
-				case vectorExtrapolationMethod:
-					pl.get(e.residualMinimizerParams.vectorExtrapolationMethod, plain, resMinExtrapolation, "vectorExtrapolationMethod", true);					
+				case vectorExtrapolation:
+					pl.get(e.residualMinimizerParams.vectorExtrapolation, plain, resMinExtrapolation, "vectorExtrapolationMethod", true);					
 					break;
 				case scfDelim: return; //end of input
 			}
@@ -100,7 +100,7 @@ struct CommandsScfParams: public Command
 		PRINT(nIterations, %i)
 		PRINT(energyDiffThreshold, %lg)
 		logPrintf(" \\\n\tmixedVariable\t%s", resMinMixing.getString(e.residualMinimizerParams.mixedVariable));
-		logPrintf(" \\\n\tvectorExtrapolationMethod\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolationMethod));
+		logPrintf(" \\\n\tvectorExtrapolation\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolation));
 	} 
 	
 } commandsScfParams;

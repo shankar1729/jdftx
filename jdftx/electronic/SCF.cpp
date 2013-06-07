@@ -23,7 +23,7 @@ SCF::SCF(Everything& e): e(e)
 {
 	// set up the cacheing size
 	ResidualMinimizerParams& rp = e.residualMinimizerParams;
-	switch(rp.vectorExtrapolationMethod)
+	switch(rp.vectorExtrapolation)
 	{	case Anderson:
 			rp.history = 2;
 			break;
@@ -48,7 +48,7 @@ SCF::SCF(Everything& e): e(e)
 	pastResiduals_ ## var.push_back(variable_ ## var - pastVariables_ ## var.back());
 
 void SCF::minimize()
-{
+{	
 	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	ResidualMinimizerParams rp = e.residualMinimizerParams;
@@ -78,11 +78,11 @@ void SCF::minimize()
 		// Clear history if full
 		if((pastResiduals_n.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
 		{	double ndim = pastResiduals_n.size();
-			if((rp.vectorExtrapolationMethod != plain) and (rp.history!=1))
+			if((rp.vectorExtrapolation != plain) and (rp.history!=1))
 				overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
 			pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
-			if(rp.vectorExtrapolationMethod != plain)
+			if(rp.vectorExtrapolation != plain)
 			{	pastResiduals_n.erase(pastResiduals_n.begin());
 				ifTau(pastResiduals_tau.erase(pastResiduals_tau.begin()););
 			}
@@ -117,14 +117,14 @@ void SCF::minimize()
 		}
 		else
 		{	
-			if((rp.vectorExtrapolationMethod == plain))
+			if((rp.vectorExtrapolation == plain))
 				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
-			else if(rp.vectorExtrapolationMethod == Anderson)
+			else if(rp.vectorExtrapolation == Anderson)
 			{	cacheResidual(n)
 				ifTau(cacheResidual(tau))
 				mixAnderson(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
 			}
-			else if(rp.vectorExtrapolationMethod == DIIS)
+			else if(rp.vectorExtrapolation == DIIS)
 			{	cacheResidual(n)
 				ifTau(cacheResidual(tau))
 				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
