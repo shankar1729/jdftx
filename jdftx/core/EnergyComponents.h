@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <map>
 #include <string>
+#include <core/string.h>
 #include <cstdio>
 
 /** Simply a map of named components with a few extra features!
@@ -72,9 +73,13 @@ public:
 	//! @param nonzeroOnly If true, print only non-zero components
 	//! @param format Output format for each component - must have one string and one floating point conversion spec each
 	void print(FILE* fp, bool nonzeroOnly, const char* format="\t%s = %le\n") const
-	{	for(const_iterator i=begin(); i!=end(); i++)
-			if(!nonzeroOnly || i->second!=0.0)
-				fprintf(fp, format, i->first.c_str(), i->second);
+	{	
+		std::map<string,double> reducedComponents;
+		for(auto entry: *this)
+			if((not nonzeroOnly) or (entry.second != 0))
+				reducedComponents[entry.first.substr(0, entry.first.find_last_not_of("0123456789-")+1)] += entry.second;
+		for(auto entry: reducedComponents)
+			fprintf(fp, format, entry.first.c_str(), entry.second);
 	}
 };
 
