@@ -108,6 +108,8 @@ int main(int argc, char** argv)
 	// Read wavefunctions
 	std::vector<ColumnBundle> C1(qnums);
 	std::vector<ColumnBundle> C2(qnums);
+	init(C1, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo.qnums[0]));
+	init(C2, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo.qnums[0]));
 	read(C1, "C1.wfns", e);
 	read(C2, "C2.wfns", e);
 
@@ -124,10 +126,10 @@ int main(int argc, char** argv)
 		F1[q] *= wInv; F2[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
 	}
 
-	std::vector<matrix> dipoleXMatrices;
-	std::vector<matrix> dipoleYMatrices;
-	std::vector<matrix> dipoleZMatrices;
-	std::vector<matrix> overlapMatrices;
+	std::vector<matrix> dipoleXMatrices(qnums);
+	std::vector<matrix> dipoleYMatrices(qnums);
+	std::vector<matrix> dipoleZMatrices(qnums);
+	std::vector<matrix> overlapMatrices(qnums);
 	complex detDipoleX = 1;
 	complex detDipoleY = 1;
 	complex detDipoleZ = 1;
@@ -140,12 +142,16 @@ int main(int argc, char** argv)
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 1, e.gInfo.R, 1, vector3<>(0.,0.,0.), r1->data());
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 2, e.gInfo.R, 1, vector3<>(0.,0.,0.), r2->data());
 	
+	logPrintf("\n");
 	for(size_t q =0; q<e.eInfo.qnums.size(); q++)
-	{		
+	{	
+		logPrintf("Calculating qnum = %i...", q);
+		
 		int noBands = e.eInfo.nBands;
 		dipoleXMatrices.at(q).init(noBands, noBands);
 		dipoleYMatrices.at(q).init(noBands, noBands);
 		dipoleZMatrices.at(q).init(noBands, noBands);
+		overlapMatrices.at(q).init(noBands, noBands);
 		for(int i=0; i<noBands; i++)
 		{	for(int j=0; j<i; j++)
 			{	
@@ -190,12 +196,15 @@ int main(int argc, char** argv)
 		matrix evecs; diagMatrix eigs;
 		dipoleXMatrices.at(q).diagonalize(evecs, eigs);
 		detDipoleX *= determinant(eigs);
+		logPrintf("\n\n"); dipoleXMatrices.at(q).print(globalLog); logPrintf("\n\n");
 		dipoleYMatrices.at(q).diagonalize(evecs, eigs);
 		detDipoleY *= determinant(eigs);
 		dipoleZMatrices.at(q).diagonalize(evecs, eigs);
 		detDipoleZ *= determinant(eigs);
 		overlapMatrices.at(q).diagonalize(evecs, eigs);
 		detOverlap *= determinant(eigs);
+		
+		logPrintf(" done!\n");
 	}
 	
 	/// //////////////////////////////// ///
