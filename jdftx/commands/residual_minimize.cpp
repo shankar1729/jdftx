@@ -113,6 +113,8 @@ struct CommandsScfParams: public Command
 		PRINT(energyDiffThreshold, %lg)
 		logPrintf(" \\\n\tmixedVariable\t%s", resMinMixing.getString(e.residualMinimizerParams.mixedVariable));
 		logPrintf(" \\\n\tvectorExtrapolation\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolation));
+		if(e.residualMinimizerParams.verbose) logPrintf(" \\\n\tverbose");
+		PRINT(damping, %lg)
 	} 
 	
 } commandsScfParams;
