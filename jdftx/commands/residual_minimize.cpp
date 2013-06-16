@@ -27,6 +27,7 @@ enum  ResMinParameter
 	mixedVariable,
 	vectorExtrapolation,
 	verbose,
+	damping,
 	//Delimiter used in parsing:
 	scfDelim
 };
@@ -36,14 +37,16 @@ EnumStringMap<ResMinParameter> ResMinParameterMap
 	energyDiffThreshold, "energyDiffThreshold",
     mixedVariable, "mixedVariable",
     vectorExtrapolation, "vectorExtrapolation",
-	verbose, "verbose"
+	verbose, "verbose",
+	damping, "damping"
 );
 EnumStringMap<ResMinParameter> resMinParameterDescrMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
 	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
     mixedVariable, "whether density or potential will be mixed at each step",
 	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
-	verbose, "whether the inner eigenvalue solver will print or not"
+	verbose, "whether the inner eigenvalue solver will print or not",
+	damping, "damping parameter for vector extrapolation (default 0.5)."
 );
 
 EnumStringMap<MixedVariable> resMinMixing
@@ -88,10 +91,13 @@ struct CommandsScfParams: public Command
 					pl.get(e.residualMinimizerParams.nIterations, 10, "nIterations", true);
 					break;
 				case vectorExtrapolation:
-					pl.get(e.residualMinimizerParams.vectorExtrapolation, plain, resMinExtrapolation, "vectorExtrapolationMethod", true);					
+					pl.get(e.residualMinimizerParams.vectorExtrapolation, plain, resMinExtrapolation, "vectorExtrapolation", true);					
 					break;
 				case verbose:
 					e.residualMinimizerParams.verbose = true;				
+					break;
+				case damping:
+					pl.get(e.residualMinimizerParams.damping, 0.5, "damping", true);
 					break;
 				case scfDelim: return; //end of input
 			}

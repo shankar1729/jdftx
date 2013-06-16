@@ -121,7 +121,7 @@ void SCF::minimize()
 		else
 		{	
 			if((rp.vectorExtrapolation == plain))
-				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
+				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 1.-rp.damping);
 			else if(rp.vectorExtrapolation == Anderson)
 			{	cacheResidual(n)
 				ifTau(cacheResidual(tau))
@@ -181,9 +181,10 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	
 	initZero(variable_n);
 	ifTau(initZero(variable_tau))
+	double damping = 1. - e.residualMinimizerParams.damping;
 	for(size_t j=0; j<ndim; j++)
-	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * (0.5*pastResiduals_n[j] + pastVariables_n[j]);
-		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * (0.5*pastResiduals_tau[j] + pastVariables_tau[j]))
+	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_n[j] + pastVariables_n[j]);
+		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_tau[j] + pastVariables_tau[j]))
 	}
 	
 	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", constrainedOverlap_inv.data()[constrainedOverlap_inv.index(ndim, ndim)].real());

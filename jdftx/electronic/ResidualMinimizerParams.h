@@ -43,6 +43,7 @@ struct ResidualMinimizerParams
 	VectorExtrapolation vectorExtrapolation; //! Vector extrapolation method used to construct the new density
 	size_t history; //! How many past residuals and vectors are kept cached
 	bool verbose; //! Whether the inner eigensolver will print process
+	double damping;  //! Fracition of the old variable that will be mixed with the new one
 	
 	ResidualMinimizerParams()
 	{
@@ -51,6 +52,7 @@ struct ResidualMinimizerParams
 		mixedVariable = potential;
 		vectorExtrapolation = DIIS;
 		verbose = false;
+		damping = 0.5;
 	}
 	
 };
