@@ -140,6 +140,7 @@ void PCM::updateCavity()
 			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
 			//Dispersion:
 			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
+			nullToZero(A_Ntilde, e.gInfo);  // Removal causes segfault when A_sTilde is accumulated (for fluid sites with no density model)
 			std::vector<int> atomicNumbers(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
 			{	Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
