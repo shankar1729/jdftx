@@ -36,7 +36,7 @@ template<class T> T ceildiv(T num, T den) { return (num + den - 1)/den; }
 //! Return largest multiple of den smaller than num, templated over int types
 template<class T> T floorMultiple(T num, T den) { return (num/den)*den; }
 
-#ifndef sincos
+#ifdef __APPLE__
 #ifndef __in_a_cu_file__
 inline void sincos(double x, double* s, double* c)
 {	*s = sin(x);

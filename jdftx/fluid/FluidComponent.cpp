@@ -108,7 +108,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
 			sigmaBulk = 4.62e-5;
 			eos = std::make_shared<JeffereyAustinEOS>(T);
-			Rvdw = eos->vdwRadius();
+			Rvdw = 1.385*Angstrom;
 			Res = 1.42;
 			//Site properties:
 			molecule.name = "H2O";
@@ -159,7 +159,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
 			sigmaBulk = 1.71e-5;
 			eos = std::make_shared<TaoMasonEOS>(T, 536.6*Kelvin, 5328.68*KPascal, 0.216);
-			Rvdw = eos->vdwRadius();
+			Rvdw = 2.53*Angstrom;
 			Res = 2.22;
 			//Site properties:
 			molecule.name = "CHCl3";
@@ -201,7 +201,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			Pvap = antoinePvap(T, 6.10445, 1265.63, -41.002);
 			sigmaBulk = 1.68e-5;
 			eos = std::make_shared<TaoMasonEOS>(T, 556.4*Kelvin, 4493*KPascal, 0.194);
-			Rvdw = eos->vdwRadius();
+			Rvdw = 2.69*Angstrom;
 			Res = 1.90;
 			//Site properties:
 			molecule.name = "CCl4";
