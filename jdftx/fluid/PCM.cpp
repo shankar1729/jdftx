@@ -140,7 +140,6 @@ void PCM::updateCavity()
 			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
 			//Dispersion:
 			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
-			nullToZero(A_Ntilde, e.gInfo);  // Removal causes segfault when A_sTilde is accumulated (for fluid sites with no density model)
 			std::vector<int> atomicNumbers(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
 			{	Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
@@ -150,7 +149,8 @@ void PCM::updateCavity()
 			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.vdwScale, &A_Ntilde, &(*vdwForces));
 			A_vdwScale = Adiel["Dispersion"]/fsp.vdwScale;
 			for(unsigned i=0; i<Sf.size(); i++)
-				A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
+				if(A_Ntilde[i])
+					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeVdw : Acavity_shape) = Jdag(A_sTilde);
 			break;
