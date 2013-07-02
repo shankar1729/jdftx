@@ -53,9 +53,25 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_SGA13:
-		{	nc = 7e-3;
+		{	nc = 1e-2;
 			sigma = 0.6;
 			cavityTension = 0.;
+			switch(solvents[0]->name)
+			{
+				case FluidComponent::H2O:
+					vdwScale = 0.538;
+					break;
+				case FluidComponent::CHCl3:
+					vdwScale = 1.315;
+					break;
+				case FluidComponent::CCl4:
+					vdwScale = 1.238;
+					break;
+				default:
+					vdwScale = 1.;
+					initWarnings += "WARNING: SGA13 has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
+					break;
+			}
 			initWarnings += "WARNING: PCM variant SGA13 is highly experimental!\n";
 			break;
 		}
