@@ -103,6 +103,48 @@ DataGptr DD(const DataGptr& in, int iDir, int jDir)
 	return out;
 }
 
+
+template<int l> void lGradient_sub(size_t iStart, size_t iStop, const vector3<int>& S, const complex* in, const array<complex*, 2*l+1>& out, const matrix3<>& G)
+{	THREAD_halfGspaceLoop( lGradient_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+}
+template<int l> void lGradient(const vector3<int>& S, const complex* in, array<complex*, 2*l+1> out, const matrix3<>& G)
+{	threadLaunch(lGradient_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);
+}
+void lGradient(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G)
+{	SwitchTemplate_l(l, lGradient, (S, in, out, G))
+}
+#ifdef GPU_ENABLED
+void lGradient_gpu(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G);
+#endif
+
+DataGptrCollection lGradient(const DataGptr& in, int l)
+{	DataGptrCollection out; nullToZero(out, in->gInfo, 2*l+1);
+	callPref(lGradient)(in->gInfo.S, in->dataPref(), dataPref(out), l, in->gInfo.G);
+	return out;
+}
+
+template<int l> void lDivergence_sub(size_t iStart, size_t iStop, const vector3<int>& S, const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
+{	THREAD_halfGspaceLoop( lDivergence_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+}
+template<int l> void lDivergence(const vector3<int>& S, array<const complex*,2*l+1> in, complex* out, const matrix3<>& G)
+{	threadLaunch(lDivergence_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);
+}
+void lDivergence(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G)
+{	SwitchTemplate_l(l, lDivergence, (S, in, out, G))
+}
+#ifdef GPU_ENABLED
+void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G);
+#endif
+
+DataGptr lDivergence(const DataGptrCollection& in, int l)
+{	assert(int(in.size()) == 2*l+1);
+	DataGptr out; nullToZero(out, in[0]->gInfo);
+	callPref(lDivergence)(in[0]->gInfo.S, constDataPref(in), out->dataPref(), l, in[0]->gInfo.G);
+	return out;
+}
+
+
+
 void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
 	const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k)
 {	THREAD_rLoop( v[i] *= blochPhase_calc(iv, invS, k); )

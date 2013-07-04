@@ -25,6 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataCollection.h>
 #include <core/Operators.h>
 
+extern EnumStringMap<FluidComponent::Name> solventMap;
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 
@@ -36,7 +38,8 @@ int main(int argc, char** argv)
 	gInfo.initialize();
 
 	double T = 298*Kelvin;
-	FluidComponent component(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	FluidComponent component(FluidComponent::CHCl3, T, FluidComponent::ScalarEOS);
+	string solventName = solventMap.getString(component.name);
 	component.s2quadType = QuadEuler;
 	component.quad_nBeta = 11;
 	component.quad_nAlpha = 2;
@@ -50,12 +53,13 @@ int main(int argc, char** argv)
 
 	MinimizeParams mp;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
+	mp.nAlphaAdjustMax = 10;
 	mp.nIterations=200;
 
-	FILE* fpEps = fopen("NonlinearEps/nonlineareps", "w");
+	FILE* fpEps = fopen((solventName+"/nonlineareps").c_str(), "w");
 	double Dfield=1e-4;
 	bool stateInitialized = false;
-	for(; Dfield<5e-2; Dfield+=2e-3)
+	for(; Dfield<6.5e-2; Dfield+=2e-3)
 	{
 		mp.energyDiffThreshold = 1e-9 * gInfo.detR * pow(Dfield,2);
 		mp.knormThreshold = 1e-9 * gInfo.detR * Dfield;

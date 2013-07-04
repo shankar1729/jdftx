@@ -101,7 +101,7 @@ struct CommandPcmParams : public Command
 					if(!(fsp.param op val)) throw string(#param " must be " #op " " #val); \
 					break;
 			switch(key)
-			{	READ_AND_CHECK(lMax, >=, 1)
+			{	READ_AND_CHECK(lMax, >=, 0)
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)

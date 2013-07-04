@@ -102,7 +102,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 {
 	logSuspend();
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
-	updateLatticeDependent(); // Updates lattice information and gets the energy	
+	updateLatticeDependent(true); // Updates lattice information and gets the energy (but does not touch electronic state, important for magnetic LCAO)
 	logResume();
 	
 	//! Run an ionic minimizer at the current strain
@@ -192,12 +192,12 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 	dir = result;
 }
 
-void LatticeMinimizer::updateLatticeDependent()
+void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
 {	e.gInfo.update();
 	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
-	e.eVars.elecEnergyAndGrad(e.ener);
+	if(!ignoreElectronic) e.eVars.elecEnergyAndGrad(e.ener);
 }
 
 void LatticeMinimizer::restore()

@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
 #include <core/DataMultiplet.h>
+#include <core/DataCollection.h>
 #include <core/matrix3.h>
 
 //! Convert a complex wavefunction to a real one with optimum phase choice
@@ -37,6 +38,9 @@ void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase,
 
 DataGptr D(const DataGptr&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
 DataGptr DD(const DataGptr&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
+DataGptrCollection lGradient(const DataGptr&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
+DataGptr lDivergence(const DataGptrCollection&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
+
 
 //! Multiply complex scalar field by Block phase for wave-vector k (in reciprocal lattice coordinates)
 void multiplyBlochPhase(complexDataRptr&, const vector3<>& k);

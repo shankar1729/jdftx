@@ -153,7 +153,7 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 	logPrintf("   Bulk dielectric-constant: %lg", epsBulk);
 	if(k2factor > GzeroTol) logPrintf("   screening-length: %lg bohrs.\n", sqrt(epsBulk/k2factor));
 	else logPrintf("\n");
-	assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
+	if(fsp.lMax >= 1) assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
 	assert(fabs(k2factor-this->k2factor) < 1e-3); //verify consistency of site charges
 	
 	//Initialize preconditioner kernel:
@@ -180,12 +180,9 @@ DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 {	DataGptr rhoTilde;
 	for(const auto& resp: response)
 	{	const DataRptr& s = resp->iSite<0 ? shape : siteShape[resp->iSite];
-		switch(resp->l)
-		{	case 0: rhoTilde -= resp->V * J(s*I(resp->V * phiTilde)); break;
-			case 1: rhoTilde += resp->V * divergence(J(s*I(gradient(resp->V * phiTilde)))); break;
-			case 2: rhoTilde -= 1.5 * (resp->V * tensorDivergence(J(s*I(tensorGradient(resp->V * phiTilde))))); break;
-			default: die("NonlocalPCM: Angular momentum l=%d not implemented.\n", resp->l);
-		}
+		if(resp->l>3) die("Angular momenta l > 3 not supported.\n");
+		double prefac = pow(-1,resp->l) * 4*M_PI/(2*resp->l+1);
+		rhoTilde -= prefac * (resp->V * lDivergence(J(s * I(lGradient(resp->V * phiTilde, resp->l))), resp->l));
 	}
 	return rhoTilde;
 }
@@ -249,27 +246,11 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	DataRptr Adiel_shape; DataRptrCollection Adiel_siteShape(solvent->molecule.sites.size());
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	DataRptr& Adiel_s = resp->iSite<0 ? Adiel_shape : Adiel_siteShape[resp->iSite];
-		switch(resp->l)
-		{	case 0:
-			{	DataRptr IVphi = I(resp->V * phi);
-				Adiel_s -= 0.5 * (IVphi * IVphi);
-				break;
-			}
-			case 1:
-			{	DataRptrVec IgradVphi = I(gradient(resp->V * phi));
-				Adiel_s -= 0.5 * lengthSquared(IgradVphi);
-				break;
-			}
-			case 2:
-			{	DataRptrTensor ItgradVphi = I(tensorGradient(resp->V * phi));
-				Adiel_s -= 0.5 * 1.5
-					* 2*( ItgradVphi[0]*ItgradVphi[0] + ItgradVphi[1]*ItgradVphi[1] + ItgradVphi[2]*ItgradVphi[2]
-						+ ItgradVphi[3]*ItgradVphi[3] + ItgradVphi[4]*ItgradVphi[4] + ItgradVphi[3]*ItgradVphi[4]);
-				break;
-			}
-			default:
-				die("NonlocalPCM: Angular momentum l=%d not implemented.\n", resp->l);
-		}
+		if(resp->l>3) die("Angular momenta l > 3 not supported.\n");
+		double prefac = 0.5 * 4*M_PI/(2*resp->l+1);
+		DataRptrCollection IlGradVphi = I(lGradient(resp->V * phi, resp->l));
+		for(int lpm=0; lpm<(2*resp->l+1); lpm++)
+			Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
 	}
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])

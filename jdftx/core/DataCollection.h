@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file DataCollection.h
 //! @brief classes DataRptrCollection, DataGptrCollection and just enough operators to enable CG w.r.t to them
 
-#include <core/Operators.h>
+#include <core/DataMultiplet.h>
 #include <vector>
 
 #include <cstdio>
@@ -32,6 +32,29 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 typedef std::vector<DataRptr> DataRptrCollection; //!< dynamic size collection of real space scalar fields
 typedef std::vector<DataGptr> DataGptrCollection; //!< dynamic size collection of reciprocal space scalar fields
 #define TptrCollection std::vector<std::shared_ptr<T> > //!< shorthand for templates below (undef'd at end of file)
+
+//! Extract a std::vector of data pointers from a DataRptrCollection
+template<typename T> std::vector<typename T::DataType*> dataPref(TptrCollection& x)
+{	std::vector<typename T::DataType*> xData(x.size());
+	for(unsigned s=0; s<x.size(); s++)
+		xData[s] = x[s] ? x[s]->dataPref() : 0;
+	return xData;
+}
+
+//! Extract a std::vector of const data pointers from a const DataRptrCollection
+template<typename T> std::vector<const typename T::DataType*> constDataPref(const TptrCollection& x)
+{	std::vector<const typename T::DataType*> xData(x.size());
+	for(unsigned s=0; s<x.size(); s++)
+		xData[s] = x[s] ? x[s]->dataPref() : 0;
+	return xData;
+}
+
+//! Create a copy of the data (note operator= references same data since Tptr's are pointers!)
+template<typename T> TptrCollection clone(const TptrCollection& x)
+{	TptrCollection ret(x.size());
+	for(unsigned i=0; i<x.size(); i++) ret[i] = clone(x[i]);
+	return ret;
+}
 
 //! Scale
 template<typename T> TptrCollection& operator*=(TptrCollection& x, double alpha)
@@ -58,7 +81,7 @@ inline DataRptrCollection operator*(const DataRptrCollection& x, const DataRptrC
 {	assert(x.size()==y.size());
 	DataRptrCollection z(x.size());
 	for(unsigned i=0; i<x.size(); i++) z[i] = x[i]*y[i];
-	return x;
+	return z;
 }
 inline DataRptrCollection operator*(DataRptrCollection&& x, const DataRptrCollection& y)
 {	assert(x.size()==y.size());
@@ -68,8 +91,19 @@ inline DataRptrCollection operator*(DataRptrCollection&& x, const DataRptrCollec
 inline DataRptrCollection operator*(const DataRptrCollection& x, DataRptrCollection&& y)
 {	assert(x.size()==y.size());
 	for(unsigned i=0; i<x.size(); i++) y[i] *= x[i];
-	return x;
+	return y;
 }
+
+inline DataRptrCollection operator*(const DataRptr& x, DataRptrCollection&& y)
+{	for(unsigned i=0; i<y.size(); i++) y[i] *= x;
+	return y;
+}
+inline DataRptrCollection operator*(DataRptrCollection&& y, const DataRptr& x)
+{	for(unsigned i=0; i<y.size(); i++) y[i] *= x;
+	return y;
+}
+inline DataRptrCollection operator*(const DataRptr& x, const DataRptrCollection& y) { return x * clone(y); }
+inline DataRptrCollection operator*(const DataRptrCollection& y, const DataRptr& x) { return y * clone(x); }
 
 
 //! Increment
@@ -100,13 +134,6 @@ template<typename T> double dot(const TptrCollection& x, const TptrCollection& y
 {	assert(x.size()==y.size());
 	double ret = 0.0;
 	for(unsigned i=0; i<x.size(); i++) ret += dot(x[i], y[i]);
-	return ret;
-}
-
-//! Create a copy of the data (note operator= references same data since Tptr's are pointers!)
-template<typename T> TptrCollection clone(const TptrCollection& x)
-{	TptrCollection ret(x.size());
-	for(unsigned i=0; i<x.size(); i++) ret[i] = clone(x[i]);
 	return ret;
 }
 
@@ -161,6 +188,42 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 	}
 	fclose(fp);
 }
+
+//----------------- Transform operators -------------------------
+
+inline DataRptrCollection I(DataGptrCollection&& X, bool compat=false)
+{	using namespace DataMultipletPrivate;
+	DataRptrCollection out(X.size());
+	DataRptr (*func)(DataGptr&&,bool) = I;
+	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X, compat);
+	return out;
+}
+inline DataRptrCollection I(const DataGptrCollection& X, bool compat=false) { return I(clone(X), compat); }
+
+inline DataGptrCollection J(const DataRptrCollection& X)
+{	using namespace DataMultipletPrivate;
+	DataGptrCollection out(X.size());
+	DataGptr (*func)(const DataRptr&) = J;
+	threadUnary(func, int(X.size()), &out, X);
+	return out;
+}
+
+inline DataGptrCollection Idag(const DataRptrCollection& X)
+{	using namespace DataMultipletPrivate;
+	DataGptrCollection out(X.size());
+	DataGptr (*func)(const DataRptr&) = Idag;
+	threadUnary(func, int(X.size()), &out, X);
+	return out;
+}
+
+inline DataRptrCollection Jdag(DataGptrCollection&& X, bool compat=false)
+{	using namespace DataMultipletPrivate;
+	DataRptrCollection out(X.size());
+	DataRptr (*func)(DataGptr&&,bool) = Jdag;
+	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X, compat);
+	return out;
+}
+inline DataRptrCollection Jdag(const DataGptrCollection& X, bool compat=false) { return Jdag(clone(X), compat); }
 
 #undef TptrCollection
 #endif // JDFTX_CORE_DATACOLLECTION_H

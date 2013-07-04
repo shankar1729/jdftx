@@ -23,22 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file ExCorr_internal.h
 //! Internal abstractions of, and helper routines for the internal exchange and correlation routines
 
-#include <core/scalar.h>
-#include <vector>
+#include <electronic/operators_internal.h>
 
 static const double nCutoff = 1e-16; //!< ignore densities below this value
-
-
-//! Struct to wrap a fixed size array for passing to templated functions
-//! (Pretty much std::array, but that is not yet supported in CUDA)
-template<typename T, int N>
-struct array
-{	T arr[N];
-	array(const std::vector<T>& vec) { for(int s=0; s<N; s++) arr[s]=vec[s]; }
-	__hostanddev__ array(T t=0) { for(int s=0; s<N; s++) arr[s]=t; }
-	__hostanddev__ T& operator[](int i) { return arr[i]; }
-	__hostanddev__ const T& operator[](int i) const { return arr[i]; }
-};
 
 //! Switch a function fTemplate templated over a functional variant and spin count
 //! SwitchTemplate_functional is a macro such as SwitchTemplate_LDA

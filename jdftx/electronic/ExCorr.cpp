@@ -451,24 +451,6 @@ bool ExCorr::needsKEdensity() const
 	return false;
 }
 
-
-//! Extract a std::vector of data pointers from a DataRptrCollection
-std::vector<double*> dataPref(DataRptrCollection& x)
-{	std::vector<double*> xData(x.size());
-	for(unsigned s=0; s<x.size(); s++)
-		xData[s] = x[s] ? x[s]->dataPref() : 0;
-	return xData;
-}
-
-//! Extract a std::vector of const data pointers from a const DataRptrCollection
-std::vector<const double*> constDataPref(const DataRptrCollection& x)
-{	std::vector<const double*> xData(x.size());
-	for(unsigned s=0; s<x.size(); s++)
-		xData[s] = x[s] ? x[s]->dataPref() : 0;
-	return xData;
-}
-
-
 double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, bool includeKinetic,
 		const DataRptrCollection* tauPtr, DataRptrCollection* Vtau) const
 {	const int nCount = n.size();

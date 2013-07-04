@@ -277,8 +277,8 @@ namespace DataMultipletPrivate
 	{	for(size_t i=iStart; i<iStop; i++) (*out)[i] = func((FuncIn)in[i], args...);
 	}
 
-	template<int N, typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
-	void threadUnary(FuncOut (*func)(FuncIn,Args...), Out* out, In in, Args... args)
+	template<typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
+	void threadUnary(FuncOut (*func)(FuncIn,Args...), int N, Out* out, In in, Args... args)
 	{	//CUFFT is not thread safe as of v4.0: (note nThreads=0 means as many threads as allowed)
 		threadLaunch( (isGpuEnabled() || (!shouldThreadOperators())) ? 1 : 0,
 			threadUnary_sub<FuncOut,FuncIn,Out,In,Args...>, N, func, out, in, args...);
@@ -290,7 +290,7 @@ RptrMul I(GptrMul&& X, bool compat)
 {	using namespace DataMultipletPrivate;
 	RptrMul out;
 	DataRptr (*func)(DataGptr&&,bool) = I;
-	threadUnary<N,DataRptr,DataGptr&&>(func, &out, X, compat);
+	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X, compat);
 	return out;
 }
 
@@ -299,7 +299,7 @@ GptrMul J(const RptrMul& X)
 {	using namespace DataMultipletPrivate;
 	GptrMul out;
 	DataGptr (*func)(const DataRptr&) = J;
-	threadUnary<N>(func, &out, X);
+	threadUnary(func, N, &out, X);
 	return out;
 }
 
@@ -308,7 +308,7 @@ GptrMul Idag(const RptrMul& X)
 {	using namespace DataMultipletPrivate;
 	GptrMul out;
 	DataGptr (*func)(const DataRptr&) = Idag;
-	threadUnary<N>(func, &out, X);
+	threadUnary(func, N, &out, X);
 	return out;
 }
 
@@ -317,7 +317,7 @@ RptrMul Jdag(GptrMul&& X, bool compat)
 {	using namespace DataMultipletPrivate;
 	RptrMul out;
 	DataRptr (*func)(DataGptr&&,bool) = Jdag;
-	threadUnary<N,DataRptr,DataGptr&&>(func, &out, X, compat);
+	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X, compat);
 	return out;
 }
 
