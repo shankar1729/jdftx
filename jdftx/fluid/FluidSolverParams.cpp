@@ -48,6 +48,22 @@ void FluidSolverParams::setPCMparams()
 		{	nc = 1.2e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.;
+			switch(solvents[0]->name)
+			{
+				case FluidComponent::H2O:
+					vdwScale = 0.703;
+					break;
+				case FluidComponent::CHCl3:
+					vdwScale = 1.338;
+					break;
+				case FluidComponent::CCl4:
+					vdwScale = 1.617;
+					break;
+				default:
+					vdwScale = 1.;
+					initWarnings += "WARNING: SALSA has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
+					break;
+			}
 			assert(fluidType == FluidNonlocalPCM);
 			initWarnings += "WARNING: Nonlocal PCM is highly experimental!\n";
 			break;
