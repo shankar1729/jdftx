@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/operators.h>
 #include <gsl/gsl_linalg.h>
+#include <cstring>
 
 struct MultipoleResponse
 {	int l; //!< angular momentum
@@ -78,7 +79,7 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 	double sqrtCpol = (epsInfEff>1. && chiPol) ? sqrt((epsInfEff-1.)/(4.*M_PI*chiPol)) : 1.;
 	
 	//Rotational and translational response (includes ionic response):
-	const double bessel_jl_by_Gl_zero[3] = {1., 1./3, 1./15}; //G->0 limit of j_l(G)/G^l
+	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
 	for(const auto& c: fsp.components)
 		for(int l=0; l<=fsp.lMax; l++)
 		{	//Calculate radial densities for all m:
@@ -273,4 +274,63 @@ void NonlocalPCM::loadState(const char* filename)
 
 void NonlocalPCM::saveState(const char* filename) const
 {	saveRawBinary(I(state), filename); //saved data is in real space
+}
+
+void NonlocalPCM::dumpDensities(const char* filenamePattern) const
+{	PCM::dumpDensities(filenamePattern);
+	
+	//Dump effective site densities:
+	double chiRot = 0., chiPol = 0.;
+	for(const auto& c: fsp.components)
+	{	chiRot += c->Nbulk * c->molecule.getDipole().length_squared()/(3.*fsp.T);
+		chiPol += c->Nbulk * c->molecule.getAlphaTot();
+	}
+	double sqrtCrot = (epsBulk>epsInf && chiRot) ? sqrt((epsBulk-epsInf)/(4.*M_PI*chiRot)) : 1.;
+	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
+	
+	for(const auto& c: fsp.components)
+	{	DataGptrCollection Ntilde(c->molecule.sites.size());
+		for(int l=0; l<=fsp.lMax; l++)
+		{	double prefac = sqrt(4.*M_PI*c->Nbulk/fsp.T) * (l==1 ? sqrtCrot : 1.);
+			for(int m=-l; m<=+l; m++)
+			{	const double dG = 0.02, Gmax = e.gInfo.GmaxGrid;
+				unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
+				std::vector<double> VtotSamples(nGradial);
+				std::vector< std::vector<double> > VsiteSamples(c->molecule.sites.size(), std::vector<double>(nGradial));
+				for(unsigned iG=0; iG<nGradial; iG++)
+				{	double G = iG*dG;
+					for(unsigned iSite=0; iSite<c->molecule.sites.size(); iSite++)
+					{	const auto& site = c->molecule.sites[iSite];
+						for(const vector3<>& r: site->positions)
+						{	double rLength = r.length();
+							double bessel_jl_by_Gl = G ? bessel_jl(l,G*rLength)/pow(G,l) : bessel_jl_by_Gl_zero[l]*pow(rLength,l);
+							vector3<> rHat = (rLength ? 1./rLength : 0.) * r;
+							double Ylm_rHat=0.; SwitchTemplate_lm(l, m, set_Ylm, (rHat, Ylm_rHat))
+							VtotSamples[iG] += prefac * site->chargeKernel(G) * bessel_jl_by_Gl * Ylm_rHat;
+							VsiteSamples[iSite][iG] += prefac * bessel_jl_by_Gl * Ylm_rHat;
+						}
+					}
+				}
+				
+				RadialFunctionG Vtot; Vtot.init(0, VtotSamples, dG);
+				DataGptr temp = lDivergence(J(shape * I(lGradient(Vtot * state, l))), l);
+				Vtot.free();
+				for(unsigned iSite=0; iSite<c->molecule.sites.size(); iSite++)
+				{	RadialFunctionG Vsite; Vsite.init(0, VsiteSamples[iSite], dG);
+					Ntilde[iSite] -= (pow(-1,l) * 4*M_PI/(2*l+1)) * (Vsite * temp);
+					Vsite.free();
+				}
+			}
+		}
+		char filename[256];
+		for(unsigned j=0; j<c->molecule.sites.size(); j++)
+		{	const Molecule::Site& s = *(c->molecule.sites[j]);
+			ostringstream oss; oss << "N_" << c->molecule.name;
+			if(c->molecule.sites.size()>1) oss << "_" << s.name;
+			sprintf(filename, filenamePattern, oss.str().c_str());
+			logPrintf("Dumping %s... ", filename); logFlush();
+			saveRawBinary(I(Ntilde[j]), filename);
+			logPrintf("Done.\n"); logFlush();
+		}
+	}
 }

@@ -45,6 +45,8 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
+	void dumpDensities(const char* filenamePattern) const; //!< dump cavity shape functions
+
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
 	RadialFunctionG nFluid; //electron density model for the fluid
