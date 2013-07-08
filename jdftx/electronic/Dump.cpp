@@ -100,6 +100,16 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		<< mytm->tm_hour << '-' << mytm->tm_min << '-' << mytm->tm_sec;
 	stamp = stampStream.str();
 	
+	if((ShouldDump(State) and eInfo.fillingsUpdate!=ElecInfo::ConstantFillings) or ShouldDump(Fillings))
+	{	//Dump fillings
+		StartDump("fillings")
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+		eInfo.printFillings(fp);
+		fclose(fp);
+		EndDump
+	}
+	
 	if(ShouldDump(State))
 	{
 		//Dump wave functions
@@ -114,24 +124,14 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			EndDump
 		}
 		
-		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings)
-		{	//Dump fillings
-			StartDump("fillings")
+		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		{	//Dump auxilliary hamiltonian
+			StartDump("Haux")
 			FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-			eInfo.printFillings(fp);
+			write(eVars.B, fname.c_str());
 			fclose(fp);
 			EndDump
-			
-			if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			{	//Dump auxilliary hamiltonian
-				StartDump("Haux")
-				FILE* fp = fopen(fname.c_str(), "w");
-				if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-				write(eVars.B, fname.c_str());
-				fclose(fp);
-				EndDump
-			}
 		}
 	}
 
