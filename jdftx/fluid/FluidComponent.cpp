@@ -89,7 +89,7 @@ double FluidComponent::pureNbulk(double T) const
 
 FluidComponent::FluidComponent(FluidComponent::Name name, double T, FluidComponent::Functional functional)
 : name(name), type(getType(name)), functional(functional), representation(MuEps),
-s2quadType(QuadOctahedron), quad_nBeta(0), quad_nAlpha(0), quad_nGamma(0), translationMode(LinearSpline),
+s2quadType(Quad7design_24), quad_nBeta(0), quad_nAlpha(0), quad_nGamma(0), translationMode(LinearSpline),
 epsBulk(1.), Nbulk(pureNbulk(T)), pMol(0.), epsInf(1.), Pvap(0.), sigmaBulk(0.), Rvdw(0.), Res(0.),
 Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(0)
 {
@@ -114,12 +114,12 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.name = "H2O";
 			auto siteO = std::make_shared<Molecule::Site>("O",int(AtomicSymbol::O));
 				siteO->Znuc = 6.; siteO->sigmaNuc = sigmaNucO;
-				siteO->Zelec = 6.826; siteO->aElec = 0.35;
+				siteO->Zelec = 6.826; siteO->aElec = 0.32;
 				siteO->alpha = 3.73; siteO->aPol = 0.32;
 			molecule.sites.push_back(siteO);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
-				siteH->Zelec = 0.587; siteH->aElec = 0.26;
+				siteH->Zelec = 0.587; siteH->aElec = 0.31;
 				siteH->alpha = 3.30; siteH->aPol = 0.39;
 			molecule.sites.push_back(siteH);
 			//Geometry:
@@ -168,17 +168,17 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.sites.push_back(siteCenter);
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
-				siteC->Zelec = 4.256; siteC->aElec = 0.36;
+				siteC->Zelec = 4.256; siteC->aElec = 0.43;
 				siteC->alpha = 6.05; siteC->aPol = 0.36;
 			molecule.sites.push_back(siteC);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
-				siteH->Zelec = 0.756; siteH->aElec = 0.41;
+				siteH->Zelec = 0.756; siteH->aElec = 0.26;
 				siteH->alpha = 9.13; siteH->aPol = 0.41;
 			molecule.sites.push_back(siteH);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
-				siteCl->Zelec = 6.996; siteCl->aElec = 0.46;
+				siteCl->Zelec = 6.996; siteCl->aElec = 0.44;
 				siteCl->alpha = 15.8; siteCl->aPol = 0.46;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
@@ -207,13 +207,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.name = "CCl4";
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
-				siteC->Zelec = 4.980; siteC->aElec = 0.35;
+				siteC->Zelec = 4.980; siteC->aElec = 0.44;
 				siteC->alpha = 5.24; siteC->aPol = 0.35;
 				siteC->Rhs = 2.19*Angstrom;
 			molecule.sites.push_back(siteC);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
-				siteCl->Zelec = 6.755; siteCl->aElec = 0.47;
+				siteCl->Zelec = 6.755; siteCl->aElec = 0.44;
 				siteCl->alpha = 18.1; siteCl->aPol = 0.47;
 			molecule.sites.push_back(siteCl);
 			//Geometry:

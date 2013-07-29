@@ -73,7 +73,7 @@ struct FluidComponent
 	}
 	representation;
 	
-	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature (default: Octahedron)
+	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature (default: Octahedron) HACK: Kendra made default 7design24
 	unsigned quad_nBeta, quad_nAlpha, quad_nGamma; //!< Subdivisions for euler angle outer-product quadrature
 	
 	enum TranslationMode
@@ -93,7 +93,7 @@ struct FluidComponent
 	double Rvdw; //!< effective van der Waals radius of liquid (derived from equation of state) in bohrs
 	double Res; //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
 	
-	double Nnorm; //!< If Nnorm>=0, this component is switched to the cananoical ensemble (number fixed to Nnorm)
+	double Nnorm; //!< If Nnorm>=0, this component is switched to the canonical ensemble (number fixed to Nnorm)
 	
 	//Molecule geometry and site properties:
 	Molecule molecule;

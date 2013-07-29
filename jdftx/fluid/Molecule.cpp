@@ -69,7 +69,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	{	logPrintf("       Electron density: ");
 		if(elecFilename.length())
 		{	logPrintf("reading from '%s' ...", elecFilename.c_str());
-			//TODO: read from file
+			//TODO: read from file, commented out code below
 		}
 		else
 		{	logPrintf("cuspless exponential with width %lg and", aElec);
