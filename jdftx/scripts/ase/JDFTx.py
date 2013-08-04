@@ -2,7 +2,8 @@
 
 # Atomistic Simulation Environment (ASE) calculator interface for JDFTx
 # JDFTx is located at http://jdftx.sourceforge.net
-
+# ASE is located at https://wiki.fysik.dtu.dk/ase/
+#
 # Author: Deniz Gunceler, June 2013
 #
 # If you use this interface (or JDFTx) without proper credit,
