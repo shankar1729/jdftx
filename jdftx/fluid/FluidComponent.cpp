@@ -55,6 +55,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case PC:
 		case DMF:
 		case THF:
+		case EthylEther:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -80,6 +81,7 @@ double FluidComponent::pureNbulk(double T) const
 			case PC: return 1.039e-3;
 			case DMF: return 1.153e-3;
 			case THF: return 1.100e-3;
+			case EthylEther: return 8.5e-4;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -263,6 +265,15 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf  = 1.98;
 			Pvap = antoinePvap(T, 6.12142, 1203.11, -46.795);
 			sigmaBulk = 1.78e-5;
+			break;
+		}
+		case EthylEther:
+		{
+			epsBulk = 4.34;
+			pMol = 0.424;
+			epsInf = 1.82;
+			Pvap = antoinePvap(T, 6.96559, 1071.54, 227.774);
+			sigmaBulk = 1.092e-5;
 			break;
 		}
 		case CustomCation: break;

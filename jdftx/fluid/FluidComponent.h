@@ -37,6 +37,7 @@ struct FluidComponent
 		PC, //!< Propylene carbonate
 		DMF, //!< Dimethylformamide
 		THF, //!< Tetrahydrofuran
+		EthylEther, //!< Diethyl ether (http://en.wikipedia.org/wiki/Diethyl_ether_(data_page))
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+
