@@ -357,10 +357,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	{	dos->dump();
 	}
 	
-	if(ShouldDumpNoAll(Polarizability))
-	{	polarizability->dump(*e);
-	}
-	
 	if(ShouldDumpNoAll(Stress))
 	{	logSuspend();
 		LatticeMinimizer lattMin(*((Everything*) e));
@@ -399,6 +395,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 		fclose(fp);
 		EndDump
+	}
+
+	//Polarizability dump deletes wavefunctions to free memory and should therefore happen at the very end
+	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
+	{	polarizability->dump(*e);
 	}
 }
 

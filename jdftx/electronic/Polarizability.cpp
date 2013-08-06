@@ -302,6 +302,8 @@ void Polarizability::dump(const Everything& e)
 		}
 	}
 	
+	logPrintf("\tClearing non-orthogonal wavefunctions (Y) to free memory.\n"); ((Everything&)e).eVars.Y.clear();
+	
 	if(Ecut<=0.) Ecut = 4.*e.cntrl.Ecut;
 	logPrintf("\tSetting up reduced basis at Ecut=%lg: ", Ecut);
 	Basis basis; basis.setup(e.gInfo, e.iInfo, Ecut, dk);
@@ -344,6 +346,8 @@ void Polarizability::dump(const Everything& e)
 		V = V * Umhalf;
 		Xni = dagger_symmetrize(inv(Umhalf * invXni * Umhalf));
 	}
+	
+	logPrintf("\tClearing orthogonal wavefunctions (C) to free memory.\n"); ((Everything&)e).eVars.C.clear();
 	
 	logPrintf("\tApplying Coulomb kernel\n"); logFlush();
 	matrix K = coulombMatrix(V, e, dk);

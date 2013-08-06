@@ -44,7 +44,7 @@ struct CommandSymmetries : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	fputs(symmMap.getString(e.symm.mode), globalLog);
+	{	logPrintf("%s %s", symmMap.getString(e.symm.mode), boolMap.getString(e.symm.shouldMoveAtoms));
 	}
 }
 commandSymmetries;
