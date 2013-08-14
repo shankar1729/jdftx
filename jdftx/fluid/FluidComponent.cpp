@@ -270,7 +270,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 		case EthylEther:
 		{
 			epsBulk = 4.34;
-			pMol = 0.424;
+			pMol = 0.487;
 			epsInf = 1.82;
 			Pvap = antoinePvap(T, 6.96559, 1071.54, 227.774);
 			sigmaBulk = 1.092e-5;
