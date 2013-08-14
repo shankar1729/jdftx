@@ -115,6 +115,12 @@ void FluidSolverParams::setPCMparams()
 					}
 					break;
 				}
+				case FluidComponent::EthylEther:
+				{	nc = 1.535e-4;
+					sigma = 0.6;
+					cavityTension = -9.555e-06;
+					break;
+				}
 				default: // For water and unparametrized fluids
 				{	switch(fluidType)
 					{	case FluidLinearPCM:
