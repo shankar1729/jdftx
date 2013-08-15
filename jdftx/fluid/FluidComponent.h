@@ -38,6 +38,7 @@ struct FluidComponent
 		DMF, //!< Dimethylformamide
 		THF, //!< Tetrahydrofuran
 		EthylEther, //!< Diethyl ether (http://en.wikipedia.org/wiki/Diethyl_ether_(data_page))
+		Chlorobenzene, //! (http://en.wikipedia.org/wiki/Chlorobenzene)
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+

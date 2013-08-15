@@ -140,7 +140,8 @@ EnumStringMap<FluidComponent::Name> solventMap
 	FluidComponent::PC, "PC",
 	FluidComponent::DMF, "DMF",
 	FluidComponent::THF, "THF",
-	FluidComponent::EthylEther, "EthylEther"
+	FluidComponent::EthylEther, "EthylEther",
+  	FluidComponent::Chlorobenzene, "Chlorobenzene"
 );
 EnumStringMap<FluidComponent::Name> cationMap
 (	FluidComponent::Sodium, "Na+"

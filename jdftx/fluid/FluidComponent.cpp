@@ -56,6 +56,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case DMF:
 		case THF:
 		case EthylEther:
+		case Chlorobenzene:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -82,6 +83,7 @@ double FluidComponent::pureNbulk(double T) const
 			case DMF: return 1.153e-3;
 			case THF: return 1.100e-3;
 			case EthylEther: return 8.5e-4;
+			case Chlorobenzene: return 8.74e-4;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -274,6 +276,15 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 1.82;
 			Pvap = antoinePvap(T, 6.96559, 1071.54, 227.774);
 			sigmaBulk = 1.092e-5;
+			break;
+		}
+		case Chlorobenzene:
+		{
+			epsBulk = 5.69;
+			pMol = 0.72;
+			epsInf = 2.32;
+			Pvap = antoinePvap(T, 4.11083, 1435.675, -55.124);
+			sigmaBulk = 2.1e-5;
 			break;
 		}
 		case CustomCation: break;
