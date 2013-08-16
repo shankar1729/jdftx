@@ -116,9 +116,15 @@ void FluidSolverParams::setPCMparams()
 					break;
 				}
 				case FluidComponent::EthylEther:
-				{	nc = 1.535e-4;
+				{	nc = 2.63e-4;
 					sigma = 0.6;
-					cavityTension = -9.555e-06;
+					cavityTension = -1.08;
+					break;
+				}
+				case FluidComponent::Chlorobenzene:
+				{	nc = 4.28e-5;
+					sigma = 0.6;
+					cavityTension = -6.2e-06;
 					break;
 				}
 				default: // For water and unparametrized fluids
