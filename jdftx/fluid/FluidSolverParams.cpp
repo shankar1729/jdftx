@@ -127,6 +127,26 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = -6.2e-06;
 					break;
 				}
+				case FluidComponent::Isobutanol:
+				{	nc = 1.51e-3;
+					sigma = 0.6;
+					cavityTension = 8.96e-06;
+					break;
+				}
+				case FluidComponent::CarbonDisulfide:
+				{	switch(fluidType)
+					{	case FluidLinearPCM:
+							nc = 1.15e-4;
+							sigma = 0.6;
+							cavityTension = -8.99e-06;
+							break;
+						case FluidNonlinearPCM:
+							die("\nERROR: You can't use NonlinearPCM with CarbonDisulfide as it does not have a permanent dipole moment!\n");
+						default: //Other fluids do not use these parameters
+							break;
+					}
+					break;
+				}
 				default: // For water and unparametrized fluids
 				{	switch(fluidType)
 					{	case FluidLinearPCM:

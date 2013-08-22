@@ -58,6 +58,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case EthylEther:
 		case Chlorobenzene:
 		case Isobutanol:
+		case CarbonDisulfide:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -86,6 +87,7 @@ double FluidComponent::pureNbulk(double T) const
 			case EthylEther: return 8.5e-4;
 			case Isobutanol: return 9.668e-4;
 			case Chlorobenzene: return 8.74e-4;
+			case CarbonDisulfide: return 1.48e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -296,6 +298,12 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 1.949;
 			sigmaBulk = 1.445e-5;
 			break;
+		}
+		case CarbonDisulfide:
+		{
+			epsBulk = 2.641;
+			epsInf = 2.641;
+			pMol = 0.;
 		}
 		case CustomCation: break;
 		case Sodium:
