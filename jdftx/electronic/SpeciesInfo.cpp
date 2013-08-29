@@ -282,20 +282,32 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) cons
 	watch.stop();
 }
 
+#define augmentDensity_COMMON_INIT \
+	if(!atpos.size()) return; /*unused species*/ \
+	if(!Qint.size()) return; /*no overlap augmentation*/ \
+	/*Determine dimensions:*/ \
+	int nProj = 0, lMax = 0; \
+	for(unsigned l=0; l<VnlRadial.size(); l++) \
+	{	nProj += (2*l+1)*VnlRadial[l].size(); \
+		if(VnlRadial[l].size()) lMax=l; \
+	} \
+	int Nlm = (2*lMax+1)*(2*lMax+1); \
+	int nGloc = Qradial.cbegin()->second.nCoeff; \
+	int nGatom = nGloc * Nlm; \
+	int nGspin = nGatom * atpos.size();
 
-void SpeciesInfo::augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, DataRptr& n) const
-{	static StopWatch watch("augmentDensity"); watch.start();
-	if(!atpos.size()) return; //unused species
-	if(!Qint.size()) return; //no overlap augmentation
+void SpeciesInfo::augmentDensityInit()
+{	augmentDensity_COMMON_INIT
+	nAug.assign(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), 0.);
+}
+
+void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
+{	static StopWatch watch("augmentDensitySpherical"); watch.start(); 
+	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	const Basis& basis = *Cq.basis;
 	//Allocate temporaries:
-	int nProj = 0;
-	for(unsigned l=0; l<VnlRadial.size(); l++)
-		nProj += (2*l+1)*VnlRadial[l].size();
 	ColumnBundle V = Cq.similar(nProj);
-	DataGptr Q(DataG::alloc(gInfo, isGpuEnabled()));
-	DataGptr nAugTilde;
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
 	{	//Initialize all projectors at this atom:
@@ -312,6 +324,9 @@ void SpeciesInfo::augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, D
 		matrix VdagC = V ^ Cq;
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
 		
+		//Collect contributions as spherical functions:
+		double* nAugCur = nAug.data() + Cq.qnum->index()*nGspin + atom*nGatom;
+		std::vector<double> coeff(Nlm*nGloc, 0.); //radial coefficients for all l,m
 		//Triple loop over first projector:
 		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -322,61 +337,73 @@ void SpeciesInfo::augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, D
 			for(int l2=0; l2<int(VnlRadial.size()); l2++)
 			for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
 			for(int m2=-l2; m2<=l2; m2++)
-			{	if(i2<=i1) //rest handled by i1<->i2 symmetry 
-				//NOTE: this => (l2,m2)<=(l1,m1) which is assumed in YlmProd implementation
-					for(int l=abs(l1-l2); l<=l1+l2; l+=2) //total angular momentum
-					{	QijIndex qIndex = { l1, p1, l2, p2, l };
+			{	if(i2<=i1) //rest handled by i1<->i2 symmetry
+				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+					double prefac = Cq.qnum->weight * ((i1==i2 ? 1 : 2)/gInfo.detR)
+								* (Rho.data()[Rho.index(i2,i1)] * cis(0.5*M_PI*(l2-l1))).real();
+					for(const YlmProdTerm& term: terms)
+					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						//Initialize Q function (returns false if channel is zero):
-						if(callPref(Qr)(l1,m1, l2,m2, l, gInfo.S, gInfo.G, Qijl->second,
-							atpos[atom], Q->dataPref(), 0, vector3<complex*>()))
-						{	//Accumulate contribution in fourier space:
-							nAugTilde += Q *
-								( ((i1==i2 ? 1 : 2)/gInfo.detR)
-								* (Rho.data()[Rho.index(i2,i1)] * cis(0.5*M_PI*(l2-l1))).real() );
-						}
+						eblas_daxpy(nGloc, term.coeff * prefac, Qijl->second.coeff.data(),1, nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
 					}
+				}
 				i2++;
 			}
 			i1++;
 		}
 	}
-	n += Cq.qnum->weight * I(nAugTilde,true);
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
-	ColumnBundle& HCq, std::vector<vector3<> >* forces, const matrix& gradCdagOCq) const
-{	static StopWatch watch("augmentDensityGrad"); watch.start();
-	if(!atpos.size()) return; //unused species
-	if(!Qint.size()) return; //no overlap augmentation
+void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
+{	static StopWatch watch("augmentDensityGrid"); watch.start(); 
+	augmentDensity_COMMON_INIT
+	const GridInfo &gInfo = e->gInfo;
+	double dGinv = Qradial.cbegin()->second.dGinv;
+	for(unsigned s=0; s<n.size(); s++)
+	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
+		for(unsigned atom=0; atom<atpos.size(); atom++)
+		{	const double* nAugCur = nAug.data() + s*nGspin + atom*nGatom;
+			nAugment(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom], nAugTilde->data());
+		}
+		n[s] += I(nAugTilde,true);
+	}
+	watch.stop();
+}
+
+void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces)
+{	static StopWatch watch("augmentDensityGridGrad"); watch.start();
+	augmentDensity_COMMON_INIT
+	const GridInfo &gInfo = e->gInfo;
+	double dGinv = Qradial.cbegin()->second.dGinv;
+	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
+	E_nAug.assign(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), 0.);	
+	for(unsigned s=0; s<E_n.size(); s++)
+	{	DataGptr ccE_n = Idag(E_n[s]);
+		for(unsigned atom=0; atom<atpos.size(); atom++)
+		{	const double* nAugCur = forces ? nAug.data() + s*nGspin + atom*nGatom : 0;
+			double* E_nAugCur = E_nAug.data() + s*nGspin + atom*nGatom;
+			if(forces) initZero(E_atpos);
+			nAugmentGrad(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom],
+				ccE_n->data(), E_nAugCur, forces ? E_atpos.data() : vector3<complex*>());
+			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
+		}
+	}
+	watch.stop();
+}
+
+void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector<vector3<> >* forces, const matrix& gradCdagOCq) const
+{	static StopWatch watch("augmentDensitySphericalGrad"); watch.start();
+	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	const Basis& basis = *Cq.basis;
-	//Allocate temporaries:
-	int nProj = 0;
-	for(unsigned l=0; l<VnlRadial.size(); l++)
-		nProj += (2*l+1)*VnlRadial[l].size();
 	ColumnBundle V = Cq.similar(nProj);
-	ColumnBundle dV[3];
-	DataGptr gradAtpos[3];
-	if(forces)
-		for(int k=0; k<3; k++)
-		{	dV[k] = V.similar();
-			gradAtpos[k] = DataG::alloc(gInfo, isGpuEnabled());
-		}
-	DataGptr Q(DataG::alloc(gInfo, isGpuEnabled()));
-	DataGptr IdagVscloc = Idag(Vscloc);
+	ColumnBundle dV[3]; if(forces) for(int k=0; k<3; k++) dV[k] = V.similar();
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	vector3<complex*> dVdata, gradAtposData;
-		if(forces)
-		{	for(int k=0; k<3; k++)
-			{	dVdata[k] = dV[k].dataPref();
-				gradAtpos[k]->zero();
-				gradAtposData[k] = gradAtpos[k]->dataPref();
-			}
-		}
+	{	vector3<complex*> dVdata;
+		if(forces) for(int k=0; k<3; k++) dVdata[k] = dV[k].dataPref();
 		//Initialize all projectors at this atom:
 		int iProj = 0;
 		for(int l=0; l<int(VnlRadial.size()); l++)
@@ -391,7 +418,9 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 		matrix VdagC = V ^ Cq;
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
 		matrix Qint(nProj, nProj); Qint.zero(); //Full nProj x nProj version of this->Qint[l]
-		matrix gradRho(nProj, nProj); gradRho.zero(); //gradient w.r.t density matrix in projector basis
+		matrix E_Rho(nProj, nProj); E_Rho.zero(); //gradient w.r.t density matrix in projector basis
+		
+		const double* E_nAugCur = E_nAug.data() + Cq.qnum->index()*nGspin + atom*nGatom;
 		
 		int i1 = 0;
 		//Triple loop over first projector:
@@ -404,23 +433,17 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 			for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
 			for(int m2=-l2; m2<=l2; m2++)
 			{	if(i2<=i1) //rest handled by i1<->i2 symmetry 
-				{	//NOTE: this => (l2,m2)<=(l1,m1) which is assumed in YlmProd implementation
-					for(int l=abs(l1-l2); l<=l1+l2; l+=2) //total angular momentum
-					{	QijIndex qIndex = { l1, p1, l2, p2, l };
+				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+					double E_Rho_i1i2sum = 0.;
+					for(const YlmProdTerm& term: terms)
+					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						//Initialize Q function (returns false if channel is zero):
-						if(callPref(Qr)(l1,m1, l2,m2, l, gInfo.S, gInfo.G, Qijl->second,
-							atpos[atom], Q->dataPref(), forces ? IdagVscloc->dataPref() : 0, gradAtposData,
-							((i1==i2 ? 1 : 2)/gInfo.detR) * Cq.qnum->weight * 
-								(Rho.data()[Rho.index(i2,i1)] * cis(0.5*M_PI*(l2-l1))).real() ))
-						{	//Accumulate contribution to density matrix gradient:
-							complex gradRho_ij = (dot(Q, IdagVscloc)/gInfo.detR) * cis(0.5*M_PI*(l2-l1));
-							gradRho.data()[gradRho.index(i2,i1)] += gradRho_ij.conj();
-							if(i1!=i2)
-								gradRho.data()[gradRho.index(i1,i2)] += gradRho_ij;
-						}
+						E_Rho_i1i2sum += term.coeff * eblas_ddot(nGloc, Qijl->second.coeff.data(),1, E_nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
 					}
+					complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
+					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
+					if(i1!=i2) E_Rho.data()[E_Rho.index(i1,i2)] += E_Rho_i1i2;
 				}
 				if(l1==l2 && m1==m2)
 				{	Qint.data()[Qint.index(i1,i2)] = this->Qint[l1].data()[this->Qint[l1].index(p1,p2)];
@@ -430,20 +453,22 @@ void SpeciesInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& C
 			}
 			i1++;
 		}
-		matrix gradRhoVdagC = gradRho * VdagC;
-		if(HCq) HCq += V * gradRhoVdagC;
+		matrix E_RhoVdagC = E_Rho * VdagC;
+		if(HCq) HCq += V * E_RhoVdagC;
 		if(forces)
 		{	for(int k=0; k<3; k++)
 			{	matrix dVdagC = dV[k]^Cq;
-				(*forces)[atom][k] -= sum(gradAtpos[k]) //Contribution via dQ
-					+ 2.*Cq.qnum->weight *
-						( trace(gradRhoVdagC * Fq * dagger(dVdagC)).real() //Contribution via dV
+				(*forces)[atom][k] -= 2.*Cq.qnum->weight *
+						( trace(E_RhoVdagC * Fq * dagger(dVdagC)).real() //Contribution via dV
 						+ trace(Qint * VdagC * gradCdagOCq * dagger(dVdagC)).real() ); //Contribution via overlap
 			}
 		}
 	}
 	watch.stop();
 }
+
+#undef augmentDensity_COMMON_INIT
+
 
 
 void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l, std::vector<ColumnBundle>* dOpsi) const

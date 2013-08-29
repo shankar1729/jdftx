@@ -136,6 +136,7 @@ void SCF::minimize()
 			// Recompute Vscloc if mixing density
 			if(e.residualMinimizerParams.mixedVariable == density)
 				e.eVars.EdensityAndVscloc(e.ener);
+			e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		}
 		
 		logFlush();

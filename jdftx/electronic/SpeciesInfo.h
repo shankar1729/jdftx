@@ -85,14 +85,18 @@ public:
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const;
 	
-	//! Accumulate the pseudopotential dependent contribution to the density in n
-	void augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, DataRptr& n) const;
+	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
+	void augmentDensityInit();
+	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
+	void augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq);
+	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
+	void augmentDensityGrid(DataRptrCollection& n) const;
 	
-	//! Propagate the gradient w.r.t n (Vscloc) to the gradient w.r.t Cq in HCq (if non-null)
-	//! and to the ionic position gradient in forces (if non-null)
-	//! The gradient w.r.t the overlap is also propagated to forces (gradCdagOCq must be non-null if forces is non-null)
-	void augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
-		ColumnBundle& HCq, std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
+	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
+	void augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces=0);
+	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
+	void augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq,
+		std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
 	
 	//! Perform IonInfo::computeU() for this species
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
@@ -147,6 +151,8 @@ private:
 		void sortIndices(); //!< swap (l1,p1)<-->(l2,p2) indices if needed to bring to the upper triangular part
 	};
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
+	std::vector<double> nAug; //!< intermediate electron density augmentation in spherical functions (Flat array indexed by spin, atom number and then spline coeff)
+	std::vector<double> E_nAug; //!< Gradient w.r.t nAug (same layout)
 	
 	bool readProjectors; //!< whether to read PAW projectors from Pot format files
 	std::vector< std::vector<RadialFunctionG> > projRadial; //!< PAW projectors (outer index l, inner index projetcor)

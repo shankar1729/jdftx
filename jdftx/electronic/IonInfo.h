@@ -82,14 +82,13 @@ public:
 	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const;
 	
-	//! Accumulate the pseudopotential dependent contribution to the density in n
-	void augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, DataRptr& n) const;
-	
-	//! Propagate the gradient w.r.t n (Vscloc) to the gradient w.r.t Cq in HCq (if non-null)
-	//! and to the ionic position gradient in forces (if non-null)
-	//! The gradient w.r.t the overlap is also propagated to forces (gradCdagOCq must be non-null if forces is non-null)
-	void augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
-		ColumnBundle& HCq, IonicGradient* forces=0, const matrix& gradCdagOCq=matrix()) const;
+	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
+	void augmentDensityInit() const;
+	void augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq) const;
+	void augmentDensityGrid(DataRptrCollection& n) const;
+	void augmentDensityGridGrad(const DataRptrCollection& E_n, IonicGradient* forces=0) const;
+	void augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq,
+		IonicGradient* forces=0, const matrix& gradCdagOCq=matrix()) const;
 	
 	//! Compute U corrections (DFT+U in the simplified rotationally-invariant scheme [Dudarev et al, Phys. Rev. B 57, 1505])
 	//! Also accumulate orbital gradients in HC, if non-null

@@ -65,6 +65,7 @@ InverseKohnSham::InverseKohnSham(Everything& e) : e(e), n(e.eVars.n.size()), gau
 void InverseKohnSham::step(const DataRptrCollection& dir, double alpha)
 {	axpy(alpha, dir, e.eVars.Vexternal);
 	e.eVars.EdensityAndVscloc(e.ener); //update Vscloc for subsequent band structure minimize
+	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc);
 }
 
 double InverseKohnSham::compute(DataRptrCollection* grad)

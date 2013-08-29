@@ -320,6 +320,9 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		
 		//Calculate density functional and its gradient:
 		EdensityAndVscloc(ener);
+		
+		//Update Vscloc projected onto spherical functions (for ultrasoft psp's)
+		if(need_Hsub) e->iInfo.augmentDensityGridGrad(Vscloc);
 	}
 	
 	//--------- Wavefunction dependent parts -----------
@@ -422,20 +425,21 @@ DataRptrCollection ElecVars::KEdensity() const
 	return tau;
 }
 
-DataRptrCollection ElecVars::calcDensity()
+DataRptrCollection ElecVars::calcDensity() const
 {	DataRptrCollection density; nullToZero(density, e->gInfo, n.size());
 	
 	// Initializes both spin channels to 0
 	for(unsigned s=0; s<density.size(); s++) initZero(density[s], e->gInfo); //Initialize to zero
 
 	// Runs over all states and accumulates density to the corresponding spin channel of the total density
+	e->iInfo.augmentDensityInit();
 	for(int q=0; q<e->eInfo.nStates; q++)
 	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q]);
-		e->iInfo.augmentDensity(F[q], C[q], density[e->eInfo.qnums[q].index()]); //pseudopotential contribution
+		e->iInfo.augmentDensitySpherical(F[q], C[q]); //pseudopotential contribution
 	}
+	e->iInfo.augmentDensityGrid(density);
 	
 	for(unsigned s=0; s<density.size(); s++) e->symm.symmetrize(density[s]); //Symmetrize
-
 	return density;
 }
 
@@ -474,7 +478,7 @@ double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
 	{	HCq += Idag_DiagV_I(Cq, Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
-		e->iInfo.augmentDensityGrad(Fq, Cq, Vscloc[qnum.index()], HCq); //Contribution via pseudopotential density augmentation
+		e->iInfo.augmentDensitySphericalGrad(Fq, Cq, HCq); //Contribution via pseudopotential density augmentation
 		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);

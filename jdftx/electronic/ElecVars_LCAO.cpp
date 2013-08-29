@@ -71,6 +71,7 @@ int ElecVars::LCAO()
 	Energies ener;
 	EdensityAndVscloc(ener, exCorr);
 	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
+	iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
 	
 	//Initialize one state at a time:
 	for(int q=0; q<eInfo.nStates; q++)
@@ -86,6 +87,7 @@ int ElecVars::LCAO()
 		ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
 		iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
 		Hpsi += Idag_DiagV_I(psi, Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
+		iInfo.augmentDensitySphericalGrad(eye(nAtomic), psi, Hpsi); //ultrasoft augmentation
 		//Diagonalize and set to eigenvectors:
 		matrix evecs; diagMatrix eigs;
 		(psi^Hpsi).diagonalize(evecs, eigs);

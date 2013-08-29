@@ -44,8 +44,12 @@ void RadialFunctionG::init(int l, int nSamples, double dG, const char* filename,
 }
 
 void RadialFunctionG::init(int l, const std::vector<double>& samples, double dG)
-{	coeff = QuinticSpline::getCoeff(samples, l%2==1);
-	dGinv = 1.0/dG;
+{	set(QuinticSpline::getCoeff(samples, l%2==1), 1./dG);
+}
+
+void RadialFunctionG::set(const std::vector<double>& coeff, double dGinv)
+{	this->coeff = coeff;
+	this->dGinv = dGinv;
 	nCoeff = coeff.size();
 	#ifdef GPU_ENABLED
 	cudaMalloc(&coeffGpu, sizeof(double)*nCoeff);
@@ -133,7 +137,7 @@ void RadialFunctionR::initWeights()
 
 // Evaluate spherical bessel transform of order l at wavevector G
 double RadialFunctionR::transform(int l, double G) const
-{	//Simpson's 1/3 rule on the logPrintf-grid:
+{	//Simpson's 1/3 rule on the log-grid:
 	double sum = 0.0;
 	int Nhlf = (f.size()-1)/2; //half the sample points
 	for(int i=0; i<=2*Nhlf; i++)
@@ -144,7 +148,7 @@ double RadialFunctionR::transform(int l, double G) const
 	return (4*M_PI/3) * sum;
 }
 
-// Initialize a uniform G radial function from the logPrintf grid function
+// Initialize a uniform G radial function from the log-grid function
 void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& func) const
 {	std::vector<double> fTilde(nGrid);
 	for(int iG=0; iG<nGrid; iG++)

@@ -40,7 +40,7 @@ struct S2quad
 	virtual int jMax() const=0; //!< max angular momentum that the S2 quadrature is exact to (will be checked)
 	virtual int nS1() const=0; //!< suggested number of samples for the S1 sector (will be rounded up to nearest multiple of Zn)
 	virtual string name() const=0; //!< A short descriptive name for the S2 quadrature
-	
+	virtual ~S2quad() {}
 protected:
 	//! Utility to add nodes, optionally modifying weights/S1 phases
 	//! @param n direction vector for node (need not be normalized)

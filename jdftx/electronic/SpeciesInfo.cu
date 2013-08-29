@@ -41,30 +41,6 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, 
 	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV) )
 }
 
-template<int l1, int m1, int l2, int m2, int l> __global__
-void Qr_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const RadialFunctionG Qradial,
-	const vector3<> atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
-{	COMPUTE_halfGindices
-	Qr_calc<l1,m1,l2,m2,l>(i, iG, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale);
-}
-template<int l1, int m1, int l2, int m2, int l>
-void Qr_gpu(const vector3<int> S, const matrix3<>& G, const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale, bool& nonZero)
-{	GpuLaunchConfigHalf3D glc(Qr_kernel<l1,m1,l2,m2,l>, S);
-	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		Qr_kernel<l1,m1,l2,m2,l><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale);
-	gpuErrorCheck();
-	nonZero = true;
-}
-bool Qr_gpu(int l1, int m1, int l2, int m2, int l,
-	const vector3<int> S, const matrix3<>& G, const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
-{
-	bool nonZero = false;
-	SwitchTemplate_lmPair(l1,m1, l2,m2, l, Qr_gpu, (S, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale, nonZero) )
-	return nonZero;
-}
-
 //Structure factor
 __global__
 void getSG_kernel(int zBlock, const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG)

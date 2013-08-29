@@ -57,30 +57,117 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3
 #endif
 
 
-//! Compute the Q radial function (product of two spherical basis functions projected to a given total l)
-//! and propagate gradient w.r.t to it to that w.r.t the atom position (accumulate)
-template<int l1,int m1, int l2,int m2, int l> __hostanddev__
-void Qr_calc(int i, const vector3<int>& iG, const matrix3<>& G,  const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
-{
-	vector3<> qvec = iG * G; //to cartesian coordinates
-	double q = qvec.length();
-	vector3<> qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
-	//Contribution at a given G-vector:
-	complex contrib = YlmProd<l1,m1,l2,m2,l>(qhat) * Qradial(q) * cis((-2*M_PI)*dot(atpos,iG) - 0.5*M_PI*l);
-	Q[i] = contrib;
-	//Optional gradient accumulation:
-	if(ccgrad_Q)
-		accumVector((gradScale * ccgrad_Q[i].conj() * contrib * complex(0,-2*M_PI)) * iG, grad_atpos, i);
+//! Perform the loop:
+//!   for(lm=0; lm < Nlm; lm++) (*f)(tag< lm >);
+//! at compile time using templates. Note with lm := l*(l+1)+m to loop over spherical harmonics, Nlm = (lMax+1)^2.
+//! The functor f is templated over lm by using the tag class StaticLoopYlmTag< lm >.
+template<int lm> struct StaticLoopYlmTag{};
+template<int Nlm, typename Functor, int lmInv> struct StaticLoopYlm
+{	__hostanddev__ static void exec(Functor* f)
+	{	(*f)(StaticLoopYlmTag<Nlm-lmInv>());
+		StaticLoopYlm< Nlm, Functor, lmInv-1 >::exec(f);
+	}
+};
+template<int Nlm, typename Functor> struct StaticLoopYlm< Nlm, Functor, 0>
+{	__hostanddev__ static void exec(Functor* f) { return; }
+};
+template<int Nlm, typename Functor> __hostanddev__ void staticLoopYlm(Functor* f)
+{	StaticLoopYlm< Nlm, Functor, Nlm >::exec(f);
 }
-bool Qr(int l1, int m1, int l2, int m2, int l,
-	const vector3<int> S, const matrix3<>& G, const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale=1.);
-#ifdef GPU_ENABLED
-bool Qr_gpu(int l1, int m1, int l2, int m2, int l,
-	const vector3<int> S, const matrix3<>& G, const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale=1.);
-#endif
+
+#define SwitchTemplate_Nlm(Nlm, func, args) \
+	switch(Nlm) \
+	{	case 1:  func<1>  args; break; \
+		case 4:  func<4>  args; break; \
+		case 9:  func<9>  args; break; \
+		case 16: func<16> args; break; \
+		case 25: func<25> args; break; \
+		case 49: func<49> args; break; \
+		default: assert(!"Invalid Nlm in SwitchTemplate_Nlm"); \
+	}
+
+
+//! Augment electron density by spherical functions (radial functions multiplied by spherical harmonics)
+//! and propagate gradient w.r.t to it to that w.r.t the atom position (accumulate)
+struct nAugmentFunctor
+{	vector3<> qhat; double q;
+	int nGloc; double dGinv; const double* nRadial;
+	complex n;
+	
+	__hostanddev__ nAugmentFunctor(const vector3<>& qvec, int nGloc, double dGinv, const double* nRadial)
+	: nGloc(nGloc), dGinv(dGinv), nRadial(nRadial)
+	{	q = qvec.length();
+		qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
+	}
+	
+	template<int lm> __hostanddev__ void operator()(const StaticLoopYlmTag<lm>&)
+	{	//Compute phase (-i)^l:
+		complex mIota(0,-1), phase(1,0);
+		for(int l=0; l*(l+2) < lm; l++) phase *= mIota;
+		//Accumulate result:
+		double Gindex = q * dGinv;
+		if(Gindex < nGloc-5)
+			n += phase * Ylm<lm>(qhat) * QuinticSpline::value(nRadial+lm*nGloc, Gindex); 
+	}
+};
+template<int Nlm> __hostanddev__
+void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+{
+	nAugmentFunctor functor(iG*G, nGloc, dGinv, nRadial);
+	staticLoopYlm<Nlm>(&functor);
+	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG));
+}
+void nAugment(int Nlm,
+	const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+// #ifdef GPU_ENABLED
+//  TODO
+// #endif
+
+//Gradient propragation corresponding to nAugment:
+struct nAugmentGradFunctor
+{	vector3<> qhat; double q;
+	int nGloc; double dGinv; const double* nRadial;
+	complex E_n, nE_n;
+	double* E_nRadial;
+	int dotPrefac; //prefactor in dot-product (1 or 2 for each reciprocal space point, because of real symmetry)
+	
+	__hostanddev__ nAugmentGradFunctor(const vector3<>& qvec, int nGloc, double dGinv, const double* nRadial, const complex& E_n, double* E_nRadial, int dotPrefac)
+	: nGloc(nGloc), dGinv(dGinv), nRadial(nRadial), E_n(E_n), E_nRadial(E_nRadial), dotPrefac(dotPrefac)
+	{	q = qvec.length();
+		qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
+	}
+	
+	template<int lm> __hostanddev__ void operator()(const StaticLoopYlmTag<lm>&)
+	{	//Compute phase (-i)^l:
+		complex mIota(0,-1), phase(1,0);
+		for(int l=0; l*(l+2) < lm; l++) phase *= mIota;
+		//Accumulate result:
+		double Gindex = q * dGinv;
+		if(Gindex < nGloc-5)
+		{	complex term = phase * Ylm<lm>(qhat) * E_n;
+			QuinticSpline::valueGrad(dotPrefac * term.real(), E_nRadial+lm*nGloc, Gindex);
+			if(nRadial) nE_n += term * QuinticSpline::value(nRadial+lm*nGloc, Gindex); //needed again only when computing forces
+		}
+	}
+};
+template<int Nlm> __hostanddev__
+void nAugmentGrad_calc(int i, const vector3<int>& iG, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, int dotPrefac)
+{
+	nAugmentGradFunctor functor(iG*G, nGloc, dGinv, nRadial, ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)), E_nRadial, dotPrefac);
+	staticLoopYlm<Nlm>(&functor);
+	if(nRadial) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
+}
+void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos);
+// #ifdef GPU_ENABLED
+//  TODO: Not trivial to GPU parallelize because of overlapping scattered writes to E_nRadial 
+// #endif
+
 
 //!Get structure factor for a specific iG, given a list of atoms
 __hostanddev__ complex getSG_calc(const vector3<int>& iG, const int& nAtoms, const vector3<>* atpos)

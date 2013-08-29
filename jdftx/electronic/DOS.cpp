@@ -706,15 +706,18 @@ void DOS::dump()
 	if(needDensity)
 	{	for(int iState=0; iState<eInfo.nStates; iState++)
 		{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
-			{	ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
+			{	QuantumNumber qnumTemp = e->eInfo.qnums[iState]; qnumTemp.spin = 0;
+				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
 				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 				//Compute the density for this state and band:
-				DataRptr n = diagouterI(F, C);
-				e->iInfo.augmentDensity(F, C, n); //pseudopotential contribution
+				DataRptrCollection n(1); n[0] = diagouterI(F, C);
+				e->iInfo.augmentDensityInit();
+				e->iInfo.augmentDensitySpherical(F, C);
+				e->iInfo.augmentDensityGrid(n); //pseudopotential contribution
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 					if(weightFuncs[iWeight])
-						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n);
+						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n[0]);
 			}
 		}
 	}

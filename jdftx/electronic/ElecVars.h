@@ -106,7 +106,7 @@ public:
 	DataRptrCollection KEdensity() const;
 	
 	//! Calculate density using current orthonormal wavefunctions (C)
-	DataRptrCollection calcDensity();
+	DataRptrCollection calcDensity() const;
 	
 	//! Orthonormalise Y to compute C, U and its cohorts for a quantum number q
 	void orthonormalize(int q);

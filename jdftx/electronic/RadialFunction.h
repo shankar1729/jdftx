@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct RadialFunctionR;
 
 //! G-space radial function stored on a uniform grid (of |G|)
-class RadialFunctionG
+struct RadialFunctionG
 {
 	double dGinv; //!< inverse sample spacing
 	int nCoeff; //!< number of coefficients
@@ -44,10 +44,10 @@ class RadialFunctionG
 		#endif
 	}
 
-public:
 	RadialFunctionG();
 	void init(int l, int nSamples, double dG, const char* filename, double scale=1.0); //!< read and initialize from an ascii file (DFT PSP format)
 	void init(int l, const std::vector<double>& samples, double dG); //!< initialize from an array of samples in memory
+	void set(const std::vector<double>& coeff, double dGInv); //!< set the coefficients (and update the GPU versions etc.)
 	void free();
 	
 	//! Blip (quintic spline evaluation)

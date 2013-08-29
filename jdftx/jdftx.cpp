@@ -116,6 +116,7 @@ int main(int argc, char** argv, char** argp)
 			eVars.fluidSolver->minimizeFluid();
 			eVars.EdensityAndVscloc(e.ener); //update Vscloc
 		}
+		e.iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		if(e.cntrl.invertKS) //Inverse Kohn-Sham problem (sequence of band structure calculations)
 		{	InverseKohnSham inverseKS(e);
 			inverseKS.minimize(e.inverseKSminParams);

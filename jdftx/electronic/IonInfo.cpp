@@ -231,9 +231,9 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	//--------- Forces due to pseudopotential density augmentation ---------
 	IonicGradient forcesAug; forcesAug.init(*this);
 	ColumnBundle nullHC; //a null column bundle (since we don't want elec gradient)
+	augmentDensityGridGrad(eVars.Vscloc, &forcesAug);
 	for(int q=0; q<eInfo.nStates; q++)
-		augmentDensityGrad(eVars.F[q], eVars.C[q], eVars.Vscloc[eInfo.qnums[q].index()],
-			nullHC, &forcesAug, eVars.grad_CdagOC[q]);
+		augmentDensitySphericalGrad(eVars.F[q], eVars.C[q], nullHC, &forcesAug, eVars.grad_CdagOC[q]);
 	e->symm.symmetrize(forcesAug);
 	forces += forcesAug;
 	if(shouldPrintForceComponents)
@@ -265,15 +265,22 @@ void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const
 		sp->augmentOverlap(Cq, OCq);
 }
 
-void IonInfo::augmentDensity(const diagMatrix& Fq, const ColumnBundle& Cq, DataRptr& n) const
-{	for(auto sp: species)
-		sp->augmentDensity(Fq, Cq, n);
+void IonInfo::augmentDensityInit() const
+{	for(auto sp: species) ((SpeciesInfo&)(*sp)).augmentDensityInit();
 }
-
-void IonInfo::augmentDensityGrad(const diagMatrix& Fq, const ColumnBundle& Cq, const DataRptr& Vscloc,
-	ColumnBundle& HCq, IonicGradient* forces, const matrix& gradCdagOCq) const
+void IonInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq) const
+{	for(auto sp: species) ((SpeciesInfo&)(*sp)).augmentDensitySpherical(Fq, Cq);
+}
+void IonInfo::augmentDensityGrid(DataRptrCollection& n) const
+{	for(auto sp: species) sp->augmentDensityGrid(n);
+}
+void IonInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, IonicGradient* forces) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
-		species[sp]->augmentDensityGrad(Fq, Cq, Vscloc, HCq, forces ? &forces->at(sp) : 0, gradCdagOCq);
+		((SpeciesInfo&)(*species[sp])).augmentDensityGridGrad(E_n, forces ? &forces->at(sp) : 0);
+}
+void IonInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, IonicGradient* forces, const matrix& gradCdagOCq) const
+{	for(unsigned sp=0; sp<species.size(); sp++)
+		species[sp]->augmentDensitySphericalGrad(Fq, Cq, HCq, forces ? &forces->at(sp) : 0, gradCdagOCq);
 }
 
 double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,

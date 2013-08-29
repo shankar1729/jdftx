@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/LoopMacros.h>
 #include <core/Thread.h>
+#include <core/BlasExtra.h>
 
 //Initialize non-local projector from a radial function at a particular l,m
 template<int l, int m>
@@ -33,29 +34,50 @@ void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k
 {	SwitchTemplate_lm(l,m, Vnl, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV) )
 }
 
-
-//Initialize radial augmentation function for a pair product of 2 Ylm's, projected to a given total l
-template<int l1,int m1, int l2,int m2, int l>
-void Qr_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,  const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
+//Augment electron density by spherical functions
+template<int Nlm> void nAugment_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	THREAD_halfGspaceLoop( (Qr_calc<l1,m1,l2,m2,l>)(i, iG, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale); )
+	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, n); )
 }
-template<int l1,int m1, int l2,int m2, int l>
-void Qr(const vector3<int> S, const matrix3<>& G,  const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale, bool& nonZero)
+template<int Nlm> void nAugment(const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	threadLaunch(Qr_sub<l1,m1,l2,m2,l>, S[0]*S[1]*(S[2]/2+1), S, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale);
-	nonZero = true;
+	threadLaunch(nAugment_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nGloc, dGinv, nRadial, atpos, n);
 }
-bool Qr(int l1, int m1, int l2, int m2, int l,
-	const vector3<int> S, const matrix3<>& G, const RadialFunctionG& Qradial,
-	const vector3<>& atpos, complex* Q, const complex* ccgrad_Q, vector3<complex*> grad_atpos, double gradScale)
+void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {	
-	bool nonZero = false;
-	SwitchTemplate_lmPair(l1,m1, l2,m2, l, Qr, (S, G, Qradial, atpos, Q, ccgrad_Q, grad_atpos, gradScale, nonZero) )
-	return nonZero;
+	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, nGloc, dGinv, nRadial, atpos, n) )
 }
+
+
+//Propagate gradients corresponding to above electron density augmentation
+template<int Nlm> void nAugmentGrad_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, std::mutex* m)
+{
+	std::vector<double> E_nRadialVec(nGloc * Nlm); double* E_nRadialThread = E_nRadialVec.data();
+	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
+	//Accumulate E_nRadial:
+	m->lock();
+	eblas_daxpy(nGloc*Nlm, 1., E_nRadialThread,1, E_nRadial,1);
+	m->unlock();
+}
+template<int Nlm> void nAugmentGrad(const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+{
+	std::mutex m; //lock for synchronizing final accumulation
+	threadLaunch(nAugmentGrad_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, &m);
+}
+void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+{	
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
+}
+
 
 //Structure factor
 void getSG_sub(size_t iStart, size_t iStop, const vector3<int> S,

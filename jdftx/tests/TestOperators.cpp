@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/Coulomb.h>
 #include <core/LatticeUtils.h>
+#include <core/Random.h>
 #include <fluid/SO3quad.h>
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ExCorr_internal_GGA.h>
@@ -193,6 +194,24 @@ void testHarmonics()
 	}
 }
 
+template<int l, int m> void set_Ylm(const vector3<> qHat, double& result) { result = Ylm<l,m>(qHat); }
+double Ylm(int l, int m, const vector3<>& qHat) { double result=0.;  SwitchTemplate_lm(l,m, set_Ylm, (qHat, result)); return result; }
+
+void testYlmProd()
+{	vector3<> qHat(Random::normal(),Random::normal(),Random::normal()); qHat *= 1./qHat.length(); //random test unit vector
+	const int lMax = 3;
+	for(int l1=0; l1<=lMax; l1++) for(int m1=-l1; m1<=l1; m1++)
+	{	double Ylm1 = Ylm(l1, m1, qHat);
+		for(int l2=0; l2<=lMax; l2++) for(int m2=-l2; m2<=l2; m2++)
+		{	double Ylm2 = Ylm(l2, m2, qHat);
+			std::vector<YlmProdTerm> expansion = expandYlmProd(l1,m1, l2,m2);
+			double YlmProd = 0.;
+			for(const auto& term: expansion) YlmProd += term.coeff * Ylm(term.l, term.m, qHat);
+			logPrintf("(%d,%+d)*(%d,%+d): %le\n", l1,m1, l2,m2, YlmProd-Ylm1*Ylm2);
+		}
+	}
+}
+
 void fdtest2D(double F(double,double,double&,double&), const char* name)
 {	double A = 1.23856;
 	double B = 3.104262;
@@ -243,6 +262,7 @@ void timePointGroupOps(const GridInfo& gInfo)
 
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
+	testYlmProd(); return 0;
 	//testHarmonics(); return 0;
 	//fdtestGGAs(); return 0;
 

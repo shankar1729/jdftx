@@ -181,7 +181,7 @@ DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 {	DataGptr rhoTilde;
 	for(const auto& resp: response)
 	{	const DataRptr& s = resp->iSite<0 ? shape : siteShape[resp->iSite];
-		if(resp->l>3) die("Angular momenta l > 3 not supported.\n");
+		if(resp->l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = pow(-1,resp->l) * 4*M_PI/(2*resp->l+1);
 		rhoTilde -= prefac * (resp->V * lDivergence(J(s * I(lGradient(resp->V * phiTilde, resp->l))), resp->l));
 	}
@@ -247,7 +247,7 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	DataRptr Adiel_shape; DataRptrCollection Adiel_siteShape(solvent->molecule.sites.size());
 	for(const std::shared_ptr<MultipoleResponse>& resp: response)
 	{	DataRptr& Adiel_s = resp->iSite<0 ? Adiel_shape : Adiel_siteShape[resp->iSite];
-		if(resp->l>3) die("Angular momenta l > 3 not supported.\n");
+		if(resp->l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = 0.5 * 4*M_PI/(2*resp->l+1);
 		DataRptrCollection IlGradVphi = I(lGradient(resp->V * phi, resp->l));
 		for(int lpm=0; lpm<(2*resp->l+1); lpm++)
