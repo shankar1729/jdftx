@@ -234,6 +234,25 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_PRA05:
 			break;
 	}
+	
+	{ //scope for overriding filename
+		char filename[256];	ostringstream oss;
+		oss << "Nspherical";
+		sprintf(filename, filenamePattern, oss.str().c_str());
+		logPrintf("Dumping %s... ", filename); logFlush();
+		saveSphericalized(&shape, 1, filename);
+		logPrintf("Done.\n"); logFlush();
+	}
+	
+	if(fsp.pcmVariant==PCM_SGA13)
+	{
+		char filename[256];	ostringstream oss;
+		oss << "NvdWspherical";
+		sprintf(filename, filenamePattern, oss.str().c_str());
+		logPrintf("Dumping %s... ", filename); logFlush();
+		saveSphericalized(&shapeVdw,1, filename);
+		logPrintf("Done.\n"); logFlush();
+	}
 
 	//HACK:
 	if(Sf.size())

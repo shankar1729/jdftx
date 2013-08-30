@@ -322,14 +322,24 @@ void NonlocalPCM::dumpDensities(const char* filenamePattern) const
 				}
 			}
 		}
-		char filename[256];
+		char filename[256]; 
 		for(unsigned j=0; j<c->molecule.sites.size(); j++)
-		{	const Molecule::Site& s = *(c->molecule.sites[j]);
+		{	
+			const Molecule::Site& s = *(c->molecule.sites[j]);
+			DataRptr N;
+			N=I(Ntilde[j])+c->Nbulk*siteShape[j];
 			ostringstream oss; oss << "N_" << c->molecule.name;
 			if(c->molecule.sites.size()>1) oss << "_" << s.name;
 			sprintf(filename, filenamePattern, oss.str().c_str());
 			logPrintf("Dumping %s... ", filename); logFlush();
-			saveRawBinary(I(Ntilde[j]), filename);
+			saveRawBinary(N, filename);
+			{
+				//debug sphericalized site densities
+				ostringstream oss; oss << "Nspherical_" << c->molecule.name;
+				if(c->molecule.sites.size()>1) oss << "_" << s.name;
+				sprintf(filename, filenamePattern, oss.str().c_str());
+				saveSphericalized(&N,1,filename);
+			}
 			logPrintf("Done.\n"); logFlush();
 		}
 	}

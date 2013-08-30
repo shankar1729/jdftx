@@ -238,14 +238,10 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 	return out;
 }
 
+
 void NonlinearPCM::printDebug(FILE* fp) const
 {
-/*	DataRptrVec eps = getEps(state);
-	DataRptr eps_mag = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
-	double Eaveraged = integral(eps_mag*shape*surfaceDensity)/integral(surfaceDensity);
-	double Eaveraged2 = integral(eps_mag*surfaceDensity)/integral(surfaceDensity);
-	fprintf(fp, "\nSurface averaged epsilon: %f", Eaveraged);
-	fprintf(fp, "\nSurface averaged epsilon (no shape weighing): %f\n", Eaveraged2); */
+
 }
 
 
@@ -267,3 +263,24 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 		FLUID_DUMP(Nminus, "N-");
 	}
 }
+
+/*void NonlinearPCM::dumpDebug(const char* filenamePattern) const
+{	PCM::dumpDebug(filenamePattern);
+
+	char filename[256];	ostringstream oss;
+	oss << "Nspherical";
+	sprintf(filename, filenamePattern, oss.str().c_str());
+	logPrintf("Dumping %s... ", filename); logFlush();
+	saveSphericalized(&shape, 1, filename);
+	logPrintf("Done.\n"); logFlush();
+	
+	if(fsp.pcmVariant==PCM_SGA13)
+	{
+		char filename[256];	ostringstream oss;
+		oss << "NvdWspherical";
+		sprintf(filename, filenamePattern, oss.str().c_str());
+		logPrintf("Dumping %s... ", filename); logFlush();
+		saveSphericalized(&shapeVdw,1, filename);
+		logPrintf("Done.\n"); logFlush();
+	}
+}*/

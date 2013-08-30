@@ -222,6 +222,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
 				siteCl->Zelec = 6.755; siteCl->aElec = 0.44;
+			//	siteCl->aElec = 0.54; //Kendra: HACK!
 				siteCl->alpha = 18.1; siteCl->aPol = 0.47;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
