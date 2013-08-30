@@ -71,6 +71,7 @@ int ElecVars::LCAO()
 	Energies ener;
 	EdensityAndVscloc(ener, exCorr);
 	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
+	iInfo.augmentDensityInit();
 	iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
 	
 	//Initialize one state at a time:

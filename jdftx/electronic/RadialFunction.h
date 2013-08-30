@@ -32,6 +32,9 @@ struct RadialFunctionG
 	std::vector<double> coeff; //!< coefficients on cpu
 	#ifdef GPU_ENABLED
 	double* coeffGpu; //!< coefficients on gpu
+	const double* coeffPref() const { return coeffGpu; }
+	#else
+	const double* coeffPref() const { return coeff.data(); }
 	#endif
 
 	//Access appropriate coefficients depending on whether called from CPU/GPU

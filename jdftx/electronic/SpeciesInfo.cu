@@ -41,6 +41,26 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, 
 	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV) )
 }
 
+
+template<int Nlm> __global__ void nAugment_kernel(int zBlock, const vector3<int> S, const matrix3<> G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<> atpos, complex* n)
+{	COMPUTE_halfGindices
+	nAugment_calc<Nlm>(i, iG, G, nGloc, dGinv, nRadial, atpos, n);
+}
+template<int Nlm> void nAugment_gpu(const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+{	GpuLaunchConfigHalf3D glc(nAugment_kernel<Nlm>, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		nAugment_kernel<Nlm><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, nGloc, dGinv, nRadial, atpos, n);
+	gpuErrorCheck();
+}
+void nAugment_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+{
+	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, nGloc, dGinv, nRadial, atpos, n) )
+}
+
+
 //Structure factor
 __global__
 void getSG_kernel(int zBlock, const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG)

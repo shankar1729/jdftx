@@ -83,7 +83,7 @@ template<int Nlm, typename Functor> __hostanddev__ void staticLoopYlm(Functor* f
 		case 16: func<16> args; break; \
 		case 25: func<25> args; break; \
 		case 49: func<49> args; break; \
-		default: assert(!"Invalid Nlm in SwitchTemplate_Nlm"); \
+		default: fprintf(stderr, "Invalid Nlm in SwitchTemplate_Nlm"); exit(1); \
 	}
 
 
@@ -121,9 +121,11 @@ void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
 void nAugment(int Nlm,
 	const vector3<int> S, const matrix3<>& G,
 	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
-// #ifdef GPU_ENABLED
-//  TODO
-// #endif
+#ifdef GPU_ENABLED
+void nAugment_gpu(int Nlm,
+	const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+#endif
 
 //Gradient propragation corresponding to nAugment:
 struct nAugmentGradFunctor

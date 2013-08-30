@@ -151,8 +151,8 @@ private:
 		void sortIndices(); //!< swap (l1,p1)<-->(l2,p2) indices if needed to bring to the upper triangular part
 	};
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
-	std::vector<double> nAug; //!< intermediate electron density augmentation in spherical functions (Flat array indexed by spin, atom number and then spline coeff)
-	std::vector<double> E_nAug; //!< Gradient w.r.t nAug (same layout)
+	double* nAug; //!< intermediate electron density augmentation in spherical functions (Flat array indexed by spin, atom number and then spline coeff)
+	double* E_nAug; //!< Gradient w.r.t nAug (same layout)
 	
 	bool readProjectors; //!< whether to read PAW projectors from Pot format files
 	std::vector< std::vector<RadialFunctionG> > projRadial; //!< PAW projectors (outer index l, inner index projetcor)

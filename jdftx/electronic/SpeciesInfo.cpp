@@ -90,6 +90,9 @@ SpeciesInfo::SpeciesInfo()
 	dGnl  = 0.02; // default grid separation for reduced G operations
 	pulayfilename ="none";
 	OpsiRadial = &psiRadial;
+
+	nAug = 0;
+	E_nAug = 0;
 }
 
 SpeciesInfo::~SpeciesInfo()
@@ -107,6 +110,17 @@ SpeciesInfo::~SpeciesInfo()
 		if(OpsiRadial != &psiRadial)
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
 			delete OpsiRadial;
+		}
+
+		if(nAug)
+		{
+			#ifdef GPU_ENABLED
+			cudaFree(nAug);
+			cudaFree(E_nAug);
+			#else
+			delete[] nAug;
+			delete[] E_nAug;
+			#endif
 		}
 	}
 }
@@ -298,7 +312,18 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) cons
 
 void SpeciesInfo::augmentDensityInit()
 {	augmentDensity_COMMON_INIT
-	nAug.assign(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), 0.);
+	size_t nGtot = nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2);
+	if(!nAug)
+	{
+		#ifdef GPU_ENABLED
+		cudaMalloc(&nAug, nGtot*sizeof(double));
+		cudaMalloc(&E_nAug, nGtot*sizeof(double));
+		#else
+		nAug = new double[nGtot];
+		E_nAug = new double[nGtot];
+		#endif
+	}
+	callPref(eblas_zero)(nGtot, nAug);
 }
 
 void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
@@ -325,8 +350,7 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
 		
 		//Collect contributions as spherical functions:
-		double* nAugCur = nAug.data() + Cq.qnum->index()*nGspin + atom*nGatom;
-		std::vector<double> coeff(Nlm*nGloc, 0.); //radial coefficients for all l,m
+		double* nAugCur = nAug + Cq.qnum->index()*nGspin + atom*nGatom;
 		//Triple loop over first projector:
 		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -345,7 +369,7 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						eblas_daxpy(nGloc, term.coeff * prefac, Qijl->second.coeff.data(),1, nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
+						callPref(eblas_daxpy)(nGloc, term.coeff * prefac, Qijl->second.coeffPref(),1, nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
 					}
 				}
 				i2++;
@@ -364,11 +388,12 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 	for(unsigned s=0; s<n.size(); s++)
 	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = nAug.data() + s*nGspin + atom*nGatom;
-			nAugment(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom], nAugTilde->data());
+		{	const double* nAugCur = nAug + s*nGspin + atom*nGatom;
+			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom], nAugTilde->dataPref());
 		}
 		n[s] += I(nAugTilde,true);
 	}
+
 	watch.stop();
 }
 
@@ -378,18 +403,30 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = Qradial.cbegin()->second.dGinv;
 	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
-	E_nAug.assign(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), 0.);	
+	size_t nGtot = nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2);
+	callPref(eblas_zero)(nGtot, E_nAug);
+	
+	#ifdef GPU_ENABLED //Get rid of this after adding GPU support to nAugmentGrad
+	double* nAugCpu = new double[nGtot]; cudaMemcpy(nAugCpu, nAug, nGtot*sizeof(double), cudaMemcpyDeviceToHost);  std::swap(nAug, nAugCpu);
+	double* E_nAugCpu = new double[nGtot]; cudaMemcpy(E_nAugCpu, E_nAug, nGtot*sizeof(double), cudaMemcpyDeviceToHost); std::swap(E_nAug, E_nAugCpu);
+	#endif
+
 	for(unsigned s=0; s<E_n.size(); s++)
 	{	DataGptr ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = forces ? nAug.data() + s*nGspin + atom*nGatom : 0;
-			double* E_nAugCur = E_nAug.data() + s*nGspin + atom*nGatom;
+		{	const double* nAugCur = forces ? nAug + s*nGspin + atom*nGatom : 0;
+			double* E_nAugCur = E_nAug + s*nGspin + atom*nGatom;
 			if(forces) initZero(E_atpos);
 			nAugmentGrad(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom],
 				ccE_n->data(), E_nAugCur, forces ? E_atpos.data() : vector3<complex*>());
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}
+	
+	#ifdef GPU_ENABLED //Get rid of this after adding GPU support to nAugmentGrad
+	std::swap(nAug, nAugCpu); delete[] nAugCpu;
+	std::swap(E_nAug, E_nAugCpu); cudaMemcpy(E_nAug, E_nAugCpu, nGtot*sizeof(double), cudaMemcpyHostToDevice); gpuErrorCheck(); delete[] E_nAugCpu;
+	#endif
 	watch.stop();
 }
 
@@ -420,7 +457,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const Column
 		matrix Qint(nProj, nProj); Qint.zero(); //Full nProj x nProj version of this->Qint[l]
 		matrix E_Rho(nProj, nProj); E_Rho.zero(); //gradient w.r.t density matrix in projector basis
 		
-		const double* E_nAugCur = E_nAug.data() + Cq.qnum->index()*nGspin + atom*nGatom;
+		const double* E_nAugCur = E_nAug + Cq.qnum->index()*nGspin + atom*nGatom;
 		
 		int i1 = 0;
 		//Triple loop over first projector:
@@ -439,7 +476,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const Column
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						E_Rho_i1i2sum += term.coeff * eblas_ddot(nGloc, Qijl->second.coeff.data(),1, E_nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
+						E_Rho_i1i2sum += term.coeff * callPref(eblas_ddot)(nGloc, Qijl->second.coeffPref(),1, E_nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
 					}
 					complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
 					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
