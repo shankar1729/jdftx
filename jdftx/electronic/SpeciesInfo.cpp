@@ -393,7 +393,6 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 		}
 		n[s] += I(nAugTilde,true);
 	}
-
 	watch.stop();
 }
 
@@ -402,31 +401,19 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = Qradial.cbegin()->second.dGinv;
+	callPref(eblas_zero)(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), E_nAug);
 	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
-	size_t nGtot = nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2);
-	callPref(eblas_zero)(nGtot, E_nAug);
-	
-	#ifdef GPU_ENABLED //Get rid of this after adding GPU support to nAugmentGrad
-	double* nAugCpu = new double[nGtot]; cudaMemcpy(nAugCpu, nAug, nGtot*sizeof(double), cudaMemcpyDeviceToHost);  std::swap(nAug, nAugCpu);
-	double* E_nAugCpu = new double[nGtot]; cudaMemcpy(E_nAugCpu, E_nAug, nGtot*sizeof(double), cudaMemcpyDeviceToHost); std::swap(E_nAug, E_nAugCpu);
-	#endif
-
 	for(unsigned s=0; s<E_n.size(); s++)
 	{	DataGptr ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
 		{	const double* nAugCur = forces ? nAug + s*nGspin + atom*nGatom : 0;
 			double* E_nAugCur = E_nAug + s*nGspin + atom*nGatom;
 			if(forces) initZero(E_atpos);
-			nAugmentGrad(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom],
-				ccE_n->data(), E_nAugCur, forces ? E_atpos.data() : vector3<complex*>());
+			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom],
+				ccE_n->dataPref(), E_nAugCur, forces ? E_atpos.dataPref() : vector3<complex*>());
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}
-	
-	#ifdef GPU_ENABLED //Get rid of this after adding GPU support to nAugmentGrad
-	std::swap(nAug, nAugCpu); delete[] nAugCpu;
-	std::swap(E_nAug, E_nAugCpu); cudaMemcpy(E_nAug, E_nAugCpu, nGtot*sizeof(double), cudaMemcpyHostToDevice); gpuErrorCheck(); delete[] E_nAugCpu;
-	#endif
 	watch.stop();
 }
 

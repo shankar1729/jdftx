@@ -42,6 +42,7 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, 
 }
 
 
+//Augment electron density by spherical functions
 template<int Nlm> __global__ void nAugment_kernel(int zBlock, const vector3<int> S, const matrix3<> G,
 	int nGloc, double dGinv, const double* nRadial, const vector3<> atpos, complex* n)
 {	COMPUTE_halfGindices
@@ -58,6 +59,60 @@ void nAugment_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
 	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, nGloc, dGinv, nRadial, atpos, n) )
+}
+
+
+//Propagate gradients corresponding to above electron density augmentation
+template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, const matrix3<> G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<> atpos,
+	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos)
+{
+	int iThread = kernelIndex1D();
+	int nThreads = blockDim.x * gridDim.x;
+	double* E_nRadialThread = E_nRadialTemp + (Nlm*nGloc)*iThread;
+	size_t nG = S[0]*S[1]*(S[2]/2+1);
+	size_t iStart = ((iThread) * nG) / nThreads;
+	size_t iStop = ((iThread+1) * nG) / nThreads;
+	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
+}
+__global__ void nAugmentGrad_collectKernel(int nData, int nCopies, const double* in, double* out)
+{	int i = kernelIndex1D();
+	if(i<nData)
+	{	double sum = 0.;
+		for(int iCopy=0; iCopy<nCopies; iCopy++)
+			sum += in[i + iCopy*nData];
+		out[i] += sum;
+	}
+}
+template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+{
+	//Allocate temporary memory:
+	cudaDeviceProp prop;
+	int iDevice; cudaGetDevice(&iDevice);
+	cudaGetDeviceProperties(&prop, iDevice);
+	int nPerBlock = 8;
+	int nBlocks = prop.multiProcessorCount * 4;
+	int nThreads = nBlocks * nPerBlock;
+	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nGloc*Nlm*nThreads);
+	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nGloc*Nlm*nThreads);
+	gpuErrorCheck();
+	//Stage 1: calculate with the scattered accumulate to per-thread temporary space
+	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock>>>(S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos);
+	gpuErrorCheck();
+	//Stage 2: collect from E_nRadialTemp to E_nRadial
+	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nGloc*Nlm);
+	nAugmentGrad_collectKernel<<<glc.nBlocks,glc.nPerBlock>>>(nGloc*Nlm, nThreads, E_nRadialTemp, E_nRadial);
+	gpuErrorCheck();
+	//Cleanup:
+	cudaFree(E_nRadialTemp);
+}
+void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+{	
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad_gpu, (S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
 }
 
 

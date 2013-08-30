@@ -166,9 +166,11 @@ void nAugmentGrad_calc(int i, const vector3<int>& iG, const matrix3<>& G,
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos);
-// #ifdef GPU_ENABLED
-//  TODO: Not trivial to GPU parallelize because of overlapping scattered writes to E_nRadial 
-// #endif
+#ifdef GPU_ENABLED
+void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
+	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos);
+#endif
 
 
 //!Get structure factor for a specific iG, given a list of atoms
