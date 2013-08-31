@@ -58,8 +58,14 @@ void RadialFunctionG::set(const std::vector<double>& coeff, double dGinv)
 	#endif
 }
 
-void RadialFunctionG::free()
-{	if(rFunc) delete rFunc;
+void RadialFunctionG::updateGmax(int l, int nSamples)
+{	if(!rFunc) return; //don't have the information necessary to update
+	if(nSamples+4 <= nCoeff) return; //already have enough samples
+	rFunc->transform(l, 1./dGinv, nSamples, *this);
+}
+
+void RadialFunctionG::free(bool rFuncDelete)
+{	if(rFunc && rFuncDelete) delete rFunc;
 	#ifdef GPU_ENABLED
 	if(nCoeff) cudaFree(coeffGpu);
 	#endif
@@ -153,8 +159,8 @@ void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& fu
 {	std::vector<double> fTilde(nGrid);
 	for(int iG=0; iG<nGrid; iG++)
 		fTilde[iG] = transform(l, iG*dG);
-	func.free();
+	func.free(this!=func.rFunc);
 	func.init(l, fTilde, dG);
-	func.rFunc = new RadialFunctionR(*this);
+	if(this!=func.rFunc) func.rFunc = new RadialFunctionR(*this);
 }
 

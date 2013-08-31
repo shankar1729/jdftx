@@ -51,7 +51,8 @@ struct RadialFunctionG
 	void init(int l, int nSamples, double dG, const char* filename, double scale=1.0); //!< read and initialize from an ascii file (DFT PSP format)
 	void init(int l, const std::vector<double>& samples, double dG); //!< initialize from an array of samples in memory
 	void set(const std::vector<double>& coeff, double dGInv); //!< set the coefficients (and update the GPU versions etc.)
-	void free();
+	void updateGmax(int l, int nSamples); //!< if created from a RadialFunctionR, increase nCoeff if necessary (call when lattice is modified)
+	void free(bool rFuncDelete=true);
 	
 	//! Blip (quintic spline evaluation)
 	__hostanddev__ double operator()(double G) const

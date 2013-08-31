@@ -253,7 +253,7 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	
 	//Recommended extent for radial functions:
 	dGradial = 0.02;
-	GmaxSphere = 1.5 * Gmax;
+	GmaxSphere = Gmax;
 	GmaxGrid = 0.0;
 	{	vector3<int> c;
 		for(c[0]=-1; c[0]<=1; c[0]+=2) for(c[1]=-1; c[1]<=1; c[1]+=2) for(c[2]=-1; c[2]<=1; c[2]+=2)
@@ -262,7 +262,6 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 			if(g>GmaxGrid) GmaxGrid=g;
 		}
 	}
-	GmaxGrid *= 1.5;
 	
 	logPrintf("Planning FFTs (this might take a while for a new big problem size) ... "); logFlush();
 

@@ -93,6 +93,8 @@ SpeciesInfo::SpeciesInfo()
 
 	nAug = 0;
 	E_nAug = 0;
+	nagIndex = 0;
+	nagIndexPtr = 0;
 }
 
 SpeciesInfo::~SpeciesInfo()
@@ -103,6 +105,7 @@ SpeciesInfo::~SpeciesInfo()
 		#endif
 		VlocRadial.free();
 		nCoreRadial.free();
+		tauCoreRadial.free();
 		for(auto& Vnl_l: VnlRadial) for(auto& Vnl_lp : Vnl_l) Vnl_lp.free();
 		for(auto& Qijl: Qradial) Qijl.second.free();
 		for(auto& proj_l: projRadial) for(auto& proj_lp: proj_l) proj_lp.free();
@@ -117,6 +120,8 @@ SpeciesInfo::~SpeciesInfo()
 			#ifdef GPU_ENABLED
 			cudaFree(nAug);
 			cudaFree(E_nAug);
+			if(nagIndex) cudaFree(nagIndex);
+			if(nagIndexPtr) cudaFree(nagIndexPtr);
 			#else
 			delete[] nAug;
 			delete[] E_nAug;
@@ -176,6 +181,8 @@ void SpeciesInfo::setup(const Everything &everything)
 	#else
 	atposPref = &atpos[0];
 	#endif
+
+	Rprev = e->gInfo.R; //remember initial lattice vectors, so that updateLatticeDependent can check if an update is necessary
 }
 
 
@@ -306,24 +313,24 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) cons
 		if(VnlRadial[l].size()) lMax=l; \
 	} \
 	int Nlm = (2*lMax+1)*(2*lMax+1); \
-	int nGloc = Qradial.cbegin()->second.nCoeff; \
-	int nGatom = nGloc * Nlm; \
-	int nGspin = nGatom * atpos.size();
+	int nCoeff = Qradial.cbegin()->second.nCoeff; \
+	int nCoeffAtom = nCoeff * Nlm; \
+	int nCoeffSpin = nCoeffAtom * atpos.size();
 
 void SpeciesInfo::augmentDensityInit()
 {	augmentDensity_COMMON_INIT
-	size_t nGtot = nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2);
+	size_t nCoeffTot = nCoeffSpin * (e->eInfo.spinType==SpinNone ? 1 : 2);
 	if(!nAug)
 	{
 		#ifdef GPU_ENABLED
-		cudaMalloc(&nAug, nGtot*sizeof(double));
-		cudaMalloc(&E_nAug, nGtot*sizeof(double));
+		cudaMalloc(&nAug, nCoeffTot*sizeof(double));
+		cudaMalloc(&E_nAug, nCoeffTot*sizeof(double));
 		#else
-		nAug = new double[nGtot];
-		E_nAug = new double[nGtot];
+		nAug = new double[nCoeffTot];
+		E_nAug = new double[nCoeffTot];
 		#endif
 	}
-	callPref(eblas_zero)(nGtot, nAug);
+	callPref(eblas_zero)(nCoeffTot, nAug);
 }
 
 void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
@@ -350,7 +357,7 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
 		
 		//Collect contributions as spherical functions:
-		double* nAugCur = nAug + Cq.qnum->index()*nGspin + atom*nGatom;
+		double* nAugCur = nAug + Cq.qnum->index()*nCoeffSpin + atom*nCoeffAtom;
 		//Triple loop over first projector:
 		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -369,7 +376,7 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						callPref(eblas_daxpy)(nGloc, term.coeff * prefac, Qijl->second.coeffPref(),1, nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
+						callPref(eblas_daxpy)(nCoeff, term.coeff * prefac, Qijl->second.coeffPref(),1, nAugCur+nCoeff*(term.l*(term.l+1) + term.m),1);
 					}
 				}
 				i2++;
@@ -384,12 +391,12 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 {	static StopWatch watch("augmentDensityGrid"); watch.start(); 
 	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
-	double dGinv = Qradial.cbegin()->second.dGinv;
+	double dGinv = 1./dGloc;
 	for(unsigned s=0; s<n.size(); s++)
 	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = nAug + s*nGspin + atom*nGatom;
-			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom], nAugTilde->dataPref());
+		{	const double* nAugCur = nAug + s*nCoeffSpin + atom*nCoeffAtom;
+			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugCur, atpos[atom], nAugTilde->dataPref());
 		}
 		n[s] += I(nAugTilde,true);
 	}
@@ -400,17 +407,17 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 {	static StopWatch watch("augmentDensityGridGrad"); watch.start();
 	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
-	double dGinv = Qradial.cbegin()->second.dGinv;
-	callPref(eblas_zero)(nGspin * (e->eInfo.spinType==SpinNone ? 1 : 2), E_nAug);
+	double dGinv = 1./dGloc;
+	callPref(eblas_zero)(nCoeffSpin * (e->eInfo.spinType==SpinNone ? 1 : 2), E_nAug);
 	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
 	for(unsigned s=0; s<E_n.size(); s++)
 	{	DataGptr ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = forces ? nAug + s*nGspin + atom*nGatom : 0;
-			double* E_nAugCur = E_nAug + s*nGspin + atom*nGatom;
+		{	const double* nAugCur = forces ? nAug + s*nCoeffSpin + atom*nCoeffAtom : 0;
+			double* E_nAugCur = E_nAug + s*nCoeffSpin + atom*nCoeffAtom;
 			if(forces) initZero(E_atpos);
-			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nGloc, dGinv, nAugCur, atpos[atom],
-				ccE_n->dataPref(), E_nAugCur, forces ? E_atpos.dataPref() : vector3<complex*>());
+			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugCur, atpos[atom],
+				ccE_n->dataPref(), E_nAugCur, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex, nagIndexPtr);
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}
@@ -444,7 +451,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const Column
 		matrix Qint(nProj, nProj); Qint.zero(); //Full nProj x nProj version of this->Qint[l]
 		matrix E_Rho(nProj, nProj); E_Rho.zero(); //gradient w.r.t density matrix in projector basis
 		
-		const double* E_nAugCur = E_nAug + Cq.qnum->index()*nGspin + atom*nGatom;
+		const double* E_nAugCur = E_nAug + Cq.qnum->index()*nCoeffSpin + atom*nCoeffAtom;
 		
 		int i1 = 0;
 		//Triple loop over first projector:
@@ -463,7 +470,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const Column
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						E_Rho_i1i2sum += term.coeff * callPref(eblas_ddot)(nGloc, Qijl->second.coeffPref(),1, E_nAugCur+nGloc*(term.l*(term.l+1) + term.m),1);
+						E_Rho_i1i2sum += term.coeff * callPref(eblas_ddot)(nCoeff, Qijl->second.coeffPref(),1, E_nAugCur+nCoeff*(term.l*(term.l+1) + term.m),1);
 					}
 					complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
 					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
@@ -712,6 +719,7 @@ void SpeciesInfo::writeProjectors(const ColumnBundle& Cq, FILE* fp) const
 void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
 	DataGptr& nCore, DataGptr& tauCore) const
 {	if(!atpos.size()) return; //unused species
+	((SpeciesInfo*)this)->updateLatticeDependent(); //update lattice dependent quantities (if lattice vectors have changed)
 	const GridInfo& gInfo = e->gInfo;
 
 	//Prepare optional outputs:
@@ -758,6 +766,36 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 			forces[at][k] = -sum(gradAtpos[k]); //negative gradient
 	}
 	return forces;
+}
+
+void SpeciesInfo::updateLatticeDependent()
+{	const GridInfo& gInfo = e->gInfo;
+	bool Rchanged = (Rprev != gInfo.R);
+	Rprev = gInfo.R;
+
+	int nGridLoc = int(ceil(gInfo.GmaxGrid/dGloc))+5;
+	int nGridNL = int(ceil(gInfo.GmaxSphere/dGnl))+5;
+
+	//Change radial function extents if R has changed:
+	if(Rchanged)
+	{	VlocRadial.updateGmax(0, nGridLoc);
+		nCoreRadial.updateGmax(0, nGridLoc);
+		tauCoreRadial.updateGmax(0, nGridLoc);
+		for(int l=0; l<int(VnlRadial.size()); l++) for(auto& Vnl_lp : VnlRadial[l]) Vnl_lp.updateGmax(l, nGridNL);
+		for(auto& Qijl: Qradial) Qijl.second.updateGmax(Qijl.first.l, nGridLoc);
+		for(int l=0; l<int(projRadial.size()); l++) for(auto& proj_lp: projRadial[l]) proj_lp.updateGmax(l, nGridNL);
+		for(int l=0; l<int(psiRadial.size()); l++) for(auto& psi_lp: psiRadial[l]) psi_lp.updateGmax(l, nGridNL);
+		if(OpsiRadial != &psiRadial)
+			for(int l=0; l<int(OpsiRadial->size()); l++) for(auto& Opsi_lp: OpsiRadial->at(l)) Opsi_lp.updateGmax(l, nGridNL);
+	}
+
+	//Update nagIndex if not previously init'd, or if R has changed:
+	#ifdef GPU_ENABLED
+	if(Qint.size() && (Rchanged || !nagIndex))
+	{	int nCoeff = Qradial.cbegin()->second.nCoeff;
+		setNagIndex_gpu(gInfo.S, gInfo.G, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
+	}
+	#endif
 }
 
 bool SpeciesInfo::QijIndex::operator<(const SpeciesInfo::QijIndex& other) const

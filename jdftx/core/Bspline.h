@@ -160,6 +160,10 @@ namespace QuinticSpline
 	}
 	
 	//Gradient propagation corresponding to value
+	//On the GPU, final results are accumulated using shared memory. (Uses 6 doubles per thread of the thread-block)
+	#ifdef __CUDA_ARCH__
+	extern __shared__ double shared_E_coeff[];
+	#endif
 	__hostanddev__ void valueGrad(double E_value, double* E_coeff, double x)
 	{	int j = (int)x;
 		double tR = x - j; //right weight for interval
@@ -179,7 +183,26 @@ namespace QuinticSpline
 		c[4] = (1./66) * (b[0] + 2*b[1] + 4*b[2] + 8*b[3] + 16*b[4] + 26*b[5]);
 		c[5] = (1./66) * (b[5]);
 		//Accumulate E_coeff:
-		for(int i=0; i<6; i++) E_coeff[j+i] += E_value * c[i];
+		#ifndef __CUDA_ARCH__
+			for(int i=0; i<6; i++) E_coeff[j+i] += E_value * c[i];
+		#else
+			int iThread = threadIdx.x;
+			for(int i=0; i<6; i++) shared_E_coeff[iThread*6+i] = E_value * c[i];
+			//Accumulate results to first thread:
+			int extent = blockDim.x/2;
+			int stride = (blockDim.x+1)/2;
+			while(extent)
+			{	__syncthreads();
+				if(iThread<extent)
+					for(int i=0; i<6; i++) shared_E_coeff[iThread*6+i] += shared_E_coeff[(stride+iThread)*6+i];
+				extent = stride/2;
+				stride = (stride+1)/2;
+			}
+			__syncthreads();
+			//Save to the global memory:
+			if(iThread==0)
+				for(int i=0; i<6; i++) E_coeff[j+i] += shared_E_coeff[i];
+		#endif
 	}
 }
 //! @endcond

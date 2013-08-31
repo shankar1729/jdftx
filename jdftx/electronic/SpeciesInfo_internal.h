@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <electronic/RadialFunction.h>
 #include <electronic/SphericalHarmonics.h>
+#include <stdint.h>
 
 //! Compute Vnl and optionally its gradients for a subset of the basis space, and for multiple atomic positions
 template<int l, int m> __hostanddev__
@@ -91,11 +92,11 @@ template<int Nlm, typename Functor> __hostanddev__ void staticLoopYlm(Functor* f
 //! and propagate gradient w.r.t to it to that w.r.t the atom position (accumulate)
 struct nAugmentFunctor
 {	vector3<> qhat; double q;
-	int nGloc; double dGinv; const double* nRadial;
+	int nCoeff; double dGinv; const double* nRadial;
 	complex n;
 	
-	__hostanddev__ nAugmentFunctor(const vector3<>& qvec, int nGloc, double dGinv, const double* nRadial)
-	: nGloc(nGloc), dGinv(dGinv), nRadial(nRadial)
+	__hostanddev__ nAugmentFunctor(const vector3<>& qvec, int nCoeff, double dGinv, const double* nRadial)
+	: nCoeff(nCoeff), dGinv(dGinv), nRadial(nRadial)
 	{	q = qvec.length();
 		qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
 	}
@@ -106,37 +107,41 @@ struct nAugmentFunctor
 		for(int l=0; l*(l+2) < lm; l++) phase *= mIota;
 		//Accumulate result:
 		double Gindex = q * dGinv;
-		if(Gindex < nGloc-5)
-			n += phase * Ylm<lm>(qhat) * QuinticSpline::value(nRadial+lm*nGloc, Gindex); 
+		if(Gindex < nCoeff-5)
+			n += phase * Ylm<lm>(qhat) * QuinticSpline::value(nRadial+lm*nCoeff, Gindex); 
 	}
 };
 template<int Nlm> __hostanddev__
 void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	nAugmentFunctor functor(iG*G, nGloc, dGinv, nRadial);
+	nAugmentFunctor functor(iG*G, nCoeff, dGinv, nRadial);
 	staticLoopYlm<Nlm>(&functor);
 	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG));
 }
 void nAugment(int Nlm,
 	const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
 #ifdef GPU_ENABLED
 void nAugment_gpu(int Nlm,
 	const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+#endif
+
+#ifdef GPU_ENABLED
+void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
 #endif
 
 //Gradient propragation corresponding to nAugment:
 struct nAugmentGradFunctor
 {	vector3<> qhat; double q;
-	int nGloc; double dGinv; const double* nRadial;
+	int nCoeff; double dGinv; const double* nRadial;
 	complex E_n, nE_n;
 	double* E_nRadial;
 	int dotPrefac; //prefactor in dot-product (1 or 2 for each reciprocal space point, because of real symmetry)
-	
-	__hostanddev__ nAugmentGradFunctor(const vector3<>& qvec, int nGloc, double dGinv, const double* nRadial, const complex& E_n, double* E_nRadial, int dotPrefac)
-	: nGloc(nGloc), dGinv(dGinv), nRadial(nRadial), E_n(E_n), E_nRadial(E_nRadial), dotPrefac(dotPrefac)
+
+	__hostanddev__ nAugmentGradFunctor(const vector3<>& qvec, int nCoeff, double dGinv, const double* nRadial, const complex& E_n, double* E_nRadial, int dotPrefac)
+	: nCoeff(nCoeff), dGinv(dGinv), nRadial(nRadial), E_n(E_n), E_nRadial(E_nRadial), dotPrefac(dotPrefac)
 	{	q = qvec.length();
 		qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
 	}
@@ -147,29 +152,29 @@ struct nAugmentGradFunctor
 		for(int l=0; l*(l+2) < lm; l++) phase *= mIota;
 		//Accumulate result:
 		double Gindex = q * dGinv;
-		if(Gindex < nGloc-5)
+		if(Gindex < nCoeff-5)
 		{	complex term = phase * Ylm<lm>(qhat) * E_n;
-			QuinticSpline::valueGrad(dotPrefac * term.real(), E_nRadial+lm*nGloc, Gindex);
-			if(nRadial) nE_n += term * QuinticSpline::value(nRadial+lm*nGloc, Gindex); //needed again only when computing forces
+			QuinticSpline::valueGrad(dotPrefac * term.real(), E_nRadial+lm*nCoeff, Gindex);
+			if(nRadial) nE_n += term * QuinticSpline::value(nRadial+lm*nCoeff, Gindex); //needed again only when computing forces
 		}
 	}
 };
 template<int Nlm> __hostanddev__
 void nAugmentGrad_calc(int i, const vector3<int>& iG, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, int dotPrefac)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, int dotPrefac, bool dummyGpuThread=false)
 {
-	nAugmentGradFunctor functor(iG*G, nGloc, dGinv, nRadial, ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)), E_nRadial, dotPrefac);
+	nAugmentGradFunctor functor(iG*G, nCoeff, dGinv, nRadial, dummyGpuThread ? complex() : ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)), E_nRadial, dotPrefac);
 	staticLoopYlm<Nlm>(&functor);
-	if(nRadial) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
+	if(nRadial && !dummyGpuThread) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #ifdef GPU_ENABLED
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #endif
 
 

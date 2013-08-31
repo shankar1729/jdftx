@@ -36,46 +36,46 @@ void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k
 
 //Augment electron density by spherical functions
 template<int Nlm> void nAugment_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, n); )
+	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, n); )
 }
 template<int Nlm> void nAugment(const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	threadLaunch(nAugment_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nGloc, dGinv, nRadial, atpos, n);
+	threadLaunch(nAugment_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nCoeff, dGinv, nRadial, atpos, n);
 }
 void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, nGloc, dGinv, nRadial, atpos, n) )
+	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, nCoeff, dGinv, nRadial, atpos, n) )
 }
 
 
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> void nAugmentGrad_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, std::mutex* m)
 {
-	std::vector<double> E_nRadialVec(nGloc * Nlm); double* E_nRadialThread = E_nRadialVec.data();
-	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
+	std::vector<double> E_nRadialVec(nCoeff * Nlm); double* E_nRadialThread = E_nRadialVec.data();
+	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
 	//Accumulate E_nRadial:
 	m->lock();
-	eblas_daxpy(nGloc*Nlm, 1., E_nRadialThread,1, E_nRadial,1);
+	eblas_daxpy(nCoeff*Nlm, 1., E_nRadialThread,1, E_nRadial,1);
 	m->unlock();
 }
 template<int Nlm> void nAugmentGrad(const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
 {
 	std::mutex m; //lock for synchronizing final accumulation
-	threadLaunch(nAugmentGrad_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, &m);
+	threadLaunch(nAugmentGrad_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, &m);
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
 }
 
 

@@ -20,6 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/GpuKernelUtils.h>
 #include <core/LoopMacros.h>
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
 
 //Calculate non-local pseudopotential projector
 template<int l, int m> __global__
@@ -44,75 +46,126 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, 
 
 //Augment electron density by spherical functions
 template<int Nlm> __global__ void nAugment_kernel(int zBlock, const vector3<int> S, const matrix3<> G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<> atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos, complex* n)
 {	COMPUTE_halfGindices
-	nAugment_calc<Nlm>(i, iG, G, nGloc, dGinv, nRadial, atpos, n);
+	nAugment_calc<Nlm>(i, iG, G, nCoeff, dGinv, nRadial, atpos, n);
 }
 template<int Nlm> void nAugment_gpu(const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {	GpuLaunchConfigHalf3D glc(nAugment_kernel<Nlm>, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		nAugment_kernel<Nlm><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, nGloc, dGinv, nRadial, atpos, n);
+		nAugment_kernel<Nlm><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, nCoeff, dGinv, nRadial, atpos, n);
 	gpuErrorCheck();
 }
 void nAugment_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, nGloc, dGinv, nRadial, atpos, n) )
+	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, nCoeff, dGinv, nRadial, atpos, n) )
+}
+
+
+//Function for initializing the index arrays used by nAugmentGrad_gpu
+__global__ void setNagIndex_kernel(int zBlock, const vector3<int> S, const matrix3<> G, double dGinv, uint64_t* nagIndex)
+{	COMPUTE_halfGindices
+	uint64_t Gindex = uint64_t((iG*G).length() * dGinv);
+	vector3<int> iv = iG; for(int k=0; k<3; k++) if(iv[k]<0) iv[k] += S[k];
+	nagIndex[i] = (Gindex << 48) //Putting Gindex in the higher word allows sorting by it first, and then by grid point index
+		+ (uint64_t(iv[0]) << 32) + (uint64_t(iv[1]) << 16) + uint64_t(iv[2]);
+}
+__global__ void setNagIndexPtr_kernel(size_t nG, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
+{	int i = kernelIndex1D();
+	if(i>=nG) return;
+	if(i==0) nagIndexPtr[0] = 0;
+	int Gindex = int(nagIndex[i] >> 48);
+	int GindexNext = (i+1<nG) ? int(nagIndex[i+1] >> 48) : nCoeff;
+	for(int j=Gindex; j<GindexNext; j++)
+		nagIndexPtr[j+1] = i+1;
+}
+void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr)
+{	//First initialize the indices:
+	size_t nG = S[0]*S[1]*(S[2]/2+1);
+	{	if(!nagIndex) cudaMalloc(&nagIndex, nG*sizeof(uint64_t));
+		GpuLaunchConfigHalf3D glc(setNagIndex_kernel, S);
+		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+			setNagIndex_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, dGinv, nagIndex);
+		gpuErrorCheck();
+	}
+	//Now sort them to be ordered by Gindex
+	thrust::sort(thrust::device_ptr<uint64_t>(nagIndex), thrust::device_ptr<uint64_t>(nagIndex+nG));
+	gpuErrorCheck();
+	//Finally initialize the pointers to boundaries between different Gindices:
+	{	if(!nagIndexPtr) cudaMalloc(&nagIndexPtr, (nCoeff+1)*sizeof(size_t));
+		GpuLaunchConfig1D glc(setNagIndexPtr_kernel, nG);
+		setNagIndexPtr_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nG, nCoeff, nagIndex, nagIndexPtr);
+		gpuErrorCheck();
+	}
 }
 
 
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, const matrix3<> G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<> atpos,
-	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos,
+	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
-	int iThread = kernelIndex1D();
-	int nThreads = blockDim.x * gridDim.x;
-	double* E_nRadialThread = E_nRadialTemp + (Nlm*nGloc)*iThread;
-	size_t nG = S[0]*S[1]*(S[2]/2+1);
-	size_t iStart = ((iThread) * nG) / nThreads;
-	size_t iStop = ((iThread+1) * nG) / nThreads;
-	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
+	const int& iCoeff = blockIdx.x;
+	double* E_nRadialThread = E_nRadialTemp + (Nlm*nCoeff) * (iCoeff & 0x7); //Write to (iCoeff % 8)th copy (breaks write dependency (of range 6) between nearby iCoeffs)
+	const size_t& ptrStart = nagIndexPtr[iCoeff];
+	const size_t& ptrStop = nagIndexPtr[iCoeff+1];
+	int nIter = (ptrStop-ptrStart + blockDim.x-1) / blockDim.x; //Note (A+B-1)/B for positive integers equals ceil(A/B)
+	for(int iIter=0; iIter<nIter; iIter++)
+	{	size_t ptr = ptrStart + threadIdx.x + iIter*blockDim.x;
+		bool dummy = (ptr >= ptrStop); //can't quit here, because reduction in QuinticSpline::valueGrad needs all threads to get there
+		if(dummy) ptr = ptrStop-1; //to avoid unnecssary branches later (but threads with dummy=true should never write to memory)
+		//Obtain 3D index iG and array offset i for this point (similar to COMPUTE_halfGindices)
+		uint64_t key = nagIndex[ptr];
+		vector3<int> iG;
+		iG[2] = int(0xFFFF & key); key >>= 16;
+		iG[1] = int(0xFFFF & key); key >>= 16;
+		iG[0] = int(0xFFFF & key);
+		size_t i = iG[2] + (S[2]/2+1)*size_t(iG[1] + S[1]*iG[0]);
+		for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j];
+		nAugmentGrad_calc<Nlm>(i, iG, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2, dummy);
+	}
 }
-__global__ void nAugmentGrad_collectKernel(int nData, int nCopies, const double* in, double* out)
+__global__ void nAugmentGrad_collectKernel(int nData, const double* in, double* out)
 {	int i = kernelIndex1D();
 	if(i<nData)
 	{	double sum = 0.;
-		for(int iCopy=0; iCopy<nCopies; iCopy++)
+		for(int iCopy=0; iCopy<8; iCopy++)
 			sum += in[i + iCopy*nData];
 		out[i] += sum;
 	}
 }
+
 template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
 	//Allocate temporary memory:
-	cudaDeviceProp prop;
 	int iDevice; cudaGetDevice(&iDevice);
-	cudaGetDeviceProperties(&prop, iDevice);
-	int nPerBlock = 8;
-	int nBlocks = prop.multiProcessorCount * 4;
-	int nThreads = nBlocks * nPerBlock;
-	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nGloc*Nlm*nThreads);
-	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nGloc*Nlm*nThreads);
+	cudaDeviceProp prop; cudaGetDeviceProperties(&prop, iDevice);
+	cudaFuncAttributes attr; cudaFuncGetAttributes(&attr, nAugmentGrad_kernel<Nlm>);
+	int sharedMemPerThread = 6 * sizeof(double);
+	int nPerBlock = std::min(prop.warpSize, std::min(attr.maxThreadsPerBlock, int(prop.sharedMemPerBlock/sharedMemPerThread)));
+	int nBlocks = nCoeff;
+	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nCoeff*Nlm*8);
+	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nCoeff*Nlm*8);
 	gpuErrorCheck();
-	//Stage 1: calculate with the scattered accumulate to per-thread temporary space
-	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock>>>(S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos);
+	//Stage 1: calculate with the scattered accumulate to E_nRadial
+	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos, nagIndex, nagIndexPtr);
 	gpuErrorCheck();
 	//Stage 2: collect from E_nRadialTemp to E_nRadial
-	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nGloc*Nlm);
-	nAugmentGrad_collectKernel<<<glc.nBlocks,glc.nPerBlock>>>(nGloc*Nlm, nThreads, E_nRadialTemp, E_nRadial);
+	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nCoeff*Nlm);
+	nAugmentGrad_collectKernel<<<glc.nBlocks,glc.nPerBlock>>>(nCoeff*Nlm, E_nRadialTemp, E_nRadial);
 	gpuErrorCheck();
 	//Cleanup:
 	cudaFree(E_nRadialTemp);
 }
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
-	int nGloc, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugmentGrad_gpu, (S, G, nGloc, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad_gpu, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr) )
 }
 
 

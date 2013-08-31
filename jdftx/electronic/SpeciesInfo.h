@@ -131,8 +131,10 @@ public:
 	//! Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore)
 	std::vector< vector3<> > getLocalForces(const DataGptr& ccgrad_Vlocps, const DataGptr& ccgrad_rhoIon,
 		const DataGptr& ccgrad_nChargeball, const DataGptr& ccgrad_nCore, const DataGptr& ccgrad_tauCore) const;
-	
+
 private:
+	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
+
 	RadialFunctionG VlocRadial; //!< local pseudopotential
 	RadialFunctionG nCoreRadial; //!< core density for partial core correction
 	RadialFunctionG tauCoreRadial; //!< core KE density for partial core correction with meta-GGAs
@@ -153,7 +155,8 @@ private:
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
 	double* nAug; //!< intermediate electron density augmentation in spherical functions (Flat array indexed by spin, atom number and then spline coeff)
 	double* E_nAug; //!< Gradient w.r.t nAug (same layout)
-	
+	uint64_t* nagIndex; size_t* nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad_gpu
+
 	bool readProjectors; //!< whether to read PAW projectors from Pot format files
 	std::vector< std::vector<RadialFunctionG> > projRadial; //!< PAW projectors (outer index l, inner index projetcor)
 
