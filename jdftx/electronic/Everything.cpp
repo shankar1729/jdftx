@@ -40,6 +40,7 @@ void Everything::setup()
 	
 	//Initialize the grid:
 	gInfo.Gmax = sqrt(2*cntrl.Ecut); //Ecut = 0.5 Gmax^2
+	gInfo.GmaxRho = sqrt(2*cntrl.EcutRho); //Ecut = 0.5 Gmax^2
 	gInfo.initialize(false, symm.getMatrices());
 
 	//Exchange correlation setup

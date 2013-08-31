@@ -37,7 +37,7 @@ public:
 	double occupiedThreshold; //!< fillings threshold for occupied states
 	
 	BasisKdep basisKdep; //!< k-dependence of basis
-	double Ecut; //!< energy cutoff
+	double Ecut, EcutRho; //!< energy cutoff for electrons and charge density grid (EcutRho=0 => EcutRho = 4 Ecut)
 	
 	double dragRadius; //!< typical region of space around each atom "dragged" on each ionic step (0 to disable)
 	vector3<> lattMoveScale; //!< preconditioning factor for each lattice vector during lattice minimization
@@ -62,7 +62,7 @@ public:
 	Control()
 	:	fixed_n(false),
 		fixOccupied(false), occupiedThreshold(0),
-		basisKdep(BasisKpointDep), Ecut(0), dragRadius(0),
+		basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragRadius(0),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false),

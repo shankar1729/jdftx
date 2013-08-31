@@ -81,6 +81,7 @@ public:
 	
 	matrix3<> R; //!< directly specified lattice vectors
 	double Gmax; //!< radius of wavefunction G-sphere, whole density sphere (double the radius) must be inscribable within the FFT box
+	double GmaxRho; //!< if non-zero, override the FFT box inscribable sphere radius
 	vector3<int> S; //!< sample points in each dimension (if 0, will be determined automatically based on Gmax)
 
 	//! Initialize the dependent quantities below.

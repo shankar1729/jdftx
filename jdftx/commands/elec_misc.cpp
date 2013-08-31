@@ -26,17 +26,23 @@ struct CommandElecCutoff : public Command
 {
 	CommandElecCutoff() : Command("elec-cutoff")
 	{
-		format = "<Ecut>";
-		comments = "Electronic planewave cutoff in Hartree";
+		format = "<Ecut> [<EcutRho>=0]";
+		comments = "Electronic planewave cutoff in Hartree. Optionally specify charge density cutoff\n"
+			"<EcutRho> in hartrees. If unspecified or zero, EcutRho is taken to be 4*Ecut.";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.cntrl.Ecut, 20.0, "Ecut");
+	{	pl.get(e.cntrl.Ecut, 20., "Ecut");
+		pl.get(e.cntrl.EcutRho, 0., "EcutRho");
+		if(e.cntrl.EcutRho && e.cntrl.EcutRho < 4*e.cntrl.Ecut)
+			throw string("<EcutRho> must be at least 4 <Ecut>");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	logPrintf("%lg", e.cntrl.Ecut);
+		if(e.cntrl.EcutRho)
+			logPrintf(" %lg", e.cntrl.EcutRho);
 	}
 }
 commandElecCutoff;

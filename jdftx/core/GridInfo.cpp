@@ -28,7 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fftw3_mkl.h>
 #endif
 
-GridInfo::GridInfo():Gmax(0),initialized(false)
+GridInfo::GridInfo():Gmax(0),GmaxRho(0),initialized(false)
 {
 }
 
@@ -196,11 +196,12 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	//Choose / verify validity of sample count S (fftbox size)
 	vector3<int> Smin;
 	bool autoS = (S[0]<=0) || (S[1]<=0) || (S[2]<=0); //whether to auto-compute sample count
-	if(Gmax) //Determine minimum sampling corresponding to Gmax:
+	if(GmaxRho && GmaxRho < 2*Gmax) die("Charge density G-cutoff must be atleast twice that for wavefunctions.\n");
+	if(Gmax || GmaxRho) //Determine minimum sampling corresponding to Gmax:
 	{	//The integer coefficient of the nyquist component (half S) in each direction
 		//when multiplied by the spacing between the reciprocal lattice plane spacings
 		//must just exceed twice Gmax for the density sphere to be inscribed:
-		for(int k=0; k<3; k++) Smin[k] = std::max(1, 4*int(Gmax * R.column(k).length() / (2*M_PI)));
+		for(int k=0; k<3; k++) Smin[k] = std::max(1, 4*int(std::max(Gmax,0.5*GmaxRho) * R.column(k).length() / (2*M_PI)));
 		logPrintf("Minimum fftbox size, Smin = "); Smin.print(globalLog, " %d ");
 	}
 	if(autoS) //pick minimal FFT-suitable size
