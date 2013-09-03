@@ -37,7 +37,8 @@ struct Molecule
 		double Rhs; //!< hard sphere radius
 		int atomicNumber; //!< necessary for vdW parameters
 		double Znuc, sigmaNuc; //!< magnitude of the nuclear charge (positive) and corresponding gaussian width
-		double Zelec, aElec; string elecFilename; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width (or override with file)
+		double Zelec, aElec; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width 
+		string elecFilename, elecFilenameG; //!< include electron charge density from real- or G- space radial ASCII file
 		double alpha, aPol; //!< isotropic polarizability and corresponding cuspless-exponential width
 
 		std::vector< vector3<> > positions; //!< Positions w.r.t molecular origin in the reference orientation

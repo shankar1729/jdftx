@@ -21,7 +21,176 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <core/Units.h>
 #include <fluid/FluidSolver.h>
+#include <fluid/FluidComponent.h>
 #include <fluid/Fex_ScalarEOS.h>
+
+enum FluidSiteParameter
+{	
+	FSp_Znuc, //!<magnitude of the nuclear charge (positive) 
+	FSp_sigmaNuc, //!<gaussian width of the nuclear charge (positive)
+	FSp_Zelec, //!<magnitude of electron charge (positive)
+	FSp_aElec, //!<cuspless-exponential width of electron charge distribution
+	FSp_elecFilename, //!<filename to read in additional radial realspace electron charge distribution,
+	FSp_elecFilenameG, //!<filename to read in additional radial Gspace electron charge distribution
+	FSp_alpha, //!<isotropic polarizability
+	FSp_aPol, //!<cuspless-exponential width of polarizability
+	FSp_Delim //!< Delimiter used in parsing:
+};
+
+EnumStringMap<FluidSiteParameter> FSParamMap(
+	FSp_Znuc, "Znuc", 
+	FSp_sigmaNuc, "sigmaNuc",
+	FSp_Zelec, "Zelec",
+	FSp_aElec, "aElec",
+	FSp_alpha, "alpha",
+	FSp_aPol, "aPol",
+	FSp_elecFilename, "elecFilename",
+	FSp_elecFilenameG, "elecFilenameG"	);
+
+EnumStringMap<FluidSiteParameter> FSParamDescMap(
+	FSp_Znuc, "magnitude of the nuclear charge (positive)", 
+	FSp_sigmaNuc, "gaussian width of the nuclear charge (positive)",
+	FSp_Zelec, "magnitude of electron charge (positive)",
+	FSp_aElec, "cuspless-exponential width of electron charge distribution",
+	FSp_elecFilename, "filename to read in additional radial realspace electron charge distribution",
+	FSp_elecFilenameG, "filename to read in additional radial Gspace electron charge distribution",
+	FSp_alpha, "isotropic polarizability",
+	FSp_aPol, "cuspless-exponential width of polarizability"	);
+
+//Kendra: list of fluid components supported in JDFT3 at present
+EnumStringMap<FluidComponent::Name> fluidComponentMap(
+	//solvents
+	FluidComponent::H2O, "H2O",
+	FluidComponent::CHCl3, "CHCl3",
+	FluidComponent::CCl4, "CCl4"/*,
+	FluidComponent::DMC, "DMC",
+	FluidComponent::EC, "EC",
+	FluidComponent::PC, "PC",
+	FluidComponent::DMF, "DMF",
+	FluidComponent::THF, "THF",
+	FluidComponent::EthylEther, "EthylEther",
+  	FluidComponent::Chlorobenzene, "Chlorobenzene",
+	FluidComponent::Isobutanol, "Isobutanol",
+	FluidComponent::CarbonDisulfide, "CarbonDisulfide",
+	FluidComponent::CustomSolvent, "CustomSolvent",
+	//cations
+	FluidComponent::Sodium, "Na+",
+	FluidComponent::CustomCation, "CustomCation",
+	//anions
+	FluidComponent::Chloride, "Cl-", 
+	FluidComponent::CustomAnion, "CustomAnion"*/ );
+
+
+struct CommandFluidSiteParams : public Command
+{
+	
+
+	CommandFluidSiteParams() : Command("fluid-site-params")
+	{	
+		format = " <solvent> <siteName> <key1> <value1> <key2> <value2> ...";
+		comments = "Set parameters of <siteName> site for solvent component <solvent>=" + fluidComponentMap.optionList() 
+			+ ".\nChanges default parameters of existing site. \nPossible keys and value types are:"
+			+ addDescriptions(FSParamMap.optionList(), linkDescription(FSParamMap, FSParamDescMap))
+			+ "\nAny number of these key-value pairs may be specified in any order.";
+		
+		require("fluid-solvent");
+		hasDefault = true;
+		allowMultiple = true;
+	}
+	
+void process(ParamList& pl, Everything& e)
+	{	
+		FluidSolverParams& fsp = e.eVars.fluidParams;
+
+		//Read in and check name of the solvent, get index of the solvent in FluidComponent
+		FluidComponent::Name solventName; 
+		pl.get(solventName, fsp.components[0]->name, fluidComponentMap, "solvent", false);
+		std::shared_ptr<FluidComponent> FC;
+		for (const auto& c : fsp.components)
+		{
+			if (solventName == c->name) 
+				FC=c;
+		}
+		if (!FC)
+			throw string("Choice of <solvent> is not valid.\n Hint: Issue fluid-solvent first");
+		
+		//Read in name of the site
+		string siteName;
+		pl.get(siteName, FC->molecule.sites[0]->name, "siteName", false);
+		std::shared_ptr<Molecule::Site> site;
+		for (const auto& s : FC->molecule.sites)
+		{
+			if(siteName == s->name) 
+				site=s;
+		}
+		if (!site)	
+			throw string("Choice of <siteName> is not valid.");
+
+		//Read parameters:
+		while(true)
+		{	FluidSiteParameter key;
+			pl.get(key, FSp_Delim, FSParamMap, "key");
+			#define READ_AND_CHECK(param, op, val) \
+				case FSp_##param: \
+					pl.get(site->param, val, #param, true); \
+					if(!(site->param op val)) throw string(#param " must be " #op " " #val); \
+					break;
+			switch(key)
+			{	
+				READ_AND_CHECK(Znuc,>,0.) 
+				READ_AND_CHECK(sigmaNuc,>,0.)
+				READ_AND_CHECK(Zelec,>=,0.) 
+				READ_AND_CHECK(aElec,>,0.) 
+				READ_AND_CHECK(elecFilename,!=,string("")) 
+				READ_AND_CHECK(elecFilenameG,!=,string("")) 
+				READ_AND_CHECK(alpha,>,0.)
+				READ_AND_CHECK(aPol,>,0.)
+				case FSp_Delim: return; //end of input
+			}
+			#undef READ_AND_CHECK
+		}		
+	}
+	
+void printStatus(Everything& e, int iRep)
+	{	
+		//prints all the sites and parameters, even if the default is unchanged
+		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
+		if(iRep==0)
+		{
+			int counter=0;
+			const FluidSolverParams& fsp = e.eVars.fluidParams;
+			for (const auto& c : fsp.components)
+			{
+				string cName = fluidComponentMap.getString(c->name);
+				for (const auto& s : c->molecule.sites)
+				{	
+					string sName = s->name;
+					if(counter) 
+						logPrintf("\nfluid-site-params ");
+					logPrintf("%s %s",cName.c_str(),sName.c_str()),
+					#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
+					PRINT(Znuc)
+					PRINT(sigmaNuc)
+					PRINT(Zelec)
+					PRINT(aElec)
+					PRINT(alpha)
+					PRINT(aPol)
+					logPrintf(" \\\n\telecFilename ");
+					if (s->elecFilename.length())
+						logPrintf("%s", s->elecFilename.c_str());
+					logPrintf(" \\\n\telecFilenameG ");
+					if (s->elecFilenameG.length())
+						logPrintf("%s", s->elecFilenameG.c_str());
+					#undef PRINT
+					
+					counter++;	
+				}
+			}
+		}			
+	}
+}
+commandFSParams;
+
 
 /*
 EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
