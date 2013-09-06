@@ -64,6 +64,7 @@ struct Molecule
 	
 	bool isMonoatomic() const; //!< whether it is a monoatomic molecule
 	double getCharge() const; //!< total charge on molecule
+	double checkCharge(); //!< check total charge on molecule and modify kernels if small non-neutral charge
 	vector3<> getDipole() const; //!< total dipole moment on molecule
 	double getVhs() const; //!< total exclusion volume
 	double getAlphaTot() const; //!< total polarizability

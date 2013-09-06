@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 
 
+
 Molecule::Site::Site(string name, int atomicNumber) : name(name), Rhs(0), atomicNumber(atomicNumber), Znuc(0), sigmaNuc(0), Zelec(0), aElec(0), alpha(0), aPol(0), initialized(false)
 {	
 }
@@ -65,17 +66,146 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	logPrintf("     Initializing site '%s'\n", name.c_str());
 	
 	//Initialize electron density kernel:
-	if(elecFilename.length() || Zelec)
+	if(elecFilename.length() || elecFilenameG.length() || Zelec)
 	{	logPrintf("       Electron density: ");
+		if(Zelec)
+		{
+			logPrintf("\n       Initializing cuspless exponential with width %lg and norm %lg\n", aElec, Zelec);
+		}
+		elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, cusplessExpTilde, Zelec, aElec); 
 		if(elecFilename.length())
-		{	logPrintf("reading from '%s' ...", elecFilename.c_str());
-			//TODO: read from file, commented out code below
+		{	
+			ifstream ifs(elecFilename.c_str());
+			if(!ifs.is_open()) 
+				die("Can't open radial electron density file '%s' for reading.\n", elecFilename.c_str());
+			logPrintf("\n       Reading realspace radial electron density model from '%s':\n", elecFilename.c_str());
+	 
+			std::vector<double> rVec,nVec; //to store values of radius and density
+			double deltaRMin = 10.0; //minimum distance between radial grid points.
+	
+			while (!ifs.eof())
+			{
+				double r,n;
+				string line;
+				getline(ifs, line);
+				
+				if( ifs.eof() )
+					break;
+				
+				istringstream(line) >> r >> n;
+				//logPrintf("r: %.12lf n: %.12lf \n",r,n);
+				rVec.push_back(r);
+				nVec.push_back(n);					
+				int Nr = rVec.size()-1;
+
+				if (Nr)
+				{
+					double deltaR = rVec[Nr]-rVec[Nr-1];
+					if (deltaR <= 0.0)
+					{
+						die("ERROR reading electron density model for %s site from %s:\n"
+						"Radial gridpoints must be in ascending order\n", name.c_str(), elecFilename.c_str());
+					}
+					else if (deltaR < deltaRMin)
+						deltaRMin = deltaR;
+				}
+
+				if( ifs.fail() || ifs.bad())
+				die("ERROR reading electron density model for %s site from %s\n", name.c_str(), elecFilename.c_str());
+		
+			}
+	
+			RadialFunctionR KernelR(rVec.size());
+			KernelR.r = rVec;
+			KernelR.f = nVec;
+			KernelR.initWeights();
+	
+			double dG = gInfo.dGradial; //The uniform G-spacing for the radial function
+			int nGridG = int(ceil(gInfo.GmaxGrid/dG))+5; //number of G grid points
+			RadialFunctionG KernelG; //holds G space radial function
+	
+			//transform to fourier space
+			KernelR.transform(0, dG, nGridG, KernelG);
+			
+			std::vector<double> newKernel;
+			for (int i=0; i < nGridG; i++)
+			{
+				double G = double(i)*dG;
+				newKernel.push_back(elecKernel(G)+KernelG(G));
+			}
+			elecKernel.init(0,newKernel,dG); //reinitialize elecKernel with new radial function added on.
+			
+				
 		}
-		else
-		{	logPrintf("cuspless exponential with width %lg and", aElec);
-			elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, cusplessExpTilde, Zelec, aElec);
+		if(elecFilenameG.length())
+		{	
+			ifstream ifs(elecFilenameG.c_str());
+			if(!ifs.is_open()) 
+				die("Can't open radial Gspace electron density file '%s' for reading.\n", elecFilenameG.c_str());
+			logPrintf("\n       Reading Gspace radial electron density model from '%s':\n", elecFilenameG.c_str());
+	 
+			std::vector<double> GVec,nVec; //to store values of G and density
+			double dGfile = 10.0; //the Gspace grid-spacing 
+			double dGmin = 0.1; //minimum distance between Gspace grid points.
+	
+			while (!ifs.eof())
+			{
+				double G,n;
+				string line;
+				getline(ifs, line);
+				
+				if( ifs.eof() )
+					break;
+				
+				istringstream(line) >> G >> n;
+				//logPrintf("r: %.12lf n: %.12lf \n",r,n);
+				GVec.push_back(G);
+				nVec.push_back(n);					
+				int NG = GVec.size()-1;
+				
+				if (NG)
+				{
+					double deltaG = GVec[NG]-GVec[NG-1];
+					if (deltaG <= 0.0)
+					{
+						die("ERROR reading electron density model for %s site from %s:\n"
+						"Gspace gridpoints must be in ascending order\n", name.c_str(), elecFilenameG.c_str());
+					}
+					if(NG==1)
+					{
+						dGfile = deltaG;
+						if (dGfile > dGmin)
+							die("ERROR reading electron density model for %s site from %s:\n"
+							"Gspace grid spacing must be less than %lg\n", name.c_str(), elecFilenameG.c_str(), dGmin);
+					}
+					else
+					{
+						if(fabs(deltaG-dGfile)>1e-8)
+							die("ERROR reading electron density model for %s site from %s:\n"
+							"Non-uniform G spacing is currently unsupported\n", name.c_str(), elecFilenameG.c_str());
+					}
+				}
+
+				if( ifs.fail() || ifs.bad())
+				die("ERROR reading electron density model for %s site from %s\n", name.c_str(), elecFilenameG.c_str());
+		
+			}
+			
+			RadialFunctionG KernelG;
+			KernelG.init(0,nVec,dGfile);
+			
+			double dG = gInfo.dGradial; //The uniform G-spacing for the radial function
+			int nGridG = int(ceil(gInfo.GmaxGrid/dG))+5; //number of G grid points
+			std::vector<double> newKernel;			
+			for (int i=0; i<nGridG; i++)
+			{
+				double G = double(i)*dG;
+				newKernel.push_back(elecKernel(G)+KernelG(G));			
+			}
+			elecKernel.init(0,newKernel,dG); //reinitialize elecKernel with new radial function added on.					
 		}
-		logPrintf(" norm %lg\n", elecKernel(0));
+		
+		logPrintf("         Total electronic charge: %lg\n", elecKernel(0));
 	}
 	
 	//Initialize charge kernel:
@@ -118,82 +248,6 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	initialized = true;
 }
 
-
-/*
-void ConvCoupling::setRadialKernel(SiteProperties& s)
-{	
-	ifstream ifs(s.kernelFilename.c_str());
-	if(!ifs.is_open()) die("Can't open radial electron density file '%s' for reading.\n", s.kernelFilename.c_str());
-	logPrintf("\nReading radial electron density model for %s site from '%s':\n",s.siteName.c_str(),s.kernelFilename.c_str());
-	 
-	std::vector<double> rVec,nVec; //to store values of radius and density
-	double deltaRMin = 10.0; //minimum distance between radial grid points.
-	
-	while (!ifs.eof())
-	{
-		double r,n;
-		string line;
-		getline(ifs, line);
-		istringstream(line) >> r >> n;
-		logPrintf("r: %.12lf n: %.12lf",r,n);
-		rVec.push_back(r);
-		nVec.push_back(n);	
-		
-		int Nr = rVec.size();
-		double deltaR = rVec[Nr]-rVec[Nr-1];
-		
-		if (deltaR <= 0.0)
-		{
-			die("ERROR reading electron density model for %s site from %s:\n"
-				"Radial gridpoints must be in ascending order\n", s.siteName.c_str(), s.kernelFilename.c_str());
-		}
-		else if (deltaR < deltaRMin)
-			deltaRMin = deltaR;
-		
-		if( ifs.fail() || ifs.bad())
-			die("ERROR reading electron density model for %s site from %s\n", s.siteName.c_str(), s.kernelFilename.c_str());
-		
-	}
-	
-	RadialFunctionR KernelR(rVec.size());
-	KernelR.r = rVec;
-	KernelR.f = nVec;
-	KernelR.initWeights();
-	
-	double dG = 0.02; //The uniform G-spacing for the radial function
-	int ngridG = 2 * ceil(2.0*M_PI/(deltaRMin*dG)); //set the number of G grid points
-	RadialFunctionG KernelG;
-	
-	//transform to fourier space
-	KernelR.transform(0, dG, ngridG, KernelG);
-	
-	//allocate the kernel if not already allocated
-	if(!s.couplingElecKernel)
-	{
-		s.couplingElecKernel = new RealKernel(gInfo);	
-		//Interpolate fourier space function onto gInfo
-		radialFunctionG(KernelG, *s.couplingElecKernel);
-	}
-	else //assumes radial function is an addition to an exponential (or other analytical function) 
-	{
-		RealKernel tmp(gInfo);	
-		//Interpolate fourier space function onto gInfo
-		radialFunctionG(KernelG, tmp);
-		for(int i=0; i<gInfo.nG; i++)
-			s.couplingElecKernel->data[i] += tmp.data[i];
-	}
-	
-	double Kernel0 = s.couplingElecKernel->data[0];
-	if (fabs(Kernel0-s.couplingZnuc-s.chargeZ*s.chargeKernel->data[0])>1e-12)
-		logPrintf("Warning: classical site charges and electron kernel charges not balanced in convolution coupling.\n");
-
-	logPrintf("Final electron density model for %s site has net charge %.12lf and site charge %.12lf\n",
-				s.siteName.c_str(), Kernel0, Kernel0-s.couplingZnuc);
-				
-	s.couplingElecKernel->set();	
-}
-*/
-
 Molecule::Molecule(string name) : name(name), initialized(false)
 {
 }
@@ -211,7 +265,7 @@ inline double sphericalShellTilde(double G, double R)
 void Molecule::setup(const GridInfo& gInfo, double Rmf)
 {	logPrintf("   Initializing fluid molecule '%s'\n", name.c_str());
 	for(auto& site: sites) site->setup(gInfo);
-	logPrintf("     Net charge: %lg   dipole magnitude: %lg\n", getCharge(), getDipole().length());
+	logPrintf("     Net charge: %lg   dipole magnitude: %lg\n", checkCharge(), getDipole().length());
 	mfKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, sphericalShellTilde, Rmf ? Rmf : pow(3*getVhs()/(4.*M_PI), 1./3));
 	initialized = true;
 }
@@ -228,6 +282,35 @@ double Molecule::getCharge() const
 			Q += site->chargeKernel(0) * site->positions.size();
 	if(fabs(Q) < 1e-12) return 0.; //simplify neutrality testing
 	else return Q;
+}
+
+//At first initialization of molecule absorb very small site charges
+//into first site chargeKernel and elecKernel 
+double Molecule::checkCharge() 
+{	
+	double Q = getCharge();
+	if(Q==0.) 
+		return 0.;
+	if(fabs(Q) < 1e-6)
+	{
+		std::shared_ptr<Site> s0 = sites[0]; 
+		int nG = s0->chargeKernel.nCoeff;
+		double dG = 1./s0->chargeKernel.dGinv;
+		std::vector<double> chargeKernel, elecKernel;
+		for (int i=0; i < nG; i++)
+		{
+			double G = double(i)*dG;
+			chargeKernel.push_back(s0->chargeKernel(G));
+			elecKernel.push_back(s0->elecKernel(G));
+		}
+		chargeKernel[0] -= Q / s0->positions.size();
+		s0->chargeKernel.init(0,chargeKernel,dG);
+		elecKernel[0] -=  Q / s0->positions.size();
+		s0->elecKernel.init(0,elecKernel,dG);
+		logPrintf("     WARNING: Molecule had net charge %lg, adjusting %s site charge by %lg to compensate.\n",Q,s0->name.c_str(),-Q/s0->positions.size());
+		return 0.;
+	}
+	  else return Q;
 }
 
 vector3<> Molecule::getDipole() const
