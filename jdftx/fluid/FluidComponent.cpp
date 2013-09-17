@@ -191,9 +191,9 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.sites.push_back(siteCl);
 			//Geometry:
 			const double zC = 0.523*Angstrom; //distance of C from center
-			const double rCCl = 1.762*Angstrom;
-			const double rCH = 1.073*Angstrom;
-			const double thetaHCCl = 107.98 * M_PI/180;
+			const double rCCl = 1.804*Angstrom;
+			const double rCH = 1.091*Angstrom;
+			const double thetaHCCl = 107.8 * M_PI/180;
 			siteCenter->positions.push_back(vector3<>(0.,0.,0.));
 			siteC->positions.push_back(vector3<>(0.,0.,zC));
 			siteH->positions.push_back(vector3<>(0,0,zC+rCH));
@@ -226,7 +226,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 				siteCl->alpha = 18.1; siteCl->aPol = 0.47;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
-			const double rCCl = 1.7829*Angstrom;
+			const double rCCl = 1.801*Angstrom;
 			siteC->positions.push_back(vector3<>(0,0,0));
 			siteCl->positions.push_back(vector3<>(0,0,rCCl));
 			siteCl->positions.push_back(vector3<>(0, rCCl*(sqrt(8.)/3), rCCl*(-1./3)));

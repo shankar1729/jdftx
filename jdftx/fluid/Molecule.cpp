@@ -78,7 +78,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 			ifstream ifs(elecFilename.c_str());
 			if(!ifs.is_open()) 
 				die("Can't open radial electron density file '%s' for reading.\n", elecFilename.c_str());
-			logPrintf("\n       Reading realspace radial electron density model from '%s':\n", elecFilename.c_str());
+			logPrintf("\n       Reading realspace radial model from '%s':\n", elecFilename.c_str());
 	 
 			std::vector<double> rVec,nVec; //to store values of radius and density
 			double deltaRMin = 10.0; //minimum distance between radial grid points.
@@ -142,7 +142,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 			ifstream ifs(elecFilenameG.c_str());
 			if(!ifs.is_open()) 
 				die("Can't open radial Gspace electron density file '%s' for reading.\n", elecFilenameG.c_str());
-			logPrintf("\n       Reading Gspace radial electron density model from '%s':\n", elecFilenameG.c_str());
+			logPrintf("\n       Reading Gspace radial model from '%s':\n", elecFilenameG.c_str());
 	 
 			std::vector<double> GVec,nVec; //to store values of G and density
 			double dGfile = 10.0; //the Gspace grid-spacing 
