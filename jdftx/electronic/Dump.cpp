@@ -544,13 +544,50 @@ void dumpExcitations(const Everything& e, const char* filename)
 		};
 		std::vector<excitation> excitations;
 
+		double maxHOMO, minLUMO; // maximum (minimum) of all HOMOs (LUMOs) in all qnums
+		double opticalGap; // optical gap of the system (minimum energy excitation for all qnums
+
+		// Indices and energies for the indirect gap
+		int maxHOMOq = 0;
+		int minLUMOq = 0;
+		int maxHOMOn = e.eInfo.findHOMO(maxHOMOq);
+		if(maxHOMOn >= (e.eInfo.nBands-1))
+		{	fprintf(fp, "Insufficient bands to calculate excited states!\n");
+			fprintf(fp, "Increase the number of bands (elec-n-bands) and try again!\n");
+			return;
+		}
+		int minLUMOn = maxHOMOn+1;
+		maxHOMO = e.eVars.Hsub_eigs[maxHOMOq][maxHOMOn];
+		minLUMO = e.eVars.Hsub_eigs[minLUMOq][minLUMOn];
+		
+		// Indices and energies for the direct (optical) gap
+		int opticalq = maxHOMOq, opticaln = maxHOMOn;
+		opticalGap = minLUMO - maxHOMO;
+		
+		// Integral kernel's for Fermi's golden rule
 		DataRptr r0, r1, r2;
 		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
 		applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
 		applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
 		applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
+		
+		// Find and cache all excitations in system (between same qnums)
 		for(int q=0; q<e.eInfo.nStates; q++)
-		{	int HOMO = e.eInfo.findHOMO(q);
+		{	
+			int HOMO = e.eInfo.findHOMO(q);
+					
+			// Update globa HOMO and LUMO
+			if(e.eVars.Hsub_eigs[q][HOMO] > maxHOMO)
+			{	maxHOMOq = q;
+				maxHOMOn = HOMO;
+				maxHOMO = e.eVars.Hsub_eigs[maxHOMOq][maxHOMOn];
+			}
+			if(e.eVars.Hsub_eigs[q][HOMO+1] < minLUMO)	
+			{	minLUMOq = q;
+				minLUMOn = HOMO+1;
+				minLUMO = e.eVars.Hsub_eigs[minLUMOq][minLUMOn];
+			}
+			
 			for(int o=HOMO; o>=0; o--)
 			{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
 				{	complex x = integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o)));
@@ -559,12 +596,23 @@ void dumpExcitations(const Everything& e, const char* filename)
 					vector3<> dreal(x.real(), y.real(),z.real());
 					vector3<> dimag(x.imag(), y.imag(),z.imag());
 					vector3<> dnorm(sqrt(x.norm()), sqrt(y.norm()),sqrt(z.norm()));
-					excitations.push_back(excitation(q, o, u, e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o],dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
+					
+					// Calculate the excitation energy, update optical gap if necessary
+					double dE = e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o];
+					if(dE < opticalGap) 
+					{	opticalq = q; opticaln = HOMO;
+						opticalGap = dE;
+					}
+					
+					excitations.push_back(excitation(q, o, u, dE,dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
 				}
 			}
 		}
 		std::sort(excitations.begin(), excitations.end());
 
+		fprintf(fp, "Optical (direct) gap: %.5e (from n = %i to %i in qnum = %i)\n", opticalGap, opticaln, opticaln+1, opticalq);
+		fprintf(fp, "Indirect gap: %.5e (from (%i, %i) to (%i, %i))\n\n", minLUMO-maxHOMO, maxHOMOq, maxHOMOn, minLUMOq, minLUMOn);
+		
 		fprintf(fp, "Optical excitation energies and corresponding electric dipole transition strengths\n");
 		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2 (real, imag, norm)\n");
 		for(size_t i=0; i<excitations.size(); i++)
