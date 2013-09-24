@@ -406,6 +406,7 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces)
 {	static StopWatch watch("augmentDensityGridGrad"); watch.start();
 	augmentDensity_COMMON_INIT
+	if(!nAug) augmentDensityInit();
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./dGloc;
 	callPref(eblas_zero)(nCoeffSpin * (e->eInfo.spinType==SpinNone ? 1 : 2), E_nAug);
