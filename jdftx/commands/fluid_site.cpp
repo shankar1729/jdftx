@@ -101,7 +101,7 @@ struct CommandFluidSiteParams : public Command
 void process(ParamList& pl, Everything& e)
 	{	
 		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM)
-			break;
+			return;
 		FluidSolverParams& fsp = e.eVars.fluidParams;
 
 		//Read in and check name of the solvent, get index of the solvent in FluidComponent
@@ -159,7 +159,7 @@ void printStatus(Everything& e, int iRep)
 		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
 		
 		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM)
-			break;
+			return;
 		if(iRep==0)
 		{
 			int counter=0;
