@@ -57,12 +57,12 @@ EnumStringMap<FluidSiteParameter> FSParamDescMap(
 	FSp_alpha, "isotropic polarizability",
 	FSp_aPol, "cuspless-exponential width of polarizability"	);
 
-//Kendra: list of fluid components supported in JDFT3 at present
+//Kendra: list of fluid components supported 
 EnumStringMap<FluidComponent::Name> fluidComponentMap(
 	//solvents
 	FluidComponent::H2O, "H2O",
 	FluidComponent::CHCl3, "CHCl3",
-	FluidComponent::CCl4, "CCl4"/*,
+	FluidComponent::CCl4, "CCl4",/*
 	FluidComponent::DMC, "DMC",
 	FluidComponent::EC, "EC",
 	FluidComponent::PC, "PC",
@@ -72,13 +72,13 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
   	FluidComponent::Chlorobenzene, "Chlorobenzene",
 	FluidComponent::Isobutanol, "Isobutanol",
 	FluidComponent::CarbonDisulfide, "CarbonDisulfide",
-	FluidComponent::CustomSolvent, "CustomSolvent",
+	FluidComponent::CustomSolvent, "CustomSolvent",*/
 	//cations
 	FluidComponent::Sodium, "Na+",
 	FluidComponent::CustomCation, "CustomCation",
 	//anions
 	FluidComponent::Chloride, "Cl-", 
-	FluidComponent::CustomAnion, "CustomAnion"*/ );
+	FluidComponent::CustomAnion, "CustomAnion" );
 
 
 struct CommandFluidSiteParams : public Command
@@ -100,7 +100,7 @@ struct CommandFluidSiteParams : public Command
 	
 void process(ParamList& pl, Everything& e)
 	{	
-		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM)
+		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
 			return;
 		FluidSolverParams& fsp = e.eVars.fluidParams;
 
@@ -158,7 +158,7 @@ void printStatus(Everything& e, int iRep)
 		//prints all the sites and parameters, even if the default is unchanged
 		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
 		
-		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM)
+		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
 			return;
 		if(iRep==0)
 		{

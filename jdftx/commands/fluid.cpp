@@ -372,6 +372,13 @@ struct CommandFluidCation : public CommandFluidComponent
 	CommandFluidCation() : CommandFluidComponent("cation", cationMap, FluidComponent::Sodium, FluidComponent::MeanFieldLJ, false)
     {	require("fluid-solvent"); //which in turn requires fluid indirectly
 	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	CommandFluidComponent::process(pl, e);
+		//Ions not yet supported in this version of ClassicalDFT
+		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
+			throw string("Ions not yet supported in ClassicalDFT fluid.");
+	}
 
 	void printStatus(Everything& e, int iRep)
 	{	print(e, *(e.eVars.fluidParams.cations[iRep]));
@@ -384,14 +391,20 @@ struct CommandFluidAnion : public CommandFluidComponent
 	CommandFluidAnion() : CommandFluidComponent("anion", anionMap, FluidComponent::Chloride, FluidComponent::MeanFieldLJ, false)
     {	require("fluid-solvent"); //which in turn requires fluid indirectly
 	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	CommandFluidComponent::process(pl, e);
+		//Ions not yet supported in this version of ClassicalDFT
+		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
+			throw string("Ions not yet supported in ClassicalDFT fluid.");
+	}
 
 	void printStatus(Everything& e, int iRep)
 	{	print(e, *(e.eVars.fluidParams.anions[iRep]));
 	}
 }
 commandFluidAnion;
-
-
+	
 struct CommandFluidDielectricConstant : public Command
 {
     CommandFluidDielectricConstant() : Command("fluid-dielectric-constant")
