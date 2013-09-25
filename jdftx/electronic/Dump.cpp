@@ -358,7 +358,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	if(ShouldDumpNoAll(Stress))
-	{	logSuspend();
+	{	
+		// Cache the type of calculation (fixed-n)
+		bool fixed_n = e->cntrl.fixed_n;
+		((Everything*) e)->cntrl.fixed_n = false;
+		
+		logSuspend();
 		LatticeMinimizer lattMin(*((Everything*) e));
 		auto stress = lattMin.calculateStress();
 		matrix3<> stressTensor;
@@ -394,6 +399,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 
 		fclose(fp);
+		
+		// Reset fixed_n variable
+		((Everything*) e)->cntrl.fixed_n = fixed_n;
+		
 		EndDump
 	}
 
