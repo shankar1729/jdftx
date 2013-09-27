@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/GpuKernelUtils.h>
 #include <core/LoopMacros.h>
+
+#undef _GLIBCXX_ATOMIC_BUILTINS
+#undef _GLIBCXX_USE_INT128
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 
