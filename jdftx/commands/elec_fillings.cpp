@@ -34,7 +34,6 @@ struct CommandElecFermiFillings : public Command
 		
 		require("elec-n-bands");
 		forbid("fix-electron-density");
-		forbid("residual-minimize");
 	}
 
 	void process(ParamList& pl, Everything& e)

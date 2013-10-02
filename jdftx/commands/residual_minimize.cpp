@@ -70,7 +70,6 @@ struct CommandsScfParams: public Command
 			+ "\nAny number of these key-value pairs may be specified in any order.";
 		hasDefault = false;
 		forbid("fix-electron-density");
-		forbid("elec-fermi-fillings");
 	}
 	
 	void process(ParamList& pl, Everything& e)

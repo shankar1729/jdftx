@@ -93,7 +93,7 @@ void SCF::minimize()
 		pastVariables_n.push_back(clone(variable_n));
 		ifTau(pastVariables_tau.push_back(clone(variable_tau)))
 		
-		// Solve at fixed hamiltonian
+		/// Solve at fixed hamiltonian ///
 		e.cntrl.fixed_n = true; e.ener = Energies();
 		if(not rp.verbose) // Silence eigensolver output
 		{	logSuspend(); e.elecMinParams.fpLog = nullLog;}
@@ -106,6 +106,13 @@ void SCF::minimize()
 		if(not rp.verbose) // Resume output
 		{	logResume(); e.elecMinParams.fpLog = globalLog;}
 		e.cntrl.fixed_n = false; e.ener = Energies();
+
+		// Update fillings, or prepare for their computation in elecEnergyAndGrad
+		switch(e.eInfo.fillingsUpdate)
+		{	case ElecInfo::FermiFillingsAux: e.eVars.B.assign(e.eVars.Hsub_eigs.begin(), e.eVars.Hsub_eigs.end());
+			case ElecInfo::FermiFillingsMix: logPrintf("\t"); e.eInfo.mixFillings(e.eVars.F, e.ener); break;
+			default: break;
+		}
 		
 		// Compute new density and energy
 		e.iInfo.update(e.ener);
