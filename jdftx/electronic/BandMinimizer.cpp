@@ -54,6 +54,9 @@ bool BandMinimizer::report(int iter)
 		return true;
 	}
 	
+	//Dumps at every electronic step of each band, if asked for
+	e.dump(DumpFreq_Electronic, iter);
+	
 	return false;
 }
 
