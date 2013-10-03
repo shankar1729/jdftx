@@ -118,7 +118,12 @@ void SCF::minimize()
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
-		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tdE: %.3e\n", (rp.verbose ? "\t" : ""), scfCounter, E, E-Eprev);
+		// Print residual
+		DataRptrCollection variableResidual = variable_n - pastVariables_n.back();
+		double residual = e.gInfo.dV*sqrt(dot(variableResidual, variableResidual));
+		
+		/// PRINT ///
+		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tResidual:%.3e\tdE: %.3e\n", (rp.verbose ? "\t" : ""), scfCounter, E, residual, E-Eprev);
 		
 		// Check for convergence, mix density or potential if otherwise
 		if(fabs(E-Eprev) < rp.energyDiffThreshold)
