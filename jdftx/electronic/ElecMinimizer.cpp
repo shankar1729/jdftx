@@ -124,7 +124,12 @@ bool ElecMinimizer::report(int iter)
 	{	double mu = std::isnan(eInfo.mu)
 			? eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons) //get mu from eigenvalues
 			: eInfo.mu; //report the target mu
-		logPrintf("FillingsAux:  mu: %.15le  nElectrons: %.15le\n", mu, eInfo.nElectrons);
+		logPrintf("FillingsAux:  mu: %.15le  nElectrons: %.15le", mu, eInfo.nElectrons);
+		if(e.eInfo.spinType == SpinZ)
+		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
+			logPrintf("  magneticMoment: %.5f", spinPol);
+		}
+		logPrintf("\n");
 	}
 	
 	//Fillings mix update:

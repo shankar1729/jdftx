@@ -253,7 +253,12 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 	else
 	{	//Fixed charge, just bisect to find mu:
 		muMix = findMu(eVars.Hsub_eigs, nElectrons);
-		logPrintf("FillingsMix:  mu: %.15le  nElectrons: %.15le\n", muMix, nElectrons);
+		logPrintf("FillingsMix:  mu: %.15le  nElectrons: %.15le", muMix, nElectrons);
+		if(spinType == SpinZ)
+		{	double spinPol = integral(e->eVars.n[0] - e->eVars.n[1]);
+			logPrintf("  magneticMoment: %.5f", spinPol);
+		}
+		logPrintf("\n");
 	}
 	
 	//Mix in fillings at new mu:
