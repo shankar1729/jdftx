@@ -69,6 +69,9 @@ public:
 	matrix& operator=(const matrix& m1); //!< copy-assignment
 	matrix& operator=(matrix&& m1); //!< move-assignment
 
+	//! get a specific element of the matrix
+	complex operator()(int i, int j) const;
+	
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop)
 	matrix operator()(int iStart, int iStop, int jStart, int jStop) const;
 	
@@ -172,6 +175,17 @@ void randomize(matrix& x);
 
 //! Compute inverse of an arbitrary matrix A (via LU decomposition)
 matrix inv(const matrix& A);
+
+//! Compute the LU decomposition of the matrix
+matrix LU(const matrix& A);
+
+//! Compute the determinant of an arbitrary matrix A (via LU decomposition)
+//! If skipZeros is true, skips diagonal entries in the diagonal of the LU decomposition that are below a tolerance
+complex det(const matrix& A);
+
+//! Compute the determinant of an diagonal matrix A
+//! If skipZeros is true, skips diagonal entries in the diagonal matrix that are below a tolerance
+double det(const diagMatrix& A);
 
 //! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
 matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0);

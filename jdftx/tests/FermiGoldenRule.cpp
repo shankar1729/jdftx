@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <core/Util.h>
-#include <core/Util.h>
 #include <commands/parser.h>
 #include <getopt.h>
 
@@ -46,16 +45,8 @@ void printUsage(const char *name)
 	logPrintf("\n");
 }
 
-inline double determinant(diagMatrix& D)
-{	double det = 1.;
-	for(int i=0; i<D.nCols(); i++)
-		det *= D[i];
-	return det;
-}
-
 int main(int argc, char** argv)
 {
-
 	Everything e; //the parent data structure for, well, everything
 
 	string inputFilename, logFilename; bool appendOutput=true, printDefaults=true;
@@ -95,9 +86,11 @@ int main(int argc, char** argv)
 		}
 	}
 	
+	logSuspend(); e.elecMinParams.fpLog = nullLog;
 	initSystem(argc, argv);
 	parse(inputFilename.c_str(), e, printDefaults);
 	e.setup();
+	logResume(); e.elecMinParams.fpLog = globalLog;
 	
 	/// ACTUAL CALCULATION HAPPERNS HERE ///
 	
@@ -124,16 +117,24 @@ int main(int argc, char** argv)
 	{	F1[q].resize(nbands); F2[q].resize(nbands);
 		F1[q].scan(fp1); F2[q].scan(fp2);
 		F1[q] *= wInv; F2[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
+		
+		// Prints fillings
+		logPrintf("\n\nNormalized fillings: \n");
+		logPrintf("F1 (q=%i):\n", q);
+		F1.at(q).print(globalLog);
+		logPrintf("\n\nF2 (q=%i):\n", q);
+		F2.at(q).print(globalLog);
+		
 	}
 
 	std::vector<matrix> dipoleXMatrices(qnums);
 	std::vector<matrix> dipoleYMatrices(qnums);
 	std::vector<matrix> dipoleZMatrices(qnums);
 	std::vector<matrix> overlapMatrices(qnums);
-	complex detDipoleX = 1;
-	complex detDipoleY = 1;
-	complex detDipoleZ = 1;
-	complex detOverlap = 1;
+	complex detDipoleX = 1.;
+	complex detDipoleY = 1.;
+	complex detDipoleZ = 1.;
+	complex detOverlap = 1.;
 	
 	// Real-space kernels for the dipole calculations
 	DataRptr r0, r1, r2;
@@ -145,31 +146,39 @@ int main(int argc, char** argv)
 	logPrintf("\n");
 	for(size_t q =0; q<e.eInfo.qnums.size(); q++)
 	{	
-		logPrintf("Calculating qnum = %i...", q);
+		logPrintf("Calculating qnum = %zu...", q);
 		
+		double n1 = trace(F1[q]); // No electrons in the q'th qnum for first wavefunction
+		double n2 = trace(F2[q]); // No electrons in the q'th qnum for second wavefunction
+		
+		logPrintf("\n\t%f electrons on F1(q=%zu)\n\t%f electrons on F2(q=%zu)", n1, q, n2, q);
+		
+		double tol = 1e-4;
+		if(abs(n1-n2) > tol)  // If different number of electrons are detected, all matrix elements are 0
+		{	detDipoleX *= 0.;
+			detDipoleY *= 0.;
+			detDipoleZ *= 0.;
+			detOverlap *= 0.;
+			break;  // No need to compute other quantum numbers
+		}
+		
+		int nfilled = round(n1);  // Get the number of filled states on each
+		int ni=0, nj=0;           // Counters for the reduced matricex (just filled orbitals)
 		int noBands = e.eInfo.nBands;
-		dipoleXMatrices.at(q).init(noBands, noBands);
-		dipoleYMatrices.at(q).init(noBands, noBands);
-		dipoleZMatrices.at(q).init(noBands, noBands);
-		overlapMatrices.at(q).init(noBands, noBands);
+		dipoleXMatrices.at(q).init(nfilled, nfilled);
+		dipoleYMatrices.at(q).init(nfilled, nfilled);
+		dipoleZMatrices.at(q).init(nfilled, nfilled);
+		overlapMatrices.at(q).init(nfilled, nfilled);
 		for(int i=0; i<noBands; i++)
-		{	for(int j=0; j<i; j++)
-			{	
-				double tol = 1e-4;
-				// If either of the orbitals is empty, no need to compute anything
-				if((F1[q][i] < tol) or (F2[q][j] < tol))
-				{	dipoleXMatrices.at(q).set(i,j, 0.);
-					dipoleXMatrices.at(q).set(j,i, 0.);
-					dipoleYMatrices.at(q).set(i,j, 0.);
-					dipoleYMatrices.at(q).set(j,i, 0.);
-					dipoleZMatrices.at(q).set(i,j, 0.);
-					dipoleZMatrices.at(q).set(j,i, 0.);
-					overlapMatrices.at(q).set(i,j, 0.);
-					overlapMatrices.at(q).set(j,i, 0.);
+		{	nj = 0; // Reset nj
+			if(F1[q][i] < (1.-tol))  // Check whether i'th orbital is filled
 					continue;
-				}
+			for(int j=0; j<noBands; j++)
+			{	if(F2[q][j] < (1.-tol)) // Check whether j'th orbital is filled
+					continue;
+								
 				// If both orbitals are occupied, then return the matrix element
-				else if((F1[q][i] > (1.-tol)) or (F2[q][j] < (1.-tol)))
+				if((F1[q][i] > (1.-tol)) or (F2[q][j] > (1.-tol)))
 				{	
 					complexDataRptr psi1 = I(C1.at(q).getColumn(i));
 					complexDataRptr psi2 = I(C2.at(q).getColumn(j));
@@ -179,37 +188,40 @@ int main(int argc, char** argv)
 					complex dipoleZ = (norm(detDipoleZ) ? integral(psi1*r2*psi2) : 0.);
 					complex overlap = (norm(detOverlap) ? integral(psi1*psi2) : 0.);
 					
-					dipoleXMatrices.at(q).set(i,j, dipoleX);
-					dipoleXMatrices.at(q).set(j,i, dipoleX.conj());
-					dipoleYMatrices.at(q).set(i,j, dipoleY);
-					dipoleYMatrices.at(q).set(j,i, dipoleY.conj());
-					dipoleZMatrices.at(q).set(i,j, dipoleZ);
-					dipoleZMatrices.at(q).set(j,i, dipoleZ.conj());
-					overlapMatrices.at(q).set(i,j, overlap);
-					overlapMatrices.at(q).set(j,i, overlap.conj());
+					dipoleXMatrices.at(q).set(ni,nj, dipoleX);
+					dipoleYMatrices.at(q).set(ni,nj, dipoleY);
+					dipoleZMatrices.at(q).set(ni,nj, dipoleZ);
+					overlapMatrices.at(q).set(ni,nj, overlap);
 				}
 				else
 				{	die("Non-integer fillings found... Exiting.\n");
 				}
+				
+				nj++;
 			}
+			ni++;
 		}
-		matrix evecs; diagMatrix eigs;
-		dipoleXMatrices.at(q).diagonalize(evecs, eigs);
-		detDipoleX *= determinant(eigs);
-		logPrintf("\n\n"); dipoleXMatrices.at(q).print(globalLog); logPrintf("\n\n");
-		dipoleYMatrices.at(q).diagonalize(evecs, eigs);
-		detDipoleY *= determinant(eigs);
-		dipoleZMatrices.at(q).diagonalize(evecs, eigs);
-		detDipoleZ *= determinant(eigs);
-		overlapMatrices.at(q).diagonalize(evecs, eigs);
-		detOverlap *= determinant(eigs);
 		
-		logPrintf(" done!\n");
+		// Assert that the entire matrix have been filled
+		detDipoleX *= det(dipoleXMatrices.at(q));
+		detDipoleY *= det(dipoleYMatrices.at(q));
+		detDipoleZ *= det(dipoleZMatrices.at(q));
+		detOverlap *= det(overlapMatrices.at(q));
+		
+		logPrintf("\n\ndet = %.5e, %.5e\n", real(det(dipoleXMatrices.at(q))), imag(det(dipoleXMatrices.at(q))));
+		dipoleXMatrices.at(q).print(globalLog,"%.2e%+.2ei\t" );
+		logPrintf("\n");
+		
+		logPrintf("\nOverlap: (%.5e, %.5e)\n", real(detOverlap), imag(detOverlap));
+		logPrintf("Dipole: <(%5.e, %.5e), (%5.e, %.5e), (%5.e, %.5e)>\n\n",
+				  real(detDipoleX), imag(detDipoleX), real(detDipoleY), imag(detDipoleY), real(detDipoleZ), imag(detDipoleZ));
+		logPrintf("\n\n");
 	}
 	
 	/// //////////////////////////////// ///
 	
-	logPrintf("\nOverlap: (%.5e, %.5e)\n", real(detOverlap), imag(detOverlap));
+	logPrintf("\n\n");
+	logPrintf("\nOverlap: (%.5e, %.5e)", real(detOverlap), imag(detOverlap));
 	logPrintf("\nDipole: <(%5.e, %.5e), (%5.e, %.5e), (%5.e, %.5e)>\n",
 			  real(detDipoleX), imag(detDipoleX), real(detDipoleY), imag(detDipoleY), real(detDipoleZ), imag(detDipoleZ));
 	

@@ -151,6 +151,11 @@ matrix matrix::operator()(int iStart, int iStop, int jStart, int jStop) const
 	return ret;
 }
 
+complex matrix::operator()(int i, int j) const
+{
+	return this->data()[index(i,j)];
+}
+
 void matrix::set(int i, int j, complex m)
 {	assert(i<nr and i>=0);
 	assert(j<nc and j>=0);
@@ -449,6 +454,46 @@ matrix inv(const matrix& A)
 	return invA;
 }
 
+matrix LU(const matrix& A)
+{	static StopWatch watch("LU(matrix)");
+	watch.start();
+	
+	// Perform LU decomposition
+	int N = A.nRows();
+	assert(N > 0);
+	assert(N == A.nCols());
+	matrix LU(A); //destructible copy
+	int ldA = A.nRows(); //leading dimension
+	std::vector<int> iPivot(N); //pivot info
+	int info; //error code in return
+	//LU decomposition (in place):
+	zgetrf_(&N, &N, LU.data(), &ldA, iPivot.data(), &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); gdbStackTraceExit(1); }
+
+	watch.stop();
+	return LU;
+}
+
+complex det(const matrix& A)
+{
+	matrix decomposition = LU(A);
+	int N = A.nRows();
+	
+	// Multiplies the diagonal entries to get the determinant up to a sign
+	complex determinant(1., 0.);
+	for(int i=0; i<N; i++)
+		determinant *= decomposition(i,i);
+
+	return determinant;
+
+}
+
+double det(const diagMatrix& A)
+{	double determinant = 1.;
+	for(int i=0; i<A.nCols(); i++)
+		determinant *= A[i];
+	return determinant;
+}
 
 //Common implementation for the matrix nonlinear functions:
 #define MATRIX_FUNC(code) \
