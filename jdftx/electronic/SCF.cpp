@@ -162,15 +162,37 @@ void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_
 		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
 }
 
+inline double preconditionerKernel(double G, double G0)
+{	return (G ? (G+G0)/G : 1.);
+}
+
+DataRptrCollection precondition(DataRptrCollection& n, double Gmin, double Gmax, double f = 20.)
+{
+		// Set up preconditioner kernel for density/potential overlaps
+	RadialFunctionG preconditioner;
+	double G0 = sqrt((f-1)/(1./Gmin - 1./Gmax));
+	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, G0);
+	
+	DataGptrCollection preconditioned(n.size());
+	for(size_t i=0; i<n.size(); i++)
+		preconditioned[i] = preconditioner * J(n[i]);
+	
+	return I(preconditioned);	
+}
+
 void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 				  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
 				  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
 {
 	size_t ndim = pastResiduals_n.size();
 	
+	// Variables for the preconditioner
+	double Gmax = e.gInfo.GmaxGrid;
+	double Gmin = 2*M_PI/(pow(e.gInfo.detR, 1./3.));
+	
 	// Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals_n[j], pastResiduals_n.back());
+	{	double thisOverlap = dot(pastResiduals_n[j], precondition(pastResiduals_n.back(), Gmin, Gmax));
 		overlap.set(j, ndim-1, thisOverlap);
 		if(j != ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}

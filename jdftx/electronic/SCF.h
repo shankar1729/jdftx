@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/Everything.h>
 #include <electronic/BandMinimizer.h>
+#include <electronic/operators.h>
 
 //! Self-Consistent Iteration for residual minimization
 class SCF
