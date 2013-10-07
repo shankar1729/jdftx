@@ -145,4 +145,6 @@ enum class AtomicSymbol : int
 
 extern EnumStringMap<AtomicSymbol> atomicSymbolMap; //!< Relate chemical symbols and atomic numbers
 
+double atomicMass(AtomicSymbol); //!< retrieve atomic mass for each element
+
 #endif // JDFTX_ELECTRONIC_SYMBOLS_H

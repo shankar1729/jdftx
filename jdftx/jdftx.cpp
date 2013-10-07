@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/InverseKohnSham.h>
+#include <electronic/Vibrations.h>
 #include <fluid/FluidSolver.h>
 #include <core/Util.h>
 #include <commands/parser.h>
@@ -125,6 +126,9 @@ int main(int argc, char** argv, char** argp)
 		{	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 			elecMinimize(e); // Do the band-structure minimization
 		}
+	}
+	else if(e.vibrations) //Bypasses ionic/lattice minimization, calls electron/fluid minimization loops at various ionic configurations
+	{	e.vibrations->calculate();
 	}
 	else if(e.latticeMinParams.nIterations)
 	{	//Lattice minimization loop (which invokes the ionic minimization loop)

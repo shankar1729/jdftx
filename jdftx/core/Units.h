@@ -37,6 +37,10 @@ const double Angstrom = 1/0.5291772; //!< @f$ \AA / a_0 @f$
 const double meter = 1e10*Angstrom; //!< @f$ m / a_0 @f$
 const double liter = 1e-3*pow(meter,3);  //!< @f$ l / a_0^3 @f$
 
+//Mass units in electron masses:
+const double amu = 1822.88839; //!< @f$ amu / m_e @f$
+const double kg = 1./9.10938291e-31; //!< @f$ kg / m_e @f$
+
 //Dimensionless:
 const double mol = 6.0221367e23; //!< @f$ mol/\# @f$ (= Avogadro number)
 

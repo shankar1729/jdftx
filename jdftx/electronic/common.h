@@ -29,7 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/scalar.h>
 #include <core/Util.h>
 
-class VanDerWaals;     // the pair-potential van der waals corrections
 class matrix;			// general purpose matrix.
 class diagMatrix; 		// real diagonal matrix
 class ColumnBundle;	// stores wavefunctions
@@ -50,5 +49,7 @@ class Everything;		// A big collection of most of the above structures
 struct ElecGradient;
 struct IonicGradient;
 class InverseKohnSham;
+class VanDerWaals;     // pair-potential van der waals corrections
+class Vibrations;
 
 #endif // JDFTX_ELECTRONIC_COMMON_H

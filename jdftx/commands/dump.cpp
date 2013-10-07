@@ -20,7 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <electronic/Polarizability.h>
-
+#include <electronic/Vibrations.h>
+#include <core/Units.h>
 
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
@@ -292,3 +293,83 @@ struct CommandPolarizabilityKdiff : public Command
 	}
 }
 commandPolarizabilityKdiff;
+
+
+//---------- Vibrations ------------------------
+
+//An enum corresponding to members of class Vibrations
+enum VibrationsMember
+{	VM_dr,
+	VM_centralDiff,
+	VM_useConstraints,
+	VM_translationSym,
+	VM_rotationSym,
+	VM_omegaMin,
+	VM_T,
+	VM_Delim
+};
+
+EnumStringMap<VibrationsMember> vibMap
+(	VM_dr, "dr",
+	VM_centralDiff, "centralDiff",
+	VM_useConstraints, "useConstraints",
+	VM_translationSym, "translationSym",
+	VM_rotationSym, "rotationSym",
+	VM_omegaMin, "omegaMin",
+	VM_T, "T"
+);
+
+struct CommandVibrations : public Command
+{
+    CommandVibrations() : Command("vibrations")
+	{
+		format = "<key1> <args1> ...";
+		comments =
+			"Calculate vibrational modes of the system using a finite difference method.\n"
+			"Note that this command should typically be issued in a run with converged ionic\n"
+			"positions; ionic (and lattice) minimization are bypassed by the vibrations module.\n"
+			"Any number of the following subcommands and their arguments may follow:\n"
+			"  dr <dr>: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).\n"
+			"  centralDiff yes|no: use a central difference formula for the second derivative\n"
+			"     to achieve higher accuracy at twice the cost (default: no)\n"
+			"  useConstraints yes|no: restrict modes of motion as specified by move flags\n"
+			"     and constraints in the ion command (default: no)\n"
+			"  traslationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
+			"     Can be turned off to get vibrational levels in an external potential.\n"
+			"  rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
+			"     molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"
+			"  omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 0.0002)\n"
+			"  T <T>: temperature (in Kelvin) for free energy calculation (default: 298)";
+		forbid("fix-electron-density");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.vibrations = std::make_shared<Vibrations>();
+		while(true)
+		{	VibrationsMember key;
+			pl.get(key, VM_Delim, vibMap, "key");
+			switch(key)
+			{	case VM_dr: pl.get(e.vibrations->dr, 0.01, "dr", true); break;
+				case VM_centralDiff: pl.get(e.vibrations->centralDiff, false, boolMap, "centralDiff", true); break;
+				case VM_useConstraints: pl.get(e.vibrations->useConstraints, false, boolMap, "useConstraints", true); break;
+				case VM_translationSym: pl.get(e.vibrations->translationSym, true, boolMap, "translationSym", true); break;
+				case VM_rotationSym: pl.get(e.vibrations->rotationSym, false, boolMap, "rotationSym", true); break;
+				case VM_omegaMin: pl.get(e.vibrations->omegaMin, 2e-4, "omegaMin", true); break;
+				case VM_T: pl.get(e.vibrations->T, 298., "T", true); e.vibrations->T *= Kelvin; break;
+				case VM_Delim: return; //end of input
+			}
+		}
+		
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("\\\n\tdr %g", e.vibrations->dr);
+		logPrintf("\\\n\tcentralDiff %s", boolMap.getString(e.vibrations->centralDiff));
+		logPrintf("\\\n\tuseConstraints %s", boolMap.getString(e.vibrations->useConstraints));
+		logPrintf("\\\n\ttranslationSym %s", boolMap.getString(e.vibrations->translationSym));
+		logPrintf("\\\n\trotationSym %s", boolMap.getString(e.vibrations->rotationSym));
+		logPrintf("\\\n\tomegaMin %g", e.vibrations->omegaMin);
+		logPrintf("\\\n\tT %g", e.vibrations->T/Kelvin);
+	}
+}
+commandVibrations;

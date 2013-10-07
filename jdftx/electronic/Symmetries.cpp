@@ -48,7 +48,7 @@ Symmetries::~Symmetries()
 
 void Symmetries::setup(const Everything& everything)
 {	e = &everything;
-	logPrintf("\n---------- Setting up symmetries ----------\n");
+	if(mode != SymmetriesNone) logPrintf("\n---------- Setting up symmetries ----------\n");
 
 	//Calculate and check symmetries if needed:
 	switch(mode)
@@ -139,6 +139,10 @@ const std::vector< matrix3<int> >& Symmetries::getMeshMatrices() const
 }
 const std::vector<int>& Symmetries::getKpointInvertList() const
 {	return kpointInvertList;
+}
+
+const std::vector< std::vector< std::vector<int> > >& Symmetries::getAtomMap() const
+{	return atomMap;
 }
 
 
@@ -391,7 +395,6 @@ void Symmetries::checkSymmetries() const
 
 void Symmetries::initAtomMaps()
 {	const IonInfo& iInfo = e->iInfo;
-	if(sym.size()==1) return;
 	if(shouldPrintMatrices) logPrintf("\nMapping of atoms according to symmetries:\n");
 	atomMap.resize(iInfo.species.size());
 	

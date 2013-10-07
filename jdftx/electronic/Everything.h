@@ -46,6 +46,7 @@ public:
 	std::vector<Basis> basis;
 	IonInfo iInfo;
 	Symmetries symm;
+	Symmetries symmUnperturbed; //symmetries of unperturbed system in vibration calculations (symm is set to mode=SymmNone in these calculations)
 	ExCorr exCorr; //!< Exchange and correlation functional
 	std::vector<std::shared_ptr<ExCorr> > exCorrDiff; //!< Other exchange and correlation functionals for comparison
 	std::shared_ptr<ExactExchange> exx; //!< Exact exchange
@@ -64,7 +65,8 @@ public:
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
 
 	std::shared_ptr<VanDerWaals> vanDerWaals; //! Pair potential for vdw correction
-	
+	std::shared_ptr<Vibrations> vibrations; //! Vibrational mode calculator
+
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();
 	void updateSupercell(); //!< (re-)initialize coulombParams.supercell if necessary

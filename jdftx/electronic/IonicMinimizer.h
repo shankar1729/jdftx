@@ -35,6 +35,10 @@ struct IonicGradient : std::vector< std::vector< vector3<> > >
 	
 	IonicGradient& operator*=(double);
 	IonicGradient& operator+=(const IonicGradient&);
+	
+	IonicGradient operator*(double) const;
+	IonicGradient operator+(const IonicGradient&) const;
+	IonicGradient operator-(const IonicGradient&) const;
 };
 
 void axpy(double alpha, const IonicGradient& x, IonicGradient& y); //!< accumulate operation: Y += alpha*X

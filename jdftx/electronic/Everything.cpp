@@ -20,28 +20,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
 #include <electronic/VanDerWaals.h>
+#include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <core/LatticeUtils.h>
 
 void Everything::setup()
 {
 	//Removes unused pseudopotentials
-	size_t counter = 0;
-	while(counter < iInfo.species.size())
-	{	if(iInfo.species[counter]->atpos.size() == 0)
-		{	iInfo.species.erase(iInfo.species.begin()+counter);
-		}
-		else
-			counter++;
-	}
+	for(auto iter=iInfo.species.begin(); iter!=iInfo.species.end();)
+		if(not (*iter)->atpos.size())
+			iter = iInfo.species.erase(iter);
+		else iter++;
 	
 	//Symmetries (phase 1: lattice+basis dependent)
+	if(vibrations)
+	{	symmUnperturbed = symm;
+		symm.mode = SymmetriesNone; //disable symmetries in remainder of calculation
+		symmUnperturbed.setup(*this); //calculate symmetries of unperturbed system for optimizing force matrix calculation
+	}
 	symm.setup(*this);
 	
 	//Initialize the grid:
 	gInfo.Gmax = sqrt(2*cntrl.Ecut); //Ecut = 0.5 Gmax^2
 	gInfo.GmaxRho = sqrt(2*cntrl.EcutRho); //Ecut = 0.5 Gmax^2
-	gInfo.initialize(false, symm.getMatrices());
+	gInfo.initialize(false, vibrations ? symmUnperturbed.getMatrices() : symm.getMatrices());
 
 	//Exchange correlation setup
 	logPrintf("\n---------- Exchange Correlation functional ----------\n");
@@ -58,6 +60,7 @@ void Everything::setup()
 	//Symmetries (phase 2: fftbox and k-mesh dependent)
 	eInfo.kpointsFold();
 	symm.setupMesh();
+	if(vibrations) symmUnperturbed.setupMesh();
 	
 	//Set up k-points, bands and fillings
 	eInfo.setup(*this, eVars.F, ener);
@@ -114,6 +117,9 @@ void Everything::setup()
 	eVars.setup(*this);
 	dump.setup(*this);
 
+	//Setup vibrations module:
+	if(vibrations) vibrations->setup(this);
+	
 	//Setup electronic minimization parameters:
 	elecMinParams.nDim = 0;
 	for(int s=0; s<eInfo.nStates; s++)

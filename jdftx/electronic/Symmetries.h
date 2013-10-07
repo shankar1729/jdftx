@@ -32,6 +32,7 @@ enum SymmetryMode {SymmetriesNone, SymmetriesAutomatic, SymmetriesManual}; //!< 
 class Symmetries
 {
 public:
+	SymmetryMode mode; //!< Symmetry mode (none, automatic or manual)
 
 	Symmetries();
 	~Symmetries();
@@ -46,6 +47,7 @@ public:
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector< matrix3<int> >& getMeshMatrices() const; //!< directly access the symmetry matrices (in mesh coords)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
+	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
 	
 private:
 	const Everything* e;
@@ -58,9 +60,7 @@ private:
 	
 	bool shouldPrintMatrices;
 	bool shouldMoveAtoms;
-	SymmetryMode mode; //!< Symmetry mode (none, automatic or manual)
 	
-	int nSpecies;
 	void calcSymmetries(); //!< Calculate symmetries of the entire system
 	
 	//! Find subgroup of lattice symmetries for the lattice with basis (optionally offset by some amount)

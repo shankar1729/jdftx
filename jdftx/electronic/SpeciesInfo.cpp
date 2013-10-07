@@ -173,6 +173,9 @@ void SpeciesInfo::setup(const Everything &everything)
 		atomicNumber = int(atSym);
 	}
 	
+	//Get the atomic mass if not set:
+	if(!mass) mass = atomicMass(AtomicSymbol(atomicNumber));
+	
 	#ifdef GPU_ENABLED
 	//Alloc and init GPU atomic positions:
 	cudaMalloc(&atposGpu, sizeof(vector3<>)*atpos.size());

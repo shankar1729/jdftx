@@ -64,9 +64,27 @@ IonicGradient& IonicGradient::operator*=(double s)
 	return *this;
 }
 
+IonicGradient IonicGradient::operator*(double s) const
+{	IonicGradient result(*this);
+	result *= s;
+	return result;
+}
+
 IonicGradient& IonicGradient::operator+=(const IonicGradient& other)
-{	axpy(1.0, other, *this);
+{	axpy(1., other, *this);
 	return *this;
+}
+
+IonicGradient IonicGradient::operator+(const IonicGradient& other) const
+{	IonicGradient result(*this);
+	axpy(1., other, result);
+	return result;
+}
+
+IonicGradient IonicGradient::operator-(const IonicGradient& other) const
+{	IonicGradient result(*this);
+	axpy(-1., other, result);
+	return result;
 }
 
 void axpy(double alpha, const IonicGradient& x, IonicGradient& y)
