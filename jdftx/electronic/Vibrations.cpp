@@ -119,8 +119,6 @@ void Vibrations::calculate()
 	}
 	int nModes = modes.size();
 	logPrintf("Degrees of freedom: %d total, %d symmetry-independent.\n", nModes, nPrimary);
-	for(const Mode& mode: modes)
-		logPrintf("\t%s%d(%c): %g %g %g\n", species[mode.s]->name.c_str(), mode.a, mode.isPrimary ? 'P' : 'S', mode.n[0], mode.n[1], mode.n[2]);
 	
 	//Find inverse of each symmetry matrix:
 	std::vector<unsigned> iRotInv(sym.size());
