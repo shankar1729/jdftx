@@ -103,6 +103,7 @@ void Vibrations::calculate()
 					}
 				if(singleton)
 				{	fromTranslation = true;
+					foundTranslatable = true;
 					isPrimary[a] = false;
 				}
 			}
