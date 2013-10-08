@@ -39,6 +39,17 @@ void Vibrations::setup(Everything* e)
 	}
 }
 
+inline void setPtest(size_t iStart, size_t iStop, const vector3<int>& S, std::vector<double*> Ptest, vector3<> split)
+{	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
+	THREAD_rLoop
+	(	for(int k=0; k<3; k++)
+		{	double xk = invS[k] * iv[k];
+			if(xk > split[k]) xk-=1.;
+			Ptest[k][i] = xk;
+		}
+	)
+}
+
 void Vibrations::calculate()
 {
 	logPrintf("------ Vibrations::calculate() -------\n");
@@ -131,19 +142,25 @@ void Vibrations::calculate()
 				continue;
 			}
 	
+	//Initialize dipole measuring vector field
+	nullToZero(Ptest, e->gInfo);
+	threadLaunch(setPtest, e->gInfo.nr, e->gInfo.S, Ptest.data(), getSplit());
+
 	//Get forces in unperturbed configuration
 	int nConfigurations = 1 + nPrimary * (centralDiff ? 2 : 1);
 	int iConfiguration = 0;
 	IonicMinimizer imin(*e);
 	IonicGradient grad0;
 	imin.compute(&grad0);
+	vector3<> Pel0 = getPel(); //electronic dipole moment
 	logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 	
 	//Compute force matrix:
 	matrix K = zeroes(nModes, nModes);
-	{	matrix Kmult = zeroes(nModes, nModes); //number of times each entry has been set during symmetrization
+	matrix dP = zeroes(nModes, 3); //dipole derivative
+	{	diagMatrix mult(nModes, 0.); //multiplicity in entries due to symmetrization
 		IonicGradient dPrev; dPrev.init(e->iInfo); //previous displacement (initially zero)
-		complex *Kdata = K.data(), *KmultData = Kmult.data();
+		complex *Kdata = K.data(), *dPdata = dP.data();
 		for(const Mode& mode: modes) if(mode.isPrimary) //Loop over modes in irredicuble wedge
 		{	//Create ionic gradient object corresponding to mode:
 			IonicGradient d; d.init(e->iInfo);
@@ -152,17 +169,24 @@ void Vibrations::calculate()
 			IonicGradient gradPlus, gradMinus, Kcur;
 			imin.step(d-dPrev, dr); dPrev=d;
 			imin.compute(&gradPlus);
+			vector3<> PelPlus = getPel(), PelMinus, dPcur; //electronic dipole moment and derivative w.r.t mode
 			logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 	
 			if(centralDiff)
 			{	d *= -1;
 				imin.step(d-dPrev, dr); dPrev=d;
 				imin.compute(&gradMinus);
+				PelMinus = getPel();
 				logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 				Kcur = (gradPlus - gradMinus) * (0.5/dr);
+				dPcur = (PelPlus - PelMinus) * (0.5/dr);
 			}
 			else
-				Kcur = (gradPlus - grad0) * (1./dr);
+			{	Kcur = (gradPlus - grad0) * (1./dr);
+				dPcur = (PelPlus - Pel0) * (1./dr);
+			}
+			dPcur -= species[mode.s]->Z * mode.n; //ionic contribution to dipole derivative
+			
 			//Collect contributions to force matrix from this mode and its symmetric counterparts:
 			for(unsigned iRot=0; iRot<sym.size(); iRot++)
 			{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix corresponding to symmetry
@@ -173,30 +197,31 @@ void Vibrations::calculate()
 				for(int i1=0; i1<nModes; i1++)
 					if(modes[i1].s==mode.s && modes[i1].a==a1)
 					{	double w = dot(n1, modes[i1].n); //projection weight
-						if(fabs(w) > symmThreshold) dModes[i1] = w;
+						if(fabs(w) < symmThreshold) continue;
+						mult[i1] += w*w; //symmetry multiplicity
+						//Loop over modes corresponding to force (second index of matrix):
+						for(int i2=0; i2<nModes; i2++)
+						{	const Mode& mode2 = modes[i2];
+							unsigned a2 = atomMap[mode2.s][mode2.a][iRotInv[iRot]]; //index of atom which upon rotation rot maps onto atom mode2.a
+							Kdata[K.index(i1,i2)] += w * dot(mode2.n, rot * Kcur[mode2.s][a2]);
+						}
+						//Dipole derivatives:
+						vector3<> rot_dPcur = rot * dPcur; //rotated dipole derivative
+						for(int k=0; k<3; k++)
+							dPdata[dP.index(i1,k)] += w * rot_dPcur[k];
 					}
-				//Loop over modes corresponding to force (second index of matrix):
-				for(int i2=0; i2<nModes; i2++)
-				{	const Mode& mode2 = modes[i2];
-					unsigned a2 = atomMap[mode2.s][mode2.a][iRotInv[iRot]]; //index of atom which upon rotation rot maps onto atom mode2.a
-					double Kw = dot(mode2.n, rot * Kcur[mode2.s][a2]); //projection of force on atom mode2.a along this mode
-					for(const auto& dMode: dModes)
-					{	Kdata[K.index(dMode.first,i2)] += dMode.second * Kw;
-						KmultData[K.index(dMode.first,i2)] += dMode.second * dMode.second;
-					}
-				}
 			}
 		}
 		IonicGradient d; d.init(e->iInfo); //all zeroes
 		imin.step(d-dPrev, dr); dPrev=d; //Restore original ionic positions
 		
-		//Zero out  modes to be set by translational symmetry:
-		for(int i1=0; i1<nModes; i1++) if(modes[i1].fromTranslation)
-			for(int i2=0; i2<nModes; i2++)
-			{	Kdata[K.index(i1,i2)] = 0.;
-				KmultData[K.index(i1,i2)] = 1.;
-			}
-		eblas_zdiv(nModes*nModes, KmultData,1, Kdata,1); //correct for multiple counting
+		//Invert multiplicity matrixZero out  modes to be set by translational symmetry:
+		for(int i=0; i<nModes; i++)
+			mult[i] = modes[i].fromTranslation ? 0. : 1./mult[i];
+		
+		//Correct for multiple counting:
+		K = mult * K;
+		dP = mult * dP;
 	}
 	
 	//Fill in modes set by translation symmetry, if any:
@@ -208,6 +233,8 @@ void Vibrations::calculate()
 		//A uniform displacement of all atoms should yield no net force
 		//Except three rows of K are zero; set them so that the above becomes true.
 		K.set(i1,i1+1, 0,nModes, -(x * K));
+		//Simiarly polarization due to uniform displacement should be zero:
+		dP.set(i1,i1+1, 0,3, -(x * dP));
 	}
 	
 	//Symmetrize force matrix:
@@ -254,6 +281,7 @@ void Vibrations::calculate()
 		projector = projector * invsqrt(dagger(projector)*projector); //orthonormalize
 		matrix ppDag = projector * dagger(projector);
 		K -= ppDag * K * ppDag;
+		//dP -= ppDag * dP;
 		logPrintf("Projected out %d rotation+translation modes\n", nProjectors);
 	}
 	
@@ -286,8 +314,12 @@ void Vibrations::calculate()
 	iFreqChange.insert(iRealStart);
 	iFreqChange.insert(nModes);
 	
+	const double fineStructConst = 7.29735257e-3;
+
 	//Print modes:
 	matrix dEvecs = invsqrtM * omegaSqEvecs; //displacements of the eigenvectors
+	matrix Pevecs = dagger(dEvecs) * dP; // dipole moments of the eigenvectors
+	diagMatrix PsqEvecs = diag(Pevecs * dagger(Pevecs)); //dipole intensity of the eigenvectors
 	complex* dEvecsData = dEvecs.data();
 	for(int i=0; i<nModes; i++)
 	{	//Classify mode:
@@ -297,14 +329,19 @@ void Vibrations::calculate()
 		else { iMode=i-iRealStart; modeType = "Real"; }
 		//Header:
 		logPrintf("\n%s mode %d:\n", modeType.c_str(), iMode+1);
-		//--- Frequency:
-		logPrintf("Frequency: %.6lf%s [Eh]\n", sqrt(fabs(omegaSqEigs[i])), omegaSqEigs[i]<0 ? "i" : "");
-		//--- Degeneracy:
+		//Frequency:
+		double omega = sqrt(fabs(omegaSqEigs[i]));
+		const char* omegaSuffix = omegaSqEigs[i]<0 ? "i" : "";
+		logPrintf("Frequency: %.6lf%s Eh [ %.0lf%s cm^-1 ]\n", omega, omegaSuffix, omega/invcm, omegaSuffix);
+		//Degeneracy:
 		auto iterStop = std::upper_bound(iFreqChange.begin(), iFreqChange.end(), i);
 		auto iterStart = iterStop; iterStart--;
 		int degeneracyCount = (*iterStop) - (*iterStart);
 		int degeneracyIndex = i - (*iterStart);
 		logPrintf("Degeneracy: %d of %d\n", degeneracyIndex+1, degeneracyCount);
+		//IR intensity:
+		logPrintf("IR intensity: %.4f e^2/amu [ %.1f km/mol ]\n", PsqEvecs[i]*amu,
+			PsqEvecs[i] * (M_PI/3.)*pow(fineStructConst,2) / (1e3*meter/mol));
 		//Displacements:
 		double meanPhase, sigmaPhase, rmsImagErr;
 		removePhase(3, dEvecsData+dEvecs.index(0,i), meanPhase, sigmaPhase, rmsImagErr);
@@ -338,8 +375,7 @@ void Vibrations::calculate()
 	logPrintf("\n");
 }
 
-
-IonicGradient Vibrations::getCMcoords() const
+vector3<> Vibrations::getSplit() const
 {	//Collect lattice coordinates of all atoms in [0,1)
 	std::vector<double> x[3];
 	for(const auto& sp: e->iInfo.species)
@@ -359,6 +395,11 @@ IonicGradient Vibrations::getCMcoords() const
 		split[k] = x[k][iSplit] - 0.5*dx[iSplit];
 		split[k] -= floor(split[k]); //map to [0,1)
 	}
+	return split;
+}
+
+IonicGradient Vibrations::getCMcoords() const
+{	vector3<> split = getSplit();
 	//Collect cartesian atom coordinates with wrapping consistent with the above determined split:
 	IonicGradient r; r.init(e->iInfo);
 	vector3<> rMsum; double Msum = 0.; //sums for determining CM
@@ -381,4 +422,11 @@ IonicGradient Vibrations::getCMcoords() const
 		for(vector3<>& rAtom: rSpecies)
 			rAtom -= rCM;
 	return r;
+}
+
+vector3<> Vibrations::getPel() const
+{	vector3<> Pel;
+	for(int k=0; k<3; k++)
+		Pel[k] = e->gInfo.dV * dot(Ptest[k], e->eVars.get_nTot());
+	return e->gInfo.R * Pel; //convert to Cartesian coordinates
 }

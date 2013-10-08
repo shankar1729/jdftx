@@ -21,6 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_VIBRATIONS_H
 
 #include <electronic/common.h>
+#include <core/vector3.h>
+#include <core/DataMultiplet.h>
 
 class Vibrations
 {
@@ -40,7 +42,10 @@ public:
 	
 private:
 	Everything* e;
+	vector3<> getSplit() const; //get optimum latttice coordinates for splitting periodicity in a molecular geometry
 	IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
+	DataRptrVec Ptest; //vector field that measures dipole moment in lattice coordinates
+	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
 };
 
 #endif //JDFTX_ELECTRONIC_VIBRATIONS_H
