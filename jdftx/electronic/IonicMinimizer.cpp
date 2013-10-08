@@ -130,65 +130,53 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 
 IonicMinimizer::IonicMinimizer(Everything& e) : e(e)
 {	
-	if(e.cntrl.dragRadius)
-	{	//Initialize the drag shape function:
-		const double dG=0.02; int nGridLoc = int(ceil(e.gInfo.GmaxGrid/dG))+5;
-		std::vector<double> f(nGridLoc);
-		for(int i=0; i<nGridLoc; i++)
-		{	double G = i*dG;
-			f[i] = 1/(1 + pow(e.cntrl.dragRadius * G,2)); //fourier transform of an exponential
-		}
-		dragShape.init(0, f, dG);
-	}
-}
-
-//Offset function by a safe positive lower bound
-void safePositiveLbound(DataRptr& w)
-{	double min, max;
-	callPref(eblas_capMinMax)(w->nElem, w->dataPref(), min, max);
-	w += std::max(-10*min, 1e-8); // this will lift all negative going oscillations safely above zero
 }
 
 void IonicMinimizer::step(const IonicGradient& dir, double alpha)
-{	const ElecInfo& eInfo = e.eInfo;
+{	static StopWatch watch("WavefunctionDrag"); watch.start();
+	const ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	IonInfo& iInfo = e.iInfo;
 	
 	IonicGradient dpos = alpha * e.gInfo.invR * dir; //dir is in cartesian, atpos in lattice
 	
-	if(dragShape) //Wavefunction dragging enabled:
-	{	
-		//Calculate the sum of the drag functions
-		DataRptr normFunc;
-		for(unsigned sp=0; sp < iInfo.species.size(); sp++)
-		{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-			for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
-			{	DataRptr w = spInfo.Z * radialFunction(e.gInfo, dragShape, spInfo.atpos[atom]);
-				safePositiveLbound(w);
-				normFunc += w;
-			}
+	if(e.cntrl.dragWavefunctions)
+	{	//Check if atomic orbitals available and compile list of displacements for each orbital:
+		std::vector< vector3<> > drColumns;
+		for(unsigned s=0; s<iInfo.species.size(); s++)
+		{	const SpeciesInfo& sp = *(iInfo.species[s]);
+			int nOrb = sp.nAtomicOrbitals() / sp.atpos.size(); //number of orbitals per atom
+			for(int iOrb=0; iOrb<nOrb; iOrb++)
+				drColumns.insert(drColumns.end(), dpos[s].begin(), dpos[s].end());
 		}
-		normFunc = inv(normFunc); //this is now a pointwise normalizing factor
 		
-		//Drag the wavefunctions
-		std::vector<ColumnBundle> Cnew;
-		init(Cnew, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo.qnums[0]);
-		for(ColumnBundle& Cq: Cnew) Cq.zero();
-		
-		for(unsigned sp=0; sp < iInfo.species.size(); sp++)
-		{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-			for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
-			{	DataRptr w = spInfo.Z *radialFunction(e.gInfo, dragShape, spInfo.atpos[atom]);
-				safePositiveLbound(w);
-				w *= normFunc; //the w's add to 1 at each point in space
+		if(drColumns.size()) 
+		{	for(int q=0; q<eInfo.nStates; q++)
+			{
+				//Get atomic orbitals at old positions:
+				eVars.Y[q].free();
+				ColumnBundle psi(drColumns.size(), e.basis[q].nbasis, &e.basis[q], &eInfo.qnums[q], isGpuEnabled());
+				int iCol=0;
+				for(auto sp: iInfo.species)
+				{	sp->setAtomicOrbitals(psi, iCol);
+					iCol += sp->nAtomicOrbitals();
+				}
 				
-				for(int q=0; q<eInfo.nStates; q++)
-					Cnew[q] += translate(Idag_DiagV_I(eVars.C[q], w), dpos[sp][atom]);
+				//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
+				matrix alpha;  //LCAO coefficients for best fit
+				{	ColumnBundle Opsi = O(psi); //non-trivial cost for uspp
+					alpha = inv(psi^Opsi) * (Opsi^eVars.C[q]);
+				}
+				eVars.C[q] -= psi * alpha; //now contains residual
+				
+				//Translate the atomic orbitals and reconsitute wavefunctions:
+				translateColumns(psi, drColumns.data());
+				eVars.C[q] += psi * alpha;
+				
+				//Orthonormalize and replace old wavefunctions:
+				eVars.Y[q] = eVars.C[q] * invsqrt(eVars.C[q]^O(eVars.C[q]));
 			}
 		}
-		//Orthonormalize and replace old wavefunctions:
-		for(int q=0; q<eInfo.nStates; q++)
-			eVars.Y[q] = Cnew[q] * invsqrt(Cnew[q]^O(Cnew[q]));
 	}
 
 	//Move the atoms:
@@ -200,6 +188,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		spInfo.sync_atposGpu();
 		#endif
 	}
+	watch.stop();
 }
 
 double IonicMinimizer::compute(IonicGradient* grad)

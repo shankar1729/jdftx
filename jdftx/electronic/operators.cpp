@@ -403,6 +403,17 @@ ColumnBundle translate(const ColumnBundle& Y, vector3<> dr)
 {	return translate((ColumnBundle&&)ColumnBundle(Y), dr); //call above function on a destructible copy
 }
 
+void translateColumns(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr)
+{	threadedLoop(translateColumns_calc, nbasis, nbasis, ncols, Y, iGarr, k, dr);
+}
+#ifdef GPU_ENABLED
+void translateColumns_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr);
+#endif
+void translateColumns(ColumnBundle& Y, const vector3<>* dr)
+{	const Basis& basis = *Y.basis;
+	callPref(translateColumns)(Y.colLength(), Y.nCols(), Y.dataPref(), Y.basis->iGarrPref, Y.qnum->k, dr);
+}
+
 
 ColumnBundle switchBasis(const ColumnBundle& in, const Basis& basisOut)
 {	if(in.basis == &basisOut) return in; //no basis change required

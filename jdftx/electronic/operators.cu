@@ -189,6 +189,25 @@ void translate_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr,
 	gpuErrorCheck();
 }
 
+__global__
+void translateColumns_kernel(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<> k, const vector3<>* dr)
+{	int j = kernelIndex1D();
+	if(j<nbasis) translateColumns_calc(j, nbasis, ncols, Y, iGarr, k, dr);
+}
+void translateColumns_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr)
+{	//Create a GPU copy of dr:
+	vector3<>* dr_gpu;
+	cudaMalloc(&dr_gpu, ncols*sizeof(vector3<>));
+	cudaMemcpy(dr_gpu, dr, ncols*sizeof(vector3<>), cudaMemcpyHostToDevice);
+	gpuErrorCheck();
+	//Launch kernel:
+	GpuLaunchConfig1D glc(translateColumns_kernel, nbasis);
+	translateColumns_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, iGarr, k, dr_gpu);
+	gpuErrorCheck();
+	//Cleanup:
+	cudaFree(dr_gpu);
+}
+
 
 __global__
 void reducedD_kernel(int nbasis, int ncols, const complex* Y, complex* DY, 

@@ -96,6 +96,7 @@ ColumnBundle precond_inv_kinetic(const ColumnBundle &Y, double KErollover);
 
 ColumnBundle translate(ColumnBundle&&, vector3<> dr); //!< translate a column-bundle by dr in lattice coordinates (destructible input)
 ColumnBundle translate(const ColumnBundle&, vector3<> dr); //!< translate a column-bundle by dr in lattice coordinates (preserve input)
+void translateColumns(ColumnBundle&, const vector3<>* dr); //!< translate each column of a column bundle by a different dr (in-place)
 
 ColumnBundle switchBasis(const ColumnBundle&, const Basis&); //!< return wavefunction projected to a different basis
 

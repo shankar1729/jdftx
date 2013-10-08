@@ -180,3 +180,25 @@ struct CommandReorthogonalizeOrbitals : public Command
 	}
 }
 commandReorthogonalizeOrbitals;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandWavefunctionDrag : public Command
+{
+	CommandWavefunctionDrag() : Command("wavefunction-drag")
+	{
+		format = "yes|no";
+		comments =
+			"Drag wavefunctions when ions are moved using atomic orbital projections (yes by default).";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.dragWavefunctions, true, boolMap, "shouldDrag", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.cntrl.dragWavefunctions));
+	}
+}
+commandWavefunctionDrag;
+

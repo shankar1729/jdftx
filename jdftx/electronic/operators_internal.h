@@ -132,6 +132,12 @@ void translate_calc(int j, int nbasis, int ncols, complex* Y, const vector3<int>
 		Y[nbasis*i+j] *= tFactor;
 }
 
+__hostanddev__
+void translateColumns_calc(int j, int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr)
+{	for(int i=0; i<ncols; i++)
+		Y[nbasis*i+j] *= cis(-2*M_PI*dot(iGarr[j]+k,dr[i]));
+}
+
 __hostanddev__ void reducedD_calc(int j, int nbasis, int ncols, const complex* Ydata, complex* DYdata,
 	const vector3<int>* iGarr, double kdotGe, const vector3<> Ge)
 {

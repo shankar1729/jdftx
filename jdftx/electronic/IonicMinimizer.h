@@ -51,7 +51,6 @@ IonicGradient operator*(const matrix3<>&, const IonicGradient&); //!< coordinate
 
 class IonicMinimizer : public Minimizable<IonicGradient>
 {	Everything& e;
-	RadialFunctionG dragShape; //!< radial function describing region of space the atoms drag as they move
 	
 public:
 	IonicMinimizer(Everything& e);
