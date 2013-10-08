@@ -296,7 +296,7 @@ void Vibrations::calculate()
 	omegaSq.diagonalize(omegaSqEvecs, omegaSqEigs);
 	
 	//Determine number of modes of each type:
-	int iZeroStart=0, iRealStart=0;
+	int iZeroStart=0, iRealStart=nModes;
 	double omegaMinSq = omegaMin*omegaMin;
 	for(int i=1; i<nModes; i++)
 	{	if(omegaSqEigs[i-1]<-omegaMinSq && omegaSqEigs[i]>-omegaMinSq) iZeroStart=i;
