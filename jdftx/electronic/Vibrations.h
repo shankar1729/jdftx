@@ -32,6 +32,7 @@ public:
 	bool rotationSym; //!< whether to project out rotational modes: valid only for molecules
 	double omegaMin; //!< frequency cutoff for free energy calculation and detailed mode print out
 	double T; //!< ionic temperature used for entropy and free energy estimation
+	double omegaResolution; //!< frequency resolution used for identifying and reporting degeneracies
 	
 	Vibrations();
 	void setup(Everything* e);

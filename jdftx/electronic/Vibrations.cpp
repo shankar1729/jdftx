@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 Vibrations::Vibrations() : dr(0.01), centralDiff(false), useConstraints(false),
-translationSym(true), rotationSym(false), omegaMin(2e-4), T(298*Kelvin)
+translationSym(true), rotationSym(false), omegaMin(2e-4), T(298*Kelvin), omegaResolution(1e-4)
 {
 }
 
@@ -276,6 +276,16 @@ void Vibrations::calculate()
 	}
 	logPrintf("%d imaginary modes, %d modes within cutoff, %d real modes.\n", iZeroStart, iRealStart-iZeroStart, nModes-iRealStart);
 	
+	//Detect degeneracies:
+	std::set<int> iFreqChange; //index of modes whose energy differs (more than resolution) from previous one
+	for(int i=1; i<nModes; i++)
+		if(fabs(sqrt(fabs(omegaSqEigs[i])) - sqrt(fabs(omegaSqEigs[i-1]))) > omegaResolution)
+			iFreqChange.insert(i);
+	iFreqChange.insert(0);
+	iFreqChange.insert(iZeroStart);
+	iFreqChange.insert(iRealStart);
+	iFreqChange.insert(nModes);
+	
 	//Print modes:
 	matrix dEvecs = invsqrtM * omegaSqEvecs; //displacements of the eigenvectors
 	complex* dEvecsData = dEvecs.data();
@@ -287,7 +297,14 @@ void Vibrations::calculate()
 		else { iMode=i-iRealStart; modeType = "Real"; }
 		//Header:
 		logPrintf("\n%s mode %d:\n", modeType.c_str(), iMode+1);
+		//--- Frequency:
 		logPrintf("Frequency: %.6lf%s [Eh]\n", sqrt(fabs(omegaSqEigs[i])), omegaSqEigs[i]<0 ? "i" : "");
+		//--- Degeneracy:
+		auto iterStop = std::upper_bound(iFreqChange.begin(), iFreqChange.end(), i);
+		auto iterStart = iterStop; iterStart--;
+		int degeneracyCount = (*iterStop) - (*iterStart);
+		int degeneracyIndex = i - (*iterStart);
+		logPrintf("Degeneracy: %d of %d\n", degeneracyIndex+1, degeneracyCount);
 		//Displacements:
 		double meanPhase, sigmaPhase, rmsImagErr;
 		removePhase(3, dEvecsData+dEvecs.index(0,i), meanPhase, sigmaPhase, rmsImagErr);

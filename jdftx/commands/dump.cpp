@@ -306,6 +306,7 @@ enum VibrationsMember
 	VM_rotationSym,
 	VM_omegaMin,
 	VM_T,
+	VM_omegaResolution,
 	VM_Delim
 };
 
@@ -316,7 +317,8 @@ EnumStringMap<VibrationsMember> vibMap
 	VM_translationSym, "translationSym",
 	VM_rotationSym, "rotationSym",
 	VM_omegaMin, "omegaMin",
-	VM_T, "T"
+	VM_T, "T",
+	VM_omegaResolution, "omegaResolution"
 );
 
 struct CommandVibrations : public Command
@@ -338,8 +340,10 @@ struct CommandVibrations : public Command
 			"     Can be turned off to get vibrational levels in an external potential.\n"
 			"  rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
 			"     molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"
-			"  omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 0.0002)\n"
-			"  T <T>: temperature (in Kelvin) for free energy calculation (default: 298)";
+			"  omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)\n"
+			"  T <T>: temperature (in Kelvin) for free energy calculation (default: 298)\n"
+			"  omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
+			"     in modes (default: 1e-4). Does not affect free energies and all modes are still printed.";
 		forbid("fix-electron-density");
 	}
 	
@@ -356,6 +360,7 @@ struct CommandVibrations : public Command
 				case VM_rotationSym: pl.get(e.vibrations->rotationSym, false, boolMap, "rotationSym", true); break;
 				case VM_omegaMin: pl.get(e.vibrations->omegaMin, 2e-4, "omegaMin", true); break;
 				case VM_T: pl.get(e.vibrations->T, 298., "T", true); e.vibrations->T *= Kelvin; break;
+				case VM_omegaResolution: pl.get(e.vibrations->omegaResolution, 1e-4, "omegaResolution", true); break;
 				case VM_Delim: return; //end of input
 			}
 		}
@@ -370,6 +375,7 @@ struct CommandVibrations : public Command
 		logPrintf("\\\n\trotationSym %s", boolMap.getString(e.vibrations->rotationSym));
 		logPrintf("\\\n\tomegaMin %g", e.vibrations->omegaMin);
 		logPrintf("\\\n\tT %g", e.vibrations->T/Kelvin);
+		logPrintf("\\\n\tomegaResolution %g", e.vibrations->omegaResolution);
 	}
 }
 commandVibrations;
