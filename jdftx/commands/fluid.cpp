@@ -135,6 +135,7 @@ EnumStringMap<FluidComponent::Name> solventMap
 (	FluidComponent::H2O, "H2O",
 	FluidComponent::CHCl3, "CHCl3",
 	FluidComponent::CCl4, "CCl4",
+	FluidComponent::CH3CN, "CH3CN",
 	FluidComponent::DMC, "DMC",
 	FluidComponent::EC, "EC",
 	FluidComponent::PC, "PC",

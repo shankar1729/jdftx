@@ -32,6 +32,7 @@ struct FluidComponent
 		H2O, //!< Water
 		CHCl3, //!< Chloroform
 		CCl4, //!< Carbon tetrachloride
+		CH3CN, //!< Acetonitrile
 		DMC, //!< Dimethyl carbonate
 		EC, //!< Ethylene carbonate
 		PC, //!< Propylene carbonate

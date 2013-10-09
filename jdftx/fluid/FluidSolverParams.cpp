@@ -59,6 +59,9 @@ void FluidSolverParams::setPCMparams()
 				case FluidComponent::CCl4:
 					vdwScale = 1.617;
 					break;
+				case FluidComponent::CH3CN:
+					vdwScale = 0.37; //Tentative: using toluene solvation energy alone
+					break;
 				default:
 					vdwScale = 1.;
 					initWarnings += "WARNING: SALSA has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
@@ -82,6 +85,9 @@ void FluidSolverParams::setPCMparams()
 					break;
 				case FluidComponent::CCl4:
 					vdwScale = 1.238;
+					break;
+				case FluidComponent::CH3CN:
+					vdwScale = 0.6; //Tentative: using toluene and self solvation energies alone
 					break;
 				default:
 					vdwScale = 1.;
@@ -114,6 +120,12 @@ void FluidSolverParams::setPCMparams()
 							break;
 					}
 					break;
+				}
+				case FluidComponent::CH3CN:
+				{	nc = 7e-4;
+					sigma = 0.6;
+					cavityTension = 0.;
+					break; //Tentative: using toluene and self solvation energies alone
 				}
 				case FluidComponent::EthylEther:
 				{	nc = 2.63e-4;

@@ -93,8 +93,8 @@ void JeffereyAustinEOS::evaluate_gpu(size_t nData, const double* N, double* Aex,
 
 //--------------- class TaoMasonEOS ---------------
 
-TaoMasonEOS::TaoMasonEOS(double T, double Tc, double Pc, double omega)
-: eval(std::make_shared<TaoMasonEOS_eval>(T, Tc, Pc, omega))
+TaoMasonEOS::TaoMasonEOS(double T, double Tc, double Pc, double omega, double TB, double vB)
+: eval(std::make_shared<TaoMasonEOS_eval>(T, Tc, Pc, omega, TB, vB))
 {
 }
 

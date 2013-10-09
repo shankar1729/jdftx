@@ -50,6 +50,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 	{	case H2O:
 		case CHCl3:
 		case CCl4:
+		case CH3CN:
 		case DMC:
 		case EC:
 		case PC:
@@ -79,6 +80,7 @@ double FluidComponent::pureNbulk(double T) const
 		{	case H2O: return 4.9383e-3;
 			case CHCl3: return 1.109e-3;
 			case CCl4: return 9.205e-4;
+			case CH3CN: return 1.709e-3;
 			case DMC: return 1.059e-3;
 			case EC: return 1.339e-3;
 			case PC: return 1.039e-3;
@@ -104,6 +106,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 	//Nuclear widths = (1./6) vdW radius
 	const double sigmaNucH = (1./6) * 1.20*Angstrom;
 	const double sigmaNucC = (1./6) * 1.70*Angstrom;
+	const double sigmaNucN = (1./6) * 1.55*Angstrom;
 	const double sigmaNucO = (1./6) * 1.52*Angstrom;
 	const double sigmaNucCl = (1./6) * 1.75*Angstrom;
 
@@ -222,7 +225,6 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
 				siteCl->Zelec = 6.755; siteCl->aElec = 0.44;
-			//	siteCl->aElec = 0.54; //Kendra: HACK!
 				siteCl->alpha = 18.1; siteCl->aPol = 0.47;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
@@ -232,6 +234,55 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			siteCl->positions.push_back(vector3<>(0, rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
 			siteCl->positions.push_back(vector3<>(+sqrt(0.75)*rCCl*(sqrt(8.)/3), -0.5*rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
 			siteCl->positions.push_back(vector3<>(-sqrt(0.75)*rCCl*(sqrt(8.)/3), -0.5*rCCl*(sqrt(8.)/3), rCCl*(-1./3)));
+			break;
+		}
+		case CH3CN:
+		{	epsBulk = 38.8;
+			pMol = 1.58;
+			epsInf = 1.81;
+			Pvap = antoinePvap(T, 6.52111, 1492.375, -24.208); //logPrintf("selfSol = %lg\n", T*log(Pvap/(Nbulk*T)));
+			sigmaBulk = 1.88e-5;
+			eos = std::make_shared<TaoMasonEOS>(T, 545.5*Kelvin, 4830*KPascal, 0.278);
+			Rvdw = 2.12*Angstrom;
+			Res = 2.6; //empirical value, SaLSA predicts 3.13
+			//Site properties:
+			molecule.name = "CH3CN";
+			auto siteCenter = std::make_shared<Molecule::Site>("center",0);
+				siteCenter->Rhs = 1.12*Angstrom;
+			molecule.sites.push_back(siteCenter);
+			auto siteC1 = std::make_shared<Molecule::Site>("C1",int(AtomicSymbol::C)); //methyl carbon
+				siteC1->Znuc = 4.; siteC1->sigmaNuc = sigmaNucC;
+				siteC1->Zelec = 4.7128; siteC1->aElec = 0.44;
+				siteC1->alpha = 4.49; siteC1->aPol = 0.35;
+			molecule.sites.push_back(siteC1);
+			auto siteC2 = std::make_shared<Molecule::Site>("C2",int(AtomicSymbol::C)); //nitrile carbon
+				siteC2->Znuc = 4.; siteC2->sigmaNuc = sigmaNucC;
+				siteC2->Zelec = 3.4832; siteC2->aElec = 0.39;
+				siteC2->alpha = 7.18; siteC2->aPol = 0.39;
+			molecule.sites.push_back(siteC2);
+			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
+				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
+				siteH->Zelec = 0.7659; siteH->aElec = 0.28;
+				siteH->alpha = 4.33; siteH->aPol = 0.37;
+			molecule.sites.push_back(siteH);
+			auto siteN = std::make_shared<Molecule::Site>("N",int(AtomicSymbol::N));
+				siteN->Znuc = 5.; siteN->sigmaNuc = sigmaNucN;
+				siteN->Zelec = 5.5063; siteN->aElec = 0.37;
+				siteN->alpha = 5.85; siteN->aPol = 0.35;
+			molecule.sites.push_back(siteN);
+			//Geometry:
+			const double zC2 = 0.165*Angstrom; //distance of nitrile carbon from center
+			const double rCC = 1.462*Angstrom;
+			const double rCN = 1.161*Angstrom;
+			const double rCH = 1.098*Angstrom;
+			const double thetaCCH = 110.22*M_PI/180;
+			siteCenter->positions.push_back(vector3<>(0.,0.,0.));
+			siteC2->positions.push_back(vector3<>(0.,0.,zC2));
+			siteC1->positions.push_back(vector3<>(0.,0.,zC2-rCC));
+			siteN->positions.push_back(vector3<>(0,0,zC2+rCN));
+			siteH->positions.push_back(vector3<>(0, rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
+			siteH->positions.push_back(vector3<>(+sqrt(0.75)*rCH*sin(thetaCCH), -0.5*rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
+			siteH->positions.push_back(vector3<>(-sqrt(0.75)*rCH*sin(thetaCCH), -0.5*rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
 			break;
 		}
 		case DMC:

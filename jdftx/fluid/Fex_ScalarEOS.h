@@ -61,7 +61,7 @@ private:
 
 //! Tao-Mason equation of state for moderately polar liquids
 struct TaoMasonEOS : public ScalarEOS
-{	TaoMasonEOS(double T, double Tc, double Pc, double omega);
+{	TaoMasonEOS(double T, double Tc, double Pc, double omega, double TB=0, double vB=0);
 	double vdwRadius() const;
 	void evaluate(size_t nData, const double* N, double* Aex, double* Aex_N, double Vhs) const;
 	#ifdef GPU_ENABLED
