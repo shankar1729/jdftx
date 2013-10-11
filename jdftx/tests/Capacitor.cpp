@@ -104,5 +104,6 @@ int main(int argc, char** argv)
 		fprintf(fp, "%le\t%le\t%le\n", i*hGrid, nlInv*NOdata[i], 0.5*nlInv*NHdata[i]);
 	fclose(fp);
 	
+	finalizeSystem();
 	return 0;
 }

@@ -110,5 +110,6 @@ int main(int argc, char** argv)
 		fclose(pp);
 	}
 
+	finalizeSystem();
 	return 0;
 }

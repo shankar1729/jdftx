@@ -101,5 +101,7 @@ int main(int argc, char** argv)
 	gInfo.R = Diag(hGrid * gInfo.S);
 	gInfo.initialize();
 	TestSphere(gInfo).test();
+	
+	finalizeSystem();
 	return 0;
 }

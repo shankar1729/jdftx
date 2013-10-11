@@ -39,7 +39,8 @@ int main(int argc, char** argv)
 			"\t\t<binary-density-file>: Electron-density (JDFTx format) which is thresholded to form cavity\n");
 		return 1;
 	}
-
+	initSystem(argc, argv);
+	
 	ifstream ifs(argv[1]);
 	if(!ifs.is_open()) { printf("Could not open '%s' for reading\n", argv[1]); return 1; }
 
@@ -122,4 +123,7 @@ int main(int argc, char** argv)
 	DataRptrCollection N(2);
 	double phiFinal = fluidMixture.getFreeEnergy(&N);
 	printf("\nCavitation energy = %le Eh\n\n", phiFinal);
+	
+	finalizeSystem();
+	return 0;
 }

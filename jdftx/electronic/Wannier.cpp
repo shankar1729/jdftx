@@ -82,7 +82,7 @@ private:
 	struct Kpoint
 	{	vector3<> k; //!< k-point in reciprocal lattice coordinates
 		int q; //!< source state
-		int iRot; //!< symmetry matrix index from state q to this kpoint
+		unsigned iRot; //!< symmetry matrix index from state q to this kpoint
 		int invert; //!< sign of transformation matrix (if inversion symmetry of k-mesh is being used)
 		vector3<int> offset; //!< translation after rotation to bring to k
 		
@@ -298,7 +298,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 		//This could be optimized, but this is unlikely to ever be too expensive
 		struct Neighbour
 		{	vector3<> dk; //difference from current k-point
-			int ik; //index of source k-point
+			unsigned ik; //index of source k-point
 			vector3<int> iG; //brillouin zone index (additional offset)
 		};
 		std::multimap<double,Neighbour> neighbourMap; //neighbours sorted by distance

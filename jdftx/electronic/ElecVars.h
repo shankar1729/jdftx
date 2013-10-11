@@ -63,6 +63,10 @@ public:
 	DataRptrCollection Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
 	DataRptrCollection Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
+	//External interactions:
+	DataRptrCollection Vexternal; //!< external potential
+	DataGptr rhoExternal; //!< external charge density
+	
 	//Fluid properties
 	FluidSolverParams fluidParams;
 	std::shared_ptr<struct FluidSolver> fluidSolver;
@@ -128,12 +132,10 @@ private:
 	const Everything* e;
 	
 	std::vector<string> VexternalFilename; //!< external potential filename (read in real space)
-	DataRptrCollection Vexternal; //!< external potential
 	friend class CommandVexternal;
 	friend class InverseKohnSham; //!< Adjusts Vexternal to produce target electron density
 	
 	string rhoExternalFilename; //!< external charge filename
-	DataGptr rhoExternal; //!< external charge density
 	friend class CommandRhoExternal;
 
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals

@@ -141,6 +141,8 @@ int main(int argc, char** argv)
 			fluidMixture.minimize(mp);
 		);
 	}
+	
+	finalizeSystem();
 	return 0;
 }
 
@@ -238,6 +240,9 @@ int main(int argc, char** argv)
 // 	saveDX(n.O(), "TestFixedN/" geomName "_nO");
 // 	saveDX(n.H(), "TestFixedN/" geomName "_nH");
 // 	saveSphericalized(saveR, 2, "TestFixedN/" geomName "_n.spherical", 0.25);
+	
+	finalizeSystem();
+	return 0;
 }
 */
 /*
@@ -345,6 +350,8 @@ int main(int argc, char** argv)
 			ncgSolve(water.state, mp, water, precon);
 		);
 	}
+	
+	finalizeSystem();
 	return 0;
 }
 */

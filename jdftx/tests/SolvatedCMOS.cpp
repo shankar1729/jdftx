@@ -207,4 +207,7 @@ int main(int argc, char** argv)
 	int i_Ox1_Ox2 = floor((zEnd+z_Ox1_Ox2)/hGrid)-2;
 	double Eox1 = (dtot->data()[i_Ox1_Ox2] - dtot->data()[i_Si_Ox1])/((eV/Angstrom)*hGrid*(i_Ox1_Ox2-i_Si_Ox1));
 	printf("Eox1 = %le V/A\n", Eox1);
+
+	finalizeSystem();
+	return 0;
 }

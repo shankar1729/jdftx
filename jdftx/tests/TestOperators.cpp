@@ -284,5 +284,7 @@ int main(int argc, char** argv)
 	OperatorTest op(gInfo);
 	op.test();
 	op.timeParallel();
+	
+	finalizeSystem();
 	return 0;
 }

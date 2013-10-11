@@ -198,4 +198,7 @@ int main(int argc, char** argv)
 	//saveSphericalized(&dTot, 1, "random-dTot", 0.25);
 
 	//testTranslationOperators(N);
+	
+	finalizeSystem();
+	return 0;
 }

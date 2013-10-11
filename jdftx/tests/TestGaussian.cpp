@@ -156,5 +156,6 @@ int main(int argc, char** argv)
 
 	TestGaussian(gInfo).test();
 
+	finalizeSystem();
 	return 0;
 }

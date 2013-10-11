@@ -75,7 +75,7 @@ public:
 	StopWatch(string name);
 	void start();
 	void stop();
-	~StopWatch();
+	void print() const;
 private:
 	double tPrev, Ttot, TsqTot; int nT;
 	string name;

@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <csignal>
 #include <list>
+#include <vector>
 
 #ifndef __APPLE__
 #include <sys/prctl.h>
@@ -160,6 +161,19 @@ void initSystem(int argc, char** argv)
 	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
 }
 
+
+#ifdef ENABLE_PROFILING
+void stopWatchManager(const StopWatch* addWatch=0)
+{	static std::vector<const StopWatch*> watches; //static array of all watches
+	if(addWatch) watches.push_back(addWatch);
+	else //print timings:
+	{	logPrintf("\n");
+		for(const StopWatch* watch: watches) watch->print();
+	}
+}
+#endif // ENABLE_PROFILING
+
+
 void finalizeSystem(bool successful)
 {
 	time_t endTime = time(0);
@@ -179,19 +193,22 @@ void finalizeSystem(bool successful)
 			fprintf(stderr, "Failed.\n");
 	}
 	
+	#ifdef ENABLE_PROFILING
+	stopWatchManager();
+	#endif
 	fclose(nullLog);
 }
 
 
 #ifdef ENABLE_PROFILING
-StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) {}
+StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stopWatchManager(this); }
 void StopWatch::start() { tPrev = clock_us(); }
 void StopWatch::stop() { double T = clock_us()-tPrev; Ttot+=T; TsqTot+=T*T; nT++; }
-StopWatch::~StopWatch()
+void StopWatch::print() const
 {	if(nT)
 	{	double meanT = Ttot/nT;
 		double sigmaT = sqrt(TsqTot/nT - meanT*meanT);
-		printf("'%s' took %lf +/- %lf s (called %d times for a total of %lf s)\n",
+		logPrintf("PROFILER: %30s %12.6lf +/- %12.6lf s, %4d calls, %13.6lf s total\n",
 			name.c_str(), meanT*1e-6, sigmaT*1e-6, nT, Ttot*1e-6);
 	}
 }

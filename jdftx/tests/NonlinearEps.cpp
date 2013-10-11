@@ -90,5 +90,7 @@ int main(int argc, char** argv)
 		if(std::isnan(epsilon) || epsilon<0.0) break;
 	}
 	fclose(fpEps);
+	
+	finalizeSystem();
 	return 0;
 }

@@ -88,6 +88,8 @@ int main(int argc, char** argv)
 		saveDX(N[1], "init.NH");
 		saveToFile(psiEff, "init.psiEff");
 	}
+	
+	finalizeSystem();
 	return 0;
 }
 

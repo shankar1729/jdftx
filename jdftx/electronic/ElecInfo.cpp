@@ -385,7 +385,7 @@ double nrm2(gsl_vector* f) { return eblas_dnrm2(f->size, f->data, f->stride); }
 double ElecInfo::fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu) const
 {	const bool& verbose = e->cntrl.shouldPrintMuSearch;
 	//Set up GSL fit utility:
-	int nResiduals = nStates*nBands;
+	unsigned nResiduals = nStates*nBands;
 	gsl_multifit_fdfsolver *solver = gsl_multifit_fdfsolver_alloc(gsl_multifit_fdfsolver_lmsder, nResiduals, 1);
 	FitParams params = {*this, F, eps};
 	gsl_multifit_function_fdf fitFunc = {&fitMu_f, &fitMu_df, &fitMu_fdf, nResiduals, 1, (void*)&params};
@@ -408,7 +408,7 @@ double ElecInfo::fitMu(const std::vector<diagMatrix>& F, const std::vector<diagM
 	double mu = gsl_vector_get(solver->x, 0);
 	if(dndmu) //dn/dmu is just the sum of w df/dmu, i.e. the sum of all elements of the Jacobian
 	{	*dndmu = 0.0;
-		for(int i=0; i<nResiduals; i++) *dndmu += gsl_matrix_get(solver->J, i, 0);
+		for(unsigned i=0; i<nResiduals; i++) *dndmu += gsl_matrix_get(solver->J, i, 0);
 	}
 	gsl_multifit_fdfsolver_free(solver);
 	return mu;
