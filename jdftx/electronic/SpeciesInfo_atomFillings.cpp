@@ -127,10 +127,10 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 					if(Qijl==Qradial.end()) continue; //no augmentation for this combination
 					//Collect density matrix element for this pair of projectors:
 					double matrixElem = 0.;
-					for(unsigned n=0; n<psiRadial[l].size(); n++)
-						matrixElem += atomF[l][n]
-							* dot(*psiRadial[l][n].rFunc, *VnlRadial[l][p1].rFunc)
-							* dot(*psiRadial[l][n].rFunc, *VnlRadial[l][p2].rFunc);
+					for(unsigned o=0; o<psiRadial[l].size(); o++)
+						matrixElem += atomF[l][o]
+							* dot(*psiRadial[l][o].rFunc, *VnlRadial[l][p1].rFunc)
+							* dot(*psiRadial[l][o].rFunc, *VnlRadial[l][p2].rFunc);
 					//Augment density:
 					axpy(matrixElem * (p1==p2 ? 1. : 2.), *Qijl->second.rFunc, n);
 				}
