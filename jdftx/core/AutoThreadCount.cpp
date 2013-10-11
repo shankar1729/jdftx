@@ -21,12 +21,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <float.h>
 #include <string.h>
+#include <stdio.h>
 
 #ifdef MKL_ENABLED
 #include <mkl.h>
 #endif
 
-int nProcsAvailable = sysconf(_SC_NPROCESSORS_ONLN);
+int getPhysicalCores()
+{	FILE* pp = popen("awk '$1==\"physical\" && $2==\"id\" && !ID[$4] { PROCS++; ID[$4]=1; } $1=\"cpu\" && $2==\"cores\" { CORES=$4; }  END { print PROCS*CORES }' /proc/cpuinfo", "r");
+	if(pp)
+	{	int nCores = 0;
+		fscanf(pp, "%d", &nCores);
+		fclose(pp);
+		if(nCores) return nCores; //should work on Linux: physical cores ignoring hyperthreading
+	}
+	return sysconf(_SC_NPROCESSORS_ONLN); //POSIX compatible fallback (does not account for hyperthreading)
+}
+
+int nProcsAvailable = getPhysicalCores();
 bool threadOperators = true;
 
 bool shouldThreadOperators()

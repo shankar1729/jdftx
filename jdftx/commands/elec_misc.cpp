@@ -108,6 +108,7 @@ struct CommandFixElectronDensity : public Command
 		forbid("elec-fermi-fillings");
 		forbid("elec-ex-corr-compare");
 		forbid("residual-minimize");
+		forbid("vibrations");
 	}
 
 	void process(ParamList& pl, Everything& e)

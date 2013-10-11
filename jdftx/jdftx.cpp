@@ -46,6 +46,7 @@ void printUsage(const char *name)
 	logPrintf("\t-d --no-append          overwrite output file instead of appending\n");
 	logPrintf("\t-t --template           print an input file template\n");
 	logPrintf("\t-n --dry-run            quit after initialization (to verify commands and other input files)\n");
+	logPrintf("\t-c --cores              number of cores to use (ignored when launched using SLURM)\n");
 	logPrintf("\t-s --skip-defaults      skip printing status of default commands issued automatically.\n");
 	logPrintf("\n");
 }
@@ -65,11 +66,12 @@ int main(int argc, char** argv, char** argp)
 			{"no-append", no_argument, 0, 'd'},
 			{"template", no_argument, 0, 't'},
 			{"dry-run", no_argument, 0, 'n'},
+			{"cores", required_argument, 0, 'c'},
 			{"skip-defaults", no_argument, 0, 's'},
 			{0, 0, 0, 0}
 		};
 	while (1)
-	{	int c = getopt_long(argc, argv, "hvi:o:dtns", long_options, 0);
+	{	int c = getopt_long(argc, argv, "hvi:o:dtnc:s", long_options, 0);
 		if (c == -1) break; //end of options
 		switch (c)
 		{	case 'v': printVersionBanner(); return 0;
@@ -79,6 +81,12 @@ int main(int argc, char** argv, char** argp)
 			case 'd': appendOutput=false; break;
 			case 't': printDefaultTemplate(e); return 0;
 			case 'n': dryRun=true; break;
+			case 'c':
+			{	int nCores = 0;
+				if(sscanf(optarg, "%d", &nCores)==1 && nCores>0)
+					nProcsAvailable=nCores;
+				break;
+			}
 			case 's': printDefaults=false; break;
 			default: printUsage(argv[0]); return 1;
 		}
