@@ -362,8 +362,8 @@ void Vibrations::calculate()
 	{	double omega = sqrt(omegaSqEigs[i]);
 		double expMomegaByT = exp(-omega/T);
 		ZPE += 0.5*omega;
-		Avib += 0.5*omega + omega * expMomegaByT / (1.-expMomegaByT);
-		Evib += 0.5*omega + T * log(1.-expMomegaByT);
+		Evib += 0.5*omega + omega * expMomegaByT / (1.-expMomegaByT);
+		Avib += 0.5*omega + T * log(1.-expMomegaByT);
 	}
 	double TSvib = Evib - Avib;
 	logPrintf("\nVibrational free energy components at T = %lg K:\n", T/Kelvin);
