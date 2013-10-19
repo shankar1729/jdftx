@@ -84,7 +84,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		}
 		case PCM_GLSSA13:
 		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
-				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189");
+				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, Modelling Simul. Mater. Sci. Eng. 21 074005 (2013)");
 			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
 			break;
 		}
