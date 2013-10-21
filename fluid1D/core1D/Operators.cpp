@@ -45,7 +45,7 @@ inline void dgemv(bool transpose, const std::vector<double>& A, const ManagedMem
 	int M = transpose ? X.nData() : Y.nData();
 	int N = transpose ? Y.nData() : X.nData();
 	cblas_dgemv(CblasRowMajor, (transpose ? CblasTrans : CblasNoTrans),
-		M, N, 1., A.data(), N,  X.data(),1, 0., Y.data(),1);
+		M, N, 1., A.data(), M,  X.data(),1, 0., Y.data(),1);
 }
 
 ScalarFieldTilde O(const ScalarFieldTilde& Y)

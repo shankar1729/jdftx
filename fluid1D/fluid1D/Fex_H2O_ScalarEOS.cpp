@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid/Fex_ScalarEOS_internal.h>
+#include <fluid/Fex_H2O_ScalarEOS_internal.h>
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_LJ.h>
 #include <fluid1D/FluidMixture.h>

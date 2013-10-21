@@ -30,9 +30,9 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <list>
 
 //#define CAVITATION_CDFT
-#define CAVITATION_MODEL
+//#define CAVITATION_MODEL
 //#define PLANAR_TDEP
-//#define PLANAR
+#define PLANAR
 
 #define ChosenLiq CHCl3
 //#define ChosenLiq CCl4
