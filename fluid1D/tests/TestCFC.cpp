@@ -32,7 +32,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 //#define CAVITATION_CDFT
 //#define CAVITATION_MODEL
 //#define PLANAR_TDEP
-#define PLANAR
+//#define PLANAR
+#define CORRFUNC
 
 #define ChosenLiq CHCl3
 //#define ChosenLiq CCl4
@@ -205,6 +206,51 @@ void cavitation(GridInfo::CoordinateSystem coord, FILE* fp, bool model)
 	}
 }
 
+//Compute and return pair correlations for a specific temperature and bulk density
+ScalarFieldCollection pairCorrelations(const GridInfo& gInfo)
+{
+	SO3quad quad(QuadTetrahedron, 3); //Not used and need it only to create an IdealGas object. Just picked the smallest quadrature
+	TranslationOperatorLspline trans(gInfo); //Not used and need it only to create an IdealGas object.
+	
+	double T = 298*Kelvin;
+	FluidMixture fluidMixture(gInfo, T);
+	FexClass fex(fluidMixture); //Selected excess functionals using macros above
+	IdealGasPomega idgas(&fex, 1.0, quad, trans); //Not used and needed only to register fex with fluidMixture
+	
+	//Compute and return pair correlations:
+	std::vector<double> Nmol(1, PASTE_TOKENS(Nbulk, ChosenLiq));
+	return fluidMixture.getPairCorrelations(Nmol);
+}
+
+void printToFileCumulative(const ScalarField& g, const char* filename)
+{	const double* gData = g.data();
+	const std::vector<double>& r = g.gInfo->r;
+	const std::vector<double>& w = g.gInfo->w;
+	//Write file:
+	FILE* fp = fopen(filename, "w");
+	if(!fp) die("Could not open %s for writing.\n", filename)
+	double gInt = 0.;
+	for(int j=0; j<g.gInfo->S; j++)
+	{	gInt += 0.5*gData[j]*w[j];
+		fprintf(fp, "%le\t%le\t%le\n", r[j], gData[j], gInt);
+		gInt += 0.5*gData[j]*w[j];
+	}
+	fclose(fp);
+}
+
+void saveCorrelationsCHCl3(const ScalarFieldCollection& gXX)
+{	printToFileCumulative(gXX[0], (fexName+"/gCC").c_str());
+	printToFileCumulative(gXX[1], (fexName+"/gCCl").c_str());
+	printToFileCumulative(gXX[2], (fexName+"/gCH").c_str());
+	printToFileCumulative(gXX[3], (fexName+"/gClCl").c_str());
+	printToFileCumulative(gXX[4], (fexName+"/gClH").c_str());
+}
+void saveCorrelationsCCl4(const ScalarFieldCollection& gXX)
+{	printToFileCumulative(gXX[0], (fexName+"/gCC").c_str());
+	printToFileCumulative(gXX[1], (fexName+"/gCCl").c_str());
+	printToFileCumulative(gXX[2], (fexName+"/gClCl").c_str());
+}
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 
@@ -234,6 +280,11 @@ int main(int argc, char** argv)
 		
 	#ifdef PLANAR
 		testPlanar(298*Kelvin, PASTE_TOKENS(sigma, ChosenLiq), true);
+	#endif
+	
+	#ifdef CORRFUNC
+		GridInfo gInfo(GridInfo::Spherical, 1024, 0.0625); //Fine spherical grid to get good resolution in gXX
+		PASTE_TOKENS(saveCorrelations, ChosenLiq)(pairCorrelations(gInfo));
 	#endif
 	
 	finalizeSystem();

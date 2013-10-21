@@ -19,8 +19,5 @@ target_link_libraries(NonlinearEps fluid1D)
 add_executable(CorrFunc CorrFunc.cpp)
 target_link_libraries(CorrFunc fluid1D)
 
-add_executable(TestDipoleFluid TestDipoleFluid.cpp)
-target_link_libraries(TestDipoleFluid fluid1D)
-
 add_executable(TestCFC TestCFC.cpp)
 target_link_libraries(TestCFC fluid1D)
