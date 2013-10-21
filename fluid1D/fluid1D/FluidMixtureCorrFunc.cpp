@@ -282,14 +282,16 @@ ScalarFieldCollection FluidMixture::getPairCorrelations(const std::vector<double
 	ScalarFieldTildeCollection cTilde = getDirectCorrelations(Nmol);
 	std::vector<const double*> cData = getConstData(cTilde);
 	
-	//Initialize a diagonal matrix with molecular densities
-	matrix diagN(nDensities);
+	//Initialize a diagonal matrix with molecular densities and a list of sphere radii by site
+	matrix diagN(nDensities); std::vector<double> Rhs(nDensities);
 	diagN.zero();
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	unsigned iStart = component[ic].offsetDensity;
 		unsigned iStop = iStart + component[ic].indexedSite.size();
 		for(unsigned i=iStart; i<iStop; i++)
-			diagN(i,i) = Nmol[ic];
+		{	diagN(i,i) = Nmol[ic];
+			Rhs[i] = component[ic].indexedSite[i-iStart]->sphereRadius;
+		}
 	}
 	
 	//Initialize an identity matrix:
@@ -336,7 +338,15 @@ ScalarFieldCollection FluidMixture::getPairCorrelations(const std::vector<double
 	ScalarFieldCollection g((nDensities*(nDensities+1))/2);
 	for(unsigned i=0; i<nDensities; i++)
 		for(unsigned j=0; j<=i; j++)
-			g[corrFuncIndex(i,j)] = 1. + (1./(siteMult[i]*siteMult[j])) * I(hTilde[corrFuncIndex(i,j)]);
+		{	g[corrFuncIndex(i,j)] = 1. + (1./(siteMult[i]*siteMult[j])) * I(hTilde[corrFuncIndex(i,j)]);
+			if(Rhs[i] && Rhs[j])
+			{	double RijCut = Rhs[i]+Rhs[j];
+				double* gData = g[corrFuncIndex(i,j)].data();
+				for(int i=0; i<gInfo.S; i++)
+					if(gInfo.r[i]<RijCut)
+						gData[i] = 0.;
+			}
+		}
 	return g;
 }
 

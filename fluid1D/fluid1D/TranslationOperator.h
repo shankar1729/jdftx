@@ -29,6 +29,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <map>
 #include <thread>
+#include <mutex>
 
 //! Abstract base-class for reduced-dimensionality generalized translation operator
 //! Implements application of operator @f$ S_{\vec{a}(\vec{r})} @f$ defined by

@@ -22,13 +22,13 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/Fex_LJ.h>
 #include <fluid1D/FluidMixture.h>
 
-Fex_TM_ScalarEOS::Fex_TM_ScalarEOS(FluidMixture& fluidMixture, double Tc, double Pc, double omega, double sphereRadius)
+Fex_TM_ScalarEOS::Fex_TM_ScalarEOS(FluidMixture& fluidMixture, double Tc, double Pc, double omega, double sphereRadius, double vdwSigma)
 : Fex(fluidMixture),
 eval(new TaoMasonEOS_eval(T, Tc, Pc, omega, sphereRadius))
 {
 	//Initialize the kernels:
-	setQuarticQkernel(siteChargeKernel, gInfo, 0.33);
-	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(2*sphereRadius,3)), 2*sphereRadius);
+	setQkernel(siteChargeKernel, gInfo, sphereRadius);
+	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(vdwSigma,3)), vdwSigma);
 }
 
 Fex_TM_ScalarEOS::~Fex_TM_ScalarEOS()
@@ -36,34 +36,54 @@ Fex_TM_ScalarEOS::~Fex_TM_ScalarEOS()
 }
 
 double Fex_TM_ScalarEOS::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const
-{	//Compute LJatt weighted density:
-	ScalarField Nbar = I(fex_LJatt * Ntilde[0]);
-	//Evaluated weighted denisty functional:
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	ScalarFieldTilde NavgTilde;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		NavgTilde += ljWeights[i] * Ntilde[i];
+	//Compute LJatt weighted density:
+	ScalarField Nbar = I(fex_LJatt * NavgTilde);
+	//Evaluated weighted density functional:
 	ScalarField Aex(&gInfo), AexPrime(&gInfo);
 	serialLoop(eval, gInfo.S, Nbar.data(), Aex.data(), AexPrime.data());
 	//Convert gradients:
 	ScalarFieldTilde OJAex = O(J(Aex));
-	grad_Ntilde[0] += fex_LJatt * Idag(Diag(AexPrime) * Jdag(O(Ntilde[0]))) + OJAex;
-	return dot(Ntilde[0], OJAex);
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		grad_Ntilde[i] += ljWeights[i] * (fex_LJatt * Idag(Diag(AexPrime) * Jdag(O(NavgTilde))) + OJAex);
+	return dot(NavgTilde, OJAex);
 }
 
 double Fex_TM_ScalarEOS::computeUniform(const double* N, double* grad_N) const
-{	double AexPrime, Aex;
-	(*eval)(0, &N[0], &Aex, &AexPrime);
-	grad_N[0] += Aex + N[0]*AexPrime;
-	return N[0]*Aex;
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	double Navg = 0.;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		Navg += ljWeights[i] * N[i];
+	//Evaluated weighted density functional:
+	double AexPrime, Aex;
+	(*eval)(0, &Navg, &Aex, &AexPrime);
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		grad_N[i] += ljWeights[i] * (Aex + Navg*AexPrime);
+	return Navg*Aex;
 }
 
 void Fex_TM_ScalarEOS::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
-{	//Compute upto second derivative of per-particle free energy:
-	double AexPrime, Aex; (*eval)(0, &N[0], &Aex, &AexPrime);
-	const double dN = N[0]*1e-7;
-	double AexPrimePlus,  AexPlus,  Nplus  = N[0]+dN; (*eval)(0, &Nplus,  &AexPlus,  &AexPrimePlus);
-	double AexPrimeMinus, AexMinus, Nminus = N[0]-dN; (*eval)(0, &Nminus, &AexMinus, &AexPrimeMinus);
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	double Navg = 0.;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		Navg += ljWeights[i] * N[i];
+	//Compute upto second derivative of per-particle free energy:
+	double AexPrime, Aex; (*eval)(0, &Navg, &Aex, &AexPrime);
+	const double dN = Navg*1e-7;
+	double AexPrimePlus,  AexPlus,  Nplus  = Navg+dN; (*eval)(0, &Nplus,  &AexPlus,  &AexPrimePlus);
+	double AexPrimeMinus, AexMinus, Nminus = Navg-dN; (*eval)(0, &Nminus, &AexMinus, &AexPrimeMinus);
 	double AexDblPrime = (AexPrimePlus - AexPrimeMinus) / (2*dN);
 	//Accumulate correlations:
 	ScalarFieldTilde fex_LJattTilde(fex_LJatt, gInfo); //A scalar field version of kernel to ease arithmetic
-	C[fluidMixture.corrFuncIndex(0,0,this)] += (2*AexPrime*fex_LJattTilde + N[0]*AexDblPrime*(fex_LJatt*fex_LJattTilde));
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		for(unsigned j=i; j<ljWeights.size(); j++)
+			C[fluidMixture.corrFuncIndex(i,j,this)] += (ljWeights[i]*ljWeights[j]) *  (2*AexPrime*fex_LJattTilde + Navg*AexDblPrime*(fex_LJatt*fex_LJattTilde));
 }
 
 double Fex_TM_ScalarEOS::vdwRadius() const
@@ -77,10 +97,10 @@ const double rCH_CHCl3 = 1.073*Angstrom;
 const double thetaHCCl_CHCl3 = 107.98 * M_PI/180;
 
 Fex_CHCl3_ScalarEOS::Fex_CHCl3_ScalarEOS(FluidMixture& fluidMixture)
-: Fex_TM_ScalarEOS(fluidMixture, 536.6*Kelvin, 5328.68*KPascal, 0.216, 2.06*Angstrom),
-propC(gInfo, eval->sphereRadius,0., -0.5609,&siteChargeKernel, true, 0.878*pow(Angstrom,3),&siteChargeKernel),
-propH(gInfo, 0.,0.,0.0551,&siteChargeKernel, true, 0.135*pow(Angstrom,3),&siteChargeKernel),
-propCl(gInfo, 0.,0.,0.1686,&siteChargeKernel, true, 1.910*pow(Angstrom,3),&siteChargeKernel),
+: Fex_TM_ScalarEOS(fluidMixture, 536.6*Kelvin, 5328.68*KPascal, 0.216, 2.53*Angstrom, 2.78*Angstrom),
+propC(gInfo, eval->sphereRadius,0., -0.5609,&siteChargeKernel, true, 6.05,&siteChargeKernel),
+propH(gInfo, 0.,0.,0.0551,&siteChargeKernel, true, 9.13,&siteChargeKernel),
+propCl(gInfo, 0.,0.,0.1686,&siteChargeKernel, true, 15.8,&siteChargeKernel),
 molecule("CHCl3",
 	&propC,
 		 vector3<>(0,0,0),
@@ -98,9 +118,9 @@ molecule("CHCl3",
 const double rCCl_CCl4 = 1.7829*Angstrom;
 
 Fex_CCl4_ScalarEOS::Fex_CCl4_ScalarEOS(FluidMixture& fluidMixture)
-: Fex_TM_ScalarEOS(fluidMixture, 556.4*Kelvin, 4493*KPascal, 0.194, 2.17*Angstrom),
-propC(gInfo, eval->sphereRadius,0., -0.6052,&siteChargeKernel, true, 0.878*pow(Angstrom,3),&siteChargeKernel),
-propCl(gInfo, 0.,0.,+0.1513,&siteChargeKernel, true, 1.910*pow(Angstrom,3),&siteChargeKernel),
+: Fex_TM_ScalarEOS(fluidMixture, 556.4*Kelvin, 4493*KPascal, 0.194, 2.69*Angstrom, 2.78*Angstrom),
+propC(gInfo, eval->sphereRadius,0., -0.6052,&siteChargeKernel, true, 5.24,&siteChargeKernel),
+propCl(gInfo, 0.,0.,+0.1513,&siteChargeKernel, true, 18.1,&siteChargeKernel),
 molecule("CCl4",
 	&propC,
 		 vector3<>(0,0,0),

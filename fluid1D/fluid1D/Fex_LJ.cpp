@@ -48,10 +48,10 @@ void setLJatt(SphericalKernel& kernel, const GridInfo& gInfo, double eps, double
 	}
 }
 
-void setQuarticQkernel(SphericalKernel& kernel, const GridInfo& gInfo, double Gc)
+void setQkernel(SphericalKernel& kernel, const GridInfo& gInfo, double Rvdw)
 {	kernel.resize(gInfo.S);
 	for(int i=0; i<gInfo.S; i++)
-		kernel[i] = 1./sqrt(1 + pow(gInfo.G[i]/Gc,4));
+		kernel[i] = gsl_sf_bessel_j0(gInfo.G[i]*Rvdw);
 }
 
 Fex_LJ::Fex_LJ(FluidMixture& fluidMixture, double eps, double sigma, string name, double Q)
@@ -68,7 +68,7 @@ Fex_LJ::Fex_LJ(FluidMixture& fluidMixture, double eps, double sigma, string name
 {	logPrintf("\tInitializing LJ fluid \"%s\" with eps=%lf K and sigma=%lf A:\n", name.c_str(), eps/Kelvin, sigma/Angstrom);
 	logPrintf("\t\tCore radius %lf A with softness %lf A\n", prop.sphereRadius/Angstrom, prop.sphereSigma/Angstrom);
 	setLJatt(ljatt, gInfo, eps, sigma);
-	if(Qkernel) setQuarticQkernel(*Qkernel, gInfo, 0.33);
+	if(Qkernel) setQkernel(*Qkernel, gInfo, 0.5*sigma);
 }
 Fex_LJ::~Fex_LJ()
 {	if(Qkernel) delete Qkernel;

@@ -29,7 +29,7 @@ public:
 	//!Fluid EOS determined by critical point (Tc,Pc) and acentricity (omega)
 	//!Hard sphere radius is used to separate out the repulsive part to be treated by FMT
 	//!Note: assumes that only a single site of the molecule has a hard sphere radius which is equal to the value the supplied value
-	Fex_TM_ScalarEOS(FluidMixture& fluidMixture, double Tc, double Pc, double omega, double sphereRadius);
+	Fex_TM_ScalarEOS(FluidMixture& fluidMixture, double Tc, double Pc, double omega, double sphereRadius, double vdwSigma);
 	virtual ~Fex_TM_ScalarEOS();
 	
 	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const;

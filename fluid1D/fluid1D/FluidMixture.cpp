@@ -98,6 +98,7 @@ struct BoilingPressureSolver
 	std::vector<double> xLiq;
 	std::vector<double> Nliq, Nvap, aPrimeLiq, aPrimeVap; double Pliq, Pvap, NliqTot; //Dependent quantities set by compute:
 	gsl_multiroot_fsolver* fsolver;
+	gsl_multiroot_function solverFunc;
 		
 	BoilingPressureSolver(const FluidMixture& fm, std::vector<double> xLiq, double NliqGuess, double NvapGuess)
 	: fm(fm), nComponents(fm.component.size()), xLiq(xLiq),
@@ -110,7 +111,9 @@ struct BoilingPressureSolver
 		gsl_vector_set(params, nComponents, log(NliqGuess));
 		//Create solver:
 		fsolver = gsl_multiroot_fsolver_alloc(gsl_multiroot_fsolver_hybrids, nComponents+1);
-		gsl_multiroot_function solverFunc = {&BoilingPressureSolver::errFunc, nComponents+1, this};
+		solverFunc.f = &BoilingPressureSolver::errFunc;
+		solverFunc.n = nComponents+1;
+		solverFunc.params = this;
 		gsl_multiroot_fsolver_set(fsolver, &solverFunc, params);
 		gsl_vector_free(params);
 	}

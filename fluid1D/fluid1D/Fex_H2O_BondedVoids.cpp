@@ -45,7 +45,7 @@ molecule("H2O",
 		&propV, vector3<>(+1,+1,-1)*((RO+RV)/sqrt(3)), vector3<>(-1,-1,-1)*((RO+RV)/sqrt(3)) )
 {
 	//Initialize the kernels:
-	setQuarticQkernel(siteChargeKernel, gInfo, 0.33);
+	setQkernel(siteChargeKernel, gInfo, 1.385*Angstrom);
 	setLJatt(Ua, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(sigmaU,3)), sigmaU);
 }
 

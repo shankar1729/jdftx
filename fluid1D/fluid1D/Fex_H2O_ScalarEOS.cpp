@@ -30,8 +30,8 @@ static const double thetaHOH = acos(-1.0/3);
 Fex_H2O_ScalarEOS::Fex_H2O_ScalarEOS(FluidMixture& fluidMixture)
 : Fex(fluidMixture),
 eval(new ScalarEOS_eval(T)),
-propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel),
-propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel),
+propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel, true, 3.73,&siteChargeKernel),
+propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel, true, 3.30,&siteChargeKernel),
 molecule("H2O",
 	&propO,
 		 vector3<>(0,0,0),
@@ -40,7 +40,7 @@ molecule("H2O",
 		 vector3<>(0, +rOH*sin(0.5*thetaHOH), rOH*cos(0.5*thetaHOH)) )
 {
 	//Initialize the kernels:
-	setQuarticQkernel(siteChargeKernel, gInfo, 0.33);
+	setQkernel(siteChargeKernel, gInfo, 1.385*Angstrom);
 	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(2*eval->sphereRadius,3)), 2*eval->sphereRadius);
 }
 
@@ -54,34 +54,54 @@ double Fex_H2O_ScalarEOS::get_aDiel() const
 }
 
 double Fex_H2O_ScalarEOS::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* grad_Ntilde) const
-{	//Compute LJatt weighted density:
-	ScalarField Nbar = I(fex_LJatt * Ntilde[0]);
-	//Evaluated weighted denisty functional:
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	ScalarFieldTilde NavgTilde;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		NavgTilde += ljWeights[i] * Ntilde[i];
+	//Compute LJatt weighted density:
+	ScalarField Nbar = I(fex_LJatt * NavgTilde);
+	//Evaluated weighted density functional:
 	ScalarField Aex(&gInfo), AexPrime(&gInfo);
 	serialLoop(eval, gInfo.S, Nbar.data(), Aex.data(), AexPrime.data());
 	//Convert gradients:
 	ScalarFieldTilde OJAex = O(J(Aex));
-	grad_Ntilde[0] += fex_LJatt * Idag(Diag(AexPrime) * Jdag(O(Ntilde[0]))) + OJAex;
-	return dot(Ntilde[0], OJAex);
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		grad_Ntilde[i] += ljWeights[i] * (fex_LJatt * Idag(Diag(AexPrime) * Jdag(O(NavgTilde))) + OJAex);
+	return dot(NavgTilde, OJAex);
 }
 
 double Fex_H2O_ScalarEOS::computeUniform(const double* N, double* grad_N) const
-{	double AexPrime, Aex;
-	(*eval)(0, &N[0], &Aex, &AexPrime);
-	grad_N[0] += Aex + N[0]*AexPrime;
-	return N[0]*Aex;
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	double Navg = 0.;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		Navg += ljWeights[i] * N[i];
+	//Evaluated weighted density functional:
+	double AexPrime, Aex;
+	(*eval)(0, &Navg, &Aex, &AexPrime);
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		grad_N[i] += ljWeights[i] * (Aex + Navg*AexPrime);
+	return Navg*Aex;
 }
 
 void Fex_H2O_ScalarEOS::directCorrelations(const double* N, ScalarFieldTildeCollection& C) const
-{	//Compute upto second derivative of per-particle free energy:
-	double AexPrime, Aex; (*eval)(0, &N[0], &Aex, &AexPrime);
-	const double dN = N[0]*1e-7;
-	double AexPrimePlus,  AexPlus,  Nplus  = N[0]+dN; (*eval)(0, &Nplus,  &AexPlus,  &AexPrimePlus);
-	double AexPrimeMinus, AexMinus, Nminus = N[0]-dN; (*eval)(0, &Nminus, &AexMinus, &AexPrimeMinus);
+{	//Polarizability-averaged density:
+	std::vector<double> ljWeights = getMolecule()->getLJweights();
+	double Navg = 0.;
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		Navg += ljWeights[i] * N[i];
+	//Compute upto second derivative of per-particle free energy:
+	double AexPrime, Aex; (*eval)(0, &Navg, &Aex, &AexPrime);
+	const double dN = Navg*1e-7;
+	double AexPrimePlus,  AexPlus,  Nplus  = Navg+dN; (*eval)(0, &Nplus,  &AexPlus,  &AexPrimePlus);
+	double AexPrimeMinus, AexMinus, Nminus = Navg-dN; (*eval)(0, &Nminus, &AexMinus, &AexPrimeMinus);
 	double AexDblPrime = (AexPrimePlus - AexPrimeMinus) / (2*dN);
 	//Accumulate correlations:
 	ScalarFieldTilde fex_LJattTilde(fex_LJatt, gInfo); //A scalar field version of kernel to ease arithmetic
-	C[fluidMixture.corrFuncIndex(0,0,this)] += (2*AexPrime*fex_LJattTilde + N[0]*AexDblPrime*(fex_LJatt*fex_LJattTilde));
+	for(unsigned i=0; i<ljWeights.size(); i++)
+		for(unsigned j=i; j<ljWeights.size(); j++)
+			C[fluidMixture.corrFuncIndex(i,j,this)] += (ljWeights[i]*ljWeights[j]) *  (2*AexPrime*fex_LJattTilde + Navg*AexDblPrime*(fex_LJatt*fex_LJattTilde));
 }
 
 double Fex_H2O_ScalarEOS::vdwRadius() const

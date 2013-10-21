@@ -35,8 +35,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 //#define PLANAR
 #define CORRFUNC
 
-#define ChosenLiq CHCl3
-//#define ChosenLiq CCl4
+//#define ChosenLiq CHCl3
+#define ChosenLiq CCl4
 
 const double sigmaCHCl3 = 26.67 * (1e-3*Newton/meter);
 const double sigmaCCl4 = 26.17 * (1e-3*Newton/meter);

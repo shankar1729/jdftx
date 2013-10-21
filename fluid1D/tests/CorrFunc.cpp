@@ -23,7 +23,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid1D/Fex_H2O_ScalarEOS.h>
 #include <fluid1D/Fex_H2O_BondedVoids.h>
 
-#define ChosenFex FittedCorrelations
+#define ChosenFex ScalarEOS
 
 #define FEX_NAME_quoter(FexSuffix) #FexSuffix
 #define FEX_NAME(FexSuffix) FEX_NAME_quoter(FexSuffix)

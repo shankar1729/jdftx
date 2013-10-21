@@ -89,6 +89,8 @@ struct Molecule
 	//! Get the harmonic sum of radii for spheres in contact, with the multiplicities for each such pair
 	std::map<double,int> getBonds() const;
 
+	std::vector<double> getLJweights() const; //!< Get the relative contributions for the scalar EOS term on each index (based on alpha)
+	
 private:
 	//Template recursion entry point for the magic constructor above:
 	template<typename... Args> std::vector<Site> make_site(SiteProperties* prop, vector3<> pos, Args... args)

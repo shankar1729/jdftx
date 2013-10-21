@@ -90,3 +90,17 @@ std::map<double,int> Molecule::getBonds() const
 	}
 	return bond;
 }
+
+std::vector<double> Molecule::getLJweights() const
+{	std::vector<double> ljWeights(nIndices, 0.);
+	//Collect polarizabilities:
+	double alphaTot = 0.;
+	for(const Site& s: site)
+	{	ljWeights[s.index] = s.prop->alpha;
+		alphaTot += s.prop->alpha;
+	}
+	//Normalize (accounting for multiplicities):
+	for(double& w: ljWeights)
+		w *= (1./alphaTot);
+	return ljWeights;
+}

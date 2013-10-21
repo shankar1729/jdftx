@@ -29,8 +29,8 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 //! Initialize kernel to the attarctive part of a Lennard-Jones potential
 void setLJatt(SphericalKernel& kernel, const GridInfo& gInfo, double eps, double sigma);
 
-//! Initialize (1+(G/Gc)^4)^(-1/2) site-charge density kernel
-void setQuarticQkernel(SphericalKernel& kernel, const GridInfo& gInfo, double Gc);
+//! Initialize site-charge density kernel (spherical shell at Rvdw)
+void setQkernel(SphericalKernel& kernel, const GridInfo& gInfo, double Rvdw);
 
 //! Lennard Jones fluid treated as a mean field perturbation about a soft FMT core
 class Fex_LJ : public Fex
