@@ -118,7 +118,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 1.77;
 			Pvap = antoinePvap(T, 7.31549, 1794.88, -34.764);
 			sigmaBulk = 4.62e-5;
-			eos = std::make_shared<JeffereyAustinEOS>(T);
+			eos = std::make_shared<JeffereyAustinEOS>(T, 2*(1.36*Angstrom));
 			Rvdw = 1.385*Angstrom;
 			Res = 1.42;
 			//Site properties:
@@ -144,7 +144,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			{	case FittedCorrelations:
 					break;
 				case ScalarEOS:
-					siteO->Rhs = 1.36*Angstrom;
+					siteO->Rhs = 0.5*eos->sigmaEOS;
 					break;
 				case BondedVoids: 
 				{	siteO->Rhs = Fex_H2O_BondedVoids::RO;
@@ -169,13 +169,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 2.09;
 			Pvap = antoinePvap(T, 5.96288, 1106.94, -54.598);
 			sigmaBulk = 1.71e-5;
-			eos = std::make_shared<TaoMasonEOS>(T, 536.6*Kelvin, 5328.68*KPascal, 0.216);
+			eos = std::make_shared<TaoMasonEOS>(T, 536.6*Kelvin, 5328.68*KPascal, 0.216, 2.70*Angstrom);
 			Rvdw = 2.53*Angstrom;
 			Res = 2.22;
 			//Site properties:
 			molecule.name = "CHCl3";
 			auto siteCenter = std::make_shared<Molecule::Site>("center",0);
-				siteCenter->Rhs = 2.06*Angstrom;
+				siteCenter->Rhs = Rvdw;
 			molecule.sites.push_back(siteCenter);
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
@@ -211,7 +211,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 2.13;
 			Pvap = antoinePvap(T, 6.10445, 1265.63, -41.002);
 			sigmaBulk = 1.68e-5;
-			eos = std::make_shared<TaoMasonEOS>(T, 556.4*Kelvin, 4493*KPascal, 0.194);
+			eos = std::make_shared<TaoMasonEOS>(T, 556.4*Kelvin, 4493*KPascal, 0.194, 2.78*Angstrom);
 			Rvdw = 2.69*Angstrom;
 			Res = 1.90;
 			//Site properties:
@@ -220,7 +220,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
 				siteC->Zelec = 4.980; siteC->aElec = 0.44;
 				siteC->alpha = 5.24; siteC->aPol = 0.35;
-				siteC->Rhs = 2.19*Angstrom;
+				siteC->Rhs = Rvdw;
 			molecule.sites.push_back(siteC);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
@@ -242,7 +242,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			epsInf = 1.81;
 			Pvap = antoinePvap(T, 6.52111, 1492.375, -24.208); //logPrintf("selfSol = %lg\n", T*log(Pvap/(Nbulk*T)));
 			sigmaBulk = 1.88e-5;
-			eos = std::make_shared<TaoMasonEOS>(T, 545.5*Kelvin, 4830*KPascal, 0.278);
+			eos = std::make_shared<TaoMasonEOS>(T, 545.5*Kelvin, 4830*KPascal, 0.278, 3.5*Angstrom); //TODO: Tao-Mason EOS not appropriate for this fluid
 			Rvdw = 2.12*Angstrom;
 			Res = 2.6; //empirical value, SaLSA predicts 3.13
 			//Site properties:

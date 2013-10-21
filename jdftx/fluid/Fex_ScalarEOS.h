@@ -24,11 +24,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Abstract base class for the equation of state evaluator for ScalarEOS functionals
 struct ScalarEOS
-{	virtual double vdwRadius() const=0;
+{	double sigmaEOS;
+	virtual double vdwRadius() const=0;
 	virtual void evaluate(size_t nData, const double* N, double* Aex, double* Aex_N, double Vhs) const=0;
 	#ifdef GPU_ENABLED
 	virtual void evaluate_gpu(size_t nData, const double* N, double* Aex, double* Aex_N, double Vhs) const=0;
 	#endif
+	ScalarEOS(double sigmaEOS) : sigmaEOS(sigmaEOS) {}
 	virtual ~ScalarEOS() {}
 };
 
@@ -49,7 +51,7 @@ private:
 
 //! Jefferey-Austin equation of state for water
 struct JeffereyAustinEOS : public ScalarEOS
-{	JeffereyAustinEOS(double T);
+{	JeffereyAustinEOS(double T, double sigmaEOS);
 	double vdwRadius() const;
 	void evaluate(size_t nData, const double* N, double* Aex, double* Aex_N, double Vhs) const;
 	#ifdef GPU_ENABLED
@@ -61,7 +63,7 @@ private:
 
 //! Tao-Mason equation of state for moderately polar liquids
 struct TaoMasonEOS : public ScalarEOS
-{	TaoMasonEOS(double T, double Tc, double Pc, double omega, double TB=0, double vB=0);
+{	TaoMasonEOS(double T, double Tc, double Pc, double omega, double sigmaEOS);
 	double vdwRadius() const;
 	void evaluate(size_t nData, const double* N, double* Aex, double* Aex_N, double Vhs) const;
 	#ifdef GPU_ENABLED

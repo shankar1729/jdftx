@@ -39,8 +39,7 @@ Fex_ScalarEOS::Fex_ScalarEOS(const FluidMixture* fluidMixture, const FluidCompon
 	Vhs = (4*M_PI/3) * pow(Rhs,3);
 
 	//Initialize the mean field kernel:
-	double sigma = 2.*Rhs;
-	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(sigma,3)), sigma);
+	setLJatt(fex_LJatt, gInfo, -9.0/(32*sqrt(2)*M_PI*pow(eos.sigmaEOS,3)), eos.sigmaEOS);
 	Citations::add("Scalar-EOS liquid functional", rigidMoleculeCDFT_ScalarEOSpaper);
 }
 Fex_ScalarEOS::~Fex_ScalarEOS()
@@ -48,29 +47,44 @@ Fex_ScalarEOS::~Fex_ScalarEOS()
 }
 
 double Fex_ScalarEOS::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
-{	//Compute LJatt weighted density:
-	DataRptr Nbar = I(fex_LJatt*Ntilde[0]);
+{	//Polarizability-averaged density:
+	double alphaTot = 0.;
+	DataGptr NavgTilde;
+	for(unsigned i=0; i<molecule.sites.size(); i++)
+	{	const Molecule::Site& s = *(molecule.sites[i]);
+		NavgTilde += s.alpha * Ntilde[i];
+		alphaTot += s.alpha * s.positions.size();
+	}
+	NavgTilde *= (1./alphaTot);
+	//Compute LJatt weighted density:
+	DataRptr Nbar = I(fex_LJatt*NavgTilde);
 	//Evaluated weighted density functional:
 	DataRptr Aex, Aex_Nbar; nullToZero(Aex, gInfo); nullToZero(Aex_Nbar, gInfo);
 	callPref(eos.evaluate)(gInfo.nr, Nbar->dataPref(), Aex->dataPref(), Aex_Nbar->dataPref(), Vhs);
 	//Convert gradients:
-	DataRptr NO = I(Ntilde[0]);
-	Phi_Ntilde[0] += fex_LJatt*Idag(NO*Aex_Nbar) + Idag(Aex);
-	return gInfo.dV*dot(NO,Aex);
+	DataRptr Navg = I(NavgTilde);
+	DataGptr IdagAex = Idag(Aex);
+	for(unsigned i=0; i<molecule.sites.size(); i++)
+	{	const Molecule::Site& s = *(molecule.sites[i]);
+		Phi_Ntilde[i] += (fex_LJatt*Idag(Navg*Aex_Nbar) + IdagAex) * (s.alpha/alphaTot);
+	}
+	return gInfo.dV*dot(Navg,Aex);
 }
 
 double Fex_ScalarEOS::computeUniform(const double* N, double* Phi_N) const
 {	double AexPrime, Aex;
-	eos.evaluate(1, &N[0], &Aex, &AexPrime, Vhs);
-	Phi_N[0] += Aex + N[0]*AexPrime;
-	return N[0]*Aex;
+	double invN0mult = 1./molecule.sites[0]->positions.size();
+	double Navg = N[0]*invN0mult; //in uniform fluid limit, all site densities are fully determined by N[0] (polarizability averaging has no effect)
+	eos.evaluate(1, &Navg, &Aex, &AexPrime, Vhs);
+	Phi_N[0] += (Aex + Navg*AexPrime)*invN0mult;
+	return Navg*Aex;
 }
 
 
 //--------------- class JeffereyAustinEOS ---------------
 
-JeffereyAustinEOS::JeffereyAustinEOS(double T)
-: eval(std::make_shared<JeffereyAustinEOS_eval>(T))
+JeffereyAustinEOS::JeffereyAustinEOS(double T, double sigmaEOS)
+: ScalarEOS(sigmaEOS), eval(std::make_shared<JeffereyAustinEOS_eval>(T))
 {
 }
 
@@ -93,8 +107,8 @@ void JeffereyAustinEOS::evaluate_gpu(size_t nData, const double* N, double* Aex,
 
 //--------------- class TaoMasonEOS ---------------
 
-TaoMasonEOS::TaoMasonEOS(double T, double Tc, double Pc, double omega, double TB, double vB)
-: eval(std::make_shared<TaoMasonEOS_eval>(T, Tc, Pc, omega, TB, vB))
+TaoMasonEOS::TaoMasonEOS(double T, double Tc, double Pc, double omega, double sigmaEOS)
+: ScalarEOS(sigmaEOS), eval(std::make_shared<TaoMasonEOS_eval>(T, Tc, Pc, omega))
 {
 }
 

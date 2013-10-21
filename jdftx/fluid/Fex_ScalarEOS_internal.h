@@ -127,7 +127,7 @@ struct TaoMasonEOS_eval : public ScalarEOS_eval
 	double lambda, prefacQuad, prefacVap, prefacPole;
 	
 	//! Construct the equation of state for temperature T, given critical point and acentricity (all in atomic units)
-	TaoMasonEOS_eval(double T, double Tc, double Pc, double omega, double TB=0, double vB=0)
+	TaoMasonEOS_eval(double T, double Tc, double Pc, double omega)
 	{	this->T = T;
 		
 		//Constants in vapor pressure correction:
@@ -135,8 +135,8 @@ struct TaoMasonEOS_eval : public ScalarEOS_eval
 		double A1 = 0.143;
 		double A2 = 1.64 + 2.65*(exp(kappa-1.093)-1);
 		//Boyle temperature and volume:
-		if(!TB) TB = Tc * (2.6455 - 1.1941*omega);
-		if(!vB) vB = (Tc/Pc) * (0.1646 + 0.1014*omega);
+		double TB = Tc * (2.6455 - 1.1941*omega);
+		double vB = (Tc/Pc) * (0.1646 + 0.1014*omega);
 		//Temperature dependent functions:
 		const double a1 = -0.0648, a2 = 1.8067, c1 = 2.6038, c2 = 0.9726;
 		double alpha = vB*( a1*exp(-c1*T/TB) + a2*(1 - exp(-c2*pow(TB/T,0.25))) );
