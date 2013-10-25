@@ -138,7 +138,15 @@ void ElecVars::setup(const Everything &everything)
 			}
 		}
 	}
-
+	
+	if(eInfo.spinRestricted)
+	{	for(int q=0; q<eInfo.nStates/2; q++)
+		{	int qOther = q+eInfo.nStates/2;
+			Y[qOther] *= 0.;
+			Y[qOther] += Y[q]; //apply spin restriction (not using operator= because it also changes quantum number)
+		}
+	}
+	
 	//Orthogonalize initial wavefunctions:
 	for(int q=0; q<eInfo.nStates; q++)
 	{	Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q]));

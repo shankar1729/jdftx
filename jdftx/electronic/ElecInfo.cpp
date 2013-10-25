@@ -34,7 +34,7 @@ int ElecInfo::findHOMO(int q) const
 }
 
 ElecInfo::ElecInfo()
-: nStates(0), nBands(0), spinType(SpinNone), nElectrons(0), 
+: nStates(0), nBands(0), spinType(SpinNone), spinRestricted(false), nElectrons(0), 
 fillingsUpdate(ConstantFillings), kT(0), mu(std::numeric_limits<double>::quiet_NaN()),
 mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
 fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
@@ -47,6 +47,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	betaBy2 = 0.5/kT;
 	
 	logPrintf("\n---------- Setting up k-points, bands, fillings ----------\n");
+	if(spinRestricted) assert(spinType==SpinZ);
 	
 	//k-points are folded before symmetry setup, now reduce them under symmetries:
 	kpointsReduce();

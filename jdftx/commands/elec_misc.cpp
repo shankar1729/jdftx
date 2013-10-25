@@ -96,6 +96,32 @@ commandSpinType;
 
 //-------------------------------------------------------------------------------------------------
 
+struct CommandSpinRestricted : public Command
+{
+	CommandSpinRestricted() : Command("spin-restricted")
+	{
+		format = "yes|no";
+		comments = "Select whether to perform restricted spin-polarized calculations (default no).\n"
+			"Note that computational optimizations are minimal in current restricted implementation.\n"
+			"The format of wavefunction files depends on the spin, but is unaffected by this flag.";
+		require("spintype");
+		forbid("fix-electron-density");
+		forbid("residual-minimize");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.eInfo.spinRestricted, false, boolMap, "restricted");
+		if(e.eInfo.spinType==SpinNone && e.eInfo.spinRestricted) throw string("Spin-restricted calculations require spintype set to z-spin");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.eInfo.spinRestricted));
+	}
+}
+commandSpinRestricted;
+
+//-------------------------------------------------------------------------------------------------
+
 struct CommandFixElectronDensity : public Command
 {
 	CommandFixElectronDensity() : Command("fix-electron-density")
@@ -109,6 +135,7 @@ struct CommandFixElectronDensity : public Command
 		forbid("elec-ex-corr-compare");
 		forbid("residual-minimize");
 		forbid("vibrations");
+		forbid("spin-restricted");
 	}
 
 	void process(ParamList& pl, Everything& e)

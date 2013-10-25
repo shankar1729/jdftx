@@ -162,7 +162,7 @@ void ColumnBundle::randomize(int colStart, int colStop)
 	}
 }
 void randomize(std::vector<ColumnBundle>& Y)
-{	for(ColumnBundle& y: Y) y.randomize(0, y.nCols());
+{	for(ColumnBundle& y: Y) if(y) y.randomize(0, y.nCols());
 }
 
 void write(const std::vector<ColumnBundle>& Y, const char* fname)

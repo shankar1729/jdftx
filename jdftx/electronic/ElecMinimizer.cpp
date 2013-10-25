@@ -91,12 +91,31 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 	{	if(dir.Y[s]) axpy(alpha, dir.Y[s], eVars.Y[s]);
 		if(dir.B[s]) axpy(alpha, dir.B[s], eVars.B[s]);
 	}
+	if(eInfo.spinRestricted)
+	{	for(int q=0; q<eInfo.nStates/2; q++)
+		{	int qOther = q+eInfo.nStates/2;
+			eVars.Y[qOther] *= 0.;
+			eVars.Y[qOther] += eVars.Y[q]; //apply spin restriction (not using operator= because it also changes quantum number)
+		}
+	}
 }
 
 double ElecMinimizer::compute(ElecGradient* grad)
 {
 	if(grad) grad->init(e);
-	return e.eVars.elecEnergyAndGrad(e.ener, grad, precond ? &Kgrad : 0);
+	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, precond ? &Kgrad : 0);
+	if(grad && eInfo.spinRestricted)
+	{	for(int q=0; q<eInfo.nStates/2; q++)
+		{	//Move second spin channel gradient contributions to the first one (due to spin-restriction constraint)
+			int qOther = q+eInfo.nStates/2;
+			grad->Y[q] += grad->Y[qOther]; grad->Y[qOther].free();
+			//Recompute the preconditioned gradient including the fillings weights:
+			ostringstream KEoss; KEoss << "KE-" << q;
+			double KErollover = 2.0 * (trace(eVars.F[q]) ? (e.ener.E[KEoss.str()]/eInfo.qnums[q].weight) / trace(eVars.F[q]) : 1.);
+			Kgrad.Y[q] = precond_inv_kinetic(grad->Y[q], KErollover); Kgrad.Y[qOther].free();
+		}
+	}
+	return ener;
 }
 
 ElecGradient ElecMinimizer::precondition(const ElecGradient& grad)
