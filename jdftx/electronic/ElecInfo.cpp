@@ -35,7 +35,7 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nStates(0), nBands(0), spinType(SpinNone), spinRestricted(false), nElectrons(0), 
-fillingsUpdate(ConstantFillings), kT(0), mu(std::numeric_limits<double>::quiet_NaN()),
+fillingsUpdate(ConstantFillings), kT(1e-3), mu(std::numeric_limits<double>::quiet_NaN()),
 mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
 fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
 Cmeasured(1.), Cweight(0.), dnMixFraction(0.7)
@@ -207,7 +207,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	}
 	
 	//Set the Legendre multipliers corresponding to the initial fillings
-	updateFillingsEnergies(ener);
+	updateFillingsEnergies(F, ener);
 	
 	// Print out the current status of the electronic info before leaving
 	logPrintf("nElectrons: %10.6f   nBands: %d   nStates: %d", nElectrons, nBands, nStates);
@@ -272,20 +272,19 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 	}
 	
 	// Update fillings contribution to free energy:
-	updateFillingsEnergies(ener);
+	updateFillingsEnergies(F, ener);
 }
 
 
 // Fermi legendre multipliers (TS and optionally muN)
-void ElecInfo::updateFillingsEnergies(Energies& ener) const
+void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies& ener) const
 {
 	ener.TS = 0.0;
 	for(int q=0; q<nStates; q++)
-	{	const diagMatrix& Fq = e->eVars.F[q];
-		double Sq = 0.0;
-		for(int i=0; i < nBands; i++)
-		{	if(Fq[i]>1e-300) Sq += Fq[i]*log(Fq[i]);
-			if(1-Fq[i]>1e-300) Sq += (1-Fq[i])*log(1-Fq[i]);
+	{	double Sq = 0.0;
+		for(double Fqi: F[q])
+		{	if(Fqi>1e-300) Sq += Fqi*log(Fqi);
+			if(1-Fqi>1e-300) Sq += (1-Fqi)*log(1-Fqi);
 		}
 		ener.TS -= kT * qnums[q].weight * Sq;
 	}
@@ -326,8 +325,8 @@ matrix ElecInfo::fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF
 double ElecInfo::nElectronsFermi(double mu, const std::vector<diagMatrix>& eps) const
 {	double N = 0.0;
 	for (unsigned q=0; q<qnums.size(); q++)
-		for(int b=0; b<nBands; b++)
-			N += qnums[q].weight*fermi(mu, eps[q][b]);
+		for(double epsCur: eps[q])
+			N += qnums[q].weight*fermi(mu, epsCur);
 	return N;
 }
 

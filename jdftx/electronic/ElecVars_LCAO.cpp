@@ -22,11 +22,107 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>
 #include <electronic/operators.h>
+#include <electronic/ElecMinimizer.h>
 #include <core/DataIO.h>
 
+struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of ElecGradient
+{	int nBands;
+	ElecVars& eVars;
+	const Everything& e;
+	const ExCorr* exCorr;
+	std::vector<matrix> HniSub;
+	std::vector<matrix> B; //Auxiliary hamiltonian (minimizer state)
+	ElecGradient Kgrad;
+	
+	LCAOminimizer(ElecVars& eVars, const Everything& e)
+	: eVars(eVars), e(e), HniSub(e.eInfo.nStates), B(e.eInfo.nStates)
+	{	Kgrad.init(e);
+	}
+	
+	void step(const ElecGradient& dir, double alpha)
+	{	assert(dir.B.size() == B.size());
+		for(unsigned q=0; q<dir.Y.size(); q++)
+			if(dir.B[q]) axpy(alpha, dir.B[q], B[q]);
+	}
+	
+	double compute(ElecGradient* grad)
+	{	Energies ener = e.ener;
+		if(grad) grad->init(e);
+		
+		//Simplified version of ElecVars::orthonormalize()
+		std::vector<matrix> B_evecs(e.eInfo.nStates);
+		std::vector<diagMatrix> B_eigs(e.eInfo.nStates);
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	B[q].diagonalize(B_evecs[q], B_eigs[q]);
+			eVars.C[q] = eVars.Y[q] * B_evecs[q];
+		}
+		
+		//Update fillings (Aux algorithm, fixed N only):
+		double mu = e.eInfo.findMu(B_eigs, e.eInfo.nElectrons), dmuNum=0.0, dmuDen=0.0;
+		std::vector<diagMatrix> F(e.eInfo.nStates);
+		for(int q=0; q<e.eInfo.nStates; q++)
+			F[q] = e.eInfo.fermi(mu, B_eigs[q]);
+		e.eInfo.updateFillingsEnergies(F, ener);
+		
+		//Update density:
+		for(DataRptr& ns: eVars.n) ns = 0;
+		e.iInfo.augmentDensityInit();
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	eVars.n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q]);
+			e.iInfo.augmentDensitySpherical(F[q], eVars.C[q]); //pseudopotential contribution
+		}
+		e.iInfo.augmentDensityGrid(eVars.n);
+		for(DataRptr& ns: eVars.n) e.symm.symmetrize(ns);
+		
+		//Update local potential:
+		eVars.EdensityAndVscloc(ener);
+		if(grad) e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
+		
+		//Wavefunction dependent parts:
+		std::vector<ColumnBundle> HC(e.eInfo.nStates);
+		ener.E["U"] = e.iInfo.computeU(F, eVars.C, grad ? &HC : 0);
+		ener.E["NI"] = 0.;
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	const QuantumNumber& qnum = e.eInfo.qnums[q];
+			
+			//KE and Nonlocal pseudopotential from precomputed subspace matrix:
+			matrix HniRot = dagger(B_evecs[q]) * HniSub[q] * B_evecs[q];
+			ener.E["NI"] += qnum.weight * trace(F[q] * HniRot).real();
+		
+			//Gradient and subspace Hamiltonian:
+			if(grad)
+			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+				e.iInfo.augmentDensitySphericalGrad(F[q], eVars.C[q], HC[q]); //Contribution via pseudopotential density augmentation
+				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
+				//Nconstraint contributions to gradient:
+				diagMatrix fprime = e.eInfo.fermiPrime(mu, B_eigs[q]);
+				dmuNum += qnum.weight * trace(fprime * (diag(eVars.Hsub[q])-B_eigs[q]));
+				dmuDen += qnum.weight * trace(fprime);
+			}
+		}
+		
+		//Final gradient propagation to auxiliary Hamiltonian:
+		if(grad) 
+		{	matrix dmuContrib = eye(nBands) * (dmuNum/dmuDen); //contribution due to Nconstraint via the mu gradient 
+			for(int q=0; q<e.eInfo.nStates; q++)
+			{	const QuantumNumber& qnum = e.eInfo.qnums[q];
+				matrix gradF = eVars.Hsub[q]-B_eigs[q]-dmuContrib; //gradient w.r.t fillings
+				grad->B[q] = qnum.weight * dagger_symmetrize(B_evecs[q] * e.eInfo.fermiGrad(mu, B_eigs[q], gradF) * dagger(B_evecs[q]));
+				//Drop the fermiPrime factors and state weights in preconditioned gradient:
+				Kgrad.B[q] = dagger_symmetrize(B_evecs[q] * (-gradF) * dagger(B_evecs[q]));
+			}
+		}
+		return ener.F();
+	}
+	
+	ElecGradient precondition(const ElecGradient& grad)
+	{	return Kgrad;
+	}
+};
+
+
 int ElecVars::LCAO()
-{
-	const ElecInfo &eInfo = e->eInfo;
+{	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
 	//Count total atomic orbitals:
@@ -44,15 +140,37 @@ int ElecVars::LCAO()
 		return 0;
 	}
 	
+	LCAOminimizer lcao(*this, *e);
+	
 	//Check exchange-correlation functional, and replace with PBE if not strictly (semi-)local
 	ExCorr exCorrPBE; //defaults to gga-PBE
-	const ExCorr* exCorr; //The functional to be used here: either e->exCorr or PBE
 	if(e->exCorr.exxFactor() || e->exCorr.needsKEdensity()) //Hybrid or meta-GGA respectively
 	{	logPrintf("Initializing semi-local functional for LCAO:\n");
 		exCorrPBE.setup(*e);
-		exCorr = &exCorrPBE;
+		lcao.exCorr = &exCorrPBE;
 	}
-	else exCorr = &e->exCorr;
+	else lcao.exCorr = &e->exCorr;
+	
+	//Temporarily disable the fluid (which is yet to be initialized)
+	FluidType fluidTypeTemp = FluidNone;
+	std::swap(fluidParams.fluidType, fluidTypeTemp);
+
+	//Get orthonormal atomic orbitals and non-interacting part of subspace Hamiltonian:
+	lcao.nBands = std::max(nAtomic, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/2))));
+	for(int q=0; q<eInfo.nStates; q++)
+	{	if(lcao.nBands!=eInfo.nBands) Y[q] = Y[q].similar(lcao.nBands);
+		int iCol=0;
+		for(auto sp: iInfo.species)
+		{	sp->setAtomicOrbitals(Y[q], iCol);
+			iCol += sp->nAtomicOrbitals();
+		}
+		if(iCol<lcao.nBands) Y[q].randomize(iCol, lcao.nBands); //Randomize extra columns if any
+		Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q])); //orthonormalize
+		//Non-interacting Hamiltonian:
+		ColumnBundle HniYq = -0.5*L(Y[q]);
+		iInfo.EnlAndGrad(eye(lcao.nBands), Y[q], HniYq); //non-local pseudopotentials
+		lcao.HniSub[q] = Y[q]^HniYq;
+	}
 	
 	//Get electron density obtained by adding those of the atoms:
 	DataGptrCollection nTilde(n.size());
@@ -66,35 +184,41 @@ int ElecVars::LCAO()
 	}
 	
 	//Compute local-potential at the atomic reference density:
-	FluidType fluidTypeTemp = FluidNone;
-	std::swap(fluidParams.fluidType, fluidTypeTemp); //Temporarily disable the fluid (which is yet to be initialized)
 	Energies ener;
-	EdensityAndVscloc(ener, exCorr);
-	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
+	EdensityAndVscloc(ener, lcao.exCorr);
 	iInfo.augmentDensityInit();
 	iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
 	
-	//Initialize one state at a time:
+	//Set initial auxiliary hamiltonian to the subspace Hamiltonian at atomic reference density:
 	for(int q=0; q<eInfo.nStates; q++)
-	{	ColumnBundle psi(nAtomic, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q], isGpuEnabled());
-		//Fill with atomic orbitals:
-		int iCol=0;
-		for(auto sp: iInfo.species)
-		{	sp->setAtomicOrbitals(psi, iCol);
-			iCol += sp->nAtomicOrbitals();
-		}
-		psi = psi * invsqrt(psi^O(psi));
-		//Compute the Hamiltonian:
-		ColumnBundle Hpsi = -0.5*L(psi); //kinetic part
-		iInfo.EnlAndGrad(eye(nAtomic), psi, Hpsi); //non-local pseudopotentials
-		Hpsi += Idag_DiagV_I(psi, Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
-		iInfo.augmentDensitySphericalGrad(eye(nAtomic), psi, Hpsi); //ultrasoft augmentation
-		//Diagonalize and set to eigenvectors:
-		matrix evecs; diagMatrix eigs;
-		(psi^Hpsi).diagonalize(evecs, eigs);
-		psi = psi * evecs;
-		//Pick the first nBands columns (which have the lowest eigenvalues:
-		Y[q].setSub(0, psi);
+	{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
+		iInfo.augmentDensitySphericalGrad(eye(lcao.nBands), Y[q], HYq); //ultrasoft augmentation
+		lcao.B[q] = lcao.HniSub[q] + (Y[q]^HYq);
 	}
-	return std::min(eInfo.nBands, nAtomic);
+	
+	//Subspace minimize:
+	MinimizeParams mp;
+	mp.nDim = eInfo.nStates * lcao.nBands*lcao.nBands;
+	mp.fpLog = globalLog;
+	mp.linePrefix = "LCAOMinimize: ";
+	mp.energyLabel = "F";
+	mp.energyDiffThreshold = lcaoTol;
+	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.subspaceRotation ? 30 : 3 );
+	lcao.minimize(mp);
+	
+	//Set wavefunctions to eigenvectors:
+	for(int q=0; q<eInfo.nStates; q++)
+	{	matrix evecs; diagMatrix eigs;
+		Hsub[q].diagonalize(evecs, eigs);
+		if(eInfo.nBands<lcao.nBands) evecs = evecs(0,lcao.nBands, 0,eInfo.nBands); //drop extra eigenvectors
+		Y[q] = C[q] * evecs; C[q].free();
+		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		{	matrix Bq_evecs; diagMatrix Bq_eigs;
+			lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
+			B[q] = dagger(evecs) * Bq_eigs * evecs;
+			HauxInitialized = true;
+		}
+	}
+	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
+	return eInfo.nBands;
 }

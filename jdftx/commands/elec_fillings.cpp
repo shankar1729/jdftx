@@ -32,6 +32,7 @@ struct CommandElecFermiFillings : public Command
 			"  If <mixInterval> is zero, use the auxilliary hamiltonian method (recommended).\n"
 			"  Else, mix fermi functions every <mixInterval> iterations with mixing fraction <alpha>.";
 		
+		require("lcao-params");
 		require("elec-n-bands");
 		forbid("fix-electron-density");
 	}

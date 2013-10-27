@@ -28,7 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 #include <electronic/SCF.h>
 
-void ElecGradient::init(Everything& e)
+void ElecGradient::init(const Everything& e)
 {	init(e.eInfo.nStates);
 }
 
@@ -110,9 +110,11 @@ double ElecMinimizer::compute(ElecGradient* grad)
 			int qOther = q+eInfo.nStates/2;
 			grad->Y[q] += grad->Y[qOther]; grad->Y[qOther].free();
 			//Recompute the preconditioned gradient including the fillings weights:
-			ostringstream KEoss; KEoss << "KE-" << q;
-			double KErollover = 2.0 * (trace(eVars.F[q]) ? (e.ener.E[KEoss.str()]/eInfo.qnums[q].weight) / trace(eVars.F[q]) : 1.);
-			Kgrad.Y[q] = precond_inv_kinetic(grad->Y[q], KErollover); Kgrad.Y[qOther].free();
+			if(precond)
+			{	ostringstream KEoss; KEoss << "KE-" << q;
+				double KErollover = 2.0 * (trace(eVars.F[q]) ? (e.ener.E[KEoss.str()]/eInfo.qnums[q].weight) / trace(eVars.F[q]) : 1.);
+				Kgrad.Y[q] = precond_inv_kinetic(grad->Y[q], KErollover); Kgrad.Y[qOther].free();
+			}
 		}
 	}
 	return ener;

@@ -34,7 +34,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 ElecVars::ElecVars()
 : readWfnsRealspace(false), nBandsOld(0), EcutOld(0), kdepOld(BasisKpointDep), NxOld(0), NyOld(0), NzOld(0),
-isRandom(true), HauxInitialized(false), initLCAO(true)
+isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e-6)
 {
 }
 
@@ -314,7 +314,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		for(int q=0; q<eInfo.nStates; q++)
 			F[q] = eInfo.fermi(mu, B_eigs[q]);
 		//Update TS and muN:
-		eInfo.updateFillingsEnergies(ener);
+		eInfo.updateFillingsEnergies(F, ener);
 	}
 	
 	//Update the density and density-dependent pieces if required:
@@ -369,7 +369,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		for(int q=0; q<eInfo.nStates; q++)
 		{			
 			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-			orthonormalizeGrad(q, C[q], Fq, HC[q], grad->Y[q], &Kgrad->Y[q], &grad->B[q], &Kgrad->B[q]);
+			orthonormalizeGrad(q, C[q], Fq, HC[q], grad->Y[q], Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
 			HC[q].free(); // Deallocate HCq when done.
 			
 			//Subspace hamiltonian gradient:

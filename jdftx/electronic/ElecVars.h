@@ -139,8 +139,11 @@ private:
 	friend class CommandRhoExternal;
 
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
+	int lcaoIter; //!< number of iterations for LCAO (automatic if negative)
+	double lcaoTol; //!< tolerance for LCAO subspace minimization
 	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)
 	friend class CommandWavefunction;
+	friend class CommandLCAOparams;
 	friend class Dump;
 	
 	//! Overlap matrix U and cohorts

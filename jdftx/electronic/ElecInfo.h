@@ -69,7 +69,7 @@ public:
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
 	void printFillings(FILE* fp) const;
 	void mixFillings(std::vector<diagMatrix>& F, Energies& ener); //!< Fermi fillings with mixing / mu control
-	void updateFillingsEnergies(Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
+	void updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
 
 	//Fermi function utilities:
 	double fermi(double mu, double eps) const { return 0.5*(1.-tanh(betaBy2*(eps-mu))); } //!< fermi function

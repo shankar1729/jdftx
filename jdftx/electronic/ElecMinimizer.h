@@ -30,7 +30,7 @@ struct ElecGradient
 	std::vector<ColumnBundle> Y; 
 	std::vector<matrix> B;
 	
-	void init(Everything& e); //!< initialize Y and B with the correct sizes for everything
+	void init(const Everything& e); //!< initialize Y and B with the correct sizes for everything
 	void init(int nStates); //!< initialize Y and B arrays, but with empty matrices and ColumnBundles
 	
 	ElecGradient& operator*=(double alpha); //!< scalar multiply
