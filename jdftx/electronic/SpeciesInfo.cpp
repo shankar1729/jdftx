@@ -115,18 +115,7 @@ SpeciesInfo::~SpeciesInfo()
 			delete OpsiRadial;
 		}
 
-		if(nAug)
-		{
-			#ifdef GPU_ENABLED
-			cudaFree(nAug);
-			cudaFree(E_nAug);
-			if(nagIndex) cudaFree(nagIndex);
-			if(nagIndexPtr) cudaFree(nagIndexPtr);
-			#else
-			delete[] nAug;
-			delete[] E_nAug;
-			#endif
-		}
+		augmentDensityCleanup();
 	}
 }
 
@@ -334,6 +323,21 @@ void SpeciesInfo::augmentDensityInit()
 		#endif
 	}
 	callPref(eblas_zero)(nCoeffTot, nAug);
+}
+
+void SpeciesInfo::augmentDensityCleanup()
+{	if(nAug)
+	{
+		#ifdef GPU_ENABLED
+		cudaFree(nAug); nAug=0;
+		cudaFree(E_nAug); E_nAug=0;
+		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
+		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
+		#else
+		delete[] nAug; nAug=0;
+		delete[] E_nAug; E_nAug=0;
+		#endif
+	}
 }
 
 void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
@@ -791,6 +795,9 @@ void SpeciesInfo::updateLatticeDependent()
 		for(int l=0; l<int(psiRadial.size()); l++) for(auto& psi_lp: psiRadial[l]) psi_lp.updateGmax(l, nGridNL);
 		if(OpsiRadial != &psiRadial)
 			for(int l=0; l<int(OpsiRadial->size()); l++) for(auto& Opsi_lp: OpsiRadial->at(l)) Opsi_lp.updateGmax(l, nGridNL);
+		//Reallocate quantities whose length depends on the above:
+		augmentDensityCleanup();
+		augmentDensityInit();
 	}
 
 	//Update nagIndex if not previously init'd, or if R has changed:

@@ -87,6 +87,7 @@ public:
 	
 	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
 	void augmentDensityInit();
+	void augmentDensityCleanup();
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
 	void augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)

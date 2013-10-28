@@ -57,7 +57,7 @@ private:
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	
-	//! If the norm of the strain tensor exceeds this, lattice minimizer quits
+	//! If the norm of the strain tensor exceeds this, lattice minimizer backtracks
 	static constexpr double maxAllowedStrain = 0.35;
 	
 	double h; //! Finite difference step size

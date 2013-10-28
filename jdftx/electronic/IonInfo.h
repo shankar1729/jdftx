@@ -102,12 +102,10 @@ public:
 	}
 	ionWidthMethod; //!< method for determining ion charge width
 	double ionWidth; //!< width for gaussian representation of nuclei
+	bool shouldPrintForceComponents;
 
 private:
 	const Everything* e;
-	bool shouldPrintForceComponents;
-	
-	friend class CommandDebug;
 	
 	//! Compute all pair-potential terms in the energy or forces (electrostatic, and optionally vdW)
 	void pairPotentialsAndGrad(Energies* ener=0, IonicGradient* forces=0) const;

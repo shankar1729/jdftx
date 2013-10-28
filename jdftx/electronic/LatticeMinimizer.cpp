@@ -100,17 +100,23 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
-	logSuspend();
+	//Check for large lattice strain
+	if(sqrt(dot(strain, strain)) > maxAllowedStrain)
+	{	logPrintf("\nBacking of lattice step since strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
+		logPrintf("If this is a physical strain, restart calculation with these lattice vectors to prevent Pulay errors:\n");
+		e.gInfo.printLattice();
+		logPrintf("\n");
+		return NAN;
+	}
+
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
 	updateLatticeDependent(true); // Updates lattice information and gets the energy (but does not touch electronic state, important for magnetic LCAO)
-	logResume();
 	
 	//! Run an ionic minimizer at the current strain
 	IonicMinimizer ionicMinimizer(e);
 	ionicMinimizer.minimize(e.ionicMinParams);
 	
 	//! If asked for, returns the gradient of the strain tensor
-	logSuspend();
 	if(grad)
 	{	//! Loop over all basis vectors and get the gradient.
 		*grad = matrix3<>();
@@ -120,17 +126,6 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		e.gInfo.R = Rorig + Rorig*strain;
 		updateLatticeDependent();
 	}
-	logResume();
-	
-	// Check for large lattice strain
-	if(sqrt(dot(strain, strain)) > maxAllowedStrain)
-	{
-		logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
-		logPrintf("\n\nERROR!\nLattice strain has become very large!\nRestart calculation with these lattice vectors to prevent Pulay errors!\n");
-		e.gInfo.printLattice();
-		logPrintf("\n\n");
-		killFlag = true;
-	}
 	
 	return relevantFreeEnergy(e);
 }
@@ -139,14 +134,12 @@ std::vector< double > LatticeMinimizer::calculateStress()
 {
 	std::vector<double> stress(strainBasis.size());
 	
-	logPrintf("\nCalculating stress tensor... ");
+	logPrintf("\nCalculating stress tensor... "); logFlush();
 	for(size_t i=0; i<strainBasis.size(); i++)
-	{	stress[i] = centralDifference(strainBasis[i]);
-	}
+		stress[i] = centralDifference(strainBasis[i]);
 	logPrintf(" done!\n");
 	
 	return stress;
-
 }
 
 double LatticeMinimizer::centralDifference(matrix3<> direction)
@@ -167,7 +160,7 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
 	updateLatticeDependent();
 	const double Ep2h = relevantFreeEnergy(e);
-		
+	
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
 
@@ -193,11 +186,13 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 }
 
 void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
-{	e.gInfo.update();
+{	logSuspend();
+	e.gInfo.update();
 	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	if(!ignoreElectronic) e.eVars.elecEnergyAndGrad(e.ener);
+	logResume();
 }
 
 void LatticeMinimizer::restore()

@@ -144,6 +144,7 @@ public:
 
 private:
 	bool initialized; //!< keep track of whether initialize() has been called
+	void updateSdependent();
 };
 
 #endif //JDFTX_CORE_GRIDINFO_H
