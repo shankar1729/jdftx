@@ -126,9 +126,7 @@ int ElecVars::LCAO()
 	const IonInfo& iInfo = e->iInfo;
 	
 	//Count total atomic orbitals:
-	int nAtomic = 0;
-	for(auto sp: iInfo.species)
-		nAtomic += sp->nAtomicOrbitals();
+	int nAtomic = iInfo.nAtomicOrbitals();
 	if(nAtomic)
 	{	logPrintf("linear combination of atomic orbitals\n");
 		if(nAtomic < eInfo.nBands)
@@ -158,13 +156,8 @@ int ElecVars::LCAO()
 	//Get orthonormal atomic orbitals and non-interacting part of subspace Hamiltonian:
 	lcao.nBands = std::max(nAtomic, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/2))));
 	for(int q=0; q<eInfo.nStates; q++)
-	{	if(lcao.nBands!=eInfo.nBands) Y[q] = Y[q].similar(lcao.nBands);
-		int iCol=0;
-		for(auto sp: iInfo.species)
-		{	sp->setAtomicOrbitals(Y[q], iCol);
-			iCol += sp->nAtomicOrbitals();
-		}
-		if(iCol<lcao.nBands) Y[q].randomize(iCol, lcao.nBands); //Randomize extra columns if any
+	{	Y[q] = iInfo.getAtomicOrbitals(q, lcao.nBands-nAtomic);
+		if(nAtomic<lcao.nBands) Y[q].randomize(nAtomic, lcao.nBands); //Randomize extra columns if any
 		Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q])); //orthonormalize
 		//Non-interacting Hamiltonian:
 		ColumnBundle HniYq = -0.5*L(Y[q]);

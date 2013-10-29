@@ -291,6 +291,24 @@ double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<Col
 	return U;
 }
 
+int IonInfo::nAtomicOrbitals() const
+{	int nAtomic = 0;
+	for(auto sp: species)
+		nAtomic += sp->nAtomicOrbitals();
+	return nAtomic;
+}
+
+ColumnBundle IonInfo::getAtomicOrbitals(int q, int extraCols) const
+{	ColumnBundle psi(nAtomicOrbitals()+extraCols, e->basis[q].nbasis, &e->basis[q], &e->eInfo.qnums[q], isGpuEnabled());
+	int iCol=0;
+	for(auto sp: species)
+	{	sp->setAtomicOrbitals(psi, iCol);
+		iCol += sp->nAtomicOrbitals();
+	}
+	return psi;
+}
+
+
 void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 {
 	//Obtain the list of atomic positions and charges:

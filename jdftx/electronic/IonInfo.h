@@ -95,6 +95,9 @@ public:
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC = 0, IonicGradient* forces=0) const;
 	
+	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
+	ColumnBundle getAtomicOrbitals(int q, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q (with room for extra columns if specified)
+	
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
 		IonWidthFFTbox, //!< determine ion width from grid spacing
