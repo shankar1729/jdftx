@@ -102,7 +102,7 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 	if(Favail > 0.)
 		die("Insufficient atomic orbitals to occupy %lg electrons (%lg excess electrons) [per spin channel].\n", N, Favail);
 	double spinFactor = (spinCount>1 && magneticMoment) ? 1. : 2.; //if unpolarized, print total occupations over both spin channels
-	for(unsigned l=0; l<psiRadial.size(); l++)
+	for(unsigned l=0; l<psiRadial.size(); l++) if(psiRadial[l].size())
 	{	logPrintf(" l=%d: (", l);
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
 			logPrintf(" %.2lg", atomF[l][p] * spinFactor);
