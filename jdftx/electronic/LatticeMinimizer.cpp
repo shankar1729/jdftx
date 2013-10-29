@@ -19,6 +19,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/Everything.h>
+#include <electronic/ColumnBundle.h>
+#include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
@@ -95,7 +97,53 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 }
 
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
-{	strain += alpha * dir;
+{	//Project wavefunctions to atomic orbitals:
+	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
+	int nAtomic=0;
+	if(e.cntrl.dragWavefunctions)
+	{	//Count atomic orbitals:
+		for(auto sp: e.iInfo.species)
+			nAtomic += sp->nAtomicOrbitals();
+		
+		if(nAtomic)
+			for(int q=0; q<e.eInfo.nStates; q++)
+			{	//Get atomic orbitals for old lattice:
+				e.eVars.Y[q].free();
+				ColumnBundle psi(nAtomic, e.basis[q].nbasis, &e.basis[q], &e.eInfo.qnums[q], isGpuEnabled());
+				int iCol=0;
+				for(auto sp: e.iInfo.species)
+				{	sp->setAtomicOrbitals(psi, iCol);
+					iCol += sp->nAtomicOrbitals();
+				}
+				
+				//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
+				ColumnBundle Opsi = O(psi); //non-trivial cost for uspp
+				coeff[q] = inv(psi^Opsi) * (Opsi^e.eVars.C[q]);
+				Opsi.free();
+				e.eVars.C[q] -= psi * coeff[q]; //now contains residual
+			}
+	}
+	
+	//Change lattice:
+	strain += alpha * dir;
+	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	updateLatticeDependent(true); // Updates lattice information but does not touch electronic state / calc electronic energy
+
+	//Restore wavefunctions from atomic orbitals:
+	if(e.cntrl.dragWavefunctions && nAtomic)
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	//Get atomic orbitals for new lattice:
+			ColumnBundle psi(nAtomic, e.basis[q].nbasis, &e.basis[q], &e.eInfo.qnums[q], isGpuEnabled());
+			int iCol=0;
+			for(auto sp: e.iInfo.species)
+			{	sp->setAtomicOrbitals(psi, iCol);
+				iCol += sp->nAtomicOrbitals();
+			}
+			
+			//Reconstitute and orthonormalize wavefunctions:
+			e.eVars.C[q] += psi * coeff[q];
+			e.eVars.Y[q] = e.eVars.C[q] * invsqrt(e.eVars.C[q]^O(e.eVars.C[q]));
+		}
 }
 
 double LatticeMinimizer::compute(matrix3<>* grad)
@@ -109,8 +157,6 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		return NAN;
 	}
 
-	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
-	updateLatticeDependent(true); // Updates lattice information and gets the energy (but does not touch electronic state, important for magnetic LCAO)
 	
 	//! Run an ionic minimizer at the current strain
 	IonicMinimizer ionicMinimizer(e);
