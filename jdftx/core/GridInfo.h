@@ -102,7 +102,8 @@ public:
 	double dGradial; //!< recommended spacing of radial G functions
 	double GmaxSphere; //!< recommended maximum G-vector for radial functions for the wavefunction sphere
 	double GmaxGrid; //!< recommended maximum G-vector for radial functions for the density grid
-
+	static const double maxAllowedStrain; //!< maximum strain allowed when updating lattice vectors and using update()
+	
 	//FFT plans:
 	fftw_plan planForwardSingle; //!< Single-thread Forward complex transform
 	fftw_plan planInverseSingle; //!< Single-thread Inverse complex transform

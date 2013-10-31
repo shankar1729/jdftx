@@ -289,8 +289,10 @@ void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const Dat
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
 	ColumnBundle VC = C.similar();
+	const GridInfo& gInfoWfns = *(C.basis->gInfo);
+	const DataRptr Vwfns = (&(V->gInfo)==&gInfoWfns) ? V : Jdag(changeGrid(Idag(V), gInfoWfns), true);
 	suspendOperatorThreading();
-	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, V, &VC);
+	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, Vwfns, &VC);
 	resumeOperatorThreading();
 	watch.stop();
 	return VC;
@@ -464,10 +466,10 @@ void diagouterI_collect(size_t iStart, size_t iStop, std::vector<DataRptr>* nSub
 }
 
 // Returns diag((I*X)*F*(I*X)^) where X^ is the hermetian adjoint of X.
-DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X)
+DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X, const GridInfo* gInfoOut)
 {	static StopWatch watch("diagouterI"); watch.start();
 	assert(F.nRows()==X.nCols());
-
+	
 	//Collect the contributions for different sets of columns in separate vectors (one per thread):
 	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
 	std::vector<DataRptr> nSub(nThreads);
@@ -476,6 +478,6 @@ DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X)
 	//If more than one thread, accumulate all vectors in nSub into the first:
 	if(nThreads>1) threadLaunch(diagouterI_collect, X.basis->gInfo->nr, &nSub);
 	watch.stop();
+	if(gInfoOut && (&(nSub[0]->gInfo)!=gInfoOut)) nSub[0] = changeGrid(nSub[0], *gInfoOut);
 	return nSub[0]; //rest will be cleaned up by the destructors
 }
-

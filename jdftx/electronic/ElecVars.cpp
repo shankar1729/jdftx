@@ -423,7 +423,7 @@ DataRptrCollection ElecVars::KEdensity() const
 	//Compute KE density from valence electrons:
 	for(int q=0; q<e->eInfo.nStates; q++)
 		for(int iDir=0; iDir<3; iDir++)
-			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir));
+			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), &e->gInfo);
 	//Add core KE density model:
 	if(e->iInfo.tauCore)
 		{	for(unsigned s=0; s<tau.size(); s++)
@@ -442,7 +442,7 @@ DataRptrCollection ElecVars::calcDensity() const
 	// Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=0; q<e->eInfo.nStates; q++)
-	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q]);
+	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], &e->gInfo);
 		e->iInfo.augmentDensitySpherical(F[q], C[q]); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);

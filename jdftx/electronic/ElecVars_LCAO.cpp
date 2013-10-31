@@ -68,7 +68,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		for(DataRptr& ns: eVars.n) ns = 0;
 		e.iInfo.augmentDensityInit();
 		for(int q=0; q<e.eInfo.nStates; q++)
-		{	eVars.n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q]);
+		{	eVars.n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], &e.gInfo);
 			e.iInfo.augmentDensitySpherical(F[q], eVars.C[q]); //pseudopotential contribution
 		}
 		e.iInfo.augmentDensityGrid(eVars.n);

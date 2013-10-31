@@ -81,7 +81,7 @@ DataGptrVec operator*(const RadialFunctionG&, DataGptrVec&&);
 //------------------------------ ColumnBundle operators ---------------------------------
 
 //! Return Idag V .* I C (evaluated columnwise)
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V); 
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V);
 
 //! Return projection (I-P)Y with P=O*C*C^
 ColumnBundle Pbar(const ColumnBundle &C,const ColumnBundle &Y); 
@@ -106,6 +106,7 @@ ColumnBundle switchBasis(const ColumnBundle&, const Basis&); //!< return wavefun
 complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle &Y);
 
 //! Returns diag((I*X)*F*(I*X)^) (Compute density from an orthonormal wavefunction ColumnBundle with some fillings F)
-DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X);
+//! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
+DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X, const GridInfo* gInfoOut=0);
 
 #endif // JDFTX_ELECTRONIC_OPERATORS_H

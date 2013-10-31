@@ -62,8 +62,22 @@ void ComplexG_calc(int iHalf, const vector3<int> iG, const vector3<int> S,
 	vFull[iFullRef] = temp.conj(); //Also set complex conjugate into the mirror location
 }
 
-
-
+__hostanddev__
+void changeGrid_calc(const vector3<int>& iG, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	//Compute index:
+	#define COMPUTE_index(suffix) \
+		int i##suffix = 0; \
+		for(int k=0; k<2; k++) \
+		{	if(2*iG[k]<1-S##suffix[k] || 2*iG[k]>S##suffix[k]) return; \
+			i##suffix = i##suffix * S##suffix[k] + (iG[k]<0 ? (iG[k]+S##suffix[k]) : iG[k]); \
+		} \
+		if(2*iG[2]>S##suffix[2]) return; \
+		else i##suffix = i##suffix*(1+S##suffix[2]/2) + iG[2];
+	COMPUTE_index(in)
+	COMPUTE_index(out)
+	#undef COMPUTE_index
+	out[iout] = in[iin];
+}
 
 __hostanddev__ void gradient_calc(int i, const vector3<int> iG, bool nyq, const matrix3<> G,
 	const complex* Xtilde, vector3<complex*>& gradTilde)

@@ -131,7 +131,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
 	//Check for large lattice strain
-	if(sqrt(dot(strain, strain)) > maxAllowedStrain)
+	if(sqrt(dot(strain, strain)) > GridInfo::maxAllowedStrain)
 	{	logPrintf("\nBacking of lattice step since strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
 		logPrintf("If this is a physical strain, restart calculation with these lattice vectors to prevent Pulay errors:\n");
 		e.gInfo.printLattice();
@@ -216,6 +216,10 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
 {	logSuspend();
 	e.gInfo.update();
+	if(e.gInfoWfns)
+	{	e.gInfoWfns->R = e.gInfo.R;
+		e.gInfoWfns->update();
+	}
 	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);

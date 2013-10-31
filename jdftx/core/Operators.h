@@ -211,6 +211,10 @@ double integral(const DataGptr&); //!< Integral in the unit cell (just fetches t
 complex integral(const complexDataRptr&); //!< Integral in the unit cell (dV times sum())
 complex integral(const complexDataGptr&); //!< Integral in the unit cell (just fetches the G=0 component with correct prefactor)
 
+//------------------------------ Grid conversion utilities ------------------------------
+DataGptr changeGrid(const DataGptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid
+DataRptr changeGrid(const DataRptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid (real-space version)
+
 //------------------------------ Initialization utilities ------------------------------
 
 #include <string.h>

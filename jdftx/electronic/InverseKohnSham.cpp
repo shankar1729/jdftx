@@ -75,7 +75,7 @@ double InverseKohnSham::compute(DataRptrCollection* grad)
 	//Compute the density from the band-structure solve:
 	for(unsigned s=0; s<n.size(); s++) initZero(n[s], e.gInfo); //Initialize to zero
 	for(int q=0; q<e.eInfo.nStates; q++)
-		n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(e.eVars.F[q], e.eVars.C[q]);
+		n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(e.eVars.F[q], e.eVars.C[q], &e.gInfo);
 	for(unsigned s=0; s<n.size(); s++) e.symm.symmetrize(n[s]);
 	//Compute the energy of the eigenfunctions in the net local potential:
 	double minusWs = dot(e.eVars.Vscloc, e.eVars.n);

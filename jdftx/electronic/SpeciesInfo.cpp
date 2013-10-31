@@ -781,20 +781,13 @@ void SpeciesInfo::updateLatticeDependent()
 	bool Rchanged = (Rprev != gInfo.R);
 	Rprev = gInfo.R;
 
-	int nGridLoc = int(ceil(gInfo.GmaxGrid/dGloc))+5;
-	int nGridNL = int(ceil(gInfo.GmaxSphere/dGnl))+5;
-
 	//Change radial function extents if R has changed:
 	if(Rchanged)
-	{	VlocRadial.updateGmax(0, nGridLoc);
+	{	int nGridLoc = int(ceil(gInfo.GmaxGrid/dGloc))+5;
+		VlocRadial.updateGmax(0, nGridLoc);
 		nCoreRadial.updateGmax(0, nGridLoc);
 		tauCoreRadial.updateGmax(0, nGridLoc);
-		for(int l=0; l<int(VnlRadial.size()); l++) for(auto& Vnl_lp : VnlRadial[l]) Vnl_lp.updateGmax(l, nGridNL);
 		for(auto& Qijl: Qradial) Qijl.second.updateGmax(Qijl.first.l, nGridLoc);
-		for(int l=0; l<int(projRadial.size()); l++) for(auto& proj_lp: projRadial[l]) proj_lp.updateGmax(l, nGridNL);
-		for(int l=0; l<int(psiRadial.size()); l++) for(auto& psi_lp: psiRadial[l]) psi_lp.updateGmax(l, nGridNL);
-		if(OpsiRadial != &psiRadial)
-			for(int l=0; l<int(OpsiRadial->size()); l++) for(auto& Opsi_lp: OpsiRadial->at(l)) Opsi_lp.updateGmax(l, nGridNL);
 		//Reallocate quantities whose length depends on the above:
 		augmentDensityCleanup();
 		augmentDensityInit();

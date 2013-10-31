@@ -44,6 +44,17 @@ void Everything::setup()
 	gInfo.Gmax = sqrt(2*cntrl.Ecut); //Ecut = 0.5 Gmax^2
 	gInfo.GmaxRho = sqrt(2*cntrl.EcutRho); //Ecut = 0.5 Gmax^2
 	gInfo.initialize(false, vibrations ? symmUnperturbed.getMatrices() : symm.getMatrices());
+	if(cntrl.EcutRho && cntrl.EcutRho>4*cntrl.Ecut)
+	{	gInfoWfns = std::make_shared<GridInfo>();
+		gInfoWfns->R = gInfo.R;
+		gInfoWfns->Gmax = gInfo.Gmax;
+		logPrintf("\n---------- Initializing tighter grid for wavefunction operations ----------\n");
+		gInfoWfns->initialize(true, vibrations ? symmUnperturbed.getMatrices() : symm.getMatrices());
+		if(gInfoWfns->S == gInfo.S)
+		{	logPrintf("Disabling tighter grid as its sample count matches original.\n");
+			gInfoWfns = 0;
+		}
+	}
 
 	//Exchange correlation setup
 	logPrintf("\n---------- Exchange Correlation functional ----------\n");
@@ -70,11 +81,12 @@ void Everything::setup()
 		(cntrl.basisKdep==BasisKpointIndep) ? "single at Gamma point\n" :  "one per k-point");
 	basis.resize(eInfo.nStates);
 	double avg_nbasis = 0.0;
+	const GridInfo& gInfoBasis = gInfoWfns ? *gInfoWfns : gInfo;
 	for(int q=0; q<eInfo.nStates; q++)
 	{	if(cntrl.basisKdep==BasisKpointDep)
-			basis[q].setup(gInfo, iInfo, cntrl.Ecut, eInfo.qnums[q].k);
+			basis[q].setup(gInfoBasis, iInfo, cntrl.Ecut, eInfo.qnums[q].k);
 		else
-		{	if(q==0) basis[q].setup(gInfo, iInfo, cntrl.Ecut, vector3<>(0,0,0));
+		{	if(q==0) basis[q].setup(gInfoBasis, iInfo, cntrl.Ecut, vector3<>(0,0,0));
 			else basis[q] = basis[0];
 		}
 		avg_nbasis += 0.5*eInfo.qnums[q].weight * basis[q].nbasis;

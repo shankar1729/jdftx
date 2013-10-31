@@ -173,6 +173,19 @@ void gaussConvolve_gpu(const vector3<int>& S, const matrix3<>& GGT, complex* dat
 
 
 __global__
+void changeGrid_kernel(int zBlock, const vector3<int> S, const vector3<int> Sin, const vector3<int> Sout, const complex* in, complex* out)
+{	COMPUTE_halfGindices
+	changeGrid_calc(iG, Sin, Sout, in, out);
+}
+void changeGrid_gpu(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	GpuLaunchConfigHalf3D glc(changeGrid_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		changeGrid_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sin, Sout, in, out);
+	gpuErrorCheck();
+}
+
+
+__global__
 void gradient_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const complex* Xtilde, vector3<complex*> gradTilde)
 {	COMPUTE_halfGindices
 	gradient_calc(i, iG, IS_NYQUIST, G, Xtilde, gradTilde);

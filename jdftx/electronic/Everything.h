@@ -43,6 +43,7 @@ public:
 	Control cntrl;
 	Dump dump;
 	GridInfo gInfo;
+	std::shared_ptr<GridInfo> gInfoWfns; //tighter grid sufficient for wavefunction operations
 	std::vector<Basis> basis;
 	IonInfo iInfo;
 	Symmetries symm;

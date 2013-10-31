@@ -524,6 +524,34 @@ complex integral(const complexDataGptr& X)
 	return XdataZero * X->gInfo.detR * X->scale;
 }
 
+//------------------------------ Grid conversion utilities ------------------------------
+
+void changeGrid_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	THREAD_halfGspaceLoop( changeGrid_calc(iG, Sin, Sout, in, out); )
+}
+void changeGrid(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	threadLaunch(changeGrid_sub, S[0]*S[1]*(1+S[2]/2), S, Sin, Sout, in, out);
+}
+#ifdef GPU_ENABLED
+void changeGrid_gpu(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out);
+#endif
+DataGptr changeGrid(const DataGptr& in, const GridInfo& gInfoNew)
+{	static StopWatch watch("changeGrid"); watch.start();
+	DataGptr out; nullToZero(out, gInfoNew);
+	assert(gInfoNew.R == in->gInfo.R);
+	const vector3<int>& Sin = in->gInfo.S;
+	const vector3<int>& Sout = gInfoNew.S;
+	vector3<int> Smax; for(int k=0; k<3; k++) Smax[k] = std::max(Sin[k],Sout[k]);
+	callPref(changeGrid)(Smax, Sin, Sout, in->dataPref(), out->dataPref());
+	watch.stop();
+	return out;
+}
+
+DataRptr changeGrid(const DataRptr& in, const GridInfo& gInfoNew)
+{	return I(changeGrid(J(in), gInfoNew), true);
+}
+
+
 //------------------------------ Initialization utilities ------------------------------
 
 void initRandom(DataRptr& X, double cap)

@@ -28,6 +28,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fftw3_mkl.h>
 #endif
 
+const double GridInfo::maxAllowedStrain = 0.35;
+
 GridInfo::GridInfo():Gmax(0),GmaxRho(0),initialized(false)
 {
 }
@@ -95,7 +97,7 @@ void GridInfo::updateSdependent()
 			if(g>GmaxGrid) GmaxGrid=g;
 		}
 	}
-	GmaxSphere = 0.5*GmaxGrid; //a slight overestimate to be on the safe side
+	GmaxSphere = Gmax * (1.+maxAllowedStrain);
 }
 
 void GridInfo::printLattice()

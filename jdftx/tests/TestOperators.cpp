@@ -260,9 +260,46 @@ void timePointGroupOps(const GridInfo& gInfo)
 	)
 }
 
+void print(const DataGptr& x)
+{	complex* xData = x->data();
+	const GridInfo& g = x->gInfo;
+	vector3<int> iv;
+	for(iv[0]=0; iv[0]<g.S[0]; iv[0]++)
+	{	for(iv[1]=0; iv[1]<g.S[1]; iv[1]++)
+		{	for(iv[2]=0; iv[2]<1+g.S[2]/2; iv[2]++)
+				logPrintf("\t%2lg", xData[g.halfGindex(g.wrapGcoords(iv))].real());
+			logPrintf("\n");
+		}
+		logPrintf("\n");
+	}
+}
+void testChangeGrid()
+{	GridInfo g1, g2;
+	g1.R = g2.R = matrix3<>(1,1,1);
+	g1.S = vector3<int>(3,3,3);
+	g2.S = vector3<int>(4,4,4);
+	g1.initialize();
+	g2.initialize();
+	DataGptr x1, x2, x3;
+	nullToZero(x1, g1);
+	complex* x1data = x1->data();
+	vector3<int> iv; int i=0;
+	for(iv[0]=0; iv[0]<g1.S[0]; iv[0]++)
+	for(iv[1]=0; iv[1]<g1.S[1]; iv[1]++)
+	for(iv[2]=0; iv[2]<1+g1.S[2]/2; iv[2]++)
+		x1data[g1.halfGindex(g1.wrapGcoords(iv))] = i++;
+	
+	x2 = J(changeGrid(I(x1,true), g2));
+	x3 = J(changeGrid(I(x2,true), g1));
+	logPrintf("\n--------- x1 --------\n"); print(x1);
+	logPrintf("\n--------- x2 --------\n"); print(x2);
+	logPrintf("\n--------- x3 --------\n"); print(x3);
+}
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
-	testYlmProd(); return 0;
+	testChangeGrid(); return 0;
+	//testYlmProd(); return 0;
 	//testHarmonics(); return 0;
 	//fdtestGGAs(); return 0;
 
