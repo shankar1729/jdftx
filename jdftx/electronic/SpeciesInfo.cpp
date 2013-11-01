@@ -236,10 +236,8 @@ void SpeciesInfo::updateLatticeDependent()
 	}
 
 	//Update nagIndex if not previously init'd, or if R has changed:
-	#ifdef GPU_ENABLED
 	if(Qint.size() && (Rchanged || !nagIndex))
 	{	int nCoeff = Qradial.cbegin()->second.nCoeff;
-		setNagIndex_gpu(gInfo.S, gInfo.G, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
+		callPref(setNagIndex)(gInfo.S, gInfo.G, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
 	}
-	#endif
 }

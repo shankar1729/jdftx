@@ -128,6 +128,21 @@ void nAugment_gpu(int Nlm,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
 #endif
 
+//Function for initializing the index arrays used by nAugmentGrad
+__hostanddev__ void setNagIndex_calc(int i, const vector3<int>& iG, const vector3<int>& S, const matrix3<>& G, double dGinv, uint64_t* nagIndex)
+{	uint64_t Gindex = uint64_t((iG*G).length() * dGinv);
+	vector3<int> iv = iG; for(int k=0; k<3; k++) if(iv[k]<0) iv[k] += S[k];
+	nagIndex[i] = (Gindex << 48) //Putting Gindex in the higher word allows sorting by it first, and then by grid point index
+		+ (uint64_t(iv[0]) << 32) + (uint64_t(iv[1]) << 16) + uint64_t(iv[2]);
+}
+__hostanddev__ void setNagIndexPtr_calc(int i, int nG, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
+{	if(i==0) nagIndexPtr[0] = 0;
+	int Gindex = int(nagIndex[i] >> 48);
+	int GindexNext = (i+1<nG) ? int(nagIndex[i+1] >> 48) : nCoeff;
+	for(int j=Gindex; j<GindexNext; j++)
+		nagIndexPtr[j+1] = i+1;
+}
+void setNagIndex(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
 #ifdef GPU_ENABLED
 void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
 #endif
@@ -160,21 +175,32 @@ struct nAugmentGradFunctor
 	}
 };
 template<int Nlm> __hostanddev__
-void nAugmentGrad_calc(int i, const vector3<int>& iG, const matrix3<>& G,
+void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, int dotPrefac, bool dummyGpuThread=false)
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, bool dummyGpuThread=false)
 {
+	//Obtain 3D index iG and array offset i for this point (similar to COMPUTE_halfGindices)
+	vector3<int> iG;
+	iG[2] = int(0xFFFF & key); key >>= 16;
+	iG[1] = int(0xFFFF & key); key >>= 16;
+	iG[0] = int(0xFFFF & key);
+	size_t i = iG[2] + (S[2]/2+1)*size_t(iG[1] + S[1]*iG[0]);
+	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j];
+	int dotPrefac = (iG[2]==0||2*iG[2]==S[2]) ? 1 : 2;
+	
 	nAugmentGradFunctor functor(iG*G, nCoeff, dGinv, nRadial, dummyGpuThread ? complex() : ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)), E_nRadial, dotPrefac);
 	staticLoopYlm<Nlm>(&functor);
 	if(nRadial && !dummyGpuThread) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr);
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #ifdef GPU_ENABLED
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr);
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #endif
 
 

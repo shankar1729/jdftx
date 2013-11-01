@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LoopMacros.h>
 #include <core/Thread.h>
 #include <core/BlasExtra.h>
+#include <algorithm>
 
 //Initialize non-local projector from a radial function at a particular l,m
 template<int l, int m>
@@ -51,31 +52,56 @@ void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G,
 	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, nCoeff, dGinv, nRadial, atpos, n) )
 }
 
+//Function for initializing the index arrays used by nAugmentGrad
+void setNagIndex_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> G, double dGinv, uint64_t* nagIndex)
+{	THREAD_halfGspaceLoop( setNagIndex_calc(i, iG, S, G, dGinv, nagIndex); )
+}
+void setNagIndexPtr_sub(int iStart, int iStop, size_t nG, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
+{	for(int i=iStart; i<iStop; i++)
+		setNagIndexPtr_calc(i, nG, nCoeff, nagIndex, nagIndexPtr);
+}
+void setNagIndex(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr)
+{	//First initialize the indices:
+	size_t nG = S[0]*S[1]*(S[2]/2+1);
+	{	if(!nagIndex) nagIndex = new uint64_t[nG];
+		threadLaunch(setNagIndex_sub, nG, S, G, dGinv, nagIndex);
+	}
+	//Now sort them to be ordered by Gindex
+	std::sort(nagIndex, nagIndex+nG);
+	//Finally initialize the pointers to boundaries between different Gindices:
+	{	if(!nagIndexPtr) nagIndexPtr = new size_t[nCoeff+1];
+		threadLaunch(setNagIndexPtr_sub, nG, nG, nCoeff, nagIndex, nagIndexPtr);
+	}
+}
+
 
 //Propagate gradients corresponding to above electron density augmentation
-template<int Nlm> void nAugmentGrad_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
+template<int Nlm> void nAugmentGrad_sub(int jStart, int jStop, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, std::mutex* m)
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const uint64_t* nagIndex, const size_t* nagIndexPtr, int pass)
 {
-	std::vector<double> E_nRadialVec(nCoeff * Nlm); double* E_nRadialThread = E_nRadialVec.data();
-	THREAD_halfGspaceLoop( (nAugmentGrad_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, iG[2]==0||2*iG[2]==S[2] ? 1 : 2); )
-	//Accumulate E_nRadial:
-	m->lock();
-	eblas_daxpy(nCoeff*Nlm, 1., E_nRadialThread,1, E_nRadial,1);
-	m->unlock();
+	for(int j=jStart; j<jStop; j++)
+	{	const int iCoeff = pass+6*j;
+		for(size_t ptr=nagIndexPtr[iCoeff]; ptr<nagIndexPtr[iCoeff+1]; ptr++)
+			nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, false);
+	}
 }
 template<int Nlm> void nAugmentGrad(const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos)
-{
-	std::mutex m; //lock for synchronizing final accumulation
-	threadLaunch(nAugmentGrad_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, &m);
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const uint64_t* nagIndex, const size_t* nagIndexPtr)
+{	//Accumulate in non-overlapping passes:
+	for(int pass=0; pass<6; pass++)
+	{	int nBlocks = (nCoeff-pass+5)/6; // ceil((nCoeff-pass)/6)
+		threadLaunch(nAugmentGrad_sub<Nlm>, nBlocks, S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr, pass);
+	}
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos) )
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr) )
 }
 
 

@@ -96,6 +96,8 @@ void SpeciesInfo::augmentDensityCleanup()
 		#else
 		delete[] nAug; nAug=0;
 		delete[] E_nAug; E_nAug=0;
+		if(nagIndex) delete[] nagIndex; nagIndex=0;
+		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
 		#endif
 	}
 }
