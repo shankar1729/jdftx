@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <core/BlasExtra.h>
 #include <algorithm>
+#include <atomic>
 
 //Initialize non-local projector from a radial function at a particular l,m
 template<int l, int m>
@@ -76,26 +77,24 @@ void setNagIndex(const vector3<int>& S, const matrix3<>& G, int nCoeff, double d
 
 
 //Propagate gradients corresponding to above electron density augmentation
-template<int Nlm> void nAugmentGrad_sub(int jStart, int jStop, const vector3<int> S, const matrix3<>& G,
+template<int Nlm> void nAugmentGrad_sub(int iStart, int iStop, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr, int pass)
 {
-	for(int j=jStart; j<jStop; j++)
-	{	const int iCoeff = pass+6*j;
+	(pass ? iStart : iStop) = (iStart+iStop)/2; //do first and second halves of range in each pass
+	for(int iCoeff=iStart; iCoeff<iStop; iCoeff++)
 		for(size_t ptr=nagIndexPtr[iCoeff]; ptr<nagIndexPtr[iCoeff+1]; ptr++)
 			nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, false);
-	}
 }
 template<int Nlm> void nAugmentGrad(const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
 	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
-{	//Accumulate in non-overlapping passes:
-	for(int pass=0; pass<6; pass++)
-	{	int nBlocks = (nCoeff-pass+5)/6; // ceil((nCoeff-pass)/6)
-		threadLaunch(nAugmentGrad_sub<Nlm>, nBlocks, S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr, pass);
-	}
+{	
+	int nThreads = std::min(nProcsAvailable, std::max(1,nCoeff/12)); //Minimum 12 tasks per thread necessary for write-collision prevention logic below
+	for(int pass=0; pass<2; pass++) // two non-overlapping passes
+		threadLaunch(nThreads, nAugmentGrad_sub<Nlm>, nCoeff, S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr, pass);
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,

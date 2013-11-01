@@ -101,10 +101,11 @@ void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int nCoeff, doub
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, const matrix3<> G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
-	const uint64_t* nagIndex, const size_t* nagIndexPtr, int pass)
+	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos,
+	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
-	const int iCoeff = pass+6*blockIdx.x;
+	const int& iCoeff = blockIdx.x;
+	double* E_nRadialThread = E_nRadialTemp + (Nlm*nCoeff) * (iCoeff & 0x7); //Write to (iCoeff % 8)th copy (breaks write dependency (of range 6) between nearby iCoeffs)
 	const size_t& ptrStart = nagIndexPtr[iCoeff];
 	const size_t& ptrStop = nagIndexPtr[iCoeff+1];
 	int nIter = (ptrStop-ptrStart + blockDim.x-1) / blockDim.x; //Note (A+B-1)/B for positive integers equals ceil(A/B)
@@ -112,26 +113,41 @@ template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, cons
 	{	size_t ptr = ptrStart + threadIdx.x + iIter*blockDim.x;
 		bool dummy = (ptr >= ptrStop); //can't quit here, because reduction in QuinticSpline::valueGrad needs all threads to get there
 		if(dummy) ptr = ptrStop-1; //to avoid unnecssary branches later (but threads with dummy=true should never write to memory)
-		nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, dummy);
+		nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, dummy);
+	}
+}
+__global__ void nAugmentGrad_collectKernel(int nData, const double* in, double* out)
+{	int i = kernelIndex1D();
+	if(i<nData)
+	{	double sum = 0.;
+		for(int iCopy=0; iCopy<8; iCopy++)
+			sum += in[i + iCopy*nData];
+		out[i] += sum;
 	}
 }
 template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
-	const uint64_t* nagIndex, const size_t* nagIndexPtr)
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
-	//Compute memory sizes:
+	//Allocate temporary memory:
 	int iDevice; cudaGetDevice(&iDevice);
 	cudaDeviceProp prop; cudaGetDeviceProperties(&prop, iDevice);
 	cudaFuncAttributes attr; cudaFuncGetAttributes(&attr, nAugmentGrad_kernel<Nlm>);
 	int sharedMemPerThread = 6 * sizeof(double);
 	int nPerBlock = std::min(prop.warpSize, std::min(attr.maxThreadsPerBlock, int(prop.sharedMemPerBlock/sharedMemPerThread)));
-	//Accumulate in non-overlapping passes:
-	for(int pass=0; pass<6; pass++)
-	{	int nBlocks = (nCoeff-pass+5)/6; // ceil((nCoeff-pass)/6)
-		nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, nagIndex, nagIndexPtr, pass);
-		gpuErrorCheck();
-	}
+	int nBlocks = nCoeff;
+	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nCoeff*Nlm*8);
+	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nCoeff*Nlm*8);
+	gpuErrorCheck();
+	//Stage 1: calculate with the scattered accumulate to E_nRadial
+	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos, nagIndex, nagIndexPtr);
+	gpuErrorCheck();
+	//Stage 2: collect from E_nRadialTemp to E_nRadial
+	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nCoeff*Nlm);
+	nAugmentGrad_collectKernel<<<glc.nBlocks,glc.nPerBlock>>>(nCoeff*Nlm, E_nRadialTemp, E_nRadial);
+	gpuErrorCheck();
+	//Cleanup:
+	cudaFree(E_nRadialTemp);
 }
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
