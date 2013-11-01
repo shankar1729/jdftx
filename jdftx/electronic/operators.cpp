@@ -473,7 +473,9 @@ DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X, const GridInfo* g
 	//Collect the contributions for different sets of columns in separate vectors (one per thread):
 	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
 	std::vector<DataRptr> nSub(nThreads);
+	suspendOperatorThreading();
 	threadLaunch(nThreads, diagouterI_sub, 0, &F, &X, &nSub);
+	resumeOperatorThreading();
 
 	//If more than one thread, accumulate all vectors in nSub into the first:
 	if(nThreads>1) threadLaunch(diagouterI_collect, X.basis->gInfo->nr, &nSub);
