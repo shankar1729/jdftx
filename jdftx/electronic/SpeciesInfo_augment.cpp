@@ -103,7 +103,7 @@ void SpeciesInfo::augmentDensityCleanup()
 }
 
 void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
-{	static StopWatch watch("augmentDensitySpherical"); watch.start(); 
+{	static StopWatch watch("augmentDensitySpherical"), watchMakeProj("adsMakeProj"), watchMatMul("adsMatMul"); watch.start(); 
 	augmentDensity_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	const Basis& basis = *Cq.basis;
@@ -112,6 +112,7 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
 	{	//Initialize all projectors at this atom:
+		watchMakeProj.start();
 		int iProj = 0;
 		for(int l=0; l<int(VnlRadial.size()); l++)
 			for(unsigned p=0; p<VnlRadial[l].size(); p++)
@@ -122,8 +123,11 @@ void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBund
 						atposPref+atom, VnlRadial[l][p], V.dataPref()+offs, false, vector3<complex*>());
 					iProj++;
 				}
+		watchMakeProj.stop();
+		watchMatMul.start();
 		matrix VdagC = V ^ Cq;
 		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
+		watchMatMul.stop();
 		
 		//Collect contributions as spherical functions:
 		double* nAugCur = nAug + Cq.qnum->index()*nCoeffSpin + atom*nCoeffAtom;

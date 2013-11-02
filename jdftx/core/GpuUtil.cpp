@@ -66,7 +66,7 @@ bool isGpuMine()
 }
 
 void gpuErrorCheck()
-{	cudaThreadSynchronize(); //NOTE: Uncomment this when trying to debug GPU kernel launches
+{	//cudaThreadSynchronize(); //NOTE: Uncomment this when trying to debug GPU kernel launches
 	cudaError_t err = cudaGetLastError();
 	if(err != cudaSuccess)
 	{	fprintf(stderr, "CUDA Error: %s\n", cudaGetErrorString(err));

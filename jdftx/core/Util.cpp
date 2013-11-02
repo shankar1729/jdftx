@@ -202,8 +202,21 @@ void finalizeSystem(bool successful)
 
 #ifdef ENABLE_PROFILING
 StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stopWatchManager(this); }
-void StopWatch::start() { tPrev = clock_us(); }
-void StopWatch::stop() { double T = clock_us()-tPrev; Ttot+=T; TsqTot+=T*T; nT++; }
+void StopWatch::start()
+{
+	#ifdef GPU_ENABLED
+	cudaThreadSynchronize();
+	#endif
+	tPrev = clock_us();
+}
+void StopWatch::stop()
+{
+	#ifdef GPU_ENABLED
+	cudaThreadSynchronize();
+	#endif
+	double T = clock_us()-tPrev;
+	Ttot+=T; TsqTot+=T*T; nT++;
+}
 void StopWatch::print() const
 {	if(nT)
 	{	double meanT = Ttot/nT;
