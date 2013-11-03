@@ -75,7 +75,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		for(DataRptr& ns: eVars.n) e.symm.symmetrize(ns);
 		
 		//Update local potential:
-		eVars.EdensityAndVscloc(ener);
+		eVars.EdensityAndVscloc(ener, exCorr);
 		if(grad) e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
 		
 		//Wavefunction dependent parts:
