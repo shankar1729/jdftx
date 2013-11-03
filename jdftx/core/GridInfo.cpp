@@ -58,8 +58,6 @@ GridInfo::~GridInfo()
 			fftw_destroy_plan(planCtoRmulti);
 			fftw_destroy_plan(planRtoCmulti);
 		}
-		fftw_cleanup_threads();
-		fftw_cleanup();
 		#endif
 	}
 }

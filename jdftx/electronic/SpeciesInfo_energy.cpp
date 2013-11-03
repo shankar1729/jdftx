@@ -30,7 +30,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Return non-local energy and optionally accumulate its electronic and/or ionic gradients for a given quantum number
 double SpeciesInfo::EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector< vector3<> >* forces) const
 {	static StopWatch watch("EnlAndGrad"); watch.start();
-	if(!atpos.size()) return 0.0; //unused species
+	if(!atpos.size()) return 0.; //unused species
+	if(!MnlAll) return 0.; //purely local psp
 	int nProj = MnlAll.nRows();
 	
 	std::shared_ptr<ColumnBundle> V = getV(Cq);

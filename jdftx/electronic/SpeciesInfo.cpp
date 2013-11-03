@@ -169,20 +169,23 @@ void SpeciesInfo::setup(const Everything &everything)
 		int nProj = 0;
 		for(unsigned l=0; l<VnlRadial.size(); l++)
 			nProj += (2*l+1)*VnlRadial[l].size();
-		MnlAll = zeroes(nProj,nProj);
-		if(Qint.size())
-			QintAll = zeroes(nProj,nProj);
-		//Set submatrices:
-		int iProj = 0;
-		for(unsigned l=0; l<Qint.size(); l++)
-		{	unsigned nm = 2*l+1;
-			int iStop = iProj + nm*VnlRadial[l].size();
-			for(unsigned im=0; im<nm; im++) //repeat (2l+1) times
-			{	MnlAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Mnl[l]);
-				if(Qint.size() && Qint[l])
-					QintAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Qint[l]);
-			}
-			iProj = iStop;
+		if(nProj)
+		{	MnlAll = zeroes(nProj,nProj);
+			if(Qint.size())
+				QintAll = zeroes(nProj,nProj);
+			//Set submatrices:
+			int iProj = 0;
+			for(unsigned l=0; l<VnlRadial.size(); l++)
+				if(VnlRadial[l].size())
+				{	unsigned nm = 2*l+1;
+					int iStop = iProj + nm*VnlRadial[l].size();
+					for(unsigned im=0; im<nm; im++) //repeat (2l+1) times
+					{	MnlAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Mnl[l]);
+						if(Qint.size() && Qint[l])
+							QintAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Qint[l]);
+					}
+					iProj = iStop;
+				}
 		}
 	}
 	
