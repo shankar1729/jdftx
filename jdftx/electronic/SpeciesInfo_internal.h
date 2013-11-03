@@ -29,32 +29,23 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Compute Vnl and optionally its gradients for a subset of the basis space, and for multiple atomic positions
 template<int l, int m> __hostanddev__
-void Vnl_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr, const matrix3<>& G,
-	const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, bool computeGrad, vector3<complex*> dV)
+void Vnl_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr,
+	const matrix3<>& G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl)
 {
 	vector3<> kpG = k + iGarr[n]; //k+G in reciprocal lattice coordinates:
 	vector3<> qvec = kpG * G; //k+G in cartesian coordinates
 	double q = qvec.length();
 	vector3<> qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
-	//Compute the prefactor to the sturtcure factor in Vnl:
-	double prefac = Ylm<l,m>(qhat) * VnlRadial(q);
+	double prefac = Ylm<l,m>(qhat) * VnlRadial(q); //prefactor to structure factor
 	//Loop over columns (multiple atoms at same l,m):
 	for(int atom=0; atom<nAtoms; atom++)
-	{	//Multiply above prefactor by the structure factor for current atom
-		complex temp = prefac * cis((-2*M_PI)*dot(pos[atom],kpG));
-		Vnl[atom*atomStride+n] = temp;
-		//Also set the gradients if requested
-		if(computeGrad)
-		{	temp *= complex(0,-2*M_PI);
-			storeVector(temp*kpG, dV, atom*atomStride+n);
-		}
-	}
+		Vnl[atom*atomStride+n] = prefac * cis((-2*M_PI)*dot(pos[atom],kpG));
 }
-void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr, const matrix3<> G,
-	const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, bool computeGrad, vector3<complex*> dV);
+void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl);
 #ifdef GPU_ENABLED
-void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr, const matrix3<> G,
-	const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, bool computeGrad, vector3<complex*> dV);
+void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl);
 #endif
 
 

@@ -28,22 +28,22 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Calculate non-local pseudopotential projector
 template<int l, int m> __global__
-void Vnl_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr, const matrix3<> G,
-	const vector3<>* pos, const RadialFunctionG VnlRadial, complex* V, bool computeGrad, vector3<complex*> dV)
+void Vnl_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG VnlRadial, complex* V)
 {	int n = kernelIndex1D();
-	if(n<nbasis) Vnl_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV);
+	if(n<nbasis) Vnl_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
 }
 template<int l, int m>
-void Vnl_gpu(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr, const matrix3<> G,
-	const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, bool computeGrad, vector3<complex*> dV)
+void Vnl_gpu(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
 {	GpuLaunchConfig1D glc(Vnl_kernel<l,m>, nbasis);
-	Vnl_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV);
+	Vnl_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
 	gpuErrorCheck();
 }
-void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, const vector3<int>* iGarr, const matrix3<> G,
-	const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, bool computeGrad, vector3<complex*> dV)
+void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
 {
-	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, computeGrad, dV) )
+	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V) )
 }
 
 

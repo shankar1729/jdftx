@@ -31,27 +31,8 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) cons
 {	static StopWatch watch("augmentOverlap"); watch.start();
 	if(!atpos.size()) return; //unused species
 	if(!Qint.size()) return; //no overlap augmentation
-	const GridInfo &gInfo = e->gInfo;
-	const Basis& basis = *Cq.basis;
-	
-	for(int l=0; l<int(VnlRadial.size()); l++)
-	{	unsigned nProj = VnlRadial[l].size(); if(!nProj) continue; //skip l if no projectors
-		//Copy Qint into a block-diagonal form for all atoms:
-		tiledBlockMatrix Q(this->Qint[l], atpos.size());
-		//Allocate temporaries:
-		ColumnBundle V = Cq.similar(nProj * atpos.size());
-		for(int m=-l; m<=l; m++)
-		{	// Calculate the nonlocal projectors:
-			for(unsigned p=0; p<nProj; p++)
-			{	size_t offs = p * basis.nbasis;
-				size_t atomStride = nProj * basis.nbasis;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, V.qnum->k, basis.iGarrPref, gInfo.G,
-					atposPref, VnlRadial[l][p], V.dataPref()+offs, false, vector3<complex*>());
-			}
-			// Augment overlap:
-			OCq += V * (Q * (V^Cq));
-		}
-	}
+	std::shared_ptr<ColumnBundle> V = getV(Cq);
+	OCq += (*V) * (tiledBlockMatrix(QintAll,atpos.size()) * ((*V) ^ Cq));
 	watch.stop();
 }
 
@@ -59,11 +40,9 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) cons
 	if(!atpos.size()) return; /*unused species*/ \
 	if(!Qint.size()) return; /*no overlap augmentation*/ \
 	/*Determine dimensions:*/ \
-	int nProj = 0, lMax = 0; \
+	int lMax = 0; \
 	for(unsigned l=0; l<VnlRadial.size(); l++) \
-	{	nProj += (2*l+1)*VnlRadial[l].size(); \
 		if(VnlRadial[l].size()) lMax=l; \
-	} \
 	int Nlm = (2*lMax+1)*(2*lMax+1); \
 	int nCoeff = Qradial.cbegin()->second.nCoeff; \
 	int nCoeffAtom = nCoeff * Nlm; \
@@ -103,31 +82,18 @@ void SpeciesInfo::augmentDensityCleanup()
 }
 
 void SpeciesInfo::augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq)
-{	static StopWatch watch("augmentDensitySpherical"), watchMakeProj("adsMakeProj"), watchMatMul("adsMatMul"); watch.start(); 
+{	static StopWatch watch("augmentDensitySpherical"); watch.start(); 
 	augmentDensity_COMMON_INIT
+	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
-	const Basis& basis = *Cq.basis;
-	//Allocate temporaries:
-	ColumnBundle V = Cq.similar(nProj);
+	
+	matrix VdagC = (*getV(Cq)) ^ Cq;
+	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	//Initialize all projectors at this atom:
-		watchMakeProj.start();
-		int iProj = 0;
-		for(int l=0; l<int(VnlRadial.size()); l++)
-			for(unsigned p=0; p<VnlRadial[l].size(); p++)
-				for(int m=-l; m<=l; m++)
-				{	size_t offs = iProj * basis.nbasis;
-					size_t atomStride = nProj * basis.nbasis;
-					callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, V.qnum->k, basis.iGarrPref, gInfo.G,
-						atposPref+atom, VnlRadial[l][p], V.dataPref()+offs, false, vector3<complex*>());
-					iProj++;
-				}
-		watchMakeProj.stop();
-		watchMatMul.start();
-		matrix VdagC = V ^ Cq;
-		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
-		watchMatMul.stop();
+	{	//Get projections at this atom:
+		matrix atomVdagC = VdagC(atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+		matrix Rho = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
 		
 		//Collect contributions as spherical functions:
 		double* nAugCur = nAug + Cq.qnum->index()*nCoeffSpin + atom*nCoeffAtom;
@@ -201,30 +167,17 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector<vector3<> >* forces, const matrix& gradCdagOCq) const
 {	static StopWatch watch("augmentDensitySphericalGrad"); watch.start();
 	augmentDensity_COMMON_INIT
+	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
-	const Basis& basis = *Cq.basis;
-	ColumnBundle V = Cq.similar(nProj);
-	ColumnBundle dV[3]; if(forces) for(int k=0; k<3; k++) dV[k] = V.similar();
+	
+	std::shared_ptr<ColumnBundle> V = getV(Cq);
+	matrix VdagC = (*V) ^ Cq, E_RhoVdagC(VdagC.nRows(),VdagC.nCols(),isGpuEnabled());
+	matrix DVdagC[3]; //cartesian derivatives
+	if(forces) for(int k=0; k<3; k++) DVdagC[k] = D(*V,k)^Cq;
+	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	vector3<complex*> dVdata;
-		if(forces) for(int k=0; k<3; k++) dVdata[k] = dV[k].dataPref();
-		//Initialize all projectors at this atom:
-		int iProj = 0;
-		for(int l=0; l<int(VnlRadial.size()); l++)
-			for(unsigned p=0; p<VnlRadial[l].size(); p++)
-				for(int m=-l; m<=l; m++)
-				{	size_t offs = iProj * basis.nbasis;
-					size_t atomStride = nProj * basis.nbasis;
-					callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, V.qnum->k, basis.iGarrPref, gInfo.G,
-						atposPref+atom, VnlRadial[l][p], V.dataPref()+offs, forces, dVdata+offs);
-					iProj++;
-				}
-		matrix VdagC = V ^ Cq;
-		matrix Rho = VdagC * Fq * dagger(VdagC); //density matrix in projector basis
-		matrix Qint(nProj, nProj); Qint.zero(); //Full nProj x nProj version of this->Qint[l]
-		matrix E_Rho(nProj, nProj); E_Rho.zero(); //gradient w.r.t density matrix in projector basis
-		
+	{	matrix E_Rho = zeroes(nProj, nProj); //gradient w.r.t density matrix in projector basis
 		const double* E_nAugCur = E_nAug + Cq.qnum->index()*nCoeffSpin + atom*nCoeffAtom;
 		
 		int i1 = 0;
@@ -250,25 +203,25 @@ void SpeciesInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const Column
 					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
 					if(i1!=i2) E_Rho.data()[E_Rho.index(i1,i2)] += E_Rho_i1i2;
 				}
-				if(l1==l2 && m1==m2)
-				{	Qint.data()[Qint.index(i1,i2)] = this->Qint[l1].data()[this->Qint[l1].index(p1,p2)];
-					Qint.data()[Qint.index(i2,i1)] = this->Qint[l1].data()[this->Qint[l1].index(p2,p1)];
-				}
 				i2++;
 			}
 			i1++;
 		}
-		matrix E_RhoVdagC = E_Rho * VdagC;
-		if(HCq) HCq += V * E_RhoVdagC;
+		
+		matrix atomVdagC = VdagC(atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+		matrix E_atomRhoVdagC = E_Rho * atomVdagC;
+		E_RhoVdagC.set(atom*nProj,(atom+1)*nProj, 0,Cq.nCols(), E_atomRhoVdagC);
 		if(forces)
-		{	for(int k=0; k<3; k++)
-			{	matrix dVdagC = dV[k]^Cq;
-				(*forces)[atom][k] -= 2.*Cq.qnum->weight *
-						( trace(E_RhoVdagC * Fq * dagger(dVdagC)).real() //Contribution via dV
-						+ trace(Qint * VdagC * gradCdagOCq * dagger(dVdagC)).real() ); //Contribution via overlap
+		{	vector3<> fCart; //proportional to cartesian force
+			for(int k=0; k<3; k++)
+			{	matrix atomDVdagC = DVdagC[k](atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+				fCart[k] = trace(E_atomRhoVdagC * Fq * dagger(atomDVdagC)).real() //Contribution via dV
+						+ trace(QintAll * atomVdagC * gradCdagOCq * dagger(atomDVdagC)).real(); //Contribution via overlap
 			}
+			(*forces)[atom] += 2.*Cq.qnum->weight * (gInfo.RT * fCart);
 		}
 	}
+	if(HCq) HCq += (*V) * E_RhoVdagC;
 	watch.stop();
 }
 

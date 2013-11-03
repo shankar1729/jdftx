@@ -89,8 +89,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset, std::vector<
 			{	//Set atomic orbitals for all atoms at specified (n,l,m):
 				size_t offs = iCol * basis.nbasis;
 				size_t atomStride = basis.nbasis;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
-					atposPref, psiRadial[l][p], Y.dataPref()+offs, false, vector3<complex*>());
+				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, psiRadial[l][p], Y.dataPref()+offs);
 				if(atomConfig)
 					for(unsigned a=0; a<atpos.size(); a++)
 					{	AtomConfig& ac = atomConfig->at(iCol + a);
@@ -115,8 +114,7 @@ void SpeciesInfo::setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, uns
 	const Basis& basis = *Y.basis;
 	size_t offs = col * basis.nbasis;
 	size_t atomStride = basis.nbasis;
-	callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G,
-		atposPref+iAtom, psiRadial[l][n], Y.dataPref()+offs, false, vector3<complex*>());
+	callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref+iAtom, psiRadial[l][n], Y.dataPref()+offs);
 }
 int SpeciesInfo::nAtomicOrbitals() const
 {	int nOrbitals = 0;
@@ -142,56 +140,17 @@ int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, 
 	return iProj * atpos.size() + iAtom;
 }
 
-// Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
-void SpeciesInfo::writeProjectors(const ColumnBundle& Cq, FILE* fp) const
-{	if(!atpos.size()) return; //unused species
-	const GridInfo &gInfo = e->gInfo;
-	const Basis& basis = *Cq.basis;
-	
-	//count up the number of projectors for each atom (multiple projectors for each l, m)
-	int nProj = 0;
-	for(int l=0; l<int(projRadial.size()); l++)
-		nProj += (2*l+1) * projRadial[l].size();
-	ColumnBundle proj = Cq.similar(nProj);
-	
-	for(unsigned at=0; at<atpos.size(); at++)
-	{	// Calculate the projector matrix for each atom:
-		int iProj = 0;
-		for(int l=0; l<int(projRadial.size()); l++)
-			for(int m=-l; m<=l; m++)
-				for(unsigned p=0; p<projRadial[l].size(); p++)
-				{	size_t offs = (iProj++) * basis.nbasis;
-					size_t atomStride = basis.nbasis;
-					callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, proj.qnum->k, basis.iGarrPref, gInfo.G,
-						atposPref+at, projRadial[l][p], proj.dataPref()+offs, false, vector3<complex*>());
-				}
-		// Save the projection:
-		(proj^Cq).write(fp);
-	}
-}
-
-
-void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l, std::vector<ColumnBundle>* dOpsi) const
+void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l) const
 {	if(!atpos.size()) return;
 	assert(Opsi.basis); assert(Opsi.qnum);
 	assert((2*l+1)*int(atpos.size()) <= Opsi.nCols());
 	const Basis& basis = *Opsi.basis;
-	vector3<complex*> dOpsiData;
-	if(dOpsi)
-	{	dOpsi->resize(3);
-		for(int k=0; k<3; k++)
-		{	if(!dOpsi->at(k)) dOpsi->at(k) = Opsi.similar();
-			assert((2*l+1)*int(atpos.size()) <= dOpsi->at(k).nCols());
-			dOpsiData[k] = dOpsi->at(k).dataPref();
-		}
-	}
 	int iCol = 0; //current column
 	for(int m=-l; m<=l; m++)
 	{	//Set atomic orbitals for all atoms at specified (n,l,m):
 		size_t offs = iCol * basis.nbasis;
 		size_t atomStride = basis.nbasis;
-		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Opsi.qnum->k, basis.iGarrPref, e->gInfo.G,
-			atposPref, OpsiRadial->at(l)[n], Opsi.dataPref()+offs, dOpsi, dOpsiData+offs);
+		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Opsi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, OpsiRadial->at(l)[n], Opsi.dataPref()+offs);
 		iCol += atpos.size();
 	}
 }

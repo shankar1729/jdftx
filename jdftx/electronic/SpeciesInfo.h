@@ -122,9 +122,6 @@ public:
 	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
 	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species
 
-	//! Binary-write the PAW projector matrices (if any) for a particular state, looped over atoms, l and then m
-	void writeProjectors(const ColumnBundle& Cq, FILE* fp) const;
-	
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
 		DataGptr& nCore, DataGptr& tauCore) const; 
@@ -142,8 +139,13 @@ private:
 
 	std::vector< std::vector<RadialFunctionG> > VnlRadial; //!< non-local projectors (outer index l, inner index projetcor)
 	std::vector<matrix> Mnl; //!< nonlocal pseudopotential projector matrix (indexed by l)
+	matrix MnlAll; //!< block matrix containing Mnl for all l,m 
 	
 	std::vector<matrix> Qint; //!< overlap augmentation matrix (indexed by l, empty if no augmentation)
+	matrix QintAll; //!< block matrix containing Qint for all l,m 
+	
+	std::map< vector3<>, std::shared_ptr<ColumnBundle> > cachedV; //cached projectors (by k-point, assuming projectors are spin-independent)
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //get projectors with qnum and basis matching Cq  (optionally cached)
 	
 	struct QijIndex
 	{	int l1, p1; //!< Angular momentum and projector index for channel i
@@ -158,15 +160,12 @@ private:
 	double* E_nAug; //!< Gradient w.r.t nAug (same layout)
 	uint64_t* nagIndex; size_t* nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad_gpu
 
-	bool readProjectors; //!< whether to read PAW projectors from Pot format files
-	std::vector< std::vector<RadialFunctionG> > projRadial; //!< PAW projectors (outer index l, inner index projetcor)
-
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
 	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
 	
-	//! Calculate O(atomic orbitals) of specific n and l. and optionally retrieve spatial gradient in dY
-	void setOpsi(ColumnBundle& Y, unsigned n, int l, std::vector<ColumnBundle>* dY=0) const;
+	//! Calculate O(atomic orbitals) of specific n and l
+	void setOpsi(ColumnBundle& Y, unsigned n, int l) const;
 	
 	//!Parameters for optional DFT+U corrections
 	struct PlusU

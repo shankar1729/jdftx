@@ -258,3 +258,23 @@ struct CommandWavefunctionDrag : public Command
 }
 commandWavefunctionDrag;
 
+//-------------------------------------------------------------------------------------------------
+
+struct CommandCacheProjectors : public Command
+{
+	CommandCacheProjectors() : Command("cache-projectors")
+	{
+		format = "yes|no";
+		comments =
+			"Cache nonlocal-pseudopotential projectors (yes by default); turn off to save memory.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.cacheProjectors, true, boolMap, "shouldCache", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.cntrl.cacheProjectors));
+	}
+}
+commandCacheProjectors;

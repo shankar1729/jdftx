@@ -37,7 +37,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <sstream>
 
-void dumpSpinorbit(const Everything& e);
 void dumpExcitations(const Everything& e, const char* filename);
 namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}
 
@@ -328,19 +327,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(eVars.fluidSolver)
 			eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
-	if(ShouldDumpNoAll(SpinOrbit)) dumpSpinorbit(*e);
-	
-	if(ShouldDumpNoAll(Projectors))
-	{	StartDump("proj");
-		FILE *fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		for(int q=0; q<eInfo.nStates; q++)
-			for(auto sp: iInfo.species)
-				sp->writeProjectors(q, fp);
-		fclose(fp);
-		EndDump
-	}
-	
 	if(ShouldDumpNoAll(Wannier))
 	{	wannier.saveMLWF();
 	}
@@ -433,53 +419,6 @@ string Dump::getFilename(string varName) const
 	return fname;
 }
 
-
-//Dumps 4 matrices, corresponding to the 4 spin subblocks of Hso(s,k,s',k)
-void dumpSpinorbit(const Everything& e)
-{	const ElecInfo &eInfo = e.eInfo;
-	const ElecVars &eVars = e.eVars;
-	if(eInfo.spinType != SpinZ) die("Spin-orbit calculation requires spinType==SpinZ.\n");
-	DataRptrVec dVsc_up = gradient(eVars.Vscloc[0]);
-	DataRptrVec dVsc_dn = gradient(eVars.Vscloc[1]);
-	
-	matrix Hso(eInfo.nBands, eInfo.nBands, isGpuEnabled());
-	string fname = e.dump.getFilename("Hso_%d.%s");
-	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-	char filename[1024];
-	for(int q_up = 0; q_up<eInfo.nStates/2; q_up++)
-	{	int q_dn = q_up + eInfo.nStates/2;
-		complex i(0,1);
-		// up up
-		Hso.zero();
-		Hso -= (eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_up], 1), dVsc_up[0]));
-		Hso += (eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_up], 0), dVsc_up[1]));
-		sprintf(filename, fname.c_str(), q_up, "uu");
-		Hso.write(filename);
-		// up dn
-		Hso.zero();
-		Hso -= (eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_dn], 2), dVsc_dn[1]));
-		Hso += (eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_dn], 1), dVsc_dn[2]));
-		Hso -= i*(eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_dn], 2), dVsc_dn[0]));
-		Hso += i*(eVars.C[q_up] ^ Idag_DiagV_I(D(eVars.C[q_dn], 0), dVsc_dn[2]));
-		sprintf(filename, fname.c_str(), q_up, "ud");
-		Hso.write(filename);
-		// dn up
-		Hso.zero();
-		Hso -= (eVars.C[q_dn]^Idag_DiagV_I(D(eVars.C[q_up], 2), dVsc_up[1]));
-		Hso += (eVars.C[q_dn]^Idag_DiagV_I(D(eVars.C[q_up], 1), dVsc_up[2]));
-		Hso += i*(eVars.C[q_dn]^Idag_DiagV_I(D(eVars.C[q_up], 2), dVsc_up[0]));
-		Hso -= i*(eVars.C[q_dn]^Idag_DiagV_I(D(eVars.C[q_up], 0), dVsc_up[2]));
-		sprintf(filename, fname.c_str(), q_up, "du");
-		Hso.write(filename);
-		// dn dn
-		Hso.zero();
-		Hso += (eVars.C[q_dn] ^ Idag_DiagV_I(D(eVars.C[q_dn], 1), dVsc_dn[0]));
-		Hso -= (eVars.C[q_dn] ^ Idag_DiagV_I(D(eVars.C[q_dn], 0), dVsc_dn[1]));
-		sprintf(filename, fname.c_str(), q_up, "dd");
-		Hso.write(filename);
-	}
-	EndDump
-}
 
 namespace Moments{
 	inline double map_to_interval(double x)

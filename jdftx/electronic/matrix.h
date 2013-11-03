@@ -73,7 +73,7 @@ public:
 	complex operator()(int i, int j) const;
 	
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop)
-	matrix operator()(int iStart, int iStop, int jStart, int jStop) const;
+	matrix operator()(int iStart, int iStop, int jStart, int jStop) const { return (*this)(iStart,1,iStop, jStart,1,jStop); }
 	
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop) with arbitrary increments
 	matrix operator()(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop) const;
@@ -82,7 +82,7 @@ public:
 	void set(int i, int j, complex m);
 	
 	//! set submatrix to m
-	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m);
+	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m) { set(iStart,1,iStop, jStart,1,jStop, m); }
 	
 	//! set submatrix to m at arbitrary increments
 	void set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m);

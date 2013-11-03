@@ -47,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs, DumpFillings,
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
-	DumpSpinOrbit, DumpProjectors, DumpWannier, DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
+	DumpWannier, DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpDelim, //special value used as a delimiter during command processing
 };
 

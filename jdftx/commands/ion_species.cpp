@@ -32,14 +32,13 @@ struct CommandIonSpecies : public Command
 {
 	CommandIonSpecies() : Command("ion-species")
 	{
-		format = "<id> <Z> <mass> <pot-file> <pulayfile> <projector>\n"
+		format = "<id> <Z> <mass> <pot-file> <pulayfile>\n"
 			"\t | <id> <Z> <mass> <cpi-file> <pulayfile> fhi [<unused> <local-l>]\n"
 			"\t | [<path>/]<id>.fhi [<pulayfile>]\n"
 			"\t | [<path>/]<id>.uspp [<startBytes>=4] [<endBytes>=4] [<pulayfile>]";
 		comments =
 			"Define ion species identified by <id> with valence charge <Z> and mass <mass>.\n"
 			"  <pulayfile>: filename for pulay info (\"none\" to disable)\n"
-			"  <projector>: If \"projector\", pot file has a projectors\n"
 			"  <local-l> = "+lCodeMap.optionList()+", select local channel (for fhi psp's)\n"
 			"In the .fhi/.uspp options (recommended), all the info is obtained from the file,\n"
 			"including the <id>, which is obtained from the filename (minus path/extension).\n"
@@ -94,18 +93,14 @@ struct CommandIonSpecies : public Command
 			pl.get(specie->potfilename, string(), "psp-file", true);
 			pl.get(specie->pulayfilename, string(), "pulayfile", true);
 			//Determine the format using the projector/fhi specification:
-			string projfhi;
-			pl.get(projfhi, string(), "noprojector");
-			if(projfhi=="fhi")
+			string fhi;
+			pl.get(fhi, string(), "");
+			if(fhi=="fhi")
 			{	specie->pspFormat = SpeciesInfo::Cpi;
-				specie->readProjectors = false;
 				string lMax; pl.get(lMax, string("unused"), "unused"); //unused, lmax is determined from file
 				pl.get(specie->lLocCpi, -1, lCodeMap, "local-l");
 			}
-			else
-			{	specie->pspFormat = SpeciesInfo::Pot;
-				if(projfhi=="projector") specie->readProjectors = true;
-			}
+			else specie->pspFormat = SpeciesInfo::Pot;
 		}
 		//Check for duplicates, add to the list:
 		for(auto sp: e.iInfo.species)
@@ -121,9 +116,9 @@ struct CommandIonSpecies : public Command
 		else if(specie.pspFormat==SpeciesInfo::Uspp)
 			logPrintf("%s %d %d", specie.potfilename.c_str(), specie.recStartLen, specie.recStopLen);
 		else
-		{	logPrintf("%s %lg %lg %s %s %s", specie.name.c_str(), specie.Z, specie.mass,
-				specie.potfilename.c_str(), specie.pulayfilename.c_str(), specie.readProjectors ? "projector" : "");
-			if(specie.pspFormat==SpeciesInfo::Cpi) logPrintf("fhi <unused> %s", lCodeMap.getString(specie.lLocCpi));
+		{	logPrintf("%s %lg %lg %s %s", specie.name.c_str(), specie.Z, specie.mass,
+				specie.potfilename.c_str(), specie.pulayfilename.c_str());
+			if(specie.pspFormat==SpeciesInfo::Cpi) logPrintf(" fhi <unused> %s", lCodeMap.getString(specie.lLocCpi));
 		}
 	}
 }

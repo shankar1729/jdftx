@@ -138,47 +138,24 @@ matrix& matrix::operator=(matrix&& m1)
 
 //------------- Sub-matrices ------------------------
 
-matrix matrix::operator()(int iStart, int iStop, int jStart, int jStop) const
-{	assert(iStart>=0 && iStart<nr);
-	assert(iStop>iStart && iStop<=nr);
-	assert(jStart>=0 || jStart<nc);
-	assert(jStop>jStart || jStop<=nc);
-	int iDelta = iStop-iStart, jDelta = jStop-jStart;
-	matrix ret(iDelta,jDelta); complex* retData = ret.data(); const complex* thisData = this->data();
-	for(int i=0; i<iDelta; i++)
-		for(int j=0; j<jDelta; j++)
-			retData[ret.index(i,j)] = thisData[this->index(i+iStart, j+jStart)];
-	return ret;
-}
-
 complex matrix::operator()(int i, int j) const
-{
-	return this->data()[index(i,j)];
-}
-
-void matrix::set(int i, int j, complex m)
 {	assert(i<nr and i>=0);
 	assert(j<nc and j>=0);
-	
-	complex* thisData = this->data();
-	thisData[this->index(i, j)] = m;
+	if(isOnGpu())
+	{	complex ret;
+		#ifdef GPU_ENABLED
+		cudaMemcpy(&ret, dataGpu()+index(i,j), sizeof(complex), cudaMemcpyDeviceToHost);
+		#else
+		assert(!"onGpu=true without GPU_ENABLED");
+		#endif
+		return ret;
+	}
+	else return data()[index(i,j)];
 }
 
-void matrix::set(int iStart, int iStop, int jStart, int jStop, const matrix& m)
-{	assert(iStart>=0 && iStart<nr);
-	assert(iStop>iStart && iStop<=nr);
-	assert(jStart>=0 || jStart<nc);
-	assert(jStop>jStart || jStop<=nc);
-	int iDelta = iStop-iStart, jDelta = jStop-jStart;
-	assert(iDelta==m.nr);
-	assert(jDelta==m.nc);
-
-	const complex* mData = m.data(); complex* thisData = this->data();
-	for(int i=0; i<iDelta; i++)
-		for(int j=0; j<jDelta; j++)
-			thisData[this->index(i+iStart, j+jStart)] = mData[m.index(i,j)];
-}
-
+#ifdef GPU_ENABLED
+void matrixSubGet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out); //implemented in operators.cu
+#endif
 matrix matrix::operator()(int iStart, int iStep,  int iStop, int jStart, int jStep, int jStop) const
 {	assert(iStart>=0 && iStart<nr);
 	assert(iStop>iStart && iStop<=nr);
@@ -188,13 +165,35 @@ matrix matrix::operator()(int iStart, int iStep,  int iStop, int jStart, int jSt
 	assert(jStep>0);
 	
 	int iDelta = ceildiv(iStop-iStart, iStep), jDelta = ceildiv(jStop-jStart, jStep);
-	matrix ret(iDelta,jDelta); complex* retData = ret.data(); const complex* thisData = this->data();
+	matrix ret(iDelta,jDelta, isGpuEnabled()); complex* retData = ret.dataPref(); const complex* thisData = this->dataPref();
+	#ifdef GPU_ENABLED
+	matrixSubGet_gpu(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, thisData, retData);
+	#else
 	for(int i=0; i<iDelta; i++)
 		for(int j=0; j<jDelta; j++)
 			retData[ret.index(i,j)] = thisData[this->index(i*iStep+iStart, j*jStep+jStart)];
+	#endif
 	return ret;
 }
 
+
+void matrix::set(int i, int j, complex m)
+{	assert(i<nr and i>=0);
+	assert(j<nc and j>=0);
+	if(isOnGpu())
+	{
+		#ifdef GPU_ENABLED
+		cudaMemcpy(dataGpu()+index(i,j), &m, sizeof(complex), cudaMemcpyHostToDevice);
+		#else
+		assert(!"onGpu=true without GPU_ENABLED");
+		#endif
+	}
+	else data()[index(i,j)] = m;
+}
+
+#ifdef GPU_ENABLED
+void matrixSubSet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out); //implemented in operators.cu
+#endif
 void matrix::set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m)
 {	assert(iStart>=0 && iStart<nr);
 	assert(iStop>iStart && iStop<=nr);
@@ -206,10 +205,14 @@ void matrix::set(int iStart, int iStep, int iStop, int jStart, int jStep, int jS
 	assert(iDelta==m.nr);
 	assert(jDelta==m.nc);
 
-	const complex* mData = m.data(); complex* thisData = this->data();
+	const complex* mData = m.dataPref(); complex* thisData = this->dataPref();
+	#ifdef GPU_ENABLED
+	matrixSubSet_gpu(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, mData, thisData);
+	#else
 	for(int i=0; i<iDelta; i++)
 		for(int j=0; j<jDelta; j++)
 			thisData[this->index(i*iStep+iStart, j*jStep+jStart)] = mData[m.index(i,j)];
+	#endif
 }
 
 //----------- Formatted (ascii) read/write ----------

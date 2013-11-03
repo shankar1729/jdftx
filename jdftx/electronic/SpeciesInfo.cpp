@@ -108,7 +108,6 @@ SpeciesInfo::~SpeciesInfo()
 		tauCoreRadial.free();
 		for(auto& Vnl_l: VnlRadial) for(auto& Vnl_lp : Vnl_l) Vnl_lp.free();
 		for(auto& Qijl: Qradial) Qijl.second.free();
-		for(auto& proj_l: projRadial) for(auto& proj_lp: proj_l) proj_lp.free();
 		for(auto& psi_l: psiRadial) for(auto& psi_lp: psi_l) psi_lp.free();
 		if(OpsiRadial != &psiRadial)
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
@@ -165,6 +164,28 @@ void SpeciesInfo::setup(const Everything &everything)
 	//Get the atomic mass if not set:
 	if(!mass) mass = atomicMass(AtomicSymbol(atomicNumber));
 	
+	//Initialize the MnlAll matrix, and if necessary, QintAll:
+	{	//Count projectors:
+		int nProj = 0;
+		for(unsigned l=0; l<VnlRadial.size(); l++)
+			nProj += (2*l+1)*VnlRadial[l].size();
+		MnlAll = zeroes(nProj,nProj);
+		if(Qint.size())
+			QintAll = zeroes(nProj,nProj);
+		//Set submatrices:
+		int iProj = 0;
+		for(unsigned l=0; l<Qint.size(); l++)
+		{	unsigned nm = 2*l+1;
+			int iStop = iProj + nm*VnlRadial[l].size();
+			for(unsigned im=0; im<nm; im++) //repeat (2l+1) times
+			{	MnlAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Mnl[l]);
+				if(Qint.size() && Qint[l])
+					QintAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Qint[l]);
+			}
+			iProj = iStop;
+		}
+	}
+	
 	#ifdef GPU_ENABLED
 	//Alloc and init GPU atomic positions:
 	cudaMalloc(&atposGpu, sizeof(vector3<>)*atpos.size());
@@ -205,8 +226,7 @@ void SpeciesInfo::print(FILE* fp) const
 				for(const RadialFunctionG& curOpsiRadial: OpsiRadial->at(l)) //principal quantum number (shells of pseudo-atom)
 					for(int m=-l; m<=+l; m++) //angular momentum directions
 					{	//Compute the atomic orbitals:
-						callPref(Vnl)(basis.nbasis, basis.nbasis, atpos.size(), l, m, qnum.k, basis.iGarrPref, e->gInfo.G,
-							atposPref, curOpsiRadial, Opsi.dataPref(), false, vector3<complex*>());
+						callPref(Vnl)(basis.nbasis, basis.nbasis, atpos.size(), l, m, qnum.k, basis.iGarrPref, e->gInfo.G, atposPref, curOpsiRadial, Opsi.dataPref());
 						//Accumulate electron counts:
 						matrix CdagOpsi = Cq ^ Opsi;
 						M += (qnum.spin * qnum.weight) * diag(dagger(CdagOpsi) * Fq * CdagOpsi);

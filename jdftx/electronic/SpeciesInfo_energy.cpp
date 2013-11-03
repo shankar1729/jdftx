@@ -31,47 +31,31 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 double SpeciesInfo::EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector< vector3<> >* forces) const
 {	static StopWatch watch("EnlAndGrad"); watch.start();
 	if(!atpos.size()) return 0.0; //unused species
-	const GridInfo &gInfo = e->gInfo;
-	const Basis& basis = *Cq.basis;
+	int nProj = MnlAll.nRows();
 	
+	std::shared_ptr<ColumnBundle> V = getV(Cq);
+	matrix VdagC = (*V) ^ Cq;
+	matrix DVdagC[3]; //cartesian derivatives
+	if(forces) for(int k=0; k<3; k++) DVdagC[k] = D(*V,k)^Cq;
+	
+	matrix MVdagC = zeroes(VdagC.nRows(), VdagC.nCols());
 	double Enlq = 0.0;
-	for(int l=0; l<int(VnlRadial.size()); l++)
-	{	unsigned nProj = VnlRadial[l].size(); if(!nProj) continue; //skip l if no projectors
-		//Copy Mnl into a block-diagonal form for all atoms:
-		tiledBlockMatrix M(this->Mnl[l], atpos.size()); 
-		//Allocate temporaries:
-		ColumnBundle V = Cq.similar(nProj * atpos.size());
-		ColumnBundle dV[3]; vector3<complex*> dVdata;
+	for(unsigned atom=0; atom<atpos.size(); atom++)
+	{	matrix atomVdagC = VdagC(atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+		matrix MatomVdagC = MnlAll * atomVdagC;
+		MVdagC.set(atom*nProj,(atom+1)*nProj, 0,Cq.nCols(), MatomVdagC);
+		Enlq += trace(Fq * dagger(atomVdagC) * MatomVdagC).real();
+		
 		if(forces)
+		{	vector3<> fCart; //proportional to cartesian force
 			for(int k=0; k<3; k++)
-			{	dV[k] = V.similar();
-				dVdata[k] = dV[k].dataPref();
+			{	matrix atomDVdagC = DVdagC[k](atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+				fCart[k] = trace(MatomVdagC * Fq * dagger(atomDVdagC)).real();
 			}
-		for(int m=-l; m<=l; m++)
-		{	// Calculate the nonlocal projectors (and optionally their spatial derivatives):
-			for(unsigned p=0; p<nProj; p++)
-			{	size_t offs = p * basis.nbasis;
-				size_t atomStride = nProj * basis.nbasis;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, V.qnum->k, basis.iGarrPref, gInfo.G,
-					atposPref, VnlRadial[l][p], V.dataPref()+offs, forces, dVdata+offs);
-			}
-			// Compute contribution to Enl:
-			matrix VdagC = V^Cq;
-			matrix MVdagC = M*VdagC;
-			Enlq += trace(Fq * dagger(VdagC) * MVdagC).real();
-			//Update electronic gradient if requested
-			if(HCq) HCq += V * MVdagC;
-			//Update forces if requested:
-			if(forces)
-			{	for(int k=0; k<3; k++)
-				{	diagMatrix fdiag = diag(MVdagC * Fq * dagger(dV[k]^Cq));
-					for(unsigned atom=0; atom<atpos.size(); atom++)
-						for(unsigned p=0; p<nProj; p++)
-							(*forces)[atom][k] -= 2.0*Cq.qnum->weight * fdiag[p+atom*nProj];
-				}
-			}
+			(*forces)[atom] += 2.*Cq.qnum->weight * (e->gInfo.RT * fCart);
 		}
 	}
+	if(HCq) HCq += (*V) * MVdagC;
 	watch.stop();
 	return Enlq;
 }
@@ -109,14 +93,17 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 			{	for(int q=s*qCount; q<(s+1)*qCount; q++)
 				{	ColumnBundle Opsi(C[q].similar(atpos.size() * mCount));
 					std::vector<ColumnBundle> dOpsi;
-					setOpsi(Opsi, Uparams.n, Uparams.l, forces ? &dOpsi : 0);
+					setOpsi(Opsi, Uparams.n, Uparams.l);
 					matrix CdagOpsi = C[q] ^ Opsi;
 					if(HC) HC->at(q) += wSpinless * Opsi * (U_rho * dagger(CdagOpsi)); //gradient upto state weight and fillings
 					if(forces)
-					{	for(int k=0; k<3; k++)
-						{	diagMatrix fMat = wSpinless * diag(U_rho * dagger(CdagOpsi) * F[q] * (C[q]^dOpsi[k]));
-							for(unsigned a=0; a<atpos.size(); a++)
-								(*forces)[a][k] -= 2.0*C[q].qnum->weight * trace(fMat(a,atpos.size(),fMat.nRows()));
+					{	diagMatrix fCartMat[3];
+						for(int k=0; k<3; k++)
+							fCartMat[k] = wSpinless * diag(U_rho * dagger(CdagOpsi) * F[q] * (C[q]^D(Opsi,k)));
+						for(unsigned a=0; a<atpos.size(); a++)
+						{	vector3<> fCart; //proportional to Cartesian force
+							for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));
+							(*forces)[a] += 2.*C[q].qnum->weight * (e->gInfo.RT * fCart);
 						}
 					}
 				}
@@ -129,6 +116,7 @@ void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nCha
 	DataGptr& nCore, DataGptr& tauCore) const
 {	if(!atpos.size()) return; //unused species
 	((SpeciesInfo*)this)->updateLatticeDependent(); //update lattice dependent quantities (if lattice vectors have changed)
+	((SpeciesInfo*)this)->cachedV.clear(); //clear any cached projectors
 	const GridInfo& gInfo = e->gInfo;
 
 	//Prepare optional outputs:
@@ -175,4 +163,31 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 			forces[at][k] = -sum(gradAtpos[k]); //negative gradient
 	}
 	return forces;
+}
+
+std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
+{	const QuantumNumber& qnum = *(Cq.qnum);
+	const Basis& basis = *(Cq.basis);
+	//First check cache
+	if(e->cntrl.cacheProjectors)
+	{	auto iter = cachedV.find(qnum.k);
+		if(iter != cachedV.end()) //found
+			return iter->second; //return cached value
+	}
+	//No cache / not found in cache; compute:
+	int nProj = MnlAll.nRows();
+	std::shared_ptr<ColumnBundle> V = std::make_shared<ColumnBundle>(Cq.similar(nProj*atpos.size()));
+	int iProj = 0;
+	for(int l=0; l<int(VnlRadial.size()); l++)
+		for(unsigned p=0; p<VnlRadial[l].size(); p++)
+			for(int m=-l; m<=l; m++)
+			{	size_t offs = iProj * basis.nbasis;
+				size_t atomStride = nProj * basis.nbasis;
+				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarrPref, basis.gInfo->G, atposPref, VnlRadial[l][p], V->dataPref()+offs);
+				iProj++;
+			}
+	//Add to cache if necessary:
+	if(e->cntrl.cacheProjectors)
+		((SpeciesInfo*)this)->cachedV[qnum.k] = V;
+	return V;
 }

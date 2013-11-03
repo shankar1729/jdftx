@@ -35,6 +35,7 @@ public:
 	bool fixed_n; //!< fixed density (band structure) mode for electronic sector
 	bool fixOccupied; //!< whether to hold occupied orbitals fixed in band structure calculations
 	double occupiedThreshold; //!< fillings threshold for occupied states
+	bool cacheProjectors; //!< whether to cache nonlocal projectors
 	
 	BasisKdep basisKdep; //!< k-dependence of basis
 	double Ecut, EcutRho; //!< energy cutoff for electrons and charge density grid (EcutRho=0 => EcutRho = 4 Ecut)
@@ -61,7 +62,7 @@ public:
 
 	Control()
 	:	fixed_n(false),
-		fixOccupied(false), occupiedThreshold(0),
+		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true),
 		basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
