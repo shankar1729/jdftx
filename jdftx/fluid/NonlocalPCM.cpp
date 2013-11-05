@@ -45,8 +45,6 @@ struct MultipoleResponse
 	}
 };
 
-template<int l, int m> void set_Ylm(const vector3<> qHat, double& result) { result = Ylm<l,m>(qHat); }
-
 NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
 {	
@@ -94,9 +92,7 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 						double bessel_jl_by_Gl = G ? bessel_jl(l,G*rLength)/pow(G,l) : bessel_jl_by_Gl_zero[l]*pow(rLength,l);
 						vector3<> rHat = (rLength ? 1./rLength : 0.) * r;
 						for(int m=-l; m<=+l; m++)
-						{	double Ylm_rHat=0.; SwitchTemplate_lm(l, m, set_Ylm, (rHat, Ylm_rHat))
-							*gsl_matrix_ptr(V,iG,l+m) += Vsite * bessel_jl_by_Gl * Ylm_rHat;
-						}
+							*gsl_matrix_ptr(V,iG,l+m) += Vsite * bessel_jl_by_Gl * Ylm(l,m, rHat);
 					}
 				}
 			}
@@ -305,7 +301,7 @@ void NonlocalPCM::dumpDensities(const char* filenamePattern) const
 						{	double rLength = r.length();
 							double bessel_jl_by_Gl = G ? bessel_jl(l,G*rLength)/pow(G,l) : bessel_jl_by_Gl_zero[l]*pow(rLength,l);
 							vector3<> rHat = (rLength ? 1./rLength : 0.) * r;
-							double Ylm_rHat=0.; SwitchTemplate_lm(l, m, set_Ylm, (rHat, Ylm_rHat))
+							double Ylm_rHat = Ylm(l, m, rHat);
 							VtotSamples[iG] += prefac * site->chargeKernel(G) * bessel_jl_by_Gl * Ylm_rHat;
 							VsiteSamples[iSite][iG] += prefac * bessel_jl_by_Gl * Ylm_rHat;
 						}

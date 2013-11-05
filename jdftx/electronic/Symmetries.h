@@ -44,8 +44,10 @@ public:
 	
 	void symmetrize(DataRptr&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
+	void symmetrizeSpherical(matrix&, int sp) const; //!< symmetrize matrices in Ylm basis per atom of species index sp (accounting for atom maps)
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector< matrix3<int> >& getMeshMatrices() const; //!< directly access the symmetry matrices (in mesh coords)
+	const std::vector<matrix>& getSphericalMatrices(int l) const; //!< directly access the symmetry matrices (in Ylm basis at specified l)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
 	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
 	
@@ -53,6 +55,8 @@ private:
 	const Everything* e;
 	std::vector< matrix3<int> > sym; //!< symmetry matrices in covariant lattice coordinates
 	std::vector< matrix3<int> > symMesh; //!< symmetry matrices in covariant mesh coordinates (lattice / sample counts)
+	std::vector< std::vector<matrix> > symSpherical; //!< symmetry matrices for real-Ylm basis objects
+	
 	std::vector<int> kpointInvertList; //!< Contains +1 for empty or inversion-containing symmetry group, and contains +1 and -1 otherwise
 	friend class CommandSymmetries;
 	friend class CommandSymmetryMatrix;

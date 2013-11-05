@@ -24,13 +24,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/IonInfo.h>
 #include <electronic/Basis.h>
 #include <electronic/operators.h>
+#include <electronic/SphericalHarmonics.h>
 #include <core/LatticeUtils.h>
 #include <core/GridInfo.h>
 #include <core/Thread.h>
 
-//Symmetry detection code based on that of Nikolaj Moll, April 1999 (symm.c in Sohrab's version)
+static const int lMaxSpherical = 3;
 
-Symmetries::Symmetries()
+Symmetries::Symmetries() : symSpherical(lMaxSpherical+1)
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
 }
@@ -131,12 +132,69 @@ void Symmetries::symmetrize(IonicGradient& f) const
 	}
 }
 
+//Symmetrize Ylm-basis matrices:
+void Symmetries::symmetrizeSpherical(matrix& X, int sp) const
+{	int nAtoms = atomMap[sp].size();
+	int l = (X.nRows()/nAtoms-1)/2; //matrix dimension = (2l+1)*nAtoms
+	int nm = 2*l+1;
+	int nTot = nm*nAtoms;
+	assert(X.nCols()==nTot);
+	if(!l || sym.size()==1) return; //symmetries do nothing
+	const std::vector<matrix>& sym_l = getSphericalMatrices(l);
+	matrix result;
+	for(unsigned iRot=0; iRot<sym_l.size(); iRot++)
+	{	//Construct transformation matrix including atom maps:
+		matrix m = zeroes(nTot, nTot);
+		for(int atom=0; atom<nAtoms; atom++)
+			m.set(atom,nAtoms,nTot, atomMap[sp][atom][iRot],nAtoms,nTot, sym_l[iRot]);
+		//Apply
+		result += m * X * dagger(m);
+	}
+	X = (1./sym_l.size()) * result;
+}
+
+
 const std::vector< matrix3<int> >& Symmetries::getMatrices() const
 {	return sym;
 }
 const std::vector< matrix3<int> >& Symmetries::getMeshMatrices() const
 {	return symMesh;
 }
+
+const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
+{	if(l>lMaxSpherical) die("l=%d > lMax=%d supported for density matrix symmetrization\n", l, lMaxSpherical);
+	if(!symSpherical[l].size()) //Not yet initialized, do so now:
+	{	//Create a basis of unit vectors for which Ylm are linearly independent:
+		std::vector< vector3<> > nHat(2*l+1);
+		nHat[0] = vector3<>(0,0,1);
+		for(int m=1; m<=l; m++)
+		{	double phi = 2./l; //chosen empirically to get small basis-matrix condition numbers for l<=3
+			double theta = m*2./l;
+			nHat[2*m-1] = vector3<>(sin(theta), 0, cos(theta));
+			nHat[2*m-0] = vector3<>(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
+		}
+		//Construct basis matrix at nHat:
+		matrix bOrig(2*l+1, 2*l+1); complex* bOrigData = bOrig.data();
+		for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
+			for(int m=-l; m<=l; m++)
+				bOrigData[bOrig.index(l+m,nIndex)] = Ylm(l, m, nHat[nIndex]);
+		matrix bOrigInv = inv(bOrig);
+		//For each rotation matrix, construct rotated basis, and deduce rotation matrix in l,m basis:
+		std::vector<matrix>& out = (((Symmetries*)this)->symSpherical)[l];
+		out.resize(sym.size());
+		for(unsigned iRot=0; iRot<sym.size(); iRot++)
+		{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix
+			matrix bRot(2*l+1, 2*l+1); complex* bRotData = bRot.data();
+			for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
+				for(int m=-l; m<=l; m++)
+					bRotData[bRot.index(l+m,nIndex)] = Ylm(l, m, rot * nHat[nIndex]);
+			out[iRot] = bRot * bOrigInv;
+		}
+	}
+	return symSpherical[l];
+}
+
+
 const std::vector<int>& Symmetries::getKpointInvertList() const
 {	return kpointInvertList;
 }

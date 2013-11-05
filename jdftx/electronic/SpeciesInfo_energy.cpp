@@ -82,6 +82,10 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 				matrix CdagOpsi = C[q] ^ Opsi;
 				rho += (eInfo.qnums[q].weight*wSpinless) * dagger(CdagOpsi) * F[q] * CdagOpsi;
 			}
+			//Symmetrize:
+			for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
+				if(e->iInfo.species[sp].get()==this)
+					e->symm.symmetrizeSpherical(rho, sp);
 			//Compute contributions to U and its derivative w.r.t density matrix rho:
 			matrix U_rho = zeroes(rho.nRows(), rho.nCols());
 			for(unsigned a=0; a<atpos.size(); a++)

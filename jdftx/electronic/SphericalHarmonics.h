@@ -124,8 +124,6 @@ template<int l, int m> __hostanddev__ double Ylm(const vector3<>& qhat)
 {	return Ylm<l*(l+1)+m>(qhat);
 }
 
-
-
 //! Switch a function templated over l,m for all supported l,m with parenthesis enclosed argument list argList
 #define SwitchTemplate_lm(l,m,fTemplate,argList) \
 	switch(l*(l+1)+m) \
@@ -179,6 +177,10 @@ template<int l, int m> __hostanddev__ double Ylm(const vector3<>& qhat)
 		case 47: fTemplate<6,5> argList; break; \
 		case 48: fTemplate<6,6> argList; break; \
 	}
+
+//! Use above macro to provide a non-templated version of the function
+template<int l, int m> void set_Ylm(const vector3<> qHat, double& result) { result = Ylm<l,m>(qHat); }
+inline double Ylm(int l, int m, const vector3<>& qHat) { double result=0.;  SwitchTemplate_lm(l,m, set_Ylm, (qHat, result)); return result; }
 
 //! Term in real spherical harmonic expansion of a product of two real spherical harmonics
 struct YlmProdTerm

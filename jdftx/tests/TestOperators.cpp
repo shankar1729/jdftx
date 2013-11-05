@@ -194,9 +194,6 @@ void testHarmonics()
 	}
 }
 
-template<int l, int m> void set_Ylm(const vector3<> qHat, double& result) { result = Ylm<l,m>(qHat); }
-double Ylm(int l, int m, const vector3<>& qHat) { double result=0.;  SwitchTemplate_lm(l,m, set_Ylm, (qHat, result)); return result; }
-
 void testYlmProd()
 {	vector3<> qHat(Random::normal(),Random::normal(),Random::normal()); qHat *= 1./qHat.length(); //random test unit vector
 	const int lMax = 3;
