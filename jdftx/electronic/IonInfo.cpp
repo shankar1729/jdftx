@@ -212,9 +212,9 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		DataRptr VxcAvg = (Vxc.size()==1) ? Vxc[0] : 0.5*(Vxc[0]+Vxc[1]); //spin-avgd potential
 		ccgrad_nCore += J(VxcAvg - VxcCore);
 		//Contribution through tauCore (metaGGAs only):
-		if(e->exCorr.needsKEdensity())
+		if(e->exCorr.needsKEdensity() || e->eVars.fluidParams.useTau)
 		{	DataRptr VtauAvg = (Vtau.size()==1) ? Vtau[0] : 0.5*(Vtau[0]+Vtau[1]);
-			ccgrad_tauCore += J(VtauAvg - VtauCore);
+			if(VtauAvg) ccgrad_tauCore += J(VtauAvg - VtauCore);
 		}
 	}
 	//Propagate those gradients to forces:

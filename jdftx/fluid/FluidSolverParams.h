@@ -66,6 +66,7 @@ struct FluidSolverParams
 	double sigma; //!< smoothing factor for the PCM cavity shape function
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
+	bool useTau; //!< use KE density instead of density
 	
 	//For Nonlocal PCM (SaLSA) alone:
 	int lMax;

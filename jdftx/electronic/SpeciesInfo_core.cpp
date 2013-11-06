@@ -23,14 +23,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 RadialFunctionR getTau(const RadialFunctionR& n)
 {	RadialFunctionR tau = n;
+	size_t iMaxLast = 0; //location of last maxima
 	for(size_t i=0; i<n.r.size(); i++)
-	{	double iPlus = i+1<n.r.size() ? i+1 : i;
-		double iMinus = i ? i-1 : i;
+	{	size_t iPlus = i+1<n.r.size() ? i+1 : i;
+		size_t iMinus = i ? i-1 : i;
 		double Dnbyn = log(n.f[iPlus]/n.f[iMinus]) / (n.r[i] * log(n.r[iPlus]/n.r[iMinus]));
 		double tauTF = 0.3*n.f[i]*pow(3*M_PI*M_PI*n.f[i], 2./3); //Thomas-Fermi KE density
 		double tauVW = 0.125 * Dnbyn * Dnbyn * n.f[i]; //von-Weisacker KE density
 		tau.f[i] = tauTF + tauVW;
+		if(i && (tau.f[i] > tau.f[i-1]) && (tau.f[i]>1e-3)) iMaxLast = i;
 	}
+	//Re-pseudize small r regions:
+	double rCut = std::max(0.8, tau.r[iMaxLast] * 1.5);
+	size_t iCut = 0; while(tau.r[iCut]<rCut) iCut++;
+	rCut = tau.r[iCut]; //align to grid point
+	double tauCut = tau.f[iCut];
+	double tauPrimeCut = (tau.f[iCut+1] - tau.f[iCut-1]) / (tau.r[iCut] * log(tau.r[iCut+1]/tau.r[iCut-1]));
+	double f2 = -tauPrimeCut/(2.*rCut); assert(f2 > 0);
+	double f0 = tauCut + f2*rCut*rCut;
+	for(size_t i=0; i<iCut; i++)
+		tau.f[i] = f0 - f2*tau.r[i]*tau.r[i];
 	return tau;
 }
 
@@ -55,7 +67,7 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 	}
 	
 	//Check if KE density is required:
-	bool needTau = e->exCorr.needsKEdensity();
+	bool needTau = e->exCorr.needsKEdensity() || e->eVars.fluidParams.useTau;
 	for(auto ec: e->exCorrDiff)
 		needTau |= ec->needsKEdensity();
 	

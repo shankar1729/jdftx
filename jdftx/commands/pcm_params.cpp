@@ -63,19 +63,22 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
+	PCMp_useTau, //!< threshold on KE density instead of density
 	PCMp_Delim //!< Delimiter used in parsing:
 };
 EnumStringMap<PCMparameter> pcmParamMap
 (	PCMp_lMax,          "lMax",
 	PCMp_nc,            "nc",
 	PCMp_sigma,         "sigma",
-	PCMp_cavityTension, "cavityTension"
+	PCMp_cavityTension, "cavityTension",
+	PCMp_useTau,        "useTau"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_lMax, "angular momentum truncation in nonlocal PCM",
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
-	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)"
+	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
+	PCMp_useTau, "threshold on KE density instead of density"
 );
 
 struct CommandPcmParams : public Command
@@ -105,6 +108,9 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
+				case PCMp_useTau:
+					pl.get(fsp.useTau, false, boolMap, "useTau", true);
+					break;
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -118,6 +124,7 @@ struct CommandPcmParams : public Command
 		PRINT(nc)
 		PRINT(sigma)
 		PRINT(cavityTension)
+		logPrintf(" \\\n\t useTau %s", boolMap.getString(fsp.useTau));
 		#undef PRINT
 	}
 }
