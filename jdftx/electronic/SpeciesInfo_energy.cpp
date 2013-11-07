@@ -63,7 +63,7 @@ double SpeciesInfo::EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, Col
 
 //Compute DFT+U corrections:
 double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, std::vector<vector3<> >* forces) const
+	std::vector<ColumnBundle>* HC, std::vector<vector3<> >* forces, FILE* fpRhoAtom) const
 {	if(!plusU.size()) return 0.; //no U for this species
 	const ElecInfo& eInfo = e->eInfo;
 	int nSpins = eInfo.spinType==SpinNone ? 1 : 2; //number of spins
@@ -92,6 +92,13 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 			{	matrix rhoSub = rho(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols());
 				Utot += prefac * trace(rhoSub - rhoSub*rhoSub).real();
 				U_rho.set(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols(), prefac * (eye(mCount) - 2.*rhoSub));
+				if(fpRhoAtom) //print atomic density matrices
+				{	ostringstream oss; if(Uparams.n) oss << (Uparams.n + 1); oss << string("spdf")[Uparams.l];
+					fprintf(fpRhoAtom, "%s  spin: %+d  orbital: %s  atom# %d\n",
+						name.c_str(), nSpins-1-2*s, oss.str().c_str(), a+1);
+					rhoSub.print_real(fpRhoAtom, "\t%+9.6lf");
+					fprintf(fpRhoAtom, "\n");
+				}
 			}
 			//Propagate gradient from U_rho to wavefunctions or ionic positions if required:
 			if(HC || forces)

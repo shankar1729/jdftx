@@ -284,10 +284,10 @@ void IonInfo::augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBund
 }
 
 double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, IonicGradient* forces) const
+	std::vector<ColumnBundle>* HC, IonicGradient* forces, FILE* fpRhoAtom) const
 {	double U = 0.;
 	for(unsigned sp=0; sp<species.size(); sp++)
-		U += species[sp]->computeU(F, C, HC, forces ? &forces->at(sp) : 0);
+		U += species[sp]->computeU(F, C, HC, forces ? &forces->at(sp) : 0, fpRhoAtom);
 	return U;
 }
 

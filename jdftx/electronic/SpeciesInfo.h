@@ -101,7 +101,7 @@ public:
 	
 	//! Perform IonInfo::computeU() for this species
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC = 0, std::vector<vector3<> >* forces=0) const;
+		std::vector<ColumnBundle>* HC = 0, std::vector<vector3<> >* forces=0, FILE* fpRhoAtom=0) const;
 	
 	//!Pseudo-atom configuration (retrieved along with atomic orbitals using setAtomicOrbitals)
 	struct AtomConfig

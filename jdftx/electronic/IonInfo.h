@@ -93,7 +93,7 @@ public:
 	//! Compute U corrections (DFT+U in the simplified rotationally-invariant scheme [Dudarev et al, Phys. Rev. B 57, 1505])
 	//! Also accumulate orbital gradients in HC, if non-null
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC = 0, IonicGradient* forces=0) const;
+		std::vector<ColumnBundle>* HC = 0, IonicGradient* forces=0, FILE* fpRhoAtom=0) const;
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q (with room for extra columns if specified)

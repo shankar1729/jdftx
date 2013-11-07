@@ -227,6 +227,14 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 
+	if(eInfo.hasU && ShouldDump(RhoAtom))
+	{	StartDump("rhoAtom")
+		FILE* fp = fopen(fname.c_str(), "w");
+		iInfo.computeU(eVars.F, eVars.C, 0, 0, fp);
+		fclose(fp);
+		EndDump
+	}
+	
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
 		FILE* fp = fopen(fname.c_str(), "w");
