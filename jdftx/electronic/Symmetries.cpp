@@ -146,7 +146,7 @@ void Symmetries::symmetrizeSpherical(matrix& X, int sp) const
 	{	//Construct transformation matrix including atom maps:
 		matrix m = zeroes(nTot, nTot);
 		for(int atom=0; atom<nAtoms; atom++)
-			m.set(atom,nAtoms,nTot, atomMap[sp][atom][iRot],nAtoms,nTot, sym_l[iRot]);
+			m.set(atomMap[sp][atom][iRot],nAtoms,nTot, atom,nAtoms,nTot, sym_l[iRot]);
 		//Apply
 		result += m * X * dagger(m);
 	}
