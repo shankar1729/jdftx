@@ -33,6 +33,7 @@ struct CommandCustomFilling : public Command
 		allowMultiple = true;
 		forbid("elec-initial-charge");
 		forbid("initial-magnetic-moments");
+		forbid("eigen-shift");
 	}
 
 	void process(ParamList& pl, Everything& e)

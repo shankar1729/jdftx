@@ -39,6 +39,9 @@ class SCF
 		
 		matrix overlap; //! Overlap matrix of density/potential residuals
 		
+		//! Updates fillings and recomputes filling energies
+		void updateFillings();
+		
 		//! Mixes densities or Vscloc and Vtau
 		void mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 							DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);

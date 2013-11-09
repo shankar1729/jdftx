@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_RESIDUALMINIMIZERPARAMS_H
 
 #include <core/Util.h>
+#include <vector>
 
 enum MixedVariable
 {
@@ -35,6 +36,14 @@ enum VectorExtrapolation
 	DIIS   //! Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
 };
 
+struct eigenShift
+{	int q; //! Quantum number
+	int n; //! Band index
+	double shift; //! Energy shift
+	
+	eigenShift(int q, int n, double shift): q(q), n(n), shift(shift){}
+};
+
 struct ResidualMinimizerParams
 {
 	int nIterations; //! maximum iterations (single point calculation if 0)
@@ -43,7 +52,9 @@ struct ResidualMinimizerParams
 	VectorExtrapolation vectorExtrapolation; //! Vector extrapolation method used to construct the new density
 	size_t history; //! How many past residuals and vectors are kept cached
 	bool verbose; //! Whether the inner eigensolver will print process
-	double damping;  //! Fracition of the old variable that will be mixed with the new one
+	double damping;  //! Fraction of the old variable that will be mixed with the new one
+	
+	std::vector<eigenShift> eigenShifts; //! A list of all eigenshifts, used for non-ground-state calculations
 	
 	ResidualMinimizerParams()
 	{

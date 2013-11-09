@@ -153,6 +153,31 @@ void ElecVars::setup(const Everything &everything)
 		C[q] = Y[q];
 	}
 	
+	// Applies custom fillings, if present
+	if(eInfo.customFillings.size())
+	{	// macro to find the HOMO of a quantum-number
+		
+		std::vector<size_t> band_index;
+		for(size_t j=0; j<eInfo.customFillings.size(); j++)
+		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			int HOMO = eInfo.findHOMO(qnum);
+			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
+			if(band >= F[qnum].size() or band<0)
+			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
+					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
+					(int) band, std::get<1>(eInfo.customFillings[j]));
+			}
+			band_index.push_back(band);
+		}
+		for(size_t j=0; j<eInfo.customFillings.size(); j++)
+		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			F[qnum][band_index[j]] = std::get<2>(eInfo.customFillings[j]);
+		}
+		
+		//Recompute electron count:
+		((Everything*) e)->eInfo.nElectrons=0.; for(int q=0; q<eInfo.nStates; q++) ((Everything*) e)->eInfo.nElectrons += eInfo.qnums[q].weight * trace(F[q]);
+	}
+	
 	// Read in electron (spin) density if needed
 	if(e->cntrl.fixed_n)
 	{	//command fix-electron-density ensures that nFilename has as many entries as spin components
@@ -313,7 +338,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	//Compute fillings if required:
 	double mu = 0.0;
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (not e->cntrl.minimisingResidual))
 	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
 		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }

@@ -37,6 +37,9 @@ SCF::SCF(Everything& e): e(e)
 	
 	overlap.init(e.residualMinimizerParams.history, e.residualMinimizerParams.history);
 	
+	// Subspace rotation make no sense for residual minimize
+	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
+		e.eInfo.subspaceRotation = false;
 }
 
 #define ifTau(command) if(e.exCorr.needsKEdensity()) command;
@@ -57,7 +60,13 @@ void SCF::minimize()
 	e.cntrl.fixed_n = false;
 	e.ener = Energies();
 	e.iInfo.update(e.ener);
-	eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);	
+	double E;
+	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Compute Hsub and update fillings
+	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+		updateFillings();
+	}
+	E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);	// Compute energy
+
 	e.ener = Energies(); 
 	e.cntrl.fixed_n = true;
 	
@@ -70,7 +79,7 @@ void SCF::minimize()
 	// Set up variable history for vector extrapolation
 	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
 	
-	double Eprev = 0., E = 0.;
+	double Eprev = 0.;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
@@ -106,19 +115,19 @@ void SCF::minimize()
 		if(not rp.verbose) // Resume output
 		{	logResume(); e.elecMinParams.fpLog = globalLog;}
 		e.cntrl.fixed_n = false; e.ener = Energies();
-
-		// Update fillings, or prepare for their computation in elecEnergyAndGrad
-		switch(e.eInfo.fillingsUpdate)
-		{	case ElecInfo::FermiFillingsAux: e.eVars.B.assign(e.eVars.Hsub_eigs.begin(), e.eVars.Hsub_eigs.end());
-			case ElecInfo::FermiFillingsMix: logPrintf("\t"); e.eInfo.mixFillings(e.eVars.F, e.ener); break;
-			default: break;
-		}
+		/// ///////////////////////// ///
 		
 		// Compute new density and energy
+		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
+			updateFillings();
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
-		// Print residual
+		// Debug fillings
+		if(e.cntrl.shouldPrintEigsFillings)
+			print_Hsub_eigs(e);
+
+		// Calculate residual
 		DataRptrCollection variableResidual = variable_n - pastVariables_n.back();
 		double residual = e.gInfo.dV*sqrt(dot(variableResidual, variableResidual));
 		
@@ -168,7 +177,7 @@ inline double preconditionerKernel(double G, double G0)
 
 DataRptrCollection precondition(DataRptrCollection& n, double Gmin, double Gmax, double f = 20.)
 {
-		// Set up preconditioner kernel for density/potential overlaps
+	// Set up preconditioner kernel for density/potential overlaps
 	RadialFunctionG preconditioner;
 	double G0 = sqrt((f-1)/(1./Gmin - 1./Gmax));
 	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, G0);
@@ -261,3 +270,44 @@ void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variab
 	variable_n = (1.-alpha)*(pastVariables_n[1]+pastResiduals_n[1]) + alpha*(pastVariables_n[0]+pastResiduals_n[0]);
 	ifTau(variable_tau = (1.-alpha)*(pastVariables_tau[1]+pastResiduals_tau[1]) + alpha*(pastVariables_tau[0]+pastResiduals_tau[0]))
 }
+
+void SCF::updateFillings()
+{
+	ElecInfo& eInfo = e.eInfo; 
+	ElecVars& eVars = e.eVars;
+	ResidualMinimizerParams& rp = e.residualMinimizerParams;
+	
+	// Apply eigenshifts, if any
+	for(size_t j=0; j<rp.eigenShifts.size(); j++)
+			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
+	
+	double mu; // Electron chemical potential
+		
+	//Update nElectrons from mu, or mu from nElectrons as appropriate:
+	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons);
+	else
+	{	mu = eInfo.mu; 
+		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs); 
+	}
+	//Compute fillings from aux hamiltonian eigenvalues:
+	for(int q=0; q<eInfo.nStates; q++)
+		eVars.F[q] = eInfo.fermi(mu, eVars.Hsub_eigs[q]);
+	//Update TS and muN:
+	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
+	
+	// Undo eigenshifts, if any
+	for(size_t j=0; j<rp.eigenShifts.size(); j++)
+		e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] -= rp.eigenShifts[j].shift;
+	
+	// Print filling information
+	if(e.eInfo.fillingsUpdate)
+	{	double muMix = e.eInfo.findMu(eVars.Hsub_eigs, e.eInfo.nElectrons);
+		logPrintf("\tFillingsMix:  mu: %.15le  nElectrons: %.15le", muMix, e.eInfo.nElectrons);
+		if(e.eInfo.spinType == SpinZ)
+		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
+			logPrintf("  magneticMoment: %.5f", spinPol);
+		}
+		logPrintf("\n");
+	}	
+}
+

@@ -118,3 +118,48 @@ struct CommandsScfParams: public Command
 	} 
 	
 } commandsScfParams;
+
+
+struct CommandEigenShift : public Command
+{
+	CommandEigenShift() : Command("eigen-shift")
+	{
+		format = "<qnum> <band> <shift> [<fromHOMO>]";
+		comments = "When fillings are computed during residual-minimize, shifts KS eigenvalue of (qnum, band) by shift\n"
+					"Band index is calculated from HOMO, unless set to false\n";
+		allowMultiple = true;
+		require("residual-minimize");
+		require("elec-fermi-fillings");
+		forbid("custom-filling");
+		forbid("elec-initial-charge");
+		forbid("initial-magnetic-moments");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	
+		int q, n;
+		double shift;
+		
+		pl.get(q, 0, "qnum", true);
+		pl.get(n, 0, "band", true);
+		pl.get(shift, 0., "filling", true);
+		
+		if(n > e.eInfo.nBands)
+		{	ostringstream oss; oss << "n must be less than or equal to nbands!\n";
+			throw oss.str();
+		}
+		if(q > e.eInfo.nStates)
+		{	ostringstream oss; oss << "q must be less than or equal to nStates!\n";
+			throw oss.str();
+		}
+		
+		e.residualMinimizerParams.eigenShifts.push_back(eigenShift(q,n,shift));
+		
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	std::vector<eigenShift>& eigenShifts =  e.residualMinimizerParams.eigenShifts;
+		logPrintf("%i %i %.5e", eigenShifts[iRep].q, eigenShifts[iRep].n, eigenShifts[iRep].shift);
+	}
+}
+commandEigenShift;

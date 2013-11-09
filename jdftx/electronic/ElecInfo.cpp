@@ -151,31 +151,6 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		nElectrons=0.; for(int q=0; q<nStates; q++) nElectrons += qnums[q].weight * trace(F[q]);
 	}
 	
-	// Applies custom fillings, if present
-	if(customFillings.size())
-	{	// macro to find the HOMO of a quantum-number
-		
-		std::vector<size_t> band_index;
-		for(size_t j=0; j<customFillings.size(); j++)
-		{	int qnum = std::get<0>(customFillings[j]);
-			int HOMO = findHOMO(qnum);
-			size_t band = std::get<1>(customFillings[j])+HOMO;
-			if(band >= F[qnum].size() or band<0)
-			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
-					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
-					(int) band, std::get<1>(customFillings[j]));
-			}
-			band_index.push_back(band);
-		}
-		for(size_t j=0; j<customFillings.size(); j++)
-		{	int qnum = std::get<0>(customFillings[j]);
-			F[qnum][band_index[j]] = std::get<2>(customFillings[j]);
-		}
-		
-		//Recompute electron count:
-		nElectrons=0.; for(int q=0; q<nStates; q++) nElectrons += qnums[q].weight * trace(F[q]);
-	}
-	
 	//subspace_rotation is false by default
 	if(fillingsUpdate != ConstantFillings)
 	{	//make sure there are extra bands:
