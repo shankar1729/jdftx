@@ -139,26 +139,19 @@ struct CommandEigenShift : public Command
 	{	
 		int q, n;
 		double shift;
+		bool fromHOMO;
 		
 		pl.get(q, 0, "qnum", true);
 		pl.get(n, 0, "band", true);
 		pl.get(shift, 0., "filling", true);
-		
-		if(n > e.eInfo.nBands)
-		{	ostringstream oss; oss << "n must be less than or equal to nbands!\n";
-			throw oss.str();
-		}
-		if(q > e.eInfo.nStates)
-		{	ostringstream oss; oss << "q must be less than or equal to nStates!\n";
-			throw oss.str();
-		}
-		
-		e.residualMinimizerParams.eigenShifts.push_back(eigenShift(q,n,shift));
+		pl.get(fromHOMO, true, boolMap, "fromHOMO", false);
+
+		e.residualMinimizerParams.eigenShifts.push_back(EigenShift(q,n,shift, fromHOMO));
 		
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	std::vector<eigenShift>& eigenShifts =  e.residualMinimizerParams.eigenShifts;
+	{	std::vector<EigenShift>& eigenShifts =  e.residualMinimizerParams.eigenShifts;
 		logPrintf("%i %i %.5e", eigenShifts[iRep].q, eigenShifts[iRep].n, eigenShifts[iRep].shift);
 	}
 }

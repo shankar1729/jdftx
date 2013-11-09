@@ -40,6 +40,26 @@ SCF::SCF(Everything& e): e(e)
 	// Subspace rotation make no sense for residual minimize
 	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
 		e.eInfo.subspaceRotation = false;
+
+	// Check eigenshifts and adjust index for 0
+	for(size_t j=0; j<e.residualMinimizerParams.eigenShifts.size(); j++)
+	{	
+		EigenShift& eigenShift = e.residualMinimizerParams.eigenShifts[j];
+		// Correct for the 0
+		if(eigenShift.fromHOMO)
+			eigenShift.n += e.eInfo.findHOMO(eigenShift.q);
+		// Check for a meaningful q and n
+		if(eigenShift.q < 0)
+			die("Eigenshift quantum number (q) must be greater than 0!\n");
+		if(eigenShift.q > e.eInfo.nStates)
+			die("Eigenshift quantum number (q) must be less than nStates=%i!\n", e.eInfo.nStates);
+		if(eigenShift.n < 0)
+			die("Eigenshift band index (n) must be greater than 0!\n");
+		if(eigenShift.n > e.eInfo.nBands)
+			die("Eigenshift band index (n) must be less than nBands=%i!\n", e.eInfo.nBands);		
+		
+	}
+	
 }
 
 #define ifTau(command) if(e.exCorr.needsKEdensity()) command;

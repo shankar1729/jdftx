@@ -36,12 +36,14 @@ enum VectorExtrapolation
 	DIIS   //! Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
 };
 
-struct eigenShift
+struct EigenShift
 {	int q; //! Quantum number
 	int n; //! Band index
 	double shift; //! Energy shift
 	
-	eigenShift(int q, int n, double shift): q(q), n(n), shift(shift){}
+	bool fromHOMO; //! Whether n-indexing is done from HOMO (or not)
+	
+	EigenShift(int q, int n, double shift, bool fromHOMO): q(q), n(n), shift(shift), fromHOMO(fromHOMO){}
 };
 
 struct ResidualMinimizerParams
@@ -54,7 +56,7 @@ struct ResidualMinimizerParams
 	bool verbose; //! Whether the inner eigensolver will print process
 	double damping;  //! Fraction of the old variable that will be mixed with the new one
 	
-	std::vector<eigenShift> eigenShifts; //! A list of all eigenshifts, used for non-ground-state calculations
+	std::vector<EigenShift> eigenShifts; //! A list of all eigenshifts, used for non-ground-state calculations
 	
 	ResidualMinimizerParams()
 	{
