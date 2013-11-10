@@ -131,8 +131,6 @@ struct CommandEigenShift : public Command
 		require("residual-minimize");
 		require("elec-fermi-fillings");
 		forbid("custom-filling");
-		forbid("elec-initial-charge");
-		forbid("initial-magnetic-moments");
 	}
 
 	void process(ParamList& pl, Everything& e)
