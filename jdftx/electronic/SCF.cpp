@@ -145,9 +145,15 @@ void SCF::minimize()
 		e.iInfo.update(e.ener);
 		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
 		
-		// Debug fillings
+		// Debug print
 		if(e.cntrl.shouldPrintEigsFillings)
 			print_Hsub_eigs(e);
+		if(e.cntrl.shouldPrintEcomponents)
+		{	logPrintf("\nEcomponents:\n");
+			e.ener.print();
+			logPrintf("\n");
+		}
+		logFlush();
 
 		// Calculate residual
 		DataRptrCollection variableResidual = variable_n - pastVariables_n.back();
@@ -321,7 +327,7 @@ void SCF::updateFillings()
 	for(size_t j=0; j<rp.eigenShifts.size(); j++)
 		e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] -= rp.eigenShifts[j].shift;
 	
-	// Print filling information
+	// Print filling update information
 	if(e.eInfo.fillingsUpdate)
 	{	double muMix = e.eInfo.findMu(eVars.Hsub_eigs, e.eInfo.nElectrons);
 		logPrintf("\tFillingsMix:  mu: %.15le  nElectrons: %.15le", muMix, e.eInfo.nElectrons);
@@ -330,6 +336,7 @@ void SCF::updateFillings()
 			logPrintf("  magneticMoment: %.5f", spinPol);
 		}
 		logPrintf("\n");
-	}	
+		logFlush();
+	}
 }
 
