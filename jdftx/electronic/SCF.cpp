@@ -47,7 +47,9 @@ SCF::SCF(Everything& e): e(e)
 		EigenShift& eigenShift = e.residualMinimizerParams.eigenShifts[j];
 		// Correct for the 0
 		if(eigenShift.fromHOMO)
-			eigenShift.n += e.eInfo.findHOMO(eigenShift.q);
+		{	eigenShift.n += e.eInfo.findHOMO(eigenShift.q);
+			eigenShift.fromHOMO = false; // Needed if SCF is called multiple times, e.g. from an ionic minimize
+		}
 		// Check for a meaningful q and n
 		if(eigenShift.q < 0)
 			die("Eigenshift quantum number (q) must be greater than 0!\n");
