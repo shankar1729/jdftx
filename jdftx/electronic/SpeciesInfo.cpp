@@ -113,8 +113,6 @@ SpeciesInfo::~SpeciesInfo()
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
 			delete OpsiRadial;
 		}
-
-		augmentDensityCleanup();
 	}
 }
 
@@ -253,14 +251,29 @@ void SpeciesInfo::updateLatticeDependent()
 		nCoreRadial.updateGmax(0, nGridLoc);
 		tauCoreRadial.updateGmax(0, nGridLoc);
 		for(auto& Qijl: Qradial) Qijl.second.updateGmax(Qijl.first.l, nGridLoc);
-		//Reallocate quantities whose length depends on the above:
-		augmentDensityCleanup();
-		augmentDensityInit();
 	}
-
-	//Update nagIndex if not previously init'd, or if R has changed:
-	if(Qint.size() && (Rchanged || !nagIndex))
-	{	int nCoeff = Qradial.cbegin()->second.nCoeff;
+	
+	//Update Qradial indices, matrix and nagIndex if not previously init'd, or if R has changed:
+	if(Qint.size() && (Rchanged || !QradialMat))
+	{	int nCoeffHlf = (Qradial.cbegin()->second.nCoeff+1)/2; //pack real radial functions into complex numbers
+		int nCoeff = 2*nCoeffHlf;
+		//Qradial:
+		QradialMat = zeroes(nCoeffHlf, Qradial.size());
+		double* QradialMatData = (double*)QradialMat.dataPref();
+		int index=0;
+		for(auto& Qijl: Qradial)
+		{	((QijIndex&)Qijl.first).index = index;
+			callPref(eblas_copy)(QradialMatData+index*nCoeff, Qijl.second.coeffPref(), Qijl.second.nCoeff);
+			index++;
+		}
+		//nagIndex:
+		#ifdef GPU_ENABLED
+		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
+		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
+		#else
+		if(nagIndex) delete[] nagIndex; nagIndex=0;
+		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
+		#endif
 		callPref(setNagIndex)(gInfo.S, gInfo.G, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
 	}
 }

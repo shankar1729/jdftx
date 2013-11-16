@@ -89,7 +89,6 @@ public:
 	
 	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
 	void augmentDensityInit();
-	void augmentDensityCleanup();
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
@@ -154,13 +153,15 @@ private:
 	{	int l1, p1; //!< Angular momentum and projector index for channel i
 		int l2, p2; //!< Angular momentum and projector index for channel j
 		int l; //!< net angular momentum (l varies from |l1-l2| to (l1+l2) in increments of 2)
+		int index; //!< psoition in Qradial map
 		bool operator<(const QijIndex&) const; //!< comparison that ensures (l1,p1)<-->(l2,p2) symmetry
 	private:
 		void sortIndices(); //!< swap (l1,p1)<-->(l2,p2) indices if needed to bring to the upper triangular part
 	};
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
-	double* nAug; //!< intermediate electron density augmentation in spherical functions (Flat array indexed by spin, atom number and then spline coeff)
-	double* E_nAug; //!< Gradient w.r.t nAug (same layout)
+	matrix QradialMat; //!< matrix with all the radial augmentation functions in columns (ordered by index)
+	matrix nAug; //!< intermediate electron density augmentation in the basis of Qradial functions (Flat array indexed by spin, atom number and then Qradial index)
+	matrix E_nAug; //!< Gradient w.r.t nAug (same layout)
 	uint64_t* nagIndex; size_t* nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad_gpu
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)

@@ -45,42 +45,23 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matr
 	int lMax = 0; \
 	for(unsigned l=0; l<VnlRadial.size(); l++) \
 		if(VnlRadial[l].size()) lMax=l; \
-	int Nlm = (2*lMax+1)*(2*lMax+1); \
-	int nCoeff = Qradial.cbegin()->second.nCoeff; \
-	int nCoeffAtom = nCoeff * Nlm; \
-	int nCoeffSpin = nCoeffAtom * atpos.size();
+	int Nlm = (2*lMax+1)*(2*lMax+1);
+
+#define augmentDensityGrid_COMMON_INIT \
+	augmentDensity_COMMON_INIT \
+	int nCoeffHlf = (Qradial.cbegin()->second.nCoeff+1)/2; /*pack real radial functions into complex numbers*/ \
+	int nCoeff = 2*nCoeffHlf;
+
 
 void SpeciesInfo::augmentDensityInit()
 {	augmentDensity_COMMON_INIT
-	size_t nCoeffTot = nCoeffSpin * (e->eInfo.spinType==SpinNone ? 1 : 2);
+	size_t nSpinAtomLM = (e->eInfo.spinType==SpinNone ? 1 : 2) * atpos.size() * Nlm;
 	if(!nAug)
-	{
-		#ifdef GPU_ENABLED
-		cudaMalloc(&nAug, nCoeffTot*sizeof(double));
-		cudaMalloc(&E_nAug, nCoeffTot*sizeof(double));
-		#else
-		nAug = new double[nCoeffTot];
-		E_nAug = new double[nCoeffTot];
-		#endif
+	{	nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
+		E_nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
 	}
-	callPref(eblas_zero)(nCoeffTot, nAug);
-}
-
-void SpeciesInfo::augmentDensityCleanup()
-{	if(nAug)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(nAug); nAug=0;
-		cudaFree(E_nAug); E_nAug=0;
-		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
-		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
-		#else
-		delete[] nAug; nAug=0;
-		delete[] E_nAug; E_nAug=0;
-		if(nagIndex) delete[] nagIndex; nagIndex=0;
-		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
-		#endif
-	}
+	nAug.zero();
+	E_nAug.zero();
 }
 
 void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq)
@@ -88,6 +69,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
+	complex* nAugData = nAug.data();
 	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
@@ -95,8 +77,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
 		matrix Rho = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
 		
-		//Collect contributions as spherical functions:
-		double* nAugCur = nAug + qnum.index()*nCoeffSpin + atom*nCoeffAtom;
+		int atomOffs = Nlm*(atom + qnum.index()*atpos.size());
 		//Triple loop over first projector:
 		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -115,7 +96,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						callPref(eblas_daxpy)(nCoeff, term.coeff * prefac, Qijl->second.coeffPref(),1, nAugCur+nCoeff*(term.l*(term.l+1) + term.m),1);
+						nAugData[nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)] += term.coeff * prefac;
 					}
 				}
 				i2++;
@@ -128,14 +109,16 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 
 void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 {	static StopWatch watch("augmentDensityGrid"); watch.start(); 
-	augmentDensity_COMMON_INIT
+	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./dGloc;
+	matrix nAugRadial = QradialMat * nAug; //transform from radial functions to spline coeffs
+	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
 	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = nAug + s*nCoeffSpin + atom*nCoeffAtom;
-			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugCur, atpos[atom], nAugTilde->dataPref());
+		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
+			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
 		}
 		n[s] += I(nAugTilde,true);
 	}
@@ -144,23 +127,29 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 
 void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces)
 {	static StopWatch watch("augmentDensityGridGrad"); watch.start();
-	augmentDensity_COMMON_INIT
+	augmentDensityGrid_COMMON_INIT
 	if(!nAug) augmentDensityInit();
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./dGloc;
-	callPref(eblas_zero)(nCoeffSpin * (e->eInfo.spinType==SpinNone ? 1 : 2), E_nAug);
+	matrix E_nAugRadial = zeroes(nCoeffHlf, (e->eInfo.spinType==SpinNone ? 1 : 2) * atpos.size() * Nlm);
+	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
+	matrix nAugRadial; const double* nAugRadialData=0;
+	if(forces)
+	{	nAugRadial = QradialMat * nAug;
+		nAugRadialData = (const double*)nAugRadial.dataPref();
+	}
 	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
 	for(unsigned s=0; s<E_n.size(); s++)
 	{	DataGptr ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	const double* nAugCur = forces ? nAug + s*nCoeffSpin + atom*nCoeffAtom : 0;
-			double* E_nAugCur = E_nAug + s*nCoeffSpin + atom*nCoeffAtom;
+		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			if(forces) initZero(E_atpos);
-			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugCur, atpos[atom],
-				ccE_n->dataPref(), E_nAugCur, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex, nagIndexPtr);
+			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, forces? (nAugRadialData+atomOffs) :0, atpos[atom],
+				ccE_n->dataPref(), E_nAugRadialData+atomOffs, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex, nagIndexPtr);
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}
+	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
 	watch.stop();
 }
 
@@ -169,16 +158,17 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const d
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
-	
+	const complex* E_nAugData = E_nAug.data();
+
 	matrix E_RhoVdagC(VdagCq.nRows(),VdagCq.nCols(),isGpuEnabled());
 	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
 	{	matrix E_Rho = zeroes(nProj, nProj); //gradient w.r.t density matrix in projector basis
-		const double* E_nAugCur = E_nAug + qnum.index()*nCoeffSpin + atom*nCoeffAtom;
 		
-		int i1 = 0;
+		int atomOffs = Nlm*(atom + qnum.index()*atpos.size());
 		//Triple loop over first projector:
+		int i1 = 0;
 		for(int l1=0; l1<int(VnlRadial.size()); l1++)
 		for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
 		for(int m1=-l1; m1<=l1; m1++)
@@ -194,7 +184,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const d
 					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
 						auto Qijl = Qradial.find(qIndex);
 						if(Qijl==Qradial.end()) continue; //no entry at this l
-						E_Rho_i1i2sum += term.coeff * callPref(eblas_ddot)(nCoeff, Qijl->second.coeffPref(),1, E_nAugCur+nCoeff*(term.l*(term.l+1) + term.m),1);
+						E_Rho_i1i2sum += term.coeff * E_nAugData[E_nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)].real();
 					}
 					complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
 					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
