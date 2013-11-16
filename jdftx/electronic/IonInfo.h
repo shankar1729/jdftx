@@ -77,18 +77,20 @@ public:
 
 	//! Return the non-local pseudopotential energy due to a single state.
 	//! Optionally accumulate the corresponding electronic gradient in HCq and ionic gradient in forces
-	double EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, IonicGradient* forces=0) const;
+	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
 	
 	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
-	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const;
+	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
 	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const;
-	void augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq) const;
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const;
 	void augmentDensityGrid(DataRptrCollection& n) const;
 	void augmentDensityGridGrad(const DataRptrCollection& E_n, IonicGradient* forces=0) const;
-	void augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq,
-		IonicGradient* forces=0, const matrix& gradCdagOCq=matrix()) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
+	
+	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
+	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
 	
 	//! Compute U corrections (DFT+U in the simplified rotationally-invariant scheme [Dudarev et al, Phys. Rev. B 57, 1505])
 	//! Also accumulate orbital gradients in HC, if non-null

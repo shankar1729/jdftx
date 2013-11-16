@@ -299,11 +299,6 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V)
 }
 
 
-ColumnBundle Pbar(const ColumnBundle &C, const ColumnBundle &Y)
-{	return Y - O(C*(C^Y));
-}
-
-
 //Laplacian of a column bundle
 #ifdef GPU_ENABLED
 void reducedL_gpu(int nbasis, int ncols, const complex* Y, complex* LY,
@@ -342,9 +337,9 @@ ColumnBundle Linv(const ColumnBundle &Y)
 
 
 // Overlap operator (scale by unit cell volume in PW basis)
-ColumnBundle O(const ColumnBundle &Y)
+ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
 {	ColumnBundle OY = Y * Y.basis->gInfo->detR; //basic planewave overlap
-	Y.basis->iInfo->augmentOverlap(Y, OY); //pseudopotential augmentation
+	Y.basis->iInfo->augmentOverlap(Y, OY, VdagY); //pseudopotential augmentation
 	return OY;
 }
 

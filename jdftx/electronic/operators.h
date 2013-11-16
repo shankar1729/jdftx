@@ -83,12 +83,9 @@ DataGptrVec operator*(const RadialFunctionG&, DataGptrVec&&);
 //! Return Idag V .* I C (evaluated columnwise)
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V);
 
-//! Return projection (I-P)Y with P=O*C*C^
-ColumnBundle Pbar(const ColumnBundle &C,const ColumnBundle &Y); 
-
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
-ColumnBundle O(const ColumnBundle &Y); //!< Apply overlap 
+ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 
 //! Apply inverse kinetic preconditioner inv((k+G)^2/2)

@@ -32,10 +32,12 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	const ExCorr* exCorr;
 	std::vector<matrix> HniSub;
 	std::vector<matrix> B; //Auxiliary hamiltonian (minimizer state)
+	std::vector< std::vector<matrix> > VdagY;
 	ElecGradient Kgrad;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
-	: eVars(eVars), e(e), HniSub(e.eInfo.nStates), B(e.eInfo.nStates)
+	: eVars(eVars), e(e), HniSub(e.eInfo.nStates), B(e.eInfo.nStates),
+		VdagY(e.eInfo.nStates, std::vector<matrix>(e.iInfo.species.size()))
 	{	Kgrad.init(e);
 	}
 	
@@ -55,6 +57,8 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		for(int q=0; q<e.eInfo.nStates; q++)
 		{	B[q].diagonalize(B_evecs[q], B_eigs[q]);
 			eVars.C[q] = eVars.Y[q] * B_evecs[q];
+			for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
+				if(VdagY[q][sp]) eVars.VdagC[q][sp] = VdagY[q][sp] * B_evecs[q]; 
 		}
 		
 		//Update fillings (Aux algorithm, fixed N only):
@@ -69,7 +73,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		e.iInfo.augmentDensityInit();
 		for(int q=0; q<e.eInfo.nStates; q++)
 		{	eVars.n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], &e.gInfo);
-			e.iInfo.augmentDensitySpherical(F[q], eVars.C[q]); //pseudopotential contribution
+			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], F[q], eVars.VdagC[q]); //pseudopotential contribution
 		}
 		e.iInfo.augmentDensityGrid(eVars.n);
 		for(DataRptr& ns: eVars.n) e.symm.symmetrize(ns);
@@ -80,6 +84,8 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		
 		//Wavefunction dependent parts:
 		std::vector<ColumnBundle> HC(e.eInfo.nStates);
+		std::vector< std::vector<matrix> > HVdagC(e.eInfo.nStates, std::vector<matrix>(e.iInfo.species.size()));
+
 		ener.E["U"] = e.iInfo.computeU(F, eVars.C, grad ? &HC : 0);
 		ener.E["NI"] = 0.;
 		for(int q=0; q<e.eInfo.nStates; q++)
@@ -92,7 +98,8 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 			//Gradient and subspace Hamiltonian:
 			if(grad)
 			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
-				e.iInfo.augmentDensitySphericalGrad(F[q], eVars.C[q], HC[q]); //Contribution via pseudopotential density augmentation
+				e.iInfo.augmentDensitySphericalGrad(qnum, F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
+				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
 				//Nconstraint contributions to gradient:
 				diagMatrix fprime = e.eInfo.fermiPrime(mu, B_eigs[q]);
@@ -158,10 +165,14 @@ int ElecVars::LCAO()
 	for(int q=0; q<eInfo.nStates; q++)
 	{	Y[q] = iInfo.getAtomicOrbitals(q, lcao.nBands-nAtomic);
 		if(nAtomic<lcao.nBands) Y[q].randomize(nAtomic, lcao.nBands); //Randomize extra columns if any
-		Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q])); //orthonormalize
+		matrix YtoC = invsqrt(Y[q]^O(Y[q], &lcao.VdagY[q]));
+		Y[q] = Y[q] * YtoC; //orthonormalize
+		iInfo.project(Y[q], lcao.VdagY[q], &YtoC);
 		//Non-interacting Hamiltonian:
 		ColumnBundle HniYq = -0.5*L(Y[q]);
-		iInfo.EnlAndGrad(eye(lcao.nBands), Y[q], HniYq); //non-local pseudopotentials
+		std::vector<matrix> HVdagYq(iInfo.species.size());
+		iInfo.EnlAndGrad(eInfo.qnums[q], eye(lcao.nBands), lcao.VdagY[q], HVdagYq); //non-local pseudopotentials
+		iInfo.projectGrad(HVdagYq, Y[q], HniYq);
 		lcao.HniSub[q] = Y[q]^HniYq;
 	}
 	
@@ -185,7 +196,9 @@ int ElecVars::LCAO()
 	//Set initial auxiliary hamiltonian to the subspace Hamiltonian at atomic reference density:
 	for(int q=0; q<eInfo.nStates; q++)
 	{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
-		iInfo.augmentDensitySphericalGrad(eye(lcao.nBands), Y[q], HYq); //ultrasoft augmentation
+		std::vector<matrix> HVdagYq(iInfo.species.size());
+		iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), lcao.VdagY[q], HVdagYq); //ultrasoft augmentation
+		iInfo.projectGrad(HVdagYq, Y[q], HYq);
 		lcao.B[q] = lcao.HniSub[q] + (Y[q]^HYq);
 	}
 	

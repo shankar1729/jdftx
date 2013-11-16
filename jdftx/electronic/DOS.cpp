@@ -710,9 +710,9 @@ void DOS::dump()
 				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
 				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 				//Compute the density for this state and band:
-				DataRptrCollection n(1); n[0] = diagouterI(F, C, &e->gInfo);
+				DataRptrCollection n(nSpins); n[0] = diagouterI(F, C, &e->gInfo);
 				e->iInfo.augmentDensityInit();
-				e->iInfo.augmentDensitySpherical(F, C);
+				e->iInfo.augmentDensitySpherical(qnumTemp, F, e->eVars.VdagC[iState]);
 				e->iInfo.augmentDensityGrid(n); //pseudopotential contribution
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)

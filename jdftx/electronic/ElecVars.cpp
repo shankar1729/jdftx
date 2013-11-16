@@ -80,6 +80,7 @@ void ElecVars::setup(const Everything &everything)
 		B.assign(eInfo.nStates, zeroes(eInfo.nBands, eInfo.nBands)); //Set to zero
 	}
 	grad_CdagOC.resize(eInfo.nStates);
+	VdagC.resize(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	// Initialize matrix U and its cohorts
 	U.resize(eInfo.nStates);
@@ -131,9 +132,12 @@ void ElecVars::setup(const Everything &everything)
 			if(nBandsInited)
 			{	//Ensure that the initalized bands are orthonormal:
 				ColumnBundle Yfixed = Y[q].getSub(0, nBandsInited);
-				Yfixed = Yfixed * invsqrt(Yfixed^O(Yfixed));
+				ColumnBundle OYfixed = O(Yfixed);
+				matrix ortho = invsqrt(Yfixed^OYfixed);
+				Yfixed = Yfixed * ortho;
+				OYfixed = OYfixed * ortho;
 				//Project out initalized band directions from the rest:
-				Y[q] = Pbar(Yfixed, Y[q]);
+				Y[q] -= Yfixed * (OYfixed^Y[q]);
 				Y[q].setSub(0, Yfixed);
 			}
 		}
@@ -368,6 +372,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//--------- Wavefunction dependent parts -----------
 	
 	std::vector<ColumnBundle> HC(eInfo.nStates); //gradient w.r.t C (upto weights and fillings)
+	std::vector< std::vector<matrix> > HVdagC(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	//DFT+U corrections, if required:
 	ener.E["U"] = e->iInfo.computeU(F, C, need_Hsub ? &HC : 0);
@@ -383,7 +388,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//Do the rest one state at a time to save memory (and for better cache warmth):
 	for(int q=0; q<e->eInfo.nStates; q++)
 	{	diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-		applyHamiltonian(q, C[q], Fq, HC[q], ener, need_Hsub);
+		applyHamiltonian(q, Fq, HC[q], HVdagC[q], ener, need_Hsub);
 	}
 	
 	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
@@ -401,7 +406,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		for(int q=0; q<eInfo.nStates; q++)
 		{			
 			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-			orthonormalizeGrad(q, C[q], Fq, HC[q], grad->Y[q], Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
+			orthonormalizeGrad(q, Fq, HC[q], grad->Y[q], Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
 			HC[q].free(); // Deallocate HCq when done.
 			
 			//Subspace hamiltonian gradient:
@@ -434,6 +439,8 @@ void ElecVars::setEigenvectors(int qActive)
 	{	if((qActive > -1) and (qActive != q)) continue;
 		Y[q] = (C[q] = C[q] * Hsub_evecs[q]);
 		grad_CdagOC[q] =  dagger(Hsub_evecs[q]) *grad_CdagOC[q] * Hsub_evecs[q];
+		for(matrix& VdagCq_sp: VdagC[q])
+			if(VdagCq_sp) VdagCq_sp = VdagCq_sp * Hsub_evecs[q];
 		
 		if(eInfo.subspaceRotation)
 		{	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
@@ -475,7 +482,7 @@ DataRptrCollection ElecVars::calcDensity() const
 	e->iInfo.augmentDensityInit();
 	for(int q=0; q<e->eInfo.nStates; q++)
 	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], &e->gInfo);
-		e->iInfo.augmentDensitySpherical(F[q], C[q]); //pseudopotential contribution
+		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
 	
@@ -490,12 +497,13 @@ void ElecVars::orthonormalize(int q)
 		if(!nOcc) projYq = Y[q];
 		else
 		{	ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
-			projYq = Pbar(fixedYq, Y[q]);
+			projYq = Y[q] - fixedYq*(O(fixedYq)^Y[q]);
 			projYq.setSub(0, fixedYq);
 		}
 	}
 	const ColumnBundle& Yq = e->cntrl.fixOccupied ? projYq : Y[q];
-	U[q] = Yq^O(Yq); //Compute U:
+	VdagC[q].clear();
+	U[q] = Yq^O(Yq, &VdagC[q]); //Compute U:
 	Umhalf[q] = invsqrt(U[q], &U_evecs[q], &U_eigs[q]); //Compute U^-0.5 (and retrieve U's eigensystem)
 	if(e->eInfo.subspaceRotation)
 	{	if(e->eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
@@ -508,17 +516,19 @@ void ElecVars::orthonormalize(int q)
 			V[q] = cis(B[q], &B_evecs[q], &B_eigs[q]);
 		}
 	}
-	C[q] = Yq * (e->eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q]);
+	matrix YtoC = e->eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q];
+	C[q] = Yq * YtoC;
+	e->iInfo.project(C[q], VdagC[q], &YtoC); //update the atomic projections
 }
 
-double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
+double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, std::vector<matrix>& HVdagCq, Energies& ener, bool need_Hsub)
 {
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
-	{	HCq += Idag_DiagV_I(Cq, Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
-		e->iInfo.augmentDensitySphericalGrad(Fq, Cq, HCq); //Contribution via pseudopotential density augmentation
+	{	HCq += Idag_DiagV_I(C[q], Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+		e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
 		if((e->exCorr.needsKEdensity() || fluidParams.useTau) && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
@@ -526,19 +536,20 @@ double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 	}
 
 	//Kinetic energy:
-	ColumnBundle minushalfLCq = -0.5*L(Cq);
+	ColumnBundle minushalfLCq = -0.5*L(C[q]);
 	if(HCq) HCq += minushalfLCq;
-	double KEq = traceinner(Fq, Cq, minushalfLCq).real();
+	double KEq = traceinner(Fq, C[q], minushalfLCq).real();
 	ostringstream KEoss; KEoss << "KE-" << q;
 	ener.E[KEoss.str()] = qnum.weight * KEq;
 	
 	//Nonlocal pseudopotentials:
 	ostringstream Enloss; Enloss << "Enl-" << q;
-	ener.E[Enloss.str()] = qnum.weight * e->iInfo.EnlAndGrad(Fq, Cq, HCq);
+	ener.E[Enloss.str()] = qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
+	if(HCq) e->iInfo.projectGrad(HVdagCq, C[q], HCq);
 	
 	//Compute subspace hamiltonian if needed:
 	if(need_Hsub)
-	{	Hsub[q] = Cq ^ HCq;
+	{	Hsub[q] = C[q] ^ HCq;
 		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
 	
@@ -551,14 +562,13 @@ double ElecVars::applyHamiltonian(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 		return 0.;
 }
 
-void ElecVars::orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, ColumnBundle& HCq, 
-								  ColumnBundle& gradYq, ColumnBundle* KgradYq, matrix* gradBq, matrix* KgradBq)
+void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, ColumnBundle* KgradYq, matrix* gradBq, matrix* KgradBq)
 {
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 		
 	ostringstream KEoss; KEoss << "KE-" << q;
 	double KErollover = 2.0 * (trace(Fq) ? (e->ener.E[KEoss.str()]/qnum.weight) / trace(Fq) : 1.);
-	ColumnBundle OC = O(Cq); //Note: O is not cheap for ultrasoft pseudopotentials
+	ColumnBundle OC = O(C[q]); //Note: O is not cheap for ultrasoft pseudopotentials
 	ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
 	matrix gradCtoY = e->eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
 	
@@ -594,9 +604,9 @@ void ElecVars::orthonormalizeGrad(int q, ColumnBundle& Cq, diagMatrix& Fq, Colum
 	{	int nOcc = nOccupiedBands(q);
 		if(nOcc)
 		{	//Apply projector to unoccupied orbital gradients:
-			ColumnBundle fixedYq = Y[q].getSub(0, nOcc);
-			gradYq = Pbar(fixedYq, gradYq);
-			if(KgradYq) *KgradYq = Pbar(fixedYq, *KgradYq);
+			ColumnBundle fixedYq = Y[q].getSub(0, nOcc), OfixedYq = O(fixedYq);
+			gradYq -= fixedYq * (OfixedYq^gradYq);
+			if(KgradYq) *KgradYq -= fixedYq * (OfixedYq^(*KgradYq));
 			//Zero out occupied orbital gradients:
 			fixedYq.zero();
 			gradYq.setSub(0, fixedYq);
@@ -609,10 +619,10 @@ double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, Co
 {
 	orthonormalize(q);
 	diagMatrix Fq = eye(e->eInfo.nBands);
-	ColumnBundle Hq;
-	double Eband = applyHamiltonian(q, C[q], Fq, Hq, ener, true);
+	ColumnBundle Hq; std::vector<matrix> HVdagCq(e->iInfo.species.size());
+	double Eband = applyHamiltonian(q, Fq, Hq, HVdagCq, ener, true);
 	if(grad)
-		orthonormalizeGrad(q, C[q], Fq, Hq, *grad, Kgrad);
+		orthonormalizeGrad(q, Fq, Hq, *grad, Kgrad);
 	Hq.free();
 	
 	// Calculate overlap condition

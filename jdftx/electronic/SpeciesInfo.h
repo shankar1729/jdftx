@@ -78,26 +78,27 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	//! Return non-local energy for this species and quantum number q an doptionally accumulate
-	//! electronic gradient in HCq (if non-null) and ionic gradient in forces (if non-null)
-	double EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector<vector3<> >* forces) const;
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //get projectors with qnum and basis matching Cq  (optionally cached)
+
+	//! Return non-local energy for this species and quantum number q and optionally accumulate
+	//! projected electronic gradient in HVdagCq (if non-null)
+	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
 	
 	//! Accumulate pseudopotential contribution to the overlap in OCq
-	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const;
+	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
 	
 	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
 	void augmentDensityInit();
 	void augmentDensityCleanup();
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
-	void augmentDensitySpherical(const diagMatrix& Fq, const ColumnBundle& Cq);
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
 	void augmentDensityGrid(DataRptrCollection& n) const;
 	
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
 	void augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces=0);
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
-	void augmentDensitySphericalGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq,
-		std::vector<vector3<> >* forces=0, const matrix& gradCdagOCq=matrix()) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
 	
 	//! Perform IonInfo::computeU() for this species
 	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
@@ -130,6 +131,9 @@ public:
 	std::vector< vector3<> > getLocalForces(const DataGptr& ccgrad_Vlocps, const DataGptr& ccgrad_rhoIon,
 		const DataGptr& ccgrad_nChargeball, const DataGptr& ccgrad_nCore, const DataGptr& ccgrad_tauCore) const;
 
+	//! Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces:
+	void accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const;
+	
 private:
 	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
 
@@ -145,7 +149,6 @@ private:
 	matrix QintAll; //!< block matrix containing Qint for all l,m 
 	
 	std::map< vector3<>, std::shared_ptr<ColumnBundle> > cachedV; //cached projectors (by k-point, assuming projectors are spin-independent)
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //get projectors with qnum and basis matching Cq  (optionally cached)
 	
 	struct QijIndex
 	{	int l1, p1; //!< Angular momentum and projector index for channel i

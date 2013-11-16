@@ -28,35 +28,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 
 //Return non-local energy and optionally accumulate its electronic and/or ionic gradients for a given quantum number
-double SpeciesInfo::EnlAndGrad(const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq, std::vector< vector3<> >* forces) const
+double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const
 {	static StopWatch watch("EnlAndGrad"); watch.start();
 	if(!atpos.size()) return 0.; //unused species
 	if(!MnlAll) return 0.; //purely local psp
 	int nProj = MnlAll.nRows();
 	
-	std::shared_ptr<ColumnBundle> V = getV(Cq);
-	matrix VdagC = (*V) ^ Cq;
-	matrix DVdagC[3]; //cartesian derivatives
-	if(forces) for(int k=0; k<3; k++) DVdagC[k] = D(*V,k)^Cq;
-	
-	matrix MVdagC = zeroes(VdagC.nRows(), VdagC.nCols());
+	matrix MVdagC = zeroes(VdagCq.nRows(), VdagCq.nCols());
 	double Enlq = 0.0;
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	matrix atomVdagC = VdagC(atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
+	{	matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
 		matrix MatomVdagC = MnlAll * atomVdagC;
-		MVdagC.set(atom*nProj,(atom+1)*nProj, 0,Cq.nCols(), MatomVdagC);
+		MVdagC.set(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols(), MatomVdagC);
 		Enlq += trace(Fq * dagger(atomVdagC) * MatomVdagC).real();
-		
-		if(forces)
-		{	vector3<> fCart; //proportional to cartesian force
-			for(int k=0; k<3; k++)
-			{	matrix atomDVdagC = DVdagC[k](atom*nProj,(atom+1)*nProj, 0,Cq.nCols());
-				fCart[k] = trace(MatomVdagC * Fq * dagger(atomDVdagC)).real();
-			}
-			(*forces)[atom] += 2.*Cq.qnum->weight * (e->gInfo.RT * fCart);
-		}
 	}
-	if(HCq) HCq += (*V) * MVdagC;
+	HVdagCq += MVdagC;
 	watch.stop();
 	return Enlq;
 }
@@ -177,9 +163,33 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 	return forces;
 }
 
+void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const
+{	matrix DVdagC[3]; //cartesian gradient of VdagC
+	{	auto V = getV(Cq);
+		for(int k=0; k<3; k++)
+			DVdagC[k] = D(*V,k)^Cq;
+	}
+	int nProj = MnlAll.nRows();
+	//Loop over atoms:
+	for(unsigned atom=0; atom<atpos.size(); atom++)
+	{	matrix atomVdagC = VdagC(atom*nProj,(atom+1)*nProj, 0,E_VdagC.nCols());
+		matrix E_atomVdagC = E_VdagC(atom*nProj,(atom+1)*nProj, 0,E_VdagC.nCols());
+		if(QintAll) E_atomVdagC += QintAll * atomVdagC * grad_CdagOCq; //Contribution via overlap augmentation
+		
+		vector3<> fCart; //proportional to cartesian force
+		for(int k=0; k<3; k++)
+		{	matrix atomDVdagC = DVdagC[k](atom*nProj,(atom+1)*nProj, 0,E_VdagC.nCols());
+			fCart[k] = trace(E_atomVdagC * dagger(atomDVdagC)).real();
+		}
+		forces[atom] += 2.*Cq.qnum->weight * (e->gInfo.RT * fCart);
+	}
+}
+
 std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
+	int nProj = MnlAll.nRows();
+	if(!nProj) return 0; //purely local psp
 	//First check cache
 	if(e->cntrl.cacheProjectors)
 	{	auto iter = cachedV.find(qnum.k);
@@ -187,7 +197,6 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 			return iter->second; //return cached value
 	}
 	//No cache / not found in cache; compute:
-	int nProj = MnlAll.nRows();
 	std::shared_ptr<ColumnBundle> V = std::make_shared<ColumnBundle>(Cq.similar(nProj*atpos.size()));
 	int iProj = 0;
 	for(int l=0; l<int(VnlRadial.size()); l++)
