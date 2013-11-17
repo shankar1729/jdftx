@@ -199,16 +199,17 @@ void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_
 		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
 }
 
-inline double preconditionerKernel(double G, double G0)
-{	return (G ? (G+G0)/G : 1.);
+inline double preconditionerKernel(double G, double f, double slope)
+{	double factor = (G ? 1./f + slope*G : 1.);
+	return (factor<1 ? factor : 1.);
 }
 
 DataRptrCollection precondition(DataRptrCollection& n, double Gmin, double Gmax, double f = 20.)
 {
 	// Set up preconditioner kernel for density/potential overlaps
 	RadialFunctionG preconditioner;
-	double G0 = sqrt((f-1)/(1./Gmin - 1./Gmax));
-	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, G0);
+	double slope = (f-1.)/(f*Gmax);
+	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, f, slope);
 	
 	DataGptrCollection preconditioned(n.size());
 	for(size_t i=0; i<n.size(); i++)
@@ -223,13 +224,9 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 {
 	size_t ndim = pastResiduals_n.size();
 	
-	// Variables for the preconditioner
-	double Gmax = e.gInfo.GmaxGrid;
-	double Gmin = 2*M_PI/(pow(e.gInfo.detR, 1./3.));
-	
 	// Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals_n[j], precondition(pastResiduals_n.back(), Gmin, Gmax));
+	{	double thisOverlap = dot(pastResiduals_n[j], pastResiduals_n.back());
 		overlap.set(j, ndim-1, thisOverlap);
 		if(j != ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}
@@ -251,12 +248,20 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	
 	matrix constrainedOverlap_inv = inv(constrainedOverlap);
 	
+	// Zero variables
 	initZero(variable_n);
 	ifTau(initZero(variable_tau))
+	
 	double damping = 1. - e.residualMinimizerParams.damping;
+	
+	// Variables for the preconditioner
+	double Gmax = e.gInfo.GmaxGrid;
+	double Gmin = 2*M_PI/(pow(e.gInfo.detR, 1./3.));
+	
+	// Accumulate 
 	for(size_t j=0; j<ndim; j++)
-	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_n[j] + pastVariables_n[j]);
-		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_tau[j] + pastVariables_tau[j]))
+	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*precondition(pastResiduals_n[j], Gmin, Gmax) + pastVariables_n[j]);
+		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*precondition(pastResiduals_tau[j], Gmin, Gmax) + pastVariables_tau[j]))
 	}
 	
 	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", constrainedOverlap_inv.data()[constrainedOverlap_inv.index(ndim, ndim)].real());
