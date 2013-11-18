@@ -105,6 +105,7 @@ private:
 	friend class CommandElecInitialFillings;
 	friend class CommandElecInitialCharge;
 	friend class CommandInitialState;
+	friend class ElecVars;
 	
 	//Fillings mix / mu-controller properties:
 	double fillingMixFraction; //!< amount of new fillings mixed with old fillings

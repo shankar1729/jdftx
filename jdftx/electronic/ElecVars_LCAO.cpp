@@ -187,19 +187,42 @@ int ElecVars::LCAO()
 		e->symm.symmetrize(n[s]);
 	}
 	
-	//Compute local-potential at the atomic reference density:
-	Energies ener;
-	EdensityAndVscloc(ener, lcao.exCorr);
-	iInfo.augmentDensityInit();
-	iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
+	//Select a multi-pass method to use eVars.F, if it is non-default
+	int nPasses = 1;
+	if(eInfo.customFillings.size() || eInfo.initialFillingsFilename.length()) nPasses = 2; //custom fillings
+	for(double q: eInfo.qNet) if(q) nPasses = 2; //net charges modified
 	
-	//Set initial auxiliary hamiltonian to the subspace Hamiltonian at atomic reference density:
-	for(int q=0; q<eInfo.nStates; q++)
-	{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
-		std::vector<matrix> HVdagYq(iInfo.species.size());
-		iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), lcao.VdagY[q], HVdagYq); //ultrasoft augmentation
-		iInfo.projectGrad(HVdagYq, Y[q], HYq);
-		lcao.B[q] = lcao.HniSub[q] + (Y[q]^HYq);
+	//Compute local-potential at the atomic reference density (for pass 1) and resulting density based on pass 1 (for pass 2):
+	for(int pass=0; pass<nPasses; pass++)
+	{	Energies ener;
+		EdensityAndVscloc(ener, lcao.exCorr);
+		iInfo.augmentDensityInit();
+		iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
+		
+		//Set initial auxiliary hamiltonian to the subspace Hamiltonian:
+		for(int q=0; q<eInfo.nStates; q++)
+		{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
+			std::vector<matrix> HVdagYq(iInfo.species.size());
+			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), lcao.VdagY[q], HVdagYq); //ultrasoft augmentation
+			iInfo.projectGrad(HVdagYq, Y[q], HYq);
+			lcao.B[q] = lcao.HniSub[q] + (Y[q]^HYq);
+		}
+		
+		if(nPasses==2 && pass==0) //update the density for next pass
+		{	for(DataRptr& ns: n) ns=0;
+			iInfo.augmentDensityInit();
+			for(int q=0; q<eInfo.nStates; q++)
+			{	matrix Bq_evecs; diagMatrix Bq_eigs; lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
+				C[q] = Y[q] * Bq_evecs;
+				for(unsigned sp=0; sp<iInfo.species.size(); sp++)
+					if(lcao.VdagY[q][sp]) VdagC[q][sp] = lcao.VdagY[q][sp] * Bq_evecs; 
+				diagMatrix Fq = F[q]; Fq.resize(lcao.nBands, 0.); //length-corrected eVars.F
+				n[eInfo.qnums[q].index()] += eInfo.qnums[q].weight * diagouterI(Fq, C[q], &e->gInfo);
+				iInfo.augmentDensitySpherical(eInfo.qnums[q], Fq, VdagC[q]); //pseudopotential contribution
+			}
+			iInfo.augmentDensityGrid(n);
+			for(DataRptr& ns: n) e->symm.symmetrize(ns);
+		}
 	}
 	
 	//Subspace minimize:
