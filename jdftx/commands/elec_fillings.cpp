@@ -99,7 +99,6 @@ struct CommandElecInitialCharge : public Command
 			"Both versions are valid irrespective of whether system is spin-polarized.";
 
 		forbid("target-mu");
-		forbid("custom-filling");
 	}
 
 	void process(ParamList& pl, Everything& e)
