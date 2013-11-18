@@ -31,8 +31,6 @@ struct CommandCustomFilling : public Command
 					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO\n"
 					"Fillings are in normalized units, as output by the dumpName.fillings file";
 		allowMultiple = true;
-		forbid("elec-initial-charge");
-		forbid("initial-magnetic-moments");
 		forbid("eigen-shift");
 	}
 
