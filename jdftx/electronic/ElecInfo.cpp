@@ -64,26 +64,31 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	
 	// Figure out the number of bands and number of electrons
 	logPrintf("Computing the number of bands and number of electrons\n");
-	if(!initialFillingsFilename.length())
-	{	// No initial fillings, set nElectrons for each spin based on valence charge of the atoms:
-		std::vector<double> nsElectrons = qNet; //manually specified excess charge(s)
-		nElectrons = 0;
-		for(unsigned s=0; s<nsElectrons.size(); s++) //each spin channel
-		{	for(auto sp: e->iInfo.species)
-				nsElectrons[s] += sp->Z * sp->atpos.size() * (1./nsElectrons.size());
-			if(nsElectrons[s]<0)
-				die("Number of electrons in spin channel %d is negative (= %lg)\n", s, nsElectrons[s]);
-			nElectrons += nsElectrons[s];
-		}
-		
-		//Calculate nBands if elec-n-bands not given:
-		if(!nBands)
+	
+	//--- Compute nElectrons and nBands based on atomic valencies:
+	std::vector<double> nsElectrons = qNet; //manually specified excess charge(s)
+	nElectrons = 0;
+	for(unsigned s=0; s<nsElectrons.size(); s++) //each spin channel
+	{	for(auto sp: e->iInfo.species)
+			nsElectrons[s] += sp->Z * sp->atpos.size() * (1./nsElectrons.size());
+		if(nsElectrons[s]<0)
+			die("Number of electrons in spin channel %d is negative (= %lg)\n", s, nsElectrons[s]);
+		nElectrons += nsElectrons[s];
+	}
+	
+	//--- Calculate nBands if elec-n-bands not given:
+	if(!nBands)
+	{	if(fillingsUpdate == ConstantFillings) //pick nBands to just accommodate spin channel with most electrons
 		{	double nsElectronsMax = *std::max_element(nsElectrons.begin(), nsElectrons.end());
 			nBands = std::max(1, (int)ceil(nsElectronsMax*wInv));
 		}
-		
-		// Fill in the fillings for the bands
-		logPrintf("Calculating initial fillings.\n");
+		else //set to number of atomic orbitals (which will ensure that complete bands are included)
+			nBands = e->iInfo.nAtomicOrbitals(); //this estimate is usually on the high side, but it leads to better convergence than a stingier value
+	}
+	
+	//--- No initial fillings, fill the lowest orbitals in each spin channel:
+	if(!initialFillingsFilename.length())
+	{	logPrintf("Calculating initial fillings.\n");
 		for (int q = 0; q < nStates; q++)
 		{
 			F[q].assign(nBands, 0.);
@@ -147,7 +152,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		}
 		fclose(fp);
 		
-		//Compute electron count:
+		//Compute electron count (override the previous atom-valence + qNet based value):
 		nElectrons=0.; for(int q=0; q<nStates; q++) nElectrons += qnums[q].weight * trace(F[q]);
 	}
 	

@@ -54,7 +54,8 @@ struct CommandElecNbands : public Command
 	CommandElecNbands() : Command("elec-n-bands")
 	{
 		format = "<n>";
-		comments = "Manually specify the number of bands (Default: set nBands assuming insulator)";
+		comments = "Manually specify the number of bands (Default: set nBands assuming insulator\n"
+			"or in the case of fillings, equal to total number of atomic orbitals.)";
 	}
 
 	void process(ParamList& pl, Everything& e)

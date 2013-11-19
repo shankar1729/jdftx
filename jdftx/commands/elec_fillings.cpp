@@ -33,7 +33,6 @@ struct CommandElecFermiFillings : public Command
 			"  Else, mix fermi functions every <mixInterval> iterations with mixing fraction <alpha>.";
 		
 		require("lcao-params");
-		require("elec-n-bands");
 		forbid("fix-electron-density");
 	}
 
@@ -133,7 +132,6 @@ struct CommandElecInitialFillings : public Command
 			"\textra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands\n"
 			"\tdefault: 0 => fillings file has same number of bands as this run";
 		
-		require("elec-n-bands");
 		forbid("initial-state");
 	}
 
