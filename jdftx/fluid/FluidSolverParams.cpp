@@ -159,6 +159,12 @@ void FluidSolverParams::setPCMparams()
 					}
 					break;
 				}
+				case FluidComponent::THF:
+				{	nc = 1.6e-3;
+					sigma = 0.6;
+					cavityTension = -1.7e-06;
+					break;
+				}
 				default: // For water and unparametrized fluids
 				{	switch(fluidType)
 					{	case FluidLinearPCM:
