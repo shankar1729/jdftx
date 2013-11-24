@@ -60,6 +60,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case Chlorobenzene:
 		case Isobutanol:
 		case CarbonDisulfide:
+		case DMSO:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -90,6 +91,7 @@ double FluidComponent::pureNbulk(double T) const
 			case Isobutanol: return 9.668e-4;
 			case Chlorobenzene: return 8.74e-4;
 			case CarbonDisulfide: return 1.48e-3;
+			case DMSO: return 1.256e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
