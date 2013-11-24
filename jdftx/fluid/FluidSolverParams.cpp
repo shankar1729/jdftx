@@ -165,6 +165,12 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = -1.7e-06;
 					break;
 				}
+				case FluidComponent::DMSO:
+				{	nc = 9.5e-4;
+					sigma = 0.6;
+					cavityTension = 8.42e-06;
+					break;
+				}
 				default: // For water and unparametrized fluids
 				{	switch(fluidType)
 					{	case FluidLinearPCM:

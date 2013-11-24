@@ -325,6 +325,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			sigmaBulk = 1.78e-5;
 			break;
 		}
+		case DMSO:
+		{	epsBulk = 48;
+			pMol    = 2.19;
+			epsInf  = 1.48;
+			sigmaBulk = 2.80e-5;
+			break;
+		}
 		case EthylEther:
 		{
 			epsBulk = 4.34;

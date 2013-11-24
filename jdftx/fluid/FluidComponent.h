@@ -41,7 +41,8 @@ struct FluidComponent
 		EthylEther, //!< Diethyl ether (http://en.wikipedia.org/wiki/Diethyl_ether_(data_page))
 		Chlorobenzene, //! (http://en.wikipedia.org/wiki/Chlorobenzene)
 		Isobutanol, //! (http://en.wikipedia.org/wiki/Isobutanol)
-		CarbonDisulfide, //! (http://en.wikipedia.org/wiki/Carbon_disulfide)
+		CarbonDisulfide, //! (http://en.wikipedia.org/wiki/Carbon_disulfide),
+		DMSO, //! Dimethyl sulfoxide
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+
