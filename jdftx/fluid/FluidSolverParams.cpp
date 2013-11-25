@@ -76,12 +76,12 @@ void FluidSolverParams::setPCMparams()
 			useTau = false;
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
-					nc = 1.73e-4;
-					cavityTension = 0.;
+					nc = 2.04e-04;
+					cavityTension = -9.91e-05;
 					break;
 				case FluidComponent::CH3CN:
-					nc = 1.00e-4;
-					cavityTension = 0.;
+					nc = 1.18e-04;
+					cavityTension = -3.66e-03;
 					break;
 				default:
 					throw string("PCM SG14 not parametrized for this solvent.");
@@ -95,12 +95,12 @@ void FluidSolverParams::setPCMparams()
 			useTau = true;
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
-					nc = 2.16e-4;
-					cavityTension = 0.;
+					nc = 1.64e-04;
+					cavityTension = 2.37e-04;
 					break;
 				case FluidComponent::CH3CN:
-					nc = 5.17e-5;
-					cavityTension = 0.;
+					nc = 5.77e-05;
+					cavityTension = -4.42e-03;
 					break;
 				default:
 					throw string("PCM SG14tau not parametrized for this solvent.");

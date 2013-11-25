@@ -85,7 +85,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		case PCM_SG14:
 		case PCM_SG14tau:
 		{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
-			logPrintf("   Effective weighted-cavity tension: %lg Eh/bohr^3 with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
+			logPrintf("   Effective weighted-cavity tension: %lg Eh/molecule with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
 			break;
 		}
 		case PCM_GLSSA13:
@@ -164,9 +164,9 @@ void PCM::updateCavity()
 		case PCM_SG14:
 		case PCM_SG14tau:
 		{	DataRptr sbar = I(wCavity*J(shape));
-			A_tension = integral(sbar*(1.-sbar));
+			A_tension = integral(sbar*(1.-sbar)) * solvent->Nbulk;
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
-			Acavity_shape =  Jdag(wCavity*Idag(fsp.cavityTension * (1.-2.*sbar)));
+			Acavity_shape =  Jdag(wCavity*Idag((fsp.cavityTension*solvent->Nbulk) * (1.-2.*sbar)));
 			break;
 		}
 		case PCM_GLSSA13:
