@@ -37,6 +37,8 @@ enum FluidType
 
 enum PCMVariant
 {	PCM_SLSA13, //!< Non-local PCM, use only with fluid type NonlocalPCM [R. Sundararaman, K. Letchworth-Weaver, K. Schwarz and T.A. Arias (under preparation)]
+	PCM_SG14,    //!< Empirical local-response isodensity PCM with weighted-cavity tension (EXPERIMENTAL)
+	PCM_SG14tau, //!< Empirical local-response isokinetic PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavotation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]

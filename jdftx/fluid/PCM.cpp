@@ -48,14 +48,14 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	if(fsp.solvents.size() < 1) die("PCMs require exactly one solvent component - none specified.\n");
 	if(fsp.solvents.size() > 1) die("PCMs require exactly one solvent component - more than one specified.\n");
 	const auto& solvent = fsp.solvents[0];
+	const double dG = 0.02;
 	
 	//Print common info and add relevant citations:
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
 	{	case PCM_SLSA13: //Local PCM that uses weighted-density cavitation+dispersion
 		case PCM_SGA13: //and Nonlocal PCM
-		{	const double dG = 0.02;
-			if(fsp.pcmVariant==PCM_SLSA13)
+		{	if(fsp.pcmVariant==PCM_SLSA13)
 				Citations::add("Nonlocal dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 					"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, and T.A. Arias, (under preparation)");
 			else
@@ -80,6 +80,12 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
 			}
 			vdwForces = std::make_shared<IonicGradient>();
+			break;
+		}
+		case PCM_SG14:
+		case PCM_SG14tau:
+		{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
+			logPrintf("   Effective weighted-cavity tension: %lg Eh/bohr^3 with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
 			break;
 		}
 		case PCM_GLSSA13:
@@ -155,6 +161,14 @@ void PCM::updateCavity()
 			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeVdw : Acavity_shape) = Jdag(A_sTilde);
 			break;
 		}
+		case PCM_SG14:
+		case PCM_SG14tau:
+		{	DataRptr sbar = I(wCavity*J(shape));
+			A_tension = integral(sbar*(1.-sbar));
+			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
+			Acavity_shape =  Jdag(wCavity*Idag(fsp.cavityTension * (1.-2.*sbar)));
+			break;
+		}
 		case PCM_GLSSA13:
 		{	DataRptrVec Dshape = gradient(shape);
 			DataRptr surfaceDensity = sqrt(lengthSquared(Dshape));
@@ -227,6 +241,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %f\n", A_vdwScale);
 			break;
+		case PCM_SG14:
+		case PCM_SG14tau:
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %f\n", A_tension);
 			break;

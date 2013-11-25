@@ -22,12 +22,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<PCMVariant> pcmVariantMap
 (	PCM_SGA13,   "SGA13", 
+	PCM_SG14,    "SG14",
+	PCM_SG14tau, "SG14tau",
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12", 
 	PCM_PRA05,   "PRA05"
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
 (	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]", 
+	PCM_SG14,    "Isodensity PCM with weighted-cavity tension [EXPERIMENTAL]",
+	PCM_SG14tau, "Isokinetic PCM with weighted-cavity tension [EXPERIMENTAL]",
 	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
 	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]"

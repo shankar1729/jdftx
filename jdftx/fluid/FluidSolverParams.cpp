@@ -71,6 +71,44 @@ void FluidSolverParams::setPCMparams()
 			initWarnings += "WARNING: Nonlocal PCM is highly experimental!\n";
 			break;
 		}
+		case PCM_SG14:
+		{	sigma = 0.6;
+			useTau = false;
+			switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+					nc = 1.73e-4;
+					cavityTension = 0.;
+					break;
+				case FluidComponent::CH3CN:
+					nc = 1.00e-4;
+					cavityTension = 0.;
+					break;
+				default:
+					throw string("PCM SG14 not parametrized for this solvent.");
+					break;
+			}
+			initWarnings += "WARNING: SG14 PCM is highly experimental!\n";
+			break;
+		}
+		case PCM_SG14tau:
+		{	sigma = 0.6;
+			useTau = true;
+			switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+					nc = 2.16e-4;
+					cavityTension = 0.;
+					break;
+				case FluidComponent::CH3CN:
+					nc = 5.17e-5;
+					cavityTension = 0.;
+					break;
+				default:
+					throw string("PCM SG14tau not parametrized for this solvent.");
+					break;
+			}
+			initWarnings += "WARNING: SG14tau PCM is highly experimental!\n";
+			break;
+		}
 		case PCM_SGA13:
 		{	nc = 1e-2;
 			sigma = 0.6;
