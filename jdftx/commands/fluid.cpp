@@ -142,6 +142,7 @@ EnumStringMap<FluidComponent::Name> solventMap
 	FluidComponent::DMF, "DMF",
 	FluidComponent::THF, "THF",
 	FluidComponent::DMSO, "DMSO",
+	FluidComponent::CH2Cl2, "CH2Cl2",
 	FluidComponent::EthylEther, "EthylEther",
   	FluidComponent::Chlorobenzene, "Chlorobenzene",
 	FluidComponent::Isobutanol, "Isobutanol",

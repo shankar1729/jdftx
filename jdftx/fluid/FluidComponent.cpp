@@ -61,6 +61,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case Isobutanol:
 		case CarbonDisulfide:
 		case DMSO:
+		case CH2Cl2:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -92,6 +93,7 @@ double FluidComponent::pureNbulk(double T) const
 			case Chlorobenzene: return 8.74e-4;
 			case CarbonDisulfide: return 1.48e-3;
 			case DMSO: return 1.256e-3;
+			case CH2Cl2: return 1.392e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -285,6 +287,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			siteH->positions.push_back(vector3<>(0, rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
 			siteH->positions.push_back(vector3<>(+sqrt(0.75)*rCH*sin(thetaCCH), -0.5*rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
 			siteH->positions.push_back(vector3<>(-sqrt(0.75)*rCH*sin(thetaCCH), -0.5*rCH*sin(thetaCCH), zC2-rCC+rCH*cos(thetaCCH)));
+			break;
+		}
+		case CH2Cl2:
+		{	epsBulk = 9.08;
+			pMol    = 0.89;
+			epsInf  = 1.424;
+			sigmaBulk = 1.70e-5;
 			break;
 		}
 		case DMC:
