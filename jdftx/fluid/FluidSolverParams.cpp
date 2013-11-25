@@ -171,6 +171,12 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = -2.7e-6;
 					break;
 				}
+				case FluidComponent::Ethanol:
+				{	nc = 1.3e-3;
+					sigma = 0.6;
+					cavityTension = -5.1e-6;
+					break;
+				}
 				case FluidComponent::EthylEther:
 				{	nc = 2.63e-4;
 					sigma = 0.6;

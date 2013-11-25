@@ -44,6 +44,7 @@ struct FluidComponent
 		CarbonDisulfide, //! (http://en.wikipedia.org/wiki/Carbon_disulfide),
 		DMSO, //! Dimethyl sulfoxide
 		CH2Cl2, //! Dichloromethane (methyl chloride)
+		Ethanol,
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+

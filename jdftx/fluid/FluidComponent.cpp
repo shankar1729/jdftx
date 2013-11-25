@@ -62,6 +62,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case CarbonDisulfide:
 		case DMSO:
 		case CH2Cl2:
+		case Ethanol:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -94,6 +95,7 @@ double FluidComponent::pureNbulk(double T) const
 			case CarbonDisulfide: return 1.48e-3;
 			case DMSO: return 1.256e-3;
 			case CH2Cl2: return 1.392e-3;
+			case Ethanol: return 1.528e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -294,6 +296,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			pMol    = 0.89;
 			epsInf  = 1.424;
 			sigmaBulk = 1.70e-5;
+			break;
+		}
+		case Ethanol:
+		{	epsBulk = 24.3;
+			pMol    = 0.76;
+			epsInf  = 1.361;
+			sigmaBulk = 1.44e-5;
 			break;
 		}
 		case DMC:
