@@ -122,10 +122,10 @@ void FluidSolverParams::setPCMparams()
 					break;
 				}
 				case FluidComponent::CH3CN:
-				{	nc = 7e-4;
+				{	nc = 1.8e-4;
 					sigma = 0.6;
-					cavityTension = 0.;
-					break; //Tentative: using toluene and self solvation energies alone
+					cavityTension = -6.3e-7;
+					break;
 				}
 				case FluidComponent::EthylEther:
 				{	nc = 2.63e-4;

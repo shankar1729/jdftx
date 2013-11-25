@@ -240,7 +240,7 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 		}
 		case CH3CN:
 		{	epsBulk = 38.8;
-			pMol = 1.58;
+			pMol = 1.89;
 			epsInf = 1.81;
 			Pvap = antoinePvap(T, 6.52111, 1492.375, -24.208); //logPrintf("selfSol = %lg\n", T*log(Pvap/(Nbulk*T)));
 			sigmaBulk = 1.88e-5;
