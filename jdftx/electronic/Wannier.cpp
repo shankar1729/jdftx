@@ -421,6 +421,23 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	if(nSpins==1) logPrintf(" )\n"); else logPrintf(" ) spin %s\n", iSpin==0 ? "up" : "dn");
 	logFlush();
 	
+	//Check for initial state:
+	FILE* fpInit = 0;
+	string UvarName;
+	if(e.eVars.wfnsFilename.length())
+	{	ostringstream ossUvarName;
+		int nMin = centers.front().band;
+		for(const auto& c: centers) nMin = std::min(nMin, c.band);
+		ossUvarName << nMin << ".Umlwf";
+		if(nSpins==2) ossUvarName << (iSpin==0 ? "Up" : "Dn");
+		UvarName = ossUvarName.str();
+		//Replace wfns with above avriable name to locate file:
+		string filename = e.eVars.wfnsFilename;
+		filename.replace(filename.find("wfns"),4, UvarName);
+		fpInit = fopen(filename.c_str(), "r");
+		if(fpInit) logPrintf("\tReading initial matrices from %s (ignoring trial projections).\n", filename.c_str());
+	}
+	
 	//Compute the overlap matrices and initial rotations for current group of centers:
 	for(unsigned ik=0; ik<kMesh.size(); ik++)
 	{	ColumnBundle Ci = getWfns(kMesh[ik].point, centers, iSpin); //Bloch functions at ik
@@ -443,10 +460,18 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 				edge.M0 = OCi ^ getWfns(edge.point, centers, iSpin);
 		}
 		//Initial rotation:
-		matrix CdagOg = OCi ^ trialWfns(kMesh[ik].point, centers);
-		kMesh[ik].U0 = CdagOg * invsqrt(dagger(CdagOg) * CdagOg);
+		if(fpInit)
+		{	kMesh[ik].U0.init(centers.size(), centers.size());
+			kMesh[ik].U0.read(fpInit);
+		}
+		else
+		{	matrix CdagOg = OCi ^ trialWfns(kMesh[ik].point, centers);
+			kMesh[ik].U0 = CdagOg * invsqrt(dagger(CdagOg) * CdagOg);
+		}
 		kMesh[ik].B = zeroes(centers.size(), centers.size());
 	}
+	if(fpInit) fclose(fpInit);
+	
 	//Apply initial rotations to the overlap matrices:
 	for(unsigned ik=0; ik<kMesh.size(); ik++)
 		for(EdgeFD& edge: kMesh[ik].edge)
@@ -454,6 +479,16 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	
 	//Minimize:
 	minimize(e.dump.wannier.minParams);
+	
+	//Save the matrices:
+	{	string fname = e.dump.getFilename(UvarName);
+		logPrintf("\tDumping '%s' ... ", fname.c_str());
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(const auto& kMeshEntry: kMesh)
+			(kMeshEntry.U0 * kMeshEntry.V).write(fp);
+		fclose(fp);
+		logPrintf("Done.\n"); logFlush();
+	}
 	
 	//Save:
 	const vector3<int>& nSuper = e.dump.wannier.supercell;
