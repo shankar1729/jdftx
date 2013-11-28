@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/SpeciesInfo_internal.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>
 #include <gsl/gsl_linalg.h>
@@ -680,16 +681,66 @@ ColumnBundle WannierEval::getWfns(const WannierEval::Kpoint& kpoint, const std::
 	return ret;
 }
 
+//Fourier transform of hydrogenic orbitals
+inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPrefac)
+{	int n = nIn+1 + l; //conventional principal quantum number
+	double nG = n*G*a/(l+1), nGsq = nG*nG;
+	double prefac = normPrefac / pow(1.+nGsq, n+1);
+	switch(l)
+	{	case 0:
+			switch(n)
+			{	case 1: return prefac;
+				case 2: return prefac*8.*(-1.+nGsq);
+				case 3: return prefac*9.*(3.+nGsq*(-10.+nGsq*3.));
+				case 4: return prefac*64.*(-1.+nGsq*(7.+nGsq*(-7.+nGsq)));
+			}
+		case 1:
+			switch(n)
+			{	case 2: return prefac*16.*nG;
+				case 3: return prefac*144.*nG*(-1.+nGsq);
+				case 4: return prefac*128.*nG*(5.+nGsq*(-14.+nGsq*5.));
+			}
+		case 2:
+			switch(n)
+			{	case 3: return prefac*288.*nGsq;
+				case 4: return prefac*3072.*nGsq*(-1.+nGsq);
+			}
+		case 3:
+			switch(n)
+			{	case 4: return prefac*6144.*nG*nGsq;
+			}
+	}
+	return 0.;
+}
+
 ColumnBundle WannierEval::trialWfns(const WannierEval::Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const
-{	ColumnBundle ret(centers.size(), basis.nbasis, &basis);
-	complex* retData = ret.data();
-	for(unsigned c=0; c<centers.size(); c++)
-		for(unsigned j=0; j<basis.nbasis; j++)
-		{	vector3<> kpG = kpoint.k + basis.iGarr[j]; //G-vector including k-point offset
-			//Compute gaussian:
-				retData[ret.index(c,j)] = cis(-2*M_PI*dot(kpG,centers[c].r))
-					* exp(-0.5 * centers[c].width*centers[c].width
-						* e.gInfo.GGT.metric_length_squared(kpG));
-		}
+{	ColumnBundle ret(centers.size(), basis.nbasis, &basis, 0, isGpuEnabled());
+	#ifdef GPU_ENABLED
+	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
+	#endif
+	complex* retData = ret.dataPref();
+	for(auto c: centers)
+	{	const DOS::Weight::OrbitalDesc& od = c.orbitalDesc;
+		//--- Copy the center to GPU if necessary:
+		#ifdef GPU_ENABLED
+		cudaMemcpy(pos, &c.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
+		#else
+		const vector3<>* pos = &c.r;
+		#endif
+		//--- Create the radial part:
+		RadialFunctionG atRadial;
+		double normPrefac = pow((od.l+1)/c.a,3);
+		for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
+			normPrefac *= p;
+		normPrefac = 16*M_PI/(e.gInfo.detR * sqrt(normPrefac));
+		atRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, c.a, od.n, od.l, normPrefac);
+		//--- Initialize the projector:
+		callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, retData);
+		callPref(eblas_zscal)(basis.nbasis, cis(0.5*M_PI*od.l), retData,1); //ensures odd l projectors are real
+		retData += basis.nbasis;
+	}
+	#ifdef GPU_ENABLED
+	cudaFree(pos);
+	#endif
 	return ret;
 }

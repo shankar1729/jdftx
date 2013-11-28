@@ -24,16 +24,18 @@ struct CommandWannier : public Command
 {
 	CommandWannier() : Command("wannier")
 	{
-		format = "<center1> [<center2> ...] with each <center> = <band> <x0> <x1> <x2> <width>";
+		format = "<center1> [<center2> ...] with each <center> = <band> <x0> <x1> <x2> <a> <orbDesc>";
 		comments =
 			"Specify a group of bands to be combined into Maximally-Localized\n"
 			"Wannier Functions (MLWF). There are as many centers as bands in\n"
-			"each group. The center is selected by a guess gaussian centered\n"
-			"at <x0>,<x1>,<x2> (coordinate system set by coords-type) with\n"
-			"width <w> bohrs. The command may be specified multiple times,\n"
+			"each group. The center is selected by a hydrogenic orbital centered at\n"
+			"<x0>,<x1>,<x2> (coordinate system set by coords-type) with decay length\n"
+			"<a> bohrs, and with <orbDesc> as in command density-of-states. Note that\n"
+			"<a> sets the decay length of the nodeless orbital of specified angular\n"
+			"momentum in <orbDesc>. The command may be specified multiple times,\n"
 			"one for each group. Wannier functions will be saved in files\n"
 			"<band>.mlwf (or <band>.mlwfUp/.mlwfDn with spin) at the end;\n"
-			"the dump frequency cany be controlled using the dump command.";
+			"the dump frequency can be controlled using the dump command.";
 		allowMultiple = true;
 		require("wannier-supercell");
 		
@@ -45,13 +47,19 @@ struct CommandWannier : public Command
 	void process(ParamList& pl, Everything& e)
 	{	std::vector<Wannier::Center> group;
 		while(true)
-		{	Wannier::Center center;
+		{	Wannier::Center center; string orbDesc;
 			pl.get(center.band, -1, "band");
 			if(center.band==-1) break; //end of input
 			pl.get(center.r[0], 0., "x0", true);
 			pl.get(center.r[1], 0., "x1", true);
 			pl.get(center.r[2], 0., "x2", true);
-			pl.get(center.width, 0., "width", true);
+			pl.get(center.a, 1., "a", true);
+			pl.get(orbDesc, string(), "orbDesc", true);
+			center.orbitalDesc.parse(orbDesc);
+			if(center.orbitalDesc.m > center.orbitalDesc.l)
+				throw(string("Must specify a specific projection eg. px,py (not just p)"));
+			if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
+				throw(string("Hydrogenic orbitals with n+l>4 not supported"));
 			//Transform coordinates if necessary
 			if(e.iInfo.coordsType == CoordsCartesian)
 				center.r = inv(e.gInfo.R)*center.r;
@@ -70,7 +78,7 @@ struct CommandWannier : public Command
 			vector3<> r = group[i].r;
 			if(e.iInfo.coordsType == CoordsCartesian)
 				r = e.gInfo.R * r; //report cartesian positions
-			logPrintf("%d    %lg %lg %lg  %lg", group[i].band, r[0], r[1], r[2], group[i].width);
+			logPrintf("%d    %lg %lg %lg  %lg  %s", group[i].band, r[0], r[1], r[2], group[i].a, string(group[i].orbitalDesc).c_str());
 		}
 	}
 }

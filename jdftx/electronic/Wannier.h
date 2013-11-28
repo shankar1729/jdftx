@@ -21,8 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_WANNIER_H
 
 #include <core/MinimizeParams.h>
-#include <electronic/common.h>
-#include <core/vector3.h>
+#include <electronic/DOS.h>
 
 //! Compute Maximally-Localized Wannier Functions
 class Wannier
@@ -35,7 +34,8 @@ public:
 	struct Center
 	{	int band; //!< source band
 		vector3<> r; //!< guess for center of localized wannier function
-		double width; //!< guess width for localized wannier function
+		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
+		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 	};
 	
 	std::vector< std::vector<Center> > group; //!< list of groups of centers (the bands in each group are linearly combined)
