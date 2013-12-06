@@ -266,12 +266,11 @@ void elecFluidMinimize(Everything &e)
 	}
 	eVars.elecEnergyAndGrad(ener);
 	
-	if(eVars.fluidParams.fluidType==FluidNone || !eVars.fluidSolver->needsGummel())
-	{	//no fluid, or fluid doesn't require gummel
-		logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
-		elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see EnergyAndGradient.cpp]
-	}
-	else
+	//First electronic minimization (with fluid if present) in all cases
+	logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
+	elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
+	
+	if(eVars.fluidParams.fluidType!=FluidNone && eVars.fluidSolver->needsGummel())
 	{	//gummel loop
 		logPrintf("\n-------- Electron <-> Fluid self-consistency loop -----------\n"); logFlush();
 		double dAtyp = 1.;
