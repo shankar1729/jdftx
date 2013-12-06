@@ -34,7 +34,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/LatticeMinimizer.h>
 #include <fluid/FluidSolver.h>
 #include <core/DataMultiplet.h>
+#include <core/WignerSeitz.h>
 #include <core/DataIO.h>
+#include <core/Units.h>
 #include <sstream>
 
 void dumpExcitations(const Everything& e, const char* filename);
@@ -244,12 +246,19 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(BoundCharge) && eVars.fluidParams.fluidType!=FluidNone)
-	{	StartDump("nbound")
-		DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
+	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && eVars.fluidParams.fluidType!=FluidNone)
+	{	DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		nboundTilde->data()[0] = -(J(eVars.get_nTot())+iInfo.rhoIon)->data()[0]; //total bound charge will neutralize system
-		saveRawBinary(I(nboundTilde), fname.c_str());
-		EndDump
+		if(ShouldDump(BoundCharge))
+		{	StartDump("nbound")
+			saveRawBinary(I(nboundTilde), fname.c_str());
+			EndDump
+		}
+		if(ShouldDump(SolvationRadii))
+		{	StartDump("Rsol")
+			dumpRsol(I(nboundTilde), fname);
+			EndDump
+		}
 	}
 	
 	if(ShouldDump(FluidDensity))
@@ -426,6 +435,59 @@ string Dump::getFilename(string varName) const
 	}
 	return fname;
 }
+
+inline void set_rRamp(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& RTR, const WignerSeitz* ws, double* r)
+{	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
+	matrix3<> meshMetric = Diag(invS) * RTR * Diag(invS);
+	THREAD_rLoop( r[i] = sqrt(meshMetric.metric_length_squared(ws->restrict(iv, S, invS))); )
+}
+
+void Dump::dumpRsol(DataRptr nbound, string fname)
+{	
+	//Compute normalization factor for the partition:
+	int nAtomsTot = 0; for(const auto& sp: e->iInfo.species) nAtomsTot += sp->atpos.size();
+	const double nFloor = 1e-5/nAtomsTot; //lower cap on densities to prevent Nyquist noise in low density regions
+	DataRptr nAtomicTot;
+	for(const auto& sp: e->iInfo.species)
+	{	RadialFunctionG nRadial;
+		logSuspend(); sp->getAtom_nRadial(0,0, nRadial); logResume();
+		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
+		{	DataRptr nAtomic = radialFunction(e->gInfo, nRadial, sp->atpos[atom]);
+			double nMin, nMax; callPref(eblas_capMinMax)(e->gInfo.nr, nAtomic->dataPref(), nMin, nMax, nFloor);
+			nAtomicTot += nAtomic;
+		}
+	}
+	DataRptr nboundByAtomic = sqrt(nbound*nbound) * inv(nAtomicTot);
+
+	DataRptr rRamp0(DataR::alloc(e->gInfo));
+	{	logSuspend(); WignerSeitz ws(e->gInfo.R); logResume();
+		threadLaunch(set_rRamp, e->gInfo.nr, e->gInfo.S, e->gInfo.RTR, &ws, rRamp0->data());
+	}
+	
+	//Compute bound charge 1/r and 1/r^2 expectation values weighted by atom-density partition:
+	FILE* fp = fopen(fname.c_str(), "w");
+	fprintf(fp, "#Species   rMean +/- rSigma [bohrs]   (rMean +/- rSigma [Angstrom])   Int|nbound| in partition\n");
+	for(const auto& sp: e->iInfo.species)
+	{	RadialFunctionG nRadial;
+		logSuspend(); sp->getAtom_nRadial(0,0, nRadial); logResume();
+		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
+		{	DataRptr w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
+			//Get r centered at current atom:
+			DataGptr trans; nullToZero(trans, e->gInfo); initTranslation(trans, e->gInfo.R*sp->atpos[atom]);
+			DataRptr rRamp = I(trans * J(rRamp0), true);
+			//Compute moments:
+			double wNorm = integral(w);
+			double rMean = integral(w * rRamp) / wNorm;
+			double rSqMean = integral(w * rRamp * rRamp) / wNorm;
+			double rSigma = sqrt(rSqMean - rMean*rMean);
+			//Print stats:
+			fprintf(fp, "Rsol %s    %.2f +/- %.2f    ( %.2f +/- %.2f A )   Qbound: %lg\n", sp->name.c_str(),
+				rMean, rSigma, rMean/Angstrom, rSigma/Angstrom, wNorm);
+		}
+	}
+	fclose(fp);
+}
+
 
 
 namespace Moments{

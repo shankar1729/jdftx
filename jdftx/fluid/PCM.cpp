@@ -220,7 +220,7 @@ extern bool hackedTS;
 void PCM::dumpDebug(const char* filenamePattern) const
 {	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
-	logPrintf("Dumping '%s'... \t", filename.c_str());  logFlush();
+	logPrintf("Dumping '%s' ... ", filename.c_str());  logFlush();
 	FILE* fp = fopen(filename.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
 
@@ -251,25 +251,6 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			break;
 	}
 	
-	{ //scope for overriding filename
-		char filename[256];	ostringstream oss;
-		oss << "Nspherical";
-		sprintf(filename, filenamePattern, oss.str().c_str());
-		logPrintf("Dumping %s... ", filename); logFlush();
-		saveSphericalized(&shape, 1, filename);
-		logPrintf("Done.\n"); logFlush();
-	}
-	
-	if(fsp.pcmVariant==PCM_SGA13)
-	{
-		char filename[256];	ostringstream oss;
-		oss << "NvdWspherical";
-		sprintf(filename, filenamePattern, oss.str().c_str());
-		logPrintf("Dumping %s... ", filename); logFlush();
-		saveSphericalized(&shapeVdw,1, filename);
-		logPrintf("Done.\n"); logFlush();
-	}
-
 	//HACK:
 	if(Sf.size())
 	{	const auto& solvent = fsp.solvents[0];
@@ -293,4 +274,23 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	
 	fclose(fp);
 	logPrintf("done\n"); logFlush();
+	
+	{ //scope for overriding filename
+		char filename[256];	ostringstream oss;
+		oss << "Nspherical";
+		sprintf(filename, filenamePattern, oss.str().c_str());
+		logPrintf("Dumping '%s' ... ", filename); logFlush();
+		saveSphericalized(&shape, 1, filename);
+		logPrintf("done\n"); logFlush();
+	}
+	
+	if(fsp.pcmVariant==PCM_SGA13)
+	{
+		char filename[256];	ostringstream oss;
+		oss << "NvdWspherical";
+		sprintf(filename, filenamePattern, oss.str().c_str());
+		logPrintf("Dumping '%s' ... ", filename); logFlush();
+		saveSphericalized(&shapeVdw,1, filename);
+		logPrintf("done\n"); logFlush();
+	}
 }

@@ -23,9 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <electronic/Wannier.h>
+#include <electronic/matrix.h>
+#include <core/Data.h>
 #include <set>
 #include <memory>
-#include <electronic/matrix.h>
 
 //! Dump frequency options:
 enum DumpFrequency
@@ -46,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs, DumpFillings, DumpRhoAtom,
 	DumpEcomponents, DumpExcCompare,
-	DumpBoundCharge, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
+	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
 	DumpWannier, DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpDelim, //special value used as a delimiter during command processing
 };
@@ -77,6 +78,7 @@ private:
 	friend class CommandDumpName;
 	friend class CommandDumpInterval;
 	void dumpQMC(); //!< QMC export implemented in DumpQMC.cpp
+	void dumpRsol(DataRptr nbound, string fname);
 };
 
 namespace Moments{void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx);}
