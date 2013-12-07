@@ -162,7 +162,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 				if(s.polKernel)
 				{	
 					#define Polarization_Compute_Pi_Ni \
-						DataRptrVec Pi = (Cpol*s.alpha) * I(c.molecule.mfKernel*epsMF - (rhoExternal ? gradient(s.polKernel*coulomb(rhoExternal)) : 0)); \
+						DataRptrVec Pi = (Cpol*s.alpha) * I(s.polKernel*epsMF - (rhoExternal ? gradient(s.polKernel*coulomb(rhoExternal)) : 0)); \
 						DataRptr Ni = I(Ntilde[c.offsetDensity+i]);
 					Polarization_Compute_Pi_Ni
 					
@@ -174,7 +174,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					DataGptrVec NPtilde = J(Ni * Pi); Pi=0; Ni=0;
 					DataGptr divNPbar;
 					if(needRho) rho -= s.polKernel*divergence(NPtilde);
-					DataGptrVec NPbarMF = c.molecule.mfKernel*NPtilde; NPtilde=0;
+					DataGptrVec NPbarMF = s.polKernel*NPtilde; NPtilde=0;
 					rhoMF -= divergence(NPbarMF);
 					Phi_epsMF += gInfo.nr * NPbarMF;
 					P0tot += getGzero(NPbarMF);
@@ -222,7 +222,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					}
 					//Polarization contributions:
 					if(s.polKernel)
-					{	DataGptrVec Phi_NPtilde = gradient(c.molecule.mfKernel*Phi_rhoMF + (needRho ? s.polKernel*Phi_rho : 0));
+					{	DataGptrVec Phi_NPtilde = gradient(s.polKernel*Phi_rhoMF + (needRho ? s.polKernel*Phi_rho : 0));
 						setGzero(Phi_NPtilde, getGzero(Phi_NPtilde) + Phi_P0tot);
 						DataRptrVec Phi_NP = Jdag(Phi_NPtilde); Phi_NPtilde=0;
 						//propagate gradients from NP to N, epsMF and rhoExternal:
@@ -233,7 +233,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 						Phi_Ntilde[c.offsetDensity+i] += (1./gInfo.dV) * Idag(Phi_Ni); Phi_Ni=0;
 						// --> via Pi
 						DataGptrVec Phi_PiTilde = Idag(Phi_NP * Ni); Phi_NP=0;
-						Phi_epsMF += (Cpol*s.alpha/gInfo.dV)*(c.molecule.mfKernel*Phi_PiTilde);
+						Phi_epsMF += (Cpol*s.alpha/gInfo.dV)*(s.polKernel*Phi_PiTilde);
 					}
 				}
 				Phi_P0[ic] += (1./gInfo.detR) * Phi_P0tot; //convert to functional derivative
