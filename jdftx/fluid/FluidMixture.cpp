@@ -210,7 +210,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 				if(s.chargeKernel)
 					rhoTot += s.chargeKernel(0) * (c.molecule.mfKernel * J(N[i]));
 				if(s.polKernel && rhoExternal)
-					rhoTot += (Cpol * s.alpha) * divergence(s.polKernel * J(N[i] * I(gradient(s.polKernel*coulomb(rhoExternal)))));
+					rhoTot += (Cpol * s.alpha) * divergence(c.molecule.mfKernel * J(N[i] * I(gradient(s.polKernel*coulomb(rhoExternal)))));
 				epsInf += 4*M_PI * (integral(N[i])/gInfo.detR) * Cpol * s.alpha;
 			}
 		}
