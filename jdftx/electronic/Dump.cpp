@@ -248,7 +248,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && eVars.fluidParams.fluidType!=FluidNone)
 	{	DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
-		nboundTilde->data()[0] = -(J(eVars.get_nTot())+iInfo.rhoIon)->data()[0]; //total bound charge will neutralize system
+		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
+		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon)->getGzero()); //total bound charge will neutralize system
 		if(ShouldDump(BoundCharge))
 		{	StartDump("nbound")
 			saveRawBinary(I(nboundTilde), fname.c_str());
@@ -491,7 +492,7 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 			double rMean = 1./rInvMean;
 			double rSigma = rInvSigma / (rInvMean*rInvMean);
 			//Print stats:
-			fprintf(fp, "Rsol %s    %.2f +/- %.2f    ( %.2f +/- %.2f A )   Qrms: %.3f\n", sp->name.c_str(),
+			fprintf(fp, "Rsol %s    %.2lf +/- %.2lf    ( %.2lf +/- %.2lf A )   Qrms: %.1le\n", sp->name.c_str(),
 				rMean, rSigma, rMean/Angstrom, rSigma/Angstrom, sqrt(wNorm));
 		}
 	}
