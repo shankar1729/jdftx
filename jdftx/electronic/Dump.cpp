@@ -436,10 +436,18 @@ string Dump::getFilename(string varName) const
 	return fname;
 }
 
-inline void set_rRamp(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& RTR, const WignerSeitz* ws, double* r)
+inline void set_rInv(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& RTR, const WignerSeitz* ws, double* rInv)
 {	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
 	matrix3<> meshMetric = Diag(invS) * RTR * Diag(invS);
-	THREAD_rLoop( r[i] = sqrt(meshMetric.metric_length_squared(ws->restrict(iv, S, invS))); )
+	const double rWidth = 1.;
+	THREAD_rLoop( 
+		double r = sqrt(meshMetric.metric_length_squared(ws->restrict(iv, S, invS)));
+		if(r < rWidth) //Polynomial with f',f" zero at origin and f,f',f" matched at rWidth
+		{	double t = r/rWidth;
+			rInv[i] = (1./rWidth) * (1. + 0.5*(1.+t*t*t*(-2.+t)) + (1./12)*(1.+t*t*t*(-4.+t*3.))*2. );
+		}
+		else rInv[i] = 1./r;
+	)
 }
 
 void Dump::dumpRsol(DataRptr nbound, string fname)
@@ -457,16 +465,16 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 			nAtomicTot += nAtomic;
 		}
 	}
-	DataRptr nboundByAtomic = sqrt(nbound*nbound) * inv(nAtomicTot);
+	DataRptr nboundByAtomic = (nbound*nbound) * inv(nAtomicTot);
 
-	DataRptr rRamp0(DataR::alloc(e->gInfo));
+	DataRptr rInv0(DataR::alloc(e->gInfo));
 	{	logSuspend(); WignerSeitz ws(e->gInfo.R); logResume();
-		threadLaunch(set_rRamp, e->gInfo.nr, e->gInfo.S, e->gInfo.RTR, &ws, rRamp0->data());
+		threadLaunch(set_rInv, e->gInfo.nr, e->gInfo.S, e->gInfo.RTR, &ws, rInv0->data());
 	}
 	
 	//Compute bound charge 1/r and 1/r^2 expectation values weighted by atom-density partition:
 	FILE* fp = fopen(fname.c_str(), "w");
-	fprintf(fp, "#Species   rMean +/- rSigma [bohrs]   (rMean +/- rSigma [Angstrom])   Int|nbound| in partition\n");
+	fprintf(fp, "#Species   rMean +/- rSigma [bohrs]   (rMean +/- rSigma [Angstrom])   sqrt(Int|nbound^2|) in partition\n");
 	for(const auto& sp: e->iInfo.species)
 	{	RadialFunctionG nRadial;
 		logSuspend(); sp->getAtom_nRadial(0,0, nRadial); logResume();
@@ -474,15 +482,17 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 		{	DataRptr w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
 			//Get r centered at current atom:
 			DataGptr trans; nullToZero(trans, e->gInfo); initTranslation(trans, e->gInfo.R*sp->atpos[atom]);
-			DataRptr rRamp = I(trans * J(rRamp0), true);
+			DataRptr rInv = I(trans * J(rInv0), true);
 			//Compute moments:
 			double wNorm = integral(w);
-			double rMean = integral(w * rRamp) / wNorm;
-			double rSqMean = integral(w * rRamp * rRamp) / wNorm;
-			double rSigma = sqrt(rSqMean - rMean*rMean);
+			double rInvMean = integral(w * rInv) / wNorm;
+			double rInvSqMean = integral(w * rInv * rInv) / wNorm;
+			double rInvSigma = sqrt(rInvSqMean - rInvMean*rInvMean);
+			double rMean = 1./rInvMean;
+			double rSigma = rInvSigma / (rInvMean*rInvMean);
 			//Print stats:
-			fprintf(fp, "Rsol %s    %.2f +/- %.2f    ( %.2f +/- %.2f A )   Qbound: %lg\n", sp->name.c_str(),
-				rMean, rSigma, rMean/Angstrom, rSigma/Angstrom, wNorm);
+			fprintf(fp, "Rsol %s    %.2f +/- %.2f    ( %.2f +/- %.2f A )   Qrms: %.3f\n", sp->name.c_str(),
+				rMean, rSigma, rMean/Angstrom, rSigma/Angstrom, sqrt(wNorm));
 		}
 	}
 	fclose(fp);
