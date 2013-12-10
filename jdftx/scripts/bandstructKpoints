@@ -1,0 +1,69 @@
+#!/bin/bash
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$#" -lt "3" ] ; then
+	echo '
+	Generate a kpoint path for band structure plots. Usage:
+		listEnergy <inFile> <dk> <outfilePrefix>
+	<inFile> should contain a list of kpoints in the JDFTx syntax,
+	except with the weight replaced by a label eg. Gamma, X, L etc.
+	<dk> is the typical dimensionless separation (BZ~1) between k-points.
+	The script will generate <outfilePrefix>.kpoints containing a list
+	of kpoints in JDFTx input format and a gnuplot script <outfilePrefix>.plot
+	to plot the resulting bandstructure. Note that the plot script assumes
+	that the JDFTx run will produce <outfilePrefix>.eigenvals, so you may need
+	to set the dump-name in the JDFTx run, move the file or edit the plot script.
+	'
+	exit 0
+fi
+
+inFile="$1"
+dk="$2"
+outPrefix="$3"
+tmpFile="${outPrefix}.ktmp.$RANDOM"
+
+#First pass to temp file:
+awk "
+	function ceil(x) { return (x == int(x)) ? x : int(x)+1 }
+	BEGIN { kprev=0; knum=0; ticsCmd=\"set xtics (\"; }
+	\$1==\"kpoint\" && NF==5 {
+		k0=\$2; k1=\$3; k2=\$4; klabel=\$5;
+		#--- Path fto current k-point if any:
+		if(kprev==1)
+		{	dk0=k0-kprev0; dk1=k1-kprev1; dk2=k2-kprev2;
+			Nk = ceil(sqrt(dk0*dk0 + dk1*dk1 + dk2*dk2)/$dk);
+			for(ik=1; ik<Nk; ik++)
+			{	printf(\"kpoint  %+.12f %+.12f %+.12f\n\", kprev0+ik*dk0/Nk, kprev1+ik*dk1/Nk, kprev2+ik*dk2/Nk);
+				knum++;
+			}
+			ticsCmd = ticsCmd \", \";
+		}
+		#--- Output current k-point
+		printf(\"kpoint  %+.12f %+.12f %+.12f\n\", k0, k1, k2);
+		ticsCmd = ticsCmd \" \\\"\" klabel \"\\\" \" knum;
+		knum++;
+		kprev=1; kprev0=k0; kprev1=k1; kprev2=k2;
+	}
+	END { print ticsCmd \" )\"; printf(\"kweight: %.15f\n\", 1./knum); }
+" "$inFile" > "$tmpFile"
+
+#Create the final kpoints file:
+kweight=$(awk '/kweight/ {print $2}' "$tmpFile")
+awk "
+	BEGIN { print \"kpoint-folding 1 1 1  #To prevent accident folding in input file\";
+		print \"symmetries none  #Necessary to prevent kpoint order / number from changing.\" }
+	/kpoint/ { print \$0 \"  $kweight\" }
+" $tmpFile > "${outPrefix}.kpoints"
+
+#Create the plot script:
+ticsCmd="$(grep xtics $tmpFile)"
+plotFile="${outPrefix}.plot"
+cat > $plotFile <<EOF
+#!/usr/bin/gnuplot -persist
+$ticsCmd
+unset key
+nCol=real(system("awk 'END {print NF}' $outPrefix.eigenvals"))
+plot for [i=1:nCol] "$outPrefix.eigenvals" u 0:i w l
+EOF
+chmod +x $plotFile
+
+rm $tmpFile
