@@ -287,6 +287,16 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
+	if(ShouldDumpNoAll(Momenta))
+	{	StartDump("momenta")
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(int q=0; q<eInfo.nStates; q++) //kpoint/spin
+			for(int k=0; k<3; k++) //cartesian direction
+				((eVars.C[q] ^ D(eVars.C[q], k)) * complex(0,e->gInfo.detR)).write(fp);
+		fclose(fp);
+		EndDump
+	}
+	
 	if(ShouldDumpNoAll(RealSpaceWfns))
 	{	for(int q=0; q<eInfo.nStates; q++)
 			for(int b=0; b<eInfo.nBands; b++)
