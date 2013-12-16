@@ -159,7 +159,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					rhoMF += s.chargeKernel(0) * (c.molecule.mfKernel * Ntilde[c.offsetDensity+i]);
 				}
 				//Polarization contributions:
-				if(s.polKernel)
+				if(polarizable && s.polKernel)
 				{	
 					#define Polarization_Compute_Pi_Ni \
 						DataRptrVec Pi = (Cpol*s.alpha) * I(c.molecule.mfKernel*epsMF - (rhoExternal ? gradient(s.polKernel*coulomb(rhoExternal)) : 0)); \
@@ -221,7 +221,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 						Phi_Ntilde[c.offsetDensity+i] += (s.chargeKernel(0)/gInfo.dV) * (c.molecule.mfKernel * Phi_rhoMF);
 					}
 					//Polarization contributions:
-					if(s.polKernel)
+					if(polarizable && s.polKernel)
 					{	DataGptrVec Phi_NPtilde = gradient(c.molecule.mfKernel*Phi_rhoMF + (needRho ? s.polKernel*Phi_rho : 0));
 						setGzero(Phi_NPtilde, getGzero(Phi_NPtilde) + Phi_P0tot);
 						DataRptrVec Phi_NP = Jdag(Phi_NPtilde); Phi_NPtilde=0;

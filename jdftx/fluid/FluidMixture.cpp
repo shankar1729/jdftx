@@ -110,8 +110,10 @@ void FluidMixture::initialize(double p, double epsBulkOverride, double epsInfOve
 		chiPol += c->idealGas->get_Nbulk() * c->molecule.getAlphaTot();
 	}
 	Crot = (epsBulk>epsInf && chiRot) ? (epsBulk-epsInf)/(4.*M_PI*chiRot) : 1.;
-	Cpol = (epsInf>1. && chiPol) ? (epsInf-1.)/(4.*M_PI*chiPol) : 1.;
-	logPrintf("   Local polarization-density correlation factors, Crot: %lg  Cpol: %lg\n", Crot, Cpol);
+	Cpol = chiPol ? (epsInf-1.)/(4.*M_PI*chiPol) : 1.;
+	if(!Cpol) polarizable = false;
+	logPrintf("   Local polarization-density correlation factors, Crot: %lg  Cpol: ", Crot);
+	if(polarizable) logPrintf("%lg\n", Cpol); else logPrintf("none/disabled\n");
 	for(const FluidComponent* c: component)
 	{	double pMolSq = c->molecule.getDipole().length_squared();
 		if(pMolSq) c->idealGas->corrPrefac = (1./Crot-1.)*3*T/(pMolSq*c->idealGas->get_Nbulk());
