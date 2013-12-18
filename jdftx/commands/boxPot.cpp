@@ -24,7 +24,7 @@ struct CommandBoxPot : public Command
 {
 	CommandBoxPot() : Command("box-potential")
 	{
-		format = "xmin xmax ymin ymax zmin zmax Vin Vout";
+		format = "xmin xmax ymin ymax zmin zmax Vin Vout [<convolve_radius>=0.1]";
 		comments =
 			"Include an step-function shaped external potential (in hartrees) for the electrons";
 	
@@ -35,6 +35,7 @@ struct CommandBoxPot : public Command
 	{	
 		double xmin, xmax, ymin, ymax, zmin, zmax;
 		double Vin, Vout;
+		double convolve_radius;
 		
 		pl.get(xmin, 0., "xmin", true);
 		pl.get(xmax, 0., "xmax", true);
@@ -49,7 +50,9 @@ struct CommandBoxPot : public Command
 		pl.get(Vin, 0., "zmax", true);
 		pl.get(Vout, 0., "zmax", true);
 		
-		e.eVars.boxPot.push_back(BoxPotential(xmin, xmax, ymin, ymax, zmin, zmax, Vin, Vout));
+		pl.get(convolve_radius, 0.2, "zmax", false);
+		
+		e.eVars.boxPot.push_back(BoxPotential(xmin, xmax, ymin, ymax, zmin, zmax, Vin, Vout, convolve_radius));
 
 	}
 

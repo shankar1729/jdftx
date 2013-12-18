@@ -32,9 +32,10 @@ struct BoxPotential
 {
 	double xmin, xmax, ymin, ymax, zmin, zmax;
 	double Vin, Vout;
+	double convolve_radius;
 	
-	BoxPotential(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double Vin, double Vout):
-				 xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), Vin(Vin), Vout(Vout) {}
+	BoxPotential(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double Vin, double Vout, double convolve_radius):
+				 xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), Vin(Vin), Vout(Vout), convolve_radius(convolve_radius) {}
 };
 
 class ElecVars

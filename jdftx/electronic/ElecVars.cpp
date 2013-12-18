@@ -43,10 +43,10 @@ void applyBoxPot(int i, vector3<> r, BoxPotential& box, double* Vbox)
 {	if((r.x() >= box.xmin) and (r.x() <= box.xmax))
 	if((r.y() >= box.ymin) and (r.y() <= box.ymax))
 	if((r.z() >= box.zmin) and (r.z() <= box.zmax))
-	{	Vbox[i] += box.Vin;
+	{	Vbox[i] = box.Vin;
 		return;
 	}
-	Vbox[i] += box.Vout;
+	Vbox[i] = box.Vout;
 }
 
 void ElecVars::setup(const Everything &everything)
@@ -90,7 +90,11 @@ void ElecVars::setup(const Everything &everything)
 	}
 	for(size_t j = 0; j<boxPot.size(); j++)
 	{	for(unsigned s=0; s<n.size(); s++)	
-			applyFunc_r(e->gInfo, applyBoxPot, boxPot[j], Vexternal[s]->data());
+		{	DataRptr temp; nullToZero(temp, e->gInfo);			
+			applyFunc_r(e->gInfo, applyBoxPot, boxPot[j], temp->data());
+			temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
+			Vexternal[s] += temp;
+		}
 	}
 
 	//Initialize matrix arrays if required:
