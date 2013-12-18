@@ -79,7 +79,10 @@ void Symmetries::setupMesh()
 std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
 {	//Convert to a list for efficient removal:
 	std::list<QuantumNumber> qlist(qnums.begin(), qnums.end());
-	if(mode == SymmetriesNone) return qlist;
+	if(mode == SymmetriesNone)
+	{	((Symmetries*)this)->kpointInvertList.assign(1, +1);
+		return qlist;
+	}
 	typedef std::list<QuantumNumber>::iterator Iter;
 	bool usedInversion = false; //whether inversion was used in reducing k-point mesh
 	std::vector<int> invertList;
