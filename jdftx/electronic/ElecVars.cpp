@@ -38,6 +38,17 @@ isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e
 {
 }
 
+// Kernel for generating box shaped external potentials
+void applyBoxPot(int i, vector3<> r, BoxPotential& box, double* Vbox)
+{	if((r.x() >= box.xmin) and (r.x() <= box.xmax))
+	if((r.y() >= box.ymin) and (r.y() <= box.ymax))
+	if((r.z() >= box.zmin) and (r.z() <= box.zmax))
+	{	Vbox[i] += box.Vin;
+		return;
+	}
+	Vbox[i] += box.Vout;
+}
+
 void ElecVars::setup(const Everything &everything)
 {	
 	this->e = &everything;
@@ -67,6 +78,19 @@ void ElecVars::setup(const Everything &everything)
 		DataRptr temp(DataR::alloc(gInfo));
 		loadRawBinary(temp, rhoExternalFilename.c_str());
 		rhoExternal = J(temp);
+	}
+	
+	//Constructs Vbox from boxPot's.
+	if(Vexternal.size() == 0 and boxPot.size())  // If Vexternal does not exist, make one
+	{	Vexternal.resize(n.size());
+		for(unsigned s=0; s<n.size(); s++)	
+		{	Vexternal[s] = DataR::alloc(gInfo);
+			nullToZero(Vexternal[s], e->gInfo);
+		}
+	}
+	for(size_t j = 0; j<boxPot.size(); j++)
+	{	for(unsigned s=0; s<n.size(); s++)	
+			applyFunc_r(e->gInfo, applyBoxPot, boxPot[j], Vexternal[s]->data());
 	}
 
 	//Initialize matrix arrays if required:

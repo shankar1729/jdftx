@@ -27,6 +27,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <memory>
 
+//! Parameters for a box potential in the unit cell
+struct BoxPotential
+{
+	double xmin, xmax, ymin, ymax, zmin, zmax;
+	double Vin, Vout;
+	
+	BoxPotential(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double Vin, double Vout):
+				 xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), Vin(Vin), Vout(Vout) {}
+};
+
 class ElecVars
 {
 public:
@@ -66,6 +76,7 @@ public:
 	
 	//External interactions:
 	DataRptrCollection Vexternal; //!< external potential
+	std::vector<BoxPotential> boxPot; //! parameters for the external box potential
 	DataGptr rhoExternal; //!< external charge density
 	
 	//Fluid properties
