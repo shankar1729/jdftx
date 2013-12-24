@@ -39,14 +39,21 @@ isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e
 }
 
 // Kernel for generating box shaped external potentials
-void applyBoxPot(int i, vector3<> r, BoxPotential& box, double* Vbox)
-{	if((r.x() >= box.xmin) and (r.x() <= box.xmax))
-	if((r.y() >= box.ymin) and (r.y() <= box.ymax))
-	if((r.z() >= box.zmin) and (r.z() <= box.zmax))
-	{	Vbox[i] = box.Vin;
-		return;
+void applyBoxPot(int i, vector3<> r, matrix3<>& R, BoxPotential& box, double* Vbox)
+{	
+	// Map interval 0<-->1 to -0.5<-->0.5
+	r = inv(R)*r;
+	for(int j=0; j<3; j++)
+		r[j] = r[j] < 0.5 ? r[j] : r[j]-1.;
+	r = R*r;
+	
+	for(int j=0; j<3; j++)
+	{	if((r[j] < box.min[j]) or (r[j] > box.max[j]))
+		{	Vbox[i] = box.Vout;
+			return;
+		}
 	}
-	Vbox[i] = box.Vout;
+	Vbox[i] = box.Vin;
 }
 
 void ElecVars::setup(const Everything &everything)
@@ -91,7 +98,7 @@ void ElecVars::setup(const Everything &everything)
 	for(size_t j = 0; j<boxPot.size(); j++)
 	{	for(unsigned s=0; s<n.size(); s++)	
 		{	DataRptr temp; nullToZero(temp, e->gInfo);			
-			applyFunc_r(e->gInfo, applyBoxPot, boxPot[j], temp->data());
+			applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, boxPot[j], temp->data());
 			temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
 			Vexternal[s] += temp;
 		}

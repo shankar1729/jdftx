@@ -44,8 +44,8 @@ struct CommandBoxPot : public Command
 		pl.get(zmin, 0., "zmin", true);
 		pl.get(zmax, 0., "zmax", true);
 		
-		if(xmin< 0 or xmax < xmin or ymin< 0 or ymax < ymin or xmin< 0 or zmax < zmin)
-			die("max coordinates must be smaller than min coordinates with both being greater than 0");
+		if(xmax < xmin or ymax < ymin or zmax < zmin)
+			die("max coordinates must be smaller than min coordinates!\n");
 		
 		pl.get(Vin, 0., "zmax", true);
 		pl.get(Vout, 0., "zmax", true);
@@ -58,7 +58,7 @@ struct CommandBoxPot : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	auto bP = e.eVars.boxPot[iRep];
-		logPrintf("%.5e %.5e %.5e %.5e %.5e %.5e    %.5e %.5e", bP.xmin, bP.xmax, bP.ymin, bP.ymax, bP.zmin, bP.zmax, bP.Vin, bP.Vout);
+		logPrintf("%.5e %.5e %.5e %.5e %.5e %.5e    %.5e %.5e", bP.min[0], bP.max[0], bP.min[1], bP.max[1], bP.min[2], bP.max[2], bP.Vin, bP.Vout);
 	}
 }
 commandBoxPot;

@@ -30,12 +30,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Parameters for a box potential in the unit cell
 struct BoxPotential
 {
-	double xmin, xmax, ymin, ymax, zmin, zmax;
+	std::vector<double> min, max;
 	double Vin, Vout;
 	double convolve_radius;
 	
 	BoxPotential(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double Vin, double Vout, double convolve_radius):
-				 xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), Vin(Vin), Vout(Vout), convolve_radius(convolve_radius) {}
+				Vin(Vin), Vout(Vout), convolve_radius(convolve_radius) 
+	{
+		min = {xmin, ymin, zmin};
+		max = {xmax, ymax, zmax};
+	}
 };
 
 class ElecVars
