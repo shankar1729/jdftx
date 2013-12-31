@@ -23,17 +23,8 @@ SCF::SCF(Everything& e): e(e)
 {
 	// set up the cacheing size
 	ResidualMinimizerParams& rp = e.residualMinimizerParams;
-	switch(rp.vectorExtrapolation)
-	{	case Anderson:
-			rp.history = 2;
-			break;
-		case DIIS:
-			rp.history = 4;
-			break;
-		default:
-			rp.history = 1;	
-			break;
-	}
+	if(rp.vectorExtrapolation == plain) // No history is needed for plain mixing
+		rp.history = 1;	
 	
 	overlap.init(e.residualMinimizerParams.history, e.residualMinimizerParams.history);
 	
@@ -107,7 +98,7 @@ void SCF::minimize()
 	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
 	{	
 		// Clear history if full
-		if((pastResiduals_n.size() >= rp.history) or (pastVariables_n.size() >= rp.history))
+		if(((int)pastResiduals_n.size() >= rp.history) or ((int)pastVariables_n.size() >= rp.history))
 		{	double ndim = pastResiduals_n.size();
 			if((rp.vectorExtrapolation != plain) and (rp.history!=1))
 				overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
@@ -171,11 +162,6 @@ void SCF::minimize()
 		{	
 			if((rp.vectorExtrapolation == plain))
 				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 1.-rp.damping);
-			else if(rp.vectorExtrapolation == Anderson)
-			{	cacheResidual(n)
-				ifTau(cacheResidual(tau))
-				mixAnderson(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
-			}
 			else if(rp.vectorExtrapolation == DIIS)
 			{	cacheResidual(n)
 				ifTau(cacheResidual(tau))
@@ -200,15 +186,14 @@ void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_
 }
 
 inline double preconditionerKernel(double G, double f, double slope)
-{	double factor = (G ? 1./f + slope*G : 1.);
-	return (factor<1 ? factor : 1.);
+{	return (G ? f + slope*G : 1.);
 }
 
-DataRptrCollection precondition(DataRptrCollection& n, double Gmin, double Gmax, double f = 20.)
+DataRptrCollection precondition(DataRptrCollection& n, double Gmax, double f = 20.)
 {
 	// Set up preconditioner kernel for density/potential overlaps
 	RadialFunctionG preconditioner;
-	double slope = (f-1.)/(f*Gmax);
+	double slope = (1.-f)/Gmax;
 	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, f, slope);
 	
 	DataGptrCollection preconditioned(n.size());
@@ -231,22 +216,22 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 		if(j != ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}
 	
-	// If the number of dimensions not equal to history, do a plain mixing
-	if(ndim < e.residualMinimizerParams.history)
+	// If the number of dimensions is less than 0, do a plain mixing step
+	if(ndim < 3)
 	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
 		return;
 	}
 	
 	// diagonalize the residual overlap matrix to get the minimum of residual
-	matrix constrainedOverlap(ndim+1, ndim+1);
-	constrainedOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
+	matrix cOverlap(ndim+1, ndim+1); // Add row and column to enforce normalization constraint
+	cOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
 	for(size_t j=0; j<ndim; j++)
-	{	constrainedOverlap.set(j, ndim, 1);
-		constrainedOverlap.set(ndim, j, 1);
+	{	cOverlap.set(j, ndim, 1);
+		cOverlap.set(ndim, j, 1);
 	}
-	constrainedOverlap.set(ndim, ndim, 0);
+	cOverlap.set(ndim, ndim, 0);
 	
-	matrix constrainedOverlap_inv = inv(constrainedOverlap);
+	matrix cOverlap_inv = inv(cOverlap);
 	
 	// Zero variables
 	initZero(variable_n);
@@ -255,53 +240,17 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	double damping = 1. - e.residualMinimizerParams.damping;
 	
 	// Variables for the preconditioner
-	double Gmax = e.gInfo.GmaxGrid;
-	double Gmin = 2*M_PI/(pow(e.gInfo.detR, 1./3.));
+	//double Gmax = e.gInfo.GmaxGrid;
 	
-	// Accumulate 
+	// Accumulate
+	complex* coefs = cOverlap_inv.data();
 	for(size_t j=0; j<ndim; j++)
-	{	variable_n += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*precondition(pastResiduals_n[j], Gmin, Gmax) + pastVariables_n[j]);
-		ifTau(variable_tau += constrainedOverlap_inv.data()[constrainedOverlap_inv.index(j, ndim)].real() * ((1.-damping)*precondition(pastResiduals_tau[j], Gmin, Gmax) + pastVariables_tau[j]))
+	{	variable_n += coefs[cOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_n[j] + pastVariables_n[j]);
+		ifTau(variable_tau +=coefs[cOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_tau[j] + pastVariables_tau[j]))		
 	}
-	
-	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", constrainedOverlap_inv.data()[constrainedOverlap_inv.index(ndim, ndim)].real());
-	
-}
 
-void SCF::mixAnderson(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-					  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
-					  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
-{
-	// do a plain mixing for the first iteration
-	if(pastResiduals_n.size() == 1)
-	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
-		return;
-	}
-	
-	assert(pastResiduals_n.size() == 2);
-	assert(pastVariables_n.size() == 2);
-	ifTau(assert(pastVariables_tau.size() == 2))
-	ifTau(assert(pastResiduals_tau.size() == 2))
-	
-	// compute the change in the residual
-	DataRptrCollection deltaResidual = pastResiduals_n[1] - pastResiduals_n[0];
-	
-	//double alpha = -dot(pastResiduals[0],deltaResidual)/dot(deltaResidual, deltaResidual);
-	double alpha = dot(pastResiduals_n[1], deltaResidual)/dot(deltaResidual, deltaResidual);
-	logPrintf("\tmixingFraction = %f\n", 1-alpha);
-	
-	if((1-alpha) > 0.80 or (1-alpha) < 0.)
-	{	logPrintf("\tDetected too agressive mixing fraction, resetting variable history.\n");
-		mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 0.5);
-		pastResiduals_n.clear();
-		pastVariables_n.clear();
-		ifTau(pastVariables_tau.clear())
-		ifTau(pastResiduals_tau.clear())
-		return;
-	}
-	
-	variable_n = (1.-alpha)*(pastVariables_n[1]+pastResiduals_n[1]) + alpha*(pastVariables_n[0]+pastResiduals_n[0]);
-	ifTau(variable_tau = (1.-alpha)*(pastVariables_tau[1]+pastResiduals_tau[1]) + alpha*(pastVariables_tau[0]+pastResiduals_tau[0]))
+	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", coefs[cOverlap_inv.index(ndim, ndim)].real());
+
 }
 
 void SCF::updateFillings()
@@ -312,7 +261,7 @@ void SCF::updateFillings()
 	
 	// Apply eigenshifts, if any
 	for(size_t j=0; j<rp.eigenShifts.size(); j++)
-			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
+		e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
 	
 	double mu; // Electron chemical potential
 		

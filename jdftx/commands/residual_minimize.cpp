@@ -28,6 +28,7 @@ enum  ResMinParameter
 	vectorExtrapolation,
 	verbose,
 	damping,
+	history,
 	//Delimiter used in parsing:
 	scfDelim
 };
@@ -38,7 +39,8 @@ EnumStringMap<ResMinParameter> ResMinParameterMap
     mixedVariable, "mixedVariable",
     vectorExtrapolation, "vectorExtrapolation",
 	verbose, "verbose",
-	damping, "damping"
+	damping, "damping",
+	history, "history"
 );
 EnumStringMap<ResMinParameter> resMinParameterDescrMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
@@ -46,7 +48,8 @@ EnumStringMap<ResMinParameter> resMinParameterDescrMap
     mixedVariable, "whether density or potential will be mixed at each step",
 	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
 	verbose, "whether the inner eigenvalue solver will print or not",
-	damping, "damping parameter for vector extrapolation (default 0.5)."
+	damping, "damping parameter for vector extrapolation (default 0.5).",
+	history, "Number of past residuals and vectors are kept cached and used in DIIS"
 );
 
 EnumStringMap<MixedVariable> resMinMixing
@@ -56,7 +59,6 @@ EnumStringMap<MixedVariable> resMinMixing
 
 EnumStringMap<VectorExtrapolation> resMinExtrapolation
 (	plain, "plain",
-	Anderson, "Anderson",
 	DIIS, "DIIS"
 );
 
@@ -99,6 +101,9 @@ struct CommandsScfParams: public Command
 				case damping:
 					pl.get(e.residualMinimizerParams.damping, 0.5, "damping", true);
 					break;
+				case history:
+					pl.get(e.residualMinimizerParams.history, 15, "history", true);
+					break;
 				case scfDelim: return; //end of input
 			}
 			
@@ -113,6 +118,7 @@ struct CommandsScfParams: public Command
 		PRINT(energyDiffThreshold, %lg)
 		logPrintf(" \\\n\tmixedVariable\t%s", resMinMixing.getString(e.residualMinimizerParams.mixedVariable));
 		logPrintf(" \\\n\tvectorExtrapolation\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolation));
+		logPrintf(" \\\n\thistory\t%i", e.residualMinimizerParams.history);
 		if(e.residualMinimizerParams.verbose) logPrintf(" \\\n\tverbose");
 		PRINT(damping, %lg)
 	} 

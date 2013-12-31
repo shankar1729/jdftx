@@ -32,7 +32,6 @@ enum MixedVariable
 enum VectorExtrapolation
 {
 	plain,  //! No vector extrapolation, just half-mixes the new density
-	Anderson,  //! Caches and mixes the previous density only. (Named after D. G. Anderson)
 	DIIS   //! Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
 };
 
@@ -52,10 +51,10 @@ struct ResidualMinimizerParams
 	double energyDiffThreshold; //! convergence threshold for energy difference between successive iterations
 	MixedVariable mixedVariable; //! Whether we are mixing the density or the potential
 	VectorExtrapolation vectorExtrapolation; //! Vector extrapolation method used to construct the new density
-	size_t history; //! How many past residuals and vectors are kept cached
+	int history; //! Number of past residuals and vectors are kept cached and used in DIIS
 	bool verbose; //! Whether the inner eigensolver will print process
 	double damping;  //! Fraction of the old variable that will be mixed with the new one
-	
+
 	std::vector<EigenShift> eigenShifts; //! A list of all eigenshifts, used for non-ground-state calculations
 	
 	ResidualMinimizerParams()
@@ -66,6 +65,7 @@ struct ResidualMinimizerParams
 		vectorExtrapolation = DIIS;
 		verbose = false;
 		damping = 0.5;
+		history = 15;
 	}
 	
 };
