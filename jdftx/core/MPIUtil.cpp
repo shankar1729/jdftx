@@ -133,6 +133,8 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 void MPIUtil::fopenWrite(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
+	if(mpiUtil->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
+	MPI_Barrier(MPI_COMM_WORLD);
 	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "wb");
