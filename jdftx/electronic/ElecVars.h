@@ -27,21 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <memory>
 
-//! Parameters for a box potential in the unit cell
-struct BoxPotential
-{
-	std::vector<double> min, max;
-	double Vin, Vout;
-	double convolve_radius;
-	
-	BoxPotential(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double Vin, double Vout, double convolve_radius):
-				Vin(Vin), Vout(Vout), convolve_radius(convolve_radius) 
-	{
-		min = {xmin, ymin, zmin};
-		max = {xmax, ymax, zmax};
-	}
-};
-
 class ElecVars
 {
 public:
@@ -81,9 +66,13 @@ public:
 	
 	//External interactions:
 	DataRptrCollection Vexternal; //!< external potential
-	std::vector<BoxPotential> boxPot; //! parameters for the external box potential
 	DataGptr rhoExternal; //!< external charge density
-	
+	struct BoxPotential
+	{	vector3<> min, max;
+		double Vin, Vout, convolve_radius;
+	};
+	std::vector<BoxPotential> boxPot; //! parameters for the external box potential
+
 	//Fluid properties
 	FluidSolverParams fluidParams;
 	std::shared_ptr<struct FluidSolver> fluidSolver;

@@ -46,3 +46,40 @@ struct CommandVexternal : public Command
 	}
 }
 commandVexternal;
+
+
+struct CommandBoxPot : public Command
+{
+	CommandBoxPot() : Command("box-potential")
+	{
+		format = "xmin xmax ymin ymax zmin zmax Vin Vout [<convolve_radius>=0.1]";
+		comments =
+			"Include an step-function shaped external potential (in hartrees) for the electrons";
+	
+		allowMultiple = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	ElecVars::BoxPotential bP;
+		const char* dirNames[3] = { "x", "y", "z" };
+		for(int k=0; k<3; k++)
+		{	pl.get(bP.min[k], 0., dirNames[k]+string("min"), true);
+			pl.get(bP.max[k], 0., dirNames[k]+string("max"), true);
+			if(bP.max[k]<bP.min[k])
+				throw(string("max must be smaller than min for each dimension"));
+		}
+		pl.get(bP.Vin, 0., "Vin", true);
+		pl.get(bP.Vout, 0., "Vout", true);
+		pl.get(bP.convolve_radius, 0.2, "convolve_radius", false);
+		e.eVars.boxPot.push_back(bP);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const ElecVars::BoxPotential& bP = e.eVars.boxPot[iRep];
+		logPrintf("%.5g %.5g %.5g %.5g %.5g %.5g    %.5g %.5g  %.5g",
+			 bP.min[0], bP.max[0], bP.min[1], bP.max[1], bP.min[2], bP.max[2],
+			 bP.Vin, bP.Vout, bP.convolve_radius);
+	}
+}
+commandBoxPot;
+

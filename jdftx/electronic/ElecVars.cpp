@@ -38,21 +38,19 @@ ElecVars::ElecVars()
 }
 
 // Kernel for generating box shaped external potentials
-void applyBoxPot(int i, vector3<> r, matrix3<>& R, BoxPotential& box, double* Vbox)
-{	
-	// Map interval 0<-->1 to -0.5<-->0.5
+void applyBoxPot(int i, vector3<> r, matrix3<>& R, const ElecVars::BoxPotential* bP, double* Vbox)
+{	// Map lattice intervals [0,1) to [-0.5,0.5)
 	r = inv(R)*r;
-	for(int j=0; j<3; j++)
-		r[j] = r[j] < 0.5 ? r[j] : r[j]-1.;
+	for(int j=0; j<3; j++) r[j] -= floor(0.5+r[j]);
 	r = R*r;
-	
+	//Set potential
 	for(int j=0; j<3; j++)
-	{	if((r[j] < box.min[j]) or (r[j] > box.max[j]))
-		{	Vbox[i] = box.Vout;
+	{	if((r[j] < bP->min[j]) or (r[j] > bP->max[j]))
+		{	Vbox[i] = bP->Vout;
 			return;
 		}
 	}
-	Vbox[i] = box.Vin;
+	Vbox[i] = bP->Vin;
 }
 
 void ElecVars::setup(const Everything &everything)
@@ -97,7 +95,7 @@ void ElecVars::setup(const Everything &everything)
 	for(size_t j = 0; j<boxPot.size(); j++)
 	{	for(unsigned s=0; s<n.size(); s++)	
 		{	DataRptr temp; nullToZero(temp, e->gInfo);			
-			applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, boxPot[j], temp->data());
+			applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, &boxPot[j], temp->data());
 			temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
 			Vexternal[s] += temp;
 		}
