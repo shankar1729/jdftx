@@ -91,10 +91,7 @@ public:
 
 	//Wavefunction initialization:
 	string wfnsFilename; //!< file to read wavefunctions from
-	bool readWfnsRealspace; //!< whether to read realspace wavefunctions
-	int nBandsOld; //!< nBands for the input wavefunction
-	double EcutOld; BasisKdep kdepOld; //!< Ecut and basis-dependent flag  for the input wavefunction in fourier space
-	int NxOld, NyOld, NzOld; //!< fftbox size for the input wavefunction in double space
+	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	
 	//Auxiliary hamiltonian initialization
@@ -140,10 +137,12 @@ public:
 	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, std::vector<matrix>& HVdagCq, Energies& ener, bool need_Hsub=false);
 	
 	//! Propagates the gradient wrt orthonormal C (HCq) to gradient wrt Y and B (if given).
-	void orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);
+	void orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, double KErollover=1., ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);
 
 	//! Returns the total single particle energy and gradient of all KS orbitals
 	double bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad=0, ColumnBundle* Kgrad=0);
+	
+	void spinRestrict(); //!< enforce spin restriction on state (Y and B)
 	
 private:
 	const Everything* e;

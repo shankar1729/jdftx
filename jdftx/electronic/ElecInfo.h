@@ -42,7 +42,13 @@ public:
 class ElecInfo
 {
 public:
-	int nStates, nBands; //!< Number of bands and number of states
+	int nBands, nStates; //!< Number of bands and total number of states
+	int qStart, qStop; //!< Range of states handled by current process (= 0 and nStates for non-MPI jobs)
+	bool isMine(int q) const { return q>=qStart && q<qStop; } //!< check if state index is local
+	int whose(int q) const; //!< find out which process this state index belongs to
+	int qStartOther(int iProc) const { return iProc ? qStopArr[iProc-1] : 0; } //!< find out qStart for another process
+	int qStopOther(int iProc) const { return qStopArr[iProc]; } //!< find out qStop for another process
+	
 	SpinType spinType; //!< tells us what sort of spins we are using if any
 	bool spinRestricted; //!< whether the calculation is spin restricted
 	double nElectrons; //!< the number of electrons = Sum w Tr[F]
@@ -94,10 +100,17 @@ public:
 	
 	int findHOMO(int q) const; //! Returns the band index of the Highest Occupied Kohn-Sham Orbital
 
+	//Parallel I/O utilities for diagMatrix/matrix array (one-per-kpoint, with nBands rows and columns unless overridden):
+	void read(std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
+	void read(std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
+	void write(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
+	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
+
 private:
 	const Everything* e;
 	double betaBy2; //!< initialized to 0.5/kT
-
+	std::vector<int> qStopArr; //!< array of qStop's for all processes (used by whose() to find locate process managing a specific q)
+	
 	//Initial fillings:
 	string initialFillingsFilename; //!< filename for initial fillings (zero-length if none)
 	int nBandsOld; //!<number of bands in file being read

@@ -134,11 +134,12 @@ void Everything::setup()
 	
 	//Setup electronic minimization parameters:
 	elecMinParams.nDim = 0;
-	for(int s=0; s<eInfo.nStates; s++)
-	{	elecMinParams.nDim += 2 * basis[s].nbasis * eInfo.nBands;
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	elecMinParams.nDim += 2 * basis[q].nbasis * eInfo.nBands;
 		if(eInfo.subspaceRotation)
 			elecMinParams.nDim += eInfo.nBands * eInfo.nBands;
 	}
+	mpiUtil->allReduce(elecMinParams.nDim, MPIUtil::ReduceSum);
 	elecMinParams.fpLog = globalLog;
 	elecMinParams.linePrefix = "ElecMinimize: ";
 	elecMinParams.energyLabel = relevantFreeEnergyName(*this);

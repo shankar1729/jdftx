@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <electronic/ColumnBundle.h>
 
 enum WfnsInit { WfnsLCAO, WfnsRandom, WfnsRead, WfnsReadRS };
 
@@ -35,7 +36,7 @@ struct CommandWavefunction : public Command
 		format =
 			"lcao\n"
 			"           | random\n"
-			"           | read <filename> [<nBandsOld>] [<EcutOld>] [<kdepOld>]\n"
+			"           | read <filename> [<nBandsOld>] [<EcutOld>]\n"
 			"           | read-rs <filename-pattern> [<nBandsOld>] [<NxOld>] [<NyOld>] [<NzOld>]";
 		comments =
 			"Wavefunction initialization: use atomic orbitals (default), randomize or read from files:\n"
@@ -49,8 +50,6 @@ struct CommandWavefunction : public Command
 			"  <EcutOld> can be used to specify a wavefunction with different planewave cutoff\n"
 			"     the wavefunction will be appropriately up/down-sampled in Foruier space\n"
 			"     default: 0.0 => old and current Ecut must match exactly\n"
-			"  <kdepOld>="+kdepMap.optionList()+" specifies whether the input wavefunction has a k-point dependent basis\n"
-			"     default: kpoint-dependent\n"
 			"  <N*old> specifies fftbox size of the input data when reading real-space wavefunctions\n"
 			"     the wavefunction will be appropriately up/down-sampled in Fourier space\n"
 			"     default: 0 => old and current fftbox must match exactly";
@@ -70,32 +69,39 @@ struct CommandWavefunction : public Command
 				e.eVars.initLCAO = false;
 				break;
 			case WfnsRead:
-				e.eVars.readWfnsRealspace = false;
-				pl.get(e.eVars.wfnsFilename, string(), "filename", true);
-				pl.get(e.eVars.nBandsOld, 0, "nBandsOld");
-				pl.get(e.eVars.EcutOld, 0.0, "EcutOld");
-				pl.get(e.eVars.kdepOld, BasisKpointDep, kdepMap, "kdepOld");
+			{	pl.get(e.eVars.wfnsFilename, string(), "filename", true);
+				auto conversion = std::make_shared<ColumnBundleReadConversion>();
+				conversion-> realSpace = false;
+				pl.get(conversion->nBandsOld, -1, "nBandsOld");
+				pl.get(conversion->EcutOld, 0.0, "EcutOld");
+				if(conversion->nBandsOld>=0) e.eVars.readConversion = conversion;
 				break;
+			}
 			case WfnsReadRS:
-				e.eVars.readWfnsRealspace = true;
-				pl.get(e.eVars.wfnsFilename, string(), "filename", true);
-				pl.get(e.eVars.nBandsOld, 0, "nBandsOld");
-				pl.get(e.eVars.NxOld, 0, "NxOld");
-				pl.get(e.eVars.NyOld, 0, "NyOld");
-				pl.get(e.eVars.NzOld, 0, "NzOld");
+			{	pl.get(e.eVars.wfnsFilename, string(), "filename", true);
+				auto conversion = std::make_shared<ColumnBundleReadConversion>();
+				conversion-> realSpace = true;
+				pl.get(conversion->nBandsOld, 0, "nBandsOld");
+				pl.get(conversion->S_old[0], 0, "NxOld");
+				pl.get(conversion->S_old[1], 0, "NyOld");
+				pl.get(conversion->S_old[2], 0, "NzOld");
+				e.eVars.readConversion = conversion;
 				break;
+			}
 		}
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	if(!e.eVars.wfnsFilename.length())
 			logPrintf(e.eVars.initLCAO ? "lcao" : "random");
-		else if(!e.eVars.readWfnsRealspace)
-			logPrintf("read %s %d %lf %s", e.eVars.wfnsFilename.c_str(), e.eVars.nBandsOld,
-				e.eVars.EcutOld, kdepMap.getString(e.eVars.kdepOld));
+		else if(!e.eVars.readConversion)
+			logPrintf("read %s", e.eVars.wfnsFilename.c_str());
+		else if(!e.eVars.readConversion->realSpace)
+			logPrintf("read %s %d %lf", e.eVars.wfnsFilename.c_str(),
+				e.eVars.readConversion->nBandsOld, e.eVars.readConversion->EcutOld);
 		else
-			logPrintf("read-rs %s %d %d %d %d", e.eVars.wfnsFilename.c_str(), e.eVars.nBandsOld,
-				e.eVars.NxOld, e.eVars.NyOld, e.eVars.NzOld);
+			logPrintf("read-rs %s %d %d %d %d", e.eVars.wfnsFilename.c_str(), e.eVars.readConversion->nBandsOld,
+				e.eVars.readConversion->S_old[0], e.eVars.readConversion->S_old[1], e.eVars.readConversion->S_old[2]);
 	}
 }
 commandWavefunction;

@@ -104,6 +104,13 @@ public:
 	double GmaxGrid; //!< recommended maximum G-vector for radial functions for the density grid
 	static const double maxAllowedStrain; //!< maximum strain allowed when updating lattice vectors and using update()
 	
+	//Recommended division amongst processes
+	//NOTE: Most operators are independent on each process, this is only a suggested division
+	//for functions that are expensive to evaluate at each grid point; the corresponding client
+	//code is responsible for making sure that the final results are broadcast to all processes
+	int irStart, irStop; //division for real space anf full-G space loops
+	int iGstart, iGstop; //division for half-G space loops
+	
 	//FFT plans:
 	fftw_plan planForwardSingle; //!< Single-thread Forward complex transform
 	fftw_plan planInverseSingle; //!< Single-thread Inverse complex transform

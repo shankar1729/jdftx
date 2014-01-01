@@ -78,6 +78,20 @@ void changeGrid_calc(const vector3<int>& iG, const vector3<int>& Sin, const vect
 	#undef COMPUTE_index
 	out[iout] = in[iin];
 }
+__hostanddev__
+void changeGridFull_calc(const vector3<int>& iG, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	//Compute index:
+	#define COMPUTE_index(suffix) \
+		int i##suffix = 0; \
+		for(int k=0; k<3; k++) \
+		{	if(2*iG[k]<1-S##suffix[k] || 2*iG[k]>S##suffix[k]) return; \
+			i##suffix = i##suffix * S##suffix[k] + (iG[k]<0 ? (iG[k]+S##suffix[k]) : iG[k]); \
+		}
+	COMPUTE_index(in)
+	COMPUTE_index(out)
+	#undef COMPUTE_index
+	out[iout] = in[iin];
+}
 
 __hostanddev__ void gradient_calc(int i, const vector3<int> iG, bool nyq, const matrix3<> G,
 	const complex* Xtilde, vector3<complex*>& gradTilde)

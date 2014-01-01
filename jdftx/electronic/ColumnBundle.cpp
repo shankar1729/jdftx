@@ -20,9 +20,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>
+#include <electronic/operators.h>
 #include <core/vector3.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>
+#include <core/DataIO.h>
 #include <fftw3.h>
 
 // Called by other constructors to do the work
@@ -33,7 +35,7 @@ void ColumnBundle::init(int nc, size_t len, const Basis *b, const QuantumNumber*
 	basis = b;
 	qnum = q;
 
-	if(nCols() == 0) return; //must be default constructor
+	if(nCols() == 0) { memFree(); return; } //must be default constructor or assignment to empty ColumnBundle
 	assert(colLength() != 0);
 	memInit(nCols()*colLength(), onGpu); //in base class ManagedMemory
 }
@@ -48,13 +50,12 @@ void ColumnBundle::free()
 
 // (Default) Constructor
 ColumnBundle::ColumnBundle(int nc, size_t len, const Basis *b, const QuantumNumber* q, bool onGpu)
-{	reader = 0;
-	init(nc, len, b, q, onGpu);
+{	init(nc, len, b, q, onGpu);
 }
 // Copy constructor
 ColumnBundle::ColumnBundle(const ColumnBundle &Y)
 {	init(Y.nCols(), Y.colLength(), Y.basis, Y.qnum, Y.isOnGpu()); //initialize size and storage
-	memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
+	if(nData()) memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
 }
 // Move constructor
 ColumnBundle::ColumnBundle(ColumnBundle&& Y)
@@ -73,7 +74,7 @@ ColumnBundle ColumnBundle::similar(int ncOverride) const
 // Copy-assignment
 ColumnBundle& ColumnBundle::operator=(const ColumnBundle &Y)
 {	init(Y.nCols(), Y.colLength(), Y.basis, Y.qnum, Y.isOnGpu()); //initialize size and storage
-	memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
+	if(nData()) memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
 	return *this;
 }
 // Move-assignment
@@ -140,11 +141,13 @@ void ColumnBundle::accumColumn(int i, const complexDataGptr& full)
 
 
 // Allocate an array of ColumnBundles
-void init(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const Basis* basis, const QuantumNumber* qnum)
+void init(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const Basis* basis, const ElecInfo* eInfo)
 {	Y.resize(nbundles);
-	if(ncols && basis && qnum)
-		for(int i=0; i<nbundles; i++)
-			Y[i].init(ncols, basis[i].nbasis, basis+i, qnum+i, isGpuEnabled());
+	if(ncols && basis && eInfo)
+	{	assert(nbundles >= eInfo->qStop);
+		for(int q=eInfo->qStart; q<eInfo->qStop; q++)
+			Y[q].init(ncols, basis[q].nbasis, basis+q, &eInfo->qnums[q], isGpuEnabled());
+	}
 }
 
 
@@ -161,186 +164,124 @@ void ColumnBundle::randomize(int colStart, int colStop)
 			thisData[index(i,j)] = Random::normalComplex(sigma);
 	}
 }
-void randomize(std::vector<ColumnBundle>& Y)
-{	for(ColumnBundle& y: Y) if(y) y.randomize(0, y.nCols());
+void randomize(std::vector<ColumnBundle>& Y, const ElecInfo& eInfo)
+{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		if(Y[q]) Y[q].randomize(0, Y[q].nCols());
 }
 
-void write(const std::vector<ColumnBundle>& Y, const char* fname)
-{	FILE *fp = fopen(fname, "w");
-	if(!fp) die("Error opening %s for writing.\n", fname);
-	for(const ColumnBundle& y: Y) y.write(fp);
-	fclose(fp);
+//--------- Read/write an array of ColumnBundles from/to a file --------------
+
+void write(const std::vector<ColumnBundle>& Y, const char* fname, const ElecInfo& eInfo)
+{	//Compute output length from each process:
+	std::vector<long> nBytes(mpiUtil->nProcesses(), 0); //total bytes to be written on each process
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		nBytes[mpiUtil->iProcess()] += Y[q].nData()*sizeof(complex);
+	//Sync nBytes across processes:
+	if(mpiUtil->nProcesses()>1)
+		for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
+			mpiUtil->bcast(nBytes[iSrc], iSrc);
+	//Compute offset of current process, and expected file length:
+	long offset=0, fsize=0;
+	for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
+	{	if(iSrc<mpiUtil->iProcess()) offset += nBytes[iSrc];
+		fsize += nBytes[iSrc];
+	}
+	//Write to file:
+	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
+	mpiUtil->fseek(fp, offset, SEEK_SET);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		mpiUtil->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
+	mpiUtil->fclose(fp);
 }
 
 
-//-------- Column bundle read() with grid, band change and real-space options ----------
+ColumnBundleReadConversion::ColumnBundleReadConversion()
+: realSpace(false), nBandsOld(0), Ecut(0), EcutOld(0)
+{
+}
 
-struct ColumnBundleReader
-{	int* indexMap; //mapping from old to new indices: i.e. newIndex = indexMap[oldIndex];
-	size_t lengthOld, length; //old and new colum lengths
-	int nBandsOld, nBands; //old and new band number
-
-	ColumnBundleReader(const Everything& e, const ColumnBundle& cb):indexMap(0)
-	{	nBandsOld = e.eVars.nBandsOld; nBands = e.eInfo.nBands;
-		if(e.eVars.EcutOld != e.cntrl.Ecut
-			|| e.eVars.kdepOld != e.cntrl.basisKdep)
-		{	//Need to interpolate
-			const Basis& b = *cb.basis;
-			length = b.nbasis;
-			int ibox[3];
-			for(int k=0; k<3; k++)
-				ibox[k] = 1 + int(e.gInfo.R.column(k).length()
-					* sqrt(2.0*std::max(e.eVars.EcutOld, e.cntrl.Ecut)) / (2*M_PI));
-			register matrix3<> GGT = e.gInfo.GGT;
-			//Calculate input length
-			vector3<> kOld = (e.eVars.kdepOld==BasisKpointDep ? cb.qnum->k : vector3<>(0,0,0));
-			lengthOld = 0;
-			for (int i0 = -ibox[0]; i0 <= ibox[0]; i0++)
-				for (int i1 = -ibox[1]; i1 <= ibox[1]; i1++)
-					for (int i2 = -ibox[2]; i2 <= ibox[2]; i2++)
-					{
-						register vector3<> fOld(i0,i1,i2); fOld += kOld;
-						if(0.5*dot(fOld, GGT*fOld) <= e.eVars.EcutOld)
-							lengthOld++;
-					}
-			//Create index map:
-			indexMap = new int[lengthOld];
-			register int indexOld=0, index=0;
-			vector3<> k = (e.cntrl.basisKdep==BasisKpointDep ? cb.qnum->k : vector3<>(0,0,0));
-			for (int i0 = -ibox[0]; i0 <= ibox[0]; i0++)
-				for (int i1 = -ibox[1]; i1 <= ibox[1]; i1++)
-					for (int i2 = -ibox[2]; i2 <= ibox[2]; i2++)
-					{
-						register vector3<> f(i0,i1,i2); f+=k; register bool in = 0.5*dot(f,GGT*f) <= e.cntrl.Ecut;
-						register vector3<> fOld(i0,i1,i2); fOld += kOld; register bool inOld = 0.5*dot(fOld,GGT*fOld) <= e.eVars.EcutOld;
-						if(inOld)
-						{	indexMap[indexOld] = (in ? index : -1); //negative index points discarded during transfer
-							indexOld++;
-						}
-						if(in) index++;
-					}
-		}
-		else
-			length = lengthOld = cb.basis->nbasis;
-	}
-	~ColumnBundleReader()
-	{	if(indexMap) delete[] indexMap;
-	}
-
-	void read(FILE* fp, ColumnBundle& cb)
-	{	complex* buf = new complex[lengthOld];
-		cb.zero();
-		for(int b=0; b<nBandsOld; b++)
-		{	complex* cb_b_data = cb.data() + cb.index(b,0);
-			fread(buf,sizeof(complex),lengthOld,fp);
-			if(b<nBands)
-			{
-				if(indexMap)
-				{	//Need conversion:
-					for(size_t i=0; i<lengthOld; i++)
-						if(indexMap[i]>=0)
-							cb_b_data[indexMap[i]] = buf[i];
-				}
-				else
-				{	//No conversion:
-					memcpy(cb_b_data, buf, sizeof(complex)*length);
-				}
+void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo, const ColumnBundleReadConversion* conversion)
+{	if(conversion && conversion->realSpace)
+	{	if(eInfo.qStop==eInfo.qStart) return; //no k-point on this process
+		const GridInfo* gInfoWfns = Y[eInfo.qStart].basis->gInfo;
+		//Create a custom gInfo if necessary:
+		GridInfo gInfoCustom;
+		gInfoCustom.R = gInfoWfns->R;
+		gInfoCustom.S = conversion->S_old;
+		for(int k=0; k<3; k++) if(!gInfoCustom.S[k]) gInfoCustom.S[k] = gInfoWfns->S[k];
+		bool needCustom = !(gInfoCustom.S == gInfoWfns->S);
+		if(needCustom) { logSuspend(); gInfoCustom.initialize(); logResume(); }
+		const GridInfo& gInfo = needCustom ? gInfoCustom : *gInfoWfns;
+		//Read one column at a time:
+		complexDataRptr Icol; nullToZero(Icol, gInfo);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	int nCols = Y[q].nCols();
+			if(conversion->nBandsOld) nCols = std::min(nCols, conversion->nBandsOld);
+			for(int b=0; b<nCols; b++)
+			{	char fname_qb[1024]; sprintf(fname_qb, fname, q, b);
+				loadRawBinary(Icol, fname_qb);
+				if(needCustom) Y[q].setColumn(b, changeGrid(J(Icol), *gInfoWfns));
+				else Y[q].setColumn(b, J(Icol));
 			}
 		}
-		delete[] buf;
 	}
-};
-
-void ColumnBundle::read(FILE *fp)
-{	reader->read(fp, *this);
-}
-
-size_t ColumnBundle::createReader(const Everything& e)
-{	reader = new ColumnBundleReader(e, *this);
-	return reader->nBandsOld * reader->lengthOld * sizeof(complex);
-}
-void ColumnBundle::destroyReader()
-{	delete reader;
-}
-
-void readRealSpace(std::vector<ColumnBundle>& Y, const char *fnamePattern, const Everything& e)
-{	const ElecVars& eVars = e.eVars;
-	const ElecInfo& eInfo = e.eInfo;
-	int nBandsOld = eVars.nBandsOld, nBands = eInfo.nBands;
-	int Nx = eVars.NxOld;
-	int Ny = eVars.NyOld;
-	int Nz = eVars.NzOld;
-	size_t lengthOld = Nx * Ny * Nz;
-	complex* buf = (complex*)fftw_malloc(lengthOld*sizeof(complex));
-	fftw_plan planJ = fftw_plan_dft_3d(Nx,Ny,Nz, (fftw_complex*)buf,(fftw_complex*)buf, FFTW_FORWARD, FFTW_MEASURE);
-	double scaleFac = sqrt(e.gInfo.detR)/lengthOld;
-
-	for(unsigned q=0; q<Y.size(); q++)
-	{	const Basis& b = *Y[q].basis;
-		size_t length = b.nbasis;
-		int* indexMap = new int[length];
-
-		//Initialize the index map:
-		register size_t index=0;
-		const matrix3<>& GGT = e.gInfo.GGT;
-		vector3<> k = (e.cntrl.basisKdep==BasisKpointDep ? Y[q].qnum->k : vector3<>(0,0,0));
-		int ibox[3]; for(int i=0; i<3; i++) ibox[i] = (b.gInfo->S[i]-2)/4+1;
-		for (int i0 = -ibox[0]; i0 <= ibox[0]; i0++)
-			for (int i1 = -ibox[1]; i1 <= ibox[1]; i1++)
-				for (int i2 = -ibox[2]; i2 <= ibox[2]; i2++)
-				{
-					bool inOld = true; register int indexOld=0;
-					if(abs(i0)<Nx/2) indexOld = indexOld*Nx + (i0>=0 ? i0 : (Nx+i0)); else inOld=false;
-					if(abs(i1)<Ny/2) indexOld = indexOld*Ny + (i1>=0 ? i1 : (Ny+i1)); else inOld=false;
-					if(abs(i2)<Nz/2) indexOld = indexOld*Nz + (i2>=0 ? i2 : (Nz+i2)); else inOld=false;
-
-					register vector3<> f(i0,i1,i2); f += k;
-					if(0.5*dot(f,GGT*f) <= e.cntrl.Ecut)
-						indexMap[index++] = (inOld ? indexOld : -1); //negative index points discarded during transfer
-				}
-		assert(index==length);
-
-		for(int b=0; b<std::min(nBands,nBandsOld); b++)
-		{	char fname[1024]; sprintf(fname, fnamePattern, q, b);
-			FILE* fp = fopen(fname, "rb");
-			size_t nRead = fread(buf, sizeof(complex), lengthOld, fp);
-			if(nRead < lengthOld) die("File '%s' ended too soon: %lu records of expected %lu.\n", fname, nRead, lengthOld);
-
-			fftw_execute(planJ); //transforms buf in-place
-			complex* Yq_b_data = Y[q].data() + Y[q].index(b,0);
-			for(size_t i=0; i<length; i++)
-				 Yq_b_data[i] = (indexMap[i]>=0 ? scaleFac*buf[indexMap[i]] : 0.0);
-		}
-		delete[] indexMap;
-	}
-	delete[] buf;
-	fftw_destroy_plan(planJ);
-}
-
-// Read/write an array of ColumnBundles from/to a file
-void read(std::vector<ColumnBundle>& Y, const char *fname, const Everything& e)
-{
-	if(e.eVars.readWfnsRealspace) readRealSpace(Y, fname, e);
 	else
-	{	//Fourier space read:
-		off_t fLen = fileSize(fname);
-		if(fLen<0) die("Error accessing '%s'.\n", fname);
-
-		//make sure file size exactly matches expectation
-		off_t expectedLen=0;
-		for(ColumnBundle& y: Y) expectedLen += y.createReader(e);
-		if(expectedLen!=fLen)
-		{	die("Length of '%s' was %ld instead of the expected %ld bytes.\n"
-				"Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n",
-				fname, (unsigned long)fLen, (unsigned long)expectedLen);
+	{	//Check if a conversion is actually needed:
+		std::vector<ColumnBundle> Ytmp(eInfo.qStop);
+		std::vector<Basis> basisTmp(eInfo.qStop);
+		std::vector<long> nBytes(mpiUtil->nProcesses(), 0); //total bytes to be read on each process
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	bool needTmp = false, customBasis = false;
+			int nCols = Y[q].nCols();
+			if(conversion)
+			{	if(conversion->nBandsOld && conversion->nBandsOld!=nCols)
+				{	nCols = conversion->nBandsOld;
+					needTmp = true;
+				}
+				double EcutOld = conversion->EcutOld ? conversion->EcutOld : conversion->Ecut;
+				customBasis = (EcutOld!=conversion->Ecut);
+				if(customBasis)
+				{	needTmp = true;
+					logSuspend();
+					basisTmp[q].setup(*(Y[q].basis->gInfo), *(Y[q].basis->iInfo), EcutOld, Y[q].qnum->k);
+					logResume();
+				}
+			}
+			const Basis* basis = customBasis ? &basisTmp[q] : Y[q].basis;
+			if(needTmp) Ytmp[q].init(nCols, basis->nbasis, basis, Y[q].qnum);
+			nBytes[mpiUtil->iProcess()] += nCols * basis->nbasis * sizeof(complex);
 		}
-
-		FILE *fp = fopen(fname,"rb");
-		for(ColumnBundle& y: Y)
-		{	y.read(fp);
-			y.destroyReader();
+		//Sync nBytes:
+		if(mpiUtil->nProcesses()>1)
+			for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
+				mpiUtil->bcast(nBytes[iSrc], iSrc);
+		//Compute offset of current process, and expected file length:
+		long offset=0, fsize=0;
+		for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
+		{	if(iSrc<mpiUtil->iProcess()) offset += nBytes[iSrc];
+			fsize += nBytes[iSrc];
 		}
-		fclose(fp);
+		//Read data into Ytmp or Y as appropriate, and convert if necessary:
+		MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, fsize, "Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n");
+		mpiUtil->fseek(fp, offset, SEEK_SET);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	ColumnBundle& Ycur = Ytmp[q] ? Ytmp[q] : Y[q];
+			mpiUtil->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
+			if(Ytmp[q]) //apply conversions:
+			{	if(Ytmp[q].basis!=Y[q].basis)
+				{	for(int b=0; b<std::min(Y[q].nCols(), Ytmp[q].nCols()); b++)
+						Y[q].setColumn(b, Ytmp[q].getColumn(b)); //convert using the full G-space as an intermediate
+					//Ytmp[q] = switchBasis(Ytmp[q], *Y[q].basis);
+				}
+				//if(Ytmp[q].nCols()==Y[q].nCols()) Y[q] = Ytmp[q];
+				else
+				{	if(Ytmp[q].nCols()<Y[q].nCols()) Y[q].setSub(0, Ytmp[q]);
+					else Y[q] = Ytmp[q].getSub(0, Y[q].nCols());
+				}
+				Ytmp[q].free();
+			}
+		}
+		mpiUtil->fclose(fp);
 	}
 }
 

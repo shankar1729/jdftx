@@ -71,8 +71,11 @@ void Dump::dumpQMC()
 	//Output potential directly in BLIP-function basis (cubic B-splines)
 	DataRptr VdielBlip(blipConvert(Vdiel));
 
-	fname = getFilename("expot.data");
-	logPrintf("Dumping '%s'...", fname.c_str()); logFlush();
+	#define StartDump(varName) \
+		fname = getFilename(varName); \
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush(); \
+		if(!mpiUtil->isHead()) fname = "/dev/null";
+	StartDump("expot.data")
 	ofs.open(fname);
 	ofs.precision(12);
 	ofs.setf(std::ios::scientific);
@@ -122,15 +125,14 @@ void Dump::dumpQMC()
 			varName += s==0 ? "Up" : "Dn";
 		fname = getFilename(varName);
 		logPrintf("Dumping '%s'...", fname.c_str()); logFlush();
-		saveRawBinary(blipConvert(eVars.Vexternal[s]), fname.c_str());
+		if(mpiUtil->isHead()) saveRawBinary(blipConvert(eVars.Vexternal[s]), fname.c_str());
 		logPrintf("done.\n"); logFlush();
 	}
 	
 	//-------------------------------------------------------------------------------------------
 	//Output wavefunctions directly in BLIP-function basis (cubic B-splines)
-
-	fname = getFilename("bwfn.data");
-	logPrintf("Dumping '%s':\n", fname.c_str()); logFlush();
+	StartDump("bwfn.data")
+	logPrintf("\n");
 	ofs.open(fname);
 	ofs.precision(12);
 	ofs.setf(std::ios::scientific);
@@ -221,6 +223,32 @@ void Dump::dumpQMC()
 		{
 			int spinIndex = 1-2*s;
 			int q = ik + nkPoints*s; //net quantum number
+			
+			//Get relevant wavefunctions and eigenvalues (from another process if necessary)
+			ColumnBundle CqTemp; diagMatrix Hsub_eigsqTemp;
+			const ColumnBundle* Cq=0; const diagMatrix* Hsub_eigsq=0;
+			if(mpiUtil->isHead())
+			{	if(eInfo.isMine(q))
+				{	Cq = &eVars.C[q];
+					Hsub_eigsq = &eVars.Hsub_eigs[q];
+				}
+				else
+				{	Cq = &CqTemp;
+					CqTemp.init(eInfo.nBands, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q]);
+					CqTemp.recv(eInfo.whose(q));
+					Hsub_eigsq = &Hsub_eigsqTemp;
+					Hsub_eigsqTemp.resize(eInfo.nBands);
+					Hsub_eigsqTemp.recv(eInfo.whose(q));
+				}
+			}
+			else
+			{	if(eInfo.isMine(q))
+				{	eVars.C[q].send(0);
+					eVars.Hsub_eigs[q].send(0);
+				}
+				continue; //only head performs computation below
+			}
+			
 			//Loop over bands
 			for (int b=0; b < eInfo.nBands; b++)
 			{
@@ -228,10 +256,10 @@ void Dump::dumpQMC()
 				int bandIndex = b+1 + s*eInfo.nBands;
 				ofs <<
 					" Band, spin, eigenvalue (au), localized\n"
-					"  " << bandIndex << " " << spinIndex << " " << eVars.Hsub_eigs[q][b] << " F\n"
+					"  " << bandIndex << " " << spinIndex << " " << Hsub_eigsq->at(b) << " F\n"
 					" " << (nkPoints==1 ? "Real" : "Complex") << " blip coefficients for extended orbitals\n";
 				//Get orbital in real space
-				complexDataRptr phi = I(eVars.C[q].getColumn(b));
+				complexDataRptr phi = I(Cq->getColumn(b));
 				//Compute kinetic and potential energy (in Vdiel) of original PW orbitals:
 				double Tpw = -0.5*dot(phi, Jdag(L(J(phi)))).real();
 				double Vpw = gInfo.dV*dot(phi, Vdiel*phi).real();

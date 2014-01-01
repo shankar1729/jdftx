@@ -184,6 +184,18 @@ void changeGrid_gpu(const vector3<int>& S, const vector3<int>& Sin, const vector
 	gpuErrorCheck();
 }
 
+__global__
+void changeGridFull_kernel(int zBlock, const vector3<int> S, const vector3<int> Sin, const vector3<int> Sout, const complex* in, complex* out)
+{	COMPUTE_fullGindices
+	changeGridFull_calc(iG, Sin, Sout, in, out);
+}
+void changeGridFull_gpu(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	GpuLaunchConfig3D glc(changeGridFull_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		changeGridFull_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sin, Sout, in, out);
+	gpuErrorCheck();
+}
+
 
 __global__
 void gradient_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const complex* Xtilde, vector3<complex*> gradTilde)

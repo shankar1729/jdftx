@@ -26,6 +26,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <list>
 
+int ElecInfo::whose(int q) const
+{	if(mpiUtil->nProcesses()>1) return std::upper_bound(qStopArr.begin(),qStopArr.end(), q) - qStopArr.begin();
+	else return 0;
+}
+
 int ElecInfo::findHOMO(int q) const
 {	int HOMO = 0;
 	for(int n=(e->eVars.F[q].size()-1); n>=0; n--)
@@ -34,7 +39,7 @@ int ElecInfo::findHOMO(int q) const
 }
 
 ElecInfo::ElecInfo()
-: nStates(0), nBands(0), spinType(SpinNone), spinRestricted(false), nElectrons(0), 
+: nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), spinRestricted(false), nElectrons(0), 
 fillingsUpdate(ConstantFillings), kT(1e-3), mu(std::numeric_limits<double>::quiet_NaN()),
 mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
 fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
@@ -52,7 +57,14 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	//k-points are folded before symmetry setup, now reduce them under symmetries:
 	kpointsReduce();
 	nStates = qnums.size();
-
+	
+	//Determine distribution amongst processes: (TODO: weight division by node capability in heterogeneous contexts)
+	qStart = (nStates * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	qStop = (nStates * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	qStopArr.resize(mpiUtil->nProcesses());
+	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
+		qStopArr[iProc] = (nStates * (iProc+1)) / mpiUtil->nProcesses();
+	
 	// allocate the fillings matrices.
 	F.resize(nStates);
 
@@ -89,11 +101,10 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	//--- No initial fillings, fill the lowest orbitals in each spin channel:
 	if(!initialFillingsFilename.length())
 	{	logPrintf("Calculating initial fillings.\n");
-		for (int q = 0; q < nStates; q++)
-		{
-			F[q].assign(nBands, 0.);
+		for(int q=qStart; q<qStop; q++)
+		{	F[q].assign(nBands, 0.);
 			double ftot = nsElectrons[qnums[q].index()] * wInv; //total of all fillings in this state
-			for (int b = 0; b<nBands; b++)
+			for(int b = 0; b<nBands; b++)
 			{	if(ftot>1) F[q][b]=1;
 				else if(ftot>0) { F[q][b]=ftot; break; }
 				ftot -= F[q][b];
@@ -102,14 +113,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	}
 	else
 	{	logPrintf("Reading initial fillings from file %s.\n", initialFillingsFilename.c_str());
-		FILE* fp = fopen(initialFillingsFilename.c_str(),"r");
-		if(!fp) die("Can't open file %s to read initial fillings!\n", initialFillingsFilename.c_str());
-
 		if(nBandsOld <= 0) nBandsOld=nBands;
-		for (int q=0; q<nStates; q++)
-		{	F[q].resize(nBandsOld);
-			F[q].scan(fp);
-			F[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
+		read(F, initialFillingsFilename.c_str(), nBandsOld);
+		
+		for(int q=qStart; q<qStop; q++)
+		{	F[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
 			
 			//Check fillings:
 			for(int b=0; b<nBandsOld; b++)
@@ -150,10 +158,12 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 						"   between kpoints. You may do that manually, but maybe that's not a good idea.\n", q);
 			}
 		}
-		fclose(fp);
 		
 		//Compute electron count (override the previous atom-valence + qNet based value):
-		nElectrons=0.; for(int q=0; q<nStates; q++) nElectrons += qnums[q].weight * trace(F[q]);
+		nElectrons=0.;
+		for(int q=qStart; q<qStop; q++)
+			nElectrons += qnums[q].weight * trace(F[q]);
+		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
 	}
 	
 	//subspace_rotation is false by default
@@ -177,8 +187,9 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		if(!e->cntrl.fixed_n) //Band structure never requires subspace-rotations
 		{	//Check if fillings are scalar (then subspace rotations are not needed as [Hsub,F]=0)
 			bool scalarFillings = true;
-			for(int q = 0; q < nStates; q++)
+			for(int q=qStart; q<qStop; q++)
 				scalarFillings &= F[q].isScalar();
+			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
 			if(!scalarFillings)
 			{	subspaceRotation = true;
 				logPrintf("Turning on subspace rotations due to non-diagonal fillings.\n");
@@ -200,8 +211,20 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 
 void ElecInfo::printFillings(FILE* fp) const
 {	//NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
-	for(int q=0; q < nStates; q++)
-		(e->eVars.F[q] * (spinType==SpinNone ? 2 : 1)).print(fp, "%20.14le ");
+	if(mpiUtil->isHead())
+		for(int q=0; q<nStates; q++)
+		{	diagMatrix const* Fq = &e->eVars.F[q];
+			diagMatrix FqTemp;
+			if(!isMine(q))
+			{	FqTemp.resize(nBands);
+				FqTemp.recv(whose(q));
+				Fq = &FqTemp;
+			}
+			((*Fq) * (spinType==SpinNone ? 2 : 1)).print(fp, "%20.14le ");
+		}
+	else
+		for(int q=qStart; q<qStop; q++)
+			e->eVars.F[q].send(0);
 }
 
 void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
@@ -243,7 +266,7 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 	}
 	
 	//Mix in fillings at new mu:
-	for(int q=0; q<nStates; q++)
+	for(int q=qStart; q<qStop; q++)
 		F[q] = (1-fillingMixFraction)*F[q] + fillingMixFraction*fermi(muMix, eVars.Hsub_eigs[q]);
 	
 	if(e->cntrl.shouldPrintEigsFillings)
@@ -260,7 +283,7 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies& ener) const
 {
 	ener.TS = 0.0;
-	for(int q=0; q<nStates; q++)
+	for(int q=qStart; q<qStop; q++)
 	{	double Sq = 0.0;
 		for(double Fqi: F[q])
 		{	if(Fqi>1e-300) Sq += Fqi*log(Fqi);
@@ -268,6 +291,7 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies
 		}
 		ener.TS -= kT * qnums[q].weight * Sq;
 	}
+	mpiUtil->allReduce(ener.TS, MPIUtil::ReduceSum);
 
 	//Grand canonical multiplier if fixed mu:
 	if(!std::isnan(mu)) ener.muN = mu * nElectrons;
@@ -304,9 +328,10 @@ matrix ElecInfo::fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF
 //Number of electrons in a fermi distribution of given mu and eigenvalues:
 double ElecInfo::nElectronsFermi(double mu, const std::vector<diagMatrix>& eps) const
 {	double N = 0.0;
-	for (unsigned q=0; q<qnums.size(); q++)
+	for(int q=qStart; q<qStop; q++)
 		for(double epsCur: eps[q])
 			N += qnums[q].weight*fermi(mu, epsCur);
+	mpiUtil->allReduce(N, MPIUtil::ReduceSum, true);
 	return N;
 }
 
@@ -343,9 +368,9 @@ struct FitParams
 int fitMu_fdf(const gsl_vector* x, void* params, gsl_vector* residual, gsl_matrix* jacobian)
 {	const FitParams& p = *((const FitParams*)params);
 	double mu = gsl_vector_get(x, 0);
-	int resIndex=0;
-	for(unsigned q=0; q<p.F.size(); q++)
-	{	for(int b=0; b<p.F[q].nRows(); b++)
+	int resIndex = p.eInfo.nBands*p.eInfo.qStart;
+	for(int q=p.eInfo.qStart; q<p.eInfo.qStop; q++)
+	{	for(int b=0; b<p.eInfo.nBands; b++)
 		{	//Compute the fermi function and derivative
 			double f = p.eInfo.fermi(mu, p.eps[q][b]);
 			double fPrime = -p.eInfo.fermiPrime(mu, p.eps[q][b]); //note: fprime is df/deps (we need df/dmu)
@@ -353,6 +378,14 @@ int fitMu_fdf(const gsl_vector* x, void* params, gsl_vector* residual, gsl_matri
 			if(residual) gsl_vector_set(residual, resIndex, weight*(f - p.F[q][b]));
 			if(jacobian) gsl_matrix_set(jacobian, resIndex, 0, weight*fPrime);
 			resIndex++;
+		}
+	}
+	if(mpiUtil->nProcesses()>1)
+	{	for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
+		{	int qStart = p.eInfo.qStartOther(iSrc);
+			int qCount = p.eInfo.qStopOther(iSrc) - qStart;
+			mpiUtil->bcast(gsl_vector_ptr(residual, qStart*p.eInfo.nBands),    qCount*p.eInfo.nBands, iSrc);
+			mpiUtil->bcast(gsl_matrix_ptr(jacobian, qStart*p.eInfo.nBands, 0), qCount*p.eInfo.nBands, iSrc);
 		}
 	}
 	return 0;
@@ -474,4 +507,58 @@ void ElecInfo::kpointPrint(int q, bool printSpin) const
 	logPrintf("%5d\t[ %10.6f %10.6f %10.6f ] %8.6f", q,
 			qnums[q].k[0], qnums[q].k[1], qnums[q].k[2], qnums[q].weight);
 		if(printSpin) logPrintf("  spin %2d", qnums[q].spin);
+}
+
+
+//-------------- diagMatrix/matrix array parallel I/O ------------------
+
+void ElecInfo::read(std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
+{	int nRows = nRowsOverride ? nRowsOverride : nBands;
+	M.resize(nStates);
+	MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, nStates*nRows*sizeof(double));
+	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
+	for(int q=qStart; q<qStop; q++)
+	{	M[q].resize(nBands);
+		mpiUtil->fread(M[q].data(), sizeof(double), nRows, fp);
+	}
+	mpiUtil->fclose(fp);
+}
+
+void ElecInfo::read(std::vector<matrix>& M, const char *fname, int nRowsOverride, int nColsOverride) const
+{	int nRows = nRowsOverride ? nRowsOverride : nBands;
+	int nCols = nColsOverride ? nColsOverride : nBands;
+	M.resize(nStates);
+	MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, nStates*nRows*nCols*sizeof(complex));
+	mpiUtil->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
+	for(int q=qStart; q<qStop; q++)
+	{	M[q].init(nRows, nCols);
+		mpiUtil->fread(M[q].data(), sizeof(complex), M[q].nData(), fp);
+	}
+	mpiUtil->fclose(fp);
+}
+
+void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
+{	int nRows = nRowsOverride ? nRowsOverride : nBands;
+	assert(int(M.size())==nStates);
+	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
+	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
+	for(int q=qStart; q<qStop; q++)
+	{	assert(M[q].nRows()==nRows);
+		mpiUtil->fwrite(M[q].data(), sizeof(double), nRows, fp);
+	}
+	mpiUtil->fclose(fp);
+}
+
+void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsOverride, int nColsOverride) const
+{	int nRows = nRowsOverride ? nRowsOverride : nBands;
+	int nCols = nColsOverride ? nColsOverride : nBands;
+	assert(int(M.size())==nStates);
+	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
+	mpiUtil->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
+	for(int q=qStart; q<qStop; q++)
+	{	assert(M[q].nRows()==nRows);
+		assert(M[q].nCols()==nCols);
+		mpiUtil->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
+	}
+	mpiUtil->fclose(fp);
 }

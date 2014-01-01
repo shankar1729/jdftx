@@ -26,10 +26,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Functions required by Minimizable<matrix3<>>
 void axpy(double alpha, const matrix3<>& x, matrix3<>& y) { y += alpha * x; }
-double dot(const matrix3<>& x, const matrix3<>& y) { return trace(x*(~y)); }
+double dot(const matrix3<>& x, const matrix3<>& y)
+{	double result = trace(x*(~y));
+	mpiUtil->bcast(result);
+	return result;
+}
 matrix3<> clone(const matrix3<>& x) { return x; }
 void randomize(matrix3<>& x) { for(int i=0; i<3; i++) for(int j=0; j<3; j++) x(i,j) = Random::normal(); }
 
+void bcast(matrix3<>& x)
+{	for(int k=0; k<3; k++)
+		mpiUtil->bcast(&x(k,0), 3);
+}
 
 //-------------  class LatticeMinimizer -----------------
 
@@ -101,7 +109,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
 	int nAtomic = e.iInfo.nAtomicOrbitals();
 	if(e.cntrl.dragWavefunctions && nAtomic)
-		for(int q=0; q<e.eInfo.nStates; q++)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for old lattice:
 			e.eVars.Y[q].free();
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
@@ -115,11 +123,12 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	//Change lattice:
 	strain += alpha * dir;
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(true); // Updates lattice information but does not touch electronic state / calc electronic energy
 
 	//Restore wavefunctions from atomic orbitals:
 	if(e.cntrl.dragWavefunctions && nAtomic)
-		for(int q=0; q<e.eInfo.nStates; q++)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for new lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
 			//Reconstitute and orthonormalize wavefunctions:
@@ -155,7 +164,9 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		updateLatticeDependent();
 	}
 	
-	return relevantFreeEnergy(e);
+	double ener = relevantFreeEnergy(e);
+	mpiUtil->bcast(ener);
+	return ener;
 }
 
 std::vector< double > LatticeMinimizer::calculateStress()

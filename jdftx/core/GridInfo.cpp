@@ -268,6 +268,12 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	nG = S[0] * S[1] * (S[2]/2+1);
 	updateSdependent();
 	
+	//Process division recommendations:
+	irStart = (nr * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	irStop = (nr * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	iGstart = (nG * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	iGstop = (nG * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	
 	logPrintf("Planning FFTs (this might take a while for a new big problem size) ... "); logFlush();
 
 	#ifdef GPU_ENABLED

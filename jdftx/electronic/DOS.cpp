@@ -655,7 +655,7 @@ void DOS::dump()
 		t.V *= VnormFac; //normalize volume of tetrahedra to add up to 2/nSpins
 	
 	//Set uniform weights for Total mode:
-	for(int iState=0; iState<eInfo.nStates; iState++)
+	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 		for(int iBand=0; iBand<eInfo.nBands; iBand++)
 			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 				if(weights[iWeight].type == Weight::Total)
@@ -704,7 +704,7 @@ void DOS::dump()
 	}
 	//Compute the overlap of the density for each states and band, with each of the density weight functions:
 	if(needDensity)
-	{	for(int iState=0; iState<eInfo.nStates; iState++)
+	{	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 		{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
 			{	QuantumNumber qnumTemp = e->eInfo.qnums[iState]; qnumTemp.spin = 0;
 				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
@@ -723,7 +723,7 @@ void DOS::dump()
 	}
 	
 	//Compute projections for orbital mode:
-	for(int iState=0; iState<eInfo.nStates; iState++)
+	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 	{	const ColumnBundle& C = e->eVars.C[iState];
 		//Initialize ortho-atomic-orbitals if required:
 		bool needOrthoOrbitals = false;
@@ -778,19 +778,51 @@ void DOS::dump()
 	}
 	
 	//Apply the filling weights and set the eigenvalues:
-	for(int iState=0; iState<eInfo.nStates; iState++)
+	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 		for(int iBand=0; iBand<eInfo.nBands; iBand++)
 		{	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 				if(weights[iWeight].fillingMode == Weight::Occupied)
 					eval.w(iWeight, iState, iBand) *= e->eVars.F[iState][iBand];
 			eval.e(iState, iBand) = e->eVars.Hsub_eigs[iState][iBand];
 		}
-	eval.weldEigenvalues();
+		
+	//Synchronize eigenvalues and weights between processes:
+	if(mpiUtil->nProcesses()>1)
+	{	if(mpiUtil->isHead())
+		{	for(int iSrc=1; iSrc<mpiUtil->nProcesses(); iSrc++)
+			{	int qStart = eInfo.qStartOther(iSrc);
+				int qStop = eInfo.qStopOther(iSrc);
+				std::vector<double> message((qStop-qStart)*eInfo.nBands*(weights.size()+1));
+				mpiUtil->recv(message.data(), message.size(), iSrc, 0);
+				const double* messagePtr = message.data();
+				for(int iState=qStart; iState<qStop; iState++)
+					for(int iBand=0; iBand<eInfo.nBands; iBand++)
+					{	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+							eval.w(iWeight, iState, iBand) = *(messagePtr++);
+						eval.e(iState, iBand) = *(messagePtr++);
+					}
+			}
+		}
+		else
+		{	//Pack data into a single message:
+			std::vector<double> message((eInfo.qStop-eInfo.qStart)*eInfo.nBands*(weights.size()+1));
+			double* messagePtr = message.data();
+			for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
+				for(int iBand=0; iBand<eInfo.nBands; iBand++)
+				{	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+						*(messagePtr++) = eval.w(iWeight, iState, iBand);
+					*(messagePtr++) = eval.e(iState, iBand);
+				}
+			mpiUtil->send(message.data(), message.size(), 0, 0);
+		}
+	}
+	if(!mpiUtil->isHead()) return;
 	
-	//Compute and print density of states:
+	//Compute and print density of states (head only):
 	string header = "\"Energy\"";
 	for(const Weight& weight: weights)
 		header += ("\t\"" + weight.getDescription(*e) + "\"");
+	eval.weldEigenvalues();
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 		eval.printDOS(iSpin*qCount, e->dump.getFilename(nSpins==1 ? "dos" : (iSpin==0 ? "dosUp" : "dosDn")), header);
 }

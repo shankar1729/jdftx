@@ -30,6 +30,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #include <core/DataMultiplet.h>
 
+//---------------- Subset wrapper for MPI parallelization --------------------
+
+void Functional::evaluateSub(int iStart, int iStop,
+	std::vector<const double*> n, std::vector<const double*> sigma,
+	std::vector<const double*> lap, std::vector<const double*> tau,
+	double* E, std::vector<double*> E_n, std::vector<double*> E_sigma,
+	std::vector<double*> E_lap, std::vector<double*> E_tau) const
+{
+	struct Offset
+	{	int iStart;
+		std::vector<const double*> operator()(std::vector<const double*> v) { auto vOut=v; for(auto& p: vOut) if(p) p+=iStart; return vOut; }
+		std::vector<double*> operator()(std::vector<double*> v) { auto vOut=v; for(auto& p: vOut) if(p) p+=iStart; return vOut; }
+	}
+	offset;
+	offset.iStart = iStart;
+	evaluate(iStop-iStart, offset(n), offset(sigma), offset(lap), offset(tau), E ? E+iStart : 0, offset(E_n), offset(E_sigma), offset(E_lap), offset(E_tau));
+}
+
 //---------------- LDA thread launcher / gpu switch --------------------
 
 FunctionalLDA::FunctionalLDA(LDA_Variant variant, double scaleFac) : Functional(scaleFac), variant(variant)
@@ -453,7 +471,11 @@ bool ExCorr::needsKEdensity() const
 
 double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, bool includeKinetic,
 		const DataRptrCollection* tauPtr, DataRptrCollection* Vtau) const
-{	const int nCount = n.size();
+{
+	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
+	watch.start();
+	
+	const int nCount = n.size();
 	assert(nCount==1 || nCount==2);
 	const int sigmaCount = 2*nCount-1;
 	const GridInfo& gInfo = e->gInfo;
@@ -490,18 +512,25 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	//Additional inputs/outputs for GGAs (gradient contractions and gradients w.r.t those)
 	DataRptrCollection sigma(sigmaCount), E_sigma(sigmaCount);
 	std::vector<DataRptrVec> Dn(nCount);
+	int iDirStart = (3*mpiUtil->iProcess())/mpiUtil->nProcesses();
+	int iDirStop = (3*(mpiUtil->iProcess()+1))/mpiUtil->nProcesses();
 	if(needsSigma)
 	{	//Compute the gradients of the (spin-)densities:
 		for(int s=0; s<nCount; s++)
 		{	const DataGptr Jn = J(n[s]);
-			for(int i=0; i<3; i++)
+			for(int i=iDirStart; i<iDirStop; i++)
 				Dn[s][i] = I(D(Jn,i),true);
 		}
 		//Compute the required contractions:
 		for(int s1=0; s1<nCount; s1++)
 			for(int s2=s1; s2<nCount; s2++)
-				for(int i=0; i<3; i++)
+			{	for(int i=iDirStart; i<iDirStop; i++)
 					sigma[s1+s2] += Dn[s1][i] * Dn[s2][i];
+				watchComm.start();
+				nullToZero(sigma[s1+s2], gInfo);
+				sigma[s1+s2]->allReduce(MPIUtil::ReduceSum);
+				watchComm.stop();
+			}
 		//Allocate gradient if required:
 		if(Vxc) nullToZero(E_sigma, gInfo, sigmaCount);
 	}
@@ -566,10 +595,12 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		}
 		
 		//Calculate all the required functionals:
+		watchFunc.start();
 		for(auto func: functionals->libXC)
 			if(includeKinetic || !func->isKinetic())
 				func->evaluate(nCount, gInfo.nr, nData, sigmaData, lapData, tauData,
 					eData, E_nData, E_sigmaData, E_lapData, E_tauData);
+		watchFunc.stop();
 		
 		//Uninterleave spin-vector field results:
 		if(nCount != 1)
@@ -591,13 +622,23 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	#endif //LIBXC_ENABLED
 	
 	//---------------- Compute internal functionals ----------------
-	
+	watchFunc.start();
 	for(auto func: functionals->internal)
 		if(includeKinetic || !func->isKinetic())
-			func->evaluate(gInfo.nr,
+			func->evaluateSub(gInfo.irStart, gInfo.irStop,
 				constDataPref(nCapped), constDataPref(sigma), constDataPref(lap), constDataPref(tau),
 				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
+	watchFunc.stop();
 	
+	//---------------- Collect resb results over processes ----------------
+	watchComm.start();
+	E->allReduce(MPIUtil::ReduceSum);
+	for(DataRptr& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(DataRptr& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(DataRptr& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(DataRptr& x: E_tau) if(x) x->allReduce(MPIUtil::ReduceSum);
+	watchComm.stop();
+
 	//--------------- Gradient propagation ---------------------
 	
 	//Propagate gradient w.r.t sigma and lap to grad_n (for GGA/mGGAs)
@@ -606,7 +647,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		if(needsSigma)
 		{	for(int s1=0; s1<nCount; s1++)
 				for(int s2=s1; s2<nCount; s2++)
-					for(int i=0; i<3; i++)
+					for(int i=iDirStart; i<iDirStop; i++)
 					{	if(s1==s2) E_nTilde[s1] -= D(Idag(2*(E_sigma[2*s1] * Dn[s1][i])), i);
 						else
 						{	E_nTilde[s1] -= D(Idag(E_sigma[s1+s2] * Dn[s2][i]), i);
@@ -614,16 +655,22 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 						}
 					}
 		}
-		if(needsLap)
+		if(needsLap && mpiUtil->isHead()) //perform only on one process, so that we can allReduce below
 		{	for(int s=0; s<nCount; s++)
 				E_nTilde[s] += (1./gInfo.detR) * L(Idag(E_lap[s]));
 		}
 		for(int s=0; s<nCount; s++)
+		{	watchComm.start();
+			nullToZero(E_nTilde[s], gInfo);
+			E_nTilde[s]->allReduce(MPIUtil::ReduceSum);
+			watchComm.stop();
 			E_n[s] += Jdag(E_nTilde[s],true);
+		}
 	}
 	
 	if(Vxc) *Vxc = E_n;
 	if(Vtau) *Vtau = E_tau;
+	watch.stop();
 	return integral(E);
 }
 

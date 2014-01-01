@@ -60,6 +60,12 @@ public:
 	inline const complex* dataPref() const { return data(); }
 	#endif
 
+	//Inter-process communication:
+	void send(int dest, int tag=0) const; //send to another process
+	void recv(int src, int tag=0); //receive from another process
+	void bcast(int root=0); //synchronize across processes (using value on specified root process)
+	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //apply all-to-all reduction (see MPIUtil::allReduce)
+
 	void write(const char *fname) const; //!< binary-write to a file
 	void writea(const char *fname) const; //!< binary-append to a file
 	void write(FILE *filep) const; //!< binary-write toa stream

@@ -174,9 +174,12 @@ void IonInfo::update(Energies& ener)
 	double dEtot_dnG = 0.0; //derivative of Etot w.r.t nG  (G-vectors/unit volume)
 	for(auto sp: species)
 		dEtot_dnG += sp->atpos.size() * sp->dE_dnG;
+	
 	double nbasisAvg = 0.0;
-	for(int q=0; q<e->eInfo.nStates; q++)
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		nbasisAvg += 0.5*e->eInfo.qnums[q].weight * e->basis[q].nbasis;
+	mpiUtil->allReduce(nbasisAvg, MPIUtil::ReduceSum);
+	
 	ener.E["Epulay"] = dEtot_dnG * 
 		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
 		-  nbasisAvg/e->gInfo.detR ); //actual nG
@@ -233,7 +236,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	IonicGradient forcesNL; forcesNL.init(*this);
 	computeU(eVars.F, eVars.C, 0, &forcesNL); //Include DFT+U contribution if any
 	augmentDensityGridGrad(eVars.Vscloc, &forcesNL);
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	const QuantumNumber& qnum = e->eInfo.qnums[q];
 		//Collect gradients with respect to VdagCq (not including fillings and state weight):
 		std::vector<matrix> HVdagCq(species.size()); 
@@ -243,6 +246,8 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		for(unsigned sp=0; sp<species.size(); sp++) if(HVdagCq[sp])
 			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], eVars.grad_CdagOC[q], forcesNL[sp]);
 	}
+	for(auto& force: forcesNL) //Accumulate contributions over processes
+		mpiUtil->allReduce((double*)force.data(), 3*force.size(), MPIUtil::ReduceSum);
 	e->symm.symmetrize(forcesNL);
 	forces += forcesNL;
 	if(shouldPrintForceComponents)

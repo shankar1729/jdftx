@@ -117,16 +117,13 @@ void SCF::minimize()
 		
 		/// Solve at fixed hamiltonian ///
 		e.cntrl.fixed_n = true; e.ener = Energies();
-		if(not rp.verbose) // Silence eigensolver output
-		{	logSuspend(); e.elecMinParams.fpLog = nullLog;}
-		for(int q = 0; q < eInfo.nStates; q++)
-		{	
-			BandMinimizer bmin(e, q, true);
+		if(not rp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
 		}
 		e.eVars.setEigenvectors();
-		if(not rp.verbose) // Resume output
-		{	logResume(); e.elecMinParams.fpLog = globalLog;}
+		if(not rp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		e.cntrl.fixed_n = false; e.ener = Energies();
 		/// ///////////////////////// ///
 		
@@ -261,7 +258,8 @@ void SCF::updateFillings()
 	
 	// Apply eigenshifts, if any
 	for(size_t j=0; j<rp.eigenShifts.size(); j++)
-		e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
+		if(eInfo.isMine(rp.eigenShifts[j].q))
+			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
 	
 	double mu; // Electron chemical potential
 		
@@ -272,14 +270,15 @@ void SCF::updateFillings()
 		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs); 
 	}
 	//Compute fillings from aux hamiltonian eigenvalues:
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		eVars.F[q] = eInfo.fermi(mu, eVars.Hsub_eigs[q]);
 	//Update TS and muN:
 	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
 	
 	// Undo eigenshifts, if any
 	for(size_t j=0; j<rp.eigenShifts.size(); j++)
-		e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] -= rp.eigenShifts[j].shift;
+		if(eInfo.isMine(rp.eigenShifts[j].q))
+			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] -= rp.eigenShifts[j].shift;
 	
 	// Print filling update information
 	if(e.eInfo.fillingsUpdate)
@@ -293,4 +292,5 @@ void SCF::updateFillings()
 		logFlush();
 	}
 }
+
 

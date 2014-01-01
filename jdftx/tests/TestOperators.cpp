@@ -168,7 +168,7 @@ void timeEblas3(const GridInfo& gInfo)
 		 sync();
 	)
 
-	exit(0);
+	mpiUtil->exit(0);
 }
 
 

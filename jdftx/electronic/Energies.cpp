@@ -68,10 +68,9 @@ void print_Hsub_eigs(const Everything &e)
 	const ElecInfo &eInfo = e.eInfo;
 	const ElecVars &eVars = e.eVars;
 
-	logPrintf("Band energies:\n");
-	for(int q=0; q < eInfo.nStates; q++)
-	{
-		logPrintf("\nstate = %d   q_k = [ %lg %lg %lg ]   w = %lg",
+	logPrintf("Band energies:\n"); //TODO: Head process should print all quantum numbers
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	logPrintf("\nstate = %d   q_k = [ %lg %lg %lg ]   w = %lg",
 			q, eInfo.qnums[q].k[0],eInfo.qnums[q].k[1], eInfo.qnums[q].k[2], eInfo.qnums[q].weight);
 		logPrintf("   spin = %d\n",eInfo.qnums[q].spin);
 		logPrintf("%4s  %13s  %13s  %13s\n",
@@ -86,4 +85,3 @@ void print_Hsub_eigs(const Everything &e)
 	}
 	logFlush();
 }
-

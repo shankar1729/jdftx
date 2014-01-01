@@ -112,13 +112,14 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./dGloc;
-	matrix nAugRadial = QradialMat * nAug; //transform from radial functions to spline coeffs
+	matrix nAugTot = nAug; nAugTot.allReduce(MPIUtil::ReduceSum); //collect radial functions from all processes, and split by G-vectors below
+	matrix nAugRadial = QradialMat * nAugTot; //transform from radial functions to spline coeffs
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
 	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
-			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
+			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
 		}
 		n[s] += I(nAugTilde,true);
 	}
@@ -135,7 +136,8 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
 	matrix nAugRadial; const double* nAugRadialData=0;
 	if(forces)
-	{	nAugRadial = QradialMat * nAug;
+	{	matrix nAugTot = nAug; nAugTot.allReduce(MPIUtil::ReduceSum);
+		nAugRadial = QradialMat * nAugTot;
 		nAugRadialData = (const double*)nAugRadial.dataPref();
 	}
 	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
@@ -150,6 +152,7 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 		}
 	}
 	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
+	E_nAug.allReduce(MPIUtil::ReduceSum);
 	watch.stop();
 }
 

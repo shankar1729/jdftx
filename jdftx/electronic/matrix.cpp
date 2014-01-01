@@ -76,6 +76,22 @@ void diagMatrix::print(FILE* fp, const char* fmt) const
 	fprintf(fp,"\n");
 }
 
+void diagMatrix::send(int dest, int tag) const
+{	assert(mpiUtil->nProcesses()>1);
+	mpiUtil->send(data(), size(), dest, tag);
+}
+void diagMatrix::recv(int src, int tag)
+{	assert(mpiUtil->nProcesses()>1);
+	mpiUtil->recv(data(), size(), src, tag);
+}
+void diagMatrix::bcast(int root)
+{	if(mpiUtil->nProcesses()>1)
+		mpiUtil->bcast(data(), size(), root);
+}
+void diagMatrix::allReduce(MPIUtil::ReduceOp op, bool safeMode)
+{	if(mpiUtil->nProcesses()>1)
+		mpiUtil->allReduce(data(), size(), op, safeMode);
+}
 
 //----------------------- class matrix ---------------------------
 
@@ -609,23 +625,6 @@ matrix zeroes(int nRows, int nCols)
 {	matrix ret(nRows, nCols, isGpuEnabled());
 	ret.zero();
 	return ret;
-}
-
-
-//-------------- Matrix array alloc/read/write ------------------
-
-void read(std::vector<matrix>& M, const char *fname)
-{	FILE *fp = fopen(fname, "r");
-	if(!fp) die("Error opening %s for reading.\n", fname);
-	for(matrix& mat: M) mat.read(fp);
-	fclose(fp);
-}
-
-void write(const std::vector<matrix>& M, const char *fname)
-{	FILE *fp = fopen(fname, "w");
-	if(!fp) die("Error opening %s for writing.\n", fname);
-	for(const matrix& mat: M) mat.write(fp);
-	fclose(fp);
 }
 
 

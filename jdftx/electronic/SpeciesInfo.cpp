@@ -151,7 +151,7 @@ void SpeciesInfo::setup(const Everything &everything)
 	
 	//Generate atomic number from symbol, if not stored in pseudopotential:
 	if(!atomicNumber)
-	{	AtomicSymbol atSym;
+	{	AtomicSymbol atSym = AtomicSymbol::H;
 		if(!atomicSymbolMap.getEnum(name.c_str(), atSym))
 			die("\nCould not determine atomic number for species '%s'.\n"
 				"Either use a pseudopotential which contains this information,\n"
@@ -217,7 +217,7 @@ void SpeciesInfo::print(FILE* fp) const
 	//--- Only supported for pseudopotentials with atomic orbitals
 	if(e->eInfo.spinType == SpinZ && OpsiRadial->size())
 	{	diagMatrix M(atpos.size(), 0.); //magnetic moments
-		for(int q=0; q<e->eInfo.nStates; q++) //states
+		for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++) //states
 		{	const ColumnBundle& Cq = e->eVars.C[q];
 			const diagMatrix& Fq = e->eVars.F[q];
 			ColumnBundle Opsi = Cq.similar(atpos.size()); //space for atomic orbitals
@@ -233,6 +233,7 @@ void SpeciesInfo::print(FILE* fp) const
 						M += (qnum.spin * qnum.weight) * diag(dagger(CdagOpsi) * Fq * CdagOpsi);
 					}
 		}
+		mpiUtil->allReduce(M.data(), M.size(), MPIUtil::ReduceSum);
 		fprintf(fp, "# magnetic-moments %s", name.c_str());
 		for(double m: M) fprintf(fp, " %+lg", m);
 		fprintf(fp, "\n");
@@ -274,6 +275,6 @@ void SpeciesInfo::updateLatticeDependent()
 		if(nagIndex) delete[] nagIndex; nagIndex=0;
 		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
 		#endif
-		callPref(setNagIndex)(gInfo.S, gInfo.G, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
+		callPref(setNagIndex)(gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
 	}
 }

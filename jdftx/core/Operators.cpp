@@ -552,6 +552,32 @@ DataRptr changeGrid(const DataRptr& in, const GridInfo& gInfoNew)
 }
 
 
+void changeGridFull_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	THREAD_fullGspaceLoop( changeGridFull_calc(iG, Sin, Sout, in, out); )
+}
+void changeGridFull(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out)
+{	threadLaunch(changeGridFull_sub, S[0]*S[1]*S[2], S, Sin, Sout, in, out);
+}
+#ifdef GPU_ENABLED
+void changeGridFull_gpu(const vector3<int>& S, const vector3<int>& Sin, const vector3<int>& Sout, const complex* in, complex* out);
+#endif
+complexDataGptr changeGrid(const complexDataGptr& in, const GridInfo& gInfoNew)
+{	static StopWatch watch("changeGridFull"); watch.start();
+	complexDataGptr out; nullToZero(out, gInfoNew);
+	assert(gInfoNew.R == in->gInfo.R);
+	const vector3<int>& Sin = in->gInfo.S;
+	const vector3<int>& Sout = gInfoNew.S;
+	vector3<int> Smax; for(int k=0; k<3; k++) Smax[k] = std::max(Sin[k],Sout[k]);
+	callPref(changeGridFull)(Smax, Sin, Sout, in->dataPref(), out->dataPref());
+	watch.stop();
+	return out;
+}
+
+complexDataRptr changeGrid(const complexDataRptr& in, const GridInfo& gInfoNew)
+{	return I(changeGrid(J(in), gInfoNew));
+}
+
+
 //------------------------------ Initialization utilities ------------------------------
 
 void initRandom(DataRptr& X, double cap)

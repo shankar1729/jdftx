@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	
 	//Parse command-line
 	if(argc < 2) die("Usage: %s <quad> [<nBeta>] [INIT]\n", argv[0])
-	S2quadType quadType;
+	S2quadType quadType = QuadOctahedron;
 	if(!S2quadTypeMap.getEnum(argv[1], quadType))
 		die("<quad> must be one of %s\n", S2quadTypeMap.optionList().c_str());
 	int nBeta=0;

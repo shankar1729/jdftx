@@ -64,7 +64,7 @@ void registerHandlers()
 	signal(SIGABRT, sigErrorHandler);
 }
 void sigIntHandler(int sig)
-{	if(feof(stdin)) exit(0);
+{	if(feof(stdin)) mpiUtil->exit(0);
 	resetHandlers();
 	printf(
 		"\n---------------------------------------------\n"
@@ -77,7 +77,7 @@ void sigIntHandler(int sig)
 		printf("Enter [Q/A/I]: "); fflush(stdout);
 		char c = getchar();
 		switch(c)
-		{	case 'q': case 'Q': printf("Quitting now ...\n"); exit(0);
+		{	case 'q': case 'Q': printf("Quitting now ...\n"); mpiUtil->exit(0);
 			case 'a': case 'A':
 				printf("Will quit after current iteration ...\n");
 				killFlag = true; registerHandlers(); return;
@@ -116,13 +116,22 @@ void logResume()
 {	globalLog = globalLogOrig;
 }
 
-
+MPIUtil* mpiUtil = 0;
+bool mpiDebugLog = false;
 static double startTime_us; //Time at which system was initialized in microseconds
 
 void initSystem(int argc, char** argv)
 {
-	globalLogOrig = globalLog;
+	if(!mpiUtil) mpiUtil = new MPIUtil(argc, argv);
 	nullLog = fopen("/dev/null", "w");
+	if(!mpiUtil->isHead())
+	{	if(mpiDebugLog)
+		{	char fname[256]; sprintf(fname, "jdftx.%d.mpiDebugLog", mpiUtil->iProcess());
+			globalLog = fopen(fname, "w");
+		}
+		else globalLog = nullLog;
+	}
+	globalLogOrig = globalLog;
 	
 	//Print a welcome banner with useful information
 	printVersionBanner();
@@ -146,15 +155,24 @@ void initSystem(int argc, char** argv)
 	#endif
 	
 	//Limit thread count if running within SLURM:
-	const char* slurmCpusPerNode = getenv("SLURM_JOB_CPUS_PER_NODE");
-	if(slurmCpusPerNode)
+	const char* slurmCpusPerTask = getenv("SLURM_CPUS_PER_TASK");
+	if(slurmCpusPerTask)
 	{	int nThreadsMax;
-		if(sscanf(slurmCpusPerNode, "%d", &nThreadsMax)==1)
+		if(sscanf(slurmCpusPerTask, "%d", &nThreadsMax)==1)
 			nProcsAvailable = nThreadsMax; //Slurm spec found, update available processor count (Thread.h)
 		else
-			logPrintf("Could not determine thread count from SLURM_JOB_CPUS_PER_NODE=\"%s\".\n", slurmCpusPerNode);
+			logPrintf("Could not determine thread count from SLURM_CPUS_PER_TASK=\"%s\".\n", slurmCpusPerTask);
 	}
-	logPrintf("Will run with a maximum of %d cpu threads.\n", nProcsAvailable);
+	logPrintf("Current process will run with a maximum of %d cpu threads.\n", nProcsAvailable);
+	
+	//Print total resources used by run:
+	{	int nResources[2] = { nProcsAvailable, 0 };
+		#ifdef GPU_ENABLED
+		nResources[1] = 1;
+		#endif
+		mpiUtil->allReduce(nResources, 2, MPIUtil::ReduceSum);
+		logPrintf("Run totals: %d processes, %d threads, %d GPUs\n", mpiUtil->nProcesses(), nResources[0], nResources[1]);
+	}
 	
 	//Add citations to the code and general framework:
 	Citations::add("Software package", "R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
@@ -189,14 +207,20 @@ void finalizeSystem(bool successful)
 	if(successful) logPrintf("Done!\n");
 	else
 	{	logPrintf("Failed.\n");
-		if(globalLog != stdout)
+		if(mpiUtil->isHead() && globalLog != stdout)
 			fprintf(stderr, "Failed.\n");
 	}
 	
 	#ifdef ENABLE_PROFILING
 	stopWatchManager();
 	#endif
+	
+	if(!mpiUtil->isHead())
+	{	if(mpiDebugLog) fclose(globalLog);
+		globalLog = 0;
+	}
 	fclose(nullLog);
+	delete mpiUtil;
 }
 
 
@@ -242,7 +266,7 @@ void gdbStackTraceExit(int code)
 {	// From http://stackoverflow.com/questions/4636456/stack-trace-for-c-using-gcc/4732119#4732119
 	char pid_buf[30]; sprintf(pid_buf, "%d", getpid());
     char name_buf[512]; name_buf[readlink("/proc/self/exe", name_buf, 511)]=0;
-	int fdPipe[2]; if(pipe(fdPipe)) { printf("Error creating pipe.\n"); exit(code); }
+	int fdPipe[2]; if(pipe(fdPipe)) { printf("Error creating pipe.\n"); mpiUtil->exit(code); }
 	char message = '\n'; //some random character for sync
     int child_pid = fork();
     if(!child_pid)
@@ -269,7 +293,7 @@ void gdbStackTraceExit(int code)
 		close(fdPipe[1]);
 		waitpid(child_pid,NULL,0);
     }
-    exit(code);
+    mpiUtil->exit(code);
 }
 
 // Stack trace for failed assertions

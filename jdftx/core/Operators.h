@@ -214,6 +214,8 @@ complex integral(const complexDataGptr&); //!< Integral in the unit cell (just f
 //------------------------------ Grid conversion utilities ------------------------------
 DataGptr changeGrid(const DataGptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid
 DataRptr changeGrid(const DataRptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid (real-space version)
+complexDataGptr changeGrid(const complexDataGptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid
+complexDataRptr changeGrid(const complexDataRptr&, const GridInfo& gInfoNew); //Fourier up/down-sample to get to the new grid (real-space version)
 
 //------------------------------ Initialization utilities ------------------------------
 

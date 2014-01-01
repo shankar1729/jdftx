@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 	mp.fdTest = !loadState;
 
 	int sysRet=system("mkdir -p TestFixedN/" geomName "_img");
-	if(sysRet) { printf("Error making image directory\n"); exit(sysRet); }
+	if(sysRet) { printf("Error making image directory\n"); mpiUtil->exit(sysRet); }
 
 	for(int loopCount=0; loopCount<100; loopCount++)
 	{
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
 	LowfreqPrecon precon(gInfo, 1.0);
 
 	//int sysRet=system("mkdir -p TestFixedN/" geomName "_img");
-	//if(sysRet) { printf("Error making image directory\n"); exit(sysRet); }
+	//if(sysRet) { printf("Error making image directory\n"); mpiUtil->exit(sysRet); }
 
 	for(int loopCount=0; loopCount<20; loopCount++)
 	{

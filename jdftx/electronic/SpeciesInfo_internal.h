@@ -81,6 +81,7 @@ template<int Nlm, typename Functor> __hostanddev__ void staticLoopYlm(Functor* f
 
 //! Augment electron density by spherical functions (radial functions multiplied by spherical harmonics)
 //! and propagate gradient w.r.t to it to that w.r.t the atom position (accumulate)
+//! (In MPI mode, each process only collects contributions for a subset of G-vectors)
 struct nAugmentFunctor
 {	vector3<> qhat; double q;
 	int nCoeff; double dGinv; const double* nRadial;
@@ -111,34 +112,36 @@ void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
 	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG));
 }
 void nAugment(int Nlm,
-	const vector3<int> S, const matrix3<>& G,
+	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
 #ifdef GPU_ENABLED
 void nAugment_gpu(int Nlm,
-	const vector3<int> S, const matrix3<>& G,
+	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
 #endif
 
 //Function for initializing the index arrays used by nAugmentGrad
-__hostanddev__ void setNagIndex_calc(int i, const vector3<int>& iG, const vector3<int>& S, const matrix3<>& G, double dGinv, uint64_t* nagIndex)
+//! (In MPI mode, only a subset of G-vectors are indexed on each process (to correspond to nAUgment))
+__hostanddev__ uint64_t setNagIndex_calc(const vector3<int>& iG, const vector3<int>& S, const matrix3<>& G, double dGinv)
 {	uint64_t Gindex = uint64_t((iG*G).length() * dGinv);
 	vector3<int> iv = iG; for(int k=0; k<3; k++) if(iv[k]<0) iv[k] += S[k];
-	nagIndex[i] = (Gindex << 48) //Putting Gindex in the higher word allows sorting by it first, and then by grid point index
+	return (Gindex << 48) //Putting Gindex in the higher word allows sorting by it first, and then by grid point index
 		+ (uint64_t(iv[0]) << 32) + (uint64_t(iv[1]) << 16) + uint64_t(iv[2]);
 }
-__hostanddev__ void setNagIndexPtr_calc(int i, int nG, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
-{	if(i==0) nagIndexPtr[0] = 0;
-	int Gindex = int(nagIndex[i] >> 48);
-	int GindexNext = (i+1<nG) ? int(nagIndex[i+1] >> 48) : nCoeff;
+__hostanddev__ void setNagIndexPtr_calc(int i, int iMax, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
+{	int Gindex = int(nagIndex[i] >> 48);
+	int GindexNext = (i+1<iMax) ? int(nagIndex[i+1] >> 48) : nCoeff;
+	if(i==0) for(int j=0; j<=Gindex; j++) nagIndexPtr[j] = 0;
 	for(int j=Gindex; j<GindexNext; j++)
 		nagIndexPtr[j+1] = i+1;
 }
-void setNagIndex(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
+void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
 #ifdef GPU_ENABLED
-void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
+void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
 #endif
 
 //Gradient propragation corresponding to nAugment:
+//(The MPI division happens implicitly here, because nagIndex is limited to each process's share (see above))
 struct nAugmentGradFunctor
 {	vector3<> qhat; double q;
 	int nCoeff; double dGinv; const double* nRadial;

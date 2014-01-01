@@ -256,9 +256,35 @@ void safeProcess(Command& c, string params, Everything& everything,
 
 void parse(const char* filename, Everything& everything, bool printDefaults)
 {	//Read the contents of the file into command-parameter pairs, handling includes recursively:
-	std::vector<string> filenameList; filenameList.push_back(filename);
 	std::vector< pair<string,string> > input;
-	readInputFile(filenameList, input); //This also performs bash-like environment variable substitution
+	if(mpiUtil->isHead())
+	{	std::vector<string> filenameList; filenameList.push_back(filename);
+		readInputFile(filenameList, input); //This also performs bash-like environment variable substitution
+	}
+	
+	//Broadcast the input to other processes
+	if(mpiUtil->nProcesses()>1)
+	{	//Synchronize lengths:
+		int nInputs = input.size();
+		mpiUtil->bcast(nInputs);
+		if(!mpiUtil->isHead()) input.resize(nInputs);
+		//Serialize to string and synchronize content:
+		string inputStr;
+		if(mpiUtil->isHead())
+		{	ostringstream oss;
+			for(const auto& p: input)
+				oss << p.first << '\n' << p.second << '\n';
+			inputStr = oss.str();
+		}
+		mpiUtil->bcast(inputStr);
+		if(!mpiUtil->isHead())
+		{	istringstream iss(inputStr);
+			for(auto& p: input)
+			{	getline(iss, p.first);
+				getline(iss, p.second);
+			}
+		}
+	}
 	
 	//Process the input in multiple passes: (Be helpful by collecting all errors, if any, before dying)
 	ProcessedCommandMap cmap;

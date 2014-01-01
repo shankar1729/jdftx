@@ -101,10 +101,10 @@ int main(int argc, char** argv)
 	// Read wavefunctions
 	std::vector<ColumnBundle> C1(qnums);
 	std::vector<ColumnBundle> C2(qnums);
-	init(C1, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo.qnums[0]));
-	init(C2, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo.qnums[0]));
-	read(C1, "C1.wfns", e);
-	read(C2, "C2.wfns", e);
+	init(C1, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo));
+	init(C2, e.eInfo.nStates, e.eInfo.nBands, &(e.basis[0]), &(e.eInfo));
+	read(C1, "C1.wfns", e.eInfo);
+	read(C2, "C2.wfns", e.eInfo);
 
 	// Read fillings
 	std::vector<diagMatrix> F1(qnums);
@@ -227,6 +227,6 @@ int main(int argc, char** argv)
 	
 	
 	finalizeSystem();
-	if(globalLog != stdout) fclose(globalLog);
+	if(globalLog && globalLog != stdout) fclose(globalLog);
 	return 0;
 }

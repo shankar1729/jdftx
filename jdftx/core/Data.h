@@ -30,6 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <memory>
 #include <core/scalar.h>
+#include <core/Util.h>
 
 class GridInfo; //Grid description and memory manager
 struct DataR; //Real space data storage container for real scalar fields
@@ -81,6 +82,12 @@ struct Data
 	~Data();
 	void copyData(const Data& other); //!< copy data and scale (used by clone())
 
+	//Inter-process communication:
+	void send(int dest, int tag=0) const; //send to another process
+	void recv(int src, int tag=0); //receive from another process
+	void bcast(int root=0); //synchronize across processes (using value on specified root process)
+	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //apply all-to-all reduction (see MPIUtil::allReduce)
+
 private:
 	int nDoubles; //!< number of doubles stored in pData (typically either gInfo.nr or ginfo.nG*2)
 
@@ -121,6 +128,13 @@ private:
 	DataR(const GridInfo& gInfo, bool onGpu); //!< called only by DataR::alloc()
 };
 
+//Override allReduce for DataType=complex to prevent unsupported operations
+#define OVERRIDE_allReduce \
+	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) \
+	{	assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); \
+		Data::allReduce(op, safeMode); \
+	}
+
 /**
 @brief Reciprocal space real scalar field data
 Do not use this data structure directly or from a simple pointer
@@ -135,6 +149,7 @@ struct DataG : public Data
 	static DataGptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	double getGzero() const; //!< get the G=0 component
 	void setGzero(double Gzero); //!< set the G=0 component
+	OVERRIDE_allReduce
 private:
 	DataG(const GridInfo& gInfo, bool onGpu); //!< called only by DataG::alloc()
 };
@@ -152,6 +167,7 @@ struct complexDataR : public Data
 	DECLARE_DATA_PREF_ACCESS
 	complexDataRptr clone() const; //!< clone the data (NOTE: assigning complexDataRptr's makes a new reference to the same data)
 	static complexDataRptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
+	OVERRIDE_allReduce
 private:
 	complexDataR(const GridInfo& gInfo, bool onGpu); //!< called only by complexDataR::alloc()
 };
@@ -168,6 +184,7 @@ struct complexDataG : public Data
 	DECLARE_DATA_PREF_ACCESS
 	complexDataGptr clone() const; //!< clone the data (NOTE: assigning complexDataGptr's makes a new reference to the same data)
 	static complexDataGptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
+	OVERRIDE_allReduce
 private:
 	complexDataG(const GridInfo& gInfo, bool onGpu); //!< called only by complexDataG::alloc()
 };
@@ -189,6 +206,7 @@ struct RealKernel
 	void set(); //!< call after initializing data on cpu (will copy from data to dataGpu if GPU_ENABLED)
 };
 
+#undef OVERRIDE_allReduce
 #undef DECLARE_DATA_PREF_ACCESS
 #undef DECLARE_DATA_ACCESS
 //! @}

@@ -39,6 +39,13 @@ else()
 endif()
 include_directories(${FFTW3_INCLUDE_DIR})
 
+option(EnableMPI "Use MPI parallelization (in addition to threads / gpu)" ON)
+if(EnableMPI)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	add_definitions("-DMPI_ENABLED")
+endif()
+
 option(EnableLibXC "Use LibXC to provide additional exchange-correlation functionals")
 if(EnableLibXC)
 	find_package(LIBXC REQUIRED)
@@ -59,7 +66,7 @@ endif()
 #------------------------- Compilation flags ------------------------
 
 #Base flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS} -Wall -O3")
 set(JDFTX_CPU_FLAGS "-std=c++0x") #Flags used for host compiler alone (i.e. not for gpu device code)
 
 #Additional compiler-dependent flags:
@@ -99,7 +106,7 @@ endif()
 #----------------------- Regular CPU targets ----------------
 
 #External libraries to link to
-set(EXTERNAL_LIBS ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
+set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
 #Library with all the functionality:
 FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
@@ -112,7 +119,7 @@ add_executable(jdftx jdftx.cpp)
 target_link_libraries(jdftx jdftxlib)
 set_target_properties(jdftx jdftxlib PROPERTIES 
 	COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS}"
-	LINK_FLAGS "${EXTRA_CXX_FLAGS}")
+	LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
@@ -127,7 +134,7 @@ if(CUDA_FOUND)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=compute_20;-code=sm_20,sm_30;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})
@@ -144,7 +151,7 @@ if(CUDA_FOUND)
 	target_link_libraries(jdftx_gpu jdftxlib_gpu)
 	set_target_properties(jdftx_gpu jdftxlib_gpu PROPERTIES 
 		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} -DGPU_ENABLED"
-		LINK_FLAGS "${EXTRA_CXX_FLAGS}")
+		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 endif()
 
 #-----------------------------------------------------------------------------

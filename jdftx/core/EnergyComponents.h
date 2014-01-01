@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 /** Simply a map of named components with a few extra features!
 	Proper use: E["name"] = value; or E["name"] += value
 	Casting to a double returns the total.
-	Assignment or increment by a complex happens in a "default" component name
+	Assignment or increment by a scalar happens in a "default" component name
 */
 class EnergyComponents : public std::map<string,double>
 {
@@ -47,13 +47,13 @@ public:
 	//! Expose base-class function hidden by the C-style string version above.
 	double operator[](const string& key) const { auto iter = find(key); return iter==end() ? 0. : iter->second; }
 	
-	//! Set to a simple complex
+	//! Set to a simple scalar
 	void operator=(const double& value)
 	{	clear(); //remove all named components
 		(*this)["default"] = value; //set the value to a default channel
 	}
 
-	//! Accumulate a simple complex
+	//! Accumulate a simple scalar
 	void operator+=(const double& value)
 	{	(*this)["default"] += value; //accumulate to the default channel
 	}

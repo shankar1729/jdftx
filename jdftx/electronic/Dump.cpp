@@ -86,11 +86,15 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		logPrintf("done\n"); logFlush();
 	
 
+	#define DUMP_nocheck(object, prefix) \
+		{	StartDump(prefix) \
+			if(mpiUtil->isHead()) saveRawBinary(object, fname.c_str()); \
+			EndDump \
+		}
+
 	#define DUMP(object, prefix, varname) \
 		if(ShouldDump(varname)) \
-		{	StartDump(prefix) \
-			saveRawBinary(object, fname.c_str()); \
-			EndDump \
+		{	DUMP_nocheck(object, prefix) \
 		}
 
 	// Set up date/time stamp
@@ -103,67 +107,68 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if((ShouldDump(State) and eInfo.fillingsUpdate!=ElecInfo::ConstantFillings) or ShouldDump(Fillings))
 	{	//Dump fillings
+		double wInv = eInfo.spinType==SpinNone ? 0.5 : 1.0; //normalization factor from external to internal fillings
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) ((ElecVars&)eVars).F[q] *= (1./wInv);
 		StartDump("fillings")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		eInfo.printFillings(fp);
-		fclose(fp);
+		eInfo.write(eVars.F, fname.c_str());
 		EndDump
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) ((ElecVars&)eVars).F[q] *= wInv;
 	}
 	
 	if(ShouldDump(State))
 	{
 		//Dump wave functions
 		StartDump("wfns")
-		write(eVars.C, fname.c_str());
+		write(eVars.C, fname.c_str(), eInfo);
 		EndDump
 		
 		if(eVars.fluidSolver)
 		{	//Dump state of fluid:
 			StartDump("fluidState")
-			eVars.fluidSolver->saveState(fname.c_str());
+			if(mpiUtil->isHead()) eVars.fluidSolver->saveState(fname.c_str());
 			EndDump
 		}
 		
 		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		{	//Dump auxilliary hamiltonian
 			StartDump("Haux")
-			FILE* fp = fopen(fname.c_str(), "w");
-			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-			write(eVars.B, fname.c_str());
-			fclose(fp);
+			eInfo.write(eVars.B, fname.c_str());
 			EndDump
 		}
 	}
 
 	if(ShouldDump(IonicPositions) || (ShouldDump(State) && e->ionicMinParams.nIterations>0))
 	{	StartDump("ionpos")
-		FILE* fp = fopen(fname.c_str(), "w");
+		FILE* fp = mpiUtil->isHead() ? fopen(fname.c_str(), "w") : nullLog;
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		iInfo.printPositions(fp);
-		fclose(fp);
+		iInfo.printPositions(fp);  //needs to be called from all processes (for magnetic moment computation)
+		if(mpiUtil->isHead())fclose(fp);
 		EndDump
 	}
 	if(ShouldDump(Forces))
 	{	StartDump("force")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		iInfo.forces.print(*e, fp);
-		fclose(fp);
+		if(mpiUtil->isHead()) 
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+			iInfo.forces.print(*e, fp);
+			fclose(fp);
+		}
 		EndDump
 	}
 	if(ShouldDump(Lattice) || (ShouldDump(State) && e->latticeMinParams.nIterations>0))
 	{	StartDump("lattice")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		fprintf(fp, "lattice");
-		for(int j=0; j<3; j++)
-		{	fprintf(fp, " \\\n\t");
-			for(int k=0; k<3; k++)
-				fprintf(fp, "%20.15lf ", e->gInfo.R(j,k));
+		if(mpiUtil->isHead()) 
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+			fprintf(fp, "lattice");
+			for(int j=0; j<3; j++)
+			{	fprintf(fp, " \\\n\t");
+				for(int k=0; k<3; k++)
+					fprintf(fp, "%20.15lf ", e->gInfo.R(j,k));
+			}
+			fprintf(fp, "#Note: latt-scale has been absorbed into these lattice vectors.\n");
+			fclose(fp);
 		}
-		fprintf(fp, "#Note: latt-scale has been absorbed into these lattice vectors.\n");
-		fclose(fp);
 		EndDump
 	}
 	DUMP(I(iInfo.rhoIon), "Nion", IonicDensity)
@@ -192,57 +197,42 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(HsubEvecs))
 	{	StartDump("Hsub_evecs")
-		write(eVars.Hsub_evecs, fname.c_str());
+		eInfo.write(eVars.Hsub_evecs, fname.c_str());
 		EndDump
 	}
 	
 	// Dumps tau (positive Kinetic Energy density)
-	if(ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity)))
+	if((ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity))))
 	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
 		if(eInfo.spinType == SpinZ)
-		{	{	StartDump("KEdensity_up");
-				saveRawBinary(tau[0], fname.c_str());
-				EndDump;
-			}
-			{	StartDump("KEdensity_dn");
-				saveRawBinary(tau[1], fname.c_str());
-				EndDump;
-			}
+		{	DUMP_nocheck(tau[0], "KEdensity_up");
+			DUMP_nocheck(tau[1], "KEdensity_dn");
 		}
-		else
-		{	StartDump("KEdensity");
-			saveRawBinary(tau[0], fname.c_str());
-			EndDump;
-		}
+		else DUMP_nocheck(tau[0], "KEdensity");
 	}
 	
 	if(ShouldDump(BandEigs))
 	{	StartDump("eigenvals")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		for(int q=0; q < eInfo.nStates; q++)
-		{	for (int b=0; b < eInfo.nBands; b++)
-				fprintf(fp, "%18.10le ", eVars.Hsub_eigs[q][b]);
-			fprintf(fp, "\n");
-		}
-		fclose(fp);
+		eInfo.write(eVars.Hsub_eigs, fname.c_str());
 		EndDump
 	}
 
 	if(eInfo.hasU && ShouldDump(RhoAtom))
 	{	StartDump("rhoAtom")
-		FILE* fp = fopen(fname.c_str(), "w");
-		iInfo.computeU(eVars.F, eVars.C, 0, 0, fp);
-		fclose(fp);
+		FILE* fp = mpiUtil->isHead() ? fopen(fname.c_str(), "w") : nullLog;
+		iInfo.computeU(eVars.F, eVars.C, 0, 0, fp); //needs to be called from all processes
+		if(mpiUtil->isHead()) fclose(fp);
 		EndDump
 	}
 	
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
-		e->ener.print(fp);
-		fclose(fp);
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
+			e->ener.print(fp);
+			fclose(fp);
+		}
 		EndDump
 	}
 	
@@ -250,16 +240,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	{	DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
 		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon)->getGzero()); //total bound charge will neutralize system
-		if(ShouldDump(BoundCharge))
-		{	StartDump("nbound")
-			saveRawBinary(I(nboundTilde), fname.c_str());
-			EndDump
-		}
 		if(ShouldDump(SolvationRadii))
 		{	StartDump("Rsol")
-			dumpRsol(I(nboundTilde), fname);
+			if(mpiUtil->isHead()) dumpRsol(I(nboundTilde), fname);
 			EndDump
 		}
+		DUMP(I(nboundTilde), "nbound", BoundCharge)
 	}
 	
 	if(ShouldDump(FluidDensity))
@@ -270,7 +256,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Dipole))
 	{	StartDump("Moments")
-		Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
+		if(mpiUtil->isHead()) Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
 		EndDump
 	}
 	
@@ -289,16 +275,19 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDumpNoAll(Momenta))
 	{	StartDump("momenta")
-		FILE* fp = fopen(fname.c_str(), "w");
-		for(int q=0; q<eInfo.nStates; q++) //kpoint/spin
+		std::vector<matrix> momenta(eInfo.nStates);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
+		{	momenta[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
 			for(int k=0; k<3; k++) //cartesian direction
-				((eVars.C[q] ^ D(eVars.C[q], k)) * complex(0,e->gInfo.detR)).write(fp);
-		fclose(fp);
+				momenta[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1),
+					complex(0,e->gInfo.detR) * (eVars.C[q] ^ D(eVars.C[q], k)) );
+		}
+		eInfo.write(momenta, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
 		EndDump
 	}
 	
 	if(ShouldDumpNoAll(RealSpaceWfns))
-	{	for(int q=0; q<eInfo.nStates; q++)
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			for(int b=0; b<eInfo.nBands; b++)
 			{	ostringstream prefixStream;
 				prefixStream << "wfns_" << q << '_' << b << ".rs";
@@ -373,10 +362,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDumpNoAll(Stress))
 	{	
-		// Cache the type of calculation (fixed-n)
-		bool fixed_n = e->cntrl.fixed_n;
-		((Everything*) e)->cntrl.fixed_n = false;
+		StartDump("stress")
 		
+		//This part needs to happen on all processes (since it calls ElecVars::energyAndGrad())
 		logSuspend();
 		LatticeMinimizer lattMin(*((Everything*) e));
 		auto stress = lattMin.calculateStress();
@@ -386,37 +374,34 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		lattMin.restore();
 		logResume();
 		
-		StartDump("stress")
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-		
-		// Dump stress in strain basis units
-		fprintf(fp, "%zu strain basis elements\n", lattMin.strainBasis.size());
-		for(const matrix3<>& s: lattMin.strainBasis)
-		{	s.print(fp, " %lg ");
-			fprintf(fp, "\n");
-		}
-		fprintf(fp, "\n\n");
-		
-		fprintf(fp, "stress (in strain units, magnitudes along directions above)\n");
-		for(size_t j=0; j<lattMin.strainBasis.size(); j++)
-		{	fprintf(fp, "%.5e \t ", stress[j]);
-		}
-		fprintf(fp, "\n\n");
-		
-		// Dump stress in lattice units
-		fprintf(fp, "stress (in strain units)");
-		for(int j=0; j<3; j++)
-		{	fprintf(fp, " \\\n\t");
-			for(int k=0; k<3; k++)
-				fprintf(fp, "%20.15lf ", stressTensor(j,k));
-		}
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
+			
+			// Dump stress in strain basis units
+			fprintf(fp, "%zu strain basis elements\n", lattMin.strainBasis.size());
+			for(const matrix3<>& s: lattMin.strainBasis)
+			{	s.print(fp, " %lg ");
+				fprintf(fp, "\n");
+			}
+			fprintf(fp, "\n\n");
+			
+			fprintf(fp, "stress (in strain units, magnitudes along directions above)\n");
+			for(size_t j=0; j<lattMin.strainBasis.size(); j++)
+			{	fprintf(fp, "%.5e \t ", stress[j]);
+			}
+			fprintf(fp, "\n\n");
+			
+			// Dump stress in lattice units
+			fprintf(fp, "stress (in strain units)");
+			for(int j=0; j<3; j++)
+			{	fprintf(fp, " \\\n\t");
+				for(int k=0; k<3; k++)
+					fprintf(fp, "%20.15lf ", stressTensor(j,k));
+			}
 
-		fclose(fp);
-		
-		// Reset fixed_n variable
-		((Everything*) e)->cntrl.fixed_n = fixed_n;
-		
+			fclose(fp);
+		}
 		EndDump
 	}
 
@@ -569,6 +554,9 @@ void dumpExcitations(const Everything& e, const char* filename)
 {
 		const GridInfo& g = e.gInfo;
 	
+		if(mpiUtil->nProcesses()>1) //TODO: Somehow have the MPI processes coordinate the write process below
+			die("Dump excitations not yet implemented in MPI mode.\n");
+		
 		FILE* fp = fopen(filename, "w");
 		if(!fp) die("Error opening %s for writing.\n", filename);
 	
@@ -611,7 +599,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 		applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
 		
 		// Find and cache all excitations in system (between same qnums)
-		for(int q=0; q<e.eInfo.nStates; q++)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	
 			int HOMO = e.eInfo.findHOMO(q);
 					
@@ -656,4 +644,5 @@ void dumpExcitations(const Everything& e, const char* filename)
 		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2 (real, imag, norm)\n");
 		for(size_t i=0; i<excitations.size(); i++)
 			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \t %.5e \t %.5e\n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dreal, excitations[i].dimag, excitations[i].dnorm);
+		fclose(fp);
 }

@@ -75,7 +75,7 @@ Basis& Basis::operator=(const Basis& basis)
 
 void Basis::setup(const GridInfo& gInfo, const IonInfo& iInfo, double Ecut, const vector3<> k)
 {	//Find the indices within Ecut:
-	vector3<int> iGbox; for(int i=0; i<3; i++) iGbox[i] = gInfo.S[i]/4 + 1;
+	vector3<int> iGbox; for(int i=0; i<3; i++) iGbox[i] = 1 + int(sqrt(2*Ecut) * gInfo.R.column(i).length() / (2*M_PI));
 	std::vector< vector3<int> > iGvec;
 	std::vector<int> indexVec;
 	vector3<int> iG;

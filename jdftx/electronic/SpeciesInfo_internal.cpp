@@ -37,41 +37,44 @@ void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k
 }
 
 //Augment electron density by spherical functions
-template<int Nlm> void nAugment_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& G,
+template<int Nlm> void nAugment_sub(size_t diStart, size_t diStop, const vector3<int> S, const matrix3<>& G, int iGstart,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
-{
+{	size_t iStart = iGstart + diStart;
+	size_t iStop = iGstart + diStop;
 	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, n); )
 }
-template<int Nlm> void nAugment(const vector3<int> S, const matrix3<>& G,
+template<int Nlm> void nAugment(const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {
-	threadLaunch(nAugment_sub<Nlm>, S[0]*S[1]*(S[2]/2+1), S, G, nCoeff, dGinv, nRadial, atpos, n);
+	threadLaunch(nAugment_sub<Nlm>, iGstop-iGstart, S, G, iGstart, nCoeff, dGinv, nRadial, atpos, n);
 }
-void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G,
+void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, nCoeff, dGinv, nRadial, atpos, n) )
+	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n) )
 }
 
 //Function for initializing the index arrays used by nAugmentGrad
-void setNagIndex_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> G, double dGinv, uint64_t* nagIndex)
-{	THREAD_halfGspaceLoop( setNagIndex_calc(i, iG, S, G, dGinv, nagIndex); )
+void setNagIndex_sub(size_t diStart, size_t diStop, const vector3<int> S, const matrix3<> G, int iGstart, double dGinv, uint64_t* nagIndex)
+{	size_t iStart = iGstart + diStart;
+	size_t iStop = iGstart + diStop;
+	THREAD_halfGspaceLoop( nagIndex[i-iGstart] = setNagIndex_calc(iG, S, G, dGinv); )
 }
-void setNagIndexPtr_sub(int iStart, int iStop, size_t nG, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
+void setNagIndexPtr_sub(int iStart, int iStop, int iMax, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
 {	for(int i=iStart; i<iStop; i++)
-		setNagIndexPtr_calc(i, nG, nCoeff, nagIndex, nagIndexPtr);
+		setNagIndexPtr_calc(i, iMax, nCoeff, nagIndex, nagIndexPtr);
 }
-void setNagIndex(const vector3<int>& S, const matrix3<>& G, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr)
+void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr)
 {	//First initialize the indices:
-	size_t nG = S[0]*S[1]*(S[2]/2+1);
-	{	if(!nagIndex) nagIndex = new uint64_t[nG];
-		threadLaunch(setNagIndex_sub, nG, S, G, dGinv, nagIndex);
+	size_t nGsub = iGstop-iGstart;
+	{	if(!nagIndex) nagIndex = new uint64_t[nGsub];
+		threadLaunch(setNagIndex_sub, nGsub, S, G, iGstart, dGinv, nagIndex);
 	}
 	//Now sort them to be ordered by Gindex
-	std::sort(nagIndex, nagIndex+nG);
+	std::sort(nagIndex, nagIndex+nGsub);
 	//Finally initialize the pointers to boundaries between different Gindices:
 	{	if(!nagIndexPtr) nagIndexPtr = new size_t[nCoeff+1];
-		threadLaunch(setNagIndexPtr_sub, nG, nG, nCoeff, nagIndex, nagIndexPtr);
+		threadLaunch(setNagIndexPtr_sub, nGsub, nGsub, nCoeff, nagIndex, nagIndexPtr);
 	}
 }
 

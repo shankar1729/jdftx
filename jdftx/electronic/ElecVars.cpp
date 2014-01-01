@@ -33,8 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 
 ElecVars::ElecVars()
-: readWfnsRealspace(false), nBandsOld(0), EcutOld(0), kdepOld(BasisKpointDep), NxOld(0), NyOld(0), NzOld(0),
-isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e-6)
+: isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e-6)
 {
 }
 
@@ -112,7 +111,8 @@ void ElecVars::setup(const Everything &everything)
 	{	B.resize(eInfo.nStates);
 		B_evecs.resize(eInfo.nStates);
 		B_eigs.resize(eInfo.nStates);
-		B.assign(eInfo.nStates, zeroes(eInfo.nBands, eInfo.nBands)); //Set to zero
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			B[q] = zeroes(eInfo.nBands, eInfo.nBands); //Set to zero
 	}
 	grad_CdagOC.resize(eInfo.nStates);
 	VdagC.resize(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
@@ -129,28 +129,24 @@ void ElecVars::setup(const Everything &everything)
 	{	dmuContrib = diagMatrix(eInfo.nBands, 0.);
 		if(HauxFilename.length())
 		{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
-			read(B, HauxFilename.c_str());
+			eInfo.read(B, HauxFilename.c_str());
 			HauxInitialized = true;
 		}
 	}
 
 	// Initialize ColumnBundle arrays for the electronic wave-functions:
 	logPrintf("Initializing wave functions:  ");
-	init(Y, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo.qnums[0]);
-	init(C, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo.qnums[0]);
+	init(Y, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo);
+	init(C, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo);
 
 	//Initial wave functions
 	int nBandsInited = 0;
 	if(wfnsFilename.length())
 	{	logPrintf("reading from '%s'\n", wfnsFilename.c_str()); logFlush();
-		if(nBandsOld <= 0) nBandsOld = eInfo.nBands;
-		if(EcutOld <= 0.0) EcutOld = e->cntrl.Ecut;
-		if(NxOld <= 0.0) NxOld = gInfo.S[0];
-		if(NyOld <= 0.0) NyOld = gInfo.S[1];
-		if(NzOld <= 0.0) NzOld = gInfo.S[2];
-		read(Y, wfnsFilename.c_str(), *e);
-		nBandsInited = nBandsOld;
-		isRandom = (nBandsOld<eInfo.nBands);
+		if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
+		read(Y, wfnsFilename.c_str(), eInfo, readConversion.get());
+		nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
+		isRandom = (nBandsInited<eInfo.nBands);
 	}
 	else if(initLCAO)
 	{	nBandsInited = LCAO();
@@ -160,7 +156,7 @@ void ElecVars::setup(const Everything &everything)
 	if(nBandsInited < eInfo.nBands)
 	{	if(nBandsInited) logPrintf("Setting upper %d bands to ", eInfo.nBands-nBandsInited);
 		logPrintf("bandwidth-limited random numbers\n"); logFlush();
-		for(int q=0; q<eInfo.nStates; q++)
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	//randomize uninitialized bands:
 			Y[q].randomize(nBandsInited, eInfo.nBands);
 			//don't mix (during orthogonalization) the random columns with the init'd ones:
@@ -177,17 +173,10 @@ void ElecVars::setup(const Everything &everything)
 			}
 		}
 	}
-	
-	if(eInfo.spinRestricted)
-	{	for(int q=0; q<eInfo.nStates/2; q++)
-		{	int qOther = q+eInfo.nStates/2;
-			Y[qOther] *= 0.;
-			Y[qOther] += Y[q]; //apply spin restriction (not using operator= because it also changes quantum number)
-		}
-	}
+	if(eInfo.spinRestricted) spinRestrict();
 	
 	//Orthogonalize initial wavefunctions:
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q]));
 		C[q] = Y[q];
 	}
@@ -199,6 +188,7 @@ void ElecVars::setup(const Everything &everything)
 		std::vector<size_t> band_index;
 		for(size_t j=0; j<eInfo.customFillings.size(); j++)
 		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			if(!eInfo.isMine(qnum)) continue;
 			int HOMO = eInfo.findHOMO(qnum);
 			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
 			if(band >= F[qnum].size() or band<0)
@@ -210,11 +200,16 @@ void ElecVars::setup(const Everything &everything)
 		}
 		for(size_t j=0; j<eInfo.customFillings.size(); j++)
 		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			if(!eInfo.isMine(qnum)) continue;
 			F[qnum][band_index[j]] = std::get<2>(eInfo.customFillings[j]);
 		}
 		
 		//Recompute electron count:
-		((Everything*) e)->eInfo.nElectrons=0.; for(int q=0; q<eInfo.nStates; q++) ((Everything*) e)->eInfo.nElectrons += eInfo.qnums[q].weight * trace(F[q]);
+		double& nElectrons = ((ElecInfo&)eInfo).nElectrons;
+		nElectrons = 0.;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			nElectrons += eInfo.qnums[q].weight * trace(F[q]);
+		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
 	}
 	
 	// Read in electron (spin) density if needed
@@ -270,7 +265,8 @@ DataRptrCollection ElecVars::get_nXC() const
 
 //Electronic density functional and gradient
 void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
-{	const ElecInfo& eInfo = e->eInfo;
+{	static StopWatch watch("EdensityAndVscloc"); watch.start();
+	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
 	DataGptr nTilde = J(eInfo.spinType==SpinNone ? n[0] : n[0]+n[1]);
@@ -345,6 +341,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		if(VtauTilde) Vtau[s] += I(VtauTilde);
 		if(Vtau[s]) e->symm.symmetrize(Vtau[s]);
 	}
+	watch.stop();
 }
 
 
@@ -355,24 +352,25 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	const ElecInfo& eInfo = e->eInfo;
 	
 	//Cleanup old gradients:
-	if(grad) { grad->Y.clear(); grad->Y.resize(eInfo.nStates); }
-	if(Kgrad) { Kgrad->Y.clear(); Kgrad->Y.resize(eInfo.nStates); }
+	if(grad) { grad->Y.assign(eInfo.nStates, ColumnBundle()); }
+	if(Kgrad) { Kgrad->Y.assign(eInfo.nStates, ColumnBundle()); }
 	
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_n;
 	
 	// Orthonormalize Y to compute C, U and cohorts
-	for(int q=0; q<eInfo.nStates; q++)
-	{	orthonormalize(q);
-	}
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		orthonormalize(q);
 	
 	//Update overlap condition number:
 	double UeigMin = DBL_MAX, UeigMax = 0.;
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
 		UeigMin = std::min(UeigMin, *(extremes.first));
 		UeigMax = std::max(UeigMax, *(extremes.second));
 	}
+	mpiUtil->allReduce(UeigMin, MPIUtil::ReduceMin, true);
+	mpiUtil->allReduce(UeigMax, MPIUtil::ReduceMax, true);
 	overlapCondition = UeigMax / UeigMin;
 	
 	//Compute fillings if required:
@@ -382,7 +380,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
 		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }
 		//Compute fillings from aux hamiltonian eigenvalues:
-		for(int q=0; q<eInfo.nStates; q++)
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			F[q] = eInfo.fermi(mu, B_eigs[q]);
 		//Update TS and muN:
 		eInfo.updateFillingsEnergies(F, ener);
@@ -420,28 +418,34 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		assert(e->exx);
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
-	//Do the rest one state at a time to save memory (and for better cache warmth):
-	for(int q=0; q<e->eInfo.nStates; q++)
+	//Do the single-particle contributions one state at a time to save memory (and for better cache warmth):
+	ener.E["KE"] = 0.;
+	ener.E["Enl"] = 0.;
+	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
 		applyHamiltonian(q, Fq, HC[q], HVdagC[q], ener, need_Hsub);
 	}
+	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
+	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
 	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
-	{	double dmuNum=0.0, dmuDen=0.0;
-		for(int q=0; q<eInfo.nStates; q++)
+	{	double dmuNumDen[2] = { 0., 0. }; //numerator and denominator of dmuContrib
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
-			dmuNum += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
-			dmuDen += eInfo.qnums[q].weight * trace(fprime);
+			dmuNumDen[0] += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
+			dmuNumDen[1] += eInfo.qnums[q].weight * trace(fprime);
 		}
-		dmuContrib = eye(eInfo.nBands) * (dmuNum/dmuDen);
+		mpiUtil->allReduce(dmuNumDen, 2, MPIUtil::ReduceSum);
+		dmuContrib = eye(eInfo.nBands) * (dmuNumDen[0]/dmuNumDen[1]);
 	}
 	
 	//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
 	if(grad)
-		for(int q=0; q<eInfo.nStates; q++)
-		{			
+	{	double KErollover = 2.*ener.E["KE"] / eInfo.nElectrons;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{
 			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-			orthonormalizeGrad(q, Fq, HC[q], grad->Y[q], Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
+			orthonormalizeGrad(q, Fq, HC[q], grad->Y[q], KErollover, Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
 			HC[q].free(); // Deallocate HCq when done.
 			
 			//Subspace hamiltonian gradient:
@@ -456,13 +460,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 						* dagger_symmetrize(dagger(V[q]) * gradF * V[q]);
 			}
 		}
-		
+	}
+	
 	if(e->cntrl.fixed_n)
 	{	//Compute band structure energy
 		ener.Eband = 0;
-		for(int q=0; q<eInfo.nStates; q++)
-		{	ener.Eband += eInfo.qnums[q].weight * trace(Hsub[q]).real();
-		}
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			ener.Eband += eInfo.qnums[q].weight * trace(Hsub[q]).real();
+		mpiUtil->allReduce(ener.Eband, MPIUtil::ReduceSum);
 	}
 	return relevantFreeEnergy(*e);
 }
@@ -470,7 +475,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 void ElecVars::setEigenvectors(int qActive)
 {	const ElecInfo& eInfo = e->eInfo;
 	logPrintf("Setting wave functions to eigenvectors of Hamiltonian\n"); logFlush();
-	for(int q=0; q<eInfo.nStates; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	if((qActive > -1) and (qActive != q)) continue;
 		Y[q] = (C[q] = C[q] * Hsub_evecs[q]);
 		grad_CdagOC[q] =  dagger(Hsub_evecs[q]) *grad_CdagOC[q] * Hsub_evecs[q];
@@ -486,47 +491,53 @@ void ElecVars::setEigenvectors(int qActive)
 }
 
 int ElecVars::nOccupiedBands(int q) const
-{	for(unsigned i=0; i<F[q].size(); i++)
+{	assert(e->eInfo.isMine(q));
+	for(unsigned i=0; i<F[q].size(); i++)
 		if(F[q][i]<=e->cntrl.occupiedThreshold)
 			return i; //index of first unoccupied band = number of ocucpied bands
 	return F[q].size(); //all bands occupied
 }
 
 DataRptrCollection ElecVars::KEdensity() const
-{	DataRptrCollection tau; nullToZero(tau, e->gInfo, n.size());
+{	DataRptrCollection tau(n.size());
 	//Compute KE density from valence electrons:
-	for(int q=0; q<e->eInfo.nStates; q++)
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		for(int iDir=0; iDir<3; iDir++)
 			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), &e->gInfo);
 	//Add core KE density model:
 	if(e->iInfo.tauCore)
-		{	for(unsigned s=0; s<tau.size(); s++)
-				tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
-		}
-	for(unsigned s=0; s<n.size(); s++) e->symm.symmetrize(tau[s]); //Symmetrize
+	{	for(unsigned s=0; s<tau.size(); s++)
+			tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
+	}
+	for(DataRptr& tau_s: tau)
+	{	nullToZero(tau_s, e->gInfo);
+		e->symm.symmetrize(tau_s); //Symmetrize
+		tau_s->allReduce(MPIUtil::ReduceSum);
+	}
 	return tau;
 }
 
 DataRptrCollection ElecVars::calcDensity() const
-{	DataRptrCollection density; nullToZero(density, e->gInfo, n.size());
-	
-	// Initializes both spin channels to 0
-	for(unsigned s=0; s<density.size(); s++) initZero(density[s], e->gInfo); //Initialize to zero
-
-	// Runs over all states and accumulates density to the corresponding spin channel of the total density
+{	DataRptrCollection density(n.size());
+	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
-	for(int q=0; q<e->eInfo.nStates; q++)
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], &e->gInfo);
 		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
 	
-	for(unsigned s=0; s<density.size(); s++) e->symm.symmetrize(density[s]); //Symmetrize
+	for(DataRptr& ns: density)
+	{	nullToZero(ns, e->gInfo);
+		e->symm.symmetrize(ns); //Symmetrize
+		ns->allReduce(MPIUtil::ReduceSum);
+	}
 	return density;
 }
 
 void ElecVars::orthonormalize(int q)
-{	ColumnBundle projYq;
+{	assert(e->eInfo.isMine(q));
+	ColumnBundle projYq;
 	if(e->cntrl.fixOccupied) //project out fixed wavefunctions from free ones
 	{	int nOcc = nOccupiedBands(q);
 		if(!nOcc) projYq = Y[q];
@@ -557,7 +568,7 @@ void ElecVars::orthonormalize(int q)
 }
 
 double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, std::vector<matrix>& HVdagCq, Energies& ener, bool need_Hsub)
-{
+{	assert(e->eInfo.isMine(q));
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
@@ -573,13 +584,10 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	//Kinetic energy:
 	ColumnBundle minushalfLCq = -0.5*L(C[q]);
 	if(HCq) HCq += minushalfLCq;
-	double KEq = traceinner(Fq, C[q], minushalfLCq).real();
-	ostringstream KEoss; KEoss << "KE-" << q;
-	ener.E[KEoss.str()] = qnum.weight * KEq;
+	ener.E["KE"] += qnum.weight * traceinner(Fq, C[q], minushalfLCq).real();;
 	
 	//Nonlocal pseudopotentials:
-	ostringstream Enloss; Enloss << "Enl-" << q;
-	ener.E[Enloss.str()] = qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
+	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
 	if(HCq) e->iInfo.projectGrad(HVdagCq, C[q], HCq);
 	
 	//Compute subspace hamiltonian if needed:
@@ -588,21 +596,14 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
 	
-	if(e->cntrl.fixed_n)
-	{	double traceHsub = qnum.weight * trace(Hsub[q]).real();
-		ener.E["Eband"] += traceHsub;
-		return traceHsub;
-	}
-	else
-		return 0.;
+	if(e->cntrl.fixed_n) return qnum.weight * trace(Hsub[q]).real();
+	else return 0.;
 }
 
-void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, ColumnBundle* KgradYq, matrix* gradBq, matrix* KgradBq)
-{
+void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, double KErollover, ColumnBundle* KgradYq, matrix* gradBq, matrix* KgradBq)
+{	assert(e->eInfo.isMine(q));
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
-		
-	ostringstream KEoss; KEoss << "KE-" << q;
-	double KErollover = 2.0 * (trace(Fq) ? (e->ener.E[KEoss.str()]/qnum.weight) / trace(Fq) : 1.);
+	
 	ColumnBundle OC = O(C[q]); //Note: O is not cheap for ultrasoft pseudopotentials
 	ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
 	matrix gradCtoY = e->eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
@@ -647,23 +648,40 @@ void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundl
 			gradYq.setSub(0, fixedYq);
 			if(KgradYq) KgradYq->setSub(0, fixedYq);
 		}
-	}	
+	}
 }
 
 double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, ColumnBundle* Kgrad)
-{
-	orthonormalize(q);
+{	orthonormalize(q);
 	diagMatrix Fq = eye(e->eInfo.nBands);
 	ColumnBundle Hq; std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	double Eband = applyHamiltonian(q, Fq, Hq, HVdagCq, ener, true);
 	if(grad)
-		orthonormalizeGrad(q, Fq, Hq, *grad, Kgrad);
+	{	double KErollover = 2.*e->ener.E["KE"]/(e->eInfo.qnums[q].weight*e->eInfo.nBands);
+		orthonormalizeGrad(q, Fq, Hq, *grad, KErollover, Kgrad);
+	}
 	Hq.free();
 	
 	// Calculate overlap condition
 	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
 	overlapCondition = *extremes.second / *extremes.first;
-	
 	return Eband;
-
 }
+
+void ElecVars::spinRestrict()
+{	const ElecInfo& eInfo = e->eInfo;
+	if(!eInfo.spinRestricted) return;
+	for(int q=eInfo.qStart; q<std::min(eInfo.qStop, eInfo.nStates/2); q++)
+	{	int qOther = q + eInfo.nStates/2;
+		if(eInfo.isMine(qOther))
+			memcpy(Y[qOther], Y[q]); //not using operator= because it also changes quantum number
+		else
+			Y[q].send(eInfo.whose(qOther));
+	}
+	for(int qOther=std::max(eInfo.qStart,eInfo.nStates/2); qOther<eInfo.qStop; qOther++)
+	{	int q = qOther - eInfo.nStates/2;
+		if(!eInfo.isMine(q))
+			Y[qOther].recv(eInfo.whose(q));
+	}
+}
+

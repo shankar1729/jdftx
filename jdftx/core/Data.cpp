@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Data.h>
 #include <core/GridInfo.h>
 #include <core/GpuUtil.h>
-#include <core/Util.h>
 #include <core/BlasExtra.h>
 #include <string.h>
 
@@ -63,6 +62,24 @@ void Data::copyData(const Data& other)
 	memcpy(data(false), other.data(false), nDoubles*sizeof(double));
 	#endif
 }
+
+void Data::send(int dest, int tag) const
+{	assert(mpiUtil->nProcesses()>1);
+	mpiUtil->send((const double*)data(), nDoubles, dest, tag);
+}
+void Data::recv(int src, int tag)
+{	assert(mpiUtil->nProcesses()>1);
+	mpiUtil->recv((double*)data(), nDoubles, src, tag);
+}
+void Data::bcast(int root)
+{	if(mpiUtil->nProcesses()>1)
+		mpiUtil->bcast((double*)data(), nDoubles, root);
+}
+void Data::allReduce(MPIUtil::ReduceOp op, bool safeMode)
+{	if(mpiUtil->nProcesses()>1)
+		mpiUtil->allReduce((double*)data(), nDoubles, op, safeMode);
+}
+
 void Data::absorbScale() const
 {	if(scale != 1.0)
 	{	Data* X = (Data*)this; //cast to non-const (this function modifies data, but is logically constant)

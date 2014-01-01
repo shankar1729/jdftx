@@ -67,6 +67,13 @@ public:
 		std::vector<const double*> lap, std::vector<const double*> tau,
 		double* E, std::vector<double*> E_n, std::vector<double*> E_sigma,
 		std::vector<double*> E_lap, std::vector<double*> E_tau) const=0;
+	
+	//!Call evaluate for a subset of data points:
+	void evaluateSub(int iStart, int iStop,
+		std::vector<const double*> n, std::vector<const double*> sigma,
+		std::vector<const double*> lap, std::vector<const double*> tau,
+		double* E, std::vector<double*> E_n, std::vector<double*> E_sigma,
+		std::vector<double*> E_lap, std::vector<double*> E_tau) const;
 };
 
 

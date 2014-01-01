@@ -61,8 +61,10 @@ cat > $plotFile <<EOF
 #!/usr/bin/gnuplot -persist
 $ticsCmd
 unset key
-nCol=real(system("awk 'END {print NF}' $outPrefix.eigenvals"))
-plot for [i=1:nCol] "$outPrefix.eigenvals" u 0:i w l
+nRows = real(system("awk '\$1==\"kpoint\" {nRows++} END {print nRows}' $outPrefix.kpoints"))
+nCols = real(system("stat -c%s $outPrefix.eigenvals")) / (8*nRows)
+formatString = system(sprintf("echo '' | awk 'END { str=\"\"; for(i=0; i<%d; i++) str = str \"%%\" \"lf\"; print str}'", nCols))
+plot for [i=1:nCols] "$outPrefix.eigenvals" binary format=formatString u 0:i w l
 EOF
 chmod +x $plotFile
 

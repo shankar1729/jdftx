@@ -50,34 +50,39 @@ double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, 
 //Compute DFT+U corrections:
 double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 	std::vector<ColumnBundle>* HC, std::vector<vector3<> >* forces, FILE* fpRhoAtom) const
-{	if(!plusU.size()) return 0.; //no U for this species
+{	static StopWatch watch("computeU"); watch.start();
+	if(!plusU.size()) return 0.; //no U for this species
 	const ElecInfo& eInfo = e->eInfo;
 	int nSpins = eInfo.spinType==SpinNone ? 1 : 2; //number of spins
-	int qCount = eInfo.nStates/nSpins; //number of states of each spin
 	double wSpinless = 0.5*nSpins; //factor multiplying state weights to get to spinless weights
 	double Utot = 0.;
-	for(int s=0; s<nSpins; s++)
-		for(auto Uparams: plusU)
-		{	int mCount = 2*Uparams.l+1; //number of m's at given l
-			double prefac = 0.5 * Uparams.UminusJ / wSpinless;
-			//Compute the density matrix:
-			matrix rho;
-			for(int q=s*qCount; q<(s+1)*qCount; q++)
-			{	ColumnBundle Opsi(C[q].similar(atpos.size() * mCount));
-				setOpsi(Opsi, Uparams.n, Uparams.l);
-				matrix CdagOpsi = C[q] ^ Opsi;
-				rho += (eInfo.qnums[q].weight*wSpinless) * dagger(CdagOpsi) * F[q] * CdagOpsi;
-			}
+	for(auto Uparams: plusU)
+	{	int mCount = 2*Uparams.l+1; //number of m's at given l
+		int matSize = mCount * atpos.size(); //density matrix size
+		double prefac = 0.5 * Uparams.UminusJ / wSpinless;
+		//Compute the density matrix:
+		std::vector<matrix> rho(nSpins), U_rho(nSpins);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	int s = eInfo.qnums[q].index();
+			ColumnBundle Opsi(C[q].similar(matSize));
+			setOpsi(Opsi, Uparams.n, Uparams.l);
+			matrix CdagOpsi = C[q] ^ Opsi;
+			rho[s] += (eInfo.qnums[q].weight*wSpinless) * dagger(CdagOpsi) * F[q] * CdagOpsi;
+		}
+		for(int s=0; s<nSpins; s++)
+		{	//Collect contributions from all processes:
+			if(!rho[s]) rho[s] = zeroes(matSize, matSize);
+			rho[s].allReduce(MPIUtil::ReduceSum);
 			//Symmetrize:
 			for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
 				if(e->iInfo.species[sp].get()==this)
-					e->symm.symmetrizeSpherical(rho, sp);
+					e->symm.symmetrizeSpherical(rho[s], sp);
 			//Compute contributions to U and its derivative w.r.t density matrix rho:
-			matrix U_rho = zeroes(rho.nRows(), rho.nCols());
+			U_rho[s] = zeroes(matSize,matSize);
 			for(unsigned a=0; a<atpos.size(); a++)
-			{	matrix rhoSub = rho(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols());
+			{	matrix rhoSub = rho[s](a,atpos.size(),matSize, a,atpos.size(),matSize);
 				Utot += prefac * trace(rhoSub - rhoSub*rhoSub).real();
-				U_rho.set(a,atpos.size(),rho.nRows(), a,atpos.size(),rho.nCols(), prefac * (eye(mCount) - 2.*rhoSub));
+				U_rho[s].set(a,atpos.size(),matSize, a,atpos.size(),matSize, prefac * (eye(mCount) - 2.*rhoSub));
 				if(fpRhoAtom) //print atomic density matrices
 				{	ostringstream oss; if(Uparams.n) oss << (Uparams.n + 1); oss << string("spdf")[Uparams.l];
 					fprintf(fpRhoAtom, "%s  spin: %+d  orbital: %s  atom# %d\n",
@@ -86,27 +91,30 @@ double SpeciesInfo::computeU(const std::vector<diagMatrix>& F, const std::vector
 					fprintf(fpRhoAtom, "\n");
 				}
 			}
-			//Propagate gradient from U_rho to wavefunctions or ionic positions if required:
-			if(HC || forces)
-			{	for(int q=s*qCount; q<(s+1)*qCount; q++)
-				{	ColumnBundle Opsi(C[q].similar(atpos.size() * mCount));
-					std::vector<ColumnBundle> dOpsi;
-					setOpsi(Opsi, Uparams.n, Uparams.l);
-					matrix CdagOpsi = C[q] ^ Opsi;
-					if(HC) HC->at(q) += wSpinless * Opsi * (U_rho * dagger(CdagOpsi)); //gradient upto state weight and fillings
-					if(forces)
-					{	diagMatrix fCartMat[3];
-						for(int k=0; k<3; k++)
-							fCartMat[k] = wSpinless * diag(U_rho * dagger(CdagOpsi) * F[q] * (C[q]^D(Opsi,k)));
-						for(unsigned a=0; a<atpos.size(); a++)
-						{	vector3<> fCart; //proportional to Cartesian force
-							for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));
-							(*forces)[a] += 2.*C[q].qnum->weight * (e->gInfo.RT * fCart);
-						}
+		}
+		//Propagate gradient from U_rho to wavefunctions or ionic positions if required:
+		if(HC || forces)
+		{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			{	int s = eInfo.qnums[q].index();
+				ColumnBundle Opsi(C[q].similar(matSize));
+				std::vector<ColumnBundle> dOpsi;
+				setOpsi(Opsi, Uparams.n, Uparams.l);
+				matrix CdagOpsi = C[q] ^ Opsi;
+				if(HC) HC->at(q) += wSpinless * Opsi * (U_rho[s] * dagger(CdagOpsi)); //gradient upto state weight and fillings
+				if(forces)
+				{	diagMatrix fCartMat[3];
+					for(int k=0; k<3; k++)
+						fCartMat[k] = wSpinless * diag(U_rho[s] * dagger(CdagOpsi) * F[q] * (C[q]^D(Opsi,k)));
+					for(unsigned a=0; a<atpos.size(); a++)
+					{	vector3<> fCart; //proportional to Cartesian force
+						for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));
+						(*forces)[a] += 2.*C[q].qnum->weight * (e->gInfo.RT * fCart);
 					}
 				}
 			}
 		}
+	}
+	watch.stop();
 	return Utot;
 }
 

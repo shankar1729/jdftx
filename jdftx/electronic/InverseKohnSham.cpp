@@ -74,13 +74,19 @@ double InverseKohnSham::compute(DataRptrCollection* grad)
 	//---Compute inverse Kohn sham functional, Ws [J Chem Phys 118, 2498 (2003)]
 	//Compute the density from the band-structure solve:
 	for(unsigned s=0; s<n.size(); s++) initZero(n[s], e.gInfo); //Initialize to zero
-	for(int q=0; q<e.eInfo.nStates; q++)
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(e.eVars.F[q], e.eVars.C[q], &e.gInfo);
-	for(unsigned s=0; s<n.size(); s++) e.symm.symmetrize(n[s]);
+	for(unsigned s=0; s<n.size(); s++)
+	{	e.symm.symmetrize(n[s]);
+		n[s]->allReduce(MPIUtil::ReduceSum);
+	}
 	//Compute the energy of the eigenfunctions in the net local potential:
-	double minusWs = dot(e.eVars.Vscloc, e.eVars.n);
-	for(int q=0; q<e.eInfo.nStates; q++)
+	double minusWs = 0.;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		minusWs -= e.eInfo.qnums[q].weight * trace(e.eVars.F[q] * e.eVars.Hsub_eigs[q]);
+	mpiUtil->allReduce(minusWs, MPIUtil::ReduceSum, true);
+	minusWs += dot(e.eVars.Vscloc, e.eVars.n);
+	
 	if(grad)
 	{	grad->resize(n.size());
 		for(unsigned s=0; s<n.size(); s++)
@@ -137,37 +143,25 @@ InvertChi::InvertChi(const Everything& e) : e(e)
 	
 	//Read eigenvalues:
 	setFname(eigenvals);
-	FILE* fp = fopen(fname.c_str(), "r");
-	if(!fp) die("Could not open %s for reading chiGuess eigenvalues.\n", fname.c_str());
-	std::vector<double> eigArr;
-	while(!feof(fp))
-	{	double eig;
-		if(fscanf(fp, "%lf", &eig)==1)
-			eigArr.push_back(eig);
-	}
-	fclose(fp);
-	if(eigArr.size() % e.eInfo.nStates != 0)
-		die("Number of eigenvalues in %s = %lu is not a multiple of nStates = %d.\n",
-			fname.c_str(), eigArr.size(), e.eInfo.nStates);
-	int nBandsChi = eigArr.size() / e.eInfo.nStates;
-	eigs.resize(e.eInfo.nStates);
-	for(int q=0; q<e.eInfo.nStates; q++)
-		eigs[q].assign(eigArr.begin()+q*nBandsChi, eigArr.begin()+(q+1)*nBandsChi);
+	int nEigsTot = fileSize(fname.c_str()) / sizeof(double);
+	if(nEigsTot % e.eInfo.nStates != 0)
+		die("Number of eigenvalues in %s = %d is not a multiple of nStates = %d.\n",
+			fname.c_str(), nEigsTot, e.eInfo.nStates);
+	int nBandsChi = nEigsTot / e.eInfo.nStates;
+	e.eInfo.read(eigs, fname.c_str(), nBandsChi);
 	
 	//Read / compute fillings:
 	setFname(fillings)
-	fp = fopen(fname.c_str(), "r");
-	F.resize(e.eInfo.nStates);
+	FILE* fp = fopen(fname.c_str(), "r");
 	if(fp) //read from file
-	{	for(int q=0; q<e.eInfo.nStates; q++)
-		{	F[q].resize(nBandsChi);
-			F[q].scan(fp);
+	{	fclose(fp);
+		e.eInfo.read(F, fname.c_str(), nBandsChi);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			F[q] *= (0.5*e.eVars.n.size()); //Internal fillings 0 to 1
-		}
-		fclose(fp);
 	}
 	else //use eVars.F
-	{	for(int q=0; q<e.eInfo.nStates; q++)
+	{	F.resize(e.eInfo.nStates);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	F[q] = e.eVars.F[q];
 			F[q].resize(nBandsChi, 0.); //pad with zeros (or drop extra entries)
 		}
@@ -175,27 +169,14 @@ InvertChi::InvertChi(const Everything& e) : e(e)
 	
 	//Read wavefunctions:
 	setFname(wfns)
-	init(C, e.eInfo.nStates, nBandsChi, &e.basis[0], &e.eInfo.qnums[0]);
-	size_t expectedLen = 0;
-	for(const ColumnBundle& psi: C)
-		expectedLen += psi.nData() * sizeof(complex);
-	size_t fileLen = fileSize(fname.c_str());
-	if(fileLen<0)
-		die("Error accessing chiGuess wavefunctions %s.\n", fname.c_str());
-	if(fileLen!=expectedLen)
-		die("Length of chiGuess wavefunction file %s is %lu (expected %lu bytes).\n",
-			fname.c_str(), fileLen, expectedLen);
-	fp = fopen(fname.c_str(), "rb");
-	for(int q=0; q<e.eInfo.nStates; q++)
-		((ManagedMemory&)C[q]).read(fp);
-	fclose(fp);
-	#undef setFname
+	init(C, e.eInfo.nStates, nBandsChi, &e.basis[0], &e.eInfo);
+	read(C, fname.c_str(), e.eInfo);
 }
 
 DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
 {	//Compute -dn = -chi * dV (first order perturbation theory)
-	DataRptrCollection dn(dV.size());
-	for(int q=0; q<e.eInfo.nStates; q++)
+	DataRptrCollection dn(dV.size()); nullToZero(dn, e.gInfo);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int s = e.eInfo.qnums[q].index();
 		for(unsigned b1=0; b1<eigs[q].size()-1; b1++)
 		{	complexDataRptr conjIpsi1 = conj(I(C[q].getColumn(b1)));
@@ -211,6 +192,7 @@ DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
 				}
 		}
 	}
+	for(DataRptr& dn_s: dn) dn_s->allReduce(MPIUtil::ReduceSum);
 	return dn;
 }
 

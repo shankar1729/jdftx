@@ -45,6 +45,7 @@ void printUsage(const char *name)
 	logPrintf("\t-o --output <filename>  specify output log file, default = stdout\n");
 	logPrintf("\t-d --no-append          overwrite output file instead of appending\n");
 	logPrintf("\t-t --template           print an input file template\n");
+	logPrintf("\t-m --mpi-debug-log      write output from secondary MPI processes to jdftx.<proc>.mpiDebugLog (instead of /dev/null)\n");
 	logPrintf("\t-n --dry-run            quit after initialization (to verify commands and other input files)\n");
 	logPrintf("\t-c --cores              number of cores to use (ignored when launched using SLURM)\n");
 	logPrintf("\t-s --skip-defaults      skip printing status of default commands issued automatically.\n");
@@ -53,7 +54,7 @@ void printUsage(const char *name)
 
 //Program entry point
 int main(int argc, char** argv, char** argp)
-{
+{	mpiUtil = new MPIUtil(argc, argv);
 	Everything e; //the parent data structure for, well, everything
 	
 	//Parse command line:
@@ -65,21 +66,24 @@ int main(int argc, char** argv, char** argp)
 			{"output", required_argument, 0, 'o'},
 			{"no-append", no_argument, 0, 'd'},
 			{"template", no_argument, 0, 't'},
+			{"mpi-debug-log", no_argument, 0, 'm'},
 			{"dry-run", no_argument, 0, 'n'},
 			{"cores", required_argument, 0, 'c'},
 			{"skip-defaults", no_argument, 0, 's'},
 			{0, 0, 0, 0}
 		};
 	while (1)
-	{	int c = getopt_long(argc, argv, "hvi:o:dtnc:s", long_options, 0);
+	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:s", long_options, 0);
 		if (c == -1) break; //end of options
+		#define RUN_HEAD(code) if(mpiUtil->isHead()) { code } delete mpiUtil;
 		switch (c)
-		{	case 'v': printVersionBanner(); return 0;
-			case 'h': printUsage(argv[0]); return 0;
+		{	case 'v': RUN_HEAD( printVersionBanner(); ) return 0;
+			case 'h': RUN_HEAD( printUsage(argv[0]); ) return 0;
 			case 'i': inputFilename.assign(optarg); break;
 			case 'o': logFilename.assign(optarg); break;
 			case 'd': appendOutput=false; break;
-			case 't': printDefaultTemplate(e); return 0;
+			case 't': RUN_HEAD( printDefaultTemplate(e); ) return 0;
+			case 'm': mpiDebugLog=true; break;
 			case 'n': dryRun=true; break;
 			case 'c':
 			{	int nCores = 0;
@@ -88,8 +92,9 @@ int main(int argc, char** argv, char** argp)
 				break;
 			}
 			case 's': printDefaults=false; break;
-			default: printUsage(argv[0]); return 1;
+			default: RUN_HEAD( printUsage(argv[0]); ) return 1;
 		}
+		#undef RUN_HEAD
 	}
 	
 	// Open the logfile (if any):
@@ -153,6 +158,6 @@ int main(int argc, char** argv, char** argp)
 	e.dump(DumpFreq_End, 0);
 	
 	finalizeSystem();
-	if(globalLog != stdout) fclose(globalLog);
+	if(globalLog && globalLog != stdout) fclose(globalLog);
 	return 0;
 }

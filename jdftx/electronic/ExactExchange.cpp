@@ -58,6 +58,7 @@ private:
 ExactExchange::ExactExchange(const Everything& e) : e(e)
 {
 	logPrintf("\n---------- Setting up exact exchange ----------\n");
+	if(mpiUtil->nProcesses()>1) die("Exact exchange not yet implemented in MPI mode.\n");
 	eval = new ExactExchangeEval(e);
 }
 
