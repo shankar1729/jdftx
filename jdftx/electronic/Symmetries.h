@@ -40,7 +40,7 @@ public:
 	void setupMesh(); //!< Phase 2 of setup which computes / checks FFTbox and k-mesh dependent symmetries
 	
 	//! Reduce a k-point mesh (and remember its inversion symmetry property in kpointInvertList)
-	std::list<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
+	std::vector<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
 	void symmetrize(DataRptr&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
@@ -72,7 +72,6 @@ private:
 
 	void sortSymmetries(); //!< ensure that the first symmetry is identity
 	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries (and generate symMesh)
-	void checkKmesh() const; //!< check symmetries of k-point mesh and warn if lower than basis symmetries
 	void checkSymmetries() const; //!< check validity of manually specified symmetry matrices
 	
 	//Index map for scalar field (electron density, potential) symmetrization

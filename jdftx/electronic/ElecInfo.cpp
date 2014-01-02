@@ -471,12 +471,12 @@ void ElecInfo::kpointsFold()
 
 void ElecInfo::kpointsReduce()
 {	//Reduce under symmetries:
-	std::list<QuantumNumber> qlist = e->symm.reduceKmesh(qnums);
-	if(qnums.size()==qlist.size())
+	std::vector<QuantumNumber> qRed = e->symm.reduceKmesh(qnums);
+	if(qnums.size()==qRed.size())
 		logPrintf("No reducable k-points. ");
 	else
-		logPrintf("Reduced to %lu k-points under symmetry. ", qlist.size());
-	qnums.assign(qlist.begin(), qlist.end()); //Convert back to a vector for efficient addressing
+		logPrintf("Reduced to %lu k-points under symmetry. ", qRed.size());
+	qnums.assign(qRed.begin(), qRed.end());
 	//Handle spin states / spin dgeneracy:
 	if(spinType==SpinNone)
 	{	for(unsigned i=0; i<qnums.size(); i++)
@@ -484,7 +484,7 @@ void ElecInfo::kpointsReduce()
 	}
 	else //SpinZ
 	{	unsigned nkPoints = qnums.size();
-		qnums.insert(qnums.end(), qlist.begin(), qlist.end()); //add second copy for other spin
+		qnums.insert(qnums.end(), qRed.begin(), qRed.end()); //add second copy for other spin
 		for(unsigned ik=0; ik<nkPoints; ik++)
 		{	//Set spin values:
 			qnums[ik].spin = +1;

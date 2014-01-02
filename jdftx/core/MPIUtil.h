@@ -90,6 +90,8 @@ namespace MPIUtilPrivate
 	DECLARE_DataType(int, INT)
 	DECLARE_DataType(long, LONG)
 	DECLARE_DataType(unsigned long, UNSIGNED_LONG)
+	DECLARE_DataType(long long, LONG_LONG)
+	DECLARE_DataType(unsigned long long, UNSIGNED_LONG_LONG)
 	DECLARE_DataType(float, FLOAT)
 	DECLARE_DataType(double, DOUBLE)
 	#undef DECLARE_DataType

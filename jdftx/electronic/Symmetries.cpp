@@ -71,48 +71,96 @@ void Symmetries::setup(const Everything& everything)
 
 void Symmetries::setupMesh()
 {	checkFFTbox(); //Check that the FFT box is commensurate with the symmetries and initialize mesh matrices
-	checkKmesh(); //Check symmetries of k-point mesh (and warn if lower than basis symmetries)
 	initSymmIndex(); //Initialize the equivalence classes for scalar field symmetrization (using mesh matrices)
 }
 
+//Pack and unpack kpoint map entry to a single 64-bit integer
+inline unsigned long long kmapPack(size_t iSrc, int invert, int iSym) { return (((unsigned long long)iSrc)<<8) | ((invert<0 ? 1 : 0)<<7) | iSym; }
+inline void kmapUnpack(unsigned long long kmap, size_t& iSrc, int& invert, int& iSym)
+{	iSrc = size_t(kmap >> 8);
+	invert = (0x80 & kmap) ? -1 : +1;
+	iSym = int(0x7F & kmap);
+}
 
-std::list<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
-{	//Convert to a list for efficient removal:
-	std::list<QuantumNumber> qlist(qnums.begin(), qnums.end());
+std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
+{	static StopWatch watch("reduceKmesh"); watch.start();
 	if(mode == SymmetriesNone)
 	{	((Symmetries*)this)->kpointInvertList.assign(1, +1);
-		return qlist;
+		watch.stop();
+		return qnums;
 	}
-	typedef std::list<QuantumNumber>::iterator Iter;
-	bool usedInversion = false; //whether inversion was used in reducing k-point mesh
+	//Compile list of inversions to check:
 	std::vector<int> invertList;
 	invertList.push_back(+1);
 	invertList.push_back(-1);
-	for(int invert: invertList) //First try without inversion, and then if required, try again with inversion
-	{	//For each state, gobble up the weights of all subsequent equivalent states:
-		for(Iter i=qlist.begin(); i!=qlist.end(); i++)
-		{	//start at the next element
-			Iter j=i; j++;
-			while(j!=qlist.end())
-			{	bool found = false;
-				for(const matrix3<int>& m: sym)
-					if(circDistanceSquared((~m)*i->k, invert*j->k)<symmThresholdSq)
-					{	found = true;
-						if(invert<0) usedInversion = true;
+	for(const matrix3<int>& m: sym)
+		if(m==matrix3<int>(-1,-1,-1))
+		{	invertList.resize(1); //inversion explicitly found in symmetry list, so remove from invertList
+			break;
+		}
+	//Compile kpoint map:
+	std::vector<unsigned long long> kmap(qnums.size(), ~0ULL); //list of source k-point and symmetry operation (ordered to prefer no inversion, earliest k-point and then earliest symmetry matrix)
+	std::vector<int> isSymKmesh(sym.size(), true); //whether each symmetry matrix leaves the k-mesh invariant
+	size_t iSrcStart = (mpiUtil->iProcess() * qnums.size()) / mpiUtil->nProcesses();
+	size_t iSrcStop = ((mpiUtil->iProcess()+1) * qnums.size()) / mpiUtil->nProcesses();
+	for(size_t iSrc=iSrcStart; iSrc<iSrcStop; iSrc++)
+		for(int invert: invertList)
+			for(int iSym=0; iSym<int(sym.size()); iSym++)
+			{	bool foundDest = false;
+				vector3<> kDest = invert * qnums[iSrc].k * sym[iSym];
+				for(size_t iDest=0; iDest<qnums.size(); iDest++)
+					if(circDistanceSquared(kDest, qnums[iDest].k) < symmThresholdSq)
+					{	kmap[iDest] = std::min(kmap[iDest], kmapPack(iSrc, invert, iSym));
+						foundDest = true;
 						break;
 					}
-				if(found)
-				{	i->weight += j->weight;
-					j = qlist.erase(j); //after this j points to the element just after the one rmeoved
-				}
-				else j++;
+				if(invert>0 && !foundDest) isSymKmesh[iSym] = false;
 			}
+	//Sync map across processes
+	mpiUtil->allReduce(kmap.data(), kmap.size(), MPIUtil::ReduceMin);
+	mpiUtil->allReduce(isSymKmesh.data(), isSymKmesh.size(), MPIUtil::ReduceLAnd);
+	//Print symmetry-incommensurate kmesh warning if necessary:
+	size_t nSymKmesh = std::count(isSymKmesh.begin(), isSymKmesh.end(), true);
+	if(nSymKmesh < sym.size()) //if even one of them is false
+	{	logPrintf("\nWARNING: k-mesh symmetries are a subgroup of size %lu\n", nSymKmesh);
+		if(shouldPrintMatrices)
+		{	for(int iSym=0; iSym<int(sym.size()); iSym++)
+				if(isSymKmesh[iSym])
+				{	sym[iSym].print(globalLog, " %2d ");
+					logPrintf("\n");
+				}
 		}
+		logPrintf("The effectively sampled k-mesh is a superset of the specified one,\n"
+			"and the answers need not match those with symmetries turned off.\n");
 	}
+	//Compile set of source k-points and whether inversion is necessary:
+	bool usedInversion = false;
+	std::map<size_t,size_t> iSrcMap; //map from original to reduced kpoints
+	for(unsigned long long kmapEntry: kmap)
+	{	size_t iSrc; int invert, iSym;
+		kmapUnpack(kmapEntry, iSrc, invert, iSym);
+		iSrcMap[iSrc] = 0;
+		if(invert<0) usedInversion = true;
+	}
+	size_t iReduced=0; for(auto& mapEntry: iSrcMap) mapEntry.second = (iReduced++);
+	//Set invertList:
 	if(usedInversion) logPrintf("Adding inversion symmetry to k-mesh for non-inversion-symmetric unit cell.\n");
 	else invertList.resize(1); //drop explicit inversion if not required
 	((Symmetries*)this)->kpointInvertList = invertList; //Set kpointInvertList
-	return qlist;
+	//Compile list of reduced kpoints:
+	std::vector<QuantumNumber> qRed(iSrcMap.size());
+	for(const auto& mapEntry: iSrcMap) qRed[mapEntry.second] = qnums[mapEntry.first];
+	//Update iSrc in map with the reduced value, and accumulate weights:
+	for(size_t iDest=0; iDest<qnums.size(); iDest++)
+	{	unsigned long long& kmapEntry = kmap[iDest];
+		size_t iSrc; int invert, iSym;
+		kmapUnpack(kmapEntry, iSrc, invert, iSym);
+		size_t iReduced = iSrcMap[iSrc];
+		if(iDest != iSrc) qRed[iReduced].weight += qnums[iDest].weight; //collect weight
+		kmapEntry = kmapPack(iReduced, invert, iSym);
+	}
+	watch.stop();
+	return qRed;
 }
 
 //Symmetrize scalar fields:
@@ -296,38 +344,6 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 			symBasis.push_back(m);
 	}
 	return symBasis;
-}
-
-void Symmetries::checkKmesh() const
-{	//Find subgroup of sym which leaves k-mesh invariant
-	std::vector< matrix3<int> > symKmesh;
-	for(const matrix3<int>& m: sym)
-	{	bool symmetric = true;
-		//For each k-point, search if the image under m belongs to the k-mesh
-		for(const QuantumNumber& q1: e->eInfo.qnums)
-		{	bool foundImage = false;
-			for(const QuantumNumber& q2: e->eInfo.qnums)
-				if(circDistanceSquared((~m)*q1.k,q2.k)<symmThresholdSq
-					&& fabs(q1.weight-q2.weight)<symmThreshold)
-				{	foundImage = true;
-					break;
-				}
-			if(!foundImage) { symmetric = false; break; }
-		}
-		if(symmetric) symKmesh.push_back(m); //m maps k-mesh onto itself
-	}
-	
-	if(symKmesh.size() < sym.size())
-	{	logPrintf("\nWARNING: k-mesh symmetries are a subgroup of size %lu\n", symKmesh.size());
-		if(shouldPrintMatrices)
-		{	for(const matrix3<int>& m: symKmesh)
-			{	m.print(globalLog, " %2d ");
-				logPrintf("\n");
-			}
-		}
-		logPrintf("The effectively sampled k-mesh is a superset of the specified one,\n"
-			"and the answers need not match those with symmetries turned off.\n");
-	}
 }
 
 void Symmetries::initSymmIndex()
