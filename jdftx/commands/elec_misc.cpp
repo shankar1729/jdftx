@@ -135,7 +135,7 @@ struct CommandSpinRestricted : public Command
 			"The format of wavefunction files depends on the spin, but is unaffected by this flag.";
 		require("spintype");
 		forbid("fix-electron-density");
-		forbid("residual-minimize");
+		forbid("electronic-scf");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -162,7 +162,7 @@ struct CommandFixElectronDensity : public Command
 		require("spintype");
 		forbid("elec-fermi-fillings");
 		forbid("elec-ex-corr-compare");
-		forbid("residual-minimize");
+		forbid("electronic-scf");
 		forbid("vibrations");
 		forbid("spin-restricted");
 	}

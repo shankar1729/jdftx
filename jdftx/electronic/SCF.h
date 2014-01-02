@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2013 Deniz Gunceler
+Copyright 2013 Deniz Gunceler, Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -28,28 +28,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Self-Consistent Iteration for residual minimization
 class SCF
 {
+public:
+	SCF(Everything& e);
+		
+	//! Minimizes residual to achieve self-consistency
+	void minimize();
+private:
+	Everything& e;
 	
-	public:
-		SCF(Everything& e);
-			
-		//! Minimizes residual to achieve self-consistency
-		void minimize();
-	private:
-		Everything& e;
-		
-		matrix overlap; //! Overlap matrix of density/potential residuals
-		
-		//! Updates fillings and recomputes filling energies
-		void updateFillings();
-		
-		//! Mixes densities or Vscloc and Vtau
-		void mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-							DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);
-		
-		//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
-		void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-				  std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
-				  std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
+	matrix overlap; //! Overlap matrix of density/potential residuals
+	
+	//! Updates fillings and recomputes filling energies
+	void updateFillings();
+	
+	//! Mixes densities or Vscloc and Vtau
+	void mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+		DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);
+	
+	//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
+	void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
+		std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
+		std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
 };
 
 #endif

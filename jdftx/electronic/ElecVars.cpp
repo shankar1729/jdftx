@@ -373,7 +373,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	//Compute fillings if required:
 	double mu = 0.0;
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (not e->cntrl.minimisingResidual))
+	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (not e->cntrl.scf))
 	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
 		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }

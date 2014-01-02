@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2013 Deniz Gunceler
+Copyright 2013 Deniz Gunceler, Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -22,20 +22,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 SCF::SCF(Everything& e): e(e)
 {
 	// set up the cacheing size
-	ResidualMinimizerParams& rp = e.residualMinimizerParams;
-	if(rp.vectorExtrapolation == plain) // No history is needed for plain mixing
-		rp.history = 1;	
+	SCFparams& sp = e.scfParams;
+	if(sp.vectorExtrapolation == SCFparams::VE_Plain) // No history is needed for plain mixing
+		sp.history = 1;	
 	
-	overlap.init(e.residualMinimizerParams.history, e.residualMinimizerParams.history);
+	overlap.init(e.scfParams.history, e.scfParams.history);
 	
 	// Subspace rotation make no sense for residual minimize
 	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
 		e.eInfo.subspaceRotation = false;
 
 	// Check eigenshifts and adjust index for 0
-	for(size_t j=0; j<e.residualMinimizerParams.eigenShifts.size(); j++)
+	for(size_t j=0; j<e.scfParams.eigenShifts.size(); j++)
 	{	
-		EigenShift& eigenShift = e.residualMinimizerParams.eigenShifts[j];
+		SCFparams::EigenShift& eigenShift = e.scfParams.eigenShifts[j];
 		// Correct for the 0
 		if(eigenShift.fromHOMO)
 		{	eigenShift.n += e.eInfo.findHOMO(eigenShift.q);
@@ -67,7 +67,7 @@ void SCF::minimize()
 {	
 	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
-	ResidualMinimizerParams rp = e.residualMinimizerParams;
+	SCFparams sp = e.scfParams;
 	
 	// Compute energy for the initial guess
 	e.cntrl.fixed_n = false;
@@ -86,9 +86,9 @@ void SCF::minimize()
 	
 	// Initialize the variable that defines the single particle (Kohn-Sham) Hamiltonian
 	// It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
-	DataRptrCollection& variable_n = (rp.mixedVariable == density ? eVars.n : eVars.Vscloc);
-	DataRptrCollection& variable_tau = (rp.mixedVariable == density ? eVars.tau : eVars.Vtau);
-	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (rp.mixedVariable==density ? "density" : "potential"));
+	DataRptrCollection& variable_n = (sp.mixedVariable == SCFparams::MV_Density ? eVars.n : eVars.Vscloc);
+	DataRptrCollection& variable_tau = (sp.mixedVariable == SCFparams::MV_Density ? eVars.tau : eVars.Vtau);
+	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
 	// Set up variable history for vector extrapolation
 	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
@@ -96,16 +96,16 @@ void SCF::minimize()
 	double Eprev = 0.;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
-	for(int scfCounter=0; scfCounter<e.residualMinimizerParams.nIterations; scfCounter++)
+	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
 	{	
 		// Clear history if full
-		if(((int)pastResiduals_n.size() >= rp.history) or ((int)pastVariables_n.size() >= rp.history))
+		if(((int)pastResiduals_n.size() >= sp.history) or ((int)pastVariables_n.size() >= sp.history))
 		{	double ndim = pastResiduals_n.size();
-			if((rp.vectorExtrapolation != plain) and (rp.history!=1))
+			if((sp.vectorExtrapolation != SCFparams::VE_Plain) and (sp.history!=1))
 				overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
 			pastVariables_n.erase(pastVariables_n.begin());
 			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
-			if(rp.vectorExtrapolation != plain)
+			if(sp.vectorExtrapolation != SCFparams::VE_Plain)
 			{	pastResiduals_n.erase(pastResiduals_n.begin());
 				ifTau(pastResiduals_tau.erase(pastResiduals_tau.begin()););
 			}
@@ -118,13 +118,13 @@ void SCF::minimize()
 		
 		/// Solve at fixed hamiltonian ///
 		e.cntrl.fixed_n = true; e.ener = Energies();
-		if(not rp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
+		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
 		}
 		e.eVars.setEigenvectors();
-		if(not rp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
+		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		e.cntrl.fixed_n = false; e.ener = Energies();
 		/// ///////////////////////// ///
 		
@@ -149,25 +149,25 @@ void SCF::minimize()
 		double residual = e.gInfo.dV*sqrt(dot(variableResidual, variableResidual));
 		
 		/// PRINT ///
-		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tResidual:%.3e\tdE: %.3e\n", (rp.verbose ? "\t" : ""), scfCounter, E, residual, E-Eprev);
+		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tResidual:%.3e\tdE: %.3e\n", (sp.verbose ? "\t" : ""), scfCounter, E, residual, E-Eprev);
 		
 		// Check for convergence, mix density or potential if otherwise
-		if(fabs(E-Eprev) < rp.energyDiffThreshold)
-		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n\n", rp.energyDiffThreshold);
+		if(fabs(E-Eprev) < sp.energyDiffThreshold)
+		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold);
 			break;
 		}
 		else
 		{	
-			if((rp.vectorExtrapolation == plain))
-				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 1.-rp.damping);
-			else if(rp.vectorExtrapolation == DIIS)
+			if((sp.vectorExtrapolation == SCFparams::VE_Plain))
+				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 1.-sp.damping);
+			else if(sp.vectorExtrapolation == SCFparams::VE_DIIS)
 			{	cacheResidual(n)
 				ifTau(cacheResidual(tau))
 				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
 			}
 		
 			// Recompute Vscloc if mixing density
-			if(e.residualMinimizerParams.mixedVariable == density)
+			if(e.scfParams.mixedVariable == SCFparams::MV_Density)
 				e.eVars.EdensityAndVscloc(e.ener);
 			e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		}
@@ -178,9 +178,9 @@ void SCF::minimize()
 
 void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 					DataRptrCollection& mixingVariable_n, DataRptrCollection& mixingVariable_tau, double mixFraction)
-{		// Mix old and new variable
-		variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable_n;
-		ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
+{	//Mix old and new variable
+	variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable_n;
+	ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
 }
 
 inline double preconditionerKernel(double G, double f, double slope)
@@ -235,7 +235,7 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 	initZero(variable_n);
 	ifTau(initZero(variable_tau))
 	
-	double damping = 1. - e.residualMinimizerParams.damping;
+	double damping = 1. - e.scfParams.damping;
 	
 	// Variables for the preconditioner
 	//double Gmax = e.gInfo.GmaxGrid;
@@ -255,12 +255,12 @@ void SCF::updateFillings()
 {
 	ElecInfo& eInfo = e.eInfo; 
 	ElecVars& eVars = e.eVars;
-	ResidualMinimizerParams& rp = e.residualMinimizerParams;
+	SCFparams& sp = e.scfParams;
 	
 	// Apply eigenshifts, if any
-	for(size_t j=0; j<rp.eigenShifts.size(); j++)
-		if(eInfo.isMine(rp.eigenShifts[j].q))
-			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] += rp.eigenShifts[j].shift;
+	for(size_t j=0; j<sp.eigenShifts.size(); j++)
+		if(eInfo.isMine(sp.eigenShifts[j].q))
+			e.eVars.Hsub_eigs[sp.eigenShifts[j].q][sp.eigenShifts[j].n] += sp.eigenShifts[j].shift;
 	
 	double mu; // Electron chemical potential
 		
@@ -277,9 +277,9 @@ void SCF::updateFillings()
 	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
 	
 	// Undo eigenshifts, if any
-	for(size_t j=0; j<rp.eigenShifts.size(); j++)
-		if(eInfo.isMine(rp.eigenShifts[j].q))
-			e.eVars.Hsub_eigs[rp.eigenShifts[j].q][rp.eigenShifts[j].n] -= rp.eigenShifts[j].shift;
+	for(size_t j=0; j<sp.eigenShifts.size(); j++)
+		if(eInfo.isMine(sp.eigenShifts[j].q))
+			e.eVars.Hsub_eigs[sp.eigenShifts[j].q][sp.eigenShifts[j].n] -= sp.eigenShifts[j].shift;
 	
 	// Print filling update information
 	if(e.eInfo.fillingsUpdate)

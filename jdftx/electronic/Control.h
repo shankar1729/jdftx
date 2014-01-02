@@ -58,7 +58,7 @@ public:
 	double invertKS_sigma; //!< bandwidth cutoff for the external potential
 	string invertKS_chiGuessFilename; //!< filename pattern of variables (wfns/fillings/eigenvals) generating guess chi
 	
-	bool minimisingResidual; //! whether residual or total energy minimizer will be called
+	bool scf; //! whether SCF iteration or total energy minimizer will be called
 
 	Control()
 	:	fixed_n(false),
@@ -67,7 +67,7 @@ public:
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false),
-		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), minimisingResidual(false)
+		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false)
 	{
 	}
 };

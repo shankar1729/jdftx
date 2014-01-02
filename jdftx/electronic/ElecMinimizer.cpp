@@ -198,7 +198,7 @@ void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
 
 void elecMinimize(Everything& e)
 {	
-	if(e.cntrl.minimisingResidual)
+	if(e.cntrl.scf)
 	{	SCF scf(e);
 		scf.minimize();
 	}
