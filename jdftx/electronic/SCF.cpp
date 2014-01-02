@@ -20,17 +20,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SCF.h>
 
 SCF::SCF(Everything& e): e(e)
-{
-	// set up the cacheing size
+{	//Set up the caching size:
 	SCFparams& sp = e.scfParams;
-	if(sp.vectorExtrapolation == SCFparams::VE_Plain) // No history is needed for plain mixing
-		sp.history = 1;	
-	
-	overlap.init(e.scfParams.history, e.scfParams.history);
-	
-	// Subspace rotation make no sense for residual minimize
-	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
-		e.eInfo.subspaceRotation = false;
+	if(sp.vectorExtrapolation == SCFparams::VE_Plain) //No history needed for plain mixing
+		sp.history = 1;
+	overlap.init(sp.history, sp.history);
 	
 	eigenShiftInit();
 }
@@ -49,36 +43,32 @@ void SCF::minimize()
 	ElecVars& eVars = e.eVars;
 	SCFparams sp = e.scfParams;
 	
-	// Compute energy for the initial guess
-	e.cntrl.fixed_n = false;
-	e.ener = Energies();
-	e.iInfo.update(e.ener);
-	double E;
-	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Compute Hsub and update fillings
+	bool subspaceRotation=false;
+	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
+	
+	//Compute energy for the initial guess
+	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) //Compute Hsub and update fillings
 	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		updateFillings();
 	}
-	E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);	// Compute energy
+	double E = eVars.elecEnergyAndGrad(e.ener); //Compute energy
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 	
-	e.ener = Energies(); 
-	e.cntrl.fixed_n = true;
-	
-	// Initialize the variable that defines the single particle (Kohn-Sham) Hamiltonian
-	// It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
+	//Initialize the variable that defines the single particle (Kohn-Sham) Hamiltonian
+	//It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
 	DataRptrCollection& variable_n = (sp.mixedVariable == SCFparams::MV_Density ? eVars.n : eVars.Vscloc);
 	DataRptrCollection& variable_tau = (sp.mixedVariable == SCFparams::MV_Density ? eVars.tau : eVars.Vtau);
 	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
-	// Set up variable history for vector extrapolation
+	//Set up variable history for vector extrapolation
 	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
 	
 	double Eprev = 0.;
 	
 	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
-	{	
-		// Clear history if full
+	{
+		//Clear history if full
 		if(((int)pastResiduals_n.size() >= sp.history) or ((int)pastVariables_n.size() >= sp.history))
 		{	double ndim = pastResiduals_n.size();
 			if((sp.vectorExtrapolation != SCFparams::VE_Plain) and (sp.history!=1))
@@ -91,13 +81,13 @@ void SCF::minimize()
 			}
 		}
 		
-		// Cache the old energy and variables
+		//Cache the old energy and variables
 		Eprev = E;
 		pastVariables_n.push_back(clone(variable_n));
 		ifTau(pastVariables_tau.push_back(clone(variable_tau)))
 		
-		/// Solve at fixed hamiltonian ///
-		e.cntrl.fixed_n = true; e.ener = Energies();
+		//Solve at fixed hamiltonian
+		e.cntrl.fixed_n = true;
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	BandMinimizer bmin(e, q, true);
@@ -105,14 +95,12 @@ void SCF::minimize()
 		}
 		e.eVars.setEigenvectors();
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
-		e.cntrl.fixed_n = false; e.ener = Energies();
-		/// ///////////////////////// ///
+		e.cntrl.fixed_n = false;
 		
-		// Compute new density and energy
+		//Compute new density and energy
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
-		e.iInfo.update(e.ener);
-		E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);
+		E = eVars.elecEnergyAndGrad(e.ener);
 		
 		// Debug print
 		if(e.cntrl.shouldPrintEigsFillings)
@@ -124,7 +112,7 @@ void SCF::minimize()
 		}
 		logFlush();
 
-		// Calculate residual
+		//Calculate residual
 		DataRptrCollection variableResidual = variable_n - pastVariables_n.back();
 		double residual = e.gInfo.dV*sqrt(dot(variableResidual, variableResidual));
 		
@@ -154,6 +142,8 @@ void SCF::minimize()
 		
 		logFlush();
 	}
+	
+	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
 }
 
 void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
@@ -253,14 +243,12 @@ void SCF::updateFillings()
 	
 	// Print filling update information
 	if(e.eInfo.fillingsUpdate)
-	{	double muMix = e.eInfo.findMu(eVars.Hsub_eigs, e.eInfo.nElectrons);
-		logPrintf("\tFillingsMix:  mu: %.15le  nElectrons: %.15le", muMix, e.eInfo.nElectrons);
+	{	logPrintf("\tFillingsMix:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
 		if(e.eInfo.spinType == SpinZ)
 		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
 			logPrintf("  magneticMoment: %.5f", spinPol);
 		}
-		logPrintf("\n");
-		logFlush();
+		logPrintf("\n"); logFlush();
 	}
 }
 
