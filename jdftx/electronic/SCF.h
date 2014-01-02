@@ -49,6 +49,9 @@ private:
 	void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
 		std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
 		std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
+	
+	void eigenShiftInit(); //!< initialize and check eigenShifts
+	void eigenShiftApply(bool reverse);  //!< apply eigenshifts if false, and undo them if true
 };
 
 #endif

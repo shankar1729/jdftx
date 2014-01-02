@@ -31,28 +31,8 @@ SCF::SCF(Everything& e): e(e)
 	// Subspace rotation make no sense for residual minimize
 	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
 		e.eInfo.subspaceRotation = false;
-
-	// Check eigenshifts and adjust index for 0
-	for(size_t j=0; j<e.scfParams.eigenShifts.size(); j++)
-	{	
-		SCFparams::EigenShift& eigenShift = e.scfParams.eigenShifts[j];
-		// Correct for the 0
-		if(eigenShift.fromHOMO)
-		{	eigenShift.n += e.eInfo.findHOMO(eigenShift.q);
-			eigenShift.fromHOMO = false; // Needed if SCF is called multiple times, e.g. from an ionic minimize
-		}
-		// Check for a meaningful q and n
-		if(eigenShift.q < 0)
-			die("Eigenshift quantum number (q) must be greater than 0!\n");
-		if(eigenShift.q > e.eInfo.nStates)
-			die("Eigenshift quantum number (q) must be less than nStates=%i!\n", e.eInfo.nStates);
-		if(eigenShift.n < 0)
-			die("Eigenshift band index (n) must be greater than 0!\n");
-		if(eigenShift.n > e.eInfo.nBands)
-			die("Eigenshift band index (n) must be less than nBands=%i!\n", e.eInfo.nBands);		
-		
-	}
 	
+	eigenShiftInit();
 }
 
 #define ifTau(command) if(e.exCorr.needsKEdensity()) command;
@@ -255,16 +235,10 @@ void SCF::updateFillings()
 {
 	ElecInfo& eInfo = e.eInfo; 
 	ElecVars& eVars = e.eVars;
-	SCFparams& sp = e.scfParams;
 	
-	// Apply eigenshifts, if any
-	for(size_t j=0; j<sp.eigenShifts.size(); j++)
-		if(eInfo.isMine(sp.eigenShifts[j].q))
-			e.eVars.Hsub_eigs[sp.eigenShifts[j].q][sp.eigenShifts[j].n] += sp.eigenShifts[j].shift;
-	
-	double mu; // Electron chemical potential
-		
 	//Update nElectrons from mu, or mu from nElectrons as appropriate:
+	eigenShiftApply(false);
+	double mu; // Electron chemical potential
 	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons);
 	else
 	{	mu = eInfo.mu; 
@@ -275,11 +249,7 @@ void SCF::updateFillings()
 		eVars.F[q] = eInfo.fermi(mu, eVars.Hsub_eigs[q]);
 	//Update TS and muN:
 	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
-	
-	// Undo eigenshifts, if any
-	for(size_t j=0; j<sp.eigenShifts.size(); j++)
-		if(eInfo.isMine(sp.eigenShifts[j].q))
-			e.eVars.Hsub_eigs[sp.eigenShifts[j].q][sp.eigenShifts[j].n] -= sp.eigenShifts[j].shift;
+	eigenShiftApply(true);
 	
 	// Print filling update information
 	if(e.eInfo.fillingsUpdate)
@@ -294,4 +264,24 @@ void SCF::updateFillings()
 	}
 }
 
+void SCF::eigenShiftInit()
+{	for(SCFparams::EigenShift& es: e.scfParams.eigenShifts)
+	{	// Correct for the 0
+		if(es.fromHOMO)
+		{	es.n += e.eInfo.findHOMO(es.q);
+			es.fromHOMO = false; // Needed if SCF is called multiple times, e.g. from an ionic minimize
+		}
+		// Check for a meaningful q and n
+		if(es.q < 0) die("Eigenshift quantum number (q) must be greater than 0!\n");
+		if(es.q > e.eInfo.nStates) die("Eigenshift quantum number (q) must be less than nStates=%i!\n", e.eInfo.nStates);
+		if(es.n < 0) die("Eigenshift band index (n) must be greater than 0!\n");
+		if(es.n > e.eInfo.nBands) die("Eigenshift band index (n) must be less than nBands=%i!\n", e.eInfo.nBands);		
+	}
+}
 
+void SCF::eigenShiftApply(bool reverse)
+{	int sign = reverse ? -1 : +1;
+	for(const SCFparams::EigenShift& es: e.scfParams.eigenShifts)
+		if(e.eInfo.isMine(es.q))
+			e.eVars.Hsub_eigs[es.q][es.n] += sign * es.shift;
+}
