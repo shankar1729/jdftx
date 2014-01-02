@@ -122,7 +122,8 @@ template<typename T> struct PeriodicLookup
 	}
 	
 	//Return index of a point within symmThresold of x, and string::npos if none found
-	size_t find(vector3<> v) const
+	//(Optionally also only return points whose tag matches the specified value)
+	size_t find(vector3<> v, double tag=0., const std::vector<double>* tagArr=0) const
 	{	vector3<int> ivMin, ivMax;
 		for(int k=0; k<3; k++)
 		{	v[k] -= floor(v[k]); //in [0,1)
@@ -134,7 +135,8 @@ template<typename T> struct PeriodicLookup
 		for(iv[1]=ivMin[1]; iv[1]<=ivMax[1]; iv[1]++)
 		for(iv[2]=ivMin[2]; iv[2]<=ivMax[2]; iv[2]++)
 			for(size_t index: indices[meshIndex(iv)])
-				if(circDistanceSquared(v, getCoord(points[index])) < symmThresholdSq)
+				if(circDistanceSquared(v, getCoord(points[index])) < symmThresholdSq
+					&& (!tagArr || tag==tagArr->at(index)) )
 					return index;
 		return string::npos;
 	}
@@ -364,15 +366,9 @@ void Symmetries::calcSymmetries()
 		}
 		//Print positions and quit if a better symmetry center is found:
 		if(sym.size()>origSymSize)
-		{	logPrintf(
-				"\nTranslating atoms by [ %lg %lg %lg ] (in lattice coordinates) will\n"
-				"increase symmetry count from %lu to %lu. Translated atom positions follow:\n",
+		{	die("\nTranslating atoms by [ %lg %lg %lg ] (in lattice coordinates) will increase symmetry count\n"
+				"from %lu to %lu. Update the ionic positions, or set <moveAtoms>=no in command symmetry.\n",
 				-rCenter[0], -rCenter[1], -rCenter[2], origSymSize, sym.size());
-			for(auto sp: iInfo.species)
-				for(vector3<>& pos: sp->atpos)
-					pos -= rCenter;
-			iInfo.printPositions(globalLog);
-			die("Use the suggested ionic positions, or set <moveAtoms>=no in command symmetry.\n");
 		}
 	}
 }
@@ -383,18 +379,13 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 	for(const matrix3<int>& m: symLattice)
 	{	bool symmetric = true;
 		for(auto sp: e->iInfo.species) //For each species
-		{	for(unsigned a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	bool foundImage = false;
-				vector3<> mapped_pos1 = offset + m * (sp->atpos[a1]-offset);
-				for(unsigned a2=0; a2<sp->atpos.size(); a2++)
-					if(circDistanceSquared(mapped_pos1, sp->atpos[a2]) < symmThresholdSq) //Check if the image exists
-						if(!sp->initialMagneticMoments.size()
-							|| (sp->initialMagneticMoments[a1]==sp->initialMagneticMoments[a2]) ) //Check spin symmetry
-						{
-							foundImage = true;
-							break;
-						}
-				if(!foundImage) { symmetric = false; break; }
+		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
+			const std::vector<double>& M = sp->initialMagneticMoments;
+			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
+			{	if(string::npos == plook.find(offset + m*(sp->atpos[a1]-offset), M.size()?M[a1]:0, M.size()?&M:0)) //match position and spin
+				{	symmetric = false;
+					break;
+				}
 			}
 			if(!symmetric) break;
 		}
@@ -516,16 +507,13 @@ void Symmetries::checkSymmetries() const
 {	logPrintf("Checking manually specified symmetry matrices.\n");
 	for(const matrix3<int>& m: sym) //For each symmetry matrix
 		for(auto sp: e->iInfo.species) //For each species
-			for(auto pos1: sp->atpos) //For each atom
-			{	bool foundImage = false;
-				vector3<> mapped_pos1 = m * pos1;
-				for(auto pos2: sp->atpos) //Check if the image exists:
-					if(circDistanceSquared(mapped_pos1, pos2) < symmThresholdSq)
-					{	foundImage = true;
-						break;
-					}
-				if(!foundImage) die("Symmetries do not agree with atomic positions!\n");
+		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
+			const std::vector<double>& M = sp->initialMagneticMoments;
+			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
+			{	if(string::npos == plook.find(m * sp->atpos[a1], M.size()?M[a1]:0, M.size()?&M:0)) //match position and spin
+					die("Symmetries do not agree with atomic positions!\n");
 			}
+		}
 }
 
 void Symmetries::initAtomMaps()
@@ -534,29 +522,23 @@ void Symmetries::initAtomMaps()
 	atomMap.resize(iInfo.species.size());
 	
 	for(unsigned sp = 0; sp < iInfo.species.size(); sp++)
-	{
-		const SpeciesInfo& spInfo = *(iInfo.species[sp]);
+	{	const SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		atomMap[sp].resize(spInfo.atpos.size());
+		PeriodicLookup< vector3<> > plook(spInfo.atpos, e->gInfo.RTR);
 		
-		for(unsigned at1=0; at1<spInfo.atpos.size(); at1++)
-		{	if(shouldPrintMatrices) logPrintf("%s %3u: ", spInfo.name.c_str(), at1);
-			atomMap[sp][at1].resize(sym.size());
+		for(size_t a1=0; a1<spInfo.atpos.size(); a1++)
+		{	if(shouldPrintMatrices) logPrintf("%s %3lu: ", spInfo.name.c_str(), a1);
+			atomMap[sp][a1].resize(sym.size());
 			
 			for(unsigned iRot = 0; iRot<sym.size(); iRot++)
-			{	vector3<> mapped_pos1 = sym[iRot] * spInfo.atpos[at1];
-				
-				for(unsigned at2=0; at2<spInfo.atpos.size(); at2++)
-					if(circDistanceSquared(mapped_pos1, spInfo.atpos[at2]) < symmThresholdSq)
-					{	atomMap[sp][at1][iRot] = at2;
-				
-						if(not spInfo.constraints[at1].isEquivalent(spInfo.constraints[at2], e->gInfo.R*sym[iRot]*inv(e->gInfo.R)))
-							die("Species %s atoms %u and %u are related by symmetry "
-							"but have different move scale factors or inconsistent move constraints.\n\n",
-								spInfo.name.c_str(), at1, at2);
-							
-					}
-				
-				if(shouldPrintMatrices) logPrintf(" %3u", atomMap[sp][at1][iRot]);
+			{	size_t a2 = plook.find(sym[iRot] * spInfo.atpos[a1]);
+				assert(a2 != string::npos);
+				atomMap[sp][a1][iRot] = a2;
+				if(not spInfo.constraints[a1].isEquivalent(spInfo.constraints[a2], e->gInfo.R*sym[iRot]*inv(e->gInfo.R)))
+					die("Species %s atoms %lu and %lu are related by symmetry "
+					"but have different move scale factors or inconsistent move constraints.\n\n",
+						spInfo.name.c_str(), a1, a2);
+				if(shouldPrintMatrices) logPrintf(" %3u", atomMap[sp][a1][iRot]);
 			}
 			if(shouldPrintMatrices) logPrintf("\n");
 		}
