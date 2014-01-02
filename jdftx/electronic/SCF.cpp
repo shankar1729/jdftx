@@ -79,7 +79,8 @@ void SCF::minimize()
 		updateFillings();
 	}
 	E = eVars.elecEnergyAndGrad(e.ener, 0, 0, 0);	// Compute energy
-
+	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
+	
 	e.ener = Energies(); 
 	e.cntrl.fixed_n = true;
 	
