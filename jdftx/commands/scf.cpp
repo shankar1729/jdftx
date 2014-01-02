@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2013 Deniz Gunceler
+Copyright 2013 Deniz Gunceler, Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -20,10 +20,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
-enum  ResMinParameter
+enum SCFparamsMember
 {
 	nIterations, 
 	energyDiffThreshold,
+	residualThreshold,
 	mixedVariable,
 	vectorExtrapolation,
 	verbose,
@@ -33,18 +34,20 @@ enum  ResMinParameter
 	scfDelim
 };
 
-EnumStringMap<ResMinParameter> ResMinParameterMap
+EnumStringMap<SCFparamsMember> scfParamsMap
 (	nIterations, "nIterations",
 	energyDiffThreshold, "energyDiffThreshold",
-    mixedVariable, "mixedVariable",
-    vectorExtrapolation, "vectorExtrapolation",
+	residualThreshold, "residualThreshold",
+	mixedVariable, "mixedVariable",
+	vectorExtrapolation, "vectorExtrapolation",
 	verbose, "verbose",
 	damping, "damping",
 	history, "history"
 );
-EnumStringMap<ResMinParameter> resMinParameterDescrMap
+EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
 	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
+	residualThreshold, "convergence threshold for the residual in the mixed variable (density or potential)",
     mixedVariable, "whether density or potential will be mixed at each step",
 	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
 	verbose, "whether the inner eigenvalue solver will print or not",
@@ -52,23 +55,23 @@ EnumStringMap<ResMinParameter> resMinParameterDescrMap
 	history, "Number of past residuals and vectors are kept cached and used in DIIS"
 );
 
-EnumStringMap<MixedVariable> resMinMixing
-(	density, "density",
-	potential, "potential"
+EnumStringMap<SCFparams::MixedVariable> scfMixing
+(	SCFparams::MV_Density, "Density",
+	SCFparams::MV_Potential, "Potential"
 );
 
-EnumStringMap<VectorExtrapolation> resMinExtrapolation
-(	plain, "plain",
-	DIIS, "DIIS"
+EnumStringMap<SCFparams::VectorExtrapolation> scfExtrapolation
+(	SCFparams::VE_Plain, "Plain",
+	SCFparams::VE_DIIS, "DIIS"
 );
 
 struct CommandsScfParams: public Command
 {
-	CommandsScfParams() : Command("residual-minimize")
+	CommandsScfParams() : Command("electronic-scf")
 	{	
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:"
-			+ addDescriptions(ResMinParameterMap.optionList(), linkDescription(ResMinParameterMap, resMinParameterDescrMap))
+			+ addDescriptions(scfParamsMap.optionList(), linkDescription(scfParamsMap, scfParamsDescMap))
 			+ "\nAny number of these key-value pairs may be specified in any order.";
 		hasDefault = false;
 		forbid("fix-electron-density");
@@ -76,51 +79,38 @@ struct CommandsScfParams: public Command
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	e.cntrl.minimisingResidual = true;
+	{	e.cntrl.scf = true;
 	
 		while(true)
-		{	ResMinParameter key;
-			pl.get(key, scfDelim, ResMinParameterMap, "key", false);
+		{	SCFparamsMember key;
+			pl.get(key, scfDelim, scfParamsMap, "key", false);
 			
 			switch(key)
-			{	case energyDiffThreshold:
-					pl.get(e.residualMinimizerParams.energyDiffThreshold, 1e-6, "energyDiffThreshold", true);
-					break;
-				case mixedVariable:
-					pl.get(e.residualMinimizerParams.mixedVariable, density, resMinMixing, "mixedVariable", true);
-					break;
-				case nIterations:
-					pl.get(e.residualMinimizerParams.nIterations, 10, "nIterations", true);
-					break;
-				case vectorExtrapolation:
-					pl.get(e.residualMinimizerParams.vectorExtrapolation, plain, resMinExtrapolation, "vectorExtrapolation", true);					
-					break;
-				case verbose:
-					e.residualMinimizerParams.verbose = true;				
-					break;
-				case damping:
-					pl.get(e.residualMinimizerParams.damping, 0.5, "damping", true);
-					break;
-				case history:
-					pl.get(e.residualMinimizerParams.history, 15, "history", true);
-					break;
+			{	case energyDiffThreshold: pl.get(e.scfParams.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
+				case residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
+				case mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
+				case nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
+				case vectorExtrapolation: pl.get(e.scfParams.vectorExtrapolation, SCFparams::VE_DIIS, scfExtrapolation, "vectorExtrapolation", true); break;
+				case verbose: pl.get(e.scfParams.verbose, false, boolMap, "verbose", true); break;
+				case damping: pl.get(e.scfParams.damping, 0.5, "damping", true); break;
+				case history: pl.get(e.scfParams.history, 15, "history", true); break;
 				case scfDelim: return; //end of input
 			}
-			
-		}	
+		}
 	}
 	
 	void printStatus(Everything& e, int iRep)
 	{	
-		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, e.residualMinimizerParams.param);
-		
+		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, e.scfParams.param);
 		PRINT(nIterations, %i)
 		PRINT(energyDiffThreshold, %lg)
-		logPrintf(" \\\n\tmixedVariable\t%s", resMinMixing.getString(e.residualMinimizerParams.mixedVariable));
-		logPrintf(" \\\n\tvectorExtrapolation\t%s", resMinExtrapolation.getString(e.residualMinimizerParams.vectorExtrapolation));
-		logPrintf(" \\\n\thistory\t%i", e.residualMinimizerParams.history);
-		if(e.residualMinimizerParams.verbose) logPrintf(" \\\n\tverbose");
+		PRINT(residualThreshold, %lg)
+		PRINT(nIterations, %d)
+		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(e.scfParams.mixedVariable));
+		logPrintf(" \\\n\tvectorExtrapolation\t%s", scfExtrapolation.getString(e.scfParams.vectorExtrapolation));
+		if(e.scfParams.verbose) logPrintf(" \\\n\tverbose");
 		PRINT(damping, %lg)
+		PRINT(history, %d)
 	} 
 	
 } commandsScfParams;
@@ -131,32 +121,26 @@ struct CommandEigenShift : public Command
 	CommandEigenShift() : Command("eigen-shift")
 	{
 		format = "<qnum> <band> <shift> [<fromHOMO>]";
-		comments = "When fillings are computed during residual-minimize, shifts KS eigenvalue of (qnum, band) by shift\n"
+		comments = "When fillings are computed during electronic-scf, shifts KS eigenvalue of (qnum, band) by shift\n"
 					"Band index is calculated from HOMO, unless set to false\n";
 		allowMultiple = true;
-		require("residual-minimize");
+		require("electronic-scf");
 		require("elec-fermi-fillings");
 		forbid("custom-filling");
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	
-		int q, n;
-		double shift;
-		bool fromHOMO;
-		
-		pl.get(q, 0, "qnum", true);
-		pl.get(n, 0, "band", true);
-		pl.get(shift, 0., "filling", true);
-		pl.get(fromHOMO, true, boolMap, "fromHOMO", false);
-
-		e.residualMinimizerParams.eigenShifts.push_back(EigenShift(q,n,shift, fromHOMO));
-		
+	{	SCFparams::EigenShift es;
+		pl.get(es.q, 0, "qnum", true);
+		pl.get(es.n, 0, "band", true);
+		pl.get(es.shift, 0., "filling", true);
+		pl.get(es.fromHOMO, true, boolMap, "fromHOMO", false);
+		e.scfParams.eigenShifts.push_back(es);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	std::vector<EigenShift>& eigenShifts =  e.residualMinimizerParams.eigenShifts;
-		logPrintf("%i %i %.5e", eigenShifts[iRep].q, eigenShifts[iRep].n, eigenShifts[iRep].shift);
+	{	const SCFparams::EigenShift& es =  e.scfParams.eigenShifts[iRep];
+		logPrintf("%i %i %.5e %s", es.q, es.n, es.shift, boolMap.getString(es.fromHOMO));
 	}
 }
 commandEigenShift;
