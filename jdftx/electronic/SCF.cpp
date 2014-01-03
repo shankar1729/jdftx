@@ -29,20 +29,16 @@ SCF::SCF(Everything& e): e(e)
 	eigenShiftInit();
 }
 
-#define ifTau(command) if(e.exCorr.needsKEdensity()) command;
-
-#define overlapResiduals(r1, r2) \
-	(integral(r1[0]*r2[0]) + (r1.size() == 2 ? integral(r1[1]*r2[1]) : 0.))
-	
-#define	cacheResidual(var) \
-	pastResiduals_ ## var.push_back(variable_ ## var - pastVariables_ ## var.back());
-
 void SCF::minimize()
 {	
 	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	SCFparams sp = e.scfParams;
 	
+	logPrintf("\tWill mix electronic %s%s at each iteration.\n",
+		(e.exCorr.needsKEdensity() ? "and kinetic " : ""),
+		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
+
 	bool subspaceRotation=false;
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
 	
@@ -54,37 +50,20 @@ void SCF::minimize()
 	double E = eVars.elecEnergyAndGrad(e.ener); //Compute energy
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 	
-	//Initialize the variable that defines the single particle (Kohn-Sham) Hamiltonian
-	//It can be either the densities (electronic and KE) or the potentials (Vscloc and Vtau)
-	DataRptrCollection& variable_n = (sp.mixedVariable == SCFparams::MV_Density ? eVars.n : eVars.Vscloc);
-	DataRptrCollection& variable_tau = (sp.mixedVariable == SCFparams::MV_Density ? eVars.tau : eVars.Vtau);
-	logPrintf("\nWill mix electronic and kinetic %s at each iteration.\n", (sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
-	
-	//Set up variable history for vector extrapolation
-	std::vector<DataRptrCollection> pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau;
-	
 	double Eprev = 0.;
-	
-	logPrintf("\n------------------- SCF Cycle ---------------------\n");
 	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
 	{
-		//Clear history if full
-		if(((int)pastResiduals_n.size() >= sp.history) or ((int)pastVariables_n.size() >= sp.history))
-		{	double ndim = pastResiduals_n.size();
-			if((sp.vectorExtrapolation != SCFparams::VE_Plain) and (sp.history!=1))
-				overlap.set(0, ndim-1, 0, ndim-1, overlap(1, ndim, 1, ndim));
-			pastVariables_n.erase(pastVariables_n.begin());
-			ifTau(pastVariables_tau.erase(pastVariables_tau.begin()))
-			if(sp.vectorExtrapolation != SCFparams::VE_Plain)
-			{	pastResiduals_n.erase(pastResiduals_n.begin());
-				ifTau(pastResiduals_tau.erase(pastResiduals_tau.begin()););
-			}
+		//If history is full, remove oldest member
+		if(((int)pastResiduals.size() >= sp.history) or ((int)pastVariables.size() >= sp.history))
+		{	size_t ndim = pastResiduals.size();
+			if(ndim>1) overlap.set(0,ndim-1, 0,ndim-1, overlap(1,ndim, 1,ndim));
+			pastVariables.erase(pastVariables.begin());
+			pastResiduals.erase(pastResiduals.begin());
 		}
 		
 		//Cache the old energy and variables
 		Eprev = E;
-		pastVariables_n.push_back(clone(variable_n));
-		ifTau(pastVariables_tau.push_back(clone(variable_tau)))
+		pastVariables.push_back(clone(getVariable()));
 		
 		//Solve at fixed hamiltonian
 		e.cntrl.fixed_n = true;
@@ -112,45 +91,31 @@ void SCF::minimize()
 		}
 		logFlush();
 
-		//Calculate residual
-		DataRptrCollection variableResidual = variable_n - pastVariables_n.back();
-		double residual = e.gInfo.dV*sqrt(dot(variableResidual, variableResidual));
-		
-		/// PRINT ///
-		logPrintf("%sResidualMinimize: Iter:\t%i\tEtot: %.15e\tResidual:%.3e\tdE: %.3e\n", (sp.verbose ? "\t" : ""), scfCounter, E, residual, E-Eprev);
-		
-		// Check for convergence, mix density or potential if otherwise
-		if(fabs(E-Eprev) < sp.energyDiffThreshold)
-		{	logPrintf("Residual Minimization Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold);
-			break;
+		//Calculate and cache residual:
+		double residualNorm = 0.;
+		{	DataRptrCollection residual = getVariable() - pastVariables.back();
+			pastResiduals.push_back(residual);
+			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual));
 		}
+		logPrintf("SCF: Cycle: %2i   Etot: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, E, residualNorm, E-Eprev);
+		
+		//Check for convergence and update variable:
+		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
+		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
 		else
-		{	
-			if((sp.vectorExtrapolation == SCFparams::VE_Plain))
-				mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back(), 1.-sp.damping);
-			else if(sp.vectorExtrapolation == SCFparams::VE_DIIS)
-			{	cacheResidual(n)
-				ifTau(cacheResidual(tau))
-				mixDIIS(variable_n, variable_tau, pastVariables_n, pastVariables_tau, pastResiduals_n, pastResiduals_tau);
+		{	switch(sp.vectorExtrapolation)
+			{	case SCFparams::VE_Plain: mixPlain(); break;
+				case SCFparams::VE_DIIS: mixDIIS(); break;
 			}
-		
-			// Recompute Vscloc if mixing density
-			if(e.scfParams.mixedVariable == SCFparams::MV_Density)
-				e.eVars.EdensityAndVscloc(e.ener);
-			e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		}
-		
 		logFlush();
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
 }
 
-void SCF::mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-					DataRptrCollection& mixingVariable_n, DataRptrCollection& mixingVariable_tau, double mixFraction)
-{	//Mix old and new variable
-	variable_n = mixFraction*variable_n + (1.-mixFraction)*mixingVariable_n;
-	ifTau(variable_tau = mixFraction*variable_tau + (1.-mixFraction)*mixingVariable_tau)
+void SCF::mixPlain()
+{	setVariable(pastVariables.back() + (1.-e.scfParams.damping)*pastResiduals.back());
 }
 
 inline double preconditionerKernel(double G, double f, double slope)
@@ -168,29 +133,23 @@ DataRptrCollection precondition(DataRptrCollection& n, double Gmax, double f = 2
 	for(size_t i=0; i<n.size(); i++)
 		preconditioned[i] = preconditioner * J(n[i]);
 	
-	return I(preconditioned);	
+	return I(preconditioned);
 }
 
-void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-				  std::vector< DataRptrCollection >& pastVariables_n, std::vector< DataRptrCollection >& pastVariables_tau, 
-				  std::vector< DataRptrCollection >& pastResiduals_n, std::vector< DataRptrCollection >& pastResiduals_tau)
-{
-	size_t ndim = pastResiduals_n.size();
+void SCF::mixDIIS()
+{	size_t ndim = pastResiduals.size();
 	
-	// Update the overlap matrix
+	//Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals_n[j], pastResiduals_n.back());
+	{	double thisOverlap = dot(pastResiduals[j], pastResiduals.back());
 		overlap.set(j, ndim-1, thisOverlap);
-		if(j != ndim-1) overlap.set(ndim-1, j, thisOverlap);
+		if(j!=ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}
 	
-	// If the number of dimensions is less than 0, do a plain mixing step
-	if(ndim < 3)
-	{	mixPlain(variable_n, variable_tau, pastVariables_n.back(), pastVariables_tau.back());
-		return;
-	}
+	//Plain mixing on the first few steps:
+	if(ndim<3) { mixPlain(); return; }
 	
-	// diagonalize the residual overlap matrix to get the minimum of residual
+	//Invert the residual overlap matrix to get the minimum of residual
 	matrix cOverlap(ndim+1, ndim+1); // Add row and column to enforce normalization constraint
 	cOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
 	for(size_t j=0; j<ndim; j++)
@@ -198,28 +157,39 @@ void SCF::mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_t
 		cOverlap.set(ndim, j, 1);
 	}
 	cOverlap.set(ndim, ndim, 0);
-	
 	matrix cOverlap_inv = inv(cOverlap);
 	
-	// Zero variables
-	initZero(variable_n);
-	ifTau(initZero(variable_tau))
+	//Preconditioner:
+	//TODO
 	
-	double damping = 1. - e.scfParams.damping;
-	
-	// Variables for the preconditioner
-	//double Gmax = e.gInfo.GmaxGrid;
-	
-	// Accumulate
+	//Update variable:
 	complex* coefs = cOverlap_inv.data();
+	DataRptrCollection variable(pastVariables.back().size()); //zero
 	for(size_t j=0; j<ndim; j++)
-	{	variable_n += coefs[cOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_n[j] + pastVariables_n[j]);
-		ifTau(variable_tau +=coefs[cOverlap_inv.index(j, ndim)].real() * ((1.-damping)*pastResiduals_tau[j] + pastVariables_tau[j]))		
-	}
-
+		variable += coefs[cOverlap_inv.index(j, ndim)].real() * (pastVariables[j] + (1.-e.scfParams.damping)*pastResiduals[j]);
+	setVariable(variable);
 	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", coefs[cOverlap_inv.index(ndim, ndim)].real());
-
 }
+
+DataRptrCollection SCF::getVariable() const
+{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
+	DataRptrCollection variable = mixDensity ? e.eVars.n : e.eVars.Vscloc;
+	if(e.exCorr.needsKEdensity()) //append the relevant KE variable:
+		for(DataRptr v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) variable.push_back(v);
+	return variable;
+}
+
+void SCF::setVariable(DataRptrCollection variable)
+{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
+	size_t iVar=0;
+	for(DataRptr& v: (mixDensity ? e.eVars.n : e.eVars.Vscloc)) v = variable[iVar++];
+	if(e.exCorr.needsKEdensity())
+		for(DataRptr& v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) v = variable[iVar++];
+	assert(iVar = variable.size());
+	if(mixDensity) e.eVars.EdensityAndVscloc(e.ener); //Recompute Vscloc if mixing density
+	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
+}
+
 
 void SCF::updateFillings()
 {
@@ -243,7 +213,7 @@ void SCF::updateFillings()
 	
 	// Print filling update information
 	if(e.eInfo.fillingsUpdate)
-	{	logPrintf("\tFillingsMix:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
+	{	logPrintf("\tFillingsUpdate:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
 		if(e.eInfo.spinType == SpinZ)
 		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
 			logPrintf("  magneticMoment: %.5f", spinPol);

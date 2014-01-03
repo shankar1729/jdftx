@@ -37,18 +37,19 @@ private:
 	Everything& e;
 	
 	matrix overlap; //! Overlap matrix of density/potential residuals
+	std::vector<DataRptrCollection> pastVariables, pastResiduals; //!< History
 	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();
 	
-	//! Mixes densities or Vscloc and Vtau
-	void mixPlain(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-		DataRptrCollection& prevVariable_n, DataRptrCollection& prevVariable_tau, double mixFraction=0.5);
+	//! Mix n,tau or Vscloc,Vtau
+	void mixPlain();
 	
 	//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
-	void mixDIIS(DataRptrCollection& variable_n, DataRptrCollection& variable_tau, 
-		std::vector<DataRptrCollection>& pastVariables_n, std::vector<DataRptrCollection>& pastVariables_tau,
-		std::vector<DataRptrCollection>& pastResiduals, std::vector< DataRptrCollection >& pastResiduals_tau);
+	void mixDIIS();
+	
+	DataRptrCollection getVariable() const; //!< get the current variables (density / potential, with kinetic components if required)
+	void setVariable(DataRptrCollection); //!< set the current variables (density / potential, with kinetic components if required)
 	
 	void eigenShiftInit(); //!< initialize and check eigenShifts
 	void eigenShiftApply(bool reverse);  //!< apply eigenshifts if false, and undo them if true

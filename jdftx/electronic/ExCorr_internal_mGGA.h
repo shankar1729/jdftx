@@ -117,15 +117,17 @@ struct mGGA_calc <variant, true, nCount>
 		{	//Scale up s-density and gradient:
  			double ns = n[s][i] * nCount;
  			if(ns < nCutoff) continue;
+			double sigmas = sigma[2*s][i];
+			if(sigmas < nCutoff) sigmas = nCutoff;
 			//Compute dimensionless quantities rs, s2, q and z: (see TPSS reference)
 			double rs = pow((4.*M_PI/3.)*ns, (-1./3));
 			double s2_sigma = pow(ns, -8./3) * ((0.25*nCount*nCount) * pow(3.*M_PI*M_PI, -2./3));
-			double s2 = s2_sigma * sigma[2*s][i];
+			double s2 = s2_sigma * sigmas;
 			double q_lap = pow(ns, -5./3) * ((0.25*nCount) * pow(3.*M_PI*M_PI, -2./3));
 			double q = q_lap * (lap[s] ? lap[s][i] : 0.);
 			if(tau[s] && tau[s][i]<tauCutoff) continue;
 			double z_sigma = tau[s] ? (0.125*nCount)/(ns * tau[s][i]) : 0.;
-			double z = z_sigma * sigma[2*s][i];
+			double z = z_sigma * sigmas;
 			bool zOffRange = false;
 			if(z>1.) { z=1.; zOffRange = true; }
 			//Compute energy density and its gradients using GGA_eval:
