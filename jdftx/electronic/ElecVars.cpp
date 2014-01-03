@@ -327,6 +327,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	DataRptrCollection Vxc;
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
+	if(exCorr.orbitalDep)
+	{	if(!e->cntrl.scf) die("Orbital-dependent potential functionals do not support total-energy minimization - use SCF instead.\n");
+		Vxc += exCorr.orbitalDep->getPotential();
+	}
 	if(VtauTilde) Vtau.resize(n.size());
 	for(unsigned s=0; s<Vxc.size(); s++)
 	{	Vscloc[s] = Jdag(O(VsclocTilde), true) + JdagOJ(Vxc[s]);
@@ -416,6 +420,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		assert(e->exx);
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
 	}
+	
 	//Do the single-particle contributions one state at a time to save memory (and for better cache warmth):
 	ener.E["KE"] = 0.;
 	ener.E["Enl"] = 0.;

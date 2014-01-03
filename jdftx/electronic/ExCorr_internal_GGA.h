@@ -34,6 +34,7 @@ enum GGA_Variant
 	GGA_X_PW91, //!< Perdew-Wang 1991 GGA exchange
 	GGA_C_PW91, //!< Perdew-Wang 1991 GGA correlation
 	GGA_X_wPBE_SR, //!< Short-ranged part of omega-PBE exchange (used in HSE06 hybrid)
+	GGA_X_GLLBsc, //!< Semi-local part of GLLB-sc exchange (potential-only, equal to 2x PBEsol per-particle energy)
 	GGA_KE_VW,  //!< von Weisacker gradient correction to Thomas Fermi LDA kinetic energy
 	GGA_KE_PW91  //!< Teter GGA kinetic energy
 };
@@ -84,6 +85,7 @@ private:
 		case GGA_X_PW91:    fTemplate< GGA_X_PW91,    true, nCount> argList; break; \
 		case GGA_C_PW91:    fTemplate< GGA_C_PW91,   false, nCount> argList; break; \
 		case GGA_X_wPBE_SR: fTemplate< GGA_X_wPBE_SR, true, nCount> argList; break; \
+		case GGA_X_GLLBsc:  fTemplate< GGA_X_GLLBsc,  true, nCount> argList; break; \
 		case GGA_KE_VW:     fTemplate< GGA_KE_VW,     true, nCount> argList; break; \
 		case GGA_KE_PW91:   fTemplate< GGA_KE_PW91,   true, nCount> argList; break; \
 		default: break; \
@@ -394,6 +396,29 @@ template<> __hostanddev__ double GGA_eval<GGA_X_wPBE_SR>(double rs, double s2, d
 	return (-8./9)* eSlater * I;
 }
 
+
+//! GGA part of the GLLB-sc exchange potential (derived from PBEsol exchange per-particle energy)
+//! (Specialize the outer interface to fetch the PBEsol energy as the potential)
+template<int nCount> struct GGA_calc <GGA_X_GLLBsc, true, nCount>
+{	__hostanddev__ static
+	void compute(int i, array<const double*,nCount> n, array<const double*,2*nCount-1> sigma,
+		double* E, array<double*,nCount> E_n, array<double*,2*nCount-1> E_sigma, double scaleFac)
+	{	//Each spin component is computed separately:
+		for(int s=0; s<nCount; s++)
+		{	//Scale up s-density and gradient:
+ 			double ns = n[s][i] * nCount;
+ 			if(ns < nCutoff) continue;
+			//Compute dimensionless quantities rs and s2:
+			double rs = pow((4.*M_PI/3.)*ns, (-1./3));
+			double s2_sigma = pow(ns, -8./3) * ((0.25*nCount*nCount) * pow(3.*M_PI*M_PI, -2./3));
+			double s2 = s2_sigma * sigma[2*s][i];
+			//Compute energy density and its gradients using GGA_eval:
+			double e_rs, e_s2, e = GGA_eval<GGA_X_PBEsol>(rs, s2, e_rs, e_s2);
+			//Compute gradients if required:
+			if(E_n[0]) E_n[s][i] += scaleFac*( 2*e ); //NOTE: contributes only to potential (no concept of energy, will not FD test)
+		}
+	}
+};
 
 
 //---------------------- GGA correlation implementations ---------------------------

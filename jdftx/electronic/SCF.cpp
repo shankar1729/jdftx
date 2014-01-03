@@ -68,10 +68,13 @@ void SCF::minimize()
 		//Solve at fixed hamiltonian
 		e.cntrl.fixed_n = true;
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
+		e.ener.Eband = 0.;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	BandMinimizer bmin(e, q, true);
 			bmin.minimize(e.elecMinParams);
+			e.ener.Eband += eInfo.qnums[q].weight * trace(eVars.Hsub_eigs[q]);
 		}
+		mpiUtil->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
 		e.eVars.setEigenvectors();
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		e.cntrl.fixed_n = false;
@@ -80,6 +83,11 @@ void SCF::minimize()
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
 		E = eVars.elecEnergyAndGrad(e.ener);
+		const char* Elabel = relevantFreeEnergyName(e);
+		if(e.exCorr.orbitalDep) //total E meaningless, use Eband instead
+		{	E = e.ener.Eband;
+			Elabel = "Eband";
+		}
 		
 		// Debug print
 		if(e.cntrl.shouldPrintEigsFillings)
@@ -97,7 +105,7 @@ void SCF::minimize()
 			pastResiduals.push_back(residual);
 			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual));
 		}
-		logPrintf("SCF: Cycle: %2i   Etot: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, E, residualNorm, E-Eprev);
+		logPrintf("SCF: Cycle: %2i   %s: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, Elabel, E, residualNorm, E-Eprev);
 		
 		//Check for convergence and update variable:
 		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
@@ -185,7 +193,7 @@ void SCF::setVariable(DataRptrCollection variable)
 	for(DataRptr& v: (mixDensity ? e.eVars.n : e.eVars.Vscloc)) v = variable[iVar++];
 	if(e.exCorr.needsKEdensity())
 		for(DataRptr& v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) v = variable[iVar++];
-	assert(iVar = variable.size());
+	assert(iVar == variable.size());
 	if(mixDensity) e.eVars.EdensityAndVscloc(e.ener); //Recompute Vscloc if mixing density
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 }

@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr_internal_LDA.h>
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/ExCorr_internal_mGGA.h>
+#include <electronic/ExCorr_OrbitalDep_GLLBsc.h>
 #include <core/Thread.h>
 #include <core/GpuUtil.h>
 #include <core/DataMultiplet.h>
@@ -93,6 +94,7 @@ FunctionalGGA::FunctionalGGA(GGA_Variant variant, double scaleFac) : Functional(
 		case GGA_X_PW91: logPrintf("Initalized PW91 GGA exchange.\n"); break;
 		case GGA_C_PW91: logPrintf("Initalized PW91 GGA correlation.\n"); break;
 		case GGA_X_wPBE_SR: logPrintf("Initalized omega-PBE short-ranged GGA exchange.\n"); break;
+		case GGA_X_GLLBsc: logPrintf("Initalized GLLB-sc GGA exchange potential.\n"); break;
 		case GGA_KE_VW: logPrintf("Initialized von Weisacker kinetic energy gradient correction.\n"); break; 
 		case GGA_KE_PW91: logPrintf("Initialized PW91 GGA kinetic energy.\n"); break; 
 	}
@@ -375,6 +377,12 @@ void ExCorr::setup(const Everything& everything)
 			functionals->add(mGGA_C_revTPSS);
 			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. Lett. 103, 026403 (2009)");
 			break;
+		case ExCorrORB_GLLBsc:
+			functionals->add(GGA_X_GLLBsc);
+			orbitalDep = std::make_shared<ExCorr_OrbitalDep_GLLBsc>(*e);
+			functionals->add(GGA_C_PBEsol);
+			Citations::add(citeReason, "M. Kuisma, J. Ojanen, J. Enkovaara and T. T. Rantala, Phys. Rev. B 82, 115106 (2010)");
+			break;
 		case ExCorrHYB_PBE0:
 			exxScale = 1./4;
 			functionals->add(GGA_X_PBE, 3./4);
@@ -630,7 +638,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
 	watchFunc.stop();
 	
-	//---------------- Collect resb results over processes ----------------
+	//---------------- Collect results over processes ----------------
 	watchComm.start();
 	E->allReduce(MPIUtil::ReduceSum);
 	for(DataRptr& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);

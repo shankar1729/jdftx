@@ -155,7 +155,7 @@ int ElecVars::LCAO()
 	
 	//Check exchange-correlation functional, and replace with PBE if not strictly (semi-)local
 	ExCorr exCorrPBE; //defaults to gga-PBE
-	if(e->exCorr.exxFactor() || e->exCorr.needsKEdensity()) //Hybrid or meta-GGA respectively
+	if(e->exCorr.exxFactor() || e->exCorr.needsKEdensity() || e->exCorr.orbitalDep) //Hybrid, meta-GGA or orbital-dependent respectively
 	{	logPrintf("Initializing semi-local functional for LCAO:\n");
 		exCorrPBE.setup(*e);
 		lcao.exCorr = &exCorrPBE;

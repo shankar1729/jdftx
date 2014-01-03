@@ -39,6 +39,7 @@ enum ExCorrType
 #ifdef LIBXC_ENABLED
 	ExCorrLibXC,
 #endif
+	ExCorrORB_GLLBsc, //!< GLLB-sc orbital-dependent potential (no total energy)
 	ExCorrHYB_PBE0, //!< PBE0 Hybrid GGA functional
 	ExCorrHYB_HSE06, //!< HSE06 Screened Hybrid GGA functional
 	ExCorrHYB_HSE12, //! Reparametrized screened exchange functional for accuracy
@@ -91,6 +92,18 @@ public:
 	//! All sigma derivatives will be null on output for LDAs.
 	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
 	void getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_sigma, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut=1e-4) const;
+	
+	//! Abstract base class (interface specification) for orbital-dependent potential functionals
+	struct OrbitalDep
+	{	OrbitalDep(const Everything& e) : e(e) {}
+		virtual ~OrbitalDep() {}
+		virtual bool ignore_nCore() const=0; //!< Whether partial cores need to be ignored for this functional
+		virtual DataRptrCollection getPotential() const=0; //!< Return orbital-dependent portion of potential (obtains any necessary electronic property directly from ElecVars / ElecInfo)
+		virtual void dump() const=0; //!< Dump any functional-specific quantities
+	protected:
+		const Everything& e;
+	};
+	std::shared_ptr<OrbitalDep> orbitalDep; //optional orbital-dependent potential functional
 	
 private:
 	const Everything* e;
