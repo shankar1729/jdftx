@@ -114,30 +114,21 @@ void SCF::mixPlain()
 {	setVariable(pastVariables.back() + (1.-e.scfParams.damping)*pastResiduals.back());
 }
 
-inline double preconditionerKernel(double G, double f, double slope)
-{	return (G ? f + slope*G : 1.);
-}
-
-DataRptrCollection precondition(DataRptrCollection& n, double Gmax, double f = 20.)
-{
-	// Set up preconditioner kernel for density/potential overlaps
-	RadialFunctionG preconditioner;
-	double slope = (1.-f)/Gmax;
-	preconditioner.init(0, 0.02, Gmax, preconditionerKernel, f, slope);
-	
-	DataGptrCollection preconditioned(n.size());
-	for(size_t i=0; i<n.size(); i++)
-		preconditioned[i] = preconditioner * J(n[i]);
-	
-	return I(preconditioned);
+inline void kerker_precond(int i, double Gsq, complex* v, double G0, double minBias)
+{	v[i] *= 1.-(1.-minBias)*Gsq/(Gsq + G0*G0);
 }
 
 void SCF::mixDIIS()
 {	size_t ndim = pastResiduals.size();
-	
+
+	//Precondition the current residual
+	DataGptrCollection pResidualG = J(pastResiduals.back());
+	for(size_t j=0; j<pResidualG.size(); j++)
+		applyFuncGsq(e.gInfo, kerker_precond, pResidualG[j]->data(), e.gInfo.Gmax, 0.1);
+	DataRptrCollection pResidual = I(pResidualG);
 	//Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals[j], pastResiduals.back());
+	{	double thisOverlap = dot(pastResiduals[j], pResidual);
 		overlap.set(j, ndim-1, thisOverlap);
 		if(j!=ndim-1) overlap.set(ndim-1, j, thisOverlap);
 	}
@@ -154,9 +145,6 @@ void SCF::mixDIIS()
 	}
 	cOverlap.set(ndim, ndim, 0);
 	matrix cOverlap_inv = inv(cOverlap);
-	
-	//Preconditioner:
-	//TODO
 	
 	//Update variable:
 	complex* coefs = cOverlap_inv.data();
