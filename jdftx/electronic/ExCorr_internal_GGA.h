@@ -416,6 +416,7 @@ template<int nCount> struct GGA_calc <GGA_X_GLLBsc, true, nCount>
 			double e_rs, e_s2, e = GGA_eval<GGA_X_PBEsol>(rs, s2, e_rs, e_s2);
 			//Compute gradients if required:
 			if(E_n[0]) E_n[s][i] += scaleFac*( 2*e ); //NOTE: contributes only to potential (no concept of energy, will not FD test)
+			E[i] += scaleFac*( n[s][i]*e ); //So that the computed total energy is approximately that of PBEsol (only for aesthetic reasons!)
 		}
 	}
 };

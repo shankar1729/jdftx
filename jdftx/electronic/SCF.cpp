@@ -36,10 +36,15 @@ void SCF::minimize()
 	ElecVars& eVars = e.eVars;
 	SCFparams sp = e.scfParams;
 	
-	logPrintf("\tWill mix electronic %s%s at each iteration.\n",
+	logPrintf("Will mix electronic %s%s at each iteration.\n",
 		(e.exCorr.needsKEdensity() ? "and kinetic " : ""),
 		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
-
+	
+	if(e.exCorr.orbitalDep)
+	{	e.scfParams.energyDiffThreshold = 0.;
+		logPrintf("Turning off total energy convergence threshold for orbital-dependent functional.\n");
+	}
+	
 	bool subspaceRotation=false;
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
 	
@@ -75,21 +80,12 @@ void SCF::minimize()
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
 		E = eVars.elecEnergyAndGrad(e.ener);
-		const char* Elabel = relevantFreeEnergyName(e);
-		if(e.exCorr.orbitalDep) //total E meaningless, use Eband instead
-		{	E = e.ener.Eband;
-			Elabel = "Eband";
-		}
+		string Elabel(relevantFreeEnergyName(e));
+		if(e.exCorr.orbitalDep) Elabel += "~"; //remind that the total energy is at best an estimate
 		
-		// Debug print
-		if(e.cntrl.shouldPrintEigsFillings)
-			print_Hsub_eigs(e);
-		if(e.cntrl.shouldPrintEcomponents)
-		{	logPrintf("\nEcomponents:\n");
-			e.ener.print();
-			logPrintf("\n");
-		}
-		logFlush();
+		//Debug output:
+		if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
+		if(e.cntrl.shouldPrintEcomponents) { logPrintf("\n"); e.ener.print(); logPrintf("\n"); }
 
 		//Calculate and cache residual:
 		double residualNorm = 0.;
@@ -97,7 +93,7 @@ void SCF::minimize()
 			pastResiduals.push_back(residual);
 			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual));
 		}
-		logPrintf("SCF: Cycle: %2i   %s: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, Elabel, E, residualNorm, E-Eprev);
+		logPrintf("SCF: Cycle: %2i   %s: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, Elabel.c_str(), E, residualNorm, E-Eprev);
 		
 		//Check for convergence and update variable:
 		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
