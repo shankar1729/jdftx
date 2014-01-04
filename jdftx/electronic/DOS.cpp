@@ -519,7 +519,7 @@ struct EvalDOS
 			fprintf(fp, "\n");
 		}
 		fclose(fp);
-		logPrintf("Done.\n"); logFlush();
+		logPrintf("done.\n"); logFlush();
 	}
 	
 	//Thread function for setting fourier transform of slice of half-width R centered at r0 parallel to lattice-plane d:
