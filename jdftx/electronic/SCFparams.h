@@ -27,6 +27,7 @@ struct SCFparams
 {
 	int nIterations; //!< maximum iterations (single point calculation if 0)
 	double energyDiffThreshold; //!< convergence threshold for energy difference between successive iterations
+	double eigDiffThreshold; //!< convergence threshold on the RMS change of eigenvalues
 	double residualThreshold; //!< convergence threshold on the residual
 	
 	enum MixedVariable
@@ -56,6 +57,7 @@ struct SCFparams
 	SCFparams()
 	{	nIterations = 20;
 		energyDiffThreshold = 1e-8;
+		eigDiffThreshold = 1e-8;
 		residualThreshold = 1e-7;
 		mixedVariable = MV_Potential;
 		vectorExtrapolation = VE_DIIS;

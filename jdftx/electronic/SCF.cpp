@@ -53,10 +53,11 @@ void SCF::minimize()
 	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		updateFillings();
 	}
-	double E = eVars.elecEnergyAndGrad(e.ener); //Compute energy
+	double E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 	
 	double Eprev = 0.;
+	std::vector<diagMatrix> eigsPrev;
 	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
 	{
 		//If history is full, remove oldest member
@@ -69,6 +70,7 @@ void SCF::minimize()
 		
 		//Cache the old energy and variables
 		Eprev = E;
+		eigsPrev = e.eVars.Hsub_eigs;
 		pastVariables.push_back(clone(getVariable()));
 		
 		//Band-structure minimize:
@@ -79,7 +81,7 @@ void SCF::minimize()
 		//Compute new density and energy
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
-		E = eVars.elecEnergyAndGrad(e.ener);
+		E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
 		string Elabel(relevantFreeEnergyName(e));
 		if(e.exCorr.orbitalDep) Elabel += "~"; //remind that the total energy is at best an estimate
 		
@@ -91,12 +93,15 @@ void SCF::minimize()
 		double residualNorm = 0.;
 		{	DataRptrCollection residual = getVariable() - pastVariables.back();
 			pastResiduals.push_back(residual);
-			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual));
+			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
 		}
-		logPrintf("SCF: Cycle: %2i   %s: %.15e   |Residual|: %.3e   dE: %.3e\n", scfCounter, Elabel.c_str(), E, residualNorm, E-Eprev);
+		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
+		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   deigs: %.3e   |Residual|: %.3e\n",
+			scfCounter, Elabel.c_str(), E, E-Eprev, deigs, residualNorm);
 		
 		//Check for convergence and update variable:
 		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
+		else if(deigs < sp.eigDiffThreshold)         { logPrintf("SCF: Converged (|deigs|<%le).\n\n", sp.eigDiffThreshold); break; }
 		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
 		else
 		{	switch(sp.vectorExtrapolation)
@@ -205,6 +210,22 @@ void SCF::updateFillings()
 		logPrintf("\n"); logFlush();
 	}
 }
+
+double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const
+{	double rmsNum=0., rmsDen=0.;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	double wq = e.eInfo.qnums[q].weight;
+		for(int b=0; b<e.eInfo.nBands; b++)
+		{	double de = eigs1[q][b] - eigs2[q][b];
+			rmsNum += wq * de*de;
+			rmsDen += wq;
+		}
+	}
+	mpiUtil->allReduce(rmsNum, MPIUtil::ReduceSum);
+	mpiUtil->allReduce(rmsDen, MPIUtil::ReduceSum);
+	return sqrt(rmsNum/rmsDen);
+}
+
 
 void SCF::eigenShiftInit()
 {	for(SCFparams::EigenShift& es: e.scfParams.eigenShifts)

@@ -51,6 +51,7 @@ private:
 	DataRptrCollection getVariable() const; //!< get the current variables (density / potential, with kinetic components if required)
 	void setVariable(DataRptrCollection); //!< set the current variables (density / potential, with kinetic components if required)
 	
+	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weigted RMS difference between two sets of eigenvalues
 	void eigenShiftInit(); //!< initialize and check eigenShifts
 	void eigenShiftApply(bool reverse);  //!< apply eigenshifts if false, and undo them if true
 };

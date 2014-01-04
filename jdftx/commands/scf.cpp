@@ -24,6 +24,7 @@ enum SCFparamsMember
 {
 	nIterations, 
 	energyDiffThreshold,
+	eigDiffThreshold,
 	residualThreshold,
 	mixedVariable,
 	vectorExtrapolation,
@@ -37,6 +38,7 @@ enum SCFparamsMember
 EnumStringMap<SCFparamsMember> scfParamsMap
 (	nIterations, "nIterations",
 	energyDiffThreshold, "energyDiffThreshold",
+	eigDiffThreshold, "eigDiffThreshold",
 	residualThreshold, "residualThreshold",
 	mixedVariable, "mixedVariable",
 	vectorExtrapolation, "vectorExtrapolation",
@@ -47,6 +49,7 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	nIterations, "maximum iterations (single point calculation if 0)",
 	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
+	eigDiffThreshold, "convergence threshold for the RMS difference in KS eigenvalues between successive iterations",
 	residualThreshold, "convergence threshold for the residual in the mixed variable (density or potential)",
     mixedVariable, "whether density or potential will be mixed at each step",
 	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
@@ -87,6 +90,7 @@ struct CommandsScfParams: public Command
 			
 			switch(key)
 			{	case energyDiffThreshold: pl.get(e.scfParams.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
+				case eigDiffThreshold: pl.get(e.scfParams.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
 				case residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
 				case mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
 				case nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
@@ -104,6 +108,7 @@ struct CommandsScfParams: public Command
 		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, e.scfParams.param);
 		PRINT(nIterations, %i)
 		PRINT(energyDiffThreshold, %lg)
+		PRINT(eigDiffThreshold, %lg)
 		PRINT(residualThreshold, %lg)
 		PRINT(nIterations, %d)
 		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(e.scfParams.mixedVariable));
