@@ -52,7 +52,8 @@ public:
 	bool shouldPrintEigsFillings; //!< whether eigenvalues and fillings should be printed at each iteration
 	bool shouldPrintEcomponents; //!< whether energy components should be printed at each iteration
 	bool shouldPrintMuSearch; //!< whether mu bisection progress should be printed
-
+	bool shouldPrintKpointsBasis; //!< whether individual kpoint and basis details should be printed at the beginning
+	
 	bool invertKS; //!< Kohn-Sham inversion (sequence of band structure solves to find optimum potential)
 	bool invertKS_nonlocal; //!< whether to retain non-local portions of pseudopotential for Kohn-Sham inversion
 	double invertKS_sigma; //!< bandwidth cutoff for the external potential
@@ -66,7 +67,7 @@ public:
 		basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
-		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false),
+		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),
 		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false)
 	{
 	}

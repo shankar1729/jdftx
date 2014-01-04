@@ -129,11 +129,11 @@ public:
 		return ret;
 	}
 
-	void print(FILE* fp, const char *format) const
+	void print(FILE* fp, const char *format, bool brackets=true) const
 	{	for(int i=0; i<3; i++)
-		{	fprintf(fp, "[ ");
+		{	if(brackets) fprintf(fp, "[ ");
 			for(int j=0; j<3; j++) fprintf(fp, format, m[i][j]);
-			fprintf(fp, " ]\n");
+			if(brackets) fprintf(fp, " ]\n"); else fprintf(fp, "\n");
 		}
 	}
 

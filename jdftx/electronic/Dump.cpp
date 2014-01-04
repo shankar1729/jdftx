@@ -265,6 +265,42 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		selfInteractionCorrection.dump(getFilename("SIC").c_str());
 	}
 
+	if(ShouldDump(Symmetries))
+	{	StartDump("sym")
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			const std::vector< matrix3<int> >& sym = e->symm.getMatrices();
+			for(const matrix3<int>& m: sym)
+			{	m.print(fp, "%2d ", false);
+				fprintf(fp, "\n");
+			}
+			fclose(fp);
+		}
+		EndDump
+	}
+	
+	if(ShouldDump(Kpoints))
+	{	StartDump("kPts")
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			eInfo.kpointsPrint(fp, true);
+			fclose(fp);
+		}
+		EndDump
+		if(e->symm.mode != SymmetriesNone)
+		{	StartDump("kMap")
+			if(mpiUtil->isHead())
+			{	FILE* fp = fopen(fname.c_str(), "w");
+				e->symm.printKmap(fp);
+				fclose(fp);
+			}
+			EndDump
+		}
+	}
+	
+	if(ShouldDump(OrbitalDep) && e->exCorr.orbitalDep && isCevec)
+		e->exCorr.orbitalDep->dump();
+	
 	//----------------- The following are not included in 'All' -----------------------
 
 	if(ShouldDumpNoAll(Excitations))

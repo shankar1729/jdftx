@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/SCF.h>
+#include <electronic/ElecMinimizer.h>
 
 SCF::SCF(Everything& e): e(e)
 {	//Set up the caching size:
@@ -65,19 +66,10 @@ void SCF::minimize()
 		Eprev = E;
 		pastVariables.push_back(clone(getVariable()));
 		
-		//Solve at fixed hamiltonian
-		e.cntrl.fixed_n = true;
+		//Band-structure minimize:
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
-		e.ener.Eband = 0.;
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	BandMinimizer bmin(e, q, true);
-			bmin.minimize(e.elecMinParams);
-			e.ener.Eband += eInfo.qnums[q].weight * trace(eVars.Hsub_eigs[q]);
-		}
-		mpiUtil->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
-		e.eVars.setEigenvectors();
+		bandMinimize(e);
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
-		e.cntrl.fixed_n = false;
 		
 		//Compute new density and energy
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings

@@ -25,6 +25,7 @@ enum DebugOptions
 {	DebugEigsFillings,
 	DebugEcomponents,
 	DebugMuSearch,
+	DebugKpointsBasis,
 	DebugForces,
 	DebugSymmetries,
 	DebugFluid,
@@ -36,6 +37,7 @@ EnumStringMap<DebugOptions> debugMap
 (	DebugEigsFillings, "EigsFillings",
 	DebugEcomponents, "Ecomponents",
 	DebugMuSearch, "MuSearch",
+	DebugKpointsBasis, "KpointsBasis",
 	DebugForces, "Forces",
 	DebugSymmetries, "Symmetries",
 	DebugFluid, "Fluid",
@@ -46,6 +48,7 @@ EnumStringMap<DebugOptions> debugDescMap
 (	DebugEigsFillings, "Print eigenvalues, Hsub and fillings after each iteration",
 	DebugEcomponents, "Print energy components and after each electronic iteration",
 	DebugMuSearch, "Print progress of the mu bisect/fit routines",
+	DebugKpointsBasis, "List details of each k-point and corresponding basis",
 	DebugForces, "Print each contribution to the force separately (NL, loc etc.)",
 	DebugSymmetries, "Print various symmetry matrices during start up",
 	DebugFluid, "Enable verbose logging of fluid (iterations for Linear, even more for others)",
@@ -79,6 +82,9 @@ struct CommandDebug : public Command
 				case DebugMuSearch:
 					e.cntrl.shouldPrintMuSearch = true;
 					break;
+				case DebugKpointsBasis:
+					e.cntrl.shouldPrintKpointsBasis = true;
+					break;
 				case DebugForces:
 					e.iInfo.shouldPrintForceComponents = true;
 					break;
@@ -103,6 +109,7 @@ struct CommandDebug : public Command
 		{	if(e.cntrl.shouldPrintEigsFillings) logPrintf(" EigsFillings");
 			if(e.cntrl.shouldPrintEcomponents) logPrintf(" Ecomponents");
 			if(e.cntrl.shouldPrintMuSearch) logPrintf(" MuSearch");
+			if(e.cntrl.shouldPrintKpointsBasis) logPrintf(" KpointsBasis");
 			if(e.iInfo.shouldPrintForceComponents) logPrintf(" Forces");
 			if(e.symm.shouldPrintMatrices) logPrintf("Symmetries");
 			if(e.eVars.fluidParams.verboseLog) logPrintf(" Fluid");

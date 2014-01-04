@@ -161,7 +161,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 			break;
 		}
 	//Compile kpoint map:
-	std::vector<unsigned long long> kmap(qnums.size(), ~0ULL); //list of source k-point and symmetry operation (ordered to prefer no inversion, earliest k-point and then earliest symmetry matrix)
+	std::vector<unsigned long long>& kmap = ((Symmetries*)this)->kmap;
+	kmap.assign(qnums.size(), ~0ULL); //list of source k-point and symmetry operation (ordered to prefer no inversion, earliest k-point and then earliest symmetry matrix)
 	std::vector<int> isSymKmesh(sym.size(), true); //whether each symmetry matrix leaves the k-mesh invariant
 	size_t iSrcStart = (mpiUtil->iProcess() * qnums.size()) / mpiUtil->nProcesses();
 	size_t iSrcStop = ((mpiUtil->iProcess()+1) * qnums.size()) / mpiUtil->nProcesses();
@@ -314,6 +315,15 @@ const std::vector< std::vector< std::vector<int> > >& Symmetries::getAtomMap() c
 {	return atomMap;
 }
 
+void Symmetries::printKmap(FILE* fp) const
+{	fprintf(fp, "#ReducedKpt #Symmetry inversion      (0-based indices, unreduced k-points in C array order)\n");
+	int width = int(ceil(log(e->eInfo.nStates)/log(10)));
+	for(const unsigned long long& kmapEntry: kmap)
+	{	size_t iSrc; int invert, iSym;
+		kmapUnpack(kmapEntry, iSrc, invert, iSym);
+		fprintf(fp, "%*lu %2d %+d\n", width, iSrc, iSym, invert);
+	}
+}
 
 void Symmetries::calcSymmetries()
 {

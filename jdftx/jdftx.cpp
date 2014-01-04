@@ -137,7 +137,7 @@ int main(int argc, char** argv, char** argp)
 		}
 		else //Single band structure calculation
 		{	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
-			elecMinimize(e); // Do the band-structure minimization
+			bandMinimize(e); // Do the band-structure minimization
 		}
 	}
 	else if(e.vibrations) //Bypasses ionic/lattice minimization, calls electron/fluid minimization loops at various ionic configurations

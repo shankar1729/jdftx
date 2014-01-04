@@ -50,6 +50,7 @@ public:
 	const std::vector<matrix>& getSphericalMatrices(int l) const; //!< directly access the symmetry matrices (in Ylm basis at specified l)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
 	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
+	void printKmap(FILE* fp) const; //!< print the k-point map (cached in kmap)
 	
 private:
 	const Everything* e;
@@ -58,6 +59,7 @@ private:
 	std::vector< std::vector<matrix> > symSpherical; //!< symmetry matrices for real-Ylm basis objects
 	
 	std::vector<int> kpointInvertList; //!< Contains +1 for empty or inversion-containing symmetry group, and contains +1 and -1 otherwise
+	std::vector<unsigned long long> kmap; //!< mapping from unreduced mesh to reduced set under symmetries
 	friend class CommandSymmetries;
 	friend class CommandSymmetryMatrix;
 	friend class CommandDebug;

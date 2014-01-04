@@ -492,21 +492,22 @@ void ElecInfo::kpointsReduce()
 		}
 	}
 	//Output the reduced kpoints:
-	logPrintf("States including spin/spin-weights:\n");
-	kpointsPrint(true);
+	if(e->cntrl.shouldPrintKpointsBasis)
+	{	logPrintf("States including spin/spin-weights:\n");
+		kpointsPrint(globalLog, true);
+	}
+	else logPrintf("\n");
 }
 
-void ElecInfo::kpointsPrint(bool printSpin) const
+void ElecInfo::kpointsPrint(FILE* fp, bool printSpin) const
 {	for(unsigned q=0; q<qnums.size(); q++)
-	{	kpointPrint(q); logPrintf("\n");
+	{	kpointPrint(fp, q, printSpin); fprintf(fp, "\n");
 	}
 }
 
-void ElecInfo::kpointPrint(int q, bool printSpin) const
-{
-	logPrintf("%5d\t[ %10.6f %10.6f %10.6f ] %8.6f", q,
-			qnums[q].k[0], qnums[q].k[1], qnums[q].k[2], qnums[q].weight);
-		if(printSpin) logPrintf("  spin %2d", qnums[q].spin);
+void ElecInfo::kpointPrint(FILE* fp, int q, bool printSpin) const
+{	fprintf(fp, "%5d  [ %+.7f %+.7f %+.7f ]  %.9f", q, qnums[q].k[0], qnums[q].k[1], qnums[q].k[2], qnums[q].weight);
+	if(printSpin && qnums[q].spin) fprintf(fp, "  spin %+d", qnums[q].spin); //only for spin-polarized calculations
 }
 
 

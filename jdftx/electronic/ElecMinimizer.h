@@ -61,6 +61,7 @@ private:
 	void spinRestrictGrad(ElecGradient& grad);
 };
 
+void bandMinimize(Everything& e); //!< band structure minimization
 void elecMinimize(Everything& e); //!< minimize electonic system
 void elecFluidMinimize(Everything& e); //!< minimize electrons and fluid in a gummel loop if necessary
 

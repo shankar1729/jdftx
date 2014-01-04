@@ -195,6 +195,25 @@ void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
 	}
 }
 
+void bandMinimize(Everything& e)
+{	bool fixed_n = true; std::swap(fixed_n, e.cntrl.fixed_n); //remember fixed_n flag and temporarily set it to true
+	logPrintf("Minimization will be done independently for each quantum number.\n");
+	e.ener.Eband = 0.;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
+		BandMinimizer bmin(e, q, true);
+		bmin.minimize(e.elecMinParams);
+		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
+	}
+	mpiUtil->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
+	if(e.cntrl.shouldPrintEigsFillings)
+	{	//Print the eigenvalues if requested
+		print_Hsub_eigs(e);
+		logPrintf("\n"); logFlush();
+	}
+	std::swap(fixed_n, e.cntrl.fixed_n); //restore fixed_n flag
+	e.eVars.setEigenvectors();
+}
 
 void elecMinimize(Everything& e)
 {	
@@ -205,27 +224,11 @@ void elecMinimize(Everything& e)
 	else if((not e.cntrl.fixed_n) or e.exCorr.exxFactor() or e.eInfo.hasU)
 	{	ElecMinimizer emin(e, true);
 		emin.minimize(e.elecMinParams);
+		e.eVars.setEigenvectors();
 	}
 	else
-	{	logPrintf("Minimization will be done independently for each quantum number.\n");
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	logPrintf("\n---- Minimization of quantum number: %i  kpoint: [%1.6f, %1.6f, %1.6f]  weight: %1.6f",
-						q, e.eInfo.qnums[q].k[0], e.eInfo.qnums[q].k[1], e.eInfo.qnums[q].k[2], e.eInfo.qnums[q].weight);
-			if(e.eInfo.qnums[q].spin)
-				logPrintf("  spin: %i", e.eInfo.qnums[q].spin);
-			logPrintf(" ----\n");
-			BandMinimizer bmin(e, q, true);
-			bmin.minimize(e.elecMinParams);
-		}
-		// Recompute energy to get the same Eband as the simultaneous minimization
-		e.eVars.elecEnergyAndGrad(e.ener);
-		if(e.cntrl.shouldPrintEigsFillings)
-		{	//Print the eigenvalues if requested
-			print_Hsub_eigs(e);
-			logPrintf("\n"); logFlush();
-		}
+	{	bandMinimize(e);
 	}
-	e.eVars.setEigenvectors();
 	e.eVars.isRandom = false; //wavefunctions are no longer random
 }
 

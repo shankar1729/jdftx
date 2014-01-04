@@ -82,6 +82,7 @@ void Everything::setup()
 	basis.resize(eInfo.nStates);
 	double avg_nbasis = 0.0;
 	const GridInfo& gInfoBasis = gInfoWfns ? *gInfoWfns : gInfo;
+	if(!cntrl.shouldPrintKpointsBasis) logSuspend();
 	for(int q=0; q<eInfo.nStates; q++)
 	{	if(cntrl.basisKdep==BasisKpointDep)
 			basis[q].setup(gInfoBasis, iInfo, cntrl.Ecut, eInfo.qnums[q].k);
@@ -91,6 +92,7 @@ void Everything::setup()
 		}
 		avg_nbasis += 0.5*eInfo.qnums[q].weight * basis[q].nbasis;
 	}
+	if(!cntrl.shouldPrintKpointsBasis) logResume();
 	logPrintf("average nbasis = %7.3lf , ideal nbasis = %7.3lf\n", avg_nbasis,
 		pow(sqrt(2*cntrl.Ecut),3)*(gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();

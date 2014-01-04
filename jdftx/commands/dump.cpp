@@ -78,7 +78,10 @@ EnumStringMap<DumpVariable> varMap
 	DumpDipole, "Dipole",
 	DumpStress, "Stress",
 	DumpExcitations, "Excitations",
-	DumpMomenta, "Momenta"
+	DumpMomenta, "Momenta",
+	DumpSymmetries, "Symmetries",
+	DumpKpoints, "Kpoints",
+	DumpOrbitalDep, "OrbitalDep"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -117,7 +120,10 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
 	DumpStress,         "Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector",
 	DumpExcitations,    "Dumps dipole moments and transition strength (electric-dipole) of excitations",
-	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)"
+	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
+	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
+	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
+	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)"
 );
 
 struct CommandDump : public Command

@@ -95,8 +95,8 @@ public:
 	//!Find the best fit chemical potential (and optionally the density of states) given fillings and eigenvalues
 	double fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu=0) const;
 	
-	void kpointsPrint(bool printSpin=false) const; //!< Output k-points, weights and optionally spins
-	void kpointPrint(int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
+	void kpointsPrint(FILE* fp, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
+	void kpointPrint(FILE* fp, int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	
 	int findHOMO(int q) const; //! Returns the band index of the Highest Occupied Kohn-Sham Orbital
 
