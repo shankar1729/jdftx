@@ -77,6 +77,8 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 			logPrintf("Reading discontinuity potential from '%s' ... ", fname.c_str()); logFlush();
 			loadRawBinary(VsclocDisc[s], fname.c_str());
 			logPrintf("done\n"); logFlush();
+			logPrintf("WARNING: eigenvalsQP from a fixed potential run needs the correct fillings to be set / read in.\n");
+			logPrintf("  Automatic fillings would be wrong for metals, but the discontinuity correction is zero then anyway.\n");
 		}
 	}
 	else
