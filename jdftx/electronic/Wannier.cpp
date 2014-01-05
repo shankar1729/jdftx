@@ -420,16 +420,17 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	logFlush();
 	
 	//Check for initial state:
-	FILE* fpInit = 0;
 	string UvarName;
-	if(e.eVars.wfnsFilename.length())
 	{	ostringstream ossUvarName;
 		int nMin = centers.front().band;
 		for(const auto& c: centers) nMin = std::min(nMin, c.band);
 		ossUvarName << nMin << ".Umlwf";
 		if(nSpins==2) ossUvarName << (iSpin==0 ? "Up" : "Dn");
 		UvarName = ossUvarName.str();
-		//Replace wfns with above avriable name to locate file:
+	}
+	FILE* fpInit = 0;
+	if(e.eVars.wfnsFilename.length())
+	{	//Replace wfns with above avriable name to locate file:
 		string filename = e.eVars.wfnsFilename;
 		filename.replace(filename.find("wfns"),4, UvarName);
 		fpInit = fopen(filename.c_str(), "r");
@@ -481,10 +482,12 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	//Save the matrices:
 	{	string fname = e.dump.getFilename(UvarName);
 		logPrintf("\tDumping '%s' ... ", fname.c_str());
-		FILE* fp = fopen(fname.c_str(), "w");
-		for(const auto& kMeshEntry: kMesh)
-			(kMeshEntry.U0 * kMeshEntry.V).write(fp);
-		fclose(fp);
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			for(const auto& kMeshEntry: kMesh)
+				(kMeshEntry.U0 * kMeshEntry.V).write(fp);
+			fclose(fp);
+		}
 		logPrintf("Done.\n"); logFlush();
 	}
 	
@@ -538,8 +541,11 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 						psiSuper+outOffset, S[2]);
 				}
 		}
-		FILE* fp = fopen(fname.c_str(), "wb");
-		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+		FILE* fp = 0;
+		if(mpiUtil->isHead())
+		{	fp= fopen(fname.c_str(), "wb");
+			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+		}
 		if(e.dump.wannier.convertReal)
 		{	//Convert to a real wavefunction:
 			double meanPhase, sigmaPhase, rmsImagErr;
@@ -549,13 +555,13 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 			logFlush();
 			//Write real part of supercell wavefunction to file:
 			for(size_t i=0; i<nrSuper; i++)
-				fwrite(psiSuper+i, sizeof(double), 1, fp);
+				if(fp) fwrite(psiSuper+i, sizeof(double), 1, fp);
 		}
 		else
 		{	//Write complex function as is:
-			fwrite(psiSuper, sizeof(complex), nrSuper, fp);
+			if(fp) fwrite(psiSuper, sizeof(complex), nrSuper, fp);
 		}
-		fclose(fp);
+		if(fp) fclose(fp);
 	}
 	delete[] psiSuper;
 	delete[] phaseSuper;
@@ -700,17 +706,20 @@ void WannierEval::addIndex(const WannierEval::Kpoint& kpoint)
 }
 
 ColumnBundle WannierEval::getWfns(const WannierEval::Kpoint& kpoint, const std::vector<Wannier::Center>& centers, int iSpin) const
-{	const ColumnBundle& C = e.eVars.C[kpoint.q + iSpin*qCount];
-	const Index& index = *(indexMap.find(kpoint)->second);
+{	const Index& index = *(indexMap.find(kpoint)->second);
 	ColumnBundle ret(centers.size(), basis.nbasis, &basis, 0, isGpuEnabled());
 	ret.zero();
-	//Pick required bands, and scatter from reduced basis to common basis with transformations:
-	for(unsigned c=0; c<centers.size(); c++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., index.dataPref,
-			C.dataPref()+C.index(centers[c].band,0), ret.dataPref()+ret.index(c,0));
-	//Complex conjugate if inversion symmetry employed:
-	if(kpoint.invert < 0)
-		callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
+	if(e.eInfo.isMine(kpoint.q))
+	{	//Pick required bands, and scatter from reduced basis to common basis with transformations:
+		const ColumnBundle& C = e.eVars.C[kpoint.q + iSpin*qCount];
+		for(unsigned c=0; c<centers.size(); c++)
+			callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., index.dataPref,
+				C.dataPref()+C.index(centers[c].band,0), ret.dataPref()+ret.index(c,0));
+		//Complex conjugate if inversion symmetry employed:
+		if(kpoint.invert < 0)
+			callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
+	}
+	ret.bcast(e.eInfo.whose(kpoint.q)); //make available to all processes
 	return ret;
 }
 
