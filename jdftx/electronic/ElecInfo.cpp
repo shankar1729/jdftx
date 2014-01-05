@@ -184,7 +184,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",
 				nBands, nElectrons, nBandsMin);
 		
-		if(!e->cntrl.fixed_n) //Band structure never requires subspace-rotations
+		if(!e->cntrl.fixed_H) //Band structure never requires subspace-rotations
 		{	//Check if fillings are scalar (then subspace rotations are not needed as [Hsub,F]=0)
 			bool scalarFillings = true;
 			for(int q=qStart; q<qStop; q++)

@@ -183,25 +183,29 @@ int ElecVars::LCAO()
 	}
 	
 	//Get electron density obtained by adding those of the atoms:
-	DataGptrCollection nTilde(n.size());
-	for(auto sp: e->iInfo.species)
-		if(sp->atpos.size())  // Check for unused species
-			sp->accumulateAtomicDensity(nTilde);
-	for(unsigned s=0; s<n.size(); s++)
-	{	n[s] = I(nTilde[s]);
-		nTilde[s] = 0; //free memory
-		e->symm.symmetrize(n[s]);
+	if(!e->cntrl.fixed_H)
+	{	DataGptrCollection nTilde(n.size());
+		for(auto sp: e->iInfo.species)
+			if(sp->atpos.size())  // Check for unused species
+				sp->accumulateAtomicDensity(nTilde);
+		for(unsigned s=0; s<n.size(); s++)
+		{	n[s] = I(nTilde[s]);
+			nTilde[s] = 0; //free memory
+			e->symm.symmetrize(n[s]);
+		}
 	}
 	
 	//Select a multi-pass method to use eVars.F, if it is non-default
 	int nPasses = 1;
-	if(eInfo.customFillings.size() || eInfo.initialFillingsFilename.length()) nPasses = 2; //custom fillings
+	if(!e->cntrl.fixed_H && (eInfo.customFillings.size() || eInfo.initialFillingsFilename.length())) nPasses = 2; //custom fillings
 	for(double q: eInfo.qNet) if(q) nPasses = 2; //net charges modified
 	
 	//Compute local-potential at the atomic reference density (for pass 1) and resulting density based on pass 1 (for pass 2):
 	for(int pass=0; pass<nPasses; pass++)
-	{	Energies ener;
-		EdensityAndVscloc(ener, lcao.exCorr);
+	{	if(!(e->cntrl.fixed_H && e->eVars.VsclocFilename.size())) //compute Vscloc unless it has been read in
+		{	Energies ener;
+			EdensityAndVscloc(ener, lcao.exCorr);
+		}
 		iInfo.augmentDensityInit();
 		iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
 		
@@ -243,7 +247,8 @@ int ElecVars::LCAO()
 	mp.energyLabel = "F";
 	mp.energyDiffThreshold = lcaoTol;
 	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.subspaceRotation ? 30 : 3 );
-	lcao.minimize(mp);
+	if(e->cntrl.fixed_H) { C = Y; Hsub = lcao.B; } //bypass subspace iteration
+	else lcao.minimize(mp);
 	
 	//Set wavefunctions to eigenvectors:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)

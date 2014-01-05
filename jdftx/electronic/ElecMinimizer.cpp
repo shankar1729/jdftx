@@ -196,7 +196,7 @@ void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
 }
 
 void bandMinimize(Everything& e)
-{	bool fixed_n = true; std::swap(fixed_n, e.cntrl.fixed_n); //remember fixed_n flag and temporarily set it to true
+{	bool fixed_H = true; std::swap(fixed_H, e.cntrl.fixed_H); //remember fixed_H flag and temporarily set it to true
 	logPrintf("Minimization will be done independently for each quantum number.\n");
 	e.ener.Eband = 0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -211,7 +211,7 @@ void bandMinimize(Everything& e)
 		print_Hsub_eigs(e);
 		logPrintf("\n"); logFlush();
 	}
-	std::swap(fixed_n, e.cntrl.fixed_n); //restore fixed_n flag
+	std::swap(fixed_H, e.cntrl.fixed_H); //restore fixed_H flag
 	e.eVars.setEigenvectors();
 }
 
@@ -221,7 +221,7 @@ void elecMinimize(Everything& e)
 	{	SCF scf(e);
 		scf.minimize();
 	}
-	else if((not e.cntrl.fixed_n) or e.exCorr.exxFactor() or e.eInfo.hasU)
+	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor() or e.eInfo.hasU)
 	{	ElecMinimizer emin(e, true);
 		emin.minimize(e.elecMinParams);
 		e.eVars.setEigenvectors();

@@ -353,6 +353,7 @@ struct CommandVibrations : public Command
 			"  omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
 			"     in modes (default: 1e-4). Does not affect free energies and all modes are still printed.";
 		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
 	}
 	
 	void process(ParamList& pl, Everything& e)

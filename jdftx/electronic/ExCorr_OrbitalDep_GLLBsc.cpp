@@ -62,24 +62,43 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 		{	logPrintf("OrbitalDep dump: (GLLBsc) No unoccupied states in the calculation; can't determine discontinuity potential.\n");
 			return;
 		}
-	DataRptrCollection VsclocDisc = getPotential(eHOMO, &eLUMO);
-	for(DataRptr& V: VsclocDisc) V = JdagOJ(V); //include the dV factor (like Vscloc)
-	#define StartDump(prefix) \
-		string fname = e.dump.getFilename(prefix); \
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-	#define EndDump \
-		logPrintf("done\n"); logFlush();
-	#define DUMP(object, prefix) \
-		{	StartDump(prefix) \
-			if(mpiUtil->isHead()) saveRawBinary(object, fname.c_str()); \
-			EndDump \
+	DataRptrCollection VsclocDisc(nSpins);
+	if(e.cntrl.fixed_H)
+	{	assert(e.eVars.VsclocFilename.size());
+		for(int s=0; s<nSpins; s++)
+		{	string fname = e.eVars.VsclocFilename[s];
+			size_t pos = fname.find("Vscloc");
+			if(pos == string::npos)
+			{	logPrintf("OrbitalDep dump: (GLLBsc) Initial Vscloc filename does not contain \"Vscloc\" that could be replaced by \"VsclocDisc\" to get the discontinuity potential filename.\n");
+				return;
+			}
+			fname.replace(pos, strlen("Vscloc"), "VsclocDisc");
+			nullToZero(VsclocDisc[s], e.gInfo);
+			logPrintf("Reading discontinuity potential from '%s' ... ", fname.c_str()); logFlush();
+			loadRawBinary(VsclocDisc[s], fname.c_str());
+			logPrintf("done\n"); logFlush();
 		}
-	if(e.eInfo.spinType == SpinZ)
-	{	DUMP(VsclocDisc[0], "VsclocDisc_up")
-		DUMP(VsclocDisc[1], "VsclocDisc_dn")
 	}
-	else DUMP(VsclocDisc[0], "VsclocDisc")
-	#undef DUMP
+	else
+	{	VsclocDisc = getPotential(eHOMO, &eLUMO);
+		for(DataRptr& V: VsclocDisc) V = JdagOJ(V); //include the dV factor (like Vscloc)
+		#define StartDump(prefix) \
+			string fname = e.dump.getFilename(prefix); \
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		#define EndDump \
+			logPrintf("done\n"); logFlush();
+		#define DUMP(object, prefix) \
+			{	StartDump(prefix) \
+				if(mpiUtil->isHead()) saveRawBinary(object, fname.c_str()); \
+				EndDump \
+			}
+		if(e.eInfo.spinType == SpinZ)
+		{	DUMP(VsclocDisc[0], "VsclocDisc_up")
+			DUMP(VsclocDisc[1], "VsclocDisc_dn")
+		}
+		else DUMP(VsclocDisc[0], "VsclocDisc")
+		#undef DUMP
+	}
 	
 	//Output quasiparticle energies using first-order pertubation theory:
 	std::vector<diagMatrix> eigsQP(e.eInfo.nStates);

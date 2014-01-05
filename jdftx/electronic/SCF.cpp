@@ -79,7 +79,6 @@ void SCF::minimize()
 		updateFillings();
 	}
 	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
-	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 	
 	double Eprev = 0.;
 	std::vector<diagMatrix> eigsPrev;
@@ -96,7 +95,7 @@ void SCF::minimize()
 		//Cache the old energy and variables
 		Eprev = E;
 		eigsPrev = e.eVars.Hsub_eigs;
-		pastVariables.push_back(clone(getVariable()));
+		pastVariables.push_back(getVariable());
 		
 		//Band-structure minimize:
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
@@ -183,7 +182,7 @@ DataRptrCollection SCF::getVariable() const
 	DataRptrCollection variable = mixDensity ? e.eVars.n : e.eVars.Vscloc;
 	if(e.exCorr.needsKEdensity()) //append the relevant KE variable:
 		for(DataRptr v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) variable.push_back(v);
-	return variable;
+	return clone(variable);
 }
 
 void SCF::setVariable(DataRptrCollection variable)

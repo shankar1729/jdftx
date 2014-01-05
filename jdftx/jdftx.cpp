@@ -120,15 +120,18 @@ int main(int argc, char** argv, char** argp)
 		return 0;
 	}
 	
-	if(e.cntrl.fixed_n)
+	if(e.cntrl.fixed_H)
 	{	//Band structure calculation - ion and fluid minimization need to be handled differently
-		if(e.exCorr.needsKEdensity()) //compute (fixed) KE density for meta-GGAs
-			eVars.tau = eVars.KEdensity();
-		eVars.EdensityAndVscloc(e.ener);
-		if(eVars.fluidSolver && eVars.fluidSolver->needsGummel())
-		{	//Relies on the gummel loop, so EdensityAndVscloc would not have invoked minimize
-			eVars.fluidSolver->minimizeFluid();
-			eVars.EdensityAndVscloc(e.ener); //update Vscloc
+		if(eVars.nFilename.size())
+		{	//If starting from density, compute potential:
+			if(e.exCorr.needsKEdensity()) //compute (fixed) KE density for meta-GGAs
+				eVars.tau = eVars.KEdensity();
+			eVars.EdensityAndVscloc(e.ener);
+			if(eVars.fluidSolver && eVars.fluidSolver->needsGummel())
+			{	//Relies on the gummel loop, so EdensityAndVscloc would not have invoked minimize
+				eVars.fluidSolver->minimizeFluid();
+				eVars.EdensityAndVscloc(e.ener); //update Vscloc
+			}
 		}
 		e.iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		if(e.cntrl.invertKS) //Inverse Kohn-Sham problem (sequence of band structure calculations)

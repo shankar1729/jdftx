@@ -32,7 +32,7 @@ static EnumStringMap<BasisKdep> kdepMap(BasisKpointDep, "kpoint-dependent", Basi
 class Control
 {
 public:
-	bool fixed_n; //!< fixed density (band structure) mode for electronic sector
+	bool fixed_H; //!< fixed Hamiltonian (band structure) mode for electronic sector
 	bool fixOccupied; //!< whether to hold occupied orbitals fixed in band structure calculations
 	double occupiedThreshold; //!< fillings threshold for occupied states
 	bool cacheProjectors; //!< whether to cache nonlocal projectors
@@ -62,7 +62,7 @@ public:
 	bool scf; //! whether SCF iteration or total energy minimizer will be called
 
 	Control()
-	:	fixed_n(false),
+	:	fixed_H(false),
 		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true),
 		basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),

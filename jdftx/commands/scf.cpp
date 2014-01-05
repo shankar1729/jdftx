@@ -84,6 +84,7 @@ struct CommandsScfParams: public Command
 			+ "\nAny number of these key-value pairs may be specified in any order.";
 		hasDefault = false;
 		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
 		forbid("spin-restricted");
 	}
 	

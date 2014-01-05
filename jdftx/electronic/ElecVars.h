@@ -90,6 +90,7 @@ public:
 	double overlapCondition; //!< Current condition number of the orbital overlap matrix (over all states)
 	
 	std::vector<string> nFilename; //!< file(s) to read electron (spin) density from
+	std::vector<string> VsclocFilename; //!< file(s) to read electron (spin) potential from
 
 	ElecVars();
 	void setup(const Everything &everything);

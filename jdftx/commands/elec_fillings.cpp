@@ -34,6 +34,7 @@ struct CommandElecFermiFillings : public Command
 		
 		require("lcao-params");
 		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
 	}
 
 	void process(ParamList& pl, Everything& e)

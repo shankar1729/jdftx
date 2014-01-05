@@ -135,6 +135,7 @@ struct CommandSpinRestricted : public Command
 			"The format of wavefunction files depends on the spin, but is unaffected by this flag.";
 		require("spintype");
 		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
 		forbid("electronic-scf");
 	}
 
@@ -151,13 +152,15 @@ commandSpinRestricted;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandFixElectronDensity : public Command
-{
-	CommandFixElectronDensity() : Command("fix-electron-density")
+//Base class for fix-electron-density and fix-electron-potential
+struct CommandFixElectronHamiltonian : public Command
+{	string symbol;
+	
+    CommandFixElectronHamiltonian(string name, string symbol) : Command("fix-electron-"+name), symbol(symbol)
 	{
-		format = "<nFilename> | <nupFilename> <ndnFilename>";
-		comments = "Perform band structure calculations at fixed electron density\n"
-			"(or spin densities) read from the specified file(s)";
+		format = "<" + symbol + "Filename> | <" + symbol + "_upFilename> <" + symbol + "_dnFilename>";
+		comments = "Perform band structure calculations at fixed electron " + name + "\n"
+			"(or spin " + name + ") read from the specified file(s)";
 		
 		require("spintype");
 		forbid("elec-fermi-fillings");
@@ -167,23 +170,34 @@ struct CommandFixElectronDensity : public Command
 		forbid("spin-restricted");
 	}
 
-	void process(ParamList& pl, Everything& e)
-	{	std::vector<string>& nFilename = e.eVars.nFilename;
-		nFilename.resize(e.eInfo.spinType==SpinNone ? 1 : 2);
-		for(unsigned s=0; s<nFilename.size(); s++)
-		{	const char* componentName = nFilename.size()==1 ? "nFilename" : (s==0 ? "nupFilename" : "ndnFilename");
-			pl.get(nFilename[s], string(), componentName, true);
+	void process(ParamList& pl, Everything& e, std::vector<string>& targetFilename)
+	{	targetFilename.resize(e.eInfo.spinType==SpinNone ? 1 : 2);
+		for(unsigned s=0; s<targetFilename.size(); s++)
+		{	string componentName = symbol + (targetFilename.size()==1 ? "Filename" : (s==0 ? "_upFilename" : "_dnFilename"));
+			pl.get(targetFilename[s], string(), componentName, true);
 		}
-		e.cntrl.fixed_n = true;
+		e.cntrl.fixed_H = true;
 	}
 
-	void printStatus(Everything& e, int iRep)
-	{	std::vector<string>& nFilename = e.eVars.nFilename;
-		for(unsigned s=0; s<nFilename.size(); s++)
-			logPrintf("%s ", e.eVars.nFilename[s].c_str());
+	void printStatus(Everything& e, int iRep, const std::vector<string>& targetFilename)
+	{	for(unsigned s=0; s<targetFilename.size(); s++)
+			logPrintf("%s ", targetFilename[s].c_str());
 	}
+};
+
+struct CommandFixElectronDensity : public CommandFixElectronHamiltonian
+{   CommandFixElectronDensity() : CommandFixElectronHamiltonian("density", "n") { forbid("fix-electron-potential"); }
+	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.nFilename); }
+	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.nFilename); }
 }
 commandFixElectronDensity;
+
+struct CommandFixElectronPotential : public CommandFixElectronHamiltonian
+{   CommandFixElectronPotential() : CommandFixElectronHamiltonian("potential", "Vscloc") { forbid("fix-electron-density"); }
+	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.VsclocFilename); }
+	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.VsclocFilename); }
+}
+commandFixElectronPotential;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -194,8 +208,6 @@ struct CommandFixOccupied : public Command
 		format = "[<fThreshold>=0]";
 		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations\n"
 			"The occupied orbitals must be read in using the wavefunction / initial-state commands.\n";
-		
-		require("fix-electron-density");
 	}
 
 	void process(ParamList& pl, Everything& e)

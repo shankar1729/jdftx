@@ -122,6 +122,61 @@ void ElecVars::setup(const Everything &everything)
 	Umhalf.resize(eInfo.nStates);
 	V.resize(eInfo.nStates);
 	
+	//Applies custom fillings, if present
+	if(eInfo.customFillings.size())
+	{	// macro to find the HOMO of a quantum-number
+		
+		std::vector<size_t> band_index;
+		for(size_t j=0; j<eInfo.customFillings.size(); j++)
+		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			if(!eInfo.isMine(qnum)) continue;
+			int HOMO = eInfo.findHOMO(qnum);
+			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
+			if(band >= F[qnum].size() or band<0)
+			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
+					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
+					(int) band, std::get<1>(eInfo.customFillings[j]));
+			}
+			band_index.push_back(band);
+		}
+		for(size_t j=0; j<eInfo.customFillings.size(); j++)
+		{	int qnum = std::get<0>(eInfo.customFillings[j]);
+			if(!eInfo.isMine(qnum)) continue;
+			F[qnum][band_index[j]] = std::get<2>(eInfo.customFillings[j]);
+		}
+		
+		//Recompute electron count:
+		double& nElectrons = ((ElecInfo&)eInfo).nElectrons;
+		nElectrons = 0.;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			nElectrons += eInfo.qnums[q].weight * trace(F[q]);
+		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
+	}
+	
+	//Read in electron (spin) density if needed
+	if(e->cntrl.fixed_H)
+	{	//command fix-electron-density / fix-electron-potential ensures that nFilename / VsclocFilename has as many entries as spin components
+		const std::vector<string>& initFilename = nFilename.size() ? nFilename : VsclocFilename; //one of the two must be set
+		DataRptrCollection& initTarget = nFilename.size() ? n : Vscloc;
+		const char* initName = nFilename.size() ? "density" : "potential";
+		for(unsigned k=0; k<initFilename.size(); k++)
+		{	logPrintf("Reading %s %s from file '%s' ... ",
+				initFilename.size()==1 ? "electron" : (k==0 ? "up-spin" : "down-spin"),
+				initName, initFilename[k].c_str()); logFlush();
+			initTarget[k] = DataR::alloc(gInfo);
+			loadRawBinary(initTarget[k], initFilename[k].c_str());
+			logPrintf("done\n"); logFlush();
+		}
+		//Check if fix-occupied has been specified when required (hyrbids or meta-GGAs):
+		if( (e->exCorr.exxFactor() || e->exCorr.needsKEdensity())
+			&& (! e->cntrl.fixOccupied) )
+			die("Band-structure (fixed electron density) calculations with meta-GGAs\n"
+				"or hybrid functionals require fixed occupied states (command fix-occupied)\n");
+		//Check if wavefunctions have been read in if occupied orbitals are fixed:
+		if(e->cntrl.fixOccupied && (! wfnsFilename.length()))
+			die("Fixed occupied orbitals require wavefunctions to be read from file\n");
+	}
+
 	//Read auxilliary hamiltonian if required
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 	{	dmuContrib = diagMatrix(eInfo.nBands, 0.);
@@ -179,58 +234,6 @@ void ElecVars::setup(const Everything &everything)
 		C[q] = Y[q];
 	}
 	
-	// Applies custom fillings, if present
-	if(eInfo.customFillings.size())
-	{	// macro to find the HOMO of a quantum-number
-		
-		std::vector<size_t> band_index;
-		for(size_t j=0; j<eInfo.customFillings.size(); j++)
-		{	int qnum = std::get<0>(eInfo.customFillings[j]);
-			if(!eInfo.isMine(qnum)) continue;
-			int HOMO = eInfo.findHOMO(qnum);
-			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
-			if(band >= F[qnum].size() or band<0)
-			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
-					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
-					(int) band, std::get<1>(eInfo.customFillings[j]));
-			}
-			band_index.push_back(band);
-		}
-		for(size_t j=0; j<eInfo.customFillings.size(); j++)
-		{	int qnum = std::get<0>(eInfo.customFillings[j]);
-			if(!eInfo.isMine(qnum)) continue;
-			F[qnum][band_index[j]] = std::get<2>(eInfo.customFillings[j]);
-		}
-		
-		//Recompute electron count:
-		double& nElectrons = ((ElecInfo&)eInfo).nElectrons;
-		nElectrons = 0.;
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			nElectrons += eInfo.qnums[q].weight * trace(F[q]);
-		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
-	}
-	
-	// Read in electron (spin) density if needed
-	if(e->cntrl.fixed_n)
-	{	//command fix-electron-density ensures that nFilename has as many entries as spin components
-		for(unsigned k=0; k<nFilename.size(); k++)
-		{	logPrintf("Reading %s density from file '%s' ... ",
-				nFilename.size()==1 ? "electron" : (k==0 ? "up-spin" : "down-spin"),
-				nFilename[k].c_str()); logFlush();
-			n[k] = DataR::alloc(gInfo);
-			loadRawBinary(n[k], nFilename[k].c_str());
-			logPrintf("done\n"); logFlush();
-		}
-		//Check if fix-occupied has been specified when required (hyrbids or meta-GGAs):
-		if( (e->exCorr.exxFactor() || e->exCorr.needsKEdensity())
-			&& (! e->cntrl.fixOccupied) )
-			die("Band-structure (fixed electron density) calculations with meta-GGAs\n"
-				"or hybrid functionals require fixed occupied states (command fix-occupied)\n");
-		//Check if wavefunctions have been read in if occupied orbitals are fixed:
-		if(e->cntrl.fixOccupied && (! wfnsFilename.length()))
-			die("Fixed occupied orbitals require wavefunctions to be read from file\n");
-	}
-
 	//Fluid setup:
 	if(fluidParams.fluidType != FluidNone)
 	{	logPrintf("----- createFluidSolver() ----- (Fluid-side solver setup)\n");
@@ -328,7 +331,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	if(exCorr.orbitalDep)
-	{	if(!e->cntrl.scf) die("Orbital-dependent potential functionals do not support total-energy minimization - use SCF instead.\n");
+	{	if(!e->cntrl.scf)
+		{	if(e->cntrl.fixed_H) die("Orbital-dependent potential functionals do not support fix-density; use fix-potential instead.\n")
+			else die("Orbital-dependent potential functionals do not support total-energy minimization; use SCF instead.\n")
+		}
 		Vxc += exCorr.orbitalDep->getPotential();
 	}
 	if(VtauTilde) Vtau.resize(n.size());
@@ -358,7 +364,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	if(Kgrad) { Kgrad->Y.assign(eInfo.nStates, ColumnBundle()); }
 	
 	//Determine whether Hsub and hence HC needs to be calculated:
-	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_n;
+	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_H;
 	
 	// Orthonormalize Y to compute C, U and cohorts
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -389,7 +395,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	}
 	
 	//Update the density and density-dependent pieces if required:
-	if(!e->cntrl.fixed_n)
+	if(!e->cntrl.fixed_H)
 	{	//Calculate (spin) densities
 		n = calcDensity();
 		
@@ -425,7 +431,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	ener.E["KE"] = 0.;
 	ener.E["Enl"] = 0.;
 	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
-	{	diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
+	{	diagMatrix Fq = e->cntrl.fixed_H ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
 		applyHamiltonian(q, Fq, HC[q], HVdagC[q], ener, need_Hsub);
 	}
 	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
@@ -447,7 +453,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	{	double KErollover = 2.*ener.E["KE"] / eInfo.nElectrons;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{
-			diagMatrix Fq = e->cntrl.fixed_n ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
+			diagMatrix Fq = e->cntrl.fixed_H ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
 			orthonormalizeGrad(q, Fq, HC[q], grad->Y[q], KErollover, Kgrad ? &Kgrad->Y[q] : 0, &grad->B[q], Kgrad ? &Kgrad->B[q] : 0);
 			HC[q].free(); // Deallocate HCq when done.
 			
@@ -465,7 +471,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		}
 	}
 	
-	if(e->cntrl.fixed_n)
+	if(e->cntrl.fixed_H)
 	{	//Compute band structure energy
 		ener.Eband = 0;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -599,7 +605,7 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
 	
-	if(e->cntrl.fixed_n) return qnum.weight * trace(Hsub[q]).real();
+	if(e->cntrl.fixed_H) return qnum.weight * trace(Hsub[q]).real();
 	else return 0.;
 }
 
