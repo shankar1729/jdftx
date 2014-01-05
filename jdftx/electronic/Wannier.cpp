@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/SpeciesInfo_internal.h>
+#include <core/LatticeUtils.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>
 #include <gsl/gsl_linalg.h>
@@ -71,14 +72,6 @@ public:
 	double compute(WannierGradient* grad);
 	WannierGradient precondition(const WannierGradient& grad);
 	
-private:
-	const Everything& e;
-	const std::vector< matrix3<int> >& sym;
-	int nSpins, qCount; //!< number of spins, and number of states per spin
-	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
-	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
-	matrix kHelmholtzInv; //!< Inverse of Hemlholtz equation in k-space (preconditioner)
-	
 	//! Entries in the k-point mesh
 	struct Kpoint
 	{	vector3<> k; //!< k-point in reciprocal lattice coordinates
@@ -90,6 +83,14 @@ private:
 		bool operator<(const Kpoint& other) const;
 		bool operator==(const Kpoint& other) const;
 	};
+	
+private:
+	const Everything& e;
+	const std::vector< matrix3<int> >& sym;
+	int nSpins, qCount; //!< number of spins, and number of states per spin
+	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
+	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
+	matrix kHelmholtzInv; //!< Inverse of Hemlholtz equation in k-space (preconditioner)
 	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct EdgeFD
@@ -176,8 +177,6 @@ void Wannier::saveMLWF()
 
 //--------------------- class WannierEval implementation ---------------------
 
-static const double kpointTol = 1e-4, kpointTolSq = kpointTol*kpointTol; //threshold for identifying kpoints
-
 inline double toUnitInterval(double x) { return x-floor(x); }
 inline double toCenteredUnitInterval(double x)
 {	double xUnit = toUnitInterval(x);
@@ -192,7 +191,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 {	//Group elements of b into shells:
 	std::vector<unsigned> shellMax; //cumulative count within each shell
 	for(unsigned i=1; i<b.size(); i++)
-		if(b[i].length() > b[i-1].length() + kpointTol)
+		if(b[i].length() > b[i-1].length() + symmThreshold)
 			shellMax.push_back(i);
 	shellMax.push_back(b.size());
 	//Setup the equations satisfied by the weights:
@@ -237,7 +236,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	gsl_linalg_SV_decomp(U, V, S, work);
 	//Zero out small singular values:
 	for(unsigned j=0; j<shellMax.size(); j++)
-		if(gsl_vector_get(S,j) < kpointTol)
+		if(gsl_vector_get(S,j) < symmThreshold)
 			gsl_vector_set(S,j, 0.);
 	//Solve for weights:
 	gsl_vector* wPairs = gsl_vector_alloc(shellMax.size());
@@ -249,7 +248,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	//Check solution by substitution:
 	cblas_dgemv(CblasRowMajor, CblasNoTrans, nEquations, shellMax.size(), 1., Lhs->data, Lhs->tda,
 		wPairs->data, wPairs->stride, -1., rhs->data, rhs->stride); //rhs = Lhs*wPairs - rhs
-	if(eblas_dnrm2(nEquations, rhs->data, rhs->stride) > kpointTol)
+	if(eblas_dnrm2(nEquations, rhs->data, rhs->stride) > symmThreshold)
 		return std::vector<double>(); //Not an exact solution, so quit (and try with more shells)
 	gsl_vector_free(rhs);
 	gsl_matrix_free(Lhs);
@@ -261,6 +260,9 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	return w;
 }
 
+//Helper function for PeriodicLookup<WannierEval::Kpoint> used in WannierEval::WannierEval
+inline vector3<> getCoord(const WannierEval::Kpoint& kpoint) { return kpoint.k; }
+
 WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
 {
@@ -270,6 +272,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 	//Create the list of images (closed under the symmetry group):
 	const std::vector<int>& invertList = e.symm.getKpointInvertList();
 	std::vector<Kpoint> kpoints;
+	PeriodicLookup<WannierEval::Kpoint> plook(kpoints, e.gInfo.GGT, qnums.size()*sym.size()); //look-up table for O(1) fuzzy searching
 	for(int invert: invertList)
 		for(int q=0; q<qCount; q++)
 			for(unsigned iRot=0; iRot<sym.size(); iRot++)
@@ -280,15 +283,10 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 				{	offset[i] = -floor(k[i]+0.5);
 					k[i] += offset[i];
 				}
-				//Check if this k-vector has already been encountered:
-				bool found = false;
-				for(const Kpoint& kpoint: kpoints)
-					if(circDistanceSquared(k, kpoint.k) < kpointTolSq)
-					{	found = true;
-						break;
-					}
-				if(!found)
+				//Add to map if this k-vector has not yet been encountered:
+				if(plook.find(k) == string::npos)
 				{	Kpoint kpoint = { k, q, iRot, invert, offset };
+					plook.addPoint(kpoints.size(), kpoint);
 					kpoints.push_back(kpoint);
 				}
 			}
@@ -311,7 +309,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 					for(unsigned j=0; j<kpoints.size(); j++)
 					{	Neighbour neighbour = { iG + kpoints[j].k - kpoints[i].k, j, iG };
 						double dist = sqrt(e.gInfo.GGT.metric_length_squared(neighbour.dk));
-						if(dist > kpointTol) //ignore self
+						if(dist > symmThreshold) //ignore self
 							neighbourMap.insert(std::make_pair(dist, neighbour));
 					}
 		
@@ -327,7 +325,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 				double prevDist = iter->first;
 				iter++;
 				if(iter==neighbourMap.end() || //end of neighbour list (should not be encountered)
-					iter->first > prevDist+kpointTol) //next neighbour is further away beyond tolerance
+					iter->first > prevDist+symmThreshold) //next neighbour is further away beyond tolerance
 					break;
 			}
 			//Check if this list of neighbours is sufficient to get a finite difference formula
@@ -357,7 +355,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 		int nStabilizer = 0; //size of the stabilizer subgroup
 		for(int invert: invertList)
 			for(const matrix3<int>& m: sym)
-				if(circDistanceSquared(kpoints[i].k, (~m)*qnums[kpoints[i].q].k*invert) < kpointTolSq)
+				if(circDistanceSquared(kpoints[i].k, (~m)*qnums[kpoints[i].q].k*invert) < symmThresholdSq)
 						nStabilizer++;
 		kMeshEntry.wk = nStabilizer * qnums[kpoints[i].q].weight * (0.5*nSpins) / (sym.size() * invertList.size());
 		kMesh.push_back(kMeshEntry);
@@ -401,7 +399,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 		}
 		helmholtzData[helmholtz.index(ik,ik)] += kMesh[ik].wk * (wSum + kappa*kappa);
 	}
-	if(nrm2(helmholtz-dagger(helmholtz)) > kpointTolSq * nrm2(helmholtz))
+	if(nrm2(helmholtz-dagger(helmholtz)) > symmThresholdSq * nrm2(helmholtz))
 	{	logPrintf("Laplacian operator on k-mesh not symmetric - using identity preconditioner.\n");
 		kHelmholtzInv = eye(kMesh.size());
 	}
