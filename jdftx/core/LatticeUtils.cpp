@@ -91,6 +91,9 @@ std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, vector3<bool> isTrun
 	return sym;
 }
 
+//Helper function for PeriodicLookup template used in Supercell::Supercell
+inline vector3<> getCoord(const vector3<>& pos) { return pos; }
+
 
 Supercell::Supercell(const GridInfo& gInfo,
 	const std::vector<vector3<>>& kmeshReduced,
@@ -100,6 +103,7 @@ Supercell::Supercell(const GridInfo& gInfo,
 	logPrintf("\n----- Initializing Supercell corresponding to k-point mesh -----\n");
 
 	//Compute kmesh = closure of kmeshReduced under symmetry group, sym:
+	PeriodicLookup< vector3<> > plook(kmesh, gInfo.GGT, kmeshReduced.size()*sym.size()); //look-up table for O(1) fuzzy searching
 	for(int invert: invertList)
 		for(unsigned iReduced=0; iReduced<kmeshReduced.size(); iReduced++)
 		{	const vector3<>& kOrig = kmeshReduced[iReduced];
@@ -112,16 +116,10 @@ Supercell::Supercell(const GridInfo& gInfo,
 				{	offset[i] = -floor(0.5+k[i]);
 					k[i] += offset[i];
 				}
-				//Check if this k-vector has already been encountered:
-				bool found = false;
-				for(const vector3<>& kPrev: kmesh)
-					if(circDistanceSquared(k, kPrev) < symmThresholdSq)
-					{	found = true;
-						break;
-					}
-				//Add to map if not yet encountered:
-				if(!found)
-				{	kmesh.push_back(k);
+				//Add to map if this k-vector has not yet been encountered:
+				if(plook.find(k) == string::npos)
+				{	plook.addPoint(kmesh.size(), k);
+					kmesh.push_back(k);
 					KmeshTransform kTransform = { iReduced, iSym, invert, offset };
 					kmeshTransform.push_back(kTransform);
 				}
@@ -152,9 +150,10 @@ Supercell::Supercell(const GridInfo& gInfo,
 		}
 		//Pick v[1] to be the shortest dk not linearly dependent with v[0]:
 		minLengthSq = DBL_MAX;
+		double crossThreshold = symmThreshold * v[0].length();
 		for(size_t i=1; i<kmesh333.size(); i++)
 		{	vector3<> dk = kmesh333[i] - kmesh333.front();
-			if(cross(v[0], dk).length() > symmThreshold)
+			if(cross(v[0], dk).length() > crossThreshold)
 			{	double lengthSq = dk.length_squared();
 				if(lengthSq < minLengthSq)
 				{	v[1] = dk;
@@ -164,9 +163,10 @@ Supercell::Supercell(const GridInfo& gInfo,
 		}
 		//Pick v[1] to be the shortest dk not linearly dependent with v[0] and v[1]:
 		minLengthSq = DBL_MAX;
+		double boxThreshold = symmThreshold * cross(v[0],v[1]).length();
 		for(size_t i=1; i<kmesh333.size(); i++)
 		{	vector3<> dk = kmesh333[i] - kmesh333.front();
-			if(fabs(box(v[0], v[1], dk)) > symmThreshold)
+			if(fabs(box(v[0], v[1], dk)) > boxThreshold)
 			{	double lengthSq = dk.length_squared();
 				if(lengthSq < minLengthSq)
 				{	v[2] = dk;

@@ -70,4 +70,70 @@ struct Supercell
 		const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList);
 };
 
+
+//! O(1) look-up table for finding periodic image within symmThreshold
+//! Needs a companion function vector3<> getCoord(T) that returns the lattice coordinates corresponding to type T
+template<typename T> class PeriodicLookup
+{	const std::vector<T>& points;
+	vector3<int> S; //lookup mesh sample count
+	std::vector< std::vector<size_t> > indices; //list of indices into points, for each  lookup mesh cell
+	
+	inline size_t meshIndex(vector3<int> iv) const
+	{	for(int k=0; k<3; k++) //wrap to [0,S)
+		{	if(iv[k] < 0) iv[k] += S[k];
+			if(iv[k] >= S[k]) iv[k] -= S[k];
+		}
+		return iv[0]+S[0]*size_t(iv[1]+S[1]*iv[2]);
+	}
+
+public:
+	//!Initialize given an array of points and a metric corresponding to the lattice coordinates
+	//!(optionally override the number of points, if the points array is to be dynamically grown)
+	PeriodicLookup(const std::vector<T>& points, matrix3<> metric, size_t nPointsTarget=0) : points(points)
+	{	//Set S such that prod(S) ~ nPoints and the sample counts are proportional to dimension length
+		vector3<> Stmp; for(int k=0; k<3; k++) Stmp[k] = sqrt(metric(k,k));
+		Stmp *= pow(std::max(points.size(), nPointsTarget)/(Stmp[0]*Stmp[1]*Stmp[2]), 1./3); //normalize so that product is nPoints
+		for(int k=0; k<3; k++)
+		{	S[k] = std::max(1, int(round(Stmp[k])));
+			assert(symmThreshold*S[k] < 0.5);
+		}
+		//Initialize indices:
+		indices.resize(S[0]*S[1]*S[2]);
+		for(size_t iPoint=0; iPoint<points.size(); iPoint++)
+			addPoint(iPoint, points[iPoint]);
+	}
+	
+	//! Call every time a point is added to the end of the points vector externally.
+	//! Note that points may only be added to the end of the vector (otherwise some of the existing indices are invalidated!)
+	void addPoint(size_t iPoint, const T& point)
+	{	vector3<> v = getCoord(point);
+		vector3<int> iv;
+		for(int k=0; k<3; k++)
+		{	v[k] -= floor(v[k]); //in [0,1)
+			iv[k] = int(floor(v[k]*S[k] + 0.5)); //in [0, S]
+		}
+		indices[meshIndex(iv)].push_back(iPoint);
+	}
+	
+	//!Return index of a point within symmThresold of x, and string::npos if none found
+	//!(Optionally also only return points whose tag matches the specified value)
+	size_t find(vector3<> v, double tag=0., const std::vector<double>* tagArr=0) const
+	{	vector3<int> ivMin, ivMax;
+		for(int k=0; k<3; k++)
+		{	v[k] -= floor(v[k]); //in [0,1)
+			ivMin[k] = int(floor((v[k]-symmThreshold)*S[k] + 0.5)); //in [-1, S]
+			ivMax[k] = int(floor((v[k]+symmThreshold)*S[k] + 0.5)); //in [0, S]
+		}
+		vector3<int> iv;
+		for(iv[0]=ivMin[0]; iv[0]<=ivMax[0]; iv[0]++)
+		for(iv[1]=ivMin[1]; iv[1]<=ivMax[1]; iv[1]++)
+		for(iv[2]=ivMin[2]; iv[2]<=ivMax[2]; iv[2]++)
+			for(size_t index: indices[meshIndex(iv)])
+				if(circDistanceSquared(v, getCoord(points[index])) < symmThresholdSq
+					&& (!tagArr || tag==tagArr->at(index)) )
+					return index;
+		return string::npos;
+	}
+};
+
 #endif // JDFTX_CORE_LATTICEUTILS_H
