@@ -44,8 +44,10 @@ struct SCFparams
 	
 	int history; //!< Number of past residuals and vectors are kept cached and used in DIIS
 	bool verbose; //!< Whether the inner eigensolver will print progress
-	double damping;  //!< Fraction of the old variable that will be mixed with the new one
-
+	double mixFraction;  //!< Maximum fraction of the new variable that will be mixed with the old one
+	double qKerker; //!< Wavevector controlling Kerker preconditioning (if negative, auto-set to Gmin)
+	double qMetric; //!< Wavevector controlling the DIIS metric (if negative, auto-set to Gmin)
+	
 	struct EigenShift
 	{	int q; //!< Quantum number
 		int n; //!< Band index
@@ -62,7 +64,9 @@ struct SCFparams
 		mixedVariable = MV_Potential;
 		vectorExtrapolation = VE_DIIS;
 		verbose = false;
-		damping = 0.5;
+		mixFraction = 0.5;
+		qKerker = -1.; //i.e. auto-set
+		qMetric = -1.; //i.e. auto-set
 		history = 15;
 	}
 };

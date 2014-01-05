@@ -38,6 +38,7 @@ private:
 	
 	matrix overlap; //! Overlap matrix of density/potential residuals
 	std::vector<DataRptrCollection> pastVariables, pastResiduals; //!< History
+	RealKernel kerkerMix, diisMetric; //!< convolution kernels for kerker preconditioning and the DIIS overlap metric
 	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();

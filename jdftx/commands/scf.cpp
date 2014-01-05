@@ -22,40 +22,46 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 enum SCFparamsMember
 {
-	nIterations, 
-	energyDiffThreshold,
-	eigDiffThreshold,
-	residualThreshold,
-	mixedVariable,
-	vectorExtrapolation,
-	verbose,
-	damping,
-	history,
+	SCFpm_nIterations, 
+	SCFpm_energyDiffThreshold,
+	SCFpm_eigDiffThreshold,
+	SCFpm_residualThreshold,
+	SCFpm_mixedVariable,
+	SCFpm_vectorExtrapolation,
+	SCFpm_verbose,
+	SCFpm_mixFraction,
+	SCFpm_qKerker,
+	SCFpm_qMetric,
+	SCFpm_history,
 	//Delimiter used in parsing:
-	scfDelim
+	SCFpm_scfDelim
 };
 
 EnumStringMap<SCFparamsMember> scfParamsMap
-(	nIterations, "nIterations",
-	energyDiffThreshold, "energyDiffThreshold",
-	eigDiffThreshold, "eigDiffThreshold",
-	residualThreshold, "residualThreshold",
-	mixedVariable, "mixedVariable",
-	vectorExtrapolation, "vectorExtrapolation",
-	verbose, "verbose",
-	damping, "damping",
-	history, "history"
+(	SCFpm_nIterations, "nIterations",
+	SCFpm_energyDiffThreshold, "energyDiffThreshold",
+	SCFpm_eigDiffThreshold, "eigDiffThreshold",
+	SCFpm_residualThreshold, "residualThreshold",
+	SCFpm_mixedVariable, "mixedVariable",
+	SCFpm_vectorExtrapolation, "vectorExtrapolation",
+	SCFpm_verbose, "verbose",
+	SCFpm_mixFraction, "mixFraction",
+	SCFpm_qKerker, "qKerker",
+	SCFpm_qMetric, "qMetric",
+	SCFpm_history, "history"
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
-(	nIterations, "maximum iterations (single point calculation if 0)",
-	energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
-	eigDiffThreshold, "convergence threshold for the RMS difference in KS eigenvalues between successive iterations",
-	residualThreshold, "convergence threshold for the residual in the mixed variable (density or potential)",
-    mixedVariable, "whether density or potential will be mixed at each step",
-	vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
-	verbose, "whether the inner eigenvalue solver will print or not",
-	damping, "damping parameter for vector extrapolation (default 0.5).",
-	history, "Number of past residuals and vectors are kept cached and used in DIIS"
+(	SCFpm_nIterations, "maximum iterations (single point calculation if 0)",
+	SCFpm_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
+	SCFpm_eigDiffThreshold, "convergence threshold for the RMS difference in KS eigenvalues between successive iterations",
+	SCFpm_residualThreshold, "convergence threshold for the residual in the mixed variable (density or potential)",
+	SCFpm_mixedVariable, "whether density or potential will be mixed at each step",
+	SCFpm_vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
+	SCFpm_verbose, "whether the inner eigenvalue solver will print or not",
+	SCFpm_mixFraction, "maximum fraction of new variable mixed in at each step (default 0.5)",
+	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: auto-set to Gmin)",
+	SCFpm_qMetric, "wavevector controlling the DIIS metric (default: auto-set to Gmin)",
+	SCFpm_history, "number of past residuals and vectors are kept cached and used in DIIS"
 );
 
 EnumStringMap<SCFparams::MixedVariable> scfMixing
@@ -86,19 +92,21 @@ struct CommandsScfParams: public Command
 	
 		while(true)
 		{	SCFparamsMember key;
-			pl.get(key, scfDelim, scfParamsMap, "key", false);
+			pl.get(key, SCFpm_scfDelim, scfParamsMap, "key", false);
 			
 			switch(key)
-			{	case energyDiffThreshold: pl.get(e.scfParams.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
-				case eigDiffThreshold: pl.get(e.scfParams.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
-				case residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
-				case mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
-				case nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
-				case vectorExtrapolation: pl.get(e.scfParams.vectorExtrapolation, SCFparams::VE_DIIS, scfExtrapolation, "vectorExtrapolation", true); break;
-				case verbose: pl.get(e.scfParams.verbose, false, boolMap, "verbose", true); break;
-				case damping: pl.get(e.scfParams.damping, 0.5, "damping", true); break;
-				case history: pl.get(e.scfParams.history, 15, "history", true); break;
-				case scfDelim: return; //end of input
+			{	case SCFpm_energyDiffThreshold: pl.get(e.scfParams.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
+				case SCFpm_eigDiffThreshold: pl.get(e.scfParams.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
+				case SCFpm_residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
+				case SCFpm_mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
+				case SCFpm_nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
+				case SCFpm_vectorExtrapolation: pl.get(e.scfParams.vectorExtrapolation, SCFparams::VE_DIIS, scfExtrapolation, "vectorExtrapolation", true); break;
+				case SCFpm_verbose: pl.get(e.scfParams.verbose, false, boolMap, "verbose", true); break;
+				case SCFpm_mixFraction: pl.get(e.scfParams.mixFraction, 0.5, "mixFraction", true); break;
+				case SCFpm_qKerker: pl.get(e.scfParams.qKerker, -1., "qKerker", true); break;
+				case SCFpm_qMetric: pl.get(e.scfParams.qMetric, -1., "qMetric", true); break;
+				case SCFpm_history: pl.get(e.scfParams.history, 15, "history", true); break;
+				case SCFpm_scfDelim: return; //end of input
 			}
 		}
 	}
@@ -114,9 +122,12 @@ struct CommandsScfParams: public Command
 		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(e.scfParams.mixedVariable));
 		logPrintf(" \\\n\tvectorExtrapolation\t%s", scfExtrapolation.getString(e.scfParams.vectorExtrapolation));
 		if(e.scfParams.verbose) logPrintf(" \\\n\tverbose");
-		PRINT(damping, %lg)
+		PRINT(mixFraction, %lg)
+		PRINT(qKerker, %lg)
+		PRINT(qMetric, %lg)
 		PRINT(history, %d)
-	} 
+		#undef PRINT
+	}
 	
 } commandsScfParams;
 

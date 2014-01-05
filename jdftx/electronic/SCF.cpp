@@ -20,7 +20,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
 
-SCF::SCF(Everything& e): e(e)
+inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double* kerkerMix, double* diisMetric)
+{	if(mixDensity)
+	{	kerkerMix[i] = mixFraction * (qKerkerSq ? Gsq/(Gsq + qKerkerSq) : 1.);
+		diisMetric[i] = Gsq ? (Gsq + qMetricSq)/Gsq : 0.;
+	}
+	else
+	{	kerkerMix[i] = mixFraction;
+		diisMetric[i] = qMetricSq ? Gsq / (qMetricSq + Gsq) : 1.;
+	}
+}
+
+inline DataRptrCollection operator*(const RealKernel& K, const DataRptrCollection& x)
+{	DataRptrCollection Kx(x.size());
+	for(size_t i=0; i<x.size(); i++) Kx[i] = I(K * J(x[i]));
+	return Kx;
+}
+
+SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 {	//Set up the caching size:
 	SCFparams& sp = e.scfParams;
 	if(sp.vectorExtrapolation == SCFparams::VE_Plain) //No history needed for plain mixing
@@ -28,6 +45,14 @@ SCF::SCF(Everything& e): e(e)
 	overlap.init(sp.history, sp.history);
 	
 	eigenShiftInit();
+	
+	//Initialize the preconditioner and metric kernels:
+	double Gmin = sqrt(std::min(e.gInfo.GGT(0,0), std::min(e.gInfo.GGT(1,1), e.gInfo.GGT(2,2))));
+	if(sp.qKerker<0) { sp.qKerker=Gmin; logPrintf("Setting default qKerker = %lg a_0^{-1} (shortest reciprocal lattice vector)\n", sp.qKerker); }
+	if(sp.qMetric<0) { sp.qMetric=Gmin; logPrintf("Setting default qMetric = %lg a_0^{-1} (shortest reciprocal lattice vector)\n", sp.qMetric); }
+	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,
+		sp.mixFraction, pow(sp.qKerker,2), pow(sp.qMetric,2), kerkerMix.data, diisMetric.data);
+	kerkerMix.set(); diisMetric.set();
 }
 
 void SCF::minimize()
@@ -53,7 +78,7 @@ void SCF::minimize()
 	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		updateFillings();
 	}
-	double E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
+	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 	
 	double Eprev = 0.;
@@ -96,7 +121,7 @@ void SCF::minimize()
 			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
 		}
 		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
-		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   deigs: %.3e   |Residual|: %.3e\n",
+		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
 			scfCounter, Elabel.c_str(), E, E-Eprev, deigs, residualNorm);
 		
 		//Check for convergence and update variable:
@@ -116,26 +141,20 @@ void SCF::minimize()
 }
 
 void SCF::mixPlain()
-{	setVariable(pastVariables.back() + (1.-e.scfParams.damping)*pastResiduals.back());
-}
-
-inline void kerker_precond(int i, double Gsq, complex* v, double G0, double minBias)
-{	v[i] *= 1.-(1.-minBias)*Gsq/(Gsq + G0*G0);
+{	setVariable(pastVariables.back() + kerkerMix*pastResiduals.back());
 }
 
 void SCF::mixDIIS()
 {	size_t ndim = pastResiduals.size();
 
-	//Precondition the current residual
-	DataGptrCollection pResidualG = J(pastResiduals.back());
-	for(size_t j=0; j<pResidualG.size(); j++)
-		applyFuncGsq(e.gInfo, kerker_precond, pResidualG[j]->data(), e.gInfo.Gmax, 0.1);
-	DataRptrCollection pResidual = I(pResidualG);
+	//Apply the metric to the latest residual
+	DataRptrCollection M_lastResidual = diisMetric * pastResiduals.back();
+	
 	//Update the overlap matrix
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals[j], pResidual);
+	{	double thisOverlap = dot(pastResiduals[j], M_lastResidual);
 		overlap.set(j, ndim-1, thisOverlap);
-		if(j!=ndim-1) overlap.set(ndim-1, j, thisOverlap);
+		overlap.set(ndim-1, j, thisOverlap);
 	}
 	
 	//Plain mixing on the first few steps:
@@ -155,9 +174,8 @@ void SCF::mixDIIS()
 	complex* coefs = cOverlap_inv.data();
 	DataRptrCollection variable(pastVariables.back().size()); //zero
 	for(size_t j=0; j<ndim; j++)
-		variable += coefs[cOverlap_inv.index(j, ndim)].real() * (pastVariables[j] + (1.-e.scfParams.damping)*pastResiduals[j]);
+		variable += coefs[cOverlap_inv.index(j, ndim)].real() * (pastVariables[j] + kerkerMix*pastResiduals[j]);
 	setVariable(variable);
-	logPrintf("\tDIIS acceleration, lagrange multiplier is %.3e\n", coefs[cOverlap_inv.index(ndim, ndim)].real());
 }
 
 DataRptrCollection SCF::getVariable() const
