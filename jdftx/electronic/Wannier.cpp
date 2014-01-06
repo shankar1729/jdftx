@@ -137,22 +137,20 @@ private:
 	std::map<Kpoint, std::shared_ptr<Index> > indexMap; //!< wave-function indexing from each k-point to the common union basis
 	Basis basis; //!< common basis (with indexing into full G-space)
 	
-	bool isMine(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.q + iSpin*qCount); }
-	int whose(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.q + iSpin*qCount); }
-	int iSpinCur;
-	bool isMine(int ik) const { return isMine(ik, iSpinCur); }
-	int whose(int ik) const { return whose(ik, iSpinCur); }
+	//k-mesh MPI division:
+	size_t ikStart, ikStop;
+	bool isMine(size_t ik) const { return ik>=ikStart && ik<ikStop; }
+
+	//state MPI division (wrappers to ElecInfo)
+	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.q + iSpin*qCount); }
+	int whose_q(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.q + iSpin*qCount); }
 	
 	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
 	//! Get the wavefunctions for a particular k-point for bands involved in current group
 	//! The wavefunctions are returned in the common basis
-	ColumnBundle getWfns(const Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const;
+	ColumnBundle getWfns(const Kpoint& kpoint, const std::vector<Wannier::Center>& centers, int iSpin) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process
-	bool wfnsAvailable(const Kpoint& kpoint, int jProcess) //check if wfns is available while Cother contains stuff from jProcess
-	{	int qWhose = e.eInfo.whose(kpoint.q + iSpinCur*qCount);
-		return (qWhose==mpiUtil->iProcess()) || (qWhose==jProcess);
-	}
 	
 	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const;
@@ -304,12 +302,13 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 				}
 			}
 	
+	//Determine distribution amongst processes:
+	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	ikStop = (kpoints.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	
 	kMesh.resize(kpoints.size());
-	for(size_t i=0; i<kMesh.size(); i++)
-	{	kMesh[i].point = kpoints[i];
-		if( ! (e.eInfo.isMine(kpoints[i].q) || (nSpins>1 && e.eInfo.isMine(kpoints[i].q+qCount))) ) continue;
-		
-		//Create a list of neighbours for FD formula:
+	for(size_t i=0; i<kMesh.size(); i++) //FD formula needed on all nodes for initial matrix generation
+	{	//Create a list of neighbours for FD formula:
 		//Collect from 3x3x3 lowest Brillouin zones (for worst case Gamma-only scenario)
 		//This could be optimized, but this is unlikely to ever be too expensive
 		struct Neighbour
@@ -406,7 +405,7 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 	double kappa = M_PI * pow(e.gInfo.detR, 1./3); //inverse screening length (in k-space) set by cell size
 	helmholtz.zero();
 	complex* helmholtzData = helmholtz.data();
-	for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine(ik,0) || (nSpins>1 && isMine(ik,1)))
+	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	double wSum = 0.;
 		for(EdgeFD& edge: kMesh[ik].edge)
 		{	wSum += edge.wb;
@@ -429,8 +428,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers)
 }
 
 void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpin)
-{	iSpinCur = iSpin;
-	logPrintf("\tComputing wannier functions for bands (");
+{	logPrintf("\tComputing wannier functions for bands (");
 	for(auto center: centers) logPrintf(" %d", center.band);
 	if(nSpins==1) logPrintf(" )\n"); else logPrintf(" ) spin %s\n", iSpin==0 ? "up" : "dn");
 	logFlush();
@@ -463,10 +461,6 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		}
 	}
 	
-	//Clear initial matrices:
-	for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine(ik))
-		for(EdgeFD& edge: kMesh[ik].edge) edge.M0 = matrix();
-	
 	//Compute the overlap matrices and initial rotations for current group of centers:
 	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
@@ -482,18 +476,18 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 			}
 		}
 		
-		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine(ik))
-		{	ColumnBundle Ci = getWfns(kMesh[ik].point, centers); //Bloch functions at ik
+		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
+		{	ColumnBundle Ci = getWfns(kMesh[ik].point, centers, iSpin); //Bloch functions at ik
 			ColumnBundle OCi = O(Ci);
 			//Overlap with neighbours:
 			for(EdgeFD& edge: kMesh[ik].edge)
-				if(wfnsAvailable(edge.point, jProcess) && !edge.M0) //Do only once (will get here multiple times for local wfns)
+				if(whose_q(edge.ik,iSpin)==jProcess)
 				{	//Pick up result from reverse edge if it has already been computed:
 					bool foundReverse = false;
-					if(isMine(edge.ik))
+					if(jProcess==mpiUtil->iProcess() && edge.ik<ik)
 					{	auto neighbourEdges = kMesh[edge.ik].edge;
 						for(const EdgeFD& reverseEdge: neighbourEdges)
-							if(reverseEdge.ik==ik && reverseEdge.M0)
+							if(reverseEdge.ik==ik)
 							{	edge.M0 = dagger(reverseEdge.M0);
 								foundReverse = true;
 								break;
@@ -501,7 +495,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 					}
 					//Compute overlap if reverse edge not yet computed:
 					if(!foundReverse)
-						edge.M0 = OCi ^ getWfns(edge.point, centers);
+						edge.M0 = OCi ^ getWfns(edge.point, centers, iSpin);
 				}
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
 			{	//Initial rotation:
@@ -513,17 +507,22 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		}
 	}
 	
-	//Make U0 available on all processes:
+	//Broadcast overlaps and initial rotations:
 	for(size_t ik=0; ik<kMesh.size(); ik++)
-	{	if(!readInitialMats)
-		{	if(!isMine(ik)) kMesh[ik].U0 = zeroes(centers.size(), centers.size());
-			kMesh[ik].U0.bcast(whose(ik));
+	{	for(EdgeFD& edge: kMesh[ik].edge)
+		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(centers.size(), centers.size());
+			edge.M0.bcast(whose_q(ik,iSpin));
+			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
+		}
+		if(!readInitialMats)
+		{	if(!isMine_q(ik,iSpin)) kMesh[ik].U0 = zeroes(centers.size(), centers.size());
+			kMesh[ik].U0.bcast(whose_q(ik,iSpin));
 		}
 		kMesh[ik].B = zeroes(centers.size(), centers.size());
 	}
 	
 	//Apply initial rotations to the overlap matrices:
-	for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine(ik))
+	for(size_t ik=ikStart; ik<ikStop; ik++)
 		for(EdgeFD& edge: kMesh[ik].edge)
 			edge.M0 = dagger(kMesh[ik].U0) * edge.M0 * kMesh[edge.ik].U0;
 	
@@ -565,9 +564,9 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		
 		//Generate supercell function:
 		eblas_zero(nrSuper, psiSuper);
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine(i))
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	complexDataRptr psi = 
-				I( (getWfns(kMesh[i].point, centers) //original wavefunctions transformed to common basis
+				I( (getWfns(kMesh[i].point, centers, iSpin) //original wavefunctions transformed to common basis
 					* (kMesh[i].U0 * kMesh[i].V)(0,centers.size(), n,n+1) //combined to n'th localized function
 					).getColumn(0) ); //expand to full-G space and then put in real space
 			multiplyBlochPhase(psi, kMesh[i].point.k); //multiply by exp(-i k.r) (for r in base unit cell)
@@ -606,8 +605,9 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 			logPrintf("\t\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
 			logFlush();
 			//Write real part of supercell wavefunction to file:
-			for(size_t i=0; i<nrSuper; i++)
-				if(fp) fwrite(psiSuper+i, sizeof(double), 1, fp);
+			if(fp)
+				for(size_t i=0; i<nrSuper; i++)
+					fwrite(psiSuper+i, sizeof(double), 1, fp);
 		}
 		else
 		{	//Write complex function as is:
@@ -629,13 +629,13 @@ void WannierEval::step(const WannierGradient& grad, double alpha)
 double WannierEval::compute(WannierGradient* grad)
 {	int nCenters = kMesh[0].B.nRows();
 	//Compute the unitary matrices:
-	for(unsigned i=0; i<kMesh.size(); i++)
+	for(size_t i=0; i<kMesh.size(); i++)
 		kMesh[i].V = cis(kMesh[i].B, &kMesh[i].Bevecs, &kMesh[i].Beigs);
 	
-	//Compute the expectation values of r and rSq for each center
+	//Compute the expectation values of r and rSq for each center (split over processes)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>(0,0,0));
-	for(unsigned i=0; i<kMesh.size(); i++) if(isMine(i))
+	for(size_t i=ikStart; i<ikStop; i++)
 		for(EdgeFD& edge: kMesh[i].edge)
 		{	unsigned j = edge.ik;
 			const matrix M = dagger(kMesh[i].V) * edge.M0 * kMesh[j].V;
@@ -659,10 +659,10 @@ double WannierEval::compute(WannierGradient* grad)
 	if(grad)
 	{	//Allocate and initialize all gradients to zero:
 		grad->resize(kMesh.size());
-		for(unsigned i=0; i<kMesh.size(); i++)
+		for(size_t i=0; i<kMesh.size(); i++)
 			(*grad)[i] = zeroes(nCenters, nCenters);
-		//Accumulate gradients from each edge:
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine(i))
+		//Accumulate gradients from each edge (split over processes):
+		for(size_t i=ikStart; i<ikStop; i++)
 			for(EdgeFD& edge: kMesh[i].edge)
 			{	unsigned j = edge.ik;
 				const matrix M = dagger(kMesh[i].V) * edge.M0 * kMesh[j].V;
@@ -682,7 +682,7 @@ double WannierEval::compute(WannierGradient* grad)
 				(*grad)[i] -= dagger_symmetrize(cis_grad(edge.M0 * F0, kMesh[i].Bevecs, kMesh[i].Beigs));
 				(*grad)[j] += dagger_symmetrize(cis_grad(F0 * edge.M0, kMesh[j].Bevecs, kMesh[j].Beigs));
 			}
-		for(unsigned i=0; i<kMesh.size(); i++) (*grad)[i].allReduce(MPIUtil::ReduceSum);
+		for(size_t i=0; i<kMesh.size(); i++) (*grad)[i].allReduce(MPIUtil::ReduceSum);
 	}
 	return rVariance;
 }
@@ -760,12 +760,12 @@ void WannierEval::addIndex(const WannierEval::Kpoint& kpoint)
 	indexMap[kpoint] = index;
 }
 
-ColumnBundle WannierEval::getWfns(const WannierEval::Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const
+ColumnBundle WannierEval::getWfns(const WannierEval::Kpoint& kpoint, const std::vector<Wannier::Center>& centers, int iSpin) const
 {	const Index& index = *(indexMap.find(kpoint)->second);
 	ColumnBundle ret(centers.size(), basis.nbasis, &basis, 0, isGpuEnabled());
 	ret.zero();
 	//Pick required bands, and scatter from reduced basis to common basis with transformations:
-	int q = kpoint.q + iSpinCur*qCount;
+	int q = kpoint.q + iSpin*qCount;
 	const ColumnBundle& C = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
 	assert(C);
 	for(unsigned c=0; c<centers.size(); c++)
