@@ -81,6 +81,7 @@ void SCF::minimize()
 	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
 	
 	double Eprev = 0.;
+	double dE = E;
 	std::vector<diagMatrix> eigsPrev;
 	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
 	{
@@ -99,6 +100,7 @@ void SCF::minimize()
 		
 		//Band-structure minimize:
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
+		e.elecMinParams.energyDiffThreshold = std::min(1e-6, std::abs(dE)/10.);
 		bandMinimize(e);
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		
@@ -120,8 +122,9 @@ void SCF::minimize()
 			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
 		}
 		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
+		dE = E-Eprev; //change in energy is also used to determine energyDiffThreshold of the bandminimizer
 		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
-			scfCounter, Elabel.c_str(), E, E-Eprev, deigs, residualNorm);
+			scfCounter, Elabel.c_str(), E, dE, deigs, residualNorm);
 		
 		//Check for convergence and update variable:
 		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
