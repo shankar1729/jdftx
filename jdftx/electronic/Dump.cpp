@@ -588,97 +588,135 @@ namespace Moments{
 
 void dumpExcitations(const Everything& e, const char* filename)
 {
-		const GridInfo& g = e.gInfo;
-	
-		if(mpiUtil->nProcesses()>1) //TODO: Somehow have the MPI processes coordinate the write process below
-			die("Dump excitations not yet implemented in MPI mode.\n");
+	const GridInfo& g = e.gInfo;
+
+	struct excitation
+	{	int q,o,u;
+		double dE;
+		double dreal, dimag, dnorm;
 		
-		FILE* fp = fopen(filename, "w");
-		if(!fp) die("Error opening %s for writing.\n", filename);
+		excitation(int q, int o, int u, double dE, double dreal, double dimag, double dnorm): q(q), o(o), u(u), dE(dE), dreal(dreal), dimag(dimag), dnorm(dnorm){};
+		
+		inline bool operator<(const excitation& other) const {return dE<other.dE;}
+		void print(FILE* fp) const { fprintf(fp, "%5i %3i %3i %12.5e %12.5e %12.5e %12.5e\n", q, o, u, dE, dreal, dimag, dnorm); }
+	};
+	std::vector<excitation> excitations;
+
+	double maxHOMO=-DBL_MAX, minLUMO=DBL_MAX; // maximum (minimum) of all HOMOs (LUMOs) in all qnums
+	int maxHOMOq=0, minLUMOq=0, maxHOMOn=0, minLUMOn=0; //Indices and energies for the indirect gap
 	
-		struct excitation
-		{	int q,o,u;
-			double dE;
-			double dreal, dimag, dnorm;
-			
-			excitation(int q, int o, int u, double dE, double dreal, double dimag, double dnorm): q(q), o(o), u(u), dE(dE), dreal(dreal), dimag(dimag), dnorm(dnorm){};
-			
-			inline bool operator<(const excitation& other) const {return dE<other.dE;}
-		};
-		std::vector<excitation> excitations;
-
-		double maxHOMO, minLUMO; // maximum (minimum) of all HOMOs (LUMOs) in all qnums
-		double opticalGap; // optical gap of the system (minimum energy excitation for all qnums
-
-		// Indices and energies for the indirect gap
-		int maxHOMOq = 0;
-		int minLUMOq = 0;
-		int maxHOMOn = e.eInfo.findHOMO(maxHOMOq);
-		if(maxHOMOn >= (e.eInfo.nBands-1))
-		{	fprintf(fp, "Insufficient bands to calculate excited states!\n");
-			fprintf(fp, "Increase the number of bands (elec-n-bands) and try again!\n");
-			return;
+	//Select relevant eigenvals:
+	std::vector<diagMatrix> eigsQP;
+	if(e.exCorr.orbitalDep && e.dump.count(std::make_pair(DumpFreq_End, DumpOrbitalDep)))
+	{	//Search for an eigenvalsQP file:
+		string fname = e.dump.getFilename("eigenvalsQP");
+		FILE* fp = fopen(fname.c_str(), "r");
+		if(fp)
+		{	fclose(fp);
+			eigsQP.resize(e.eInfo.nStates);
+			e.eInfo.read(eigsQP, fname.c_str());
 		}
-		int minLUMOn = maxHOMOn+1;
-		maxHOMO = e.eVars.Hsub_eigs[maxHOMOq][maxHOMOn];
-		minLUMO = e.eVars.Hsub_eigs[minLUMOq][minLUMOn];
+	}
+	const std::vector<diagMatrix>& eigs = eigsQP.size() ? eigsQP : e.eVars.Hsub_eigs;
+	
+	// Integral kernel's for Fermi's golden rule
+	DataRptr r0, r1, r2;
+	nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
+	applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
+	applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
+	applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
+	
+	//Find and cache all excitations in system (between same qnums)
+	bool insufficientBands = false;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	//Find local HOMO and check band sufficiency:
+		int HOMO = e.eInfo.findHOMO(q);
+		if(HOMO+1>=e.eInfo.nBands) { insufficientBands=true; break; }
 		
-		// Indices and energies for the direct (optical) gap
-		int opticalq = maxHOMOq, opticaln = maxHOMOn;
-		opticalGap = minLUMO - maxHOMO;
+		//Update global HOMO and LUMO of current process:
+		if(eigs[q][HOMO]   > maxHOMO) { maxHOMOq = q; maxHOMOn = HOMO;   maxHOMO = eigs[q][HOMO];   }
+		if(eigs[q][HOMO+1] < minLUMO) { minLUMOq = q; minLUMOn = HOMO+1; minLUMO = eigs[q][HOMO+1]; }
 		
-		// Integral kernel's for Fermi's golden rule
-		DataRptr r0, r1, r2;
-		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
-		applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
-		applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
-		applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
-		
-		// Find and cache all excitations in system (between same qnums)
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	
-			int HOMO = e.eInfo.findHOMO(q);
-					
-			// Update globa HOMO and LUMO
-			if(e.eVars.Hsub_eigs[q][HOMO] > maxHOMO)
-			{	maxHOMOq = q;
-				maxHOMOn = HOMO;
-				maxHOMO = e.eVars.Hsub_eigs[maxHOMOq][maxHOMOn];
-			}
-			if(e.eVars.Hsub_eigs[q][HOMO+1] < minLUMO)	
-			{	minLUMOq = q;
-				minLUMOn = HOMO+1;
-				minLUMO = e.eVars.Hsub_eigs[minLUMOq][minLUMOn];
-			}
-			
-			for(int o=HOMO; o>=0; o--)
-			{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
-				{	complex x = integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o)));
-					complex y = integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o)));
-					complex z = integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o)));
-					vector3<> dreal(x.real(), y.real(),z.real());
-					vector3<> dimag(x.imag(), y.imag(),z.imag());
-					vector3<> dnorm(sqrt(x.norm()), sqrt(y.norm()),sqrt(z.norm()));
-					
-					// Calculate the excitation energy, update optical gap if necessary
-					double dE = e.eVars.Hsub_eigs[q][u]-e.eVars.Hsub_eigs[q][o];
-					if(dE < opticalGap) 
-					{	opticalq = q; opticaln = HOMO;
-						opticalGap = dE;
-					}
-					
-					excitations.push_back(excitation(q, o, u, dE,dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
-				}
+		for(int o=HOMO; o>=0; o--)
+		{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
+			{	complex x = integral(I(e.eVars.C[q].getColumn(u))*r0*I(e.eVars.C[q].getColumn(o)));
+				complex y = integral(I(e.eVars.C[q].getColumn(u))*r1*I(e.eVars.C[q].getColumn(o)));
+				complex z = integral(I(e.eVars.C[q].getColumn(u))*r2*I(e.eVars.C[q].getColumn(o)));
+				vector3<> dreal(x.real(), y.real(),z.real());
+				vector3<> dimag(x.imag(), y.imag(),z.imag());
+				vector3<> dnorm(sqrt(x.norm()), sqrt(y.norm()),sqrt(z.norm()));
+				double dE = eigs[q][u]-eigs[q][o]; //Excitation energy
+				excitations.push_back(excitation(q, o, u, dE, dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
 			}
 		}
-		std::sort(excitations.begin(), excitations.end());
+	}
+	mpiUtil->allReduce(insufficientBands, MPIUtil::ReduceLOr);
+	if(insufficientBands)
+	{	logPrintf("Insufficient bands to calculate excited states!\n");
+		logPrintf("Increase the number of bands (elec-n-bands) and try again!\n");
+		return;
+	}
+	
+	//Transmit results to head process:
+	if(mpiUtil->isHead())
+	{	excitations.reserve(excitations.size() * mpiUtil->nProcesses());
+		for(int jProcess=1; jProcess<mpiUtil->nProcesses(); jProcess++)
+		{	//Receive data:
+			size_t nExcitations; mpiUtil->recv(nExcitations, jProcess, 0);
+			std::vector<int> msgInt(4 + nExcitations*3); 
+			std::vector<double> msgDbl(2 + nExcitations*4);
+			mpiUtil->recv(msgInt.data(), msgInt.size(), jProcess, 1);
+			mpiUtil->recv(msgDbl.data(), msgDbl.size(), jProcess, 2);
+			//Unpack:
+			std::vector<int>::const_iterator intPtr = msgInt.begin();
+			std::vector<double>::const_iterator dblPtr = msgDbl.begin();
+			//--- globals:
+			int j_maxHOMOq = *(intPtr++); int j_maxHOMOn = *(intPtr++); double j_maxHOMO = *(dblPtr++);
+			int j_minLUMOq = *(intPtr++); int j_minLUMOn = *(intPtr++); double j_minLUMO = *(dblPtr++);
+			if(j_maxHOMO > maxHOMO) { maxHOMOq=j_maxHOMOq; maxHOMOn=j_maxHOMOn; maxHOMO=j_maxHOMO; }
+			if(j_minLUMO < minLUMO) { minLUMOq=j_minLUMOq; minLUMOn=j_minLUMOn; minLUMO=j_minLUMO; }
+			//--- excitation array:
+			for(size_t iExcitation=0; iExcitation<nExcitations; iExcitation++)
+			{	int q = *(intPtr++); int o = *(intPtr++); int u = *(intPtr++);
+				double dE = *(dblPtr++);
+				double dreal = *(dblPtr++); double dimag = *(dblPtr++); double dnorm = *(dblPtr++);
+				excitations.push_back(excitation(q, o, u, dE, dreal, dimag, dnorm));
+			}
+		}
+	}
+	else
+	{	//Pack data:
+		std::vector<int> msgInt; std::vector<double> msgDbl;
+		size_t nExcitations = excitations.size();
+		msgInt.reserve(4 + nExcitations*3);
+		msgDbl.reserve(2 + nExcitations*4);
+		msgInt.push_back(maxHOMOq); msgInt.push_back(maxHOMOn); msgDbl.push_back(maxHOMO);
+		msgInt.push_back(minLUMOq); msgInt.push_back(minLUMOn); msgDbl.push_back(minLUMO);
+		for(const excitation& e: excitations)
+		{	msgInt.push_back(e.q); msgInt.push_back(e.o); msgInt.push_back(e.u);
+			msgDbl.push_back(e.dE);
+			msgDbl.push_back(e.dreal); msgDbl.push_back(e.dimag); msgDbl.push_back(e.dnorm);
+		}
+		//Send data:
+		mpiUtil->send(nExcitations, 0, 0);
+		mpiUtil->send(msgInt.data(), msgInt.size(), 0, 1);
+		mpiUtil->send(msgDbl.data(), msgDbl.size(), 0, 2);
+	}
 
-		fprintf(fp, "Optical (direct) gap: %.5e (from n = %i to %i in qnum = %i)\n", opticalGap, opticaln, opticaln+1, opticalq);
-		fprintf(fp, "Indirect gap: %.5e (from (%i, %i) to (%i, %i))\n\n", minLUMO-maxHOMO, maxHOMOq, maxHOMOn, minLUMOq, minLUMOn);
-		
-		fprintf(fp, "Optical excitation energies and corresponding electric dipole transition strengths\n");
-		fprintf(fp, "qnum,\tinitial,\tfinal,\tdE,\t|<psi1|r|psi2>|^2 (real, imag, norm)\n");
-		for(size_t i=0; i<excitations.size(); i++)
-			fprintf(fp, "%i \t %i \t %i \t %.5e \t %.5e \t %.5e \t %.5e\n", excitations[i].q, excitations[i].o, excitations[i].u, excitations[i].dE, excitations[i].dreal, excitations[i].dimag, excitations[i].dnorm);
-		fclose(fp);
+	//Process and print excitations:
+	if(!mpiUtil->isHead()) return;
+	
+	FILE* fp = fopen(filename, "w");
+	if(!fp) die("Error opening %s for writing.\n", filename);
+	
+	std::sort(excitations.begin(), excitations.end());
+	const excitation& opt = excitations.front();
+	fprintf(fp, "Using %s eigenvalues.\n", eigsQP.size() ? "discontinuity-corrected QP" : "KS");
+	fprintf(fp, "Optical (direct) gap: %.5e (from n = %i to %i in qnum = %i)\n", opt.dE, opt.o, opt.u, opt.q);
+	fprintf(fp, "Indirect gap: %.5e (from (%i, %i) to (%i, %i))\n\n", minLUMO-maxHOMO, maxHOMOq, maxHOMOn, minLUMOq, minLUMOn);
+	
+	fprintf(fp, "Optical excitation energies and corresponding electric dipole transition strengths\n");
+	fprintf(fp, "qnum   i   f      dE        |<psi1|r|psi2>|^2 (real, imag, norm)\n");
+	for(const excitation& e: excitations) e.print(fp);
+	fclose(fp);
 }

@@ -34,7 +34,7 @@ int ElecInfo::whose(int q) const
 int ElecInfo::findHOMO(int q) const
 {	int HOMO = 0;
 	for(int n=(e->eVars.F[q].size()-1); n>=0; n--)
-		if(e->eVars.F[q][n] > 1e-3){ HOMO = n; break;	}
+		if(e->eVars.F[q][n] > 0.5){ HOMO = n; break; }
 	return HOMO;
 }
 
