@@ -63,7 +63,7 @@ enum KineticType
 class ExCorr
 {
 public:
-	ExCorr(); 
+	ExCorr(ExCorrType exCorrType=ExCorrGGA_PBE); 
 	void setup(const Everything&); //!< Initialize
 	string getName() const; //!< Get a description of the DFT functional
 	

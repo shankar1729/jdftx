@@ -296,7 +296,9 @@ struct FunctionalList
 
 //-------------- ExCorr members ----------------
 
-ExCorr::ExCorr() : exCorrType(ExCorrGGA_PBE), kineticType(KineticNone), xcName("gga-PBE"),
+extern EnumStringMap<ExCorrType> exCorrTypeMap;
+
+ExCorr::ExCorr(ExCorrType exCorrType) : exCorrType(exCorrType), kineticType(KineticNone), xcName(exCorrTypeMap.getString(exCorrType)),
 exxScale(0.), exxOmega(0.),
 functionals(std::make_shared<FunctionalList>())
 #ifdef LIBXC_ENABLED

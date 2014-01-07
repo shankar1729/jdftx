@@ -50,7 +50,7 @@ RadialFunctionR getTau(const RadialFunctionR& n)
 void SpeciesInfo::setCore(RadialFunctionR& nCore)
 {
 	if(e->exCorr.orbitalDep && e->exCorr.orbitalDep->ignore_nCore())
-	{	logPrintf("  Ignoring core density because that is not supported by the orbital-dependent functional.\n");
+	{	logPrintf("  WARNING: Ignoring core density because that is not supported by the orbital-dependent functional.\n");
 		return;
 	}
 	
