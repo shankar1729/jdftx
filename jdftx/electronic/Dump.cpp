@@ -42,6 +42,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 void dumpExcitations(const Everything& e, const char* filename);
 namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}
 
+namespace XC_Analysis{
+	DataRptrCollection spness(const Everything& e);
+	DataRptrCollection sHartree(const Everything& e);
+}
+
 void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(wannier.group.size())
@@ -207,6 +212,15 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(eInfo.spinType == SpinZ)
 		{	DUMP_nocheck(tau[0], "KEdensity_up");
 			DUMP_nocheck(tau[1], "KEdensity_dn");
+			
+			DataRptrCollection spness = XC_Analysis::spness(*e);
+			DUMP_nocheck(spness[0], "spness_up");
+			DUMP_nocheck(spness[1], "spness_dn");
+			
+			DataRptrCollection sVh = XC_Analysis::sHartree(*e);
+			DUMP_nocheck(sVh[0], "sHartree_up");
+			DUMP_nocheck(sVh[1], "sHartree_dn");
+			
 		}
 		else DUMP_nocheck(tau[0], "KEdensity");
 	}
@@ -580,6 +594,7 @@ namespace Moments{
 					ionMoment[j] += -sp->Z * pow(cartesianCoord[j], moment); 
 			}
 		fprintf(fp, "\nIon moment of order %i: %f\t%f\t%f", moment, ionMoment[0], ionMoment[1], ionMoment[2]);
+
 		
 		// Calculates the total (elec+ion) dipole moment
 		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
@@ -719,4 +734,32 @@ void dumpExcitations(const Everything& e, const char* filename)
 	fprintf(fp, "qnum   i   f      dE        |<psi1|r|psi2>|^2 (real, imag, norm)\n");
 	for(const excitation& e: excitations) e.print(fp);
 	fclose(fp);
+}
+
+
+namespace XC_Analysis{
+
+	DataRptrCollection spness(const Everything& e)
+	{
+			const auto& tau = (e.exCorr.needsKEdensity() ? e.eVars.tau : e.eVars.KEdensity());
+		
+			DataRptrCollection tauW(e.eVars.n.size());
+			DataRptrCollection spness(e.eVars.n.size());
+			for(size_t j=0; j<e.eVars.n.size(); j++)
+			{	tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
+				spness[j] = tauW[j]*pow(tau[j], -1);
+			}
+
+			return spness;
+	}
+	
+	DataRptrCollection sHartree(const Everything& e)
+	{
+		DataRptrCollection sVh(e.eVars.n.size());
+		DataGptrCollection nTilde = J(e.eVars.n);
+		for(size_t s=0; s<e.eVars.n.size(); s++)
+			sVh[s] = I((*(e.coulomb))(nTilde[s]));
+		
+		return sVh;
+	}
 }
