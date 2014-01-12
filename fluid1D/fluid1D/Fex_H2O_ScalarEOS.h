@@ -25,7 +25,7 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 class Fex_H2O_ScalarEOS : public Fex
 {
 public:
-	Fex_H2O_ScalarEOS(FluidMixture& fluidMixture);
+	Fex_H2O_ScalarEOS(FluidMixture& fluidMixture, bool polarizable=true);
 	~Fex_H2O_ScalarEOS();
 	
 	const Molecule* getMolecule() const { return &molecule; }

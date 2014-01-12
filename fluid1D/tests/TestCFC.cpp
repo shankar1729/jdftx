@@ -29,14 +29,14 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_sf.h>
 #include <list>
 
-//#define CAVITATION_CDFT
+#define CAVITATION_CDFT
 //#define CAVITATION_MODEL
 //#define PLANAR_TDEP
 //#define PLANAR
-#define CORRFUNC
+//#define CORRFUNC
 
-//#define ChosenLiq CHCl3
-#define ChosenLiq CCl4
+#define ChosenLiq CHCl3
+//#define ChosenLiq CCl4
 
 const double sigmaCHCl3 = 26.67 * (1e-3*Newton/meter);
 const double sigmaCCl4 = 26.17 * (1e-3*Newton/meter);

@@ -30,7 +30,8 @@ int main(int argc, char** argv)
 {	initSystem(argc, argv);
 
 	//Setup simulation grid:
-	GridInfo gInfo(GridInfo::Spherical, 512, 0.125);
+	//GridInfo gInfo(GridInfo::Spherical, 512, 0.125);
+	GridInfo gInfo(GridInfo::Spherical, 256, 0.25);
 	
 	//----- Setup quadrature for angular integration -----
 	const int Zn = 2; //Water molecule has Z2 symmetry about dipole axis
@@ -42,8 +43,9 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, 298*Kelvin);
 
 	//----- Excess functional -----
-	Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
-	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
+	Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_ScalarEOS fex(fluidMixture, false); string fexName = "ScalarEOSrotOnly";
 	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
 	//----- Ideal gas -----
@@ -73,9 +75,11 @@ int main(int argc, char** argv)
 			Vdata[i] = gInfo.r[i]<radius ? 1. : 0.;
 
 		fluidMixture.initState(0.15);
+		fluidMixture.Kpol=0; fluidMixture.minimize(mp); fluidMixture.Kpol=1; //Initial minimization with frozen polarizability
 		double Phi = fluidMixture.minimize(mp);
 		if(!iRadius) { Phi0 = Phi; fprintf(fp, "%lf\t%le\n", 0., 0.); }
 		else fprintf(fp, "%lf\t%le\n", radius, ((Phi-Phi0) - p * (4*M_PI*pow(radius,3)/3)) / (4*M_PI*pow(radius,2)));
+		fflush(fp);
 	}
 	fclose(fp);
 }

@@ -43,13 +43,14 @@ int main(int argc, char** argv)
 
 	//----- Excess functional -----
 	//Fex_H2O_FittedCorrelations fex(fluidMixture); string fexName = "FittedCorrelations";
-	Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	//Fex_H2O_ScalarEOS fex(fluidMixture); string fexName = "ScalarEOS";
+	Fex_H2O_ScalarEOS fex(fluidMixture, false); string fexName = "ScalarEOSrotOnly";
 	//Fex_H2O_BondedVoids fex(fluidMixture); string fexName = "BondedVoids";
 
 	//----- Ideal gas -----
 	//IdealGasPsiAlpha idgas(&fex, 1.0, quad, trans);
-	//IdealGasMuEps idgas(&fex, 1.0, quad, trans);
-	IdealGasPomega idgas(&fex, 1.0, quad, trans);
+	IdealGasMuEps idgas(&fex, 1.0, quad, trans);
+	//IdealGasPomega idgas(&fex, 1.0, quad, trans);
 
 	double p = 1.01325*Bar;
 	fluidMixture.setPressure(p);
@@ -81,8 +82,11 @@ int main(int argc, char** argv)
 
 		//----- Initialize state -----
 		fluidMixture.initState(0.15);
+		#ifdef QUICKTEST
+		mp.fdTest = true;
+		#else
 		mp.fdTest = (iRadius==1);
-
+		#endif
 		fluidMixture.minimize(mp);
 		
 		ScalarFieldCollection N;

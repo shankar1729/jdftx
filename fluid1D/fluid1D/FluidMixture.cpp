@@ -584,7 +584,7 @@ ScalarFieldCollection FluidMixture::precondition(const ScalarFieldCollection& gr
 {	ScalarFieldCollection Kgrad(grad.size());
 	for(unsigned i=0; i<grad.size(); i++)
 		Kgrad[i] = DiagJdagOJ1inv(grad[i]);
-	if(polarizable) Kgrad[nIndepIdgas] *= (T*grad.size()); //using an approximate guess at relative Hessians
+	if(polarizable) Kgrad[nIndepIdgas] *= (Kpol * grad.size()); //using an approximate guess at relative Hessians
     return Kgrad;
 }
 

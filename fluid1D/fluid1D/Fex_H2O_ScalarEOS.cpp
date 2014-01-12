@@ -27,11 +27,11 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 static const double rOH = 1.0*Angstrom;
 static const double thetaHOH = acos(-1.0/3);
 
-Fex_H2O_ScalarEOS::Fex_H2O_ScalarEOS(FluidMixture& fluidMixture)
+Fex_H2O_ScalarEOS::Fex_H2O_ScalarEOS(FluidMixture& fluidMixture, bool polarizable)
 : Fex(fluidMixture),
 eval(new ScalarEOS_eval(T)),
-propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel, true, 3.73,&siteChargeKernel),
-propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel, true, 3.30,&siteChargeKernel),
+propO(gInfo, eval->sphereRadius,0.0, 0.8476,&siteChargeKernel, true, 3.73*(polarizable?1:1e-6),&siteChargeKernel),
+propH(gInfo, 0.0,0.0,-0.4238,&siteChargeKernel, true, 3.30*(polarizable?1:1e-6),&siteChargeKernel),
 molecule("H2O",
 	&propO,
 		 vector3<>(0,0,0),
