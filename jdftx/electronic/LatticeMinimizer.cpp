@@ -26,11 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Functions required by Minimizable<matrix3<>>
 void axpy(double alpha, const matrix3<>& x, matrix3<>& y) { y += alpha * x; }
-double dot(const matrix3<>& x, const matrix3<>& y)
-{	double result = trace(x*(~y));
-	mpiUtil->bcast(result);
-	return result;
-}
+double dot(const matrix3<>& x, const matrix3<>& y) { return trace(x*(~y)); }
 matrix3<> clone(const matrix3<>& x) { return x; }
 void randomize(matrix3<>& x) { for(int i=0; i<3; i++) for(int j=0; j<3; j++) x(i,j) = Random::normal(); }
 
@@ -164,9 +160,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		updateLatticeDependent();
 	}
 	
-	double ener = relevantFreeEnergy(e);
-	mpiUtil->bcast(ener);
-	return ener;
+	return relevantFreeEnergy(e);
 }
 
 std::vector< double > LatticeMinimizer::calculateStress()

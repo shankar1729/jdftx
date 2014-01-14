@@ -33,7 +33,8 @@ public:
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
 	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
 	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
-
+	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	
 	//! Set the explicit system charge density and effective cavity-formation electron density:
 	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
 
@@ -49,6 +50,7 @@ public:
 
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
+	int rStart, rStop; //MPI division of response array
 	RadialFunctionG nFluid; //electron density model for the fluid
 	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
 	DataRptrCollection siteShape; //shape functions for sites

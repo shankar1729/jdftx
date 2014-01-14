@@ -35,6 +35,7 @@ public:
 	DataRptrCollection precondition(const DataRptrCollection& grad);
 	void constrain(DataRptrCollection& dir);
 	bool report(int iter);
+	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 private:
 	Everything& e;
 	DataRptrCollection n; //band structure density (should equal ElecVars::n at end)

@@ -131,6 +131,8 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	ElecGradient precondition(const ElecGradient& grad)
 	{	return Kgrad;
 	}
+
+	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 };
 
 

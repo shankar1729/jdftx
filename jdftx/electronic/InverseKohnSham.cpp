@@ -84,7 +84,7 @@ double InverseKohnSham::compute(DataRptrCollection* grad)
 	double minusWs = 0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		minusWs -= e.eInfo.qnums[q].weight * trace(e.eVars.F[q] * e.eVars.Hsub_eigs[q]);
-	mpiUtil->allReduce(minusWs, MPIUtil::ReduceSum, true);
+	mpiUtil->allReduce(minusWs, MPIUtil::ReduceSum);
 	minusWs += dot(e.eVars.Vscloc, e.eVars.n);
 	
 	if(grad)

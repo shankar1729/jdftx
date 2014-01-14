@@ -251,9 +251,7 @@ void FluidMixture::step(const DataRptrCollection& dir, double alpha)
 
 double FluidMixture::compute(DataRptrCollection* grad)
 {	DataRptrCollection tempGrad;
-	double phi = (*this)(state, grad ? *grad : tempGrad, Outputs());
-	mpiUtil->bcast(phi); //ensure consistency to numerical precision
-	return phi;
+	return (*this)(state, grad ? *grad : tempGrad, Outputs());
 }
 
 DataRptrCollection FluidMixture::precondition(const DataRptrCollection& grad)

@@ -165,6 +165,10 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 		KkernelSamples[i] = (diagH>GzeroTol) ? 1./sqrt(diagH) : 0.;
 	}
 	Kkernel.init(0, KkernelSamples, dG);
+	
+	//MPI division:
+	rStart = (mpiUtil->iProcess() * response.size()) / mpiUtil->nProcesses();
+	rStop = ((mpiUtil->iProcess()+1) * response.size()) / mpiUtil->nProcesses();
 }
 
 NonlocalPCM::~NonlocalPCM()
@@ -175,12 +179,14 @@ NonlocalPCM::~NonlocalPCM()
 
 DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 {	DataGptr rhoTilde;
-	for(const auto& resp: response)
-	{	const DataRptr& s = resp->iSite<0 ? shape : siteShape[resp->iSite];
-		if(resp->l>6) die("Angular momenta l > 6 not supported.\n");
-		double prefac = pow(-1,resp->l) * 4*M_PI/(2*resp->l+1);
-		rhoTilde -= prefac * (resp->V * lDivergence(J(s * I(lGradient(resp->V * phiTilde, resp->l))), resp->l));
+	for(int r=rStart; r<rStop; r++)
+	{	const MultipoleResponse& resp = *response[r];
+		const DataRptr& s = resp.iSite<0 ? shape : siteShape[resp.iSite];
+		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
+		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
+		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
 	}
+	nullToZero(rhoTilde, e.gInfo); rhoTilde->allReduce(MPIUtil::ReduceSum);
 	return rhoTilde;
 }
 
@@ -241,17 +247,19 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	const auto& solvent = fsp.solvents[0];
 	DataRptr Adiel_shape; DataRptrCollection Adiel_siteShape(solvent->molecule.sites.size());
-	for(const std::shared_ptr<MultipoleResponse>& resp: response)
-	{	DataRptr& Adiel_s = resp->iSite<0 ? Adiel_shape : Adiel_siteShape[resp->iSite];
-		if(resp->l>6) die("Angular momenta l > 6 not supported.\n");
-		double prefac = 0.5 * 4*M_PI/(2*resp->l+1);
-		DataRptrCollection IlGradVphi = I(lGradient(resp->V * phi, resp->l));
-		for(int lpm=0; lpm<(2*resp->l+1); lpm++)
+	for(int r=rStart; r<rStop; r++)
+	{	const MultipoleResponse& resp = *response[r];
+		DataRptr& Adiel_s = resp.iSite<0 ? Adiel_shape : Adiel_siteShape[resp.iSite];
+		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
+		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
+		DataRptrCollection IlGradVphi = I(lGradient(resp.V * phi, resp.l));
+		for(int lpm=0; lpm<(2*resp.l+1); lpm++)
 			Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
 	}
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
 			Adiel_shape += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
+	nullToZero(Adiel_shape, e.gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;

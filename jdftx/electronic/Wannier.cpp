@@ -35,7 +35,6 @@ static double dot(const WannierGradient& x, const WannierGradient& y)
 	double result = 0.;
 	for(unsigned i=0; i<x.size(); i++)
 		result += dotc(x[i], y[i]).real();
-	mpiUtil->bcast(result);
 	return result;
 }
 static WannierGradient& operator*=(WannierGradient& x, double alpha)
@@ -72,7 +71,8 @@ public:
 	void step(const WannierGradient& grad, double alpha);
 	double compute(WannierGradient* grad);
 	WannierGradient precondition(const WannierGradient& grad);
-	
+	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+
 	//! Entries in the k-point mesh
 	struct Kpoint
 	{	vector3<> k; //!< k-point in reciprocal lattice coordinates

@@ -104,7 +104,6 @@ double dot(const IonicGradient& x, const IonicGradient& y)
 		for(unsigned atom=0; atom<x[sp].size(); atom++)
 			result += dot(x[sp][atom], y[sp][atom]);
 	}
-	mpiUtil->bcast(result); //ensure consistency to numerical precision
 	return result;
 }
 
@@ -201,9 +200,7 @@ double IonicMinimizer::compute(IonicGradient* grad)
 		*grad = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
 	}
 	
-	double ener = relevantFreeEnergy(e);
-	mpiUtil->bcast(ener);
-	return ener;
+	return relevantFreeEnergy(e);
 }
 
 IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)

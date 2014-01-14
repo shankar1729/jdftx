@@ -63,6 +63,9 @@ template<typename Vector> struct Minimizable
 	//! Used only to generate a random direction for fdTest within the valid minimization subspace.
 	virtual void constrain(Vector&) {}
 	
+	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
+	virtual double sync(double x) const { return x; }
+	
 	//! Minimize this objective function with algorithm controlled by params and return the minimized value
 	double minimize(const MinimizeParams& params);
 	
@@ -85,6 +88,9 @@ template<typename Vector> struct LinearSolvable
 	
 	//! Override to enable preconditioning: return the preconditioned vector, given a vector
 	virtual Vector precondition(const Vector& v) const { return clone(v); }
+	
+	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
+	virtual double sync(double x) const { return x; }
 	
 	//! Solve the linear system hessian * state == rhs using conjugate gradients:
 	//! @return the number of iterations taken to achieve target tolerance
@@ -113,7 +119,7 @@ namespace MinimizePrivate
 	{
 		alpha = alphaT; //constant step-size equal to the starting value
 		obj.step(d, alpha);
-		E = obj.compute(&g);
+		E = obj.sync(obj.compute(&g));
 		if(!std::isfinite(E))
 		{	fprintf(p.fpLog, "%s\tRelax step failed with %s = %le\n.", p.linePrefix, p.energyLabel, E);
 			return false;
@@ -129,7 +135,7 @@ namespace MinimizePrivate
 	{
 		double alphaPrev = 0.0; //the progress made so far along d
 		double Eorig = E;
-		double gdotd = dot(g,d); //directional derivative at starting point
+		double gdotd = obj.sync(dot(g,d)); //directional derivative at starting point
 		if(gdotd >= 0.0)
 		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix);
 			alpha = alphaPrev;
@@ -146,7 +152,7 @@ namespace MinimizePrivate
 			}
 			//Try the test step:
 			obj.step(d, alphaT-alphaPrev); alphaPrev = alphaT;
-			ET = obj.compute(0);
+			ET = obj.sync(obj.compute(0));
 			//Check if step crossed domain of validity of parameter space:
 			if(!std::isfinite(ET))
 			{	alphaT *= p.alphaTreduceFactor;
@@ -162,7 +168,7 @@ namespace MinimizePrivate
 				//That implies ET < E, so accept test step as the real step
 				alpha = alphaT;
 				fprintf(p.fpLog, "%s\tWrong curvature in test step, using alpha=alphaT.\n", p.linePrefix);
-				E = obj.compute(&g);
+				E = obj.sync(obj.compute(&g));
 				return true;
 			}
 			if(alpha/alphaT > p.alphaTincreaseFactor)
@@ -190,7 +196,7 @@ namespace MinimizePrivate
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	//Try the step:
 			obj.step(d, alpha-alphaPrev); alphaPrev=alpha;
-			E = obj.compute(&g);
+			E = obj.sync(obj.compute(&g));
 			if(!std::isfinite(E))
 			{	alpha *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tStep failed with %s = %le, reducing alpha to %le.\n",
@@ -222,7 +228,7 @@ namespace MinimizePrivate
 	{
 		double alphaPrev = 0;
 		double Eprev = E;
-		double gdotdPrev = dot(g,d); //directional derivative at starting point
+		double gdotdPrev = obj.sync(dot(g,d)); //directional derivative at starting point
 		if(gdotdPrev >= 0.0)
 		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix);
 			alpha = 0;
@@ -236,7 +242,7 @@ namespace MinimizePrivate
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	//Move by alpha:
 			obj.step(d, alpha-alphaState); alphaState=alpha;
-			E = obj.compute(&g);
+			E = obj.sync(obj.compute(&g));
 			//Check for domain error:
 			if(!std::isfinite(E))
 			{	alpha *= p.alphaTreduceFactor;
@@ -250,7 +256,7 @@ namespace MinimizePrivate
 				else fprintf(p.fpLog, "%s\tStep increased %s by %le, trying another cubic\n",
 					p.linePrefix, p.energyLabel, E-Eprev);
 			}
-			double gdotd = dot(g,d);
+			double gdotd = obj.sync(dot(g,d));
 			//Have a valid cubic spline interval [alphaPrev,alpha]
 			//with values Eprev, E and derivatives gdotdPrev, gdotd
 			//Change coordinates to make that the unit interval in t:
@@ -370,7 +376,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	if(p.fdTest) fdTest(p); // finite difference test
 
 	Vector g, gPrev; //current and previous gradient
-	double E = compute(&g); //get initial energy and gradient
+	double E = sync(compute(&g)); //get initial energy and gradient
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
 	DirResetCheck dirResetCheck(p.nDirResetNum, p.nDirResetDen); //reste history
 	
@@ -396,24 +402,24 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	for(iter=0; !killFlag; iter++)
 	{	
 		if(report(iter)) //optional reporting/processing
-		{	E = compute(&g); //update energy and gradient if state was modified
+		{	E = sync(compute(&g)); //update energy and gradient if state was modified
 			fprintf(p.fpLog, "%s\tState modified externally: resetting search direction.\n", p.linePrefix);
 			fflush(p.fpLog);
 			forceGradDirection = true; //reset search direction
 		}
 		
 		Vector Kg = precondition(g);
-		gKNorm = dot(g,Kg);
+		gKNorm = sync(dot(g,Kg));
 		fprintf(p.fpLog, "%sIter: %3d  %s: %22.15le  |grad|_K: %10.3le  alpha: %10.3le",
 			p.linePrefix, iter, p.energyLabel, E, sqrt(gKNorm/p.nDim), alpha);
 
 		//Print prev step stats and set CG direction parameter if necessary
 		beta = 0.0;
 		if(!forceGradDirection)
-		{	double dotgd = dot(g,d);
-			double dotgPrevKg = dot(gPrev, Kg);
+		{	double dotgd = sync(dot(g,d));
+			double dotgPrevKg = sync(dot(gPrev, Kg));
 
-			double linmin = dotgd/sqrt(dot(g,g)*dot(d,d));
+			double linmin = dotgd/sqrt(sync(dot(g,g))*sync(dot(d,d)));
 			double cgtest = dotgPrevKg/sqrt(gKNorm*gKNormPrev);
 			fprintf(p.fpLog, ", linmin = %10.3le", linmin);
 			fprintf(p.fpLog, ", cgtest = %10.3le", cgtest);
@@ -422,7 +428,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 			switch(currentDirUpdateScheme)
 			{	case MinimizeParams::FletcherReeves:  beta = gKNorm/gKNormPrev; break;
 				case MinimizeParams::PolakRibiere:    beta = (gKNorm-dotgPrevKg)/gKNormPrev; break;
-				case MinimizeParams::HestenesStiefel: beta = (gKNorm-dotgPrevKg)/(dotgd-dot(d,gPrev)); break;
+				case MinimizeParams::HestenesStiefel: beta = (gKNorm-dotgPrevKg)/(dotgd-sync(dot(d,gPrev))); break;
 				case MinimizeParams::SteepestDescent: beta = 0.0; break;
 			}
 			if(beta<0.0)
@@ -471,7 +477,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		{	//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);
-			E = compute(&g);
+			E = sync(compute(&g));
 			if(beta)
 			{	//Failed, but not along the gradient direction:
 				fprintf(p.fpLog, "%s\tStep failed: resetting search direction.\n", p.linePrefix);
@@ -507,7 +513,7 @@ template<typename Vector> void Minimizable<Vector>::fdTest(const MinimizeParams&
 	const char* fdPrefix = fdPrefixString.c_str();
 	fprintf(p.fpLog, "%s--------------------------------------\n", fdPrefix);
 	Vector g;
-	double E0 = compute(&g);
+	double E0 = sync(compute(&g));
 	
 	Vector dx;
 	{	// Set the direction to be a random vector of the same norm
@@ -516,15 +522,15 @@ template<typename Vector> void Minimizable<Vector>::fdTest(const MinimizeParams&
 		dx = clone(Kg);
 		randomize(dx);
 		constrain(dx);
-		dx *= p.alphaTstart * sqrt(dot(Kg,Kg)/dot(dx,dx));
+		dx *= p.alphaTstart * sqrt(sync(dot(Kg,Kg))/sync(dot(dx,dx)));
 	}
-	double dE_ddelta = dot(dx, g); //directional derivative at delta=0
+	double dE_ddelta = sync(dot(dx, g)); //directional derivative at delta=0
 
 	double deltaPrev=0;
 	for(double delta=deltaMin; delta<=deltaMax; delta*=deltaScale)
 	{	double dE = dE_ddelta*delta;
 		step(dx, delta-deltaPrev); deltaPrev=delta;
-		double deltaE = compute(0) - E0;
+		double deltaE = sync(compute(0)) - E0;
 		fprintf(p.fpLog, "%s   delta=%le:\n", fdPrefix, delta);
 		fprintf(p.fpLog, "%s      d%s Ratio: %19.16lf\n", fdPrefix, p.energyLabel, deltaE/dE);
 		fprintf(p.fpLog, "%s      d%s Error: %19.16lf\n", fdPrefix, p.energyLabel, sqrt(p.nDim)*1.1e-16/fabs(dE));
@@ -538,7 +544,7 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 {	//Initialize:
 	Vector r = clone(rhs); axpy(-1.0, hessian(state), r); //residual r = rhs - A.state;
 	Vector z = precondition(r), d = r; //the preconditioned residual and search direction
-	double beta=0.0, rdotzPrev=0.0, rdotz = dot(r, z);
+	double beta=0.0, rdotzPrev=0.0, rdotz = sync(dot(r, z));
 
 	//Check initial residual
 	double rzNorm = sqrt(fabs(rdotz)/p.nDim);
@@ -556,12 +562,12 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 		else d = clone(z); //fresh search direction (along gradient)
 		//Step:
 		Vector w = hessian(d);
-		double alpha = rdotz/dot(w,d);
+		double alpha = rdotz/sync(dot(w,d));
 		axpy(alpha, d, state);
 		axpy(-alpha, w, r);
 		z = precondition(r);
 		rdotzPrev = rdotz;
-		rdotz = dot(r, z);
+		rdotz = sync(dot(r, z));
 		//Print info:
 		double rzNorm = sqrt(fabs(rdotz)/p.nDim);
 		fprintf(p.fpLog, "%sIter: %3d  sqrt(|r.z|): %12.6le  alpha: %12.6le  beta: %13.6le\n",
