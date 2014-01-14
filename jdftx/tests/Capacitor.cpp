@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, T);
 	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	logPrintf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.initialize(p);
 
 	//Initialize external potential (repel O from a cube)
@@ -82,6 +82,7 @@ int main(int argc, char** argv)
 
 	//----- FDtest and CG -----
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.energyLabel = "Phi";
 	mp.nIterations=1500;

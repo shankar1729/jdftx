@@ -24,6 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 IdealGasPomega::IdealGasPomega(const FluidMixture* fluidMixture, const FluidComponent* comp, const SO3quad& quad, const TranslationOperator& trans, unsigned nIndepOverride)
 : IdealGas(nIndepOverride ? nIndepOverride : quad.nOrientations(), fluidMixture, comp), quad(quad), trans(trans), pMol(molecule.getDipole())
 {
+	oStart = (mpiUtil->iProcess() * quad.nOrientations()) / mpiUtil->nProcesses();
+	oStop = ((mpiUtil->iProcess()+1) * quad.nOrientations()) / mpiUtil->nProcesses();
 }
 
 string IdealGasPomega::representationName() const
@@ -44,14 +46,14 @@ void IdealGasPomega::convertGradients_o(int o, const matrix3<>& rot, const DataR
 
 
 void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scale, double Elo, double Ehi) const
-{	for(int k=0; k<nIndep; k++)indep[k]=0;
+{	for(int k=0; k<nIndep; k++) indep[k]=0;
 	DataRptrCollection Veff(molecule.sites.size()); nullToZero(Veff, gInfo);
 	for(unsigned i=0; i<molecule.sites.size(); i++)
 	{	Veff[i] += V[i];
 		Veff[i] += Vex[i];
 	}
 	double Emin=+DBL_MAX, Emax=-DBL_MAX, Emean=0.0;
-	for(int o=0; o<quad.nOrientations(); o++)
+	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
 		DataRptr Emolecule;
 		//Sum the potentials collected over sites for each orientation:
@@ -67,6 +69,11 @@ void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scal
 		//Set contributions to the state (with appropriate scale factor):
 		initState_o(o, rot, scale, Emolecule, indep);
 	}
+	//MPI collect:
+	for(int k=0; k<nIndep; k++) { nullToZero(indep[k],gInfo); indep[k]->allReduce(MPIUtil::ReduceSum); }
+	mpiUtil->allReduce(Emin, MPIUtil::ReduceMin);
+	mpiUtil->allReduce(Emax, MPIUtil::ReduceMax);
+	mpiUtil->allReduce(Emean, MPIUtil::ReduceSum);
 	//Print stats:
 	logPrintf("\tIdealGas%s[%s] single molecule energy: min = %le, max = %le, mean = %le\n",
 		   representationName().c_str(), molecule.name.c_str(), Emin, Emax, Emean);
@@ -78,7 +85,7 @@ void IdealGasPomega::getDensities(const DataRptr* indep, DataRptr* N, vector3<>&
 	S=0.0;
 	DataRptrVec P;
 	//Loop over orientations:
-	for(int o=0; o<quad.nOrientations(); o++)
+	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
 		DataRptr logPomega_o; getDensities_o(o, rot, indep,logPomega_o);
 		DataRptr N_o = (quad.weight(o) * Nbulk) * exp(logPomega_o); //contribution form this orientation
@@ -91,7 +98,10 @@ void IdealGasPomega::getDensities(const DataRptr* indep, DataRptr* N, vector3<>&
 		//Accumulate the polarization density:
 		if(pMol.length_squared()) P += (rot * pMol) * N_o;
 	}
-	
+	//MPI collect:
+	for(unsigned i=0; i<molecule.sites.size(); i++) { nullToZero(N[i],gInfo); N[i]->allReduce(MPIUtil::ReduceSum); }
+	mpiUtil->allReduce(S, MPIUtil::ReduceSum);
+	if(pMol.length_squared()) for(int k=0; k<3; k++) { nullToZero(P[k],gInfo); P[k]->allReduce(MPIUtil::ReduceSum); }
 	//Compute and cache dipole correlation correction:
 	IdealGasPomega* cache = ((IdealGasPomega*)this);
 	if(pMol.length_squared())
@@ -127,7 +137,7 @@ double IdealGasPomega::compute(const DataRptr* indep, const DataRptr* N, DataRpt
 void IdealGasPomega::convertGradients(const DataRptr* indep, const DataRptr* N, const DataRptr* Phi_N, const vector3<>& Phi_P0, DataRptr* Phi_indep, const double Nscale) const
 {	for(int k=0; k<nIndep; k++) Phi_indep[k]=0;
 	//Loop over orientations:
-	for(int o=0; o<quad.nOrientations(); o++)
+	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
 		DataRptr logPomega_o; getDensities_o(o, rot, indep, logPomega_o);
 		DataRptr N_o = (quad.weight(o) * Nbulk * Nscale) * exp(logPomega_o);
@@ -143,5 +153,6 @@ void IdealGasPomega::convertGradients(const DataRptr* indep, const DataRptr* N, 
 		//Propagate Phi_N_o to Phi_logPomega_o and then to Phi_indep:
 		convertGradients_o(o, rot, N_o*Phi_N_o, Phi_indep);
 	}
+	for(int k=0; k<nIndep; k++) { nullToZero(Phi_indep[k],gInfo); Phi_indep[k]->allReduce(MPIUtil::ReduceSum); }
 }
 

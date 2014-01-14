@@ -275,7 +275,7 @@ namespace NonlinearPCMeval
 		filename = filenamePattern; \
 		filename.replace(filename.find("%s"), 2, suffix); \
 		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush(); \
-		saveRawBinary(object, filename.c_str()); \
+		if(mpiUtil->isHead()) saveRawBinary(object, filename.c_str()); \
 		logPrintf("done.\n"); logFlush();
 
 #endif // JDFTX_ELECTRONIC_PCM_INTERNAL_H

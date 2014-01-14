@@ -50,7 +50,7 @@ void fdtestFMT()
 	phiFMT_calc(0, &n0, &n1, &n2, &n3, const_pArr(n1v,3), const_pArr(n2v,3), const_pArr(n2m,5),
 		&Phi_n0, &Phi_n1, &Phi_n2, &Phi_n3, pArr(Phi_n1v,3), pArr(Phi_n2v,3), pArr(Phi_n2m,5));
 	#define FDTEST(dir) \
-		printf("FDtesting along " #dir "\n"); \
+		logPrintf("FDtesting along " #dir "\n"); \
 		for(double h=1e-9; h<1e-1; h*=10) \
 		{	double Phi_n0P=0, Phi_n1P=0, Phi_n2P=0, Phi_n3P=0, Phi_n1vP[]={0,0,0}, Phi_n2vP[]={0,0,0,}, Phi_n2mP[]={0,0,0,0,0}; \
 			dir += h; \
@@ -62,7 +62,7 @@ void fdtestFMT()
 			double phiM = phiFMT_calc(0, &n0, &n1, &n2, &n3, const_pArr(n1v,3), const_pArr(n2v,3), const_pArr(n2m,5), \
 					&Phi_n0M, &Phi_n1M, &Phi_n2M, &Phi_n3M, pArr(Phi_n1vM,3), pArr(Phi_n2vM,3), pArr(Phi_n2mM,5)); \
 			dir += h; \
-			printf("\th=%le: Ratio=%.15lf\n", h, (phiP-phiM)/(2*h*Phi_##dir)); \
+			logPrintf("\th=%le: Ratio=%.15lf\n", h, (phiP-phiM)/(2*h*Phi_##dir)); \
 		}
 	FDTEST(n0)
 	FDTEST(n1)
@@ -85,7 +85,7 @@ void fdtestFMT()
 void checkSymmetry(DataRptr a, DataRptr b, const TranslationOperator& T, const vector3<> t)
 {	DataRptr c=0; T.taxpy(t, 1.0, a, c); double n1 = dot(c, b);
 	DataRptr d=0; T.taxpy(-t, 1.0, b, d); double n2 = dot(d, a);
-	printf("Symmetry error = %le\n", fabs(n1-n2)/fabs(n1));
+	logPrintf("Symmetry error = %le\n", fabs(n1-n2)/fabs(n1));
 }
 
 void testTranslationOperators(const DataRptrCollection& N)
@@ -110,13 +110,13 @@ void testTranslationOperators(const DataRptrCollection& N)
 	printStats(N[0], "N0");
 	printStats(N[1], "N1");
 	DataRptrCollection NoffsF(N.size()), NoffsC(N.size()), NoffsL(N.size());
-	TIME("TranslationFourier", stdout,
+	TIME("TranslationFourier", globalLog,
 		opF.taxpy(offset, 1.0, N[0], NoffsF[0]); ) printStats(NoffsF[0], "NF0");
 		opF.taxpy(offset, 1.0, N[1], NoffsF[1]);   printStats(NoffsF[1], "NF1");
-	TIME("TranslationConstSpline", stdout,
+	TIME("TranslationConstSpline", globalLog,
 		opC.taxpy(offset, 1.0, N[0], NoffsC[0]); ) printStats(NoffsC[0], "NC0");
 		opC.taxpy(offset, 1.0, N[1], NoffsC[1]);   printStats(NoffsC[1], "NC1");
-	TIME("TranslationLinearSpline", stdout,
+	TIME("TranslationLinearSpline", globalLog,
 		opL.taxpy(offset, 1.0, N[0], NoffsL[0]); ) printStats(NoffsL[0], "NL0");
 		opL.taxpy(offset, 1.0, N[1], NoffsL[1]);   printStats(NoffsL[1], "NL1");
 	vector3<> offsetCenter = rCenter + offset;
@@ -175,6 +175,7 @@ int main(int argc, char** argv)
 	//fluidMixture.loadState("random.state");
 
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = gInfo.nr*fluidMixture.get_nIndep();
 	mp.nIterations=200;
 	mp.knormThreshold=5e-12;
@@ -187,9 +188,9 @@ int main(int argc, char** argv)
 	DataRptrCollection N; DataGptr Phi_rhoExternalTilde;
 	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, &Phi_rhoExternalTilde));
 
-	printf("Qext    = %lf\n", integral(rhoExternal));
-	printf("num(Ar) = %lf\n", integral(N[0]));
-	printf("num(Ne) = %lf\n", integral(N[1]));
+	logPrintf("Qext    = %lf\n", integral(rhoExternal));
+	logPrintf("num(Ar) = %lf\n", integral(N[0]));
+	logPrintf("num(Ne) = %lf\n", integral(N[1]));
 
 	N[0] *= 1.0/componentAr.idealGas->get_Nbulk();
 	N[1] *= 1.0/componentNe.idealGas->get_Nbulk();

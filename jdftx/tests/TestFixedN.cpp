@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	PreconditionedFluidMixture fluidMixture(gInfo, T, 1.0);
 	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	logPrintf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.initialize(p);
 
 	#define geomName "AttractiveWall-3bohr-3.0kT/drop_plane"
@@ -105,6 +105,7 @@ int main(int argc, char** argv)
 	}
 
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=10;
 	mp.knormThreshold=1e-11;
@@ -114,18 +115,18 @@ int main(int argc, char** argv)
 	mp.fdTest = !loadState;
 
 	int sysRet=system("mkdir -p TestFixedN/" geomName "_img");
-	if(sysRet) { printf("Error making image directory\n"); mpiUtil->exit(sysRet); }
+	if(sysRet) { logPrintf("Error making image directory\n"); mpiUtil->exit(sysRet); }
 
 	for(int loopCount=0; loopCount<100; loopCount++)
 	{
 		DataRptrCollection N;
-		TIME("getOmega calculation (with gradient)", stdout,
+		TIME("getOmega calculation (with gradient)", globalLog,
 			double omega = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 			if(std::isnan(omega)) break; //Don't save state after it has become nan
 		);
-		printf("Ntot = %lf\n", gInfo.dV*sum(N[0]));
+		logPrintf("Ntot = %lf\n", gInfo.dV*sum(N[0]));
 
-		puts("Saving state:");
+		logPrintf("Saving state:\n");
 		fluidMixture.saveState(stateFilename);
 		saveDX(N[0], "TestFixedN/" geomName "_nO");
 		saveDX(N[1], "TestFixedN/" geomName "_nH");
@@ -136,8 +137,8 @@ int main(int argc, char** argv)
 		fprintf(pp, " \"TestFixedN/" geomName "_img/img%04d.png\"); exit;\n", loopCount);
 		fflush(pp); pclose(pp);
 
-		puts("Starting CG:");
-		TIME("minimize", stdout,
+		logPrintf("Starting CG:\n");
+		TIME("minimize", globalLog,
 			fluidMixture.minimize(mp);
 		);
 	}
@@ -212,7 +213,7 @@ int main(int argc, char** argv)
 	}
 
 	MinimizeParams mp;
-	mp.fpLog = gInfo.fpLog;
+	mp.fpLog = globalLog;
 	mp.alphaMax = 1e300;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=1000;
@@ -223,18 +224,18 @@ int main(int argc, char** argv)
 
 	LowfreqPrecon precon(gInfo, 1.0);
 
-	puts("Starting CG:");
-	TIME("minimize", stdout,
+	logPrintf("Starting CG:\n");
+	TIME("minimize", globalLog,
 		ncgSolve(water.state, mp, water, precon);
 	);
 
 // 	DataRptrOH n;
-// 	TIME("getOmega calculation (with gradient)", stdout,
+// 	TIME("getOmega calculation (with gradient)", globalLog,
 // 		water.getOmega(&n);
 // 	);
-// 	printf("Ntot = %lf\n", gInfo.dV*sum(n.O()));
+// 	logPrintf("Ntot = %lf\n", gInfo.dV*sum(n.O()));
 //
-// 	puts("Saving state:");
+// 	logPrintf("Saving state:\n");
 // 	water.saveState(stateFilename);
 // 	DataRptr saveR[2] = {n.O(), n.H()};
 // 	saveDX(n.O(), "TestFixedN/" geomName "_nO");
@@ -308,6 +309,7 @@ int main(int argc, char** argv)
 	}
 
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.alphaMax = 1e300;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=20;
@@ -319,18 +321,18 @@ int main(int argc, char** argv)
 	LowfreqPrecon precon(gInfo, 1.0);
 
 	//int sysRet=system("mkdir -p TestFixedN/" geomName "_img");
-	//if(sysRet) { printf("Error making image directory\n"); mpiUtil->exit(sysRet); }
+	//if(sysRet) { logPrintf("Error making image directory\n"); mpiUtil->exit(sysRet); }
 
 	for(int loopCount=0; loopCount<20; loopCount++)
 	{
 		DataRptrOH n;
-		TIME("getOmega calculation (with gradient)", stdout,
+		TIME("getOmega calculation (with gradient)", globalLog,
 			double omega = water.getOmega(&n);
 			if(std::isnan(omega)) break; //Don't save state after it has become nan
 		);
-		printf("Ntot = %lf\n", gInfo.dV*sum(n.O()));
+		logPrintf("Ntot = %lf\n", gInfo.dV*sum(n.O()));
 
-		puts("Saving state:");
+		logPrintf("Saving state:\n");
 		water.saveState(stateFilename);
 		DataRptr saveR[2] = {n.O(), n.H()};
 		saveDX(n.O(), "TestFixedN/" geomName "_nO");
@@ -345,8 +347,8 @@ int main(int argc, char** argv)
 // 		fprintf(pp, "exit;\n");
 // 		fflush(pp); pclose(pp);
 
-		puts("Starting CG:");
-		TIME("minimize", stdout,
+		logPrintf("Starting CG:\n");
+		TIME("minimize", globalLog,
 			ncgSolve(water.state, mp, water, precon);
 		);
 	}

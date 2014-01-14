@@ -276,7 +276,7 @@ void gdbStackTraceExit(int code)
 		while(!read(fdPipe[0], &message, 1));
 		close(fdPipe[0]);
 		//Attach gdb:
-		fprintf(stdout,"\n\nStack trace:\n");
+		printf("\n\nStack trace:\n");
 		execlp("gdb", "gdb", "--batch", "-n", "-ex", "bt", name_buf, pid_buf, NULL);
 		abort(); //If gdb failed to start
     }

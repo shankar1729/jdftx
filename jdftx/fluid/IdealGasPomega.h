@@ -43,7 +43,8 @@ protected:
 	const SO3quad& quad; //!< quadrature for orientation integral
 	const TranslationOperator& trans; //!< translation operator for orientation integral
 	vector3<> pMol; //!< molecule dipole moment in reference frame
-
+	int oStart, oStop; //!< portion of orientation loop handled by current process
+	
 	virtual string representationName() const;
 	
 	//These functions are called once for each orientation:

@@ -229,7 +229,7 @@ void FluidMixture::loadState(const char* filename)
 }
 
 void FluidMixture::saveState(const char* filename) const
-{	saveToFile(state, filename);
+{	if(mpiUtil->isHead()) saveToFile(state, filename);
 }
 
 FluidMixture::Outputs::Outputs(DataRptrCollection* N, vector3<>* electricP,
@@ -251,7 +251,9 @@ void FluidMixture::step(const DataRptrCollection& dir, double alpha)
 
 double FluidMixture::compute(DataRptrCollection* grad)
 {	DataRptrCollection tempGrad;
-	return (*this)(state, grad ? *grad : tempGrad, Outputs());
+	double phi = (*this)(state, grad ? *grad : tempGrad, Outputs());
+	mpiUtil->bcast(phi); //ensure consistency to numerical precision
+	return phi;
 }
 
 DataRptrCollection FluidMixture::precondition(const DataRptrCollection& grad)

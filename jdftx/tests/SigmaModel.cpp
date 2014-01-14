@@ -125,6 +125,7 @@ int main(int argc, char** argv)
 		if(droplet) component.Nnorm = component.idealGas->get_Nbulk() * Volume;
 		//--- Minimize and print result:
 		MinimizeParams mp;
+		mp.fpLog = globalLog;
 		mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 		mp.energyLabel = "Phi";
 		mp.nIterations = 100;

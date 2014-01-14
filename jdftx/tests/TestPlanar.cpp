@@ -70,6 +70,7 @@ int main(int argc, char** argv)
 	
 	//----- FDtest and CG parameters -----
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.energyLabel = "sigma";
 	mp.nIterations = 200;

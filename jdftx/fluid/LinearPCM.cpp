@@ -117,5 +117,5 @@ void LinearPCM::loadState(const char* filename)
 }
 
 void LinearPCM::saveState(const char* filename) const
-{	saveRawBinary(I(state), filename); //saved data is in real space
+{	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
 }

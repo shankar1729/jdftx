@@ -48,10 +48,11 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, T);
 	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	logPrintf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.initialize(p);
 
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.nAlphaAdjustMax = 10;
 	mp.nIterations=200;
@@ -83,7 +84,7 @@ int main(int argc, char** argv)
 
 		double epsilon = 1.0/(1.0 - 4*M_PI*pTyp/Dfield);
 		double D_SI = Dfield/(eV/Angstrom); //Dfield in V/A
-		printf("epsilon = %lf at D = %lf V/A\n", epsilon, D_SI);
+		logPrintf("epsilon = %lf at D = %lf V/A\n", epsilon, D_SI);
 		fprintf(fpEps, "%le\t%le\t%le\t%le\n", D_SI, epsilon,
 			pTyp/(nTyp*component.molecule.getDipole().length()), nTyp);
 		fflush(fpEps);

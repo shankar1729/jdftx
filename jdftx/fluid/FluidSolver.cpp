@@ -123,7 +123,7 @@ public:
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
 				logPrintf("Dumping %s... ", filename); logFlush();
-				saveRawBinary(N[c->offsetDensity+j], filename);
+				if(mpiUtil->isHead()) saveRawBinary(N[c->offsetDensity+j], filename);
 				logPrintf("Done.\n"); logFlush();
 			}
 	}
@@ -142,7 +142,7 @@ public:
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
 				logPrintf("Dumping %s... ", filename); logFlush();
-				saveSphericalized(&N[c->offsetDensity+j], 1, filename);
+				if(mpiUtil->isHead()) saveSphericalized(&N[c->offsetDensity+j], 1, filename);
 				logPrintf("Done.\n"); logFlush();
 			}
 		
@@ -150,11 +150,14 @@ public:
 		string fname(filenamePattern);
 		fname.replace(fname.find("%s"), 2, "Debug");
 		logPrintf("Dumping '%s'... \t", fname.c_str());  logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
-		fprintf(fp, "\nComponents of Adiel:\n");
-		Adiel.print(fp, true, "   %18s = %25.16lf\n");	
-		fclose(fp);
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
+			fprintf(fp, "\nComponents of Adiel:\n");
+			Adiel.print(fp, true, "   %18s = %25.16lf\n");	
+			fclose(fp);
+		}
+		logPrintf("Done.\n"); logFlush();
 		
 		//--------- if any, add additional explicit fluid debug output here!
 	}

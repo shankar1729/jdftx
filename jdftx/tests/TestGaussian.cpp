@@ -52,7 +52,7 @@ struct TestGaussian
 		FluidMixture fluidMixture(gInfo, T);
 		component.addToFluidMixture(&fluidMixture);
 		double p = 1.01325*Bar;
-		printf("pV = %le\n", p*gInfo.detR);
+		logPrintf("pV = %le\n", p*gInfo.detR);
 		fluidMixture.initialize(p);
 
 		//Single configuration test:
@@ -70,7 +70,7 @@ struct TestGaussian
 		//Evaluate:
 		DataRptrCollection N;
 		double Phi = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
-		printf("Phi = %25.16lf, integral(N)=%25.16lf\n", Phi, integral(N[0]));
+		logPrintf("Phi = %25.16lf, integral(N)=%25.16lf\n", Phi, integral(N[0]));
 		saveRawBinary(N[0], "TestGaussian.N");
 		return;
 		#endif
@@ -109,6 +109,7 @@ struct TestGaussian
 				//fluidMixture.loadState(stateFilename);
 
 				MinimizeParams mp;
+				mp.fpLog = globalLog;
 				mp.dirUpdateScheme = MinimizeParams::HestenesStiefel;
 				mp.linminMethod = MinimizeParams::Cubic;
 				mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
@@ -117,12 +118,12 @@ struct TestGaussian
 				mp.knormThreshold=1e-11;
 				mp.fdTest = true;
 				
-				puts("Starting CG:");
-				TIME("minimize", stdout, fluidMixture.minimize(mp); );
+				logPrintf("Starting CG:\n");
+				TIME("minimize", globalLog, fluidMixture.minimize(mp); );
 
 				DataRptrCollection N;
 				double Omega;
-				TIME("getOmega calculation (with gradient)", stdout,
+				TIME("getOmega calculation (with gradient)", globalLog,
 					Omega = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 				);
 

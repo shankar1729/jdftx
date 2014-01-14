@@ -249,7 +249,7 @@ template<typename Callable, typename Vec> void checkSymmetry(Callable* func, con
 {	double dot1 = dot(v1, (*func)(v2));
 	double dot2 = dot(v2, (*func)(v1));
 	double dotDiff = fabs(dot1-dot2);
-	printf("Relative error in symmetry of %s: %le\n", funcName, dotDiff/sqrt(fabs(dot1)*fabs(dot2)));
+	logPrintf("Relative error in symmetry of %s: %le\n", funcName, dotDiff/sqrt(fabs(dot1)*fabs(dot2)));
 }
 
 //! @}

@@ -213,6 +213,7 @@ int main(int argc, char** argv)
 	
 	logPrintf("Fitting polarizability to spherical atom-centered model\n");
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = e.iInfo.species.size();
 	mp.linePrefix = "\tChiSphericalFit: ";
 	mp.energyLabel = "residual";

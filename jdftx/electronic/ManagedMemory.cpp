@@ -121,7 +121,7 @@ void ManagedMemory::toCpu()
 	cudaFree(c); gpuErrorCheck(); //Free GPU mem
 	c = cCpu; //Make c a cpu pointer
 	onGpu = false;
-	//printf("\nDevice -> Host (%d elements at ptr %lX):\n", nElements, (unsigned long)c); printStack();
+	//logPrintf("\nDevice -> Host (%d elements at ptr %lX):\n", nElements, (unsigned long)c); printStack();
 }
 
 // Move data to GPU
@@ -134,7 +134,7 @@ void ManagedMemory::toGpu()
 	fftw_free(c); //Free CPU mem
 	c = cGpu; //Make c a gpu pointer
 	onGpu = true;
-	//printf("\nHost -> Device (%d elements at ptr %lX)\n", nElements, (unsigned long)c); printStack();
+	//logPrintf("\nHost -> Device (%d elements at ptr %lX)\n", nElements, (unsigned long)c); printStack();
 }
 
 #endif

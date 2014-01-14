@@ -221,8 +221,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 {	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
 	logPrintf("Dumping '%s' ... ", filename.c_str());  logFlush();
-	FILE* fp = fopen(filename.c_str(), "w");
-	if(!fp) die("Error opening %s for writing.\n", filename.c_str());	
+	FILE* fp = mpiUtil->isHead() ? fopen(filename.c_str(), "w") : nullLog;
+	if(!fp) die("Error opening %s for writing.\n", filename.c_str());
 
 	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
@@ -272,7 +272,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	
 	printDebug(fp);
 	
-	fclose(fp);
+	if(mpiUtil->isHead()) fclose(fp);
 	logPrintf("done\n"); logFlush();
 	
 	{ //scope for overriding filename
@@ -280,7 +280,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		oss << "Nspherical";
 		sprintf(filename, filenamePattern, oss.str().c_str());
 		logPrintf("Dumping '%s' ... ", filename); logFlush();
-		saveSphericalized(&shape, 1, filename);
+		if(mpiUtil->isHead()) saveSphericalized(&shape, 1, filename);
 		logPrintf("done\n"); logFlush();
 	}
 	
@@ -290,7 +290,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		oss << "NvdWspherical";
 		sprintf(filename, filenamePattern, oss.str().c_str());
 		logPrintf("Dumping '%s' ... ", filename); logFlush();
-		saveSphericalized(&shapeVdw,1, filename);
+		if(mpiUtil->isHead()) saveSphericalized(&shapeVdw,1, filename);
 		logPrintf("done\n"); logFlush();
 	}
 }

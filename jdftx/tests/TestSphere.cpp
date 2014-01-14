@@ -46,7 +46,7 @@ struct TestSphere
 		FluidMixture fluidMixture(gInfo, T);
 		component.addToFluidMixture(&fluidMixture);
 		double p = 1.01325*Bar;
-		printf("pV = %le\n", p*gInfo.detR);
+		logPrintf("pV = %le\n", p*gInfo.detR);
 		fluidMixture.initialize(p);
 
 		//----- Initialize external potential -----
@@ -61,6 +61,7 @@ struct TestSphere
 
 		//----- FDtest and CG -----
 		MinimizeParams mp;
+		mp.fpLog = globalLog;
 		mp.linminMethod = MinimizeParams::Cubic;
 		mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 		mp.energyLabel = "Phi";
@@ -68,13 +69,13 @@ struct TestSphere
 		mp.energyDiffThreshold=1e-11;
 		//mp.fdTest = !loadState;
 
-		puts("Starting CG:");
-		TIME("minimize", stdout,
+		logPrintf("Starting CG:\n");
+		TIME("minimize", globalLog,
 			fluidMixture.minimize(mp);
 		);
 
 		DataRptrCollection N, psiEff;
-		TIME("getFreeEnergy", stdout,
+		TIME("getFreeEnergy", globalLog,
 			fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, 0, &psiEff));
 		);
 

@@ -73,7 +73,7 @@ void setDopantBG(int i, vector3<> r, double rho, double* rhoDopantBG)
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 
-	printf("Grid spacing = %lf A\n", hGrid/Angstrom);
+	logPrintf("Grid spacing = %lf A\n", hGrid/Angstrom);
 	GridInfo gInfo;
 	gInfo.S = vector3<int>(1, 1, nPoints);
 	gInfo.R = Diag(hGrid * gInfo.S);
@@ -101,12 +101,12 @@ int main(int argc, char** argv)
 	Fmix_LJ fsolvAnion(&fluidMixture, &componentH2O, &componentAnion, 2e-3, 3.0*Angstrom);
 	
 	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	logPrintf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.initialize(p);
 
 	//Set semiconductor properties:
 	DataRptr rhoDopantBG, rhoBuiltin;
-	{	printf("Initializing semiconductor:\n");
+	{	logPrintf("Initializing semiconductor:\n");
 		//Figure out bulk concentrations of majority and minority carriers:
 		double Nmajor = 0.5*(fabs(Ndope) +  sqrt(pow(Ndope,2) + 4*pow(Nintrinsic,2)));
 		double Nminor = pow(Nintrinsic,2)/Nmajor;
@@ -115,9 +115,9 @@ int main(int argc, char** argv)
 		{	case Ptype: Nelectrons=Nminor; Nholes=Nmajor; rhoBG=+fabs(Ndope); break;
 			case Ntype: Nelectrons=Nmajor; Nholes=Nminor; rhoBG=-fabs(Ndope); break;
 		}
-		printf("\tBulk electron density = %le/cm3\n", Nelectrons*cm3);
-		printf("\tBulk hole density = %le/cm3\n", Nholes*cm3);
-		printf("\tDopant ionic charge density = %le/cm3\n", rhoBG*cm3);
+		logPrintf("\tBulk electron density = %le/cm3\n", Nelectrons*cm3);
+		logPrintf("\tBulk hole density = %le/cm3\n", Nholes*cm3);
+		logPrintf("\tDopant ionic charge density = %le/cm3\n", rhoBG*cm3);
 		componentHoles.idealGas->overrideBulk(Nholes, 0);
 		componentElectrons.idealGas->overrideBulk(Nelectrons, 0);
 		nullToZero(rhoDopantBG, gInfo);
@@ -167,18 +167,19 @@ int main(int argc, char** argv)
 
 	//----- FDtest and CG -----
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = gInfo.nr * fluidMixture.get_nIndep();
 	mp.nIterations=1000;
 	mp.knormThreshold=1e-14*pow(hGrid,2);
 	mp.fdTest = true;
 	
-	puts("Starting CG:");
-	TIME("minimize", stdout,
+	logPrintf("Starting CG:\n");
+	TIME("minimize", globalLog,
 		fluidMixture.minimize(mp);
 	);
 
 	DataRptrCollection N; DataGptr grad_rhoExternalTilde;
-	TIME("getFreeEnergy", stdout,
+	TIME("getFreeEnergy", globalLog,
 		fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, &grad_rhoExternalTilde));
 	);
 
@@ -206,7 +207,7 @@ int main(int argc, char** argv)
 	int i_Si_Ox1 = ceil((zEnd + z_Si_Ox1)/hGrid)+2;
 	int i_Ox1_Ox2 = floor((zEnd+z_Ox1_Ox2)/hGrid)-2;
 	double Eox1 = (dtot->data()[i_Ox1_Ox2] - dtot->data()[i_Si_Ox1])/((eV/Angstrom)*hGrid*(i_Ox1_Ox2-i_Si_Ox1));
-	printf("Eox1 = %le V/A\n", Eox1);
+	logPrintf("Eox1 = %le V/A\n", Eox1);
 
 	finalizeSystem();
 	return 0;

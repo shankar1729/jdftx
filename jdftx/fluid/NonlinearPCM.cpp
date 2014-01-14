@@ -209,7 +209,7 @@ void NonlinearPCM::loadState(const char* filename)
 }
 
 void NonlinearPCM::saveState(const char* filename) const
-{	state.saveToFile(filename);
+{	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
 double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
@@ -271,7 +271,7 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 	oss << "Nspherical";
 	sprintf(filename, filenamePattern, oss.str().c_str());
 	logPrintf("Dumping %s... ", filename); logFlush();
-	saveSphericalized(&shape, 1, filename);
+	if(mpiUtil->isHead()) saveSphericalized(&shape, 1, filename);
 	logPrintf("Done.\n"); logFlush();
 	
 	if(fsp.pcmVariant==PCM_SGA13)
@@ -280,7 +280,7 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 		oss << "NvdWspherical";
 		sprintf(filename, filenamePattern, oss.str().c_str());
 		logPrintf("Dumping %s... ", filename); logFlush();
-		saveSphericalized(&shapeVdw,1, filename);
+		if(mpiUtil->isHead()) saveSphericalized(&shapeVdw,1, filename);
 		logPrintf("Done.\n"); logFlush();
 	}
 }*/

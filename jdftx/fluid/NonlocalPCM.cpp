@@ -269,7 +269,7 @@ void NonlocalPCM::loadState(const char* filename)
 }
 
 void NonlocalPCM::saveState(const char* filename) const
-{	saveRawBinary(I(state), filename); //saved data is in real space
+{	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
 }
 
 void NonlocalPCM::dumpDensities(const char* filenamePattern) const
@@ -328,13 +328,13 @@ void NonlocalPCM::dumpDensities(const char* filenamePattern) const
 			if(c->molecule.sites.size()>1) oss << "_" << s.name;
 			sprintf(filename, filenamePattern, oss.str().c_str());
 			logPrintf("Dumping %s... ", filename); logFlush();
-			saveRawBinary(N, filename);
+			if(mpiUtil->isHead()) saveRawBinary(N, filename);
 			{
 				//debug sphericalized site densities
 				ostringstream oss; oss << "Nspherical_" << c->molecule.name;
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
-				saveSphericalized(&N,1,filename);
+				if(mpiUtil->isHead()) saveSphericalized(&N,1,filename);
 			}
 			logPrintf("Done.\n"); logFlush();
 		}

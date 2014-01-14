@@ -32,9 +32,9 @@ void initCavity(size_t i,double nc, const double* nEl, double* phiO, double* phi
 }
 
 int main(int argc, char** argv)
-{
+{	initSystem(argc, argv);
 	if(argc != 3)
-	{	printf("\tUsage: CavitationH2O <output-file> <binary-density-file>\n"
+	{	logPrintf("\tUsage: CavitationH2O <output-file> <binary-density-file>\n"
 			"\t\t<output-file>: JDFTx output file (used to get lattice vectors and sample counts)\n"
 			"\t\t<binary-density-file>: Electron-density (JDFTx format) which is thresholded to form cavity\n");
 		return 1;
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	initSystem(argc, argv);
 	
 	ifstream ifs(argv[1]);
-	if(!ifs.is_open()) { printf("Could not open '%s' for reading\n", argv[1]); return 1; }
+	if(!ifs.is_open()) { logPrintf("Could not open '%s' for reading\n", argv[1]); return 1; }
 
 	GridInfo gInfo; double pcm_nc, pcm_sigma;
 
@@ -67,16 +67,16 @@ int main(int argc, char** argv)
 			gotS=true;
 		}
 	}
-	if(!got_nc) printf("Could not read critical density nc for PCM shape from '%s'\n", argv[1]);
-	if(!gotR) printf("Could not read lattice vectors (R[][]) from '%s'\n", argv[1]);
-	if(!gotS) printf("Could not read sample counts (S[]) from '%s'\n", argv[1]);
+	if(!got_nc) logPrintf("Could not read critical density nc for PCM shape from '%s'\n", argv[1]);
+	if(!gotR) logPrintf("Could not read lattice vectors (R[][]) from '%s'\n", argv[1]);
+	if(!gotS) logPrintf("Could not read sample counts (S[]) from '%s'\n", argv[1]);
 	if(!(got_nc && gotR && gotS)) return 1;
 
-	printf("\nParsed '%s' and found (vectors in rows):\n", argv[1]);
-	printf("\tR[0] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,0), gInfo.R(1,0), gInfo.R(2,0));
-	printf("\tR[1] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,1), gInfo.R(1,1), gInfo.R(2,1));
-	printf("\tR[2] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,2), gInfo.R(1,2), gInfo.R(2,2));
-	printf("\tS = [ %d %d %d ];\n\n", gInfo.S[0], gInfo.S[1], gInfo.S[2]);
+	logPrintf("\nParsed '%s' and found (vectors in rows):\n", argv[1]);
+	logPrintf("\tR[0] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,0), gInfo.R(1,0), gInfo.R(2,0));
+	logPrintf("\tR[1] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,1), gInfo.R(1,1), gInfo.R(2,1));
+	logPrintf("\tR[2] = [ %lf\t%lf\t%lf ];\n",gInfo.R(0,2), gInfo.R(1,2), gInfo.R(2,2));
+	logPrintf("\tS = [ %d %d %d ];\n\n", gInfo.S[0], gInfo.S[1], gInfo.S[2]);
 	gInfo.initialize();
 
 
@@ -87,20 +87,20 @@ int main(int argc, char** argv)
 	FluidMixture fluidMixture(gInfo, T);
 	component.addToFluidMixture(&fluidMixture);
 	double p = 1.01325*Bar;
-	printf("pV = %le\n", p*gInfo.detR);
+	logPrintf("pV = %le\n", p*gInfo.detR);
 	fluidMixture.initialize(p);
 
 	//----- Initialize external potential -----
-	printf("\nReading electron density from '%s' ... ", argv[1]); fflush(stdout);
+	logPrintf("\nReading electron density from '%s' ... ", argv[1]); fflush(stdout);
 	DataRptr nElectronic(DataR::alloc(gInfo));
 	loadRawBinary(nElectronic, argv[2]);
-	printf("SumCheck: %lf electrons\n\n", integral(nElectronic));
+	logPrintf("SumCheck: %lf electrons\n\n", integral(nElectronic));
 
-	printf("Initializing cavity with nc = %le ... ", pcm_nc); fflush(stdout);
+	logPrintf("Initializing cavity with nc = %le ... ", pcm_nc); fflush(stdout);
 	IdealGas& idgas = *(component.idealGas);
 	nullToZero(idgas.V, gInfo);
 	threadedLoop(initCavity, gInfo.nr, pcm_nc, nElectronic->data(), idgas.V[0]->data(), idgas.V[1]->data());
-	printf("CavityVolume: %lf bohr^3\n\n", integral(idgas.V[0]));
+	logPrintf("CavityVolume: %lf bohr^3\n\n", integral(idgas.V[0]));
 
 
 	RealKernel gaussian(gInfo);
@@ -110,19 +110,20 @@ int main(int argc, char** argv)
 	fluidMixture.initState(0.15);
 
 	MinimizeParams mp;
+	mp.fpLog = globalLog;
 	mp.nDim = 2*gInfo.nr;
 	mp.nIterations=200;
 	mp.knormThreshold=1e-11;
 	mp.dirUpdateScheme=MinimizeParams::HestenesStiefel;
 	
-	puts("Starting CG:");
-	TIME("minimize", stdout,
+	logPrintf("Starting CG:\n");
+	TIME("minimize", globalLog,
 		fluidMixture.minimize(mp);
 	);
 	
 	DataRptrCollection N(2);
 	double phiFinal = fluidMixture.getFreeEnergy(&N);
-	printf("\nCavitation energy = %le Eh\n\n", phiFinal);
+	logPrintf("\nCavitation energy = %le Eh\n\n", phiFinal);
 	
 	finalizeSystem();
 	return 0;

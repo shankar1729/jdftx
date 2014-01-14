@@ -134,6 +134,7 @@ template<typename T> double dot(const TptrCollection& x, const TptrCollection& y
 {	assert(x.size()==y.size());
 	double ret = 0.0;
 	for(unsigned i=0; i<x.size(); i++) ret += dot(x[i], y[i]);
+	mpiUtil->bcast(ret); //ensure consistency to numerical precision
 	return ret;
 }
 
