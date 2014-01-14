@@ -538,10 +538,10 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 				(kMeshEntry.U0 * kMeshEntry.V).write(fp);
 			fclose(fp);
 		}
-		logPrintf("Done.\n"); logFlush();
+		logPrintf("done.\n"); logFlush();
 	}
 	
-	//Save:
+	//Save supercell wavefunctions:
 	const vector3<int>& nSuper = e.dump.wannier.supercell;
 	vector3<int> offsetSuper(-nSuper[0]/2, -nSuper[1]/2, -nSuper[2]/2); //supercell offset
 	const vector3<int>& S = e.gInfo.S;
@@ -569,7 +569,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 				I( (getWfns(kMesh[i].point, centers, iSpin) //original wavefunctions transformed to common basis
 					* (kMesh[i].U0 * kMesh[i].V)(0,centers.size(), n,n+1) //combined to n'th localized function
 					).getColumn(0) ); //expand to full-G space and then put in real space
-			multiplyBlochPhase(psi, kMesh[i].point.k); //multiply by exp(-i k.r) (for r in base unit cell)
+			multiplyBlochPhase(psi, kMesh[i].point.k); //multiply by exp(i k.r) (for r in base unit cell)
 			//Accumulate with appropriate phases in each unit cell
 			complex* psiData = psi->data();
 			vector3<int> iSuper, iCell; //index of supercell and index within cell
@@ -617,6 +617,49 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	}
 	delete[] psiSuper;
 	delete[] phaseSuper;
+	
+	//Save Hamiltonian in Wannier basis:
+	std::vector<matrix> Hwannier(nSuper[0]*nSuper[1]*nSuper[2]);
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	//Fetch Hamiltonian for subset of bands in center:
+		matrix Hsub(centers.size(), centers.size());
+		{	complex* HsubData = Hsub.data();
+			const matrix& HsubFull = e.eVars.Hsub[kMesh[i].point.q + iSpin*qCount];
+			const complex* HsubFullData = HsubFull.data();
+			for(size_t c1=0; c1<centers.size(); c1++)
+				for(size_t c2=0; c2<centers.size(); c2++)
+					HsubData[Hsub.index(c1,c2)] = HsubFullData[HsubFull.index(centers[c1].band,centers[c2].band)];
+		}
+		//Apply MLWF-optimizd rotation:
+		matrix U = kMesh[i].U0 * kMesh[i].V;
+		Hsub = dagger(U) * Hsub * U;
+		//Accumulate with each requested Bloch phase
+		vector3<int> iSuper;
+		std::vector<matrix>::iterator HwannierIter = Hwannier.begin();
+		for(iSuper[0]=0; iSuper[0]<nSuper[0]; iSuper[0]++)
+		for(iSuper[1]=0; iSuper[1]<nSuper[1]; iSuper[1]++)
+		for(iSuper[2]=0; iSuper[2]<nSuper[2]; iSuper[2]++)
+			*(HwannierIter++) += (kMesh[i].wk * cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper))) * Hsub;
+	}
+	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
+	//-- save to file
+	{	string Hvarname = UvarName;
+		Hvarname.replace(Hvarname.find("Umlwf"), 5, "Hmlwf");
+		string fname = e.dump.getFilename(Hvarname);
+		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "wb");
+			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+			for(matrix& H: Hwannier)
+			{	if(e.dump.wannier.convertReal)
+					H.write_real(fp);
+				else
+					H.write(fp);
+			}
+			fclose(fp);
+		}
+		logPrintf("done.\n"); logFlush();
+	}
 }
 
 
