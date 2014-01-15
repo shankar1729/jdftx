@@ -43,6 +43,7 @@ void dumpExcitations(const Everything& e, const char* filename);
 namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}
 
 namespace XC_Analysis{
+	DataRptrCollection tauWeizsacker(const Everything& e);
 	DataRptrCollection spness(const Everything& e);
 	DataRptrCollection sHartree(const Everything& e);
 }
@@ -212,6 +213,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(eInfo.spinType == SpinZ)
 		{	DUMP_nocheck(tau[0], "KEdensity_up");
 			DUMP_nocheck(tau[1], "KEdensity_dn");
+			
+			DataRptrCollection tauW = XC_Analysis::tauWeizsacker(*e);
+			DUMP_nocheck(tauW[0], "tauW_up");
+			DUMP_nocheck(tauW[1], "tauW_dn");
 			
 			DataRptrCollection spness = XC_Analysis::spness(*e);
 			DUMP_nocheck(spness[0], "spness_up");
@@ -739,15 +744,33 @@ void dumpExcitations(const Everything& e, const char* filename)
 
 namespace XC_Analysis{
 
+	#define cutoff 1e-8
+	
+	void regularize(int i, vector3<> r, double* tau)
+	{	tau[i] = (tau[i]<cutoff ? 0. : tau[i]);
+	}
+	void spness_kernel(int i, vector3<> r, double* tauW, double* tau, double* spness)
+	{	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
+	}
+	
+	DataRptrCollection tauWeizsacker(const Everything& e)
+	{	DataRptrCollection tauW(e.eVars.n.size());
+		for(size_t j=0; j<e.eVars.n.size(); j++)
+			tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
+		return tauW;
+	}
+	
 	DataRptrCollection spness(const Everything& e)
 	{
 			const auto& tau = (e.exCorr.needsKEdensity() ? e.eVars.tau : e.eVars.KEdensity());
 		
-			DataRptrCollection tauW(e.eVars.n.size());
-			DataRptrCollection spness(e.eVars.n.size());
+			DataRptrCollection tauW = tauWeizsacker(e);
+			DataRptrCollection spness(e.eVars.n.size()); nullToZero(spness, e.gInfo);
 			for(size_t j=0; j<e.eVars.n.size(); j++)
-			{	tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
-				spness[j] = tauW[j]*pow(tau[j], -1);
+			{	applyFunc_r(e.gInfo, regularize, tau[j]->data());
+				applyFunc_r(e.gInfo, regularize, tauW[j]->data());
+				//spness[j] = tauW[j]*pow(tau[j], -1);
+				applyFunc_r(e.gInfo, spness_kernel, tauW[j]->data(), tau[j]->data(), spness[j]->data());
 			}
 
 			return spness;
