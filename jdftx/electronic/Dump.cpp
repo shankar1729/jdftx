@@ -99,7 +99,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 
 	#define DUMP(object, prefix, varname) \
-		if(ShouldDump(varname)) \
+		if(ShouldDump(varname) && object) \
 		{	DUMP_nocheck(object, prefix) \
 		}
 
