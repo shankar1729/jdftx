@@ -105,6 +105,7 @@ void SCF::minimize()
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		
 		//Compute new density and energy
+		e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
 		E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
