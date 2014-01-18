@@ -276,34 +276,39 @@ void SCF::eigenShiftApply(bool reverse)
 void spness_kernel(int i, vector3<> r, double* tauW, double* tau, double* spness)
 {	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
 }
+void tauW_kernel(int i, vector3<> r, double* tauW, double* grad_n_sq, double* n)
+{	tauW[i] = (n[i]>cutoff ? (1./8.)*grad_n_sq[i]/n[i] : 0.);
+}
 
 void SCF::single_particle_constraint(double sp_constraint)
 {	
-	// KE density
-	const auto& tau = e.eVars.KEdensity();
+	const auto& n = e.eVars.n;
+	const auto& tau = e.eVars.KEdensity(); //KE density
 	
 	// Single particle KE density and the single-particleness
-	DataRptrCollection tauW(e.eVars.n.size());
-	DataRptrCollection spness(e.eVars.n.size());
-	DataRptrCollection pz(e.eVars.n.size()); // Interpolation cofficient
-	for(size_t j=0; j<e.eVars.n.size(); j++)
-	{	tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
+	DataRptrCollection tauW(n.size());
+	DataRptrCollection spness(n.size());
+	DataRptrCollection pz(n.size()); // Interpolation cofficient
+	for(size_t j=0; j<n.size(); j++)
+	{	//tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
+		auto grad_n_sq = lengthSquared(gradient(n[j]));
+		nullToZero(tauW[j], e.gInfo); applyFunc_r(e.gInfo, tauW_kernel, tauW[j]->data(), grad_n_sq->data(), n[j]->data());
 		nullToZero(spness[j], e.gInfo); applyFunc_r(e.gInfo, spness_kernel, tauW[j]->data(), tau[j]->data(), spness[j]->data());
 		pz[j] = pow(spness[j], sp_constraint);
 	}	
 	
 	// Hartree potential of a single channel, per electron
-	DataRptrCollection Vhartree(e.eVars.n.size());
-	DataGptrCollection nTilde = J(e.eVars.n);
-	for(size_t j=0; j<e.eVars.n.size(); j++)
-		Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(e.eVars.n[j]), -1);
+	DataRptrCollection Vhartree(n.size());
+	DataGptrCollection nTilde = J(n);
+	for(size_t j=0; j<n.size(); j++)
+		Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(n[j]), -1);
 	
 	// Slater exchange
-	DataRptrCollection Vslater(e.eVars.n.size());
-	for(size_t j=0; j<e.eVars.n.size(); j++)
-		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(e.eVars.n[j], 1./3.);
+	DataRptrCollection Vslater(n.size());
+	for(size_t j=0; j<n.size(); j++)
+		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(n[j], 1./3.);
 	
 	// Apply the constraint to Vscloc
-	for(size_t j=0; j<e.eVars.n.size(); j++)
+	for(size_t j=0; j<n.size(); j++)
 		e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
 }
