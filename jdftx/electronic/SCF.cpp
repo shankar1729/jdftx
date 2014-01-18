@@ -272,6 +272,11 @@ void SCF::eigenShiftApply(bool reverse)
 			e.eVars.Hsub_eigs[es.q][es.n] += sign * es.shift;
 }
 
+#define cutoff 1e-6
+void spness_kernel(int i, vector3<> r, double* tauW, double* tau, double* spness)
+{	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
+}
+
 void SCF::single_particle_constraint(double sp_constraint)
 {	
 	// KE density
@@ -283,7 +288,7 @@ void SCF::single_particle_constraint(double sp_constraint)
 	DataRptrCollection pz(e.eVars.n.size()); // Interpolation cofficient
 	for(size_t j=0; j<e.eVars.n.size(); j++)
 	{	tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
-		spness[j] = tauW[j] * pow(tau[j], -1);
+		nullToZero(spness[j], e.gInfo); applyFunc_r(e.gInfo, spness_kernel, tauW[j]->data(), tau[j]->data(), spness[j]->data());
 		pz[j] = pow(spness[j], sp_constraint);
 	}	
 	
