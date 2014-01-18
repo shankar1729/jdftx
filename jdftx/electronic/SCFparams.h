@@ -47,6 +47,7 @@ struct SCFparams
 	double mixFraction;  //!< Maximum fraction of the new variable that will be mixed with the old one
 	double qKerker; //!< Wavevector controlling Kerker preconditioning (if negative, auto-set to Gmin)
 	double qMetric; //!< Wavevector controlling the DIIS metric (if negative, auto-set to Gmin)
+	double sp_constraint; //! Whether to ensure that the exchange is exact in the single particle limit
 	
 	struct EigenShift
 	{	int q; //!< Quantum number
@@ -68,6 +69,7 @@ struct SCFparams
 		qKerker = -1.; //i.e. auto-set
 		qMetric = -1.; //i.e. auto-set
 		history = 15;
+		sp_constraint = 0.;
 	}
 };
 

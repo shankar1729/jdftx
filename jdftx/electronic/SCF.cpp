@@ -109,6 +109,8 @@ void SCF::minimize()
 		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
 		E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
+		if(e.scfParams.sp_constraint)
+			single_particle_constraint(e.scfParams.sp_constraint); //ensure the single particle limit of exchange 
 		string Elabel(relevantFreeEnergyName(e));
 		if(e.exCorr.orbitalDep) Elabel += "~"; //remind that the total energy is at best an estimate
 		
@@ -268,4 +270,35 @@ void SCF::eigenShiftApply(bool reverse)
 	for(const SCFparams::EigenShift& es: e.scfParams.eigenShifts)
 		if(e.eInfo.isMine(es.q))
 			e.eVars.Hsub_eigs[es.q][es.n] += sign * es.shift;
+}
+
+void SCF::single_particle_constraint(double sp_constraint)
+{	
+	// KE density
+	const auto& tau = e.eVars.KEdensity();
+	
+	// Single particle KE density and the single-particleness
+	DataRptrCollection tauW(e.eVars.n.size());
+	DataRptrCollection spness(e.eVars.n.size());
+	DataRptrCollection pz(e.eVars.n.size()); // Interpolation cofficient
+	for(size_t j=0; j<e.eVars.n.size(); j++)
+	{	tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
+		spness[j] = tauW[j] * pow(tau[j], -1);
+		pz[j] = pow(spness[j], sp_constraint);
+	}	
+	
+	// Hartree potential of a single channel, per electron
+	DataRptrCollection Vhartree(e.eVars.n.size());
+	DataGptrCollection nTilde = J(e.eVars.n);
+	for(size_t j=0; j<e.eVars.n.size(); j++)
+		Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(e.eVars.n[j]), -1);
+	
+	// Slater exchange
+	DataRptrCollection Vslater(e.eVars.n.size());
+	for(size_t j=0; j<e.eVars.n.size(); j++)
+		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(e.eVars.n[j], 1./3.);
+	
+	// Apply the constraint to Vscloc
+	for(size_t j=0; j<e.eVars.n.size(); j++)
+		e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
 }

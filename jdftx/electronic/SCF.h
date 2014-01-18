@@ -55,6 +55,10 @@ private:
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weigted RMS difference between two sets of eigenvalues
 	void eigenShiftInit(); //!< initialize and check eigenShifts
 	void eigenShiftApply(bool reverse);  //!< apply eigenshifts if false, and undo them if true
+
+	//! Applies the single particle constraint on Vscloc
+	void single_particle_constraint(double sp_constraint);
+	
 };
 
 #endif

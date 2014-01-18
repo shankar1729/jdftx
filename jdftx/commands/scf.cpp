@@ -33,6 +33,7 @@ enum SCFparamsMember
 	SCFpm_qKerker,
 	SCFpm_qMetric,
 	SCFpm_history,
+	SCFpm_single_particle_constraint,
 	//Delimiter used in parsing:
 	SCFpm_scfDelim
 };
@@ -48,7 +49,8 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 	SCFpm_mixFraction, "mixFraction",
 	SCFpm_qKerker, "qKerker",
 	SCFpm_qMetric, "qMetric",
-	SCFpm_history, "history"
+	SCFpm_history, "history",
+	SCFpm_single_particle_constraint, "single-particle-constraint"
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	SCFpm_nIterations, "maximum iterations (single point calculation if 0)",
@@ -61,7 +63,8 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 	SCFpm_mixFraction, "maximum fraction of new variable mixed in at each step (default 0.5)",
 	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: auto-set to Gmin)",
 	SCFpm_qMetric, "wavevector controlling the DIIS metric (default: auto-set to Gmin)",
-	SCFpm_history, "number of past residuals and vectors are kept cached and used in DIIS"
+	SCFpm_history, "number of past residuals and vectors are kept cached and used in DIIS",
+	SCFpm_single_particle_constraint, "enforces the single particle constraint on the exchange"
 );
 
 EnumStringMap<SCFparams::MixedVariable> scfMixing
@@ -107,6 +110,7 @@ struct CommandsScfParams: public Command
 				case SCFpm_qKerker: pl.get(e.scfParams.qKerker, -1., "qKerker", true); break;
 				case SCFpm_qMetric: pl.get(e.scfParams.qMetric, -1., "qMetric", true); break;
 				case SCFpm_history: pl.get(e.scfParams.history, 15, "history", true); break;
+				case SCFpm_single_particle_constraint: pl.get(e.scfParams.sp_constraint, 0., "single-particle-constraint", true);
 				case SCFpm_scfDelim: return; //end of input
 			}
 		}
