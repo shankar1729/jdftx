@@ -306,7 +306,7 @@ void SCF::single_particle_constraint(double sp_constraint)
 	// Slater exchange
 	DataRptrCollection Vslater(n.size());
 	for(size_t j=0; j<n.size(); j++)
-		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(n[j], 1./3.);
+		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(2.*n[j], 1./3.);
 	
 	// Apply the constraint to Vscloc
 	for(size_t j=0; j<n.size(); j++)
