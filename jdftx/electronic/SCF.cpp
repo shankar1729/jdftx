@@ -285,6 +285,8 @@ void SCF::single_particle_constraint(double sp_constraint)
 	const auto& n = e.eVars.n;
 	const auto& tau = e.eVars.KEdensity(); //KE density
 	
+	assert(n.size() == 2);
+	
 	// Single particle KE density and the single-particleness
 	DataRptrCollection tauW(n.size());
 	DataRptrCollection spness(n.size());
@@ -310,5 +312,5 @@ void SCF::single_particle_constraint(double sp_constraint)
 	
 	// Apply the constraint to Vscloc
 	for(size_t j=0; j<n.size(); j++)
-		e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
+		e.eVars.Vscloc[j] += -pz[j] * (JdagOJ(Vslater[j]) + Vhartree[j]);
 }
