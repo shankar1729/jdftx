@@ -141,9 +141,9 @@ struct CommandEigenShift : public Command
 {
 	CommandEigenShift() : Command("eigen-shift")
 	{
-		format = "<qnum> <band> <shift> [<fromHOMO>]";
+		format = "<qnum> <band> <shift> [<fromHOMO>=yes]";
 		comments = "When fillings are computed during electronic-scf, shifts KS eigenvalue of (qnum, band) by shift\n"
-					"Band index is calculated from HOMO, unless set to false\n";
+					"Band index is calculated from HOMO, unless fromHOMO is set to no\n";
 		allowMultiple = true;
 		require("electronic-scf");
 		require("elec-fermi-fillings");
