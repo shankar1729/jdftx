@@ -20,19 +20,5 @@ set(targetNameList
 )
 
 foreach(targetName ${targetNameList})
-	#CPU version
-	add_executable(${targetName} ${targetName}.cpp)
-	target_link_libraries(${targetName} jdftxlib)
-	set_target_properties(${targetName} PROPERTIES
-		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS}"
-		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
-	
-	if(CUDA_FOUND) #GPU version
-	        add_executable(${targetName}_gpu ${targetName}.cpp)
-	        target_link_libraries(${targetName}_gpu jdftxlib_gpu)
-	        set_target_properties(${targetName}_gpu PROPERTIES
-	                COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} -DGPU_ENABLED"
-	                LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
-	endif()
+	add_JDFTx_executable(${targetName} ${targetName}.cpp)
 endforeach()
-

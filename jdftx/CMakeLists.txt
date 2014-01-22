@@ -102,6 +102,18 @@ if(CompileNative)
 	endif()
 endif()
 
+#------------- Macro to set JDFTx flags -------------
+
+macro(set_JDFTx_flags targetName isGpu)
+	if(isGpu)
+		set(GPU_ENABLED "-DGPU_ENABLED")
+	else()
+		set(GPU_ENABLED "")
+	endif()
+	set_target_properties(${targetName} PROPERTIES
+		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} ${GPU_ENABLED}"
+		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
+endmacro()
 
 #----------------------- Regular CPU targets ----------------
 
@@ -113,13 +125,7 @@ FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp
 add_library(jdftxlib SHARED ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
-
-#Primary interface executable:
-add_executable(jdftx jdftx.cpp)
-target_link_libraries(jdftx jdftxlib)
-set_target_properties(jdftx jdftxlib PROPERTIES 
-	COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS}"
-	LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
+set_JDFTx_flags(jdftxlib OFF)
 
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
@@ -145,17 +151,29 @@ if(CUDA_FOUND)
 	add_library(jdftxlib_gpu SHARED ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
-
-	#Primary interface executable:
-	add_executable(jdftx_gpu jdftx.cpp)
-	target_link_libraries(jdftx_gpu jdftxlib_gpu)
-	set_target_properties(jdftx_gpu jdftxlib_gpu PROPERTIES 
-		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} -DGPU_ENABLED"
-		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
+	set_JDFTx_flags(jdftxlib_gpu ON)
 endif()
 
-#-----------------------------------------------------------------------------
+#------------- Macro to add an executable pair (regular and GPU) -------------
 
+macro(add_JDFTx_executable execName execSources)
+	#CPU version
+	add_executable(${execName} ${execSources})
+	target_link_libraries(${execName} jdftxlib)
+	set_JDFTX_flags(${execName} OFF)
+	
+	if(CUDA_FOUND) #GPU version
+	        add_executable(${execName}_gpu ${execName}.cpp)
+	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
+	        set_JDFTx_flags(${execName}_gpu ON)
+	endif()
+endmacro()
+
+#----------------------- Primary interface executable ------------------------
+
+add_JDFTx_executable(jdftx jdftx.cpp)
+
+#-----------------------------------------------------------------------------
 
 #Documentation via Doxygen:
 find_package(Doxygen)
