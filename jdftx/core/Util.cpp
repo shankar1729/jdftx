@@ -23,6 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <csignal>
 #include <list>
 #include <vector>
+#include <getopt.h>
+#include <electronic/Everything.h>
+#include <electronic/ColumnBundle.h>
+#include <electronic/matrix.h>
+#include <commands/parser.h>
 
 #ifndef __APPLE__
 #include <sys/prctl.h>
@@ -46,6 +51,25 @@ void printVersionBanner()
 {	logPrintf("\n*************** " PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH
 		" (svn revision " VERSION_SVN_REVISION ") " PACKAGE_DESCRIPTION
 		" ****************\n\n");
+}
+
+//Print usage information
+void printUsage(const char *name, const char* description)
+{	printVersionBanner();
+	logPrintf("Usage: %s [options]\n",name);
+	logPrintf("\n\t%s\n\n", description);
+	logPrintf("options:\n\n");
+	logPrintf("\t-h --help               help (this output)\n");
+	logPrintf("\t-v --version            version\n");
+	logPrintf("\t-i --input <filename>   specify command input file, default = stdin\n");
+	logPrintf("\t-o --output <filename>  specify output log file, default = stdout\n");
+	logPrintf("\t-d --no-append          overwrite output file instead of appending\n");
+	logPrintf("\t-t --template           print an input file template\n");
+	logPrintf("\t-m --mpi-debug-log      write output from secondary MPI processes to jdftx.<proc>.mpiDebugLog (instead of /dev/null)\n");
+	logPrintf("\t-n --dry-run            quit after initialization (to verify commands and other input files)\n");
+	logPrintf("\t-c --cores              number of cores to use (ignored when launched using SLURM)\n");
+	logPrintf("\t-s --skip-defaults      skip printing status of default commands issued automatically.\n");
+	logPrintf("\n");
 }
 
 //Signal handlers:
@@ -179,6 +203,63 @@ void initSystem(int argc, char** argv)
 	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
 }
 
+void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults)
+{
+	mpiUtil = new MPIUtil(argc, argv);
+	
+	//Parse command line:
+	string logFilename; bool appendOutput=true;
+	dryRun=false; printDefaults=true;
+	option long_options[] =
+		{	{"help", no_argument, 0, 'h'},
+			{"version", no_argument, 0, 'v'},
+			{"input",  required_argument, 0, 'i'},
+			{"output", required_argument, 0, 'o'},
+			{"no-append", no_argument, 0, 'd'},
+			{"template", no_argument, 0, 't'},
+			{"mpi-debug-log", no_argument, 0, 'm'},
+			{"dry-run", no_argument, 0, 'n'},
+			{"cores", required_argument, 0, 'c'},
+			{"skip-defaults", no_argument, 0, 's'},
+			{0, 0, 0, 0}
+		};
+	while (1)
+	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:s", long_options, 0);
+		if (c == -1) break; //end of options
+		#define RUN_HEAD(code) if(mpiUtil->isHead()) { code } delete mpiUtil;
+		switch (c)
+		{	case 'v': RUN_HEAD( printVersionBanner(); ) exit(0);
+			case 'h': RUN_HEAD( printUsage(argv[0], description); ) exit(0);
+			case 'i': inputFilename.assign(optarg); break;
+			case 'o': logFilename.assign(optarg); break;
+			case 'd': appendOutput=false; break;
+			case 't': RUN_HEAD( Everything e; printDefaultTemplate(e); ) exit(0);
+			case 'm': mpiDebugLog=true; break;
+			case 'n': dryRun=true; break;
+			case 'c':
+			{	int nCores = 0;
+				if(sscanf(optarg, "%d", &nCores)==1 && nCores>0)
+					nProcsAvailable=nCores;
+				break;
+			}
+			case 's': printDefaults=false; break;
+			default: RUN_HEAD( printUsage(argv[0], description); ) exit(1);
+		}
+		#undef RUN_HEAD
+	}
+	
+	// Open the logfile (if any):
+	if(logFilename.length())
+	{	globalLog = fopen(logFilename.c_str(), appendOutput ? "a" : "w");
+		if(!globalLog)
+		{	globalLog = stdout;
+			logPrintf("WARNING: Could not open log file '%s' for writing, using standard output.\n", logFilename.c_str());
+		}
+	}
+
+	//Print banners, setup threads, GPUs and signal handlers
+	initSystem(argc, argv);
+}
 
 #ifdef ENABLE_PROFILING
 void stopWatchManager(const StopWatch* addWatch=0)
@@ -220,6 +301,8 @@ void finalizeSystem(bool successful)
 		globalLog = 0;
 	}
 	fclose(nullLog);
+	if(globalLog && globalLog != stdout)
+		fclose(globalLog);
 	delete mpiUtil;
 }
 
