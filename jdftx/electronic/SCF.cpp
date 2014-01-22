@@ -282,6 +282,8 @@ void tauW_kernel(int i, vector3<> r, double* tauW, double* grad_n_sq, double* n)
 
 void SCF::single_particle_constraint(double sp_constraint)
 {	
+	static StopWatch watch("single particle constraint"); watch.start(); 
+	
 	const auto& n = e.eVars.n;
 	const auto& tau = e.eVars.KEdensity(); //KE density
 	
@@ -303,14 +305,26 @@ void SCF::single_particle_constraint(double sp_constraint)
 	DataRptrCollection Vhartree(n.size());
 	DataGptrCollection nTilde = J(n);
 	for(size_t j=0; j<n.size(); j++)
-		Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(n[j]), -1);
+	{	Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(n[j]), -1);
+		Vhartree[j] = JdagOJ(Vhartree[j]);
+	}
 	
 	// Slater exchange
 	DataRptrCollection Vslater(n.size());
 	for(size_t j=0; j<n.size(); j++)
-		Vslater[j] = - pow(3/M_PI, 1./3.) * pow(2.*n[j], 1./3.);
+	{	Vslater[j] = - pow(3/M_PI, 1./3.) * pow(2.*n[j], 1./3.);
+		Vslater[j] = JdagOJ(Vslater[j]);
+	}
+	
+	// Full Vxc
+	DataRptrCollection Vxc(n.size());
+	e.exCorr(e.eVars.get_nXC(), &Vxc, false, 0, 0);
+	for(size_t j=0; j<n.size(); j++)
+		Vxc[j] = JdagOJ(Vxc[j]);
 	
 	// Apply the constraint to Vscloc
 	for(size_t j=0; j<n.size(); j++)
-		e.eVars.Vscloc[j] += -pz[j] * (JdagOJ(Vslater[j]) + Vhartree[j]);
+		e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
+	
+	watch.stop();
 }
