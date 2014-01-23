@@ -37,11 +37,13 @@ public:
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 	};
 	
+	string initFilename, dumpFilename; //!< filename patterns for input and output
 	std::vector< std::vector<Center> > group; //!< list of groups of centers (the bands in each group are linearly combined)
 	vector3<int> supercell; //!< number of unit cells per dimension in supercell
 	bool convertReal; //!< whether to convert wannier functions to real ones by phase removal
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
+	string getFilename(bool init, string varName) const; //get filename for varName, based on initFilename if init=true and on dumpFilename otherwise
 	
 private:
 	const Everything* e;

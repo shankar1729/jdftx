@@ -32,10 +32,20 @@ int main(int argc, char** argv)
 	string inputFilename; bool dryRun, printDefaults;
 	initSystemCmdline(argc, argv, "Compute maximally-localized Wannier functions.", inputFilename, dryRun, printDefaults);
 
-	//Parse input file and setup
+	//Parse input file:
 	Everything e;
 	parse(inputFilename.c_str(), e, printDefaults);
+	
+	//Set initial filenames and prevent unnecessary setup below:
+	e.eVars.wfnsFilename = wannier.getFilename(true, "wfns");
+	e.eVars.nFilename.clear();
+	e.eVars.VsclocFilename.clear();
+	e.eVars.HauxFilename.clear();
+	e.eVars.fluidParams.fluidType = FluidNone;
+	
+	//Setup:
 	e.setup();
+	//if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
 	wannier.setup(e);
 	Citations::print();
 	if(dryRun)

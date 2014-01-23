@@ -37,3 +37,8 @@ void Wannier::saveMLWF()
 		wmin->saveMLWF(g);
 }
 
+string Wannier::getFilename(bool init, string varName) const
+{	string fname = init ? initFilename : dumpFilename;
+	fname.replace(fname.find("$VAR"), 4, varName);
+	return fname;
+}

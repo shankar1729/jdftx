@@ -41,6 +41,8 @@ struct CommandWannier : public Command
 			"the dump frequency can be controlled using the dump command.";
 		allowMultiple = true;
 		require("wannier-supercell");
+		require("wannier-initial-state");
+		require("wannier-dump-name");
 		
 		//Dependencies due to optional conversion from cartesian coords:
 		require("latt-scale");
@@ -128,3 +130,26 @@ struct CommandWannierMinimize : public CommandMinimize
 	}
 }
 commandWannierMinimize;
+
+
+struct CommandWannierFilenames : public Command
+{	string& target;
+	CommandWannierFilenames(string cmdSuffix, string comment, string& target) : Command("wannier-"+cmdSuffix), target(target)
+	{	format = "<format>";
+		comments = 
+			"Control the filename pattern for wannier " + comment + ", where <format> must contain\n"
+			"a single instance of $VAR, which will be substituted by the name of each variable.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(target, string("$STAMP.$VAR"), "format");
+		if(target.find("$VAR")==string::npos)
+			throw "<format> = " + target + " doesn't contain the pattern $VAR";
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", target.c_str());
+	}
+};
+CommandWannierFilenames commandWannierInitialState("initial-state", "state initialization", wannier.initFilename);
+CommandWannierFilenames commandWannierDumpName("dump-name", "output", wannier.dumpFilename);

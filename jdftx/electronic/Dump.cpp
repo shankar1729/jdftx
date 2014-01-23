@@ -18,10 +18,6 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <cmath>
-#include <cstdio>
-#include <ctime>
-
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
@@ -38,6 +34,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/Units.h>
 #include <sstream>
+#include <ctime>
 
 void dumpExcitations(const Everything& e, const char* filename);
 namespace Moments{void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);}

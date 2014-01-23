@@ -129,7 +129,7 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	minimize(wannier.minParams);
 	
 	//Save the matrices:
-	{	string fname = e.dump.getFilename(UvarName);
+	{	string fname = wannier.getFilename(false, UvarName);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
@@ -151,7 +151,7 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 		ostringstream varName;
 		varName << centers[n].band << ".mlwf";
 		if(nSpins==2) varName << (iSpin==0 ? "Up" : "Dn");
-		string fname = e.dump.getFilename(varName.str());
+		string fname = wannier.getFilename(false, varName.str());
 		logPrintf("Dumping '%s':\n", fname.c_str());
 		//Print stats for function:
 		vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
@@ -245,7 +245,7 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	//-- save to file
 	{	string Hvarname = UvarName;
 		Hvarname.replace(Hvarname.find("Umlwf"), 5, "Hmlwf");
-		string fname = e.dump.getFilename(Hvarname);
+		string fname = wannier.getFilename(false, Hvarname);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "wb");
