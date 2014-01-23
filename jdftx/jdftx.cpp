@@ -17,9 +17,6 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <cstdio>
-#include <cmath>
-#include <ctime>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>

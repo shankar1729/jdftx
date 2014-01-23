@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_DUMP_H
 
 #include <electronic/common.h>
-#include <electronic/Wannier.h>
 #include <electronic/matrix.h>
 #include <core/Data.h>
 #include <set>
@@ -48,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVlocps, DumpVscloc, DumpHsubEvecs, DumpBandEigs, DumpFillings, DumpRhoAtom,
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
-	DumpWannier, DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
+	DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpMomenta, DumpSymmetries, DumpKpoints, DumpOrbitalDep,
 	DumpDelim, //special value used as a delimiter during command processing
 };
@@ -67,7 +66,6 @@ public:
 	//! Get the dump filename corresponding to a particular variable name
 	string getFilename(string varName) const;
 	
-	Wannier wannier; //!< wannier function calculator
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
 private:

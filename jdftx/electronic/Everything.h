@@ -70,7 +70,7 @@ public:
 
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();
-	void updateSupercell(); //!< (re-)initialize coulombParams.supercell if necessary
+	void updateSupercell(bool force=false); //!< (re-)initialize coulombParams.supercell if necessary (or if forced)
 };
 
 #endif // JDFTX_ELECTRONIC_EVERYTHING_H

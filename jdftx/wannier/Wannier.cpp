@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/Wannier.h>
+#include <wannier/Wannier.h>
 #include <electronic/operators.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
@@ -61,7 +61,7 @@ static void randomize(WannierGradient& x)
 class WannierEval : public Minimizable<WannierGradient>
 {
 public:
-	WannierEval(const Everything& e);
+	WannierEval(const Everything& e, const Wannier& wannier);
 	virtual ~WannierEval() {}
 	
 	void saveMLWF(const std::vector<Wannier::Center>& centers); //save wannier functions for all spins
@@ -87,6 +87,7 @@ public:
 	
 private:
 	const Everything& e;
+	const Wannier& wannier;
 	const std::vector< matrix3<int> >& sym;
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
@@ -158,7 +159,7 @@ private:
 
 //--------------------- class Wannier implementation ----------------------
 
-Wannier::Wannier() : verboseLog(false), eval(0)
+Wannier::Wannier() : eval(0)
 {
 }
 
@@ -170,12 +171,11 @@ Wannier::~Wannier()
 void Wannier::setup(const Everything& everything)
 {	e = &everything;
 	//Initialize minimization parameters:
-	//minParams.nDim = e->eInfo.kvecsUnreduced.size();
-	minParams.fpLog = verboseLog ? globalLog : fopen("/dev/null", "w");
-	minParams.linePrefix = "\tWannierMinimize: ";
+	minParams.fpLog = globalLog;
+	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "rVariance";
 	//Initialize evaluator:
-	eval = new WannierEval(*e);
+	eval = new WannierEval(*e, *this);
 	Citations::add("Maximally-localized Wannier functions",
 		"N. Marzari and D. Vanderbilt, Phys. Rev. B 56, 12847 (1997)");
 }
@@ -273,7 +273,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 //Helper function for PeriodicLookup<WannierEval::Kpoint> used in WannierEval::WannierEval
 inline vector3<> getCoord(const WannierEval::Kpoint& kpoint) { return kpoint.k; }
 
-WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
+WannierEval::WannierEval(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
 {
 	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
@@ -422,13 +422,12 @@ WannierEval::WannierEval(const Everything& e) : e(e), sym(e.symm.getMatrices()),
 }
 
 void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers)
-{	logPrintf("Dumping maximally localized Wannier functions ...\n"); logFlush();
-	for(int iSpin=0; iSpin<nSpins; iSpin++)
+{	for(int iSpin=0; iSpin<nSpins; iSpin++)
 		saveMLWF(centers, iSpin);
 }
 
 void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpin)
-{	logPrintf("\tComputing wannier functions for bands (");
+{	logPrintf("Computing wannier functions for bands (");
 	for(auto center: centers) logPrintf(" %d", center.band);
 	if(nSpins==1) logPrintf(" )\n"); else logPrintf(" ) spin %s\n", iSpin==0 ? "up" : "dn");
 	logFlush();
@@ -450,7 +449,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		//Check if file exists:
 		{	FILE* fp = fopen(filename.c_str(), "r");
 			if(fp)
-			{	logPrintf("\tReading initial matrices from %s (ignoring trial projections).\n", filename.c_str());
+			{	logPrintf("Reading initial matrices from %s (ignoring trial projections).\n", filename.c_str());
 				for(size_t ik=0; ik<kMesh.size(); ik++)
 				{	kMesh[ik].U0.init(centers.size(), centers.size());
 					kMesh[ik].U0.read(fp);
@@ -527,11 +526,11 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 			edge.M0 = dagger(kMesh[ik].U0) * edge.M0 * kMesh[edge.ik].U0;
 	
 	//Minimize:
-	minimize(e.dump.wannier.minParams);
+	minimize(wannier.minParams);
 	
 	//Save the matrices:
 	{	string fname = e.dump.getFilename(UvarName);
-		logPrintf("\tDumping '%s' ... ", fname.c_str());
+		logPrintf("Dumping '%s' ... ", fname.c_str());
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			for(const auto& kMeshEntry: kMesh)
@@ -542,7 +541,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	}
 	
 	//Save supercell wavefunctions:
-	const vector3<int>& nSuper = e.dump.wannier.supercell;
+	const vector3<int>& nSuper = wannier.supercell;
 	vector3<int> offsetSuper(-nSuper[0]/2, -nSuper[1]/2, -nSuper[2]/2); //supercell offset
 	const vector3<int>& S = e.gInfo.S;
 	size_t nrSuper = e.gInfo.nr * nSuper[0]*nSuper[1]*nSuper[2];
@@ -553,13 +552,13 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		varName << centers[n].band << ".mlwf";
 		if(nSpins==2) varName << (iSpin==0 ? "Up" : "Dn");
 		string fname = e.dump.getFilename(varName.str());
-		logPrintf("\tDumping '%s':\n", fname.c_str());
+		logPrintf("Dumping '%s':\n", fname.c_str());
 		//Print stats for function:
 		vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
 			? rExpect[n] : e.gInfo.invR * rExpect[n]; //r in coordinate system of choice
-		logPrintf("\t\tCenter: [ %lg %lg %lg ] (%s coords)\n", rCoords[0], rCoords[1], rCoords[2],
+		logPrintf("\tCenter: [ %lg %lg %lg ] (%s coords)\n", rCoords[0], rCoords[1], rCoords[2],
 			e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");
-		logPrintf("\t\tSpread: %lg bohrs\n", sqrt(rSqExpect[n] - rExpect[n].length_squared()));
+		logPrintf("\tSpread: %lg bohrs\n", sqrt(rSqExpect[n] - rExpect[n].length_squared()));
 		logFlush();
 		
 		//Generate supercell function:
@@ -597,12 +596,12 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 		{	fp= fopen(fname.c_str(), "wb");
 			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 		}
-		if(e.dump.wannier.convertReal)
+		if(wannier.convertReal)
 		{	//Convert to a real wavefunction:
 			double meanPhase, sigmaPhase, rmsImagErr;
 			removePhase(nrSuper, psiSuper, meanPhase, sigmaPhase, rmsImagErr);
-			logPrintf("\t\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
-			logPrintf("\t\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
+			logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
+			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
 			logFlush();
 			//Write real part of supercell wavefunction to file:
 			if(fp)
@@ -618,6 +617,7 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	delete[] psiSuper;
 	delete[] phaseSuper;
 	
+	return; //TODO: Add Hsub read-in so that the following works
 	//Save Hamiltonian in Wannier basis:
 	std::vector<matrix> Hwannier(nSuper[0]*nSuper[1]*nSuper[2]);
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
@@ -646,12 +646,12 @@ void WannierEval::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpi
 	{	string Hvarname = UvarName;
 		Hvarname.replace(Hvarname.find("Umlwf"), 5, "Hmlwf");
 		string fname = e.dump.getFilename(Hvarname);
-		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "wb");
 			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 			for(matrix& H: Hwannier)
-			{	if(e.dump.wannier.convertReal)
+			{	if(wannier.convertReal)
 					H.write_real(fp);
 				else
 					H.write(fp);

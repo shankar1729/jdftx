@@ -188,8 +188,8 @@ void Everything::setup()
 }
 
 
-void Everything::updateSupercell()
-{	if(coulombParams.omegaSet.size() || dump.dos)
+void Everything::updateSupercell(bool force)
+{	if(force || coulombParams.omegaSet.size() || dump.dos)
 	{	//Initialize k-point sampled supercell:
 		std::vector<vector3<>> kmeshUnreduced;
 		for(const QuantumNumber& qnum: eInfo.qnums)

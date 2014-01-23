@@ -50,9 +50,6 @@ namespace XC_Analysis{
 
 void Dump::setup(const Everything& everything)
 {	e = &everything;
-	if(wannier.group.size())
-		wannier.setup(everything);
-	
 	if(dos) dos->setup(everything);
 	
 	//Add citation for QMC coupling if required (done here so that it works in dry run):
@@ -399,10 +396,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(eVars.fluidSolver)
 			eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
-	if(ShouldDumpNoAll(Wannier))
-	{	wannier.saveMLWF();
-	}
-	
 	if(ShouldDumpNoAll(OptVext))
 	{	if(eInfo.spinType == SpinZ)
 		{	DUMP(eVars.Vexternal[0], "optVextUp", OptVext)

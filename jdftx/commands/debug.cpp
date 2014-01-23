@@ -29,7 +29,6 @@ enum DebugOptions
 	DebugForces,
 	DebugSymmetries,
 	DebugFluid,
-	DebugWannier,
 	DebugDelim //delimiter to figure out end of input
 };
 
@@ -40,8 +39,7 @@ EnumStringMap<DebugOptions> debugMap
 	DebugKpointsBasis, "KpointsBasis",
 	DebugForces, "Forces",
 	DebugSymmetries, "Symmetries",
-	DebugFluid, "Fluid",
-	DebugWannier, "Wannier"
+	DebugFluid, "Fluid"
 );
 
 EnumStringMap<DebugOptions> debugDescMap
@@ -51,8 +49,7 @@ EnumStringMap<DebugOptions> debugDescMap
 	DebugKpointsBasis, "List details of each k-point and corresponding basis",
 	DebugForces, "Print each contribution to the force separately (NL, loc etc.)",
 	DebugSymmetries, "Print various symmetry matrices during start up",
-	DebugFluid, "Enable verbose logging of fluid (iterations for Linear, even more for others)",
-	DebugWannier, "Log minimization progress for Wannier functions"
+	DebugFluid, "Enable verbose logging of fluid (iterations for Linear, even more for others)"
 );
 
 struct CommandDebug : public Command
@@ -94,9 +91,6 @@ struct CommandDebug : public Command
 				case DebugFluid:
 					e.eVars.fluidParams.verboseLog = true;
 					break;
-				case DebugWannier:
-					e.dump.wannier.verboseLog = true;
-					break;
 				case DebugDelim:
 					return; //end of input line
 			}
@@ -113,7 +107,6 @@ struct CommandDebug : public Command
 			if(e.iInfo.shouldPrintForceComponents) logPrintf(" Forces");
 			if(e.symm.shouldPrintMatrices) logPrintf("Symmetries");
 			if(e.eVars.fluidParams.verboseLog) logPrintf(" Fluid");
-			if(e.dump.wannier.verboseLog) logPrintf(" Wannier");
 		}
 	}
 }

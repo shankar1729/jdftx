@@ -17,8 +17,11 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <commands/command.h>
-#include <electronic/Everything.h>
+#include <commands/minimize.h>
+#include <wannier/Wannier.h>
+
+//Wannier-specific commands affect this static object:
+Wannier wannier;
 
 struct CommandWannier : public Command
 {
@@ -67,12 +70,11 @@ struct CommandWannier : public Command
 		}
 		if(!group.size())
 			throw(string("Each wannier group must contain at least one center"));
-		e.dump.wannier.group.push_back(group);
-		e.dump.insert(std::make_pair(DumpFreq_End, DumpWannier)); //dump at end
+		wannier.group.push_back(group);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	std::vector<Wannier::Center>& group = e.dump.wannier.group[iRep];
+	{	std::vector<Wannier::Center>& group = wannier.group[iRep];
 		for(size_t i=0; i<group.size(); i++)
 		{	if(group.size()>1) logPrintf(" \\\n\t");
 			vector3<> r = group[i].r;
@@ -103,16 +105,26 @@ struct CommandWannierSupercell : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.dump.wannier.supercell[0], 0, "n0", true);
-		pl.get(e.dump.wannier.supercell[1], 0, "n1", true);
-		pl.get(e.dump.wannier.supercell[2], 0, "n2", true);
-		pl.get(e.dump.wannier.convertReal, true, realMap, "scalar");
+	{	pl.get(wannier.supercell[0], 0, "n0", true);
+		pl.get(wannier.supercell[1], 0, "n1", true);
+		pl.get(wannier.supercell[2], 0, "n2", true);
+		pl.get(wannier.convertReal, true, realMap, "scalar");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d %d %d %s", e.dump.wannier.supercell[0],
-			e.dump.wannier.supercell[1], e.dump.wannier.supercell[2],
-			realMap.getString(e.dump.wannier.convertReal));
+	{	logPrintf("%d %d %d %s", wannier.supercell[0],
+			wannier.supercell[1], wannier.supercell[2],
+			realMap.getString(wannier.convertReal));
 	}
 }
 commandWannierSupercell;
+
+struct CommandWannierMinimize : public CommandMinimize
+{	CommandWannierMinimize() : CommandMinimize("wannier") {}
+    MinimizeParams& target(Everything& e) { return wannier.minParams; }
+    void process(ParamList& pl, Everything& e)
+	{	wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
+		CommandMinimize::process(pl, e);
+	}
+}
+commandWannierMinimize;

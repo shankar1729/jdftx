@@ -163,7 +163,7 @@ macro(add_JDFTx_executable execName execSources)
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(CUDA_FOUND) #GPU version
-	        add_executable(${execName}_gpu ${execName}.cpp)
+	        add_executable(${execName}_gpu ${execSources})
 	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
 	        set_JDFTx_flags(${execName}_gpu ON)
 	endif()
@@ -172,6 +172,12 @@ endmacro()
 #----------------------- Primary interface executable ------------------------
 
 add_JDFTx_executable(jdftx jdftx.cpp)
+
+#----------------------- Secondary executables ------------------------
+
+#Wannier:
+FILE(GLOB wannierSources wannier/*.cpp)
+add_JDFTx_executable(wannier "${wannierSources}")
 
 #-----------------------------------------------------------------------------
 

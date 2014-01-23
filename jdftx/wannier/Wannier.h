@@ -47,7 +47,6 @@ public:
 private:
 	const Everything* e;
 	MinimizeParams minParams;
-	bool verboseLog;
 	class WannierEval* eval; //!< opaque struct to evaluator
 	friend class WannierEval;
 	friend class CommandDebug;

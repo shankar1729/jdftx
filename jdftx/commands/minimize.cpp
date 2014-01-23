@@ -17,8 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <commands/command.h>
-#include <electronic/Everything.h>
+#include <commands/minimize.h>
 
 EnumStringMap<MinimizeParams::DirectionUpdateScheme> dirUpdateMap
 (	MinimizeParams::PolakRibiere, "PolakRibiere",
@@ -89,66 +88,59 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 );
 
 
-//! Minimization parameters for ions, electrons or fluid
-struct CommandMinimize : public Command
+CommandMinimize::CommandMinimize(string systemName) : Command(systemName + "-minimize")
 {
-	CommandMinimize(string systemName) : Command(systemName + "-minimize")
-	{
-		format = "<key1> <value1> <key2> <value2> ...";
-		comments = "where possible keys and value types are:"
-			+ addDescriptions(mpmMap.optionList(), linkDescription(mpmMap, mpmDescMap))
-			+ "\nAny number of these key-value pairs may be specified in any order.";
-		hasDefault = true;
-	}
+	format = "<key1> <value1> <key2> <value2> ...";
+	comments = "where possible keys and value types are:"
+		+ addDescriptions(mpmMap.optionList(), linkDescription(mpmMap, mpmDescMap))
+		+ "\nAny number of these key-value pairs may be specified in any order.";
+	hasDefault = true;
+}
 
-	void process(ParamList& pl, Everything& e)
-	{	MinimizeParams& mp = target(e);
-		while(true)
-		{	MinimizeParamsMember key;
-			pl.get(key, MPM_Delim, mpmMap, "key");
-			switch(key)
-			{	case MPM_dirUpdateScheme: pl.get(mp.dirUpdateScheme, MinimizeParams::PolakRibiere, dirUpdateMap, "dirUpdateScheme", true); break;
-				case MPM_linminMethod: pl.get(mp.linminMethod, MinimizeParams::Quad, linminMap, "linminMethod", true); break;
-				case MPM_nIterations: pl.get(mp.nIterations, 0, "nIterations", true); break;
-				case MPM_knormThreshold: pl.get(mp.knormThreshold, 0., "knormThreshold", true); break;
-				case MPM_energyDiffThreshold: pl.get(mp.energyDiffThreshold, 0., "energyDiffThreshold", true); break;
-				case MPM_nEnergyDiff: pl.get(mp.nEnergyDiff, 0, "nEnergyDiff", true); break;
-				case MPM_nDirResetNum: pl.get(mp.nDirResetNum, 0, "nDirResetNum", true); break;
-				case MPM_nDirResetDen: pl.get(mp.nDirResetDen, 0, "nDirResetDen", true); break;
-				case MPM_alphaTstart: pl.get(mp.alphaTstart, 0., "alphaTstart", true); break;
-				case MPM_alphaTmin: pl.get(mp.alphaTmin, 0., "alphaTmin", true); break;
-				case MPM_updateTestStepSize: pl.get(mp.updateTestStepSize, true, boolMap, "updateTestStepSize", true); break;
-				case MPM_alphaTreduceFactor: pl.get(mp.alphaTreduceFactor, 0., "alphaTreduceFactor", true); break;
-				case MPM_alphaTincreaseFactor: pl.get(mp.alphaTincreaseFactor, 0., "alphaTincreaseFactor", true); break;
-				case MPM_nAlphaAdjustMax: pl.get(mp.nAlphaAdjustMax, 0, "nAlphaAdjustMax", true); break;
-				case MPM_fdTest: pl.get(mp.fdTest, false, boolMap, "fdTest", true); break;
-				case MPM_Delim: return; //end of input
-			}
+void CommandMinimize::process(ParamList& pl, Everything& e)
+{	MinimizeParams& mp = target(e);
+	while(true)
+	{	MinimizeParamsMember key;
+		pl.get(key, MPM_Delim, mpmMap, "key");
+		switch(key)
+		{	case MPM_dirUpdateScheme: pl.get(mp.dirUpdateScheme, MinimizeParams::PolakRibiere, dirUpdateMap, "dirUpdateScheme", true); break;
+			case MPM_linminMethod: pl.get(mp.linminMethod, MinimizeParams::Quad, linminMap, "linminMethod", true); break;
+			case MPM_nIterations: pl.get(mp.nIterations, 0, "nIterations", true); break;
+			case MPM_knormThreshold: pl.get(mp.knormThreshold, 0., "knormThreshold", true); break;
+			case MPM_energyDiffThreshold: pl.get(mp.energyDiffThreshold, 0., "energyDiffThreshold", true); break;
+			case MPM_nEnergyDiff: pl.get(mp.nEnergyDiff, 0, "nEnergyDiff", true); break;
+			case MPM_nDirResetNum: pl.get(mp.nDirResetNum, 0, "nDirResetNum", true); break;
+			case MPM_nDirResetDen: pl.get(mp.nDirResetDen, 0, "nDirResetDen", true); break;
+			case MPM_alphaTstart: pl.get(mp.alphaTstart, 0., "alphaTstart", true); break;
+			case MPM_alphaTmin: pl.get(mp.alphaTmin, 0., "alphaTmin", true); break;
+			case MPM_updateTestStepSize: pl.get(mp.updateTestStepSize, true, boolMap, "updateTestStepSize", true); break;
+			case MPM_alphaTreduceFactor: pl.get(mp.alphaTreduceFactor, 0., "alphaTreduceFactor", true); break;
+			case MPM_alphaTincreaseFactor: pl.get(mp.alphaTincreaseFactor, 0., "alphaTincreaseFactor", true); break;
+			case MPM_nAlphaAdjustMax: pl.get(mp.nAlphaAdjustMax, 0, "nAlphaAdjustMax", true); break;
+			case MPM_fdTest: pl.get(mp.fdTest, false, boolMap, "fdTest", true); break;
+			case MPM_Delim: return; //end of input
 		}
 	}
+}
 
-	void printStatus(Everything& e, int iRep)
-	{	MinimizeParams& mp = target(e);
-		logPrintf(" \\\n\tdirUpdateScheme      %s", dirUpdateMap.getString(mp.dirUpdateScheme));
-		logPrintf(" \\\n\tlinminMethod         %s", linminMap.getString(mp.linminMethod));
-		logPrintf(" \\\n\tnIterations          %d", mp.nIterations);
-		logPrintf(" \\\n\tknormThreshold       %lg", mp.knormThreshold);
-		logPrintf(" \\\n\tenergyDiffThreshold  %lg", mp.energyDiffThreshold);
-		logPrintf(" \\\n\tnEnergyDiff          %d", mp.nEnergyDiff);
-		logPrintf(" \\\n\tnDirResetNum         %d", mp.nDirResetNum);
-		logPrintf(" \\\n\tnDirResetDen         %d", mp.nDirResetDen);
-		logPrintf(" \\\n\talphaTstart          %lg", mp.alphaTstart);
-		logPrintf(" \\\n\talphaTmin            %lg", mp.alphaTmin);
-		logPrintf(" \\\n\tupdateTestStepSize   %s", boolMap.getString(mp.updateTestStepSize));
-		logPrintf(" \\\n\talphaTreduceFactor   %lg", mp.alphaTreduceFactor);
-		logPrintf(" \\\n\talphaTincreaseFactor %lg", mp.alphaTincreaseFactor);
-		logPrintf(" \\\n\tnAlphaAdjustMax      %d", mp.nAlphaAdjustMax);
-		logPrintf(" \\\n\tfdTest               %s", boolMap.getString(mp.fdTest));
-	}
-
-protected:
-	virtual MinimizeParams& target(Everything&)=0; //!< derived class specifies where the parameters are stored
-};
+void CommandMinimize::printStatus(Everything& e, int iRep)
+{	MinimizeParams& mp = target(e);
+	logPrintf(" \\\n\tdirUpdateScheme      %s", dirUpdateMap.getString(mp.dirUpdateScheme));
+	logPrintf(" \\\n\tlinminMethod         %s", linminMap.getString(mp.linminMethod));
+	logPrintf(" \\\n\tnIterations          %d", mp.nIterations);
+	logPrintf(" \\\n\tknormThreshold       %lg", mp.knormThreshold);
+	logPrintf(" \\\n\tenergyDiffThreshold  %lg", mp.energyDiffThreshold);
+	logPrintf(" \\\n\tnEnergyDiff          %d", mp.nEnergyDiff);
+	logPrintf(" \\\n\tnDirResetNum         %d", mp.nDirResetNum);
+	logPrintf(" \\\n\tnDirResetDen         %d", mp.nDirResetDen);
+	logPrintf(" \\\n\talphaTstart          %lg", mp.alphaTstart);
+	logPrintf(" \\\n\talphaTmin            %lg", mp.alphaTmin);
+	logPrintf(" \\\n\tupdateTestStepSize   %s", boolMap.getString(mp.updateTestStepSize));
+	logPrintf(" \\\n\talphaTreduceFactor   %lg", mp.alphaTreduceFactor);
+	logPrintf(" \\\n\talphaTincreaseFactor %lg", mp.alphaTincreaseFactor);
+	logPrintf(" \\\n\tnAlphaAdjustMax      %d", mp.nAlphaAdjustMax);
+	logPrintf(" \\\n\tfdTest               %s", boolMap.getString(mp.fdTest));
+}
 
 
 struct CommandElectronicMinimize : public CommandMinimize
@@ -217,16 +209,6 @@ struct CommandLatticeMinimize : public CommandMinimize
 	}
 }
 commandLatticeMinimize;
-
-struct CommandWannierMinimize : public CommandMinimize
-{	CommandWannierMinimize() : CommandMinimize("wannier") {}
-    MinimizeParams& target(Everything& e) { return e.dump.wannier.minParams; }
-    void process(ParamList& pl, Everything& e)
-	{	e.dump.wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
-		CommandMinimize::process(pl, e);
-	}
-}
-commandWannierMinimize;
 
 struct CommandInverseKohnShamMinimize : public CommandMinimize
 {	CommandInverseKohnShamMinimize() : CommandMinimize("inverseKohnSham") {}
