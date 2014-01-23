@@ -496,6 +496,10 @@ void ElecVars::setEigenvectors(int qActive)
 				B[q] = dagger(Hsub_evecs[q]) * B_eigs[q] * Hsub_evecs[q];
 			else B[q].zero();
 		}
+		
+		//Apply corresponding changes to Hsub:
+		Hsub[q] = Hsub_eigs[q]; //now diagonal
+		Hsub_evecs[q] = eye(eInfo.nBands);
 	}
 }
 

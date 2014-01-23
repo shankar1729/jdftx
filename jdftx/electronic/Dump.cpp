@@ -198,12 +198,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	else DUMP(eVars.Vscloc[0], "Vscloc", Vscloc)
 	
-	if(ShouldDump(HsubEvecs))
-	{	StartDump("Hsub_evecs")
-		eInfo.write(eVars.Hsub_evecs, fname.c_str());
-		EndDump
-	}
-	
 	// Dumps tau (positive Kinetic Energy density)
 	if((ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity))))
 	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
