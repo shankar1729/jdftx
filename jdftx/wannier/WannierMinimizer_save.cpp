@@ -21,43 +21,25 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 
 
-void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers)
+void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
-		saveMLWF(centers, iSpin);
+		saveMLWF(iSpin);
 }
 
-void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int iSpin)
-{	logPrintf("Computing wannier functions for bands (");
-	for(auto center: centers) logPrintf(" %d", center.band);
-	if(nSpins==1) logPrintf(" )\n"); else logPrintf(" ) spin %s\n", iSpin==0 ? "up" : "dn");
-	logFlush();
-	
+void WannierMinimizer::saveMLWF(int iSpin)
+{	
 	//Check for initial state:
-	string UvarName;
-	{	ostringstream ossUvarName;
-		int nMin = centers.front().band;
-		for(const auto& c: centers) nMin = std::min(nMin, c.band);
-		ossUvarName << nMin << ".Umlwf";
-		if(nSpins==2) ossUvarName << (iSpin==0 ? "Up" : "Dn");
-		UvarName = ossUvarName.str();
-	}
+	string fname = wannier.getFilename(true, "Umlwf", &iSpin);
 	bool readInitialMats = false;
-	if(e.eVars.wfnsFilename.length())
-	{	//Replace wfns with above avriable name to locate file:
-		string filename = e.eVars.wfnsFilename;
-		filename.replace(filename.find("wfns"),4, UvarName);
-		//Check if file exists:
-		{	FILE* fp = fopen(filename.c_str(), "r");
-			if(fp)
-			{	logPrintf("Reading initial matrices from %s (ignoring trial projections).\n", filename.c_str());
-				for(size_t ik=0; ik<kMesh.size(); ik++)
-				{	kMesh[ik].U0.init(centers.size(), centers.size());
-					kMesh[ik].U0.read(fp);
-				}
-				fclose(fp);
-				readInitialMats = true;
-			}
+	FILE* fp = fopen(fname.c_str(), "r");
+	if(fp)
+	{	logPrintf("Reading initial matrices from %s (ignoring trial projections).\n", fname.c_str());
+		for(size_t ik=0; ik<kMesh.size(); ik++)
+		{	kMesh[ik].U0.init(nCenters, nCenters);
+			kMesh[ik].U0.read(fp);
 		}
+		fclose(fp);
+		readInitialMats = true;
 	}
 	
 	//Compute the overlap matrices and initial rotations for current group of centers:
@@ -70,13 +52,13 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 		}
 		else //recv
 		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
-			{	Cother[q].init(e.eInfo.nBands, e.basis[q].nbasis, &e.basis[q], &e.eInfo.qnums[q]);
+			{	Cother[q].init(nBands, e.basis[q].nbasis, &e.basis[q], &e.eInfo.qnums[q]);
 				Cother[q].bcast(jProcess);
 			}
 		}
 		
 		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
-		{	ColumnBundle Ci = getWfns(kMesh[ik].point, centers, iSpin); //Bloch functions at ik
+		{	ColumnBundle Ci = getWfns(kMesh[ik].point, iSpin); //Bloch functions at ik
 			ColumnBundle OCi = O(Ci);
 			//Overlap with neighbours:
 			for(EdgeFD& edge: kMesh[ik].edge)
@@ -94,12 +76,12 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 					}
 					//Compute overlap if reverse edge not yet computed:
 					if(!foundReverse)
-						edge.M0 = OCi ^ getWfns(edge.point, centers, iSpin);
+						edge.M0 = OCi ^ getWfns(edge.point, iSpin);
 				}
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
 			{	//Initial rotation:
 				if(!readInitialMats)
-				{	matrix CdagOg = OCi ^ trialWfns(kMesh[ik].point, centers);
+				{	matrix CdagOg = OCi ^ trialWfns(kMesh[ik].point);
 					kMesh[ik].U0 = CdagOg * invsqrt(dagger(CdagOg) * CdagOg);
 				}
 			}
@@ -109,15 +91,15 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	//Broadcast overlaps and initial rotations:
 	for(size_t ik=0; ik<kMesh.size(); ik++)
 	{	for(EdgeFD& edge: kMesh[ik].edge)
-		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(centers.size(), centers.size());
+		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nCenters, nCenters);
 			edge.M0.bcast(whose_q(ik,iSpin));
 			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
 		}
 		if(!readInitialMats)
-		{	if(!isMine_q(ik,iSpin)) kMesh[ik].U0 = zeroes(centers.size(), centers.size());
+		{	if(!isMine_q(ik,iSpin)) kMesh[ik].U0 = zeroes(nCenters, nCenters);
 			kMesh[ik].U0.bcast(whose_q(ik,iSpin));
 		}
-		kMesh[ik].B = zeroes(centers.size(), centers.size());
+		kMesh[ik].B = zeroes(nCenters, nCenters);
 	}
 	
 	//Apply initial rotations to the overlap matrices:
@@ -129,16 +111,16 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	minimize(wannier.minParams);
 	
 	//Save the matrices:
-	{	string fname = wannier.getFilename(false, UvarName);
-		logPrintf("Dumping '%s' ... ", fname.c_str());
-		if(mpiUtil->isHead())
-		{	FILE* fp = fopen(fname.c_str(), "w");
-			for(const auto& kMeshEntry: kMesh)
-				(kMeshEntry.U0 * kMeshEntry.V).write(fp);
-			fclose(fp);
-		}
-		logPrintf("done.\n"); logFlush();
+	fname = wannier.getFilename(false, "Umlwf", &iSpin);
+	logPrintf("Dumping '%s' ... ", fname.c_str());
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "w");
+		for(const auto& kMeshEntry: kMesh)
+			(kMeshEntry.U0 * kMeshEntry.V).write(fp);
+		fclose(fp);
 	}
+	logPrintf("done.\n"); logFlush();
+
 	
 	//Save supercell wavefunctions:
 	const vector3<int>& nSuper = wannier.supercell;
@@ -146,12 +128,11 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	const vector3<int>& S = e.gInfo.S;
 	size_t nrSuper = e.gInfo.nr * nSuper[0]*nSuper[1]*nSuper[2];
 	complex *psiSuper = new complex[nrSuper], *phaseSuper = new complex[nSuper[2]];
-	for(unsigned n=0; n<centers.size(); n++)
+	for(int n=0; n<nCenters; n++)
 	{	//Generate filename
 		ostringstream varName;
-		varName << centers[n].band << ".mlwf";
-		if(nSpins==2) varName << (iSpin==0 ? "Up" : "Dn");
-		string fname = wannier.getFilename(false, varName.str());
+		varName << n << ".mlwf";
+		string fname = wannier.getFilename(false, varName.str(), &iSpin);
 		logPrintf("Dumping '%s':\n", fname.c_str());
 		//Print stats for function:
 		vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
@@ -165,8 +146,8 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 		eblas_zero(nrSuper, psiSuper);
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	complexDataRptr psi = 
-				I( (getWfns(kMesh[i].point, centers, iSpin) //original wavefunctions transformed to common basis
-					* (kMesh[i].U0 * kMesh[i].V)(0,centers.size(), n,n+1) //combined to n'th localized function
+				I( (getWfns(kMesh[i].point, iSpin) //original wavefunctions transformed to common basis
+					* (kMesh[i].U0 * kMesh[i].V)(0,nCenters, n,n+1) //combined to n'th localized function
 					).getColumn(0) ); //expand to full-G space and then put in real space
 			multiplyBlochPhase(psi, kMesh[i].point.k); //multiply by exp(i k.r) (for r in base unit cell)
 			//Accumulate with appropriate phases in each unit cell
@@ -222,13 +203,13 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	std::vector<matrix> Hwannier(nSuper[0]*nSuper[1]*nSuper[2]);
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:
-		matrix Hsub(centers.size(), centers.size());
+		matrix Hsub(nCenters, nCenters);
 		{	complex* HsubData = Hsub.data();
 			const matrix& HsubFull = e.eVars.Hsub[kMesh[i].point.q + iSpin*qCount];
 			const complex* HsubFullData = HsubFull.data();
-			for(size_t c1=0; c1<centers.size(); c1++)
-				for(size_t c2=0; c2<centers.size(); c2++)
-					HsubData[Hsub.index(c1,c2)] = HsubFullData[HsubFull.index(centers[c1].band,centers[c2].band)];
+			for(int c1=0; c1<nCenters; c1++)
+				for(int c2=0; c2<nCenters; c2++)
+					HsubData[Hsub.index(c1,c2)] = HsubFullData[HsubFull.index(wannier.bStart+c1,wannier.bStart+c2)];
 		}
 		//Apply MLWF-optimizd rotation:
 		matrix U = kMesh[i].U0 * kMesh[i].V;
@@ -243,21 +224,18 @@ void WannierMinimizer::saveMLWF(const std::vector<Wannier::Center>& centers, int
 	}
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file
-	{	string Hvarname = UvarName;
-		Hvarname.replace(Hvarname.find("Umlwf"), 5, "Hmlwf");
-		string fname = wannier.getFilename(false, Hvarname);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		if(mpiUtil->isHead())
-		{	FILE* fp = fopen(fname.c_str(), "wb");
-			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-			for(matrix& H: Hwannier)
-			{	if(wannier.convertReal)
-					H.write_real(fp);
-				else
-					H.write(fp);
-			}
-			fclose(fp);
+	fname = wannier.getFilename(false, "Hmlwf", &iSpin);
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "wb");
+		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+		for(matrix& H: Hwannier)
+		{	if(wannier.convertReal)
+				H.write_real(fp);
+			else
+				H.write(fp);
 		}
-		logPrintf("done.\n"); logFlush();
+		fclose(fp);
 	}
+	logPrintf("done.\n"); logFlush();
 }

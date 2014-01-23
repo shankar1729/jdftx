@@ -43,8 +43,8 @@ public:
 	WannierMinimizer(const Everything& e, const Wannier& wannier);
 	virtual ~WannierMinimizer() {}
 	
-	void saveMLWF(const std::vector<Wannier::Center>& centers); //save wannier functions for all spins
-	void saveMLWF(const std::vector<Wannier::Center>& centers, int iSpin); //save for specified spin
+	void saveMLWF(); //save wannier functions for all spins
+	void saveMLWF(int iSpin); //save for specified spin
 	
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
@@ -68,6 +68,7 @@ private:
 	const Everything& e;
 	const Wannier& wannier;
 	const std::vector< matrix3<int> >& sym;
+	int nCenters, nBands; //!< number of Wannier centers and source bands
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
@@ -129,11 +130,11 @@ private:
 	
 	//! Get the wavefunctions for a particular k-point for bands involved in current group
 	//! The wavefunctions are returned in the common basis
-	ColumnBundle getWfns(const Kpoint& kpoint, const std::vector<Wannier::Center>& centers, int iSpin) const;
+	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process
 	
 	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis
-	ColumnBundle trialWfns(const Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const;
+	ColumnBundle trialWfns(const Kpoint& kpoint) const;
 };
 
 #endif // JDFTX_ELECTRONIC_WANNIERMINIMIZER_H

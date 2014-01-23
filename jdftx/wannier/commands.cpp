@@ -23,22 +23,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Wannier-specific commands affect this static object:
 Wannier wannier;
 
-struct CommandWannier : public Command
+struct CommandWannierCenter : public Command
 {
-	CommandWannier() : Command("wannier")
+	CommandWannierCenter() : Command("wannier-center")
 	{
-		format = "<center1> [<center2> ...] with each <center> = <band> <x0> <x1> <x2> <a> <orbDesc>";
+		format = "<x0> <x1> <x2> <a> <orbDesc>";
 		comments =
-			"Specify a group of bands to be combined into Maximally-Localized\n"
-			"Wannier Functions (MLWF). There are as many centers as bands in\n"
-			"each group. The center is selected by a hydrogenic orbital centered at\n"
-			"<x0>,<x1>,<x2> (coordinate system set by coords-type) with decay length\n"
+			"Specify trial orbital for a wannier function as a hydrogenic orbital centered\n"
+			"at <x0>,<x1>,<x2> (coordinate system set by coords-type) with decay length\n"
 			"<a> bohrs, and with <orbDesc> as in command density-of-states. Note that\n"
 			"<a> sets the decay length of the nodeless orbital of specified angular\n"
-			"momentum in <orbDesc>. The command may be specified multiple times,\n"
-			"one for each group. Wannier functions will be saved in files\n"
-			"<band>.mlwf (or <band>.mlwfUp/.mlwfDn with spin) at the end;\n"
-			"the dump frequency can be controlled using the dump command.";
+			"momentum in <orbDesc>. Specify the command once for each Wannier function.";
 		allowMultiple = true;
 		require("wannier-supercell");
 		require("wannier-initial-state");
@@ -50,40 +45,29 @@ struct CommandWannier : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	std::vector<Wannier::Center> group;
-		while(true)
-		{	Wannier::Center center; string orbDesc;
-			pl.get(center.band, -1, "band");
-			if(center.band==-1) break; //end of input
-			pl.get(center.r[0], 0., "x0", true);
-			pl.get(center.r[1], 0., "x1", true);
-			pl.get(center.r[2], 0., "x2", true);
-			pl.get(center.a, 1., "a", true);
-			pl.get(orbDesc, string(), "orbDesc", true);
-			center.orbitalDesc.parse(orbDesc);
-			if(center.orbitalDesc.m > center.orbitalDesc.l)
-				throw(string("Must specify a specific projection eg. px,py (not just p)"));
-			if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
-				throw(string("Hydrogenic orbitals with n+l>4 not supported"));
-			//Transform coordinates if necessary
-			if(e.iInfo.coordsType == CoordsCartesian)
-				center.r = inv(e.gInfo.R)*center.r;
-			group.push_back(center);
-		}
-		if(!group.size())
-			throw(string("Each wannier group must contain at least one center"));
-		wannier.group.push_back(group);
+	{	Wannier::Center center; string orbDesc;
+		pl.get(center.r[0], 0., "x0", true);
+		pl.get(center.r[1], 0., "x1", true);
+		pl.get(center.r[2], 0., "x2", true);
+		pl.get(center.a, 1., "a", true);
+		pl.get(orbDesc, string(), "orbDesc", true);
+		center.orbitalDesc.parse(orbDesc);
+		if(center.orbitalDesc.m > center.orbitalDesc.l)
+			throw(string("Must specify a specific projection eg. px,py (not just p)"));
+		if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
+			throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+		//Transform coordinates if necessary
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center.r = inv(e.gInfo.R)*center.r;
+		wannier.centers.push_back(center);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	std::vector<Wannier::Center>& group = wannier.group[iRep];
-		for(size_t i=0; i<group.size(); i++)
-		{	if(group.size()>1) logPrintf(" \\\n\t");
-			vector3<> r = group[i].r;
-			if(e.iInfo.coordsType == CoordsCartesian)
-				r = e.gInfo.R * r; //report cartesian positions
-			logPrintf("%d    %lg %lg %lg  %lg  %s", group[i].band, r[0], r[1], r[2], group[i].a, string(group[i].orbitalDesc).c_str());
-		}
+	{	const Wannier::Center& center = wannier.centers[iRep];
+		vector3<> r = center.r;
+		if(e.iInfo.coordsType == CoordsCartesian)
+			r = e.gInfo.R * r; //report cartesian positions
+		logPrintf("%lg %lg %lg  %lg  %s", r[0], r[1], r[2], center.a, string(center.orbitalDesc).c_str());
 	}
 }
 commandWannier;

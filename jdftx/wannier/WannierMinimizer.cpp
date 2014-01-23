@@ -197,17 +197,17 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 	indexMap[kpoint] = index;
 }
 
-ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, const std::vector<Wannier::Center>& centers, int iSpin) const
+ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
 {	const Index& index = *(indexMap.find(kpoint)->second);
-	ColumnBundle ret(centers.size(), basis.nbasis, &basis, 0, isGpuEnabled());
+	ColumnBundle ret(nCenters, basis.nbasis, &basis, 0, isGpuEnabled());
 	ret.zero();
 	//Pick required bands, and scatter from reduced basis to common basis with transformations:
 	int q = kpoint.q + iSpin*qCount;
 	const ColumnBundle& C = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
 	assert(C);
-	for(unsigned c=0; c<centers.size(); c++)
+	for(int c=0; c<nCenters; c++)
 		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., index.dataPref,
-			C.dataPref()+C.index(centers[c].band,0), ret.dataPref()+ret.index(c,0));
+			C.dataPref()+C.index(wannier.bStart+c,0), ret.dataPref()+ret.index(c,0));
 	//Complex conjugate if inversion symmetry employed:
 	if(kpoint.invert < 0)
 		callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
@@ -246,13 +246,13 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 	return 0.;
 }
 
-ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint, const std::vector<Wannier::Center>& centers) const
-{	ColumnBundle ret(centers.size(), basis.nbasis, &basis, 0, isGpuEnabled());
+ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
+{	ColumnBundle ret(nCenters, basis.nbasis, &basis, 0, isGpuEnabled());
 	#ifdef GPU_ENABLED
 	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
 	#endif
 	complex* retData = ret.dataPref();
-	for(auto c: centers)
+	for(auto c: wannier.centers)
 	{	const DOS::Weight::OrbitalDesc& od = c.orbitalDesc;
 		//--- Copy the center to GPU if necessary:
 		#ifdef GPU_ENABLED

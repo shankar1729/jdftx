@@ -28,22 +28,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class Wannier
 {
 public:
+	Wannier();
 	void setup(const Everything& everything);
 	
 	struct Center
-	{	int band; //!< source band
-		vector3<> r; //!< guess for center of localized wannier function
+	{	vector3<> r; //!< guess for center of localized wannier function
 		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 	};
+	std::vector<Center> centers; //!< group of centers
+	
+	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
+	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)
+	double eInnerMin, eInnerMax; //!< inner energy window (within which all bands used)
+	bool outerWindow, innerWindow; //!< denotes which windows are available
 	
 	string initFilename, dumpFilename; //!< filename patterns for input and output
-	std::vector< std::vector<Center> > group; //!< list of groups of centers (the bands in each group are linearly combined)
 	vector3<int> supercell; //!< number of unit cells per dimension in supercell
 	bool convertReal; //!< whether to convert wannier functions to real ones by phase removal
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
-	string getFilename(bool init, string varName) const; //get filename for varName, based on initFilename if init=true and on dumpFilename otherwise
+	
+	//! Get filename for varName, based on initFilename if init=true and on dumpFilename otherwise.
+	//! Optionally include Up/Dn suffix if spin is non-null and calculation is polarized
+	string getFilename(bool init, string varName, int* spin=0) const; 
 	
 private:
 	const Everything* e;

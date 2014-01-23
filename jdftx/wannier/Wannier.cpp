@@ -20,6 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/Wannier.h>
 #include <wannier/WannierMinimizer.h>
 
+Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false)
+{
+}
+
 void Wannier::setup(const Everything& everything)
 {	e = &everything;
 	//Initialize minimization parameters:
@@ -33,12 +37,14 @@ void Wannier::setup(const Everything& everything)
 }
 
 void Wannier::saveMLWF()
-{	for(auto g: group)
-		wmin->saveMLWF(g);
+{	wmin->saveMLWF();
 }
 
-string Wannier::getFilename(bool init, string varName) const
+string Wannier::getFilename(bool init, string varName, int* spin) const
 {	string fname = init ? initFilename : dumpFilename;
-	fname.replace(fname.find("$VAR"), 4, varName);
+	string spinSuffix;
+	if(spin && e->eInfo.spinType==SpinZ)
+		spinSuffix = (*spin)==0 ? "Up" : "Dn";
+	fname.replace(fname.find("$VAR"), 4, varName+spinSuffix);
 	return fname;
 }

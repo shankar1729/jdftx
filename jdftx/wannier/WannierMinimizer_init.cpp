@@ -102,6 +102,7 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 inline vector3<> getCoord(const WannierMinimizer::Kpoint& kpoint) { return kpoint.k; }
 
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
+	nCenters(wannier.centers.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
 {
 	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
