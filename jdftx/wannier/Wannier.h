@@ -22,13 +22,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/MinimizeParams.h>
 #include <electronic/DOS.h>
+#include <memory>
 
 //! Compute Maximally-Localized Wannier Functions
 class Wannier
 {
 public:
-	Wannier();
-	~Wannier();
 	void setup(const Everything& everything);
 	
 	struct Center
@@ -47,9 +46,8 @@ public:
 private:
 	const Everything* e;
 	MinimizeParams minParams;
-	class WannierEval* eval; //!< opaque struct to evaluator
-	friend class WannierEval;
-	friend class CommandDebug;
+	std::shared_ptr<class WannierMinimizer> wmin; //!< opaque struct to minimizer
+	friend class WannierMinimizer;
 	friend class CommandWannierMinimize;
 };
 
