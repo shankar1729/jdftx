@@ -177,23 +177,18 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	fp= fopen(fname.c_str(), "wb");
 			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 		}
-		if(wannier.convertReal)
-		{	//Convert to a real wavefunction:
-			double meanPhase, sigmaPhase, rmsImagErr;
-			removePhase(nrSuper, psiSuper, meanPhase, sigmaPhase, rmsImagErr);
-			logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
-			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
-			logFlush();
-			//Write real part of supercell wavefunction to file:
-			if(fp)
-				for(size_t i=0; i<nrSuper; i++)
-					fwrite(psiSuper+i, sizeof(double), 1, fp);
+		//Convert to a real wavefunction:
+		double meanPhase, sigmaPhase, rmsImagErr;
+		removePhase(nrSuper, psiSuper, meanPhase, sigmaPhase, rmsImagErr);
+		logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
+		logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
+		logFlush();
+		//Write real part of supercell wavefunction to file:
+		if(fp)
+		{	for(size_t i=0; i<nrSuper; i++)
+				fwrite(psiSuper+i, sizeof(double), 1, fp);
+			fclose(fp);
 		}
-		else
-		{	//Write complex function as is:
-			if(fp) fwrite(psiSuper, sizeof(complex), nrSuper, fp);
-		}
-		if(fp) fclose(fp);
 	}
 	delete[] psiSuper;
 	delete[] phaseSuper;
@@ -229,12 +224,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "wb");
 		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-		for(matrix& H: Hwannier)
-		{	if(wannier.convertReal)
-				H.write_real(fp);
-			else
-				H.write(fp);
-		}
+		for(matrix& H: Hwannier) H.write_real(fp);
 		fclose(fp);
 	}
 	logPrintf("done.\n"); logFlush();

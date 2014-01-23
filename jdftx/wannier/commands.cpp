@@ -70,37 +70,26 @@ struct CommandWannierCenter : public Command
 		logPrintf("%lg %lg %lg  %lg  %s", r[0], r[1], r[2], center.a, string(center.orbitalDesc).c_str());
 	}
 }
-commandWannier;
-
-EnumStringMap<bool> realMap
-(	true, "Real",
-	false, "Complex"
-);
+commandWannierCenter;
 
 struct CommandWannierSupercell : public Command
 {
 	CommandWannierSupercell() : Command("wannier-supercell")
 	{
-		format = "<n0> <n1> <n2> [<scalar>="+realMap.optionList()+"]";
+		format = "<n0> <n1> <n2>";
 		comments = "Number of unit cells in wannier function output.\n"
 			"The supercell spans from ceil(-<ni>/2) to ceil(<ni>/2)\n"
-			"in lattice coordinates along each dimension i=0,1,2.\n"
-			"<scalar>=Real outputs real double precision functions\n"
-			"on the supercell after phase elimination (default)\n"
-			"while Complex outputs the complex functions directly.";
+			"in lattice coordinates along each dimension i=0,1,2.";
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(wannier.supercell[0], 0, "n0", true);
 		pl.get(wannier.supercell[1], 0, "n1", true);
 		pl.get(wannier.supercell[2], 0, "n2", true);
-		pl.get(wannier.convertReal, true, realMap, "scalar");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d %d %d %s", wannier.supercell[0],
-			wannier.supercell[1], wannier.supercell[2],
-			realMap.getString(wannier.convertReal));
+	{	logPrintf("%d %d %d", wannier.supercell[0], wannier.supercell[1], wannier.supercell[2]);
 	}
 }
 commandWannierSupercell;

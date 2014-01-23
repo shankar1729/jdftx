@@ -45,7 +45,6 @@ public:
 	
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	vector3<int> supercell; //!< number of unit cells per dimension in supercell
-	bool convertReal; //!< whether to convert wannier functions to real ones by phase removal
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
