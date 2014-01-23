@@ -27,7 +27,7 @@ struct CommandWannierCenter : public Command
 {
 	CommandWannierCenter() : Command("wannier-center")
 	{
-		format = "<x0> <x1> <x2> <a> <orbDesc>";
+		format = "<x0> <x1> <x2> [<a>=1] [<orbDesc>=s]";
 		comments =
 			"Specify trial orbital for a wannier function as a hydrogenic orbital centered\n"
 			"at <x0>,<x1>,<x2> (coordinate system set by coords-type) with decay length\n"
@@ -49,13 +49,20 @@ struct CommandWannierCenter : public Command
 		pl.get(center.r[0], 0., "x0", true);
 		pl.get(center.r[1], 0., "x1", true);
 		pl.get(center.r[2], 0., "x2", true);
-		pl.get(center.a, 1., "a", true);
-		pl.get(orbDesc, string(), "orbDesc", true);
-		center.orbitalDesc.parse(orbDesc);
-		if(center.orbitalDesc.m > center.orbitalDesc.l)
-			throw(string("Must specify a specific projection eg. px,py (not just p)"));
-		if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
-			throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+		pl.get(center.a, 1., "a");
+		pl.get(orbDesc, string(), "orbDesc");
+		if(orbDesc.length())
+		{	center.orbitalDesc.parse(orbDesc);
+			if(center.orbitalDesc.m > center.orbitalDesc.l)
+				throw(string("Must specify a specific projection eg. px,py (not just p)"));
+			if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
+				throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+		}
+		else //default is nodeless s orbital
+		{	center.orbitalDesc.l = 0;
+			center.orbitalDesc.m = 0;
+			center.orbitalDesc.n = 0;
+		}
 		//Transform coordinates if necessary
 		if(e.iInfo.coordsType == CoordsCartesian)
 			center.r = inv(e.gInfo.R)*center.r;
