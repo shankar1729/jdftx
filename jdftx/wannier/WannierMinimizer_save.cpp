@@ -130,72 +130,45 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	logPrintf("done.\n"); logFlush();
 
+	//Compute supercell wavefunctions:
+	logPrintf("Computing supercell wavefunctions ... "); logFlush();
+	ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, 0, isGpuEnabled());
+	Csuper.zero();
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * wk);
+	Csuper.allReduce(MPIUtil::ReduceSum);
+	Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
+	logPrintf("done.\n"); logFlush();
 	
 	//Save supercell wavefunctions:
-	const vector3<int>& nSuper = wannier.supercell;
-	vector3<int> offsetSuper(-nSuper[0]/2, -nSuper[1]/2, -nSuper[2]/2); //supercell offset
-	const vector3<int>& S = e.gInfo.S;
-	size_t nrSuper = e.gInfo.nr * nSuper[0]*nSuper[1]*nSuper[2];
-	complex *psiSuper = new complex[nrSuper], *phaseSuper = new complex[nSuper[2]];
 	for(int n=0; n<nCenters; n++)
 	{	//Generate filename
 		ostringstream varName;
 		varName << n << ".mlwf";
 		string fname = wannier.getFilename(false, varName.str(), &iSpin);
 		logPrintf("Dumping '%s':\n", fname.c_str());
-		//Generate supercell function:
-		eblas_zero(nrSuper, psiSuper);
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		{	complexDataRptr psi = 
-				I( (getWfns(kMesh[i].point, iSpin) //original wavefunctions transformed to common basis
-					* (kMesh[i].U0 * kMesh[i].V)(0,nCenters, n,n+1) //combined to n'th localized function
-					).getColumn(0) ); //expand to full-G space and then put in real space
-			multiplyBlochPhase(psi, kMesh[i].point.k); //multiply by exp(i k.r) (for r in base unit cell)
-			//Accumulate with appropriate phases in each unit cell
-			complex* psiData = psi->data();
-			vector3<int> iSuper, iCell; //index of supercell and index within cell
-			for(iCell[0]=0; iCell[0]<S[0]; iCell[0]++)
-			for(iCell[1]=0; iCell[1]<S[1]; iCell[1]++)
-				for(iSuper[0]=0; iSuper[0]<nSuper[0]; iSuper[0]++)
-				for(iSuper[1]=0; iSuper[1]<nSuper[1]; iSuper[1]++)
-				{	size_t inOffset = S[2]*(iCell[1] + S[1]*iCell[0]);
-					size_t outOffset = S[2]*nSuper[2]*
-						(iCell[1] + S[1]*(iSuper[1] + nSuper[1]*
-							(iCell[0] + S[0]*iSuper[0]) ) );
-					//Compute the supercell phases for each iSuper[2]:
-					for(iSuper[2]=0; iSuper[2]<nSuper[2]; iSuper[2]++)
-						phaseSuper[iSuper[2]] = cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper));
-					//Accumulate wavefunction for all iSuper[2] and iCell[2] using BLAS2:
-					complex alpha = wk;
-					cblas_zgeru(CblasColMajor, S[2], nSuper[2], &alpha,
-						psiData+inOffset, 1, phaseSuper, 1,
-						psiSuper+outOffset, S[2]);
-				}
-		}
-		mpiUtil->allReduce((double*)psiSuper, nrSuper*2, MPIUtil::ReduceSum);
-		FILE* fp = 0;
-		if(mpiUtil->isHead())
-		{	fp= fopen(fname.c_str(), "wb");
-			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-		}
-		//Convert to a real wavefunction:
+		//Convert to real space and remove phase:
+		complexDataRptr psi = I(Csuper.getColumn(n));
+		complex* psiData = psi->data();
 		double meanPhase, sigmaPhase, rmsImagErr;
-		removePhase(nrSuper, psiSuper, meanPhase, sigmaPhase, rmsImagErr);
+		removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
 		logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
 		logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
 		logFlush();
 		//Write real part of supercell wavefunction to file:
-		if(fp)
-		{	for(size_t i=0; i<nrSuper; i++)
-				fwrite(psiSuper+i, sizeof(double), 1, fp);
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "wb");
+			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+			for(int i=0; i<gInfoSuper.nr; i++)
+				fwrite(psiData+i, sizeof(double), 1, fp);
 			fclose(fp);
 		}
 	}
-	delete[] psiSuper;
-	delete[] phaseSuper;
-	
+
 	return; //TODO: Add Hsub read-in so that the following works
 	//Save Hamiltonian in Wannier basis:
+	const vector3<int>& nSuper = wannier.supercell;
+	vector3<int> offsetSuper(-nSuper[0]/2, -nSuper[1]/2, -nSuper[2]/2); //supercell offset
 	std::vector<matrix> Hwannier(nSuper[0]*nSuper[1]*nSuper[2]);
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:

@@ -107,9 +107,16 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 {
 	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
 
+	//Create supercell grid:
+	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
+	const Supercell& supercell = *(e.coulombParams.supercell);
+	gInfoSuper.R = supercell.Rsuper;
+	gInfoSuper.Gmax = e.gInfo.Gmax;
+	gInfoSuper.GmaxRho = e.gInfo.GmaxRho;
+	gInfoSuper.initialize(true, sym);
+
 	//Determine finite difference formula:
 	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
-	const Supercell& supercell = *(e.coulombParams.supercell);
 	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
 	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
 	vector3<int> ik;
@@ -150,10 +157,11 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		kpoint.invert = src.invert;
 		kpoint.offset = src.offset;
 		kpoint.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
-		addIndex(kpoint);
 	}
 	wk = 1./kpoints.size();
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
+	if(plook.find(vector3<>())==string::npos)
+		die("k-mesh does not contain Gamma point. Wannier requires uniform Gamma-centered k-mesh.\n");
 	
 	//Determine distribution amongst processes:
 	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
@@ -165,6 +173,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	{	//Store the k-point with its FD formula in kMesh
 		KmeshEntry& kMeshEntry = kMesh[i];
 		kMeshEntry.point = kpoints[i];
+		addIndex(kMeshEntry.point);
 		for(unsigned j=0; j<wb.size(); j++)
 		{	EdgeFD edge;
 			edge.wb = wb[j];
@@ -183,10 +192,12 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	
 	//Create the common reduced basis set (union of all the reduced bases)
 	//Collect all referenced full-G indices
-	std::set<int> commonSet;
+	std::set<int> commonSet, commonSuperSet;
 	for(auto index: indexMap)
 		for(int j=0; j<index.second->nIndices; j++)
-			commonSet.insert(index.second->data[j]);
+		{	commonSet.insert(index.second->data[j]);
+			commonSuperSet.insert(index.second->dataSuper[j]);
+		}
 	//Convert to a Basis object, and create inverse map
 	std::vector<int> indexCommon(commonSet.size());
 	std::map<int,int> commonInverseMap;
@@ -197,11 +208,23 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		commonInverseMap[i] = j;
 	}
 	basis.setup(e.gInfo, e.iInfo, indexCommon);
+	//Liekwise for supercell:
+	std::vector<int> indexSuperCommon(commonSuperSet.size());
+	std::map<int,int> commonSuperInverseMap;
+	auto superSetIter = commonSuperSet.begin();
+	for(unsigned j=0; j<indexSuperCommon.size(); j++)
+	{	int i = *(superSetIter++);
+		indexSuperCommon[j] = i;
+		commonSuperInverseMap[i] = j;
+	}
+	basisSuper.setup(gInfoSuper, e.iInfo, indexSuperCommon);
 	//Update indexMap to point to common reduced basis instead of full G:
 	for(auto mapEntry: indexMap)
 	{	Index& index = *mapEntry.second;
 		for(int j=0; j<index.nIndices; j++)
-			index.data[j] = commonInverseMap[index.data[j]];
+		{	index.data[j] = commonInverseMap[index.data[j]];
+			index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
+		}
 		index.set();
 	}
 	

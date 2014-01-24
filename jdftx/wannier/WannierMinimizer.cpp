@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>
+#include <core/LatticeUtils.h>
 
 //---- linear algebra functions required by Minimizable<WannierGradient> -----
 
@@ -164,14 +165,18 @@ bool WannierMinimizer::Kpoint::operator==(const WannierMinimizer::Kpoint& other)
 
 WannierMinimizer::Index::Index(int nIndices) : nIndices(nIndices), dataPref(0)
 {	data = new int[nIndices];
+	dataSuper = new int[nIndices];
 	#ifdef GPU_ENABLED
 	dataGpu = 0;
+	dataSuperGpu = 0;
 	#endif
 }
 WannierMinimizer::Index::~Index()
 {	delete[] data;
+	delete[] dataSuper;
 	#ifdef GPU_ENABLED
 	if(dataGpu) cudaFree(dataGpu);
+	if(dataSuperGpu) cudaFree(dataSuperGpu);
 	#endif
 }
 void WannierMinimizer::Index::set()
@@ -180,25 +185,42 @@ void WannierMinimizer::Index::set()
 	cudaMalloc(&dataGpu, sizeof(int)*nIndices); gpuErrorCheck();
 	cudaMemcpy(dataGpu, data, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
 	dataPref = dataGpu;
+	cudaMalloc(&dataSuperGpu, sizeof(int)*nIndices); gpuErrorCheck();
+	cudaMemcpy(dataSuperGpu, dataSuper, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
+	dataSuperPref = dataSuperGpu;
 	#else
 	dataPref = data;
+	dataSuperPref = dataSuper;
 	#endif
 }
 
 void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 {	if(indexMap.find(kpoint)!=indexMap.end()) return; //previously computed
+	//Determine integer offset due to k-point in supercell basis:
+	const matrix3<int>& super = e.coulombParams.supercell->super;
+	vector3<> ksuperTemp = kpoint.k * super; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
+	vector3<int> ksuper; //integer version of above
+	for(int l=0; l<3; l++)
+	{	ksuper[l] = int(round(ksuperTemp[l]));
+		assert(fabs(ksuper[l]-ksuperTemp[l]) < symmThreshold);
+	}
 	//Compute transformed index array (mapping to full G-space)
 	const Basis& basis = e.basis[kpoint.q];
 	std::shared_ptr<Index> index(new Index(basis.nbasis));
 	const matrix3<int> mRot = (~sym[kpoint.iRot]) * kpoint.invert;
 	for(int j=0; j<index->nIndices; j++)
-		index->data[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kpoint.offset);
+	{	vector3<int> iGrot = mRot * basis.iGarr[j] - kpoint.offset;
+		index->data[j] = e.gInfo.fullGindex(iGrot);
+		index->dataSuper[j] = gInfoSuper.fullGindex(ksuper + iGrot*super);
+	}
 	//Save to map:
 	indexMap[kpoint] = index;
 }
 
-ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
+ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin, bool super) const
 {	const Index& index = *(indexMap.find(kpoint)->second);
+	const int* indexData = super ? index.dataSuperPref : index.dataPref;
+	const Basis& basis = super ? this->basisSuper : this->basis;
 	ColumnBundle ret(nCenters, basis.nbasis, &basis, 0, isGpuEnabled());
 	ret.zero();
 	//Pick required bands, and scatter from reduced basis to common basis with transformations:
@@ -206,7 +228,7 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	const ColumnBundle& C = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
 	assert(C);
 	for(int c=0; c<nCenters; c++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., index.dataPref,
+		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., indexData,
 			C.dataPref()+C.index(wannier.bStart+c,0), ret.dataPref()+ret.index(c,0));
 	//Complex conjugate if inversion symmetry employed:
 	if(kpoint.invert < 0)

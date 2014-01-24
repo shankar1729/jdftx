@@ -74,6 +74,10 @@ private:
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
 	matrix kHelmholtzInv; //!< Inverse of Hemlholtz equation in k-space (preconditioner)
 	
+	//Supercell grid and basis:
+	GridInfo gInfoSuper;
+	Basis basisSuper;
+	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct EdgeFD
 	{	double wb; //!< weight of neighbour
@@ -96,13 +100,14 @@ private:
 	};
 	
 	//!Indices from reduced basis to full G-space or a union of all reduced bases
+	//!The super-suffixed versions indicate indices into the G-sphere/fftbox of the supercell
 	struct Index
 	{	const int nIndices;
-		int* data;
+		int *data, *dataSuper;
 		#ifdef GPU_ENABLED
-		int* dataGpu;
+		int *dataGpu, *dataSuperGpu;
 		#endif
-		int* dataPref;
+		int *dataPref, *dataSuperPref;
 		
 		Index(int nIndices=0); //!< allocate space for indices
 		~Index();
@@ -129,8 +134,8 @@ private:
 	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
 	//! Get the wavefunctions for a particular k-point for bands involved in current group
-	//! The wavefunctions are returned in the common basis
-	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
+	//! The wavefunctions are returned in the common basis by default and in the supercell basis if super=true
+	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin, bool super=false) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process
 	
 	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis

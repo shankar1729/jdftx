@@ -389,10 +389,11 @@ void translate_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr,
 #endif
 ColumnBundle translate(ColumnBundle&& Y, vector3<> dr)
 {	const Basis& basis = *Y.basis;
+	vector3<> k = Y.qnum ? Y.qnum->k : vector3<>();
 	#ifdef GPU_ENABLED
-	translate_gpu(Y.colLength(), Y.nCols(), Y.dataGpu(), basis.iGarrGpu, Y.qnum->k, dr);
+	translate_gpu(Y.colLength(), Y.nCols(), Y.dataGpu(), basis.iGarrGpu, k, dr);
 	#else
-	threadedLoop(translate_calc, Y.colLength(), Y.colLength(), Y.nCols(), Y.data(), basis.iGarr, Y.qnum->k, dr);
+	threadedLoop(translate_calc, Y.colLength(), Y.colLength(), Y.nCols(), Y.data(), basis.iGarr, k, dr);
 	#endif
 	return Y;
 }
@@ -407,7 +408,8 @@ void translateColumns(int nbasis, int ncols, complex* Y, const vector3<int>* iGa
 void translateColumns_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr);
 #endif
 void translateColumns(ColumnBundle& Y, const vector3<>* dr)
-{	callPref(translateColumns)(Y.colLength(), Y.nCols(), Y.dataPref(), Y.basis->iGarrPref, Y.qnum->k, dr);
+{	vector3<> k = Y.qnum ? Y.qnum->k : vector3<>();
+	callPref(translateColumns)(Y.colLength(), Y.nCols(), Y.dataPref(), Y.basis->iGarrPref, k, dr);
 }
 
 
