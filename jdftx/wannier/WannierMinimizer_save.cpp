@@ -167,31 +167,19 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 	}
 
-	return; //TODO: Add Hsub read-in so that the following works
 	//Save Hamiltonian in Wannier basis:
-	const vector3<int>& nSuper = wannier.supercell;
-	vector3<int> offsetSuper(-nSuper[0]/2, -nSuper[1]/2, -nSuper[2]/2); //supercell offset
-	std::vector<matrix> Hwannier(nSuper[0]*nSuper[1]*nSuper[2]);
+	std::vector<matrix> Hwannier(iCellMap.size());
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:
-		matrix Hsub(nCenters, nCenters);
-		{	complex* HsubData = Hsub.data();
-			const matrix& HsubFull = e.eVars.Hsub[kMesh[i].point.q + iSpin*qCount];
-			const complex* HsubFullData = HsubFull.data();
-			for(int c1=0; c1<nCenters; c1++)
-				for(int c2=0; c2<nCenters; c2++)
-					HsubData[Hsub.index(c1,c2)] = HsubFullData[HsubFull.index(wannier.bStart+c1,wannier.bStart+c2)];
-		}
-		//Apply MLWF-optimizd rotation:
+		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.q + iSpin*qCount](wannier.bStart,wannier.bStart+nCenters);
+		//Apply MLWF-optimized rotation:
 		matrix U = kMesh[i].U0 * kMesh[i].V;
 		Hsub = dagger(U) * Hsub * U;
 		//Accumulate with each requested Bloch phase
 		vector3<int> iSuper;
 		std::vector<matrix>::iterator HwannierIter = Hwannier.begin();
-		for(iSuper[0]=0; iSuper[0]<nSuper[0]; iSuper[0]++)
-		for(iSuper[1]=0; iSuper[1]<nSuper[1]; iSuper[1]++)
-		for(iSuper[2]=0; iSuper[2]<nSuper[2]; iSuper[2]++)
-			*(HwannierIter++) += (wk * cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper))) * Hsub;
+		for(auto cell: iCellMap)
+			*(HwannierIter++) += (cell.second * wk * cis(2*M_PI*dot(kMesh[i].point.k, cell.first))) * Hsub;
 	}
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file

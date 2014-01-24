@@ -78,7 +78,8 @@ private:
 	GridInfo gInfoSuper;
 	Basis basisSuper;
 	QuantumNumber qnumSuper;
-
+	std::map<vector3<int>,double> iCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
+	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct EdgeFD
 	{	double wb; //!< weight of neighbour

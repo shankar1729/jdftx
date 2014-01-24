@@ -46,6 +46,7 @@ int main(int argc, char** argv)
 	//Setup:
 	e.setup();
 	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
+	e.eInfo.read(e.eVars.Hsub_eigs, wannier.getFilename(true, "eigenvals").c_str()); //read eigenvalues
 	wannier.setup(e);
 	Citations::print();
 	if(dryRun)
