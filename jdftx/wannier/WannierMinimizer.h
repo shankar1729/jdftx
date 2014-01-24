@@ -86,7 +86,6 @@ private:
 	//!Entries in the k-point mesh with FD formula
 	struct KmeshEntry
 	{	Kpoint point; //!< point in the mesh
-		double wk; //!< weight of k-point for Brillouin zone integration
 		std::vector<EdgeFD> edge; //!< neighbours with weights defining finite difference formula
 		//State of system for Wannier minimize:
 		matrix B; //!< Independent variable for minimization
@@ -114,6 +113,7 @@ private:
 		Index& operator=(const Index&)=delete;
 	};
 	
+	double wk; //!< weight of each k-point for Brillouin zone integration
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::map<Kpoint, std::shared_ptr<Index> > indexMap; //!< wave-function indexing from each k-point to the common union basis
 	Basis basis; //!< common basis (with indexing into full G-space)

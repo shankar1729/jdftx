@@ -106,102 +106,79 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
 {
 	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
-	logPrintf("Setting up finite difference formula on k-mesh ...\n"); logFlush();
+
+	//Determine finite difference formula:
+	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
+	const Supercell& supercell = *(e.coulombParams.supercell);
+	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
+	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
+	vector3<int> ik;
+	for(ik[0]=-2; ik[0]<=+2; ik[0]++)
+	for(ik[1]=-2; ik[1]<=+2; ik[1]++)
+	for(ik[2]=-2; ik[2]<=+2; ik[2]++)
+		if(ik.length_squared()) //ignore self
+		{	vector3<> dk = kbasis * ik;
+			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
+		}
+	std::vector< vector3<> > b; //list of cartesian offsets to corresponding neighbours
+	std::vector<double> wb; //corresponding weights in finite difference formula
+	for(auto iter=dkMap.begin(); iter!=dkMap.end(); )
+	{	//Add all the neighbours with equivalent distances:
+		while(true)
+		{	b.push_back(iter->second);
+			double prevDist = iter->first;
+			iter++;
+			if(iter==dkMap.end() || //end of neighbour list (should not be encountered)
+				iter->first > prevDist+symmThreshold) //next neighbour is further away beyond tolerance
+				break;
+		}
+		//Check if this list of neighbours is sufficient to get a finite difference formula
+		wb = getFDformula(b);
+		if(wb.size() == b.size()) break; //success
+	}
+	if(!wb.size()) die("failed.\n");
+	logPrintf("found a %lu neighbour formula.\n", wb.size());
+	
+	//Create a list of kpoints:
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
-	//Create the list of images (closed under the symmetry group):
-	const std::vector<int>& invertList = e.symm.getKpointInvertList();
-	std::vector<Kpoint> kpoints;
-	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT, qnums.size()*sym.size()); //look-up table for O(1) fuzzy searching
-	for(int invert: invertList)
-		for(int q=0; q<qCount; q++)
-			for(unsigned iRot=0; iRot<sym.size(); iRot++)
-			{	vector3<> k = (~sym[iRot]) * qnums[q].k * invert;
-				//Find offset that brings it into centered zone
-				vector3<int> offset;
-				for(int i=0; i<3; i++)
-				{	offset[i] = -floor(k[i]+0.5);
-					k[i] += offset[i];
-				}
-				//Add to map if this k-vector has not yet been encountered:
-				if(plook.find(k) == string::npos)
-				{	Kpoint kpoint = { k, q, iRot, invert, offset };
-					plook.addPoint(kpoints.size(), kpoint);
-					kpoints.push_back(kpoint);
-					addIndex(kpoint);
-				}
-			}
+	std::vector<Kpoint> kpoints(supercell.kmeshTransform.size());
+	for(size_t i=0; i<kpoints.size(); i++)
+	{	const Supercell::KmeshTransform& src = supercell.kmeshTransform[i];
+		Kpoint& kpoint = kpoints[i];
+		kpoint.q = src.iReduced;
+		kpoint.iRot = src.iSym;
+		kpoint.invert = src.invert;
+		kpoint.offset = src.offset;
+		kpoint.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
+		addIndex(kpoint);
+	}
+	wk = 1./kpoints.size();
+	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	
 	//Determine distribution amongst processes:
 	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
 	ikStop = (kpoints.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
 	
+	//Create the mesh structure with neighbour info:
 	kMesh.resize(kpoints.size());
 	for(size_t i=0; i<kMesh.size(); i++) //FD formula needed on all nodes for initial matrix generation
-	{	//Create a list of neighbours for FD formula:
-		//Collect from 3x3x3 lowest Brillouin zones (for worst case Gamma-only scenario)
-		//This could be optimized, but this is unlikely to ever be too expensive
-		struct Neighbour
-		{	vector3<> dk; //difference from current k-point
-			unsigned ik; //index of source k-point
-			vector3<int> iG; //brillouin zone index (additional offset)
-		};
-		std::multimap<double,Neighbour> neighbourMap; //neighbours sorted by distance
-		
-		vector3<int> iG;
-		for(iG[0]=-1; iG[0]<=+1; iG[0]++)
-			for(iG[1]=-1; iG[1]<=+1; iG[1]++)
-				for(iG[2]=-1; iG[2]<=+1; iG[2]++)
-					for(unsigned j=0; j<kpoints.size(); j++)
-					{	Neighbour neighbour = { iG + kpoints[j].k - kpoints[i].k, j, iG };
-						double dist = sqrt(e.gInfo.GGT.metric_length_squared(neighbour.dk));
-						if(dist > symmThreshold) //ignore self
-							neighbourMap.insert(std::make_pair(dist, neighbour));
-					}
-		
-		std::vector<Neighbour> neighbours; //list of neighbours chosen so far
-		std::vector< vector3<> > b; //list of cartesian offsets to corresponding neighbours
-		std::vector<double> wb; //corresponding weights in finite difference formula
-		
-		for(auto iter=neighbourMap.begin(); iter!=neighbourMap.end(); )
-		{	//Add all the neighbours with equivalent distances:
-			while(true)
-			{	neighbours.push_back(iter->second);
-				b.push_back(e.gInfo.GT * iter->second.dk);
-				double prevDist = iter->first;
-				iter++;
-				if(iter==neighbourMap.end() || //end of neighbour list (should not be encountered)
-					iter->first > prevDist+symmThreshold) //next neighbour is further away beyond tolerance
-					break;
-			}
-			//Check if this list of neighbours is sufficient to get a finite difference formula
-			wb = getFDformula(b);
-			if(wb.size() == b.size()) break; //success
-		}
-		if(!wb.size())
-			die("Failed to find a second order finite difference formula around k-point [ %lg %lg %lg ].\n",
-				kpoints[i].k[0], kpoints[i].k[1], kpoints[i].k[2]);
-		
-		//Store the k-point with its FD formula in kMesh
+	{	//Store the k-point with its FD formula in kMesh
 		KmeshEntry& kMeshEntry = kMesh[i];
 		kMeshEntry.point = kpoints[i];
 		for(unsigned j=0; j<wb.size(); j++)
 		{	EdgeFD edge;
 			edge.wb = wb[j];
 			edge.b = b[j];
-			edge.ik = neighbours[j].ik;
-			edge.point = kpoints[neighbours[j].ik];
-			edge.point.offset += neighbours[j].iG;
-			edge.point.k += vector3<>(neighbours[j].iG);
+			//Find neighbour:
+			vector3<> kj = kpoints[i].k + inv(e.gInfo.GT) * b[j];
+			edge.ik = plook.find(kj);
+			edge.point = kpoints[edge.ik];
+			for(int l=0; l<3; l++)
+				edge.point.offset[l] += int(round(kj[l] - edge.point.k[l])); //extra offset
+			edge.point.k = kj;
 			addIndex(edge.point);
 			kMeshEntry.edge.push_back(edge);
 		}
-		//Find the Brillouin zone integration weight for the k-point:
-		int nStabilizer = 0; //size of the stabilizer subgroup
-		for(int invert: invertList)
-			for(const matrix3<int>& m: sym)
-				if(circDistanceSquared(kpoints[i].k, (~m)*qnums[kpoints[i].q].k*invert) < symmThresholdSq)
-						nStabilizer++;
-		kMeshEntry.wk = nStabilizer * qnums[kpoints[i].q].weight * (0.5*nSpins) / (sym.size() * invertList.size());
 	}
 	
 	//Create the common reduced basis set (union of all the reduced bases)
@@ -238,9 +215,9 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	{	double wSum = 0.;
 		for(EdgeFD& edge: kMesh[ik].edge)
 		{	wSum += edge.wb;
-			helmholtzData[helmholtz.index(ik,edge.ik)] -= kMesh[ik].wk * edge.wb;
+			helmholtzData[helmholtz.index(ik,edge.ik)] -= wk * edge.wb;
 		}
-		helmholtzData[helmholtz.index(ik,ik)] += kMesh[ik].wk * (wSum + kappa*kappa);
+		helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
 	}
 	helmholtz.allReduce(MPIUtil::ReduceSum);
 	if(nrm2(helmholtz-dagger(helmholtz)) > symmThresholdSq * nrm2(helmholtz))

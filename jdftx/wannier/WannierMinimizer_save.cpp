@@ -29,7 +29,7 @@ void WannierMinimizer::saveMLWF()
 void WannierMinimizer::saveMLWF(int iSpin)
 {	
 	//Check for initial state:
-	string fname = wannier.getFilename(true, "Umlwf", &iSpin);
+	string fname = wannier.getFilename(true, "mlwfU", &iSpin);
 	bool readInitialMats = false;
 	FILE* fp = fopen(fname.c_str(), "r");
 	if(fp)
@@ -110,8 +110,17 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//Minimize:
 	minimize(wannier.minParams);
 	
+	//List the centers:
+	logPrintf("Centers in %s coords:\n", e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");
+	for(int n=0; n<nCenters; n++)
+	{	vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
+			? rExpect[n] : e.gInfo.invR * rExpect[n]; //r in coordinate system of choice
+		logPrintf("\t[ %lg %lg %lg ] spread: %lg bohrs\n", rCoords[0], rCoords[1], rCoords[2], sqrt(rSqExpect[n] - rExpect[n].length_squared()));
+	}
+	logFlush();
+	
 	//Save the matrices:
-	fname = wannier.getFilename(false, "Umlwf", &iSpin);
+	fname = wannier.getFilename(false, "mlwfU", &iSpin);
 	logPrintf("Dumping '%s' ... ", fname.c_str());
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
@@ -134,14 +143,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		varName << n << ".mlwf";
 		string fname = wannier.getFilename(false, varName.str(), &iSpin);
 		logPrintf("Dumping '%s':\n", fname.c_str());
-		//Print stats for function:
-		vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
-			? rExpect[n] : e.gInfo.invR * rExpect[n]; //r in coordinate system of choice
-		logPrintf("\tCenter: [ %lg %lg %lg ] (%s coords)\n", rCoords[0], rCoords[1], rCoords[2],
-			e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");
-		logPrintf("\tSpread: %lg bohrs\n", sqrt(rSqExpect[n] - rExpect[n].length_squared()));
-		logFlush();
-		
 		//Generate supercell function:
 		eblas_zero(nrSuper, psiSuper);
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
@@ -165,7 +166,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					for(iSuper[2]=0; iSuper[2]<nSuper[2]; iSuper[2]++)
 						phaseSuper[iSuper[2]] = cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper));
 					//Accumulate wavefunction for all iSuper[2] and iCell[2] using BLAS2:
-					complex alpha = kMesh[i].wk;
+					complex alpha = wk;
 					cblas_zgeru(CblasColMajor, S[2], nSuper[2], &alpha,
 						psiData+inOffset, 1, phaseSuper, 1,
 						psiSuper+outOffset, S[2]);
@@ -215,11 +216,11 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		for(iSuper[0]=0; iSuper[0]<nSuper[0]; iSuper[0]++)
 		for(iSuper[1]=0; iSuper[1]<nSuper[1]; iSuper[1]++)
 		for(iSuper[2]=0; iSuper[2]<nSuper[2]; iSuper[2]++)
-			*(HwannierIter++) += (kMesh[i].wk * cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper))) * Hsub;
+			*(HwannierIter++) += (wk * cis(2*M_PI*dot(kMesh[i].point.k, offsetSuper+iSuper))) * Hsub;
 	}
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file
-	fname = wannier.getFilename(false, "Hmlwf", &iSpin);
+	fname = wannier.getFilename(false, "mlwfH", &iSpin);
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "wb");

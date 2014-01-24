@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	
 	//Setup:
 	e.setup();
-	//if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
+	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
 	wannier.setup(e);
 	Citations::print();
 	if(dryRun)

@@ -79,8 +79,8 @@ double WannierMinimizer::compute(WannierGradient* grad)
 			for(int n=0; n<nCenters; n++)
 			{	complex Mnn = Mdata[M.index(n,n)];
 				double argMnn = atan2(Mnn.imag(), Mnn.real());
-				rExpect[n] -= (kMesh[i].wk * edge.wb * argMnn) * edge.b;
-				rSqExpect[n] += kMesh[i].wk * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
+				rExpect[n] -= (wk * edge.wb * argMnn) * edge.b;
+				rSqExpect[n] += wk * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
 			}
 		}
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
@@ -110,7 +110,7 @@ double WannierMinimizer::compute(WannierGradient* grad)
 				{	complex Mnn = Mdata[M.index(n,n)];
 					double argMnn = atan2(Mnn.imag(), Mnn.real());
 					rVariance_Mdata[rVariance_M.index(n,n)] =
-						(2./nCenters) * kMesh[i].wk * edge.wb
+						(2./nCenters) * wk * edge.wb
 						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate to drVariance/dBi and drVariance/dBj:

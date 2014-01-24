@@ -30,7 +30,7 @@ void Wannier::setup(const Everything& everything)
 	minParams.fpLog = globalLog;
 	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "rVariance";
-	//Initialize wminuator:
+	//Initialize minimizer:
 	wmin = std::make_shared<WannierMinimizer>(*e, *this);
 	Citations::add("Maximally-localized Wannier functions",
 		"N. Marzari and D. Vanderbilt, Phys. Rev. B 56, 12847 (1997)");
