@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <electronic/operators.h>
-
+#include <core/LatticeUtils.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -132,7 +132,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 
 	//Compute supercell wavefunctions:
 	logPrintf("Computing supercell wavefunctions ... "); logFlush();
-	ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, 0, isGpuEnabled());
+	ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 	Csuper.zero();
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * wk);
@@ -149,6 +149,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("Dumping '%s':\n", fname.c_str());
 		//Convert to real space and remove phase:
 		complexDataRptr psi = I(Csuper.getColumn(n));
+		if(qnumSuper.k.length_squared() > symmThresholdSq)
+			multiplyBlochPhase(psi, qnumSuper.k);
 		complex* psiData = psi->data();
 		double meanPhase, sigmaPhase, rmsImagErr;
 		removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);

@@ -160,8 +160,18 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	}
 	wk = 1./kpoints.size();
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
-	if(plook.find(vector3<>())==string::npos)
-		die("k-mesh does not contain Gamma point. Wannier requires uniform Gamma-centered k-mesh.\n");
+	
+	//Determine overall Bloch wavevector of supercell (if any)
+	qnumSuper.weight = 1.;
+	qnumSuper.spin = 0.;
+	qnumSuper.k = kpoints[0].k * supercell.super;
+	for(int l=0; l<3; l++)
+		qnumSuper.k[l] -= floor(0.5+qnumSuper.k[l]);
+	if(qnumSuper.k.length_squared()>symmThresholdSq)
+	{	logPrintf("WARNING: k-mesh does not contain Gamma point. Orbitals will not be strictly periodic on supercell,\n"
+			"\tbecause of an overall Bloch wave-vector: ");
+		qnumSuper.k.print(globalLog, " %lf ");
+	}
 	
 	//Determine distribution amongst processes:
 	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();

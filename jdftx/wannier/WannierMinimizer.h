@@ -77,7 +77,8 @@ private:
 	//Supercell grid and basis:
 	GridInfo gInfoSuper;
 	Basis basisSuper;
-	
+	QuantumNumber qnumSuper;
+
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct EdgeFD
 	{	double wb; //!< weight of neighbour

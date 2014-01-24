@@ -198,7 +198,7 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 {	if(indexMap.find(kpoint)!=indexMap.end()) return; //previously computed
 	//Determine integer offset due to k-point in supercell basis:
 	const matrix3<int>& super = e.coulombParams.supercell->super;
-	vector3<> ksuperTemp = kpoint.k * super; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
+	vector3<> ksuperTemp = kpoint.k * super - qnumSuper.k; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
 	vector3<int> ksuper; //integer version of above
 	for(int l=0; l<3; l++)
 	{	ksuper[l] = int(round(ksuperTemp[l]));
