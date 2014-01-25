@@ -130,43 +130,45 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	logPrintf("done.\n"); logFlush();
 
-	//Compute supercell wavefunctions:
-	logPrintf("Computing supercell wavefunctions ... "); logFlush();
-	ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
-	Csuper.zero();
-	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * wk);
-	Csuper.allReduce(MPIUtil::ReduceSum);
-	Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
-	logPrintf("done.\n"); logFlush();
-	
-	//Save supercell wavefunctions:
-	for(int n=0; n<nCenters; n++)
-	{	//Generate filename
-		ostringstream varName;
-		varName << n << ".mlwf";
-		string fname = wannier.getFilename(false, varName.str(), &iSpin);
-		logPrintf("Dumping '%s':\n", fname.c_str());
-		//Convert to real space and remove phase:
-		complexDataRptr psi = I(Csuper.getColumn(n));
-		if(qnumSuper.k.length_squared() > symmThresholdSq)
-			multiplyBlochPhase(psi, qnumSuper.k);
-		complex* psiData = psi->data();
-		double meanPhase, sigmaPhase, rmsImagErr;
-		removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
-		logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
-		logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
-		logFlush();
-		//Write real part of supercell wavefunction to file:
-		if(mpiUtil->isHead())
-		{	FILE* fp = fopen(fname.c_str(), "wb");
-			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-			for(int i=0; i<gInfoSuper.nr; i++)
-				fwrite(psiData+i, sizeof(double), 1, fp);
-			fclose(fp);
+	if(wannier.saveWfns)
+	{	//--- Compute supercell wavefunctions:
+		logPrintf("Computing supercell wavefunctions ... "); logFlush();
+		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
+		Csuper.zero();
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * wk);
+		Csuper.allReduce(MPIUtil::ReduceSum);
+		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
+		logPrintf("done.\n"); logFlush();
+		
+		//--- Save supercell wavefunctions:
+		for(int n=0; n<nCenters; n++)
+		{	//Generate filename
+			ostringstream varName;
+			varName << n << ".mlwf";
+			string fname = wannier.getFilename(false, varName.str(), &iSpin);
+			logPrintf("Dumping '%s':\n", fname.c_str());
+			//Convert to real space and remove phase:
+			complexDataRptr psi = I(Csuper.getColumn(n));
+			if(qnumSuper.k.length_squared() > symmThresholdSq)
+				multiplyBlochPhase(psi, qnumSuper.k);
+			complex* psiData = psi->data();
+			double meanPhase, sigmaPhase, rmsImagErr;
+			removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
+			logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
+			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
+			logFlush();
+			//Write real part of supercell wavefunction to file:
+			if(mpiUtil->isHead())
+			{	FILE* fp = fopen(fname.c_str(), "wb");
+				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+				for(int i=0; i<gInfoSuper.nr; i++)
+					fwrite(psiData+i, sizeof(double), 1, fp);
+				fclose(fp);
+			}
 		}
 	}
-
+	
 	//Save Hamiltonian in Wannier basis:
 	std::vector<matrix> Hwannier(iCellMap.size());
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))

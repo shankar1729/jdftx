@@ -23,6 +23,82 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Wannier-specific commands affect this static object:
 Wannier wannier;
 
+enum WannierMember
+{	WM_bStart,
+	WM_outerWindow,
+	WM_innerWindow,
+	WM_saveWfns,
+	WM_delim
+};
+
+EnumStringMap<WannierMember> wannierMemberMap
+(	WM_bStart, "bStart",
+	WM_outerWindow, "outerWindow",
+	WM_innerWindow, "innerWindow",
+	WM_saveWfns, "saveWfns"
+);
+
+struct CommandWannier : public Command
+{
+	CommandWannier() : Command("wannier")
+	{
+		format = "<key1> <args1...>  <key2> <args2...>  ...";
+		comments =
+			"Control wannier calculation and output. The possible <key>'s and their\n"
+			"corresponding arguments are:\n"
+			"  bStart <band>\n"
+			"    For fixed band calculations, 0-based index of lowest band used.\n"
+			"    The number of bands equals the number of wannier-centers specified.\n"
+			"    Default: 0. Use in insulator calculations to ignore semi-core orbitals.\n"
+			"  outerWindow <eMin> <eMax>\n"
+			"    Energy window within which bands contribute to wannier functions\n"
+			"    bStart is ignored if outerWindow is specified.\n"
+			"  innerWindow <eMin> <eMax>\n"
+			"    Inner energy window within which bands are used exactly.\n"
+			"    Outer energy window must be specified to use this.\n"
+			"  saveWfns yes|no\n"
+			"    Whether to write supercell wavefunctions (can be enormous).\n"
+			"    Default: no.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	while(true)
+		{	WannierMember key; pl.get(key, WM_delim, wannierMemberMap, "key");
+			if(key==WM_delim) break;
+			switch(key)
+			{	case WM_bStart:
+					pl.get(wannier.bStart, 0, "band", true);
+					break;
+				case WM_outerWindow:
+					pl.get(wannier.eOuterMin, 0., "eMin", true);
+					pl.get(wannier.eOuterMax, 0., "eMax", true);
+					wannier.outerWindow = true;
+					break;
+				case WM_innerWindow:
+					pl.get(wannier.eInnerMin, 0., "eMin", true);
+					pl.get(wannier.eInnerMax, 0., "eMax", true);
+					wannier.innerWindow = true;
+					break;
+				case WM_saveWfns:
+					pl.get(wannier.saveWfns, false, boolMap, "saveWfns", true);
+					break;
+				case WM_delim: //should never be encountered
+					break;
+			}
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("saveWfns %s", boolMap.getString(wannier.saveWfns));
+		if(wannier.outerWindow) logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
+		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
+		if(!(wannier.innerWindow || wannier.outerWindow))
+			logPrintf(" \\\n\tbStart %d", wannier.bStart);
+	}
+}
+commandWannier;
+
+
 struct CommandWannierCenter : public Command
 {
 	CommandWannierCenter() : Command("wannier-center")
@@ -35,7 +111,6 @@ struct CommandWannierCenter : public Command
 			"<a> sets the decay length of the nodeless orbital of specified angular\n"
 			"momentum in <orbDesc>. Specify the command once for each Wannier function.";
 		allowMultiple = true;
-		require("wannier-supercell");
 		require("wannier-initial-state");
 		require("wannier-dump-name");
 		
@@ -79,27 +154,6 @@ struct CommandWannierCenter : public Command
 }
 commandWannierCenter;
 
-struct CommandWannierSupercell : public Command
-{
-	CommandWannierSupercell() : Command("wannier-supercell")
-	{
-		format = "<n0> <n1> <n2>";
-		comments = "Number of unit cells in wannier function output.\n"
-			"The supercell spans from ceil(-<ni>/2) to ceil(<ni>/2)\n"
-			"in lattice coordinates along each dimension i=0,1,2.";
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(wannier.supercell[0], 0, "n0", true);
-		pl.get(wannier.supercell[1], 0, "n1", true);
-		pl.get(wannier.supercell[2], 0, "n2", true);
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d %d %d", wannier.supercell[0], wannier.supercell[1], wannier.supercell[2]);
-	}
-}
-commandWannierSupercell;
 
 struct CommandWannierMinimize : public CommandMinimize
 {	CommandWannierMinimize() : CommandMinimize("wannier") {}

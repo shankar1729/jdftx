@@ -43,8 +43,8 @@ public:
 	double eInnerMin, eInnerMax; //!< inner energy window (within which all bands used)
 	bool outerWindow, innerWindow; //!< denotes which windows are available
 	
+	bool saveWfns; //!< whether to write wavefunctions
 	string initFilename, dumpFilename; //!< filename patterns for input and output
-	vector3<int> supercell; //!< number of unit cells per dimension in supercell
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	

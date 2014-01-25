@@ -163,9 +163,9 @@ bool WannierMinimizer::Kpoint::operator==(const WannierMinimizer::Kpoint& other)
 }
 
 
-WannierMinimizer::Index::Index(int nIndices) : nIndices(nIndices), dataPref(0)
+WannierMinimizer::Index::Index(int nIndices, bool needSuper) : nIndices(nIndices), dataPref(0), dataSuperPref(0)
 {	data = new int[nIndices];
-	dataSuper = new int[nIndices];
+	dataSuper = needSuper ? new int[nIndices] : 0;
 	#ifdef GPU_ENABLED
 	dataGpu = 0;
 	dataSuperGpu = 0;
@@ -173,7 +173,7 @@ WannierMinimizer::Index::Index(int nIndices) : nIndices(nIndices), dataPref(0)
 }
 WannierMinimizer::Index::~Index()
 {	delete[] data;
-	delete[] dataSuper;
+	if(dataSuper) delete[] dataSuper;
 	#ifdef GPU_ENABLED
 	if(dataGpu) cudaFree(dataGpu);
 	if(dataSuperGpu) cudaFree(dataSuperGpu);
@@ -185,8 +185,11 @@ void WannierMinimizer::Index::set()
 	cudaMalloc(&dataGpu, sizeof(int)*nIndices); gpuErrorCheck();
 	cudaMemcpy(dataGpu, data, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
 	dataPref = dataGpu;
-	cudaMalloc(&dataSuperGpu, sizeof(int)*nIndices); gpuErrorCheck();
-	cudaMemcpy(dataSuperGpu, dataSuper, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
+	if(dataSuper)
+	{	cudaMalloc(&dataSuperGpu, sizeof(int)*nIndices); gpuErrorCheck();
+		cudaMemcpy(dataSuperGpu, dataSuper, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
+	}
+	else dataSuperGpu = 0;
 	dataSuperPref = dataSuperGpu;
 	#else
 	dataPref = data;
@@ -198,20 +201,23 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 {	if(indexMap.find(kpoint)!=indexMap.end()) return; //previously computed
 	//Determine integer offset due to k-point in supercell basis:
 	const matrix3<int>& super = e.coulombParams.supercell->super;
-	vector3<> ksuperTemp = kpoint.k * super - qnumSuper.k; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
 	vector3<int> ksuper; //integer version of above
-	for(int l=0; l<3; l++)
-	{	ksuper[l] = int(round(ksuperTemp[l]));
-		assert(fabs(ksuper[l]-ksuperTemp[l]) < symmThreshold);
+	if(wannier.saveWfns)
+	{	vector3<> ksuperTemp = kpoint.k * super - qnumSuper.k; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
+		for(int l=0; l<3; l++)
+		{	ksuper[l] = int(round(ksuperTemp[l]));
+			assert(fabs(ksuper[l]-ksuperTemp[l]) < symmThreshold);
+		}
 	}
 	//Compute transformed index array (mapping to full G-space)
 	const Basis& basis = e.basis[kpoint.q];
-	std::shared_ptr<Index> index(new Index(basis.nbasis));
+	std::shared_ptr<Index> index(new Index(basis.nbasis, wannier.saveWfns));
 	const matrix3<int> mRot = (~sym[kpoint.iRot]) * kpoint.invert;
 	for(int j=0; j<index->nIndices; j++)
 	{	vector3<int> iGrot = mRot * basis.iGarr[j] - kpoint.offset;
 		index->data[j] = e.gInfo.fullGindex(iGrot);
-		index->dataSuper[j] = gInfoSuper.fullGindex(ksuper + iGrot*super);
+		if(wannier.saveWfns)
+			index->dataSuper[j] = gInfoSuper.fullGindex(ksuper + iGrot*super);
 	}
 	//Save to map:
 	indexMap[kpoint] = index;

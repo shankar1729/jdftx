@@ -111,7 +111,7 @@ private:
 		#endif
 		int *dataPref, *dataSuperPref;
 		
-		Index(int nIndices=0); //!< allocate space for indices
+		Index(int nIndices=0, bool needSuper=false); //!< allocate space for indices (optionally for supercell version as well)
 		~Index();
 		void set(); //!< update gpu-copies
 		

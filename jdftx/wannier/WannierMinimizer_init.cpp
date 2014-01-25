@@ -114,7 +114,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	gInfoSuper.R = supercell.Rsuper;
 	gInfoSuper.Gmax = e.gInfo.Gmax;
 	gInfoSuper.GmaxRho = e.gInfo.GmaxRho;
-	gInfoSuper.initialize(true, sym);
+	if(wannier.saveWfns) gInfoSuper.initialize(true, sym);
 
 	//Initialize cell map (for matrix element output):
 	WignerSeitz ws(gInfoSuper.R);
@@ -222,15 +222,17 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	
 	//Determine overall Bloch wavevector of supercell (if any)
-	qnumSuper.weight = 1.;
-	qnumSuper.spin = 0.;
-	qnumSuper.k = kpoints[0].k * supercell.super;
-	for(int l=0; l<3; l++)
-		qnumSuper.k[l] -= floor(0.5+qnumSuper.k[l]);
-	if(qnumSuper.k.length_squared()>symmThresholdSq)
-	{	logPrintf("WARNING: k-mesh does not contain Gamma point. Orbitals will not be strictly periodic on supercell,\n"
-			"\tbecause of an overall Bloch wave-vector: ");
-		qnumSuper.k.print(globalLog, " %lf ");
+	if(wannier.saveWfns)
+	{	qnumSuper.weight = 1.;
+		qnumSuper.spin = 0.;
+		qnumSuper.k = kpoints[0].k * supercell.super;
+		for(int l=0; l<3; l++)
+			qnumSuper.k[l] -= floor(0.5+qnumSuper.k[l]);
+		if(qnumSuper.k.length_squared()>symmThresholdSq)
+		{	logPrintf("WARNING: k-mesh does not contain Gamma point. Orbitals will not be strictly periodic on supercell,\n"
+				"\tbecause of an overall Bloch wave-vector: ");
+			qnumSuper.k.print(globalLog, " %lf ");
+		}
 	}
 	
 	//Determine distribution amongst processes:
@@ -266,7 +268,8 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	for(auto index: indexMap)
 		for(int j=0; j<index.second->nIndices; j++)
 		{	commonSet.insert(index.second->data[j]);
-			commonSuperSet.insert(index.second->dataSuper[j]);
+			if(wannier.saveWfns)
+				commonSuperSet.insert(index.second->dataSuper[j]);
 		}
 	//Convert to a Basis object, and create inverse map
 	std::vector<int> indexCommon(commonSet.size());
@@ -281,19 +284,22 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	//Liekwise for supercell:
 	std::vector<int> indexSuperCommon(commonSuperSet.size());
 	std::map<int,int> commonSuperInverseMap;
-	auto superSetIter = commonSuperSet.begin();
-	for(unsigned j=0; j<indexSuperCommon.size(); j++)
-	{	int i = *(superSetIter++);
-		indexSuperCommon[j] = i;
-		commonSuperInverseMap[i] = j;
+	if(wannier.saveWfns)
+	{	auto superSetIter = commonSuperSet.begin();
+		for(unsigned j=0; j<indexSuperCommon.size(); j++)
+		{	int i = *(superSetIter++);
+			indexSuperCommon[j] = i;
+			commonSuperInverseMap[i] = j;
+		}
+		basisSuper.setup(gInfoSuper, e.iInfo, indexSuperCommon);
 	}
-	basisSuper.setup(gInfoSuper, e.iInfo, indexSuperCommon);
 	//Update indexMap to point to common reduced basis instead of full G:
 	for(auto mapEntry: indexMap)
 	{	Index& index = *mapEntry.second;
 		for(int j=0; j<index.nIndices; j++)
 		{	index.data[j] = commonInverseMap[index.data[j]];
-			index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
+			if(wannier.saveWfns)
+				index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
 		}
 		index.set();
 	}

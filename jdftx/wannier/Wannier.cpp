@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/Wannier.h>
 #include <wannier/WannierMinimizer.h>
 
-Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false)
+Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false), saveWfns(false)
 {
 }
 
