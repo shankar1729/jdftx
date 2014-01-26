@@ -147,7 +147,7 @@ private:
 	std::vector<matrix> Qint; //!< overlap augmentation matrix (indexed by l, empty if no augmentation)
 	matrix QintAll; //!< block matrix containing Qint for all l,m 
 	
-	std::map< vector3<>, std::shared_ptr<ColumnBundle> > cachedV; //cached projectors (by k-point, assuming projectors are spin-independent)
+	std::map<std::pair<vector3<>,const Basis*>, std::shared_ptr<ColumnBundle> > cachedV; //cached projectors (identified by k-point and basis pointer)
 	
 	struct QijIndex
 	{	int l1, p1; //!< Angular momentum and projector index for channel i

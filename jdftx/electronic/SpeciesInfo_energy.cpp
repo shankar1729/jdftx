@@ -196,11 +196,12 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
+	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
 	int nProj = MnlAll.nRows();
 	if(!nProj) return 0; //purely local psp
 	//First check cache
 	if(e->cntrl.cacheProjectors)
-	{	auto iter = cachedV.find(qnum.k);
+	{	auto iter = cachedV.find(cacheKey);
 		if(iter != cachedV.end()) //found
 			return iter->second; //return cached value
 	}
@@ -217,6 +218,6 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 			}
 	//Add to cache if necessary:
 	if(e->cntrl.cacheProjectors)
-		((SpeciesInfo*)this)->cachedV[qnum.k] = V;
+		((SpeciesInfo*)this)->cachedV[cacheKey] = V;
 	return V;
 }

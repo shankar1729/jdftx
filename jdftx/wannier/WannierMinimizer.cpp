@@ -80,8 +80,8 @@ double WannierMinimizer::compute(WannierGradient* grad)
 			for(int n=0; n<nCenters; n++)
 			{	complex Mnn = Mdata[M.index(n,n)];
 				double argMnn = atan2(Mnn.imag(), Mnn.real());
-				rExpect[n] -= (wk * edge.wb * argMnn) * edge.b;
-				rSqExpect[n] += wk * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
+				rExpect[n] -= (kMesh[i].point.weight * edge.wb * argMnn) * edge.b;
+				rSqExpect[n] += kMesh[i].point.weight * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
 			}
 		}
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
@@ -111,7 +111,7 @@ double WannierMinimizer::compute(WannierGradient* grad)
 				{	complex Mnn = Mdata[M.index(n,n)];
 					double argMnn = atan2(Mnn.imag(), Mnn.real());
 					rVariance_Mdata[rVariance_M.index(n,n)] =
-						(2./nCenters) * wk * edge.wb
+						(2./nCenters) * kMesh[i].point.weight * edge.wb
 						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate to drVariance/dBi and drVariance/dBj:
@@ -207,7 +207,8 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 {	const Index& index = *(indexMap.find(kpoint)->second);
 	const int* indexData = super ? index.dataSuperPref : index.dataPref;
 	const Basis& basis = super ? this->basisSuper : this->basis;
-	ColumnBundle ret(nCenters, basis.nbasis, &basis, 0, isGpuEnabled());
+	const QuantumNumber& qnum = super ? this->qnumSuper : kpoint;
+	ColumnBundle ret(nCenters, basis.nbasis, &basis, &qnum, isGpuEnabled());
 	ret.zero();
 	//Pick required bands, and scatter from reduced basis to common basis with transformations:
 	int q = kpoint.q + iSpin*qCount;
@@ -255,7 +256,7 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 }
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
-{	ColumnBundle ret(nCenters, basis.nbasis, &basis, 0, isGpuEnabled());
+{	ColumnBundle ret(nCenters, basis.nbasis, &basis, &kpoint, isGpuEnabled());
 	#ifdef GPU_ENABLED
 	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
 	#endif

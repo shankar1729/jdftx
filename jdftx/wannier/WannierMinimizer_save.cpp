@@ -136,7 +136,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 		Csuper.zero();
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * wk);
+			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * kMesh[i].point.weight);
 		Csuper.allReduce(MPIUtil::ReduceSum);
 		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
 		logPrintf("done.\n"); logFlush();
@@ -181,7 +181,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		vector3<int> iSuper;
 		std::vector<matrix>::iterator HwannierIter = Hwannier.begin();
 		for(auto cell: iCellMap)
-			*(HwannierIter++) += (cell.second * wk * cis(2*M_PI*dot(kMesh[i].point.k, cell.first))) * Hsub;
+			*(HwannierIter++) += (cell.second * kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first))) * Hsub;
 	}
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file

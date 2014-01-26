@@ -52,7 +52,7 @@ public:
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Entries in the k-point mesh
-	struct Kpoint
+	struct Kpoint : public QuantumNumber
 	{	vector3<> k; //!< k-point in reciprocal lattice coordinates
 		int q; //!< source state
 		unsigned iRot; //!< symmetry matrix index from state q to this kpoint
@@ -118,7 +118,6 @@ private:
 		Index& operator=(const Index&)=delete;
 	};
 	
-	double wk; //!< weight of each k-point for Brillouin zone integration
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::map<Kpoint, std::shared_ptr<Index> > indexMap; //!< wave-function indexing from each k-point to the common union basis
 	Basis basis; //!< common basis (with indexing into full G-space)

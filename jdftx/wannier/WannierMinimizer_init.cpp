@@ -236,8 +236,8 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		kpoint.invert = src.invert;
 		kpoint.offset = src.offset;
 		kpoint.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
+		kpoint.weight = 1./kpoints.size();
 	}
-	wk = 1./kpoints.size();
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	
 	//Determine overall Bloch wavevector of supercell (if any)
