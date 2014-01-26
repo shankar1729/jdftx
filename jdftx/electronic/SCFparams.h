@@ -68,7 +68,7 @@ struct SCFparams
 		mixFraction = 0.5;
 		qKerker = -1.; //i.e. auto-set
 		qMetric = -1.; //i.e. auto-set
-		history = 15;
+		history = 10;
 		sp_constraint = 0.;
 	}
 };
