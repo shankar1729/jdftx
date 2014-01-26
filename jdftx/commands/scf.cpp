@@ -123,7 +123,6 @@ struct CommandsScfParams: public Command
 		PRINT(energyDiffThreshold, %lg)
 		PRINT(eigDiffThreshold, %lg)
 		PRINT(residualThreshold, %lg)
-		PRINT(nIterations, %d)
 		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(e.scfParams.mixedVariable));
 		logPrintf(" \\\n\tvectorExtrapolation\t%s", scfExtrapolation.getString(e.scfParams.vectorExtrapolation));
 		if(e.scfParams.verbose) logPrintf(" \\\n\tverbose");
