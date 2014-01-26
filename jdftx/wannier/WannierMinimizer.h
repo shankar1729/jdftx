@@ -49,7 +49,6 @@ public:
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
 	double compute(WannierGradient* grad);
-	WannierGradient precondition(const WannierGradient& grad);
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Entries in the k-point mesh
@@ -72,7 +71,6 @@ private:
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
-	matrix kHelmholtzInv; //!< Inverse of Hemlholtz equation in k-space (preconditioner)
 	
 	//Supercell grid and basis:
 	GridInfo gInfoSuper;

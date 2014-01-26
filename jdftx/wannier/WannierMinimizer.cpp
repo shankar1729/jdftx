@@ -124,26 +124,6 @@ double WannierMinimizer::compute(WannierGradient* grad)
 	return rVariance;
 }
 
-WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
-{	assert(grad.size()==kMesh.size());
-	int nCenters = grad[0].nRows();
-	//Copy each matrix of gradient into a column of a giant matrix:
-	matrix gradMat(nCenters*nCenters, kMesh.size());
-	complex* gradMatData = gradMat.dataPref();
-    for(unsigned i=0; i<kMesh.size(); i++)
-		callPref(eblas_copy)(gradMatData+gradMat.index(0,i), grad[i].dataPref(), grad[i].nData());
-	//Apply preconditioner:
-	const matrix KgradMat = gradMat * kHelmholtzInv;
-	//Copy result from each column to a small matrix per k-point:
-	WannierGradient Kgrad(grad.size());
-	const complex* KgradMatData = KgradMat.dataPref();
-    for(unsigned i=0; i<kMesh.size(); i++)
-	{	Kgrad[i].init(nCenters, nCenters, isGpuEnabled());
-		callPref(eblas_copy)(Kgrad[i].dataPref(), KgradMatData+KgradMat.index(0,i), Kgrad[i].nData());
-	}
-	return Kgrad;
-}
-
 //---------------- kpoint and wavefunction handling -------------------
 
 bool WannierMinimizer::Kpoint::operator<(const WannierMinimizer::Kpoint& other) const

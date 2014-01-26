@@ -175,6 +175,25 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		logPrintf("done.\n"); logFlush();
 	}
 	
+	//Determine and output the band ranges:
+	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		for(int b=0; b<nBands; b++)
+		{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
+			eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
+		}
+	mpiUtil->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
+	mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
+	if(mpiUtil->isHead())
+	{	string fname = wannier.getFilename(false, "mlwfBandRanges");
+		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(int b=0; b<nBands; b++)
+			fprintf(fp, "%+10.5lf %10.5lf\n", eMin[b], eMax[b]);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
 	//Determine finite difference formula:
 	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
 	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
@@ -303,25 +322,4 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		}
 		index.set();
 	}
-	
-	//Initialize the preconditioner (inverse helhmoltz with kappa chosen to regularize 0 frequency):
-	logPrintf("Setting up inverse helmholtz preconditioner on k-mesh ...\n"); logFlush();
-	matrix helmholtz(kMesh.size(), kMesh.size());
-	double kappa = M_PI * pow(e.gInfo.detR, 1./3); //inverse screening length (in k-space) set by cell size
-	helmholtz.zero();
-	complex* helmholtzData = helmholtz.data();
-	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	double wSum = 0.;
-		for(EdgeFD& edge: kMesh[ik].edge)
-		{	wSum += edge.wb;
-			helmholtzData[helmholtz.index(ik,edge.ik)] -= wk * edge.wb;
-		}
-		helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
-	}
-	helmholtz.allReduce(MPIUtil::ReduceSum);
-	if(nrm2(helmholtz-dagger(helmholtz)) > symmThresholdSq * nrm2(helmholtz))
-	{	logPrintf("Laplacian operator on k-mesh not symmetric - using identity preconditioner.\n");
-		kHelmholtzInv = eye(kMesh.size());
-	}
-	else kHelmholtzInv = dagger_symmetrize(inv(helmholtz));
 }
