@@ -169,7 +169,7 @@ int ElecVars::LCAO()
 	std::swap(fluidParams.fluidType, fluidTypeTemp);
 
 	//Get orthonormal atomic orbitals and non-interacting part of subspace Hamiltonian:
-	lcao.nBands = std::max(nAtomic, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/2))));
+	lcao.nBands = std::max(nAtomic+1, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/2))));
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	Y[q] = iInfo.getAtomicOrbitals(q, lcao.nBands-nAtomic);
 		if(nAtomic<lcao.nBands) Y[q].randomize(nAtomic, lcao.nBands); //Randomize extra columns if any
