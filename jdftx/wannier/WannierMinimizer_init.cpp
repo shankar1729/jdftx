@@ -175,22 +175,24 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	}
 	
 	//Determine and output the band ranges:
-	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		for(int b=0; b<nBands; b++)
-		{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
-			eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	{	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].spin==iSpin)
+			for(int b=0; b<nBands; b++)
+			{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
+				eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
+			}
+		mpiUtil->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
+		mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
+		if(mpiUtil->isHead())
+		{	string fname = wannier.getFilename(false, "mlwfBandRanges", &iSpin);
+			logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			for(int b=0; b<nBands; b++)
+				fprintf(fp, "%+10.5lf %+10.5lf\n", eMin[b], eMax[b]);
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
 		}
-	mpiUtil->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
-	mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
-	if(mpiUtil->isHead())
-	{	string fname = wannier.getFilename(false, "mlwfBandRanges");
-		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		for(int b=0; b<nBands; b++)
-			fprintf(fp, "%+10.5lf %10.5lf\n", eMin[b], eMax[b]);
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
 	}
 	
 	//Determine finite difference formula:

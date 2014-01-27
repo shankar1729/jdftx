@@ -86,10 +86,10 @@ double WannierMinimizer::compute(WannierGradient* grad)
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
 	mpiUtil->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
 	
-	//Compute the mean variance of the Wannier centers
-	double rVariance = 0.;
+	//Compute the total variance of the Wannier centers
+	double Omega = 0.;
 	for(int n=0; n<nCenters; n++)
-		rVariance += (1./nCenters) * (rSqExpect[n] - rExpect[n].length_squared());
+		Omega += (rSqExpect[n] - rExpect[n].length_squared());
 	
 	//Compute the gradients of the mean variance (if required)
 	if(grad)
@@ -102,25 +102,25 @@ double WannierMinimizer::compute(WannierGradient* grad)
 			for(EdgeFD& edge: kMesh[i].edge)
 			{	unsigned j = edge.ik;
 				const matrix M = dagger(kMesh[i].V) * edge.M0 * kMesh[j].V;
-				//Compute drVariance/dM:
-				matrix rVariance_M = zeroes(nCenters, nCenters);
+				//Compute dOmega/dM:
+				matrix Omega_M = zeroes(nCenters, nCenters);
 				const complex* Mdata = M.data();
-				complex* rVariance_Mdata = rVariance_M.data();
+				complex* Omega_Mdata = Omega_M.data();
 				for(int n=0; n<nCenters; n++)
 				{	complex Mnn = Mdata[M.index(n,n)];
 					double argMnn = atan2(Mnn.imag(), Mnn.real());
-					rVariance_Mdata[rVariance_M.index(n,n)] =
-						(2./nCenters) * kMesh[i].point.weight * edge.wb
+					Omega_Mdata[Omega_M.index(n,n)] =
+						2. * kMesh[i].point.weight * edge.wb
 						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
-				//Propagate to drVariance/dBi and drVariance/dBj:
-				matrix F0 = kMesh[j].V * rVariance_M * dagger(kMesh[i].V);
+				//Propagate to dOmega/dBi and dOmega/dBj:
+				matrix F0 = kMesh[j].V * Omega_M * dagger(kMesh[i].V);
 				(*grad)[i] -= dagger_symmetrize(cis_grad(edge.M0 * F0, kMesh[i].Bevecs, kMesh[i].Beigs));
 				(*grad)[j] += dagger_symmetrize(cis_grad(F0 * edge.M0, kMesh[j].Bevecs, kMesh[j].Beigs));
 			}
 		for(size_t i=0; i<kMesh.size(); i++) (*grad)[i].allReduce(MPIUtil::ReduceSum);
 	}
-	return rVariance;
+	return Omega;
 }
 
 //---------------- kpoint and wavefunction handling -------------------

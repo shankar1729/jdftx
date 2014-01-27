@@ -29,7 +29,7 @@ void Wannier::setup(const Everything& everything)
 	//Initialize minimization parameters:
 	minParams.fpLog = globalLog;
 	minParams.linePrefix = "WannierMinimize: ";
-	minParams.energyLabel = "rVariance";
+	minParams.energyLabel = "Omega";
 	//Initialize minimizer:
 	wmin = std::make_shared<WannierMinimizer>(*e, *this);
 	Citations::add("Maximally-localized Wannier functions",
