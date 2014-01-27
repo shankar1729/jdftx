@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>
-#include <core/LatticeUtils.h>
 
 //---- linear algebra functions required by Minimizable<WannierGradient> -----
 
@@ -127,16 +126,16 @@ double WannierMinimizer::compute(WannierGradient* grad)
 //---------------- kpoint and wavefunction handling -------------------
 
 bool WannierMinimizer::Kpoint::operator<(const WannierMinimizer::Kpoint& other) const
-{	if(q!=other.q) return q<other.q;
-	if(iRot!=other.iRot) return iRot<other.iRot;
+{	if(iReduced!=other.iReduced) return iReduced<other.iReduced;
+	if(iSym!=other.iSym) return iSym<other.iSym;
 	if(invert!=other.invert) return invert<other.invert;
 	if(!(offset==other.offset)) return offset<other.offset;
 	return false; //all equal
 }
 
 bool WannierMinimizer::Kpoint::operator==(const WannierMinimizer::Kpoint& other) const
-{	if(q!=other.q) return false;
-	if(iRot!=other.iRot) return false;
+{	if(iReduced!=other.iReduced) return false;
+	if(iSym!=other.iSym) return false;
 	if(invert!=other.invert) return false;
 	if(!(offset==other.offset)) return false;
 	return true;
@@ -190,9 +189,9 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 		}
 	}
 	//Compute transformed index array (mapping to full G-space)
-	const Basis& basis = e.basis[kpoint.q];
+	const Basis& basis = e.basis[kpoint.iReduced];
 	std::shared_ptr<Index> index(new Index(basis.nbasis, wannier.saveWfns));
-	const matrix3<int> mRot = (~sym[kpoint.iRot]) * kpoint.invert;
+	const matrix3<int> mRot = (~sym[kpoint.iSym]) * kpoint.invert;
 	for(int j=0; j<index->nIndices; j++)
 	{	vector3<int> iGrot = mRot * basis.iGarr[j] - kpoint.offset;
 		index->data[j] = e.gInfo.fullGindex(iGrot);
@@ -211,7 +210,7 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	ColumnBundle ret(nCenters, basis.nbasis, &basis, &qnum, isGpuEnabled());
 	ret.zero();
 	//Pick required bands, and scatter from reduced basis to common basis with transformations:
-	int q = kpoint.q + iSpin*qCount;
+	int q = kpoint.iReduced + iSpin*qCount;
 	const ColumnBundle& C = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
 	assert(C);
 	for(int c=0; c<nCenters; c++)

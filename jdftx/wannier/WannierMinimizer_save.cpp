@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <electronic/operators.h>
-#include <core/LatticeUtils.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -172,7 +171,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	std::vector<matrix> Hwannier(iCellMap.size());
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:
-		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.q + iSpin*qCount](wannier.bStart,wannier.bStart+nCenters);
+		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount](wannier.bStart,wannier.bStart+nCenters);
 		//Apply MLWF-optimized rotation:
 		matrix U = kMesh[i].U0 * kMesh[i].V;
 		Hsub = dagger(U) * Hsub * U;

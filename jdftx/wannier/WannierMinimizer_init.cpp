@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <wannier/WannierMinimizer.h>
-#include <core/LatticeUtils.h>
 #include <core/WignerSeitz.h>
 #include <gsl/gsl_linalg.h>
 
@@ -231,12 +230,12 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	for(size_t i=0; i<kpoints.size(); i++)
 	{	const Supercell::KmeshTransform& src = supercell.kmeshTransform[i];
 		Kpoint& kpoint = kpoints[i];
-		kpoint.q = src.iReduced;
-		kpoint.iRot = src.iSym;
-		kpoint.invert = src.invert;
-		kpoint.offset = src.offset;
+		//Copy over base class KMeshTransform:
+		(Supercell::KmeshTransform&)kpoint = src;
+		//Initialize base class QuantumNumber:
 		kpoint.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
 		kpoint.weight = 1./kpoints.size();
+		kpoint.spin = 0;
 	}
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	

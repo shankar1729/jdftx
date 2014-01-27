@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 #include <core/Minimize.h>
+#include <core/LatticeUtils.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>
@@ -52,13 +53,8 @@ public:
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Entries in the k-point mesh
-	struct Kpoint : public QuantumNumber
-	{	int q; //!< source state
-		unsigned iRot; //!< symmetry matrix index from state q to this kpoint
-		int invert; //!< sign of transformation matrix (if inversion symmetry of k-mesh is being used)
-		vector3<int> offset; //!< translation after rotation to bring to k
-		
-		bool operator<(const Kpoint& other) const;
+	struct Kpoint : public QuantumNumber, public Supercell::KmeshTransform
+	{	bool operator<(const Kpoint& other) const;
 		bool operator==(const Kpoint& other) const;
 	};
 	
@@ -126,8 +122,8 @@ private:
 	bool isMine(size_t ik) const { return ik>=ikStart && ik<ikStop; }
 
 	//state MPI division (wrappers to ElecInfo)
-	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.q + iSpin*qCount); }
-	int whose_q(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.q + iSpin*qCount); }
+	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.iReduced + iSpin*qCount); }
+	int whose_q(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.iReduced + iSpin*qCount); }
 	
 	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
