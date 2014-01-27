@@ -206,6 +206,7 @@ private:
 	friend class CommandAddU;
 	friend class CommandChargeball;
 	friend class CommandWavefunction;
+	friend class WannierMinimizer;
 	friend class Dump;
 };
 

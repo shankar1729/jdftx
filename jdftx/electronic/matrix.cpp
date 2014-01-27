@@ -630,8 +630,8 @@ matrix zeroes(int nRows, int nCols)
 
 //------------ Block matrices ------------
 
-tiledBlockMatrix::tiledBlockMatrix(const matrix& mBlock, int nBlocks) : mBlock(mBlock), nBlocks(nBlocks)
-{
+tiledBlockMatrix::tiledBlockMatrix(const matrix& mBlock, int nBlocks, const std::vector<complex>* phaseArr) : mBlock(mBlock), nBlocks(nBlocks), phaseArr(phaseArr)
+{	if(phaseArr) assert(nBlocks==int(phaseArr->size()));
 }
 
 matrix tiledBlockMatrix::operator*(const matrix& other) const
@@ -640,10 +640,10 @@ matrix tiledBlockMatrix::operator*(const matrix& other) const
 	//Dense matrix multiply for each block:
 	for(int iBlock=0; iBlock<nBlocks; iBlock++)
 	{	int offs = iBlock * mBlock.nCols();
+		complex phase = phaseArr ? phaseArr->at(iBlock) : 1.;
 		callPref(eblas_zgemm)(CblasNoTrans, CblasNoTrans, mBlock.nRows(), other.nCols(), mBlock.nCols(),
-			1.0, mBlock.dataPref(), mBlock.nRows(), other.dataPref()+offs, other.nRows(),
+			phase, mBlock.dataPref(), mBlock.nRows(), other.dataPref()+offs, other.nRows(),
 			0.0, result.dataPref()+offs, result.nRows());
 	}
 	return result;
 }
-

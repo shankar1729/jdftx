@@ -221,8 +221,9 @@ class tiledBlockMatrix
 {
 	const matrix& mBlock; //!< dense matrix for each block
 	int nBlocks; //!< number of blocks
+	const std::vector<complex>* phaseArr; //!< optional phase for each block
 public:
-	tiledBlockMatrix(const matrix& mBlock, int nBlocks);
+	tiledBlockMatrix(const matrix& mBlock, int nBlocks, const std::vector<complex>* phaseArr=0);
 	
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
 };

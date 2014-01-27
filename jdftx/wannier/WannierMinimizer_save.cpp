@@ -59,7 +59,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		
 		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
 		{	ColumnBundle Ci = getWfns(kMesh[ik].point, iSpin); //Bloch functions at ik
-			ColumnBundle OCi = O(Ci);
 			//Overlap with neighbours:
 			for(EdgeFD& edge: kMesh[ik].edge)
 				if(whose_q(edge.ik,iSpin)==jProcess)
@@ -76,12 +75,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					}
 					//Compute overlap if reverse edge not yet computed:
 					if(!foundReverse)
-						edge.M0 = OCi ^ getWfns(edge.point, iSpin);
+						edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
 				}
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
 			{	//Initial rotation:
 				if(!readInitialMats)
-				{	matrix CdagOg = OCi ^ trialWfns(kMesh[ik].point);
+				{	matrix CdagOg = Ci ^ trialWfns(kMesh[ik].point);
 					kMesh[ik].U0 = CdagOg * invsqrt(dagger(CdagOg) * CdagOg);
 				}
 			}

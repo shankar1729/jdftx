@@ -53,8 +53,7 @@ public:
 
 	//! Entries in the k-point mesh
 	struct Kpoint : public QuantumNumber
-	{	vector3<> k; //!< k-point in reciprocal lattice coordinates
-		int q; //!< source state
+	{	int q; //!< source state
 		unsigned iRot; //!< symmetry matrix index from state q to this kpoint
 		int invert; //!< sign of transformation matrix (if inversion symmetry of k-mesh is being used)
 		vector3<int> offset; //!< translation after rotation to bring to k
@@ -139,6 +138,10 @@ private:
 	
 	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
+	
+	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
+	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)
+	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
 };
 
 #endif // JDFTX_ELECTRONIC_WANNIERMINIMIZER_H
