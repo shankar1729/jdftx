@@ -85,6 +85,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 		}
 	}
+	suspendOperatorThreading();
 	
 	//Broadcast overlaps and initial rotations:
 	for(size_t ik=0; ik<kMesh.size(); ik++)
@@ -129,7 +130,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	logPrintf("done.\n"); logFlush();
 
 	if(wannier.saveWfns)
-	{	//--- Compute supercell wavefunctions:
+	{	resumeOperatorThreading();
+		//--- Compute supercell wavefunctions:
 		logPrintf("Computing supercell wavefunctions ... "); logFlush();
 		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 		Csuper.zero();
@@ -165,6 +167,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				fclose(fp);
 			}
 		}
+		suspendOperatorThreading();
 	}
 	
 	//Save Hamiltonian in Wannier basis:
@@ -192,4 +195,5 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		fclose(fp);
 	}
 	logPrintf("done.\n"); logFlush();
+	resumeOperatorThreading();
 }
