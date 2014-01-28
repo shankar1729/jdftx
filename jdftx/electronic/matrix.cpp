@@ -312,23 +312,50 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	double absTol = 0.; int nEigsFound;
 	eigs.resize(N);
 	evecs.init(N, N);
-	int* iSuppz = new int[2*N];
-	int lwork = (64+1)*N; complex* work = new complex[lwork]; //Magic number 64 obtained by running ILAENV as suggested in doc of zheevr (and taking the max over all N)
-	int lrwork = 24*N; double* rwork = new double[lrwork]; //from doc of zheevr
-	int liwork = 10*N; int* iwork = new int[liwork]; //from doc of zheevr
+	std::vector<int> iSuppz(2*N);
+	int lwork = (64+1)*N; std::vector<complex> work(lwork); //Magic number 64 obtained by running ILAENV as suggested in doc of zheevr (and taking the max over all N)
+	int lrwork = 24*N; std::vector<double> rwork(lrwork); //from doc of zheevr
+	int liwork = 10*N; std::vector<int> iwork(liwork); //from doc of zheevr
 	int info=0;
 	zheevr_(&jobz, &range, &uplo, &N, Acopy.data(), &N,
 		&eigMin, &eigMax, &indexMin, &indexMax, &absTol, &nEigsFound,
-		eigs.data(), evecs.data(), &N, iSuppz, work, &lwork,
-		rwork, &lrwork, iwork, &liwork, &info);
-	delete[] iSuppz;
-	delete[] work;
-	delete[] rwork;
-	delete[] iwork;
+		eigs.data(), evecs.data(), &N, iSuppz.data(), work.data(), &lwork,
+		rwork.data(), &lrwork, iwork.data(), &liwork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); gdbStackTraceExit(1); }
 	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); gdbStackTraceExit(1); }
 	watch.stop();
 }
+
+extern "C"
+{	void zgesdd_(char* JOBZ, int* M, int* N, complex* A, int* LDA,
+		double* S, complex* U, int* LDU, complex* VT, int* LDVT,
+		complex* WORK, int* LWORK, double* RWORK, int* IWORK, int* INFO);
+}
+void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
+{	static StopWatch watch("matrix::svd");
+	watch.start();
+	//Initialize input and outputs:
+	matrix A = *this; //destructible copy
+	int M = A.nRows();
+	int N = A.nCols();
+	U.init(M,M);
+	Vdag.init(N,N);
+	S.resize(std::min(M,N));
+	//Initialize temporaries:
+	char jobz = 'A'; //full SVD (return complete unitary matrices)
+	int lwork = 2*(M*N + M + N);
+	std::vector<complex> work(lwork);
+	std::vector<double> rwork(S.nRows() * std::max(5*S.nRows()+7, 2*(M+N)+1));
+	std::vector<int> iwork(8*S.nRows());
+	//Call LAPACK and check errors:
+	int info=0;
+	zgesdd_(&jobz, &M, &N, A.data(), &M, S.data(), U.data(), &M, Vdag.data(), &N,
+		work.data(), &lwork, rwork.data(), iwork.data(), &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK SVD routine ZGESDD is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK SVD routine ZGESDD.\n", info); gdbStackTraceExit(1); }
+	watch.stop();
+}
+
 
 //Apply pending transpose / dagger operations:
 matrixScaledTransOp::operator matrix() const

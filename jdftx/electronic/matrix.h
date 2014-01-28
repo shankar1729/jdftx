@@ -99,6 +99,7 @@ public:
 	void print_real(FILE* fp, const char* fmt="%lg\t") const; //!< print (ascii) real parts to stream
 	
 	void diagonalize(matrix& evecs, diagMatrix& eigs) const; //!< diagonalize a hermitian matrix
+	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
 };
 
 //! Matrix with a pending scale and transpose operation
