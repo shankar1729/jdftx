@@ -522,7 +522,7 @@ void ElecInfo::read(std::vector<diagMatrix>& M, const char *fname, int nRowsOver
 	MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, nStates*nRows*sizeof(double));
 	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
-	{	M[q].resize(nBands);
+	{	M[q].resize(nRows);
 		mpiUtil->fread(M[q].data(), sizeof(double), nRows, fp);
 	}
 	mpiUtil->fclose(fp);
