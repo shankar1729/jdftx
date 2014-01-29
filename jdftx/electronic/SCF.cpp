@@ -311,20 +311,30 @@ void SCF::single_particle_constraint(double sp_constraint)
 	
 	// Slater exchange
 	DataRptrCollection Vslater(n.size());
+	DataRptrCollection Eslater(n.size());
 	for(size_t j=0; j<n.size(); j++)
-	{	Vslater[j] = - pow(3/M_PI, 1./3.) * pow(2.*n[j], 1./3.);
+	{	double coef = pow(3/M_PI, 1./3.);
+		Vslater[j] = - coef * pow(2.*n[j], 1./3.);
 		Vslater[j] = JdagOJ(Vslater[j]);
+		Eslater[j] = -(3./4.)*coef*pow(2.*n[j], 4./3.) * 0.5;  // x2 and x0.5 are because of spin polarization
+		Eslater[j] = JdagOJ(Eslater[j]);
 	}
 	
-	// Full Vxc
+	// Full Vxc and Vc
 	DataRptrCollection Vxc(n.size());
+	DataRptrCollection Vc(n.size());
 	e.exCorr(e.eVars.get_nXC(), &Vxc, false, 0, 0);
 	for(size_t j=0; j<n.size(); j++)
-		Vxc[j] = JdagOJ(Vxc[j]);
-	
+	{	Vxc[j] = JdagOJ(Vxc[j]);
+		Vc[j] = Vxc[j] - Vslater[j];
+	}
+
 	// Apply the constraint to Vscloc
+	e.ener.E["Econstraint"] = 0.;
 	for(size_t j=0; j<n.size(); j++)
-		e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
+	{	e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
+		e.ener.E["Econstraint"] += -(integral(pz[j]*Eslater[j]) + 0.5*integral(pz[j]*n[j]*Vhartree[j]));
+	}
 	
 	watch.stop();
 }
