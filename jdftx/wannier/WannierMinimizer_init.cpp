@@ -105,8 +105,6 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	nCenters(wannier.centers.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
 {
-	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
-
 	//Create supercell grid:
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
 	const Supercell& supercell = *(e.coulombParams.supercell);

@@ -83,6 +83,7 @@ struct complex
 
 	__hostanddev__ double norm() const { return x*x + y*y; }
 	__hostanddev__ double abs() const { return sqrt(norm()); }
+	__hostanddev__ double arg() const { return atan2(y,x); }
 	__hostanddev__ complex conj() const { return complex(x,-y); }
 };
 
@@ -90,6 +91,7 @@ __hostanddev__ double real(const complex& c) { return c.real(); }
 __hostanddev__ double imag(const complex& c) { return c.imag(); }
 __hostanddev__ double norm(const complex& c) { return c.norm(); }
 __hostanddev__ double abs(const complex& c) { return c.abs(); }
+__hostanddev__ double arg(const complex& c) { return c.arg(); }
 __hostanddev__ complex conj(const complex& c) { return c.conj(); }
 
 __hostanddev__ complex operator+(double r, const complex& c) { return c+r; }

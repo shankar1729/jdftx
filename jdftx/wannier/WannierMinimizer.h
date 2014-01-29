@@ -51,7 +51,7 @@ public:
 	void step(const WannierGradient& grad, double alpha);
 	double compute(WannierGradient* grad);
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
-
+	
 	//! Entries in the k-point mesh
 	struct Kpoint : public QuantumNumber, public Supercell::KmeshTransform
 	{	bool operator<(const Kpoint& other) const;
@@ -66,6 +66,7 @@ private:
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
+	double OmegaI; //invariant part
 	
 	//Supercell grid and basis:
 	GridInfo gInfoSuper;
@@ -87,11 +88,16 @@ private:
 	{	Kpoint point; //!< point in the mesh
 		std::vector<EdgeFD> edge; //!< neighbours with weights defining finite difference formula
 		//State of system for Wannier minimize:
-		matrix B; //!< Independent variable for minimization
-		matrix Bevecs; //!< Eigenvectors of B
-		diagMatrix Beigs; //!< Eigenvalues of B
-		matrix U0; //!< Initial unitary rotation (from trial wave functions)
-		matrix V; //!< Subsequent unitary rotation of k-point given by e^iB (net unitary rotation = U0 * V)
+		int nIn; //number of bands that contribute to the Wannier subspace
+		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
+		matrix B; //!< Independent variable for minimization (nCenters x nIn)
+		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
+		//Stage 1: Select linear cominations of bands that enter Wannier subspace
+		matrix U1, V1, B1evecs; //U1 = initial rotation (nBands x nIn), V1 = subsequent rotation from B (nIn x nCenters)
+		diagMatrix B1eigs;
+		//Stage 2: Rotations within Wannier subspace (all nCenters x nCenters)
+		matrix U2, V2, B2evecs;
+		diagMatrix B2eigs;
 	};
 	
 	//!Indices from reduced basis to full G-space or a union of all reduced bases
@@ -127,7 +133,7 @@ private:
 	
 	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
-	//! Get the wavefunctions for a particular k-point for bands involved in current group
+	//! Get the wavefunctions for a particular k-point
 	//! The wavefunctions are returned in the common basis by default and in the supercell basis if super=true
 	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin, bool super=false) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process

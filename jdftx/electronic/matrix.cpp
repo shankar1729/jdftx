@@ -274,7 +274,6 @@ void matrix::print_real(FILE* fp, const char* fmt) const
 
 //------------------------- Eigensystem -----------------------------------
 
-//declaration for fortran LAPACK routine for eigenvalues
 extern "C"
 {	void zheevr_(char* JOBZ, char* RANGE, char* UPLO, int * N, complex* A, int * LDA,
 		double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
@@ -306,7 +305,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
 	char range = 'A'; //compute all eigenvalues
 	char uplo = 'U'; //use upper-triangular part
-	matrix Acopy = *this; //copy input matrix (zheevr destroys input matrix)
+	matrix A = *this; //copy input matrix (zheevr destroys input matrix)
 	double eigMin = 0., eigMax = 0.; //eigenvalue range (not used for range-type 'A')
 	int indexMin = 0, indexMax = 0; //eignevalue index range (not used for range-type 'A')
 	double absTol = 0.; int nEigsFound;
@@ -317,12 +316,40 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	int lrwork = 24*N; std::vector<double> rwork(lrwork); //from doc of zheevr
 	int liwork = 10*N; std::vector<int> iwork(liwork); //from doc of zheevr
 	int info=0;
-	zheevr_(&jobz, &range, &uplo, &N, Acopy.data(), &N,
+	zheevr_(&jobz, &range, &uplo, &N, A.data(), &N,
 		&eigMin, &eigMax, &indexMin, &indexMax, &absTol, &nEigsFound,
 		eigs.data(), evecs.data(), &N, iSuppz.data(), work.data(), &lwork,
 		rwork.data(), &lrwork, iwork.data(), &liwork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); gdbStackTraceExit(1); }
 	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); gdbStackTraceExit(1); }
+	watch.stop();
+}
+
+extern "C"
+{	void zgeev_(char* JOBVL, char* JOBVR, int* N, complex* A, int* LDA,
+	complex* W, complex* VL, int* LDVL, complex* VR, int* LDVR,
+	complex* WORK, int* LWORK, double* RWORK, int* INFO);
+}
+void matrix::diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& revecs) const
+{	static StopWatch watch("matrix::diagonalizeNH");
+	watch.start();
+	//Prepare inputs and outputs:
+	matrix A = *this; //destructible copy
+	int N = A.nRows();
+	assert(N > 0);
+	assert(A.nCols()==N);
+	eigs.resize(N);
+	levecs.init(N, N);
+	revecs.init(N, N);
+	//Prepare temporaries:
+	char jobz = 'V'; //compute eigenvectors and eigenvalues
+	int lwork = (64+1)*N; std::vector<complex> work(lwork); //Magic number 64 obtained by running ILAENV as suggested in doc of zheevr (and taking the max over all N)
+	std::vector<double> rwork(2*N);
+	//Call LAPACK and check errors:
+	int info=0;
+	zgeev_(&jobz, &jobz, &N, A.data(), &N, eigs.data(), levecs.data(), &N, revecs.data(), &N, work.data(), &lwork, rwork.data(), &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZGEEV is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZGEEV.\n", info); gdbStackTraceExit(1); }
 	watch.stop();
 }
 
@@ -585,6 +612,27 @@ matrix cis(const matrix& A, matrix* Aevecs, diagMatrix* Aeigs)
 }
 
 #undef MATRIX_FUNC
+
+//Inverse of cis: get the Hermitian arg() of a unitary matrix
+matrix cisInv(const matrix& A, matrix* Bevecs, diagMatrix* Beigs)
+{	//Make sure A is unitary:
+	assert(A.nRows()==A.nCols());
+	assert(nrm2(A*dagger(A) - eye(A.nRows())) < 1e-10*sqrt(A.nData()));
+	//Diagonalize:
+	matrix Alevecs, Arevecs; std::vector<complex> Aeigs;
+	A.diagonalize(Alevecs, Aeigs, Arevecs);
+	assert(nrm2(Alevecs-Arevecs) < 1e-10*sqrt(A.nData()));
+	//Compute diagonal of result:
+	diagMatrix B(A.nRows());
+	for(int i=0; i<A.nRows(); i++)
+		B[i] = Aeigs[i].arg();
+	//Return results:
+	if(Bevecs) *Bevecs = Arevecs;
+	if(Beigs) *Beigs = B;
+	matrix ret = Arevecs * B * dagger(Arevecs);
+	return ret;
+}
+
 
 
 //Common implementation of the matrix nonlinear function gradients

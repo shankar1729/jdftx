@@ -27,20 +27,6 @@ void WannierMinimizer::saveMLWF()
 
 void WannierMinimizer::saveMLWF(int iSpin)
 {	
-	//Check for initial state:
-	string fname = wannier.getFilename(true, "mlwfU", &iSpin);
-	bool readInitialMats = false;
-	FILE* fp = fopen(fname.c_str(), "r");
-	if(fp)
-	{	logPrintf("Reading initial matrices from %s (ignoring trial projections).\n", fname.c_str());
-		for(size_t ik=0; ik<kMesh.size(); ik++)
-		{	kMesh[ik].U0.init(nCenters, nCenters);
-			kMesh[ik].U0.read(fp);
-		}
-		fclose(fp);
-		readInitialMats = true;
-	}
-	
 	//Compute the overlap matrices and initial rotations for current group of centers:
 	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
@@ -57,9 +43,10 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		
 		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
-		{	ColumnBundle Ci = getWfns(kMesh[ik].point, iSpin); //Bloch functions at ik
+		{	KmeshEntry& ke = kMesh[ik];
+			ColumnBundle Ci = getWfns(ke.point, iSpin); //Bloch functions at ik
 			//Overlap with neighbours:
-			for(EdgeFD& edge: kMesh[ik].edge)
+			for(EdgeFD& edge: ke.edge)
 				if(whose_q(edge.ik,iSpin)==jProcess)
 				{	//Pick up result from reverse edge if it has already been computed:
 					bool foundReverse = false;
@@ -77,11 +64,86 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
 				}
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
-			{	//Initial rotation:
-				if(!readInitialMats)
-				{	matrix CdagOg = Ci ^ trialWfns(kMesh[ik].point);
-					kMesh[ik].U0 = CdagOg * invsqrt(dagger(CdagOg) * CdagOg);
+			{	//Band ranges:
+				int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
+				if(wannier.outerWindow)
+				{	const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
+					bStart = 0;
+					while(bStart<nBands && eigs[bStart]<wannier.eOuterMin)
+						bStart++;
+					bStop = bStart;
+					while(bStop<nBands && eigs[bStop]<=wannier.eOuterMax)
+						bStop++;
+					if(bStop-bStart < nCenters)
+						die("Number of bands within outer window = %d less than nCenters = %d at k = [ %lg %lg %lg ]\n",
+							bStop-bStart, nCenters, ke.point.k[0], ke.point.k[1], ke.point.k[2]);
+					//Optionally range for inner window:
+					if(wannier.innerWindow)
+					{	bFixedStart = bStart;
+						while(bFixedStart<bStop && eigs[bFixedStart]<wannier.eInnerMin)
+							bFixedStart++;
+						bFixedStop = bFixedStart;
+						while(bFixedStop<bStop && eigs[bFixedStop]<=wannier.eInnerMax)
+							bFixedStop++;
+						if(bFixedStop-bFixedStart > nCenters)
+							die("Number of bands within inner window = %d exceeds nCenters = %d at k = [ %lg %lg %lg ]\n",
+								bFixedStop-bFixedStart, nCenters, ke.point.k[0], ke.point.k[1], ke.point.k[2]);
+					}
+					else bFixedStart = bFixedStop = bStart; //fixed interval is empty
 				}
+				else //fixed bands
+				{	bFixedStart = bStart = wannier.bStart;
+					bFixedStop  = bStop  = wannier.bStart + nCenters;
+				}
+				
+				//Initial rotation of bands to get to Wannier subspace:
+				matrix CdagG = Ci ^ trialWfns(ke.point);
+				ke.nFixed = bFixedStop - bFixedStart;
+				int nFree = nCenters - ke.nFixed;
+				ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace
+				ke.U1 = zeroes(nBands, ke.nIn);
+				//--- Pick up fixed bands directly
+				if(ke.nFixed > 0)
+					ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, eye(ke.nFixed));
+				//--- Pick up best linear combination of remaining bands (if any)
+				if(nFree > 0)
+				{	//Create overlap matrix with contribution from fixed bands projected out:
+					matrix CdagGFree;
+					if(ke.nFixed > 0)
+					{	//SVD the fixed band contribution to the trial space:
+						matrix U, Vdag; diagMatrix S;
+						CdagG(bFixedStart,bFixedStop, 0,nCenters).svd(U, S, Vdag);
+						//Project out the fixed bands (use only the zero singular values)
+						CdagGFree = CdagG * dagger(Vdag(ke.nFixed,nCenters, 0,nCenters));
+					}
+					else CdagGFree = CdagG;
+					//Truncate to non-zero rows:
+					int nLo = bFixedStart-bStart;
+					int nHi = bStop-bFixedStop;
+					int nOuter = nLo+nHi;
+					matrix CdagGFreeNZ = zeroes(nOuter, nOuter);
+					if(nLo>0) CdagGFreeNZ.set(0,nLo, 0,nFree, CdagGFree(bStart,bFixedStart, 0,nFree));
+					if(nHi>0) CdagGFreeNZ.set(nLo,nOuter, 0,nFree, CdagGFree(bFixedStop,bStop, 0,nFree));
+					//SVD to get best linear combinations first:
+					matrix U, Vdag; diagMatrix S;
+					CdagGFreeNZ.svd(U, S, Vdag);
+					//Convert left space from non-zero to all bands:
+					matrix Upad = zeroes(nBands, nOuter);
+					if(nLo>0) Upad.set(bStart,bFixedStart, 0,nOuter, U(0,nLo, 0,nOuter));
+					if(nHi>0) Upad.set(bFixedStop,bStop, 0,nOuter, U(nLo,nOuter, 0,nOuter));
+					//Include this combination in U1:
+					ke.U1.set(0,nBands, ke.nFixed,ke.nIn, Upad * Vdag);
+				}
+				
+				//Optimal initial rotation within Wannier subspace:
+				matrix WdagG = dagger(ke.U1(0,nBands, 0,nCenters)) * CdagG;
+				ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
+				
+				//logPrintf("U1 (unitarity error: %le):\n", nrm2(dagger(ke.U1)*ke.U1-eye(ke.nIn))); //ke.U1.print(globalLog, " %+lf%+lfi ");
+				//logPrintf("\nU2:\n"); ke.U2.print(globalLog, " %+lf%+lfi ");
+ 				//logPrintf("nOuter: %d   nIn = %d  nBands: %d  nCenters: %d  nHi: %d  nLo:%d\n", nOuter, ke.nIn, nBands, nCenters, nHi, nLo);
+ 				//logPrintf("\nU:\n"); U.print(globalLog, " %+lf%+lfi ");
+ 				//logPrintf("\nVdag:\n"); Vdag.print(globalLog, " %+lf%+lfi ");
 			}
 		}
 	}
@@ -89,42 +151,43 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Broadcast overlaps and initial rotations:
 	for(size_t ik=0; ik<kMesh.size(); ik++)
-	{	for(EdgeFD& edge: kMesh[ik].edge)
-		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nCenters, nCenters);
+	{	KmeshEntry& ke = kMesh[ik];
+		for(EdgeFD& edge: ke.edge)
+		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nBands, nBands);
 			edge.M0.bcast(whose_q(ik,iSpin));
 			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
 		}
-		if(!readInitialMats)
-		{	if(!isMine_q(ik,iSpin)) kMesh[ik].U0 = zeroes(nCenters, nCenters);
-			kMesh[ik].U0.bcast(whose_q(ik,iSpin));
+		mpiUtil->bcast(ke.nIn, whose_q(ik,iSpin));
+		mpiUtil->bcast(ke.nFixed, whose_q(ik,iSpin));
+		if(!isMine_q(ik,iSpin))
+		{	ke.U1 = zeroes(nBands, ke.nIn);
+			ke.U2 = zeroes(nCenters, nCenters);
 		}
-		kMesh[ik].B = zeroes(nCenters, nCenters);
+		ke.U1.bcast(whose_q(ik,iSpin));
+		ke.U2.bcast(whose_q(ik,iSpin));
+		ke.B = zeroes(nCenters, ke.nIn);
 	}
 	
-	//Apply initial rotations to the overlap matrices:
-	for(size_t ik=ikStart; ik<ikStop; ik++)
-		for(EdgeFD& edge: kMesh[ik].edge)
-			edge.M0 = dagger(kMesh[ik].U0) * edge.M0 * kMesh[edge.ik].U0;
-	
 	//Minimize:
-	minimize(wannier.minParams);
+	double Omega = minimize(wannier.minParams);
+	logPrintf("\nOptimum spread:\n\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);
 	
 	//List the centers:
-	logPrintf("Centers in %s coords:\n", e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");
+	logPrintf("\nCenters in %s coords:\n", e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");
 	for(int n=0; n<nCenters; n++)
 	{	vector3<> rCoords = e.iInfo.coordsType==CoordsCartesian
 			? rExpect[n] : e.gInfo.invR * rExpect[n]; //r in coordinate system of choice
-		logPrintf("\t[ %lg %lg %lg ] spread: %lg bohrs\n", rCoords[0], rCoords[1], rCoords[2], sqrt(rSqExpect[n] - rExpect[n].length_squared()));
+		logPrintf("\t[ %lg %lg %lg ] spread: %lg bohr^2\n", rCoords[0], rCoords[1], rCoords[2], rSqExpect[n] - rExpect[n].length_squared());
 	}
 	logFlush();
 	
 	//Save the matrices:
-	fname = wannier.getFilename(false, "mlwfU", &iSpin);
+	string fname = wannier.getFilename(false, "mlwfU", &iSpin);
 	logPrintf("Dumping '%s' ... ", fname.c_str());
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		for(const auto& kMeshEntry: kMesh)
-			(kMeshEntry.U0 * kMeshEntry.V).write(fp);
+			kMeshEntry.U.write(fp);
 		fclose(fp);
 	}
 	logPrintf("done.\n"); logFlush();
@@ -136,7 +199,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 		Csuper.zero();
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U0 * kMesh[i].V * kMesh[i].point.weight);
+			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U * kMesh[i].point.weight);
 		Csuper.allReduce(MPIUtil::ReduceSum);
 		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
 		logPrintf("done.\n"); logFlush();
@@ -174,10 +237,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	std::vector<matrix> Hwannier(iCellMap.size());
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:
-		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount](wannier.bStart,wannier.bStart+nCenters);
+		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount];
 		//Apply MLWF-optimized rotation:
-		matrix U = kMesh[i].U0 * kMesh[i].V;
-		Hsub = dagger(U) * Hsub * U;
+		Hsub = dagger(kMesh[i].U) * Hsub * kMesh[i].U;
 		//Accumulate with each requested Bloch phase
 		vector3<int> iSuper;
 		std::vector<matrix>::iterator HwannierIter = Hwannier.begin();

@@ -26,10 +26,22 @@ Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false), saveWfns
 
 void Wannier::setup(const Everything& everything)
 {	e = &everything;
+	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
 	//Initialize minimization parameters:
 	minParams.fpLog = globalLog;
 	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "Omega";
+	//Check window settings:
+	if(innerWindow)
+	{	if(!outerWindow) die("Inner window requires that an outer window be specified.\n");
+		if(eInnerMin<eOuterMin || eInnerMax>eOuterMax)
+			die("Inner window must lie entirely within the outer window.\n");
+	}
+	if(!outerWindow) //fixed bands
+	{	int bStop = bStart+centers.size();
+		if(bStart<0 || bStop>e->eInfo.nBands)
+			die("Index range [%d,%d) of participating bands incompatible with available bands [0,%d).\n", bStart, bStop, e->eInfo.nBands);
+	}
 	//Initialize minimizer:
 	wmin = std::make_shared<WannierMinimizer>(*e, *this);
 	Citations::add("Maximally-localized Wannier functions",

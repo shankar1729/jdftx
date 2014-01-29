@@ -99,6 +99,7 @@ public:
 	void print_real(FILE* fp, const char* fmt="%lg\t") const; //!< print (ascii) real parts to stream
 	
 	void diagonalize(matrix& evecs, diagMatrix& eigs) const; //!< diagonalize a hermitian matrix
+	void diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& revecs) const; //!< diagonalize an arbitrary matrix
 	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
 };
 
@@ -191,7 +192,6 @@ matrix LU(const matrix& A);
 complex det(const matrix& A);
 
 //! Compute the determinant of an diagonal matrix A
-//! If skipZeros is true, skips diagonal entries in the diagonal matrix that are below a tolerance
 double det(const diagMatrix& A);
 
 //! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
@@ -202,6 +202,10 @@ matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
 
 //! Compute cis(A) = exp(iota A) and optionally the eigensystem of A (if non-null)
 matrix cis(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
+
+//! Inverse function of cis: find matrix B such that A = exp(iota B). A must be unitary.
+//! Optionally retrieve the eigensystem of the result (note the real eigenvalues are of the input, not the result)
+matrix cisInv(const matrix& A, matrix* Bevecs=0, diagMatrix* Beigs=0);
 
 //! Return gradient w.r.t A given gradient w.r.t sqrt(A) and A's eigensystem
 matrix sqrt_grad(const matrix& grad_sqrtA, const matrix& Aevecs, const diagMatrix& Aeigs);
