@@ -103,13 +103,18 @@ struct CommandWannierCenter : public Command
 {
 	CommandWannierCenter() : Command("wannier-center")
 	{
-		format = "<x0> <x1> <x2> [<a>=1] [<orbDesc>=s]";
+		format = "<horb1> [<horb2> ...]";
 		comments =
-			"Specify trial orbital for a wannier function as a hydrogenic orbital centered\n"
-			"at <x0>,<x1>,<x2> (coordinate system set by coords-type) with decay length\n"
-			"<a> bohrs, and with <orbDesc> as in command density-of-states. Note that\n"
+			"Specify trial orbital for a wannier function as a linear combination of\n"
+			"hydrogenic orbitals <horb*>. The syntax for each <horb> is:\n"
+			"   <x0> <x1> <x2> [<a>=1] [<orbDesc>=s] [<coeff>=1.0]\n"
+			"which represents a hydrogenic orbital centered at <x0>,<x1>,<x2>"
+			"(coordinate system set by coords-type) with decay length <a> bohrs,\n"
+			"and with orbital code <orbDesc> as in command density-of-states. Note that\n"
 			"<a> sets the decay length of the nodeless orbital of specified angular\n"
-			"momentum in <orbDesc>. Specify the command once for each Wannier function.";
+			"momentum in <orbDesc>. Specify a, orbDesc and coeff explicitly when using\n"
+			"multiple orbitals; the defaults only apply to the single orbital case.\n"
+			"   Specify this command once for each Wannier function.";
 		allowMultiple = true;
 		require("wannier-initial-state");
 		require("wannier-dump-name");
@@ -120,36 +125,45 @@ struct CommandWannierCenter : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	Wannier::Center center; string orbDesc;
-		pl.get(center.r[0], 0., "x0", true);
-		pl.get(center.r[1], 0., "x1", true);
-		pl.get(center.r[2], 0., "x2", true);
-		pl.get(center.a, 1., "a");
-		pl.get(orbDesc, string(), "orbDesc");
-		if(orbDesc.length())
-		{	center.orbitalDesc.parse(orbDesc);
-			if(center.orbitalDesc.m > center.orbitalDesc.l)
-				throw(string("Must specify a specific projection eg. px,py (not just p)"));
-			if(center.orbitalDesc.n + center.orbitalDesc.l > 3)
-				throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+	{	Wannier::TrialOrbital t;
+		while(true)
+		{	Wannier::Hydrogenic h; string orbDesc;
+			pl.get(h.r[0], nan(""), "x0"); if(isnan(h.r[0])) break;
+			pl.get(h.r[1], 0., "x1", true);
+			pl.get(h.r[2], 0., "x2", true);
+			pl.get(h.a, 1., "a");
+			pl.get(orbDesc, string(), "orbDesc");
+			if(orbDesc.length())
+			{	h.orbitalDesc.parse(orbDesc);
+				if(h.orbitalDesc.m > h.orbitalDesc.l)
+					throw(string("Must specify a specific projection eg. px,py (not just p)"));
+				if(h.orbitalDesc.n + h.orbitalDesc.l > 3)
+					throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+			}
+			else //default is nodeless s orbital
+			{	h.orbitalDesc.l = 0;
+				h.orbitalDesc.m = 0;
+				h.orbitalDesc.n = 0;
+			}
+			pl.get(h.coeff, 1., "coeff");
+			//Transform coordinates if necessary
+			if(e.iInfo.coordsType == CoordsCartesian)
+				h.r = inv(e.gInfo.R)*h.r;
+			t.push_back(h);
 		}
-		else //default is nodeless s orbital
-		{	center.orbitalDesc.l = 0;
-			center.orbitalDesc.m = 0;
-			center.orbitalDesc.n = 0;
-		}
-		//Transform coordinates if necessary
-		if(e.iInfo.coordsType == CoordsCartesian)
-			center.r = inv(e.gInfo.R)*center.r;
-		wannier.centers.push_back(center);
+		if(!t.size()) throw(string("Trial orbital for each center must contain at least one hydrogenic orbital"));
+		wannier.trialOrbitals.push_back(t);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	const Wannier::Center& center = wannier.centers[iRep];
-		vector3<> r = center.r;
-		if(e.iInfo.coordsType == CoordsCartesian)
-			r = e.gInfo.R * r; //report cartesian positions
-		logPrintf("%lg %lg %lg  %lg  %s", r[0], r[1], r[2], center.a, string(center.orbitalDesc).c_str());
+	{	const Wannier::TrialOrbital& t = wannier.trialOrbitals[iRep];
+		for(const Wannier::Hydrogenic& h: t)
+		{	if(t.size()>1) logPrintf(" \\\n\t");
+			vector3<> r = h.r;
+			if(e.iInfo.coordsType == CoordsCartesian)
+				r = e.gInfo.R * r; //report cartesian positions
+			logPrintf("%lg %lg %lg  %lg  %s  %lg", r[0], r[1], r[2], h.a, string(h.orbitalDesc).c_str(), h.coeff);
+		}
 	}
 }
 commandWannierCenter;

@@ -297,28 +297,35 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
 {	ColumnBundle ret(nCenters, basis.nbasis, &basis, &kpoint, isGpuEnabled());
+	ColumnBundle temp = ret.similar(1); //single column for intermediate computations
 	#ifdef GPU_ENABLED
 	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
 	#endif
+	ret.zero();
 	complex* retData = ret.dataPref();
-	for(auto c: wannier.centers)
-	{	const DOS::Weight::OrbitalDesc& od = c.orbitalDesc;
-		//--- Copy the center to GPU if necessary:
-		#ifdef GPU_ENABLED
-		cudaMemcpy(pos, &c.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
-		#else
-		const vector3<>* pos = &c.r;
-		#endif
-		//--- Create the radial part:
-		RadialFunctionG atRadial;
-		double normPrefac = pow((od.l+1)/c.a,3);
-		for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
-			normPrefac *= p;
-		normPrefac = 16*M_PI/(e.gInfo.detR * sqrt(normPrefac));
-		atRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, c.a, od.n, od.l, normPrefac);
-		//--- Initialize the projector:
-		callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, retData);
-		callPref(eblas_zscal)(basis.nbasis, cis(0.5*M_PI*od.l), retData,1); //ensures odd l projectors are real
+	complex* tempData = temp.dataPref();
+	for(const Wannier::TrialOrbital& t: wannier.trialOrbitals)
+	{	for(const Wannier::Hydrogenic& h: t)
+		{	const DOS::Weight::OrbitalDesc& od = h.orbitalDesc;
+			//--- Copy the center to GPU if necessary:
+			#ifdef GPU_ENABLED
+			cudaMemcpy(pos, &h.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
+			#else
+			const vector3<>* pos = &h.r;
+			#endif
+			//--- Create the radial part:
+			RadialFunctionG atRadial;
+			double normPrefac = pow((od.l+1)/h.a,3);
+			for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
+				normPrefac *= p;
+			normPrefac = 16*M_PI/(e.gInfo.detR * sqrt(normPrefac));
+			atRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, h.a, od.n, od.l, normPrefac);
+			//--- Initialize the projector:
+			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, tempData);
+			callPref(eblas_zscal)(basis.nbasis, cis(0.5*M_PI*od.l), tempData,1); //ensures odd l projectors are real
+			//--- Accumulate to trial orbital:
+			callPref(eblas_zaxpy)(basis.nbasis, h.coeff, tempData,1, retData,1);
+		}
 		retData += basis.nbasis;
 	}
 	#ifdef GPU_ENABLED

@@ -138,12 +138,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				//Optimal initial rotation within Wannier subspace:
 				matrix WdagG = dagger(ke.U1(0,nBands, 0,nCenters)) * CdagG;
 				ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
-				
-				//logPrintf("U1 (unitarity error: %le):\n", nrm2(dagger(ke.U1)*ke.U1-eye(ke.nIn))); //ke.U1.print(globalLog, " %+lf%+lfi ");
-				//logPrintf("\nU2:\n"); ke.U2.print(globalLog, " %+lf%+lfi ");
- 				//logPrintf("nOuter: %d   nIn = %d  nBands: %d  nCenters: %d  nHi: %d  nLo:%d\n", nOuter, ke.nIn, nBands, nCenters, nHi, nLo);
- 				//logPrintf("\nU:\n"); U.print(globalLog, " %+lf%+lfi ");
- 				//logPrintf("\nVdag:\n"); Vdag.print(globalLog, " %+lf%+lfi ");
 			}
 		}
 	}

@@ -31,12 +31,14 @@ public:
 	Wannier();
 	void setup(const Everything& everything);
 	
-	struct Center
+	struct Hydrogenic
 	{	vector3<> r; //!< guess for center of localized wannier function
 		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
+		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
 	};
-	std::vector<Center> centers; //!< group of centers
+	typedef std::vector<Hydrogenic> TrialOrbital;
+	std::vector<TrialOrbital> trialOrbitals; //!< group of centers
 	
 	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
 	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)

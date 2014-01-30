@@ -38,7 +38,7 @@ void Wannier::setup(const Everything& everything)
 			die("Inner window must lie entirely within the outer window.\n");
 	}
 	if(!outerWindow) //fixed bands
-	{	int bStop = bStart+centers.size();
+	{	int bStop = bStart+trialOrbitals.size();
 		if(bStart<0 || bStop>e->eInfo.nBands)
 			die("Index range [%d,%d) of participating bands incompatible with available bands [0,%d).\n", bStart, bStop, e->eInfo.nBands);
 	}
