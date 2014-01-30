@@ -110,7 +110,7 @@ struct CommandsScfParams: public Command
 				case SCFpm_qKerker: pl.get(e.scfParams.qKerker, -1., "qKerker", true); break;
 				case SCFpm_qMetric: pl.get(e.scfParams.qMetric, -1., "qMetric", true); break;
 				case SCFpm_history: pl.get(e.scfParams.history, 10, "history", true); break;
-				case SCFpm_single_particle_constraint: pl.get(e.scfParams.sp_constraint, 0., "single-particle-constraint", true);
+				case SCFpm_single_particle_constraint: pl.get(e.scfParams.sp_constraint, 0., "single-particle-constraint", true); break;
 				case SCFpm_scfDelim: return; //end of input
 			}
 		}

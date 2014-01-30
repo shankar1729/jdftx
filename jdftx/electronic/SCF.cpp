@@ -275,11 +275,23 @@ void SCF::eigenShiftApply(bool reverse)
 }
 
 #define cutoff 1e-6
+void varInverse_kernel(int i, vector3<> r, double* varInverse, double* var)
+{	varInverse[i] = (var[i]>cutoff ? 1./var[i] : 0.);
+}
+
 void spness_kernel(int i, vector3<> r, double* tauW, double* tau, double* spness)
 {	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
 }
 void tauW_kernel(int i, vector3<> r, double* tauW, double* grad_n_sq, double* n)
-{	tauW[i] = (n[i]>cutoff ? (1./8.)*grad_n_sq[i]/n[i] : 0.);
+{	tauW[i] = (n[i]>cutoff ? 0.125*grad_n_sq[i]/n[i] : 0.);
+}
+
+void tauW_n_kernel(int i, vector3<> r, double* tauW_n, double* grad_n_sq, double* n, complex* lap_n)
+{	tauW_n[i] = (n[i]>cutoff ? 0.125*grad_n_sq[i]/pow(n[i],2) - 0.25*real(lap_n[i])/n[i] : 0.);
+}
+
+void Vtau_kernel(int i, vector3<> r, double* Vtau, double* fz_z, double* tauW, double* tau, double* Ex, double* Eh, double* n, double N)
+{	Vtau[i] = (n[i]>cutoff ? fz_z[i]*tauW[i]*(Ex[i] + Eh[i]/N)/pow(tau[i], 2) : 0.);
 }
 
 void SCF::single_particle_constraint(double sp_constraint)
@@ -291,52 +303,75 @@ void SCF::single_particle_constraint(double sp_constraint)
 	
 	assert(n.size() == 2);
 	
+	// Calculate 1/n and 1/tau
+	DataRptrCollection nInverse(n.size()), tauInverse(n.size());
+	std::vector<double> N(n.size()), NInverse(n.size());
+	for(size_t j=0; j<n.size(); j++)
+	{	nullToZero(nInverse[j], e.gInfo); applyFunc_r(e.gInfo, varInverse_kernel, nInverse[j]->data(), n[j]->data());
+		nullToZero(tauInverse[j], e.gInfo); applyFunc_r(e.gInfo, varInverse_kernel, tauInverse[j]->data(), tau[j]->data());
+		N[j] = integral(n[j]);
+		NInverse[j] = (N[j]>cutoff ? 1./N[j] : 0.);
+	}
+	
 	// Single particle KE density and the single-particleness
 	DataRptrCollection tauW(n.size());
 	DataRptrCollection spness(n.size());
-	DataRptrCollection pz(n.size()); // Interpolation cofficient
+	DataRptrCollection fz(n.size()), fz_z(n.size()); // Interpolation cofficient and its gradient wrt z
+	DataRptrCollection grad_n_sq(n.size()); // Square of grad_n
 	for(size_t j=0; j<n.size(); j++)
-	{	//tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
-		auto grad_n_sq = lengthSquared(gradient(n[j]));
-		nullToZero(tauW[j], e.gInfo); applyFunc_r(e.gInfo, tauW_kernel, tauW[j]->data(), grad_n_sq->data(), n[j]->data());
+	{	grad_n_sq[j] = lengthSquared(gradient(n[j]));	
+		nullToZero(tauW[j], e.gInfo); applyFunc_r(e.gInfo, tauW_kernel, tauW[j]->data(), grad_n_sq[j]->data(), n[j]->data());
 		nullToZero(spness[j], e.gInfo); applyFunc_r(e.gInfo, spness_kernel, tauW[j]->data(), tau[j]->data(), spness[j]->data());
-		pz[j] = pow(spness[j], sp_constraint);
-	}	
-	
-	// Hartree potential of a single channel, per electron
-	DataRptrCollection Vhartree(n.size());
+		fz[j] = pow(spness[j], sp_constraint);
+		fz_z[j] = sp_constraint*pow(spness[j], sp_constraint-1);
+	}
+
+	// Hartree energy and potential of a single channel
+	DataRptrCollection Vhartree(n.size()), Ehartree(n.size());
 	DataGptrCollection nTilde = J(n);
 	for(size_t j=0; j<n.size(); j++)
-	{	Vhartree[j] = I((*(e.coulomb))(nTilde[j])) * pow(integral(n[j]), -1);
-		Vhartree[j] = JdagOJ(Vhartree[j]);
+	{	Vhartree[j] = I((*(e.coulomb))(nTilde[j]));
+		Vhartree[j] = Vhartree[j];
+		Ehartree[j] = 0.5*n[j]*Vhartree[j];
 	}
-	
+
+	// Gradient of tauW wrt n
+	DataRptrCollection tauW_n(n.size());
+	for(size_t j=0; j<n.size(); j++)
+	{	DataRptr lap_n = I(L(J(n[j])));
+		nullToZero(tauW_n[j], e.gInfo);
+		tauW_n[j] = 0.125*grad_n_sq[j]*pow(nInverse[j],2) - 0.25*lap_n*nInverse[j];
+		//applyFunc_r(e.gInfo, tauW_n_kernel, tauW_n[j]->data(), grad_n_sq[j]->data(), n[j]->data(), lap_n->data());
+	}
+
 	// Slater exchange
 	DataRptrCollection Vslater(n.size());
 	DataRptrCollection Eslater(n.size());
 	for(size_t j=0; j<n.size(); j++)
 	{	double coef = pow(3/M_PI, 1./3.);
 		Vslater[j] = - coef * pow(2.*n[j], 1./3.);
-		Vslater[j] = JdagOJ(Vslater[j]);
+		Vslater[j] = Vslater[j];
 		Eslater[j] = -(3./4.)*coef*pow(2.*n[j], 4./3.) * 0.5;  // x2 and x0.5 are because of spin polarization
-		Eslater[j] = JdagOJ(Eslater[j]);
+		Eslater[j] = Eslater[j];
 	}
 	
-	// Full Vxc and Vc
-	DataRptrCollection Vxc(n.size());
-	DataRptrCollection Vc(n.size());
-	e.exCorr(e.eVars.get_nXC(), &Vxc, false, 0, 0);
 	for(size_t j=0; j<n.size(); j++)
-	{	Vxc[j] = JdagOJ(Vxc[j]);
-		Vc[j] = Vxc[j] - Vslater[j];
+	{
+		// Update Vtau
+		e.eVars.Vtau[j] = fz_z[j]*tauW[j]*pow(tauInverse[j],2)*(Eslater[j] + Ehartree[j]*NInverse[j]);
+		//applyFunc_r(e.gInfo, Vtau_kernel, e.eVars.Vtau[j]->data(), fz_z[j]->data(), tauW[j]->data(), tau[j]->data(), Eslater[j]->data(),
+		//Ehartree[j]->data(), n[j]->data(), integral(n[j]));
+		e.eVars.Vtau[j] = JdagOJ(e.eVars.Vtau[j]);
+		
+		// Update Vscloc
+		e.eVars.Vscloc[j] += JdagOJ(- fz[j] * (Vslater[j] + Vhartree[j]*NInverse[j]));
+		e.eVars.Vscloc[j] += JdagOJ(- tauInverse[j] * fz_z[j] * tauW_n[j] * (Eslater[j] + Ehartree[j]*NInverse[j]));
 	}
-
-	// Apply the constraint to Vscloc
+	
+	// Calculate energy
 	e.ener.E["Econstraint"] = 0.;
 	for(size_t j=0; j<n.size(); j++)
-	{	e.eVars.Vscloc[j] += -pz[j] * (Vslater[j] + Vhartree[j]);
-		e.ener.E["Econstraint"] += -(integral(pz[j]*Eslater[j]) + 0.5*integral(pz[j]*n[j]*Vhartree[j]));
-	}
-	
+		e.ener.E["Econstraint"] += integral(-fz[j]*(Eslater[j] + (1./integral(n[j]))*Ehartree[j]));
+
 	watch.stop();
 }
