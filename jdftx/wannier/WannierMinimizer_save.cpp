@@ -27,6 +27,33 @@ void WannierMinimizer::saveMLWF()
 
 void WannierMinimizer::saveMLWF(int iSpin)
 {	
+	//Load initial rotations if necessary:
+	if(wannier.loadRotations)
+	{	//Read U
+		string fname = wannier.getFilename(false, "mlwfU", &iSpin);
+		FILE* fp = fopen(fname.c_str(), "r");
+		if(!fp) die("Could not open '%s' for reading.\n", fname.c_str());
+		logPrintf("Reading initial rotations from '%s' ... ", fname.c_str());
+		for(auto& ke: kMesh)
+		{	ke.U.init(nBands, nCenters);
+			ke.U.read(fp);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		//Read U2:
+		fname = wannier.getFilename(false, "mlwfU2", &iSpin);
+		fp = fopen(fname.c_str(), "r");
+		if(!fp) die("Could not open '%s' for reading.\n", fname.c_str());
+		logPrintf("Reading initial outer rotations from '%s' ... ", fname.c_str());
+		for(auto& ke: kMesh)
+		{	ke.U2.init(nCenters, nCenters);
+			ke.U2.read(fp);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
+	}
+	
 	//Compute the overlap matrices and initial rotations for current group of centers:
 	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
@@ -97,47 +124,75 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				}
 				
 				//Initial rotation of bands to get to Wannier subspace:
-				matrix CdagG = Ci ^ trialWfns(ke.point);
 				ke.nFixed = bFixedStop - bFixedStart;
 				int nFree = nCenters - ke.nFixed;
-				ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace
-				ke.U1 = zeroes(nBands, ke.nIn);
-				//--- Pick up fixed bands directly
-				if(ke.nFixed > 0)
-					ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, eye(ke.nFixed));
-				//--- Pick up best linear combination of remaining bands (if any)
-				if(nFree > 0)
-				{	//Create overlap matrix with contribution from fixed bands projected out:
-					matrix CdagGFree;
-					if(ke.nFixed > 0)
-					{	//SVD the fixed band contribution to the trial space:
-						matrix U, Vdag; diagMatrix S;
-						CdagG(bFixedStart,bFixedStop, 0,nCenters).svd(U, S, Vdag);
-						//Project out the fixed bands (use only the zero singular values)
-						CdagGFree = CdagG * dagger(Vdag(ke.nFixed,nCenters, 0,nCenters));
+				ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace	
+				if(wannier.loadRotations)
+				{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
+					//--- check unitarity:
+					const double tol = 1e-10 * nCenters;
+					if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol) die("Initial matrices U are not unitary.\n");
+					if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol) die("Initial matrices U2 are not unitary.\n");
+					//--- compute and check U1:
+					ke.U1 = zeroes(nBands, ke.nIn);
+					ke.U1.set(0,nBands, 0,nCenters, ke.U * dagger(ke.U2));
+					if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
+					 || (bStop>nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
+						die("Initial matrices are incompatible with current outer window / band selection.\n");
+					if( ke.nFixed>0
+					 && ( (nrm2(ke.U1(bFixedStart,bFixedStop, 0,ke.nFixed) - eye(ke.nFixed))>tol)
+						|| (bStart<bFixedStart && nrm2(ke.U1(bStart,bFixedStop, 0,ke.nFixed))>tol)
+						|| (bFixedStop<bStop && nrm2(ke.U1(bFixedStop,bStop, 0,ke.nFixed))>tol)
+						|| (nFree>0 && nrm2(ke.U1(bFixedStart,bFixedStop, ke.nFixed,nCenters))>tol) ) )
+						die("Initial matrices are incompatible with current inner window.\n");
+					//--- Compute extra linearly indep columns of U1 (if necessary):
+					if(ke.nIn > nCenters)
+					{	matrix U, Vdag; diagMatrix S;
+						ke.U1.svd(U, S, Vdag);
+						ke.U1 = U(0,nBands, 0,ke.nIn) * Vdag;
 					}
-					else CdagGFree = CdagG;
-					//Truncate to non-zero rows:
-					int nLo = bFixedStart-bStart;
-					int nHi = bStop-bFixedStop;
-					int nOuter = nLo+nHi;
-					matrix CdagGFreeNZ = zeroes(nOuter, nOuter);
-					if(nLo>0) CdagGFreeNZ.set(0,nLo, 0,nFree, CdagGFree(bStart,bFixedStart, 0,nFree));
-					if(nHi>0) CdagGFreeNZ.set(nLo,nOuter, 0,nFree, CdagGFree(bFixedStop,bStop, 0,nFree));
-					//SVD to get best linear combinations first:
-					matrix U, Vdag; diagMatrix S;
-					CdagGFreeNZ.svd(U, S, Vdag);
-					//Convert left space from non-zero to all bands:
-					matrix Upad = zeroes(nBands, nOuter);
-					if(nLo>0) Upad.set(bStart,bFixedStart, 0,nOuter, U(0,nLo, 0,nOuter));
-					if(nHi>0) Upad.set(bFixedStop,bStop, 0,nOuter, U(nLo,nOuter, 0,nOuter));
-					//Include this combination in U1:
-					ke.U1.set(0,nBands, ke.nFixed,ke.nIn, Upad * Vdag);
 				}
-				
-				//Optimal initial rotation within Wannier subspace:
-				matrix WdagG = dagger(ke.U1(0,nBands, 0,nCenters)) * CdagG;
-				ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
+				else
+				{	//Determine from trial orbitals:
+					matrix CdagG = Ci ^ trialWfns(ke.point);
+					ke.U1 = zeroes(nBands, ke.nIn);
+					//--- Pick up fixed bands directly
+					if(ke.nFixed > 0)
+						ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, eye(ke.nFixed));
+					//--- Pick up best linear combination of remaining bands (if any)
+					if(nFree > 0)
+					{	//Create overlap matrix with contribution from fixed bands projected out:
+						matrix CdagGFree;
+						if(ke.nFixed > 0)
+						{	//SVD the fixed band contribution to the trial space:
+							matrix U, Vdag; diagMatrix S;
+							CdagG(bFixedStart,bFixedStop, 0,nCenters).svd(U, S, Vdag);
+							//Project out the fixed bands (use only the zero singular values)
+							CdagGFree = CdagG * dagger(Vdag(ke.nFixed,nCenters, 0,nCenters));
+						}
+						else CdagGFree = CdagG;
+						//Truncate to non-zero rows:
+						int nLo = bFixedStart-bStart;
+						int nHi = bStop-bFixedStop;
+						int nOuter = nLo+nHi;
+						matrix CdagGFreeNZ = zeroes(nOuter, nOuter);
+						if(nLo>0) CdagGFreeNZ.set(0,nLo, 0,nFree, CdagGFree(bStart,bFixedStart, 0,nFree));
+						if(nHi>0) CdagGFreeNZ.set(nLo,nOuter, 0,nFree, CdagGFree(bFixedStop,bStop, 0,nFree));
+						//SVD to get best linear combinations first:
+						matrix U, Vdag; diagMatrix S;
+						CdagGFreeNZ.svd(U, S, Vdag);
+						//Convert left space from non-zero to all bands:
+						matrix Upad = zeroes(nBands, nOuter);
+						if(nLo>0) Upad.set(bStart,bFixedStart, 0,nOuter, U(0,nLo, 0,nOuter));
+						if(nHi>0) Upad.set(bFixedStop,bStop, 0,nOuter, U(nLo,nOuter, 0,nOuter));
+						//Include this combination in U1:
+						ke.U1.set(0,nBands, ke.nFixed,ke.nIn, Upad * Vdag);
+					}
+					
+					//Optimal initial rotation within Wannier subspace:
+					matrix WdagG = dagger(ke.U1(0,nBands, 0,nCenters)) * CdagG;
+					ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
+				}
 			}
 		}
 	}
@@ -176,15 +231,22 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	logFlush();
 	
 	//Save the matrices:
-	string fname = wannier.getFilename(false, "mlwfU", &iSpin);
-	logPrintf("Dumping '%s' ... ", fname.c_str());
 	if(mpiUtil->isHead())
-	{	FILE* fp = fopen(fname.c_str(), "w");
-		for(const auto& kMeshEntry: kMesh)
-			kMeshEntry.U.write(fp);
+	{	//Write U:
+		string fname = wannier.getFilename(false, "mlwfU", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str());
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(const auto& ke: kMesh) ke.U.write(fp);
 		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		//Write U2:
+		fname = wannier.getFilename(false, "mlwfU2", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str());
+		fp = fopen(fname.c_str(), "w");
+		for(const auto& ke: kMesh) (ke.U2 * ke.V2).write(fp);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
 	}
-	logPrintf("done.\n"); logFlush();
 
 	if(wannier.saveWfns)
 	{	resumeOperatorThreading();
@@ -199,7 +261,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 		
 		//--- Save supercell wavefunctions:
-		for(int n=0; n<nCenters; n++)
+		if(mpiUtil->isHead()) for(int n=0; n<nCenters; n++)
 		{	//Generate filename
 			ostringstream varName;
 			varName << n << ".mlwf";
@@ -216,13 +278,11 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
 			logFlush();
 			//Write real part of supercell wavefunction to file:
-			if(mpiUtil->isHead())
-			{	FILE* fp = fopen(fname.c_str(), "wb");
-				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-				for(int i=0; i<gInfoSuper.nr; i++)
-					fwrite(psiData+i, sizeof(double), 1, fp);
-				fclose(fp);
-			}
+			FILE* fp = fopen(fname.c_str(), "wb");
+			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+			for(int i=0; i<gInfoSuper.nr; i++)
+				fwrite(psiData+i, sizeof(double), 1, fp);
+			fclose(fp);
 		}
 		suspendOperatorThreading();
 	}
@@ -242,14 +302,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file
-	fname = wannier.getFilename(false, "mlwfH", &iSpin);
-	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	if(mpiUtil->isHead())
-	{	FILE* fp = fopen(fname.c_str(), "wb");
+	{	string fname = wannier.getFilename(false, "mlwfH", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "wb");
 		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 		for(matrix& H: Hwannier) H.write_real(fp);
 		fclose(fp);
+		logPrintf("done.\n"); logFlush();
 	}
-	logPrintf("done.\n"); logFlush();
 	resumeOperatorThreading();
 }

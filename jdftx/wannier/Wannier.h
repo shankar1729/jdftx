@@ -46,6 +46,7 @@ public:
 	bool outerWindow, innerWindow; //!< denotes which windows are available
 	
 	bool saveWfns; //!< whether to write wavefunctions
+	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions

@@ -28,6 +28,7 @@ enum WannierMember
 	WM_outerWindow,
 	WM_innerWindow,
 	WM_saveWfns,
+	WM_loadRotations,
 	WM_delim
 };
 
@@ -35,7 +36,8 @@ EnumStringMap<WannierMember> wannierMemberMap
 (	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
-	WM_saveWfns, "saveWfns"
+	WM_saveWfns, "saveWfns",
+	WM_loadRotations, "loadRotations"
 );
 
 struct CommandWannier : public Command
@@ -58,6 +60,9 @@ struct CommandWannier : public Command
 			"    Outer energy window must be specified to use this.\n"
 			"  saveWfns yes|no\n"
 			"    Whether to write supercell wavefunctions (can be enormous).\n"
+			"    Default: no.\n"
+			"  loadRotations yes|no\n"
+			"    Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
 			"    Default: no.";
 	}
 
@@ -82,6 +87,9 @@ struct CommandWannier : public Command
 				case WM_saveWfns:
 					pl.get(wannier.saveWfns, false, boolMap, "saveWfns", true);
 					break;
+				case WM_loadRotations:
+					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -89,7 +97,7 @@ struct CommandWannier : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("saveWfns %s", boolMap.getString(wannier.saveWfns));
+	{	logPrintf("saveWfns %s loadRotations %s", boolMap.getString(wannier.saveWfns), boolMap.getString(wannier.loadRotations));
 		if(wannier.outerWindow) logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		if(!(wannier.innerWindow || wannier.outerWindow))
