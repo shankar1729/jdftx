@@ -140,6 +140,8 @@ void SCF::minimize()
 			}
 		}
 		logFlush();
+		
+		e.dump(DumpFreq_Gummel, scfCounter);
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
