@@ -83,6 +83,8 @@ public:
 	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	
+	string eigsFilename; //!< file to read eigenvalues from
+	
 	//Auxiliary hamiltonian initialization
 	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed
@@ -91,7 +93,7 @@ public:
 	
 	std::vector<string> nFilename; //!< file(s) to read electron (spin) density from
 	std::vector<string> VsclocFilename; //!< file(s) to read electron (spin) potential from
-
+	
 	ElecVars();
 	void setup(const Everything &everything);
 

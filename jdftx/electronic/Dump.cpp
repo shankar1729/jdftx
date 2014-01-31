@@ -59,11 +59,7 @@ void Dump::setup(const Everything& everything)
 
 void Dump::operator()(DumpFrequency freq, int iter)
 {
-	//Check if dumping should occur at this iteration
-	auto intervalFreq = interval.find(freq);
-	if(intervalFreq!=interval.end() //interval found
-		&& ((iter+1) % intervalFreq->second != 0)) //and iteration number is not divisible by it
-		return; // => don't dump this time
+	if(!checkInterval(freq, iter)) return; // => don't dump this time
 
 	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
@@ -218,7 +214,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		else DUMP_nocheck(tau[0], "KEdensity");
 	}
 	
-	if(ShouldDump(BandEigs))
+	if(ShouldDump(BandEigs) || (ShouldDump(State) && e->exCorr.orbitalDep && isCevec))
 	{	StartDump("eigenvals")
 		eInfo.write(eVars.Hsub_eigs, fname.c_str());
 		EndDump
@@ -448,6 +444,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
 	{	polarizability->dump(*e);
 	}
+}
+
+bool Dump::checkInterval(DumpFrequency freq, int iter) const
+{	//Check if dumping should occur at this iteration
+	auto intervalFreq = interval.find(freq);
+	return (intervalFreq==interval.end() //cound not find interval
+		|| ((iter+1) % intervalFreq->second == 0)); //or iteration number is divisible by it
 }
 
 string Dump::getFilename(string varName) const

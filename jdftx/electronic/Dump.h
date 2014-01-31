@@ -66,6 +66,9 @@ public:
 	//! Get the dump filename corresponding to a particular variable name
 	string getFilename(string varName) const;
 	
+	//! Check whether to dump at given frequency and iteration:
+	bool checkInterval(DumpFrequency freq, int iter) const;
+	
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
 private:

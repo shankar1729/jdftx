@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
+#include <core/DataIO.h>
 
 inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double* kerkerMix, double* diisMetric)
 {	if(mixDensity)
@@ -53,13 +54,51 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,
 		sp.mixFraction, pow(sp.qKerker,2), pow(sp.qMetric,2), kerkerMix.data, diisMetric.data);
 	kerkerMix.set(); diisMetric.set();
+	
+	//Load history if available:
+	if(sp.historyFilename.length())
+	{	int nScalarFields = e.eVars.n.size() * (e.exCorr.needsKEdensity() ? 2 : 1); //number of scalar fields per variable or residual
+		size_t nBytesCycle = 2 * nScalarFields * e.gInfo.nr*sizeof(double); //number of bytes per history entry
+		size_t nBytesFile = fileSize(sp.historyFilename.c_str());
+		size_t ndim = nBytesFile / nBytesCycle;
+		size_t dimOffset = 0;
+		if(int(ndim) > sp.history)
+		{	dimOffset = ndim - sp.history;
+			ndim = sp.history;
+		}
+		if(nBytesFile % nBytesCycle != 0)
+			die("SCF history file '%s' does not contain an integral multiple of the mixed variables and residuals.\n", sp.historyFilename.c_str());
+		logPrintf("Reading %lu past variables and residuals from '%s' ... ", ndim, sp.historyFilename.c_str()); logFlush();
+		pastVariables.resize(ndim);
+		pastResiduals.resize(ndim);
+		FILE* fp = fopen(sp.historyFilename.c_str(), "r");
+		if(dimOffset) fseek(fp, dimOffset*nBytesCycle, SEEK_SET);
+		for(size_t idim=0; idim<ndim; idim++)
+		{	nullToZero(pastVariables[idim], e.gInfo, nScalarFields);
+			nullToZero(pastResiduals[idim], e.gInfo, nScalarFields);
+			for(DataRptr& X: pastVariables[idim]) loadRawBinary(X, fp);
+			for(DataRptr& X: pastResiduals[idim]) loadRawBinary(X, fp);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		sp.historyFilename.clear(); //make sure it doesn't get loaded again on subsequent SCFs (eg. in an ionic loop)
+		//Compute overlaps of loaded history:
+		for(size_t i=0; i<ndim; i++)
+		{	DataRptrCollection M_residual_i = diisMetric * pastResiduals[i];
+			for(size_t j=0; j<=i; j++)
+			{	double thisOverlap = dot(pastResiduals[j], M_residual_i);
+				overlap.set(i,j, thisOverlap);
+				overlap.set(j,i, thisOverlap);
+			}
+		}
+	}
 }
 
 void SCF::minimize()
 {	
 	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
-	SCFparams sp = e.scfParams;
+	SCFparams& sp = e.scfParams;
 	
 	logPrintf("Will mix electronic %s%s at each iteration.\n",
 		(e.exCorr.needsKEdensity() ? "and kinetic " : ""),
@@ -142,6 +181,20 @@ void SCF::minimize()
 		logFlush();
 		
 		e.dump(DumpFreq_Gummel, scfCounter);
+		//Write SCF history if dumping state:
+		if(e.dump.count(std::make_pair(DumpFreq_Gummel,DumpState)) && e.dump.checkInterval(DumpFreq_Gummel,scfCounter))
+		{	string fname = e.dump.getFilename("scfHistory");
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+			if(mpiUtil->isHead())
+			{	FILE* fp = fopen(fname.c_str(), "w");
+				for(size_t idim=0; idim<pastVariables.size(); idim++)
+				{	for(DataRptr& X: pastVariables[idim]) saveRawBinary(X, fp);
+					for(DataRptr& X: pastResiduals[idim]) saveRawBinary(X, fp);
+				}
+				fclose(fp);
+			}
+			logPrintf("done\n"); logFlush();
+		}
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state

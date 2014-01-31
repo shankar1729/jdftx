@@ -105,6 +105,7 @@ void ElecVars::setup(const Everything &everything)
 	Hsub.resize(eInfo.nStates);
 	Hsub_evecs.resize(eInfo.nStates);
 	Hsub_eigs.resize(eInfo.nStates);
+	if(eigsFilename.length()) eInfo.read(Hsub_eigs, eigsFilename.c_str());
 	if(eInfo.subspaceRotation)
 	{	B.resize(eInfo.nStates);
 		B_evecs.resize(eInfo.nStates);

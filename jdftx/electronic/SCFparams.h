@@ -29,6 +29,8 @@ struct SCFparams
 	double energyDiffThreshold; //!< convergence threshold for energy difference between successive iterations
 	double eigDiffThreshold; //!< convergence threshold on the RMS change of eigenvalues
 	double residualThreshold; //!< convergence threshold on the residual
+
+	string historyFilename; //!< Read SCF history in order to resume a previous run
 	
 	enum MixedVariable
 	{	MV_Density, //! Mix electron density (n) and kinetic energy density (tau)

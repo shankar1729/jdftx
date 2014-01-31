@@ -38,6 +38,7 @@ int main(int argc, char** argv)
 	
 	//Set initial filenames and prevent unnecessary setup below:
 	e.eVars.wfnsFilename = wannier.getFilename(true, "wfns");
+	e.eVars.eigsFilename = wannier.getFilename(true, "eigenvals");
 	e.eVars.nFilename.clear();
 	e.eVars.VsclocFilename.clear();
 	e.eVars.HauxFilename.clear();
@@ -46,7 +47,6 @@ int main(int argc, char** argv)
 	//Setup:
 	e.setup();
 	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
-	e.eInfo.read(e.eVars.Hsub_eigs, wannier.getFilename(true, "eigenvals").c_str()); //read eigenvalues
 	wannier.setup(e);
 	Citations::print();
 	if(dryRun)

@@ -33,7 +33,8 @@ struct CommandInitialState : public Command
 			"   fluid-initial-state         <filename-pattern>/$VAR/fluidState\n"
 			"(where A/x/y is sed for 'find x in A and replace it with y'.)\n"
 			"This command will invoke the read only for those state variables for which\n"
-			"the corresponding files exist, leaving the rest with default initialization.";
+			"the corresponding files exist, leaving the rest with default initialization.\n"
+			"When using SCF, this will also read scfHistory and eigenvalues if available.";
 		
 		forbid("wavefunction");
 		forbid("elec-initial-fillings");
@@ -53,6 +54,8 @@ struct CommandInitialState : public Command
 		processPattern("fluidState", e.eVars.fluidInitialStateFilename);
 		if(!e.eVars.fluidInitialStateFilename.length())
 			processPattern("fS", e.eVars.fluidInitialStateFilename); //alternate naming convention
+		processPattern("scfHistory", e.scfParams.historyFilename);
+		processPattern("eigenvals", e.eVars.eigsFilename);
 	}
 
 	void printStatus(Everything& e, int iRep)
