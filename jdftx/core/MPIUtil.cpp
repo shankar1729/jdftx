@@ -19,8 +19,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/MPIUtil.h>
 #include <core/Util.h>
+#include <core/scalar.h>
 #include <vector>
 #include <algorithm>
+#include <climits>
 
 MPIUtil::MPIUtil(int argc, char** argv)
 {
@@ -172,25 +174,39 @@ void MPIUtil::fseek(File fp, long offset, int whence) const
 void MPIUtil::fread(void *ptr, size_t size, size_t nmemb, File fp) const
 {
 	#ifdef MPI_ENABLED
-	MPI_Status status;
-	MPI_File_read(fp, ptr, size*nmemb, MPI_BYTE, &status);
-	int count; MPI_Get_count(&status, MPI_BYTE, &count);
-	if(size_t(count) != size*nmemb)
+	size_t nBytes = size*nmemb;
+	size_t blockSize = size_t(INT_MAX)/2;
+	size_t nBlocks = ceildiv(nBytes, blockSize);
+	for(size_t iBlock=0; iBlock<nBlocks; iBlock++)
+	{	size_t offset = iBlock * blockSize;
+		int length = int(std::min(nBytes, (iBlock+1)*blockSize) - offset);
+		MPI_Status status;
+		MPI_File_read(fp, ((char*)ptr)+offset, length, MPI_BYTE, &status);
+		int count; MPI_Get_count(&status, MPI_BYTE, &count);
+		if(count != length) die("Error in file read.\n");
+	}
 	#else
 	if(::fread(ptr, size, nmemb, fp) != nmemb)
-	#endif
 		die("Error in file read.\n");
+	#endif
 }
 
 void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 {
 	#ifdef MPI_ENABLED
-	MPI_Status status;
-	MPI_File_write(fp, (void*)ptr, size*nmemb, MPI_BYTE, &status);
-	int count; MPI_Get_count(&status, MPI_BYTE, &count);
-	if(size_t(count) != size*nmemb)
+	size_t nBytes = size*nmemb;
+	size_t blockSize = size_t(INT_MAX)/2;
+	size_t nBlocks = ceildiv(nBytes, blockSize);
+	for(size_t iBlock=0; iBlock<nBlocks; iBlock++)
+	{	size_t offset = iBlock * blockSize;
+		int length = int(std::min(nBytes, (iBlock+1)*blockSize) - offset);
+		MPI_Status status;
+		MPI_File_write(fp, ((char*)ptr)+offset, length, MPI_BYTE, &status);
+		int count; MPI_Get_count(&status, MPI_BYTE, &count);
+		if(count != length) die("Error in file write.\n");
+	}
 	#else
 	if(::fwrite(ptr, size, nmemb, fp) != nmemb)
-	#endif
 		die("Error in file write.\n");
+	#endif
 }

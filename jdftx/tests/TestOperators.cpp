@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/operators.h>
+#include <electronic/matrix.h>
 #include <gsl/gsl_sf.h>
 #include <stdlib.h>
 
@@ -293,13 +294,40 @@ void testChangeGrid()
 	logPrintf("\n--------- x3 --------\n"); print(x3);
 }
 
+void testHugeFileIO()
+{	matrix M(15000,15000);
+	logPrintf("Testing huge file I/O with %lg GB.\n", pow(0.5,30)*(M.nData()*sizeof(complex)));
+	complex* Mdata = M.data();
+	for(size_t i=0; i<M.nData(); i++) Mdata[i] = i;
+	const char* fname = "testHugeFileIO.dat";
+	//Write:
+	logPrintf("Writing ... "); logFlush();
+	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
+	mpiUtil->fwrite(Mdata, sizeof(complex), M.nData(), fp);
+	mpiUtil->fclose(fp);
+	logPrintf("done.\n"); logFlush();
+	//Read back:
+	logPrintf("Reading ... "); logFlush();
+	M.zero();
+	mpiUtil->fopenRead(fp, fname, M.nData()*sizeof(complex));
+	mpiUtil->fread(Mdata, sizeof(complex), M.nData(), fp);
+	mpiUtil->fclose(fp);
+	logPrintf("done.\n"); logFlush();
+	//Check results:
+	double rmsErr = 0.;
+	for(size_t i=0; i<M.nData(); i++) rmsErr += (Mdata[i]-i).norm();
+	rmsErr = sqrt(rmsErr/M.nData());
+	logPrintf("rmsErr = %le\n", rmsErr);
+}
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
-	testChangeGrid(); return 0;
-	//testYlmProd(); return 0;
 	//testHarmonics(); return 0;
+	//testYlmProd(); return 0;
 	//fdtestGGAs(); return 0;
-
+	//testChangeGrid(); return 0;
+	//testHugeFileIO(); return 0;
+	
 // 	const int Zn = 2;
 // 	SO3quad quad(QuadEuler, Zn, 11); //quad.print();
 // 	SO3quad quad2(Quad10design_60, Zn); // quad.print();
