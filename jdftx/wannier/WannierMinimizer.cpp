@@ -305,26 +305,29 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 	complex* retData = ret.dataPref();
 	complex* tempData = temp.dataPref();
 	for(const Wannier::TrialOrbital& t: wannier.trialOrbitals)
-	{	for(const Wannier::Hydrogenic& h: t)
-		{	const DOS::Weight::OrbitalDesc& od = h.orbitalDesc;
+	{	for(const Wannier::AtomicOrbital& ao: t)
+		{	const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
 			//--- Copy the center to GPU if necessary:
 			#ifdef GPU_ENABLED
-			cudaMemcpy(pos, &h.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
+			cudaMemcpy(pos, &ao.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
 			#else
-			const vector3<>* pos = &h.r;
+			const vector3<>* pos = &ao.r;
 			#endif
-			//--- Create the radial part:
-			RadialFunctionG atRadial;
-			double normPrefac = pow((od.l+1)/h.a,3);
-			for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
-				normPrefac *= p;
-			normPrefac = 16*M_PI/(e.gInfo.detR * sqrt(normPrefac));
-			atRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, h.a, od.n, od.l, normPrefac);
+			//--- Get / create the radial part:
+			RadialFunctionG hRadial;
+			if(ao.sp < 0)
+			{	double normPrefac = pow((od.l+1)/ao.a,3);
+				for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
+					normPrefac *= p;
+				normPrefac = 16*M_PI/sqrt(normPrefac);
+				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, ao.a, od.n, od.l, normPrefac);
+			}
+			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial->at(od.l)[od.n];
 			//--- Initialize the projector:
 			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, tempData);
-			callPref(eblas_zscal)(basis.nbasis, cis(0.5*M_PI*od.l), tempData,1); //ensures odd l projectors are real
+			if(ao.sp < 0) hRadial.free();
 			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(basis.nbasis, h.coeff, tempData,1, retData,1);
+			callPref(eblas_zaxpy)(basis.nbasis, ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, tempData,1, retData,1);  //phase ensures odd l projectors are real
 		}
 		retData += basis.nbasis;
 	}

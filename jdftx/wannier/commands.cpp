@@ -111,17 +111,19 @@ struct CommandWannierCenter : public Command
 {
 	CommandWannierCenter() : Command("wannier-center")
 	{
-		format = "<horb1> [<horb2> ...]";
+		format = "<aorb1> [<aorb2> ...]";
 		comments =
 			"Specify trial orbital for a wannier function as a linear combination of\n"
-			"hydrogenic orbitals <horb*>. The syntax for each <horb> is:\n"
-			"   <x0> <x1> <x2> [<a>=1] [<orbDesc>=s] [<coeff>=1.0]\n"
-			"which represents a hydrogenic orbital centered at <x0>,<x1>,<x2>"
-			"(coordinate system set by coords-type) with decay length <a> bohrs,\n"
-			"and with orbital code <orbDesc> as in command density-of-states. Note that\n"
-			"<a> sets the decay length of the nodeless orbital of specified angular\n"
-			"momentum in <orbDesc>. Specify a, orbDesc and coeff explicitly when using\n"
-			"multiple orbitals; the defaults only apply to the single orbital case.\n"
+			"atomic orbitals <aorb*>. The syntax for each <horb> is:\n"
+			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
+			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
+			"(coordinate system set by coords-type). If <a> is the name of one\n"
+			"of the pseudopotentials, then its atomic orbitals will be used;\n"
+			"otherwise a hydogenic orbital of decay length n*<a> bohrs, where\n"
+			"n is the principal quantum number in <orbDesc> will be used.\n"
+			"The orbital code <orbDesc> is as in command density-of-states.\n"
+			"Specify a, orbDesc and coeff explicitly when using multiple\n"
+			"orbitals; the defaults only apply to the single orbital case.\n"
 			"   Specify this command once for each Wannier function.";
 		allowMultiple = true;
 		require("wannier-initial-state");
@@ -135,42 +137,53 @@ struct CommandWannierCenter : public Command
 	void process(ParamList& pl, Everything& e)
 	{	Wannier::TrialOrbital t;
 		while(true)
-		{	Wannier::Hydrogenic h; string orbDesc;
-			pl.get(h.r[0], nan(""), "x0"); if(isnan(h.r[0])) break;
-			pl.get(h.r[1], 0., "x1", true);
-			pl.get(h.r[2], 0., "x2", true);
-			pl.get(h.a, 1., "a");
+		{	Wannier::AtomicOrbital ao; string orbDesc;
+			pl.get(ao.r[0], nan(""), "x0"); if(isnan(ao.r[0])) break;
+			pl.get(ao.r[1], 0., "x1", true);
+			pl.get(ao.r[2], 0., "x2", true);
+			string aKey; pl.get(aKey, string(), "a");
+			ao.sp = -1;
+			for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
+				if(e.iInfo.species[sp]->name == aKey)
+				{	ao.sp = sp;
+					break;
+				}
+			if(ao.sp < 0)
+				ParamList(aKey).get(ao.a, 1., "a");
 			pl.get(orbDesc, string(), "orbDesc");
 			if(orbDesc.length())
-			{	h.orbitalDesc.parse(orbDesc);
-				if(h.orbitalDesc.m > h.orbitalDesc.l)
+			{	ao.orbitalDesc.parse(orbDesc);
+				if(ao.orbitalDesc.m > ao.orbitalDesc.l)
 					throw(string("Must specify a specific projection eg. px,py (not just p)"));
-				if(h.orbitalDesc.n + h.orbitalDesc.l > 3)
+				if(ao.sp>=0 && ao.orbitalDesc.n + ao.orbitalDesc.l > 3)
 					throw(string("Hydrogenic orbitals with n+l>4 not supported"));
 			}
 			else //default is nodeless s orbital
-			{	h.orbitalDesc.l = 0;
-				h.orbitalDesc.m = 0;
-				h.orbitalDesc.n = 0;
+			{	ao.orbitalDesc.l = 0;
+				ao.orbitalDesc.m = 0;
+				ao.orbitalDesc.n = 0;
 			}
-			pl.get(h.coeff, 1., "coeff");
+			pl.get(ao.coeff, 1., "coeff");
 			//Transform coordinates if necessary
 			if(e.iInfo.coordsType == CoordsCartesian)
-				h.r = inv(e.gInfo.R)*h.r;
-			t.push_back(h);
+				ao.r = inv(e.gInfo.R)*ao.r;
+			t.push_back(ao);
 		}
-		if(!t.size()) throw(string("Trial orbital for each center must contain at least one hydrogenic orbital"));
+		if(!t.size()) throw(string("Trial orbital for each center must contain at least one atomic orbital"));
 		wannier.trialOrbitals.push_back(t);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const Wannier::TrialOrbital& t = wannier.trialOrbitals[iRep];
-		for(const Wannier::Hydrogenic& h: t)
+		for(const Wannier::AtomicOrbital& ao: t)
 		{	if(t.size()>1) logPrintf(" \\\n\t");
-			vector3<> r = h.r;
+			vector3<> r = ao.r;
 			if(e.iInfo.coordsType == CoordsCartesian)
 				r = e.gInfo.R * r; //report cartesian positions
-			logPrintf("%lg %lg %lg  %lg  %s  %lg", r[0], r[1], r[2], h.a, string(h.orbitalDesc).c_str(), h.coeff);
+			logPrintf("%lg %lg %lg ", r[0], r[1], r[2]);
+			if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
+			else logPrintf("%lg", ao.a);
+			logPrintf(" %s  %lg", string(ao.orbitalDesc).c_str(), ao.coeff);
 		}
 	}
 }
