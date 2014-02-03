@@ -105,7 +105,7 @@ endif()
 #------------- Macro to set JDFTx flags -------------
 
 macro(set_JDFTx_flags targetName isGpu)
-	if(isGpu)
+	if(${isGpu})
 		set(GPU_ENABLED "-DGPU_ENABLED")
 	else()
 		set(GPU_ENABLED "")
