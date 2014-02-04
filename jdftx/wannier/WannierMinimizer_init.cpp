@@ -19,11 +19,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <core/WignerSeitz.h>
-#include <gsl/gsl_linalg.h>
-
 
 //Find a finite difference formula given a list of relative neighbour positions (in cartesian coords)
-//Generalization of Appendix B from Phys Rev B 56, 12847 to arbitrary k-point meshes
+//[Appendix B of Phys Rev B 56, 12847]
 //Returns an empty weight set on failure
 std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 {	//Group elements of b into shells:
@@ -32,69 +30,38 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 		if(b[i].length() > b[i-1].length() + symmThreshold)
 			shellMax.push_back(i);
 	shellMax.push_back(b.size());
+	int nShells = shellMax.size();
 	//Setup the equations satisfied by the weights:
-	int nEquations = std::max(19, int(shellMax.size())); //pad extra equations to keep nRows>=nCols for SVD
-	gsl_matrix* Lhs = gsl_matrix_calloc(nEquations, shellMax.size()); //initializes with 0s
-	for(unsigned s=0; s<shellMax.size(); s++)
+	const int nEquations = 6;
+	matrix Lhs = zeroes(nEquations, nShells);
+	complex* LhsData = Lhs.data();
+	for(int s=0; s<nShells; s++)
 		for(unsigned j = (s ? shellMax[s-1] : 0); j<shellMax[s]; j++)
 		{	//Equations from ref.:
+			int iEqn = 0;
 			//Rank-two sum is identity:
-			*gsl_matrix_ptr(Lhs, 0, s) += b[j][0]*b[j][0];
-			*gsl_matrix_ptr(Lhs, 1, s) += b[j][1]*b[j][1];
-			*gsl_matrix_ptr(Lhs, 2, s) += b[j][2]*b[j][2];
-			*gsl_matrix_ptr(Lhs, 3, s) += b[j][1]*b[j][2];
-			*gsl_matrix_ptr(Lhs, 4, s) += b[j][2]*b[j][0];
-			*gsl_matrix_ptr(Lhs, 5, s) += b[j][0]*b[j][1];
-			//Additional constraints for arbitrary meshes (always satisfied for Bravais lattices):
-			//Rank-one sum vanishes:
-			*gsl_matrix_ptr(Lhs, 6, s) += b[j][0];
-			*gsl_matrix_ptr(Lhs, 7, s) += b[j][1];
-			*gsl_matrix_ptr(Lhs, 8, s) += b[j][2];
-			//Rank-three sum vanishes:
-			*gsl_matrix_ptr(Lhs,  9, s) += b[j][0]*b[j][0]*b[j][0];
-			*gsl_matrix_ptr(Lhs, 10, s) += b[j][1]*b[j][1]*b[j][1];
-			*gsl_matrix_ptr(Lhs, 11, s) += b[j][2]*b[j][2]*b[j][2];
-			*gsl_matrix_ptr(Lhs, 12, s) += b[j][1]*b[j][1]*b[j][2];
-			*gsl_matrix_ptr(Lhs, 13, s) += b[j][2]*b[j][2]*b[j][0];
-			*gsl_matrix_ptr(Lhs, 14, s) += b[j][0]*b[j][0]*b[j][1];
-			*gsl_matrix_ptr(Lhs, 15, s) += b[j][1]*b[j][2]*b[j][2];
-			*gsl_matrix_ptr(Lhs, 16, s) += b[j][2]*b[j][0]*b[j][0];
-			*gsl_matrix_ptr(Lhs, 17, s) += b[j][0]*b[j][1]*b[j][1];
-			*gsl_matrix_ptr(Lhs, 18, s) += b[j][0]*b[j][1]*b[j][2];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][0];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][1];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][2];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][2];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][0];
+			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][1];
 		}
-	gsl_vector* rhs = gsl_vector_calloc(nEquations); //initializes with 0s
-	for(unsigned i=0; i<3; i++) //first three components = diagonals of rank-two sum
-		gsl_vector_set(rhs, i, 1.);
+	matrix rhs = zeroes(nEquations, 1);
+	for(unsigned i=0; i<3; i++) rhs.data()[i] = 1; //first three components = diagonals of rank-two sum
 	//Solve using a singular value decomposition:
-	gsl_matrix* U = gsl_matrix_alloc(nEquations, shellMax.size());
-	gsl_matrix* V = gsl_matrix_alloc(shellMax.size(), shellMax.size());
-	gsl_vector* S = gsl_vector_alloc(shellMax.size());
-	gsl_vector* work = gsl_vector_alloc(shellMax.size());
-	gsl_matrix_memcpy(U, Lhs); //SVD is done in place
-	gsl_linalg_SV_decomp(U, V, S, work);
-	//Zero out small singular values:
-	for(unsigned j=0; j<shellMax.size(); j++)
-		if(gsl_vector_get(S,j) < symmThreshold)
-			gsl_vector_set(S,j, 0.);
-	//Solve for weights:
-	gsl_vector* wPairs = gsl_vector_alloc(shellMax.size());
-	gsl_linalg_SV_solve(U, V, S, rhs, wPairs);
-	gsl_matrix_free(U);
-	gsl_matrix_free(V);
-	gsl_vector_free(S);
-	gsl_vector_free(work);
-	//Check solution by substitution:
-	cblas_dgemv(CblasRowMajor, CblasNoTrans, nEquations, shellMax.size(), 1., Lhs->data, Lhs->tda,
-		wPairs->data, wPairs->stride, -1., rhs->data, rhs->stride); //rhs = Lhs*wPairs - rhs
-	if(eblas_dnrm2(nEquations, rhs->data, rhs->stride) > symmThreshold)
+	matrix U, Vdag; diagMatrix S;
+	Lhs.svd(U, S, Vdag);
+	for(double& s: S) s = (s<symmThreshold) ? 0. : 1./s; //invert and zero out small singular values
+	matrix wShells = dagger(Vdag) * S * dagger(U(0,nEquations, 0,nShells)) * rhs;
+	if(nrm2(Lhs * wShells - rhs) > symmThreshold) //check solution by substitution
 		return std::vector<double>(); //Not an exact solution, so quit (and try with more shells)
-	gsl_vector_free(rhs);
-	gsl_matrix_free(Lhs);
 	//Store the weights in the original indexing:
+	complex* wShellsData = wShells.data();
 	std::vector<double> w(b.size());
-	for(unsigned s=0; s<shellMax.size(); s++)
+	for(int s=0; s<nShells; s++)
 		for(unsigned j = (s ? shellMax[s-1] : 0); j<shellMax[s]; j++)
-			w[j] = gsl_vector_get(wPairs, s);
+			w[j] = wShellsData[s].real();
 	return w;
 }
 
@@ -198,9 +165,10 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
 	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
 	vector3<int> ik;
-	for(ik[0]=-2; ik[0]<=+2; ik[0]++)
-	for(ik[1]=-2; ik[1]<=+2; ik[1]++)
-	for(ik[2]=-2; ik[2]<=+2; ik[2]++)
+	const int ikBound = 2;
+	for(ik[0]=-ikBound; ik[0]<=+ikBound; ik[0]++)
+	for(ik[1]=-ikBound; ik[1]<=+ikBound; ik[1]++)
+	for(ik[2]=-ikBound; ik[2]<=+ikBound; ik[2]++)
 		if(ik.length_squared()) //ignore self
 		{	vector3<> dk = kbasis * ik;
 			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
