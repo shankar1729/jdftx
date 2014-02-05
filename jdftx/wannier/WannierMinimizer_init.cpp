@@ -173,6 +173,16 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		{	vector3<> dk = kbasis * ik;
 			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
 		}
+	//--- remove inversion partners (handled by symmetry)
+	for(auto iter=dkMap.begin(); iter!=dkMap.end(); iter++)
+	{	auto iter2=iter; iter2++;
+		while(iter2!=dkMap.end() && iter2->first < iter->first + symmThreshold)
+		{	if((iter2->second + iter->second).length_squared() < symmThresholdSq)
+				iter2 = dkMap.erase(iter2);
+			else iter2++;
+		}
+	}
+	//--- find FD formula shell by shell
 	std::vector< vector3<> > b; //list of cartesian offsets to corresponding neighbours
 	std::vector<double> wb; //corresponding weights in finite difference formula
 	for(auto iter=dkMap.begin(); iter!=dkMap.end(); )
@@ -190,7 +200,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		if(wb.size() == b.size()) break; //success
 	}
 	if(!wb.size()) die("failed.\n");
-	logPrintf("found a %lu neighbour formula.\n", wb.size());
+	logPrintf("found a %lu neighbour formula.\n", 2*wb.size());
 	
 	//Create a list of kpoints:
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;

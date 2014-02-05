@@ -75,21 +75,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Overlap with neighbours:
 			for(EdgeFD& edge: ke.edge)
 				if(whose_q(edge.ik,iSpin)==jProcess)
-				{	//Pick up result from reverse edge if it has already been computed:
-					bool foundReverse = false;
-					if(jProcess==mpiUtil->iProcess() && edge.ik<ik)
-					{	auto neighbourEdges = kMesh[edge.ik].edge;
-						for(const EdgeFD& reverseEdge: neighbourEdges)
-							if(reverseEdge.ik==ik)
-							{	edge.M0 = dagger(reverseEdge.M0);
-								foundReverse = true;
-								break;
-							}
-					}
-					//Compute overlap if reverse edge not yet computed:
-					if(!foundReverse)
-						edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
-				}
+					edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
 			{	//Band ranges:
 				int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
