@@ -277,6 +277,20 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
 			Csuper.write(fname.c_str());
 			logPrintf("done.\n"); logFlush();
+			//Header:
+			fname = wannier.getFilename(false, "mlwfC.header", &iSpin);
+			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			fprintf(fp, "%d %lu #nColumns, columnLength\n", nCenters, basisSuper.nbasis);
+			for(int i=0; i<3; i++)
+				for(int j=0; j<3; j++)
+					fprintf(fp, "%.15g ", gInfoSuper.GT(i,j));
+			fprintf(fp, "#GT row-major (G col-major), iGarr follows:\n");
+			const vector3<int>* iGarr = basisSuper.iGarr;
+			for(size_t j=0; j<basisSuper.nbasis; j++)
+				fprintf(fp, "%d %d %d\n", iGarr[j][0], iGarr[j][1], iGarr[j][2]);
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
 		}
 		
 		//--- Save supercell wavefunctions in real space:
