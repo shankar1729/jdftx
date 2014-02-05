@@ -28,7 +28,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <wannier/Wannier.h>
 
-typedef std::vector<matrix> WannierGradient;
+struct WannierGradient : public std::vector<matrix>
+{	const class WannierMinimizer* wmin;
+    void init(const class WannierMinimizer* wmin);
+	size_t ikStart() const;
+	size_t ikStop() const;
+};
 
 //---- linear algebra functions required by Minimizable<WannierGradient> -----
 WannierGradient clone(const WannierGradient& grad);
@@ -59,6 +64,7 @@ public:
 	};
 	
 private:
+	friend class WannierGradient;
 	const Everything& e;
 	const Wannier& wannier;
 	const std::vector< matrix3<int> >& sym;
@@ -125,7 +131,9 @@ private:
 	
 	//k-mesh MPI division:
 	size_t ikStart, ikStop;
+	std::vector<size_t> ikStopArr;
 	bool isMine(size_t ik) const { return ik>=ikStart && ik<ikStop; }
+	int whose(size_t ik) const;
 
 	//state MPI division (wrappers to ElecInfo)
 	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.iReduced + iSpin*qCount); }

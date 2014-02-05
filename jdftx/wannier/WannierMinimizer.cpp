@@ -23,31 +23,41 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <core/Random.h>
 
+void WannierGradient::init(const WannierMinimizer* wmin)
+{	this->wmin = wmin;
+	resize(wmin->kMesh.size());
+}
+size_t WannierGradient::ikStart() const { return wmin->ikStart; }
+size_t WannierGradient::ikStop() const { return wmin->ikStop; }
+
 //---- linear algebra functions required by Minimizable<WannierGradient> -----
 
 WannierGradient clone(const WannierGradient& grad) { return grad; }
 double dot(const WannierGradient& x, const WannierGradient& y)
 {	assert(x.size()==y.size());
 	double result = 0.;
-	for(unsigned i=0; i<x.size(); i++)
-	{	result += dotc(x[i], y[i]).real();
+	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
+	{	result += dotc(x[ik], y[ik]).real();
 		//For rectangular matrices, account for the fact that we are actually working with the hermitian completion
-		if(x[i].nCols() != x[i].nRows())
-		{	int rStart=0, rStop=x[i].nRows();
-			int cStart=0, cStop=x[i].nCols();
+		if(x[ik].nCols() != x[ik].nRows())
+		{	int rStart=0, rStop=x[ik].nRows();
+			int cStart=0, cStop=x[ik].nCols();
 			if(rStop>cStop) rStart=cStop; else cStart=rStop;
-			result += dotc(x[i](rStart,rStop,cStart,cStop), y[i](rStart,rStop,cStart,cStop)).real();
+			result += dotc(x[ik](rStart,rStop,cStart,cStop), y[ik](rStart,rStop,cStart,cStop)).real();
 		}
 	}
+	mpiUtil->allReduce(result, MPIUtil::ReduceSum);
 	return result;
 }
 WannierGradient& operator*=(WannierGradient& x, double alpha)
-{	for(unsigned i=0; i<x.size(); i++) x[i] *= alpha;
+{	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
+		x[ik] *= alpha;
 	return x;
 }
 void axpy(double alpha, const WannierGradient& x, WannierGradient& y)
 {	assert(x.size()==y.size());
-	for(unsigned i=0; i<x.size(); i++) axpy(alpha, x[i], y[i]);
+	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
+		axpy(alpha, x[ik], y[ik]);
 }
 
 matrix randomMatrix(int nRows, int nCols)
@@ -58,57 +68,58 @@ matrix randomMatrix(int nRows, int nCols)
 	return ret;
 }
 void randomize(WannierGradient& x)
-{	for(unsigned i=0; i<x.size(); i++) if(x[i].nData())
-	{	int minDim = std::min(x[i].nRows(), x[i].nCols());
-		x[i].set(0,minDim, 0,minDim, dagger_symmetrize(randomMatrix(minDim,minDim)));
-		if(x[i].nRows()>minDim) x[i].set(minDim,x[i].nRows(), 0,minDim, randomMatrix(x[i].nRows()-minDim,minDim));
-		if(x[i].nCols()>minDim) x[i].set(0,minDim, minDim,x[i].nCols(), randomMatrix(minDim,x[i].nCols()-minDim));
+{	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++) if(x[ik].nData())
+	{	int minDim = std::min(x[ik].nRows(), x[ik].nCols());
+		x[ik].set(0,minDim, 0,minDim, dagger_symmetrize(randomMatrix(minDim,minDim)));
+		if(x[ik].nRows()>minDim) x[ik].set(minDim,x[ik].nRows(), 0,minDim, randomMatrix(x[ik].nRows()-minDim,minDim));
+		if(x[ik].nCols()>minDim) x[ik].set(0,minDim, minDim,x[ik].nCols(), randomMatrix(minDim,x[ik].nCols()-minDim));
 	}
 }
 
 //---- energy/gradient functions required by Minimizable<WannierGradient> -----
 
 void WannierMinimizer::step(const WannierGradient& grad, double alpha)
-{	assert(grad.size()==kMesh.size());
-	for(unsigned i=0; i<kMesh.size(); i++)
-		axpy(alpha, grad[i], kMesh[i].B);
+{	assert(grad.wmin == this);
+	for(unsigned ik=ikStart; ik<ikStop; ik++)
+		axpy(alpha, grad[ik], kMesh[ik].B);
 }
 
 double WannierMinimizer::compute(WannierGradient* grad)
 {	//Compute the unitary matrices:
-	for(size_t i=0; i<kMesh.size(); i++)
-	{	KmeshEntry& ke = kMesh[i];
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	KmeshEntry& ki = kMesh[ik];
 		//Stage 1:
-		if(ke.nIn > nCenters)
-		{	matrix B1block = ke.B(ke.nFixed,nCenters, nCenters,ke.nIn);
-			matrix B1 = zeroes(ke.nIn, ke.nIn);
-			B1.set(ke.nFixed,nCenters, nCenters,ke.nIn, B1block);
-			B1.set(nCenters,ke.nIn, ke.nFixed,nCenters, dagger(B1block));
-			ke.V1 = cis(B1, &ke.B1evecs, &ke.B1eigs)(0,ke.nIn, 0,nCenters);
+		if(ki.nIn > nCenters)
+		{	matrix B1block = ki.B(ki.nFixed,nCenters, nCenters,ki.nIn);
+			matrix B1 = zeroes(ki.nIn, ki.nIn);
+			B1.set(ki.nFixed,nCenters, nCenters,ki.nIn, B1block);
+			B1.set(nCenters,ki.nIn, ki.nFixed,nCenters, dagger(B1block));
+			ki.V1 = cis(B1, &ki.B1evecs, &ki.B1eigs)(0,ki.nIn, 0,nCenters);
 		}
-		else ke.V1 = eye(nCenters);
+		else ki.V1 = eye(nCenters);
 		//Stage 2:
-		ke.V2 = cis(ke.B(0,nCenters, 0,nCenters), &ke.B2evecs, &ke.B2eigs);
+		ki.V2 = cis(ki.B(0,nCenters, 0,nCenters), &ki.B2evecs, &ki.B2eigs);
 		//Net rotation:
-		ke.U = ke.U1 * ke.V1 * ke.U2 * ke.V2;
+		ki.U = ki.U1 * ki.V1 * ki.U2 * ki.V2;
 	}
+	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik));
 	
 	//Compute the expectation values of r and rSq for each center (split over processes)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>(0,0,0));
 	OmegaI = 0.;
-	for(size_t i=ikStart; i<ikStop; i++)
-	{	const KmeshEntry& ke = kMesh[i];
-		for(const EdgeFD& edge: ke.edge)
-		{	unsigned j = edge.ik;
-			const matrix M = dagger(ke.U) * edge.M0 * kMesh[j].U;
-			OmegaI += ke.point.weight * edge.wb * (nCenters - trace(M * dagger(M)).real());
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	const KmeshEntry& ki = kMesh[ik];
+		for(const EdgeFD& edge: ki.edge)
+		{	const KmeshEntry& kj = kMesh[edge.ik];
+			const matrix M = dagger(ki.U) * edge.M0 * kj.U;
+			OmegaI += ki.point.weight * edge.wb * (nCenters - trace(M * dagger(M)).real());
 			const complex* Mdata = M.data();
 			for(int n=0; n<nCenters; n++)
 			{	complex Mnn = Mdata[M.index(n,n)];
 				double argMnn = Mnn.arg();
-				rExpect[n] -= (ke.point.weight * edge.wb * argMnn) * edge.b;
-				rSqExpect[n] += ke.point.weight * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
+				rExpect[n] -= (ki.point.weight * edge.wb * argMnn) * edge.b;
+				rSqExpect[n] += ki.point.weight * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
 			}
 		}
 	}
@@ -123,15 +134,14 @@ double WannierMinimizer::compute(WannierGradient* grad)
 	
 	//Compute the gradients of the mean variance (if required)
 	if(grad)
-	{	//Zero intermediate gradients:
-		for(KmeshEntry& ke: kMesh)
-			ke.Omega_U = zeroes(nCenters, nBands);
-		//Accumulate gradients from each edge (split over processes):
-		for(size_t i=ikStart; i<ikStop; i++)
-		{	KmeshEntry& ke = kMesh[i];
-			for(EdgeFD& edge: ke.edge)
-			{	unsigned j = edge.ik;
-				const matrix M = dagger(ke.U) * edge.M0 * kMesh[j].U;
+	{	//Accumulate gradients from each edge (split over processes):
+		for(KmeshEntry& ki: kMesh)
+			ki.Omega_U = zeroes(nCenters, nBands);
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+		{	KmeshEntry& ki = kMesh[ik];
+			for(EdgeFD& edge: ki.edge)
+			{	KmeshEntry& kj = kMesh[edge.ik];
+				const matrix M = dagger(ki.U) * edge.M0 * kj.U;
 				//Compute dOmega/dM:
 				matrix Omega_M = zeroes(nCenters, nCenters);
 				const complex* Mdata = M.data();
@@ -140,31 +150,37 @@ double WannierMinimizer::compute(WannierGradient* grad)
 				{	complex Mnn = Mdata[M.index(n,n)];
 					double argMnn = atan2(Mnn.imag(), Mnn.real());
 					Omega_Mdata[Omega_M.index(n,n)] =
-						2. * ke.point.weight * edge.wb
+						2. * ki.point.weight * edge.wb
 						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate Omega_M to Omega_U:
-				ke.Omega_U += dagger(edge.M0 * kMesh[j].U * Omega_M);
-				kMesh[j].Omega_U += Omega_M * dagger(ke.U) * edge.M0;
+				ki.Omega_U += dagger(edge.M0 * kj.U * Omega_M);
+				kj.Omega_U += Omega_M * dagger(ki.U) * edge.M0;
 			}
 		}
+		for(KmeshEntry& ki: kMesh)
+			ki.Omega_U.allReduce(MPIUtil::ReduceSum);
 		//Propagate to gradients w.r.t B:
-		grad->resize(kMesh.size());
-		for(size_t i=0; i<kMesh.size(); i++)
-		{	KmeshEntry& ke = kMesh[i];
-			(*grad)[i] = zeroes(nCenters, ke.nIn);
-			if(ke.nIn > nCenters)
-			{	matrix Omega_B1 = dagger_symmetrize(cis_grad(ke.V1 * ke.U2 * ke.V2 * ke.Omega_U * ke.U1, ke.B1evecs, ke.B1eigs));
-				(*grad)[i].set(ke.nFixed,nCenters, nCenters,ke.nIn, Omega_B1(ke.nFixed,nCenters, nCenters,ke.nIn));
+		grad->init(this);
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+		{	KmeshEntry& ki = kMesh[ik];
+			(*grad)[ik] = zeroes(nCenters, ki.nIn);
+			if(ki.nIn > nCenters)
+			{	matrix Omega_B1 = dagger_symmetrize(cis_grad(ki.V1 * ki.U2 * ki.V2 * ki.Omega_U * ki.U1, ki.B1evecs, ki.B1eigs));
+				(*grad)[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn));
 			}
-			(*grad)[i].set(0,nCenters, 0,nCenters, dagger_symmetrize(cis_grad(ke.V2 * ke.Omega_U * ke.U1 * ke.V1 * ke.U2, ke.B2evecs, ke.B2eigs)));
+			(*grad)[ik].set(0,nCenters, 0,nCenters, dagger_symmetrize(cis_grad(ki.V2 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2, ki.B2evecs, ki.B2eigs)));
 		}
-		for(size_t i=0; i<kMesh.size(); i++) (*grad)[i].allReduce(MPIUtil::ReduceSum);
 	}
 	return Omega;
 }
 
 //---------------- kpoint and wavefunction handling -------------------
+
+int WannierMinimizer::whose(size_t ik) const
+{	if(mpiUtil->nProcesses()>1) return std::upper_bound(ikStopArr.begin(),ikStopArr.end(), ik) - ikStopArr.begin();
+	else return 0;
+}
 
 bool WannierMinimizer::Kpoint::operator<(const WannierMinimizer::Kpoint& other) const
 {	if(iReduced!=other.iReduced) return iReduced<other.iReduced;
@@ -244,7 +260,8 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 }
 
 ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin, bool super) const
-{	const Index& index = *(indexMap.find(kpoint)->second);
+{	static StopWatch watch("WannierMinimizer::getWfns"); watch.start();
+	const Index& index = *(indexMap.find(kpoint)->second);
 	const int* indexData = super ? index.dataSuperPref : index.dataPref;
 	const Basis& basis = super ? this->basisSuper : this->basis;
 	const QuantumNumber& qnum = super ? this->qnumSuper : kpoint;
@@ -260,6 +277,7 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	//Complex conjugate if inversion symmetry employed:
 	if(kpoint.invert < 0)
 		callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
+	watch.stop();
 	return ret;
 }
 

@@ -76,6 +76,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			for(EdgeFD& edge: ke.edge)
 				if(whose_q(edge.ik,iSpin)==jProcess)
 					edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
+			
 			if(!jProcess) //Do only once (will get here multiple times for local wfns)
 			{	//Band ranges:
 				int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
@@ -200,7 +201,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		ke.U1.bcast(whose_q(ik,iSpin));
 		ke.U2.bcast(whose_q(ik,iSpin));
-		ke.B = zeroes(nCenters, ke.nIn);
+		if(isMine(ik))
+			ke.B = zeroes(nCenters, ke.nIn);
+		else //No longer need sub-matrices on this process
+		{	ke.U1 = matrix();
+			ke.U2 = matrix();
+			ke.B = matrix();
+		}
+		ke.U = zeroes(nBands, nCenters);
 	}
 	
 	//Minimize:
@@ -229,11 +237,26 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		fname = wannier.getFilename(false, "mlwfU2", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
 		fp = fopen(fname.c_str(), "w");
-		for(const auto& ke: kMesh) (ke.U2 * ke.V2).write(fp);
+		for(unsigned ik=0; ik<kMesh.size(); ik++)
+		{	const KmeshEntry& ke = kMesh[ik];
+			matrix U2out;
+			if(isMine(ik)) U2out = ke.U2 * ke.V2;
+			else
+			{	U2out = zeroes(nCenters,nCenters);
+				U2out.recv(whose(ik)); //recieve from another process (see below)
+			}
+			U2out.write(fp);
+		}
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
-
+	else
+	{	for(unsigned ik=ikStart; ik<ikStop; ik++)
+		{	const KmeshEntry& ke = kMesh[ik];
+			(ke.U2 * ke.V2).send(0); //send to head for output (see above)
+		}
+	}
+	
 	if(wannier.saveWfns)
 	{	resumeOperatorThreading();
 		//--- Compute supercell wavefunctions:

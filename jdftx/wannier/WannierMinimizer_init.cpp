@@ -234,7 +234,10 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	//Determine distribution amongst processes:
 	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
 	ikStop = (kpoints.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
-	
+	ikStopArr.resize(mpiUtil->nProcesses());
+	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
+		ikStopArr[iProc] = (kpoints.size() * (iProc+1)) / mpiUtil->nProcesses();
+
 	//Create the mesh structure with neighbour info:
 	kMesh.resize(kpoints.size());
 	for(size_t i=0; i<kMesh.size(); i++) //FD formula needed on all nodes for initial matrix generation
