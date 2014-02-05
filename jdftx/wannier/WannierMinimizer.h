@@ -141,10 +141,12 @@ private:
 	
 	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
-	//! Get the wavefunctions for a particular k-point
-	//! The wavefunctions are returned in the common basis by default and in the supercell basis if super=true
-	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin, bool super=false) const;
+	//! Get the wavefunctions for a particular k-point in the common basis
+	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process
+	
+	 //Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
+	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result) const;
 	
 	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;

@@ -264,7 +264,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 		Csuper.zero();
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-			Csuper += getWfns(kMesh[i].point, iSpin, true) * (kMesh[i].U * kMesh[i].point.weight);
+		{	const KmeshEntry& ki = kMesh[i];
+			axpyWfns(ki.point.weight, ki.U, ki.point, iSpin, Csuper);
+		}
 		Csuper.allReduce(MPIUtil::ReduceSum);
 		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
 		logPrintf("done.\n"); logFlush();

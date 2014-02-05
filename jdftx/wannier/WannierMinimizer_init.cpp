@@ -76,8 +76,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
 	const Supercell& supercell = *(e.coulombParams.supercell);
 	gInfoSuper.R = supercell.Rsuper;
-	gInfoSuper.Gmax = e.gInfo.Gmax;
-	gInfoSuper.GmaxRho = e.gInfo.GmaxRho;
+	gInfoSuper.GmaxRho = e.gInfo.Gmax;
 	if(wannier.saveWfns) gInfoSuper.initialize(true, sym);
 
 	//Initialize cell map (for matrix element output):

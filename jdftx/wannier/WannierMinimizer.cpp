@@ -259,26 +259,40 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 	indexMap[kpoint] = index;
 }
 
-ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin, bool super) const
-{	static StopWatch watch("WannierMinimizer::getWfns"); watch.start();
-	const Index& index = *(indexMap.find(kpoint)->second);
-	const int* indexData = super ? index.dataSuperPref : index.dataPref;
-	const Basis& basis = super ? this->basisSuper : this->basis;
-	const QuantumNumber& qnum = super ? this->qnumSuper : kpoint;
-	ColumnBundle ret(nBands, basis.nbasis, &basis, &qnum, isGpuEnabled());
+ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
+{	ColumnBundle ret(nBands, basis.nbasis, &basis, &kpoint, isGpuEnabled());
 	ret.zero();
-	//Pick required bands, and scatter from reduced basis to common basis with transformations:
-	int q = kpoint.iReduced + iSpin*qCount;
-	const ColumnBundle& C = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
-	assert(C);
-	for(int b=0; b<nBands; b++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, 1., indexData,
-			C.dataPref()+C.index(b,0), ret.dataPref()+ret.index(b,0));
-	//Complex conjugate if inversion symmetry employed:
-	if(kpoint.invert < 0)
-		callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate the imaginary parts
-	watch.stop();
+	axpyWfns(1., matrix(), kpoint, iSpin, ret);
 	return ret;
+}
+
+void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
+{	static StopWatch watch("WannierMinimizer::accumWfns"); watch.start();
+	//Figure out basis:
+	const Index& index = *(indexMap.find(kpoint)->second);
+	const int* indexData = (result.basis==&basisSuper) ? index.dataSuperPref : index.dataPref;
+	//Pick source ColumnBundle:
+	int q = kpoint.iReduced + iSpin*qCount;
+	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
+	assert(Cin);
+	const ColumnBundle* C = &Cin;
+	//Complex conjugate if inversion symmetry employed:
+	ColumnBundle Cout;
+	if(kpoint.invert < 0)
+	{	Cout = *C;
+		callPref(eblas_dscal)(Cout.nData(), -1., ((double*)Cout.dataPref())+1, 2); //negate the imaginary parts
+		C = &Cout;
+	}
+	//Apply transformation if provided:
+	if(A)
+	{	Cout = (*C) * A;
+		C = &Cout;
+	}
+	//Scatter from reduced basis to common basis with transformations:
+	assert(C->nCols() == result.nCols());
+	for(int b=0; b<C->nCols(); b++)
+		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData, C->dataPref()+C->index(b,0), result.dataPref()+result.index(b,0));
+	watch.stop();
 }
 
 //Fourier transform of hydrogenic orbitals
