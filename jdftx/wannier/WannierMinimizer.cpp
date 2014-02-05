@@ -238,7 +238,7 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 	//Determine integer offset due to k-point in supercell basis:
 	const matrix3<int>& super = e.coulombParams.supercell->super;
 	vector3<int> ksuper; //integer version of above
-	if(wannier.saveWfns)
+	if(needSuper)
 	{	vector3<> ksuperTemp = kpoint.k * super - qnumSuper.k; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
 		for(int l=0; l<3; l++)
 		{	ksuper[l] = int(round(ksuperTemp[l]));
@@ -247,12 +247,12 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 	}
 	//Compute transformed index array (mapping to full G-space)
 	const Basis& basis = e.basis[kpoint.iReduced];
-	std::shared_ptr<Index> index(new Index(basis.nbasis, wannier.saveWfns));
+	std::shared_ptr<Index> index(new Index(basis.nbasis, needSuper));
 	const matrix3<int> mRot = (~sym[kpoint.iSym]) * kpoint.invert;
 	for(int j=0; j<index->nIndices; j++)
 	{	vector3<int> iGrot = mRot * basis.iGarr[j] - kpoint.offset;
 		index->data[j] = e.gInfo.fullGindex(iGrot);
-		if(wannier.saveWfns)
+		if(needSuper)
 			index->dataSuper[j] = gInfoSuper.fullGindex(ksuper + iGrot*super);
 	}
 	//Save to map:

@@ -75,6 +75,7 @@ private:
 	double OmegaI; //invariant part
 	
 	//Supercell grid and basis:
+	bool needSuper;
 	GridInfo gInfoSuper;
 	Basis basisSuper;
 	QuantumNumber qnumSuper;

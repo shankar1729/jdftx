@@ -257,7 +257,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 	}
 	
-	if(wannier.saveWfns)
+	if(wannier.saveWfns || wannier.saveWfnsRealSpace)
 	{	resumeOperatorThreading();
 		//--- Compute supercell wavefunctions:
 		logPrintf("Computing supercell wavefunctions ... "); logFlush();
@@ -271,8 +271,16 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
 		logPrintf("done.\n"); logFlush();
 		
-		//--- Save supercell wavefunctions:
-		if(mpiUtil->isHead()) for(int n=0; n<nCenters; n++)
+		//--- Save supercell wavefunctions in reciprocal space:
+		if(mpiUtil->isHead() && wannier.saveWfns)
+		{	string fname = wannier.getFilename(false, "mlwfC", &iSpin);
+			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+			Csuper.write(fname.c_str());
+			logPrintf("done.\n"); logFlush();
+		}
+		
+		//--- Save supercell wavefunctions in real space:
+		if(mpiUtil->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++)
 		{	//Generate filename
 			ostringstream varName;
 			varName << n << ".mlwf";

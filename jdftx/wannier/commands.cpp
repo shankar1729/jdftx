@@ -28,6 +28,7 @@ enum WannierMember
 	WM_outerWindow,
 	WM_innerWindow,
 	WM_saveWfns,
+	WM_saveWfnsRealSpace,
 	WM_loadRotations,
 	WM_delim
 };
@@ -37,6 +38,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
 	WM_saveWfns, "saveWfns",
+	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_loadRotations, "loadRotations"
 );
 
@@ -59,7 +61,10 @@ struct CommandWannier : public Command
 			"    Inner energy window within which bands are used exactly.\n"
 			"    Outer energy window must be specified to use this.\n"
 			"  saveWfns yes|no\n"
-			"    Whether to write supercell wavefunctions (can be enormous).\n"
+			"    Whether to write supercell wavefunctions in a spherical reciprocal-space basis.\n"
+			"    Default: no.\n"
+			"  saveWfnsRealSpace yes|no\n"
+			"    Whether to write supercell wavefunctions band-by-band in real space (can be enormous).\n"
 			"    Default: no.\n"
 			"  loadRotations yes|no\n"
 			"    Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
@@ -87,6 +92,9 @@ struct CommandWannier : public Command
 				case WM_saveWfns:
 					pl.get(wannier.saveWfns, false, boolMap, "saveWfns", true);
 					break;
+				case WM_saveWfnsRealSpace:
+					pl.get(wannier.saveWfnsRealSpace, false, boolMap, "saveWfnsRealSpace", true);
+					break;
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
@@ -97,7 +105,10 @@ struct CommandWannier : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("saveWfns %s loadRotations %s", boolMap.getString(wannier.saveWfns), boolMap.getString(wannier.loadRotations));
+	{	logPrintf(" \\\n\tsaveWfns %s \\\n\tsaveWfnsRealSpace %s \\\n\tloadRotations %s",
+			boolMap.getString(wannier.saveWfns),
+			boolMap.getString(wannier.saveWfnsRealSpace),
+			boolMap.getString(wannier.loadRotations) );
 		if(wannier.outerWindow) logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		if(!(wannier.innerWindow || wannier.outerWindow))

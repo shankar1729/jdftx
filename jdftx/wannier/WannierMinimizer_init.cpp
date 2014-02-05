@@ -70,14 +70,15 @@ inline vector3<> getCoord(const WannierMinimizer::Kpoint& kpoint) { return kpoin
 
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
-	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins)
+	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins),
+	needSuper(wannier.saveWfns || wannier.saveWfnsRealSpace)
 {
 	//Create supercell grid:
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
 	const Supercell& supercell = *(e.coulombParams.supercell);
 	gInfoSuper.R = supercell.Rsuper;
 	gInfoSuper.GmaxRho = e.gInfo.Gmax;
-	if(wannier.saveWfns) gInfoSuper.initialize(true, sym);
+	if(needSuper) gInfoSuper.initialize(true, sym);
 
 	//Initialize cell map (for matrix element output):
 	WignerSeitz ws(gInfoSuper.R);
@@ -217,7 +218,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	
 	//Determine overall Bloch wavevector of supercell (if any)
-	if(wannier.saveWfns)
+	if(needSuper)
 	{	qnumSuper.weight = 1.;
 		qnumSuper.spin = 0.;
 		qnumSuper.k = kpoints[0].k * supercell.super;
@@ -266,7 +267,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	for(auto index: indexMap)
 		for(int j=0; j<index.second->nIndices; j++)
 		{	commonSet.insert(index.second->data[j]);
-			if(wannier.saveWfns)
+			if(needSuper)
 				commonSuperSet.insert(index.second->dataSuper[j]);
 		}
 	//Convert to a Basis object, and create inverse map
@@ -282,7 +283,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	//Liekwise for supercell:
 	std::vector<int> indexSuperCommon(commonSuperSet.size());
 	std::map<int,int> commonSuperInverseMap;
-	if(wannier.saveWfns)
+	if(needSuper)
 	{	auto superSetIter = commonSuperSet.begin();
 		for(unsigned j=0; j<indexSuperCommon.size(); j++)
 		{	int i = *(superSetIter++);
@@ -296,7 +297,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	{	Index& index = *mapEntry.second;
 		for(int j=0; j<index.nIndices; j++)
 		{	index.data[j] = commonInverseMap[index.data[j]];
-			if(wannier.saveWfns)
+			if(needSuper)
 				index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
 		}
 		index.set();

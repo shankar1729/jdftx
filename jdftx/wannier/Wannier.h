@@ -47,6 +47,7 @@ public:
 	bool outerWindow, innerWindow; //!< denotes which windows are available
 	
 	bool saveWfns; //!< whether to write wavefunctions
+	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space
 	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	
