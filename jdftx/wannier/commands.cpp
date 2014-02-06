@@ -24,7 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 Wannier wannier;
 
 enum WannierMember
-{	WM_bStart,
+{	WM_localizationMeasure,
+	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
 	WM_saveWfns,
@@ -36,7 +37,8 @@ enum WannierMember
 };
 
 EnumStringMap<WannierMember> wannierMemberMap
-(	WM_bStart, "bStart",
+(	WM_localizationMeasure, "localizationMeasure",
+	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
 	WM_saveWfns, "saveWfns",
@@ -44,6 +46,11 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_loadRotations, "loadRotations",
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset"
+);
+
+EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
+(	Wannier::LM_FiniteDifference, "FiniteDifference",
+	Wannier::LM_RealSpace, "RealSpace"
 );
 
 struct CommandWannier : public Command
@@ -54,6 +61,14 @@ struct CommandWannier : public Command
 		comments =
 			"Control wannier calculation and output. The possible <key>'s and their\n"
 			"corresponding arguments are:\n"
+			"  localizationMeasure FiniteDifference | RealSpace\n"
+			"    Controls how the localization of the Wannier functions is calculated.\n"
+			"    The finite-difference reciprocal space measure of Marzari and Vanderbilt\n"
+			"    (default) is inexpensive, but its error scales as Nkpoints^(-2./3).\n"
+			"    The real space version is slower but its error scales as exp(-Nkpoints^(1/3)),\n"
+			"    and is preferable for quantitative applications. Note that the real-space version\n"
+			"    is not translationally invariant and wraps on a superlattice WIgner-Seitz cell\n"
+			"    centered at the origin.\n"
 			"  bStart <band>\n"
 			"    For fixed band calculations, 0-based index of lowest band used.\n"
 			"    The number of bands equals the number of wannier-centers specified.\n"
@@ -88,7 +103,10 @@ struct CommandWannier : public Command
 		{	WannierMember key; pl.get(key, WM_delim, wannierMemberMap, "key");
 			if(key==WM_delim) break;
 			switch(key)
-			{	case WM_bStart:
+			{	case WM_localizationMeasure:
+					pl.get(wannier.localizationMeasure, Wannier::LM_FiniteDifference,  localizationMeasureMap, "localizationMeasure", true);
+					break;
+				case WM_bStart:
 					pl.get(wannier.bStart, 0, "band", true);
 					break;
 				case WM_outerWindow:
@@ -125,7 +143,8 @@ struct CommandWannier : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf(" \\\n\tsaveWfns %s \\\n\tsaveWfnsRealSpace %s \\\n\tloadRotations %s",
+	{	logPrintf(" \\\n\tlocalizationMeasure %s  \\\n\tsaveWfns %s \\\n\tsaveWfnsRealSpace %s \\\n\tloadRotations %s",
+			localizationMeasureMap.getString(wannier.localizationMeasure),
 			boolMap.getString(wannier.saveWfns),
 			boolMap.getString(wannier.saveWfnsRealSpace),
 			boolMap.getString(wannier.loadRotations) );

@@ -42,6 +42,12 @@ public:
 	typedef std::vector<AtomicOrbital> TrialOrbital;
 	std::vector<TrialOrbital> trialOrbitals; //!< group of centers
 	
+	enum LocalizationMeasure
+	{	LM_FiniteDifference,
+		LM_RealSpace
+	}
+	localizationMeasure;
+	
 	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
 	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)
 	double eInnerMin, eInnerMax; //!< inner energy window (within which all bands used)
