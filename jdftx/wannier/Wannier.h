@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_WANNIER_H
-#define JDFTX_ELECTRONIC_WANNIER_H
+#ifndef JDFTX_WANNIER_WANNIER_H
+#define JDFTX_WANNIER_WANNIER_H
 
 #include <core/MinimizeParams.h>
 #include <electronic/DOS.h>
@@ -73,4 +73,4 @@ private:
 	friend class CommandWannierMinimize;
 };
 
-#endif // JDFTX_ELECTRONIC_WANNIER_H
+#endif // JDFTX_WANNIER_WANNIER_H

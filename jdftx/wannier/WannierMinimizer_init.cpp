@@ -23,57 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Blip.h>
 #include <electronic/operators.h>
 
-//Find a finite difference formula given a list of relative neighbour positions (in cartesian coords)
-//[Appendix B of Phys Rev B 56, 12847]
-//Returns an empty weight set on failure
-std::vector<double> getFDformula(const std::vector< vector3<> >& b)
-{	//Group elements of b into shells:
-	std::vector<unsigned> shellMax; //cumulative count within each shell
-	for(unsigned i=1; i<b.size(); i++)
-		if(b[i].length() > b[i-1].length() + symmThreshold)
-			shellMax.push_back(i);
-	shellMax.push_back(b.size());
-	int nShells = shellMax.size();
-	//Setup the equations satisfied by the weights:
-	const int nEquations = 6;
-	matrix Lhs = zeroes(nEquations, nShells);
-	complex* LhsData = Lhs.data();
-	for(int s=0; s<nShells; s++)
-		for(unsigned j = (s ? shellMax[s-1] : 0); j<shellMax[s]; j++)
-		{	//Equations from ref.:
-			int iEqn = 0;
-			//Rank-two sum is identity:
-			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][0];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][1];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][2];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][2];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][0];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][1];
-		}
-	matrix rhs = zeroes(nEquations, 1);
-	for(unsigned i=0; i<3; i++) rhs.data()[i] = 1; //first three components = diagonals of rank-two sum
-	//Solve using a singular value decomposition:
-	matrix U, Vdag; diagMatrix S;
-	Lhs.svd(U, S, Vdag);
-	for(double& s: S) s = (s<symmThreshold) ? 0. : 1./s; //invert and zero out small singular values
-	matrix wShells = dagger(Vdag) * S * dagger(U(0,nEquations, 0,nShells)) * rhs;
-	if(nrm2(Lhs * wShells - rhs) > symmThreshold) //check solution by substitution
-		return std::vector<double>(); //Not an exact solution, so quit (and try with more shells)
-	//Store the weights in the original indexing:
-	complex* wShellsData = wShells.data();
-	std::vector<double> w(b.size());
-	for(int s=0; s<nShells; s++)
-		for(unsigned j = (s ? shellMax[s-1] : 0); j<shellMax[s]; j++)
-			w[j] = wShellsData[s].real();
-	return w;
-}
-
-//Helper function for PeriodicLookup<WannierMinimizer::Kpoint> used in WannierMinimizer::WannierMinimizer
-inline vector3<> getCoord(const WannierMinimizer::Kpoint& kpoint) { return kpoint.k; }
-
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins),
+	rSqExpect(nCenters), rExpect(nCenters),
 	needSuper(wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
 {
 	//Create supercell grid:
@@ -163,68 +116,27 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		}
 	}
 	
-	//Determine finite difference formula:
-	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
-	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
-	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
-	vector3<int> ik;
-	const int ikBound = 2;
-	for(ik[0]=-ikBound; ik[0]<=+ikBound; ik[0]++)
-	for(ik[1]=-ikBound; ik[1]<=+ikBound; ik[1]++)
-	for(ik[2]=-ikBound; ik[2]<=+ikBound; ik[2]++)
-		if(ik.length_squared()) //ignore self
-		{	vector3<> dk = kbasis * ik;
-			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
-		}
-	//--- remove inversion partners (handled by symmetry)
-	for(auto iter=dkMap.begin(); iter!=dkMap.end(); iter++)
-	{	auto iter2=iter; iter2++;
-		while(iter2!=dkMap.end() && iter2->first < iter->first + symmThreshold)
-		{	if((iter2->second + iter->second).length_squared() < symmThresholdSq)
-				iter2 = dkMap.erase(iter2);
-			else iter2++;
-		}
-	}
-	//--- find FD formula shell by shell
-	std::vector< vector3<> > b; //list of cartesian offsets to corresponding neighbours
-	std::vector<double> wb; //corresponding weights in finite difference formula
-	for(auto iter=dkMap.begin(); iter!=dkMap.end(); )
-	{	//Add all the neighbours with equivalent distances:
-		while(true)
-		{	b.push_back(iter->second);
-			double prevDist = iter->first;
-			iter++;
-			if(iter==dkMap.end() || //end of neighbour list (should not be encountered)
-				iter->first > prevDist+symmThreshold) //next neighbour is further away beyond tolerance
-				break;
-		}
-		//Check if this list of neighbours is sufficient to get a finite difference formula
-		wb = getFDformula(b);
-		if(wb.size() == b.size()) break; //success
-	}
-	if(!wb.size()) die("failed.\n");
-	logPrintf("found a %lu neighbour formula.\n", 2*wb.size());
-	
 	//Create a list of kpoints:
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
-	std::vector<Kpoint> kpoints(supercell.kmeshTransform.size());
-	for(size_t i=0; i<kpoints.size(); i++)
-	{	const Supercell::KmeshTransform& src = supercell.kmeshTransform[i];
-		Kpoint& kpoint = kpoints[i];
-		//Copy over base class KMeshTransform:
-		(Supercell::KmeshTransform&)kpoint = src;
-		//Initialize base class QuantumNumber:
-		kpoint.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
-		kpoint.weight = 1./kpoints.size();
-		kpoint.spin = 0;
+	kMesh.resize(supercell.kmeshTransform.size());
+	for(size_t ik=0; ik<kMesh.size(); ik++)
+	{	KmeshEntry& ki = kMesh[ik];
+		//Initialize kpoint:
+		const Supercell::KmeshTransform& src = supercell.kmeshTransform[ik];
+		//--- Copy over base class KMeshTransform:
+		(Supercell::KmeshTransform&)ki.point = src;
+		//--- Initialize base class QuantumNumber:
+		ki.point.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
+		ki.point.weight = 1./kMesh.size();
+		ki.point.spin = 0;
+		addIndex(ki.point);
 	}
-	PeriodicLookup<WannierMinimizer::Kpoint> plook(kpoints, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	
 	//Determine overall Bloch wavevector of supercell (if any)
 	if(needSuper)
 	{	qnumSuper.weight = 1.;
 		qnumSuper.spin = 0.;
-		qnumSuper.k = kpoints[0].k * supercell.super;
+		qnumSuper.k = kMesh[0].point.k * supercell.super;
 		for(int l=0; l<3; l++)
 			qnumSuper.k[l] -= floor(0.5+qnumSuper.k[l]);
 		if(qnumSuper.k.length_squared()>symmThresholdSq)
@@ -235,35 +147,15 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	}
 	
 	//Determine distribution amongst processes:
-	ikStart = (kpoints.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	ikStop = (kpoints.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	ikStart = (kMesh.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	ikStop = (kMesh.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
 	ikStopArr.resize(mpiUtil->nProcesses());
 	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
-		ikStopArr[iProc] = (kpoints.size() * (iProc+1)) / mpiUtil->nProcesses();
+		ikStopArr[iProc] = (kMesh.size() * (iProc+1)) / mpiUtil->nProcesses();
+}
 
-	//Create the mesh structure with neighbour info:
-	kMesh.resize(kpoints.size());
-	for(size_t i=0; i<kMesh.size(); i++) //FD formula needed on all nodes for initial matrix generation
-	{	//Store the k-point with its FD formula in kMesh
-		KmeshEntry& kMeshEntry = kMesh[i];
-		kMeshEntry.point = kpoints[i];
-		addIndex(kMeshEntry.point);
-		for(unsigned j=0; j<wb.size(); j++)
-		{	EdgeFD edge;
-			edge.wb = wb[j];
-			edge.b = b[j];
-			//Find neighbour:
-			vector3<> kj = kpoints[i].k + inv(e.gInfo.GT) * b[j];
-			edge.ik = plook.find(kj);
-			edge.point = kpoints[edge.ik];
-			for(int l=0; l<3; l++)
-				edge.point.offset[l] += int(round(kj[l] - edge.point.k[l])); //extra offset
-			edge.point.k = kj;
-			addIndex(edge.point);
-			kMeshEntry.edge.push_back(edge);
-		}
-	}
-	
+void WannierMinimizer::initIndexDependent()
+{
 	//Create the common reduced basis set (union of all the reduced bases)
 	//Collect all referenced full-G indices
 	std::set<int> commonSet, commonSuperSet;

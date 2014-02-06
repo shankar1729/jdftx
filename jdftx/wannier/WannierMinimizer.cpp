@@ -102,65 +102,14 @@ double WannierMinimizer::compute(WannierGradient* grad)
 		//Net rotation:
 		ki.U = ki.U1 * ki.V1 * ki.U2 * ki.V2;
 	}
-	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik));
+	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
+	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_U = zeroes(nCenters, nBands); //Clear Omega_U
 	
-	//Compute the expectation values of r and rSq for each center (split over processes)
-	rSqExpect.assign(nCenters, 0.);
-	rExpect.assign(nCenters, vector3<>(0,0,0));
-	OmegaI = 0.;
-	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const KmeshEntry& ki = kMesh[ik];
-		for(const EdgeFD& edge: ki.edge)
-		{	const KmeshEntry& kj = kMesh[edge.ik];
-			const matrix M = dagger(ki.U) * edge.M0 * kj.U;
-			OmegaI += ki.point.weight * edge.wb * (nCenters - trace(M * dagger(M)).real());
-			const complex* Mdata = M.data();
-			for(int n=0; n<nCenters; n++)
-			{	complex Mnn = Mdata[M.index(n,n)];
-				double argMnn = Mnn.arg();
-				rExpect[n] -= (ki.point.weight * edge.wb * argMnn) * edge.b;
-				rSqExpect[n] += ki.point.weight * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
-			}
-		}
-	}
-	mpiUtil->allReduce(OmegaI, MPIUtil::ReduceSum);
-	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
-	mpiUtil->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
+	double Omega = getOmega(grad);
 	
-	//Compute the total variance of the Wannier centers
-	double Omega = 0.;
-	for(int n=0; n<nCenters; n++)
-		Omega += (rSqExpect[n] - rExpect[n].length_squared());
-	
-	//Compute the gradients of the mean variance (if required)
+	//Collect Omega_U and propagate to Omega_B if necessary:
 	if(grad)
-	{	//Accumulate gradients from each edge (split over processes):
-		for(KmeshEntry& ki: kMesh)
-			ki.Omega_U = zeroes(nCenters, nBands);
-		for(size_t ik=ikStart; ik<ikStop; ik++)
-		{	KmeshEntry& ki = kMesh[ik];
-			for(EdgeFD& edge: ki.edge)
-			{	KmeshEntry& kj = kMesh[edge.ik];
-				const matrix M = dagger(ki.U) * edge.M0 * kj.U;
-				//Compute dOmega/dM:
-				matrix Omega_M = zeroes(nCenters, nCenters);
-				const complex* Mdata = M.data();
-				complex* Omega_Mdata = Omega_M.data();
-				for(int n=0; n<nCenters; n++)
-				{	complex Mnn = Mdata[M.index(n,n)];
-					double argMnn = atan2(Mnn.imag(), Mnn.real());
-					Omega_Mdata[Omega_M.index(n,n)] =
-						2. * ki.point.weight * edge.wb
-						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
-				}
-				//Propagate Omega_M to Omega_U:
-				ki.Omega_U += dagger(edge.M0 * kj.U * Omega_M);
-				kj.Omega_U += Omega_M * dagger(ki.U) * edge.M0;
-			}
-		}
-		for(KmeshEntry& ki: kMesh)
-			ki.Omega_U.allReduce(MPIUtil::ReduceSum);
-		//Propagate to gradients w.r.t B:
+	{	for(KmeshEntry& ki: kMesh) ki.Omega_U.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];

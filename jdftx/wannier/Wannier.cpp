@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <wannier/Wannier.h>
-#include <wannier/WannierMinimizer.h>
+#include <wannier/WannierMinimizerFD.h>
 
 Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false),
 	saveWfns(false), saveWfnsRealSpace(false), numericalOrbitalsOffset(0.5,0.5,0.5)
@@ -44,7 +44,8 @@ void Wannier::setup(const Everything& everything)
 			die("Index range [%d,%d) of participating bands incompatible with available bands [0,%d).\n", bStart, bStop, e->eInfo.nBands);
 	}
 	//Initialize minimizer:
-	wmin = std::make_shared<WannierMinimizer>(*e, *this);
+	wmin = std::make_shared<WannierMinimizerFD>(*e, *this);
+	wmin->initIndexDependent();
 	Citations::add("Maximally-localized Wannier functions",
 		"N. Marzari and D. Vanderbilt, Phys. Rev. B 56, 12847 (1997)");
 }

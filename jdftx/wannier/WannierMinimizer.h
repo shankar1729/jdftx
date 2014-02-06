@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_WANNIERMINIMIZER_H
-#define JDFTX_ELECTRONIC_WANNIERMINIMIZER_H
+#ifndef JDFTX_WANNIER_WANNIERMINIMIZER_H
+#define JDFTX_WANNIER_WANNIERMINIMIZER_H
 
 #include <core/Util.h>
 #include <core/Minimize.h>
@@ -43,11 +43,13 @@ void axpy(double alpha, const WannierGradient& x, WannierGradient& y);
 matrix randomMatrix(int nRows, int nCols);
 void randomize(WannierGradient& x);
 
+//!Base class for different wannier minimizers:
 class WannierMinimizer : public Minimizable<WannierGradient>
 {
 public:
 	WannierMinimizer(const Everything& e, const Wannier& wannier);
 	virtual ~WannierMinimizer() {}
+	void initIndexDependent(); //second half of common initialization that must happen after sub-class is fully initialized
 	
 	void saveMLWF(); //save wannier functions for all spins
 	void saveMLWF(int iSpin); //save for specified spin
@@ -63,37 +65,9 @@ public:
 		bool operator==(const Kpoint& other) const;
 	};
 	
-private:
-	friend class WannierGradient;
-	const Everything& e;
-	const Wannier& wannier;
-	const std::vector< matrix3<int> >& sym;
-	int nCenters, nBands; //!< number of Wannier centers and source bands
-	int nSpins, qCount; //!< number of spins, and number of states per spin
-	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
-	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
-	double OmegaI; //invariant part
-	
-	//Supercell grid and basis:
-	bool needSuper;
-	GridInfo gInfoSuper;
-	Basis basisSuper;
-	QuantumNumber qnumSuper;
-	std::map<vector3<int>,double> iCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
-	
-	//!An edge of the k-mesh involved in the finite difference formula
-	struct EdgeFD
-	{	double wb; //!< weight of neighbour
-		vector3<> b; //!< displacement to neighbour
-		unsigned ik; //!< index of neighbour in kMesh
-		Kpoint point; //!< description of neighbour (source state, rotation, translation etc.)
-		matrix M0; //!< initial overlap matrix for this pair (after applying the initial unitary rotations)
-	};
-	
-	//!Entries in the k-point mesh with FD formula
+	//! Entry in the k-point mesh, including state of minimizer (subspace rotations)
 	struct KmeshEntry
 	{	Kpoint point; //!< point in the mesh
-		std::vector<EdgeFD> edge; //!< neighbours with weights defining finite difference formula
 		//State of system for Wannier minimize:
 		int nIn; //number of bands that contribute to the Wannier subspace
 		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
@@ -106,6 +80,38 @@ private:
 		matrix U2, V2, B2evecs;
 		diagMatrix B2eigs;
 	};
+
+	//-------- Interface for subclasses that provide the objective function for Wannier minimization
+	
+	//! Prepare for minimization of spin channel iSpin
+	virtual void initialize(int iSpin)=0;
+	
+	//! Return Omega and set rExpect and rSqExpect.
+	//! If grad=true, set Omega_U in the KMeshEntry array.
+	//! Note base class handles computing U and propagating gradients.
+	//! At input, U will be available on all processes and Omega_U will be zero.
+	//! Base class will accumulate Omega_U across processes on return.
+	virtual double getOmega(bool grad=false)=0;
+	
+	//Like getOmega, but for the subspace-invariant OmegaI instead.
+	virtual double getOmegaI(bool grad=false)=0;
+	
+protected:
+	friend class WannierGradient;
+	const Everything& e;
+	const Wannier& wannier;
+	const std::vector< matrix3<int> >& sym;
+	int nCenters, nBands; //!< number of Wannier centers and source bands
+	int nSpins, qCount; //!< number of spins, and number of states per spin
+	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
+	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
+	
+	//Supercell grid and basis:
+	bool needSuper;
+	GridInfo gInfoSuper;
+	Basis basisSuper;
+	QuantumNumber qnumSuper;
+	std::map<vector3<int>,double> iCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
 	
 	//!Indices from reduced basis to full G-space or a union of all reduced bases
 	//!The super-suffixed versions indicate indices into the G-sphere/fftbox of the supercell
@@ -158,4 +164,4 @@ private:
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
 };
 
-#endif // JDFTX_ELECTRONIC_WANNIERMINIMIZER_H
+#endif // JDFTX_WANNIER_WANNIERMINIMIZER_H
