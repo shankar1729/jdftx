@@ -52,7 +52,7 @@ void Dump::dumpQMC()
 	const Basis& basis = e->basis[0];
 	const GridInfo& gInfo = e->gInfo;
 
-	BlipConverter blipConvert(gInfo.S[0], gInfo.S[1], gInfo.S[2]);
+	BlipConverter blipConvert(gInfo.S);
 	string fname; ofstream ofs;
 	
 	DataGptr nTilde = J(eVars.get_nTot());

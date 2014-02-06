@@ -30,6 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/operators.h>
 #include <electronic/matrix.h>
+#include <electronic/Blip.h>
 #include <gsl/gsl_sf.h>
 #include <stdlib.h>
 
@@ -320,6 +321,30 @@ void testHugeFileIO()
 	logPrintf("rmsErr = %le\n", rmsErr);
 }
 
+void testResample()
+{	GridInfo gInfo1;
+	gInfo1.S = vector3<int>(1,1,2) * 32;
+	gInfo1.R.set_col(0, vector3<>(0,5,5));
+	gInfo1.R.set_col(1, vector3<>(5,0,5));
+	gInfo1.R.set_col(2, vector3<>(9,9,0));
+	gInfo1.initialize();
+	GridInfo gInfo2;
+	gInfo2.R = matrix3<>(1,1,1) * 20;
+	gInfo2.S = vector3<int>(1,1,1) * 128;
+	gInfo2.initialize();
+	
+	//Create a gaussian on grid1:
+	DataGptr delta(DataG::alloc(gInfo1));
+	initTranslation(delta, vector3<>(0,0,0));
+	DataGptr gauss1 = gaussConvolve(delta*(1./gInfo1.detR), 0.5);
+	saveRawBinary(I(gauss1), "testResample.n1");
+	
+	//Convert to other grid:
+	BlipConverter converter(gInfo1.S);
+	DataRptr gauss2 = converter.resample(gauss1, gInfo2) * converter.wsMask(gInfo1, gInfo2);
+	saveRawBinary(gauss2, "testResample.n2");
+}
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 	//testHarmonics(); return 0;
@@ -327,6 +352,7 @@ int main(int argc, char** argv)
 	//fdtestGGAs(); return 0;
 	//testChangeGrid(); return 0;
 	//testHugeFileIO(); return 0;
+	//testResample(); return 0;
 	
 // 	const int Zn = 2;
 // 	SO3quad quad(QuadEuler, Zn, 11); //quad.print();
@@ -340,7 +366,7 @@ int main(int argc, char** argv)
 	gInfo.R.set_col(2, vector3<>(12.0, 12.0, 0.0));
 	gInfo.initialize();
 	//testCavitation(gInfo); return 0;
-	timePointGroupOps(gInfo); return 0;
+	//timePointGroupOps(gInfo); return 0;
 	//timeEblas3(gInfo);
 	
 	OperatorTest op(gInfo);

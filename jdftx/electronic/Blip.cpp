@@ -23,66 +23,142 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
+#include <core/WignerSeitz.h>
 
 //-----------------------------------------------
 //---------- PW to Blip conversion --------------
 //-----------------------------------------------
 
-double* BlipConverter::newGamma(int N)
-{
-	double* gamma = new double[N];
-	gamma[0] = 2.0/3;
-	for(int i=1; i<N; i++)
-	{
-		double k = (2*M_PI/N) * (i<N/2 ? i : N-i);
-		gamma[i] = (1.0/6) * pow(k*k/(1-cos(k)),2);
+BlipConverter::BlipConverter(const vector3<int>& S) : S(S)
+{	for(int dir=0; dir<3; dir++)
+	{	gamma[dir].resize(S[dir]);
+		gamma[dir][0] = 2.0/3;
+		for(int i=1; i<S[dir]; i++)
+		{	double k = (2*M_PI/S[dir]) * (i<S[dir]/2 ? i : S[dir]-i);
+			gamma[dir][i] = (1.0/6) * pow(k*k/(1-cos(k)),2);
+		}
 	}
-	return gamma;
 }
-
-
-BlipConverter::BlipConverter(int Nx, int Ny, int Nz) : Nx(Nx), Ny(Ny), Nz(Nz)
-{
-	xGamma = newGamma(Nx);
-	yGamma = newGamma(Ny);
-	zGamma = newGamma(Nz);
-}
-
-
-BlipConverter::~BlipConverter()
-{
-	delete[] xGamma;
-	delete[] yGamma;
-	delete[] zGamma;
-}
-
 
 //Given a complex PW basis object, return corresponding real-space Blip coefficient set
-complexDataRptr BlipConverter::operator()(const complexDataGptr& vTilde)
-{	complex* vTildeData = vTilde->data();
+complexDataRptr BlipConverter::operator()(const complexDataGptr& vTilde) const
+{	assert(vTilde->gInfo.S == S);
+	complex* vTildeData = vTilde->data();
 	int index=0;
-	for(int ix=0; ix<Nx; ix++)
-		for(int iy=0; iy<Ny; iy++)
-			for(int iz=0; iz<Nz; iz++)
-				vTildeData[index++] *= (xGamma[ix]*yGamma[iy]*zGamma[iz]);
+	vector3<int> iv;
+	for(iv[0]=0; iv[0]<S[0]; iv[0]++)
+	for(iv[1]=0; iv[1]<S[1]; iv[1]++)
+	for(iv[2]=0; iv[2]<S[2]; iv[2]++)
+		vTildeData[index++] *= (gamma[0][iv[0]]*gamma[1][iv[1]]*gamma[2][iv[2]]);
 	return I(vTilde);
 }
-complexDataRptr BlipConverter::operator()(const complexDataRptr& v)
+complexDataRptr BlipConverter::operator()(const complexDataRptr& v) const
 {	return (*this)(J(v));
 }
 
 //Given a real PW basis object v, return corresponding real-space Blip coefficient set
-DataRptr BlipConverter::operator()(const DataGptr& vTilde)
-{	complex* vTildeData = vTilde->data();
+DataRptr BlipConverter::operator()(const DataGptr& vTilde) const
+{	assert(vTilde->gInfo.S == S);
+	complex* vTildeData = vTilde->data();
 	int index=0;
-	for(int ix=0; ix<Nx; ix++)
-		for(int iy=0; iy<Ny; iy++)
-			for(int iz=0; iz<=Nz/2; iz++)
-				vTildeData[index++] *= (xGamma[ix]*yGamma[iy]*zGamma[iz]);
+	vector3<int> iv;
+	for(iv[0]=0; iv[0]<S[0]; iv[0]++)
+	for(iv[1]=0; iv[1]<S[1]; iv[1]++)
+	for(iv[2]=0; iv[2]<=S[2]/2; iv[2]++)
+		vTildeData[index++] *= (gamma[0][iv[0]]*gamma[1][iv[1]]*gamma[2][iv[2]]);
 	return I(vTilde);
 }
-DataRptr BlipConverter::operator()(const DataRptr& v)
+DataRptr BlipConverter::operator()(const DataRptr& v) const
 {	return (*this)(J(v));
+}
+
+
+//--------------------- Resampling using BLIPs ------------------------
+
+namespace BlipPrivate
+{
+	template<typename scalar> scalar blip(double t, const scalar coeff[4])
+	{	return
+			0.25*( coeff[0]+4*coeff[1]+coeff[2]
+			+ t*( 3*(coeff[2]-coeff[0])
+			+ t*( 3*(coeff[0]+coeff[2]-2*coeff[1])
+			+ t*( coeff[3]-coeff[0] + 3*(coeff[1]-coeff[2]) ) ) ) );
+	}
+	
+	template<typename scalar> void resample_sub(size_t iStart, size_t iStop, const GridInfo* gInfoIn, const GridInfo* gInfoOut, const scalar* inBlip, scalar* out)
+	{	//Compute transformation matrix mapping output mesh coordinates to input mesh coordinates:
+		matrix3<> M = Diag(vector3<>(gInfoIn->S)) //input mesh <- input lattice
+			* inv(gInfoIn->R) * gInfoOut->R //input lattice <- cartesian <- output lattice
+			* inv(Diag(vector3<>(gInfoOut->S))); //output lattice <- output mesh
+		const vector3<int>& S = gInfoOut->S; //sample count for loop division
+		const vector3<int>& Sin = gInfoIn->S;
+		vector3<> invSin(1./Sin[0], 1./Sin[1], 1./Sin[2]);
+		THREAD_rLoop
+		(	vector3<> vIn = M * iv; //input mesh coordinates
+			vector3<int> ivIn; vector3<> t; //integer and fractional coordinates in input mesh
+			for(int k=0; k<3; k++)
+			{	vIn[k] -= Sin[k] * floor(invSin[k]*vIn[k]); //wrap to first cell
+				ivIn[k] = int(floor(vIn[k]));
+				t[k] = vIn[k] - ivIn[k];
+			}
+			//1D indices of the 64 coefficients:
+			register int j[3][4];
+			for(int k=0; k<3; k++)
+				for(int di=0; di<4; di++)
+				{	int& jCur = j[k][di];
+					jCur = ivIn[k] + di - 1;
+					if(jCur >= Sin[k]) jCur -= Sin[k];
+					if(jCur < 0) jCur += Sin[k];
+				}
+			//Interpolate along the inner dimension first:
+			register scalar out2[4][4];
+			for(int di0=0; di0<4; di0++)
+			for(int di1=0; di1<4; di1++)
+			{	register scalar coeff[4];
+				for(int di2=0; di2<4; di2++) coeff[di2] = inBlip[j[2][di2] + Sin[2]*(j[1][di1] + Sin[1]*j[0][di0])];
+				out2[di0][di1] = blip(t[2], coeff);
+			}
+			//Interpolate along the middle dimension:
+			register scalar out1[4];
+			for(int di0=0; di0<4; di0++) out1[di0] = blip(t[1], out2[di0]);
+			//Finally interpolate along outer dimension:
+			out[i] = blip(t[0], out1);
+		)
+	}
+	
+	template<typename scalar> void resample(const GridInfo& gInfoIn, const GridInfo& gInfoOut, const scalar* inBlip, scalar* out)
+	{	threadLaunch(resample_sub<scalar>, gInfoOut.nr, &gInfoIn, &gInfoOut, inBlip, out);
+	}
+}
+
+DataRptr BlipConverter::resample(const DataGptr& in, const GridInfo& gInfoOut) const
+{	DataRptr inBlip = (*this)(in);
+	DataRptr out(DataR::alloc(gInfoOut));
+	BlipPrivate::resample(in->gInfo, gInfoOut, inBlip->data(), out->data());
+	return out;
+}
+complexDataRptr BlipConverter::resample(const complexDataGptr& in, const GridInfo& gInfoOut) const
+{	complexDataRptr inBlip = (*this)(in);
+	complexDataRptr out(complexDataR::alloc(gInfoOut));
+	BlipPrivate::resample(in->gInfo, gInfoOut, inBlip->data(), out->data());
+	return out;
+}
+
+inline void wsMask_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& invRinRout, const WignerSeitz* wsIn, const WignerSeitz* wsOut, double* mask)
+{	vector3<> invS(1./S[0], 1./S[1], 1./S[2]);
+	THREAD_rLoop
+	(	vector3<> x; for(int k=0; k<3; k++) x[k] = invS[k] * iv[k];
+		x = wsOut->restrict(x); //output lattice coordinates within its Wigner-Seitz cell
+		vector3<> xIn = invRinRout * x;  //input lattice coodrinates:
+		mask[i] = wsIn->boundaryDistance(xIn) ? 1. : 0.; //1 if inside input Wigner-Seitz, 0 otherwise
+	)
+}
+DataRptr BlipConverter::wsMask(const GridInfo& gInfoIn, const GridInfo& gInfoOut) const
+{	WignerSeitz wsIn(gInfoIn.R);
+	WignerSeitz wsOut(gInfoOut.R);
+	DataRptr mask(DataR::alloc(gInfoOut));
+	threadLaunch(wsMask_sub, gInfoOut.nr, gInfoOut.S, gInfoIn.invR * gInfoOut.R,  &wsIn, &wsOut, mask->data());
+	return mask;
 }
 
 

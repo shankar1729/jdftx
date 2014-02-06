@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_BLIP_H
 
 #include <core/Data.h>
+#include <core/vector3.h>
 
 //PW to blip conversion utility
 //To use, create an object:
@@ -29,20 +30,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //	vBlip = convert(vPW);
 class BlipConverter
 {
-	int Nx, Ny, Nz;
-	double *xGamma, *yGamma, *zGamma;
-	double* newGamma(int N);
+	vector3<int> S;
+	std::vector<double> gamma[3];
 public:
-	BlipConverter(int Nx, int Ny, int Nz);
-	~BlipConverter();
+	BlipConverter(const vector3<int>& S);
 
 	//Given a PW basis object (in real or reciprocal space) v,
 	//return corresponding real-space Blip coefficient set
 	// (for double or complex vectors)
-	DataRptr operator()(const DataGptr& v);
-	DataRptr operator()(const DataRptr& v);
-	complexDataRptr operator()(const complexDataGptr& v);
-	complexDataRptr operator()(const complexDataRptr& v);
+	DataRptr operator()(const DataGptr& v) const;
+	DataRptr operator()(const DataRptr& v) const;
+	complexDataRptr operator()(const complexDataGptr& v) const;
+	complexDataRptr operator()(const complexDataRptr& v) const;
+	
+	//! Resample a scalar field on a different grid using cubic spline interpolation (in->gInfo.S must match S)
+	//! Note that the input is effectively tiled to cover the entire output box (if parts of it overflow the input box)
+	//! Use the wsMask to get a scalarfield that is 1 over only one of Wigner-Seitz shaped tile (so that multiplying selects a single image)
+	DataRptr resample(const DataGptr& in, const GridInfo& gInfoOut) const;
+	complexDataRptr resample(const complexDataGptr& in, const GridInfo& gInfoOut) const;
+	
+	DataRptr wsMask(const GridInfo& gInfoIn, const GridInfo& gInfoOut) const;
 };
 
 //Compute the kinetic energy for a blip orbital phi (and set max local KE and location in unit cell)
