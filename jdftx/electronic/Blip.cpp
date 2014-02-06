@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
-#include <core/WignerSeitz.h>
 
 //-----------------------------------------------
 //---------- PW to Blip conversion --------------
@@ -85,80 +84,73 @@ namespace BlipPrivate
 			+ t*( coeff[3]-coeff[0] + 3*(coeff[1]-coeff[2]) ) ) ) );
 	}
 	
-	template<typename scalar> void resample_sub(size_t iStart, size_t iStop, const GridInfo* gInfoIn, const GridInfo* gInfoOut, const scalar* inBlip, scalar* out)
-	{	//Compute transformation matrix mapping output mesh coordinates to input mesh coordinates:
-		matrix3<> M = Diag(vector3<>(gInfoIn->S)) //input mesh <- input lattice
-			* inv(gInfoIn->R) * gInfoOut->R //input lattice <- cartesian <- output lattice
-			* inv(Diag(vector3<>(gInfoOut->S))); //output lattice <- output mesh
-		const vector3<int>& S = gInfoOut->S; //sample count for loop division
+	template<typename scalar> void resample_sub(size_t iStart, size_t iStop, const GridInfo* gInfoIn, const GridInfo* gInfoOut,
+		const WignerSeitz* wsIn, const WignerSeitz* wsOut, const scalar* inBlip, scalar* out)
+	{
+		matrix3<> invRinRout = inv(gInfoIn->R) * gInfoOut->R; //input lattice <- cartesian <- output lattice
 		const vector3<int>& Sin = gInfoIn->S;
-		vector3<> invSin(1./Sin[0], 1./Sin[1], 1./Sin[2]);
+		const vector3<int>& S = gInfoOut->S; //sample count for loop division
+		vector3<> invS(1./S[0], 1./S[1], 1./S[2]);
 		THREAD_rLoop
-		(	vector3<> vIn = M * iv; //input mesh coordinates
-			vector3<int> ivIn; vector3<> t; //integer and fractional coordinates in input mesh
-			for(int k=0; k<3; k++)
-			{	vIn[k] -= Sin[k] * floor(invSin[k]*vIn[k]); //wrap to first cell
-				ivIn[k] = int(floor(vIn[k]));
-				t[k] = vIn[k] - ivIn[k];
-			}
-			//1D indices of the 64 coefficients:
-			register int j[3][4];
-			for(int k=0; k<3; k++)
-				for(int di=0; di<4; di++)
-				{	int& jCur = j[k][di];
-					jCur = ivIn[k] + di - 1;
-					if(jCur >= Sin[k]) jCur -= Sin[k];
-					if(jCur < 0) jCur += Sin[k];
+		(	vector3<> x; for(int k=0; k<3; k++) x[k] = invS[k] * iv[k];//output lattice coordinates
+			x = invRinRout * wsOut->restrict(x); // ... wrapped to output WS, and converted to input lattice coords
+			if(wsIn->boundaryDistance(x) == 0.)
+				out[i] = 0.; //outside input WS cell
+			else
+			{	vector3<int> ivIn; vector3<> t; //integer and fractional coordinates in input mesh
+				for(int k=0; k<3; k++)
+				{	x[k] -= floor(x[k]); //wrap to first cell
+					double vIn_k = x[k] * Sin[k]; //input mesh coordinates in first cell
+					ivIn[k] = int(floor(vIn_k));
+					t[k] = vIn_k - ivIn[k];
 				}
-			//Interpolate along the inner dimension first:
-			register scalar out2[4][4];
-			for(int di0=0; di0<4; di0++)
-			for(int di1=0; di1<4; di1++)
-			{	register scalar coeff[4];
-				for(int di2=0; di2<4; di2++) coeff[di2] = inBlip[j[2][di2] + Sin[2]*(j[1][di1] + Sin[1]*j[0][di0])];
-				out2[di0][di1] = blip(t[2], coeff);
+				//1D indices of the 64 coefficients:
+				register int j[3][4];
+				for(int k=0; k<3; k++)
+					for(int di=0; di<4; di++)
+					{	int& jCur = j[k][di];
+						jCur = ivIn[k] + di - 1;
+						if(jCur >= Sin[k]) jCur -= Sin[k];
+						if(jCur < 0) jCur += Sin[k];
+					}
+				//Interpolate along the inner dimension first:
+				register scalar out2[4][4];
+				for(int di0=0; di0<4; di0++)
+				for(int di1=0; di1<4; di1++)
+				{	register scalar coeff[4];
+					for(int di2=0; di2<4; di2++) coeff[di2] = inBlip[j[2][di2] + Sin[2]*(j[1][di1] + Sin[1]*j[0][di0])];
+					out2[di0][di1] = blip(t[2], coeff);
+				}
+				//Interpolate along the middle dimension:
+				register scalar out1[4];
+				for(int di0=0; di0<4; di0++) out1[di0] = blip(t[1], out2[di0]);
+				//Finally interpolate along outer dimension:
+				out[i] = blip(t[0], out1);
 			}
-			//Interpolate along the middle dimension:
-			register scalar out1[4];
-			for(int di0=0; di0<4; di0++) out1[di0] = blip(t[1], out2[di0]);
-			//Finally interpolate along outer dimension:
-			out[i] = blip(t[0], out1);
 		)
 	}
 	
-	template<typename scalar> void resample(const GridInfo& gInfoIn, const GridInfo& gInfoOut, const scalar* inBlip, scalar* out)
-	{	threadLaunch(resample_sub<scalar>, gInfoOut.nr, &gInfoIn, &gInfoOut, inBlip, out);
+	template<typename scalar> void resample(const GridInfo& gInfoIn, const GridInfo& gInfoOut, const WignerSeitz& wsIn, const WignerSeitz& wsOut, const scalar* inBlip, scalar* out)
+	{	threadLaunch(resample_sub<scalar>, gInfoOut.nr, &gInfoIn, &gInfoOut, &wsIn, &wsOut, inBlip, out);
 	}
 }
 
-DataRptr BlipConverter::resample(const DataGptr& in, const GridInfo& gInfoOut) const
-{	DataRptr inBlip = (*this)(in);
-	DataRptr out(DataR::alloc(gInfoOut));
-	BlipPrivate::resample(in->gInfo, gInfoOut, inBlip->data(), out->data());
-	return out;
-}
-complexDataRptr BlipConverter::resample(const complexDataGptr& in, const GridInfo& gInfoOut) const
-{	complexDataRptr inBlip = (*this)(in);
-	complexDataRptr out(complexDataR::alloc(gInfoOut));
-	BlipPrivate::resample(in->gInfo, gInfoOut, inBlip->data(), out->data());
-	return out;
+BlipResampler::BlipResampler(const GridInfo& gInfoIn, const GridInfo& gInfoOut)
+: gInfoIn(gInfoIn), gInfoOut(gInfoOut), converter(gInfoIn.S), wsIn(gInfoIn.R), wsOut(gInfoOut.R)
+{
 }
 
-inline void wsMask_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& invRinRout, const WignerSeitz* wsIn, const WignerSeitz* wsOut, double* mask)
-{	vector3<> invS(1./S[0], 1./S[1], 1./S[2]);
-	THREAD_rLoop
-	(	vector3<> x; for(int k=0; k<3; k++) x[k] = invS[k] * iv[k];
-		x = wsOut->restrict(x); //output lattice coordinates within its Wigner-Seitz cell
-		vector3<> xIn = invRinRout * x;  //input lattice coodrinates:
-		mask[i] = wsIn->boundaryDistance(xIn) ? 1. : 0.; //1 if inside input Wigner-Seitz, 0 otherwise
-	)
+DataRptr BlipResampler::operator()(const DataGptr& in) const
+{	DataRptr inBlip = converter(in);
+	DataRptr out(DataR::alloc(gInfoOut));
+	BlipPrivate::resample(in->gInfo, gInfoOut, wsIn, wsOut, inBlip->data(), out->data());
+	return out;
 }
-DataRptr BlipConverter::wsMask(const GridInfo& gInfoIn, const GridInfo& gInfoOut) const
-{	WignerSeitz wsIn(gInfoIn.R);
-	WignerSeitz wsOut(gInfoOut.R);
-	DataRptr mask(DataR::alloc(gInfoOut));
-	threadLaunch(wsMask_sub, gInfoOut.nr, gInfoOut.S, gInfoIn.invR * gInfoOut.R,  &wsIn, &wsOut, mask->data());
-	return mask;
+complexDataRptr BlipResampler::operator()(const complexDataGptr& in) const
+{	complexDataRptr inBlip = converter(in);
+	complexDataRptr out(complexDataR::alloc(gInfoOut));
+	BlipPrivate::resample(in->gInfo, gInfoOut, wsIn, wsOut, inBlip->data(), out->data());
+	return out;
 }
 
 

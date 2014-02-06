@@ -19,6 +19,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <core/WignerSeitz.h>
+#include <core/DataIO.h>
+#include <electronic/Blip.h>
+#include <electronic/operators.h>
 
 //Find a finite difference formula given a list of relative neighbour positions (in cartesian coords)
 //[Appendix B of Phys Rev B 56, 12847]
@@ -71,7 +74,7 @@ inline vector3<> getCoord(const WannierMinimizer::Kpoint& kpoint) { return kpoin
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins),
-	needSuper(wannier.saveWfns || wannier.saveWfnsRealSpace)
+	needSuper(wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
 {
 	//Create supercell grid:
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
@@ -126,7 +129,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 	}
 	//--- write the cell map (for post-processing programs to use)
 	if(mpiUtil->isHead())
-	{	string fname = wannier.getFilename(false, "mlwfCellMap");
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap");
 		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "w");
 		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
@@ -150,7 +153,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 		mpiUtil->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
 		mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
 		if(mpiUtil->isHead())
-		{	string fname = wannier.getFilename(false, "mlwfBandRanges", &iSpin);
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandRanges", &iSpin);
 			logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			for(int b=0; b<nBands; b++)
@@ -301,5 +304,89 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) 
 				index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
 		}
 		index.set();
+	}
+	
+	//Read numerical trial orbitals if provided:
+	if(wannier.numericalOrbitalsFilename.length())
+	{	logPrintf("\n--- Initializing numerical trial orbitals ---\n");
+		
+		//Read the header:
+		string fname = wannier.numericalOrbitalsFilename + ".header";
+		std::ifstream ifs(fname.c_str());
+		if(!ifs.is_open()) die("Could not open '%s' for reading.\n", fname.c_str());
+		string comments;
+		//--- Line 1:
+		int nCols; size_t colLength;
+		ifs >> nCols >> colLength;
+		getline(ifs, comments);
+		logPrintf("%d orbitals with %lu basis elements each.\n", nCols, colLength);
+		//--- Line 2:
+		matrix3<> GT;
+		for(int i=0; i<3; i++)
+			for(int j=0; j<3; j++)
+				ifs >> GT(i,j);
+		getline(ifs, comments);
+		//--- Basis elements:
+		std::vector< vector3<int> > iGarr(colLength);
+		vector3<int> hlfSin;
+		for(vector3<int>& iG: iGarr)
+		{	ifs >> iG[0] >> iG[1] >> iG[2];
+			for(int k=0; k<3; k++) hlfSin[k] = std::max(hlfSin[k], abs(iG[k]));
+		}
+		ifs.close();
+		
+		//Create input grid:
+		GridInfo gInfoIn;
+		for(int k=0; k<3; k++)
+		{	gInfoIn.S[k] = 2*(2*hlfSin[k] + 1);
+			while(!fftSuitable(gInfoIn.S[k])) gInfoIn.S[k] += 2; 
+		}
+		gInfoIn.R = 2*M_PI * inv(~GT);
+		gInfoIn.initialize(true);
+		
+		//Create input basis:
+		Basis basisIn;
+		std::vector<int> indexIn(colLength);
+		for(size_t i=0; i<colLength; i++)
+			indexIn[i] = gInfoIn.fullGindex(iGarr[i]);
+		basisIn.setup(gInfoIn, e.iInfo, indexIn);
+		
+		//Read the wavefunctions:
+		fname = wannier.numericalOrbitalsFilename;
+		logPrintf("Reading numerical orbitals from '%s' ... ", fname.c_str()); logFlush();
+		ColumnBundle Cin(nCols, colLength, &basisIn, &qnumSuper);
+		Cin.read(fname.c_str());
+		logPrintf("done.\n"); logFlush();
+		
+		//Convert wavefunctions to supercell basis:
+		logPrintf("Converting numerical orbitals to supercell basis ... "); logFlush();
+		//--- offset in input
+		Cin = translate(Cin, -wannier.numericalOrbitalsOffset);
+		//--- resample band-by-band"
+		logSuspend();
+		BlipResampler resample(gInfoIn, gInfoSuper);
+		logResume();
+		ColumnBundle C(nCols, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
+		for(int b=0; b<nCols; b++)
+			C.setColumn(b, J(resample(Cin.getColumn(b))));
+		logPrintf("done.\n"); logFlush();
+		
+		//Split supercell wavefunction into kpoints:
+		logPrintf("Dividing supercell numerical orbitals to k-points ... "); logFlush();
+		{	ColumnBundle temp(1, basis.nbasis, &basis, 0, isGpuEnabled());
+			for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,0) || isMine_q(ik,1))
+			{	const KmeshEntry& ki = kMesh[ik];
+				const Index& index = *(indexMap.find(ki.point)->second);
+				auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis, &basis, &ki.point, isGpuEnabled());
+				Ck->zero();
+				for(int b=0; b<nCols; b++)
+				{	temp.zero();
+					eblas_gather_zdaxpy(index.nIndices, 1., index.dataSuperPref, C.dataPref()+C.index(b,0), temp.dataPref());
+					eblas_scatter_zdaxpy(index.nIndices, 1./ki.point.weight, index.dataPref, temp.dataPref(), Ck->dataPref()+Ck->index(b,0));
+				}
+				numericalOrbitals[ki.point] = Ck;
+			}
+		}
+		logPrintf("done.\n"); logFlush();
 	}
 }

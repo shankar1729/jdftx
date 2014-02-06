@@ -20,7 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/Wannier.h>
 #include <wannier/WannierMinimizer.h>
 
-Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false), saveWfns(false), saveWfnsRealSpace(false)
+Wannier::Wannier() : bStart(0), outerWindow(false), innerWindow(false),
+	saveWfns(false), saveWfnsRealSpace(false), numericalOrbitalsOffset(0.5,0.5,0.5)
 {
 }
 
@@ -52,8 +53,12 @@ void Wannier::saveMLWF()
 {	wmin->saveMLWF();
 }
 
-string Wannier::getFilename(bool init, string varName, int* spin) const
-{	string fname = init ? initFilename : dumpFilename;
+string Wannier::getFilename(FilenameType fnType, string varName, int* spin) const
+{	string fname;
+	switch(fnType)
+	{	case FilenameInit: fname = initFilename; break;
+		case FilenameDump: fname = dumpFilename; break;
+	}
 	string spinSuffix;
 	if(spin && e->eInfo.spinType==SpinZ)
 		spinSuffix = (*spin)==0 ? "Up" : "Dn";

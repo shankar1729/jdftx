@@ -177,7 +177,11 @@ void ManagedMemory::write(FILE *fp) const
 
 
 void ManagedMemory::read(const char *fname)
-{	FILE *fp = fopen(fname, "rb");
+{	off_t fsizeExpected = nData() * sizeof(complex);
+	off_t fsize = fileSize(fname);
+	if(fsize != off_t(fsizeExpected))
+		die("Length of '%s' was %ld instead of the expected %ld bytes.\n", fname, fsize, fsizeExpected);
+	FILE *fp = fopen(fname, "rb");
 	if(!fp) die("Error opening %s for reading.\n", fname);
 	read(fp);
 	fclose(fp);

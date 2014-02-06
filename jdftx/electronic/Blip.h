@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Data.h>
 #include <core/vector3.h>
+#include <core/WignerSeitz.h>
 
 //PW to blip conversion utility
 //To use, create an object:
@@ -42,14 +43,23 @@ public:
 	DataRptr operator()(const DataRptr& v) const;
 	complexDataRptr operator()(const complexDataGptr& v) const;
 	complexDataRptr operator()(const complexDataRptr& v) const;
+};
+
+//! Resample a scalar field from one grid to another using BLIPs
+//! The periodicity of both grids are broken on their Wigner-Seitz (WS) cells centered at the origin,
+//! and the values in the input WS outside the output WS are truncated, while the region in the
+//! output WS outside the input WS is set to zero.
+class BlipResampler
+{	const GridInfo& gInfoIn;
+	const GridInfo& gInfoOut;
+	BlipConverter converter;
+	WignerSeitz wsIn;
+	WignerSeitz wsOut;
+public:
+	BlipResampler(const GridInfo& gInfoIn, const GridInfo& gInfoOut);
 	
-	//! Resample a scalar field on a different grid using cubic spline interpolation (in->gInfo.S must match S)
-	//! Note that the input is effectively tiled to cover the entire output box (if parts of it overflow the input box)
-	//! Use the wsMask to get a scalarfield that is 1 over only one of Wigner-Seitz shaped tile (so that multiplying selects a single image)
-	DataRptr resample(const DataGptr& in, const GridInfo& gInfoOut) const;
-	complexDataRptr resample(const complexDataGptr& in, const GridInfo& gInfoOut) const;
-	
-	DataRptr wsMask(const GridInfo& gInfoIn, const GridInfo& gInfoOut) const;
+	DataRptr operator()(const DataGptr& v) const;
+	complexDataRptr operator()(const complexDataGptr& v) const;
 };
 
 //Compute the kinetic energy for a blip orbital phi (and set max local KE and location in unit cell)

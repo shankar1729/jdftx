@@ -149,8 +149,9 @@ private:
 	 //Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
 	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result) const;
 	
-	//! Get the trial wavefunctions (gaussians) for the group of centers in the common basis
+	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
+	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals;
 	
 	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
 	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)

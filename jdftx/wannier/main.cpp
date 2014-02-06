@@ -37,8 +37,8 @@ int main(int argc, char** argv)
 	parse(inputFilename.c_str(), e, printDefaults);
 	
 	//Set initial filenames and prevent unnecessary setup below:
-	e.eVars.wfnsFilename = wannier.getFilename(true, "wfns");
-	e.eVars.eigsFilename = wannier.getFilename(true, "eigenvals");
+	e.eVars.wfnsFilename = wannier.getFilename(Wannier::FilenameInit, "wfns");
+	e.eVars.eigsFilename = wannier.getFilename(Wannier::FilenameInit, "eigenvals");
 	e.eVars.nFilename.clear();
 	e.eVars.VsclocFilename.clear();
 	e.eVars.HauxFilename.clear();

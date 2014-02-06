@@ -30,7 +30,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//Load initial rotations if necessary:
 	if(wannier.loadRotations)
 	{	//Read U
-		string fname = wannier.getFilename(false, "mlwfU", &iSpin);
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
 		FILE* fp = fopen(fname.c_str(), "r");
 		if(!fp) die("Could not open '%s' for reading.\n", fname.c_str());
 		logPrintf("Reading initial rotations from '%s' ... ", fname.c_str());
@@ -41,7 +41,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 		//Read U2:
-		fname = wannier.getFilename(false, "mlwfU2", &iSpin);
+		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU2", &iSpin);
 		fp = fopen(fname.c_str(), "r");
 		if(!fp) die("Could not open '%s' for reading.\n", fname.c_str());
 		logPrintf("Reading initial outer rotations from '%s' ... ", fname.c_str());
@@ -227,14 +227,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//Save the matrices:
 	if(mpiUtil->isHead())
 	{	//Write U:
-		string fname = wannier.getFilename(false, "mlwfU", &iSpin);
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
 		FILE* fp = fopen(fname.c_str(), "w");
 		for(const auto& ke: kMesh) ke.U.write(fp);
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 		//Write U2:
-		fname = wannier.getFilename(false, "mlwfU2", &iSpin);
+		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU2", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
 		fp = fopen(fname.c_str(), "w");
 		for(unsigned ik=0; ik<kMesh.size(); ik++)
@@ -273,12 +273,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		
 		//--- Save supercell wavefunctions in reciprocal space:
 		if(mpiUtil->isHead() && wannier.saveWfns)
-		{	string fname = wannier.getFilename(false, "mlwfC", &iSpin);
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfC", &iSpin);
 			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
 			Csuper.write(fname.c_str());
 			logPrintf("done.\n"); logFlush();
 			//Header:
-			fname = wannier.getFilename(false, "mlwfC.header", &iSpin);
+			fname = fname + ".header";
 			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			fprintf(fp, "%d %lu #nColumns, columnLength\n", nCenters, basisSuper.nbasis);
@@ -298,7 +298,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	//Generate filename
 			ostringstream varName;
 			varName << n << ".mlwf";
-			string fname = wannier.getFilename(false, varName.str(), &iSpin);
+			string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
 			logPrintf("Dumping '%s':\n", fname.c_str());
 			//Convert to real space and remove phase:
 			complexDataRptr psi = I(Csuper.getColumn(n));
@@ -336,7 +336,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	for(matrix& H: Hwannier) H.allReduce(MPIUtil::ReduceSum);
 	//-- save to file
 	if(mpiUtil->isHead())
-	{	string fname = wannier.getFilename(false, "mlwfH", &iSpin);
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfH", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "wb");
 		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());

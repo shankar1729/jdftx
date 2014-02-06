@@ -30,6 +30,8 @@ enum WannierMember
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_loadRotations,
+	WM_numericalOrbitals,
+	WM_numericalOrbitalsOffset,
 	WM_delim
 };
 
@@ -39,7 +41,9 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_innerWindow, "innerWindow",
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
-	WM_loadRotations, "loadRotations"
+	WM_loadRotations, "loadRotations",
+	WM_numericalOrbitals, "numericalOrbitals",
+	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset"
 );
 
 struct CommandWannier : public Command
@@ -68,7 +72,15 @@ struct CommandWannier : public Command
 			"    Default: no.\n"
 			"  loadRotations yes|no\n"
 			"    Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
-			"    Default: no.";
+			"    Default: no.\n"
+			"  numericalOrbitals <filename>\n"
+			"    Load numerical orbitals from <filename> with basis described in <filename>.header\n"
+			"    that can then be used as trial orbitals. The reciprocal space wavefunction output\n"
+			"    of wannier is precisely in this format, so that supercell Wannier calculations can\n"
+			"    be initialized from previously calculated bulk / unit cell Wannier functions.\n"
+			"  numericalOrbitalsOffset <x0> <x1> <x2>\n"
+			"    Origin of the numerical orbitals in lattice coordinates of the input.\n"
+			"    The default [ .5 .5 .5 ] (cell center) is appropriate for output from wannier.";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -98,6 +110,14 @@ struct CommandWannier : public Command
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
+				case WM_numericalOrbitals:
+					pl.get(wannier.numericalOrbitalsFilename, string(), "filename", true);
+					break;
+				case WM_numericalOrbitalsOffset:
+					pl.get(wannier.numericalOrbitalsOffset[0], 0., "x0", true);
+					pl.get(wannier.numericalOrbitalsOffset[1], 0., "x1", true);
+					pl.get(wannier.numericalOrbitalsOffset[2], 0., "x2", true);
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -113,6 +133,11 @@ struct CommandWannier : public Command
 		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		if(!(wannier.innerWindow || wannier.outerWindow))
 			logPrintf(" \\\n\tbStart %d", wannier.bStart);
+		if(wannier.numericalOrbitalsFilename.length())
+		{	logPrintf(" \\\n\tnumericalOrbitals %s", wannier.numericalOrbitalsFilename.c_str());
+			const vector3<>& offs = wannier.numericalOrbitalsOffset;
+			logPrintf(" \\\n\tnumericalOrbitalsOffset %lg %lg %lg", offs[0], offs[1], offs[2]);
+		}
 	}
 }
 commandWannier;
@@ -135,6 +160,12 @@ struct CommandWannierCenter : public Command
 			"The orbital code <orbDesc> is as in command density-of-states.\n"
 			"Specify a, orbDesc and coeff explicitly when using multiple\n"
 			"orbitals; the defaults only apply to the single orbital case.\n"
+			"   Alternately, for using numerical trial orbitals that have been\n"
+			"input using command wannier, use the syntax:\n"
+			"   <x0> <x1> <x2> numerical <b> [<coeff>=1.0]\n"
+			"where <b> is the 0-based index of the input orbital, and coeff may\n"
+			"be used to linearly combine numerical orbitals with other numerical\n"
+			"or atomic / hydrogenic orbitals as specified above.\n"
 			"   Specify this command once for each Wannier function.";
 		allowMultiple = true;
 		require("wannier-initial-state");
@@ -153,26 +184,33 @@ struct CommandWannierCenter : public Command
 			pl.get(ao.r[1], 0., "x1", true);
 			pl.get(ao.r[2], 0., "x2", true);
 			string aKey; pl.get(aKey, string(), "a");
+			ao.numericalOrbIndex = -1;
 			ao.sp = -1;
-			for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
-				if(e.iInfo.species[sp]->name == aKey)
-				{	ao.sp = sp;
-					break;
-				}
-			if(ao.sp < 0)
-				ParamList(aKey).get(ao.a, 1., "a");
-			pl.get(orbDesc, string(), "orbDesc");
-			if(orbDesc.length())
-			{	ao.orbitalDesc.parse(orbDesc);
-				if(ao.orbitalDesc.m > ao.orbitalDesc.l)
-					throw(string("Must specify a specific projection eg. px,py (not just p)"));
-				if(ao.sp>=0 && ao.orbitalDesc.n + ao.orbitalDesc.l > 3)
-					throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+			if(aKey == "numerical")
+			{	pl.get(ao.numericalOrbIndex, -1, "b", true);
+				if(ao.numericalOrbIndex<0) throw(string("Numerical orbital index must be non-negative"));
 			}
-			else //default is nodeless s orbital
-			{	ao.orbitalDesc.l = 0;
-				ao.orbitalDesc.m = 0;
-				ao.orbitalDesc.n = 0;
+			else
+			{	for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
+					if(e.iInfo.species[sp]->name == aKey)
+					{	ao.sp = sp;
+						break;
+					}
+				if(ao.sp<0)
+					ParamList(aKey).get(ao.a, 1., "a");
+				pl.get(orbDesc, string(), "orbDesc");
+				if(orbDesc.length())
+				{	ao.orbitalDesc.parse(orbDesc);
+					if(ao.orbitalDesc.m > ao.orbitalDesc.l)
+						throw(string("Must specify a specific projection eg. px,py (not just p)"));
+					if(ao.sp>=0 && ao.orbitalDesc.n + ao.orbitalDesc.l > 3)
+						throw(string("Hydrogenic orbitals with n+l>4 not supported"));
+				}
+				else //default is nodeless s orbital
+				{	ao.orbitalDesc.l = 0;
+					ao.orbitalDesc.m = 0;
+					ao.orbitalDesc.n = 0;
+				}
 			}
 			pl.get(ao.coeff, 1., "coeff");
 			//Transform coordinates if necessary
@@ -192,9 +230,14 @@ struct CommandWannierCenter : public Command
 			if(e.iInfo.coordsType == CoordsCartesian)
 				r = e.gInfo.R * r; //report cartesian positions
 			logPrintf("%lg %lg %lg ", r[0], r[1], r[2]);
-			if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
-			else logPrintf("%lg", ao.a);
-			logPrintf(" %s  %lg", string(ao.orbitalDesc).c_str(), ao.coeff);
+			if(ao.numericalOrbIndex >= 0)
+				logPrintf("numerical %d", ao.numericalOrbIndex);
+			else
+			{	if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
+				else logPrintf("%lg", ao.a);
+				logPrintf(" %s", string(ao.orbitalDesc).c_str());
+			}
+			logPrintf("  %lg", ao.coeff);
 		}
 	}
 }

@@ -335,10 +335,20 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 	#endif
 	ret.zero();
 	complex* retData = ret.dataPref();
-	complex* tempData = temp.dataPref();
 	for(const Wannier::TrialOrbital& t: wannier.trialOrbitals)
 	{	for(const Wannier::AtomicOrbital& ao: t)
-		{	const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
+		{	//Handle numerical orbitals:
+			if(ao.numericalOrbIndex >= 0)
+			{	const ColumnBundle& Cnum = *(numericalOrbitals.find(kpoint)->second);
+				//Apply offset to selected column:
+				assert(ao.numericalOrbIndex < Cnum.nCols());
+				temp.setColumn(0, Cnum.getColumn(ao.numericalOrbIndex));
+				temp = translate(temp, ao.r);
+				//Accumulate to result
+				callPref(eblas_zaxpy)(basis.nbasis, ao.coeff, temp.dataPref(),1, retData,1);
+				continue;
+			}
+			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
 			//--- Copy the center to GPU if necessary:
 			#ifdef GPU_ENABLED
 			cudaMemcpy(pos, &ao.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
@@ -356,10 +366,10 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			}
 			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial->at(od.l)[od.n];
 			//--- Initialize the projector:
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, tempData);
+			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref());
 			if(ao.sp < 0) hRadial.free();
 			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(basis.nbasis, ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, tempData,1, retData,1);  //phase ensures odd l projectors are real
+			callPref(eblas_zaxpy)(basis.nbasis, ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, temp.dataPref(),1, retData,1);  //phase ensures odd l projectors are real
 		}
 		retData += basis.nbasis;
 	}

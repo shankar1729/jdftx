@@ -340,8 +340,8 @@ void testResample()
 	saveRawBinary(I(gauss1), "testResample.n1");
 	
 	//Convert to other grid:
-	BlipConverter converter(gInfo1.S);
-	DataRptr gauss2 = converter.resample(gauss1, gInfo2) * converter.wsMask(gInfo1, gInfo2);
+	BlipResampler resample(gInfo1, gInfo2);
+	DataRptr gauss2 = resample(gauss1);
 	saveRawBinary(gauss2, "testResample.n2");
 }
 

@@ -34,7 +34,8 @@ public:
 	struct AtomicOrbital
 	{	vector3<> r; //!< guess for center of localized wannier function
 		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
-		int sp; //!< species code
+		int sp; //!< species code (<0 if not using a pseudopotential atomic orbital)
+		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
 	};
@@ -51,11 +52,18 @@ public:
 	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	
+	string numericalOrbitalsFilename; //!< filename for reading numerical orbitals
+	vector3<> numericalOrbitalsOffset; //!< lattice coordinates of the origin in the input
+	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
-	//! Get filename for varName, based on initFilename if init=true and on dumpFilename otherwise.
+	enum FilenameType
+	{	FilenameInit,
+		FilenameDump
+	};
+	//! Get filename for varName, based on initFilename, dumpFilename or numericalOrbitalsFilename depending on fnType
 	//! Optionally include Up/Dn suffix if spin is non-null and calculation is polarized
-	string getFilename(bool init, string varName, int* spin=0) const; 
+	string getFilename(FilenameType fnType, string varName, int* spin=0) const; 
 	
 private:
 	const Everything* e;
