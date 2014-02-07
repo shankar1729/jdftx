@@ -23,11 +23,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Blip.h>
 #include <electronic/operators.h>
 
-WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier) : e(e), wannier(wannier), sym(e.symm.getMatrices()),
+WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride)
+: e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins),
 	rSqExpect(nCenters), rExpect(nCenters),
-	needSuper(wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
+	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
 {
 	//Create supercell grid:
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");

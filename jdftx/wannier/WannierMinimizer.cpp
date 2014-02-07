@@ -215,23 +215,27 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	return ret;
 }
 
-void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
-{	static StopWatch watch("WannierMinimizer::accumWfns"); watch.start();
-	//Figure out basis:
-	const Index& index = *(indexMap.find(kpoint)->second);
-	const int* indexData = (result.basis==&basisSuper) ? index.dataSuperPref : index.dataPref;
-	//Pick source ColumnBundle:
-	int q = kpoint.iReduced + iSpin*qCount;
-	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q];
-	assert(Cin);
-	const ColumnBundle* C = &Cin;
-	//Complex conjugate if inversion symmetry employed:
-	ColumnBundle Cout;
-	if(kpoint.invert < 0)
-	{	Cout = *C;
-		callPref(eblas_dscal)(Cout.nData(), -1., ((double*)Cout.dataPref())+1, 2); //negate the imaginary parts
-		C = &Cout;
+#define axpyWfns_COMMON(result) \
+	/* Figure out basis: */ \
+	const Index& index = *(indexMap.find(kpoint)->second); \
+	const int* indexData = (result.basis==&basisSuper) ? index.dataSuperPref : index.dataPref; \
+	/* Pick source ColumnBundle: */ \
+	int q = kpoint.iReduced + iSpin*qCount; \
+	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q]; \
+	assert(Cin); \
+	const ColumnBundle* C = &Cin; \
+	/* Complex conjugate if inversion symmetry employed: */ \
+	ColumnBundle Cout; \
+	if(kpoint.invert < 0) \
+	{	Cout = *C; \
+		callPref(eblas_dscal)(Cout.nData(), -1., ((double*)Cout.dataPref())+1, 2); /* negate the imaginary parts */ \
+		C = &Cout; \
 	}
+	
+
+void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
+{	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
+	axpyWfns_COMMON(result)
 	//Apply transformation if provided:
 	if(A)
 	{	Cout = (*C) * A;
@@ -243,6 +247,21 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData, C->dataPref()+C->index(b,0), result.dataPref()+result.index(b,0));
 	watch.stop();
 }
+
+void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const WannierMinimizer::Kpoint& kpoint, int iSpin, const ColumnBundle& Omega_result) const
+{	static StopWatch watch("WannierMinimizer::axpyWfns_grad"); watch.start();
+	axpyWfns_COMMON(Omega_result)
+	//Gather from common basis to reduced basis (=> conjugate transformations):
+	ColumnBundle Omega_C = C->similar(Omega_result.nCols());
+	Omega_C.zero();
+	for(int b=0; b<Omega_C.nCols(); b++)
+		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData, Omega_result.dataPref()+Omega_result.index(b,0), Omega_C.dataPref()+Omega_C.index(b,0));
+	//Propagate gardient to rotation matrix:
+	Omega_A += (Omega_C ^ *C);
+	watch.stop();
+}
+
+#undef axpyWfns_COMMON
 
 //Fourier transform of hydrogenic orbitals
 inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPrefac)

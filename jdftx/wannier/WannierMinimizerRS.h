@@ -30,6 +30,12 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
+	
+private:
+	DataRptrVec r; DataRptr rSq; //r and r^2 wrapped on the Wigner-Seitz cell
+	int iSpin; //!< spin channel currently being minimized
+	int nStart, nStop; //!< center MPI division
+	double getOmega(bool grad, bool invariant); //compute Omega or OmegaI depending on invariant
 };
 
 #endif //  JDFTX_WANNIER_WANNIERMINIMIZERRS_H

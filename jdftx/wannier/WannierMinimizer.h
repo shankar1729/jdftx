@@ -47,7 +47,7 @@ void randomize(WannierGradient& x);
 class WannierMinimizer : public Minimizable<WannierGradient>
 {
 public:
-	WannierMinimizer(const Everything& e, const Wannier& wannier);
+	WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride=false);
 	virtual ~WannierMinimizer() {}
 	void initIndexDependent(); //second half of common initialization that must happen after sub-class is fully initialized
 	
@@ -152,8 +152,11 @@ protected:
 	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
 	std::vector<ColumnBundle> Cother; //wavefunctions from another process
 	
-	 //Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
+	//! Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
 	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result) const;
+	
+	//! Gradient propagation corresponding to axpyWfns: from dOmega/d(result) to dOmega/dA
+	void axpyWfns_grad(double alpha, matrix& Omega_A, const Kpoint& kpoint, int iSpin, const ColumnBundle& Omega_result) const;
 	
 	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
