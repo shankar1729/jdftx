@@ -38,7 +38,7 @@ inline DataRptrCollection operator*(const RealKernel& K, const DataRptrCollectio
 	return Kx;
 }
 
-SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
+SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo), skipInitialFillings(false)
 {	//Set up the caching size:
 	SCFparams& sp = e.scfParams;
 	if(sp.vectorExtrapolation == SCFparams::VE_Plain) //No history needed for plain mixing
@@ -91,6 +91,7 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 				overlap.set(j,i, thisOverlap);
 			}
 		}
+		skipInitialFillings = true;
 	}
 }
 
@@ -113,7 +114,7 @@ void SCF::minimize()
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
 	
 	//Compute energy for the initial guess
-	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) //Compute Hsub and update fillings
+	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings && !skipInitialFillings) //Compute Hsub and update fillings
 	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		updateFillings();
 	}

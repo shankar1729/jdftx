@@ -30,7 +30,7 @@ class SCF
 {
 public:
 	SCF(Everything& e);
-		
+	
 	//! Minimizes residual to achieve self-consistency
 	void minimize();
 private:
@@ -42,6 +42,7 @@ private:
 	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();
+	bool skipInitialFillings; //!< whether to skip initial fillings update (needed for properly resuming an SCF loop across runs)
 	
 	//! Mix n,tau or Vscloc,Vtau
 	void mixPlain();
