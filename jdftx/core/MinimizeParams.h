@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @addtogroup optimization
 //! @{
 
-//! @brief Parameters to control the Nonlinear Conjugate Gradients algorithm
+//! @brief Parameters to control the minimization algorithm
 struct MinimizeParams
 {
 	//! Search direction update scheme
@@ -33,6 +33,7 @@ struct MinimizeParams
 	{	PolakRibiere, //!< Polak-Ribiere (preconditioned) conjugate gradients (default)
 		FletcherReeves, //!< Fletcher-Reeves (preconditioned) conjugate gradients
 		HestenesStiefel, //!< Hestenes-Stiefel (preconditioned) conjugate gradients
+		LBFGS, //!< Limited memory version of the BFGS algorithm
 		SteepestDescent //!< Steepest Descent (always along negative (preconditioned) gradient)
 	} dirUpdateScheme;
 
@@ -45,6 +46,7 @@ struct MinimizeParams
 
 	int nIterations; //!< Maximum number of iterations (default 100)
 	int nDim; //!< Dimension of optimization space; used only for knormThreshold (default 1)
+	int history; //!< Number of past variables and residuals to store (BFGS only)
 	FILE* fpLog; //!< Stream to logPrintf iterations to
 	const char* linePrefix; //!< prefix for each output line of minimizer, useful for nested minimizations (default "CG\t")
 	const char* energyLabel; //!< Label for the minimized quantity (default "E")
@@ -68,7 +70,7 @@ struct MinimizeParams
 	//! Set the default values
 	MinimizeParams() 
 	: dirUpdateScheme(PolakRibiere), linminMethod(Quad),
-		nIterations(100), nDim(1), fpLog(stdout), linePrefix("CG\t"), energyLabel("E"),
+		nIterations(100), nDim(1), history(3), fpLog(stdout), linePrefix("CG\t"), energyLabel("E"),
 		knormThreshold(0), energyDiffThreshold(0), nEnergyDiff(2), nDirResetNum(2), nDirResetDen(5),
 		alphaTstart(1.0), alphaTmin(1e-10), updateTestStepSize(true),
 		alphaTreduceFactor(0.1), alphaTincreaseFactor(3.0), nAlphaAdjustMax(3),

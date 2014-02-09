@@ -23,6 +23,7 @@ EnumStringMap<MinimizeParams::DirectionUpdateScheme> dirUpdateMap
 (	MinimizeParams::PolakRibiere, "PolakRibiere",
 	MinimizeParams::FletcherReeves, "FletcherReeves",
 	MinimizeParams::HestenesStiefel, "HestenesStiefel",
+	MinimizeParams::LBFGS, "L-BFGS",
 	MinimizeParams::SteepestDescent, "SteepestDescent"
 );
 
@@ -37,6 +38,7 @@ enum MinimizeParamsMember
 {	MPM_dirUpdateScheme,
 	MPM_linminMethod,
 	MPM_nIterations,
+	MPM_history,
 	MPM_knormThreshold,
 	MPM_energyDiffThreshold,
 	MPM_nEnergyDiff,
@@ -56,6 +58,7 @@ EnumStringMap<MinimizeParamsMember> mpmMap
 (	MPM_dirUpdateScheme, "dirUpdateScheme",
 	MPM_linminMethod, "linminMethod",
 	MPM_nIterations, "nIterations",
+	MPM_history, "history",
 	MPM_knormThreshold, "knormThreshold",
 	MPM_energyDiffThreshold, "energyDiffThreshold",
 	MPM_nEnergyDiff, "nEnergyDiff",
@@ -73,6 +76,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 (	MPM_dirUpdateScheme, dirUpdateMap.optionList() + " (search direction method)",
 	MPM_linminMethod, linminMap.optionList() + " (line minimization method)",
 	MPM_nIterations, "maximum iterations (single point calculation if 0)",
+	MPM_history, "number of past states and gradients retained for L-BFGS",
 	MPM_knormThreshold, "convergence threshold for gradient (preconditioned) norm",
 	MPM_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
 	MPM_nEnergyDiff, "number of iteration pairs that must satisfy energyDiffThreshold",
@@ -106,6 +110,7 @@ void CommandMinimize::process(ParamList& pl, Everything& e)
 		{	case MPM_dirUpdateScheme: pl.get(mp.dirUpdateScheme, MinimizeParams::PolakRibiere, dirUpdateMap, "dirUpdateScheme", true); break;
 			case MPM_linminMethod: pl.get(mp.linminMethod, MinimizeParams::Quad, linminMap, "linminMethod", true); break;
 			case MPM_nIterations: pl.get(mp.nIterations, 0, "nIterations", true); break;
+			case MPM_history: pl.get(mp.history, 0, "history", true); break;
 			case MPM_knormThreshold: pl.get(mp.knormThreshold, 0., "knormThreshold", true); break;
 			case MPM_energyDiffThreshold: pl.get(mp.energyDiffThreshold, 0., "energyDiffThreshold", true); break;
 			case MPM_nEnergyDiff: pl.get(mp.nEnergyDiff, 0, "nEnergyDiff", true); break;
@@ -128,6 +133,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 	logPrintf(" \\\n\tdirUpdateScheme      %s", dirUpdateMap.getString(mp.dirUpdateScheme));
 	logPrintf(" \\\n\tlinminMethod         %s", linminMap.getString(mp.linminMethod));
 	logPrintf(" \\\n\tnIterations          %d", mp.nIterations);
+	logPrintf(" \\\n\thistory              %d", mp.history);
 	logPrintf(" \\\n\tknormThreshold       %lg", mp.knormThreshold);
 	logPrintf(" \\\n\tenergyDiffThreshold  %lg", mp.energyDiffThreshold);
 	logPrintf(" \\\n\tnEnergyDiff          %d", mp.nEnergyDiff);
