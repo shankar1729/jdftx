@@ -30,6 +30,7 @@ enum WannierMember
 	WM_innerWindow,
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
+	WM_saveMomenta,
 	WM_loadRotations,
 	WM_numericalOrbitals,
 	WM_numericalOrbitalsOffset,
@@ -43,6 +44,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_innerWindow, "innerWindow",
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
+	WM_saveMomenta, "saveMomenta",
 	WM_loadRotations, "loadRotations",
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset"
@@ -85,6 +87,10 @@ struct CommandWannier : public Command
 			"  saveWfnsRealSpace yes|no\n"
 			"    Whether to write supercell wavefunctions band-by-band in real space (can be enormous).\n"
 			"    Default: no.\n"
+			"  saveMomenta yes|no\n"
+			"    Whether to write momentum matrix elements in the same format as Hamiltonian.\n"
+			"    The output is real and antisymmetric (drops the iota so as to half the output size).\n"
+			"    Default: no.\n"
 			"  loadRotations yes|no\n"
 			"    Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
 			"    Default: no.\n"
@@ -125,6 +131,9 @@ struct CommandWannier : public Command
 				case WM_saveWfnsRealSpace:
 					pl.get(wannier.saveWfnsRealSpace, false, boolMap, "saveWfnsRealSpace", true);
 					break;
+				case WM_saveMomenta:
+					pl.get(wannier.saveMomenta, false, boolMap, "saveMomenta", true);
+					break;
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
@@ -143,11 +152,11 @@ struct CommandWannier : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf(" \\\n\tlocalizationMeasure %s  \\\n\tsaveWfns %s \\\n\tsaveWfnsRealSpace %s \\\n\tloadRotations %s",
-			localizationMeasureMap.getString(wannier.localizationMeasure),
-			boolMap.getString(wannier.saveWfns),
-			boolMap.getString(wannier.saveWfnsRealSpace),
-			boolMap.getString(wannier.loadRotations) );
+	{	logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
+		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
+		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
+		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
+		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
 		if(wannier.outerWindow) logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		if(!(wannier.innerWindow || wannier.outerWindow))

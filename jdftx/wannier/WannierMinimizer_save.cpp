@@ -305,7 +305,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Apply MLWF-optimized rotation:
 		Hsub = dagger(kMesh[i].U) * Hsub * kMesh[i].U;
 		//Accumulate with each requested Bloch phase
-		vector3<int> iSuper;
 		std::vector<matrix>::iterator HwannierIter = Hwannier.begin();
 		for(auto cell: iCellMap)
 			*(HwannierIter++) += (cell.second * kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first))) * Hsub;
@@ -317,9 +316,64 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "wb");
 		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-		for(matrix& H: Hwannier) H.write_real(fp);
+		double normTot=0., normIm=0.;
+		for(matrix& H: Hwannier)
+		{	H.write_real(fp);
+			//Collect imaginary part:
+			normTot += pow(nrm2(H), 2);
+			eblas_dscal(H.nData(), 0., ((double*)H.data()), 2); //zero out real parts
+			normIm += pow(nrm2(H), 2);
+		}
 		fclose(fp);
-		logPrintf("done.\n"); logFlush();
+		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); logFlush();
 	}
 	resumeOperatorThreading();
+	
+	//Save momenta in Wannier basis:
+	if(wannier.saveMomenta)
+	{	//--- compute momentum matrix elements of Bloch states:
+		std::vector< std::vector<matrix> > pBloch(3, std::vector<matrix>(e.eInfo.nStates));
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			if(e.eInfo.qnums[q].spin==iSpin)
+				for(int iDir=0; iDir<3; iDir++)
+					pBloch[iDir][q] = e.gInfo.detR * (e.eVars.C[q] ^ D(e.eVars.C[q], iDir)); //note factor of iota dropped to make it real (and anti-symmetric)
+		//--- convert to Wannier basis:
+		std::vector< std::vector<matrix> > pWannier(3, std::vector<matrix>(iCellMap.size()));
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	matrix pSub[3]; vector3<complex*> pSubData;
+			for(int iDir=0; iDir<3; iDir++)
+			{	pSub[iDir] = dagger(kMesh[i].U) * pBloch[iDir][kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
+				pSubData[iDir] = pSub[iDir].data();
+			}
+			//Apply spatial transformation:
+			matrix3<complex> rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym] * e.gInfo.invR)); //cartesian symmetry matrix
+			for(size_t j=0; j<pSub[0].nData(); j++)
+				storeVector(rot * loadVector(pSubData,j), pSubData,j);
+			//Accumulate with each requested Bloch phase
+			for(int iDir=0; iDir<3; iDir++)
+			{	std::vector<matrix>::iterator pWannierIter = pWannier[iDir].begin();
+				for(auto cell: iCellMap)
+					*(pWannierIter++) += (cell.second * kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first))) * pSub[iDir];
+			}
+		}
+		for(int iDir=0; iDir<3; iDir++) for(matrix& p: pWannier[iDir]) p.allReduce(MPIUtil::ReduceSum);
+		//--- save to file
+		if(mpiUtil->isHead())
+			for(int iDir=0; iDir<3; iDir++)
+			{	string fname = wannier.getFilename(Wannier::FilenameDump, string("mlwfP")+"xyz"[iDir], &iSpin);
+				logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+				FILE* fp = fopen(fname.c_str(), "wb");
+				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+				double normTot=0., normIm=0.;
+				for(matrix& p: pWannier[iDir])
+				{	p.write_real(fp);
+					//Collect imaginary part
+					normTot += pow(nrm2(p), 2);
+					eblas_dscal(p.nData(), 0., ((double*)p.data()), 2); //zero out real parts
+					normIm += pow(nrm2(p), 2);
+				}
+				fclose(fp);
+				logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); logFlush();
+			}
+	}
 }

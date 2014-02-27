@@ -55,6 +55,7 @@ public:
 	
 	bool saveWfns; //!< whether to write wavefunctions
 	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space
+	bool saveMomenta; //!< whether to output momentum matrix elements
 	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	
