@@ -163,6 +163,45 @@ struct CommandChargeball : public Command
 commandChargeball;
 
 
+struct CommandTauCore : public Command
+{
+	CommandTauCore() : Command("tau-core")
+	{
+		format = "<species-id> [<rCut>=0] [<plot>=yes|no]";
+		comments =
+			"Control generation of kinetic energy core correction for species <id>.\n"
+			"The core KE density is set to the Thomas-Fermi + von-Weisacker functional\n"
+			"of the core electron density (if any), and is pseudized inside within <rCut>\n"
+			"If <rCut>=0, it is chosen to be 1.5 times the location of the first radial\n"
+			"maximum in the TF+VW KE density. Optionally, if <plot>=yes, the resulting\n"
+			"core KE density (and electron density) are output to a gnuplot-friendly file.";
+		allowMultiple = true;
+
+		require("ion-species");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	string id;
+		pl.get(id, string(), "species-id", true);
+		for(auto sp: e.iInfo.species)
+			if(sp->name == id)
+			{	pl.get(sp->tauCore_rCut, 0., "rCut", true);
+				pl.get(sp->tauCorePlot, false, boolMap, "plot");
+				return;
+			}
+		throw string("Species "+id+" has not been defined");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	if(unsigned(iRep) < e.iInfo.species.size())
+		{	const SpeciesInfo& sp = *(e.iInfo.species[iRep]);
+			logPrintf("%s %lg %s", sp.name.c_str(), sp.tauCore_rCut, boolMap.getString(sp.tauCorePlot));
+		}
+	}
+}
+commandTauCore;
+
+
 struct CommandAddU : public Command
 {
 	CommandAddU() : Command("add-U")

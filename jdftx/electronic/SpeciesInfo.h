@@ -191,6 +191,8 @@ private:
 
 	const Everything* e;
 	
+	double tauCore_rCut; bool tauCorePlot; //!< radial cutoff for generating core kinetic energy density and whether to generate a plot file of the result
+	
 	void setCore(RadialFunctionR&); //!< Generate nCoreRadial and tauCoreRadial if required (in SpeciesInfo_core.cpp)
 	void readPot(istream&); // Implemented in SpeciesInfo_readPot.cpp
 	void readCpi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
@@ -205,6 +207,7 @@ private:
 	friend class CommandIonSpecies;
 	friend class CommandAddU;
 	friend class CommandChargeball;
+	friend class CommandTauCore;
 	friend class CommandWavefunction;
 	friend class WannierMinimizer;
 	friend class Dump;

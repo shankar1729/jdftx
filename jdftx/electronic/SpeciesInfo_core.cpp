@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/RadialSchrodinger.h>
 
-RadialFunctionR getTau(const RadialFunctionR& n)
+RadialFunctionR getTau(const RadialFunctionR& n, double rCut)
 {	RadialFunctionR tau = n;
 	size_t iMaxLast = 0; //location of last maxima
 	for(size_t i=0; i<n.r.size(); i++)
@@ -34,7 +34,7 @@ RadialFunctionR getTau(const RadialFunctionR& n)
 		if(i && (tau.f[i] > tau.f[i-1]) && (tau.f[i]>1e-3)) iMaxLast = i;
 	}
 	//Re-pseudize small r regions:
-	double rCut = std::max(0.8, tau.r[iMaxLast] * 1.5);
+	if(!rCut) rCut = std::max(0.8, tau.r[iMaxLast] * 1.5);
 	size_t iCut = 0; while(tau.r[iCut]<rCut) iCut++;
 	rCut = tau.r[iCut]; //align to grid point
 	double tauCut = tau.f[iCut];
@@ -77,10 +77,18 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 		needTau |= ec->needsKEdensity();
 	
 	if(needTau)
-	{	RadialFunctionR tauCore = getTau(nCore);
+	{	RadialFunctionR tauCore = getTau(nCore, tauCore_rCut);
 		logPrintf("  Transforming core KE density to a uniform radial grid of dG=%lg with %d points.\n",
 			dGloc, nGridLoc);
 		tauCore.transform(0, dGloc, nGridLoc, tauCoreRadial);
+		
+		if(tauCorePlot)
+		{	FILE* fp = fopen((name+".tauCoreRadial").c_str(), "w");
+			fprintf(fp, "#  r      tauCore     nCore\n");
+			for(size_t i=0; i<nCore.r.size(); i++)
+				fprintf(fp, "%lg\t%le\t%le\n", nCore.r[i], tauCore.f[i], nCore.f[i]);
+			fclose(fp);
+		}
 	}
 	
 	logPrintf("  Transforming core density to a uniform radial grid of dG=%lg with %d points.\n",

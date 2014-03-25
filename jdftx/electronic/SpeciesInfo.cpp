@@ -81,6 +81,7 @@ SpeciesInfo::SpeciesInfo()
 	Z = 0.0;
 	atomicNumber = 0;
 	Z_chargeball = 0.0; width_chargeball = 0.0;
+	tauCore_rCut = 0.; tauCorePlot = false;
 	dE_dnG = 0.0;
 	mass = 0.0;
 	coreRadius = 0.;
