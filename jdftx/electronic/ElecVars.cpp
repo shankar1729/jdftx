@@ -518,15 +518,15 @@ DataRptrCollection ElecVars::KEdensity() const
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		for(int iDir=0; iDir<3; iDir++)
 			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), &e->gInfo);
-	//Add core KE density model:
-	if(e->iInfo.tauCore)
-	{	for(unsigned s=0; s<tau.size(); s++)
-			tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
-	}
 	for(DataRptr& tau_s: tau)
 	{	nullToZero(tau_s, e->gInfo);
 		e->symm.symmetrize(tau_s); //Symmetrize
 		tau_s->allReduce(MPIUtil::ReduceSum);
+	}
+	//Add core KE density model:
+	if(e->iInfo.tauCore)
+	{	for(unsigned s=0; s<tau.size(); s++)
+			tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
 	}
 	return tau;
 }
