@@ -156,11 +156,7 @@ void IonInfo::update(Energies& ener)
 	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
 	if(nCoreTilde) nCore = I(nCoreTilde, true); // put in real space
-	if(tauCoreTilde)
-	{	tauCore = I(tauCoreTilde, true); // put in real space
-		double tauMin, tauMax; //cap negative KE densities at 0:
-		callPref(eblas_capMinMax)(gInfo.nr, tauCore->dataPref(), tauMin, tauMax, 0.);
-	}
+	if(tauCoreTilde) tauCore = I(tauCoreTilde, true); // put in real space
 	
 	//---------- energies dependent on ionic positions alone ----------------
 	
