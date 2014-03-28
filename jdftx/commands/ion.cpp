@@ -150,3 +150,43 @@ struct CommandInitialMagneticMoments : public Command
 	}
 }
 commandInitialMagneticMoments;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandInitialOxidationState : public Command
+{
+	CommandInitialOxidationState() : Command("initial-oxidation-state")
+	{
+		format = "<species> <oxState> [<species2> ...]";
+		comments =
+			"Specify initial oxidation state assumed for each species in LCAO.\n"
+			"This may significantly improve LCAO convergence in some cases.";
+		
+		require("ion-species");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	string id;
+		pl.get(id, string(), "species", true);
+		while(id.length())
+		{	bool spFound = false;
+			for(auto sp: e.iInfo.species)
+				if(sp->name == id)
+				{	pl.get(sp->initialOxidationState, 0., "oxState", true);
+					spFound = true;
+					break;
+				}
+			if(!spFound) throw string("Species "+id+" has not been defined");
+			//Check for additional species:
+			pl.get(id, string(), "species");
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(auto sp: e.iInfo.species)
+			if(sp->initialOxidationState)
+				logPrintf(" \\\n\t%s %lg", sp->name.c_str(), sp->initialOxidationState);
+	}
+}
+commandInitialOxidationState;
+

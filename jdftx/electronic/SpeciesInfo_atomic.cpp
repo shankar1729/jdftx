@@ -219,9 +219,10 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 		logPrintf("%s (M=%lg) pseudo-atom spin=%+d occupations: ", name.c_str(), magneticMoment, 1-2*spin);
 	else
 		logPrintf("%s pseudo-atom occupations: ", name.c_str());
-	double N = 0.5*(Z + (1-2*spin)*magneticMoment); //total electrons to fill
+	double Nvalence = Z - initialOxidationState;
+	double N = 0.5*(Nvalence + (1-2*spin)*magneticMoment); //total electrons to fill
 	if(N < 0.)
-		die("Magnetic moment (%lg) exceeds pseudo-atom valence electron count (%lg) [per spin channel].\n", magneticMoment, Z);
+		die("Magnetic moment (%lg) exceeds pseudo-atom valence electron count (%lg) [per spin channel].\n", magneticMoment, Nvalence);
 	double Favail = N; //electrons yet to be filled
 	for(auto eigEntry: eigMap) //in ascending order of eigenvalues
 	{	unsigned l = eigEntry.second.first;

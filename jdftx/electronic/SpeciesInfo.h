@@ -63,6 +63,7 @@ public:
 	std::vector<Constraint> constraints; //!< List of all constraints on ions of this species
 	
 	std::vector<double> initialMagneticMoments; //!< Initial magnetic moments of each atom in number of electrons (used only for LCAO and symmetries)
+	double initialOxidationState; //!< Initial oxidation state of this species (only affects LCAO)
 	
 	SpeciesInfo();
 	~SpeciesInfo();

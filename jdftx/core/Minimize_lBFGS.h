@@ -149,7 +149,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		h->rho = 1./ydots;
 		h->gamma = ydots / sync(dot(h->y, precondition(h->y)));
 		history.push_back(h);
-		while(history.size() > p.history) history.pop_front(); //dicard oldest entries
+		while((int)history.size() > p.history) history.pop_front(); //dicard oldest entries
 	}
 	fprintf(p.fpLog, "%sNone of the convergence criteria satisfied after %d iterations.\n", p.linePrefix, iter);
 	return E;

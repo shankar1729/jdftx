@@ -85,6 +85,7 @@ SpeciesInfo::SpeciesInfo()
 	dE_dnG = 0.0;
 	mass = 0.0;
 	coreRadius = 0.;
+	initialOxidationState = 0.;
 	
 	lLocCpi = -1; //default: custom channel / highest l channel
 	dGloc = 0.02; // default grid seperation for full G functions.
