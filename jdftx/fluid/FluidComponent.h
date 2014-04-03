@@ -45,6 +45,7 @@ struct FluidComponent
 		DMSO, //! Dimethyl sulfoxide
 		CH2Cl2, //! Dichloromethane (methyl chloride)
 		Ethanol,
+		Methanol,
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+

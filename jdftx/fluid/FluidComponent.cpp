@@ -63,6 +63,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case DMSO:
 		case CH2Cl2:
 		case Ethanol:
+		case Methanol:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -96,6 +97,7 @@ double FluidComponent::pureNbulk(double T) const
 			case DMSO: return 1.256e-3;
 			case CH2Cl2: return 1.392e-3;
 			case Ethanol: return 1.528e-3;
+			case Methanol: return 2.203e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -303,6 +305,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			pMol    = 0.76;
 			epsInf  = 1.361;
 			sigmaBulk = 1.44e-5;
+			break;
+		}
+		case Methanol:
+		{	epsBulk = 32.66;
+			pMol = 0.791;
+			epsInf = 1.328;
+			sigmaBulk = 1.445e-5;
 			break;
 		}
 		case DMC:
