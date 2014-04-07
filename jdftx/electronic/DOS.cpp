@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <array>
 
-DOS::DOS() : Etol(1e-6)
+DOS::DOS() : Etol(1e-6), Esigma(0)
 {
 }
 
@@ -154,7 +154,7 @@ struct EvalDOS
 	};
 	std::vector<Tetrahedron> tetrahedra;
 	
-	int nWeights, nStates, nBands; double Etol;
+	int nWeights, nStates, nBands; double Etol, Esigma;
 	std::vector<double> eigs; //flat array of eigenvalues (inner index state, outer index bands)
 	std::vector<double> weights; //flat array of DOS weights (inner index weight function, middle index state, and outer index bands)
 	double& e(int iState, int iBand) { return eigs[iState + nStates*iBand]; } //access eigenvalue
@@ -162,9 +162,9 @@ struct EvalDOS
 	double& w(int iWeight, int iState, int iBand) { return weights[iWeight + nWeights*(iState + nStates*iBand)]; } //access weight
 	const double& w(int iWeight, int iState, int iBand) const { return weights[iWeight + nWeights*(iState + nStates*iBand)]; } //access weight (const version)
 	
-	EvalDOS(int nCells, int nWeights, int nStates, int nBands, double Etol)
+	EvalDOS(int nCells, int nWeights, int nStates, int nBands, double Etol, double Esigma)
 	: tetrahedra(nCells),
-	nWeights(nWeights), nStates(nStates), nBands(nBands), Etol(Etol),
+	nWeights(nWeights), nStates(nStates), nBands(nBands), Etol(Etol), Esigma(Esigma),
 	eigs(nStates*nBands), weights(nWeights*nStates*nBands)
 	{
 	}
@@ -477,6 +477,41 @@ struct EvalDOS
 		return combined;
 	}
 	
+	//Apply gaussian smoothing (if Esigma is non-zero)
+	Lspline gaussSmooth(Lspline in) const
+	{	if(!Esigma) return in;
+		//Initialize uniform energy grid:
+		double Emin = in.front().first - 10*Esigma;
+		double Emax = in.back().first + 10*Esigma;
+		double dE = 0.2*Esigma;
+		size_t nE = ceil((Emax-Emin)/dE);
+		if(nE > 1000000) logPrintf(
+			"WARNING: very fine energy grid for DOS. If this takes too long /\n"
+			"         results in too large a file, either increase Esigma or\n"
+			"         set it\n to zero (raw output of tetrahedron method).\n" );
+		Lspline out(nE, std::make_pair(0., std::vector<double>(nWeights, 0.)));
+		for(size_t iE=0; iE<nE; iE++) out[iE].first = Emin + iE*dE;
+		//Apply the gaussian smoothing to each channel:
+		const double EsigmaDen = 1./(Esigma*sqrt(2.));
+		for(size_t iIn=0; iIn+1<in.size(); iIn++)
+		{	const double& E0 = in[ iIn ].first; const std::vector<double>& w0 = in[ iIn ].second;
+			const double& E1 = in[iIn+1].first; const std::vector<double>& w1 = in[iIn+1].second;
+			if(E1==E0) continue;
+			size_t iEstart = floor((E0-10*Esigma-Emin)/dE); if(iEstart<0) iEstart=0;
+			size_t iEstop = ceil((E1+10*Esigma-Emin)/dE); if(iEstop>nE) iEstop=nE;
+			for(size_t iE=iEstart; iE<iEstop; iE++)
+			{	double E = out[iE].first;
+				double e0 = (E-E0)*EsigmaDen;
+				double e1 = (E1-E)*EsigmaDen;
+				double gaussTerm = (exp(-e0*e0) - exp(-e1*e1)) / (2*sqrt(M_PI) * (e0 + e1));
+				double erfTerm = (erf(e0) + erf(e1)) / (2 * (e0 + e1));
+				for(int iW=0; iW<nWeights; iW++)
+					out[iE].second[iW] += gaussTerm*(w1[iW] - w0[iW]) + erfTerm*(e0*w1[iW] + e1*w0[iW]);
+			}
+		}
+		return out;
+	}
+	
 	//Generate the density of states for a given state offset:
 	Lspline getDOS(int stateOffset) const
 	{	std::vector<Lspline> lsplines(nBands);
@@ -498,7 +533,7 @@ struct EvalDOS
 				lsplines[iBand] = convertLspline(wdos);
 			}
 		}
-		return mergeLsplines(lsplines);
+		return gaussSmooth(mergeLsplines(lsplines));
 	}
 	
 	//Write the density of states to a file, for a given state offset:
@@ -623,7 +658,7 @@ void DOS::dump()
 			kpointMap[round((vector3<>(kRange[s0][0],kRange[s1][1],kRange[s2][2])-kmesh[0])*supercell.super, symmThreshold)] = i;
 	}
 	//--- add 6 tetrahedra per parallelopiped cell
-	EvalDOS eval(6*kmesh.size(), weights.size(), eInfo.nStates, eInfo.nBands, Etol);
+	EvalDOS eval(6*kmesh.size(), weights.size(), eInfo.nStates, eInfo.nBands, Etol, Esigma);
 	double Vtot = 0.;
 	for(unsigned i=0; i<kmesh.size(); i++)
 	{	const vector3<>& v0 = kmesh[i];

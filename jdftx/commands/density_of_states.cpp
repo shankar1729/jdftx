@@ -91,6 +91,12 @@ struct CommandDensityOfStates : public Command
 			"      Resolution in energy within which eigenvalues are identified,\n"
 			"      and is used as the band width for Gamma-point only calculations.\n"
 			"      This flag affects all columns of output, and is 1e-6 by default.\n"
+			"   Esigma <Esigma>\n"
+			"      Optional gaussian broadening of spectra in Hartrees. Applied after\n"
+			"      the tetrahedron method, so it is safe to use a width smaller than\n"
+			"      the typical level spacing. This flag affects all columns of output,\n"
+			"      and is 0 by default. Warning: if finite but too small, output size\n"
+			"      might be dangerously large; if non-zero, recommend at least 1e-4.\n"
 			"   Occupied\n"
 			"      All subsequent columns are occupied density of states, that is\n"
 			"      they are weighted by the band fillings.\n"
@@ -119,6 +125,7 @@ struct CommandDensityOfStates : public Command
 			
 			//Check if it is a flag:
 			if(key == "Etol") { pl.get(dos.Etol, 0., "Etol", true); continue; }
+			if(key == "Esigma") { pl.get(dos.Esigma, 0., "Esigma", true); continue; }
 			if(key == "Occupied") { fillingMode = DOS::Weight::Occupied; continue; }
 			if(key == "Complete") { fillingMode = DOS::Weight::Complete; continue; }
 			
@@ -194,7 +201,7 @@ struct CommandDensityOfStates : public Command
 	{	assert(e.dump.dos);
 		DOS& dos = *(e.dump.dos);
 		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
-		logPrintf("Etol %le", dos.Etol);
+		logPrintf("Etol %le Esigma %le", dos.Etol, dos.Esigma);
 		for(unsigned iWeight=0; iWeight<dos.weights.size(); iWeight++)
 		{	const DOS::Weight& weight = dos.weights[iWeight];
 			//Check for changed filling mode:
