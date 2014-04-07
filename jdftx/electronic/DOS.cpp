@@ -704,22 +704,38 @@ void DOS::dump()
 	}
 	//Compute the overlap of the density for each states and band, with each of the density weight functions:
 	if(needDensity)
-	{	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
+	{	logPrintf("Computing density-dependent DOS weights ... "); logFlush();
+		int prevProgress = 0;
+		for(int iState=0; iState<eInfo.nStates; iState++)
 		{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
-			{	QuantumNumber qnumTemp = e->eInfo.qnums[iState]; qnumTemp.spin = 0;
-				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
-				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
-				//Compute the density for this state and band:
-				DataRptrCollection n(nSpins); n[0] = diagouterI(F, C, &e->gInfo);
+			{	//Compute the density for this state and band:
+				DataRptrCollection n(nSpins);
 				e->iInfo.augmentDensityInit();
-				e->iInfo.augmentDensitySpherical(qnumTemp, F, e->eVars.VdagC[iState]);
-				e->iInfo.augmentDensityGrid(n); //pseudopotential contribution
+				if(eInfo.isMine(iState))
+				{	QuantumNumber qnumTemp = e->eInfo.qnums[iState]; qnumTemp.spin = 0;
+					ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
+					std::vector<matrix> VdagC(e->iInfo.species.size());
+					for(size_t sp=0; sp<VdagC.size(); sp++)
+					{	const matrix& VdagC_sp = e->eVars.VdagC[iState][sp];
+						if(VdagC_sp) VdagC[sp] = VdagC_sp(0,VdagC_sp.nRows(), iBand, iBand+1);
+					}
+					diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
+					n[0] = diagouterI(F, C, &e->gInfo); //direct contribution from band
+					e->iInfo.augmentDensitySpherical(qnumTemp, F, VdagC); //augmentation (stored as spherical functions per atom)
+				}
+				e->iInfo.augmentDensityGrid(n); //switch augmentation from spherical functions to grid (all proceses cooperate on this)
+				n[0]->allReduce(MPIUtil::ReduceSum);
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 					if(weightFuncs[iWeight])
 						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n[0]);
+				//Report progress:
+				int progress = floor((iState*eInfo.nBands+iBand)*10./(eInfo.nStates*eInfo.nBands));
+				if(progress > prevProgress) { logPrintf("%d%% ", 10*progress); logFlush(); }
+				prevProgress = progress;
 			}
 		}
+		logPrintf("done.\n"); logFlush();
 	}
 	
 	//Compute projections for orbital mode:
