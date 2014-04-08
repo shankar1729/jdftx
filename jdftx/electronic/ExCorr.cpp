@@ -95,6 +95,7 @@ FunctionalGGA::FunctionalGGA(GGA_Variant variant, double scaleFac) : Functional(
 		case GGA_C_PW91: logPrintf("Initalized PW91 GGA correlation.\n"); break;
 		case GGA_X_wPBE_SR: logPrintf("Initalized omega-PBE short-ranged GGA exchange.\n"); break;
 		case GGA_X_GLLBsc: logPrintf("Initalized GLLB-sc GGA exchange potential.\n"); break;
+		case GGA_X_LB94: logPrintf("Initalized LB94 GGA exchange potential correction.\n"); break;
 		case GGA_KE_VW: logPrintf("Initialized von Weisacker kinetic energy gradient correction.\n"); break; 
 		case GGA_KE_PW91: logPrintf("Initialized PW91 GGA kinetic energy.\n"); break; 
 	}
@@ -181,6 +182,7 @@ public:
 	bool needsLap() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs may need laplacian
 	bool needsTau() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs need KE density
 	bool isKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
+	bool hasEnergy() const { return true; }
 	double exxScale() const { return funcUnpolarized.cam_alpha; }
 	double exxOmega() const { return funcUnpolarized.cam_omega; }
 	
@@ -385,6 +387,12 @@ void ExCorr::setup(const Everything& everything)
 			functionals->add(GGA_C_PBEsol);
 			Citations::add(citeReason, "M. Kuisma, J. Ojanen, J. Enkovaara and T. T. Rantala, Phys. Rev. B 82, 115106 (2010)");
 			break;
+		case ExCorrPOT_LB94:
+			functionals->add(LDA_X_Slater);
+			functionals->add(LDA_C_PZ);
+			functionals->add(GGA_X_LB94);
+			Citations::add(citeReason, "R. van Leeuwen and E. J. Baerends, Phys. Rev. A 49, 2421 (1994)");
+			break;
 		case ExCorrHYB_PBE0:
 			exxScale = 1./4;
 			functionals->add(GGA_X_PBE, 3./4);
@@ -477,6 +485,18 @@ bool ExCorr::needsKEdensity() const
 			return true;
 	#endif
 	return false;
+}
+
+bool ExCorr::hasEnergy() const
+{	for(auto func: functionals->internal)
+		if(!func->hasEnergy())
+			return false;
+	#ifdef LIBXC_ENABLED
+	for(auto func: functionals->libXC)
+		if(!func->hasEnergy())
+			return false;
+	#endif
+	return true;
 }
 
 double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, bool includeKinetic,

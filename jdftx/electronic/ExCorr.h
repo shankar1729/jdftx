@@ -40,6 +40,7 @@ enum ExCorrType
 	ExCorrLibXC,
 #endif
 	ExCorrORB_GLLBsc, //!< GLLB-sc orbital-dependent potential (no total energy)
+	ExCorrPOT_LB94, //!< Leeuwen-Baerends potentialfunctional (no total energy)
 	ExCorrHYB_PBE0, //!< PBE0 Hybrid GGA functional
 	ExCorrHYB_HSE06, //!< HSE06 Screened Hybrid GGA functional
 	ExCorrHYB_HSE12, //! Reparametrized screened exchange functional for accuracy
@@ -86,6 +87,7 @@ public:
 	double exxFactor() const; //!< retrieve the exact exchange scale factor (0 if no exact exchange)
 	double exxRange() const; //!< range parameter (omega) for screened exchange (0 for long-range exchange)
 	bool needsKEdensity() const; //!< whether orbital KE density is required as an input (for meta GGAs)
+	bool hasEnergy() const; //!< whether functional supports a total energy (if not, only usable in SCF, and no forces)
 	
 	//!Compute second derivatives of energy density w.r.t n and sigma=|grad n|^2 
 	//! by finite difference (supported only for spin-unpolarized internal LDAs and GGAs).

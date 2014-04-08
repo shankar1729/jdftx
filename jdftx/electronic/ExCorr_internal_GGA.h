@@ -35,6 +35,7 @@ enum GGA_Variant
 	GGA_C_PW91, //!< Perdew-Wang 1991 GGA correlation
 	GGA_X_wPBE_SR, //!< Short-ranged part of omega-PBE exchange (used in HSE06 hybrid)
 	GGA_X_GLLBsc, //!< Semi-local part of GLLB-sc exchange (potential-only, equal to 2x PBEsol per-particle energy)
+	GGA_X_LB94, //!< van Leeuwen-Baerends asymptotically-correct exchange potential correction (potential-only)
 	GGA_KE_VW,  //!< von Weisacker gradient correction to Thomas Fermi LDA kinetic energy
 	GGA_KE_PW91  //!< Teter GGA kinetic energy
 };
@@ -48,14 +49,20 @@ public:
 	bool needsLap() const { return false; }
 	bool needsTau() const { return false; }
 	bool isKinetic() const
-	{	
-		switch(variant)
-		{
-			case GGA_KE_VW:
+	{	switch(variant)
+		{	case GGA_KE_VW:
 			case GGA_KE_PW91:
 				return true;	
 			default:
 				return false;
+		}
+	}
+	bool hasEnergy() const
+	{	switch(variant)
+		{	case GGA_X_GLLBsc:
+				return false;
+			default:
+				return true;
 		}
 	}
 	
@@ -86,6 +93,7 @@ private:
 		case GGA_C_PW91:    fTemplate< GGA_C_PW91,   false, nCount> argList; break; \
 		case GGA_X_wPBE_SR: fTemplate< GGA_X_wPBE_SR, true, nCount> argList; break; \
 		case GGA_X_GLLBsc:  fTemplate< GGA_X_GLLBsc,  true, nCount> argList; break; \
+		case GGA_X_LB94:    fTemplate< GGA_X_LB94,    true, nCount> argList; break; \
 		case GGA_KE_VW:     fTemplate< GGA_KE_VW,     true, nCount> argList; break; \
 		case GGA_KE_PW91:   fTemplate< GGA_KE_PW91,   true, nCount> argList; break; \
 		default: break; \
@@ -417,6 +425,28 @@ template<int nCount> struct GGA_calc <GGA_X_GLLBsc, true, nCount>
 			//Compute gradients if required:
 			if(E_n[0]) E_n[s][i] += scaleFac*( 2*e ); //NOTE: contributes only to potential (no concept of energy, will not FD test)
 			E[i] += scaleFac*( n[s][i]*e ); //So that the computed total energy is approximately that of PBEsol (only for aesthetic reasons!)
+		}
+	}
+};
+
+//! van Leeuwen and Baerends asymptotically-correct exchange potential [PRA 49, 2421 (1994)]
+//! (Specialize the outer interface to directly set only the potential)
+template<int nCount> struct GGA_calc <GGA_X_LB94, true, nCount>
+{	__hostanddev__ static
+	void compute(int i, array<const double*,nCount> n, array<const double*,2*nCount-1> sigma,
+		double* E, array<double*,nCount> E_n, array<double*,2*nCount-1> E_sigma, double scaleFac)
+	{	if(!E_n[0]) return; //only computes potential, so no point proceeding if E_n not requested
+		//Each spin component is computed separately:
+		for(int s=0; s<nCount; s++)
+		{	//Scale up s-density and gradient:
+ 			double ns = n[s][i] * nCount;
+ 			if(ns < nCutoff) continue;
+			double nsCbrt = pow(ns, 1./3);
+			//Compute dimensionless gradient x = nabla n / n^(4/3):
+			double x = nCount*sqrt(sigma[2*s][i]) / (nsCbrt*ns);
+			//Compute potential correction:
+			const double beta = 0.05;
+			E_n[s][i] += scaleFac*( -beta*nsCbrt * x*x / (1. + 3*beta*x*asinh(x)) );
 		}
 	}
 };

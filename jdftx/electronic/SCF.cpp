@@ -105,9 +105,9 @@ void SCF::minimize()
 		(e.exCorr.needsKEdensity() ? "and kinetic " : ""),
 		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
-	if(e.exCorr.orbitalDep)
+	if(!e.exCorr.hasEnergy())
 	{	e.scfParams.energyDiffThreshold = 0.;
-		logPrintf("Turning off total energy convergence threshold for orbital-dependent functional.\n");
+		logPrintf("Turning off total energy convergence threshold for potential-only functionals.\n");
 	}
 	
 	bool subspaceRotation=false;
@@ -152,7 +152,7 @@ void SCF::minimize()
 		if(e.scfParams.sp_constraint)
 			single_particle_constraint(e.scfParams.sp_constraint); //ensure the single particle limit of exchange 
 		string Elabel(relevantFreeEnergyName(e));
-		if(e.exCorr.orbitalDep) Elabel += "~"; //remind that the total energy is at best an estimate
+		if(!e.exCorr.hasEnergy()) Elabel += "~"; //remind that the total energy is at best an estimate
 		
 		//Debug output:
 		if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
