@@ -739,38 +739,43 @@ void DOS::dump()
 	}
 	//Compute the overlap of the density for each states and band, with each of the density weight functions:
 	if(needDensity)
-	{	logPrintf("Computing density-dependent DOS weights ... "); logFlush();
-		int prevProgress = 0;
-		for(int iState=0; iState<eInfo.nStates; iState++)
+	{	//Direct contributions from bands:
+		for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 		{	for(int iBand=0; iBand<eInfo.nBands; iBand++)
 			{	//Compute the density for this state and band:
-				DataRptrCollection n(nSpins);
-				e->iInfo.augmentDensityInit();
-				if(eInfo.isMine(iState))
-				{	QuantumNumber qnumTemp = e->eInfo.qnums[iState]; qnumTemp.spin = 0;
-					ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1); C.qnum = &qnumTemp;
-					std::vector<matrix> VdagC(e->iInfo.species.size());
-					for(size_t sp=0; sp<VdagC.size(); sp++)
-					{	const matrix& VdagC_sp = e->eVars.VdagC[iState][sp];
-						if(VdagC_sp) VdagC[sp] = VdagC_sp(0,VdagC_sp.nRows(), iBand, iBand+1);
-					}
-					diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
-					n[0] = diagouterI(F, C, &e->gInfo); //direct contribution from band
-					e->iInfo.augmentDensitySpherical(qnumTemp, F, VdagC); //augmentation (stored as spherical functions per atom)
-				}
-				e->iInfo.augmentDensityGrid(n); //switch augmentation from spherical functions to grid (all proceses cooperate on this)
-				n[0]->allReduce(MPIUtil::ReduceSum);
+				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
+				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
+				DataRptr n = diagouterI(F, C, &e->gInfo);
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 					if(weightFuncs[iWeight])
-						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n[0]);
-				//Report progress:
-				int progress = floor((iState*eInfo.nBands+iBand)*10./(eInfo.nStates*eInfo.nBands));
-				if(progress > prevProgress) { logPrintf("%d%% ", 10*progress); logFlush(); }
-				prevProgress = progress;
+						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n);
 			}
 		}
-		logPrintf("done.\n"); logFlush();
+		//Ultrasoft augmentation:
+		for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+			if(weightFuncs[iWeight])
+			{	//Project weight functions from grid to atom-centered spherical functions:
+				DataRptrCollection w(nSpins);
+				for(int s=0; s<nSpins; s++) w[s] = weightFuncs[iWeight];
+				e->iInfo.augmentDensityGridGrad(w);
+				//Propagate from spherical functions to bands:
+				diagMatrix Fq(eInfo.nBands, 1.); //actual fillings incorporated later if required
+				for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
+				{	const std::vector<matrix>& VdagCq = e->eVars.VdagC[iState];
+					std::vector<matrix> wVdagCq(e->iInfo.species.size());
+					const QuantumNumber& qnum = e->eInfo.qnums[iState];
+					e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagCq, wVdagCq);
+					//Sum diagonal contributions per band over species
+					diagMatrix wAug(e->eInfo.nBands, 0.);
+					for(size_t sp=0; sp<VdagCq.size(); sp++)
+						if(wVdagCq[sp]) wAug += diag(dagger(VdagCq[sp]) * wVdagCq[sp]);
+					//Augment with appropriate prefactors:
+					wAug *= (e->gInfo.dV * qnum.weight);
+					for(int iBand=0; iBand<eInfo.nBands; iBand++)
+						eval.w(iWeight, iState, iBand) += wAug[iBand];
+				}
+			}
 	}
 	
 	//Compute projections for orbital mode:
