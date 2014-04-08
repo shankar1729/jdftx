@@ -64,15 +64,12 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 		}
 	DataRptrCollection VsclocDisc(nSpins);
 	if(e.cntrl.fixed_H)
-	{	assert(e.eVars.VsclocFilename.size());
+	{	assert(e.eVars.VFilenamePattern.length());
 		for(int s=0; s<nSpins; s++)
-		{	string fname = e.eVars.VsclocFilename[s];
-			size_t pos = fname.find("Vscloc");
-			if(pos == string::npos)
-			{	logPrintf("OrbitalDep dump: (GLLBsc) Initial Vscloc filename does not contain \"Vscloc\" that could be replaced by \"VsclocDisc\" to get the discontinuity potential filename.\n");
-				return;
-			}
-			fname.replace(pos, strlen("Vscloc"), "VsclocDisc");
+		{	string fname = e.eVars.VFilenamePattern;
+			size_t pos = fname.find("$VAR");
+			assert(pos != string::npos);
+			fname.replace(pos,4, string("VsclocDisc") + (nSpins==1 ? "" : (s==0 ? "_up" : "_dn")));
 			nullToZero(VsclocDisc[s], e.gInfo);
 			logPrintf("Reading discontinuity potential from '%s' ... ", fname.c_str()); logFlush();
 			loadRawBinary(VsclocDisc[s], fname.c_str());

@@ -176,6 +176,15 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	else DUMP(eVars.n[0], "n", ElecDensity)
 	if(iInfo.nCore) DUMP(iInfo.nCore, "nCore", CoreDensity)
 	
+	if((ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity))))
+	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
+		if(eInfo.spinType == SpinZ)
+		{	DUMP_nocheck(tau[0], "tau_up");
+			DUMP_nocheck(tau[1], "tau_dn");
+		}
+		else DUMP_nocheck(tau[0], "tau");
+	}
+
 	DUMP(I(eVars.d_vac), "d_vac", Dvac);
 	if(eVars.fluidParams.fluidType != FluidNone)
 	{	DUMP(I(eVars.d_fluid), "d_fluid", Dfluid);
@@ -191,27 +200,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	else DUMP(eVars.Vscloc[0], "Vscloc", Vscloc)
 	
-	// Dumps tau (positive Kinetic Energy density)
-	if((ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity))))
-	{	const auto& tau = (e->exCorr.needsKEdensity() ? e->eVars.tau : e->eVars.KEdensity());
-		if(eInfo.spinType == SpinZ)
-		{	DUMP_nocheck(tau[0], "KEdensity_up");
-			DUMP_nocheck(tau[1], "KEdensity_dn");
-			
-			DataRptrCollection tauW = XC_Analysis::tauWeizsacker(*e);
-			DUMP_nocheck(tauW[0], "tauW_up");
-			DUMP_nocheck(tauW[1], "tauW_dn");
-			
-			DataRptrCollection spness = XC_Analysis::spness(*e);
-			DUMP_nocheck(spness[0], "spness_up");
-			DUMP_nocheck(spness[1], "spness_dn");
-			
-			DataRptrCollection sVh = XC_Analysis::sHartree(*e);
-			DUMP_nocheck(sVh[0], "sHartree_up");
-			DUMP_nocheck(sVh[1], "sHartree_dn");
-			
+	if(ShouldDump(Vscloc) and e->exCorr.needsKEdensity())
+	{	if(eInfo.spinType == SpinZ)
+		{	DUMP_nocheck(eVars.Vtau[0], "Vtau_up");
+			DUMP_nocheck(eVars.Vtau[1], "Vtau_dn");
 		}
-		else DUMP_nocheck(tau[0], "KEdensity");
+		else DUMP_nocheck(eVars.Vtau[0], "Vtau");
 	}
 	
 	if(ShouldDump(BandEigs) || (ShouldDump(State) && e->exCorr.orbitalDep && isCevec))
@@ -438,6 +432,20 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			fclose(fp);
 		}
 		EndDump
+	}
+	
+	if(ShouldDumpNoAll(XCanalysis))
+	{	DataRptrCollection tauW = XC_Analysis::tauWeizsacker(*e);
+		DUMP_nocheck(tauW[0], "tauW_up");
+		DUMP_nocheck(tauW[1], "tauW_dn");
+		
+		DataRptrCollection spness = XC_Analysis::spness(*e);
+		DUMP_nocheck(spness[0], "spness_up");
+		DUMP_nocheck(spness[1], "spness_dn");
+		
+		DataRptrCollection sVh = XC_Analysis::sHartree(*e);
+		DUMP_nocheck(sVh[0], "sHartree_up");
+		DUMP_nocheck(sVh[1], "sHartree_dn");
 	}
 
 	//Polarizability dump deletes wavefunctions to free memory and should therefore happen at the very end

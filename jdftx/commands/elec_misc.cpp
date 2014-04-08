@@ -154,13 +154,15 @@ commandSpinRestricted;
 
 //Base class for fix-electron-density and fix-electron-potential
 struct CommandFixElectronHamiltonian : public Command
-{	string symbol;
-	
-    CommandFixElectronHamiltonian(string name, string symbol) : Command("fix-electron-"+name), symbol(symbol)
+{	
+    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name)
 	{
-		format = "<" + symbol + "Filename> | <" + symbol + "_upFilename> <" + symbol + "_dnFilename>";
+		format = "<filenamePattern>";
 		comments = "Perform band structure calculations at fixed electron " + name + "\n"
-			"(or spin " + name + ") read from the specified file(s)";
+			"(or spin " + name + ") read from the specified <filenamePattern>, which\n"
+			"must contain $VAR which will be replaced by the appropriate variable\n"
+			"names accounting for spin-polarization (same as used for dump).\n"
+			"Meta-GGA calculations will also require the corresponding kinetic " + name + ".";
 		
 		require("spintype");
 		forbid("elec-fermi-fillings");
@@ -170,32 +172,29 @@ struct CommandFixElectronHamiltonian : public Command
 		forbid("spin-restricted");
 	}
 
-	void process(ParamList& pl, Everything& e, std::vector<string>& targetFilename)
-	{	targetFilename.resize(e.eInfo.spinType==SpinNone ? 1 : 2);
-		for(unsigned s=0; s<targetFilename.size(); s++)
-		{	string componentName = symbol + (targetFilename.size()==1 ? "Filename" : (s==0 ? "_upFilename" : "_dnFilename"));
-			pl.get(targetFilename[s], string(), componentName, true);
-		}
+	void process(ParamList& pl, Everything& e, string& targetFilenamePattern)
+	{	pl.get(targetFilenamePattern, string(), "filenamePattern", true);
+		if(targetFilenamePattern.find("$VAR") == string::npos)
+			throw string("<filenamePattern> must contain $VAR");
 		e.cntrl.fixed_H = true;
 	}
 
-	void printStatus(Everything& e, int iRep, const std::vector<string>& targetFilename)
-	{	for(unsigned s=0; s<targetFilename.size(); s++)
-			logPrintf("%s ", targetFilename[s].c_str());
+	void printStatus(Everything& e, int iRep, const string& targetFilenamePattern)
+	{	logPrintf("%s", targetFilenamePattern.c_str());
 	}
 };
 
 struct CommandFixElectronDensity : public CommandFixElectronHamiltonian
-{   CommandFixElectronDensity() : CommandFixElectronHamiltonian("density", "n") { forbid("fix-electron-potential"); }
-	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.nFilename); }
-	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.nFilename); }
+{   CommandFixElectronDensity() : CommandFixElectronHamiltonian("density") { forbid("fix-electron-potential"); }
+	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.nFilenamePattern); }
+	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.nFilenamePattern); }
 }
 commandFixElectronDensity;
 
 struct CommandFixElectronPotential : public CommandFixElectronHamiltonian
-{   CommandFixElectronPotential() : CommandFixElectronHamiltonian("potential", "Vscloc") { forbid("fix-electron-density"); }
-	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.VsclocFilename); }
-	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.VsclocFilename); }
+{   CommandFixElectronPotential() : CommandFixElectronHamiltonian("potential") { forbid("fix-electron-density"); }
+	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.VFilenamePattern); }
+	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.VFilenamePattern); }
 }
 commandFixElectronPotential;
 

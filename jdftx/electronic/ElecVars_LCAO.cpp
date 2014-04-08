@@ -204,7 +204,7 @@ int ElecVars::LCAO()
 	
 	//Compute local-potential at the atomic reference density (for pass 1) and resulting density based on pass 1 (for pass 2):
 	for(int pass=0; pass<nPasses; pass++)
-	{	if(!(e->cntrl.fixed_H && e->eVars.VsclocFilename.size())) //compute Vscloc unless it has been read in
+	{	if(!(e->cntrl.fixed_H && e->eVars.VFilenamePattern.length())) //compute Vscloc unless it has been read in
 		{	Energies ener;
 			EdensityAndVscloc(ener, lcao.exCorr);
 		}

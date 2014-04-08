@@ -79,7 +79,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpMomenta, "Momenta",
 	DumpSymmetries, "Symmetries",
 	DumpKpoints, "Kpoints",
-	DumpOrbitalDep, "OrbitalDep"
+	DumpOrbitalDep, "OrbitalDep",
+	DumpXCanalysis, "XCanalysis"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -119,7 +120,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
-	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)"
+	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
+	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential"
 );
 
 struct CommandDump : public Command

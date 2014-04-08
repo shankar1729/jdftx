@@ -156,22 +156,38 @@ void ElecVars::setup(const Everything &everything)
 	
 	//Read in electron (spin) density if needed
 	if(e->cntrl.fixed_H)
-	{	//command fix-electron-density / fix-electron-potential ensures that nFilename / VsclocFilename has as many entries as spin components
-		const std::vector<string>& initFilename = nFilename.size() ? nFilename : VsclocFilename; //one of the two must be set
-		DataRptrCollection& initTarget = nFilename.size() ? n : Vscloc;
-		const char* initName = nFilename.size() ? "density" : "potential";
-		for(unsigned k=0; k<initFilename.size(); k++)
-		{	logPrintf("Reading %s %s from file '%s' ... ",
-				initFilename.size()==1 ? "electron" : (k==0 ? "up-spin" : "down-spin"),
-				initName, initFilename[k].c_str()); logFlush();
-			initTarget[k] = DataR::alloc(gInfo);
-			loadRawBinary(initTarget[k], initFilename[k].c_str());
-			logPrintf("done\n"); logFlush();
+	{	string fnamePattern = nFilenamePattern.length() ? nFilenamePattern : VFilenamePattern; //Command ensures that the pattern has a "$VAR" in it
+		#define READchannel(var, suffix) \
+		{	string fname = fnamePattern; \
+			size_t pos = fname.find("$VAR"); \
+			assert(pos != string::npos); \
+			fname.replace(pos,4, suffix); \
+			logPrintf("Reading " #suffix " from file '%s' ... ", fname.c_str()); logFlush(); \
+			nullToZero(var, e->gInfo); \
+			loadRawBinary(var, fname.c_str()); \
+			logPrintf("done\n"); logFlush(); \
 		}
-		//Check if fix-occupied has been specified when required (hyrbids or meta-GGAs):
-		if( (e->exCorr.exxFactor() || e->exCorr.needsKEdensity())
-			&& (! e->cntrl.fixOccupied) )
-			die("Band-structure (fixed electron density) calculations with meta-GGAs\n"
+		#define READ(var) \
+		{	var.resize(eInfo.spinType==SpinNone ? 1 : 2); \
+			if(var.size()==1) { READchannel(var[0], #var) } \
+			else \
+			{	READchannel(var[0], #var "_up") \
+				READchannel(var[1], #var "_dn") \
+			} \
+		}
+		if(nFilenamePattern.length())
+		{	READ(n)
+			if(e->exCorr.needsKEdensity()) READ(tau)
+		}
+		else
+		{	READ(Vscloc)
+			if(e->exCorr.needsKEdensity()) READ(Vtau)
+		}
+		#undef READ
+		#undef READchannel
+		//Check if fix-occupied has been specified when required (hyrbids or DFT+U):
+		if( (e->exCorr.exxFactor() || eInfo.hasU) && (! e->cntrl.fixOccupied) )
+			die("Band-structure (fixed electron density) calculations with DFT+U\n"
 				"or hybrid functionals require fixed occupied states (command fix-occupied)\n");
 		//Check if wavefunctions have been read in if occupied orbitals are fixed:
 		if(e->cntrl.fixOccupied && (! wfnsFilename.length()))
