@@ -1,0 +1,66 @@
+#!/bin/bash
+
+if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	Convert binary output from JDFTx to plain text. Specifically useful for
+	reading / processing eigenvalues and fillings. Usage:
+		binaryToText <inFile> [<innerDim>=1] [<dataOrder>=C]
+	Without the optional arguments, the script will write the contents of <inFile>
+	in plain text form in a single row to standard output, which can of course be
+	redirected to an output file of choice. The optional arguments allow the output
+	to be cast as a matrix and determine the dimensions and order of output.
+		<innerDim>: length of the inner (faster) dimension. This should be set
+			to the number of bands for fillings / eigenvalue files.
+		<dataOrder> = C | Fortran: In C order, the inner dimension stretches
+			 across rows, whereas in Fortran order it stretches across columns.
+	This script requires GNU Octave to be installed and in the current path.
+	'
+	exit 0
+fi
+
+#------- Check arguments and set defaults -------
+
+inFile="$1"
+
+innerDim="$2"
+if [ -z "$innerDim" ]; then
+	innerDim="0"
+fi
+
+dataOrder="$3"
+if [ -z "$dataOrder" ]; then
+	dataOrder="C"
+fi
+if [[ "$dataOrder" != "C" && "$dataOrder" != "Fortran" ]]; then
+	echo "Invalid dataOrder '$dataOrder'. Must be 'C' or 'Fortran'." >&2
+	exit 1
+fi
+
+octave -qf <<EOF
+	more off;
+	fp = fopen("$inFile", "r");
+	data = reshape(fread(fp, "double"), [], 1); #read as a single column
+	fclose(fp);
+	
+	#Reshape if necessary
+	if ($innerDim!=0)
+		if(mod(length(data),$innerDim) != 0)
+			fprintf(stderr, "Inner dimension $innerDim is not a factor of data count: %d\n", length(data));
+			exit(1);
+		endif
+		data = reshape(data, $innerDim, []);
+	endif
+	
+	#Set order
+	if (strcmp("$dataOrder","Fortran"))
+		data = data';
+	endif
+	
+	#Output
+	for k = 1:size(data,2)
+		printf("%19.12e ", data(:,k));
+		printf("\n");
+	endfor
+EOF
+
+
