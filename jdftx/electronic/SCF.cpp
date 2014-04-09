@@ -199,6 +199,10 @@ void SCF::minimize()
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
+	
+	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
 }
 
 void SCF::mixPlain()
