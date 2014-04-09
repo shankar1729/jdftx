@@ -126,7 +126,7 @@ public:
 	//! WARNING: Does not apply exact exchange or +U.  Those require the all quantum numbers to be done at once.
 	//! If fixed hamiltonian, returns the trace of the subspace hamiltonian multiplied by the weight of that quantum number,
 	//! returns 0 if otherwise.
-	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, std::vector<matrix>& HVdagCq, Energies& ener, bool need_Hsub=false);
+	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
 	
 	//! Propagates the gradient wrt orthonormal C (HCq) to gradient wrt Y and B (if given).
 	void orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, double KErollover=1., ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);

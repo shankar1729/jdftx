@@ -432,7 +432,6 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//--------- Wavefunction dependent parts -----------
 	
 	std::vector<ColumnBundle> HC(eInfo.nStates); //gradient w.r.t C (upto weights and fillings)
-	std::vector< std::vector<matrix> > HVdagC(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	//DFT+U corrections, if required:
 	ener.E["U"] = e->iInfo.computeU(F, C, need_Hsub ? &HC : 0);
@@ -451,7 +450,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	ener.E["Enl"] = 0.;
 	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	diagMatrix Fq = e->cntrl.fixed_H ? eye(e->eInfo.nBands) : F[q]; //override fillings for band structure
-		applyHamiltonian(q, Fq, HC[q], HVdagC[q], ener, need_Hsub);
+		applyHamiltonian(q, Fq, HC[q], ener, need_Hsub);
 	}
 	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
 	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
@@ -599,9 +598,10 @@ void ElecVars::orthonormalize(int q)
 	e->iInfo.project(C[q], VdagC[q], &YtoC); //update the atomic projections
 }
 
-double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, std::vector<matrix>& HVdagCq, Energies& ener, bool need_Hsub)
+double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
 {	assert(e->eInfo.isMine(q));
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
+	std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
@@ -684,8 +684,8 @@ void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundl
 double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, ColumnBundle* Kgrad)
 {	orthonormalize(q);
 	diagMatrix Fq = eye(e->eInfo.nBands);
-	ColumnBundle Hq; std::vector<matrix> HVdagCq(e->iInfo.species.size());
-	double Eband = applyHamiltonian(q, Fq, Hq, HVdagCq, ener, true);
+	ColumnBundle Hq;
+	double Eband = applyHamiltonian(q, Fq, Hq, ener, true);
 	if(grad)
 	{	double KErollover = 2.*e->ener.E["KE"]/(e->eInfo.qnums[q].weight*e->eInfo.nBands);
 		orthonormalizeGrad(q, Fq, Hq, *grad, KErollover, Kgrad);
