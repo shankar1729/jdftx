@@ -648,13 +648,11 @@ void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundl
 	//Second term of grad_Y, proportional to [F,Hsub]:
 	if(e->eInfo.subspaceRotation) // subspace rotation is on whenever [F,Hsub]!=0
 	{	matrix FcommHsub = Hsub[q] * Fq - Fq * Hsub[q];
-		matrix Q_FcommHsub = e->eInfo.subspaceRotation
-				? V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q])
-				: sqrt_grad(FcommHsub, U_evecs[q], U_eigs[q]);
+		matrix Q_FcommHsub = V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q]);
 		ColumnBundle OCQ = OC * Q_FcommHsub;
 		gradYq += OCQ;
 		if(KgradYq) *KgradYq += precond_inv_kinetic(OCQ, KErollover);
-		grad_CdagOC[q] += (e->eInfo.subspaceRotation ? Q_FcommHsub * dagger(V[q]) : Q_FcommHsub) * U[q] * Umhalf[q];
+		grad_CdagOC[q] += Q_FcommHsub * dagger(V[q]) * U[q] * Umhalf[q];
 		
 		//Subspace rotation gradient:
 		if(gradBq and e->eInfo.fillingsUpdate!=ElecInfo::FermiFillingsAux)
