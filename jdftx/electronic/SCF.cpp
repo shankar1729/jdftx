@@ -223,9 +223,6 @@ void SCF::mixDIIS()
 		overlap.set(ndim-1, j, thisOverlap);
 	}
 	
-	//Plain mixing on the first few steps:
-	if(ndim<3) { mixPlain(); return; }
-	
 	//Invert the residual overlap matrix to get the minimum of residual
 	matrix cOverlap(ndim+1, ndim+1); // Add row and column to enforce normalization constraint
 	cOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
