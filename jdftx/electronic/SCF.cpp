@@ -114,7 +114,7 @@ void SCF::minimize()
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
 	
 	//Compute energy for the initial guess
-	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings && !skipInitialFillings) //Compute Hsub and update fillings
+	if(e.eInfo.fillingsUpdate!=ElecInfo::ConstantFillings && !skipInitialFillings && !eVars.Hsub[eInfo.qStart]) //Compute Hsub and update fillings
 	{	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		updateFillings();
 	}

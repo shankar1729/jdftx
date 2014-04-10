@@ -254,17 +254,27 @@ int ElecVars::LCAO()
 	
 	//Set wavefunctions to eigenvectors:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	matrix evecs; diagMatrix eigs;
-		Hsub[q].diagonalize(evecs, eigs);
-		if(eInfo.nBands<lcao.nBands) evecs = evecs(0,lcao.nBands, 0,eInfo.nBands); //drop extra eigenvectors
-		Y[q] = C[q] * evecs; C[q].free();
+	{	Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+		if(eInfo.nBands<lcao.nBands)
+		{	Hsub_evecs[q] = Hsub_evecs[q](0,lcao.nBands, 0,eInfo.nBands); //drop extra eigenvectors
+			Hsub_eigs[q] = Hsub_eigs[q](0,eInfo.nBands); //drop extra eigenvalues
+		}
+		Y[q] = C[q] * Hsub_evecs[q]; C[q].free();
 		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		{	matrix Bq_evecs; diagMatrix Bq_eigs;
 			lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
-			B[q] = dagger(evecs) * Bq_eigs * evecs;
+			B[q] = dagger(Hsub_evecs[q]) * Bq_eigs * Hsub_evecs[q];
 			HauxInitialized = true;
 		}
+		Hsub_evecs[q] = eye(eInfo.nBands);
+		Hsub[q] = Hsub_eigs[q];
 	}
+	if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings)
+	{	double mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			F[q] = eInfo.fermi(mu, Hsub_eigs[q]);
+	}
+	
 	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
 	return eInfo.nBands;
 }
