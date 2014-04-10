@@ -91,6 +91,9 @@ ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian grad
 //! Apply inverse kinetic preconditioner inv((k+G)^2/2)
 ColumnBundle precond_inv_kinetic(const ColumnBundle &Y, double KErollover); 
 
+diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y); //!< compute diag(X^Y) efficiently (avoid the off-diagonals)
+void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KEref); //!< In-place inverse kinetic preconditioner with band-by-band KE reference (Used by BandDavidson)
+
 ColumnBundle translate(ColumnBundle&&, vector3<> dr); //!< translate a column-bundle by dr in lattice coordinates (destructible input)
 ColumnBundle translate(const ColumnBundle&, vector3<> dr); //!< translate a column-bundle by dr in lattice coordinates (preserve input)
 void translateColumns(ColumnBundle&, const vector3<>* dr); //!< translate each column of a column bundle by a different dr (in-place)

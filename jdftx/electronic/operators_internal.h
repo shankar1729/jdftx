@@ -119,10 +119,20 @@ __hostanddev__ void precond_inv_kinetic_calc(int j, int nbasis, int ncols, const
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
 {
 	double x = 0.5*GGT.metric_length_squared(iGarr[j]+k)/KErollover;
-	double precondFactor = 1.0+x*(1.0+x*(1.0+x*(1.0+x*(1.0+x*(1.0+x*(1.0+x*(1.0+x)))))));
-	precondFactor = precondFactor*invdetR/(1.0+x*precondFactor);
+	double precondFactor = 1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x)))))));
+	precondFactor = precondFactor*invdetR/(1.+x*precondFactor);
 	for(int i=0; i < ncols; i++)
 		KYdata[nbasis*i+j] = precondFactor * Ydata[nbasis*i+j];
+}
+
+__hostanddev__ void precond_inv_kinetic_band_calc(int j, int nbasis, int ncols, complex* Ydata, const double* KEref,
+	const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<>& k)
+{
+	double KE = 0.5*GGT.metric_length_squared(iGarr[j]+k);
+	for(int i=0; i<ncols; i++)
+	{	double x = KE/KEref[i];
+		Ydata[nbasis*i+j] *= (27.+x*(18.+x*(12.+x*8.))) / (27.+x*(18.+x*(12.+x*(8.+x*16))));
+	}
 }
 
 __hostanddev__

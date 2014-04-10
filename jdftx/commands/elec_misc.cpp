@@ -290,3 +290,49 @@ struct CommandCacheProjectors : public Command
 	}
 }
 commandCacheProjectors;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandBasis : public Command
+{
+	CommandBasis() : Command("basis")
+	{
+		format = "<kdep>=" + kdepMap.optionList();
+		comments = "Basis set at each k-point (default), or single basis set at gamma point";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.basisKdep, BasisKpointDep, kdepMap, "kdep");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	fputs(kdepMap.getString(e.cntrl.basisKdep), globalLog);
+	}
+}
+commandBasis;
+
+
+//-------------------------------------------------------------------------------------------------
+
+static EnumStringMap<ElecEigenAlgo> elecEigenMap(ElecEigenCG, "CG", ElecEigenDavidson, "Davidson");
+
+struct CommandElecEigenAlgo : public Command
+{
+    CommandElecEigenAlgo() : Command("elec-eigen-algo")
+	{
+		format = "<algo>=" + elecEigenMap.optionList();
+		comments = "Selects eigenvalue algorithm for band-structure calculations or inner loop of SCF.";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.elecEigenAlgo, ElecEigenDavidson, elecEigenMap, "algo");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	fputs(elecEigenMap.getString(e.cntrl.elecEigenAlgo), globalLog);
+	}
+}
+commandElecEigenAlgo;
+

@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2014 Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -17,24 +17,25 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <commands/command.h>
-#include <electronic/Everything.h>
 
-struct CommandBasis : public Command
-{
-	CommandBasis() : Command("basis")
-	{
-		format = "<kdep>=" + kdepMap.optionList();
-		comments = "Basis set at each k-point (default), or single basis set at gamma point";
-		hasDefault = true;
-	}
+#ifndef JDFTX_ELECTRONIC_BANDDAVIDSON_H
+#define JDFTX_ELECTRONIC_BANDDAVIDSON_H
 
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.cntrl.basisKdep, BasisKpointDep, kdepMap, "kdep");
-	}
+#include <electronic/common.h>
+#include <core/Minimize.h>
+#include <electronic/ColumnBundle.h>
 
-	void printStatus(Everything& e, int iRep)
-	{	fputs(kdepMap.getString(e.cntrl.basisKdep), globalLog);
-	}
-}
-commandBasis;
+class BandDavidson
+{	
+	public:
+		BandDavidson(Everything& e, int qActive);
+		void minimize(); //!< converge eigenvalues till trace(Hsub); tolerance picked up from e.elecMinParams
+		
+		int qActive;  //!< Quantum number of the subspace that is being minimized
+	private:
+		Everything& e;
+		ElecVars& eVars;
+		ElecInfo& eInfo;
+};
+
+#endif // JDFTX_ELECTRONIC_BANDDAVIDSON_H

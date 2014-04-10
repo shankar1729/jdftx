@@ -384,6 +384,40 @@ ColumnBundle precond_inv_kinetic(const ColumnBundle &Y, double KErollover)
 	return KY;
 }
 
+diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y)
+{	assert(X.nCols()==Y.nCols());
+	assert(X.basis==Y.basis);
+	diagMatrix ret(X.nCols());
+	const complex* Xdata = X.dataPref();
+	const complex* Ydata = Y.dataPref();
+	for(size_t b=0; b<ret.size(); b++)
+		ret[b] = callPref(eblas_zdotc)(X.colLength(), Xdata+X.index(b,0),1, Ydata+Y.index(b,0),1).real();
+	return ret;
+}
+
+void precond_inv_kinetic_band(int nbasis, int ncols, complex* Ydata, const double* KEref,
+	const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<>& k)
+{	threadedLoop(precond_inv_kinetic_band_calc, nbasis, nbasis, ncols, Ydata, KEref, GGT, iGarr, k);
+}
+#ifdef GPU_ENABLED
+void precond_inv_kinetic_band_gpu(int nbasis, int ncols, complex* Ydata, const double* KEref,
+	const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<>& k);
+#endif
+void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KEref)
+{	const Basis& basis = *Y.basis;
+	assert(Y.nCols()==KEref.nCols());
+	#ifdef GPU_ENABLED
+	matrix KErefCopy(KEref.nCols(), 1); //used just a a dummy ManagedMemory object
+	eblas_copy((double*)KErefCopy.data(), KEref.data(), KEref.nCols());
+	const double* KErefData = (const double*)KErefCopy.dataGpu();
+	#else
+	const double* KErefData = KEref.data();
+	#endif
+	callPref(precond_inv_kinetic_band)(Y.colLength(), Y.nCols(), Y.dataPref(), KErefData,
+		basis.gInfo->GGT, basis.iGarrPref, Y.qnum->k);
+}
+
+
 #ifdef GPU_ENABLED
 void translate_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>& dr);
 #endif

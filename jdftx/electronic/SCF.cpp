@@ -141,6 +141,7 @@ void SCF::minimize()
 		//Band-structure minimize:
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
 		e.elecMinParams.energyDiffThreshold = std::min(1e-6, std::abs(dE)/10.);
+		e.elecMinParams.nIterations = e.cntrl.elecEigenAlgo==ElecEigenCG ? 20 : 10;
 		bandMinimize(e);
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 		

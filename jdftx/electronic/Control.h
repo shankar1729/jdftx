@@ -28,6 +28,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 enum BasisKdep { BasisKpointDep, BasisKpointIndep } ; 
 static EnumStringMap<BasisKdep> kdepMap(BasisKpointDep, "kpoint-dependent", BasisKpointIndep, "single" );
 
+//! Electronic eigenvalue method
+enum ElecEigenAlgo { ElecEigenCG, ElecEigenDavidson };
 
 class Control
 {
@@ -37,6 +39,7 @@ public:
 	double occupiedThreshold; //!< fillings threshold for occupied states
 	bool cacheProjectors; //!< whether to cache nonlocal projectors
 	
+	ElecEigenAlgo elecEigenAlgo; //!< Eigenvalue algorithm
 	BasisKdep basisKdep; //!< k-dependence of basis
 	double Ecut, EcutRho; //!< energy cutoff for electrons and charge density grid (EcutRho=0 => EcutRho = 4 Ecut)
 	
@@ -64,7 +67,7 @@ public:
 	Control()
 	:	fixed_H(false),
 		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true),
-		basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
+		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),

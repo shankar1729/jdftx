@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ElecMinimizer.h>
 #include <electronic/BandMinimizer.h>
+#include <electronic/BandDavidson.h>
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 #include <electronic/Dump.h>
@@ -199,8 +200,10 @@ void bandMinimize(Everything& e)
 	e.ener.Eband = 0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
-		BandMinimizer bmin(e, q, true);
-		bmin.minimize(e.elecMinParams);
+		switch(e.cntrl.elecEigenAlgo)
+		{	case ElecEigenCG: { BandMinimizer(e, q, true).minimize(e.elecMinParams); break; }
+			case ElecEigenDavidson: { BandDavidson(e, q).minimize(); break; }
+		}
 		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
 	}
 	mpiUtil->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
