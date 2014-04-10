@@ -11,7 +11,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 for FILE in $@; do
-	awk '$1=="ElecMinimize:" && $2=="Iter:" { Energy=$5 } END {printf("%.15f",Energy)}' $FILE
+	awk '$1=="ElecMinimize:" && $2=="Iter:" { Energy=$5 } $1=="SCF:" && $2=="Cycle:" { Energy=$5 } END {printf("%.15f",Energy)}' $FILE
 	echo " $FILE"
 done
 

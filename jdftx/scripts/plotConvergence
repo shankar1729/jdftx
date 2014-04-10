@@ -44,7 +44,9 @@ fi
 for outFile in $@; do
 	tmpFile="/tmp/${outFile////_._}.dat"
 	
-	awk "\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print \$3,\$5 }" $outFile | tail --lines=+$skipLines | tail -$nLines > $tmpFile
+	awk "\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print \$3,\$5 }
+	\"${iterType}\"==\"Elec\" && \$1==\"SCF:\" && \$2==\"Cycle:\" { print \$3,\$5 }
+	" $outFile | tail --lines=+$skipLines | tail -$nLines > $tmpFile
 	
 	if  [ -z "$plotCommand" ]; then
 		plotCommand="plot"
