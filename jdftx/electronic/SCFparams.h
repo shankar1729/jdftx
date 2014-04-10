@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct SCFparams
 {
 	int nIterations; //!< maximum iterations (single point calculation if 0)
+	int nEigSteps; //!< number of steps of the eigenvalue solver per iteration (use elecMinParams.nIterations if 0)
 	double energyDiffThreshold; //!< convergence threshold for energy difference between successive iterations
 	double eigDiffThreshold; //!< convergence threshold on the RMS change of eigenvalues
 	double residualThreshold; //!< convergence threshold on the residual
@@ -61,6 +62,7 @@ struct SCFparams
 	
 	SCFparams()
 	{	nIterations = 20;
+		nEigSteps = 2; //for Davidson; the default for CG is 40 (and set by the command)
 		energyDiffThreshold = 1e-8;
 		eigDiffThreshold = 1e-8;
 		residualThreshold = 1e-7;

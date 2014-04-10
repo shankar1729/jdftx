@@ -22,7 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 enum SCFparamsMember
 {
-	SCFpm_nIterations, 
+	SCFpm_nIterations,
+	SCFpm_nEigSteps,
 	SCFpm_energyDiffThreshold,
 	SCFpm_eigDiffThreshold,
 	SCFpm_residualThreshold,
@@ -40,6 +41,7 @@ enum SCFparamsMember
 
 EnumStringMap<SCFparamsMember> scfParamsMap
 (	SCFpm_nIterations, "nIterations",
+	SCFpm_nEigSteps, "nEigSteps",
 	SCFpm_energyDiffThreshold, "energyDiffThreshold",
 	SCFpm_eigDiffThreshold, "eigDiffThreshold",
 	SCFpm_residualThreshold, "residualThreshold",
@@ -54,6 +56,7 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	SCFpm_nIterations, "maximum iterations (single point calculation if 0)",
+	SCFpm_nEigSteps, "number of eigenvalue steps per iteration (if 0, limited by electronic-minimize nIterations)",
 	SCFpm_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
 	SCFpm_eigDiffThreshold, "convergence threshold for the RMS difference in KS eigenvalues between successive iterations",
 	SCFpm_residualThreshold, "convergence threshold for the residual in the mixed variable (density or potential)",
@@ -89,11 +92,12 @@ struct CommandsScfParams: public Command
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
 		forbid("spin-restricted");
+		require("elec-eigen-algo");
 	}
 	
 	void process(ParamList& pl, Everything& e)
 	{	e.cntrl.scf = true;
-	
+		e.scfParams.nEigSteps = (e.cntrl.elecEigenAlgo==ElecEigenCG) ? 40 : 2; //default eigenvalue steps based on algo
 		while(true)
 		{	SCFparamsMember key;
 			pl.get(key, SCFpm_scfDelim, scfParamsMap, "key", false);
@@ -104,6 +108,7 @@ struct CommandsScfParams: public Command
 				case SCFpm_residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
 				case SCFpm_mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
 				case SCFpm_nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
+				case SCFpm_nEigSteps: pl.get(e.scfParams.nEigSteps, 0, "nEigSteps", true); break;
 				case SCFpm_vectorExtrapolation: pl.get(e.scfParams.vectorExtrapolation, SCFparams::VE_DIIS, scfExtrapolation, "vectorExtrapolation", true); break;
 				case SCFpm_verbose: pl.get(e.scfParams.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFraction: pl.get(e.scfParams.mixFraction, 0.5, "mixFraction", true); break;
@@ -120,6 +125,7 @@ struct CommandsScfParams: public Command
 	{	
 		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, e.scfParams.param);
 		PRINT(nIterations, %i)
+		PRINT(nEigSteps, %i)
 		PRINT(energyDiffThreshold, %lg)
 		PRINT(eigDiffThreshold, %lg)
 		PRINT(residualThreshold, %lg)
