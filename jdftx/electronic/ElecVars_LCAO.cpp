@@ -248,6 +248,9 @@ int ElecVars::LCAO()
 	mp.linePrefix = "LCAOMinimize: ";
 	mp.energyLabel = "F";
 	mp.energyDiffThreshold = lcaoTol;
+	mp.dirUpdateScheme = MinimizeParams::LBFGS;
+	mp.history = 10;
+	mp.alphaTincreaseFactor = 10;
 	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.subspaceRotation ? 30 : 3 );
 	if(e->cntrl.fixed_H) { C = Y; Hsub = lcao.B; } //bypass subspace iteration
 	else lcao.minimize(mp);
