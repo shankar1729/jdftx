@@ -50,8 +50,7 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo), skipInit
 	
 	//Load history if available:
 	if(sp.historyFilename.length())
-	{	int nScalarFields = e.eVars.n.size() * (e.exCorr.needsKEdensity() ? 2 : 1); //number of scalar fields per variable or residual
-		size_t nBytesCycle = 2 * nScalarFields * e.gInfo.nr*sizeof(double); //number of bytes per history entry
+	{	size_t nBytesCycle = 2 * variableSize(); //number of bytes per history entry
 		size_t nBytesFile = fileSize(sp.historyFilename.c_str());
 		size_t ndim = nBytesFile / nBytesCycle;
 		size_t dimOffset = 0;
@@ -67,19 +66,17 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo), skipInit
 		FILE* fp = fopen(sp.historyFilename.c_str(), "r");
 		if(dimOffset) fseek(fp, dimOffset*nBytesCycle, SEEK_SET);
 		for(size_t idim=0; idim<ndim; idim++)
-		{	nullToZero(pastVariables[idim], e.gInfo, nScalarFields);
-			nullToZero(pastResiduals[idim], e.gInfo, nScalarFields);
-			for(DataRptr& X: pastVariables[idim]) loadRawBinary(X, fp);
-			for(DataRptr& X: pastResiduals[idim]) loadRawBinary(X, fp);
+		{	readVariable(pastVariables[idim], fp);
+			readVariable(pastResiduals[idim], fp);
 		}
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 		sp.historyFilename.clear(); //make sure it doesn't get loaded again on subsequent SCFs (eg. in an ionic loop)
 		//Compute overlaps of loaded history:
 		for(size_t i=0; i<ndim; i++)
-		{	DataRptrCollection M_residual_i = diisMetric * pastResiduals[i];
+		{	Variable Mresidual_i = applyMetric(pastResiduals[i]);
 			for(size_t j=0; j<=i; j++)
-			{	double thisOverlap = dot(pastResiduals[j], M_residual_i);
+			{	double thisOverlap = dot(pastResiduals[j], Mresidual_i);
 				overlap.set(i,j, thisOverlap);
 				overlap.set(j,i, thisOverlap);
 			}
@@ -154,9 +151,9 @@ void SCF::minimize()
 
 		//Calculate and cache residual:
 		double residualNorm = 0.;
-		{	DataRptrCollection residual = getVariable() - pastVariables.back();
+		{	Variable residual = getVariable(); axpy(-1., pastVariables.back(), residual);
 			pastResiduals.push_back(residual);
-			residualNorm = e.gInfo.dV * sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
+			residualNorm = sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
 		}
 		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
 		dE = E-Eprev; //change in energy is also used to determine energyDiffThreshold of the bandminimizer
@@ -178,8 +175,8 @@ void SCF::minimize()
 			if(mpiUtil->isHead())
 			{	FILE* fp = fopen(fname.c_str(), "w");
 				for(size_t idim=0; idim<pastVariables.size(); idim++)
-				{	for(DataRptr& X: pastVariables[idim]) saveRawBinary(X, fp);
-					for(DataRptr& X: pastResiduals[idim]) saveRawBinary(X, fp);
+				{	writeVariable(pastVariables[idim], fp);
+					writeVariable(pastResiduals[idim], fp);
 				}
 				fclose(fp);
 			}
@@ -194,21 +191,108 @@ void SCF::minimize()
 		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
 }
 
-void SCF::mixDIIS()
-{	size_t ndim = pastResiduals.size();
+void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const
+{	//Density:
+	Y.n.resize(e.eVars.n.size());
+	::axpy(alpha, X.n, Y.n);
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+	{	Y.tau.resize(e.eVars.n.size());
+		::axpy(alpha, X.tau, Y.tau);
+	}
+}
 
-	//Apply the metric to the latest residual
-	DataRptrCollection M_lastResidual = diisMetric * pastResiduals.back();
-	
-	//Update the overlap matrix
+double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
+{	double ret = 0.;
+	//Density:
+	ret += e.gInfo.dV * ::dot(X.n, Y.n);
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+		ret += e.gInfo.dV * ::dot(X.tau, Y.tau);
+	return ret;
+}
+
+size_t SCF::variableSize() const
+{	size_t nDoubles = e.gInfo.nr * e.eVars.n.size() * (e.exCorr.needsKEdensity() ? 2 : 1); //n and optionally tau
+	return nDoubles * sizeof(double);
+}
+
+void SCF::readVariable(SCF::Variable& v, FILE* fp) const
+{	//Density:
+	nullToZero(v.n, e.gInfo, e.eVars.n.size());
+	for(DataRptr& X: v.n) loadRawBinary(X, fp);
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+	{	nullToZero(v.tau, e.gInfo, e.eVars.n.size());
+		for(DataRptr& X: v.tau) loadRawBinary(X, fp);
+	}
+}
+
+void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
+{	//Density:
+	for(const DataRptr& X: v.n) saveRawBinary(X, fp);
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+	{	for(const DataRptr& X: v.tau) saveRawBinary(X, fp);
+	}
+}
+
+SCF::Variable SCF::getVariable() const
+{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
+	Variable v;
+	//Density:
+	v.n = clone(mixDensity ? e.eVars.n : e.eVars.Vscloc);
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+		v.tau = clone(mixDensity ? e.eVars.tau : e.eVars.Vtau);
+	return v;
+}
+
+void SCF::setVariable(const SCF::Variable& v)
+{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
+	//Density:
+	(mixDensity ? e.eVars.n : e.eVars.Vscloc) = v.n;
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+		(mixDensity ? e.eVars.tau : e.eVars.Vtau) = v.tau;
+	//Update precomputed quantities of one-particle Hamiltonian:
+	if(mixDensity) e.eVars.EdensityAndVscloc(e.ener); //Recompute Vscloc (Vtau) if mixing density
+	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
+}
+
+SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
+{	Variable vOut;
+	//Density:
+	vOut.n = kerkerMix * v.n;
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+		vOut.tau = kerkerMix * v.tau;
+	return vOut;
+}
+
+SCF::Variable SCF::applyMetric(const SCF::Variable& v) const
+{	Variable vOut;
+	//Density:
+	vOut.n = diisMetric * v.n;
+	//KE density:
+	if(e.exCorr.needsKEdensity())
+		vOut.tau = diisMetric * v.tau;
+	return vOut;
+}
+
+
+void SCF::mixDIIS()
+{	//Update the overlap matrix
+	size_t ndim = pastResiduals.size();
+	Variable MlastResidual = applyMetric(pastResiduals.back());
 	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals[j], M_lastResidual);
+	{	double thisOverlap = dot(pastResiduals[j], MlastResidual);
 		overlap.set(j, ndim-1, thisOverlap);
 		overlap.set(ndim-1, j, thisOverlap);
 	}
 	
 	//Invert the residual overlap matrix to get the minimum of residual
-	matrix cOverlap(ndim+1, ndim+1); // Add row and column to enforce normalization constraint
+	matrix cOverlap(ndim+1, ndim+1); //Add row and column to enforce normalization constraint
 	cOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
 	for(size_t j=0; j<ndim; j++)
 	{	cOverlap.set(j, ndim, 1);
@@ -219,31 +303,14 @@ void SCF::mixDIIS()
 	
 	//Update variable:
 	complex* coefs = cOverlap_inv.data();
-	DataRptrCollection variable(pastVariables.back().size()); //zero
+	Variable v;
 	for(size_t j=0; j<ndim; j++)
-		variable += coefs[cOverlap_inv.index(j, ndim)].real() * (pastVariables[j] + kerkerMix*pastResiduals[j]);
-	setVariable(variable);
+	{	double alpha = coefs[cOverlap_inv.index(j, ndim)].real();
+		axpy(alpha, pastVariables[j], v);
+		axpy(alpha, applyKerker(pastResiduals[j]), v);
+	}
+	setVariable(v);
 }
-
-DataRptrCollection SCF::getVariable() const
-{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
-	DataRptrCollection variable = mixDensity ? e.eVars.n : e.eVars.Vscloc;
-	if(e.exCorr.needsKEdensity()) //append the relevant KE variable:
-		for(DataRptr v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) variable.push_back(v);
-	return clone(variable);
-}
-
-void SCF::setVariable(DataRptrCollection variable)
-{	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
-	size_t iVar=0;
-	for(DataRptr& v: (mixDensity ? e.eVars.n : e.eVars.Vscloc)) v = variable[iVar++];
-	if(e.exCorr.needsKEdensity())
-		for(DataRptr& v: (mixDensity ? e.eVars.tau : e.eVars.Vtau)) v = variable[iVar++];
-	assert(iVar == variable.size());
-	if(mixDensity) e.eVars.EdensityAndVscloc(e.ener); //Recompute Vscloc if mixing density
-	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
-}
-
 
 void SCF::updateFillings()
 {

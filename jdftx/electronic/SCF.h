@@ -37,8 +37,26 @@ private:
 	Everything& e;
 	
 	matrix overlap; //! Overlap matrix of density/potential residuals
-	std::vector<DataRptrCollection> pastVariables, pastResiduals; //!< History
+	
+	//Variable that's being mixed (component names are density-like, but when mixing potential, they refer to corresponding gradient)
+	struct Variable
+	{	DataRptrCollection n; //electron density (or potential)
+		DataRptrCollection tau; //KE density (or potential)
+	};
+	std::vector<Variable> pastVariables, pastResiduals; //!< History
+	
+	void axpy(double alpha, const Variable& X, Variable& Y) const; // Y += alpha * X
+	double dot(const Variable& X, const Variable& Y) const; //Euclidean dot product (Note metric not applied here as an optimization, as many dot products against a single residual computed)
+	
+	size_t variableSize() const; //!< number of bytes per variable
+	void readVariable(Variable&, FILE*) const; //! read variable from file
+	void writeVariable(const Variable&, FILE*) const; //! write variable to file
+	Variable getVariable() const; //!< get the current variable (from ElecVars)
+	void setVariable(const Variable&); //!< set the current variable (to ElecVars)
+	
 	RealKernel kerkerMix, diisMetric; //!< convolution kernels for kerker preconditioning and the DIIS overlap metric
+	Variable applyKerker(const Variable&) const;
+	Variable applyMetric(const Variable&) const;
 	
 	//! Pulay mixing / direct inversion in iterative subspace
 	void mixDIIS();
@@ -47,8 +65,6 @@ private:
 	void updateFillings();
 	bool skipInitialFillings; //!< whether to skip initial fillings update (needed for properly resuming an SCF loop across runs)
 	
-	DataRptrCollection getVariable() const; //!< get the current variables (density / potential, with kinetic components if required)
-	void setVariable(DataRptrCollection); //!< set the current variables (density / potential, with kinetic components if required)
 	
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weigted RMS difference between two sets of eigenvalues
 	void eigenShiftInit(); //!< initialize and check eigenShifts
