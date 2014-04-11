@@ -64,8 +64,8 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 	SCFpm_vectorExtrapolation, "algorithm to use in vector extrapolation: plainMixing, DIIS",
 	SCFpm_verbose, "whether the inner eigenvalue solver will print or not",
 	SCFpm_mixFraction, "maximum fraction of new variable mixed in at each step (default 0.5)",
-	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: auto-set to Gmin)",
-	SCFpm_qMetric, "wavevector controlling the DIIS metric (default: auto-set to Gmin)",
+	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)",
+	SCFpm_qMetric, "wavevector controlling the DIIS metric (default: 0.8 bohr^-1)",
 	SCFpm_history, "number of past residuals and vectors are kept cached and used in DIIS",
 	SCFpm_single_particle_constraint, "enforces the single particle constraint on the exchange"
 );
@@ -73,11 +73,6 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 EnumStringMap<SCFparams::MixedVariable> scfMixing
 (	SCFparams::MV_Density, "Density",
 	SCFparams::MV_Potential, "Potential"
-);
-
-EnumStringMap<SCFparams::VectorExtrapolation> scfExtrapolation
-(	SCFparams::VE_Plain, "Plain",
-	SCFparams::VE_DIIS, "DIIS"
 );
 
 struct CommandsScfParams: public Command
@@ -97,49 +92,48 @@ struct CommandsScfParams: public Command
 	
 	void process(ParamList& pl, Everything& e)
 	{	e.cntrl.scf = true;
-		e.scfParams.nEigSteps = (e.cntrl.elecEigenAlgo==ElecEigenCG) ? 40 : 2; //default eigenvalue steps based on algo
+		SCFparams& sp = e.scfParams;
+		sp.nEigSteps = (e.cntrl.elecEigenAlgo==ElecEigenCG) ? 40 : 2; //default eigenvalue steps based on algo
 		while(true)
 		{	SCFparamsMember key;
 			pl.get(key, SCFpm_scfDelim, scfParamsMap, "key", false);
 			
 			switch(key)
-			{	case SCFpm_energyDiffThreshold: pl.get(e.scfParams.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
-				case SCFpm_eigDiffThreshold: pl.get(e.scfParams.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
-				case SCFpm_residualThreshold: pl.get(e.scfParams.residualThreshold, 1e-7, "residualThreshold", true); break;
-				case SCFpm_mixedVariable: pl.get(e.scfParams.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
-				case SCFpm_nIterations: pl.get(e.scfParams.nIterations, 20, "nIterations", true); break;
-				case SCFpm_nEigSteps: pl.get(e.scfParams.nEigSteps, 0, "nEigSteps", true); break;
-				case SCFpm_vectorExtrapolation: pl.get(e.scfParams.vectorExtrapolation, SCFparams::VE_DIIS, scfExtrapolation, "vectorExtrapolation", true); break;
-				case SCFpm_verbose: pl.get(e.scfParams.verbose, false, boolMap, "verbose", true); break;
-				case SCFpm_mixFraction: pl.get(e.scfParams.mixFraction, 0.5, "mixFraction", true); break;
-				case SCFpm_qKerker: pl.get(e.scfParams.qKerker, -1., "qKerker", true); break;
-				case SCFpm_qMetric: pl.get(e.scfParams.qMetric, -1., "qMetric", true); break;
-				case SCFpm_history: pl.get(e.scfParams.history, 10, "history", true); break;
-				case SCFpm_single_particle_constraint: pl.get(e.scfParams.sp_constraint, 0., "single-particle-constraint", true); break;
+			{	case SCFpm_energyDiffThreshold: pl.get(sp.energyDiffThreshold, 1e-8, "energyDiffThreshold", true); break;
+				case SCFpm_eigDiffThreshold: pl.get(sp.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
+				case SCFpm_residualThreshold: pl.get(sp.residualThreshold, 1e-7, "residualThreshold", true); break;
+				case SCFpm_mixedVariable: pl.get(sp.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
+				case SCFpm_nIterations: pl.get(sp.nIterations, 50, "nIterations", true); break;
+				case SCFpm_nEigSteps: pl.get(sp.nEigSteps, 0, "nEigSteps", true); break;
+				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
+				case SCFpm_mixFraction: pl.get(sp.mixFraction, 0.5, "mixFraction", true); break;
+				case SCFpm_qKerker: pl.get(sp.qKerker, 0.8, "qKerker", true); break;
+				case SCFpm_qMetric: pl.get(sp.qMetric, 0.8, "qMetric", true); break;
+				case SCFpm_history: pl.get(sp.history, 10, "history", true); if(sp.history<1) throw string("<history> must be >= 1"); break;
+				case SCFpm_single_particle_constraint: pl.get(sp.sp_constraint, 0., "single-particle-constraint", true); break;
 				case SCFpm_scfDelim: return; //end of input
 			}
 		}
 	}
 	
 	void printStatus(Everything& e, int iRep)
-	{	
-		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, e.scfParams.param);
+	{	const SCFparams& sp = e.scfParams;
+		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, sp.param);
 		PRINT(nIterations, %i)
 		PRINT(nEigSteps, %i)
 		PRINT(energyDiffThreshold, %lg)
 		PRINT(eigDiffThreshold, %lg)
 		PRINT(residualThreshold, %lg)
-		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(e.scfParams.mixedVariable));
-		logPrintf(" \\\n\tvectorExtrapolation\t%s", scfExtrapolation.getString(e.scfParams.vectorExtrapolation));
-		if(e.scfParams.verbose) logPrintf(" \\\n\tverbose");
+		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(sp.mixedVariable));
+		if(sp.verbose) logPrintf(" \\\n\tverbose");
 		PRINT(mixFraction, %lg)
 		PRINT(qKerker, %lg)
 		PRINT(qMetric, %lg)
 		PRINT(history, %d)
 		#undef PRINT
 	}
-	
-} commandsScfParams;
+}
+commandsScfParams;
 
 
 struct CommandEigenShift : public Command

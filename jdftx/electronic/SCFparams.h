@@ -39,12 +39,6 @@ struct SCFparams
 	}
 	mixedVariable; //! Whether we are mixing the density or the potential
 	
-	enum VectorExtrapolation
-	{	VE_Plain,  //!< No vector extrapolation, just mixes the new density with the damping fraction
-		VE_DIIS   //!< Direct Inversion in the Iterative Subspace (DIIS), mixes all cached densities to minimize the residual (reminiscient of Krylov subspace methods)
-	}
-	vectorExtrapolation; //!< Vector extrapolation method used to construct the new density
-	
 	int history; //!< Number of past residuals and vectors are kept cached and used in DIIS
 	bool verbose; //!< Whether the inner eigensolver will print progress
 	double mixFraction;  //!< Maximum fraction of the new variable that will be mixed with the old one
@@ -61,17 +55,16 @@ struct SCFparams
 	std::vector<EigenShift> eigenShifts; //! A list of all eigenshifts, used for non-ground-state calculations
 	
 	SCFparams()
-	{	nIterations = 20;
+	{	nIterations = 50;
 		nEigSteps = 2; //for Davidson; the default for CG is 40 (and set by the command)
 		energyDiffThreshold = 1e-8;
 		eigDiffThreshold = 1e-8;
 		residualThreshold = 1e-7;
 		mixedVariable = MV_Potential;
-		vectorExtrapolation = VE_DIIS;
 		verbose = false;
 		mixFraction = 0.5;
-		qKerker = -1.; //i.e. auto-set
-		qMetric = -1.; //i.e. auto-set
+		qKerker = 0.8;
+		qMetric = 0.8;
 		history = 10;
 		sp_constraint = 0.;
 	}

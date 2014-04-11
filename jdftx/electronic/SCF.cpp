@@ -39,18 +39,11 @@ inline DataRptrCollection operator*(const RealKernel& K, const DataRptrCollectio
 }
 
 SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo), skipInitialFillings(false)
-{	//Set up the caching size:
-	SCFparams& sp = e.scfParams;
-	if(sp.vectorExtrapolation == SCFparams::VE_Plain) //No history needed for plain mixing
-		sp.history = 1;
+{	SCFparams& sp = e.scfParams;
 	overlap.init(sp.history, sp.history);
-	
 	eigenShiftInit();
 	
 	//Initialize the preconditioner and metric kernels:
-	double Gmin = sqrt(std::min(e.gInfo.GGT(0,0), std::min(e.gInfo.GGT(1,1), e.gInfo.GGT(2,2))));
-	if(sp.qKerker<0) { sp.qKerker=Gmin; logPrintf("Setting default qKerker = %lg a_0^{-1} (shortest reciprocal lattice vector)\n", sp.qKerker); }
-	if(sp.qMetric<0) { sp.qMetric=Gmin; logPrintf("Setting default qMetric = %lg a_0^{-1} (shortest reciprocal lattice vector)\n", sp.qMetric); }
 	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,
 		sp.mixFraction, pow(sp.qKerker,2), pow(sp.qMetric,2), kerkerMix.data, diisMetric.data);
 	kerkerMix.set(); diisMetric.set();
@@ -174,12 +167,7 @@ void SCF::minimize()
 		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
 		else if(deigs < sp.eigDiffThreshold)         { logPrintf("SCF: Converged (|deigs|<%le).\n\n", sp.eigDiffThreshold); break; }
 		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
-		else
-		{	switch(sp.vectorExtrapolation)
-			{	case SCFparams::VE_Plain: mixPlain(); break;
-				case SCFparams::VE_DIIS: mixDIIS(); break;
-			}
-		}
+		else mixDIIS();
 		logFlush();
 		
 		e.dump(DumpFreq_Gummel, scfCounter);
@@ -204,10 +192,6 @@ void SCF::minimize()
 	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
-}
-
-void SCF::mixPlain()
-{	setVariable(pastVariables.back() + kerkerMix*pastResiduals.back());
 }
 
 void SCF::mixDIIS()

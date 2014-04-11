@@ -40,15 +40,12 @@ private:
 	std::vector<DataRptrCollection> pastVariables, pastResiduals; //!< History
 	RealKernel kerkerMix, diisMetric; //!< convolution kernels for kerker preconditioning and the DIIS overlap metric
 	
+	//! Pulay mixing / direct inversion in iterative subspace
+	void mixDIIS();
+	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();
 	bool skipInitialFillings; //!< whether to skip initial fillings update (needed for properly resuming an SCF loop across runs)
-	
-	//! Mix n,tau or Vscloc,Vtau
-	void mixPlain();
-	
-	//! Uses direct inversion in the iterative subspace to extrapolate to a new density/potential
-	void mixDIIS();
 	
 	DataRptrCollection getVariable() const; //!< get the current variables (density / potential, with kinetic components if required)
 	void setVariable(DataRptrCollection); //!< set the current variables (density / potential, with kinetic components if required)
