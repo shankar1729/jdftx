@@ -230,7 +230,8 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------
 	IonicGradient forcesNL; forcesNL.init(*this);
-	computeU(eVars.F, eVars.C, 0, &forcesNL); //Include DFT+U contribution if any
+	if(eInfo.hasU) //Include DFT+U contribution if any:
+		rhoAtom_forces(eVars.F, eVars.C, eVars.U_rhoAtom, forcesNL);
 	augmentDensityGridGrad(eVars.Vscloc, &forcesNL);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	const QuantumNumber& qnum = e->eInfo.qnums[q];
@@ -300,13 +301,62 @@ void IonInfo::projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle
 		if(HVdagCq[sp]) HCq += *(species[sp]->getV(Cq)) * HVdagCq[sp];
 }
 
-double IonInfo::computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, IonicGradient* forces, FILE* fpRhoAtom) const
-{	double U = 0.;
-	for(unsigned sp=0; sp<species.size(); sp++)
-		U += species[sp]->computeU(F, C, HC, forces ? &forces->at(sp) : 0, fpRhoAtom);
-	return U;
+//----- DFT+U functions --------
+
+size_t IonInfo::rhoAtom_nMatrices() const
+{	size_t nMatrices = 0;
+	for(const auto& sp: species)
+		nMatrices += sp->rhoAtom_nMatrices();
+	return nMatrices;
 }
+
+void IonInfo::rhoAtom_initZero(std::vector<matrix>& rhoAtom) const
+{	if(!rhoAtom.size()) rhoAtom.resize(rhoAtom_nMatrices());
+	matrix* rhoAtomPtr = rhoAtom.data();
+	for(const auto& sp: species)
+	{	sp->rhoAtom_initZero(rhoAtomPtr);
+		rhoAtomPtr += sp->rhoAtom_nMatrices();
+	}
+}
+
+void IonInfo::rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<matrix>& rhoAtom) const
+{	matrix* rhoAtomPtr = rhoAtom.data();
+	for(const auto& sp: species)
+	{	sp->rhoAtom_calc(F, C, rhoAtomPtr);
+		rhoAtomPtr += sp->rhoAtom_nMatrices();
+	}
+}
+
+double IonInfo::rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const
+{	const matrix* rhoAtomPtr = rhoAtom.data();
+	matrix* U_rhoAtomPtr = U_rhoAtom.data();
+	double Utot = 0.;
+	for(const auto& sp: species)
+	{	Utot += sp->rhoAtom_computeU(rhoAtomPtr, U_rhoAtomPtr);
+		rhoAtomPtr += sp->rhoAtom_nMatrices();
+		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
+	}
+	return Utot;
+}
+
+void IonInfo::rhoAtom_grad(int q, ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const
+{	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
+	for(const auto& sp: species)
+	{	sp->rhoAtom_grad(q, Cq, U_rhoAtomPtr, HCq);
+		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
+	}
+}
+
+void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const
+{	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
+	auto forces_sp = forces.begin();
+	for(const auto& sp: species)
+	{	sp->rhoAtom_forces(F, C, U_rhoAtomPtr, *forces_sp);
+		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
+		forces_sp++;
+	}
+}
+
 
 int IonInfo::nAtomicOrbitals() const
 {	int nAtomic = 0;

@@ -214,11 +214,23 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 
-	if(eInfo.hasU && ShouldDump(RhoAtom))
+	if(eInfo.hasU && (ShouldDump(RhoAtom) || ShouldDump(ElecDensity)))
 	{	StartDump("rhoAtom")
-		FILE* fp = mpiUtil->isHead() ? fopen(fname.c_str(), "w") : nullLog;
-		iInfo.computeU(eVars.F, eVars.C, 0, 0, fp); //needs to be called from all processes
-		if(mpiUtil->isHead()) fclose(fp);
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			for(const matrix& m: eVars.rhoAtom) m.write(fp);
+			fclose(fp);
+		}
+		EndDump
+	}
+	
+	if(eInfo.hasU && ShouldDump(Vscloc))
+	{	StartDump("U_rhoAtom")
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			for(const matrix& m: eVars.U_rhoAtom) m.write(fp);
+			fclose(fp);
+		}
 		EndDump
 	}
 	

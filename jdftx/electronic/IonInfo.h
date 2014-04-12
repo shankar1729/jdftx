@@ -93,9 +93,13 @@ public:
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
 	
 	//! Compute U corrections (DFT+U in the simplified rotationally-invariant scheme [Dudarev et al, Phys. Rev. B 57, 1505])
-	//! Also accumulate orbital gradients in HC, if non-null
-	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC = 0, IonicGradient* forces=0, FILE* fpRhoAtom=0) const;
+	//rhoAtom is a flat array of atomic density matrices per U type, with index order (outer to inner): species, Uparam(n,l), spin, atom
+	size_t rhoAtom_nMatrices() const; //!< number of matrices in rhoAtom array
+	void rhoAtom_initZero(std::vector<matrix>& rhoAtom) const; //!< initialize matrices of appropriate size to zero
+	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<matrix>& rhoAtom) const; //!< compute atomic density matrices
+	double rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const; //!< compute U energy and gradient w.r.t atomic density matrices
+	void rhoAtom_grad(int q, ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
+	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q (with room for extra columns if specified)

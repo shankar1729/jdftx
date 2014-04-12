@@ -100,10 +100,15 @@ public:
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
 	
-	//! Perform IonInfo::computeU() for this species
-	double computeU(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC = 0, std::vector<vector3<> >* forces=0, FILE* fpRhoAtom=0) const;
-	
+	//DFT+U functions: handle IonInfo::rhoAtom_*() for this species
+	//The rhoAtom pointers point to the start of those relevant to this species (and ends at that pointer + rhoAtom_nMatrices())
+	size_t rhoAtom_nMatrices() const;
+	void rhoAtom_initZero(matrix* rhoAtomPtr) const;
+	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, matrix* rhoAtomPtr) const;
+	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
+	void rhoAtom_grad(int q, ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
+	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
+
 	//!Pseudo-atom configuration (retrieved along with atomic orbitals using setAtomicOrbitals)
 	struct AtomConfig
 	{	unsigned n; //!< pseudo-atom principal quantum number

@@ -64,6 +64,8 @@ public:
 	DataRptrCollection Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
 	DataRptrCollection Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
+	std::vector<matrix> rhoAtom, U_rhoAtom; //!< Atomic density matrices and gradients w.r.t them (for DFT+U)
+	
 	//External interactions:
 	DataRptrCollection Vexternal; //!< external potential
 	DataGptr rhoExternal; //!< external charge density

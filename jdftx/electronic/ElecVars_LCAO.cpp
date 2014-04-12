@@ -81,6 +81,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 			e.symm.symmetrize(ns);
 			ns->allReduce(MPIUtil::ReduceSum);
 		}
+		if(e.eInfo.hasU) e.iInfo.rhoAtom_calc(F, eVars.C, eVars.rhoAtom);
 		
 		//Update local potential:
 		eVars.EdensityAndVscloc(ener, exCorr);
@@ -90,7 +91,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		std::vector<ColumnBundle> HC(e.eInfo.nStates);
 		std::vector< std::vector<matrix> > HVdagC(e.eInfo.nStates, std::vector<matrix>(e.iInfo.species.size()));
 
-		ener.E["U"] = e.iInfo.computeU(F, eVars.C, grad ? &HC : 0);
 		ener.E["NI"] = 0.;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = e.eInfo.qnums[q];
@@ -102,6 +102,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 			//Gradient and subspace Hamiltonian:
 			if(grad)
 			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+				if(e.eInfo.hasU) e.iInfo.rhoAtom_grad(q, eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
 				e.iInfo.augmentDensitySphericalGrad(qnum, F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);

@@ -65,7 +65,11 @@ void ElecVars::setup(const Everything &everything)
 
 	n.resize(eInfo.spinType==SpinNone ? 1 : 2);
 	Vscloc.resize(n.size());
-
+	if(eInfo.hasU)
+	{	iInfo.rhoAtom_initZero(rhoAtom);
+		iInfo.rhoAtom_initZero(U_rhoAtom);
+	}
+	
 	if(VexternalFilename.size())
 	{	Vexternal.resize(VexternalFilename.size());
 		for(unsigned s=0; s<Vexternal.size(); s++)
@@ -175,20 +179,33 @@ void ElecVars::setup(const Everything &everything)
 				READchannel(var[1], #var "_dn") \
 			} \
 		}
+		#define READrhoAtom(var) \
+		{	string fname = fnamePattern; \
+			size_t pos = fname.find("$VAR"); \
+			assert(pos != string::npos); \
+			fname.replace(pos,4, #var); \
+			logPrintf("Reading " #var " from file '%s' ... ", fname.c_str()); logFlush(); \
+			FILE* fp = fopen(fname.c_str(), "r"); \
+			for(matrix& m: var) m.read(fp); \
+			fclose(fp); \
+			logPrintf("done\n"); logFlush(); \
+		}
 		if(nFilenamePattern.length())
 		{	READ(n)
 			if(e->exCorr.needsKEdensity()) READ(tau)
+			if(eInfo.hasU) READrhoAtom(rhoAtom)
 		}
 		else
 		{	READ(Vscloc)
 			if(e->exCorr.needsKEdensity()) READ(Vtau)
+			if(eInfo.hasU) READrhoAtom(U_rhoAtom)
 		}
 		#undef READ
 		#undef READchannel
-		//Check if fix-occupied has been specified when required (hyrbids or DFT+U):
-		if( (e->exCorr.exxFactor() || eInfo.hasU) && (! e->cntrl.fixOccupied) )
-			die("Band-structure (fixed electron density) calculations with DFT+U\n"
-				"or hybrid functionals require fixed occupied states (command fix-occupied)\n");
+		//Check if fix-occupied has been specified when required (hyrbids):
+		if( e->exCorr.exxFactor() && (! e->cntrl.fixOccupied) )
+			die("Band-structure (fixed electron density) calculations with hybrid\n"
+				"functionals require fixed occupied states (command fix-occupied)\n");
 		//Check if wavefunctions have been read in if occupied orbitals are fixed:
 		if(e->cntrl.fixOccupied && (! wfnsFilename.length()))
 			die("Fixed occupied orbitals require wavefunctions to be read from file\n");
@@ -343,6 +360,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		}
 	}
 
+	//Atomic density-matrix contributions: (DFT+U)
+	if(eInfo.hasU)
+		ener.E["U"] = iInfo.rhoAtom_computeU(rhoAtom, U_rhoAtom);
+	
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
 	DataRptrCollection Vxc;
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
@@ -422,6 +443,10 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		if(e->exCorr.needsKEdensity() || fluidParams.useTau)
 			tau = KEdensity();
 		
+		//Update atomic density matrix contributions for DFT+U (if necessary):
+		if(eInfo.hasU)
+			e->iInfo.rhoAtom_calc(F, C, rhoAtom);
+		
 		//Calculate density functional and its gradient:
 		EdensityAndVscloc(ener);
 		
@@ -432,9 +457,6 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	//--------- Wavefunction dependent parts -----------
 	
 	std::vector<ColumnBundle> HC(eInfo.nStates); //gradient w.r.t C (upto weights and fillings)
-	
-	//DFT+U corrections, if required:
-	ener.E["U"] = e->iInfo.computeU(F, C, need_Hsub ? &HC : 0);
 	
 	//Exact exchange if required:
 	ener.E["EXX"] = 0.;
@@ -611,6 +633,8 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
 		}
+		if(e->eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
+			e->iInfo.rhoAtom_grad(q, C[q], U_rhoAtom, HCq);
 	}
 
 	//Kinetic energy:
