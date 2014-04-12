@@ -200,6 +200,12 @@ void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const
 	{	Y.tau.resize(e.eVars.n.size());
 		::axpy(alpha, X.tau, Y.tau);
 	}
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+	{	if(!Y.rhoAtom.size()) e.iInfo.rhoAtom_initZero(Y.rhoAtom);
+		for(size_t i=0; i<X.rhoAtom.size(); i++)
+			::axpy(alpha, X.rhoAtom[i], Y.rhoAtom[i]);
+	}
 }
 
 double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
@@ -209,11 +215,21 @@ double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 		ret += e.gInfo.dV * ::dot(X.tau, Y.tau);
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+	{	for(size_t i=0; i<X.rhoAtom.size(); i++)
+			ret += dotc(X.rhoAtom[i],Y.rhoAtom[i]).real();
+	}
 	return ret;
 }
 
 size_t SCF::variableSize() const
 {	size_t nDoubles = e.gInfo.nr * e.eVars.n.size() * (e.exCorr.needsKEdensity() ? 2 : 1); //n and optionally tau
+	if(e.eInfo.hasU)
+	{	std::vector<matrix> rhoAtom;
+		e.iInfo.rhoAtom_initZero(rhoAtom);
+		for(const matrix& m: rhoAtom) nDoubles += 2*m.nData();
+	}
 	return nDoubles * sizeof(double);
 }
 
@@ -226,6 +242,11 @@ void SCF::readVariable(SCF::Variable& v, FILE* fp) const
 	{	nullToZero(v.tau, e.gInfo, e.eVars.n.size());
 		for(DataRptr& X: v.tau) loadRawBinary(X, fp);
 	}
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+	{	e.iInfo.rhoAtom_initZero(v.rhoAtom);
+		for(matrix& m: v.rhoAtom) m.read(fp);
+	}
 }
 
 void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
@@ -234,6 +255,10 @@ void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 	{	for(const DataRptr& X: v.tau) saveRawBinary(X, fp);
+	}
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+	{	for(const matrix& m: v.rhoAtom) m.write(fp);
 	}
 }
 
@@ -245,6 +270,9 @@ SCF::Variable SCF::getVariable() const
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 		v.tau = clone(mixDensity ? e.eVars.tau : e.eVars.Vtau);
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+		v.rhoAtom = (mixDensity ? e.eVars.rhoAtom : e.eVars.U_rhoAtom);
 	return v;
 }
 
@@ -255,6 +283,9 @@ void SCF::setVariable(const SCF::Variable& v)
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 		(mixDensity ? e.eVars.tau : e.eVars.Vtau) = v.tau;
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+		(mixDensity ? e.eVars.rhoAtom : e.eVars.U_rhoAtom) = v.rhoAtom;
 	//Update precomputed quantities of one-particle Hamiltonian:
 	if(mixDensity) e.eVars.EdensityAndVscloc(e.ener); //Recompute Vscloc (Vtau) if mixing density
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
@@ -267,6 +298,12 @@ SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 		vOut.tau = kerkerMix * v.tau;
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+	{	vOut.rhoAtom = v.rhoAtom;
+		for(matrix& m: vOut.rhoAtom)
+			m *= e.scfParams.mixFraction;
+	}
 	return vOut;
 }
 
@@ -277,6 +314,9 @@ SCF::Variable SCF::applyMetric(const SCF::Variable& v) const
 	//KE density:
 	if(e.exCorr.needsKEdensity())
 		vOut.tau = diisMetric * v.tau;
+	//Atomic density matrices:
+	if(e.eInfo.hasU)
+		vOut.rhoAtom = v.rhoAtom;
 	return vOut;
 }
 
