@@ -262,12 +262,12 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 }
 
 #ifdef ENABLE_PROFILING
-void stopWatchManager(const StopWatch* addWatch=0)
-{	static std::vector<const StopWatch*> watches; //static array of all watches
-	if(addWatch) watches.push_back(addWatch);
+void stopWatchManager(const StopWatch* addWatch=0, const string* watchName=0)
+{	static std::multimap<string, const StopWatch*> watches; //static array of all watches
+	if(addWatch) watches.insert(std::make_pair(*watchName,addWatch));
 	else //print timings:
 	{	logPrintf("\n");
-		for(const StopWatch* watch: watches) watch->print();
+		for(const auto& wPair: watches) wPair.second->print();
 	}
 }
 #endif // ENABLE_PROFILING
@@ -308,7 +308,7 @@ void finalizeSystem(bool successful)
 
 
 #ifdef ENABLE_PROFILING
-StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stopWatchManager(this); }
+StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stopWatchManager(this, &name); }
 void StopWatch::start()
 {
 	#ifdef GPU_ENABLED
