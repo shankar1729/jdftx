@@ -106,12 +106,13 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 {	rhoAtom_COMMONinit
 	double Utot = 0.;
 	UparamLOOP
-	(	double prefac = 0.5 * Uparams.UminusJ / wSpinless;
+	(	double Uprefac = 0.5 * Uparams.UminusJ / wSpinless;
 		for(int s=0; s<nSpins; s++)
 			for(unsigned a=0; a<atpos.size(); a++)
 			{	const matrix& rhoAtom = *(rhoAtomPtr++);
-				Utot += prefac * trace(rhoAtom - rhoAtom*rhoAtom).real();
-				*(U_rhoAtomPtr++) = prefac * (eye(mCount) - 2.*rhoAtom);
+				const double VextPrefac = Uparams.Vext[a] / wSpinless;
+				Utot += trace((VextPrefac+Uprefac)*rhoAtom - Uprefac*(rhoAtom*rhoAtom)).real();
+				*(U_rhoAtomPtr++) = ((VextPrefac+Uprefac)*eye(mCount) - (2.*Uprefac)*rhoAtom);
 			}
 	)
 	return Utot;

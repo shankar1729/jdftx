@@ -181,6 +181,8 @@ private:
 	struct PlusU
 	{	int n, l; //!< Principal and angular quantum numbers
 		double UminusJ; //!< U - J [Dudarev et al, Phys. Rev. B 57, 1505] scheme
+		
+		std::vector<double> Vext; //! external potential per atom (used for calculating linear-response U)
 	};
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	

@@ -205,7 +205,7 @@ commandTauCore;
 struct CommandAddU : public Command
 {
 	CommandAddU() : Command("add-U")
-	{	format = "<species> <orbDesc> <UminusJ> [ <species2> ... ]";
+	{	format = "<species> <orbDesc> <UminusJ> [Vext <atom> <V>] ... [ <species2> ... ]";
 		comments =
 			"Add U correction (DFT+U) to specified species and orbitals, in the simplified\n"
 			"rotationally-invariant scheme of [Dudarev et al, Phys. Rev. B 57, 1505], where\n"
@@ -213,17 +213,22 @@ struct CommandAddU : public Command
 			"  <species> is one of the pseudopotential identifiers.\n"
 			"  <orbDesc> is one of s,p,d or f.\n"
 			"  <UminusJ> = U-J is the on-site correction energy in hartrees.\n"
+			"  Vext <atom> <V>: optionally specify an external potential on the atomic projection\n"
+			"         which may be used to calculate U from linear response. <atom> is the atom\n"
+			"         number of this species (1-based) to perturb by strength <V> (in Eh). Multiple\n"
+			"         Vext's may appear per U channel to perturb multiple atoms simultaneously.\n"
 			"Repeat the sequence for corrections to multiple species.\n"
 			"If pseudoatom has multiple shells of same angular momentum, prefix <orbDesc>\n"
 			"with a number e.g. 1p or 2p to select the first or second p shell respectively.";
 		
-		require("ion-species");
+		require("ion");
 	}
 	
 	void process(ParamList& pl, Everything& e)
 	{	e.eInfo.hasU = false;
 		string id;
 		pl.get(id, string(), "species", true);
+		SpeciesInfo::PlusU* plusUprev = 0;
 		while(id.length())
 		{	bool spFound = false;
 			for(auto sp: e.iInfo.species)
@@ -241,13 +246,26 @@ struct CommandAddU : public Command
 					}
 					//Get the value:
 					pl.get(plusU.UminusJ, 0., "UminusJ", true);
-					//Add U decsriptor to species:
+					//Add U descriptor to species:
 					sp->plusU.push_back(plusU);
 					spFound = true;
 					e.eInfo.hasU = true;
+					//Prepare for a possible Vext:
+					plusUprev = &sp->plusU.back();
+					plusUprev->Vext.assign(sp->atpos.size(), 0.);
 					break;
 				}
-			if(!spFound) throw string("Species "+id+" has not been defined");
+			if(!spFound)
+			{	if(id=="Vext" && plusUprev)
+				{	size_t atom; double V;
+					pl.get(atom, size_t(0), "atom", true);
+					pl.get(V, 0., "V", true);
+					if(atom<1 || atom>plusUprev->Vext.size())
+						throw string("Atom number for Vext must be >= 1 and <= nAtoms");
+					plusUprev->Vext[atom-1] = V;
+				}
+				else throw string("Species "+id+" has not been defined");
+			}
 			//Check for additional species:
 			pl.get(id, string(), "species");
 		}
@@ -263,6 +281,8 @@ struct CommandAddU : public Command
 				if(plusU.n) oss << (plusU.n + 1);
 				oss << string("spdf")[plusU.l];
 				logPrintf("\t%s %s %lg", sp->name.c_str(), oss.str().c_str(), plusU.UminusJ);
+				for(size_t atom=1; atom<=plusU.Vext.size(); atom++)
+					if(plusU.Vext[atom-1]) logPrintf("  Vext %lu %lg", atom, plusU.Vext[atom-1]);
 			}
 	}
 }

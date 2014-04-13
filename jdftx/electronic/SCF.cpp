@@ -148,7 +148,7 @@ void SCF::minimize()
 		//Debug output:
 		if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
 		if(e.cntrl.shouldPrintEcomponents) { logPrintf("\n"); e.ener.print(); logPrintf("\n"); }
-
+		
 		//Calculate and cache residual:
 		double residualNorm = 0.;
 		{	Variable residual = getVariable(); axpy(-1., pastVariables.back(), residual);
@@ -160,15 +160,9 @@ void SCF::minimize()
 		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
 			scfCounter, Elabel.c_str(), E, dE, deigs, residualNorm);
 		
-		//Check for convergence and update variable:
-		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
-		else if(deigs < sp.eigDiffThreshold)         { logPrintf("SCF: Converged (|deigs|<%le).\n\n", sp.eigDiffThreshold); break; }
-		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
-		else mixDIIS();
-		logFlush();
-		
+		//Per-cycle dumps if any (must do before the next mix step / convergence exit):
 		e.dump(DumpFreq_Gummel, scfCounter);
-		//Write SCF history if dumping state:
+		//--- write SCF history if dumping state:
 		if(e.dump.count(std::make_pair(DumpFreq_Gummel,DumpState)) && e.dump.checkInterval(DumpFreq_Gummel,scfCounter))
 		{	string fname = e.dump.getFilename("scfHistory");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
@@ -182,6 +176,13 @@ void SCF::minimize()
 			}
 			logPrintf("done\n"); logFlush();
 		}
+		
+		//Check for convergence and update variable:
+		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
+		else if(deigs < sp.eigDiffThreshold)         { logPrintf("SCF: Converged (|deigs|<%le).\n\n", sp.eigDiffThreshold); break; }
+		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
+		else mixDIIS();
+		logFlush();
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
