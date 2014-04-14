@@ -98,7 +98,7 @@ public:
 	void rhoAtom_initZero(std::vector<matrix>& rhoAtom) const; //!< initialize matrices of appropriate size to zero
 	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<matrix>& rhoAtom) const; //!< compute atomic density matrices
 	double rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const; //!< compute U energy and gradient w.r.t atomic density matrices
-	void rhoAtom_grad(int q, ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
+	void rhoAtom_grad(ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals

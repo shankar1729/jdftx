@@ -102,7 +102,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 			//Gradient and subspace Hamiltonian:
 			if(grad)
 			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
-				if(e.eInfo.hasU) e.iInfo.rhoAtom_grad(q, eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
+				if(e.eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
 				e.iInfo.augmentDensitySphericalGrad(qnum, F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);

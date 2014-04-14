@@ -33,7 +33,7 @@ template<typename T> struct scaled
 template<typename T> T& operator+=(T& y, const scaled<T>& x) { if(y) axpy(x.scale, x.data, y); else y = x.scale * x.data; return y; }
 template<typename T> T& operator-=(T& y, const scaled<T>& x) { if(y) axpy(-x.scale, x.data, y); else y = (-x.scale) * x.data; return y; }
 template<typename T> T operator+(const scaled<T>& x, const scaled<T>& y) { T ret(x); ret += y; return ret; }
-template<typename T> T operator-(const scaled<T>& x, const scaled<T>& y) { T ret(x); ret += y; return ret; }
+template<typename T> T operator-(const scaled<T>& x, const scaled<T>& y) { T ret(x); ret -= y; return ret; }
 
 template<typename T> scaled<T> operator-(const scaled<T>& x)  { return scaled<T>(x.data, -x.scale); }
 template<typename T> scaled<T> operator*(double s, const scaled<T>& x) { return scaled<T>(x.data, x.scale * s); }

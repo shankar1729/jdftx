@@ -50,7 +50,7 @@ double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, 
 //-------------- DFT + U --------------------
 
 size_t SpeciesInfo::rhoAtom_nMatrices() const
-{	return plusU.size() * e->eVars.n.size() * atpos.size(); //one per spin channel per Uparam
+{	return plusU.size() * e->eVars.n.size() * atpos.size(); //one per atom per spin channel per Uparam
 }
 
 void SpeciesInfo::rhoAtom_initZero(matrix* rhoAtomPtr) const
@@ -83,8 +83,8 @@ void SpeciesInfo::rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vect
 			int s = qnum.index();
 			ColumnBundle Opsi(C[q].similar(matSize));
 			setOpsi(Opsi, Uparams.n, Uparams.l);
-			matrix CdagOpsi = C[q] ^ Opsi;
-			rho[s] += (qnum.weight*wSpinless) * dagger(CdagOpsi) * F[q] * CdagOpsi;
+			matrix psiOCdag = Opsi ^ C[q];
+			rho[s] += (qnum.weight*wSpinless) * psiOCdag * F[q] * dagger(psiOCdag);
 		}
 		for(int s=0; s<nSpins; s++)
 		{	//Collect contributions from all processes:
@@ -128,15 +128,15 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 			U_rho[s].set(a,atpos.size(),matSize, a,atpos.size(),matSize, *(U_rhoAtomPtr++)); \
 	}
 
-void SpeciesInfo::rhoAtom_grad(int q, ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const
+void SpeciesInfo::rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const
 {	static StopWatch watch("rhoAtom_grad"); watch.start();
 	rhoAtom_COMMONinit
 	UparamLOOP
 	(	U_rho_PACK
-		int s = e->eInfo.qnums[q].index();
+		int s = Cq.qnum->index();
 		ColumnBundle Opsi(Cq.similar(matSize));
 		setOpsi(Opsi, Uparams.n, Uparams.l);
-		HCq += wSpinless * Opsi * (U_rho[s] * dagger(Cq ^ Opsi)); //gradient upto state weight and fillings
+		HCq += wSpinless * Opsi * (U_rho[s] * (Opsi ^ Cq)); //gradient upto state weight and fillings
 	)
 	watch.stop();
 }
@@ -150,10 +150,10 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 			int s = qnum.index();
 			ColumnBundle Opsi(C[q].similar(matSize));
 			setOpsi(Opsi, Uparams.n, Uparams.l);
-			matrix CdagOpsi = C[q] ^ Opsi;
+			matrix psiOCdag = Opsi ^ C[q];
 			diagMatrix fCartMat[3];
 			for(int k=0; k<3; k++)
-				fCartMat[k] = wSpinless * diag(U_rho[s] * dagger(CdagOpsi) * F[q] * (C[q]^D(Opsi,k)));
+				fCartMat[k] = wSpinless * diag(U_rho[s] * psiOCdag * F[q] * (C[q]^D(Opsi,k)));
 			for(unsigned a=0; a<atpos.size(); a++)
 			{	vector3<> fCart; //proportional to Cartesian force
 				for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));

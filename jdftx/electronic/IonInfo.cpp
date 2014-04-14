@@ -339,10 +339,10 @@ double IonInfo::rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector
 	return Utot;
 }
 
-void IonInfo::rhoAtom_grad(int q, ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const
+void IonInfo::rhoAtom_grad(ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const
 {	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
 	for(const auto& sp: species)
-	{	sp->rhoAtom_grad(q, Cq, U_rhoAtomPtr, HCq);
+	{	sp->rhoAtom_grad(Cq, U_rhoAtomPtr, HCq);
 		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
 	}
 }

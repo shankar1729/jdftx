@@ -634,7 +634,7 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
 		}
 		if(e->eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
-			e->iInfo.rhoAtom_grad(q, C[q], U_rhoAtom, HCq);
+			e->iInfo.rhoAtom_grad(C[q], U_rhoAtom, HCq);
 	}
 
 	//Kinetic energy:

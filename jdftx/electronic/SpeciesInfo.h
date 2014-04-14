@@ -106,7 +106,7 @@ public:
 	void rhoAtom_initZero(matrix* rhoAtomPtr) const;
 	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, matrix* rhoAtomPtr) const;
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
-	void rhoAtom_grad(int q, ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
+	void rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
 
 	//!Pseudo-atom configuration (retrieved along with atomic orbitals using setAtomicOrbitals)
