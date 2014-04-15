@@ -64,8 +64,6 @@ private:
 	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();
-	bool skipInitialFillings; //!< whether to skip initial fillings update (needed for properly resuming an SCF loop across runs)
-	
 	
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weigted RMS difference between two sets of eigenvalues
 	void eigenShiftInit(); //!< initialize and check eigenShifts
