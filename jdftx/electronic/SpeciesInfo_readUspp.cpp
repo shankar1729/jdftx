@@ -108,7 +108,7 @@ void SpeciesInfo::readUspp(istream& is)
 	reader.endRecord();
 	
 	logPrintf("  Title: %s.  Created by USPP %d.%d.%d on %d-%d-%d\n",
-		title.c_str(), date[0], date[1], date[2], version[0], version[1], version[2]);
+		title.c_str(), version[0], version[1], version[2], date[0], date[1], date[2]);
 	logPrintf("  Reference state energy: %lf.  %lg valence electrons in orbitals:\n", Etot, Z);
 	if(version[0]<7 || (version[0]==7 && version[1]<3))
 		die("  Only USPP format 7.2 or newer is supported.\n");
