@@ -126,7 +126,8 @@ int SpeciesInfo::lMaxAtomicOrbitals() const
 {	return int(psiRadial.size()) - 1;
 }
 int SpeciesInfo::nAtomicOrbitals(int l) const
-{	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
+{	assert(l >= 0);
+	if(unsigned(l) >= psiRadial.size()) return -1; //signals end of l
 	return psiRadial[l].size();
 }
 int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m) const

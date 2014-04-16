@@ -778,57 +778,77 @@ void DOS::dump()
 			}
 	}
 	
+	//Check which orbital modes are needed:
+	bool needOrbitals = false;
+	bool needOrthoOrbitals = false;
+	for(const Weight& weight: weights)
+	{	if(weight.type == Weight::Orbital) needOrbitals = true;
+		if(weight.type == Weight::OrthoOrbital) needOrthoOrbitals = true;
+	}
+	
 	//Compute projections for orbital mode:
-	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
-	{	const ColumnBundle& C = e->eVars.C[iState];
-		//Initialize ortho-atomic-orbitals if required:
-		bool needOrthoOrbitals = false;
-		for(const Weight& weight: weights)
-			if(weight.type == Weight::OrthoOrbital)
-				needOrthoOrbitals = true;
-		ColumnBundle OpsiOrtho; //orthogonal orbitals  (with overlap operator)
-		std::vector<int> spOffset(e->iInfo.species.size()); //species offset into atomic orbitals list
-		if(needOrthoOrbitals)
-		{	//Count and get atomic orbitals:
+	if(needOrbitals || needOrthoOrbitals)
+	{	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
+		{	const ColumnBundle& C = e->eVars.C[iState];
+			//Count atomic orbitals:
 			int nOrbitals = 0;
+			std::vector<int> spOffset(e->iInfo.species.size()); //species offset into atomic orbitals list
 			for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
 			{	spOffset[sp] = nOrbitals;
 				nOrbitals += e->iInfo.species[sp]->nAtomicOrbitals();
 			}
-			ColumnBundle psi = C.similar(nOrbitals);
-			for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
-				e->iInfo.species[sp]->setAtomicOrbitals(psi, spOffset[sp]);
-			//Orthogonalize:
-			ColumnBundle Opsi = O(psi);
-			matrix orthoMat = invsqrt(psi ^ Opsi); //orthonormalizing matrix
-			psi = 0; //free memory before creating another ColumnBundle (nOrbitals could be huge)
-			OpsiOrtho = Opsi * orthoMat;
-		}
-		for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-		{	const Weight& weight = weights[iWeight];
-			if(weight.type == Weight::Orbital || weight.type == Weight::OrthoOrbital)
-			{	const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
-				int l = oDesc.l;
-				int mMin = (oDesc.m==l+1) ? -l : oDesc.m;
-				int mMax = (oDesc.m==l+1) ? +l : oDesc.m;
-				//Obtain the atomic orbitals:
-				ColumnBundle Opsi = C.similar(mMax+1-mMin);
-				for(int m=mMin; m<=mMax; m++)
-				{	if(weight.type == Weight::Orbital) //Bare atomic orbitals:
-						e->iInfo.species[weight.specieIndex]->setAtomicOrbital(
-							Opsi, m-mMin, weight.atomIndex, oDesc.n, l, m);
-					else //Orthogonalized atomic orbitals:
-					{	int iCol = spOffset[weight.specieIndex]
-							+ e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(
-								weight.atomIndex, oDesc.n, l, m);
-						Opsi.setSub(m-mMin, OpsiOrtho.getSub(iCol, iCol+1));
+			//Atomic-orbital projections if needed:
+			matrix CdagOpsi;
+			if(needOrbitals)
+			{	CdagOpsi = zeroes(C.nCols(), nOrbitals);
+				int colOffset = 0;
+				for(const auto& sp: e->iInfo.species)
+				{	for(int l=0;; l++)
+					{	int nMax = sp->nAtomicOrbitals(l);
+						if(nMax<0) break; //end of l
+						int nCols = (2*l+1) * sp->atpos.size();
+						ColumnBundle Opsi(C.similar(nCols));
+						for(int n=0; n<nMax; n++)
+						{	sp->setOpsi(Opsi, n, l);
+							CdagOpsi.set(0,C.nCols(), colOffset,colOffset+nCols, C^Opsi);
+							colOffset += nCols;
+						}
 					}
 				}
-				//Compute projections of all the bands:
-				const matrix proj = C ^ Opsi; // nBands x (mMax+1-mMin) matrix
-				const diagMatrix projSq = diag(proj * dagger(proj)); //diagonal nBands x nBands matrix
-				for(int iBand=0; iBand<eInfo.nBands; iBand++)
-					eval.w(iWeight, iState, iBand) = projSq[iBand];
+				assert(colOffset==nOrbitals);
+			}
+			//Ortho-orbital projections if needed:
+			matrix CdagOpsiOrtho;
+			if(needOrthoOrbitals)
+			{	ColumnBundle psi = C.similar(nOrbitals);
+				for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
+					e->iInfo.species[sp]->setAtomicOrbitals(psi, spOffset[sp]);
+				//Orthogonalize:
+				ColumnBundle Opsi = O(psi);
+				matrix orthoMat = invsqrt(psi ^ Opsi); //orthonormalizing matrix
+				CdagOpsiOrtho = (C ^ Opsi) * orthoMat;
+			}
+			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
+			{	const Weight& weight = weights[iWeight];
+				if(weight.type == Weight::Orbital || weight.type == Weight::OrthoOrbital)
+				{	const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
+					int l = oDesc.l;
+					int mMin = (oDesc.m==l+1) ? -l : oDesc.m;
+					int mMax = (oDesc.m==l+1) ? +l : oDesc.m;
+					//Select the appropriate projections:
+					matrix proj = zeroes(C.nCols(), mMax+1-mMin);
+					for(int m=mMin; m<=mMax; m++)
+					{	int iCol = spOffset[weight.specieIndex]
+								+ e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(
+									weight.atomIndex, oDesc.n, l, m);
+						proj.set(0,C.nCols(), m-mMin,m-mMin+1,
+							(weight.type==Weight::Orbital ? CdagOpsi : CdagOpsiOrtho)(0,C.nCols(), iCol,iCol+1) );
+					}
+					//Compute weight from projection:
+					const diagMatrix projSq = diag(proj * dagger(proj)); //diagonal nBands x nBands matrix
+					for(int iBand=0; iBand<eInfo.nBands; iBand++)
+						eval.w(iWeight, iState, iBand) = projSq[iBand];
+				}
 			}
 		}
 	}

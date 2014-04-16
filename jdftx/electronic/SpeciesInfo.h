@@ -127,6 +127,8 @@ public:
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
 	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
 	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species
+	//! Calculate O(atomic orbitals) of specific n and l
+	void setOpsi(ColumnBundle& Y, unsigned n, int l) const;
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
@@ -173,9 +175,6 @@ private:
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
 	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
-	
-	//! Calculate O(atomic orbitals) of specific n and l
-	void setOpsi(ColumnBundle& Y, unsigned n, int l) const;
 	
 	//!Parameters for optional DFT+U corrections
 	struct PlusU
