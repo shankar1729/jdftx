@@ -1,0 +1,54 @@
+#!/bin/bash
+
+if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	Convert an xyz format file (cartesian Angstrom) to JDFtx ionpos (cartesian Bohrs).
+	   Usage: xyzToIonpos <xyzFile> [<centerBbox>=yes|no]
+	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	Additionally, the maximum extents in each dimension will be output to stderr,
+	to guide the selection of supercell dimensions.
+	Optionally, if centerBbox=yes, the atoms will be shifted so that their bounding
+	box is centered on the origin (convenient when using coulomb-truncation-embed)
+	' >&2
+	exit 0;
+fi
+
+centerBbox="$2"
+if [ -z "$centerBbox" ]; then
+	centerBbox="no"
+fi
+if [[ "$centerBbox" != "yes" && "$centerBbox" != "no" ]]; then
+	echo "Invalid centerBbox '$centerBbox'. Must be 'yes' or 'no'." >&2
+	exit 1
+fi
+
+#Pass 1: (get the bbox)
+bbox=( $(awk  -v centerBbox="$centerBbox" '
+NR==1 { nAtoms = $1; min[0]=1e300; min[1]=1e300; min[2]=1e300; max[0]=-1e300; max[1]=-1e300; max[2]=-1e300; }
+NR>2 && NR<=(2+nAtoms) { 
+	for(k=0; k<3; k++)
+	{	if($(k+2)<min[k]) min[k]=$(k+2);
+		if($(k+2)>max[k]) max[k]=$(k+2);
+	}
+}
+END { A = 1/0.5291772;
+	for(k=0; k<3; k++)
+	{	if(centerBbox=="yes") offs[k]=-0.5*(min[k]+max[k])*A;
+		else offs[k]=0.;
+		printf("%19.15f %19.15f %19.15f\n", min[k]*A+offs[k], max[k]*A+offs[k], offs[k]);
+	}
+	print centerBbox
+}
+' $1) )
+
+awk -v offs0="${bbox[2]}" -v offs1="${bbox[5]}" -v offs2="${bbox[8]}" '
+BEGIN { A = 1/0.5291772;
+	printf("# Ionic positions in cartesian coordinates:\n"); }
+NR==1 { nAtoms = $1; }
+NR>2 && NR<=(2+nAtoms) { printf("ion %2s %19.15f %19.15f %19.15f  %d\n", $1, $2*A+offs0, $3*A+offs1, $4*A+offs2, (NR==3 ? 0 : 1)); }
+' $1
+
+echo "Offseting atoms by ( ${bbox[2]} ${bbox[5]} ${bbox[8]} ) bohrs" >&2
+echo "Bounding box x: [ ${bbox[0]} to ${bbox[1]} ] bohrs" >&2
+echo "Bounding box y: [ ${bbox[3]} to ${bbox[4]} ] bohrs" >&2
+echo "Bounding box z: [ ${bbox[6]} to ${bbox[7]} ] bohrs" >&2
