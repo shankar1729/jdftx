@@ -34,6 +34,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	std::vector<matrix> B; //Auxiliary hamiltonian (minimizer state)
 	std::vector< std::vector<matrix> > VdagY;
 	ElecGradient Kgrad;
+	double mu;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
 	: eVars(eVars), e(e), HniSub(e.eInfo.nStates), B(e.eInfo.nStates),
@@ -62,7 +63,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		}
 		
 		//Update fillings (Aux algorithm, fixed N only):
-		double mu = e.eInfo.findMu(B_eigs, e.eInfo.nElectrons), dmuNumDen[2] = { 0., 0. };
+		mu = e.eInfo.findMu(B_eigs, e.eInfo.nElectrons); double dmuNumDen[2] = { 0., 0. };
 		std::vector<diagMatrix> F(e.eInfo.nStates);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			F[q] = e.eInfo.fermi(mu, B_eigs[q]);
@@ -134,6 +135,16 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	}
 
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	
+	bool report(int iter)
+	{	logPrintf("FillingsLCAO:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
+		if(e.eInfo.spinType == SpinZ)
+		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
+			logPrintf("  magneticMoment: %.5f", spinPol);
+		}
+		logPrintf("\n");
+		return false;
+	}
 };
 
 
