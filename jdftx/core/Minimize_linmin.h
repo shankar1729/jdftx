@@ -125,9 +125,9 @@ namespace MinimizePrivate
 			//Check reasonableness of predicted step size:
 			if(alpha<0)
 			{	//Curvature has the wrong sign
-				//That implies ET < E, so accept test step as the real step
-				alpha = alphaT;
-				fprintf(p.fpLog, "%s\tWrong curvature in test step, using alpha=alphaT.\n", p.linePrefix);
+				//That implies ET < E, so try descending further
+				alphaT *= p.alphaTincreaseFactor;
+				fprintf(p.fpLog, "%s\tWrong curvature in test step, increasing alphaT to %le.\n", p.linePrefix, alphaT);
 				E = obj.sync(obj.compute(&g));
 				return true;
 			}
