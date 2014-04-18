@@ -213,7 +213,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		ccgrad_nCore += J(VxcAvg - VxcCore);
 		//Contribution through tauCore (metaGGAs only):
 		if(e->exCorr.needsKEdensity() || e->eVars.fluidParams.useTau)
-		{	DataRptr VtauAvg = (Vtau.size()==1) ? Vtau[0] : 0.5*(Vtau[0]+Vtau[1]);
+		{	DataRptr VtauAvg = (eVars.Vtau.size()==1) ? eVars.Vtau[0] : 0.5*(eVars.Vtau[0]+eVars.Vtau[1]);
 			if(VtauAvg) ccgrad_tauCore += J(VtauAvg - VtauCore);
 		}
 	}
