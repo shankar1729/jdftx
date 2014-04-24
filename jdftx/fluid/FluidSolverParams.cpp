@@ -109,6 +109,24 @@ void FluidSolverParams::setPCMparams()
 			initWarnings += "WARNING: SG14tau PCM is highly experimental!\n";
 			break;
 		}
+		case PCM_SG14tauVW:
+		{	sigma = 0.6;
+			switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+					nc = 1.64e-04;
+					cavityTension = 2.37e-04;
+					break;
+				case FluidComponent::CH3CN:
+					nc = 5.77e-05;
+					cavityTension = -4.42e-03;
+					break;
+				default:
+					throw string("PCM SG14tauVW not parametrized for this solvent.");
+					break;
+			}
+			initWarnings += "WARNING: SG14tauVW PCM is highly experimental!\n";
+			break;
+		}
 		case PCM_SGA13:
 		{	nc = 1e-2;
 			sigma = 0.6;

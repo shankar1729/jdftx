@@ -77,6 +77,32 @@ namespace ShapeFunction
 			(*A_n) += Jdag(w * A_nBarTilde);
 		}
 	}
+	
+	void tauVWhelper(int N, const double* n, const double* DnSq, double* tau, double* tau_n, double* tau_DnSq)
+	{	threadedLoop(tauVW_calc, N, n, DnSq, tau, tau_n, tau_DnSq);
+	}
+	#ifdef GPU_ENABLED
+	void tauVWhelper_gpu(int N, const double* n, const double* DnSq, double* tau, double* tau_n, double* tau_DnSq);
+	#endif
+	void tauVW(const DataRptr& n, DataRptr& tau, const DataRptr* A_tau, DataRptr* A_n)
+	{	//Compute gradient:
+		DataRptrVec Dn = gradient(n);
+		DataRptr DnSq = lengthSquared(Dn);
+		//Compute the elementwise function and optionally its derivatives:
+		nullToZero(tau, n->gInfo);
+		DataRptr tau_n, tau_DnSq;
+		if(A_n)
+		{	assert(A_tau);
+			nullToZero(tau_n, n->gInfo);
+			nullToZero(tau_DnSq, n->gInfo);
+		}
+		callPref(tauVWhelper)(n->gInfo.nr, n->dataPref(), DnSq->dataPref(), tau->dataPref(),
+			(A_n ? tau_n->dataPref() : 0), (A_n ? tau_DnSq->dataPref() : 0));
+		//Propagate gradients if necessary:
+		if(A_n)
+			(*A_n) += (*A_tau) * tau_n //direct contribution
+				- 2. * Jdag(divergence(Idag(((*A_tau) * tau_DnSq) * Dn))); //contribution via |gradient(n)|^2
+	}
 }
 
 

@@ -24,6 +24,7 @@ EnumStringMap<PCMVariant> pcmVariantMap
 (	PCM_SGA13,   "SGA13", 
 	PCM_SG14,    "SG14",
 	PCM_SG14tau, "SG14tau",
+	PCM_SG14tauVW, "SG14tauVW",
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12", 
 	PCM_PRA05,   "PRA05"
@@ -32,6 +33,7 @@ EnumStringMap<PCMVariant> pcmVariantDescMap
 (	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]", 
 	PCM_SG14,    "Isodensity PCM with weighted-cavity tension [EXPERIMENTAL]",
 	PCM_SG14tau, "Isokinetic PCM with weighted-cavity tension [EXPERIMENTAL]",
+	PCM_SG14tauVW, "Isokinetic PCM with weighted-cavity tension using orbital-free tau [EXPERIMENTAL]",
 	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
 	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]"
@@ -67,22 +69,19 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-	PCMp_useTau, //!< threshold on KE density instead of density
 	PCMp_Delim //!< Delimiter used in parsing:
 };
 EnumStringMap<PCMparameter> pcmParamMap
 (	PCMp_lMax,          "lMax",
 	PCMp_nc,            "nc",
 	PCMp_sigma,         "sigma",
-	PCMp_cavityTension, "cavityTension",
-	PCMp_useTau,        "useTau"
+	PCMp_cavityTension, "cavityTension"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_lMax, "angular momentum truncation in nonlocal PCM",
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
-	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
-	PCMp_useTau, "threshold on KE density instead of density"
+	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)"
 );
 
 struct CommandPcmParams : public Command
@@ -112,9 +111,6 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
-				case PCMp_useTau:
-					pl.get(fsp.useTau, false, boolMap, "useTau", true);
-					break;
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -128,7 +124,6 @@ struct CommandPcmParams : public Command
 		PRINT(nc)
 		PRINT(sigma)
 		PRINT(cavityTension)
-		logPrintf(" \\\n\t useTau %s", boolMap.getString(fsp.useTau));
 		#undef PRINT
 	}
 }

@@ -84,6 +84,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		}
 		case PCM_SG14:
 		case PCM_SG14tau:
+		case PCM_SG14tauVW:
 		{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
 			logPrintf("   Effective weighted-cavity tension: %lg Eh/molecule with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
 			break;
@@ -124,6 +125,10 @@ void PCM::updateCavity()
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
 		}
 	}
+	else if(fsp.pcmVariant == PCM_SG14tauVW)
+	{	ShapeFunction::tauVW(nCavity, tauCavity);
+		ShapeFunction::compute(tauCavity, shape, fsp.nc, fsp.sigma);
+	}
 	else //Compute directly from nCavity (which is a density product for nonlocalPCM):
 		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
@@ -163,6 +168,7 @@ void PCM::updateCavity()
 		}
 		case PCM_SG14:
 		case PCM_SG14tau:
+		case PCM_SG14tauVW:
 		{	DataRptr sbar = I(wCavity*J(shape));
 			A_tension = integral(sbar*(1.-sbar)) * solvent->Nbulk;
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
@@ -199,6 +205,15 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 			DataRptr nCavityExUnused; //unused return value below
 			ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
+	}
+	else if(fsp.pcmVariant == PCM_SG14tauVW)
+	{	//First compute derivative w.r.t tauVW:
+		DataRptr A_tauCavity;
+		ShapeFunction::propagateGradient(tauCavity, A_shape + Acavity_shape, A_tauCavity, fsp.nc, fsp.sigma);
+		//then propagate to nCavity
+		DataRptr tauCavityUnused;
+		A_nCavity = 0;
+		ShapeFunction::tauVW(nCavity, tauCavityUnused, &A_tauCavity, &A_nCavity);
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for NonlocalPCM)
 	{	A_nCavity = 0;
@@ -243,6 +258,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			break;
 		case PCM_SG14:
 		case PCM_SG14tau:
+		case PCM_SG14tauVW:
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %f\n", A_tension);
 			break;

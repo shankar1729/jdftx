@@ -40,8 +40,10 @@ namespace ShapeFunction
 	
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
+	
+	//! Compute the ThomasFermi + VonWeisacker KE density from the electron density, and optionally propagate gradients from n to tau (acumulate to A_tau)
+	void tauVW(const DataRptr& n, DataRptr& tau, const DataRptr* A_tau=0, DataRptr* A_n=0);
 }
-
 #endif
 
 
@@ -64,12 +66,30 @@ namespace ShapeFunction
 		{	nEx[i]=1e-9;
 			if(nEx_nBar) nEx_nBar[i]=0.;
 			if(nEx_DnBarSq) nEx_DnBarSq[i]=0.;
+			return;
 		}
 		double nInv = 1./n;
 		nEx[i] = alpha*n + D2*nInv;
 		if(nEx_nBar) { nEx_nBar[i] = alpha - D2*nInv*nInv; }
 		if(nEx_DnBarSq) { nEx_DnBarSq[i] = nInv; }
 	}
+	
+	__hostanddev__ void tauVW_calc(int i, const double* nArr, const double* DnSqArr, double* tau, double* tau_n, double* tau_DnSq)
+	{	const double prefacTF = 0.3*pow(3*M_PI*M_PI, 2./3);
+		const double nCut = 1e-6;
+		double n = nArr[i], DnSq = DnSqArr[i];
+		if(n < nCut) //Avoid numerical error in low density regions:
+		{	tau[i] = prefacTF*pow(nCut, 5./3);
+			if(tau_n) tau_n[i] = 0.;
+			if(tau_DnSq) tau_DnSq[i] = 0.;
+			return;
+		}
+		double nInv = 1./n, n23 = pow(n, 2./3);
+		tau[i] = prefacTF*n*n23 + 0.125*DnSq*nInv;
+		if(tau_n) { tau_n[i] = (5./3)*prefacTF*n23 - 0.125*DnSq*nInv*nInv; }
+		if(tau_DnSq) { tau_DnSq[i] = 0.125*nInv; }
+	}
+
 }
 
 //------------- Helper classes for NonlinearPCM  -------------

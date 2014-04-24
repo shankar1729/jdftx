@@ -51,6 +51,16 @@ namespace ShapeFunction
 		expandDensityHelper_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
 		gpuErrorCheck();
 	}
+
+	__global__
+	void tauVWhelper_kernel(int N, const double* n, const double* DnSq, double* tau, double* tau_n, double* tau_DnSq)
+	{	int i = kernelIndex1D(); if(i<N) tauVW_calc(i, n, DnSq, tau, tau_n, tau_DnSq);
+	}
+	void tauVWhelper_gpu(int N, const double* n, const double* DnSq, double* tau, double* tau_n, double* tau_DnSq)
+	{	GpuLaunchConfig1D glc(tauVWhelper_kernel, N);
+		tauVWhelper_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, DnSq, tau, tau_n, tau_DnSq);
+		gpuErrorCheck();
+	}
 }
 
 //------------- Helper classes for NonlinearPCM  -------------
