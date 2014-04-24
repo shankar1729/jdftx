@@ -53,11 +53,11 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	//Print common info and add relevant citations:
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
-	{	case PCM_SLSA13: //Local PCM that uses weighted-density cavitation+dispersion
-		case PCM_SGA13: //and Nonlocal PCM
-		{	if(fsp.pcmVariant==PCM_SLSA13)
-				Citations::add("Nonlocal dielectric/ionic fluid model with weighted-density cavitation and dispersion",
-					"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, and T.A. Arias, (under preparation)");
+	{	case PCM_SaLSA: //Nonlocal PCMs
+		case PCM_SGA13: //and local PCM that uses weighted-density cavitation+dispersion
+		{	if(fsp.pcmVariant==PCM_SaLSA)
+				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
+					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, D. Gunceler, and T.A. Arias, (under preparation)");
 			else
 			{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 					"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
@@ -129,13 +129,13 @@ void PCM::updateCavity()
 	{	ShapeFunction::tauVW(nCavity, tauCavity);
 		ShapeFunction::compute(tauCavity, shape, fsp.nc, fsp.sigma);
 	}
-	else //Compute directly from nCavity (which is a density product for nonlocalPCM):
+	else //Compute directly from nCavity (which is a density product for SaLSA):
 		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
 	//Compute and cache cavitation energy and gradients:
 	const auto& solvent = fsp.solvents[0];
 	switch(fsp.pcmVariant)
-	{	case PCM_SLSA13:
+	{	case PCM_SaLSA:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
 			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
@@ -215,7 +215,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 		A_nCavity = 0;
 		ShapeFunction::tauVW(nCavity, tauCavityUnused, &A_tauCavity, &A_nCavity);
 	}
-	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for NonlocalPCM)
+	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	A_nCavity = 0;
 		ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
@@ -252,7 +252,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
 	fprintf(fp, "   E_nc = %f\n", A_nc);
 	switch(fsp.pcmVariant)
-	{	case PCM_SLSA13:
+	{	case PCM_SaLSA:
 		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %f\n", A_vdwScale);
 			break;

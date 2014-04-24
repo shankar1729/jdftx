@@ -44,7 +44,7 @@ void FluidSolverParams::setPCMparams()
 	
 	//Set PCM fit parameters:
 	switch(pcmVariant)
-	{	case PCM_SLSA13:
+	{	case PCM_SaLSA:
 		{	nc = 1.2e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.;
@@ -67,8 +67,8 @@ void FluidSolverParams::setPCMparams()
 					initWarnings += "WARNING: SALSA has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
 					break;
 			}
-			assert(fluidType == FluidNonlocalPCM);
-			initWarnings += "WARNING: Nonlocal PCM is highly experimental!\n";
+			assert(fluidType == FluidSaLSA);
+			initWarnings += "WARNING: SaLSA (nonlocal PCM) is highly experimental!\n";
 			break;
 		}
 		case PCM_SG14:
@@ -292,7 +292,7 @@ bool FluidSolverParams::needsVDW() const
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
 			return (pcmVariant == PCM_SGA13);
-		case FluidNonlocalPCM:
+		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:
 			return true;

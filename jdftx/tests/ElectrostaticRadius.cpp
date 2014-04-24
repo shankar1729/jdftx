@@ -179,7 +179,7 @@ int main(int argc, char** argv)
 	//Replace the last (least significant) polarizability eigencomponent with the rotational one:
 	V.setColumn(V.nCols()-1, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
 	
-	//Quick estimate not based on NonlocalPCM solve:
+	//Quick estimate not based on SaLSA solve:
 	DataRptrVec rArr(e.gInfo), rCubedArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data(), rCubedArr.data()); //Create array of r in real space
 	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
 	ColumnBundle OJrCubed(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJrCubed.setColumn(k, O(J(Complex(rCubedArr[k])))); //Convert to a columnbundle projector

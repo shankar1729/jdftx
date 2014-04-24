@@ -185,9 +185,9 @@ struct CommandFluidMinimize : public CommandMinimize
 	{	const FluidType& fluidType = e.eVars.fluidParams.fluidType;
 		switch(fluidType)
 		{	case FluidLinearPCM:
-			case FluidNonlocalPCM:
+			case FluidSaLSA:
 				e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
-				e.fluidMinParams.knormThreshold = (fluidType==FluidNonlocalPCM) ? 1e-12 : 1e-11;
+				e.fluidMinParams.knormThreshold = (fluidType==FluidSaLSA) ? 1e-12 : 1e-11;
 				break;
 			default:;
 		}

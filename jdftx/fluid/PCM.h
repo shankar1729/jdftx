@@ -37,7 +37,7 @@ public:
 protected:
 	EnergyComponents Adiel; //!< PCM energy components
 	DataGptr rhoExplicitTilde; //!< Charge density of explicit (electronic) system
-	DataRptr nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for nonlocalPCM, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
+	DataRptr nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
 	DataRptr shape, shapeVdw; //!< Electrostatic cavity shape function (and separate cavitation/dispersion shape function for the SGA13 variant)
 	std::shared_ptr<IonicGradient> vdwForces; //!< cached forces due to dispersion terms (if any)
 	

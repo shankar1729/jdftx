@@ -52,20 +52,20 @@ struct CommandPcmVariant : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		if(fsp.fluidType==FluidNonlocalPCM) fsp.pcmVariant = PCM_SLSA13; //only option for NonlocalPCM
+		if(fsp.fluidType==FluidSaLSA) fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
 		else pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		if(fsp.fluidType==FluidNonlocalPCM) logPrintf("SLSA13"); //only option for NonlocalPCM
+		if(fsp.fluidType==FluidSaLSA) logPrintf("SLSA13"); //only option for SaLSA
 		else logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
 	}
 }
 commandPcmVariant;
 
 enum PCMparameter
-{	PCMp_lMax, //!< angular momentum truncation in nonlocal PCM
+{	PCMp_lMax, //!< angular momentum truncation in SaLSA
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
@@ -78,7 +78,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_cavityTension, "cavityTension"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
-(	PCMp_lMax, "angular momentum truncation in nonlocal PCM",
+(	PCMp_lMax, "angular momentum truncation in SaLSA",
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)"

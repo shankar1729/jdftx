@@ -17,17 +17,17 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_NONLOCALPCM_H
-#define JDFTX_ELECTRONIC_NONLOCALPCM_H
+#ifndef JDFTX_ELECTRONIC_SALSA_H
+#define JDFTX_ELECTRONIC_SALSA_H
 
 #include <fluid/PCM.h>
 #include <core/Minimize.h>
 
-class NonlocalPCM : public PCM, public LinearSolvable<DataGptr>
+class SaLSA : public PCM, public LinearSolvable<DataGptr>
 {
 public:
-	NonlocalPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
-    virtual ~NonlocalPCM();
+	SaLSA(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+    virtual ~SaLSA();
 	bool needsGummel() { return false; }
 
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
@@ -57,4 +57,4 @@ private:
 	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
-#endif // JDFTX_ELECTRONIC_NONLOCALPCM_H
+#endif // JDFTX_ELECTRONIC_SALSA_H

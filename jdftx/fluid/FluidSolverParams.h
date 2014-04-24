@@ -31,12 +31,12 @@ enum FluidType
 	FluidNone, //!< No fluid
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms
-	FluidNonlocalPCM, //!< Nonlocal polarizable continuum model (EXPERIMENTAL)
+	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM) (EXPERIMENTAL)
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
 enum PCMVariant
-{	PCM_SLSA13, //!< Non-local PCM, use only with fluid type NonlocalPCM [R. Sundararaman, K. Letchworth-Weaver, K. Schwarz and T.A. Arias (under preparation)]
+{	PCM_SaLSA, //!< Non-local PCM, use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
 	PCM_SG14,    //!< Empirical local-response isodensity PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SG14tau, //!< Empirical local-response isokinetic PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SG14tauVW, //!< Empirical local-response iso-orbital-free-kinetic PCM with weighted-cavity tension (EXPERIMENTAL)
@@ -71,7 +71,7 @@ struct FluidSolverParams
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	bool useTau; //!< use KE density instead of density
 	
-	//For Nonlocal PCM (SaLSA) alone:
+	//For SaLSA alone:
 	int lMax;
 	
 	//Debug parameters for Nonlinear PCM's:

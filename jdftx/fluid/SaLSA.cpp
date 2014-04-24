@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/DataIO.h>
 #include <core/DataMultiplet.h>
-#include <fluid/NonlocalPCM.h>
+#include <fluid/SaLSA.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/SphericalHarmonics.h>
@@ -45,7 +45,7 @@ struct MultipoleResponse
 	}
 };
 
-NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
+SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
 {	
 	logPrintf("   Initializing non-local response weight functions:\n");
@@ -171,13 +171,13 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp)
 	rStop = ((mpiUtil->iProcess()+1) * response.size()) / mpiUtil->nProcesses();
 }
 
-NonlocalPCM::~NonlocalPCM()
+SaLSA::~SaLSA()
 {	nFluid.free();
 	Kkernel.free();
 }
 
 
-DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
+DataGptr SaLSA::chi(const DataGptr& phiTilde) const
 {	DataGptr rhoTilde;
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
@@ -191,16 +191,16 @@ DataGptr NonlocalPCM::chi(const DataGptr& phiTilde) const
 }
 
 
-DataGptr NonlocalPCM::hessian(const DataGptr& phiTilde) const
+DataGptr SaLSA::hessian(const DataGptr& phiTilde) const
 {	return (-1./(4*M_PI*e.gInfo.detR)) * L(phiTilde) - chi(phiTilde);
 }
 
-DataGptr NonlocalPCM::precondition(const DataGptr& rTilde) const
+DataGptr SaLSA::precondition(const DataGptr& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
 
-void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void SaLSA::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {
 	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
 	
@@ -213,7 +213,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		siteShape[iSite] = I(Sf[iSite] * J(shape));
 	
-	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
+	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
 
 	//Update the inhomogeneity factor of the preconditioner
@@ -224,7 +224,7 @@ void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 }
 
 
-void NonlocalPCM::minimizeFluid()
+void SaLSA::minimizeFluid()
 {
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n",
 		e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
@@ -232,9 +232,9 @@ void NonlocalPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double SaLSA::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {
-	EnergyComponents& Adiel = ((NonlocalPCM*)this)->Adiel;
+	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
 
 	//First-order correct estimate of electrostatic energy:
@@ -270,17 +270,17 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	return Adiel;
 }
 
-void NonlocalPCM::loadState(const char* filename)
+void SaLSA::loadState(const char* filename)
 {	DataRptr Istate(DataR::alloc(e.gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space
 	state = J(Istate);
 }
 
-void NonlocalPCM::saveState(const char* filename) const
+void SaLSA::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
 }
 
-void NonlocalPCM::dumpDensities(const char* filenamePattern) const
+void SaLSA::dumpDensities(const char* filenamePattern) const
 {	PCM::dumpDensities(filenamePattern);
 	
 	//Dump effective site densities:
