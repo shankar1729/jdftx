@@ -170,7 +170,7 @@ void initSystem(int argc, char** argv)
 		for(int i=1; i<argc; i++) logPrintf(" %s", argv[i]);
 		logPrintf("\n");
 	}
-	else logPrintf(" empty command-line.\n");
+	else logPrintf("empty command-line (run with -h or --help for command-line options).\n");
 	
 	registerHandlers();
 	
