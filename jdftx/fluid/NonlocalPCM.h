@@ -30,7 +30,6 @@ public:
     virtual ~NonlocalPCM();
 	bool needsGummel() { return false; }
 
-	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
 	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
 	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
@@ -45,8 +44,10 @@ public:
 
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
-
+protected:
+	void printDebug(FILE* fp) const;
 private:
+	double sigmaVdw; //!< gaussian width for weight functions below
 	RadialFunctionG& wCavity; //unit-norm weight function (~ electron density / Ztot), points to Sf[0] in PCM
 	RadialFunctionG wDiel; //unit-norm weight function for dielectric response
 	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner

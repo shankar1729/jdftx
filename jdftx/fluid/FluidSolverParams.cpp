@@ -80,8 +80,8 @@ void FluidSolverParams::setPCMparams()
 			{	case FluidComponent::H2O:
 				default:
 					Ztot = 8;
-					eta_wDiel = 0.;
-					sqrtC6eff = 1.1;
+					eta_wDiel = 0.5;
+					sqrtC6eff = 1.0;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: NonlocalPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;

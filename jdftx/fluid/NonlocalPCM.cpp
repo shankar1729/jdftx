@@ -33,6 +33,12 @@ inline double gaussRsqTilde(double G, double sigma, double eta)
 	double sigmaGsq = sigmaG*sigmaG;
 	return exp(-0.5*sigmaGsq) * (1. - (eta/(1.+3*eta))*sigmaGsq);
 }
+//derivative if gaussRsqTilde w.r.t eta:
+inline double gaussRsqTilde_eta(double G, double sigma, double eta)
+{	double sigmaG = sigma*G;
+	double sigmaGsq = sigmaG*sigmaG;
+	return exp(-0.5*sigmaGsq) * (-sigmaGsq)/((1.+3*eta) * (1.+3*eta));
+}
 
 //Initialize Kkernel to inverse square-root of the Hessian in the uniform fluid limit
 inline double setPreconditionerKernel(double G, double sigma, double eta, double epsBulk, double k2factor)
@@ -43,7 +49,7 @@ inline double setPreconditionerKernel(double G, double sigma, double eta, double
 
 NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp) : PCM(e, fsp), wCavity(Sf[0])
 {	//Compute the gaussian width parameter from Rvdw:
-	double sigmaVdw = 1.;
+	sigmaVdw = 1.;
 	for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
 	{	double sigmaVdwNew = (2*fsp.solvents[0]->Rvdw) / sqrt(-4. * log(fsp.nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(fsp.Ztot,2)));
 		if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
@@ -53,11 +59,12 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp) : PC
 	wCavity.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw);
 	wDiel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, gaussRsqTilde, sigmaVdw, fsp.eta_wDiel);
 	Kkernel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, setPreconditionerKernel, sigmaVdw, fsp.eta_wDiel, epsBulk, k2factor);
-	logPrintf("Initialized NonlocalPCM weight functions with sigma = %lg and eta = %lg\n", sigmaVdw, fsp.eta_wDiel);
+	logPrintf("   NonlocalPCM weight functions with sigma = %lg bohr and eta = %lg\n", sigmaVdw, fsp.eta_wDiel);
 }
 
 NonlocalPCM::~NonlocalPCM()
-{	Kkernel.free();
+{	wDiel.free();
+	Kkernel.free();
 }
 
 
@@ -139,4 +146,19 @@ void NonlocalPCM::loadState(const char* filename)
 
 void NonlocalPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
+}
+
+void NonlocalPCM::printDebug(FILE* fp) const
+{	//Print derivative w.r.t electrostatic weight function parameter:
+	//--- compute derivative w.r.t w*phi
+	const DataGptr& phi = state;
+	DataGptr wphi = wDiel*phi;
+	DataGptr A_wphi = ((epsBulk-1)/(4*M_PI)) * divergence(J(shape * I(gradient(wphi))));
+	if(k2factor) A_wphi -= (k2factor/(4*M_PI)) * J(shape * I(wphi));
+	//--- propagate to derivative w.r.t eta
+	RadialFunctionG wDiel_eta;
+	wDiel_eta.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, gaussRsqTilde_eta, sigmaVdw, fsp.eta_wDiel);
+	double A_eta = integral(I(A_wphi) * I(wDiel_eta*phi));
+	wDiel_eta.free();
+	fprintf(fp, "   E_wDiel_eta = %.15lg\n", A_eta);
 }

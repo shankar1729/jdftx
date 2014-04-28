@@ -257,20 +257,20 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
 	
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
-	fprintf(fp, "   E_nc = %f\n", A_nc);
+	fprintf(fp, "   E_nc = %.15lg\n", A_nc);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_SGA13:
-			fprintf(fp, "   E_vdwScale = %f\n", A_vdwScale);
+			fprintf(fp, "   E_vdwScale = %.15lg\n", A_vdwScale);
 			break;
 		case PCM_Nonlocal:
-			fprintf(fp, "   E_sqrtC6eff = %f\n", A_vdwScale);
+			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			break;
 		case PCM_SG14:
 		case PCM_SG14tau:
 		case PCM_SG14tauVW:
 		case PCM_GLSSA13:
-			fprintf(fp, "   E_t = %f\n", A_tension);
+			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
 		case PCM_LA12:
 		case PCM_PRA05:
