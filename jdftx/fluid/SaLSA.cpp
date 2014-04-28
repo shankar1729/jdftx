@@ -49,7 +49,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
 {	
 	logPrintf("   Initializing non-local response weight functions:\n");
-	const double dG = 0.02, Gmax = e.gInfo.GmaxGrid;
+	const double dG = e.gInfo.dGradial, Gmax = e.gInfo.GmaxGrid;
 	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
 
 	//Initialize fluid molecule's spherically-averaged electron density kernel:

@@ -31,6 +31,8 @@ public:
 	VanDerWaals(const Everything &everything);
 	~VanDerWaals();
 	
+	const static int unitParticle = -1; //!< special atomic number used by some fluids: point particle with C6=1 J-nm^6/mol and R0=0
+	
 	//! Van der Waal correction energy for a collection of discrete atoms at fixed locations
 	//! Corresponding forces are accumulated to Atom::force for each atom
 	double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const;

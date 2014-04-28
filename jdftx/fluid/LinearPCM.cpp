@@ -88,7 +88,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	const DataGptr& phi = state; // that's what we solved for in minimize
 
 	//The "electrostatic" gradient is the potential due to the bound charge alone:
-	Adiel_rhoExplicitTilde = phi - (-4*M_PI)*Linv(O(rhoExplicitTilde));
+	Adiel_rhoExplicitTilde = phi - coulomb(rhoExplicitTilde);
 	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde)) //True energy if phi was an exact solution
 		+ 0.5*dot(O(phi), rhoExplicitTilde - hessian(phi)); //First order residual correction (remaining error is second order)
 	

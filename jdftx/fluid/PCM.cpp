@@ -53,7 +53,8 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	//Print common info and add relevant citations:
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
-	{	case PCM_SaLSA: //Nonlocal PCMs
+	{	case PCM_SaLSA:
+		case PCM_Nonlocal: //Nonlocal PCMs
 		case PCM_SGA13: //and local PCM that uses weighted-density cavitation+dispersion
 		{	if(fsp.pcmVariant==PCM_SaLSA)
 				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
@@ -72,12 +73,21 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
 			//Initialize structure factors for dispersion:
-			if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
-			Sf.resize(solvent->molecule.sites.size());
-			for(unsigned i=0; i<Sf.size(); i++)
-			{	std::vector<double> r; //radial distances of solvent sites from center
-				for(vector3<> pos: solvent->molecule.sites[i]->positions) r.push_back(pos.length());
-				Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
+			if(fsp.pcmVariant == PCM_Nonlocal)
+			{	Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
+				//TODO: Init Sf functional form
+				atomicNumbers.assign(1, VanDerWaals::unitParticle);
+			}
+			else
+			{	if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
+				Sf.resize(solvent->molecule.sites.size());
+				atomicNumbers.resize(solvent->molecule.sites.size());
+				for(unsigned i=0; i<Sf.size(); i++)
+				{	std::vector<double> r; //radial distances of solvent sites from center
+					for(vector3<> pos: solvent->molecule.sites[i]->positions) r.push_back(pos.length());
+					Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
+					atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
+				}
 			}
 			vdwForces = std::make_shared<IonicGradient>();
 			break;
@@ -136,6 +146,7 @@ void PCM::updateCavity()
 	const auto& solvent = fsp.solvents[0];
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
+		case PCM_Nonlocal:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
 			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
@@ -151,14 +162,12 @@ void PCM::updateCavity()
 			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
 			//Dispersion:
 			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
-			std::vector<int> atomicNumbers(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
-			{	Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-				atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
-			}
+				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			vdwForces->init(e.iInfo);
-			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.vdwScale, &A_Ntilde, &(*vdwForces));
-			A_vdwScale = Adiel["Dispersion"]/fsp.vdwScale;
+			const double vdwScaleEff = (fsp.pcmVariant==PCM_Nonlocal) ? fsp.sqrtC6eff : fsp.vdwScale;
+			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde, &(*vdwForces));
+			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])
 					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
@@ -230,8 +239,6 @@ void PCM::dumpDensities(const char* filenamePattern) const
 	}
 }
 
-extern bool hackedTS;
-
 void PCM::dumpDebug(const char* filenamePattern) const
 {	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
@@ -256,6 +263,9 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %f\n", A_vdwScale);
 			break;
+		case PCM_Nonlocal:
+			fprintf(fp, "   E_sqrtC6eff = %f\n", A_vdwScale);
+			break;
 		case PCM_SG14:
 		case PCM_SG14tau:
 		case PCM_SG14tauVW:
@@ -265,25 +275,6 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_LA12:
 		case PCM_PRA05:
 			break;
-	}
-	
-	//HACK:
-	if(Sf.size())
-	{	const auto& solvent = fsp.solvents[0];
-		fprintf(fp, "\n\nDispersion model comparison:\n");
-		const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
-		DataGptrCollection Ntilde(Sf.size());
-		std::vector<int> atomicNumbers(Sf.size());
-		for(unsigned i=0; i<Sf.size(); i++)
-		{	Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
-		}
-		double vdwGrimme = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.vdwScale);
-		hackedTS = true;
-		double vdwTS = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, fsp.vdwScale);
-		fprintf(fp, "   vdw-Grimme: %lf\n", vdwGrimme);
-		fprintf(fp, "   vdw-TS:     %lf\n", vdwTS);
-		fprintf(fp, "   TS/Grimme:  %lf\n", vdwTS/vdwGrimme);
 	}
 	
 	printDebug(fp);

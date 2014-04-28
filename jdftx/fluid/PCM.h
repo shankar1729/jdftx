@@ -53,6 +53,8 @@ private:
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
 protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
+	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)
+	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
 #endif // JDFTX_ELECTRONIC_PCM_H

@@ -17,17 +17,17 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_SALSA_H
-#define JDFTX_ELECTRONIC_SALSA_H
+#ifndef JDFTX_ELECTRONIC_NONLOCALPCM_H
+#define JDFTX_ELECTRONIC_NONLOCALPCM_H
 
 #include <fluid/PCM.h>
 #include <core/Minimize.h>
 
-class SaLSA : public PCM, public LinearSolvable<DataGptr>
+class NonlocalPCM : public PCM, public LinearSolvable<DataGptr>
 {
 public:
-	SaLSA(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
-    virtual ~SaLSA();
+	NonlocalPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
+    virtual ~NonlocalPCM();
 	bool needsGummel() { return false; }
 
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
@@ -46,14 +46,10 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
-	void dumpDensities(const char* filenamePattern) const; //!< dump cavity shape functions
-
 private:
-	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
-	int rStart, rStop; //MPI division of response array
-	RadialFunctionG nFluid; //electron density model for the fluid
+	RadialFunctionG& wCavity; //unit-norm weight function (~ electron density / Ztot), points to Sf[0] in PCM
+	RadialFunctionG wDiel; //unit-norm weight function for dielectric response
 	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
-	DataRptrCollection siteShape; //shape functions for sites
 };
 
-#endif // JDFTX_ELECTRONIC_SALSA_H
+#endif // JDFTX_ELECTRONIC_NONLOCALPCM_H

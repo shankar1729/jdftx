@@ -31,12 +31,14 @@ enum FluidType
 	FluidNone, //!< No fluid
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms
+	FluidNonlocalPCM, //!< Nonlocal PCM: simplified and semi-empirical version of SaLSA (EXPERIMENTAL)
 	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM) (EXPERIMENTAL)
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
 enum PCMVariant
-{	PCM_SaLSA, //!< Non-local PCM, use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
+{	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
+	PCM_Nonlocal, //!< Use only with fluid type NonlocalPCM (EXPERIMENTAL)
 	PCM_SG14,    //!< Empirical local-response isodensity PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SG14tau, //!< Empirical local-response isokinetic PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SG14tauVW, //!< Empirical local-response iso-orbital-free-kinetic PCM with weighted-cavity tension (EXPERIMENTAL)
@@ -70,6 +72,11 @@ struct FluidSolverParams
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	bool useTau; //!< use KE density instead of density
+	
+	//For NonlocalPCM alone:
+	double Ztot; //!< number of valence electrons
+	double eta_wDiel; //!< control electrostatic weight function = normalized exp(-(r/sigma)^2/2)*(1 + eta*(r/sigma)^2) (fit parameter)
+	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary due to this, and not used by NonlocalPCM)
 	
 	//For SaLSA alone:
 	int lMax;

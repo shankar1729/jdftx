@@ -53,12 +53,14 @@ struct CommandPcmVariant : public Command
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
 		if(fsp.fluidType==FluidSaLSA) fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
+		else if(fsp.fluidType==FluidNonlocalPCM) fsp.pcmVariant = PCM_Nonlocal; //only option for NonlocalPCM
 		else pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
-		if(fsp.fluidType==FluidSaLSA) logPrintf("SLSA13"); //only option for SaLSA
+		if(fsp.fluidType==FluidSaLSA) logPrintf("SaLSA"); //only option for SaLSA
+		else if(fsp.fluidType==FluidNonlocalPCM) logPrintf("Nonlocal"); //only option for NonlocalPCM
 		else logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
 	}
 }
@@ -69,19 +71,25 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-	PCMp_Delim //!< Delimiter used in parsing:
+	PCMp_eta_wDiel, //!< fit parameter for electric response weight function in NonlocalPCM
+	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for NonlocalPCM
+	PCMp_Delim //!< Delimiter used in parsing
 };
 EnumStringMap<PCMparameter> pcmParamMap
 (	PCMp_lMax,          "lMax",
 	PCMp_nc,            "nc",
 	PCMp_sigma,         "sigma",
-	PCMp_cavityTension, "cavityTension"
+	PCMp_cavityTension, "cavityTension",
+	PCMp_eta_wDiel, "eta_wDiel",
+	PCMp_sqrtC6eff, "sqrtC6eff"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_lMax, "angular momentum truncation in SaLSA",
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
-	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)"
+	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
+	PCMp_eta_wDiel, "fit parameter for electric response weight function in NonlocalPCM",
+	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for NonlocalPCM"
 );
 
 struct CommandPcmParams : public Command
@@ -111,6 +119,8 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
+				READ_AND_CHECK(eta_wDiel, >, -1./3)
+				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -124,6 +134,8 @@ struct CommandPcmParams : public Command
 		PRINT(nc)
 		PRINT(sigma)
 		PRINT(cavityTension)
+		PRINT(eta_wDiel)
+		PRINT(sqrtC6eff)
 		#undef PRINT
 	}
 }

@@ -71,6 +71,19 @@ struct RadialFunctionG
 		init(l, samples, dG);
 	}
 	
+	//Fourier transform of cuspless exponential (for use with init)
+	static inline double cusplessExpTilde(double G, double norm, double a)
+	{	double aG = a*G;
+		double den = 1./(1.+aG*aG);
+		return norm * den*den*den;
+	}
+
+	//Fourier transform of gaussian (for use with init)
+	static inline double gaussTilde(double G, double norm, double sigma)
+	{	double sigmaG = sigma*G;
+		return norm * exp(-0.5*sigmaG*sigmaG);
+	}
+	
 	explicit operator bool() const { return nCoeff; } //!< test null-ness
 	#endif
 };

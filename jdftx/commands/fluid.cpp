@@ -25,6 +25,7 @@ EnumStringMap<FluidType> fluidTypeMap
 (	FluidNone, "None",
 	FluidLinearPCM, "LinearPCM",
 	FluidNonlinearPCM, "NonlinearPCM",
+	FluidNonlocalPCM, "NonlocalPCM",
 	FluidSaLSA, "SaLSA",
 	FluidClassicalDFT, "ClassicalDFT"
 );
@@ -357,6 +358,7 @@ struct CommandFluidSolvent : public CommandFluidComponent
 		switch(e.eVars.fluidParams.fluidType)
 		{	case FluidLinearPCM:
 			case FluidNonlinearPCM:
+			case FluidNonlocalPCM:
 			case FluidSaLSA:
 				if(e.eVars.fluidParams.solvents.size()>1)
 					throw string("PCMs require exactly one solvent component - more than one specified.");

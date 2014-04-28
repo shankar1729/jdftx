@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidSolver.h>
 #include <electronic/Everything.h>
 #include <fluid/SaLSA.h>
+#include <fluid/NonlocalPCM.h>
 #include <fluid/NonlinearPCM.h>
 #include <fluid/LinearPCM.h>
 #include <fluid/ConvCoupling.h>
@@ -260,6 +261,8 @@ FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& fsp
 			return new LinearPCM(e, fsp);
 		case FluidNonlinearPCM:
 			return new NonlinearPCM(e, fsp);
+		case FluidNonlocalPCM:
+			return new NonlocalPCM(e, fsp);
 		case FluidSaLSA:
 			return new SaLSA(e, fsp);
 		case FluidClassicalDFT:

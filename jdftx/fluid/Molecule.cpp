@@ -48,19 +48,6 @@ void Molecule::Site::free()
 	}
 }
 
-//Fourier transform of cuspless exponential
-inline double cusplessExpTilde(double G, double norm, double a)
-{	double aG = a*G;
-	double den = 1./(1.+aG*aG);
-	return norm * den*den*den;
-}
-
-//Fourier transform of gaussian
-inline double gaussTilde(double G, double norm, double sigma)
-{	double sigmaG = sigma*G;
-	return norm * exp(-0.5*sigmaG*sigmaG);
-}
-
 void Molecule::Site::setup(const GridInfo& gInfo)
 {	if(initialized) free();
 	logPrintf("     Initializing site '%s'\n", name.c_str());
@@ -72,7 +59,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 		{
 			logPrintf("\n       Initializing cuspless exponential with width %lg and norm %lg\n", aElec, Zelec);
 		}
-		elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, cusplessExpTilde, Zelec, aElec); 
+		elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::cusplessExpTilde, Zelec, aElec); 
 		if(elecFilename.length())
 		{	
 			ifstream ifs(elecFilename.c_str());
@@ -215,7 +202,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 		for(unsigned iG=0; iG<samples.size(); iG++)
 		{	double G = iG * gInfo.dGradial;
 			if(elecKernel) samples[iG] += elecKernel(G);
-			if(Znuc) samples[iG] -= gaussTilde(G, Znuc, sigmaNuc);
+			if(Znuc) samples[iG] -= RadialFunctionG::gaussTilde(G, Znuc, sigmaNuc);
 		}
 		chargeKernel.init(0, samples, gInfo.dGradial);
 		logPrintf(" with net site charge %lg\n", chargeKernel(0));
@@ -224,7 +211,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	//Initialize polarizability kernel:
 	if(alpha)
 	{	logPrintf("       Polarizability: cuspless exponential with width %lg and norm %lg\n", aPol, alpha);
-		polKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, cusplessExpTilde, 1., aPol);
+		polKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::cusplessExpTilde, 1., aPol);
 	}
 	
 	if(Rhs)

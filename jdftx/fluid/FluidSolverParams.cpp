@@ -68,7 +68,26 @@ void FluidSolverParams::setPCMparams()
 					break;
 			}
 			assert(fluidType == FluidSaLSA);
-			initWarnings += "WARNING: SaLSA (nonlocal PCM) is highly experimental!\n";
+			initWarnings += "WARNING: SaLSA is highly experimental!\n";
+			break;
+		}
+		case PCM_Nonlocal:
+		{	nc = 1.2e-3;
+			sigma = sqrt(0.5);
+			cavityTension = 0.; //not used
+			vdwScale = 1.; //not used
+			switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+				default:
+					Ztot = 8;
+					eta_wDiel = 0.;
+					sqrtC6eff = 1.1;
+					if(solvents[0]->name != FluidComponent::H2O)
+						initWarnings += "WARNING: NonlocalPCM has not been parametrized for this solvent, using fit parameters for water\n";
+					break;
+			}
+			assert(fluidType == FluidNonlocalPCM);
+			initWarnings += "WARNING: NonlocalPCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SG14:
@@ -91,26 +110,9 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_SG14tau:
-		{	sigma = 0.6;
-			useTau = true;
-			switch(solvents[0]->name)
-			{	case FluidComponent::H2O:
-					nc = 1.64e-04;
-					cavityTension = 2.37e-04;
-					break;
-				case FluidComponent::CH3CN:
-					nc = 5.77e-05;
-					cavityTension = -4.42e-03;
-					break;
-				default:
-					throw string("PCM SG14tau not parametrized for this solvent.");
-					break;
-			}
-			initWarnings += "WARNING: SG14tau PCM is highly experimental!\n";
-			break;
-		}
 		case PCM_SG14tauVW:
 		{	sigma = 0.6;
+			useTau = (pcmVariant==PCM_SG14tau); //tauVW variant derives tau from n rather than orbitals
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
 					nc = 1.64e-04;
@@ -121,10 +123,10 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = -4.42e-03;
 					break;
 				default:
-					throw string("PCM SG14tauVW not parametrized for this solvent.");
+					throw string("PCM SG14tau(VW) not parametrized for this solvent.");
 					break;
 			}
-			initWarnings += "WARNING: SG14tauVW PCM is highly experimental!\n";
+			initWarnings += "WARNING: SG14tau(VW) PCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SGA13:
@@ -293,6 +295,7 @@ bool FluidSolverParams::needsVDW() const
 		case FluidNonlinearPCM:
 			return (pcmVariant == PCM_SGA13);
 		case FluidSaLSA:
+		case FluidNonlocalPCM:
 		case FluidClassicalDFT:
 		default:
 			return true;
