@@ -77,7 +77,12 @@ void FluidSolverParams::setPCMparams()
 			cavityTension = 0.; //not used
 			vdwScale = 1.; //not used
 			switch(solvents[0]->name)
-			{	case FluidComponent::H2O:
+			{	case FluidComponent::CH3CN:
+					Ztot = 16;
+					eta_wDiel = 0.5;
+					sqrtC6eff = 5.0;
+					break;
+				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
 					eta_wDiel = 0.5;
