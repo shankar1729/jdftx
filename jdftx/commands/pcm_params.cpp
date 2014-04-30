@@ -119,7 +119,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
-				READ_AND_CHECK(eta_wDiel, >, -1./3)
+				READ_AND_CHECK(eta_wDiel, >=, 0.)
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				case PCMp_Delim: return; //end of input
 			}

@@ -75,7 +75,7 @@ struct FluidSolverParams
 	
 	//For NonlocalPCM alone:
 	double Ztot; //!< number of valence electrons
-	double eta_wDiel; //!< control electrostatic weight function = normalized exp(-(r/sigma)^2/2)*(1 + eta*(r/sigma)^2) (fit parameter)
+	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary due to this, and not used by NonlocalPCM)
 	
 	//For SaLSA alone:

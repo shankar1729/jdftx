@@ -27,22 +27,24 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <cstring>
 
-//Gaussian with rSq modification electrostatic kernel
-inline double gaussRsqTilde(double G, double sigma, double eta)
+//Electrostatic kernel (gaussian convolved with l=1 Bessel)
+inline double wDielTilde(double G, double sigma, double eta)
 {	double sigmaG = sigma*G;
 	double sigmaGsq = sigmaG*sigmaG;
-	return exp(-0.5*sigmaGsq) * (1. - (eta/(1.+3*eta))*sigmaGsq);
+	double etaG = eta*G;
+	return exp(-0.5*sigmaGsq) * (etaG ? 3.*bessel_jl(1,etaG)/etaG : 1.);
 }
-//derivative if gaussRsqTilde w.r.t eta:
-inline double gaussRsqTilde_eta(double G, double sigma, double eta)
+//derivative if wDielTilde w.r.t eta:
+inline double wDielTilde_eta(double G, double sigma, double eta)
 {	double sigmaG = sigma*G;
 	double sigmaGsq = sigmaG*sigmaG;
-	return exp(-0.5*sigmaGsq) * (-sigmaGsq)/((1.+3*eta) * (1.+3*eta));
+	double etaG = eta*G;
+	return exp(-0.5*sigmaGsq) * (etaG ? 3.*(sin(etaG)-3*bessel_jl(1,etaG))/(etaG*eta) : 0.);
 }
 
 //Initialize Kkernel to inverse square-root of the Hessian in the uniform fluid limit
 inline double setPreconditionerKernel(double G, double sigma, double eta, double epsBulk, double k2factor)
-{	const double wDiel = gaussRsqTilde(G, sigma, eta);
+{	const double wDiel = wDielTilde(G, sigma, eta);
 	double diagH = G*G + wDiel*wDiel*(G*G*(epsBulk-1.) + k2factor);
 	return diagH>1e-12 ? 1./sqrt(diagH) : 0.;
 }
@@ -57,7 +59,7 @@ NonlocalPCM::NonlocalPCM(const Everything& e, const FluidSolverParams& fsp) : PC
 	}
 	//Initialize kernels:
 	wCavity.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw);
-	wDiel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, gaussRsqTilde, sigmaVdw, fsp.eta_wDiel);
+	wDiel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wDielTilde, sigmaVdw, fsp.eta_wDiel);
 	Kkernel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, setPreconditionerKernel, sigmaVdw, fsp.eta_wDiel, epsBulk, k2factor);
 	logPrintf("   NonlocalPCM weight functions with sigma = %lg bohr and eta = %lg\n", sigmaVdw, fsp.eta_wDiel);
 }
@@ -157,7 +159,7 @@ void NonlocalPCM::printDebug(FILE* fp) const
 	if(k2factor) A_wphi -= (k2factor/(4*M_PI)) * J(shape * I(wphi));
 	//--- propagate to derivative w.r.t eta
 	RadialFunctionG wDiel_eta;
-	wDiel_eta.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, gaussRsqTilde_eta, sigmaVdw, fsp.eta_wDiel);
+	wDiel_eta.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wDielTilde_eta, sigmaVdw, fsp.eta_wDiel);
 	double A_eta = integral(I(A_wphi) * I(wDiel_eta*phi));
 	wDiel_eta.free();
 	fprintf(fp, "   E_wDiel_eta = %.15lg\n", A_eta);
