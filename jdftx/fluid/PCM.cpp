@@ -219,6 +219,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 	{	//First compute derivative w.r.t tauVW:
 		DataRptr A_tauCavity;
 		ShapeFunction::propagateGradient(tauCavity, A_shape + Acavity_shape, A_tauCavity, fsp.nc, fsp.sigma);
+		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_tauCavity*tauCavity);
 		//then propagate to nCavity
 		DataRptr tauCavityUnused;
 		A_nCavity = 0;
