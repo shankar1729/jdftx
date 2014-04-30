@@ -85,11 +85,13 @@ DataGptr NonlocalPCM::precondition(const DataGptr& rTilde) const
 
 void NonlocalPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {
-	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
-	
 	//Compute cavity shape function (0 to 1)
 	nCavity = fsp.Ztot * I(wCavity * nCavityTilde);
 	updateCavity();
+
+	//Store the explicit system charge, and augment it with the charge asymmetry contribution:
+	this->rhoExplicitTilde = clone(rhoExplicitTilde) + (fsp.pCavity/e.gInfo.detR)*L(J(shape));
+	zeroNyquist(this->rhoExplicitTilde);
 
 	logPrintf("\tNonlocalPCM fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
 	logFlush();
@@ -130,6 +132,8 @@ double NonlocalPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGpt
 	{	DataRptr Iwphi = I(wphi);
 		Adiel_shape -= (k2factor/(8*M_PI)) * (Iwphi*Iwphi);
 	}
+	//--- pCavity contributions:
+	Adiel_shape += (fsp.pCavity/e.gInfo.detR) * I(L(Adiel_rhoExplicitTilde));
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
@@ -163,4 +167,7 @@ void NonlocalPCM::printDebug(FILE* fp) const
 	double A_eta = integral(I(A_wphi) * I(wDiel_eta*phi));
 	wDiel_eta.free();
 	fprintf(fp, "   E_wDiel_eta = %.15lg\n", A_eta);
+	
+	DataGptr phiExt = coulomb(rhoExplicitTilde);
+	fprintf(fp, "   E_pCavity = %.15lg\n", dot(phi-phiExt,L(J(shape))));
 }

@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), useTau(false), lMax(2),
+vdwScale(0.75), useTau(false), pCavity(0.), lMax(2),
 linearDielectric(false), linearScreening(false)
 {
 }
@@ -81,12 +81,14 @@ void FluidSolverParams::setPCMparams()
 					Ztot = 16;
 					eta_wDiel = 0.5;
 					sqrtC6eff = 5.0;
+					pCavity = 1.0e-3;
 					break;
 				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
 					eta_wDiel = 0.5;
 					sqrtC6eff = 1.0;
+					pCavity = 1.0e-3;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: NonlocalPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
