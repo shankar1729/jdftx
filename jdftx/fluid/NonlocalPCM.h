@@ -51,6 +51,7 @@ private:
 	RadialFunctionG& wCavity; //unit-norm weight function (~ electron density / Ztot), points to Sf[0] in PCM
 	RadialFunctionG wDiel; //unit-norm weight function for dielectric response
 	RadialFunctionG Kkernel; DataRptr epsInv; //for preconditioner
+	DataRptr shapeDiel; double A_eta;
 };
 
 #endif // JDFTX_ELECTRONIC_NONLOCALPCM_H

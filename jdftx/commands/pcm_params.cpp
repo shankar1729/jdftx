@@ -190,6 +190,7 @@ struct CommandIonWidth : public Command
 		{	switch(e.eVars.fluidParams.fluidType)
 			{	case FluidLinearPCM:
 				case FluidNonlinearPCM:
+				case FluidNonlocalPCM:
 					e.iInfo.ionWidthMethod = IonInfo::IonWidthEcut;
 					break;
 				default:
