@@ -47,7 +47,7 @@ protected:
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate A_shape (+ cached Acavity_shape) to those A_nCavity (set result, not accumulate)
 private:
 	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
-	double A_nc, A_tension, A_vdwScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	double A_nc, A_tension, A_vdwScale, A_eta_wDiel; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy

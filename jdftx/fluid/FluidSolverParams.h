@@ -31,17 +31,15 @@ enum FluidType
 	FluidNone, //!< No fluid
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms
-	FluidNonlocalPCM, //!< Nonlocal PCM: simplified and semi-empirical version of SaLSA (EXPERIMENTAL)
 	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM) (EXPERIMENTAL)
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
-	PCM_Nonlocal, //!< Use only with fluid type NonlocalPCM (EXPERIMENTAL)
+	PCM_SG14NL, //!< Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion (EXPERIMENTAL)
 	PCM_SG14,    //!< Empirical local-response isodensity PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SG14tau, //!< Empirical local-response isokinetic PCM with weighted-cavity tension (EXPERIMENTAL)
-	PCM_SG14tauVW, //!< Empirical local-response iso-orbital-free-kinetic PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavotation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
@@ -73,10 +71,10 @@ struct FluidSolverParams
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	bool useTau; //!< use KE density instead of density
 	
-	//For NonlocalPCM alone:
+	//For SG14NL alone:
 	double Ztot; //!< number of valence electrons
 	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
-	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary due to this, and not used by NonlocalPCM)
+	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
 	double pCavity; //!< build-in dipole on cavity surface to emulate charge asymmetry (fit parameter)
 	
 	//For SaLSA alone:

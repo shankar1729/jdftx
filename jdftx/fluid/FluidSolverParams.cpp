@@ -71,7 +71,7 @@ void FluidSolverParams::setPCMparams()
 			initWarnings += "WARNING: SaLSA is highly experimental!\n";
 			break;
 		}
-		case PCM_Nonlocal:
+		case PCM_SG14NL:
 		{	nc = 1.2e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.; //not used
@@ -90,11 +90,11 @@ void FluidSolverParams::setPCMparams()
 					sqrtC6eff = 1.0;
 					pCavity = 1.0e-3;
 					if(solvents[0]->name != FluidComponent::H2O)
-						initWarnings += "WARNING: NonlocalPCM has not been parametrized for this solvent, using fit parameters for water\n";
+						initWarnings += "WARNING: SG14NL LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
 			}
-			assert(fluidType == FluidNonlocalPCM);
-			initWarnings += "WARNING: NonlocalPCM is highly experimental!\n";
+			assert(fluidType == FluidLinearPCM);
+			initWarnings += "WARNING: SG14NL LinearPCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SG14:
@@ -117,9 +117,8 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_SG14tau:
-		case PCM_SG14tauVW:
 		{	sigma = 0.6;
-			useTau = (pcmVariant==PCM_SG14tau); //tauVW variant derives tau from n rather than orbitals
+			useTau = true;
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
 					nc = 1.64e-04;
@@ -130,10 +129,10 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = -4.42e-03;
 					break;
 				default:
-					throw string("PCM SG14tau(VW) not parametrized for this solvent.");
+					throw string("PCM SG14tau not parametrized for this solvent.");
 					break;
 			}
-			initWarnings += "WARNING: SG14tau(VW) PCM is highly experimental!\n";
+			initWarnings += "WARNING: SG14tau PCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SGA13:
@@ -300,9 +299,8 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant == PCM_SGA13);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_SG14NL);
 		case FluidSaLSA:
-		case FluidNonlocalPCM:
 		case FluidClassicalDFT:
 		default:
 			return true;

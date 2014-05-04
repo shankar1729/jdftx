@@ -27,13 +27,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/Units.h>
 
-double wExpand_calc(double G, double R)
+inline double wExpand_calc(double G, double R)
 {	return (2./3)*(bessel_jl(0, G*R) + bessel_jl(2, G*R)); //corresponds to theta(R-r)/(2*pi*R^3)
 }
 
-double wCavity_calc(double G, double d)
+inline double wCavity_calc(double G, double d)
 {	return bessel_jl(0, G*d); //corresponds to delta(d-r)
 }
+
+inline double wCavity_d_calc(double G, double d)
+{	return -G*bessel_jl(1,G*d); //derivative w.r.t. d of wCavity_calc
+}
+
 
 //Spherically-averaged structure factor
 double Sf_calc(double G, const std::vector<double>* rArr)
@@ -53,12 +58,31 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	//Print common info and add relevant citations:
 	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
-	{	case PCM_SaLSA:
-		case PCM_Nonlocal: //Nonlocal PCMs
-		case PCM_SGA13: //and local PCM that uses weighted-density cavitation+dispersion
+	{	case PCM_SaLSA: //Nonlocal PCM
+		case PCM_SG14NL: //and local PCMs that uses weighted-density cavitation+dispersion
+		case PCM_SGA13:
 		{	if(fsp.pcmVariant==PCM_SaLSA)
 				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
 					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, D. Gunceler, and T.A. Arias, (under preparation)");
+			else if(fsp.pcmVariant==PCM_SG14NL)
+			{	Citations::add("Linear dielectric/ionic fluid model with nonlocal cavity, weighted-density cavitation and dispersion and charge asymmetry",
+					"R. Sundararaman, Y. Ping and W.A. Goddard III, (under preparation)");
+				//Compute the gaussian width parameter from Rvdw:
+				double sigmaVdw = 1.;
+				for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
+				{	double sigmaVdwNew = (2*solvent->Rvdw) / sqrt(-4. * log(fsp.nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(fsp.Ztot,2)));
+					if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
+					sigmaVdw = sigmaVdwNew;
+				}
+				logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", fsp.Ztot, sigmaVdw);
+				logPrintf("   Electrostatic cavity expanded by eta = %lg bohrs with built-in dipole pCavity = %lg e/bohr\n", fsp.eta_wDiel, fsp.pCavity);
+				//Initialize kernels:
+				Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
+				Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //used for vdw cavity as well as dispersion
+				wExpand[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_calc, fsp.eta_wDiel); //dielectric cavity expansion kernel
+				wExpand[1].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_d_calc, fsp.eta_wDiel); //derivative of above w.r.t d
+				atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
+			}
 			else
 			{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 					"R. Sundararaman, D. Gunceler, and T.A. Arias, (under preparation)");
@@ -73,12 +97,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
 			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
 			//Initialize structure factors for dispersion:
-			if(fsp.pcmVariant == PCM_Nonlocal)
-			{	Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
-				//TODO: Init Sf functional form
-				atomicNumbers.assign(1, VanDerWaals::unitParticle);
-			}
-			else
+			if(fsp.pcmVariant!= PCM_SG14NL) //SG14NL uses a single site version already initialized above
 			{	if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
 				Sf.resize(solvent->molecule.sites.size());
 				atomicNumbers.resize(solvent->molecule.sites.size());
@@ -94,7 +113,6 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		}
 		case PCM_SG14:
 		case PCM_SG14tau:
-		case PCM_SG14tauVW:
 		{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
 			logPrintf("   Effective weighted-cavity tension: %lg Eh/molecule with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
 			break;
@@ -135,9 +153,10 @@ void PCM::updateCavity()
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
 		}
 	}
-	else if(fsp.pcmVariant == PCM_SG14tauVW)
-	{	ShapeFunction::tauVW(nCavity, tauCavity);
-		ShapeFunction::compute(tauCavity, shape, fsp.nc, fsp.sigma);
+	else if(fsp.pcmVariant == PCM_SG14NL)
+	{	nCavityEx[0] = fsp.Ztot * I(Sf[0] * J(nCavity));
+		ShapeFunction::compute(nCavityEx[0], shapeVdw, fsp.nc, fsp.sigma); //vdW cavity
+		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
 	}
 	else //Compute directly from nCavity (which is a density product for SaLSA):
 		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
@@ -146,10 +165,10 @@ void PCM::updateCavity()
 	const auto& solvent = fsp.solvents[0];
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
-		case PCM_Nonlocal:
+		case PCM_SG14NL:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
-			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SGA13 ? shapeVdw : shape);
+			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
 			DataGptr A_sTilde;
 			//Cavitation:
 			const double nlT = solvent->Nbulk * fsp.T;
@@ -165,19 +184,18 @@ void PCM::updateCavity()
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			vdwForces->init(e.iInfo);
-			const double vdwScaleEff = (fsp.pcmVariant==PCM_Nonlocal) ? fsp.sqrtC6eff : fsp.vdwScale;
+			const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
 			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde, &(*vdwForces));
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])
 					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
-			(fsp.pcmVariant==PCM_SGA13 ? Acavity_shapeVdw : Acavity_shape) = Jdag(A_sTilde);
+			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			break;
 		}
 		case PCM_SG14:
 		case PCM_SG14tau:
-		case PCM_SG14tauVW:
 		{	DataRptr sbar = I(wCavity*J(shape));
 			A_tension = integral(sbar*(1.-sbar)) * solvent->Nbulk;
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
@@ -215,15 +233,12 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 			ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
 	}
-	else if(fsp.pcmVariant == PCM_SG14tauVW)
-	{	//First compute derivative w.r.t tauVW:
-		DataRptr A_tauCavity;
-		ShapeFunction::propagateGradient(tauCavity, A_shape + Acavity_shape, A_tauCavity, fsp.nc, fsp.sigma);
-		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_tauCavity*tauCavity);
-		//then propagate to nCavity
-		DataRptr tauCavityUnused;
-		A_nCavity = 0;
-		ShapeFunction::tauVW(nCavity, tauCavityUnused, &A_tauCavity, &A_nCavity);
+	else if(fsp.pcmVariant == PCM_SG14NL)
+	{	DataRptr A_nCavityEx;
+		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw, A_nCavityEx, fsp.nc, fsp.sigma);
+		A_nCavity = fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
+		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
+		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	A_nCavity = 0;
@@ -247,11 +262,11 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	FILE* fp = mpiUtil->isHead() ? fopen(filename.c_str(), "w") : nullLog;
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());
 
-	fprintf(fp, "Cavity volume = %f\n", integral(1.-shape));
-	fprintf(fp, "Cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
-	if(fsp.pcmVariant == PCM_SGA13)
-	{	fprintf(fp, "Expanded cavity volume = %f\n", integral(1.-shapeVdw));
-		fprintf(fp, "Expanded cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeVdw)))));
+	fprintf(fp, "Dielectric cavity volume = %f\n", integral(1.-shape));
+	fprintf(fp, "Dielectric cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
+	if(fsp.pcmVariant == PCM_SGA13 || fsp.pcmVariant==PCM_SG14NL)
+	{	fprintf(fp, "VDW cavity volume = %f\n", integral(1.-shapeVdw));
+		fprintf(fp, "VDW cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeVdw)))));
 	}
 	
 	fprintf(fp, "\nComponents of Adiel:\n");
@@ -264,12 +279,12 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %.15lg\n", A_vdwScale);
 			break;
-		case PCM_Nonlocal:
+		case PCM_SG14NL:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
+			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
 			break;
 		case PCM_SG14:
 		case PCM_SG14tau:
-		case PCM_SG14tauVW:
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
@@ -277,7 +292,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_PRA05:
 			break;
 	}
-	
+	if(e.eVars.fluidParams.fluidType == FluidLinearPCM)
+		fprintf(fp, "   E_pCavity = %.15lg\n", dot(e.eVars.d_fluid,L(J(shape))));
 	printDebug(fp);
 	
 	if(mpiUtil->isHead()) fclose(fp);
@@ -292,7 +308,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		logPrintf("done\n"); logFlush();
 	}
 	
-	if(fsp.pcmVariant==PCM_SGA13)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_SG14NL)
 	{
 		char filename[256];	ostringstream oss;
 		oss << "NvdWspherical";

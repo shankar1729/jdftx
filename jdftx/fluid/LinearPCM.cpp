@@ -47,16 +47,18 @@ DataGptr LinearPCM::precondition(const DataGptr& rTilde) const
 }
 
 //Initialize Kkernel to square-root of the inverse kinetic operator
-inline double setPreconditionerKernel(double G, double kRMS)
-{	return (G || kRMS) ? 1./hypot(G, kRMS) : 0.;
+inline double setPreconditionerKernel(double G, double epsMean, double kRMS)
+{	return (G || kRMS) ? 1./(epsMean*hypot(G, kRMS)) : 0.;
 }
 
 void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
-{
-	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
+{	//Update cavity:
 	this->nCavity = I(nCavityTilde);
-
 	updateCavity();
+
+	//Store the explicit system charge, and augment it with the charge asymmetry contribution:
+	this->rhoExplicitTilde = clone(rhoExplicitTilde) + (fsp.pCavity/e.gInfo.detR)*L(J(shape));
+	zeroNyquist(this->rhoExplicitTilde);
 	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
@@ -67,8 +69,9 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	DataRptr epsilon = 1 + (epsBulk-1)*shape;
 	DataRptr kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
-	double kRMS = (kappaSq ? sqrt(sum(kappaSq)/sum(epsilon)) : 0.0);
-	Kkernel.init(0, 0.02, e.gInfo.GmaxGrid, setPreconditionerKernel, kRMS);
+	double epsMean = sum(epsilon) / e.gInfo.nr;
+	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / e.gInfo.nr;
+	Kkernel.init(0, 0.02, e.gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!state) nullToZero(state, e.gInfo);
@@ -87,19 +90,17 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
 
-	//The "electrostatic" gradient is the potential due to the bound charge alone:
-	Adiel_rhoExplicitTilde = phi - coulomb(rhoExplicitTilde);
-	Adiel["Electrostatic"] = 0.5*dot(Adiel_rhoExplicitTilde, O(rhoExplicitTilde)) //True energy if phi was an exact solution
-		+ 0.5*dot(O(phi), rhoExplicitTilde - hessian(phi)); //First order residual correction (remaining error is second order)
+	//First-order correct estimate of electrostatic energy:
+	DataGptr phiExt = coulomb(rhoExplicitTilde);
+	Adiel["Electrostatic"] = -0.5*dot(phi, O(hessian(phi))) + dot(phi - 0.5*phiExt, O(rhoExplicitTilde));
+	
+	//Gradient w.r.t rhoExplicitTilde:
+	Adiel_rhoExplicitTilde = phi - phiExt;
 	
 	//Compute gradient w.r.t shape function:
-	//--- Dielectric contributions:
-	DataRptr Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi)));
-	//--- Screening contributions:
-	if(k2factor)
-	{	DataRptr Iphi = I(phi);
-		Adiel_shape -= (k2factor/(8*M_PI)) * (Iphi*Iphi);
-	}
+	DataRptr Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
+	if(k2factor) Adiel_shape -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
+	Adiel_shape += (fsp.pCavity/e.gInfo.detR) * I(L(Adiel_rhoExplicitTilde)); //pCavity contributions
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
