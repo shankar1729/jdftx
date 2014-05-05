@@ -45,6 +45,7 @@ private:
 		std::vector<matrix> rhoAtom; //atomic density matrices (or corresponding potential) [DFT+U only]
 	};
 	std::vector<Variable> pastVariables, pastResiduals; //!< History
+	bool mixTau; //!< whether KE needs to be mixed
 	
 	void axpy(double alpha, const Variable& X, Variable& Y) const; // Y += alpha * X
 	double dot(const Variable& X, const Variable& Y) const; //Euclidean dot product (Note metric not applied here as an optimization, as many dot products against a single residual computed)

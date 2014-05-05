@@ -42,6 +42,7 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 {	SCFparams& sp = e.scfParams;
 	overlap.init(sp.history, sp.history);
 	eigenShiftInit();
+	mixTau = e.exCorr.needsKEdensity() || e.eVars.fluidParams.useTau;
 	
 	//Initialize the preconditioner and metric kernels:
 	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,
@@ -91,7 +92,7 @@ void SCF::minimize()
 	SCFparams& sp = e.scfParams;
 	
 	logPrintf("Will mix electronic %s%s at each iteration.\n",
-		(e.exCorr.needsKEdensity() ? "and kinetic " : ""),
+		(mixTau ? "and kinetic " : ""),
 		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
 	if(!e.exCorr.hasEnergy())
@@ -192,7 +193,7 @@ void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const
 	Y.n.resize(e.eVars.n.size());
 	::axpy(alpha, X.n, Y.n);
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 	{	Y.tau.resize(e.eVars.n.size());
 		::axpy(alpha, X.tau, Y.tau);
 	}
@@ -209,7 +210,7 @@ double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
 	//Density:
 	ret += e.gInfo.dV * ::dot(X.n, Y.n);
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 		ret += e.gInfo.dV * ::dot(X.tau, Y.tau);
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -220,7 +221,7 @@ double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
 }
 
 size_t SCF::variableSize() const
-{	size_t nDoubles = e.gInfo.nr * e.eVars.n.size() * (e.exCorr.needsKEdensity() ? 2 : 1); //n and optionally tau
+{	size_t nDoubles = e.gInfo.nr * e.eVars.n.size() * (mixTau ? 2 : 1); //n and optionally tau
 	if(e.eInfo.hasU)
 	{	std::vector<matrix> rhoAtom;
 		e.iInfo.rhoAtom_initZero(rhoAtom);
@@ -234,7 +235,7 @@ void SCF::readVariable(SCF::Variable& v, FILE* fp) const
 	nullToZero(v.n, e.gInfo, e.eVars.n.size());
 	for(DataRptr& X: v.n) loadRawBinary(X, fp);
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 	{	nullToZero(v.tau, e.gInfo, e.eVars.n.size());
 		for(DataRptr& X: v.tau) loadRawBinary(X, fp);
 	}
@@ -249,7 +250,7 @@ void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
 {	//Density:
 	for(const DataRptr& X: v.n) saveRawBinary(X, fp);
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 	{	for(const DataRptr& X: v.tau) saveRawBinary(X, fp);
 	}
 	//Atomic density matrices:
@@ -264,7 +265,7 @@ SCF::Variable SCF::getVariable() const
 	//Density:
 	v.n = clone(mixDensity ? e.eVars.n : e.eVars.Vscloc);
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 		v.tau = clone(mixDensity ? e.eVars.tau : e.eVars.Vtau);
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -277,7 +278,7 @@ void SCF::setVariable(const SCF::Variable& v)
 	//Density:
 	(mixDensity ? e.eVars.n : e.eVars.Vscloc) = v.n;
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 		(mixDensity ? e.eVars.tau : e.eVars.Vtau) = v.tau;
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -292,7 +293,7 @@ SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
 	//Density:
 	vOut.n = kerkerMix * v.n;
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 		vOut.tau = kerkerMix * v.tau;
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -308,7 +309,7 @@ SCF::Variable SCF::applyMetric(const SCF::Variable& v) const
 	//Density:
 	vOut.n = diisMetric * v.n;
 	//KE density:
-	if(e.exCorr.needsKEdensity())
+	if(mixTau)
 		vOut.tau = diisMetric * v.tau;
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
