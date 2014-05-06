@@ -34,6 +34,7 @@ enum SCFparamsMember
 	SCFpm_qMetric,
 	SCFpm_history,
 	SCFpm_single_particle_constraint,
+	SCFpm_maxOverlap,
 	//Delimiter used in parsing:
 	SCFpm_scfDelim
 };
@@ -50,7 +51,8 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 	SCFpm_qKerker, "qKerker",
 	SCFpm_qMetric, "qMetric",
 	SCFpm_history, "history",
-	SCFpm_single_particle_constraint, "single-particle-constraint"
+	SCFpm_single_particle_constraint, "single-particle-constraint",
+	SCFpm_maxOverlap, "maximum-overlap-method"
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	SCFpm_nIterations, "maximum iterations (single point calculation if 0)",
@@ -64,7 +66,8 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)",
 	SCFpm_qMetric, "wavevector controlling the DIIS metric (default: 0.8 bohr^-1)",
 	SCFpm_history, "number of past residuals and vectors are kept cached and used in DIIS",
-	SCFpm_single_particle_constraint, "enforces the single particle constraint on the exchange"
+	SCFpm_single_particle_constraint, "enforces the single particle constraint on the exchange",
+	SCFpm_maxOverlap, "uses the maximum-overlap method to determine fillings, discards elec-fermi-fillings"
 );
 
 EnumStringMap<SCFparams::MixedVariable> scfMixing
@@ -108,6 +111,7 @@ struct CommandsScfParams: public Command
 				case SCFpm_qMetric: pl.get(sp.qMetric, 0.8, "qMetric", true); break;
 				case SCFpm_history: pl.get(sp.history, 10, "history", true); if(sp.history<1) throw string("<history> must be >= 1"); break;
 				case SCFpm_single_particle_constraint: pl.get(sp.sp_constraint, 0., "single-particle-constraint", true); break;
+				case SCFpm_maxOverlap: sp.MOMenabled=true; break;
 				case SCFpm_scfDelim: return; //end of input
 			}
 		}

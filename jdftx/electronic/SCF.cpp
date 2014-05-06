@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
 #include <core/DataIO.h>
+#include <queue>
 
 inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double* kerkerMix, double* diisMetric)
 {	if(mixDensity)
@@ -123,6 +124,10 @@ void SCF::minimize()
 		Eprev = E;
 		eigsPrev = e.eVars.Hsub_eigs;
 		pastVariables.push_back(getVariable());
+
+		// If need be, cache the old wavefunctions
+		if(sp.MOMenabled)
+			Cold = eVars.C;
 		
 		//Band-structure minimize:
 		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
@@ -130,10 +135,12 @@ void SCF::minimize()
 		if(sp.nEigSteps) e.elecMinParams.nIterations = sp.nEigSteps;
 		bandMinimize(e);
 		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
-		
+
 		//Compute new density and energy
 		e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
-		if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
+		if(sp.MOMenabled)  // The maximum-overlap-method
+			updateMOM();
+		else if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
 			updateFillings();
 		E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
 		if(e.scfParams.sp_constraint)
@@ -378,6 +385,45 @@ void SCF::updateFillings()
 		}
 		logPrintf("\n"); logFlush();
 	}
+}
+
+void SCF::updateMOM()
+{
+	std::vector<matrix> overlap_matrix(e.eInfo.nStates);
+	for(size_t s=0; s<overlap_matrix.size(); s++)
+	{	
+		// Overlap of the old and new wavefunctions
+		overlap_matrix[s] = Cold[s]^O(e.eVars.C[s]);
+		// Total no electrons in this channel
+		int nElec = 0.;
+		for(int j=0; j<e.eInfo.nBands; j++) nElec +=e.eVars.F[s][j];
+		// For each new wavefunction, calculate the total overlap with the span of the old ones
+		std::vector<double> span_overlap(e.eInfo.nBands);		
+		for(int i=0; i<e.eInfo.nBands; i++)  // Loop over new wavefunctions
+		{	span_overlap[i] = 0.;
+			for(int j=0; j<e.eInfo.nBands; j++)  // Loop over old wavefunctions
+				span_overlap[i] += e.eVars.F[s][j] * abs(overlap_matrix[s](i,j));
+			//logPrintf("%.2f ", span_overlap[i]);
+		}
+		//logPrintf("\n");
+		
+		// Construct the new fillings matrix
+		std::priority_queue<std::pair<double, int>> q;
+		for (size_t i = 0; i < span_overlap.size(); ++i) {
+			q.push(std::pair<double, int>(span_overlap[i], i));
+		}
+		diagMatrix Fnew = 0.*e.eVars.F[s];
+		for(int k=0; k<nElec; k++)
+		{	int index = q.top().second;
+			Fnew[index] = 1.;
+			q.pop();
+		}
+		//Fnew.print(globalLog);
+		
+		e.eVars.F[s] = Fnew;
+	}
+	logPrintf("\tRecomputed orbital fillings using the maximum overlap method.\n");
+
 }
 
 double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const

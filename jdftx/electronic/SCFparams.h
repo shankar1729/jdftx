@@ -45,6 +45,7 @@ struct SCFparams
 	double qKerker; //!< Wavevector controlling Kerker preconditioning (if negative, auto-set to Gmin)
 	double qMetric; //!< Wavevector controlling the DIIS metric (if negative, auto-set to Gmin)
 	double sp_constraint; //! Whether to ensure that the exchange is exact in the single particle limit
+	bool MOMenabled; //! Whether to use the maximum-overlap method or not
 	
 	struct EigenShift
 	{	int q; //!< Quantum number
@@ -67,6 +68,7 @@ struct SCFparams
 		qMetric = 0.8;
 		history = 10;
 		sp_constraint = 0.;
+		MOMenabled = false;
 	}
 };
 
