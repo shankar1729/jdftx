@@ -44,7 +44,7 @@ protected:
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
-	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate A_shape (+ cached Acavity_shape) to those A_nCavity (set result, not accumulate)
+	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity
 private:
 	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)

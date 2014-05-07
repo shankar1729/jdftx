@@ -220,7 +220,6 @@ void PCM::updateCavity()
 void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const
 {	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
-		A_nCavity = 0;
 		((PCM*)this)->A_nc = 0;
 		const DataRptr* A_shapeEx[2] = { &A_shape, &Acavity_shapeVdw };
 		for(int i=0; i<2; i++)
@@ -236,13 +235,12 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 	else if(fsp.pcmVariant == PCM_SG14NL)
 	{	DataRptr A_nCavityEx;
 		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw, A_nCavityEx, fsp.nc, fsp.sigma);
-		A_nCavity = fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
+		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
-	{	A_nCavity = 0;
-		ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
+	{	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 	}
 }
@@ -250,7 +248,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 void PCM::dumpDensities(const char* filenamePattern) const
 {	string filename;
 	FLUID_DUMP(shape, "Shape");
-    if(fsp.pcmVariant == PCM_SGA13)
+    if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_SG14NL)
 	{	FLUID_DUMP(shapeVdw, "ShapeVdw");
 	}
 }
@@ -264,7 +262,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 
 	fprintf(fp, "Dielectric cavity volume = %f\n", integral(1.-shape));
 	fprintf(fp, "Dielectric cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape)))));
-	if(fsp.pcmVariant == PCM_SGA13 || fsp.pcmVariant==PCM_SG14NL)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_SG14NL)
 	{	fprintf(fp, "VDW cavity volume = %f\n", integral(1.-shapeVdw));
 		fprintf(fp, "VDW cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeVdw)))));
 	}

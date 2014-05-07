@@ -166,6 +166,7 @@ inline vector3<> getGzero(const DataGptrVec& X) { vector3<> ret; for(int k=0; k<
 inline void setGzero(const DataGptrVec& X, vector3<> v) { for(int k=0; k<3; k++) if(X[k]) X[k]->setGzero(v[k]); } //!< set G=0 components
 inline vector3<> sumComponents(const DataRptrVec& X) { return vector3<>(sum(X[0]), sum(X[1]), sum(X[2])); } //!< Sum of elements (component-wise)
 inline DataRptr lengthSquared(const DataRptrVec& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; } //!< Elementwise length squared
+inline DataRptr dotElemwise(const DataRptrVec& X, const DataRptrVec& Y) { return X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2]; } //!< Elementwise dot
 
 //Extra operators in R-space alone for scalar additions:
 template<int N> RptrMul& operator+=(RptrMul& in, double scalar) { Nloop(in[i]+=scalar;) return in; } //!<Increment by scalar
