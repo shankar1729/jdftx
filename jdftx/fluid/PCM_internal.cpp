@@ -47,6 +47,46 @@ namespace ShapeFunction
 		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), nc, sigma);
 	}
 	
+	void compute_or_grad(int N, bool grad,
+		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
+		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
+		const double nc, const double invSigmaSqrt2, const double pCavity)
+	{	threadedLoop(compute_or_grad_calc, N, grad, n, Dn, Dphi, shape, A_shape, A_n, A_Dn, A_Dphi, A_pCavity, nc, invSigmaSqrt2, pCavity);
+	}
+	#ifdef GPU_ENABLED
+	void compute_or_grad_gpu(int N, bool grad,
+		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
+		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
+		const double nc, const double invSigmaSqrt2, const double pCavity);
+	#endif
+	void compute(const DataRptr& n, const DataGptr& phi,
+		DataRptr& shape, double nc, double sigma, double pCavity)
+	{	DataRptrVec Dn = gradient(n);
+		DataRptrVec Dphi = I(gradient(phi), true);
+		nullToZero(shape, n->gInfo);
+		callPref(compute_or_grad)(n->gInfo.nr, false,
+			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), shape->dataPref(),
+			0, 0, vector3<double*>(), vector3<double*>(), 0,
+			nc, sqrt(0.5)/sigma, pCavity);
+	}
+	void propagateGradient(const DataRptr& n, const DataGptr& phi, const DataRptr& E_shape,
+		DataRptr& E_n, DataGptr& E_phi, double& E_pCavity, double nc, double sigma, double pCavity)
+	{	DataRptrVec Dn = gradient(n);
+		DataRptrVec Dphi = I(gradient(phi), true);
+		nullToZero(E_n, n->gInfo);
+		DataRptrVec E_Dn; nullToZero(E_Dn, n->gInfo);
+		DataRptrVec E_Dphi; nullToZero(E_Dphi, n->gInfo);
+		DataRptr E_pCavityArr; nullToZero(E_pCavityArr, n->gInfo);
+		callPref(compute_or_grad)(n->gInfo.nr, true,
+			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), 0,
+			E_shape->dataPref(), E_n->dataPref(), E_Dn.dataPref(), E_Dphi.dataPref(), E_pCavityArr->dataPref(),
+			nc, sqrt(0.5)/sigma, pCavity);
+		Dn=0; Dphi=0; //free memory
+		E_n -= divergence(E_Dn);
+		E_phi -= divergence(J(E_Dphi));
+		E_pCavity += integral(E_pCavityArr);
+	}
+	
 	void expandDensityHelper(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	threadedLoop(expandDensity_calc, N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
 	}

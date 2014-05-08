@@ -189,7 +189,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	}
 	if(Adiel_nCavityTilde)
 	{	DataRptr Adiel_nCavity;
-		propagateCavityGradients(Adiel_shape, Adiel_nCavity);
+		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	

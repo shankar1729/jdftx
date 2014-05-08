@@ -69,9 +69,9 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-	PCMp_eta_wDiel, //!< fit parameter for electric response weight function in NonlocalPCM
-	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for NonlocalPCM
-	PCMp_pCavity, //!< built-in cavity surface dipole for capturing charge asymmetry in NonlocalPCM
+	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in SG14NL
+	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for SG14NL
+	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in SG14NL
 	PCMp_Delim //!< Delimiter used in parsing
 };
 EnumStringMap<PCMparameter> pcmParamMap
@@ -88,9 +88,9 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
-	PCMp_eta_wDiel, "fit parameter for electric response weight function in NonlocalPCM",
-	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for NonlocalPCM",
-	PCMp_pCavity, "built-in cavity surface dipole for capturing charge asymmetry in NonlocalPCM"
+	PCMp_eta_wDiel, "fit parameter for dielectric cavity in SG14NL",
+	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for SG14NL",
+	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in SG14NL"
 );
 
 struct CommandPcmParams : public Command

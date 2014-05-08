@@ -38,6 +38,14 @@ namespace ShapeFunction
 	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density (accumulate to E_n)
 	void propagateGradient(const DataRptr& n, const DataRptr& E_shape, DataRptr& E_n, double nc, double sigma);
 	
+	//! Compute shape function that includes charge asymmetry from cavity-determining electron density and vacuum electric potential
+	void compute(const DataRptr& n, const DataGptr& phi,
+		DataRptr& shape, double nc, double sigma, double pCavity);
+	
+	//! Propagate gradients w.r.t shape function to n, phi and pCavity (accumulate to E_n, E_phi, E_pCavity)
+	void propagateGradient(const DataRptr& n, const DataGptr& phi, const DataRptr& E_shape,
+		DataRptr& E_n, DataGptr& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
+	
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
 }
@@ -55,6 +63,41 @@ namespace ShapeFunction
 	__hostanddev__ void propagateGradient_calc(int i, const double* nCavity, const double* grad_shape, double* grad_nCavity, const double nc, const double sigma)
 	{	grad_nCavity[i] += (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
 			* exp(0.5*(pow(sigma,2) - pow(log(fabs(nCavity[i])/nc)/sigma + sigma, 2)));
+	}
+	
+	//version with charge asymmetry (combined compute and grad function)
+	__hostanddev__ void compute_or_grad_calc(int i, bool grad,
+		const double* nArr, vector3<const double*> DnArr, vector3<const double*> DphiArr, double* shape,
+		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
+		const double nc, const double invSigmaSqrt2, const double pCavity)
+	{	double n = nArr[i];
+		if(n<1e-8) { if(!grad) shape[i]=1.; return; }
+		//Regularized unit vector along Dn:
+		vector3<> Dn = loadVector(DnArr,i);
+		double normFac = 1./sqrt(Dn.length_squared() + 1e-4*nc*nc);
+		vector3<> e = Dn * normFac;
+		//Electric field along above unit vector, with saturation for stability:
+		vector3<> E = -loadVector(DphiArr,i);
+		double eDotE = dot(e,E);
+		double x = -pCavity * eDotE;
+		double asymm=0., asymm_x=0.;
+		if(x > 0.) //modify cavity only for anion-like regions
+		{	double exp2x2 = exp(2.*x*x), den = 1./(1 + exp2x2);
+			asymm = (exp2x2 - 1.) * den; //tanh(x^2)
+			asymm_x = 8.*x * exp2x2 * den*den; //2x sech(x^2)
+		}
+		const double dlognMax = 3.;
+		double comb = log(n/nc) - dlognMax*asymm;
+		if(!grad)
+			shape[i] = 0.5*erfc(invSigmaSqrt2*comb);
+		else
+		{	double A_comb = (-invSigmaSqrt2/sqrt(M_PI)) * A_shape[i] * exp(-comb*comb*invSigmaSqrt2*invSigmaSqrt2);
+			A_n[i] += A_comb/n;
+			double A_x = A_comb*(-dlognMax)*asymm_x;
+			accumVector((A_x*(-pCavity)*normFac) * (E - e*eDotE), A_Dn,i);
+			accumVector((A_x*(-pCavity)*(-1.)) * e, A_Dphi,i);
+			A_pCavity[i] += A_x*(-eDotE);
+		}
 	}
 	
 	__hostanddev__ void expandDensity_calc(int i, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)

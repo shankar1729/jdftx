@@ -263,7 +263,7 @@ double SaLSA::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adi
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
-	propagateCavityGradients(Adiel_shape, Adiel_nCavity);
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	
 	if(vdwForces) extraForces = *vdwForces;

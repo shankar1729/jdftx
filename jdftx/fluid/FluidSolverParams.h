@@ -75,7 +75,7 @@ struct FluidSolverParams
 	double Ztot; //!< number of valence electrons
 	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
-	double pCavity; //!< built-in dipole on cavity surface to emulate charge asymmetry (fit parameter)
+	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-bohr/Eh]  (fit parameter)
 	
 	//For SaLSA alone:
 	int lMax;

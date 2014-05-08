@@ -43,6 +43,23 @@ namespace ShapeFunction
 	}
 
 	__global__
+	void compute_or_grad_kernel(int N, bool grad,
+		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
+		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
+		const double nc, const double invSigmaSqrt2, const double pCavity)
+	{	int i = kernelIndex1D();
+		if(i<N) compute_or_grad_calc(i, grad, n, Dn, Dphi, shape, A_shape, A_n, A_Dn, A_Dphi, A_pCavity, nc, invSigmaSqrt2, pCavity);
+	}
+	void compute_or_grad_gpu(int N, bool grad,
+		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
+		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
+		const double nc, const double invSigmaSqrt2, const double pCavity)
+	{	GpuLaunchConfig1D glc(compute_or_grad_kernel, N);
+		compute_or_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, grad, n, Dn, Dphi, shape, A_shape, A_n, A_Dn, A_Dphi, A_pCavity, nc, invSigmaSqrt2, pCavity);
+		gpuErrorCheck();
+	}
+	
+	__global__
 	void expandDensityHelper_kernel(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	int i = kernelIndex1D(); if(i<N) expandDensity_calc(i, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
 	}

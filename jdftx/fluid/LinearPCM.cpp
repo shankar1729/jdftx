@@ -52,14 +52,13 @@ inline double setPreconditionerKernel(double G, double epsMean, double kRMS)
 }
 
 void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
-{	//Update cavity:
+{	//Store the explicit system charge:
+	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
+	
+	//Update cavity:
 	this->nCavity = I(nCavityTilde);
 	updateCavity();
 
-	//Store the explicit system charge, and augment it with the charge asymmetry contribution:
-	this->rhoExplicitTilde = clone(rhoExplicitTilde) + (fsp.pCavity/e.gInfo.detR)*L(J(shape));
-	zeroNyquist(this->rhoExplicitTilde);
-	
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
 	if(k2factor) logPrintf(", screening length: %g Bohr", sqrt(epsBulk/k2factor));
@@ -100,11 +99,10 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 	//Compute gradient w.r.t shape function:
 	DataRptr Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
 	if(k2factor) Adiel_shape -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
-	Adiel_shape += (fsp.pCavity/e.gInfo.detR) * I(L(Adiel_rhoExplicitTilde)); //pCavity contributions
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
-	propagateCavityGradients(Adiel_shape, Adiel_nCavity);
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
 	if(vdwForces) extraForces = *vdwForces;

@@ -75,7 +75,8 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 					sigmaVdw = sigmaVdwNew;
 				}
 				logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", fsp.Ztot, sigmaVdw);
-				logPrintf("   Electrostatic cavity expanded by eta = %lg bohrs with built-in dipole pCavity = %lg e/bohr\n", fsp.eta_wDiel, fsp.pCavity);
+				logPrintf("   Charge asymmetry in cavity with sensitivity pCavity = %lg e-bohr/Eh\n", fsp.pCavity);
+				logPrintf("   Electrostatic cavity expanded by eta = %lg bohrs\n", fsp.eta_wDiel);
 				//Initialize kernels:
 				Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
 				Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //used for vdw cavity as well as dispersion
@@ -155,7 +156,8 @@ void PCM::updateCavity()
 	}
 	else if(fsp.pcmVariant == PCM_SG14NL)
 	{	nCavityEx[0] = fsp.Ztot * I(Sf[0] * J(nCavity));
-		ShapeFunction::compute(nCavityEx[0], shapeVdw, fsp.nc, fsp.sigma); //vdW cavity
+		ShapeFunction::compute(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), shapeVdw,
+			fsp.nc, fsp.sigma, fsp.pCavity); //vdW cavity
 		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
 	}
 	else //Compute directly from nCavity (which is a density product for SaLSA):
@@ -217,7 +219,7 @@ void PCM::updateCavity()
 	}
 }
 
-void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity) const
+void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde) const
 {	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
 		((PCM*)this)->A_nc = 0;
@@ -233,11 +235,14 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity)
 		}
 	}
 	else if(fsp.pcmVariant == PCM_SG14NL)
-	{	DataRptr A_nCavityEx;
-		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw, A_nCavityEx, fsp.nc, fsp.sigma);
+	{	DataRptr A_nCavityEx; DataGptr A_phiExt; double A_pCavity=0.;
+		ShapeFunction::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw,
+			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
+		A_rhoExplicitTilde += coulomb(Sf[0]*A_phiExt);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
+		((PCM*)this)->A_pCavity = A_pCavity;
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
@@ -280,6 +285,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SG14NL:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
+			fprintf(fp, "   E_pCavity = %.15lg\n", A_pCavity);
 			break;
 		case PCM_SG14:
 		case PCM_SG14tau:
@@ -290,8 +296,6 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_PRA05:
 			break;
 	}
-	if(e.eVars.fluidParams.fluidType == FluidLinearPCM)
-		fprintf(fp, "   E_pCavity = %.15lg\n", dot(e.eVars.d_fluid,L(J(shape))));
 	printDebug(fp);
 	
 	if(mpiUtil->isHead()) fclose(fp);
