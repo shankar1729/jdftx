@@ -49,7 +49,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
 {	
 	logPrintf("   Initializing non-local response weight functions:\n");
-	const double dG = e.gInfo.dGradial, Gmax = e.gInfo.GmaxGrid;
+	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
 	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
 
 	//Initialize fluid molecule's spherically-averaged electron density kernel:
@@ -186,13 +186,13 @@ DataGptr SaLSA::chi(const DataGptr& phiTilde) const
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
 	}
-	nullToZero(rhoTilde, e.gInfo); rhoTilde->allReduce(MPIUtil::ReduceSum);
+	nullToZero(rhoTilde, gInfo); rhoTilde->allReduce(MPIUtil::ReduceSum);
 	return rhoTilde;
 }
 
 
 DataGptr SaLSA::hessian(const DataGptr& phiTilde) const
-{	return (-1./(4*M_PI*e.gInfo.detR)) * L(phiTilde) - chi(phiTilde);
+{	return (-1./(4*M_PI*gInfo.detR)) * L(phiTilde) - chi(phiTilde);
 }
 
 DataGptr SaLSA::precondition(const DataGptr& rTilde) const
@@ -200,9 +200,9 @@ DataGptr SaLSA::precondition(const DataGptr& rTilde) const
 }
 
 
-void SaLSA::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void SaLSA::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {
-	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
+	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
 	//Compute cavity shape function (0 to 1)
 	nCavity = I(nFluid * nCavityTilde);
@@ -213,14 +213,14 @@ void SaLSA::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		siteShape[iSite] = I(Sf[iSite] * J(shape));
 	
-	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/e.gInfo.detR);
+	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/gInfo.detR);
 	logFlush();
 
 	//Update the inhomogeneity factor of the preconditioner
 	epsInv = inv(1. + (epsBulk-1.)*shape);
 	
 	//Initialize the state if it hasn't been loaded:
-	if(!state) nullToZero(state, e.gInfo);
+	if(!state) nullToZero(state, gInfo);
 }
 
 
@@ -232,7 +232,7 @@ void SaLSA::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double SaLSA::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
@@ -259,7 +259,7 @@ double SaLSA::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adi
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
 			Adiel_shape += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
-	nullToZero(Adiel_shape, e.gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
+	nullToZero(Adiel_shape, gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
 	
 	//Propagate shape gradients to A_nCavity:
 	DataRptr Adiel_nCavity;
@@ -271,7 +271,7 @@ double SaLSA::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adi
 }
 
 void SaLSA::loadState(const char* filename)
-{	DataRptr Istate(DataR::alloc(e.gInfo));
+{	DataRptr Istate(DataR::alloc(gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space
 	state = J(Istate);
 }
@@ -297,7 +297,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 		for(int l=0; l<=fsp.lMax; l++)
 		{	double prefac = sqrt(4.*M_PI*c->Nbulk/fsp.T) * (l==1 ? sqrtCrot : 1.);
 			for(int m=-l; m<=+l; m++)
-			{	const double dG = 0.02, Gmax = e.gInfo.GmaxGrid;
+			{	const double dG = 0.02, Gmax = gInfo.GmaxGrid;
 				unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
 				std::vector<double> VtotSamples(nGradial);
 				std::vector< std::vector<double> > VsiteSamples(c->molecule.sites.size(), std::vector<double>(nGradial));

@@ -72,7 +72,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	
 	//Initialize preconditioner (for mu channel):
 	double muByEps = (ionZ/pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	preconditioner.init(0, 0.02, e.gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
+	preconditioner.init(0, 0.02, gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
 }
 
 NonlinearPCM::~NonlinearPCM()
@@ -83,10 +83,10 @@ NonlinearPCM::~NonlinearPCM()
 }
 
 
-void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {	
 	//Initialize state if required:
-	if(!state) //nullToZero(state, e.gInfo);
+	if(!state) //nullToZero(state, gInfo);
 	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
 		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
 		fpLog = fopen("/dev/null", "w"); //disable iteration log from LinearPCM
@@ -100,9 +100,9 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		DataRptr mu;
 		if(screeningEval && screeningEval->linear)
 		{	mu = (-ionZ/fsp.T) * I(linearPCM.state);
-			mu -= integral(mu)/e.gInfo.detR; //project out G=0
+			mu -= integral(mu)/gInfo.detR; //project out G=0
 		}
-		else initZero(mu, e.gInfo); //initialization logic does not work well with hard sphere limit
+		else initZero(mu, gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
 		DataRptrVec eps = (-pMol/fsp.T) * I(gradient(linearPCM.state));
 		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
@@ -113,7 +113,7 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 		setMuEps(state, mu, clone(mu), eps);
 	}
 	
-	this->rhoExplicitTilde = rhoExplicitTilde;
+	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	this->nCavity = I(nCavityTilde);
 
 	updateCavity();
@@ -122,11 +122,11 @@ void NonlinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavity
 double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
-	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, e.gInfo);
+	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
 	
 	DataGptr rhoFluidTilde;
 	DataRptr muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
-	initZero(Adiel_muPlus, e.gInfo); initZero(Adiel_muMinus, e.gInfo);
+	initZero(Adiel_muPlus, gInfo); initZero(Adiel_muMinus, gInfo);
 	double mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
 	if(screeningEval)
 	{	//Get neutrality Lagrange multiplier:
@@ -136,9 +136,9 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
 		//Compute ionic free energy and bound charge
 		DataRptr Aout, rhoIon;
-		initZero(Aout, e.gInfo);
-		initZero(rhoIon, e.gInfo);
-		callPref(screeningEval->freeEnergy)(e.gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
+		initZero(Aout, gInfo);
+		initZero(rhoIon, gInfo);
+		callPref(screeningEval->freeEnergy)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
 			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Adiel["Akappa"] = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
@@ -147,10 +147,10 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	//Compute the dielectric free energy and bound charge:
 	DataRptrVec eps = getEps(state), Adiel_eps;
 	{	DataRptr Aout; DataRptrVec p;
-		initZero(Aout, e.gInfo);
-		nullToZero(p, e.gInfo);
-		nullToZero(Adiel_eps, e.gInfo);
-		callPref(dielectricEval->freeEnergy)(e.gInfo.nr, eps.const_dataPref(), shape->dataPref(),
+		initZero(Aout, gInfo);
+		nullToZero(p, gInfo);
+		nullToZero(Adiel_eps, gInfo);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
 			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		Adiel["Aeps"] = integral(Aout);
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
@@ -164,7 +164,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
 		DataRptr Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
-		callPref(screeningEval->convertDerivative)(e.gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
+		callPref(screeningEval->convertDerivative)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
 			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		//Propagate gradients from mu0 to mu, shape, Qexp:
 		double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
@@ -178,7 +178,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	
 	//Propagate gradients from p to eps, shape
 	{	DataRptrVec Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde), true); //Because dagger(-divergence) = gradient
-		callPref(dielectricEval->convertDerivative)(e.gInfo.nr, eps.const_dataPref(), shape->dataPref(),
+		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
 			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 	}
 	
@@ -195,7 +195,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	
 	//Collect energy and gradient pieces:
 	setMuEps(Adiel_state, Adiel_muPlus, Adiel_muMinus, Adiel_eps);
-	Adiel_state *= e.gInfo.dV; //converts variational derivative to total derivative
+	Adiel_state *= gInfo.dV; //converts variational derivative to total derivative
 	return Adiel;
 }
 
@@ -204,7 +204,7 @@ void NonlinearPCM::minimizeFluid()
 }
 
 void NonlinearPCM::loadState(const char* filename)
-{	nullToZero(state, e.gInfo);
+{	nullToZero(state, gInfo);
 	state.loadFromFile(filename);
 }
 
@@ -212,7 +212,7 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {	DataRMuEps Adiel_state;
 	if(vdwForces) extraForces = *vdwForces;
 	return (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
@@ -229,8 +229,8 @@ double NonlinearPCM::compute(DataRMuEps* grad)
 
 DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 {	DataRMuEps out;
-	double dielPrefac = 1./(e.gInfo.dV * dielectricEval->NT);
-	double ionsPrefac = screeningEval ? 1./(e.gInfo.dV * screeningEval->NT) : 0.;
+	double dielPrefac = 1./(gInfo.dV * dielectricEval->NT);
+	double ionsPrefac = screeningEval ? 1./(gInfo.dV * screeningEval->NT) : 0.;
 	setMuEps(out,
 		ionsPrefac * I(preconditioner*J(getMuPlus(in))),
 		ionsPrefac * I(preconditioner*J(getMuMinus(in))),
@@ -263,24 +263,3 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 		FLUID_DUMP(Nminus, "N-");
 	}
 }
-
-/*void NonlinearPCM::dumpDebug(const char* filenamePattern) const
-{	PCM::dumpDebug(filenamePattern);
-
-	char filename[256];	ostringstream oss;
-	oss << "Nspherical";
-	sprintf(filename, filenamePattern, oss.str().c_str());
-	logPrintf("Dumping %s... ", filename); logFlush();
-	if(mpiUtil->isHead()) saveSphericalized(&shape, 1, filename);
-	logPrintf("Done.\n"); logFlush();
-	
-	if(fsp.pcmVariant==PCM_SGA13)
-	{
-		char filename[256];	ostringstream oss;
-		oss << "NvdWspherical";
-		sprintf(filename, filenamePattern, oss.str().c_str());
-		logPrintf("Dumping %s... ", filename); logFlush();
-		if(mpiUtil->isHead()) saveSphericalized(&shapeVdw,1, filename);
-		logPrintf("Done.\n"); logFlush();
-	}
-}*/

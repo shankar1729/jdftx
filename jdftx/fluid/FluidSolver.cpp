@@ -32,7 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasMonoatomic.h>
 #include <core/DataIO.h>
 #include <core/Units.h>
-
+#include <core/WignerSeitz.h>
 
 //--------------------------------------------------------------------------
 //-------------------- Convolution coupled fluid solver --------------------
@@ -42,8 +42,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class FluidMixtureJDFT : public FluidMixture
 {
 public:
-	FluidMixtureJDFT(const Everything& e, double T)
-	: FluidMixture(e.gInfo, T), e(e)
+	FluidMixtureJDFT(const Everything& e, const GridInfo& gInfo, double T)
+	: FluidMixture(gInfo, T), e(e)
 	{
 	}
 	
@@ -74,7 +74,7 @@ public:
 	: FluidSolver(e, fsp), Adiel_rhoExplicitTilde(0)
 	{
 		//Initialize fluid mixture:
-		fluidMixture = new FluidMixtureJDFT(e, fsp.T);
+		fluidMixture = new FluidMixtureJDFT(e, gInfo, fsp.T);
 		fluidMixture->verboseLog = fsp.verboseLog;
 		
 		//Add the fluid components:
@@ -92,7 +92,7 @@ public:
 
 		//Create van der Waals mixing functional
 		assert(e.vanDerWaals);
-		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, e.vanDerWaals,
+		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, atpos, e.vanDerWaals,
 			e.vanDerWaals->getScaleFactor(fsp.exCorr.getName(), fsp.vdwScale));
 	}
 
@@ -162,12 +162,12 @@ public:
 		//--------- if any, add additional explicit fluid debug output here!
 	}
 
-	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 	{	
 		//Set nCavity for nonlinear coupling functional
 		coupling->setExplicit(nCavityTilde);
 		//set rhoExplicit for electrostatic coupling
-		fluidMixture->rhoExternal = clone(rhoExplicitTilde);
+		fluidMixture->rhoExternal = rhoExplicitTilde;
 		if(!fluidMixture->state.size()) fluidMixture->initState(0.15, -3*fsp.T);
 		if(!Adiel_rhoExplicitTilde) updateCached();
 	}
@@ -189,7 +189,7 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 	{
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
@@ -211,11 +211,12 @@ public:
 //----------------  Interface to the electronic code ------------------
 //---------------------------------------------------------------------
 
-FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp) : e(e), fsp(fsp)
+FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp)
+: e(e), gInfo(e.coulomb->gInfo), fsp(fsp), atpos(e.iInfo.species.size())
 {	//Initialize radial kernels in molecule sites:
 	for(const auto& c: fsp.components)
 		if(!c->molecule)
-			c->molecule.setup(e.gInfo, c->Rvdw);
+			c->molecule.setup(gInfo, c->Rvdw);
 
 	//Set bulk dielectric constant
 	if(fsp.epsBulkOverride)
@@ -247,7 +248,42 @@ FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp) : e(
 	if(fabs(NQ)>Qtol)
 		die("Bulk fluid is non-neutral with a net charge density of %le e/bohr^3\n", NQ);
 	k2factor = NQ2>Qtol ? (4*M_PI/fsp.T) * NQ2 : 0.;
+	
+	if(e.iInfo.ionWidth)
+		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
 }
+
+double FluidSolver::ionWidthMuCorrection() const
+{	return (4*M_PI/gInfo.detR) * (-0.5*pow(e.iInfo.ionWidth,2)) * e.iInfo.getZtot();
+}
+
+void FluidSolver::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+{	for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+		atpos[iSp] = e.iInfo.species[iSp]->atpos;
+	if(e.coulombParams.embed)
+	{	matrix3<> embedScaleMat = Diag(e.coulomb->embedScale); //lattice coordinate scale factor due to embedding
+		for(std::vector<vector3<> >& posArr: atpos)
+			for(vector3<>& pos: posArr) //transform to embedded lattice coordinates:
+				pos = embedScaleMat *  e.coulomb->wsOrig->restrict(pos - e.coulomb->xCenter);
+		set_internal(e.coulomb->embedExpand(rhoExplicitTilde), e.coulomb->embedExpand(nCavityTilde));
+	}
+	else
+		set_internal(rhoExplicitTilde, nCavityTilde);
+}
+
+double FluidSolver::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+{	if(e.coulombParams.embed)
+	{	DataGptr Adiel_rho_big, Adiel_n_big;
+		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces);
+		Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
+		Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
+		extraForces = Diag(e.coulomb->embedScale) * extraForces; //transform to original contravariant lattice coordinates
+		return Adiel;
+	}
+	else
+		return get_Adiel_and_grad_internal(Adiel_rhoExplicitTilde, Adiel_nCavityTilde, extraForces);
+}
+
 
 FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& fsp)
 {	if(fsp.fluidType != FluidNone)

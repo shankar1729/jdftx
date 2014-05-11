@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class VDWCoupling : public Fmix
 {	
 public:
-	VDWCoupling(FluidMixture* fluidMixture, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale); 
+	VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vector< vector3<> > >& atpos, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale); 
 	
 	//! Main energy and gradients function
 	double energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde=0, IonicGradient* forces=0) const;
@@ -42,7 +42,8 @@ public:
 	string getName() const;
 
 private:
-	std::shared_ptr<VanDerWaals> vdW;
+	const std::vector< std::vector< vector3<> > >& atpos;
+	const std::shared_ptr<VanDerWaals>& vdW;
 	double vdwScale;
 	std::vector<int> atomicNumber; 
 };

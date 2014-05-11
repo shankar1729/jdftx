@@ -28,7 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <core/Operators.h>
 
-CoulombParams::CoulombParams() : ionMargin(5.), embed(false)
+CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(false)
 {
 }
 
@@ -42,6 +42,14 @@ std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) con
 		Citations::add("Truncated Coulomb interaction", expandedTruncationPaper);
 	if((!embed) && geometry==Slab)
 		Citations::add("Truncated Coulomb interaction", invariantTruncationPaper);
+	
+	if(embedFluidMode) //Use embedding box, but periodic Coulomb kernel (fluid response does the approx image separation)
+	{	logPrintf("Fluid mode embedding: using embedded box, but periodic Coulomb kernel.\n");
+		logPrintf("(Fluid response is responsible for (approximate) separation between periodic images.)\n");
+		if(!embed)
+			die("Fluids with coulomb truncation requires the use of command coulomb-interaction-embed.\n");
+		return std::make_shared<CoulombPeriodic>(gInfo, *this);
+	}
 	
 	switch(geometry)
 	{	case Periodic:    return std::make_shared<CoulombPeriodic>(gInfo, *this);
@@ -85,22 +93,46 @@ template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<i
 			callPref(eblas_symmetrize)(symmIndex[n].first, n, symmIndex[n].second, data);
 }
 
+DataGptr Coulomb::embedExpand(const DataGptr& in) const
+{	assert(params.embed);
+	DataRptr out; nullToZero(out, gInfo);
+	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), out->dataPref());
+	boundarySymmetrize(symmIndex, out->dataPref());
+	return J(out);
+}
+
+complexDataGptr Coulomb::embedExpand(complexDataGptr&& in) const
+{	assert(params.embed);
+	complexDataRptr out; nullToZero(out, gInfo);
+	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I((complexDataGptr&&)in)->dataPref(), out->dataPref());
+	boundarySymmetrize(symmIndex, out->dataPref());
+	return J((complexDataRptr&&)out);
+}
+
+DataGptr Coulomb::embedShrink(const DataGptr& in) const
+{	assert(params.embed);
+	DataRptr Iin = I(in);
+	boundarySymmetrize(symmIndex, Iin->dataPref());
+	DataRptr out; nullToZero(out, gInfoOrig);
+	callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
+	return J(out);
+}
+
+complexDataGptr Coulomb::embedShrink(complexDataGptr&& in) const
+{	assert(params.embed);
+	complexDataRptr Iin = I((complexDataGptr&&)in);
+	boundarySymmetrize(symmIndex, Iin->dataPref());
+	complexDataRptr out; nullToZero(out, gInfoOrig);
+	callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
+	return J((complexDataRptr&&)out);
+}
+
 DataGptr Coulomb::operator()(DataGptr&& in, PointChargeMode pointChargeMode) const
 {	if(params.embed)
-	{	DataGptr outSR, outLR;
+	{	DataGptr outSR;
 		if(pointChargeMode!=PointChargeNone) outSR = (*ionKernel) * in; //Special handling (range separation) to avoid Nyquist frequency issues
 		if(pointChargeMode==PointChargeRight) in = gaussConvolve(in, ionWidth); //bandwidth-limit point charge to the right and compute long-ranged part below
-		//Expand to large grid:
-		DataRptr inLarge; nullToZero(inLarge, gInfo);
-		callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), inLarge->dataPref());
-		//Apply truncated Coulomb:
-		boundarySymmetrize(symmIndex, inLarge->dataPref());
-		inLarge = I(apply(J(inLarge)), true);
-		boundarySymmetrize(symmIndex, inLarge->dataPref());
-		//Reduce to original grid:
-		DataRptr out; nullToZero(out, gInfoOrig);
-		callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, inLarge->dataPref(), out->dataPref()); inLarge=0;
-		outLR = J(out); out=0;
+		DataGptr outLR = embedShrink(apply(embedExpand(in))); //Apply truncated Coulomb in expanded grid and shrink back
 		if(pointChargeMode==PointChargeLeft) outLR = gaussConvolve(outLR, ionWidth); //since point-charge to left, bandwidth-limit long-range part computed above
 		return outLR + outSR;
 	}
@@ -115,20 +147,7 @@ DataGptr Coulomb::operator()(const DataGptr& in, PointChargeMode pointChargeMode
 complexDataGptr Coulomb::operator()(complexDataGptr&& in, vector3<> kDiff, double omega) const
 {	auto exEvalOmega = exchangeEval.find(omega);
 	assert(exEvalOmega != exchangeEval.end());
-	if(params.embed)
-	{	//Expand to large grid:
-		complexDataRptr Iin = I((complexDataGptr&&)in); //cast to r-value allows for in-place transform
-		complexDataRptr inLarge; nullToZero(inLarge, gInfo);
-		callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), inLarge->dataPref());
-		//Apply truncated Coulomb:
-		boundarySymmetrize(symmIndex, inLarge->dataPref());
-		inLarge = I((*exEvalOmega->second)(J((complexDataRptr&&)inLarge), kDiff)); //cast to r-value allows for in-place transform
-		boundarySymmetrize(symmIndex, inLarge->dataPref());
-		//Reduce to original grid:
-		callPref(eblas_zero)(gInfoOrig.nr, Iin->dataPref());
-		callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex, inLarge->dataPref(), Iin->dataPref());
-		return J((complexDataRptr&&)Iin); //cast to r-value allows for in-place transform
-	}
+	if(params.embed) return embedShrink((*exEvalOmega->second)(embedExpand((complexDataGptr&&)in), kDiff));
 	else return (*exEvalOmega->second)((complexDataGptr&&)in, kDiff);
 }
 
@@ -169,7 +188,7 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 				}
 			}
 			if(!posValid) die("Atom %d lies within the margin of %lg bohrs from the truncation boundary.\n" ionMarginMessage, i+1, params.ionMargin);
-			//Scale to embedding-mehs lattice coords:
+			//Scale to embedding-mesh lattice coords:
 			a.pos = embedScaleMat * a.pos;
 			a.force = invEmbedScaleMat * a.force;
 		}
@@ -222,8 +241,8 @@ void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& S
 	m->unlock();
 }
 
-inline void setIonKernel(int i, double Gsq, double expFac, double* kernel)
-{	kernel[i] = (4*M_PI) * (Gsq ? (1.-exp(-expFac*Gsq))/Gsq : expFac);
+inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, double* kernel)
+{	kernel[i] = (4*M_PI) * (Gsq ? (1.-exp(-expFac*Gsq))/Gsq : GzeroVal);
 }
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
@@ -296,7 +315,11 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		ionWidth = sqrt(params.ionMargin / Gnyq); //Minimize real and reciprocal space errors
 		logPrintf("Range-separation parameter for embedded mesh potentials due to point charges: %lg bohrs.\n", ionWidth);
 		ionKernel = new RealKernel(gInfoOrig);
-		applyFuncGsq(gInfoOrig, setIonKernel, 0.5*ionWidth*ionWidth, ionKernel->data);
+		double expFac = 0.5*ionWidth*ionWidth;
+		double GzeroVal = expFac;
+		if(params.embedFluidMode)
+			GzeroVal -= expFac * det(Diag(embedScale));
+		applyFuncGsq(gInfoOrig, setIonKernel, expFac, GzeroVal, ionKernel->data);
 		ionKernel->set();
 	}
 }

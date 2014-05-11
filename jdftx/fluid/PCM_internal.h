@@ -81,7 +81,9 @@ namespace ShapeFunction
 		double eDotE = dot(e,E);
 		double x = -pCavity * eDotE;
 		double asymm=0., asymm_x=0.;
-		if(x > 0.) //modify cavity only for anion-like regions
+		//modify cavity only for anion-like regions
+		if(x > 4.) { asymm = 1.; asymm_x = 0.; } //avoid Inf/Inf error
+		else if(x > 0.)
 		{	double exp2x2 = exp(2.*x*x), den = 1./(1 + exp2x2);
 			asymm = (exp2x2 - 1.) * den; //tanh(x^2)
 			asymm_x = 8.*x * exp2x2 * den*den; //2x sech(x^2)

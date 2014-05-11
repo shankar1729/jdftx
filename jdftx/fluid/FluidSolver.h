@@ -31,21 +31,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct FluidSolver
 {
 	const Everything& e;
+	const GridInfo& gInfo; //relevant gInfo for fluid (uses embedded grid when coulomb truncation is enabled)
 	const FluidSolverParams& fsp;
 	double epsBulk, epsInf; //!< bulk dielectric constants of fluid
 	double k2factor; //!< prefactor to screening term (0 => no ionic screening)
+	std::vector<std::vector< vector3<> > > atpos; //!atomic positions per species in the relevant coordinate system (depending on embedding option)
 	
 	//! Abstract base class constructor - do not use directly - see FluidSolver::createSolver
 	FluidSolver(const Everything &e, const FluidSolverParams& fsp);
 	virtual ~FluidSolver() {}
 
+	double ionWidthMuCorrection() const; //!< correction to electron chemical potential due to finite ion width in fluid interaction
+
 	//! Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
-	//!  and set list of explicit atoms to use in van der Waals corrections
-	virtual void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)=0;
+	//! and set list of explicit atoms to use in van der Waals corrections
+	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
+	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
 
 	//! Compute gradients with respect to electronic side variables, and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces
-	virtual double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const =0;
+	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
+	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const;
 
 	//! Dump relevant fluid densities (eg. NO and NH) to file(s)
 	//! the provided pattern will have a single %s which may be substituted
@@ -56,7 +62,6 @@ struct FluidSolver
 	//! the provided pattern will have a single %s which may be substituted
 	//! Fluid solver implementations may override to dump fluid debug stuff, no dumping by default
 	virtual void dumpDebug(const char* filenamePattern) const {};
-
 
 	//------------Fluid solver implementations must provide these pure virtual functions
 
@@ -71,6 +76,13 @@ struct FluidSolver
 
 	//! Minimize fluid side (holding explicit electronic system fixed)
 	virtual void minimizeFluid()=0;
+	
+protected:
+	//! Fluid-dependent implementation of set()
+	virtual void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)=0;
+
+	//! Fluid-dependent implementation of get_Adiel_and_grad()
+	virtual double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const =0;
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)

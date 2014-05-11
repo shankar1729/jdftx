@@ -170,12 +170,12 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 }
 
 
-double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber, const double scaleFac,
-	DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
+double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber,
+	const double scaleFac, DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
 {		
 	
 	double Etot = 0.;
-	const GridInfo& gInfo = e->gInfo;
+	const GridInfo& gInfo = Ntilde[0]->gInfo;
 	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e->iInfo.species;
 	
 	for(unsigned i=0; i<species.size(); i++) //Loop over species of explicit system
@@ -183,10 +183,12 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 		std::shared_ptr<SpeciesInfo> sp = species[i];
 		DataGptr SG(DataG::alloc(gInfo, isGpuEnabled()));
 		DataGptr ccgrad_SG; //set grad wrt structure factor
-		int nAtoms = sp->atpos.size(); //number of atoms of ith species
+		int nAtoms = atpos[i].size(); //number of atoms of ith species
 		
-		callPref(getSG)(gInfo.S, nAtoms, sp->atposPref, 1.0/gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
-
+		matrix atposTemp(3, ceildiv(nAtoms,2));
+		memcpy(atposTemp.data(), atpos[i].data(), sizeof(vector3<>)*nAtoms);
+		callPref(getSG)(gInfo.S, nAtoms, (const vector3<>*)atposTemp.dataPref(), 1./gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
+		
 		for(unsigned j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
 			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
 			{
@@ -203,14 +205,12 @@ double VanDerWaals::energyAndGrad(const DataGptrCollection& Ntilde, const std::v
 		{	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
 			vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
 			for(int at=0; at<nAtoms; at++)
-			{	
-				callPref(gradSGtoAtpos)(gInfo.S, sp->atpos[at], ccgrad_SG->dataPref(), gradAtposData);
+			{	callPref(gradSGtoAtpos)(gInfo.S, atpos[i][at], ccgrad_SG->dataPref(), gradAtposData);
 				for(int k=0; k<3; k++)
 					(*forces)[i][at][k] -= sum(gradAtpos[k]); //negative gradient on ith atom type
 			}
 		}
 	}
-	
 	return Etot;
 }
 

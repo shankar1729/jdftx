@@ -187,7 +187,7 @@ void PCM::updateCavity()
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			vdwForces->init(e.iInfo);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
-			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde, &(*vdwForces));
+			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde, &(*vdwForces));
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])

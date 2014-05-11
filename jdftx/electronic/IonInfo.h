@@ -67,7 +67,6 @@ public:
 	void printPositions(FILE*) const; 
 	bool checkPositions() const; //!< check for overlapping atoms, return true if okay
 	double getZtot() const; //!< get total Z of all species and atoms
-	double ionWidthMuCorrection() const; //!< correction to electron chemical potential due to finite ion width in fluid interaction
 	
 	//! Update Vlocps, rhoIon, nChargeball, nCore and the energies dependent only on ionic positions
 	void update(Energies&); 

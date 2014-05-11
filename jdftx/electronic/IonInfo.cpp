@@ -74,9 +74,6 @@ void IonInfo::setup(const Everything &everything)
 	
 	if(not checkPositions())
 		die("\nAtoms are too close, have overlapping pseudopotential cores.\n\n");
-	
-	if(ionWidth && (e->eVars.fluidParams.fluidType != FluidNone) && e->eVars.fluidParams.ionicScreening())
-		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());
 }
 
 void IonInfo::printPositions(FILE* fp) const
@@ -130,11 +127,6 @@ double IonInfo::getZtot() const
 		Ztot += sp->Z * sp->atpos.size();
 	return Ztot;
 }
-
-double IonInfo::ionWidthMuCorrection() const
-{	return (4*M_PI/ e->gInfo.detR) * (-0.5*ionWidth*ionWidth) * getZtot();
-}
-
 
 void IonInfo::update(Energies& ener)
 {	const GridInfo &gInfo = e->gInfo;

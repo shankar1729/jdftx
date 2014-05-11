@@ -44,9 +44,8 @@ struct CommandFluid : public Command
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.fluidType, FluidNone, fluidTypeMap, "type");
-		if((e.coulombParams.geometry != CoulombParams::Periodic)
-			&& (fsp.fluidType != FluidNone))
-			throw string("Fluids cannot be used with a truncated coulomb interaction");
+		if((e.coulombParams.geometry != CoulombParams::Periodic) && (fsp.fluidType != FluidNone))
+			e.coulombParams.embedFluidMode = true; //require embedding in fluid mode (periodic Coulomb kernels in larger box)
 		pl.get(fsp.T, 298., "Temperature"); fsp.T *= Kelvin; //convert to atomic units
 		pl.get(fsp.P, 1.01325, "Pressure"); fsp.P *= Bar; //convert to atomic units
 	}

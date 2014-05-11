@@ -42,18 +42,10 @@ public:
 	
 	bool needsGummel() { return true; }
 
-	//! Set the explicit system charge density and effective cavity-formation electron density:
-	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
-
 	void dumpDensities(const char* filenamePattern) const;
-	//void dumpDebug(const char* filenamePattern) const;
- 
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
-
-	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const; //!< Get the minimized free energy and the n-gradient
 
 	//! Compute gradient and free energy (with optional outputs)
 	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0) const;
@@ -64,7 +56,10 @@ public:
 	DataRMuEps precondition(const DataRMuEps& in);
 
 protected:
+	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
+	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const;
 	void printDebug(FILE* fp) const;
+
 private:
 	double pMol, ionNbulk, ionZ;
 	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal

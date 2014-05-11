@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <fluid/VDWCoupling.h>
 
-VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale)
-: Fmix(fluidMixture), vdW(vdW), vdwScale(vdwScale)
+VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vector< vector3<> > >& atpos, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale)
+: Fmix(fluidMixture), atpos(atpos), vdW(vdW), vdwScale(vdwScale)
 {
 	//create a list of fluid atomic numbers to calculate vdW interactions
 	const std::vector<const FluidComponent*>& component = fluidMixture->getComponents();
@@ -47,7 +47,7 @@ double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection
 }
 
 double VDWCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde, IonicGradient* forces) const
-{	return vdW->energyAndGrad(Ntilde, atomicNumber, vdwScale, Phi_Ntilde, forces);
+{	return vdW->energyAndGrad(atpos, Ntilde, atomicNumber, vdwScale, Phi_Ntilde, forces);
 }
 
 string VDWCoupling::getName() const

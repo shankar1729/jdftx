@@ -44,6 +44,7 @@ struct CoulombParams
 	
 	bool embed; //!< whether to embed in double-sized box (along truncated directions) to compute Coulomb interactions
 	vector3<> embedCenter; //!< 'center' of the system, when it is embedded into the larger box (in lattice coordinates)
+	bool embedFluidMode; //!< if true, don't truncate, just evaluate coulomb interactions in the larger box (fluid screening does the image separation instead)
 	
 	//Parameters for computing exchange integrals:
 	//! Regularization method for G=0 singularities in exchange
@@ -160,6 +161,11 @@ private:
 	struct WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	RealKernel* ionKernel;
+	DataGptr embedExpand(const DataGptr& in) const; //!< expand to embedding grid and symmetrize boundaries
+	complexDataGptr embedExpand(complexDataGptr&& in) const; //!< expand to embedding grid and symmetrize boundaries
+	DataGptr embedShrink(const DataGptr& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
+	complexDataGptr embedShrink(complexDataGptr&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
+	friend class FluidSolver;
 };
 
 #endif // JDFTX_CORE_COULOMB_H

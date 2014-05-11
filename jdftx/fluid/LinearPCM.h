@@ -33,16 +33,13 @@ public:
 	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
 	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
 
-	//! Set the explicit system charge density and effective cavity-formation electron density:
-	void set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
-
-	//! Get the minimized free energy and the electronic n-gradient
-	double get_Adiel_and_grad(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces) const;
-
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
+
+protected:
+	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
+	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient& extraForces) const;
 
 private:
 	RadialFunctionG Kkernel; DataRptr epsInv; // for preconditioner

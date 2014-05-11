@@ -51,9 +51,9 @@ inline double setPreconditionerKernel(double G, double epsMean, double kRMS)
 {	return (G || kRMS) ? 1./(epsMean*hypot(G, kRMS)) : 0.;
 }
 
-void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void LinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {	//Store the explicit system charge:
-	this->rhoExplicitTilde = clone(rhoExplicitTilde); zeroNyquist(this->rhoExplicitTilde);
+	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
 	//Update cavity:
 	this->nCavity = I(nCavityTilde);
@@ -62,18 +62,18 @@ void LinearPCM::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTil
 	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
 	if(k2factor) logPrintf(", screening length: %g Bohr", sqrt(epsBulk/k2factor));
-	logPrintf(") occupying %lf of unit cell:", integral(shape)/e.gInfo.detR); logFlush();
+	logPrintf(") occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
 
 	//Update the preconditioner
 	DataRptr epsilon = 1 + (epsBulk-1)*shape;
 	DataRptr kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
-	double epsMean = sum(epsilon) / e.gInfo.nr;
-	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / e.gInfo.nr;
-	Kkernel.init(0, 0.02, e.gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
+	double epsMean = sum(epsilon) / gInfo.nr;
+	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
+	Kkernel.init(0, 0.02, gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
 	
 	//Initialize the state if it hasn't been loaded:
-	if(!state) nullToZero(state, e.gInfo);
+	if(!state) nullToZero(state, gInfo);
 }
 
 
@@ -84,7 +84,7 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
 {
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
@@ -110,7 +110,7 @@ double LinearPCM::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr&
 }
 
 void LinearPCM::loadState(const char* filename)
-{	DataRptr Istate(DataR::alloc(e.gInfo));
+{	DataRptr Istate(DataR::alloc(gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space
 	state = J(Istate);
 }

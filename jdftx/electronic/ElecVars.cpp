@@ -353,11 +353,9 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		(fluidParams.useTau ? VtauTilde : VsclocTilde) += V_cavity;
 		
 		//Chemical-potential correction due to finite nuclear width in fluid interaction:
-		if(fluidSolver->k2factor)
-		{	double muCorrection = iInfo.ionWidthMuCorrection();
-			ener.E["A_diel"] += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
-			VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
-		}
+		double muCorrection = fluidSolver->ionWidthMuCorrection();
+		ener.E["A_diel"] += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
+		VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
 	}
 
 	//Atomic density-matrix contributions: (DFT+U)
