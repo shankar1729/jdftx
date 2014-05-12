@@ -108,7 +108,9 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 					Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
 					atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
 				}
+				logPrintf("   Weighted density dispersion model using vdW pair potentials with atomic C6's and scale factor s6: %lg.\n", fsp.vdwScale);
 			}
+			else logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
 			vdwForces = std::make_shared<IonicGradient>();
 			break;
 		}
