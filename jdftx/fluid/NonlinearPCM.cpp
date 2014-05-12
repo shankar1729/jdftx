@@ -42,7 +42,7 @@ inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEp
 }
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp)
+: PCM(e, fsp), pMol(0.), ionNbulk(0.), ionZ(0.), screeningEval(0), dielectricEval(0)
 {
 	const auto& solvent = fsp.solvents[0];
 	pMol = solvent->pMol ? solvent->pMol : solvent->molecule.getDipole().length();
@@ -86,12 +86,12 @@ NonlinearPCM::~NonlinearPCM()
 void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {	
 	//Initialize state if required:
-	if(!state) //nullToZero(state, gInfo);
+	if(!state)
 	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
 		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
 		fpLog = fopen("/dev/null", "w"); //disable iteration log from LinearPCM
 		LinearPCM linearPCM(e, fsp);
-		linearPCM.set(rhoExplicitTilde, nCavityTilde);
+		linearPCM.set_internal(rhoExplicitTilde, nCavityTilde);
 		linearPCM.minimizeFluid();
 		fclose(fpLog);
 		fpLog = globalLog; //retsore usual iteration log
@@ -157,8 +157,8 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	} //scoped to automatically deallocate temporaries
 	
 	//Compute the electrostatic terms:
-	DataGptr phiFluidTilde = (*e.coulomb)(rhoFluidTilde);
-	DataGptr phiExplicitTilde = (*e.coulomb)(rhoExplicitTilde);
+	DataGptr phiFluidTilde = coulomb(rhoFluidTilde);
+	DataGptr phiExplicitTilde = coulomb(rhoExplicitTilde);
 	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	
 	if(screeningEval)
@@ -236,12 +236,6 @@ DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
 		ionsPrefac * I(preconditioner*J(getMuMinus(in))),
 		dielPrefac * getEps(in));
 	return out;
-}
-
-
-void NonlinearPCM::printDebug(FILE* fp) const
-{
-
 }
 
 

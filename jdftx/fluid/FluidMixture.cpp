@@ -185,7 +185,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 			if(Phi_Ntilde[i]) Vex[i] = Jdag(Phi_Ntilde[i]) - Phi_Nbulk[i];
 		//Add electrostatic coupling:
 		if(rhoExternal)
-		{	DataGptr dExternal = (-4*M_PI)*Linv(O(rhoExternal));
+		{	DataGptr dExternal = coulomb(rhoExternal);
 			for(const FluidComponent* c: component)
 				for(unsigned i=0; i<c->molecule.sites.size(); i++)
 				{	const Molecule::Site& s = *(c->molecule.sites[i]);

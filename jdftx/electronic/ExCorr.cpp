@@ -508,7 +508,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	const int nCount = n.size();
 	assert(nCount==1 || nCount==2);
 	const int sigmaCount = 2*nCount-1;
-	const GridInfo& gInfo = e->gInfo;
+	const GridInfo& gInfo = n[0]->gInfo;
 	
 	//------- Prepare inputs, allocate outputs -------
 	
@@ -746,10 +746,11 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	const double scaleMinus = 1.-eps;
 	const DataRptr nPlus = scalePlus * n;
 	const DataRptr nMinus = scaleMinus * n;
+	const GridInfo& gInfo = n->gInfo;
 	
 	//Compute mask to zero out low density regions
-	DataRptr mask(DataR::alloc(e->gInfo));
-	threadLaunch(setMask, e->gInfo.nr, n->data(), mask->data(), nCut);
+	DataRptr mask(DataR::alloc(gInfo));
+	threadLaunch(setMask, gInfo.nr, n->data(), mask->data(), nCut);
 	
 	//Compute gradient-squared for GGA
 	DataRptr sigma, sigmaPlus, sigmaMinus;
@@ -772,31 +773,31 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	configs[4].n = &n;      configs[4].sigma = &sigmaMinus; // - dsigma
 	
 	//Compute the gradients at all the configurations:
-	DataRptr eTmp; nullToZero(eTmp, e->gInfo); //temporary energy return value (ignored)
+	DataRptr eTmp; nullToZero(eTmp, gInfo); //temporary energy return value (ignored)
 	for(int i=0; i<(needsSigma ? 5 : 3); i++)
 	{	Config& c = configs[i];
 		std::vector<const double*> nData(1), sigmaData(1), lapData(1), tauData(1);
 		std::vector<double*> e_nData(1), e_sigmaData(1), e_lapData(1), e_tauData(1);
 		double* eData = eTmp->dataPref();
 		nData[0] = (*c.n)->dataPref();
-		nullToZero(c.e_n, e->gInfo);
+		nullToZero(c.e_n, gInfo);
 		e_nData[0] = c.e_n->dataPref();
 		if(needsSigma)
 		{	sigmaData[0] = (*c.sigma)->dataPref();
-			nullToZero(c.e_sigma, e->gInfo);
+			nullToZero(c.e_sigma, gInfo);
 			e_sigmaData[0] = c.e_sigma->dataPref();
 		}
 		#ifdef LIBXC_ENABLED
 		//Compute LibXC functionals:
 		for(auto func: functionals->libXC)
 			if(!func->isKinetic())
-				func->evaluate(1, e->gInfo.nr, nData[0], sigmaData[0], lapData[0], tauData[0],
+				func->evaluate(1, gInfo.nr, nData[0], sigmaData[0], lapData[0], tauData[0],
 					eData, e_nData[0], e_sigmaData[0], e_lapData[0], e_tauData[0]);
 		#endif
 		//Compute internal functionals:
 		for(auto func: functionals->internal)
 			if(!func->isKinetic())
-				func->evaluate(e->gInfo.nr, nData, sigmaData, lapData, tauData,
+				func->evaluate(gInfo.nr, nData, sigmaData, lapData, tauData,
 					eData, e_nData, e_sigmaData, e_lapData, e_tauData);
 	}
 	

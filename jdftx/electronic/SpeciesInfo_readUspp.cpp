@@ -206,7 +206,7 @@ void SpeciesInfo::readUspp(istream& is)
 	RadialFunctionR Vloc0(nGrid); reader.get(Vloc0.f);
 	reader.endRecord();
 
-	double rcCore; RadialFunctionR nCore(nGrid);
+	double rcCore=0.; RadialFunctionR nCore(nGrid);
 	if(haveCore)
 	{	reader.newRecord(); reader.get(rcCore); reader.endRecord();
 		reader.newRecord(); reader.get(nCore.f); reader.endRecord();

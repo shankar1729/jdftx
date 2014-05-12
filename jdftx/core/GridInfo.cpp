@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 const double GridInfo::maxAllowedStrain = 0.35;
 
-GridInfo::GridInfo():Gmax(0),GmaxRho(0),initialized(false)
+GridInfo::GridInfo():Gmax(0),GmaxRho(0),nr(0),initialized(false)
 {
 }
 
