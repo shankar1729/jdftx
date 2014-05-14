@@ -1,0 +1,83 @@
+#!/bin/bash
+
+if [ -z "$2" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	Convert an xyz format file (cartesian Angstrom) to a JDFTx geometry specification.
+	   Usage: xyzToIonposOpt <file>.xyz <pad>
+	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	This will output two files, <file>.ionpos containing Cartesian bohr coordinates
+	and <file>.lattice containing the optimum orthogonal cell. The unit cell will be
+	larger in each dimension by <pad> bohrs than any atom. The molecules bounding box
+	will be centered at the origin, and rotated to minimize the unit cell volume.
+	This generates the optimum geometry for use with "coulomb-interaction Isolated"
+	and "coulomb-truncation-embed 0 0 0". (NOTE: requires octave to be available in path)
+	' >&2
+	exit 0;
+fi
+
+inFile="$1"
+ionposFile="${inFile/.xyz/.ionpos}"
+latticeFile="${inFile/.xyz/.lattice}"
+pad="$2"
+
+cat > $infile.tmp.m <<EOF
+#Read the ion names:
+fin = popen("awk 'NR==1 {nAtoms=\$1} NR>2 && NR<=2+nAtoms {print \$1}' $inFile", "r");
+nIons = 0;
+while(!feof(fin))
+	nIons = nIons+1;
+	ionnames{nIons} = fgetl(fin);
+endwhile
+pclose(fin);
+
+#Read the ion coordinates (cartesian Angstrom):
+global ionpos;
+fin = popen("awk 'NR==1 {nAtoms=\$1} NR>2 && NR<=2+nAtoms {print \$2, \$3, \$4}' $inFile", "r");
+ionpos = reshape(fscanf(fin, "%f"), 3,[]);
+pclose(fin);
+
+ionpos = ionpos / 0.5291772; #Convert to angstrom
+
+function m = rotAxis(iAxis, theta)
+	c = cos(theta); s = sin(theta);
+	m = circshift([ c s 0; -s c 0; 0 0 1 ], [iAxis iAxis]);
+endfunction
+
+function [out,rot,offs,boxSize] = transformIonpos(in, params)
+	rot = rotAxis(3,params(1)) * rotAxis(2,params(2)) * rotAxis(3,params(3)); #ZYZ Euler rotation
+	out = rot * in;
+	offs = -0.5*(max(out') + min(out'));
+	out += repmat(offs', 1,size(out,2));
+	boxSize = max(out') - min(out') + $pad;
+endfunction
+
+function res = residual(params)
+	global ionpos;
+	[out,rot,offs,boxSize] = transformIonpos(ionpos, params);
+	res = prod(boxSize);
+endfunction
+
+initialVolume = residual([0 0 0])
+params = fminsearch("residual", [0 0 0]);
+[ionpos,rotationMatrix,offset,boxSize] = transformIonpos(ionpos, params);
+optimumVolume = prod(boxSize)
+rotationMatrix
+offset
+boxSize
+
+#Write lattice:
+fp = fopen("$latticeFile", "w");
+fprintf(fp, "lattice \\\\\n\t%g 0 0 \\\\\n\t0 %g 0 \\\\\n\t0 0 %g\n", boxSize);
+fclose(fp);
+
+#Write ionpos file:
+fp = fopen("$ionposFile", "w");
+fprintf(fp, "#Ionic positions in cartesian coordinates:\n");
+for i=1:nIons
+	fprintf(fp, "ion %2s %10.5f %10.5f %10.5f %d\n", ionnames{i}, ionpos(:,i), i>1);
+endfor
+fclose(fp);
+EOF
+
+octave -qf $infile.tmp.m
+rm $infile.tmp.m
