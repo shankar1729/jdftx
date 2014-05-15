@@ -738,7 +738,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 	
 	std::sort(excitations.begin(), excitations.end());
 	const excitation& opt = excitations.front();
-	fprintf(fp, "Using %s eigenvalues.\n", eigsQP.size() ? "discontinuity-corrected QP" : "KS");
+	fprintf(fp, "Using %s eigenvalues.      HOMO: %.5f   LUMO: %.5f  \n", eigsQP.size() ? "discontinuity-corrected QP" : "KS", maxHOMO, minLUMO);
 	fprintf(fp, "Optical (direct) gap: %.5e (from n = %i to %i in qnum = %i)\n", opt.dE, opt.o, opt.u, opt.q);
 	fprintf(fp, "Indirect gap: %.5e (from (%i, %i) to (%i, %i))\n\n", minLUMO-maxHOMO, maxHOMOq, maxHOMOn, minLUMOq, minLUMOn);
 	
