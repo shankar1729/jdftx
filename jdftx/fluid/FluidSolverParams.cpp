@@ -227,6 +227,20 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = 8.96e-06;
 					break;
 				}
+				case FluidComponent::Glyme:
+				{	switch(fluidType)
+					{	case FluidLinearPCM:
+							nc = 8.36e-5;
+							sigma = 0.6;
+							cavityTension = -8.03e-06;
+							break;
+						case FluidNonlinearPCM:
+							die("\nERROR: You can't use NonlinearPCM with Glyme as it does not have a permanent dipole moment!\n");
+						default: //Other fluids do not use these parameters
+							break;
+					}
+					break;
+				}
 				case FluidComponent::CarbonDisulfide:
 				{	switch(fluidType)
 					{	case FluidLinearPCM:

@@ -46,6 +46,7 @@ struct FluidComponent
 		CH2Cl2, //! Dichloromethane (methyl chloride)
 		Ethanol,
 		Methanol,
+		Glyme,
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+
