@@ -170,7 +170,6 @@ void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nCha
 	DataGptr& nCore, DataGptr& tauCore) const
 {	if(!atpos.size()) return; //unused species
 	((SpeciesInfo*)this)->updateLatticeDependent(); //update lattice dependent quantities (if lattice vectors have changed)
-	((SpeciesInfo*)this)->cachedV.clear(); //clear any cached projectors
 	const GridInfo& gInfo = e->gInfo;
 
 	//Prepare optional outputs:

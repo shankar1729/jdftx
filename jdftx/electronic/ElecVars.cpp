@@ -266,6 +266,7 @@ void ElecVars::setup(const Everything &everything)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	Y[q] = Y[q] * invsqrt(Y[q]^O(Y[q]));
 		C[q] = Y[q];
+		iInfo.project(C[q], VdagC[q]);
 	}
 	
 	//Fluid setup:
@@ -403,33 +404,36 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_H;
-	
-	// Orthonormalize Y to compute C, U and cohorts
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		orthonormalize(q);
-	
-	//Update overlap condition number:
-	double UeigMin = DBL_MAX, UeigMax = 0.;
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
-		UeigMin = std::min(UeigMin, *(extremes.first));
-		UeigMax = std::max(UeigMax, *(extremes.second));
-	}
-	mpiUtil->allReduce(UeigMin, MPIUtil::ReduceMin, true);
-	mpiUtil->allReduce(UeigMax, MPIUtil::ReduceMax, true);
-	overlapCondition = UeigMax / UeigMin;
-	
-	//Compute fillings if required:
 	double mu = 0.0;
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (not e->cntrl.scf))
-	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
-		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
-		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }
-		//Compute fillings from aux hamiltonian eigenvalues:
+	
+	if(not e->cntrl.scf) //Wavefunctions are already orthonormal when this function is called in SCF mode
+	{
+		//Orthonormalize Y to compute C, U and cohorts
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(mu, B_eigs[q]);
-		//Update TS and muN:
-		eInfo.updateFillingsEnergies(F, ener);
+			orthonormalize(q);
+	
+		//Update overlap condition number:
+		double UeigMin = DBL_MAX, UeigMax = 0.;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	auto extremes = std::minmax_element(U_eigs[q].begin(), U_eigs[q].end());
+			UeigMin = std::min(UeigMin, *(extremes.first));
+			UeigMax = std::max(UeigMax, *(extremes.second));
+		}
+		mpiUtil->allReduce(UeigMin, MPIUtil::ReduceMin, true);
+		mpiUtil->allReduce(UeigMax, MPIUtil::ReduceMax, true);
+		overlapCondition = UeigMax / UeigMin;
+	
+		//Update fillings if required:
+		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
+			if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
+			else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }
+			//Compute fillings from aux hamiltonian eigenvalues:
+			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+				F[q] = eInfo.fermi(mu, B_eigs[q]);
+			//Update TS and muN:
+			eInfo.updateFillingsEnergies(F, ener);
+		}
 	}
 	
 	//Update the density and density-dependent pieces if required:

@@ -129,7 +129,10 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
 			//Reconstitute and orthonormalize wavefunctions:
 			e.eVars.C[q] += psi * coeff[q];
-			e.eVars.Y[q] = e.eVars.C[q] * invsqrt(e.eVars.C[q]^O(e.eVars.C[q]));
+			matrix orthoMat = invsqrt(e.eVars.C[q]^O(e.eVars.C[q], &e.eVars.VdagC[q]));
+			e.eVars.Y[q] = e.eVars.C[q] * orthoMat;
+			e.eVars.C[q] = e.eVars.Y[q];
+			e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q], &orthoMat);
 		}
 }
 

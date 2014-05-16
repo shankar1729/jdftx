@@ -166,9 +166,6 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 				//Translate the atomic orbitals and reconsitute wavefunctions:
 				translateColumns(psi, drColumns.data());
 				eVars.C[q] += psi * alpha;
-				
-				//Orthonormalize and replace old wavefunctions:
-				eVars.Y[q] = eVars.C[q] * invsqrt(eVars.C[q]^O(eVars.C[q]));
 			}
 		}
 	}
@@ -179,10 +176,18 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 			spInfo.atpos[atom] += dpos[sp][atom]; 
 		mpiUtil->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
-		#ifdef GPU_ENABLED
-		spInfo.sync_atposGpu();
-		#endif
+		spInfo.sync_atpos();
 	}
+	
+	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
+	if(e.cntrl.dragWavefunctions)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
+			eVars.Y[q] = eVars.C[q] * orthoMat;
+			eVars.C[q] = eVars.Y[q];
+			iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
+		}
+	
 	watch.stop();
 }
 

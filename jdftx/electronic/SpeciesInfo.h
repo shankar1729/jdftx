@@ -41,8 +41,8 @@ public:
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	#ifdef GPU_ENABLED
 	vector3<> *atposGpu; //!< copy of atomic positions on the gpu
-	void sync_atposGpu(); //!< update changes in atpos to atposGpu (call whenever atpos is changed)
 	#endif
+	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atpos_gpu and invalidate cached projectors, if any)
 	vector3<>* atposPref; //!< points to atposGpu in GPU mode and atpos otherwise
 	
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
@@ -217,6 +217,7 @@ private:
 	friend class CommandTauCore;
 	friend class CommandWavefunction;
 	friend class WannierMinimizer;
+	friend class IonicMinimizer;
 	friend class Dump;
 };
 

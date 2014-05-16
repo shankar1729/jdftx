@@ -31,14 +31,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 
 
-#ifdef GPU_ENABLED
-void SpeciesInfo::sync_atposGpu()
+void SpeciesInfo::sync_atpos()
 {	if(!atpos.size()) return; //unused species
+	#ifdef GPU_ENABLED
 	//Transfer atomic positions to the GPU:
 	cudaMemcpy(atposGpu, &atpos[0], sizeof(vector3<>)*atpos.size(), cudaMemcpyHostToDevice);
 	gpuErrorCheck();
+	#endif
+	//Invalidate cached projectors:
+	cachedV.clear();
 }
-#endif
 
 inline bool isParallel(vector3<> x, vector3<> y)
 {	return fabs(1.-fabs(dot(x, y)/(x.length() * y.length()))) < symmThreshold;
@@ -192,12 +194,12 @@ void SpeciesInfo::setup(const Everything &everything)
 	#ifdef GPU_ENABLED
 	//Alloc and init GPU atomic positions:
 	cudaMalloc(&atposGpu, sizeof(vector3<>)*atpos.size());
-	sync_atposGpu();
 	atposPref = atposGpu;
 	#else
 	atposPref = &atpos[0];
 	#endif
-
+	sync_atpos();
+	
 	Rprev = e->gInfo.R; //remember initial lattice vectors, so that updateLatticeDependent can check if an update is necessary
 }
 
@@ -254,6 +256,7 @@ void SpeciesInfo::updateLatticeDependent()
 		nCoreRadial.updateGmax(0, nGridLoc);
 		tauCoreRadial.updateGmax(0, nGridLoc);
 		for(auto& Qijl: Qradial) Qijl.second.updateGmax(Qijl.first.l, nGridLoc);
+		cachedV.clear(); //clear any cached projectors
 	}
 	
 	//Update Qradial indices, matrix and nagIndex if not previously init'd, or if R has changed:
