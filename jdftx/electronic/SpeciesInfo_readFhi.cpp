@@ -99,10 +99,20 @@ namespace FhiFile
 	};
 };
 
-// Read a FHI98 format .cpi file 
-void SpeciesInfo::readCpi(istream& in)
+// Read a ABINIT format FHI pseudopotential (.fhi)
+void SpeciesInfo::readFhi(istream& in)
 {
 	using namespace FhiFile;
+	
+	//Read the FHI header:
+	int iDump; //for unused params
+	logPrintf("  Title: %s.\n", getLine(in).c_str()); //line 1
+	double Zae; //all-electron charge (atomic number)
+	istringstream(getLine(in)) >> Zae >> Z; //line 2
+	atomicNumber = int(round(Zae));
+	int lLocCpi; istringstream(getLine(in)) >> iDump >> iDump >> iDump >> lLocCpi; //line 3
+	for(int line=4; line<=7; line++)
+		getLine(in); //Ignore lines 4 through 7
 	
 	//-------------------- CPI file read ---------------------
 	
@@ -134,43 +144,44 @@ void SpeciesInfo::readCpi(istream& in)
 	
 	//---------------- Log R Grid -> Uniform G grid transformations -----------------
 	
-	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
+	const double dG = e->gInfo.dGradial;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
 	//Core density:
 	if(nCoreLog.f.size())
 		setCore(nCoreLog);
 	//Local potential:
 	int lLoc = lLocCpi>=0 ? lLocCpi : (lCount-1); //specified channel, or last channel if unspecified
 	if(lLoc>=lCount) die("  Local channel l=%d is invalid (max l=%d in file).\n", lLoc, lCount);
-	logPrintf("  Transforming local potential (l=%d) to a uniform radial grid of dG=%lg with %d points.\n", lLoc, dGloc, nGridLoc);
-	channels[lLoc].VplusZbyr(Z).transform(0, dGloc, nGridLoc, VlocRadial);
+	logPrintf("  Transforming local potential (l=%d) to a uniform radial grid of dG=%lg with %d points.\n", lLoc, dG, nGridLoc);
+	channels[lLoc].VplusZbyr(Z).transform(0, dG, nGridLoc, VlocRadial);
 	
 	//Non-local potentials
 	if(lLoc==lCount-1) lCount--; //projector array shortens if last channel is local
 	VnlRadial.resize(lCount);
 	Mnl.resize(lCount);
-	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dGnl))+5;
+	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dG))+5;
 	if(lCount)
-	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
+	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
 		for(int l=0; l<lCount; l++)
 			if(l != lLoc)
 			{	if(l>3) die("  Nonlocal projectors with l>3 not implemented.\n");
 				double Minv = channels[l].projectorM(channels[lLoc]);
 				if(Minv) //to handle the special case when custom local channel happens to equal one of the l's!
 				{	VnlRadial[l].resize(1); //single projector per angular momentum
-					channels[l].getProjector(channels[lLoc]).transform(l, dGnl, nGridNL, VnlRadial[l][0]);
+					channels[l].getProjector(channels[lLoc]).transform(l, dG, nGridNL, VnlRadial[l][0]);
 					Mnl[l] = eye(1) * (1./Minv);
 				}
 			}
 	}
 	
 	//Radial wavefunctions:
-	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
+	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
 	psiRadial.resize(channels.size());
 	for(unsigned l=0; l<channels.size(); l++)
 	{	if(channels[l].hasPsi())
 		{	if(l>3) die("  Atomic orbitals with l>3 not implemented.\n");
 			psiRadial[l].push_back(RadialFunctionG());
-			channels[l].getPsi().transform(l, dGnl, nGridNL, psiRadial[l].back());
+			channels[l].getPsi().transform(l, dG, nGridNL, psiRadial[l].back());
 		}
 		else
 		{	psiRadial.resize(l); //no more wavefunctions
@@ -185,21 +196,3 @@ void SpeciesInfo::readCpi(istream& in)
 			if(rcNL > coreRadius) coreRadius = rcNL;
 		}
 }
-
-void SpeciesInfo::readFhi(istream& in)
-{	
-	using namespace FhiFile;
-	
-	//Read the FHI header:
-	int iDump; //for unused params
-	logPrintf("  Title: %s.\n", getLine(in).c_str()); //line 1
-	double Zae; //all-electron charge (atomic number)
-	istringstream(getLine(in)) >> Zae >> Z; //line 2
-	atomicNumber = int(round(Zae));
-	istringstream(getLine(in)) >> iDump >> iDump >> iDump >> lLocCpi; //line 3
-	for(int line=4; line<=7; line++)
-		getLine(in); //Ignore lines 4 through 7
-	//The remainder of the file is a .cpi:
-	readCpi(in);
-}
-

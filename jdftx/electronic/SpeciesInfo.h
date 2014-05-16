@@ -71,9 +71,7 @@ public:
 	void print(FILE* fp) const;
 	
 	enum PseudopotentialFormat
-	{	Pot, //!< Old DFT++ format (.pot files)
-		Cpi, //!< FHI98 format (.cpi files)
-		Fhi, //!< FHI format with ABINIT header (.fhi files)
+	{	Fhi, //!< FHI format with ABINIT header (.fhi files)
 		Uspp //!< USPP format ultrasoft pseudopotential
 	};
 	//! Returns the pseudopotential format
@@ -186,10 +184,6 @@ private:
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
 	PseudopotentialFormat pspFormat;
-	int lLocCpi; //!< local channel l for CPI files (Default: -1 => last channel in file)
-	int recStartLen, recStopLen; //!< record marker lengths for fortran binary sequential file format (for uspp)
-	double dGloc; //!< q-spacing for the local channel (default: 0.02)
-	double dGnl; //!< q-spacing for the non-local projetcors (default: 0.02)
 	
 	// gaussian chargeball used to prevent dielectric spikes
 	// DEPRECATED: As far as possible, use partial core correction instead
@@ -201,8 +195,6 @@ private:
 	double tauCore_rCut; bool tauCorePlot; //!< radial cutoff for generating core kinetic energy density and whether to generate a plot file of the result
 	
 	void setCore(RadialFunctionR&); //!< Generate nCoreRadial and tauCoreRadial if required (in SpeciesInfo_core.cpp)
-	void readPot(istream&); // Implemented in SpeciesInfo_readPot.cpp
-	void readCpi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
 	void readFhi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
 	void setupPulay(); // Implemented in SpeciesInfo_readPot.cpp

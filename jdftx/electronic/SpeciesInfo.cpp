@@ -89,9 +89,6 @@ SpeciesInfo::SpeciesInfo()
 	coreRadius = 0.;
 	initialOxidationState = 0.;
 	
-	lLocCpi = -1; //default: custom channel / highest l channel
-	dGloc = 0.02; // default grid seperation for full G functions.
-	dGnl  = 0.02; // default grid separation for reduced G operations
 	pulayfilename ="none";
 	OpsiRadial = &psiRadial;
 
@@ -130,9 +127,7 @@ void SpeciesInfo::setup(const Everything &everything)
 	if(!ifs.is_open()) die("Can't open pseudopotential file '%s' for reading.\n", potfilename.c_str());
 	logPrintf("\nReading pseudopotential file '%s':\n",potfilename.c_str());
 	switch(pspFormat)
-	{	case Pot: readPot(ifs); break;
-		case Cpi: readCpi(ifs); break;
-		case Fhi: readFhi(ifs); break;
+	{	case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
 	}
 	estimateAtomEigs();
@@ -251,7 +246,7 @@ void SpeciesInfo::updateLatticeDependent()
 
 	//Change radial function extents if R has changed:
 	if(Rchanged)
-	{	int nGridLoc = int(ceil(gInfo.GmaxGrid/dGloc))+5;
+	{	int nGridLoc = int(ceil(gInfo.GmaxGrid/gInfo.dGradial))+5;
 		VlocRadial.updateGmax(0, nGridLoc);
 		nCoreRadial.updateGmax(0, nGridLoc);
 		tauCoreRadial.updateGmax(0, nGridLoc);
@@ -280,6 +275,58 @@ void SpeciesInfo::updateLatticeDependent()
 		if(nagIndex) delete[] nagIndex; nagIndex=0;
 		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
 		#endif
-		callPref(setNagIndex)(gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, 1./dGloc, nagIndex, nagIndexPtr);
+		callPref(setNagIndex)(gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, 1./gInfo.dGradial, nagIndex, nagIndexPtr);
+	}
+}
+
+//! Return the first non-blank, non-comment line:
+string getLineIgnoringComments(istream& in)
+{	string line;
+	while(line.find_first_not_of(" \t\n\r")==string::npos || line.at(0)=='#')
+		getline(in, line);
+	return line;
+}
+
+// Read pulay stuff from file which has a line with number of Ecuts
+// followed by arbitrary number of Ecut dE_dnG pairs
+void SpeciesInfo::setupPulay()
+{	
+	if(pulayfilename == "none") return;
+	
+	ifstream ifs(pulayfilename.c_str());
+	if(!ifs.is_open()) die("  Can't open pulay file %s for reading.\n", pulayfilename.c_str());
+	logPrintf("  Reading pulay file %s ... ", pulayfilename.c_str());
+	istringstream iss;
+	int nEcuts; istringstream(getLineIgnoringComments(ifs)) >> nEcuts;
+	std::map<double,double> pulayMap;
+	for(int i=0; i<nEcuts; i++)
+	{	double Ecut, dE_dnG;
+		istringstream(getLineIgnoringComments(ifs)) >> Ecut >> dE_dnG;
+		pulayMap[Ecut] = dE_dnG;
+	}
+	
+	double minEcut = pulayMap.begin()->first;
+	double maxEcut = pulayMap.rbegin()->first;
+	double Ecut = e->cntrl.Ecut;
+	if(pulayMap.find(Ecut) != pulayMap.end())
+	{	dE_dnG = pulayMap[Ecut];
+		logPrintf("using dE_dnG = %le computed for Ecut = %lg.\n", dE_dnG, Ecut);
+	}
+	else if(Ecut < minEcut)
+	{	die("\n  Ecut=%lg < smallest Ecut=%lg in pulay file %s.\n",
+			Ecut, minEcut, pulayfilename.c_str());
+	}
+	else if(Ecut > maxEcut)
+	{	dE_dnG = 0;
+		logPrintf("using dE_dnG = 0 for Ecut=%lg > largest Ecut=%lg in file.\n",
+			Ecut, maxEcut);
+	}
+	else
+	{	auto iRight = pulayMap.upper_bound(Ecut); //iterator just > Ecut
+		auto iLeft = iRight; iLeft--; //iterator just < Ecut
+		double t = (Ecut - iLeft->first) / (iRight->first - iLeft->first);
+		dE_dnG = (1.-t) * iLeft->second + t * iRight->second;
+		logPrintf("using dE_dnG = %le interpolated from Ecut = %lg and %lg.\n",
+			dE_dnG, iLeft->first, iRight->first);
 	}
 }

@@ -111,7 +111,7 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 {	static StopWatch watch("augmentDensityGrid"); watch.start(); 
 	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
-	double dGinv = 1./dGloc;
+	double dGinv = 1./gInfo.dGradial;
 	matrix nAugTot = nAug; nAugTot.allReduce(MPIUtil::ReduceSum); //collect radial functions from all processes, and split by G-vectors below
 	matrix nAugRadial = QradialMat * nAugTot; //transform from radial functions to spline coeffs
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
@@ -131,7 +131,7 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 	augmentDensityGrid_COMMON_INIT
 	if(!nAug) augmentDensityInit();
 	const GridInfo &gInfo = e->gInfo;
-	double dGinv = 1./dGloc;
+	double dGinv = 1./gInfo.dGradial;
 	matrix E_nAugRadial = zeroes(nCoeffHlf, (e->eInfo.spinType==SpinNone ? 1 : 2) * atpos.size() * Nlm);
 	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
 	matrix nAugRadial; const double* nAugRadialData=0;

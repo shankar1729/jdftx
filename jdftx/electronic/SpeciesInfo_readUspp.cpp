@@ -21,6 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 
+//! Length in bytes of Record markers used in Fortran sequential binary files
+//! Technically depends on the Fortran compiler, but it is 4 for gfortran as well as ifort,
+//! which covers what (almost) everyone uses to compile the USPP generator program.
+#define FORTRAN_RECORD_MARKER_LENGTH 4 
+
 //Overlap of two radial functions (assumes same grid configuration, but one grid could be shorter)
 double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
 {	size_t nr = std::min(X.f.size(), Y.f.size());
@@ -45,11 +50,11 @@ void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
 //! Read the fortran sequential binary uspp format (need to skip record start/stop markers)
 struct UsppReader
 {	istream& is;
-	char* recBuf; int recStartLen, recStopLen;
+	char* recBuf;
 	
-	UsppReader(istream& is, int recStartLen, int recStopLen)
-	: is(is), recStartLen(recStartLen), recStopLen(recStopLen)
-	{	recBuf = new char[std::max(recStartLen, recStopLen)];
+	UsppReader(istream& is)
+	: is(is)
+	{	recBuf = new char[FORTRAN_RECORD_MARKER_LENGTH];
 	}
 	~UsppReader()
 	{	delete[] recBuf;
@@ -57,11 +62,11 @@ struct UsppReader
 	
 	//!Fortran record start
 	void newRecord()
-	{	is.read(recBuf, recStartLen);  if(is.eof()) die("  File ended prematurely.\n");
+	{	is.read(recBuf, FORTRAN_RECORD_MARKER_LENGTH);  if(is.eof()) die("  File ended prematurely.\n");
 	}
 	//!Fortran record end
 	void endRecord()
-	{	is.read(recBuf, recStopLen);  if(is.eof()) die("  Error reading file.\n");
+	{	is.read(recBuf, FORTRAN_RECORD_MARKER_LENGTH);  if(is.eof()) die("  Error reading file.\n");
 	}
 	
 	//!Get a single element of type T
@@ -88,7 +93,7 @@ struct UsppReader
 
 void SpeciesInfo::readUspp(istream& is)
 {
-	UsppReader reader(is, recStartLen, recStopLen);
+	UsppReader reader(is);
 	
 	//Header:
 	reader.newRecord();
@@ -243,8 +248,9 @@ void SpeciesInfo::readUspp(istream& is)
 	reader.endRecord();
 	
 	//-------------- Transform and store required quantities in SpeciesInfo ------------
-	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
-	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dGnl))+5;
+	const double dG = e->gInfo.dGradial;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
+	int nGridNL = int(ceil(e->gInfo.GmaxSphere/dG))+5;
 	
 	//Core density:
 	if(haveCore)
@@ -256,14 +262,14 @@ void SpeciesInfo::readUspp(istream& is)
 	
 	//Local potential:
 	Vloc0.set(rGrid, drGrid);
-	logPrintf("  Transforming local potential to a uniform radial grid of dG=%lg with %d points.\n", dGloc, nGridLoc);
+	logPrintf("  Transforming local potential to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridLoc);
 	for(int i=0; i<nGrid; i++)
 		Vloc0.f[i] = (Vloc0.f[i]*0.5 + Z) * (rGrid[i] ? 1./rGrid[i] : 0); //Convert to Eh and remove the -Z/r part
-	Vloc0.transform(0, dGloc, nGridLoc, VlocRadial);
+	Vloc0.transform(0, dG, nGridLoc, VlocRadial);
 	
 	//Projectors:
 	if(nBeta)
-	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
+	{	logPrintf("  Transforming nonlocal projectors to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
 		VnlRadial.resize(lMax+1);
 		for(int iBeta=0; iBeta<nBeta; iBeta++)
 		{	int l = lNL[iBeta];
@@ -271,7 +277,7 @@ void SpeciesInfo::readUspp(istream& is)
 			Vnl[iBeta].set(rGrid, drGrid);
 			for(int i=0; i<nGridBeta; i++)
 				Vnl[iBeta].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
-			Vnl[iBeta].transform(l, dGnl, nGridNL, VnlRadial[l].back());
+			Vnl[iBeta].transform(l, dG, nGridNL, VnlRadial[l].back());
 		}
 		//Set Mnl:
 		Mnl.resize(lMax+1);
@@ -287,7 +293,7 @@ void SpeciesInfo::readUspp(istream& is)
 				}
 		}
 		//Q radial functions and integrals:
-		logPrintf("  Transforming density augmentations to a uniform radial grid of dG=%lg with %d points.\n", dGloc, nGridLoc);
+		logPrintf("  Transforming density augmentations to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridLoc);
 		Qint.resize(lMax+1);
 		for(int l1=0; l1<=lMax; l1++) for(int p1=0; p1<int(lBeta[l1].size()); p1++)
 		{	int iBeta = lBeta[l1][p1];
@@ -315,7 +321,7 @@ void SpeciesInfo::readUspp(istream& is)
 						}
 						//Store in Qradial:
 						QijIndex qIndex = { l1, p1, l2, p2, l };
-						if(isNonzero) Qijl.transform(l, dGloc, nGridLoc, Qradial[qIndex]);
+						if(isNonzero) Qijl.transform(l, dG, nGridLoc, Qradial[qIndex]);
 						//Store Qint = integral(Qradial) when relevant:
 						if(l1==l2 && !l)
 						{	double Qint_ij = Qijl.transform(0,0)/(4*M_PI);
@@ -330,7 +336,7 @@ void SpeciesInfo::readUspp(istream& is)
 	
 	//Wavefunctions:
 	if(nPsi == nValence) // <- this seems to always be the case, but just to be sure
-	{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dGnl, nGridNL);
+	{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
 		OpsiRadial = new std::vector<std::vector<RadialFunctionG> >;
 		psiRadial.resize(lMax+1);
 		OpsiRadial->resize(lMax+1);
@@ -341,7 +347,7 @@ void SpeciesInfo::readUspp(istream& is)
 			for(int i=0; i<nGrid; i++)
 				voPsi[v].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
 			psiRadial[l].push_back(RadialFunctionG());
-			voPsi[v].transform(l, dGnl, nGridNL, psiRadial[l].back());
+			voPsi[v].transform(l, dG, nGridNL, psiRadial[l].back());
 			//Create O(psi) on the radial grid:
 			RadialFunctionR Opsi = voPsi[v];
 			std::vector<double> VdagPsi(lBeta[l].size());
@@ -352,7 +358,7 @@ void SpeciesInfo::readUspp(istream& is)
 				for(size_t p2=0; p2<lBeta[l].size(); p2++)
 					axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], Vnl[lBeta[l][p1]], Opsi);
 			OpsiRadial->at(l).push_back(RadialFunctionG());
-			Opsi.transform(l, dGnl, nGridNL, OpsiRadial->at(l).back());
+			Opsi.transform(l, dG, nGridNL, OpsiRadial->at(l).back());
 			//Store eigenvalue:
 			atomEigs[l].push_back(voEnergy[v]);
 		}

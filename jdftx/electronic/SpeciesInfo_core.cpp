@@ -54,7 +54,8 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 		return;
 	}
 	
-	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
+	const double dG = e->gInfo.dGradial;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
 	
 	//Truncate the radial grid where the integral of nCore is within double precision of its untruncated value:
 	double nCoreTot = 0.;
@@ -79,8 +80,8 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 	if(needTau)
 	{	RadialFunctionR tauCore = getTau(nCore, tauCore_rCut);
 		logPrintf("  Transforming core KE density to a uniform radial grid of dG=%lg with %d points.\n",
-			dGloc, nGridLoc);
-		tauCore.transform(0, dGloc, nGridLoc, tauCoreRadial);
+			dG, nGridLoc);
+		tauCore.transform(0, dG, nGridLoc, tauCoreRadial);
 		
 		if(tauCorePlot)
 		{	FILE* fp = fopen((name+".tauCoreRadial").c_str(), "w");
@@ -92,6 +93,6 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 	}
 	
 	logPrintf("  Transforming core density to a uniform radial grid of dG=%lg with %d points.\n",
-		dGloc, nGridLoc);
-	nCore.transform(0, dGloc, nGridLoc, nCoreRadial);
+		dG, nGridLoc);
+	nCore.transform(0, dG, nGridLoc, nCoreRadial);
 }
