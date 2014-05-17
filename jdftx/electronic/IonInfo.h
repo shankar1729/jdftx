@@ -47,6 +47,8 @@ class IonInfo
 {
 public:
 	std::vector< std::shared_ptr<SpeciesInfo> > species; //!< list of ionic species
+	std::vector<string> pspFilenamePatterns; //!< list of wildcards for pseudopotential sets
+	
 	CoordsType coordsType; //!< coordinate system for ionic positions etc.
 	ForcesOutputCoords forcesOutputCoords; //!< coordinate system to print forces in
 	coreOverlapCheck coreOverlapCondition; //! Check method used for determining whether pseudopotential cores overlap

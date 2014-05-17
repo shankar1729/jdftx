@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <commands/ParamList.h>
 #include <core/string.h>
+#include <memory>
 #include <set>
 
 //!@file command.h
@@ -149,5 +150,8 @@ template<typename Enum>
 LinkDescription<Enum> linkDescription(const EnumStringMap<Enum>& nameMap, const EnumStringMap<Enum>& descMap)
 {	return LinkDescription<Enum>(nameMap, descMap);
 }
+
+//! Find species matching an id (and create it from a wildcard if necessary)
+std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e);
 
 #endif // JDFTX_COMMAND_COMMAND_H

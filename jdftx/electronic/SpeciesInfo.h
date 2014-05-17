@@ -37,6 +37,7 @@ public:
 	int atomicNumber; //!< Atomic number of the species (0 if unavailable)
 	string name; //!< Identifier
 	string potfilename, pulayfilename;
+	bool fromWildcard; //!< whether this pseudopotential was automatically added using a wildcard (for command printing purposes only)
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	#ifdef GPU_ENABLED
