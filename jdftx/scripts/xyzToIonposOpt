@@ -46,9 +46,9 @@ endfunction
 function [out,rot,offs,boxSize] = transformIonpos(in, params)
 	rot = rotAxis(3,params(1)) * rotAxis(2,params(2)) * rotAxis(3,params(3)); #ZYZ Euler rotation
 	out = rot * in;
-	offs = -0.5*(max(out') + min(out'));
+	offs = -0.5*(max(out',[],1) + min(out',[],1));
 	out += repmat(offs', 1,size(out,2));
-	boxSize = max(out') - min(out') + $pad;
+	boxSize = max(out',[],1) - min(out',[],1) + $pad;
 endfunction
 
 function res = residual(params)
