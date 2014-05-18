@@ -86,6 +86,9 @@ struct CommandIonSpecies : public Command
 				break;
 			}
 		
+		//--- fix capitalization (for aesthetic purposes in output ionpos etc. (internally case-insensitive))
+		specie->name[0] = toupper(specie->name[0]);
+
 		//Check for a pulay file:
 		FILE* fpPulay = fopen(specie->pulayfilename.c_str(), "r");
 		if(!fpPulay) specie->pulayfilename = "none"; //disable if such a file does not exist
