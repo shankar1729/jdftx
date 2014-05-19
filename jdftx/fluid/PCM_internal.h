@@ -79,7 +79,8 @@ namespace ShapeFunction
 		//Electric field along above unit vector, with saturation for stability:
 		vector3<> E = -loadVector(DphiArr,i);
 		double eDotE = dot(e,E);
-		double x = -pCavity * eDotE;
+		const double x_eDotE = -fabs(pCavity);
+		double x = x_eDotE * eDotE;
 		double asymm=0., asymm_x=0.;
 		//modify cavity only for anion-like regions
 		if(x > 4.) { asymm = 1.; asymm_x = 0.; } //avoid Inf/Inf error
@@ -88,7 +89,7 @@ namespace ShapeFunction
 			asymm = (exp2x2 - 1.) * den; //tanh(x^2)
 			asymm_x = 8.*x * exp2x2 * den*den; //2x sech(x^2)
 		}
-		const double dlognMax = 3.;
+		const double dlognMax = copysign(3., pCavity);
 		double comb = log(n/nc) - dlognMax*asymm;
 		if(!grad)
 			shape[i] = 0.5*erfc(invSigmaSqrt2*comb);
@@ -96,9 +97,9 @@ namespace ShapeFunction
 		{	double A_comb = (-invSigmaSqrt2/sqrt(M_PI)) * A_shape[i] * exp(-comb*comb*invSigmaSqrt2*invSigmaSqrt2);
 			A_n[i] += A_comb/n;
 			double A_x = A_comb*(-dlognMax)*asymm_x;
-			accumVector((A_x*(-pCavity)*normFac) * (E - e*eDotE), A_Dn,i);
-			accumVector((A_x*(-pCavity)*(-1.)) * e, A_Dphi,i);
-			A_pCavity[i] += A_x*(-eDotE);
+			accumVector((A_x*x_eDotE*normFac) * (E - e*eDotE), A_Dn,i);
+			accumVector((A_x*x_eDotE*(-1.)) * e, A_Dphi,i);
+			A_pCavity[i] += A_x*(-copysign(1.,pCavity))*eDotE;
 		}
 	}
 	
