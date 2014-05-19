@@ -132,7 +132,7 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 			{	fgets(buf, bufLen, pp);
 				string fname(buf);
 				if(fname.length())
-				{	if(fname.back()=='\n') fname.pop_back();
+				{	if(fname.back()=='\n') fname.erase(fname.length()-1);
 					validFilenames[i].push_back(fname);
 				}
 			}
