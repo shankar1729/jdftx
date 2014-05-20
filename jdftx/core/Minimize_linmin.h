@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MINIMIZE_LINMIN_H
 
 #include <core/Minimize.h> //this include is present only to aid IDE's autocompletion (does nothing since this file is always used via Minimize.h)
-
+#include <deque>
 
 //Energy difference convergence check
 class EdiffCheck : std::deque<double>
@@ -47,21 +47,6 @@ public:
 	}
 };
 
-//Search direction reset check
-class DirResetCheck : std::deque<bool>
-{	unsigned num, den;
-public:
-	DirResetCheck(unsigned num, unsigned den) : num(num), den(den)
-	{
-	}
-	bool checkReset(bool sdReset) //returns true if recent reset count exceeds threshold
-	{	push_back(sdReset);
-		if(size()==den+1) pop_front(); //discard old unneeded elements
-		if(size()==den) return std::count(begin(), end(), true) > num;
-		return false;
-	}
-};
-
 namespace MinimizePrivate
 {
 	//Each of these linmin methods advance the parameters in obj along direction d
@@ -81,14 +66,14 @@ namespace MinimizePrivate
 		obj.step(d, alpha);
 		E = obj.sync(obj.compute(&g));
 		if(!std::isfinite(E))
-		{	fprintf(p.fpLog, "%s\tRelax step failed with %s = %le\n.", p.linePrefix, p.energyLabel, E);
+		{	fprintf(p.fpLog, "%s\tRelax step failed with %s = %le\n.", p.linePrefix, p.energyLabel, E); fflush(p.fpLog);
 			return false;
 		}
 		else return true;
 	}
 
 
-	//Quadratic line minimization, a more robust version of the one from the old electronic code
+	//Quadratic line minimization
 	template<typename Vector>
 	bool linminQuad(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g)
@@ -97,7 +82,7 @@ namespace MinimizePrivate
 		double Eorig = E;
 		double gdotd = obj.sync(dot(g,d)); //directional derivative at starting point
 		if(gdotd >= 0.0)
-		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix);
+		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix); fflush(p.fpLog);
 			alpha = alphaPrev;
 			return false;
 		}
@@ -106,7 +91,7 @@ namespace MinimizePrivate
 		double ET = 0.0; //test step energy
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	if(alphaT < p.alphaTmin)
-			{	fprintf(p.fpLog, "%s\talphaT below threshold %le. Quitting step.\n", p.linePrefix, p.alphaTmin);
+			{	fprintf(p.fpLog, "%s\talphaT below threshold %le. Quitting step.\n", p.linePrefix, p.alphaTmin); fflush(p.fpLog);
 				alpha = alphaPrev;
 				return false;
 			}
@@ -117,7 +102,7 @@ namespace MinimizePrivate
 			if(!std::isfinite(ET))
 			{	alphaT *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tTest step failed with %s = %le, reducing alphaT to %le.\n",
-					p.linePrefix, p.energyLabel, ET, alphaT);
+					p.linePrefix, p.energyLabel, ET, alphaT); fflush(p.fpLog);
 				continue;
 			}
 			//Predict step size:
@@ -125,29 +110,29 @@ namespace MinimizePrivate
 			//Check reasonableness of predicted step size:
 			if(alpha<0)
 			{	//Curvature has the wrong sign
-				//That implies ET < E, so try descending further
+				//That implies ET < E, so accept step for now, and try descending further next time
 				alphaT *= p.alphaTincreaseFactor;
-				fprintf(p.fpLog, "%s\tWrong curvature in test step, increasing alphaT to %le.\n", p.linePrefix, alphaT);
+				fprintf(p.fpLog, "%s\tWrong curvature in test step, increasing alphaT to %le.\n", p.linePrefix, alphaT); fflush(p.fpLog);
 				E = obj.sync(obj.compute(&g));
 				return true;
 			}
 			if(alpha/alphaT > p.alphaTincreaseFactor)
 			{	alphaT *= p.alphaTincreaseFactor;
 				fprintf(p.fpLog, "%s\tPredicted alpha/alphaT>%lf, increasing alphaT to %le.\n",
-					p.linePrefix, p.alphaTincreaseFactor, alphaT);
+					p.linePrefix, p.alphaTincreaseFactor, alphaT); fflush(p.fpLog);
 				continue;
 			}
 			if(alphaT/alpha < p.alphaTreduceFactor)
 			{	alphaT *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tPredicted alpha/alphaT<%lf, reducing alphaT to %le.\n",
-					p.linePrefix, p.alphaTreduceFactor, alphaT);
+					p.linePrefix, p.alphaTreduceFactor, alphaT); fflush(p.fpLog);
 				continue;
 			}
 			//Successful test step:
 			break;
 		}
 		if(!std::isfinite(E))
-		{	fprintf(p.fpLog, "%s\tTest step failed %d times. Quitting step.\n", p.linePrefix, p.nAlphaAdjustMax);
+		{	fprintf(p.fpLog, "%s\tTest step failed %d times. Quitting step.\n", p.linePrefix, p.nAlphaAdjustMax); fflush(p.fpLog);
 			alpha = alphaPrev;
 			return false;
 		}
@@ -160,13 +145,13 @@ namespace MinimizePrivate
 			if(!std::isfinite(E))
 			{	alpha *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tStep failed with %s = %le, reducing alpha to %le.\n",
-					p.linePrefix, p.energyLabel, E, alpha);
+					p.linePrefix, p.energyLabel, E, alpha); fflush(p.fpLog);
 				continue;
 			}
 			if(E > Eorig)
 			{	alpha *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tStep increased %s by %le, reducing alpha to %le.\n",
-					p.linePrefix, p.energyLabel, E-Eorig, alpha);
+					p.linePrefix, p.energyLabel, E-Eorig, alpha); fflush(p.fpLog);
 				continue;
 			}
 			//Step successful:
@@ -174,7 +159,7 @@ namespace MinimizePrivate
 		}
 		if(!std::isfinite(E) || E>Eorig)
 		{	fprintf(p.fpLog, "%s\tStep failed to reduce %s after %d attempts. Quitting step.\n",
-				p.linePrefix, p.energyLabel, p.nAlphaAdjustMax);
+				p.linePrefix, p.energyLabel, p.nAlphaAdjustMax); fflush(p.fpLog);
 			return false;
 		}
 		return true;
@@ -183,40 +168,34 @@ namespace MinimizePrivate
 
 	//Cubic line minimization, designed to handle fluids which can be highly non-quadratic
 	template<typename Vector>
-	bool linminCubic(Minimizable<Vector>& obj, const MinimizeParams& p,
+	bool linminCubicWolfe(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g)
 	{
-		double alphaPrev = 0;
 		double Eprev = E;
 		double gdotdPrev = obj.sync(dot(g,d)); //directional derivative at starting point
 		if(gdotdPrev >= 0.0)
-		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix);
+		{	fprintf(p.fpLog, "%s\tBad step direction: g.d > 0.\n", p.linePrefix); fflush(p.fpLog);
 			alpha = 0;
 			return false;
 		}
-
-		//Don't need to distinguish test and actual steps for cubic linmin!
+		double E0 = Eprev, gdotd0 =gdotdPrev; //Always use initial energy and gradient for Wolfe test (even if part of line search has been committed)
+		
 		alpha = alphaT; //this is the initial tentative step
-		double alphaState = 0.0; //location of obj's state along search direction since the start of this linmin
-		bool alphaOnRoot = false; //whether current alpha has been set to a root from a previous step
-		for(int s=0; s<p.nAlphaAdjustMax; s++)
+		double alphaPrev = 0; //alpha of the other point in the cubic interval
+		double alphaState = 0.; //alpha that correspodns to state of the objective function
+		for(int s=0;; s++)
 		{	//Move by alpha:
 			obj.step(d, alpha-alphaState); alphaState=alpha;
 			E = obj.sync(obj.compute(&g));
+			double gdotd = obj.sync(dot(g,d));
+			if(s > p.nAlphaAdjustMax) break; //step limit
 			//Check for domain error:
 			if(!std::isfinite(E))
-			{	alpha *= p.alphaTreduceFactor;
+			{	alpha = alphaPrev + p.alphaTreduceFactor*(alpha-alphaPrev);
 				fprintf(p.fpLog, "%s\tStep failed with %s = %le, reducing alpha to %le.\n",
-					p.linePrefix, p.energyLabel, E, alpha);
+					p.linePrefix, p.energyLabel, E, alpha); fflush(p.fpLog);
 				continue;
 			}
-			//Check if we're done:
-			if(alphaOnRoot)
-			{	if(E<=Eprev) return true;
-				else fprintf(p.fpLog, "%s\tStep increased %s by %le, trying another cubic\n",
-					p.linePrefix, p.energyLabel, E-Eprev);
-			}
-			double gdotd = obj.sync(dot(g,d));
 			//Have a valid cubic spline interval [alphaPrev,alpha]
 			//with values Eprev, E and derivatives gdotdPrev, gdotd
 			//Change coordinates to make that the unit interval in t:
@@ -228,65 +207,34 @@ namespace MinimizePrivate
 			double B = 2*Ep0 + Ep1 - 3*deltaE;
 			double C = Ep0;
 			assert(Ep0<=0);
-			//No maxima/minima or 0-slope inflection point:
-			if(B*B-A*C<=0)
+			double alphaNew = 0.;
+			if(B*B-A*C<=0) //No maxima/minima or 0-slope inflection point
 			{	assert(E<=Eprev);
 				assert(gdotdPrev<=0);
-				//This implies energy is monotonically decreasing (we know Ep0<0)
-				double alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev);
-				alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd;
-				alpha = alphaNew; alphaOnRoot = false;
-				//Since E<Eprev, scoot the interval over to start at alpha (future failures won't affect this progress)
-				alphaPrev -= alphaState;
-				alpha -= alphaState;
-				alphaState = 0;
-				continue;
+				alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev); //energy is monotonically decreasing (we know Ep0<0)
 			}
-			//Locate minimum of E(t):
-			double disc = sqrt(B*B-A*C);
-			double tOpt = B>0 ? (B+disc)/A : C/(B-disc);
-			double Eopt = Eprev + tOpt*(C + tOpt*(-B + tOpt*A/3));
-			if(tOpt>=0 && tOpt<p.alphaTincreaseFactor && Eopt<=E && Eopt<=Eprev)
-			{	//This is a valid energy reducing, not too far off solution
-				double alphaNew = alphaPrev + tOpt*(alpha-alphaPrev);
-				if(tOpt<=1)
-				{	alpha = alphaNew;
-				}
+			else //Locate minimum of E(t):
+			{	double disc = sqrt(B*B-A*C);
+				double tOpt = B>0 ? (B+disc)/A : C/(B-disc);
+				double Eopt = Eprev + tOpt*(C + tOpt*(-B + tOpt*A/3));
+				if(tOpt>=0 && tOpt<p.alphaTincreaseFactor && Eopt<=E && Eopt<=Eprev)
+					alphaNew = alphaPrev + tOpt*(alpha-alphaPrev);
 				else
-				{	assert(E<=Eprev);
-					assert(gdotdPrev<=0);
-					//E<Eprev, so never have to revisit left of alpha
-					alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd;
-					alpha = alphaNew;
-					//Commit the progress thus far, protecting it from future failures in step:
-					alphaPrev -= alphaState;
-					alpha -= alphaState;
-					alphaState = 0;
-				}
-				alphaOnRoot = true;
-				continue;
+					alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev);
 			}
-			else
-			{	//If E>Eprev, then must have had tOpt in (0,1) with Eopt<Eprev<E.
-				//Therefore definitely have E<Eprev here:
-				assert(E<=Eprev);
-				assert(gdotdPrev<=0);
-				//Scoot interval over to start at E:
-				double alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev);
-				alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd;
-				alpha = alphaNew; alphaOnRoot = false;
-				//Commit the progress thus far, protecting it from future failures in step:
-				alphaPrev -= alphaState;
-				alpha -= alphaState;
-				alphaState = 0;
-				continue;
+			//Check if we're done (Wolfe conditions):
+			if(E <= E0 + p.wolfeEnergy*alpha*gdotd0 && gdotd >= p.wolfeGradient*gdotd0)
+			{	if(p.updateTestStepSize) alphaT = alphaNew; //save computed optimum step size for next time
+				return true;
 			}
+			fprintf(p.fpLog, "%s\tWolfe criterion not satisfied: alpha: %lg  (E-E0)/|gdotd0|: %lg  gdotd/gdotd0: %lg (taking cubic step)\n",
+				p.linePrefix, alpha, (E-E0)/fabs(gdotd0), gdotd/gdotd0); fflush(p.fpLog);
+			//Prepare for next step:
+			if(E<Eprev && gdotd<0) { alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd; }
+			alpha = alphaNew;
 		}
-		//Check if current state is invalid or worse than prev:
-		if(!std::isfinite(E) || E>Eprev)
-		{	alpha = alphaState; //minimize will roll back to the last known good state
-			return false;
-		}
+		//Check if current state is invalid or worse than starting point:
+		if(!std::isfinite(E) || E>E0) return false; //minimize will roll back to the last known good state
 		else return true;
 	}
 }
@@ -294,9 +242,16 @@ namespace MinimizePrivate
 template<typename Vector> typename Minimizable<Vector>::Linmin Minimizable<Vector>::getLinmin(const MinimizeParams& p) const
 {	using namespace MinimizePrivate;
 	switch(p.linminMethod)
-	{	case MinimizeParams::Relax: return linminRelax<Vector>; break;
-		case MinimizeParams::Quad:  return linminQuad<Vector>; break;
-		case MinimizeParams::Cubic: return linminCubic<Vector>; break;
+	{	case MinimizeParams::DirUpdateRecommended:
+		{	switch(p.dirUpdateScheme)
+			{	case MinimizeParams::SteepestDescent: return linminRelax<Vector>;
+				case MinimizeParams::LBFGS: return linminCubicWolfe<Vector>;
+				default: return linminQuad<Vector>; //Default for all nonlinear CG methods
+			}
+		}
+		case MinimizeParams::Relax: return linminRelax<Vector>;
+		case MinimizeParams::Quad: return linminQuad<Vector>;
+		case MinimizeParams::CubicWolfe: return linminCubicWolfe<Vector>;
 	}
 	return 0;
 }

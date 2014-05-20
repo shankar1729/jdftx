@@ -35,8 +35,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 	
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
 
-	double alphaT = p.alphaTstart; //test step size
-	double alpha = alphaT; //actual step size
+	double alpha = 0.; //step size (note BFGS always tries alpha=alphaTstart first, which is recommended to be 1)
 	double linminTest = 0.;
 	
 	//History of variable and residual changes:
@@ -46,7 +45,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		double rho; //= 1/dot(s,y)
 	};
 	std::list< std::shared_ptr<History> > history;
-	double gamma = 0.; //scaling: set to dot(s,y)/dot(y,Ky) at end of first iteration
+	double gamma = 0.; //scaling: set to dot(s,y)/dot(y,Ky) each iteration
 	
 	//Select the linmin method:
 	Linmin linmin = getLinmin(p);
@@ -64,9 +63,10 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		}
 		
 		double gKnorm = sync(dot(g,Kg));
-		fprintf(p.fpLog, "%sIter: %3d  %s: %22.15le  |grad|_K: %10.3le  alpha: %10.3le",
-			p.linePrefix, iter, p.energyLabel, E, sqrt(gKnorm/p.nDim), alpha);
-		if(linminTest) fprintf(p.fpLog, ", linmin = %10.3le", linminTest);
+		fprintf(p.fpLog, "%sIter: %3d  %s: %22.15le  |grad|_K: %10.3le",
+			p.linePrefix, iter, p.energyLabel, E, sqrt(gKnorm/p.nDim));
+		if(alpha) fprintf(p.fpLog, "  alpha: %10.3le", alpha);
+		if(linminTest) fprintf(p.fpLog, "  linmin: %10.3le", linminTest);
 		
 		//Check stopping conditions:
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
@@ -111,16 +111,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		
 		//Line minimization
 		Vector y = clone(g); //store previous gradient before linmin changes it (this will later be converted to y = g-gPrev)
-		if(linmin(*this, p, d, alphaT, alpha, E, g))
-		{	//linmin succeeded:
-			if(p.updateTestStepSize)
-			{	alphaT = alpha;
-				if(alphaT<p.alphaTmin) //bad step size
-					alphaT = p.alphaTstart; //make sure next test step size is not too bad
-			}
-			fflush(p.fpLog);
-		}
-		else
+		if(!linmin(*this, p, d, p.alphaTstart, alpha, E, g))
 		{	//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);
@@ -152,7 +143,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		y *= -1; axpy(1., g, y); //y = g-gPrev
 		double ydots = sync(dot(y, h->s));
 		h->rho = 1./ydots;
-		if(!gamma) gamma = ydots / sync(dot(y, h->Ky));
+		gamma = ydots / sync(dot(y, h->Ky));
 		history.push_back(h);
 	}
 	fprintf(p.fpLog, "%sNone of the convergence criteria satisfied after %d iterations.\n", p.linePrefix, iter);

@@ -39,9 +39,10 @@ struct MinimizeParams
 
 	//! Line minimization method
 	enum LinminMethod
-	{	Relax, //!< move by a constant multiple (=alphaTstart) of the search direction (not recommended for CG)
+	{	DirUpdateRecommended, //!< default method recommended by the direction update scheme
+		Relax, //!< move by a constant multiple (=alphaTstart) of the search direction (not recommended for CG)
 		Quad, //!< use the energy at a test step location to find the minimum along the line (default)
-		Cubic //!< use the energy and gradient at a test step location to find the minimum along the line
+		CubicWolfe //!< Cubic line search terminated by Wolfe conditions, possibly without a test step
 	} linminMethod;
 
 	int nIterations; //!< Maximum number of iterations (default 100)
@@ -54,9 +55,6 @@ struct MinimizeParams
 	double energyDiffThreshold; //!< stop when energy change is below this for nEnergyDiff successive iterations (default: 0)
 	int nEnergyDiff; //!< number of successive iterations for energyDiffThreshold check (default: 2)
 	
-	int nDirResetNum; //!< Switch to stepeest descents if search direction is reset nDirResetNum out of the last nDirResetDen iterations (default: 2)
-	int nDirResetDen; //!< Switch to stepeest descents if search direction is reset nDirResetNum out of the last nDirResetDen iterations (default: 5)
-	
 	double alphaTstart; //!< initial value for the test-step size (default: 1.0)
 	double alphaTmin; //!< minimum value of the test-step size (algorithm gives up when difficulties cause alphaT to fall below this value) (default:1e-10)
 	bool updateTestStepSize; //!< set alphaT=alpha after every iteration if true (default: true)
@@ -65,15 +63,19 @@ struct MinimizeParams
 	double alphaTincreaseFactor; //!< Max ratio of alpha to alphaT, increase alphaT by this factor otherwise (default 3.0)
 	int nAlphaAdjustMax; //!< maximum number of times to alpha adjust attempts (default 3)
 
+	double wolfeEnergy; //!< Wolfe criterion dimensionless threshold for energy
+	double wolfeGradient; //!< Wolfe criterion dimensionless threshold for gradient
+	
 	bool fdTest; //!< whether to perform a finite difference test before each minimization (default false)
 	
 	//! Set the default values
 	MinimizeParams() 
-	: dirUpdateScheme(PolakRibiere), linminMethod(Quad),
-		nIterations(100), nDim(1), history(3), fpLog(stdout), linePrefix("CG\t"), energyLabel("E"),
-		knormThreshold(0), energyDiffThreshold(0), nEnergyDiff(2), nDirResetNum(2), nDirResetDen(5),
+	: dirUpdateScheme(PolakRibiere), linminMethod(DirUpdateRecommended),
+		nIterations(100), nDim(1), history(15), fpLog(stdout), linePrefix("CG\t"), energyLabel("E"),
+		knormThreshold(0), energyDiffThreshold(0), nEnergyDiff(2),
 		alphaTstart(1.0), alphaTmin(1e-10), updateTestStepSize(true),
 		alphaTreduceFactor(0.1), alphaTincreaseFactor(3.0), nAlphaAdjustMax(3),
+		wolfeEnergy(1e-4), wolfeGradient(0.9),
 		fdTest(false) {}
 };
 

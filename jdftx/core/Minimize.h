@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 #include <algorithm>
-#include <deque>
 #include <core/Util.h>
 #include <core/MinimizeParams.h>
 
@@ -116,7 +115,6 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	Vector g, gPrev; //current and previous gradient
 	double E = sync(compute(&g)); //get initial energy and gradient
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
-	DirResetCheck dirResetCheck(p.nDirResetNum, p.nDirResetDen); //reset history
 	
 	Vector d = clone(g); //step direction (will be reset in first iteration)
 	bool forceGradDirection = true; //whether current direction is along the gradient
@@ -154,8 +152,8 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 
 			double linmin = dotgd/sqrt(sync(dot(g,g))*sync(dot(d,d)));
 			double cgtest = dotgPrevKg/sqrt(gKNorm*gKNormPrev);
-			fprintf(p.fpLog, ", linmin = %10.3le", linmin);
-			fprintf(p.fpLog, ", cgtest = %10.3le", cgtest);
+			fprintf(p.fpLog, "  linmin: %10.3le", linmin);
+			fprintf(p.fpLog, "  cgtest: %10.3le", cgtest);
 
 			//Update beta:
 			switch(currentDirUpdateScheme)
@@ -204,8 +202,6 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 				if(alphaT<p.alphaTmin) //bad step size
 					alphaT = p.alphaTstart; //make sure next test step size is not too bad
 			}
-			fflush(p.fpLog);
-			dirResetCheck.checkReset(false);
 		}
 		else
 		{	//linmin failed:
@@ -217,12 +213,6 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 				fprintf(p.fpLog, "%s\tStep failed: resetting search direction.\n", p.linePrefix);
 				fflush(p.fpLog);
 				forceGradDirection = true; //reset search direction
-				if(dirResetCheck.checkReset(true))
-				{	fprintf(p.fpLog,
-						"%s\tSearch direction was reset %d of the last %d iterations, switching to Steepest Descents\n",
-						p.linePrefix, p.nDirResetNum, p.nDirResetDen);
-					currentDirUpdateScheme = MinimizeParams::SteepestDescent;
-				}
 			}
 			else
 			{	//Failed along the gradient direction
