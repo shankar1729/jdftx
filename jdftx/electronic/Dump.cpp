@@ -128,7 +128,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		{	//Dump auxilliary hamiltonian
 			StartDump("Haux")
-			eInfo.write(e->cntrl.scf ? eVars.Hsub : eVars.B, fname.c_str());
+			eInfo.write(eVars.B, fname.c_str());
 			EndDump
 		}
 	}

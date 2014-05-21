@@ -193,6 +193,11 @@ void SCF::minimize()
 	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
+	
+	//Set auxiliary Hamiltonian to subspace Hamiltonian
+	// (for general compatibility with minimizer; also important for lattice gradient in metals)
+	if(e.eInfo.fillingsUpdate == ElecInfo::FermiFillingsAux)
+		eVars.B = eVars.Hsub; 
 }
 
 void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const

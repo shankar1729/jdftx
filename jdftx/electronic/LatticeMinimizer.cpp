@@ -231,7 +231,11 @@ void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
 	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
-	if(!ignoreElectronic) e.eVars.elecEnergyAndGrad(e.ener);
+	if(!ignoreElectronic)
+	{	bool scf = false; std::swap(e.cntrl.scf, scf); //Temporarily disable scf flag so that orthogonalizations are not bypassed in elecEnergyAndGrad()
+		e.eVars.elecEnergyAndGrad(e.ener);
+		std::swap(e.cntrl.scf, scf);
+	}
 	logResume();
 }
 
