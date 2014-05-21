@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdio.h>
 
-#ifdef MKL_ENABLED
+#if defined(MKL_PROVIDES_BLAS) || defined(MKL_PROVIDES_FFT)
 #include <mkl.h>
 #endif
 
@@ -47,14 +47,14 @@ bool shouldThreadOperators()
 
 void suspendOperatorThreading()
 {	threadOperators = false;
-	#ifdef MKL_ENABLED
+	#if defined(MKL_PROVIDES_BLAS) || defined(MKL_PROVIDES_FFT)
 	mkl_set_num_threads(1);
 	#endif
 }
 
 void resumeOperatorThreading()
 {	threadOperators = true;
-	#ifdef MKL_ENABLED
+	#if defined(MKL_PROVIDES_BLAS) || defined(MKL_PROVIDES_FFT)
 	mkl_set_num_threads(nProcsAvailable);
 	#endif
 }

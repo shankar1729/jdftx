@@ -26,11 +26,19 @@ include_directories(${GSL_INCLUDE_DIR})
 
 #Use indepedent CBLAS, LAPACK and FFTW (default) or MKL for all three
 option(EnableMKL "Use Intel MKL to provide BLAS, LAPACK and FFTs")
+option(ForceFFTW "Force usage of FFTW (even if MKL is enabled)")
 if(EnableMKL)
 	find_package(MKL REQUIRED)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
-	add_definitions("-DMKL_ENABLED") #Special handling is required for BLAS and FFT calls from threaded sections
+	add_definitions("-DMKL_PROVIDES_BLAS") #Special handling is required for BLAS calls from threaded sections
 	include_directories(${MKL_INCLUDE_DIR})
+	if(ForceFFTW)
+		find_package(FFTW3 REQUIRED)
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES}) #Explicit FFTW3, rest from MKL
+	else()
+		add_definitions("-DMKL_PROVIDES_FFT") #Special handling is required for FFT initialization
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
+	endif()
 else()
 	find_package(FFTW3 REQUIRED)
 	find_package(LAPACK REQUIRED)
