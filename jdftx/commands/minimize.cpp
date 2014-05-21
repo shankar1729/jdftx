@@ -172,6 +172,7 @@ struct CommandIonicMinimize : public CommandMinimize
 	{	e.ionicMinParams.nIterations = 0; //override default value (100) in MinimizeParams.h
 		e.ionicMinParams.energyDiffThreshold = 1e-6;
 		e.ionicMinParams.knormThreshold = 1e-4;
+		e.ionicMinParams.dirUpdateScheme = MinimizeParams::LBFGS;
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -212,6 +213,7 @@ struct CommandLatticeMinimize : public CommandMinimize
     void process(ParamList& pl, Everything& e)
 	{	e.latticeMinParams.nIterations = 0; //override default value (100) in MinimizeParams.h
 		e.latticeMinParams.energyDiffThreshold = 1e-6;
+		e.latticeMinParams.dirUpdateScheme = MinimizeParams::LBFGS;
 		CommandMinimize::process(pl, e);
 	}
 }
