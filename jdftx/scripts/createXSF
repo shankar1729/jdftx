@@ -1,0 +1,165 @@
+#!/bin/bash
+
+function printUsageAndExit()
+{
+	echo '
+	Create an XcrySDen Structure File from a JDFTx output file. Usage:
+		createXSF <jdftxOutFile> <xsfFile> [<var1> <var2> ...]
+	The simplest usage saves all available structural information from
+	the JDFTx output <jdftxOutFile> to <xsfFile>. This will include
+	ionic positions, forces and lattice vectors for all conifgurations
+	(if geometry or lattice optimization was performed) in the run.
+		Additionally, scalar fields such as the electron density may
+	also be saved, where var should name the file suffix used by JDFTx
+	for that type eg. n for density, nUp for up-spin density, d_tot
+	for total electrostatic potential etc. Note that XSF is an ascii
+	format (unlike the default binary dump) and adding many scalar
+	field variables to it could make it enormous.
+		Note: requires awk and octave to be available in path.
+	'
+	exit $1
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then printUsageAndExit 0; fi
+if [ -z "$2" ]; then printUsageAndExit 1; fi
+
+jdftxOutFile="$1"
+xsfFile="$2"
+
+if [ ! -f "$jdftxOutFile" ]; then
+	echo "Could not open '$jdftxOutFile' for reading"
+	exit 1
+fi
+
+if [ ! -z "$3" ]; then
+	echo "Scalar fields in XSF not yet implemented"
+	exit 1
+fi
+
+
+tmpDir="$xsfFile.tmp"
+mkdir -p "$tmpDir"
+if [ ! -d "$tmpDir" ]; then
+	echo "Could not create temporary working directory '$tmpDir'"
+	exit 1
+fi
+
+#Extract relevant information from the output file (and save in separate files in tmpDir)
+awk "
+	#Header mode
+	BEGIN { mode=1; nAtoms=0; nSteps=0; }
+	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" ? 0 : 1); }
+	mode==1 && \$1==\"forces-output-coords\" { forceCoords = (\$2==\"Positions\" ? 0 : (\$2==\"Lattice\" ? 1 : (\$2==\"Cartesian\" ? 2 : 3))); }
+	mode==1 && \$1==\"ion\" { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
+	#Initial lattice vectors
+	mode==1 && \$0~/Initializing the Grid/ { mode=2; refLine=NR }
+	mode==2 && NR>refLine+1 && NR<=refLine+4 { print \$2, \$3, \$4 > \"$tmpDir/lattice.0\"; }
+	#Ionic positions
+	/# Ionic positions in / { mode=3; refLine=NR; nSteps++; }
+	mode==3 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > \"$tmpDir/ionpos.\" nSteps }
+	#Forces
+	/# Forces in / { mode=4; refLine=NR; }
+	mode==4 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > \"$tmpDir/force.\" nSteps }
+	#Lattice vectors
+	mode==4 && \$0~/R =/ { mode=5; refLine=NR; }
+	mode==5 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > \"$tmpDir/lattice.\" nSteps }
+	END {
+		if(forceCoords==0) forceCoords = (posCoords==0 ? 1 : 2);
+		print nSteps, nAtoms, posCoords, forceCoords > \"$tmpDir/dimensions\";
+	}
+" $jdftxOutFile
+
+#Put together into the target XSF file
+cat > "$tmpDir/process.m" <<EOF
+	#Read dimensions
+	dims = load("-ascii", "$tmpDir/dimensions");
+	nSteps = dims(1);
+	nAtoms = dims(2);
+	posCoords = dims(3);
+	forceCoords = dims(4);
+	
+	#Read and process atom names
+	fp = fopen("$tmpDir/ionNames", "r");
+	ionNames = textscan(fp, "%s"){1};
+	fclose(fp);
+	#--- Associative array for mapping symbols to atomic numbers:
+	Z.H = 1; Z.He = 2; Z.Li = 3; Z.Be = 4; Z.B = 5; Z.C = 6; Z.N = 7; Z.O = 8; Z.F = 9; Z.Ne = 10; Z.Na = 11; Z.Mg = 12; Z.Al = 13; Z.Si = 14; Z.P = 15; Z.S = 16;
+	Z.Cl = 17; Z.Ar = 18; Z.K = 19; Z.Ca = 20; Z.Sc = 21; Z.Ti = 22; Z.V = 23; Z.Cr = 24; Z.Mn = 25; Z.Fe = 26; Z.Co = 27; Z.Ni = 28; Z.Cu = 29; Z.Zn = 30; Z.Ga = 31; Z.Ge = 32;
+	Z.As = 33; Z.Se = 34; Z.Br = 35; Z.Kr = 36; Z.Rb = 37; Z.Sr = 38; Z.Y = 39; Z.Zr = 40; Z.Nb = 41; Z.Mo = 42; Z.Tc = 43; Z.Ru = 44; Z.Rh = 45; Z.Pd = 46; Z.Ag = 47; Z.Cd = 48;
+	Z.In = 49; Z.Sn = 50; Z.Sb = 51; Z.Te = 52; Z.I = 53; Z.Xe = 54; Z.Cs = 55; Z.Ba = 56; Z.La = 57; Z.Ce = 58; Z.Pr = 59; Z.Nd = 60; Z.Pm = 61; Z.Sm = 62; Z.Eu = 63; Z.Gd = 64;
+	Z.Tb = 65; Z.Dy = 66; Z.Ho = 67; Z.Er = 68; Z.Tm = 69; Z.Yb = 70; Z.Lu = 71; Z.Hf = 72; Z.Ta = 73; Z.W = 74; Z.Re = 75; Z.Os = 76; Z.Ir = 77; Z.Pt = 78; Z.Au = 79; Z.Hg = 80;
+	Z.Tl = 81; Z.Pb = 82; Z.Bi = 83; Z.Po = 84; Z.At = 85; Z.Rn = 86; Z.Fr = 87; Z.Ra = 88; Z.Ac = 89; Z.Th = 90; Z.Pa = 91; Z.U = 92; Z.Np = 93; Z.Pu = 94; Z.Am = 95; Z.Cm = 96;
+	#--- Map atom names to atomic symbols
+	for iAtom = 1:nAtoms
+		key = tolower(ionNames{iAtom});
+		key = [ toupper(key(1)) key(2:end) ];
+		if !isfield(Z, key)
+			Z = setfield(Z, key, input(sprintf("Enter atomic number for unknown atom type '%s': ", ionNames{iAtom})));
+		endif
+		atnum(iAtom) = getfield(Z, key);
+	endfor
+	
+	#Initial ionpos and lattice:
+	lattice0 = load("-ascii", "$tmpDir/lattice.0");
+	ionpos0 = load("-ascii", "$tmpDir/ionpos.0");
+	
+	#Subsequent ionpos and lattice if any:
+	if nSteps > 0
+		lattice = repmat(reshape(lattice0, [3,3,1]), [1,1,nSteps]);
+		ionpos = zeros(nAtoms,3,nSteps);
+		forces = zeros(nAtoms,3,nSteps);
+		iLatDone=0;
+		for iStep = 1:nSteps
+			ionpos(:,:,iStep) = load("-ascii", sprintf("$tmpDir/ionpos.%d",iStep));
+			forces(:,:,iStep) = load("-ascii", sprintf("$tmpDir/force.%d",iStep));
+			latFile = sprintf("$tmpDir/lattice.%d",iStep);
+			if exist(latFile, "file")
+				lattice(:,:,iLatDone+1:iStep) = repmat(reshape(load("-ascii", latFile),[3,3,1]), [1,1,iStep-iLatDone]);
+				iLatDone = iStep;
+			endif
+		endfor
+	else
+		lattice = reshape(lattice0, [3,3,1]);
+		ionpos = reshape(ionpos0, [nAtoms,3,1]);
+		nSteps = 1;
+	endif
+	
+	#Output XSF file:
+	Angstrom = 1/0.5291772;
+	fp = fopen("$xsfFile", "w");
+	if nSteps > 1; fprintf(fp, "ANIMSTEPS %d\n", nSteps); endif
+	fprintf(fp, "CRYSTAL\n");
+	for iStep = 1:nSteps
+		R = squeeze(lattice(:,:,iStep));
+		#Print lattice vectors:
+		if nSteps > 1; fprintf(fp, "PRIMVEC %d\n", iStep); else; fprintf(fp, "PRIMVEC\n"); endif
+		fprintf(fp, "%10.6f %10.6f %10.6f\n", R/Angstrom); #note printf order takes care of transposing lattice vectors
+		#Transform ionic positions:
+		pos = squeeze(ionpos(:,:,iStep));
+		if posCoords==0
+			pos = pos * R'; #convert Lattice to Cartesian
+		endif
+		pos /= Angstrom;
+		formatString = "%2d %10.6f %10.6f %10.6f\n";
+		#Transform and append forces (if any)
+		if exist("forces", "var")
+			force = squeeze(forces(:,:,iStep));
+			switch(forceCoords)
+				case 1
+					force = force * inv(R); #convert Lattice (Covariant) to Cartesian
+				case 3
+					force = force * R'; #convert Contravariant to Cartesian
+			endswitch
+			force *= Angstrom;
+			pos = [ pos force ];
+			formatString = "%2d %10.6f %10.6f %10.6f %10.6f %10.6f %10.6f\n";
+		endif
+		#Print positions (and forces)
+		if nSteps > 1; fprintf(fp, "PRIMCOORD %d\n", iStep); else; fprintf(fp, "PRIMCOORD\n"); endif
+		fprintf(fp, "%d 1\n", nAtoms);
+		fprintf(fp, formatString, [ reshape(atnum,nAtoms,1) pos ]');
+	endfor
+	fclose(fp);
+EOF
+octave -qf "$tmpDir/process.m"
+rm -rf "$tmpDir"
