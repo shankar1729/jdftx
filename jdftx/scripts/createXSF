@@ -4,18 +4,20 @@ function printUsageAndExit()
 {
 	echo '
 	Create an XcrySDen Structure File from a JDFTx output file. Usage:
-		createXSF <jdftxOutFile> <xsfFile> [<var1> <var2> ...]
-	The simplest usage saves all available structural information from
-	the JDFTx output <jdftxOutFile> to <xsfFile>. This will include
-	ionic positions, forces and lattice vectors for all conifgurations
-	(if geometry or lattice optimization was performed) in the run.
+		createXSF <jdftxOutFile> <xsfFile> [Animated | <var1> <var2> ...]
+	The simplest usage saves the final structure from the JDFTx output
+	<jdftxOutFile> to <xsfFile>. Specifying "Animated" will include
+	ionic positions, forces and lattice vectors for all configurations
+	in the run (if geometry or lattice optimization was performed).
 		Additionally, scalar fields such as the electron density may
 	also be saved, where var should name the file suffix used by JDFTx
 	for that type eg. n for density, nUp for up-spin density, d_tot
-	for total electrostatic potential etc. Note that XSF is an ascii
-	format (unlike the default binary dump) and adding many scalar
-	field variables to it could make it enormous.
-		Note: requires awk and octave to be available in path.
+	for total electrostatic potential etc. The full filenames may
+	also be specified; this is a must when dump-name includes $STAMP.
+	Note that XSF is an ascii format (unlike the default binary dump)
+	and adding many scalar field variables to it could make it enormous.
+	Scalar fields are only supported in non-animated XSF files.
+		Note: this tool requires awk and octave to be available in path.
 	'
 	exit $1
 }
@@ -31,12 +33,6 @@ if [ ! -f "$jdftxOutFile" ]; then
 	exit 1
 fi
 
-if [ ! -z "$3" ]; then
-	echo "Scalar fields in XSF not yet implemented"
-	exit 1
-fi
-
-
 tmpDir="$xsfFile.tmp"
 mkdir -p "$tmpDir"
 if [ ! -d "$tmpDir" ]; then
@@ -47,13 +43,15 @@ fi
 #Extract relevant information from the output file (and save in separate files in tmpDir)
 awk "
 	#Header mode
-	BEGIN { mode=1; nAtoms=0; nSteps=0; }
+	BEGIN { mode=1; nAtoms=0; nSteps=0; Sprinted=0; }
 	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" ? 0 : 1); }
 	mode==1 && \$1==\"forces-output-coords\" { forceCoords = (\$2==\"Positions\" ? 0 : (\$2==\"Lattice\" ? 1 : (\$2==\"Cartesian\" ? 2 : 3))); }
+	mode==1 && \$1==\"dump-name\" { print \$2  > \"$tmpDir/dumpName\" }
 	mode==1 && \$1==\"ion\" { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
 	#Initial lattice vectors
 	mode==1 && \$0~/Initializing the Grid/ { mode=2; refLine=NR }
 	mode==2 && NR>refLine+1 && NR<=refLine+4 { print \$2, \$3, \$4 > \"$tmpDir/lattice.0\"; }
+	mode==2 && !Sprinted && \$0~/Chosen fftbox/ { print \$(NF-3), \$(NF-2), \$(NF-1) > \"$tmpDir/S\"; Sprinted=1 }
 	#Ionic positions
 	/# Ionic positions in / { mode=3; refLine=NR; nSteps++; }
 	mode==3 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > \"$tmpDir/ionpos.\" nSteps }
@@ -69,6 +67,13 @@ awk "
 	}
 " $jdftxOutFile
 
+#Initialize array of variables
+argArr=( "${@:3}" );
+vars="";
+for arg in "${argArr[@]}"; do
+	vars="$vars \"$arg\""
+done
+
 #Put together into the target XSF file
 cat > "$tmpDir/process.m" <<EOF
 	#Read dimensions
@@ -77,6 +82,10 @@ cat > "$tmpDir/process.m" <<EOF
 	nAtoms = dims(2);
 	posCoords = dims(3);
 	forceCoords = dims(4);
+	fp = fopen("$tmpDir/dumpName", "r");
+	dumpName = fscanf(fp, "%s");
+	S = load("-ascii", "$tmpDir/S");
+	fclose(fp);
 	
 	#Read and process atom names
 	fp = fopen("$tmpDir/ionNames", "r");
@@ -124,6 +133,57 @@ cat > "$tmpDir/process.m" <<EOF
 		nSteps = 1;
 	endif
 	
+	#Read scalar fields (if any):
+	varNames = { $vars };
+	vars = {};
+	if !(length(varNames) && strcmp(tolower(varNames{1}),"animated"))
+		#Disable animation if first varName is not 'Animated'
+		nSteps = 1;
+		lattice = lattice(:,:,end);
+		ionpos = ionpos(:,:,end);
+		if exist("forces", "var")
+			forces = forces(:,:,end);
+		endif
+	else
+		varNames = {}; #Keyword 'Animated'; not really scalar fields
+	endif
+	for iVar = 1:length(varNames)
+		fname = varNames{iVar};
+		if index(fname,".")==0 #Assume variable name if no .
+			if index(dumpName,"\$STAMP")
+				printf("Cannot use variable names when \$STAMP is used i th dump-name; use full file names instead\n");
+				exit(1);
+			endif
+			fname = strrep(dumpName, "\$VAR", fname);
+		endif
+		fp = fopen(fname, "r");
+		v = fread(fp, "double");
+		if length(v)==2*prod(S)
+			v = reshape(v, 2, []);
+			v = v(1,:) + I*v(2,:);
+			#Remove phase from complex scalar field
+			vAbs = max(abs(v), 1e-300);
+			weightSum = sum(abs(v));
+			rMean = sum(real(v))/weightSum; rSigma = sqrt(max(0, sum((real(v).^2) ./ vAbs)/weightSum - rMean^2));
+			iMean = sum(imag(v))/weightSum; iSigma = sqrt(max(0, sum((imag(v).^2) ./ vAbs)/weightSum - iMean^2));
+			meanPhase = 0.5*atan2(iMean, rMean);
+			sigmaPhase = 0.5*sqrt((iMean*rSigma)^2 + (rMean*iSigma)^2)/(rMean^2 + iMean^2);
+			v = real(v*exp(-I*meanPhase));
+			printf("Converting complex scalar field '%s' to real scalar field; phase: %f +/- %f", varName{iVar}, meanPhase, sigmaPhase);
+		endif
+		if length(v)!=prod(S)
+			printf("File '%s' contains neither a real nor complex field of dimensions [ %d %d %d ]\n", fname, S);
+			exit(1);
+		endif
+		v = permute(reshape(v, fliplr(S)), [3 2 1]); #Note C-to-Fortran order change
+		#Convert periodic to general grid:
+		v = cat(1, v, v(1,:,:));
+		v = cat(2, v, v(:,1,:));
+		v = cat(3, v, v(:,:,1));
+		vars{iVar} = v;
+		fclose(fp);
+	endfor
+	
 	#Output XSF file:
 	Angstrom = 1/0.5291772;
 	fp = fopen("$xsfFile", "w");
@@ -159,6 +219,23 @@ cat > "$tmpDir/process.m" <<EOF
 		fprintf(fp, "%d 1\n", nAtoms);
 		fprintf(fp, formatString, [ reshape(atnum,nAtoms,1) pos ]');
 	endfor
+	#Output scalar fields (if any)
+	if length(varNames)
+		fprintf(fp, "BEGIN_BLOCK_DATAGRID_3D\nScalarFields\n")
+		formatString=" ";
+		for k=1:(S(1)+1)
+			formatString = [ formatString " %e" ];
+		endfor
+		formatString = [ formatString "\n" ];
+		for iVar = 1:length(varNames)
+			fprintf(fp, " BEGIN_DATAGRID_3D_%s\n", varNames{iVar})
+			fprintf(fp, "  %d %d %d\n", S+1);
+			fprintf(fp, "  %10.6f %10.6f %10.6f\n", [zeros(1,3); squeeze(lattice(:,:,end))'/Angstrom]');
+			fprintf(fp, formatString, vars{iVar});
+			fprintf(fp, " END_DATAGRID_3D\n")
+		endfor
+		fprintf(fp, "END_BLOCK_DATAGRID_3D\n");
+	endif
 	fclose(fp);
 EOF
 octave -qf "$tmpDir/process.m"
