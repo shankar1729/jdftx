@@ -49,9 +49,12 @@ awk "
 	mode==1 && \$1==\"dump-name\" { print \$2  > \"$tmpDir/dumpName\" }
 	mode==1 && \$1==\"ion\" { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
 	#Initial lattice vectors
-	mode==1 && \$0~/Initializing the Grid/ { mode=2; refLine=NR }
+	mode==1 && \$0~/Initializing the Grid/ { mode=2; refLine=NR; Sprinted=0; Ssuffix=\"grid\" }
 	mode==2 && NR>refLine+1 && NR<=refLine+4 { print \$2, \$3, \$4 > \"$tmpDir/lattice.0\"; }
-	mode==2 && !Sprinted && \$0~/Chosen fftbox/ { print \$(NF-3), \$(NF-2), \$(NF-1) > \"$tmpDir/S\"; Sprinted=1 }
+	mode==2 && !Sprinted && \$0~/Chosen fftbox/ { print \$(NF-3), \$(NF-2), \$(NF-1) > \"$tmpDir/S\" Ssuffix; Sprinted=1 }
+	mode==2 && \$0~/Initializing tighter grid/ { Sprinted=0; Ssuffix=\"wfns\" }
+	mode==2 && \$0~/Setting up double-sized grid/ { Sprinted=0; iCenterPrinted=0; Ssuffix=\"double\" }
+	mode==2 && Ssuffix==\"double\" && iCenterPrinted==0 && \$1==\"Grid:\" { print \$(NF-3), \$(NF-2), \$(NF-1) > \"$tmpDir/iCenter\"; iCenterPrinted=1 }
 	#Ionic positions
 	/# Ionic positions in / { mode=3; refLine=NR; nSteps++; }
 	mode==3 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > \"$tmpDir/ionpos.\" nSteps }
@@ -84,8 +87,13 @@ cat > "$tmpDir/process.m" <<EOF
 	forceCoords = dims(4);
 	fp = fopen("$tmpDir/dumpName", "r");
 	dumpName = fscanf(fp, "%s");
-	S = load("-ascii", "$tmpDir/S");
 	fclose(fp);
+	
+	#Grid sizes:
+	Sgrid = load("-ascii", "$tmpDir/Sgrid");                                                                          #charge-density grid
+	if exist("$tmpDir/Swfns", "file"); Swfns = load("-ascii", "$tmpDir/Swfns"); else; Swfns = Sgrid; endif            #wave-function grid
+	if exist("$tmpDir/Sdouble", "file"); Sdouble = load("-ascii", "$tmpDir/Sdouble"); else; Sdouble = Sgrid; endif    #coulomb-truncation double grid
+	if exist("$tmpDir/iCenter", "file"); iCenter = load("-ascii", "$tmpDir/iCenter"); else; iCenter = [0 0 0]; endif  #offset for double
 	
 	#Read and process atom names
 	fp = fopen("$tmpDir/ionNames", "r");
@@ -158,30 +166,45 @@ cat > "$tmpDir/process.m" <<EOF
 		endif
 		fp = fopen(fname, "r");
 		v = fread(fp, "double");
-		if length(v)==2*prod(S)
-			v = reshape(v, 2, []);
-			v = v(1,:) + I*v(2,:);
-			#Remove phase from complex scalar field
-			vAbs = max(abs(v), 1e-300);
-			weightSum = sum(abs(v));
-			rMean = sum(real(v))/weightSum; rSigma = sqrt(max(0, sum((real(v).^2) ./ vAbs)/weightSum - rMean^2));
-			iMean = sum(imag(v))/weightSum; iSigma = sqrt(max(0, sum((imag(v).^2) ./ vAbs)/weightSum - iMean^2));
-			meanPhase = 0.5*atan2(iMean, rMean);
-			sigmaPhase = 0.5*sqrt((iMean*rSigma)^2 + (rMean*iSigma)^2)/(rMean^2 + iMean^2);
-			v = real(v*exp(-I*meanPhase));
-			printf("Converting complex scalar field '%s' to real scalar field; phase: %f +/- %f", varName{iVar}, meanPhase, sigmaPhase);
+		fclose(fp);
+		switch length(v)
+			case prod(Sgrid) #Real scalar field on charge-density grid
+				Scur = Sgrid;
+			case prod(Swfns) #Real scalar field on wavefunction grid
+				Scur = Swfns;
+			case prod(Sdouble) #Real scalar field on coulomb-truncation double grid
+				Scur = Sdouble;
+			case 2*prod(Swfns) #Complex scalar field on wavefunction grid
+				Scur = Swfns;
+				v = reshape(v, 2, []);
+				v = v(1,:) + I*v(2,:);
+				#Remove phase from complex scalar field
+				vSq = reshape(v.^2, [],1);
+				vSqAbs = max(abs(vSq), 1e-300);
+				weightSum = sum(abs(vSq));
+				rMean = sum(real(vSq))/weightSum; rSigma = sqrt(max(0, sum((real(vSq).^2) ./ vSqAbs)/weightSum - rMean^2));
+				iMean = sum(imag(vSq))/weightSum; iSigma = sqrt(max(0, sum((imag(vSq).^2) ./ vSqAbs)/weightSum - iMean^2));
+				meanPhase = 0.5*atan2(iMean, rMean);
+				sigmaPhase = 0.5*sqrt((iMean*rSigma)^2 + (rMean*iSigma)^2)/(rMean^2 + iMean^2);
+				v = real(v*exp(-I*meanPhase));
+				if(sum(v)<0); v=-v; meanPhase+=pi; endif #Make sure dominant sign is positive
+				printf("Converting complex scalar field '%s' to real scalar field; phase: %f +/- %f\n", varNames{iVar}, meanPhase, sigmaPhase);
+			otherwise
+				printf("File '%s' contains neither a real nor complex field of dimensions [ %d %d %d ]", fname, Sgrid);
+				if norm(Sgrid - Swfns); printf(" or [ %d %d %d ]", Swfns); endif
+				if norm(Sgrid - Sdouble); printf(" or [ %d %d %d ]", Sdouble); endif
+				printf("\n");
+				exit(1);
+		endswitch
+		v = permute(reshape(v, fliplr(Scur)), [3 2 1]); #Note C-to-Fortran order change
+		if norm(Sgrid-Sdouble) && !norm(Scur-Sdouble)
+			v = circshift(v, mod(-iCenter,Sgrid));
 		endif
-		if length(v)!=prod(S)
-			printf("File '%s' contains neither a real nor complex field of dimensions [ %d %d %d ]\n", fname, S);
-			exit(1);
-		endif
-		v = permute(reshape(v, fliplr(S)), [3 2 1]); #Note C-to-Fortran order change
 		#Convert periodic to general grid:
 		v = cat(1, v, v(1,:,:));
 		v = cat(2, v, v(:,1,:));
 		v = cat(3, v, v(:,:,1));
 		vars{iVar} = v;
-		fclose(fp);
 	endfor
 	
 	#Output XSF file:
@@ -220,22 +243,26 @@ cat > "$tmpDir/process.m" <<EOF
 		fprintf(fp, formatString, [ reshape(atnum,nAtoms,1) pos ]');
 	endfor
 	#Output scalar fields (if any)
-	if length(varNames)
-		fprintf(fp, "BEGIN_BLOCK_DATAGRID_3D\nScalarFields\n")
+	for iVar = 1:length(varNames)
+		fprintf(fp, "BEGIN_BLOCK_DATAGRID_3D\n");
+		fprintf(fp, " %s\n", varNames{iVar})
 		formatString=" ";
-		for k=1:(S(1)+1)
+		Scur = size(vars{iVar});
+		for k=1:Scur(1)
 			formatString = [ formatString " %e" ];
 		endfor
 		formatString = [ formatString "\n" ];
-		for iVar = 1:length(varNames)
-			fprintf(fp, " BEGIN_DATAGRID_3D_%s\n", varNames{iVar})
-			fprintf(fp, "  %d %d %d\n", S+1);
-			fprintf(fp, "  %10.6f %10.6f %10.6f\n", [zeros(1,3); squeeze(lattice(:,:,end))'/Angstrom]');
-			fprintf(fp, formatString, vars{iVar});
-			fprintf(fp, " END_DATAGRID_3D\n")
-		endfor
+		Rcur = squeeze(lattice(:,:,end));
+		if norm(Sgrid-Sdouble) && !norm(Scur-1-Sdouble)
+			Rcur = Rcur * diag(Sdouble ./ Sgrid);
+		endif
+		fprintf(fp, " BEGIN_DATAGRID_3D_%s\n", varNames{iVar})
+		fprintf(fp, "  %d %d %d\n", Scur);
+		fprintf(fp, "  %10.6f %10.6f %10.6f\n", [zeros(1,3); Rcur'/Angstrom]');
+		fprintf(fp, formatString, vars{iVar});
+		fprintf(fp, " END_DATAGRID_3D\n");
 		fprintf(fp, "END_BLOCK_DATAGRID_3D\n");
-	endif
+	endfor
 	fclose(fp);
 EOF
 octave -qf "$tmpDir/process.m"
