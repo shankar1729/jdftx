@@ -342,8 +342,8 @@ double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons) c
 	//Find a range which is known to bracket the result:
 	const double absTol = 1e-10, relTol = 1e-14;
 	double nTol = std::max(absTol, relTol*fabs(nElectrons));
-	double muMin=-0.1; while(nElectronsFermi(muMin,eps)>=nElectrons-nTol) muMin-=0.1;
-	double muMax=+0.0; while(nElectronsFermi(muMax,eps)<=nElectrons+nTol) muMax+=0.1;
+	double muMin=-0.1; while(nElectronsFermi(muMin,eps)>=nElectrons+nTol) muMin-=0.1;
+	double muMax=+0.0; while(nElectronsFermi(muMax,eps)<=nElectrons-nTol) muMax+=0.1;
 	//Bisect:
 	double muTol = std::max(absTol*kT, relTol*std::max(fabs(muMin),fabs(muMax)));
 	while(muMax-muMin>=muTol)

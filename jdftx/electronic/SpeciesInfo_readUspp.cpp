@@ -332,6 +332,7 @@ void SpeciesInfo::readUspp(istream& is)
 				}
 			}
 		}
+		if(!Qradial.size()) Qint.clear(); //Special case of norm-conserving PSP in USPP skin
 	}
 	
 	//Wavefunctions:
@@ -343,6 +344,12 @@ void SpeciesInfo::readUspp(istream& is)
 		atomEigs.resize(lMax+1);
 		for(int v=0; v<nValence; v++)
 		{	int l = (voCode[v]/10)%10; //l is 2nd digit of orbital code (ie. |210> is l=1)
+			if(l>lMax) //this can happen occassionaly when lLocal==lMax
+			{	psiRadial.resize(l+1);
+				OpsiRadial->resize(l+1);
+				atomEigs.resize(l+1);
+				lBeta.resize(l+1);
+			}
 			voPsi[v].set(rGrid, drGrid);
 			for(int i=0; i<nGrid; i++)
 				voPsi[v].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
@@ -350,13 +357,15 @@ void SpeciesInfo::readUspp(istream& is)
 			voPsi[v].transform(l, dG, nGridNL, psiRadial[l].back());
 			//Create O(psi) on the radial grid:
 			RadialFunctionR Opsi = voPsi[v];
-			std::vector<double> VdagPsi(lBeta[l].size());
-			for(size_t p=0; p<lBeta[l].size(); p++)
-				VdagPsi[p] = dot(Vnl[lBeta[l][p]], voPsi[v]);
-			complex* Qdata = Qint[l].data();
-			for(size_t p1=0; p1<lBeta[l].size(); p1++)
-				for(size_t p2=0; p2<lBeta[l].size(); p2++)
-					axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], Vnl[lBeta[l][p1]], Opsi);
+			if(Qint.size())
+			{	std::vector<double> VdagPsi(lBeta[l].size());
+				for(size_t p=0; p<lBeta[l].size(); p++)
+					VdagPsi[p] = dot(Vnl[lBeta[l][p]], voPsi[v]);
+				complex* Qdata = Qint[l].data();
+				for(size_t p1=0; p1<lBeta[l].size(); p1++)
+					for(size_t p2=0; p2<lBeta[l].size(); p2++)
+						axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], Vnl[lBeta[l][p1]], Opsi);
+			}
 			OpsiRadial->at(l).push_back(RadialFunctionG());
 			Opsi.transform(l, dG, nGridNL, OpsiRadial->at(l).back());
 			//Store eigenvalue:
