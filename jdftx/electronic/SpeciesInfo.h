@@ -73,7 +73,8 @@ public:
 	
 	enum PseudopotentialFormat
 	{	Fhi, //!< FHI format with ABINIT header (.fhi files)
-		Uspp //!< USPP format ultrasoft pseudopotential
+		Uspp, //!< USPP format ultrasoft pseudopotential
+		UPF //!< Quantum Espresso's Universal Pseudopotential Format (the XML version 2 only)
 	};
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
@@ -198,7 +199,8 @@ private:
 	void setCore(RadialFunctionR&); //!< Generate nCoreRadial and tauCoreRadial if required (in SpeciesInfo_core.cpp)
 	void readFhi(istream&); // Implemented in SpeciesInfo_readFhi.cpp
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
-	void setupPulay(); // Implemented in SpeciesInfo_readPot.cpp
+	void readUPF(istream&); //Implemented in SpeciesInfo_readUPF.cpp
+	void setupPulay();
 	
 	//Following implemented in SpeciesInfo_atomFillings.cpp
 	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.

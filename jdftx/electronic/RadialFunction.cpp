@@ -156,11 +156,13 @@ double RadialFunctionR::transform(int l, double G) const
 
 // Initialize a uniform G radial function from the log-grid function
 void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& func) const
-{	std::vector<double> fTilde(nGrid);
+{	static StopWatch watch("RadialFunctionR::transform"); watch.start();
+	std::vector<double> fTilde(nGrid);
 	for(int iG=0; iG<nGrid; iG++)
 		fTilde[iG] = transform(l, iG*dG);
 	func.free(this!=func.rFunc);
 	func.init(l, fTilde, dG);
 	if(this!=func.rFunc) func.rFunc = new RadialFunctionR(*this);
+	watch.stop();
 }
 

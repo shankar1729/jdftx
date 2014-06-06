@@ -129,6 +129,7 @@ void SpeciesInfo::setup(const Everything &everything)
 	switch(pspFormat)
 	{	case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
+		case UPF: readUPF(ifs); break;
 	}
 	estimateAtomEigs();
 	if(coreRadius) logPrintf("  Core radius for overlap checks: %.2lf bohrs.\n", coreRadius);

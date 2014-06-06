@@ -295,9 +295,10 @@ void SpeciesInfo::readUspp(istream& is)
 		//Q radial functions and integrals:
 		logPrintf("  Transforming density augmentations to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridLoc);
 		Qint.resize(lMax+1);
+		for(int l=0; l<=lMax; l++)
+			Qint[l] = zeroes(lBeta[l].size(), lBeta[l].size());
 		for(int l1=0; l1<=lMax; l1++) for(int p1=0; p1<int(lBeta[l1].size()); p1++)
 		{	int iBeta = lBeta[l1][p1];
-			Qint[l1].init(lBeta[l1].size(), lBeta[l1].size());
 			for(int l2=0; l2<=lMax; l2++) for(int p2=0; p2<int(lBeta[l2].size()); p2++)
 			{	int jBeta = lBeta[l2][p2];
 				if(iBeta<=jBeta) //store and use upper triangular only
@@ -306,7 +307,7 @@ void SpeciesInfo::readUspp(istream& is)
 					{	//Replace the inner section with the l-dependent pseudization:
 						std::vector<double>& coeff = Qcoeff[iBeta][jBeta][l];
 						RadialFunctionR Qijl(nGridBeta); Qijl.set(rGrid, drGrid);
-						bool isNonzero = false;
+						bool isNonzero = false; int iLastNZ=0;
 						for(int i=0; i<nGridBeta; i++) 
 						{	if(rGrid[i]<rInner[l])
 							{	double val=0.0, rSq=rGrid[i]*rGrid[i], rPow=pow(rGrid[i],l);
@@ -317,11 +318,15 @@ void SpeciesInfo::readUspp(istream& is)
 								Qijl.f[i] = val;
 							}
 							else Qijl.f[i] = Qij.f[i]/pow(rGrid[i],2);
-							if(fabs(Qij.f[i])>1e-10) isNonzero=true;
+							if(fabs(Qij.f[i])>1e-10) { isNonzero=true; iLastNZ=i; }
 						}
+						if(!isNonzero) continue;
+						Qijl.r.resize(iLastNZ);
+						Qijl.dr.resize(iLastNZ);
+						Qijl.f.resize(iLastNZ);
 						//Store in Qradial:
 						QijIndex qIndex = { l1, p1, l2, p2, l };
-						if(isNonzero) Qijl.transform(l, dG, nGridLoc, Qradial[qIndex]);
+						Qijl.transform(l, dG, nGridLoc, Qradial[qIndex]);
 						//Store Qint = integral(Qradial) when relevant:
 						if(l1==l2 && !l)
 						{	double Qint_ij = Qijl.transform(0,0)/(4*M_PI);
