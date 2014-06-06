@@ -122,18 +122,21 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(true); // Updates lattice information but does not touch electronic state / calc electronic energy
 
-	//Restore wavefunctions from atomic orbitals:
-	if(e.cntrl.dragWavefunctions && nAtomic)
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	//Restore wavefunctions from atomic orbitals:
+		if(e.cntrl.dragWavefunctions && nAtomic)
 		{	//Get atomic orbitals for new lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
-			//Reconstitute and orthonormalize wavefunctions:
+			//Reconstitute wavefunctions:
 			e.eVars.C[q] += psi * coeff[q];
-			matrix orthoMat = invsqrt(e.eVars.C[q]^O(e.eVars.C[q], &e.eVars.VdagC[q]));
-			e.eVars.Y[q] = e.eVars.C[q] * orthoMat;
-			e.eVars.C[q] = e.eVars.Y[q];
-			e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q], &orthoMat);
 		}
+		//Reorthonormalize wavefunctions:
+		e.eVars.VdagC[q].clear();
+		matrix orthoMat = invsqrt(e.eVars.C[q]^O(e.eVars.C[q], &e.eVars.VdagC[q]));
+		e.eVars.Y[q] = e.eVars.C[q] * orthoMat;
+		e.eVars.C[q] = e.eVars.Y[q];
+		e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q], &orthoMat);
+	}
 }
 
 double LatticeMinimizer::compute(matrix3<>* grad)

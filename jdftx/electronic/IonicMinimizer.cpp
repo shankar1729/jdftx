@@ -180,13 +180,13 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	}
 	
 	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
-	if(e.cntrl.dragWavefunctions)
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
-			eVars.Y[q] = eVars.C[q] * orthoMat;
-			eVars.C[q] = eVars.Y[q];
-			iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
-		}
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	eVars.VdagC[q].clear();
+		matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
+		eVars.Y[q] = eVars.C[q] * orthoMat;
+		eVars.C[q] = eVars.Y[q];
+		iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
+	}
 	
 	watch.stop();
 }
