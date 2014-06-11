@@ -60,6 +60,7 @@ Basis::Basis(const Basis& basis)
 
 Basis& Basis::operator=(const Basis& basis)
 {	gInfo = basis.gInfo;
+	iInfo = basis.iInfo;
 	nbasis = basis.nbasis;
 	iGarr = basis.iGarr;
 	index = basis.index;
