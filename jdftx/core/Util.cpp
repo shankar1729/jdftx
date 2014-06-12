@@ -142,6 +142,7 @@ void logResume()
 
 MPIUtil* mpiUtil = 0;
 bool mpiDebugLog = false;
+bool manualThreadCount = false;
 static double startTime_us; //Time at which system was initialized in microseconds
 
 void initSystem(int argc, char** argv)
@@ -162,8 +163,25 @@ void initSystem(int argc, char** argv)
 	time_t startTime = time(0);
 	startTime_us = clock_us();
 	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
-	char hostname[256]; gethostname(hostname, 256);
-	logPrintf("Running on host: %s\n", hostname);
+	//---- hostname information
+	std::vector<string> hostname(mpiUtil->nProcesses()); //list of hostnames by MPI process ID
+	std::map< string, std::vector<int> > hostProcesses; //list of processes per hostname
+	{	char hostnameTmp[256];
+		gethostname(hostnameTmp, 256);
+		hostname[mpiUtil->iProcess()] = hostnameTmp;
+	}
+	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
+	{	mpiUtil->bcast(hostname[jProcess], jProcess);
+		hostProcesses[hostname[jProcess]].push_back(jProcess);
+	}
+	logPrintf("Running on hosts (process indices):");
+	for(const auto& iter: hostProcesses)
+	{	logPrintf("  %s (", iter.first.c_str());
+		for(int jProcess: iter.second) logPrintf(" %d", jProcess);
+		logPrintf(" )");
+	}
+	logPrintf("\n");
+	//---- commandline
 	logPrintf("Executable %s with ", argv[0]);
 	if(argc>1)
 	{	logPrintf("command-line:");
@@ -178,6 +196,14 @@ void initSystem(int argc, char** argv)
 	if(!gpuInit(globalLog)) die("gpuInit() failed\n\n")
 	#endif
 	
+	//Divide up available cores between all MPI processes on a given node:
+	if(!manualThreadCount) //skip if number of cores per process has been set with -c
+	{	const std::vector<int>& siblings = hostProcesses[hostname[mpiUtil->iProcess()]];
+		int nSiblings = siblings.size();
+		int iSibling = std::find(siblings.begin(), siblings.end(), mpiUtil->iProcess()) - siblings.begin();
+		nProcsAvailable = std::max(1, (nProcsAvailable * (iSibling+1))/nSiblings - (nProcsAvailable*iSibling)/nSiblings);
+	}
+	
 	//Limit thread count if running within SLURM:
 	const char* slurmCpusPerTask = getenv("SLURM_CPUS_PER_TASK");
 	if(slurmCpusPerTask)
@@ -187,8 +213,16 @@ void initSystem(int argc, char** argv)
 		else
 			logPrintf("Could not determine thread count from SLURM_CPUS_PER_TASK=\"%s\".\n", slurmCpusPerTask);
 	}
-	logPrintf("Current process will run with a maximum of %d cpu threads.\n", nProcsAvailable);
-	
+
+	//Print number of threads per process:
+	logPrintf("Maximum cpu threads by process:");
+	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
+	{	int nThreads = nProcsAvailable;
+		mpiUtil->bcast(nThreads, jProcess);
+		logPrintf(" %d", nThreads);
+	}
+	logPrintf("\n");
+
 	//Print total resources used by run:
 	{	int nResources[2] = { nProcsAvailable, 0 };
 		#ifdef GPU_ENABLED
@@ -239,7 +273,9 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			case 'c':
 			{	int nCores = 0;
 				if(sscanf(optarg, "%d", &nCores)==1 && nCores>0)
-					nProcsAvailable=nCores;
+				{	nProcsAvailable=nCores;
+					manualThreadCount =true;
+				}
 				break;
 			}
 			case 's': printDefaults=false; break;
