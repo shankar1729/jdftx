@@ -1,4 +1,4 @@
-find_library(CBLAS_LIBRARY NAMES cblas PATHS ${CBLAS_PATH} ${CBLAS_PATH}/lib ${CBLAS_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64 /usr/lib64/atlas /usr/lib/atlas)
+find_library(CBLAS_LIBRARY NAMES cblas PATHS ${CBLAS_PATH} ${CBLAS_PATH}/lib ${CBLAS_PATH}/lib64 /usr/lib64/atlas /usr/lib/atlas)
 
 if(CBLAS_LIBRARY)
 	set(CBLAS_FOUND TRUE)

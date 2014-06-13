@@ -1,6 +1,6 @@
-find_path(FFTW3_INCLUDE_DIR fftw3.h ${FFTW3_PATH} ${FFTW3_PATH}/include /usr/include /usr/local/include)
-find_library(FFTW3_LIBRARY NAMES fftw3 PATHS ${FFTW3_PATH} ${FFTW3_PATH}/lib ${FFTW3_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
-find_library(FFTW3_THREADS_LIBRARY NAMES fftw3_threads PATHS ${FFTW3_PATH} ${FFTW3_PATH}/lib ${FFTW3_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+find_path(FFTW3_INCLUDE_DIR fftw3.h ${FFTW3_PATH} ${FFTW3_PATH}/include)
+find_library(FFTW3_LIBRARY NAMES fftw3 PATHS ${FFTW3_PATH} ${FFTW3_PATH}/lib ${FFTW3_PATH}/lib64)
+find_library(FFTW3_THREADS_LIBRARY NAMES fftw3_threads PATHS ${FFTW3_PATH} ${FFTW3_PATH}/lib ${FFTW3_PATH}/lib64)
 
 if(FFTW3_INCLUDE_DIR AND FFTW3_LIBRARY AND FFTW3_THREADS_LIBRARY)
 	set(FFTW3_FOUND TRUE)

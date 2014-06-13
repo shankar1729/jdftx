@@ -1,10 +1,10 @@
-find_path(GSL_INCLUDE_DIR gsl/gsl_cblas.h ${GSL_PATH} ${GSL_PATH}/include /usr/include /usr/local/include)
-find_library(GSL_LIBRARY NAMES gsl PATHS ${GSL_PATH} ${GSL_PATH}/lib ${GSL_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+find_path(GSL_INCLUDE_DIR gsl/gsl_cblas.h ${GSL_PATH} ${GSL_PATH}/include)
+find_library(GSL_LIBRARY NAMES gsl PATHS ${GSL_PATH} ${GSL_PATH}/lib ${GSL_PATH}/lib64)
 
 #Check version:
 if(GSL_INCLUDE_DIR AND GSL_LIBRARY)
 	include(CheckSymbolExists)
-	find_library(GSL_BLAS_LIBRARY NAMES gslcblas PATHS ${GSL_PATH} ${GSL_PATH}/lib ${GSL_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+	find_library(GSL_BLAS_LIBRARY NAMES gslcblas PATHS ${GSL_PATH} ${GSL_PATH}/lib ${GSL_PATH}/lib64)
 	if(GSL_BLAS_LIBRARY)
 		set(CMAKE_REQUIRED_FLAGS "-I${GSL_INCLUDE_DIR} ${CMAKE_REQUIRED_FLAGS}")
 		set(CMAKE_REQUIRED_LIBRARIES "${GSL_LIBRARY};${GSL_BLAS_LIBRARY};${CMAKE_REQUIRED_LIBRARIES}")
