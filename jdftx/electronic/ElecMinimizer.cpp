@@ -167,6 +167,11 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 	}
 }
 
+double ElecMinimizer::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
 void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
 {	if(!eInfo.spinRestricted) return;
 	for(int q=eInfo.qStart; q<std::min(eInfo.qStop, eInfo.nStates/2); q++)

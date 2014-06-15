@@ -228,3 +228,10 @@ bool IonicMinimizer::report(int iter)
 void IonicMinimizer::constrain(IonicGradient& x)
 {	e.symm.symmetrize(x); //minimization is constrained by symmetries on forces
 }
+
+double IonicMinimizer::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
+

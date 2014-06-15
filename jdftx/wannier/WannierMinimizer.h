@@ -57,7 +57,7 @@ public:
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
 	double compute(WannierGradient* grad);
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	//! Entries in the k-point mesh
 	struct Kpoint : public QuantumNumber, public Supercell::KmeshTransform

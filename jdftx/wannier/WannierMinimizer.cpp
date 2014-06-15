@@ -124,6 +124,11 @@ double WannierMinimizer::compute(WannierGradient* grad)
 	return Omega;
 }
 
+double WannierMinimizer::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
 //---------------- kpoint and wavefunction handling -------------------
 
 int WannierMinimizer::whose(size_t ik) const

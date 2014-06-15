@@ -33,8 +33,8 @@ public:
 	DataGptr chi(const DataGptr&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
 	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation
 	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
-	
+	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
+
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file

@@ -61,7 +61,7 @@ public:
 	IonicGradient precondition(const IonicGradient& grad);
 	bool report(int iter);
 	void constrain(IonicGradient&);
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 };
 
 #endif // JDFTX_ELECTRONIC_IONICMINIMIZER_H

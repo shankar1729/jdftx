@@ -41,7 +41,7 @@ public:
 	matrix3<> precondition(const matrix3<>& grad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Calculates the stresses along the strain directions
 	std::vector<double> calculateStress();

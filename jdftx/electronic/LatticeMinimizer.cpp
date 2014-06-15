@@ -224,6 +224,11 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 	dir = result;
 }
 
+double LatticeMinimizer::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
 void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
 {	logSuspend();
 	e.gInfo.update();

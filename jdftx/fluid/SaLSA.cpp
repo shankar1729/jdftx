@@ -199,6 +199,10 @@ DataGptr SaLSA::precondition(const DataGptr& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
+double SaLSA::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
 
 void SaLSA::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
 {

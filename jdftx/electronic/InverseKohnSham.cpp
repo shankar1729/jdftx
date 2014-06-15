@@ -132,6 +132,11 @@ bool InverseKohnSham::report(int iter)
 	return false;
 }
 
+double InverseKohnSham::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
 //----------------- Implementation of class InvertChi ------------------
 
 InvertChi::InvertChi(const Everything& e) : e(e)

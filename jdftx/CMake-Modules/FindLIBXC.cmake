@@ -1,5 +1,7 @@
-find_path(LIBXC_INCLUDE_DIR xc.h ${LIBXC_PATH} ${LIBXC_PATH}/include /opt/etsf/include)
-find_library(LIBXC_LIBRARY NAMES xc PATHS  ${LIBXC_PATH} ${LIBXC_PATH}/lib  ${LIBXC_PATH}/lib64 /opt/etsf/lib /opt/etsf/lib64)
+find_path(LIBXC_INCLUDE_DIR xc.h ${LIBXC_PATH} ${LIBXC_PATH}/include /opt/etsf/include NO_DEFAULT_PATH)
+find_path(LIBXC_INCLUDE_DIR xc.h)
+find_library(LIBXC_LIBRARY NAMES xc PATHS  ${LIBXC_PATH} ${LIBXC_PATH}/lib  ${LIBXC_PATH}/lib64 /opt/etsf/lib /opt/etsf/lib64 NO_DEFAULT_PATH)
+find_library(LIBXC_LIBRARY NAMES xc)
 
 if(LIBXC_INCLUDE_DIR AND LIBXC_LIBRARY)
 	set(LIBXC_FOUND TRUE)

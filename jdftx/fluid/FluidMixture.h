@@ -109,7 +109,7 @@ public:
 	double compute(DataRptrCollection* grad);
 
 	DataRptrCollection precondition(const DataRptrCollection& grad);
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 private:
 	unsigned nIndepIdgas; //!< number of scalar fields used as independent variables for the component ideal gases

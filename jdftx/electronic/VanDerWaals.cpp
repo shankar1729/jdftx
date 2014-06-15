@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 const static int atomicNumberMaxGrimme = 54;
 const static int atomicNumberMax = 118;
+const int VanDerWaals::unitParticle;
 
 //vdW correction energy upto a factor of -s6 (where s6 is the ExCorr dependnet scale)
 //for a pair of atoms separated by r, given the C6 and R0 parameters for pair.

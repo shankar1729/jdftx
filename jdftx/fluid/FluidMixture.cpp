@@ -266,6 +266,11 @@ DataRptrCollection FluidMixture::precondition(const DataRptrCollection& grad)
 	return Kgrad;
 }
 
+double FluidMixture::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
 double FluidMixture::compute_p(double Ntot) const
 {	std::vector<double> Nmol(component.size()), Phi_Nmol(component.size());
 	double Nguess=0.;
