@@ -307,7 +307,7 @@ void SpeciesInfo::readUspp(istream& is)
 					{	//Replace the inner section with the l-dependent pseudization:
 						std::vector<double>& coeff = Qcoeff[iBeta][jBeta][l];
 						RadialFunctionR Qijl(nGridBeta); Qijl.set(rGrid, drGrid);
-						bool isNonzero = false; int iLastNZ=0;
+						bool isNonzero = false; int iLastNZ=0; double Qabs = 0.;
 						for(int i=0; i<nGridBeta; i++) 
 						{	if(rGrid[i]<rInner[l])
 							{	double val=0.0, rSq=rGrid[i]*rGrid[i], rPow=pow(rGrid[i],l);
@@ -318,12 +318,17 @@ void SpeciesInfo::readUspp(istream& is)
 								Qijl.f[i] = val;
 							}
 							else Qijl.f[i] = Qij.f[i]/pow(rGrid[i],2);
-							if(fabs(Qij.f[i])>1e-10) { isNonzero=true; iLastNZ=i; }
+							//Radial extent check:
+							double dQabs = fabs(Qijl.f[i]) * rGrid[i]*rGrid[i] * drGrid[i];
+							Qabs += dQabs;
+							if(dQabs>1e-12*Qabs) { isNonzero=true; iLastNZ=i; }
 						}
 						if(!isNonzero) continue;
-						Qijl.r.resize(iLastNZ);
-						Qijl.dr.resize(iLastNZ);
-						Qijl.f.resize(iLastNZ);
+						if(iLastNZ+1 < nGridBeta)
+						{	Qijl.r.resize(iLastNZ+1);
+							Qijl.dr.resize(iLastNZ+1);
+							Qijl.f.resize(iLastNZ+1);
+						}
 						//Store in Qradial:
 						QijIndex qIndex = { l1, p1, l2, p2, l };
 						Qijl.transform(l, dG, nGridLoc, Qradial[qIndex]);
