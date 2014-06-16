@@ -321,13 +321,13 @@ void SpeciesInfo::readUspp(istream& is)
 							//Radial extent check:
 							double dQabs = fabs(Qijl.f[i]) * rGrid[i]*rGrid[i] * drGrid[i];
 							Qabs += dQabs;
-							if(dQabs>1e-12*Qabs) { isNonzero=true; iLastNZ=i; }
+							if(dQabs>1e-16*Qabs) { isNonzero=true; iLastNZ=i+2; }
 						}
 						if(!isNonzero) continue;
-						if(iLastNZ+1 < nGridBeta)
-						{	Qijl.r.resize(iLastNZ+1);
-							Qijl.dr.resize(iLastNZ+1);
-							Qijl.f.resize(iLastNZ+1);
+						if(iLastNZ < nGridBeta)
+						{	Qijl.r.resize(iLastNZ);
+							Qijl.dr.resize(iLastNZ);
+							Qijl.f.resize(iLastNZ);
 						}
 						//Store in Qradial:
 						QijIndex qIndex = { l1, p1, l2, p2, l };
