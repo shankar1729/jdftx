@@ -51,6 +51,7 @@ struct MinimizeParams
 	FILE* fpLog; //!< Stream to logPrintf iterations to
 	const char* linePrefix; //!< prefix for each output line of minimizer, useful for nested minimizations (default "CG\t")
 	const char* energyLabel; //!< Label for the minimized quantity (default "E")
+	const char* energyFormat; //!< printf format for the minimized quantity (default "%22.15le")
 	double knormThreshold; //!< stop when norm of residual against preconditioner falls below this (default: 0)
 	double energyDiffThreshold; //!< stop when energy change is below this for nEnergyDiff successive iterations (default: 0)
 	int nEnergyDiff; //!< number of successive iterations for energyDiffThreshold check (default: 2)
@@ -71,7 +72,8 @@ struct MinimizeParams
 	//! Set the default values
 	MinimizeParams() 
 	: dirUpdateScheme(PolakRibiere), linminMethod(DirUpdateRecommended),
-		nIterations(100), nDim(1), history(15), fpLog(stdout), linePrefix("CG\t"), energyLabel("E"),
+		nIterations(100), nDim(1), history(15), fpLog(stdout),
+		linePrefix("CG\t"), energyLabel("E"), energyFormat("%22.15le"),
 		knormThreshold(0), energyDiffThreshold(0), nEnergyDiff(2),
 		alphaTstart(1.0), alphaTmin(1e-10), updateTestStepSize(true),
 		alphaTreduceFactor(0.1), alphaTincreaseFactor(3.0), nAlphaAdjustMax(3),

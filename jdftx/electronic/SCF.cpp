@@ -160,7 +160,7 @@ void SCF::minimize()
 		}
 		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
 		dE = E-Eprev; //change in energy is also used to determine energyDiffThreshold of the bandminimizer
-		logPrintf("SCF: Cycle: %2i   %s: %.15e   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
+		logPrintf("SCF: Cycle: %2i   %s: %+.15f   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
 			scfCounter, Elabel.c_str(), E, dE, deigs, residualNorm);
 		
 		//Per-cycle dumps if any (must do before the next mix step / convergence exit):

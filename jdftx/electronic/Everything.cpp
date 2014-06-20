@@ -146,6 +146,7 @@ void Everything::setup()
 	elecMinParams.fpLog = globalLog;
 	elecMinParams.linePrefix = "ElecMinimize: ";
 	elecMinParams.energyLabel = relevantFreeEnergyName(*this);
+	elecMinParams.energyFormat = "%+.15lf";
 	
 	//Setup ionic minimization parameters:
 	ionicMinParams.nDim = 0;
@@ -156,6 +157,7 @@ void Everything::setup()
 	ionicMinParams.fpLog = globalLog;
 	ionicMinParams.linePrefix = "IonicMinimize: ";
 	ionicMinParams.energyLabel = relevantFreeEnergyName(*this);
+	ionicMinParams.energyFormat = "%+.15lf";
 	
 	//Setup fluid minimization parameters:
 	switch(eVars.fluidParams.fluidType)
@@ -172,6 +174,7 @@ void Everything::setup()
 	fluidMinParams.fpLog = globalLog;
 	fluidMinParams.linePrefix = "FluidMinimize: ";
 	fluidMinParams.energyLabel = relevantFreeEnergyName(*this);
+	fluidMinParams.energyFormat = "%+.15lf";
 	//Tweak log format for fluid with inner minimization:
 	if(eVars.fluidParams.fluidType==FluidLinearPCM
 	|| eVars.fluidParams.fluidType==FluidSaLSA)
@@ -184,6 +187,7 @@ void Everything::setup()
 	latticeMinParams.fpLog = globalLog;
 	latticeMinParams.linePrefix = "LatticeMinimize: ";
 	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
+	latticeMinParams.energyFormat = "%+.15lf";
 
 	logPrintf("\n"); logFlush();
 }

@@ -262,6 +262,7 @@ int ElecVars::LCAO()
 	mp.fpLog = globalLog;
 	mp.linePrefix = "LCAOMinimize: ";
 	mp.energyLabel = "F";
+	mp.energyFormat = "%+.16f";
 	mp.energyDiffThreshold = lcaoTol;
 	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.subspaceRotation ? 30 : 3 );
 	if(e->cntrl.fixed_H) { C = Y; Hsub = lcao.B; } //bypass subspace iteration

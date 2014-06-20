@@ -63,8 +63,9 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		}
 		
 		double gKnorm = sync(dot(g,Kg));
-		fprintf(p.fpLog, "%sIter: %3d  %s: %22.15le  |grad|_K: %10.3le",
-			p.linePrefix, iter, p.energyLabel, E, sqrt(gKnorm/p.nDim));
+		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
+		fprintf(p.fpLog, p.energyFormat, E);
+		fprintf(p.fpLog, "  |grad|_K: %10.3le", sqrt(gKnorm/p.nDim));
 		if(alpha) fprintf(p.fpLog, "  alpha: %10.3le", alpha);
 		if(linminTest) fprintf(p.fpLog, "  linmin: %10.3le", linminTest);
 		

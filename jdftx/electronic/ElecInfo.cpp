@@ -228,7 +228,7 @@ void ElecInfo::printFillings(FILE* fp) const
 				FqTemp.recv(whose(q));
 				Fq = &FqTemp;
 			}
-			((*Fq) * spinWeight).print(fp, "%20.14le ");
+			((*Fq) * spinWeight).print(fp, "%.15lf ");
 		}
 	else
 		for(int q=qStart; q<qStop; q++)
@@ -236,9 +236,9 @@ void ElecInfo::printFillings(FILE* fp) const
 }
 
 void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
-{	logPrintf("\tFillings%s:  mu: %.15le  nElectrons: %.15le", suffix,
+{	logPrintf("\tFillings%s:  mu: %+.9lf  nElectrons: %.6lf", suffix,
 		muOverride ? *muOverride //use override value if provided
-			: ( !isnan(mu) ? mu //use target mu if in fixed-mu mode
+			: ( !std::isnan(mu) ? mu //use target mu if in fixed-mu mode
 				: findMu(e->eVars.Hsub_eigs, nElectrons) ), //determine from eigenvalues otherwise
 		nElectrons);
 	if(spinType == SpinZ)
@@ -278,7 +278,7 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 		muMix = findMu(eVars.Hsub_eigs, nElectrons + dn/fillingMixFraction); //this is the mu with which the fillings are mixed in
 		nElectrons += dn;
 		dnPrev = dn;
-		logPrintf("FillingsMix:  MeasuredMu: %.15le  g0: %le  C: %le  dn: %.15le  n: %.15le  SetMu: %.15le\n",
+		logPrintf("FillingsMix:  MeasuredMu: %.9lf  g0: %le  C: %le  dn: %.6lf  n: %.6lf  SetMu: %.9lf\n",
 			muMeasured, g0, C, dn, nElectrons, muMix);
 	}
 	else

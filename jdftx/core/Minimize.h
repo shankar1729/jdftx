@@ -141,8 +141,9 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		
 		Vector Kg = precondition(g);
 		gKNorm = sync(dot(g,Kg));
-		fprintf(p.fpLog, "%sIter: %3d  %s: %22.15le  |grad|_K: %10.3le  alpha: %10.3le",
-			p.linePrefix, iter, p.energyLabel, E, sqrt(gKNorm/p.nDim), alpha);
+		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
+		fprintf(p.fpLog, p.energyFormat, E);
+		fprintf(p.fpLog, "  |grad|_K: %10.3le  alpha: %10.3le", sqrt(gKNorm/p.nDim), alpha);
 
 		//Print prev step stats and set CG direction parameter if necessary
 		beta = 0.0;
