@@ -244,7 +244,7 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
 	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
-	int nProj = MnlAll.nRows();
+	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
 	if(!nProj) return 0; //purely local psp
 	//First check cache
 	if(e->cntrl.cacheProjectors)
@@ -253,7 +253,7 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 			return iter->second; //return cached value
 	}
 	//No cache / not found in cache; compute:
-	std::shared_ptr<ColumnBundle> V = std::make_shared<ColumnBundle>(Cq.similar(nProj*atpos.size()));
+	std::shared_ptr<ColumnBundle> V = std::make_shared<ColumnBundle>(nProj*atpos.size(), basis.nbasis, &basis, &qnum, isGpuEnabled()); //not a spinor regardless of spin type
 	int iProj = 0;
 	for(int l=0; l<int(VnlRadial.size()); l++)
 		for(unsigned p=0; p<VnlRadial[l].size(); p++)

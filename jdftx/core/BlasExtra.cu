@@ -116,6 +116,21 @@ void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y)
 	gpuErrorCheck();
 }
 
+__global__
+void eblas_accumProd_kernel(int N, double a, const complex* xU, const complex* xC, double* yRe, double* yIm)
+{	int i = kernelIndex1D();
+	if(i<N)
+	{	complex z = a * xU[i] * xC[i].conj();
+		yRe[i] += z.real();
+		yIm[i] += z.imag();
+	}
+}
+void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm)
+{	GpuLaunchConfig1D glc(eblas_accumProd_kernel, N);
+	eblas_accumProd_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, a, xU, xC, yRe, yIm);
+	gpuErrorCheck();
+}
+
 template<typename scalar> __global__
 void eblas_symmetrize_kernel(int N, int n, const int* symmIndex, scalar* x, double nInv)
 {	int i=kernelIndex1D();

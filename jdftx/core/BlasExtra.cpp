@@ -103,6 +103,18 @@ void eblas_accumNorm(int N, const double& a, const complex* x, double* y)
 		eblas_accumNorm_sub, N, a, x, y);
 }
 
+void eblas_accumProd_sub(size_t iStart, size_t iStop, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm)
+{	for(size_t i=iStart; i<iStop; i++)
+	{	complex z = a * xU[i] * xC[i].conj();
+		yRe[i] += z.real();
+		yIm[i] += z.imag();
+	}
+}
+void eblas_accumProd(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm)
+{	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
+		eblas_accumProd_sub, N, a, xU, xC, yRe, yIm);
+}
+
 
 template<typename scalar> void eblas_symmetrize_sub(size_t iStart, size_t iStop, int n, const int* symmIndex, scalar* x)
 {	double nInv = 1./n;

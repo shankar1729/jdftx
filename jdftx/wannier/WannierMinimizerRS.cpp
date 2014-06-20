@@ -72,7 +72,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	rExpect.assign(nCenters, vector3<>());
 	ColumnBundle Omega_Csuper; if(grad) { Omega_Csuper = Csuper.similar(); Omega_Csuper.zero(); }
 	for(int n=nStart; n<nStop; n++)
-	{	complexDataRptr psi = I(Csuper.getColumn(n)), Omega_psi;
+	{	complexDataRptr psi = I(Csuper.getColumn(n,0)), Omega_psi;
 		rSqExpect[n] = gInfoSuper.dV * dot(psi, rSq*psi).real();
 		if(grad) Omega_psi += (2*gInfoSuper.dV) * (rSq*psi);
 		for(int dir=0; dir<3; dir++)
@@ -83,7 +83,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 		//Off-diagonal corrections to get the invariant part (expensive):
 		if(invariant)
 		{	for(int m=0; m<nCenters; m++) if(m != n)
-			{	complexDataRptr psi_m = I(Csuper.getColumn(m)), Omega_psi_m;
+			{	complexDataRptr psi_m = I(Csuper.getColumn(m,0)), Omega_psi_m;
 				for(int dir=0; dir<3; dir++)
 				{	complex rExpect_mn = gInfoSuper.dV * dot(psi_m, r[dir]* psi);
 					Omega -= rExpect_mn.norm();
@@ -92,10 +92,10 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 						Omega_psi_m -= 2*rExpect_mn.conj() * gInfoSuper.dV * (r[dir] * psi);
 					}
 				}
-				if(grad && Omega_psi_m) Omega_Csuper.accumColumn(m, Idag(Omega_psi_m));
+				if(grad && Omega_psi_m) Omega_Csuper.accumColumn(m,0, Idag(Omega_psi_m));
 			}
 		}
-		if(grad) Omega_Csuper.accumColumn(n, Idag(Omega_psi));
+		if(grad) Omega_Csuper.accumColumn(n,0, Idag(Omega_psi));
 	}
 	mpiUtil->allReduce(Omega, MPIUtil::ReduceSum);
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);

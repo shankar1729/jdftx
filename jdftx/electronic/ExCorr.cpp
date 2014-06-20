@@ -49,6 +49,19 @@ void Functional::evaluateSub(int iStart, int iStop,
 	evaluate(iStop-iStart, offset(n), offset(sigma), offset(lap), offset(tau), E ? E+iStart : 0, offset(E_n), offset(E_sigma), offset(E_lap), offset(E_tau));
 }
 
+//---------------- Spin-density-matrix transformations for noncollinear magentism --------------------
+
+void spinDiagonalize(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<double*> xDiag)
+{	threadedLoop(spinDiagonalize_calc, N, n, x, xDiag);
+}
+void spinDiagonalizeGrad(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<const double*> E_xDiag, std::vector<double*> E_n, std::vector<double*> E_x)
+{	threadedLoop(spinDiagonalizeGrad_calc, N, n, x, E_xDiag, E_n, E_x);
+}
+#ifdef GPU_ENABLED
+void spinDiagonalize_gpu(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<double*> xDiag);
+void spinDiagonalizeGrad_gpu(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<const double*> E_xDiag, std::vector<double*> E_n, std::vector<double*> E_x);
+#endif
+
 //---------------- LDA thread launcher / gpu switch --------------------
 
 FunctionalLDA::FunctionalLDA(LDA_Variant variant, double scaleFac) : Functional(scaleFac), variant(variant)
@@ -382,6 +395,8 @@ void ExCorr::setup(const Everything& everything)
 			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. Lett. 103, 026403 (2009)");
 			break;
 		case ExCorrORB_GLLBsc:
+			if(e->eInfo.isNoncollinear())
+				die("GLLLB-sc functional not implemented for noncollinear spin modes.");
 			functionals->add(GGA_X_GLLBsc);
 			orbitalDep = std::make_shared<ExCorr_OrbitalDep_GLLBsc>(*e);
 			functionals->add(GGA_C_PBEsol);
@@ -499,14 +514,31 @@ bool ExCorr::hasEnergy() const
 	return true;
 }
 
+//! Extract a std::vector of data pointers from a DataRptrVec array, along a specific Cartesian direction
+template<typename T> std::vector<typename T::DataType*> dataPref(std::vector<DataMultiplet<T,3> >& x, int iDir)
+{	std::vector<typename T::DataType*> xData(x.size());
+	for(unsigned s=0; s<x.size(); s++)
+		xData[s] = x[s][iDir] ? x[s][iDir]->dataPref() : 0;
+	return xData;
+}
+
+//! Extract a std::vector of const data pointers from a DataRptrVec array, along a specific Cartesian direction
+template<typename T> std::vector<const typename T::DataType*> constDataPref(const std::vector<DataMultiplet<T,3> >& x, int iDir)
+{	std::vector<const typename T::DataType*> xData(x.size());
+	for(unsigned s=0; s<x.size(); s++)
+		xData[s] = x[s][iDir] ? x[s][iDir]->dataPref() : 0;
+	return xData;
+}
+
+
 double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, bool includeKinetic,
 		const DataRptrCollection* tauPtr, DataRptrCollection* Vtau) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
 	watch.start();
 	
-	const int nCount = n.size();
-	assert(nCount==1 || nCount==2);
+	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
+	const int nCount = std::min(nInCount, 2); //Number of spin-densities used in the parametrization of the functional
 	const int sigmaCount = 2*nCount-1;
 	const GridInfo& gInfo = n[0]->gInfo;
 	
@@ -519,7 +551,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	DataRptrCollection E_n(nCount);
 	if(Vxc)
 	{	Vxc->clear();
-		nullToZero(E_n, gInfo, nCount);
+		nullToZero(E_n, gInfo);
 	}
 	
 	//Check for GGAs and meta GGAs:
@@ -539,20 +571,81 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		}
 	#endif
 	
-	//Additional inputs/outputs for GGAs (gradient contractions and gradients w.r.t those)
-	DataRptrCollection sigma(sigmaCount), E_sigma(sigmaCount);
-	std::vector<DataRptrVec> Dn(nCount);
+	//Calculate spatial gradients for GGA (if needed)
+	std::vector<DataRptrVec> Dn(nInCount);
 	int iDirStart = (3*mpiUtil->iProcess())/mpiUtil->nProcesses();
 	int iDirStop = (3*(mpiUtil->iProcess()+1))/mpiUtil->nProcesses();
 	if(needsSigma)
 	{	//Compute the gradients of the (spin-)densities:
-		for(int s=0; s<nCount; s++)
+		for(int s=0; s<nInCount; s++)
 		{	const DataGptr Jn = J(n[s]);
 			for(int i=iDirStart; i<iDirStop; i++)
 				Dn[s][i] = I(D(Jn,i),true);
 		}
-		//Compute the required contractions:
-		for(int s1=0; s1<nCount; s1++)
+	}
+	
+	//Additional inputs/outputs for MGGAs (Laplacian, orbital KE and gradients w.r.t those)
+	DataRptrCollection lap(nInCount), E_lap(nCount);
+	if(needsLap)
+	{	//Compute laplacian
+		for(int s=0; s<nInCount; s++)
+			lap[s] = (1./gInfo.detR) * I(L(J(n[s])));
+		//Allocate gradient w.r.t laplacian if required
+		if(Vxc) nullToZero(E_lap, gInfo);
+	}
+	DataRptrCollection tau(nInCount), E_tau(nCount);
+	if(needsTau)
+	{	//make sure orbital KE density has been provided 
+		assert(tauPtr);
+		tau = *tauPtr;
+		//allocate gradients w.r.t KE density if required
+		if(Vxc)
+		{	assert(Vtau); //if computing gradients, all gradients must be computed
+			Vtau->clear();
+			nullToZero(E_tau, gInfo);
+		}
+	}
+	
+	//Transform to local spin-diagonal basis (noncollinear magnetism mode only)
+	DataRptrCollection nCapped(nCount), lapIn(nCount), tauIn(nCount);
+	std::vector<DataRptrVec> DnIn(nCount);
+	if(nCount != nInCount)
+	{	assert(nCount==2); assert(nInCount==4);
+		std::swap(DnIn, Dn);
+		std::swap(lapIn, lap);
+		std::swap(tauIn, tau);
+		//Density:
+		nullToZero(nCapped, gInfo);
+		callPref(spinDiagonalize)(gInfo.nr, constDataPref(n), constDataPref(n),  dataPref(nCapped));
+		//Spatial gradients:
+		if(needsSigma)
+		{	for(int i=iDirStart; i<iDirStop; i++)
+			{	for(int s=0; s<nCount; s++) nullToZero(Dn[s][i], gInfo);
+				callPref(spinDiagonalize)(gInfo.nr, constDataPref(n), constDataPref(DnIn,i), dataPref(Dn,i));
+			}
+		}
+		//Laplacian:
+		if(needsLap)
+		{	nullToZero(lap, gInfo);
+			callPref(spinDiagonalize)(gInfo.nr, constDataPref(n), constDataPref(lapIn),  dataPref(lap));
+		}
+		//KE density:
+		if(needsTau)
+		{	nullToZero(tau, gInfo);
+			callPref(spinDiagonalize)(gInfo.nr, constDataPref(n), constDataPref(tauIn),  dataPref(tau));
+		}
+	}
+	
+	//Cap negative densities to 0:
+	if(!nCapped[0]) nCapped = clone(n);
+	double nMin, nMax;
+	for(int s=0; s<nCount; s++)
+		callPref(eblas_capMinMax)(gInfo.nr, nCapped[s]->dataPref(), nMin, nMax, 0.);
+
+	//Compute the required contractions for GGA:
+	DataRptrCollection sigma(sigmaCount), E_sigma(sigmaCount);
+	if(needsSigma)
+	{	for(int s1=0; s1<nCount; s1++)
 			for(int s2=s1; s2<nCount; s2++)
 			{	for(int i=iDirStart; i<iDirStop; i++)
 					sigma[s1+s2] += Dn[s1][i] * Dn[s2][i];
@@ -564,34 +657,6 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		//Allocate gradient if required:
 		if(Vxc) nullToZero(E_sigma, gInfo, sigmaCount);
 	}
-	
-	//Additional inputs/outputs for MGGAs (Laplacian, orbital KE and gradients w.r.t those)
-	DataRptrCollection lap(nCount), E_lap(nCount);
-	if(needsLap)
-	{	//Compute laplacian
-		for(int s=0; s<nCount; s++)
-			lap[s] = (1./gInfo.detR) * I(L(J(n[s])));
-		//Allocate gradient w.r.t laplacian if required
-		if(Vxc) nullToZero(E_lap, gInfo, nCount);
-	}
-	DataRptrCollection tau(nCount), E_tau(nCount);
-	if(needsTau)
-	{	//make sure orbital KE density has been provided 
-		assert(tauPtr);
-		tau = *tauPtr;
-		//allocate gradients w.r.t KE density if required
-		if(Vxc)
-		{	assert(Vtau); //if computing gradients, all gradients must be computed
-			Vtau->clear();
-			nullToZero(E_tau, gInfo, nCount);
-		}
-	}
-	
-	//Cap negative densities to 0:
-	DataRptrCollection nCapped = clone(n);
-	double nMin, nMax;
-	for(int s=0; s<nCount; s++)
-		callPref(eblas_capMinMax)(gInfo.nr, nCapped[s]->dataPref(), nMin, nMax, 0.);
 	
 	#ifdef LIBXC_ENABLED
 	//------------------ Evaluate LibXC functionals ---------------
@@ -660,9 +725,16 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
 	watchFunc.stop();
 	
+	//Cleanup unneeded derived quantities (free memory before starting communications and gradient propagation)
+	double Exc = integral(E); E = 0; //note Exc accumulated over processes below in communication block
+	nCapped.clear();
+	sigma.clear();
+	lap.clear();
+	tau.clear();
+	
 	//---------------- Collect results over processes ----------------
 	watchComm.start();
-	E->allReduce(MPIUtil::ReduceSum);
+	mpiUtil->allReduce(Exc, MPIUtil::ReduceSum);
 	for(DataRptr& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
 	for(DataRptr& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
 	for(DataRptr& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);
@@ -670,38 +742,76 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	watchComm.stop();
 
 	//--------------- Gradient propagation ---------------------
-	
-	//Propagate gradient w.r.t sigma and lap to grad_n (for GGA/mGGAs)
-	if(Vxc && (needsSigma || needsLap))
-	{	DataGptr E_nTilde[2]; //contribution to the potential in fourier space
+	if(Vxc)
+	{	//Change gradients from diagonal to spin-density-matrix if necessary
+		if(nCount != nInCount)
+		{	//Density:
+			{	DataRptrCollection E_nIn(nInCount); nullToZero(E_nIn, gInfo);
+				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(n), constDataPref(E_n), dataPref(E_nIn), dataPref(E_nIn));
+				std::swap(E_nIn, E_n);
+			}
+			//KE density:
+			if(needsTau)
+			{	DataRptrCollection E_tauIn(nInCount); nullToZero(E_tauIn, gInfo);
+				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(tauIn), constDataPref(E_tau), dataPref(E_n), dataPref(E_tauIn));
+				std::swap(E_tauIn, E_tau);
+			}
+			else E_tau.resize(nInCount);
+			//Laplacian:
+			if(needsLap)
+			{	DataRptrCollection E_lapIn(nInCount); nullToZero(E_lapIn, gInfo);
+				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(lapIn), constDataPref(E_lap), dataPref(E_n), dataPref(E_lapIn));
+				std::swap(E_lapIn, E_lap);
+				lapIn.clear();
+			}
+		}
+
+		//Propagate Laplacian contribution to density
+		if(needsLap)
+		{	for(int s=0; s<nInCount; s++)
+				E_n[s] += Jdag((1./gInfo.detR) * L(Idag(E_lap[s])));
+			E_lap.clear();
+		}
+
+		//Propagate spatial gradient contribution to density
 		if(needsSigma)
-		{	for(int s1=0; s1<nCount; s1++)
-				for(int s2=s1; s2<nCount; s2++)
-					for(int i=iDirStart; i<iDirStop; i++)
-					{	if(s1==s2) E_nTilde[s1] -= D(Idag(2*(E_sigma[2*s1] * Dn[s1][i])), i);
+		{	DataGptrCollection E_nTilde(nInCount); //contribution to the potential in fourier space
+			for(int i=iDirStart; i<iDirStop; i++)
+			{	//Propagate from contraction sigma to the spatial derivatives
+				DataRptrCollection E_Dni(nCount);
+				for(int s1=0; s1<nCount; s1++)
+					for(int s2=s1; s2<nCount; s2++)
+					{	if(s1==s2) E_Dni[s1] += 2*(E_sigma[s1+s2] * Dn[s1][i]);
 						else
-						{	E_nTilde[s1] -= D(Idag(E_sigma[s1+s2] * Dn[s2][i]), i);
-							E_nTilde[s2] -= D(Idag(E_sigma[s1+s2] * Dn[s1][i]), i);
+						{	E_Dni[s1] += E_sigma[s1+s2] * Dn[s2][i];
+							E_Dni[s2] += E_sigma[s1+s2] * Dn[s1][i];
 						}
 					}
-		}
-		if(needsLap && mpiUtil->isHead()) //perform only on one process, so that we can allReduce below
-		{	for(int s=0; s<nCount; s++)
-				E_nTilde[s] += (1./gInfo.detR) * L(Idag(E_lap[s]));
-		}
-		for(int s=0; s<nCount; s++)
-		{	watchComm.start();
-			nullToZero(E_nTilde[s], gInfo);
-			E_nTilde[s]->allReduce(MPIUtil::ReduceSum);
-			watchComm.stop();
-			E_n[s] += Jdag(E_nTilde[s],true);
+				//Convert from diagonal to spin-density-matrix if necessary
+				if(nCount != nInCount)
+				{	DataRptrCollection E_DniIn(nInCount); nullToZero(E_DniIn, gInfo);
+					callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(DnIn,i), constDataPref(E_Dni), dataPref(E_n), dataPref(E_DniIn));
+					std::swap(E_DniIn, E_Dni);
+				}
+				//Propagate to E_nTilde:
+				for(int s=0; s<nInCount; s++)
+					E_nTilde[s] -= D(Idag(E_Dni[s]), i);
+			}
+			//Accumulate over processes:
+			for(int s=0; s<nInCount; s++)
+			{	watchComm.start();
+				nullToZero(E_nTilde[s], gInfo);
+				E_nTilde[s]->allReduce(MPIUtil::ReduceSum);
+				watchComm.stop();
+				E_n[s] += Jdag(E_nTilde[s],true);
+			}
 		}
 	}
 	
 	if(Vxc) *Vxc = E_n;
 	if(Vtau) *Vtau = E_tau;
 	watch.stop();
-	return integral(E);
+	return Exc;
 }
 
 //Unpolarized wrapper to above function:

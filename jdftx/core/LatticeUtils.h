@@ -117,7 +117,8 @@ public:
 	
 	//!Return index of a point within symmThresold of x, and string::npos if none found
 	//!(Optionally also only return points whose tag matches the specified value)
-	size_t find(vector3<> v, double tag=0., const std::vector<double>* tagArr=0) const
+	template<typename Tag = double, typename TagEquality = std::equal_to<Tag> >
+	size_t find(vector3<> v, Tag tag = Tag(), const std::vector<Tag>* tagArr=0, TagEquality tagEquality = std::equal_to<Tag>()) const
 	{	vector3<int> ivMin, ivMax;
 		for(int k=0; k<3; k++)
 		{	v[k] -= floor(v[k]); //in [0,1)
@@ -130,7 +131,7 @@ public:
 		for(iv[2]=ivMin[2]; iv[2]<=ivMax[2]; iv[2]++)
 			for(size_t index: indices[meshIndex(iv)])
 				if(circDistanceSquared(v, getCoord(points[index])) < symmThresholdSq
-					&& (!tagArr || tag==tagArr->at(index)) )
+					&& (!tagArr || tagEquality(tag, tagArr->at(index))) )
 					return index;
 		return string::npos;
 	}

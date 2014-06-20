@@ -23,6 +23,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/ExCorr_internal_mGGA.h>
 
+//---------------- Spin-density-matrix transformations for noncollinear magentism --------------------
+
+__global__
+void spinDiagonalize_kernel(int N, array<const double*,4> n, array<const double*,4> x, array<double*,2> xDiag)
+{	int i = kernelIndex1D();
+	if(i<N) spinDiagonalize_calc(i, n, x, xDiag);
+}
+void spinDiagonalize_gpu(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<double*> xDiag)
+{	GpuLaunchConfig1D glc(spinDiagonalize_kernel, N);
+	spinDiagonalize_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, x, xDiag);
+	gpuErrorCheck();
+}
+
+__global__
+void spinDiagonalizeGrad_kernel(int N, array<const double*,4> n, array<const double*,4> x, array<const double*,2> E_xDiag, array<double*,4> E_n, array<double*,4> E_x)
+{	int i = kernelIndex1D();
+	if(i<N) spinDiagonalizeGrad_calc(i, n, x, E_xDiag, E_n, E_x);
+}
+void spinDiagonalizeGrad_gpu(int N, std::vector<const double*> n, std::vector<const double*> x, std::vector<const double*> E_xDiag, std::vector<double*> E_n, std::vector<double*> E_x)
+{	GpuLaunchConfig1D glc(spinDiagonalizeGrad_kernel, N);
+	spinDiagonalizeGrad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, x, E_xDiag, E_n, E_x);
+	gpuErrorCheck();
+}
+
 //-------------------------- LDA GPU launch mechanism ----------------------------
 
 template<LDA_Variant variant, int nCount> __global__

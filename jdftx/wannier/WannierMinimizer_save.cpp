@@ -278,7 +278,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
 			logPrintf("Dumping '%s':\n", fname.c_str());
 			//Convert to real space and remove phase:
-			complexDataRptr psi = I(Csuper.getColumn(n));
+			complexDataRptr psi = I(Csuper.getColumn(n,0));
 			if(qnumSuper.k.length_squared() > symmThresholdSq)
 				multiplyBlochPhase(psi, qnumSuper.k);
 			complex* psiData = psi->data();

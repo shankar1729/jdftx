@@ -63,7 +63,7 @@ void ElecVars::setup(const Everything &everything)
 	const std::vector<Basis>& basis = e->basis;
 	const GridInfo& gInfo = e->gInfo;
 
-	n.resize(eInfo.spinType==SpinNone ? 1 : 2);
+	n.resize(eInfo.nDensities);
 	Vscloc.resize(n.size());
 	if(eInfo.hasU)
 	{	iInfo.rhoAtom_initZero(rhoAtom);
@@ -172,11 +172,15 @@ void ElecVars::setup(const Everything &everything)
 			logPrintf("done\n"); logFlush(); \
 		}
 		#define READ(var) \
-		{	var.resize(eInfo.spinType==SpinNone ? 1 : 2); \
+		{	var.resize(eInfo.nDensities); \
 			if(var.size()==1) { READchannel(var[0], #var) } \
 			else \
 			{	READchannel(var[0], #var "_up") \
 				READchannel(var[1], #var "_dn") \
+				if(var.size()==4) \
+				{	READchannel(var[2], #var "_re") \
+					READchannel(var[3], #var "_im") \
+				} \
 			} \
 		}
 		#define READrhoAtom(var) \
@@ -292,8 +296,9 @@ void ElecVars::setup(const Everything &everything)
 DataRptrCollection ElecVars::get_nXC() const
 {	if(e->iInfo.nCore)
 	{	DataRptrCollection nXC = clone(n);
-		for(unsigned s=0; s<nXC.size(); s++)
-			nXC[s] += (1.0/nXC.size()) * e->iInfo.nCore; //add core density
+		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
+		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
+			nXC[s] += (1./nSpins) * e->iInfo.nCore; //add core density
 		return nXC;
 	}
 	else return n; //no cores
@@ -305,7 +310,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
-	DataGptr nTilde = J(eInfo.spinType==SpinNone ? n[0] : n[0]+n[1]);
+	DataGptr nTilde = J(get_nTot());
 	
 	// Local part of pseudopotential:
 	ener.E["Eloc"] = dot(nTilde, O(iInfo.Vlocps));
@@ -377,8 +382,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		Vxc += exCorr.orbitalDep->getPotential();
 	}
 	if(VtauTilde) Vtau.resize(n.size());
-	for(unsigned s=0; s<Vxc.size(); s++)
-	{	Vscloc[s] = Jdag(O(VsclocTilde), true) + JdagOJ(Vxc[s]);
+	for(unsigned s=0; s<Vscloc.size(); s++)
+	{	Vscloc[s] = JdagOJ(Vxc[s]);
+		if(s<2) //Include all the spin-independent contributions along the diagonal alone
+			Vscloc[s] += Jdag(O(VsclocTilde), true);
 		//External potential contributions:
 		if(Vexternal.size())
 		{	ener.E["Eexternal"] += e->gInfo.dV * dot(n[s], Vexternal[s]);
@@ -558,7 +565,7 @@ DataRptrCollection ElecVars::KEdensity() const
 	//Compute KE density from valence electrons:
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		for(int iDir=0; iDir<3; iDir++)
-			tau[C[q].qnum->index()] += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), &e->gInfo);
+			tau += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), tau.size(), &e->gInfo);
 	for(DataRptr& tau_s: tau)
 	{	nullToZero(tau_s, e->gInfo);
 		e->symm.symmetrize(tau_s); //Symmetrize
@@ -577,7 +584,7 @@ DataRptrCollection ElecVars::calcDensity() const
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-	{	density[e->eInfo.qnums[q].index()] += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], &e->gInfo);
+	{	density += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], density.size(), &e->gInfo);
 		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
@@ -629,11 +636,11 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
-	{	HCq += Idag_DiagV_I(C[q], Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+	{	HCq += Idag_DiagV_I(C[q], Vscloc); //Accumulate Idag Diag(Vscloc) I C
 		e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
 		if((e->exCorr.needsKEdensity() || fluidParams.useTau) && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
-				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau[qnum.index()]), iDir);
+				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau), iDir);
 		}
 		if(e->eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
 			e->iInfo.rhoAtom_grad(C[q], U_rhoAtom, HCq);

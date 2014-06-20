@@ -59,6 +59,7 @@ ExactExchange::ExactExchange(const Everything& e) : e(e)
 {
 	logPrintf("\n---------- Setting up exact exchange ----------\n");
 	if(mpiUtil->nProcesses()>1) die("Exact exchange not yet implemented in MPI mode.\n");
+	if(e.eInfo.isNoncollinear()) die("Exact exchange not yet implemented for noncollinear spins.\n");
 	eval = new ExactExchangeEval(e);
 }
 
@@ -127,7 +128,7 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 	//includes negative sign for exchange, empirical scale, weight for the restricted case and symmetries
 
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
-	complexDataRptr Ipsi1 = I(C[q1].getColumn(b1)), grad_Ipsi1;
+	complexDataRptr Ipsi1 = I(C[q1].getColumn(b1,0)), grad_Ipsi1;
 	double wF1 = F[q1][b1] * qnums[q1].weight;
 	vector3<> k1 = qnums[q1].k;
 	double EXX = 0.;
@@ -139,7 +140,7 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 				continue; //at least one of the orbitals must be occupied
 			
 			bool diag = q1==q2 && b1==b2; // whether this is a diagonal (self) term
-			complexDataRptr Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2)), grad_Ipsi2;
+			complexDataRptr Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2,0)), grad_Ipsi2;
 			double wF2 = F[q2][b2] * qnums[q2].weight;
 			for(int invert: invertList)
 				for(unsigned iSym=0; iSym<sym.size(); iSym++)
@@ -162,14 +163,14 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 			if(HC && grad_Ipsi2)
 			{	complexDataGptr grad_psi2 = Idag(grad_Ipsi2);
 				lock->lock();
-				(*HC)[q2].accumColumn(b2, grad_psi2);
+				(*HC)[q2].accumColumn(b2,0, grad_psi2);
 				lock->unlock();
 			}
 		}
 	if(HC && grad_Ipsi1)
 	{	complexDataGptr grad_psi1 = Idag(grad_Ipsi1);
 		lock->lock();
-		(*HC)[q1].accumColumn(b1, grad_psi1);
+		(*HC)[q1].accumColumn(b1,0, grad_psi1);
 		lock->unlock();
 	}
 	return EXX;

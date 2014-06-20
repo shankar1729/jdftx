@@ -102,7 +102,7 @@ class PairDensityCalculator
 				if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
 				return full;
 			}
-			else return Cext.getColumn(col);
+			else return Cext.getColumn(col,0);
 		}
 		
 	private:
@@ -176,7 +176,7 @@ private:
 		complexDataRptr conjICv = conj(I(state1.getColumn(v)));
 		while(b<bStop)
 		{	double sqrtEigDen = sqrt(4./(nK * (state2.eig->at(nV+c) - state1.eig->at(v))));
-			rho->setColumn(kOffset+b, sqrtEigDen * J(conjICv * I(state2.getColumn(nV+c))));
+			rho->setColumn(kOffset+b,0, sqrtEigDen * J(conjICv * I(state2.getColumn(nV+c))));
 			//Next cv pair:
 			b++; if(b==bStop) break;
 			c++;
@@ -190,7 +190,7 @@ private:
 
 inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
 {	for(int b=bStart; b<bStop; b++)
-		Krho->setColumn(b, (*(e->coulomb))(rho->getColumn(b), dk, 0.));
+		Krho->setColumn(b,0, (*(e->coulomb))(rho->getColumn(b,0), dk, 0.));
 }
 
 matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
@@ -211,7 +211,7 @@ complexDataRptrVec gradient(const ColumnBundle& Y, int col)
 {	ColumnBundle Ysub = Y.getSub(col, col+1);
 	complexDataRptrVec DY;
 	for(int j=0; j<3; j++)
-		DY[j] = I(D(Ysub,j).getColumn(0));
+		DY[j] = I(D(Ysub,j).getColumn(0,0));
 	return DY;
 }
 
@@ -220,7 +220,7 @@ void axpyDivergence(double alpha, const complexDataRptrVec& x, ColumnBundle& Y, 
 {	ColumnBundle Ysub = Y.getSub(col, col+1);
 	ColumnBundle xj = Ysub.similar();
 	for(int j=0; j<3; j++)
-	{	xj.setColumn(0, J(x[j]));
+	{	xj.setColumn(0,0, J(x[j]));
 		Ysub += alpha * D(xj, j);
 	}
 	Y.setSub(col, Ysub);
@@ -249,7 +249,7 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const D
 	const ColumnBundle* rho, ColumnBundle* KXCrho)
 {	for(int b=bStart; b<bStop; b++)
 	{	//Get the basis vector (and optionally its gradient) in real space:
-		complexDataRptr V = I(rho->getColumn(b)); complexDataRptrVec DV;
+		complexDataRptr V = I(rho->getColumn(b,0)); complexDataRptrVec DV;
 		if(*exc_sigma) DV = gradient(*rho, b);
 		//Add contributions which are local towards the right:
 		complexDataRptr KV = (*exc_nn) * V, DnDV;
@@ -257,7 +257,7 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const D
 		{	DnDV = 2. * dotElemwise(*Dn, DV);
 			KV += (*exc_nsigma) * DnDV;
 		}
-		KXCrho->setColumn(b, J(KV));
+		KXCrho->setColumn(b,0, J(KV));
 		//Add contributions which have a gradient towards the right:
 		if(*exc_sigma)
 		{	complexDataRptr DnTerm = (*exc_nsigma)*V + (*exc_sigmasigma)*DnDV;

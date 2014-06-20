@@ -25,6 +25,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <core/DataIO.h>
 
+void printSymmetryError(const matrix& m, const char* name)
+{	double num = nrm2(m - dagger(m));
+	double den = nrm2(m);
+	logPrintf("%s symmetry error = %le (rel), %le (abs)\n", name, num/den, num);
+}
+
 struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of ElecGradient
 {	int nBands;
 	ElecVars& eVars;
@@ -34,7 +40,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	std::vector<matrix> B; //Auxiliary hamiltonian (minimizer state)
 	std::vector< std::vector<matrix> > VdagY;
 	ElecGradient Kgrad;
-	double mu;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
 	: eVars(eVars), e(e), HniSub(e.eInfo.nStates), B(e.eInfo.nStates),
@@ -63,7 +68,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		}
 		
 		//Update fillings (Aux algorithm, fixed N only):
-		mu = e.eInfo.findMu(B_eigs, e.eInfo.nElectrons); double dmuNumDen[2] = { 0., 0. };
+		double mu = e.eInfo.findMu(B_eigs, e.eInfo.nElectrons); double dmuNumDen[2] = { 0., 0. };
 		std::vector<diagMatrix> F(e.eInfo.nStates);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			F[q] = e.eInfo.fermi(mu, B_eigs[q]);
@@ -73,7 +78,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		for(DataRptr& ns: eVars.n) ns=0;
 		e.iInfo.augmentDensityInit();
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	eVars.n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], &e.gInfo);
+		{	eVars.n += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], eVars.n.size(), &e.gInfo);
 			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], F[q], eVars.VdagC[q]); //pseudopotential contribution
 		}
 		e.iInfo.augmentDensityGrid(eVars.n);
@@ -102,11 +107,12 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		
 			//Gradient and subspace Hamiltonian:
 			if(grad)
-			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc[qnum.index()]); //Accumulate Idag Diag(Vscloc) I C
+			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
 				if(e.eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
 				e.iInfo.augmentDensitySphericalGrad(qnum, F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
+				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
 				//Nconstraint contributions to gradient:
 				diagMatrix fprime = e.eInfo.fermiPrime(mu, B_eigs[q]);
 				dmuNumDen[0] += qnum.weight * trace(fprime * (diag(eVars.Hsub[q])-B_eigs[q]));
@@ -137,12 +143,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	bool report(int iter)
-	{	logPrintf("FillingsLCAO:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
-		if(e.eInfo.spinType == SpinZ)
-		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
-			logPrintf("  magneticMoment: %.5f", spinPol);
-		}
-		logPrintf("\n");
+	{	e.eInfo.printFermi("LCAO");
 		return false;
 	}
 };
@@ -181,7 +182,7 @@ int ElecVars::LCAO()
 	std::swap(fluidParams.fluidType, fluidTypeTemp);
 
 	//Get orthonormal atomic orbitals and non-interacting part of subspace Hamiltonian:
-	lcao.nBands = std::max(nAtomic+1, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/2))));
+	lcao.nBands = std::max(nAtomic+1, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/eInfo.qWeightSum))));
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	Y[q] = iInfo.getAtomicOrbitals(q, lcao.nBands-nAtomic);
 		if(nAtomic<lcao.nBands) Y[q].randomize(nAtomic, lcao.nBands); //Randomize extra columns if any
@@ -211,8 +212,10 @@ int ElecVars::LCAO()
 	
 	//Select a multi-pass method to use eVars.F, if it is non-default
 	int nPasses = 1;
-	if(!e->cntrl.fixed_H && (eInfo.customFillings.size() || eInfo.initialFillingsFilename.length())) nPasses = 2; //custom fillings
-	for(double q: eInfo.qNet) if(q) nPasses = 2; //net charges modified
+	if(!e->cntrl.fixed_H)
+	{	if(eInfo.customFillings.size() || eInfo.initialFillingsFilename.length()) nPasses = 2; //custom fillings
+		for(double q: eInfo.qNet) if(q) nPasses = 2; //net charges modified
+	}
 	
 	//Compute local-potential at the atomic reference density (for pass 1) and resulting density based on pass 1 (for pass 2):
 	for(int pass=0; pass<nPasses; pass++)
@@ -225,7 +228,7 @@ int ElecVars::LCAO()
 		
 		//Set initial auxiliary hamiltonian to the subspace Hamiltonian:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc[eInfo.qnums[q].index()]); //local self-consistent potential
+		{	ColumnBundle HYq = Idag_DiagV_I(Y[q], Vscloc); //local self-consistent potential
 			std::vector<matrix> HVdagYq(iInfo.species.size());
 			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), lcao.VdagY[q], HVdagYq); //ultrasoft augmentation
 			iInfo.projectGrad(HVdagYq, Y[q], HYq);
@@ -241,7 +244,7 @@ int ElecVars::LCAO()
 				for(unsigned sp=0; sp<iInfo.species.size(); sp++)
 					if(lcao.VdagY[q][sp]) VdagC[q][sp] = lcao.VdagY[q][sp] * Bq_evecs; 
 				diagMatrix Fq = F[q]; Fq.resize(lcao.nBands, 0.); //length-corrected eVars.F
-				n[eInfo.qnums[q].index()] += eInfo.qnums[q].weight * diagouterI(Fq, C[q], &e->gInfo);
+				n += eInfo.qnums[q].weight * diagouterI(Fq, C[q], n.size(), &e->gInfo);
 				iInfo.augmentDensitySpherical(eInfo.qnums[q], Fq, VdagC[q]); //pseudopotential contribution
 			}
 			iInfo.augmentDensityGrid(n);

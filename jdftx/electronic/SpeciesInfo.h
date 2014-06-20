@@ -63,7 +63,7 @@ public:
 	};
 	std::vector<Constraint> constraints; //!< List of all constraints on ions of this species
 	
-	std::vector<double> initialMagneticMoments; //!< Initial magnetic moments of each atom in number of electrons (used only for LCAO and symmetries)
+	std::vector< vector3<> > initialMagneticMoments; //!< Initial magnetic moments of each atom (used only for LCAO and symmetries) (x and y magnetizations only used in noncollinear calculations)
 	double initialOxidationState; //!< Initial oxidation state of this species (only affects LCAO)
 	
 	SpeciesInfo();
@@ -109,20 +109,10 @@ public:
 	void rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
 
-	//!Pseudo-atom configuration (retrieved along with atomic orbitals using setAtomicOrbitals)
-	struct AtomConfig
-	{	unsigned n; //!< pseudo-atom principal quantum number
-		int l; //!< angular momentum
-		unsigned iAtom; //!< atom index (within all atoms of this species)
-		double F; //!< occupation in the atomic state (summed over m)
-	};
-
 	//! Accumulate atomic density from this species
 	void accumulateAtomicDensity(DataGptrCollection& nTilde) const;
-	//! Calculate atomic orbitals (store in Y with an optional column offset, and optionally retrieve the pseudo-atom configuration)
-	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0, std::vector<AtomConfig>* atomConfig=0) const;
-	//! Store a single atomic orbital (iAtom'th atom, n'th shell of angular momentum l with specified m value) in col'th column of Y:
-	void setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const;
+	//! Calculate atomic orbitals (store in Y with an optional column offset)
+	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
 	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)

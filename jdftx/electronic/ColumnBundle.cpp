@@ -117,27 +117,33 @@ void ColumnBundle::setSub(int colStart, const ColumnBundle& Y)
 	callPref(eblas_copy)(dataPref()+colStart*colLength(), Y.dataPref(), nColsSub*colLength());
 }
 
+#define CHECK_COLUMN_INDEX \
+	assert(i>=0 && i<nCols()); \
+	assert(s>=0 && s<spinorLength());
 
-complexDataGptr ColumnBundle::getColumn(int i) const
+complexDataGptr ColumnBundle::getColumn(int i, int s) const
 {	const GridInfo& gInfo = *(basis->gInfo);
+	CHECK_COLUMN_INDEX
 	complexDataGptr full; nullToZero(full, gInfo); //initialize a full G-space vector to zero
 	//scatter from the i'th column to the full vector:
-	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->indexPref, dataPref()+index(i,0), full->dataPref());
+	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->indexPref, dataPref()+index(i,s*basis->nbasis), full->dataPref());
 	return full;
 }
 
-void ColumnBundle::setColumn(int i, const complexDataGptr& full)
+void ColumnBundle::setColumn(int i, int s, const complexDataGptr& full)
 {	//Zero the i'th column:
-	callPref(eblas_zero)(basis->nbasis, dataPref()+index(i,0));
+	callPref(eblas_zero)(basis->nbasis, dataPref()+index(i,s*basis->nbasis));
 	//Gather-accumulate from the full vector into the i'th column
-	accumColumn(i, full);
+	accumColumn(i,s, full);
 }
 
-void ColumnBundle::accumColumn(int i, const complexDataGptr& full)
-{	//Gather-accumulate from the full vector into the i'th column
-	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1., basis->indexPref, full->dataPref(), dataPref()+index(i,0));
+void ColumnBundle::accumColumn(int i, int s, const complexDataGptr& full)
+{	assert(full);
+	CHECK_COLUMN_INDEX
+	//Gather-accumulate from the full vector into the i'th column
+	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1., basis->indexPref, full->dataPref(), dataPref()+index(i,s*basis->nbasis));
 }
-
+#undef CHECK_COLUMN_INDEX
 
 
 // Allocate an array of ColumnBundles
@@ -146,17 +152,18 @@ void init(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const Basis* ba
 	if(ncols && basis && eInfo)
 	{	assert(nbundles >= eInfo->qStop);
 		for(int q=eInfo->qStart; q<eInfo->qStop; q++)
-			Y[q].init(ncols, basis[q].nbasis, basis+q, &eInfo->qnums[q], isGpuEnabled());
+			Y[q].init(ncols, basis[q].nbasis * eInfo->spinorLength(), basis+q, &eInfo->qnums[q], isGpuEnabled());
 	}
 }
 
 
 // Randomize with a high frequency cutoff of 0.75 hartrees
 void ColumnBundle::randomize(int colStart, int colStop)
-{	assert(basis->nbasis == colLength());
+{	assert(basis->nbasis==colLength() || 2*basis->nbasis==colLength());
 	complex* thisData = data(); //currently only on cpu
-	for(size_t j=0; j < basis->nbasis; j++)
-	{	vector3<> kplusG = basis->iGarr[j] + qnum->k;
+	for(size_t j=0; j<colLength(); j++)
+	{	size_t jBasis = (j < basis->nbasis) ? j : (j - basis->nbasis);
+		vector3<> kplusG = basis->iGarr[jBasis] + qnum->k;
 		double KE = 0.5*dot(kplusG, basis->gInfo->GGT*kplusG);
 		double t = KE/0.75;
 		double sigma = 1.0/(1.0+t*t*t*t*t*t);
@@ -216,12 +223,13 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 		complexDataRptr Icol; nullToZero(Icol, gInfo);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	int nCols = Y[q].nCols();
+			int nSpinor = Y[q].spinorLength();
 			if(conversion->nBandsOld) nCols = std::min(nCols, conversion->nBandsOld);
-			for(int b=0; b<nCols; b++)
-			{	char fname_qb[1024]; sprintf(fname_qb, fname, q, b);
+			for(int b=0; b<nCols; b++) for(int s=0; s<nSpinor; s++)
+			{	char fname_qb[1024]; sprintf(fname_qb, fname, q, b*nSpinor+s);
 				loadRawBinary(Icol, fname_qb);
-				if(needCustom) Y[q].setColumn(b, changeGrid(J(Icol), *gInfoWfns));
-				else Y[q].setColumn(b, J(Icol));
+				if(needCustom) Y[q].setColumn(b,s, changeGrid(J(Icol), *gInfoWfns));
+				else Y[q].setColumn(b,s, J(Icol));
 			}
 		}
 	}
@@ -248,8 +256,9 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 				}
 			}
 			const Basis* basis = customBasis ? &basisTmp[q] : Y[q].basis;
-			if(needTmp) Ytmp[q].init(nCols, basis->nbasis, basis, Y[q].qnum);
-			nBytes[mpiUtil->iProcess()] += nCols * basis->nbasis * sizeof(complex);
+			int nSpinor = Y[q].spinorLength();
+			if(needTmp) Ytmp[q].init(nCols, basis->nbasis*nSpinor, basis, Y[q].qnum);
+			nBytes[mpiUtil->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
 		}
 		//Sync nBytes:
 		if(mpiUtil->nProcesses()>1)
@@ -269,11 +278,11 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 			mpiUtil->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
 			if(Ytmp[q]) //apply conversions:
 			{	if(Ytmp[q].basis!=Y[q].basis)
-				{	for(int b=0; b<std::min(Y[q].nCols(), Ytmp[q].nCols()); b++)
-						Y[q].setColumn(b, Ytmp[q].getColumn(b)); //convert using the full G-space as an intermediate
-					//Ytmp[q] = switchBasis(Ytmp[q], *Y[q].basis);
+				{	int nSpinor = Y[q].spinorLength();
+					for(int b=0; b<std::min(Y[q].nCols(), Ytmp[q].nCols()); b++)
+						for(int s=0; s<nSpinor; s++)
+							Y[q].setColumn(b,s, Ytmp[q].getColumn(b,s)); //convert using the full G-space as an intermediate
 				}
-				//if(Ytmp[q].nCols()==Y[q].nCols()) Y[q] = Ytmp[q];
 				else
 				{	if(Ytmp[q].nCols()<Y[q].nCols()) Y[q].setSub(0, Ytmp[q]);
 					else Y[q] = Ytmp[q].getSub(0, Y[q].nCols());
@@ -304,16 +313,31 @@ ColumnBundle operator*(const scaled<ColumnBundle> &sY, const matrixScaledTransOp
 {	static StopWatch watch("Y*M");
 	watch.start();
 	const ColumnBundle& Y = sY.data;
-	assert(Y.nCols()==Mst.nRows());
-	const matrix& M = Mst.mat;
 	double scaleFac = sY.scale * Mst.scale;
-	ColumnBundle YM = Y.similar(Mst.nCols());
-	callPref(eblas_zgemm)(CblasNoTrans, Mst.op, YM.colLength(), YM.nCols(), Y.nCols(),
-		scaleFac, Y.dataPref(), Y.colLength(), M.dataPref(), M.nRows(),
-		0.0, YM.dataPref(), YM.colLength());
+	bool spinorMode = (2*Y.nCols() == Mst.nRows()); //treat each column of non-spinor Y as two identical consecutive spinor ones with opposite spins
+	assert(Y.nCols()==Mst.nRows() || spinorMode);
+	CBLAS_TRANSPOSE Mop; const matrix* M; ColumnBundle YM; matrix Mtmp;
+	if(spinorMode)
+	{	matrix mIn(Mst); Mop=CblasNoTrans; //pre-apply the op in this case
+		Mtmp.init(Y.nCols(), 2*mIn.nCols(), isGpuEnabled());
+		Mtmp.set(0,1,Y.nCols(), 0,2,Mtmp.nCols(), mIn(0,2,mIn.nRows(), 0,1,mIn.nCols()));
+		Mtmp.set(0,1,Y.nCols(), 1,2,Mtmp.nCols(), mIn(1,2,mIn.nRows(), 0,1,mIn.nCols()));
+		M = &Mtmp;
+		assert(!Y.isSpinor());
+		YM.init(mIn.nCols(), Y.colLength()*2, Y.basis, Y.qnum, isGpuEnabled());
+	}
+	else
+	{	Mop = Mst.op;
+		M = &Mst.mat;
+		YM = Y.similar(Mst.nCols());
+	}
+	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), M->nCols(), Y.nCols(),
+		scaleFac, Y.dataPref(), Y.colLength(), M->dataPref(), M->nRows(),
+		0.0, YM.dataPref(), Y.colLength());
 	watch.stop();
 	return YM;
 }
+
 ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)
 {	const ColumnBundle& Y = sY.data;
 	assert(Y.nCols()==d.nRows());
@@ -322,17 +346,45 @@ ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)
 		callPref(eblas_zscal)(Yd.colLength(), sY.scale*d[i], YdData+Yd.index(i,0), 1);
 	return Yd;
 }
+
 matrix operator^(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY2)
 {	static StopWatch watch("Y1^Y2");
 	watch.start();
 	const ColumnBundle& Y1 = sY1.data;
 	const ColumnBundle& Y2 = sY2.data;
 	double scaleFac = sY1.scale * sY2.scale;
-	assert(Y1.colLength() == Y2.colLength());
-	matrix Y1dY2(Y1.nCols(), Y2.nCols(), isGpuEnabled());
-	callPref(eblas_zgemm)(CblasConjTrans, CblasNoTrans, Y1.nCols(), Y2.nCols(), Y1.colLength(),
-		scaleFac, Y1.dataPref(), Y1.colLength(), Y2.dataPref(), Y2.colLength(),
+	int nCols1, nCols2, colLength;
+	if(Y1.colLength() == Y2.colLength()) //standard mode
+	{	nCols1 = Y1.nCols();
+		nCols2 = Y2.nCols();
+		colLength = Y1.colLength();
+	}
+	else //exactly one of the two columnbundles is a spinor (but they have a common basis)
+	{	assert(Y1.basis);
+		assert(Y2.basis);
+		assert(Y1.basis->nbasis == Y2.basis->nbasis);
+		assert(Y1.isSpinor() xor Y2.isSpinor());
+		nCols1 = Y1.nCols() * Y1.spinorLength();
+		nCols2 = Y2.nCols() * Y2.spinorLength();
+		colLength = Y1.basis->nbasis;
+	}
+	matrix Y1dY2(nCols1, nCols2, isGpuEnabled());
+	callPref(eblas_zgemm)(CblasConjTrans, CblasNoTrans, nCols1, nCols2, colLength,
+		scaleFac, Y1.dataPref(), colLength, Y2.dataPref(), colLength,
 		0.0, Y1dY2.dataPref(), Y1dY2.nRows());
 	watch.stop();
-	return Y1dY2;
+	//If one of the columnbundles was spinor, shape the matrix as if the non-spinor columnbundle had consecutive spinor columns with identical pure up and down spinors
+	if(Y1.nCols() != nCols1) //Y1 is spinor, so double the dimension of output along Y2
+	{	matrix out(Y1.nCols(), 2*nCols2);
+		out.set(0,1,Y1.nCols(), 0,2,2*nCols2, Y1dY2(0,2,nCols1, 0,1,nCols2));
+		out.set(0,1,Y1.nCols(), 1,2,2*nCols2, Y1dY2(1,2,nCols1, 0,1,nCols2));
+		return out;
+	}
+	else if(Y2.nCols() != nCols2) //Y2 is spinor, so double the dimension of output along Y1
+	{	matrix out(2*nCols1, Y2.nCols());
+		out.set(0,2,2*nCols1, 0,1,Y2.nCols(), Y1dY2(0,1,nCols1, 0,2,nCols2));
+		out.set(1,2,2*nCols1, 0,1,Y2.nCols(), Y1dY2(0,1,nCols1, 1,2,nCols2));
+		return out;
+	}
+	else return Y1dY2; //normal mode (neither is a spinor)
 }

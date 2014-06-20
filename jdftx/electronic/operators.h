@@ -81,7 +81,8 @@ DataGptrVec operator*(const RadialFunctionG&, DataGptrVec&&);
 //------------------------------ ColumnBundle operators ---------------------------------
 
 //! Return Idag V .* I C (evaluated columnwise)
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptr& V);
+//! The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptrCollection& V);
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
@@ -105,8 +106,12 @@ ColumnBundle switchBasis(const ColumnBundle&, const Basis&); //!< return wavefun
 //! Return trace(F*X^Y)
 complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle &Y);
 
-//! Returns diag((I*X)*F*(I*X)^) (Compute density from an orthonormal wavefunction ColumnBundle with some fillings F)
+//! Returns diag((I*X)*F*(I*X)^) (Compute density from an orthonormal wavefunction ColumnBundle with some fillings F).
+//! nDensities is the number of scalar field in the output and controls how spin/spinors are handled:
+//!    1: return total density regardless of spin / spinor nature
+//!    2: return spin density in X.qnum->index()'th component of the output (valid for non-spinor X only)
+//!    4: return spin density-matrix (valid for spinor X only)
 //! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
-DataRptr diagouterI(const diagMatrix &F,const ColumnBundle &X, const GridInfo* gInfoOut=0);
+DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
 
 #endif // JDFTX_ELECTRONIC_OPERATORS_H

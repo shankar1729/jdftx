@@ -382,14 +382,7 @@ void SCF::updateFillings()
 	eigenShiftApply(true);
 	
 	// Print filling update information
-	if(e.eInfo.fillingsUpdate)
-	{	logPrintf("\tFillingsUpdate:  mu: %.15le  nElectrons: %.15le", mu, e.eInfo.nElectrons);
-		if(e.eInfo.spinType == SpinZ)
-		{	double spinPol = integral(e.eVars.n[0] - e.eVars.n[1]);
-			logPrintf("  magneticMoment: %.5f", spinPol);
-		}
-		logPrintf("\n"); logFlush();
-	}
+	eInfo.printFermi("Update", &mu);
 }
 
 void SCF::updateMOM()

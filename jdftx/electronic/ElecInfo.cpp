@@ -20,8 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/matrix.h>
 #include <electronic/SpeciesInfo.h>
-#include <cstdio>
-#include <cmath>
+#include <fluid/Euler.h>
 #include <algorithm>
 #include <limits>
 #include <list>
@@ -51,6 +50,13 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 {	e = &everything;
 	betaBy2 = 0.5/kT;
 	
+	switch(spinType)
+	{	case SpinNone:   nDensities = 1; spinWeight = 2; break;
+		case SpinZ:      nDensities = 2; spinWeight = 1; break;
+		case SpinVector: nDensities = 4; spinWeight = 1; break;
+		case SpinOrbit:  nDensities = 1; spinWeight = 1; break;
+	}
+	
 	logPrintf("\n---------- Setting up k-points, bands, fillings ----------\n");
 	if(spinRestricted) assert(spinType==SpinZ);
 	
@@ -69,10 +75,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	F.resize(nStates);
 
 	// Convert initial charge(s) qNet to the correct size for spin / no-spin:
-	if(spinType==SpinNone && qNet.size()==2) { qNet[0]+=qNet[1]; qNet.pop_back(); }
+	if(spinType!=SpinZ && qNet.size()==2) { qNet[0]+=qNet[1]; qNet.pop_back(); }
 	if(spinType==SpinZ && qNet.size()==1) { qNet.push_back(qNet[0]*=0.5); }
-	if(!qNet.size()) qNet.assign(spinType==SpinNone ? 1 : 2, 0.);
-	double wInv = spinType==SpinNone ? 0.5 : 1.0; //normalization factor from external to internal fillings
+	if(!qNet.size()) qNet.assign(spinType==SpinZ ? 2 : 1, 0.);
+	double wInv = 1./spinWeight; //normalization factor from external to internal fillings
+	qWeightSum = qNet.size() * spinWeight;
 	
 	// Figure out the number of bands and number of electrons
 	logPrintf("Computing the number of bands and number of electrons\n");
@@ -90,12 +97,13 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	
 	//--- Calculate nBands if elec-n-bands not given:
 	if(!nBands)
-	{	if(fillingsUpdate == ConstantFillings) //pick nBands to just accommodate spin channel with most electrons
-		{	double nsElectronsMax = *std::max_element(nsElectrons.begin(), nsElectrons.end());
-			nBands = std::max(1, (int)ceil(nsElectronsMax*wInv));
+	{	double nsElectronsMax = *std::max_element(nsElectrons.begin(), nsElectrons.end());
+		int nBandsMin = std::max(1, (int)ceil(nsElectronsMax*wInv));
+		if(fillingsUpdate == ConstantFillings) //pick nBands to just accommodate spin channel with most electrons
+		{	nBands = nBandsMin;
 		}
 		else //set to number of atomic orbitals (which will ensure that complete bands are included)
-			nBands = e->iInfo.nAtomicOrbitals(); //this estimate is usually on the high side, but it leads to better convergence than a stingier value
+			nBands = std::max(nBandsMin+1, e->iInfo.nAtomicOrbitals()); //this estimate is usually on the high side, but it leads to better convergence than a stingier value
 	}
 	
 	//--- No initial fillings, fill the lowest orbitals in each spin channel:
@@ -169,7 +177,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	//subspace_rotation is false by default
 	if(fillingsUpdate != ConstantFillings)
 	{	//make sure there are extra bands:
-		int nBandsMin = (int)ceil(nElectrons/2.0);
+		int nBandsMin = (int)ceil(nElectrons/qWeightSum);
 		if(nBands <= nBandsMin)
 			die("%d bands insufficient for fermi fillings with %lg electrons (need at least %d, recommend > %d)\n",
 				nBands, nElectrons, nBandsMin+1, nBandsMin+5);
@@ -179,7 +187,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	}
 	else
 	{	//make sure there are sufficient bands:
-		int nBandsMin = (int)ceil(nElectrons/2.0);
+		int nBandsMin = (int)ceil(nElectrons/qWeightSum);
 		if(nBands < nBandsMin)
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",
 				nBands, nElectrons, nBandsMin);
@@ -220,12 +228,31 @@ void ElecInfo::printFillings(FILE* fp) const
 				FqTemp.recv(whose(q));
 				Fq = &FqTemp;
 			}
-			((*Fq) * (spinType==SpinNone ? 2 : 1)).print(fp, "%20.14le ");
+			((*Fq) * spinWeight).print(fp, "%20.14le ");
 		}
 	else
 		for(int q=qStart; q<qStop; q++)
 			e->eVars.F[q].send(0);
 }
+
+void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
+{	logPrintf("\tFillings%s:  mu: %.15le  nElectrons: %.15le", suffix,
+		muOverride ? *muOverride //use override value if provided
+			: ( !isnan(mu) ? mu //use target mu if in fixed-mu mode
+				: findMu(e->eVars.Hsub_eigs, nElectrons) ), //determine from eigenvalues otherwise
+		nElectrons);
+	if(spinType == SpinZ)
+		logPrintf("  magneticMoment: %+8.5f", integral(e->eVars.n[0] - e->eVars.n[1]));
+	if(spinType == SpinVector)
+	{	vector3<> M( 2. * integral(e->eVars.n[2]), -2. * integral(e->eVars.n[3]), integral(e->eVars.n[0] - e->eVars.n[1]) );
+		vector3<> euler;
+		if(M.length()) getEulerAxis(M, euler);
+		euler *= 180./M_PI; //convert to degrees
+		logPrintf("  magneticMoment: %7.5f (theta: %6.2f  phi: %+7.2f degrees)", M.length(), euler[1], euler[0]);
+	}
+	logPrintf("\n"); logFlush();
+}
+
 
 void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 {	const ElecVars &eVars = e->eVars;
@@ -257,12 +284,7 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 	else
 	{	//Fixed charge, just bisect to find mu:
 		muMix = findMu(eVars.Hsub_eigs, nElectrons);
-		logPrintf("FillingsMix:  mu: %.15le  nElectrons: %.15le", muMix, nElectrons);
-		if(spinType == SpinZ)
-		{	double spinPol = integral(e->eVars.n[0] - e->eVars.n[1]);
-			logPrintf("  magneticMoment: %.5f", spinPol);
-		}
-		logPrintf("\n");
+		printFermi("Mix", &muMix);
 	}
 	
 	//Mix in fillings at new mu:
@@ -480,12 +502,11 @@ void ElecInfo::kpointsReduce()
 	else
 		logPrintf("Reduced to %lu k-points under symmetry. ", qRed.size());
 	qnums.assign(qRed.begin(), qRed.end());
-	//Handle spin states / spin dgeneracy:
-	if(spinType==SpinNone)
-	{	for(unsigned i=0; i<qnums.size(); i++)
-			qnums[i].weight *= 2; //double the weight for each state to account for spin degeneracy
-	}
-	else //SpinZ
+	//Include spin weight factor in k-point weights:
+	for(unsigned i=0; i<qnums.size(); i++)
+		qnums[i].weight *= spinWeight;
+	//Add extra states due to spin-degrees of freedom:
+	if(spinType==SpinZ) //(Note: noncollinear modes use spinor ColumnBundles and only one state per k-point)
 	{	unsigned nkPoints = qnums.size();
 		qnums.insert(qnums.end(), qRed.begin(), qRed.end()); //add second copy for other spin
 		for(unsigned ik=0; ik<nkPoints; ik++)

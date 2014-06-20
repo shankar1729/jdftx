@@ -130,11 +130,11 @@ void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const 
 #endif
 
 
-//! Elementwise y += a|x|^2
-void eblas_accumNorm(int N, const double& a, const complex* x, double* y);
+void eblas_accumNorm(int N, const double& a, const complex* x, double* y); //! Elementwise y += a|x|^2
+void eblas_accumProd(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm); //! Elementwise (yRe + I yIm) += a xU conj(xC)
 #ifdef GPU_ENABLED
-//! Elementwise y += a|x|^2 on the GPU
-void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y);
+void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y); //! Elementwise y += a|x|^2 on the GPU
+void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm); //! Elementwise (yRe + I yIm) += a xU conj(xC) on the GPU
 #endif
 
 void eblas_symmetrize(int N, int n, const int* symmIndex, double* x); //!< Symmetrize an array x, using N n-fold equivalence classes in symmIndex

@@ -50,7 +50,7 @@ public:
 	std::vector<matrix> grad_CdagOC; //!< gradient w.r.t overlap (required for forces when O is atom dependent)
 	
 	//Densities and potentials:
-	DataRptrCollection n; //!< electron density (single DataR) or spin density (two DataR's)
+	DataRptrCollection n; //!< electron density (single DataR) or spin density (two DataR's [up,dn]) or spin density matrix (four DataR's [UpUp, DnDn, Re(UpDn), Im(UpDn)])
 	DataRptrCollection get_nXC() const; //!< return the total (spin) density including core contributions
 	DataRptr get_nTot() const { return n.size()==1 ? n[0] : n[0]+n[1]; } //!< return the total electron density (even in spin polarized situations)
 	

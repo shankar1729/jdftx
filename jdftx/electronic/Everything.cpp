@@ -80,7 +80,7 @@ void Everything::setup()
 	logPrintf("\n----- Setting up reduced wavefunction bases (%s) -----\n",
 		(cntrl.basisKdep==BasisKpointIndep) ? "single at Gamma point\n" :  "one per k-point");
 	basis.resize(eInfo.nStates);
-	double avg_nbasis = 0.0;
+	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = gInfoWfns ? *gInfoWfns : gInfo;
 	if(!cntrl.shouldPrintKpointsBasis) logSuspend();
 	for(int q=0; q<eInfo.nStates; q++)
@@ -90,8 +90,9 @@ void Everything::setup()
 		{	if(q==0) basis[q].setup(gInfoBasis, iInfo, cntrl.Ecut, vector3<>(0,0,0));
 			else basis[q] = basis[0];
 		}
-		avg_nbasis += 0.5*eInfo.qnums[q].weight * basis[q].nbasis;
+		avg_nbasis += eInfo.qnums[q].weight * basis[q].nbasis;
 	}
+	avg_nbasis /= eInfo.qWeightSum;
 	if(!cntrl.shouldPrintKpointsBasis) logResume();
 	logPrintf("average nbasis = %7.3lf , ideal nbasis = %7.3lf\n", avg_nbasis,
 		pow(sqrt(2*cntrl.Ecut),3)*(gInfo.detR/(6*M_PI*M_PI)));

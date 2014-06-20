@@ -43,6 +43,8 @@ struct CommandWavefunction : public Command
 			"  read expects <filename> to point to a single file with fourier-space G-sphere wavefunctions.\n"
 			"  read-rs expects <filename> to be a printf format with 2 %%d's, the first for state index and\n"
 			"     the second for band. Each 'column' will be loaded from a separate file accordingly.\n"
+			"     For spinor wavefunctions, each spinor component has a separate second index, so that\n"
+			"     the first band is read from 0 and 1, the second one from 2 and 3 and so on.\n"
 			"  <nBandsOld> can be used to specify a wavefunction which has different bands\n"
 			"     extra bands will be discarded, unspecified bands will be randomized and orthogonalized\n"
 			"     Reminder: nBandsOlds for fillings file is specified separately in elec-initial-fillings\n"

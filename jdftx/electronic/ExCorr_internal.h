@@ -77,6 +77,50 @@ public:
 		std::vector<double*> E_lap, std::vector<double*> E_tau) const;
 };
 
+//!Utility function for converting to/from spin-density matrices to scalar+vector combinations (via Pauli matrices)
+__hostanddev__ void loadSpinVector(array<const double*,4> x, int i, double& x0, vector3<>& xVec)
+{	x0 = x[0][i] + x[1][i];
+	xVec = vector3<>( 2*x[2][i], -2*x[3][i], x[0][i]-x[1][i] );
+}
+__hostanddev__ void accumSpinVectorGrad(const double& E_x0, const vector3<>& E_xVec, array<double*,4> E_x, int i)
+{	E_x[0][i] += (E_x0 + E_xVec[2]);
+	E_x[1][i] += (E_x0 - E_xVec[2]);
+	E_x[2][i] += 2 * E_xVec[0];
+	E_x[3][i] -= 2 * E_xVec[1];
+}
+
+//! Transform spin-density-matrix-like quantity x into the basis where spin-density-matrix n is diagonal, and store the diagonal components in xDiag (for noncollinear magnetism)
+__hostanddev__ void spinDiagonalize_calc(int i, array<const double*,4> n, array<const double*,4> x, array<double*,2> xDiag)
+{	//Compute magnetization:
+	double n0; vector3<> mVec; loadSpinVector(n,i, n0,mVec); //total density and magnetization vector
+	double mNormFac = 1./sqrt(mVec.length_squared() + nCutoff); //regularized normalization factor
+	vector3<> mHat = mVec * mNormFac; //regularized unit vector along magentization
+	//Get the scalar and vector components of x:
+	double x0; vector3<> xVec; loadSpinVector(x,i, x0,xVec);
+	//Store the relevant projection of x:
+	double xdotmHat = dot(xVec,mHat);
+	xDiag[0][i] = 0.5*(x0 + xdotmHat);
+	xDiag[1][i] = 0.5*(x0 - xdotmHat);
+}
+
+//! Propagate gradients corresponding to spinDiagonalize_calc(), from E_xDiag and accumulate to E_n and E_x
+__hostanddev__ void spinDiagonalizeGrad_calc(int i, array<const double*,4> n, array<const double*,4> x, array<const double*,2> E_xDiag, array<double*,4> E_n, array<double*,4> E_x)
+{	//Compute magnetization:
+	double n0; vector3<> mVec; loadSpinVector(n,i, n0,mVec); //total density and magnetization vector
+	double mNormFac = 1./sqrt(mVec.length_squared() + nCutoff); //regularized normalization factor
+	vector3<> mHat = mVec * mNormFac; //regularized unit vector along magentization
+	//Get the scalar and vector components of x:
+	double x0; vector3<> xVec; loadSpinVector(x,i, x0,xVec);
+	//Propagate E_xDiag to E_x0, E_xVec and E_mVec:
+	double E_x0 = 0.5*(E_xDiag[0][i] + E_xDiag[1][i]);
+	double E_xdotmHat = 0.5*(E_xDiag[0][i] - E_xDiag[1][i]);
+	vector3<> E_xVec = E_xdotmHat * mHat;
+	vector3<> E_mVec = (E_xdotmHat * mNormFac) * (xVec - dot(xVec,mHat)*mHat);
+	//Accumulate results in output arrays:
+	accumSpinVectorGrad( 0. ,E_mVec, E_n,i);
+	accumSpinVectorGrad(E_x0,E_xVec, E_x,i);
+}
+
 
 //! LDA spin interpolation function f(zeta) and its derivative
 __hostanddev__ double spinInterpolation(double zeta, double& f_zeta)

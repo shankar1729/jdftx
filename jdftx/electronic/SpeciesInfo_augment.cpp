@@ -55,7 +55,7 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matr
 
 void SpeciesInfo::augmentDensityInit()
 {	augmentDensity_COMMON_INIT
-	size_t nSpinAtomLM = (e->eInfo.spinType==SpinNone ? 1 : 2) * atpos.size() * Nlm;
+	size_t nSpinAtomLM = e->eInfo.nDensities * atpos.size() * Nlm;
 	if(!nAug)
 	{	nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
 		E_nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
@@ -73,35 +73,54 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	//Get projections at this atom:
+	{	//Get projections and calculate density matrix at this atom:
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
-		matrix Rho = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
-		
-		int atomOffs = Nlm*(atom + qnum.index()*atpos.size());
-		//Triple loop over first projector:
-		int i1 = 0;
-		for(int l1=0; l1<int(VnlRadial.size()); l1++)
-		for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
-		for(int m1=-l1; m1<=l1; m1++)
-		{	//Triple loop over second projector:
-			int i2 = 0;
-			for(int l2=0; l2<int(VnlRadial.size()); l2++)
-			for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
-			for(int m2=-l2; m2<=l2; m2++)
-			{	if(i2<=i1) //rest handled by i1<->i2 symmetry
-				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
-					double prefac = qnum.weight * ((i1==i2 ? 1 : 2)/gInfo.detR)
-								* (Rho.data()[Rho.index(i2,i1)] * cis(0.5*M_PI*(l2-l1))).real();
-					for(const YlmProdTerm& term: terms)
-					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
-						auto Qijl = Qradial.find(qIndex);
-						if(Qijl==Qradial.end()) continue; //no entry at this l
-						nAugData[nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)] += term.coeff * prefac;
-					}
-				}
-				i2++;
+		matrix RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		std::vector<matrix> Rho(e->eInfo.nDensities); //RhoAll split by spin(-density-matrix) components
+		if(e->eInfo.isNoncollinear())
+		{	matrix RhoUp = RhoAll(0,2,nProj, 0,2,nProj);
+			matrix RhoDn = RhoAll(1,2,nProj, 1,2,nProj);
+			if(Rho.size()==1)
+				Rho[0] = RhoUp + RhoDn; //unpolarized noncollinear mode
+			else
+			{	matrix RhoUpDn = RhoAll(0,2,nProj, 1,2,nProj);
+				matrix RhoDnUp = RhoAll(1,2,nProj, 0,2,nProj);
+				Rho[0] = RhoUp;
+				Rho[1] = RhoDn;
+				Rho[2] = (RhoUpDn + RhoDnUp) * 0.5; //'real part' of UpDn
+				Rho[3] = (RhoUpDn - RhoDnUp) * complex(0,-0.5); //'imaginary part' of UpDn
 			}
-			i1++;
+		}
+		else std::swap(Rho[qnum.index()], RhoAll); //in this case each qnum contributes to a specific spin component
+		
+		//Calculate spherical function contributions from density matrix:
+		for(size_t s=0; s<Rho.size(); s++) if(Rho[s])
+		{	int atomOffs = Nlm*(atom + s*atpos.size());
+			//Triple loop over first projector:
+			int i1 = 0;
+			for(int l1=0; l1<int(VnlRadial.size()); l1++)
+			for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
+			for(int m1=-l1; m1<=l1; m1++)
+			{	//Triple loop over second projector:
+				int i2 = 0;
+				for(int l2=0; l2<int(VnlRadial.size()); l2++)
+				for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
+				for(int m2=-l2; m2<=l2; m2++)
+				{	if(i2<=i1) //rest handled by i1<->i2 symmetry
+					{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+						double prefac = qnum.weight * ((i1==i2 ? 1 : 2)/gInfo.detR)
+									* (Rho[s].data()[Rho[s].index(i2,i1)] * cis(0.5*M_PI*(l2-l1))).real();
+						for(const YlmProdTerm& term: terms)
+						{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
+							auto Qijl = Qradial.find(qIndex);
+							if(Qijl==Qradial.end()) continue; //no entry at this l
+							nAugData[nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)] += term.coeff * prefac;
+						}
+					}
+					i2++;
+				}
+				i1++;
+			}
 		}
 	}
 	watch.stop();
@@ -132,7 +151,7 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 	if(!nAug) augmentDensityInit();
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./gInfo.dGradial;
-	matrix E_nAugRadial = zeroes(nCoeffHlf, (e->eInfo.spinType==SpinNone ? 1 : 2) * atpos.size() * Nlm);
+	matrix E_nAugRadial = zeroes(nCoeffHlf, e->eInfo.nDensities * atpos.size() * Nlm);
 	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
 	matrix nAugRadial; const double* nAugRadialData=0;
 	if(forces)
@@ -167,39 +186,60 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const d
 	
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	matrix E_Rho = zeroes(nProj, nProj); //gradient w.r.t density matrix in projector basis
+	{
+		//Prepare gradient w.r.t density matrix in basis of current atom's projectors (split by spinor components, if any)
+		std::vector<matrix> E_Rho(e->eInfo.nDensities);
+		if(e->eInfo.isNoncollinear()) E_Rho.assign(E_Rho.size(), zeroes(nProj/2, nProj/2));
+		else E_Rho[qnum.index()] = zeroes(nProj, nProj);
 		
-		int atomOffs = Nlm*(atom + qnum.index()*atpos.size());
-		//Triple loop over first projector:
-		int i1 = 0;
-		for(int l1=0; l1<int(VnlRadial.size()); l1++)
-		for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
-		for(int m1=-l1; m1<=l1; m1++)
-		{	//Triple loop over second projector:
-			int i2 = 0;
-			for(int l2=0; l2<int(VnlRadial.size()); l2++)
-			for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
-			for(int m2=-l2; m2<=l2; m2++)
-			{	if(i2<=i1) //rest handled by i1<->i2 symmetry 
-				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
-					double E_Rho_i1i2sum = 0.;
-					for(const YlmProdTerm& term: terms)
-					{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
-						auto Qijl = Qradial.find(qIndex);
-						if(Qijl==Qradial.end()) continue; //no entry at this l
-						E_Rho_i1i2sum += term.coeff * E_nAugData[E_nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)].real();
+		//Propagate gradients from spherical functions to density matrix:
+		for(size_t s=0; s<E_Rho.size(); s++) if(E_Rho[s])
+		{	int atomOffs = Nlm*(atom + s*atpos.size());
+			//Triple loop over first projector:
+			int i1 = 0;
+			for(int l1=0; l1<int(VnlRadial.size()); l1++)
+			for(int p1=0; p1<int(VnlRadial[l1].size()); p1++)
+			for(int m1=-l1; m1<=l1; m1++)
+			{	//Triple loop over second projector:
+				int i2 = 0;
+				for(int l2=0; l2<int(VnlRadial.size()); l2++)
+				for(int p2=0; p2<int(VnlRadial[l2].size()); p2++)
+				for(int m2=-l2; m2<=l2; m2++)
+				{	if(i2<=i1) //rest handled by i1<->i2 symmetry 
+					{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+						double E_Rho_i1i2sum = 0.;
+						for(const YlmProdTerm& term: terms)
+						{	QijIndex qIndex = { l1, p1, l2, p2, term.l };
+							auto Qijl = Qradial.find(qIndex);
+							if(Qijl==Qradial.end()) continue; //no entry at this l
+							E_Rho_i1i2sum += term.coeff * E_nAugData[E_nAug.index(Qijl->first.index, atomOffs + term.l*(term.l+1) + term.m)].real();
+						}
+						complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
+						E_Rho[s].data()[E_Rho[s].index(i2,i1)] += E_Rho_i1i2.conj();
+						if(i1!=i2) E_Rho[s].data()[E_Rho[s].index(i1,i2)] += E_Rho_i1i2;
 					}
-					complex E_Rho_i1i2 = E_Rho_i1i2sum * (1./gInfo.detR) * cis(0.5*M_PI*(l2-l1));
-					E_Rho.data()[E_Rho.index(i2,i1)] += E_Rho_i1i2.conj();
-					if(i1!=i2) E_Rho.data()[E_Rho.index(i1,i2)] += E_Rho_i1i2;
+					i2++;
 				}
-				i2++;
+				i1++;
 			}
-			i1++;
 		}
 		
+		//Collate density matrix from spinor components (if necessary)
+		matrix E_RhoAll;
+		if(e->eInfo.isNoncollinear())
+		{	E_RhoAll = zeroes(nProj, nProj);
+			E_RhoAll.set(0,2,nProj, 0,2,nProj, E_Rho[0]);
+			E_RhoAll.set(1,2,nProj, 1,2,nProj, E_Rho[E_Rho.size()>1 ? 1 : 0]);
+			if(E_Rho.size()>1) //full noncollinear mode (with magnetization)
+			{	E_RhoAll.set(0,2,nProj, 1,2,nProj, 0.5*E_Rho[2] + complex(0,0.5)*E_Rho[3]);
+				E_RhoAll.set(1,2,nProj, 0,2,nProj, 0.5*E_Rho[2] - complex(0,0.5)*E_Rho[3]);
+			}
+		}
+		else std::swap(E_RhoAll, E_Rho[qnum.index()]);
+		
+		//Propagate gradients from densiy matrix to projections:
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
-		matrix E_atomRhoVdagC = E_Rho * atomVdagC;
+		matrix E_atomRhoVdagC = E_RhoAll * atomVdagC;
 		E_RhoVdagC.set(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols(), E_atomRhoVdagC);
 	}
 	HVdagCq += E_RhoVdagC;

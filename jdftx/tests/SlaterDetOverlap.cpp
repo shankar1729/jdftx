@@ -35,7 +35,8 @@ int main(int argc, char** argv)
 	parse(inputFilename.c_str(), e, printDefaults);
 	e.setup();
 	logResume(); e.elecMinParams.fpLog = globalLog;
-	
+	if(e.eInfo.isNoncollinear()) die("'%s' not yet implemented with noncollinear spins.\n", argv[0]);
+
 	/// ACTUAL CALCULATION HAPPERNS HERE ///
 	
 	int qnums = e.eInfo.qnums.size();
@@ -124,8 +125,8 @@ int main(int argc, char** argv)
 				// If both orbitals are occupied, then return the matrix element
 				if((F1[q][i] > (1.-tol)) or (F2[q][j] > (1.-tol)))
 				{	
-					complexDataRptr psi1 = I(C1.at(q).getColumn(i));
-					complexDataRptr psi2 = I(C2.at(q).getColumn(j));
+					complexDataRptr psi1 = I(C1.at(q).getColumn(i,0));
+					complexDataRptr psi2 = I(C2.at(q).getColumn(j,0));
 					
 					complex dipoleX = (norm(detDipoleX) ? integral(psi1*r0*psi2) : 0.);
 					complex dipoleY = (norm(detDipoleY) ? integral(psi1*r1*psi2) : 0.);

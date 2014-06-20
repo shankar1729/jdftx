@@ -25,12 +25,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <vector>
 
+//Copied from Util.h (which cannot be included here due to lack of CUDA C++11 support)
+int assertStackTraceExit(const char* expr, const char* function, const char* file, long line);
+#ifndef assert
+#define assert(expr) (void)((expr) ? 0 : assertStackTraceExit(#expr, __func__, __FILE__, __LINE__))
+#endif
+
 //! Struct to wrap a fixed size array for passing to templated functions
 //! (Pretty much std::array, but that is not yet supported in CUDA)
 template<typename T, int N>
 struct array
 {	T arr[N];
-	array(const std::vector<T>& vec) { for(int s=0; s<N; s++) arr[s]=vec[s]; }
+	array(const std::vector<T>& vec) { assert(N==int(vec.size()));  for(int s=0; s<N; s++) arr[s]=vec[s]; }
 	__hostanddev__ array(T t=0) { for(int s=0; s<N; s++) arr[s]=t; }
 	__hostanddev__ T& operator[](int i) { return arr[i]; }
 	__hostanddev__ const T& operator[](int i) const { return arr[i]; }

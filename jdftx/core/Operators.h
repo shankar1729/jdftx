@@ -38,6 +38,7 @@ DataGptr Real(const complexDataGptr&); //!< real part of a complex scalar field 
 DataRptr Imag(const complexDataRptr&); //!< imaginary part of a complex scalar field (real-space)
 DataGptr Imag(const complexDataGptr&); //!< imaginary part of a complex scalar field (reciprocal space)
 complexDataRptr Complex(const DataRptr&); //!< convert real to complex scalar field with zero imaginary part (real-space)
+complexDataRptr Complex(const DataRptr& re, const DataRptr& im); //!< construct complex scalar field fromr eal and imaginary parts (real-space)
 complexDataGptr Complex(const DataGptr&); //!< convert real to complex scalar field with zero imaginary part (reciprocal-space)
 
 //------------------------------ Linear Unary operators ------------------------------
@@ -103,11 +104,11 @@ DataRptr pow(DataRptr&&, double alpha); //!< Elementwise power (destructible inp
 
 #define Tptr std::shared_ptr<T> //!< shorthand for writing the template operators (undef'd at end of header)
 
-template<class T> Tptr clone(const Tptr& X) { return X->clone(); } //!< Clone (NOTE: operator= is by reference for Data*ptr)
+template<class T> Tptr clone(const Tptr& X) { if(X) return X->clone(); else return 0; } //!< Clone (NOTE: operator= is by reference for Data*ptr)
 
 //------------------------------ Multiplication operators ------------------------------
 
-template<class T> Tptr& operator*=(Tptr& in, double scaleFac) { in->scale *= scaleFac; return in; } //!< Scale
+template<class T> Tptr& operator*=(Tptr& in, double scaleFac) { if(in) in->scale *= scaleFac; return in; } //!< Scale
 template<class T> Tptr operator*(const Tptr& in, double scaleFac) { Tptr out(in->clone()); return out *= scaleFac; } //!< Scalar multiply (preserve input)
 template<class T> Tptr operator*(double scaleFac, const Tptr& in) { Tptr out(in->clone()); return out *= scaleFac; } //!< Scalar multiply (preserve input)
 template<class T> Tptr operator*(Tptr&& in, double scaleFac) { return in *= scaleFac; } //!< Scalar multiply (destructible input)

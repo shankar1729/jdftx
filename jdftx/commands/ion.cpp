@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <fluid/Euler.h>
 
 struct CommandIon : public Command
 {
@@ -103,12 +104,15 @@ struct CommandInitialMagneticMoments : public Command
 {
 	CommandInitialMagneticMoments() : Command("initial-magnetic-moments")
 	{
-		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]";
+		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]\n"
+			"   | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]";
 		comments =
 			"Specify initial magnetic moments, defined as the difference between\n"
 			"up and down electron counts, on each atom of one or more species.\n"
-			"For each species, the initial magnetic moments are applied to the\n"
-			"atoms in the order of ion commands for that species.\n"
+			"The second syntax with polar angles (in degrees) must be used\n"
+			"for noncollinear  magnetism calculations.\n"
+			"  For each species, the initial magnetic moments are applied\n"
+			"to the atoms in the order of ion commands for that species.\n"
 			"This may be used to construct a spin-polarized reference density\n"
 			"for LCAO initialization of the Kohn-Sham orbitals.";
 		
@@ -117,7 +121,7 @@ struct CommandInitialMagneticMoments : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	if(e.eInfo.spinType == SpinNone)
+	{	if(e.eInfo.spinType==SpinNone || e.eInfo.spinType==SpinOrbit)
 			throw string("Cannot specify magnetic moments in an unpolarized calculation");
 		string id;
 		pl.get(id, string(), "species", true);
@@ -126,8 +130,14 @@ struct CommandInitialMagneticMoments : public Command
 			if(!sp) throw string("Species "+id+" has not been defined");
 			sp->initialMagneticMoments.resize(sp->atpos.size());
 			for(unsigned a=0; a<sp->atpos.size(); a++)
-			{	ostringstream oss; oss << "M" << (a+1);
-				pl.get(sp->initialMagneticMoments[a], 0., oss.str(), true);
+			{	double M=0., theta=0., phi=0.;
+				pl.get(M, 0., "M", true);
+				if(e.eInfo.spinType == SpinVector)
+				{	pl.get(theta, 0., "theta", true);
+					pl.get(phi, 0., "phi", true);
+				}
+				//Store as Cartesian:
+				sp->initialMagneticMoments[a] = M * polarUnitVector(phi*M_PI/180, theta*M_PI/180);
 			}
 			//Check for additional species:
 			pl.get(id, string(), "species");
@@ -138,7 +148,15 @@ struct CommandInitialMagneticMoments : public Command
 	{	for(auto sp: e.iInfo.species)
 			if(sp->initialMagneticMoments.size())
 			{	logPrintf(" \\\n\t%s", sp->name.c_str());
-				for(double M: sp->initialMagneticMoments) logPrintf(" %lg", M);
+				for(const vector3<>& M: sp->initialMagneticMoments)
+				{	if(e.eInfo.spinType == SpinVector)
+					{	vector3<> euler;
+						if(M.length()) getEulerAxis(M, euler);
+						euler *= 180./M_PI; //convert to degrees
+						logPrintf(" %lg %lg %lg ", M.length(), euler[1], euler[0]);
+					}
+					else logPrintf(" %lg", M[2]); //SpinZ
+				}
 			}
 	}
 }

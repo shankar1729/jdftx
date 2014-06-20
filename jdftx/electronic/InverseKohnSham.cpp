@@ -48,6 +48,9 @@ InverseKohnSham::InverseKohnSham(Everything& e) : e(e), n(e.eVars.n.size()), gau
 	e.inverseKSminParams.linePrefix = "InverseKohnShamMinimize: ";
 	e.inverseKSminParams.energyLabel = "minusWs";
 	
+	if(e.eInfo.isNoncollinear())
+		die("InverseKohnSham not implemented for noncollinear spins.\n");
+	
 	if(!e.cntrl.invertKS_nonlocal) //Eliminate non-local pseudopotentials:
 		e.iInfo.species.clear(); //ions have served their purpose (computing nElectrons, symmetries and Vlocps)
 	
@@ -73,9 +76,9 @@ double InverseKohnSham::compute(DataRptrCollection* grad)
 	elecMinimize(e);
 	//---Compute inverse Kohn sham functional, Ws [J Chem Phys 118, 2498 (2003)]
 	//Compute the density from the band-structure solve:
-	for(unsigned s=0; s<n.size(); s++) initZero(n[s], e.gInfo); //Initialize to zero
+	n.assign(n.size(), 0);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		n[e.eInfo.qnums[q].index()] += e.eInfo.qnums[q].weight * diagouterI(e.eVars.F[q], e.eVars.C[q], &e.gInfo);
+		n += e.eInfo.qnums[q].weight * diagouterI(e.eVars.F[q], e.eVars.C[q], n.size(), &e.gInfo);
 	for(unsigned s=0; s<n.size(); s++)
 	{	e.symm.symmetrize(n[s]);
 		n[s]->allReduce(MPIUtil::ReduceSum);
@@ -184,10 +187,10 @@ DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int s = e.eInfo.qnums[q].index();
 		for(unsigned b1=0; b1<eigs[q].size()-1; b1++)
-		{	complexDataRptr conjIpsi1 = conj(I(C[q].getColumn(b1)));
+		{	complexDataRptr conjIpsi1 = conj(I(C[q].getColumn(b1,0)));
 			for(unsigned b2=b1+1; b2<eigs[q].size(); b2++)
 				if(fabs(F[q][b1]-F[q][b2])>e.cntrl.occupiedThreshold)
-				{	complexDataRptr n12 = conjIpsi1 * I(C[q].getColumn(b2));
+				{	complexDataRptr n12 = conjIpsi1 * I(C[q].getColumn(b2,0));
 					DataRptr n12real = Real(n12);
 					DataRptr n12imag = Imag(n12);
 					dn[s] += (e.eInfo.qnums[q].weight

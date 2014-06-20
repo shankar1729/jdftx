@@ -164,9 +164,10 @@ void SpeciesInfo::setup(const Everything &everything)
 	
 	//Initialize the MnlAll matrix, and if necessary, QintAll:
 	{	//Count projectors:
+		int nSpinors = e->eInfo.spinorLength();
 		int nProj = 0;
 		for(unsigned l=0; l<VnlRadial.size(); l++)
-			nProj += (2*l+1)*VnlRadial[l].size();
+			nProj += (2*l+1) * nSpinors * VnlRadial[l].size();
 		if(nProj)
 		{	MnlAll = zeroes(nProj,nProj);
 			if(Qint.size())
@@ -175,12 +176,12 @@ void SpeciesInfo::setup(const Everything &everything)
 			int iProj = 0;
 			for(unsigned l=0; l<VnlRadial.size(); l++)
 				if(VnlRadial[l].size())
-				{	unsigned nm = 2*l+1;
-					int iStop = iProj + nm*VnlRadial[l].size();
-					for(unsigned im=0; im<nm; im++) //repeat (2l+1) times
-					{	MnlAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Mnl[l]);
+				{	unsigned nMS = (2*l+1) * nSpinors; //number of m and spins at each l
+					int iStop = iProj + nMS*VnlRadial[l].size();
+					for(unsigned iMS=0; iMS<nMS; iMS++) //repeat nMS times
+					{	MnlAll.set(iProj+iMS,nMS,iStop, iProj+iMS,nMS,iStop, Mnl[l]);
 						if(Qint.size() && Qint[l])
-							QintAll.set(iProj+im,nm,iStop, iProj+im,nm,iStop, Qint[l]);
+							QintAll.set(iProj+iMS,nMS,iStop, iProj+iMS,nMS,iStop, Qint[l]);
 					}
 					iProj = iStop;
 				}

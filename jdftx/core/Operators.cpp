@@ -89,6 +89,15 @@ complexDataRptr Complex(const DataRptr& R)
 	return C;
 }
 
+complexDataRptr Complex(const DataRptr& re, const DataRptr& im)
+{	const GridInfo& gInfo = re->gInfo;
+	complexDataRptr C; nullToZero(C, gInfo);
+	callPref(eblas_daxpy)(gInfo.nr, re->scale, re->dataPref(false), 1, (double*)(C->dataPref(false))+0, 2);
+	callPref(eblas_daxpy)(gInfo.nr, im->scale, im->dataPref(false), 1, (double*)(C->dataPref(false))+1, 2);
+	C->scale = 1;
+	return C;
+}
+
 void ComplexG_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* vHalf, complex* vFull, double scaleFac)
 {	THREAD_halfGspaceLoop( ComplexG_calc(i, iG, S, vHalf, vFull, scaleFac); )
 }

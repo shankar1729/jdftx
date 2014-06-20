@@ -25,8 +25,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 
 //! Spin polarization options
-enum SpinType {SpinNone, SpinZ}; 
-
+enum SpinType {
+	SpinNone, //!< unpolarized
+	SpinZ, //!< spin-polarized
+	SpinVector, //!< noncollinear magnetism (supports spin-orbit)
+	SpinOrbit //!< noncollinear but unpolarized (spin-orbit in nonmagnetic systems)
+};
 
 class QuantumNumber
 {
@@ -34,7 +38,7 @@ public:
 	vector3<> k; //!< k-point wave vector
 	int spin;  //!< possible spin orientation. up=1, down=-1, none=0
 	double weight; //!< state weight (= 1x or 2x k-point weight depending on spintype)
-
+	
 	QuantumNumber() : spin(0) {}
 	int index() const { return spin<0 ? 1 : 0; } //!< return the appropriate index into electron (spin) density/potential arrays
 };
@@ -43,6 +47,7 @@ class ElecInfo
 {
 public:
 	int nBands, nStates; //!< Number of bands and total number of states
+	int nDensities, spinWeight, qWeightSum; //!< number of density components, spin weight factor (= max occupation per state) and sum of k-point weights
 	int qStart, qStop; //!< Range of states handled by current process (= 0 and nStates for non-MPI jobs)
 	bool isMine(int q) const { return q>=qStart && q<qStop; } //!< check if state index is local
 	int whose(int q) const; //!< find out which process this state index belongs to
@@ -53,6 +58,9 @@ public:
 	bool spinRestricted; //!< whether the calculation is spin restricted
 	double nElectrons; //!< the number of electrons = Sum w Tr[F]
 	std::vector<QuantumNumber> qnums; //!< k-points, spins and weights for each state
+	
+	bool isNoncollinear() const { return spinType==SpinVector || spinType==SpinOrbit; }
+	int spinorLength() const { return isNoncollinear() ? 2 : 1; }
 	
 	enum FillingsUpdate
 	{	ConstantFillings, //!< constant fillings (T=0)
@@ -74,6 +82,7 @@ public:
 	ElecInfo();
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
 	void printFillings(FILE* fp) const;
+	void printFermi(const char* suffix, const double* muOverride=0) const; //Fermi fillings report (compute mu from eigenvalues in eVars if muOverride not provided)
 	void mixFillings(std::vector<diagMatrix>& F, Energies& ener); //!< Fermi fillings with mixing / mu control
 	void updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
 

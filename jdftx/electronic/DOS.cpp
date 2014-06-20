@@ -745,11 +745,11 @@ void DOS::dump()
 			{	//Compute the density for this state and band:
 				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
-				DataRptr n = diagouterI(F, C, &e->gInfo);
+				DataRptrCollection n = diagouterI(F, C, 1, &e->gInfo);
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 					if(weightFuncs[iWeight])
-						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n);
+						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n[0]);
 			}
 		}
 		//Ultrasoft augmentation:
@@ -820,9 +820,7 @@ void DOS::dump()
 			//Ortho-orbital projections if needed:
 			matrix CdagOpsiOrtho;
 			if(needOrthoOrbitals)
-			{	ColumnBundle psi = C.similar(nOrbitals);
-				for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
-					e->iInfo.species[sp]->setAtomicOrbitals(psi, spOffset[sp]);
+			{	ColumnBundle psi = e->iInfo.getAtomicOrbitals(iState);
 				//Orthogonalize:
 				ColumnBundle Opsi = O(psi);
 				matrix orthoMat = invsqrt(psi ^ Opsi); //orthonormalizing matrix

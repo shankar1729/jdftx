@@ -315,7 +315,7 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			{	const ColumnBundle& Cnum = *(numericalOrbitals.find(kpoint)->second);
 				//Apply offset to selected column:
 				assert(ao.numericalOrbIndex < Cnum.nCols());
-				temp.setColumn(0, Cnum.getColumn(ao.numericalOrbIndex));
+				temp.setColumn(0,0, Cnum.getColumn(ao.numericalOrbIndex,0));
 				temp = translate(temp, ao.r);
 				//Accumulate to result
 				callPref(eblas_zaxpy)(basis.nbasis, ao.coeff, temp.dataPref(),1, retData,1);

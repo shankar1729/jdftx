@@ -261,7 +261,7 @@ void WannierMinimizer::initIndexDependent()
 		logResume();
 		ColumnBundle C(nCols, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
 		for(int b=0; b<nCols; b++)
-			C.setColumn(b, J(resample(Cin.getColumn(b))));
+			C.setColumn(b,0, J(resample(Cin.getColumn(b,0))));
 		logPrintf("done.\n"); logFlush();
 		
 		//Split supercell wavefunction into kpoints:

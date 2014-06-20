@@ -259,7 +259,7 @@ void Dump::dumpQMC()
 					"  " << bandIndex << " " << spinIndex << " " << Hsub_eigsq->at(b) << " F\n"
 					" " << (nkPoints==1 ? "Real" : "Complex") << " blip coefficients for extended orbitals\n";
 				//Get orbital in real space
-				complexDataRptr phi = I(Cq->getColumn(b));
+				complexDataRptr phi = I(Cq->getColumn(b,0));
 				//Compute kinetic and potential energy (in Vdiel) of original PW orbitals:
 				double Tpw = -0.5*dot(phi, Jdag(L(J(phi)))).real();
 				double Vpw = gInfo.dV*dot(phi, Vdiel*phi).real();

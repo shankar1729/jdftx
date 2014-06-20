@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <electronic/ManagedMemory.h>
-#include <electronic/Control.h>
+#include <electronic/Basis.h>
 #include <electronic/matrix.h>
 #include <core/Data.h>
 #include <core/scaled.h>
@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class ColumnBundle : public ManagedMemory
 {
 	int ncols;
-	size_t col_length;
+	size_t col_length; //typically equal to either basis->nbasis (or 2*basis->nbasis for spinors in noncollinear mode)
 
 public:
 	int nCols() const { return ncols; } //!< number of columns accessor
@@ -40,6 +40,9 @@ public:
 	//! Index of the i'th column j'th point into the data array
 	size_t index(int i, size_t j) const { return i*col_length+j; }
 
+	bool isSpinor() const { return basis && (col_length==2*basis->nbasis); }
+	int spinorLength() const { return isSpinor() ? 2 : 1; }
+	
 	const QuantumNumber *qnum;
 	const Basis *basis;
 
@@ -60,9 +63,9 @@ public:
 	ColumnBundle getSub(int colStart, int colStop) const; //!< get a range of columns as a ColumnBundle 
 	void setSub(int colStart, const ColumnBundle&); //!< set columns (starting at colStart) from a ColumnBundle, ignoring columns that would go beyond nCols()
 	
-	complexDataGptr getColumn(int i) const; //!< Expand the i'th column from reduced to full G-space
-	void setColumn(int i, const complexDataGptr&); //!< Redeuce a full G-space vector and store it as the i'th column
-	void accumColumn(int i, const complexDataGptr&); //!< Redeuce a full G-space vector and accumulate onto the i'th column
+	complexDataGptr getColumn(int i, int s) const; //!< Expand the i'th column and s'th spinor component from reduced to full G-space
+	void setColumn(int i, int s, const complexDataGptr&); //!< Redeuce a full G-space vector and store it as the i'th column and s'th spinor component
+	void accumColumn(int i, int s, const complexDataGptr&); //!< Redeuce a full G-space vector and accumulate onto the i'th column and s'th spinor component
 	
 	void randomize(int colStart, int colStop); //!< randomize a selected range of columns
 };

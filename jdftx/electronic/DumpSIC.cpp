@@ -1,4 +1,4 @@
-/*-------------------------------------------------------------------#include <electronic/common.h>
+/*-------------------------------------------------------------------
 Copyright 2012 Deniz Gunceler
 
 This file is part of JDFTx.
@@ -17,20 +17,20 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/SelfInteractionCorrection.h>
+#include <electronic/Dump_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
 #include <core/Operators.h>
 #include <core/Util.h>
 
-SelfInteractionCorrection::SelfInteractionCorrection(const Everything& everything)
+DumpSelfInteractionCorrection::DumpSelfInteractionCorrection(const Everything& everything)
 {
 	e = &everything;	
 	DC.resize(3);
 }
 
-double SelfInteractionCorrection::operator()(std::vector< diagMatrix >* correctedEigenvalues)
+double DumpSelfInteractionCorrection::operator()(std::vector< diagMatrix >* correctedEigenvalues)
 {
 	// Loop over all quantum numbers (spin+kpoint) and bands; and corrects their eigenvalues
 	double selfInteractionEnergy = 0;
@@ -53,10 +53,10 @@ double SelfInteractionCorrection::operator()(std::vector< diagMatrix >* correcte
 	
 }
 
-double SelfInteractionCorrection::calcSelfInteractionError(int q, int n)
+double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 {	
 	// Get the real-space orbital density
-	complexDataRptr realSpaceOrbital = I(e->eVars.C[q].getColumn(n));
+	complexDataRptr realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
 	DataRptr orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
 	callPref(eblas_accumNorm)(e->gInfo.nr, 1., realSpaceOrbital->dataPref(), orbitalDensity->dataPref());
 	DataGptr orbitalDensityTilde = J(orbitalDensity);
@@ -76,7 +76,7 @@ double SelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	{	nullToZero(KEdensity[0], e->gInfo); nullToZero(KEdensity[1], e->gInfo);
 		for(int iDir=0; iDir<3; iDir++)
 		{	DataRptr tempKE; nullToZero(tempKE, e->gInfo);
-			callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n))->dataPref(), tempKE->dataPref());
+			callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n,0))->dataPref(), tempKE->dataPref());
 			KEdensity[0] += 0.5 * tempKE;
 		}
 	}
@@ -88,23 +88,27 @@ double SelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	return coulombEnergy+xcEnergy;
 }
 
-SelfInteractionCorrection::~SelfInteractionCorrection()
+DumpSelfInteractionCorrection::~DumpSelfInteractionCorrection()
 {
 }
 
-double SelfInteractionCorrection::coulombExciton(int q1, int n1, int q2, int n2)
+double DumpSelfInteractionCorrection::coulombExciton(int q1, int n1, int q2, int n2)
 {	DataRptr density_1; nullToZero(density_1, e->gInfo);
-	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q1].getColumn(n1))->dataPref(), density_1->dataPref());
+	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q1].getColumn(n1,0))->dataPref(), density_1->dataPref());
 	DataRptr density_2; nullToZero(density_2, e->gInfo);
-	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q2].getColumn(n2))->dataPref(), density_2->dataPref());
+	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q2].getColumn(n2,0))->dataPref(), density_2->dataPref());
 	
 	return 0.5*dot(J(density_2), O((*e->coulomb)(J(-density_1))));
 }
 
-void SelfInteractionCorrection::dump(const char* filename)
+void DumpSelfInteractionCorrection::dump(const char* filename)
 {
 	if(e->exCorr.exxFactor())
-	{	logPrintf("WARNING: Perdew-Zunger self-interaction correction can't be used with exact exchange!\n");
+	{	logPrintf("WARNING: Perdew-Zunger self-interaction correction can't be used with exact exchange. (Skipping)\n");
+		return;
+	}
+	if(e->eInfo.isNoncollinear())
+	{	logPrintf("WARNING: Perdew-Zunger self-interaction correction can't be used with noncollinear spins. (Skipping)\n");
 		return;
 	}
 	logPrintf("Dumping '%s'... ", filename);  logFlush();

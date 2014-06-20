@@ -135,7 +135,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 
 	static inline void K_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
 	{	for(int b=bStart; b<bStop; b++)
-			Krho->setColumn(b, e->gInfo.detR * (*(e->coulomb))(rho->getColumn(b), dk, 0.));
+			Krho->setColumn(b,0, e->gInfo.detR * (*(e->coulomb))(rho->getColumn(b,0), dk, 0.));
 	}
 	ColumnBundle K(ColumnBundle Y)
 	{	ColumnBundle KY = Y.similar();
@@ -179,6 +179,7 @@ int main(int argc, char** argv)
 	e.eVars.wfnsFilename.clear();
 	//Perform JDFTx initialization:
 	e.setup();
+	if(e.eInfo.isNoncollinear()) die("'%s' not yet implemented with noncollinear spins.\n", argv[0]);
 	
 	logPrintf("----- Processing polarizability eigenfunctions -----\n");
 	
@@ -199,7 +200,7 @@ int main(int argc, char** argv)
 		
 		//Convert to a columnbundle projector:
 		ColumnBundle OJr(3, basis.nbasis, &basis);
-		for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k]))));
+		for(int k=0; k<3; k++) OJr.setColumn(k,0, O(J(Complex(rArr[k]))));
 	
 		P = OJr ^ V;
 		string fname = e.dump.getFilename("pol_P");

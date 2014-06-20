@@ -103,7 +103,7 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	std::vector<diagMatrix> eigsQP(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int s = e.eInfo.qnums[q].index();
-		matrix Hpert = e.eVars.C[q] ^ Idag_DiagV_I(e.eVars.C[q], VsclocDisc[s]);
+		matrix Hpert = e.eVars.C[q] ^ Idag_DiagV_I(e.eVars.C[q], VsclocDisc);
 		int iEmpty=0; while(e.eVars.Hsub_eigs[q][iEmpty]<eLUMO[s]) iEmpty++; //first unoccupied state
 		int nBands=e.eInfo.nBands;
 		matrix Hqp = zeroes(nBands,nBands);
@@ -158,7 +158,7 @@ DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eH
 			if(eLUMO) deTerm = sqrt(std::max(0., (*eLUMO)[s]-e.eVars.Hsub_eigs[q][b])) - deTerm; //convert to the discontinuity contribution
 			Feff[b] = e.eVars.F[q][b] * Kx * deTerm;
 		}
-		V[s] += qnum.weight * diagouterI(Feff, e.eVars.C[q], &e.gInfo); //without the 1/n(r) denominator
+		V += qnum.weight * diagouterI(Feff, e.eVars.C[q], V.size(), &e.gInfo); //without the 1/n(r) denominator
 		e.iInfo.augmentDensitySpherical(qnum, Feff, e.eVars.VdagC[q]); //ultrasoft contribution
 	}
 	e.iInfo.augmentDensityGrid(V);

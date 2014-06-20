@@ -177,12 +177,12 @@ int main(int argc, char** argv)
 		rho -= sp->Z * gaussConvolve(SG, vdW.getParams(sp->atomicNumber).R0/6.);
 	}
 	//Replace the last (least significant) polarizability eigencomponent with the rotational one:
-	V.setColumn(V.nCols()-1, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
+	V.setColumn(V.nCols()-1,0, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
 	
 	//Quick estimate not based on SaLSA solve:
 	DataRptrVec rArr(e.gInfo), rCubedArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data(), rCubedArr.data()); //Create array of r in real space
-	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
-	ColumnBundle OJrCubed(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJrCubed.setColumn(k, O(J(Complex(rCubedArr[k])))); //Convert to a columnbundle projector
+	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k,0, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
+	ColumnBundle OJrCubed(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJrCubed.setColumn(k,0, O(J(Complex(rCubedArr[k])))); //Convert to a columnbundle projector
 	matrix rV = OJr ^ V, rCubedV = OJrCubed ^ V;
 	double elRadius = sqrt( trace(dagger(rV) * rCubedV).real() / (5. * trace(dagger(rV) * rV).real()) );
 	logPrintf("Electrostatic radius = %lg bohrs. (quick estimate)\n", elRadius);

@@ -325,6 +325,10 @@ void Symmetries::calcSymmetries()
 	}
 }
 
+bool magMomEquivalent(const vector3<>& a, const vector3<>& b)
+{	return (a-b).length_squared() < symmThresholdSq;
+}
+
 std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset) const
 {	std::vector< matrix3<int> > symBasis;
 	//Loop over lattice symmetries:
@@ -332,9 +336,9 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 	{	bool symmetric = true;
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
-			const std::vector<double>& M = sp->initialMagneticMoments;
+			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(offset + m*(sp->atpos[a1]-offset), M.size()?M[a1]:0, M.size()?&M:0)) //match position and spin
+			{	if(string::npos == plook.find(offset + m*(sp->atpos[a1]-offset), M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and magentic moment
 				{	symmetric = false;
 					break;
 				}
@@ -460,9 +464,9 @@ void Symmetries::checkSymmetries() const
 	for(const matrix3<int>& m: sym) //For each symmetry matrix
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
-			const std::vector<double>& M = sp->initialMagneticMoments;
+			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(m * sp->atpos[a1], M.size()?M[a1]:0, M.size()?&M:0)) //match position and spin
+			{	if(string::npos == plook.find(m * sp->atpos[a1], M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and spin
 					die("Symmetries do not agree with atomic positions!\n");
 			}
 		}

@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
+#include <core/LatticeUtils.h>
 
 //------- SpeciesInfo functions related to atomic orbitals -------
 
@@ -33,38 +34,101 @@ void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
 
 void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 {	//Collect list of distinct magnetizations and corresponding atom positions:
-	std::map<double, std::vector< vector3<> > > Matpos;
+	struct MomentDirection //list of atoms with same magnetic moment
+	{	vector3<> Mhat;
+		std::vector< vector3<> > atpos;
+	};
+	struct MomentMagnitude //list of atoms with same magnetic moment magnitude
+	{	double Mlength;
+		std::vector<MomentDirection> Mdirs;
+	};
+	std::vector<MomentMagnitude>  Mmags;
 	if(initialMagneticMoments.size())
 	{	for(unsigned a=0; a<atpos.size(); a++)
-			Matpos[initialMagneticMoments[a]].push_back(atpos[a]);
+		{	const vector3<>& M = initialMagneticMoments[a];
+			double Mlength = M.length();
+			vector3<> Mhat = (Mlength ? 1./Mlength : 0.) * M;
+			bool foundLength = false;
+			for(MomentMagnitude& Mmag: Mmags) if(fabs(Mlength - Mmag.Mlength) < symmThreshold)
+			{	bool foundDir = false;
+				for(MomentDirection& Mdir: Mmag.Mdirs) if((M - Mmag.Mlength*Mdir.Mhat).length_squared() < symmThresholdSq)
+				{	Mdir.atpos.push_back(atpos[a]);
+					foundDir = true;
+					break;
+				}
+				if(!foundDir)
+				{	MomentDirection Mdir;
+					Mdir.Mhat = Mhat;
+					Mdir.atpos.push_back(atpos[a]);
+					Mmag.Mdirs.push_back(Mdir);
+				}
+				foundLength = true;
+				break;
+			}
+			if(!foundLength)
+			{	MomentDirection Mdir;
+				Mdir.Mhat = Mhat;
+				Mdir.atpos.push_back(atpos[a]);
+				MomentMagnitude Mmag;
+				Mmag.Mlength = Mlength;
+				Mmag.Mdirs.push_back(Mdir);
+				Mmags.push_back(Mmag);
+			}
+		}
 	}
-	else Matpos[0.] = atpos;
+	else
+	{	MomentDirection Mdir;
+		Mdir.atpos = atpos;
+		MomentMagnitude Mmag;
+		Mmag.Mlength = 0.;
+		Mmag.Mdirs.push_back(Mdir);
+		Mmags.push_back(Mmag);
+	}
 	//Scratch space for atom positions on GPU:
 	#ifdef GPU_ENABLED
 	vector3<>* atposCurPref;
 	cudaMalloc(&atposCurPref, sizeof(vector3<>)*atpos.size());
 	#endif
-	//For each magnetization:
-	for(auto mapEntry: Matpos)
-	{	double M = mapEntry.first; if(e->eInfo.spinType == SpinNone) assert(!M);
-		const std::vector< vector3<> >& atposCur = mapEntry.second;
-		#ifdef GPU_ENABLED
-		cudaMemcpy(atposCurPref, atposCur.data(), atposCur.size()*sizeof(vector3<>), cudaMemcpyHostToDevice);
-		#else
-		const vector3<>* atposCurPref = atposCur.data();
-		#endif
-		//Compute structure factor for atoms with current magnetization:
-		DataGptr SG; nullToZero(SG, e->gInfo);
-		callPref(getSG)(e->gInfo.S, atposCur.size(), atposCurPref, 1./e->gInfo.detR, SG->dataPref());
-		//Collect contributions:
-		for(int s=0; s<(M ? 2 : 1); s++)
-		{	RadialFunctionG nRadial;
-			getAtom_nRadial(s, M, nRadial);
-			DataGptr nTilde_s = nRadial * SG; //contribution per spin 
-			nRadial.free();
-			nTilde[s] += nTilde_s;
-			if(!M) nTilde.back() += nTilde_s; //same contribution to both spins (irrespective of spinType)
+	//For each magnetization magnitude:
+	for(const MomentMagnitude& Mmag: Mmags)
+	{	if(e->eInfo.nDensities == 1) assert(!Mmag.Mlength);
+		//Get the radial spin-densities in diagonal basis:
+		std::vector<RadialFunctionG> nRadial(Mmag.Mlength ? 2 : 1);
+		for(unsigned s=0; s<nRadial.size(); s++)
+			getAtom_nRadial(s, Mmag.Mlength, nRadial[s]);
+		//Collect contributions for each direction with this magnitude:
+		for(const MomentDirection& Mdir: Mmag.Mdirs)
+		{	//Compute structure factor for atoms with current magnetization vector:
+			#ifdef GPU_ENABLED
+			cudaMemcpy(atposCurPref, Mdir.atpos.data(), Mdir.atpos.size()*sizeof(vector3<>), cudaMemcpyHostToDevice);
+			#else
+			const vector3<>* atposCurPref = Mdir.atpos.data();
+			#endif
+			DataGptr SG; nullToZero(SG, e->gInfo);
+			callPref(getSG)(e->gInfo.S, Mdir.atpos.size(), atposCurPref, 1./e->gInfo.detR, SG->dataPref());
+			//Spin-densities in diagonal basis
+			std::vector<DataGptr> nDiag;
+			for(const RadialFunctionG& nRad: nRadial)
+				nDiag.push_back(nRad * SG);
+			//Accumulate contributions:
+			if(nDiag.size()==1)
+			{	if(nTilde.size()==1)
+					nTilde[0] += nDiag[0];
+				else
+				{	nTilde[0] += nDiag[0];
+					nTilde[1] += nDiag[0];
+				}
+			}
+			else
+			{	nTilde[0] += (0.5*(1.+Mdir.Mhat[2])) * nDiag[0] + (0.5*(1.-Mdir.Mhat[2])) * nDiag[1];
+				nTilde[1] += (0.5*(1.-Mdir.Mhat[2])) * nDiag[0] + (0.5*(1.+Mdir.Mhat[2])) * nDiag[1];
+				if(nTilde.size()==4) //noncollinear
+				{	nTilde[2] += (0.5*Mdir.Mhat[0]) * (nDiag[0] - nDiag[1]); //Re(UpDn) = 0.5*Mx
+					nTilde[3] += (0.5*Mdir.Mhat[1]) * (nDiag[1] - nDiag[0]); //Im(UpDn) = -0.5*My
+				}
+			}
 		}
+		for(RadialFunctionG& nRad: nRadial) nRad.free();
 	}
 	//Cleanup:
 	#ifdef GPU_ENABLED
@@ -73,13 +137,17 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 }
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset, std::vector<AtomConfig>* atomConfig) const
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 {	if(!atpos.size()) return;
 	assert(Y.basis); assert(Y.qnum);
 	//Check sizes:
-	int colMax = colOffset; for(int l=0; l<int(psiRadial.size()); l++) colMax += psiRadial[l].size() * (2*l+1) * atpos.size();
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
+	if(nSpinCopies>1) assert(Y.isSpinor()); //can have multiple spinor copies only in spinor mode
+	if(Y.isSpinor()) Y.zero(); //Following sets one spinor component, so ensure other is zero here
+	int colMax = colOffset;
+	for(int l=0; l<int(psiRadial.size()); l++)
+		colMax += psiRadial[l].size() * (2*l+1) * atpos.size() * nSpinCopies;
 	assert(colMax <= Y.nCols());
-	if(atomConfig && atomConfig->size()<size_t(colMax)) atomConfig->resize(colMax);
 	//Set orbitals and associated info if requested:
 	const Basis& basis = *Y.basis;
 	int iCol = colOffset; //current column
@@ -87,40 +155,26 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset, std::vector<
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
 		{	for(int m=-l; m<=l; m++)
 			{	//Set atomic orbitals for all atoms at specified (n,l,m):
-				size_t offs = iCol * basis.nbasis;
-				size_t atomStride = basis.nbasis;
+				size_t atomStride = Y.colLength() * nSpinCopies;
+				size_t offs = iCol * atomStride;
 				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, psiRadial[l][p], Y.dataPref()+offs);
-				if(atomConfig)
-					for(unsigned a=0; a<atpos.size(); a++)
-					{	AtomConfig& ac = atomConfig->at(iCol + a);
-						ac.n = p;
-						ac.l = l;
-						ac.iAtom = a;
-						//ac.F = atomF[l][p];
+				if(nSpinCopies>1) //make copy for other spin
+				{	complex* dataPtr = Y.dataPref()+offs;
+					for(size_t a=0; a<atpos.size(); a++)
+					{	callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+						dataPtr += atomStride;
 					}
+				}
 				iCol += atpos.size();
 			}
 		}
-}
-void SpeciesInfo::setAtomicOrbital(ColumnBundle& Y, int col, unsigned iAtom, unsigned n, int l, int m) const
-{	//Check inputs:
-	assert(Y.basis); assert(Y.qnum);
-	assert(col >= 0); assert(col < Y.nCols());
-	assert(iAtom < atpos.size());
-	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
-	assert(n < psiRadial[l].size());
-	assert(m >= -l); assert(m <= l);
-	//Call Vnl() to set the column:
-	const Basis& basis = *Y.basis;
-	size_t offs = col * basis.nbasis;
-	size_t atomStride = basis.nbasis;
-	callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref+iAtom, psiRadial[l][n], Y.dataPref()+offs);
 }
 int SpeciesInfo::nAtomicOrbitals() const
 {	int nOrbitals = 0;
 	for(int l=0; l<int(psiRadial.size()); l++)
 		nOrbitals += (2*l+1)*psiRadial[l].size();
-	return nOrbitals * atpos.size();
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
+	return nOrbitals * atpos.size() * nSpinCopies;
 }
 int SpeciesInfo::lMaxAtomicOrbitals() const
 {	return int(psiRadial.size()) - 1;
@@ -128,7 +182,8 @@ int SpeciesInfo::lMaxAtomicOrbitals() const
 int SpeciesInfo::nAtomicOrbitals(int l) const
 {	assert(l >= 0);
 	if(unsigned(l) >= psiRadial.size()) return -1; //signals end of l
-	return psiRadial[l].size();
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
+	return psiRadial[l].size() * nSpinCopies;
 }
 int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m) const
 {	assert(iAtom < atpos.size());
@@ -138,20 +193,31 @@ int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, 
 	int iProj = l + m; //#projectors before this one at current l,n
 	for(int L=0; L<=l; L++) //#projectors from previous l,n:
 		iProj += (L==l ? n : psiRadial[l].size()) * (2*L+1);
-	return iProj * atpos.size() + iAtom;
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
+	return (iProj * atpos.size() + iAtom) * nSpinCopies;
 }
 
 void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l) const
 {	if(!atpos.size()) return;
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	assert(Opsi.basis); assert(Opsi.qnum);
-	assert((2*l+1)*int(atpos.size()) <= Opsi.nCols());
+	assert((2*l+1)*int(atpos.size())*nSpinCopies <= Opsi.nCols());
+	if(nSpinCopies>1) assert(Opsi.isSpinor()); //can have multiple spinor copies only in spinor mode
+	if(Opsi.isSpinor()) Opsi.zero(); //Following sets one spinor component, so ensure other is zero here
 	const Basis& basis = *Opsi.basis;
 	int iCol = 0; //current column
 	for(int m=-l; m<=l; m++)
 	{	//Set atomic orbitals for all atoms at specified (n,l,m):
-		size_t offs = iCol * basis.nbasis;
-		size_t atomStride = basis.nbasis;
+		size_t atomStride = Opsi.colLength() * nSpinCopies;
+		size_t offs = iCol * atomStride;
 		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Opsi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, OpsiRadial->at(l)[n], Opsi.dataPref()+offs);
+		if(nSpinCopies>1) //make copy for other spin
+		{	complex* dataPtr = Opsi.dataPref()+offs;
+			for(size_t a=0; a<atpos.size(); a++)
+			{	callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+				dataPtr += atomStride;
+			}
+		}
 		iCol += atpos.size();
 	}
 }
@@ -205,7 +271,7 @@ void SpeciesInfo::estimateAtomEigs()
 
 void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const
 {
-	int spinCount = (e->eInfo.spinType==SpinNone ? 1 : 2);
+	int spinCount = (e->eInfo.nDensities==1 ? 1 : 2);
 	assert(spin >= 0); assert(spin < spinCount);
 	
 	//Determine occupations:

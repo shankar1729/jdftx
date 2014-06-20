@@ -100,8 +100,17 @@ commandLCAOparams;
 //-------------------------------------------------------------------------------------------------
 
 EnumStringMap<SpinType> spinMap
-(	SpinNone, "no-spin",
-	SpinZ, "z-spin"
+(	SpinNone,   "no-spin",
+	SpinZ,      "z-spin",
+	SpinVector, "vector-spin",
+	SpinOrbit,  "spin-orbit"
+);
+
+EnumStringMap<SpinType> spinDescMap
+(	SpinNone,   "Unpolarized calculation",
+	SpinZ,      "Spin-polarized calculation",
+	SpinVector, "Non-collinear magnetism (supports spin-orbit coupling)",
+	SpinOrbit,  "Non-collinear without magnetization, to allow for spin-orbit"
 );
 
 struct CommandSpinType : public Command
@@ -109,7 +118,8 @@ struct CommandSpinType : public Command
 	CommandSpinType() : Command("spintype")
 	{
 		format = "<type>=" + spinMap.optionList();
-		comments = "Select spin-polarization type";
+		comments = "Select spin-polarization type:"
+			+ addDescriptions(spinMap.optionList(), linkDescription(spinMap, spinDescMap));
 		hasDefault = true;
 	}
 
