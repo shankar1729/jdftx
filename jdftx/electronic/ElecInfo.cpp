@@ -242,13 +242,24 @@ void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
 				: findMu(e->eVars.Hsub_eigs, nElectrons) ), //determine from eigenvalues otherwise
 		nElectrons);
 	if(spinType == SpinZ)
-		logPrintf("  magneticMoment: %+8.5f", integral(e->eVars.n[0] - e->eVars.n[1]));
+	{	DataRptr Mfield = e->eVars.n[0] - e->eVars.n[1];
+		double Mabs = integral(sqrt(Mfield*Mfield));
+		double Mtot = integral(Mfield);
+		logPrintf("  magneticMoment: [ Abs: %7.5f  Tot: %+8.5f ]", Mabs, Mtot);
+	}
 	if(spinType == SpinVector)
-	{	vector3<> M( 2. * integral(e->eVars.n[2]), -2. * integral(e->eVars.n[3]), integral(e->eVars.n[0] - e->eVars.n[1]) );
+	{	DataRptrVec Mfield;
+		Mfield[0] = (+2.)*e->eVars.n[2];
+		Mfield[1] = (-2.)*e->eVars.n[3];
+		Mfield[2] = e->eVars.n[0] - e->eVars.n[1];
+		//Absolute magnetization:
+		double Mabs = integral(sqrt(lengthSquared(Mfield)));
+		//Total magentziation and direction
+		vector3<> Mtot = e->gInfo.dV * sumComponents(Mfield);
 		vector3<> euler;
-		if(M.length()) getEulerAxis(M, euler);
+		if(Mtot.length()) getEulerAxis(Mtot, euler);
 		euler *= 180./M_PI; //convert to degrees
-		logPrintf("  magneticMoment: %7.5f (theta: %6.2f  phi: %+7.2f degrees)", M.length(), euler[1], euler[0]);
+		logPrintf("  magneticMoment: [ Abs: %7.5f  Tot: %7.5f  theta: %6.2f  phi: %+7.2f ]", Mabs, Mtot.length(), euler[1], euler[0]);
 	}
 	logPrintf("\n"); logFlush();
 }
