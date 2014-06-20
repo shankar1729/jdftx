@@ -271,14 +271,48 @@ void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
 	}
 }
 
+namespace Magnetization
+{	//Conversions between spin-density(-matrix) and magnetization
+	DataRptrCollection fromSpinDensity(const DataRptrCollection& n)
+	{	DataRptrCollection m(n.size());
+		if(n.size()==1)
+		{	m[0] = clone(n[0]);
+		}
+		else
+		{	m[0] = n[0] + n[1]; //total density
+			m[1] = n[0] - n[1]; //z-magnetization
+			if(n.size()==4)
+			{	m[2] = (+2)*n[2]; //x-magnetization
+				m[3] = (-2)*n[3]; //y-magnetization
+			}
+		}
+		return m;
+	}
+	DataRptrCollection toSpinDensity(const DataRptrCollection& m)
+	{	DataRptrCollection n(m.size());
+		if(m.size()==1)
+		{	n[0] = clone(m[0]);
+		}
+		else
+		{	n[0] = 0.5*(m[0] + m[1]); //up-up
+			n[1] = 0.5*(m[0] - m[1]); //dn-dn
+			if(m.size()==4)
+			{	n[2] = (+0.5)*m[2]; //Re(up-dn)
+				n[3] = (-0.5)*m[3]; //Im(up-dn)
+			}
+		}
+		return n;
+	}
+}
+
 SCF::Variable SCF::getVariable() const
 {	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
 	Variable v;
 	//Density:
-	v.n = clone(mixDensity ? e.eVars.n : e.eVars.Vscloc);
+	v.n = Magnetization::fromSpinDensity(mixDensity ? e.eVars.n : e.eVars.Vscloc);
 	//KE density:
 	if(mixTau)
-		v.tau = clone(mixDensity ? e.eVars.tau : e.eVars.Vtau);
+		v.tau = Magnetization::fromSpinDensity(mixDensity ? e.eVars.tau : e.eVars.Vtau);
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
 		v.rhoAtom = (mixDensity ? e.eVars.rhoAtom : e.eVars.U_rhoAtom);
@@ -288,10 +322,10 @@ SCF::Variable SCF::getVariable() const
 void SCF::setVariable(const SCF::Variable& v)
 {	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
 	//Density:
-	(mixDensity ? e.eVars.n : e.eVars.Vscloc) = v.n;
+	(mixDensity ? e.eVars.n : e.eVars.Vscloc) = Magnetization::toSpinDensity(v.n);
 	//KE density:
 	if(mixTau)
-		(mixDensity ? e.eVars.tau : e.eVars.Vtau) = v.tau;
+		(mixDensity ? e.eVars.tau : e.eVars.Vtau) = Magnetization::toSpinDensity(v.tau);
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
 		(mixDensity ? e.eVars.rhoAtom : e.eVars.U_rhoAtom) = v.rhoAtom;
@@ -302,11 +336,17 @@ void SCF::setVariable(const SCF::Variable& v)
 
 SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
 {	Variable vOut;
+	double magEnhance = e.scfParams.mixFractionMag / e.scfParams.mixFraction;
 	//Density:
 	vOut.n = kerkerMix * v.n;
+	for(size_t s=1; s<vOut.n.size(); s++)
+		vOut.n[s] *= magEnhance;
 	//KE density:
 	if(mixTau)
-		vOut.tau = kerkerMix * v.tau;
+	{	vOut.tau = kerkerMix * v.tau;
+		for(size_t s=1; s<vOut.tau.size(); s++)
+			vOut.tau[s] *= magEnhance;
+	}
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
 	{	vOut.rhoAtom = v.rhoAtom;

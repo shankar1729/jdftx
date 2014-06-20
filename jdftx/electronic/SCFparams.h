@@ -41,7 +41,8 @@ struct SCFparams
 	
 	int history; //!< Number of past residuals and vectors are kept cached and used in DIIS
 	bool verbose; //!< Whether the inner eigensolver will print progress
-	double mixFraction;  //!< Maximum fraction of the new variable that will be mixed with the old one
+	double mixFraction;  //!< Mixing fraction for total density / potential
+	double mixFractionMag;  //!< Mixing fraction for magnetization density / potential
 	double qKerker; //!< Wavevector controlling Kerker preconditioning (if negative, auto-set to Gmin)
 	double qMetric; //!< Wavevector controlling the DIIS metric (if negative, auto-set to Gmin)
 	double sp_constraint; //! Whether to ensure that the exchange is exact in the single particle limit
@@ -64,6 +65,7 @@ struct SCFparams
 		mixedVariable = MV_Potential;
 		verbose = false;
 		mixFraction = 0.5;
+		mixFractionMag = 1.5;
 		qKerker = 0.8;
 		qMetric = 0.8;
 		history = 10;
