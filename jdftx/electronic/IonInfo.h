@@ -103,7 +103,7 @@ public:
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
-	ColumnBundle getAtomicOrbitals(int q, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q (with room for extra columns if specified)
+	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut

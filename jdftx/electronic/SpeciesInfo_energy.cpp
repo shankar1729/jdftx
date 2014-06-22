@@ -53,38 +53,38 @@ size_t SpeciesInfo::rhoAtom_nMatrices() const
 {	return plusU.size() * e->eVars.n.size() * atpos.size(); //one per atom per spin channel per Uparam
 }
 
-void SpeciesInfo::rhoAtom_initZero(matrix* rhoAtomPtr) const
-{	for(auto Uparams: plusU)
-	{	int mCount = 2*Uparams.l+1;
-		for(unsigned s=0; s<e->eVars.n.size(); s++)
-			for(unsigned a=0; a<atpos.size(); a++)
-				*(rhoAtomPtr++) = zeroes(mCount,mCount);
-	}
-}
-
 #define rhoAtom_COMMONinit \
-	int nSpins = int(e->eVars.n.size()); \
-	double wSpinless = 0.5*nSpins; //factor multiplying state weights to get to spinless weights
+	int nSpins = e->eInfo.spinType==SpinZ ? 2  : 1; \
+	int spinorLength = e->eInfo.spinorLength();
 
 #define UparamLOOP(code) \
 	for(auto Uparams: plusU) \
-	{	int mCount = 2*Uparams.l+1; /* number of m's at given l */ \
+	{	int orbCount = (2*Uparams.l+1) * spinorLength; /* number of orbitals at given n,l */ \
 		code \
 	}
+
+void SpeciesInfo::rhoAtom_initZero(matrix* rhoAtomPtr) const
+{	rhoAtom_COMMONinit
+	UparamLOOP
+	(	for(int s=0; s<nSpins; s++)
+			for(unsigned a=0; a<atpos.size(); a++)
+				*(rhoAtomPtr++) = zeroes(orbCount,orbCount);
+	)
+}
 
 void SpeciesInfo::rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, matrix* rhoAtomPtr) const
 {	static StopWatch watch("rhoAtom_calc"); watch.start();
 	rhoAtom_COMMONinit
 	UparamLOOP
-	(	int matSize = mCount * atpos.size();
+	(	int matSize = orbCount * atpos.size();
 		std::vector<matrix> rho(nSpins);
 		for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = e->eInfo.qnums[q];
 			int s = qnum.index();
 			ColumnBundle Opsi(C[q].similar(matSize));
-			setOpsi(Opsi, Uparams.n, Uparams.l);
+			setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l);
 			matrix psiOCdag = Opsi ^ C[q];
-			rho[s] += (qnum.weight*wSpinless) * psiOCdag * F[q] * dagger(psiOCdag);
+			rho[s] += (qnum.weight/e->eInfo.spinWeight) * psiOCdag * F[q] * dagger(psiOCdag);
 		}
 		for(int s=0; s<nSpins; s++)
 		{	//Collect contributions from all processes:
@@ -96,7 +96,7 @@ void SpeciesInfo::rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vect
 					e->symm.symmetrizeSpherical(rho[s], sp);
 			//Collect density matrices per atom:
 			for(unsigned a=0; a<atpos.size(); a++)
-				*(rhoAtomPtr++) = rho[s](a,atpos.size(),matSize, a,atpos.size(),matSize);
+				*(rhoAtomPtr++) = rho[s](a*orbCount,(a+1)*orbCount, a*orbCount,(a+1)*orbCount);
 		}
 	)
 	watch.stop();
@@ -106,13 +106,13 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 {	rhoAtom_COMMONinit
 	double Utot = 0.;
 	UparamLOOP
-	(	double Uprefac = 0.5 * Uparams.UminusJ / wSpinless;
+	(	double Uprefac = 0.5 * Uparams.UminusJ * e->eInfo.spinWeight;
 		for(int s=0; s<nSpins; s++)
 			for(unsigned a=0; a<atpos.size(); a++)
 			{	const matrix& rhoAtom = *(rhoAtomPtr++);
-				const double VextPrefac = Uparams.Vext[a] / wSpinless;
+				const double VextPrefac = Uparams.Vext[a] * e->eInfo.spinWeight;
 				Utot += trace((VextPrefac+Uprefac)*rhoAtom - Uprefac*(rhoAtom*rhoAtom)).real();
-				*(U_rhoAtomPtr++) = ((VextPrefac+Uprefac)*eye(mCount) - (2.*Uprefac)*rhoAtom);
+				*(U_rhoAtomPtr++) = ((VextPrefac+Uprefac)*eye(orbCount) - (2.*Uprefac)*rhoAtom);
 			}
 	)
 	return Utot;
@@ -120,12 +120,12 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 
 //Collect atomic contributions into a larger matrix in projector order:
 #define U_rho_PACK \
-	int matSize = mCount * atpos.size(); \
+	int matSize = orbCount * atpos.size(); \
 	std::vector<matrix> U_rho(nSpins); \
 	for(int s=0; s<nSpins; s++) \
 	{	U_rho[s] = zeroes(matSize,matSize); \
 		for(unsigned a=0; a<atpos.size(); a++) \
-			U_rho[s].set(a,atpos.size(),matSize, a,atpos.size(),matSize, *(U_rhoAtomPtr++)); \
+			U_rho[s].set(a*orbCount,(a+1)*orbCount, a*orbCount,(a+1)*orbCount, *(U_rhoAtomPtr++)); \
 	}
 
 void SpeciesInfo::rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const
@@ -135,8 +135,8 @@ void SpeciesInfo::rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, Col
 	(	U_rho_PACK
 		int s = Cq.qnum->index();
 		ColumnBundle Opsi(Cq.similar(matSize));
-		setOpsi(Opsi, Uparams.n, Uparams.l);
-		HCq += wSpinless * Opsi * (U_rho[s] * (Opsi ^ Cq)); //gradient upto state weight and fillings
+		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l);
+		HCq += (1./e->eInfo.spinWeight) * Opsi * (U_rho[s] * (Opsi ^ Cq)); //gradient upto state weight and fillings
 	)
 	watch.stop();
 }
@@ -149,11 +149,11 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 		{	const QuantumNumber& qnum = e->eInfo.qnums[q];
 			int s = qnum.index();
 			ColumnBundle Opsi(C[q].similar(matSize));
-			setOpsi(Opsi, Uparams.n, Uparams.l);
+			setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l);
 			matrix psiOCdag = Opsi ^ C[q];
 			diagMatrix fCartMat[3];
 			for(int k=0; k<3; k++)
-				fCartMat[k] = wSpinless * diag(U_rho[s] * psiOCdag * F[q] * (C[q]^D(Opsi,k)));
+				fCartMat[k] = (1./e->eInfo.spinWeight) * diag(U_rho[s] * psiOCdag * F[q] * (C[q]^D(Opsi,k)));
 			for(unsigned a=0; a<atpos.size(); a++)
 			{	vector3<> fCart; //proportional to Cartesian force
 				for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));

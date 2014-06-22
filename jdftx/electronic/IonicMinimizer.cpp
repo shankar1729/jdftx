@@ -154,7 +154,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 			{
 				//Get atomic orbitals at old positions:
 				eVars.Y[q].free();
-				ColumnBundle psi = iInfo.getAtomicOrbitals(q);
+				ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
 				
 				//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
 				matrix alpha;  //LCAO coefficients for best fit

@@ -109,16 +109,15 @@ public:
 	void rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
 
-	//! Accumulate atomic density from this species
-	void accumulateAtomicDensity(DataGptrCollection& nTilde) const;
-	//! Calculate atomic orbitals (store in Y with an optional column offset)
-	void setAtomicOrbitals(ColumnBundle& Y, int colOffset=0) const;
+	//Atomic orbital related functions:
+	void accumulateAtomicDensity(DataGptrCollection& nTilde) const; //!< Accumulate atomic density from this species
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset)
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0) const;  //!< Same as above, but for specific n and l.
+		//!< If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
-	int nAtomicOrbitals(int l) const; //!< return number of atomic orbitals of given l (per atom)
-	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species
-	//! Calculate O(atomic orbitals) of specific n and l
-	void setOpsi(ColumnBundle& Y, unsigned n, int l) const;
+	int nAtomicOrbitals(int l) const; //!< return number of (pseudo-)principal quantum numbers for atomic orbitals of given l
+	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species (when not using the fixed n and l version)
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,

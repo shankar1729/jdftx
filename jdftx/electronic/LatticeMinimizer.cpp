@@ -108,7 +108,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for old lattice:
 			e.eVars.Y[q].free();
-			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
+			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
 			//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
 			ColumnBundle Opsi = O(psi); //non-trivial cost for uspp
 			coeff[q] = inv(psi^Opsi) * (Opsi^e.eVars.C[q]);
@@ -126,7 +126,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	{	//Restore wavefunctions from atomic orbitals:
 		if(e.cntrl.dragWavefunctions && nAtomic)
 		{	//Get atomic orbitals for new lattice:
-			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q);
+			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
 			//Reconstitute wavefunctions:
 			e.eVars.C[q] += psi * coeff[q];
 		}

@@ -357,11 +357,11 @@ int IonInfo::nAtomicOrbitals() const
 	return nAtomic;
 }
 
-ColumnBundle IonInfo::getAtomicOrbitals(int q, int extraCols) const
+ColumnBundle IonInfo::getAtomicOrbitals(int q, bool applyO, int extraCols) const
 {	ColumnBundle psi(nAtomicOrbitals()+extraCols, e->basis[q].nbasis * e->eInfo.spinorLength(), &e->basis[q], &e->eInfo.qnums[q], isGpuEnabled());
 	int iCol=0;
 	for(auto sp: species)
-	{	sp->setAtomicOrbitals(psi, iCol);
+	{	sp->setAtomicOrbitals(psi, applyO, iCol);
 		iCol += sp->nAtomicOrbitals();
 	}
 	return psi;

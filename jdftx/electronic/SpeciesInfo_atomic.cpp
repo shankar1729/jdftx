@@ -137,37 +137,46 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 }
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset) const
 {	if(!atpos.size()) return;
-	assert(Y.basis); assert(Y.qnum);
-	//Check sizes:
+	const auto& fRadial = applyO ? *OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	if(nSpinCopies>1) assert(Y.isSpinor()); //can have multiple spinor copies only in spinor mode
-	int colMax = colOffset;
-	for(int l=0; l<int(psiRadial.size()); l++)
-		colMax += psiRadial[l].size() * (2*l+1) * atpos.size() * nSpinCopies;
-	assert(colMax <= Y.nCols());
-	//Set orbitals and associated info if requested:
-	const Basis& basis = *Y.basis;
-	int iCol = colOffset / nSpinCopies; //current column (counting equal and opposite spinors as one)
-	for(int l=0; l<int(psiRadial.size()); l++)
-		for(unsigned p=0; p<psiRadial[l].size(); p++)
-		{	for(int m=-l; m<=l; m++)
-			{	//Set atomic orbitals for all atoms at specified (n,l,m):
-				size_t atomStride = Y.colLength() * nSpinCopies;
-				size_t offs = iCol * atomStride;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, psiRadial[l][p], Y.dataPref()+offs);
-				if(nSpinCopies>1) //make copy for other spin and zero the minor component
-				{	complex* dataPtr = Y.dataPref()+offs;
-					for(size_t a=0; a<atpos.size(); a++)
-					{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
-						callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
-						dataPtr += atomStride;
-					}
-				}
-				iCol += atpos.size();
+	int nOrbitalsPerAtom = 0;
+	for(int l=0; l<int(fRadial.size()); l++)
+		nOrbitalsPerAtom += fRadial[l].size()*(2*l+1)*nSpinCopies;
+	int iCol = colOffset;
+	for(int l=0; l<int(fRadial.size()); l++)
+		for(unsigned n=0; n<fRadial[l].size(); n++)
+		{	setAtomicOrbitals(Y, applyO, n, l, iCol, nOrbitalsPerAtom);
+			iCol += (2*l+1)*nSpinCopies;
+		}
+}
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, int l, int colOffset, int atomColStride) const
+{	if(!atpos.size()) return;
+	const auto& fRadial = applyO ? *OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
+	int nSpinCopies = 2/e->eInfo.qWeightSum;
+	int nOrbitalsPerAtom = (2*l+1)*nSpinCopies;
+	if(atomColStride) assert(atomColStride >= nOrbitalsPerAtom); else atomColStride = nOrbitalsPerAtom;
+	assert(psi.basis); assert(psi.qnum);
+	assert(colOffset + atomColStride*int(atpos.size()-1) + nOrbitalsPerAtom <= psi.nCols());
+	if(nSpinCopies>1) assert(psi.isSpinor()); //can have multiple spinor copies only in spinor mode
+	const Basis& basis = *psi.basis;
+	int iCol = colOffset; //current column
+	for(int m=-l; m<=l; m++)
+	{	//Set atomic orbitals for all atoms at specified (n,l,m):
+		size_t atomStride = psi.colLength() * atomColStride;
+		size_t offs = iCol * psi.colLength();
+		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, fRadial[l][n], psi.dataPref()+offs);
+		if(nSpinCopies>1) //make copy for other spin
+		{	complex* dataPtr = psi.dataPref()+offs;
+			for(size_t a=0; a<atpos.size(); a++)
+			{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
+				callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+				dataPtr += atomStride;
 			}
 		}
+		iCol += nSpinCopies;
+	}
 }
 int SpeciesInfo::nAtomicOrbitals() const
 {	int nOrbitals = 0;
@@ -182,46 +191,21 @@ int SpeciesInfo::lMaxAtomicOrbitals() const
 int SpeciesInfo::nAtomicOrbitals(int l) const
 {	assert(l >= 0);
 	if(unsigned(l) >= psiRadial.size()) return -1; //signals end of l
-	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	return psiRadial[l].size() * nSpinCopies;
+	return psiRadial[l].size();
 }
 int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m) const
 {	assert(iAtom < atpos.size());
 	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
 	assert(n < psiRadial[l].size());
 	assert(m >= -l); assert(m <= l);
-	int iProj = l + m; //#projectors before this one at current l,n
-	for(int L=0; L<=l; L++) //#projectors from previous l,n:
-		iProj += (L==l ? n : psiRadial[l].size()) * (2*L+1);
+	int iOrb = l+m; //orbitals from previous m at current n,l,atom
+	for(int L=0; L<=l; L++)
+		iOrb += (L==l ? n : psiRadial[L].size()) * (2*L+1); //orbitals from previous l,n at current atom
+	for(unsigned L=0; L<psiRadial.size(); L++)
+		iOrb += psiRadial[L].size() * (2*L+1) * iAtom; //orbitals from previous atoms
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	return (iProj * atpos.size() + iAtom) * nSpinCopies;
+	return iOrb * nSpinCopies; //include spinor factor if any
 }
-
-void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l) const
-{	if(!atpos.size()) return;
-	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	assert(Opsi.basis); assert(Opsi.qnum);
-	assert((2*l+1)*int(atpos.size())*nSpinCopies <= Opsi.nCols());
-	if(nSpinCopies>1) assert(Opsi.isSpinor()); //can have multiple spinor copies only in spinor mode
-	const Basis& basis = *Opsi.basis;
-	int iCol = 0; //current column
-	for(int m=-l; m<=l; m++)
-	{	//Set atomic orbitals for all atoms at specified (n,l,m):
-		size_t atomStride = Opsi.colLength() * nSpinCopies;
-		size_t offs = iCol * atomStride;
-		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Opsi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, OpsiRadial->at(l)[n], Opsi.dataPref()+offs);
-		if(nSpinCopies>1) //make copy for other spin
-		{	complex* dataPtr = Opsi.dataPref()+offs;
-			for(size_t a=0; a<atpos.size(); a++)
-			{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
-				callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
-				dataPtr += atomStride;
-			}
-		}
-		iCol += atpos.size();
-	}
-}
-
 
 void SpeciesInfo::estimateAtomEigs()
 {	if(!psiRadial.size()) return; //no orbitals

@@ -189,9 +189,10 @@ void Symmetries::symmetrize(IonicGradient& f) const
 //Symmetrize Ylm-basis matrices:
 void Symmetries::symmetrizeSpherical(matrix& X, int sp) const
 {	int nAtoms = atomMap[sp].size();
-	int l = (X.nRows()/nAtoms-1)/2; //matrix dimension = (2l+1)*nAtoms
-	int nm = 2*l+1;
-	int nTot = nm*nAtoms;
+	int spinorLength = e->eInfo.spinorLength();
+	int l = (X.nRows()/(nAtoms*spinorLength)-1)/2; //matrix dimension = (2l+1)*nAtoms*spinorLength
+	int orbCount = (2*l+1)*spinorLength;
+	int nTot = orbCount*nAtoms;
 	assert(X.nCols()==nTot);
 	if(!l || sym.size()==1) return; //symmetries do nothing
 	const std::vector<matrix>& sym_l = getSphericalMatrices(l);
@@ -200,7 +201,9 @@ void Symmetries::symmetrizeSpherical(matrix& X, int sp) const
 	{	//Construct transformation matrix including atom maps:
 		matrix m = zeroes(nTot, nTot);
 		for(int atom=0; atom<nAtoms; atom++)
-			m.set(atomMap[sp][atom][iRot],nAtoms,nTot, atom,nAtoms,nTot, sym_l[iRot]);
+		{	int atomOut = atomMap[sp][atom][iRot];
+			m.set(atomOut*orbCount,(atomOut+1)*orbCount, atom*orbCount,(atom+1)*orbCount, sym_l[iRot]);
+		}
 		//Apply
 		result += m * X * dagger(m);
 	}
@@ -219,7 +222,8 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
 {	if(l>lMaxSpherical) die("l=%d > lMax=%d supported for density matrix symmetrization\n", l, lMaxSpherical);
 	if(!symSpherical[l].size()) //Not yet initialized, do so now:
 	{	//Create a basis of unit vectors for which Ylm are linearly independent:
-		std::vector< vector3<> > nHat(2*l+1);
+		int mCount = 2*l+1;
+		std::vector< vector3<> > nHat(mCount);
 		nHat[0] = vector3<>(0,0,1);
 		for(int m=1; m<=l; m++)
 		{	double phi = 2./l; //chosen empirically to get small basis-matrix condition numbers for l<=3
@@ -228,7 +232,7 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
 			nHat[2*m-0] = vector3<>(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
 		}
 		//Construct basis matrix at nHat:
-		matrix bOrig(2*l+1, 2*l+1); complex* bOrigData = bOrig.data();
+		matrix bOrig(mCount, mCount); complex* bOrigData = bOrig.data();
 		for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
 			for(int m=-l; m<=l; m++)
 				bOrigData[bOrig.index(l+m,nIndex)] = Ylm(l, m, nHat[nIndex]);
@@ -238,11 +242,19 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
 		out.resize(sym.size());
 		for(unsigned iRot=0; iRot<sym.size(); iRot++)
 		{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix
-			matrix bRot(2*l+1, 2*l+1); complex* bRotData = bRot.data();
+			matrix bRot(mCount, mCount); complex* bRotData = bRot.data();
 			for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
 				for(int m=-l; m<=l; m++)
 					bRotData[bRot.index(l+m,nIndex)] = Ylm(l, m, rot * nHat[nIndex]);
-			out[iRot] = bRot * bOrigInv;
+			matrix out_i = bRot * bOrigInv;
+			if(e->eInfo.isNoncollinear())
+			{	//double the matrix dimension to account for spinor d.o.f
+				matrix out_dbl = zeroes(2*mCount, 2*mCount);
+				out_dbl.set(0,2,2*mCount, 0,2,2*mCount, out_i);
+				out_dbl.set(1,2,2*mCount, 1,2,2*mCount, out_i);
+				std::swap(out_i, out_dbl);
+			}
+			out[iRot] = out_i;
 		}
 	}
 	return symSpherical[l];

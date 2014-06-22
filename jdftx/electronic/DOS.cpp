@@ -800,27 +800,11 @@ void DOS::dump()
 			//Atomic-orbital projections if needed:
 			matrix CdagOpsi;
 			if(needOrbitals)
-			{	CdagOpsi = zeroes(C.nCols(), nOrbitals);
-				int colOffset = 0;
-				for(const auto& sp: e->iInfo.species)
-				{	for(int l=0;; l++)
-					{	int nMax = sp->nAtomicOrbitals(l);
-						if(nMax<0) break; //end of l
-						int nCols = (2*l+1) * sp->atpos.size();
-						ColumnBundle Opsi(C.similar(nCols));
-						for(int n=0; n<nMax; n++)
-						{	sp->setOpsi(Opsi, n, l);
-							CdagOpsi.set(0,C.nCols(), colOffset,colOffset+nCols, C^Opsi);
-							colOffset += nCols;
-						}
-					}
-				}
-				assert(colOffset==nOrbitals);
-			}
+				CdagOpsi = C ^ e->iInfo.getAtomicOrbitals(iState, true); //directly calculate overlap using Opsi
 			//Ortho-orbital projections if needed:
 			matrix CdagOpsiOrtho;
 			if(needOrthoOrbitals)
-			{	ColumnBundle psi = e->iInfo.getAtomicOrbitals(iState);
+			{	ColumnBundle psi = e->iInfo.getAtomicOrbitals(iState, false);
 				//Orthogonalize:
 				ColumnBundle Opsi = O(psi);
 				matrix orthoMat = invsqrt(psi ^ Opsi); //orthonormalizing matrix
