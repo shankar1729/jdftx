@@ -143,14 +143,13 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 	//Check sizes:
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	if(nSpinCopies>1) assert(Y.isSpinor()); //can have multiple spinor copies only in spinor mode
-	if(Y.isSpinor()) Y.zero(); //Following sets one spinor component, so ensure other is zero here
 	int colMax = colOffset;
 	for(int l=0; l<int(psiRadial.size()); l++)
 		colMax += psiRadial[l].size() * (2*l+1) * atpos.size() * nSpinCopies;
 	assert(colMax <= Y.nCols());
 	//Set orbitals and associated info if requested:
 	const Basis& basis = *Y.basis;
-	int iCol = colOffset; //current column
+	int iCol = colOffset / nSpinCopies; //current column (counting equal and opposite spinors as one)
 	for(int l=0; l<int(psiRadial.size()); l++)
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
 		{	for(int m=-l; m<=l; m++)
@@ -158,10 +157,11 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, int colOffset) const
 				size_t atomStride = Y.colLength() * nSpinCopies;
 				size_t offs = iCol * atomStride;
 				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, Y.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, psiRadial[l][p], Y.dataPref()+offs);
-				if(nSpinCopies>1) //make copy for other spin
+				if(nSpinCopies>1) //make copy for other spin and zero the minor component
 				{	complex* dataPtr = Y.dataPref()+offs;
 					for(size_t a=0; a<atpos.size(); a++)
-					{	callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+					{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
+						callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
 						dataPtr += atomStride;
 					}
 				}
@@ -203,7 +203,6 @@ void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l) const
 	assert(Opsi.basis); assert(Opsi.qnum);
 	assert((2*l+1)*int(atpos.size())*nSpinCopies <= Opsi.nCols());
 	if(nSpinCopies>1) assert(Opsi.isSpinor()); //can have multiple spinor copies only in spinor mode
-	if(Opsi.isSpinor()) Opsi.zero(); //Following sets one spinor component, so ensure other is zero here
 	const Basis& basis = *Opsi.basis;
 	int iCol = 0; //current column
 	for(int m=-l; m<=l; m++)
@@ -214,7 +213,8 @@ void SpeciesInfo::setOpsi(ColumnBundle& Opsi, unsigned n, int l) const
 		if(nSpinCopies>1) //make copy for other spin
 		{	complex* dataPtr = Opsi.dataPref()+offs;
 			for(size_t a=0; a<atpos.size(); a++)
-			{	callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+			{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
+				callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
 				dataPtr += atomStride;
 			}
 		}
