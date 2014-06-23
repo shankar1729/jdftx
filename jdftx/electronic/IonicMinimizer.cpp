@@ -135,41 +135,76 @@ IonicMinimizer::IonicMinimizer(Everything& e) : e(e)
 void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 {	static StopWatch watch("WavefunctionDrag"); watch.start();
 	ElecVars& eVars = e.eVars;
+	ElecInfo& eInfo = e.eInfo;
 	IonInfo& iInfo = e.iInfo;
 	
 	IonicGradient dpos = alpha * e.gInfo.invR * dir; //dir is in cartesian, atpos in lattice
 	
-	if(e.cntrl.dragWavefunctions)
+	if(e.cntrl.dragWavefunctions || populationAnalysisPending)
 	{	//Check if atomic orbitals available and compile list of displacements for each orbital:
 		std::vector< vector3<> > drColumns;
-		for(unsigned s=0; s<iInfo.species.size(); s++)
-		{	const SpeciesInfo& sp = *(iInfo.species[s]);
-			int nOrb = sp.nAtomicOrbitals() / sp.atpos.size(); //number of orbitals per atom
+		std::vector<int> spOffset(iInfo.species.size()+1, 0); //species offsets into atomic orbitals
+		for(unsigned iSp=0; iSp<iInfo.species.size(); iSp++)
+		{	const SpeciesInfo& sp = *(iInfo.species[iSp]);
+			int spOrbCount = sp.nAtomicOrbitals(); //total number of orbitals for currents species
+			spOffset[iSp+1] = spOffset[iSp] + spOrbCount;
+			int nOrb = spOrbCount / sp.atpos.size(); //number of orbitals per atom
 			for(int iOrb=0; iOrb<nOrb; iOrb++)
-				drColumns.insert(drColumns.end(), dpos[s].begin(), dpos[s].end());
+				drColumns.insert(drColumns.end(), dpos[iSp].begin(), dpos[iSp].end());
 		}
 		
 		if(drColumns.size()) 
-		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	int nSpins = (eInfo.spinType==SpinZ ? 2 : 1);
+			std::vector<matrix> Rho(nSpins); //density matrix in the basis of Lowdin symmetrized orbitals
+			
+			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{
 				//Get atomic orbitals at old positions:
 				eVars.Y[q].free();
 				ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
 				
-				//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
-				matrix alpha;  //LCAO coefficients for best fit
+				//Compute atomic orbital projections:
+				matrix psiDagOpsi, psiDagOC;
 				{	ColumnBundle Opsi = O(psi); //non-trivial cost for uspp
-					alpha = inv(psi^Opsi) * (Opsi^eVars.C[q]);
+					psiDagOpsi = psi^Opsi;
+					psiDagOC = Opsi^eVars.C[q];
 				}
-				eVars.C[q] -= psi * alpha; //now contains residual
 				
-				//Translate the atomic orbitals and reconsitute wavefunctions:
-				translateColumns(psi, drColumns.data());
-				eVars.C[q] += psi * alpha;
+				if(populationAnalysisPending)
+				{	matrix lowdin = invsqrt(psiDagOpsi) * psiDagOC; //Lowdin coefficients (note symmetric orthonormalizzation)
+					Rho[eInfo.qnums[q].index()] += eInfo.qnums[q].weight * (lowdin * eVars.F[q] * dagger(lowdin)); //density matrix contribution
+				}
+				
+				if(alpha && e.cntrl.dragWavefunctions) //needed only if actually dragging wavefunctions
+				{	matrix coeff = inv(psiDagOpsi) * psiDagOC;  //LCAO coefficients for best fit (minimize C0^OC0 where C0 is the remainder)
+					eVars.C[q] -= psi * coeff; //now contains the residual C0 mentioned above
+				
+					//Translate the atomic orbitals and reconsitute wavefunctions:
+					translateColumns(psi, drColumns.data());
+					eVars.C[q] += psi * coeff;
+				}
+			}
+			
+			//Call population analysis:
+			if(populationAnalysisPending)
+			{	logPrintf("\n#--- Lowdin population analysis ---\n");
+				for(unsigned iSp=0; iSp<iInfo.species.size(); iSp++)
+				{	std::vector<matrix> RhoSub(Rho.size());
+					for(unsigned s=0; s<Rho.size(); s++)
+					{	RhoSub[s] = Rho[s]
+							? Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1])
+							: zeroes(spOffset[iSp+1]-spOffset[iSp], spOffset[iSp+1]-spOffset[iSp]);
+						RhoSub[s].allReduce(MPIUtil::ReduceSum);
+					}
+					iInfo.species[iSp]->populationAnalysis(RhoSub);
+				}
+				logPrintf("\n");
 			}
 		}
+		populationAnalysisPending = false;
 	}
-
+	if(!alpha) { watch.stop(); return; } //case when step was invoked purely for population analysis
+	
 	//Move the atoms:
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++)
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
@@ -180,7 +215,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	}
 	
 	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	eVars.VdagC[q].clear();
 		matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
 		eVars.Y[q] = eVars.C[q] * orthoMat;
@@ -219,9 +254,10 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 }
 
 bool IonicMinimizer::report(int iter)
-{	e.iInfo.printPositions(globalLog);
-	e.iInfo.forces.print(e, globalLog);
+{	logPrintf("\n"); e.iInfo.printPositions(globalLog);
+	logPrintf("\n"); e.iInfo.forces.print(e, globalLog);
 	e.dump(DumpFreq_Ionic, iter);
+	populationAnalysisPending = true; //population analysis will be performed the next time step() is called
 	return false;
 }
 
@@ -234,4 +270,8 @@ double IonicMinimizer::sync(double x) const
 	return x;
 }
 
-
+double IonicMinimizer::minimize(const MinimizeParams& params)
+{	double result = Minimizable<IonicGradient>::minimize(params);
+	step(e.iInfo.forces, 0.); //so that population analysis may be performed at final positions
+	return result;
+}

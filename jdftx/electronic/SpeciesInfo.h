@@ -70,6 +70,7 @@ public:
 	~SpeciesInfo();
 	void setup(const Everything&);
 	void print(FILE* fp) const;
+	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //print population analysis given the density matrix in the Lowdin basis
 	
 	enum PseudopotentialFormat
 	{	Fhi, //!< FHI format with ABINIT header (.fhi files)

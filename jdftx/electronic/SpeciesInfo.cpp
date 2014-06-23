@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/symbols.h>
 #include <electronic/ColumnBundle.h>
+#include <fluid/Euler.h>
 #include <core/LatticeUtils.h>
 #include <core/DataMultiplet.h>
 #include <fstream>
@@ -213,31 +214,91 @@ void SpeciesInfo::print(FILE* fp) const
 			constraints[at].print(fp, *e);
 		fprintf(fp, "\n");
 	}
-	
-	//Output magnetic moments for spin-polarized calculations:
-	//--- Only supported for pseudopotentials with atomic orbitals
-	if(e->eInfo.spinType == SpinZ && OpsiRadial->size())
-	{	diagMatrix M(atpos.size(), 0.); //magnetic moments
-		for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++) //states
-		{	const ColumnBundle& Cq = e->eVars.C[q];
-			const diagMatrix& Fq = e->eVars.F[q];
-			ColumnBundle Opsi = Cq.similar(atpos.size()); //space for atomic orbitals
-			const QuantumNumber& qnum = *(Cq.qnum);
-			const Basis& basis = *(Cq.basis);
-			for(int l=0; l<int(OpsiRadial->size()); l++) //angular momenta
-				for(const RadialFunctionG& curOpsiRadial: OpsiRadial->at(l)) //principal quantum number (shells of pseudo-atom)
-					for(int m=-l; m<=+l; m++) //angular momentum directions
-					{	//Compute the atomic orbitals:
-						callPref(Vnl)(basis.nbasis, basis.nbasis, atpos.size(), l, m, qnum.k, basis.iGarrPref, e->gInfo.G, atposPref, curOpsiRadial, Opsi.dataPref());
-						//Accumulate electron counts:
-						matrix CdagOpsi = Cq ^ Opsi;
-						M += (qnum.spin * qnum.weight) * diag(dagger(CdagOpsi) * Fq * CdagOpsi);
-					}
+}
+
+void SpeciesInfo::populationAnalysis(const std::vector<matrix>& RhoAll) const
+{
+	//Calculate atomic-orbital expectation values for magnetization:
+	int orbCount = RhoAll[0].nRows() / atpos.size();
+	std::vector<matrix> Sigma; //<Psi|\vec{S}|Psi> (just Pauli matrices in the absence of spin-orbit)
+	if(e->eInfo.nDensities==4) //needed only in vector spin mode
+	{	Sigma.assign(3, zeroes(orbCount,orbCount));
+		vector3<complex*> SigmaData; for(int k=0; k<3; k++) SigmaData[k] = Sigma[k].data();
+		assert(orbCount % 2 == 0);
+		for(int iOrb=0; iOrb<orbCount; iOrb+=2)
+		{	//Sigma_x
+			SigmaData[0][Sigma[0].index(iOrb,iOrb+1)] = 1;
+			SigmaData[0][Sigma[0].index(iOrb+1,iOrb)] = 1;
+			//Sigma_y
+			SigmaData[1][Sigma[1].index(iOrb,iOrb+1)] = complex(0,-1);
+			SigmaData[1][Sigma[1].index(iOrb+1,iOrb)] = complex(0,+1);
+			//Sigma_z
+			SigmaData[2][Sigma[2].index( iOrb , iOrb )] = +1;
+			SigmaData[2][Sigma[2].index(iOrb+1,iOrb+1)] = -1;
 		}
-		mpiUtil->allReduce(M.data(), M.size(), MPIUtil::ReduceSum);
-		fprintf(fp, "# magnetic-moments %s", name.c_str());
-		for(double m: M) fprintf(fp, " %+lg", m);
-		fprintf(fp, "\n");
+	}
+	
+	//Calculate the atomic populations (and optionally magnetic moments)
+	std::vector<double> Narr(atpos.size());
+	std::vector< vector3<> > Marr(atpos.size());
+	for(size_t atom=0; atom<atpos.size(); atom++)
+		for(unsigned s=0; s<RhoAll.size(); s++)
+		{	matrix Rho = RhoAll[s](atom*orbCount,(atom+1)*orbCount, atom*orbCount,(atom+1)*orbCount);
+			double N = trace(Rho).real();
+			Narr[atom] += N;
+			switch(e->eInfo.spinType)
+			{	case SpinNone:
+				case SpinOrbit:
+					break; //no mangentization
+				case SpinZ:
+				{	Marr[atom][2] += (s ? -N : N); //z-magnetization only
+					break;
+				}
+				case SpinVector:
+				{	for(int k=0; k<3; k++)
+						Marr[atom][k] += trace(Rho * Sigma[k]).real();
+					break;
+				}
+			}
+		}
+	
+	//Symmetrize:
+	const std::vector<std::vector<int> >* atomMap;
+	for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
+		if(e->iInfo.species[sp].get()==this)
+			atomMap = &e->symm.getAtomMap()[sp];
+	std::vector<double> Nsym(atpos.size());
+	std::vector< vector3<> > Msym(atpos.size());
+	for(unsigned atom=0; atom<atpos.size(); atom++)
+	{	double den = 1./atomMap->at(atom).size();
+		for(unsigned atom2: atomMap->at(atom))
+		{	Nsym[atom] += den * Narr[atom2];
+			Msym[atom] += den * Marr[atom2];
+		}
+	}
+	std::swap(Nsym, Narr);
+	std::swap(Msym, Marr);
+	
+	//Print oxidation state:
+	logPrintf("# oxidation-state %s", name.c_str());
+	for(double N: Narr) logPrintf(" %+.3lf", Z-N); //report net electron deficit as oxidation state
+	logPrintf("\n");
+	
+	//Print magnetization:
+	if(e->eInfo.nDensities > 1)
+	{	logPrintf("# magnetic-moments %s", name.c_str());
+		for(vector3<> Mvec: Marr)
+		{	if(e->eInfo.nDensities==2) //spinType==SpinZ
+			{	logPrintf(" %+.3lf", Mvec[2]);
+			}
+			else //spinType==SpinVector
+			{	double M = Mvec.length();
+				vector3<> euler; if(M) getEulerAxis(Mvec, euler);
+				euler *= 180./M_PI; //convert to degrees
+				logPrintf("   %.3lf %.1lf %.1lf", M, euler[1], euler[0]);
+			}
+		}
+		logPrintf("\n");
 	}
 }
 

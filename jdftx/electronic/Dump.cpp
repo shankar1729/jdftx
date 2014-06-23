@@ -47,7 +47,16 @@ void Dump::setup(const Everything& everything)
 void Dump::operator()(DumpFrequency freq, int iter)
 {
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
-
+	
+	bool foundVars = false; //whether any variables are to be dumped at this frequency
+	for(auto entry: *this)
+		if(entry.first==freq && entry.second!=DumpNone)
+		{	foundVars = true;
+			break;
+		}
+	if(!foundVars) return;
+	logPrintf("\n");
+	
 	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
 	const IonInfo &iInfo = e->iInfo;

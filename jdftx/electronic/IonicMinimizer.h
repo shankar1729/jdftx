@@ -54,7 +54,6 @@ class IonicMinimizer : public Minimizable<IonicGradient>
 	
 public:
 	IonicMinimizer(Everything& e);
-	
 	//Virtual functions from Minimizable:
 	void step(const IonicGradient& dir, double alpha);
 	double compute(IonicGradient* grad);
@@ -62,6 +61,10 @@ public:
 	bool report(int iter);
 	void constrain(IonicGradient&);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
+	
+	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
+private:
+	bool populationAnalysisPending; //!< report() has requested a charge analysis output that is yet to be done
 };
 
 #endif // JDFTX_ELECTRONIC_IONICMINIMIZER_H
