@@ -295,7 +295,7 @@ void SpeciesInfo::readUspp(istream& is)
 		//Q radial functions and integrals:
 		logPrintf("  Transforming density augmentations to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridLoc);
 		Qint.resize(lMax+1);
-		for(int l=0; l<=lMax; l++)
+		for(int l=0; l<=lMax; l++) if(lBeta[l].size())
 			Qint[l] = zeroes(lBeta[l].size(), lBeta[l].size());
 		for(int l1=0; l1<=lMax; l1++) for(int p1=0; p1<int(lBeta[l1].size()); p1++)
 		{	int iBeta = lBeta[l1][p1];
