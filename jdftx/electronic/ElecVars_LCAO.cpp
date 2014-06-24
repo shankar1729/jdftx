@@ -203,6 +203,7 @@ int ElecVars::LCAO()
 		for(auto sp: e->iInfo.species)
 			if(sp->atpos.size())  // Check for unused species
 				sp->accumulateAtomicDensity(nTilde);
+		nullToZero(nTilde, e->gInfo);
 		for(unsigned s=0; s<n.size(); s++)
 		{	n[s] = I(nTilde[s]);
 			nTilde[s] = 0; //free memory

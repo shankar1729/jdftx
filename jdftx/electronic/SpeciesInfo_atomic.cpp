@@ -267,7 +267,7 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 			eigMap[atomEigs[l][p]] = std::make_pair(l,p);
 	}
 	if(spinCount>1 && magneticMoment)
-		logPrintf("%s (M=%lg) pseudo-atom spin=%+d occupations: ", name.c_str(), magneticMoment, 1-2*spin);
+		logPrintf("%s (M=%lg) pseudo-atom %s spin occupations: ", name.c_str(), magneticMoment, spin==0 ? "majority" : "minority");
 	else
 		logPrintf("%s pseudo-atom occupations: ", name.c_str());
 	double Nvalence = Z - initialOxidationState;
