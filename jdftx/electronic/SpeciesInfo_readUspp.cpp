@@ -26,26 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! which covers what (almost) everyone uses to compile the USPP generator program.
 #define FORTRAN_RECORD_MARKER_LENGTH 4 
 
-//Overlap of two radial functions (assumes same grid configuration, but one grid could be shorter)
-double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
-{	size_t nr = std::min(X.f.size(), Y.f.size());
-	assert(X.r.size() >= nr);
-	assert(X.dr.size() >= nr);
-	double ret = 0.;
-	for(size_t i=0; i<nr; i++)
-	{	const double& r = X.r[i];
-		const double& dr = X.dr[i];
-		ret += (r*r*dr) * (X.f[i] * Y.f[i]);
-	}
-	return ret;
-}
-//Accumulate radial functions (assumes same grid configuration, but X could be shorter)
-void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
-{	size_t nr = X.f.size();
-	assert(Y.f.size() >= nr);
-	for(size_t i=0; i<nr; i++) Y.f[i] += alpha * X.f[i];
-}
-
 
 //! Read the fortran sequential binary uspp format (need to skip record start/stop markers)
 struct UsppReader
@@ -348,36 +328,19 @@ void SpeciesInfo::readUspp(istream& is)
 	//Wavefunctions:
 	if(nPsi == nValence) // <- this seems to always be the case, but just to be sure
 	{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
-		OpsiRadial = new std::vector<std::vector<RadialFunctionG> >;
 		psiRadial.resize(lMax+1);
-		OpsiRadial->resize(lMax+1);
 		atomEigs.resize(lMax+1);
 		for(int v=0; v<nValence; v++)
 		{	int l = (voCode[v]/10)%10; //l is 2nd digit of orbital code (ie. |210> is l=1)
 			if(l>lMax) //this can happen occassionaly when lLocal==lMax
 			{	psiRadial.resize(l+1);
-				OpsiRadial->resize(l+1);
 				atomEigs.resize(l+1);
-				lBeta.resize(l+1);
 			}
 			voPsi[v].set(rGrid, drGrid);
 			for(int i=0; i<nGrid; i++)
 				voPsi[v].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
 			psiRadial[l].push_back(RadialFunctionG());
 			voPsi[v].transform(l, dG, nGridNL, psiRadial[l].back());
-			//Create O(psi) on the radial grid:
-			RadialFunctionR Opsi = voPsi[v];
-			if(Qint.size())
-			{	std::vector<double> VdagPsi(lBeta[l].size());
-				for(size_t p=0; p<lBeta[l].size(); p++)
-					VdagPsi[p] = dot(Vnl[lBeta[l][p]], voPsi[v]);
-				complex* Qdata = Qint[l].data();
-				for(size_t p1=0; p1<lBeta[l].size(); p1++)
-					for(size_t p2=0; p2<lBeta[l].size(); p2++)
-						axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], Vnl[lBeta[l][p1]], Opsi);
-			}
-			OpsiRadial->at(l).push_back(RadialFunctionG());
-			Opsi.transform(l, dG, nGridNL, OpsiRadial->at(l).back());
 			//Store eigenvalue:
 			atomEigs[l].push_back(voEnergy[v]);
 		}

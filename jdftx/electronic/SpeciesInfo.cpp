@@ -91,7 +91,7 @@ SpeciesInfo::SpeciesInfo()
 	initialOxidationState = 0.;
 	
 	pulayfilename ="none";
-	OpsiRadial = &psiRadial;
+	OpsiRadial = 0;
 
 	nAug = 0;
 	E_nAug = 0;
@@ -118,6 +118,9 @@ SpeciesInfo::~SpeciesInfo()
 	}
 }
 
+//RadialFunctionR operators implemented in SpeciesInfo_atomic.cpp (used below for computing Opsi)
+double dot(const RadialFunctionR& X, const RadialFunctionR& Y);
+void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
 
 void SpeciesInfo::setup(const Everything &everything)
 {	e = &everything;
@@ -132,11 +135,42 @@ void SpeciesInfo::setup(const Everything &everything)
 		case Uspp: readUspp(ifs); break;
 		case UPF: readUPF(ifs); break;
 	}
+
+	//Initialize Opsi if needed:
+	if(Qint.size())
+	{	OpsiRadial = new std::vector<std::vector<RadialFunctionG> >(psiRadial.size());
+		const double dG = e->gInfo.dGradial;
+		const int nGridNL = int(ceil(e->gInfo.GmaxSphere/dG))+5;
+		logPrintf("  Transforming overlap'd orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
+		for(int l=0; l<int(psiRadial.size()); l++)
+			for(size_t n=0; n<psiRadial[l].size(); n++)
+			{	const RadialFunctionR& psi = *(psiRadial[l][n].rFunc);
+				RadialFunctionR Opsi = psi;
+				if(Qint.size() && l<int(VnlRadial.size()))
+				{	std::vector<double> VdagPsi(VnlRadial[l].size());
+					for(size_t p=0; p<VnlRadial[l].size(); p++)
+						VdagPsi[p] = dot(*(VnlRadial[l][p].rFunc), psi);
+					complex* Qdata = Qint[l].data();
+					for(size_t p1=0; p1<VnlRadial[l].size(); p1++)
+						for(size_t p2=0; p2<VnlRadial[l].size(); p2++)
+							axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], *(VnlRadial[l][p1].rFunc), Opsi);
+				}
+				OpsiRadial->at(l).push_back(RadialFunctionG());
+				Opsi.transform(l, dG, nGridNL, OpsiRadial->at(l).back());
+			}
+	}
+	else OpsiRadial = &psiRadial; //psi == Opsi for norm-conserving PSP
+	
+	//Estimate eigenvalues (if not read from file):
 	estimateAtomEigs();
+	
+	//Setup data for core overlap check
 	if(coreRadius) logPrintf("  Core radius for overlap checks: %.2lf bohrs.\n", coreRadius);
 	else if(!VnlRadial.size()) logPrintf("  Disabling overlap check for local pseudopotential.\n");
 	else logPrintf("  Warning: could not determine core radius; disabling overlap check for this species.\n");
-	setupPulay(); //Pulay info
+	
+	//Pulay info:
+	setupPulay(); 
 
 	//Check for augmentation:
 	if(Qint.size())

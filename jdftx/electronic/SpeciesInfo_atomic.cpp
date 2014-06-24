@@ -27,9 +27,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //------- SpeciesInfo functions related to atomic orbitals -------
 
 
-//RadialFunctionR operators implemented in SpeciesInfo_readUSPP
-double dot(const RadialFunctionR& X, const RadialFunctionR& Y);
-void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
+//Overlap of two radial functions (assumes same grid configuration, but one grid could be shorter)
+double dot(const RadialFunctionR& X, const RadialFunctionR& Y)
+{	size_t nr = std::min(X.f.size(), Y.f.size());
+	assert(X.r.size() >= nr);
+	assert(X.dr.size() >= nr);
+	double ret = 0.;
+	for(size_t i=0; i<nr; i++)
+	{	const double& r = X.r[i];
+		const double& dr = X.dr[i];
+		ret += (r*r*dr) * (X.f[i] * Y.f[i]);
+	}
+	return ret;
+}
+//Accumulate radial functions (assumes same grid configuration, but X could be shorter)
+void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
+{	size_t nr = X.f.size();
+	assert(Y.f.size() >= nr);
+	for(size_t i=0; i<nr; i++) Y.f[i] += alpha * X.f[i];
+}
+
 
 
 void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const

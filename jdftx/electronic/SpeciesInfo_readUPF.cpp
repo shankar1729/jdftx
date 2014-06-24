@@ -159,10 +159,6 @@ private:
 	}
 };
 
-//RadialFunctionR operations from SpeciesInfo_readUspp.cpp
-double dot(const RadialFunctionR& X, const RadialFunctionR& Y);
-void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
-
 void SpeciesInfo::readUPF(istream& is)
 {	
 	int lMax = 0; //max angular momentum
@@ -171,6 +167,8 @@ void SpeciesInfo::readUPF(istream& is)
 	int nPsi = 0; //number of atomic orbitals
 	std::vector<double> rGrid, drGrid; //radial grid and integration factor
 	std::set<double> coreRadii; //ordered list of various cutoff radii
+	std::vector<int> lNL; std::vector<double> jNL; //orbital and total angular momentum per projector
+	std::vector<int> lPsi; std::vector<double> jPsi; //orbital and total angular momentum per orbital
 	
 	const double dG = e->gInfo.dGradial;
 	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
@@ -243,7 +241,7 @@ void SpeciesInfo::readUPF(istream& is)
 			Vloc.transform(0, dG, nGridLoc, VlocRadial);
 		}
 		else if(tag.name == "PP_NONLOCAL")
-		{	std::vector<int> lNL(nBeta, -1); //angular momentum per projector
+		{	lNL.assign(nBeta, -1); //angular momentum per projector
 			std::vector<RadialFunctionR> Vnl(nBeta, RadialFunctionR(nGrid)); //projectors
 			std::vector<std::vector<double> > D(nBeta); //descreened D matrix (Mnl in our notation)
 			std::vector<std::vector<double> > Q(nBeta); //overlap augmentation matrix (goes to Qint in SpeciesInfo)
@@ -419,11 +417,10 @@ void SpeciesInfo::readUPF(istream& is)
 			}
 		}
 		else if(tag.name == "PP_PSWFC")
-		{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
-			std::vector<double> lPsi(nPsi, -1); //angular momentum per atomic orbital
-			psiRadial.resize(lMax+1);
-			atomEigs.resize(lMax+1);
-			bool haveEigs = false;
+		{	lPsi.assign(nPsi, -1); //angular momentum per atomic orbital
+			std::vector<RadialFunctionR> psi(nPsi, RadialFunctionR(nGrid)); //orbitals
+			std::vector<double> eigs(nPsi); //eigenvalues
+			bool haveEigs = true;
 			while(true)
 			{	XMLtag tagPsi(is);
 				if(!tagPsi.name.length()) break;
@@ -433,31 +430,22 @@ void SpeciesInfo::readUPF(istream& is)
 						die("  Invalid orbital index %d (not in range [1,%d]) in section '%s'\n", iPsi, nPsi, tagPsi.name.c_str());
 					iPsi--; //to zero-based index
 					//Angular momentum
-					int l = atoi(tagPsi.getAttribute("l").c_str());
-					lPsi[iPsi] = l;
-					if(l>lMax)
-					{	atomEigs.resize(l+1);
-						psiRadial.resize(l+1);
-					}
+					lPsi[iPsi] = atoi(tagPsi.getAttribute("l").c_str());
+					if(lPsi[iPsi]<0)
+						die("  Invalid projector angular momentum %d (not >= 0) in section '%s'\n", lPsi[iPsi], tagPsi.name.c_str());
 					//Eigenvalue and general info:
 					double occ = atof(tagPsi.getAttribute("occupation").c_str());
 					string label = tagPsi.getAttribute("label");
-					double eig = atof(tagPsi.getAttribute("pseudo_energy", false).c_str()) * 0.5; //convert from Ry to Eh
-					logPrintf("    %-3s   l: %d   occupation: %4.1lf", label.c_str(), l, occ);
-					if(eig)
-					{	logPrintf("   eigenvalue: %lf", eig);
-						atomEigs[l].push_back(eig);
-						haveEigs=true;
-					}
+					eigs[iPsi] = atof(tagPsi.getAttribute("pseudo_energy", false).c_str()) * 0.5; //convert from Ry to Eh
+					logPrintf("    %-3s   l: %d   occupation: %4.1lf", label.c_str(), lPsi[iPsi], occ);
+					if(eigs[iPsi])
+						logPrintf("   eigenvalue: %lf", eigs[iPsi]);
+					else
+						haveEigs=false;
 					logPrintf("\n");
 					//Orbital function:
-					RadialFunctionR psi(nGrid);
-					psi.set(rGrid, drGrid);
-					psi.f = tagPsi.readData(nGrid);
-					for(int i=0; i<nGrid; i++)
-						psi.f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
-					psiRadial[l].push_back(RadialFunctionG());
-					psi.transform(l, dG, nGridNL, psiRadial[l].back());
+					psi[iPsi].set(rGrid, drGrid);
+					psi[iPsi].f = tagPsi.readData(nGrid);
 				}
 				else
 				{	logPrintf("  NOTE: ignored section '%s'\n", tagPsi.name.c_str());
@@ -465,25 +453,50 @@ void SpeciesInfo::readUPF(istream& is)
 				}
 				tagPsi.close();
 			}
-			if(!haveEigs) atomEigs.clear();
-			//Compute Opsi:
-			OpsiRadial = new std::vector<std::vector<RadialFunctionG> >(psiRadial.size());
-			for(int l=0; l<int(psiRadial.size()); l++)
-				for(size_t n=0; n<psiRadial[l].size(); n++)
-				{	const RadialFunctionR& psi = *(psiRadial[l][n].rFunc);
-					RadialFunctionR Opsi = psi;
-					if(Qint.size() && l<int(VnlRadial.size()))
-					{	std::vector<double> VdagPsi(VnlRadial[l].size());
-						for(size_t p=0; p<VnlRadial[l].size(); p++)
-							VdagPsi[p] = dot(*(VnlRadial[l][p].rFunc), psi);
-						complex* Qdata = Qint[l].data();
-						for(size_t p1=0; p1<VnlRadial[l].size(); p1++)
-							for(size_t p2=0; p2<VnlRadial[l].size(); p2++)
-								axpy(Qdata[Qint[l].index(p1,p2)].real()*VdagPsi[p2], *(VnlRadial[l][p1].rFunc), Opsi);
+			if(nPsi > 0)
+			{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
+				psiRadial.resize(lMax+1);
+				if(haveEigs) atomEigs.resize(lMax+1);
+				for(int iPsi=0; iPsi<nPsi; iPsi++)
+				{	int l = lPsi[iPsi];
+					if(l>lMax)
+					{	atomEigs.resize(l+1);
+						psiRadial.resize(l+1);
 					}
-					OpsiRadial->at(l).push_back(RadialFunctionG());
-					Opsi.transform(l, dG, nGridNL, OpsiRadial->at(l).back());
+					for(int i=0; i<nGrid; i++)
+						psi[iPsi].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
+					psiRadial[l].push_back(RadialFunctionG());
+					psi[iPsi].transform(l, dG, nGridNL, psiRadial[l].back());
+					if(haveEigs) atomEigs[l].push_back(eigs[iPsi]);
 				}
+			}
+		}
+		else if(tag.name == "PP_SPIN_ORB")
+		{	jNL.resize(nBeta, -1.);
+			jPsi.resize(nPsi, -1.);
+			while(true)
+			{	XMLtag tagSO(is);
+				if(!tagSO.name.length()) break;
+				if(tagSO.name.substr(0,11) == "PP_RELBETA.") //Projector SO info
+				{	int iBeta = atoi(tagSO.name.substr(11).c_str());
+					if(iBeta<1 || iBeta>nBeta)
+						die("  Invalid projector index %d (not in range [1,%d]) in section '%s'\n", iBeta, nBeta, tagSO.name.c_str());
+					iBeta--; //to zero-based index
+					jNL[iBeta] = atof(tagSO.getAttribute("jjj").c_str());
+				}
+				else if(tagSO.name.substr(0,10) == "PP_RELWFC.") //Atomic orbital SO info
+				{	int iPsi = atoi(tagSO.name.substr(10).c_str());
+					if(iPsi<1 || iPsi>nPsi)
+						die("  Invalid orbital index %d (not in range [1,%d]) in section '%s'\n", iPsi, nPsi, tagSO.name.c_str());
+					iPsi--; //to zero-based index
+					jPsi[iPsi] = atof(tagSO.getAttribute("jchi").c_str());
+				}
+				else
+				{	logPrintf("  NOTE: ignored section '%s'\n", tagSO.name.c_str());
+					tagSO.ignoreAndClose();
+				}
+				tagSO.close();
+			}
 		}
 		else //Unused/unknown section (ignore, but mention in log file just in case)
 		{	logPrintf("  NOTE: ignored section '%s'\n", tag.name.c_str());
@@ -492,6 +505,24 @@ void SpeciesInfo::readUPF(istream& is)
 		tag.close();
 	}
 	tagUPF.ignoreAndClose();
+	
+	//Process j's for relativistic pseudopotentials
+	if(jNL.size())
+	{	Vnl2j.resize(VnlRadial.size());
+		psi2j.resize(psiRadial.size());
+		for(int iBeta=0; iBeta<nBeta; iBeta++)
+		{	int j2 = round(2*jNL[iBeta]), l = lNL[iBeta];
+			if(not (j2==2*l-1 || j2==2*l+1))
+				die("  Total angular momentum %lg incompatible with orbital angular momentum %d for projector# %d\n", jNL[iBeta], l, iBeta+1);
+			Vnl2j[l].push_back(j2);
+		}
+		for(int iPsi=0; iPsi<nPsi; iPsi++)
+		{	int j2 = round(2*jPsi[iPsi]), l = lPsi[iPsi];
+			if(not (j2==2*l-1 || j2==2*l+1))
+				die("  Total angular momentum %lg incompatible with orbital angular momentum %d for orbital# %d\n", jPsi[iPsi], l, iPsi+1);
+			psi2j[l].push_back(j2);
+		}
+	}
 	
 	coreRadius = *coreRadii.rbegin(); //max of all core radii above (used for overlap checks during geometry opt)
 }

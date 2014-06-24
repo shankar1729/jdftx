@@ -166,6 +166,9 @@ private:
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
 	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
 	
+	//! Extra information for spin-orbit coupling:
+	std::vector< std::vector<int> > Vnl2j, psi2j; //!< 2*j for the projectors and orbitals respectively
+	
 	//!Parameters for optional DFT+U corrections
 	struct PlusU
 	{	int n, l; //!< Principal and angular quantum numbers
