@@ -240,7 +240,7 @@ void SpeciesInfo::setup(const Everything &everything)
 				}
 				lOffset = iProj;
 			}
-			if(isRelativistic())
+			if(isRelativistic() && Qint.size())
 				QintAll = fljAll * QintAll * fljAll;
 		}
 	}
