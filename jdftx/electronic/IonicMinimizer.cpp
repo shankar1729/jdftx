@@ -228,6 +228,11 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 
 double IonicMinimizer::compute(IonicGradient* grad)
 {
+	if(not e.iInfo.checkPositions())
+	{	logPrintf("\nBacking off ionic step since it caused pseudopotential core overlaps.\n");
+		return NAN;
+	}
+	
 	//Initialize ion-dependent quantities at this position:
 	e.iInfo.update(e.ener);
 

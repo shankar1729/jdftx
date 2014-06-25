@@ -131,11 +131,6 @@ double IonInfo::getZtot() const
 void IonInfo::update(Energies& ener)
 {	const GridInfo &gInfo = e->gInfo;
 
-	if(not checkPositions())
-		ener.E["core-overlap"] = NAN;
-	else
-		ener.E["core-overlap"] = 0.;
-
 	//----------- update Vlocps, rhoIon, nCore and nChargeball --------------
 	initZero(Vlocps, gInfo);
 	initZero(rhoIon, gInfo);

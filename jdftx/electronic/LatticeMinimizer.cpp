@@ -149,7 +149,10 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		logPrintf("\n");
 		return NAN;
 	}
-
+	if(not e.iInfo.checkPositions())
+	{	logPrintf("\nBacking off lattice step since it caused pseudopotential core overlaps.\n");
+		return NAN;
+	}
 	
 	//! Run an ionic minimizer at the current strain
 	IonicMinimizer ionicMinimizer(e);
