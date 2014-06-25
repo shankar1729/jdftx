@@ -822,7 +822,7 @@ void DOS::dump()
 					for(int m=mMin; m<=mMax; m++)
 					{	int iCol = spOffset[weight.specieIndex]
 								+ e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(
-									weight.atomIndex, oDesc.n, l, m);
+									weight.atomIndex, oDesc.n, l, m, 0);
 						proj.set(0,C.nCols(), m-mMin,m-mMin+1,
 							(weight.type==Weight::Orbital ? CdagOpsi : CdagOpsiOrtho)(0,C.nCols(), iCol,iCol+1) );
 					}

@@ -76,6 +76,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	{	//Get projections and calculate density matrix at this atom:
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
 		matrix RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		if(isRelativistic()) RhoAll = fljAll * RhoAll * fljAll; //transformation for relativistic pseudopotential
 		std::vector<matrix> Rho(e->eInfo.nDensities); //RhoAll split by spin(-density-matrix) components
 		if(e->eInfo.isNoncollinear())
 		{	matrix RhoUp = RhoAll(0,2,nProj, 0,2,nProj);
@@ -238,6 +239,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const d
 		else std::swap(E_RhoAll, E_Rho[qnum.index()]);
 		
 		//Propagate gradients from densiy matrix to projections:
+		if(isRelativistic()) E_RhoAll = fljAll * E_RhoAll * fljAll; //transformation for relativistic pseudopotential
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
 		matrix E_atomRhoVdagC = E_RhoAll * atomVdagC;
 		E_RhoVdagC.set(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols(), E_atomRhoVdagC);

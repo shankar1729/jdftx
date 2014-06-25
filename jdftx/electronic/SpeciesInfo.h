@@ -71,6 +71,7 @@ public:
 	void setup(const Everything&);
 	void print(FILE* fp) const;
 	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //print population analysis given the density matrix in the Lowdin basis
+	bool isRelativistic() const { return psi2j.size(); } //!< whether pseudopotential is relativistic
 	
 	enum PseudopotentialFormat
 	{	Fhi, //!< FHI format with ABINIT header (.fhi files)
@@ -118,7 +119,8 @@ public:
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
 	int nAtomicOrbitals(int l) const; //!< return number of (pseudo-)principal quantum numbers for atomic orbitals of given l
-	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m) const; //!< offset of specified atomic orbital in output of current species (when not using the fixed n and l version)
+	int atomicOrbitalOffset(unsigned iAtom, unsigned n, int l, int m, int s) const; //!< offset of specified atomic orbital in output of current species (when not using the fixed n and l version)
+		//!< s is 0/1 for up/dn spinors in non-relativistic case, s=0/1 is for j=l+/-0.5 and mj=m+/-0.5 in relativistic case
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
@@ -131,6 +133,9 @@ public:
 	//! Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces:
 	void accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const;
 	
+	//! Spin-angle helper functions:
+	static matrix getYlmToSpinAngleMatrix(int l, int j2); //!< Get the ((2l+1)*2)x(j2+1) matrix that transforms the Ylm+spin to the spin-angle functions, where j2=2*j with j = l+/-0.5
+	static matrix getYlmOverlapMatrix(int l, int j2); //!< Get the ((2l+1)*2)x((2l+1)*2) overlap matrix of the spin-spherical harmonics for total angular momentum j (note j2=2*j)
 private:
 	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
 
@@ -168,6 +173,7 @@ private:
 	
 	//! Extra information for spin-orbit coupling:
 	std::vector< std::vector<int> > Vnl2j, psi2j; //!< 2*j for the projectors and orbitals respectively
+	matrix fljAll; //!< block-diagonal collection of YlmOverlapMatrix for all projectors on one atom
 	
 	//!Parameters for optional DFT+U corrections
 	struct PlusU

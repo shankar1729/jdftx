@@ -160,16 +160,18 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	int nOrbitalsPerAtom = 0;
 	for(int l=0; l<int(fRadial.size()); l++)
-		nOrbitalsPerAtom += fRadial[l].size()*(2*l+1)*nSpinCopies;
+		nOrbitalsPerAtom += nAtomicOrbitals(l)*(2*l+1)*nSpinCopies;
 	int iCol = colOffset;
 	for(int l=0; l<int(fRadial.size()); l++)
-		for(unsigned n=0; n<fRadial[l].size(); n++)
+		for(int n=0; n<nAtomicOrbitals(l); n++)
 		{	setAtomicOrbitals(Y, applyO, n, l, iCol, nOrbitalsPerAtom);
 			iCol += (2*l+1)*nSpinCopies;
 		}
 }
 void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, int l, int colOffset, int atomColStride) const
 {	if(!atpos.size()) return;
+	assert(l < int(psiRadial.size()));
+	assert(int(n) < nAtomicOrbitals(l));
 	const auto& fRadial = applyO ? *OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	int nOrbitalsPerAtom = (2*l+1)*nSpinCopies;
@@ -178,29 +180,67 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 	assert(colOffset + atomColStride*int(atpos.size()-1) + nOrbitalsPerAtom <= psi.nCols());
 	if(nSpinCopies>1) assert(psi.isSpinor()); //can have multiple spinor copies only in spinor mode
 	const Basis& basis = *psi.basis;
-	int iCol = colOffset; //current column
-	for(int m=-l; m<=l; m++)
-	{	//Set atomic orbitals for all atoms at specified (n,l,m):
-		size_t atomStride = psi.colLength() * atomColStride;
-		size_t offs = iCol * psi.colLength();
-		callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, fRadial[l][n], psi.dataPref()+offs);
-		if(nSpinCopies>1) //make copy for other spin
-		{	complex* dataPtr = psi.dataPref()+offs;
-			for(size_t a=0; a<atpos.size(); a++)
-			{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
-				callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
-				dataPtr += atomStride;
-			}
+	if(isRelativistic() && l>0)
+	{	//find the two orbital indices corresponding to different j of same n
+		std::vector<int> pArr; 
+		for(int j2=2*l-1; j2<=2*l+1; j2+=2)
+		{	unsigned ns = 0;
+			for(unsigned p=0; p<psiRadial[l].size(); p++)
+				if(psi2j[l][p]==j2)
+				{	if(ns==n) { pArr.push_back(p); break; }
+					ns++;
+				}
 		}
-		iCol += nSpinCopies;
+		//Initialize a non-spinor ColumnBundle containing all m's for both j functions:
+		ColumnBundle V(atpos.size()*nOrbitalsPerAtom, basis.nbasis, &basis, psi.qnum, isGpuEnabled());
+		int iCol=0;
+		for(int p: pArr) for(int m=-l; m<=l; m++)
+		{	size_t atomStride = V.colLength() * nOrbitalsPerAtom;
+			size_t offs = iCol * V.colLength();
+			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, fRadial[l][p], V.dataPref()+offs);
+			iCol++;
+		}
+		//Transform the non-spinor ColumnBundle to the spinorial j eigenfunctions:
+		int N = nOrbitalsPerAtom;
+		matrix transform = zeroes(2*N, N);
+		transform.set(0,N,   0,2*l, getYlmToSpinAngleMatrix(l, 2*l-1));
+		transform.set(N,2*N, 2*l,N, getYlmToSpinAngleMatrix(l, 2*l+1));
+		for(size_t a=0; a<atpos.size(); a++)
+			psi.setSub(colOffset+a*atomColStride, V.getSub(a*N,(a+1)*N) * transform);
+	}
+	else
+	{	int iCol = colOffset; //current column
+		for(int m=-l; m<=l; m++)
+		{	//Set atomic orbitals for all atoms at specified (n,l,m):
+			size_t atomStride = psi.colLength() * atomColStride;
+			size_t offs = iCol * psi.colLength();
+			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarrPref, e->gInfo.G, atposPref, fRadial[l][n], psi.dataPref()+offs);
+			if(nSpinCopies>1) //make copy for other spin
+			{	complex* dataPtr = psi.dataPref()+offs;
+				for(size_t a=0; a<atpos.size(); a++)
+				{	callPref(eblas_zero)(2*basis.nbasis, dataPtr+basis.nbasis);
+					callPref(eblas_copy)(dataPtr+3*basis.nbasis, dataPtr, basis.nbasis);
+					dataPtr += atomStride;
+				}
+			}
+			iCol += nSpinCopies;
+		}
 	}
 }
 int SpeciesInfo::nAtomicOrbitals() const
 {	int nOrbitals = 0;
-	for(int l=0; l<int(psiRadial.size()); l++)
-		nOrbitals += (2*l+1)*psiRadial[l].size();
-	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	return nOrbitals * atpos.size() * nSpinCopies;
+	if(isRelativistic())
+	{	for(int l=0; l<int(psiRadial.size()); l++)
+			for(unsigned n=0; n<psiRadial[l].size(); n++)
+				nOrbitals += (psi2j[l][n]+1);
+		return nOrbitals * atpos.size();
+	}
+	else
+	{	for(int l=0; l<int(psiRadial.size()); l++)
+			nOrbitals += (2*l+1)*psiRadial[l].size();
+		int nSpinCopies = 2/e->eInfo.qWeightSum;
+		return nOrbitals * atpos.size() * nSpinCopies;
+	}
 }
 int SpeciesInfo::lMaxAtomicOrbitals() const
 {	return int(psiRadial.size()) - 1;
@@ -208,20 +248,32 @@ int SpeciesInfo::lMaxAtomicOrbitals() const
 int SpeciesInfo::nAtomicOrbitals(int l) const
 {	assert(l >= 0);
 	if(unsigned(l) >= psiRadial.size()) return -1; //signals end of l
-	return psiRadial[l].size();
+	return psiRadial[l].size() / ((isRelativistic() && l>0) ? 2 : 1); //principal quantum number reduced by a factor of 2 when psiRadial counts the j splitting
 }
-int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m) const
+int SpeciesInfo::atomicOrbitalOffset(unsigned int iAtom, unsigned int n, int l, int m, int s) const
 {	assert(iAtom < atpos.size());
 	assert(l >= 0); assert(unsigned(l) < psiRadial.size());
-	assert(n < psiRadial[l].size());
-	assert(m >= -l); assert(m <= l);
-	int iOrb = l+m; //orbitals from previous m at current n,l,atom
-	for(int L=0; L<=l; L++)
-		iOrb += (L==l ? n : psiRadial[L].size()) * (2*L+1); //orbitals from previous l,n at current atom
-	for(unsigned L=0; L<psiRadial.size(); L++)
-		iOrb += psiRadial[L].size() * (2*L+1) * iAtom; //orbitals from previous atoms
+	assert(s < e->eInfo.spinorLength());
+	assert(int(n) < nAtomicOrbitals(l));
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
-	return iOrb * nSpinCopies; //include spinor factor if any
+	int iOrb = 0;
+	for(int L=0; L<int(psiRadial.size()); L++)
+	{	int nCount_L = nAtomicOrbitals(L);
+		iOrb += nCount_L * (2*L+1)*nSpinCopies * iAtom; //orbitals from previous atoms
+		if(L<=l)
+			iOrb += (L==l ? n : nCount_L) * (2*L+1)*nSpinCopies; //orbitals from previous l,n at current atom
+	}
+	if(isRelativistic())
+	{	int j2 = 2*l + (s ? -1 : +1); //2*j
+		int mj2 = 2*m +  + (s ? -1 : +1); //2*m_j
+		assert(mj2 >= -j2); assert(mj2 <= j2);
+		if(s==0) iOrb += 2*l; //include orbitals from previous j at current n,l,atom (j = l-1/2 (accessed using s=1) is stored first)
+		return iOrb + (j2+mj2)/2; //include orbitals from previous m at current j,n,l,atom
+	}
+	else
+	{	assert(m >= -l); assert(m <= l);
+		return iOrb + (l+m)*nSpinCopies + s; //include orbitals from previous m,s at current n,l,atom
+	}
 }
 
 void SpeciesInfo::estimateAtomEigs()
@@ -233,8 +285,7 @@ void SpeciesInfo::estimateAtomEigs()
 		logPrintf("  Approximate pseudo-atom eigenvalues: ");
 		atomEigs.resize(psiRadial.size());
 		for(unsigned l=0; l<psiRadial.size(); l++)
-		{	logPrintf(" l=%d: (", l);
-			for(unsigned p=0; p<psiRadial[l].size(); p++)
+		{	for(unsigned p=0; p<psiRadial[l].size(); p++)
 			{	const RadialFunctionR& psi = *(psiRadial[l][p].rFunc);
 				//Find points deep in the tail of the wavefunction, but still far above roundoff limit:
 				double r[2], e[2];
@@ -252,21 +303,34 @@ void SpeciesInfo::estimateAtomEigs()
 				if(e[0] && e[1])
 				{	double eCorrected = (r[0]*e[0] - r[1]*e[1]) / (r[0] - r[1]); //correct for remnant Z/r term in non-neutral atoms
 					atomEigs[l].push_back(eCorrected);
-					logPrintf(" %.2lg", eCorrected);
 				}
-				else
-				{	psiRadial[l][p].free();
-					psiRadial[l].erase(psiRadial[l].begin()+p);
-					p--;
+				else //unbound state
+				{	atomEigs[l].push_back(std::numeric_limits<double>::infinity()); //make sure it doesn't get occupied
 					invalidPsis[l]++;
 				}
 			}
-			logPrintf(" )");
+			//Print:
+			const char orbCode[] = "spdfgh";
+			if(isRelativistic() && l>0) //split by j
+			{	int l2 = 2*l;
+				for(int j2=l2-1; j2<=l2+1; j2+=2)
+				{	logPrintf("  %c%c (", orbCode[l], (j2<l2 ? '-' : '+'));
+					for(unsigned p=0; p<psiRadial[l].size(); p++)
+						if(psi2j[l][p]==j2) logPrintf(" %.2lg", atomEigs[l][p]);
+					logPrintf(" )");
+				}
+			}
+			else
+			{	logPrintf("  %c (", orbCode[l]);
+				for(unsigned p=0; p<psiRadial[l].size(); p++)
+					logPrintf(" %.2lg", atomEigs[l][p]);
+				logPrintf(" )");
+			}
 		}
 		logPrintf("\n");
 		//Report removal of invalid psi's:
 		for(auto invalidPsi: invalidPsis)
-			logPrintf("  WARNING: Discarded %d l=%d unbound projectors from atomic orbital set.\n", invalidPsi.second, invalidPsi.first);
+			logPrintf("  WARNING: encountered %d l=%d unbound projectors in atomic orbital set.\n", invalidPsi.second, invalidPsi.first);
 	}
 }
 
@@ -276,12 +340,12 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 	assert(spin >= 0); assert(spin < spinCount);
 	
 	//Determine occupations:
-	std::map< double, std::pair<unsigned,unsigned> > eigMap; //map from eigenvalues to (l,p)
+	std::multimap< double, std::pair<unsigned,unsigned> > eigMap; //map from eigenvalues to (l,p)
 	std::vector<std::vector<double> > atomF(psiRadial.size());
 	for(unsigned l=0; l<psiRadial.size(); l++)
 	{	atomF[l].resize(psiRadial[l].size());
 		for(unsigned p=0; p<psiRadial[l].size(); p++)
-			eigMap[atomEigs[l][p]] = std::make_pair(l,p);
+			eigMap.insert(std::make_pair(atomEigs[l][p], std::make_pair(l,p)));
 	}
 	if(spinCount>1 && magneticMoment)
 		logPrintf("%s (M=%lg) pseudo-atom %s spin occupations: ", name.c_str(), magneticMoment, spin==0 ? "majority" : "minority");
@@ -295,18 +359,30 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 	for(auto eigEntry: eigMap) //in ascending order of eigenvalues
 	{	unsigned l = eigEntry.second.first;
 		unsigned p = eigEntry.second.second;
-		double capacity = (2*l+1);
+		double capacity = isRelativistic() ? 0.5*(psi2j[l][p]+1) : (2*l+1);
 		atomF[l][p] = std::min(Favail, capacity);
 		Favail -= atomF[l][p];
 	}
 	if(Favail > 0.)
 		die("Insufficient atomic orbitals to occupy %lg electrons (%lg excess electrons) [per spin channel].\n", N, Favail);
 	double spinFactor = (spinCount>1 && magneticMoment) ? 1. : 2.; //if unpolarized, print total occupations over both spin channels
+	const char orbCode[] = "spdfgh";
 	for(unsigned l=0; l<psiRadial.size(); l++) if(psiRadial[l].size())
-	{	logPrintf(" l=%d: (", l);
-		for(unsigned p=0; p<psiRadial[l].size(); p++)
-			logPrintf(" %.2lg", atomF[l][p] * spinFactor);
-		logPrintf(" )");
+	{	if(isRelativistic() && l>0)
+		{	int l2 = 2*l;
+			for(int j2=l2-1; j2<=l2+1; j2+=2)
+			{	logPrintf("  %c%c (", orbCode[l], (j2<l2 ? '-' : '+'));
+				for(unsigned p=0; p<psiRadial[l].size(); p++)
+					if(psi2j[l][p]==j2) logPrintf(" %.2lg", atomF[l][p] * spinFactor);
+				logPrintf(" )");
+			}
+		}
+		else
+		{	logPrintf("  %c (", orbCode[l]);
+			for(unsigned p=0; p<psiRadial[l].size(); p++)
+				logPrintf(" %.2lg", atomF[l][p] * spinFactor);
+			logPrintf(" )");
+		}
 	}
 	logPrintf("\n");
 	

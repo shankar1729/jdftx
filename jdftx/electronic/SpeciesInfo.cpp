@@ -204,22 +204,44 @@ void SpeciesInfo::setup(const Everything &everything)
 		for(unsigned l=0; l<VnlRadial.size(); l++)
 			nProj += (2*l+1) * nSpinors * VnlRadial[l].size();
 		if(nProj)
-		{	MnlAll = zeroes(nProj,nProj);
+		{	if(isRelativistic() && nSpinors != 2)
+				die("\nRelativistic pseudopotentials can only be used in noncollinear spin modes.\n");
+			MnlAll = zeroes(nProj,nProj);
 			if(Qint.size())
 				QintAll = zeroes(nProj,nProj);
+			if(isRelativistic())
+				fljAll = zeroes(nProj,nProj);
 			//Set submatrices:
-			int iProj = 0;
+			int lOffset = 0;
 			for(unsigned l=0; l<VnlRadial.size(); l++)
-				if(VnlRadial[l].size())
-				{	unsigned nMS = (2*l+1) * nSpinors; //number of m and spins at each l
-					int iStop = iProj + nMS*VnlRadial[l].size();
-					for(unsigned iMS=0; iMS<nMS; iMS++) //repeat nMS times
-					{	MnlAll.set(iProj+iMS,nMS,iStop, iProj+iMS,nMS,iStop, Mnl[l]);
-						if(Qint.size() && Qint[l])
-							QintAll.set(iProj+iMS,nMS,iStop, iProj+iMS,nMS,iStop, Qint[l]);
+			{	unsigned nMS = (2*l+1) * nSpinors; //number of m and spins at each l
+				matrix Il = eye(nMS);
+				matrix Zl = zeroes(nMS, nMS);
+				int iProj = lOffset;
+				for(unsigned ni=0; ni<VnlRadial[l].size(); ni++)
+				{	int iStop = iProj + nMS;
+					matrix flj;
+					if(isRelativistic())
+					{	flj = getYlmOverlapMatrix(l, Vnl2j[l][ni]);
+						fljAll.set(iProj,iStop, iProj,iStop, flj);
+					}
+					int jProj = lOffset;
+					for(unsigned nj=0; nj<VnlRadial[l].size(); nj++)
+					{	int jStop = jProj + nMS;
+						MnlAll.set(iProj,iStop, jProj,jStop, Mnl[l].data()[Mnl[l].index(ni,nj)] *
+							(isRelativistic()
+								? (Vnl2j[l][ni]==Vnl2j[l][nj] ? flj : Zl) //enforce delta_{jj'}
+								: Il ));
+						if(Qint.size() && Qint[l]) //Note that f factor for Q is added below (since it contributes non-diagonally as well)
+							QintAll.set(iProj,iStop, jProj,jStop, Qint[l].data()[Qint[l].index(ni,nj)] * Il);
+						jProj = jStop;
 					}
 					iProj = iStop;
 				}
+				lOffset = iProj;
+			}
+			if(isRelativistic())
+				QintAll = fljAll * QintAll * fljAll;
 		}
 	}
 	
@@ -426,4 +448,70 @@ void SpeciesInfo::setupPulay()
 		logPrintf("using dE_dnG = %le interpolated from Ecut = %lg and %lg.\n",
 			dE_dnG, iLeft->first, iRight->first);
 	}
+}
+
+//---------- Spin-angle helper functions ------------
+
+matrix SpeciesInfo::getYlmToSpinAngleMatrix(int l, int j2)
+{	static std::map< std::pair<int,int>, matrix > cache;
+	assert(j2==2*l-1 || j2==2*l+1);
+	std::pair<int,int> key(l,j2);
+	auto iter = cache.find(key);
+	if(iter==cache.end()) //not in cache; generate
+	{	//Transformation matrix from real Ylm (as defined in SphericalHarmonics.h) to complex Ylm in the Condon-Shortley phase convention:
+		matrix Y = zeroes(2*l+1, 2*l+1); complex* Ydata = Y.data();
+		Ydata[Y.index(l+0,l+0)] = 1.; //m=0 component not transformed
+		int parity = 1;
+		double invsqrt2 = sqrt(0.5);
+		for(int m=1; m<=l; m++)
+		{	parity = -parity; //now contains (-1)^m
+			Ydata[Y.index(l+m,l+m)] = invsqrt2 * parity;
+			Ydata[Y.index(l+m,l-m)] = invsqrt2;
+			Ydata[Y.index(l-m,l+m)] = invsqrt2 * parity * complex(0,1);
+			Ydata[Y.index(l-m,l-m)] = invsqrt2 * complex(0,-1);
+		}
+		//Clebsch-Gordon coefficients for spin-angle functions:
+		matrix Cup = zeroes(2*l+1,j2+1); complex* CupData = Cup.data();
+		matrix Cdn = zeroes(2*l+1,j2+1); complex* CdnData = Cdn.data();
+		double inv2lp1 = 1./(2*l+1);
+		if(j2==2*l-1) //j == l - 1/2
+		{	for(int m=-l+1; m<=l; m++)
+			{	int imj = (l-1)+m; //0-based index corresponsing to mj
+				CupData[Cup.index(l+(m-1),imj)] = sqrt((l-m+1)*inv2lp1);
+				CdnData[Cdn.index(l+( m ),imj)] = -sqrt((l+m)*inv2lp1);
+			}
+		}
+		else //j == l+1/2
+		{	for(int m=-l-1; m<=l; m++)
+			{	int imj = l+1+m; //0-based index corresponsing to mj
+				if(m>=-l) CupData[Cup.index(l+m,imj)] = sqrt((l+m+1)*inv2lp1);
+				if(m<l) CdnData[Cdn.index(l+(m+1),imj)] = sqrt((l-m)*inv2lp1);
+			}
+		}
+		//Put together transformation matrix from Ylm+spin to the spin-angle functions:
+		matrix Ulj(2*(2*l+1),j2+1);
+		Ulj.set(0,2,Ulj.nRows(), 0,1,Ulj.nCols(), Y*Cup);
+		Ulj.set(1,2,Ulj.nRows(), 0,1,Ulj.nCols(), Y*Cdn);
+		//Add to cache and return:
+		cache[key] = Ulj;
+		return Ulj;
+	}
+	else return iter->second; //return cached version
+
+}
+
+matrix SpeciesInfo::getYlmOverlapMatrix(int l, int j2)
+{	static std::map< std::pair<int,int>, matrix > cache;
+	assert(j2==2*l-1 || j2==2*l+1);
+	std::pair<int,int> key(l,j2);
+	auto iter = cache.find(key);
+	if(iter==cache.end()) //not in cache; generate
+	{	//Compute matrix:
+		matrix Ulj = getYlmToSpinAngleMatrix(l, j2);
+		matrix flj = Ulj * dagger(Ulj);
+		//Add to cache and return:
+		cache[key] = flj;
+		return flj;
+	}
+	else return iter->second; //return cached version
 }

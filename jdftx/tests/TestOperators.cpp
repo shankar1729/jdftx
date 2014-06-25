@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <fluid/SO3quad.h>
 #include <electronic/SphericalHarmonics.h>
+#include <electronic/SpeciesInfo.h>
 #include <electronic/ExCorr_internal_GGA.h>
 #include <electronic/operators.h>
 #include <electronic/matrix.h>
@@ -193,6 +194,30 @@ void testHarmonics()
 		}
 		logPrintf("j%d relError: mean=%le max=%le  absError: mean=%le max=%le\n",
 			l, relErrSum/errCount, relErrMax, absErrSum/errCount, absErrMax);
+		
+		//Test the Y transformation matrix inside SpeciesInfo::getYlmToSpinAngleMatrix (need to modify that code to return the intermediate Y)
+// 		matrix Y = SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l+1);
+// 		int nTest = 20;
+// 		matrix Yreal(nTest, 2*l+1), Ycomp(nTest, 2*l+1);
+// 		for(int iTest=0; iTest<nTest; iTest++)
+// 		{	double theta = Random::uniform(0, M_PI); double ct, st; sincos(theta, &st, &ct);
+// 			double phi = Random::uniform(0, 2*M_PI); double cp, sp; sincos(phi, &sp, &cp);
+// 			vector3<> qhat(st*cp, st*sp, ct);
+// 			for(int m=-l; m<=l; m++)
+// 			{	Yreal.data()[Yreal.index(iTest,l+m)] = Ylm(l, m, qhat);
+// 				Ycomp.data()[Ycomp.index(iTest,l+m)] = gsl_sf_legendre_sphPlm(l, abs(m), ct) * cis(m*phi) * (m<0 ? pow(-1,m) : 1);
+// 			}
+// 		}
+// 		logPrintf("Y%d relError: %le\n", l, nrm2(Ycomp - Yreal*Y)/nrm2(Ycomp));
+// 		logPrintf("\n"); Ycomp.print(globalLog, "%+9.5f%+9.5fi\n");
+// 		logPrintf("\n"); (Yreal*Y).print(globalLog, "%+9.5f%+9.5fi\n");
+		
+		//Test SpeciesInfo::getYlmToSpinAngleMatrix
+		for(int j2=2*l-1; j2<=2*l+1; j2+=2) if(j2>0)
+		{	logPrintf("\n\n------------ l=%d  j=%lg ----------\n\n", l, 0.5*j2);
+			matrix flj = SpeciesInfo::getYlmOverlapMatrix(l, j2);
+			flj.print(globalLog, "%+9.5f%+9.5fi ");
+		}
 	}
 }
 
