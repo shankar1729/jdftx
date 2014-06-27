@@ -292,6 +292,25 @@ void SpeciesInfo::populationAnalysis(const std::vector<matrix>& RhoAll) const
 			SigmaData[2][Sigma[2].index( iOrb , iOrb )] = +1;
 			SigmaData[2][Sigma[2].index(iOrb+1,iOrb+1)] = -1;
 		}
+		//Account for transformion between j,mj and l,m,sz bases when necessary:
+		if(isRelativistic())
+		{	matrix transform = zeroes(orbCount, orbCount);
+			int offset = 0;
+			for(int l=0; l<=lMaxAtomicOrbitals(); l++)
+			{	int mCount = 2*l+1, msCount = 2*mCount;
+				matrix transform_l(msCount, msCount);
+				if(l) transform_l.set(0,msCount, 0,2*l, getYlmToSpinAngleMatrix(l, 2*l-1));
+				transform_l.set(0,msCount, 2*l,msCount, getYlmToSpinAngleMatrix(l, 2*l+1));
+				for(int n=0; n<nAtomicOrbitals(l); n++)
+				{	transform.set(offset,offset+msCount, offset,offset+msCount, transform_l);
+					offset += msCount;
+				}
+			}
+			assert(offset==orbCount);
+			matrix invTransform = inv(transform);
+			for(int k=0; k<3; k++)
+				Sigma[k] = invTransform * Sigma[k] * dagger(invTransform);
+		}
 	}
 	
 	//Calculate the atomic populations (and optionally magnetic moments)
