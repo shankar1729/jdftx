@@ -91,9 +91,7 @@ void SpeciesInfo::rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vect
 			if(!rho[s]) rho[s] = zeroes(matSize, matSize);
 			rho[s].allReduce(MPIUtil::ReduceSum);
 			//Symmetrize:
-			for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
-				if(e->iInfo.species[sp].get()==this)
-					e->symm.symmetrizeSpherical(rho[s], sp);
+			e->symm.symmetrizeSpherical(rho[s], this);
 			//Collect density matrices per atom:
 			for(unsigned a=0; a<atpos.size(); a++)
 				*(rhoAtomPtr++) = rho[s](a*orbCount,(a+1)*orbCount, a*orbCount,(a+1)*orbCount);

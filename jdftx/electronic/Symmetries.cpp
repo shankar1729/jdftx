@@ -28,10 +28,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/GridInfo.h>
 #include <core/Thread.h>
+#include <fluid/Euler.h>
 
 static const int lMaxSpherical = 3;
 
-Symmetries::Symmetries() : symSpherical(lMaxSpherical+1)
+Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1)
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
 }
@@ -187,15 +188,20 @@ void Symmetries::symmetrize(IonicGradient& f) const
 }
 
 //Symmetrize Ylm-basis matrices:
-void Symmetries::symmetrizeSpherical(matrix& X, int sp) const
-{	int nAtoms = atomMap[sp].size();
+void Symmetries::symmetrizeSpherical(matrix& X, const SpeciesInfo* specie) const
+{	//Find index of specie (so as to access atom map)
+	unsigned sp = 0;
+	for(sp=0; sp<e->iInfo.species.size(); sp++)
+		if(e->iInfo.species[sp].get() == specie)
+			break;
+	int nAtoms = atomMap[sp].size();
 	int spinorLength = e->eInfo.spinorLength();
 	int l = (X.nRows()/(nAtoms*spinorLength)-1)/2; //matrix dimension = (2l+1)*nAtoms*spinorLength
 	int orbCount = (2*l+1)*spinorLength;
 	int nTot = orbCount*nAtoms;
 	assert(X.nCols()==nTot);
 	if(!l || sym.size()==1) return; //symmetries do nothing
-	const std::vector<matrix>& sym_l = getSphericalMatrices(l);
+	const std::vector<matrix>& sym_l = getSphericalMatrices(l, specie->isRelativistic());
 	matrix result;
 	for(unsigned iRot=0; iRot<sym_l.size(); iRot++)
 	{	//Construct transformation matrix including atom maps:
@@ -218,11 +224,15 @@ const std::vector< matrix3<int> >& Symmetries::getMeshMatrices() const
 {	return symMesh;
 }
 
-const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
+const std::vector<matrix>& Symmetries::getSphericalMatrices(int l, bool relativistic) const
 {	if(l>lMaxSpherical) die("l=%d > lMax=%d supported for density matrix symmetrization\n", l, lMaxSpherical);
-	if(!symSpherical[l].size()) //Not yet initialized, do so now:
+	bool jSplit = relativistic && l>0;
+	const std::vector< std::vector<matrix> >& cache = jSplit ? symSpinAngle : symSpherical;
+	if(!cache[l].size()) //Not yet initialized, do so now:
 	{	//Create a basis of unit vectors for which Ylm are linearly independent:
 		int mCount = 2*l+1;
+		int sCount = e->eInfo.spinorLength();
+		int msCount = mCount * sCount;
 		std::vector< vector3<> > nHat(mCount);
 		nHat[0] = vector3<>(0,0,1);
 		for(int m=1; m<=l; m++)
@@ -231,33 +241,65 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l) const
 			nHat[2*m-1] = vector3<>(sin(theta), 0, cos(theta));
 			nHat[2*m-0] = vector3<>(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
 		}
+		//Optionally construct the spinor transformations:
+		matrix Uspin;
+		if(jSplit)
+		{	Uspin = zeroes(msCount, msCount);
+			Uspin.set(0,2*l,       0,msCount, transpose(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l-1)));
+			Uspin.set(2*l,msCount, 0,msCount, transpose(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l+1)));
+		}
 		//Construct basis matrix at nHat:
-		matrix bOrig(mCount, mCount); complex* bOrigData = bOrig.data();
-		for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
+		matrix bOrig = zeroes(msCount, msCount); complex* bOrigData = bOrig.data();
+		for(int nIndex=0; nIndex<mCount; nIndex++)
 			for(int m=-l; m<=l; m++)
-				bOrigData[bOrig.index(l+m,nIndex)] = Ylm(l, m, nHat[nIndex]);
+				for(int s=0; s<sCount; s++)
+					bOrigData[bOrig.index((l+m)*sCount+s,nIndex*sCount+s)] = Ylm(l, m, nHat[nIndex]);
+		if(Uspin) bOrig = Uspin * bOrig;
 		matrix bOrigInv = inv(bOrig);
 		//For each rotation matrix, construct rotated basis, and deduce rotation matrix in l,m basis:
-		std::vector<matrix>& out = (((Symmetries*)this)->symSpherical)[l];
+		std::vector<matrix>& out = (std::vector<matrix>&)cache[l];
 		out.resize(sym.size());
 		for(unsigned iRot=0; iRot<sym.size(); iRot++)
 		{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix
-			matrix bRot(mCount, mCount); complex* bRotData = bRot.data();
-			for(unsigned nIndex=0; nIndex<nHat.size(); nIndex++)
+			matrix bRot = zeroes(msCount, msCount); complex* bRotData = bRot.data();
+			for(int nIndex=0; nIndex<mCount; nIndex++)
 				for(int m=-l; m<=l; m++)
-					bRotData[bRot.index(l+m,nIndex)] = Ylm(l, m, rot * nHat[nIndex]);
-			matrix out_i = bRot * bOrigInv;
-			if(e->eInfo.isNoncollinear())
-			{	//double the matrix dimension to account for spinor d.o.f
-				matrix out_dbl = zeroes(2*mCount, 2*mCount);
-				out_dbl.set(0,2,2*mCount, 0,2,2*mCount, out_i);
-				out_dbl.set(1,2,2*mCount, 1,2,2*mCount, out_i);
-				std::swap(out_i, out_dbl);
+					for(int s=0; s<sCount; s++)
+						bRotData[bRot.index((l+m)*sCount+s,nIndex*sCount+s)] = Ylm(l, m, rot * nHat[nIndex]);
+			if(Uspin)
+			{	//Generate spinor rotation matrix:
+				matrix3<> rotPure = rot * (1./det(rot)); //pure rotation (remove inversion which doesn't matter in the following)
+				vector3<> euler = vector3<>(1,0,1)*M_PI - eulerFromMatrix(rotPure);
+					//Note on the modification to Euler angles above:
+					//	The minus sign makes sense from an active vs passive rotation point of view.
+					//	I'm not sure about the shifts by PI, but that is the only combination that
+					//	results in a correct prediction below that that j=l-1/2 and j=l+1/2 sectors
+					//	do not interfere i.e. out[iRot] is block diagonal in j for any rot.
+					//		Someone with a better mastery of Clebsh-Gordan coefficients and spinor
+					//	transformations should figure this out some day, but I'm satisfied with my
+					//	extensive numerical testing of this for now. - Shankar 6/26/2014
+				//R_z(alpha):
+				matrix A = zeroes(2,2); complex* Adata = A.data();
+					complex cA = cis(0.5*euler[0]);
+					Adata[A.index(0,0)] = cA;
+					Adata[A.index(1,1)] = cA.conj();
+				//R_y(beta):
+				matrix B = zeroes(2,2); complex* Bdata = B.data();
+					complex cB = cis(0.5*euler[1]);
+					Bdata[B.index(0,0)] =  cB.real(); Bdata[B.index(0,1)] = cB.imag();
+					Bdata[B.index(1,0)] = -cB.imag(); Bdata[B.index(1,1)] = cB.real();
+				//R_z(gamma):
+				matrix G = zeroes(2,2); complex* Gdata = G.data();
+					complex cG = cis(0.5*euler[2]);
+					Gdata[G.index(0,0)] = cG;
+					Gdata[G.index(1,1)] = cG.conj();
+				matrix rotSpinor = A * B * G;
+				bRot = Uspin * (tiledBlockMatrix(rotSpinor, mCount) * bRot);
 			}
-			out[iRot] = out_i;
+			out[iRot] = bRot * bOrigInv;
 		}
 	}
-	return symSpherical[l];
+	return cache[l];
 }
 
 

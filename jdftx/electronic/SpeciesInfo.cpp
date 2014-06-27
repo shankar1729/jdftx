@@ -319,10 +319,11 @@ void SpeciesInfo::populationAnalysis(const std::vector<matrix>& RhoAll) const
 		}
 	
 	//Symmetrize:
-	const std::vector<std::vector<int> >* atomMap;
+	const std::vector<std::vector<int> >* atomMap = 0;
 	for(unsigned sp=0; sp<e->iInfo.species.size(); sp++)
 		if(e->iInfo.species[sp].get()==this)
 			atomMap = &e->symm.getAtomMap()[sp];
+	assert(atomMap);
 	std::vector<double> Nsym(atpos.size());
 	std::vector< vector3<> > Msym(atpos.size());
 	for(unsigned atom=0; atom<atpos.size(); atom++)

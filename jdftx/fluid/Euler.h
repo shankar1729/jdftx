@@ -61,14 +61,14 @@ inline matrix3<> matrixFromEuler(const vector3<>& euler)
 
 //! @brief Calculate euler angles from rotation matrices
 inline vector3<> eulerFromMatrix(const matrix3<>& mat)
-{	if(fabs(mat(2,2))>1.0-1e-7) //beta is 0 or pi
-		return vector3<>(	0.0, //alpha
-					acos(mat(2,2)), //beta
-					acos(mat(1,1)) ); //gamma
+{	if(fabs(mat(2,2))>1.-1e-7) //beta is 0 or pi and only gamma+/-alpha is determined (set alpha=0 w.l.og)
+		return vector3<>(0., //alpha (set 0 w.l.o.g)
+			(mat(2,2)>0 ? 0. : M_PI), //beta
+			atan2(-mat(1,0),mat(1,1)) ); //gamma
 	else
-		return vector3<>(	atan2(mat(1,2),mat(0,2)), //alpha
+		return vector3<>(	atan2(mat(1,2),-mat(0,2)), //alpha
 					acos(mat(2,2)), //beta
-					atan2(mat(2,1),-mat(2,0)) ); //gamma
+					atan2(mat(2,1),mat(2,0)) ); //gamma
 }
 
 
