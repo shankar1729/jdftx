@@ -164,9 +164,9 @@ void SCF::minimize()
 			scfCounter, Elabel.c_str(), E, dE, deigs, residualNorm);
 		
 		//Per-cycle dumps if any (must do before the next mix step / convergence exit):
-		e.dump(DumpFreq_Gummel, scfCounter);
+		e.dump(DumpFreq_Electronic, scfCounter);
 		//--- write SCF history if dumping state:
-		if(e.dump.count(std::make_pair(DumpFreq_Gummel,DumpState)) && e.dump.checkInterval(DumpFreq_Gummel,scfCounter))
+		if(e.dump.count(std::make_pair(DumpFreq_Electronic,DumpState)) && e.dump.checkInterval(DumpFreq_Electronic,scfCounter))
 		{	string fname = e.dump.getFilename("scfHistory");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			if(mpiUtil->isHead())
