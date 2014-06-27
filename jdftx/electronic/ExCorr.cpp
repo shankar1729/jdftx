@@ -395,8 +395,8 @@ void ExCorr::setup(const Everything& everything)
 			Citations::add(citeReason, "J.P. Perdew et al., Phys. Rev. Lett. 103, 026403 (2009)");
 			break;
 		case ExCorrORB_GLLBsc:
-			if(e->eInfo.isNoncollinear())
-				die("GLLLB-sc functional not implemented for noncollinear spin modes.");
+			if(e->eInfo.spinType == SpinVector)
+				die("GLLLB-sc functional not implemented for noncollinear spin-polarized calculations.\n");
 			functionals->add(GGA_X_GLLBsc);
 			orbitalDep = std::make_shared<ExCorr_OrbitalDep_GLLBsc>(*e);
 			functionals->add(GGA_C_PBEsol);
