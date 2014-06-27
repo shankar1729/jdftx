@@ -20,6 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <electronic/DOS.h>
+#include <fluid/Euler.h>
+#include <core/LatticeUtils.h>
 
 EnumStringMap<DOS::Weight::Type> weightTypeMap
 (	DOS::Weight::Total, "Total",
@@ -103,10 +105,18 @@ struct CommandDensityOfStates : public Command
 			"   Complete\n"
 			"      All subsequent columns are complete density of states, that is\n"
 			"      they do not depend on band fillings: this is the default mode.\n"
+			"   SpinProjected <theta> <phi>\n"
+			"      Non-collinear magnetism mode only. All subsequent columns are\n"
+			"      spin-projected along the specified polar direction (in degrees).\n"
+			"      Note that this flag does not apply to orbital-projected columns.\n"
+			"   SpinTotal\n"
+			"      Non-collinear magnetism mode only (default spin-handling mode).\n"
+			"      All subsequent columns are spin totals.\n"
 			"This command adds DOS to dump-frequency End, but this may be altered\n"
 			"within a dump command of appropriate frequency (see command dump).";
 		hasDefault = false;
 		
+		require("spintype");
 		require("ion"); //This ensures that this command is processed after all ion commands 
 		// (which in turn are processed after lattice and all ion-species commands)
 	}
@@ -116,6 +126,7 @@ struct CommandDensityOfStates : public Command
 		e.dump.dos = std::make_shared<DOS>();
 		DOS& dos = *(e.dump.dos);
 		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
+		vector3<> Mhat; //zero by default, indicates no spin projection
 		//Process subcommands:
 		while(true)
 		{	//Get the keyword:
@@ -128,10 +139,21 @@ struct CommandDensityOfStates : public Command
 			if(key == "Esigma") { pl.get(dos.Esigma, 0., "Esigma", true); continue; }
 			if(key == "Occupied") { fillingMode = DOS::Weight::Occupied; continue; }
 			if(key == "Complete") { fillingMode = DOS::Weight::Complete; continue; }
+			if(key == "SpinProjected")
+			{	if(e.eInfo.spinType != SpinVector)
+					throw string("SpinProjected flag is valid only with 'spintype vector-spin'");
+				double theta, phi;
+				pl.get(theta, 0., "theta", true);
+				pl.get(phi, 0., "phi", true);
+				Mhat = polarUnitVector(phi*M_PI/180, theta*M_PI/180);
+				continue;
+			}
+			if(key == "SpinTotal") { Mhat = vector3<>(); continue; }
 			
 			//Otherwise it should be a weight function:
 			DOS::Weight weight;
 			weight.fillingMode = fillingMode;
+			weight.Mhat = Mhat;
 			if(!weightTypeMap.getEnum(key.c_str(), weight.type))
 				throw "'"+key+"' is not a valid subcommand of density-of-states.";
 			
@@ -201,6 +223,7 @@ struct CommandDensityOfStates : public Command
 	{	assert(e.dump.dos);
 		DOS& dos = *(e.dump.dos);
 		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
+		vector3<> Mhat;
 		logPrintf("Etol %le Esigma %le", dos.Etol, dos.Esigma);
 		for(unsigned iWeight=0; iWeight<dos.weights.size(); iWeight++)
 		{	const DOS::Weight& weight = dos.weights[iWeight];
@@ -208,6 +231,16 @@ struct CommandDensityOfStates : public Command
 			if(iWeight==0 || weight.fillingMode != fillingMode)
 			{	fillingMode = weight.fillingMode;
 				logPrintf(" \\\n\t\t%s", fillingMode==DOS::Weight::Complete ? "Complete" : "Occupied");
+			}
+			//Check for changed spin-projection:
+			if(e.eInfo.spinType==SpinVector && (iWeight==0 || (weight.Mhat-Mhat).length_squared()>symmThresholdSq))
+			{	Mhat = weight.Mhat;
+				if(Mhat.length())
+				{	vector3<> euler; getEulerAxis(Mhat, euler);
+					euler *= 180./M_PI; //convert to degrees
+					logPrintf(" \\\n\t\tSpinProjected %lg %lg", euler[1], euler[0]);
+				}
+				else logPrintf(" \\\n\t\tSpinTotal");
 			}
 			//Output weight function subcommand:
 			logPrintf(" \\\n\t%s", weightTypeMap.getString(weight.type));

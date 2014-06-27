@@ -601,7 +601,7 @@ inline vector3<int> round(const vector3<> v, const double tol)
 void DOS::dump()
 {
 	const ElecInfo& eInfo = e->eInfo;
-	int nSpins = (eInfo.spinType==SpinNone) ? 1 : 2;
+	int nSpins = (eInfo.spinType==SpinZ) ? 2 : 1;
 	int qCount = eInfo.qnums.size()/nSpins;
 	const Supercell& supercell = *(e->coulombParams.supercell);
 	
@@ -685,9 +685,9 @@ void DOS::dump()
 			Vtot += tet.V;
 		}
 	}
-	double VnormFac = 2./(nSpins*Vtot);
+	double VnormFac = eInfo.qWeightSum/(nSpins*Vtot);
 	for(EvalDOS::Tetrahedron& t: eval.tetrahedra)
-		t.V *= VnormFac; //normalize volume of tetrahedra to add up to 2/nSpins
+		t.V *= VnormFac; //normalize volume of tetrahedra to add up to qWeightSum/nSpins
 	
 	//Set uniform weights for Total mode:
 	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
@@ -697,11 +697,11 @@ void DOS::dump()
 					eval.w(iWeight, iState, iBand) = 1.;
 	
 	//Compute the weight functions on the real-space grid for weighted-density modes:
-	std::vector<DataRptr> weightFuncs(weights.size());
+	std::vector<DataRptrCollection> weightFuncs(weights.size());
 	bool needDensity = false; //check if any of the modes need the density
 	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 	{	Weight& weight = weights[iWeight];
-		DataRptr& weightFunc = weightFuncs[iWeight];
+		DataRptrCollection& weightFunc = weightFuncs[iWeight];
 		switch(weight.type)
 		{	case Weight::Slice:
 			case Weight::Sphere:
@@ -721,19 +721,41 @@ void DOS::dump()
 					threadLaunch(EvalDOS::sphereWeight_thread, gInfo.nG, gInfo.S, gInfo.GGT,
 						wData, weight.center, weight.radius, fabs(gInfo.detR));
 				//Store weight function in real space:
-				weightFunc = I(weightFuncTilde, true);
+				weightFunc.resize(1);
+				weightFunc[0] = I(weightFuncTilde, true);
 				needDensity = true;
 				break;
 			}
 			case Weight::File:
-			{	nullToZero(weightFunc, e->gInfo);
-				loadRawBinary(weightFunc, weight.filename.c_str());
+			{	nullToZero(weightFunc, e->gInfo, 1);
+				loadRawBinary(weightFunc[0], weight.filename.c_str());
 				needDensity = true;
 				break;
 			}
 			default: //Total and orbital modes do not weight the density:
-			{	weightFunc = 0;
-				break;
+			{	break;
+			}
+		}
+		if(eInfo.spinType == SpinZ && weightFunc.size())
+		{	weightFunc.resize(eInfo.nDensities);
+			weightFunc[1] = weightFunc[0];
+		}
+		if(eInfo.spinType == SpinVector)
+		{	if(weight.Mhat.length() && weight.type==Weight::Total)
+			{	//treat spin-projected total DOS as a density-weighted DOS with spatially uniform weight
+				nullToZero(weightFunc, e->gInfo, 1);
+				weightFunc[0] += 1.;
+				needDensity = true;
+			}
+			if(weightFunc.size()) //convert to the appropriate 4-array depending on magnetization
+			{	DataRptr w; std::swap(w, weightFunc[0]);
+				weightFunc.resize(eInfo.nDensities);
+				const vector3<>& M = weight.Mhat;
+				weightFunc[0] = w * (1. + M[2]); //UpUp
+				weightFunc[1] = w * (1. - M[2]); //DnDn
+				weightFunc[2] = w * (+2.*M[0]); //Re(UpDn)
+				weightFunc[3] = w * (-2.*M[1]); //Im(UpDn)
+				if(M.length_squared()) weightFunc *= 0.5; //count only one spin
 			}
 		}
 	}
@@ -745,20 +767,18 @@ void DOS::dump()
 			{	//Compute the density for this state and band:
 				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
-				DataRptrCollection n = diagouterI(F, C, 1, &e->gInfo);
+				DataRptrCollection n = diagouterI(F, C, eInfo.nDensities, &e->gInfo);
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-					if(weightFuncs[iWeight])
-						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n[0]);
+					if(weightFuncs[iWeight].size())
+						eval.w(iWeight, iState, iBand) = e->gInfo.dV * dot(weightFuncs[iWeight], n);
 			}
 		}
 		//Ultrasoft augmentation:
 		for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-			if(weightFuncs[iWeight])
+			if(weightFuncs[iWeight].size())
 			{	//Project weight functions from grid to atom-centered spherical functions:
-				DataRptrCollection w(nSpins);
-				for(int s=0; s<nSpins; s++) w[s] = weightFuncs[iWeight];
-				e->iInfo.augmentDensityGridGrad(w);
+				e->iInfo.augmentDensityGridGrad(weightFuncs[iWeight]);
 				//Propagate from spherical functions to bands:
 				diagMatrix Fq(eInfo.nBands, 1.); //actual fillings incorporated later if required
 				for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
@@ -771,9 +791,8 @@ void DOS::dump()
 					for(size_t sp=0; sp<VdagCq.size(); sp++)
 						if(wVdagCq[sp]) wAug += diag(dagger(VdagCq[sp]) * wVdagCq[sp]);
 					//Augment with appropriate prefactors:
-					wAug *= (e->gInfo.dV * qnum.weight);
 					for(int iBand=0; iBand<eInfo.nBands; iBand++)
-						eval.w(iWeight, iState, iBand) += wAug[iBand];
+						eval.w(iWeight, iState, iBand) += e->gInfo.dV * wAug[iBand];
 				}
 			}
 	}

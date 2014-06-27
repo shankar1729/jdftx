@@ -39,6 +39,9 @@ public:
 		};
 		FillingMode fillingMode; //!< treatment of band/state fillings
 		
+		//!Treatment of spin in non-collinear calculations:
+		vector3<> Mhat; //!< spin polarization direction (unit vector if active, zero if inactive)
+		
 		//!Weight-function type
 		enum Type
 		{	Total, //!< total density of states in unit cell

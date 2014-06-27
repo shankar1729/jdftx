@@ -52,13 +52,13 @@ template<typename T> std::vector<const typename T::DataType*> constDataPref(cons
 //! Create a copy of the data (note operator= references same data since Tptr's are pointers!)
 template<typename T> TptrCollection clone(const TptrCollection& x)
 {	TptrCollection ret(x.size());
-	for(unsigned i=0; i<x.size(); i++) ret[i] = clone(x[i]);
+	for(unsigned i=0; i<x.size(); i++) if(x[i]) ret[i] = clone(x[i]);
 	return ret;
 }
 
 //! Scale
 template<typename T> TptrCollection& operator*=(TptrCollection& x, double alpha)
-{ 	for(unsigned i=0; i<x.size(); i++) x[i] *= alpha;
+{ 	for(unsigned i=0; i<x.size(); i++) if(x[i]) x[i] *= alpha;
 	return x;
 }
 template<class T> TptrCollection operator*(const TptrCollection& in, double scaleFac) { 
@@ -95,11 +95,11 @@ inline DataRptrCollection operator*(const DataRptrCollection& x, DataRptrCollect
 }
 
 inline DataRptrCollection operator*(const DataRptr& x, DataRptrCollection&& y)
-{	for(unsigned i=0; i<y.size(); i++) y[i] *= x;
+{	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
 	return y;
 }
 inline DataRptrCollection operator*(DataRptrCollection&& y, const DataRptr& x)
-{	for(unsigned i=0; i<y.size(); i++) y[i] *= x;
+{	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
 	return y;
 }
 inline DataRptrCollection operator*(const DataRptr& x, const DataRptrCollection& y) { return x * clone(y); }
@@ -133,7 +133,7 @@ template<class T> TptrCollection operator-(TptrCollection&& in1, TptrCollection&
 template<typename T> double dot(const TptrCollection& x, const TptrCollection& y)
 {	assert(x.size()==y.size());
 	double ret = 0.0;
-	for(unsigned i=0; i<x.size(); i++) ret += dot(x[i], y[i]);
+	for(unsigned i=0; i<x.size(); i++) if(x[i] && y[i]) ret += dot(x[i], y[i]);
 	return ret;
 }
 
