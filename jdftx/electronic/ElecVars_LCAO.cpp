@@ -281,7 +281,6 @@ int ElecVars::LCAO()
 		{	matrix Bq_evecs; diagMatrix Bq_eigs;
 			lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
 			B[q] = dagger(Hsub_evecs[q]) * Bq_eigs * Hsub_evecs[q];
-			HauxInitialized = true;
 		}
 		Hsub_evecs[q] = eye(eInfo.nBands);
 		Hsub[q] = Hsub_eigs[q];
@@ -291,6 +290,7 @@ int ElecVars::LCAO()
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			F[q] = eInfo.fermi(mu, Hsub_eigs[q]);
 	}
+	HauxInitialized = true;
 	
 	std::swap(fluidParams.fluidType, fluidTypeTemp); //Restore the fluid type
 	return eInfo.nBands;
