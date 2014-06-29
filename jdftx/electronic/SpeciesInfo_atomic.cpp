@@ -130,7 +130,7 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 			//Accumulate contributions:
 			if(nDiag.size()==1)
 			{	if(nTilde.size()==1)
-					nTilde[0] += nDiag[0];
+					nTilde[0] += 2.*nDiag[0];
 				else
 				{	nTilde[0] += nDiag[0];
 					nTilde[1] += nDiag[0];
