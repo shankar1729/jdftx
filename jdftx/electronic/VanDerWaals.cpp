@@ -55,18 +55,9 @@ inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r)
 
 VanDerWaals::VanDerWaals(const Everything& everything)
 {
-	logPrintf("\nInitializing van der Waals corrections ... ");
+	logPrintf("\nInitializing van der Waals corrections\n");
 	e = &everything;
 	
-	// Checks whether pseudopotentials contain atomic numbers
-	for(auto sp: e->iInfo.species)
-	{	assert(sp->atomicNumber);
-		if(sp->atomicNumber > atomicNumberMax) die("\nAtomic numbers > %i not supported!\n", atomicNumberMax);
-		if(sp->atomicNumber > atomicNumberMaxGrimme)
-			logPrintf("WARNING: Using extended vdW params (beyond Grimme's data set) for species %s with atomic number > %d.\n",
-				sp->name.c_str(), atomicNumberMaxGrimme);
-	}
-
 	// Constructs the EXCorr -> scaling factor map
 	scalingFactor["gga-PBE"] = 0.75;
 	scalingFactor["hyb-gga-xc-b3lyp"] = 1.05;
@@ -128,9 +119,18 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	atomParams[88] = AtomParams(55 , 1.844);
 	for(int Z=89; Z<=atomicNumberMax; Z++)
 		atomParams[Z] = AtomParams(55 , 1.75);
-	logPrintf("Done!\n");
 	
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
+	
+	//Print vdw parameter info and check atomic numbers:
+	if(!e->iInfo.vdWenable) logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
+	for(auto sp: e->iInfo.species)
+	{	assert(sp->atomicNumber);
+		if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!\n", atomicNumberMax);
+		const AtomParams& p = getParams(sp->atomicNumber);
+		logPrintf("\t%2s:  C6: %7.2f Eh-a0^6  R0: %.3f a0%s\n", sp->name.c_str(), p.C6, p.R0,
+				(sp->atomicNumber > atomicNumberMaxGrimme) ? " (WARNING: beyond Grimme's data set)" : "");
+	}
 }
 
 double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const
