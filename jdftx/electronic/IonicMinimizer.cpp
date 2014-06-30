@@ -203,7 +203,11 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		}
 		populationAnalysisPending = false;
 	}
-	if(!alpha) { watch.stop(); return; } //case when step was invoked purely for population analysis
+	if(!alpha) //case when step was invoked purely for population analysis
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			eVars.Y[q] = eVars.C[q];
+		watch.stop(); return; 
+	}
 	
 	//Move the atoms:
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++)

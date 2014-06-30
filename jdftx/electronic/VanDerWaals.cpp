@@ -139,7 +139,7 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
 	vector3<int> n;
 	for(int k=0; k<3; k++)
-		n[k] = isTruncated[k] ? 0 : (int)ceil(500. / e->gInfo.R.column(k).length());
+		n[k] = isTruncated[k] ? 0 : (int)ceil(200. / e->gInfo.R.column(k).length());
 	
 	double Etot = 0.;  //Total VDW Energy
 	for(int c1=0; c1<int(atoms.size()); c1++)
