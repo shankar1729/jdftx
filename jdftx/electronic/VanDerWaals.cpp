@@ -142,28 +142,23 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 		n[k] = isTruncated[k] ? 0 : (int)ceil(100. / e->gInfo.R.column(k).length());
 	
 	double Etot = 0.;  //Total VDW Energy
-	for(int c1 = 0; c1 < (int) atoms.size(); c1++)
+	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const AtomParams& c1params = getParams(atoms[c1].atomicNumber);
-		for(int c2 = 0; c2 < (int) atoms.size(); c2++)
+		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const AtomParams& c2params = getParams(atoms[c2].atomicNumber);
-			
-			if(c1 == c2) continue; // No self interaction		
 			double C6 = sqrt(c1params.C6 * c2params.C6);
 			double R0 = c1params.R0 + c2params.R0;
-			
-			vector3<int> t;
-			for(t[0] = -n[0]; t[0]<=n[0]; t[0]++)
-			for(t[1] = -n[1]; t[1]<=n[1]; t[1]++)
-			for(t[2] = -n[2]; t[2]<=n[2]; t[2]++)
-			{
-				vector3<> RijVec = e->gInfo.R * (atoms[c2].pos + t - atoms[c1].pos);
-				double Rij = RijVec.length();
-				vector3<> RijHat = RijVec / Rij;
-				
-				double E_Rij, E = vdwPairEnergyAndGrad(Rij, C6, R0, E_Rij);
-				
+			vector3<int> iR;
+			for(iR[0] = -n[0]; iR[0]<=n[0]; iR[0]++)
+			for(iR[1] = -n[1]; iR[1]<=n[1]; iR[1]++)
+			for(iR[2] = -n[2]; iR[2]<=n[2]; iR[2]++)
+			{	vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+				double rSq = e->gInfo.RTR.metric_length_squared(x);
+				if(!rSq) continue; //exclude self-interaction
+				double r = sqrt(rSq);
+				double E_r, E = vdwPairEnergyAndGrad(r, C6, R0, E_r);
 				Etot -= 0.5 * scaleFac * E;
-				atoms[c1].force += scaleFac * E_Rij * RijHat;
+				atoms[c1].force += scaleFac * E_r * (e->gInfo.RTR * x)/r;
 			}
 		}
 	}
