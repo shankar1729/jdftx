@@ -121,15 +121,24 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 		atomParams[Z] = AtomParams(55 , 1.75);
 	
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
-	
+		
 	//Print vdw parameter info and check atomic numbers:
 	if(!e->iInfo.vdWenable) logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
 	for(auto sp: e->iInfo.species)
 	{	assert(sp->atomicNumber);
-		if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!\n", atomicNumberMax);
-		const AtomParams& p = getParams(sp->atomicNumber);
+	  bool manSetVDW=false;
+	  for(auto manVDW: sp->manVDW)
+	    {  logPrintf("\t%2s: Using manually set vdw parameter: C6:  %lg Eh-a0^6   R0: %lg a0 \n", sp->name.c_str(), manVDW.mC6 * Joule*pow(1e-9*meter,6)/mol, Angstrom* manVDW.mR0);
+	  manSetVDW=true;
+	  //p = AtomParams(manVDW.mC6,manVDW.mR0);
+	    }
+	  if(manSetVDW==false)
+	    {  if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!  Must be manually set.  \n", atomicNumberMax);
+	        const AtomParams& p = getParams(sp->atomicNumber);
 		logPrintf("\t%2s:  C6: %7.2f Eh-a0^6  R0: %.3f a0%s\n", sp->name.c_str(), p.C6, p.R0,
-				(sp->atomicNumber > atomicNumberMaxGrimme) ? " (WARNING: beyond Grimme's data set)" : "");
+			  (sp->atomicNumber > atomicNumberMaxGrimme) ? " (WARNING: beyond Grimme's data set)" : "");
+	    
+	    }
 	}
 }
 
@@ -224,12 +233,19 @@ VanDerWaals::AtomParams::AtomParams(double SI_C6, double SI_R0)
 {
 }
 
-VanDerWaals::AtomParams VanDerWaals::getParams(int atomicNumber) const
-{	if(atomicNumber==unitParticle)
+VanDerWaals::AtomParams VanDerWaals::getParams(int atomicNumber1) const
+{	if(atomicNumber1==unitParticle)
 		return AtomParams(1.,0.);
-	assert(atomicNumber>0);
-	assert(atomicNumber<=atomicNumberMax);
-	return atomParams[atomicNumber];
+  // if the atomic number matches the atomic number of a species with a manually set C6,use that instead
+	  for(auto sp: e->iInfo.species)
+	    {       assert(sp->atomicNumber);
+	      if(atomicNumber1==(sp->atomicNumber))
+	        for(auto manVDW: sp->manVDW)
+		  return AtomParams(manVDW.mC6,manVDW.mR0);
+		    }
+	assert(atomicNumber1>0);
+	assert(atomicNumber1<=atomicNumberMax);
+	return atomParams[atomicNumber1];
 }
 
 

@@ -76,6 +76,7 @@ public:
 	bool subspaceRotation; //!< whether subspace variables are required (either rotation or aux hamiltonian)
 	
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
+	bool hasVDW; //! Flag to check whether the calculation has VDW manual overrides for DFT-D2
 
 	std::vector<std::tuple<int, int, double>> customFillings;
 	

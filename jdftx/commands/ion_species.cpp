@@ -235,6 +235,53 @@ struct CommandTauCore : public Command
 commandTauCore;
 
 
+struct CommandSetVDW : public Command
+{
+	CommandSetVDW() : Command("setVDW")
+	{	format = "<species> <C6> <R0> [ <species2> ... ]";
+		comments =
+			"Manually adjust the value of VDW correction\n"
+		  "used in DFT-D2 from the default values.  Values given in J/mol*Angstrom^6 and Angstrom";
+		
+		require("ion");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.eInfo.hasVDW = false;
+		string id;
+		pl.get(id, string(), "species", true);
+		while(id.length())
+		{	auto sp = findSpecies(id, e);
+			if(sp)
+			{	SpeciesInfo::ManVDW manVDW;
+				//Get the C6 value:
+				pl.get(manVDW.mC6, 0.0, "C6", true);
+				//Get the R0 value:
+				pl.get(manVDW.mR0, 0.0, "R0", true);
+				//Add VDW descriptor to species:
+				sp->manVDW.push_back(manVDW);
+				e.eInfo.hasVDW = true;
+
+			}
+	       
+			else throw string("Species "+id+" has not been defined");
+			//Check for additional species:
+			pl.get(id, string(), "species");
+		}
+
+	}
+	void printStatus(Everything& e, int iRep)
+	{
+		for(auto sp: e.iInfo.species)
+			for(auto manVDW: sp->manVDW)
+			  {  logPrintf("\t%s %lg %lg", sp->name.c_str(), manVDW.mC6, manVDW.mR0);
+	
+			}
+	}
+
+}
+commandSetVDW;
+	
 struct CommandAddU : public Command
 {
 	CommandAddU() : Command("add-U")
@@ -300,6 +347,9 @@ struct CommandAddU : public Command
 		Citations::add("Simplified rotationally-invariant DFT+U", "S. L. Dudarev et al., Phys. Rev. B 57, 1505 (1998)");
 	}
 	
+
+
+
 	void printStatus(Everything& e, int iRep)
 	{	bool first = true;
 		for(auto sp: e.iInfo.species)

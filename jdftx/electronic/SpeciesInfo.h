@@ -184,6 +184,15 @@ private:
 	};
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
+	//!Parameters for optional VDW overrides
+	struct ManVDW
+	{   
+	  double mC6; //!< Manual override to C6 coefficient for Grimme DFT-D2
+	  double mR0; //!< Manual override to R0 coefficient for Grimme DFT-D2
+
+	};
+	std::vector<ManVDW> manVDW; //!< list of manual coefficients for VDW
+
 	PseudopotentialFormat pspFormat;
 	
 	// gaussian chargeball used to prevent dielectric spikes
@@ -206,6 +215,8 @@ private:
 	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const; //!< Compute the atomic density per spin channel, given the magnetic moment
 	
 	friend class CommandIonSpecies;
+	friend class CommandSetVDW;
+	friend class VanDerWaals;
 	friend class CommandAddU;
 	friend class CommandChargeball;
 	friend class CommandTauCore;
