@@ -247,23 +247,18 @@ struct CommandSetVDW : public Command
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	e.eInfo.hasVDW = false;
-		string id;
+        {	string id;
 		pl.get(id, string(), "species", true);
 		while(id.length())
 		{	auto sp = findSpecies(id, e);
-			if(sp)
-			{	SpeciesInfo::ManVDW manVDW;
-				//Get the C6 value:
-				pl.get(manVDW.mC6, 0.0, "C6", true);
-				//Get the R0 value:
-				pl.get(manVDW.mR0, 0.0, "R0", true);
-				//Add VDW descriptor to species:
-				sp->manVDW.push_back(manVDW);
-				e.eInfo.hasVDW = true;
-
-			}
-	       
+		  if(sp)
+		    { double C6; double R0;
+		      	pl.get(C6, 0.0, "C6", true);
+		      	pl.get(R0, 0.0, "R0", true);
+     			std::shared_ptr<struct VanDerWaals::AtomParams> vdwOverride=std::make_shared<VanDerWaals::AtomParams>(C6,R0);			
+	//Add VDW descriptor to species:
+			sp->vdwOverride=vdwOverride;
+		    }
 			else throw string("Species "+id+" has not been defined");
 			//Check for additional species:
 			pl.get(id, string(), "species");
@@ -271,12 +266,11 @@ struct CommandSetVDW : public Command
 
 	}
 	void printStatus(Everything& e, int iRep)
-	{
-		for(auto sp: e.iInfo.species)
-			for(auto manVDW: sp->manVDW)
-			  {  logPrintf("\t%s %lg %lg", sp->name.c_str(), manVDW.mC6, manVDW.mR0);
-	
-			}
+        {         for(auto sp: e.iInfo.species)
+		  { if(sp->vdwOverride)
+		    logPrintf("\t%2s: Using override for VDW",sp->name.c_str()); 
+		  }
+			  
 	}
 
 }

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SPECIESINFO_H
 #define JDFTX_ELECTRONIC_SPECIESINFO_H
 
+#include <electronic/VanDerWaals.h>
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
 #include <electronic/matrix.h>
@@ -184,14 +185,8 @@ private:
 	};
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
-	//!Parameters for optional VDW overrides
-	struct ManVDW
-	{   
-	  double mC6; //!< Manual override to C6 coefficient for Grimme DFT-D2
-	  double mR0; //!< Manual override to R0 coefficient for Grimme DFT-D2
-
-	};
-	std::vector<ManVDW> manVDW; //!< list of manual coefficients for VDW
+	//!Pointer for struct containing optional VDW overrides
+	std::shared_ptr<struct VanDerWaals::AtomParams> vdwOverride;
 
 	PseudopotentialFormat pspFormat;
 	

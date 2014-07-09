@@ -171,10 +171,12 @@ int main(int argc, char** argv)
 	logPrintf("Adding rotational modes\n");
 	DataGptr rho = J(e.eVars.get_nTot());
 	logSuspend(); VanDerWaals vdW(e); logResume();
+	int spIndex=0;
 	for(const auto& sp: e.iInfo.species)
 	{	DataGptr SG; nullToZero(SG, e.gInfo);
 		callPref(getSG)(e.gInfo.S, sp->atpos.size(), sp->atposPref, 1./e.gInfo.detR, SG->dataPref()); //get structure factor for current species
-		rho -= sp->Z * gaussConvolve(SG, vdW.getParams(sp->atomicNumber).R0/6.);
+		rho -= sp->Z * gaussConvolve(SG, vdW.getParams(sp->atomicNumber,spIndex).R0/6.);
+		spIndex++;
 	}
 	//Replace the last (least significant) polarizability eigencomponent with the rotational one:
 	V.setColumn(V.nCols()-1,0, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));

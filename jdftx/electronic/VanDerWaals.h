@@ -55,7 +55,7 @@ public:
 		//!Construct given C6 in J-nm^6/mol and R0 in Angstrom
 		AtomParams(double SI_C6=0., double SI_R0=0.);
 	};
-	AtomParams getParams(int atomicNumber) const; //!< retrieve vdW parameters for an atom
+	AtomParams getParams(int atomicNumber, int sp) const; //!< retrieve vdW parameters for an atom
 	
 private:
 	const Everything* e;
@@ -67,7 +67,7 @@ private:
 	//! atomic numnbers Z1 and Z2. The radial function will be created (and cached)
 	//! the first time this function is called with a specific pair of Z's.
 	//! Note that both Z1 and Z2 should be supported non-zero atomic numbers.
-	const RadialFunctionG& getRadialFunction(int Z1, int Z2) const;
+	const RadialFunctionG& getRadialFunction(int Z1, int Z2, int sp, int sp2) const;
 	
 	std::map<std::pair<int,int>,RadialFunctionG> radialFunctions;
 };
