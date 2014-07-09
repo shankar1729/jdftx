@@ -26,11 +26,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 
 //Energy, temperature units in Hartrees:
-const double eV = 1/27.2116; //!< @f$ eV / E_h @f$
-const double Joule = 1/4.3597482e-18; //!< @f$ J / E_h @f$
+const double eV = 1/27.21138505; //!< @f$ eV / E_h @f$
+const double Joule = 1/4.35974434e-18; //!< @f$ J / E_h @f$
 const double KJoule = 1000*Joule; //!< @f$ KJ / E_h @f$
 const double Kcal = KJoule * 4.184; //!< @f$ Kcal / E_h @f$
-const double Kelvin = 1.380658e-23*Joule; //!< @f$ k_B K / E_h @f$
+const double Kelvin = 1.3806488e-23*Joule; //!< @f$ k_B K / E_h @f$
 const double invcm = 1./219474.6313705; //!< @f$ cm^{-1} / E_h @f$
 
 //Length units in bohrs:
