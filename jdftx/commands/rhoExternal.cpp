@@ -24,18 +24,21 @@ struct CommandRhoExternal : public Command
 {
 	CommandRhoExternal() : Command("rhoExternal")
 	{
-		format = "<filename>";
+		format = "<filename> [<includeSelfEnergy>=yes|no]";
 		comments =
 			"Include an external charge density [electrons/bohr^3] (real space binary)\n"
-			"which interacts electrostatically with the electrons, nuclei and fluid.";
+			"which interacts electrostatically with the electrons, nuclei and fluid.\n"
+			"If <includeSelfEnergy>=yes (default no), then the Coulomb self-energy\n"
+			"of rhoExternal is included in the output energy.";
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eVars.rhoExternalFilename, string(), "filename", true);
+		pl.get(e.eVars.rhoExternalSelfEnergy, false, boolMap, "includeSelfEnergy");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	fputs(e.eVars.rhoExternalFilename.c_str(), globalLog);
+	{	logPrintf("%s %s", e.eVars.rhoExternalFilename.c_str(), boolMap.getString(e.eVars.rhoExternalSelfEnergy));
 	}
 }
 commandRhoExternal;

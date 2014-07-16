@@ -330,6 +330,8 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	if(rhoExternal)
 	{	DataGptr phiExternal = (*e->coulomb)(rhoExternal);
 		ener.E["Eexternal"] += dot(nTilde + iInfo.rhoIon, O(phiExternal));
+		if(rhoExternalSelfEnergy)
+			ener.E["Eexternal"] += 0.5 * dot(rhoExternal, O(phiExternal));
 		VsclocTilde += phiExternal;
 		d_vac += phiExternal;
 	}

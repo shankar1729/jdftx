@@ -69,6 +69,7 @@ public:
 	//External interactions:
 	DataRptrCollection Vexternal; //!< external potential
 	DataGptr rhoExternal; //!< external charge density
+	bool rhoExternalSelfEnergy; //!< whether to include self-energy of rhoExternal in output energy
 	struct BoxPotential
 	{	vector3<> min, max;
 		double Vin, Vout, convolve_radius;
