@@ -78,6 +78,14 @@ struct RadialFunctionG
 		return norm * den*den*den;
 	}
 
+       //Fourier transform of exponential (for use with init)
+       static inline double exponentialTilde(double G, double norm, double a)
+       {	
+	        double aG = a*G;
+	        double den = 1./(1.+aG*aG);
+	        return norm * den*den;
+       }
+
 	//Fourier transform of gaussian (for use with init)
 	static inline double gaussTilde(double G, double norm, double sigma)
 	{	double sigmaG = sigma*G;

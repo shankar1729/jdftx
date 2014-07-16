@@ -362,6 +362,10 @@ struct CommandFluidSolvent : public CommandFluidComponent
 					throw string("PCMs require exactly one solvent component - more than one specified.");
 				e.eVars.fluidParams.setPCMparams();
 				break;
+				
+			case FluidClassicalDFT:
+				e.eVars.fluidParams.setCDFTparams();
+				break;
 			default:;
 		}
 	}
@@ -409,6 +413,273 @@ struct CommandFluidAnion : public CommandFluidComponent
 	}
 }
 commandFluidAnion;
+
+enum FluidSiteParameter
+{	
+	FSp_Znuc, //!<magnitude of the nuclear charge (positive) 
+	FSp_sigmaNuc, //!<gaussian width of the nuclear charge (positive)
+	FSp_Zelec, //!<magnitude of electron charge (positive)
+	FSp_aElec, //!<exponential decay width of electron charge distribution
+	FSp_sigmaElec, //!<width of peak in electron charge distribution
+	FSp_rcElec, //!<Location of peak in electron charge distribution	
+	FSp_elecFilename, //!<filename to read in additional radial realspace electron charge distribution,
+	FSp_elecFilenameG, //!<filename to read in additional radial Gspace electron charge distribution
+	FSp_alpha, //!<isotropic polarizability
+	FSp_aPol, //!<cuspless-exponential width of polarizability
+	FSp_Rhs, //!< hard sphere radius
+	FSp_Delim //!< Delimiter used in parsing:
+};
+
+EnumStringMap<FluidSiteParameter> FSParamMap(
+	FSp_Znuc, "Znuc", 
+	FSp_sigmaNuc, "sigmaNuc",
+	FSp_Zelec, "Zelec",
+	FSp_aElec, "aElec",
+	FSp_sigmaElec, "sigmaElec",
+	FSp_rcElec,"rcElec",
+	FSp_alpha, "alpha",
+	FSp_aPol, "aPol",
+	FSp_Rhs, "Rhs",
+	FSp_elecFilename, "elecFilename",
+	FSp_elecFilenameG, "elecFilenameG"	);
+
+EnumStringMap<FluidSiteParameter> FSParamDescMap(
+	FSp_Znuc, "magnitude of the nuclear charge (positive)", 
+	FSp_sigmaNuc, "gaussian width of the nuclear charge (positive)",
+	FSp_Zelec, "magnitude of electron charge (positive)",
+	FSp_aElec, "exponential decay width of electron charge distribution",
+	FSp_sigmaElec, "width of peak in electron charge distribution",
+	FSp_rcElec, "location of peak in electron charge distribution",
+	FSp_elecFilename, "filename to read in additional radial realspace electron charge distribution",
+	FSp_elecFilenameG, "filename to read in additional radial Gspace electron charge distribution",
+	FSp_alpha, "isotropic polarizability",
+	FSp_aPol, "cuspless-exponential width of polarizability",
+	FSp_Rhs, "hard sphere radius for use in FMT"						);
+
+//Kendra: list of fluid components supported 
+EnumStringMap<FluidComponent::Name> fluidComponentMap(
+	//solvents
+	FluidComponent::H2O, "H2O",
+	FluidComponent::CHCl3, "CHCl3",
+	FluidComponent::CCl4, "CCl4",
+	FluidComponent::CH3CN, "CH3CN",/*
+	FluidComponent::DMC, "DMC",
+	FluidComponent::EC, "EC",
+	FluidComponent::PC, "PC",
+	FluidComponent::DMF, "DMF",
+	FluidComponent::THF, "THF",
+	FluidComponent::EthylEther, "EthylEther",
+  	FluidComponent::Chlorobenzene, "Chlorobenzene",
+	FluidComponent::Isobutanol, "Isobutanol",
+	FluidComponent::CarbonDisulfide, "CarbonDisulfide",
+	FluidComponent::CustomSolvent, "CustomSolvent",*/
+	//cations
+	FluidComponent::Sodium, "Na+",
+	FluidComponent::CustomCation, "CustomCation",
+	//anions
+	FluidComponent::Chloride, "Cl-", 
+	FluidComponent::CustomAnion, "CustomAnion" );
+
+struct CommandFluidSiteParams : public Command
+{
+	
+
+	CommandFluidSiteParams() : Command("fluid-site-params")
+	{	
+		format = " <solvent> <siteName> <key1> <value1> <key2> <value2> ...";
+		comments = "Set parameters of <siteName> site for solvent component <solvent>=" + fluidComponentMap.optionList() 
+			+ ".\nChanges default parameters of existing site. \nPossible keys and value types are:"
+			+ addDescriptions(FSParamMap.optionList(), linkDescription(FSParamMap, FSParamDescMap))
+			+ "\nAny number of these key-value pairs may be specified in any order.";
+		
+		require("fluid-solvent");
+		hasDefault = true;
+		allowMultiple = true;
+	}
+	
+void process(ParamList& pl, Everything& e)
+	{	
+		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
+			return;
+		FluidSolverParams& fsp = e.eVars.fluidParams;
+
+		//Read in and check name of the solvent, get index of the solvent in FluidComponent
+		FluidComponent::Name solventName; 
+		pl.get(solventName, fsp.components[0]->name, fluidComponentMap, "solvent", false);
+		std::shared_ptr<FluidComponent> FC;
+		for (const auto& c : fsp.components)
+		{
+			if (solventName == c->name) 
+				FC=c;
+		}
+		if (!FC)
+			throw string("Choice of <solvent> is not valid.\n Hint: Issue fluid-solvent first");
+		
+		//Read in name of the site
+		string siteName;
+		pl.get(siteName, FC->molecule.sites[0]->name, "siteName", false);
+		std::shared_ptr<Molecule::Site> site;
+		for (const auto& s : FC->molecule.sites)
+		{
+			if(siteName == s->name) 
+				site=s;
+		}
+		if (!site)	
+			throw string("Choice of <siteName> is not valid.");
+
+		//Read parameters:
+		while(true)
+		{	FluidSiteParameter key;
+			pl.get(key, FSp_Delim, FSParamMap, "key");
+			#define READ_AND_CHECK(param, op, val) \
+				case FSp_##param: \
+					pl.get(site->param, val, #param, true); \
+					if(!(site->param op val)) throw string(#param " must be " #op " " #val); \
+					break;
+			switch(key)
+			{	
+				READ_AND_CHECK(Znuc,>=,0.) 
+				READ_AND_CHECK(sigmaNuc,>=,0.)
+				READ_AND_CHECK(Zelec,>=,0.) 
+				READ_AND_CHECK(aElec,>,0.)
+				READ_AND_CHECK(sigmaElec,>,0.)
+				READ_AND_CHECK(rcElec,>=,0.)
+				READ_AND_CHECK(elecFilename,!=,string("")) 
+				READ_AND_CHECK(elecFilenameG,!=,string("")) 
+				READ_AND_CHECK(alpha,>,0.)
+				READ_AND_CHECK(aPol,>,0.)
+				READ_AND_CHECK(Rhs,>,0.)
+				case FSp_Delim: return; //end of input
+			}
+			#undef READ_AND_CHECK
+		}		
+	}
+	
+void printStatus(Everything& e, int iRep)
+	{	
+		//prints all the sites and parameters, even if the default is unchanged
+		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
+		
+		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
+			return;
+		if(iRep==0)
+		{
+			int counter=0;
+			const FluidSolverParams& fsp = e.eVars.fluidParams;
+			for (const auto& c : fsp.components)
+			{
+				string cName = fluidComponentMap.getString(c->name);
+				for (const auto& s : c->molecule.sites)
+				{	
+					string sName = s->name;
+					if(counter) 
+						logPrintf("\nfluid-site-params ");
+					logPrintf("%s %s",cName.c_str(),sName.c_str()),
+					#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", s->param);
+					PRINT(Znuc)
+					PRINT(sigmaNuc)
+					PRINT(Zelec)
+					PRINT(aElec)
+					PRINT(sigmaElec)
+				        PRINT(rcElec)
+					PRINT(alpha)
+					PRINT(aPol)
+					PRINT(Rhs)
+					logPrintf(" \\\n\telecFilename ");
+					if (s->elecFilename.length())
+						logPrintf("%s", s->elecFilename.c_str());
+					logPrintf(" \\\n\telecFilenameG ");
+					if (s->elecFilenameG.length())
+						logPrintf("%s", s->elecFilenameG.c_str());
+					#undef PRINT
+					
+					counter++;	
+				}
+			}
+		}			
+	}
+}
+commandFSParams;
+
+/*
+EnumStringMap<FMixFunctional> fMixMap
+(	
+	AttLJPotential, "AttLJPotential", 
+	LJPotential, "LJPotential",
+	PseudoLJPotential, "PseudoLJPotential",
+	GaussianKernel, "GaussianKernel"
+);
+
+struct CommandFluidMixingFunctional : public Command 
+{
+    CommandFluidMixingFunctional() : Command("fluid-mixing-functional")
+	{
+	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=AttLJPotential] [<Ecut=0.005 H>] [<rHS>]";
+	  comments = "       Couple named fluids <fluid1> and <fluid2> "+ fluidComponentMap.optionList() +" together through a mixing functional of "
+			    " 	type " + fMixMap.optionList() + "\n with strength <energyScale> and range "
+			    "       parameter <lengthScale>. If <FmixType>=LJPotential, <Ecut> is the upper cutoff.\n"
+			    "	    If <FmixType>=PseudoLJPotential, the mixing potential matches for radii larger than <lengthscale>, then smoothly\n" 
+			    "	    interpolates to a constant value determined by <Ecut> for radii less than <rHS>.\n";
+
+	  require("fluid-solvent"); //which in turn requires fluid indirectly
+	  allowMultiple = true;
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	
+	      FluidSolverParams& fsp = e.eVars.fluidParams;
+	      FmixParams fmp;
+	      
+	      FluidComponent::Name name1; 
+	      pl.get(name1, fsp.components[0]->name, fluidComponentMap, "fluid1", true);
+	      
+	      FluidComponent::Name name2; 
+	      pl.get(name2, fsp.components[0]->name, fluidComponentMap, "fluid2", true);
+	      
+	
+	      for(const std::shared_ptr<FluidComponent> c: fsp.components)
+	      {
+		if(c->name == name1)  fmp.fluid1 = c;
+		if(c->name == name2)  fmp.fluid2 = c;
+	      }
+	      
+	      if(!fmp.fluid1)
+		throw string("Choice of <fluid1> = %s is not valid.\n Hint: Issue fluid-solvent first.",name1);
+	      if(!fmp.fluid2)
+		throw string("Choice of <fluid2> = %s is not valid.\n Hint: Issue fluid-solvent first.",name2);
+	      if(fmp.fluid1->name == fmp.fluid2->name)
+		throw string("<fluid1>=<fluid2> Cannot specify mixing functional for the same fluid.");
+	     
+	      double default_energyscale = sqrt(fmp.fluid1->epsLJ*fmp.fluid2->epsLJ);
+	      pl.get(fmp.energyScale, default_energyscale,"energyScale", true);
+	      
+	      double default_lengthscale = (fmp.fluid1->sigmaLJ + fmp.fluid2->sigmaLJ)/2.0;
+	      pl.get(fmp.lengthScale, default_lengthscale,"lengthScale");	     
+	     
+	      FMixFunctional defaultFunctional = AttLJPotential;
+	      pl.get(fmp.FmixType, defaultFunctional, fMixMap, "FMixType");
+	      pl.get(fmp.Ecut, 0.005, "Ecut");
+	     
+	      double default_rHS = fmp.fluid1->Rvdw + fmp.fluid2->Rvdw;
+	      pl.get(fmp.rHS, default_rHS, "rHS");
+	      
+	      fsp.FmixList.push_back(fmp);
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	
+	    const FluidSolverParams& fsp = e.eVars.fluidParams;
+	    const FmixParams& fmp = fsp.FmixList[iRep];
+	    
+	    string c1Name = fluidComponentMap.getString(fmp.fluid1->name);
+	    string c2Name = fluidComponentMap.getString(fmp.fluid2->name);
+	    string fmixName = fMixMap.getString(fmp.FmixType);
+	    
+	    logPrintf("%s %s %lg %lg %s %lg %lg",c1Name.c_str(),c2Name.c_str(),fmp.energyScale,fmp.lengthScale, fmixName.c_str(), fmp.Ecut, fmp.rHS);
+	}
+}
+commandFluidMixingFunctional;
+*/
 	
 struct CommandFluidDielectricConstant : public Command
 {

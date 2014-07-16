@@ -91,6 +91,7 @@ struct FluidSolverParams
 	
 	FluidSolverParams();
 	void setPCMparams(); //!< Set predefined parameters for solventName (for a specific model)
+	void setCDFTparams(); //!< Set predefined parameters for solventName (for a classical DFT model)
 	bool needsVDW() const; //!< whether pair-potential vdW corrections are required
 	bool ionicScreening() const; //!< whether list of fluid components includes ionic species for Debye screening
 private:

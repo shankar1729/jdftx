@@ -37,7 +37,10 @@ struct Molecule
 		double Rhs; //!< hard sphere radius
 		int atomicNumber; //!< necessary for vdW parameters
 		double Znuc, sigmaNuc; //!< magnitude of the nuclear charge (positive) and corresponding gaussian width
-		double Zelec, aElec; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width 
+		double Zelec, aElec; //!< magnitude of electron charge (positive) and corresponding cuspless-exponential width
+	        double Zsite; //!<site charge in electrons
+		double deltaS; //!<G=0 correction potential due to electron-fluid and fluid-fluid charge kernel mismatch
+		double sigmaElec, rcElec; //!< width and location of peak in electron charge distribution
 		string elecFilename, elecFilenameG; //!< include electron charge density from real- or G- space radial ASCII file
 		double alpha, aPol; //!< isotropic polarizability and corresponding cuspless-exponential width
 

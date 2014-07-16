@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -22,9 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <electronic/ColumnBundle.h>
 
-
-
-Molecule::Site::Site(string name, int atomicNumber) : name(name), Rhs(0), atomicNumber(atomicNumber), Znuc(0), sigmaNuc(0), Zelec(0), aElec(0), alpha(0), aPol(0), initialized(false)
+Molecule::Site::Site(string name, int atomicNumber) : name(name), Rhs(0), atomicNumber(atomicNumber), Znuc(0), sigmaNuc(0), Zelec(0), aElec(0), Zsite(0), deltaS(0), sigmaElec(0), rcElec(0), alpha(0), aPol(0), initialized(false)
 {	
 }
 
@@ -48,6 +46,19 @@ void Molecule::Site::free()
 	}
 }
 
+//Functions for use in calculating site charge kernels for fluid-electron coupling
+//normalized real space exponential function
+inline double Exponential(double r, double norm, double a)
+{	
+	return norm/(8.*M_PI*pow(a,3))*exp(-r/a);
+}
+
+//un-normalized real space peaked exponential function
+inline double PeakedExponential(double r, double a, double rc, double sigma)
+{	
+	return 0.5*exp(-r/a)*erfc((rc-r)/sigma);
+}
+
 void Molecule::Site::setup(const GridInfo& gInfo)
 {	if(initialized) free();
 	logPrintf("     Initializing site '%s'\n", name.c_str());
@@ -57,9 +68,79 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	{	logPrintf("       Electron density: ");
 		if(Zelec)
 		{
+		  if (!sigmaElec)
+		  {
 			logPrintf("\n       Initializing cuspless exponential with width %lg and norm %lg\n", aElec, Zelec);
+			elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::cusplessExpTilde, Zelec, aElec);
+			deltaS -= 12.*M_PI*Zelec*pow(aElec,2);
+		  }
+		  else
+		  {
+		        logPrintf("\n       Initializing peaked exponential function with norm %lg,\n       exponential decay constant %lg, peak location %lg, peak width %lg \n", Zelec, aElec, rcElec, sigmaElec);
+	  
+			int NRpts = 10000; //number of realspace log grid points used to represent electron density kernel		
+			double rVecMin = 1e-7; //minimum value in realspace log grid
+			double rLogScale = 1.005; //rLogScale=r[i+1]/r[i]
+			std::vector<double> rVec,nVec; //to store values of radial grid and density on that grid
+		  
+			rVec.push_back(rVecMin);
+			nVec.push_back(PeakedExponential(rVecMin,aElec,rcElec,sigmaElec));
+			for (int i=1; i<NRpts; i++)
+			  {
+			    rVec.push_back(rVec[i-1]*rLogScale);
+			    nVec.push_back(PeakedExponential(rVec[i],aElec,rcElec,sigmaElec));
+			  }
+		  
+			RadialFunctionR KernelR(NRpts);
+			KernelR.r = rVec;
+			KernelR.f = nVec;
+			KernelR.initWeights();
+	
+			double dG = gInfo.dGradial; //The uniform G-spacing for the radial function
+			int nGridG = int(ceil(gInfo.GmaxGrid/dG))+5; //number of G grid points
+			RadialFunctionG KernelG; //holds G space radial function
+	
+			//transform to fourier space
+			KernelR.transform(0, dG, nGridG, KernelG);
+			std::vector<double> newKernel;
+			double scale_factor;
+			scale_factor=Zelec/KernelG(0);
+			//set G=0 component to norm of electron density 
+			for (int i=0; i < nGridG; i++)
+			  {
+			    double G = double(i)*dG;
+			    newKernel.push_back(KernelG(G)*scale_factor);
+			  }
+		    
+			//compensate for mismatched charge kernels
+			//with deltaS = -2*pi/3*int(r^2*n(r))dV (realspace formula)
+  
+			//define difference between our radial function and analytical exponential function (times -2*pi/3*r^2)
+			RadialFunctionR KernelDiff(rVec.size());
+			RadialFunctionG KernelGDiff;
+			std::vector<double> nVecDiff;
+			for (uint i=0; i<rVec.size(); i++)	
+			  nVecDiff.push_back(-2.*M_PI/3.*pow(rVec[i],2)*(scale_factor*nVec[i]-Exponential(rVec[i],Zelec,aElec)));
+     
+			KernelDiff.r = rVec;
+			KernelDiff.f = nVecDiff;
+			KernelDiff.initWeights();	
+			//G=0 component of this fourier transform is the integral -2*pi/3*int(r^2*n(r))dV
+			KernelDiff.transform(0, dG, nGridG, KernelGDiff);
+
+			//apply the potential correction for the analytical exponential function
+			deltaS -= 8*M_PI*Zelec*pow(aElec,2);
+			//apply the potential correction for the difference between radial and analytical functions
+			deltaS += KernelGDiff(0);
+		    
+			elecKernel.init(0,newKernel,dG); //finally initialize elecKernel 		    
+		  }	
 		}
-		elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::cusplessExpTilde, Zelec, aElec); 
+		else
+		{
+			elecKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::cusplessExpTilde, 0.0, 0.0);
+		}
+		
 		if(elecFilename.length())
 		{	
 			ifstream ifs(elecFilename.c_str());
@@ -113,6 +194,30 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 	
 			//transform to fourier space
 			KernelR.transform(0, dG, nGridG, KernelG);
+
+			//compensate for mismatched charge kernels
+			//with deltaS = -2*pi/3*int(r^2*n(r))dV (realspace formula)
+			{
+			 double norm = KernelG(0.0);
+			
+			 //define difference between our radial function and analytical exponential function with same norm (times -2*pi/3*r^2)
+			 RadialFunctionR KernelDiff(rVec.size());
+			 RadialFunctionG KernelGDiff;
+			 std::vector<double> nVecDiff;
+			 for (uint i=0; i<rVec.size(); i++)	
+				nVecDiff.push_back(-2.*M_PI/3.*pow(rVec[i],2)*(nVec[i]-Exponential(rVec[i],norm,aElec)));
+     
+			  KernelDiff.r = rVec;
+			  KernelDiff.f = nVecDiff;
+			  KernelDiff.initWeights();	
+			  //G=0 component of this fourier transform is the integral -2*pi/3*int(r^2*n(r))dV
+			  KernelDiff.transform(0, dG, nGridG, KernelGDiff);
+
+			  //apply the potential correction for the analytical exponential function
+			  deltaS -= 8*M_PI*norm*pow(aElec,2);
+			  //apply the potential correction for the difference between radial and analytical functions
+			  deltaS += KernelGDiff(0.0);
+			}
 			
 			std::vector<double> newKernel;
 			for (int i=0; i < nGridG; i++)
@@ -121,7 +226,9 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 				newKernel.push_back(elecKernel(G)+KernelG(G));
 			}
 			elecKernel.init(0,newKernel,dG); //reinitialize elecKernel with new radial function added on.
-			
+
+			Znuc = elecKernel(0)-Zsite;
+			logPrintf("         Adjusting Znuc to %lg to ensure correct site charge.\n",Znuc);
 				
 		}
 		if(elecFilenameG.length())
@@ -189,7 +296,9 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 				double G = double(i)*dG;
 				newKernel.push_back(elecKernel(G)+KernelG(G));			
 			}
-			elecKernel.init(0,newKernel,dG); //reinitialize elecKernel with new radial function added on.					
+			elecKernel.init(0,newKernel,dG); //reinitialize elecKernel with new radial function added on.	
+			logPrintf("WARNING: Uncompensated charge kernel mismatch for fluid-fluid and electron-fluid interactions\n"); 
+	
 		}
 		
 		logPrintf("         Total electronic charge: %lg\n", elecKernel(0));
@@ -206,6 +315,7 @@ void Molecule::Site::setup(const GridInfo& gInfo)
 		}
 		chargeKernel.init(0, samples, gInfo.dGradial);
 		logPrintf(" with net site charge %lg\n", chargeKernel(0));
+		deltaS += 2.*M_PI*Znuc*pow(sigmaNuc,2);
 	}
 	
 	//Initialize polarizability kernel:
@@ -249,11 +359,48 @@ inline double sphericalShellTilde(double G, double R)
 {	return bessel_jl(0, G*R);
 }
 
+//Fourier transform of gaussian
+inline double gaussTilde(double G, double norm, double sigma)
+{	double sigmaG = sigma*G;
+	return norm * exp(-0.5*sigmaG*sigmaG);
+}
+
+//Lischner10 Coulomb Kernel
+inline double setCoulombCutoffKernel(double G)
+{	
+  const double Gc = 0.33;
+  return 1/sqrt(1 + pow(G/Gc,4));
+}
+
 void Molecule::setup(const GridInfo& gInfo, double Rmf)
 {	logPrintf("   Initializing fluid molecule '%s'\n", name.c_str());
 	for(auto& site: sites) site->setup(gInfo);
 	logPrintf("     Net charge: %lg   dipole magnitude: %lg\n", checkCharge(), getDipole().length());
-	mfKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, sphericalShellTilde, Rmf ? Rmf : pow(3*getVhs()/(4.*M_PI), 1./3));
+
+	// Ions use gaussian mfKernel while neutral solvent molecules use spherical shell mfKernel
+	if(getCharge())
+	{
+	  double Res = Rmf ? Rmf/sqrt(2) : pow(3*getVhs()/(4.*M_PI), 1./3)/sqrt(2);
+	  mfKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, gaussTilde, 1.0, Res);
+	  logPrintf("\tInitializing gaussian mfKernel with width: %lg Bohr\n",Res);  
+	  for(auto& site: sites) site->deltaS += 2.*M_PI*site->Zsite*pow(Res,2); 
+	}
+	else
+	{
+	//Sundararaman style charge kernel (from JCP 2014)
+	  double Res = Rmf ? Rmf : pow(3*getVhs()/(4.*M_PI), 1./3);
+	  mfKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, sphericalShellTilde, Res);	  
+	  logPrintf("\tInitializing spherical shell mfKernel located at radius %lg Bohr\n",Res); 
+	  for(auto& site: sites) site->deltaS += 2.*M_PI/3.*site->Zsite*pow(Res,2); 
+	
+	//Debugging option:
+	//Lischner style charge kernel 
+	// mfKernel.init(0, gInfo.dGradial, gInfo.GmaxGrid, setCoulombCutoffKernel);
+	// logPrintf("\tInitializing Lischner style mfKernel.\n");  
+	//no contribution to deltaS
+	}
+
+	for(auto& site: sites)	logPrintf("deltaS correction to %s site charge kernel mismatch: %lg\n", site->name.c_str(), site->deltaS);
 	initialized = true;
 }
 
@@ -271,16 +418,21 @@ double Molecule::getCharge() const
 	else return Q;
 }
 
-//At first initialization of molecule absorb very small site charges
+//At first initialization of molecule absorb very small net charges
 //into first site chargeKernel and elecKernel 
 double Molecule::checkCharge() 
 {	
 	double Q = getCharge();
 	if(Q==0.) 
 		return 0.;
-	if(fabs(Q) < 1e-6)
+	if(fabs(Q) < 1e-2)
 	{
-		std::shared_ptr<Site> s0 = sites[0]; 
+		int ChargedSite = 0;
+		while (!sites[ChargedSite]->chargeKernel(0))
+		{
+		  ChargedSite += 1; 
+		}
+		std::shared_ptr<Site> s0 = sites[ChargedSite];
 		int nG = s0->chargeKernel.nCoeff;
 		double dG = 1./s0->chargeKernel.dGinv;
 		std::vector<double> chargeKernel, elecKernel;
@@ -297,8 +449,9 @@ double Molecule::checkCharge()
 		logPrintf("     WARNING: Molecule had net charge %lg, adjusting %s site charge by %lg to compensate.\n",Q,s0->name.c_str(),-Q/s0->positions.size());
 		return 0.;
 	}
-	  else return Q;
+	else return Q;
 }
+
 
 vector3<> Molecule::getDipole() const
 {	vector3<> P;

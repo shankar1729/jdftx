@@ -135,13 +135,17 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.name = "H2O";
 			auto siteO = std::make_shared<Molecule::Site>("O",int(AtomicSymbol::O));
 				siteO->Znuc = 6.; siteO->sigmaNuc = sigmaNucO;
-				siteO->Zelec = 6.826; siteO->aElec = 0.32;
+				siteO->Zelec = 6.826; //siteO->aElec = 0.32;
+				siteO->aElec = 0.36935; siteO->sigmaElec = 0.36823; siteO->rcElec = 0.51523;
 				siteO->alpha = 3.73; siteO->aPol = 0.32;
+				siteO->Zsite = siteO->Zelec-siteO->Znuc;
 			molecule.sites.push_back(siteO);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
-				siteH->Zelec = 0.587; siteH->aElec = 0.31;
+				siteH->Zelec = 0.587; //siteH->aElec = 0.31;
+				siteH->aElec = 0.34641; siteH->sigmaElec = 2.*(siteH->aElec)/sqrt(M_PI); siteH->rcElec = 0.0;
 				siteH->alpha = 3.30; siteH->aPol = 0.39;
+				siteH->Zsite = siteH->Zelec-siteH->Znuc;
 			molecule.sites.push_back(siteH);
 			//Geometry:
 			const double rOH = 0.967*Angstrom;
@@ -189,18 +193,24 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.sites.push_back(siteCenter);
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
-				siteC->Zelec = 4.256; siteC->aElec = 0.43;
+				siteC->Zelec = 4.256; //siteC->aElec = 0.43;
+				siteC->aElec = 0.49; siteC->sigmaElec = 0.48; siteC->rcElec = 0.67;
 				siteC->alpha = 6.05; siteC->aPol = 0.36;
+				siteC->Zsite = siteC->Zelec-siteC->Znuc;
 			molecule.sites.push_back(siteC);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
-				siteH->Zelec = 0.756; siteH->aElec = 0.26;
+				siteH->Zelec = 0.756; //siteH->aElec = 0.26;
+				siteH->aElec = 0.36; siteH->sigmaElec = 2.*(siteH->aElec)/sqrt(M_PI); siteH->rcElec = 0.0;
 				siteH->alpha = 9.13; siteH->aPol = 0.41;
+				siteH->Zsite = siteH->Zelec-siteH->Znuc;
 			molecule.sites.push_back(siteH);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
-				siteCl->Zelec = 6.996; siteCl->aElec = 0.44;
+				siteCl->Zelec = 6.996; //siteCl->aElec = 0.44;
+				siteCl->aElec = 0.45; siteCl->sigmaElec = 0.51; siteCl->rcElec = 1.01;
 				siteCl->alpha = 15.8; siteCl->aPol = 0.46;
+				siteCl->Zsite = siteCl->Zelec-siteCl->Znuc;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
 			const double zC = 0.523*Angstrom; //distance of C from center
@@ -228,14 +238,18 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			molecule.name = "CCl4";
 			auto siteC = std::make_shared<Molecule::Site>("C",int(AtomicSymbol::C));
 				siteC->Znuc = 4.; siteC->sigmaNuc = sigmaNucC;
-				siteC->Zelec = 4.980; siteC->aElec = 0.44;
+				siteC->Zelec = 4.980; //siteC->aElec = 0.44;
+				siteC->aElec = 0.61; siteC->sigmaElec = 0.37; siteC->rcElec = 0.53;
 				siteC->alpha = 5.24; siteC->aPol = 0.35;
 				siteC->Rhs = Rvdw;
+				siteC->Zsite = siteC->Zelec-siteC->Znuc;
 			molecule.sites.push_back(siteC);
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
 				siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
-				siteCl->Zelec = 6.755; siteCl->aElec = 0.44;
+				siteCl->Zelec = 6.755; //siteCl->aElec = 0.44;
+				siteCl->aElec = 0.44; siteCl->sigmaElec = 0.52; siteCl->rcElec = 1.04;
 				siteCl->alpha = 18.1; siteCl->aPol = 0.47;
+				siteCl->Zsite = siteCl->Zelec-siteCl->Znuc;
 			molecule.sites.push_back(siteCl);
 			//Geometry:
 			const double rCCl = 1.801*Angstrom;
@@ -264,21 +278,25 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 				siteC1->Znuc = 4.; siteC1->sigmaNuc = sigmaNucC;
 				siteC1->Zelec = 4.7128; siteC1->aElec = 0.44;
 				siteC1->alpha = 4.49; siteC1->aPol = 0.35;
+				siteC1->Zsite = siteC1->Zelec-siteC1->Znuc;
 			molecule.sites.push_back(siteC1);
 			auto siteC2 = std::make_shared<Molecule::Site>("C2",int(AtomicSymbol::C)); //nitrile carbon
 				siteC2->Znuc = 4.; siteC2->sigmaNuc = sigmaNucC;
 				siteC2->Zelec = 3.4832; siteC2->aElec = 0.39;
 				siteC2->alpha = 7.18; siteC2->aPol = 0.39;
+				siteC2->Zsite = siteC2->Zelec-siteC2->Znuc;
 			molecule.sites.push_back(siteC2);
 			auto siteH = std::make_shared<Molecule::Site>("H",int(AtomicSymbol::H));
 				siteH->Znuc = 1.; siteH->sigmaNuc = sigmaNucH;
 				siteH->Zelec = 0.7659; siteH->aElec = 0.28;
 				siteH->alpha = 4.33; siteH->aPol = 0.37;
+				siteH->Zsite = siteH->Zelec-siteH->Znuc;
 			molecule.sites.push_back(siteH);
 			auto siteN = std::make_shared<Molecule::Site>("N",int(AtomicSymbol::N));
 				siteN->Znuc = 5.; siteN->sigmaNuc = sigmaNucN;
 				siteN->Zelec = 5.5063; siteN->aElec = 0.37;
 				siteN->alpha = 5.85; siteN->aPol = 0.35;
+				siteN->Zsite = siteN->Zelec-siteN->Znuc;
 			molecule.sites.push_back(siteN);
 			//Geometry:
 			const double zC2 = 0.165*Angstrom; //distance of nitrile carbon from center
@@ -409,8 +427,15 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			//Site properties:
 			molecule.name = "Na+";
 			auto siteNa = std::make_shared<Molecule::Site>("Na",int(AtomicSymbol::Na));
-				siteNa->Znuc = 9.; siteNa->sigmaNuc = (1./6)*Rvdw;
-				siteNa->Zelec = 8.; siteNa->aElec = 0.206;
+			     siteNa->Znuc = 9.1383; siteNa->sigmaNuc = (1./6)*Rvdw;
+			     siteNa->Zelec = 8.1383; //siteNa->aElec = 0.206;
+			     siteNa->aElec = 0.19682; siteNa->sigmaElec = 0.41314; siteNa->rcElec = 0.71491;
+			     siteNa->Zsite = siteNa->Zelec-siteNa->Znuc;
+			
+			     //siteNa->Rhs = Rvdw; //obvious default
+			     siteNa->Rhs = 0.986*Angstrom; //reproduces location of first peak in Na-O radial distribution functions
+			     //siteNa->Rhs = 6.0; //Parameter from Kendra Letchworth-Weaver APS 2012 talk 
+		
 			molecule.sites.push_back(siteNa);
 			//Geometry:
 			siteNa->positions.push_back(vector3<>(0,0,0));
@@ -422,8 +447,15 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			//Site properties:
 			molecule.name = "Cl-";
 			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
-				siteCl->Znuc = 7.; siteCl->sigmaNuc = (1./6)*Rvdw;
-				siteCl->Zelec = 8.; siteCl->aElec = 0.438;
+			     siteCl->Znuc = 8.6677; siteCl->sigmaNuc = (1./6)*Rvdw;
+			     siteCl->Zelec = 9.6677; //siteCl->aElec = 0.438;
+			     siteCl->aElec = 0.54615; siteCl->sigmaElec =  2.*(siteCl->aElec)/sqrt(M_PI); siteCl->rcElec = 0.0;			
+			     siteCl->Zsite = siteCl->Zelec-siteCl->Znuc;
+
+			     //siteCl->Rhs = Rvdw; //obvious default
+			     siteCl->Rhs = 1.837*Angstrom; //Reproduces first peak in the Cl-O radial distribution functions
+			     //siteCl->Rhs = 3.0; //Parameters from Kendra Letchworth-Weaver APS 2012 talk
+
 			molecule.sites.push_back(siteCl);
 			//Geometry:
 			siteCl->positions.push_back(vector3<>(0,0,0));
@@ -435,8 +467,8 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 }
 
 void FluidComponent::addToFluidMixture(FluidMixture* fluidMixture)
-{	assert(!idealGas);
-	const GridInfo& gInfo = fluidMixture->gInfo;
+{	assert(!idealGas);	
+        const GridInfo& gInfo = fluidMixture->gInfo;
 	if(!molecule) molecule.setup(gInfo, Rvdw);
 	
 	//Setup ideal gas:

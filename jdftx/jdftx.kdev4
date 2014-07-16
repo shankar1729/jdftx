@@ -1,4 +1,3 @@
 [Project]
-Name=jdftx
 Manager=KDevCMakeManager
-VersionControl=kdevsubversion
+Name=jdftx

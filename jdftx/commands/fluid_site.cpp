@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
-
+				    /*
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <core/Units.h>
@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidComponent.h>
 #include <fluid/Fex_ScalarEOS.h>
 
+				    
 enum FluidSiteParameter
 {	
 	FSp_Znuc, //!<magnitude of the nuclear charge (positive) 
@@ -63,7 +64,7 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
 	FluidComponent::H2O, "H2O",
 	FluidComponent::CHCl3, "CHCl3",
 	FluidComponent::CCl4, "CCl4",
-	FluidComponent::CH3CN, "CH3CN",/*
+	FluidComponent::CH3CN, "CH3CN",
 	FluidComponent::DMC, "DMC",
 	FluidComponent::EC, "EC",
 	FluidComponent::PC, "PC",
@@ -73,7 +74,7 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
   	FluidComponent::Chlorobenzene, "Chlorobenzene",
 	FluidComponent::Isobutanol, "Isobutanol",
 	FluidComponent::CarbonDisulfide, "CarbonDisulfide",
-	FluidComponent::CustomSolvent, "CustomSolvent",*/
+	FluidComponent::CustomSolvent, "CustomSolvent",
 	//cations
 	FluidComponent::Sodium, "Na+",
 	FluidComponent::CustomCation, "CustomCation",
@@ -196,7 +197,7 @@ void printStatus(Everything& e, int iRep)
 	}
 }
 commandFSParams;
-
+*/
 
 /*
 EnumStringMap<ConvolutionCouplingSiteModel> couplingMap(
