@@ -43,6 +43,7 @@ public:
 	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
 	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
 	string getName() const;
+	double Vxc_bulk;
 
 private:
 	const ExCorr& exCorr;

@@ -36,6 +36,7 @@ VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vec
 		for(unsigned i=0; i<c.molecule.sites.size(); i++)
 			atomicNumber.push_back(c.molecule.sites[i]->atomicNumber);
 	}
+	logPrintf("Initialized Grimme Pair Potentials for vdW interactions with scale factor %lg.\n", vdwScale);
 }
 
 double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< double >& Phi_N) const

@@ -111,8 +111,8 @@ struct CommandFluidVDWscale : public Command
 	{
 		format = "<scale=0.75>";
 		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
-					"   Default is scale=0.75 (scale factor for PBE).\n"
-					"   Set to 0 to use prefactor corresponding to fluid exchange-correlation.";
+					"   Default is fluid specific, but ranges between 0.4 to 1.3.\n"
+					"   Set to 0 to use the prefactor corresponding to fluid exchange-correlation.";
 					
 		require("fluid-solvent");
 	}

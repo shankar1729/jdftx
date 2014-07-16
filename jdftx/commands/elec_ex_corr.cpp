@@ -511,7 +511,7 @@ struct CommandFluidExCorr : public CommandElecExCorr
 			addDescriptions(xcMap_K.optionList(), getLibXCdescription_K) +
 			#endif
 			".\nThe available options for <exchange-correlation> are identical to elec-ex-corr\n"
-			"and defaults to the functional set by elec-ex-corr.";
+			"and defaults to lda-pz.";
 		hasDefault = true;
 		emptyParamError = "   A kinetic energy functional must be specified.";
 		require("elec-ex-corr");
@@ -529,14 +529,19 @@ struct CommandFluidExCorr : public CommandElecExCorr
 			#endif
 			else throw key + " is not a recognized kinetic energy functional";
 		}
-		//Set default exchange-correlation to be that of elec-ex-corr
-		fluidExCorr.exCorrType = e.exCorr.exCorrType;
-		fluidExCorr.xcName = e.exCorr.xcName;
+		//Set default exchange-correlation to be LDA
+		fluidExCorr.exCorrType =  ExCorrLDA_PZ;
+		fluidExCorr.xcName = exCorrTypeMap.getString(ExCorrLDA_PZ);
+		  
+
+		//old code which set default exchange correlation to be that of electronic system
+		/*	fluidExCorr.exCorrType = e.exCorr.exCorrType;
+			fluidExCorr.xcName = e.exCorr.xcName;		
 		#ifdef LIBXC_ENABLED
 		fluidExCorr.xcExchange = e.exCorr.xcExchange;
 		fluidExCorr.xcCorr = e.exCorr.xcCorr;
 		fluidExCorr.xcExcorr = e.exCorr.xcExcorr;
-		#endif
+		#endif*/
 		CommandElecExCorr::process(pl, fluidExCorr);
 	}
 	

@@ -94,6 +94,35 @@ public:
 		assert(e.vanDerWaals);
 		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, atpos, e.vanDerWaals,
 			e.vanDerWaals->getScaleFactor(fsp.exCorr.getName(), fsp.vdwScale));
+
+		//---- G=0 constraints -----
+
+		//Electron density in the bulk of the fluid
+		double nFl_bulk = 0.0;	
+
+		for(const auto& c: fsp.components) 
+		{  
+			for(unsigned i=0; i<c->molecule.sites.size(); i++)
+			{
+			  const Molecule::Site& s = *(c->molecule.sites[i]);
+			  nFl_bulk += c->idealGas->get_Nbulk()*s.elecKernel(0)*s.positions.size();
+			}
+		}
+		
+		logPrintf("\nBulk electron density of the liquid: %le bohr^-3\n",nFl_bulk);
+
+		//calculate G=0 offset due to coupling functional evaluated at bulk fluid density
+		{
+		  DataRptr nBulk;
+		  nullToZero(nBulk,e.gInfo);
+		  //initialize constant dataRptr with density nFl_bulk
+		  for (int i=0; i<e.gInfo.nr; i++)
+		    nBulk->data()[i] = nFl_bulk;
+		  DataRptr Vxc_bulk;
+
+		  logPrintf("Electron deep in fluid experiences coupling potential: %lg H\n\n", Vxc_bulk->data()[0]);
+		  coupling->Vxc_bulk = Vxc_bulk->data()[0];
+		 }
 	}
 
 	~ConvolutionJDFT()
