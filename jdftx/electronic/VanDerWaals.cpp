@@ -54,8 +54,8 @@ inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r)
 }
 
 VanDerWaals::VanDerWaals(const Everything& everything)
-{	
-        logPrintf("\nInitializing van der Waals corrections\n");
+{
+	logPrintf("\nInitializing van der Waals corrections\n");
 	e = &everything;
 	
 	// Constructs the EXCorr -> scaling factor map
@@ -121,21 +121,17 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 		atomParams[Z] = AtomParams(55 , 1.75);
 	
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
-		
+	
 	//Print vdw parameter info and check atomic numbers:
 	if(!e->iInfo.vdWenable) logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
-	for(auto sp: e->iInfo.species)
-	{	assert(sp->atomicNumber);
-
-	  if(sp->vdwOverride)
-	    logPrintf("\t%2s: Using manually set vdw parameter: C6:  %lg Eh-a0^6   R0: %lg a0 \n", sp->name.c_str(), sp->vdwOverride->C6, sp->vdwOverride->R0);
-	  else
-	    {  if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!  Must be manually set.  \n", atomicNumberMax);
-	       const AtomParams& p = getParams(sp->atomicNumber, -1);
-	       logPrintf("\t%2s:  C6: %7.2f Eh-a0^6  R0: %.3f a0%s\n", sp->name.c_str(), p.C6, p.R0,
-	       (sp->atomicNumber > atomicNumberMaxGrimme) ? " (WARNING: beyond Grimme's data set)" : "");
-	    
-	    }
+	for(size_t spIndex=0; spIndex<e->iInfo.species.size(); spIndex++)
+	{	const auto& sp = e->iInfo.species[spIndex];
+		assert(sp->atomicNumber);
+		if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!\n", atomicNumberMax);
+		const AtomParams& p = getParams(sp->atomicNumber, spIndex);
+		logPrintf("\t%2s:  C6: %7.2f Eh-a0^6  R0: %.3f a0%s\n", sp->name.c_str(), p.C6, p.R0,
+			sp->vdwOverride ? " (Manually overriden)"
+				: ( (sp->atomicNumber > atomicNumberMaxGrimme) ? " (WARNING: beyond Grimme's data set)" : "" ) );
 	}
 }
 
@@ -149,9 +145,9 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 	
 	double Etot = 0.;  //Total VDW Energy
 	for(int c1=0; c1<int(atoms.size()); c1++)
-	  {     const AtomParams& c1params = getParams(atoms[c1].atomicNumber,atoms[c1].sp);
+	{	const AtomParams& c1params = getParams(atoms[c1].atomicNumber, atoms[c1].sp);
 		for(int c2=0; c2<int(atoms.size()); c2++)
-		  {	const AtomParams& c2params = getParams(atoms[c2].atomicNumber,atoms[c2].sp);
+		{	const AtomParams& c2params = getParams(atoms[c2].atomicNumber, atoms[c2].sp);
 			double C6 = sqrt(c1params.C6 * c2params.C6);
 			double R0 = c1params.R0 + c2params.R0;
 			vector3<int> iR;
@@ -173,9 +169,8 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 
 
 double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber,
-				  const double scaleFac, DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
-{		
-	
+	const double scaleFac, DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
+{
 	double Etot = 0.;
 	const GridInfo& gInfo = Ntilde[0]->gInfo;
 	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e->iInfo.species;
@@ -194,7 +189,7 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 		for(unsigned j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
 			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
 			{
-			  const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j],i,-1); //get ij radial function
+				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j], i,-1); //get ij radial function
 				DataGptr E_Ntilde = (-scaleFac * gInfo.nr) * (Kernel_ij * SG); //calculate effect of ith explicit atom on gradient wrt jth site density
 				Etot += gInfo.dV * dot(Ntilde[j], E_Ntilde); //accumulate into total energy
 				if(grad_Ntilde)
@@ -231,16 +226,12 @@ VanDerWaals::AtomParams::AtomParams(double SI_C6, double SI_R0)
 }
 
 VanDerWaals::AtomParams VanDerWaals::getParams(int atomicNumber, int sp) const
-{	if(atomicNumber==unitParticle) return AtomParams(1.,0.);
+{	if(atomicNumber==unitParticle)
+		return AtomParams(1.,0.);
+	if(sp>=0 && e->iInfo.species[sp]->vdwOverride)
+		return *(e->iInfo.species[sp]->vdwOverride); //override from species if necessary
 	assert(atomicNumber>0);
-	if(sp==-1) return atomParams[atomicNumber];
-  // if the atomic number matches the atomic number of a species with a manually set C6,use that instead
-	if(e->iInfo.species[sp]->vdwOverride)
-	  { double C6; C6=(e->iInfo.species[sp]->vdwOverride->C6) /( Joule*pow(1e-9*meter,6)/mol); double R0; R0=(e->iInfo.species[sp]->vdwOverride->R0)/Angstrom;
-	    return AtomParams(C6,R0); 
-	  }
-  // otherwise, use the defaults
-	else assert(atomicNumber<=atomicNumberMax);
+	assert(atomicNumber<=atomicNumberMax);
 	return atomParams[atomicNumber];
 }
 
@@ -250,7 +241,7 @@ VanDerWaals::~VanDerWaals()
 	for(auto& iter: radialFunctions) iter.second.free(); //Cleanup cached RadialFunctionG's if any
 }
 
-const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int atomicNumber2, int sp, int sp2) const
+const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int atomicNumber2, int sp1, int sp2) const
 {
 	//Check for precomputed radial function:
 	std::pair<int,int> atomicNumberPair(
@@ -261,8 +252,8 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 		return radialFunctionIter->second;
 	
 	//Get parameters for current pair of species:
-	const AtomParams& params1 = getParams(atomicNumber1,sp);
-	const AtomParams& params2 = getParams(atomicNumber2,sp2);
+	const AtomParams& params1 = getParams(atomicNumber1, sp1);
+	const AtomParams& params2 = getParams(atomicNumber2, sp2);
 	double C6 = sqrt(params1.C6 * params2.C6);
 	double R0 = params1.R0 + params2.R0;
 	

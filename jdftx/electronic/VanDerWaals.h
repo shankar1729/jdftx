@@ -66,8 +66,9 @@ private:
 	//! Get cached RadialFunctionG for interaction kernel between species of
 	//! atomic numnbers Z1 and Z2. The radial function will be created (and cached)
 	//! the first time this function is called with a specific pair of Z's.
-	//! Note that both Z1 and Z2 should be supported non-zero atomic numbers.
-	const RadialFunctionG& getRadialFunction(int Z1, int Z2, int sp, int sp2) const;
+	//! Note that both Z1 and Z2 should be supported non-zero atomic numbers (or the special value unitParticle)
+	//! If sp is non-negative, then the corresponding species will be checked for overriding parameters
+	const RadialFunctionG& getRadialFunction(int Z1, int Z2, int sp1, int sp2) const;
 	
 	std::map<std::pair<int,int>,RadialFunctionG> radialFunctions;
 };

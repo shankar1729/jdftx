@@ -367,11 +367,10 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 {
 	//Obtain the list of atomic positions and charges:
 	std::vector<Atom> atoms;
-	int spIndex=0;
-	for(auto sp: species)
-	{	for(const vector3<>& pos: sp->atpos)
-	     atoms.push_back(Atom(sp->Z, pos, vector3<>(0.,0.,0.), sp->atomicNumber,spIndex));  
-	        spIndex++;
+	for(size_t spIndex=0; spIndex<species.size(); spIndex++)
+	{	const SpeciesInfo& sp = *species[spIndex];
+		for(const vector3<>& pos: sp.atpos)
+			atoms.push_back(Atom(sp.Z, pos, vector3<>(0.,0.,0.), sp.atomicNumber, spIndex));
 	}
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
 	double Eewald = e->coulomb->energyAndGrad(atoms);

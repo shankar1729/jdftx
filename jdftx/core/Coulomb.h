@@ -75,10 +75,10 @@ struct Atom
 	vector3<> pos; //!< position in lattice coordinates (covariant)
 	vector3<> force; //!< force in lattice coordinates (contravariant)
 	int atomicNumber; //!< atomic number
-        int sp; //! species index for atom; used for VDW
+	int sp; //!< species index for atom; used for VDW
 	
-  Atom(double Z, vector3<> pos, vector3<> force=vector3<>(0,0,0), int atomicNumber=0, int sp=0)
-    : Z(Z), pos(pos), force(force), atomicNumber(atomicNumber), sp(sp)
+	Atom(double Z, vector3<> pos, vector3<> force=vector3<>(0,0,0), int atomicNumber=0, int sp=0)
+	: Z(Z), pos(pos), force(force), atomicNumber(atomicNumber), sp(sp)
 	{
 	}
 };

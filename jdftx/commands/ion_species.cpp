@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <core/Units.h>
 
 struct CommandIonSpecies : public Command
 {
@@ -240,42 +241,43 @@ struct CommandSetVDW : public Command
 	CommandSetVDW() : Command("setVDW")
 	{	format = "<species> <C6> <R0> [ <species2> ... ]";
 		comments =
-			"Manually adjust the value of VDW correction\n"
-		  "used in DFT-D2 from the default values.  Values given in J/mol*Angstrom^6 and Angstrom";
+			"Manually adjust DFT-D2 vdW parameters from the default (atomic number based) values.\n"
+			"Specify C6 in J/mol*Angstrom^6 and R0 in Angstrom.";
 		
 		require("ion");
 	}
 	
 	void process(ParamList& pl, Everything& e)
-        {	string id;
+	{	string id;
 		pl.get(id, string(), "species", true);
 		while(id.length())
 		{	auto sp = findSpecies(id, e);
-		  if(sp)
-		    { double C6; double R0;
-		      	pl.get(C6, 0.0, "C6", true);
-		      	pl.get(R0, 0.0, "R0", true);
-     			std::shared_ptr<struct VanDerWaals::AtomParams> vdwOverride=std::make_shared<VanDerWaals::AtomParams>(C6,R0);			
-	//Add VDW descriptor to species:
-			sp->vdwOverride=vdwOverride;
-		    }
+			if(sp)
+			{	double C6; double R0;
+				pl.get(C6, 0.0, "C6", true);
+				pl.get(R0, 0.0, "R0", true);
+				sp->vdwOverride = std::make_shared<VanDerWaals::AtomParams>(C6,R0); //note constructor does conversions to a.u
+			}
 			else throw string("Species "+id+" has not been defined");
 			//Check for additional species:
 			pl.get(id, string(), "species");
 		}
-
 	}
+	
 	void printStatus(Everything& e, int iRep)
-        {         for(auto sp: e.iInfo.species)
-		  { if(sp->vdwOverride)
-		    logPrintf("\t%2s: Using override for VDW",sp->name.c_str()); 
-		  }
-			  
+	{	bool first = true;
+		for(auto sp: e.iInfo.species)
+			if(sp->vdwOverride)
+			{	if(!first) logPrintf(" \\\n"); first = false;
+				logPrintf("\t%s %lg %lg", sp->name.c_str(),
+					sp->vdwOverride->C6 / (Joule*pow(1e-9*meter,6)/mol),
+					sp->vdwOverride->R0 / Angstrom); 
+			}
 	}
-
 }
 commandSetVDW;
-	
+
+
 struct CommandAddU : public Command
 {
 	CommandAddU() : Command("add-U")
@@ -341,9 +343,6 @@ struct CommandAddU : public Command
 		Citations::add("Simplified rotationally-invariant DFT+U", "S. L. Dudarev et al., Phys. Rev. B 57, 1505 (1998)");
 	}
 	
-
-
-
 	void printStatus(Everything& e, int iRep)
 	{	bool first = true;
 		for(auto sp: e.iInfo.species)

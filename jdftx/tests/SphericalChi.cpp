@@ -48,7 +48,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 		nSpecies = e.iInfo.species.size();
 		for(int i=0; i<nSpecies; i++)
 		{	const SpeciesInfo& sp = *(e.iInfo.species[i]);
-		  width.push_back(0.15*vdW.getParams(sp.atomicNumber,i).R0);
+			width.push_back(0.15*vdW.getParams(sp.atomicNumber,i).R0);
 			nAtoms += sp.atpos.size();
 		}
 		alpha.resize(nSpecies);

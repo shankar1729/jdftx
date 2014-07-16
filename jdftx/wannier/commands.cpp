@@ -178,7 +178,7 @@ struct CommandWannierCenter : public Command
 		format = "<aorb1> [<aorb2> ...]";
 		comments =
 			"Specify trial orbital for a wannier function as a linear combination of\n"
-			"atomic orbitals <aorb*>. The syntax for each <horb> is:\n"
+			"atomic orbitals <aorb*>. The syntax for each <aorb> is:\n"
 			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
 			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
 			"(coordinate system set by coords-type). If <a> is the name of one\n"

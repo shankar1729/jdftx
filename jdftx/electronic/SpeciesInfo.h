@@ -21,9 +21,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SPECIESINFO_H
 #define JDFTX_ELECTRONIC_SPECIESINFO_H
 
-#include <electronic/VanDerWaals.h>
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
+#include <electronic/VanDerWaals.h>
 #include <electronic/matrix.h>
 #include <core/DataCollection.h>
 #include <core/vector3.h>
@@ -186,7 +186,7 @@ private:
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
 	//!Pointer for struct containing optional VDW overrides
-	std::shared_ptr<struct VanDerWaals::AtomParams> vdwOverride;
+	std::shared_ptr<VanDerWaals::AtomParams> vdwOverride;
 
 	PseudopotentialFormat pspFormat;
 	
