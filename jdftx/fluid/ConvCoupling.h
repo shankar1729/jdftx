@@ -44,9 +44,9 @@ public:
 	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
 	string getName() const;
 	double Vxc_bulk;
+	const ExCorr& exCorr;
 
 private:
-	const ExCorr& exCorr;
 	const std::vector<const FluidComponent*>& component;
 	DataRptr nCavity;
 };

@@ -120,6 +120,7 @@ public:
 		    nBulk->data()[i] = nFl_bulk;
 		  DataRptr Vxc_bulk;
 
+		  double Phi_bulk = (coupling->exCorr)(nBulk, &Vxc_bulk, true)/e.gInfo.nr;
 		  logPrintf("Electron deep in fluid experiences coupling potential: %lg H\n\n", Vxc_bulk->data()[0]);
 		  coupling->Vxc_bulk = Vxc_bulk->data()[0];
 		 }
