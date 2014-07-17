@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 extern string rigidMoleculeCDFT_ScalarEOSpaper;
 
 FluidMixture::FluidMixture(const GridInfo& gInfo, const double T)
-: gInfo(gInfo), T(T), verboseLog(false), Qtol(1e-12), nIndepIdgas(0), nDensities(0), polarizable(false)
+: gInfo(gInfo), T(T), verboseLog(false), useMFKernel(false), Qtol(1e-12), nIndepIdgas(0), nDensities(0), polarizable(false)
 {
 	logPrintf("Initializing fluid mixture at T=%lf K ...\n", T/Kelvin);
 	Citations::add("Rigid-molecule density functional theory framework", rigidMoleculeCDFT_ScalarEOSpaper);

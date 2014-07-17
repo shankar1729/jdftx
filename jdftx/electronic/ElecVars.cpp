@@ -360,10 +360,13 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		VsclocTilde += d_fluid;
 		(fluidParams.useTau ? VtauTilde : VsclocTilde) += V_cavity;
 		
+
+		//Chemical-potential correction due to potential of electron in bulk fluid
+		double bulkPotential = fluidSolver->bulkPotential();
 		//Chemical-potential correction due to finite nuclear width in fluid interaction:
 		double muCorrection = fluidSolver->ionWidthMuCorrection();
-		ener.E["A_diel"] += (eInfo.nElectrons - iInfo.getZtot()) * muCorrection;
-		VsclocTilde->setGzero(muCorrection + VsclocTilde->getGzero());
+		ener.E["fluidMuShift"] = (eInfo.nElectrons - iInfo.getZtot()) * (muCorrection - bulkPotential);
+		VsclocTilde->setGzero(muCorrection - bulkPotential + VsclocTilde->getGzero());
 	}
 
 	//Atomic density-matrix contributions: (DFT+U)

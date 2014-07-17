@@ -287,8 +287,7 @@ void elecFluidMinimize(Everything &e)
 			double A_diel_prev = ener.E["A_diel"];
 			e.fluidMinParams.energyDiffThreshold = std::min(1e-5, 0.01*dAtyp);
 			eVars.fluidSolver->minimizeFluid();
-			ener.E["A_diel"] = eVars.fluidSolver->get_Adiel_and_grad(eVars.d_fluid, eVars.V_cavity, eVars.fluidForces)
-						+ (eInfo.nElectrons - e.iInfo.getZtot())*eVars.fluidSolver->ionWidthMuCorrection() ;
+			ener.E["A_diel"] = eVars.fluidSolver->get_Adiel_and_grad(eVars.d_fluid, eVars.V_cavity, eVars.fluidForces);
 			double dAfluid = ener.E["A_diel"] - A_diel_prev;
 			logPrintf("\nFluid minimization # %d changed total free energy by %le\n", iGummel+1, dAfluid);
 

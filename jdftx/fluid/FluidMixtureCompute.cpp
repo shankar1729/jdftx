@@ -68,6 +68,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 
 	//----------- Handle density constraints ------------
 	std::vector<double> Nscale(component.size(), 1.0); //density scale factor that satisfies the constraint
+	std::vector<double> Ntot_c; //vector of total number of molecules for each component
 	std::vector<double> Nscale_Qfixed(component.size(), 0.); //derivative of Nscale w.r.t the fixed charge
 	std::vector<std::vector<double> > Nscale_N0(component.size(), std::vector<double>(component.size(),0.0)); //jacobian of Nscale w.r.t the uncorrected molecule counts
 	std::vector<string> names; //list of molecule names
@@ -111,6 +112,8 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			if(fabs(Qcell)<fabs(Qtol)) break;
 			if(std::isnan(Qcell)) die("NaN encountered in Q convergence.\n")
 			betaV -= Qcell/Qprime; //Newton-Raphson update
+			if(std::isnan(Qcell)) 
+			  { betaV=0.0; break;}
 		}
 		for(unsigned ic=0; ic<component.size(); ic++)
 		{	const FluidComponent& ci = *component[ic];
@@ -135,13 +138,30 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 		for(unsigned i=0; i<c.molecule.sites.size(); i++)
 			Ntilde[c.offsetDensity+i] *= Nscale[ic];
 		P0[ic] *= Nscale[ic];
+		Ntot_c.push_back(integral(Ntilde[c.offsetDensity]));
 	}
 
 	EnergyComponents Phi; //the grand free energy (with component information)
 	DataGptrCollection Phi_Ntilde(nDensities); //gradients (functional derivative) w.r.t reciprocal space site densities
+	nullToZero(Phi_Ntilde,gInfo);
 	std::vector< vector3<> > Phi_P0(component.size()); //functional derivative w.r.t polarization density G=0
 	DataGptrVec Phi_epsMF; //functional derivative w.r.t mean field electric field
 	
+	//G=0 fix for mismatch in fluid-fluid vs. fluid-electron charge kernels
+	//We do this AFTER we have applied the appropriate scale factors
+	if( N0Q.size() && (!useMFKernel)) //if we have charged species in our fluid, and are using mismatched charge kernels
+	{
+	  	for(unsigned ic=0; ic<component.size(); ic++)
+		{	const FluidComponent& c = *component[ic];
+		        for(unsigned i=0; i<c.molecule.sites.size(); i++)
+			  { 
+			    const Molecule::Site& s = *(c.molecule.sites[i]);
+			    Phi["Gzero"] += Qfixed*(Ntot_c[ic]/gInfo.detR-c.idealGas->Nbulk)*s.positions.size()*s.deltaS;
+			    Phi_Ntilde[c.offsetDensity+i]->data()[0] += (1.0/gInfo.dV) * (Qfixed*s.deltaS);
+			  }
+		}
+	}
+
 	//--------- Compute the (scaled) mean field coulomb interaction --------
 	{	DataGptr rho; //total charge density
 		DataGptr rhoMF; //effective charge density for mean-field term
@@ -186,17 +206,30 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 		if(rhoMF)
 		{	//External charge interaction:
 			DataGptr Phi_rho;
+			DataGptr Phi_rhoMF;
 			if(needRho)
 			{	if(rhoExternal)
-				{	DataGptr OdExternal = O(coulomb(rhoExternal));
-					Phi["ExtCoulomb"] += dot(rho, OdExternal);
-					Phi_rho += OdExternal;
+				{	
+				  DataGptr OdExternal = O(coulomb(rhoExternal));
+				  if (!useMFKernel)
+				   {	
+			  	       Phi["ExtCoulomb"] += dot(rho, OdExternal);
+				       Phi_rho += OdExternal;
+				   }
+				   if (useMFKernel)
+				   {
+				       Phi["ExtCoulomb"] += dot(rhoMF, OdExternal);   
+				       Phi_rhoMF += OdExternal; 
+				   }
 				}
-				if(outputs.Phi_rhoExternal) *outputs.Phi_rhoExternal = coulomb(rho);
+				if(outputs.Phi_rhoExternal) 
+				{
+				  if (!useMFKernel) *outputs.Phi_rhoExternal = coulomb(rho);
+				  if (useMFKernel) *outputs.Phi_rhoExternal = coulomb(rhoMF);
+				}
 			}
 		
 			//Mean field contributions:
-			DataGptr Phi_rhoMF;
 			{	DataGptr OdMF = O(coulomb(rhoMF)); //mean-field electrostatic potential
 				Phi["Coulomb"] += 0.5*dot(rhoMF, OdMF);
 				Phi_rhoMF += OdMF;
@@ -398,7 +431,23 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	if(outputs.Phi_rhoExternal)
 	{	double Phi_Qfixed = 0.;
 		for(unsigned ic=0; ic<component.size(); ic++)
+		{
 			Phi_Qfixed += Phi_Nscale[ic] * Nscale_Qfixed[ic];
+			if (N0Q.size() && (!useMFKernel))
+		        {
+				const FluidComponent& c = *component[ic];
+				for(unsigned i=0; i<c.molecule.sites.size(); i++)
+				{ 
+				 	//Correction to lambda from charge kernel mismatch
+					  const Molecule::Site& s = *(c.molecule.sites[i]);
+					  double lambda_s =  (Ntot_c[ic]/gInfo.detR-c.idealGas->Nbulk)*s.deltaS*s.positions.size();
+					  if(verboseLog) logPrintf("Charge kernel mismatch correction for site %s of molecule %s: %lg\n",
+					  s.name.c_str(),c.molecule.name.c_str(),lambda_s);
+					  Phi_Qfixed += lambda_s;
+				}
+				 if(verboseLog) logPrintf("Total number of molecules of type %s: %lg\n",c.molecule.name.c_str(),Ntot_c[ic]);
+		        }
+		}
 		nullToZero(*outputs.Phi_rhoExternal, gInfo);
 		(*outputs.Phi_rhoExternal)->setGzero(Phi_Qfixed);
 	}
@@ -497,6 +546,6 @@ double FluidMixture::computeUniformEx(const std::vector<double>& Nmol, std::vect
 			Phi_Nmol[ic] += Phi_N[c.offsetDensity+i] * c.molecule.sites[i]->positions.size();;
 	}
 
-	//phi.print(gInfo.fpLog, true, "\t\t\t\t%15s = %12.4le\n"); //Uncomment when debugging to get contributions
+	if (verboseLog) phi.print(globalLog, true, "\t\t\t\t%15s = %12.4le\n"); //Uncomment when debugging to get contributions
 	return phi;
 }

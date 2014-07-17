@@ -61,6 +61,7 @@ public:
 	//! The interaction energy between internal charges and rhoExternal is included in getFreeEnergy() etc.
 	//! When charged components are present, the unit cell will be neutral including this charge.
 	DataGptr rhoExternal;
+	bool useMFKernel; //!If true, use the mean field kernel for external coulomb interactions as well 
 	double Qtol; //!< tolerance for unit cell neutrality (default 1e-12)
 
 	//! Initialize the independent variables

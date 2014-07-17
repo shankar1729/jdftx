@@ -53,6 +53,8 @@ struct FluidSolver
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
 	double get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const;
 
+        double bulkPotential() const {return 0.0;}
+
 	//! Dump relevant fluid densities (eg. NO and NH) to file(s)
 	//! the provided pattern will have a single %s which may be substituted
 	//! Fluid solver implementations may override to dump fluid densities, no dumping by default

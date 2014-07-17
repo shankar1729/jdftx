@@ -132,6 +132,8 @@ public:
 
 	bool needsGummel() { return true; }
 
+        double bulkPotential() {return coupling->Vxc_bulk;}
+
 	void loadState(const char* filename)
 	{	fluidMixture->loadState(filename);
 	}
