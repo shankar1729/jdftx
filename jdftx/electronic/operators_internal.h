@@ -59,6 +59,9 @@ __hostanddev__ void DD_calc(int i, const vector3<int>& iG, const complex* in, co
 		case 1: fTemplate<1> argList; break; \
 		case 2: fTemplate<2> argList; break; \
 		case 3: fTemplate<3> argList; break; \
+		case 4: fTemplate<4> argList; break; \
+		case 5: fTemplate<5> argList; break; \
+		case 6: fTemplate<6> argList; break; \
 	}
 
 template<int l, int lpm> struct lGradient_staticLoop
