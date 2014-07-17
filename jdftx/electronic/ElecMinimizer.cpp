@@ -233,6 +233,7 @@ void elecFluidMinimize(Everything &e)
 {	Control &cntrl = e.cntrl;
 	ElecVars &eVars = e.eVars;
 	ElecInfo& eInfo = e.eInfo;
+	IonInfo& iInfo = e.iInfo;
 	Energies &ener = e.ener;
 
 	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
@@ -272,9 +273,12 @@ void elecFluidMinimize(Everything &e)
 	}
 	eVars.elecEnergyAndGrad(ener);
 	
-	//First electronic minimization (with fluid if present) in all cases
-	logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
-	elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
+	//First electronic minimization (with fluid if present) in all neutral cases
+	if( abs(eInfo.nElectrons - iInfo.getZtot() ) <= 1e-12)
+	{
+	        //logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
+	        //elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
+	}
 	
 	if(eVars.fluidParams.fluidType!=FluidNone && eVars.fluidSolver->needsGummel())
 	{	//gummel loop

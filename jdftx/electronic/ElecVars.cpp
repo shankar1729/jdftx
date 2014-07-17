@@ -365,7 +365,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		double bulkPotential = fluidSolver->bulkPotential();
 		//Chemical-potential correction due to finite nuclear width in fluid interaction:
 		double muCorrection = fluidSolver->ionWidthMuCorrection();
-		ener.E["fluidMuShift"] = (eInfo.nElectrons - iInfo.getZtot()) * (muCorrection - bulkPotential);
+		ener.E["MuShift"] = (eInfo.nElectrons - iInfo.getZtot()) * (muCorrection - bulkPotential);
 		VsclocTilde->setGzero(muCorrection - bulkPotential + VsclocTilde->getGzero());
 	}
 

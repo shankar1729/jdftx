@@ -189,7 +189,8 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 			for(const FluidComponent* c: component)
 				for(unsigned i=0; i<c->molecule.sites.size(); i++)
 				{	const Molecule::Site& s = *(c->molecule.sites[i]);
-					if(s.chargeKernel) Vex[c->offsetDensity+i] += I(s.chargeKernel * dExternal);
+				  //initialization from electrostatic potential doesn't work for charged species
+				  if(s.chargeKernel && (!c->molecule.getCharge())) Vex[c->offsetDensity+i] += I(s.chargeKernel * dExternal);
 				}
 		}
 	}
