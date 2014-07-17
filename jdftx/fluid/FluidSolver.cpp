@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_H2O_FittedCorrelations.h>
 #include <fluid/Fex_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
+#include <fluid/Fex_LJ.h>
 #include <fluid/IdealGasMonoatomic.h>
 #include <core/DataIO.h>
 #include <core/Units.h>
@@ -64,6 +65,7 @@ class ConvolutionJDFT : public FluidSolver
 	FluidMixtureJDFT* fluidMixture;
 	std::shared_ptr<ConvCoupling> coupling;
 	std::shared_ptr<VDWCoupling> vdwCoupling;
+	std::vector<std::shared_ptr<Fmix>> FmixPtr;
 	
 	EnergyComponents Adiel; //fluid free energy components
 	DataGptr Adiel_rhoExplicitTilde; //cached gradient of free energy of fluidMixture wrt rhoExplicit
@@ -80,6 +82,28 @@ public:
 		//Add the fluid components:
 		for(const auto& c: fsp.components)
 			c->addToFluidMixture(fluidMixture);
+
+		if(fsp.FmixList.size())
+		{
+		        //create fluid mixtures
+		        logPrintf("\n------------ Fluid Mixing Functionals ------------\n");
+			for(const auto& f: fsp.FmixList)
+			{
+			       std::shared_ptr<FluidComponent> c1 = f.fluid1;
+			       string name1 = c1->molecule.name;
+			       std::shared_ptr<FluidComponent> c2 = f.fluid2;
+			       string name2 = c2->molecule.name;
+		      
+			       std::shared_ptr<Fmix> Fmix;
+			       if (f.FmixType == GaussianKernel)
+				 Fmix = std::make_shared<Fmix_GaussianKernel>(fluidMixture,c1,c2,f.energyScale,f.lengthScale);	
+			       else if (f.FmixType == LJPotential)
+				 Fmix = std::make_shared<Fmix_LJ>(fluidMixture,c1,c2,f.energyScale,f.lengthScale);
+			       else
+				 die("Valid mixing functional between %s and %s not specified!\n",name1.c_str(),name2.c_str());
+			       FmixPtr.push_back(Fmix);		      
+			}
+		}
 
 		fluidMixture->initialize(fsp.P, epsBulk, epsInf);
 

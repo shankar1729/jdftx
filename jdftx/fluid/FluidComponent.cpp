@@ -508,7 +508,7 @@ void FluidComponent::addToFluidMixture(FluidMixture* fluidMixture)
 			fex = std::make_shared<Fex_LJ>(fluidMixture, this, epsLJ);
 			break;
 		case FunctionalNone:
-			//No excess functional, or manually created functional (not managed by FLuidComponent)
+			//No excess functional, or manually created functional (not managed by FluidComponent)
 			break;
 	}
 

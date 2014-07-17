@@ -385,8 +385,8 @@ struct CommandFluidCation : public CommandFluidComponent
 	void process(ParamList& pl, Everything& e)
 	{	CommandFluidComponent::process(pl, e);
 		//Ions not yet supported in this version of ClassicalDFT
-		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
-			throw string("Ions not yet supported in ClassicalDFT fluid.");
+		//if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
+		//	throw string("Ions not yet supported in ClassicalDFT fluid.");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -404,8 +404,8 @@ struct CommandFluidAnion : public CommandFluidComponent
 	void process(ParamList& pl, Everything& e)
 	{	CommandFluidComponent::process(pl, e);
 		//Ions not yet supported in this version of ClassicalDFT
-		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
-			throw string("Ions not yet supported in ClassicalDFT fluid.");
+		//if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
+		//	throw string("Ions not yet supported in ClassicalDFT fluid.");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -601,12 +601,10 @@ void printStatus(Everything& e, int iRep)
 }
 commandFSParams;
 
-/*
+
 EnumStringMap<FMixFunctional> fMixMap
 (	
-	AttLJPotential, "AttLJPotential", 
 	LJPotential, "LJPotential",
-	PseudoLJPotential, "PseudoLJPotential",
 	GaussianKernel, "GaussianKernel"
 );
 
@@ -614,12 +612,10 @@ struct CommandFluidMixingFunctional : public Command
 {
     CommandFluidMixingFunctional() : Command("fluid-mixing-functional")
 	{
-	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=AttLJPotential] [<Ecut=0.005 H>] [<rHS>]";
-	  comments = "       Couple named fluids <fluid1> and <fluid2> "+ fluidComponentMap.optionList() +" together through a mixing functional of "
-			    " 	type " + fMixMap.optionList() + "\n with strength <energyScale> and range "
-			    "       parameter <lengthScale>. If <FmixType>=LJPotential, <Ecut> is the upper cutoff.\n"
-			    "	    If <FmixType>=PseudoLJPotential, the mixing potential matches for radii larger than <lengthscale>, then smoothly\n" 
-			    "	    interpolates to a constant value determined by <Ecut> for radii less than <rHS>.\n";
+	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=LJPotential]";
+	  comments = "       Couple named fluids <fluid1> and <fluid2> "+ fluidComponentMap.optionList() +" together \n"
+	             "       through a mixing functional of type " + fMixMap.optionList() + "\n"
+	             "       with strength <energyScale> and range parameter <lengthScale>.\n"; 
 
 	  require("fluid-solvent"); //which in turn requires fluid indirectly
 	  allowMultiple = true;
@@ -653,16 +649,12 @@ struct CommandFluidMixingFunctional : public Command
 	      double default_energyscale = sqrt(fmp.fluid1->epsLJ*fmp.fluid2->epsLJ);
 	      pl.get(fmp.energyScale, default_energyscale,"energyScale", true);
 	      
-	      double default_lengthscale = (fmp.fluid1->sigmaLJ + fmp.fluid2->sigmaLJ)/2.0;
+	      double default_lengthscale = fmp.fluid1->Rvdw + fmp.fluid2->Rvdw;
 	      pl.get(fmp.lengthScale, default_lengthscale,"lengthScale");	     
 	     
-	      FMixFunctional defaultFunctional = AttLJPotential;
+	      FMixFunctional defaultFunctional = LJPotential;
 	      pl.get(fmp.FmixType, defaultFunctional, fMixMap, "FMixType");
-	      pl.get(fmp.Ecut, 0.005, "Ecut");
 	     
-	      double default_rHS = fmp.fluid1->Rvdw + fmp.fluid2->Rvdw;
-	      pl.get(fmp.rHS, default_rHS, "rHS");
-	      
 	      fsp.FmixList.push_back(fmp);
 	}
 	
@@ -675,11 +667,11 @@ struct CommandFluidMixingFunctional : public Command
 	    string c2Name = fluidComponentMap.getString(fmp.fluid2->name);
 	    string fmixName = fMixMap.getString(fmp.FmixType);
 	    
-	    logPrintf("%s %s %lg %lg %s %lg %lg",c1Name.c_str(),c2Name.c_str(),fmp.energyScale,fmp.lengthScale, fmixName.c_str(), fmp.Ecut, fmp.rHS);
+	    logPrintf("%s %s %lg %lg %s",c1Name.c_str(),c2Name.c_str(),fmp.energyScale,fmp.lengthScale, fmixName.c_str());
 	}
 }
 commandFluidMixingFunctional;
-*/
+
 	
 struct CommandFluidDielectricConstant : public Command
 {

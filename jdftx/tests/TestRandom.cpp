@@ -143,26 +143,27 @@ int main(int argc, char** argv)
 
 	double RhsAr = 1.702*Angstrom, epsAr = 119.8*Kelvin;
 	double RhsNe = 1.391*Angstrom, epsNe = 3.2135e-3*eV;
-	FluidComponent componentAr(FluidComponent::CustomAnion, T, FluidComponent::MeanFieldLJ);
-	componentAr.molecule.setModelMonoatomic("Ar", +1., RhsAr);
-	componentAr.epsLJ = epsAr;
-	componentAr.Nbulk = 2e-3;
-	FluidComponent componentNe(FluidComponent::CustomCation, T, FluidComponent::MeanFieldLJ);
-	componentNe.molecule.setModelMonoatomic("Ne", -2., RhsNe);
-	componentNe.epsLJ = epsNe;
-	componentNe.Nbulk = 1e-3;
+	std::shared_ptr<FluidComponent> componentAr,componentNe;
+	componentAr = std::make_shared<FluidComponent>(FluidComponent::CustomAnion, T, FluidComponent::MeanFieldLJ);	
+	componentAr->molecule.setModelMonoatomic("Ar", +1., RhsAr);
+	componentAr->epsLJ = epsAr;
+	componentAr->Nbulk = 2e-3;
+	componentNe = std::make_shared<FluidComponent>(FluidComponent::CustomCation, T, FluidComponent::MeanFieldLJ);
+	componentNe->molecule.setModelMonoatomic("Ne", -2., RhsNe);
+	componentNe->epsLJ = epsNe;
+	componentNe->Nbulk = 1e-3;
 	
 	FluidMixture fluidMixture(gInfo, T);
-	componentAr.addToFluidMixture(&fluidMixture);
-	componentNe.addToFluidMixture(&fluidMixture);
-	Fmix_LJ fmixLJ(&fluidMixture, &componentAr, &componentNe, sqrt(epsAr*epsNe), RhsAr+RhsNe);
+	componentAr->addToFluidMixture(&fluidMixture);
+	componentNe->addToFluidMixture(&fluidMixture);
+	Fmix_LJ fmixLJ(&fluidMixture, componentAr, componentNe, sqrt(epsAr*epsNe), RhsAr+RhsNe);
 
 	fluidMixture.initialize(1000*Bar);
 
 	const double Radius = 3.;
-	nullToZero(componentAr.idealGas->V[0], gInfo);
-	applyFunc_r(gInfo, initHardSphere, rCenter, Radius, 1, componentAr.idealGas->V[0]->data());
-	componentNe.idealGas->V[0] = componentAr.idealGas->V[0];
+	nullToZero(componentAr->idealGas->V[0], gInfo);
+	applyFunc_r(gInfo, initHardSphere, rCenter, Radius, 1, componentAr->idealGas->V[0]->data());
+	componentNe->idealGas->V[0] = componentAr->idealGas->V[0];
 
 	DataRptr rhoExternal(DataR::alloc(gInfo));
 	applyFunc_r(gInfo, initHardSphere, rCenter, Radius, 1.016177/(4*M_PI*pow(Radius,3)/3), rhoExternal->data());
@@ -192,8 +193,8 @@ int main(int argc, char** argv)
 	logPrintf("num(Ar) = %lf\n", integral(N[0]));
 	logPrintf("num(Ne) = %lf\n", integral(N[1]));
 
-	N[0] *= 1.0/componentAr.idealGas->get_Nbulk();
-	N[1] *= 1.0/componentNe.idealGas->get_Nbulk();
+	N[0] *= 1.0/componentAr->idealGas->get_Nbulk();
+	N[1] *= 1.0/componentNe->idealGas->get_Nbulk();
 	saveSphericalized(&N[0], N.size(), "random-ArNe", 0.25);
 	//DataRptr dTot = I(Phi_rhoExternalTilde - 4*M_PI*Linv(O(J(rhoExternal))));
 	//saveSphericalized(&dTot, 1, "random-dTot", 0.25);

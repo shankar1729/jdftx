@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2014 Ravishankar Sundararaman, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -37,7 +37,7 @@ public:
 
 	//! Create a fluid of Lennard-Jones particles with well-depth eps
 	//! The range parameter sigma is set to the hard sphere diameter of the first site
-	Fex_LJ(const FluidMixture*, const FluidComponent*, double eps);
+  Fex_LJ(const FluidMixture*, const FluidComponent*, double eps, double sigmaOverride = 0.0);
     virtual ~Fex_LJ();
 	
 	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
@@ -53,16 +53,36 @@ class Fmix_LJ : public Fmix
 {
 public:
 	//! Add a lennard-jones coupling between two LJ fluid
-	//! with parameters set using the Lorentz-Berthelot Mixing Rules
-	Fmix_LJ(FluidMixture*, const FluidComponent* fluid1, const FluidComponent* fluid2, double eps, double sigma);
-    virtual ~Fmix_LJ();
+	//! Could set parameters using the Lorentz-Berthelot Mixing Rules if desired
+	Fmix_LJ(FluidMixture*, std::shared_ptr<FluidComponent> fluid1, std::shared_ptr<FluidComponent> fluid2, double eps, double sigma);
+	virtual ~Fmix_LJ();
 	string getName() const;
 
 	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
 	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
 private:
-	const FluidComponent &fluid1, &fluid2;
+	std::shared_ptr<FluidComponent> fluid1, fluid2;
 	RadialFunctionG ljatt;
+};
+
+//! Gaussian Kernel interaction functional
+class Fmix_GaussianKernel : public Fmix
+{
+public:
+	//! Add a gaussian coupling potential between two fluids
+	//!< mixing parameter Esolv: depth of interaction potential in hartree
+	//!< mixing parameter Rsolv; width of gaussian kernel interaction potential in bohr
+	Fmix_GaussianKernel(FluidMixture*, std::shared_ptr<FluidComponent> fluid1, std::shared_ptr<FluidComponent> fluid2, double Esolv, double Rsolv);
+	virtual ~Fmix_GaussianKernel();
+	string getName() const;
+
+	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
+	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
+private:
+	std::shared_ptr<FluidComponent> fluid1, fluid2;
+	RadialFunctionG Ksolv; //shape function for interaction
+	double Kmul; //prefactor to interaction
+	
 };
 
 #endif // JDFTX_FLUID_FEX_LJ_H

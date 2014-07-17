@@ -80,25 +80,29 @@ int main(int argc, char** argv)
 	gInfo.initialize();
 
 	double T = 298*Kelvin;
-	FluidComponent componentH2O(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
-	FluidComponent componentCation(FluidComponent::Sodium, T, FluidComponent::MeanFieldLJ);
-	FluidComponent componentAnion(FluidComponent::Chloride, T, FluidComponent::MeanFieldLJ);
-	componentCation.Nbulk = 0.02*mol/liter;
-	componentAnion.Nbulk = 0.02*mol/liter;
-	FluidComponent componentHoles(FluidComponent::CustomCation, T, FluidComponent::MeanFieldLJ);
-	FluidComponent componentElectrons(FluidComponent::CustomAnion, T, FluidComponent::MeanFieldLJ);
-	componentHoles.molecule.setModelMonoatomic("h+", -1., 0*Angstrom);
-	componentElectrons.molecule.setModelMonoatomic("e-", +1., 0*Angstrom);
+	std::shared_ptr<FluidComponent> componentH2O, componentCation, componentAnion, componentHoles, componentElectrons;
+	componentH2O = std::make_shared<FluidComponent>(FluidComponent::H2O, T, FluidComponent::ScalarEOS);
+	componentCation = std::make_shared<FluidComponent>(FluidComponent::Sodium, T, FluidComponent::MeanFieldLJ);
+	componentAnion = std::make_shared<FluidComponent>(FluidComponent::Chloride, T, FluidComponent::MeanFieldLJ);
+	componentCation->Nbulk = 0.02*mol/liter;
+	componentAnion->Nbulk = 0.02*mol/liter;
+
+	componentHoles = std::make_shared<FluidComponent>(FluidComponent::CustomCation, T, FluidComponent::MeanFieldLJ);
+	componentElectrons = std::make_shared<FluidComponent>(FluidComponent::CustomAnion, T, FluidComponent::MeanFieldLJ);
+	componentHoles->molecule.setModelMonoatomic("h+", -1., 0*Angstrom);
+	componentElectrons->molecule.setModelMonoatomic("e-", +1., 0*Angstrom);
+	componentHoles->molecule.setModelMonoatomic("h+", -1., 0*Angstrom);
+	componentElectrons->molecule.setModelMonoatomic("e-", +1., 0*Angstrom);
 
 	FluidMixture fluidMixture(gInfo, T);
-	componentH2O.addToFluidMixture(&fluidMixture);
-	componentCation.addToFluidMixture(&fluidMixture);
-	componentAnion.addToFluidMixture(&fluidMixture);
-	componentHoles.addToFluidMixture(&fluidMixture);
-	componentElectrons.addToFluidMixture(&fluidMixture);
+	componentH2O->addToFluidMixture(&fluidMixture);
+	componentCation->addToFluidMixture(&fluidMixture);
+	componentAnion->addToFluidMixture(&fluidMixture);
+	componentHoles->addToFluidMixture(&fluidMixture);
+	componentElectrons->addToFluidMixture(&fluidMixture);
 	//Mixing functionals:
-	Fmix_LJ fsolvCation(&fluidMixture, &componentH2O, &componentCation, 2e-3, 3.0*Angstrom);
-	Fmix_LJ fsolvAnion(&fluidMixture, &componentH2O, &componentAnion, 2e-3, 3.0*Angstrom);
+	Fmix_LJ fsolvCation(&fluidMixture, componentH2O, componentCation, 2e-3, 3.0*Angstrom);
+	Fmix_LJ fsolvAnion(&fluidMixture, componentH2O, componentAnion, 2e-3, 3.0*Angstrom);
 	
 	double p = 1.01325*Bar;
 	logPrintf("pV = %le\n", p*gInfo.detR);
@@ -118,8 +122,8 @@ int main(int argc, char** argv)
 		logPrintf("\tBulk electron density = %le/cm3\n", Nelectrons*cm3);
 		logPrintf("\tBulk hole density = %le/cm3\n", Nholes*cm3);
 		logPrintf("\tDopant ionic charge density = %le/cm3\n", rhoBG*cm3);
-		componentHoles.idealGas->overrideBulk(Nholes, 0);
-		componentElectrons.idealGas->overrideBulk(Nelectrons, 0);
+		componentHoles->idealGas->overrideBulk(Nholes, 0);
+		componentElectrons->idealGas->overrideBulk(Nelectrons, 0);
 		nullToZero(rhoDopantBG, gInfo);
 		applyFunc_r(gInfo, setDopantBG, rhoBG, rhoDopantBG->data());
 
@@ -136,15 +140,15 @@ int main(int argc, char** argv)
 	}
 
 	//----- Repulsive potentials to keep things in place -----
-	nullToZero(componentH2O.idealGas->V, gInfo);
-	nullToZero(componentCation.idealGas->V, gInfo);
-	nullToZero(componentAnion.idealGas->V, gInfo);
-	nullToZero(componentHoles.idealGas->V, gInfo);
-	nullToZero(componentElectrons.idealGas->V, gInfo);
+	nullToZero(componentH2O->idealGas->V, gInfo);
+	nullToZero(componentCation->idealGas->V, gInfo);
+	nullToZero(componentAnion->idealGas->V, gInfo);
+	nullToZero(componentHoles->idealGas->V, gInfo);
+	nullToZero(componentElectrons->idealGas->V, gInfo);
 	applyFunc_r(gInfo, setWalls, 1.0,
-		componentH2O.idealGas->V[0]->data(), componentH2O.idealGas->V[1]->data(),
-		componentCation.idealGas->V[0]->data(), componentAnion.idealGas->V[0]->data(),
-		componentHoles.idealGas->V[0]->data(), componentElectrons.idealGas->V[0]->data() );
+		componentH2O->idealGas->V[0]->data(), componentH2O->idealGas->V[1]->data(),
+		componentCation->idealGas->V[0]->data(), componentAnion->idealGas->V[0]->data(),
+		componentHoles->idealGas->V[0]->data(), componentElectrons->idealGas->V[0]->data() );
 
 	//----- Initialize external charge -----
 	DataRptr rhoFloatingGate;

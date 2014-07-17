@@ -35,6 +35,22 @@ enum FluidType
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
+	//!Mixing functional choices
+enum FMixFunctional
+{
+        FMixNone, //!< No Interaction
+	LJPotential, //!<Interaction with attractive part of Lennard Jones with sigma/eps potential only
+	GaussianKernel, //!< Interaction with gaussian kernel with Rsolv/Esolv
+};
+
+//! Parameters needed to mix fluids
+struct FmixParams
+{
+	std::shared_ptr<FluidComponent> fluid1,fluid2;
+	FMixFunctional FmixType; //!<Type of Fmix to be used (GaussianKernel or LJPotential)
+	double energyScale,lengthScale; //!<Energy scale (eps for LJ potential) and range parameter (sigma for LJ potential)
+};
+
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
 	PCM_SG14NL, //!< Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion (EXPERIMENTAL)
@@ -86,6 +102,7 @@ struct FluidSolverParams
 
 	//For Explicit Fluid JDFT alone:
 	ExCorr exCorr; //!< Fluid exchange-correlation and kinetic energy functional
+        std::vector<FmixParams> FmixList; //!< Tabulates which components interact through an additional Fmix
 
 	string initWarnings; //!< warnings emitted during parameter initialization, if any
 	

@@ -50,10 +50,12 @@ void setLJatt(RadialFunctionG& kernel, const GridInfo& gInfo, double eps, double
 }
 
 
-Fex_LJ::Fex_LJ(const FluidMixture* fluidMixture, const FluidComponent* comp, double eps)
+Fex_LJ::Fex_LJ(const FluidMixture* fluidMixture, const FluidComponent* comp, double eps, double sigmaOverride)
 : Fex(fluidMixture, comp), eps(eps), sigma(2.*molecule.sites[0]->Rhs)
-{	logPrintf("     Initializing LJ excess functional with eps=%lf Eh and sigma=%lf bohrs\n", eps, sigma);
-	setLJatt(ljatt, gInfo, eps, sigma);
+{
+	if(sigmaOverride) sigma = sigmaOverride;
+	logPrintf("     Initializing LJ excess functional with eps=%lf Eh and sigma=%lf bohrs\n", eps, sigma);
+	setLJatt(ljatt, gInfo, eps, sigma); 
 }
 Fex_LJ::~Fex_LJ()
 {	ljatt.free();
@@ -70,21 +72,27 @@ double Fex_LJ::computeUniform(const double* N, double* Phi_N) const
 }
 
 
-Fmix_LJ::Fmix_LJ(FluidMixture* fluidMixture, const FluidComponent* fluid1, const FluidComponent* fluid2, double eps, double sigma)
-: Fmix(fluidMixture), fluid1(*fluid1), fluid2(*fluid2)
-{	setLJatt(ljatt, gInfo, eps, sigma);
+Fmix_LJ::Fmix_LJ(FluidMixture* fluidMixture, std::shared_ptr<FluidComponent> fluid1, std::shared_ptr<FluidComponent> fluid2, double eps, double sigma)
+: Fmix(fluidMixture), fluid1(fluid1), fluid2(fluid2)
+{
+          string name1 = fluid1->molecule.name;
+          string name2 = fluid2->molecule.name;
+	  logPrintf("\n     Initializing attractive LJ mixing functional between %s and %s\n		sigma: %lg Bohr and eps: %lg H.\n",
+		     name1.c_str(),name2.c_str(),sigma,eps);
+	  setLJatt(ljatt, gInfo, eps, sigma);
 }
+
 Fmix_LJ::~Fmix_LJ()
 {	ljatt.free();
 }
 
 string Fmix_LJ::getName() const
-{	return fluid1.molecule.name + "<->" + fluid2.molecule.name;
+{	return fluid1->molecule.name + "<->" + fluid2->molecule.name;
 }
 
 double Fmix_LJ::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
-{	unsigned i1 = fluid1.offsetDensity;
-	unsigned i2 = fluid2.offsetDensity;
+{	unsigned i1 = fluid1->offsetDensity;
+	unsigned i2 = fluid2->offsetDensity;
 	DataGptr V1 = gInfo.nr * (ljatt * Ntilde[i1]);
 	DataGptr V2 = gInfo.nr * (ljatt * Ntilde[i2]);
 	Phi_Ntilde[i1] += V2;
@@ -92,9 +100,51 @@ double Fmix_LJ::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Ph
 	return gInfo.dV*dot(V1,Ntilde[i2]);
 }
 double Fmix_LJ::computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const
-{	unsigned i1 = fluid1.offsetDensity;
-	unsigned i2 = fluid2.offsetDensity;
+{	unsigned i1 = fluid1->offsetDensity;
+	unsigned i2 = fluid2->offsetDensity;
 	Phi_N[i1] += ljatt(0)*N[i2];
 	Phi_N[i2] += ljatt(0)*N[i1];
 	return N[i1]*ljatt(0)*N[i2];
+}
+
+
+Fmix_GaussianKernel::Fmix_GaussianKernel(FluidMixture* fluidMixture, std::shared_ptr<FluidComponent> fluid1, std::shared_ptr<FluidComponent> fluid2, double Esolv, double Rsolv)
+: Fmix(fluidMixture), fluid1(fluid1), fluid2(fluid2)
+{
+  string name1 = fluid1->molecule.name;
+  string name2 = fluid2->molecule.name;
+  logPrintf("     Initializing gaussian kernel mixing functional between %s and %s\n		Rsolv: %lg and Esolv: %lg.\n",name1.c_str(),name2.c_str(),Rsolv,Esolv);
+  Kmul = -Esolv*(4*M_PI*pow(Rsolv,3))/3;
+  Ksolv.init(0, gInfo.dGradial, gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1.0, Rsolv/sqrt(2));
+  
+}
+
+Fmix_GaussianKernel::~Fmix_GaussianKernel()
+{
+
+}
+
+string Fmix_GaussianKernel::getName() const
+{
+    return fluid1->molecule.name + "<->" + fluid2->molecule.name;
+}
+
+double Fmix_GaussianKernel::computeUniform(const std::vector< double >& N, std::vector< double >& Phi_N) const
+{
+		unsigned i1 = fluid1->offsetDensity;
+		unsigned i2 = fluid2->offsetDensity;
+		Phi_N[i1] += Kmul*Ksolv(0)*N[i2];
+		Phi_N[i2] += Kmul*Ksolv(0)*N[i1];
+		return N[i1]*Kmul*Ksolv(0)*N[i2];
+}
+
+double Fmix_GaussianKernel::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
+{
+		unsigned i1 = fluid1->offsetDensity;
+		unsigned i2 = fluid2->offsetDensity;
+		DataGptr V1 = gInfo.nr * Kmul*(Ksolv * Ntilde[i1]);
+		DataGptr V2 = gInfo.nr * Kmul*(Ksolv * Ntilde[i2]);
+		Phi_Ntilde[i1] += V2;
+		Phi_Ntilde[i2] += V1;
+		return gInfo.dV*dot(V1,Ntilde[i2]);
 }
