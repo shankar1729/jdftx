@@ -179,13 +179,15 @@ struct CommandWannierCenter : public Command
 		comments =
 			"Specify trial orbital for a wannier function as a linear combination of\n"
 			"atomic orbitals <aorb*>. The syntax for each <aorb> is:\n"
-			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
+			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] {<theta> <phi>} [<coeff>=1.0]\n"
 			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
 			"(coordinate system set by coords-type). If <a> is the name of one\n"
 			"of the pseudopotentials, then its atomic orbitals will be used;\n"
 			"otherwise a hydogenic orbital of decay length n*<a> bohrs, where\n"
 			"n is the principal quantum number in <orbDesc> will be used.\n"
 			"The orbital code <orbDesc> is as in command density-of-states.\n"
+			"In non-collinear calculations, the spin direction given by <theta>\n"
+			"and <phi> in degrees must also be specified for each orbital.\n"
 			"Specify a, orbDesc and coeff explicitly when using multiple\n"
 			"orbitals; the defaults only apply to the single orbital case.\n"
 			"   Alternately, for using numerical trial orbitals that have been\n"
@@ -202,6 +204,7 @@ struct CommandWannierCenter : public Command
 		//Dependencies due to optional conversion from cartesian coords:
 		require("latt-scale");
 		require("coords-type");
+		require("spintype");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -240,6 +243,10 @@ struct CommandWannierCenter : public Command
 					ao.orbitalDesc.n = 0;
 				}
 			}
+			if(e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector)
+			{	pl.get(ao.theta, 0., "theta", true); ao.theta *= (M_PI/180.);
+				pl.get(ao.phi,   0., "phi",   true); ao.phi   *= (M_PI/180.);
+			}
 			pl.get(ao.coeff, 1., "coeff");
 			//Transform coordinates if necessary
 			if(e.iInfo.coordsType == CoordsCartesian)
@@ -264,6 +271,8 @@ struct CommandWannierCenter : public Command
 			{	if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
 				else logPrintf("%lg", ao.a);
 				logPrintf(" %s", string(ao.orbitalDesc).c_str());
+				if(e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector)
+					logPrintf(" %lg %lg", ao.theta*(180./M_PI), ao.phi*(180./M_PI));
 			}
 			logPrintf("  %lg", ao.coeff);
 		}

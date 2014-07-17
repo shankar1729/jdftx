@@ -37,6 +37,7 @@ public:
 		int sp; //!< species code (<0 if not using a pseudopotential atomic orbital)
 		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
+		double theta, phi; //!< spin direction in noncollinear calculations
 		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
 	};
 	typedef std::vector<AtomicOrbital> TrialOrbital;

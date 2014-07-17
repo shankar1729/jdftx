@@ -103,6 +103,7 @@ protected:
 	const std::vector< matrix3<int> >& sym;
 	int nCenters, nBands; //!< number of Wannier centers and source bands
 	int nSpins, qCount; //!< number of spins, and number of states per spin
+	int nSpinor; //!< number of spinor components
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
 	

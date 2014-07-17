@@ -238,7 +238,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	{	resumeOperatorThreading();
 		//--- Compute supercell wavefunctions:
 		logPrintf("Computing supercell wavefunctions ... "); logFlush();
-		ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
+		ColumnBundle Csuper(nCenters, basisSuper.nbasis*nSpinor, &basisSuper, &qnumSuper, isGpuEnabled());
 		Csuper.zero();
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	const KmeshEntry& ki = kMesh[i];
@@ -271,14 +271,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		
 		//--- Save supercell wavefunctions in real space:
-		if(mpiUtil->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++)
+		if(mpiUtil->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++) for(int s=0; s<nSpinor; s++)
 		{	//Generate filename
 			ostringstream varName;
-			varName << n << ".mlwf";
+			varName << (nSpinor*n+s) << ".mlwf";
 			string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
 			logPrintf("Dumping '%s':\n", fname.c_str());
 			//Convert to real space and remove phase:
-			complexDataRptr psi = I(Csuper.getColumn(n,0));
+			complexDataRptr psi = I(Csuper.getColumn(n,s));
 			if(qnumSuper.k.length_squared() > symmThresholdSq)
 				multiplyBlochPhase(psi, qnumSuper.k);
 			complex* psiData = psi->data();

@@ -26,7 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride)
 : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
-	nSpins(e.eInfo.spinType==SpinNone ? 1 : 2), qCount(e.eInfo.qnums.size()/nSpins),
+	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1), qCount(e.eInfo.qnums.size()/nSpins),
+	nSpinor(e.eInfo.spinorLength()),
 	rSqExpect(nCenters), rExpect(nCenters),
 	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
 {
@@ -247,7 +248,7 @@ void WannierMinimizer::initIndexDependent()
 		//Read the wavefunctions:
 		fname = wannier.numericalOrbitalsFilename;
 		logPrintf("Reading numerical orbitals from '%s' ... ", fname.c_str()); logFlush();
-		ColumnBundle Cin(nCols, colLength, &basisIn, &qnumSuper);
+		ColumnBundle Cin(nCols, colLength*nSpinor, &basisIn, &qnumSuper);
 		Cin.read(fname.c_str());
 		logPrintf("done.\n"); logFlush();
 		
@@ -259,9 +260,10 @@ void WannierMinimizer::initIndexDependent()
 		logSuspend();
 		BlipResampler resample(gInfoIn, gInfoSuper);
 		logResume();
-		ColumnBundle C(nCols, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
+		ColumnBundle C(nCols, basisSuper.nbasis*nSpinor, &basisSuper, &qnumSuper, isGpuEnabled());
 		for(int b=0; b<nCols; b++)
-			C.setColumn(b,0, J(resample(Cin.getColumn(b,0))));
+			for(int s=0; s<nSpinor; s++)
+				C.setColumn(b,s, J(resample(Cin.getColumn(b,s))));
 		logPrintf("done.\n"); logFlush();
 		
 		//Split supercell wavefunction into kpoints:
@@ -270,13 +272,14 @@ void WannierMinimizer::initIndexDependent()
 			for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,0) || isMine_q(ik,1))
 			{	const KmeshEntry& ki = kMesh[ik];
 				const Index& index = *(indexMap.find(ki.point)->second);
-				auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis, &basis, &ki.point, isGpuEnabled());
+				auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
 				Ck->zero();
 				for(int b=0; b<nCols; b++)
-				{	temp.zero();
-					eblas_gather_zdaxpy(index.nIndices, 1., index.dataSuperPref, C.dataPref()+C.index(b,0), temp.dataPref());
-					eblas_scatter_zdaxpy(index.nIndices, 1./ki.point.weight, index.dataPref, temp.dataPref(), Ck->dataPref()+Ck->index(b,0));
-				}
+					for(int s=0; s<nSpinor; s++)
+					{	temp.zero();
+						eblas_gather_zdaxpy(index.nIndices, 1., index.dataSuperPref, C.dataPref()+C.index(b,s*basisSuper.nbasis), temp.dataPref());
+						eblas_scatter_zdaxpy(index.nIndices, 1./ki.point.weight, index.dataPref, temp.dataPref(), Ck->dataPref()+Ck->index(b,s*basis.nbasis));
+					}
 				numericalOrbitals[ki.point] = Ck;
 			}
 		}

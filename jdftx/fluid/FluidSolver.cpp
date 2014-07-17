@@ -136,18 +136,15 @@ public:
 		logPrintf("\nBulk electron density of the liquid: %le bohr^-3\n",nFl_bulk);
 
 		//calculate G=0 offset due to coupling functional evaluated at bulk fluid density
-		{
-		  DataRptr nBulk;
-		  nullToZero(nBulk,e.gInfo);
-		  //initialize constant dataRptr with density nFl_bulk
-		  for (int i=0; i<e.gInfo.nr; i++)
-		    nBulk->data()[i] = nFl_bulk;
-		  DataRptr Vxc_bulk;
-
-		  double Phi_bulk = (coupling->exCorr)(nBulk, &Vxc_bulk, true)/e.gInfo.nr;
-		  logPrintf("Electron deep in fluid experiences coupling potential: %lg H\n\n", Vxc_bulk->data()[0]);
-		  coupling->Vxc_bulk = Vxc_bulk->data()[0];
-		 }
+		DataRptr nBulk;
+		nullToZero(nBulk,e.gInfo);
+		//initialize constant dataRptr with density nFl_bulk
+		for (int i=0; i<e.gInfo.nr; i++)
+			nBulk->data()[i] = nFl_bulk;
+		DataRptr Vxc_bulk;
+		(coupling->exCorr)(nBulk, &Vxc_bulk, true);
+		logPrintf("Electron deep in fluid experiences coupling potential: %lg H\n\n", Vxc_bulk->data()[0]);
+		coupling->Vxc_bulk = Vxc_bulk->data()[0];
 	}
 
 	~ConvolutionJDFT()
@@ -156,7 +153,7 @@ public:
 
 	bool needsGummel() { return true; }
 
-        double bulkPotential() {return coupling->Vxc_bulk;}
+	double bulkPotential() {return coupling->Vxc_bulk;}
 
 	void loadState(const char* filename)
 	{	fluidMixture->loadState(filename);

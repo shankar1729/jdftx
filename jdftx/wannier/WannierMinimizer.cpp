@@ -214,7 +214,7 @@ void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
 }
 
 ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
-{	ColumnBundle ret(nBands, basis.nbasis, &basis, &kpoint, isGpuEnabled());
+{	ColumnBundle ret(nBands, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ret.zero();
 	axpyWfns(1., matrix(), kpoint, iSpin, ret);
 	return ret;
@@ -248,8 +248,8 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 	}
 	//Scatter from reduced basis to common basis with transformations:
 	assert(C->nCols() == result.nCols());
-	for(int b=0; b<C->nCols(); b++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData, C->dataPref()+C->index(b,0), result.dataPref()+result.index(b,0));
+	for(int b=0; b<C->nCols(); b++) for(int s=0; s<nSpinor; s++)
+		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData, C->dataPref()+C->index(b,s*C->basis->nbasis), result.dataPref()+result.index(b,s*result.basis->nbasis));
 	watch.stop();
 }
 
@@ -259,8 +259,8 @@ void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const Wannie
 	//Gather from common basis to reduced basis (=> conjugate transformations):
 	ColumnBundle Omega_C = C->similar(Omega_result.nCols());
 	Omega_C.zero();
-	for(int b=0; b<Omega_C.nCols(); b++)
-		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData, Omega_result.dataPref()+Omega_result.index(b,0), Omega_C.dataPref()+Omega_C.index(b,0));
+	for(int b=0; b<Omega_C.nCols(); b++) for(int s=0; s<nSpinor; s++)
+		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData, Omega_result.dataPref()+Omega_result.index(b,s*Omega_result.basis->nbasis), Omega_C.dataPref()+Omega_C.index(b,s*Omega_C.basis->nbasis));
 	//Propagate gardient to rotation matrix:
 	Omega_A += (Omega_C ^ *C);
 	watch.stop();
@@ -301,7 +301,7 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 }
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
-{	ColumnBundle ret(nCenters, basis.nbasis, &basis, &kpoint, isGpuEnabled());
+{	ColumnBundle ret(nCenters, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ColumnBundle temp = ret.similar(1); //single column for intermediate computations
 	#ifdef GPU_ENABLED
 	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
@@ -315,10 +315,9 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			{	const ColumnBundle& Cnum = *(numericalOrbitals.find(kpoint)->second);
 				//Apply offset to selected column:
 				assert(ao.numericalOrbIndex < Cnum.nCols());
-				temp.setColumn(0,0, Cnum.getColumn(ao.numericalOrbIndex,0));
-				temp = translate(temp, ao.r);
+				temp = translate(Cnum.getSub(ao.numericalOrbIndex,ao.numericalOrbIndex+1), ao.r);
 				//Accumulate to result
-				callPref(eblas_zaxpy)(basis.nbasis, ao.coeff, temp.dataPref(),1, retData,1);
+				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, temp.dataPref(),1, retData,1);
 				continue;
 			}
 			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
@@ -341,10 +340,16 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			//--- Initialize the projector:
 			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref());
 			if(ao.sp < 0) hRadial.free();
+			//--- Handle spinor components (if any):
+			if(nSpinor>1)
+			{	callPref(eblas_copy)(temp.dataPref()+basis.nbasis, temp.dataPref(), basis.nbasis); //copy for second component
+				callPref(eblas_zscal)(basis.nbasis, cos(0.5*ao.theta)*cis(-0.5*ao.phi), temp.dataPref(),1);
+				callPref(eblas_zscal)(basis.nbasis, sin(0.5*ao.theta)*cis(+0.5*ao.phi), temp.dataPref()+basis.nbasis,1);
+			}
 			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(basis.nbasis, ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, temp.dataPref(),1, retData,1);  //phase ensures odd l projectors are real
+			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, temp.dataPref(),1, retData,1);  //phase ensures odd l projectors are real
 		}
-		retData += basis.nbasis;
+		retData += ret.colLength();
 	}
 	#ifdef GPU_ENABLED
 	cudaFree(pos);

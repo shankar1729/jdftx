@@ -58,7 +58,7 @@ static complexDataRptr operator*(complex s, const complexDataRptr& in)
 double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 {	resumeOperatorThreading();
 	//Compute supercell wave-functions:
-	ColumnBundle Csuper(nCenters, basisSuper.nbasis, &basisSuper, &qnumSuper, isGpuEnabled());
+	ColumnBundle Csuper(nCenters, basisSuper.nbasis*nSpinor, &basisSuper, &qnumSuper, isGpuEnabled());
 	Csuper.zero();
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	const KmeshEntry& ki = kMesh[i];
@@ -71,19 +71,22 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>());
 	ColumnBundle Omega_Csuper; if(grad) { Omega_Csuper = Csuper.similar(); Omega_Csuper.zero(); }
-	for(int n=nStart; n<nStop; n++)
-	{	complexDataRptr psi = I(Csuper.getColumn(n,0)), Omega_psi;
-		rSqExpect[n] = gInfoSuper.dV * dot(psi, rSq*psi).real();
+	for(int n=nStart; n<nStop; n++) for(int s=0; s<nSpinor; s++)
+	{	complexDataRptr psi = I(Csuper.getColumn(n,s)), Omega_psi;
+		double rSqExpect_n = gInfoSuper.dV * dot(psi, rSq*psi).real();
 		if(grad) Omega_psi += (2*gInfoSuper.dV) * (rSq*psi);
+		vector3<> rExpect_n;
 		for(int dir=0; dir<3; dir++)
-		{	rExpect[n][dir] = gInfoSuper.dV * dot(psi, r[dir]* psi).real();
-			if(grad) Omega_psi += (-2.*rExpect[n][dir] * 2*gInfoSuper.dV) * r[dir]*psi;
+		{	rExpect_n[dir] = gInfoSuper.dV * dot(psi, r[dir]* psi).real();
+			if(grad) Omega_psi += (-2.*rExpect_n[dir] * 2*gInfoSuper.dV) * r[dir]*psi;
 		}
-		Omega += (rSqExpect[n] - rExpect[n].length_squared());
+		rSqExpect[n] += rSqExpect_n;
+		rExpect[n] += rExpect_n;
+		Omega += (rSqExpect_n - rExpect_n.length_squared());
 		//Off-diagonal corrections to get the invariant part (expensive):
 		if(invariant)
 		{	for(int m=0; m<nCenters; m++) if(m != n)
-			{	complexDataRptr psi_m = I(Csuper.getColumn(m,0)), Omega_psi_m;
+			{	complexDataRptr psi_m = I(Csuper.getColumn(m,s)), Omega_psi_m;
 				for(int dir=0; dir<3; dir++)
 				{	complex rExpect_mn = gInfoSuper.dV * dot(psi_m, r[dir]* psi);
 					Omega -= rExpect_mn.norm();
@@ -92,10 +95,10 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 						Omega_psi_m -= 2*rExpect_mn.conj() * gInfoSuper.dV * (r[dir] * psi);
 					}
 				}
-				if(grad && Omega_psi_m) Omega_Csuper.accumColumn(m,0, Idag(Omega_psi_m));
+				if(grad && Omega_psi_m) Omega_Csuper.accumColumn(m,s, Idag(Omega_psi_m));
 			}
 		}
-		if(grad) Omega_Csuper.accumColumn(n,0, Idag(Omega_psi));
+		if(grad) Omega_Csuper.accumColumn(n,s, Idag(Omega_psi));
 	}
 	mpiUtil->allReduce(Omega, MPIUtil::ReduceSum);
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
