@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <electronic/SpeciesInfo.h>
 #include <electronic/operators.h>
+#include <electronic/ElecMinimizer.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
 #include <core/DataIO.h>
@@ -43,6 +44,66 @@ inline void printGvec(const GridInfo& gInfo, const Basis& b, int i, ofstream& of
 }
 
 
+struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B entries of ElecGradient
+{	const Everything& e;
+	std::vector<matrix> mask; //matrices of ones and zeroes indicating which columns are allowed to mix
+	std::vector<matrix> U, B; //unitary rotations and the hermitian matrices that generate them
+	int nDim; //dimension of minimize (no minimize needed if zero)
+	
+	ImagPartMinimizer(const Everything& e) : e(e), mask(e.eInfo.nStates), U(e.eInfo.nStates), B(e.eInfo.nStates)
+	{	//Initialize mask:
+		nDim = 0;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	B[q] = zeroes(e.eInfo.nBands, e.eInfo.nBands);
+			mask[q] = zeroes(e.eInfo.nBands, e.eInfo.nBands);
+			const diagMatrix& eigs = e.eVars.Hsub_eigs[q];
+			complex* maskData = mask[q].data();
+			for(int b1=0; b1<e.eInfo.nBands; b1++)
+				for(int b2=0; b2<e.eInfo.nBands; b2++)
+					if(fabs(eigs[b1]-eigs[b2]) < 1e-4)
+					{	maskData[mask[q].index(b1,b2)] = 1.;
+						if(b1<b2) nDim++;
+					}
+		}
+		mpiUtil->allReduce(nDim, MPIUtil::ReduceSum);
+	}
+	
+	void step(const ElecGradient& dir, double alpha)
+	{	assert(dir.B.size() == B.size());
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			if(dir.B[q]) axpy(alpha, dir.B[q], B[q]);
+	}
+	
+	double compute(ElecGradient* grad)
+	{	if(grad) grad->init(e);
+		double imagErr = 0.;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	matrix Bevecs; diagMatrix Beigs;
+			U[q] = cis(B[q], &Bevecs, &Beigs);
+			ColumnBundle Crot = e.eVars.C[q] * U[q], imagErr_Crot;
+			if(grad) imagErr_Crot = Crot.similar();
+			for(int b=0; b<e.eInfo.nBands; b++)
+			{	DataRptr imagIpsi = Imag(I(Crot.getColumn(b,0)));
+				imagErr += e.gInfo.dV * dot(imagIpsi,imagIpsi);
+				if(grad)
+					imagErr_Crot.setColumn(b,0, Idag(Complex(0*imagIpsi, 2*e.gInfo.dV*imagIpsi)));
+			}
+			if(grad)
+				grad->B[q] = dagger_symmetrize(cis_grad(U[q] * (imagErr_Crot ^ Crot) * dagger(U[q]), Bevecs, Beigs));
+		}
+		mpiUtil->allReduce(imagErr, MPIUtil::ReduceSum);
+		if(grad) constrain(*grad);
+		return imagErr;
+	}
+	
+	void constrain(ElecGradient& grad)
+	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			callPref(eblas_zmul)(mask[q].nData(), mask[q].dataPref(),1, grad.B[q].dataPref(),1); //apply mask
+	}
+	
+	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+};
+
 void Dump::dumpQMC()
 {
 	const IonInfo &iInfo = e->iInfo;
@@ -52,6 +113,9 @@ void Dump::dumpQMC()
 	const Basis& basis = e->basis[0];
 	const GridInfo& gInfo = e->gInfo;
 
+	if(e->eInfo.isNoncollinear())
+		die("QMC output is not supported for noncollinear spin modes.\n");
+	
 	BlipConverter blipConvert(gInfo.S);
 	string fname; ofstream ofs;
 	
@@ -212,6 +276,24 @@ void Dump::dumpQMC()
 		" Number of k-points\n"
 		"  " << nkPoints << "\n";
 
+	//Handle degeneracy in Gamma-point only calculations (necessary for removePhase to work correctly)
+	std::vector<matrix> Udeg; //rotations to make wavefunctions real
+	if(nkPoints==1)
+	{	ImagPartMinimizer imin(*e);
+		if(imin.nDim)
+		{	logPrintf("\tFinding linear combinations of orbitals (degrees of freedom: %d) that are real:\n", imin.nDim);
+			MinimizeParams mp;
+			mp.nDim = imin.nDim;
+			mp.energyLabel = "ImagNorm";
+			mp.linePrefix = "\t\tImagMinimize: ";
+			mp.energyDiffThreshold = 1e-12;
+			mp.dirUpdateScheme = MinimizeParams::LBFGS;
+			mp.nIterations = 200;
+			imin.minimize(mp);
+			Udeg = imin.U;
+		}
+	}
+	
 	for(int ik=0; ik<nkPoints; ik++)
 	{
 		vector3<> k(eInfo.qnums[ik].k * gInfo.G); //cartesian k-vector
@@ -239,14 +321,25 @@ void Dump::dumpQMC()
 					Hsub_eigsq = &Hsub_eigsqTemp;
 					Hsub_eigsqTemp.resize(eInfo.nBands);
 					Hsub_eigsqTemp.recv(eInfo.whose(q));
+					if(Udeg.size())
+					{	Udeg[q].init(eInfo.nBands, eInfo.nBands);
+						Udeg[q].recv(eInfo.whose(q));
+					}
 				}
 			}
 			else
 			{	if(eInfo.isMine(q))
 				{	eVars.C[q].send(0);
 					eVars.Hsub_eigs[q].send(0);
+					if(Udeg.size()) Udeg[q].send(0);
 				}
 				continue; //only head performs computation below
+			}
+			
+			//Apply degeneracy rotations (if any):
+			if(Udeg.size())
+			{	CqTemp = (*Cq) * Udeg[q];
+				Cq = &CqTemp;
 			}
 			
 			//Loop over bands
