@@ -289,6 +289,7 @@ void Dump::dumpQMC()
 			mp.energyDiffThreshold = 1e-12;
 			mp.dirUpdateScheme = MinimizeParams::LBFGS;
 			mp.nIterations = 200;
+			mp.fpLog = globalLog;
 			imin.minimize(mp);
 			Udeg = imin.U;
 		}
