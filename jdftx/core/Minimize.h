@@ -273,8 +273,8 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 
 	//Check initial residual
 	double rzNorm = sqrt(fabs(rdotz)/p.nDim);
-	fprintf(p.fpLog, "%sInitial:  sqrt(|r.z|): %12.6le\n", p.linePrefix, rzNorm);
-	if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); return 0; }
+	fprintf(p.fpLog, "%sInitial:  sqrt(|r.z|): %12.6le\n", p.linePrefix, rzNorm); fflush(p.fpLog);
+	if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return 0; }
 
 	//Main loop:
 	int iter;
@@ -296,11 +296,11 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 		//Print info:
 		double rzNorm = sqrt(fabs(rdotz)/p.nDim);
 		fprintf(p.fpLog, "%sIter: %3d  sqrt(|r.z|): %12.6le  alpha: %12.6le  beta: %13.6le\n",
-			p.linePrefix, iter, rzNorm, alpha, beta);
+			p.linePrefix, iter, rzNorm, alpha, beta); fflush(p.fpLog);
 		//Check convergence:
-		if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); return iter; }
+		if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return iter; }
 	}
-	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter);
+	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
 	return iter;
 }
 
