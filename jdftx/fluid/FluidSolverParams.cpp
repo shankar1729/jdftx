@@ -79,13 +79,13 @@ void FluidSolverParams::setPCMparams()
 			switch(solvents[0]->name)
 			{
 				case FluidComponent::H2O:
-					vdwScale = 0.703;
+					vdwScale = 0.63;
 					break;
 				case FluidComponent::CHCl3:
-					vdwScale = 1.338;
+					vdwScale = 1.10;
 					break;
 				case FluidComponent::CCl4:
-					vdwScale = 1.617;
+					vdwScale = 1.25;
 					break;
 				case FluidComponent::CH3CN:
 					vdwScale = 0.37; //Tentative: using toluene solvation energy alone
