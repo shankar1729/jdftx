@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), useTau(false), pCavity(0.), lMax(2),
+vdwScale(0.75), useTau(false), pCavity(0.), lMax(3),
 linearDielectric(false), linearScreening(false)
 {
 }
