@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <electronic/operators.h>
+#include <core/DataIO.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -234,6 +235,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 	}
 	
+	bool realPartOnly = !e.eInfo.isNoncollinear(); //cannot save only real part in noncollinear calculations
+	
 	if(wannier.saveWfns || wannier.saveWfnsRealSpace)
 	{	resumeOperatorThreading();
 		//--- Compute supercell wavefunctions:
@@ -277,22 +280,25 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			varName << (nSpinor*n+s) << ".mlwf";
 			string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
 			logPrintf("Dumping '%s':\n", fname.c_str());
-			//Convert to real space and remove phase:
+			//Convert to real space and optionally remove phase:
 			complexDataRptr psi = I(Csuper.getColumn(n,s));
 			if(qnumSuper.k.length_squared() > symmThresholdSq)
 				multiplyBlochPhase(psi, qnumSuper.k);
-			complex* psiData = psi->data();
-			double meanPhase, sigmaPhase, rmsImagErr;
-			removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
-			logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
-			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
-			logFlush();
-			//Write real part of supercell wavefunction to file:
-			FILE* fp = fopen(fname.c_str(), "wb");
-			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-			for(int i=0; i<gInfoSuper.nr; i++)
-				fwrite(psiData+i, sizeof(double), 1, fp);
-			fclose(fp);
+			if(realPartOnly)
+			{	complex* psiData = psi->data();
+				double meanPhase, sigmaPhase, rmsImagErr;
+				removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
+				logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
+				logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
+				logFlush();
+				//Write real part of supercell wavefunction to file:
+				FILE* fp = fopen(fname.c_str(), "wb");
+				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+				for(int i=0; i<gInfoSuper.nr; i++)
+					fwrite(psiData+i, sizeof(double), 1, fp);
+				fclose(fp);
+			}
+			else saveRawBinary(psi, fname.c_str());
 		}
 		suspendOperatorThreading();
 	}
@@ -318,14 +324,17 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 		double normTot=0., normIm=0.;
 		for(matrix& H: Hwannier)
-		{	H.write_real(fp);
-			//Collect imaginary part:
-			normTot += pow(nrm2(H), 2);
-			eblas_dscal(H.nData(), 0., ((double*)H.data()), 2); //zero out real parts
-			normIm += pow(nrm2(H), 2);
+		{	if(realPartOnly)
+			{	H.write_real(fp);
+				//Collect imaginary part:
+				normTot += pow(nrm2(H), 2);
+				eblas_dscal(H.nData(), 0., ((double*)H.data()), 2); //zero out real parts
+				normIm += pow(nrm2(H), 2);
+			}
+			else H.write(fp);
 		}
 		fclose(fp);
-		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); logFlush();
+		if(realPartOnly) logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); else logPrintf("done.\n"); logFlush();
 	}
 	resumeOperatorThreading();
 	
@@ -366,14 +375,17 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 				double normTot=0., normIm=0.;
 				for(matrix& p: pWannier[iDir])
-				{	p.write_real(fp);
-					//Collect imaginary part
-					normTot += pow(nrm2(p), 2);
-					eblas_dscal(p.nData(), 0., ((double*)p.data()), 2); //zero out real parts
-					normIm += pow(nrm2(p), 2);
+				{	if(realPartOnly)
+					{	p.write_real(fp);
+						//Collect imaginary part
+						normTot += pow(nrm2(p), 2);
+						eblas_dscal(p.nData(), 0., ((double*)p.data()), 2); //zero out real parts
+						normIm += pow(nrm2(p), 2);
+					}
+					else p.write(fp);
 				}
 				fclose(fp);
-				logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); logFlush();
+				if(realPartOnly) logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); else logPrintf("done.\n"); logFlush();
 			}
 	}
 }
