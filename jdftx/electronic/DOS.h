@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_DOS_H
 
 #include <electronic/common.h>
+#include <electronic/ElecInfo.h>
 #include <core/vector3.h>
 
 //! (Weighted-) density of states calculator
@@ -66,9 +67,12 @@ public:
 		string filename; //!< Weight-function input filename for File mode
 		
 		struct OrbitalDesc
-		{	int l, m; unsigned n; //!< pseudo-atom quantum numbers (m = l+1 is used to signify total l-contribution)
+		{	int l, m, s; unsigned n; //!< pseudo-atom quantum numbers (m = l+1 is used to signify total l-contribution)
+			SpinType spinType; //!< SpinOrbit => relativistic spec, SpinZ => Up/Dn, SpinNone => no spin (collinear) (Note different meanings from eInfo.spinType)
+			OrbitalDesc(int l=0, int m=0, int s=0, SpinType spinType=SpinNone) : l(l), m(m), s(s), n(0), spinType(spinType) {}
 			void parse(string desc); //!< set values from a string (throws a string exception on invalid input)
 			operator string() const; //!< convert to a string description
+			bool operator<(const OrbitalDesc&) const; //!< so that OrbitalDesc can be used as a key
 		};
 		OrbitalDesc orbitalDesc;
 		

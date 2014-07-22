@@ -78,10 +78,14 @@ struct CommandDensityOfStates : public Command
 			"      and px, py, pz, dxy, dyz, dz2, dxz, dx2-y2, d, fy(3x2-y2) fxyz, fyz2,\n"
 			"      fz3, fxz2, fz(x2-y2) or fx(x2-3y2) select a specific orbital, where\n"
 			"      (x,y,z) are cartesian directions. The orbital code may be prefixed\n"
-			"      by the psuedo-atom principal quantum number in the case of multiple\n"
+			"      by the pseudo-atom principal quantum number in the case of multiple\n"
 			"      orbitals per angular momentum eg. '2px' selects the second px orbital\n"
 			"      in a psuedopotential with 2 l=1 orbitals, while '1px' or 'px' select\n"
-			"      the first of the two.\n"
+			"      the first of the two. In non-collinear magnetism modes, the orbital\n"
+			"      type may be suffixed by Up or Dn to get a specific z projection.\n"
+			"      With relativistic pseudopotentials, all l>0 orbitals must use the\n"
+			"      alternate syntax that specifies j,mj eg. p+(+1/2) selects the l=1,\n"
+			"      j=3/2 and mj=+1/2 orbital.\n"
 			"   OrthoOrbital  <species> <atomIndex>   <orbDesc>\n"
 			"      Similar to Orbital, except the projectors are Lowdin-orthonormalized\n"
 			"      atomic orbitals. This orthonormalization ensures that the sum of DOS\n"
@@ -214,6 +218,8 @@ struct CommandDensityOfStates : public Command
 			if(weight.type==DOS::Weight::Orbital || weight.type==DOS::Weight::OrthoOrbital)
 			{	string orbDesc; pl.get(orbDesc, string(), "orbDesc", true);
 				weight.orbitalDesc.parse(orbDesc);
+				if(weight.orbitalDesc.spinType!=SpinNone && !(e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector))
+					throw string("orbital projections must not specify spin in collinear spin modes");
 			}
 			dos.weights.push_back(weight);
 		}

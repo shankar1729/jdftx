@@ -92,56 +92,138 @@ string DOS::Weight::getDescription(const Everything& e) const
 }
 
 //Connection between string representations of orbitals and (l,m) pairs:
-const EnumStringMap< std::pair<int,int> >& getOrbitalDescMap()
-{	static EnumStringMap< std::pair<int,int> > orbitalDescMap
-	(	std::make_pair(0,0), "s",
-		std::make_pair(1,-1), "py",
-		std::make_pair(1, 0), "pz",
-		std::make_pair(1, 1), "px",
-		std::make_pair(1,2), "p",
-		std::make_pair(2,-2), "dxy",
-		std::make_pair(2,-1), "dyz",
-		std::make_pair(2, 0), "dz2",
-		std::make_pair(2, 1), "dxz",
-		std::make_pair(2, 2), "dx2-y2",
-		std::make_pair(2,3), "d",
-		std::make_pair(3,-3), "fy(3x2-y2)",
-		std::make_pair(3,-2), "fxyz",
-		std::make_pair(3,-1), "fyz2",
-		std::make_pair(3, 0), "fz3",
-		std::make_pair(3, 1), "fxz2",
-		std::make_pair(3, 2), "fz(x2-y2)",
-		std::make_pair(3, 3), "fx(x2-3y2)",
-		std::make_pair(3,4), "f"
+const EnumStringMap<DOS::Weight::OrbitalDesc>& getOrbitalDescMap()
+{	static EnumStringMap<DOS::Weight::OrbitalDesc> orbitalDescMap
+	(	//Spin-less specification (allowed for all spin modes for nonrelativistic pseudopotentials)
+		DOS::Weight::OrbitalDesc(0,0, 0, SpinNone), "s",
+		DOS::Weight::OrbitalDesc(1,-1, 0, SpinNone), "py",
+		DOS::Weight::OrbitalDesc(1, 0, 0, SpinNone), "pz",
+		DOS::Weight::OrbitalDesc(1, 1, 0, SpinNone), "px",
+		DOS::Weight::OrbitalDesc(1,2, 0, SpinNone), "p",
+		DOS::Weight::OrbitalDesc(2,-2, 0, SpinNone), "dxy",
+		DOS::Weight::OrbitalDesc(2,-1, 0, SpinNone), "dyz",
+		DOS::Weight::OrbitalDesc(2, 0, 0, SpinNone), "dz2",
+		DOS::Weight::OrbitalDesc(2, 1, 0, SpinNone), "dxz",
+		DOS::Weight::OrbitalDesc(2, 2, 0, SpinNone), "dx2-y2",
+		DOS::Weight::OrbitalDesc(2,3, 0, SpinNone), "d",
+		DOS::Weight::OrbitalDesc(3,-3, 0, SpinNone), "fy(3x2-y2)",
+		DOS::Weight::OrbitalDesc(3,-2, 0, SpinNone), "fxyz",
+		DOS::Weight::OrbitalDesc(3,-1, 0, SpinNone), "fyz2",
+		DOS::Weight::OrbitalDesc(3, 0, 0, SpinNone), "fz3",
+		DOS::Weight::OrbitalDesc(3, 1, 0, SpinNone), "fxz2",
+		DOS::Weight::OrbitalDesc(3, 2, 0, SpinNone), "fz(x2-y2)",
+		DOS::Weight::OrbitalDesc(3, 3, 0, SpinNone), "fx(x2-3y2)",
+		DOS::Weight::OrbitalDesc(3,4, 0, SpinNone), "f",
+		//Up/dn specification: noncollinear modes with nonrelativistic pseudopotentials only
+		DOS::Weight::OrbitalDesc(0,0, 0, SpinZ), "sUp",
+		DOS::Weight::OrbitalDesc(0,0, 1, SpinZ), "sDn",
+		DOS::Weight::OrbitalDesc(1,-1, 0, SpinZ), "pyUp",
+		DOS::Weight::OrbitalDesc(1,-1, 1, SpinZ), "pyDn",
+		DOS::Weight::OrbitalDesc(1, 0, 0, SpinZ), "pzUp",
+		DOS::Weight::OrbitalDesc(1, 0, 1, SpinZ), "pzDn",
+		DOS::Weight::OrbitalDesc(1, 1, 0, SpinZ), "pxUp",
+		DOS::Weight::OrbitalDesc(1, 1, 1, SpinZ), "pxDn",
+		DOS::Weight::OrbitalDesc(1,2, 0, SpinZ), "pUp",
+		DOS::Weight::OrbitalDesc(1,2, 1, SpinZ), "pDn",
+		DOS::Weight::OrbitalDesc(2,-2, 0, SpinZ), "dxyUp",
+		DOS::Weight::OrbitalDesc(2,-2, 1, SpinZ), "dxyDn",
+		DOS::Weight::OrbitalDesc(2,-1, 0, SpinZ), "dyzUp",
+		DOS::Weight::OrbitalDesc(2,-1, 1, SpinZ), "dyzDn",
+		DOS::Weight::OrbitalDesc(2, 0, 0, SpinZ), "dz2Up",
+		DOS::Weight::OrbitalDesc(2, 0, 1, SpinZ), "dz2Dn",
+		DOS::Weight::OrbitalDesc(2, 1, 0, SpinZ), "dxzUp",
+		DOS::Weight::OrbitalDesc(2, 1, 1, SpinZ), "dxzDn",
+		DOS::Weight::OrbitalDesc(2, 2, 0, SpinZ), "dx2-y2Up",
+		DOS::Weight::OrbitalDesc(2, 2, 1, SpinZ), "dx2-y2Dn",
+		DOS::Weight::OrbitalDesc(2,3, 0, SpinZ), "dUp",
+		DOS::Weight::OrbitalDesc(2,3, 1, SpinZ), "dDn",
+		DOS::Weight::OrbitalDesc(3,-3, 0, SpinZ), "fy(3x2-y2)Up",
+		DOS::Weight::OrbitalDesc(3,-3, 1, SpinZ), "fy(3x2-y2)Dn",
+		DOS::Weight::OrbitalDesc(3,-2, 0, SpinZ), "fxyzUp",
+		DOS::Weight::OrbitalDesc(3,-2, 1, SpinZ), "fxyzDn",
+		DOS::Weight::OrbitalDesc(3,-1, 0, SpinZ), "fyz2Up",
+		DOS::Weight::OrbitalDesc(3,-1, 1, SpinZ), "fyz2Dn",
+		DOS::Weight::OrbitalDesc(3, 0, 0, SpinZ), "fz3Up",
+		DOS::Weight::OrbitalDesc(3, 0, 1, SpinZ), "fz3Dn",
+		DOS::Weight::OrbitalDesc(3, 1, 0, SpinZ), "fxz2Up",
+		DOS::Weight::OrbitalDesc(3, 1, 1, SpinZ), "fxz2Dn",
+		DOS::Weight::OrbitalDesc(3, 2, 0, SpinZ), "fz(x2-y2)Up",
+		DOS::Weight::OrbitalDesc(3, 2, 1, SpinZ), "fz(x2-y2)Dn",
+		DOS::Weight::OrbitalDesc(3, 3, 0, SpinZ), "fx(x2-3y2)Up",
+		DOS::Weight::OrbitalDesc(3, 3, 1, SpinZ), "fx(x2-3y2)Dn",
+		DOS::Weight::OrbitalDesc(3,4, 0, SpinZ), "fUp",
+		DOS::Weight::OrbitalDesc(3,4, 1, SpinZ), "fDn",
+		//j,mj specification (only option for spin-split channels of relativsitic pseudopotentials)
+		DOS::Weight::OrbitalDesc(1,-2, 0, SpinOrbit), "p+(-3/2)",
+		DOS::Weight::OrbitalDesc(1,-1, 0, SpinOrbit), "p+(-1/2)",
+		DOS::Weight::OrbitalDesc(1,+0, 0, SpinOrbit), "p+(+1/2)",
+		DOS::Weight::OrbitalDesc(1,+1, 0, SpinOrbit), "p+(+3/2)",
+		DOS::Weight::OrbitalDesc(1,2, 0, SpinOrbit), "p+",
+		DOS::Weight::OrbitalDesc(1,+0, 1, SpinOrbit), "p-(-1/2)",
+		DOS::Weight::OrbitalDesc(1,+1, 1, SpinOrbit), "p-(+1/2)",
+		DOS::Weight::OrbitalDesc(1,2, 1, SpinOrbit), "p-",
+		DOS::Weight::OrbitalDesc(2,-3, 0, SpinOrbit), "d+(-5/2)",
+		DOS::Weight::OrbitalDesc(2,-2, 0, SpinOrbit), "d+(-3/2)",
+		DOS::Weight::OrbitalDesc(2,-1, 0, SpinOrbit), "d+(-1/2)",
+		DOS::Weight::OrbitalDesc(2,+0, 0, SpinOrbit), "d+(+1/2)",
+		DOS::Weight::OrbitalDesc(2,+1, 0, SpinOrbit), "d+(+3/2)",
+		DOS::Weight::OrbitalDesc(2,+2, 0, SpinOrbit), "d+(+5/2)",
+		DOS::Weight::OrbitalDesc(2,3, 0, SpinOrbit), "d+",
+		DOS::Weight::OrbitalDesc(2,-1, 1, SpinOrbit), "d-(-3/2)",
+		DOS::Weight::OrbitalDesc(2,+0, 1, SpinOrbit), "d-(-1/2)",
+		DOS::Weight::OrbitalDesc(2,+1, 1, SpinOrbit), "d-(+1/2)",
+		DOS::Weight::OrbitalDesc(2,+2, 1, SpinOrbit), "d-(+3/2)",
+		DOS::Weight::OrbitalDesc(2,3, 1, SpinOrbit), "d-",
+		DOS::Weight::OrbitalDesc(3,-4, 0, SpinOrbit), "f+(-7/2)",
+		DOS::Weight::OrbitalDesc(3,-3, 0, SpinOrbit), "f+(-5/2)",
+		DOS::Weight::OrbitalDesc(3,-2, 0, SpinOrbit), "f+(-3/2)",
+		DOS::Weight::OrbitalDesc(3,-1, 0, SpinOrbit), "f+(-1/2)",
+		DOS::Weight::OrbitalDesc(3,+0, 0, SpinOrbit), "f+(+1/2)",
+		DOS::Weight::OrbitalDesc(3,+1, 0, SpinOrbit), "f+(+3/2)",
+		DOS::Weight::OrbitalDesc(3,+2, 0, SpinOrbit), "f+(+5/2)",
+		DOS::Weight::OrbitalDesc(3,+3, 0, SpinOrbit), "f+(+7/2)",
+		DOS::Weight::OrbitalDesc(3,4, 0, SpinOrbit), "f+",
+		DOS::Weight::OrbitalDesc(3,-2, 1, SpinOrbit), "f-(-5/2)",
+		DOS::Weight::OrbitalDesc(3,-1, 1, SpinOrbit), "f-(-3/2)",
+		DOS::Weight::OrbitalDesc(3,+0, 1, SpinOrbit), "f-(-1/2)",
+		DOS::Weight::OrbitalDesc(3,+1, 1, SpinOrbit), "f-(+1/2)",
+		DOS::Weight::OrbitalDesc(3,+2, 1, SpinOrbit), "f-(+3/2)",
+		DOS::Weight::OrbitalDesc(3,+3, 1, SpinOrbit), "f-(+5/2)",
+		DOS::Weight::OrbitalDesc(3,4, 1, SpinOrbit), "f-"
 	);
 	return orbitalDescMap;
 }
 
 void DOS::Weight::OrbitalDesc::parse(string desc)
-{	//Extract the principal quantum number:
+{	//SPlit into principal quantum number and orbital code:
 	size_t orbStart = desc.find_first_not_of("0123456789");
+	if(orbStart == string::npos)
+		throw "Orbital description '" + desc + "' does not have an orbital code.";
+	string orbCode = desc.substr(orbStart);
+	//Convert orbital code:
+	if(!getOrbitalDescMap().getEnum(orbCode.c_str(), *this))
+		throw "'" + orbCode + "' is not a valid orbital code for an orbital description.";
+	//Extract the principal quantum number:
 	if(orbStart)
 	{	int nPlus1 = atoi(desc.substr(0, orbStart).c_str());
 		if(nPlus1<=0) throw string("Principal quantum number in orbital description must be a positive integer");
 		n = nPlus1 - 1;
 	}
-	else n = 0;
-	//Get l and m from the textual description:
-	if(orbStart == string::npos)
-		throw "Orbital description '" + desc + "' does not have an orbital code.";
-	string orbCode = desc.substr(orbStart);
-	std::pair<int,int> lmPair;
-	if(!getOrbitalDescMap().getEnum(orbCode.c_str(), lmPair))
-		throw "'" + orbCode + "' is not a valid orbital code for an orbital description.";
-	l = lmPair.first;
-	m = lmPair.second;
 }
 
 DOS::Weight::OrbitalDesc::operator string() const
 {	ostringstream oss;
 	if(n>0) oss << (n+1); //optional pseudo-principal quantum number 
-	oss << getOrbitalDescMap().getString(std::make_pair(l,m));
+	oss << getOrbitalDescMap().getString(*this);
 	return oss.str();
+}
+
+bool DOS::Weight::OrbitalDesc::operator<(const DOS::Weight::OrbitalDesc& other) const
+{	if(l != other.l) return l < other.l;
+	if(m != other.m) return m < other.m;
+	if(s != other.s) return s < other.s;
+	if(n != other.n) return n < other.n;
+	return spinType < other.spinType;
 }
 
 //Density of states evaluation helper class
@@ -833,22 +915,45 @@ void DOS::dump()
 			{	const Weight& weight = weights[iWeight];
 				if(weight.type == Weight::Orbital || weight.type == Weight::OrthoOrbital)
 				{	const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
+					const matrix& CdagOpsiRel = weight.type==Weight::Orbital ? CdagOpsi : CdagOpsiOrtho;
 					int l = oDesc.l;
-					int mMin = (oDesc.m==l+1) ? -l : oDesc.m;
-					int mMax = (oDesc.m==l+1) ? +l : oDesc.m;
-					//Select the appropriate projections:
-					matrix proj = zeroes(C.nCols(), mMax+1-mMin);
-					for(int m=mMin; m<=mMax; m++)
-					{	int iCol = spOffset[weight.specieIndex]
-								+ e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(
-									weight.atomIndex, oDesc.n, l, m, 0);
-						proj.set(0,C.nCols(), m-mMin,m-mMin+1,
-							(weight.type==Weight::Orbital ? CdagOpsi : CdagOpsiOrtho)(0,C.nCols(), iCol,iCol+1) );
+					//Check relativistic psp compatibility:
+					if(e->iInfo.species[weight.specieIndex]->isRelativistic() && oDesc.l)
+					{	if(!(oDesc.spinType==SpinOrbit || (oDesc.spinType==SpinNone && oDesc.m==l+1)))
+							die("Individual orbital projections for l>0 in relativsitic pseudopotentials must use the j,mj specification (eg. 'p+(+1/2)').\n");
 					}
-					//Compute weight from projection:
-					const diagMatrix projSq = diag(proj * dagger(proj)); //diagonal nBands x nBands matrix
-					for(int iBand=0; iBand<eInfo.nBands; iBand++)
-						eval.w(iWeight, iState, iBand) = projSq[iBand];
+					else
+					{	if(oDesc.spinType==SpinOrbit)
+							die("Only l>0 projections in relativistic pseudopotentials may use the j,mj specification.\n");
+					}
+					//Accumulate weights:
+					int sStart, sStop;
+					if(oDesc.spinType==SpinNone)
+					{	sStart=0;
+						sStop=eInfo.spinorLength();
+					}
+					else
+					{	sStart=oDesc.s;
+						sStop=oDesc.s+1;
+					}
+					for(int s=sStart; s<sStop; s++)
+					{	int mMin, mMax;
+						if(oDesc.m==l+1) //multi-orbital mode
+						{	mMin = -l;
+							mMax = +l;
+							if(e->iInfo.species[weight.specieIndex]->isRelativistic())
+								mMin -= (s ? -1 : +1);
+						}
+						else //single orbital mode
+						{	mMin = oDesc.m;
+							mMax = oDesc.m;
+						}
+						for(int m=mMin; m<=mMax; m++)
+						{	int iCol = spOffset[weight.specieIndex] + e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(weight.atomIndex, oDesc.n, l, m, s);
+							for(int iBand=0; iBand<eInfo.nBands; iBand++)
+								eval.w(iWeight, iState, iBand) += (CdagOpsiRel.data()[CdagOpsiRel.index(iBand, iCol)]).norm();
+						}
+					}
 				}
 			}
 		}
