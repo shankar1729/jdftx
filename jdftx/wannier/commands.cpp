@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/minimize.h>
 #include <wannier/Wannier.h>
+#include <core/LatticeUtils.h>
 
 //Wannier-specific commands affect this static object:
 Wannier wannier;
@@ -179,15 +180,13 @@ struct CommandWannierCenter : public Command
 		comments =
 			"Specify trial orbital for a wannier function as a linear combination of\n"
 			"atomic orbitals <aorb*>. The syntax for each <aorb> is:\n"
-			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] {<theta> <phi>} [<coeff>=1.0]\n"
+			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
 			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
 			"(coordinate system set by coords-type). If <a> is the name of one\n"
 			"of the pseudopotentials, then its atomic orbitals will be used;\n"
 			"otherwise a hydogenic orbital of decay length n*<a> bohrs, where\n"
 			"n is the principal quantum number in <orbDesc> will be used.\n"
 			"The orbital code <orbDesc> is as in command density-of-states.\n"
-			"In non-collinear calculations, the spin direction given by <theta>\n"
-			"and <phi> in degrees must also be specified for each orbital.\n"
 			"Specify a, orbDesc and coeff explicitly when using multiple\n"
 			"orbitals; the defaults only apply to the single orbital case.\n"
 			"   Alternately, for using numerical trial orbitals that have been\n"
@@ -214,9 +213,14 @@ struct CommandWannierCenter : public Command
 			pl.get(ao.r[0], nan(""), "x0"); if(isnan(ao.r[0])) break;
 			pl.get(ao.r[1], 0., "x1", true);
 			pl.get(ao.r[2], 0., "x2", true);
+			//Transform to lattice coordinates if necessary:
+			if(e.iInfo.coordsType == CoordsCartesian)
+				ao.r = inv(e.gInfo.R)*ao.r;
+			//Determine trial orbital type:
 			string aKey; pl.get(aKey, string(), "a");
 			ao.numericalOrbIndex = -1;
 			ao.sp = -1;
+			ao.atom = -1;
 			if(aKey == "numerical")
 			{	pl.get(ao.numericalOrbIndex, -1, "b", true);
 				if(ao.numericalOrbIndex<0) throw(string("Numerical orbital index must be non-negative"));
@@ -225,6 +229,13 @@ struct CommandWannierCenter : public Command
 			{	for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
 					if(e.iInfo.species[sp]->name == aKey)
 					{	ao.sp = sp;
+						//Match to an atom if possible:
+						const std::vector< vector3<> >& atpos = e.iInfo.species[sp]->atpos;
+						for(size_t atom=0; atom<atpos.size(); atom++)
+							if(circDistanceSquared(ao.r, atpos[atom]) < symmThresholdSq)
+							{	ao.atom = atom;
+								wannier.needAtomicOrbitals = true;
+							}
 						break;
 					}
 				if(ao.sp<0)
@@ -241,16 +252,17 @@ struct CommandWannierCenter : public Command
 				{	ao.orbitalDesc.l = 0;
 					ao.orbitalDesc.m = 0;
 					ao.orbitalDesc.n = 0;
+					ao.orbitalDesc.s = 0;
+					ao.orbitalDesc.spinType = SpinNone;
 				}
-			}
-			if(e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector)
-			{	pl.get(ao.theta, 0., "theta", true); ao.theta *= (M_PI/180.);
-				pl.get(ao.phi,   0., "phi",   true); ao.phi   *= (M_PI/180.);
+				if((e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector) && ao.orbitalDesc.spinType==SpinNone)
+					throw string("Must specify an explicit spin projection for noncollinear modes");
+				if((e.eInfo.spinType==SpinNone || e.eInfo.spinType==SpinZ) && ao.orbitalDesc.spinType!=SpinNone)
+					throw string("Orbital projections must not specify spin for collinear modes");
+				if(ao.orbitalDesc.spinType==SpinOrbit && ao.atom<0)
+					throw string("Relativistic (l,j,mj) orbital projections must be centered on an atom");
 			}
 			pl.get(ao.coeff, 1., "coeff");
-			//Transform coordinates if necessary
-			if(e.iInfo.coordsType == CoordsCartesian)
-				ao.r = inv(e.gInfo.R)*ao.r;
 			t.push_back(ao);
 		}
 		if(!t.size()) throw(string("Trial orbital for each center must contain at least one atomic orbital"));
@@ -271,8 +283,6 @@ struct CommandWannierCenter : public Command
 			{	if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
 				else logPrintf("%lg", ao.a);
 				logPrintf(" %s", string(ao.orbitalDesc).c_str());
-				if(e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector)
-					logPrintf(" %lg %lg", ao.theta*(180./M_PI), ao.phi*(180./M_PI));
 			}
 			logPrintf("  %lg", ao.coeff);
 		}

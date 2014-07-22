@@ -34,14 +34,14 @@ public:
 	struct AtomicOrbital
 	{	vector3<> r; //!< guess for center of localized wannier function
 		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
-		int sp; //!< species code (<0 if not using a pseudopotential atomic orbital)
+		int sp, atom; //!< species code (<0 if not using a pseudopotential atomic orbital) and atom number (<0 if not using an orbital located on an atom)
 		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
-		double theta, phi; //!< spin direction in noncollinear calculations
 		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
 	};
 	typedef std::vector<AtomicOrbital> TrialOrbital;
 	std::vector<TrialOrbital> trialOrbitals; //!< group of centers
+	bool needAtomicOrbitals;
 	
 	enum LocalizationMeasure
 	{	LM_FiniteDifference,

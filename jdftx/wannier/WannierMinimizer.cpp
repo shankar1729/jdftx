@@ -303,6 +303,15 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
 {	ColumnBundle ret(nCenters, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ColumnBundle temp = ret.similar(1); //single column for intermediate computations
+	//Generate atomic orbitals if necessary:
+	std::vector<ColumnBundle> psiAtomic;
+	if(wannier.needAtomicOrbitals)
+	{	psiAtomic.resize(e.iInfo.species.size());
+		for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
+		{	psiAtomic[sp].init(e.iInfo.species[sp]->nAtomicOrbitals(), basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
+			e.iInfo.species[sp]->setAtomicOrbitals(psiAtomic[sp], false);
+		}
+	}
 	#ifdef GPU_ENABLED
 	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
 	#endif
@@ -320,7 +329,13 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, temp.dataPref(),1, retData,1);
 				continue;
 			}
+			//Handle atomic orbitals that are actually atom-centered:
 			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
+			if(ao.atom >= 0)
+			{	int iCol = e.iInfo.species[ao.sp]->atomicOrbitalOffset(ao.atom, od.n, od.l, od.m, od.s);
+				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
+				continue;
+			}
 			//--- Copy the center to GPU if necessary:
 			#ifdef GPU_ENABLED
 			cudaMemcpy(pos, &ao.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
@@ -338,14 +353,10 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			}
 			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial->at(od.l)[od.n];
 			//--- Initialize the projector:
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref());
+			assert(od.s < nSpinor);
+			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
+			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref()+od.s*basis.nbasis);
 			if(ao.sp < 0) hRadial.free();
-			//--- Handle spinor components (if any):
-			if(nSpinor>1)
-			{	callPref(eblas_copy)(temp.dataPref()+basis.nbasis, temp.dataPref(), basis.nbasis); //copy for second component
-				callPref(eblas_zscal)(basis.nbasis, cos(0.5*ao.theta)*cis(-0.5*ao.phi), temp.dataPref(),1);
-				callPref(eblas_zscal)(basis.nbasis, sin(0.5*ao.theta)*cis(+0.5*ao.phi), temp.dataPref()+basis.nbasis,1);
-			}
 			//--- Accumulate to trial orbital:
 			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, temp.dataPref(),1, retData,1);  //phase ensures odd l projectors are real
 		}
