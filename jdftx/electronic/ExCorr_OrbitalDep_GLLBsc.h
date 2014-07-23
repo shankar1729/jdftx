@@ -28,7 +28,9 @@ struct ExCorr_OrbitalDep_GLLBsc : public ExCorr::OrbitalDep
 	DataRptrCollection getPotential() const;
 	void dump() const;
 private:
-	DataRptrCollection getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
+	double T; //smearing width
+	std::vector<double> getExtremalEnergy(bool HOMO) const; //!<  get HOMO or LUMO energy (depending on HOMO=true/false), optionally accounting for smearing (depending on T)
+	DataRptrCollection getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //!< get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
 };
 
 #endif //JDFTX_ELECTRONIC_EXCORR_ORBITALDEP_GLLBSC_H

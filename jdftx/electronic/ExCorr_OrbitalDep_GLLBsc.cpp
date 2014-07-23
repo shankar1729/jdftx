@@ -25,20 +25,50 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 ExCorr_OrbitalDep_GLLBsc::ExCorr_OrbitalDep_GLLBsc(const Everything& e) : ExCorr::OrbitalDep(e)
-{
+{	T = (e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) ? 0. : e.eInfo.kT;
+}
+
+
+std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
+{	int nSpins = e.eVars.n.size();
+	if(T) //smeared version
+	{	std::vector<double> eExtremal(nSpins, 0.), wExtremal(nSpins, 0.);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	int s = e.eInfo.qnums[q].index();
+			for(int b=0; b<e.eInfo.nBands; b++)
+			{	double f = HOMO ? e.eVars.F[q][b] : 1.-e.eVars.F[q][b];
+				double w = e.eInfo.qnums[q].weight * (f<=0.5 ? 0. : (1.-f)*(f-0.5)*(f-0.5)); //a smooth function w(f) such that w(1/2) = w'(1/2) = w(1) = 0
+				eExtremal[s] += w * e.eVars.Hsub_eigs[q][b];
+				wExtremal[s] += w;
+			}
+		}
+		mpiUtil->allReduce(eExtremal.data(), eExtremal.size(), MPIUtil::ReduceSum);
+		mpiUtil->allReduce(wExtremal.data(), wExtremal.size(), MPIUtil::ReduceSum);
+		for(int s=0; s<nSpins; s++) eExtremal[s] /= wExtremal[s];
+		return eExtremal;
+	}
+	else //direct max/min version
+	{	std::vector<double> eExtremal(nSpins, HOMO ? -DBL_MAX : DBL_MAX);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	int s = e.eInfo.qnums[q].index();
+			for(int b=0; b<e.eInfo.nBands; b++)
+			{	if(HOMO)
+				{	if(e.eVars.F[q][b]>=0.5) eExtremal[s] = std::max(eExtremal[s], e.eVars.Hsub_eigs[q][b]);
+				}
+				else
+				{	if(e.eVars.F[q][b]<=0.5) eExtremal[s] = std::min(eExtremal[s], e.eVars.Hsub_eigs[q][b]);
+				}
+			}
+		}
+		mpiUtil->allReduce(eExtremal.data(), eExtremal.size(), HOMO ? MPIUtil::ReduceMax : MPIUtil::ReduceMin);
+		return eExtremal;
+	}
 }
 
 DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential() const
 {	int nSpins = e.eVars.n.size();
 	if(!e.eVars.Hsub_eigs[e.eInfo.qStart].size()) return DataRptrCollection(nSpins); //no eigenvalues yet
-	//Detect HOMO:
-	std::vector<double> eHOMO(nSpins, -DBL_MAX);
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	int s = e.eInfo.qnums[q].index();
-		for(int b=0; b<e.eInfo.nBands; b++)
-			if(e.eVars.F[q][b]>=0.5) eHOMO[s] = std::max(eHOMO[s], e.eVars.Hsub_eigs[q][b]);
-	}
-	mpiUtil->allReduce(eHOMO.data(), eHOMO.size(), MPIUtil::ReduceMax);
+	std::vector<double> eHOMO = getExtremalEnergy(true);
 	return getPotential(eHOMO);
 }
 
@@ -47,16 +77,8 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	if(!e.eVars.Hsub_eigs[e.eInfo.qStart].size()) return; //no eigenvalues yet
 	
 	//Detect HOMO and LUMO, and compute discontinuity potential:
-	std::vector<double> eHOMO(nSpins, -DBL_MAX), eLUMO(nSpins, +DBL_MAX);
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	int s = e.eInfo.qnums[q].index();
-		for(int b=0; b<e.eInfo.nBands; b++)
-		{	if(e.eVars.F[q][b]>=0.5) eHOMO[s] = std::max(eHOMO[s], e.eVars.Hsub_eigs[q][b]);
-			if(e.eVars.F[q][b]<=0.5) eLUMO[s] = std::min(eLUMO[s], e.eVars.Hsub_eigs[q][b]);
-		}
-	}
-	mpiUtil->allReduce(eHOMO.data(), eHOMO.size(), MPIUtil::ReduceMax);
-	mpiUtil->allReduce(eLUMO.data(), eLUMO.size(), MPIUtil::ReduceMin);
+	std::vector<double> eHOMO = getExtremalEnergy(true);
+	std::vector<double> eLUMO = getExtremalEnergy(false);
 	for(double e: eLUMO)
 		if(e==+DBL_MAX)
 		{	logPrintf("OrbitalDep dump: (GLLBsc) No unoccupied states in the calculation; can't determine discontinuity potential.\n");
@@ -144,6 +166,16 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	else PRINT_GAP(0, "")
 }
 
+double smoothedSqrt(double de, double T)
+{	if(T)
+	{	double X = de/T;
+		if(X<-5.) return 0.;
+		else if(X<+5.) return sqrt(T * 0.5*(exp(-X*X)/sqrt(M_PI) + X*(1. + erf(X))));
+		else return sqrt(de);
+	}
+	else return sqrt(std::max(0., de));
+}
+
 DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO) const
 {	int nSpins = eHOMO.size();
 	const double Kx = 8*sqrt(2)/(3*M_PI*M_PI);
@@ -154,8 +186,8 @@ DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eH
 		int s = qnum.index();
 		diagMatrix Feff(e.eInfo.nBands);
 		for(int b=0; b<e.eInfo.nBands; b++)
-		{	double deTerm = sqrt(std::max(0., eHOMO[s]-e.eVars.Hsub_eigs[q][b])); //orbital-dep potential
-			if(eLUMO) deTerm = sqrt(std::max(0., (*eLUMO)[s]-e.eVars.Hsub_eigs[q][b])) - deTerm; //convert to the discontinuity contribution
+		{	double deTerm = smoothedSqrt(eHOMO[s]-e.eVars.Hsub_eigs[q][b], T); //orbital-dep potential
+			if(eLUMO) deTerm = smoothedSqrt((*eLUMO)[s]-e.eVars.Hsub_eigs[q][b], T) - deTerm; //convert to the discontinuity contribution
 			Feff[b] = e.eVars.F[q][b] * Kx * deTerm;
 		}
 		V += qnum.weight * diagouterI(Feff, e.eVars.C[q], V.size(), &e.gInfo); //without the 1/n(r) denominator
