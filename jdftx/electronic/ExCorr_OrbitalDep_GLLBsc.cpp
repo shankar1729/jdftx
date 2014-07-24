@@ -124,14 +124,9 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	//Output quasiparticle energies using first-order pertubation theory:
 	std::vector<diagMatrix> eigsQP(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	int s = e.eInfo.qnums[q].index();
-		matrix Hpert = e.eVars.C[q] ^ Idag_DiagV_I(e.eVars.C[q], VsclocDisc);
-		int iEmpty=0; while(e.eVars.Hsub_eigs[q][iEmpty]<eLUMO[s]) iEmpty++; //first unoccupied state
-		int nBands=e.eInfo.nBands;
-		matrix Hqp = zeroes(nBands,nBands);
-		if(iEmpty<nBands) //discontinuity perturbation applies to empty states only:
-			Hqp.set(iEmpty,nBands, iEmpty,nBands, Hpert(iEmpty,nBands, iEmpty,nBands));
-		Hqp += matrix(e.eVars.Hsub_eigs[q]); //add unperturbed Hamiltonian
+	{	matrix Hpert = e.eVars.C[q] ^ Idag_DiagV_I(e.eVars.C[q], VsclocDisc);
+		diagMatrix emptyMask = eye(e.eInfo.nBands) - e.eVars.F[q]; //mask to select unoccupied states
+		matrix Hqp = e.eVars.Hsub_eigs[q] + emptyMask * Hpert * emptyMask;
 		matrix Hqp_evars;
 		Hqp.diagonalize(Hqp_evars, eigsQP[q]);
 	}
