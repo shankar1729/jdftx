@@ -154,6 +154,8 @@ const EnumStringMap<DOS::Weight::OrbitalDesc>& getOrbitalDescMap()
 		DOS::Weight::OrbitalDesc(3,4, 0, SpinZ), "fUp",
 		DOS::Weight::OrbitalDesc(3,4, 1, SpinZ), "fDn",
 		//j,mj specification (only option for spin-split channels of relativsitic pseudopotentials)
+		DOS::Weight::OrbitalDesc(0,-1, 0, SpinOrbit), "s(-1/2)",
+		DOS::Weight::OrbitalDesc(0,+0, 0, SpinOrbit), "s(+1/2)",
 		DOS::Weight::OrbitalDesc(1,-2, 0, SpinOrbit), "p+(-3/2)",
 		DOS::Weight::OrbitalDesc(1,-1, 0, SpinOrbit), "p+(-1/2)",
 		DOS::Weight::OrbitalDesc(1,+0, 0, SpinOrbit), "p+(+1/2)",

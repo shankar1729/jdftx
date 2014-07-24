@@ -83,7 +83,7 @@ struct CommandDensityOfStates : public Command
 			"      in a psuedopotential with 2 l=1 orbitals, while '1px' or 'px' select\n"
 			"      the first of the two. In non-collinear magnetism modes, the orbital\n"
 			"      type may be suffixed by Up or Dn to get a specific z projection.\n"
-			"      With relativistic pseudopotentials, all l>0 orbitals must use the\n"
+			"      With relativistic pseudopotentials, all orbitals must use the\n"
 			"      alternate syntax that specifies j,mj eg. p+(+1/2) selects the l=1,\n"
 			"      j=3/2 and mj=+1/2 orbital.\n"
 			"   OrthoOrbital  <species> <atomIndex>   <orbDesc>\n"
