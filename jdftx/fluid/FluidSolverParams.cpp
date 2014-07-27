@@ -111,6 +111,12 @@ void FluidSolverParams::setPCMparams()
 					sqrtC6eff = 2.12;
 					pCavity = -31.;
 					break;
+				case FluidComponent::Octanol:
+					Ztot = 56;
+					eta_wDiel = 5.5;
+					sqrtC6eff = 16.;
+					pCavity = 0;
+					break;
 				case FluidComponent::H2O:
 				default:
 					Ztot = 8;

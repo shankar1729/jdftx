@@ -64,6 +64,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case CH2Cl2:
 		case Ethanol:
 		case Methanol:
+		case Octanol:
 		case Glyme:
 		case CustomSolvent:
 			return Solvent;
@@ -99,6 +100,7 @@ double FluidComponent::pureNbulk(double T) const
 			case CH2Cl2: return 1.392e-3;
 			case Ethanol: return 1.528e-3;
 			case Methanol: return 2.203e-3;
+			case Octanol: return 5.646e-4;
 			case Glyme: return 8.586e-4;
 			default: throw string("Not yet implemented.");
 		}
@@ -332,6 +334,15 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			pMol = 0.791;
 			epsInf = 1.328;
 			sigmaBulk = 1.445e-5;
+			break;
+		}
+		case Octanol:
+		{	epsBulk = 10.30;
+			pMol = 0.661;
+			epsInf = 2.036;
+			sigmaBulk = 1.766e-5;
+			Pvap = antoinePvap(T, 8.47682, 2603.359, -48.799);
+			Rvdw = 3.348*Angstrom;
 			break;
 		}
 		case DMC:
