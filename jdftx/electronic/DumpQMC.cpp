@@ -125,11 +125,14 @@ void Dump::dumpQMC()
 	DataRptr Vdiel = eVars.fluidParams.fluidType==FluidNone ? 0 : I(eVars.d_fluid + eVars.V_cavity);
 	nullToZero(Vdiel, gInfo);
 	
-	//Correction term "Atilde_diel" for QMC:
+	//QMC energy corrections (all information needed for different self-consistency schemes):
 	const double& A_diel = e->ener.E["A_diel"];
-												  //Legendre transform to get final correction
-	double Atilde_diel = A_diel - dot(nTilde,O(J(Vdiel)));
-	logPrintf("QMC energy correction:\n\tA_diel      = %20.12le\n\tAtilde_diel = %20.12le\n", A_diel, Atilde_diel);
+	double Atilde_diel = A_diel - dot(nTilde,O(J(Vdiel))); //Legendre transform to get final correction
+	double Anuc_diel = eVars.d_fluid ? dot(eVars.d_fluid, O(iInfo.rhoIon)) : 0; //interaction with nuclear charge
+	logPrintf("QMC energy correction:\n");
+	logPrintf("\tA_diel      = %25.16lf\n", A_diel);
+	logPrintf("\tAtilde_diel = %25.16lf\n", Atilde_diel);
+	logPrintf("\tAnuc_diel   = %25.16lf\n", Anuc_diel);
 
 	//-------------------------------------------------------------------------------------------
 	//Output potential directly in BLIP-function basis (cubic B-splines)
