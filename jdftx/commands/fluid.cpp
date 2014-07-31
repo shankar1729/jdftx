@@ -152,10 +152,19 @@ EnumStringMap<FluidComponent::Name> solventMap
 	FluidComponent::Glyme, "Glyme"
 );
 EnumStringMap<FluidComponent::Name> cationMap
-(	FluidComponent::Sodium, "Na+"
+(	FluidComponent::Sodium, "Na+",
+	FluidComponent::HydratedSodium, "Na(6H2O)+",
+	FluidComponent::Potassium, "K+",
+        FluidComponent::HydratedPotassium, "K(6H2O)+",
+	FluidComponent::Hydronium, "H3O+",
+	FluidComponent::HydratedHydronium, "H3O(4H2O)+"
 );
 EnumStringMap<FluidComponent::Name> anionMap
-(	FluidComponent::Chloride, "Cl-"
+(	FluidComponent::Chloride, "Cl-",
+	FluidComponent::Fluoride, "F-",
+	FluidComponent::Perchlorate, "ClO4-",
+	FluidComponent::Hydroxide, "OH-",
+	FluidComponent::HydratedHydroxide, "OH(4H2O)-"
 );
 EnumStringMap<FluidComponent::Functional> functionalMap
 (	FluidComponent::ScalarEOS, "ScalarEOS",
@@ -476,9 +485,11 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
 	FluidComponent::CustomSolvent, "CustomSolvent",*/
 	//cations
 	FluidComponent::Sodium, "Na+",
+	FluidComponent::HydratedSodium, "Na(H2O)4+",
 	FluidComponent::CustomCation, "CustomCation",
 	//anions
 	FluidComponent::Chloride, "Cl-", 
+	FluidComponent::Perchlorate, "ClO4-",
 	FluidComponent::CustomAnion, "CustomAnion" );
 
 struct CommandFluidSiteParams : public Command
@@ -543,7 +554,7 @@ void process(ParamList& pl, Everything& e)
 				READ_AND_CHECK(sigmaNuc,>=,0.)
 				READ_AND_CHECK(Zelec,>=,0.) 
 				READ_AND_CHECK(aElec,>,0.)
-				READ_AND_CHECK(sigmaElec,>,0.)
+				READ_AND_CHECK(sigmaElec,>=,0.)
 				READ_AND_CHECK(rcElec,>=,0.)
 				READ_AND_CHECK(elecFilename,!=,string("")) 
 				READ_AND_CHECK(elecFilenameG,!=,string("")) 

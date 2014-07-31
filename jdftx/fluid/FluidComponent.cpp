@@ -69,10 +69,19 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
+		case HydratedSodium:
+		case Potassium:
+		case HydratedPotassium:
+	        case Hydronium:
+	        case HydratedHydronium: 
 		case CustomCation:
 			return Cation;
-		case CustomAnion:
 		case Chloride:
+		case Fluoride: 
+		case Perchlorate: 
+		case Hydroxide:
+		case HydratedHydroxide:
+	        case CustomAnion: 
 			return Anion;
 		default:
 			assert(!"Unknown component type");
@@ -432,9 +441,12 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			pMol = 0.;
 			break;
 		}
+		case Hydronium:
+        	case HydratedHydronium:
 		case CustomCation: break;
-		case Sodium:
-		{	Rvdw = 1.16*Angstrom;
+		case Sodium: 
+		{	
+			Rvdw = 1.16*Angstrom;
 			//Site properties:
 			molecule.name = "Na+";
 			auto siteNa = std::make_shared<Molecule::Site>("Na",int(AtomicSymbol::Na));
@@ -446,12 +458,41 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			     //siteNa->Rhs = Rvdw; //obvious default
 			     siteNa->Rhs = 0.986*Angstrom; //reproduces location of first peak in Na-O radial distribution functions
 			     //siteNa->Rhs = 6.0; //Parameter from Kendra Letchworth-Weaver APS 2012 talk 
-		
+			     
 			molecule.sites.push_back(siteNa);
 			//Geometry:
 			siteNa->positions.push_back(vector3<>(0,0,0));
 			break;
 		}
+        	case HydratedSodium:
+		{
+		        break;
+		}
+		case Potassium:
+		{
+		        Rvdw = 1.51*Angstrom;
+			//Site properties:
+			molecule.name = "K+";
+			auto siteK = std::make_shared<Molecule::Site>("K",int(AtomicSymbol::K));
+			     siteK->Znuc = 9.3230; siteK->sigmaNuc = (1./6)*Rvdw;
+			     siteK->Zelec = 8.3230; siteK->aElec = 0.35529;
+			     siteK->sigmaElec = 0.45583; siteK->rcElec =  0.82179;
+			     siteK->Zsite = siteK->Zelec-siteK->Znuc;
+		     	     //siteK->Rhs = Rvdw; //obvious default
+			     siteK->Rhs = 1.4330*Angstrom; //reproduces location of first peak in K-O radial distribution functions
+			                                   //Chemical Reviews, 1988, Vol. 88, No. 8
+			molecule.sites.push_back(siteK);
+			//Geometry:
+			siteK->positions.push_back(vector3<>(0,0,0));
+			break;
+		        break;
+		}
+		case HydratedPotassium:
+		{
+		        break;
+		}
+	        case Hydroxide:
+        	case HydratedHydroxide:
 		case CustomAnion: break;
 		case Chloride:
 		{	Rvdw = 1.67*Angstrom;
@@ -466,12 +507,59 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			     //siteCl->Rhs = Rvdw; //obvious default
 			     siteCl->Rhs = 1.837*Angstrom; //Reproduces first peak in the Cl-O radial distribution functions
 			     //siteCl->Rhs = 3.0; //Parameters from Kendra Letchworth-Weaver APS 2012 talk
-
+			    
 			molecule.sites.push_back(siteCl);
 			//Geometry:
 			siteCl->positions.push_back(vector3<>(0,0,0));
 			break;
 		}
+	        case Fluoride:
+		{
+		        Rvdw = 1.19*Angstrom;
+			//Site properties:
+			molecule.name = "F-";
+			auto siteF = std::make_shared<Molecule::Site>("F",int(AtomicSymbol::F));
+			     siteF->Znuc = 7.; siteF->sigmaNuc = (1./6)*Rvdw;
+			     siteF->Zelec = 8.; siteF->aElec = 0.38886;
+			     siteF->sigmaElec =  2.*(siteF->aElec)/sqrt(M_PI); siteF->rcElec = 0.0;		  
+			     siteF->Zsite = siteF->Zelec-siteF->Znuc;
+			     //siteF->Rhs = Rvdw; //obvious default
+			     siteF->Rhs = 1.27*Angstrom; //Reproduces first peak in the F-O radial distribution functions
+			    
+			molecule.sites.push_back(siteF);
+			//Geometry:
+			siteF->positions.push_back(vector3<>(0,0,0));
+        		break;
+		}
+	        case Perchlorate:
+	        {
+        	        Rvdw = 2.41*Angstrom; //very close to Pauling Ionic Radius
+			//Site properties:
+			molecule.name = "ClO4-";
+			auto siteCl = std::make_shared<Molecule::Site>("Cl",int(AtomicSymbol::Cl));
+			     siteCl->Znuc = 7.; siteCl->sigmaNuc = sigmaNucCl;
+			     siteCl->Zelec =  6.2308; siteCl->aElec = 0.48793;
+			     siteCl->sigmaElec = 0.45657; siteCl->rcElec = 0.93371;
+			     siteCl->Zsite = siteCl->Zelec-siteCl->Znuc;   
+			     siteCl->Rhs = 2.34*Angstrom;
+			molecule.sites.push_back(siteCl);
+
+			auto siteO = std::make_shared<Molecule::Site>("O",int(AtomicSymbol::O));
+			     siteO->Znuc = 6.; siteO->sigmaNuc = sigmaNucO;
+			     siteO->Zelec =  6.4423; siteO->aElec = 0.36013;
+			     siteO->sigmaElec = 0.37371; siteO->rcElec = 0.51636;
+			     siteO->Zsite = siteO->Zelec-siteO->Znuc;
+			molecule.sites.push_back(siteO);
+
+			//geometry
+			double rClO = 1.563*Angstrom;
+			siteCl->positions.push_back(vector3<>(0,0,0));
+			siteO->positions.push_back(vector3<>(rClO,rClO,rClO)/sqrt(3));
+			siteO->positions.push_back(vector3<>(rClO,-rClO,-rClO)/sqrt(3));
+			siteO->positions.push_back(vector3<>(-rClO,rClO,-rClO)/sqrt(3));
+                        siteO->positions.push_back(vector3<>(-rClO,-rClO,rClO)/sqrt(3));
+        	        break;
+	        }
 		default:
 			throw string("Not yet implemented.");
 	}

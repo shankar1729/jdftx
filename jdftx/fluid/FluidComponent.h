@@ -51,9 +51,18 @@ struct FluidComponent
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+
+		HydratedSodium, //!< Na+ cluster with 6 octahedrally coordinated H2O molecules
+		Potassium, //!< K+
+		HydratedPotassium, //!< K+ cluster with 6 octahedrally coordinated H2O molecules
+		Hydronium, //!< H3O+
+		HydratedHydronium, //!< H3O+ cluster with 4 H2O molecules
 		CustomCation, //!< Custom cation (molecule and other parameters initialized manually)
 		//Anions:
 		Chloride, //!< Cl-
+		Fluoride, //!< Fl-
+		Perchlorate, //!< ClO4-
+		Hydroxide, //!< OH-
+		HydratedHydroxide, //!< OH- cluster with 4 H2O molecules
 		CustomAnion //!< Custom anion (molecule and other parameters initialized manually)
 	};
 	const Name name;
