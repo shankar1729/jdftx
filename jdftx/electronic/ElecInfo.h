@@ -78,6 +78,7 @@ public:
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
 
 	std::vector<std::tuple<int, int, double>> customFillings;
+	string initialFillingsFilename; //!< filename for initial fillings (zero-length if none)
 	
 	ElecInfo();
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
@@ -121,7 +122,6 @@ private:
 	std::vector<int> qStopArr; //!< array of qStop's for all processes (used by whose() to find locate process managing a specific q)
 	
 	//Initial fillings:
-	string initialFillingsFilename; //!< filename for initial fillings (zero-length if none)
 	int nBandsOld; //!<number of bands in file being read
 	std::vector<double> qNet; //!< net excess electrons in each spin channel
 	friend class CommandElecInitialFillings;
