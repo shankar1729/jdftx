@@ -489,6 +489,7 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
 	FluidComponent::CustomCation, "CustomCation",
 	//anions
 	FluidComponent::Chloride, "Cl-", 
+	FluidComponent::Fluoride, "F-", 
 	FluidComponent::Perchlorate, "ClO4-",
 	FluidComponent::CustomAnion, "CustomAnion" );
 
