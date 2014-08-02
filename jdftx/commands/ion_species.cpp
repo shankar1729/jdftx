@@ -167,11 +167,11 @@ struct CommandChargeball : public Command
 {
 	CommandChargeball() : Command("chargeball")
 	{
-		format = "<species-id> <unusedInteger> <width> [<norm>=2.0]";
+		format = "<species-id> <norm> <width>";
 		comments =
 			"Gaussian chargeball of norm <norm> and width <width> for species <id>\n"
-			"(<unusedInteger> used to be the unused <Z_core>, and has been retained for compatibility)\n"
-			"This feature is deprecated, use a pseudopotential with partial core correction instead.";
+			"This feature is deprecated; when possible, use a pseudopotential with\n"
+			"partial core correction instead.";
 		allowMultiple = true;
 
 		require("ion-species");
@@ -182,18 +182,22 @@ struct CommandChargeball : public Command
 		string id; pl.get(id, string(), "species-id", true);
 		auto sp = findSpecies(id, e);
 		if(!sp) throw string("Species "+id+" has not been defined");
+		if(sp->Z_chargeball) throw string("chargeball defined multiple times for species "+id);
 		//Read parameters:
-		int unusedInteger;
-		pl.get(unusedInteger, 0, "unusedInteger", true);
-		pl.get(sp->width_chargeball, 0.0, "width", true);
-		pl.get(sp->Z_chargeball, 2.0, "norm");
+		pl.get(sp->Z_chargeball, 0., "norm", true);
+		pl.get(sp->width_chargeball, 0., "width", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	if(unsigned(iRep) < e.iInfo.species.size())
-		{	const SpeciesInfo& sp = *(e.iInfo.species[iRep]);
-			logPrintf("%s -1 %lg %lg", sp.name.c_str(), sp.width_chargeball, sp.Z_chargeball);
-		}
+	{	int iCB = 0;
+		for(auto sp: e.iInfo.species)
+			if(sp->Z_chargeball)
+			{	if(iCB == iRep)
+				{	logPrintf("%s %lg %lg", sp->name.c_str(), sp->Z_chargeball, sp->width_chargeball);
+					break;
+				}
+				iCB++;
+			}
 	}
 }
 commandChargeball;

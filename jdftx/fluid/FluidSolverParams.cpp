@@ -73,7 +73,7 @@ void FluidSolverParams::setPCMparams()
 	//Set PCM fit parameters:
 	switch(pcmVariant)
 	{	case PCM_SaLSA:
-		{	nc = 1.2e-3;
+		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.;
 			switch(solvents[0]->name)
@@ -100,7 +100,7 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_SG14NL:
-		{	nc = 1.2e-3;
+		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.; //not used
 			vdwScale = 1.; //not used
@@ -116,6 +116,12 @@ void FluidSolverParams::setPCMparams()
 					eta_wDiel = 5.5;
 					sqrtC6eff = 16.;
 					pCavity = 0;
+					break;
+				case FluidComponent::DMSO:
+					Ztot = 26;
+					eta_wDiel = 3.8;
+					sqrtC6eff = 8.;
+					pCavity = 20.;
 					break;
 				case FluidComponent::H2O:
 				default:

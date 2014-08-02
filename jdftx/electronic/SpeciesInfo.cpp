@@ -194,6 +194,16 @@ void SpeciesInfo::setup(const Everything &everything)
 		atomicNumber = int(atSym);
 	}
 	
+	//Implement full-core nCavity for fluids that need it:
+	if(e->eVars.fluidParams.fluidType != FluidNone && 
+		( e->eVars.fluidParams.pcmVariant == PCM_SaLSA
+		|| e->eVars.fluidParams.pcmVariant == PCM_SG14NL ) )
+	{
+		if(Z_chargeball) logPrintf("  Warning: overriding chargeball with full core for nonlocal-cavity fluid.\n");
+		Z_chargeball = atomicNumber - Z - (nCoreRadial ? nCoreRadial(0.) : 0.);
+		width_chargeball = 0.;
+	}
+	
 	//Get the atomic mass if not set:
 	if(!mass) mass = atomicMass(AtomicSymbol(atomicNumber));
 	

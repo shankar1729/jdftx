@@ -396,9 +396,11 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 		}
 		case DMSO:
 		{	epsBulk = 48;
-			pMol    = 2.19;
-			epsInf  = 1.48;
+			pMol    = 1.56;
+			epsInf  = 2.19;
 			sigmaBulk = 2.80e-5;
+			Pvap = antoinePvap(T, 7.23039, 2239.161, -29.215);
+			Rvdw = 2.378*Angstrom;
 			break;
 		}
 		case EthylEther:

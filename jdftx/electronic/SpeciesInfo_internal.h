@@ -231,8 +231,7 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 
 	//Chargeball:
 	if(nChargeball)
-		nChargeball[i] += SGinvVol * Zchargeball
-			* pow(sqrt(2*M_PI)*wChargeball,3)*exp(-0.5*Gsq*pow(wChargeball,2));
+		nChargeball[i] += SGinvVol * Zchargeball * exp(-0.5*Gsq*pow(wChargeball,2));
 
 	//Partial core:
 	if(nCore) nCore[i] += SGinvVol * nCoreRadial(sqrt(Gsq));
@@ -272,8 +271,7 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 
 	//Chargeball:
 	if(ccgrad_nChargeball)
-		ccgrad_SGinvVol += ccgrad_nChargeball[i] * Zchargeball
-			* pow(sqrt(2*M_PI)*wChargeball,3)*exp(-0.5*Gsq*pow(wChargeball,2));
+		ccgrad_SGinvVol += ccgrad_nChargeball[i] * Zchargeball * exp(-0.5*Gsq*pow(wChargeball,2));
 
 	//Partial core:
 	if(ccgrad_nCore) ccgrad_SGinvVol += ccgrad_nCore[i] * nCoreRadial(sqrt(Gsq));
