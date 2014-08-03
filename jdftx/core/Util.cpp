@@ -222,7 +222,8 @@ void initSystem(int argc, char** argv)
 		logPrintf(" %d", nThreads);
 	}
 	logPrintf("\n");
-
+	resumeOperatorThreading(); //if necessary, this informs MKL of the thread count
+	
 	//Print total resources used by run:
 	{	int nResources[2] = { nProcsAvailable, 0 };
 		#ifdef GPU_ENABLED

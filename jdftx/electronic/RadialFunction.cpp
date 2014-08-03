@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/common.h>
 #include <core/GpuUtil.h>
+#include <core/Thread.h>
 
 RadialFunctionG::RadialFunctionG() : dGinv(0), nCoeff(0),
 #ifdef GPU_ENABLED
@@ -89,18 +90,8 @@ void RadialFunctionR::set(std::vector<double> r, std::vector<double> dr)
 	this->dr.assign(dr.begin(), dr.begin()+this->f.size());
 }
 
-void RadialFunctionR::initWeights()
-{	
-	//Ensure r is valid (positive and in ascending order):
-	int nSamples = r.size();
-	assert(nSamples>=2);
-	assert(r[0]>=0.);
-	for(int i=0; i<nSamples-1; i++)
-		assert(r[i+1]>r[i]);
-	dr.resize(nSamples);
-	if(!r[0]) r[0]=1e-6*r[1]; //avoid division by 0 (will make no difference at double prec)
-	
-	for(int j=0; j<nSamples; j++)
+void RadialFunctionR_initWeights_sub(int jStart, int jStop, int nSamples, const double* r, double* dr)
+{	for(int j=jStart; j<jStop; j++)
 	{	//Calculate cubic spline with natural B.C. that is 1 at j'th point and 0 at all others:
 		std::vector<double> a(nSamples, 0.); //sub-diagonal (first entry ignored)
 		std::vector<double> b(nSamples, 0.); //diagonal
@@ -140,6 +131,20 @@ void RadialFunctionR::initWeights()
 	}
 }
 
+void RadialFunctionR::initWeights()
+{	static StopWatch watch("initWeights"); watch.start();
+	//Ensure r is valid (positive and in ascending order):
+	int nSamples = r.size();
+	assert(nSamples>=2);
+	assert(r[0]>=0.);
+	for(int i=0; i<nSamples-1; i++)
+		assert(r[i+1]>r[i]);
+	dr.resize(nSamples);
+	if(!r[0]) r[0]=1e-6*r[1]; //avoid division by 0 (will make no difference at double prec)
+	threadLaunch(RadialFunctionR_initWeights_sub, nSamples, nSamples, r.data(), dr.data());
+	watch.stop();
+}
+
 
 // Evaluate spherical bessel transform of order l at wavevector G
 double RadialFunctionR::transform(int l, double G) const
@@ -154,12 +159,16 @@ double RadialFunctionR::transform(int l, double G) const
 	return (4*M_PI/3) * sum;
 }
 
+static void RadialFunction_transform_sub(int iGstart, int iGstop, int l, double dG, const RadialFunctionR* rFunc, double* fTilde)
+{	for(int iG=iGstart; iG<iGstop; iG++)
+		fTilde[iG] = rFunc->transform(l, iG*dG);
+}
+
 // Initialize a uniform G radial function from the log-grid function
 void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& func) const
 {	static StopWatch watch("RadialFunctionR::transform"); watch.start();
 	std::vector<double> fTilde(nGrid);
-	for(int iG=0; iG<nGrid; iG++)
-		fTilde[iG] = transform(l, iG*dG);
+	threadLaunch(RadialFunction_transform_sub, nGrid, l, dG, this, fTilde.data());
 	func.free(this!=func.rFunc);
 	func.init(l, fTilde, dG);
 	if(this!=func.rFunc) func.rFunc = new RadialFunctionR(*this);
