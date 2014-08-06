@@ -281,7 +281,7 @@ namespace DataMultipletPrivate
 	template<typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
 	void threadUnary(FuncOut (*func)(FuncIn,Args...), int N, Out* out, In in, Args... args)
 	{	//CUFFT is not thread safe as of v4.0: (note nThreads=0 means as many threads as allowed)
-		threadLaunch( (isGpuEnabled() || (!shouldThreadOperators())) ? 1 : 0,
+		threadLaunch( isGpuEnabled() ? 1 : 0,
 			threadUnary_sub<FuncOut,FuncIn,Out,In,Args...>, N, func, out, in, args...);
 	}
 };

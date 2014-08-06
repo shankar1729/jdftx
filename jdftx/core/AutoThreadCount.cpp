@@ -90,7 +90,8 @@ AutoThreadCount::~AutoThreadCount()
 }
 
 int AutoThreadCount::getThreadCount()
-{	if(settled) return nOpt; //optimum value has been found and previously stored
+{	if(!shouldThreadOperators()) return 1;
+	if(settled) return nOpt; //optimum value has been found and previously stored
 	for(int i=minThreads-1; i<nMax; i++)
 	{	if(count[i]<minStats) return i+1; //not enough stats for this #threads yet, so get it!
 		if(i && time[i]>time[i-1]) //threads becoming a burden

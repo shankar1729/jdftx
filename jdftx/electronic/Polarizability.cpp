@@ -151,9 +151,7 @@ public:
 	//Store resulting pair densities scaled by 2*invsqrt(eigenvalue differences) in rho,
 	//so that the non-interacting susceptibility is negative identity in this basis.
 	void compute(int nV, int nC, ColumnBundle& rho, int kOffset) const
-	{	suspendOperatorThreading();
-		threadLaunch(isGpuEnabled() ? 1 : 0, compute_thread, nV*nC, nV, nC, &rho, kOffset, this);
-		resumeOperatorThreading();
+	{	threadLaunch(isGpuEnabled() ? 1 : 0, compute_thread, nV*nC, nV, nC, &rho, kOffset, this);
 	}
 	
 	//Accumulate contribution from currentkpoint pair to negative of noninteracting susceptibility in plane-wave basis:
@@ -195,9 +193,7 @@ inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<>
 
 matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
 {	ColumnBundle KV = V.similar();
-	suspendOperatorThreading();
 	threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, V.nCols(), &e, dk, &V, &KV);
-	resumeOperatorThreading();
 	logPrintf("\tForming Coulomb matrix\n"); logFlush();
 	return e.gInfo.detR * (V^KV);
 }
@@ -274,9 +270,7 @@ matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const DataRptr& 
 	if(exc_sigma) Dn = gradient(n); //needed for GGAs
 	//Compute matrix:
 	ColumnBundle KXCV = V.similar();
-	suspendOperatorThreading();
 	threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, V.nCols(), &exc_nn, &Dn, &exc_sigma, &exc_nsigma, &exc_sigmasigma, &V, &KXCV);
-	resumeOperatorThreading();
 	logPrintf("\tForming Exchange-Correlation matrix\n"); logFlush();
 	return e.gInfo.detR * (V^KXCV);
 }

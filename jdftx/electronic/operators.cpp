@@ -179,8 +179,7 @@ template<typename T> std::shared_ptr<T> pointGroupScatter(const std::shared_ptr<
 	#ifdef GPU_ENABLED
 	pointGroupScatter_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), mMesh);
 	#else
-	threadLaunch(shouldThreadOperators() ? 0 : 1,
-		pointGroupScatter_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
+	threadLaunch(pointGroupScatter_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
 	#endif
 	return out;
 }
@@ -315,17 +314,13 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptrCollection& V)
 	assert(Vwfns.size()==1 || Vwfns.size()==2 || Vwfns.size()==4);
 	if(Vwfns.size()==2) assert(!C.isSpinor());
 	if(Vwfns.size()==1 || Vwfns.size()==2)
-	{	suspendOperatorThreading();
-		threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, &Vwfns, &VC);
-		resumeOperatorThreading();
+	{	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, &Vwfns, &VC);
 	}
 	else //Vwfns.size()==4
 	{	assert(C.isSpinor());
 		complexDataRptr VupDn = 0.5*Complex(Vwfns[2], Vwfns[3]);
 		complexDataRptr VdnUp = conj(VupDn);
-		suspendOperatorThreading();
 		threadLaunch(isGpuEnabled()?1:0, Idag_DiagVmat_I_sub, C.nCols(), &C, &Vwfns[0], &Vwfns[1], &VupDn, &VdnUp, &VC);
-		resumeOperatorThreading();
 	}
 	watch.stop();
 	return VC;
@@ -579,9 +574,7 @@ DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nD
 	//Collect the contributions for different sets of columns in separate scalar fields (one per thread):
 	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
 	std::vector<DataRptrCollection> nSub(nThreads, DataRptrCollection(nDensities==2 ? 1 : nDensities)); //collinear spin-polarized will have only one non-zero output channel
-	suspendOperatorThreading();
 	threadLaunch(nThreads, diagouterI_sub, 0, &F, &X, &nSub);
-	resumeOperatorThreading();
 
 	//If more than one thread, accumulate all vectors in nSub into the first:
 	if(nThreads>1) threadLaunch(diagouterI_collect, X.basis->gInfo->nr, &nSub);

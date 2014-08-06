@@ -139,9 +139,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 	}
 	ColumnBundle K(ColumnBundle Y)
 	{	ColumnBundle KY = Y.similar();
-		suspendOperatorThreading();
 		threadLaunch(K_thread, Y.nCols(), &e, vector3<>(), &Y, &KY);
-		resumeOperatorThreading();
 		return KY;
 	}
 	

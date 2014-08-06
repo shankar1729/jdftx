@@ -38,6 +38,9 @@ extern int nProcsAvailable; //!< number of available processors (initialized to 
 /**
 Operators should run multithreaded if this returns true,
 and should run in a single thread if this returns false.
+Note that all the thread launching functions in this file
+automatically prevent nested threading, so operator codes
+using those functions need not explicitly check this.
 
 This only affects CPU threading, GPU operators should
 only be called from a single thread anyway.
@@ -145,7 +148,8 @@ double threadedAccumulate(Callable* func, size_t nIter, Args... args);
 
 template<typename Callable,typename ... Args>
 void threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args)
-{	if(nThreads<=0) nThreads = nProcsAvailable;
+{	if(nThreads<=0) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	if(nThreads>1) suspendOperatorThreading(); //Prevent func and anything it calls from launching nested threads
 	std::thread** tArr = new std::thread*[nThreads-1];
 	for(int t=0; t<nThreads; t++)
 	{	size_t i1 = (nJobs>0 ? (  t   * nJobs)/nThreads : t);
@@ -158,6 +162,7 @@ void threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args)
 		delete tArr[t];
 	}
 	delete[] tArr;
+	if(nThreads>1) resumeOperatorThreading(); //End nested threading guard section
 }
 
 template<typename Callable,typename ... Args>
@@ -186,8 +191,7 @@ void threadedLoop_sub(size_t iMin, size_t iMax, Callable* func, Args... args)
 }
 template<typename Callable,typename ... Args>
 void threadedLoop(Callable* func, size_t nIter, Args... args)
-{	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
-		threadedLoop_sub<Callable,Args...>, nIter, func, args...);
+{	threadLaunch(threadedLoop_sub<Callable,Args...>, nIter, func, args...);
 }
 
 template<typename Callable,typename ... Args>
@@ -200,8 +204,7 @@ template<typename Callable,typename ... Args>
 double threadedAccumulate(Callable* func, size_t nIter, Args... args)
 {	double accumTot=0.0;
 	std::mutex m;
-	threadLaunch(shouldThreadOperators() ? 0 : 1, //0 => max threads
-		threadedAccumulate_sub<Callable,Args...>, nIter, func, &accumTot, &m, args...);
+	threadLaunch(threadedAccumulate_sub<Callable,Args...>, nIter, func, &accumTot, &m, args...);
 	return accumTot;
 }
 

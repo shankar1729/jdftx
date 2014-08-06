@@ -205,7 +205,7 @@ void eblas_mul_sub(size_t iMin, size_t iMax, const Tx* X, const int incX, Ty* Y,
 template<typename Ty, typename Tx>
 void eblas_mul(const int N, const Tx* X, const int incX, Ty* Y, const int incY)
 {	if(incY==0) die("incY cannot be = 0")
-	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
+	threadLaunch((N<100000) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_mul_sub<Ty,Tx>, N, X, incX, Y, incY);
 }
 
@@ -217,7 +217,7 @@ void eblas_div_sub(size_t iMin, size_t iMax, const Tx* X, const int incX, Ty* Y,
 template<typename Ty, typename Tx>
 void eblas_div(const int N, const Tx* X, const int incX, Ty* Y, const int incY)
 {	if(incY==0) die("incY cannot be = 0")
-	threadLaunch((N<100000 || (!shouldThreadOperators())) ? 1 : 0, //force single threaded for small problem sizes
+	threadLaunch((N<100000) ? 1 : 0, //force single threaded for small problem sizes
 		eblas_div_sub<Ty,Tx>, N, X, incX, Y, incY);
 }
 //!@endcond
