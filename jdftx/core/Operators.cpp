@@ -124,93 +124,99 @@ complexDataGptr O(complexDataGptr&& in) { return in *= in->gInfo.detR; }
 
 
 //Forward transform
-DataRptr I(DataGptr&& in, bool compat)
+DataRptr I(DataGptr&& in, bool compat, int nThreads)
 {	//CPU c2r transforms destroy input, but this input can be destroyed
 	DataRptr out(DataR::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	cufftExecZ2D(compat ? in->gInfo.planZ2Dcompat : in->gInfo.planZ2D, (double2*)in->dataGpu(false), out->dataGpu(false));
 	#else
-	fftw_execute_dft_c2r(shouldThreadOperators() ? in->gInfo.planCtoRmulti : in->gInfo.planCtoRsingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft_c2r(in->gInfo.getPlan(GridInfo::PlanCtoR, nThreads),
 		(fftw_complex*)in->data(false), out->data(false));
 	#endif
 	out->scale = in->scale;
 	return out;
 }
-DataRptr I(const DataGptr& in, bool compat)
+DataRptr I(const DataGptr& in, bool compat, int nThreads)
 {	//CPU c2r transforms destroy input, hence copy input in that case (and let that copy be destroyed above)
 	#ifdef GPU_ENABLED
-	return I((DataGptr&&)in, compat);
+	return I((DataGptr&&)in, compat, nThreads);
 	#else
-	return  I(in->clone(), compat);
+	return  I(in->clone(), compat, nThreads);
 	#endif
 }
-complexDataRptr I(const complexDataGptr& in)
+complexDataRptr I(const complexDataGptr& in, int nThreads)
 {	complexDataRptr out(complexDataR::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)out->dataGpu(false), CUFFT_INVERSE);
 	#else
-	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planInverseMulti : in->gInfo.planInverseSingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanInverse, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
 	return out;
 }
-complexDataRptr I(complexDataGptr&& in)
+complexDataRptr I(complexDataGptr&& in, int nThreads)
 {	//Destructible input (transform in place):
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)in->dataGpu(false), CUFFT_INVERSE);
 	#else
-	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planInverseInPlaceMulti : in->gInfo.planInverseInPlaceSingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanInverseInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
 	return (complexDataRptr&&)in;
 }
 
 //Forward transform h.c.
-DataGptr Idag(const DataRptr& in)
+DataGptr Idag(const DataRptr& in, int nThreads)
 {	//r2c transform does not destroy input (no backing up needed)
 	DataGptr out(DataG::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	cufftExecD2Z(in->gInfo.planD2Z, in->dataGpu(false), (double2*)out->dataGpu(false));
 	#else
-	fftw_execute_dft_r2c(shouldThreadOperators() ? in->gInfo.planRtoCmulti : in->gInfo.planRtoCsingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft_r2c(in->gInfo.getPlan(GridInfo::PlanRtoC, nThreads),
 		in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
 	return out;
 }
-complexDataGptr Idag(const complexDataRptr& in)
+complexDataGptr Idag(const complexDataRptr& in, int nThreads)
 {	complexDataGptr out(complexDataG::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)out->dataGpu(false), CUFFT_FORWARD);
 	#else
-	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planForwardMulti : in->gInfo.planForwardSingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanForward, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)out->data(false));
 	#endif
 	out->scale = in->scale;
 	return out;
 }
-complexDataGptr Idag(complexDataRptr&& in)
+complexDataGptr Idag(complexDataRptr&& in, int nThreads)
 {	//Destructible input (transform in place):
 	#ifdef GPU_ENABLED
 	cufftExecZ2Z(in->gInfo.planZ2Z, (double2*)in->dataGpu(false), (double2*)in->dataGpu(false), CUFFT_FORWARD);
 	#else
-	fftw_execute_dft(shouldThreadOperators() ? in->gInfo.planForwardInPlaceMulti : in->gInfo.planForwardInPlaceSingle,
+	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
+	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanForwardInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
 	return (complexDataGptr&&)in;
 }
 
 //Reverse transform (same as Idag upto the normalization factor)
-DataGptr J(const DataRptr& in) { return (1.0/in->gInfo.nr)*Idag(in); }
-complexDataGptr J(const complexDataRptr& in) { return (1.0/in->gInfo.nr)*Idag(in); }
-complexDataGptr J(complexDataRptr&& in) { return Idag((complexDataRptr&&)(in *= 1.0/in->gInfo.nr)); }
+DataGptr J(const DataRptr& in, int nThreads) { return (1.0/in->gInfo.nr)*Idag(in, nThreads); }
+complexDataGptr J(const complexDataRptr& in, int nThreads) { return (1.0/in->gInfo.nr)*Idag(in, nThreads); }
+complexDataGptr J(complexDataRptr&& in, int nThreads) { return Idag((complexDataRptr&&)(in *= 1.0/in->gInfo.nr), nThreads); }
 
 //Reverse transform h.c. (same as I upto the normalization factor)
-DataRptr Jdag(const DataGptr& in, bool compat) { return (1.0/in->gInfo.nr)*I(in, compat); }
-DataRptr Jdag(DataGptr&& in, bool compat) { return (1.0/in->gInfo.nr)*I(in, compat); }
-complexDataRptr Jdag(const complexDataGptr& in) { return (1.0/in->gInfo.nr)*I(in); }
-complexDataRptr Jdag(complexDataGptr&& in) { return I((complexDataGptr&&)(in *= 1.0/in->gInfo.nr)); }
+DataRptr Jdag(const DataGptr& in, bool compat, int nThreads) { return (1.0/in->gInfo.nr)*I(in, compat, nThreads); }
+DataRptr Jdag(DataGptr&& in, bool compat, int nThreads) { return (1.0/in->gInfo.nr)*I(in, compat, nThreads); }
+complexDataRptr Jdag(const complexDataGptr& in, int nThreads) { return (1.0/in->gInfo.nr)*I(in, nThreads); }
+complexDataRptr Jdag(complexDataGptr&& in, int nThreads) { return I((complexDataGptr&&)(in *= 1.0/in->gInfo.nr), nThreads); }
 
 DataRptr JdagOJ(const DataRptr& in) { return in * in->gInfo.dV; }
 DataRptr JdagOJ(DataRptr&& in) { return in *= in->gInfo.dV; }

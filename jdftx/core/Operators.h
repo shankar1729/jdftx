@@ -48,23 +48,27 @@ DataGptr O(DataGptr&&); //!<Inner product operator (diagonal in PW basis)
 complexDataGptr O(const complexDataGptr&); //!<Inner product operator (diagonal in PW basis)
 complexDataGptr O(complexDataGptr&&); //!<Inner product operator (diagonal in PW basis)
 
-DataRptr I(const DataGptr&, bool compat=false); //!< Forward transform: PW basis -> real space (preserve input)
-DataRptr I(DataGptr&&, bool compat=false); //!< Forward transform: PW basis -> real space (destructible input)
-complexDataRptr I(const complexDataGptr&); //!< Forward transform: PW basis -> real space (preserve input)
-complexDataRptr I(complexDataGptr&&); //!< Forward transform: PW basis -> real space (destructible input)
+//Transform operators:
+//  compat: force GPU transform output to be FFTW compatible (affects only how redundant Nyquist frequency components in the C->R transforms are handled)
+//  nThreads: maximum number of threads to use; use to prevent thread nesting when performing transforms of vector fields etc.
 
-DataGptr J(const DataRptr&); //!< Inverse transform: Real space -> PW basis
-complexDataGptr J(const complexDataRptr&); //!< Inverse transform: Real space -> PW basis (preserve input)
-complexDataGptr J(complexDataRptr&&); //!< Inverse transform: Real space -> PW basis (destructible input)
+DataRptr I(const DataGptr&, bool compat=false, int nThreads=0); //!< Forward transform: PW basis -> real space (preserve input)
+DataRptr I(DataGptr&&, bool compat=false, int nThreads=0); //!< Forward transform: PW basis -> real space (destructible input)
+complexDataRptr I(const complexDataGptr&, int nThreads=0); //!< Forward transform: PW basis -> real space (preserve input)
+complexDataRptr I(complexDataGptr&&, int nThreads=0); //!< Forward transform: PW basis -> real space (destructible input)
 
-DataGptr Idag(const DataRptr&); //!< Forward transform transpose: Real space -> PW basis
-complexDataGptr Idag(const complexDataRptr&); //!< Forward transform transpose: Real space -> PW basis (preserve input)
-complexDataGptr Idag(complexDataRptr&&); //!< Forward transform transpose: Real space -> PW basis (destructible input)
+DataGptr J(const DataRptr&, int nThreads=0); //!< Inverse transform: Real space -> PW basis
+complexDataGptr J(const complexDataRptr&, int nThreads=0); //!< Inverse transform: Real space -> PW basis (preserve input)
+complexDataGptr J(complexDataRptr&&, int nThreads=0); //!< Inverse transform: Real space -> PW basis (destructible input)
 
-DataRptr Jdag(const DataGptr&, bool compat=false); //!< Inverse transform transpose: PW basis -> real space (preserve input)
-DataRptr Jdag(DataGptr&&, bool compat=false); //!< Inverse transform transpose: PW basis -> real space (destructible input)
-complexDataRptr Jdag(const complexDataGptr&); //!< Inverse transform transpose: PW basis -> real space (preserve input)
-complexDataRptr Jdag(complexDataGptr&&); //!< Inverse transform transpose: PW basis -> real space (destructible input)
+DataGptr Idag(const DataRptr&, int nThreads=0); //!< Forward transform transpose: Real space -> PW basis
+complexDataGptr Idag(const complexDataRptr&, int nThreads=0); //!< Forward transform transpose: Real space -> PW basis (preserve input)
+complexDataGptr Idag(complexDataRptr&&, int nThreads=0); //!< Forward transform transpose: Real space -> PW basis (destructible input)
+
+DataRptr Jdag(const DataGptr&, bool compat=false, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (preserve input)
+DataRptr Jdag(DataGptr&&, bool compat=false, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (destructible input)
+complexDataRptr Jdag(const complexDataGptr&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (preserve input)
+complexDataRptr Jdag(complexDataGptr&&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (destructible input)
 
 DataRptr JdagOJ(const DataRptr&); //!< Evaluate Jdag(O(J())), which avoids 2 fourier transforms in PW basis (preserve input)
 DataRptr JdagOJ(DataRptr&&); //!< Evaluate Jdag(O(J())), which avoids 2 fourier transforms in PW basis (destructible input)

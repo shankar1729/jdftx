@@ -37,27 +37,23 @@ GridInfo::GridInfo():Gmax(0),GmaxRho(0),nr(0),initialized(false)
 GridInfo::~GridInfo()
 {
 	if(initialized)
-	{
+	{	//Save FFTW wisdom in run directory for future use
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(".fftw-wisdom", "w");
+			if(fp)  //ignore if running in a read-only directory
+			{	fftw_export_wisdom_to_file(fp);
+				fclose(fp);
+			}
+		}
+		//Destroy cached FFTW plans, if any:
+		for(auto entry: planCache)
+			fftw_destroy_plan(entry.second);
+		//Destroy GPU plans, if any:
 		#ifdef GPU_ENABLED
 		cufftDestroy(planZ2Z);
 		cufftDestroy(planD2Z);
 		cufftDestroy(planZ2D);
 		cufftDestroy(planZ2Dcompat);
-		#else
-		fftw_destroy_plan(planForwardSingle);
-		fftw_destroy_plan(planInverseSingle);
-		fftw_destroy_plan(planForwardInPlaceSingle);
-		fftw_destroy_plan(planInverseInPlaceSingle);
-		fftw_destroy_plan(planCtoRsingle);
-		fftw_destroy_plan(planRtoCsingle);
-		if(nProcsAvailable > 1)
-		{	fftw_destroy_plan(planForwardMulti);
-			fftw_destroy_plan(planInverseMulti);
-			fftw_destroy_plan(planForwardInPlaceMulti);
-			fftw_destroy_plan(planInverseInPlaceMulti);
-			fftw_destroy_plan(planCtoRmulti);
-			fftw_destroy_plan(planRtoCmulti);
-		}
 		#endif
 	}
 }
@@ -274,82 +270,65 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	iGstart = (nG * mpiUtil->iProcess()) / mpiUtil->nProcesses();
 	iGstop = (nG * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
 	
-	logPrintf("Planning FFTs (this might take a while for a new big problem size) ... "); logFlush();
-
-	#ifdef GPU_ENABLED
-	//########## CUFFT Initialization ##############
+	//FFT plans:
+	#ifdef GPU_ENABLED //GPU plans:
 	cufftPlan3d(&planZ2Z, S[0], S[1], S[2], CUFFT_Z2Z);
 	cufftPlan3d(&planD2Z, S[0], S[1], S[2], CUFFT_D2Z);
 	cufftPlan3d(&planZ2D, S[0], S[1], S[2], CUFFT_Z2D);
 	cufftPlan3d(&planZ2Dcompat, S[0], S[1], S[2], CUFFT_Z2D);
 	cufftSetCompatibilityMode(planZ2Dcompat, CUFFT_COMPATIBILITY_FFTW_ALL);
 	gpuErrorCheck();
-	
-	#else
-	//########## FFTW Initialization ##############
-	#define PLANNER_FLAGS FFTW_MEASURE
-	fftw_init_threads();
-	#ifdef MKL_PROVIDES_FFT
-	fftw3_mkl.number_of_user_threads = nProcsAvailable; //Single-threaded transforms may be called from multiple threads
-	#endif
+	#endif //CPU plans (FFTW/MKL) are created on demand and cached
 
-	//Check for previously saved wisdom (this file should not be copied from one machine to another)
-	int systemWisdom = fftw_import_system_wisdom();
-	FILE* fp = fopen(".fftw-wisdom", "r");
-	if(fp) { fftw_import_wisdom_from_file(fp); fclose(fp); }
-	else if(!systemWisdom) logPrintf("\nNo local or system FFTW wisdom found, planning might take a while ... ");
-
-	//Temp data for planning:
-	fftw_complex* testData = (fftw_complex*)fftw_malloc(nr*sizeof(complex));
-	fftw_complex* testData2 = (fftw_complex*)fftw_malloc(nr*sizeof(complex));
-	
-	//Single-threaded plans
-	fftw_plan_with_nthreads(1);
-	planInverseSingle = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_BACKWARD, FFTW_MEASURE);
-	planForwardSingle = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_FORWARD, FFTW_MEASURE);
-	planInverseInPlaceSingle = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_BACKWARD, FFTW_MEASURE);
-	planForwardInPlaceSingle = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_FORWARD, FFTW_MEASURE);
-	planRtoCsingle = fftw_plan_dft_r2c_3d(S[0], S[1], S[2], (double*)testData, testData2, PLANNER_FLAGS);
-	planCtoRsingle = fftw_plan_dft_c2r_3d(S[0], S[1], S[2], testData, (double*)testData2, PLANNER_FLAGS);
-	if(!planInverseSingle || !planForwardSingle
-		|| !planInverseInPlaceSingle || !planForwardInPlaceSingle
-		|| !planRtoCsingle || !planCtoRsingle)
-		die("\nSingle-threaded FFTW planning failed in GridInfo::initialize()\n\n")
-	
-	//Multi-threaded plans:
-	if(nProcsAvailable > 1)
-	{	fftw_plan_with_nthreads(nProcsAvailable);
-		planInverseMulti = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_BACKWARD, FFTW_MEASURE);
-		planForwardMulti = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_FORWARD, FFTW_MEASURE);
-		planInverseInPlaceMulti = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_BACKWARD, FFTW_MEASURE);
-		planForwardInPlaceMulti = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_FORWARD, FFTW_MEASURE);
-		planRtoCmulti = fftw_plan_dft_r2c_3d(S[0], S[1], S[2], (double*)testData, testData2, PLANNER_FLAGS);
-		planCtoRmulti = fftw_plan_dft_c2r_3d(S[0], S[1], S[2], testData, (double*)testData2, PLANNER_FLAGS);
-		if(!planInverseMulti || !planForwardMulti
-			|| !planInverseInPlaceMulti || !planForwardInPlaceMulti
-			|| !planRtoCmulti || !planCtoRmulti)
-			die("\nMulti-threaded FFTW planning failed in GridInfo::initialize()\n\n")
-	}
-	else
-	{	//Single-proc execution: copy over single threaded plans
-		planInverseMulti = planInverseSingle;
-		planForwardMulti = planForwardSingle;
-		planInverseInPlaceMulti = planInverseInPlaceSingle;
-		planForwardInPlaceMulti = planForwardInPlaceSingle;
-		planRtoCmulti = planRtoCsingle;
-		planCtoRmulti = planCtoRsingle;
-	}
-	fftw_free(testData);
-	fftw_free(testData2);
-
-	//Save wisdom in run directory for future use (copy .fftw-wisdom to /etc/fftw/wisdom for system-wide use)
-	fp = fopen(".fftw-wisdom", "w");
-	if(fp)
-	{	fftw_export_wisdom_to_file(fp);
-		fclose(fp);
-	} //ignore if running in a read-only directory
-	#endif
-
-	logPrintf("Done.\n"); logFlush();
 	initialized = true;
+}
+
+std::mutex GridInfo::planLock;
+
+fftw_plan GridInfo::getPlan(GridInfo::PlanType planType, int nThreads) const
+{	//Return cached plan if available:
+	auto key = std::make_pair(planType, nThreads);
+	planLock.lock();
+	auto iter = planCache.find(key);
+	if(iter != planCache.end())
+	{	planLock.unlock();
+		return iter->second;
+	}
+	//Create plan:
+	//--- import wisdom if available:
+	fftw_import_system_wisdom();
+	FILE* fp = fopen(".fftw-wisdom", "r");
+	if(fp)
+	{	fftw_import_wisdom_from_file(fp);
+		fclose(fp);
+	}
+	//--- setup threading:
+	#ifdef MKL_PROVIDES_FFT
+	fftw3_mkl.number_of_user_threads = ceildiv(nProcsAvailable, nThreads); //maximum number of user threads from which plan could be called simultaneously
+	#endif
+	fftw_init_threads();
+	fftw_plan_with_nthreads(nThreads);
+	//--- temp data for planning:
+	bool inPlace = (planType==PlanForwardInPlace) || (planType==PlanInverseInPlace);
+	fftw_complex* testData = (fftw_complex*)fftw_malloc(nr*sizeof(complex));
+	fftw_complex* testData2 = inPlace ? 0 : (fftw_complex*)fftw_malloc(nr*sizeof(complex));
+	//--- plan:
+	#define PLANNER_FLAGS FFTW_MEASURE
+	fftw_plan plan = 0;
+	switch(planType)
+	{	case PlanInverse:        plan = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_BACKWARD, PLANNER_FLAGS); break;
+		case PlanForward:        plan = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData2, FFTW_FORWARD, PLANNER_FLAGS); break;
+		case PlanInverseInPlace: plan = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_BACKWARD, PLANNER_FLAGS); break;
+		case PlanForwardInPlace: plan = fftw_plan_dft_3d(S[0], S[1], S[2], testData, testData, FFTW_FORWARD, PLANNER_FLAGS); break;
+		case PlanRtoC:           plan = fftw_plan_dft_r2c_3d(S[0], S[1], S[2], (double*)testData, testData2, PLANNER_FLAGS); break;
+		case PlanCtoR:           plan = fftw_plan_dft_c2r_3d(S[0], S[1], S[2], testData, (double*)testData2, PLANNER_FLAGS); break;
+	}
+	if(!plan) die("Failed to create FFT plan with %d threads",  nThreads);
+	//--- cleanup:
+	fftw_free(testData);
+	if(!inPlace) fftw_free(testData2);
+	//--- cache and return plan:
+	((GridInfo*)this)->planCache.insert(std::make_pair(key, plan));
+	planLock.unlock();
+	return plan;
 }

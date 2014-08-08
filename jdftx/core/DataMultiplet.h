@@ -273,16 +273,27 @@ void TptrMul::saveToFile(const char* filename) const
 
 namespace DataMultipletPrivate
 {
-	template<typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
-	void threadUnary_sub(size_t iStart, size_t iStop, FuncOut (*func)(FuncIn,Args...), Out* out, In in, Args... args)
-	{	for(size_t i=iStart; i<iStop; i++) (*out)[i] = func((FuncIn)in[i], args...);
+	inline DataRptr IcompatTrue(DataGptr&& in, int nThreads) { return I((DataGptr&&)in, true, nThreads); }
+	inline DataRptr IcompatFalse(DataGptr&& in, int nThreads) { return I((DataGptr&&)in, false, nThreads); }
+	inline DataRptr JdagCompatTrue(DataGptr&& in, int nThreads) { return Jdag((DataGptr&&)in, true, nThreads); }
+	inline DataRptr JdagCompatFalse(DataGptr&& in, int nThreads) { return Jdag((DataGptr&&)in, false, nThreads); }
+	
+	template<typename FuncOut, typename FuncIn, typename Out, typename In>
+	void threadUnary_sub(int iOpThread, int nOpThreads, int nThreadsTot, int N, FuncOut (*func)(FuncIn,int), Out* out, In in)
+	{	//Divide jobs amongst operator threads:
+		int iStart = (iOpThread*N)/nOpThreads;
+		int iStop = ((iOpThread+1)*N)/nOpThreads;
+		//Divide total threads amongst operator threads:
+		int nThreads = ((iOpThread+1)*nThreadsTot)/nOpThreads - (iOpThread*nThreadsTot)/nOpThreads;
+		for(int i=iStart; i<iStop; i++)
+			(*out)[i] = func((FuncIn)in[i], nThreads);
 	}
 
-	template<typename FuncOut, typename FuncIn, typename Out, typename In, typename... Args>
-	void threadUnary(FuncOut (*func)(FuncIn,Args...), int N, Out* out, In in, Args... args)
-	{	//CUFFT is not thread safe as of v4.0: (note nThreads=0 means as many threads as allowed)
-		threadLaunch( isGpuEnabled() ? 1 : 0,
-			threadUnary_sub<FuncOut,FuncIn,Out,In,Args...>, N, func, out, in, args...);
+	template<typename FuncOut, typename FuncIn, typename Out, typename In>
+	void threadUnary(FuncOut (*func)(FuncIn,int), int N, Out* out, In in)
+	{	int nThreadsTot = (isGpuEnabled() || !shouldThreadOperators()) ? 1 : nProcsAvailable;
+		int nOperatorThreads = std::min(nThreadsTot, N);
+		threadLaunch(nOperatorThreads, threadUnary_sub<FuncOut,FuncIn,Out,In>, 0, nThreadsTot, N, func, out, in);
 	}
 };
 
@@ -290,8 +301,8 @@ template<int N>
 RptrMul I(GptrMul&& X, bool compat)
 {	using namespace DataMultipletPrivate;
 	RptrMul out;
-	DataRptr (*func)(DataGptr&&,bool) = I;
-	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X, compat);
+	DataRptr (*func)(DataGptr&&,int) = compat ? IcompatTrue : IcompatFalse;
+	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X);
 	return out;
 }
 
@@ -299,7 +310,7 @@ template<int N>
 GptrMul J(const RptrMul& X)
 {	using namespace DataMultipletPrivate;
 	GptrMul out;
-	DataGptr (*func)(const DataRptr&) = J;
+	DataGptr (*func)(const DataRptr&,int) = J;
 	threadUnary(func, N, &out, X);
 	return out;
 }
@@ -308,7 +319,7 @@ template<int N>
 GptrMul Idag(const RptrMul& X)
 {	using namespace DataMultipletPrivate;
 	GptrMul out;
-	DataGptr (*func)(const DataRptr&) = Idag;
+	DataGptr (*func)(const DataRptr&,int) = Idag;
 	threadUnary(func, N, &out, X);
 	return out;
 }
@@ -317,8 +328,8 @@ template<int N>
 RptrMul Jdag(GptrMul&& X, bool compat)
 {	using namespace DataMultipletPrivate;
 	RptrMul out;
-	DataRptr (*func)(DataGptr&&,bool) = Jdag;
-	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X, compat);
+	DataRptr (*func)(DataGptr&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X);
 	return out;
 }
 

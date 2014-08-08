@@ -194,8 +194,8 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 inline DataRptrCollection I(DataGptrCollection&& X, bool compat=false)
 {	using namespace DataMultipletPrivate;
 	DataRptrCollection out(X.size());
-	DataRptr (*func)(DataGptr&&,bool) = I;
-	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X, compat);
+	DataRptr (*func)(DataGptr&&,int) = compat ? IcompatTrue : IcompatFalse;
+	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X);
 	return out;
 }
 inline DataRptrCollection I(const DataGptrCollection& X, bool compat=false) { return I(clone(X), compat); }
@@ -203,7 +203,7 @@ inline DataRptrCollection I(const DataGptrCollection& X, bool compat=false) { re
 inline DataGptrCollection J(const DataRptrCollection& X)
 {	using namespace DataMultipletPrivate;
 	DataGptrCollection out(X.size());
-	DataGptr (*func)(const DataRptr&) = J;
+	DataGptr (*func)(const DataRptr&,int) = J;
 	threadUnary(func, int(X.size()), &out, X);
 	return out;
 }
@@ -211,7 +211,7 @@ inline DataGptrCollection J(const DataRptrCollection& X)
 inline DataGptrCollection Idag(const DataRptrCollection& X)
 {	using namespace DataMultipletPrivate;
 	DataGptrCollection out(X.size());
-	DataGptr (*func)(const DataRptr&) = Idag;
+	DataGptr (*func)(const DataRptr&,int) = Idag;
 	threadUnary(func, int(X.size()), &out, X);
 	return out;
 }
@@ -219,8 +219,8 @@ inline DataGptrCollection Idag(const DataRptrCollection& X)
 inline DataRptrCollection Jdag(DataGptrCollection&& X, bool compat=false)
 {	using namespace DataMultipletPrivate;
 	DataRptrCollection out(X.size());
-	DataRptr (*func)(DataGptr&&,bool) = Jdag;
-	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X, compat);
+	DataRptr (*func)(DataGptr&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X);
 	return out;
 }
 inline DataRptrCollection Jdag(const DataGptrCollection& X, bool compat=false) { return Jdag(clone(X), compat); }

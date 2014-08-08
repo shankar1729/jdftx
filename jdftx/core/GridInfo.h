@@ -31,6 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fftw3.h>
 #include <stdint.h>
 #include <cstdio>
+#include <mutex>
 
 /** @brief Simulation grid descriptor
 //! @ingroup griddata
@@ -112,18 +113,15 @@ public:
 	int iGstart, iGstop; //division for half-G space loops
 	
 	//FFT plans:
-	fftw_plan planForwardSingle; //!< Single-thread Forward complex transform
-	fftw_plan planInverseSingle; //!< Single-thread Inverse complex transform
-	fftw_plan planForwardInPlaceSingle; //!< Single-thread Forward in-place complex transform
-	fftw_plan planInverseInPlaceSingle; //!< Single-thread Inverse in-place complex transform
-	fftw_plan planRtoCsingle; //!< Single-thread FFTW plan for R -> G
-	fftw_plan planCtoRsingle; //!< Single-thread FFTW plan for G -> R
-	fftw_plan planForwardMulti; //!< Multi-threaded Forward complex transform
-	fftw_plan planInverseMulti; //!< Multi-threaded Inverse complex transform
-	fftw_plan planForwardInPlaceMulti; //!< Multi-threaded Forward in-place complex transform
-	fftw_plan planInverseInPlaceMulti; //!< Multi-threaded Inverse in-place complex transform
-	fftw_plan planRtoCmulti; //!< Multi-threaded FFTW plan for R -> G
-	fftw_plan planCtoRmulti; //!< Multi-threaded FFTW plan for G -> R
+	enum PlanType
+	{	PlanForward, //!< Forward complex transform
+		PlanInverse, //!< Inverse complex transform
+		PlanForwardInPlace, //!< Forward in-place complex transform
+		PlanInverseInPlace, //!< Inverse in-place complex transform
+		PlanRtoC, //!< Real to complex transform
+		PlanCtoR, //!< Complex to real transform
+	};
+	fftw_plan getPlan(PlanType planType, int nThreads) const; //get an FFTW plan of specified type with specified thread count
 	#ifdef GPU_ENABLED
 	cufftHandle planZ2Z; //!< CUFFT plan for all the complex transforms
 	cufftHandle planD2Z; //!< CUFFT plan for R -> G
@@ -153,6 +151,10 @@ public:
 private:
 	bool initialized; //!< keep track of whether initialize() has been called
 	void updateSdependent();
+	
+	//FFTW plans by thread count and type:
+	std::map<std::pair<PlanType,int>,fftw_plan> planCache;
+	static std::mutex planLock; //Global lock since planner routines are not thread safe
 };
 
 #endif //JDFTX_CORE_GRIDINFO_H
