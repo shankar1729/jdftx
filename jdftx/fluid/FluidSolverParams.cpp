@@ -107,8 +107,8 @@ void FluidSolverParams::setPCMparams()
 			switch(solvents[0]->name)
 			{	case FluidComponent::CH3CN:
 					Ztot = 16;
-					eta_wDiel = 3.20;
-					sqrtC6eff = 2.12;
+					eta_wDiel = 3.15;
+					sqrtC6eff = 2.21;
 					pCavity = -31.;
 					break;
 				case FluidComponent::Octanol:
@@ -116,19 +116,21 @@ void FluidSolverParams::setPCMparams()
 					eta_wDiel = 5.5;
 					sqrtC6eff = 16.;
 					pCavity = 0;
+					initWarnings += "WARNING: SG14NL parameters for Octanol have not yet been fit (initial guess only)\n";
 					break;
 				case FluidComponent::DMSO:
 					Ztot = 26;
 					eta_wDiel = 3.8;
 					sqrtC6eff = 8.;
 					pCavity = 20.;
+					initWarnings += "WARNING: SG14NL parameters for DMSO have not yet been fit (initial guess only)\n";
 					break;
 				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
-					eta_wDiel = 1.52;
-					sqrtC6eff = 0.830;
-					pCavity = 34.5;
+					eta_wDiel = 1.46;
+					sqrtC6eff = 0.773;
+					pCavity = 36.;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: SG14NL LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
