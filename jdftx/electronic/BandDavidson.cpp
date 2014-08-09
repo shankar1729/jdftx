@@ -52,7 +52,7 @@ void BandDavidson::minimize()
 	OY = OY * initialRot;
 	HY = HY * initialRot;
 	double Eband = qnum.weight * trace(Hsub_eigs);
-	logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le\n", 0, Eband);
+	logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le\n", 0, Eband); fflush(globalLog);
 	
 	const MinimizeParams& mp = e.elecMinParams;
 	int iter=1;
@@ -121,7 +121,7 @@ void BandDavidson::minimize()
 		double EbandPrev = Eband;
 		Eband = qnum.weight * trace(Hsub_eigs);
 		double dEband = Eband - EbandPrev;
-		logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le  dEband: %22.15le\n", iter, Eband, dEband);
+		logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le  dEband: %22.15le\n", iter, Eband, dEband); fflush(globalLog);
 		if(dEband<0 and fabs(dEband)<mp.energyDiffThreshold)
 		{	logPrintf("BandDavidson: Converged (dEband<%le)\n", mp.energyDiffThreshold);
 			break;
@@ -129,6 +129,7 @@ void BandDavidson::minimize()
 	}
 	if(iter==mp.nIterations)
 		logPrintf("BandDavidson: None of the convergence criteria satisfied after %d iterations.\n", mp.nIterations);
+	fflush(globalLog);
 	
 	//Update final quantities:
 	C = Y; //already orthonormal and in eigenbasis
