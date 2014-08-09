@@ -71,6 +71,33 @@ commandElecNbands;
 
 //-------------------------------------------------------------------------------------------------
 
+struct CommandDavidsonBandRatio : public Command
+{
+	CommandDavidsonBandRatio() : Command("davidson-band-ratio")
+	{
+		format = "[<ratio>=1.1]";
+		comments =
+			"Ratio of number of bands in the Davidson working set to the\n"
+			"number of actual bands in the calculation. Increasing this\n"
+			"number should improve eigen-problem convergence at the\n"
+			"expense of increased memory reuiqrements.";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.davidsonBandRatio, 1.1, "ratio");
+		if(e.cntrl.davidsonBandRatio < 1.)
+			throw string("<ratio> must be at least 1");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg", e.cntrl.davidsonBandRatio);
+	}
+}
+commandDavidsonBandRatio;
+
+//-------------------------------------------------------------------------------------------------
+
 struct CommandLCAOparams : public Command
 {
 	CommandLCAOparams() : Command("lcao-params")

@@ -38,6 +38,7 @@ public:
 	bool fixOccupied; //!< whether to hold occupied orbitals fixed in band structure calculations
 	double occupiedThreshold; //!< fillings threshold for occupied states
 	bool cacheProjectors; //!< whether to cache nonlocal projectors
+	double davidsonBandRatio; //!< ratio of number of Davidson working bands to actual bands in system (>= 1)
 	
 	ElecEigenAlgo elecEigenAlgo; //!< Eigenvalue algorithm
 	BasisKdep basisKdep; //!< k-dependence of basis
@@ -66,7 +67,7 @@ public:
 
 	Control()
 	:	fixed_H(false),
-		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true),
+		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true), davidsonBandRatio(1.1),
 		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
