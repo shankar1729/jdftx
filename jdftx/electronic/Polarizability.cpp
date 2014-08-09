@@ -400,6 +400,15 @@ void Polarizability::dump(const Everything& e)
 	Xtot.write(e.dump.getFilename("pol_Xtot").c_str());
 	K.write(e.dump.getFilename("pol_K").c_str());
 	KXC.write(e.dump.getFilename("pol_KXC").c_str());
+	//G-vectors:
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(e.dump.getFilename("pol_Gvectors").c_str(), "w");
+		for(size_t i=0; i<basis.nbasis; i++)
+		{	const vector3<int>& iG = basis.iGarr[i];
+			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+		}
+		fclose(fp);
+	}
 	logPrintf("Done.\n");
 	logFlush();
 }

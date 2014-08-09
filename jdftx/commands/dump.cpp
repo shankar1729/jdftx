@@ -79,6 +79,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpMomenta, "Momenta",
 	DumpSymmetries, "Symmetries",
 	DumpKpoints, "Kpoints",
+	DumpGvectors, "Gvectors",
 	DumpOrbitalDep, "OrbitalDep",
 	DumpXCanalysis, "XCanalysis"
 );
@@ -120,6 +121,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
+	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
 	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
 	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential"
 );

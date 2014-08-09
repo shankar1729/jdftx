@@ -299,6 +299,28 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 	
+	if(ShouldDump(Gvectors))
+	{	StartDump("Gvectors")
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			for(int q=0; q<eInfo.nStates; q++)
+			{	//Header:
+				fprintf(fp, "# ");
+				eInfo.kpointPrint(fp, q, true);
+				fprintf(fp, "\n");
+				//G-vectors
+				const Basis& basis = e->basis[q];
+				for(size_t i=0; i<basis.nbasis; i++)
+				{	const vector3<int>& iG = basis.iGarr[i];
+					fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+				}
+				fprintf(fp, "\n");
+			}
+			fclose(fp);
+		}
+		EndDump
+	}
+	
 	if(ShouldDump(OrbitalDep) && e->exCorr.orbitalDep && isCevec)
 		e->exCorr.orbitalDep->dump();
 	
