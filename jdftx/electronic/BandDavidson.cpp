@@ -130,7 +130,7 @@ void BandDavidson::minimize()
 			break;
 		}
 	}
-	if(iter==mp.nIterations)
+	if(iter>mp.nIterations)
 		logPrintf("BandDavidson: None of the convergence criteria satisfied after %d iterations.\n", mp.nIterations);
 	fflush(globalLog);
 	
