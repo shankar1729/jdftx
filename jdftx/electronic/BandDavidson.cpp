@@ -53,7 +53,7 @@ void BandDavidson::minimize()
 	OY = OY * initialRot;
 	HY = HY * initialRot;
 	double Eband = qnum.weight * trace(Hsub_eigs);
-	logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le\n", 0, Eband); fflush(globalLog);
+	logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf\n", 0, Eband); fflush(globalLog);
 	
 	const MinimizeParams& mp = e.elecMinParams;
 	int iter=1;
@@ -124,7 +124,7 @@ void BandDavidson::minimize()
 		double EbandPrev = Eband;
 		Eband = qnum.weight * trace(Hsub_eigs(0,nBandsOut));
 		double dEband = Eband - EbandPrev;
-		logPrintf("BandDavidson: Iter: %3d  Eband: %22.15le  dEband: %22.15le\n", iter, Eband, dEband); fflush(globalLog);
+		logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf  dEband: %le\n", iter, Eband, dEband); fflush(globalLog);
 		if(dEband<0 and fabs(dEband)<mp.energyDiffThreshold)
 		{	logPrintf("BandDavidson: Converged (dEband<%le)\n", mp.energyDiffThreshold);
 			break;
