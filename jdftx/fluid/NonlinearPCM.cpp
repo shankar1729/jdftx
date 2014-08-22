@@ -212,10 +212,11 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {	DataRMuEps Adiel_state;
-	if(vdwForces) extraForces = *vdwForces;
-	return (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
+	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
+	setExtraForces(extraForces, Adiel_nCavityTilde);
+	return A;
 }
 
 void NonlinearPCM::step(const DataRMuEps& dir, double alpha)

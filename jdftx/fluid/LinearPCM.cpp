@@ -84,7 +84,7 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
@@ -105,7 +105,7 @@ double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, 
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
-	if(vdwForces) extraForces = *vdwForces;
+	setExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
 }
 

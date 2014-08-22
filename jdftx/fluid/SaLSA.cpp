@@ -236,7 +236,7 @@ void SaLSA::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const DataGptr& phi = state; // that's what we solved for in minimize
@@ -270,7 +270,7 @@ double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, Data
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	
-	if(vdwForces) extraForces = *vdwForces;
+	setExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
 }
 

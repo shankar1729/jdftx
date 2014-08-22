@@ -39,12 +39,12 @@ protected:
 	DataGptr rhoExplicitTilde; //!< Charge density of explicit (electronic) system
 	DataRptr nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
 	DataRptr shape, shapeVdw; //!< Electrostatic cavity shape function (and separate cavitation/dispersion shape function for the SGA13 variant)
-	std::shared_ptr<IonicGradient> vdwForces; //!< cached forces due to dispersion terms (if any)
 	
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity and rhoExplicitTilde
+	void setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) const; //!< set extra fluid forces (vdw and full-core forces, when applicable)
 private:
 	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)

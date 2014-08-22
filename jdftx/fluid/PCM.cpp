@@ -96,7 +96,6 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			}
 			wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
-			logPrintf("   Weighted density dispersion model using vdW pair potentials.\n");
 			//Initialize structure factors for dispersion:
 			if(fsp.pcmVariant!= PCM_SG14NL) //SG14NL uses a single site version already initialized above
 			{	if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
@@ -111,7 +110,6 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				logPrintf("   Weighted density dispersion model using vdW pair potentials with atomic C6's and scale factor s6: %lg.\n", fsp.vdwScale);
 			}
 			else logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
-			vdwForces = std::make_shared<IonicGradient>();
 			break;
 		}
 		case PCM_GLSSA13:
@@ -181,9 +179,8 @@ void PCM::updateCavity()
 			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			vdwForces->init(e.iInfo);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
-			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde, &(*vdwForces));
+			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])
@@ -235,6 +232,20 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity,
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
+	}
+}
+
+void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) const
+{	if(forces)
+	{	forces->init(e.iInfo);
+		//VDW contribution:
+		const auto& solvent = fsp.solvents[0];
+		const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
+		DataGptrCollection Ntilde(Sf.size());
+		for(unsigned i=0; i<Sf.size(); i++)
+			Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
+		const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
+		e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 	}
 }
 

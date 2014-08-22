@@ -242,18 +242,18 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const
 	{
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
 		Adiel_nCavityTilde = 0; //clear previous, accumulate below
-		extraForces.init(e.iInfo);
+		extraForces->init(e.iInfo);
 		
 		//Update components of energy that depend on electronic state:
 		EnergyComponents& Adiel = ((ConvolutionJDFT*)this)->Adiel;
 		Adiel["ExtCoulomb"] = dot(fluidMixture->rhoExternal, O(Adiel_rhoExplicitTilde));
 		Adiel["Fmix("+coupling->getName()+")"] = coupling->energyAndGrad(Ntilde, 0, &Adiel_nCavityTilde);
-		Adiel["Fmix("+vdwCoupling->getName()+")"] = vdwCoupling->energyAndGrad(Ntilde, 0, &extraForces);
+		Adiel["Fmix("+vdwCoupling->getName()+")"] = vdwCoupling->energyAndGrad(Ntilde, 0, extraForces);
 		return double(Adiel);
 	}
 };
@@ -324,17 +324,22 @@ void FluidSolver::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 		set_internal(rhoExplicitTilde, nCavityTilde);
 }
 
-double FluidSolver::get_Adiel_and_grad(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const
+double FluidSolver::get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, IonicGradient* extraForces) const
 {	if(e.coulombParams.embed)
 	{	DataGptr Adiel_rho_big, Adiel_n_big;
 		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces);
-		Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
-		Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
-		extraForces = Diag(e.coulomb->embedScale) * extraForces; //transform to original contravariant lattice coordinates
+		if(Adiel_rhoExplicitTilde) *Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
+		if(Adiel_nCavityTilde) *Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
+		if(extraForces) *extraForces = Diag(e.coulomb->embedScale) * (*extraForces); //transform to original contravariant lattice coordinates
 		return Adiel;
 	}
 	else
-		return get_Adiel_and_grad_internal(Adiel_rhoExplicitTilde, Adiel_nCavityTilde, extraForces);
+	{	DataGptr Adiel_rho_temp, Adiel_n_temp;
+		return get_Adiel_and_grad_internal(
+			Adiel_rhoExplicitTilde ? (*Adiel_rhoExplicitTilde) : Adiel_rho_temp,
+			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp,
+			extraForces);
+	}
 }
 
 

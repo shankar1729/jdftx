@@ -283,7 +283,6 @@ void ElecVars::setup(const Everything &everything)
 			fluidSolver->loadState(fluidInitialStateFilename.c_str());
 		}
 	}
-	fluidForces.init(iInfo); //initialized to zero
 	
 	//Citations:
 	Citations::add("Total energy minimization",
@@ -352,7 +351,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		if(!fluidSolver->needsGummel()) fluidSolver->minimizeFluid();
 		
 		// Compute the energy and accumulate gradients:
-		ener.E["A_diel"] = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity, fluidForces);
+		ener.E["A_diel"] = fluidSolver->get_Adiel_and_grad(&d_fluid, &V_cavity);
 		VsclocTilde += d_fluid;
 		VsclocTilde += V_cavity;
 

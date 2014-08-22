@@ -59,7 +59,6 @@ public:
 	DataGptr d_vac; //!< electrostatic potential due to explicit electrons (and external charge, if any)
 	DataGptr d_fluid; //!< electrostatic potential due to fluid
 	DataGptr V_cavity; //!< non-electrostatic potential on electrons due to fluid
-	IonicGradient fluidForces; //!< Extra forces due to fluid (besides contributions through d_fluid and V_cavity)
 	
 	DataRptrCollection Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
 	DataRptrCollection Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)

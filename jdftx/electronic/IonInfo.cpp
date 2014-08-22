@@ -207,7 +207,11 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	for(unsigned sp=0; sp<species.size(); sp++)
 		forcesLoc[sp] = species[sp]->getLocalForces(ccgrad_Vlocps, ccgrad_rhoIon,
 			ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
-	forcesLoc += e->eVars.fluidForces; //include extra fluid forces (if any)
+	if(e->eVars.fluidSolver)  //include extra fluid forces (if any):
+	{	IonicGradient fluidForces;
+		e->eVars.fluidSolver->get_Adiel_and_grad(0, 0, &fluidForces);
+		forcesLoc += fluidForces;
+	}
 	e->symm.symmetrize(forcesLoc);
 	forces += forcesLoc;
 	if(shouldPrintForceComponents)

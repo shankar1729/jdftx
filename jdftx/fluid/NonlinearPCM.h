@@ -57,7 +57,7 @@ public:
 
 protected:
 	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient& extraForces) const;
+	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const;
 
 private:
 	double pMol, ionNbulk, ionZ;
