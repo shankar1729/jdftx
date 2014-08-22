@@ -190,16 +190,14 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
 	DataGptr ccgrad_nCore, ccgrad_tauCore;
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
-	{	if(!e->eVars.fluidParams.useTau) ccgrad_nCore = clone(eVars.V_cavity);
-		//Exchange-correlation:
-		DataRptr VxcCore, VtauCore;
+	{	DataRptr VxcCore, VtauCore;
 		DataRptrCollection Vxc(eVars.n.size()), Vtau;
 		e->exCorr(nCore, &VxcCore, false, &tauCore, &VtauCore);
 		e->exCorr(eVars.get_nXC(), &Vxc, false, &eVars.tau, &Vtau);
 		DataRptr VxcAvg = (Vxc.size()==1) ? Vxc[0] : 0.5*(Vxc[0]+Vxc[1]); //spin-avgd potential
-		ccgrad_nCore += J(VxcAvg - VxcCore);
+		ccgrad_nCore = eVars.V_cavity + J(VxcAvg - VxcCore);
 		//Contribution through tauCore (metaGGAs only):
-		if(e->exCorr.needsKEdensity() || e->eVars.fluidParams.useTau)
+		if(e->exCorr.needsKEdensity())
 		{	DataRptr VtauAvg = (eVars.Vtau.size()==1) ? eVars.Vtau[0] : 0.5*(eVars.Vtau[0]+eVars.Vtau[1]);
 			if(VtauAvg) ccgrad_tauCore += J(VtauAvg - VtauCore);
 		}

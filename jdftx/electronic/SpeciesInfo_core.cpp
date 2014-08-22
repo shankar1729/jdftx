@@ -73,7 +73,7 @@ void SpeciesInfo::setCore(RadialFunctionR& nCore)
 	}
 	
 	//Check if KE density is required:
-	bool needTau = e->exCorr.needsKEdensity() || e->eVars.fluidParams.useTau;
+	bool needTau = e->exCorr.needsKEdensity();
 	for(auto ec: e->exCorrDiff)
 		needTau |= ec->needsKEdensity();
 	

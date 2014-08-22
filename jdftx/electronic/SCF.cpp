@@ -43,7 +43,7 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 {	SCFparams& sp = e.scfParams;
 	overlap.init(sp.history, sp.history);
 	eigenShiftInit();
-	mixTau = e.exCorr.needsKEdensity() || e.eVars.fluidParams.useTau;
+	mixTau = e.exCorr.needsKEdensity();
 	
 	//Initialize the preconditioner and metric kernels:
 	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,

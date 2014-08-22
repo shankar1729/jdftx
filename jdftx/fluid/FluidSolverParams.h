@@ -38,7 +38,7 @@ enum FluidType
 	//!Mixing functional choices
 enum FMixFunctional
 {
-        FMixNone, //!< No Interaction
+	FMixNone, //!< No Interaction
 	LJPotential, //!<Interaction with attractive part of Lennard Jones with sigma/eps potential only
 	GaussianKernel, //!< Interaction with gaussian kernel with Rsolv/Esolv
 };
@@ -54,8 +54,6 @@ struct FmixParams
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
 	PCM_SG14NL, //!< Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion (EXPERIMENTAL)
-	PCM_SG14,    //!< Empirical local-response isodensity PCM with weighted-cavity tension (EXPERIMENTAL)
-	PCM_SG14tau, //!< Empirical local-response isokinetic PCM with weighted-cavity tension (EXPERIMENTAL)
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavotation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
@@ -85,7 +83,6 @@ struct FluidSolverParams
 	double sigma; //!< smoothing factor for the PCM cavity shape function
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
-	bool useTau; //!< use KE density instead of density
 	
 	//For SG14NL alone:
 	double Ztot; //!< number of valence electrons

@@ -340,12 +340,8 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	DataGptr VtauTilde;
 	if(fluidParams.fluidType != FluidNone)
 	{	//Compute n considered for cavity formation (i.e-> include chargeball and partial cores)
-		DataGptr nCavityTilde;
-		if(fluidParams.useTau) nCavityTilde = J(tau.size()==1 ? tau[0] : tau[0]+tau[1]);
-		else
-		{	nCavityTilde = clone(nTilde);
-			if(iInfo.nCore) nCavityTilde += J(iInfo.nCore);
-		}
+		DataGptr nCavityTilde = clone(nTilde);
+		if(iInfo.nCore) nCavityTilde += J(iInfo.nCore);
 		if(iInfo.nChargeball) nCavityTilde += iInfo.nChargeball;
 
 		//Net electric charge:
@@ -358,8 +354,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		// Compute the energy and accumulate gradients:
 		ener.E["A_diel"] = fluidSolver->get_Adiel_and_grad(d_fluid, V_cavity, fluidForces);
 		VsclocTilde += d_fluid;
-		(fluidParams.useTau ? VtauTilde : VsclocTilde) += V_cavity;
-		
+		VsclocTilde += V_cavity;
 
 		//Chemical-potential correction due to potential of electron in bulk fluid
 		double bulkPotential = fluidSolver->bulkPotential();
@@ -454,7 +449,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		n = calcDensity();
 		
 		//Calculate kinetic energy density if required
-		if(e->exCorr.needsKEdensity() || fluidParams.useTau)
+		if(e->exCorr.needsKEdensity())
 			tau = KEdensity();
 		
 		//Update atomic density matrix contributions for DFT+U (if necessary):
@@ -643,7 +638,7 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	if(need_Hsub)
 	{	HCq += Idag_DiagV_I(C[q], Vscloc); //Accumulate Idag Diag(Vscloc) I C
 		e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
-		if((e->exCorr.needsKEdensity() || fluidParams.useTau) && Vtau[qnum.index()]) //Contribution via orbital KE:
+		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau), iDir);
 		}

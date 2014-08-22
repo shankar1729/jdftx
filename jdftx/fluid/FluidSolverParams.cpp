@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), useTau(false), pCavity(0.), lMax(3),
+vdwScale(0.75), pCavity(0.), lMax(3),
 linearDielectric(false), linearScreening(false)
 {
 }
@@ -137,44 +137,6 @@ void FluidSolverParams::setPCMparams()
 			}
 			assert(fluidType == FluidLinearPCM);
 			initWarnings += "WARNING: SG14NL LinearPCM is highly experimental!\n";
-			break;
-		}
-		case PCM_SG14:
-		{	sigma = 0.6;
-			useTau = false;
-			switch(solvents[0]->name)
-			{	case FluidComponent::H2O:
-					nc = 2.04e-04;
-					cavityTension = -9.91e-05;
-					break;
-				case FluidComponent::CH3CN:
-					nc = 1.18e-04;
-					cavityTension = -3.66e-03;
-					break;
-				default:
-					throw string("PCM SG14 not parametrized for this solvent.");
-					break;
-			}
-			initWarnings += "WARNING: SG14 PCM is highly experimental!\n";
-			break;
-		}
-		case PCM_SG14tau:
-		{	sigma = 0.6;
-			useTau = true;
-			switch(solvents[0]->name)
-			{	case FluidComponent::H2O:
-					nc = 1.64e-04;
-					cavityTension = 2.37e-04;
-					break;
-				case FluidComponent::CH3CN:
-					nc = 5.77e-05;
-					cavityTension = -4.42e-03;
-					break;
-				default:
-					throw string("PCM SG14tau not parametrized for this solvent.");
-					break;
-			}
-			initWarnings += "WARNING: SG14tau PCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SGA13:

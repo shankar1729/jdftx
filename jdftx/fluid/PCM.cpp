@@ -114,12 +114,6 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			vdwForces = std::make_shared<IonicGradient>();
 			break;
 		}
-		case PCM_SG14:
-		case PCM_SG14tau:
-		{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
-			logPrintf("   Effective weighted-cavity tension: %lg Eh/molecule with Rvdw: %lg bohr to account for cavitation and dispersion.\n", fsp.cavityTension, solvent->Rvdw);
-			break;
-		}
 		case PCM_GLSSA13:
 		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with effective cavity tension",
 				"D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, Modelling Simul. Mater. Sci. Eng. 21 074005 (2013)");
@@ -196,14 +190,6 @@ void PCM::updateCavity()
 					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
-			break;
-		}
-		case PCM_SG14:
-		case PCM_SG14tau:
-		{	DataRptr sbar = I(wCavity*J(shape));
-			A_tension = integral(sbar*(1.-sbar)) * solvent->Nbulk;
-			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
-			Acavity_shape =  Jdag(wCavity*Idag((fsp.cavityTension*solvent->Nbulk) * (1.-2.*sbar)));
 			break;
 		}
 		case PCM_GLSSA13:
@@ -289,8 +275,6 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
 			fprintf(fp, "   E_pCavity = %.15lg\n", A_pCavity);
 			break;
-		case PCM_SG14:
-		case PCM_SG14tau:
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
