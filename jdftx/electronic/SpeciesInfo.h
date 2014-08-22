@@ -50,6 +50,7 @@ public:
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
 	double mass; //!< ionic mass (currently unused)	
 	double coreRadius; //!< maximum pseudopotential core radius (used for core overlap checks during ionic/lattice relaxation)
+	double ZfullCore; //!< number of electrons in full-core correction (atomicNumber - Z - integral(nCore))
 	
 	//! Contains the information on the constraints of motion for each ion.
 	struct Constraint

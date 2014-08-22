@@ -45,6 +45,7 @@ protected:
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity and rhoExplicitTilde
 	void setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) const; //!< set extra fluid forces (vdw and full-core forces, when applicable)
+	DataGptr getFullCore() const; //!< get full core correction for PCM variants that need them
 private:
 	DataRptr Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)

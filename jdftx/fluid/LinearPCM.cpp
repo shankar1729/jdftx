@@ -56,7 +56,7 @@ void LinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& n
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
 	//Update cavity:
-	this->nCavity = I(nCavityTilde);
+	this->nCavity = I(nCavityTilde + getFullCore());
 	updateCavity();
 
 	//Info:

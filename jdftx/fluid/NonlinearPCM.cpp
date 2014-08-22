@@ -114,7 +114,7 @@ void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr
 	}
 	
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
-	this->nCavity = I(nCavityTilde);
+	this->nCavity = I(nCavityTilde + getFullCore());
 
 	updateCavity();
 }

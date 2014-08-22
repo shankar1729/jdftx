@@ -209,7 +209,7 @@ void SaLSA::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavi
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
 	//Compute cavity shape function (0 to 1)
-	nCavity = I(nFluid * nCavityTilde);
+	nCavity = I(nFluid * (nCavityTilde + getFullCore()));
 	updateCavity();
 
 	//Compute site shape functions with the spherical ansatz:

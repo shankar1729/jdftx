@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
+#include <electronic/SpeciesInfo_internal.h>
 #include <core/DataMultiplet.h>
 #include <core/DataIO.h>
 #include <core/Units.h>
@@ -246,8 +247,44 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 			Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 		const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
 		e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
+		//Full core contribution:
+		switch(fsp.pcmVariant)
+		{	case PCM_SaLSA:
+			case PCM_SG14NL:
+			{	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+				for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+					for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
+					{	callPref(gradSGtoAtpos)(gInfo.S, atpos[iSp][iAtom], A_nCavityTilde->dataPref(), gradAtpos.dataPref());
+						for(int k=0; k<3; k++)
+							(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient on ith atom type
+					}
+				break;
+			}
+			default: break; //no full-core
+		}
 	}
 }
+
+DataGptr PCM::getFullCore() const
+{	switch(fsp.pcmVariant)
+	{	case PCM_SaLSA:
+		case PCM_SG14NL:
+		{	DataGptr nFullCore, SG(DataG::alloc(gInfo, isGpuEnabled()));
+			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+			{	//Create GPU-friendly copy of atom positions:
+				int nAtoms = atpos[iSp].size();
+				matrix atposTemp(3, ceildiv(nAtoms,2));
+				memcpy(atposTemp.data(), atpos[iSp].data(), sizeof(vector3<>)*nAtoms);
+				//Compute structure factor and accumulate contribution from this species:
+				callPref(getSG)(gInfo.S, nAtoms, (const vector3<>*)atposTemp.dataPref(), 1./gInfo.detR, SG->dataPref());
+				nFullCore += e.iInfo.species[iSp]->ZfullCore * SG;
+			}
+			return nFullCore;
+		}
+		default: return 0; //no full-core
+	}
+}
+
 
 void PCM::dumpDensities(const char* filenamePattern) const
 {	string filename;
