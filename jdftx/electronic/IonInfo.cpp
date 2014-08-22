@@ -190,7 +190,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
 	DataGptr ccgrad_nCore, ccgrad_tauCore;
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
-	{	if(!e->eVars.fluidParams.useTau) ccgrad_nCore = eVars.V_cavity;
+	{	if(!e->eVars.fluidParams.useTau) ccgrad_nCore = clone(eVars.V_cavity);
 		//Exchange-correlation:
 		DataRptr VxcCore, VtauCore;
 		DataRptrCollection Vxc(eVars.n.size()), Vtau;
