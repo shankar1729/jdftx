@@ -129,8 +129,8 @@ void FluidSolverParams::setPCMparams()
 				default:
 					Ztot = 8;
 					eta_wDiel = 1.46;
-					sqrtC6eff = 0.773;
-					pCavity = 36.;
+					sqrtC6eff = 0.770;
+					pCavity = 36.5;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: SG14NL LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
