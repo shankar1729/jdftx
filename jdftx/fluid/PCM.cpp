@@ -240,13 +240,21 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 {	if(forces)
 	{	forces->init(e.iInfo);
 		//VDW contribution:
-		const auto& solvent = fsp.solvents[0];
-		const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
-		DataGptrCollection Ntilde(Sf.size());
-		for(unsigned i=0; i<Sf.size(); i++)
-			Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-		const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
-		e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
+		switch(fsp.pcmVariant)
+		{	case PCM_SaLSA:
+			case PCM_SG14NL:
+			case PCM_SGA13:
+			{	const auto& solvent = fsp.solvents[0];
+				const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
+				DataGptrCollection Ntilde(Sf.size());
+				for(unsigned i=0; i<Sf.size(); i++)
+					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
+				const double vdwScaleEff = (fsp.pcmVariant==PCM_SG14NL) ? fsp.sqrtC6eff : fsp.vdwScale;
+				e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
+				break;
+			}
+			default: break; //no VDW forces
+		}
 		//Full core contribution:
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
@@ -260,7 +268,7 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 					}
 				break;
 			}
-			default: break; //no full-core
+			default: break; //no full-core forces
 		}
 	}
 }
