@@ -299,7 +299,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	double hermErr = sqrt(errNum / (errDen*N));
 	if(hermErr > 1e-10)
 	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in diagonalize\n", hermErr);
-		gdbStackTraceExit(1);
+		stackTraceExit(1);
 	}
 	
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
@@ -320,8 +320,8 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		&eigMin, &eigMax, &indexMin, &indexMax, &absTol, &nEigsFound,
 		eigs.data(), evecs.data(), &N, iSuppz.data(), work.data(), &lwork,
 		rwork.data(), &lrwork, iwork.data(), &liwork, &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); gdbStackTraceExit(1); }
-	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); stackTraceExit(1); }
 	watch.stop();
 }
 
@@ -348,8 +348,8 @@ void matrix::diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& rev
 	//Call LAPACK and check errors:
 	int info=0;
 	zgeev_(&jobz, &jobz, &N, A.data(), &N, eigs.data(), levecs.data(), &N, revecs.data(), &N, work.data(), &lwork, rwork.data(), &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZGEEV is invalid.\n", -info); gdbStackTraceExit(1); }
-	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZGEEV.\n", info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZGEEV is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZGEEV.\n", info); stackTraceExit(1); }
 	watch.stop();
 }
 
@@ -378,8 +378,8 @@ void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 	int info=0;
 	zgesdd_(&jobz, &M, &N, A.data(), &M, S.data(), U.data(), &M, Vdag.data(), &N,
 		work.data(), &lwork, rwork.data(), iwork.data(), &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK SVD routine ZGESDD is invalid.\n", -info); gdbStackTraceExit(1); }
-	if(info>0) { logPrintf("Error code %d in LAPACK SVD routine ZGESDD.\n", info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK SVD routine ZGESDD is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("Error code %d in LAPACK SVD routine ZGESDD.\n", info); stackTraceExit(1); }
 	watch.stop();
 }
 
@@ -515,14 +515,14 @@ matrix inv(const matrix& A)
 	int info; //error code in return
 	//LU decomposition (in place):
 	zgetrf_(&N, &N, invA.data(), &ldA, iPivot.data(), &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); gdbStackTraceExit(1); }
-	if(info>0) { logPrintf("LAPACK LU decomposition routine ZGETRF found input matrix to be singular at the %d'th step.\n", info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("LAPACK LU decomposition routine ZGETRF found input matrix to be singular at the %d'th step.\n", info); stackTraceExit(1); }
 	//Compute inverse in place:
 	int lWork = (64+1)*N;
 	std::vector<complex> work(lWork);
 	zgetri_(&N, invA.data(), &ldA, iPivot.data(), work.data(), &lWork, &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK matrix inversion routine ZGETRI is invalid.\n", -info); gdbStackTraceExit(1); }
-	if(info>0) { logPrintf("LAPACK matrix inversion routine ZGETRI found input matrix to be singular at the %d'th step.\n", info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK matrix inversion routine ZGETRI is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("LAPACK matrix inversion routine ZGETRI found input matrix to be singular at the %d'th step.\n", info); stackTraceExit(1); }
 	watch.stop();
 	return invA;
 }
@@ -541,7 +541,7 @@ matrix LU(const matrix& A)
 	int info; //error code in return
 	//LU decomposition (in place):
 	zgetrf_(&N, &N, LU.data(), &ldA, iPivot.data(), &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); gdbStackTraceExit(1); }
+	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
 
 	watch.stop();
 	return LU;
@@ -589,7 +589,7 @@ matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs)
 {	MATRIX_FUNC
 	(	if(exponent<0. && eigs[i]<=0.0)
 		{	logPrintf("Eigenvalue# %d is non-positive (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
-			gdbStackTraceExit(1);
+			stackTraceExit(1);
 		}
 		else if(exponent>=0. && eigs[i]<0.0)
 		{	logPrintf("WARNING: Eigenvalue# %d is negative (%le) in pow (exponent %lg); zeroing it out.\n", i, eigs[i], exponent);

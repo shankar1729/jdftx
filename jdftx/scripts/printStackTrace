@@ -1,0 +1,55 @@
+#!/bin/bash
+
+if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo '
+	Print a human readable stacktrace with source file and line numbers from
+	the raw output dumped by jdftx
+		printStackTrace <path-to-jdftx-stracktrace>
+	'
+	exit 0
+fi
+
+function processPending()
+{
+	#Process pending entries:
+	nmOutput=$(nm $objNamePrev 2>/dev/null)
+	if [ -n "$nmOutput" ]; then
+		addrList=""
+		IFS=' '
+		for funcName in "${funcNames[@]}"; do
+			if [ -n "$funcName" ]; then
+				IFS="+"
+				funcToks=( $funcName )
+				location=$(echo $nmOutput | awk "\$3==\"${funcToks[0]}\" {print \$1}")  #Base pointer of function in hex
+				location=$(printf "%X" $((0x$location + ${funcToks[1]})) ) #Add offset, and keep in hex
+				addrList="$addrList 0x$location"
+			fi
+		done
+		if [ -n "$addrList" ]; then
+			IFS=' '
+			addr2line -ifCpe $objNamePrev $addrList
+		fi
+	fi
+}
+inFile="$1"
+
+
+while read func; do
+	IFS="()"
+	tokens=( $func )
+	
+	objName=${tokens[0]}
+	objNameMod=${objName/\//.} #replace \ with .
+	if [ "$objName" == "$objNameMod" ]; then #contains no /'s; therefore not a path
+		objName=`which $objName` #addr2line and nm need actual paths
+	fi
+	
+	if [[ ( "$objName" != "$objNamePrev" ) && ( "${#funcNames[@]}" -gt "0" ) ]]; then
+		processPending
+		funcNames=( )
+	fi
+	objNamePrev="$objName"
+	funcNames[${#funcNames[@]}]="${tokens[1]}"
+done < $inFile
+
+processPending

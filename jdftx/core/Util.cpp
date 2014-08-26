@@ -29,10 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <commands/parser.h>
 
-#ifndef __APPLE__
-#include <sys/prctl.h>
-#endif
-
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>
 #endif
@@ -125,7 +121,7 @@ void sigQuitHandler(int sig)
 }
 void sigErrorHandler(int sig)
 {	fprintf(stderr, sig==SIGSEGV ? "Segmentation Fault.\n" : "Aborted.\n");
-	gdbStackTraceExit(1);
+	stackTraceExit(1);
 }
 
 FILE* globalLog = stdout; // this might be replaced by a file pointer in main before calling initSystem()
@@ -144,9 +140,12 @@ MPIUtil* mpiUtil = 0;
 bool mpiDebugLog = false;
 bool manualThreadCount = false;
 static double startTime_us; //Time at which system was initialized in microseconds
+const char* argv0 = 0;
 
 void initSystem(int argc, char** argv)
 {
+	argv0 = argv[0]; //remember how the executable was issued (for stack traces)
+	
 	if(!mpiUtil) mpiUtil = new MPIUtil(argc, argv);
 	nullLog = fopen("/dev/null", "w");
 	if(!mpiUtil->isHead())
@@ -373,53 +372,38 @@ void StopWatch::print() const
 
 
 // Print a minimal stack trace (convenient for debugging)
-void printStack()
-{	void* tracePtrs[100];
-	int count = backtrace(tracePtrs, 100);
+void printStack(bool detailedStackScript)
+{	const int maxStackLength = 1024;
+	void* tracePtrs[maxStackLength];
+	int count = backtrace(tracePtrs, maxStackLength);
 	char** funcNames = backtrace_symbols(tracePtrs, count);
-	for(int i=0; i<count; i++) printf("\t%s\n", funcNames[i]);
+	logPrintf("\nStack trace:\n");
+	for(int i=0; i<count; i++)
+		logPrintf("\t%2d: %s\n", i, funcNames[i]);
+	if(detailedStackScript)
+	{	logPrintf("Writing 'jdftx-stacktrace' (for use with script printStackTrace): "); logFlush();
+		FILE* fp = fopen("jdftx-stacktrace", "w");
+		if(fp)
+		{	for(int i=0; i<count; i++)
+				fprintf(fp, "%s\n", funcNames[i]);
+			fclose(fp);
+			logPrintf("done.\n");
+		}
+		else logPrintf("could not open file for writing.\n");
+	}
 	free(funcNames);
 }
 
 // Exit on error with a more in-depth stack trace
-void gdbStackTraceExit(int code)
-{	// From http://stackoverflow.com/questions/4636456/stack-trace-for-c-using-gcc/4732119#4732119
-	char pid_buf[30]; sprintf(pid_buf, "%d", getpid());
-    char name_buf[512]; name_buf[readlink("/proc/self/exe", name_buf, 511)]=0;
-	int fdPipe[2]; if(pipe(fdPipe)) { printf("Error creating pipe.\n"); mpiUtil->exit(code); }
-	char message = '\n'; //some random character for sync
-    int child_pid = fork();
-    if(!child_pid)
-	{	dup2(2,1); //redirect output to stderr
-		//Wait for ptrace permissions to be set by parent:
-		close(fdPipe[1]);
-		while(!read(fdPipe[0], &message, 1));
-		close(fdPipe[0]);
-		//Attach gdb:
-		printf("\n\nStack trace:\n");
-		execlp("gdb", "gdb", "--batch", "-n", "-ex", "bt", name_buf, pid_buf, NULL);
-		abort(); //If gdb failed to start
-    }
-    else
-	{	
-		#ifdef PR_SET_PTRACER //Required only for newer kernels that limit ptrace
-		prctl(PR_SET_PTRACER, child_pid, 0, 0, 0);
-		#endif
-		close(fdPipe[0]);
-		if(write(fdPipe[1], &message, 1) != 1)
-		{	printf("Error communicating with debugger.\n");
-			exit(code);
-		}
-		close(fdPipe[1]);
-		waitpid(child_pid,NULL,0);
-    }
+void stackTraceExit(int code)
+{	printStack(true);
     mpiUtil->exit(code);
 }
 
 // Stack trace for failed assertions
 int assertStackTraceExit(const char* expr, const char* function, const char* file, long line)
 {	fprintf(stderr, "%s:%ld: %s:\n\tAssertion '%s' failed", file, line, function, expr);
-	gdbStackTraceExit(1);
+	stackTraceExit(1);
 	return 0;
 }
 

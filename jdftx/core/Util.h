@@ -97,8 +97,8 @@ public:
 
 
 // -----------  Debugging ---------------
-void printStack(); //!< Print a minimal stack trace (convenient for debugging)
-void gdbStackTraceExit(int code); //!< Exit on error with a more in-depth stack trace
+void printStack(bool detailedStackScript=false); //!< Print a minimal stack trace and optionally write a script that, when run, will print a more detailed stacktrace
+void stackTraceExit(int code); //!< Exit on error with stack trace
 int assertStackTraceExit(const char* expr, const char* function, const char* file, long line); //!< stack trace on failed assertions
 //! A custom assertion with stack trace (NOTE: enabled in release modes as well)
 #define assert(expr) \

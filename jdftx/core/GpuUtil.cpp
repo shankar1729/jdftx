@@ -70,7 +70,7 @@ void gpuErrorCheck()
 	cudaError_t err = cudaGetLastError();
 	if(err != cudaSuccess)
 	{	fprintf(stderr, "CUDA Error: %s\n", cudaGetErrorString(err));
-		gdbStackTraceExit(1);
+		stackTraceExit(1);
 	}
 }
 
