@@ -1,0 +1,22 @@
+lattice \
+    20 0 0 \
+    0 20 0 \
+    0 0 20
+
+coords-type cartesian
+ion-species pseudopotentials/GBRV/$ID_pbe_v1.2.uspp
+ion-species pseudopotentials/GBRV/$ID_pbe_v1.uspp
+ion H  -0.860896684210536   0.936319720418514   1.662785496735875 1
+ion H   3.222995892670233  -0.737600809966772  -1.309234411916864 1
+
+electronic-scf niterations 200
+elec-ex-corr gga-pbe 
+elec-cutoff 25 100
+
+coulomb-interaction isolated
+coulomb-truncation-embed 0 0 0
+
+ionic-minimize Niterations 200 knormthreshold 0.000001 energydiffthreshold 1e-9
+
+dump-name h2.$VAR
+dump End IonicPositions

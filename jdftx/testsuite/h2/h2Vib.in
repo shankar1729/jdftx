@@ -1,0 +1,21 @@
+include h2.ionpos
+
+lattice \
+    20 0 0 \
+    0 20 0 \
+    0 0 20
+
+coords-type cartesian
+ion-species pseudopotentials/GBRV/$ID_pbe_v1.2.uspp
+ion-species pseudopotentials/GBRV/$ID_pbe_v1.uspp
+
+electronic-scf niterations 200
+elec-ex-corr gga-pbe 
+elec-cutoff 25 100
+
+coulomb-interaction isolated
+coulomb-truncation-embed 0 0 0
+
+vibrations CentralDiff yes rotationSym yes translationSym yes
+
+dump End None

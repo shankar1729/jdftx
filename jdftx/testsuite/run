@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# just ./run to run the test suite.
+
+echo "JDFTx executable will be run from:"
+JDFTx=../../../build/jdftx
+echo $JDFTx
+
+function remove {
+ if [ -f $1 ]
+  then
+    rm $1
+ fi
+
+}
+
+function Spectrum {
+               remove 1
+	       remove 2
+               grep "Frequency" $1 > 1
+	       grep "IR intensity" $1 > 2
+	       paste 1 2 
+	       remove 1
+	       remove 2
+           }
+
+
+# these runs test for basic functionality of: SCF, ionic minimize, vibrations
+cd h2
+remove h2.out
+remove h2Vib.out
+$JDFTx -i h2.in -o h2.out 
+$JDFTx -i h2Vib.in -o h2Vib.out  
+echo "These runs should produce a spectrum with no (or a few very low) imaginary frequencies, and with a peak at  4370 cm^-1 and no intensity."
+echo "Spectrum from output file:"
+Spectrum h2Vib.out
+cd ..
+
+# this run tests the functionality of the VDW D2 implementation
+
+# these runs will test various solvation models
