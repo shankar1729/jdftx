@@ -6,8 +6,7 @@ lattice \
     0 0 20
 
 coords-type cartesian
-ion-species pseudopotentials/GBRV/$ID_pbe_v1.2.uspp
-ion-species pseudopotentials/GBRV/$ID_pbe_v1.uspp
+ion-species pseudopotentials/h_pbe_v1.uspp
 
 electronic-scf niterations 200
 elec-ex-corr gga-pbe 
