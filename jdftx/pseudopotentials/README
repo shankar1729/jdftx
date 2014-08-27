@@ -1,0 +1,6 @@
+This directory contains the scripts and source files for
+the pseudopotential collection. The actual pseudopotentials
+are created / copied / downloaded in the build directory.
+Input files should not refer to pseudopotentials that may
+exist within this directory in the source tree, and should
+instead use the corresponding files in the build directory.

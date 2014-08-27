@@ -205,3 +205,6 @@ add_subdirectory(tests)
 
 #Optional features: primarily interfaces to other codes
 add_subdirectory(opt)
+
+#Pseudopotential library
+add_subdirectory(pseudopotentials)
