@@ -2,9 +2,13 @@
 
 # just ./run to run the test suite.
 
-echo "JDFTx executable will be run from:"
-JDFTx=../../../build/jdftx
-echo $JDFTx
+if [ -z "$JDFTx" ]; then
+	JDFTx=$(which jdftx)
+	if [ "$?" -ne 0 ]; then
+		echo "Could not find jdftx in path; point variable JDFTx to location of jdftx"
+		exit 1
+	fi
+fi
 
 echo "Creating the pseudopotential directory- this step requires internet connectivity."
 cd pseudopotentials
@@ -34,8 +38,8 @@ function Spectrum {
 cd h2
 remove h2.out
 remove h2Vib.out
-$JDFTx -i h2.in -o h2.out 
-$JDFTx -i h2Vib.in -o h2Vib.out  
+$JDFTx -i h2.in | tee h2.out 
+$JDFTx -i h2Vib.in | tee h2Vib.out  
 echo "These runs should produce a spectrum with no (or a few very low) imaginary frequencies, and with a peak at  4370 cm^-1 and no intensity."
 echo "Spectrum from output file:"
 Spectrum h2Vib.out
