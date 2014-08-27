@@ -265,6 +265,7 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 bool IonicMinimizer::report(int iter)
 {	logPrintf("\n"); e.iInfo.printPositions(globalLog);
 	logPrintf("\n"); e.iInfo.forces.print(e, globalLog);
+	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
 	e.dump(DumpFreq_Ionic, iter);
 	populationAnalysisPending = true; //population analysis will be performed the next time step() is called
 	return false;
