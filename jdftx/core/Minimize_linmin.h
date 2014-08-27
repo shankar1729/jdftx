@@ -206,22 +206,25 @@ namespace MinimizePrivate
 			double A = 3*(Ep0 + Ep1 - 2*deltaE);
 			double B = 2*Ep0 + Ep1 - 3*deltaE;
 			double C = Ep0;
-			assert(Ep0<=0);
-			double alphaNew = 0.;
-			if(B*B-A*C<=0) //No maxima/minima or 0-slope inflection point
-			{	assert(E<=Eprev);
-				assert(gdotdPrev<=0);
-				alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev); //energy is monotonically decreasing (we know Ep0<0)
-			}
-			else //Locate minimum of E(t):
+			double tMin = NAN; //location of minimum (NAN if none)
+			if(B*B-A*C >= 0) //E'(t) has at least one root
 			{	double disc = sqrt(B*B-A*C);
-				double tOpt = B>0 ? (B+disc)/A : C/(B-disc);
-				double Eopt = Eprev + tOpt*(C + tOpt*(-B + tOpt*A/3));
-				if(tOpt>=0 && tOpt<p.alphaTincreaseFactor && Eopt<=E && Eopt<=Eprev)
-					alphaNew = alphaPrev + tOpt*(alpha-alphaPrev);
-				else
-					alphaNew = alphaPrev + p.alphaTincreaseFactor*(alpha-alphaPrev);
+				double tOpt = B>0 ? (B+disc)/A : C/(B-disc); //only root of E'(t) for which E''(t) = 2*(A*t-B) >= 0
+				double Eopt = Eprev + tOpt*(C + tOpt*(-B + tOpt*A/3)); //interpolated E(tOpt)
+				if(std::isfinite(tOpt) && Eopt<=E && Eopt<=Eprev) //well-defined local minimum lower than current endpoints
+					tMin = tOpt;
 			}
+			if(std::isfinite(tMin))
+			{	tMin = std::min(tMin, p.alphaTincreaseFactor); //cap on forward-in-t step
+				tMin = std::max(tMin, 1.-p.alphaTincreaseFactor); //cap on backward-in-t step
+			}
+			else
+			{	//no local minimum lower than current endpoints within interval
+				//therefore at least one of the endpoints must have function value decreasing in the outwards direction
+				if(Ep1<=0) tMin = p.alphaTincreaseFactor; //E(t) decreases above t=1, take max forward-in-t step
+				else tMin = 1.-p.alphaTincreaseFactor; //E(t) decreases below t=0, take max backward-in-t step
+			}
+			double alphaNew = alphaPrev + tMin*(alpha-alphaPrev);
 			//Check if we're done (Wolfe conditions):
 			if(E <= E0 + p.wolfeEnergy*alpha*gdotd0 && gdotd >= p.wolfeGradient*gdotd0)
 			{	if(p.updateTestStepSize) alphaT = alphaNew; //save computed optimum step size for next time
@@ -230,8 +233,8 @@ namespace MinimizePrivate
 			fprintf(p.fpLog, "%s\tWolfe criterion not satisfied: alpha: %lg  (E-E0)/|gdotd0|: %lg  gdotd/gdotd0: %lg (taking cubic step)\n",
 				p.linePrefix, alpha, (E-E0)/fabs(gdotd0), gdotd/gdotd0); fflush(p.fpLog);
 			//Prepare for next step:
-			if(E<Eprev && gdotd<0) { alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd; }
-			alpha = alphaNew;
+			if(E<Eprev) { alphaPrev = alpha; Eprev=E; gdotdPrev=gdotd; } //pick the lower energy points amongst E and Eprev as the next 'prev' point
+			alpha = alphaNew; //set the alpha chosen above as the other endpoint for the next cubic
 		}
 		//Check if current state is invalid or worse than starting point:
 		if(!std::isfinite(E) || E>E0) return false; //minimize will roll back to the last known good state
