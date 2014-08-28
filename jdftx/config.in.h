@@ -29,6 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define PACKAGE_SUMMARY "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}"
 #define VERSION_MAJOR_MINOR_PATCH "${VERSION_STRING}"
 #define VERSION_SVN_REVISION "${SUBVERSION_REVISION}"
-
+#define JDFTX_BUILD_DIR "${CMAKE_BINARY_DIR}"
 
 #endif // JDFTX_CONFIG_H

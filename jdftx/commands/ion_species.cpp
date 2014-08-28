@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <core/Units.h>
+#include <config.h>
 
 struct CommandIonSpecies : public Command
 {
@@ -119,27 +120,38 @@ struct CommandIonSpecies : public Command
 }
 commandIonSpecies;
 
+const std::vector<string>& getPseudopotentialPrefixes()
+{	static std::vector<string> prefixes;
+	if(!prefixes.size())
+	{	prefixes.push_back(""); //search paths relative to current directory first
+		prefixes.push_back(JDFTX_BUILD_DIR "/pseudopotentials/"); //search paths relative to the pseudopotential library root next
+	}
+	return prefixes;
+}
 
 std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 {	//Initialize cache of available filenames for each wildcard
 	static std::vector<std::vector<string> > validFilenames;
+	const std::vector<string>& prefixes = getPseudopotentialPrefixes();
 	if(validFilenames.size()<e.iInfo.pspFilenamePatterns.size())
 	{	validFilenames.resize(e.iInfo.pspFilenamePatterns.size());
 		for(size_t i=0; i<validFilenames.size(); i++)
 		{	string pattern = e.iInfo.pspFilenamePatterns[i];
 			pattern.replace(pattern.find("$ID"),3, "*");
-			//Use ls to get a list of matching files:
-			FILE* pp = popen(("ls "+pattern).c_str(), "r");
-			const int bufLen=1024; char buf[bufLen];
-			while(!feof(pp))
-			{	fgets(buf, bufLen, pp);
-				string fname(buf);
-				if(fname.length())
-				{	if(fname.back()=='\n') fname.erase(fname.length()-1);
-					validFilenames[i].push_back(fname);
+			for(const string& prefix: prefixes)
+			{	//Use ls to get a list of matching files:
+				FILE* pp = popen(("ls " + prefix + pattern + " 2>/dev/null").c_str(), "r");
+				const int bufLen=1024; char buf[bufLen];
+				while(!feof(pp))
+				{	fgets(buf, bufLen, pp);
+					string fname(buf);
+					if(fname.length())
+					{	if(fname.back()=='\n') fname.erase(fname.length()-1);
+						validFilenames[i].push_back(fname);
+					}
 				}
+				pclose(pp);
 			}
-			pclose(pp);
 		}
 	}
 	
@@ -150,14 +162,15 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 	
 	//Search wildcards in order:
 	for(size_t i=0; i<validFilenames.size(); i++)
-	{	string pattern = e.iInfo.pspFilenamePatterns[i];
-		pattern.replace(pattern.find("$ID"),3, id);
-		for(const string& fname: validFilenames[i])
-			if(fname == pattern)
-			{	CommandIonSpecies::addSpecies(fname, e, true);
-				return e.iInfo.species.back();
-			}
-	}
+		for(const string& prefix: prefixes)
+		{	string pattern = prefix + e.iInfo.pspFilenamePatterns[i];
+			pattern.replace(pattern.find("$ID"),3, id);
+			for(const string& fname: validFilenames[i])
+				if(fname == pattern)
+				{	CommandIonSpecies::addSpecies(fname, e, true);
+					return e.iInfo.species.back();
+				}
+		}
 	
 	return 0; //not found
 }

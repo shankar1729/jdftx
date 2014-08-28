@@ -122,14 +122,23 @@ SpeciesInfo::~SpeciesInfo()
 double dot(const RadialFunctionR& X, const RadialFunctionR& Y);
 void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y);
 
+const std::vector<string>& getPseudopotentialPrefixes(); //implemented in ion_species.cpp
+
 void SpeciesInfo::setup(const Everything &everything)
 {	e = &everything;
 	if(!atpos.size()) return; //unused species
 	
 	//Read pseudopotential
-	ifstream ifs(potfilename.c_str());
+	ifstream ifs;
+	const std::vector<string>& prefixes = getPseudopotentialPrefixes();
+	string potfilenameFull; //full filename with prefix (if any)
+	for(const string& prefix: prefixes)
+	{	potfilenameFull = prefix + potfilename;
+		ifs.open(potfilenameFull.c_str());
+		if(ifs.is_open()) break;
+	}
 	if(!ifs.is_open()) die("Can't open pseudopotential file '%s' for reading.\n", potfilename.c_str());
-	logPrintf("\nReading pseudopotential file '%s':\n",potfilename.c_str());
+	logPrintf("\nReading pseudopotential file '%s':\n",potfilenameFull.c_str());
 	switch(pspFormat)
 	{	case Fhi: readFhi(ifs); break;
 		case Uspp: readUspp(ifs); break;
