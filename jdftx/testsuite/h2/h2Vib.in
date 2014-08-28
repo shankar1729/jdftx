@@ -3,7 +3,7 @@ include h2.ionpos
 lattice Cubic 20
 
 coords-type cartesian
-ion-species pseudopotentials/h_pbe_v1.uspp
+ion-species GBRV/h_pbe_v1.uspp
 
 electronic-scf niterations 200
 elec-ex-corr gga-pbe 

@@ -10,11 +10,6 @@ if [ -z "$JDFTx" ]; then
 	fi
 fi
 
-echo "Creating the pseudopotential directory- this step requires internet connectivity."
-cd pseudopotentials
-wget http://www.physics.rutgers.edu/gbrv/h_pbe_v1.uspp 
-cd ..
-
 function remove {
  if [ -f $1 ]
   then

@@ -1,7 +1,7 @@
 lattice Cubic 20
 
 coords-type cartesian
-ion-species pseudopotentials/h_pbe_v1.uspp
+ion-species GBRV/h_pbe_v1.uspp
 ion H   0  0.1  0.7  1
 ion H   0 -0.2 -0.6  1
 
