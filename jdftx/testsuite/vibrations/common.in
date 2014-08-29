@@ -1,0 +1,13 @@
+lattice Cubic 15
+coords-type cartesian
+
+ion-species GBRV/h_pbe_v1.uspp
+elec-cutoff 20 100
+
+coulomb-interaction isolated
+coulomb-truncation-embed 0 0 0
+
+electronic-scf
+
+dump-name H2.$VAR
+dump End None

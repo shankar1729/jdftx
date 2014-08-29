@@ -203,6 +203,10 @@ endif()
 #Additional test executables, mostly related to the fluid
 add_subdirectory(tests)
 
+#Test suite
+enable_testing()
+add_subdirectory(testsuite)
+
 #Optional features: primarily interfaces to other codes
 add_subdirectory(opt)
 

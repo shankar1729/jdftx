@@ -1,0 +1,6 @@
+include ${SRCDIR}/common.in
+
+include H2.ionpos
+
+vibrations centralDiff yes rotationSym yes translationSym yes
+dump End None

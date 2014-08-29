@@ -1,0 +1,62 @@
+Running tests
+-------------
+
+After building, run "make test" in the build directory to run all tests.
+To run specific tests, use the ctest command with options that select
+the required tests (see the CTest manual).
+
+Run "make testresults" to print a summary of previously run tests,
+and "make testclean" to clean the results of previous tests.
+Note that calculations with existing output files will not be run,
+so be sure to invoke testclean in order to rerun all tests.
+
+If running in a special environment that requires a special launcher,
+such as to invoke jdftx with MPI in the tests, export the environment
+variable JDFTX_LAUNCH with the launch command. For example, a simple
+two process MPI test run would require JDFTX_LAUNCH="mpirun -n 2".
+
+
+Creating tests
+--------------
+
+In order to create a new test called "foo":
+
+* Add "add_jdftx_test(foo)" to the CMakeLists.txt in testsuite
+  in the source tree.
+
+* Create subdirectory foo in testsuite in the source tree.
+  All subsequent steps are inside that subdirectory.
+
+* Create the necessary input files, say step1.in and step2.in.
+  If input files refer to any other files in the directory
+  (via include statements for example), prefix ${SRCDIR} to
+  the path of the referred file. For example, if both step1.in
+  and step2.in include common.in to share commands, then they
+  should specify "include ${SRCDIR}/common.in"
+
+* Create a bash script sequence.sh which declares a variable
+  "runs" containing a list of input file prefixes in the order
+  in which they should be run. In the present example,
+  sequence.sh should contain:
+       export runs="step1 step2"
+
+* During the test run, the test mechanism will take care of
+  running jdftx on these input files and produce output files
+  for each input file (step1.out and step2.out in the example).
+
+* Create an executable script checkResults.sh that parses the
+  output files and produces output (to stdout) of the format
+      nChecks
+      <x1obtained> <x1expected> <x1tol> Description of check 1
+      <x2obtained> <x2expected> <x2tol> Description of check 2
+      :
+      :
+  where each line contains the obtained value of some scalar,
+  the corresponding expected value, tolerance on that value,
+  and a description of that scalar. A check passes if
+  xObtained is within the range xExpected +/- xTol.
+  The test passes if all checks pass. The first line contains
+  the number of expected checks; if that does not match,
+  a parse error is assumed.
+
+See any of the existing tests for a functional example.
