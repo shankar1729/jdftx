@@ -1,0 +1,15 @@
+lattice Cubic 15
+coords-type Cartesian
+
+ion-species GBRV/$ID_pbe_v1.2.uspp
+ion-species GBRV/$ID_pbe_v1.uspp
+elec-cutoff 20 100
+
+coulomb-interaction isolated
+coulomb-truncation-embed 0 0 0
+
+electronic-scf
+
+initial-state common.$VAR
+dump-name common.$VAR
+dump End State

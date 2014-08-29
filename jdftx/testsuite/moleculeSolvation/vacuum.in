@@ -1,0 +1,9 @@
+include ${SRCDIR}/common.in
+
+ion O  0.00  0.00  0.00  1
+ion H  0.00  1.12 +1.44  1
+ion H  0.00  1.12 -1.44  1
+
+ionic-minimize nIterations 10
+
+

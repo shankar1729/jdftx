@@ -1,0 +1,5 @@
+include ${SRCDIR}/common.in
+include common.ionpos
+
+fluid SaLSA
+
