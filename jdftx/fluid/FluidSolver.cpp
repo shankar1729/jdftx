@@ -247,7 +247,7 @@ public:
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
 		Adiel_nCavityTilde = 0; //clear previous, accumulate below
-		extraForces->init(e.iInfo);
+		if(extraForces) extraForces->init(e.iInfo);
 		
 		//Update components of energy that depend on electronic state:
 		EnergyComponents& Adiel = ((ConvolutionJDFT*)this)->Adiel;
