@@ -397,7 +397,7 @@ void printStack(bool detailedStackScript)
 // Exit on error with a more in-depth stack trace
 void stackTraceExit(int code)
 {	printStack(true);
-    mpiUtil->exit(code);
+	exit(code);
 }
 
 // Stack trace for failed assertions
