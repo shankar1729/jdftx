@@ -77,9 +77,9 @@ void randomize(ElecGradient& x)
 
 
 
-ElecMinimizer::ElecMinimizer(Everything& e, bool precond)
-: e(e), eVars(e.eVars), eInfo(e.eInfo), precond(precond)
-{	if(precond) Kgrad.init(e);
+ElecMinimizer::ElecMinimizer(Everything& e)
+: e(e), eVars(e.eVars), eInfo(e.eInfo), Knorm(0.)
+{	Kgrad.init(e);
 }
 
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
@@ -93,13 +93,14 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 
 double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
-	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, precond ? &Kgrad : 0);
+	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
+	if(grad) Knorm = sync(dot(*grad, Kgrad));
 	if(grad && eInfo.spinRestricted) spinRestrictGrad(*grad);
 	return ener;
 }
 
 ElecGradient ElecMinimizer::precondition(const ElecGradient& grad)
-{	return precond ? Kgrad : grad;
+{	return Kgrad;
 }
 
 bool ElecMinimizer::report(int iter)
@@ -132,6 +133,16 @@ bool ElecMinimizer::report(int iter)
 	
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
+	
+	//Handle indefinite preconditioner issue for FermiFillingsAux:
+	if(Knorm < 0.)
+	{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): "
+			"converging empty states (this may take a while)\n", e.elecMinParams.linePrefix);
+		logSuspend(); e.elecMinParams.fpLog = nullLog;
+		bandMinimize(e); //this will also set state to eigenvectors
+		logResume(); e.elecMinParams.fpLog = globalLog;
+		return true;
+	}
 	
 	//Re-orthogonalize wavefunctions if necessary:
 	if(e.cntrl.overlapCheckInterval
@@ -176,17 +187,15 @@ void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
 			grad.Y[q] += dY;
 		}
 		//Recompute the preconditioned gradient including the fillings weights:
-		if(precond)
-		{	double KErollover = 2.*e.ener.E["KE"] / eInfo.nElectrons;
-			Kgrad.Y[q] = precond_inv_kinetic(grad.Y[q], KErollover);
-		}
+		double KErollover = 2.*e.ener.E["KE"] / eInfo.nElectrons;
+		Kgrad.Y[q] = precond_inv_kinetic(grad.Y[q], KErollover);
 	}
 	for(int qOther=std::max(eInfo.qStart,eInfo.nStates/2); qOther<eInfo.qStop; qOther++)
 	{	int q = qOther - eInfo.nStates/2;
 		if(!eInfo.isMine(q))
 			grad.Y[qOther].send(eInfo.whose(q));
 		grad.Y[qOther].free();
-		if(precond) Kgrad.Y[qOther].free();
+		Kgrad.Y[qOther].free();
 	}
 }
 
@@ -219,7 +228,7 @@ void elecMinimize(Everything& e)
 		scf.minimize();
 	}
 	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor() or e.eInfo.hasU)
-	{	ElecMinimizer emin(e, true);
+	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
 		e.eVars.setEigenvectors();
 	}

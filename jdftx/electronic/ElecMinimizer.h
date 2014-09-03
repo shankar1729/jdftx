@@ -46,10 +46,10 @@ class ElecMinimizer : public Minimizable<ElecGradient>
 	Everything& e;
 	ElecVars& eVars;
 	ElecInfo& eInfo;
-	bool precond;
 	ElecGradient Kgrad;
+	double Knorm;
 public:
-	ElecMinimizer(Everything& e, bool precond=true);
+	ElecMinimizer(Everything& e);
 	
 	//Virtual functions from Minimizable:
 	void step(const ElecGradient& dir, double alpha);
