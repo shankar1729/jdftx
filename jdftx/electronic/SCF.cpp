@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
+#include <core/Minimize_linmin.h>
 #include <core/DataIO.h>
 #include <queue>
 
@@ -86,6 +87,25 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 	}
 }
 
+//Norm convergence check (eigenvalue-difference or residual)
+//Make sure value is within tolerance for nCheck consecutive cycles
+class NormCheck : std::deque<bool>
+{	unsigned nCheck; double threshold;
+public:
+	NormCheck(unsigned nCheck, double threshold) : nCheck(nCheck), threshold(fabs(threshold)) {}
+	bool checkConvergence(double norm)
+	{	push_back(fabs(norm)<threshold);
+		if(size()==nCheck+1) pop_front(); //discard old unneeded elements 
+		if(size()==nCheck)
+		{	for(bool converged: *this)
+				if(!converged)
+					return false;
+			return true;
+		}
+		else return false;
+	}
+};
+
 void SCF::minimize()
 {	
 	ElecInfo& eInfo = e.eInfo;
@@ -106,6 +126,10 @@ void SCF::minimize()
 	
 	//Compute energy for the initial guess
 	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
+	EdiffCheck ediffCheck(2, e.scfParams.energyDiffThreshold);
+	ediffCheck.checkConvergence(E); //store the initial energy in the check's history
+	NormCheck resCheck(2, e.scfParams.residualThreshold);
+	NormCheck eigCheck(2, e.scfParams.eigDiffThreshold);
 	
 	double Eprev = 0.;
 	double dE = E;
@@ -181,9 +205,9 @@ void SCF::minimize()
 		}
 		
 		//Check for convergence and update variable:
-		if(fabs(E - Eprev) < sp.energyDiffThreshold) { logPrintf("SCF: Converged (|Delta E|<%le).\n\n", sp.energyDiffThreshold); break; }
-		else if(deigs < sp.eigDiffThreshold)         { logPrintf("SCF: Converged (|deigs|<%le).\n\n", sp.eigDiffThreshold); break; }
-		else if(residualNorm < sp.residualThreshold) { logPrintf("SCF: Converged (|Residual|<%le).\n\n", sp.residualThreshold); break; }
+		if(ediffCheck.checkConvergence(E))               { logPrintf("SCF: Converged (|Delta E|<%le for 2 iters).\n\n", sp.energyDiffThreshold); break; }
+		else if(eigCheck.checkConvergence(deigs))        { logPrintf("SCF: Converged (|deigs|<%le for 2 iters).\n\n", sp.eigDiffThreshold); break; }
+		else if(resCheck.checkConvergence(residualNorm)) { logPrintf("SCF: Converged (|Residual|<%le for 2 iters).\n\n", sp.residualThreshold); break; }
 		else if(killFlag) break; //manually interrupted
 		else mixDIIS();
 		logFlush();
