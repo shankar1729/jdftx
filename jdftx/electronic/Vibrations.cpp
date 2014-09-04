@@ -309,9 +309,12 @@ void Vibrations::calculate()
 	//Determine number of modes of each type:
 	int iZeroStart=0, iRealStart=nModes;
 	double omegaMinSq = omegaMin*omegaMin;
-	for(int i=1; i<nModes; i++)
-	{	if(omegaSqEigs[i-1]<-omegaMinSq && omegaSqEigs[i]>-omegaMinSq) iZeroStart=i;
-		if(omegaSqEigs[i-1]<+omegaMinSq && omegaSqEigs[i]>+omegaMinSq) iRealStart=i;
+	double omegaSqEigPrev = -DBL_MAX;
+	for(int i=0; i<nModes; i++)
+	{	double omegaSqEig = omegaSqEigs[i];
+		if(omegaSqEigPrev<-omegaMinSq && omegaSqEig>-omegaMinSq) iZeroStart=i;
+		if(omegaSqEigPrev<+omegaMinSq && omegaSqEig>+omegaMinSq) iRealStart=i;
+		omegaSqEigPrev = omegaSqEig;
 	}
 	logPrintf("%d imaginary modes, %d modes within cutoff, %d real modes.\n", iZeroStart, iRealStart-iZeroStart, nModes-iRealStart);
 	
