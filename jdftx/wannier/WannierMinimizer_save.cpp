@@ -98,7 +98,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		if(wannier.loadRotations)
 		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
 			//--- check unitarity:
-			const double tol = 1e-10 * nCenters;
+			const double tol = 1e-6 * nCenters;
 			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol) die("Initial matrices U are not unitary.\n");
 			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol) die("Initial matrices U2 are not unitary.\n");
 			//--- compute and check U1:
