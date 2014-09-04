@@ -131,6 +131,17 @@ void Vibrations::calculate()
 	}
 	int nModes = modes.size();
 	logPrintf("Degrees of freedom: %d total, %d symmetry-independent.\n", nModes, nPrimary);
+	if(!nModes)
+	{	//Exit, but produce output in the same format as if there were modes:
+		logPrintf("0 imaginary modes, 0 modes within cutoff, 0 real modes.\n");
+		logPrintf("\nVibrational free energy components at T = %lg K:\n", T/Kelvin);
+		logPrintf("\tZPE:   %15.6lf\n", 0.);
+		logPrintf("\tEvib:  %15.6lf\n", 0.);
+		logPrintf("\tTSvib: %15.6lf\n", 0.);
+		logPrintf("\tAvib:  %15.6lf\n", 0.);
+		logPrintf("\n");
+		return;
+	}
 	
 	//Find inverse of each symmetry matrix:
 	std::vector<unsigned> iRotInv(sym.size());
