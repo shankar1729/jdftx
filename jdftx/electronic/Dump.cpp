@@ -186,16 +186,26 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		 DUMP_spinCollection(tau, "tau")
 	}
 
-	DUMP(I(eVars.d_vac), "d_vac", Dvac);
+	//Electrostatic and fluid potentials:
+	DataGptr d_vac;
+	if(ShouldDump(Dvac) || ShouldDump(Dtot))
+	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
+		if(eVars.rhoExternal) d_vac += (*e->coulomb)(eVars.rhoExternal); //potential due to external charge (if any)
+	}
+	DUMP(I(d_vac), "d_vac", Dvac);
 	if(eVars.fluidParams.fluidType != FluidNone)
 	{	if(ShouldDump(Dfluid) || ShouldDump(Dtot))
 		{	DataGptr d_fluid; //electrostatic-only version of d_fluid
 			eVars.fluidSolver->get_Adiel_and_grad(&d_fluid, 0, 0, true);
+			double GzeroCorrection = eVars.fluidSolver->ionWidthMuCorrection() - eVars.fluidSolver->bulkPotential();
 			DUMP(I(d_fluid), "d_fluid", Dfluid);
-			DUMP(I(eVars.d_vac + d_fluid), "d_tot", Dtot);
+			DUMP(I(d_vac + d_fluid) + GzeroCorrection, "d_tot", Dtot);
 		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
 		DUMP(I(eVars.V_cavity + eVars.d_fluid), "V_fluidTot", VfluidTot);
+	}
+	else
+	{	DUMP(I(d_vac), "d_tot", Dtot);
 	}
 
 	DUMP(I(iInfo.Vlocps), "Vlocps", Vlocps)

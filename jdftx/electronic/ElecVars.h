@@ -56,7 +56,6 @@ public:
 	
 	DataRptrCollection tau; //!< kinetic energy density including tauCore, if present (computed if a meta GGA is being used)
 	
-	DataGptr d_vac; //!< electrostatic potential due to explicit electrons (and external charge, if any)
 	DataGptr d_fluid; //!< electrostatic potential due to fluid
 	DataGptr V_cavity; //!< non-electrostatic potential on electrons due to fluid
 	

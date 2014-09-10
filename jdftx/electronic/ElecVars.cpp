@@ -316,13 +316,9 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	DataGptr VsclocTilde = clone(iInfo.Vlocps);
 	
 	// Hartree term:
-	d_vac = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
-	ener.E["EH"] = 0.5*dot(nTilde, O(d_vac));
-	VsclocTilde += d_vac;
-	
-	//Include nuclear charge into d_vac so dumped quantity has asymptoptic properties 
-	//of the electrostatic potential as defined in http://arxiv.org/abs/1205.0526
-	d_vac += (*e->coulomb)(iInfo.rhoIon);
+	DataGptr dH = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
+	ener.E["EH"] = 0.5*dot(nTilde, O(dH));
+	VsclocTilde += dH;
 
 	// External charge:
 	ener.E["Eexternal"] = 0.;
@@ -332,7 +328,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		if(rhoExternalSelfEnergy)
 			ener.E["Eexternal"] += 0.5 * dot(rhoExternal, O(phiExternal));
 		VsclocTilde += phiExternal;
-		d_vac += phiExternal;
 	}
 	
 	//Fluid contributions

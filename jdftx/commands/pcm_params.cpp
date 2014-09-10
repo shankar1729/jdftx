@@ -171,8 +171,8 @@ struct CommandIonWidth : public Command
 		format = "Ecut | fftbox | <width>";
 		comments = "Manually specify width of gaussian representations of nuclear charge in bohr\n"
 			"or set automatically based on either energy cut-off (Ecut) or grid spacing (fftbox).\n"
-			"The widened charges are only used in the interaction with fluids and dumped potentials,\n"
-			"and does not affect the energy of the electronic system. Default is Ecut-based selection\n"
+			"The widened charges are only used in the interaction with fluids, and does not\n"
+			"affect the energy of the electronic system. Default is Ecut-based selection\n"
 			"for LinearPCM/NonlinearPCM and 0 (no widening) for all other fluid types.";
 		hasDefault = true;
 		require("fluid");
