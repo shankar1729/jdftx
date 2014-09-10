@@ -42,7 +42,7 @@ public:
 
 protected:
 	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient* extraForces) const;
+	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
 
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi

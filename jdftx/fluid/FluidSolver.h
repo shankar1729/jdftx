@@ -50,8 +50,9 @@ struct FluidSolver
 
 	//! Compute gradients with respect to electronic side variables (if non-null), and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces (if non-null)
+	//! If electricOnly=true, Adiel_rhoExplicitTilde conatins only the truly electrostatic part of the gradient (distinction relevant only for SG14NL cavity-asymmetry gradient presently)
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
-	double get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0, IonicGradient* extraForces=0) const;
+	double get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0, IonicGradient* extraForces=0, bool electricOnly=false) const;
 
 	virtual double bulkPotential() {return 0.0;}
 
@@ -84,7 +85,7 @@ protected:
 	virtual void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)=0;
 
 	//! Fluid-dependent implementation of get_Adiel_and_grad()
-	virtual double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const =0;
+	virtual double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const =0;
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)

@@ -43,7 +43,7 @@ protected:
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
-	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity and rhoExplicitTilde
+	void propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde, bool electricOnly) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity and rhoExplicitTilde
 	void setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) const; //!< set extra fluid forces (vdw and full-core forces, when applicable)
 	DataGptr getFullCore() const; //!< get full core correction for PCM variants that need them
 private:

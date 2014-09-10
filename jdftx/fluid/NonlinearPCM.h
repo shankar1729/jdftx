@@ -48,7 +48,7 @@ public:
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	//! Compute gradient and free energy (with optional outputs)
-	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0) const;
+	double operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0, bool electricOnly=false) const;
 
 	// Interface for Minimizable:
 	void step(const DataRMuEps& dir, double alpha);
@@ -57,7 +57,7 @@ public:
 
 protected:
 	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const;
+	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
 
 private:
 	double pMol, ionNbulk, ionZ;

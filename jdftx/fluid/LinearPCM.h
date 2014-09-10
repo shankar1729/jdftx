@@ -39,7 +39,7 @@ public:
 
 protected:
 	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient* extraForces) const;
+	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
 	friend class NonlinearPCM;
 private:
 	RadialFunctionG Kkernel; DataRptr epsInv; // for preconditioner

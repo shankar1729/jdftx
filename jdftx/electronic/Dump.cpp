@@ -188,8 +188,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	DUMP(I(eVars.d_vac), "d_vac", Dvac);
 	if(eVars.fluidParams.fluidType != FluidNone)
-	{	DUMP(I(eVars.d_fluid), "d_fluid", Dfluid);
-		DUMP(I(eVars.d_vac + eVars.d_fluid), "d_tot", Dtot);
+	{	if(ShouldDump(Dfluid) || ShouldDump(Dtot))
+		{	DataGptr d_fluid; //electrostatic-only version of d_fluid
+			eVars.fluidSolver->get_Adiel_and_grad(&d_fluid, 0, 0, true);
+			DUMP(I(d_fluid), "d_fluid", Dfluid);
+			DUMP(I(eVars.d_vac + d_fluid), "d_tot", Dtot);
+		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
 		DUMP(I(eVars.V_cavity + eVars.d_fluid), "V_fluidTot", VfluidTot);
 	}

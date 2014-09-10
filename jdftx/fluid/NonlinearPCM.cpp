@@ -119,7 +119,7 @@ void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr
 	updateCavity();
 }
 
-double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde) const
+double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
@@ -189,7 +189,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	}
 	if(Adiel_nCavityTilde)
 	{	DataRptr Adiel_nCavity;
-		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde);
+		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, electricOnly);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	
@@ -212,9 +212,9 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces) const
+double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {	DataRMuEps Adiel_state;
-	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde);
+	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, electricOnly);
 	setExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
 }
