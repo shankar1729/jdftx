@@ -48,7 +48,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug,
 	DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
-	DumpMomenta, DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis,
+	DumpMomenta, DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity,
 	DumpDelim, //special value used as a delimiter during command processing
 };
 
@@ -71,6 +71,7 @@ public:
 	
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
+	std::vector< std::pair<double,double> > densityErange; //!< energy ranges for energy-resolved density output
 private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.

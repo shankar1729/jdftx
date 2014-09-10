@@ -87,11 +87,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	#define DUMP_spinCollection(object, prefix) \
 		{	if(object.size()==1) DUMP_nocheck(object[0], prefix) \
 			else \
-			{	DUMP_nocheck(object[0], prefix "_up") \
-				DUMP_nocheck(object[1], prefix "_dn") \
+			{	DUMP_nocheck(object[0], (prefix+string("_up")).c_str()) \
+				DUMP_nocheck(object[1], (prefix+string("_dn")).c_str()) \
 				if(object.size()==4) \
-				{	DUMP_nocheck(object[2], prefix "_re") \
-					DUMP_nocheck(object[3], prefix "_im") \
+				{	DUMP_nocheck(object[2], (prefix+string("_re")).c_str()) \
+					DUMP_nocheck(object[3], (prefix+string("_im")).c_str()) \
 				} \
 			} \
 		}
@@ -485,6 +485,25 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		DataRptrCollection sVh = XC_Analysis::sHartree(*e); DUMP_spinCollection(sVh, "sHartree");
 	}
 
+	if(ShouldDumpNoAll(EresolvedDensity))
+	{	std::vector<diagMatrix>& F = ((ElecVars&)e->eVars).F;
+		std::vector<diagMatrix> Forig = F; //backup fillings
+		int iRange=0;
+		for(const auto& Erange: densityErange)
+		{	//Set fillings based on current energy range:
+			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+				for(int b=0; b<eInfo.nBands; b++)
+				{	double e_qb = eVars.Hsub_eigs[q][b];
+					F[q][b] = (e_qb >= Erange.first && e_qb <= Erange.second) ? 1. : 0.;
+				}
+			//Calculate and dump density:
+			DataRptrCollection density = eVars.calcDensity();
+			ostringstream oss; oss << "EresolvedDensity." << iRange; iRange++;
+			DUMP_spinCollection(density, oss.str())
+		}
+		F = Forig; //restore fillings
+	}
+	
 	//Polarizability dump deletes wavefunctions to free memory and should therefore happen at the very end
 	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
 	{	polarizability->dump(*e);

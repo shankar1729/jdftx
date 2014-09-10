@@ -81,7 +81,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpKpoints, "Kpoints",
 	DumpGvectors, "Gvectors",
 	DumpOrbitalDep, "OrbitalDep",
-	DumpXCanalysis, "XCanalysis"
+	DumpXCanalysis, "XCanalysis",
+	DumpEresolvedDensity, "EresolvedDensity"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -123,7 +124,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
 	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
 	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
-	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential"
+	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
+	DumpEresolvedDensity, "Electron density from bands within specified energy ranges"
 );
 
 struct CommandDump : public Command
@@ -301,6 +303,38 @@ struct CommandPolarizabilityKdiff : public Command
 	}
 }
 commandPolarizabilityKdiff;
+
+
+struct CommandDumpEresolvedDensity : public Command
+{
+    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density")
+	{
+		format = "<Emin> <Emax>";
+		comments =
+			"Output electron density from bands within a specified energy range\n"
+			"[Emin,Emax] (in Eh). Command may be issued multiple times, and the\n"
+			"outputs will be numbered sequenetially EresolvedDensity.0 etc.\n"
+			"Will automatically be dumped at End; dumping at other frequencies\n"
+			"may be requested using the dump command.";
+		
+		allowMultiple = true;
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	double Emin, Emax;
+		pl.get(Emin, 0., "Emin", true);
+		pl.get(Emax, 0., "Emax", true);
+		if(Emin >= Emax) throw string("Emin must be < Emax");
+		e.dump.densityErange.push_back(std::make_pair(Emin, Emax));
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpEresolvedDensity));
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const auto& Erange = e.dump.densityErange[iRep];
+		logPrintf("%lg %lg", Erange.first, Erange.second);
+	}
+}
+commandDumpEresolvedDensity;
 
 
 //---------- Vibrations ------------------------
