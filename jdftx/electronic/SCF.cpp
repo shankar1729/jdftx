@@ -89,15 +89,16 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 
 //Norm convergence check (eigenvalue-difference or residual)
 //Make sure value is within tolerance for nCheck consecutive cycles
-class NormCheck : std::deque<bool>
+class NormCheck
 {	unsigned nCheck; double threshold;
+	std::deque<bool> history;
 public:
 	NormCheck(unsigned nCheck, double threshold) : nCheck(nCheck), threshold(fabs(threshold)) {}
 	bool checkConvergence(double norm)
-	{	push_back(fabs(norm)<threshold);
-		if(size()==nCheck+1) pop_front(); //discard old unneeded elements 
-		if(size()==nCheck)
-		{	for(bool converged: *this)
+	{	history.push_back(fabs(norm)<threshold);
+		if(history.size()==nCheck+1) history.pop_front(); //discard old unneeded elements 
+		if(history.size()==nCheck)
+		{	for(bool converged: history)
 				if(!converged)
 					return false;
 			return true;
