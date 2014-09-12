@@ -128,7 +128,7 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 }
 
 
-IonicMinimizer::IonicMinimizer(Everything& e) : e(e)
+IonicMinimizer::IonicMinimizer(Everything& e) : e(e), populationAnalysisPending(false)
 {	
 }
 
