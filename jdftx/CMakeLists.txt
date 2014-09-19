@@ -212,3 +212,8 @@ add_subdirectory(opt)
 
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
+
+#Command manual generator
+add_custom_target(manual
+	COMMAND ${CMAKE_CURRENT_BINARY_DIR}/jdftx -w > ${CMAKE_CURRENT_SOURCE_DIR}/commands/man.html
+	DEPENDS jdftx)

@@ -446,4 +446,3 @@ void writeCommandManual(Everything& everything)
 	//HTML footer:
 	logPrintf("</html></body>\n");
 }
-
