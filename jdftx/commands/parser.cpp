@@ -355,9 +355,8 @@ void parse(const char* filename, Everything& everything, bool printDefaults)
 	logPrintf("\n\n");
 }
 
-void printDefaultTemplate(Everything& everything)
-{	ProcessedCommandMap cmap;
-	//Run through the commands that have defaults in dependency order
+inline void processDefaults(Everything& everything, ProcessedCommandMap& cmap)
+{	//Run through the commands that have defaults in dependency order
 	for(int pass=0; pass<=cmap.nPasses; pass++)
 		for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
 			if(i->second.first==pass)
@@ -373,6 +372,11 @@ void printDefaultTemplate(Everything& everything)
 					}
 				}
 			}
+}
+
+void printDefaultTemplate(Everything& everything)
+{	ProcessedCommandMap cmap;
+	processDefaults(everything, cmap);
 	//Now print the comments and status of all commands in map (alphabetical) order:
 	for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
 	{	Command& ci = *(i->second.second);
@@ -401,3 +405,45 @@ void printDefaultTemplate(Everything& everything)
 		"\n"
 	);
 }
+
+void printHTMLsafe(string s)
+{	for(const char c: s)
+	{	switch(c)
+		{	case '<': fputs("&lt;", globalLog); break;
+			case '>': fputs("&gt;", globalLog); break;
+			default: fputc(c, globalLog);
+		}
+	}
+}
+
+void writeCommandManual(Everything& everything)
+{	ProcessedCommandMap cmap;
+	processDefaults(everything, cmap);
+	//HTML header:
+	logPrintf("<html><body>\n");
+	//All commands in alphabetical order:
+	for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
+	{	Command& ci = *(i->second.second);
+		//Print header:
+		logPrintf("<h1>%s</h1>\n", ci.name.c_str());
+		//Print syntax:
+		logPrintf("<h2>Syntax:</h2>\n<pre>\n");
+		printHTMLsafe(ci.name+' '+ci.format+'\n');
+		logPrintf("</pre>\n");
+		//Print comments:
+		logPrintf("<h2>Description:</h2>\n<pre>\n");
+		printHTMLsafe(ci.comments+'\n');
+		logPrintf("</pre>\n");
+		//Print status:
+		if(ci.hasDefault)
+		{	logPrintf("<h2>Default:</h2>\n<pre>\n");
+			logPrintf("%s ", ci.name.c_str());
+			ci.printStatus(everything, 0);
+			logPrintf("</pre>\n");
+		}
+		logPrintf("<hr/>\n");
+	}
+	//HTML footer:
+	logPrintf("</html></body>\n");
+}
+

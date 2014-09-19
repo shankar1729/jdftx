@@ -29,4 +29,7 @@ void parse(const char* filename, Everything &everything, bool printDefaults=fals
 //! Produce an input file template
 void printDefaultTemplate(Everything &e);
 
+//! Write an HTML manual to stdout
+void writeCommandManual(Everything& e);
+
 #endif // JDFTX_PARSER_H
