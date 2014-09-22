@@ -231,6 +231,12 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = 8.96e-06;
 					break;
 				}
+				case FluidComponent::EC:
+				{	nc = 1.8e-3;
+					sigma = 0.6;
+					cavityTension = 1.55e-5;
+					break;
+				}
 				case FluidComponent::Glyme:
 				{	switch(fluidType)
 					{	case FluidLinearPCM:
