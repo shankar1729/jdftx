@@ -407,12 +407,20 @@ void printDefaultTemplate(Everything& everything)
 }
 
 void printHTMLsafe(string s)
-{	for(const char c: s)
-	{	switch(c)
+{	size_t iClose = string::npos;
+	for(size_t i=0; i<s.size(); i++)
+	{	const char& c = s[i];
+		if(i>=12 && s.substr(i-12,12)=="See command ")
+		{	iClose = s.find_first_of(" \t\n.,;)", i);
+			if(iClose==string::npos) iClose = s.size();
+			logPrintf("<a href=\"#%s\">", s.substr(i,iClose-i).c_str());
+		}
+		switch(c)
 		{	case '<': fputs("&lt;", globalLog); break;
 			case '>': fputs("&gt;", globalLog); break;
 			default: fputc(c, globalLog);
 		}
+		if(i+1==iClose) logPrintf("</a>");
 	}
 }
 

@@ -58,7 +58,7 @@ EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
 
 struct CommandWannier : public Command
 {
-	CommandWannier() : Command("wannier")
+	CommandWannier() : Command("wannier", "Wannier")
 	{
 		format = "<key1> <args1...>  <key2> <args2...>  ...";
 		comments =
@@ -174,7 +174,7 @@ commandWannier;
 
 struct CommandWannierCenter : public Command
 {
-	CommandWannierCenter() : Command("wannier-center")
+	CommandWannierCenter() : Command("wannier-center", "Wannier")
 	{
 		format = "<aorb1> [<aorb2> ...]";
 		comments =
@@ -292,7 +292,7 @@ commandWannierCenter;
 
 
 struct CommandWannierMinimize : public CommandMinimize
-{	CommandWannierMinimize() : CommandMinimize("wannier") {}
+{	CommandWannierMinimize() : CommandMinimize("wannier", "Wannier") {}
     MinimizeParams& target(Everything& e) { return wannier.minParams; }
     void process(ParamList& pl, Everything& e)
 	{	wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
@@ -304,7 +304,7 @@ commandWannierMinimize;
 
 struct CommandWannierFilenames : public Command
 {	string& target;
-	CommandWannierFilenames(string cmdSuffix, string comment, string& target) : Command("wannier-"+cmdSuffix), target(target)
+	CommandWannierFilenames(string cmdSuffix, string comment, string& target) : Command("wannier-"+cmdSuffix, "Wannier"), target(target)
 	{	format = "<format>";
 		comments = 
 			"Control the filename pattern for wannier " + comment + ", where <format> must contain\n"

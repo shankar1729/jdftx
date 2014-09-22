@@ -159,7 +159,7 @@ struct CommandCoulombTruncationIonMargin : public Command
 		format = "<margin>";
 		comments =
 			"Extra margin (in bohrs) around the ions, when checking localization constraints\n"
-			"for truncated Coulomb potentials (see coulomb-interaction). Set to a typical\n"
+			"for truncated Coulomb potentials (see command coulomb-interaction). Set to a typical\n"
 			"distance from nuclei where the electron density becomes negligible, so as to\n"
 			"ensure the electron density satisfies those localization constraints.\n"
 			"(Default: 5 bohrs, minimum allowed: 1 bohr)";

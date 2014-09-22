@@ -271,7 +271,7 @@ coulomb-truncation-embed &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;
 <pre>
 Compute truncated Coulomb interaction in a double-sized box (doubled only
 along truncated directions). This relaxes the L/2 localization constraint
-otherwise required by truncated potentials (see command coulomb-interaction),
+otherwise required by truncated potentials (see command <a href="#coulomb-interaction">coulomb-interaction</a>),
 but breaks translational invariance and requires the specification of a center.
 Coordinate system for center (&lt;c0&gt; &lt;c1&gt; &lt;c2&gt;) is as specified by coords-type.
 (Default: not enabled i.e. employs translationally invariant scheme)
@@ -287,7 +287,7 @@ coulomb-truncation-ion-margin &lt;margin&gt;
 <h2>Description:</h2>
 <pre>
 Extra margin (in bohrs) around the ions, when checking localization constraints
-for truncated Coulomb potentials (see coulomb-interaction). Set to a typical
+for truncated Coulomb potentials (see command <a href="#coulomb-interaction">coulomb-interaction</a>). Set to a typical
 distance from nuclei where the electron density becomes negligible, so as to
 ensure the electron density satisfies those localization constraints.
 (Default: 5 bohrs, minimum allowed: 1 bohr)
@@ -355,7 +355,7 @@ density-of-states [&lt;key1&gt; ...] [&lt;key2&gt; ...] [&lt;key3&gt; ...] ...
 <h2>Description:</h2>
 <pre>
 Compute density of states. The results are printed to a text file
-with name corresponding to variable name 'dos' (see dump-name).
+with name corresponding to variable name 'dos' (see command <a href="#dump-name">dump-name</a>).
 (Spin polarized calculations output variables 'dosUp' and 'dosDn'.)
 Density of states with different weight functions may be computed
 simultaneously, and they are all output as columns in the same file
@@ -431,7 +431,7 @@ that control aspects of the density of states computation are:
       Non-collinear magnetism mode only (default spin-handling mode).
       All subsequent columns are spin totals.
 This command adds DOS to dump-frequency End, but this may be altered
-within a dump command of appropriate frequency (see command dump).
+within a dump command of appropriate frequency (see command <a href="#dump">dump</a>).
 </pre>
 <a href="#top">Top</a>
 </div>
@@ -457,13 +457,13 @@ and each &lt;var*&gt; is one of:
    CoreDensity               Total core electron density (from partial core corrections)
    Dfluid                    Electrostatic potential due to fluid alone
    Dipole                    Dipole moment of explicit charges (ionic and electronic)
-   DOS                       Density of States (see density-of-states) [not in All]
+   DOS                       Density of States (see command <a href="#density-of-states">density-of-states</a>) [not in All]
    Dtot                      Total electrostatic potential
    Dvac                      Electrostatic potential due to explicit system alone
    Ecomponents               Components of the energy
    ElecDensity               Electronic densities (n or nup,ndn)
    EresolvedDensity          Electron density from bands within specified energy ranges
-   ExcCompare                Energies for other exchange-correlation functionals (see elec-ex-corr-compare) [not in All]
+   ExcCompare                Energies for other exchange-correlation functionals (see command <a href="#elec-ex-corr-compare">elec-ex-corr-compare</a>) [not in All]
    Excitations               Dumps dipole moments and transition strength (electric-dipole) of excitations
    Fillings                  Fillings
    FluidDebug                Fluid specific debug output if any  [not in All]
@@ -477,7 +477,7 @@ and each &lt;var*&gt; is one of:
    Lattice                   Lattice vectors in the same format as the input file
    Momenta                   Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)
    None                      Dump nothing
-   optVext                   Optimized external potentials (see invertKohnSham) [not in All]
+   optVext                   Optimized external potentials (see command <a href="#invertKohnSham">invertKohnSham</a>) [not in All]
    OrbitalDep                Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)
    QMC                       Blip'd orbitals and potential for CASINO
    RealSpaceWfns             Real-space wavefunctions (one column per file) [not in All]
@@ -912,7 +912,7 @@ Add anion component Cl-|ClO4-|F-|OH(4H2O)-|OH- to fluid.
 The concentration must be specified explicitly in mol/liter.
 For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
-See command fluid-solvent for a description of adjustable properties.
+See command <a href="#fluid-solvent">fluid-solvent</a> for a description of adjustable properties.
 </pre>
 <a href="#top">Top</a>
 </div>
@@ -928,7 +928,7 @@ Add cation component H3O(4H2O)+|H3O+|K(6H2O)+|K+|Na(6H2O)+|Na+ to fluid.
 The concentration must be specified explicitly in mol/liter.
 For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
-See command fluid-solvent for a description of adjustable properties.
+See command <a href="#fluid-solvent">fluid-solvent</a> for a description of adjustable properties.
 </pre>
 <a href="#top">Top</a>
 </div>

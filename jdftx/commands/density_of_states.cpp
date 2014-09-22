@@ -41,7 +41,7 @@ struct CommandDensityOfStates : public Command
 		format = "[<key1> ...] [<key2> ...] [<key3> ...] ... ";
 		comments =
 			"Compute density of states. The results are printed to a text file\n"
-			"with name corresponding to variable name 'dos' (see dump-name).\n"
+			"with name corresponding to variable name 'dos' (see command dump-name).\n"
 			"(Spin polarized calculations output variables 'dosUp' and 'dosDn'.)\n"
 			"Density of states with different weight functions may be computed\n"
 			"simultaneously, and they are all output as columns in the same file\n"
