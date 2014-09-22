@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandIon : public Command
 {
-	CommandIon() : Command("ion")
+	CommandIon() : Command("ion", "Ionic geometry")
 	{
 		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
 			+ constraintTypeMap.optionList() + " <d0> <d1> <d2>]";
@@ -102,7 +102,7 @@ commandIon;
 
 struct CommandInitialMagneticMoments : public Command
 {
-	CommandInitialMagneticMoments() : Command("initial-magnetic-moments")
+	CommandInitialMagneticMoments() : Command("initial-magnetic-moments", "Initialization")
 	{
 		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]\n"
 			"   | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]";
@@ -166,7 +166,7 @@ commandInitialMagneticMoments;
 
 struct CommandInitialOxidationState : public Command
 {
-	CommandInitialOxidationState() : Command("initial-oxidation-state")
+	CommandInitialOxidationState() : Command("initial-oxidation-state", "Initialization")
 	{
 		format = "<species> <oxState> [<species2> ...]";
 		comments =
@@ -196,3 +196,31 @@ struct CommandInitialOxidationState : public Command
 }
 commandInitialOxidationState;
 
+EnumStringMap<coreOverlapCheck> overlapCheckMap
+(	additive, "additive",
+	vector, "vector",
+	none, "none"
+);
+
+
+struct CommandCoreOverlapCheck : public Command
+{
+	CommandCoreOverlapCheck() : Command("core-overlap-check", "Ionic optimization")
+	{
+		format = "<condition> = vectorial";
+		comments = "Checks for core overlaps between ionic pseudopotentials.\n"
+				   "\tadditive -> checks for interatomic distance < (R1 + R2)\n"
+				   "\tvector   -> checks for interatomic distance < sqrt(R1^2 + R2^2)   (default)\n"
+				   "\tnone\n";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.iInfo.coreOverlapCondition, vector, overlapCheckMap, "overlap check");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", overlapCheckMap.getString(e.iInfo.coreOverlapCondition));
+	}
+}
+commandCoreOverlapCheck;

@@ -130,7 +130,7 @@ EnumStringMap<DumpVariable> varDescMap
 
 struct CommandDump : public Command
 {
-	CommandDump() : Command("dump")
+	CommandDump() : Command("dump", "Output")
 	{
 		format = "<freq> <var> <var> ...";
 		comments =
@@ -181,7 +181,7 @@ commandDump;
 
 struct CommandDumpInterval : public Command
 {
-	CommandDumpInterval() : Command("dump-interval")
+	CommandDumpInterval() : Command("dump-interval", "Output")
 	{
 		format = "<freq> <interval>";
 		comments = 
@@ -218,7 +218,7 @@ commandDumpInterval;
 
 struct CommandDumpName : public Command
 {
-	CommandDumpName() : Command("dump-name")
+	CommandDumpName() : Command("dump-name", "Output")
 	{
 		format = "<format>";
 		comments = 
@@ -250,7 +250,7 @@ EnumStringMap<Polarizability::EigenBasis> polarizabilityMap
 
 struct CommandPolarizability : public Command
 {
-    CommandPolarizability() : Command("polarizability")
+    CommandPolarizability() : Command("polarizability", "Output")
 	{
 		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
 		comments = "Output polarizability matrix in specified eigeneigenBasis";
@@ -273,7 +273,7 @@ commandPolarizability;
 
 struct CommandPolarizabilityKdiff : public Command
 {
-    CommandPolarizabilityKdiff() : Command("polarizability-kdiff")
+    CommandPolarizabilityKdiff() : Command("polarizability-kdiff", "Output")
 	{
 		format = "<dk0> <dk1> <dk2> [<dkFilenamePattern>]";
 		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.\n"
@@ -307,7 +307,7 @@ commandPolarizabilityKdiff;
 
 struct CommandDumpEresolvedDensity : public Command
 {
-    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density")
+    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density", "Output")
 	{
 		format = "<Emin> <Emax>";
 		comments =
@@ -365,7 +365,7 @@ EnumStringMap<VibrationsMember> vibMap
 
 struct CommandVibrations : public Command
 {
-    CommandVibrations() : Command("vibrations")
+    CommandVibrations() : Command("vibrations", "Output")
 	{
 		format = "<key1> <args1> ...";
 		comments =

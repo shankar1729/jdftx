@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandElecCutoff : public Command
 {
-	CommandElecCutoff() : Command("elec-cutoff")
+	CommandElecCutoff() : Command("elec-cutoff", "Electronic parameters")
 	{
 		format = "<Ecut> [<EcutRho>=0]";
 		comments = "Electronic planewave cutoff in Hartree. Optionally specify charge density cutoff\n"
@@ -49,9 +49,31 @@ commandElecCutoff;
 
 //-------------------------------------------------------------------------------------------------
 
+struct CommandFFTbox : public Command
+{
+	CommandFFTbox() : Command("fftbox", "Electronic parameters")
+	{
+		format = "<S0> <S1> <S2>";
+		comments = "Specify a manual FFT box";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.gInfo.S[0], 0, "S0", true);
+		pl.get(e.gInfo.S[1], 0, "S1", true);
+		pl.get(e.gInfo.S[2], 0, "S2", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%d %d %d", e.gInfo.S[0], e.gInfo.S[1], e.gInfo.S[2]);
+	}
+}
+commandFFTbox;
+
+//-------------------------------------------------------------------------------------------------
+
 struct CommandElecNbands : public Command
 {
-	CommandElecNbands() : Command("elec-n-bands")
+	CommandElecNbands() : Command("elec-n-bands", "Electronic parameters")
 	{
 		format = "<n>";
 		comments = "Manually specify the number of bands (Default: set nBands assuming insulator\n"
@@ -73,7 +95,7 @@ commandElecNbands;
 
 struct CommandDavidsonBandRatio : public Command
 {
-	CommandDavidsonBandRatio() : Command("davidson-band-ratio")
+	CommandDavidsonBandRatio() : Command("davidson-band-ratio", "Electronic optimization")
 	{
 		format = "[<ratio>=1.1]";
 		comments =
@@ -100,7 +122,7 @@ commandDavidsonBandRatio;
 
 struct CommandLCAOparams : public Command
 {
-	CommandLCAOparams() : Command("lcao-params")
+	CommandLCAOparams() : Command("lcao-params", "Initialization")
 	{
 		format = "[<nIter>=-1] [<Ediff>=1e-6] [<kT>=1e-3]";
 		comments = "Control LCAO wavefunction initialization:\n"
@@ -142,7 +164,7 @@ EnumStringMap<SpinType> spinDescMap
 
 struct CommandSpinType : public Command
 {
-	CommandSpinType() : Command("spintype")
+	CommandSpinType() : Command("spintype", "Electronic parameters")
 	{
 		format = "<type>=" + spinMap.optionList();
 		comments = "Select spin-polarization type:"
@@ -164,7 +186,7 @@ commandSpinType;
 
 struct CommandSpinRestricted : public Command
 {
-	CommandSpinRestricted() : Command("spin-restricted")
+	CommandSpinRestricted() : Command("spin-restricted", "Electronic parameters")
 	{
 		format = "yes|no";
 		comments = "Select whether to perform restricted spin-polarized calculations (default no).\n"
@@ -192,7 +214,7 @@ commandSpinRestricted;
 //Base class for fix-electron-density and fix-electron-potential
 struct CommandFixElectronHamiltonian : public Command
 {	
-    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name)
+    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name, "Electronic optimization")
 	{
 		format = "<filenamePattern>";
 		comments = "Perform band structure calculations at fixed electron " + name + "\n"
@@ -239,7 +261,7 @@ commandFixElectronPotential;
 
 struct CommandFixOccupied : public Command
 {
-	CommandFixOccupied() : Command("fix-occupied")
+	CommandFixOccupied() : Command("fix-occupied", "Electronic optimization")
 	{
 		format = "[<fThreshold>=0]";
 		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations\n"
@@ -262,7 +284,7 @@ commandFixOccupied;
 
 struct CommandReorthogonalizeOrbitals : public Command
 {
-	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals")
+	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals", "Electronic optimization")
 	{
 		format = "[<interval=20> [<threshold>=1.5]";
 		comments =
@@ -290,7 +312,7 @@ commandReorthogonalizeOrbitals;
 
 struct CommandWavefunctionDrag : public Command
 {
-	CommandWavefunctionDrag() : Command("wavefunction-drag")
+	CommandWavefunctionDrag() : Command("wavefunction-drag", "Ionic optimization")
 	{
 		format = "yes|no";
 		comments =
@@ -332,7 +354,7 @@ commandCacheProjectors;
 
 struct CommandBasis : public Command
 {
-	CommandBasis() : Command("basis")
+	CommandBasis() : Command("basis", "Electronic parameters")
 	{
 		format = "<kdep>=" + kdepMap.optionList();
 		comments = "Basis set at each k-point (default), or single basis set at gamma point";
@@ -356,7 +378,7 @@ static EnumStringMap<ElecEigenAlgo> elecEigenMap(ElecEigenCG, "CG", ElecEigenDav
 
 struct CommandElecEigenAlgo : public Command
 {
-    CommandElecEigenAlgo() : Command("elec-eigen-algo")
+    CommandElecEigenAlgo() : Command("elec-eigen-algo", "Electronic optimization")
 	{
 		format = "<algo>=" + elecEigenMap.optionList();
 		comments = "Selects eigenvalue algorithm for band-structure calculations or inner loop of SCF.";
@@ -373,3 +395,178 @@ struct CommandElecEigenAlgo : public Command
 }
 commandElecEigenAlgo;
 
+//-------------------------------------------------------------------------------------------------
+
+struct CommandCustomFilling : public Command
+{
+	int qnum, band; double filling;
+	
+	CommandCustomFilling() : Command("custom-filling")
+	{
+		format = "<qnum> <band> <filling>";
+		comments = "Specify a custom filling for the input (quantum-number, band)\n"
+					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO\n"
+					"Fillings are in normalized units, as output by the dumpName.fillings file";
+		allowMultiple = true;
+		forbid("eigen-shift");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(qnum, 0, "qnum", true);
+		pl.get(band, 0, "band", true);
+		pl.get(filling, 0., "filling", true);
+		
+		if((filling > (e.eInfo.spinType == SpinZ ? 1. : 2.)) or (filling < 0))
+		{	ostringstream oss; oss << "Fillings must be between 0 and " << (e.eInfo.spinType == SpinZ ? 1. : 2.);
+			throw oss.str();
+		}
+		
+		e.eInfo.customFillings.push_back(std::make_tuple(qnum, band, filling/(e.eInfo.spinType == SpinZ ? 1. : 2.)));
+		
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	std::vector<std::tuple<int,int,double>>& customFillings = e.eInfo.customFillings;
+		logPrintf("%i %i %.2e", std::get<0>(customFillings[iRep]), std::get<1>(customFillings[iRep]), std::get<2>(customFillings[iRep])*(e.eInfo.spinType == SpinZ ? 1. : 2.));
+	}
+}
+commandCustomFilling;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandInvertKohnSham : public Command
+{
+	CommandInvertKohnSham() : Command("invertKohnSham")
+	{
+		format = "[<nonlocal>=yes] [<sigma>=0] [<chiGuessFilename>]";
+		comments =
+			"Solve inverse Kohn-Sham problem: for a given electron density\n"
+			"specified using fix-electron-density, find the corresponding\n"
+			"external potential (in addition to the pseudopotentials and\n"
+			"Hartree+XC potential evaluated at the given electron density).\n"
+			"Vexternal may be used to specify an initial guess.\n"
+			"Control outer optimization using inverseKohnSham-minimize, and\n"
+			"inner minimization using electronic-minimize (as usual). The\n"
+			"result is dumped with variable name \"optVext\" or \"optVextUp\"\n"
+			"and \"optVextDn\" depending on specified spin type.\n"
+			"Option <nonlocal>="+boolMap.optionList()+" controls whether to\n"
+			"include non-local parts of the pseudopotential (default yes).\n"
+			"Option <sigma> specifies a bandwidth cutoff in the external\n"
+			"potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).\n"
+			"Option <chiGuessFilename> specifies a preconditioner based on\n"
+			"the response function of a similar electronic system. The pattern\n"
+			"should contain $VAR which will be used to read wavefunctions,\n"
+			"eigenvalues and fillings (these should include empty states).";
+		
+		require("fix-electron-density");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.cntrl.invertKS = true;
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpOptVext));
+		//Optional parameters:
+		pl.get(e.cntrl.invertKS_nonlocal, true, boolMap, "nonlocal");
+		pl.get(e.cntrl.invertKS_sigma, 0., "sigma");
+		string& fname = e.cntrl.invertKS_chiGuessFilename;
+		pl.get(fname, string(), "chiGuessFilename");
+		if(fname.length() && fname.find("$VAR")==string::npos)
+			throw "<chiGuessFilename> = " + fname + " doesn't contain '$VAR'";
+		Citations::add("Inverse Kohn-Sham algorithm", "Q. Wu and W. Yang, J Chem Phys 118, 2498 (2003)");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %lg %s", boolMap.getString(e.cntrl.invertKS_nonlocal),
+			e.cntrl.invertKS_sigma, e.cntrl.invertKS_chiGuessFilename.c_str());
+	}
+} commandInvertKohnSham;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandRhoExternal : public Command
+{
+	CommandRhoExternal() : Command("rhoExternal", "Coulomb")
+	{
+		format = "<filename> [<includeSelfEnergy>=yes|no]";
+		comments =
+			"Include an external charge density [electrons/bohr^3] (real space binary)\n"
+			"which interacts electrostatically with the electrons, nuclei and fluid.\n"
+			"If <includeSelfEnergy>=yes (default no), then the Coulomb self-energy\n"
+			"of rhoExternal is included in the output energy.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.eVars.rhoExternalFilename, string(), "filename", true);
+		pl.get(e.eVars.rhoExternalSelfEnergy, false, boolMap, "includeSelfEnergy");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %s", e.eVars.rhoExternalFilename.c_str(), boolMap.getString(e.eVars.rhoExternalSelfEnergy));
+	}
+}
+commandRhoExternal;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandVexternal : public Command
+{
+	CommandVexternal() : Command("Vexternal", "Electronic parameters")
+	{
+		format = "<filename> | <filenameUp> <filenameDn>";
+		comments =
+			"Include an external potential (in hartrees) for the electrons\n"
+			"(real space binary). Specify two files if V is spin-polarized.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.eVars.VexternalFilename.resize(1);
+		pl.get(e.eVars.VexternalFilename[0], string(), "filename", true);
+		//Check if a second file has been specified:
+		string filenameDn;
+		pl.get(filenameDn, string(), "filenameDn");
+		if(filenameDn.length())
+			e.eVars.VexternalFilename.push_back(filenameDn);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(const string& filename: e.eVars.VexternalFilename)
+			logPrintf("%s ", filename.c_str());
+	}
+}
+commandVexternal;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandBoxPot : public Command
+{
+	CommandBoxPot() : Command("box-potential", "Electronic parameters")
+	{
+		format = "xmin xmax ymin ymax zmin zmax Vin Vout [<convolve_radius>=0.1]";
+		comments =
+			"Include an step-function shaped external potential (in hartrees) for the electrons";
+	
+		allowMultiple = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	ElecVars::BoxPotential bP;
+		const char* dirNames[3] = { "x", "y", "z" };
+		for(int k=0; k<3; k++)
+		{	pl.get(bP.min[k], 0., dirNames[k]+string("min"), true);
+			pl.get(bP.max[k], 0., dirNames[k]+string("max"), true);
+			if(bP.max[k]<bP.min[k])
+				throw(string("max must be smaller than min for each dimension"));
+		}
+		pl.get(bP.Vin, 0., "Vin", true);
+		pl.get(bP.Vout, 0., "Vout", true);
+		pl.get(bP.convolve_radius, 0.2, "convolve_radius", false);
+		e.eVars.boxPot.push_back(bP);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const ElecVars::BoxPotential& bP = e.eVars.boxPot[iRep];
+		logPrintf("%.5g %.5g %.5g %.5g %.5g %.5g    %.5g %.5g  %.5g",
+			 bP.min[0], bP.max[0], bP.min[1], bP.max[1], bP.min[2], bP.max[2],
+			 bP.Vin, bP.Vout, bP.convolve_radius);
+	}
+}
+commandBoxPot;

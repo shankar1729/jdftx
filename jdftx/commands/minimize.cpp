@@ -93,7 +93,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 );
 
 
-CommandMinimize::CommandMinimize(string systemName) : Command(systemName + "-minimize")
+CommandMinimize::CommandMinimize(string systemName, string category) : Command(systemName + "-minimize", category)
 {
 	format = "<key1> <value1> <key2> <value2> ...";
 	comments = "where possible keys and value types are:"
@@ -151,7 +151,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 
 
 struct CommandElectronicMinimize : public CommandMinimize
-{	CommandElectronicMinimize() : CommandMinimize("electronic") {}
+{	CommandElectronicMinimize() : CommandMinimize("electronic", "Electronic optimization") {}
     MinimizeParams& target(Everything& e) { return e.elecMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	//Use default value of 100 iterations from MinimizeParams.h
@@ -162,7 +162,7 @@ struct CommandElectronicMinimize : public CommandMinimize
 commandElectronicMinimize;
 
 struct CommandIonicMinimize : public CommandMinimize
-{	CommandIonicMinimize() : CommandMinimize("ionic")
+{	CommandIonicMinimize() : CommandMinimize("ionic", "Ionic optimization")
 	{	emptyParamError =
 			"   Note: nIterations defaults to 0 for ionic minimization,\n"
 			"      and must be set manually to enable this feature.";
@@ -179,7 +179,7 @@ struct CommandIonicMinimize : public CommandMinimize
 commandIonicMinimize;
 
 struct CommandFluidMinimize : public CommandMinimize
-{	CommandFluidMinimize() : CommandMinimize("fluid")
+{	CommandFluidMinimize() : CommandMinimize("fluid", "Fluid optimization")
 	{	require("fluid");
 	}
     MinimizeParams& target(Everything& e) { return e.fluidMinParams; }
@@ -204,7 +204,7 @@ struct CommandFluidMinimize : public CommandMinimize
 commandFluidMinimize;
 
 struct CommandLatticeMinimize : public CommandMinimize
-{	CommandLatticeMinimize() : CommandMinimize("lattice")
+{	CommandLatticeMinimize() : CommandMinimize("lattice", "Ionic optimization")
 	{	emptyParamError =
 			"   Note: nIterations defaults to 0 for lattice minimization,\n"
 			"      and must be set manually to enable this feature.";
@@ -220,7 +220,7 @@ struct CommandLatticeMinimize : public CommandMinimize
 commandLatticeMinimize;
 
 struct CommandInverseKohnShamMinimize : public CommandMinimize
-{	CommandInverseKohnShamMinimize() : CommandMinimize("inverseKohnSham") {}
+{	CommandInverseKohnShamMinimize() : CommandMinimize("inverseKohnSham", "Electronic optimization") {}
     MinimizeParams& target(Everything& e) { return e.inverseKSminParams; }
     void process(ParamList& pl, Everything& e)
 	{	e.inverseKSminParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h

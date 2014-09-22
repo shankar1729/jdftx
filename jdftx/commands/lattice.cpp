@@ -38,7 +38,7 @@ EnumStringMap<GridInfo::LatticeModification> lattModMap
 
 struct CommandLattice : public Command
 {
-	CommandLattice() : Command("lattice")
+	CommandLattice() : Command("lattice", "Ionic geometry")
 	{
 		format = " [<modification>] <lattice> <parameters...>\n"
 			" | \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
@@ -167,7 +167,7 @@ commandLattice;
 
 struct CommandLattScale : public Command
 {
-	CommandLattScale() : Command("latt-scale")
+	CommandLattScale() : Command("latt-scale", "Ionic geometry")
 	{
 		format = "<s0> <s1> <s2>";
 		comments = "Scale lattice vector i by factor <si>";
@@ -197,7 +197,7 @@ commandLattScale;
 
 struct CommandLattMoveScale : public Command
 {
-	CommandLattMoveScale() : Command("latt-move-scale")
+	CommandLattMoveScale() : Command("latt-move-scale", "Ionic optimization")
 	{
 		format = "<s0> <s1> <s2>";
 		comments = "Preconditioning factor for each lattice vector (must be commensurate with symmetries)";
@@ -217,3 +217,26 @@ struct CommandLattMoveScale : public Command
 	}
 }
 commandLattMoveScale;
+
+EnumStringMap<CoordsType> coordsMap(
+	CoordsLattice, "lattice",
+	CoordsCartesian, "cartesian" );
+
+struct CommandCoordsType : public Command
+{
+	CommandCoordsType() : Command("coords-type", "Ionic geometry")
+	{
+		format = "<coords>=" + coordsMap.optionList();
+		comments = "Coordinate system used in specifying ion positions (default: lattice)";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.iInfo.coordsType, CoordsLattice, coordsMap, "coords");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	fputs(coordsMap.getString(e.iInfo.coordsType), globalLog);
+	}
+}
+commandCoordsType;

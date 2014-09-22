@@ -447,10 +447,10 @@ void writeCommandManual(Everything& everything)
 	{	const string& category = i.first;
 		const string& name = i.second;
 		if(category != prevCategory)
-		{	logPrintf("<h2>%s</h2>\n", category.c_str());
+		{	logPrintf("<p><b>%s</b>:\n", category.c_str());
 			prevCategory = category;
 		}
-		logPrintf("<a href=\"#%s\">%s</a>\n", name.c_str(), name.c_str());
+		logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", name.c_str(), name.c_str());
 	}
 	logPrintf("</div>\n");
 	//All commands in alphabetical order:

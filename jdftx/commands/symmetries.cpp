@@ -48,3 +48,37 @@ struct CommandSymmetries : public Command
 	}
 }
 commandSymmetries;
+
+
+struct CommandSymmetryMatrix : public Command
+{
+	CommandSymmetryMatrix() : Command("symmetry-matrix")
+	{
+		format = "<s00> <s01> <s02> <s10> <s11> <s12> <s20> <s21> <s22>";
+		comments = "Specify symmetry operator matrices explicitly.\n"
+			"Requires symmetries command to be called with manual argument";
+		allowMultiple = true;
+
+		require("symmetries");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	if(e.symm.mode != SymmetriesManual)
+			throw string("symmetry-matrix needs symmetries to be called with \"manual\"");
+
+		matrix3<int> m;
+		for(int j=0; j<3; j++) for(int k=0; k<3; k++)
+		{	ostringstream oss; oss << "s" << j << k;
+			pl.get(m(j,k), 0, oss.str(), true);
+		}
+		e.symm.sym.push_back(m);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for (int j=0; j < 3; j++)
+		{	logPrintf(" \\\n\t");
+			for (int k=0; k < 3; k++) logPrintf("%d ",e.symm.sym[iRep](j,k));
+		}
+	}
+}
+commandSymmetryMatrix;

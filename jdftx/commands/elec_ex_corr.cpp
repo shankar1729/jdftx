@@ -380,7 +380,7 @@ string getLibXCdescription_K(const string& name) { return getLibXCdescription(na
 
 struct CommandElecExCorr : public Command
 {
-	CommandElecExCorr(const char* cmdName = "elec-ex-corr") : Command(cmdName)
+	CommandElecExCorr(const char* cmdName = "elec-ex-corr", const char* cmdCategory = "Electronic functional") : Command(cmdName, cmdCategory)
 	{
 		format = "<functional>";
 		comments = "Specify the exchange-correlation functional, where <functional> is one of:"
@@ -501,7 +501,7 @@ commandElecExCorrCompare;
 
 struct CommandFluidExCorr : public CommandElecExCorr
 {
-	CommandFluidExCorr() : CommandElecExCorr("fluid-ex-corr")
+	CommandFluidExCorr() : CommandElecExCorr("fluid-ex-corr", "Fluid parameters")
 	{
 		format = "<kinetic> [<exchange-correlation>]";
 		comments =
@@ -558,3 +558,26 @@ struct CommandFluidExCorr : public CommandElecExCorr
 	}
 }
 commandFluidExCorr;
+
+
+struct CommandVanDerWaals : public Command
+{
+	CommandVanDerWaals() : Command("van-der-waals", "Electronic functional")
+	{
+		format = "[<scaleOverride>=0]";
+		comments = "Pair-potential corrections for the long range Van der Waals interaction.\n"
+			"Implementation follows \"S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)\"\n"
+			"Exchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.\n"
+			"Manually specify <scaleOverride> to use with other functionals";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.iInfo.vdWenable = true;
+		pl.get(e.iInfo.vdWscale, 0., "scaleOverride");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	if(e.iInfo.vdWscale) logPrintf("%lg", e.iInfo.vdWscale);
+	}
+}
+commandVanDerWaals;

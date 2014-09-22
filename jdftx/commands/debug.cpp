@@ -54,7 +54,7 @@ EnumStringMap<DebugOptions> debugDescMap
 
 struct CommandDebug : public Command
 {
-	CommandDebug() : Command("debug")
+	CommandDebug() : Command("debug", "Output")
 	{
 		format = "<option> <option> ...";
 		comments =
@@ -111,3 +111,28 @@ struct CommandDebug : public Command
 	}
 }
 commandDebug;
+
+
+struct CommandForcesOutputCoords : public Command
+{
+	CommandForcesOutputCoords() : Command("forces-output-coords", "Output")
+	{
+		format = "<coords>=" + forcesOutputCoordsMap.optionList();
+		comments =
+			"Coordinate system to use for force output in logPrintf-file as well as dump:\n"
+			"\tPositions: Use the same coordinate system as ionic position input (selected by coords-type) [default].\n"
+			"\tLattice:   Use (covariant) lattice coordinates\n"
+			"\tCartesian: Use cartesian coordinates\n"
+			"\tContravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.iInfo.forcesOutputCoords, ForcesCoordsPositions, forcesOutputCoordsMap, "coords");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	fputs(forcesOutputCoordsMap.getString(e.iInfo.forcesOutputCoords), globalLog);
+	}
+}
+commandForcesOutputCoords;

@@ -37,7 +37,7 @@ EnumStringMap<PCMVariant> pcmVariantDescMap
 
 struct CommandPcmVariant : public Command
 {
-	CommandPcmVariant() : Command("pcm-variant")
+	CommandPcmVariant() : Command("pcm-variant", "Fluid parameters")
 	{
 		format = "[<variant>=GLSSA13]";
 		comments = "Select LinearPCM or NonlinearPCM <variant> amongst:"
@@ -91,7 +91,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 
 struct CommandPcmParams : public Command
 {
-	CommandPcmParams() : Command("pcm-params")
+	CommandPcmParams() : Command("pcm-params", "Fluid parameters")
 	{	
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Adjust PCM solvent parameters. Possible keys and value types are:"
@@ -143,7 +143,7 @@ commandPcmParams;
 
 struct CommandPCMnonlinearDebug : public Command
 {
-    CommandPCMnonlinearDebug() : Command("pcm-nonlinear-debug")
+    CommandPCMnonlinearDebug() : Command("pcm-nonlinear-debug", "Fluid parameters")
 	{
 		format = "<linearDielectric>=" + boolMap.optionList() + " <linearScreening>=" + boolMap.optionList();
 		comments = "Emulate linear response of the dielectric or screening within NonlinearPCM (for debugging purposes only)";
@@ -166,7 +166,7 @@ commandPCMnonlinearDebug;
 
 struct CommandIonWidth : public Command
 {
-	CommandIonWidth() : Command("ion-width")
+	CommandIonWidth() : Command("ion-width", "Fluid parameters")
 	{
 		format = "Ecut | fftbox | <width>";
 		comments = "Manually specify width of gaussian representations of nuclear charge in bohr\n"
