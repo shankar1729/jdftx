@@ -80,7 +80,7 @@ EnumStringMap<SCFparams::MixedVariable> scfMixing
 
 struct CommandsScfParams: public Command
 {
-	CommandsScfParams() : Command("electronic-scf")
+	CommandsScfParams() : Command("electronic-scf", "Electronic optimization")
 	{	
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:"
