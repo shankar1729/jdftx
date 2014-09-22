@@ -63,7 +63,8 @@ public:
 	string name; //!< identifier for the command in the input file (MUST be unique!)
 	string format; //!< usage syntax for the command (excluding the command name)
 	string comments; //!< more detailed help for the command (note comment characters are automatically added!)
-
+	string category; //!< name defining a category of related commands (used only in HTML command manual)
+	
 	std::set<string> requires; //!< names of other commands this requires (those will be processed before)
 	std::set<string> forbids; //!< names of other commands this is incompatibile with
 
@@ -84,7 +85,7 @@ public:
 protected:
 	//! This base class constructor adds the current command to a map from names to Command pointers
 	//! which can be accessed using getCommandMap(). This enables safe static initialization of the command list.
-	Command(string name);
+	Command(string name, string category="Miscellaneous");
 
 	void require(string); //!< utility to add a command to the requires list
 	void forbid(string); //!< utility to add a command to the forbids list

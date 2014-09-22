@@ -30,7 +30,7 @@ map<string,Command*>& getCommandMap()
 {	return updateCommandMap(0);
 }
 
-Command::Command(string name) : name(name)
+Command::Command(string name, string category) : name(name), category(category)
 {	updateCommandMap(this);
 }
 

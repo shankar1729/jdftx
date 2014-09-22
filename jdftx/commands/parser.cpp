@@ -421,19 +421,43 @@ void writeCommandManual(Everything& everything)
 	processDefaults(everything, cmap);
 	//HTML header and stylesheet:
 	logPrintf("<html><head><style>\n");
-	logPrintf(".commandpane {"
+	logPrintf(".indexpane,.commandpane {"
 		"padding: 1em; margin: 1em;"
 		"border-style: solid; border-width: 2px; border-radius: 1em;"
-		"background-color: #def; border-color: #345;"
 		"}\n");
-	logPrintf("h1 { color: #347; font-size: 150%%; }\n");
-	logPrintf("h2 { color: #235; font-size: 120%%; }\n");
+	logPrintf(".indexpane { background-color: #fed; border-color: #543; }\n");
+	logPrintf(".commandpane { background-color: #def; border-color: #345; }\n");
+	logPrintf("h1 { font-size: 150%%; }\n");
+	logPrintf("h2 { font-size: 120%%; }\n");
+	logPrintf("a:link    { color: #158; text-decoration: none; }\n");
+	logPrintf("a:visited { color: #858; text-decoration: none; }\n");
+	logPrintf("a:hover   { color: #18c; text-decoration: none; }\n");
+	logPrintf("a:active  { color: #158; text-decoration: none; }\n");
 	logPrintf("</style></head><body>\n");
+	//Generate index:
+	std::multimap<string, string> categoryMap;
+	for(const auto& i: cmap)
+	{	const Command& ci = *(i.second.second);
+		categoryMap.insert(std::make_pair(ci.category, ci.name));
+	}
+	string prevCategory;
+	logPrintf("<div class=\"indexpane\">\n");
+	logPrintf("<h1>Commands:</h1>\n");
+	for(const auto& i: categoryMap)
+	{	const string& category = i.first;
+		const string& name = i.second;
+		if(category != prevCategory)
+		{	logPrintf("<h2>%s</h2>\n", category.c_str());
+			prevCategory = category;
+		}
+		logPrintf("<a href=\"#%s\">%s</a>\n", name.c_str(), name.c_str());
+	}
+	logPrintf("</div>\n");
 	//All commands in alphabetical order:
-	for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
-	{	Command& ci = *(i->second.second);
+	for(auto& i: cmap)
+	{	Command& ci = *(i.second.second);
 		//Print header:
-		logPrintf("<div class=\"commandpane\">\n");
+		logPrintf("<div class=\"commandpane\" id=\"%s\">\n", ci.name.c_str());
 		logPrintf("<h1>%s</h1>\n", ci.name.c_str());
 		//Print syntax:
 		logPrintf("<h2>Syntax:</h2>\n<pre>\n");
@@ -450,6 +474,7 @@ void writeCommandManual(Everything& everything)
 			ci.printStatus(everything, 0);
 			logPrintf("</pre>\n");
 		}
+		logPrintf("<a href=\"#top\">Top</a>\n");
 		logPrintf("</div>\n");
 	}
 	//HTML footer:
