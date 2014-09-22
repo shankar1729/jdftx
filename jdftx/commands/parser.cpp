@@ -419,12 +419,21 @@ void printHTMLsafe(string s)
 void writeCommandManual(Everything& everything)
 {	ProcessedCommandMap cmap;
 	processDefaults(everything, cmap);
-	//HTML header:
-	logPrintf("<html><body>\n");
+	//HTML header and stylesheet:
+	logPrintf("<html><head><style>\n");
+	logPrintf(".commandpane {"
+		"padding: 1em; margin: 1em;"
+		"border-style: solid; border-width: 2px; border-radius: 1em;"
+		"background-color: #def; border-color: #345;"
+		"}\n");
+	logPrintf("h1 { color: #347; font-size: 150%%; }\n");
+	logPrintf("h2 { color: #235; font-size: 120%%; }\n");
+	logPrintf("</style></head><body>\n");
 	//All commands in alphabetical order:
 	for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
 	{	Command& ci = *(i->second.second);
 		//Print header:
+		logPrintf("<div class=\"commandpane\">\n");
 		logPrintf("<h1>%s</h1>\n", ci.name.c_str());
 		//Print syntax:
 		logPrintf("<h2>Syntax:</h2>\n<pre>\n");
@@ -441,7 +450,7 @@ void writeCommandManual(Everything& everything)
 			ci.printStatus(everything, 0);
 			logPrintf("</pre>\n");
 		}
-		logPrintf("<hr/>\n");
+		logPrintf("</div>\n");
 	}
 	//HTML footer:
 	logPrintf("</html></body>\n");

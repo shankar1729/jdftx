@@ -1,4 +1,9 @@
-<html><body>
+<html><head><style>
+.commandpane {padding: 1em; margin: 1em;border-style: solid; border-width: 2px; border-radius: 1em;background-color: #def; border-color: #345;}
+h1 { color: #347; font-size: 150%; }
+h2 { color: #235; font-size: 120%; }
+</style></head><body>
+<div class="commandpane">
 <h1>add-U</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -20,7 +25,8 @@ Repeat the sequence for corrections to multiple species.
 If pseudoatom has multiple shells of same angular momentum, prefix &lt;orbDesc&gt;
 with a number e.g. 1p or 2p to select the first or second p shell respectively.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>basis</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -33,7 +39,8 @@ Basis set at each k-point (default), or single basis set at gamma point
 <h2>Default:</h2>
 <pre>
 basis kpoint-dependent</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>box-potential</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -43,7 +50,8 @@ box-potential xmin xmax ymin ymax zmin zmax Vin Vout [&lt;convolve_radius&gt;=0.
 <pre>
 Include an step-function shaped external potential (in hartrees) for the electrons
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>cache-projectors</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -53,7 +61,8 @@ cache-projectors yes|no
 <pre>
 Cache nonlocal-pseudopotential projectors (yes by default); turn off to save memory.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>chargeball</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -65,7 +74,8 @@ Gaussian chargeball of norm &lt;norm&gt; and width &lt;width&gt; for species &lt
 This feature is deprecated; when possible, use a pseudopotential with
 partial core correction instead.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>coords-type</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -78,7 +88,8 @@ Coordinate system used in specifying ion positions (default: lattice)
 <h2>Default:</h2>
 <pre>
 coords-type lattice</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>core-overlap-check</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -95,7 +106,8 @@ Checks for core overlaps between ionic pseudopotentials.
 <h2>Default:</h2>
 <pre>
 core-overlap-check vector</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>coulomb-interaction</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -134,7 +146,8 @@ and may cross unit cell boundaries.
 <h2>Default:</h2>
 <pre>
 coulomb-interaction Periodic</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>coulomb-truncation-embed</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -149,7 +162,8 @@ but breaks translational invariance and requires the specification of a center.
 Coordinate system for center (&lt;c0&gt; &lt;c1&gt; &lt;c2&gt;) is as specified by coords-type.
 (Default: not enabled i.e. employs translationally invariant scheme)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>coulomb-truncation-ion-margin</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -163,7 +177,8 @@ distance from nuclei where the electron density becomes negligible, so as to
 ensure the electron density satisfies those localization constraints.
 (Default: 5 bohrs, minimum allowed: 1 bohr)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>custom-filling</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -175,7 +190,8 @@ Specify a custom filling for the input (quantum-number, band)
 Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO
 Fillings are in normalized units, as output by the dumpName.fillings file
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>davidson-band-ratio</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -191,7 +207,8 @@ expense of increased memory reuiqrements.
 <h2>Default:</h2>
 <pre>
 davidson-band-ratio 1.1</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>debug</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -209,7 +226,8 @@ Each &lt;option&gt; is one of
    Symmetries   Print various symmetry matrices during start up
 Default: none of the optional outputs
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>density-of-states</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -296,7 +314,8 @@ that control aspects of the density of states computation are:
 This command adds DOS to dump-frequency End, but this may be altered
 within a dump command of appropriate frequency (see command dump).
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>dump</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -359,7 +378,8 @@ Use command dump-interval to dump at regular intervals instead of every iteratio
 <h2>Default:</h2>
 <pre>
 dump End State</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>dump-Eresolved-density</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -373,7 +393,8 @@ outputs will be numbered sequenetially EresolvedDensity.0 etc.
 Will automatically be dumped at End; dumping at other frequencies
 may be requested using the dump command.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>dump-interval</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -384,7 +405,8 @@ dump-interval &lt;freq&gt; &lt;interval&gt;
 Dump every &lt;interval&gt; iterations of type &lt;freq&gt;=Ionic|Electronic|Fluid|Gummel
 Without this command, the behavior defaults to &lt;interval&gt;=1 for each &lt;freq&gt;.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>dump-name</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -400,7 +422,8 @@ dump-name &lt;format&gt;
 <h2>Default:</h2>
 <pre>
 dump-name $STAMP.$VAR</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>eigen-shift</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -412,7 +435,8 @@ When fillings are computed during electronic-scf, shifts KS eigenvalue of (qnum,
 Band index is calculated from HOMO, unless fromHOMO is set to no
 
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-cutoff</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -426,7 +450,8 @@ Electronic planewave cutoff in Hartree. Optionally specify charge density cutoff
 <h2>Default:</h2>
 <pre>
 elec-cutoff 20</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-eigen-algo</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -439,7 +464,8 @@ Selects eigenvalue algorithm for band-structure calculations or inner loop of SC
 <h2>Default:</h2>
 <pre>
 elec-eigen-algo Davidson</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-ex-corr</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -473,7 +499,8 @@ Additional functionals can be enabled by compiling with LibXC support.
 <h2>Default:</h2>
 <pre>
 elec-ex-corr gga-PBE</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-ex-corr-compare</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -486,7 +513,8 @@ This command may be specified multiple times. It invokes 'dump End ExcCompare'
 automatically, but the compute frequency can be controlled using dump explicitly.
 The available options for each parameter are identical to elec-ex-corr
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-fermi-fillings</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -498,7 +526,8 @@ Fermi-Dirac fillings at a temperature &lt;kT&gt; (in Hartrees).
   If &lt;mixInterval&gt; is zero, use the auxilliary hamiltonian method (recommended).
   Else, mix fermi functions every &lt;mixInterval&gt; iterations with mixing fraction &lt;alpha&gt;.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-initial-charge</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -510,7 +539,8 @@ Initialize a system with &lt;QNet&gt; excess unpolarized electrons
 or with &lt;QupNet&gt; and &lt;QdnNet&gt; excess electrons in each spin channel.
 Both versions are valid irrespective of whether system is spin-polarized.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-initial-fillings</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -523,7 +553,8 @@ Initial electronic fillings are read from &lt;filename&gt; instead of computed a
 	extra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands
 	default: 0 =&gt; fillings file has same number of bands as this run
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-initial-Haux</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -534,7 +565,8 @@ elec-initial-Haux &lt;filename&gt;
 Read the auxilliary hamiltonian for direct fillings (default: set to subspace hamiltonian)
 
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>elec-n-bands</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -545,7 +577,8 @@ elec-n-bands &lt;n&gt;
 Manually specify the number of bands (Default: set nBands assuming insulator
 or in the case of fillings, equal to total number of atomic orbitals.)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>electronic-minimize</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -591,7 +624,8 @@ electronic-minimize  \
 	wolfeEnergy          0.0001 \
 	wolfeGradient        0.9 \
 	fdTest               no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>electronic-scf</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -616,7 +650,8 @@ Enables self-consistent residual minimization.  If provided, keys adjust SCF par
    verbose                    whether the inner eigenvalue solver will print or not
 Any number of these key-value pairs may be specified in any order.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>exchange-regularization</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -652,7 +687,8 @@ in command coulomb-interaction
 <h2>Default:</h2>
 <pre>
 exchange-regularization WignerSeitzTruncated</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fftbox</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -662,7 +698,8 @@ fftbox &lt;S0&gt; &lt;S1&gt; &lt;S2&gt;
 <pre>
 Specify a manual FFT box
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fix-electron-density</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -676,7 +713,8 @@ must contain $VAR which will be replaced by the appropriate variable
 names accounting for spin-polarization (same as used for dump).
 Meta-GGA calculations will also require the corresponding kinetic density.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fix-electron-potential</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -690,7 +728,8 @@ must contain $VAR which will be replaced by the appropriate variable
 names accounting for spin-polarization (same as used for dump).
 Meta-GGA calculations will also require the corresponding kinetic potential.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fix-occupied</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -702,7 +741,8 @@ Fix orbitals with fillings larger than &lt;fThreshold&gt; in band-structure calc
 The occupied orbitals must be read in using the wavefunction / initial-state commands.
 
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -717,7 +757,8 @@ Enable joint density functional theory
 <h2>Default:</h2>
 <pre>
 fluid None</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-anion</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -731,7 +772,8 @@ For classical DFT fluids, the excess functional may be one of BondedVoids|Fitted
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
 See command fluid-solvent for a description of adjustable properties.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-cation</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -745,7 +787,8 @@ For classical DFT fluids, the excess functional may be one of BondedVoids|Fitted
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
 See command fluid-solvent for a description of adjustable properties.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-dielectric-constant</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -755,7 +798,8 @@ fluid-dielectric-constant [&lt;epsBulkOverride&gt;=0] [&lt;epsInfOverride&gt;=0]
 <pre>
 Override bulk static or high frequency dieelctric constant of fluid (if non-zero values specified)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-ex-corr</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -773,7 +817,8 @@ and defaults to lda-pz.
 <h2>Default:</h2>
 <pre>
 fluid-ex-corr lda-TF lda-PZ</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-gummel-loop</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -788,7 +833,8 @@ Settings for the fluid &lt;--&gt; electron self-consistency loop:
 <h2>Default:</h2>
 <pre>
 fluid-gummel-loop 10 1.000000e-05</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-initial-state</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -798,7 +844,8 @@ fluid-initial-state &lt;filename&gt;
 <pre>
 Read initial state of a fluid (compatible with *.fluidState from dump End State)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-minimize</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -844,7 +891,8 @@ fluid-minimize  \
 	wolfeEnergy          0.0001 \
 	wolfeGradient        0.9 \
 	fdTest               no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-mixing-functional</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -857,7 +905,8 @@ fluid-mixing-functional &lt;fluid1&gt; &lt;fluid2&gt; &lt;energyScale&gt; [&lt;l
        with strength &lt;energyScale&gt; and range parameter &lt;lengthScale&gt;.
 
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-site-params</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -884,7 +933,8 @@ Any number of these key-value pairs may be specified in any order.
 <h2>Default:</h2>
 <pre>
 fluid-site-params </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-solvent</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -924,7 +974,8 @@ fluid-solvent H2O 55.338 ScalarEOS \
 	sigmaBulk 4.62e-05 \
 	Rvdw 2.61727 \
 	Res 1.42</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>fluid-vdwScale</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -936,7 +987,8 @@ Scale van der Waals interactions between fluid and explicit system by a constant
    Default is fluid specific, but ranges between 0.4 to 1.3.
    Set to 0 to use the prefactor corresponding to fluid exchange-correlation.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>forces-output-coords</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -953,7 +1005,8 @@ Coordinate system to use for force output in logPrintf-file as well as dump:
 <h2>Default:</h2>
 <pre>
 forces-output-coords Positions</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>initial-magnetic-moments</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -971,7 +1024,8 @@ to the atoms in the order of ion commands for that species.
 This may be used to construct a spin-polarized reference density
 for LCAO initialization of the Kohn-Sham orbitals.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>initial-oxidation-state</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -982,7 +1036,8 @@ initial-oxidation-state &lt;species&gt; &lt;oxState&gt; [&lt;species2&gt; ...]
 Specify initial oxidation state assumed for each species in LCAO.
 This may significantly improve LCAO convergence in some cases.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>initial-state</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1001,7 +1056,8 @@ This command will invoke the read only for those state variables for which
 the corresponding files exist, leaving the rest with default initialization.
 When using SCF, this will also read scfHistory and eigenvalues if available.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>inverseKohnSham-minimize</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1047,7 +1103,8 @@ inverseKohnSham-minimize  \
 	wolfeEnergy          0.0001 \
 	wolfeGradient        0.9 \
 	fdTest               no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>invertKohnSham</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1073,7 +1130,8 @@ the response function of a similar electronic system. The pattern
 should contain $VAR which will be used to read wavefunctions,
 eigenvalues and fillings (these should include empty states).
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>ion</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1088,7 +1146,8 @@ direction or plane normal equal to (&lt;d0&gt;,&lt;d1&gt;,&lt;d2&gt;) in the coo
 system selected by command coords-type. Note that the constraints must
 be consistent with respect to symmetries (if enabled).
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>ion-species</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1117,7 +1176,8 @@ If [&lt;path&gt;/]&lt;id&gt;.pulay exists, pulay data (derivative of total energ
 number of planewaves per unit volume) will be read from that file. This is useful for
 lattice minimization at low cutoffs; see script calcPulay for generating such files.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>ion-width</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1134,7 +1194,8 @@ for LinearPCM/NonlinearPCM and 0 (no widening) for all other fluid types.
 <h2>Default:</h2>
 <pre>
 ion-width 0</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>ionic-minimize</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1180,7 +1241,8 @@ ionic-minimize  \
 	wolfeEnergy          0.0001 \
 	wolfeGradient        0.9 \
 	fdTest               no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>kpoint</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1194,7 +1256,8 @@ A single k-point at 0,0,0 (Gamma point) with weight 1 is used if unspecified.
 <h2>Default:</h2>
 <pre>
 kpoint   0.000000000000   0.000000000000   0.000000000000  1.00000000000000</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>kpoint-folding</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1207,7 +1270,8 @@ Fold k-points in direction i by factor &lt;ni&gt; (for i=0,1,2)
 <h2>Default:</h2>
 <pre>
 kpoint-folding 1 1 1 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>latt-move-scale</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1220,7 +1284,8 @@ Preconditioning factor for each lattice vector (must be commensurate with symmet
 <h2>Default:</h2>
 <pre>
 latt-move-scale 1 1 1</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>latt-scale</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1233,7 +1298,8 @@ Scale lattice vector i by factor &lt;si&gt;
 <h2>Default:</h2>
 <pre>
 latt-scale 1 1 1 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>lattice</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1255,7 +1321,8 @@ The options for the [&lt;modification&gt;] &lt;lattice&gt; &lt;parameters...&gt;
    Hexagonal &lt;a&gt; &lt;c&gt;
    [Body|Face-Centered] Cubic &lt;a&gt;
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>lattice-minimize</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1301,7 +1368,8 @@ lattice-minimize  \
 	wolfeEnergy          0.0001 \
 	wolfeGradient        0.9 \
 	fdTest               no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>lcao-params</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1319,7 +1387,8 @@ Control LCAO wavefunction initialization:
 <h2>Default:</h2>
 <pre>
 lcao-params -1 1e-06 0.001</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>pcm-nonlinear-debug</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1329,7 +1398,8 @@ pcm-nonlinear-debug &lt;linearDielectric&gt;=no|yes &lt;linearScreening&gt;=no|y
 <pre>
 Emulate linear response of the dielectric or screening within NonlinearPCM (for debugging purposes only)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>pcm-params</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1347,7 +1417,8 @@ Adjust PCM solvent parameters. Possible keys and value types are:
    sqrtC6eff     sqrt(effective molecule C6 coefficient) for SG14NL
 Any number of these key-value pairs may be specified in any order.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>pcm-variant</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1365,7 +1436,8 @@ Select LinearPCM or NonlinearPCM &lt;variant&gt; amongst:
 <h2>Default:</h2>
 <pre>
 pcm-variant GLSSA13</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>polarizability</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1375,7 +1447,8 @@ polarizability &lt;eigenBasis&gt;=External|NonInteracting|Total [&lt;Ecut&gt;=0]
 <pre>
 Output polarizability matrix in specified eigeneigenBasis
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>polarizability-kdiff</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1388,7 +1461,8 @@ Select k-point difference (in reciprocal lattice coords) for polarizability outp
 does not belong to the k-point mesh. This string should be a filename pattern containing
 $VAR (to be replaced by eigenvals and wfns) and $q (to be replaced by state index)
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>reorthogonalize-orbitals</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1403,7 +1477,8 @@ Set &lt;interval&gt; = 0 to disable this check.
 <h2>Default:</h2>
 <pre>
 reorthogonalize-orbitals 20 1.5</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>rhoExternal</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1416,7 +1491,8 @@ which interacts electrostatically with the electrons, nuclei and fluid.
 If &lt;includeSelfEnergy&gt;=yes (default no), then the Coulomb self-energy
 of rhoExternal is included in the output energy.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>setVDW</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1427,7 +1503,8 @@ setVDW &lt;species&gt; &lt;C6&gt; &lt;R0&gt; [ &lt;species2&gt; ... ]
 Manually adjust DFT-D2 vdW parameters from the default (atomic number based) values.
 Specify C6 in J/mol*Angstrom^6 and R0 in Angstrom.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>spin-restricted</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1439,7 +1516,8 @@ Select whether to perform restricted spin-polarized calculations (default no).
 Note that computational optimizations are minimal in current restricted implementation.
 The format of wavefunction files depends on the spin, but is unaffected by this flag.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>spintype</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1456,7 +1534,8 @@ Select spin-polarization type:
 <h2>Default:</h2>
 <pre>
 spintype no-spin</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>subspace-rotation-factor</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1469,7 +1548,8 @@ preconditioning factor for subspace rotations
 <h2>Default:</h2>
 <pre>
 subspace-rotation-factor 30</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>symmetries</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1486,7 +1566,8 @@ and quit after suggesting the translated positions if &lt;moveAtoms&gt;=yes.
 <h2>Default:</h2>
 <pre>
 symmetries automatic no</pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>symmetry-matrix</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1497,7 +1578,8 @@ symmetry-matrix &lt;s00&gt; &lt;s01&gt; &lt;s02&gt; &lt;s10&gt; &lt;s11&gt; &lt;
 Specify symmetry operator matrices explicitly.
 Requires symmetries command to be called with manual argument
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>target-mu</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1509,7 +1591,8 @@ Fixed chemical potential &lt;mu&gt; (instead of fixed charge)
 	Cinitial: Initial capacitance, affects only first few mixing steps
 	dnMix: Scale the ideal step in n by this factor
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>tau-core</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1524,7 +1607,8 @@ If &lt;rCut&gt;=0, it is chosen to be 1.5 times the location of the first radial
 maximum in the TF+VW KE density. Optionally, if &lt;plot&gt;=yes, the resulting
 core KE density (and electron density) are output to a gnuplot-friendly file.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>van-der-waals</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1537,7 +1621,8 @@ Implementation follows "S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)"
 Exchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.
 Manually specify &lt;scaleOverride&gt; to use with other functionals
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>Vexternal</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1548,7 +1633,8 @@ Vexternal &lt;filename&gt; | &lt;filenameUp&gt; &lt;filenameDn&gt;
 Include an external potential (in hartrees) for the electrons
 (real space binary). Specify two files if V is spin-polarized.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>vibrations</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1574,7 +1660,8 @@ Any number of the following subcommands and their arguments may follow:
   omegaResolution &lt;omegaResolution&gt;: resolution for detecting and reporting degeneracies
      in modes (default: 1e-4). Does not affect free energies and all modes are still printed.
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>wavefunction</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1602,7 +1689,8 @@ Wavefunction initialization: use atomic orbitals (default), randomize or read fr
      the wavefunction will be appropriately up/down-sampled in Fourier space
      default: 0 =&gt; old and current fftbox must match exactly
 </pre>
-<hr/>
+</div>
+<div class="commandpane">
 <h1>wavefunction-drag</h1>
 <h2>Syntax:</h2>
 <pre>
@@ -1612,5 +1700,5 @@ wavefunction-drag yes|no
 <pre>
 Drag wavefunctions when ions are moved using atomic orbital projections (yes by default).
 </pre>
-<hr/>
+</div>
 </html></body>
