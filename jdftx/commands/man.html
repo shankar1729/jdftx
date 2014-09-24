@@ -10,6 +10,22 @@ a:hover   { color: #18c; text-decoration: none; }
 a:active  { color: #158; text-decoration: none; }
 </style></head><body>
 <div class="indexpane">
+<h1>Input file format:</h1>
+<pre> * The input file may contain commands in any order; commands will be
+   automatically processed in an order that satisfies all dependencies
+
+ * Each command is a single line, but lines can be continued using '\'
+
+ * Whitespace is unimportant, except for separating words in each line
+
+ * Any text following '#' on an input line is treated as a comment
+
+ * 'include &lt;file&gt;' can be used to include commands from &lt;file&gt;
+
+ * Each instance of ${xxx} is replaced by environment variable 'xxx'
+   (Variable substitution occurs before command/include processing)
+</pre></div>
+<div class="indexpane">
 <h1>Commands:</h1>
 <p><b>Coulomb</b>:
 &nbsp;&nbsp;&nbsp;<a href="#coulomb-interaction">coulomb-interaction</a>

@@ -374,6 +374,23 @@ inline void processDefaults(Everything& everything, ProcessedCommandMap& cmap)
 			}
 }
 
+inline string describeSyntax()
+{	return
+		" * The input file may contain commands in any order; commands will be\n"
+		"   automatically processed in an order that satisfies all dependencies\n"
+		"\n"
+		" * Each command is a single line, but lines can be continued using '\\'\n"
+		"\n"
+		" * Whitespace is unimportant, except for separating words in each line\n"
+		"\n"
+		" * Any text following '#' on an input line is treated as a comment\n"
+		"\n"
+		" * 'include <file>' can be used to include commands from <file>\n"
+		"\n"
+		" * Each instance of ${xxx} is replaced by environment variable 'xxx'\n"
+		"   (Variable substitution occurs before command/include processing)\n";
+}
+
 void printDefaultTemplate(Everything& everything)
 {	ProcessedCommandMap cmap;
 	processDefaults(everything, cmap);
@@ -391,19 +408,13 @@ void printDefaultTemplate(Everything& everything)
 		logPrintf("\n");
 	}
 	//Print general input file help:
-	logPrintf
-	(	"# +------------------------------------------------------------------------+\n"
+	logPrintf("\n\n"
+		"# +------------------------------------------------------------------------+\n"
 		"# |                       JDFTx input file format                          |\n"
 		"# +------------------------------------------------------------------------+\n"
-		"# |  * The input file may contain the above commands in any order.         |\n"
-		"# |  * Each command is a single line, but lines can be continued using '\\' |\n"
-		"# |  * Any text following '#' on an input line is treated as a comment.    |\n"
-		"# |  * 'include <file>' can be used to include commands from <file>        |\n"
-		"# |  * Each instance of ${xxx} is replaced by environment variable 'xxx'   |\n"
-		"# |       (Variable substitution occurs before command/include processing) |\n"
-		"# +------------------------------------------------------------------------+\n"
-		"\n"
+		"#\n"
 	);
+	printCommented(describeSyntax());
 }
 
 inline string htmlEscapeCharacters(string s)
@@ -473,6 +484,11 @@ void writeCommandManual(Everything& everything)
 	logPrintf("a:hover   { color: #18c; text-decoration: none; }\n");
 	logPrintf("a:active  { color: #158; text-decoration: none; }\n");
 	logPrintf("</style></head><body>\n");
+	//General input file format specification:
+	logPrintf("<div class=\"indexpane\">\n");
+	logPrintf("<h1>Input file format:</h1>\n<pre>");
+	printHTMLformatted(describeSyntax());
+	logPrintf("</pre></div>\n");
 	//Generate index:
 	std::multimap<string, string> categoryMap;
 	for(const auto& i: cmap)
