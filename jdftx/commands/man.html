@@ -207,7 +207,7 @@ chargeball &lt;species-id&gt; &lt;norm&gt; &lt;width&gt;
 </pre>
 <h2>Description:</h2>
 <pre>
-Gaussian chargeball of norm &lt;norm&gt; and width &lt;width&gt; for species &lt;id&gt;
+Gaussian <a href="#chargeball">chargeball</a> of norm &lt;norm&gt; and width &lt;width&gt; for species &lt;id&gt;
 This feature is deprecated; when possible, use a pseudopotential with
 partial core correction instead.
 </pre>
@@ -325,7 +325,7 @@ Compute truncated Coulomb interaction in a double-sized box (doubled only
 along truncated directions). This relaxes the L/2 localization constraint
 otherwise required by truncated potentials (see command <a href="#coulomb-interaction">coulomb-interaction</a>),
 but breaks translational invariance and requires the specification of a center.
-Coordinate system for center (&lt;c0&gt; &lt;c1&gt; &lt;c2&gt;) is as specified by coords-type.
+Coordinate system for center (&lt;c0&gt; &lt;c1&gt; &lt;c2&gt;) is as specified by <a href="#coords-type">coords-type</a>.
 (Default: not enabled i.e. employs translationally invariant scheme)
 </pre>
 <h2>Properties:</h2>
@@ -457,12 +457,12 @@ column in the output file (various weighting modes) and arguments are:
       Compute the total density of states (no arguments)
    Slice  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
       Density of states in a planar slab centered at (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;)
-      in the coordinate system selected by coords-type, parallel to
+      in the coordinate system selected by <a href="#coords-type">coords-type</a>, parallel to
       the lattice plane specified by Miller indices (&lt;i0&gt;,&lt;i1&gt;,&lt;i2&gt;),
       with half-width &lt;r&gt; bohrs normal to the lattice plane.
    Sphere  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;
       Density of states in a sphere of radius &lt;r&gt; bohrs centered at
-      (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;) in the coordinate system selected by coords-type.
+      (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;) in the coordinate system selected by <a href="#coords-type">coords-type</a>.
    AtomSlice  &lt;species&gt; &lt;atomIndex&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
       Like Slice mode, with center located at atom number &lt;atomIndex&gt;
       (1-based index, in input file order) of species name &lt;species&gt;.
@@ -564,7 +564,7 @@ and each &lt;var*&gt; is one of:
    Fillings                  Fillings
    FluidDebug                Fluid specific debug output if any  [not in All]
    FluidDensity              Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
-   Forces                    Forces on the ions in the coordinate system selected by command forces-output-coords
+   Forces                    Forces on the ions in the coordinate system selected by command <a href="#forces-output-coords">forces-output-coords</a>
    Gvectors                  List of G vectors in reciprocal lattice basis, for each k-point
    IonicDensity              Nuclear charge density (with gaussians)
    IonicPositions            Ionic positions in the same format (and coordinate system) as the input file
@@ -589,7 +589,7 @@ and each &lt;var*&gt; is one of:
    Vscloc                    Self-consistent potential
    XCanalysis                XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
 List of dumped variables from multiple instances will be accumulated for each &lt;freq&gt;.
-Use command dump-interval to dump at regular intervals instead of every iteration.
+Use command <a href="#dump-interval">dump-interval</a> to dump at regular intervals instead of every iteration.
 </pre>
 <h2>Properties:</h2>
 <p><b>Requires:</b>
@@ -677,7 +677,7 @@ eigen-shift &lt;qnum&gt; &lt;band&gt; &lt;shift&gt; [&lt;fromHOMO&gt;=yes]
 </pre>
 <h2>Description:</h2>
 <pre>
-When fillings are computed during electronic-scf, shifts KS eigenvalue of (qnum, band) by shift
+When fillings are computed during <a href="#electronic-scf">electronic-scf</a>, shifts KS eigenvalue of (qnum, band) by shift
 Band index is calculated from HOMO, unless fromHOMO is set to no
 
 </pre>
@@ -787,7 +787,7 @@ elec-ex-corr-compare &lt;functional&gt;
 Compute total energies for other functionals at the final state for comparison.
 This command may be specified multiple times. It invokes 'dump End ExcCompare'
 automatically, but the compute frequency can be controlled using dump explicitly.
-The available options for each parameter are identical to elec-ex-corr
+The available options for each parameter are identical to <a href="#elec-ex-corr">elec-ex-corr</a>
 </pre>
 <h2>Properties:</h2>
 <p><b>Requires:</b>
@@ -970,11 +970,11 @@ Enables self-consistent residual minimization.  If provided, keys adjust SCF par
    eigDiffThreshold           convergence threshold for the RMS difference in KS eigenvalues between successive iterations
    energyDiffThreshold        convergence threshold for energy difference between successive iterations
    history                    number of past residuals and vectors are kept cached and used in DIIS
-   maximum-overlap-method     uses the maximum-overlap method to determine fillings, discards elec-fermi-fillings
+   maximum-overlap-method     uses the maximum-overlap method to determine fillings, discards <a href="#elec-fermi-fillings">elec-fermi-fillings</a>
    mixedVariable              whether density or potential will be mixed at each step
    mixFraction                mix fraction for total density / potential (default 0.5)
    mixFractionMag             mix fraction for magnetization density / potential (default 1.5)
-   nEigSteps                  number of eigenvalue steps per iteration (if 0, limited by electronic-minimize nIterations)
+   nEigSteps                  number of eigenvalue steps per iteration (if 0, limited by <a href="#electronic-minimize">electronic-minimize</a> nIterations)
    nIterations                maximum iterations (single point calculation if 0)
    qKerker                    wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
    qMetric                    wavevector controlling the DIIS metric (default: 0.8 bohr^-1)
@@ -1004,7 +1004,7 @@ exchange-regularization &lt;method&gt;=AuxiliaryFunction|None|ProbeChargeEwald|S
 <pre>
 Regularization / singularity correction method for exact exchange.
 The allowed methods and defaults depend on the setting of &lt;geometry&gt;
-in command coulomb-interaction
+in command <a href="#coulomb-interaction">coulomb-interaction</a>
    None
       No singularity correction: default and only option for non-periodic
       systems with no G=0 singularity (&lt;geometry&gt; = Spherical / Isolated).
@@ -1122,7 +1122,7 @@ fix-occupied [&lt;fThreshold&gt;=0]
 <h2>Description:</h2>
 <pre>
 Fix orbitals with fillings larger than &lt;fThreshold&gt; in band-structure calculations
-The occupied orbitals must be read in using the wavefunction / initial-state commands.
+The occupied orbitals must be read in using the wavefunction / <a href="#initial-state">initial-state</a> commands.
 
 </pre>
 <h2>Properties:</h2>
@@ -1234,7 +1234,7 @@ Kinetic energy functional for fluid convolution coupling where &lt;kinetic&gt; i
    gga-PW91k Perdew-Wang GGA kinetic energy parameterized by Lembarki and Chermette
    gga-vW    von Weisacker correction to LDA kinetic energy
    lda-TF    Thomas-Fermi LDA kinetic energy.
-The available options for &lt;exchange-correlation&gt; are identical to elec-ex-corr
+The available options for &lt;exchange-correlation&gt; are identical to <a href="#elec-ex-corr">elec-ex-corr</a>
 and defaults to lda-pz.
 </pre>
 <h2>Properties:</h2>
@@ -1479,7 +1479,7 @@ forces-output-coords &lt;coords&gt;=Cartesian|Contravariant|Lattice|Positions
 <h2>Description:</h2>
 <pre>
 Coordinate system to use for force output in logPrintf-file as well as dump:
-	Positions: Use the same coordinate system as ionic position input (selected by coords-type) [default].
+	Positions: Use the same coordinate system as ionic position input (selected by <a href="#coords-type">coords-type</a>) [default].
 	Lattice:   Use (covariant) lattice coordinates
 	Cartesian: Use cartesian coordinates
 	Contravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))
@@ -1554,9 +1554,9 @@ initial-state &lt;filename-pattern&gt;
 Initialize state from a filename pattern which contains a $VAR,
 equivalent to invoking the following commands:
    wavefunction          read  &lt;filename-pattern&gt;/$VAR/wfns
-   elec-initial-fillings read  &lt;filename-pattern&gt;/$VAR/fillings
-   elec-initial-Haux           &lt;filename-pattern&gt;/$VAR/Haux
-   fluid-initial-state         &lt;filename-pattern&gt;/$VAR/fluidState
+   <a href="#elec-initial-fillings">elec-initial-fillings</a> read  &lt;filename-pattern&gt;/$VAR/fillings
+   <a href="#elec-initial-Haux">elec-initial-Haux</a>           &lt;filename-pattern&gt;/$VAR/Haux
+   <a href="#fluid-initial-state">fluid-initial-state</a>         &lt;filename-pattern&gt;/$VAR/fluidState
 (where A/x/y is sed for 'find x in A and replace it with y'.)
 This command will invoke the read only for those state variables for which
 the corresponding files exist, leaving the rest with default initialization.
@@ -1637,12 +1637,12 @@ invertKohnSham [&lt;nonlocal&gt;=yes] [&lt;sigma&gt;=0] [&lt;chiGuessFilename&gt
 <h2>Description:</h2>
 <pre>
 Solve inverse Kohn-Sham problem: for a given electron density
-specified using fix-electron-density, find the corresponding
+specified using <a href="#fix-electron-density">fix-electron-density</a>, find the corresponding
 external potential (in addition to the pseudopotentials and
 Hartree+XC potential evaluated at the given electron density).
-Vexternal may be used to specify an initial guess.
-Control outer optimization using inverseKohnSham-minimize, and
-inner minimization using electronic-minimize (as usual). The
+<a href="#Vexternal">Vexternal</a> may be used to specify an initial guess.
+Control outer optimization using <a href="#inverseKohnSham-minimize">inverseKohnSham-minimize</a>, and
+inner minimization using <a href="#electronic-minimize">electronic-minimize</a> (as usual). The
 result is dumped with variable name "optVext" or "optVextUp"
 and "optVextDn" depending on specified spin type.
 Option &lt;nonlocal&gt;=no|yes controls whether to
@@ -1675,7 +1675,7 @@ Add an atom of species &lt;species-id&gt; at coordinates (&lt;x0&gt;,&lt;x1&gt;,
 &lt;moveScale&gt; preconditions the motion of this ion (set 0 to hold fixed)
 In addition, the ion may be constrained to a line or a plane with line
 direction or plane normal equal to (&lt;d0&gt;,&lt;d1&gt;,&lt;d2&gt;) in the coordinate
-system selected by command coords-type. Note that the constraints must
+system selected by command <a href="#coords-type">coords-type</a>. Note that the constraints must
 be consistent with respect to symmetries (if enabled).
 </pre>
 <h2>Properties:</h2>
@@ -1731,12 +1731,12 @@ lattice minimization at low cutoffs; see script calcPulay for generating such fi
 <h1>ion-width</h1>
 <h2>Syntax:</h2>
 <pre>
-ion-width Ecut | fftbox | &lt;width&gt;
+ion-width Ecut | <a href="#fftbox">fftbox</a> | &lt;width&gt;
 </pre>
 <h2>Description:</h2>
 <pre>
 Manually specify width of gaussian representations of nuclear charge in bohr
-or set automatically based on either energy cut-off (Ecut) or grid spacing (fftbox).
+or set automatically based on either energy cut-off (Ecut) or grid spacing (<a href="#fftbox">fftbox</a>).
 The widened charges are only used in the interaction with fluids, and does not
 affect the energy of the electronic system. Default is Ecut-based selection
 for LinearPCM/NonlinearPCM and 0 (no widening) for all other fluid types.
@@ -1814,7 +1814,7 @@ kpoint &lt;k0&gt; &lt;k1&gt; &lt;k2&gt; &lt;weight&gt;
 </pre>
 <h2>Description:</h2>
 <pre>
-Specify kpoint at lattice coordinates (&lt;k0&gt;, &lt;k1&gt;, &lt;k2&gt;) with weight &lt;weight&gt;
+Specify <a href="#kpoint">kpoint</a> at lattice coordinates (&lt;k0&gt;, &lt;k1&gt;, &lt;k2&gt;) with weight &lt;weight&gt;
 A single k-point at 0,0,0 (Gamma point) with weight 1 is used if unspecified.
 </pre>
 <h2>Properties:</h2>
@@ -1988,7 +1988,7 @@ Control LCAO wavefunction initialization:
  &lt;nIter&gt;: maximum subspace iterations in LCAO (negative =&gt; auto-select)
  &lt;Ediff&gt;: energy-difference convergence threshold for subspace iteration
  &lt;kT&gt;: Fermi temperature for the subspace iteration for T=0 calculations.
-    If present, the Fermi temperature from elec-fermi-fillings overrides this.
+    If present, the Fermi temperature from <a href="#elec-fermi-fillings">elec-fermi-fillings</a> overrides this.
 
 </pre>
 <h2>Properties:</h2>
@@ -2149,7 +2149,7 @@ rhoExternal &lt;filename&gt; [&lt;includeSelfEnergy&gt;=yes|no]
 Include an external charge density [electrons/bohr^3] (real space binary)
 which interacts electrostatically with the electrons, nuclei and fluid.
 If &lt;includeSelfEnergy&gt;=yes (default no), then the Coulomb self-energy
-of rhoExternal is included in the output energy.
+of <a href="#rhoExternal">rhoExternal</a> is included in the output energy.
 </pre>
 <h2>Properties:</h2>
 <p><b>Requires:</b>
@@ -2259,7 +2259,7 @@ symmetries &lt;symm&gt;=automatic|manual|none &lt;moveAtoms&gt;=no|yes
 <pre>
 	none: symmetries are off
 	automatic: automatic calculation of symmetries (default)
-	manual: symmetries specified using symmetry-matrix command
+	manual: symmetries specified using <a href="#symmetry-matrix">symmetry-matrix</a> command
 Check if symmetries could be increased by translating all the atoms
 and quit after suggesting the translated positions if &lt;moveAtoms&gt;=yes.
 </pre>
@@ -2351,7 +2351,7 @@ van-der-waals [&lt;scaleOverride&gt;=0]
 <pre>
 Pair-potential corrections for the long range Van der Waals interaction.
 Implementation follows "S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)"
-Exchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.
+Exchange-Correlation functionals supported with <a href="#van-der-waals">van-der-waals</a> are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.
 Manually specify &lt;scaleOverride&gt; to use with other functionals
 </pre>
 <h2>Properties:</h2>
@@ -2438,14 +2438,14 @@ Wavefunction initialization: use atomic orbitals (default), randomize or read fr
      the first band is read from 0 and 1, the second one from 2 and 3 and so on.
   &lt;nBandsOld&gt; can be used to specify a wavefunction which has different bands
      extra bands will be discarded, unspecified bands will be randomized and orthogonalized
-     Reminder: nBandsOlds for fillings file is specified separately in elec-initial-fillings
+     Reminder: nBandsOlds for fillings file is specified separately in <a href="#elec-initial-fillings">elec-initial-fillings</a>
      default: 0 =&gt; old and current nBands must match exactly.
   &lt;EcutOld&gt; can be used to specify a wavefunction with different planewave cutoff
      the wavefunction will be appropriately up/down-sampled in Foruier space
      default: 0.0 =&gt; old and current Ecut must match exactly
-  &lt;N*old&gt; specifies fftbox size of the input data when reading real-space wavefunctions
+  &lt;N*old&gt; specifies <a href="#fftbox">fftbox</a> size of the input data when reading real-space wavefunctions
      the wavefunction will be appropriately up/down-sampled in Fourier space
-     default: 0 =&gt; old and current fftbox must match exactly
+     default: 0 =&gt; old and current <a href="#fftbox">fftbox</a> must match exactly
 </pre>
 <h2>Properties:</h2>
 <p><b>Requires:</b>

@@ -406,22 +406,53 @@ void printDefaultTemplate(Everything& everything)
 	);
 }
 
-void printHTMLsafe(string s)
-{	size_t iClose = string::npos;
-	for(size_t i=0; i<s.size(); i++)
-	{	const char& c = s[i];
-		if(i>=12 && s.substr(i-12,12)=="See command ")
-		{	iClose = s.find_first_of(" \t\n.,;)", i);
-			if(iClose==string::npos) iClose = s.size();
-			logPrintf("<a href=\"#%s\">", s.substr(i,iClose-i).c_str());
+inline string htmlEscapeCharacters(string s)
+{	string sOut; sOut.reserve(s.length()+100);
+	for(const char& c: s)
+	{	switch(c)
+		{	case '<': sOut.append("&lt;"); break;
+			case '>': sOut.append("&gt;"); break;
+			default: sOut.push_back(c); break;
 		}
-		switch(c)
-		{	case '<': fputs("&lt;", globalLog); break;
-			case '>': fputs("&gt;", globalLog); break;
-			default: fputc(c, globalLog);
-		}
-		if(i+1==iClose) logPrintf("</a>");
 	}
+	return sOut;
+}
+
+inline string htmlAddLinks(string s)
+{	static std::set<string> cExcluded;
+	if(!cExcluded.size()) //Add commands to exclude from auto-linking (most likely because they are common words)
+	{	cExcluded.insert("lattice"); cExcluded.insert("ion"); cExcluded.insert("basis");
+		cExcluded.insert("fluid"); cExcluded.insert("wavefunction"); cExcluded.insert("symmetries");
+		cExcluded.insert("debug"); cExcluded.insert("dump"); cExcluded.insert("polarizability");
+		cExcluded.insert("vibrations"); 
+	}
+	std::map<string,Command*> cmap = getCommandMap();
+	string sOut; sOut.reserve(s.length()+400);
+	const char* delim = " \t\n.,;:)([]!?'\""; //delimiters for tokenization
+	size_t pos = 0;
+	string wordPrev, wordPrev2;
+	while(pos<s.length())
+	{	//Forward all delimiters unmodified:
+		size_t posNext = std::min(s.find_first_not_of(delim, pos), s.length());
+		sOut.append(s.substr(pos,posNext-pos));
+		pos = posNext;
+		//Check next word and add link if it is a command name:
+		posNext = std::min(s.find_first_of(delim, pos), s.length());
+		string word = s.substr(pos,posNext-pos);
+		if(!(wordPrev2=="see" && wordPrev=="command")
+			&& (cmap.find(word)==cmap.end() || cExcluded.count(word))) //Not a command name or excluded command, and not explicitly linked
+			sOut.append(word); //just forward
+		else //Command name that is not to be excluded
+			sOut.append("<a href=\"#" + word + "\">" + word + "</a>"); //add a link
+		pos = posNext;
+		wordPrev2 = wordPrev;
+		wordPrev = word;
+	}
+	return sOut;
+}
+
+inline void printHTMLformatted(string s)
+{	fputs(htmlAddLinks(htmlEscapeCharacters(s)).c_str(), globalLog);
 }
 
 void writeCommandManual(Everything& everything)
@@ -468,12 +499,12 @@ void writeCommandManual(Everything& everything)
 		logPrintf("<div class=\"commandpane\" id=\"%s\">\n", ci.name.c_str());
 		logPrintf("<h1>%s</h1>\n", ci.name.c_str());
 		//Print syntax:
-		logPrintf("<h2>Syntax:</h2>\n<pre>\n");
-		printHTMLsafe(ci.name+' '+ci.format+'\n');
-		logPrintf("</pre>\n");
+		logPrintf("<h2>Syntax:</h2>\n<pre>\n%s ", ci.name.c_str());
+		printHTMLformatted(ci.format);
+		logPrintf("\n</pre>\n");
 		//Print comments:
 		logPrintf("<h2>Description:</h2>\n<pre>\n");
-		printHTMLsafe(ci.comments+'\n');
+		printHTMLformatted(ci.comments+'\n');
 		logPrintf("</pre>\n");
 		//Print properties:
 		logPrintf("<h2>Properties:</h2>\n");
