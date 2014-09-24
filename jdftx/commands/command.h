@@ -70,7 +70,6 @@ public:
 
 	bool allowMultiple; //!< whether this command can occur multiple times in an input file (default: false)
 	bool hasDefault; //!< whether this command has a default (process is called with no parameters) (default: false)
-	bool overallAction; //!< whether this command requires an overall action to be performed (default: false)
 	string emptyParamError; //!< error message if command is manually issued with no parameters (default: "" => allow empty parameter list)
 	
 	//! Process the command given its parameters.

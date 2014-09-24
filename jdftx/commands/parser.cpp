@@ -475,14 +475,29 @@ void writeCommandManual(Everything& everything)
 		logPrintf("<h2>Description:</h2>\n<pre>\n");
 		printHTMLsafe(ci.comments+'\n');
 		logPrintf("</pre>\n");
-		//Print status:
+		//Print properties:
+		logPrintf("<h2>Properties:</h2>\n");
+		//--- requires
+		logPrintf("<p><b>Requires:</b>\n");
+		for(const string& s: ci.requires)
+			logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", s.c_str(), s.c_str());
+		if(!ci.requires.size()) logPrintf("&nbsp;&nbsp;&nbsp;(None)\n");
+		//--- forbids
+		logPrintf("<p><b>Forbids:</b>\n");
+		for(const string& s: ci.forbids)
+			logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", s.c_str(), s.c_str());
+		if(!ci.forbids.size()) logPrintf("&nbsp;&nbsp;&nbsp;(None)\n");
+		//--- allowMultiple
+		logPrintf("<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;%s\n", boolMap.getString(ci.allowMultiple));
+		//--- default
+		logPrintf("<p><b>Default:</b>\n");
 		if(ci.hasDefault)
-		{	logPrintf("<h2>Default:</h2>\n<pre>\n");
-			logPrintf("%s ", ci.name.c_str());
+		{	logPrintf("<pre>\n%s ", ci.name.c_str());
 			ci.printStatus(everything, 0);
 			logPrintf("</pre>\n");
 		}
-		logPrintf("<a href=\"#top\">Top</a>\n");
+		else logPrintf("&nbsp;&nbsp;&nbsp;(None)");
+		logPrintf("<p><a href=\"#top\">Top</a>\n");
 		logPrintf("</div>\n");
 	}
 	//HTML footer:
