@@ -141,6 +141,7 @@ bool ElecMinimizer::report(int iter)
 		logSuspend(); e.elecMinParams.fpLog = nullLog;
 		bandMinimize(e); //this will also set state to eigenvectors
 		logResume(); e.elecMinParams.fpLog = globalLog;
+		e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
 		return true;
 	}
 	
