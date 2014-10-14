@@ -103,6 +103,19 @@ void matrix::init(int nrows, int ncols, bool onGpu)
 	
 	if(nr*nc>0) memInit(nr*nc, onGpu);
 }
+//Reshaping
+void matrix::reshape(int nrows, int ncols)
+{	assert(nrows>=0);
+	assert(ncols>=0);
+	size_t nProd = nr * nc; //current size
+	//Fill in missing dimensions if any:
+	if(!nrows) { assert(ncols); nrows = nProd / ncols; }
+	if(!ncols) { assert(nrows); ncols = nProd / nrows; }
+	//Update dimensions:
+	assert(nrows * ncols == nProd);
+	nr = nrows;
+	nc = ncols;
+}
 // Default constructor
 matrix::matrix(int nrows, int ncols, bool onGpu)
 {	init(nrows,ncols, onGpu);

@@ -66,6 +66,7 @@ public:
 	explicit operator bool() const { return nr*nc; } //!< Test null-ness of matrix
 
 	void init(int nrows,int ncols, bool onGpu=false); //!< called by the constructors
+	void reshape(int nrows, int ncols); //!< change the dimensions without altering the data (zero dimensions are filled in to match size)
 	matrix(int nrows=0, int ncols=0, bool onGpu=false);
 	matrix(const matrix& m1); //!< copy constructor
 	matrix(matrix&& m1); //!< move constructor
