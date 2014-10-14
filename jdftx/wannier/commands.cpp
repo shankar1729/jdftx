@@ -210,7 +210,7 @@ struct CommandWannierCenter : public Command
 	{	Wannier::TrialOrbital t;
 		while(true)
 		{	Wannier::AtomicOrbital ao; string orbDesc;
-			pl.get(ao.r[0], nan(""), "x0"); if(isnan(ao.r[0])) break;
+			pl.get(ao.r[0], nan(""), "x0"); if(std::isnan(ao.r[0])) break;
 			pl.get(ao.r[1], 0., "x1", true);
 			pl.get(ao.r[2], 0., "x2", true);
 			//Transform to lattice coordinates if necessary:
