@@ -228,7 +228,7 @@ void FluidSolverParams::setPCMparams()
 				case FluidComponent::Isobutanol:
 				{	nc = 1.51e-3;
 					sigma = 0.6;
-					cavityTension = 8.96e-06;
+					cavityTension = -8.96e-06;
 					break;
 				}
 				case FluidComponent::EC:
