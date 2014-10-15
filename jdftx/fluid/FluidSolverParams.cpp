@@ -243,13 +243,28 @@ void FluidSolverParams::setPCMparams()
 					cavityTension = 9.53e-6;
 					break;
 				}
+				case FluidComponent::EthyleneGlycol:
+				{	switch(fluidType)
+					{	case FluidLinearPCM:
+						{	nc = 5.4e-4;
+							sigma = 0.6;
+							cavityTension = 1.15e-5;
+							break;
+						}
+						case FluidNonlinearPCM:
+							die("\nERROR: You can't use NonlinearPCM with Ethylene Glycol as it does not have a permanent dipole moment!\n");
+						default: //Other fluids do not use these parameters
+							break;
+					}
+				}
 				case FluidComponent::Glyme:
 				{	switch(fluidType)
 					{	case FluidLinearPCM:
-							nc = 8.36e-5;
+						{	nc = 8.36e-5;
 							sigma = 0.6;
 							cavityTension = -8.03e-06;
 							break;
+						}
 						case FluidNonlinearPCM:
 							die("\nERROR: You can't use NonlinearPCM with Glyme as it does not have a permanent dipole moment!\n");
 						default: //Other fluids do not use these parameters

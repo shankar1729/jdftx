@@ -66,6 +66,7 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 		case Methanol:
 		case Octanol:
 		case Glyme:
+		case EthyleneGlycol:
 		case CustomSolvent:
 			return Solvent;
 		case Sodium:
@@ -111,6 +112,7 @@ double FluidComponent::pureNbulk(double T) const
 			case Methanol: return 2.203e-3;
 			case Octanol: return 5.646e-4;
 			case Glyme: return 8.586e-4;
+			case EthyleneGlycol: return 1.60e-3;
 			default: throw string("Not yet implemented.");
 		}
 	}
@@ -440,6 +442,13 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 		{
 			epsBulk = 7.20;
 			epsInf = 1.90;
+			pMol = 0.;
+			break;
+		}
+		case EthyleneGlycol:
+		{
+			epsBulk = 41.4;
+			epsInf = 1.43;
 			pMol = 0.;
 			break;
 		}

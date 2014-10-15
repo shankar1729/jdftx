@@ -149,7 +149,8 @@ EnumStringMap<FluidComponent::Name> solventMap
   	FluidComponent::Chlorobenzene, "Chlorobenzene",
 	FluidComponent::Isobutanol, "Isobutanol",
 	FluidComponent::CarbonDisulfide, "CarbonDisulfide",
-	FluidComponent::Glyme, "Glyme"
+	FluidComponent::Glyme, "Glyme",
+	FluidComponent::EthyleneGlycol, "EthyleneGlycol"
 );
 EnumStringMap<FluidComponent::Name> cationMap
 (	FluidComponent::Sodium, "Na+",

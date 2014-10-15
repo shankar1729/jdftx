@@ -48,6 +48,7 @@ struct FluidComponent
 		Methanol,
 		Octanol,
 		Glyme,
+		EthyleneGlycol,
 		CustomSolvent, //!< Custom solvent (molecule and other parameters initialized manually)
 		//Cations:
 		Sodium, //!< Na+
