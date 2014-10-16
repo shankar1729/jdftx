@@ -243,6 +243,10 @@ void safeProcess(Command& c, string params, Everything& everything,
 	try
 	{	ParamList pl(params);
 		c.process(pl, everything);
+		//Check remainder:
+		string remainder = pl.getRemainder();
+		if(remainder.length())
+			throw string("Extra arguments '" + remainder + "'  at end of command");
 	}
 	catch(string err)
 	{	errors.push_back(make_pair(&c, " with command line:\n"

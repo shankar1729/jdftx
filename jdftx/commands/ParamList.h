@@ -71,6 +71,22 @@ public:
 			throw string("Parameter <"+paramName+"> must be one of "+tMap.optionList());
 		}
 	}
+	
+	//!Get the section of the input string not yet parsed
+	string getRemainder()
+	{	if(iss.eof()) return string();
+		size_t curPos = iss.tellg();
+		iss.seekg(0, std::ios_base::end);
+		size_t endPos = iss.tellg();
+		if(endPos > curPos)
+		{	string buf(endPos-curPos, 0);
+			iss.seekg(curPos);
+			iss.read(&buf.at(0), buf.length());
+			trim(buf);
+			return buf;
+		}
+		else return string();
+	}
 };
 
 #endif //JDFTX_COMMAND_PARAMLIST_H
