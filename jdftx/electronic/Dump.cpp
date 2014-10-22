@@ -191,6 +191,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Dvac) || ShouldDump(Dtot))
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		if(eVars.rhoExternal) d_vac += (*e->coulomb)(eVars.rhoExternal); //potential due to external charge (if any)
+		if(e->coulombParams.Efield.length_squared()) d_vac += J(e->coulomb->getEfieldPotential());
 	}
 	DUMP(I(d_vac), "d_vac", Dvac);
 	if(eVars.fluidParams.fluidType != FluidNone)
