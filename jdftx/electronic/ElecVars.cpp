@@ -81,6 +81,25 @@ void ElecVars::setup(const Everything &everything)
 			Vexternal.push_back(Vexternal[0]->clone());
 	}
 
+	//Vexternal contributions from boxPot's.
+	for(size_t j = 0; j<boxPot.size(); j++)
+	{	//Create potential
+		DataRptr temp; nullToZero(temp, e->gInfo);
+		applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, &boxPot[j], temp->data());
+		temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
+		//Add to Vexternal
+		if(!Vexternal.size()) Vexternal.resize(n.size());
+		for(unsigned s=0; s<n.size(); s++) Vexternal[s] += temp;
+	}
+
+	//Vexternal contributions due to external field
+	if(e->coulombParams.Efield.length_squared())
+	{	DataRptr temp = e->coulomb->getEfieldPotential();
+		//Add to Vexternal
+		if(!Vexternal.size()) Vexternal.resize(n.size());
+		for(unsigned s=0; s<n.size(); s++) Vexternal[s] += temp;
+	}
+
 	if(rhoExternalFilename.length())
 	{	logPrintf("Reading external charge from '%s'\n", rhoExternalFilename.c_str());
 		DataRptr temp(DataR::alloc(gInfo));
@@ -88,23 +107,7 @@ void ElecVars::setup(const Everything &everything)
 		rhoExternal = J(temp);
 	}
 	
-	//Constructs Vbox from boxPot's.
-	if(Vexternal.size() == 0 and boxPot.size())  // If Vexternal does not exist, make one
-	{	Vexternal.resize(n.size());
-		for(unsigned s=0; s<n.size(); s++)	
-		{	Vexternal[s] = DataR::alloc(gInfo);
-			nullToZero(Vexternal[s], e->gInfo);
-		}
-	}
-	for(size_t j = 0; j<boxPot.size(); j++)
-	{	for(unsigned s=0; s<n.size(); s++)	
-		{	DataRptr temp; nullToZero(temp, e->gInfo);			
-			applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, &boxPot[j], temp->data());
-			temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
-			Vexternal[s] += temp;
-		}
-	}
-
+	
 	//Initialize matrix arrays if required:
 	Hsub.resize(eInfo.nStates);
 	Hsub_evecs.resize(eInfo.nStates);

@@ -56,6 +56,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#elec-fermi-fillings">elec-fermi-fillings</a>
 &nbsp;&nbsp;&nbsp;<a href="#elec-initial-charge">elec-initial-charge</a>
 &nbsp;&nbsp;&nbsp;<a href="#elec-n-bands">elec-n-bands</a>
+&nbsp;&nbsp;&nbsp;<a href="#electric-field">electric-field</a>
 &nbsp;&nbsp;&nbsp;<a href="#fftbox">fftbox</a>
 &nbsp;&nbsp;&nbsp;<a href="#kpoint">kpoint</a>
 &nbsp;&nbsp;&nbsp;<a href="#kpoint-folding">kpoint-folding</a>
@@ -191,7 +192,7 @@ Include an step-function shaped external potential (in hartrees) for the electro
 <p><b>Requires:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Forbids:</b>
-&nbsp;&nbsp;&nbsp;(None)
+&nbsp;&nbsp;&nbsp;<a href="#invertKohnSham">invertKohnSham</a>
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;yes
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
@@ -920,6 +921,29 @@ or in the case of fillings, equal to total number of atomic orbitals.)
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
 </div>
+<div class="commandpane" id="electric-field">
+<h1>electric-field</h1>
+<h2>Syntax:</h2>
+<pre>
+electric-field &lt;Ex&gt; &lt;Ey&gt; &lt;Ez&gt;
+</pre>
+<h2>Description:</h2>
+<pre>
+Apply an external electric field (in Cartesian coordinates, atomic
+units [Eh/e/a_0] and electron-is-positive sign convention).
+Applied electric field must be zero along periodic directions.
+Requires embedded coulomb truncation for the truncated directions.
+Symmetries will be automatically reduced to account for this field.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#coulomb-truncation-embed">coulomb-truncation-embed</a>
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;<a href="#invertKohnSham">invertKohnSham</a>
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
 <div class="commandpane" id="electronic-minimize">
 <h1>electronic-minimize</h1>
 <h2>Syntax:</h2>
@@ -1425,7 +1449,7 @@ fluid-solvent [&lt;name&gt;=H2O] [&lt;concentration&gt;=bulk] [&lt;functional&gt
 </pre>
 <h2>Description:</h2>
 <pre>
-Add solvent component CarbonDisulfide|CCl4|CH2Cl2|CH3CN|CHCl3|Chlorobenzene|DMC|DMF|DMSO|EC|Ethanol|EthylEther|Glyme|H2O|Isobutanol|Methanol|Octanol|PC|THF to fluid.
+Add solvent component CarbonDisulfide|CCl4|CH2Cl2|CH3CN|CHCl3|Chlorobenzene|DMC|DMF|DMSO|EC|Ethanol|EthyleneGlycol|EthylEther|Glyme|H2O|Isobutanol|Methanol|Octanol|PC|THF to fluid.
 The concentration may be specified explicitly in mol/liter or set to 'bulk' to use bulk fluid value.
 For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
@@ -1674,7 +1698,8 @@ eigenvalues and fillings (these should include empty states).
 <p><b>Requires:</b>
 &nbsp;&nbsp;&nbsp;<a href="#fix-electron-density">fix-electron-density</a>
 <p><b>Forbids:</b>
-&nbsp;&nbsp;&nbsp;(None)
+&nbsp;&nbsp;&nbsp;<a href="#box-potential">box-potential</a>
+&nbsp;&nbsp;&nbsp;<a href="#electric-field">electric-field</a>
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>

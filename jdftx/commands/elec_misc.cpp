@@ -459,6 +459,8 @@ struct CommandInvertKohnSham : public Command
 			"eigenvalues and fillings (these should include empty states).";
 		
 		require("fix-electron-density");
+		forbid("box-potential");
+		forbid("electric-field");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -545,6 +547,7 @@ struct CommandBoxPot : public Command
 			"Include an step-function shaped external potential (in hartrees) for the electrons";
 	
 		allowMultiple = true;
+		forbid("invertKohnSham");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -570,3 +573,33 @@ struct CommandBoxPot : public Command
 	}
 }
 commandBoxPot;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandElectricField : public Command
+{
+	CommandElectricField() : Command("electric-field", "Electronic parameters")
+	{
+		format = "<Ex> <Ey> <Ez>";
+		comments = 
+			"Apply an external electric field (in Cartesian coordinates, atomic\n"
+			"units [Eh/e/a_0] and electron-is-positive sign convention).\n"
+			"Applied electric field must be zero along periodic directions.\n"
+			"Requires embedded coulomb truncation for the truncated directions.\n"
+			"Symmetries will be automatically reduced to account for this field.";
+		
+		require("coulomb-truncation-embed");
+		forbid("invertKohnSham");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.coulombParams.Efield[0], 0., "Ex", true);
+		pl.get(e.coulombParams.Efield[1], 0., "Ey", true);
+		pl.get(e.coulombParams.Efield[2], 0., "Ez", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.coulombParams.Efield[k]);
+	}
+}
+commandElectricField;

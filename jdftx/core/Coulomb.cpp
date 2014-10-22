@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
+#include "LatticeUtils.h"
 
 CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(false)
 {
@@ -161,6 +162,8 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 	if(params.embed)
 	{	matrix3<> embedScaleMat = Diag(embedScale);
 		matrix3<> invEmbedScaleMat = inv(embedScaleMat);
+		vector3<> RT_Efield = gInfoOrig.RT * params.Efield;
+		double Eewald = 0.;
 		//Convert atom positions to embedding grid's lattice coordinates:
 		for(unsigned i=0; i<atoms.size(); i++)
 		{	Atom& a = atoms[i];
@@ -188,12 +191,17 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 				}
 			}
 			if(!posValid) die("Atom %d lies within the margin of %lg bohrs from the truncation boundary.\n" ionMarginMessage, i+1, params.ionMargin);
+			//Electric field contributions if any:
+			if(params.Efield.length_squared())
+			{	Eewald += a.Z * dot(a.pos, RT_Efield); //note that Z is negative of nuclear charge in present sign convention
+				a.force -= a.Z * RT_Efield;
+			}
 			//Scale to embedding-mesh lattice coords:
 			a.pos = embedScaleMat * a.pos;
 			a.force = invEmbedScaleMat * a.force;
 		}
 		//Compute on the unit cell of the embedding mesh:
-		double Eewald = ewald->energyAndGrad(atoms);
+		Eewald += ewald->energyAndGrad(atoms);
 		//Convert positions and forces back to original mesh:
 		for(Atom& a: atoms)
 		{	a.pos = xCenter + invEmbedScaleMat * a.pos;
@@ -202,6 +210,22 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 		return Eewald;
 	}
 	else return ewald->energyAndGrad(atoms);
+}
+
+void getEfieldPotential_sub(size_t iStart, size_t iStop, const vector3<int>& S, const WignerSeitz* ws, const vector3<>& xCenter, const vector3<>& RT_Efield, double* V)
+{	matrix3<> invS = inv(Diag(vector3<>(S)));
+	THREAD_rLoop
+	(	V[i] = -dot(ws->restrict(invS * iv - xCenter), RT_Efield); //Wigner-Seitz wrapped lattice coords, dotted with E in contra lattice coords
+	)
+}
+DataRptr Coulomb::getEfieldPotential() const
+{	if(params.Efield.length_squared())
+	{	assert(params.embed);
+		DataRptr V(DataR::alloc(gInfoOrig));
+		threadLaunch(getEfieldPotential_sub, gInfoOrig.nr, gInfoOrig.S, wsOrig, xCenter, gInfoOrig.RT*params.Efield, V->data());
+		return V;
+	}
+	else return DataRptr();
 }
 
 void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sembed, const vector3<int>& ivCenter, const WignerSeitz* ws, int* embedIndex)
@@ -321,6 +345,19 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 			GzeroVal -= expFac * det(Diag(embedScale));
 		applyFuncGsq(gInfoOrig, setIonKernel, expFac, GzeroVal, ionKernel->data);
 		ionKernel->set();
+	}
+	
+	//Check electric field:
+	if(params.Efield.length_squared())
+	{	assert(params.embed);
+		vector3<bool> isTruncated = params.isTruncated();
+		for(int k=0; k<3; k++) if(!isTruncated[k])
+		{	vector3<> Rk = gInfoOrig.R.column(k);
+			if(fabs(dot(Rk, params.Efield)) > Rk.length() * params.Efield.length() * symmThreshold)
+			{	string dirName("000"); dirName[k] = '1';
+				die("Electric field has non-zero component along periodic direction (%s).\n", dirName.c_str());
+			}
+		}
 	}
 }
 

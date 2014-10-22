@@ -340,6 +340,19 @@ void Symmetries::calcSymmetries()
 	sym = basisReduce(symLattice, rCenter);
 	logPrintf("reduced to %lu symmetries with basis\n", sym.size());
 	
+	//Find symmetries commensurate with external electric field (if any):
+	if(e->coulombParams.Efield.length_squared())
+	{	std::vector< matrix3<int> > symNew;
+		double threshold = symmThresholdSq * e->coulombParams.Efield.length_squared();
+		for(const matrix3<int>& m: sym)
+		{	matrix3<> mCart = e->gInfo.R * m * inv(e->gInfo.R); //cartesian transformation
+			if((e->coulombParams.Efield - mCart * e->coulombParams.Efield).length_squared() < threshold)
+				symNew.push_back(m); //leaves Efield invariant
+		}
+		sym = symNew;
+		logPrintf("reduced to %lu symmetries with electric field\n", sym.size());
+	}
+	
 	//Make sure identity is the first symmetry
 	sortSymmetries();
 

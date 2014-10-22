@@ -46,6 +46,8 @@ struct CoulombParams
 	vector3<> embedCenter; //!< 'center' of the system, when it is embedded into the larger box (in lattice coordinates)
 	bool embedFluidMode; //!< if true, don't truncate, just evaluate coulomb interactions in the larger box (fluid screening does the image separation instead)
 	
+	vector3<> Efield; //!< electric field (in Cartesian coordinates, atomic units [Eh/e/a0])
+	
 	//Parameters for computing exchange integrals:
 	//! Regularization method for G=0 singularities in exchange
 	enum ExchangeRegularization
@@ -115,8 +117,12 @@ public:
 	DataGptr operator()(const DataGptr&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
+	//! Includes interaction with Efield, if present (Requires embedded truncation)
 	double energyAndGrad(std::vector<Atom>& atoms) const; 
 
+	//! Generate the potential due to the Efield (if any) (Requires embedded truncation)
+	DataRptr getEfieldPotential() const;
+	
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
 	complexDataGptr operator()(complexDataGptr&&, vector3<> kDiff, double omega) const;
