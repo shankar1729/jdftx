@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/Polarizability.h>
 #include <electronic/Vibrations.h>
+#include <electronic/Dump_internal.h>
 #include <core/Units.h>
 
 EnumStringMap<DumpFrequency> freqMap
@@ -70,6 +71,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpQMC, "QMC",
 	DumpRealSpaceWfns, "RealSpaceWfns",
 	DumpFluidDebug, "FluidDebug",
+	DumpSlabEpsilon, "FluidSlabEpsilon",
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
 	DumpSIC, "SelfInteractionCorrection",
@@ -113,6 +115,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpRealSpaceWfns,  "Real-space wavefunctions (one column per file) [not in All]",
 	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare) [not in All]",
 	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
+	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon)  [not in All]",
 	DumpOptVext,        "Optimized external potentials (see command invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see command density-of-states) [not in All]",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
@@ -422,3 +425,40 @@ struct CommandVibrations : public Command
 	}
 }
 commandVibrations;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandSlabEpsilon : public Command
+{
+	CommandSlabEpsilon() : Command("slab-epsilon", "Output")
+	{
+		format = "<DtotFile> <sigma> [<Ex>=0] [<Ey>=0] [<Ez>=0]";
+		comments = 
+			"Calculate dielectric function of a slab given the electrostatic potential\n"
+			"output from another calculation on same system with a different electric\n"
+			"field. <DtotFile> contains the electrostatic potential from the other\n"
+			"calculation, <sigma> in bohrs specifies gaussian smoothing in output,\n"
+			"and the optional <Ex>,<Ey>,Ez> specify the electrc-field applied in\n"
+			"the calculation that generated <DtotFile>.";
+		
+		require("coulomb-truncation-embed");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	if(e.coulombParams.geometry != CoulombParams::Slab)
+			throw string("coulomb-interaction must be in Slab mode");
+		e.dump.slabEpsilon = std::make_shared<SlabEpsilon>();
+		pl.get(e.dump.slabEpsilon->dtotFname, string(), "DtotFile", true);
+		pl.get(e.dump.slabEpsilon->sigma, 0., "sigma", true);
+		pl.get(e.dump.slabEpsilon->Efield[0], 0., "Ex");
+		pl.get(e.dump.slabEpsilon->Efield[1], 0., "Ey");
+		pl.get(e.dump.slabEpsilon->Efield[2], 0., "Ez");
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpSlabEpsilon)); //dump at end by default
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %lg %lg %lg %lg", e.dump.slabEpsilon->dtotFname.c_str(), e.dump.slabEpsilon->sigma,
+			e.dump.slabEpsilon->Efield[0], e.dump.slabEpsilon->Efield[1], e.dump.slabEpsilon->Efield[2]);
+	}
+}
+commandSlabEpsilon;

@@ -187,8 +187,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 
 	//Electrostatic and fluid potentials:
-	DataGptr d_vac;
-	if(ShouldDump(Dvac) || ShouldDump(Dtot))
+	DataGptr d_vac; DataRptr d_tot;
+	if(ShouldDump(Dvac) || ShouldDump(Dtot) || ShouldDumpNoAll(SlabEpsilon))
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		if(eVars.rhoExternal) d_vac += (*e->coulomb)(eVars.rhoExternal); //potential due to external charge (if any)
 		if(e->coulombParams.Efield.length_squared()) d_vac += J(e->coulomb->getEfieldPotential());
@@ -203,11 +203,17 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			DUMP(I(d_vac + d_fluid) + GzeroCorrection, "d_tot", Dtot);
 		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
-		DUMP(I(eVars.V_cavity + eVars.d_fluid), "V_fluidTot", VfluidTot);
+		d_tot = I(eVars.V_cavity + eVars.d_fluid);
+		DUMP(d_tot, "V_fluidTot", VfluidTot);
 	}
 	else
-	{	DUMP(I(d_vac), "d_tot", Dtot);
+	{	d_tot = I(d_vac);
+		DUMP(d_tot, "d_tot", Dtot);
 	}
+	if(ShouldDumpNoAll(SlabEpsilon))
+		if(slabEpsilon)
+			slabEpsilon->dump(*e, d_tot);
+	d_tot = 0;
 
 	DUMP(I(iInfo.Vlocps), "Vlocps", Vlocps)
 	if(ShouldDump(Vscloc))

@@ -124,6 +124,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#forces-output-coords">forces-output-coords</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability">polarizability</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability-kdiff">polarizability-kdiff</a>
+&nbsp;&nbsp;&nbsp;<a href="#slab-epsilon">slab-epsilon</a>
 &nbsp;&nbsp;&nbsp;<a href="#vibrations">vibrations</a>
 </div>
 <div class="commandpane" id="add-U">
@@ -581,6 +582,7 @@ and each &lt;var*&gt; is one of:
    Fillings                  Fillings
    FluidDebug                Fluid specific debug output if any  [not in All]
    FluidDensity              Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
+   FluidSlabEpsilon          Local dielectric function of a slab (see command <a href="#slab-epsilon">slab-epsilon</a>)  [not in All]
    Forces                    Forces on the ions in the coordinate system selected by command <a href="#forces-output-coords">forces-output-coords</a>
    Gvectors                  List of G vectors in reciprocal lattice basis, for each k-point
    IonicDensity              Nuclear charge density (with gaussians)
@@ -2215,6 +2217,30 @@ Specify C6 in J/mol*Angstrom^6 and R0 in Angstrom.
 <h2>Properties:</h2>
 <p><b>Requires:</b>
 &nbsp;&nbsp;&nbsp;<a href="#ion">ion</a>
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="slab-epsilon">
+<h1>slab-epsilon</h1>
+<h2>Syntax:</h2>
+<pre>
+slab-epsilon &lt;DtotFile&gt; &lt;sigma&gt; [&lt;Ex&gt;=0] [&lt;Ey&gt;=0] [&lt;Ez&gt;=0]
+</pre>
+<h2>Description:</h2>
+<pre>
+Calculate dielectric function of a slab given the electrostatic potential
+output from another calculation on same system with a different electric
+field. &lt;DtotFile&gt; contains the electrostatic potential from the other
+calculation, &lt;sigma&gt; in bohrs specifies gaussian smoothing in output,
+and the optional &lt;Ex&gt;,&lt;Ey&gt;,Ez&gt; specify the electrc-field applied in
+the calculation that generated &lt;DtotFile&gt;.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#coulomb-truncation-embed">coulomb-truncation-embed</a>
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no

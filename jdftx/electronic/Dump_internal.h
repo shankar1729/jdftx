@@ -55,4 +55,12 @@ namespace XC_Analysis
 	DataRptrCollection sHartree(const Everything& e);
 }
 
+struct SlabEpsilon
+{	string dtotFname;
+	double sigma;
+	vector3<> Efield;
+	
+	void dump(const Everything& e, DataRptr d_tot) const;
+};
+
 #endif // JDFTX_ELECTRONIC_DUMP_INTERNAL_H

@@ -21,9 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
+#include <electronic/Dump_internal.h>
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
 #include <core/Units.h>
+#include <core/DataIO.h>
 
 //---------------------- Excitations -----------------------------------------------
 
@@ -332,4 +334,57 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 		}
 	}
 	fclose(fp);
+}
+
+//-------------------------- Slab epsilon ----------------------------------
+
+inline void planarAvg_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, complex* data)
+{	int jDir = (iDir+1)%3;
+	int kDir = (iDir+2)%3;
+	THREAD_halfGspaceLoop( if(iG[jDir] || iG[kDir]) data[i] = 0.; )
+}
+
+inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
+{	iBoundary = positiveRemainder(iBoundary, S[iDir]);
+	THREAD_rLoop(
+		int dist = iv[iDir] - iBoundary;
+		if(dist*2 > S[iDir]) dist -= S[iDir];
+		if(dist*2 < -S[iDir]) dist += S[iDir];
+		if(abs(dist)<=2) eps[i] = 1.;
+	)
+}
+
+void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
+{	string fname = e.dump.getFilename("slabEpsilon");
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	//Read reference Dtot:
+	DataRptr d_totRef(DataR::alloc(e.gInfo));
+	loadRawBinary(d_totRef, dtotFname.c_str());
+	//Calculate inverse of epsilon:
+	int iDir = e.coulombParams.iDir;
+	vector3<> zHat = e.gInfo.R.column(iDir);
+	zHat *= 1./zHat.length(); //unit vector along slab normal
+	double dE = dot(zHat, e.coulombParams.Efield - Efield);
+	if(!dE) die("\nThe applied electric fields in the reference and present calculations are equal.\n");
+	//--- calculate field using central-difference derivative:
+	DataGptr tPlus(DataG::alloc(e.gInfo)), tMinus(DataG::alloc(e.gInfo));
+	initTranslation(tPlus, e.gInfo.h[iDir]);
+	initTranslation(tMinus, -e.gInfo.h[iDir]);
+	double h = e.gInfo.h[iDir].length();
+	DataGptr epsInvTilde = (1./(dE * 2.*h)) * (tPlus - tMinus) * J(d_tot - d_totRef);
+	threadLaunch(planarAvg_sub, e.gInfo.nG, e.gInfo.S, iDir, epsInvTilde->data()); //planar average
+	//Fix values of epsilon near truncation boundary to 1:
+	DataRptr epsInv = I(epsInvTilde);
+	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, e.coulomb->ivCenter[iDir] + e.gInfo.S[iDir]/2, epsInv->data());
+	//Apply smoothing:
+	epsInv = I(gaussConvolve(J(epsInv), sigma));
+	//Write file:
+	FILE* fp = fopen(fname.c_str(), "w");
+	fprintf(fp, "#distance[bohr]  epsilon\n");
+	vector3<int> iR;
+	double* epsInvData = epsInv->data();
+	for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
+		fprintf(fp, "%lf %lf\n", h*iR[iDir], 1./epsInvData[e.gInfo.fullRindex(iR)]);
+	fclose(fp);
+	logPrintf("done\n"); logFlush();
 }
