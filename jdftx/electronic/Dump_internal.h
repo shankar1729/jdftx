@@ -63,4 +63,18 @@ struct SlabEpsilon
 	void dump(const Everything& e, DataRptr d_tot) const;
 };
 
+struct ChargedDefect
+{	vector3<> pos; //defect center in lattice coordinates
+	double q, sigma; //defect electron-count and Gaussian width
+	string dtotFname; //electrostatic potential from reference neutral calculation
+	
+	double bulkEps; //bulk dielectric constant (Bulk mode only)
+	string slabEpsFname; //slab dielectric profile (Slab mode only)
+	
+	double rMin, rSigma; //! Minimum distance from defect and turn-on width used for calculating alignment
+	
+	void dump(const Everything& e, DataRptr d_tot) const;
+};
+
+
 #endif // JDFTX_ELECTRONIC_DUMP_INTERNAL_H

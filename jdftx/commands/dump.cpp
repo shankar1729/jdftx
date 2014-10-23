@@ -71,7 +71,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpQMC, "QMC",
 	DumpRealSpaceWfns, "RealSpaceWfns",
 	DumpFluidDebug, "FluidDebug",
-	DumpSlabEpsilon, "FluidSlabEpsilon",
+	DumpSlabEpsilon, "SlabEpsilon",
+	DumpChargedDefect, "ChargedDefect",
 	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
 	DumpSIC, "SelfInteractionCorrection",
@@ -116,6 +117,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare) [not in All]",
 	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
 	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon)  [not in All]",
+	DumpChargedDefect,  "Calculate energy correction for charged defect (see command charged-defect)  [not in All]",
 	DumpOptVext,        "Optimized external potentials (see command invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see command density-of-states) [not in All]",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
@@ -448,17 +450,90 @@ struct CommandSlabEpsilon : public Command
 	{	if(e.coulombParams.geometry != CoulombParams::Slab)
 			throw string("coulomb-interaction must be in Slab mode");
 		e.dump.slabEpsilon = std::make_shared<SlabEpsilon>();
-		pl.get(e.dump.slabEpsilon->dtotFname, string(), "DtotFile", true);
-		pl.get(e.dump.slabEpsilon->sigma, 0., "sigma", true);
-		pl.get(e.dump.slabEpsilon->Efield[0], 0., "Ex");
-		pl.get(e.dump.slabEpsilon->Efield[1], 0., "Ey");
-		pl.get(e.dump.slabEpsilon->Efield[2], 0., "Ez");
+		SlabEpsilon& se = *(e.dump.slabEpsilon);
+		pl.get(se.dtotFname, string(), "DtotFile", true);
+		pl.get(se.sigma, 0., "sigma", true);
+		pl.get(se.Efield[0], 0., "Ex");
+		pl.get(se.Efield[1], 0., "Ey");
+		pl.get(se.Efield[2], 0., "Ez");
 		e.dump.insert(std::make_pair(DumpFreq_End, DumpSlabEpsilon)); //dump at end by default
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s %lg %lg %lg %lg", e.dump.slabEpsilon->dtotFname.c_str(), e.dump.slabEpsilon->sigma,
-			e.dump.slabEpsilon->Efield[0], e.dump.slabEpsilon->Efield[1], e.dump.slabEpsilon->Efield[2]);
+	{	const SlabEpsilon& se = *(e.dump.slabEpsilon);
+		logPrintf("%s %lg %lg %lg %lg", se.dtotFname.c_str(), se.sigma, se.Efield[0], se.Efield[1], se.Efield[2]);
 	}
 }
 commandSlabEpsilon;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandChargedDefect : public Command
+{
+	CommandChargedDefect() : Command("charged-defect", "Output")
+	{
+		format = "<x0> <x1> <x2> <q> <sigma> \\\n"
+			"\t<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
+		comments = 
+			"Calculate energy correction for a bulk or surface charged defect.\n"
+			"The correction is calculated assuming the defect to be a Gaussian\n"
+			"of width <sigma> with net electron count <q> located at <x0>,<x1>,<x2>\n"
+			"(in the coordinate system specified by coords-type). The Gaussian must\n"
+			"be resolvable on the plane-wave grid; recommend rSigma >= 1 bohr.\n"
+			"    <DtotFile> contains the electrostatic potential from a reference\n"
+			"neutral calculation with similar geometry (lattice vectors and grid\n"
+			"must match exactly).\n"
+			"    For bulk defect calculations (coulomb-interaction Periodic),\n"
+			"<bulkEps> is the bulk dielectric constant to use in the correction.\n"
+			"    For surface defect calculations (coulomb-interaction Slab ...)\n"
+			"<slabEpsFile> specifies a dielectric profile calculated using command\n"
+			"slab-epsilon in a similar geometry (the number of points along the slab\n"
+			"normal direction must match exactly).\n"
+			"    <rMin> specifies the distance away from the defect center to use in\n"
+			"the determination of the alignment potential, with rSigma specifying an\n"
+			"error function turn-on distance. The code wil generate a text file with\n"
+			"the spherically averaged model and DFT electrostatic potentials, which\n"
+			"can be used to check the calculated alignment and refine rMin and rSigma.";
+		
+		require("latt-scale");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.dump.chargedDefect = std::make_shared<ChargedDefect>();
+		ChargedDefect& cd = *(e.dump.chargedDefect);
+		//Position:
+		vector3<> pos;
+		pl.get(pos[0], 0., "x0", true);
+		pl.get(pos[1], 0., "x1", true);
+		pl.get(pos[2], 0., "x2", true);
+		cd.pos = (e.iInfo.coordsType==CoordsLattice) ? pos : inv(e.gInfo.R)*pos;
+		//Charge and width:
+		pl.get(cd.q, 0., "q", true);
+		pl.get(cd.sigma, 0., "sigma", true);
+		//Ref potential:
+		pl.get(cd.dtotFname, string(), "DtotFile", true);
+		//Dielectric function:
+		switch(e.coulombParams.geometry)
+		{	case CoulombParams::Periodic: pl.get(cd.bulkEps, 1., "bulkEps", true); break;
+			case CoulombParams::Slab: pl.get(cd.slabEpsFname, string(), "slabEpsFile", true); break;
+			default: string("coulomb-interaction must be either Slab or Periodic");
+		}
+		//Alignment potential ranges:
+		pl.get(cd.rMin, 0., "rMin", true);
+		pl.get(cd.rSigma, 0., "rSigma", true);
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpChargedDefect)); //dump at end by default
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const ChargedDefect& cd = *(e.dump.chargedDefect);
+		vector3<> pos = (e.iInfo.coordsType==CoordsLattice) ? cd.pos : e.gInfo.R*cd.pos;
+		logPrintf("%lg %lg %lg  %+lg %lg \\\n\t%s ", pos[0], pos[1], pos[2], cd.q, cd.sigma, cd.dtotFname.c_str());
+		switch(e.coulombParams.geometry)
+		{	case CoulombParams::Periodic: logPrintf("%lg", cd.bulkEps); break;
+			case CoulombParams::Slab: logPrintf("%s", cd.slabEpsFname.c_str()); break;
+			default:; //should never be encountered
+		}
+		logPrintf(" %lg %lg\n", cd.rMin, cd.rSigma);
+	}
+}
+commandChargedDefect;

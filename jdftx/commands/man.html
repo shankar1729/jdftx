@@ -115,6 +115,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#symmetries">symmetries</a>
 &nbsp;&nbsp;&nbsp;<a href="#symmetry-matrix">symmetry-matrix</a>
 <p><b>Output</b>:
+&nbsp;&nbsp;&nbsp;<a href="#charged-defect">charged-defect</a>
 &nbsp;&nbsp;&nbsp;<a href="#debug">debug</a>
 &nbsp;&nbsp;&nbsp;<a href="#density-of-states">density-of-states</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump">dump</a>
@@ -235,6 +236,44 @@ partial core correction instead.
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;yes
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="charged-defect">
+<h1>charged-defect</h1>
+<h2>Syntax:</h2>
+<pre>
+charged-defect &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; &lt;q&gt; &lt;sigma&gt; \
+	&lt;DtotFile&gt; &lt;bulkEps&gt;|&lt;slabEpsFile&gt; &lt;rMin&gt; &lt;rSigma&gt;
+</pre>
+<h2>Description:</h2>
+<pre>
+Calculate energy correction for a bulk or surface charged defect.
+The correction is calculated assuming the defect to be a Gaussian
+of width &lt;sigma&gt; with net electron count &lt;q&gt; located at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;
+(in the coordinate system specified by <a href="#coords-type">coords-type</a>). The Gaussian must
+be resolvable on the plane-wave grid; recommend rSigma &gt;= 1 bohr.
+    &lt;DtotFile&gt; contains the electrostatic potential from a reference
+neutral calculation with similar geometry (lattice vectors and grid
+must match exactly).
+    For bulk defect calculations (<a href="#coulomb-interaction">coulomb-interaction</a> Periodic),
+&lt;bulkEps&gt; is the bulk dielectric constant to use in the correction.
+    For surface defect calculations (<a href="#coulomb-interaction">coulomb-interaction</a> Slab ...)
+&lt;slabEpsFile&gt; specifies a dielectric profile calculated using command
+<a href="#slab-epsilon">slab-epsilon</a> in a similar geometry (the number of points along the slab
+normal direction must match exactly).
+    &lt;rMin&gt; specifies the distance away from the defect center to use in
+the determination of the alignment potential, with rSigma specifying an
+error function turn-on distance. The code wil generate a text file with
+the spherically averaged model and DFT electrostatic potentials, which
+can be used to check the calculated alignment and refine rMin and rSigma.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#latt-scale">latt-scale</a>
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
 </div>
@@ -568,6 +607,7 @@ and each &lt;var*&gt; is one of:
    All                       Dump most things (except those marked not in All)
    BandEigs                  Band Eigenvalues
    BoundCharge               Bound charge in the fluid
+   ChargedDefect             Calculate energy correction for charged defect (see command <a href="#charged-defect">charged-defect</a>)  [not in All]
    CoreDensity               Total core electron density (from partial core corrections)
    Dfluid                    Electrostatic potential due to fluid alone
    Dipole                    Dipole moment of explicit charges (ionic and electronic)
@@ -582,7 +622,6 @@ and each &lt;var*&gt; is one of:
    Fillings                  Fillings
    FluidDebug                Fluid specific debug output if any  [not in All]
    FluidDensity              Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
-   FluidSlabEpsilon          Local dielectric function of a slab (see command <a href="#slab-epsilon">slab-epsilon</a>)  [not in All]
    Forces                    Forces on the ions in the coordinate system selected by command <a href="#forces-output-coords">forces-output-coords</a>
    Gvectors                  List of G vectors in reciprocal lattice basis, for each k-point
    IonicDensity              Nuclear charge density (with gaussians)
@@ -598,6 +637,7 @@ and each &lt;var*&gt; is one of:
    RealSpaceWfns             Real-space wavefunctions (one column per file) [not in All]
    RhoAtom                   Atomic-orbital projected density matrices (only for species with +U enabled)
    SelfInteractionCorrection Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues
+   SlabEpsilon               Local dielectric function of a slab (see command <a href="#slab-epsilon">slab-epsilon</a>)  [not in All]
    SolvationRadii            Effective solvation radii based on fluid bound charge distribution
    State                     All variables needed to restart calculation: wavefunction and fluid state/fillings if any
    Stress                    Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector

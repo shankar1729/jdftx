@@ -388,3 +388,8 @@ void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
 	fclose(fp);
 	logPrintf("done\n"); logFlush();
 }
+
+
+void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
+{	die("Not yet implemented.\n");
+}
