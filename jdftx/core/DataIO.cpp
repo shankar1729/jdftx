@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/DataIO.h>
 #include <core/GridInfo.h>
 #include <core/Operators.h>
+#include <core/WignerSeitz.h>
 #include <string.h>
 #include <algorithm>
 
@@ -66,24 +67,24 @@ void saveDX(const DataRptr& X, const char* filenamePrefix)
 }
 
 
-void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename, double drFac, vector3<>* centerPtr)
-{	const GridInfo& g = dataR[0]->gInfo;
-
+std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColumns, double drFac, vector3< double >* center)
+{	assert(nColumns > 0); assert(dataR[0]);
+	const GridInfo& gInfo = dataR[0]->gInfo;
+	
 	//Determine the center for sphericalizaion:
-	vector3<> center;
-	if(centerPtr) center = *centerPtr;
-	else center = 0.5*(g.R.column(0) + g.R.column(1) + g.R.column(2));
+	vector3<> xCenter;
+	if(center) xCenter = inv(gInfo.R) * (*center); //to lattice coordinates
+	else xCenter = vector3<>(0.5,0.5,0.5);
 
-	//Determine the maximum radius from center to edges of the box:
-	double rMax = 0.0;
-	for(int i0=0; i0<2; i0++) for(int i1=0; i1<2; i1++) for(int i2=0; i2<2; i2++) //loop over vertices of parellelopiped
-	{	double distance = (g.R.column(0)*i0 + g.R.column(1)*i1 + g.R.column(2)*i2 - center).length();
-		if(distance > rMax) rMax = distance;
-	}
-
-	//Determine the diameter of the parellelopiped:
+	//Calculate the Wigner-Seitz cell:
+	logSuspend();
+	WignerSeitz ws(gInfo.R);
+	logResume();
+	double rMax = ws.circumRadius();
+	
+	//Determine the diameter of the mesh parellelopiped:
 	double dr = 0.0;
-	const vector3<>* h = g.h;
+	const vector3<>* h = gInfo.h;
 	vector3<> hCenter = 0.5*(h[0]+h[1]+h[2]);
 	for(int i0=0; i0<2; i0++) for(int i1=0; i1<2; i1++) for(int i2=0; i2<2; i2++) //loop over vertices of parellelopiped
 	{	double distance = (h[0]*i0 + h[1]*i1 + h[2]*i2 - hCenter).length();
@@ -91,51 +92,76 @@ void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename
 	}
 	dr *= (2.0*drFac);
 	double drInv = 1.0/dr;
-
-	//Sphericalize!
+	
+	//Histogram:
 	int nRadial = int(ceil(rMax/dr));
-	double** mean = new double*[nColumns];
-	double* weight = new double[nRadial];
+	std::vector< std::vector<double> > out(nColumns+2, std::vector<double>(nRadial,0.));
+	std::vector<double>& rGrid = out[0];
+	std::vector<double>& weight = out[nColumns+1];
+	for(int i=0; i<nRadial; i++)
+		rGrid[i] = i*dr;
+	std::vector<double*> data(nColumns);
 	for(int c=0; c<nColumns; c++)
-	{	mean[c] = new double[nRadial];
-		memset(weight, 0, nRadial*sizeof(double));
-		memset(mean[c], 0, nRadial*sizeof(double));
-		double* curData = dataR[c]->data();
-		//Loop over all the lattice points and accumulate the above sums:
-		size_t iStart=0, iStop=g.nr; const vector3<int> &S = g.S;
-		THREAD_rLoop //not actually threaded, but convenient nonetheless
-		(	vector3<> ri = iv[0]*h[0] + iv[1]*h[1] + iv[2]*h[2];
-			double rRel = (ri - center).length() * drInv;
-			int iRadial = int(floor(rRel));
-			double wRight = (pow(rRel,2) - pow(iRadial,2))/(2*iRadial+1);
-			double wLeft = 1.0 - wRight;
-			if(wLeft && iRadial<nRadial)
-			{	weight[iRadial] += wLeft;
-				mean[c][iRadial] += wLeft * curData[i];
-			}
-			if(wRight && iRadial+1<nRadial)
-			{	weight[iRadial+1] += wRight;
-				mean[c][iRadial+1] += wRight * curData[i];
-			}
-		)
-		//Calculate mean
-		for(int i=0; i<nRadial; i++) mean[c][i] /= weight[i];
+		data[c] = dataR[c]->data();
+	size_t iStart = (mpiUtil->iProcess()*gInfo.nr)/mpiUtil->nProcesses();
+	size_t iStop = ((mpiUtil->iProcess()+1)*gInfo.nr)/mpiUtil->nProcesses();
+	const vector3<int> &S = gInfo.S;
+	matrix3<> invS = inv(Diag(vector3<>(S)));
+	THREAD_rLoop
+	(	 //not actually threaded, but works just as well for MPI division
+		double rRel = (gInfo.R * ws.restrict(invS * iv - xCenter)).length() * drInv;
+		int iRadial = int(floor(rRel));
+		double wRight = (pow(rRel,2) - pow(iRadial,2))/(2*iRadial+1);
+		double wLeft = 1.0 - wRight;
+		if(wLeft && iRadial<nRadial)
+		{	weight[iRadial] += wLeft;
+			for(int c=0; c<nColumns; c++)
+				out[c+1][iRadial] += wLeft * data[c][i];
+		}
+		if(wRight && iRadial+1<nRadial)
+		{	weight[iRadial+1] += wRight;
+			for(int c=0; c<nColumns; c++)
+				out[c+1][iRadial+1] += wRight * data[c][i];
+		}
+	)
+	mpiUtil->allReduce(weight.data(), nRadial, MPIUtil::ReduceSum);
+	for(int c=0; c<nColumns; c++)
+	{	mpiUtil->allReduce(out[c+1].data(), nRadial, MPIUtil::ReduceSum);
+		eblas_ddiv(nRadial, weight.data(),1, out[c+1].data(),1); //convert from sum to mean
 	}
+	//Fix rows of zero weight:
+	for(int i=0; i<nRadial; i++) if(!weight[i])
+	{	int iLeft=i-1; while(iLeft>=0 && !weight[iLeft]) iLeft--;
+		int iRight=i+1; while(iRight<nRadial && !weight[iRight]) iRight++;
+		if(iLeft>=0 && iRight<nRadial)
+		{	double wLeft = (iRight-i)*1./(iRight-iLeft);
+			for(int c=0; c<nColumns; c++) out[c+1][i] = out[c+1][iLeft]*wLeft + out[c+1][iRight]*(1.-wLeft);
+		}
+		else if(iLeft>=0 && iRight>=nRadial)
+		{	for(int c=0; c<nColumns; c++) out[c+1][i] = out[c+1][iLeft];
+		}
+		else if(iLeft<0 && iRight<nRadial)
+		{	for(int c=0; c<nColumns; c++) out[c+1][i] = out[c+1][iRight];
+		}
+		else assert("!All rows have zero weight!\n");
+	}
+	return out;
+}
 
+
+void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename, double drFac, vector3<>* center)
+{	std::vector< std::vector<double> > out = sphericalize(dataR, nColumns, drFac, center);
+	int nRadial = out[0].size();
 	//Output data:
 	FILE* fp = fopen(filename, "w");
 	if(!fp) die("Error opening %s for writing.\n", filename)
 	for(int i=0; i<nRadial; i++)
-	{	fprintf(fp, "%le", i*dr);
-		for(int c=0; c<nColumns; c++) fprintf(fp, "\t%le", mean[c][i]);
+	{	fprintf(fp, "%le", out[0][i]); //r
+		for(int c=0; c<nColumns; c++) fprintf(fp, "\t%le", out[c+1][i]); //data
+		fprintf(fp, "\t%le", out[nColumns+1][i]); //weight
 		fprintf(fp, "\n");
 	}
 	fclose(fp);
-
-	//Cleanup:
-	for(int c=0; c<nColumns; c++) delete[] mean[c];
-	delete[] mean;
-	delete[] weight;
 }
 
 void saveSphericalized(const DataGptr* dataG, int nColumns, const char* filename, double dGFac)

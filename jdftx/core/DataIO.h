@@ -75,6 +75,15 @@ template<typename T> void loadRawBinary(Tptr& X, const char* filename)
 */
 void saveDX(const DataRptr&, const char* filenamePrefix);
 
+/** Spherically average scalar fields about an arbitrary center (with Wigner-Seitz wrapping)
+@param dataR The data to sphericalize and save
+@param nColumns Number of DataRptr's in dataR[]
+@param drFac is the spacing in radius as a fraction of the diameter of the sample box (R ./ S) (drFac << 1 is likely to give noisy results, particularly close to r=0)
+@param center The origin for spherical coordinates [default = center of box (if null pointer is passed)]
+@return The first array contains the radial grid, and the subsequent ones the spherically-averaged results, one for each dataR, and the last column contains the weight of the radial grid point
+*/
+std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColumns, double drFac=1.0, vector3<>* center=0);
+
 /** Saves an array of real space data pointers to a multicolumn 1D 'sphericalized' file (for gnuplot)
 @param dataR The data to sphericalize and save
 @param nColumns Number of DataRptr's in dataR[]
