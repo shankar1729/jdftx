@@ -55,6 +55,8 @@ namespace XC_Analysis
 	DataRptrCollection sHartree(const Everything& e);
 }
 
+//---------------- Implemented in DumpChargedDefects.cpp -----------------
+
 struct SlabEpsilon
 {	string dtotFname;
 	double sigma;
