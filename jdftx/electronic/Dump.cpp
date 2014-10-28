@@ -208,8 +208,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		DUMP(I(eVars.V_cavity + eVars.d_fluid), "V_fluidTot", VfluidTot);
 	}
 	else
-	{	d_tot = I(d_vac);
-		DUMP(d_tot, "d_tot", Dtot);
+	{	if(needDtot)
+		{	d_tot = I(d_vac);
+			DUMP(d_tot, "d_tot", Dtot);
+		}
 	}
 	if(ShouldDumpNoAll(SlabEpsilon))
 		if(slabEpsilon)
