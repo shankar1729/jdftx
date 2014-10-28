@@ -119,9 +119,10 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 	logPrintf("\tWriting %s (plot to check DeltaV manually) ... ", fname.c_str()); logFlush();
 	FILE* fp = fopen(fname.c_str(), "w");
 	if(!fp) die("Error opening %s for writing.\n", fname.c_str())
-	fprintf(fp, "#r DeltaV Vmodel Vdft\n");
+	fprintf(fp, "#r DeltaV Vmodel Vdft weight\n");
 	for(size_t i=0; i<rRadial.size(); i++)
-		fprintf(fp, "%lf %le %le %le\n", rRadial[i], VmodelRadial[i]-VdftRadial[i], VmodelRadial[i], VdftRadial[i]);
+		fprintf(fp, "%lf %le %le %le %le\n", rRadial[i], VmodelRadial[i]-VdftRadial[i],
+			VmodelRadial[i], VdftRadial[i], (wRadial[i] * 0.5*erfc((rMin-rRadial[i])/rSigma)) / wSum);
 	fclose(fp);
 	logPrintf("done.\n");
 }
