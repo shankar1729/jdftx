@@ -488,7 +488,8 @@ struct CommandChargedDefect : public Command
 			"    For surface defect calculations (coulomb-interaction Slab ...)\n"
 			"<slabEpsFile> specifies a dielectric profile calculated using command\n"
 			"slab-epsilon in a similar geometry (the number of points along the slab\n"
-			"normal direction must match exactly).\n"
+			"normal direction must match exactly). Note that coulomb-truncation-embed\n"
+			"must be specified for charged-defect correction in Slab geometry.\n"
 			"    <rMin> specifies the distance away from the defect center to use in\n"
 			"the determination of the alignment potential, with rSigma specifying an\n"
 			"error function turn-on distance. The code wil generate a text file with\n"
@@ -496,6 +497,8 @@ struct CommandChargedDefect : public Command
 			"can be used to check the calculated alignment and refine rMin and rSigma.";
 		
 		require("latt-scale");
+		require("coords-type");
+		require("coulomb-interaction");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -516,7 +519,7 @@ struct CommandChargedDefect : public Command
 		switch(e.coulombParams.geometry)
 		{	case CoulombParams::Periodic: pl.get(cd.bulkEps, 1., "bulkEps", true); break;
 			case CoulombParams::Slab: pl.get(cd.slabEpsFname, string(), "slabEpsFile", true); break;
-			default: string("coulomb-interaction must be either Slab or Periodic");
+			default: throw string("coulomb-interaction must be either Slab or Periodic");
 		}
 		//Alignment potential ranges:
 		pl.get(cd.rMin, 0., "rMin", true);

@@ -174,6 +174,7 @@ private:
 	complexDataGptr embedShrink(complexDataGptr&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
 	friend class FluidSolver;
 	friend class SlabEpsilon;
+	friend class ChargedDefect;
 };
 
 #endif // JDFTX_CORE_COULOMB_H

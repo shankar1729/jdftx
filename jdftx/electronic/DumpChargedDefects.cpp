@@ -4,6 +4,7 @@
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
 #include <core/DataIO.h>
+#include <core/LatticeUtils.h>
 
 //-------------------------- Slab epsilon ----------------------------------
 
@@ -11,6 +12,9 @@ inline void planarAvg_sub(size_t iStart, size_t iStop, const vector3<int>& S, in
 {	int jDir = (iDir+1)%3;
 	int kDir = (iDir+2)%3;
 	THREAD_halfGspaceLoop( if(iG[jDir] || iG[kDir]) data[i] = 0.; )
+}
+void planarAvg(DataGptr& X, int iDir)
+{	threadLaunch(planarAvg_sub, X->gInfo.nG, X->gInfo.S, iDir, X->data());
 }
 
 inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
@@ -41,7 +45,7 @@ void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
 	initTranslation(tMinus, -e.gInfo.h[iDir]);
 	double h = e.gInfo.h[iDir].length();
 	DataGptr epsInvTilde = (1./(dE * 2.*h)) * (tPlus - tMinus) * J(d_tot - d_totRef);
-	threadLaunch(planarAvg_sub, e.gInfo.nG, e.gInfo.S, iDir, epsInvTilde->data()); //planar average
+	planarAvg(epsInvTilde, iDir);
 	//Fix values of epsilon near truncation boundary to 1:
 	DataRptr epsInv = I(epsInvTilde);
 	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, e.coulomb->ivCenter[iDir] + e.gInfo.S[iDir]/2, epsInv->data());
@@ -81,10 +85,34 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 			break;
 		}
 		case CoulombParams::Slab: //Surface defect
-		{	die("Not yet implemented.\n");
+		{	int iDir = e.coulombParams.iDir;
+			if(!e.coulombParams.embed)
+				die("\tCoulomb truncation must be embedded for charged-defect correction in slab geometry.\n");
+			rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
+			//Create dielectric model for slab:
+			DataRptr epsSlab; nullToZero(epsSlab, e.gInfo);
+			double* epsSlabData = epsSlab->data();
+			std::ifstream ifs(slabEpsFname.c_str());
+			if(!ifs.is_open()) die("\tCould not open slab dielectric model file '%s' for reading.\n", slabEpsFname.c_str());
+			string commentLine; getline(ifs, commentLine); //get and ignore comment line
+			vector3<int> iR;
+			double h = e.gInfo.h[iDir].length();
+			for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
+			{	double dExpected = h*iR[iDir];
+				double d; ifs >> d >> epsSlabData[e.gInfo.fullRindex(iR)];
+				if(fabs(d-dExpected) > symmThreshold)
+					die("\tGeometry mismatch in '%s': expecting distance %lg on line %d; found %lg instead.\n",
+						slabEpsFname.c_str(), dExpected, iR[iDir]+2, d);
+			}
+			DataGptr epsSlabMinus1tilde = J(epsSlab) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
+			epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
+			planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
+			epsSlab = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedded eps-1 since it is zero in vacuum)
+			saveRawBinary(epsSlab, "test.epsSlab");
+			die("Not yet implemented.\n");
 			break;
 		}
-		default: die("Coulomb-interaction geometry must be either slab or periodic for charged-defect correction.\n");
+		default: die("\tCoulomb-interaction geometry must be either slab or periodic for charged-defect correction.\n");
 	}
 	logPrintf("\tEmodelIsolated: %.8lf\n", EmodelIsolated);
 	logPrintf("\tEmodelPeriodic: %.8lf\n", Emodel);
