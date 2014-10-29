@@ -195,7 +195,7 @@ public:
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
 				logPrintf("Dumping %s... ", filename); logFlush();
-				if(mpiUtil->isHead()) saveSphericalized(&N[c->offsetDensity+j], 1, filename);
+				saveSphericalized(&N[c->offsetDensity+j], 1, filename);
 				logPrintf("Done.\n"); logFlush();
 			}
 		

@@ -346,7 +346,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 				ostringstream oss; oss << "Nspherical_" << c->molecule.name;
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
-				if(mpiUtil->isHead()) saveSphericalized(&N,1,filename);
+				saveSphericalized(&N,1,filename);
 			}
 			logPrintf("Done.\n"); logFlush();
 		}

@@ -151,6 +151,7 @@ std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColu
 
 void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename, double drFac, vector3<>* center)
 {	std::vector< std::vector<double> > out = sphericalize(dataR, nColumns, drFac, center);
+	if(!mpiUtil->isHead()) return; //all processes calculate, but only head needs to write file
 	int nRadial = out[0].size();
 	//Output data:
 	FILE* fp = fopen(filename, "w");

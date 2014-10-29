@@ -348,7 +348,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		oss << "Nspherical";
 		sprintf(filename, filenamePattern, oss.str().c_str());
 		logPrintf("Dumping '%s' ... ", filename); logFlush();
-		if(mpiUtil->isHead()) saveSphericalized(&shape, 1, filename);
+		saveSphericalized(&shape, 1, filename);
 		logPrintf("done\n"); logFlush();
 	}
 	
@@ -358,7 +358,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		oss << "NvdWspherical";
 		sprintf(filename, filenamePattern, oss.str().c_str());
 		logPrintf("Dumping '%s' ... ", filename); logFlush();
-		if(mpiUtil->isHead()) saveSphericalized(&shapeVdw,1, filename);
+		saveSphericalized(&shapeVdw,1, filename);
 		logPrintf("done\n"); logFlush();
 	}
 }
