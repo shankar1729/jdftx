@@ -134,7 +134,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 			}
 			
 			//Determine the total change in sum(F[q][0:nBands-1]):
-			double sumFchange = qNet[qnums[q].index()] * wInv; //manual excess fillings
+			double sumFchange = 0.; 
 			for(int b=nBands;  b<nBandsOld; b++)
 				sumFchange += F[q][b]; //discarded bands
 			
