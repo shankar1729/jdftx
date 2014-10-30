@@ -24,6 +24,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump_internal.h>
 #include <core/Units.h>
 
+struct CommandDumpOnly : public Command
+{
+	CommandDumpOnly() : Command("dump-only", "Output")
+	{
+		comments = 
+			"Bypass all minimization, perform a single energy evaluation at\n"
+			"the initial state, and process dump commands at the end state.\n"
+			"Useful for post-processing a converged calculation.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.cntrl.dumpOnly = true;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{
+	}
+}
+commandDumpOnly;
+
+
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
 	DumpFreq_Lattice, "Lattice",

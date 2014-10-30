@@ -47,7 +47,13 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
-	if(e.cntrl.fixed_H)
+	if(e.cntrl.dumpOnly)
+	{	//Single energy calculation so that all dependent quantities have been initialized:
+		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
+		eVars.elecEnergyAndGrad(e.ener, 0, 0, true); //calculate Hsub so that eigenvalues are available (used by many dumps)
+		logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
+	}
+	else if(e.cntrl.fixed_H)
 	{	//Band structure calculation - ion and fluid minimization need to be handled differently
 		if(eVars.nFilenamePattern.length())
 		{	//If starting from density, compute potential:

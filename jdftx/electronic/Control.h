@@ -64,7 +64,8 @@ public:
 	string invertKS_chiGuessFilename; //!< filename pattern of variables (wfns/fillings/eigenvals) generating guess chi
 	
 	bool scf; //! whether SCF iteration or total energy minimizer will be called
-
+	bool dumpOnly; //! run a single-electronic-point energy evaluation and process the end dump
+	
 	Control()
 	:	fixed_H(false),
 		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true), davidsonBandRatio(1.1),
@@ -72,7 +73,7 @@ public:
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),
-		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false)
+		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false), dumpOnly(false)
 	{
 	}
 };
