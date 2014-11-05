@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <algorithm>
 #include <climits>
+#include <core/Random.h>
 
 MPIUtil::MPIUtil(int argc, char** argv)
 {
@@ -36,6 +37,8 @@ MPIUtil::MPIUtil(int argc, char** argv)
 	nProcs = 1;
 	iProc = 0;
 	#endif
+	
+	Random::seed(iProc);
 }
 
 MPIUtil::~MPIUtil()

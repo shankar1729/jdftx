@@ -22,9 +22,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Random
 {
-	std::default_random_engine generator;
+	std::mt19937_64 generator;
 	std::normal_distribution<double> normdist;
 	std::uniform_real_distribution<double> uniformDist;
+	
+	void seed(int i)
+	{	generator.seed(i);
+	}
 	
 	double uniform(double start, double end)
 	{	return start + (end-start)*uniformDist(generator);

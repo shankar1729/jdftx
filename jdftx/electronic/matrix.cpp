@@ -112,7 +112,7 @@ void matrix::reshape(int nrows, int ncols)
 	if(!nrows) { assert(ncols); nrows = nProd / ncols; }
 	if(!ncols) { assert(nrows); ncols = nProd / nrows; }
 	//Update dimensions:
-	assert(nrows * ncols == nProd);
+	assert(nrows * ncols == int(nProd));
 	nr = nrows;
 	nc = ncols;
 }

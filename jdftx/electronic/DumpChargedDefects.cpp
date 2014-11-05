@@ -123,6 +123,11 @@ struct SlabPeriodicSolver : public LinearSolvable<DataGptr>
 	}
 };
 
+struct SlabIsolatedSolver : public LinearSolvable<matrix>
+{
+	
+};
+
 //Get the averaged field in direction iDir between planes iCenter +/- iDist
 double getEfield(DataRptr V, int iDir, int iCenter, int iDist)
 {	const GridInfo& gInfo = V->gInfo;
@@ -204,6 +209,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 			epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
 			planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
 			epsSlab = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
+			
 			//Periodic potential and energy:
 			DataGptr dModel;
 			Emodel = SlabPeriodicSolver(iDir, epsSlab).getEnergy(rhoModel, dModel);
@@ -213,6 +219,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 			double EfieldModel = getEfield(Vmodel, iDir, e.coulomb->ivCenter[iDir], e.gInfo.S[iDir]/2-2);
 			threadLaunch(addEfield_sub, Vmodel->gInfo.nr, &(Vmodel->gInfo), iDir, EfieldDft-EfieldModel, pos, Vmodel->data());
 			Vmodel = I(e.coulomb->embedShrink(J(Vmodel)));
+			
 			//Isolated energy:
 			//TODO
 			break;
