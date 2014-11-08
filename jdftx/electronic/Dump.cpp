@@ -191,6 +191,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	bool needDtot = ShouldDump(Dtot) || ShouldDumpNoAll(SlabEpsilon) || ShouldDumpNoAll(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
+		//Subtract neutral-atom reference potential (gives smoother result):
+		{	DataGptr dAtomic;
+			for(auto sp: e->iInfo.species) if(sp->atpos.size()) sp->accumulateAtomicPotential(dAtomic);
+			d_vac -= dAtomic;
+		}
 		if(eVars.rhoExternal) d_vac += (*e->coulomb)(eVars.rhoExternal); //potential due to external charge (if any)
 		if(e->coulombParams.Efield.length_squared()) d_vac += J(e->coulomb->getEfieldPotential());
 	}

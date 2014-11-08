@@ -115,6 +115,7 @@ public:
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(DataGptrCollection& nTilde) const; //!< Accumulate atomic density from this species
+	void accumulateAtomicPotential(DataGptr& dTilde) const; //!< Accumulate electrostatic potential of neutral atoms from this species
 	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset)
 	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0) const;  //!< Same as above, but for specific n and l.
 		//!< If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)
@@ -208,7 +209,8 @@ private:
 	
 	//Following implemented in SpeciesInfo_atomFillings.cpp
 	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.
-	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const; //!< Compute the atomic density per spin channel, given the magnetic moment
+	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial, bool forceNeutral) const; //!< Compute the atomic density per spin channel, given the magnetic moment
+	void getAtomPotential(RadialFunctionG& dRadial) const; //!< Get the total electrostatic potential of a neutral atom
 	
 	friend class CommandIonSpecies;
 	friend class CommandSetVDW;

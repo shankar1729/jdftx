@@ -112,7 +112,7 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 		//Get the radial spin-densities in diagonal basis:
 		std::vector<RadialFunctionG> nRadial(Mmag.Mlength ? 2 : 1);
 		for(unsigned s=0; s<nRadial.size(); s++)
-			getAtom_nRadial(s, Mmag.Mlength, nRadial[s]);
+			getAtom_nRadial(s, Mmag.Mlength, nRadial[s], false);
 		//Collect contributions for each direction with this magnitude:
 		for(const MomentDirection& Mdir: Mmag.Mdirs)
 		{	//Compute structure factor for atoms with current magnetization vector:
@@ -151,6 +151,18 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 	#ifdef GPU_ENABLED
 	cudaFree(atposCurPref);
 	#endif
+}
+
+void SpeciesInfo::accumulateAtomicPotential(DataGptr& dTilde) const
+{	//Get radial potential due to one atom:
+	RadialFunctionG dRadial;
+	getAtomPotential(dRadial);
+	//Gets tructure factor:
+	DataGptr SG; nullToZero(SG, e->gInfo);
+	callPref(getSG)(e->gInfo.S, atpos.size(), atposPref, 1./e->gInfo.detR, SG->dataPref());
+	//Accumulate contrbutions:
+	dTilde += dRadial * SG;
+	dRadial.free();
 }
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
@@ -334,7 +346,7 @@ void SpeciesInfo::estimateAtomEigs()
 	}
 }
 
-void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial) const
+void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial, bool forceNeutral) const
 {
 	int spinCount = (e->eInfo.nDensities==1 ? 1 : 2);
 	assert(spin >= 0); assert(spin < spinCount);
@@ -353,6 +365,7 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 		logPrintf("%s pseudo-atom occupations: ", name.c_str());
 	double Nvalence = Z - initialOxidationState;
 	double N = 0.5*(Nvalence + (1-2*spin)*magneticMoment); //total electrons to fill
+	if(forceNeutral) N = 0.5*Z; //force neutral unpolarized atom
 	if(N < 0.)
 		die("Magnetic moment (%lg) exceeds pseudo-atom valence electron count (%lg) [per spin channel].\n", magneticMoment, Nvalence);
 	double Favail = N; //electrons yet to be filled
@@ -419,4 +432,39 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 	const double dG = e->gInfo.dGradial;
 	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
 	n.transform(0, dG, nGridLoc, nRadial);
+}
+
+void SpeciesInfo::getAtomPotential(RadialFunctionG& dRadial) const
+{	//Get the radial density of a neutral atom:
+	RadialFunctionG nRadial;
+	getAtom_nRadial(0,0, nRadial, true);
+	RadialFunctionR n = *nRadial.rFunc;
+	nRadial.free();
+	//Calculate cumulative charge distribution:
+	std::vector<double> Qin(n.r.size());
+	double Qcur = 0.;
+	for(size_t i=0; i<Qin.size(); i++)
+	{	double dQ = (2*n.f[i]) * (4*M_PI * n.r[i]*n.r[i] * n.dr[i]); //factor of 2 for spin
+		Qcur += 0.5*dQ;
+		Qin[i] = Qcur; //Trapezoidal rule
+		Qcur += 0.5*dQ;
+	}
+	double normFac = Z/Qin.back();
+	for(double& Q: Qin) Q *= normFac; //ensure strict neutrality to numerical precision
+	//Calculate potential:
+	RadialFunctionR d = n, *Vloc = VlocRadial.rFunc;
+	double phiCur = Z/n.r.back();
+	int iLast = int(Qin.size())-1;
+	for(int i=iLast; i>=0; i--)
+	{	double rInv = n.r[i] ? 1./n.r[i] : 0.;
+		double dphi = Qin[i] * rInv*rInv * n.dr[i];
+		if(i<iLast)
+			phiCur += 0.5*dphi;
+		d.f[i] = Vloc->f[i] - Z*rInv + phiCur; //Vloc contains the non Z/r part of the nuclear potential
+		phiCur += 0.5*dphi;
+	}
+	//Transform potential:
+	const double dG = e->gInfo.dGradial;
+	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
+	d.transform(0, dG, nGridLoc, dRadial);
 }

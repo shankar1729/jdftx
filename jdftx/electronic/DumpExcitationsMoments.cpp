@@ -295,7 +295,7 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 	DataRptr nAtomicTot;
 	for(const auto& sp: e->iInfo.species)
 	{	RadialFunctionG nRadial;
-		logSuspend(); sp->getAtom_nRadial(0,0, nRadial); logResume();
+		logSuspend(); sp->getAtom_nRadial(0,0, nRadial, true); logResume();
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
 		{	DataRptr nAtomic = radialFunction(e->gInfo, nRadial, sp->atpos[atom]);
 			double nMin, nMax; callPref(eblas_capMinMax)(e->gInfo.nr, nAtomic->dataPref(), nMin, nMax, nFloor);
@@ -314,7 +314,7 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 	fprintf(fp, "#Species   rMean +/- rSigma [bohrs]   (rMean +/- rSigma [Angstrom])   sqrt(Int|nbound^2|) in partition\n");
 	for(const auto& sp: e->iInfo.species)
 	{	RadialFunctionG nRadial;
-		logSuspend(); sp->getAtom_nRadial(0,0, nRadial); logResume();
+		logSuspend(); sp->getAtom_nRadial(0,0, nRadial, true); logResume();
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
 		{	DataRptr w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
 			//Get r centered at current atom:
