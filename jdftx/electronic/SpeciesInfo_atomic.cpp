@@ -437,7 +437,9 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 void SpeciesInfo::getAtomPotential(RadialFunctionG& dRadial) const
 {	//Get the radial density of a neutral atom:
 	RadialFunctionG nRadial;
+	logSuspend();
 	getAtom_nRadial(0,0, nRadial, true);
+	logResume();
 	RadialFunctionR n = *nRadial.rFunc;
 	nRadial.free();
 	//Calculate cumulative charge distribution:
@@ -449,10 +451,8 @@ void SpeciesInfo::getAtomPotential(RadialFunctionG& dRadial) const
 		Qin[i] = Qcur; //Trapezoidal rule
 		Qcur += 0.5*dQ;
 	}
-	double normFac = Z/Qin.back();
-	for(double& Q: Qin) Q *= normFac; //ensure strict neutrality to numerical precision
-	//Calculate potential:
-	RadialFunctionR d = n, *Vloc = VlocRadial.rFunc;
+	//Calculate electrostatic potential:
+	RadialFunctionR d = n;
 	double phiCur = Z/n.r.back();
 	int iLast = int(Qin.size())-1;
 	for(int i=iLast; i>=0; i--)
@@ -460,9 +460,37 @@ void SpeciesInfo::getAtomPotential(RadialFunctionG& dRadial) const
 		double dphi = Qin[i] * rInv*rInv * n.dr[i];
 		if(i<iLast)
 			phiCur += 0.5*dphi;
-		d.f[i] = Vloc->f[i] - Z*rInv + phiCur; //Vloc contains the non Z/r part of the nuclear potential
+		d.f[i] = phiCur - Z*rInv;
 		phiCur += 0.5*dphi;
 	}
+	//Pseudize potential:
+	//--- calculate pseudization radius
+	double Rvdw = 0.;
+	for(int i=iLast; i>=0; i--)
+		if(2.*n.f[i] > 0.01)
+		{	Rvdw = 1.1 * n.r[i]; //DFT+D2 definition for convenience
+			break;
+		}
+	int iVdw = std::upper_bound(n.r.begin(), n.r.end(), Rvdw) - n.r.begin();
+	assert(iVdw < iLast);
+	Rvdw = n.r[iVdw]; //round to grid point
+	//--- pseudize electrostatic potential so that it is zero outside Rvdw
+	double d0 = d.f[iVdw]; //value
+	double d1 = (d.f[iVdw+1] - d.f[iVdw-1]) / log(d.r[iVdw+1]/d.r[iVdw-1]); //first derivative w.r.t x = r/Rvdw
+	double d2 = (d.f[iVdw+1] + d.f[iVdw-1] - 2.*d0) / std::pow(0.5*log(d.r[iVdw+1]/d.r[iVdw-1]),2) - d1; //second derivative w.r.t x = r/Rvdw
+	double a3 = 10.*d0 - 4.*d1 + 0.5*d2; //expansion x^3 (a3 + a4 x + a5 x^2) that is C2 continuous at 0 and Rvdw
+	double a4 = -15.*d0 + 7.*d1 - d2;
+	double a5 = 6.*d0 - 3.*d1 + 0.5*d2;
+	for(int i=0; i<iVdw; i++)
+	{	double x = d.r[i] / Rvdw;
+		d.f[i] -= x*x*x*(a3 + x*(a4 + x*a5));
+	}
+	for(size_t i=iVdw; i<d.f.size(); i++)
+		d.f[i] = 0.;
+	//Add non-electrostatic part of Vloc:
+	RadialFunctionR& Vloc = *(VlocRadial.rFunc);
+	for(size_t i=0; i<d.f.size(); i++)
+		d.f[i] += Vloc.f[i];
 	//Transform potential:
 	const double dG = e->gInfo.dGradial;
 	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dG))+5;
