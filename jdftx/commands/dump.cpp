@@ -106,7 +106,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpGvectors, "Gvectors",
 	DumpOrbitalDep, "OrbitalDep",
 	DumpXCanalysis, "XCanalysis",
-	DumpEresolvedDensity, "EresolvedDensity"
+	DumpEresolvedDensity, "EresolvedDensity",
+	DumpFermiDensity, "FermiDensity" 
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpAll,            "Dump most things (except those marked not in All)",
@@ -151,7 +152,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
 	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
 	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
-	DumpEresolvedDensity, "Electron density from bands within specified energy ranges"
+	DumpEresolvedDensity, "Electron density from bands within specified energy ranges",
+	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy" 
 );
 
 struct CommandDump : public Command
@@ -361,6 +363,38 @@ struct CommandDumpEresolvedDensity : public Command
 	}
 }
 commandDumpEresolvedDensity;
+
+struct CommandDumpFermiDensity : public Command 
+{
+    CommandDumpFermiDensity() : Command("dump-fermi-density", "Output")
+	{
+		format = "[<muLevel>]";
+		comments =
+			"Output electron density calculated from derivative of Fermi-Dirac\n"
+			"function evaluated at desired energy, muLevel.  If no energy specified,\n"
+			"calculated mu will be used.\n"
+			"Command may be issued multiple times, and the outputs will be numbered\n"
+			"sequentially FermiDensity.0 etc.\n"
+			"Will automatically be dumped at End; dumping at other frequencies\n"
+			"may be requested using the dump command.";
+		
+		allowMultiple = true;
+		require("elec-fermi-fillings"); //require a temperature
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	double muLevel;
+		pl.get(muLevel, std::numeric_limits<double>::quiet_NaN(), "muLevel", false);
+		e.dump.fermiDensityLevels.push_back(muLevel);
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpFermiDensity));
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const auto& muLevel = e.dump.fermiDensityLevels[iRep];
+		logPrintf("%lg", muLevel);
+	}
+}
+commandDumpFermiDensity;
 
 
 //---------- Vibrations ------------------------

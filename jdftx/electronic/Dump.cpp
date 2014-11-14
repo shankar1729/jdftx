@@ -522,6 +522,25 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		F = Forig; //restore fillings
 	}
 	
+	if(ShouldDumpNoAll(FermiDensity)) 
+	{	std::vector<diagMatrix>& F = ((ElecVars&)e->eVars).F;
+		std::vector<diagMatrix> Forig = F; //backup fillings
+		int iRange=0;
+		for(const auto& muLevel: fermiDensityLevels)
+		{	//Set fillings based on derivative of Fermi-Dirac function evaluated at muLevel
+			double muF;
+			//calculate mu if not set
+			muF = ( !std::isnan(muLevel) ? muLevel : eInfo.findMu(eVars.Hsub_eigs,eInfo.nElectrons) );
+			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+				for(int b=0; b<eInfo.nBands; b++)
+					F[q][b] = -eInfo.fermiPrime(muF,eVars.Hsub_eigs[q][b]);
+			//Calculate and dump density
+			DataRptrCollection density = eVars.calcDensity();
+			ostringstream oss; oss << "FermiDensity." << iRange; iRange++;
+			DUMP_spinCollection(density, oss.str())
+		}
+		F = Forig; //restore fillings
+	}
 	//Polarizability dump deletes wavefunctions to free memory and should therefore happen at the very end
 	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
 	{	polarizability->dump(*e);
