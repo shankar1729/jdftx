@@ -116,12 +116,14 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#symmetry-matrix">symmetry-matrix</a>
 <p><b>Output</b>:
 &nbsp;&nbsp;&nbsp;<a href="#charged-defect">charged-defect</a>
+&nbsp;&nbsp;&nbsp;<a href="#charged-defect-correction">charged-defect-correction</a>
 &nbsp;&nbsp;&nbsp;<a href="#debug">debug</a>
 &nbsp;&nbsp;&nbsp;<a href="#density-of-states">density-of-states</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump">dump</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-Eresolved-density">dump-Eresolved-density</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-interval">dump-interval</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-name">dump-name</a>
+&nbsp;&nbsp;&nbsp;<a href="#dump-only">dump-only</a>
 &nbsp;&nbsp;&nbsp;<a href="#forces-output-coords">forces-output-coords</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability">polarizability</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability-kdiff">polarizability-kdiff</a>
@@ -243,16 +245,37 @@ partial core correction instead.
 <h1>charged-defect</h1>
 <h2>Syntax:</h2>
 <pre>
-charged-defect &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; &lt;q&gt; &lt;sigma&gt; \
-	&lt;DtotFile&gt; &lt;bulkEps&gt;|&lt;slabEpsFile&gt; &lt;rMin&gt; &lt;rSigma&gt;
+charged-defect &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; &lt;q&gt; &lt;sigma&gt;
 </pre>
 <h2>Description:</h2>
 <pre>
-Calculate energy correction for a bulk or surface charged defect.
-The correction is calculated assuming the defect to be a Gaussian
-of width &lt;sigma&gt; with net electron count &lt;q&gt; located at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;
+Specify model charge distribution(s) for <a href="#charged-defect-correction">charged-defect-correction</a>.
+Issue the command once for each defect in the calculation cell.
+The defect charge density will be modeled by a Gaussian of width
+&lt;sigma&gt; with net electron count &lt;q&gt; located at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;
 (in the coordinate system specified by <a href="#coords-type">coords-type</a>). The Gaussian must
 be resolvable on the plane-wave grid; recommend rSigma &gt;= 1 bohr.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#charged-defect-correction">charged-defect-correction</a>
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;yes
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="charged-defect-correction">
+<h1>charged-defect-correction</h1>
+<h2>Syntax:</h2>
+<pre>
+charged-defect-correction &lt;DtotFile&gt; &lt;bulkEps&gt;|&lt;slabEpsFile&gt; &lt;rMin&gt; &lt;rSigma&gt;
+</pre>
+<h2>Description:</h2>
+<pre>
+Calculate energy correction for bulk or surface charged defects.
+The correction is calculated assuming the defects to be model
+charges specified using command <a href="#charged-defect">charged-defect</a>.
     &lt;DtotFile&gt; contains the electrostatic potential from a reference
 neutral calculation with similar geometry (lattice vectors and grid
 must match exactly).
@@ -261,7 +284,8 @@ must match exactly).
     For surface defect calculations (<a href="#coulomb-interaction">coulomb-interaction</a> Slab ...)
 &lt;slabEpsFile&gt; specifies a dielectric profile calculated using command
 <a href="#slab-epsilon">slab-epsilon</a> in a similar geometry (the number of points along the slab
-normal direction must match exactly).
+normal direction must match exactly). Note that <a href="#coulomb-truncation-embed">coulomb-truncation-embed</a>
+must be specified for <a href="#charged-defect">charged-defect</a> correction in Slab geometry.
     &lt;rMin&gt; specifies the distance away from the defect center to use in
 the determination of the alignment potential, with rSigma specifying an
 error function turn-on distance. The code wil generate a text file with
@@ -270,6 +294,8 @@ can be used to check the calculated alignment and refine rMin and rSigma.
 </pre>
 <h2>Properties:</h2>
 <p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#coords-type">coords-type</a>
+&nbsp;&nbsp;&nbsp;<a href="#coulomb-interaction">coulomb-interaction</a>
 &nbsp;&nbsp;&nbsp;<a href="#latt-scale">latt-scale</a>
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;(None)
@@ -727,6 +753,27 @@ dump-name &lt;format&gt;
 <pre>
 dump-name $STAMP.$VAR</pre>
 <p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="dump-only">
+<h1>dump-only</h1>
+<h2>Syntax:</h2>
+<pre>
+dump-only 
+</pre>
+<h2>Description:</h2>
+<pre>
+Bypass all minimization, perform a single energy evaluation at
+the initial state, and process dump commands at the end state.
+Useful for post-processing a converged calculation.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
 </div>
 <div class="commandpane" id="eigen-shift">
 <h1>eigen-shift</h1>

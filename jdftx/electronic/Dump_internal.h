@@ -66,8 +66,12 @@ struct SlabEpsilon
 };
 
 struct ChargedDefect
-{	vector3<> pos; //defect center in lattice coordinates
-	double q, sigma; //defect electron-count and Gaussian width
+{	struct Center
+	{	vector3<> pos; //defect center in lattice coordinates
+		double q, sigma; //defect electron-count and Gaussian width
+	};
+	std::vector<Center> center; //list of defect positions in unit cell
+	
 	string dtotFname; //electrostatic potential from reference neutral calculation
 	
 	double bulkEps; //bulk dielectric constant (Bulk mode only)

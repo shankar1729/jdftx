@@ -523,18 +523,15 @@ commandSlabEpsilon;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandChargedDefect : public Command
+struct CommandChargedDefectCorrection : public Command
 {
-	CommandChargedDefect() : Command("charged-defect", "Output")
+	CommandChargedDefectCorrection() : Command("charged-defect-correction", "Output")
 	{
-		format = "<x0> <x1> <x2> <q> <sigma> \\\n"
-			"\t<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
+		format = "<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
 		comments = 
-			"Calculate energy correction for a bulk or surface charged defect.\n"
-			"The correction is calculated assuming the defect to be a Gaussian\n"
-			"of width <sigma> with net electron count <q> located at <x0>,<x1>,<x2>\n"
-			"(in the coordinate system specified by coords-type). The Gaussian must\n"
-			"be resolvable on the plane-wave grid; recommend rSigma >= 1 bohr.\n"
+			"Calculate energy correction for bulk or surface charged defects.\n"
+			"The correction is calculated assuming the defects to be model\n"
+			"charges specified using command charged-defect.\n"
 			"    <DtotFile> contains the electrostatic potential from a reference\n"
 			"neutral calculation with similar geometry (lattice vectors and grid\n"
 			"must match exactly).\n"
@@ -559,15 +556,6 @@ struct CommandChargedDefect : public Command
 	void process(ParamList& pl, Everything& e)
 	{	e.dump.chargedDefect = std::make_shared<ChargedDefect>();
 		ChargedDefect& cd = *(e.dump.chargedDefect);
-		//Position:
-		vector3<> pos;
-		pl.get(pos[0], 0., "x0", true);
-		pl.get(pos[1], 0., "x1", true);
-		pl.get(pos[2], 0., "x2", true);
-		cd.pos = (e.iInfo.coordsType==CoordsLattice) ? pos : inv(e.gInfo.R)*pos;
-		//Charge and width:
-		pl.get(cd.q, 0., "q", true);
-		pl.get(cd.sigma, 0., "sigma", true);
 		//Ref potential:
 		pl.get(cd.dtotFname, string(), "DtotFile", true);
 		//Dielectric function:
@@ -584,14 +572,52 @@ struct CommandChargedDefect : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	const ChargedDefect& cd = *(e.dump.chargedDefect);
-		vector3<> pos = (e.iInfo.coordsType==CoordsLattice) ? cd.pos : e.gInfo.R*cd.pos;
-		logPrintf("%lg %lg %lg  %+lg %lg \\\n\t%s ", pos[0], pos[1], pos[2], cd.q, cd.sigma, cd.dtotFname.c_str());
+		logPrintf("%s ", cd.dtotFname.c_str());
 		switch(e.coulombParams.geometry)
 		{	case CoulombParams::Periodic: logPrintf("%lg", cd.bulkEps); break;
 			case CoulombParams::Slab: logPrintf("%s", cd.slabEpsFname.c_str()); break;
 			default:; //should never be encountered
 		}
-		logPrintf(" %lg %lg\n", cd.rMin, cd.rSigma);
+		logPrintf(" %lg %lg", cd.rMin, cd.rSigma);
+	}
+}
+CommandChargedDefectCorrection;
+
+struct CommandChargedDefect : public Command
+{
+	CommandChargedDefect() : Command("charged-defect", "Output")
+	{
+		format = "<x0> <x1> <x2> <q> <sigma>";
+		comments = 
+			"Specify model charge distribution(s) for charged-defect-correction.\n"
+			"Issue the command once for each defect in the calculation cell.\n"
+			"The defect charge density will be modeled by a Gaussian of width\n"
+			"<sigma> with net electron count <q> located at <x0>,<x1>,<x2>\n"
+			"(in the coordinate system specified by coords-type). The Gaussian must\n"
+			"be resolvable on the plane-wave grid; recommend rSigma >= 1 bohr.";
+		
+		require("charged-defect-correction");
+		allowMultiple = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	ChargedDefect::Center cdc;
+		//Position:
+		vector3<> pos;
+		pl.get(pos[0], 0., "x0", true);
+		pl.get(pos[1], 0., "x1", true);
+		pl.get(pos[2], 0., "x2", true);
+		cdc.pos = (e.iInfo.coordsType==CoordsLattice) ? pos : inv(e.gInfo.R)*pos;
+		//Charge and width:
+		pl.get(cdc.q, 0., "q", true);
+		pl.get(cdc.sigma, 0., "sigma", true);
+		e.dump.chargedDefect->center.push_back(cdc);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const ChargedDefect::Center& cdc = e.dump.chargedDefect->center[iRep];
+		vector3<> pos = (e.iInfo.coordsType==CoordsLattice) ? cdc.pos : e.gInfo.R*cdc.pos;
+		logPrintf("%lg %lg %lg  %+lg %lg", pos[0], pos[1], pos[2], cdc.q, cdc.sigma);
 	}
 }
 commandChargedDefect;

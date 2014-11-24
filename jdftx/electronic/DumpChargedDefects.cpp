@@ -162,11 +162,25 @@ void addEfield_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir,
 
 void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 {	logPrintf("Calculating charged defect correction:\n"); logFlush();
+	if(!center.size())
+		die("\tNo model charges specified (using command charged-defect).\n");
 	
 	//Construct model charge on plane-wave grid:
-	DataGptr rhoModel(DataG::alloc(e.gInfo));
-	initTranslation(rhoModel, e.gInfo.R * pos);
-	rhoModel = gaussConvolve((q/e.gInfo.detR)*rhoModel, sigma);
+	DataGptr rhoModel;
+	double qTot = 0.;
+	for(const Center& cdc: center)
+	{	DataGptr trans(DataG::alloc(e.gInfo));
+		initTranslation(trans, e.gInfo.R * cdc.pos);
+		rhoModel += gaussConvolve((cdc.q/e.gInfo.detR)*trans, cdc.sigma);
+		qTot += cdc.q;
+	}
+	
+	//Find center of defects for alignment calculations:
+	logSuspend(); WignerSeitz ws(e.gInfo.R); logResume();
+	vector3<> pos0 = e.coulombParams.geometry==CoulombParams::Periodic ? center[0].pos : e.coulomb->xCenter;
+	vector3<> posMean = pos0;
+	for(const Center& cdc: center)
+		posMean += (1./center.size()) * ws.restrict(cdc.pos - pos0);
 	
 	//Read reference Dtot and calculate electrostatic potential difference within DFT:
 	DataRptr d_totRef(DataR::alloc(e.gInfo));
@@ -182,7 +196,8 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 			Emodel = 0.5*dot(rhoModel, O(dModel));
 			Vmodel = I(dModel);
 			//Isolated energy:
-			EmodelIsolated = 0.5*q*q/(sigma*sqrt(M_PI)*bulkEps); //self energy of Gaussian
+			for(const Center& cdc: center)
+				EmodelIsolated += 0.5*std::pow(cdc.q,2)/(cdc.sigma*sqrt(M_PI)*bulkEps); //self energy of Gaussian
 			break;
 		}
 		case CoulombParams::Slab: //Surface defect
@@ -216,8 +231,9 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 			//--- fix up net electric field in output potential (increases accuracy of alignment):
 			Vmodel = I(dModel);
 			double EfieldDft = getEfield(Vdft, iDir, e.coulomb->ivCenter[iDir], e.gInfo.S[iDir]/2-2);
-			double EfieldModel = getEfield(Vmodel, iDir, e.coulomb->ivCenter[iDir], e.gInfo.S[iDir]/2-2);
-			threadLaunch(addEfield_sub, Vmodel->gInfo.nr, &(Vmodel->gInfo), iDir, EfieldDft-EfieldModel, pos, Vmodel->data());
+			double EfieldModel = getEfield(Vmodel, iDir, 0., e.gInfo.S[iDir]/2-2);
+			vector3<> posMeanEmbed = Diag(e.coulomb->embedScale) * ws.restrict(posMean - e.coulomb->xCenter);
+			threadLaunch(addEfield_sub, Vmodel->gInfo.nr, &(Vmodel->gInfo), iDir, EfieldDft-EfieldModel, posMeanEmbed, Vmodel->data());
 			Vmodel = I(e.coulomb->embedShrink(J(Vmodel)));
 			
 			//Isolated energy:
@@ -231,7 +247,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 	
 	//Calculate alignment potential:
 	DataRptr Varr[2] = { Vdft, Vmodel };
-	vector3<> rCenter = e.gInfo.R*pos;
+	vector3<> rCenter = e.gInfo.R*posMean;
 	std::vector< std::vector<double> > hist = sphericalize(Varr, 2, 1., &rCenter);
 	const std::vector<double>& rRadial = hist[0];
 	const std::vector<double>& VdftRadial = hist[1];
@@ -247,7 +263,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 	}
 	deltaV /= wSum;
 	logPrintf("\tDeltaV:         %.8lf (average over %lg grid points)\n", deltaV, wSum);
-	logPrintf("\tNet correction: %.8lf (= EmodelIsolated - EmodelPeriodic + q deltaV)\n", EmodelIsolated - Emodel + q*deltaV);
+	logPrintf("\tNet correction: %.8lf (= EmodelIsolated - EmodelPeriodic + q deltaV)\n", EmodelIsolated - Emodel + qTot*deltaV);
 	//--- write alignment data (spherical)
 	string fname = e.dump.getFilename("chargedDefectDeltaV");
 	logPrintf("\tWriting %s (spherically-averaged; plot to check DeltaV manually) ... ", fname.c_str()); logFlush();
