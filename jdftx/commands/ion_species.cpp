@@ -94,9 +94,8 @@ struct CommandIonSpecies : public Command
 		specie->name[0] = toupper(specie->name[0]);
 
 		//Check for a pulay file:
-		FILE* fpPulay = fopen(specie->pulayfilename.c_str(), "r");
-		if(!fpPulay) specie->pulayfilename = "none"; //disable if such a file does not exist
-		else fclose(fpPulay);
+		if(!isReadable(specie->pulayfilename))
+			specie->pulayfilename = "none"; //disable if such a file does not exist
 
 		//Check for duplicates, add to the list:
 		for(auto sp: e.iInfo.species)

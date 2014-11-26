@@ -210,9 +210,8 @@ struct CommandDensityOfStates : public Command
 			if(weight.type==DOS::Weight::File)
 			{	pl.get(weight.filename, string(), "filename", true);
 				//Check if file exists and is readable:
-				FILE* fp = fopen(weight.filename.c_str(), "r");
-				if(!fp) throw "File '"+weight.filename+"' cannot be opened for reading.\n";
-				fclose(fp);
+				if(!isReadable(weight.filename))
+					throw "File '"+weight.filename+"' cannot be opened for reading.\n";
 			}
 			//Get orbital description for Orbital modes:
 			if(weight.type==DOS::Weight::Orbital || weight.type==DOS::Weight::OrthoOrbital)

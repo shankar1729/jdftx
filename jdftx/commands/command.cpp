@@ -37,3 +37,15 @@ Command::Command(string name, string category) : name(name), category(category)
 void Command::require(string name) { requires.insert(name); }
 void Command::forbid(string name) { forbids.insert(name); }
 
+bool isReadable(string fname)
+{	bool readable = false;
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "r");
+		if(fp)
+		{	readable = true;
+			fclose(fp);
+		}
+	}
+	mpiUtil->bcast(readable);
+	return readable;
+}

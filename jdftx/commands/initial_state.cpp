@@ -69,8 +69,8 @@ private:
 	void processPattern(string varName, string& target) const
 	{	string filename = filenamePattern;
 		filename.replace(filename.find("$VAR"),4, varName);
-		FILE* fp = fopen(filename.c_str(), "r");
-		if(fp) target = filename; //file exists and is readable
+		if(isReadable(filename))
+			target = filename; //file exists and is readable
 	}
 }
 commandInitialState;

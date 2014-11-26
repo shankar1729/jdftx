@@ -154,4 +154,7 @@ LinkDescription<Enum> linkDescription(const EnumStringMap<Enum>& nameMap, const 
 //! Find species matching an id (and create it from a wildcard if necessary)
 std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e);
 
+//! Check if file is readable in an MPI friendly way (must be called from all processes)
+bool isReadable(string fname);
+
 #endif // JDFTX_COMMAND_COMMAND_H
