@@ -111,7 +111,7 @@ SpeciesInfo::~SpeciesInfo()
 		for(auto& Vnl_l: VnlRadial) for(auto& Vnl_lp : Vnl_l) Vnl_lp.free();
 		for(auto& Qijl: Qradial) Qijl.second.free();
 		for(auto& psi_l: psiRadial) for(auto& psi_lp: psi_l) psi_lp.free();
-		if(OpsiRadial != &psiRadial)
+		if(OpsiRadial && OpsiRadial != &psiRadial)
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
 			delete OpsiRadial;
 		}
