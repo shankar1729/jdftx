@@ -141,6 +141,7 @@ private:
 	vector3<int> kfold; //!< kpoint fold vector
 	friend class CommandKpointFolding;
 	friend class Everything;
+	friend class Phonon;
 	void kpointsFold(); //!< Fold k-points by kfold
 	void kpointsReduce(); //!< Reduce folded k-points under symmetries
 };

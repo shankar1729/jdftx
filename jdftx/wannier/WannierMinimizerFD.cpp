@@ -158,6 +158,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 					edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
 		}
 	}
+	Cother.clear();
 	
 	//Broadcast the overlap matrices:
 	for(size_t ik=0; ik<edges.size(); ik++)

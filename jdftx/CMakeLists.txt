@@ -187,6 +187,10 @@ add_JDFTx_executable(jdftx jdftx.cpp)
 FILE(GLOB wannierSources wannier/*.cpp)
 add_JDFTx_executable(wannier "${wannierSources}")
 
+#Phonon:
+FILE(GLOB phononSources phonon/*.cpp)
+add_JDFTx_executable(phonon "${phononSources}")
+
 #-----------------------------------------------------------------------------
 
 #Documentation via Doxygen:
