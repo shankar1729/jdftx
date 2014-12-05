@@ -28,8 +28,12 @@ class Phonon
 public:
 	Everything e, eSup; //data for original unit cell and supercell
 	vector3<int> sup; //phonon supercell 
+	double dr; //perturbation amplitude in Cartesian coordinates
+	double T; //temperature for free energy estimation
 	
+	Phonon();
 	void setup();
+private:
 };
 
 #endif //JDFTX_PHONON_PHONON_H

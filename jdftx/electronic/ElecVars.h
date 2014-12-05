@@ -83,7 +83,8 @@ public:
 	string wfnsFilename; //!< file to read wavefunctions from
 	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
-	
+	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
+
 	string eigsFilename; //!< file to read eigenvalues from
 	
 	//Auxiliary hamiltonian initialization
@@ -147,7 +148,6 @@ private:
 	string rhoExternalFilename; //!< external charge filename
 	friend class CommandRhoExternal;
 
-	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
 	int lcaoIter; //!< number of iterations for LCAO (automatic if negative)
 	double lcaoTol; //!< tolerance for LCAO subspace minimization
 	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)

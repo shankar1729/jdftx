@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 
 ElecVars::ElecVars()
-: isRandom(true), HauxInitialized(false), initLCAO(true), lcaoIter(-1), lcaoTol(1e-6)
+: isRandom(true), initLCAO(true), HauxInitialized(false), lcaoIter(-1), lcaoTol(1e-6)
 {
 }
 

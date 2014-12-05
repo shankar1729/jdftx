@@ -33,7 +33,12 @@ int main(int argc, char** argv)
 	initSystemCmdline(argc, argv, "Compute maximally-localized Phonon functions.", inputFilename, dryRun, printDefaults);
 
 	//Parse input file:
+	if(!inputFilename.length())
+		die("phonon does not support reading input from stdin. Please specify an input file using -i.\n");
 	parse(inputFilename.c_str(), phonon.e, printDefaults);
+	logSuspend();
+	parse(inputFilename.c_str(), phonon.eSup, printDefaults); //Everything is not safe to copy, so rerun parse (silently)
+	logResume();
 	
 	//Setup:
 	phonon.setup();
