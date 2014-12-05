@@ -42,6 +42,8 @@ public:
 	int* indexPref; //!< points to indexGpu in GPU mode and index otherwise
 	vector3<int> *iGarrPref; //!< points to iGarrGpu in GPU mode and iGarr otherwise
 	
+	std::vector<int> head; //!< short list of low G basis locations (used for phase fixing)
+	
 	Basis();
 	~Basis();
 

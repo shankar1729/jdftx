@@ -527,11 +527,65 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	return relevantFreeEnergy(*e);
 }
 
+//Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 
+void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)
+{	const double tol = 1e-4;
+	//Pick out the head elements:
+	const std::vector<int>& head = C.basis->head;
+	int nSpinor = C.spinorLength();
+	matrix Chead = zeroes(head.size()*nSpinor, C.nCols());
+	for(size_t n=0; n<head.size(); n++)
+		for(int s=0; s<nSpinor; s++)
+			callPref(eblas_zaxpy)(C.nCols(), 1.,
+				C.dataPref() + n + s*C.basis->nbasis, C.colLength(), 
+				Chead.dataPref() + nSpinor*n + s, Chead.nRows() );
+	Chead = Chead * evecs;
+	//Hamiltonian for degeneracy breaking (some definite (and unlikely to be symmetric) diagonal in the low G head)
+	diagMatrix headH(Chead.nRows());
+	for(int n=0; n<Chead.nRows(); n++)
+		headH[n] = pow(n, M_PI);
+	//Resolve degeneracies
+	matrix degFix = eye(C.nCols());
+	bool degFound = false;
+	for(int bStart=0; bStart<C.nCols()-1;)
+	{	int bStop=bStart;
+		while(bStop<eigs.nCols() && eigs[bStop]<eigs[bStart]+tol) bStop++;
+		if(bStop-bStart > 1) //degeneracy
+		{	degFound = true;
+			matrix CheadSub = Chead(0,Chead.nRows(), bStart,bStop);
+			matrix degEvecs; diagMatrix degEigs;
+			(dagger(CheadSub) * headH * CheadSub).diagonalize(degEvecs, degEigs);
+			degFix.set(bStart,bStop, bStart,bStop, degEvecs);
+		}
+		bStart = bStop;
+	}
+	if(degFound)
+	{	evecs = evecs*degFix;
+		Chead = Chead*degFix;
+	}
+	//Fix phase:
+	matrix phaseFix = eye(C.nCols());
+	for(int b=0; b<C.nCols(); b++)
+	{	complex phase;
+		double normPrev = 0;
+		for(int n=0; n<Chead.nRows(); n++)
+		{	const complex c = Chead(n,b);
+			if(c.norm() > normPrev)
+			{	phase = c.conj()/c.abs();
+				normPrev = c.norm();
+			}
+		}
+		phaseFix.set(b,b, phase);
+	}
+	evecs = evecs*phaseFix;
+}
+
 void ElecVars::setEigenvectors(int qActive)
 {	const ElecInfo& eInfo = e->eInfo;
 	logPrintf("Setting wave functions to eigenvectors of Hamiltonian\n"); logFlush();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	if((qActive > -1) and (qActive != q)) continue;
+		fixPhase(Hsub_evecs[q], Hsub_eigs[q], C[q]);
 		Y[q] = (C[q] = C[q] * Hsub_evecs[q]);
 		grad_CdagOC[q] =  dagger(Hsub_evecs[q]) *grad_CdagOC[q] * Hsub_evecs[q];
 		for(matrix& VdagCq_sp: VdagC[q])

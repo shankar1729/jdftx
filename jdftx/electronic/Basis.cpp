@@ -139,6 +139,11 @@ void Basis::setup(const GridInfo& gInfo, const IonInfo& iInfo,
 	iGarrPref = iGarr;
 	#endif
 
+	//Initialize head:
+	head.clear();
+	for(size_t n=0; n<nbasis; n++)
+		if(iGvec[n].length_squared() < 4) //selects 27 entries (basically [-1,+1]^3)
+			head.push_back(n);
+	
 	ownsData = true;
 }
-
