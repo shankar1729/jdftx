@@ -107,7 +107,7 @@ void Phonon::setup()
 		auto sme = std::make_shared<StateMapEntry>();
 		sme->qSup = qSup;
 		for(int j=0; j<3; j++)
-			sme->iG[j] = iGtmp[j];
+			sme->iG[j] = round(iGtmp[j]);
 		sme->nqPrev = nqPrev[qSup];
 		nqPrev[qSup]++;
 		stateMap.push_back(sme);
@@ -174,11 +174,27 @@ void Phonon::dump()
 			e.eVars.B[q].bcast(qSrc);
 	}
 	
+	//List of displacements:
+	struct Mode { int sp; int at; int dir; }; //specie, atom and cartesian directions for each displacement
+	std::vector<Mode> modes;
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+		for(size_t at=0; at<e.iInfo.species[sp]->atpos.size(); at++)
+			for(int dir=0; dir<3; dir++)
+			{	Mode mode = { int(sp), int(at), dir };
+				modes.push_back(mode);
+			}
+	
 	//Initialize state of supercell:
 	logPrintf("########### Unperturbed supercell calculation #############\n");
 	setSupState();
-	eSup.eVars.elecEnergyAndGrad(eSup.ener, 0, 0, true);
+	IonicMinimizer imin(eSup);
+	IonicGradient grad0;
+	imin.compute(&grad0); //compute initial forces and energy
 	logPrintf("# Energy components:\n"); eSup.ener.print(); logPrintf("\n");
+	int prodSup = sup[0]*sup[1]*sup[2];
+	logPrintf("Supercell energy discrepancy = %lg / unit cell\n",
+		relevantFreeEnergy(eSup)/prodSup - relevantFreeEnergy(e));
+	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(modes.size()*prodSup)));
 }
 
 void Phonon::setSupState()
@@ -225,6 +241,9 @@ void Phonon::setSupState()
 	//Update entropy contributions:
 	if(eSup.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
 		eSup.eInfo.updateFillingsEnergies(eSup.eVars.F, eSup.ener);
+	
+	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		eSup.eVars.HauxInitialized = true;
 }
 
 Phonon::StateMapEntry::StateMapEntry() : nIndices(0), indexPref(0), index(0)
