@@ -32,8 +32,31 @@ public:
 	double T; //temperature for free energy estimation
 	
 	Phonon();
-	void setup();
+	void setup(); //setup e and eSup
+	void dump(); //main calculation as well as output routine
+	
 private:
+	
+	void setSupState(); //set unperturbed state of supercell from unit cell
+
+	struct StateMapEntry
+	{	int qSup; //state index for supercell
+		vector3<int> iG; //reciprocal lattice offset
+		int nqPrev; //number of previous unit cell k-points that point to this supercell
+		
+		//Wavefunction map
+		int nIndices; int* indexPref;
+		void setIndex(const std::vector<int>& index);
+		
+		StateMapEntry();
+		~StateMapEntry();
+	private:
+		int *index;
+		#ifdef GPU_ENABLED
+		int *indexGpu;
+		#endif
+	};
+	std::vector<std::shared_ptr<StateMapEntry> > stateMap; //map from unit cell k-points to supercell k-points
 };
 
 #endif //JDFTX_PHONON_PHONON_H

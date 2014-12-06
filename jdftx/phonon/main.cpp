@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	}
 	
 	//Calculate:
-	//TODO
+	phonon.dump();
 	
 	finalizeSystem();
 	return 0;
