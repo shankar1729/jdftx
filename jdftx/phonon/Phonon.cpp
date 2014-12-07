@@ -263,6 +263,41 @@ void Phonon::dump()
 			}
 		}
 	}
+	//--- enforce hermiticity:
+	size_t nSymmetrizedCells = 0;
+	auto iter1 = cellMap.begin();
+	for(size_t iCell1=0; iCell1<cellMap.size(); iCell1++)
+	{	auto iter2 = cellMap.begin();
+		for(size_t iCell2=0; iCell2<cellMap.size(); iCell2++)
+		{	vector3<int> iRsum = iter1->first + iter2->first;
+			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
+			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
+				omegaSq[iCell1] = M;
+				omegaSq[iCell2] = dagger(M);
+				nSymmetrizedCells += (iCell1==iCell2 ? 1 : 2);
+			}
+			iter2++;
+		}
+		iter1++;
+	}
+	assert(nSymmetrizedCells == cellMap.size());
+	//--- enforce translational invariance:
+	matrix omegaSqSum;
+	for(const matrix& M: omegaSq)
+		omegaSqSum += M;
+	matrix Fmean; //3x3 force matrix for all atoms moving together at Gamma point (should be zero)
+	int nAtoms = modes.size()/3;
+	for(int at=0; at<nAtoms; at++)
+		Fmean += (1./(nAtoms*prodSup)) * omegaSqSum(3*at,3*(at+1), 3*at,3*(at+1)) * e.iInfo.species[modes[3*at].sp]->mass;
+	matrix omegaSqCorrection = zeroes(modes.size(), modes.size());
+	for(int at=0; at<nAtoms; at++)
+		omegaSqCorrection.set(3*at,3*(at+1), 3*at,3*(at+1), Fmean * (1./e.iInfo.species[modes[3*at].sp]->mass));
+	iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+	{	omegaSq[iCell] -= iter->second * omegaSqCorrection;
+		iter++;
+	}
+	//--- write to file
 	if(mpiUtil->isHead())
 	{	string fname = e.dump.getFilename("phononOmegaSq");
 		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
