@@ -70,6 +70,10 @@ struct Supercell
 		const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList);
 };
 
+//! Get a list of unit cells in a supercell, with duplicates added at the boundary to maintain symmetry
+//! Returns a list of cell positions in lattice coordinates, along with their weights (1 / multiplicity)
+//! Optionally write the cell map to a file, if filename is non-null
+std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, string fname=string());
 
 //! O(1) look-up table for finding periodic image within symmThreshold
 //! Needs a companion function vector3<> getCoord(T) that returns the lattice coordinates corresponding to type T

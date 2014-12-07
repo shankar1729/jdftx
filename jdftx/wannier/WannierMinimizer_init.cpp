@@ -39,63 +39,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	if(needSuper) gInfoSuper.initialize(true, sym);
 
 	//Initialize cell map (for matrix element output):
-	WignerSeitz ws(gInfoSuper.R);
-	double Rmax = ws.circumRadius();
-	vector3<int> iCellMax; //bounding box of supercell Wigner-Seitz circumradius (in unit-cell lattice coordinates)
-	for(int l=0; l<3; l++)
-		iCellMax[l] = 1 + int(ceil(Rmax * e.gInfo.invR.row(l).length()));
-	//--- collect all lattice vectors on or inside ws:
-	matrix3<> superInv = inv(matrix3<>(supercell.super));
-	vector3<int> iCell;
-	iCellMap.clear();
-	std::list< vector3<int> > iCellSurface; //list of surface cells
-	for(iCell[0]=-iCellMax[0]; iCell[0]<=iCellMax[0]; iCell[0]++)
-	for(iCell[1]=-iCellMax[1]; iCell[1]<=iCellMax[1]; iCell[1]++)
-	for(iCell[2]=-iCellMax[2]; iCell[2]<=iCellMax[2]; iCell[2]++)
-	{	vector3<> xCell = superInv * iCell;
-		if(ws.onBoundary(xCell)) iCellSurface.push_back(iCell); //yet to determine multiplicity of surface cells
-		else if(ws.boundaryDistance(xCell)>0) iCellMap[iCell] = 1.; //interior cells are unique
-	}
-	//--- determine multiplicity of surface cells and move them to iCellMap
-	for(auto iter=iCellSurface.begin(); iter!=iCellSurface.end(); iter++)
-	{	std::vector< vector3<int> > equiv;
-		auto iter2=iter; iter2++;
-		while(iter2!=iCellSurface.end())
-		{	vector3<> dx = superInv * (*iter2 - *iter); //difference in super-lattice coordinates
-			bool isEquiv = true;
-			for(int l=0; l<3; l++) //each entry of dx must be integral for equivalency
-				isEquiv &= (fabs(dx[l]-round(dx[l]))<symmThreshold);
-			if(isEquiv)
-			{	equiv.push_back(*iter2);
-				iter2 = iCellSurface.erase(iter2);
-			}
-			else iter2++;
-		}
-		double weight = 1./(1+equiv.size());
-		iCellMap[*iter] = weight;
-		for(vector3<int> iCell: equiv)
-			iCellMap[iCell] = weight;
-	}
-	//--- check that the weights add up
-	{	double weightSum = 0.;
-		for(const auto& entry: iCellMap)
-			weightSum += entry.second;
-		assert(fabs(weightSum / supercell.kmesh.size() - 1.) < symmThreshold);
-	}
-	//--- write the cell map (for post-processing programs to use)
-	if(mpiUtil->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap");
-		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
-		for(const auto& entry: iCellMap)
-		{	const vector3<int>& i = entry.first;
-			vector3<> r = e.gInfo.R * i;
-			fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
+	iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
 	
 	//Determine and output the band ranges:
 	for(int iSpin=0; iSpin<nSpins; iSpin++)

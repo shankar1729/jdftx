@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 
 Phonon::Phonon()
-: dr(0.001), T(298*Kelvin)
+: dr(0.01), T(298*Kelvin)
 {
 
 }
@@ -178,7 +178,7 @@ void Phonon::dump()
 	struct Mode { int sp; int at; int dir; }; //specie, atom and cartesian directions for each displacement
 	std::vector<Mode> modes;
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
-		for(size_t at=0; at<e.iInfo.species[sp]->atpos.size(); at++)
+		for(size_t at=0; at<e.iInfo.species[sp]->atpos.size(); at++) //only need to move atoms in first unit cell
 			for(int dir=0; dir<3; dir++)
 			{	Mode mode = { int(sp), int(at), dir };
 				modes.push_back(mode);
@@ -192,9 +192,97 @@ void Phonon::dump()
 	imin.compute(&grad0); //compute initial forces and energy
 	logPrintf("# Energy components:\n"); eSup.ener.print(); logPrintf("\n");
 	int prodSup = sup[0]*sup[1]*sup[2];
-	logPrintf("Supercell energy discrepancy = %lg / unit cell\n",
-		relevantFreeEnergy(eSup)/prodSup - relevantFreeEnergy(e));
+	double E0 = relevantFreeEnergy(eSup);
+	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
 	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(modes.size()*prodSup)));
+	//subspace Hamiltonian of supercell Gamma point:
+	setSupState();
+	std::vector<matrix> Hsub0 = getHsub();
+	
+	//Displaced modes:
+	std::vector<IonicGradient> dgrad(modes.size()); //change in gradient for each perturbation
+	std::vector< std::vector<matrix> > dHsub(modes.size()); //chaneg in Hsub for each perturbation
+	for(size_t iMode=0; iMode<modes.size(); iMode++)
+	{	const Mode& mode = modes[iMode];
+		logPrintf("\n########### Perturbed supercell calculation %d of %d #############\n", int(iMode+1), int(modes.size()));
+		//Move one atom:
+		IonicGradient dir; dir.init(eSup.iInfo); //contains zeroes
+		dir[mode.sp][mode.at][mode.dir] = 1.;
+		imin.step(dir, dr);
+		//Calculate energy and forces:
+		IonicGradient grad;
+		imin.compute(&grad);
+		dgrad[iMode] = (grad - grad0) * (1./dr);
+		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(eSup) - E0)/prodSup);
+		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(modes.size()*prodSup)));
+		//Subspace hamiltonian change:
+		setSupState(); //for e-ph matrix elements, need overlap of original states against perturbation Hamiltonian
+		std::vector<matrix> Hsub = getHsub();
+		dHsub[iMode].resize(Hsub.size());
+		for(size_t s=0; s<Hsub.size(); s++)
+			dHsub[iMode][s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+		//Restore atom position:
+		bool dragWfns = false;
+		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
+		imin.step(dir, -dr);
+		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //restore wave function drag flag
+	}
+	
+	//Construct frequency-squared matrix:
+	//--- convert forces to frequency-squared (divide by mass symmetrically):
+	std::vector<double> invsqrtM;
+	for(auto sp: e.iInfo.species)
+		invsqrtM.push_back(1./sqrt(sp->mass * amu));
+	for(size_t iMode=0; iMode<modes.size(); iMode++)
+	{	dgrad[iMode] *= invsqrtM[modes[iMode].sp]; //divide by sqrt(M) on the left
+		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+			for(vector3<>& f: dgrad[iMode][sp])
+				f *= invsqrtM[sp]; // divide by sqrt(M) on the right
+	}
+	//--- remap to cells:
+	std::map<vector3<int>,double> cellMap = getCellMap(e.gInfo.R, eSup.gInfo.R, e.dump.getFilename("phononCellMap"));
+	std::vector<matrix> omegaSq(cellMap.size());
+	auto iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+	{	//Get cell map entry:
+		vector3<int> iR = iter->first;
+		double weight = iter->second;
+		iter++;
+		//Find index of cell in supercell:
+		for(int j=0; j<3; j++)
+			iR[j] = positiveRemainder(iR[j], sup[j]);
+		int cellIndex =  (iR[0]*sup[1] + iR[1])*sup[2] + iR[2]; //corresponding to the order of atom replication in setup()
+		//Collect omegSq entries:
+		omegaSq[iCell].init(modes.size(), modes.size());
+		for(size_t iMode1=0; iMode1<modes.size(); iMode1++)
+		{	const IonicGradient& F1 = dgrad[iMode1];
+			for(size_t iMode2=0; iMode2<modes.size(); iMode2++)
+			{	const Mode& mode2 = modes[iMode2];
+				size_t cellOffsetSp = cellIndex * e.iInfo.species[mode2.sp]->atpos.size(); //offset into atoms of current cell for current species
+				omegaSq[iCell].set(iMode1,iMode2, weight * F1[mode2.sp][mode2.at + cellOffsetSp][mode2.dir]);
+			}
+		}
+	}
+	if(mpiUtil->isHead())
+	{	string fname = e.dump.getFilename("phononOmegaSq");
+		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(const matrix& M: omegaSq)
+			M.write_real(fp); //M is explicitly real by construction above
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		//Write description of modes:
+		fname = e.dump.getFilename("phononBasis");
+		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "#species atom dx dy dz [bohrs]");
+		for(const Mode& mode: modes)
+		{	vector3<> r; r[mode.dir] = invsqrtM[mode.sp];
+			fprintf(fp, "%s %d %lg %lg %lg\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
 }
 
 void Phonon::setSupState()
@@ -244,6 +332,23 @@ void Phonon::setSupState()
 	
 	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		eSup.eVars.HauxInitialized = true;
+}
+
+std::vector<matrix> Phonon::getHsub()
+{	int nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
+	std::vector<matrix> Hsub(nSpins);
+	for(int s=0; s<nSpins; s++)
+	{	int qSup = s*(eSup.eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+		assert(eSup.eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+		if(eSup.eInfo.isMine(qSup))
+		{	ColumnBundle HC; Energies ener;
+			eSup.eVars.applyHamiltonian(qSup, eye(eSup.eInfo.nBands), HC, ener, true);
+			Hsub[s] = eSup.eVars.Hsub[qSup];
+		}
+		else Hsub[s].init(eSup.eInfo.nBands, eSup.eInfo.nBands);
+		Hsub[s].bcast(eSup.eInfo.whose(qSup));
+	}
+	return Hsub;
 }
 
 Phonon::StateMapEntry::StateMapEntry() : nIndices(0), indexPref(0), index(0)

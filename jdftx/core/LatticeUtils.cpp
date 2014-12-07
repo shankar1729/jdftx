@@ -18,8 +18,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/LatticeUtils.h>
+#include <core/WignerSeitz.h>
 #include <core/Util.h>
 #include <cfloat>
+#include <list>
 
 //Compute reduced lattice vectors:
 matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, matrix3<int>* invTransmission)
@@ -234,4 +236,76 @@ Supercell::Supercell(const GridInfo& gInfo,
 	Rsuper = gInfo.R * super;
 	logPrintf("Supercell lattice vectors:\n");
 	Rsuper.print(globalLog, " %lg ");
+}
+
+
+std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, string fname)
+{
+	//Initialize WIgner-Seitz cell:
+	logSuspend();
+	WignerSeitz ws(Rsup);
+	logResume();
+	double Rmax = ws.circumRadius();
+	matrix3<> invR = inv(R);
+	vector3<int> iCellMax; //bounding box of supercell Wigner-Seitz circumradius (in unit-cell lattice coordinates)
+	for(int l=0; l<3; l++)
+		iCellMax[l] = 1 + int(ceil(Rmax * invR.row(l).length()));
+	
+	//Collect all lattice vectors on or inside ws:
+	matrix3<> superInv = inv(Rsup) * R;
+	int nCells = round(fabs(1./det(superInv)));
+	vector3<int> iCell;
+	std::map<vector3<int>, double> iCellMap;
+	std::list< vector3<int> > iCellSurface; //list of surface cells
+	for(iCell[0]=-iCellMax[0]; iCell[0]<=iCellMax[0]; iCell[0]++)
+	for(iCell[1]=-iCellMax[1]; iCell[1]<=iCellMax[1]; iCell[1]++)
+	for(iCell[2]=-iCellMax[2]; iCell[2]<=iCellMax[2]; iCell[2]++)
+	{	vector3<> xCell = superInv * iCell;
+		if(ws.onBoundary(xCell)) iCellSurface.push_back(iCell); //yet to determine multiplicity of surface cells
+		else if(ws.boundaryDistance(xCell)>0) iCellMap[iCell] = 1.; //interior cells are unique
+	}
+	
+	//Determine multiplicity of surface cells and move them to iCellMap
+	for(auto iter=iCellSurface.begin(); iter!=iCellSurface.end(); iter++)
+	{	std::vector< vector3<int> > equiv;
+		auto iter2=iter; iter2++;
+		while(iter2!=iCellSurface.end())
+		{	vector3<> dx = superInv * (*iter2 - *iter); //difference in super-lattice coordinates
+			bool isEquiv = true;
+			for(int l=0; l<3; l++) //each entry of dx must be integral for equivalency
+				isEquiv &= (fabs(dx[l]-round(dx[l]))<symmThreshold);
+			if(isEquiv)
+			{	equiv.push_back(*iter2);
+				iter2 = iCellSurface.erase(iter2);
+			}
+			else iter2++;
+		}
+		double weight = 1./(1+equiv.size());
+		iCellMap[*iter] = weight;
+		for(vector3<int> iCell: equiv)
+			iCellMap[iCell] = weight;
+	}
+	
+	//Check that the weights add up
+	{	double weightSum = 0.;
+		for(const auto& entry: iCellMap)
+			weightSum += entry.second;
+		assert(fabs(weightSum / nCells - 1.) < symmThreshold);
+	}
+	
+	//Write the cell map if requested
+	if(mpiUtil->isHead() && fname.length())
+	{	logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
+		for(const auto& entry: iCellMap)
+		{	const vector3<int>& i = entry.first;
+			vector3<> r = R * i;
+			fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
+	return iCellMap;
 }

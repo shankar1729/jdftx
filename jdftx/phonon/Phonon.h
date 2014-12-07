@@ -39,6 +39,8 @@ private:
 	
 	void setSupState(); //set unperturbed state of supercell from unit cell
 
+	std::vector<matrix> getHsub(); //get the subspace Hamiltonian of current wavefunctions at supercell Gamma point
+	
 	struct StateMapEntry
 	{	int qSup; //state index for supercell
 		vector3<int> iG; //reciprocal lattice offset

@@ -50,9 +50,9 @@ struct CommandPhonon : public Command
 			"    the corresponding value in kpoint-folding. The k-point mesh must\n"
 			"    be uniform and centered on Gamma.\n"
 			"  dr <dr>\n"
-			"    Amplitude (in bohrs) of frozen phonon perturbation.\n"
+			"    Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
 			"  T <T>\n"
-			"    Temperature (in Kelvins) used for vibrational free energy estimation.\n";
+			"    Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n";
 		
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
