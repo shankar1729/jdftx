@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin)
+: dr(0.01), T(298*Kelvin), Fcut(1e-8)
 {
 
 }
@@ -103,6 +103,25 @@ void Phonon::setup()
 		e.iInfo.species[sp]->constraints.assign(e.iInfo.species[sp]->atpos.size(), constraintFull);
 	e.setup();
 	
+	//Initialize state of unit cell:
+	logPrintf("########### Unperturbed unit cell calculation #############\n");
+	if(e.cntrl.dumpOnly)
+	{	//Single energy calculation so that all dependent quantities have been initialized:
+		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
+		e.eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+	}
+	else elecFluidMinimize(e);
+	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
+
+	//Determine optimum number of bands for supercell calculation:
+	nBandsOpt = 0;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	int nBands_q = std::upper_bound(e.eVars.F[q].begin(), e.eVars.F[q].end(), Fcut, std::greater<double>()) - e.eVars.F[q].begin();
+		nBandsOpt = std::max(nBandsOpt, nBands_q);
+	}
+	mpiUtil->allReduce(nBandsOpt, MPIUtil::ReduceMax);
+	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n\n", Fcut, e.eInfo.nBands, nBandsOpt);
+
 	logPrintf("########### Initializing JDFTx for supercell #############\n");
 	//Grid:
 	eSup.gInfo.S = Diag(sup) * e.gInfo.S; //ensure exact supercell
@@ -129,7 +148,7 @@ void Phonon::setup()
 	eSup.eInfo.initialFillingsFilename.clear();
 	eSup.scfParams.historyFilename.clear();
 	//ElecInfo:
-	eSup.eInfo.nBands = e.eInfo.nBands * prodSup;
+	eSup.eInfo.nBands = nBandsOpt * prodSup;
 	//ElecVars:
 	eSup.eVars.initLCAO = false;
 	eSup.setup();
@@ -186,16 +205,6 @@ void Phonon::setup()
 
 void Phonon::dump()
 {
-	//Initialize state of unit cell:
-	logPrintf("########### Unperturbed unit cell calculation #############\n");
-	if(e.cntrl.dumpOnly)
-	{	//Single energy calculation so that all dependent quantities have been initialized:
-		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
-		e.eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
-	}
-	else elecFluidMinimize(e);
-	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
-
 	//Make unit cell state available on all processes 
 	//(since MPI division of qSup and q are different and independent of the map)
 	for(int q=0; q<e.eInfo.nStates; q++)
@@ -236,8 +245,8 @@ void Phonon::dump()
 	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
 	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(modes.size()*prodSup)));
 	//subspace Hamiltonian of supercell Gamma point:
-	setSupState();
-	std::vector<matrix> Hsub0 = getHsub();
+	std::vector<matrix> Hsub0;
+	setSupState(&Hsub0);
 	
 	//Displaced modes:
 	std::vector<IonicGradient> dgrad(modes.size()); //change in gradient for each perturbation
@@ -256,8 +265,8 @@ void Phonon::dump()
 		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(eSup) - E0)/prodSup);
 		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(modes.size()*prodSup)));
 		//Subspace hamiltonian change:
-		setSupState(); //for e-ph matrix elements, need overlap of original states against perturbation Hamiltonian
-		std::vector<matrix> Hsub = getHsub();
+		std::vector<matrix> Hsub;
+		setSupState(&Hsub);
 		dHsub[iMode].resize(Hsub.size());
 		for(size_t s=0; s<Hsub.size(); s++)
 			dHsub[iMode][s] = (1./dr) * (Hsub[s] - Hsub0[s]);
@@ -421,18 +430,25 @@ void Phonon::dump()
 	logPrintf("\n");
 }
 
-void Phonon::setSupState()
+void Phonon::setSupState(std::vector<matrix>* Hsub)
 {
+	int prodSup = sup[0]*sup[1]*sup[2];
+	int nBandsSup = e.eInfo.nBands * prodSup; //Note >= eSup.eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
+	
 	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
 	for(int qSup=eSup.eInfo.qStart; qSup<eSup.eInfo.qStop; qSup++)
-	{	eSup.eVars.C[qSup].zero();
+	{	ColumnBundle& Cq = eSup.eVars.C[qSup];
+		eSup.eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
+		if(Cq.nCols() != nBandsSup)
+			Cq.init(nBandsSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
+		Cq.zero();
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			eSup.eVars.B[qSup].zero();
+			eSup.eVars.B[qSup] = zeroes(nBandsSup,nBandsSup);
 	}
 	
 	//Update supercell quantities:
 	int nSpinor = e.eInfo.spinorLength();
-	double scaleFac = 1./sqrt(sup[0]*sup[1]*sup[2]); //to account for normalization
+	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	for(int q=0; q<e.eInfo.nStates; q++) if(eSup.eInfo.isMine(stateMap[q]->qSup))
 	{	int nBandsPrev = e.eInfo.nBands * stateMap[q]->nqPrev;
 		int qSup = stateMap[q]->qSup;
@@ -447,6 +463,7 @@ void Phonon::setSupState()
 		//Fillings:
 		const diagMatrix& F = e.eVars.F[q];
 		diagMatrix& Fsup = eSup.eVars.F[qSup];
+		Fsup.resize(nBandsSup);
 		Fsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, F);
 		//Auxiliary Hamiltonian (if necessary):
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
@@ -456,10 +473,46 @@ void Phonon::setSupState()
 		}
 	}
 	
-	//Update wave function indep variables (Y) and projections
+	//Compute gamma point Hamiltonian if requested:
+	if(Hsub)
+	{	int nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
+		Hsub->resize(nSpins);
+		for(int s=0; s<nSpins; s++)
+		{	int qSup = s*(eSup.eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+			assert(eSup.eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+			if(eSup.eInfo.isMine(qSup))
+			{	ColumnBundle HC; Energies ener;
+				eSup.iInfo.project(eSup.eVars.C[qSup], eSup.eVars.VdagC[qSup]); //update wavefunction projections
+				eSup.eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
+				(*Hsub)[s] = eSup.eVars.Hsub[qSup];
+			}
+			else (*Hsub)[s].init(nBandsSup, nBandsSup);
+			(*Hsub)[s].bcast(eSup.eInfo.whose(qSup));
+		}
+	}
+	
+	//Discard extra bands:
 	for(int qSup=eSup.eInfo.qStart; qSup<eSup.eInfo.qStop; qSup++)
-	{	eSup.eVars.Y[qSup] = eSup.eVars.C[qSup];
-		eSup.iInfo.project(eSup.eVars.C[qSup], eSup.eVars.VdagC[qSup]);
+	{	ColumnBundle& Cq = eSup.eVars.C[qSup];
+		ColumnBundle& Yq = eSup.eVars.Y[qSup];
+		diagMatrix& Fq = eSup.eVars.F[qSup];
+		matrix& Bq = eSup.eVars.B[qSup];
+		Yq = Cq.similar(eSup.eInfo.nBands);
+		diagMatrix Ftmp(eSup.eInfo.nBands);
+		matrix Btmp = zeroes(eSup.eInfo.nBands, eSup.eInfo.nBands);
+		for(int nqPrev=0; nqPrev<prodSup; nqPrev++)
+		{	int offsIn = nqPrev * e.eInfo.nBands;
+			int offsOut = nqPrev * nBandsOpt;
+			callPref(eblas_copy)(Yq.data()+Yq.index(offsOut,0), Cq.data()+Cq.index(offsIn,0), nBandsOpt*Yq.colLength());
+			Ftmp.set(offsOut,offsOut+nBandsOpt, Fq(offsIn,offsIn+nBandsOpt));
+			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+				Btmp.set(offsOut,offsOut+nBandsOpt, offsOut,offsOut+nBandsOpt, Bq(offsIn,offsIn+nBandsOpt, offsIn,offsIn+nBandsOpt));
+		}
+		Cq = Yq;
+		std::swap(Fq, Ftmp);
+		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+			std::swap(Bq, Btmp);
+		eSup.iInfo.project(Cq, eSup.eVars.VdagC[qSup]); //update wave function projections
 	}
 	
 	//Update entropy contributions:
@@ -468,23 +521,6 @@ void Phonon::setSupState()
 	
 	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		eSup.eVars.HauxInitialized = true;
-}
-
-std::vector<matrix> Phonon::getHsub()
-{	int nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
-	std::vector<matrix> Hsub(nSpins);
-	for(int s=0; s<nSpins; s++)
-	{	int qSup = s*(eSup.eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
-		assert(eSup.eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-		if(eSup.eInfo.isMine(qSup))
-		{	ColumnBundle HC; Energies ener;
-			eSup.eVars.applyHamiltonian(qSup, eye(eSup.eInfo.nBands), HC, ener, true);
-			Hsub[s] = eSup.eVars.Hsub[qSup];
-		}
-		else Hsub[s].init(eSup.eInfo.nBands, eSup.eInfo.nBands);
-		Hsub[s].bcast(eSup.eInfo.whose(qSup));
-	}
-	return Hsub;
 }
 
 Phonon::StateMapEntry::StateMapEntry() : nIndices(0), indexPref(0), index(0)

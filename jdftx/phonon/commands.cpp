@@ -28,13 +28,15 @@ enum PhononMember
 {	PM_sup,
 	PM_dr,
  	PM_T,
+	PM_Fcut,
 	PM_delim
 };
 
 EnumStringMap<PhononMember> phononMemberMap
 (	PM_sup, "supercell",
 	PM_dr, "dr",
-	PM_T, "T"
+	PM_T, "T",
+	PM_Fcut, "Fcut"
 );
 
 struct CommandPhonon : public Command
@@ -52,7 +54,12 @@ struct CommandPhonon : public Command
 			"  dr <dr>\n"
 			"    Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
 			"  T <T>\n"
-			"    Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n";
+			"    Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
+			"  Fcut <Fcut>\n"
+			"    Fillings threshold to include in supercell calculation (default 1e-8).\n"
+			"    The unit cell calculation may have extra bands for which matrix elements\n"
+			"    are desired; this flag ensures that those extra bands do not affect the\n"
+			"    performance or memory requirements of the supercell calculations.";
 		
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
@@ -78,6 +85,10 @@ struct CommandPhonon : public Command
 					pl.get(phonon.T, 0., "T", true);
 					phonon.T *= Kelvin;
 					break;
+				case PM_Fcut:
+					pl.get(phonon.Fcut, 0., "Fcut", true);
+					if(phonon.Fcut < 0.) throw string("<Fcut> must be non-negative");
+					break;
 				case PM_delim: //should never be encountered
 					break;
 			}
@@ -88,6 +99,7 @@ struct CommandPhonon : public Command
 	{	logPrintf(" \\\n\tsupercell %d %d %d", phonon.sup[0], phonon.sup[1], phonon.sup[2]);
 		logPrintf(" \\\n\tdr %lg", phonon.dr);
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
+		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
 	}
 }
 commandPhonon;

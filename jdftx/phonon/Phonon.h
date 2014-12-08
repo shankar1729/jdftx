@@ -30,16 +30,18 @@ public:
 	vector3<int> sup; //phonon supercell 
 	double dr; //perturbation amplitude in Cartesian coordinates
 	double T; //temperature for free energy estimation
+	double Fcut; //fillings cutoff for optimizing number of bands
 	
 	Phonon();
 	void setup(); //setup e and eSup
 	void dump(); //main calculation as well as output routine
 	
 private:
+	int nBandsOpt; //optimized number of bands, accounting for Fcut
 	
-	void setSupState(); //set unperturbed state of supercell from unit cell
-
-	std::vector<matrix> getHsub(); //get the subspace Hamiltonian of current wavefunctions at supercell Gamma point
+	//set unperturbed state of supercell from unit cell
+	//optionally get the subspace Hamiltonian at supercell Gamma point (for all bands, not just those in nBandsOpt)
+	void setSupState(std::vector<matrix>* Hsub=0); 
 	
 	struct StateMapEntry
 	{	int qSup; //state index for supercell
