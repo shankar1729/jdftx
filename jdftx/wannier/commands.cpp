@@ -35,6 +35,7 @@ enum WannierMember
 	WM_loadRotations,
 	WM_numericalOrbitals,
 	WM_numericalOrbitalsOffset,
+	WM_phononSup,
 	WM_delim
 };
 
@@ -48,7 +49,8 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveMomenta, "saveMomenta",
 	WM_loadRotations, "loadRotations",
 	WM_numericalOrbitals, "numericalOrbitals",
-	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset"
+	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
+	WM_phononSup, "phononSupercell"
 );
 
 EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
@@ -102,7 +104,13 @@ struct CommandWannier : public Command
 			"    be initialized from previously calculated bulk / unit cell Wannier functions.\n"
 			"  numericalOrbitalsOffset <x0> <x1> <x2>\n"
 			"    Origin of the numerical orbitals in lattice coordinates of the input.\n"
-			"    The default [ .5 .5 .5 ] (cell center) is appropriate for output from wannier.";
+			"    The default [ .5 .5 .5 ] (cell center) is appropriate for output from wannier.\n"
+			"  phononSupercell <N0> <N1> <N2>\n"
+			"    If specified, wannier will read in output (phononHsub and phononBasis) of the\n"
+			"    phonon code with this supercell and output Wannierized electron-phonon matrix\n"
+			"    elements (mlwfHePh). This file will contain matrices for pairs of cells in the\n"
+			"    order specified in the mlwfCellMapSqPh output file, with an outer loop over\n"
+			"    the nuclear displacement modes in phononBasis.";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -146,6 +154,11 @@ struct CommandWannier : public Command
 					pl.get(wannier.numericalOrbitalsOffset[1], 0., "x1", true);
 					pl.get(wannier.numericalOrbitalsOffset[2], 0., "x2", true);
 					break;
+				case WM_phononSup:
+					pl.get(wannier.phononSup[0], 0, "N0", true);
+					pl.get(wannier.phononSup[1], 0, "N1", true);
+					pl.get(wannier.phononSup[2], 0, "N2", true);
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -167,6 +180,8 @@ struct CommandWannier : public Command
 			const vector3<>& offs = wannier.numericalOrbitalsOffset;
 			logPrintf(" \\\n\tnumericalOrbitalsOffset %lg %lg %lg", offs[0], offs[1], offs[2]);
 		}
+		if(wannier.phononSup.length_squared())
+			logPrintf(" \\\n\tphononSupercell %d %d %d", wannier.phononSup[0], wannier.phononSup[1], wannier.phononSup[2]);
 	}
 }
 commandWannier;

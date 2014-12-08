@@ -112,7 +112,8 @@ protected:
 	GridInfo gInfoSuper;
 	Basis basisSuper;
 	QuantumNumber qnumSuper;
-	std::map<vector3<int>,double> iCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
+	std::map<vector3<int>,double> iCellMap, phononCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
+	int nPhononModes; //number of phonon modes
 	
 	//!Indices from reduced basis to full G-space or a union of all reduced bases
 	//!The super-suffixed versions indicate indices into the G-sphere/fftbox of the supercell

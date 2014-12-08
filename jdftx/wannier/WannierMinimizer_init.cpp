@@ -29,7 +29,8 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1), qCount(e.eInfo.qnums.size()/nSpins),
 	nSpinor(e.eInfo.spinorLength()),
 	rSqExpect(nCenters), rExpect(nCenters),
-	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length())
+	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length()),
+	nPhononModes(0)
 {
 	//Create supercell grid:
 	logPrintf("\n---------- Initializing supercell grid for Wannier functions ----------\n");
@@ -53,7 +54,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
 		if(mpiUtil->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandRanges", &iSpin);
-			logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			for(int b=0; b<nBands; b++)
 				fprintf(fp, "%+10.5lf %+10.5lf\n", eMin[b], eMax[b]);
@@ -98,6 +99,64 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	ikStopArr.resize(mpiUtil->nProcesses());
 	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
 		ikStopArr[iProc] = (kMesh.size() * (iProc+1)) / mpiUtil->nProcesses();
+	
+	//Check phonon supercell validity:
+	if(wannier.phononSup.length_squared())
+	{	//--- Check that supercell is diagonal in lattice directions:
+		int superOffDiag = 0.;
+		for(int j1=0; j1<3; j1++)
+			for(int j2=0; j2<3; j2++)
+				if(j1 != j2)
+					superOffDiag += std::pow(supercell.super(j1,j2), 2);
+		if(e.eInfo.qnums[0].k.length_squared() || superOffDiag)
+			die("Phonon matrix elements require a Gamma-centered uniform kpoint mesh.\n");
+		//--- Check symmetries:
+		if(e.symm.mode != SymmetriesNone)
+			die("Phonon matrix elements not supported with symmetries.\n");
+		//--- Check that phonon supercell tiles the Wannier supercell:
+		for(int j=0; j<3; j++)
+		{	if(!wannier.phononSup[j] || supercell.super(j,j) % wannier.phononSup[j])
+			{	die("Wannier supercell count %d is not a multiple of phonon supercell count %d for lattice direction %d.\n",
+					supercell.super(j,j), wannier.phononSup[j], j);
+			}
+		}
+		//--- Generate phonon cell map and output cellMapSq:
+		phononCellMap = getCellMap(e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup));
+		if(mpiUtil->isHead())
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
+			for(const auto& entry1: phononCellMap)
+			for(const auto& entry2: phononCellMap)
+			{	const vector3<int>& iR1 = entry1.first;
+				const vector3<int>& iR2 = entry2.first;
+				fprintf(fp, "%+2d %+2d %+2d  %+2d %+2d %+2d\n", iR1[0], iR1[1], iR1[2], iR2[0], iR2[1], iR2[2]);
+			}
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+		}
+		//--- Count phonon modes:
+		nPhononModes = 0;
+		string fname = wannier.getFilename(Wannier::FilenameInit, "phononBasis");
+		if(mpiUtil->isHead())
+		{	std::ifstream ifs(fname.c_str());
+			if(ifs.is_open())
+			{	while(!ifs.eof())
+				{	string line; getline(ifs, line);
+					trim(line);
+					if(!line.length()) continue;
+					istringstream iss(line);
+					string spName; int atom; vector3<> disp;
+					iss >> spName >> atom >> disp[0] >> disp[1] >> disp[2];
+					if(!iss.fail()) nPhononModes++;
+				}
+			}
+		}
+		mpiUtil->bcast(nPhononModes);
+		if(!nPhononModes) die("Error reading phonon modes from '%s'\n", fname.c_str());
+		logPrintf("Found %d phonon modes in '%s'\n", nPhononModes, fname.c_str());
+	}
 }
 
 void WannierMinimizer::initIndexDependent()

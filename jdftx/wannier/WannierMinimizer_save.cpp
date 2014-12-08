@@ -388,4 +388,96 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				if(realPartOnly) logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot)); else logPrintf("done.\n"); logFlush();
 			}
 	}
+	
+	//Electron-phonon matrix elements:
+	if(wannier.phononSup.length_squared())
+	{	//--- generate list of commensurate k-points in order present in the unit cell calculation
+		std::map<int,int> q_ikMap; //map from state indices to k-mesh indices for commensurate k-points
+		for(unsigned ik=0; ik<kMesh.size(); ik++)
+		{	vector3<> k = kMesh[ik].point.k;
+			bool isCommensurate = true;
+			for(int j=0; j<3; j++)
+			{	double kSup = k[j] * wannier.phononSup[j];
+				if(fabs(round(kSup)-kSup) > symmThreshold)
+				{	isCommensurate = false;
+					break;
+				}
+			}
+			if(isCommensurate)
+				q_ikMap[kMesh[ik].point.iReduced + iSpin*qCount] = ik;
+		}
+		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
+		assert(int(q_ikMap.size()) == prodPhononSup);
+		//---- generate pairs of commensurate k-points along with pointer to Wannier rotation
+		struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
+		std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
+		for(auto entry1: q_ikMap)
+		for(auto entry2: q_ikMap)
+		{	KpointPair kPair;
+			kPair.k1 = e.eInfo.qnums[entry1.first].k;
+			kPair.k2 = e.eInfo.qnums[entry2.first].k;
+			kPair.ik1 = entry1.second;
+			kPair.ik2 = entry2.second;
+			kpointPairs.push_back(kPair);
+		}
+		int iPairStart = (kpointPairs.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+		int iPairStop = (kpointPairs.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+		//--- convert phononHsub from Bloch to wannier for each nuclear displacement mode
+		string fnameIn = wannier.getFilename(Wannier::FilenameInit, "phononHsub", &iSpin);
+		string fnameOut = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
+		logPrintf("Wannierizing '%s' to '%s' ... ", fnameIn.c_str(), fnameOut.c_str()); logFlush();
+		//--- --- open input file
+		MPIUtil::File fpIn;
+		size_t matSizeIn = nBands*nBands * sizeof(complex);
+		size_t modeStrideIn = kpointPairs.size() * matSizeIn; //input data size per phonon mode
+		mpiUtil->fopenRead(fpIn, fnameIn.c_str(), nPhononModes * modeStrideIn);
+		//--- --- open output file
+		FILE* fpOut = 0;
+		if(mpiUtil->isHead()) fpOut = fopen(fnameOut.c_str(), "w");
+		bool isOutOpen = fpOut; mpiUtil->bcast(isOutOpen);
+		if(!isOutOpen) die("Could not open '%s' for writing.\n", fnameOut.c_str());
+		//--- --- loop over modes
+		double normTot=0., normIm=0.;
+		for(int iMode=0; iMode<nPhononModes; iMode++)
+		{	//Read phononHsub and apply Wannier rotations:
+			std::vector<matrix> phononHsub(kpointPairs.size());
+			mpiUtil->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
+			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+			{	matrix Hsub(nBands, nBands);
+				mpiUtil->fread(Hsub.data(), sizeof(complex), nBands*nBands, fpIn);
+				const KpointPair& pair = kpointPairs[iPair];
+				phononHsub[iPair] = (kMesh[pair.ik1].point.weight * kMesh[pair.ik2].point.weight)
+					* (dagger(kMesh[pair.ik1].U) * Hsub * kMesh[pair.ik2].U); //save with Wannier rotations and k-integration weights
+			}
+			//Transform to real space (on phononCellMap squared)
+			for(const auto& entry1: phononCellMap)
+			for(const auto& entry2: phononCellMap)
+			{	const vector3<int>& iR1 = entry1.first;
+				const vector3<int>& iR2 = entry2.first;
+				matrix HePh = zeroes(nCenters, nCenters);
+				for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+				{	const KpointPair& pair = kpointPairs[iPair];
+					HePh += cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) * phononHsub[iPair];
+				}
+				HePh *= entry1.second * entry2.second; //nclude cell weights due to boundary symmetrization
+				HePh.allReduce(MPIUtil::ReduceSum); //collect contributions over all pairs
+				if(mpiUtil->isHead())
+				{	if(realPartOnly)
+					{	HePh.write_real(fpOut);
+						//Collect imaginary part
+						normTot += pow(nrm2(HePh), 2);
+						eblas_dscal(HePh.nData(), 0., ((double*)HePh.data()), 2); //zero out real parts
+						normIm += pow(nrm2(HePh), 2);
+					}
+					else HePh.write(fpOut);
+				}
+			}
+		}
+		if(mpiUtil->isHead()) fclose(fpOut);
+		mpiUtil->fclose(fpIn);
+		if(mpiUtil->isHead() && realPartOnly)
+			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot));
+		else logPrintf("done.\n");
+		logFlush();
+	}
 }

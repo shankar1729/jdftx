@@ -88,7 +88,7 @@ void Phonon::setup()
 	if(e.eInfo.qnums.size()>1 || e.eInfo.qnums[0].k.length_squared())
 		die("phonon requires a Gamma-centered uniform kpoint mesh.\n");
 	for(int j=0; j<3; j++)
-	{	if(e.eInfo.kfold[j] % sup[j])
+	{	if(!sup[j] || e.eInfo.kfold[j] % sup[j])
 		{	die("kpoint folding %d is not a multiple of supercell count %d for lattice direction %d.\n",
 				e.eInfo.kfold[j], sup[j], j);
 		}
@@ -340,7 +340,7 @@ void Phonon::dump()
 	//--- write to file
 	if(mpiUtil->isHead())
 	{	string fname = e.dump.getFilename("phononOmegaSq");
-		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "w");
 		for(const matrix& M: omegaSq)
 			M.write_real(fp); //M is explicitly real by construction above
@@ -348,7 +348,7 @@ void Phonon::dump()
 		logPrintf("done.\n"); logFlush();
 		//Write description of modes:
 		fname = e.dump.getFilename("phononBasis");
-		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		fp = fopen(fname.c_str(), "w");
 		fprintf(fp, "#species atom dx dy dz [bohrs]\n");
 		for(const Mode& mode: modes)
@@ -366,7 +366,7 @@ void Phonon::dump()
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
 			string fname = e.dump.getFilename("phononHsub" + spinSuffix);
-			logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			for(size_t iMode=0; iMode<modes.size(); iMode++)
 				for(int ik1=0; ik1<prodSup; ik1++)

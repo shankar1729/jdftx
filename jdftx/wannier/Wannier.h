@@ -63,6 +63,8 @@ public:
 	string numericalOrbitalsFilename; //!< filename for reading numerical orbitals
 	vector3<> numericalOrbitalsOffset; //!< lattice coordinates of the origin in the input
 	
+	vector3<int> phononSup; //!< phonon supercell (process e-ph matrix elements on this supercell if non-zero)
+	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
 	enum FilenameType
