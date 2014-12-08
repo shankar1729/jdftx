@@ -359,6 +359,27 @@ void Phonon::dump()
 		logPrintf("done.\n"); logFlush();
 	}
 	
+	//Output electron-phonon matrix elements:
+	if(mpiUtil->isHead())
+	{	int nSpins = Hsub0.size();
+		const int& nBands = e.eInfo.nBands;
+		for(int s=0; s<nSpins; s++)
+		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
+			string fname = e.dump.getFilename("phononHsub" + spinSuffix);
+			logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			for(size_t iMode=0; iMode<modes.size(); iMode++)
+				for(int ik1=0; ik1<prodSup; ik1++)
+					for(int ik2=0; ik2<prodSup; ik2++)
+					{	matrix HePh = invsqrtM[modes[iMode].sp] * //incorporate mass factor in eigen-displacement
+							dHsub[iMode][s](ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands); //split into k-point pairs
+						HePh.write(fp);
+					}
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+		}
+	}
+
 	//Calculate free energy (properly handling singularities at Gamma point):
 	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ();
 	int ikStart = (quad.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
