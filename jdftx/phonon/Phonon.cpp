@@ -32,6 +32,46 @@ Phonon::Phonon()
 inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 
+//Generate quadrature for BZ integrals with singularity at Gamma point:
+//--- add contribution to quadrature due to box of size scale centered at gCenter (in reciprocal lattice coords)
+void addQuadratureBZ_box(std::vector< std::pair<vector3<>,double> >& quad, double scale, vector3<> gCenter)
+{	//Weights and abscissae of the 7-point gauss quadrature:
+	const int N = 3;
+	static const double w[N+1] = { 0.129484966168869693270611432679082, 0.279705391489276667901467771423780, 0.381830050505118944950369775488975, 0.417959183673469387755102040816327 };
+	static const double x[N+1] = { 0.949107912342758524526189684047851, 0.741531185599394439863864773280788, 0.405845151377397166906606412076961, 0.000000000000000000000000000000000 };
+	double h = 0.5 * scale; 
+	vector3<> g;
+	for(int i0=-N; i0<=N; i0++)
+	{	g[0] = gCenter[0] + h*x[N-abs(i0)]*(i0>0?1:-1);
+		double w0 = (N ? h*w[N-abs(i0)] : 1.);
+		for(int i1=-N; i1<=N; i1++)
+		{	g[1] = gCenter[1] + h*x[N-abs(i1)]*(i1>0?1:-1);
+			double w01 = w0 * (N ? h*w[N-abs(i1)] : 1.);
+			for(int i2=-N; i2<=N; i2++)
+			{	g[2] = gCenter[2] + h*x[N-abs(i2)]*(i2>0?1:-1);
+				double w012 = w01 * (N ? h*w[N-abs(i2)] : 1.);
+				quad.push_back(std::make_pair(g, w012));
+			}
+		}
+	}
+}
+//--- add contribution to quadrature between bozes of size scale and scale/3
+void addQuadratureBZ_scale(std::vector< std::pair<vector3<>,double> >& quad, double scale) 
+{	double scaleBy3 = scale/3.;
+	vector3<int> ig;
+	for(ig[0]=-1; ig[0]<=1; ig[0]++)
+	for(ig[1]=-1; ig[1]<=1; ig[1]++)
+	for(ig[2]=-1; ig[2]<=1; ig[2]++)
+		if(ig.length_squared()) //except the center box
+			addQuadratureBZ_box(quad, scaleBy3, scaleBy3*ig);
+}
+std::vector< std::pair<vector3<>,double> > getQuadratureBZ()
+{	std::vector< std::pair<vector3<>,double> > quad;
+	for(double scale=1.; scale>1e-3; scale/=3.)
+		addQuadratureBZ_scale(quad, scale);
+	return quad;
+}
+
 void Phonon::setup()
 {
 	//Ensure phonon command specified:
@@ -310,7 +350,7 @@ void Phonon::dump()
 		fname = e.dump.getFilename("phononBasis");
 		logPrintf("Writing '%s' ... ", fname.c_str()); logFlush();
 		fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#species atom dx dy dz [bohrs]");
+		fprintf(fp, "#species atom dx dy dz [bohrs]\n");
 		for(const Mode& mode: modes)
 		{	vector3<> r; r[mode.dir] = invsqrtM[mode.sp];
 			fprintf(fp, "%s %d %lg %lg %lg\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
@@ -318,6 +358,46 @@ void Phonon::dump()
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
+	
+	//Calculate free energy (properly handling singularities at Gamma point):
+	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ();
+	int ikStart = (quad.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
+	int ikStop = (quad.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	double ZPE = 0., Evib = 0., Avib = 0.;
+	for(int ik=ikStart; ik<ikStop; ik++)
+	{	//Calculate phonon omegaSq at current k:
+		matrix omegaSq_k;
+		iter = cellMap.begin();
+		for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+		{	omegaSq_k += cis(2*M_PI*dot(iter->first, quad[ik].first)) * omegaSq[iCell];
+			iter++;
+		}
+		//Diagonalize:
+		diagMatrix omegaSqEigs; matrix omegaSqEvecs;
+		omegaSq_k = dagger_symmetrize(omegaSq_k);
+		omegaSq_k.diagonalize(omegaSqEvecs, omegaSqEigs);
+		//Collect contributions:
+		double w = quad[ik].second; //integration weight of current k-point
+		for(double omegaSqEig: omegaSqEigs)
+		{	double omega = sqrt(omegaSqEig);
+			double expMomegaByT = exp(-omega/T);
+			ZPE += w*( 0.5*omega );
+			Evib += w*( 0.5*omega + omega * expMomegaByT / (1.-expMomegaByT) );
+			Avib += w*( 0.5*omega + T * log(1.-expMomegaByT) );
+		}
+	}
+	mpiUtil->allReduce(ZPE, MPIUtil::ReduceSum);
+	mpiUtil->allReduce(Evib, MPIUtil::ReduceSum);
+	mpiUtil->allReduce(Avib, MPIUtil::ReduceSum);
+	double TSvib = Evib - Avib;
+	logPrintf("\nPhonon free energy components (per unit cell) at T = %lg K:\n", T/Kelvin);
+	logPrintf("\tZPE:   %15.6lf\n", ZPE);
+	logPrintf("\tEvib:  %15.6lf\n", Evib);
+	logPrintf("\tTSvib: %15.6lf\n", TSvib);
+	logPrintf("\tAvib:  %15.6lf\n", Avib);
+	if(isnan(ZPE))
+		logPrintf("\tWARNING: free energies are undefined due to imaginary phonon frequencies.\n");
+	logPrintf("\n");
 }
 
 void Phonon::setSupState()
