@@ -35,6 +35,7 @@ static const int lMaxSpherical = 3;
 Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1)
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
+	shouldMoveAtoms = false;
 }
 
 Symmetries::~Symmetries()

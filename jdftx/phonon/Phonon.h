@@ -38,6 +38,7 @@ public:
 	
 private:
 	int nBandsOpt; //optimized number of bands, accounting for Fcut
+	Symmetries symm; //supercell symmetries (stored here because eSup must have symmetries disabled for perturbations)
 	
 	//set unperturbed state of supercell from unit cell
 	//optionally get the subspace Hamiltonian at supercell Gamma point (for all bands, not just those in nBandsOpt)
@@ -51,6 +52,13 @@ private:
 		//Wavefunction map
 		int nIndices; int* indexPref;
 		void setIndex(const std::vector<int>& index);
+		
+		//Symmetries of unit cell k-points: (needed only for those that map to supercell Gamma point)
+		struct SymmMapEntry
+		{	int q; //target unit cell k-point upon current rotation
+			matrix bandRot; //unitary rotation of bands under current rotation
+		};
+		std::vector<SymmMapEntry> symmMap; //one entry per symmetry rotation of supercell
 		
 		StateMapEntry();
 		~StateMapEntry();

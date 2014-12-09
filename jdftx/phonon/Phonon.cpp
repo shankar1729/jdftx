@@ -83,7 +83,8 @@ void Phonon::setup()
 			"     grid initialization fails below, specify larger manual fftbox.\n");
 	//Check symmetries
 	if(e.symm.mode != SymmetriesNone)
-		die("phonon does not support symmetries.\n");
+		die("phonon does not support symmetries in the input file / unit cell calculation.\n"
+			"Symmetries of the supercell will be exploited automatically.\n");
 	//Check kpoint and supercell compatibility:
 	if(e.eInfo.qnums.size()>1 || e.eInfo.qnums[0].k.length_squared())
 		die("phonon requires a Gamma-centered uniform kpoint mesh.\n");
@@ -121,6 +122,24 @@ void Phonon::setup()
 	}
 	mpiUtil->allReduce(nBandsOpt, MPIUtil::ReduceMax);
 	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n\n", Fcut, e.eInfo.nBands, nBandsOpt);
+
+	//Make unit cell state available on all processes 
+	//(since MPI division of qSup and q are different and independent of the map)
+	for(int q=0; q<e.eInfo.nStates; q++)
+	{	//Allocate:
+		if(!e.eInfo.isMine(q))
+		{	e.eVars.C[q].init(e.eInfo.nBands, e.basis[q].nbasis * e.eInfo.spinorLength(), &e.basis[q], &e.eInfo.qnums[q]);
+			e.eVars.F[q].resize(e.eInfo.nBands);
+			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+				e.eVars.B[q].init(e.eInfo.nBands, e.eInfo.nBands);
+		}
+		//Broadcast from owner:
+		int qSrc = e.eInfo.whose(q);
+		e.eVars.C[q].bcast(qSrc);
+		e.eVars.F[q].bcast(qSrc);
+		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+			e.eVars.B[q].bcast(qSrc);
+	}
 
 	logPrintf("########### Initializing JDFTx for supercell #############\n");
 	//Grid:
@@ -201,28 +220,85 @@ void Phonon::setup()
 			stateMap[q]->setIndex(indexVec);
 		}
 	}
+	
+	//Symmetries:
+	logPrintf("########### Initializing supercell symmetries #############\n");
+	symm.mode = SymmetriesAutomatic;
+	symm.setup(eSup);
+	//--- map rotations of kpoints and bands:
+	PeriodicLookup<QuantumNumber> plookUnit(e.eInfo.qnums, e.gInfo.GGT); //kpoint lookup table for unit cell
+	std::vector< matrix3<int> > sym = symm.getMatrices();
+	double rotErrMean = 0., rotErrMax = 0.; //mean and max unitarity error
+	for(int q=0; q<e.eInfo.nStates; q++)
+	{	StateMapEntry& sme = *(stateMap[q]);
+		if(eSup.eInfo.qnums[sme.qSup].k.length_squared())
+			continue; //only need to proceed for supercell Gamma point
+		const QuantumNumber& qnum = e.eInfo.qnums[q];
+		//Create lookup table for unrotated indices:
+		vector3<int> iGbox; //see Basis::setup(), this will bound the values of iG in the basis
+		for(int i=0; i<3; i++)
+			iGbox[i] = 1 + int(sqrt(2*e.cntrl.Ecut) * e.gInfo.R.column(i).length() / (2*M_PI));
+		vector3<int> pitch;
+		pitch[2] = 1;
+		pitch[1] = pitch[2] * (2*iGbox[2]+1);
+		pitch[0] = pitch[1] * (2*iGbox[1]+1);
+		std::vector<int> origIndex(pitch[0] * (2*iGbox[0]+1), -1);
+		const Basis& basis = e.basis[q];
+		for(size_t n=0; n<basis.nbasis; n++)
+			origIndex[dot(pitch,basis.iGarr[n]+iGbox)] = n;
+		//Loop over rotations
+		sme.symmMap.resize(sym.size());
+		for(size_t iSym=0; iSym<sym.size(); iSym++)
+		{	StateMapEntry::SymmMapEntry& sMap = sme.symmMap[iSym];
+			vector3<> kRot = qnum.k * sym[iSym];
+			size_t qTarget = plookUnit.find(kRot, qnum, &(e.eInfo.qnums), spinEqual);
+			assert(qTarget != string::npos);
+			sMap.q = qTarget;
+			vector3<int> offset; for(int j=0; j<3; j++) offset[j] = round(kRot[j] - e.eInfo.qnums[sMap.q].k[j]);
+			//Compute index map for rotation:
+			const Basis& basis = e.basis[sMap.q];
+			std::vector<int> indexVec(basis.nbasis);
+			matrix3<int> symInv = adjugate(sym[iSym]) * det(sym[iSym]);
+			for(size_t n=0; n<basis.nbasis; n++)
+			{	vector3<int> iGrot = (basis.iGarr[n] - offset) * symInv;
+				indexVec[n] = origIndex[dot(pitch,iGrot+iGbox)]; //lookup from above table
+			}
+			assert(*std::min_element(indexVec.begin(), indexVec.end()) >= 0); //make sure all entries were found
+			#ifdef GPU_ENABLED
+			int* indexPref;
+			cudaMalloc(&indexPref, sizeof(int)*indexVec.size()); gpuErrorCheck();
+			cudaMemcpy(indexPref, indexVec.data(), sizeof(int)*indexVec.size(), cudaMemcpyHostToDevice); gpuErrorCheck();
+			#else
+			int* indexPref = indexVec.data();
+			#endif
+			//Rotate wavefunctions:
+			const ColumnBundle& Cq = e.eVars.C[q];
+			ColumnBundle CqRot = e.eVars.C[sMap.q].similar();
+			CqRot.zero();
+			int nSpinor = CqRot.spinorLength();
+			for(int b=0; b<e.eInfo.nBands; b++)
+				for(int s=0; s<nSpinor; s++)
+					callPref(eblas_gather_zdaxpy)(indexVec.size(), 1., indexPref,
+						Cq.dataPref() + Cq.index(b,s*Cq.basis->nbasis),
+						CqRot.dataPref() + CqRot.index(b,s*CqRot.basis->nbasis));
+			#ifdef GPU_ENABLED
+			cudaFree(indexPref);
+			#endif
+			//Compute unitary rotations:
+			sMap.bandRot = CqRot ^ O(e.eVars.C[sMap.q]);
+			double rotErr = nrm2(dagger(sMap.bandRot)*sMap.bandRot - eye(e.eInfo.nBands));
+			rotErrMean += rotErr;
+			rotErrMax = std::max(rotErr, rotErrMax);
+			logPrintf("%d %lu: %le\n", q, iSym, rotErr);
+		}
+	}
+	rotErrMean /= (e.eInfo.nStates * sym.size());
+	logPrintf("Unitarity error in band symmetry maps:  mean: %le  max: %le\n", rotErrMean, rotErrMax);
+	
 }
 
 void Phonon::dump()
 {
-	//Make unit cell state available on all processes 
-	//(since MPI division of qSup and q are different and independent of the map)
-	for(int q=0; q<e.eInfo.nStates; q++)
-	{	//Allocate:
-		if(!e.eInfo.isMine(q))
-		{	e.eVars.C[q].init(e.eInfo.nBands, e.basis[q].nbasis * e.eInfo.spinorLength(), &e.basis[q], &e.eInfo.qnums[q]);
-			e.eVars.F[q].resize(e.eInfo.nBands);
-			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-				e.eVars.B[q].init(e.eInfo.nBands, e.eInfo.nBands);
-		}
-		//Broadcast from owner:
-		int qSrc = e.eInfo.whose(q);
-		e.eVars.C[q].bcast(qSrc);
-		e.eVars.F[q].bcast(qSrc);
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			e.eVars.B[q].bcast(qSrc);
-	}
-	
 	//List of displacements:
 	struct Mode { int sp; int at; int dir; }; //specie, atom and cartesian directions for each displacement
 	std::vector<Mode> modes;
