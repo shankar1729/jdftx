@@ -84,7 +84,7 @@ void Phonon::setup()
 	//Check symmetries
 	if(e.symm.mode != SymmetriesNone)
 		die("phonon does not support symmetries in the input file / unit cell calculation.\n"
-			"Symmetries of the supercell will be exploited automatically.\n");
+			"Symmetries of the supercell will be applied to the force matrix automatically.\n");
 	//Check kpoint and supercell compatibility:
 	if(e.eInfo.qnums.size()>1 || e.eInfo.qnums[0].k.length_squared())
 		die("phonon requires a Gamma-centered uniform kpoint mesh.\n");
@@ -225,76 +225,6 @@ void Phonon::setup()
 	logPrintf("########### Initializing supercell symmetries #############\n");
 	symm.mode = SymmetriesAutomatic;
 	symm.setup(eSup);
-	//--- map rotations of kpoints and bands:
-	PeriodicLookup<QuantumNumber> plookUnit(e.eInfo.qnums, e.gInfo.GGT); //kpoint lookup table for unit cell
-	std::vector< matrix3<int> > sym = symm.getMatrices();
-	double rotErrMean = 0., rotErrMax = 0.; //mean and max unitarity error
-	for(int q=0; q<e.eInfo.nStates; q++)
-	{	StateMapEntry& sme = *(stateMap[q]);
-		if(eSup.eInfo.qnums[sme.qSup].k.length_squared())
-			continue; //only need to proceed for supercell Gamma point
-		const QuantumNumber& qnum = e.eInfo.qnums[q];
-		//Create lookup table for unrotated indices:
-		vector3<int> iGbox; //see Basis::setup(), this will bound the values of iG in the basis
-		for(int i=0; i<3; i++)
-			iGbox[i] = 1 + int(sqrt(2*e.cntrl.Ecut) * e.gInfo.R.column(i).length() / (2*M_PI));
-		vector3<int> pitch;
-		pitch[2] = 1;
-		pitch[1] = pitch[2] * (2*iGbox[2]+1);
-		pitch[0] = pitch[1] * (2*iGbox[1]+1);
-		std::vector<int> origIndex(pitch[0] * (2*iGbox[0]+1), -1);
-		const Basis& basis = e.basis[q];
-		for(size_t n=0; n<basis.nbasis; n++)
-			origIndex[dot(pitch,basis.iGarr[n]+iGbox)] = n;
-		//Loop over rotations
-		sme.symmMap.resize(sym.size());
-		for(size_t iSym=0; iSym<sym.size(); iSym++)
-		{	StateMapEntry::SymmMapEntry& sMap = sme.symmMap[iSym];
-			vector3<> kRot = qnum.k * sym[iSym];
-			size_t qTarget = plookUnit.find(kRot, qnum, &(e.eInfo.qnums), spinEqual);
-			assert(qTarget != string::npos);
-			sMap.q = qTarget;
-			vector3<int> offset; for(int j=0; j<3; j++) offset[j] = round(kRot[j] - e.eInfo.qnums[sMap.q].k[j]);
-			//Compute index map for rotation:
-			const Basis& basis = e.basis[sMap.q];
-			std::vector<int> indexVec(basis.nbasis);
-			matrix3<int> symInv = adjugate(sym[iSym]) * det(sym[iSym]);
-			for(size_t n=0; n<basis.nbasis; n++)
-			{	vector3<int> iGrot = (basis.iGarr[n] - offset) * symInv;
-				indexVec[n] = origIndex[dot(pitch,iGrot+iGbox)]; //lookup from above table
-			}
-			assert(*std::min_element(indexVec.begin(), indexVec.end()) >= 0); //make sure all entries were found
-			#ifdef GPU_ENABLED
-			int* indexPref;
-			cudaMalloc(&indexPref, sizeof(int)*indexVec.size()); gpuErrorCheck();
-			cudaMemcpy(indexPref, indexVec.data(), sizeof(int)*indexVec.size(), cudaMemcpyHostToDevice); gpuErrorCheck();
-			#else
-			int* indexPref = indexVec.data();
-			#endif
-			//Rotate wavefunctions:
-			const ColumnBundle& Cq = e.eVars.C[q];
-			ColumnBundle CqRot = e.eVars.C[sMap.q].similar();
-			CqRot.zero();
-			int nSpinor = CqRot.spinorLength();
-			for(int b=0; b<e.eInfo.nBands; b++)
-				for(int s=0; s<nSpinor; s++)
-					callPref(eblas_gather_zdaxpy)(indexVec.size(), 1., indexPref,
-						Cq.dataPref() + Cq.index(b,s*Cq.basis->nbasis),
-						CqRot.dataPref() + CqRot.index(b,s*CqRot.basis->nbasis));
-			#ifdef GPU_ENABLED
-			cudaFree(indexPref);
-			#endif
-			//Compute unitary rotations:
-			sMap.bandRot = CqRot ^ O(e.eVars.C[sMap.q]);
-			double rotErr = nrm2(dagger(sMap.bandRot)*sMap.bandRot - eye(e.eInfo.nBands));
-			rotErrMean += rotErr;
-			rotErrMax = std::max(rotErr, rotErrMax);
-			logPrintf("%d %lu: %le\n", q, iSym, rotErr);
-		}
-	}
-	rotErrMean /= (e.eInfo.nStates * sym.size());
-	logPrintf("Unitarity error in band symmetry maps:  mean: %le  max: %le\n", rotErrMean, rotErrMax);
-	
 }
 
 void Phonon::dump()
@@ -351,6 +281,97 @@ void Phonon::dump()
 		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
 		imin.step(dir, -dr);
 		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //restore wave function drag flag
+	}
+	
+	//Symmetrize force matrix:
+	//--- framework for organizing forces into 3x3 matrices per atom pairs:
+	struct ForceMatrixIndex
+	{	int sp1, at1, sp2, at2; 
+		//Comparison operator for using in map:
+		bool operator<(const ForceMatrixIndex& fmi) const
+		{	if(sp1 < fmi.sp1) return true;
+			if(sp1 == fmi.sp1)
+			{	if(at1 < fmi.at1) return true;
+				if(at1 == fmi.at1)
+				{	if(sp2 < fmi.sp2) return true;
+					if(sp2 == fmi.sp2)
+						return (at2 < fmi.at2);
+				}
+			}
+			return false;
+		}
+	};
+	struct ForceMatrixIndexWrap //use periodicity to make sure at1 always belongs to unit cell
+	{	const Phonon& phonon;
+		ForceMatrixIndexWrap(const Phonon& phonon) : phonon(phonon) {}
+		void operator()(ForceMatrixIndex& fmi)
+		{	int nAtoms1 = phonon.e.iInfo.species[fmi.sp1]->atpos.size();
+			int nAtoms2 = phonon.e.iInfo.species[fmi.sp2]->atpos.size();
+			int unit1 = fmi.at1 / nAtoms1; if(!unit1) return; //already in unit cell
+			int unit2 = fmi.at2 / nAtoms2;
+			vector3<int> iR1 = getCell(unit1);
+			vector3<int> iR2 = getCell(unit2);
+			vector3<int> iR2new = iR2 - iR1; //so that atom goes to unit cell
+			for(int j=0; j<3; j++)
+				iR2new[j] = positiveRemainder(iR2new[j], phonon.sup[j]);
+			int unit2new = (iR2new[0]*phonon.sup[1] + iR2new[1])*phonon.sup[2] + iR2new[2];
+			fmi.at1 += (0 - unit1) * nAtoms1;
+			fmi.at2 += (unit2new - unit2) * nAtoms2;
+		}
+	private:
+		vector3<int> getCell(int unit)
+		{	vector3<int> iR;
+			iR[2] = unit % phonon.sup[2]; unit /= phonon.sup[2];
+			iR[1] = unit % phonon.sup[1]; unit /= phonon.sup[1];
+			iR[0] = unit;
+			return iR;
+		}
+	}
+	forceMatrixIndexWrap(*this);
+	//---  collect forces with symmetric combinations:
+	auto sym = symm.getMatrices();
+	auto atomMap = symm.getAtomMap();
+	std::vector< matrix3<> > symCart(sym.size());
+	for(size_t iSym=0; iSym<sym.size(); iSym++)
+		symCart[iSym] = eSup.gInfo.R * sym[iSym] * inv(eSup.gInfo.R);;
+	std::map< ForceMatrixIndex, matrix3<> > forceMatrix;
+	size_t iMode=0;
+	for(size_t sp1=0; sp1<e.iInfo.species.size(); sp1++)
+	for(size_t at1=0; at1<e.iInfo.species[sp1]->atpos.size(); at1++)
+	{	for(size_t sp2=0; sp2<eSup.iInfo.species.size(); sp2++)
+		for(size_t at2=0; at2<eSup.iInfo.species[sp2]->atpos.size(); at2++)
+		{	//Pickup force for this combination:
+			matrix3<> F;
+			for(int j=0; j<3; j++)
+				F.set_col(j, dgrad[iMode+j][sp2][at2]);
+			//Save with all possible rotations:
+			for(size_t iSym=0; iSym<sym.size(); iSym++)
+			{	ForceMatrixIndex fmi;
+				fmi.sp1 = sp1;
+				fmi.sp2 = sp2;
+				fmi.at1 = atomMap[sp1][at1][iSym];
+				fmi.at2 = atomMap[sp1][at2][iSym];
+				forceMatrixIndexWrap(fmi);
+				forceMatrix[fmi] += symCart[iSym] * F * (~symCart[iSym]);
+			}
+		}
+		iMode += 3;
+	}
+	//--- reconstitute dgrad:
+	iMode=0;
+	double nSymInv = 1./sym.size();
+	for(size_t sp1=0; sp1<e.iInfo.species.size(); sp1++)
+	for(size_t at1=0; at1<e.iInfo.species[sp1]->atpos.size(); at1++)
+	{	for(size_t sp2=0; sp2<eSup.iInfo.species.size(); sp2++)
+		for(size_t at2=0; at2<eSup.iInfo.species[sp2]->atpos.size(); at2++)
+		{	ForceMatrixIndex fmi;
+			fmi.sp1 = sp1; fmi.sp2 = sp2;
+			fmi.at1 = at1; fmi.at2 = at2;
+			const matrix3<>& F = forceMatrix[fmi]; //no wrapping needed for direct loop
+			for(int j=0; j<3; j++)
+				dgrad[iMode+j][sp2][at2] = nSymInv * F.column(j);
+		}
+		iMode += 3;
 	}
 	
 	//Construct frequency-squared matrix:
