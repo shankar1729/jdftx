@@ -221,6 +221,7 @@ private:
 	friend class CommandWavefunction;
 	friend class WannierMinimizer;
 	friend class IonicMinimizer;
+	friend class Phonon;
 	friend class Dump;
 };
 

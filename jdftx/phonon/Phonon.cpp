@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 Phonon::Phonon()
 : dr(0.01), T(298*Kelvin), Fcut(1e-8)
 {
-
+	eSup.cntrl.dragWavefunctions = false; //wavefunction-drag doesn't always play nice with setSupState (especially with relativity)
 }
 
 inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
@@ -158,6 +158,8 @@ void Phonon::setup()
 			for(vector3<> pos: e.iInfo.species[sp]->atpos)
 				eSup.iInfo.species[sp]->atpos.push_back(invSup * (pos + iR));
 		eSup.iInfo.species[sp]->constraints.assign(eSup.iInfo.species[sp]->atpos.size(), constraintFull);
+		for(SpeciesInfo::PlusU& Uparams: eSup.iInfo.species[sp]->plusU)
+			Uparams.Vext.resize(eSup.iInfo.species[sp]->atpos.size());
 	}
 	//Remove initial state settings (incompatible with supercell):
 	eSup.eVars.wfnsFilename.clear();
