@@ -144,7 +144,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 		}
 		else //recv
 		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
-			{	Cother[q].init(nBands, e.basis[q].nbasis, &e.basis[q], &e.eInfo.qnums[q]);
+			{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
 				Cother[q].bcast(jProcess);
 			}
 		}
