@@ -442,12 +442,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	//Read phononHsub and apply Wannier rotations:
 			std::vector<matrix> phononHsub(kpointPairs.size());
 			mpiUtil->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
+			double kPairWeight = 1./(prodPhononSup*prodPhononSup);
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 			{	matrix Hsub(nBands, nBands);
 				mpiUtil->fread(Hsub.data(), sizeof(complex), nBands*nBands, fpIn);
 				const KpointPair& pair = kpointPairs[iPair];
-				phononHsub[iPair] = (kMesh[pair.ik1].point.weight * kMesh[pair.ik2].point.weight)
-					* (dagger(kMesh[pair.ik1].U) * Hsub * kMesh[pair.ik2].U); //save with Wannier rotations and k-integration weights
+				phononHsub[iPair] = kPairWeight * (dagger(kMesh[pair.ik1].U) * Hsub * kMesh[pair.ik2].U); //save with Wannier rotations and k-integration weights
 			}
 			//Transform to real space (on phononCellMap squared)
 			for(const auto& entry1: phononCellMap)

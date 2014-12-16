@@ -583,7 +583,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 			{	ColumnBundle HC; Energies ener;
 				eSup.iInfo.project(eSup.eVars.C[qSup], eSup.eVars.VdagC[qSup]); //update wavefunction projections
 				eSup.eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
-				(*Hsub)[s] = eSup.eVars.Hsub[qSup];
+				(*Hsub)[s] = eSup.eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
 			}
 			else (*Hsub)[s].init(nBandsSup, nBandsSup);
 			(*Hsub)[s].bcast(eSup.eInfo.whose(qSup));
