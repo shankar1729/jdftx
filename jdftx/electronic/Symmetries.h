@@ -52,6 +52,7 @@ public:
 	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
 	void printKmap(FILE* fp) const; //!< print the k-point map (cached in kmap)
 	
+	static matrix getSpinorRotation(const matrix3<>& rot); //calculate spinor rotation from Cartesian rotation matrix
 private:
 	const Everything* e;
 	std::vector< matrix3<int> > sym; //!< symmetry matrices in covariant lattice coordinates

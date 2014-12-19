@@ -235,8 +235,21 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	{	Cout = *C; \
 		callPref(eblas_dscal)(Cout.nData(), -1., ((double*)Cout.dataPref())+1, 2); /* negate the imaginary parts */ \
 		C = &Cout; \
+	} \
+	/* Apply spinor-rotation if necessary: */ \
+	ColumnBundle Csrot; \
+	if(nSpinor>1) \
+	{	matrix srot = Symmetries::getSpinorRotation(~(e.gInfo.R * sym[kpoint.iSym] * inv(e.gInfo.R))); \
+		Csrot = C->similar(); \
+		Csrot.zero(); \
+		for(int b=0; b<C->nCols(); b++) \
+			for(int sOut=0; sOut<nSpinor; sOut++) \
+				for(int sIn=0; sIn<nSpinor; sIn++) \
+					callPref(eblas_zaxpy)(C->basis->nbasis, srot(sOut,sIn), \
+						C->dataPref()+C->index(b,sIn*C->basis->nbasis), 1, \
+						Csrot.dataPref()+Csrot.index(b,sOut*C->basis->nbasis), 1); \
+		C = &Csrot; \
 	}
-	
 
 void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();

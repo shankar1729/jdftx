@@ -246,8 +246,8 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l, bool relativi
 		matrix Uspin;
 		if(jSplit)
 		{	Uspin = zeroes(msCount, msCount);
-			Uspin.set(0,2*l,       0,msCount, transpose(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l-1)));
-			Uspin.set(2*l,msCount, 0,msCount, transpose(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l+1)));
+			Uspin.set(0,2*l,       0,msCount, dagger(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l-1)));
+			Uspin.set(2*l,msCount, 0,msCount, dagger(SpeciesInfo::getYlmToSpinAngleMatrix(l, 2*l+1)));
 		}
 		//Construct basis matrix at nHat:
 		matrix bOrig = zeroes(msCount, msCount); complex* bOrigData = bOrig.data();
@@ -268,33 +268,7 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l, bool relativi
 					for(int s=0; s<sCount; s++)
 						bRotData[bRot.index((l+m)*sCount+s,nIndex*sCount+s)] = Ylm(l, m, rot * nHat[nIndex]);
 			if(Uspin)
-			{	//Generate spinor rotation matrix:
-				matrix3<> rotPure = rot * (1./det(rot)); //pure rotation (remove inversion which doesn't matter in the following)
-				vector3<> euler = vector3<>(1,0,1)*M_PI - eulerFromMatrix(rotPure);
-					//Note on the modification to Euler angles above:
-					//	The minus sign makes sense from an active vs passive rotation point of view.
-					//	I'm not sure about the shifts by PI, but that is the only combination that
-					//	results in a correct prediction below that that j=l-1/2 and j=l+1/2 sectors
-					//	do not interfere i.e. out[iRot] is block diagonal in j for any rot.
-					//		Someone with a better mastery of Clebsh-Gordan coefficients and spinor
-					//	transformations should figure this out some day, but I'm satisfied with my
-					//	extensive numerical testing of this for now. - Shankar 6/26/2014
-				//R_z(alpha):
-				matrix A = zeroes(2,2); complex* Adata = A.data();
-					complex cA = cis(0.5*euler[0]);
-					Adata[A.index(0,0)] = cA;
-					Adata[A.index(1,1)] = cA.conj();
-				//R_y(beta):
-				matrix B = zeroes(2,2); complex* Bdata = B.data();
-					complex cB = cis(0.5*euler[1]);
-					Bdata[B.index(0,0)] =  cB.real(); Bdata[B.index(0,1)] = cB.imag();
-					Bdata[B.index(1,0)] = -cB.imag(); Bdata[B.index(1,1)] = cB.real();
-				//R_z(gamma):
-				matrix G = zeroes(2,2); complex* Gdata = G.data();
-					complex cG = cis(0.5*euler[2]);
-					Gdata[G.index(0,0)] = cG;
-					Gdata[G.index(1,1)] = cG.conj();
-				matrix rotSpinor = A * B * G;
+			{	matrix rotSpinor = getSpinorRotation(rot); //generate spinor rotation matrix
 				bRot = Uspin * (tiledBlockMatrix(rotSpinor, mCount) * bRot);
 			}
 			out[iRot] = bRot * bOrigInv;
@@ -320,6 +294,26 @@ void Symmetries::printKmap(FILE* fp) const
 		kmapUnpack(kmapEntry, iSrc, invert, iSym);
 		fprintf(fp, "%*lu %2d %+d\n", width, iSrc, iSym, invert);
 	}
+}
+
+matrix Symmetries::getSpinorRotation(const matrix3<>& rot)
+{	vector3<> euler = eulerFromMatrix(rot * (1./det(rot)));  //pure rotation (remove inversion which doesn't matter in the following)
+	//R_z(alpha):
+	matrix A = zeroes(2,2);
+		complex cA = cis(0.5*euler[0]);
+		A.set(0,0, cA);
+		A.set(1,1, cA.conj());
+	//R_y(beta):
+	matrix B = zeroes(2,2);
+		complex cB = cis(0.5*euler[1]);
+		B.set(0,0,  cB.real()); B.set(0,1, cB.imag());
+		B.set(1,0, -cB.imag()); B.set(1,1, cB.real());
+	//R_z(gamma):
+	matrix G = zeroes(2,2);
+		complex cG = cis(0.5*euler[2]);
+		G.set(0,0, cG);
+		G.set(1,1, cG.conj());
+	return A * B * G;
 }
 
 void Symmetries::calcSymmetries()

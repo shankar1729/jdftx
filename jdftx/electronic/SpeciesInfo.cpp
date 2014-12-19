@@ -527,7 +527,6 @@ matrix SpeciesInfo::getYlmToSpinAngleMatrix(int l, int j2)
 		return Ulj;
 	}
 	else return iter->second; //return cached version
-
 }
 
 matrix SpeciesInfo::getYlmOverlapMatrix(int l, int j2)
