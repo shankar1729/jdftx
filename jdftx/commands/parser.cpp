@@ -214,6 +214,39 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 	filename.pop_back();
 }
 
+std::vector< pair<string,string> > readInputFile(string filename)
+{	std::vector< pair<string,string> > input;
+	//Read input on head:
+	if(mpiUtil->isHead())
+	{	std::vector<string> filenameList(1, filename);
+		readInputFile(filenameList, input);
+	}
+	//Broadcast to other processes
+	if(mpiUtil->nProcesses()>1)
+	{	//Synchronize lengths:
+		int nInputs = input.size();
+		mpiUtil->bcast(nInputs);
+		if(!mpiUtil->isHead()) input.resize(nInputs);
+		//Serialize to string and synchronize content:
+		string inputStr;
+		if(mpiUtil->isHead())
+		{	ostringstream oss;
+			for(const auto& p: input)
+				oss << p.first << '\n' << p.second << '\n';
+			inputStr = oss.str();
+		}
+		mpiUtil->bcast(inputStr);
+		if(!mpiUtil->isHead())
+		{	istringstream iss(inputStr);
+			for(auto& p: input)
+			{	getline(iss, p.first);
+				getline(iss, p.second);
+			}
+		}
+	}
+	return input;
+}
+
 //! Call Command::process with error handling, count updating etc:
 void safeProcess(Command& c, string params, Everything& everything,
 	map<string,int>& encountered, std::vector< pair<Command*,string> >& errors)
@@ -258,38 +291,8 @@ void safeProcess(Command& c, string params, Everything& everything,
 	}
 }
 
-void parse(const char* filename, Everything& everything, bool printDefaults)
-{	//Read the contents of the file into command-parameter pairs, handling includes recursively:
-	std::vector< pair<string,string> > input;
-	if(mpiUtil->isHead())
-	{	std::vector<string> filenameList; filenameList.push_back(filename);
-		readInputFile(filenameList, input); //This also performs bash-like environment variable substitution
-	}
-	
-	//Broadcast the input to other processes
-	if(mpiUtil->nProcesses()>1)
-	{	//Synchronize lengths:
-		int nInputs = input.size();
-		mpiUtil->bcast(nInputs);
-		if(!mpiUtil->isHead()) input.resize(nInputs);
-		//Serialize to string and synchronize content:
-		string inputStr;
-		if(mpiUtil->isHead())
-		{	ostringstream oss;
-			for(const auto& p: input)
-				oss << p.first << '\n' << p.second << '\n';
-			inputStr = oss.str();
-		}
-		mpiUtil->bcast(inputStr);
-		if(!mpiUtil->isHead())
-		{	istringstream iss(inputStr);
-			for(auto& p: input)
-			{	getline(iss, p.first);
-				getline(iss, p.second);
-			}
-		}
-	}
-	
+void parse(std::vector< pair<string,string> > input, Everything& everything, bool printDefaults)
+{
 	//Process the input in multiple passes: (Be helpful by collecting all errors, if any, before dying)
 	ProcessedCommandMap cmap;
 	set<string> unknown; //unknown command names

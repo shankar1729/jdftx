@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	//Parse input file and setup
 	Everything e; //the parent data structure for, well, everything
 	ElecVars& eVars = e.eVars;
-	parse(inputFilename.c_str(), e, printDefaults);
+	parse(readInputFile(inputFilename), e, printDefaults);
 	e.setup();
 	Citations::print();
 	if(dryRun)

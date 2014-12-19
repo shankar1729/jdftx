@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 	
 	//Read the input file:
 	Everything e;
-	parse(argv[1], e);
+	parse(readInputFile(argv[1]), e);
 	//Skip reading the wavefunctions and initialzing empty states to save time:
 	assert(e.dump.polarizability);
 	Polarizability& pol = *e.dump.polarizability;

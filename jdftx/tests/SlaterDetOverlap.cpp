@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	
 	Everything e; //the parent data structure for, well, everything
 	logSuspend(); e.elecMinParams.fpLog = nullLog;
-	parse(inputFilename.c_str(), e, printDefaults);
+	parse(readInputFile(inputFilename), e, printDefaults);
 	e.setup();
 	logResume(); e.elecMinParams.fpLog = globalLog;
 	if(e.eInfo.isNoncollinear()) die("'%s' not yet implemented with noncollinear spins.\n", argv[0]);

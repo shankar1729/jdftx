@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 
 	//Parse input file:
 	Everything e;
-	parse(inputFilename.c_str(), e, printDefaults);
+	parse(readInputFile(inputFilename), e, printDefaults);
 	
 	//Set initial filenames and prevent unnecessary setup below:
 	e.eVars.wfnsFilename = wannier.getFilename(Wannier::FilenameInit, "wfns");

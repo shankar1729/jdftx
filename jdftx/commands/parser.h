@@ -21,10 +21,15 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_PARSER_H
 
 #include <electronic/common.h>
+#include <vector>
 
-//! Parse the input file, and initialize everything
-//! Read from stdin if filename is empty
-void parse(const char* filename, Everything &everything, bool printDefaults=false);
+//! Read input from file (or stdin if filename is empty) into an array of command/argument-list pairs
+//! This routine handles comments, line continuation as well as environment substitution
+//! In MPI mode, the input will be read only on head and distributed to all the processes
+std::vector< std::pair<string,string> > readInputFile(string filename);
+
+//! Parse the input (as obtained by readInputFile), and initialize everything
+void parse(std::vector< std::pair<string,string> > input, Everything &everything, bool printDefaults=false);
 
 //! Produce an input file template
 void printDefaultTemplate(Everything &e);
