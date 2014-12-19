@@ -304,7 +304,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Save Hamiltonian in Wannier basis:
-	std::vector<matrix> Hwannier(iCellMap.size());
+	std::vector<matrix> Hwannier(iCellMap.size(), zeroes(nCenters,nCenters));
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	//Fetch Hamiltonian for subset of bands in center:
 		matrix Hsub = e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount];
@@ -347,7 +347,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				for(int iDir=0; iDir<3; iDir++)
 					pBloch[iDir][q] = e.gInfo.detR * (e.eVars.C[q] ^ D(e.eVars.C[q], iDir)); //note factor of iota dropped to make it real (and anti-symmetric)
 		//--- convert to Wannier basis:
-		std::vector< std::vector<matrix> > pWannier(3, std::vector<matrix>(iCellMap.size()));
+		std::vector< std::vector<matrix> > pWannier(3, std::vector<matrix>(iCellMap.size(), zeroes(nCenters,nCenters)));
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	matrix pSub[3]; vector3<complex*> pSubData;
 			for(int iDir=0; iDir<3; iDir++)
