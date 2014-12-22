@@ -32,15 +32,10 @@ int main(int argc, char** argv)
 	string inputFilename; bool dryRun, printDefaults;
 	initSystemCmdline(argc, argv, "Compute maximally-localized Phonon functions.", inputFilename, dryRun, printDefaults);
 
-	//Parse input file:
-	auto input = readInputFile(inputFilename);
-	parse(input, phonon.e, printDefaults);
-	logSuspend();
-	parse(input, phonon.eSup, printDefaults); //Everything is not safe to copy, so rerun parse (silently)
-	logResume();
+	phonon.input = readInputFile(inputFilename);
 	
-	//Setup:
-	phonon.setup();
+	//Read input file and setup unit cell:
+	phonon.setup(printDefaults);
 	Citations::print();
 	if(dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");

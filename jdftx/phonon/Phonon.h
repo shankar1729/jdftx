@@ -22,29 +22,46 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <core/LatticeUtils.h>
 
 class Phonon
 {
 public:
-	Everything e, eSup; //data for original unit cell and supercell
+	std::vector<std::pair<string,string> > input; //input file contents
+	
 	vector3<int> sup; //phonon supercell 
 	double dr; //perturbation amplitude in Cartesian coordinates
 	double T; //temperature for free energy estimation
 	double Fcut; //fillings cutoff for optimizing number of bands
 	
 	Phonon();
-	void setup(); //setup e and eSup
-	void dump(); //main calculation as well as output routine
+	void setup(bool printDefaults); //setup unit cell and basis modes for perturbations
+	void dump(); //main calculations (sequence of supercell calculations) as well as output
 	
 private:
+	Everything e; //data for original unit cell
+	Everything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
+	std::shared_ptr<Everything> eSup; //supercell data for current perturbation
+
+	int nSpins, nSpinor; //number of explicit spins and spinor length
 	int nBandsOpt; //optimized number of bands, accounting for Fcut
-	Symmetries symm; //supercell symmetries (stored here because eSup must have symmetries disabled for perturbations)
+	int prodSup; //number of unit cells in supercell
+	
+	struct Perturbation
+	{	int sp, at; //!< species and atom number (within first unit cell)
+		vector3<> dir; //!< Cartesian unit vector along perturbation
+		double weight; //!< weight of perturbation (adds up to 3 nAtoms / nSymmetries)
+	};
+	std::vector<Perturbation> perturbations;
+	
+	//Run supercell calculation for specified perturbation
+	void processPerturbation(const Perturbation& pert);
 	
 	//set unperturbed state of supercell from unit cell
 	//optionally get the subspace Hamiltonian at supercell Gamma point (for all bands, not just those in nBandsOpt)
 	void setSupState(std::vector<matrix>* Hsub=0); 
 	
-	struct StateMapEntry
+	struct StateMapEntry : public Supercell::KmeshTransform //contain source k-point rotation here
 	{	int qSup; //state index for supercell
 		vector3<int> iG; //reciprocal lattice offset
 		int nqPrev; //number of previous unit cell k-points that point to this supercell

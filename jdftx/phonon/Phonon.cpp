@@ -22,11 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/operators.h>
+#include <commands/parser.h>
 
 Phonon::Phonon()
 : dr(0.01), T(298*Kelvin), Fcut(1e-8)
 {
-	eSup.cntrl.dragWavefunctions = false; //wavefunction-drag doesn't always play nice with setSupState (especially with relativity)
 }
 
 inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
@@ -72,19 +72,29 @@ std::vector< std::pair<vector3<>,double> > getQuadratureBZ()
 	return quad;
 }
 
-void Phonon::setup()
+//Return size of stabilizer group of a Cartesian displacement (given Cartesian symmetry rotations)
+inline int nStabilizer(const vector3<>& n, const std::vector< matrix3<> >& symCart)
+{	int nStab = 0;
+	for(const matrix3<>& m: symCart)
+		if((n - m * n).length_squared() < symmThresholdSq * n.length_squared())
+			nStab++;
+	return nStab;
+}
+
+void Phonon::setup(bool printDefaults)
 {
+	//Parse input to initialize unit cell:
+	parse(input, e, printDefaults);
+	logSuspend();
+	parse(input, eSupTemplate); //silently create a copy by re-parsing input (Everything is not trivially copyable)
+	logResume();
+	
 	//Ensure phonon command specified:
 	if(!sup.length())
 		die("phonon supercell must be specified using the phonon command.\n");
 	if(!e.gInfo.S.length_squared())
-		logPrintf(
-			"WARNING: manual fftbox setting recommended for phonon. If supercell\n"
-			"     grid initialization fails below, specify larger manual fftbox.\n");
-	//Check symmetries
-	if(e.symm.mode != SymmetriesNone)
-		die("phonon does not support symmetries in the input file / unit cell calculation.\n"
-			"Symmetries of the supercell will be applied to the force matrix automatically.\n");
+		die("Manual fftbox setting required for phonon. If supercell grid\n"
+			"initialization fails, specify slightly larger manual fftbox.\n");
 	//Check kpoint and supercell compatibility:
 	if(e.eInfo.qnums.size()>1 || e.eInfo.qnums[0].k.length_squared())
 		die("phonon requires a Gamma-centered uniform kpoint mesh.\n");
@@ -93,19 +103,22 @@ void Phonon::setup()
 		{	die("kpoint folding %d is not a multiple of supercell count %d for lattice direction %d.\n",
 				e.eInfo.kfold[j], sup[j], j);
 		}
-		eSup.eInfo.kfold[j] = e.eInfo.kfold[j] / sup[j];
+		eSupTemplate.eInfo.kfold[j] = e.eInfo.kfold[j] / sup[j];
 	}
 	
-	logPrintf("########### Initializing JDFTx for unit cell #############\n");
+	logPrintf("########### Unit cell calculation #############\n");
 	SpeciesInfo::Constraint constraintFull;
 	constraintFull.moveScale = 0;
 	constraintFull.type = SpeciesInfo::Constraint::None;
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 		e.iInfo.species[sp]->constraints.assign(e.iInfo.species[sp]->atpos.size(), constraintFull);
 	e.setup();
-	
+	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
+
+	nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
+	nSpinor = e.eInfo.spinorLength();
+
 	//Initialize state of unit cell:
-	logPrintf("########### Unperturbed unit cell calculation #############\n");
 	if(e.cntrl.dumpOnly)
 	{	//Single energy calculation so that all dependent quantities have been initialized:
 		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
@@ -121,7 +134,7 @@ void Phonon::setup()
 		nBandsOpt = std::max(nBandsOpt, nBands_q);
 	}
 	mpiUtil->allReduce(nBandsOpt, MPIUtil::ReduceMax);
-	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n\n", Fcut, e.eInfo.nBands, nBandsOpt);
+	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n", Fcut, e.eInfo.nBands, nBandsOpt);
 
 	//Make unit cell state available on all processes 
 	//(since MPI division of qSup and q are different and independent of the map)
@@ -141,96 +154,128 @@ void Phonon::setup()
 			e.eVars.B[q].bcast(qSrc);
 	}
 
-	logPrintf("########### Initializing JDFTx for supercell #############\n");
+	logPrintf("\n------- Configuring supercell and perturbation modes -------\n");
+	
 	//Grid:
-	eSup.gInfo.S = Diag(sup) * e.gInfo.S; //ensure exact supercell
-	eSup.gInfo.R = e.gInfo.R * Diag(sup);
-	int prodSup = sup[0] * sup[1] * sup[2];
-	//Replicate atoms:
+	eSupTemplate.gInfo.S = Diag(sup) * e.gInfo.S; //ensure exact supercell
+	eSupTemplate.gInfo.R = e.gInfo.R * Diag(sup);
+	prodSup = sup[0] * sup[1] * sup[2];
+	
+	//Replicate atoms (and related properties):
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
-	{	eSup.iInfo.species[sp]->atpos.clear();
-		eSup.iInfo.species[sp]->initialMagneticMoments.clear();
+	{	const SpeciesInfo& spIn = *(e.iInfo.species[sp]);
+		SpeciesInfo& spOut = *(eSupTemplate.iInfo.species[sp]);
+		spOut.atpos.clear();
+		spOut.initialMagneticMoments.clear();
 		matrix3<> invSup = inv(Diag(vector3<>(sup)));
 		vector3<int> iR;
 		for(iR[0]=0; iR[0]<sup[0]; iR[0]++)
 		for(iR[1]=0; iR[1]<sup[1]; iR[1]++)
 		for(iR[2]=0; iR[2]<sup[2]; iR[2]++)
-			for(vector3<> pos: e.iInfo.species[sp]->atpos)
-				eSup.iInfo.species[sp]->atpos.push_back(invSup * (pos + iR));
-		eSup.iInfo.species[sp]->constraints.assign(eSup.iInfo.species[sp]->atpos.size(), constraintFull);
-		for(SpeciesInfo::PlusU& Uparams: eSup.iInfo.species[sp]->plusU)
-			Uparams.Vext.resize(eSup.iInfo.species[sp]->atpos.size());
-	}
-	//Remove initial state settings (incompatible with supercell):
-	eSup.eVars.wfnsFilename.clear();
-	eSup.eVars.HauxFilename.clear();
-	eSup.eVars.eigsFilename.clear();
-	eSup.eVars.fluidInitialStateFilename.clear();
-	eSup.eInfo.initialFillingsFilename.clear();
-	eSup.scfParams.historyFilename.clear();
-	//ElecInfo:
-	eSup.eInfo.nBands = nBandsOpt * prodSup;
-	//ElecVars:
-	eSup.eVars.initLCAO = false;
-	eSup.setup();
-	
-	//Map states:
-	PeriodicLookup<QuantumNumber> plook(eSup.eInfo.qnums, eSup.gInfo.GGT);
-	std::vector<int> nqPrev(eSup.eInfo.qnums.size(), 0);
-	for(int q=0; q<e.eInfo.nStates; q++)
-	{	const QuantumNumber& qnum = e.eInfo.qnums[q];
-		vector3<> kSup = matrix3<>(Diag(sup)) * qnum.k; //qnum.k in supercell reciprocal lattice coords
-		size_t qSup = plook.find(kSup, qnum, &(eSup.eInfo.qnums), spinEqual);
-		assert(qSup != string::npos);
-		vector3<> iGtmp = kSup - eSup.eInfo.qnums[qSup].k;
-		//Add to stateMap:
-		auto sme = std::make_shared<StateMapEntry>();
-		sme->qSup = qSup;
-		for(int j=0; j<3; j++)
-			sme->iG[j] = round(iGtmp[j]);
-		sme->nqPrev = nqPrev[qSup];
-		nqPrev[qSup]++;
-		stateMap.push_back(sme);
-	}
-	for(int nq: nqPrev) assert(nq == prodSup); //each supercell k-point must be mapped to prod(sup) unit cell kpoints
-	
-	//Map corresponding basis objects:
-	for(int qSup=eSup.eInfo.qStart; qSup<eSup.eInfo.qStop; qSup++)
-	{	//Create lookup table for supercell indices:
-		vector3<int> iGbox; //see Basis::setup(), this will bound the values of iG in the basis
-		for(int i=0; i<3; i++)
-			iGbox[i] = 1 + int(sqrt(2*eSup.cntrl.Ecut) * eSup.gInfo.R.column(i).length() / (2*M_PI));
-		vector3<int> pitch;
-		pitch[2] = 1;
-		pitch[1] = pitch[2] * (2*iGbox[2]+1);
-		pitch[0] = pitch[1] * (2*iGbox[1]+1);
-		std::vector<int> supIndex(pitch[0] * (2*iGbox[0]+1), -1);
-		const Basis& basisSup = eSup.basis[qSup];
-		for(size_t n=0; n<basisSup.nbasis; n++)
-			supIndex[dot(pitch,basisSup.iGarr[n]+iGbox)] = n;
-		//Initialize index map for each unit cell k-point
-		for(int q=0; q<e.eInfo.nStates; q++) if(stateMap[q]->qSup == qSup)
-		{	const Basis& basis = e.basis[q];
-			std::vector<int> indexVec(basis.nbasis);
-			for(size_t n=0; n<basis.nbasis; n++)
-			{	vector3<int> iGsup = basis.iGarr[n];
-				for(int j=0; j<3; j++) iGsup[j] *= sup[j]; //to supercell reciprocal lattice coords
-				iGsup += stateMap[q]->iG; //offset due to Bloch phase
-				indexVec[n] = supIndex[dot(pitch,iGsup+iGbox)]; //lookup from above table
-			}
-			assert(*std::min_element(indexVec.begin(), indexVec.end()) >= 0); //make sure all entries were found
-			stateMap[q]->setIndex(indexVec);
+		{	for(vector3<> pos: spIn.atpos)
+				spOut.atpos.push_back(invSup * (pos + iR));
+			for(vector3<> M: spIn.initialMagneticMoments)
+				spOut.initialMagneticMoments.push_back(M); //needed only to determine supercell symmetries
 		}
+		spOut.constraints.assign(spOut.atpos.size(), constraintFull);
 	}
 	
-	//Symmetries:
-	logPrintf("########### Initializing supercell symmetries #############\n");
-	symm.mode = SymmetriesAutomatic;
-	symm.setup(eSup);
+	//Supercell symmetries:
+	eSupTemplate.symm.setup(eSupTemplate);
+	const std::vector< matrix3<int> >& symSup = eSupTemplate.symm.getMatrices();
+	std::vector< matrix3<> > symSupCart;
+	eSupTemplate.gInfo.invR = inv(eSupTemplate.gInfo.R);
+	for(const matrix3<int>& m: symSup)
+		symSupCart.push_back(eSupTemplate.gInfo.R * m * eSupTemplate.gInfo.invR);
+	
+	//Pick maximally symmetric orthogonal basis:
+	logPrintf("\nFinding maximally-symmetric orthogonal basis for displacements:\n");
+	std::vector< vector3<> > dirBasis;
+	{	std::multimap<int, vector3<> > dirList; //directions indexed by their stabilizer group cardinality
+		vector3<int> iR;
+		for(iR[0]=0; iR[0]<=+1; iR[0]++)
+		for(iR[1]=-1; iR[1]<=+1; iR[1]++)
+		for(iR[2]=-1; iR[2]<=+1; iR[2]++)
+			if(iR.length_squared())
+			{	//Try low-order lattice vector linear combination:
+				vector3<> n = eSupTemplate.gInfo.R * iR; n *= (1./n.length());
+				dirList.insert(std::make_pair(nStabilizer(n, symSupCart), n));
+				//Try low-order reciprocal lattice vector linear combination:
+				n = iR * eSupTemplate.gInfo.invR; n *= (1./n.length());
+				dirList.insert(std::make_pair(nStabilizer(n, symSupCart), n));
+			}
+		dirBasis.push_back(dirList.rbegin()->second);
+		//Pick second driection orthogonal to first:
+		std::multimap<int, vector3<> > dirList2;
+		for(auto entry: dirList)
+		{	vector3<> n = entry.second;
+			n -= dot(n, dirBasis[0]) * dirBasis[0];
+			if(n.length_squared() < symmThresholdSq) continue;
+			n *= (1./n.length());
+			dirList2.insert(std::make_pair(nStabilizer(n, symSupCart), n));
+		}
+		dirBasis.push_back(dirList2.rbegin()->second);
+		dirBasis.push_back(cross(dirBasis[0], dirBasis[1])); //third direction constrained by orthogonality
+	}
+	for(const vector3<>& n: dirBasis)
+		logPrintf(" [ %+lf %+lf %+lf ] |Stabilizer|: %d\n", n[0], n[1], n[2], nStabilizer(n,symSupCart));
+	
+	//Find irreducible modes:
+	perturbations.clear();
+	int nPertTot = 0; //total number of perturbations
+	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
+	{	int nAtoms = e.iInfo.species[sp]->atpos.size();
+		int nPert = nAtoms * dirBasis.size();
+		nPertTot += nPert;
+		//generate all perturbations first:
+		std::vector<Perturbation> pertSp(nPert); //perturbations of this species
+		std::vector<matrix> proj(nPert); //projection operator into subspace spanned by star of current perturbation
+		matrix projTot;
+		const auto& atomMap = eSupTemplate.symm.getAtomMap()[sp];
+		for(int iPert=0; iPert<nPert; iPert++)
+		{	pertSp[iPert].sp = sp;
+			pertSp[iPert].at = iPert / dirBasis.size();
+			pertSp[iPert].dir = dirBasis[iPert % dirBasis.size()];
+			pertSp[iPert].weight = 1./symSupCart.size();
+			for(unsigned iSym=0; iSym<symSupCart.size(); iSym++)
+			{	int at = atomMap[pertSp[iPert].at][iSym] % nAtoms; //map back to first cell
+				vector3<> dir = symSupCart[iSym] * pertSp[iPert].dir;
+				matrix nHat = zeroes(nPert,1);
+				for(int iDir=0; iDir<3; iDir++)
+					nHat.set(at*3+iDir,0, dir[iDir]);
+				proj[iPert] += pertSp[iPert].weight * nHat * dagger(nHat);
+			}
+			projTot += proj[iPert];
+		}
+		assert(nrm2(projTot - eye(nPert)) < symmThreshold);
+		//only select perturbations with distinct subspace projections:
+		std::vector<bool> irred(nPert, true); //whether each perturbation is in irreducible set
+		for(int iPert=0; iPert<nPert; iPert++)
+		{	for(int jPert=0; jPert<iPert; jPert++)
+				if(irred[jPert] && nrm2(proj[iPert]-proj[jPert])<symmThreshold)
+				{	pertSp[jPert].weight += pertSp[iPert].weight; //send weight of current mode to its image in irreducible set
+					irred[iPert] = false; //this mode will be accounted for upon symmetrization
+					break;
+				}
+		}
+		for(int iPert=0; iPert<nPert; iPert++)
+			if(irred[iPert])
+				perturbations.push_back(pertSp[iPert]);
+	}
+	logPrintf("\n%d perturbations of the unit cell reduced to %d under symmetries:\n", nPertTot, int(perturbations.size()));
+	for(const Perturbation& pert: perturbations)
+		logPrintf("%s %d  [ %+lf %+lf %+lf ] %lf\n", e.iInfo.species[pert.sp]->name.c_str(),
+			pert.at, pert.dir[0], pert.dir[1], pert.dir[2], pert.weight*symSupCart.size());
 }
 
 void Phonon::dump()
 {
+	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
+	{	logPrintf("########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
+		processPerturbation(perturbations[iPert]);
+	}
+	
+/*
 	//List of displacements:
 	struct Mode { int sp; int at; int dir; }; //specie, atom and cartesian directions for each displacement
 	std::vector<Mode> modes;
@@ -241,20 +286,6 @@ void Phonon::dump()
 				modes.push_back(mode);
 			}
 	
-	//Initialize state of supercell:
-	logPrintf("########### Unperturbed supercell calculation #############\n");
-	setSupState();
-	IonicMinimizer imin(eSup);
-	IonicGradient grad0;
-	imin.compute(&grad0); //compute initial forces and energy
-	logPrintf("# Energy components:\n"); eSup.ener.print(); logPrintf("\n");
-	int prodSup = sup[0]*sup[1]*sup[2];
-	double E0 = relevantFreeEnergy(eSup);
-	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
-	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(modes.size()*prodSup)));
-	//subspace Hamiltonian of supercell Gamma point:
-	std::vector<matrix> Hsub0;
-	setSupState(&Hsub0);
 	
 	//Displaced modes:
 	std::vector<IonicGradient> dgrad(modes.size()); //change in gradient for each perturbation
@@ -262,27 +293,7 @@ void Phonon::dump()
 	for(size_t iMode=0; iMode<modes.size(); iMode++)
 	{	const Mode& mode = modes[iMode];
 		logPrintf("\n########### Perturbed supercell calculation %d of %d #############\n", int(iMode+1), int(modes.size()));
-		//Move one atom:
-		IonicGradient dir; dir.init(eSup.iInfo); //contains zeroes
-		dir[mode.sp][mode.at][mode.dir] = 1.;
-		imin.step(dir, dr);
-		//Calculate energy and forces:
-		IonicGradient grad;
-		imin.compute(&grad);
-		dgrad[iMode] = (grad - grad0) * (1./dr);
-		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(eSup) - E0)/prodSup);
-		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(modes.size()*prodSup)));
-		//Subspace hamiltonian change:
-		std::vector<matrix> Hsub;
-		setSupState(&Hsub);
-		dHsub[iMode].resize(Hsub.size());
-		for(size_t s=0; s<Hsub.size(); s++)
-			dHsub[iMode][s] = (1./dr) * (Hsub[s] - Hsub0[s]);
-		//Restore atom position:
-		bool dragWfns = false;
-		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
-		imin.step(dir, -dr);
-		std::swap(dragWfns, eSup.cntrl.dragWavefunctions); //restore wave function drag flag
+		
 	}
 	
 	//Symmetrize force matrix:
@@ -461,7 +472,7 @@ void Phonon::dump()
 		fprintf(fp, "#species atom dx dy dz [bohrs]\n");
 		for(const Mode& mode: modes)
 		{	vector3<> r; r[mode.dir] = invsqrtM[mode.sp];
-			fprintf(fp, "%s %d %lg %lg %lg\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
+			fprintf(fp, "%s %d  %+lf %+lf %+lf\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
 		}
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
@@ -469,8 +480,7 @@ void Phonon::dump()
 	
 	//Output electron-phonon matrix elements:
 	if(mpiUtil->isHead())
-	{	int nSpins = Hsub0.size();
-		const int& nBands = e.eInfo.nBands;
+	{	const int& nBands = e.eInfo.nBands;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
 			string fname = e.dump.getFilename("phononHsub" + spinSuffix);
@@ -527,78 +537,217 @@ void Phonon::dump()
 	if(isnan(ZPE))
 		logPrintf("\tWARNING: free energies are undefined due to imaginary phonon frequencies.\n");
 	logPrintf("\n");
+*/
+}
+
+void Phonon::processPerturbation(const Perturbation& pert)
+{
+	//Start with eSupTemplate:
+	eSup = std::make_shared<Everything>();
+	eSup->cntrl.dragWavefunctions = false; //wavefunction-drag doesn't always play nice with setSupState (especially with relativity)
+	logSuspend(); parse(input, *eSup); logResume();
+	eSup->eInfo.kfold = eSupTemplate.eInfo.kfold;
+	eSup->gInfo.S = eSupTemplate.gInfo.S;
+	eSup->gInfo.R = eSupTemplate.gInfo.R;
+	int nAtomsTot = 0;
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+	{	const SpeciesInfo& spIn = *(eSupTemplate.iInfo.species[sp]);
+		SpeciesInfo& spOut = *(eSup->iInfo.species[sp]);
+		spOut.atpos = spIn.atpos;
+		spOut.constraints = spIn.constraints;
+		spOut.initialMagneticMoments.clear();
+		for(SpeciesInfo::PlusU& Uparams: spOut.plusU)
+			Uparams.Vext.resize(spOut.atpos.size());
+		nAtomsTot += spOut.atpos.size();
+	}
+
+	//Remove initial state settings (incompatible with supercell):
+	eSup->eVars.wfnsFilename.clear();
+	eSup->eVars.HauxFilename.clear();
+	eSup->eVars.eigsFilename.clear();
+	eSup->eVars.fluidInitialStateFilename.clear();
+	eSup->eInfo.initialFillingsFilename.clear();
+	eSup->scfParams.historyFilename.clear();
+	//ElecInfo:
+	eSup->eInfo.nBands = nBandsOpt * prodSup;
+	//ElecVars:
+	eSup->eVars.initLCAO = false; //state will be initialized from unit cell anyway
+	
+	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
+	double drSym = 0.;
+	for(int iDir=0; iDir<3; iDir++)
+		drSym = std::max(drSym, eSup->gInfo.R.column(iDir).length());
+	drSym *= (10*symmThreshold); //ensure temporary perturbation is an order of magnitude larger than symmetry detection threshold
+	vector3<> dxSym = inv(eSup->gInfo.R) * drSym * pert.dir;
+	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxSym; //apply perturbation for detection of symmetry reduction
+	eSup->setup();
+	eSup->iInfo.species[pert.sp]->atpos[pert.at] -= dxSym; //restore unperturbed geometry
+	eSup->iInfo.species[pert.sp]->sync_atpos();
+	
+	//Map states:
+	PeriodicLookup<QuantumNumber> plook(eSup->eInfo.qnums, eSup->gInfo.GGT);
+	std::vector<int> nqPrev(eSup->eInfo.qnums.size(), 0);
+	stateMap.clear();
+	const Supercell& supercell = *(e.coulombParams.supercell);
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+		for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
+		{	QuantumNumber qnum;
+			qnum.k = supercell.kmesh[ik];
+			qnum.spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			vector3<> kSup = matrix3<>(Diag(sup)) * qnum.k; //qnum.k in supercell reciprocal lattice coords
+			size_t qSup = plook.find(kSup, qnum, &(eSup->eInfo.qnums), spinEqual);
+			if(qSup == string::npos) continue; //the corresponding supercell k-point must have been eliminated by symmetries
+			vector3<> iGtmp = kSup - eSup->eInfo.qnums[qSup].k;
+			//Add to stateMap:
+			auto sme = std::make_shared<StateMapEntry>();
+			(Supercell::KmeshTransform&)(*sme) = supercell.kmeshTransform[ik]; //copy base class properties
+			sme->iReduced += iSpin*(e.eInfo.nStates/nSpins); //point to source k-point with appropriate spin
+			sme->qSup = qSup;
+			for(int j=0; j<3; j++)
+				sme->iG[j] = round(iGtmp[j]);
+			sme->nqPrev = nqPrev[qSup];
+			nqPrev[qSup]++;
+			stateMap.push_back(sme);
+		}
+	for(int nq: nqPrev) assert(nq == prodSup); //each supercell k-point must be mapped to prod(sup) unit cell kpoints
+	
+	//Map corresponding basis objects:
+	std::vector< matrix3<int> > sym = e.symm.getMatrices();
+	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
+	{	//Create lookup table for supercell indices:
+		vector3<int> iGbox; //see Basis::setup(), this will bound the values of iG in the basis
+		for(int i=0; i<3; i++)
+			iGbox[i] = 1 + int(sqrt(2*eSup->cntrl.Ecut) * eSup->gInfo.R.column(i).length() / (2*M_PI));
+		vector3<int> pitch;
+		pitch[2] = 1;
+		pitch[1] = pitch[2] * (2*iGbox[2]+1);
+		pitch[0] = pitch[1] * (2*iGbox[1]+1);
+		std::vector<int> supIndex(pitch[0] * (2*iGbox[0]+1), -1);
+		const Basis& basisSup = eSup->basis[qSup];
+		for(size_t n=0; n<basisSup.nbasis; n++)
+			supIndex[dot(pitch,basisSup.iGarr[n]+iGbox)] = n;
+		//Initialize index map for each unit cell k-point
+		for(std::shared_ptr<StateMapEntry>& sme: stateMap) if(sme->qSup == qSup)
+		{	const Basis& basis = e.basis[sme->iReduced];
+			std::vector<int> indexVec(basis.nbasis);
+			const matrix3<int> mRot = (~sym[sme->iSym]) * sme->invert; //effective transofrmation matrix
+			for(size_t n=0; n<basis.nbasis; n++)
+			{	vector3<int> iGtmp = basis.iGarr[n]; //original cell recip lattice coords
+				iGtmp = mRot * iGtmp - sme->offset; //apply symmetry operation in unit cell 
+				for(int j=0; j<3; j++) iGtmp[j] *= sup[j]; //to supercell reciprocal lattice coords
+				iGtmp += sme->iG; //offset due to Bloch phase
+				indexVec[n] = supIndex[dot(pitch,iGtmp+iGbox)]; //lookup from above table
+			}
+			assert(*std::min_element(indexVec.begin(), indexVec.end()) >= 0); //make sure all entries were found
+			sme->setIndex(indexVec);
+		}
+	}
+	
+	//Initialize state of supercell:
+	setSupState();
+	IonicMinimizer imin(*eSup);
+	IonicGradient grad0;
+	imin.compute(&grad0); //compute initial forces and energy
+	logPrintf("# Energy components:\n"); eSup->ener.print(); logPrintf("\n");
+	double E0 = relevantFreeEnergy(*eSup);
+	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
+	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(3*nAtomsTot)));
+	//subspace Hamiltonian of supercell Gamma point:
+	std::vector<matrix> Hsub0;
+	setSupState(&Hsub0);
+
+	//Move to perturbed configuration:
+	IonicGradient dir; dir.init(eSup->iInfo); //contains zeroes
+	dir[pert.sp][pert.at] = pert.dir;
+	imin.step(dir, dr);
+	
+	//Calculate energy and forces:
+	IonicGradient grad, dgrad;
+	imin.compute(&grad);
+	dgrad = (grad - grad0) * (1./dr);
+	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
+	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
+	
+	//Subspace hamiltonian change:
+	std::vector<matrix> Hsub, dHsub;
+	setSupState(&Hsub);
+	dHsub.resize(Hsub.size());
+	for(size_t s=0; s<Hsub.size(); s++)
+		dHsub[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	
+	//Restore atom position:
+	bool dragWfns = false;
+	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
+	imin.step(dir, -dr);
+	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //restore wave function drag flag
 }
 
 void Phonon::setSupState(std::vector<matrix>* Hsub)
 {
-	int prodSup = sup[0]*sup[1]*sup[2];
-	int nBandsSup = e.eInfo.nBands * prodSup; //Note >= eSup.eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
+	int nBandsSup = e.eInfo.nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
 	
 	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
-	for(int qSup=eSup.eInfo.qStart; qSup<eSup.eInfo.qStop; qSup++)
-	{	ColumnBundle& Cq = eSup.eVars.C[qSup];
-		eSup.eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
+	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
+	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
+		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
 		if(Cq.nCols() != nBandsSup)
 			Cq.init(nBandsSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
 		Cq.zero();
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			eSup.eVars.B[qSup] = zeroes(nBandsSup,nBandsSup);
+			eSup->eVars.B[qSup] = zeroes(nBandsSup,nBandsSup);
 	}
 	
 	//Update supercell quantities:
-	int nSpinor = e.eInfo.spinorLength();
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
-	for(int q=0; q<e.eInfo.nStates; q++) if(eSup.eInfo.isMine(stateMap[q]->qSup))
-	{	int nBandsPrev = e.eInfo.nBands * stateMap[q]->nqPrev;
-		int qSup = stateMap[q]->qSup;
+	for(const std::shared_ptr<StateMapEntry>& sme: stateMap) if(eSup->eInfo.isMine(sme->qSup))
+	{	int nBandsPrev = e.eInfo.nBands * sme->nqPrev;
 		//Wavefunctions:
-		const ColumnBundle& C = e.eVars.C[q];
-		ColumnBundle& Csup = eSup.eVars.C[qSup];
+		const ColumnBundle& C = e.eVars.C[sme->iReduced];
+		ColumnBundle& Csup = eSup->eVars.C[sme->qSup];
 		for(int b=0; b<e.eInfo.nBands; b++)
 			for(int s=0; s<nSpinor; s++)
-				callPref(eblas_scatter_zdaxpy)(stateMap[q]->nIndices, scaleFac, stateMap[q]->indexPref,
+				callPref(eblas_scatter_zdaxpy)(sme->nIndices, scaleFac, sme->indexPref,
 					C.dataPref() + C.index(b,s*C.basis->nbasis),
 					Csup.dataPref() + Csup.index(b + nBandsPrev, s*Csup.basis->nbasis));
 		//Fillings:
-		const diagMatrix& F = e.eVars.F[q];
-		diagMatrix& Fsup = eSup.eVars.F[qSup];
+		const diagMatrix& F = e.eVars.F[sme->iReduced];
+		diagMatrix& Fsup = eSup->eVars.F[sme->qSup];
 		Fsup.resize(nBandsSup);
 		Fsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, F);
 		//Auxiliary Hamiltonian (if necessary):
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	const matrix& B = e.eVars.B[q];
-			matrix& Bsup = eSup.eVars.B[qSup];
+		{	const matrix& B = e.eVars.B[sme->iReduced];
+			matrix& Bsup = eSup->eVars.B[sme->qSup];
 			Bsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, nBandsPrev,nBandsPrev+e.eInfo.nBands, B);
 		}
 	}
 	
 	//Compute gamma point Hamiltonian if requested:
 	if(Hsub)
-	{	int nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
-		Hsub->resize(nSpins);
+	{	Hsub->resize(nSpins);
 		for(int s=0; s<nSpins; s++)
-		{	int qSup = s*(eSup.eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
-			assert(eSup.eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-			if(eSup.eInfo.isMine(qSup))
+		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+			if(eSup->eInfo.isMine(qSup))
 			{	ColumnBundle HC; Energies ener;
-				eSup.iInfo.project(eSup.eVars.C[qSup], eSup.eVars.VdagC[qSup]); //update wavefunction projections
-				eSup.eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
-				(*Hsub)[s] = eSup.eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
+				eSup->iInfo.project(eSup->eVars.C[qSup], eSup->eVars.VdagC[qSup]); //update wavefunction projections
+				eSup->eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
+				(*Hsub)[s] = eSup->eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
 			}
 			else (*Hsub)[s].init(nBandsSup, nBandsSup);
-			(*Hsub)[s].bcast(eSup.eInfo.whose(qSup));
+			(*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
 		}
 	}
 	
 	//Discard extra bands:
-	for(int qSup=eSup.eInfo.qStart; qSup<eSup.eInfo.qStop; qSup++)
-	{	ColumnBundle& Cq = eSup.eVars.C[qSup];
-		ColumnBundle& Yq = eSup.eVars.Y[qSup];
-		diagMatrix& Fq = eSup.eVars.F[qSup];
-		matrix& Bq = eSup.eVars.B[qSup];
-		Yq = Cq.similar(eSup.eInfo.nBands);
-		diagMatrix Ftmp(eSup.eInfo.nBands);
-		matrix Btmp = zeroes(eSup.eInfo.nBands, eSup.eInfo.nBands);
+	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
+	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
+		ColumnBundle& Yq = eSup->eVars.Y[qSup];
+		diagMatrix& Fq = eSup->eVars.F[qSup];
+		matrix& Bq = eSup->eVars.B[qSup];
+		Yq = Cq.similar(eSup->eInfo.nBands);
+		diagMatrix Ftmp(eSup->eInfo.nBands);
+		matrix Btmp = zeroes(eSup->eInfo.nBands, eSup->eInfo.nBands);
 		for(int nqPrev=0; nqPrev<prodSup; nqPrev++)
 		{	int offsIn = nqPrev * e.eInfo.nBands;
 			int offsOut = nqPrev * nBandsOpt;
@@ -611,15 +760,15 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		std::swap(Fq, Ftmp);
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 			std::swap(Bq, Btmp);
-		eSup.iInfo.project(Cq, eSup.eVars.VdagC[qSup]); //update wave function projections
+		eSup->iInfo.project(Cq, eSup->eVars.VdagC[qSup]); //update wave function projections
 	}
 	
 	//Update entropy contributions:
-	if(eSup.eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
-		eSup.eInfo.updateFillingsEnergies(eSup.eVars.F, eSup.ener);
+	if(eSup->eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
+		eSup->eInfo.updateFillingsEnergies(eSup->eVars.F, eSup->ener);
 	
 	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		eSup.eVars.HauxInitialized = true;
+		eSup->eVars.HauxInitialized = true;
 }
 
 Phonon::StateMapEntry::StateMapEntry() : nIndices(0), indexPref(0), index(0)
