@@ -183,7 +183,7 @@ void Phonon::setup(bool printDefaults)
 	//Supercell symmetries:
 	eSupTemplate.symm.setup(eSupTemplate);
 	const std::vector< matrix3<int> >& symSup = eSupTemplate.symm.getMatrices();
-	std::vector< matrix3<> > symSupCart;
+	symSupCart.clear();
 	eSupTemplate.gInfo.invR = inv(eSupTemplate.gInfo.R);
 	for(const matrix3<int>& m: symSup)
 		symSupCart.push_back(eSupTemplate.gInfo.R * m * eSupTemplate.gInfo.invR);
@@ -220,13 +220,23 @@ void Phonon::setup(bool printDefaults)
 	for(const vector3<>& n: dirBasis)
 		logPrintf(" [ %+lf %+lf %+lf ] |Stabilizer|: %d\n", n[0], n[1], n[2], nStabilizer(n,symSupCart));
 	
+	//List all modes:
+	modes.clear();
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+		for(size_t at=0; at<e.iInfo.species[sp]->atpos.size(); at++) //only need to move atoms in first unit cell
+			for(int iDir=0; iDir<3; iDir++)
+			{	Mode mode;
+				mode.sp = sp;
+				mode.at = at;
+				mode.dir[iDir] = 1.;
+				modes.push_back(mode);
+			}
+
 	//Find irreducible modes:
 	perturbations.clear();
-	int nPertTot = 0; //total number of perturbations
 	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
 	{	int nAtoms = e.iInfo.species[sp]->atpos.size();
 		int nPert = nAtoms * dirBasis.size();
-		nPertTot += nPert;
 		//generate all perturbations first:
 		std::vector<Perturbation> pertSp(nPert); //perturbations of this species
 		std::vector<matrix> proj(nPert); //projection operator into subspace spanned by star of current perturbation
@@ -262,129 +272,22 @@ void Phonon::setup(bool printDefaults)
 			if(irred[iPert])
 				perturbations.push_back(pertSp[iPert]);
 	}
-	logPrintf("\n%d perturbations of the unit cell reduced to %d under symmetries:\n", nPertTot, int(perturbations.size()));
+	logPrintf("\n%d perturbations of the unit cell reduced to %d under symmetries:\n", int(modes.size()), int(perturbations.size()));
 	for(const Perturbation& pert: perturbations)
 		logPrintf("%s %d  [ %+lf %+lf %+lf ] %lf\n", e.iInfo.species[pert.sp]->name.c_str(),
 			pert.at, pert.dir[0], pert.dir[1], pert.dir[2], pert.weight*symSupCart.size());
 }
 
 void Phonon::dump()
-{
+{	//Zero force matrix and electron-phonon matrix elements:
+	IonicGradient zeroForce; zeroForce.init(eSupTemplate.iInfo);
+	dgrad.assign(modes.size(), zeroForce);
+	dHsub.assign(modes.size(), std::vector<matrix>(nSpins));
+	
+	//Accumulate contributions to force matrix and electron-phonon matrix elements for each irreducible perturbation:
 	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
 	{	logPrintf("########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
 		processPerturbation(perturbations[iPert]);
-	}
-	
-/*
-	//List of displacements:
-	struct Mode { int sp; int at; int dir; }; //specie, atom and cartesian directions for each displacement
-	std::vector<Mode> modes;
-	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
-		for(size_t at=0; at<e.iInfo.species[sp]->atpos.size(); at++) //only need to move atoms in first unit cell
-			for(int dir=0; dir<3; dir++)
-			{	Mode mode = { int(sp), int(at), dir };
-				modes.push_back(mode);
-			}
-	
-	
-	//Displaced modes:
-	std::vector<IonicGradient> dgrad(modes.size()); //change in gradient for each perturbation
-	std::vector< std::vector<matrix> > dHsub(modes.size()); //chaneg in Hsub for each perturbation
-	for(size_t iMode=0; iMode<modes.size(); iMode++)
-	{	const Mode& mode = modes[iMode];
-		logPrintf("\n########### Perturbed supercell calculation %d of %d #############\n", int(iMode+1), int(modes.size()));
-		
-	}
-	
-	//Symmetrize force matrix:
-	//--- framework for organizing forces into 3x3 matrices per atom pairs:
-	struct ForceMatrixIndex
-	{	int sp1, at1, sp2, at2; 
-		//Comparison operator for using in map:
-		bool operator<(const ForceMatrixIndex& fmi) const
-		{	if(sp1 < fmi.sp1) return true;
-			if(sp1 == fmi.sp1)
-			{	if(at1 < fmi.at1) return true;
-				if(at1 == fmi.at1)
-				{	if(sp2 < fmi.sp2) return true;
-					if(sp2 == fmi.sp2)
-						return (at2 < fmi.at2);
-				}
-			}
-			return false;
-		}
-	};
-	struct ForceMatrixIndexWrap //use periodicity to make sure at1 always belongs to unit cell
-	{	const Phonon& phonon;
-		ForceMatrixIndexWrap(const Phonon& phonon) : phonon(phonon) {}
-		void operator()(ForceMatrixIndex& fmi)
-		{	int nAtoms1 = phonon.e.iInfo.species[fmi.sp1]->atpos.size();
-			int nAtoms2 = phonon.e.iInfo.species[fmi.sp2]->atpos.size();
-			int unit1 = fmi.at1 / nAtoms1; if(!unit1) return; //already in unit cell
-			int unit2 = fmi.at2 / nAtoms2;
-			vector3<int> iR1 = getCell(unit1);
-			vector3<int> iR2 = getCell(unit2);
-			vector3<int> iR2new = iR2 - iR1; //so that atom goes to unit cell
-			for(int j=0; j<3; j++)
-				iR2new[j] = positiveRemainder(iR2new[j], phonon.sup[j]);
-			int unit2new = (iR2new[0]*phonon.sup[1] + iR2new[1])*phonon.sup[2] + iR2new[2];
-			fmi.at1 += (0 - unit1) * nAtoms1;
-			fmi.at2 += (unit2new - unit2) * nAtoms2;
-		}
-	private:
-		vector3<int> getCell(int unit)
-		{	vector3<int> iR;
-			iR[2] = unit % phonon.sup[2]; unit /= phonon.sup[2];
-			iR[1] = unit % phonon.sup[1]; unit /= phonon.sup[1];
-			iR[0] = unit;
-			return iR;
-		}
-	}
-	forceMatrixIndexWrap(*this);
-	//---  collect forces with symmetric combinations:
-	auto sym = symm.getMatrices();
-	auto atomMap = symm.getAtomMap();
-	std::vector< matrix3<> > symCart(sym.size());
-	for(size_t iSym=0; iSym<sym.size(); iSym++)
-		symCart[iSym] = eSup.gInfo.R * sym[iSym] * inv(eSup.gInfo.R);;
-	std::map< ForceMatrixIndex, matrix3<> > forceMatrix;
-	size_t iMode=0;
-	for(size_t sp1=0; sp1<e.iInfo.species.size(); sp1++)
-	for(size_t at1=0; at1<e.iInfo.species[sp1]->atpos.size(); at1++)
-	{	for(size_t sp2=0; sp2<eSup.iInfo.species.size(); sp2++)
-		for(size_t at2=0; at2<eSup.iInfo.species[sp2]->atpos.size(); at2++)
-		{	//Pickup force for this combination:
-			matrix3<> F;
-			for(int j=0; j<3; j++)
-				F.set_col(j, dgrad[iMode+j][sp2][at2]);
-			//Save with all possible rotations:
-			for(size_t iSym=0; iSym<sym.size(); iSym++)
-			{	ForceMatrixIndex fmi;
-				fmi.sp1 = sp1;
-				fmi.sp2 = sp2;
-				fmi.at1 = atomMap[sp1][at1][iSym];
-				fmi.at2 = atomMap[sp1][at2][iSym];
-				forceMatrixIndexWrap(fmi);
-				forceMatrix[fmi] += symCart[iSym] * F * (~symCart[iSym]);
-			}
-		}
-		iMode += 3;
-	}
-	//--- reconstitute dgrad:
-	iMode=0;
-	double nSymInv = 1./sym.size();
-	for(size_t sp1=0; sp1<e.iInfo.species.size(); sp1++)
-	for(size_t at1=0; at1<e.iInfo.species[sp1]->atpos.size(); at1++)
-	{	for(size_t sp2=0; sp2<eSup.iInfo.species.size(); sp2++)
-		for(size_t at2=0; at2<eSup.iInfo.species[sp2]->atpos.size(); at2++)
-		{	ForceMatrixIndex fmi;
-			fmi.sp1 = sp1; fmi.sp2 = sp2;
-			fmi.at1 = at1; fmi.at2 = at2;
-			const matrix3<>& F = forceMatrix[fmi]; //no wrapping needed for direct loop
-			for(int j=0; j<3; j++)
-				dgrad[iMode+j][sp2][at2] = nSymInv * F.column(j);
-		}
-		iMode += 3;
 	}
 	
 	//Construct frequency-squared matrix:
@@ -399,7 +302,7 @@ void Phonon::dump()
 				f *= invsqrtM[sp]; // divide by sqrt(M) on the right
 	}
 	//--- remap to cells:
-	std::map<vector3<int>,double> cellMap = getCellMap(e.gInfo.R, eSup.gInfo.R, e.dump.getFilename("phononCellMap"));
+	std::map<vector3<int>,double> cellMap = getCellMap(e.gInfo.R, eSupTemplate.gInfo.R, e.dump.getFilename("phononCellMap"));
 	std::vector<matrix> omegaSq(cellMap.size());
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
@@ -411,14 +314,14 @@ void Phonon::dump()
 		for(int j=0; j<3; j++)
 			iR[j] = positiveRemainder(iR[j], sup[j]);
 		int cellIndex =  (iR[0]*sup[1] + iR[1])*sup[2] + iR[2]; //corresponding to the order of atom replication in setup()
-		//Collect omegSq entries:
+		//Collect omegaSq entries:
 		omegaSq[iCell].init(modes.size(), modes.size());
 		for(size_t iMode1=0; iMode1<modes.size(); iMode1++)
 		{	const IonicGradient& F1 = dgrad[iMode1];
 			for(size_t iMode2=0; iMode2<modes.size(); iMode2++)
 			{	const Mode& mode2 = modes[iMode2];
 				size_t cellOffsetSp = cellIndex * e.iInfo.species[mode2.sp]->atpos.size(); //offset into atoms of current cell for current species
-				omegaSq[iCell].set(iMode1,iMode2, weight * F1[mode2.sp][mode2.at + cellOffsetSp][mode2.dir]);
+				omegaSq[iCell].set(iMode1,iMode2, weight * dot(F1[mode2.sp][mode2.at + cellOffsetSp], mode2.dir));
 			}
 		}
 	}
@@ -471,7 +374,7 @@ void Phonon::dump()
 		fp = fopen(fname.c_str(), "w");
 		fprintf(fp, "#species atom dx dy dz [bohrs]\n");
 		for(const Mode& mode: modes)
-		{	vector3<> r; r[mode.dir] = invsqrtM[mode.sp];
+		{	vector3<> r = mode.dir * invsqrtM[mode.sp];
 			fprintf(fp, "%s %d  %+lf %+lf %+lf\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
 		}
 		fclose(fp);
@@ -479,7 +382,7 @@ void Phonon::dump()
 	}
 	
 	//Output electron-phonon matrix elements:
-	if(mpiUtil->isHead())
+	/*if(mpiUtil->isHead())
 	{	const int& nBands = e.eInfo.nBands;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
@@ -496,7 +399,7 @@ void Phonon::dump()
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}
-	}
+	}*/
 
 	//Calculate free energy (properly handling singularities at Gamma point):
 	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ();
@@ -537,7 +440,6 @@ void Phonon::dump()
 	if(isnan(ZPE))
 		logPrintf("\tWARNING: free energies are undefined due to imaginary phonon frequencies.\n");
 	logPrintf("\n");
-*/
 }
 
 void Phonon::processPerturbation(const Perturbation& pert)
@@ -662,24 +564,60 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	imin.step(dir, dr);
 	
 	//Calculate energy and forces:
-	IonicGradient grad, dgrad;
+	IonicGradient grad, dgrad_pert;
 	imin.compute(&grad);
-	dgrad = (grad - grad0) * (1./dr);
+	dgrad_pert = (grad - grad0) * (1./dr);
 	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
 	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
 	
 	//Subspace hamiltonian change:
-	std::vector<matrix> Hsub, dHsub;
+	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	setSupState(&Hsub);
-	dHsub.resize(Hsub.size());
 	for(size_t s=0; s<Hsub.size(); s++)
-		dHsub[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
 	
 	//Restore atom position:
 	bool dragWfns = false;
 	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
 	imin.step(dir, -dr);
 	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //restore wave function drag flag
+	
+	//Accumulate results for all symmetric images of perturbation:
+	const auto& atomMap = eSupTemplate.symm.getAtomMap();
+	for(unsigned iSym=0; iSym<symSupCart.size(); iSym++)
+	{
+		//Figure out the mode that the rotated perturbation corresponds to:
+		Mode mode;
+		mode.sp = pert.sp; //rotations are not alchemists!
+		mode.at = atomMap[pert.sp][pert.at][iSym];
+		mode.dir = symSupCart[iSym] * pert.dir;
+		
+		//Reduce mode atom to fundamental unit cell if necessary:
+		int nAtoms = e.iInfo.species[mode.sp]->atpos.size(); //per unit cell
+		int unit = mode.at / nAtoms; //unit cell index of mapped atom
+		mode.at -= nAtoms*unit; //mode.at is now in [0,nAtoms)
+		vector3<int> cellOffset = -getCell(unit); //corresponding displacement in unit cell lattice coords
+		
+		//Find index of first mode that matches sp and at:
+		unsigned iModeStart = 0;
+		for(iModeStart=0; iModeStart<modes.size(); iModeStart++)
+			if(mode.sp==modes[iModeStart].sp && mode.at==modes[iModeStart].at)
+				break;
+		assert(iModeStart+3 <= modes.size());
+		
+		//Accumulate dgrad constributions:
+		for(unsigned sp2=0; sp2<eSup->iInfo.species.size(); sp2++)
+		{	int nAtoms2 = e.iInfo.species[sp2]->atpos.size(); //per unit cell
+			for(int at2=0; at2<nAtoms2*prodSup; at2++)
+			{	int at2rot = atomMap[sp2][at2][iSym];
+				int unit2rot = at2rot / nAtoms2;
+				at2rot += nAtoms2 * (getUnit(getCell(unit2rot) + cellOffset) - unit2rot); //apply cellOffset
+				vector3<> Frot = symSupCart[iSym] * dgrad_pert[sp2][at2]; //rotated force
+				for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
+					dgrad[iMode2][sp2][at2rot] += (pert.weight * dot(modes[iMode2].dir, mode.dir)) * Frot;
+			}
+		}
+	}
 }
 
 void Phonon::setSupState(std::vector<matrix>* Hsub)
@@ -801,4 +739,19 @@ void Phonon::StateMapEntry::setIndex(const std::vector<int>& indexVec)
 	cudaMemcpy(indexGpu, index, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
 	indexPref = indexGpu;
 	#endif
+}
+
+vector3<int> Phonon::getCell(int unit) const
+{	vector3<int> cell;
+	cell[2] = unit % sup[2]; unit /= sup[2];
+	cell[1] = unit % sup[1]; unit /= sup[1];
+	cell[0] = unit;
+	return cell;
+}
+
+int Phonon::getUnit(const vector3<int>& cell) const
+{	return
+		( positiveRemainder(cell[0],sup[0]) * sup[1]
+		+ positiveRemainder(cell[1],sup[1]) ) * sup[2]
+		+ positiveRemainder(cell[2],sup[2]);
 }
