@@ -121,6 +121,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#density-of-states">density-of-states</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump">dump</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-Eresolved-density">dump-Eresolved-density</a>
+&nbsp;&nbsp;&nbsp;<a href="#dump-fermi-density">dump-fermi-density</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-interval">dump-interval</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-name">dump-name</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-only">dump-only</a>
@@ -641,10 +642,12 @@ and each &lt;var*&gt; is one of:
    Dtot                      Total electrostatic potential
    Dvac                      Electrostatic potential due to explicit system alone
    Ecomponents               Components of the energy
+   EigStats                  Band eigenvalue statistics: HOMO, LUMO, min, max and Fermi level
    ElecDensity               Electronic densities (n or nup,ndn)
    EresolvedDensity          Electron density from bands within specified energy ranges
    ExcCompare                Energies for other exchange-correlation functionals (see command <a href="#elec-ex-corr-compare">elec-ex-corr-compare</a>) [not in All]
    Excitations               Dumps dipole moments and transition strength (electric-dipole) of excitations
+   FermiDensity              Electron density from fermi-derivative at specified energy
    Fillings                  Fillings
    FluidDebug                Fluid specific debug output if any  [not in All]
    FluidDensity              Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
@@ -704,6 +707,31 @@ may be requested using the dump command.
 <h2>Properties:</h2>
 <p><b>Requires:</b>
 &nbsp;&nbsp;&nbsp;(None)
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;yes
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="dump-fermi-density">
+<h1>dump-fermi-density</h1>
+<h2>Syntax:</h2>
+<pre>
+dump-fermi-density [&lt;muLevel&gt;]
+</pre>
+<h2>Description:</h2>
+<pre>
+Output electron density calculated from derivative of Fermi-Dirac
+function evaluated at desired energy, muLevel.  If no energy specified,
+calculated mu will be used.
+Command may be issued multiple times, and the outputs will be numbered
+sequentially FermiDensity.0 etc.
+Will automatically be dumped at End; dumping at other frequencies
+may be requested using the dump command.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;<a href="#elec-fermi-fillings">elec-fermi-fillings</a>
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;yes
