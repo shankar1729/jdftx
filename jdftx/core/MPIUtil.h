@@ -62,7 +62,8 @@ public:
 	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false) const; //!< generic array reduction
 	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false) const; //!< generic scalar reduction
 	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false) const;  //!< specialization for bool which is not natively supported by MPI
-
+	template<typename T> void allReduce(T& data, int& index, ReduceOp op) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
+	
 	//File access (tiny subset of MPI-IO, using byte offsets alone, and made to closely resemble stdio):
 	#ifdef MPI_ENABLED
 	typedef MPI_File File;
@@ -108,8 +109,25 @@ namespace MPIUtilPrivate
 			case MPIUtil::ReduceBOr: return MPI_BOR;
 			case MPIUtil::ReduceLXor: return MPI_LXOR;
 			case MPIUtil::ReduceBXor: return MPI_BXOR;
+			default: return 0;
 		}
-		return 0;
+	}
+	
+	template<typename T> struct DataTypeIntPair;
+	#define DECLARE_DataTypeIntPair(cName, mpiName) template<> struct DataTypeIntPair<cName> { static MPI_Datatype get() { return mpiName; } };
+	DECLARE_DataTypeIntPair(short, MPI_SHORT_INT)
+	DECLARE_DataTypeIntPair(int, MPI_2INT)
+	DECLARE_DataTypeIntPair(long, MPI_LONG_INT)
+	DECLARE_DataTypeIntPair(float, MPI_FLOAT_INT)
+	DECLARE_DataTypeIntPair(double, MPI_DOUBLE_INT)
+	#undef DECLARE_DataTypeIntPair
+	
+	static MPI_Op mpiLocOp(MPIUtil::ReduceOp op)
+	{	switch(op)
+		{	case MPIUtil::ReduceMax: return MPI_MAXLOC;
+			case MPIUtil::ReduceMin: return MPI_MINLOC;
+			default: return 0;
+		}
 	}
 #endif
 }
@@ -163,6 +181,18 @@ template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::Red
 
 template<typename T> void MPIUtil::allReduce(T& data, MPIUtil::ReduceOp op, bool safeMode) const
 {	allReduce(&data, 1, op, safeMode);
+}
+
+template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::ReduceOp op) const
+{	using namespace MPIUtilPrivate;
+	#ifdef MPI_ENABLED
+	if(nProcs>1)
+	{	struct Pair { T data; int index; } pair;
+		pair.data = data; pair.index = index;
+		MPI_Allreduce(MPI_IN_PLACE, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), MPI_COMM_WORLD);
+		data = pair.data; index = pair.index;
+	}
+	#endif
 }
 
 //!@endcond

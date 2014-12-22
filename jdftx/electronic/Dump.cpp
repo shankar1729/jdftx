@@ -237,7 +237,68 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		eInfo.write(eVars.Hsub_eigs, fname.c_str());
 		EndDump
 	}
-
+	
+	if(ShouldDump(EigStats))
+	{	StartDump("eigStats")
+		double Emin = +INFINITY; int qEmin = 0;
+		double Emax = -INFINITY; int qEmax = 0;
+		double HOMO = -INFINITY; int qHOMO = 0;
+		double LUMO = +INFINITY; int qLUMO = 0;
+		double gap = +INFINITY; int qGap = 0;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	double curEmin = +INFINITY, curEmax = -INFINITY;
+			double curHOMO = -INFINITY, curLUMO = +INFINITY;
+			for(int b=0; b<eInfo.nBands; b++)
+			{	double F = eVars.F[q][b], E = eVars.Hsub_eigs[q][b];
+				curEmin = std::min(curEmin, E);
+				curEmax = std::max(curEmax, E);
+				if(F>=0.5) curHOMO = std::max(curHOMO, E);
+				if(F<=0.5) curLUMO = std::min(curLUMO, E);
+			}
+			double curGap = curLUMO - curHOMO; //optical gap at current q
+			if(curEmin < Emin) { Emin=curEmin; qEmin=q; }
+			if(curEmax > Emax) { Emax=curEmax; qEmax=q; }
+			if(curHOMO > HOMO) { HOMO=curHOMO; qHOMO=q; }
+			if(curLUMO < LUMO) { LUMO=curLUMO; qLUMO=q; }
+			if(curGap < gap) { gap=curGap; qGap=q; }
+		}
+		mpiUtil->allReduce(Emin, qEmin, MPIUtil::ReduceMin);
+		mpiUtil->allReduce(Emax, qEmax, MPIUtil::ReduceMax);
+		mpiUtil->allReduce(HOMO, qHOMO, MPIUtil::ReduceMax);
+		mpiUtil->allReduce(LUMO, qLUMO, MPIUtil::ReduceMin);
+		mpiUtil->allReduce(gap, qGap, MPIUtil::ReduceMin);
+		double gapIndirect = LUMO - HOMO;
+		double mu = NAN;
+		if(std::isfinite(HOMO) && std::isfinite(LUMO))
+			mu = (!std::isnan(eInfo.mu)) ? eInfo.mu : eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons);
+		//Print results:
+		FILE* fp = 0;
+		if(mpiUtil->isHead()) fp = fopen(fname.c_str(), "w");
+		logPrintf("\n");
+		#define teePrintf(...) \
+			{	fprintf(globalLog, "\t" __VA_ARGS__); \
+				if(mpiUtil->isHead()) fprintf(fp, __VA_ARGS__); \
+			}
+		#define printQuantity(name, value, q) \
+			if(std::isfinite(value)) \
+			{	const QuantumNumber& qnum = eInfo.qnums[q]; \
+				teePrintf(name ": %+.6lf at state %d ( [ %+.6lf %+.6lf %+.6lf ] spin %d )\n", \
+					value, q, qnum.k[0], qnum.k[1], qnum.k[2], qnum.spin); \
+			} \
+			else teePrintf(name ": unavailable\n");
+		printQuantity("eMin", Emin, qEmin)
+		printQuantity("HOMO", HOMO, qHOMO)
+		if(std::isfinite(mu)) teePrintf("mu  : %+.6lf\n", mu) else teePrintf("mu  : unavailable\n")
+		printQuantity("LUMO", LUMO, qLUMO)
+		printQuantity("eMax", Emax, qEmax)
+		if(std::isfinite(gapIndirect)) teePrintf("HOMO-LUMO gap: %+.6lf\n", gapIndirect) else teePrintf("HOMO-LUMO gap: unavailable\n")
+		printQuantity("Optical gap  ", gap, qGap)
+		#undef printQuantity
+		#undef teePrintf
+		if(mpiUtil->isHead()) fclose(fp);
+		logFlush();
+	}
+	
 	if(eInfo.hasU && (ShouldDump(RhoAtom) || ShouldDump(ElecDensity)))
 	{	StartDump("rhoAtom")
 		if(mpiUtil->isHead())
