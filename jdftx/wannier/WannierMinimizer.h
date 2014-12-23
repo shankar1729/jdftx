@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/matrix.h>
+#include <electronic/ColumnBundleTransform.h>
 #include <wannier/Wannier.h>
 
 struct WannierGradient : public std::vector<matrix>
@@ -49,7 +50,7 @@ class WannierMinimizer : public Minimizable<WannierGradient>
 public:
 	WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride=false);
 	virtual ~WannierMinimizer() {}
-	void initIndexDependent(); //second half of common initialization that must happen after sub-class is fully initialized
+	void initTransformDependent(); //second half of common initialization that must happen after sub-class is fully initialized
 	
 	void saveMLWF(); //save wannier functions for all spins
 	void saveMLWF(int iSpin); //save for specified spin
@@ -115,27 +116,10 @@ protected:
 	std::map<vector3<int>,double> iCellMap, phononCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
 	int nPhononModes; //number of phonon modes
 	
-	//!Indices from reduced basis to full G-space or a union of all reduced bases
-	//!The super-suffixed versions indicate indices into the G-sphere/fftbox of the supercell
-	struct Index
-	{	const int nIndices;
-		int *data, *dataSuper;
-		#ifdef GPU_ENABLED
-		int *dataGpu, *dataSuperGpu;
-		#endif
-		int *dataPref, *dataSuperPref;
-		
-		Index(int nIndices=0, bool needSuper=false); //!< allocate space for indices (optionally for supercell version as well)
-		~Index();
-		void set(); //!< update gpu-copies
-		
-		//Non-copyable:
-		Index(const Index&)=delete;
-		Index& operator=(const Index&)=delete;
-	};
-	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
-	std::map<Kpoint, std::shared_ptr<Index> > indexMap; //!< wave-function indexing from each k-point to the common union basis
+	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
+	std::shared_ptr<ColumnBundleTransform::BasisWrapper> basisWrapper, basisSuperWrapper; //!< look-up tables for initializing transforms
+	std::map<Kpoint, std::shared_ptr<ColumnBundleTransform> > transformMap, transformMapSuper; //!< wave-function transforms for each k-point to the common bases
 	Basis basis; //!< common basis (with indexing into full G-space)
 	
 	//k-mesh MPI division:
@@ -147,8 +131,6 @@ protected:
 	//state MPI division (wrappers to ElecInfo)
 	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.iReduced + iSpin*qCount); }
 	int whose_q(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.iReduced + iSpin*qCount); }
-	
-	void addIndex(const Kpoint& kpoint); //!< Add index for a given kpoint to indexMap, with indices pointing to full G-space
 	
 	//! Get the wavefunctions for a particular k-point in the common basis
 	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;

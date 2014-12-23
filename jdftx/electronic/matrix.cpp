@@ -410,6 +410,15 @@ matrixScaledTransOp::operator matrix() const
 	}
 }
 
+//Complex conjugate:
+matrix conj(const scaled<matrix>& A)
+{	matrix B = A.data;
+	double* Bdata = (double*)B.dataPref();
+	callPref(eblas_dscal)(B.nData(), A.scale, Bdata, 2); //real parts
+	callPref(eblas_dscal)(B.nData(), -A.scale, Bdata+1, 2); //imag parts
+	return B;
+}
+
 // Hermitian adjoint
 matrixScaledTransOp dagger(const scaled<matrix> &A)
 {	return matrixScaledTransOp(A.data, A.scale, CblasConjTrans);

@@ -152,67 +152,6 @@ bool WannierMinimizer::Kpoint::operator==(const WannierMinimizer::Kpoint& other)
 	return true;
 }
 
-
-WannierMinimizer::Index::Index(int nIndices, bool needSuper) : nIndices(nIndices), dataPref(0), dataSuperPref(0)
-{	data = new int[nIndices];
-	dataSuper = needSuper ? new int[nIndices] : 0;
-	#ifdef GPU_ENABLED
-	dataGpu = 0;
-	dataSuperGpu = 0;
-	#endif
-}
-WannierMinimizer::Index::~Index()
-{	delete[] data;
-	if(dataSuper) delete[] dataSuper;
-	#ifdef GPU_ENABLED
-	if(dataGpu) cudaFree(dataGpu);
-	if(dataSuperGpu) cudaFree(dataSuperGpu);
-	#endif
-}
-void WannierMinimizer::Index::set()
-{
-	#ifdef GPU_ENABLED
-	cudaMalloc(&dataGpu, sizeof(int)*nIndices); gpuErrorCheck();
-	cudaMemcpy(dataGpu, data, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
-	dataPref = dataGpu;
-	if(dataSuper)
-	{	cudaMalloc(&dataSuperGpu, sizeof(int)*nIndices); gpuErrorCheck();
-		cudaMemcpy(dataSuperGpu, dataSuper, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
-	}
-	else dataSuperGpu = 0;
-	dataSuperPref = dataSuperGpu;
-	#else
-	dataPref = data;
-	dataSuperPref = dataSuper;
-	#endif
-}
-
-void WannierMinimizer::addIndex(const WannierMinimizer::Kpoint& kpoint)
-{	if(indexMap.find(kpoint)!=indexMap.end()) return; //previously computed
-	//Determine integer offset due to k-point in supercell basis:
-	const matrix3<int>& super = e.coulombParams.supercell->super;
-	vector3<int> ksuper; //integer version of above
-	if(needSuper)
-	{	vector3<> ksuperTemp = kpoint.k * super - qnumSuper.k; //note reciprocal lattice vectors transform on the right (or on the left by the transpose)
-		for(int l=0; l<3; l++)
-		{	ksuper[l] = int(round(ksuperTemp[l]));
-			assert(fabs(ksuper[l]-ksuperTemp[l]) < symmThreshold);
-		}
-	}
-	//Compute transformed index array (mapping to full G-space)
-	const Basis& basis = e.basis[kpoint.iReduced];
-	std::shared_ptr<Index> index(new Index(basis.nbasis, needSuper));
-	const matrix3<int> mRot = (~sym[kpoint.iSym]) * kpoint.invert;
-	for(int j=0; j<index->nIndices; j++)
-	{	vector3<int> iGrot = mRot * basis.iGarr[j] - kpoint.offset;
-		index->data[j] = e.gInfo.fullGindex(iGrot);
-		if(needSuper)
-			index->dataSuper[j] = gInfoSuper.fullGindex(ksuper + iGrot*super);
-	}
-	//Save to map:
-	indexMap[kpoint] = index;
-}
-
 ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
 {	ColumnBundle ret(nBands, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ret.zero();
@@ -221,33 +160,13 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 }
 
 #define axpyWfns_COMMON(result) \
-	/* Figure out basis: */ \
-	const Index& index = *(indexMap.find(kpoint)->second); \
-	const int* indexData = (result.basis==&basisSuper) ? index.dataSuperPref : index.dataPref; \
+	/* Pick transform: */ \
+	const ColumnBundleTransform& transform = *(((result.basis==&basisSuper) ? transformMapSuper : transformMap).find(kpoint)->second); \
 	/* Pick source ColumnBundle: */ \
 	int q = kpoint.iReduced + iSpin*qCount; \
 	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q]; \
 	assert(Cin); \
 	const ColumnBundle* C = &Cin; \
-	/* Apply spinor-rotation if necessary: */ \
-	ColumnBundle Csrot; \
-	if(nSpinor>1) \
-	{	matrix srot = Symmetries::getSpinorRotation(~(e.gInfo.R * sym[kpoint.iSym] * inv(e.gInfo.R))); \
-		if(kpoint.invert<0) \
-		{	matrix sInvert = zeroes(2,2); \
-			sInvert.set(0,1, 1.); sInvert.set(1,0, -1.); \
-			srot = sInvert * srot; \
-		} \
-		Csrot = C->similar(); \
-		Csrot.zero(); \
-		for(int b=0; b<C->nCols(); b++) \
-			for(int sOut=0; sOut<nSpinor; sOut++) \
-				for(int sIn=0; sIn<nSpinor; sIn++) \
-					callPref(eblas_zaxpy)(C->basis->nbasis, srot(sOut,sIn), \
-						C->dataPref()+C->index(b,sIn*C->basis->nbasis), 1, \
-						Csrot.dataPref()+Csrot.index(b,sOut*C->basis->nbasis), 1); \
-		C = &Csrot; \
-	}
 
 void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
@@ -255,16 +174,13 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 	//Apply transformation if provided:
 	ColumnBundle Cout;
 	if(A)
-	{	Cout = (*C) * A;
+	{	matrix Astar = (kpoint.invert<0 ? conj(A) : A);
+		Cout = (*C) * Astar;
 		C = &Cout;
 	}
 	//Scatter from reduced basis to common basis with transformations:
 	assert(C->nCols() == result.nCols());
-	for(int b=0; b<C->nCols(); b++) for(int s=0; s<nSpinor; s++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData,
-			C->dataPref()+C->index(b,s*C->basis->nbasis), 
-			result.dataPref()+result.index(b,s*result.basis->nbasis),
-			kpoint.invert<0);
+	transform.scatterAxpy(alpha, *C, result,0,1);
 	watch.stop();
 }
 
@@ -274,13 +190,10 @@ void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const Wannie
 	//Gather from common basis to reduced basis (=> conjugate transformations):
 	ColumnBundle Omega_C = C->similar(Omega_result.nCols());
 	Omega_C.zero();
-	for(int b=0; b<Omega_C.nCols(); b++) for(int s=0; s<nSpinor; s++)
-		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData,
-			Omega_result.dataPref()+Omega_result.index(b,s*Omega_result.basis->nbasis),
-			Omega_C.dataPref()+Omega_C.index(b,s*Omega_C.basis->nbasis),
-			kpoint.invert<0);
-	//Propagate gardient to rotation matrix:
-	Omega_A += (Omega_C ^ *C);
+	transform.gatherAxpy(alpha, Omega_result,0,1, Omega_C);
+	//Propagate gradient to rotation matrix:
+	matrix Omega_Astar = Omega_C ^ *C;
+	Omega_A += (kpoint.invert<0 ? conj(Omega_Astar) : Omega_Astar);
 	watch.stop();
 }
 

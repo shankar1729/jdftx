@@ -128,7 +128,7 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			for(int l=0; l<3; l++)
 				edge.point.offset[l] += int(round(kj[l] - edge.point.k[l])); //extra offset
 			edge.point.k = kj;
-			addIndex(edge.point);
+			kpoints.insert(edge.point);
 		}
 }
 

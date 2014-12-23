@@ -130,6 +130,7 @@ struct matrixScaledTransOp
 	matrixScaledTransOp operator*(double s) const { return matrixScaledTransOp(mat,scale*s,op); }
 	friend matrixScaledTransOp operator*(double s, const matrixScaledTransOp& A) { return A * s; }
 };
+matrix conj(const scaled<matrix>& A); //!< return element-wise complex conjugate of A
 matrixScaledTransOp dagger(const scaled<matrix>& A); //!< return hermitian adjoint of A
 matrixScaledTransOp transpose(const scaled<matrix>& A); //!< return transpose of A
 matrix dagger_symmetrize(const scaled<matrix>& A); //! return adjoint symmetric part: (A + Adag)/2

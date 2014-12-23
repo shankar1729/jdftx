@@ -93,6 +93,7 @@ __hostanddev__ double norm(const complex& c) { return c.norm(); }
 __hostanddev__ double abs(const complex& c) { return c.abs(); }
 __hostanddev__ double arg(const complex& c) { return c.arg(); }
 __hostanddev__ complex conj(const complex& c) { return c.conj(); }
+__hostanddev__ double conj(const double& c) { return c; } //provided to ease templating over complex and double
 
 __hostanddev__ complex operator+(double r, const complex& c) { return c+r; }
 __hostanddev__ complex operator-(double r, const complex& c) { return -c+r; }

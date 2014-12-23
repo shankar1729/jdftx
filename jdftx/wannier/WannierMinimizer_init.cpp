@@ -76,7 +76,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		ki.point.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
 		ki.point.weight = 1./kMesh.size();
 		ki.point.spin = 0;
-		addIndex(ki.point);
+		kpoints.insert(ki.point);
 	}
 	
 	//Determine overall Bloch wavevector of supercell (if any)
@@ -159,48 +159,31 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	}
 }
 
-void WannierMinimizer::initIndexDependent()
+void WannierMinimizer::initTransformDependent()
 {
-	//Create the common reduced basis set (union of all the reduced bases)
-	//Collect all referenced full-G indices
-	std::set<int> commonSet, commonSuperSet;
-	for(auto index: indexMap)
-		for(int j=0; j<index.second->nIndices; j++)
-		{	commonSet.insert(index.second->data[j]);
-			if(needSuper)
-				commonSuperSet.insert(index.second->dataSuper[j]);
-		}
-	//Convert to a Basis object, and create inverse map
-	std::vector<int> indexCommon(commonSet.size());
-	std::map<int,int> commonInverseMap;
-	auto setIter = commonSet.begin();
-	for(unsigned j=0; j<indexCommon.size(); j++)
-	{	int i = *(setIter++);
-		indexCommon[j] = i;
-		commonInverseMap[i] = j;
-	}
-	basis.setup(e.gInfo, e.iInfo, indexCommon);
-	//Liekwise for supercell:
-	std::vector<int> indexSuperCommon(commonSuperSet.size());
-	std::map<int,int> commonSuperInverseMap;
+	//Initialize common basis:
+	double kMaxSq = 0;
+	for(const Kpoint& kpoint: kpoints)
+		kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(kpoint.k));
+	double GmaxEff = sqrt(2.*e.cntrl.Ecut) + sqrt(kMaxSq);
+	double EcutEff = 0.5*GmaxEff*GmaxEff * (1.+symmThreshold); //add some margin for round-off error safety
+	basis.setup(e.gInfo, e.iInfo, EcutEff, vector3<>());
+	basisWrapper = std::make_shared<ColumnBundleTransform::BasisWrapper>(basis);
+	
+	//Initialize supercell basis (if necessary):
 	if(needSuper)
-	{	auto superSetIter = commonSuperSet.begin();
-		for(unsigned j=0; j<indexSuperCommon.size(); j++)
-		{	int i = *(superSetIter++);
-			indexSuperCommon[j] = i;
-			commonSuperInverseMap[i] = j;
-		}
-		basisSuper.setup(gInfoSuper, e.iInfo, indexSuperCommon);
+	{	basisSuper.setup(gInfoSuper, e.iInfo, e.cntrl.Ecut, qnumSuper.k);
+		basisSuperWrapper = std::make_shared<ColumnBundleTransform::BasisWrapper>(basisSuper);
 	}
-	//Update indexMap to point to common reduced basis instead of full G:
-	for(auto mapEntry: indexMap)
-	{	Index& index = *mapEntry.second;
-		for(int j=0; j<index.nIndices; j++)
-		{	index.data[j] = commonInverseMap[index.data[j]];
-			if(needSuper)
-				index.dataSuper[j] = commonSuperInverseMap[index.dataSuper[j]];
-		}
-		index.set();
+	
+	//Initialize transforms:
+	for(const Kpoint& kpoint: kpoints)
+	{	const Basis& basisC = e.basis[kpoint.iReduced];
+		const vector3<>& kC = e.eInfo.qnums[kpoint.iReduced].k;
+		const matrix3<int>& super = e.coulombParams.supercell->super;
+		transformMap[kpoint] = std::make_shared<ColumnBundleTransform>(kC, basisC, kpoint.k, *basisWrapper, nSpinor, sym[kpoint.iSym], kpoint.invert);
+		if(needSuper)
+			transformMapSuper[kpoint] = std::make_shared<ColumnBundleTransform>(kC, basisC, qnumSuper.k, *basisSuperWrapper, nSpinor, sym[kpoint.iSym], kpoint.invert, super);
 	}
 	
 	//Read numerical trial orbitals if provided:
@@ -271,18 +254,16 @@ void WannierMinimizer::initIndexDependent()
 		
 		//Split supercell wavefunction into kpoints:
 		logPrintf("Dividing supercell numerical orbitals to k-points ... "); logFlush();
-		{	ColumnBundle temp(1, basis.nbasis, &basis, 0, isGpuEnabled());
+		{	ColumnBundle temp(nCols, basis.nbasis, &basis, 0, isGpuEnabled());
 			for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,0) || isMine_q(ik,1))
 			{	const KmeshEntry& ki = kMesh[ik];
-				const Index& index = *(indexMap.find(ki.point)->second);
+				const ColumnBundleTransform& transform = *(transformMap.find(ki.point)->second);
+				const ColumnBundleTransform& transformSuper = *(transformMapSuper.find(ki.point)->second);
 				auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
+				temp.zero();
+				transformSuper.gatherAxpy(1., C,0,1, temp);
 				Ck->zero();
-				for(int b=0; b<nCols; b++)
-					for(int s=0; s<nSpinor; s++)
-					{	temp.zero();
-						eblas_gather_zdaxpy(index.nIndices, 1., index.dataSuperPref, C.dataPref()+C.index(b,s*basisSuper.nbasis), temp.dataPref());
-						eblas_scatter_zdaxpy(index.nIndices, 1./ki.point.weight, index.dataPref, temp.dataPref(), Ck->dataPref()+Ck->index(b,s*basis.nbasis));
-					}
+				transform.scatterAxpy(1./ki.point.weight, temp, *Ck,0,1);
 				numericalOrbitals[ki.point] = Ck;
 			}
 		}
