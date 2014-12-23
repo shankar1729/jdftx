@@ -233,6 +233,11 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	ColumnBundle Csrot; \
 	if(nSpinor>1) \
 	{	matrix srot = Symmetries::getSpinorRotation(~(e.gInfo.R * sym[kpoint.iSym] * inv(e.gInfo.R))); \
+		if(kpoint.invert<0) \
+		{	matrix sInvert = zeroes(2,2); \
+			sInvert.set(0,1, 1.); sInvert.set(1,0, -1.); \
+			srot = sInvert * srot; \
+		} \
 		Csrot = C->similar(); \
 		Csrot.zero(); \
 		for(int b=0; b<C->nCols(); b++) \
