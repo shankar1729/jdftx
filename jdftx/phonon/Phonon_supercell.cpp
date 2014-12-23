@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <phonon/Phonon.h>
 #include <commands/parser.h>
+#include <electronic/ColumnBundleTransform.h>
 
 inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
@@ -80,15 +81,12 @@ void Phonon::processPerturbation(const Perturbation& pert)
 			vector3<> kSup = matrix3<>(Diag(sup)) * qnum.k; //qnum.k in supercell reciprocal lattice coords
 			size_t qSup = plook.find(kSup, qnum, &(eSup->eInfo.qnums), spinEqual);
 			if(qSup == string::npos) continue; //the corresponding supercell k-point must have been eliminated by symmetries
-			vector3<> iGtmp = kSup - eSup->eInfo.qnums[qSup].k;
 			//Add to stateMap:
-			auto sme = std::make_shared<StateMapEntry>();
-			(Supercell::KmeshTransform&)(*sme) = supercell.kmeshTransform[ik]; //copy base class properties
-			sme->iReduced += iSpin*(e.eInfo.nStates/nSpins); //point to source k-point with appropriate spin
-			sme->qSup = qSup;
-			for(int j=0; j<3; j++)
-				sme->iG[j] = round(iGtmp[j]);
-			sme->nqPrev = nqPrev[qSup];
+			StateMapEntry sme;
+			(Supercell::KmeshTransform&)sme = supercell.kmeshTransform[ik]; //copy base class properties
+			sme.iReduced += iSpin*(e.eInfo.nStates/nSpins); //point to source k-point with appropriate spin
+			sme.qSup = qSup;
+			sme.nqPrev = nqPrev[qSup];
 			nqPrev[qSup]++;
 			stateMap.push_back(sme);
 		}
@@ -97,32 +95,13 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	//Map corresponding basis objects:
 	std::vector< matrix3<int> > sym = e.symm.getMatrices();
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
-	{	//Create lookup table for supercell indices:
-		vector3<int> iGbox; //see Basis::setup(), this will bound the values of iG in the basis
-		for(int i=0; i<3; i++)
-			iGbox[i] = 1 + int(sqrt(2*eSup->cntrl.Ecut) * eSup->gInfo.R.column(i).length() / (2*M_PI));
-		vector3<int> pitch;
-		pitch[2] = 1;
-		pitch[1] = pitch[2] * (2*iGbox[2]+1);
-		pitch[0] = pitch[1] * (2*iGbox[1]+1);
-		std::vector<int> supIndex(pitch[0] * (2*iGbox[0]+1), -1);
-		const Basis& basisSup = eSup->basis[qSup];
-		for(size_t n=0; n<basisSup.nbasis; n++)
-			supIndex[dot(pitch,basisSup.iGarr[n]+iGbox)] = n;
+	{	ColumnBundleTransform::BasisWrapper basisSupWrapper(eSup->basis[qSup]);
+		const vector3<>& kSup = eSup->eInfo.qnums[qSup].k;
 		//Initialize index map for each unit cell k-point
-		for(std::shared_ptr<StateMapEntry>& sme: stateMap) if(sme->qSup == qSup)
-		{	const Basis& basis = e.basis[sme->iReduced];
-			std::vector<int> indexVec(basis.nbasis);
-			const matrix3<int> mRot = (~sym[sme->iSym]) * sme->invert; //effective transofrmation matrix
-			for(size_t n=0; n<basis.nbasis; n++)
-			{	vector3<int> iGtmp = basis.iGarr[n]; //original cell recip lattice coords
-				iGtmp = mRot * iGtmp - sme->offset; //apply symmetry operation in unit cell 
-				for(int j=0; j<3; j++) iGtmp[j] *= sup[j]; //to supercell reciprocal lattice coords
-				iGtmp += sme->iG; //offset due to Bloch phase
-				indexVec[n] = supIndex[dot(pitch,iGtmp+iGbox)]; //lookup from above table
-			}
-			assert(*std::min_element(indexVec.begin(), indexVec.end()) >= 0); //make sure all entries were found
-			sme->setIndex(indexVec);
+		for(StateMapEntry& sme: stateMap) if(sme.qSup == qSup)
+		{	const Basis& basis = e.basis[sme.iReduced];
+			const vector3<>& k = e.eInfo.qnums[sme.iReduced].k;
+			sme.transform = std::make_shared<ColumnBundleTransform>(k, basis, kSup, basisSupWrapper, nSpinor, sym[sme.iSym], sme.invert, Diag(sup));
 		}
 	}
 	
@@ -218,25 +197,21 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	
 	//Update supercell quantities:
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
-	for(const std::shared_ptr<StateMapEntry>& sme: stateMap) if(eSup->eInfo.isMine(sme->qSup))
-	{	int nBandsPrev = e.eInfo.nBands * sme->nqPrev;
+	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
+	{	int nBandsPrev = e.eInfo.nBands * sme.nqPrev;
 		//Wavefunctions:
-		const ColumnBundle& C = e.eVars.C[sme->iReduced];
-		ColumnBundle& Csup = eSup->eVars.C[sme->qSup];
-		for(int b=0; b<e.eInfo.nBands; b++)
-			for(int s=0; s<nSpinor; s++)
-				callPref(eblas_scatter_zdaxpy)(sme->nIndices, scaleFac, sme->indexPref,
-					C.dataPref() + C.index(b,s*C.basis->nbasis),
-					Csup.dataPref() + Csup.index(b + nBandsPrev, s*Csup.basis->nbasis));
+		const ColumnBundle& C = e.eVars.C[sme.iReduced];
+		ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
+		sme.transform->scatterAxpy(scaleFac, C, Csup,nBandsPrev,1);
 		//Fillings:
-		const diagMatrix& F = e.eVars.F[sme->iReduced];
-		diagMatrix& Fsup = eSup->eVars.F[sme->qSup];
+		const diagMatrix& F = e.eVars.F[sme.iReduced];
+		diagMatrix& Fsup = eSup->eVars.F[sme.qSup];
 		Fsup.resize(nBandsSup);
 		Fsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, F);
 		//Auxiliary Hamiltonian (if necessary):
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	const matrix& B = e.eVars.B[sme->iReduced];
-			matrix& Bsup = eSup->eVars.B[sme->qSup];
+		{	const matrix& B = e.eVars.B[sme.iReduced];
+			matrix& Bsup = eSup->eVars.B[sme.qSup];
 			Bsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, nBandsPrev,nBandsPrev+e.eInfo.nBands, B);
 		}
 	}
@@ -288,38 +263,4 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	
 	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		eSup->eVars.HauxInitialized = true;
-}
-
-//------------- class Phonon::StateMapEntry --------------
-
-Phonon::StateMapEntry::StateMapEntry() : nIndices(0), indexPref(0), index(0)
-#ifdef GPU_ENABLED
-, indexGpu(0)
-#endif
-{
-
-}
-
-Phonon::StateMapEntry::~StateMapEntry()
-{
-	if(index) delete[] index;
-	#ifdef GPU_ENABLED
-	if(indexGpu) cudaFree(indexGpu);
-	#endif
-}
-
-void Phonon::StateMapEntry::setIndex(const std::vector<int>& indexVec)
-{	nIndices = indexVec.size();
-	//CPU version
-	if(index) delete[] index;
-	index = new int[nIndices];
-	eblas_copy(index, indexVec.data(), nIndices);
-	indexPref = index;
-	//GPU version
-	#ifdef GPU_ENABLED
-	if(indexGpu) cudaFree(indexGpu);
-	cudaMalloc(&indexGpu, sizeof(int)*nIndices); gpuErrorCheck();
-	cudaMemcpy(indexGpu, index, sizeof(int)*nIndices, cudaMemcpyHostToDevice); gpuErrorCheck();
-	indexPref = indexGpu;
-	#endif
 }
