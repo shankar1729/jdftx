@@ -351,7 +351,10 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	matrix pSub[3]; vector3<complex*> pSubData;
 			for(int iDir=0; iDir<3; iDir++)
-			{	pSub[iDir] = dagger(kMesh[i].U) * pBloch[iDir][kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
+			{	matrix pBlochCur = pBloch[iDir][kMesh[i].point.iReduced + iSpin*qCount];
+				if(kMesh[i].point.invert<0) //apply complex conjugate:
+					callPref(eblas_dscal)(pBlochCur.nData(), -1., ((double*)pBlochCur.dataPref())+1, 2);
+				pSub[iDir] = dagger(kMesh[i].U) * pBlochCur * kMesh[i].U;
 				pSubData[iDir] = pSub[iDir].data();
 			}
 			//Apply spatial transformation:
