@@ -118,15 +118,15 @@ void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int 
 #endif
 
 //Sparse<->dense vector operations:
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Scatter y(index) = x (in Octave notation)
-void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) = x (in Octave notation)
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Gather y = x(index) (in Octave notation)
-void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y = x(index) (in Octave notation)
+void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj=false); //!< Scatter y(index) += a * (x or conj(x)) (in Octave notation)
+void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) += a * x (in Octave notation)
+void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj=false); //!< Gather y += a * (x(index) or conj(x(index)) (in Octave notation)
+void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y += a * x(index) (in Octave notation)
 #ifdef GPU_ENABLED
-void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Scatter y(index) += a*x (in Octave notation)
-void eblas_scatter_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) += a*x (in Octave notation)
-void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y); //!< Gather y += a*x(index) (in Octave notation)
-void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y += a*x(index) (in Octave notation)
+void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj=false); //!< Scatter y(index) += a * (x or conj(x)) (in Octave notation)
+void eblas_scatter_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Scatter y(index) += a * x (in Octave notation)
+void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj=false); //!< Gather y += a * (x(index) or conj(x(index)) (in Octave notation)
+void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y); //!< Gather y += a * x(index) (in Octave notation)
 #endif
 
 

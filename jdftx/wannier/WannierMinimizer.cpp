@@ -229,13 +229,6 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q]; \
 	assert(Cin); \
 	const ColumnBundle* C = &Cin; \
-	/* Complex conjugate if inversion symmetry employed: */ \
-	ColumnBundle Cout; \
-	if(kpoint.invert < 0) \
-	{	Cout = *C; \
-		callPref(eblas_dscal)(Cout.nData(), -1., ((double*)Cout.dataPref())+1, 2); /* negate the imaginary parts */ \
-		C = &Cout; \
-	} \
 	/* Apply spinor-rotation if necessary: */ \
 	ColumnBundle Csrot; \
 	if(nSpinor>1) \
@@ -255,6 +248,7 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
 	axpyWfns_COMMON(result)
 	//Apply transformation if provided:
+	ColumnBundle Cout;
 	if(A)
 	{	Cout = (*C) * A;
 		C = &Cout;
@@ -262,7 +256,10 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 	//Scatter from reduced basis to common basis with transformations:
 	assert(C->nCols() == result.nCols());
 	for(int b=0; b<C->nCols(); b++) for(int s=0; s<nSpinor; s++)
-		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData, C->dataPref()+C->index(b,s*C->basis->nbasis), result.dataPref()+result.index(b,s*result.basis->nbasis));
+		callPref(eblas_scatter_zdaxpy)(index.nIndices, alpha, indexData,
+			C->dataPref()+C->index(b,s*C->basis->nbasis), 
+			result.dataPref()+result.index(b,s*result.basis->nbasis),
+			kpoint.invert<0);
 	watch.stop();
 }
 
@@ -273,7 +270,10 @@ void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const Wannie
 	ColumnBundle Omega_C = C->similar(Omega_result.nCols());
 	Omega_C.zero();
 	for(int b=0; b<Omega_C.nCols(); b++) for(int s=0; s<nSpinor; s++)
-		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData, Omega_result.dataPref()+Omega_result.index(b,s*Omega_result.basis->nbasis), Omega_C.dataPref()+Omega_C.index(b,s*Omega_C.basis->nbasis));
+		callPref(eblas_gather_zdaxpy)(index.nIndices, alpha, indexData,
+			Omega_result.dataPref()+Omega_result.index(b,s*Omega_result.basis->nbasis),
+			Omega_C.dataPref()+Omega_C.index(b,s*Omega_C.basis->nbasis),
+			kpoint.invert<0);
 	//Propagate gardient to rotation matrix:
 	Omega_A += (Omega_C ^ *C);
 	watch.stop();

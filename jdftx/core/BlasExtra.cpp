@@ -75,22 +75,34 @@ void eblas_zgemm(
 template<typename scalar> void eblas_scatter_axpy_sub(size_t iStart, size_t iStop, double a, const int* index, const scalar* x, scalar* y)
 {	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * x[i];
 }
+void eblas_scatter_axpy_conj_sub(size_t iStart, size_t iStop, double a, const int* index, const complex* x, complex* y)
+{	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * x[i].conj();
+}
 template<typename scalar> void eblas_scatter_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
 {	threadLaunch((Nindex<100000) ? 1 : 0,  //force single threaded for small problem sizes
 		eblas_scatter_axpy_sub<scalar>, Nindex, a, index, x, y);
 }
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_scatter_axpy<complex>(Nindex, a, index, x, y); }
+void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj)
+{	if(conj) threadLaunch((Nindex<100000) ? 1 : 0, eblas_scatter_axpy_conj_sub, Nindex, a, index, x, y);
+	else eblas_scatter_axpy<complex>(Nindex, a, index, x, y);
+}
 void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_scatter_axpy<double>(Nindex, a, index, x, y); }
 
 
 template<typename scalar> void eblas_gather_axpy_sub(size_t iStart, size_t iStop, double a, const int* index, const scalar* x, scalar* y)
 {	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[index[i]];
 }
+void eblas_gather_axpy_conj_sub(size_t iStart, size_t iStop, double a, const int* index, const complex* x, complex* y)
+{	for(size_t i=iStart; i<iStop; i++) y[i] += a * x[index[i]].conj();
+}
 template<typename scalar> void eblas_gather_axpy(const int Nindex, double a, const int* index, const scalar* x, scalar* y)
 {	threadLaunch((Nindex<100000) ? 1 : 0,  //force single threaded for small problem sizes
 		eblas_gather_axpy_sub<scalar>, Nindex, a, index, x, y);
 }
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y) { eblas_gather_axpy<complex>(Nindex, a, index, x, y); }
+void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conj)
+{	if(conj) threadLaunch((Nindex<100000) ? 1 : 0, eblas_gather_axpy_conj_sub, Nindex, a, index, x, y);
+	else eblas_gather_axpy<complex>(Nindex, a, index, x, y);
+}
 void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_gather_axpy<double>(Nindex, a, index, x, y); }
 
 
