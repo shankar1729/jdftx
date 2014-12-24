@@ -176,12 +176,9 @@ void extractExchangeKernel_thread(size_t iStart, size_t iStop, const vector3<>& 
 	const vector3<int>& S, const vector3<int>& Ssuper, const matrix3<int>& super,
 	const double* dataSuper, double* data)
 {	//Get the integer vector corresponding to dk in the supercell:
-	vector3<> dkSuperTemp = dk * super; //note: transformation is by transpose of super
-	vector3<int> dkSuper;
-	for(int k=0; k<3; k++)
-	{	dkSuper[k] = int(round(dkSuperTemp[k]));
-		assert(fabs(dkSuper[k] - dkSuperTemp[k]) < symmThreshold);
-	}
+	double err;
+	vector3<int> dkSuper = round(dk * super, &err); //note: transformation is by transpose of super
+	assert(err < symmThreshold);
 	//Collect data from supercell to unit-cell with k-point offset:
 	THREAD_fullGspaceLoop
 	(	vector3<int> iGsuper = iG * super + dkSuper;
@@ -583,12 +580,9 @@ complexDataGptr ExchangeEval::operator()(complexDataGptr&& in, vector3<> kDiff) 
 			for(unsigned ik=0; ik<dkArr.size(); ik++)
 				if(circDistanceSquared(dkArr[ik], kDiff) < symmThresholdSq)
 				{	//Find the integer offset, if any:
-					vector3<> offsetTemp = dkArr[ik] - kDiff;
-					vector3<int> offset;
-					for(int k=0; k<3; k++)
-					{	offset[k] = int(round(offsetTemp[k]));
-						assert(fabs(offset[k]-offsetTemp[k]) < symmThreshold);
-					}
+					double err;
+					vector3<int> offset = round(dkArr[ik] - kDiff, &err);
+					assert(err < symmThreshold);
 					//Multiply kernel:
 					multTransformedKernel(in, kernelData + gInfo.nr * ik, offset);
 					kDiffFound = true;

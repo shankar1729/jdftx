@@ -49,12 +49,9 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	assert(abs(invert) == 1); //check inversion
 	assert(nrm2(basisC.gInfo->R * super - basisD.gInfo->R) < symmThreshold * nrm2(basisD.gInfo->R)); //check supercell
 	matrix3<int> affine = sym * invert * super; //net affine transformation
-	vector3<> offsetTmp = kC * affine - kD;
-	vector3<int> offset;
-	for(int j=0; j<3; j++)
-	{	offset[j] = round(offsetTmp[j]);
-		assert(fabs(offset[j]-offsetTmp[j]) < symmThreshold);
-	}
+	double offsetErr;
+	vector3<int> offset = round(kC * affine - kD, &offsetErr);
+	assert(offsetErr < symmThreshold);
 	
 	//Initialize index map:
 	index.resize(basisC.nbasis);

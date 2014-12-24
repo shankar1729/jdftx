@@ -231,4 +231,28 @@ void Phonon::setup(bool printDefaults)
 	for(const Perturbation& pert: perturbations)
 		logPrintf("%s %d  [ %+lf %+lf %+lf ] %lf\n", e.iInfo.species[pert.sp]->name.c_str(),
 			pert.at, pert.dir[0], pert.dir[1], pert.dir[2], pert.weight*symSupCart.size());
+	
+	//Determine wavefunction unitary rotations:
+	logPrintf("\nCalculating unitary rotations of unit cell states under symmetries:\n");
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	{	//Find states involved in the supercell Gamma-point:
+		struct Kpoint : public Supercell::KmeshTransform
+		{	vector3<> k; //also store k-point for convenience (KmeshTransform doesn't have it)
+			vector3<int> kSup; //same in supercell coords (integral for those associated with supercell Gamma)
+		};
+		std::vector<Kpoint> kpoints; kpoints.reserve(prodSup);
+		const Supercell& supercell = *(e.coulombParams.supercell);
+		for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
+		{	double kSupErr;
+			vector3<int> kSup = round(matrix3<>(Diag(sup)) * supercell.kmesh[ik], &kSupErr);
+			if(kSupErr < symmThreshold) //maps to Gamma point
+			{	Kpoint kpoint;
+				(Supercell::KmeshTransform&)kpoint = supercell.kmeshTransform[ik]; //copy base class
+				kpoint.k = supercell.kmesh[ik];
+				kpoint.kSup = kSup;
+				kpoints.push_back(kpoint);
+			}
+		}
+		assert(int(kpoints.size()) == prodSup);
+	}
 }

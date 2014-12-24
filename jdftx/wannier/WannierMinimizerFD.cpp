@@ -125,8 +125,7 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			vector3<> kj = kMesh[i].point.k + inv(e.gInfo.GT) * b[j];
 			edge.ik = plook.find(kj);
 			edge.point = kMesh[edge.ik].point;
-			for(int l=0; l<3; l++)
-				edge.point.offset[l] += int(round(kj[l] - edge.point.k[l])); //extra offset
+			edge.point.offset += round(kj - edge.point.k); //extra offset
 			edge.point.k = kj;
 			kpoints.insert(edge.point);
 		}

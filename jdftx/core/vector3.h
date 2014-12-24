@@ -124,6 +124,14 @@ template<typename scalar> __hostanddev__ scalar box(const vector3<scalar>& a, co
 {	return dot(a,cross(b,c));
 }
 
+//! Round vector3<> to vector3<int> (and optionally retrieve error)
+__hostanddev__ vector3<int> round(const vector3<>& v, double* err=0)
+{	vector3<int> out;
+	LOOP3( out[k] = round(v[k]); )
+	if(err) *err = (v+(-out)).length();
+	return out;
+} 
+
 //! Return squared distance between a and b, interpreted as coordinates on a unit S1xS1xS1 embedded in R^6
 //! i.e. sum of squares of distances between each coordinate put on a circle. This is useful for checking
 //! distances in a periodic cell safely.

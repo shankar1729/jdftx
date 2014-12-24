@@ -47,6 +47,7 @@ private:
 	int nBandsOpt; //optimized number of bands, accounting for Fcut
 	int prodSup; //number of unit cells in supercell
 	std::vector< matrix3<> > symSupCart; //Cartesian symmetry rotation matrices for unperturbed supercell
+	std::vector< std::vector<matrix> > stateRot; //Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
 	
 	//Basis for phonon modes (not reduced by symmetries):
 	struct Mode

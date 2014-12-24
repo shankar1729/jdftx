@@ -674,11 +674,9 @@ struct EvalDOS
 
 //Check that a 3-vector i sintegral within tolerance and return integer version
 inline vector3<int> round(const vector3<> v, const double tol)
-{	vector3<int> vInt;
-	for(int k=0; k<3; k++)
-	{	vInt[k] = round(v[k]);
-		assert(fabs(v[k]-vInt[k]) < tol);
-	}
+{	double err;
+	vector3<int> vInt = round(v, &err);
+	assert(err < tol);
 	return vInt;
 }
 

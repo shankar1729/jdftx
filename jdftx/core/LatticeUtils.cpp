@@ -190,10 +190,8 @@ Supercell::Supercell(const GridInfo& gInfo,
 		"   whose symmetries are a subgroup of that of the system. Try switching to\n" \
 		"   Gamma-centered sampling or disabling symmetries.\n"
 	for(vector3<> kpoint: kmesh)
-	{	vector3<> ik = kBasisInv * (kpoint-kmesh.front());
-		for(int k=0; k<3; k++)
-			if(fabs(ik[k] - round(ik[k])) > symmThreshold)
-				die(kMeshErrorMsg);
+	{	double err; round(kBasisInv * (kpoint-kmesh.front()), &err);
+		if(err > symmThreshold) die(kMeshErrorMsg);
 	}
 	//--- check that the k-mesh covers the Brillouin zone
 	if(fabs(fabs(det(kBasisInv)) - kmesh.size()) > kmesh.size() * symmThreshold)
@@ -270,11 +268,8 @@ std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& R
 	{	std::vector< vector3<int> > equiv;
 		auto iter2=iter; iter2++;
 		while(iter2!=iCellSurface.end())
-		{	vector3<> dx = superInv * (*iter2 - *iter); //difference in super-lattice coordinates
-			bool isEquiv = true;
-			for(int l=0; l<3; l++) //each entry of dx must be integral for equivalency
-				isEquiv &= (fabs(dx[l]-round(dx[l]))<symmThreshold);
-			if(isEquiv)
+		{	double err; round(superInv * (*iter2 - *iter), &err); //difference in super-lattice coordinates
+			if(err < symmThreshold)
 			{	equiv.push_back(*iter2);
 				iter2 = iCellSurface.erase(iter2);
 			}

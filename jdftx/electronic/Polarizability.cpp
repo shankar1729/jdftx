@@ -132,15 +132,11 @@ public:
 			Supercell::KmeshTransform kTransform2;
 			for(unsigned ik2=0; ik2<kmesh.size(); ik2++)
 				if(circDistanceSquared(kmesh[ik2],k2) < symmThresholdSq)
-				{	kTransform2 = kmeshTransform[ik2];
-					vector3<> extraOffsetTemp = k2 - kmesh[ik2];
-					vector3<int> extraOffset;
-					for(int k=0; k<3; k++)
-					{	extraOffset[k] = int(round(extraOffsetTemp[k]));
-						assert(fabs(extraOffset[k]-extraOffsetTemp[k]) < symmThreshold);
-					}
-					kTransform2.offset += extraOffset;
+				{	double offsetErr;
+					kTransform2 = kmeshTransform[ik2];
+					kTransform2.offset += round(k2 - kmesh[ik2], &offsetErr);
 					foundk2 = true;
+					assert(offsetErr < symmThreshold);
 					break;
 				}
 			assert(foundk2); //such a partner should always be found for a uniform kmesh
