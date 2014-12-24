@@ -19,6 +19,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <phonon/Phonon.h>
 #include <electronic/ElecMinimizer.h>
+#include <electronic/ColumnBundleTransform.h>
+#include <electronic/operators.h>
 #include <commands/parser.h>
 #include <core/Units.h>
 
@@ -35,6 +37,9 @@ inline int nStabilizer(const vector3<>& n, const std::vector< matrix3<> >& symCa
 			nStab++;
 	return nStab;
 }
+
+inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
+inline bool isUnitary(const matrix& U) { return nrm2(U*dagger(U) - eye(U.nCols())) < symmThreshold; }
 
 void Phonon::setup(bool printDefaults)
 {
@@ -98,6 +103,7 @@ void Phonon::setup(bool printDefaults)
 		if(!e.eInfo.isMine(q))
 		{	e.eVars.C[q].init(e.eInfo.nBands, e.basis[q].nbasis * e.eInfo.spinorLength(), &e.basis[q], &e.eInfo.qnums[q]);
 			e.eVars.F[q].resize(e.eInfo.nBands);
+			e.eVars.Hsub_eigs[q].resize(e.eInfo.nBands);
 			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 				e.eVars.B[q].init(e.eInfo.nBands, e.eInfo.nBands);
 		}
@@ -105,6 +111,7 @@ void Phonon::setup(bool printDefaults)
 		int qSrc = e.eInfo.whose(q);
 		e.eVars.C[q].bcast(qSrc);
 		e.eVars.F[q].bcast(qSrc);
+		e.eVars.Hsub_eigs[q].bcast(qSrc);
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 			e.eVars.B[q].bcast(qSrc);
 	}
@@ -234,25 +241,122 @@ void Phonon::setup(bool printDefaults)
 	
 	//Determine wavefunction unitary rotations:
 	logPrintf("\nCalculating unitary rotations of unit cell states under symmetries:\n");
+	stateRot.resize(nSpins);
+	double unitarityErr = 0.;
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 	{	//Find states involved in the supercell Gamma-point:
 		struct Kpoint : public Supercell::KmeshTransform
 		{	vector3<> k; //also store k-point for convenience (KmeshTransform doesn't have it)
-			vector3<int> kSup; //same in supercell coords (integral for those associated with supercell Gamma)
 		};
 		std::vector<Kpoint> kpoints; kpoints.reserve(prodSup);
 		const Supercell& supercell = *(e.coulombParams.supercell);
 		for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
-		{	double kSupErr;
-			vector3<int> kSup = round(matrix3<>(Diag(sup)) * supercell.kmesh[ik], &kSupErr);
+		{	double kSupErr; round(matrix3<>(Diag(sup)) * supercell.kmesh[ik], &kSupErr);
 			if(kSupErr < symmThreshold) //maps to Gamma point
 			{	Kpoint kpoint;
 				(Supercell::KmeshTransform&)kpoint = supercell.kmeshTransform[ik]; //copy base class
 				kpoint.k = supercell.kmesh[ik];
-				kpoint.kSup = kSup;
+				kpoint.iReduced += iSpin*(e.eInfo.nStates/nSpins); //point to source k-point with appropriate spin
 				kpoints.push_back(kpoint);
 			}
 		}
 		assert(int(kpoints.size()) == prodSup);
+		//Initialize basis and qnum for these states:
+		std::vector<QuantumNumber> qnums(prodSup);
+		std::vector<Basis> basis(prodSup);
+		logSuspend();
+		for(int ik=0; ik<prodSup; ik++)
+		{	qnums[ik].k = kpoints[ik].k;
+			qnums[ik].spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			qnums[ik].weight = 1./prodSup;
+			basis[ik].setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpoints[ik].k);
+		}
+		logResume();
+		//Get wavefunctions for all these k-points:
+		#define whose_ik(ik) (((ik) * mpiUtil->nProcesses())/prodSup) //local MPI division
+		std::vector<ColumnBundle> C(prodSup);
+		std::vector<std::shared_ptr<ColumnBundleTransform::BasisWrapper> > basisWrapper(prodSup);
+		auto sym = e.symm.getMatrices(); //unit cell symmetries
+		for(int ik=0; ik<prodSup; ik++)
+		{	C[ik].init(e.eInfo.nBands, basis[ik].nbasis*nSpinor, &basis[ik], &qnums[ik], isGpuEnabled());
+			if(whose_ik(ik) == mpiUtil->iProcess())
+			{	int q = kpoints[ik].iReduced;
+				C[ik].zero();
+				basisWrapper[ik] = std::make_shared<ColumnBundleTransform::BasisWrapper>(basis[ik]);
+				ColumnBundleTransform(e.eInfo.qnums[q].k, e.basis[q], qnums[ik].k, *(basisWrapper[ik]),
+					nSpinor, sym[kpoints[ik].iSym], kpoints[ik].invert).scatterAxpy(1., e.eVars.C[q], C[ik],0,1);
+			}
+		}
+		for(int ik=0; ik<prodSup; ik++) C[ik].bcast(whose_ik(ik)); //make available on all processes
+		//Determine max eigenvalue:
+		int nBands = e.eInfo.nBands;
+		int nBandsSup = nBands * prodSup;
+		double Emax = -INFINITY;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			Emax = std::max(Emax, e.eVars.Hsub_eigs[q].back());
+		mpiUtil->allReduce(Emax, MPIUtil::MPIUtil::ReduceMax);
+		double EmaxValid = +INFINITY;
+		//Loop over supercell symmetry operations:
+		PeriodicLookup<QuantumNumber> plook(qnums, e.gInfo.GGT);
+		stateRot[iSpin].resize(symSupCart.size());
+		for(size_t iSym=0; iSym<symSupCart.size(); iSym++)
+		{	matrix3<> symUnitTmp = e.gInfo.invR * symSupCart[iSym] * e.gInfo.R; //in unit cell lattice coordinates
+			#define SymmErrMsg \
+				"Supercell symmetries do not map unit cell k-point mesh onto itself.\n" \
+				"This implies that the supercell is more symmetric than the unit cell!\n" \
+				"Please check to make sure that you have used the minimal unit cell.\n\n"
+			matrix3<int> symUnit;
+			for(int j1=0; j1<3; j1++)
+				for(int j2=0; j2<3; j2++)
+				{	symUnit(j1,j2) = round(symUnitTmp(j1,j2));
+					if(fabs(symUnit(j1,j2) - symUnitTmp(j1,j2)) > symmThreshold)
+						die(SymmErrMsg)
+				}
+			//Find image kpoints under rotation: (do this for all k-points so that all processes exit together if necessary)
+			std::vector<int> ikRot(prodSup);
+			for(int ik=0; ik<prodSup; ik++)
+			{	size_t ikRotCur = plook.find(qnums[ik].k * symUnit);
+				if(ikRotCur==string::npos) die(SymmErrMsg)
+				ikRot[ik] = ikRotCur;
+			}
+			#undef SymmErrMsg
+			//Calculate unitary transformation matrix:
+			stateRot[iSpin][iSym] = zeroes(nBandsSup, nBandsSup);
+			for(int ik=0; ik<prodSup; ik++)
+				if(whose_ik(ikRot[ik]) == mpiUtil->iProcess()) //MPI division by target k-point
+				{	ColumnBundle Crot = C[ikRot[ik]].similar();
+					Crot.zero();
+					ColumnBundleTransform(qnums[ik].k, basis[ik], qnums[ikRot[ik]].k, *(basisWrapper[ikRot[ik]]),
+						nSpinor, symUnit, +1).scatterAxpy(1., C[ik], Crot,0,1);
+					matrix Urot = Crot ^ O(C[ikRot[ik]]); //will be unitary if Crot is a strict unitary rotation of C[ikRot[ik]]
+					//Check maximal subspace that is unitary: (remiander must be incomplete degenerate subspace)
+					int nBandsValid = nBands;
+					while(nBandsValid && !isUnitary(Urot(0,nBandsValid, 0,nBandsValid)))
+						nBandsValid--;
+					if(nBandsValid<nBands)
+					{	//Update energy range of validity:
+						EmaxValid = std::min(EmaxValid, e.eVars.Hsub_eigs[kpoints[ik].iReduced][nBandsValid]);
+						//Make valid subspace exactly unitary:
+						matrix UrotSub = Urot(0,nBandsValid, 0,nBandsValid);
+						matrix UrotOverlap = dagger(UrotSub) * UrotSub;
+						UrotSub = UrotSub * invsqrt(UrotOverlap); //make exactly unitary
+						unitarityErr += std::pow(nrm2(UrotOverlap - eye(nBandsValid)), 2);
+						//Zero out invalid subspace:
+						Urot.zero();
+						Urot.set(0,nBandsValid, 0,nBandsValid, UrotSub);
+					}
+					stateRot[iSpin][iSym].set(ik*nBands,(ik+1)*nBands, ikRot[ik]*nBands,(ikRot[ik]+1)*nBands, Urot);
+				}
+			stateRot[iSpin][iSym].allReduce(MPIUtil::ReduceSum);
+		}
+		#undef whose_ik
+		mpiUtil->allReduce(EmaxValid, MPIUtil::ReduceMin);
+		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin ? +1 : -1);  else logPrintf("\t");
+		logPrintf("Matrix elements valid for ");
+		if(std::isfinite(EmaxValid)) logPrintf("E < %+.6lf (Emax = %+.6lf) due to incomplete degenerate subspaces.\n", EmaxValid, Emax);
+		else logPrintf("all available states (all degenerate subspaces are complete).\n");
 	}
+	mpiUtil->allReduce(unitarityErr, MPIUtil::ReduceSum);
+	unitarityErr = sqrt(unitarityErr / (nSpins * prodSup * symSupCart.size()));
+	logPrintf("\tRMS unitarity error in valid subspaces: %le\n", unitarityErr);
 }

@@ -124,7 +124,7 @@ void Phonon::dump()
 	}
 	
 	//Output electron-phonon matrix elements:
-	/*if(mpiUtil->isHead())
+	if(mpiUtil->isHead())
 	{	const int& nBands = e.eInfo.nBands;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
@@ -141,7 +141,7 @@ void Phonon::dump()
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}
-	}*/
+	}
 
 	//Calculate free energy (properly handling singularities at Gamma point):
 	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(); //implemented below

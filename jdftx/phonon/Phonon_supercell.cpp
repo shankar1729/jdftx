@@ -165,7 +165,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 				break;
 		assert(iModeStart+3 <= modes.size());
 		
-		//Accumulate dgrad constributions:
+		//Accumulate dgrad contributions:
 		for(unsigned sp2=0; sp2<eSup->iInfo.species.size(); sp2++)
 		{	int nAtoms2 = e.iInfo.species[sp2]->atpos.size(); //per unit cell
 			for(int at2=0; at2<nAtoms2*prodSup; at2++)
@@ -177,6 +177,12 @@ void Phonon::processPerturbation(const Perturbation& pert)
 					dgrad[iMode2][sp2][at2rot] += (pert.weight * dot(modes[iMode2].dir, mode.dir)) * Frot;
 			}
 		}
+		
+		//Accumulate Hsub contributions:
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
+			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
+				dHsub[iMode2][iSpin] += (pert.weight * dot(modes[iMode2].dir, mode.dir))
+					* (dagger(stateRot[iSpin][iSym]) *  dHsub_pert[iSpin] * stateRot[iSpin][iSym]);
 	}
 }
 
