@@ -110,9 +110,6 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 					superOffDiag += std::pow(supercell.super(j1,j2), 2);
 		if(e.eInfo.qnums[0].k.length_squared() || superOffDiag)
 			die("Phonon matrix elements require a Gamma-centered uniform kpoint mesh.\n");
-		//--- Check symmetries:
-		if(e.symm.mode != SymmetriesNone)
-			die("Phonon matrix elements not supported with symmetries.\n");
 		//--- Check that phonon supercell tiles the Wannier supercell:
 		for(int j=0; j<3; j++)
 		{	if(!wannier.phononSup[j] || supercell.super(j,j) % wannier.phononSup[j])

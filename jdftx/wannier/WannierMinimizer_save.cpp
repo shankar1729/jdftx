@@ -395,32 +395,25 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
 	{	//--- generate list of commensurate k-points in order present in the unit cell calculation
-		std::map<int,int> q_ikMap; //map from state indices to k-mesh indices for commensurate k-points
-		for(unsigned ik=0; ik<kMesh.size(); ik++)
-		{	vector3<> k = kMesh[ik].point.k;
-			bool isCommensurate = true;
-			for(int j=0; j<3; j++)
-			{	double kSup = k[j] * wannier.phononSup[j];
-				if(fabs(round(kSup)-kSup) > symmThreshold)
-				{	isCommensurate = false;
-					break;
-				}
-			}
-			if(isCommensurate)
-				q_ikMap[kMesh[ik].point.iReduced + iSpin*qCount] = ik;
-		}
 		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
-		assert(int(q_ikMap.size()) == prodPhononSup);
+		std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
+		for(unsigned ik=0; ik<kMesh.size(); ik++)
+		{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
+			double roundErr; round(kSup, &roundErr);
+			if(roundErr < symmThreshold) //integral => commensurate with supercell
+				ikArr.push_back(ik);
+		}
+		assert(int(ikArr.size()) == prodPhononSup);
 		//---- generate pairs of commensurate k-points along with pointer to Wannier rotation
 		struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
 		std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
-		for(auto entry1: q_ikMap)
-		for(auto entry2: q_ikMap)
+		for(int ik1: ikArr)
+		for(int ik2: ikArr)
 		{	KpointPair kPair;
-			kPair.k1 = e.eInfo.qnums[entry1.first].k;
-			kPair.k2 = e.eInfo.qnums[entry2.first].k;
-			kPair.ik1 = entry1.second;
-			kPair.ik2 = entry2.second;
+			kPair.k1 = kMesh[ik1].point.k;
+			kPair.k2 = kMesh[ik2].point.k;
+			kPair.ik1 = ik1;
+			kPair.ik2 = ik2;
 			kpointPairs.push_back(kPair);
 		}
 		int iPairStart = (kpointPairs.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();

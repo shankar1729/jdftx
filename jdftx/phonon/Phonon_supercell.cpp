@@ -182,7 +182,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
 			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
 				dHsub[iMode2][iSpin] += (pert.weight * dot(modes[iMode2].dir, mode.dir))
-					* (dagger(stateRot[iSpin][iSym]) *  dHsub_pert[iSpin] * stateRot[iSpin][iSym]);
+					* (stateRot[iSpin][iSym] *  dHsub_pert[iSpin] * dagger(stateRot[iSpin][iSym]));
 	}
 }
 
