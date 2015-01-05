@@ -432,12 +432,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		if(mpiUtil->isHead()) fpOut = fopen(fnameOut.c_str(), "w");
 		bool isOutOpen = fpOut; mpiUtil->bcast(isOutOpen);
 		if(!isOutOpen) die("Could not open '%s' for writing.\n", fnameOut.c_str());
-		//--- --- make Hsub_eigs available on all proceses
-		std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs;
-		for(int q=0; q<e.eInfo.nStates; q++)
-		{	if(!e.eInfo.isMine(q)) Hsub_eigs[q].resize(nBands);
-			Hsub_eigs[q].bcast(e.eInfo.whose(q));
-		}
 		//--- --- loop over modes
 		double normTot=0., normIm=0.;
 		for(int iMode=0; iMode<nPhononModes; iMode++)
@@ -446,28 +440,10 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			mpiUtil->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
 			double kPairWeight = 1./(prodPhononSup*prodPhononSup);
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-			{	matrix phononHsubCur(nBands, nBands);
-				mpiUtil->fread(phononHsubCur.data(), sizeof(complex), nBands*nBands, fpIn);
-				const KpointPair& pair = kpointPairs[iPair];
-				phononHsubCur = kPairWeight * (dagger(kMesh[pair.ik1].U) * phononHsubCur * kMesh[pair.ik2].U); //save with Wannier rotations and k-integration weights
-				if(pair.ik1 == pair.ik2)
-				{	//Enforce exact translational invariance:
-					//--- diagonalize Wannier Hamiltonian at current k:
-					const diagMatrix& HsubIn = Hsub_eigs[kMesh[pair.ik1].point.iReduced + iSpin*qCount];
-					matrix Hsub = dagger_symmetrize(dagger(kMesh[pair.ik1].U) * HsubIn * kMesh[pair.ik1].U);
-					matrix evecs; diagMatrix eigs;
-					Hsub.diagonalize(evecs, eigs);
-					//--- switch phononHsubCur to eigen-basis:
-					phononHsubCur = dagger(evecs) * phononHsubCur * evecs;
-					//--- zero out matrix elements in each degenerate subspace:
-					for(int b1=0; b1<nCenters; b1++)
-						for(int b2=0; b2<nCenters; b2++)
-							if(fabs(eigs[b1]-eigs[b2]) < symmThreshold) //belong to same degenerate subspace
-								phononHsubCur.set(b1,b2, 0.);
-					//--- switch phononHsubCur back to Wannier basis:
-					phononHsubCur = evecs * phononHsubCur * dagger(evecs);
-				}
-				phononHsub[iPair] = phononHsubCur;
+			{	const KpointPair& pair = kpointPairs[iPair];
+				phononHsub[iPair].init(nBands, nBands);
+				mpiUtil->fread(phononHsub[iPair].data(), sizeof(complex), phononHsub[iPair].nData(), fpIn); //read from file
+				phononHsub[iPair] = kPairWeight * (dagger(kMesh[pair.ik1].U) * phononHsub[iPair] * kMesh[pair.ik2].U); //apply Wannier rotations and k-integration weights
 			}
 			//Transform to real space (on phononCellMap squared)
 			for(const auto& entry1: phononCellMap)
