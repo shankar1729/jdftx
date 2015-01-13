@@ -125,6 +125,10 @@ void SCF::minimize()
 	bool subspaceRotation=false;
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
 	
+	//Backup electronic minimize params that are modified below:
+	double eMinThreshold = e.elecMinParams.energyDiffThreshold;
+	int eMinIterations = e.elecMinParams.nIterations;
+
 	//Compute energy for the initial guess
 	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
 	EdiffCheck ediffCheck(2, e.scfParams.energyDiffThreshold);
@@ -215,6 +219,10 @@ void SCF::minimize()
 	}
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
+
+	//Backup electronic minimize params that are modified below:
+	e.elecMinParams.energyDiffThreshold = eMinThreshold;
+	e.elecMinParams.nIterations = eMinIterations;
 	
 	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -223,7 +231,10 @@ void SCF::minimize()
 	//Set auxiliary Hamiltonian to subspace Hamiltonian
 	// (for general compatibility with minimizer; also important for lattice gradient in metals)
 	if(e.eInfo.fillingsUpdate == ElecInfo::FermiFillingsAux)
-		eVars.B = eVars.Hsub; 
+	{	eVars.B = eVars.Hsub;
+		eVars.B_eigs = eVars.Hsub_eigs;
+		eVars.B_evecs = eVars.Hsub_evecs;
+	}
 }
 
 void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const

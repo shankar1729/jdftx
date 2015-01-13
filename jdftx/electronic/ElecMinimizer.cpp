@@ -136,12 +136,8 @@ bool ElecMinimizer::report(int iter)
 	
 	//Handle indefinite preconditioner issue for FermiFillingsAux:
 	if(Knorm < 0.)
-	{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): "
-			"converging empty states (this may take a while)\n", e.elecMinParams.linePrefix);
-		logSuspend(); e.elecMinParams.fpLog = nullLog;
-		bandMinimize(e); //this will also set state to eigenvectors
-		logResume(); e.elecMinParams.fpLog = globalLog;
-		e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
+	{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): ", e.elecMinParams.linePrefix);
+		convergeEmptyStates(e);
 		return true;
 	}
 	
@@ -228,7 +224,7 @@ void elecMinimize(Everything& e)
 	{	SCF scf(e);
 		scf.minimize();
 	}
-	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor() or e.eInfo.hasU)
+	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor())
 	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
 		e.eVars.setEigenvectors();
@@ -237,6 +233,9 @@ void elecMinimize(Everything& e)
 	{	bandMinimize(e);
 	}
 	e.eVars.isRandom = false; //wavefunctions are no longer random
+	//Converge empty states if necessary:
+	if(e.cntrl.convergeEmptyStates and (not e.cntrl.fixed_H))
+		convergeEmptyStates(e);
 }
 
 void elecFluidMinimize(Everything &e)
@@ -330,3 +329,12 @@ void elecFluidMinimize(Everything &e)
 			cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations);
 	}
 }
+
+void convergeEmptyStates(Everything& e)
+{	logPrintf("Converging empty states (this may take a while)\n"); logFlush();
+	logSuspend(); e.elecMinParams.fpLog = nullLog;
+	bandMinimize(e); //this will also set state to eigenvectors
+	logResume(); e.elecMinParams.fpLog = globalLog;
+	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
+}
+

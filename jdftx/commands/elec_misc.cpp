@@ -199,7 +199,7 @@ struct CommandSpinRestricted : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.eInfo.spinRestricted, false, boolMap, "restricted");
+	{	pl.get(e.eInfo.spinRestricted, false, boolMap, "restricted", true);
 		if(e.eInfo.spinType==SpinNone && e.eInfo.spinRestricted) throw string("Spin-restricted calculations require spintype set to z-spin");
 	}
 
@@ -307,6 +307,30 @@ struct CommandReorthogonalizeOrbitals : public Command
 	}
 }
 commandReorthogonalizeOrbitals;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandConvergeEmptyStates : public Command
+{
+	CommandConvergeEmptyStates() : Command("converge-empty-states", "Electronic optimization")
+	{
+		format = "yes|no";
+		comments = "Whether to converge empty states after each electronic optimization (default no).\n"
+			"Not required unless empty states are used in post-processing and need to be accurate.\n"
+			"This is a shortcut to running a bandstructure calculation after a total energy\n"
+			"or SCF calculation, and helps simplify workflow for DOS, polarizability, wannier\n"
+			"and electron-phonon matrix element calculations.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.convergeEmptyStates, false, boolMap, "shouldConverge", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.cntrl.convergeEmptyStates));
+	}
+}
+commandConvergeEmptyStates;
 
 //-------------------------------------------------------------------------------------------------
 

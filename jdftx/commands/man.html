@@ -39,6 +39,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#elec-ex-corr-compare">elec-ex-corr-compare</a>
 &nbsp;&nbsp;&nbsp;<a href="#van-der-waals">van-der-waals</a>
 <p><b>Electronic optimization</b>:
+&nbsp;&nbsp;&nbsp;<a href="#converge-empty-states">converge-empty-states</a>
 &nbsp;&nbsp;&nbsp;<a href="#davidson-band-ratio">davidson-band-ratio</a>
 &nbsp;&nbsp;&nbsp;<a href="#elec-eigen-algo">elec-eigen-algo</a>
 &nbsp;&nbsp;&nbsp;<a href="#electronic-minimize">electronic-minimize</a>
@@ -298,6 +299,29 @@ can be used to check the calculated alignment and refine rMin and rSigma.
 &nbsp;&nbsp;&nbsp;<a href="#coords-type">coords-type</a>
 &nbsp;&nbsp;&nbsp;<a href="#coulomb-interaction">coulomb-interaction</a>
 &nbsp;&nbsp;&nbsp;<a href="#latt-scale">latt-scale</a>
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="converge-empty-states">
+<h1>converge-empty-states</h1>
+<h2>Syntax:</h2>
+<pre>
+converge-empty-states yes|no
+</pre>
+<h2>Description:</h2>
+<pre>
+Whether to converge empty states after each electronic optimization (default no).
+Not required unless empty states are used in post-processing and need to be accurate.
+This is a shortcut to running a bandstructure calculation after a total energy
+or SCF calculation, and helps simplify workflow for DOS, polarizability, wannier
+and electron-phonon matrix element calculations.
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;(None)
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no

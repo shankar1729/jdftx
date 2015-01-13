@@ -65,5 +65,6 @@ private:
 void bandMinimize(Everything& e); //!< band structure minimization
 void elecMinimize(Everything& e); //!< minimize electonic system
 void elecFluidMinimize(Everything& e); //!< minimize electrons and fluid in a gummel loop if necessary
+void convergeEmptyStates(Everything& e); //!< run bandMinimize to converge empty states (usually called from SCF / total energy calculations)
 
 #endif // JDFTX_ELECTRONIC_ELECMINIMIZER_H
