@@ -48,7 +48,7 @@ std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) con
 	{	logPrintf("Fluid mode embedding: using embedded box, but periodic Coulomb kernel.\n");
 		logPrintf("(Fluid response is responsible for (approximate) separation between periodic images.)\n");
 		if(!embed)
-			die("Fluids with coulomb truncation requires the use of command coulomb-interaction-embed.\n");
+			die("Fluids with coulomb truncation requires the use of command coulomb-truncation-embed.\n");
 		return std::make_shared<CoulombPeriodic>(gInfo, *this);
 	}
 	
