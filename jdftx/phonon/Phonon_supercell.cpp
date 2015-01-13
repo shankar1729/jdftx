@@ -56,6 +56,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	eSup->eInfo.nBands = nBandsOpt * prodSup;
 	//ElecVars:
 	eSup->eVars.initLCAO = false; //state will be initialized from unit cell anyway
+	eSup->cntrl.convergeEmptyStates = false; //has no effect on any phonon results, so force-disable to save time
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
 	double drSym = 0.;
