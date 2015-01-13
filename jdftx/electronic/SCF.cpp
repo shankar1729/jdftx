@@ -501,7 +501,7 @@ void SCF::updateMOM()
 
 }
 
-double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const
+double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2, const Everything& e)
 {	double rmsNum=0., rmsDen=0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	double wq = e.eInfo.qnums[q].weight;
@@ -516,6 +516,9 @@ double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<d
 	return sqrt(rmsNum/rmsDen);
 }
 
+double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const
+{	return eigDiffRMS(eigs1, eigs2, e);
+}
 
 void SCF::eigenShiftInit()
 {	for(SCFparams::EigenShift& es: e.scfParams.eigenShifts)

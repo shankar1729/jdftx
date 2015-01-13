@@ -331,10 +331,12 @@ void elecFluidMinimize(Everything &e)
 }
 
 void convergeEmptyStates(Everything& e)
-{	logPrintf("Converging empty states (this may take a while)\n"); logFlush();
+{	logPrintf("Converging empty states (this may take a while): "); logFlush();
+	std::vector<diagMatrix> eigsPrev = e.eVars.Hsub_eigs;
 	logSuspend(); e.elecMinParams.fpLog = nullLog;
 	bandMinimize(e); //this will also set state to eigenvectors
 	logResume(); e.elecMinParams.fpLog = globalLog;
 	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
+	logPrintf("|deigs|: %.3e\n", SCF::eigDiffRMS(e.eVars.Hsub_eigs, eigsPrev, e)); logFlush();
 }
 

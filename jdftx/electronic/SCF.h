@@ -33,6 +33,8 @@ public:
 	
 	//! Minimizes residual to achieve self-consistency
 	void minimize();
+	
+	static double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&, const Everything& e); //!< weigted RMS difference between two sets of eigenvalues
 private:
 	Everything& e;
 	
@@ -75,7 +77,6 @@ private:
 
 	//! Applies the single particle constraint on Vscloc
 	void single_particle_constraint(double sp_constraint);
-	
 };
 
 #endif
