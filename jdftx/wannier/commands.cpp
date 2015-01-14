@@ -29,6 +29,7 @@ enum WannierMember
 	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
+	WM_mainWindow,
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
@@ -44,6 +45,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
+	WM_mainWindow, "mainWindow",
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
@@ -83,7 +85,10 @@ struct CommandWannier : public Command
 			"    bStart is ignored if outerWindow is specified.\n"
 			"  innerWindow <eMin> <eMax>\n"
 			"    Inner energy window within which bands are used exactly.\n"
-			"    Outer energy window must be specified to use this.\n"
+			"    Requires outerWindow, and innerWindow must be its subset.\n"
+			"  mainWindow <eMin> <eMax> <nMain>\n"
+			"    Main energy window within which bands contribute only to the first <nMain> centers.\n"
+			"    Requires innerWindow, and mainWindow must be its subset.\n"
 			"  saveWfns yes|no\n"
 			"    Whether to write supercell wavefunctions in a spherical reciprocal-space basis.\n"
 			"    Default: no.\n"
@@ -134,6 +139,13 @@ struct CommandWannier : public Command
 					pl.get(wannier.eInnerMax, 0., "eMax", true);
 					wannier.innerWindow = true;
 					break;
+				case WM_mainWindow:
+					pl.get(wannier.eMainMin, 0., "eMin", true);
+					pl.get(wannier.eMainMax, 0., "eMax", true);
+					pl.get(wannier.nMain, 0, "nMain", true);
+					if(wannier.nMain <= 0) throw string("nMain must be > 0");
+					wannier.mainWindow = true;
+					break;
 				case WM_saveWfns:
 					pl.get(wannier.saveWfns, false, boolMap, "saveWfns", true);
 					break;
@@ -171,10 +183,17 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
-		if(wannier.outerWindow) logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
-		if(wannier.innerWindow) logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
-		if(!(wannier.innerWindow || wannier.outerWindow))
-			logPrintf(" \\\n\tbStart %d", wannier.bStart);
+		if(wannier.outerWindow)
+		{	logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
+			if(wannier.innerWindow)
+			{	logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
+				if(wannier.mainWindow)
+					logPrintf(" \\\n\tmainWindow %lg %lg %d", wannier.eMainMin, wannier.eMainMax, wannier.nMain);
+			}
+		}
+		else
+		{	logPrintf(" \\\n\tbStart %d", wannier.bStart);
+		}
 		if(wannier.numericalOrbitalsFilename.length())
 		{	logPrintf(" \\\n\tnumericalOrbitals %s", wannier.numericalOrbitalsFilename.c_str());
 			const vector3<>& offs = wannier.numericalOrbitalsOffset;

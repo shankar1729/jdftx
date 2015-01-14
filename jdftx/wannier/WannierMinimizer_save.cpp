@@ -61,7 +61,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	{	KmeshEntry& ke = kMesh[ik];
 		
 		//Band ranges:
-		int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
+		int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0, bMainStart=0, bMainStop=0;
 		if(wannier.outerWindow)
 		{	const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
 			bStart = 0;
@@ -90,16 +90,34 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						<< ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
 					break;
 				}
+				//Optionally range for main window:
+				if(wannier.mainWindow)
+				{	bMainStart = bFixedStart;
+					while(bMainStart<bFixedStop && eigs[bMainStart]<wannier.eMainMin)
+						bMainStart++;
+					bMainStop = bMainStart;
+					while(bMainStop<bFixedStop && eigs[bMainStop]<=wannier.eMainMax)
+						bMainStop++;
+					if(bMainStop-bMainStart > wannier.nMain)
+					{	ossErr << "Number of bands within main window = " << bFixedStop-bFixedStart
+							<< " exceeds nMain = " << wannier.nMain << " at k = [ "
+							<< ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
+						break;
+					}
+				}
+				else bMainStart = bMainStop = bFixedStart; //main interval is empty
 			}
 			else bFixedStart = bFixedStop = bStart; //fixed interval is empty
 		}
 		else //fixed bands
 		{	bFixedStart = bStart = wannier.bStart;
 			bFixedStop  = bStop  = wannier.bStart + nCenters;
+			bMainStart = bMainStop = bFixedStart;
 		}
 		
 		//Initial rotation of bands to get to Wannier subspace:
 		ke.nFixed = bFixedStop - bFixedStart;
+		ke.nMainIn = bMainStop - bMainStart;
 		int nFree = nCenters - ke.nFixed;
 		ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace	
 		if(wannier.loadRotations)
@@ -112,7 +130,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ke.U1 = zeroes(nBands, ke.nIn);
 			ke.U1.set(0,nBands, 0,nCenters, ke.U * dagger(ke.U2));
 			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
-				|| (bStop>nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
+				|| (bStop<nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
 			{	ossErr << "Initial matrices are incompatible with current outer window / band selection.\n";
 				break;
 			}
@@ -137,7 +155,19 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ke.U1 = zeroes(nBands, ke.nIn);
 			//--- Pick up fixed bands directly
 			if(ke.nFixed > 0)
-				ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, eye(ke.nFixed));
+			{	int nDone = 0;
+				#define ADD_BANDS(b0, b1) \
+					if(b0 < b1) \
+					{	int nDim = b1 - b0; \
+						ke.U1.set(b0,b1, nDone,nDone+nDim, eye(nDim)); \
+						nDone += nDim; \
+					}
+				ADD_BANDS(bMainStart, bMainStop) //put the main window bands first
+				ADD_BANDS(bFixedStart, bMainStart) //then the fixed window below the main window
+				ADD_BANDS(bMainStop, bFixedStop) //and finally the fixed window above the main window
+				#undef ADD_BANDS
+				assert(nDone == ke.nFixed);
+			}
 			//--- Pick up best linear combination of remaining bands (if any)
 			if(nFree > 0)
 			{	//Create overlap matrix with contribution from fixed bands projected out:
@@ -170,7 +200,17 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			
 			//Optimal initial rotation within Wannier subspace:
 			matrix WdagG = dagger(ke.U1(0,nBands, 0,nCenters)) * CdagG;
-			ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
+			if(wannier.mainWindow)
+			{	//pick best rotation that is block diagonal (nMain, nCenters-nMain)
+				matrix WdagG1 = WdagG(0,wannier.nMain, 0,wannier.nMain);
+				matrix WdagG2 = WdagG(wannier.nMain,nCenters, wannier.nMain,nCenters);
+				ke.U2 = zeroes(nCenters, nCenters);
+				ke.U2.set(0,wannier.nMain, 0,wannier.nMain,
+					WdagG1 * invsqrt(dagger(WdagG1) * WdagG1));
+				ke.U2.set(wannier.nMain,nCenters, wannier.nMain,nCenters,
+					WdagG2 * invsqrt(dagger(WdagG2) * WdagG2));
+			}
+			else ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
 		}
 	}
 	mpiUtil->checkErrors(ossErr);

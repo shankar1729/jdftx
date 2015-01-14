@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizerRS.h>
 
 Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference),
-	bStart(0), outerWindow(false), innerWindow(false),
+	bStart(0), outerWindow(false), innerWindow(false), mainWindow(false), nMain(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5)
 {
@@ -36,6 +36,16 @@ void Wannier::setup(const Everything& everything)
 	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "Omega";
 	//Check window settings:
+	if(mainWindow)
+	{	if(!innerWindow) die("Main window requires that an inner window be specified.\n");
+		if(eMainMin<eInnerMin || eMainMax>eInnerMax)
+			die("Main window must lie entirely within the inner window.\n");
+		if(nMain <= 0)
+			die("nMain must be strictly positive.\n");
+		if(nMain >= int(trialOrbitals.size()))
+			die("nMain must be strictly less than the number of Wannier centers (%d).\n", int(trialOrbitals.size()));
+		die("Implementationof main window incomplete.\n");
+	}
 	if(innerWindow)
 	{	if(!outerWindow) die("Inner window requires that an outer window be specified.\n");
 		if(eInnerMin<eOuterMin || eInnerMax>eOuterMax)

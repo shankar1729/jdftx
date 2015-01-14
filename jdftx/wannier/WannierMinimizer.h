@@ -73,6 +73,7 @@ public:
 		//State of system for Wannier minimize:
 		int nIn; //number of bands that contribute to the Wannier subspace
 		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
+		int nMainIn; //number of bands that contribute only to the first nMain centers
 		matrix B; //!< Independent variable for minimization (nCenters x nIn)
 		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
 		//Stage 1: Select linear cominations of bands that enter Wannier subspace
