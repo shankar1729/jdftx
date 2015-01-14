@@ -58,6 +58,7 @@ public:
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
 	double compute(WannierGradient* grad);
+	bool report(int iter);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	//! Entries in the k-point mesh
@@ -75,6 +76,7 @@ public:
 		matrix B; //!< Independent variable for minimization (nCenters x nIn)
 		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
 		//Stage 1: Select linear cominations of bands that enter Wannier subspace
+		matrix calc_V1();
 		matrix U1, V1, B1evecs; //U1 = initial rotation (nBands x nIn), V1 = subsequent rotation from B (nIn x nCenters)
 		diagMatrix B1eigs;
 		//Stage 2: Rotations within Wannier subspace (all nCenters x nCenters)

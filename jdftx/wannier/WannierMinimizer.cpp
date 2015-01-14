@@ -84,19 +84,25 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		axpy(alpha, grad[ik], kMesh[ik].B);
 }
 
+matrix WannierMinimizer::KmeshEntry::calc_V1()
+{	int nCenters = U2.nRows();
+	if(nIn > nCenters)
+	{	matrix B1block = B(nFixed,nCenters, nCenters,nIn);
+		matrix B1 = zeroes(nIn, nIn);
+		B1.set(nFixed,nCenters, nCenters,nIn, B1block);
+		B1.set(nCenters,nIn, nFixed,nCenters, dagger(B1block));
+		return cis(B1, &B1evecs, &B1eigs);
+	}
+	else return eye(nCenters);
+}
+
+
 double WannierMinimizer::compute(WannierGradient* grad)
 {	//Compute the unitary matrices:
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
 		//Stage 1:
-		if(ki.nIn > nCenters)
-		{	matrix B1block = ki.B(ki.nFixed,nCenters, nCenters,ki.nIn);
-			matrix B1 = zeroes(ki.nIn, ki.nIn);
-			B1.set(ki.nFixed,nCenters, nCenters,ki.nIn, B1block);
-			B1.set(nCenters,ki.nIn, ki.nFixed,nCenters, dagger(B1block));
-			ki.V1 = cis(B1, &ki.B1evecs, &ki.B1eigs)(0,ki.nIn, 0,nCenters);
-		}
-		else ki.V1 = eye(nCenters);
+		ki.V1 = ki.calc_V1()(0,ki.nIn, 0,nCenters);
 		//Stage 2:
 		ki.V2 = cis(ki.B(0,nCenters, 0,nCenters), &ki.B2evecs, &ki.B2eigs);
 		//Net rotation:
@@ -122,6 +128,30 @@ double WannierMinimizer::compute(WannierGradient* grad)
 		}
 	}
 	return Omega;
+}
+
+bool WannierMinimizer::report(int iter)
+{	if(e.cntrl.overlapCheckInterval && (iter % e.cntrl.overlapCheckInterval == 0))
+	{	bool needRestart = false;
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+			if(nrm2(kMesh[ik].B) > e.cntrl.overlapConditionThreshold)
+			{	needRestart = true;
+				break;
+			}
+		mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
+		if(needRestart)
+		{	logPrintf("%s\tUpdating initial rotations to mitigate large |B| issues\n",
+				wannier.minParams.linePrefix);
+			for(size_t ik=ikStart; ik<ikStop; ik++)
+			{	KmeshEntry& ki = kMesh[ik];
+				ki.U1 = ki.U1 * ki.calc_V1();
+				ki.U2 = ki.U2 * ki.V2;
+				ki.B.zero();
+			}
+			return true;
+		}
+	}
+    return false;
 }
 
 double WannierMinimizer::sync(double x) const
