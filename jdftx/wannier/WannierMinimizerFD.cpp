@@ -129,6 +129,25 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			edge.point.k = kj;
 			kpoints.insert(edge.point);
 		}
+	
+	//Initialize preconditioner:
+	logPrintf("Initializing preconditioner ... "); logFlush();
+	double kappa = M_PI * pow(e.gInfo.detR, 1./3); //inverse screening length (in k-space) set by cell size
+	matrix helmholtz = zeroes(kMesh.size(), kMesh.size());
+	complex* helmholtzData = helmholtz.data();
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	double wSum = 0.;
+		const double wk = kMesh[ik].point.weight;
+		for(const Edge& edge: edges[ik])
+		{	wSum += 2*edge.wb;
+			helmholtzData[helmholtz.index(ik,edge.ik)] -= wk * edge.wb;
+			helmholtzData[helmholtz.index(edge.ik,ik)] -= wk * edge.wb;
+		}
+		helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
+	}
+	helmholtz.allReduce(MPIUtil::ReduceSum);
+	kHelmholtzInv = dagger_symmetrize(inv(helmholtz))(ikStart,ikStop, 0,kMesh.size()); //invert and split over MPI
+	logPrintf("done.\n"); logFlush();
 }
 
 void WannierMinimizerFD::initialize(int iSpin)
@@ -240,4 +259,31 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 	}
 	mpiUtil->allReduce(OmegaI, MPIUtil::ReduceSum);
 	return OmegaI;
+}
+
+WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
+{	static StopWatch watch("WannierMinimizerFD::precondition"); watch.start();
+	assert(grad.size()==kMesh.size());
+	//Figure out max input bands for any kpoint:
+	int nInMax = 0;
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+		nInMax = std::max(nInMax, kMesh[ik].nIn);
+	mpiUtil->allReduce(nInMax, MPIUtil::ReduceMax);
+	//Copy each matrix of gradient into a column of a giant matrix:
+	matrix gradMat = zeroes(nCenters*nInMax, ikStop-ikStart);
+	complex* gradMatData = gradMat.dataPref();
+    for(size_t ik=ikStart; ik<ikStop; ik++)
+		callPref(eblas_copy)(gradMatData+gradMat.index(0,ik-ikStart), grad[ik].dataPref(), grad[ik].nData());
+	//Apply preconditioner:
+	matrix KgradMat = gradMat * kHelmholtzInv;
+	KgradMat.allReduce(MPIUtil::ReduceSum);
+	//Copy result from each column to a small matrix per k-point:
+	WannierGradient Kgrad; Kgrad.init(this);
+	const complex* KgradMatData = KgradMat.dataPref();
+    for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	Kgrad[ik].init(nCenters, kMesh[ik].nIn, isGpuEnabled());
+		callPref(eblas_copy)(Kgrad[ik].dataPref(), KgradMatData+KgradMat.index(0,ik), Kgrad[ik].nData());
+	}
+	watch.stop();
+	return Kgrad;
 }

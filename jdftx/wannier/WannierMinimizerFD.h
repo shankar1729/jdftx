@@ -30,7 +30,8 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
-
+	WannierGradient precondition(const WannierGradient& grad);
+	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct Edge
 	{	double wb; //!< weight of neighbour
@@ -40,6 +41,7 @@ public:
 		matrix M0; //!< initial overlap matrix for this pair (after applying the initial unitary rotations)
 	};
 	std::vector< std::vector<Edge> > edges;
+	matrix kHelmholtzInv;
 };
 
 #endif //JDFTX_WANNIER_WANNIERMINIMIZERFD_H
