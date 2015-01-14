@@ -53,9 +53,34 @@ void MPIUtil::exit(int errCode) const
 	#ifdef MPI_ENABLED
 	MPI_Abort(MPI_COMM_WORLD, errCode);
 	#else
-	exit(errCode);
+	::exit(errCode);
 	#endif
 }
+
+void MPIUtil::checkErrors(const ostringstream& oss) const
+{	const string buf = oss.str();
+	int nChars = buf.length();
+	//Find total length:
+	int nCharsTot = nChars; allReduce(nCharsTot, ReduceSum);
+	if(!nCharsTot) return; //no errors
+	//Put together all error messages:
+	string bufTot(nCharsTot, ' ');
+	char* bufTotData = &bufTot[0];
+	for(int jProcess=0; jProcess<nProcesses(); jProcess++)
+	{	int nChars_j = nChars; bcast(nChars_j, jProcess);
+		if(jProcess==iProcess())
+			memcpy(bufTotData, &buf[0], nChars_j);
+		bcast(bufTotData, nChars_j, jProcess);
+		bufTotData += nChars_j;
+	}
+	//Mimic the behaviour of die with collected error message:
+	fputs(bufTot.c_str(), globalLog);
+	if(mpiUtil->isHead() && globalLog != stdout)
+		fputs(bufTot.c_str(), stderr);
+	finalizeSystem(false);
+	::exit(1);
+}
+
 
 //----------------------- Point-to-point routines -------------------------------
 

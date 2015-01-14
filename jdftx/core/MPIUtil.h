@@ -41,6 +41,8 @@ public:
 	~MPIUtil();
 	void exit(int errCode) const; //!< global exit (kill other MPI processes as well)
 
+	void checkErrors(const ostringstream&) const; //!< collect error messages from all processes; if any, display them and quit
+	
 	//Point-to-point functions:
 	template<typename T> void send(const T* data, size_t nData, int dest, int tag) const; //!< generic array send
 	template<typename T> void recv(T* data, size_t nData, int src, int tag) const; //!< generic array receive

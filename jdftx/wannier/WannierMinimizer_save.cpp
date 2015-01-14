@@ -56,6 +56,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Compute the initial rotations for current group of centers:
+	ostringstream ossErr;
 	for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
 	{	KmeshEntry& ke = kMesh[ik];
 		
@@ -70,8 +71,11 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			while(bStop<nBands && eigs[bStop]<=wannier.eOuterMax)
 				bStop++;
 			if(bStop-bStart < nCenters)
-				die("Number of bands within outer window = %d less than nCenters = %d at k = [ %lg %lg %lg ]\n",
-					bStop-bStart, nCenters, ke.point.k[0], ke.point.k[1], ke.point.k[2]);
+			{	ossErr << "Number of bands within outer window = " << bStop-bStart
+					<< " less than nCenters = " << nCenters << " at k = [ "
+					<< ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
+				break;
+			}
 			//Optionally range for inner window:
 			if(wannier.innerWindow)
 			{	bFixedStart = bStart;
@@ -81,8 +85,11 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				while(bFixedStop<bStop && eigs[bFixedStop]<=wannier.eInnerMax)
 					bFixedStop++;
 				if(bFixedStop-bFixedStart > nCenters)
-					die("Number of bands within inner window = %d exceeds nCenters = %d at k = [ %lg %lg %lg ]\n",
-						bFixedStop-bFixedStart, nCenters, ke.point.k[0], ke.point.k[1], ke.point.k[2]);
+				{	ossErr << "Number of bands within inner window = " << bStop-bStart
+						<< " exceeds nCenters = " << nCenters << " at k = [ "
+						<< ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
+					break;
+				}
 			}
 			else bFixedStart = bFixedStop = bStart; //fixed interval is empty
 		}
@@ -99,20 +106,24 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
 			//--- check unitarity:
 			const double tol = 1e-6 * nCenters;
-			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol) die("Initial matrices U are not unitary.\n");
-			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol) die("Initial matrices U2 are not unitary.\n");
+			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol) { ossErr << "Initial matrices U are not unitary.\n"; break; }
+			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol) { ossErr << "Initial matrices U2 are not unitary.\n"; break; }
 			//--- compute and check U1:
 			ke.U1 = zeroes(nBands, ke.nIn);
 			ke.U1.set(0,nBands, 0,nCenters, ke.U * dagger(ke.U2));
 			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
 				|| (bStop>nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
-				die("Initial matrices are incompatible with current outer window / band selection.\n");
+			{	ossErr << "Initial matrices are incompatible with current outer window / band selection.\n";
+				break;
+			}
 			if( ke.nFixed>0
 				&& ( (nrm2(ke.U1(bFixedStart,bFixedStop, 0,ke.nFixed) - eye(ke.nFixed))>tol)
 				|| (bStart<bFixedStart && nrm2(ke.U1(bStart,bFixedStop, 0,ke.nFixed))>tol)
 				|| (bFixedStop<bStop && nrm2(ke.U1(bFixedStop,bStop, 0,ke.nFixed))>tol)
 				|| (nFree>0 && nrm2(ke.U1(bFixedStart,bFixedStop, ke.nFixed,nCenters))>tol) ) )
-				die("Initial matrices are incompatible with current inner window.\n");
+			{	ossErr << "Initial matrices are incompatible with current inner window.\n";
+				break;
+			}
 			//--- Compute extra linearly indep columns of U1 (if necessary):
 			if(ke.nIn > nCenters)
 			{	matrix U, Vdag; diagMatrix S;
@@ -162,6 +173,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ke.U2 = WdagG * invsqrt(dagger(WdagG) * WdagG);
 		}
 	}
+	mpiUtil->checkErrors(ossErr);
 	suspendOperatorThreading();
 	
 	//Broadcast initial rotations:

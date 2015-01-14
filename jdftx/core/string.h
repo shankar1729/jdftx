@@ -80,7 +80,7 @@ struct istringstream : public std::istringstream
 	void str(const string& s) { std::istringstream::str(std::string(s.c_str())); }
 };
 struct ostringstream : public std::ostringstream
-{	string str() { return string(std::ostringstream::str().c_str()); }
+{	string str() const { return string(std::ostringstream::str().c_str()); }
 };
 
 #endif
