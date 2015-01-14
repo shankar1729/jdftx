@@ -705,6 +705,12 @@ double trace(const diagMatrix& A)
 	return ret;
 }
 
+double nrm2(const diagMatrix& A)
+{	double ret=0.0;
+	for(double d: A) ret += d*d;
+	return sqrt(ret);
+}
+
 diagMatrix diag(const matrix &A)
 {	assert(A.nRows()==A.nCols());
 	diagMatrix ret(A.nRows());

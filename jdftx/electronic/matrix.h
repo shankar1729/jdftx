@@ -219,6 +219,7 @@ matrix cis_grad(const matrix& grad_cisA, const matrix& Aevecs, const diagMatrix&
 //------------ Misc matrix functions --------------
 complex trace(const matrix &m);
 double trace(const diagMatrix& m);
+double nrm2(const diagMatrix& m);
 diagMatrix diag(const matrix &m); //!< obtain the real diagonal part of a hermitian matrix
 diagMatrix eye(int N); //!< identity
 matrix zeroes(int nRows, int nCols); //!< a dense-matrix of zeroes

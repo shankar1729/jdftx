@@ -41,17 +41,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
-		//Read U2:
-		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU2", &iSpin);
-		fp = fopen(fname.c_str(), "r");
-		if(!fp) die("Could not open '%s' for reading.\n", fname.c_str());
-		logPrintf("Reading initial outer rotations from '%s' ... ", fname.c_str());
-		for(auto& ke: kMesh)
-		{	ke.U2.init(nCenters, nCenters);
-			ke.U2.read(fp);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
 		logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
 	}
 	
@@ -119,27 +108,62 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		ke.nFixed = bFixedStop - bFixedStart;
 		ke.nMainIn = bMainStop - bMainStart;
 		int nFree = nCenters - ke.nFixed;
-		ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace	
+		ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace
+		//--- Create fixed part of U1 (if any):
+		ke.U1 = zeroes(nBands, ke.nIn);
+		if(ke.nFixed > 0)
+		{	int nDone = 0;
+			#define ADD_BANDS(b0, b1) \
+				if(b0 < b1) \
+				{	int nDim = b1 - b0; \
+					ke.U1.set(b0,b1, nDone,nDone+nDim, eye(nDim)); \
+					nDone += nDim; \
+				}
+			ADD_BANDS(bMainStart, bMainStop) //put the main window bands first
+			ADD_BANDS(bFixedStart, bMainStart) //then the fixed window below the main window
+			ADD_BANDS(bMainStop, bFixedStop) //and finally the fixed window above the main window
+			#undef ADD_BANDS
+			assert(nDone == ke.nFixed);
+		}
 		if(wannier.loadRotations)
 		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
 			//--- check unitarity:
 			const double tol = 1e-6 * nCenters;
-			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol) { ossErr << "Initial matrices U are not unitary.\n"; break; }
-			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol) { ossErr << "Initial matrices U2 are not unitary.\n"; break; }
-			//--- compute and check U1:
-			ke.U1 = zeroes(nBands, ke.nIn);
-			ke.U1.set(0,nBands, 0,nCenters, ke.U * dagger(ke.U2));
-			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
-				|| (bStop<nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
-			{	ossErr << "Initial matrices are incompatible with current outer window / band selection.\n";
+			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol)
+			{	ossErr << "Initial rotations U are not unitary.\n";
 				break;
 			}
-			if( ke.nFixed>0
-				&& ( (nrm2(ke.U1(bFixedStart,bFixedStop, 0,ke.nFixed) - eye(ke.nFixed))>tol)
-				|| (bStart<bFixedStart && nrm2(ke.U1(bStart,bFixedStop, 0,ke.nFixed))>tol)
-				|| (bFixedStop<bStop && nrm2(ke.U1(bFixedStop,bStop, 0,ke.nFixed))>tol)
-				|| (nFree>0 && nrm2(ke.U1(bFixedStart,bFixedStop, ke.nFixed,nCenters))>tol) ) )
-			{	ossErr << "Initial matrices are incompatible with current inner window.\n";
+			//--- determine the free columns of U1:
+			if(nFree > 0)
+			{	matrix U1free = ke.U;
+				//project out the fixed columns (if any):
+				if(ke.nFixed > 0)
+				{	U1free -= ke.U1*(dagger(ke.U1) * ke.U);
+					//SVD to find the remaining non-null columns:
+					matrix U, Vdag; diagMatrix S;
+					U1free.svd(U, S, Vdag);
+					if(nrm2(S(0,nFree)-eye(nFree))>tol || nrm2(S(nFree,nCenters))>tol)
+					{	ossErr << "Initial rotations are incompatible with current inner window.\n";
+						break;
+					}
+					U1free = U(0,nBands, 0,nFree); //discard null subspace
+				}
+				ke.U1.set(0,nBands, ke.nFixed,nCenters, U1free);
+			}
+			//--- check U1:
+			if(nrm2((dagger(ke.U1) * ke.U1)(0,nCenters, 0,nCenters) - eye(nCenters)) > tol)
+			{	ossErr << "Initial rotations U1 are not unitary.\n";
+				break;
+			}
+			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
+				|| (bStop<nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
+			{	ossErr << "Initial rotations are incompatible with current outer window / band selection.\n";
+				break;
+			}
+			//--- calculate and check U2:
+			ke.U2 = dagger(ke.U1(0,nBands, 0,nCenters)) * ke.U;
+			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol)
+			{	ossErr << "Initial rotations U2 are not unitary.\n";
 				break;
 			}
 			//--- Compute extra linearly indep columns of U1 (if necessary):
@@ -152,22 +176,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		else
 		{	//Determine from trial orbitals:
 			matrix CdagG = getWfns(ke.point, iSpin) ^ trialWfns(ke.point);
-			ke.U1 = zeroes(nBands, ke.nIn);
-			//--- Pick up fixed bands directly
-			if(ke.nFixed > 0)
-			{	int nDone = 0;
-				#define ADD_BANDS(b0, b1) \
-					if(b0 < b1) \
-					{	int nDim = b1 - b0; \
-						ke.U1.set(b0,b1, nDone,nDone+nDim, eye(nDim)); \
-						nDone += nDim; \
-					}
-				ADD_BANDS(bMainStart, bMainStop) //put the main window bands first
-				ADD_BANDS(bFixedStart, bMainStart) //then the fixed window below the main window
-				ADD_BANDS(bMainStop, bFixedStop) //and finally the fixed window above the main window
-				#undef ADD_BANDS
-				assert(nDone == ke.nFixed);
-			}
 			//--- Pick up best linear combination of remaining bands (if any)
 			if(nFree > 0)
 			{	//Create overlap matrix with contribution from fixed bands projected out:
@@ -263,28 +271,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		for(const auto& ke: kMesh) ke.U.write(fp);
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
-		//Write U2:
-		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU2", &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str());
-		fp = fopen(fname.c_str(), "w");
-		for(unsigned ik=0; ik<kMesh.size(); ik++)
-		{	const KmeshEntry& ke = kMesh[ik];
-			matrix U2out;
-			if(isMine(ik)) U2out = ke.U2 * ke.V2;
-			else
-			{	U2out = zeroes(nCenters,nCenters);
-				U2out.recv(whose(ik)); //recieve from another process (see below)
-			}
-			U2out.write(fp);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	else
-	{	for(unsigned ik=ikStart; ik<ikStop; ik++)
-		{	const KmeshEntry& ke = kMesh[ik];
-			(ke.U2 * ke.V2).send(0); //send to head for output (see above)
-		}
 	}
 	
 	bool realPartOnly = !e.eInfo.isNoncollinear(); //cannot save only real part in noncollinear calculations
