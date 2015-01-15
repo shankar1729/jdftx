@@ -208,7 +208,7 @@ commandWannier;
 
 struct CommandWannierCenter : public Command
 {
-	CommandWannierCenter() : Command("wannier-center", "Wannier")
+	CommandWannierCenter(string suffix=string()) : Command("wannier-center" + suffix, "Wannier")
 	{
 		format = "<aorb1> [<aorb2> ...]";
 		comments =
@@ -323,6 +323,39 @@ struct CommandWannierCenter : public Command
 	}
 }
 commandWannierCenter;
+
+
+struct CommandWannierCenterPinned : public CommandWannierCenter
+{
+	CommandWannierCenterPinned(string suffix=string()) : CommandWannierCenter("-pinned")
+	{	comments =
+			"Same as command wannier-center, except that the minimizer tries to\n"
+			"center this orbital at the specified guess positions (weighted mean\n"
+			"of the orbital centers, if usinga  linear combination). This can help\n"
+			"improve the minimizer conditioning if the centers are known by symmetry.";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	CommandWannierCenter::process(pl, e);
+		Wannier::TrialOrbital& t = wannier.trialOrbitals.back();
+		t.pinned = true;
+		vector3<> r0 = t.front().r;
+		vector3<> rSum; double wSum = 0.;
+		for(const Wannier::AtomicOrbital& ao: t)
+		{	//find position with minimum image convention from first position:
+			vector3<> dr = ao.r - r0;
+			for(int j=0; j<3; j++)
+				dr[j] = floor(0.5 + dr[j]);
+			vector3<> r = r0 + dr;
+			//collect with weights:
+			double weight = std::pow(ao.coeff, 2);
+			rSum += weight * r;
+			wSum += weight;
+		}
+		t.rCenter = (1./wSum) * rSum;
+	}
+}
+commandWannierCenterPinned;
 
 
 struct CommandWannierMinimize : public CommandMinimize

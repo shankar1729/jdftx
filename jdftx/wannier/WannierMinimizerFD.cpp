@@ -212,8 +212,12 @@ double WannierMinimizerFD::getOmega(bool grad)
 	
 	//Compute the total variance of the Wannier centers
 	double Omega = 0.;
+	std::vector< vector3<> > mHalf_Omega_rExpect(nCenters); //-1/2 dOmega/d(rExpect[n])
 	for(int n=0; n<nCenters; n++)
-		Omega += (rSqExpect[n] - rExpect[n].length_squared());
+	{	const vector3<> r0_n = pinned[n] ? rPinned[n] : rExpect[n];
+		Omega += (rSqExpect[n] - 2*dot(rExpect[n],r0_n) + r0_n.length_squared());
+		mHalf_Omega_rExpect[n] = r0_n;
+	}
 	
 	//Compute gradients if required:
 	if(grad)
@@ -231,7 +235,7 @@ double WannierMinimizerFD::getOmega(bool grad)
 					double argMnn = atan2(Mnn.imag(), Mnn.real());
 					Omega_Mdata[Omega_M.index(n,n)] =
 						2. * ki.point.weight * edge.wb
-						* ((argMnn + dot(rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
+						* ((argMnn + dot(mHalf_Omega_rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate Omega_M to Omega_U:
 				ki.Omega_U += dagger(edge.M0 * kj.U * Omega_M);

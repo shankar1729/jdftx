@@ -39,7 +39,11 @@ public:
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
 	};
-	typedef std::vector<AtomicOrbital> TrialOrbital;
+	struct TrialOrbital : public std::vector<AtomicOrbital>
+	{	bool pinned;
+		vector3<> rCenter;
+		TrialOrbital() : pinned(false) {}
+	};
 	std::vector<TrialOrbital> trialOrbitals; //!< group of centers
 	bool needAtomicOrbitals;
 	

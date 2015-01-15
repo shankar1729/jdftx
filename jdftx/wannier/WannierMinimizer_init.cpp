@@ -28,7 +28,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1), qCount(e.eInfo.qnums.size()/nSpins),
 	nSpinor(e.eInfo.spinorLength()),
-	rSqExpect(nCenters), rExpect(nCenters),
+	rSqExpect(nCenters), rExpect(nCenters), pinned(nCenters), rPinned(nCenters),
 	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length()),
 	nPhononModes(0)
 {
@@ -99,6 +99,13 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	ikStopArr.resize(mpiUtil->nProcesses());
 	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
 		ikStopArr[iProc] = (kMesh.size() * (iProc+1)) / mpiUtil->nProcesses();
+	
+	//Initialized pinned arrays:
+	for(int n=0; n<nCenters; n++)
+	{	pinned[n] = wannier.trialOrbitals[n].pinned;
+		if(pinned[n])
+			rPinned[n] = e.gInfo.R * wannier.trialOrbitals[n].rCenter;
+	}
 	
 	//Check phonon supercell validity:
 	if(wannier.phononSup.length_squared())

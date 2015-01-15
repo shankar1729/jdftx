@@ -71,34 +71,54 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>());
 	ColumnBundle Omega_Csuper; if(grad) { Omega_Csuper = Csuper.similar(); Omega_Csuper.zero(); }
-	for(int n=nStart; n<nStop; n++) for(int s=0; s<nSpinor; s++)
-	{	complexDataRptr psi = I(Csuper.getColumn(n,s)), Omega_psi;
-		double rSqExpect_n = gInfoSuper.dV * dot(psi, rSq*psi).real();
-		if(grad) Omega_psi += (2*gInfoSuper.dV) * (rSq*psi);
-		vector3<> rExpect_n;
-		for(int dir=0; dir<3; dir++)
-		{	rExpect_n[dir] = gInfoSuper.dV * dot(psi, r[dir]* psi).real();
-			if(grad) Omega_psi += (-2.*rExpect_n[dir] * 2*gInfoSuper.dV) * r[dir]*psi;
+	for(int n=nStart; n<nStop; n++)
+	{	std::vector<complexDataRptr> psi(nSpinor), Omega_psi(nSpinor);
+		//|r^2| contribution:
+		for(int s=0; s<nSpinor; s++)
+		{	psi[s] = I(Csuper.getColumn(n,s));
+			complexDataRptr rSq_psi = rSq * psi[s];
+			rSqExpect[n] += gInfoSuper.dV * dot(psi[s], rSq_psi).real();
+			if(grad) Omega_psi[s] += (2*gInfoSuper.dV) * rSq_psi;
 		}
-		rSqExpect[n] += rSqExpect_n;
-		rExpect[n] += rExpect_n;
-		Omega += (rSqExpect_n - rExpect_n.length_squared());
+		//|r|^2 contribution:
+		for(int dir=0; dir<3; dir++)
+			for(int s=0; s<nSpinor; s++)
+				rExpect[n][dir] += gInfoSuper.dV * dot(psi[s], r[dir]* psi[s]).real();
+		//Accumulate contributions to Omega:
+		bool shouldPin = pinned[n] && !invariant;
+		const vector3<> r0_n = shouldPin ? rPinned[n] : rExpect[n];
+		Omega += (rSqExpect[n] - 2*dot(rExpect[n],r0_n) + r0_n.length_squared());
+		//Propagate gradient via rExpect:
+		if(grad)
+		{	for(int dir=0; dir<3; dir++)
+				for(int s=0; s<nSpinor; s++)
+					Omega_psi[s] += (-2.*r0_n[dir] * 2*gInfoSuper.dV) * r[dir]*psi[s];
+		}
 		//Off-diagonal corrections to get the invariant part (expensive):
 		if(invariant)
 		{	for(int m=0; m<nCenters; m++) if(m != n)
-			{	complexDataRptr psi_m = I(Csuper.getColumn(m,s)), Omega_psi_m;
+			{	std::vector<complexDataRptr> psi_m(2), Omega_psi_m(2);
+				for(int s=0; s<nSpinor; s++)
+					psi_m[s] = I(Csuper.getColumn(m,s));
 				for(int dir=0; dir<3; dir++)
-				{	complex rExpect_mn = gInfoSuper.dV * dot(psi_m, r[dir]* psi);
+				{	complex rExpect_mn;
+					for(int s=0; s<nSpinor; s++)
+						rExpect_mn += gInfoSuper.dV * dot(psi_m[s], r[dir] * psi[s]);
 					Omega -= rExpect_mn.norm();
 					if(grad)
-					{	Omega_psi -= 2*rExpect_mn * gInfoSuper.dV * (r[dir] * psi_m);
-						Omega_psi_m -= 2*rExpect_mn.conj() * gInfoSuper.dV * (r[dir] * psi);
-					}
+						for(int s=0; s<nSpinor; s++)
+						{	Omega_psi[s] -= 2*rExpect_mn * gInfoSuper.dV * (r[dir] * psi_m[s]);
+							Omega_psi_m[s] -= 2*rExpect_mn.conj() * gInfoSuper.dV * (r[dir] * psi[s]);
+						}
 				}
-				if(grad && Omega_psi_m) Omega_Csuper.accumColumn(m,s, Idag(Omega_psi_m));
+				if(grad)
+					for(int s=0; s<nSpinor; s++)
+						Omega_Csuper.accumColumn(m,s, Idag(Omega_psi_m[s]));
 			}
 		}
-		if(grad) Omega_Csuper.accumColumn(n,s, Idag(Omega_psi));
+		if(grad)
+			for(int s=0; s<nSpinor; s++)
+				Omega_Csuper.accumColumn(n,s, Idag(Omega_psi[s]));
 	}
 	mpiUtil->allReduce(Omega, MPIUtil::ReduceSum);
 	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);

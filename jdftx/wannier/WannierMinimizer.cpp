@@ -154,8 +154,9 @@ double WannierMinimizer::compute(WannierGradient* grad)
 bool WannierMinimizer::report(int iter)
 {	if(e.cntrl.overlapCheckInterval && (iter % e.cntrl.overlapCheckInterval == 0))
 	{	bool needRestart = false;
+		double BnormThresh = e.cntrl.overlapConditionThreshold - 1.;
 		for(size_t ik=ikStart; ik<ikStop; ik++)
-			if(nrm2(kMesh[ik].B) > e.cntrl.overlapConditionThreshold)
+			if(nrm2(kMesh[ik].B) > BnormThresh)
 			{	needRestart = true;
 				break;
 			}

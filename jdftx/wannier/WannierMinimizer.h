@@ -113,6 +113,8 @@ protected:
 	int nSpinor; //!< number of spinor components
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
+	std::vector<bool> pinned; //! Whether centers are pinned or free
+	std::vector< vector3<> > rPinned; //! Where centers are pinned to (if they are)
 	
 	//Supercell grid and basis:
 	bool needSuper;
