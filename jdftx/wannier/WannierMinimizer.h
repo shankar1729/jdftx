@@ -83,6 +83,9 @@ public:
 		//Stage 2: Rotations within Wannier subspace (all nCenters x nCenters)
 		matrix U2, V2, B2evecs;
 		diagMatrix B2eigs;
+		//Stage 3: Rotations within main subspace (also nCenters x nCenters, but non-zero only in nMain x nMain)
+		matrix U3, V3, B3evecs;
+		diagMatrix B3eigs;
 	};
 
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization

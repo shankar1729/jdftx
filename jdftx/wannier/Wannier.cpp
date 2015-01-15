@@ -44,7 +44,6 @@ void Wannier::setup(const Everything& everything)
 			die("nMain must be strictly positive.\n");
 		if(nMain >= int(trialOrbitals.size()))
 			die("nMain must be strictly less than the number of Wannier centers (%d).\n", int(trialOrbitals.size()));
-		die("Implementationof main window incomplete.\n");
 	}
 	if(innerWindow)
 	{	if(!outerWindow) die("Inner window requires that an outer window be specified.\n");
