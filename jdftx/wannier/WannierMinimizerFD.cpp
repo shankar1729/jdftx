@@ -268,6 +268,8 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 {	static StopWatch watch("WannierMinimizerFD::precondition"); watch.start();
 	assert(grad.size()==kMesh.size());
+	WannierGradient Kgrad = grad;
+	constrain(Kgrad);
 	//Figure out max input bands for any kpoint:
 	int nInMax = 0;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
@@ -277,17 +279,17 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	matrix gradMat = zeroes(nCenters*nInMax, ikStop-ikStart);
 	complex* gradMatData = gradMat.dataPref();
     for(size_t ik=ikStart; ik<ikStop; ik++)
-		callPref(eblas_copy)(gradMatData+gradMat.index(0,ik-ikStart), grad[ik].dataPref(), grad[ik].nData());
+		callPref(eblas_copy)(gradMatData+gradMat.index(0,ik-ikStart), Kgrad[ik].dataPref(), Kgrad[ik].nData());
 	//Apply preconditioner:
 	matrix KgradMat = gradMat * kHelmholtzInv;
 	KgradMat.allReduce(MPIUtil::ReduceSum);
 	//Copy result from each column to a small matrix per k-point:
-	WannierGradient Kgrad; Kgrad.init(this);
 	const complex* KgradMatData = KgradMat.dataPref();
     for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	Kgrad[ik].init(nCenters, kMesh[ik].nIn, isGpuEnabled());
 		callPref(eblas_copy)(Kgrad[ik].dataPref(), KgradMatData+KgradMat.index(0,ik), Kgrad[ik].nData());
 	}
+	constrain(Kgrad);
 	watch.stop();
 	return Kgrad;
 }

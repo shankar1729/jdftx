@@ -151,6 +151,21 @@ double WannierMinimizer::compute(WannierGradient* grad)
 	return Omega;
 }
 
+WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
+{	WannierGradient Kgrad = grad;
+	constrain(Kgrad);
+	return Kgrad;
+}
+
+void WannierMinimizer::constrain(WannierGradient& grad)
+{	for(size_t ik=ikStart; ik<ikStop; ik++)
+		grad[ik].set(0,nCenters, 0,nCenters, dagger_symmetrize(grad[ik](0,nCenters, 0,nCenters)));
+}
+
+inline matrix fixUnitary(const matrix& U)
+{	return U * invsqrt(dagger(U) * U);
+}
+
 bool WannierMinimizer::report(int iter)
 {	if(e.cntrl.overlapCheckInterval && (iter % e.cntrl.overlapCheckInterval == 0))
 	{	bool needRestart = false;
@@ -162,13 +177,23 @@ bool WannierMinimizer::report(int iter)
 			}
 		mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
 		if(needRestart)
-		{	logPrintf("%s\tUpdating initial rotations to mitigate large |B| issues\n",
-				wannier.minParams.linePrefix);
-			for(size_t ik=ikStart; ik<ikStop; ik++)
+			logPrintf("%s\tUpdating initial rotations to mitigate large |B| issues\n", wannier.minParams.linePrefix);
+		else //check unitarity
+		{	for(size_t ik=ikStart; ik<ikStop; ik++)
+				if(nrm2(dagger(kMesh[ik].U) * kMesh[ik].U - eye(nCenters)) > 1e-6)
+				{	needRestart = true;
+					break;
+				}
+			mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
+			if(needRestart)
+				logPrintf("%s\tUpdating initial rotations to enforce unitarity\n", wannier.minParams.linePrefix);
+		}
+		if(needRestart)
+		{	for(size_t ik=ikStart; ik<ikStop; ik++)
 			{	KmeshEntry& ki = kMesh[ik];
-				ki.U1 = ki.U1 * ki.calc_V1();
-				ki.U2 = ki.U2 * ki.V2;
-				ki.U3 = ki.U3 * ki.V3;
+				ki.U1 = fixUnitary(ki.U1 * ki.calc_V1());
+				ki.U2 = fixUnitary(ki.U2 * ki.V2);
+				ki.U3 = fixUnitary(ki.U3 * ki.V3);
 				ki.B.zero();
 			}
 			return true;
