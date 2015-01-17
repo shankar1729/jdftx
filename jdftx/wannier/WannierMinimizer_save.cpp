@@ -293,6 +293,27 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 	}
 	
+	//Output range of centers that span each band
+	if(mpiUtil->isHead())
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandContrib", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		std::vector<int> nMin(nBands, nCenters), nMax(nBands, 0);
+		for(const KmeshEntry& ke: kMesh)
+			for(int n=0; n<nCenters; n++)
+				for(int b=0; b<nBands; b++)
+					if(ke.U(b,n).norm() > 1e-12)
+					{	nMin[b] = std::min(nMin[b], n);
+						nMax[b] = std::max(nMax[b], n);
+					}
+		FILE* fp = fopen(fname.c_str(), "w");
+		for(int b=0; b<nBands; b++)
+		{	if(nMin[b] > nMax[b]) { nMin[b] = nMax[b] = -1; } //unused band
+			fprintf(fp, "%d %d\n", nMin[b], nMax[b]);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
 	bool realPartOnly = !e.eInfo.isNoncollinear(); //cannot save only real part in noncollinear calculations
 	
 	if(wannier.saveWfns || wannier.saveWfnsRealSpace)
