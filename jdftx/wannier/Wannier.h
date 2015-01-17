@@ -56,9 +56,10 @@ public:
 	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
 	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)
 	double eInnerMin, eInnerMax; //!< inner energy window (within which all bands used)
-	double eMainMin, eMainMax; //!< main energy window (within which all bands contribute only to the first nMain centers)
-	bool outerWindow, innerWindow, mainWindow; //!< denotes which windows are available
-	int nMain; //!< number of 'main' centers to which the main window bands contribute
+	bool outerWindow, innerWindow; //!< denotes which windows are available
+	
+	int nFrozen; string frozenUfilename; //!< number of frozen centers, and the filename to read their rotations from
+	int nCenters; //!< total number of centers, those being optimized and frozen
 	
 	bool saveWfns; //!< whether to write wavefunctions
 	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space

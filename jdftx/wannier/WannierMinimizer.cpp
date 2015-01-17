@@ -104,23 +104,11 @@ double WannierMinimizer::compute(WannierGradient* grad)
 		//Stage 1:
 		ki.V1 = ki.calc_V1()(0,ki.nIn, 0,nCenters);
 		//Stage 2:
-		if(ki.nMainIn < nCenters)
-		{	matrix B2 = zeroes(nCenters, nCenters);
-			B2.set(wannier.nMain,nCenters, ki.nMainIn,nCenters, ki.B(wannier.nMain,nCenters, ki.nMainIn,nCenters));
-			if(ki.nMainIn < wannier.nMain)
-				B2.set(ki.nMainIn,wannier.nMain, wannier.nMain,nCenters, ki.B(ki.nMainIn,wannier.nMain, wannier.nMain,nCenters));
-			ki.V2 = cis(B2, &ki.B2evecs, &ki.B2eigs);
-		}
-		else ki.V2 = eye(nCenters);
-		//Stage 3:
-		if(wannier.mainWindow)
-		{	matrix B3 = zeroes(nCenters, nCenters);
-			B3.set(0,wannier.nMain, 0,wannier.nMain, ki.B(0,wannier.nMain, 0,wannier.nMain));
-			ki.V3 = cis(B3, &ki.B3evecs, &ki.B3eigs);
-		}
-		else ki.V3 = eye(nCenters);
+		matrix B2 = zeroes(nCenters, nCenters);
+		B2.set(nFrozen,nCenters, nFrozen,nCenters, ki.B(nFrozen,nCenters, nFrozen,nCenters));
+		ki.V2 = cis(B2, &ki.B2evecs, &ki.B2eigs);
 		//Net rotation:
-		ki.U = ki.U1 * ki.V1 * ki.U2 * ki.V2 * ki.U3 * ki.V3;
+		ki.U = ki.U1 * ki.V1 * ki.U2 * ki.V2;
 	}
 	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
 	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_U = zeroes(nCenters, nBands); //Clear Omega_U
@@ -135,17 +123,11 @@ double WannierMinimizer::compute(WannierGradient* grad)
 		{	KmeshEntry& ki = kMesh[ik];
 			(*grad)[ik] = zeroes(nCenters, ki.nIn);
 			if(ki.nIn > nCenters) //Stage 1:
-			{	matrix Omega_B1 = dagger_symmetrize(cis_grad(ki.V1 * ki.U2 * ki.V2 * ki.U3 * ki.V3 * ki.Omega_U * ki.U1, ki.B1evecs, ki.B1eigs));
+			{	matrix Omega_B1 = dagger_symmetrize(cis_grad(ki.V1 * ki.U2 * ki.V2 * ki.Omega_U * ki.U1, ki.B1evecs, ki.B1eigs));
 				(*grad)[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn));
 			}
-			if(ki.nMainIn < nCenters) //Stage 2:
-			{	matrix Omega_B2 = dagger_symmetrize(cis_grad(ki.V2 * ki.U3 * ki.V3 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2, ki.B2evecs, ki.B2eigs));
-				(*grad)[ik].set(ki.nMainIn,nCenters, ki.nMainIn,nCenters, Omega_B2(ki.nMainIn,nCenters, ki.nMainIn,nCenters));
-			}
-			if(wannier.mainWindow) //Stage 3:
-			{	matrix Omega_B3 = dagger_symmetrize(cis_grad(ki.V3 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2 * ki.V2 * ki.U3, ki.B3evecs, ki.B3eigs));
-				(*grad)[ik].set(0,wannier.nMain, 0,wannier.nMain, Omega_B3(0,wannier.nMain, 0,wannier.nMain));
-			}
+			matrix Omega_B2 = dagger_symmetrize(cis_grad(ki.V2 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2, ki.B2evecs, ki.B2eigs));
+			(*grad)[ik].set(nFrozen,nCenters, nFrozen,nCenters, Omega_B2(nFrozen,nCenters, nFrozen,nCenters));
 		}
 	}
 	return Omega;
@@ -162,7 +144,7 @@ void WannierMinimizer::constrain(WannierGradient& grad)
 		grad[ik].set(0,nCenters, 0,nCenters, dagger_symmetrize(grad[ik](0,nCenters, 0,nCenters)));
 }
 
-inline matrix fixUnitary(const matrix& U)
+matrix WannierMinimizer::fixUnitary(const matrix& U)
 {	return U * invsqrt(dagger(U) * U);
 }
 
@@ -193,7 +175,6 @@ bool WannierMinimizer::report(int iter)
 			{	KmeshEntry& ki = kMesh[ik];
 				ki.U1 = fixUnitary(ki.U1 * ki.calc_V1());
 				ki.U2 = fixUnitary(ki.U2 * ki.V2);
-				ki.U3 = fixUnitary(ki.U3 * ki.V3);
 				ki.B.zero();
 			}
 			return true;
@@ -310,7 +291,7 @@ inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPre
 }
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
-{	ColumnBundle ret(nCenters, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
+{	ColumnBundle ret(nCenters-nFrozen, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ColumnBundle temp = ret.similar(1); //single column for intermediate computations
 	//Generate atomic orbitals if necessary:
 	std::vector<ColumnBundle> psiAtomic;

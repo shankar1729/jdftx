@@ -186,7 +186,10 @@ complex matrix::operator()(int i, int j) const
 void matrixSubGet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out); //implemented in operators.cu
 #endif
 matrix matrix::operator()(int iStart, int iStep,  int iStop, int jStart, int jStep, int jStop) const
-{	assert(iStart>=0 && iStart<nr);
+{	if(iStart==0 && iStep==1 && iStop==nr && jStart==0 && jStep==1 && jStop==nc)
+		return *this; //faster to copy matrix for this special case
+	
+	assert(iStart>=0 && iStart<nr);
 	assert(iStop>iStart && iStop<=nr);
 	assert(iStep>0);
 	assert(jStart>=0 || jStart<nc);
@@ -370,6 +373,9 @@ extern "C"
 {	void zgesdd_(char* JOBZ, int* M, int* N, complex* A, int* LDA,
 		double* S, complex* U, int* LDU, complex* VT, int* LDVT,
 		complex* WORK, int* LWORK, double* RWORK, int* IWORK, int* INFO);
+	void zgesvd_(char* JOBU, char* JOBVT, int* M, int* N, complex* A, int* LDA,
+		double* S, complex* U, int* LDU, complex* VT, int* LDVT,
+		complex* WORK, int* LWORK, double* RWORK, int* INFO);
 }
 void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 {	static StopWatch watch("matrix::svd");
@@ -391,8 +397,15 @@ void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 	int info=0;
 	zgesdd_(&jobz, &M, &N, A.data(), &M, S.data(), U.data(), &M, Vdag.data(), &N,
 		work.data(), &lwork, rwork.data(), iwork.data(), &info);
+	if(info>0) //convergence failure; try the slower stabler version
+	{	int info=0;
+		matrix A = *this; //destructible copy
+		zgesvd_(&jobz, &jobz, &M, &N, A.data(), &M, S.data(), U.data(), &M, Vdag.data(), &N,
+			work.data(), &lwork, rwork.data(), &info);
+		if(info<0) { logPrintf("Argument# %d to LAPACK SVD routine ZGESVD is invalid.\n", -info); stackTraceExit(1); }
+		if(info>0) { logPrintf("Error code %d in LAPACK SVD routine ZGESVD.\n", info); stackTraceExit(1); }
+	}
 	if(info<0) { logPrintf("Argument# %d to LAPACK SVD routine ZGESDD is invalid.\n", -info); stackTraceExit(1); }
-	if(info>0) { logPrintf("Error code %d in LAPACK SVD routine ZGESDD.\n", info); stackTraceExit(1); }
 	watch.stop();
 }
 

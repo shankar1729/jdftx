@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizerRS.h>
 
 Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference),
-	bStart(0), outerWindow(false), innerWindow(false), mainWindow(false), nMain(0),
+	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5)
 {
@@ -36,14 +36,10 @@ void Wannier::setup(const Everything& everything)
 	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "Omega";
 	//Check window settings:
-	if(mainWindow)
-	{	if(!innerWindow) die("Main window requires that an inner window be specified.\n");
-		if(eMainMin<eInnerMin || eMainMax>eInnerMax)
-			die("Main window must lie entirely within the inner window.\n");
-		if(nMain <= 0)
-			die("nMain must be strictly positive.\n");
-		if(nMain >= int(trialOrbitals.size()))
-			die("nMain must be strictly less than the number of Wannier centers (%d).\n", int(trialOrbitals.size()));
+	nCenters = trialOrbitals.size() + nFrozen;
+	if(nFrozen)
+	{	if(outerWindow && !innerWindow)
+			die("Frozen centers require an inner window, if an outer window is specified.\n");
 	}
 	if(innerWindow)
 	{	if(!outerWindow) die("Inner window requires that an outer window be specified.\n");
@@ -51,7 +47,7 @@ void Wannier::setup(const Everything& everything)
 			die("Inner window must lie entirely within the outer window.\n");
 	}
 	if(!outerWindow) //fixed bands
-	{	int bStop = bStart+trialOrbitals.size();
+	{	int bStop = bStart + nCenters;
 		if(bStart<0 || bStop>e->eInfo.nBands)
 			die("Index range [%d,%d) of participating bands incompatible with available bands [0,%d).\n", bStart, bStop, e->eInfo.nBands);
 	}

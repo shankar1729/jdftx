@@ -75,7 +75,6 @@ public:
 		//State of system for Wannier minimize:
 		int nIn; //number of bands that contribute to the Wannier subspace
 		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
-		int nMainIn; //number of bands that contribute only to the first nMain centers
 		matrix B; //!< Independent variable for minimization (nCenters x nIn)
 		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
 		//Stage 1: Select linear cominations of bands that enter Wannier subspace
@@ -85,9 +84,6 @@ public:
 		//Stage 2: Rotations within Wannier subspace (all nCenters x nCenters)
 		matrix U2, V2, B2evecs;
 		diagMatrix B2eigs;
-		//Stage 3: Rotations within main subspace (also nCenters x nCenters, but non-zero only in nMain x nMain)
-		matrix U3, V3, B3evecs;
-		diagMatrix B3eigs;
 	};
 
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization
@@ -110,7 +106,7 @@ protected:
 	const Everything& e;
 	const Wannier& wannier;
 	const std::vector< matrix3<int> >& sym;
-	int nCenters, nBands; //!< number of Wannier centers and source bands
+	int nCenters, nFrozen, nBands; //!< number of Wannier centers (total and frozen) and source bands
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	int nSpinor; //!< number of spinor components
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
@@ -159,6 +155,8 @@ protected:
 	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
 	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
+	
+	static matrix fixUnitary(const matrix& U); //return an exactly unitary version of U (orthogonalize columns)
 };
 
 #endif // JDFTX_WANNIER_WANNIERMINIMIZER_H

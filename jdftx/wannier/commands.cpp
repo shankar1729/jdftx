@@ -29,7 +29,7 @@ enum WannierMember
 	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
-	WM_mainWindow,
+	WM_frozenCenters,
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
@@ -45,7 +45,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
-	WM_mainWindow, "mainWindow",
+	WM_frozenCenters, "frozenCenters",
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
@@ -86,9 +86,15 @@ struct CommandWannier : public Command
 			"  innerWindow <eMin> <eMax>\n"
 			"    Inner energy window within which bands are used exactly.\n"
 			"    Requires outerWindow, and innerWindow must be its subset.\n"
-			"  mainWindow <eMin> <eMax> <nMain>\n"
-			"    Main energy window within which bands contribute only to the first <nMain> centers.\n"
-			"    Requires innerWindow, and mainWindow must be its subset.\n"
+			"  frozenCenters <nFrozen> <filename>\n"
+			"    Include frozen Wannier centers imported as unitary rotations from <filename>\n"
+			"    (.mlwfU output from another wannier run on the same jdftx state), and force\n"
+			"    the current centers to be orthogonal to the imported ones. Note that all output\n"
+			"    of this run will include the frozen as well as new centers for convenience.\n"
+			"       Requires innerWindow if outerWindow is present, and the frozen centers\n"
+			"    must lie entirely within the inner window or fixed band range. (Effectively,\n" 
+			"    the outer window used in generating the frozen centers must be a subset of\n"
+			"    the present inner window / fixed band range.)\n"
 			"  saveWfns yes|no\n"
 			"    Whether to write supercell wavefunctions in a spherical reciprocal-space basis.\n"
 			"    Default: no.\n"
@@ -139,12 +145,10 @@ struct CommandWannier : public Command
 					pl.get(wannier.eInnerMax, 0., "eMax", true);
 					wannier.innerWindow = true;
 					break;
-				case WM_mainWindow:
-					pl.get(wannier.eMainMin, 0., "eMin", true);
-					pl.get(wannier.eMainMax, 0., "eMax", true);
-					pl.get(wannier.nMain, 0, "nMain", true);
-					if(wannier.nMain <= 0) throw string("nMain must be > 0");
-					wannier.mainWindow = true;
+				case WM_frozenCenters:
+					pl.get(wannier.nFrozen, 0, "nFrozen", true);
+					pl.get(wannier.frozenUfilename, string(), "filename", true);
+					if(wannier.nFrozen <= 0) throw string("nFrozen must be > 0");
 					break;
 				case WM_saveWfns:
 					pl.get(wannier.saveWfns, false, boolMap, "saveWfns", true);
@@ -186,14 +190,13 @@ struct CommandWannier : public Command
 		if(wannier.outerWindow)
 		{	logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 			if(wannier.innerWindow)
-			{	logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
-				if(wannier.mainWindow)
-					logPrintf(" \\\n\tmainWindow %lg %lg %d", wannier.eMainMin, wannier.eMainMax, wannier.nMain);
-			}
+				logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		}
 		else
 		{	logPrintf(" \\\n\tbStart %d", wannier.bStart);
 		}
+		if(wannier.nFrozen)
+			logPrintf(" \\\n\tfrozenCenters %d %s", wannier.nFrozen, wannier.frozenUfilename.c_str());
 		if(wannier.numericalOrbitalsFilename.length())
 		{	logPrintf(" \\\n\tnumericalOrbitals %s", wannier.numericalOrbitalsFilename.c_str());
 			const vector3<>& offs = wannier.numericalOrbitalsOffset;

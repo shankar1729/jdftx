@@ -25,10 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride)
 : e(e), wannier(wannier), sym(e.symm.getMatrices()),
-	nCenters(wannier.trialOrbitals.size()), nBands(e.eInfo.nBands),
+	nCenters(wannier.nCenters), nFrozen(wannier.nFrozen), nBands(e.eInfo.nBands),
 	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1), qCount(e.eInfo.qnums.size()/nSpins),
 	nSpinor(e.eInfo.spinorLength()),
-	rSqExpect(nCenters), rExpect(nCenters), pinned(nCenters), rPinned(nCenters),
+	rSqExpect(nCenters), rExpect(nCenters), pinned(nCenters, false), rPinned(nCenters),
 	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length()),
 	nPhononModes(0)
 {
@@ -101,10 +101,10 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		ikStopArr[iProc] = (kMesh.size() * (iProc+1)) / mpiUtil->nProcesses();
 	
 	//Initialized pinned arrays:
-	for(int n=0; n<nCenters; n++)
-	{	pinned[n] = wannier.trialOrbitals[n].pinned;
+	for(int n=nFrozen; n<nCenters; n++)
+	{	pinned[n] = wannier.trialOrbitals[n-nFrozen].pinned;
 		if(pinned[n])
-			rPinned[n] = e.gInfo.R * wannier.trialOrbitals[n].rCenter;
+			rPinned[n] = e.gInfo.R * wannier.trialOrbitals[n-nFrozen].rCenter;
 	}
 	
 	//Check phonon supercell validity:
