@@ -26,6 +26,7 @@ Wannier wannier;
 
 enum WannierMember
 {	WM_localizationMeasure,
+	WM_precond,
 	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
@@ -42,6 +43,7 @@ enum WannierMember
 
 EnumStringMap<WannierMember> wannierMemberMap
 (	WM_localizationMeasure, "localizationMeasure",
+	WM_precond, "precondition",
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
@@ -76,6 +78,9 @@ struct CommandWannier : public Command
 			"    and is preferable for quantitative applications. Note that the real-space version\n"
 			"    is not translationally invariant and wraps on a superlattice WIgner-Seitz cell\n"
 			"    centered at the origin.\n"
+			"  precondition yes|no\n"
+			"    Whether to use an inverse-Hemholtz preconditioner for the minimization.\n"
+			"    Affects only the FiniteDifference localizationMeasure. (default: no)\n"
 			"  bStart <band>\n"
 			"    For fixed band calculations, 0-based index of lowest band used.\n"
 			"    The number of bands equals the number of wannier-centers specified.\n"
@@ -132,6 +137,9 @@ struct CommandWannier : public Command
 			{	case WM_localizationMeasure:
 					pl.get(wannier.localizationMeasure, Wannier::LM_FiniteDifference,  localizationMeasureMap, "localizationMeasure", true);
 					break;
+				case WM_precond:
+					pl.get(wannier.precond, false, boolMap, "precondition", true);
+					break;
 				case WM_bStart:
 					pl.get(wannier.bStart, 0, "band", true);
 					break;
@@ -183,6 +191,7 @@ struct CommandWannier : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
+		logPrintf(" \\\n\tprecondition %s", boolMap.getString(wannier.precond));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));

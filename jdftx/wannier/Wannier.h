@@ -52,6 +52,7 @@ public:
 		LM_RealSpace
 	}
 	localizationMeasure;
+	bool precond; //whether to precondition minimize
 	
 	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
 	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)
