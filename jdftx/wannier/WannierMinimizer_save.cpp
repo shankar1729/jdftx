@@ -294,9 +294,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Output range of centers that span each band
-	if(mpiUtil->isHead())
 	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandContrib", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		//Find range of centers that span each band:
 		std::vector<int> nMin(nBands, nCenters), nMax(nBands, 0);
 		for(const KmeshEntry& ke: kMesh)
 			for(int n=0; n<nCenters; n++)
@@ -305,12 +305,43 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					{	nMin[b] = std::min(nMin[b], n);
 						nMax[b] = std::max(nMax[b], n);
 					}
-		FILE* fp = fopen(fname.c_str(), "w");
+		//Find energy range that is exact for each range of centers:
+		std::map< std::pair<int,int>, std::pair<double,double> > nRangeToErange;
+		nRangeToErange[std::make_pair(-1,-1)] = std::make_pair(NAN,NAN);
 		for(int b=0; b<nBands; b++)
-		{	if(nMin[b] > nMax[b]) { nMin[b] = nMax[b] = -1; } //unused band
-			fprintf(fp, "%d %d\n", nMin[b], nMax[b]);
+			if(nMin[b] <= nMax[b])
+			{	std::pair<int,int> nRange(nMin[b], nMax[b]);
+				if(nRangeToErange.find(nRange) == nRangeToErange.end())
+				{	double eMin =-INFINITY, eMax = +INFINITY;
+					for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
+					{	KmeshEntry& ke = kMesh[ik];
+						const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
+						matrix Utrunc = ke.U(0,nBands, nMin[b],nMax[b]+1);
+						diagMatrix overlap = diag(Utrunc * dagger(Utrunc));
+						double eMin_k = +INFINITY, eMax_k = -INFINITY;
+						for(int iBand=0; iBand<nBands; iBand++)
+							if(fabs(overlap[iBand] - 1.) < 1e-6)
+							{	eMin_k = std::min(eMin_k, iBand ? eigs[iBand-1] : -INFINITY);
+								eMax_k = std::max(eMax_k, (iBand<nBands) ? eigs[iBand+1] : +INFINITY);
+							}
+						eMin = std::max(eMin, eMin_k);
+						eMax = std::min(eMax, eMax_k);
+					}
+					mpiUtil->allReduce(eMin, MPIUtil::ReduceMax);
+					mpiUtil->allReduce(eMax, MPIUtil::ReduceMin);
+					if(eMin >= eMax) { eMin = eMax = NAN; }
+					nRangeToErange[nRange] = std::make_pair(eMin, eMax);
+				}
+			}
+			else { nMin[b] = nMax[b] = -1; } //unused band
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			for(int b=0; b<nBands; b++)
+			{	const std::pair<double,double> eRange = nRangeToErange[std::make_pair(nMin[b],nMax[b])];
+				fprintf(fp, "%d %d   %+10.5lf %+10.5lf\n", nMin[b], nMax[b], eRange.first, eRange.second);
+			}
+			fclose(fp);
 		}
-		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
 	
