@@ -50,7 +50,7 @@ struct FluidSolver
 
 	//! Compute gradients with respect to electronic side variables (if non-null), and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces (if non-null)
-	//! If electricOnly=true, Adiel_rhoExplicitTilde conatins only the truly electrostatic part of the gradient (distinction relevant only for SG14NL cavity-asymmetry gradient presently)
+	//! If electricOnly=true, Adiel_rhoExplicitTilde conatins only the truly electrostatic part of the gradient (distinction relevant only for CANDLE cavity-asymmetry gradient presently)
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
 	double get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde=0, DataGptr* Adiel_nCavityTilde=0, IonicGradient* extraForces=0, bool electricOnly=false) const;
 

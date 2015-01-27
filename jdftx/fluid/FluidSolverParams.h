@@ -31,7 +31,7 @@ enum FluidType
 	FluidNone, //!< No fluid
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms
-	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM) (EXPERIMENTAL)
+	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM)
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
@@ -52,10 +52,10 @@ struct FmixParams
 };
 
 enum PCMVariant
-{	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, D. Gunceler and T.A. Arias (under preparation)]
-	PCM_SG14NL, //!< Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion (EXPERIMENTAL)
-	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavotation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
-	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
+{	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, and T.A. Arias, JCP 142, accepted (2015)]
+	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model [R. Sundararaman and W.A. Goddard III, JCP 142, accepted (2015)]
+	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
+	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
 	PCM_PRA05 //!< Linear local-response dielectric fluid [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
 };
@@ -84,7 +84,7 @@ struct FluidSolverParams
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	
-	//For SG14NL alone:
+	//For CANDLE alone:
 	double Ztot; //!< number of valence electrons
 	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)

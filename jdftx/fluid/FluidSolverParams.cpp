@@ -99,7 +99,7 @@ void FluidSolverParams::setPCMparams()
 			initWarnings += "WARNING: SaLSA is highly experimental!\n";
 			break;
 		}
-		case PCM_SG14NL:
+		case PCM_CANDLE:
 		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);
 			cavityTension = 0.; //not used
@@ -116,14 +116,14 @@ void FluidSolverParams::setPCMparams()
 					eta_wDiel = 5.5;
 					sqrtC6eff = 16.;
 					pCavity = 0;
-					initWarnings += "WARNING: SG14NL parameters for Octanol have not yet been fit (initial guess only)\n";
+					initWarnings += "WARNING: CANDLE parameters for Octanol have not yet been fit (initial guess only)\n";
 					break;
 				case FluidComponent::DMSO:
 					Ztot = 26;
 					eta_wDiel = 3.8;
 					sqrtC6eff = 8.;
 					pCavity = 20.;
-					initWarnings += "WARNING: SG14NL parameters for DMSO have not yet been fit (initial guess only)\n";
+					initWarnings += "WARNING: CANDLE parameters for DMSO have not yet been fit (initial guess only)\n";
 					break;
 				case FluidComponent::H2O:
 				default:
@@ -132,11 +132,10 @@ void FluidSolverParams::setPCMparams()
 					sqrtC6eff = 0.770;
 					pCavity = 36.5;
 					if(solvents[0]->name != FluidComponent::H2O)
-						initWarnings += "WARNING: SG14NL LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
+						initWarnings += "WARNING: CANDLE LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
 			}
 			assert(fluidType == FluidLinearPCM);
-			initWarnings += "WARNING: SG14NL LinearPCM is highly experimental!\n";
 			break;
 		}
 		case PCM_SGA13:
@@ -344,7 +343,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_SG14NL);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:

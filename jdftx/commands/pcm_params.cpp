@@ -21,14 +21,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 
 EnumStringMap<PCMVariant> pcmVariantMap
-(	PCM_SG14NL,  "SG14NL",
+(	PCM_CANDLE,  "CANDLE",
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12", 
 	PCM_PRA05,   "PRA05"
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
-(	PCM_SG14NL,  "Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion [EXPERIMENTAL]",
+(	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion",
 	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]", 
 	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
@@ -51,8 +51,8 @@ struct CommandPcmVariant : public Command
 		if(fsp.fluidType==FluidSaLSA) fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
 		else
 		{	pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
-			if(fsp.pcmVariant==PCM_SG14NL && fsp.fluidType!=FluidLinearPCM)
-				throw string("SG14NL can only be used with fluid LinearPCM");
+			if(fsp.pcmVariant==PCM_CANDLE && fsp.fluidType!=FluidLinearPCM)
+				throw string("CANDLE can only be used with fluid LinearPCM");
 		}
 	}
 
@@ -69,9 +69,9 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in SG14NL
-	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for SG14NL
-	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in SG14NL
+	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
+	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
+	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
 	PCMp_Delim //!< Delimiter used in parsing
 };
 EnumStringMap<PCMparameter> pcmParamMap
@@ -88,9 +88,9 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
-	PCMp_eta_wDiel, "fit parameter for dielectric cavity in SG14NL",
-	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for SG14NL",
-	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in SG14NL"
+	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
+	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
+	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE"
 );
 
 struct CommandPcmParams : public Command
