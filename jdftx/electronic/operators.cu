@@ -235,6 +235,19 @@ void reducedD_gpu(int nbasis, int ncols, const complex* Y, complex* DY,
 	gpuErrorCheck();
 }
 
+__global__
+void reducedDD_kernel(int nbasis, int ncols, const complex* Y, complex* DDY, 
+	const vector3<int>* iGarr, double kdotGe1, double kdotGe2, const vector3<> Ge1, const vector3<> Ge2)
+{	int j = kernelIndex1D();
+	if(j<nbasis) reducedDD_calc(j, nbasis, ncols, Y, DDY, iGarr, kdotGe1, kdotGe2, Ge1, Ge2);
+}
+void reducedDD_gpu(int nbasis, int ncols, const complex* Y, complex* DDY, 
+	const vector3<int>* iGarr, double kdotGe1, double kdotGe2, const vector3<> Ge1, const vector3<> Ge2)
+{	GpuLaunchConfig1D glc(reducedDD_kernel, nbasis);
+	reducedDD_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, DDY, iGarr, kdotGe1, kdotGe2, Ge1, Ge2);
+	gpuErrorCheck();
+}
+
 //-------- GPU implementations of sub-matrix set/get for matrix.cpp ---------
 
 __global__

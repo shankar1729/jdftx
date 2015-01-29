@@ -397,6 +397,30 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 }
 
 
+//Compute cartesian gradient of column bundle in direction #iDir
+#ifdef GPU_ENABLED
+void reducedDD_gpu(int nbasis, int ncols, const complex* Ydata, complex* DDYdata,
+	const vector3<int>* iGarr, double kdotGe1, double kdotGe2, const vector3<> Ge1, const vector3<> Ge2);
+#endif
+ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
+{	assert(Y.basis);
+	const Basis& basis = *(Y.basis);
+	ColumnBundle DDY = Y.similar();
+	int nSpinors = Y.spinorLength();
+	const vector3<> Ge1 = basis.gInfo->G.column(iDir);
+	const vector3<> Ge2 = basis.gInfo->G.column(jDir);
+	double kdotGe1 = dot(Y.qnum->k, Ge1);
+	double kdotGe2 = dot(Y.qnum->k, Ge2);
+	#ifdef GPU_ENABLED
+	reducedDD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DDY.dataGpu(), basis.iGarrGpu, kdotGe1, kdotGe2, Ge1, Ge2);
+	#else
+	threadedLoop(reducedDD_calc, basis.nbasis,
+		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DDY.data(), basis.iGarr, kdotGe1, kdotGe2, Ge1, Ge2);
+	#endif
+	return DDY;
+}
+
+
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))
 #ifdef GPU_ENABLED

@@ -470,6 +470,53 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		writeMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
 	}
 	
+	//Momentum-squared matrix element in Wannier basis (for CEDA):
+	if(wannier.saveMomenta && wannier.ceda)
+	{	int dirPairs[6][2] = { {0,0}, {1,1}, {2,2}, {1,2}, {2,0}, {0,1} }; //pairs of directions in stored order for P^2 matrix elements
+		//--- compute momentum squared matrix elements of Bloch states:
+		std::vector< std::vector<matrix> > pSqBloch(6, std::vector<matrix>(e.eInfo.nStates));
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			if(e.eInfo.qnums[q].spin==iSpin)
+			{	for(int iDirPair=0; iDirPair<6; iDirPair++)
+					pSqBloch[iDirPair][q] = e.gInfo.detR * (e.eVars.C[q] ^ DD(e.eVars.C[q], dirPairs[iDirPair][0], dirPairs[iDirPair][1])); //factor of iota dropped for consistency with above
+			}
+		//--- convert to Wannier basis:
+		matrix pSqWannierTilde = zeroes(nCenters*nCenters*6, nqMine);
+		int iqMine = 0;
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	matrix pSqSub(nCenters*nCenters, 6);
+			for(int iDirPair=0; iDirPair<3; iDirPair++)
+			{	matrix pSqSubDir = pSqBloch[iDirPair][kMesh[i].point.iReduced + iSpin*qCount];
+				if(kMesh[i].point.invert<0) //apply complex conjugate:
+					callPref(eblas_dscal)(pSqSubDir.nData(), -1., ((double*)pSqSubDir.dataPref())+1, 2);
+				pSqSubDir = dagger(kMesh[i].U) * pSqSubDir * kMesh[i].U; //apply MLWF-optimized rotations
+				callPref(eblas_copy)(pSqSub.dataPref()+pSqSub.index(0,iDirPair), pSqSubDir.dataPref(), pSqSubDir.nData());
+			}
+			//Initialize rotation:
+			matrix3<> rot = inv(e.gInfo.R * sym[kMesh[i].point.iSym] * e.gInfo.invR); //cartesian symmetry matrix
+			matrix rotSq(6,6); //corresponding transformation of symmetric rank-2 tensor
+			for(int iDirPair=0; iDirPair<6; iDirPair++)
+			{	//Construct unrotated Cartesian tensor for this direction pair
+				matrix3<> e;
+				e(dirPairs[iDirPair][0], dirPairs[iDirPair][1]) = 1.;
+				e = 0.5*(e + ~e); //symmetrize
+				//Rotate it:
+				e = rot * e * (~rot);
+				//Extract direction pairs from rotated tensor:
+				for(int jDirPair=0; jDirPair<6; jDirPair++)
+					rotSq.set(jDirPair, iDirPair, e(dirPairs[jDirPair][0], dirPairs[jDirPair][1]));
+			}
+			//Store with spatial transformation:
+			pSqSub = pSqSub * dagger(rotSq);
+			callPref(eblas_copy)(pSqWannierTilde.dataPref()+pSqWannierTilde.index(0,iqMine), pSqSub.dataPref(), pSqSub.nData());
+			iqMine++;
+		}
+		//Fourier transform to Wannier space and save
+		matrix pSqWannier = pSqWannierTilde * phase;
+		pSqWannier.allReduce(MPIUtil::ReduceSum);
+		writeMatrix(pSqWannier, "mlwfPsq", realPartOnly, iSpin);
+	}
+	
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
 	{	//--- generate list of commensurate k-points in order present in the unit cell calculation

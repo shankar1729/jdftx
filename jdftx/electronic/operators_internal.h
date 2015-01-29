@@ -165,4 +165,13 @@ __hostanddev__ void reducedD_calc(int j, int nbasis, int ncols, const complex* Y
 		DYdata[nbasis*i+j] = Di*Ydata[nbasis*i+j];
 }
 
+__hostanddev__ void reducedDD_calc(int j, int nbasis, int ncols, const complex* Ydata, complex* DYdata,
+	const vector3<int>* iGarr, double kdotGe1, double kdotGe2, const vector3<> Ge1, const vector3<> Ge2)
+{
+	complex Di(0, kdotGe1+dot(iGarr[j],Ge1)); // i (k+G).ei
+	complex Dj(0, kdotGe2+dot(iGarr[j],Ge2)); // i (k+G).ej
+	for(int i=0; i < ncols; i++)
+		DYdata[nbasis*i+j] = Di*Dj*Ydata[nbasis*i+j];
+}
+
 #endif // JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H

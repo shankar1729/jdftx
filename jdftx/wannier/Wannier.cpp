@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference), precond(false),
 	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
-	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false),
+	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), ceda(false),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5)
 {
 }
