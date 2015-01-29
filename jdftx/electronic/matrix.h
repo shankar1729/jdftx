@@ -72,6 +72,7 @@ public:
 	matrix(matrix&& m1); //!< move constructor
 	matrix(const diagMatrix&); //!< convert from a real diagonal matrix
 	matrix(const std::vector<complex>&); //!< convert from a complex diagonal matrix
+	explicit matrix(const matrix3<>&); //!< convert from a 3x3 matrix
 	
 	matrix& operator=(const matrix& m1); //!< copy-assignment
 	matrix& operator=(matrix&& m1); //!< move-assignment

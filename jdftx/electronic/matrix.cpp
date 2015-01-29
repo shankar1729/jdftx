@@ -151,6 +151,15 @@ matrix::matrix(const std::vector<complex>& d)
 		for(int i=0; i<nRows(); i++) thisData[index(i,i)] = d[i];
 	}
 }
+// Construct from a complex diagonal matrix:
+matrix::matrix(const matrix3<>& m)
+{	nr = 3;
+	nc = 3;
+	memInit(nr*nc);
+	for(int j=0; j<3; j++)
+		for(int i=0; i<3; i++)
+			set(i,j, m(i,j));
+}
 //Copy assignment
 matrix& matrix::operator=(const matrix &m1)
 {	init(m1.nRows(), m1.nCols(), m1.isOnGpu());
