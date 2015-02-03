@@ -101,6 +101,9 @@ public:
 	//Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
+	//! Output any sub-class-specific extra quantities
+	virtual void saveExtra(int iSpin) {}
+	
 protected:
 	friend class WannierGradient;
 	const Everything& e;

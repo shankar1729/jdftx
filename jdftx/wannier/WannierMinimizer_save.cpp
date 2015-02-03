@@ -586,6 +586,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//--- save output:
 		writeMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
 	}
+	
+	//Process subclass-specific outputs, if any:
+	saveExtra(iSpin);
 }
 
 

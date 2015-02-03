@@ -31,6 +31,7 @@ public:
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
 	WannierGradient precondition(const WannierGradient& grad);
+	void saveExtra(int iSpin);
 	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct Edge
@@ -38,7 +39,7 @@ public:
 		vector3<> b; //!< displacement to neighbour
 		unsigned ik; //!< index of neighbour in kMesh
 		Kpoint point; //!< description of neighbour (source state, rotation, translation etc.)
-		matrix M0; //!< initial overlap matrix for this pair (after applying the initial unitary rotations)
+		matrix M0; //!< initial overlap matrix for this pair
 	};
 	std::vector< std::vector<Edge> > edges;
 	matrix kHelmholtzInv;
