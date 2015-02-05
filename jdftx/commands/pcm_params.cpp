@@ -48,12 +48,11 @@ struct CommandPcmVariant : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
-		if(fsp.fluidType==FluidSaLSA) fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
-		else
-		{	pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
-			if(fsp.pcmVariant==PCM_CANDLE && fsp.fluidType!=FluidLinearPCM)
-				throw string("CANDLE can only be used with fluid LinearPCM");
-		}
+		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
+		if(fsp.fluidType==FluidSaLSA)
+			 fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
+		if(fsp.pcmVariant==PCM_CANDLE && fsp.fluidType!=FluidLinearPCM)
+			throw string("CANDLE can only be used with fluid LinearPCM");
 	}
 
 	void printStatus(Everything& e, int iRep)
