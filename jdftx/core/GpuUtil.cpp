@@ -53,7 +53,7 @@ bool gpuInit(FILE* fpLog)
 		}
 	}
 	if(selectedDevice < 0)
-	{	fprintf(fpLog, "gpuInit: No compatible devices (>1.3 compute capability, not on-board) found\n");
+	{	fprintf(fpLog, "gpuInit: No compatible devices (>=1.3 compute capability, not on-board) found\n");
 		return false;
 	}
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);
