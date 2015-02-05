@@ -2213,12 +2213,12 @@ pcm-params &lt;key1&gt; &lt;value1&gt; &lt;key2&gt; &lt;value2&gt; ...
 <pre>
 Adjust PCM solvent parameters. Possible keys and value types are:
    cavityTension effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-   eta_wDiel     fit parameter for dielectric cavity in SG14NL
+   eta_wDiel     fit parameter for dielectric cavity in CANDLE
    lMax          angular momentum truncation in SaLSA
    nc            critical density for the PCM cavity shape function
-   pCavity       sensitivity of cavity to surface electric fields [e-a0/Eh] in SG14NL
+   pCavity       sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
    sigma         smoothing factor for the PCM cavity shape function
-   sqrtC6eff     sqrt(effective molecule C6 coefficient) for SG14NL
+   sqrtC6eff     sqrt(effective molecule C6 coefficient) for CANDLE
 Any number of these key-value pairs may be specified in any order.
 </pre>
 <h2>Properties:</h2>
@@ -2239,10 +2239,10 @@ pcm-variant [&lt;variant&gt;=GLSSA13]
 <h2>Description:</h2>
 <pre>
 Select LinearPCM or NonlinearPCM &lt;variant&gt; amongst:
+   CANDLE  Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion
    GLSSA13 PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
    LA12    PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
    PRA05   PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
-   SG14NL  Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion [EXPERIMENTAL]
    SGA13   PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
 </pre>
 <h2>Properties:</h2>
