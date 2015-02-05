@@ -2,5 +2,5 @@ include ${SRCDIR}/common.in
 include common.ionpos
 
 fluid LinearPCM
-pcm-variant SG14NL
+pcm-variant CANDLE
 
