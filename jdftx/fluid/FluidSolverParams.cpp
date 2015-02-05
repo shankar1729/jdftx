@@ -96,7 +96,6 @@ void FluidSolverParams::setPCMparams()
 					break;
 			}
 			assert(fluidType == FluidSaLSA);
-			initWarnings += "WARNING: SaLSA is highly experimental!\n";
 			break;
 		}
 		case PCM_CANDLE:
@@ -161,7 +160,6 @@ void FluidSolverParams::setPCMparams()
 					initWarnings += "WARNING: SGA13 has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
 					break;
 			}
-			initWarnings += "WARNING: PCM variant SGA13 is highly experimental!\n";
 			break;
 		}
 		case PCM_GLSSA13:
