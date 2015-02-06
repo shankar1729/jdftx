@@ -159,8 +159,8 @@ protected:
 	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
 	
-	//Write a named matrix variable to file, optionally zeroing out the real parts
-	void writeMatrix(matrix& H, string varName, bool realPartOnly, int iSpin) const;
+	//Dump a named matrix variable to file, optionally zeroing out the real parts
+	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
 	
 	static matrix fixUnitary(const matrix& U); //return an exactly unitary version of U (orthogonalize columns)
 };

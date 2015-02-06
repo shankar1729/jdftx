@@ -434,7 +434,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Fourier transform to Wannier space and save
 		matrix Hwannier = HwannierTilde * phase;
 		Hwannier.allReduce(MPIUtil::ReduceSum);
-		writeMatrix(Hwannier, "mlwfH", realPartOnly, iSpin);
+		dumpMatrix(Hwannier, "mlwfH", realPartOnly, iSpin);
 	}
 	resumeOperatorThreading();
 	
@@ -467,7 +467,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Fourier transform to Wannier space and save
 		matrix pWannier = pWannierTilde * phase;
 		pWannier.allReduce(MPIUtil::ReduceSum);
-		writeMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
+		dumpMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
 	}
 	
 	//Momentum-squared matrix element in Wannier basis (for CEDA):
@@ -514,7 +514,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Fourier transform to Wannier space and save
 		matrix pSqWannier = pSqWannierTilde * phase;
 		pSqWannier.allReduce(MPIUtil::ReduceSum);
-		writeMatrix(pSqWannier, "mlwfPsq", realPartOnly, iSpin);
+		dumpMatrix(pSqWannier, "mlwfPsq", realPartOnly, iSpin);
 	}
 	
 	//Electron-phonon matrix elements:
@@ -584,7 +584,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		HePhTilde = 0; //free memory
 		HePh.allReduce(MPIUtil::ReduceSum);
 		//--- save output:
-		writeMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
+		dumpMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
 	}
 	
 	//Process subclass-specific outputs, if any:
@@ -592,21 +592,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 }
 
 
-void WannierMinimizer::writeMatrix(matrix& H, string varName, bool realPartOnly, int iSpin) const
+void WannierMinimizer::dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const
 {	if(mpiUtil->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		if(realPartOnly)
-		{	H.write_real(fname.c_str());
-			//Collect imaginary part:
-			double normTot = pow(nrm2(H), 2);
-			callPref(eblas_dscal)(H.nData(), 0., ((double*)H.dataPref()), 2); //zero out real parts
-			double normIm = pow(nrm2(H), 2);
-			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(normIm/normTot));
-		}
-		else
-		{	H.write(fname.c_str());
-			logPrintf("done.\n");
-		}
-	}
+		H.dump(wannier.getFilename(Wannier::FilenameDump, varName, &iSpin).c_str(), realPartOnly);
 }

@@ -75,6 +75,7 @@ public:
 	void read_real(FILE *filep); //!< binary read real-part from stream, setting imaginary parts to 0
 	void write_real(const char *fname) const; //!< binary write real-parts to file
 	void write_real(FILE *filep) const; //!< binary write real-parts to stream
+	void dump(const char* fname, bool realPartOnly) const; //!< write as complex or real-part alone and report discarded imaginary part, if any
 	void zero(); //!< set all elements to zero
 	
 protected:

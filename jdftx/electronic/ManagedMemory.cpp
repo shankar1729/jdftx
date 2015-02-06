@@ -174,7 +174,20 @@ void ManagedMemory::write(FILE *fp) const
 {	size_t nDone = fwrite(data(), sizeof(complex), nData(), fp);
 	if(nDone<nData()) die("Error after processing %lu of %lu records.\n", nDone, nData());
 }
-
+void ManagedMemory::dump(const char* fname, bool realPartOnly) const
+{	logPrintf("Dumping '%s' ... ", fname); logFlush();
+	if(realPartOnly)
+	{	write_real(fname);
+		//Collect imaginary part:
+		double nrm2tot = nrm2(*this); 
+		double nrm2im = callPref(eblas_dnrm2)(nData(), ((double*)dataPref())+1, 2); //look only at imaginary parts with a stride of 2
+		logPrintf("done. Relative discarded imaginary part: %le\n", nrm2im / nrm2tot);
+	}
+	else
+	{	write(fname);
+		logPrintf("done.\n");
+	}
+}
 
 void ManagedMemory::read(const char *fname)
 {	off_t fsizeExpected = nData() * sizeof(complex);
