@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <electronic/Everything.h>
 #include <electronic/Polarizability.h>
+#include <electronic/ElectronScattering.h>
 #include <electronic/Vibrations.h>
 #include <electronic/Dump_internal.h>
 #include <core/Units.h>
@@ -284,6 +285,8 @@ struct CommandPolarizability : public Command
 	{
 		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
 		comments = "Output polarizability matrix in specified eigeneigenBasis";
+		
+		forbid("electron-scattering"); //both are major operations that are given permission to destroy Everything if necessary
 	}
 	
 	void process(ParamList& pl, Everything& e)
@@ -300,6 +303,75 @@ struct CommandPolarizability : public Command
 	}
 }
 commandPolarizability;
+
+
+enum ElectronScatteringMember
+{	ESM_eta,
+	ESM_Ecut,
+	ESM_fCut,
+	ESM_omegaMax,
+	ESM_delim
+};
+EnumStringMap<ElectronScatteringMember> esmMap
+(	ESM_eta, "eta",
+	ESM_Ecut, "Ecut",
+	ESM_fCut, "fCut",
+	ESM_omegaMax, "omegaMax"
+);
+
+struct CommandElectronScattering : public Command
+{
+    CommandElectronScattering() : Command("electron-scattering", "Output")
+	{
+		format = "<key1> <value1> ...";
+		comments = "Calculate electron-electron scattering rates (expensive!)\n"
+			"and output contribution to imaginary part of electron self-energy\n"
+			"(calculated effectively using full-frequency G0W0).\n"
+			"The following key-value pairs can appear in any order:\n"
+			"  eta <eta>\n"
+			"    <eta> in Eh specifies frequency resolution and half the imaginary part\n"
+			"    ascribed to probe frequency (if zero, the electron temperature is used.)\n"
+			"  Ecut <Ecut>\n"
+			"    <Ecut> in Eh specifies energy cut-off for dielectric matrices.\n"
+			"    (If zero, the wavefunction cutoff from elec-cutoff is used instead.)\n"
+			"  fCut <fCut>\n"
+			"    <fCut> specifies threshold for considering states fully occupied or\n"
+			"    unoccupied in optimizing sums over states (default: 1e-6)\n"
+			"  omegaMax <omegaMax>\n"
+			"    <omegaMax> in Eh is the maximum energy transfer to account for\n"
+			"    and hence the maximum frequency in dielectric function frequency grid.\n"
+			"    (if zero, autodetermine from available eigenvalues)";
+		
+		forbid("polarizability"); //both are major operations that are given permission to destroy Everything if necessary
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.dump.electronScattering = std::make_shared<ElectronScattering>();
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpElectronScattering));
+		ElectronScattering& es = *(e.dump.electronScattering);
+		while(true)
+		{	ElectronScatteringMember key;
+			pl.get(key, ESM_delim, esmMap, "key");
+			switch(key)
+			{	case ESM_eta: pl.get(es.eta, 0., "eta", true); break;
+				case ESM_Ecut: pl.get(es.Ecut, 0., "Ecut", true); break;
+				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
+				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
+				case ESM_delim: return; //end of input
+			}
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const ElectronScattering& es = *(e.dump.electronScattering);
+		logPrintf(" \\\n\teta      %lg", es.eta);
+		logPrintf(" \\\n\tEcut     %lg", es.Ecut);
+		logPrintf(" \\\n\tfCut     %lg", es.fCut);
+		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
+	}
+}
+commandElectronScattering;
+
 
 struct CommandPolarizabilityKdiff : public Command
 {

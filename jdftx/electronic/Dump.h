@@ -47,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom,
 	DumpEcomponents, DumpExcCompare,
 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpChargedDefect,
-	DumpOptVext, DumpDOS, DumpPolarizability, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
+	DumpOptVext, DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpMomenta, DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
 	DumpDelim, //special value used as a delimiter during command processing
 };
@@ -71,6 +71,7 @@ public:
 	
 	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
 	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
+	std::shared_ptr<struct ElectronScattering> electronScattering; //!< electron-electron scattering calculator
 	std::vector< std::pair<double,double> > densityErange; //!< energy ranges for energy-resolved density output
 	std::vector<double> fermiDensityLevels; //!< energies at which to evaluate fermi-dirac derivative
 	std::shared_ptr<struct SlabEpsilon> slabEpsilon; //!< slab dielectric function calculator

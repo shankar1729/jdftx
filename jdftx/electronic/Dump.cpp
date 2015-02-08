@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExactExchange.h>
 #include <electronic/DOS.h>
 #include <electronic/Polarizability.h>
+#include <electronic/ElectronScattering.h>
 #include <electronic/LatticeMinimizer.h>
 #include <fluid/FluidSolver.h>
 #include <core/DataMultiplet.h>
@@ -602,9 +603,17 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 		F = Forig; //restore fillings
 	}
-	//Polarizability dump deletes wavefunctions to free memory and should therefore happen at the very end
+	
+	//----------------------------------------------------------------------
+	//The following compute-intensive things are free to clear wavefunctions
+	//to conserve memory etc. and should therefore happen at the very end
+	
 	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
 	{	polarizability->dump(*e);
+	}
+
+	if(freq==DumpFreq_End && ShouldDumpNoAll(ElectronScattering))
+	{	electronScattering->dump(*e);
 	}
 }
 

@@ -126,6 +126,7 @@ a:active  { color: #158; text-decoration: none; }
 &nbsp;&nbsp;&nbsp;<a href="#dump-interval">dump-interval</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-name">dump-name</a>
 &nbsp;&nbsp;&nbsp;<a href="#dump-only">dump-only</a>
+&nbsp;&nbsp;&nbsp;<a href="#electron-scattering">electron-scattering</a>
 &nbsp;&nbsp;&nbsp;<a href="#forces-output-coords">forces-output-coords</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability">polarizability</a>
 &nbsp;&nbsp;&nbsp;<a href="#polarizability-kdiff">polarizability-kdiff</a>
@@ -1081,6 +1082,41 @@ Symmetries will be automatically reduced to account for this field.
 &nbsp;&nbsp;&nbsp;<a href="#coulomb-truncation-embed">coulomb-truncation-embed</a>
 <p><b>Forbids:</b>
 &nbsp;&nbsp;&nbsp;<a href="#invertKohnSham">invertKohnSham</a>
+<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
+<p><b>Default:</b>
+&nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
+</div>
+<div class="commandpane" id="electron-scattering">
+<h1>electron-scattering</h1>
+<h2>Syntax:</h2>
+<pre>
+electron-scattering &lt;key1&gt; &lt;value1&gt; ...
+</pre>
+<h2>Description:</h2>
+<pre>
+Calculate electron-electron scattering rates (expensive!)
+and output contribution to imaginary part of electron self-energy
+(calculated effectively using full-frequency G0W0).
+The following key-value pairs can appear in any order:
+  eta &lt;eta&gt;
+    &lt;eta&gt; in Eh specifies frequency resolution and half the imaginary part
+    ascribed to probe frequency (if zero, the electron temperature is used.)
+  Ecut &lt;Ecut&gt;
+    &lt;Ecut&gt; in Eh specifies energy cut-off for dielectric matrices.
+    (If zero, the wavefunction cutoff from <a href="#elec-cutoff">elec-cutoff</a> is used instead.)
+  fCut &lt;fCut&gt;
+    &lt;fCut&gt; specifies threshold for considering states fully occupied or
+    unoccupied in optimizing sums over states (default: 1e-6)
+  omegaMax &lt;omegaMax&gt;
+    &lt;omegaMax&gt; in Eh is the maximum energy transfer to account for
+    and hence the maximum frequency in dielectric function frequency grid.
+    (if zero, autodetermine from available eigenvalues)
+</pre>
+<h2>Properties:</h2>
+<p><b>Requires:</b>
+&nbsp;&nbsp;&nbsp;(None)
+<p><b>Forbids:</b>
+&nbsp;&nbsp;&nbsp;<a href="#polarizability">polarizability</a>
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
@@ -2270,7 +2306,7 @@ Output polarizability matrix in specified eigeneigenBasis
 <p><b>Requires:</b>
 &nbsp;&nbsp;&nbsp;(None)
 <p><b>Forbids:</b>
-&nbsp;&nbsp;&nbsp;(None)
+&nbsp;&nbsp;&nbsp;<a href="#electron-scattering">electron-scattering</a>
 <p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;no
 <p><b>Default:</b>
 &nbsp;&nbsp;&nbsp;(None)<p><a href="#top">Top</a>
