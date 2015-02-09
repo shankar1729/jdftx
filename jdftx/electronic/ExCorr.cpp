@@ -573,8 +573,8 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	
 	//Calculate spatial gradients for GGA (if needed)
 	std::vector<DataRptrVec> Dn(nInCount);
-	int iDirStart = (3*mpiUtil->iProcess())/mpiUtil->nProcesses();
-	int iDirStop = (3*(mpiUtil->iProcess()+1))/mpiUtil->nProcesses();
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiUtil).myRange(iDirStart, iDirStop);
 	if(needsSigma)
 	{	//Compute the gradients of the (spin-)densities:
 		for(int s=0; s<nInCount; s++)

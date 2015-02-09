@@ -52,10 +52,10 @@ public:
 	int nBands, nStates; //!< Number of bands and total number of states
 	int nDensities, spinWeight, qWeightSum; //!< number of density components, spin weight factor (= max occupation per state) and sum of k-point weights
 	int qStart, qStop; //!< Range of states handled by current process (= 0 and nStates for non-MPI jobs)
-	bool isMine(int q) const { return q>=qStart && q<qStop; } //!< check if state index is local
-	int whose(int q) const; //!< find out which process this state index belongs to
-	int qStartOther(int iProc) const { return iProc ? qStopArr[iProc-1] : 0; } //!< find out qStart for another process
-	int qStopOther(int iProc) const { return qStopArr[iProc]; } //!< find out qStop for another process
+	bool isMine(int q) const { return qDivision.isMine(q); } //!< check if state index is local
+	int whose(int q) const { return qDivision.whose(q); } //!< find out which process this state index belongs to
+	int qStartOther(int iProc) const { return qDivision.start(iProc); } //!< find out qStart for another process
+	int qStopOther(int iProc) const { return qDivision.stop(iProc); } //!< find out qStop for another process
 	
 	SpinType spinType; //!< tells us what sort of spins we are using if any
 	bool spinRestricted; //!< whether the calculation is spin restricted
@@ -122,7 +122,7 @@ public:
 private:
 	const Everything* e;
 	double betaBy2; //!< initialized to 0.5/kT
-	std::vector<int> qStopArr; //!< array of qStop's for all processes (used by whose() to find locate process managing a specific q)
+	TaskDivision qDivision; //!< MPI division of k-points
 	
 	//Initial fillings:
 	int nBandsOld; //!<number of bands in file being read

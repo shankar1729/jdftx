@@ -132,10 +132,10 @@ protected:
 	Basis basis; //!< common basis (with indexing into full G-space)
 	
 	//k-mesh MPI division:
+	TaskDivision kDivision;
 	size_t ikStart, ikStop;
-	std::vector<size_t> ikStopArr;
-	bool isMine(size_t ik) const { return ik>=ikStart && ik<ikStop; }
-	int whose(size_t ik) const;
+	inline bool isMine(size_t ik) const { return kDivision.isMine(ik); }
+	inline int whose(size_t ik) const { return kDivision.whose(ik); }
 
 	//state MPI division (wrappers to ElecInfo)
 	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.iReduced + iSpin*qCount); }

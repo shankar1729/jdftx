@@ -41,8 +41,7 @@ WannierMinimizerRS::WannierMinimizerRS(const Everything& e, const Wannier& wanni
 	threadLaunch(setRealSpaceMeasures, gInfoSuper.nr, gInfoSuper.S, gInfoSuper.R, &ws, r.data(), rSq->dataPref());
 	
 	//Split centers over MPI processes:
-	nStart = (nCenters * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	nStop = (nCenters * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	TaskDivision(nCenters, mpiUtil).myRange(nStart, nStop);
 }
 
 void WannierMinimizerRS::initialize(int iSpin)

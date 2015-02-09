@@ -94,11 +94,8 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	}
 	
 	//Determine distribution amongst processes:
-	ikStart = (kMesh.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	ikStop = (kMesh.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
-	ikStopArr.resize(mpiUtil->nProcesses());
-	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
-		ikStopArr[iProc] = (kMesh.size() * (iProc+1)) / mpiUtil->nProcesses();
+	kDivision.init(kMesh.size(), mpiUtil);
+	kDivision.myRange(ikStart, ikStop);
 	
 	//Initialized pinned arrays:
 	for(int n=nFrozen; n<nCenters; n++)

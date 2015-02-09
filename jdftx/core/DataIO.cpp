@@ -103,8 +103,8 @@ std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColu
 	std::vector<double*> data(nColumns);
 	for(int c=0; c<nColumns; c++)
 		data[c] = dataR[c]->data();
-	size_t iStart = (mpiUtil->iProcess()*gInfo.nr)/mpiUtil->nProcesses();
-	size_t iStop = ((mpiUtil->iProcess()+1)*gInfo.nr)/mpiUtil->nProcesses();
+	size_t iStart, iStop;
+	TaskDivision(gInfo.nr, mpiUtil).myRange(iStart, iStop);
 	const vector3<int> &S = gInfo.S;
 	matrix3<> invS = inv(Diag(vector3<>(S)));
 	THREAD_rLoop

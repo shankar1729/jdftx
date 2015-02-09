@@ -25,11 +25,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <list>
 
-int ElecInfo::whose(int q) const
-{	if(mpiUtil->nProcesses()>1) return std::upper_bound(qStopArr.begin(),qStopArr.end(), q) - qStopArr.begin();
-	else return 0;
-}
-
 int ElecInfo::findHOMO(int q) const
 {	int HOMO = 0;
 	for(int n=(e->eVars.F[q].size()-1); n>=0; n--)
@@ -64,12 +59,9 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	kpointsReduce();
 	nStates = qnums.size();
 	
-	//Determine distribution amongst processes: (TODO: weight division by node capability in heterogeneous contexts)
-	qStart = (nStates * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	qStop = (nStates * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
-	qStopArr.resize(mpiUtil->nProcesses());
-	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
-		qStopArr[iProc] = (nStates * (iProc+1)) / mpiUtil->nProcesses();
+	//Determine distribution amongst processes:
+	qDivision.init(nStates, mpiUtil);
+	qDivision.myRange(qStart, qStop);
 	
 	// allocate the fillings matrices.
 	F.resize(nStates);

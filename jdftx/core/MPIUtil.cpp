@@ -238,3 +238,27 @@ void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 		die("Error in file write.\n");
 	#endif
 }
+
+
+//------- class TaskDivision ---------
+
+TaskDivision::TaskDivision(size_t nTasks, const MPIUtil* mpiUtil)
+: startMine(0), stopMine(nTasks), stopArr(1, nTasks) //initialize for no MPI division
+{
+	if(mpiUtil) init(nTasks, mpiUtil); //actually initialize if MPIUtil pointer provided
+}
+
+void TaskDivision::init(size_t nTasks, const MPIUtil* mpiUtil)
+{	stopArr.resize(mpiUtil->nProcesses());
+	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
+		stopArr[iProc] = (nTasks * (iProc+1)) / mpiUtil->nProcesses();
+	startMine = start(mpiUtil->iProcess());
+	stopMine = stop(mpiUtil->iProcess());
+}
+
+int TaskDivision::whose(size_t q) const
+{	if(stopArr.size()>1)
+		return std::upper_bound(stopArr.begin(),stopArr.end(), q) - stopArr.begin();
+	else return 0;
+}
+

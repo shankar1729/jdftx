@@ -24,8 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 IdealGasPomega::IdealGasPomega(const FluidMixture* fluidMixture, const FluidComponent* comp, const SO3quad& quad, const TranslationOperator& trans, unsigned nIndepOverride)
 : IdealGas(nIndepOverride ? nIndepOverride : quad.nOrientations(), fluidMixture, comp), quad(quad), trans(trans), pMol(molecule.getDipole())
 {
-	oStart = (mpiUtil->iProcess() * quad.nOrientations()) / mpiUtil->nProcesses();
-	oStop = ((mpiUtil->iProcess()+1) * quad.nOrientations()) / mpiUtil->nProcesses();
+	TaskDivision(quad.nOrientations(), mpiUtil).myRange(oStart, oStop);
 }
 
 string IdealGasPomega::representationName() const

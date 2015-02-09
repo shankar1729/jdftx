@@ -485,7 +485,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		int iqMine = 0;
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	matrix pSqSub(nCenters*nCenters, 6);
-			for(int iDirPair=0; iDirPair<3; iDirPair++)
+			for(int iDirPair=0; iDirPair<6; iDirPair++)
 			{	matrix pSqSubDir = pSqBloch[iDirPair][kMesh[i].point.iReduced + iSpin*qCount];
 				if(kMesh[i].point.invert<0) //apply complex conjugate:
 					callPref(eblas_dscal)(pSqSubDir.nData(), -1., ((double*)pSqSubDir.dataPref())+1, 2);
@@ -541,8 +541,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			kPair.ik2 = ik2;
 			kpointPairs.push_back(kPair);
 		}
-		int iPairStart = (kpointPairs.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-		int iPairStop = (kpointPairs.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+		int iPairStart, iPairStop;
+		TaskDivision(kpointPairs.size(), mpiUtil).myRange(iPairStart, iPairStop);
 		//--- calculate Fourier transform phase (with integration weights)
 		int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
 		matrix phase = zeroes(nPairsMine, std::pow(phononCellMap.size(),2));

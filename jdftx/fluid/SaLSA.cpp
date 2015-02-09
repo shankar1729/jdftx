@@ -167,8 +167,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	Kkernel.init(0, KkernelSamples, dG);
 	
 	//MPI division:
-	rStart = (mpiUtil->iProcess() * response.size()) / mpiUtil->nProcesses();
-	rStop = ((mpiUtil->iProcess()+1) * response.size()) / mpiUtil->nProcesses();
+	TaskDivision(response.size(), mpiUtil).myRange(rStart, rStop);
 }
 
 SaLSA::~SaLSA()

@@ -265,10 +265,8 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	updateSdependent();
 	
 	//Process division recommendations:
-	irStart = (nr * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	irStop = (nr * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
-	iGstart = (nG * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	iGstop = (nG * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	TaskDivision(nr, mpiUtil).myRange(irStart, irStop);
+	TaskDivision(nG, mpiUtil).myRange(iGstart, iGstop);
 	
 	//FFT plans:
 	#ifdef GPU_ENABLED //GPU plans:

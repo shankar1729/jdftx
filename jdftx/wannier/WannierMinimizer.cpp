@@ -190,11 +190,6 @@ double WannierMinimizer::sync(double x) const
 
 //---------------- kpoint and wavefunction handling -------------------
 
-int WannierMinimizer::whose(size_t ik) const
-{	if(mpiUtil->nProcesses()>1) return std::upper_bound(ikStopArr.begin(),ikStopArr.end(), ik) - ikStopArr.begin();
-	else return 0;
-}
-
 bool WannierMinimizer::Kpoint::operator<(const WannierMinimizer::Kpoint& other) const
 {	if(iReduced!=other.iReduced) return iReduced<other.iReduced;
 	if(iSym!=other.iSym) return iSym<other.iSym;

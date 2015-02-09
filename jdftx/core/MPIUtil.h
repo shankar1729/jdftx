@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/string.h>
 #include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 #ifdef MPI_ENABLED
 #include <mpi.h>
@@ -79,6 +80,26 @@ public:
 	void fread(void *ptr, size_t size, size_t nmemb, File fp) const;
 	void fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const;
 };
+
+
+//Helper for optimally dividing a specified number of (equal) tasks over MPI:
+class TaskDivision
+{
+public:
+	TaskDivision(size_t nTasks=0, const MPIUtil* mpiUtil=0);
+	void init(size_t nTasks, const MPIUtil* mpiUtil);
+	inline size_t start() const { return startMine; } //!< Task number that current process should start on
+	inline size_t stop() const  { return stopMine; } //!< Task number that current process should stop before (non-inclusive)
+	inline size_t start(int iProc) const { return iProc ? stopArr[iProc-1] : 0; } //!< Task number that the specified process should start on
+	inline size_t stop(int iProc) const  { return stopArr[iProc]; } //!< Task number that the specified process should stop before (non-inclusive)
+	inline bool isMine(size_t task) const { return task>=startMine && task<stopMine; } //!< Whether current process handle this task number
+	template<typename T> void myRange(T& start, T& stop) const { start=startMine; stop=stopMine; } //!< retrieve range of processes for current task (templated to support other integer types for task range)
+	int whose(size_t task) const; //!< Which process number should handle this task number
+private:
+	size_t startMine, stopMine; //!< range for current process
+	std::vector<size_t> stopArr; //!< array of sttop values for other processes
+};
+
 
 //-------------------------- Template implementations ------------------------------------
 //!@cond

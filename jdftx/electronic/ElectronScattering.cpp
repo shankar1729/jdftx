@@ -91,8 +91,8 @@ void ElectronScattering::dump(const Everything& everything)
 	matrix3<> kBasisT = inv(supercell.Rsuper) * e.gInfo.R;
 	vector3<> kBasis[3]; for(int j=0; j<3; j++) kBasis[j] = kBasisT.row(j);
 	PeriodicLookup<vector3<>> plook(supercell.kmesh, e.gInfo.GGT);
-	size_t ikStart = (supercell.kmesh.size() * mpiUtil->iProcess()) / mpiUtil->nProcesses();
-	size_t ikStop = (supercell.kmesh.size() * (mpiUtil->iProcess()+1)) / mpiUtil->nProcesses();
+	size_t ikStart, ikStop;
+	TaskDivision(supercell.kmesh.size(), mpiUtil).myRange(ikStart, ikStop);
 	double dEmax = 0.;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const diagMatrix& Ei = E[supercell.kmeshTransform[ik].iReduced];
