@@ -93,10 +93,6 @@ std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, vector3<bool> isTrun
 	return sym;
 }
 
-//Helper function for PeriodicLookup< vector3<> > used in Supercell::Supercell
-inline vector3<> getCoord(const vector3<>& pos) { return pos; }
-
-
 Supercell::Supercell(const GridInfo& gInfo,
 	const std::vector<vector3<>>& kmeshReduced,
 	const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList)

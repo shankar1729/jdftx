@@ -38,7 +38,6 @@ inline int nStabilizer(const vector3<>& n, const std::vector< matrix3<> >& symCa
 	return nStab;
 }
 
-inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
 inline bool isUnitary(const matrix& U) { return nrm2(U*dagger(U) - eye(U.nCols())) < symmThreshold; }
 
 void Phonon::setup(bool printDefaults)

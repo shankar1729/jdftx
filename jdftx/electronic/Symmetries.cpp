@@ -84,10 +84,6 @@ inline void kmapUnpack(unsigned long long kmap, size_t& iSrc, int& invert, int& 
 	iSym = int(0x7F & kmap);
 }
 
-//Conversion functions needed by the PeriodicLookup template:
-inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point reduction
-inline vector3<> getCoord(const vector3<>& pos) { return pos; } //for atom symmetries
-
 std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumber>& qnums) const
 {	static StopWatch watch("reduceKmesh"); watch.start();
 	if(mode == SymmetriesNone)

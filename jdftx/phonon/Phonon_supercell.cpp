@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <electronic/ColumnBundleTransform.h>
 
-inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; } //for k-point mapping
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 
 void Phonon::processPerturbation(const Perturbation& pert)

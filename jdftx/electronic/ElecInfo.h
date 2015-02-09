@@ -43,6 +43,9 @@ public:
 	int index() const { return spin<0 ? 1 : 0; } //!< return the appropriate index into electron (spin) density/potential arrays
 };
 
+//! Conversion function needed for PeriodicLookup<QuantumNumber> used for k-point reduction
+inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; }
+
 class ElecInfo
 {
 public:

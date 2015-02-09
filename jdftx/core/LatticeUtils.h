@@ -75,6 +75,9 @@ struct Supercell
 //! Optionally write the cell map to a file, if filename is non-null
 std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, string fname=string());
 
+//Helper function for PeriodicLookup< vector3<> > used in Supercell::Supercell
+inline vector3<> getCoord(const vector3<>& pos) { return pos; }
+
 //! O(1) look-up table for finding periodic image within symmThreshold
 //! Needs a companion function vector3<> getCoord(T) that returns the lattice coordinates corresponding to type T
 template<typename T> class PeriodicLookup
