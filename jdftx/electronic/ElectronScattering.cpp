@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElectronScattering.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/ColumnBundleTransform.h>
 #include <core/LatticeUtils.h>
 
 ElectronScattering::ElectronScattering()
@@ -107,6 +108,57 @@ void ElectronScattering::dump(const Everything& everything)
 	}
 	mpiUtil->allReduce(dEmax, MPIUtil::ReduceMax);
 	logPrintf("Maximum k-neighbour dE: %lg (guide for selecting eta)\n", dEmax);
+	
+	//Initialize reduced q-Mesh:
+	//--- q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
+	std::vector<QuantumNumber> qmesh(supercell.kmesh.size());
+	for(size_t iq=0; iq<qmesh.size(); iq++)
+	{	qmesh[iq].k = supercell.kmesh[iq] - supercell.kmesh[0]; //k-difference
+		qmesh[iq].weight = 1./qmesh.size(); //uniform mesh
+		qmesh[iq].spin = 0;
+	}
+	logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
+	qmesh = e.symm.reduceKmesh(qmesh);
+	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
+	TaskDivision qDivision(qmesh.size(), mpiUtil);
+	
+	//Initialize polarizability/dielectric bases corresponding to qmesh:
+	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
+	std::vector<Basis> basisChi(qmesh.size());
+	double avg_nbasis = 0.;
+	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
+	logSuspend();
+	for(size_t q=qDivision.start(); q<qDivision.stop(); q++)
+	{	basisChi[q].setup(gInfoBasis, e.iInfo, Ecut, qmesh[q].k);
+		avg_nbasis += qmesh[q].weight * basisChi[q].nbasis;
+	}
+	logResume();
+	mpiUtil->allReduce(avg_nbasis, MPIUtil::ReduceSum);
+	logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	logFlush();
+
+	//Initialize common wavefunction basis and ColumnBundle transforms for full k-mesh:
+	logPrintf("Setting up k-mesh wavefunction transforms ... "); logFlush();
+	double kMaxSq = 0;
+	for(const vector3<>& k: supercell.kmesh)
+		kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(k));
+	double GmaxEff = sqrt(2.*e.cntrl.Ecut) + sqrt(kMaxSq);
+	double EcutEff = 0.5*GmaxEff*GmaxEff * (1.+symmThreshold); //add some margin for round-off error safety
+	logSuspend();
+	Basis basis; basis.setup(e.gInfo, e.iInfo, EcutEff, vector3<>());
+	logResume();
+	ColumnBundleTransform::BasisWrapper basisWrapper(basis);
+	std::vector<matrix3<int>> sym = e.symm.getMatrices();
+	std::vector<std::shared_ptr<ColumnBundleTransform>> transform(supercell.kmesh.size());
+	for(size_t ik=0; ik<supercell.kmesh.size(); ik++)
+	{	const Supercell::KmeshTransform& kTransform = supercell.kmeshTransform[ik];
+		const Basis& basisC = e.basis[kTransform.iReduced];
+		const vector3<>& kC = e.eInfo.qnums[kTransform.iReduced].k;
+		transform[ik] = std::make_shared<ColumnBundleTransform>(kC, basisC, supercell.kmesh[ik], basisWrapper,
+			e.eInfo.spinorLength(), sym[kTransform.iSym], kTransform.invert);
+	}
+	logPrintf("done.\n"); logFlush();
+
 	
 	die("Not yet implemented.\n");
 	logPrintf("\n"); logFlush();
