@@ -113,14 +113,15 @@ void Everything::setup()
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
 			coulombParams.omegaSet.insert(ec->exxRange());
-	if(dump.polarizability) coulombParams.omegaSet.insert(0.);
+	bool exxPresent = coulombParams.omegaSet.size();
+	if(dump.polarizability || dump.electronScattering) coulombParams.omegaSet.insert(0.); //These are not EXX, but they use Coulomb_ExchangeEval
 	
 	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
 	updateSupercell();
 	coulomb = coulombParams.createCoulomb(gInfo);
 	
 	//Exact exchange (if required)
-	if(coulombParams.omegaSet.size())
+	if(exxPresent)
 		exx = std::make_shared<ExactExchange>(*this);
 
 	//Setup VanDerWaals corrections
