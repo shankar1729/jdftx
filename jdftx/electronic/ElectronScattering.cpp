@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/ColumnBundleTransform.h>
 #include <core/LatticeUtils.h>
+#include <core/Random.h>
 
 matrix operator*(const matrix& m, const std::vector<complex>& d)
 {	assert(m.nCols()==int(d.size()));
@@ -86,12 +87,17 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Maximum energy transfer: %lg\n", omegaMax);
 	
 	//Initialize frequency grid:
-	diagMatrix omegaGrid;
+	diagMatrix omegaGrid, wOmega;
 	omegaGrid.push_back(0.);
-	while(omegaGrid.back()<omegaMax)
-		omegaGrid.push_back(omegaGrid.back() + eta);
+	wOmega.push_back(0.5*eta); //integration weight (halved at endpoint)
+	while(omegaGrid.back()<omegaMax + 10*eta) //add margin for covering enough of the Lorentzians
+	{	omegaGrid.push_back(omegaGrid.back() + eta);
+		wOmega.push_back(eta);
+	}
+	int iOmegaStart, iOmegaStop; //split dielectric computation over frequency grid
+	TaskDivision omegaDiv(omegaGrid.size(), mpiUtil);
+	omegaDiv.myRange(iOmegaStart, iOmegaStop);
 	logPrintf("Initialized frequency grid with resolution %lg and %d points.\n", eta, omegaGrid.nRows());
-	
 
 	//Make necessary quantities available on all processes:
 	C.resize(e.eInfo.nStates);
@@ -112,6 +118,19 @@ void ElectronScattering::dump(const Everything& everything)
 		C[q].bcast(procSrc);
 		E[q].bcast(procSrc);
 		F[q].bcast(procSrc);
+	}
+	
+	//Randomize supercell to improve load balancing on k-mesh:
+	{	std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;
+		std::vector<Supercell::KmeshTransform>& kmeshTransform = e.coulombParams.supercell->kmeshTransform;
+		for(size_t ik=0; ik<kmesh.size()-1; ik++)
+		{	size_t jk = ik + floor(Random::uniform(kmesh.size()-ik));
+			mpiUtil->bcast(jk);
+			if(jk !=ik && jk < kmesh.size())
+			{	std::swap(kmesh[ik], kmesh[jk]);
+				std::swap(kmeshTransform[ik], kmeshTransform[jk]);
+			}
+		}
 	}
 	
 	//Report maximum nearest-neighbour eigenvalue change (to guide choice of eta)
@@ -156,7 +175,6 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
 	qmesh = e.symm.reduceKmesh(qmesh);
 	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
-	TaskDivision qDivision(qmesh.size(), mpiUtil);
 	
 	//Initialize polarizability/dielectric bases corresponding to qmesh:
 	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
@@ -164,12 +182,11 @@ void ElectronScattering::dump(const Everything& everything)
 	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
 	logSuspend();
-	for(size_t iq=qDivision.start(); iq<qDivision.stop(); iq++)
+	for(size_t iq=0; iq<qmesh.size(); iq++)
 	{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
 		avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
 	}
 	logResume();
-	mpiUtil->allReduce(avg_nbasis, MPIUtil::ReduceSum);
 	logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
 
@@ -197,9 +214,9 @@ void ElectronScattering::dump(const Everything& everything)
 
 	//Main loop over momentum transfers:
 	diagMatrix ImKscrHead(omegaGrid.size(), 0.);
-	for(size_t iq=qDivision.start(); iq<qDivision.stop(); iq++)
-	{	logPrintf("\nMomentum transfer %d of %d: q = ",
-			int(iq-qDivision.start()+1), int(qDivision.stop()-qDivision.start()));
+	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
+	for(size_t iq=0; iq<qmesh.size(); iq++)
+	{	logPrintf("\nMomentum transfer %d of %d: q = ", int(iq+1), int(qmesh.size()));
 		qmesh[iq].k.print(globalLog, " %+.5lf ");
 		
 		//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
@@ -207,18 +224,20 @@ void ElectronScattering::dump(const Everything& everything)
 		
 		//Calculate chi_KS:
 		std::vector<matrix> chiKS(omegaGrid.nRows());
-		logPrintf("\tComputing chi_KS ... "); logFlush(); 
-		size_t nk = supercell->kmesh.size();
-		int ikInterval = std::max(1, int(round(nk/20.))); //interval for reporting progress
-		for(size_t ik=0; ik<nk; ik++)
+		logPrintf("\tComputing chi_KS ...  "); logFlush(); 
+		size_t nkMine = ikStop-ikStart;
+		int ikInterval = std::max(1, int(round(nkMine/20.))); //interval for reporting progress
+		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	//Report progress:
-			if((ik+1)%ikInterval==0)
-			{	logPrintf("%d%% ", int(round(ik*100./nk)));
+			size_t ikDone = ik-ikStart+1;
+			if(ikDone % ikInterval == 0)
+			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
 				logFlush();
 			}
 			//Get events:
 			size_t jk; matrix nij;
 			std::vector<Event> events = getEvents(true, ik, iq, jk, nij);
+			if(!events.size()) continue;
 			//Collect contributions for each frequency:
 			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 			{	double omega = omegaGrid[iOmega];
@@ -231,10 +250,12 @@ void ElectronScattering::dump(const Everything& everything)
 				chiKS[iOmega] += (nij * Xks) * dagger(nij);
 			}
 		}
+		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+			chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
 		logPrintf("done.\n"); logFlush();
 		
 		//Figure out head entry index:
-		int iHead = -1;
+		int iHead = -1, nbasis = basisChi[iq].nbasis;
 		for(size_t n=0; n<basisChi[iq].nbasis; n++)
 			if(!basisChi[iq].iGarr[n].length_squared())
 			{	iHead = n;
@@ -244,26 +265,78 @@ void ElectronScattering::dump(const Everything& everything)
 		
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
-		std::vector<matrix> ImKscr(omegaGrid.nRows());
-		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+		std::vector<matrix> ImKscr(omegaGrid.nRows(), zeroes(nbasis, nbasis));
+		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 		{	ImKscr[iOmega] = imag(inv(invKq - chiKS[iOmega]));
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
+		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
 		chiKS.clear();
 		logPrintf("done.\n"); logFlush();
+		
+		//Calculate ImSigma contributions:
+		logPrintf("\tComputing ImSigma ... "); logFlush(); 
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+		{	//Report progress:
+			size_t ikDone = ik-ikStart+1;
+			if(ikDone % ikInterval == 0)
+			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
+				logFlush();
+			}
+			//Get events:
+			size_t jk; matrix nij;
+			std::vector<Event> events = getEvents(false, ik, iq, jk, nij);
+			if(!events.size()) continue;
+			//Integrate over frequency for event contributions to linewidth:
+			diagMatrix eventContrib(events.size(), 0);
+			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+			{	//Construct energy conserving delta-function:
+				double omega = omegaGrid[iOmega];
+				complex omegaTilde(omega, 2*eta);
+				diagMatrix delta; delta.reserve(events.size());
+				for(const Event& event: events)
+					delta.push_back(e.gInfo.detR * event.fWeight //overlap and sign for electron / hole
+						* (2*eta/M_PI) * ( 1./(event.Eji - omegaTilde).norm() - 1./(event.Eji + omegaTilde).norm()) ); //Normalized Lorentzians
+				eventContrib += wOmega[iOmega] * delta * diag(dagger(nij) * ImKscr[iOmega] * nij);
+			}
+			//Accumulate contributions to linewidth:
+			int iReduced = supercell->kmeshTransform[ik].iReduced; //directly collect to reduced k-point
+			double symFactor = e.eInfo.spinWeight / (supercell->kmesh.size() * e.eInfo.qnums[iReduced].weight); //symmetrization factor = 1 / |orbit of iReduced|
+			double qWeight = qmesh[iq].weight;
+			for(size_t iEvent=0; iEvent<events.size(); iEvent++)
+			{	const Event& event = events[iEvent];
+				ImSigma[iReduced][event.i] += symFactor * qWeight * eventContrib[iEvent];
+			}
+		}
+		logPrintf("done.\n"); logFlush();
 	}
-	ImKscrHead.allReduce(MPIUtil::ReduceSum);
+	logPrintf("\n");
 	
-	string fname = e.dump.getFilename("ImKscrHead");
-	logPrintf("\nDumping %s ... ", fname.c_str()); logFlush();
+	ImKscrHead.allReduce(MPIUtil::ReduceSum);
+	for(diagMatrix& IS: ImSigma)
+		IS.allReduce(MPIUtil::ReduceSum);
+	for(int q=0; q<e.eInfo.nStates; q++)
+		for(int b=0; b<nBands; b++)
+		{	double Eqb = E[q][b];
+			if(Eqb<Emin || Eqb>Emax)
+				ImSigma[q][b] = NAN; //clearly mark as invalid
+		}
+	
+	string fname = e.dump.getFilename("ImSigma_ee");
+	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+	e.eInfo.write(ImSigma, fname.c_str());
+	logPrintf("done.\n");
+
+	fname = e.dump.getFilename("ImKscrHead");
+	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
 	FILE* fp = fopen(fname.c_str(), "w");
 	for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 		fprintf(fp, "%lf %le\n", omegaGrid[iOmega], ImKscrHead[iOmega]);
 	fclose(fp);
 	logPrintf("done.\n");
-	
-	die("Not yet implemented.\n");
+
 	logPrintf("\n"); logFlush();
 }
 
