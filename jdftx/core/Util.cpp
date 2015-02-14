@@ -233,7 +233,7 @@ void initSystem(int argc, char** argv)
 	}
 	
 	//Add citations to the code and general framework:
-	Citations::add("Software package", "R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
+	Citations::add("Software package", "R. Sundararaman, D. Gunceler, K. Letchworth-Weaver and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
 	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
 }
 
