@@ -56,12 +56,22 @@ private:
 		double Eji; //Ej - Ei
 	};
 	
+	struct CEDA
+	{	diagMatrix Fsum, FEsum; //!< sums of F and F*E at each band position [non-cumulative when set by getEvents]
+		std::vector<diagMatrix> oNum, oDen; //!< overlap contributions to numerator and denominator (outer nBands, inner nbasis) [non-cumulative when set by getEvents]
+		
+		CEDA(int nBands, int nbasis); //!< initialize to zeroes with required sizes
+		void collect(const ElectronScattering& es, int iq, const diagMatrix& chiKS0, diagMatrix& num, diagMatrix& den); //!< collect net numerator and denominator contributions
+	};
+	friend class CEDA;
+	
 	std::vector<Event> getEvents( //!< return list of events
 		bool chiMode, //!< whether to calculate fWeight for chi (true) or ImSigma (false), and hence which events to select (occ-unocc or occ-occ + unocc-unocc)
 		size_t ik, //!< k-mesh index for first state
 		size_t iq, //!< q-mesh index for momentum transfer
 		size_t& jk, //!< set k-mesh index for second state
-		matrix& nij //!< set pair densities for each event, one per column
+		matrix& nij, //!< set pair densities for each event, one per column
+		CEDA* ceda = 0 //!< if non-null, accumulate relevant quantities for CEDA plasma-frequency sum rule (requires chiMode = true)
 	) const;
 	
 	ColumnBundle getWfns(size_t ik) const; //get wavefunctions at an arbitrary point in k-mesh

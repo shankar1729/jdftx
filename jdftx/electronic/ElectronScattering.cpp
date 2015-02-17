@@ -215,15 +215,17 @@ void ElectronScattering::dump(const Everything& everything)
 	//Main loop over momentum transfers:
 	diagMatrix ImKscrHead(omegaGrid.size(), 0.);
 	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
+	diagMatrix cedaNum(nBands, 0.), cedaDen(nBands, 0.);
 	for(size_t iq=0; iq<qmesh.size(); iq++)
 	{	logPrintf("\nMomentum transfer %d of %d: q = ", int(iq+1), int(qmesh.size()));
 		qmesh[iq].k.print(globalLog, " %+.5lf ");
+		int nbasis = basisChi[iq].nbasis;
 		
 		//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
 		matrix invKq = inv(coulombMatrix(iq));
 		
 		//Calculate chi_KS:
-		std::vector<matrix> chiKS(omegaGrid.nRows());
+		std::vector<matrix> chiKS(omegaGrid.nRows()); CEDA ceda(nBands, nbasis);
 		logPrintf("\tComputing chi_KS ...  "); logFlush(); 
 		size_t nkMine = ikStop-ikStart;
 		int ikInterval = std::max(1, int(round(nkMine/20.))); //interval for reporting progress
@@ -236,7 +238,7 @@ void ElectronScattering::dump(const Everything& everything)
 			}
 			//Get events:
 			size_t jk; matrix nij;
-			std::vector<Event> events = getEvents(true, ik, iq, jk, nij);
+			std::vector<Event> events = getEvents(true, ik, iq, jk, nij, &ceda);
 			if(!events.size()) continue;
 			//Collect contributions for each frequency:
 			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
@@ -253,10 +255,11 @@ void ElectronScattering::dump(const Everything& everything)
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 			chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
 		logPrintf("done.\n"); logFlush();
+		diagMatrix chiKS0diag = diag(chiKS[0]); //static neglecting local-fields (for CEDA)
 		
 		//Figure out head entry index:
-		int iHead = -1, nbasis = basisChi[iq].nbasis;
-		for(size_t n=0; n<basisChi[iq].nbasis; n++)
+		int iHead = -1;
+		for(int n=0; n<nbasis; n++)
 			if(!basisChi[iq].iGarr[n].length_squared())
 			{	iHead = n;
 				break;
@@ -275,6 +278,21 @@ void ElectronScattering::dump(const Everything& everything)
 			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
 		chiKS.clear();
 		logPrintf("done.\n"); logFlush();
+		
+		//Collect CEDA contributions:
+		ceda.collect(*this, iq, chiKS0diag, cedaNum, cedaDen);
+		
+		string fname = e.dump.getFilename("CEDA");
+		logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+		if(mpiUtil->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
+			if(fp)
+			{	(cedaNum * inv(cedaDen)).print(fp, "%19.12le\n");
+				fclose(fp);
+			}
+		}
+		logPrintf("done.\n");
+
 		
 		//Calculate ImSigma contributions:
 		logPrintf("\tComputing ImSigma ... "); logFlush(); 
@@ -331,17 +349,19 @@ void ElectronScattering::dump(const Everything& everything)
 
 	fname = e.dump.getFilename("ImKscrHead");
 	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-	FILE* fp = fopen(fname.c_str(), "w");
-	for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-		fprintf(fp, "%lf %le\n", omegaGrid[iOmega], ImKscrHead[iOmega]);
-	fclose(fp);
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "w");
+		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+			fprintf(fp, "%lf %le\n", omegaGrid[iOmega], ImKscrHead[iOmega]);
+		fclose(fp);
+	}
 	logPrintf("done.\n");
 
 	logPrintf("\n"); logFlush();
 }
 
 
-std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij) const
+std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij, ElectronScattering::CEDA* ceda) const
 {	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ");
 	//Find target k-point:
 	const vector3<>& ki = supercell->kmesh[ik];
@@ -354,7 +374,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	int jReduced = supercell->kmeshTransform[jk].iReduced;
 	const diagMatrix &Ei = E[iReduced], &Fi = F[iReduced];
 	const diagMatrix &Ej = E[jReduced], &Fj = F[jReduced];
-	std::vector<Event> events; events.reserve((nBands*nBands)/2);
+	std::vector<Event> events, eventsCEDA; events.reserve((nBands*nBands)/2);
 	std::vector<bool> iUsed(nBands,false), jUsed(nBands,false); //sets of i and j actually referenced
 	Event event;
 	for(event.i=0; event.i<nBands; event.i++)
@@ -367,13 +387,17 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 		{	if(Eii<Emin || Eii>Emax) event.fWeight = 0.; //state out of relevant range
 			if(event.fWeight * (Eii-Ejj) <= 0) event.fWeight = 0; //wrong sign for energy transfer
 		}
-		if(fabs(event.fWeight) > fCut)
-		{	events.push_back(event);
+		bool needEvent = (fabs(event.fWeight) > fCut);
+		bool needCEDA = ceda && ((Fi[event.i]>fCut) || (Fj[event.j]>fCut)); //additionally need occupied-occupied combinations for CEDA
+		if(needEvent || needCEDA)
+		{	(needEvent ? events : eventsCEDA).push_back(event);
 			iUsed[event.i] = true;
 			jUsed[event.j] = true;
 		}
 	}
 	if(!events.size()) return events;
+	std::vector<Event> eventsAll = events;
+	eventsAll.insert(eventsAll.end(), eventsCEDA.begin(), eventsCEDA.end());
 	
 	//Get wavefunctions in real space:
 	ColumnBundle Ci = getWfns(ik), Cj = getWfns(jk);
@@ -394,16 +418,45 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	//Initialize pair densities:
 	watchJ.start();
 	const Basis& basis_q = basisChi[iq];
-	nij = zeroes(basis_q.nbasis, events.size());
+	int nbasis = basis_q.nbasis;
+	nij = zeroes(nbasis, eventsAll.size());
 	complex* nijData = nij.dataPref();
-	for(const Event& event: events)
+	for(const Event& event: eventsAll)
 	{	complexDataRptr Inij;
 		for(int s=0; s<nSpinor; s++)
 			Inij += conjICi[event.i][s] * ICj[event.j][s];
-		callPref(eblas_gather_zdaxpy)(basis_q.nbasis, 1., basis_q.indexPref, J(Inij)->dataPref(), nijData);
-		nijData += basis_q.nbasis;
+		callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(Inij)->dataPref(), nijData);
+		nijData += nbasis;
 	}
 	watchJ.stop();
+	
+	//CEDA plasma-frequency sum rule contributions:
+	if(ceda)
+	{	assert(chiMode);
+		//Single loop quantities:
+		for(int i=0; i<nBands; i++)
+		{	ceda->Fsum[i] += Fi[i];
+			ceda->FEsum[i] += Fi[i] * Ei[i];
+		}
+		//Double loop quantities:
+		const complex* nijData = nij.data();
+		for(const Event& event: eventsAll)
+		{	//Compute elementwise nij^2:
+			diagMatrix nijSq(nbasis, 0.);
+			eblas_accumNorm(nbasis, 1., nijData, nijSq.data());
+			nijData += nbasis;
+			//Accumulate to appropriate entries of oNum and oDen:
+			double numWeight = 0.5*(Fi[event.i]*Ej[event.j] + Fj[event.j]*Ei[event.i]);
+			double denWeight = 0.5*(Fi[event.i] + Fj[event.j]);
+			int ijMax = std::max(event.i,event.j);
+			ceda->oNum[ijMax] += numWeight * nijSq;
+			ceda->oDen[ijMax] += denWeight * nijSq;
+		}
+	}
+	
+	//Trim extra columns in matrix (which were needed only for CEDA):
+	if(eventsCEDA.size())
+		nij = nij(0,nij.nRows(), 0,events.size());
 	
 	return events;
 }
@@ -430,3 +483,50 @@ matrix ElectronScattering::coulombMatrix(size_t iq) const
 	return coulombMatrix(V, *e, qmesh[iq].k);
 }
 
+ElectronScattering::CEDA::CEDA(int nBands, int nbasis)
+: Fsum(nBands, 0.), FEsum(nBands, 0.),
+oNum(nBands, diagMatrix(nbasis, 0.)),
+oDen(nBands, diagMatrix(nbasis, 0.))
+{
+}
+
+void ElectronScattering::CEDA::collect(const ElectronScattering& es, int iq, const diagMatrix& chiKS0, diagMatrix& num, diagMatrix& den)
+{	int nBands = Fsum.nRows();
+	//MPI accumulate:
+	Fsum.allReduce(MPIUtil::ReduceSum);
+	FEsum.allReduce(MPIUtil::ReduceSum);
+	for(int b=0; b<nBands; b++)
+	{	oNum[b].allReduce(MPIUtil::ReduceSum);
+		oDen[b].allReduce(MPIUtil::ReduceSum);
+	}
+	//Convert to cumulative contributions:
+	for(int b=1; b<nBands; b++)
+	{	Fsum[b] += Fsum[b-1];
+		FEsum[b] += FEsum[b-1];
+		oNum[b] += oNum[b-1];
+		oDen[b] += oDen[b-1];
+	}
+	//Calculate actual numerator and denominator terms:
+	const Basis& basisChi = es.basisChi[iq];
+	const GridInfo& gInfo = *(basisChi.gInfo);
+	double qWeight = es.qnumMesh[iq].weight;
+	const vector3<>& q = es.qnumMesh[iq].k;
+	int nbasis = basisChi.nbasis;
+	double detRsq = std::pow(gInfo.detR, 2);
+	diagMatrix K(nbasis), Kinv(nbasis), absKscrMinusK(nbasis);
+	const double tol = 1e-8;
+	for(int n=0; n<nbasis; n++)
+	{	Kinv[n] = gInfo.GGT.metric_length_squared(q + basisChi.iGarr[n]) / (4*M_PI);
+		K[n] = (fabs(Kinv[n])<tol) ? 0. : 1./Kinv[n];
+		double invKscr = Kinv[n] - chiKS0[n];
+		absKscrMinusK[n] = (fabs(invKscr)<tol) ? 0. : fabs(1./invKscr - K[n]);
+		absKscrMinusK[n] = basisChi.iGarr[n].length_squared() ? 0. : 1.;
+	}
+	diagMatrix wG = qWeight * absKscrMinusK * K;
+	double wSum = trace(wG);
+	double wKinvSum = dot(wG, Kinv);
+	for(int b=0; b<nBands; b++)
+	{	num[b] += wSum*FEsum[b] - detRsq*dot(wG,oNum[b]) + (2*M_PI)*wKinvSum*Fsum[b];
+		den[b] += wSum*Fsum[b] - detRsq*dot(wG,oDen[b]);
+	}
+}

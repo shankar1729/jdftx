@@ -571,6 +571,12 @@ matrix inv(const matrix& A)
 	return invA;
 }
 
+diagMatrix inv(const diagMatrix& A)
+{	diagMatrix invA = A;
+	for(double& x: invA) x = 1./x;
+	return invA;
+}
+
 matrix LU(const matrix& A)
 {	static StopWatch watch("LU(matrix)");
 	watch.start();
