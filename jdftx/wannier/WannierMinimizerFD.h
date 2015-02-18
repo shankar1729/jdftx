@@ -31,7 +31,6 @@ public:
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
 	WannierGradient precondition(const WannierGradient& grad);
-	void saveExtra(int iSpin);
 	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct Edge
