@@ -194,7 +194,10 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Setting up k-mesh wavefunction transforms ... "); logFlush();
 	double kMaxSq = 0;
 	for(const vector3<>& k: supercell->kmesh)
-		kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(k));
+	{	kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(k));
+		for(const QuantumNumber& qnum: qmesh)
+			kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(k + qnum.k));
+	}
 	double GmaxEff = sqrt(2.*e.cntrl.Ecut) + sqrt(kMaxSq);
 	double EcutEff = 0.5*GmaxEff*GmaxEff * (1.+symmThreshold); //add some margin for round-off error safety
 	logSuspend();
@@ -202,13 +205,22 @@ void ElectronScattering::dump(const Everything& everything)
 	logResume();
 	ColumnBundleTransform::BasisWrapper basisWrapper(basis);
 	std::vector<matrix3<int>> sym = e.symm.getMatrices();
-	transform.resize(supercell->kmesh.size());
-	for(size_t ik=0; ik<supercell->kmesh.size(); ik++)
-	{	const Supercell::KmeshTransform& kTransform = supercell->kmeshTransform[ik];
-		const Basis& basisC = e.basis[kTransform.iReduced];
-		const vector3<>& kC = e.eInfo.qnums[kTransform.iReduced].k;
-		transform[ik] = std::make_shared<ColumnBundleTransform>(kC, basisC, supercell->kmesh[ik], basisWrapper,
-			nSpinor, sym[kTransform.iSym], kTransform.invert);
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	const vector3<>& k = supercell->kmesh[ik];
+		for(const QuantumNumber& qnum: qmesh)
+		{	vector3<> k2 = k + qnum.k; double roundErr;
+			vector3<int> k2sup = round((k2 - supercell->kmesh[0]) * supercell->super, &roundErr);
+			assert(roundErr < symmThreshold);
+			auto iter = transform.find(k2sup);
+			if(iter == transform.end())
+			{	size_t ik2 = plook->find(k2); assert(ik2 != string::npos);
+				const Supercell::KmeshTransform& kTransform = supercell->kmeshTransform[ik2];
+				const Basis& basisC = e.basis[kTransform.iReduced];
+				const vector3<>& kC = e.eInfo.qnums[kTransform.iReduced].k;
+				transform[k2sup] = std::make_shared<ColumnBundleTransform>(kC, basisC, k2, basisWrapper,
+					nSpinor, sym[kTransform.iSym], kTransform.invert);
+			}
+		}
 	}
 	logPrintf("done.\n"); logFlush();
 
@@ -282,18 +294,6 @@ void ElectronScattering::dump(const Everything& everything)
 		//Collect CEDA contributions:
 		ceda.collect(*this, iq, chiKS0diag, cedaNum, cedaDen);
 		
-		string fname = e.dump.getFilename("CEDA");
-		logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-		if(mpiUtil->isHead())
-		{	FILE* fp = fopen(fname.c_str(), "w");
-			if(fp)
-			{	(cedaNum * inv(cedaDen)).print(fp, "%19.12le\n");
-				fclose(fp);
-			}
-		}
-		logPrintf("done.\n");
-
-		
 		//Calculate ImSigma contributions:
 		logPrintf("\tComputing ImSigma ... "); logFlush(); 
 		for(size_t ik=ikStart; ik<ikStop; ik++)
@@ -357,6 +357,17 @@ void ElectronScattering::dump(const Everything& everything)
 	}
 	logPrintf("done.\n");
 
+	fname = e.dump.getFilename("CEDA");
+	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "w");
+		if(fp)
+		{	(cedaNum * inv(cedaDen)).print(fp, "%19.12le\n");
+			fclose(fp);
+		}
+	}
+	logPrintf("done.\n");
+
 	logPrintf("\n"); logFlush();
 }
 
@@ -400,7 +411,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	eventsAll.insert(eventsAll.end(), eventsCEDA.begin(), eventsCEDA.end());
 	
 	//Get wavefunctions in real space:
-	ColumnBundle Ci = getWfns(ik), Cj = getWfns(jk);
+	ColumnBundle Ci = getWfns(ik, ki), Cj = getWfns(jk, kj);
 	std::vector< std::vector<complexDataRptr> > conjICi(nBands), ICj(nBands);
 	watchI.start();
 	for(int i=0; i<nBands; i++) if(iUsed[i])
@@ -461,11 +472,16 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	return events;
 }
 
-ColumnBundle ElectronScattering::getWfns(size_t ik) const
+ColumnBundle ElectronScattering::getWfns(size_t ik, const vector3<>& k) const
 {	static StopWatch watch("ElectronScattering::getWfns"); watch.start();
 	ColumnBundle result(nBands, basis.nbasis * nSpinor, &basis, &qnumMesh[ik], isGpuEnabled());
 	result.zero();
-	transform[ik]->scatterAxpy(1., C[supercell->kmeshTransform[ik].iReduced], result,0,1);
+	double roundErr;
+	vector3<int> kSup = round((k - supercell->kmesh[0]) * supercell->super, &roundErr);
+	assert(roundErr < symmThreshold);
+	auto iter = transform.find(kSup);
+	assert(iter != transform.end());
+	iter->second->scatterAxpy(1., C[supercell->kmeshTransform[ik].iReduced], result,0,1);
 	watch.stop();
 	return result;
 }
@@ -509,8 +525,8 @@ void ElectronScattering::CEDA::collect(const ElectronScattering& es, int iq, con
 	//Calculate actual numerator and denominator terms:
 	const Basis& basisChi = es.basisChi[iq];
 	const GridInfo& gInfo = *(basisChi.gInfo);
-	double qWeight = es.qnumMesh[iq].weight;
-	const vector3<>& q = es.qnumMesh[iq].k;
+	double qWeight = es.qmesh[iq].weight;
+	const vector3<>& q = es.qmesh[iq].k;
 	int nbasis = basisChi.nbasis;
 	double detRsq = std::pow(gInfo.detR, 2);
 	diagMatrix K(nbasis), Kinv(nbasis), absKscrMinusK(nbasis);
@@ -520,7 +536,6 @@ void ElectronScattering::CEDA::collect(const ElectronScattering& es, int iq, con
 		K[n] = (fabs(Kinv[n])<tol) ? 0. : 1./Kinv[n];
 		double invKscr = Kinv[n] - chiKS0[n];
 		absKscrMinusK[n] = (fabs(invKscr)<tol) ? 0. : fabs(1./invKscr - K[n]);
-		absKscrMinusK[n] = basisChi.iGarr[n].length_squared() ? 0. : 1.;
 	}
 	diagMatrix wG = qWeight * absKscrMinusK * K;
 	double wSum = trace(wG);

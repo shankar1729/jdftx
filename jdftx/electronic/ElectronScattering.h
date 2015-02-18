@@ -48,7 +48,7 @@ private:
 	std::vector<QuantumNumber> qmesh; //reduced momentum-transfer mesh
 	std::vector<Basis> basisChi; //polarizability bases for qmesh
 	Basis basis; //common wavefunction  basis
-	std::vector< std::shared_ptr<class ColumnBundleTransform> > transform; //k-mesh transformations
+	std::map< vector3<int>, std::shared_ptr<class ColumnBundleTransform> > transform; //k-mesh transformations
 	
 	struct Event
 	{	int i, j; //band indices
@@ -74,7 +74,7 @@ private:
 		CEDA* ceda = 0 //!< if non-null, accumulate relevant quantities for CEDA plasma-frequency sum rule (requires chiMode = true)
 	) const;
 	
-	ColumnBundle getWfns(size_t ik) const; //get wavefunctions at an arbitrary point in k-mesh
+	ColumnBundle getWfns(size_t ik, const vector3<>& k) const; //get wavefunctions at an arbitrary point in k-mesh
 	matrix coulombMatrix(size_t iq) const; //retrieve the Coulomb operator for a specific momentum transfer
 };
 
