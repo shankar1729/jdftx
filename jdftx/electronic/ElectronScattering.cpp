@@ -155,15 +155,6 @@ void ElectronScattering::dump(const Everything& everything)
 	mpiUtil->allReduce(dEmax, MPIUtil::ReduceMax);
 	logPrintf("Maximum k-neighbour dE: %lg (guide for selecting eta)\n", dEmax);
 	
-	//Initialize quantum numbers:
-	qnumMesh.resize(supercell->kmesh.size());
-	double kWeight = double(e.eInfo.spinWeight) / qnumMesh.size();
-	for(size_t ik=0; ik<qnumMesh.size(); ik++)
-	{	qnumMesh[ik].k = supercell->kmesh[ik];
-		qnumMesh[ik].spin = 0;
-		qnumMesh[ik].weight = kWeight;
-	}
-	
 	//Initialize reduced q-Mesh:
 	//--- q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
 	qmesh.resize(supercell->kmesh.size());
@@ -190,6 +181,7 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
 
+
 	//Initialize common wavefunction basis and ColumnBundle transforms for full k-mesh:
 	logPrintf("Setting up k-mesh wavefunction transforms ... "); logFlush();
 	double kMaxSq = 0;
@@ -198,6 +190,7 @@ void ElectronScattering::dump(const Everything& everything)
 		for(const QuantumNumber& qnum: qmesh)
 			kMaxSq = std::max(kMaxSq, e.gInfo.GGT.metric_length_squared(k + qnum.k));
 	}
+	double kWeight = double(e.eInfo.spinWeight) / supercell->kmesh.size();
 	double GmaxEff = sqrt(2.*e.cntrl.Ecut) + sqrt(kMaxSq);
 	double EcutEff = 0.5*GmaxEff*GmaxEff * (1.+symmThreshold); //add some margin for round-off error safety
 	logSuspend();
@@ -219,6 +212,12 @@ void ElectronScattering::dump(const Everything& everything)
 				const vector3<>& kC = e.eInfo.qnums[kTransform.iReduced].k;
 				transform[k2sup] = std::make_shared<ColumnBundleTransform>(kC, basisC, k2, basisWrapper,
 					nSpinor, sym[kTransform.iSym], kTransform.invert);
+				//Initialize corresponding quantum number:
+				QuantumNumber qnum;
+				qnum.k = k2;
+				qnum.spin = 0;
+				qnum.weight = kWeight;
+				qnumMesh[k2sup] = qnum;
 			}
 		}
 	}
@@ -361,19 +360,33 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
-		if(fp)
-		{	(cedaNum * inv(cedaDen)).print(fp, "%19.12le\n");
-			fclose(fp);
-		}
+		if(!fp) die("Could not open '%s' for writing.\n", fname.c_str());
+		(cedaNum * inv(cedaDen)).print(fp, "%19.12le\n");
+		fclose(fp);
 	}
 	logPrintf("done.\n");
 
 	logPrintf("\n"); logFlush();
 }
 
+//Calculate diag(A*dagger(B)) without constructing large intermediate matrix
+diagMatrix diagouter(const matrix& A, const matrix& B)
+{	assert(A.nRows()==B.nRows());
+	assert(A.nCols()==B.nCols());
+	//Elementwise multiply A and conj(B);
+	matrix ABconj = conj(B);
+	callPref(eblas_zmul)(ABconj.nData(), A.dataPref(),1, ABconj.dataPref(),1);
+	//Add columns of ABconj:
+	for(int col=1; col<ABconj.nCols(); col++)
+		callPref(eblas_zaxpy)(ABconj.nRows(), 1., ABconj.dataPref()+ABconj.index(0,col),1, ABconj.dataPref(),1);
+	//Return real part as diagMatrix:
+	diagMatrix result(ABconj.nRows(), 0.);
+	eblas_daxpy(result.nRows(), 1., (double*)ABconj.data(),2, result.data(),1);
+	return result;
+}
 
 std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij, ElectronScattering::CEDA* ceda) const
-{	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ");
+{	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ"), watchCEDA("ElectronScattering::CEDA");
 	//Find target k-point:
 	const vector3<>& ki = supercell->kmesh[ik];
 	const vector3<> kj = ki + qmesh[iq].k;
@@ -444,6 +457,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	//CEDA plasma-frequency sum rule contributions:
 	if(ceda)
 	{	assert(chiMode);
+		watchCEDA.start();
 		//Single loop quantities:
 		for(int i=0; i<nBands; i++)
 		{	ceda->Fsum[i] += Fi[i];
@@ -463,6 +477,79 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 			ceda->oNum[ijMax] += numWeight * nijSq;
 			ceda->oDen[ijMax] += denWeight * nijSq;
 		}
+		//Nonlocal corrections:
+		//--- get DFT+U matrices:
+		std::vector<matrix> Urho(e->iInfo.species.size());
+		std::vector<ColumnBundle> psi(e->iInfo.species.size());
+		if(e->eInfo.hasU)
+			e->iInfo.rhoAtom_getV(Cj, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at kj
+		for(size_t sp=0; sp<e->iInfo.species.size(); sp++)
+		{	//get nonlocal psp matrices and projectors:
+			matrix Mnl;
+			std::shared_ptr<ColumnBundle> V = e->iInfo.species[sp]->getV(Cj, &Mnl); //get projectors at kj
+			bool hasNL = Mnl.nRows();
+			bool hasU = Urho[sp].nRows();
+			if(!(hasNL || hasU)) continue;
+			//Put projectors and orbitals in real space:
+			std::vector<complexDataRptr> IV;
+			std::vector< std::vector<complexDataRptr> > Ipsi;
+			diagMatrix diagNL, diagU; //(q+G)-diagonal contributions
+			if(hasNL)
+			{	assert(Mnl.nRows() == V->nCols()*nSpinor);
+				IV.resize(V->nCols());
+				for(int v=0; v<V->nCols(); v++)
+					IV[v] = I(V->getColumn(v,0)); //NL projectors are always non-spinorial
+				matrix CjDagV = Cj ^ (*V);
+				diagNL = diag(CjDagV * Mnl * dagger(CjDagV));
+			}
+			if(hasU)
+			{	assert(Urho[sp].nRows() == psi[sp].nCols());
+				Ipsi.resize(psi[sp].nCols());
+				for(int n=0; n<psi[sp].nCols(); n++)
+				{	Ipsi[n].resize(nSpinor);
+					for(int s=0; s<nSpinor; s++)
+						Ipsi[n][s] = I(psi[sp].getColumn(n,s)); //atomic orbitals will be spinorial in noncollinear modes
+				}
+				matrix CjDagPsi = Cj ^ psi[sp];
+				diagU = diag(CjDagPsi * Urho[sp] * dagger(CjDagPsi));
+			}
+			//Diagonal terms (computed at j, since those projectors have been retrieved):
+			for(int j=0; j<nBands; j++) if(Fj[j] > fCut)
+			{	double diag_j = (hasNL ? diagNL[j] : 0.) + (hasU ? diagU[j] : 0.);
+				ceda->FNLsum[j] -= (Fj[j] * diag_j) * eye(nbasis);
+			}
+			//Off-diagonal terms (coupling i and j):
+			for(int i=0; i<nBands; i++) if(Fi[i] > fCut)
+			{	assert(iUsed[i]);
+				if(hasNL)
+				{	//Put pair densities with projectors in reciprocal space:
+					matrix niV = zeroes(nbasis, Mnl.nRows()); //anologous to nij above, but with V instead
+					complex* niVdata = niV.dataPref();
+					for(int v=0; v<V->nCols(); v++)
+						for(int s=0; s<nSpinor; s++)
+						{	callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(conjICi[i][s] * IV[v])->dataPref(), niVdata);
+							niVdata += nbasis;
+						}
+					//Accumulate correction:
+					ceda->FNLsum[i] += Fi[i] * diagouter(niV * Mnl, niV);
+				}
+				if(hasU)
+				{	//Put pair densities with orbitals in reciprocal space:
+					matrix niPsi = zeroes(nbasis, Urho[sp].nRows()); //anologous to nij above, but with psi instead
+					complex* niPsiData = niPsi.dataPref();
+					for(int n=0; n<psi[sp].nCols(); n++)
+					{	complexDataRptr IniPsi;
+						for(int s=0; s<nSpinor; s++)
+							IniPsi += conjICi[i][s] * Ipsi[n][s];
+						callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(IniPsi)->dataPref(), niPsiData);
+						niPsiData += nbasis;
+					}
+					//Accumulate correction:
+					ceda->FNLsum[i] += Fi[i] * diagouter(niPsi * Urho[sp], niPsi);
+				}
+			}
+		}
+		watchCEDA.stop();
 	}
 	
 	//Trim extra columns in matrix (which were needed only for CEDA):
@@ -474,14 +561,12 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 
 ColumnBundle ElectronScattering::getWfns(size_t ik, const vector3<>& k) const
 {	static StopWatch watch("ElectronScattering::getWfns"); watch.start();
-	ColumnBundle result(nBands, basis.nbasis * nSpinor, &basis, &qnumMesh[ik], isGpuEnabled());
-	result.zero();
 	double roundErr;
 	vector3<int> kSup = round((k - supercell->kmesh[0]) * supercell->super, &roundErr);
 	assert(roundErr < symmThreshold);
-	auto iter = transform.find(kSup);
-	assert(iter != transform.end());
-	iter->second->scatterAxpy(1., C[supercell->kmeshTransform[ik].iReduced], result,0,1);
+	ColumnBundle result(nBands, basis.nbasis * nSpinor, &basis, &qnumMesh.find(kSup)->second, isGpuEnabled());
+	result.zero();
+	transform.find(kSup)->second->scatterAxpy(1., C[supercell->kmeshTransform[ik].iReduced], result,0,1);
 	watch.stop();
 	return result;
 }
@@ -501,6 +586,7 @@ matrix ElectronScattering::coulombMatrix(size_t iq) const
 
 ElectronScattering::CEDA::CEDA(int nBands, int nbasis)
 : Fsum(nBands, 0.), FEsum(nBands, 0.),
+FNLsum(nBands, diagMatrix(nbasis, 0.)),
 oNum(nBands, diagMatrix(nbasis, 0.)),
 oDen(nBands, diagMatrix(nbasis, 0.))
 {
@@ -512,13 +598,15 @@ void ElectronScattering::CEDA::collect(const ElectronScattering& es, int iq, con
 	Fsum.allReduce(MPIUtil::ReduceSum);
 	FEsum.allReduce(MPIUtil::ReduceSum);
 	for(int b=0; b<nBands; b++)
-	{	oNum[b].allReduce(MPIUtil::ReduceSum);
+	{	FNLsum[b].allReduce(MPIUtil::ReduceSum);
+		oNum[b].allReduce(MPIUtil::ReduceSum);
 		oDen[b].allReduce(MPIUtil::ReduceSum);
 	}
 	//Convert to cumulative contributions:
 	for(int b=1; b<nBands; b++)
 	{	Fsum[b] += Fsum[b-1];
 		FEsum[b] += FEsum[b-1];
+		FNLsum[b] += FNLsum[b-1];
 		oNum[b] += oNum[b-1];
 		oDen[b] += oDen[b-1];
 	}
@@ -541,7 +629,7 @@ void ElectronScattering::CEDA::collect(const ElectronScattering& es, int iq, con
 	double wSum = trace(wG);
 	double wKinvSum = dot(wG, Kinv);
 	for(int b=0; b<nBands; b++)
-	{	num[b] += wSum*FEsum[b] - detRsq*dot(wG,oNum[b]) + (2*M_PI)*wKinvSum*Fsum[b];
+	{	num[b] += wSum*FEsum[b] - detRsq*dot(wG,oNum[b]) + dot(wG,FNLsum[b]) + (2*M_PI)*wKinvSum*Fsum[b];
 		den[b] += wSum*Fsum[b] - detRsq*dot(wG,oDen[b]);
 	}
 }

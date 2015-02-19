@@ -83,7 +83,7 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //get projectors with qnum and basis matching Cq  (optionally cached)
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, matrix* M=0) const; //get projectors with qnum and basis matching Cq  (optionally cached, and optionally retrieve full M repeated over atoms)
 
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
@@ -110,8 +110,9 @@ public:
 	void rhoAtom_initZero(matrix* rhoAtomPtr) const;
 	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, matrix* rhoAtomPtr) const;
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
-	void rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
+	void rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
+	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(DataGptrCollection& nTilde) const; //!< Accumulate atomic density from this species

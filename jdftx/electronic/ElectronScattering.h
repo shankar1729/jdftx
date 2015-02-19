@@ -43,12 +43,12 @@ private:
 	std::vector<ColumnBundle> C; //wavefunctions, made available on all processes
 	std::vector<diagMatrix> E, F; //energies and fillings, available on all processes
 	std::shared_ptr<const Supercell> supercell; //contains transformations between full and reduced k-mesh
-	std::vector<QuantumNumber> qnumMesh; //equivalent of eInfo.qnums for entire k-mesh
 	std::shared_ptr<const PeriodicLookup< vector3<> > > plook; //O(1) lookup for finding k-points in mesh
 	std::vector<QuantumNumber> qmesh; //reduced momentum-transfer mesh
 	std::vector<Basis> basisChi; //polarizability bases for qmesh
 	Basis basis; //common wavefunction  basis
 	std::map< vector3<int>, std::shared_ptr<class ColumnBundleTransform> > transform; //k-mesh transformations
+	std::map< vector3<int>, QuantumNumber > qnumMesh; //equivalent of eInfo.qnums for entire k-mesh
 	
 	struct Event
 	{	int i, j; //band indices
@@ -58,6 +58,7 @@ private:
 	
 	struct CEDA
 	{	diagMatrix Fsum, FEsum; //!< sums of F and F*E at each band position [non-cumulative when set by getEvents]
+		std::vector<diagMatrix> FNLsum; //!< corrections to plasma frequency sum rule due to commutator of nonlocal PS (and DFT+U) with cis(q.r)
 		std::vector<diagMatrix> oNum, oDen; //!< overlap contributions to numerator and denominator (outer nBands, inner nbasis) [non-cumulative when set by getEvents]
 		
 		CEDA(int nBands, int nbasis); //!< initialize to zeroes with required sizes

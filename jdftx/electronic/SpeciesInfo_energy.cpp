@@ -126,7 +126,7 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 			U_rho[s].set(a*orbCount,(a+1)*orbCount, a*orbCount,(a+1)*orbCount, *(U_rhoAtomPtr++)); \
 	}
 
-void SpeciesInfo::rhoAtom_grad(ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const
+void SpeciesInfo::rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const
 {	static StopWatch watch("rhoAtom_grad"); watch.start();
 	rhoAtom_COMMONinit
 	UparamLOOP
@@ -158,6 +158,22 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 				forces[a] += 2.*qnum.weight * (e->gInfo.RT * fCart);
 			}
 		}
+	)
+}
+
+void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const
+{	rhoAtom_COMMONinit
+	int matSizeTot = 0; UparamLOOP( matSizeTot += orbCount * atpos.size(); )
+	if(!matSizeTot) return;
+	psi = Cq.similar(matSizeTot);
+	M = zeroes(matSizeTot, matSizeTot);
+	int matSizePrev = 0;
+	UparamLOOP
+	(	U_rho_PACK
+		int s = Cq.qnum->index();
+		setAtomicOrbitals(psi, true, Uparams.n, Uparams.l, matSizePrev);
+		M.set(matSizePrev,matSizePrev+matSize, matSizePrev,matSizePrev+matSize, (1./e->eInfo.spinWeight) * U_rho[s]);
+		matSizePrev += matSize;
 	)
 }
 #undef rhoAtom_COMMONinit
@@ -238,9 +254,17 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 	}
 }
 
-std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
+std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, matrix* M) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
+	if(M)
+	{	int N = MnlAll.nRows();
+		if(N) //else purely local psp
+		{	*M = zeroes(N*atpos.size(), N*atpos.size());
+			for(size_t at=0; at<atpos.size(); at++)
+				M->set(at*N,(at+1)*N, at*N,(at+1)*N, MnlAll);
+		}
+	}
 	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
 	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
 	if(!nProj) return 0; //purely local psp

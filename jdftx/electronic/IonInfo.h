@@ -99,8 +99,9 @@ public:
 	void rhoAtom_initZero(std::vector<matrix>& rhoAtom) const; //!< initialize matrices of appropriate size to zero
 	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<matrix>& rhoAtom) const; //!< compute atomic density matrices
 	double rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const; //!< compute U energy and gradient w.r.t atomic density matrices
-	void rhoAtom_grad(ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
+	void rhoAtom_grad(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
+	void rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const; //!< get DFT+U Hamiltonian basis (atomic orbitals) and matrices
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)

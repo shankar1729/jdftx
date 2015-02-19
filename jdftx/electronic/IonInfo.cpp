@@ -328,7 +328,7 @@ double IonInfo::rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector
 	return Utot;
 }
 
-void IonInfo::rhoAtom_grad(ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const
+void IonInfo::rhoAtom_grad(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const
 {	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
 	for(const auto& sp: species)
 	{	sp->rhoAtom_grad(Cq, U_rhoAtomPtr, HCq);
@@ -346,6 +346,17 @@ void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector
 	}
 }
 
+void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const
+{	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
+	psi.resize(species.size());
+	M.resize(species.size());
+	ColumnBundle* psiPtr = psi.data();
+	matrix* Mptr = M.data();
+	for(const auto& sp: species)
+	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(psiPtr++), *(Mptr++));
+		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
+	}
+}
 
 int IonInfo::nAtomicOrbitals() const
 {	int nAtomic = 0;
