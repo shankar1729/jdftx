@@ -283,7 +283,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	logFlush();
 	
 	//Save the matrices:
-	if(mpiUtil->isHead())
+	if(mpiUtil->isHead() && wannier.minParams.nIterations) //re-save only if any minimization has occured
 	{	//Write U:
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
