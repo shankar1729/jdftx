@@ -204,63 +204,55 @@ void Phonon::processPerturbation(const Perturbation& pert)
 
 void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<matrix> >* HPsub)
 {
-	int nBandsSup = e.eInfo.nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
-	
-	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
-	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
 		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
-		if(Cq.nCols() != nBandsSup)
-			Cq.init(nBandsSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
-		Cq.zero();
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			eSup->eVars.B[qSup] = zeroes(nBandsSup,nBandsSup);
-	}
 	
-	//Update supercell quantities:
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
-	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
-	{	int nBandsPrev = e.eInfo.nBands * sme.nqPrev;
-		//Wavefunctions:
-		const ColumnBundle& C = e.eVars.C[sme.iReduced];
-		ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
-		sme.transform->scatterAxpy(scaleFac, C, Csup,nBandsPrev,1);
-		//Fillings:
-		const diagMatrix& F = e.eVars.F[sme.iReduced];
-		diagMatrix& Fsup = eSup->eVars.F[sme.qSup];
-		Fsup.resize(nBandsSup);
-		Fsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, F);
-		//Auxiliary Hamiltonian (if necessary):
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	const matrix& B = e.eVars.B[sme.iReduced];
-			matrix& Bsup = eSup->eVars.B[sme.qSup];
-			Bsup.set(nBandsPrev,nBandsPrev+e.eInfo.nBands, nBandsPrev,nBandsPrev+e.eInfo.nBands, B);
-		}
-	}
 	
 	//Compute gamma point Hamiltonian if requested:
 	if(Hsub || HPsub)
-	{	if(Hsub) Hsub->resize(nSpins);
+	{	int nBands = e.eInfo.nBands;
+		int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
+		if(Hsub) Hsub->resize(nSpins);
 		if(HPsub) HPsub->resize(3, std::vector<matrix>(nSpins));
 		for(int s=0; s<nSpins; s++)
 		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
 			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
 			if(eSup->eInfo.isMine(qSup))
-			{	ColumnBundle HC; Energies ener;
-				eSup->iInfo.project(eSup->eVars.C[qSup], eSup->eVars.VdagC[qSup]); //update wavefunction projections
-				eSup->eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
-				if(Hsub) (*Hsub)[s] = eSup->eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
+			{	//Initialize outputs:
+				(*Hsub)[s] = zeroes(nBandsSup, nBandsSup);
 				if(HPsub)
 					for(int iDir=0; iDir<3; iDir++)
-					{	//Break into blocks to minimize memory overhead
 						(*HPsub)[iDir][s] = zeroes(nBandsSup, nBandsSup);
-						for(int block=0; block<prodSup; block++)
-						{	int start = e.eInfo.nBands * block;
-							int stop = e.eInfo.nBands * (block+1);
-							ColumnBundle DC = D(eSup->eVars.C[qSup].getSub(start,stop), iDir);
-							(*HPsub)[iDir][s].set(0,nBandsSup, start,stop, (HC ^ DC) * prodSup);
-						}
+				//Loop over supercell-commensurate unit cell k-points:
+				for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+				{	//Set supercell wavefunctions:
+					const ColumnBundle& C = e.eVars.C[sme.iReduced];
+					ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
+					if(Csup.nCols() != nBands) Csup.init(nBands, Csup.colLength(), Csup.basis, Csup.qnum, isGpuEnabled());
+					Csup.zero();
+					sme.transform->scatterAxpy(scaleFac, C, Csup,0,1);
+					//Apply Hamiltonian:
+					ColumnBundle HCsup; Energies ener;
+					eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wavefunction projections
+					eSup->eVars.applyHamiltonian(qSup, eye(nBands), HCsup, ener, true);
+					int start = nBands * sme.nqPrev;
+					int stop = nBands * (sme.nqPrev+1);
+					//Second loop over supercell-commensurate unit cell k-points:
+					for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)
+					{	const ColumnBundle& C2 = e.eVars.C[sme2.iReduced];
+						ColumnBundle HC = C2.similar();
+						HC.zero();
+						sme2.transform->gatherAxpy(1./scaleFac, HCsup,0,1, HC);
+						//Compute overlaps:
+						int start2 = nBands * sme2.nqPrev;
+						int stop2 = nBands * (sme2.nqPrev+1);
+						if(Hsub) (*Hsub)[s].set(start,stop, start2,stop2, HC^C2);
+						if(HPsub)
+							for(int iDir=0; iDir<3; iDir++)
+								(*HPsub)[iDir][s].set(start,stop, start2,stop2, HC^D(C2,iDir));
 					}
+				}
 			}
 			else
 			{	if(Hsub) (*Hsub)[s].init(nBandsSup, nBandsSup);
@@ -275,28 +267,38 @@ void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<mat
 		}
 	}
 	
-	//Discard extra bands:
+	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
+	int nBandsOptSup = nBandsOpt * prodSup;
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
-		ColumnBundle& Yq = eSup->eVars.Y[qSup];
-		diagMatrix& Fq = eSup->eVars.F[qSup];
-		matrix& Bq = eSup->eVars.B[qSup];
-		Yq = Cq.similar(eSup->eInfo.nBands);
-		diagMatrix Ftmp(eSup->eInfo.nBands);
-		matrix Btmp = zeroes(eSup->eInfo.nBands, eSup->eInfo.nBands);
-		for(int nqPrev=0; nqPrev<prodSup; nqPrev++)
-		{	int offsIn = nqPrev * e.eInfo.nBands;
-			int offsOut = nqPrev * nBandsOpt;
-			callPref(eblas_copy)(Yq.data()+Yq.index(offsOut,0), Cq.data()+Cq.index(offsIn,0), nBandsOpt*Yq.colLength());
-			Ftmp.set(offsOut,offsOut+nBandsOpt, Fq(offsIn,offsIn+nBandsOpt));
-			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-				Btmp.set(offsOut,offsOut+nBandsOpt, offsOut,offsOut+nBandsOpt, Bq(offsIn,offsIn+nBandsOpt, offsIn,offsIn+nBandsOpt));
-		}
-		Cq = Yq;
-		std::swap(Fq, Ftmp);
+		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
+		if(Cq.nCols() != nBandsOptSup)
+			Cq.init(nBandsOptSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
+		Cq.zero();
 		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			std::swap(Bq, Btmp);
-		eSup->iInfo.project(Cq, eSup->eVars.VdagC[qSup]); //update wave function projections
+			eSup->eVars.B[qSup] = zeroes(nBandsOptSup,nBandsOptSup);
+	}
+	
+	//Update supercell quantities:
+	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
+	{	int nBandsPrev = nBandsOpt * sme.nqPrev;
+		//Wavefunctions:
+		const ColumnBundle& C = e.eVars.C[sme.iReduced];
+		ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
+		sme.transform->scatterAxpy(scaleFac, C.getSub(0,nBandsOpt), Csup,nBandsPrev,1);
+		eSup->eVars.Y[sme.qSup] = Csup; //restore Y (which was cleared above to save memory)
+		eSup->iInfo.project(Csup, eSup->eVars.VdagC[sme.qSup]); //update wave function projections
+		//Fillings:
+		const diagMatrix& F = e.eVars.F[sme.iReduced];
+		diagMatrix& Fsup = eSup->eVars.F[sme.qSup];
+		Fsup.resize(nBandsOptSup);
+		Fsup.set(nBandsPrev,nBandsPrev+nBandsOpt, F(0,nBandsOpt));
+		//Auxiliary Hamiltonian (if necessary):
+		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		{	const matrix& B = e.eVars.B[sme.iReduced];
+			matrix& Bsup = eSup->eVars.B[sme.qSup];
+			Bsup.set(nBandsPrev,nBandsPrev+nBandsOpt, nBandsPrev,nBandsPrev+nBandsOpt, B(0,nBandsOpt, 0,nBandsOpt));
+		}
 	}
 	
 	//Update entropy contributions:
