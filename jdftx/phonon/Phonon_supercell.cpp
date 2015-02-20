@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <phonon/Phonon.h>
 #include <commands/parser.h>
 #include <electronic/ColumnBundleTransform.h>
+#include <electronic/operators.h>
 
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 
@@ -116,7 +117,8 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(3*nAtomsTot)));
 	//subspace Hamiltonian of supercell Gamma point:
 	std::vector<matrix> Hsub0;
-	setSupState(&Hsub0);
+	std::vector< std::vector<matrix> > HPsub0;
+	setSupState(&Hsub0, ceda ? &HPsub0 : 0);
 
 	//Move to perturbed configuration:
 	IonicGradient dir; dir.init(eSup->iInfo); //contains zeroes
@@ -132,9 +134,13 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
-	setSupState(&Hsub);
+	std::vector< std::vector<matrix> > HPsub, dHPsub_pert(3, std::vector<matrix>(nSpins));
+	setSupState(&Hsub, ceda ? &HPsub : 0);
 	for(size_t s=0; s<Hsub.size(); s++)
-		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	{	dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+		if(ceda) for(int iDir=0; iDir<3; iDir++)
+			dHPsub_pert[iDir][s] = (1./dr) * (HPsub[iDir][s] - HPsub0[iDir][s]);
+	}
 	
 	//Restore atom position:
 	bool dragWfns = false;
@@ -180,13 +186,23 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		
 		//Accumulate Hsub contributions:
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
+		{	matrix contrib = stateRot[iSpin][iSym] *  dHsub_pert[iSpin] * dagger(stateRot[iSpin][iSym]);
 			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
-				dHsub[iMode2][iSpin] += (pert.weight * dot(modes[iMode2].dir, mode.dir))
-					* (stateRot[iSpin][iSym] *  dHsub_pert[iSpin] * dagger(stateRot[iSpin][iSym]));
+				dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
+		}
+		
+		//Accumulate HPsub contributions:
+		if(ceda) for(int iSpin=0; iSpin<nSpins; iSpin++)
+			for(int pDirIn=0; pDirIn<3; pDirIn++)
+			{	matrix contrib = stateRot[iSpin][iSym] *  dHPsub_pert[pDirIn][iSpin] * dagger(stateRot[iSpin][iSym]);
+				for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
+					for(int pDirOut=0; pDirOut<3; pDirOut++)
+						dHPsub[pDirOut][iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir) * symSupCart[iSym](pDirOut, pDirIn));
+			}
 	}
 }
 
-void Phonon::setSupState(std::vector<matrix>* Hsub)
+void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<matrix> >* HPsub)
 {
 	int nBandsSup = e.eInfo.nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
 	
@@ -223,8 +239,9 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	}
 	
 	//Compute gamma point Hamiltonian if requested:
-	if(Hsub)
-	{	Hsub->resize(nSpins);
+	if(Hsub || HPsub)
+	{	if(Hsub) Hsub->resize(nSpins);
+		if(HPsub) HPsub->resize(3, std::vector<matrix>(nSpins));
 		for(int s=0; s<nSpins; s++)
 		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
 			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
@@ -232,10 +249,29 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 			{	ColumnBundle HC; Energies ener;
 				eSup->iInfo.project(eSup->eVars.C[qSup], eSup->eVars.VdagC[qSup]); //update wavefunction projections
 				eSup->eVars.applyHamiltonian(qSup, eye(nBandsSup), HC, ener, true);
-				(*Hsub)[s] = eSup->eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
+				if(Hsub) (*Hsub)[s] = eSup->eVars.Hsub[qSup] * prodSup; //account for scaling of wavefunctions above
+				if(HPsub)
+					for(int iDir=0; iDir<3; iDir++)
+					{	//Break into blocks to minimize memory overhead
+						(*HPsub)[iDir][s] = zeroes(nBandsSup, nBandsSup);
+						for(int block=0; block<prodSup; block++)
+						{	int start = e.eInfo.nBands * block;
+							int stop = e.eInfo.nBands * (block+1);
+							ColumnBundle DC = D(eSup->eVars.C[qSup].getSub(start,stop), iDir);
+							(*HPsub)[iDir][s].set(0,nBandsSup, start,stop, (HC ^ DC) * prodSup);
+						}
+					}
 			}
-			else (*Hsub)[s].init(nBandsSup, nBandsSup);
-			(*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
+			else
+			{	if(Hsub) (*Hsub)[s].init(nBandsSup, nBandsSup);
+				if(HPsub)
+					for(int iDir=0; iDir<3; iDir++)
+						(*HPsub)[iDir][s].init(nBandsSup, nBandsSup);
+			}
+			if(Hsub) (*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
+			if(HPsub)
+				for(int iDir=0; iDir<3; iDir++)
+					(*HPsub)[iDir][s].bcast(eSup->eInfo.whose(qSup));
 		}
 	}
 	

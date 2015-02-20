@@ -25,6 +25,8 @@ void Phonon::dump()
 	IonicGradient zeroForce; zeroForce.init(eSupTemplate.iInfo);
 	dgrad.assign(modes.size(), zeroForce);
 	dHsub.assign(modes.size(), std::vector<matrix>(nSpins));
+	if(ceda)
+		dHPsub.assign(3, std::vector<std::vector<matrix>>(modes.size(), std::vector<matrix>(nSpins)));
 	
 	//Accumulate contributions to force matrix and electron-phonon matrix elements for each irreducible perturbation:
 	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
@@ -140,6 +142,22 @@ void Phonon::dump()
 					}
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
+			//electron-phonon * momentum matrix elements:
+			if(ceda)
+			{	string fname = e.dump.getFilename("phononHPsub" + spinSuffix);
+				logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+				FILE* fp = fopen(fname.c_str(), "w");
+				for(int pDir=0; pDir<3; pDir++) //momentum Cartesian direction
+					for(size_t iMode=0; iMode<modes.size(); iMode++)
+						for(int ik1=0; ik1<prodSup; ik1++)
+							for(int ik2=0; ik2<prodSup; ik2++)
+							{	matrix HPePh = invsqrtM[modes[iMode].sp] * //incorporate mass factor in eigen-displacement
+									dHPsub[pDir][iMode][s](ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands); //split into k-point pairs
+								HPePh.write(fp);
+							}
+				fclose(fp);
+				logPrintf("done.\n"); logFlush();
+			}
 		}
 	}
 

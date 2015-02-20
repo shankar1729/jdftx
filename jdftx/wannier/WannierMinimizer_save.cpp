@@ -688,6 +688,89 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		HePh.allReduce(MPIUtil::ReduceSum);
 		//--- save output:
 		dumpMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
+		
+		if(wannier.ceda)
+		{	HePh = 0; //free memory
+			//--- read Bloch electron - nuclear displacement * momentum matrix elements
+			string fnameIn = wannier.getFilename(Wannier::FilenameInit, "phononHPsub", &iSpin);
+			logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
+			MPIUtil::File fpIn;
+			size_t matSizeIn = nBands*nBands * sizeof(complex);
+			size_t modeStrideIn = kpointPairs.size() * matSizeIn; //input data size per phonon and momentum mode
+			mpiUtil->fopenRead(fpIn, fnameIn.c_str(), nPhononModes*3 * modeStrideIn);
+			matrix HPePhTilde = zeroes(nCenters*nCenters*nPhononModes*3, nPairsMine);
+			for(int pDir=0; pDir<3; pDir++)
+				for(int iMode=0; iMode<nPhononModes; iMode++)
+				{	//Read phononHPsub and store with Wannier rotations:
+					int iModeDir = iMode + pDir*nPhononModes;
+					mpiUtil->fseek(fpIn, iModeDir*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
+					for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+					{	const KpointPair& pair = kpointPairs[iPair];
+						matrix phononHPsub(nBands, nBands);
+						mpiUtil->fread(phononHPsub.data(), sizeof(complex), phononHPsub.nData(), fpIn); //read from file
+						phononHPsub = (dagger(kMesh[pair.ik1].U) * phononHPsub * kMesh[pair.ik2].U); //apply Wannier rotations
+						callPref(eblas_copy)(HPePhTilde.dataPref() + HPePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iModeDir,
+							phononHPsub.dataPref(), phononHPsub.nData());
+					}
+				}
+			logPrintf("done.\n"); logFlush();
+			//--- convert phononHPsub from Bloch to wannier for each nuclear displacement mode
+			matrix HPePh = HPePhTilde * phase;
+			HPePhTilde = 0; //free memory
+			HPePh.allReduce(MPIUtil::ReduceSum);
+			//--- save output:
+			dumpMatrix(HPePh, "mlwfHPePh", realPartOnly, iSpin);
+		}
+	}
+	
+	if(wannier.ceda)
+	{	//Read CEDA energies generated in Bloch basis:
+		diagMatrix Ein(nBands);
+		if(mpiUtil->isHead())
+		{	string fname = wannier.getFilename(Wannier::FilenameInit, "CEDA");
+			FILE* fp = fopen(fname.c_str(), "r");
+			if(!fp) die("Could not open '%s' for reading.\n",fname.c_str());
+			Ein.scan(fp);
+			fclose(fp);
+		}
+		//Calculate weights of each Bloch band in each Wannier band
+		matrix Usq = zeroes(nBands, nCenters);
+		{	matrix UsqTemp = zeroes((nBands*nCenters+1)/2, 1);
+			double* UsqTempData = (double*)UsqTemp.dataPref();
+			for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
+			{	const KmeshEntry& ke = kMesh[ik];
+				matrix Hsub = dagger(ke.U) * e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount] * ke.U;
+				matrix Hsub_evecs; diagMatrix Hsub_eigs;
+				Hsub.diagonalize(Hsub_evecs, Hsub_eigs);
+				matrix Unet = ke.U * Hsub_evecs;
+				callPref(eblas_accumNorm)(ke.U.nData(), ke.point.weight, Unet.dataPref(), UsqTempData);
+			}
+			callPref(eblas_daxpy)(Usq.nData(), 1., UsqTempData,1, (double*)Usq.dataPref(),2); //convert to complex
+		}
+		Usq.allReduce(MPIUtil::ReduceSum);
+		//Weight contributions to CEDA energies from various bands to estimate those from Wannier bands:
+		if(mpiUtil->isHead())
+		{	matrix Ediff(nBands, 1);
+			for(int b=1; b<nBands; b++)
+				Ediff.set(b,0, Ein[b] - Ein[b-1]);
+			Ediff.set(0,0, Ediff(1,0)); //extrapolate
+			double E0 = Ein[0] - Ediff(0,0).real();
+			//Apply wannier band weights
+			Ediff = transpose(Usq) * Ediff;
+			//Reconsititute CEDA energies for Wannier bands:
+			diagMatrix Eout(nCenters);
+			Eout[0] = E0 + Ediff(0,0).real();
+			for(int b=1; b<nCenters; b++)
+				Eout[b] = Eout[b-1] + Ediff(b,0).real();
+			//Save:
+			string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCEDA");
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			if(!fp) die("Could not open '%s' for writing.\n",fname.c_str());
+			Eout.print(fp, "%19.12le\n");
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+		}
 	}
 }
 
