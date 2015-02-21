@@ -24,6 +24,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
 
+//! Block rotation matrix: used for symmetrization of electronic states
+class BlockRotationMatrix
+{	int nBlocks, blockSize;
+	std::vector<int> colOffset; //!< column offset (in blocks) for the non-zero rotation block for each row block
+	std::vector<matrix> rots; //!< rotation matrix for each row block
+public:
+	void init(int nBlocks, int blockSize); //!< initializes all blocks to zero
+	void set(int rowBlock, int colBlock, const matrix& rot); //!< set one block
+	void allReduce(); //!< collect over MPI
+	
+	matrix transform(const matrix& in) const; //!< return rot * in * dagger(rot)
+};
+
+
 class Phonon
 {
 public:
@@ -48,7 +62,7 @@ private:
 	int nBandsOpt; //optimized number of bands, accounting for Fcut
 	int prodSup; //number of unit cells in supercell
 	std::vector< matrix3<> > symSupCart; //Cartesian symmetry rotation matrices for unperturbed supercell
-	std::vector< std::vector<matrix> > stateRot; //Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
+	std::vector< std::vector<BlockRotationMatrix> > stateRot; //Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
 	
 	//Basis for phonon modes (not reduced by symmetries):
 	struct Mode

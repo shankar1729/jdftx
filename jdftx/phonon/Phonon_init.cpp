@@ -320,7 +320,7 @@ void Phonon::setup(bool printDefaults)
 			}
 			#undef SymmErrMsg
 			//Calculate unitary transformation matrix:
-			stateRot[iSpin][iSym] = zeroes(nBandsSup, nBandsSup);
+			stateRot[iSpin][iSym].init(prodSup, nBands);
 			for(int ik=0; ik<prodSup; ik++)
 				if(whose_ik(ikRot[ik]) == mpiUtil->iProcess()) //MPI division by target k-point
 				{	ColumnBundle Crot = C[ikRot[ik]].similar();
@@ -344,9 +344,9 @@ void Phonon::setup(bool printDefaults)
 						Urot.zero();
 						Urot.set(0,nBandsValid, 0,nBandsValid, UrotSub);
 					}
-					stateRot[iSpin][iSym].set(ik*nBands,(ik+1)*nBands, ikRot[ik]*nBands,(ikRot[ik]+1)*nBands, Urot);
+					stateRot[iSpin][iSym].set(ik, ikRot[ik], Urot);
 				}
-			stateRot[iSpin][iSym].allReduce(MPIUtil::ReduceSum);
+			stateRot[iSpin][iSym].allReduce();
 		}
 		#undef whose_ik
 		mpiUtil->allReduce(EmaxValid, MPIUtil::ReduceMin);

@@ -186,7 +186,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		
 		//Accumulate Hsub contributions:
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
-		{	matrix contrib = stateRot[iSpin][iSym] *  dHsub_pert[iSpin] * dagger(stateRot[iSpin][iSym]);
+		{	matrix contrib = stateRot[iSpin][iSym].transform(dHsub_pert[iSpin]);
 			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
 				dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
 		}
@@ -194,7 +194,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		//Accumulate HPsub contributions:
 		if(ceda) for(int iSpin=0; iSpin<nSpins; iSpin++)
 			for(int pDirIn=0; pDirIn<3; pDirIn++)
-			{	matrix contrib = stateRot[iSpin][iSym] *  dHPsub_pert[pDirIn][iSpin] * dagger(stateRot[iSpin][iSym]);
+			{	matrix contrib = stateRot[iSpin][iSym].transform(dHPsub_pert[pDirIn][iSpin]);
 				for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
 					for(int pDirOut=0; pDirOut<3; pDirOut++)
 						dHPsub[pDirOut][iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir) * symSupCart[iSym](pDirOut, pDirIn));

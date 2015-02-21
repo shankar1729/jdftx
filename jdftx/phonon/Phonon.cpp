@@ -258,3 +258,56 @@ std::vector< std::pair<vector3<>,double> > getQuadratureBZ()
 		addQuadratureBZ_scale(quad, scale);
 	return quad;
 }
+
+//-------------- class BlockRotationMatrix ---------------
+
+void BlockRotationMatrix::init(int nBlocks, int blockSize)
+{	this->nBlocks = nBlocks;
+	this->blockSize = blockSize;
+	colOffset.assign(nBlocks, -1);
+	rots.assign(nBlocks, matrix());
+}
+
+void BlockRotationMatrix::set(int rowBlock, int colBlock, const matrix& rot)
+{	assert(rowBlock >= 0 && rowBlock < nBlocks);
+	assert(colBlock >= 0 && colBlock < nBlocks);
+	assert(rot.nRows() == blockSize);
+	assert(rot.nCols() == blockSize);
+	colOffset[rowBlock] = colBlock;
+	rots[rowBlock] = rot;
+}
+
+void BlockRotationMatrix::allReduce()
+{	for(int rowBlock=0; rowBlock<nBlocks; rowBlock++)
+	{	//Make sure exactly one process has rotation:
+		bool myRot = colOffset[rowBlock]>=0;
+		int haveRot = (myRot ? 1 : 0);
+		mpiUtil->allReduce(haveRot, MPIUtil::ReduceSum);
+		assert(haveRot == 1);
+		//Reduce:
+		mpiUtil->allReduce(colOffset[rowBlock], MPIUtil::ReduceMax);
+		if(!myRot) rots[rowBlock] = zeroes(blockSize, blockSize);
+		rots[rowBlock].allReduce(MPIUtil::ReduceSum);
+	}
+}
+
+matrix BlockRotationMatrix::transform(const matrix& in) const
+{	int matSize = blockSize * nBlocks;
+	assert(in.nRows() == matSize);
+	assert(in.nCols() == matSize);
+	//First perform the left multiply by rot:
+	matrix temp = zeroes(matSize, matSize);
+	for(int rowBlock=0; rowBlock<nBlocks; rowBlock++)
+	{	int colBlock = colOffset[rowBlock];
+		temp.set(rowBlock*blockSize,(rowBlock+1)*blockSize, 0,matSize,
+			rots[rowBlock] * in(colBlock*blockSize,(colBlock+1)*blockSize, 0,matSize));
+	}
+	//Next perform the right multiply by dagger(rot):
+	matrix out = zeroes(matSize, matSize);
+	for(int rowBlock=0; rowBlock<nBlocks; rowBlock++)
+	{	int colBlock = colOffset[rowBlock];
+		out.set(0,matSize, rowBlock*blockSize,(rowBlock+1)*blockSize,
+			temp(0,matSize, colBlock*blockSize,(colBlock+1)*blockSize) * dagger(rots[rowBlock]));
+	}
+	return out;
+}
