@@ -17,15 +17,15 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_DATA_H
-#define JDFTX_CORE_DATA_H
+#ifndef JDFTX_CORE_SCALARFIELD_H
+#define JDFTX_CORE_SCALARFIELD_H
 
 
 //! @addtogroup griddata
 //! @{
 
-/** @file Data.h
-@brief  Data storage containers for real and reciprocal space arrays over the simulation grid.
+/** @file ScalarField.h
+@brief  Real and complex scalar fields in real and reciprocal space
 */
 
 #include <memory>
@@ -33,16 +33,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 
 class GridInfo; //Grid description and memory manager
-struct DataR; //Real space data storage container for real scalar fields
-struct DataG; //Reciprocal space data storage container for real scalar fields
-struct complexDataR; //Real space data storage container for complex scalar fields
-struct complexDataG; //Reciprocal space data storage container for complex scalar fields
+struct ScalarFieldData; //Real space data storage container for real scalar fields
+struct ScalarFieldTildeData; //Reciprocal space data storage container for real scalar fields
+struct complexScalarFieldData; //Real space data storage container for complex scalar fields
+struct complexScalarFieldTildeData; //Reciprocal space data storage container for complex scalar fields
 
 //DO NOT work with above data types directly, instead use the following smart pointer types:
-typedef std::shared_ptr<DataR> DataRptr; //!< A smart reference-counting pointer to #DataR
-typedef std::shared_ptr<DataG> DataGptr; //!< A smart reference-counting pointer to #DataG
-typedef std::shared_ptr<complexDataR> complexDataRptr; //!< A smart reference-counting pointer to #complexDataR
-typedef std::shared_ptr<complexDataG> complexDataGptr; //!< A smart reference-counting pointer to #complexDataG
+typedef std::shared_ptr<ScalarFieldData> ScalarField; //!< A smart reference-counting pointer to #ScalarFieldData
+typedef std::shared_ptr<ScalarFieldTildeData> ScalarFieldTilde; //!< A smart reference-counting pointer to #ScalarFieldTildeData
+typedef std::shared_ptr<complexScalarFieldData> complexScalarField; //!< A smart reference-counting pointer to #complexScalarFieldData
+typedef std::shared_ptr<complexScalarFieldTildeData> complexScalarFieldTilde; //!< A smart reference-counting pointer to #complexScalarFieldTildeData
 
 //Define shorthands for fetching gpu data in gpu mode and cpu data in cpu mode:
 #ifdef GPU_ENABLED
@@ -55,8 +55,8 @@ typedef std::shared_ptr<complexDataG> complexDataGptr; //!< A smart reference-co
 		const DataType* dataPref(bool shouldAbsorbScale=true) const { return data(shouldAbsorbScale); }
 #endif
 
-//! Base class for #DataR and #DataG
-struct Data
+//! Base class for #ScalarFieldData and #ScalarFieldTildeData
+struct FieldData
 {
 	int nElem; //!< number of elements = #gInfo.nr
 	double scale; //!< overall scale factor of the data array
@@ -78,9 +78,9 @@ struct Data
 	
 	bool isOnGpu() const { return onGpu; } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
 
-	Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu);
-	~Data();
-	void copyData(const Data& other); //!< copy data and scale (used by clone())
+	FieldData(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu);
+	~FieldData();
+	void copyData(const FieldData& other); //!< copy data and scale (used by clone())
 
 	//Inter-process communication:
 	void send(int dest, int tag=0) const; //send to another process
@@ -99,94 +99,94 @@ private:
 	#endif
 };
 
-//Shorthand for defining the data() and dataGpu() functions in derived classes of Data
+//Shorthand for defining the data() and dataGpu() functions in derived classes of FieldData
 #ifdef GPU_ENABLED
 	#define DECLARE_DATA_ACCESS \
-		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)Data::data(shouldAbsorbScale); } \
-		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)Data::data(shouldAbsorbScale); } \
-		DataType* dataGpu(bool shouldAbsorbScale=true) { return (DataType*)Data::dataGpu(shouldAbsorbScale); } \
-		const DataType* dataGpu(bool shouldAbsorbScale=true) const { return (const DataType*)Data::dataGpu(shouldAbsorbScale); }
+		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)FieldData::data(shouldAbsorbScale); } \
+		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::data(shouldAbsorbScale); } \
+		DataType* dataGpu(bool shouldAbsorbScale=true) { return (DataType*)FieldData::dataGpu(shouldAbsorbScale); } \
+		const DataType* dataGpu(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::dataGpu(shouldAbsorbScale); }
 #else
 	#define DECLARE_DATA_ACCESS \
-		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)Data::data(shouldAbsorbScale); } \
-		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)Data::data(shouldAbsorbScale); }
+		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)FieldData::data(shouldAbsorbScale); } \
+		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::data(shouldAbsorbScale); }
 #endif
 
 /**
 @brief Real space real scalar field data
 Do not use this data structure directly or from a simple pointer
-DataR*; work only with #DataRptr's. The public functions of DataR
-can be accessed with -> from the DataRptr.
+ScalarFieldData*; work only with #ScalarField's. The public functions of ScalarFieldData
+can be accessed with -> from the ScalarField.
 */
-struct DataR : public Data
+struct ScalarFieldData : public FieldData
 {	typedef double DataType; //!< Type of data in container (useful for templating)
 	DECLARE_DATA_ACCESS
 	DECLARE_DATA_PREF_ACCESS
-	DataRptr clone() const; //!< clone the data (NOTE: assigning DataRptr's makes a new reference to the same data)
-	static DataRptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
+	ScalarField clone() const; //!< clone the data (NOTE: assigning ScalarField's makes a new reference to the same data)
+	static ScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 private:
-	DataR(const GridInfo& gInfo, bool onGpu); //!< called only by DataR::alloc()
+	ScalarFieldData(const GridInfo& gInfo, bool onGpu); //!< called only by ScalarFieldData::alloc()
 };
 
 //Override allReduce for DataType=complex to prevent unsupported operations
 #define OVERRIDE_allReduce \
 	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) \
 	{	assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); \
-		Data::allReduce(op, safeMode); \
+		FieldData::allReduce(op, safeMode); \
 	}
 
 /**
 @brief Reciprocal space real scalar field data
 Do not use this data structure directly or from a simple pointer
-DataG*; work only with #DataGptr's. The public functions of DataG
-can be accessed with -> from the DataGptr.
+ScalarFieldTildeData*; work only with #ScalarFieldTilde's. The public functions of ScalarFieldTildeData
+can be accessed with -> from the ScalarFieldTilde.
 */
-struct DataG : public Data
+struct ScalarFieldTildeData : public FieldData
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
 	DECLARE_DATA_ACCESS
 	DECLARE_DATA_PREF_ACCESS
-	DataGptr clone() const; //!< clone the data (NOTE: assigning DataGptr's makes a new reference to the same data)
-	static DataGptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
+	ScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning ScalarFieldTilde's makes a new reference to the same data)
+	static ScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	double getGzero() const; //!< get the G=0 component
 	void setGzero(double Gzero); //!< set the G=0 component
 	OVERRIDE_allReduce
 private:
-	DataG(const GridInfo& gInfo, bool onGpu); //!< called only by DataG::alloc()
+	ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu); //!< called only by ScalarFieldTildeData::alloc()
 };
 
 
 /**
 @brief Real space complex scalar field data
 Do not use this data structure directly or from a simple pointer
-complexDataR*; work only with #complexDataRptr's. The public functions of complexDataR
-can be accessed with -> from the complexDataRptr.
+complexScalarFieldData*; work only with #complexScalarField's. The public functions of complexScalarFieldData
+can be accessed with -> from the complexScalarField.
 */
-struct complexDataR : public Data
+struct complexScalarFieldData : public FieldData
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
 	DECLARE_DATA_ACCESS
 	DECLARE_DATA_PREF_ACCESS
-	complexDataRptr clone() const; //!< clone the data (NOTE: assigning complexDataRptr's makes a new reference to the same data)
-	static complexDataRptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
+	complexScalarField clone() const; //!< clone the data (NOTE: assigning complexScalarField's makes a new reference to the same data)
+	static complexScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 	OVERRIDE_allReduce
 private:
-	complexDataR(const GridInfo& gInfo, bool onGpu); //!< called only by complexDataR::alloc()
+	complexScalarFieldData(const GridInfo& gInfo, bool onGpu); //!< called only by complexScalarFieldData::alloc()
 };
 
 /**
 @brief Reciprocal space complex scalar field data
 Do not use this data structure directly or from a simple pointer
-complexDataG*; work only with #complexDataGptr's. The public functions of complexDataG
-can be accessed with -> from the complexDataGptr.
+complexScalarFieldTildeData*; work only with #complexScalarFieldTilde's. The public functions of complexScalarFieldTildeData
+can be accessed with -> from the complexScalarFieldTilde.
 */
-struct complexDataG : public Data
+struct complexScalarFieldTildeData : public FieldData
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
 	DECLARE_DATA_ACCESS
 	DECLARE_DATA_PREF_ACCESS
-	complexDataGptr clone() const; //!< clone the data (NOTE: assigning complexDataGptr's makes a new reference to the same data)
-	static complexDataGptr alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
+	complexScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning complexScalarFieldTilde's makes a new reference to the same data)
+	static complexScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	OVERRIDE_allReduce
 private:
-	complexDataG(const GridInfo& gInfo, bool onGpu); //!< called only by complexDataG::alloc()
+	complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu); //!< called only by complexScalarFieldTildeData::alloc()
 };
 
 
@@ -211,5 +211,5 @@ struct RealKernel
 #undef DECLARE_DATA_ACCESS
 //! @}
 
-#endif //JDFTX_CORE_DATA_H
+#endif //JDFTX_CORE_SCALARFIELD_H
 

@@ -425,7 +425,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	
 	//Get wavefunctions in real space:
 	ColumnBundle Ci = getWfns(ik, ki), Cj = getWfns(jk, kj);
-	std::vector< std::vector<complexDataRptr> > conjICi(nBands), ICj(nBands);
+	std::vector< std::vector<complexScalarField> > conjICi(nBands), ICj(nBands);
 	watchI.start();
 	for(int i=0; i<nBands; i++) if(iUsed[i])
 	{	conjICi[i].resize(nSpinor);
@@ -446,7 +446,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	nij = zeroes(nbasis, eventsAll.size());
 	complex* nijData = nij.dataPref();
 	for(const Event& event: eventsAll)
-	{	complexDataRptr Inij;
+	{	complexScalarField Inij;
 		for(int s=0; s<nSpinor; s++)
 			Inij += conjICi[event.i][s] * ICj[event.j][s];
 		callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(Inij)->dataPref(), nijData);
@@ -491,8 +491,8 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 			bool hasU = Urho[sp].nRows();
 			if(!(hasNL || hasU)) continue;
 			//Put projectors and orbitals in real space:
-			std::vector<complexDataRptr> IV;
-			std::vector< std::vector<complexDataRptr> > Ipsi;
+			std::vector<complexScalarField> IV;
+			std::vector< std::vector<complexScalarField> > Ipsi;
 			diagMatrix diagNL, diagU; //(q+G)-diagonal contributions
 			if(hasNL)
 			{	assert(Mnl.nRows() == V->nCols()*nSpinor);
@@ -538,7 +538,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 					matrix niPsi = zeroes(nbasis, Urho[sp].nRows()); //anologous to nij above, but with psi instead
 					complex* niPsiData = niPsi.dataPref();
 					for(int n=0; n<psi[sp].nCols(); n++)
-					{	complexDataRptr IniPsi;
+					{	complexScalarField IniPsi;
 						for(int s=0; s<nSpinor; s++)
 							IniPsi += conjICi[i][s] * Ipsi[n][s];
 						callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(IniPsi)->dataPref(), niPsiData);

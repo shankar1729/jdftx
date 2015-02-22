@@ -61,8 +61,8 @@ Fex_LJ::~Fex_LJ()
 {	ljatt.free();
 }
 
-double Fex_LJ::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
-{	DataGptr V = gInfo.nr * (ljatt * Ntilde[0]);
+double Fex_LJ::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const
+{	ScalarFieldTilde V = gInfo.nr * (ljatt * Ntilde[0]);
 	Phi_Ntilde[0] += V;
 	return 0.5*gInfo.dV*dot(V,Ntilde[0]);
 }
@@ -90,11 +90,11 @@ string Fmix_LJ::getName() const
 {	return fluid1->molecule.name + "<->" + fluid2->molecule.name;
 }
 
-double Fmix_LJ::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
+double Fmix_LJ::compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const
 {	unsigned i1 = fluid1->offsetDensity;
 	unsigned i2 = fluid2->offsetDensity;
-	DataGptr V1 = gInfo.nr * (ljatt * Ntilde[i1]);
-	DataGptr V2 = gInfo.nr * (ljatt * Ntilde[i2]);
+	ScalarFieldTilde V1 = gInfo.nr * (ljatt * Ntilde[i1]);
+	ScalarFieldTilde V2 = gInfo.nr * (ljatt * Ntilde[i2]);
 	Phi_Ntilde[i1] += V2;
 	Phi_Ntilde[i2] += V1;
 	return gInfo.dV*dot(V1,Ntilde[i2]);
@@ -138,12 +138,12 @@ double Fmix_GaussianKernel::computeUniform(const std::vector< double >& N, std::
 		return N[i1]*Kmul*Ksolv(0)*N[i2];
 }
 
-double Fmix_GaussianKernel::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
+double Fmix_GaussianKernel::compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const
 {
 		unsigned i1 = fluid1->offsetDensity;
 		unsigned i2 = fluid2->offsetDensity;
-		DataGptr V1 = gInfo.nr * Kmul*(Ksolv * Ntilde[i1]);
-		DataGptr V2 = gInfo.nr * Kmul*(Ksolv * Ntilde[i2]);
+		ScalarFieldTilde V1 = gInfo.nr * Kmul*(Ksolv * Ntilde[i1]);
+		ScalarFieldTilde V2 = gInfo.nr * Kmul*(Ksolv * Ntilde[i2]);
 		Phi_Ntilde[i1] += V2;
 		Phi_Ntilde[i2] += V1;
 		return gInfo.dV*dot(V1,Ntilde[i2]);

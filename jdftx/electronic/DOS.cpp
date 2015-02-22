@@ -779,11 +779,11 @@ void DOS::dump()
 					eval.w(iWeight, iState, iBand) = 1.;
 	
 	//Compute the weight functions on the real-space grid for weighted-density modes:
-	std::vector<DataRptrCollection> weightFuncs(weights.size());
+	std::vector<ScalarFieldArray> weightFuncs(weights.size());
 	bool needDensity = false; //check if any of the modes need the density
 	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 	{	Weight& weight = weights[iWeight];
-		DataRptrCollection& weightFunc = weightFuncs[iWeight];
+		ScalarFieldArray& weightFunc = weightFuncs[iWeight];
 		switch(weight.type)
 		{	case Weight::Slice:
 			case Weight::Sphere:
@@ -794,7 +794,7 @@ void DOS::dump()
 					weight.center = e->iInfo.species[weight.specieIndex]->atpos[weight.atomIndex];
 				//Compute weight function in Fourier space:
 				const GridInfo& gInfo = e->gInfo;
-				DataGptr weightFuncTilde(DataG::alloc(gInfo));
+				ScalarFieldTilde weightFuncTilde(ScalarFieldTildeData::alloc(gInfo));
 				complex* wData = weightFuncTilde->data();
 				if(weight.type == Weight::Slice || weight.type == Weight::AtomSlice)
 					threadLaunch(EvalDOS::sliceWeight_thread, gInfo.nG, gInfo.S, gInfo.GGT,
@@ -830,7 +830,7 @@ void DOS::dump()
 				needDensity = true;
 			}
 			if(weightFunc.size()) //convert to the appropriate 4-array depending on magnetization
-			{	DataRptr w; std::swap(w, weightFunc[0]);
+			{	ScalarField w; std::swap(w, weightFunc[0]);
 				weightFunc.resize(eInfo.nDensities);
 				const vector3<>& M = weight.Mhat;
 				weightFunc[0] = w * (1. + M[2]); //UpUp
@@ -849,7 +849,7 @@ void DOS::dump()
 			{	//Compute the density for this state and band:
 				diagMatrix F(1, 1.); //compute density with filling=1; incorporate fillings later per weight function if required
 				ColumnBundle C = e->eVars.C[iState].getSub(iBand, iBand+1);
-				DataRptrCollection n = diagouterI(F, C, eInfo.nDensities, &e->gInfo);
+				ScalarFieldArray n = diagouterI(F, C, eInfo.nDensities, &e->gInfo);
 				//Compute the weights:
 				for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 					if(weightFuncs[iWeight].size())

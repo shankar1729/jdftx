@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <fluid/FluidSolverParams.h>
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 #include <string>
 #include <memory>
 
@@ -50,23 +50,23 @@ public:
 	std::vector<matrix> grad_CdagOC; //!< gradient w.r.t overlap (required for forces when O is atom dependent)
 	
 	//Densities and potentials:
-	DataRptrCollection n; //!< electron density (single DataR) or spin density (two DataR's [up,dn]) or spin density matrix (four DataR's [UpUp, DnDn, Re(UpDn), Im(UpDn)])
-	DataRptrCollection get_nXC() const; //!< return the total (spin) density including core contributions
-	DataRptr get_nTot() const { return n.size()==1 ? n[0] : n[0]+n[1]; } //!< return the total electron density (even in spin polarized situations)
+	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
+	ScalarFieldArray get_nXC() const; //!< return the total (spin) density including core contributions
+	ScalarField get_nTot() const { return n.size()==1 ? n[0] : n[0]+n[1]; } //!< return the total electron density (even in spin polarized situations)
 	
-	DataRptrCollection tau; //!< kinetic energy density including tauCore, if present (computed if a meta GGA is being used)
+	ScalarFieldArray tau; //!< kinetic energy density including tauCore, if present (computed if a meta GGA is being used)
 	
-	DataGptr d_fluid; //!< electrostatic potential due to fluid
-	DataGptr V_cavity; //!< non-electrostatic potential on electrons due to fluid
+	ScalarFieldTilde d_fluid; //!< electrostatic potential due to fluid
+	ScalarFieldTilde V_cavity; //!< non-electrostatic potential on electrons due to fluid
 	
-	DataRptrCollection Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
-	DataRptrCollection Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
+	ScalarFieldArray Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
+	ScalarFieldArray Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
 	std::vector<matrix> rhoAtom, U_rhoAtom; //!< Atomic density matrices and gradients w.r.t them (for DFT+U)
 	
 	//External interactions:
-	DataRptrCollection Vexternal; //!< external potential
-	DataGptr rhoExternal; //!< external charge density
+	ScalarFieldArray Vexternal; //!< external potential
+	ScalarFieldTilde rhoExternal; //!< external charge density
 	bool rhoExternalSelfEnergy; //!< whether to include self-energy of rhoExternal in output energy
 	struct BoxPotential
 	{	vector3<> min, max;
@@ -115,10 +115,10 @@ public:
 	int nOccupiedBands(int q) const; 
 
 	//! Compute the kinetic energy density
-	DataRptrCollection KEdensity() const;
+	ScalarFieldArray KEdensity() const;
 	
 	//! Calculate density using current orthonormal wavefunctions (C)
-	DataRptrCollection calcDensity() const;
+	ScalarFieldArray calcDensity() const;
 	
 	//! Orthonormalise Y to compute C, U and its cohorts for a quantum number q
 	void orthonormalize(int q);

@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/RadialFunction.h>
 #include <electronic/VanDerWaals.h>
 #include <electronic/matrix.h>
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 #include <core/vector3.h>
 #include <core/string.h>
 
@@ -97,10 +97,10 @@ public:
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
-	void augmentDensityGrid(DataRptrCollection& n) const;
+	void augmentDensityGrid(ScalarFieldArray& n) const;
 	
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
-	void augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces=0);
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0);
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
 	
@@ -115,8 +115,8 @@ public:
 	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
-	void accumulateAtomicDensity(DataGptrCollection& nTilde) const; //!< Accumulate atomic density from this species
-	void accumulateAtomicPotential(DataGptr& dTilde) const; //!< Accumulate electrostatic potential of neutral atoms from this species
+	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
+	void accumulateAtomicPotential(ScalarFieldTilde& dTilde) const; //!< Accumulate electrostatic potential of neutral atoms from this species
 	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset)
 	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0) const;  //!< Same as above, but for specific n and l.
 		//!< If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)
@@ -127,12 +127,12 @@ public:
 		//!< s is 0/1 for up/dn spinors in non-relativistic case, s=0/1 is for j=l+/-0.5 and mj=m+/-0.5 in relativistic case
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
-	void updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
-		DataGptr& nCore, DataGptr& tauCore) const; 
+	void updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon, ScalarFieldTilde& nChargeball,
+		ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore) const; 
 	
 	//! Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore)
-	std::vector< vector3<> > getLocalForces(const DataGptr& ccgrad_Vlocps, const DataGptr& ccgrad_rhoIon,
-		const DataGptr& ccgrad_nChargeball, const DataGptr& ccgrad_nCore, const DataGptr& ccgrad_tauCore) const;
+	std::vector< vector3<> > getLocalForces(const ScalarFieldTilde& ccgrad_Vlocps, const ScalarFieldTilde& ccgrad_rhoIon,
+		const ScalarFieldTilde& ccgrad_nChargeball, const ScalarFieldTilde& ccgrad_nCore, const ScalarFieldTilde& ccgrad_tauCore) const;
 
 	//! Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces:
 	void accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const;

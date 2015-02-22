@@ -47,8 +47,8 @@ public:
 	{	applyFuncGsq(gInfo, setK, K.data, aTyp);
 	}
 
-	DataRptrCollection precondition(const DataRptrCollection& grad)
-	{	DataRptrCollection Kgrad(grad.size());
+	ScalarFieldArray precondition(const ScalarFieldArray& grad)
+	{	ScalarFieldArray Kgrad(grad.size());
 		for(unsigned i=0; i<Kgrad.size(); i++) Kgrad[i] = I(K*J(grad[i]));
 		return Kgrad;
 	}
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 		RealKernel gauss(gInfo); initGaussianKernel(gauss, 2.0);
 		fluidMixture.state[0] = I(gauss*J(fluidMixture.state[0]));
 
-		DataRptr wallMask(DataR::alloc(gInfo));
+		ScalarField wallMask(ScalarFieldData::alloc(gInfo));
 		applyFunc_r(gInfo, initAttractiveWall, xWall, 2*dxWall, 0.0, 1.0, wallMask->data());
 		fluidMixture.state[0] *= (wallMask+1.0);
 	}
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 
 	for(int loopCount=0; loopCount<100; loopCount++)
 	{
-		DataRptrCollection N;
+		ScalarFieldArray N;
 		TIME("getOmega calculation (with gradient)", globalLog,
 			double omega = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 			if(std::isnan(omega)) break; //Don't save state after it has become nan
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 		ncgSolve(water.state, mp, water, precon);
 	);
 
-// 	DataRptrOH n;
+// 	ScalarFieldOH n;
 // 	TIME("getOmega calculation (with gradient)", globalLog,
 // 		water.getOmega(&n);
 // 	);
@@ -237,7 +237,7 @@ int main(int argc, char** argv)
 //
 // 	logPrintf("Saving state:\n");
 // 	water.saveState(stateFilename);
-// 	DataRptr saveR[2] = {n.O(), n.H()};
+// 	ScalarField saveR[2] = {n.O(), n.H()};
 // 	saveDX(n.O(), "TestFixedN/" geomName "_nO");
 // 	saveDX(n.H(), "TestFixedN/" geomName "_nH");
 // 	saveSphericalized(saveR, 2, "TestFixedN/" geomName "_n.spherical", 0.25);
@@ -299,8 +299,8 @@ int main(int argc, char** argv)
 		const double Rdroplet = pow(1/(4*M_PI*fex.nl*exp(muIn)/3.0), 1.0/3);
 		nullToZero(water.state, gInfo);
 		applyFunc_r(gInfo, initSphere, 0.5*(gInfo.R.set_col(0]+gInfo.R.set_col(1]+gInfo.R.set_col(2]), Rdroplet, muIn-0.5*muOut, 0.5*muOut, water.state[0]->data());
-		DataGptr trans1(DataG::alloc(gInfo)); initTranslation(trans1, vector3<>(-2.532,0.017,-0.039));
-		DataGptr trans2(DataG::alloc(gInfo)); initTranslation(trans2, vector3<>(+2.567,0.087,0.013)); //slightly assymetric w.r.t grid to help symmetry breaking, if any
+		ScalarFieldTilde trans1(ScalarFieldTildeData::alloc(gInfo)); initTranslation(trans1, vector3<>(-2.532,0.017,-0.039));
+		ScalarFieldTilde trans2(ScalarFieldTildeData::alloc(gInfo)); initTranslation(trans2, vector3<>(+2.567,0.087,0.013)); //slightly assymetric w.r.t grid to help symmetry breaking, if any
 		water.state[0] = I((trans1+trans2)*J(water.state[0]));
 
 		//FDtest:
@@ -325,7 +325,7 @@ int main(int argc, char** argv)
 
 	for(int loopCount=0; loopCount<20; loopCount++)
 	{
-		DataRptrOH n;
+		ScalarFieldOH n;
 		TIME("getOmega calculation (with gradient)", globalLog,
 			double omega = water.getOmega(&n);
 			if(std::isnan(omega)) break; //Don't save state after it has become nan
@@ -334,7 +334,7 @@ int main(int argc, char** argv)
 
 		logPrintf("Saving state:\n");
 		water.saveState(stateFilename);
-		DataRptr saveR[2] = {n.O(), n.H()};
+		ScalarField saveR[2] = {n.O(), n.H()};
 		saveDX(n.O(), "TestFixedN/" geomName "_nO");
 		saveDX(n.H(), "TestFixedN/" geomName "_nH");
 		saveSphericalized(saveR, 2, "TestFixedN/" geomName "_n.spherical", 0.25);

@@ -107,7 +107,7 @@ DeclareFortranFunction(minimizefluid)(double* Adiel,
 	double* nCavity, double* rhoExplicit, double* Adiel_nCavity, double* Adiel_rhoExplicit)
 {
 	//Convert inputs to JDFTx objects:
-	DataRptr n, rho;
+	ScalarField n, rho;
 	nullToZero(n, e.gInfo); nullToZero(rho, e.gInfo);
 	eblas_copy(n->data(), nCavity, e.gInfo.nr);
 	eblas_copy(rho->data(), rhoExplicit, e.gInfo.nr);
@@ -117,7 +117,7 @@ DeclareFortranFunction(minimizefluid)(double* Adiel,
 	logPrintf("\n---------------------- Fluid Minimization -----------------------\n");
 	e.eVars.fluidSolver->set(J(rho), J(n)); n=0; rho=0;
 	e.eVars.fluidSolver->minimizeFluid();
-	DataGptr A_n, A_rho; IonicGradient extraForces;
+	ScalarFieldTilde A_n, A_rho; IonicGradient extraForces;
 	double A = e.eVars.fluidSolver->get_Adiel_and_grad(A_rho, A_n, extraForces);
 	e.dump(DumpFreq_Electronic, -1);
 	

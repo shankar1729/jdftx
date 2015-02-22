@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_H2O_FittedCorrelations.h>
 #include <fluid/Fex_ScalarEOS.h>
 #include <fluid/Fex_H2O_BondedVoids.h>
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 #include <core/Operators.h>
 
 extern EnumStringMap<FluidComponent::Name> solventMap;
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 		
 		fluidMixture.minimize(mp);
 
-		DataRptrCollection N; vector3<> electricP;
+		ScalarFieldArray N; vector3<> electricP;
 		fluidMixture.verboseLog = true;
 		fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, &electricP));
 		fluidMixture.verboseLog = false;

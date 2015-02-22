@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <electronic/matrix.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <set>
 #include <memory>
 
@@ -85,7 +85,7 @@ private:
 	friend class CommandDumpName;
 	friend class CommandDumpInterval;
 	void dumpQMC(); //!< QMC export implemented in DumpQMC.cpp
-	void dumpRsol(DataRptr nbound, string fname);
+	void dumpRsol(ScalarField nbound, string fname);
 };
 
 namespace Moments{void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx);}

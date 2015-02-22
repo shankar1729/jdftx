@@ -83,7 +83,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B en
 			ColumnBundle Crot = e.eVars.C[q] * U[q], imagErr_Crot;
 			if(grad) imagErr_Crot = Crot.similar();
 			for(int b=0; b<e.eInfo.nBands; b++)
-			{	DataRptr imagIpsi = Imag(I(Crot.getColumn(b,0)));
+			{	ScalarField imagIpsi = Imag(I(Crot.getColumn(b,0)));
 				imagErr += e.gInfo.dV * dot(imagIpsi,imagIpsi);
 				if(grad)
 					imagErr_Crot.setColumn(b,0, Idag(Complex(0*imagIpsi, 2*e.gInfo.dV*imagIpsi)));
@@ -119,10 +119,10 @@ void Dump::dumpQMC()
 	BlipConverter blipConvert(gInfo.S);
 	string fname; ofstream ofs;
 	
-	DataGptr nTilde = J(eVars.get_nTot());
+	ScalarFieldTilde nTilde = J(eVars.get_nTot());
 	
 	//Total effective potential on electrons due to fluid:
-	DataRptr Vdiel = eVars.fluidParams.fluidType==FluidNone ? 0 : I(eVars.d_fluid + eVars.V_cavity);
+	ScalarField Vdiel = eVars.fluidParams.fluidType==FluidNone ? 0 : I(eVars.d_fluid + eVars.V_cavity);
 	nullToZero(Vdiel, gInfo);
 	
 	//QMC energy corrections (all information needed for different self-consistency schemes):
@@ -136,7 +136,7 @@ void Dump::dumpQMC()
 
 	//-------------------------------------------------------------------------------------------
 	//Output potential directly in BLIP-function basis (cubic B-splines)
-	DataRptr VdielBlip(blipConvert(Vdiel));
+	ScalarField VdielBlip(blipConvert(Vdiel));
 
 	#define StartDump(varName) \
 		fname = getFilename(varName); \
@@ -356,7 +356,7 @@ void Dump::dumpQMC()
 					"  " << bandIndex << " " << spinIndex << " " << Hsub_eigsq->at(b) << " F\n"
 					" " << (nkPoints==1 ? "Real" : "Complex") << " blip coefficients for extended orbitals\n";
 				//Get orbital in real space
-				complexDataRptr phi = I(Cq->getColumn(b,0));
+				complexScalarField phi = I(Cq->getColumn(b,0));
 				//Compute kinetic and potential energy (in Vdiel) of original PW orbitals:
 				double Tpw = -0.5*dot(phi, Jdag(L(J(phi)))).real();
 				double Vpw = gInfo.dV*dot(phi, Vdiel*phi).real();

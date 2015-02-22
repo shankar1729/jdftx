@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/DataIO.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <fluid/SaLSA.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
@@ -176,11 +176,11 @@ SaLSA::~SaLSA()
 }
 
 
-DataGptr SaLSA::chi(const DataGptr& phiTilde) const
-{	DataGptr rhoTilde;
+ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
+{	ScalarFieldTilde rhoTilde;
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		const DataRptr& s = resp.iSite<0 ? shape : siteShape[resp.iSite];
+		const ScalarField& s = resp.iSite<0 ? shape : siteShape[resp.iSite];
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
@@ -190,11 +190,11 @@ DataGptr SaLSA::chi(const DataGptr& phiTilde) const
 }
 
 
-DataGptr SaLSA::hessian(const DataGptr& phiTilde) const
+ScalarFieldTilde SaLSA::hessian(const ScalarFieldTilde& phiTilde) const
 {	return (-1./(4*M_PI*gInfo.detR)) * L(phiTilde) - chi(phiTilde);
 }
 
-DataGptr SaLSA::precondition(const DataGptr& rTilde) const
+ScalarFieldTilde SaLSA::precondition(const ScalarFieldTilde& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
@@ -203,7 +203,7 @@ double SaLSA::sync(double x) const
 	return x;
 }
 
-void SaLSA::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
@@ -235,13 +235,13 @@ void SaLSA::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
-	const DataGptr& phi = state; // that's what we solved for in minimize
+	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
 
 	//First-order correct estimate of electrostatic energy:
-	DataGptr phiExt = coulomb(rhoExplicitTilde);
+	ScalarFieldTilde phiExt = coulomb(rhoExplicitTilde);
 	Adiel["Electrostatic"] = -0.5*dot(phi, O(hessian(phi))) + dot(phi - 0.5*phiExt, O(rhoExplicitTilde));
 	
 	//Gradient w.r.t rhoExplicitTilde:
@@ -249,13 +249,13 @@ double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, Data
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	const auto& solvent = fsp.solvents[0];
-	DataRptr Adiel_shape; DataRptrCollection Adiel_siteShape(solvent->molecule.sites.size());
+	ScalarField Adiel_shape; ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		DataRptr& Adiel_s = resp.iSite<0 ? Adiel_shape : Adiel_siteShape[resp.iSite];
+		ScalarField& Adiel_s = resp.iSite<0 ? Adiel_shape : Adiel_siteShape[resp.iSite];
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
-		DataRptrCollection IlGradVphi = I(lGradient(resp.V * phi, resp.l));
+		ScalarFieldArray IlGradVphi = I(lGradient(resp.V * phi, resp.l));
 		for(int lpm=0; lpm<(2*resp.l+1); lpm++)
 			Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
 	}
@@ -265,7 +265,7 @@ double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, Data
 	nullToZero(Adiel_shape, gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
 	
 	//Propagate shape gradients to A_nCavity:
-	DataRptr Adiel_nCavity;
+	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, electricOnly);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	
@@ -274,7 +274,7 @@ double SaLSA::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, Data
 }
 
 void SaLSA::loadState(const char* filename)
-{	DataRptr Istate(DataR::alloc(gInfo));
+{	ScalarField Istate(ScalarFieldData::alloc(gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space
 	state = J(Istate);
 }
@@ -296,7 +296,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
 	
 	for(const auto& c: fsp.components)
-	{	DataGptrCollection Ntilde(c->molecule.sites.size());
+	{	ScalarFieldTildeArray Ntilde(c->molecule.sites.size());
 		for(int l=0; l<=fsp.lMax; l++)
 		{	double prefac = sqrt(4.*M_PI*c->Nbulk/fsp.T) * (l==1 ? sqrtCrot : 1.);
 			for(int m=-l; m<=+l; m++)
@@ -320,7 +320,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 				}
 				
 				RadialFunctionG Vtot; Vtot.init(0, VtotSamples, dG);
-				DataGptr temp = lDivergence(J(shape * I(lGradient(Vtot * state, l))), l);
+				ScalarFieldTilde temp = lDivergence(J(shape * I(lGradient(Vtot * state, l))), l);
 				Vtot.free();
 				for(unsigned iSite=0; iSite<c->molecule.sites.size(); iSite++)
 				{	RadialFunctionG Vsite; Vsite.init(0, VsiteSamples[iSite], dG);
@@ -333,7 +333,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 		for(unsigned j=0; j<c->molecule.sites.size(); j++)
 		{	
 			const Molecule::Site& s = *(c->molecule.sites[j]);
-			DataRptr N;
+			ScalarField N;
 			N=I(Ntilde[j])+c->Nbulk*siteShape[j];
 			ostringstream oss; oss << "N_" << c->molecule.name;
 			if(c->molecule.sites.size()>1) oss << "_" << s.name;

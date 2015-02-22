@@ -17,23 +17,23 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_DATACOLLECTION_H
-#define JDFTX_CORE_DATACOLLECTION_H
+#ifndef JDFTX_CORE_SCALARFIELDARRAY_H
+#define JDFTX_CORE_SCALARFIELDARRAY_H
 
 
-//! @file DataCollection.h
-//! @brief classes DataRptrCollection, DataGptrCollection and just enough operators to enable CG w.r.t to them
+//! @file ScalarFieldArray.h
+//! @brief classes ScalarFieldArray, ScalarFieldTildeArray and just enough operators to enable CG w.r.t to them
 
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <vector>
 
 #include <cstdio>
 
-typedef std::vector<DataRptr> DataRptrCollection; //!< dynamic size collection of real space scalar fields
-typedef std::vector<DataGptr> DataGptrCollection; //!< dynamic size collection of reciprocal space scalar fields
+typedef std::vector<ScalarField> ScalarFieldArray; //!< dynamic size collection of real space scalar fields
+typedef std::vector<ScalarFieldTilde> ScalarFieldTildeArray; //!< dynamic size collection of reciprocal space scalar fields
 #define TptrCollection std::vector<std::shared_ptr<T> > //!< shorthand for templates below (undef'd at end of file)
 
-//! Extract a std::vector of data pointers from a DataRptrCollection
+//! Extract a std::vector of data pointers from a ScalarFieldArray
 template<typename T> std::vector<typename T::DataType*> dataPref(TptrCollection& x)
 {	std::vector<typename T::DataType*> xData(x.size());
 	for(unsigned s=0; s<x.size(); s++)
@@ -41,7 +41,7 @@ template<typename T> std::vector<typename T::DataType*> dataPref(TptrCollection&
 	return xData;
 }
 
-//! Extract a std::vector of const data pointers from a const DataRptrCollection
+//! Extract a std::vector of const data pointers from a const ScalarFieldArray
 template<typename T> std::vector<const typename T::DataType*> constDataPref(const TptrCollection& x)
 {	std::vector<const typename T::DataType*> xData(x.size());
 	for(unsigned s=0; s<x.size(); s++)
@@ -77,33 +77,33 @@ template<typename T> void axpy(double alpha, const TptrCollection& x, TptrCollec
 }
 
 //! elementise multiply
-inline DataRptrCollection operator*(const DataRptrCollection& x, const DataRptrCollection& y)
+inline ScalarFieldArray operator*(const ScalarFieldArray& x, const ScalarFieldArray& y)
 {	assert(x.size()==y.size());
-	DataRptrCollection z(x.size());
+	ScalarFieldArray z(x.size());
 	for(unsigned i=0; i<x.size(); i++) z[i] = x[i]*y[i];
 	return z;
 }
-inline DataRptrCollection operator*(DataRptrCollection&& x, const DataRptrCollection& y)
+inline ScalarFieldArray operator*(ScalarFieldArray&& x, const ScalarFieldArray& y)
 {	assert(x.size()==y.size());
 	for(unsigned i=0; i<x.size(); i++) x[i] *= y[i];
 	return x;
 }
-inline DataRptrCollection operator*(const DataRptrCollection& x, DataRptrCollection&& y)
+inline ScalarFieldArray operator*(const ScalarFieldArray& x, ScalarFieldArray&& y)
 {	assert(x.size()==y.size());
 	for(unsigned i=0; i<x.size(); i++) y[i] *= x[i];
 	return y;
 }
 
-inline DataRptrCollection operator*(const DataRptr& x, DataRptrCollection&& y)
+inline ScalarFieldArray operator*(const ScalarField& x, ScalarFieldArray&& y)
 {	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
 	return y;
 }
-inline DataRptrCollection operator*(DataRptrCollection&& y, const DataRptr& x)
+inline ScalarFieldArray operator*(ScalarFieldArray&& y, const ScalarField& x)
 {	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
 	return y;
 }
-inline DataRptrCollection operator*(const DataRptr& x, const DataRptrCollection& y) { return x * clone(y); }
-inline DataRptrCollection operator*(const DataRptrCollection& y, const DataRptr& x) { return y * clone(x); }
+inline ScalarFieldArray operator*(const ScalarField& x, const ScalarFieldArray& y) { return x * clone(y); }
+inline ScalarFieldArray operator*(const ScalarFieldArray& y, const ScalarField& x) { return y * clone(x); }
 
 
 //! Increment
@@ -191,39 +191,39 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 
 //----------------- Transform operators -------------------------
 
-inline DataRptrCollection I(DataGptrCollection&& X, bool compat=false)
-{	using namespace DataMultipletPrivate;
-	DataRptrCollection out(X.size());
-	DataRptr (*func)(DataGptr&&,int) = compat ? IcompatTrue : IcompatFalse;
-	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X);
+inline ScalarFieldArray I(ScalarFieldTildeArray&& X, bool compat=false)
+{	using namespace ScalarFieldMultipletPrivate;
+	ScalarFieldArray out(X.size());
+	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? IcompatTrue : IcompatFalse;
+	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline DataRptrCollection I(const DataGptrCollection& X, bool compat=false) { return I(clone(X), compat); }
+inline ScalarFieldArray I(const ScalarFieldTildeArray& X, bool compat=false) { return I(clone(X), compat); }
 
-inline DataGptrCollection J(const DataRptrCollection& X)
-{	using namespace DataMultipletPrivate;
-	DataGptrCollection out(X.size());
-	DataGptr (*func)(const DataRptr&,int) = J;
+inline ScalarFieldTildeArray J(const ScalarFieldArray& X)
+{	using namespace ScalarFieldMultipletPrivate;
+	ScalarFieldTildeArray out(X.size());
+	ScalarFieldTilde (*func)(const ScalarField&,int) = J;
 	threadUnary(func, int(X.size()), &out, X);
 	return out;
 }
 
-inline DataGptrCollection Idag(const DataRptrCollection& X)
-{	using namespace DataMultipletPrivate;
-	DataGptrCollection out(X.size());
-	DataGptr (*func)(const DataRptr&,int) = Idag;
+inline ScalarFieldTildeArray Idag(const ScalarFieldArray& X)
+{	using namespace ScalarFieldMultipletPrivate;
+	ScalarFieldTildeArray out(X.size());
+	ScalarFieldTilde (*func)(const ScalarField&,int) = Idag;
 	threadUnary(func, int(X.size()), &out, X);
 	return out;
 }
 
-inline DataRptrCollection Jdag(DataGptrCollection&& X, bool compat=false)
-{	using namespace DataMultipletPrivate;
-	DataRptrCollection out(X.size());
-	DataRptr (*func)(DataGptr&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
-	threadUnary<DataRptr,DataGptr&&>(func, int(X.size()), &out, X);
+inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X, bool compat=false)
+{	using namespace ScalarFieldMultipletPrivate;
+	ScalarFieldArray out(X.size());
+	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline DataRptrCollection Jdag(const DataGptrCollection& X, bool compat=false) { return Jdag(clone(X), compat); }
+inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X, bool compat=false) { return Jdag(clone(X), compat); }
 
 #undef TptrCollection
-#endif // JDFTX_CORE_DATACOLLECTION_H
+#endif // JDFTX_CORE_SCALARFIELDARRAY_H

@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 
 
-void saveDX(const DataRptr& X, const char* filenamePrefix)
+void saveDX(const ScalarField& X, const char* filenamePrefix)
 {	char filename[256];
 	sprintf(filename, "%s.bin", filenamePrefix);
 	saveRawBinary(X, filename);
@@ -67,7 +67,7 @@ void saveDX(const DataRptr& X, const char* filenamePrefix)
 }
 
 
-std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColumns, double drFac, vector3< double >* center)
+std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nColumns, double drFac, vector3< double >* center)
 {	assert(nColumns > 0); assert(dataR[0]);
 	const GridInfo& gInfo = dataR[0]->gInfo;
 	
@@ -149,7 +149,7 @@ std::vector< std::vector<double> > sphericalize(const DataRptr* dataR, int nColu
 }
 
 
-void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename, double drFac, vector3<>* center)
+void saveSphericalized(const ScalarField* dataR, int nColumns, const char* filename, double drFac, vector3<>* center)
 {	std::vector< std::vector<double> > out = sphericalize(dataR, nColumns, drFac, center);
 	if(!mpiUtil->isHead()) return; //all processes calculate, but only head needs to write file
 	int nRadial = out[0].size();
@@ -165,7 +165,7 @@ void saveSphericalized(const DataRptr* dataR, int nColumns, const char* filename
 	fclose(fp);
 }
 
-void saveSphericalized(const DataGptr* dataG, int nColumns, const char* filename, double dGFac)
+void saveSphericalized(const ScalarFieldTilde* dataG, int nColumns, const char* filename, double dGFac)
 {	const GridInfo& g = dataG[0]->gInfo;
 	size_t iStart=0, iStop=g.nG; const vector3<int>& S=g.S; const matrix3<>& GGT=g.GGT;
 

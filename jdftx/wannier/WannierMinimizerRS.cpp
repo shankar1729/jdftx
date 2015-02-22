@@ -48,8 +48,8 @@ void WannierMinimizerRS::initialize(int iSpin)
 {	this->iSpin = iSpin;
 }
 
-static complexDataRptr operator*(complex s, const complexDataRptr& in)
-{	complexDataRptr out = clone(in);
+static complexScalarField operator*(complex s, const complexScalarField& in)
+{	complexScalarField out = clone(in);
 	callPref(eblas_zscal)(out->nElem, s, out->dataPref(),1);
 	return out;
 }
@@ -71,11 +71,11 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	rExpect.assign(nCenters, vector3<>());
 	ColumnBundle Omega_Csuper; if(grad) { Omega_Csuper = Csuper.similar(); Omega_Csuper.zero(); }
 	for(int n=nStart; n<nStop; n++)
-	{	std::vector<complexDataRptr> psi(nSpinor), Omega_psi(nSpinor);
+	{	std::vector<complexScalarField> psi(nSpinor), Omega_psi(nSpinor);
 		//|r^2| contribution:
 		for(int s=0; s<nSpinor; s++)
 		{	psi[s] = I(Csuper.getColumn(n,s));
-			complexDataRptr rSq_psi = rSq * psi[s];
+			complexScalarField rSq_psi = rSq * psi[s];
 			rSqExpect[n] += gInfoSuper.dV * dot(psi[s], rSq_psi).real();
 			if(grad) Omega_psi[s] += (2*gInfoSuper.dV) * rSq_psi;
 		}
@@ -96,7 +96,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 		//Off-diagonal corrections to get the invariant part (expensive):
 		if(invariant)
 		{	for(int m=0; m<nCenters; m++) if(m != n)
-			{	std::vector<complexDataRptr> psi_m(2), Omega_psi_m(2);
+			{	std::vector<complexScalarField> psi_m(2), Omega_psi_m(2);
 				for(int s=0; s<nSpinor; s++)
 					psi_m[s] = I(Csuper.getColumn(m,s));
 				for(int dir=0; dir<3; dir++)

@@ -242,7 +242,7 @@ CoulombWire::CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params)
 	initExchangeEval();
 }
 
-DataGptr CoulombWire::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombWire::apply(ScalarFieldTilde&& in) const
 {	return Vc * in;
 }
 
@@ -288,7 +288,7 @@ CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombP
 	initExchangeEval();
 }
 
-DataGptr CoulombCylindrical::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombCylindrical::apply(ScalarFieldTilde&& in) const
 {	return Vc * in;
 }
 

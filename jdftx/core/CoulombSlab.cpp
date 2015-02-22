@@ -153,7 +153,7 @@ CoulombSlab::CoulombSlab(const GridInfo& gInfoOrig, const CoulombParams& params)
 	initExchangeEval();
 }
 
-DataGptr CoulombSlab::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombSlab::apply(ScalarFieldTilde&& in) const
 {	int iDir = params.iDir;
 	double hlfL = 0.5*sqrt(gInfo.RTR(iDir,iDir));
 	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSlab_calc(iDir, hlfL), in->dataPref(false));

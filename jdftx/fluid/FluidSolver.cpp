@@ -68,8 +68,8 @@ class ConvolutionJDFT : public FluidSolver
 	std::vector<std::shared_ptr<Fmix>> FmixPtr;
 	
 	EnergyComponents Adiel; //fluid free energy components
-	DataGptr Adiel_rhoExplicitTilde; //cached gradient of free energy of fluidMixture wrt rhoExplicit
-	DataGptrCollection Ntilde; //cached densities of fluid
+	ScalarFieldTilde Adiel_rhoExplicitTilde; //cached gradient of free energy of fluidMixture wrt rhoExplicit
+	ScalarFieldTildeArray Ntilde; //cached densities of fluid
 
 public:
 	ConvolutionJDFT(const Everything& e, const FluidSolverParams& fsp)
@@ -136,12 +136,12 @@ public:
 		logPrintf("\nBulk electron density of the liquid: %le bohr^-3\n",nFl_bulk);
 
 		//calculate G=0 offset due to coupling functional evaluated at bulk fluid density
-		DataRptr nBulk;
+		ScalarField nBulk;
 		nullToZero(nBulk,e.gInfo);
-		//initialize constant dataRptr with density nFl_bulk
+		//initialize constant ScalarField with density nFl_bulk
 		for (int i=0; i<e.gInfo.nr; i++)
 			nBulk->data()[i] = nFl_bulk;
-		DataRptr Vxc_bulk;
+		ScalarField Vxc_bulk;
 		(coupling->exCorr)(nBulk, &Vxc_bulk, true);
 		logPrintf("Electron deep in fluid experiences coupling potential: %lg H\n\n", Vxc_bulk->data()[0]);
 		coupling->Vxc_bulk = Vxc_bulk->data()[0];
@@ -165,7 +165,7 @@ public:
 
 	void dumpDensities(const char* filenamePattern) const
 	{	
-		DataRptrCollection N; char filename[256];
+		ScalarFieldArray N; char filename[256];
 		FluidMixture::Outputs outputs(&N,0,0);
 		fluidMixture->getFreeEnergy(outputs);
 		
@@ -183,7 +183,7 @@ public:
 
 	void dumpDebug(const char* filenamePattern) const
 	{	
-		DataRptrCollection N; char filename[256];
+		ScalarFieldArray N; char filename[256];
 		FluidMixture::Outputs outputs(&N,0,0);
 		fluidMixture->getFreeEnergy(outputs);
 		
@@ -215,7 +215,7 @@ public:
 		//--------- if any, add additional explicit fluid debug output here!
 	}
 
-	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 	{	
 		//Set nCavity for nonlinear coupling functional
 		coupling->setExplicit(nCavityTilde);
@@ -226,7 +226,7 @@ public:
 	}
 	
 	void updateCached()
-	{	DataRptrCollection N;
+	{	ScalarFieldArray N;
 		FluidMixture::Outputs outputs(&N, 0, &Adiel_rhoExplicitTilde, 0, &Adiel);
 		
 		fluidMixture->getFreeEnergy(outputs); //Fluid free energy including coupling
@@ -242,7 +242,7 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 	{
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
@@ -310,7 +310,7 @@ double FluidSolver::ionWidthMuCorrection() const
 {	return (4*M_PI/gInfo.detR) * (-0.5*pow(e.iInfo.ionWidth,2)) * e.iInfo.getZtot();
 }
 
-void FluidSolver::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void FluidSolver::set(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 		atpos[iSp] = e.iInfo.species[iSp]->atpos;
 	if(e.coulombParams.embed)
@@ -324,9 +324,9 @@ void FluidSolver::set(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityT
 		set_internal(rhoExplicitTilde, nCavityTilde);
 }
 
-double FluidSolver::get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {	if(e.coulombParams.embed)
-	{	DataGptr Adiel_rho_big, Adiel_n_big;
+	{	ScalarFieldTilde Adiel_rho_big, Adiel_n_big;
 		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces, electricOnly);
 		if(Adiel_rhoExplicitTilde) *Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
 		if(Adiel_nCavityTilde) *Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
@@ -334,7 +334,7 @@ double FluidSolver::get_Adiel_and_grad(DataGptr* Adiel_rhoExplicitTilde, DataGpt
 		return Adiel;
 	}
 	else
-	{	DataGptr Adiel_rho_temp, Adiel_n_temp;
+	{	ScalarFieldTilde Adiel_rho_temp, Adiel_n_temp;
 		return get_Adiel_and_grad_internal(
 			Adiel_rhoExplicitTilde ? (*Adiel_rhoExplicitTilde) : Adiel_rho_temp,
 			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp,

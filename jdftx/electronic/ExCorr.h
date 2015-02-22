@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_EXCORR_H
 
 #include <electronic/common.h>
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 
 //! Types of exchange correlation functionals
 enum ExCorrType
@@ -73,16 +73,16 @@ public:
 	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
 	//! and the corresponding gradient will be returned in Vtau if non-null
 	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
-	double operator()(const DataRptrCollection& n, DataRptrCollection* Vxc=0, bool includeKinetic=false,
-		const DataRptrCollection* tau=0, DataRptrCollection* Vtau=0) const;
+	double operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc=0, bool includeKinetic=false,
+		const ScalarFieldArray* tau=0, ScalarFieldArray* Vtau=0) const;
 	
 	//! Compute the exchange-correlation energy (and optionally gradient) for a unpolarized density n
 	//! Include kinetic energy if includeKinetic is set to true
 	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
 	//! and the corresponding gradient will be returned in Vtau if non-null.
 	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
-	double operator()(const DataRptr& n, DataRptr* Vxc=0, bool includeKinetic=false,
-		const DataRptr* tau=0, DataRptr* Vtau=0) const;
+	double operator()(const ScalarField& n, ScalarField* Vxc=0, bool includeKinetic=false,
+		const ScalarField* tau=0, ScalarField* Vtau=0) const;
 
 	double exxFactor() const; //!< retrieve the exact exchange scale factor (0 if no exact exchange)
 	double exxRange() const; //!< range parameter (omega) for screened exchange (0 for long-range exchange)
@@ -93,14 +93,14 @@ public:
 	//! by finite difference (supported only for spin-unpolarized internal LDAs and GGAs).
 	//! All sigma derivatives will be null on output for LDAs.
 	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
-	void getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_sigma, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut=1e-4) const;
+	void getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut=1e-4) const;
 	
 	//! Abstract base class (interface specification) for orbital-dependent potential functionals
 	struct OrbitalDep
 	{	OrbitalDep(const Everything& e) : e(e) {}
 		virtual ~OrbitalDep() {}
 		virtual bool ignore_nCore() const=0; //!< Whether partial cores need to be ignored for this functional
-		virtual DataRptrCollection getPotential() const=0; //!< Return orbital-dependent portion of potential (obtains any necessary electronic property directly from ElecVars / ElecInfo)
+		virtual ScalarFieldArray getPotential() const=0; //!< Return orbital-dependent portion of potential (obtains any necessary electronic property directly from ElecVars / ElecInfo)
 		virtual void dump() const=0; //!< Dump any functional-specific quantities
 	protected:
 		const Everything& e;

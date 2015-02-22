@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/LinearPCM.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/operators.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/DataIO.h>
 #include <core/Thread.h>
 
@@ -35,14 +35,14 @@ LinearPCM::~LinearPCM()
 }
 
 
-DataGptr LinearPCM::hessian(const DataGptr& phiTilde) const
-{	DataRptr epsilon = 1. + (epsBulk-1.) * shape;
-	DataGptr rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
+ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
+{	ScalarField epsilon = 1. + (epsBulk-1.) * shape;
+	ScalarFieldTilde rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
 	if(k2factor) rhoTilde -= k2factor * J(shape*I(phiTilde)); // screening term
 	return (-1./(4*M_PI)) * rhoTilde;
 }
 
-DataGptr LinearPCM::precondition(const DataGptr& rTilde) const
+ScalarFieldTilde LinearPCM::precondition(const ScalarFieldTilde& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
@@ -51,7 +51,7 @@ inline double setPreconditionerKernel(double G, double epsMean, double kRMS)
 {	return (G || kRMS) ? 1./(epsMean*hypot(G, kRMS)) : 0.;
 }
 
-void LinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void LinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	//Store the explicit system charge:
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	
@@ -65,8 +65,8 @@ void LinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& n
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
 
 	//Update the preconditioner
-	DataRptr epsilon = 1 + (epsBulk-1)*shape;
-	DataRptr kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
+	ScalarField epsilon = 1 + (epsBulk-1)*shape;
+	ScalarField kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
 	epsInv = inv(epsilon);
 	double epsMean = sum(epsilon) / gInfo.nr;
 	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
@@ -84,24 +84,24 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations.\n", nIter);
 }
 
-double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
-	const DataGptr& phi = state; // that's what we solved for in minimize
+	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
 
 	//First-order correct estimate of electrostatic energy:
-	DataGptr phiExt = coulomb(rhoExplicitTilde);
+	ScalarFieldTilde phiExt = coulomb(rhoExplicitTilde);
 	Adiel["Electrostatic"] = -0.5*dot(phi, O(hessian(phi))) + dot(phi - 0.5*phiExt, O(rhoExplicitTilde));
 	
 	//Gradient w.r.t rhoExplicitTilde:
 	Adiel_rhoExplicitTilde = phi - phiExt;
 	
 	//Compute gradient w.r.t shape function:
-	DataRptr Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
+	ScalarField Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
 	if(k2factor) Adiel_shape -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
 	
 	//Propagate shape gradients to A_nCavity:
-	DataRptr Adiel_nCavity;
+	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, electricOnly);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
@@ -110,7 +110,7 @@ double LinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, 
 }
 
 void LinearPCM::loadState(const char* filename)
-{	DataRptr Istate(DataR::alloc(gInfo));
+{	ScalarField Istate(ScalarFieldData::alloc(gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space
 	state = J(Istate);
 }

@@ -41,7 +41,7 @@ public:
 	Fex_ScalarEOS(const FluidMixture*, const FluidComponent*, const ScalarEOS& eos);
     virtual ~Fex_ScalarEOS();
 	
-	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const;
 	double computeUniform(const double* N, double* Phi_N) const;
 
 private:

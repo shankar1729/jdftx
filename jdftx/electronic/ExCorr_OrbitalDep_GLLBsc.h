@@ -25,12 +25,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct ExCorr_OrbitalDep_GLLBsc : public ExCorr::OrbitalDep
 {	ExCorr_OrbitalDep_GLLBsc(const Everything&);
 	bool ignore_nCore() const { return true; }
-	DataRptrCollection getPotential() const;
+	ScalarFieldArray getPotential() const;
 	void dump() const;
 private:
 	double T; //smearing width
 	std::vector<double> getExtremalEnergy(bool HOMO) const; //!<  get HOMO or LUMO energy (depending on HOMO=true/false), optionally accounting for smearing (depending on T)
-	DataRptrCollection getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //!< get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
+	ScalarFieldArray getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //!< get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
 };
 
 #endif //JDFTX_ELECTRONIC_EXCORR_ORBITALDEP_GLLBSC_H

@@ -32,9 +32,9 @@ public:
 
 protected:
 	string representationName() const;
-	void initState_o(int o, const matrix3<>& rot, double scale, const DataRptr& Eo, DataRptr* mueps) const;
-	void getDensities_o(int o, const matrix3<>& rot, const DataRptr* mueps, DataRptr& logPomega_o) const;
-	void convertGradients_o(int o, const matrix3<>& rot, const DataRptr& Phi_logPomega_o, DataRptr* Phi_mueps) const;
+	void initState_o(int o, const matrix3<>& rot, double scale, const ScalarField& Eo, ScalarField* mueps) const;
+	void getDensities_o(int o, const matrix3<>& rot, const ScalarField* mueps, ScalarField& logPomega_o) const;
+	void convertGradients_o(int o, const matrix3<>& rot, const ScalarField& Phi_logPomega_o, ScalarField* Phi_mueps) const;
 };
 
 #endif // JDFTX_FLUID_IDEALGASMUEPS_H

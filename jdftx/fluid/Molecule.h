@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/RadialFunction.h>
 #include <core/vector3.h>
 #include <core/string.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <vector>
 #include <map>
 

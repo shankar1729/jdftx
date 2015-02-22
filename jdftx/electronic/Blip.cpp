@@ -40,7 +40,7 @@ BlipConverter::BlipConverter(const vector3<int>& S) : S(S)
 }
 
 //Given a complex PW basis object, return corresponding real-space Blip coefficient set
-complexDataRptr BlipConverter::operator()(const complexDataGptr& vTilde) const
+complexScalarField BlipConverter::operator()(const complexScalarFieldTilde& vTilde) const
 {	assert(vTilde->gInfo.S == S);
 	complex* vTildeData = vTilde->data();
 	int index=0;
@@ -51,12 +51,12 @@ complexDataRptr BlipConverter::operator()(const complexDataGptr& vTilde) const
 		vTildeData[index++] *= (gamma[0][iv[0]]*gamma[1][iv[1]]*gamma[2][iv[2]]);
 	return I(vTilde);
 }
-complexDataRptr BlipConverter::operator()(const complexDataRptr& v) const
+complexScalarField BlipConverter::operator()(const complexScalarField& v) const
 {	return (*this)(J(v));
 }
 
 //Given a real PW basis object v, return corresponding real-space Blip coefficient set
-DataRptr BlipConverter::operator()(const DataGptr& vTilde) const
+ScalarField BlipConverter::operator()(const ScalarFieldTilde& vTilde) const
 {	assert(vTilde->gInfo.S == S);
 	complex* vTildeData = vTilde->data();
 	int index=0;
@@ -67,7 +67,7 @@ DataRptr BlipConverter::operator()(const DataGptr& vTilde) const
 		vTildeData[index++] *= (gamma[0][iv[0]]*gamma[1][iv[1]]*gamma[2][iv[2]]);
 	return I(vTilde);
 }
-DataRptr BlipConverter::operator()(const DataRptr& v) const
+ScalarField BlipConverter::operator()(const ScalarField& v) const
 {	return (*this)(J(v));
 }
 
@@ -140,15 +140,15 @@ BlipResampler::BlipResampler(const GridInfo& gInfoIn, const GridInfo& gInfoOut)
 {
 }
 
-DataRptr BlipResampler::operator()(const DataGptr& in) const
-{	DataRptr inBlip = converter(in);
-	DataRptr out(DataR::alloc(gInfoOut));
+ScalarField BlipResampler::operator()(const ScalarFieldTilde& in) const
+{	ScalarField inBlip = converter(in);
+	ScalarField out(ScalarFieldData::alloc(gInfoOut));
 	BlipPrivate::resample(in->gInfo, gInfoOut, wsIn, wsOut, inBlip->data(), out->data());
 	return out;
 }
-complexDataRptr BlipResampler::operator()(const complexDataGptr& in) const
-{	complexDataRptr inBlip = converter(in);
-	complexDataRptr out(complexDataR::alloc(gInfoOut));
+complexScalarField BlipResampler::operator()(const complexScalarFieldTilde& in) const
+{	complexScalarField inBlip = converter(in);
+	complexScalarField out(complexScalarFieldData::alloc(gInfoOut));
 	BlipPrivate::resample(in->gInfo, gInfoOut, wsIn, wsOut, inBlip->data(), out->data());
 	return out;
 }
@@ -303,7 +303,7 @@ double Vblip_sub(int i0, const vector3<int> S, const complex* phi, const double*
 
 
 //Compute the local potential energy for blip orbital phi in blip potential V
-double Vblip(const complexDataRptr& phi, const DataRptr& V)
+double Vblip(const complexScalarField& phi, const ScalarField& V)
 {	assert(phi->gInfo.S == V->gInfo.S);
 	return phi->gInfo.dV * threadedAccumulate(Vblip_sub, phi->gInfo.S[0], phi->gInfo.S, phi->data(), V->data());
 }
@@ -334,7 +334,7 @@ double Tblip_sub(int i0, const vector3<int> S, const complex* phi, const matrix3
 
 
 //Compute the kinetic energy for a blip orbital phi
-double Tblip(const complexDataRptr& phi, double* tMax, int* i0max, int* i1max, int* i2max)
+double Tblip(const complexScalarField& phi, double* tMax, int* i0max, int* i1max, int* i2max)
 {
 	matrix3<> diagSinv(1.0/phi->gInfo.S[0], 1.0/phi->gInfo.S[1], 1.0/phi->gInfo.S[2]);
 	matrix3<> H = phi->gInfo.R * diagSinv;

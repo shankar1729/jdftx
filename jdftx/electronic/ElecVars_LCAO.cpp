@@ -75,14 +75,14 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 		e.eInfo.updateFillingsEnergies(F, ener);
 		
 		//Update density:
-		for(DataRptr& ns: eVars.n) ns=0;
+		for(ScalarField& ns: eVars.n) ns=0;
 		e.iInfo.augmentDensityInit();
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	eVars.n += e.eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], eVars.n.size(), &e.gInfo);
 			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], F[q], eVars.VdagC[q]); //pseudopotential contribution
 		}
 		e.iInfo.augmentDensityGrid(eVars.n);
-		for(DataRptr& ns: eVars.n)
+		for(ScalarField& ns: eVars.n)
 		{	nullToZero(ns, e.gInfo);
 			e.symm.symmetrize(ns);
 			ns->allReduce(MPIUtil::ReduceSum);
@@ -199,7 +199,7 @@ int ElecVars::LCAO()
 	
 	//Get electron density obtained by adding those of the atoms:
 	if(!e->cntrl.fixed_H)
-	{	DataGptrCollection nTilde(n.size());
+	{	ScalarFieldTildeArray nTilde(n.size());
 		for(auto sp: e->iInfo.species)
 			if(sp->atpos.size())  // Check for unused species
 				sp->accumulateAtomicDensity(nTilde);
@@ -237,7 +237,7 @@ int ElecVars::LCAO()
 		}
 		
 		if(nPasses==2 && pass==0) //update the density for next pass
-		{	for(DataRptr& ns: n) ns=0;
+		{	for(ScalarField& ns: n) ns=0;
 			iInfo.augmentDensityInit();
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{	matrix Bq_evecs; diagMatrix Bq_eigs; lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
@@ -249,7 +249,7 @@ int ElecVars::LCAO()
 				iInfo.augmentDensitySpherical(eInfo.qnums[q], Fq, VdagC[q]); //pseudopotential contribution
 			}
 			iInfo.augmentDensityGrid(n);
-			for(DataRptr& ns: n)
+			for(ScalarField& ns: n)
 			{	nullToZero(ns, e->gInfo);
 				e->symm.symmetrize(ns);
 				ns->allReduce(MPIUtil::ReduceSum);

@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElectronScattering.h>
 #include <electronic/LatticeMinimizer.h>
 #include <fluid/FluidSolver.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/DataIO.h>
 #include <ctime>
 
@@ -188,12 +188,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 
 	//Electrostatic and fluid potentials:
-	DataGptr d_vac; DataRptr d_tot;
+	ScalarFieldTilde d_vac; ScalarField d_tot;
 	bool needDtot = ShouldDump(Dtot) || ShouldDumpNoAll(SlabEpsilon) || ShouldDumpNoAll(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		//Subtract neutral-atom reference potential (gives smoother result):
-		{	DataGptr dAtomic;
+		{	ScalarFieldTilde dAtomic;
 			for(auto sp: e->iInfo.species) if(sp->atpos.size()) sp->accumulateAtomicPotential(dAtomic);
 			d_vac -= dAtomic;
 		}
@@ -203,7 +203,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	DUMP(I(d_vac), "d_vac", Dvac);
 	if(eVars.fluidParams.fluidType != FluidNone)
 	{	if(ShouldDump(Dfluid) || needDtot)
-		{	DataGptr d_fluid; //electrostatic-only version of d_fluid
+		{	ScalarFieldTilde d_fluid; //electrostatic-only version of d_fluid
 			eVars.fluidSolver->get_Adiel_and_grad(&d_fluid, 0, 0, true);
 			double GzeroCorrection = eVars.fluidSolver->ionWidthMuCorrection() - eVars.fluidSolver->bulkPotential();
 			DUMP(I(d_fluid), "d_fluid", Dfluid);
@@ -332,7 +332,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && eVars.fluidParams.fluidType!=FluidNone)
-	{	DataGptr nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
+	{	ScalarFieldTilde nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
 		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon)->getGzero()); //total bound charge will neutralize system
 		if(ShouldDump(SolvationRadii))
@@ -472,7 +472,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				logPrintf("EXX = %.16lf (unscaled)\n", unscaledEXX[omega]); logFlush();
 			}
 		//KE density for meta-GGAs, if required
-		DataRptrCollection tau;
+		ScalarFieldArray tau;
 		bool needTau = false;
 		for(auto exc: e->exCorrDiff)
 			needTau |= exc->needsKEdensity();
@@ -560,9 +560,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	if(ShouldDumpNoAll(XCanalysis))
-	{	DataRptrCollection tauW = XC_Analysis::tauWeizsacker(*e); DUMP_spinCollection(tauW, "tauW");
-		DataRptrCollection spness = XC_Analysis::spness(*e); DUMP_spinCollection(spness, "spness");
-		DataRptrCollection sVh = XC_Analysis::sHartree(*e); DUMP_spinCollection(sVh, "sHartree");
+	{	ScalarFieldArray tauW = XC_Analysis::tauWeizsacker(*e); DUMP_spinCollection(tauW, "tauW");
+		ScalarFieldArray spness = XC_Analysis::spness(*e); DUMP_spinCollection(spness, "spness");
+		ScalarFieldArray sVh = XC_Analysis::sHartree(*e); DUMP_spinCollection(sVh, "sHartree");
 	}
 
 	if(ShouldDumpNoAll(EresolvedDensity))
@@ -577,7 +577,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 					F[q][b] = (e_qb >= Erange.first && e_qb <= Erange.second) ? 1. : 0.;
 				}
 			//Calculate and dump density:
-			DataRptrCollection density = eVars.calcDensity();
+			ScalarFieldArray density = eVars.calcDensity();
 			ostringstream oss; oss << "EresolvedDensity." << iRange; iRange++;
 			DUMP_spinCollection(density, oss.str())
 		}
@@ -597,7 +597,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				for(int b=0; b<eInfo.nBands; b++)
 					F[q][b] = -eInfo.fermiPrime(muF,eVars.Hsub_eigs[q][b]);
 			//Calculate and dump density
-			DataRptrCollection density = eVars.calcDensity();
+			ScalarFieldArray density = eVars.calcDensity();
 			ostringstream oss; oss << "FermiDensity." << iRange; iRange++;
 			DUMP_spinCollection(density, oss.str())
 		}

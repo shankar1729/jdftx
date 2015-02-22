@@ -205,7 +205,7 @@ __hostanddev__ complex getSG_calc(const vector3<int>& iG, const int& nAtoms, con
 		SG += cis(-2*M_PI*dot(iG,atpos[atom]));
 	return SG;
 }
-//!Get structure factor in a DataGptr's data/dataGpu (with 1/vol normalization factor)
+//!Get structure factor in a ScalarFieldTilde's data/dataGpu (with 1/vol normalization factor)
 void getSG(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG);
 #ifdef GPU_ENABLED
 void getSG_gpu(const vector3<int> S, int nAtoms, const vector3<>* atpos, double invVol, complex* SG);

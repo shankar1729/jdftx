@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <fluid/Euler.h>
 #include <core/LatticeUtils.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <fstream>
 #include <sstream>
 

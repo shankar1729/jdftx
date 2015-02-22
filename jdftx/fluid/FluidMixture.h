@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @brief Mixture of fluids that provides the total free energy functional for minimization
 //! Constructing Fex and IdealGas objects require a FluidMixture reference, to which they add themselves.
 //! The FluidMixture object is ready to use after initialize() is called.
-class FluidMixture : public Minimizable<DataRptrCollection>
+class FluidMixture : public Minimizable<ScalarFieldArray>
 {
 public:
 	const GridInfo& gInfo;
@@ -55,12 +55,12 @@ public:
 	unsigned get_nDensities() const { return nDensities; } //!< get the total number of site densities
 
 	const std::vector<const FluidComponent*>& getComponents() const; //!< access component list
-	DataRptrCollection state;
+	ScalarFieldArray state;
 
 	//! External charge density.
 	//! The interaction energy between internal charges and rhoExternal is included in getFreeEnergy() etc.
 	//! When charged components are present, the unit cell will be neutral including this charge.
-	DataGptr rhoExternal;
+	ScalarFieldTilde rhoExternal;
 	bool useMFKernel; //!If true, use the mean field kernel for external coulomb interactions as well 
 	double Qtol; //!< tolerance for unit cell neutrality (default 1e-12)
 
@@ -79,15 +79,15 @@ public:
 	//! Optional outputs for operator() and getFreeEnergy(), retrieve results for all non-null pointers
 	struct Outputs
 	{	
-		DataRptrCollection* N; //!< site densities
+		ScalarFieldArray* N; //!< site densities
 		vector3<>* electricP; //!< total electric dipole moment in cell (useful only with multipole-based IdealGas's)
-		DataGptr* Phi_rhoExternal; //!< derivative of free energy w.r.t rhoExternal
-		DataRptrCollection* psiEff; //!< Estimate ideal gas effective potentials (useful only when no electric field or potential on non-indep sites)
+		ScalarFieldTilde* Phi_rhoExternal; //!< derivative of free energy w.r.t rhoExternal
+		ScalarFieldArray* psiEff; //!< Estimate ideal gas effective potentials (useful only when no electric field or potential on non-indep sites)
 		EnergyComponents* Phi; //!< retrieve fluid energy components
 		
 		//! initialize all the above to null
-		Outputs( DataRptrCollection* N=0, vector3<>* electricP=0,
-			DataGptr* Phi_rhoExternal=0, DataRptrCollection* psiEff=0, EnergyComponents* Phi=0);
+		Outputs( ScalarFieldArray* N=0, vector3<>* electricP=0,
+			ScalarFieldTilde* Phi_rhoExternal=0, ScalarFieldArray* psiEff=0, EnergyComponents* Phi=0);
 	};
 
 	//! @brief Free energy and gradient evaluation
@@ -96,7 +96,7 @@ public:
 	//! @param[out] outputs optional outputs, see Outputs
 	//! @return Free energy difference (compared to uniform fluid) at this value of indep
 	//! Implemented in FluidMixtureCompute.cpp
-	double operator()(const DataRptrCollection& indep, DataRptrCollection& Phi_indep, Outputs outputs=Outputs()) const;
+	double operator()(const ScalarFieldArray& indep, ScalarFieldArray& Phi_indep, Outputs outputs=Outputs()) const;
 
 	//! @brief Get the free energy, densities and moments for the current state
 	//! @param[out] outputs optional outputs, see Outputs
@@ -104,12 +104,12 @@ public:
 	double getFreeEnergy(Outputs outputs=Outputs()) const;
 
 	//! Advance step along direction dir by scale alpha (interface for minimize())
-	void step(const DataRptrCollection& dir, double alpha);
+	void step(const ScalarFieldArray& dir, double alpha);
 
 	//! Return energy at current state, and optionally the gradient (interface for minimize())
-	double compute(DataRptrCollection* grad);
+	double compute(ScalarFieldArray* grad);
 
-	DataRptrCollection precondition(const DataRptrCollection& grad);
+	ScalarFieldArray precondition(const ScalarFieldArray& grad);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 private:
@@ -138,7 +138,7 @@ private:
 	double compute_p(double Ntot) const;
 	
 	friend class BoilingPressureSolver;
-	static DataGptr coulomb(const DataGptr& rho) { return (-4*M_PI) * Linv(O(rho)); }
+	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
 #endif // JDFTX_FLUID_FLUIDMIXTURE_H

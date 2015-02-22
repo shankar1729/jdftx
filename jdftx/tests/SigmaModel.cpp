@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	gInfo.initialize();
 	
 	//Initialize shape function:
-	DataRptr s; nullToZero(s, gInfo);
+	ScalarField s; nullToZero(s, gInfo);
 	{	double valIn = droplet ? 1. : 0.;
 		vector3<> rCenter = gInfo.R*vector3<>(0.5,0.5,0.5);
 		if(cylindrical) applyFunc_r(gInfo, initCylinder, rCenter, radius, valIn, 1.-valIn, s->data());
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 		double d = 2.*component.Rvdw;
 		const double Cp = 15. * (component.sigmaBulk/(d*NT) - (1+Gamma)/6);
 		RadialFunctionG w; w.init(0, gInfo.dGradial, gInfo.GmaxGrid, wCavity_calc, d);
-		DataRptr sbar = I(w * J(s));
+		ScalarField sbar = I(w * J(s));
 		double sigmaModel = integral(NT*sbar*(1-sbar)*(Gamma+sbar*(1.-Gamma + Cp*(1-sbar)))) / Area;
 		logPrintf("\nSigmaModel_CurvatureAndSigma: %.8lf\t%.8le\n", (droplet?-1.:1.)/radius, sigmaModel);
 		w.free();

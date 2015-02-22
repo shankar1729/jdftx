@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Options for translating site densities for rigid molecule ideal gas implementations
 
 #include <core/GridInfo.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 
 //! Abstract base class for translation operators
 class TranslationOperator
@@ -39,7 +39,7 @@ public:
 	//! where @f$ T_t @f$  is the translation operator @f$ T_t(x(r)) = x(r+t) @f$ modulo the lattice vectors
 	//! T must conserve integral(x) and satisfy @f$ T^{\dagger}_t = T_{-t} @f$ exactly for gradient correctness
 	//! Note that @f$ T^{-1}_t = T_{-t} @f$ may only be approximately true for some implementations.
-	virtual void taxpy(const vector3<>& t, double alpha, const DataRptr& x, DataRptr& y) const=0;
+	virtual void taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const=0;
 };
 
 //! Translation operator which works in real space using interpolating splines
@@ -53,7 +53,7 @@ public:
 	} splineType;
 
 	TranslationOperatorSpline(const GridInfo& gInfo, SplineType splineType);
-	void taxpy(const vector3<>& t, double alpha, const DataRptr& x, DataRptr& y) const;
+	void taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const;
 };
 
 //! The exact translation operator in PW basis, although much slower and with potential ringing issues
@@ -61,7 +61,7 @@ class TranslationOperatorFourier : public TranslationOperator
 {
 public:
 	TranslationOperatorFourier(const GridInfo& gInfo);
-	void taxpy(const vector3<>& t, double alpha, const DataRptr& x, DataRptr& y) const;
+	void taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const;
 };
 
 #endif // JDFTX_FLUID_TRANSLATIONOPERATOR_H

@@ -542,7 +542,7 @@ ExchangeEval::~ExchangeEval()
 }
 
 
-void multTransformedKernel(complexDataGptr& X, const double* kernel, const vector3<int>& offset)
+void multTransformedKernel(complexScalarFieldTilde& X, const double* kernel, const vector3<int>& offset)
 {	assert(X);
 	if(!offset.length_squared())
 		callPref(eblas_zmuld)(X->gInfo.nr, kernel, 1, X->dataPref(false), 1);
@@ -551,7 +551,7 @@ void multTransformedKernel(complexDataGptr& X, const double* kernel, const vecto
 }
 
 
-complexDataGptr ExchangeEval::operator()(complexDataGptr&& in, vector3<> kDiff) const
+complexScalarFieldTilde ExchangeEval::operator()(complexScalarFieldTilde&& in, vector3<> kDiff) const
 {
 	#define CALL_exchangeAnalytic(calc) callPref(exchangeAnalytic)(gInfo.S, gInfo.GGT, calc, in->dataPref(false), kDiff, Vzero, symmThresholdSq)
 	switch(kernelMode)

@@ -234,13 +234,13 @@ void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
 				: findMu(e->eVars.Hsub_eigs, nElectrons) ), //determine from eigenvalues otherwise
 		nElectrons);
 	if(spinType == SpinZ)
-	{	DataRptr Mfield = e->eVars.n[0] - e->eVars.n[1];
+	{	ScalarField Mfield = e->eVars.n[0] - e->eVars.n[1];
 		double Mabs = integral(sqrt(Mfield*Mfield));
 		double Mtot = integral(Mfield);
 		logPrintf("  magneticMoment: [ Abs: %7.5f  Tot: %+8.5f ]", Mabs, Mtot);
 	}
 	if(spinType == SpinVector)
-	{	DataRptrVec Mfield;
+	{	VectorField Mfield;
 		Mfield[0] = (+2.)*e->eVars.n[2];
 		Mfield[1] = (-2.)*e->eVars.n[3];
 		Mfield[2] = e->eVars.n[0] - e->eVars.n[1];

@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 	
 	fluidMixture.minimize(mp);
 	
-	DataRptrCollection N;
+	ScalarFieldArray N;
 	double sigma = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 	
 	double sigmaTarget = component.sigmaBulk;

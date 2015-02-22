@@ -73,7 +73,7 @@ void ElecVars::setup(const Everything &everything)
 	if(VexternalFilename.size())
 	{	Vexternal.resize(VexternalFilename.size());
 		for(unsigned s=0; s<Vexternal.size(); s++)
-		{	Vexternal[s] = DataR::alloc(gInfo);
+		{	Vexternal[s] = ScalarFieldData::alloc(gInfo);
 			logPrintf("Reading external potential from '%s'\n", VexternalFilename[s].c_str());
 			loadRawBinary(Vexternal[s], VexternalFilename[s].c_str());
 		}
@@ -84,7 +84,7 @@ void ElecVars::setup(const Everything &everything)
 	//Vexternal contributions from boxPot's.
 	for(size_t j = 0; j<boxPot.size(); j++)
 	{	//Create potential
-		DataRptr temp; nullToZero(temp, e->gInfo);
+		ScalarField temp; nullToZero(temp, e->gInfo);
 		applyFunc_r(e->gInfo, applyBoxPot, gInfo.R, &boxPot[j], temp->data());
 		temp = I(gaussConvolve(J(temp), boxPot[j].convolve_radius));
 		//Add to Vexternal
@@ -94,7 +94,7 @@ void ElecVars::setup(const Everything &everything)
 
 	//Vexternal contributions due to external field
 	if(e->coulombParams.Efield.length_squared())
-	{	DataRptr temp = e->coulomb->getEfieldPotential();
+	{	ScalarField temp = e->coulomb->getEfieldPotential();
 		//Add to Vexternal
 		if(!Vexternal.size()) Vexternal.resize(n.size());
 		for(unsigned s=0; s<n.size(); s++) Vexternal[s] += temp;
@@ -102,7 +102,7 @@ void ElecVars::setup(const Everything &everything)
 
 	if(rhoExternalFilename.length())
 	{	logPrintf("Reading external charge from '%s'\n", rhoExternalFilename.c_str());
-		DataRptr temp(DataR::alloc(gInfo));
+		ScalarField temp(ScalarFieldData::alloc(gInfo));
 		loadRawBinary(temp, rhoExternalFilename.c_str());
 		rhoExternal = J(temp);
 	}
@@ -295,9 +295,9 @@ void ElecVars::setup(const Everything &everything)
 			"C. Freysoldt, S. Boeck, and J. Neugebauer, Phys. Rev. B 79, 241103(R) (2009)");
 }
 
-DataRptrCollection ElecVars::get_nXC() const
+ScalarFieldArray ElecVars::get_nXC() const
 {	if(e->iInfo.nCore)
-	{	DataRptrCollection nXC = clone(n);
+	{	ScalarFieldArray nXC = clone(n);
 		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
 		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
 			nXC[s] += (1./nSpins) * e->iInfo.nCore; //add core density
@@ -312,21 +312,21 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
 	
-	DataGptr nTilde = J(get_nTot());
+	ScalarFieldTilde nTilde = J(get_nTot());
 	
 	// Local part of pseudopotential:
 	ener.E["Eloc"] = dot(nTilde, O(iInfo.Vlocps));
-	DataGptr VsclocTilde = clone(iInfo.Vlocps);
+	ScalarFieldTilde VsclocTilde = clone(iInfo.Vlocps);
 	
 	// Hartree term:
-	DataGptr dH = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
+	ScalarFieldTilde dH = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
 	ener.E["EH"] = 0.5*dot(nTilde, O(dH));
 	VsclocTilde += dH;
 
 	// External charge:
 	ener.E["Eexternal"] = 0.;
 	if(rhoExternal)
-	{	DataGptr phiExternal = (*e->coulomb)(rhoExternal);
+	{	ScalarFieldTilde phiExternal = (*e->coulomb)(rhoExternal);
 		ener.E["Eexternal"] += dot(nTilde + iInfo.rhoIon, O(phiExternal));
 		if(rhoExternalSelfEnergy)
 			ener.E["Eexternal"] += 0.5 * dot(rhoExternal, O(phiExternal));
@@ -334,15 +334,15 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	}
 	
 	//Fluid contributions
-	DataGptr VtauTilde;
+	ScalarFieldTilde VtauTilde;
 	if(fluidParams.fluidType != FluidNone)
 	{	//Compute n considered for cavity formation (i.e-> include chargeball and partial cores)
-		DataGptr nCavityTilde = clone(nTilde);
+		ScalarFieldTilde nCavityTilde = clone(nTilde);
 		if(iInfo.nCore) nCavityTilde += J(iInfo.nCore);
 		if(iInfo.nChargeball) nCavityTilde += iInfo.nChargeball;
 
 		//Net electric charge:
-		DataGptr rhoExplicitTilde = nTilde + iInfo.rhoIon + rhoExternal;
+		ScalarFieldTilde rhoExplicitTilde = nTilde + iInfo.rhoIon + rhoExternal;
 		if(!fluidSolver->k2factor) rhoExplicitTilde->setGzero(0.); //No screening => apply neutralizing background charge
 		fluidSolver->set(rhoExplicitTilde, nCavityTilde);
 		// If the fluid doesn't have a gummel loop, minimize it each time:
@@ -366,7 +366,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		ener.E["U"] = iInfo.rhoAtom_computeU(rhoAtom, U_rhoAtom);
 	
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
-	DataRptrCollection Vxc;
+	ScalarFieldArray Vxc;
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	if(!exCorr.hasEnergy() && !e->cntrl.scf)
@@ -611,13 +611,13 @@ int ElecVars::nOccupiedBands(int q) const
 	return F[q].size(); //all bands occupied
 }
 
-DataRptrCollection ElecVars::KEdensity() const
-{	DataRptrCollection tau(n.size());
+ScalarFieldArray ElecVars::KEdensity() const
+{	ScalarFieldArray tau(n.size());
 	//Compute KE density from valence electrons:
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		for(int iDir=0; iDir<3; iDir++)
 			tau += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), tau.size(), &e->gInfo);
-	for(DataRptr& tau_s: tau)
+	for(ScalarField& tau_s: tau)
 	{	nullToZero(tau_s, e->gInfo);
 		e->symm.symmetrize(tau_s); //Symmetrize
 		tau_s->allReduce(MPIUtil::ReduceSum);
@@ -630,8 +630,8 @@ DataRptrCollection ElecVars::KEdensity() const
 	return tau;
 }
 
-DataRptrCollection ElecVars::calcDensity() const
-{	DataRptrCollection density(n.size());
+ScalarFieldArray ElecVars::calcDensity() const
+{	ScalarFieldArray density(n.size());
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
@@ -640,7 +640,7 @@ DataRptrCollection ElecVars::calcDensity() const
 	}
 	e->iInfo.augmentDensityGrid(density);
 	
-	for(DataRptr& ns: density)
+	for(ScalarField& ns: density)
 	{	nullToZero(ns, e->gInfo);
 		e->symm.symmetrize(ns); //Symmetrize
 		ns->allReduce(MPIUtil::ReduceSum);

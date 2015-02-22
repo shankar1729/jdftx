@@ -44,11 +44,11 @@ public:
 	void test()
 	{
 		{	logPrintf("Testing memory usage\n");
-			DataGptr gtemp(DataG::alloc(gInfo)); initTranslation(gtemp, vector3<>(1.0,2.0,3.0));
+			ScalarFieldTilde gtemp(ScalarFieldTildeData::alloc(gInfo)); initTranslation(gtemp, vector3<>(1.0,2.0,3.0));
 			gtemp *= (1.0/nrm2(gtemp));
 			logPrintf("Before:\n");
 			logPrintf("\tnorm(gtemp) = %lf\n", nrm2(gtemp));
-			DataGptr gtemp2 = (5.0 * (gtemp * 3.0)) * 7.0;
+			ScalarFieldTilde gtemp2 = (5.0 * (gtemp * 3.0)) * 7.0;
 			logPrintf("After:\n");
 			logPrintf("\tnorm(gtemp) = %lf\n", nrm2(gtemp));
 			logPrintf("\tnorm(gtemp2) = %lf\n", nrm2(gtemp2));
@@ -56,19 +56,19 @@ public:
 		}
 
 		{	logPrintf("\nTest 1: Norm, dot product\n");
-			DataRptr r1(DataR::alloc(gInfo));
+			ScalarField r1(ScalarFieldData::alloc(gInfo));
 			initRandom(r1);
 			logPrintf("\tNorm of random vector = %le (expectation value: %le)\n", nrm2(r1), sqrt(gInfo.nr));
 			logPrintf("\tSelf dot product = %le (expectation value: %le)\n", dot(r1, r1), double(gInfo.nr));
 
 			logPrintf("\nTest 2: Linear combines\n");
-			DataRptr r2 = 3.0*r1 - r1;
-			DataRptr r3 = r1 + r2;
+			ScalarField r2 = 3.0*r1 - r1;
+			ScalarField r3 = r1 + r2;
 			r2 -= 2.0*((r3 - 0.5*r1*2.0) - r1);
 			logPrintf("\tLinear combination norm = %le (should be 0 within roundoff)\n",  nrm2(r2));
 
 			logPrintf("\nTest 3: Transform tests\n");
-			DataGptr g1 = J(r1);
+			ScalarFieldTilde g1 = J(r1);
 			logPrintf("\tTransform invertibility norm(A - I(J(A))) = %le (should be 0 within roundoff)\n", nrm2(I(g1)-r1));
 			logPrintf("\tRepeated to check c2r input integrity: error = %le \n", nrm2(I(g1)-r1));
 			logPrintf("\tParseval check: sqrt(N) norm(J(A))- norm(A) = %le\n", sqrt(gInfo.nr) * nrm2(g1) - nrm2(r1));
@@ -78,16 +78,16 @@ public:
 
 		{	logPrintf("\nTest 4: Poisson solver (from DFT mini course)\n");
 			const double sigma1 = 0.75, sigma2 = 0.5;
-			DataRptr gauss1, gauss2;
-			{	DataGptr translateCenter(DataG::alloc(gInfo)); RealKernel gaussian(gInfo);
+			ScalarField gauss1, gauss2;
+			{	ScalarFieldTilde translateCenter(ScalarFieldTildeData::alloc(gInfo)); RealKernel gaussian(gInfo);
 				initTranslation(translateCenter, 0.5*(gInfo.R.column(0)+gInfo.R.column(1)+gInfo.R.column(2)));
 				gauss1 = I(gaussConvolve(translateCenter*(1./gInfo.detR), sigma1));
 				gauss2 = I(gaussConvolve(translateCenter*(1./gInfo.detR), sigma2));
 			}
-			DataRptr n = gauss2 - gauss1;
+			ScalarField n = gauss2 - gauss1;
 			CoulombParams cp; cp.geometry = CoulombParams::Periodic;
-			DataRptr phi = I((*cp.createCoulomb(gInfo))(J(n)));
-			//DataRptr phi = I(Linv(-4*M_PI * O(J(n))));
+			ScalarField phi = I((*cp.createCoulomb(gInfo))(J(n)));
+			//ScalarField phi = I(Linv(-4*M_PI * O(J(n))));
 			logPrintf("\tNormalization check on g1: %20.16lf\n", sum(gauss1)*gInfo.detR/gInfo.nr);
 			logPrintf("\tNormalization check on g2: %20.16lf\n", sum(gauss2)*gInfo.detR/gInfo.nr);
 			logPrintf("\tTotal charge check: %20.16lf\n", sum(n)*gInfo.detR/gInfo.nr);
@@ -96,14 +96,14 @@ public:
 			logPrintf("\tNumeric, analytic Coulomb energy: %20.16lf,%20.16lf\n", Unum, Uanal);
 			saveDX(n, "poissontest_n");
 			saveDX(phi, "poissontest_phi");
-			DataRptr saveR[2] = {n, phi};
+			ScalarField saveR[2] = {n, phi};
 			saveSphericalized(saveR, 2, "poissontest.spherical", 0.25);
 		}
 	}
 
 	void timeParallel()
 	{	logPrintf("\nTiming templated parallelization:\n");
-		DataRptr in(DataR::alloc(gInfo)), out;
+		ScalarField in(ScalarFieldData::alloc(gInfo)), out;
 		initZero(in); in+=1.5; in*=2;
 
 		TIME("inv", globalLog,
@@ -132,10 +132,10 @@ void timeEblas3(const GridInfo& gInfo)
 	int nCols = 213;
 
 	//A couple of column bundles:
-	Data cb1(gInfo, nCols*colLength, 2, isGpuEnabled());
-	Data cb2(gInfo, nCols*colLength, 2, isGpuEnabled());
+	FieldData cb1(gInfo, nCols*colLength, 2, isGpuEnabled());
+	FieldData cb2(gInfo, nCols*colLength, 2, isGpuEnabled());
 	//An nBandsxnBands matrix:
-	Data mat(gInfo, nCols*nCols, 2, isGpuEnabled());
+	FieldData mat(gInfo, nCols*nCols, 2, isGpuEnabled());
 
 	sync();
 
@@ -266,13 +266,13 @@ void timePointGroupOps(const GridInfo& gInfo)
 	m.print(globalLog, " %2d ");
 	matrix3<int> mInv = det(m) * adjugate(m); //since |det(m)| = 0
 	
-	DataRptr x(DataR::alloc(gInfo)); initRandom(x);
+	ScalarField x(ScalarFieldData::alloc(gInfo)); initRandom(x);
 	logPrintf("Rel. error in implementations = %le\n",
 		nrm2(pointGroupGather(x, m) - pointGroupScatter(x, mInv)) / nrm2(x));
 	
 	int nRepetitions = int(1e8/gInfo.nr);
 	logPrintf("Timing %d repetitions.\n", nRepetitions);
-	DataRptr y;
+	ScalarField y;
 	
 	TIME("Gather", globalLog,
 		for(int iRep=0; iRep<nRepetitions; iRep++)
@@ -284,7 +284,7 @@ void timePointGroupOps(const GridInfo& gInfo)
 	)
 }
 
-void print(const DataGptr& x)
+void print(const ScalarFieldTilde& x)
 {	complex* xData = x->data();
 	const GridInfo& g = x->gInfo;
 	vector3<int> iv;
@@ -304,7 +304,7 @@ void testChangeGrid()
 	g2.S = vector3<int>(4,4,4);
 	g1.initialize();
 	g2.initialize();
-	DataGptr x1, x2, x3;
+	ScalarFieldTilde x1, x2, x3;
 	nullToZero(x1, g1);
 	complex* x1data = x1->data();
 	vector3<int> iv; int i=0;
@@ -359,14 +359,14 @@ void testResample()
 	gInfo2.initialize();
 	
 	//Create a gaussian on grid1:
-	DataGptr delta(DataG::alloc(gInfo1));
+	ScalarFieldTilde delta(ScalarFieldTildeData::alloc(gInfo1));
 	initTranslation(delta, vector3<>(0,0,0));
-	DataGptr gauss1 = gaussConvolve(delta*(1./gInfo1.detR), 0.5);
+	ScalarFieldTilde gauss1 = gaussConvolve(delta*(1./gInfo1.detR), 0.5);
 	saveRawBinary(I(gauss1), "testResample.n1");
 	
 	//Convert to other grid:
 	BlipResampler resample(gInfo1, gInfo2);
-	DataRptr gauss2 = resample(gauss1);
+	ScalarField gauss2 = resample(gauss1);
 	saveRawBinary(gauss2, "testResample.n2");
 }
 

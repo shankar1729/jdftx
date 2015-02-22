@@ -94,67 +94,67 @@ template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<i
 			callPref(eblas_symmetrize)(symmIndex[n].first, n, symmIndex[n].second, data);
 }
 
-DataGptr Coulomb::embedExpand(const DataGptr& in) const
+ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 {	assert(params.embed);
-	DataRptr out; nullToZero(out, gInfo);
+	ScalarField out; nullToZero(out, gInfo);
 	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J(out);
 }
 
-complexDataGptr Coulomb::embedExpand(complexDataGptr&& in) const
+complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
-	complexDataRptr out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I((complexDataGptr&&)in)->dataPref(), out->dataPref());
+	complexScalarField out; nullToZero(out, gInfo);
+	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I((complexScalarFieldTilde&&)in)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
-	return J((complexDataRptr&&)out);
+	return J((complexScalarField&&)out);
 }
 
-DataGptr Coulomb::embedShrink(const DataGptr& in) const
+ScalarFieldTilde Coulomb::embedShrink(const ScalarFieldTilde& in) const
 {	assert(params.embed);
-	DataRptr Iin = I(in);
+	ScalarField Iin = I(in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
-	DataRptr out; nullToZero(out, gInfoOrig);
+	ScalarField out; nullToZero(out, gInfoOrig);
 	callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
 	return J(out);
 }
 
-complexDataGptr Coulomb::embedShrink(complexDataGptr&& in) const
+complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
-	complexDataRptr Iin = I((complexDataGptr&&)in);
+	complexScalarField Iin = I((complexScalarFieldTilde&&)in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
-	complexDataRptr out; nullToZero(out, gInfoOrig);
+	complexScalarField out; nullToZero(out, gInfoOrig);
 	callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
-	return J((complexDataRptr&&)out);
+	return J((complexScalarField&&)out);
 }
 
-DataGptr Coulomb::operator()(DataGptr&& in, PointChargeMode pointChargeMode) const
+ScalarFieldTilde Coulomb::operator()(ScalarFieldTilde&& in, PointChargeMode pointChargeMode) const
 {	if(params.embed)
-	{	DataGptr outSR;
+	{	ScalarFieldTilde outSR;
 		if(pointChargeMode!=PointChargeNone) outSR = (*ionKernel) * in; //Special handling (range separation) to avoid Nyquist frequency issues
 		if(pointChargeMode==PointChargeRight) in = gaussConvolve(in, ionWidth); //bandwidth-limit point charge to the right and compute long-ranged part below
-		DataGptr outLR = embedShrink(apply(embedExpand(in))); //Apply truncated Coulomb in expanded grid and shrink back
+		ScalarFieldTilde outLR = embedShrink(apply(embedExpand(in))); //Apply truncated Coulomb in expanded grid and shrink back
 		if(pointChargeMode==PointChargeLeft) outLR = gaussConvolve(outLR, ionWidth); //since point-charge to left, bandwidth-limit long-range part computed above
 		return outLR + outSR;
 	}
-	else return apply((DataGptr&&)in);
+	else return apply((ScalarFieldTilde&&)in);
 }
 
-DataGptr Coulomb::operator()(const DataGptr& in, PointChargeMode pointChargeMode) const
-{	DataGptr out(in->clone()); //create destructible copy
-	return (*this)((DataGptr&&)out, pointChargeMode);
+ScalarFieldTilde Coulomb::operator()(const ScalarFieldTilde& in, PointChargeMode pointChargeMode) const
+{	ScalarFieldTilde out(in->clone()); //create destructible copy
+	return (*this)((ScalarFieldTilde&&)out, pointChargeMode);
 }
 
-complexDataGptr Coulomb::operator()(complexDataGptr&& in, vector3<> kDiff, double omega) const
+complexScalarFieldTilde Coulomb::operator()(complexScalarFieldTilde&& in, vector3<> kDiff, double omega) const
 {	auto exEvalOmega = exchangeEval.find(omega);
 	assert(exEvalOmega != exchangeEval.end());
-	if(params.embed) return embedShrink((*exEvalOmega->second)(embedExpand((complexDataGptr&&)in), kDiff));
-	else return (*exEvalOmega->second)((complexDataGptr&&)in, kDiff);
+	if(params.embed) return embedShrink((*exEvalOmega->second)(embedExpand((complexScalarFieldTilde&&)in), kDiff));
+	else return (*exEvalOmega->second)((complexScalarFieldTilde&&)in, kDiff);
 }
 
-complexDataGptr Coulomb::operator()(const complexDataGptr& in, vector3<> kDiff, double omega) const
-{	complexDataGptr out(in->clone()); //create destructible copy
-	return (*this)((complexDataGptr&&)out, kDiff, omega);
+complexScalarFieldTilde Coulomb::operator()(const complexScalarFieldTilde& in, vector3<> kDiff, double omega) const
+{	complexScalarFieldTilde out(in->clone()); //create destructible copy
+	return (*this)((complexScalarFieldTilde&&)out, kDiff, omega);
 }
 
 double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
@@ -218,14 +218,14 @@ void getEfieldPotential_sub(size_t iStart, size_t iStop, const vector3<int>& S, 
 	(	V[i] = -dot(ws->restrict(invS * iv - xCenter), RT_Efield); //Wigner-Seitz wrapped lattice coords, dotted with E in contra lattice coords
 	)
 }
-DataRptr Coulomb::getEfieldPotential() const
+ScalarField Coulomb::getEfieldPotential() const
 {	if(params.Efield.length_squared())
 	{	assert(params.embed);
-		DataRptr V(DataR::alloc(gInfoOrig));
+		ScalarField V(ScalarFieldData::alloc(gInfoOrig));
 		threadLaunch(getEfieldPotential_sub, gInfoOrig.nr, gInfoOrig.S, wsOrig, xCenter, gInfoOrig.RT*params.Efield, V->data());
 		return V;
 	}
-	else return DataRptr();
+	else return ScalarField();
 }
 
 void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sembed, const vector3<int>& ivCenter, const WignerSeitz* ws, int* embedIndex)
@@ -446,7 +446,7 @@ void multRealKernel(vector3<int> S, const double* kernel, complex* data)
 {	threadLaunch(multRealKernel_thread, S[0]*S[1]*S[2], S, kernel, data);
 }
 
-//Multiply a complexDataGptr by a kernel sampled with offset and rotation by rot
+//Multiply a complexScalarFieldTilde by a kernel sampled with offset and rotation by rot
 void multTransformedKernel_thread(size_t iStart, size_t iStop,
 	vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
 {	THREAD_fullGspaceLoop( multTransformedKernel_calc(i, iG, S, kernel, data, offset); )

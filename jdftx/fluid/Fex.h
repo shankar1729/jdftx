@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_FLUID_FEX_H
 
 #include <fluid/Molecule.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 class FluidMixture;
 class FluidComponent;
 
@@ -38,7 +38,7 @@ public:
 
 	//! Return the excess free energy given the reciprocal space site densities
 	//! and accumulate the gradient (functional derivative) w.r.t them in Phi_Ntilde
-	virtual double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const=0;
+	virtual double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const=0;
 
 	//! Return the uniform fluid excess free energy density given the site densities N
 	//! and accumulate the derivative w.r.t them in Phi_N. This MUST return the

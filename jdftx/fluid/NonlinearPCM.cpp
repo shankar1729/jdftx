@@ -26,13 +26,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 
 //Utility functions to extract/set the members of a MuEps
-inline DataRptr& getMuPlus(DataRMuEps& X) { return X[0]; }
-inline const DataRptr& getMuPlus(const DataRMuEps& X) { return X[0]; }
-inline DataRptr& getMuMinus(DataRMuEps& X) { return X[1]; }
-inline const DataRptr& getMuMinus(const DataRMuEps& X) { return X[1]; }
-inline DataRptrVec getEps(DataRMuEps& X) { return DataRptrVec(X.component+2); }
-inline const DataRptrVec getEps(const DataRMuEps& X) { return DataRptrVec(X.component+2); }
-inline void setMuEps(DataRMuEps& mueps, DataRptr muPlus, DataRptr muMinus, DataRptrVec eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
+inline ScalarField& getMuPlus(ScalarFieldDataMuEps& X) { return X[0]; }
+inline const ScalarField& getMuPlus(const ScalarFieldDataMuEps& X) { return X[0]; }
+inline ScalarField& getMuMinus(ScalarFieldDataMuEps& X) { return X[1]; }
+inline const ScalarField& getMuMinus(const ScalarFieldDataMuEps& X) { return X[1]; }
+inline VectorField getEps(ScalarFieldDataMuEps& X) { return VectorField(X.component+2); }
+inline const VectorField getEps(const ScalarFieldDataMuEps& X) { return VectorField(X.component+2); }
+inline void setMuEps(ScalarFieldDataMuEps& mueps, ScalarField muPlus, ScalarField muMinus, VectorField eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
 
 inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEpsSq)
@@ -83,7 +83,7 @@ NonlinearPCM::~NonlinearPCM()
 }
 
 
-void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde)
+void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	
 	//Initialize state if required:
 	if(!state)
@@ -97,17 +97,17 @@ void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr
 		fpLog = globalLog; //retsore usual iteration log
 		//Guess nonlinear states based on the electrostatic potential of the linear version:
 		//mu:
-		DataRptr mu;
+		ScalarField mu;
 		if(screeningEval && screeningEval->linear)
 		{	mu = (-ionZ/fsp.T) * I(linearPCM.state);
 			mu -= integral(mu)/gInfo.detR; //project out G=0
 		}
 		else initZero(mu, gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
-		DataRptrVec eps = (-pMol/fsp.T) * I(gradient(linearPCM.state));
-		DataRptr E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
-		DataRptr Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
-		DataRptr epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
+		VectorField eps = (-pMol/fsp.T) * I(gradient(linearPCM.state));
+		ScalarField E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
+		ScalarField Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
+		ScalarField epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));
 		eps *= epsByE; //enhancement due to correlations
 		//collect:
 		setMuEps(state, mu, clone(mu), eps);
@@ -119,13 +119,13 @@ void NonlinearPCM::set_internal(const DataGptr& rhoExplicitTilde, const DataGptr
 	updateCavity();
 }
 
-double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state, DataGptr* Adiel_rhoExplicitTilde, DataGptr* Adiel_nCavityTilde, bool electricOnly) const
+double NonlinearPCM::operator()(const ScalarFieldDataMuEps& state, ScalarFieldDataMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
-	DataRptr Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
+	ScalarField Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
 	
-	DataGptr rhoFluidTilde;
-	DataRptr muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
+	ScalarFieldTilde rhoFluidTilde;
+	ScalarField muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
 	initZero(Adiel_muPlus, gInfo); initZero(Adiel_muMinus, gInfo);
 	double mu0 = 0., Qexp = 0., Adiel_Qexp = 0.;
 	if(screeningEval)
@@ -135,7 +135,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 		Qexp = integral(rhoExplicitTilde);
 		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
 		//Compute ionic free energy and bound charge
-		DataRptr Aout, rhoIon;
+		ScalarField Aout, rhoIon;
 		initZero(Aout, gInfo);
 		initZero(rhoIon, gInfo);
 		callPref(screeningEval->freeEnergy)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
@@ -145,8 +145,8 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	}
 	
 	//Compute the dielectric free energy and bound charge:
-	DataRptrVec eps = getEps(state), Adiel_eps;
-	{	DataRptr Aout; DataRptrVec p;
+	VectorField eps = getEps(state), Adiel_eps;
+	{	ScalarField Aout; VectorField p;
 		initZero(Aout, gInfo);
 		nullToZero(p, gInfo);
 		nullToZero(Adiel_eps, gInfo);
@@ -157,18 +157,18 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	} //scoped to automatically deallocate temporaries
 	
 	//Compute the electrostatic terms:
-	DataGptr phiFluidTilde = coulomb(rhoFluidTilde);
-	DataGptr phiExplicitTilde = coulomb(rhoExplicitTilde);
+	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
+	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
 	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
-		DataRptr Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
+		ScalarField Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
 		callPref(screeningEval->convertDerivative)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
 			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		//Propagate gradients from mu0 to mu, shape, Qexp:
 		double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
-		DataRptr mu0_muPlus, mu0_muMinus, mu0_shape;
+		ScalarField mu0_muPlus, mu0_muMinus, mu0_shape;
 		screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
 		Adiel_muPlus += Adiel_mu0 * mu0_muPlus;
 		Adiel_muMinus += Adiel_mu0 * mu0_muMinus;
@@ -177,7 +177,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 	}
 	
 	//Propagate gradients from p to eps, shape
-	{	DataRptrVec Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde), true); //Because dagger(-divergence) = gradient
+	{	VectorField Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde), true); //Because dagger(-divergence) = gradient
 		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
 			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 	}
@@ -188,7 +188,7 @@ double NonlinearPCM::operator()(const DataRMuEps& state, DataRMuEps& Adiel_state
 		(*Adiel_rhoExplicitTilde)->setGzero(Adiel_Qexp);
 	}
 	if(Adiel_nCavityTilde)
-	{	DataRptr Adiel_nCavity;
+	{	ScalarField Adiel_nCavity;
 		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, electricOnly);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
@@ -212,24 +212,24 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad_internal(DataGptr& Adiel_rhoExplicitTilde, DataGptr& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
-{	DataRMuEps Adiel_state;
+double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+{	ScalarFieldDataMuEps Adiel_state;
 	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, electricOnly);
 	setExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
 }
 
-void NonlinearPCM::step(const DataRMuEps& dir, double alpha)
+void NonlinearPCM::step(const ScalarFieldDataMuEps& dir, double alpha)
 {	axpy(alpha, dir, state);
 }
 
-double NonlinearPCM::compute(DataRMuEps* grad)
-{	DataRMuEps gradUnused;
+double NonlinearPCM::compute(ScalarFieldDataMuEps* grad)
+{	ScalarFieldDataMuEps gradUnused;
 	return (*this)(state, grad ? *grad : gradUnused);
 }
 
-DataRMuEps NonlinearPCM::precondition(const DataRMuEps& in)
-{	DataRMuEps out;
+ScalarFieldDataMuEps NonlinearPCM::precondition(const ScalarFieldDataMuEps& in)
+{	ScalarFieldDataMuEps out;
 	double dielPrefac = 1./(gInfo.dV * dielectricEval->NT);
 	double ionsPrefac = screeningEval ? 1./(gInfo.dV * screeningEval->NT) : 0.;
 	setMuEps(out,
@@ -245,9 +245,9 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 
 	if(screeningEval)
 	{
-		DataRptr Nplus, Nminus;
-		{	DataRptr muPlus = getMuPlus(state);
-			DataRptr muMinus = getMuMinus(state);
+		ScalarField Nplus, Nminus;
+		{	ScalarField muPlus = getMuPlus(state);
+			ScalarField muMinus = getMuMinus(state);
 			double Qexp = integral(rhoExplicitTilde);
 			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
 			Nplus = ionNbulk * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));

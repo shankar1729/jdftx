@@ -29,7 +29,7 @@ class CoulombWire : public Coulomb
 public:
 	CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
-	DataGptr apply(DataGptr&&) const;
+	ScalarFieldTilde apply(ScalarFieldTilde&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;
@@ -42,7 +42,7 @@ class CoulombCylindrical : public Coulomb
 public:
 	CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
-	DataGptr apply(DataGptr&&) const;
+	ScalarFieldTilde apply(ScalarFieldTilde&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 private:
 	WignerSeitz ws;

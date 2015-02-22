@@ -32,10 +32,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! internally by a gradient and traceless tensor second derivative respectively.
 //! n2v is obtained as the negative gradient of n3. This is why n3, n1v and n2m
 //! are passed in reciprocal space: they need fourier space processing for gradients etc.
-double PhiFMT(const DataRptr& n0, const DataRptr& n1, const DataRptr& n2,
-	const DataGptr& n3tilde, const DataGptr& n1vTilde, const DataGptr& n2mTilde,
-	DataRptr& grad_n0, DataRptr& grad_n1, DataRptr& grad_n2,
-	DataGptr& grad_n3tilde, DataGptr& grad_n1vTilde, DataGptr& grad_n2mTilde);
+double PhiFMT(const ScalarField& n0, const ScalarField& n1, const ScalarField& n2,
+	const ScalarFieldTilde& n3tilde, const ScalarFieldTilde& n1vTilde, const ScalarFieldTilde& n2mTilde,
+	ScalarField& grad_n0, ScalarField& grad_n1, ScalarField& grad_n2,
+	ScalarFieldTilde& grad_n3tilde, ScalarFieldTilde& grad_n1vTilde, ScalarFieldTilde& grad_n2mTilde);
 
 //! Returns the free energy density/T and accumulates derivatives
 //! corresponding to PhiFMT() for the uniform fluid
@@ -50,8 +50,8 @@ double phiFMTuniform(double n0, double n1, double n2, double n3,
 //! n2 and n3 are the usual FMT weighted densities.
 //! Returns the free energy/T of bonding and accumulates gradients in grad_n*
 //! Note that n3 is in fourier space for faster computation of n2v = -gradient n3
-double PhiBond(double Rhm, double scale, const DataRptr& n0mol, const DataRptr& n2, const DataGptr& n3tilde,
-	DataRptr& grad_n0mol, DataRptr& grad_n2, DataGptr& grad_n3tilde);
+double PhiBond(double Rhm, double scale, const ScalarField& n0mol, const ScalarField& n2, const ScalarFieldTilde& n3tilde,
+	ScalarField& grad_n0mol, ScalarField& grad_n2, ScalarFieldTilde& grad_n3tilde);
 
 //! Returns the free energy density/T and accumulates derivatives
 //! corresponding to PhiBond() for the uniform fluid

@@ -17,13 +17,15 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <core/GridInfo.h>
 #include <core/GpuUtil.h>
 #include <core/BlasExtra.h>
 #include <string.h>
 
-Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
+//--------------- Base class FieldData -------------------------
+
+FieldData::FieldData(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
 :nElem(nElem),scale(1.0),gInfo(gInfo),nDoubles(nElem*nDoublesPerElem),onGpu(onGpu)
 {	if(onGpu)
 	{
@@ -32,7 +34,7 @@ Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
 		cudaMalloc(&pData, nDoubles*sizeof(double));
 		gpuErrorCheck();
 		#else
-		assert(!"In Data(), wound up with onGpu=true with no GPU_ENABLED!!!\n");
+		assert(!"In FieldData(), wound up with onGpu=true with no GPU_ENABLED!!!\n");
 		#endif
 	}
 	else
@@ -40,7 +42,7 @@ Data::Data(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu)
 		if(!pData) die("Memory allocation failed (out of memory)\n");
 	}
 }
-Data::~Data()
+FieldData::~FieldData()
 {
 	if(onGpu)
 	{
@@ -49,12 +51,12 @@ Data::~Data()
 		cudaFree(pData);
 		gpuErrorCheck();
 		#else
-		assert(!"In ~Data(), wound up with onGpu=true with no GPU_ENABLED!!!\n");
+		assert(!"In ~FieldData(), wound up with onGpu=true with no GPU_ENABLED!!!\n");
 		#endif
 	}
 	else fftw_free(pData);
 }
-void Data::copyData(const Data& other)
+void FieldData::copyData(const FieldData& other)
 {	scale = other.scale;
 	#ifdef GPU_ENABLED
 	cudaMemcpy(dataGpu(false), other.dataGpu(false), nDoubles*sizeof(double), cudaMemcpyDeviceToDevice);
@@ -63,61 +65,61 @@ void Data::copyData(const Data& other)
 	#endif
 }
 
-void Data::send(int dest, int tag) const
+void FieldData::send(int dest, int tag) const
 {	assert(mpiUtil->nProcesses()>1);
 	mpiUtil->send((const double*)data(), nDoubles, dest, tag);
 }
-void Data::recv(int src, int tag)
+void FieldData::recv(int src, int tag)
 {	assert(mpiUtil->nProcesses()>1);
 	mpiUtil->recv((double*)data(), nDoubles, src, tag);
 }
-void Data::bcast(int root)
+void FieldData::bcast(int root)
 {	if(mpiUtil->nProcesses()>1)
 		mpiUtil->bcast((double*)data(), nDoubles, root);
 }
-void Data::allReduce(MPIUtil::ReduceOp op, bool safeMode)
+void FieldData::allReduce(MPIUtil::ReduceOp op, bool safeMode)
 {	if(mpiUtil->nProcesses()>1)
 		mpiUtil->allReduce((double*)data(), nDoubles, op, safeMode);
 }
 
-void Data::absorbScale() const
+void FieldData::absorbScale() const
 {	if(scale != 1.0)
-	{	Data* X = (Data*)this; //cast to non-const (this function modifies data, but is logically constant)
+	{	FieldData* X = (FieldData*)this; //cast to non-const (this function modifies data, but is logically constant)
 		callPref(eblas_dscal)(nDoubles, scale, (double*)X->dataPref(false), 1);
 		X->scale=1.0;
 	}
 }
-void Data::zero()
+void FieldData::zero()
 {	scale=1.0;
 	callPref(eblas_zero)(nDoubles, (double*)dataPref(false));
 }
-void* Data::data(bool shouldAbsorbScale)
+void* FieldData::data(bool shouldAbsorbScale)
 {	if(shouldAbsorbScale) absorbScale();
 	#ifdef GPU_ENABLED
 	toCpu();
 	#endif
 	return pData;
 }
-const void* Data::data(bool shouldAbsorbScale) const
+const void* FieldData::data(bool shouldAbsorbScale) const
 {	if(shouldAbsorbScale) absorbScale();
 	#ifdef GPU_ENABLED
-	((Data*)this)->toCpu(); //logically const, but may change data location
+	((FieldData*)this)->toCpu(); //logically const, but may change data location
 	#endif
 	return pData;
 }
 #ifdef GPU_ENABLED
-void* Data::dataGpu(bool shouldAbsorbScale)
+void* FieldData::dataGpu(bool shouldAbsorbScale)
 {	toGpu();
 	if(shouldAbsorbScale) absorbScale();
 	return pData;
 }
-const void* Data::dataGpu(bool shouldAbsorbScale) const
-{	((Data*)this)->toGpu(); //logically const, but may change data location
+const void* FieldData::dataGpu(bool shouldAbsorbScale) const
+{	((FieldData*)this)->toGpu(); //logically const, but may change data location
 	if(shouldAbsorbScale) absorbScale();
 	return pData;
 }
 //Move data to CPU
-void Data::toCpu()
+void FieldData::toCpu()
 {	if(!onGpu) return; //already on cpu
 	assert(isGpuMine()); //Cannot initiate GPU->CPU transfer from non-gpu-owner thread
 	complex* pDataCpu = (complex*)fftw_malloc(nDoubles*sizeof(double));
@@ -128,7 +130,7 @@ void Data::toCpu()
 	onGpu = false;
 }
 // Move data to GPU
-void Data::toGpu()
+void FieldData::toGpu()
 {	if(onGpu) return; //already on gpu
 	assert(isGpuMine()); //Cannot initiate CPU->GPU transfer from non-gpu-owner thread
 	void* pDataGpu; cudaMalloc(&pDataGpu, nDoubles*sizeof(double)); gpuErrorCheck();
@@ -140,30 +142,32 @@ void Data::toGpu()
 #endif
 
 
+//------------ class ScalarFieldData ---------------
 
-DataR::DataR(const GridInfo& gInfo, bool onGpu) : Data(gInfo, gInfo.nr, 1, onGpu)
+ScalarFieldData::ScalarFieldData(const GridInfo& gInfo, bool onGpu) : FieldData(gInfo, gInfo.nr, 1, onGpu)
 {
 }
-DataRptr DataR::clone() const
-{	DataRptr copy(DataR::alloc(gInfo, isOnGpu()));
+ScalarField ScalarFieldData::clone() const
+{	ScalarField copy(ScalarFieldData::alloc(gInfo, isOnGpu()));
 	copy->copyData(*this);
 	return copy;
 }
-DataRptr DataR::alloc(const GridInfo& gInfo, bool onGpu) { return DataRptr(new DataR(gInfo, onGpu)); }
+ScalarField ScalarFieldData::alloc(const GridInfo& gInfo, bool onGpu) { return ScalarField(new ScalarFieldData(gInfo, onGpu)); }
 
 
+//------------ class ScalarFieldTildeData ---------------
 
-DataG::DataG(const GridInfo& gInfo, bool onGpu) : Data(gInfo, gInfo.nG, 2, onGpu)
+ScalarFieldTildeData::ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu) : FieldData(gInfo, gInfo.nG, 2, onGpu)
 {
 }
-DataGptr DataG::clone() const
-{	DataGptr copy(DataG::alloc(gInfo, isOnGpu()));
+ScalarFieldTilde ScalarFieldTildeData::clone() const
+{	ScalarFieldTilde copy(ScalarFieldTildeData::alloc(gInfo, isOnGpu()));
 	copy->copyData(*this);
 	return copy;
 }
-DataGptr DataG::alloc(const GridInfo& gInfo, bool onGpu) { return DataGptr(new DataG(gInfo, onGpu)); }
+ScalarFieldTilde ScalarFieldTildeData::alloc(const GridInfo& gInfo, bool onGpu) { return ScalarFieldTilde(new ScalarFieldTildeData(gInfo, onGpu)); }
 
-double DataG::getGzero() const
+double ScalarFieldTildeData::getGzero() const
 {	
 	#ifdef GPU_ENABLED
 	if(isOnGpu())
@@ -174,7 +178,7 @@ double DataG::getGzero() const
 	#endif
 	return data(false)[0].real() * scale;
 }
-void DataG::setGzero(double Gzero)
+void ScalarFieldTildeData::setGzero(double Gzero)
 {	if(!scale) absorbScale(); //otherwise division by zero below
 	double scaledGzero = Gzero / scale;
 	#ifdef GPU_ENABLED
@@ -187,30 +191,32 @@ void DataG::setGzero(double Gzero)
 }
 
 
+//------------ class complexScalarFieldData ---------------
 
-complexDataR::complexDataR(const GridInfo& gInfo, bool onGpu) : Data(gInfo, gInfo.nr, 2, onGpu)
+complexScalarFieldData::complexScalarFieldData(const GridInfo& gInfo, bool onGpu) : FieldData(gInfo, gInfo.nr, 2, onGpu)
 {
 }
-complexDataRptr complexDataR::clone() const
-{	complexDataRptr copy(complexDataR::alloc(gInfo, isOnGpu()));
+complexScalarField complexScalarFieldData::clone() const
+{	complexScalarField copy(complexScalarFieldData::alloc(gInfo, isOnGpu()));
 	copy->copyData(*this);
 	return copy;
 }
-complexDataRptr complexDataR::alloc(const GridInfo& gInfo, bool onGpu) { return complexDataRptr(new complexDataR(gInfo, onGpu)); }
+complexScalarField complexScalarFieldData::alloc(const GridInfo& gInfo, bool onGpu) { return complexScalarField(new complexScalarFieldData(gInfo, onGpu)); }
 
+//------------ class complexScalarFieldTildeData ---------------
 
-complexDataG::complexDataG(const GridInfo& gInfo, bool onGpu) : Data(gInfo, gInfo.nr, 2, onGpu)
+complexScalarFieldTildeData::complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu) : FieldData(gInfo, gInfo.nr, 2, onGpu)
 {
 }
-complexDataGptr complexDataG::clone() const
-{	complexDataGptr copy(complexDataG::alloc(gInfo, isOnGpu()));
+complexScalarFieldTilde complexScalarFieldTildeData::clone() const
+{	complexScalarFieldTilde copy(complexScalarFieldTildeData::alloc(gInfo, isOnGpu()));
 	copy->copyData(*this);
 	return copy;
 }
-complexDataGptr complexDataG::alloc(const GridInfo& gInfo, bool onGpu) { return complexDataGptr(new complexDataG(gInfo, onGpu)); }
+complexScalarFieldTilde complexScalarFieldTildeData::alloc(const GridInfo& gInfo, bool onGpu) { return complexScalarFieldTilde(new complexScalarFieldTildeData(gInfo, onGpu)); }
 
 
-
+//------------ class RealKernel ---------------
 
 RealKernel::RealKernel(const GridInfo& gInfo) : gInfo(gInfo), nElem(gInfo.nG)
 {	data = new double[nElem];

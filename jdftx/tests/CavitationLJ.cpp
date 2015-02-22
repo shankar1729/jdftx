@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
 	//----- Initialize external potential -----
 	logPrintf("\nReading electron density from '%s' ... ", argv[1]); fflush(stdout);
-	DataRptr nElectronic(DataR::alloc(gInfo));
+	ScalarField nElectronic(ScalarFieldData::alloc(gInfo));
 	loadRawBinary(nElectronic, argv[2]);
 	logPrintf("SumCheck: %lf electrons\n\n", integral(nElectronic));
 
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 		fluidMixture.minimize(mp);
 	);
 	
-	DataRptrCollection N(1);
+	ScalarFieldArray N(1);
 	double phiFinal = fluidMixture.getFreeEnergy(&N);
 	logPrintf("\nCavitation energy = %le Eh\n\n", phiFinal);
 	

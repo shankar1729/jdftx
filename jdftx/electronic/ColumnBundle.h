@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ManagedMemory.h>
 #include <electronic/Basis.h>
 #include <electronic/matrix.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <core/scaled.h>
 
 class ColumnBundle : public ManagedMemory
@@ -63,9 +63,9 @@ public:
 	ColumnBundle getSub(int colStart, int colStop) const; //!< get a range of columns as a ColumnBundle 
 	void setSub(int colStart, const ColumnBundle&); //!< set columns (starting at colStart) from a ColumnBundle, ignoring columns that would go beyond nCols()
 	
-	complexDataGptr getColumn(int i, int s) const; //!< Expand the i'th column and s'th spinor component from reduced to full G-space
-	void setColumn(int i, int s, const complexDataGptr&); //!< Redeuce a full G-space vector and store it as the i'th column and s'th spinor component
-	void accumColumn(int i, int s, const complexDataGptr&); //!< Redeuce a full G-space vector and accumulate onto the i'th column and s'th spinor component
+	complexScalarFieldTilde getColumn(int i, int s) const; //!< Expand the i'th column and s'th spinor component from reduced to full G-space
+	void setColumn(int i, int s, const complexScalarFieldTilde&); //!< Redeuce a full G-space vector and store it as the i'th column and s'th spinor component
+	void accumColumn(int i, int s, const complexScalarFieldTilde&); //!< Redeuce a full G-space vector and accumulate onto the i'th column and s'th spinor component
 	
 	void randomize(int colStart, int colStop); //!< randomize a selected range of columns
 };

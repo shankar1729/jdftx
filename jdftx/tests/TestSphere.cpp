@@ -73,7 +73,7 @@ struct TestSphere
 			fluidMixture.minimize(mp);
 		);
 
-		DataRptrCollection N, psiEff;
+		ScalarFieldArray N, psiEff;
 		TIME("getFreeEnergy", globalLog,
 			fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, 0, &psiEff));
 		);

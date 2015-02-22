@@ -32,7 +32,7 @@ public:
 	double getOmegaI(bool grad);
 	
 private:
-	DataRptrVec r; DataRptr rSq; //r and r^2 wrapped on the Wigner-Seitz cell
+	VectorField r; ScalarField rSq; //r and r^2 wrapped on the Wigner-Seitz cell
 	int iSpin; //!< spin channel currently being minimized
 	int nStart, nStop; //!< center MPI division
 	double getOmega(bool grad, bool invariant); //compute Omega or OmegaI depending on invariant

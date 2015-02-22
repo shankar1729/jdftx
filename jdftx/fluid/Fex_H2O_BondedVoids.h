@@ -30,7 +30,7 @@ public:
 	Fex_H2O_BondedVoids(const FluidMixture*, const FluidComponent*);
     virtual ~Fex_H2O_BondedVoids();
 	
-	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const;
 	double computeUniform(const double* N, double* Phi_N) const;
 
 	static const double RV0, TV, kappa, RO, sigmaU; //!< Functional parameters

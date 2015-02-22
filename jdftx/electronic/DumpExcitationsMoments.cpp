@@ -62,7 +62,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 	const std::vector<diagMatrix>& eigs = eigsQP.size() ? eigsQP : e.eVars.Hsub_eigs;
 	
 	// Integral kernel's for Fermi's golden rule
-	DataRptr r0, r1, r2;
+	ScalarField r0, r1, r2;
 	nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
 	applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
 	applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
@@ -195,7 +195,7 @@ namespace Moments
 		if(!fp) die("Error opening %s for writing.\n", filename);	
 		
 		// Calculates the electronic moment about origin
-		DataRptr r0, r1, r2;
+		ScalarField r0, r1, r2;
 		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
 		applyFunc_r(g, rn_pow_x, 0, g.R, moment, origin, r0->data());
 		applyFunc_r(g, rn_pow_x, 1, g.R, moment, origin, r1->data());
@@ -236,19 +236,19 @@ namespace XC_Analysis
 	{	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
 	}
 	
-	DataRptrCollection tauWeizsacker(const Everything& e)
-	{	DataRptrCollection tauW(e.eVars.n.size());
+	ScalarFieldArray tauWeizsacker(const Everything& e)
+	{	ScalarFieldArray tauW(e.eVars.n.size());
 		for(size_t j=0; j<e.eVars.n.size(); j++)
 			tauW[j] = (1./8.)*lengthSquared(gradient(e.eVars.n[j]))*pow(e.eVars.n[j], -1);
 		return tauW;
 	}
 	
-	DataRptrCollection spness(const Everything& e)
+	ScalarFieldArray spness(const Everything& e)
 	{
 			const auto& tau = (e.exCorr.needsKEdensity() ? e.eVars.tau : e.eVars.KEdensity());
 		
-			DataRptrCollection tauW = tauWeizsacker(e);
-			DataRptrCollection spness(e.eVars.n.size()); nullToZero(spness, e.gInfo);
+			ScalarFieldArray tauW = tauWeizsacker(e);
+			ScalarFieldArray spness(e.eVars.n.size()); nullToZero(spness, e.gInfo);
 			for(size_t j=0; j<e.eVars.n.size(); j++)
 			{	applyFunc_r(e.gInfo, regularize, tau[j]->data());
 				applyFunc_r(e.gInfo, regularize, tauW[j]->data());
@@ -259,10 +259,10 @@ namespace XC_Analysis
 			return spness;
 	}
 	
-	DataRptrCollection sHartree(const Everything& e)
+	ScalarFieldArray sHartree(const Everything& e)
 	{
-		DataRptrCollection sVh(e.eVars.n.size());
-		DataGptrCollection nTilde = J(e.eVars.n);
+		ScalarFieldArray sVh(e.eVars.n.size());
+		ScalarFieldTildeArray nTilde = J(e.eVars.n);
 		for(size_t s=0; s<e.eVars.n.size(); s++)
 			sVh[s] = I((*(e.coulomb))(nTilde[s]));
 		
@@ -287,24 +287,24 @@ inline void set_rInv(size_t iStart, size_t iStop, const vector3<int>& S, const m
 	)
 }
 
-void Dump::dumpRsol(DataRptr nbound, string fname)
+void Dump::dumpRsol(ScalarField nbound, string fname)
 {	
 	//Compute normalization factor for the partition:
 	int nAtomsTot = 0; for(const auto& sp: e->iInfo.species) nAtomsTot += sp->atpos.size();
 	const double nFloor = 1e-5/nAtomsTot; //lower cap on densities to prevent Nyquist noise in low density regions
-	DataRptr nAtomicTot;
+	ScalarField nAtomicTot;
 	for(const auto& sp: e->iInfo.species)
 	{	RadialFunctionG nRadial;
 		logSuspend(); sp->getAtom_nRadial(0,0, nRadial, true); logResume();
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
-		{	DataRptr nAtomic = radialFunction(e->gInfo, nRadial, sp->atpos[atom]);
+		{	ScalarField nAtomic = radialFunction(e->gInfo, nRadial, sp->atpos[atom]);
 			double nMin, nMax; callPref(eblas_capMinMax)(e->gInfo.nr, nAtomic->dataPref(), nMin, nMax, nFloor);
 			nAtomicTot += nAtomic;
 		}
 	}
-	DataRptr nboundByAtomic = (nbound*nbound) * inv(nAtomicTot);
+	ScalarField nboundByAtomic = (nbound*nbound) * inv(nAtomicTot);
 
-	DataRptr rInv0(DataR::alloc(e->gInfo));
+	ScalarField rInv0(ScalarFieldData::alloc(e->gInfo));
 	{	logSuspend(); WignerSeitz ws(e->gInfo.R); logResume();
 		threadLaunch(set_rInv, e->gInfo.nr, e->gInfo.S, e->gInfo.RTR, &ws, rInv0->data());
 	}
@@ -316,10 +316,10 @@ void Dump::dumpRsol(DataRptr nbound, string fname)
 	{	RadialFunctionG nRadial;
 		logSuspend(); sp->getAtom_nRadial(0,0, nRadial, true); logResume();
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
-		{	DataRptr w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
+		{	ScalarField w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
 			//Get r centered at current atom:
-			DataGptr trans; nullToZero(trans, e->gInfo); initTranslation(trans, e->gInfo.R*sp->atpos[atom]);
-			DataRptr rInv = I(trans * J(rInv0), true);
+			ScalarFieldTilde trans; nullToZero(trans, e->gInfo); initTranslation(trans, e->gInfo.R*sp->atpos[atom]);
+			ScalarField rInv = I(trans * J(rInv0), true);
 			//Compute moments:
 			double wNorm = integral(w);
 			double rInvMean = integral(w * rInv) / wNorm;

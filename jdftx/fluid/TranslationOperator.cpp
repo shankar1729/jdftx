@@ -45,7 +45,7 @@ void constantSplineTaxpy_gpu(const vector3<int> S,
 void linearSplineTaxpy_gpu(const vector3<int> S,
 	double alpha, const double* x, double* y, const vector3<int> Tint, const vector3<> Tfrac);
 #endif
-void TranslationOperatorSpline::taxpy(const vector3<>& t, double alpha, const DataRptr& x, DataRptr& y) const
+void TranslationOperatorSpline::taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const
 {	//Perform a gather with the inverse translation (hence negate t),
 	//instead of scatter which is less efficient to parallelize
 	vector3<> Tfrac = Diag(gInfo.S) * inv(gInfo.R) * (-t); //now in grid point units
@@ -100,8 +100,8 @@ inline void fourierTranslate_sub(size_t iStart, size_t iStop, const vector3<int>
 #ifdef GPU_ENABLED //implemented in TranslationOperator.cu
 void fourierTranslate_gpu(const vector3<int> S, const vector3<> Gt, complex* xTilde);
 #endif
-void TranslationOperatorFourier::taxpy(const vector3<>& t, double alpha, const DataRptr& x, DataRptr& y) const
-{	DataGptr xTilde = J(x);
+void TranslationOperatorFourier::taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const
+{	ScalarFieldTilde xTilde = J(x);
 	#ifdef GPU_ENABLED
 	fourierTranslate_gpu(gInfo.S, gInfo.G*t, xTilde->dataGpu(false));
 	#else

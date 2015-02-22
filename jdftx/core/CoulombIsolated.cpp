@@ -82,7 +82,7 @@ CoulombIsolated::CoulombIsolated(const GridInfo& gInfoOrig, const CoulombParams&
 	initExchangeEval();
 }
 
-DataGptr CoulombIsolated::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombIsolated::apply(ScalarFieldTilde&& in) const
 {	return Vc * in;
 }
 
@@ -103,7 +103,7 @@ CoulombSpherical::CoulombSpherical(const GridInfo& gInfoOrig, const CoulombParam
 	initExchangeEval();
 }
 
-DataGptr CoulombSpherical::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombSpherical::apply(ScalarFieldTilde&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombSpherical_calc(Rc), in->dataPref(false));
 	return in;
 }

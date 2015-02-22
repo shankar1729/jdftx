@@ -31,22 +31,22 @@ string IdealGasPomega::representationName() const
 {	return "Pomega";
 }
 
-void IdealGasPomega::initState_o(int o, const matrix3<>& rot, double scale, const DataRptr& Eo, DataRptr* logPomega) const
+void IdealGasPomega::initState_o(int o, const matrix3<>& rot, double scale, const ScalarField& Eo, ScalarField* logPomega) const
 {	logPomega[o] += (-scale/T) * Eo;
 }
 
-void IdealGasPomega::getDensities_o(int o, const matrix3<>& rot, const DataRptr* logPomega, DataRptr& logPomega_o) const
+void IdealGasPomega::getDensities_o(int o, const matrix3<>& rot, const ScalarField* logPomega, ScalarField& logPomega_o) const
 {	logPomega_o += logPomega[o];
 }
 
-void IdealGasPomega::convertGradients_o(int o, const matrix3<>& rot, const DataRptr& Phi_logPomega_o, DataRptr* Phi_logPomega) const
+void IdealGasPomega::convertGradients_o(int o, const matrix3<>& rot, const ScalarField& Phi_logPomega_o, ScalarField* Phi_logPomega) const
 {	Phi_logPomega[o] += Phi_logPomega_o;
 }
 
 
-void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scale, double Elo, double Ehi) const
+void IdealGasPomega::initState(const ScalarField* Vex, ScalarField* indep, double scale, double Elo, double Ehi) const
 {	for(int k=0; k<nIndep; k++) indep[k]=0;
-	DataRptrCollection Veff(molecule.sites.size()); nullToZero(Veff, gInfo);
+	ScalarFieldArray Veff(molecule.sites.size()); nullToZero(Veff, gInfo);
 	for(unsigned i=0; i<molecule.sites.size(); i++)
 	{	Veff[i] += V[i];
 		Veff[i] += Vex[i];
@@ -54,7 +54,7 @@ void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scal
 	double Emin=+DBL_MAX, Emax=-DBL_MAX, Emean=0.0;
 	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
-		DataRptr Emolecule;
+		ScalarField Emolecule;
 		//Sum the potentials collected over sites for each orientation:
 		for(unsigned i=0; i<molecule.sites.size(); i++)
 			for(vector3<> pos: molecule.sites[i]->positions)
@@ -78,16 +78,16 @@ void IdealGasPomega::initState(const DataRptr* Vex, DataRptr* indep, double scal
 		   representationName().c_str(), molecule.name.c_str(), Emin, Emax, Emean);
 }
 
-void IdealGasPomega::getDensities(const DataRptr* indep, DataRptr* N, vector3<>& P0) const
+void IdealGasPomega::getDensities(const ScalarField* indep, ScalarField* N, vector3<>& P0) const
 {	for(unsigned i=0; i<molecule.sites.size(); i++) N[i]=0;
 	double& S = ((IdealGasPomega*)this)->S;
 	S=0.0;
-	DataRptrVec P;
+	VectorField P;
 	//Loop over orientations:
 	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
-		DataRptr logPomega_o; getDensities_o(o, rot, indep,logPomega_o);
-		DataRptr N_o = (quad.weight(o) * Nbulk) * exp(logPomega_o); //contribution form this orientation
+		ScalarField logPomega_o; getDensities_o(o, rot, indep,logPomega_o);
+		ScalarField N_o = (quad.weight(o) * Nbulk) * exp(logPomega_o); //contribution form this orientation
 		//Accumulate N_o to each site density with appropriate translations:
 		for(unsigned i=0; i<molecule.sites.size(); i++)
 			for(vector3<> pos: molecule.sites[i]->positions)
@@ -115,7 +115,7 @@ void IdealGasPomega::getDensities(const DataRptr* indep, DataRptr* N, vector3<>&
 	}
 }
 
-double IdealGasPomega::compute(const DataRptr* indep, const DataRptr* N, DataRptr* Phi_N, const double Nscale, double& Phi_Nscale) const
+double IdealGasPomega::compute(const ScalarField* indep, const ScalarField* N, ScalarField* Phi_N, const double Nscale, double& Phi_Nscale) const
 {	double PhiNI = 0.0;
 	//Add contributions due to external potentials:
 	for(unsigned i=0; i<molecule.sites.size(); i++)
@@ -133,14 +133,14 @@ double IdealGasPomega::compute(const DataRptr* indep, const DataRptr* N, DataRpt
 	return PhiNI;
 }
 
-void IdealGasPomega::convertGradients(const DataRptr* indep, const DataRptr* N, const DataRptr* Phi_N, const vector3<>& Phi_P0, DataRptr* Phi_indep, const double Nscale) const
+void IdealGasPomega::convertGradients(const ScalarField* indep, const ScalarField* N, const ScalarField* Phi_N, const vector3<>& Phi_P0, ScalarField* Phi_indep, const double Nscale) const
 {	for(int k=0; k<nIndep; k++) Phi_indep[k]=0;
 	//Loop over orientations:
 	for(int o=oStart; o<oStop; o++)
 	{	matrix3<> rot = matrixFromEuler(quad.euler(o));
-		DataRptr logPomega_o; getDensities_o(o, rot, indep, logPomega_o);
-		DataRptr N_o = (quad.weight(o) * Nbulk * Nscale) * exp(logPomega_o);
-		DataRptr Phi_N_o; //gradient w.r.t N_o (as calculated in getDensities)
+		ScalarField logPomega_o; getDensities_o(o, rot, indep, logPomega_o);
+		ScalarField N_o = (quad.weight(o) * Nbulk * Nscale) * exp(logPomega_o);
+		ScalarField Phi_N_o; //gradient w.r.t N_o (as calculated in getDensities)
 		//Collect the contributions from each Phi_N in Phi_N_o
 		for(unsigned i=0; i<molecule.sites.size(); i++)
 			for(vector3<> pos: molecule.sites[i]->positions)

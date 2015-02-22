@@ -71,7 +71,7 @@ int main(int argc, char** argv)
 	double Dfield = 1.0 * eV/Angstrom;
 	const double zWall = 8.0 - 1e-3;
 	const double& gridLength = gInfo.R(2,2);
-	DataRptr phiApplied(DataR::alloc(gInfo)), phiWall(DataR::alloc(gInfo));
+	ScalarField phiApplied(ScalarFieldData::alloc(gInfo)), phiWall(ScalarFieldData::alloc(gInfo));
 	applyFunc_r(gInfo, setPhi, phiApplied->data(), phiWall->data(), gridLength, Dfield, zWall);
 	const double ZO = component.molecule.sites[0]->chargeKernel(0);
 	component.idealGas->V[0] = ZO * phiApplied + phiWall;
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 	quadName << S2quadTypeMap.getString(quadType);
 	if(quadType == QuadEuler) quadName << nBeta;
 	
-	DataRptrCollection N;
+	ScalarFieldArray N;
 	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 	FILE* fp = fopen((quadName.str()+".Nplanar").c_str(), "w");
 	double* NOdata = N[0]->data();

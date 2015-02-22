@@ -17,26 +17,26 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_DATAMULTIPLET_H
-#define JDFTX_CORE_DATAMULTIPLET_H
+#ifndef JDFTX_CORE_VECTORFIELD_H
+#define JDFTX_CORE_VECTORFIELD_H
 
 //! @addtogroup griddata
 //! @{
 
-/** @file DataMultiplet.h
+/** @file VectorField.h
 @brief Generic multiplet of data arrays (and specialized to triplets for vector fields in real/reciprocal space)
 */
 
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <core/GridInfo.h>
 #include <core/Operators.h>
 #include <core/vector3.h>
 #include <vector>
 
 #define Tptr std::shared_ptr<T> //!< shorthand for writing the template operators (undef'd at end of header)
-#define TptrMul DataMultiplet<T,N> //!< shorthand for the template operators/functions (undef'd at end of file)
-#define RptrMul DataMultiplet<DataR,N> //!< shorthand for real-space-only template operators/functions (undef'd at end of file)
-#define GptrMul DataMultiplet<DataG,N> //!< shorthand for reciprocal-space-only template operators/functions (undef'd at end of file)
+#define TptrMul ScalarFieldMultiplet<T,N> //!< shorthand for the template operators/functions (undef'd at end of file)
+#define RptrMul ScalarFieldMultiplet<ScalarFieldData,N> //!< shorthand for real-space-only template operators/functions (undef'd at end of file)
+#define GptrMul ScalarFieldMultiplet<ScalarFieldTildeData,N> //!< shorthand for reciprocal-space-only template operators/functions (undef'd at end of file)
 
 //!@cond
 #define Nloop(code) for(int i=0; i<N; i++) {code} //loop over components (used repeatedly below)
@@ -44,9 +44,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 
 //! @brief Generic multiplet object with overloaded arithmetic
-//! @tparam T DataR or DataG
+//! @tparam T ScalarFieldData or ScalarFieldTildeData
 //! @tparam N Number of elements in multiplet
-template<class T, int N> struct DataMultiplet
+template<class T, int N> struct ScalarFieldMultiplet
 {	Tptr component[N]; //!< the array of components (also accessible via #operator[])
 
 	Tptr& O() { return component[0]; } //!< get reference to component[0] (convenient for OH doublets)
@@ -56,16 +56,16 @@ template<class T, int N> struct DataMultiplet
 
 	//! @brief Construct multiplet from an array of data sets (or default: initialize to null)
 	//! @param in Pointer to array, or null to initialize each component to null
-	DataMultiplet(const Tptr* in=0) { Nloop( component[i] = (in ? in[i] : 0); ) }
+	ScalarFieldMultiplet(const Tptr* in=0) { Nloop( component[i] = (in ? in[i] : 0); ) }
 
 	//! @brief Construct a multiplet with allocated data
 	//! @param gInfo Simulation grid info / memory manager to use to allocate the data
-	DataMultiplet(const GridInfo& gInfo, bool onGpu=false) { Nloop( component[i] = Tptr(T::alloc(gInfo,onGpu)); ) }
+	ScalarFieldMultiplet(const GridInfo& gInfo, bool onGpu=false) { Nloop( component[i] = Tptr(T::alloc(gInfo,onGpu)); ) }
 
-	DataMultiplet(const Tptr& O, const Tptr& H) { component[0]=O; component[1]=H; } //!< Initialize O and H components (really meaningful only for N=2)
+	ScalarFieldMultiplet(const Tptr& O, const Tptr& H) { component[0]=O; component[1]=H; } //!< Initialize O and H components (really meaningful only for N=2)
 	Tptr& operator[](int i) { return component[i]; } //!< Retrieve a reference to the i'th component (no bound checks)
 	const Tptr& operator[](int i) const { return component[i]; } //!< Retrieve a const reference to the i'th component (no bound checks)
-	DataMultiplet clone() const { TptrMul out; Nloop( out[i] = component[i]->clone(); ) return out; } //!< Clone data (note assignment will be reference for the actual data)
+	ScalarFieldMultiplet clone() const { TptrMul out; Nloop( out[i] = component[i]->clone(); ) return out; } //!< Clone data (note assignment will be reference for the actual data)
 
 	std::vector<typename T::DataType*> data(); //!< Get the component data pointers in an std::vector
 	std::vector<const typename T::DataType*> data() const; //!< Get the component data pointers in an std::vector (const version)
@@ -92,15 +92,13 @@ template<class T, int N> struct DataMultiplet
 	void loadFromFile(const char* fileName); //!< Load all components from a single binary file
 	void saveToFile(const char* fileName) const; //!< Save all components from a single binary file
 };
-typedef DataMultiplet<DataR,2> DataRptrOH; //!< Real space OH data pair
-typedef DataMultiplet<DataG,2> DataGptrOH; //!< Reciprocal space OH data pair
-typedef DataMultiplet<DataR,3> DataRptrVec; //!< Real space OH data triplet (vector field)
-typedef DataMultiplet<DataG,3> DataGptrVec; //!< Reciprocal space OH data triplet (vector field)
-typedef DataMultiplet<DataR,5> DataRptrTensor; //!< Symmetric traceless tensor: real space field
-typedef DataMultiplet<DataG,5> DataGptrTensor; //!< Symmetric traceless tensor: reciprocal space field
+typedef ScalarFieldMultiplet<ScalarFieldData,3> VectorField; //!< Real space vector field
+typedef ScalarFieldMultiplet<ScalarFieldTildeData,3> VectorFieldTilde; //!< Reciprocal space vector field
+typedef ScalarFieldMultiplet<ScalarFieldData,5> TensorField; //!< Symmetric traceless tensor: real space field
+typedef ScalarFieldMultiplet<ScalarFieldTildeData,5> TensorFieldTilde; //!< Symmetric traceless tensor: reciprocal space field
 
 //Allocation/init/copy etc:
-template<class T,int N> TptrMul clone(const TptrMul& X) { return X ? X.clone() : (TptrMul)0; } //!< Clone (NOTE: operator= is by reference for Data*ptrOH)
+template<class T,int N> TptrMul clone(const TptrMul& X) { return X ? X.clone() : (TptrMul)0; } //!< Clone (NOTE: operator= is by reference for ScalarField multiplets)
 template<class T,int N> void initZero(TptrMul& X) { Nloop( initZero(X[i]); ) } //!< Initialize data to 0 and scale factors to 1
 template<class T,int N> void nullToZero(TptrMul& X, const GridInfo& gInfo) { Nloop(nullToZero(X[i],gInfo);) } //!< Allocate and initialize each component of X to 0 if null
 template<int N> void initRandom(RptrMul& X, double cap=0.0) {Nloop(initRandom(X[i],cap);)} //!< initialize element-wise with a unit-normal random number (with a cap if cap>0)
@@ -127,8 +125,8 @@ template<class T,int N> TptrMul operator*(const TptrMul& in, double scaleFac) { 
 template<class T,int N> TptrMul operator*(double scaleFac, const TptrMul& in) { TptrMul out(in.clone()); return out *= scaleFac; } //!< Scalar multiply (preserve input)
 template<class T,int N> TptrMul operator*(TptrMul&& in, double scaleFac) { return in *= scaleFac; } //!< Scalar multiply (destructible input)
 template<class T,int N> TptrMul operator*(double scaleFac, TptrMul&& in) { return in *= scaleFac; } //!< Scalar multiply (destructible input)
-template<class T> DataMultiplet<T,3> operator*(vector3<> v, const Tptr& in) { DataMultiplet<T,3> out; for(int k=0; k<3; k++) out[k] = v[k] * in; return out; } //!< 3-vector multiply
-template<class T> Tptr dot(vector3<> v, const DataMultiplet<T,3>& in) { Tptr out; for(int k=0; k<3; k++) out += v[k] * in[k]; return out; } //!< 3-vector multiply
+template<class T> ScalarFieldMultiplet<T,3> operator*(vector3<> v, const Tptr& in) { ScalarFieldMultiplet<T,3> out; for(int k=0; k<3; k++) out[k] = v[k] * in; return out; } //!< 3-vector multiply
+template<class T> Tptr dot(vector3<> v, const ScalarFieldMultiplet<T,3>& in) { Tptr out; for(int k=0; k<3; k++) out += v[k] * in[k]; return out; } //!< 3-vector multiply
 
 //Linear combine operators:
 template<class T,int N> void axpy(double alpha, const TptrMul& X, TptrMul& Y) { Nloop(axpy(alpha, X[i], Y[i]);) } //!< Linear combine Y += alpha * X
@@ -162,11 +160,11 @@ template<class T,int N> TptrMul operator-(const Tptr& in1, TptrMul&& in2) { retu
 template<class T,int N> double dot(const TptrMul& X, const TptrMul& Y) { double ret=0.0; Nloop(ret+=dot(X[i],Y[i]);) return ret; } //!< Inner product
 template<class T,int N> double nrm2(const TptrMul& X) { return sqrt(dot(X,X)); } //!< 2-norm
 template<class T,int N> double sum(const TptrMul& X) { double ret=0.0; Nloop(ret+=sum(X[i]);) return ret; } //!< Sum of elements
-inline vector3<> getGzero(const DataGptrVec& X) { vector3<> ret; for(int k=0; k<3; k++) if(X[k]) ret[k]=X[k]->getGzero(); return ret; } //!< return G=0 components
-inline void setGzero(const DataGptrVec& X, vector3<> v) { for(int k=0; k<3; k++) if(X[k]) X[k]->setGzero(v[k]); } //!< set G=0 components
-inline vector3<> sumComponents(const DataRptrVec& X) { return vector3<>(sum(X[0]), sum(X[1]), sum(X[2])); } //!< Sum of elements (component-wise)
-inline DataRptr lengthSquared(const DataRptrVec& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; } //!< Elementwise length squared
-inline DataRptr dotElemwise(const DataRptrVec& X, const DataRptrVec& Y) { return X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2]; } //!< Elementwise dot
+inline vector3<> getGzero(const VectorFieldTilde& X) { vector3<> ret; for(int k=0; k<3; k++) if(X[k]) ret[k]=X[k]->getGzero(); return ret; } //!< return G=0 components
+inline void setGzero(const VectorFieldTilde& X, vector3<> v) { for(int k=0; k<3; k++) if(X[k]) X[k]->setGzero(v[k]); } //!< set G=0 components
+inline vector3<> sumComponents(const VectorField& X) { return vector3<>(sum(X[0]), sum(X[1]), sum(X[2])); } //!< Sum of elements (component-wise)
+inline ScalarField lengthSquared(const VectorField& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; } //!< Elementwise length squared
+inline ScalarField dotElemwise(const VectorField& X, const VectorField& Y) { return X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2]; } //!< Elementwise dot
 
 //Extra operators in R-space alone for scalar additions:
 template<int N> RptrMul& operator+=(RptrMul& in, double scalar) { Nloop(in[i]+=scalar;) return in; } //!<Increment by scalar
@@ -183,7 +181,7 @@ template<int N> GptrMul operator*(const RealKernel& kernel, GptrMul&& in) { retu
 template<int N> GptrMul operator*(GptrMul&& in, const RealKernel& kernel) { return in *= kernel; } //!< Multiply by kernel (destructible input)
 
 //Transform operators:
-template<int N> GptrMul O(GptrMul&& X) { Nloop( O((DataGptr&&)X[i]); ) return X; } //!< Inner product operator (diagonal in PW basis)
+template<int N> GptrMul O(GptrMul&& X) { Nloop( O((ScalarFieldTilde&&)X[i]); ) return X; } //!< Inner product operator (diagonal in PW basis)
 template<int N> GptrMul O(const GptrMul& X) { return O(X.clone()); } //!< Inner product operator (diagonal in PW basis)
 template<int N> RptrMul I(GptrMul&& X, bool compat=false); //!< Forward transform: PW basis -> real space (destructible input)
 template<int N> GptrMul J(const RptrMul& X); //!< Inverse transform: Real space -> PW basis
@@ -193,14 +191,14 @@ template<int N> RptrMul Jdag(const GptrMul& X, bool compat=false) { return Jdag(
 template<int N> RptrMul I(const GptrMul& X, bool compat=false) { return I(X.clone(), compat); } //!< Forward transform: PW basis -> real space (preserve input)
 
 //Special operators for triplets (implemented in operators.cpp):
-DataGptrVec gradient(const DataGptr&); //!< compute the gradient of a complex field, returns cartesian components
-DataRptrVec gradient(const DataRptr&); //!< compute the gradient of a complex field, returns cartesian components
-DataGptr divergence(const DataGptrVec&); //!< compute the divergence of a vector field specified in cartesian components
-DataRptr divergence(const DataRptrVec&); //!< compute the divergence of a vector field specified in cartesian components
+VectorFieldTilde gradient(const ScalarFieldTilde&); //!< compute the gradient of a complex field, returns cartesian components
+VectorField gradient(const ScalarField&); //!< compute the gradient of a complex field, returns cartesian components
+ScalarFieldTilde divergence(const VectorFieldTilde&); //!< compute the divergence of a vector field specified in cartesian components
+ScalarField divergence(const VectorField&); //!< compute the divergence of a vector field specified in cartesian components
 
 //Special operators for symmetric traceless tensors (implemented in operators.cpp)
-DataGptrTensor tensorGradient(const DataGptr&); //!< symmetric traceless tensor second derivative of a scalar field
-DataGptr tensorDivergence(const DataGptrTensor&); //!<  second derivative contraction of a symmetric traceless tensor field
+TensorFieldTilde tensorGradient(const ScalarFieldTilde&); //!< symmetric traceless tensor second derivative of a scalar field
+ScalarFieldTilde tensorDivergence(const TensorFieldTilde&); //!<  second derivative contraction of a symmetric traceless tensor field
 
 //Debug:
 template<int N> void printStats(const RptrMul&, const char* name, FILE* fpLog=stdout); //!< Print mean and standard deviation of each component array with specified name (debug utility)
@@ -271,12 +269,12 @@ void TptrMul::saveToFile(const char* filename) const
 	fclose(fp);
 }
 
-namespace DataMultipletPrivate
+namespace ScalarFieldMultipletPrivate
 {
-	inline DataRptr IcompatTrue(DataGptr&& in, int nThreads) { return I((DataGptr&&)in, true, nThreads); }
-	inline DataRptr IcompatFalse(DataGptr&& in, int nThreads) { return I((DataGptr&&)in, false, nThreads); }
-	inline DataRptr JdagCompatTrue(DataGptr&& in, int nThreads) { return Jdag((DataGptr&&)in, true, nThreads); }
-	inline DataRptr JdagCompatFalse(DataGptr&& in, int nThreads) { return Jdag((DataGptr&&)in, false, nThreads); }
+	inline ScalarField IcompatTrue(ScalarFieldTilde&& in, int nThreads) { return I((ScalarFieldTilde&&)in, true, nThreads); }
+	inline ScalarField IcompatFalse(ScalarFieldTilde&& in, int nThreads) { return I((ScalarFieldTilde&&)in, false, nThreads); }
+	inline ScalarField JdagCompatTrue(ScalarFieldTilde&& in, int nThreads) { return Jdag((ScalarFieldTilde&&)in, true, nThreads); }
+	inline ScalarField JdagCompatFalse(ScalarFieldTilde&& in, int nThreads) { return Jdag((ScalarFieldTilde&&)in, false, nThreads); }
 	
 	template<typename FuncOut, typename FuncIn, typename Out, typename In>
 	void threadUnary_sub(int iOpThread, int nOpThreads, int nThreadsTot, int N, FuncOut (*func)(FuncIn,int), Out* out, In in)
@@ -299,37 +297,37 @@ namespace DataMultipletPrivate
 
 template<int N>
 RptrMul I(GptrMul&& X, bool compat)
-{	using namespace DataMultipletPrivate;
+{	using namespace ScalarFieldMultipletPrivate;
 	RptrMul out;
-	DataRptr (*func)(DataGptr&&,int) = compat ? IcompatTrue : IcompatFalse;
-	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X);
+	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? IcompatTrue : IcompatFalse;
+	threadUnary<ScalarField,ScalarFieldTilde&&>(func, N, &out, X);
 	return out;
 }
 
 template<int N>
 GptrMul J(const RptrMul& X)
-{	using namespace DataMultipletPrivate;
+{	using namespace ScalarFieldMultipletPrivate;
 	GptrMul out;
-	DataGptr (*func)(const DataRptr&,int) = J;
+	ScalarFieldTilde (*func)(const ScalarField&,int) = J;
 	threadUnary(func, N, &out, X);
 	return out;
 }
 
 template<int N>
 GptrMul Idag(const RptrMul& X)
-{	using namespace DataMultipletPrivate;
+{	using namespace ScalarFieldMultipletPrivate;
 	GptrMul out;
-	DataGptr (*func)(const DataRptr&,int) = Idag;
+	ScalarFieldTilde (*func)(const ScalarField&,int) = Idag;
 	threadUnary(func, N, &out, X);
 	return out;
 }
 
 template<int N>
 RptrMul Jdag(GptrMul&& X, bool compat)
-{	using namespace DataMultipletPrivate;
+{	using namespace ScalarFieldMultipletPrivate;
 	RptrMul out;
-	DataRptr (*func)(DataGptr&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
-	threadUnary<DataRptr,DataGptr&&>(func, N, &out, X);
+	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	threadUnary<ScalarField,ScalarFieldTilde&&>(func, N, &out, X);
 	return out;
 }
 
@@ -344,4 +342,4 @@ template<int N> void printStats(const RptrMul& X, const char* namePrefix, FILE* 
 #undef GptrMul
 //!@endcond
 
-#endif // JDFTX_CORE_DATAMULTIPLET_H
+#endif // JDFTX_CORE_VECTORFIELD_H

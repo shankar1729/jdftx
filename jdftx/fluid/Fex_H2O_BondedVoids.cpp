@@ -43,8 +43,8 @@ Fex_H2O_BondedVoids::~Fex_H2O_BondedVoids()
 {	Ua.free();
 }
 
-double Fex_H2O_BondedVoids::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
-{	DataGptr V = (-kappa * gInfo.nr) * (Ua * Ntilde[0]);
+double Fex_H2O_BondedVoids::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const
+{	ScalarFieldTilde V = (-kappa * gInfo.nr) * (Ua * Ntilde[0]);
 	Phi_Ntilde[0] += V;
 	return 0.5*gInfo.dV*dot(V,Ntilde[0]);
 }

@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <fluid/FluidSolver.h>
 #include <commands/parser.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/DataIO.h>
 #include <core/Util.cpp>
 #include <core/WignerSeitz.h>
@@ -101,7 +101,7 @@ inline void rArrSet(size_t iStart, size_t iStop, vector3<int> S, matrix3<> R, ve
 	)
 }
 
-void reduceGplanar(const DataGptr& x, matrix& xRed)
+void reduceGplanar(const ScalarFieldTilde& x, matrix& xRed)
 {	const GridInfo& gInfo = x->gInfo;
 	int nG = xRed.nRows()/2;
 	assert(xRed.nCols() == 1);
@@ -113,13 +113,13 @@ void reduceGplanar(const DataGptr& x, matrix& xRed)
 	callPref(eblas_dscal)(nG, -1., ((double*)(xRed.dataPref()+nG))+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
 }
 
-DataRptr IexpandGplanar(const matrix& xRed, const GridInfo& gInfo, double sigma=0.)
+ScalarField IexpandGplanar(const matrix& xRed, const GridInfo& gInfo, double sigma=0.)
 {	int nG = xRed.nRows()/2;
 	assert(xRed.nCols() == 1);
 	assert(gInfo.S[0] == 1);
 	assert(gInfo.S[1] == 1);
 	assert(gInfo.S[2] > nG);
-	DataGptr x; nullToZero(x, gInfo);
+	ScalarFieldTilde x; nullToZero(x, gInfo);
 	callPref(eblas_copy)(x->dataPref()+1, xRed.dataPref(), nG);
 	if(sigma) x = gaussConvolve(x, sigma);
 	return I(x);
@@ -169,11 +169,11 @@ int main(int argc, char** argv)
 	
 	//Compute net charge density (with smoothed nuclei ala nonlocal PCM):
 	logPrintf("Adding rotational modes\n");
-	DataGptr rho = J(e.eVars.get_nTot());
+	ScalarFieldTilde rho = J(e.eVars.get_nTot());
 	logSuspend(); VanDerWaals vdW(e); logResume();
 	for(size_t spIndex=0; spIndex<e.iInfo.species.size(); spIndex++)
 	{	const auto& sp = e.iInfo.species[spIndex];
-		DataGptr SG; nullToZero(SG, e.gInfo);
+		ScalarFieldTilde SG; nullToZero(SG, e.gInfo);
 		callPref(getSG)(e.gInfo.S, sp->atpos.size(), sp->atposPref, 1./e.gInfo.detR, SG->dataPref()); //get structure factor for current species
 		rho -= sp->Z * gaussConvolve(SG, vdW.getParams(sp->atomicNumber,spIndex).R0/6.);
 	}
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
 	V.setColumn(V.nCols()-1,0, sqrt(1./e.eVars.fluidParams.T)*Complex(rho));
 	
 	//Quick estimate not based on SaLSA solve:
-	DataRptrVec rArr(e.gInfo), rCubedArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data(), rCubedArr.data()); //Create array of r in real space
+	VectorField rArr(e.gInfo), rCubedArr(e.gInfo); threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, center, rArr.data(), rCubedArr.data()); //Create array of r in real space
 	ColumnBundle OJr(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJr.setColumn(k,0, O(J(Complex(rArr[k])))); //Convert to a columnbundle projector
 	ColumnBundle OJrCubed(3, basis.nbasis, &basis); for(int k=0; k<3; k++) OJrCubed.setColumn(k,0, O(J(Complex(rCubedArr[k])))); //Convert to a columnbundle projector
 	matrix rV = OJr ^ V, rCubedV = OJrCubed ^ V;
@@ -253,10 +253,10 @@ int main(int argc, char** argv)
 	}
 	
 	//Create test charge density:
-	DataRptr rhoExt; nullToZero(rhoExt, gPlanar);
+	ScalarField rhoExt; nullToZero(rhoExt, gPlanar);
 	rhoExt->data()[gPlanar.S[2]/4] = 1./gPlanar.dV;
 	rhoExt->data()[(3*gPlanar.S[2])/4] = -1./gPlanar.dV;
-	//DataGptr rhoExtTilde = gaussConvolve(J(rhoExt), 9./Gmax); //make resolvable on reduced grid
+	//ScalarFieldTilde rhoExtTilde = gaussConvolve(J(rhoExt), 9./Gmax); //make resolvable on reduced grid
 	//rhoExt = I(rhoExtTilde);
 	
 	matrix rhoExtMat(2*nG, 1);
@@ -267,9 +267,9 @@ int main(int argc, char** argv)
 	matrix phiTotMat = K * rhoBoundMat + phiExtMat;
 	
 	double sigma = 3./Gmax;
-	DataRptr phiExt = IexpandGplanar(phiExtMat, gPlanar, sigma);
-	DataRptr rhoBound = IexpandGplanar(rhoBoundMat, gPlanar, sigma);
-	DataRptr phiTot = IexpandGplanar(phiTotMat, gPlanar, sigma);
+	ScalarField phiExt = IexpandGplanar(phiExtMat, gPlanar, sigma);
+	ScalarField rhoBound = IexpandGplanar(rhoBoundMat, gPlanar, sigma);
+	ScalarField phiTot = IexpandGplanar(phiTotMat, gPlanar, sigma);
 	
 	FILE* fp = fopen(e.dump.getFilename("elRadiusPlot").c_str(), "w");
 	double *rhoExtData = rhoExt->data(), *phiExtData = phiExt->data();

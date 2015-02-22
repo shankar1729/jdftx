@@ -28,7 +28,7 @@ struct ExchangeEval
 {
 	ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, const Coulomb& coulomb, double omega);
 	~ExchangeEval();
-	complexDataGptr operator()(complexDataGptr&& in, vector3<> kDiff) const;
+	complexScalarFieldTilde operator()(complexScalarFieldTilde&& in, vector3<> kDiff) const;
 
 private:
 	const GridInfo& gInfo;

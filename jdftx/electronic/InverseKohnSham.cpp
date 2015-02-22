@@ -27,12 +27,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 off_t fileSize(const char *filename); //defined in Util.cpp
 
 //Compute a guess for inv(chi) using wavefunctions, fillings and eigenvalues of a similar system
-class InvertChi : public LinearSolvable<DataRptrCollection>
+class InvertChi : public LinearSolvable<ScalarFieldArray>
 {
 public:
 	InvertChi(const Everything& e);
-	DataRptrCollection hessian(const DataRptrCollection&) const;
-	DataRptrCollection precondition(const DataRptrCollection& v) const;
+	ScalarFieldArray hessian(const ScalarFieldArray&) const;
+	ScalarFieldArray precondition(const ScalarFieldArray& v) const;
 private:
 	const Everything& e;
 	std::vector<ColumnBundle> C;
@@ -65,13 +65,13 @@ InverseKohnSham::InverseKohnSham(Everything& e) : e(e), n(e.eVars.n.size()), gau
 		invertChi = std::make_shared<InvertChi>(e);
 }
 
-void InverseKohnSham::step(const DataRptrCollection& dir, double alpha)
+void InverseKohnSham::step(const ScalarFieldArray& dir, double alpha)
 {	axpy(alpha, dir, e.eVars.Vexternal);
 	e.eVars.EdensityAndVscloc(e.ener); //update Vscloc for subsequent band structure minimize
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc);
 }
 
-double InverseKohnSham::compute(DataRptrCollection* grad)
+double InverseKohnSham::compute(ScalarFieldArray* grad)
 {	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 	elecMinimize(e);
 	//---Compute inverse Kohn sham functional, Ws [J Chem Phys 118, 2498 (2003)]
@@ -101,8 +101,8 @@ double InverseKohnSham::compute(DataRptrCollection* grad)
 }
 
 
-DataRptrCollection InverseKohnSham::precondition(const DataRptrCollection& grad)
-{	DataRptrCollection Kgrad = clone(grad);
+ScalarFieldArray InverseKohnSham::precondition(const ScalarFieldArray& grad)
+{	ScalarFieldArray Kgrad = clone(grad);
 	//Right cutoff:
 	constrain(Kgrad);
 	for(unsigned s=0; s<n.size(); s++) Kgrad[s] = I(gaussCutoff*J(Kgrad[s]));
@@ -123,7 +123,7 @@ DataRptrCollection InverseKohnSham::precondition(const DataRptrCollection& grad)
 	return Kgrad;
 }
 
-void InverseKohnSham::constrain(DataRptrCollection& dir)
+void InverseKohnSham::constrain(ScalarFieldArray& dir)
 {	for(unsigned s=0; s<dir.size(); s++)
 	{	e.symm.symmetrize(dir[s]); //symmetrize
 		dir[s] += (-1./e.gInfo.nr) * sum(dir[s]); //project out G=0
@@ -181,18 +181,18 @@ InvertChi::InvertChi(const Everything& e) : e(e)
 	read(C, fname.c_str(), e.eInfo);
 }
 
-DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
+ScalarFieldArray InvertChi::hessian(const ScalarFieldArray& dV) const
 {	//Compute -dn = -chi * dV (first order perturbation theory)
-	DataRptrCollection dn(dV.size()); nullToZero(dn, e.gInfo);
+	ScalarFieldArray dn(dV.size()); nullToZero(dn, e.gInfo);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int s = e.eInfo.qnums[q].index();
 		for(unsigned b1=0; b1<eigs[q].size()-1; b1++)
-		{	complexDataRptr conjIpsi1 = conj(I(C[q].getColumn(b1,0)));
+		{	complexScalarField conjIpsi1 = conj(I(C[q].getColumn(b1,0)));
 			for(unsigned b2=b1+1; b2<eigs[q].size(); b2++)
 				if(fabs(F[q][b1]-F[q][b2])>e.cntrl.occupiedThreshold)
-				{	complexDataRptr n12 = conjIpsi1 * I(C[q].getColumn(b2,0));
-					DataRptr n12real = Real(n12);
-					DataRptr n12imag = Imag(n12);
+				{	complexScalarField n12 = conjIpsi1 * I(C[q].getColumn(b2,0));
+					ScalarField n12real = Real(n12);
+					ScalarField n12imag = Imag(n12);
 					dn[s] += (e.eInfo.qnums[q].weight
 							* (F[q][b1]-F[q][b2]) / (eigs[q][b2]-eigs[q][b1])
 							* 2*e.gInfo.dV)
@@ -200,10 +200,10 @@ DataRptrCollection InvertChi::hessian(const DataRptrCollection& dV) const
 				}
 		}
 	}
-	for(DataRptr& dn_s: dn) dn_s->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& dn_s: dn) dn_s->allReduce(MPIUtil::ReduceSum);
 	return dn;
 }
 
-DataRptrCollection InvertChi::precondition(const DataRptrCollection& v) const
+ScalarFieldArray InvertChi::precondition(const ScalarFieldArray& v) const
 {	return v;
 }

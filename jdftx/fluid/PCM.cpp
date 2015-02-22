@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
 #include <electronic/SpeciesInfo_internal.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/DataIO.h>
 #include <core/Units.h>
 
@@ -143,7 +143,7 @@ void PCM::updateCavity()
 {
 	//Cavities from expanded densities for SGA13 variant:
 	if(fsp.pcmVariant == PCM_SGA13)
-	{	DataRptr* shapeEx[2] = { &shape, &shapeVdw };
+	{	ScalarField* shapeEx[2] = { &shape, &shapeVdw };
 		for(int i=0; i<2; i++)
 		{	ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityEx[i]);
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
@@ -165,19 +165,19 @@ void PCM::updateCavity()
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
-			const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
-			DataGptr A_sTilde;
+			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
+			ScalarFieldTilde A_sTilde;
 			//Cavitation:
 			const double nlT = solvent->Nbulk * fsp.T;
 			const double Gamma = log(nlT/solvent->Pvap) - 1.;
 			const double Cp = 15. * (solvent->sigmaBulk/(2*solvent->Rvdw * nlT) - (1+Gamma)/6);
 			const double coeff2 = 1. + Cp - 2.*Gamma;
 			const double coeff3 = Gamma - 1. -2.*Cp;
-			DataRptr sbar = I(wCavity*sTilde);
+			ScalarField sbar = I(wCavity*sTilde);
 			Adiel["Cavitation"] = nlT * integral(sbar*(Gamma + sbar*(coeff2 + sbar*(coeff3 + sbar*Cp))));
 			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
 			//Dispersion:
-			DataGptrCollection Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
+			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
@@ -191,9 +191,9 @@ void PCM::updateCavity()
 			break;
 		}
 		case PCM_GLSSA13:
-		{	DataRptrVec Dshape = gradient(shape);
-			DataRptr surfaceDensity = sqrt(lengthSquared(Dshape));
-			DataRptr invSurfaceDensity = inv(surfaceDensity);
+		{	VectorField Dshape = gradient(shape);
+			ScalarField surfaceDensity = sqrt(lengthSquared(Dshape));
+			ScalarField invSurfaceDensity = inv(surfaceDensity);
 			A_tension = integral(surfaceDensity);
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
 			Acavity_shape = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
@@ -205,23 +205,23 @@ void PCM::updateCavity()
 	}
 }
 
-void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity, DataGptr& A_rhoExplicitTilde, bool electricOnly) const
+void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, bool electricOnly) const
 {	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
 		((PCM*)this)->A_nc = 0;
-		const DataRptr* A_shapeEx[2] = { &A_shape, &Acavity_shapeVdw };
+		const ScalarField* A_shapeEx[2] = { &A_shape, &Acavity_shapeVdw };
 		for(int i=0; i<2; i++)
 		{	//First compute derivative w.r.t expanded electron density:
-			DataRptr A_nCavityEx;
+			ScalarField A_nCavityEx;
 			ShapeFunction::propagateGradient(nCavityEx[i], *(A_shapeEx[i]), A_nCavityEx, fsp.nc, fsp.sigma);
 			((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
 			//then propagate to original electron density:
-			DataRptr nCavityExUnused; //unused return value below
+			ScalarField nCavityExUnused; //unused return value below
 			ShapeFunction::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
 	}
 	else if(fsp.pcmVariant == PCM_CANDLE)
-	{	DataRptr A_nCavityEx; DataGptr A_phiExt; double A_pCavity=0.;
+	{	ScalarField A_nCavityEx; ScalarFieldTilde A_phiExt; double A_pCavity=0.;
 		ShapeFunction::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw,
 			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
@@ -236,7 +236,7 @@ void PCM::propagateCavityGradients(const DataRptr& A_shape, DataRptr& A_nCavity,
 	}
 }
 
-void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) const
+void PCM::setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const
 {	if(forces)
 	{	forces->init(e.iInfo);
 		//VDW contribution:
@@ -245,8 +245,8 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 			case PCM_CANDLE:
 			case PCM_SGA13:
 			{	const auto& solvent = fsp.solvents[0];
-				const DataGptr sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
-				DataGptrCollection Ntilde(Sf.size());
+				const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
+				ScalarFieldTildeArray Ntilde(Sf.size());
 				for(unsigned i=0; i<Sf.size(); i++)
 					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
@@ -259,7 +259,7 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
-			{	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+			{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 				for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 					for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
 					{	callPref(gradSGtoAtpos)(gInfo.S, atpos[iSp][iAtom], A_nCavityTilde->dataPref(), gradAtpos.dataPref());
@@ -273,11 +273,11 @@ void PCM::setExtraForces(IonicGradient* forces, const DataGptr& A_nCavityTilde) 
 	}
 }
 
-DataGptr PCM::getFullCore() const
+ScalarFieldTilde PCM::getFullCore() const
 {	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
-		{	DataGptr nFullCore, SG(DataG::alloc(gInfo, isGpuEnabled()));
+		{	ScalarFieldTilde nFullCore, SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 			{	//Create GPU-friendly copy of atom positions:
 				int nAtoms = atpos[iSp].size();

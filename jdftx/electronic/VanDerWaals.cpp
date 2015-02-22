@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/operators.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/Units.h>
 
 const static int atomicNumberMaxGrimme = 54;
@@ -168,8 +168,8 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 }
 
 
-double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const DataGptrCollection& Ntilde, const std::vector< int >& atomicNumber,
-	const double scaleFac, DataGptrCollection* grad_Ntilde, IonicGradient* forces) const
+double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const ScalarFieldTildeArray& Ntilde, const std::vector< int >& atomicNumber,
+	const double scaleFac, ScalarFieldTildeArray* grad_Ntilde, IonicGradient* forces) const
 {
 	double Etot = 0.;
 	const GridInfo& gInfo = Ntilde[0]->gInfo;
@@ -178,8 +178,8 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 	for(unsigned i=0; i<species.size(); i++) //Loop over species of explicit system
 	{	
 		std::shared_ptr<SpeciesInfo> sp = species[i];
-		DataGptr SG(DataG::alloc(gInfo, isGpuEnabled()));
-		DataGptr ccgrad_SG; //set grad wrt structure factor
+		ScalarFieldTilde SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
+		ScalarFieldTilde ccgrad_SG; //set grad wrt structure factor
 		int nAtoms = atpos[i].size(); //number of atoms of ith species
 		
 		matrix atposTemp(3, ceildiv(nAtoms,2));
@@ -190,7 +190,7 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
 			{
 				const RadialFunctionG& Kernel_ij = getRadialFunction(sp->atomicNumber,atomicNumber[j], i,-1); //get ij radial function
-				DataGptr E_Ntilde = (-scaleFac * gInfo.nr) * (Kernel_ij * SG); //calculate effect of ith explicit atom on gradient wrt jth site density
+				ScalarFieldTilde E_Ntilde = (-scaleFac * gInfo.nr) * (Kernel_ij * SG); //calculate effect of ith explicit atom on gradient wrt jth site density
 				Etot += gInfo.dV * dot(Ntilde[j], E_Ntilde); //accumulate into total energy
 				if(grad_Ntilde)
 					(*grad_Ntilde)[j] += E_Ntilde; //accumulate into gradient wrt jth site density
@@ -199,7 +199,7 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 			}
 
 		if(forces && ccgrad_SG) //calculate forces due to ith atom
-		{	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+		{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 			vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
 			for(int at=0; at<nAtoms; at++)
 			{	callPref(gradSGtoAtpos)(gInfo.S, atpos[i][at], ccgrad_SG->dataPref(), gradAtposData);

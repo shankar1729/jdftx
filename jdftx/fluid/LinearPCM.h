@@ -23,26 +23,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <core/Minimize.h>
 
-class LinearPCM : public PCM, public LinearSolvable<DataGptr>
+class LinearPCM : public PCM, public LinearSolvable<ScalarFieldTilde>
 {
 public:
 	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
     virtual ~LinearPCM();
 	bool needsGummel() { return false; }
 
-	DataGptr hessian(const DataGptr&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
-	DataGptr precondition(const DataGptr&) const; //!< Implements a modified inverse kinetic preconditioner
+	ScalarFieldTilde hessian(const ScalarFieldTilde&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
+	ScalarFieldTilde precondition(const ScalarFieldTilde&) const; //!< Implements a modified inverse kinetic preconditioner
 
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 
 protected:
-	void set_internal(const DataGptr& rhoExplicitTilde, const DataGptr& nCavityTilde);
-	double get_Adiel_and_grad_internal(DataGptr& grad_rhoExplicitTilde, DataGptr& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
+	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
 	friend class NonlinearPCM;
 private:
-	RadialFunctionG Kkernel; DataRptr epsInv; // for preconditioner
+	RadialFunctionG Kkernel; ScalarField epsInv; // for preconditioner
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

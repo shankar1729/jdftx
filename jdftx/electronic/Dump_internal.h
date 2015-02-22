@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_DUMP_INTERNAL_H
 
 #include <electronic/common.h>
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 #include <vector>
 
 //-------------------- Implemented in DumpSIC.cpp ---------------------------
@@ -50,9 +50,9 @@ namespace Moments
 }
 
 namespace XC_Analysis
-{	DataRptrCollection tauWeizsacker(const Everything& e);
-	DataRptrCollection spness(const Everything& e);
-	DataRptrCollection sHartree(const Everything& e);
+{	ScalarFieldArray tauWeizsacker(const Everything& e);
+	ScalarFieldArray spness(const Everything& e);
+	ScalarFieldArray sHartree(const Everything& e);
 }
 
 //---------------- Implemented in DumpChargedDefects.cpp -----------------
@@ -62,7 +62,7 @@ struct SlabEpsilon
 	double sigma;
 	vector3<> Efield;
 	
-	void dump(const Everything& e, DataRptr d_tot) const;
+	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
 struct ChargedDefect
@@ -79,7 +79,7 @@ struct ChargedDefect
 	
 	double rMin, rSigma; //! Minimum distance from defect and turn-on width used for calculating alignment
 	
-	void dump(const Everything& e, DataRptr d_tot) const;
+	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
 

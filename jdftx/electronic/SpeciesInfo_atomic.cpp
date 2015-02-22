@@ -49,7 +49,7 @@ void axpy(double alpha, const RadialFunctionR& X, RadialFunctionR& Y)
 
 
 
-void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
+void SpeciesInfo::accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const
 {	//Collect list of distinct magnetizations and corresponding atom positions:
 	struct MomentDirection //list of atoms with same magnetic moment
 	{	vector3<> Mhat;
@@ -121,10 +121,10 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 			#else
 			const vector3<>* atposCurPref = Mdir.atpos.data();
 			#endif
-			DataGptr SG; nullToZero(SG, e->gInfo);
+			ScalarFieldTilde SG; nullToZero(SG, e->gInfo);
 			callPref(getSG)(e->gInfo.S, Mdir.atpos.size(), atposCurPref, 1./e->gInfo.detR, SG->dataPref());
 			//Spin-densities in diagonal basis
-			std::vector<DataGptr> nDiag;
+			std::vector<ScalarFieldTilde> nDiag;
 			for(const RadialFunctionG& nRad: nRadial)
 				nDiag.push_back(nRad * SG);
 			//Accumulate contributions:
@@ -153,12 +153,12 @@ void SpeciesInfo::accumulateAtomicDensity(DataGptrCollection& nTilde) const
 	#endif
 }
 
-void SpeciesInfo::accumulateAtomicPotential(DataGptr& dTilde) const
+void SpeciesInfo::accumulateAtomicPotential(ScalarFieldTilde& dTilde) const
 {	//Get radial potential due to one atom:
 	RadialFunctionG dRadial;
 	getAtomPotential(dRadial);
 	//Gets tructure factor:
-	DataGptr SG; nullToZero(SG, e->gInfo);
+	ScalarFieldTilde SG; nullToZero(SG, e->gInfo);
 	callPref(getSG)(e->gInfo.S, atpos.size(), atposPref, 1./e->gInfo.detR, SG->dataPref());
 	//Accumulate contrbutions:
 	dTilde += dRadial * SG;

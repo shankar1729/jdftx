@@ -289,7 +289,6 @@ void Phonon::setup(bool printDefaults)
 		for(int ik=0; ik<prodSup; ik++) C[ik].bcast(whose_ik(ik)); //make available on all processes
 		//Determine max eigenvalue:
 		int nBands = e.eInfo.nBands;
-		int nBandsSup = nBands * prodSup;
 		double Emax = -INFINITY;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			Emax = std::max(Emax, e.eVars.Hsub_eigs[q].back());

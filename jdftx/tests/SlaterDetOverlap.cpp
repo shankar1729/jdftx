@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 	complex detOverlap = 1.;
 	
 	// Real-space kernels for the dipole calculations
-	DataRptr r0, r1, r2;
+	ScalarField r0, r1, r2;
 	nullToZero(r0, e.gInfo); 	nullToZero(r1, e.gInfo); 	nullToZero(r2, e.gInfo);
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 0, e.gInfo.R, 1, vector3<>(0.,0.,0.), r0->data());
 	applyFunc_r(e.gInfo, Moments::rn_pow_x, 1, e.gInfo.R, 1, vector3<>(0.,0.,0.), r1->data());
@@ -125,8 +125,8 @@ int main(int argc, char** argv)
 				// If both orbitals are occupied, then return the matrix element
 				if((F1[q][i] > (1.-tol)) or (F2[q][j] > (1.-tol)))
 				{	
-					complexDataRptr psi1 = I(C1.at(q).getColumn(i,0));
-					complexDataRptr psi2 = I(C2.at(q).getColumn(j,0));
+					complexScalarField psi1 = I(C1.at(q).getColumn(i,0));
+					complexScalarField psi2 = I(C2.at(q).getColumn(j,0));
 					
 					complex dipoleX = (norm(detDipoleX) ? integral(psi1*r0*psi2) : 0.);
 					complex dipoleY = (norm(detDipoleY) ? integral(psi1*r1*psi2) : 0.);

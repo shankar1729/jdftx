@@ -56,26 +56,26 @@ double DumpSelfInteractionCorrection::operator()(std::vector< diagMatrix >* corr
 double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 {	
 	// Get the real-space orbital density
-	complexDataRptr realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
-	DataRptr orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
+	complexScalarField realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
+	ScalarField orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
 	callPref(eblas_accumNorm)(e->gInfo.nr, 1., realSpaceOrbital->dataPref(), orbitalDensity->dataPref());
-	DataGptr orbitalDensityTilde = J(orbitalDensity);
+	ScalarFieldTilde orbitalDensityTilde = J(orbitalDensity);
 	
 	// Calculate the Coulomb energy
-	DataGptr VorbitalTilde = (*e->coulomb)(orbitalDensityTilde);
+	ScalarFieldTilde VorbitalTilde = (*e->coulomb)(orbitalDensityTilde);
 	double coulombEnergy = 0.5*dot(orbitalDensityTilde, O(VorbitalTilde));
 	
 	// Sets up the spin dependent density for the orbital
-	DataRptrCollection orbitalSpinDensity(2);
+	ScalarFieldArray orbitalSpinDensity(2);
 	orbitalSpinDensity[0] = orbitalDensity;
 	nullToZero(orbitalSpinDensity[1], e->gInfo);
 	
 	// Calculate the orbital KE if needed
-	DataRptrCollection KEdensity(2);
+	ScalarFieldArray KEdensity(2);
 	if(e->exCorr.needsKEdensity())
 	{	nullToZero(KEdensity[0], e->gInfo); nullToZero(KEdensity[1], e->gInfo);
 		for(int iDir=0; iDir<3; iDir++)
-		{	DataRptr tempKE; nullToZero(tempKE, e->gInfo);
+		{	ScalarField tempKE; nullToZero(tempKE, e->gInfo);
 			callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n,0))->dataPref(), tempKE->dataPref());
 			KEdensity[0] += 0.5 * tempKE;
 		}
@@ -93,9 +93,9 @@ DumpSelfInteractionCorrection::~DumpSelfInteractionCorrection()
 }
 
 double DumpSelfInteractionCorrection::coulombExciton(int q1, int n1, int q2, int n2)
-{	DataRptr density_1; nullToZero(density_1, e->gInfo);
+{	ScalarField density_1; nullToZero(density_1, e->gInfo);
 	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q1].getColumn(n1,0))->dataPref(), density_1->dataPref());
-	DataRptr density_2; nullToZero(density_2, e->gInfo);
+	ScalarField density_2; nullToZero(density_2, e->gInfo);
 	callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(e->eVars.C[q2].getColumn(n2,0))->dataPref(), density_2->dataPref());
 	
 	return 0.5*dot(J(density_2), O((*e->coulomb)(J(-density_1))));

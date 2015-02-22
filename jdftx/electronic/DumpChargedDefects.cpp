@@ -14,7 +14,7 @@ inline void planarAvg_sub(size_t iStart, size_t iStop, const vector3<int>& S, in
 	int kDir = (iDir+2)%3;
 	THREAD_halfGspaceLoop( if(iG[jDir] || iG[kDir]) data[i] = 0.; )
 }
-void planarAvg(DataGptr& X, int iDir)
+void planarAvg(ScalarFieldTilde& X, int iDir)
 {	threadLaunch(planarAvg_sub, X->gInfo.nG, X->gInfo.S, iDir, X->data());
 }
 
@@ -28,11 +28,11 @@ inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, 
 	)
 }
 
-void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
+void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 {	string fname = e.dump.getFilename("slabEpsilon");
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	//Read reference Dtot:
-	DataRptr d_totRef(DataR::alloc(e.gInfo));
+	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
 	loadRawBinary(d_totRef, dtotFname.c_str());
 	//Calculate inverse of epsilon:
 	int iDir = e.coulombParams.iDir;
@@ -41,14 +41,14 @@ void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
 	double dE = dot(zHat, e.coulombParams.Efield - Efield);
 	if(!dE) die("\nThe applied electric fields in the reference and present calculations are equal.\n");
 	//--- calculate field using central-difference derivative:
-	DataGptr tPlus(DataG::alloc(e.gInfo)), tMinus(DataG::alloc(e.gInfo));
+	ScalarFieldTilde tPlus(ScalarFieldTildeData::alloc(e.gInfo)), tMinus(ScalarFieldTildeData::alloc(e.gInfo));
 	initTranslation(tPlus, e.gInfo.h[iDir]);
 	initTranslation(tMinus, -e.gInfo.h[iDir]);
 	double h = e.gInfo.h[iDir].length();
-	DataGptr epsInvTilde = (1./(dE * 2.*h)) * (tPlus - tMinus) * J(d_tot - d_totRef);
+	ScalarFieldTilde epsInvTilde = (1./(dE * 2.*h)) * (tPlus - tMinus) * J(d_tot - d_totRef);
 	planarAvg(epsInvTilde, iDir);
 	//Fix values of epsilon near truncation boundary to 1:
-	DataRptr epsInv = I(epsInvTilde);
+	ScalarField epsInv = I(epsInvTilde);
 	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, e.coulomb->ivCenter[iDir] + e.gInfo.S[iDir]/2, epsInv->data());
 	//Apply smoothing:
 	epsInv = I(gaussConvolve(J(epsInv), sigma));
@@ -65,12 +65,12 @@ void SlabEpsilon::dump(const Everything& e, DataRptr d_tot) const
 
 //-------------------------- Charged defects ----------------------------------
 
-struct SlabPeriodicSolver : public LinearSolvable<DataGptr>
+struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 {	int iDir; //truncated direction
-	const DataRptr& epsilon;
+	const ScalarField& epsilon;
 	const GridInfo& gInfo;
 	RealKernel Ksqrt, Kinv;
-	const DataRptr epsInv;
+	const ScalarField epsInv;
 	double K0; //G=0 component of slab kernel
 	
 	static inline void setKernels_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double epsMean, double kRMS, double* Ksqrt, double* Kinv)
@@ -84,7 +84,7 @@ struct SlabPeriodicSolver : public LinearSolvable<DataGptr>
 		)
 	}
 	
-	SlabPeriodicSolver(int iDir, const DataRptr& epsilon)
+	SlabPeriodicSolver(int iDir, const ScalarField& epsilon)
 	: iDir(iDir), epsilon(epsilon), gInfo(epsilon->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(inv(epsilon))
 	{
 		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, integral(epsilon)/gInfo.detR, 0., Ksqrt.data, Kinv.data);
@@ -95,17 +95,17 @@ struct SlabPeriodicSolver : public LinearSolvable<DataGptr>
 		nullToZero(state, gInfo);
 	}
 	
-	DataGptr hessian(const DataGptr& phiTilde) const
-	{	DataGptr rhoTilde = -(Kinv * phiTilde); //vacuum term
+	ScalarFieldTilde hessian(const ScalarFieldTilde& phiTilde) const
+	{	ScalarFieldTilde rhoTilde = -(Kinv * phiTilde); //vacuum term
 		rhoTilde += divergence(J((epsilon-1.) * I(gradient(phiTilde))));  //dielectric term
 		return (-1./(4*M_PI)) * rhoTilde;
 	}
 	
-	DataGptr precondition(const DataGptr& rTilde) const
+	ScalarFieldTilde precondition(const ScalarFieldTilde& rTilde) const
 	{	return Ksqrt*(J(epsInv*I(Ksqrt*rTilde)));
 	}
 
-	double getEnergy(const DataGptr& rho, DataGptr& phi)
+	double getEnergy(const ScalarFieldTilde& rho, ScalarFieldTilde& phi)
 	{	MinimizeParams mp;
 		mp.nDim = gInfo.nr;
 		mp.nIterations = 20;
@@ -114,7 +114,7 @@ struct SlabPeriodicSolver : public LinearSolvable<DataGptr>
 		mp.linePrefix = "\tSlabPeriodicCG: ";
 		mp.energyFormat = "%+.15lf";
 
-		zeroNyquist((DataGptr&)rho);
+		zeroNyquist((ScalarFieldTilde&)rho);
 		solve(rho, mp);
 		
 		phi = state;
@@ -129,12 +129,12 @@ struct SlabIsolatedSolver : public LinearSolvable<matrix>
 };
 
 //Get the averaged field in direction iDir between planes iCenter +/- iDist
-double getEfield(DataRptr V, int iDir, int iCenter, int iDist)
+double getEfield(ScalarField V, int iDir, int iCenter, int iDist)
 {	const GridInfo& gInfo = V->gInfo;
 	//Planarly average:
-	DataGptr Vtilde = J(V);
+	ScalarFieldTilde Vtilde = J(V);
 	planarAvg(Vtilde, iDir);
-	DataRptr Vavg = I(Vtilde);
+	ScalarField Vavg = I(Vtilde);
 	//Extract field:
 	assert(2*iDist < gInfo.S[iDir]);
 	vector3<int> iRm, iRp;
@@ -160,16 +160,16 @@ void addEfield_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir,
 	)
 }
 
-void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
+void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 {	logPrintf("Calculating charged defect correction:\n"); logFlush();
 	if(!center.size())
 		die("\tNo model charges specified (using command charged-defect).\n");
 	
 	//Construct model charge on plane-wave grid:
-	DataGptr rhoModel;
+	ScalarFieldTilde rhoModel;
 	double qTot = 0.;
 	for(const Center& cdc: center)
-	{	DataGptr trans(DataG::alloc(e.gInfo));
+	{	ScalarFieldTilde trans(ScalarFieldTildeData::alloc(e.gInfo));
 		initTranslation(trans, e.gInfo.R * cdc.pos);
 		rhoModel += gaussConvolve((cdc.q/e.gInfo.detR)*trans, cdc.sigma);
 		qTot += cdc.q;
@@ -183,16 +183,16 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 		posMean += (1./center.size()) * ws.restrict(cdc.pos - pos0);
 	
 	//Read reference Dtot and calculate electrostatic potential difference within DFT:
-	DataRptr d_totRef(DataR::alloc(e.gInfo));
+	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
 	loadRawBinary(d_totRef, dtotFname.c_str());
-	DataRptr Vdft = d_tot - d_totRef; //electrostatic potential of defect from DFT
+	ScalarField Vdft = d_tot - d_totRef; //electrostatic potential of defect from DFT
 	
 	//Calculate isolated and periodic self-energy (and potential) of model charge
-	DataRptr Vmodel; double Emodel=0., EmodelIsolated=0.;
+	ScalarField Vmodel; double Emodel=0., EmodelIsolated=0.;
 	switch(e.coulombParams.geometry)
 	{	case CoulombParams::Periodic: //Bulk defect
 		{	//Periodic potential and energy:
-			DataGptr dModel = (*e.coulomb)(rhoModel) * (1./bulkEps); //assuming uniform dielectric
+			ScalarFieldTilde dModel = (*e.coulomb)(rhoModel) * (1./bulkEps); //assuming uniform dielectric
 			Emodel = 0.5*dot(rhoModel, O(dModel));
 			Vmodel = I(dModel);
 			//Isolated energy:
@@ -206,7 +206,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 				die("\tCoulomb truncation must be embedded for charged-defect correction in slab geometry.\n");
 			rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
 			//Create dielectric model for slab:
-			DataRptr epsSlab; nullToZero(epsSlab, e.gInfo);
+			ScalarField epsSlab; nullToZero(epsSlab, e.gInfo);
 			double* epsSlabData = epsSlab->data();
 			std::ifstream ifs(slabEpsFname.c_str());
 			if(!ifs.is_open()) die("\tCould not open slab dielectric model file '%s' for reading.\n", slabEpsFname.c_str());
@@ -220,13 +220,13 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 					die("\tGeometry mismatch in '%s': expecting distance %lg on line %d; found %lg instead.\n",
 						slabEpsFname.c_str(), dExpected, iR[iDir]+2, d);
 			}
-			DataGptr epsSlabMinus1tilde = J(epsSlab) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
+			ScalarFieldTilde epsSlabMinus1tilde = J(epsSlab) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
 			epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
 			planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
 			epsSlab = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
 			
 			//Periodic potential and energy:
-			DataGptr dModel;
+			ScalarFieldTilde dModel;
 			Emodel = SlabPeriodicSolver(iDir, epsSlab).getEnergy(rhoModel, dModel);
 			//--- fix up net electric field in output potential (increases accuracy of alignment):
 			Vmodel = I(dModel);
@@ -246,7 +246,7 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 	logPrintf("\tEmodelPeriodic: %.8lf\n", Emodel);
 	
 	//Calculate alignment potential:
-	DataRptr Varr[2] = { Vdft, Vmodel };
+	ScalarField Varr[2] = { Vdft, Vmodel };
 	vector3<> rCenter = e.gInfo.R*posMean;
 	std::vector< std::vector<double> > hist = sphericalize(Varr, 2, 1., &rCenter);
 	const std::vector<double>& rRadial = hist[0];
@@ -281,9 +281,9 @@ void ChargedDefect::dump(const Everything& e, DataRptr d_tot) const
 	for(int iDir=0; iDir<3; iDir++)
 	{	string fname = e.dump.getFilename(string("chargedDefectDeltaV") + "xyz"[iDir]);
 		logPrintf("\tWriting %s (planarly-averaged normal to lattice direction# %d) ... ", fname.c_str(), iDir); logFlush();
-		DataRptr Vavg[2]; double* VavgData[2];
+		ScalarField Vavg[2]; double* VavgData[2];
 		for(int k=0; k<2; k++)
-		{	DataGptr Vtilde = J(Varr[k]);
+		{	ScalarFieldTilde Vtilde = J(Varr[k]);
 			planarAvg(Vtilde, iDir);
 			Vavg[k] = I(Vtilde);
 			VavgData[k] = Vavg[k]->data();

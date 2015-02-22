@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr_OrbitalDep_GLLBsc.h>
 #include <core/Thread.h>
 #include <core/GpuUtil.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 
 //---------------- Subset wrapper for MPI parallelization --------------------
 
@@ -262,7 +262,7 @@ public:
 
 //! Convert a collection of scalar fields into an interleaved vector field.
 //! result can be freed using delete[]
-template<unsigned M> double* transpose(const DataRptrCollection& inVec)
+template<unsigned M> double* transpose(const ScalarFieldArray& inVec)
 {	assert(inVec.size()==M);
 	const unsigned N = inVec[0]->nElem;
 	const double* in[M]; for(unsigned m=0; m<M; m++) in[m] = inVec[m]->data();
@@ -274,7 +274,7 @@ template<unsigned M> double* transpose(const DataRptrCollection& inVec)
 }
 
 //! Convert an interleaved vector field to a collection of scalar fields
-template<unsigned M> void transpose(double* in, DataRptrCollection& outVec)
+template<unsigned M> void transpose(double* in, ScalarFieldArray& outVec)
 {	assert(outVec.size()==M);
 	const unsigned N = outVec[0]->nElem;
 	double* out[M]; for(unsigned m=0; m<M; m++) out[m] = outVec[m]->data();
@@ -514,16 +514,16 @@ bool ExCorr::hasEnergy() const
 	return true;
 }
 
-//! Extract a std::vector of data pointers from a DataRptrVec array, along a specific Cartesian direction
-template<typename T> std::vector<typename T::DataType*> dataPref(std::vector<DataMultiplet<T,3> >& x, int iDir)
+//! Extract a std::vector of data pointers from a VectorField array, along a specific Cartesian direction
+template<typename T> std::vector<typename T::DataType*> dataPref(std::vector<ScalarFieldMultiplet<T,3> >& x, int iDir)
 {	std::vector<typename T::DataType*> xData(x.size());
 	for(unsigned s=0; s<x.size(); s++)
 		xData[s] = x[s][iDir] ? x[s][iDir]->dataPref() : 0;
 	return xData;
 }
 
-//! Extract a std::vector of const data pointers from a DataRptrVec array, along a specific Cartesian direction
-template<typename T> std::vector<const typename T::DataType*> constDataPref(const std::vector<DataMultiplet<T,3> >& x, int iDir)
+//! Extract a std::vector of const data pointers from a VectorField array, along a specific Cartesian direction
+template<typename T> std::vector<const typename T::DataType*> constDataPref(const std::vector<ScalarFieldMultiplet<T,3> >& x, int iDir)
 {	std::vector<const typename T::DataType*> xData(x.size());
 	for(unsigned s=0; s<x.size(); s++)
 		xData[s] = x[s][iDir] ? x[s][iDir]->dataPref() : 0;
@@ -531,8 +531,8 @@ template<typename T> std::vector<const typename T::DataType*> constDataPref(cons
 }
 
 
-double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, bool includeKinetic,
-		const DataRptrCollection* tauPtr, DataRptrCollection* Vtau) const
+double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool includeKinetic,
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
 	watch.start();
@@ -545,10 +545,10 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	//------- Prepare inputs, allocate outputs -------
 	
 	//Energy density per volume:
-	DataRptr E; nullToZero(E, gInfo);
+	ScalarField E; nullToZero(E, gInfo);
 	
 	//Gradient w.r.t spin densities:
-	DataRptrCollection E_n(nCount);
+	ScalarFieldArray E_n(nCount);
 	if(Vxc)
 	{	Vxc->clear();
 		nullToZero(E_n, gInfo);
@@ -572,20 +572,20 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	#endif
 	
 	//Calculate spatial gradients for GGA (if needed)
-	std::vector<DataRptrVec> Dn(nInCount);
+	std::vector<VectorField> Dn(nInCount);
 	int iDirStart, iDirStop;
 	TaskDivision(3, mpiUtil).myRange(iDirStart, iDirStop);
 	if(needsSigma)
 	{	//Compute the gradients of the (spin-)densities:
 		for(int s=0; s<nInCount; s++)
-		{	const DataGptr Jn = J(n[s]);
+		{	const ScalarFieldTilde Jn = J(n[s]);
 			for(int i=iDirStart; i<iDirStop; i++)
 				Dn[s][i] = I(D(Jn,i),true);
 		}
 	}
 	
 	//Additional inputs/outputs for MGGAs (Laplacian, orbital KE and gradients w.r.t those)
-	DataRptrCollection lap(nInCount), E_lap(nCount);
+	ScalarFieldArray lap(nInCount), E_lap(nCount);
 	if(needsLap)
 	{	//Compute laplacian
 		for(int s=0; s<nInCount; s++)
@@ -593,7 +593,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		//Allocate gradient w.r.t laplacian if required
 		if(Vxc) nullToZero(E_lap, gInfo);
 	}
-	DataRptrCollection tau(nInCount), E_tau(nCount);
+	ScalarFieldArray tau(nInCount), E_tau(nCount);
 	if(needsTau)
 	{	//make sure orbital KE density has been provided 
 		assert(tauPtr);
@@ -607,8 +607,8 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	}
 	
 	//Transform to local spin-diagonal basis (noncollinear magnetism mode only)
-	DataRptrCollection nCapped(nCount), lapIn(nCount), tauIn(nCount);
-	std::vector<DataRptrVec> DnIn(nCount);
+	ScalarFieldArray nCapped(nCount), lapIn(nCount), tauIn(nCount);
+	std::vector<VectorField> DnIn(nCount);
 	if(nCount != nInCount)
 	{	assert(nCount==2); assert(nInCount==4);
 		std::swap(DnIn, Dn);
@@ -643,7 +643,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 		callPref(eblas_capMinMax)(gInfo.nr, nCapped[s]->dataPref(), nMin, nMax, 0.);
 
 	//Compute the required contractions for GGA:
-	DataRptrCollection sigma(sigmaCount), E_sigma(sigmaCount);
+	ScalarFieldArray sigma(sigmaCount), E_sigma(sigmaCount);
 	if(needsSigma)
 	{	for(int s1=0; s1<nCount; s1++)
 			for(int s2=s1; s2<nCount; s2++)
@@ -735,10 +735,10 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	//---------------- Collect results over processes ----------------
 	watchComm.start();
 	mpiUtil->allReduce(Exc, MPIUtil::ReduceSum);
-	for(DataRptr& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(DataRptr& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(DataRptr& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(DataRptr& x: E_tau) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& x: E_tau) if(x) x->allReduce(MPIUtil::ReduceSum);
 	watchComm.stop();
 
 	//--------------- Gradient propagation ---------------------
@@ -746,20 +746,20 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 	{	//Change gradients from diagonal to spin-density-matrix if necessary
 		if(nCount != nInCount)
 		{	//Density:
-			{	DataRptrCollection E_nIn(nInCount); nullToZero(E_nIn, gInfo);
+			{	ScalarFieldArray E_nIn(nInCount); nullToZero(E_nIn, gInfo);
 				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(n), constDataPref(E_n), dataPref(E_nIn), dataPref(E_nIn));
 				std::swap(E_nIn, E_n);
 			}
 			//KE density:
 			if(needsTau)
-			{	DataRptrCollection E_tauIn(nInCount); nullToZero(E_tauIn, gInfo);
+			{	ScalarFieldArray E_tauIn(nInCount); nullToZero(E_tauIn, gInfo);
 				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(tauIn), constDataPref(E_tau), dataPref(E_n), dataPref(E_tauIn));
 				std::swap(E_tauIn, E_tau);
 			}
 			else E_tau.resize(nInCount);
 			//Laplacian:
 			if(needsLap)
-			{	DataRptrCollection E_lapIn(nInCount); nullToZero(E_lapIn, gInfo);
+			{	ScalarFieldArray E_lapIn(nInCount); nullToZero(E_lapIn, gInfo);
 				callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(lapIn), constDataPref(E_lap), dataPref(E_n), dataPref(E_lapIn));
 				std::swap(E_lapIn, E_lap);
 				lapIn.clear();
@@ -775,10 +775,10 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 
 		//Propagate spatial gradient contribution to density
 		if(needsSigma)
-		{	DataGptrCollection E_nTilde(nInCount); //contribution to the potential in fourier space
+		{	ScalarFieldTildeArray E_nTilde(nInCount); //contribution to the potential in fourier space
 			for(int i=iDirStart; i<iDirStop; i++)
 			{	//Propagate from contraction sigma to the spatial derivatives
-				DataRptrCollection E_Dni(nCount);
+				ScalarFieldArray E_Dni(nCount);
 				for(int s1=0; s1<nCount; s1++)
 					for(int s2=s1; s2<nCount; s2++)
 					{	if(s1==s2) E_Dni[s1] += 2*(E_sigma[s1+s2] * Dn[s1][i]);
@@ -789,7 +789,7 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 					}
 				//Convert from diagonal to spin-density-matrix if necessary
 				if(nCount != nInCount)
-				{	DataRptrCollection E_DniIn(nInCount); nullToZero(E_DniIn, gInfo);
+				{	ScalarFieldArray E_DniIn(nInCount); nullToZero(E_DniIn, gInfo);
 					callPref(spinDiagonalizeGrad)(gInfo.nr, constDataPref(n), constDataPref(DnIn,i), constDataPref(E_Dni), dataPref(E_n), dataPref(E_DniIn));
 					std::swap(E_DniIn, E_Dni);
 				}
@@ -815,11 +815,11 @@ double ExCorr::operator()(const DataRptrCollection& n, DataRptrCollection* Vxc, 
 }
 
 //Unpolarized wrapper to above function:
-double ExCorr::operator()(const DataRptr& n, DataRptr* Vxc, bool includeKinetic,
-		const DataRptr* tau, DataRptr* Vtau) const
-{	DataRptrCollection VxcArr(1), tauArr(1), VtauArr(1);
+double ExCorr::operator()(const ScalarField& n, ScalarField* Vxc, bool includeKinetic,
+		const ScalarField* tau, ScalarField* Vtau) const
+{	ScalarFieldArray VxcArr(1), tauArr(1), VtauArr(1);
 	if(tau) tauArr[0] = *tau;
-	double Exc =  (*this)(DataRptrCollection(1, n), Vxc ? &VxcArr : 0, includeKinetic,
+	double Exc =  (*this)(ScalarFieldArray(1, n), Vxc ? &VxcArr : 0, includeKinetic,
 		tau ? &tauArr :0, Vtau ? &VtauArr : 0);
 	if(Vxc) *Vxc = VxcArr[0];
 	if(Vtau) *Vtau = VtauArr[0];
@@ -830,7 +830,7 @@ inline void setMask(size_t iStart, size_t iStop, const double* n, double* mask, 
 {	for(size_t i=iStart; i<iStop; i++) mask[i] = (n[i]<nCut ? 0. : 1.);
 }
 
-void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e_sigma, DataRptr& e_nsigma, DataRptr& e_sigmasigma, double nCut) const
+void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut) const
 {
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
@@ -854,16 +854,16 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	const double eps = 1e-7; //Order sqrt(double-precision epsilon)
 	const double scalePlus = 1.+eps;
 	const double scaleMinus = 1.-eps;
-	const DataRptr nPlus = scalePlus * n;
-	const DataRptr nMinus = scaleMinus * n;
+	const ScalarField nPlus = scalePlus * n;
+	const ScalarField nMinus = scaleMinus * n;
 	const GridInfo& gInfo = n->gInfo;
 	
 	//Compute mask to zero out low density regions
-	DataRptr mask(DataR::alloc(gInfo));
+	ScalarField mask(ScalarFieldData::alloc(gInfo));
 	threadLaunch(setMask, gInfo.nr, n->data(), mask->data(), nCut);
 	
 	//Compute gradient-squared for GGA
-	DataRptr sigma, sigmaPlus, sigmaMinus;
+	ScalarField sigma, sigmaPlus, sigmaMinus;
 	if(needsSigma)
 	{	sigma = lengthSquared(gradient(n));
 		sigmaPlus = scalePlus * sigma;
@@ -872,8 +872,8 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	
 	//Configurations of n and sigma, and the gradients w.r.t them:
 	struct Config
-	{	const DataRptr *n, *sigma;
-		DataRptr e_n, e_sigma;
+	{	const ScalarField *n, *sigma;
+		ScalarField e_n, e_sigma;
 	};
 	std::vector<Config> configs(5);
 	configs[0].n = &n;      configs[0].sigma = &sigma;      //original point
@@ -883,7 +883,7 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	configs[4].n = &n;      configs[4].sigma = &sigmaMinus; // - dsigma
 	
 	//Compute the gradients at all the configurations:
-	DataRptr eTmp; nullToZero(eTmp, gInfo); //temporary energy return value (ignored)
+	ScalarField eTmp; nullToZero(eTmp, gInfo); //temporary energy return value (ignored)
 	for(int i=0; i<(needsSigma ? 5 : 3); i++)
 	{	Config& c = configs[i];
 		std::vector<const double*> nData(1), sigmaData(1), lapData(1), tauData(1);
@@ -912,10 +912,10 @@ void ExCorr::getSecondDerivatives(const DataRptr& n, DataRptr& e_nn, DataRptr& e
 	}
 	
 	//Compute finite difference derivatives:
-	DataRptr nDen = (0.5/eps) * inv(n) * mask;
+	ScalarField nDen = (0.5/eps) * inv(n) * mask;
 	e_nn = nDen * (configs[1].e_n - configs[2].e_n);
 	if(needsSigma)
-	{	DataRptr sigmaDen = (0.5/eps) * inv(sigma) * mask;
+	{	ScalarField sigmaDen = (0.5/eps) * inv(sigma) * mask;
 		e_sigma = configs[0].e_sigma*mask; //First derivative available analytically
 		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma) + sigmaDen * (configs[3].e_n - configs[4].e_n));
 		e_sigmasigma = sigmaDen * (configs[3].e_sigma - configs[4].e_sigma);

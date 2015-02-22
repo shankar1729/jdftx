@@ -207,7 +207,7 @@ void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSp
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSlab_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 #endif
 
-//Multiply a complexDataGptr's data by a RealKernel (real-symmetry reduced)
+//Multiply a complexScalarFieldTilde's data by a RealKernel (real-symmetry reduced)
 __hostanddev__ void multRealKernel_calc(size_t i, const vector3<int>& iG,
 	const vector3<int>& S, const double* kernel, complex* data)
 {	//Compute index on the real kernel:
@@ -224,7 +224,7 @@ void multRealKernel(vector3<int> S, const double* kernel, complex* data);
 void multRealKernel_gpu(vector3<int> S, const double* kernel, complex* data);
 #endif
 
-//Multiply a complexDataGptr's data by a kernel sampled with offset and rotation by rot
+//Multiply a complexScalarFieldTilde's data by a kernel sampled with offset and rotation by rot
 __hostanddev__ void multTransformedKernel_calc(size_t i, const vector3<int>& iG,
 	const vector3<int>& S, const double* kernel, complex* data, const vector3<int>& offset)
 {	vector3<int> iGkernel = (iG - offset); //Compute index on the real kernel

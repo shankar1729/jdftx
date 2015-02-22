@@ -127,7 +127,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
+void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
 {	static StopWatch watch("augmentDensityGrid"); watch.start(); 
 	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
@@ -136,7 +136,7 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 	matrix nAugRadial = QradialMat * nAugTot; //transform from radial functions to spline coeffs
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
-	{	DataGptr nAugTilde; nullToZero(nAugTilde, gInfo);
+	{	ScalarFieldTilde nAugTilde; nullToZero(nAugTilde, gInfo);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
@@ -146,7 +146,7 @@ void SpeciesInfo::augmentDensityGrid(DataRptrCollection& n) const
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vector<vector3<> >* forces)
+void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces)
 {	static StopWatch watch("augmentDensityGridGrad"); watch.start();
 	augmentDensityGrid_COMMON_INIT
 	if(!nAug) augmentDensityInit();
@@ -160,9 +160,9 @@ void SpeciesInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, std::vec
 		nAugRadial = QradialMat * nAugTot;
 		nAugRadialData = (const double*)nAugRadial.dataPref();
 	}
-	DataGptrVec E_atpos; if(forces) nullToZero(E_atpos, gInfo);
+	VectorFieldTilde E_atpos; if(forces) nullToZero(E_atpos, gInfo);
 	for(unsigned s=0; s<E_n.size(); s++)
-	{	DataGptr ccE_n = Idag(E_n[s]);
+	{	ScalarFieldTilde ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			if(forces) initZero(E_atpos);

@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
 #include <core/LatticeUtils.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/DataIO.h>
 
 Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
@@ -95,9 +95,9 @@ class PairDensityCalculator
 		}
 		
 		//ColumnBundle::getColumn, but with custom index array:
-		complexDataGptr getColumn(int col) const
+		complexScalarFieldTilde getColumn(int col) const
 		{	if(index)
-			{	complexDataGptr full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
+			{	complexScalarFieldTilde full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
 				callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
 				if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
 				return full;
@@ -167,7 +167,7 @@ private:
 	{	int b = bStart;
 		int v = b / nC;
 		int c = b - v*nC;
-		complexDataRptr conjICv = conj(I(state1.getColumn(v)));
+		complexScalarField conjICv = conj(I(state1.getColumn(v)));
 		while(b<bStop)
 		{	double sqrtEigDen = sqrt(4./(nK * (state2.eig->at(nV+c) - state1.eig->at(v))));
 			rho->setColumn(kOffset+b,0, sqrtEigDen * J(conjICv * I(state2.getColumn(nV+c))));
@@ -196,19 +196,19 @@ matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
 
 
 //------- Exchange and correlation -----------
-typedef DataMultiplet<complexDataR,3> complexDataRptrVec;
+typedef ScalarFieldMultiplet<complexScalarFieldData,3> complexScalarFieldVec;
 
 //Get the gradient of one column of a column bundle
-complexDataRptrVec gradient(const ColumnBundle& Y, int col)
+complexScalarFieldVec gradient(const ColumnBundle& Y, int col)
 {	ColumnBundle Ysub = Y.getSub(col, col+1);
-	complexDataRptrVec DY;
+	complexScalarFieldVec DY;
 	for(int j=0; j<3; j++)
 		DY[j] = I(D(Ysub,j).getColumn(0,0));
 	return DY;
 }
 
 //Accumulate the divergence of a complex vector field into one column of a columnbundle
-void axpyDivergence(double alpha, const complexDataRptrVec& x, ColumnBundle& Y, int col)
+void axpyDivergence(double alpha, const complexScalarFieldVec& x, ColumnBundle& Y, int col)
 {	ColumnBundle Ysub = Y.getSub(col, col+1);
 	ColumnBundle xj = Ysub.similar();
 	for(int j=0; j<3; j++)
@@ -218,33 +218,33 @@ void axpyDivergence(double alpha, const complexDataRptrVec& x, ColumnBundle& Y, 
 	Y.setSub(col, Ysub);
 }
 
-complexDataRptr dotElemwise(const DataRptrVec& x, const complexDataRptrVec& y)
-{	complexDataRptr ret;
+complexScalarField dotElemwise(const VectorField& x, const complexScalarFieldVec& y)
+{	complexScalarField ret;
 	for(int j=0; j<3; j++) ret += x[j] * y[j];
 	return ret;
 }
 
-complexDataRptrVec operator*(const DataRptrVec& x, const complexDataRptr& y)
-{	complexDataRptrVec ret;
+complexScalarFieldVec operator*(const VectorField& x, const complexScalarField& y)
+{	complexScalarFieldVec ret;
 	for(int j=0; j<3; j++) ret[j] = x[j] * y;
 	return ret;
 }
 
-complexDataRptrVec operator*(const DataRptr& x, const complexDataRptrVec& y)
-{	complexDataRptrVec ret;
+complexScalarFieldVec operator*(const ScalarField& x, const complexScalarFieldVec& y)
+{	complexScalarFieldVec ret;
 	for(int j=0; j<3; j++) ret[j] = x * y[j];
 	return ret;
 }
 
-inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const DataRptrVec* Dn,
-	const DataRptr* exc_sigma, const DataRptr* exc_nsigma, const DataRptr* exc_sigmasigma,
+inline void exCorr_thread(int bStart, int bStop, const ScalarField* exc_nn, const VectorField* Dn,
+	const ScalarField* exc_sigma, const ScalarField* exc_nsigma, const ScalarField* exc_sigmasigma,
 	const ColumnBundle* rho, ColumnBundle* KXCrho)
 {	for(int b=bStart; b<bStop; b++)
 	{	//Get the basis vector (and optionally its gradient) in real space:
-		complexDataRptr V = I(rho->getColumn(b,0)); complexDataRptrVec DV;
+		complexScalarField V = I(rho->getColumn(b,0)); complexScalarFieldVec DV;
 		if(*exc_sigma) DV = gradient(*rho, b);
 		//Add contributions which are local towards the right:
-		complexDataRptr KV = (*exc_nn) * V, DnDV;
+		complexScalarField KV = (*exc_nn) * V, DnDV;
 		if(*exc_sigma)
 		{	DnDV = 2. * dotElemwise(*Dn, DV);
 			KV += (*exc_nsigma) * DnDV;
@@ -252,16 +252,16 @@ inline void exCorr_thread(int bStart, int bStop, const DataRptr* exc_nn, const D
 		KXCrho->setColumn(b,0, J(KV));
 		//Add contributions which have a gradient towards the right:
 		if(*exc_sigma)
-		{	complexDataRptr DnTerm = (*exc_nsigma)*V + (*exc_sigmasigma)*DnDV;
+		{	complexScalarField DnTerm = (*exc_nsigma)*V + (*exc_sigmasigma)*DnDV;
 			axpyDivergence(-2., (*Dn) * DnTerm + (*exc_sigma) * DV, *KXCrho, b);
 		}
 	}
 }
 
-matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const DataRptr& n, vector3<> dk)
+matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const ScalarField& n, vector3<> dk)
 {	//Get second derivatives w.r.t density (and gradients)
-	DataRptr exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
-	DataRptrVec Dn;
+	ScalarField exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
+	VectorField Dn;
 	e.exCorr.getSecondDerivatives(n, exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma);
 	if(exc_sigma) Dn = gradient(n); //needed for GGAs
 	//Compute matrix:

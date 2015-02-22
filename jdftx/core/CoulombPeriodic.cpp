@@ -120,7 +120,7 @@ CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfoOrig, const CoulombParams&
 	initExchangeEval();
 }
 
-DataGptr CoulombPeriodic::apply(DataGptr&& in) const
+ScalarFieldTilde CoulombPeriodic::apply(ScalarFieldTilde&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombPeriodic_calc(), in->dataPref(false));
 	return in;
 }

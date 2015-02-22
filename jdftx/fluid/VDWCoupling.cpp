@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/Molecule.h>
 #include <core/DataIO.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
 #include <fluid/VDWCoupling.h>
@@ -43,11 +43,11 @@ double VDWCoupling::computeUniform(const std::vector< double >& N, std::vector< 
 {	return 0.; //No electronic system to couple to in the bulk fluid
 }
 
-double VDWCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const
+double VDWCoupling::compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const
 {	return energyAndGrad(Ntilde, &Phi_Ntilde);
 }
 
-double VDWCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde, IonicGradient* forces) const
+double VDWCoupling::energyAndGrad(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray* Phi_Ntilde, IonicGradient* forces) const
 {	return vdW->energyAndGrad(atpos, Ntilde, atomicNumber, vdwScale, Phi_Ntilde, forces);
 }
 

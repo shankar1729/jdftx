@@ -24,8 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
-#include <core/DataMultiplet.h>
-#include <core/DataCollection.h>
+#include <core/VectorField.h>
+#include <core/ScalarFieldArray.h>
 #include <core/matrix3.h>
 
 //! Convert a complex wavefunction to a real one with optimum phase choice
@@ -36,53 +36,53 @@ void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase,
 
 //----------------- Scalar field operators ---------------------------
 
-DataGptr D(const DataGptr&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
-DataGptr DD(const DataGptr&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
-DataGptrCollection lGradient(const DataGptr&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
-DataGptr lDivergence(const DataGptrCollection&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
+ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
+ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
+ScalarFieldTildeArray lGradient(const ScalarFieldTilde&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
+ScalarFieldTilde lDivergence(const ScalarFieldTildeArray&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
 
 
 //! Multiply complex scalar field by Block phase for wave-vector k (in reciprocal lattice coordinates)
-void multiplyBlochPhase(complexDataRptr&, const vector3<>& k);
+void multiplyBlochPhase(complexScalarField&, const vector3<>& k);
 
 //! Resample scalar field by gathering from coordinates rotated by point group element
 //! specified in mesh coordinates. Hermitian conjugate of pointGroupScatter
-DataRptr pointGroupGather(const DataRptr&, const matrix3<int>& mMesh);
-complexDataRptr pointGroupGather(const complexDataRptr&, const matrix3<int>& mMesh);
+ScalarField pointGroupGather(const ScalarField&, const matrix3<int>& mMesh);
+complexScalarField pointGroupGather(const complexScalarField&, const matrix3<int>& mMesh);
 
 //! Resample scalar field by scattering to coordinates rotated by point group element
 //! specified in mesh coordinates. Hermitian conjugate of pointGroupGather
-DataRptr pointGroupScatter(const DataRptr&, const matrix3<int>& mMesh);
-complexDataRptr pointGroupScatter(const complexDataRptr&, const matrix3<int>& mMesh);
+ScalarField pointGroupScatter(const ScalarField&, const matrix3<int>& mMesh);
+complexScalarField pointGroupScatter(const complexScalarField&, const matrix3<int>& mMesh);
 
 
 //! Create a spherically symmetric real scalar field centered at lattice coordinates r0, given its radial fourier transform f
-DataRptr radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //calls DataGptr radialFunctionG
+ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //calls ScalarFieldTilde radialFunctionG
 
 //! Create a spherically symmetric scalar G-space kernel given its radial form f 
-void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel);  //calls DataGptr radialFunctionG
+void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel);  //calls ScalarFieldTilde radialFunctionG
 
 //! Create a spherically symmetric G-space scalar field centered at lattice coordinates r0 given its radial form f 
-DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0);
+ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0);
 
 //! Convolve a scalar field by a radial function (preserve input)
-DataGptr operator*(const RadialFunctionG&, const DataGptr&);
+ScalarFieldTilde operator*(const RadialFunctionG&, const ScalarFieldTilde&);
 
 //! Convolve a scalar field by a radial function (destructible input)
-DataGptr operator*(const RadialFunctionG&, DataGptr&&);
+ScalarFieldTilde operator*(const RadialFunctionG&, ScalarFieldTilde&&);
 
 //! Convolve a vector field by a radial function (preserve input)
-DataGptrVec operator*(const RadialFunctionG&, const DataGptrVec&);
+VectorFieldTilde operator*(const RadialFunctionG&, const VectorFieldTilde&);
 
 //! Convolve a vector field by a radial function (destructible input)
-DataGptrVec operator*(const RadialFunctionG&, DataGptrVec&&);
+VectorFieldTilde operator*(const RadialFunctionG&, VectorFieldTilde&&);
 
 
 //------------------------------ ColumnBundle operators ---------------------------------
 
 //! Return Idag V .* I C (evaluated columnwise)
 //! The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptrCollection& V);
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V);
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
@@ -113,6 +113,6 @@ complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle
 //!    2: return spin density in X.qnum->index()'th component of the output (valid for non-spinor X only)
 //!    4: return spin density-matrix (valid for spinor X only)
 //! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
-DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
+ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
 
 #endif // JDFTX_ELECTRONIC_OPERATORS_H

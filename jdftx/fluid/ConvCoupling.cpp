@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidMixture.h>
 #include <fluid/Molecule.h>
 #include <core/DataIO.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <electronic/RadialFunction.h>
 #include <electronic/operators.h>
 
@@ -37,7 +37,7 @@ double ConvCoupling::computeUniform(const std::vector<double>& N, std::vector<do
 {	return 0.; //No electronic systen to couple to in the bulk fluid
 }
 
-double ConvCoupling::compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const 
+double ConvCoupling::compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const 
 {	return energyAndGrad(Ntilde, &Phi_Ntilde);
 }
 
@@ -45,14 +45,14 @@ string ConvCoupling::getName() const
 {	return "ConvCoupling";
 }
 
-void ConvCoupling::setExplicit(const DataGptr& nCavityTilde)
+void ConvCoupling::setExplicit(const ScalarFieldTilde& nCavityTilde)
 {	this->nCavity = I(nCavityTilde);
 }
 
-double ConvCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCollection* Phi_Ntilde, DataGptr* Phi_nCavityTilde) const
+double ConvCoupling::energyAndGrad(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray* Phi_Ntilde, ScalarFieldTilde* Phi_nCavityTilde) const
 {
 	//Compute model electron density of fluid:
-	DataGptr nFluidTilde;
+	ScalarFieldTilde nFluidTilde;
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const FluidComponent& c = *component[ic];
 		for(unsigned i=0; i<c.molecule.sites.size(); i++)
@@ -61,11 +61,11 @@ double ConvCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCol
 				nFluidTilde += s.elecKernel * Ntilde[c.offsetDensity+i];
 		}
 	}
-	DataRptr nFluid = I(nFluidTilde);
+	ScalarField nFluid = I(nFluidTilde);
 	
 	//Calculate exchange, correlation, and kinetic energy
-	DataRptr nTot = nFluid + nCavity;
-	DataRptr Vxc_tot, Vxc_fluid, Vxc_cavity;
+	ScalarField nTot = nFluid + nCavity;
+	ScalarField Vxc_tot, Vxc_fluid, Vxc_cavity;
 	double Phi =
 		+ exCorr(nTot, &Vxc_tot, true)
 		- exCorr(nFluid, &Vxc_fluid, true)
@@ -77,7 +77,7 @@ double ConvCoupling::energyAndGrad(const DataGptrCollection& Ntilde, DataGptrCol
 	
 	//Accumulate fluid-side gradients if required:
 	if(Phi_Ntilde)
-	{	DataGptr Phi_nFluidTilde = Idag(Vxc_tot - Vxc_fluid);
+	{	ScalarFieldTilde Phi_nFluidTilde = Idag(Vxc_tot - Vxc_fluid);
 		//Propagate to fluid densities:
 		for(unsigned ic=0; ic<component.size(); ic++)
 		{	const FluidComponent& c = *component[ic];

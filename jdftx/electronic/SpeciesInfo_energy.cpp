@@ -180,8 +180,8 @@ void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 #undef UparamLOOP
 #undef U_rho_PACK
 
-void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nChargeball,
-	DataGptr& nCore, DataGptr& tauCore) const
+void SpeciesInfo::updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon, ScalarFieldTilde& nChargeball,
+	ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore) const
 {	if(!atpos.size()) return; //unused species
 	((SpeciesInfo*)this)->updateLatticeDependent(); //update lattice dependent quantities (if lattice vectors have changed)
 	const GridInfo& gInfo = e->gInfo;
@@ -201,9 +201,9 @@ void SpeciesInfo::updateLocal(DataGptr& Vlocps, DataGptr& rhoIon, DataGptr& nCha
 }
 
 
-std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgrad_Vlocps,
-	const DataGptr& ccgrad_rhoIon, const DataGptr& ccgrad_nChargeball,
-	const DataGptr& ccgrad_nCore, const DataGptr& ccgrad_tauCore) const
+std::vector< vector3<double> > SpeciesInfo::getLocalForces(const ScalarFieldTilde& ccgrad_Vlocps,
+	const ScalarFieldTilde& ccgrad_rhoIon, const ScalarFieldTilde& ccgrad_nChargeball,
+	const ScalarFieldTilde& ccgrad_nCore, const ScalarFieldTilde& ccgrad_tauCore) const
 {	
 	if(!atpos.size()) return std::vector< vector3<double> >(); //unused species, return empty forces
 	
@@ -214,14 +214,14 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const DataGptr& ccgra
 	complex* ccgrad_tauCoreData = (tauCoreRadial && ccgrad_tauCore) ? ccgrad_tauCore->dataPref() : 0;
 	
 	//Propagate ccgrad* to gradient w.r.t structure factor:
-	DataGptr ccgrad_SG(DataG::alloc(gInfo, isGpuEnabled())); //complex conjugate gradient w.r.t structure factor
+	ScalarFieldTilde ccgrad_SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled())); //complex conjugate gradient w.r.t structure factor
 	callPref(gradLocalToSG)(gInfo.S, gInfo.GGT,
 		ccgrad_Vlocps->dataPref(), ccgrad_rhoIonData, ccgrad_nChargeballData,
 		ccgrad_nCoreData, ccgrad_tauCoreData, ccgrad_SG->dataPref(), VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
 	
 	//Now propagate that gradient to each atom of this species:
-	DataGptrVec gradAtpos; nullToZero(gradAtpos, gInfo);
+	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 	vector3<complex*> gradAtposData; for(int k=0; k<3; k++) gradAtposData[k] = gradAtpos[k]->dataPref();
 	std::vector< vector3<> > forces(atpos.size());
 	for(unsigned at=0; at<atpos.size(); at++)

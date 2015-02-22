@@ -24,8 +24,8 @@ IdealGasMonoatomic::IdealGasMonoatomic(const FluidMixture* fluidMixture, const F
 {	assert(molecule.isMonoatomic()); //IdealGasMonoatomic must be used only with single site molecules.
 }
 
-void IdealGasMonoatomic::initState(const DataRptr* Vex, DataRptr* psi, double scale, double Elo, double Ehi) const
-{	DataRptr Veff; nullToZero(Veff, gInfo);
+void IdealGasMonoatomic::initState(const ScalarField* Vex, ScalarField* psi, double scale, double Elo, double Ehi) const
+{	ScalarField Veff; nullToZero(Veff, gInfo);
 	Veff += V[0];
 	Veff += Vex[0];
 	//Statistics and min/max capping
@@ -37,19 +37,19 @@ void IdealGasMonoatomic::initState(const DataRptr* Vex, DataRptr* psi, double sc
 	psi[0] = (-scale/T)*Veff;
 }
 
-void IdealGasMonoatomic::getDensities(const DataRptr* psi, DataRptr* N, vector3<>& P0) const
+void IdealGasMonoatomic::getDensities(const ScalarField* psi, ScalarField* N, vector3<>& P0) const
 {	N[0] = Nbulk * exp(psi[0]);
 	P0 = vector3<>();
 }
 
-double IdealGasMonoatomic::compute(const DataRptr* psi, const DataRptr* N, DataRptr* Phi_N, const double Nscale, double& Phi_Nscale) const
-{	DataRptr PhiNI_N = T*psi[0] + V[0] - (mu + T);
+double IdealGasMonoatomic::compute(const ScalarField* psi, const ScalarField* N, ScalarField* Phi_N, const double Nscale, double& Phi_Nscale) const
+{	ScalarField PhiNI_N = T*psi[0] + V[0] - (mu + T);
 	Phi_N[0] += PhiNI_N;
 	Phi_N[0] += T;
 	return gInfo.dV*dot(N[0], PhiNI_N);
 }
 
-void IdealGasMonoatomic::convertGradients(const DataRptr* psi, const DataRptr* N, const DataRptr* Phi_N, const vector3<>& Phi_P0, DataRptr* Phi_psi, const double Nscale) const
+void IdealGasMonoatomic::convertGradients(const ScalarField* psi, const ScalarField* N, const ScalarField* Phi_N, const vector3<>& Phi_P0, ScalarField* Phi_psi, const double Nscale) const
 {	Phi_psi[0] = N[0]*Phi_N[0];
 }
 

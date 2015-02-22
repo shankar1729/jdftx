@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 #include <core/Operators.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/Units.h>
 #include <core/Util.h>
 
@@ -38,11 +38,11 @@ namespace ShapeFunction
 	void compute_gpu(int N, const double* n, double* shape, const double nc, const double sigma);
 	void propagateGradient_gpu(int N, const double* n, const double* grad_shape, double* grad_n, const double nc, const double sigma);
 	#endif
-	void compute(const DataRptr& n, DataRptr& shape, const double nc, const double sigma)
+	void compute(const ScalarField& n, ScalarField& shape, const double nc, const double sigma)
 	{	nullToZero(shape, n->gInfo);
 		callPref(compute)(n->gInfo.nr, n->dataPref(), shape->dataPref(), nc, sigma);
 	}
-	void propagateGradient(const DataRptr& n, const DataRptr& grad_shape, DataRptr& grad_n, const double nc, const double sigma)
+	void propagateGradient(const ScalarField& n, const ScalarField& grad_shape, ScalarField& grad_n, const double nc, const double sigma)
 	{	nullToZero(grad_n, n->gInfo);
 		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), nc, sigma);
 	}
@@ -59,24 +59,24 @@ namespace ShapeFunction
 		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
 		const double nc, const double invSigmaSqrt2, const double pCavity);
 	#endif
-	void compute(const DataRptr& n, const DataGptr& phi,
-		DataRptr& shape, double nc, double sigma, double pCavity)
-	{	DataRptrVec Dn = gradient(n);
-		DataRptrVec Dphi = I(gradient(phi), true);
+	void compute(const ScalarField& n, const ScalarFieldTilde& phi,
+		ScalarField& shape, double nc, double sigma, double pCavity)
+	{	VectorField Dn = gradient(n);
+		VectorField Dphi = I(gradient(phi), true);
 		nullToZero(shape, n->gInfo);
 		callPref(compute_or_grad)(n->gInfo.nr, false,
 			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), shape->dataPref(),
 			0, 0, vector3<double*>(), vector3<double*>(), 0,
 			nc, sqrt(0.5)/sigma, pCavity);
 	}
-	void propagateGradient(const DataRptr& n, const DataGptr& phi, const DataRptr& E_shape,
-		DataRptr& E_n, DataGptr& E_phi, double& E_pCavity, double nc, double sigma, double pCavity)
-	{	DataRptrVec Dn = gradient(n);
-		DataRptrVec Dphi = I(gradient(phi), true);
+	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
+		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity)
+	{	VectorField Dn = gradient(n);
+		VectorField Dphi = I(gradient(phi), true);
 		nullToZero(E_n, n->gInfo);
-		DataRptrVec E_Dn; nullToZero(E_Dn, n->gInfo);
-		DataRptrVec E_Dphi; nullToZero(E_Dphi, n->gInfo);
-		DataRptr E_pCavityArr; nullToZero(E_pCavityArr, n->gInfo);
+		VectorField E_Dn; nullToZero(E_Dn, n->gInfo);
+		VectorField E_Dphi; nullToZero(E_Dphi, n->gInfo);
+		ScalarField E_pCavityArr; nullToZero(E_pCavityArr, n->gInfo);
 		callPref(compute_or_grad)(n->gInfo.nr, true,
 			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), 0,
 			E_shape->dataPref(), E_n->dataPref(), E_Dn.dataPref(), E_Dphi.dataPref(), E_pCavityArr->dataPref(),
@@ -93,15 +93,15 @@ namespace ShapeFunction
 	#ifdef GPU_ENABLED
 	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq);
 	#endif
-	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx, DataRptr* A_n)
+	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx, ScalarField* A_n)
 	{	//Compute weighted densities:
-		DataGptr nBarTilde = w * J(n);
-		DataRptr nBar = I(nBarTilde);
-		DataRptrVec DnBar = I(gradient(R * nBarTilde));
-		DataRptr DnBarSq = lengthSquared(DnBar);
+		ScalarFieldTilde nBarTilde = w * J(n);
+		ScalarField nBar = I(nBarTilde);
+		VectorField DnBar = I(gradient(R * nBarTilde));
+		ScalarField DnBarSq = lengthSquared(DnBar);
 		//Compute the elementwise function and optionally its derivatives:
 		nullToZero(nEx, n->gInfo);
-		DataRptr nEx_nBar, nEx_DnBarSq;
+		ScalarField nEx_nBar, nEx_DnBarSq;
 		if(A_n)
 		{	assert(A_nEx);
 			nullToZero(nEx_nBar, n->gInfo);
@@ -111,8 +111,8 @@ namespace ShapeFunction
 			(A_n ? nEx_nBar->dataPref() : 0), (A_n ? nEx_DnBarSq->dataPref() : 0));
 		//Propagate gradients if necessary:
 		if(A_n)
-		{	DataGptr A_nBarTilde = Idag((*A_nEx) * nEx_nBar); //contribution through nBar
-			DataRptr A_DnBarSq = (*A_nEx) * nEx_DnBarSq;
+		{	ScalarFieldTilde A_nBarTilde = Idag((*A_nEx) * nEx_nBar); //contribution through nBar
+			ScalarField A_DnBarSq = (*A_nEx) * nEx_DnBarSq;
 			A_nBarTilde -= (2.*R) * divergence(Idag(A_DnBarSq * DnBar)); //contribution through DnBar
 			(*A_n) += Jdag(w * A_nBarTilde);
 		}

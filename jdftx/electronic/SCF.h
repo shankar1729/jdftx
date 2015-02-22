@@ -42,8 +42,8 @@ private:
 	
 	//Variable that's being mixed (component names are density-like, but when mixing potential, they refer to corresponding gradient)
 	struct Variable
-	{	DataRptrCollection n; //electron density (or potential)
-		DataRptrCollection tau; //KE density (or potential) [mGGA only]
+	{	ScalarFieldArray n; //electron density (or potential)
+		ScalarFieldArray tau; //KE density (or potential) [mGGA only]
 		std::vector<matrix> rhoAtom; //atomic density matrices (or corresponding potential) [DFT+U only]
 	};
 	std::vector<Variable> pastVariables, pastResiduals; //!< History

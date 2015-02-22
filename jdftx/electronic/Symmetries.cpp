@@ -165,7 +165,7 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 }
 
 //Symmetrize scalar fields:
-void Symmetries::symmetrize(DataRptr& x) const
+void Symmetries::symmetrize(ScalarField& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
 	int nSymmClasses = nSymmIndex / sym.size(); //number of equivalence classes
 	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex, x->dataPref());

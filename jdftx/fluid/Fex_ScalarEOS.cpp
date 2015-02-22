@@ -46,10 +46,10 @@ Fex_ScalarEOS::~Fex_ScalarEOS()
 {	fex_LJatt.free();
 }
 
-double Fex_ScalarEOS::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
+double Fex_ScalarEOS::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const
 {	//Polarizability-averaged density:
 	double alphaTot = 0.;
-	DataGptr NavgTilde;
+	ScalarFieldTilde NavgTilde;
 	for(unsigned i=0; i<molecule.sites.size(); i++)
 	{	const Molecule::Site& s = *(molecule.sites[i]);
 		NavgTilde += s.alpha * Ntilde[i];
@@ -57,13 +57,13 @@ double Fex_ScalarEOS::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) cons
 	}
 	NavgTilde *= (1./alphaTot);
 	//Compute LJatt weighted density:
-	DataRptr Nbar = I(fex_LJatt*NavgTilde);
+	ScalarField Nbar = I(fex_LJatt*NavgTilde);
 	//Evaluated weighted density functional:
-	DataRptr Aex, Aex_Nbar; nullToZero(Aex, gInfo); nullToZero(Aex_Nbar, gInfo);
+	ScalarField Aex, Aex_Nbar; nullToZero(Aex, gInfo); nullToZero(Aex_Nbar, gInfo);
 	callPref(eos.evaluate)(gInfo.nr, Nbar->dataPref(), Aex->dataPref(), Aex_Nbar->dataPref(), Vhs);
 	//Convert gradients:
-	DataRptr Navg = I(NavgTilde);
-	DataGptr IdagAex = Idag(Aex);
+	ScalarField Navg = I(NavgTilde);
+	ScalarFieldTilde IdagAex = Idag(Aex);
 	for(unsigned i=0; i<molecule.sites.size(); i++)
 	{	const Molecule::Site& s = *(molecule.sites[i]);
 		Phi_Ntilde[i] += (fex_LJatt*Idag(Navg*Aex_Nbar) + IdagAex) * (s.alpha/alphaTot);

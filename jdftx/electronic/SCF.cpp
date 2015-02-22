@@ -34,8 +34,8 @@ inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, d
 	}
 }
 
-inline DataRptrCollection operator*(const RealKernel& K, const DataRptrCollection& x)
-{	DataRptrCollection Kx(x.size());
+inline ScalarFieldArray operator*(const RealKernel& K, const ScalarFieldArray& x)
+{	ScalarFieldArray Kx(x.size());
 	for(size_t i=0; i<x.size(); i++) Kx[i] = I(K * J(x[i]));
 	return Kx;
 }
@@ -282,11 +282,11 @@ size_t SCF::variableSize() const
 void SCF::readVariable(SCF::Variable& v, FILE* fp) const
 {	//Density:
 	nullToZero(v.n, e.gInfo, e.eVars.n.size());
-	for(DataRptr& X: v.n) loadRawBinary(X, fp);
+	for(ScalarField& X: v.n) loadRawBinary(X, fp);
 	//KE density:
 	if(mixTau)
 	{	nullToZero(v.tau, e.gInfo, e.eVars.n.size());
-		for(DataRptr& X: v.tau) loadRawBinary(X, fp);
+		for(ScalarField& X: v.tau) loadRawBinary(X, fp);
 	}
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -297,10 +297,10 @@ void SCF::readVariable(SCF::Variable& v, FILE* fp) const
 
 void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
 {	//Density:
-	for(const DataRptr& X: v.n) saveRawBinary(X, fp);
+	for(const ScalarField& X: v.n) saveRawBinary(X, fp);
 	//KE density:
 	if(mixTau)
-	{	for(const DataRptr& X: v.tau) saveRawBinary(X, fp);
+	{	for(const ScalarField& X: v.tau) saveRawBinary(X, fp);
 	}
 	//Atomic density matrices:
 	if(e.eInfo.hasU)
@@ -310,8 +310,8 @@ void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
 
 namespace Magnetization
 {	//Conversions between spin-density(-matrix) and magnetization
-	DataRptrCollection fromSpinDensity(const DataRptrCollection& n)
-	{	DataRptrCollection m(n.size());
+	ScalarFieldArray fromSpinDensity(const ScalarFieldArray& n)
+	{	ScalarFieldArray m(n.size());
 		if(n.size()==1)
 		{	m[0] = clone(n[0]);
 		}
@@ -325,8 +325,8 @@ namespace Magnetization
 		}
 		return m;
 	}
-	DataRptrCollection toSpinDensity(const DataRptrCollection& m)
-	{	DataRptrCollection n(m.size());
+	ScalarFieldArray toSpinDensity(const ScalarFieldArray& m)
+	{	ScalarFieldArray n(m.size());
 		if(m.size()==1)
 		{	n[0] = clone(m[0]);
 		}
@@ -572,7 +572,7 @@ void SCF::single_particle_constraint(double sp_constraint)
 	assert(n.size() == 2);
 	
 	// Calculate 1/n and 1/tau
-	DataRptrCollection nInverse(n.size()), tauInverse(n.size());
+	ScalarFieldArray nInverse(n.size()), tauInverse(n.size());
 	std::vector<double> N(n.size()), NInverse(n.size());
 	for(size_t j=0; j<n.size(); j++)
 	{	nullToZero(nInverse[j], e.gInfo); applyFunc_r(e.gInfo, varInverse_kernel, nInverse[j]->data(), n[j]->data());
@@ -582,10 +582,10 @@ void SCF::single_particle_constraint(double sp_constraint)
 	}
 	
 	// Single particle KE density and the single-particleness
-	DataRptrCollection tauW(n.size());
-	DataRptrCollection spness(n.size());
-	DataRptrCollection fz(n.size()), fz_z(n.size()); // Interpolation cofficient and its gradient wrt z
-	DataRptrCollection grad_n_sq(n.size()); // Square of grad_n
+	ScalarFieldArray tauW(n.size());
+	ScalarFieldArray spness(n.size());
+	ScalarFieldArray fz(n.size()), fz_z(n.size()); // Interpolation cofficient and its gradient wrt z
+	ScalarFieldArray grad_n_sq(n.size()); // Square of grad_n
 	for(size_t j=0; j<n.size(); j++)
 	{	grad_n_sq[j] = lengthSquared(gradient(n[j]));	
 		nullToZero(tauW[j], e.gInfo); applyFunc_r(e.gInfo, tauW_kernel, tauW[j]->data(), grad_n_sq[j]->data(), n[j]->data());
@@ -595,8 +595,8 @@ void SCF::single_particle_constraint(double sp_constraint)
 	}
 
 	// Hartree energy and potential of a single channel
-	DataRptrCollection Vhartree(n.size()), Ehartree(n.size());
-	DataGptrCollection nTilde = J(n);
+	ScalarFieldArray Vhartree(n.size()), Ehartree(n.size());
+	ScalarFieldTildeArray nTilde = J(n);
 	for(size_t j=0; j<n.size(); j++)
 	{	Vhartree[j] = I((*(e.coulomb))(nTilde[j]));
 		Vhartree[j] = Vhartree[j];
@@ -604,17 +604,17 @@ void SCF::single_particle_constraint(double sp_constraint)
 	}
 
 	// Gradient of tauW wrt n
-	DataRptrCollection tauW_n(n.size());
+	ScalarFieldArray tauW_n(n.size());
 	for(size_t j=0; j<n.size(); j++)
-	{	DataRptr lap_n = I(L(J(n[j])));
+	{	ScalarField lap_n = I(L(J(n[j])));
 		nullToZero(tauW_n[j], e.gInfo);
 		tauW_n[j] = 0.125*grad_n_sq[j]*pow(nInverse[j],2) - 0.25*lap_n*nInverse[j];
 		//applyFunc_r(e.gInfo, tauW_n_kernel, tauW_n[j]->data(), grad_n_sq[j]->data(), n[j]->data(), lap_n->data());
 	}
 
 	// Slater exchange
-	DataRptrCollection Vslater(n.size());
-	DataRptrCollection Eslater(n.size());
+	ScalarFieldArray Vslater(n.size());
+	ScalarFieldArray Eslater(n.size());
 	for(size_t j=0; j<n.size(); j++)
 	{	double coef = pow(3/M_PI, 1./3.);
 		Vslater[j] = - coef * pow(2.*n[j], 1./3.);

@@ -111,25 +111,25 @@ public:
 	//! Apply Coulomb kernel (destructible input).
 	//! Pass appropriate pointChargeMode when applying to nucelar densities for special handling of high-frequency
 	//! components necessary in the non-translationally invariant scheme i.e. when params.embed==true
-	DataGptr operator()(DataGptr&&, PointChargeMode pointChargeMode=PointChargeNone) const;
+	ScalarFieldTilde operator()(ScalarFieldTilde&&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Apply Coulomb kernel (implemented in base class using virtual destructible input version)
-	DataGptr operator()(const DataGptr&, PointChargeMode pointChargeMode=PointChargeNone) const;
+	ScalarFieldTilde operator()(const ScalarFieldTilde&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
 	//! Includes interaction with Efield, if present (Requires embedded truncation)
 	double energyAndGrad(std::vector<Atom>& atoms) const; 
 
 	//! Generate the potential due to the Efield (if any) (Requires embedded truncation)
-	DataRptr getEfieldPotential() const;
+	ScalarField getEfieldPotential() const;
 	
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
-	complexDataGptr operator()(complexDataGptr&&, vector3<> kDiff, double omega) const;
+	complexScalarFieldTilde operator()(complexScalarFieldTilde&&, vector3<> kDiff, double omega) const;
 
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
-	complexDataGptr operator()(const complexDataGptr&, vector3<> kDiff, double omega) const;
+	complexScalarFieldTilde operator()(const complexScalarFieldTilde&, vector3<> kDiff, double omega) const;
 
 private:
 	const GridInfo& gInfoOrig; //!< original grid
@@ -149,7 +149,7 @@ protected:
 	
 	//!Apply the Coulomb operator (on optionally embedded grid) with appropriate truncation
 	//!Embedding is handled in base class wrapper functions above
-	virtual DataGptr apply(DataGptr&&) const=0;
+	virtual ScalarFieldTilde apply(ScalarFieldTilde&&) const=0;
 	
 	//!Each implementation must create and return the corresponding Ewald evaluator
 	//!for the supplied lattice vectors R which may correspond to a supercell of
@@ -168,10 +168,10 @@ private:
 	struct WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	RealKernel* ionKernel;
-	DataGptr embedExpand(const DataGptr& in) const; //!< expand to embedding grid and symmetrize boundaries
-	complexDataGptr embedExpand(complexDataGptr&& in) const; //!< expand to embedding grid and symmetrize boundaries
-	DataGptr embedShrink(const DataGptr& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
-	complexDataGptr embedShrink(complexDataGptr&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
+	ScalarFieldTilde embedExpand(const ScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
+	complexScalarFieldTilde embedExpand(complexScalarFieldTilde&& in) const; //!< expand to embedding grid and symmetrize boundaries
+	ScalarFieldTilde embedShrink(const ScalarFieldTilde& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
+	complexScalarFieldTilde embedShrink(complexScalarFieldTilde&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
 	friend class FluidSolver;
 	friend class SlabEpsilon;
 	friend class ChargedDefect;

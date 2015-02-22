@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/MixedFMT.h>
 #include <fluid/MixedFMT_internal.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 
 //Compute the tensor weighted density (threaded/gpu):
 inline void tensorKernel_sub(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> G,
@@ -30,9 +30,9 @@ inline void tensorKernel_sub(size_t iStart, size_t iStop, vector3<int> S, const 
 void tensorKernel_gpu(vector3<int> S, const matrix3<> G,
 	const complex* nTilde, tensor3<complex*> mTilde);
 #endif
-DataGptrTensor tensorKernel(const DataGptr& nTilde)
+TensorFieldTilde tensorKernel(const ScalarFieldTilde& nTilde)
 {	const GridInfo& gInfo = nTilde->gInfo;
-	DataGptrTensor mTilde(gInfo, isGpuEnabled());
+	TensorFieldTilde mTilde(gInfo, isGpuEnabled());
 	#ifdef GPU_ENABLED
 	tensorKernel_gpu(gInfo.S, gInfo.G, nTilde->dataGpu(), mTilde.dataGpu());
 	#else
@@ -50,9 +50,9 @@ inline void tensorKernel_grad_sub(size_t iStart, size_t iStop, vector3<int> S, c
 void tensorKernel_grad_gpu(vector3<int> S, const matrix3<> G,
 	tensor3<const complex*> grad_mTilde, complex* grad_nTilde);
 #endif
-DataGptr tensorKernel_grad(const DataGptrTensor& grad_mTilde)
+ScalarFieldTilde tensorKernel_grad(const TensorFieldTilde& grad_mTilde)
 {	const GridInfo& gInfo = grad_mTilde[0]->gInfo;
-	DataGptr grad_nTilde(DataG::alloc(gInfo, isGpuEnabled()));
+	ScalarFieldTilde grad_nTilde(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	tensorKernel_grad_gpu(gInfo.S, gInfo.G, grad_mTilde.const_dataGpu(), grad_nTilde->dataGpu());
 	#else
@@ -71,24 +71,24 @@ void phiFMT_gpu(int N, double* phiArr,
 #endif
 
 
-double PhiFMT(const DataRptr& n0, const DataRptr& n1, const DataRptr& n2,
-	const DataGptr& n3tilde, const DataGptr& n1vTilde, const DataGptr& n2mTilde,
-	DataRptr& grad_n0, DataRptr& grad_n1, DataRptr& grad_n2,
-	DataGptr& grad_n3tilde, DataGptr& grad_n1vTilde, DataGptr& grad_n2mTilde)
+double PhiFMT(const ScalarField& n0, const ScalarField& n1, const ScalarField& n2,
+	const ScalarFieldTilde& n3tilde, const ScalarFieldTilde& n1vTilde, const ScalarFieldTilde& n2mTilde,
+	ScalarField& grad_n0, ScalarField& grad_n1, ScalarField& grad_n2,
+	ScalarFieldTilde& grad_n3tilde, ScalarFieldTilde& grad_n1vTilde, ScalarFieldTilde& grad_n2mTilde)
 {
 	const GridInfo& gInfo = n0->gInfo;
-	DataRptr n3 = I(n3tilde);
-	DataRptrVec n1v = I(gradient(n1vTilde));
-	DataRptrVec n2v = I(gradient(-n3tilde));
-	DataRptrTensor n2m = I(tensorKernel(n2mTilde));
+	ScalarField n3 = I(n3tilde);
+	VectorField n1v = I(gradient(n1vTilde));
+	VectorField n2v = I(gradient(-n3tilde));
+	TensorField n2m = I(tensorKernel(n2mTilde));
 
-	DataRptr grad_n3; DataRptrVec grad_n1v, grad_n2v; DataRptrTensor grad_n2m;
+	ScalarField grad_n3; VectorField grad_n1v, grad_n2v; TensorField grad_n2m;
 	nullToZero(grad_n0, gInfo); nullToZero(grad_n1, gInfo); nullToZero(grad_n2, gInfo); nullToZero(grad_n3, gInfo);
 	nullToZero(grad_n1v, gInfo); nullToZero(grad_n2v, gInfo); nullToZero(grad_n2m, gInfo);
 
 	double result;
 	#ifdef GPU_ENABLED
-	{	DataRptr phiArr(DataR::alloc(gInfo, true));
+	{	ScalarField phiArr(ScalarFieldData::alloc(gInfo, true));
 		phiFMT_gpu(gInfo.nr, phiArr->dataGpu(),
 			n0->dataGpu(), n1->dataGpu(), n2->dataGpu(), n3->dataGpu(), n1v.const_dataGpu(), n2v.const_dataGpu(), n2m.const_dataGpu(),
 			grad_n0->dataGpu(), grad_n1->dataGpu(), grad_n2->dataGpu(), grad_n3->dataGpu(),
@@ -126,21 +126,21 @@ void phiBond_gpu(int N, double Rhm, double scale, double* phiArr,
 	double *grad_n0arr, double *grad_n2arr, double *grad_n3arr, vector3<double*> grad_n2vArr);
 #endif
 
-double PhiBond(double Rhm, double scale, const DataRptr& n0mol, const DataRptr& n2, const DataGptr& n3tilde,
-	DataRptr& grad_n0mol, DataRptr& grad_n2, DataGptr& grad_n3tilde)
+double PhiBond(double Rhm, double scale, const ScalarField& n0mol, const ScalarField& n2, const ScalarFieldTilde& n3tilde,
+	ScalarField& grad_n0mol, ScalarField& grad_n2, ScalarFieldTilde& grad_n3tilde)
 {
 	const GridInfo& gInfo = n0mol->gInfo;
 	//Compute n3 and n2v in real space from n3tilde:
-	DataRptr n3 = I(n3tilde);
-	DataRptrVec n2v = I(gradient(-n3tilde));
+	ScalarField n3 = I(n3tilde);
+	VectorField n2v = I(gradient(-n3tilde));
 	//Bonding correction and gradient:
-	DataRptr grad_n3; DataRptrVec grad_n2v;
+	ScalarField grad_n3; VectorField grad_n2v;
 	nullToZero(grad_n0mol, gInfo);
 	nullToZero(grad_n2, gInfo);
 	nullToZero(grad_n3, gInfo);
 	nullToZero(grad_n2v, gInfo);
 	#ifdef GPU_ENABLED
-	DataRptr phiArr(DataR::alloc(gInfo, true));
+	ScalarField phiArr(ScalarFieldData::alloc(gInfo, true));
 	phiBond_gpu(gInfo.nr, Rhm, scale, phiArr->dataGpu(),
 		n0mol->dataGpu(), n2->dataGpu(), n3->dataGpu(), n2v.const_dataGpu(),
 		grad_n0mol->dataGpu(), grad_n2->dataGpu(), grad_n3->dataGpu(), grad_n2v.dataGpu());

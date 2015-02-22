@@ -121,23 +121,23 @@ void ColumnBundle::setSub(int colStart, const ColumnBundle& Y)
 	assert(i>=0 && i<nCols()); \
 	assert(s>=0 && s<spinorLength());
 
-complexDataGptr ColumnBundle::getColumn(int i, int s) const
+complexScalarFieldTilde ColumnBundle::getColumn(int i, int s) const
 {	const GridInfo& gInfo = *(basis->gInfo);
 	CHECK_COLUMN_INDEX
-	complexDataGptr full; nullToZero(full, gInfo); //initialize a full G-space vector to zero
+	complexScalarFieldTilde full; nullToZero(full, gInfo); //initialize a full G-space vector to zero
 	//scatter from the i'th column to the full vector:
 	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->indexPref, dataPref()+index(i,s*basis->nbasis), full->dataPref());
 	return full;
 }
 
-void ColumnBundle::setColumn(int i, int s, const complexDataGptr& full)
+void ColumnBundle::setColumn(int i, int s, const complexScalarFieldTilde& full)
 {	//Zero the i'th column:
 	callPref(eblas_zero)(basis->nbasis, dataPref()+index(i,s*basis->nbasis));
 	//Gather-accumulate from the full vector into the i'th column
 	accumColumn(i,s, full);
 }
 
-void ColumnBundle::accumColumn(int i, int s, const complexDataGptr& full)
+void ColumnBundle::accumColumn(int i, int s, const complexScalarFieldTilde& full)
 {	assert(full);
 	CHECK_COLUMN_INDEX
 	//Gather-accumulate from the full vector into the i'th column
@@ -220,7 +220,7 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 		if(needCustom) { logSuspend(); gInfoCustom.initialize(); logResume(); }
 		const GridInfo& gInfo = needCustom ? gInfoCustom : *gInfoWfns;
 		//Read one column at a time:
-		complexDataRptr Icol; nullToZero(Icol, gInfo);
+		complexScalarField Icol; nullToZero(Icol, gInfo);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	int nCols = Y[q].nCols();
 			int nSpinor = Y[q].spinorLength();

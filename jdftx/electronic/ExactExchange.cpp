@@ -126,7 +126,7 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 	//includes negative sign for exchange, empirical scale, weight for the restricted case and symmetries
 
 	const std::vector<QuantumNumber>& qnums = e.eInfo.qnums;
-	complexDataRptr Ipsi1 = I(C[q1].getColumn(b1,0)), grad_Ipsi1;
+	complexScalarField Ipsi1 = I(C[q1].getColumn(b1,0)), grad_Ipsi1;
 	double wF1 = F[q1][b1] * qnums[q1].weight;
 	vector3<> k1 = qnums[q1].k;
 	double EXX = 0.;
@@ -138,35 +138,35 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 				continue; //at least one of the orbitals must be occupied
 			
 			bool diag = q1==q2 && b1==b2; // whether this is a diagonal (self) term
-			complexDataRptr Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2,0)), grad_Ipsi2;
+			complexScalarField Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2,0)), grad_Ipsi2;
 			double wF2 = F[q2][b2] * qnums[q2].weight;
 			for(int invert: invertList)
 				for(unsigned iSym=0; iSym<sym.size(); iSym++)
 				{	vector3<> k2 = (~sym[iSym]) * qnums[q2].k * invert;
-					complexDataRptr RIpsi2 = pointGroupGather(Ipsi2, symMesh[iSym]);
+					complexScalarField RIpsi2 = pointGroupGather(Ipsi2, symMesh[iSym]);
 					if(invert==-1) RIpsi2 = conj(RIpsi2); //complex-conjugate for explicitly inverted k-point
-					complexDataGptr n = J(conj(Ipsi1) * RIpsi2); //Compute state-pair 'density'
-					complexDataGptr Kn = O((*e.coulomb)(n, k2-k1, omega)); //Electrostatic potential due to n
+					complexScalarFieldTilde n = J(conj(Ipsi1) * RIpsi2); //Compute state-pair 'density'
+					complexScalarFieldTilde Kn = O((*e.coulomb)(n, k2-k1, omega)); //Electrostatic potential due to n
 					EXX += (diag ? 0.5 : 1.) * scale*wF1*wF2 * dot(n,Kn).real();
 					if(HC)
-					{	complexDataRptr EXX_In = Jdag(Kn);
+					{	complexScalarField EXX_In = Jdag(Kn);
 						grad_Ipsi1 += (scale*wF2) * conj(EXX_In) * RIpsi2;
 						if(!diag)
-						{	complexDataRptr grad_RIpsi2 = (scale*wF1) * EXX_In * Ipsi1;
+						{	complexScalarField grad_RIpsi2 = (scale*wF1) * EXX_In * Ipsi1;
 							if(invert==-1) grad_RIpsi2 = conj(grad_RIpsi2); //complex-conjugate for explicitly inverted k-point
 							grad_Ipsi2 += pointGroupScatter(grad_RIpsi2, symMesh[iSym]);
 						}
 					}
 				}
 			if(HC && grad_Ipsi2)
-			{	complexDataGptr grad_psi2 = Idag(grad_Ipsi2);
+			{	complexScalarFieldTilde grad_psi2 = Idag(grad_Ipsi2);
 				lock->lock();
 				(*HC)[q2].accumColumn(b2,0, grad_psi2);
 				lock->unlock();
 			}
 		}
 	if(HC && grad_Ipsi1)
-	{	complexDataGptr grad_psi1 = Idag(grad_Ipsi1);
+	{	complexScalarFieldTilde grad_psi1 = Idag(grad_Ipsi1);
 		lock->lock();
 		(*HC)[q1].accumColumn(b1,0, grad_psi1);
 		lock->unlock();

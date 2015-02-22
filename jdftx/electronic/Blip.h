@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_BLIP_H
 #define JDFTX_ELECTRONIC_BLIP_H
 
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <core/vector3.h>
 #include <core/WignerSeitz.h>
 
@@ -39,10 +39,10 @@ public:
 	//Given a PW basis object (in real or reciprocal space) v,
 	//return corresponding real-space Blip coefficient set
 	// (for double or complex vectors)
-	DataRptr operator()(const DataGptr& v) const;
-	DataRptr operator()(const DataRptr& v) const;
-	complexDataRptr operator()(const complexDataGptr& v) const;
-	complexDataRptr operator()(const complexDataRptr& v) const;
+	ScalarField operator()(const ScalarFieldTilde& v) const;
+	ScalarField operator()(const ScalarField& v) const;
+	complexScalarField operator()(const complexScalarFieldTilde& v) const;
+	complexScalarField operator()(const complexScalarField& v) const;
 };
 
 //! Resample a scalar field from one grid to another using BLIPs
@@ -58,14 +58,14 @@ class BlipResampler
 public:
 	BlipResampler(const GridInfo& gInfoIn, const GridInfo& gInfoOut);
 	
-	DataRptr operator()(const DataGptr& v) const;
-	complexDataRptr operator()(const complexDataGptr& v) const;
+	ScalarField operator()(const ScalarFieldTilde& v) const;
+	complexScalarField operator()(const complexScalarFieldTilde& v) const;
 };
 
 //Compute the kinetic energy for a blip orbital phi (and set max local KE and location in unit cell)
-double Tblip(const complexDataRptr& phi, double* tMax=0, int* i0max=0, int* i1max=0, int*i2max=0);
+double Tblip(const complexScalarField& phi, double* tMax=0, int* i0max=0, int* i1max=0, int*i2max=0);
 
 //Compute the local potential energy for blip orbital phi in blip potential V
-double Vblip(const complexDataRptr& phi, const DataRptr& V);
+double Vblip(const complexScalarField& phi, const ScalarField& V);
 
 #endif // JDFTX_ELECTRONIC_BLIP_H

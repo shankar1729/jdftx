@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <commands/parser.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 #include <core/Util.cpp>
 
 
@@ -193,7 +193,7 @@ int main(int argc, char** argv)
 	logPrintf("Computing eigenfunction dipole moments\n");
 	matrix P;
 	{	//Create array of r in real space:
-		DataRptrVec rArr(e.gInfo);
+		VectorField rArr(e.gInfo);
 		threadLaunch(rArrSet, e.gInfo.nr, e.gInfo.S, e.gInfo.R, rArr.data());
 		
 		//Convert to a columnbundle projector:

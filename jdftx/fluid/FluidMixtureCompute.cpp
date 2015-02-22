@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGas.h>
 #include <fluid/Fex.h>
 #include <electronic/operators.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 
 //! Compute the total charge of a set of components: original number of molecules N0 and charge per molecule Q
 //! given as the vector of pairs N0Q, where the actual number of molecules of each component is N = N0 exp(-Q betaV)
@@ -43,18 +43,18 @@ double Qtot(double betaV, double& Qtot_betaV, const std::vector<std::pair<double
 	return Qsum;
 }
 
-double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollection& Phi_indep, Outputs outputs) const
+double FluidMixture::operator()(const ScalarFieldArray& indep, ScalarFieldArray& Phi_indep, Outputs outputs) const
 {	static StopWatch watch("FluidMixture::operator()"); watch.start();
 
 	//logPrintf("indep.size: %d nIndep: %d\n",indep.size(),nIndep);
 	assert(indep.size()==get_nIndep());
 
 	//---------- Compute site densities from the independent variables ---------
-	DataGptrCollection Ntilde(nDensities); //site densities (in reciprocal space)
+	ScalarFieldTildeArray Ntilde(nDensities); //site densities (in reciprocal space)
 	std::vector< vector3<> > P0(component.size()); //polarization densities G=0
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const FluidComponent& c = *component[ic];
-		DataRptrCollection N(c.molecule.sites.size());
+		ScalarFieldArray N(c.molecule.sites.size());
 		c.idealGas->getDensities(&indep[c.offsetIndep], &N[0], P0[ic]);
 		for(unsigned i=0; i<c.molecule.sites.size(); i++)
 		{	//Replace negative densities with 0:
@@ -142,10 +142,10 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	}
 
 	EnergyComponents Phi; //the grand free energy (with component information)
-	DataGptrCollection Phi_Ntilde(nDensities); //gradients (functional derivative) w.r.t reciprocal space site densities
+	ScalarFieldTildeArray Phi_Ntilde(nDensities); //gradients (functional derivative) w.r.t reciprocal space site densities
 	nullToZero(Phi_Ntilde,gInfo);
 	std::vector< vector3<> > Phi_P0(component.size()); //functional derivative w.r.t polarization density G=0
-	DataGptrVec Phi_epsMF; //functional derivative w.r.t mean field electric field
+	VectorFieldTilde Phi_epsMF; //functional derivative w.r.t mean field electric field
 	
 	//G=0 fix for mismatch in fluid-fluid vs. fluid-electron charge kernels
 	//We do this AFTER we have applied the appropriate scale factors
@@ -163,11 +163,11 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	}
 
 	//--------- Compute the (scaled) mean field coulomb interaction --------
-	{	DataGptr rho; //total charge density
-		DataGptr rhoMF; //effective charge density for mean-field term
+	{	ScalarFieldTilde rho; //total charge density
+		ScalarFieldTilde rhoMF; //effective charge density for mean-field term
 		bool needRho = rhoExternal || outputs.Phi_rhoExternal;
 		
-		DataGptrVec epsMF = polarizable ? J(DataRptrVec(&indep[nIndepIdgas])) : 0; //mean field electric field
+		VectorFieldTilde epsMF = polarizable ? J(VectorField(&indep[nIndepIdgas])) : 0; //mean field electric field
 		vector3<> P0tot;
 		
 		for(unsigned ic=0; ic<component.size(); ic++)
@@ -182,19 +182,19 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 				if(polarizable && s.polKernel)
 				{	
 					#define Polarization_Compute_Pi_Ni \
-						DataRptrVec Pi = (Cpol*s.alpha) * I(c.molecule.mfKernel*epsMF - (rhoExternal ? gradient(s.polKernel*coulomb(rhoExternal)) : 0)); \
-						DataRptr Ni = I(Ntilde[c.offsetDensity+i]);
+						VectorField Pi = (Cpol*s.alpha) * I(c.molecule.mfKernel*epsMF - (rhoExternal ? gradient(s.polKernel*coulomb(rhoExternal)) : 0)); \
+						ScalarField Ni = I(Ntilde[c.offsetDensity+i]);
 					Polarization_Compute_Pi_Ni
 					
-					DataRptr Phi_Ni = (0.5/(Cpol*s.alpha))*lengthSquared(Pi);
+					ScalarField Phi_Ni = (0.5/(Cpol*s.alpha))*lengthSquared(Pi);
 					Phi["Apol"] += gInfo.dV * dot(Ni, Phi_Ni);
 					//Derivative contribution to site densities:
 					Phi_Ntilde[c.offsetDensity+i] += Idag(Phi_Ni); Phi_Ni=0;
 					//Update contributions to bound charge:
-					DataGptrVec NPtilde = J(Ni * Pi); Pi=0; Ni=0;
-					DataGptr divNPbar;
+					VectorFieldTilde NPtilde = J(Ni * Pi); Pi=0; Ni=0;
+					ScalarFieldTilde divNPbar;
 					if(needRho) rho -= s.polKernel*divergence(NPtilde);
-					DataGptrVec NPbarMF = c.molecule.mfKernel*NPtilde; NPtilde=0;
+					VectorFieldTilde NPbarMF = c.molecule.mfKernel*NPtilde; NPtilde=0;
 					rhoMF -= divergence(NPbarMF);
 					Phi_epsMF += gInfo.nr * NPbarMF;
 					P0tot += getGzero(NPbarMF);
@@ -205,12 +205,12 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 		
 		if(rhoMF)
 		{	//External charge interaction:
-			DataGptr Phi_rho;
-			DataGptr Phi_rhoMF;
+			ScalarFieldTilde Phi_rho;
+			ScalarFieldTilde Phi_rhoMF;
 			if(needRho)
 			{	if(rhoExternal)
 				{	
-				  DataGptr OdExternal = O(coulomb(rhoExternal));
+				  ScalarFieldTilde OdExternal = O(coulomb(rhoExternal));
 				  if (!useMFKernel)
 				   {	
 			  	       Phi["ExtCoulomb"] += dot(rho, OdExternal);
@@ -230,7 +230,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			}
 		
 			//Mean field contributions:
-			{	DataGptr OdMF = O(coulomb(rhoMF)); //mean-field electrostatic potential
+			{	ScalarFieldTilde OdMF = O(coulomb(rhoMF)); //mean-field electrostatic potential
 				Phi["Coulomb"] += 0.5*dot(rhoMF, OdMF);
 				Phi_rhoMF += OdMF;
 			}
@@ -255,17 +255,17 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 					}
 					//Polarization contributions:
 					if(polarizable && s.polKernel)
-					{	DataGptrVec Phi_NPtilde = gradient(c.molecule.mfKernel*Phi_rhoMF + (needRho ? s.polKernel*Phi_rho : 0));
+					{	VectorFieldTilde Phi_NPtilde = gradient(c.molecule.mfKernel*Phi_rhoMF + (needRho ? s.polKernel*Phi_rho : 0));
 						setGzero(Phi_NPtilde, getGzero(Phi_NPtilde) + Phi_P0tot);
-						DataRptrVec Phi_NP = Jdag(Phi_NPtilde); Phi_NPtilde=0;
+						VectorField Phi_NP = Jdag(Phi_NPtilde); Phi_NPtilde=0;
 						//propagate gradients from NP to N, epsMF and rhoExternal:
 						Polarization_Compute_Pi_Ni
 						#undef Polarization_Compute_Pi_Ni
 						// --> via Ni
-						DataRptr Phi_Ni; for(int k=0; k<3; k++) Phi_Ni += Phi_NP[k]*Pi[k];
+						ScalarField Phi_Ni; for(int k=0; k<3; k++) Phi_Ni += Phi_NP[k]*Pi[k];
 						Phi_Ntilde[c.offsetDensity+i] += (1./gInfo.dV) * Idag(Phi_Ni); Phi_Ni=0;
 						// --> via Pi
-						DataGptrVec Phi_PiTilde = Idag(Phi_NP * Ni); Phi_NP=0;
+						VectorFieldTilde Phi_PiTilde = Idag(Phi_NP * Ni); Phi_NP=0;
 						Phi_epsMF += (Cpol*s.alpha/gInfo.dV)*(c.molecule.mfKernel*Phi_PiTilde);
 					}
 				}
@@ -276,19 +276,19 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	
 	//--------- Hard sphere mixture and bonding -------------
 	{	//Compute the FMT weighted densities:
-		DataGptr n0tilde, n1tilde, n2tilde, n3tilde, n1vTilde, n2mTilde;
-		std::vector<DataRptr> n0mol(component.size(), 0); //partial n0 for molecules that need bonding corrections
+		ScalarFieldTilde n0tilde, n1tilde, n2tilde, n3tilde, n1vTilde, n2mTilde;
+		std::vector<ScalarField> n0mol(component.size(), 0); //partial n0 for molecules that need bonding corrections
 		std::vector<int> n0mult(component.size(), 0); //number of sites which contribute to n0 for each molecule
 		std::vector<std::map<double,int> > bond(component.size()); //sets of bonds for each molecule
 		bool bondsPresent = false; //whether bonds are present for any molecule
 		for(unsigned ic=0; ic<component.size(); ic++)
 		{	const FluidComponent& c = *component[ic];
 			bond[ic] = c.molecule.getBonds();
-			DataGptr n0molTilde;
+			ScalarFieldTilde n0molTilde;
 			for(unsigned i=0; i<c.molecule.sites.size(); i++)
 			{	const Molecule::Site& s = *(c.molecule.sites[i]);
 				if(s.Rhs)
-				{	const DataGptr& Nsite = Ntilde[c.offsetDensity+i];
+				{	const ScalarFieldTilde& Nsite = Ntilde[c.offsetDensity+i];
 					n0mult[ic] += s.positions.size();
 					n0molTilde += s.w0  * Nsite;
 					n1tilde    += s.w1  * Nsite;
@@ -305,10 +305,10 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			}
 		}
 		if(n0tilde) //at least one sphere in the mixture
-		{	DataRptr n0 = I(n0tilde); n0tilde=0;
-			DataRptr n1 = I(n1tilde); n1tilde=0;
-			DataRptr n2 = I(n2tilde); n2tilde=0;
-			DataRptr Phi_n0, Phi_n1, Phi_n2; DataGptr Phi_n3tilde, Phi_n1vTilde, Phi_n2mTilde;
+		{	ScalarField n0 = I(n0tilde); n0tilde=0;
+			ScalarField n1 = I(n1tilde); n1tilde=0;
+			ScalarField n2 = I(n2tilde); n2tilde=0;
+			ScalarField Phi_n0, Phi_n1, Phi_n2; ScalarFieldTilde Phi_n3tilde, Phi_n1vTilde, Phi_n2mTilde;
 			//Compute the sphere mixture free energy:
 			Phi["MixedFMT"] += T * PhiFMT(n0, n1, n2, n3tilde, n1vTilde, n2mTilde,
 				Phi_n0, Phi_n1, Phi_n2, Phi_n3tilde, Phi_n1vTilde, Phi_n2mTilde);
@@ -316,13 +316,13 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 			if(bondsPresent)
 			{	for(unsigned ic=0; ic<component.size(); ic++)
 				{	const FluidComponent& c = *component[ic];
-					DataRptr Phi_n0mol;
+					ScalarField Phi_n0mol;
 					for(const auto& b: bond[ic])
 						Phi["Bonding"] += T * PhiBond(b.first, b.second*1./n0mult[ic],
 							n0mol[ic], n2, n3tilde, Phi_n0mol, Phi_n2, Phi_n3tilde);
 					if(Phi_n0mol)
 					{	//Propagate gradient w.r.t n0mol[ic] to the site densities:
-						DataGptr Phi_n0molTilde = Idag(Phi_n0mol);
+						ScalarFieldTilde Phi_n0molTilde = Idag(Phi_n0mol);
 						for(unsigned i=0; i<c.molecule.sites.size(); i++)
 						{	const Molecule::Site& s = *(c.molecule.sites[i]);
 							if(s.Rhs)
@@ -332,14 +332,14 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 				}
 			}
 			//Accumulate gradients w.r.t weighted densities to site densities:
-			DataGptr Phi_n0tilde = Idag(Phi_n0); Phi_n0=0;
-			DataGptr Phi_n1tilde = Idag(Phi_n1); Phi_n1=0;
-			DataGptr Phi_n2tilde = Idag(Phi_n2); Phi_n2=0;
+			ScalarFieldTilde Phi_n0tilde = Idag(Phi_n0); Phi_n0=0;
+			ScalarFieldTilde Phi_n1tilde = Idag(Phi_n1); Phi_n1=0;
+			ScalarFieldTilde Phi_n2tilde = Idag(Phi_n2); Phi_n2=0;
 			for(const FluidComponent* c: component)
 			{	for(unsigned i=0; i<c->molecule.sites.size(); i++)
 				{	const Molecule::Site& s = *(c->molecule.sites[i]);
 					if(s.Rhs)
-					{	DataGptr& Phi_Nsite = Phi_Ntilde[c->offsetDensity+i];
+					{	ScalarFieldTilde& Phi_Nsite = Phi_Ntilde[c->offsetDensity+i];
 						Phi_Nsite += T * (s.w0  * Phi_n0tilde);
 						Phi_Nsite += T * (s.w1  * Phi_n1tilde);
 						Phi_Nsite += T * (s.w2  * Phi_n2tilde);
@@ -364,8 +364,8 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	nullToZero(Phi_Ntilde, gInfo);
 	if(outputs.N) outputs.N->resize(nDensities);
 	//Put the site densities and gradients back in real space
-	DataRptrCollection N(nDensities);
-	DataRptrCollection Phi_N(nDensities);
+	ScalarFieldArray N(nDensities);
+	ScalarFieldArray Phi_N(nDensities);
 	for(unsigned i=0; i<nDensities; i++)
 	{	N[i] = I(Ntilde[i]); Ntilde[i]=0;
 		Phi_N[i] = Jdag(Phi_Ntilde[i]); Phi_Ntilde[i] = 0;
@@ -376,7 +376,7 @@ double FluidMixture::operator()(const DataRptrCollection& indep, DataRptrCollect
 	{	outputs.psiEff->resize(nDensities);
 		for(const FluidComponent* c: component)
 			for(unsigned i=0; i<c->molecule.sites.size(); i++)
-			{	DataRptr& psiCur = outputs.psiEff->at(c->offsetDensity+i);
+			{	ScalarField& psiCur = outputs.psiEff->at(c->offsetDensity+i);
 				psiCur = Phi_N[c->offsetDensity+i] + c->idealGas->V[i];
 				if(i==0) psiCur -= c->idealGas->mu / c->molecule.sites[0]->positions.size();
 				psiCur *= (-1./T);

@@ -28,7 +28,7 @@ class CoulombSlab : public Coulomb
 public:
 	CoulombSlab(const GridInfo& gInfoOrig, const CoulombParams& params);
 protected:
-	DataGptr apply(DataGptr&&) const;
+	ScalarFieldTilde apply(ScalarFieldTilde&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 };
 

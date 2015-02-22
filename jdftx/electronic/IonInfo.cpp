@@ -135,7 +135,7 @@ void IonInfo::update(Energies& ener)
 	initZero(Vlocps, gInfo);
 	initZero(rhoIon, gInfo);
 	if(nChargeball) nChargeball->zero();
-	DataGptr nCoreTilde, tauCoreTilde;
+	ScalarFieldTilde nCoreTilde, tauCoreTilde;
 	for(auto sp: species) //collect contributions to the above from all species
 		sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde);
 	//Add long-range part to Vlocps and smoothen rhoIon:
@@ -183,22 +183,22 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	
 	//---------- local part: Vlocps, chargeball, partial core etc.: --------------
 	//compute the complex-conjugate gradient w.r.t the relevant densities/potentials:
-	const DataGptr ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
-	const DataGptr ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
-	DataGptr ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps, Coulomb::PointChargeLeft); //long-range portion of Vlocps for rhoIon
+	const ScalarFieldTilde ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
+	const ScalarFieldTilde ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
+	ScalarFieldTilde ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps, Coulomb::PointChargeLeft); //long-range portion of Vlocps for rhoIon
 	if(eVars.d_fluid) //and electrostatic potential due to fluid (if any):
 		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
-	DataGptr ccgrad_nCore, ccgrad_tauCore;
+	ScalarFieldTilde ccgrad_nCore, ccgrad_tauCore;
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
-	{	DataRptr VxcCore, VtauCore;
-		DataRptrCollection Vxc(eVars.n.size()), Vtau;
+	{	ScalarField VxcCore, VtauCore;
+		ScalarFieldArray Vxc(eVars.n.size()), Vtau;
 		e->exCorr(nCore, &VxcCore, false, &tauCore, &VtauCore);
 		e->exCorr(eVars.get_nXC(), &Vxc, false, &eVars.tau, &Vtau);
-		DataRptr VxcAvg = (Vxc.size()==1) ? Vxc[0] : 0.5*(Vxc[0]+Vxc[1]); //spin-avgd potential
+		ScalarField VxcAvg = (Vxc.size()==1) ? Vxc[0] : 0.5*(Vxc[0]+Vxc[1]); //spin-avgd potential
 		ccgrad_nCore = eVars.V_cavity + J(VxcAvg - VxcCore);
 		//Contribution through tauCore (metaGGAs only):
 		if(e->exCorr.needsKEdensity())
-		{	DataRptr VtauAvg = (eVars.Vtau.size()==1) ? eVars.Vtau[0] : 0.5*(eVars.Vtau[0]+eVars.Vtau[1]);
+		{	ScalarField VtauAvg = (eVars.Vtau.size()==1) ? eVars.Vtau[0] : 0.5*(eVars.Vtau[0]+eVars.Vtau[1]);
 			if(VtauAvg) ccgrad_tauCore += J(VtauAvg - VtauCore);
 		}
 	}
@@ -262,10 +262,10 @@ void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatri
 {	for(unsigned sp=0; sp<species.size(); sp++)
 		((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp]);
 }
-void IonInfo::augmentDensityGrid(DataRptrCollection& n) const
+void IonInfo::augmentDensityGrid(ScalarFieldArray& n) const
 {	for(auto sp: species) sp->augmentDensityGrid(n);
 }
-void IonInfo::augmentDensityGridGrad(const DataRptrCollection& E_n, IonicGradient* forces) const
+void IonInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
 		((SpeciesInfo&)(*species[sp])).augmentDensityGridGrad(E_n, forces ? &forces->at(sp) : 0);
 }

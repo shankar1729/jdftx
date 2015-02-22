@@ -30,13 +30,13 @@ public:
 	//!Also specify the orientation quadrature and translation operator used for the orientation integrals
 	IdealGasPsiAlpha(const FluidMixture*, const FluidComponent*, const SO3quad& quad, const TranslationOperator& trans);
 
-	void initState(const DataRptr* Vex, DataRptr* psi, double scale, double Elo, double Ehi) const;
+	void initState(const ScalarField* Vex, ScalarField* psi, double scale, double Elo, double Ehi) const;
 
 protected:
 	string representationName() const;
-	void initState_o(int o, const matrix3<>& rot, double scale, const DataRptr& Eo, DataRptr* psi) const;
-	void getDensities_o(int o, const matrix3<>& rot, const DataRptr* psi, DataRptr& logPomega_o) const;
-	void convertGradients_o(int o, const matrix3<>& rot, const DataRptr& Phi_logPomega_o, DataRptr* Phi_psi) const;
+	void initState_o(int o, const matrix3<>& rot, double scale, const ScalarField& Eo, ScalarField* psi) const;
+	void getDensities_o(int o, const matrix3<>& rot, const ScalarField* psi, ScalarField& logPomega_o) const;
+	void convertGradients_o(int o, const matrix3<>& rot, const ScalarField& Phi_logPomega_o, ScalarField* Phi_psi) const;
 };
 
 #endif // JDFTX_FLUID_IDEALGASPSIALPHA_H

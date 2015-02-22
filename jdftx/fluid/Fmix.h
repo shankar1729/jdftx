@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_FMIX_H
 #define JDFTX_FLUID_FMIX_H
 
-#include <core/DataCollection.h>
+#include <core/ScalarFieldArray.h>
 #include <string>
 
 class FluidMixture;
@@ -43,7 +43,7 @@ public:
 	//! Note that unlike Fex, all site densities are handed to an Fmix and it
 	//! is Fmix's responsibility to pick up the correct site densities
 	//! (perhaps using FluidMixture::get_offsetDensity())
-	virtual double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const=0;
+	virtual double compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const=0;
 
 	//! Return the uniform fluid interaction free energy density given the site densities N
 	//! and accumulate the derivative w.r.t them in Phi_N. This MUST return the

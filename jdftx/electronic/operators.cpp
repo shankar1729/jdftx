@@ -74,9 +74,9 @@ void D_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in,
 #ifdef GPU_ENABLED
 void D_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> Ge);
 #endif
-DataGptr D(const DataGptr& in, int iDir)
+ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir)
 {	const GridInfo& gInfo = in->gInfo;
-	DataGptr out(DataG::alloc(gInfo, isGpuEnabled()));
+	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G.column(iDir));
 	#else
@@ -92,9 +92,9 @@ void DD_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in
 #ifdef GPU_ENABLED
 void DD_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> g, vector3<> q);
 #endif
-DataGptr DD(const DataGptr& in, int iDir, int jDir)
+ScalarFieldTilde DD(const ScalarFieldTilde& in, int iDir, int jDir)
 {	const GridInfo& gInfo = in->gInfo;
-	DataGptr out(DataG::alloc(gInfo, isGpuEnabled()));
+	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	DD_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G.column(iDir), gInfo.G.column(jDir));
 	#else
@@ -117,8 +117,8 @@ void lGradient(const vector3<int>& S, const complex* in, std::vector<complex*> o
 void lGradient_gpu(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G);
 #endif
 
-DataGptrCollection lGradient(const DataGptr& in, int l)
-{	DataGptrCollection out; nullToZero(out, in->gInfo, 2*l+1);
+ScalarFieldTildeArray lGradient(const ScalarFieldTilde& in, int l)
+{	ScalarFieldTildeArray out; nullToZero(out, in->gInfo, 2*l+1);
 	callPref(lGradient)(in->gInfo.S, in->dataPref(), dataPref(out), l, in->gInfo.G);
 	return out;
 }
@@ -136,9 +136,9 @@ void lDivergence(const vector3<int>& S, const std::vector<const complex*>& in, c
 void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G);
 #endif
 
-DataGptr lDivergence(const DataGptrCollection& in, int l)
+ScalarFieldTilde lDivergence(const ScalarFieldTildeArray& in, int l)
 {	assert(int(in.size()) == 2*l+1);
-	DataGptr out; nullToZero(out, in[0]->gInfo);
+	ScalarFieldTilde out; nullToZero(out, in[0]->gInfo);
 	callPref(lDivergence)(in[0]->gInfo.S, constDataPref(in), out->dataPref(), l, in[0]->gInfo.G);
 	return out;
 }
@@ -152,7 +152,7 @@ void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
 #ifdef GPU_ENABLED
 void multiplyBlochPhase_gpu(const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k);
 #endif
-void multiplyBlochPhase(complexDataRptr& v, const vector3<>& k)
+void multiplyBlochPhase(complexScalarField& v, const vector3<>& k)
 {	const GridInfo& gInfo = v->gInfo;
 	vector3<> invS(1./gInfo.S[0], 1./gInfo.S[1], 1./gInfo.S[2]);
 	#ifdef GPU_ENABLED
@@ -183,11 +183,11 @@ template<typename T> std::shared_ptr<T> pointGroupScatter(const std::shared_ptr<
 	#endif
 	return out;
 }
-DataRptr pointGroupScatter(const DataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<DataR>(in, mMesh);
+ScalarField pointGroupScatter(const ScalarField& in, const matrix3<int>& mMesh)
+{	return pointGroupScatter<ScalarFieldData>(in, mMesh);
 }
-complexDataRptr pointGroupScatter(const complexDataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<complexDataR>(in, mMesh);
+complexScalarField pointGroupScatter(const complexScalarField& in, const matrix3<int>& mMesh)
+{	return pointGroupScatter<complexScalarFieldData>(in, mMesh);
 }
 
 
@@ -201,11 +201,11 @@ template<typename Tptr> Tptr pointGroupGather(const Tptr& in, const matrix3<int>
 	matrix3<int> mMeshInv = adjugate(mMesh)*mMeshDet; //inverse = adjugate*det since |det|=1
 	return pointGroupScatter(in, mMeshInv);
 }
-DataRptr pointGroupGather(const DataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<DataRptr>(in, mMesh);
+ScalarField pointGroupGather(const ScalarField& in, const matrix3<int>& mMesh)
+{	return pointGroupGather<ScalarField>(in, mMesh);
 }
-complexDataRptr pointGroupGather(const complexDataRptr& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<complexDataRptr>(in, mMesh);
+complexScalarField pointGroupGather(const complexScalarField& in, const matrix3<int>& mMesh)
+{	return pointGroupGather<complexScalarField>(in, mMesh);
 }
 
 
@@ -217,9 +217,9 @@ void radialFunction_sub(size_t iStart, size_t iStop, const vector3<int> S, const
 void radialFunction_gpu(const vector3<int> S, const matrix3<>& GGT,
 	complex* F, const RadialFunctionG& f, vector3<> r0);
 #endif
-DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
+ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
 {	
-	DataGptr F(DataG::alloc(gInfo,isGpuEnabled()));
+	ScalarFieldTilde F(ScalarFieldTildeData::alloc(gInfo,isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	radialFunction_gpu(gInfo.S, gInfo.GGT, F->dataGpu(), f, r0);
 	#else
@@ -228,15 +228,15 @@ DataGptr radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector
 	return F;
 }
 
-DataRptr radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
+ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
 {	
-	DataGptr F = radialFunctionG(gInfo, f, r0);
+	ScalarFieldTilde F = radialFunctionG(gInfo, f, r0);
 	return (1.0/gInfo.detR) * I(F, true);
 }
 
 void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel)
 {	
-	DataGptr F = radialFunctionG(Kernel.gInfo, f, vector3<>(0,0,0));
+	ScalarFieldTilde F = radialFunctionG(Kernel.gInfo, f, vector3<>(0,0,0));
 	const complex* FData = F->data(); //put F into Kernel
 	for(int i=0; i<Kernel.gInfo.nG; i++)
 		Kernel.data[i] = FData[i].real();
@@ -252,7 +252,7 @@ void radialFunctionMultiply_sub(size_t iStart, size_t iStop, const vector3<int> 
 void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, complex* in, const RadialFunctionG& f);
 #endif
 
-DataGptr operator*(const RadialFunctionG& f, DataGptr&& in)
+ScalarFieldTilde operator*(const RadialFunctionG& f, ScalarFieldTilde&& in)
 {	const GridInfo& gInfo = in->gInfo;
 	#ifdef GPU_ENABLED
 	radialFunctionMultiply_gpu(gInfo.S, gInfo.GGT, in->dataGpu(), f);
@@ -262,18 +262,18 @@ DataGptr operator*(const RadialFunctionG& f, DataGptr&& in)
 	return in;
 }
 
-DataGptr operator*(const RadialFunctionG& f, const DataGptr& in)
-{	DataGptr out(in->clone()); //destructible copy
-	return f * ((DataGptr&&)out);
+ScalarFieldTilde operator*(const RadialFunctionG& f, const ScalarFieldTilde& in)
+{	ScalarFieldTilde out(in->clone()); //destructible copy
+	return f * ((ScalarFieldTilde&&)out);
 }
 
-DataGptrVec operator*(const RadialFunctionG& f, DataGptrVec&& in)
-{	for(int k=0; k<3; k++) in[k] = f * (DataGptr&&)in[k];
+VectorFieldTilde operator*(const RadialFunctionG& f, VectorFieldTilde&& in)
+{	for(int k=0; k<3; k++) in[k] = f * (ScalarFieldTilde&&)in[k];
 	return in;
 }
 
-DataGptrVec operator*(const RadialFunctionG& f, const DataGptrVec& in)
-{	DataGptrVec out;
+VectorFieldTilde operator*(const RadialFunctionG& f, const VectorFieldTilde& in)
+{	VectorFieldTilde out;
 	for(int k=0; k<3; k++) out[k] = f * in[k];
 	return out;
 }
@@ -281,8 +281,8 @@ DataGptrVec operator*(const RadialFunctionG& f, const DataGptrVec& in)
 
 //------------------------------ ColumnBundle operators ---------------------------------
 
-void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const DataRptrCollection* V, ColumnBundle* VC)
-{	const DataRptr& Vs = V->at(V->size()==1 ? 0 : C->qnum->index());
+void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarFieldArray* V, ColumnBundle* VC)
+{	const ScalarField& Vs = V->at(V->size()==1 ? 0 : C->qnum->index());
 	int nSpinor = VC->spinorLength();
 	for(int col=colStart; col<colEnd; col++)
 		for(int s=0; s<nSpinor; s++)
@@ -290,27 +290,27 @@ void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const Dat
 }
 
 //Noncollinear version of above (with the preprocessing of complex off-diagonal potentials done in calling function)
-void Idag_DiagVmat_I_sub(int colStart, int colEnd, const ColumnBundle* C, const DataRptr* Vup, const DataRptr* Vdn,
-	const complexDataRptr* VupDn, const complexDataRptr* VdnUp, ColumnBundle* VC)
+void Idag_DiagVmat_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarField* Vup, const ScalarField* Vdn,
+	const complexScalarField* VupDn, const complexScalarField* VdnUp, ColumnBundle* VC)
 {	for(int col=colStart; col<colEnd; col++)
-	{	complexDataRptr ICup = I(C->getColumn(col,0));
-		complexDataRptr ICdn = I(C->getColumn(col,1));
+	{	complexScalarField ICup = I(C->getColumn(col,0));
+		complexScalarField ICdn = I(C->getColumn(col,1));
 		VC->setColumn(col,0, Idag((*Vup)*ICup + (*VupDn)*ICdn));
 		VC->setColumn(col,1, Idag((*Vdn)*ICdn + (*VdnUp)*ICup));
 	}
 	
 }
 
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptrCollection& V)
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
 	ColumnBundle VC = C.similar();
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
-	DataRptrCollection Vtmp;
+	ScalarFieldArray Vtmp;
 	if(&(V[0]->gInfo) != &gInfoWfns)
-		for(const DataRptr& Vs: V)
+		for(const ScalarField& Vs: V)
 			Vtmp.push_back(Jdag(changeGrid(Idag(Vs), gInfoWfns), true));
-	const DataRptrCollection& Vwfns = Vtmp.size() ? Vtmp : V;
+	const ScalarFieldArray& Vwfns = Vtmp.size() ? Vtmp : V;
 	assert(Vwfns.size()==1 || Vwfns.size()==2 || Vwfns.size()==4);
 	if(Vwfns.size()==2) assert(!C.isSpinor());
 	if(Vwfns.size()==1 || Vwfns.size()==2)
@@ -318,8 +318,8 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const DataRptrCollection& V)
 	}
 	else //Vwfns.size()==4
 	{	assert(C.isSpinor());
-		complexDataRptr VupDn = 0.5*Complex(Vwfns[2], Vwfns[3]);
-		complexDataRptr VdnUp = conj(VupDn);
+		complexScalarField VupDn = 0.5*Complex(Vwfns[2], Vwfns[3]);
+		complexScalarField VdnUp = conj(VupDn);
 		threadLaunch(isGpuEnabled()?1:0, Idag_DiagVmat_I_sub, C.nCols(), &C, &Vwfns[0], &Vwfns[1], &VupDn, &VdnUp, &VC);
 	}
 	watch.stop();
@@ -544,13 +544,13 @@ complex traceinner(const diagMatrix &F, const ColumnBundle &X, const ColumnBundl
 }
 
 // Compute the density from a subset of columns of a ColumnBundle
-void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *X, std::vector<DataRptrCollection>* nSub)
+void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *X, std::vector<ScalarFieldArray>* nSub)
 {
 	//Determine column range:
 	int colStart = (( iThread ) * X->nCols())/nThreads;
 	int colStop  = ((iThread+1) * X->nCols())/nThreads;
 	
-	DataRptrCollection& nLocal = (*nSub)[iThread];
+	ScalarFieldArray& nLocal = (*nSub)[iThread];
 	nullToZero(nLocal, *(X->basis->gInfo)); //sets to zero
 	int nDensities = nLocal.size();
 	if(nDensities==1) //Note that nDensities==2 below will also enter this branch sinc eonly one component is non-zero
@@ -561,8 +561,8 @@ void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const Column
 	}
 	else //nDensities==4 (ensured by assertions in launching function below)
 	{	for(int i=colStart; i<colStop; i++)
-		{	complexDataRptr psiUp = I(X->getColumn(i,0));
-			complexDataRptr psiDn = I(X->getColumn(i,1));
+		{	complexScalarField psiUp = I(X->getColumn(i,0));
+			complexScalarField psiDn = I(X->getColumn(i,1));
 			callPref(eblas_accumNorm)(X->basis->gInfo->nr, (*F)[i], psiUp->dataPref(), nLocal[0]->dataPref()); //UpUp
 			callPref(eblas_accumNorm)(X->basis->gInfo->nr, (*F)[i], psiDn->dataPref(), nLocal[1]->dataPref()); //DnDn
 			callPref(eblas_accumProd)(X->basis->gInfo->nr, (*F)[i], psiUp->dataPref(), psiDn->dataPref(), nLocal[2]->dataPref(), nLocal[3]->dataPref()); //Re and Im parts of UpDn
@@ -571,7 +571,7 @@ void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const Column
 }
 
 // Collect all contributions from nSub into the first entry
-void diagouterI_collect(size_t iStart, size_t iStop, std::vector<DataRptrCollection>* nSub)
+void diagouterI_collect(size_t iStart, size_t iStop, std::vector<ScalarFieldArray>* nSub)
 {	assert(!isGpuEnabled()); // this is needed and should be called only in CPU mode
 	for(size_t s=0; s<(*nSub)[0].size(); s++)
 	{	//Get the data pointers for each piece in nSub:
@@ -587,7 +587,7 @@ void diagouterI_collect(size_t iStart, size_t iStop, std::vector<DataRptrCollect
 }
 
 // Returns diag((I*X)*F*(I*X)^) where X^ is the hermetian adjoint of X.
-DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDensities, const GridInfo* gInfoOut)
+ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDensities, const GridInfo* gInfoOut)
 {	static StopWatch watch("diagouterI"); watch.start();
 	//Check sizes:
 	assert(F.nRows()==X.nCols());
@@ -597,7 +597,7 @@ DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nD
 	
 	//Collect the contributions for different sets of columns in separate scalar fields (one per thread):
 	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
-	std::vector<DataRptrCollection> nSub(nThreads, DataRptrCollection(nDensities==2 ? 1 : nDensities)); //collinear spin-polarized will have only one non-zero output channel
+	std::vector<ScalarFieldArray> nSub(nThreads, ScalarFieldArray(nDensities==2 ? 1 : nDensities)); //collinear spin-polarized will have only one non-zero output channel
 	threadLaunch(nThreads, diagouterI_sub, 0, &F, &X, &nSub);
 
 	//If more than one thread, accumulate all vectors in nSub into the first:
@@ -606,7 +606,7 @@ DataRptrCollection diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nD
 	
 	//Change grid if necessary:
 	if(gInfoOut && (X.basis->gInfo!=gInfoOut))
-		for(DataRptr& nSub0s: nSub[0])
+		for(ScalarField& nSub0s: nSub[0])
 			nSub0s = changeGrid(nSub0s, *gInfoOut);
 	
 	//Correct the location of the single non-zero channel of collinear spin-polarized densities:

@@ -82,19 +82,19 @@ Fex_H2O_FittedCorrelations::~Fex_H2O_FittedCorrelations()
 void Fex_H20_FittedCorrelations_gpu(int nr, const double* NObar, const double* NHbar,
 	double* Fex, double* Phi_NObar, double* Phi_NHbar);
 #endif
-double Fex_H2O_FittedCorrelations::compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const
+double Fex_H2O_FittedCorrelations::compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const
 {	double PhiEx = 0.0;
 	//Quadratic part:
-	DataGptr V_O = double(gInfo.nr)*(COO*Ntilde[0] + COH*Ntilde[1]); Phi_Ntilde[0] += V_O;
-	DataGptr V_H = double(gInfo.nr)*(COH*Ntilde[0] + CHH*Ntilde[1]); Phi_Ntilde[1] += V_H;
+	ScalarFieldTilde V_O = double(gInfo.nr)*(COO*Ntilde[0] + COH*Ntilde[1]); Phi_Ntilde[0] += V_O;
+	ScalarFieldTilde V_H = double(gInfo.nr)*(COH*Ntilde[0] + CHH*Ntilde[1]); Phi_Ntilde[1] += V_H;
 	PhiEx += 0.5*gInfo.dV*(dot(V_O,Ntilde[0]) + dot(V_H,Ntilde[1]));
 
 	//Compute gaussian weighted densities:
-	DataRptr NObar = I(fex_gauss*Ntilde[0]), Phi_NObar; nullToZero(Phi_NObar, gInfo);
-	DataRptr NHbar = I(fex_gauss*Ntilde[1]), Phi_NHbar; nullToZero(Phi_NHbar, gInfo);
+	ScalarField NObar = I(fex_gauss*Ntilde[0]), Phi_NObar; nullToZero(Phi_NObar, gInfo);
+	ScalarField NHbar = I(fex_gauss*Ntilde[1]), Phi_NHbar; nullToZero(Phi_NHbar, gInfo);
 	//Evaluated weighted density functional:
 	#ifdef GPU_ENABLED
-	DataRptr fex(DataR::alloc(gInfo,isGpuEnabled()));
+	ScalarField fex(ScalarFieldData::alloc(gInfo,isGpuEnabled()));
 	Fex_H20_FittedCorrelations_gpu(gInfo.nr, NObar->dataGpu(), NHbar->dataGpu(),
 		 fex->dataGpu(), Phi_NObar->dataGpu(), Phi_NHbar->dataGpu());
 	PhiEx += integral(fex);

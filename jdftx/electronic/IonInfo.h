@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/IonicMinimizer.h>
 #include <electronic/matrix.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <vector>
 #include <core/Thread.h>
 
@@ -57,11 +57,11 @@ public:
 	
 	IonicGradient forces; //!< forces at current atomic positions
 	
-	DataGptr Vlocps; //!< Net local pseudopotential
-	DataGptr rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)
-	DataGptr nChargeball; //!< Extra electron density around ionic cores to keep fluid out (DEPRECATED)
-	DataRptr nCore; //!< Core electron density for partial (nonlinear) core correction
-	DataRptr tauCore; //!< Model for the KE density of the core (TF+vW applied to nCore) (used by meta-GGAs)
+	ScalarFieldTilde Vlocps; //!< Net local pseudopotential
+	ScalarFieldTilde rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)
+	ScalarFieldTilde nChargeball; //!< Extra electron density around ionic cores to keep fluid out (DEPRECATED)
+	ScalarField nCore; //!< Core electron density for partial (nonlinear) core correction
+	ScalarField tauCore; //!< Model for the KE density of the core (TF+vW applied to nCore) (used by meta-GGAs)
 	
 	IonInfo();
 	
@@ -86,8 +86,8 @@ public:
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const;
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const;
-	void augmentDensityGrid(DataRptrCollection& n) const;
-	void augmentDensityGridGrad(const DataRptrCollection& E_n, IonicGradient* forces=0) const;
+	void augmentDensityGrid(ScalarFieldArray& n) const;
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const;
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)

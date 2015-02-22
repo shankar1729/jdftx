@@ -165,17 +165,17 @@ void FluidMixture::addFmix(const Fmix* fmix)
 
 void FluidMixture::initState(double scale, double Elo, double Ehi)
 {	//Compute the effective nonlinear coupling potential for the uniform fluid:
-	DataRptrCollection Vex(nDensities);
+	ScalarFieldArray Vex(nDensities);
 	{	//Get the uniform fluid site densities:
 		std::vector<double> Nbulk(nDensities);
 		for(const FluidComponent* c: component)
 			for(unsigned i=0; i<c->molecule.sites.size(); i++)
 				Nbulk[c->offsetDensity + i] = c->idealGas->get_Nbulk() * c->molecule.sites[i]->positions.size();
-		DataGptrCollection Ntilde(nDensities);
+		ScalarFieldTildeArray Ntilde(nDensities);
 		nullToZero(Ntilde, gInfo);
 		for(unsigned i=0; i<nDensities; i++) Ntilde[i]->setGzero(Nbulk[i]);
 		//Set Vex to the difference between the potentials returned by Fmix::compute() and Fmix::computeUniform():
-		DataGptrCollection Phi_Ntilde(nDensities);
+		ScalarFieldTildeArray Phi_Ntilde(nDensities);
 		std::vector<double> Phi_Nbulk(nDensities);
 		for(const Fmix* fmix: fmixArr)
 		{	fmix->compute(Ntilde, Phi_Ntilde);
@@ -185,7 +185,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 			if(Phi_Ntilde[i]) Vex[i] = Jdag(Phi_Ntilde[i]) - Phi_Nbulk[i];
 		//Add electrostatic coupling:
 		if(rhoExternal)
-		{	DataGptr dExternal = coulomb(rhoExternal);
+		{	ScalarFieldTilde dExternal = coulomb(rhoExternal);
 			for(const FluidComponent* c: component)
 				for(unsigned i=0; i<c->molecule.sites.size(); i++)
 				{	const Molecule::Site& s = *(c->molecule.sites[i]);
@@ -202,10 +202,10 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 	
 	//Guess polarizability independent variables:
 	if(polarizable)
-	{	DataGptr rhoTot; vector3<> Prot0; double epsInf=1.;
+	{	ScalarFieldTilde rhoTot; vector3<> Prot0; double epsInf=1.;
 		for(unsigned ic=0; ic<component.size(); ic++)
 		{	const FluidComponent& c = *(component[ic]);
-			DataRptrCollection N(c.molecule.sites.size()); vector3<> P0c;
+			ScalarFieldArray N(c.molecule.sites.size()); vector3<> P0c;
 			c.idealGas->getDensities(&state[c.offsetIndep], &N[0], P0c);
 			Prot0 += P0c;
 			for(unsigned i=0; i<c.molecule.sites.size(); i++)
@@ -217,7 +217,7 @@ void FluidMixture::initState(double scale, double Elo, double Ehi)
 				epsInf += 4*M_PI * (integral(N[i])/gInfo.detR) * Cpol * s.alpha;
 			}
 		}
-		DataGptrVec epsMF = gradient((-1./epsInf)*coulomb(rhoTot));
+		VectorFieldTilde epsMF = gradient((-1./epsInf)*coulomb(rhoTot));
 		vector3<> epsMF0 = (Eexternal - 4*M_PI*Prot0)/epsInf;
 		for(int k=0; k<3; k++) state[nIndepIdgas+k] = I(epsMF[k]) + epsMF0[k];
 	}
@@ -233,30 +233,30 @@ void FluidMixture::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) saveToFile(state, filename);
 }
 
-FluidMixture::Outputs::Outputs(DataRptrCollection* N, vector3<>* electricP,
-	DataGptr* Phi_rhoExternal, DataRptrCollection* psiEff, EnergyComponents* Phi)
+FluidMixture::Outputs::Outputs(ScalarFieldArray* N, vector3<>* electricP,
+	ScalarFieldTilde* Phi_rhoExternal, ScalarFieldArray* psiEff, EnergyComponents* Phi)
 :N(N),electricP(electricP),Phi_rhoExternal(Phi_rhoExternal),psiEff(psiEff),Phi(Phi)
 {
 }
 
 double FluidMixture::getFreeEnergy(Outputs outputs) const
-{	DataRptrCollection Phi_state;
+{	ScalarFieldArray Phi_state;
 	return (*this)(state, Phi_state, outputs);
 	//calls operator() and provides whichever outputs are requested
 	//before calling must create an Outputs structure with the required quantities allocated.
 }
 
-void FluidMixture::step(const DataRptrCollection& dir, double alpha)
+void FluidMixture::step(const ScalarFieldArray& dir, double alpha)
 {	axpy(alpha, dir, state);
 }
 
-double FluidMixture::compute(DataRptrCollection* grad)
-{	DataRptrCollection tempGrad;
+double FluidMixture::compute(ScalarFieldArray* grad)
+{	ScalarFieldArray tempGrad;
 	return (*this)(state, grad ? *grad : tempGrad, Outputs());
 }
 
-DataRptrCollection FluidMixture::precondition(const DataRptrCollection& grad)
-{	DataRptrCollection Kgrad(get_nIndep());
+ScalarFieldArray FluidMixture::precondition(const ScalarFieldArray& grad)
+{	ScalarFieldArray Kgrad(get_nIndep());
 	for(unsigned ic=0; ic<component.size(); ic++)
 	{	const FluidComponent& c = *component[ic];
 		for(unsigned k=c.offsetIndep; k<c.offsetIndep+c.idealGas->nIndep; k++)

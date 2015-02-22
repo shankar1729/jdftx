@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <core/vector3.h>
-#include <core/DataMultiplet.h>
+#include <core/VectorField.h>
 
 class Vibrations
 {
@@ -44,7 +44,7 @@ private:
 	Everything* e;
 	vector3<> getSplit() const; //get optimum latttice coordinates for splitting periodicity in a molecular geometry
 	IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
-	DataRptrVec Ptest; //vector field that measures dipole moment in lattice coordinates
+	VectorField Ptest; //vector field that measures dipole moment in lattice coordinates
 	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
 };
 

@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <fluid/FluidSolver.h>
 #include <core/Random.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <ctime>
 #include <electronic/SCF.h>
 

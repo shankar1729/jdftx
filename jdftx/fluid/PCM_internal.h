@@ -33,21 +33,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 namespace ShapeFunction
 {
 	//! Compute the shape function (0 to 1) given the cavity-determining electron density
-	void compute(const DataRptr& n, DataRptr& shape, double nc, double sigma);
+	void compute(const ScalarField& n, ScalarField& shape, double nc, double sigma);
 
 	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density (accumulate to E_n)
-	void propagateGradient(const DataRptr& n, const DataRptr& E_shape, DataRptr& E_n, double nc, double sigma);
+	void propagateGradient(const ScalarField& n, const ScalarField& E_shape, ScalarField& E_n, double nc, double sigma);
 	
 	//! Compute shape function that includes charge asymmetry from cavity-determining electron density and vacuum electric potential
-	void compute(const DataRptr& n, const DataGptr& phi,
-		DataRptr& shape, double nc, double sigma, double pCavity);
+	void compute(const ScalarField& n, const ScalarFieldTilde& phi,
+		ScalarField& shape, double nc, double sigma, double pCavity);
 	
 	//! Propagate gradients w.r.t shape function to n, phi and pCavity (accumulate to E_n, E_phi, E_pCavity)
-	void propagateGradient(const DataRptr& n, const DataGptr& phi, const DataRptr& E_shape,
-		DataRptr& E_n, DataGptr& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
+	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
+		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
 	
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
-	void expandDensity(const RadialFunctionG& w, double R, const DataRptr& n, DataRptr& nEx, const DataRptr* A_nEx=0, DataRptr* A_n=0);
+	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
 }
 #endif
 
@@ -132,8 +132,8 @@ namespace NonlinearPCMeval
 		
 		#ifndef __in_a_cu_file__
 		//! Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives
-		inline double neutralityConstraint(const DataRptr& muPlus, const DataRptr& muMinus, const DataRptr& shape, double Qexp,
-			DataRptr* mu0_muPlus=0, DataRptr* mu0_muMinus=0, DataRptr* mu0_shape=0, double* mu0_Qexp=0)
+		inline double neutralityConstraint(const ScalarField& muPlus, const ScalarField& muMinus, const ScalarField& shape, double Qexp,
+			ScalarField* mu0_muPlus=0, ScalarField* mu0_muMinus=0, ScalarField* mu0_shape=0, double* mu0_Qexp=0)
 		{
 			if(linear)
 			{	double Qsum = NZ * 2.*integral(shape);
@@ -150,8 +150,8 @@ namespace NonlinearPCMeval
 				return mu0;
 			}
 			else
-			{	DataRptr etaPlus  = exp(muPlus);
-				DataRptr etaMinus = exp(-muMinus);
+			{	ScalarField etaPlus  = exp(muPlus);
+				ScalarField etaMinus = exp(-muMinus);
 				double Qplus  = +NZ * integral(shape * etaPlus);
 				double Qminus = -NZ * integral(shape * etaMinus);
 				//Compute the constraint function and its derivatives w.r.t above moments:

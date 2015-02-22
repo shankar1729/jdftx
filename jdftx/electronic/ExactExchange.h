@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_EXACTEXCHANGE_H
 
 #include <electronic/common.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <vector>
 
 class ExactExchange

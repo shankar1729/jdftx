@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 
 	//------ Outputs ---------
 	fluidMixture.minimize(mp);
-	DataRptrCollection N, psiEff;
+	ScalarFieldArray N, psiEff;
 	fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, 0, shouldInit?&psiEff:0));
 	if(shouldInit)
 	{	saveDX(N[0], "init.NO");

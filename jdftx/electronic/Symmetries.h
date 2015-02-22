@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <core/matrix3.h>
-#include <core/Data.h>
+#include <core/ScalarField.h>
 #include <vector>
 #include <list>
 
@@ -42,7 +42,7 @@ public:
 	//! Reduce a k-point mesh (and remember its inversion symmetry property in kpointInvertList)
 	std::vector<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
-	void symmetrize(DataRptr&) const; //!< symmetrize a scalar field
+	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)

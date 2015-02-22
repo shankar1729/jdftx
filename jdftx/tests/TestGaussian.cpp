@@ -68,7 +68,7 @@ struct TestGaussian
 		fluidMixture.state[0]->data()[0] = 9;
 		fluidMixture.verboseLog = true;
 		//Evaluate:
-		DataRptrCollection N;
+		ScalarFieldArray N;
 		double Phi = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
 		logPrintf("Phi = %25.16lf, integral(N)=%25.16lf\n", Phi, integral(N[0]));
 		saveRawBinary(N[0], "TestGaussian.N");
@@ -120,7 +120,7 @@ struct TestGaussian
 				logPrintf("Starting CG:\n");
 				TIME("minimize", globalLog, fluidMixture.minimize(mp); );
 
-				DataRptrCollection N;
+				ScalarFieldArray N;
 				double Omega;
 				TIME("getOmega calculation (with gradient)", globalLog,
 					Omega = fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N));
@@ -128,12 +128,12 @@ struct TestGaussian
 
 				fprintf(fplog,"Width: %10.6le depth: %10.6le Omega: %10.6le\n",width, depth, Omega);
 
-//				DataRptr saveR[2] = {n.O(), n.H()};
+//				ScalarField saveR[2] = {n.O(), n.H()};
 //				char filename[256];
 //				sprintf(filename, "%s/testGaussian%s_nO", runFolder, runNameSuffix); saveDX(n.O(), filename);
 //				sprintf(filename, "%s/testGaussian%s_nH", runFolder, runNameSuffix); saveDX(n.H(), filename);
 //				sprintf(filename, "%s/testGaussian%s_n.spherical", runFolder, runNameSuffix); saveSphericalized(saveR, 2, filename, 0.25);
-//				DataRptr saveR2[2] = {fex.phiOH.O(), fex.phiOH.H()};
+//				ScalarField saveR2[2] = {fex.phiOH.O(), fex.phiOH.H()};
 //				sprintf(filename, "%s/testGaussian%s_phi.spherical", runFolder, runNameSuffix); saveSphericalized(saveR2, 2, filename, 0.25);
 //				water.saveState(stateFilename);
 			}

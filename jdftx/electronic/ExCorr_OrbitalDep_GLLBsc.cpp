@@ -65,9 +65,9 @@ std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 	}
 }
 
-DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential() const
+ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential() const
 {	int nSpins = e.eVars.n.size();
-	if(!e.eVars.Hsub_eigs[e.eInfo.qStart].size()) return DataRptrCollection(nSpins); //no eigenvalues yet
+	if(!e.eVars.Hsub_eigs[e.eInfo.qStart].size()) return ScalarFieldArray(nSpins); //no eigenvalues yet
 	std::vector<double> eHOMO = getExtremalEnergy(true);
 	return getPotential(eHOMO);
 }
@@ -84,7 +84,7 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 		{	logPrintf("OrbitalDep dump: (GLLBsc) No unoccupied states in the calculation; can't determine discontinuity potential.\n");
 			return;
 		}
-	DataRptrCollection VsclocDisc(nSpins);
+	ScalarFieldArray VsclocDisc(nSpins);
 	if(e.cntrl.fixed_H)
 	{	assert(e.eVars.VFilenamePattern.length());
 		for(int s=0; s<nSpins; s++)
@@ -102,7 +102,7 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	}
 	else
 	{	VsclocDisc = getPotential(eHOMO, &eLUMO);
-		for(DataRptr& V: VsclocDisc) V = JdagOJ(V); //include the dV factor (like Vscloc)
+		for(ScalarField& V: VsclocDisc) V = JdagOJ(V); //include the dV factor (like Vscloc)
 		#define StartDump(prefix) \
 			string fname = e.dump.getFilename(prefix); \
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
@@ -171,10 +171,10 @@ double smoothedSqrt(double de, double T)
 	else return sqrt(std::max(0., de));
 }
 
-DataRptrCollection ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO) const
+ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO) const
 {	int nSpins = eHOMO.size();
 	const double Kx = 8*sqrt(2)/(3*M_PI*M_PI);
-	DataRptrCollection V(nSpins);
+	ScalarFieldArray V(nSpins);
 	e.iInfo.augmentDensityInit();
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	const QuantumNumber& qnum = e.eInfo.qnums[q];

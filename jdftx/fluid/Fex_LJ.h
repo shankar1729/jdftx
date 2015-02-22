@@ -40,7 +40,7 @@ public:
   Fex_LJ(const FluidMixture*, const FluidComponent*, double eps, double sigmaOverride = 0.0);
     virtual ~Fex_LJ();
 	
-	double compute(const DataGptr* Ntilde, DataGptr* Phi_Ntilde) const;
+	double compute(const ScalarFieldTilde* Ntilde, ScalarFieldTilde* Phi_Ntilde) const;
 	double computeUniform(const double* N, double* Phi_N) const;
 private:
 	friend class Fmix_LJ; //allow Fmix_LJ to peek at eps and sigma to select coupling parameters
@@ -58,7 +58,7 @@ public:
 	virtual ~Fmix_LJ();
 	string getName() const;
 
-	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
+	double compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const;
 	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
 private:
 	std::shared_ptr<FluidComponent> fluid1, fluid2;
@@ -76,7 +76,7 @@ public:
 	virtual ~Fmix_GaussianKernel();
 	string getName() const;
 
-	double compute(const DataGptrCollection& Ntilde, DataGptrCollection& Phi_Ntilde) const;
+	double compute(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray& Phi_Ntilde) const;
 	double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const;
 private:
 	std::shared_ptr<FluidComponent> fluid1, fluid2;

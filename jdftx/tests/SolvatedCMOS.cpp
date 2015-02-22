@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 	fluidMixture.initialize(p);
 
 	//Set semiconductor properties:
-	DataRptr rhoDopantBG, rhoBuiltin;
+	ScalarField rhoDopantBG, rhoBuiltin;
 	{	logPrintf("Initializing semiconductor:\n");
 		//Figure out bulk concentrations of majority and minority carriers:
 		double Nmajor = 0.5*(fabs(Ndope) +  sqrt(pow(Ndope,2) + 4*pow(Nintrinsic,2)));
@@ -129,13 +129,13 @@ int main(int argc, char** argv)
 
 		//Handle built-in potential:
 		double sigmaBuiltin = Vbuiltin/(4*M_PI*Lox1);
-		DataRptr rhoSheet; initZero(rhoSheet, gInfo);
+		ScalarField rhoSheet; initZero(rhoSheet, gInfo);
 		rhoSheet->data()[0] = sigmaBuiltin/hGrid;
 		RealKernel gauss(gInfo); initGaussianKernel(gauss, 0.5*Angstrom);
-		DataGptr transFG1(DataG::alloc(gInfo)); initTranslation(transFG1, vector3<>(0,0,zEnd+z_Ox1_Ox2));
-		DataGptr transFG2(DataG::alloc(gInfo)); initTranslation(transFG2, vector3<>(0,0,zEnd-z_Ox1_Ox2));
-		DataGptr transSubs1(DataG::alloc(gInfo)); initTranslation(transSubs1, vector3<>(0,0,zEnd+z_Si_Ox1));
-		DataGptr transSubs2(DataG::alloc(gInfo)); initTranslation(transSubs2, vector3<>(0,0,zEnd-z_Si_Ox1));
+		ScalarFieldTilde transFG1(ScalarFieldTildeData::alloc(gInfo)); initTranslation(transFG1, vector3<>(0,0,zEnd+z_Ox1_Ox2));
+		ScalarFieldTilde transFG2(ScalarFieldTildeData::alloc(gInfo)); initTranslation(transFG2, vector3<>(0,0,zEnd-z_Ox1_Ox2));
+		ScalarFieldTilde transSubs1(ScalarFieldTildeData::alloc(gInfo)); initTranslation(transSubs1, vector3<>(0,0,zEnd+z_Si_Ox1));
+		ScalarFieldTilde transSubs2(ScalarFieldTildeData::alloc(gInfo)); initTranslation(transSubs2, vector3<>(0,0,zEnd-z_Si_Ox1));
 		rhoBuiltin = I((transSubs1*0.0+transSubs2*0.0-transFG1-transFG2)*(gauss*J(rhoSheet)));
 	}
 
@@ -151,12 +151,12 @@ int main(int argc, char** argv)
 		componentHoles->idealGas->V[0]->data(), componentElectrons->idealGas->V[0]->data() );
 
 	//----- Initialize external charge -----
-	DataRptr rhoFloatingGate;
-	{	DataRptr rhoFGsingle; initZero(rhoFGsingle, gInfo);
+	ScalarField rhoFloatingGate;
+	{	ScalarField rhoFGsingle; initZero(rhoFGsingle, gInfo);
 		rhoFGsingle->data()[0] = sigmaFG/hGrid; //sheet charge at z=0
 		RealKernel gauss(gInfo); initGaussianKernel(gauss, 0.5*Angstrom);
-		DataGptr trans1(DataG::alloc(gInfo)); initTranslation(trans1, vector3<>(0,0,zEnd+z_Ox1_Ox2));
-		DataGptr trans2(DataG::alloc(gInfo)); initTranslation(trans2, vector3<>(0,0,zEnd-z_Ox1_Ox2));
+		ScalarFieldTilde trans1(ScalarFieldTildeData::alloc(gInfo)); initTranslation(trans1, vector3<>(0,0,zEnd+z_Ox1_Ox2));
+		ScalarFieldTilde trans2(ScalarFieldTildeData::alloc(gInfo)); initTranslation(trans2, vector3<>(0,0,zEnd-z_Ox1_Ox2));
 		rhoFloatingGate = I(gauss*(trans1+trans2)*J(rhoFGsingle));
 	}
 
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
 		fluidMixture.minimize(mp);
 	);
 
-	DataRptrCollection N; DataGptr grad_rhoExternalTilde;
+	ScalarFieldArray N; ScalarFieldTilde grad_rhoExternalTilde;
 	TIME("getFreeEnergy", globalLog,
 		fluidMixture.getFreeEnergy(FluidMixture::Outputs(&N, 0, &grad_rhoExternalTilde));
 	);
@@ -196,8 +196,8 @@ int main(int argc, char** argv)
 			N[c.offsetDensity+j] *= 1./(Nbulk * c.molecule.sites[j]->positions.size());
 	}
 
-	DataRptr dtot = I(grad_rhoExternalTilde - 4*M_PI*Linv(O(fluidMixture.rhoExternal)));
-	DataRptr dtotNoGzero = dtot - integral(dtot)/gInfo.detR;
+	ScalarField dtot = I(grad_rhoExternalTilde - 4*M_PI*Linv(O(fluidMixture.rhoExternal)));
+	ScalarField dtotNoGzero = dtot - integral(dtot)/gInfo.detR;
 	FILE* fp = fopen("SolvatedCMOS.N", "w");
 	for(int i=0; i<gInfo.nr; i++)
 	{	fprintf(fp, "%le", hGrid*i/Angstrom);
