@@ -1,10 +1,12 @@
-/** \mainpage JDFTx
+/** \mainpage 
 
 \tableofcontents
 
 + \subpage Introduction
 + \subpage Compiling
-+ \subpage Running
++ \subpage Tutorials
++ \subpage Commands
 + \subpage Interfacing 
++ \subpage Resources
 + \subpage DevelopersGuide
 */

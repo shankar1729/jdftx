@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 // Doxygen documentation header
 
-/**
+/** 
 
 @defgroup so3quad Quadratures for SO(3)/Z2 integration
 @defgroup parallel Parallelization utilities
