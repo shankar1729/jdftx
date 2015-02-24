@@ -1,0 +1,7 @@
+//------------- Define grouping for code documentation ----------------
+/** 
+@defgroup so3quad Quadratures for SO(3)/Z2 integration
+@defgroup parallel Parallelization utilities
+@defgroup griddata Simulation grid and data management
+@defgroup optimization Optimization algorithms
+*/
