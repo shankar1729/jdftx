@@ -1,0 +1,11 @@
+/** \page Links Links
+
++ Pseudopotential generators
+
+    - [Opium](http://opium.sourceforge.net) generates norm-conserving Kleinman-Bylander pseudopotentials. The ABINIT .fhi format file produced by this program is supported by JDFTx.
+
+    - [USPP](http://www.physics.rutgers.edu/~dhv/uspp) generates ultrasoft pseudopotentials. The fortran sequential binary .uspp format files produced by the code are supported by JDFTx. However, since the sequential binary format is dependent on the fortran compiler, usage of these files requires specification of the lengths in bytes of the start and stop markers (defaults to 4 and 4, which is compatible with gfortran). See the documentation of command *ion-species* in the output of **jdftx -t**.
+
++ [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc) is a library of exchange and correlation functionals for density functional theory. JDFTx will use it to provide more exchange-correlation options if available at the time of compilation. All the functionals implemented internally in JDFTx have been verified to be numerically compatible (to almost double precision) with those in LibXC for the purposes of standardization.
+
+*/

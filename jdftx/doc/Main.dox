@@ -1,0 +1,100 @@
+/** \mainpage
+
+\tableofcontents
+
+Introduction
+------------
+
+JDFTx is a plane-wave density functional code designed for Joint Density %Functional Theory (JDFT),
+a framework for *ab initio* calculations of electronic systems in contact with liquid environments.
+It is distributed under the [GPL](http://www.gnu.org/licenses/gpl.html) license (version 3 or higher)
+and publications resulting from its use must cite the following:
+
++ The code itself:
+    - R. Sundararaman, D. Gunceler, K. Letchworth-Weaver and T.A. Arias, *JDFTx*, available from http://jdftx.sourceforge.net (2012)
+
++ The algebraic framework on which the software is based: 
+    - S. Ismail-Beigi and T.A. Arias, <a href="http://dx.doi.org/10.1016/S0010-4655(00)00072-2"> *Computer Physics Communications* **128**, 1 (2000)</a>
+
++ The core algorithm employed in the electronic structure components of the software: 
+    - T.A. Arias, M.C. Payne and J.D. Joannopoulos, <a href="http://prl.aps.org/abstract/PRL/v69/i7/p1077_1"> *Physical Review Letters* **69**, 1077 (1992)</a>
+
+For any given calculation, JDFTx prints out a list of relevant citations for optional features of the code used in that run.
+This output appears at the end of initialization just before the first electronic solve starts.
+
+JDFTx evolved from an earlier in-house research code in the [Arias research group](http://people.ccmr.cornell.edu/~muchomas) at Cornell called DFT++,
+but at this point has been almost entirely rewritten in a modern object oriented framework taking advantage of C++11 for expressive code with advanced memory management,
+and CUDA for leveraging the computational power of GPUs. See [Compiling] for details on unlocking various features.
+
+Unlike most other electronic structure codes, JDFTx performs total energy minimization using analytically continued energy functionals
+implemented within the algebraic formulation described in the above references, rather than density-mixing SCF schemes.
+Hence our motto "Our SCF never diverges, because we don't do SCF".
+This might be advantageous for vanilla DFT calculations in some cases (try your problematic systems out!),
+but it is quite important for reliable convergence in the presence of liquids, particularly with charged systems.
+
+The framework of Joint Density functional theory is described in:
+
++ S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, [*J Phys Chem B.* **109**, 15436 (2005)](http://pubs.acs.org/doi/abs/10.1021/jp044822k)
+
+which should be cited for work using any of the fluid models.
+A polarizable continuum-like solvation approach which replaces the fluid by a local dielectric response is also described in that paper.
+The capability for handling charged systems and absolute voltage references for electrochemistry is added by incorporating ionic screening in the fluid according to:
+
++ K. Letchworth-Weaver and T.A. Arias, [*Phys. Rev. B* **86**, 075140 (2012)](http://prb.aps.org/abstract/PRB/v86/i7/e075140) (fluid "Linear" in the code)
+
+Recently reparametrized versions of the polarizable continuum model which include cavitation and dispersion terms and allow for nonlinear dielectric and ionic response according to
+
++ D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K. Schwarz and T.A. Arias,
+[*Modelling Simul. Mater. Sci. Eng. 21 074005 (2013) doi:10.1088/0965-0393/21/7/074005*](http://iopscience.iop.org/0965-0393/21/7/074005)
+and [*arXiv:1301.6189*](http://arxiv.org/abs/1301.6189) (fluids "LinearPCM" or "NonlinearPCM" in the code)
+
+The full power of Joint Density functional theory is unleashed when the electronic density functional
+is coupled to an explicit classical free energy functional for the fluid.
+The coupling is typically achieved using density-only electronic functionals as described in
+
++ K. Letchworth-Weaver, R. Sundararaman and T.A. Arias, *(under preparation)*
+
+and available functionals for water include
+
++ R. Sundararaman and T.A. Arias,
+[*(Published online, Comp. Phys. Comm.)*](http://www.sciencedirect.com/science/article/pii/S0010465513004062)
+and [*arXiv:1302.0026*](http://arxiv.org/abs/1302.0026) (fluid "ScalarEOS" in the code)
+
++ R. Sundararaman, K. Letchworth-Weaver and T.A. Arias,
+[*J. Chem. Phys.* **137**, 044107 (2012)](http://dx.doi.org/10.1063/1.4737392)
+and [*arXiv:1112.1442*](http://arxiv.org/abs/1112.1442) (fluid "BondedVoids" in the code)
+
++ J. Lischner and T.A. Arias,
+[*J Phys Chem B.* **114**, 1946 (2010)](http://pubs.acs.org/doi/abs/10.1021/jp9012224) (fluid "FittedCorrelations" in the code)
+
+
+JDFTx also incorporates advanced algorithms for converging metallic systems with
+finite temperature Fermi function fillings, critical for the study of electrochemical systems.
+Our implementation extends an analytically continued free energy functional version of the joint orbital and occupation minimization scheme,
+
++ C. Freysoldt, S. Boeck, and J. Neugebauer, [*Phys. Rev. B* **79**, 241103(R) (2009)](http://prb.aps.org/abstract/PRB/v79/i24/e241103),
+
+to include minimization at constant chemical potential.
+
+JDFTx also supports solvating Quantum Monte Carlo (QMC) calculations,
+by producing trial wavefunctions and external potentials for use in the QMC software
+[CASINO](http://www.tcm.phy.cam.ac.uk/~mdt26/casino2_introduction.html), as described in:
+
++ K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig,
+[*Phys. Rev. B* **85**, 201102(R) (2012)](http://link.aps.org/doi/10.1103/PhysRevB.85.201102)
+
+Please check back here (or in the code output after upgrading to the latest version)
+for updates on citations that are under preparation.
+
+-----
+
+<table>
+<tr>
+<td>This material is based upon work supported as part of the Energy Materials Center at Cornell (EMC2),
+an Energy Frontier Research Center funded by the U.S. Department of Energy, Office of Science,
+Office of Basic Energy Sciences under Award Number DE-SC0001086. </td>
+<td> <img src="http://www.emc2.cornell.edu/img/emc2logo.png"/> </td>
+</tr>
+</table>
+
+*/

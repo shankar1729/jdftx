@@ -1,0 +1,41 @@
+/** \page Pseudopotentials Pseudopotentials
+
+Like most other plane-wave codes, JDFTx deals only with the valence electrons.  The effect of core electrons are handled through the use of pseudopotentials.
+
+Currently, three formats of pseudopotentials are supported by JDFTx: ABINIT .fhi format (norm-conserving), Vanderbilt .uspp format (Ultrasoft) and the Quantum Espresso (QE) UPF format (norm-conserving and ultrasoft). The QE UPF files must be of the version 2.0.1 format; older versions may be converted using the upf2upf2 utility in the QE distribution.
+
+Use of reliable, robust and transferable pseudopotentials is an essential part of any density-functional calculation using plane-waves.
+
+Here are some pseudopotential libraries and generators that work with JDFTx:
+
++ **GBRV Library**
+
+  Garrity-Bennett-Rabe-Vanderbilt library is a library of ultrasoft pseudopotentials for most of the periodic table, with the exception of f-block elements.
+  Available at (download .ussp): http://www.physics.rutgers.edu/gbrv/
+  More information available at: http://arxiv.org/pdf/1305.5973v3.pdf
+  <br>
+
++ **Virtual Vault for Pseudopotentials and PAW Datasets**
+
+  NNIN Virtual Vault is a database of pseudopotentials organized by [Derek Stewart](https://sites.google.com/site/dft4nano/) at Cornell Nanoscale Facility: http://nninc.cnf.cornell.edu (The fhi and upf format files may be used)
+  <br>
+
++ **Quantum Espresso pseudopotential library**
+
+  Norm-conserving and ultrasoft UPF pseudopotentials from the [QE collection ](http://www.quantum-espresso.org/pseudopotentials) may be used with JDFTx.
+  <br>
+
++ **Opium Pseudopotential Generator**
+
+  Opium is a code to generate norm-conserving pseudopotentials: http://opium.sourceforge.net/
+  Dump results in .fhi format to use with JDFTx.
+  <br>
+
++ **Bennett & Rappe Pseudopotential Library**
+
+  Bennett & Rappe is a library of norm-conserving pseudopotentials generated with the Opium code.  Available as .fhi files as well as Opium input files (.param).
+  - LDA: http://www.sas.upenn.edu/rappegroup/research/pseudo-potential-lda.html
+  - GGA: http://www.sas.upenn.edu/rappegroup/research/pseudo-potential-gga.html
+  <br>
+
+*/

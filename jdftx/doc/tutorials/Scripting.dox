@@ -1,0 +1,111 @@
+/** \page Scripting Scripting
+
+JDFTx was designed with power users in mind and is packed with many neat features
+that make scripting complex sets of calculations really easy.
+Here we'll discover the flexibility of JDFTx by measuring elasticity (of a solid, not the code).
+
+All previous examples used -i and -o to read commands
+from an input file and log to an output file respectively;
+one or both of these options may be omitted so that
+JDFTx reads from stdin and/or logs to stdout,
+allowing the program to be executed in a pipe.
+
+We can combine this with the [here document](http://tldp.org/LDP/abs/html/here-docs.html)
+feature of bash to extract the energy vs. strain curve of bulk Pt with a very simple script
+(that never writes anything to disk):
+
+    #!/bin/bash
+    JDFTx=/path/to/jdftx  #Reminder: aliases don't work in scripts
+
+    #Loop over strains from -5% to +5%
+    for aScale in {95..105}; do
+
+        #Compute a/2 in bohrs for the stretched lattice:
+        aBy2=$(echo "scale=6; 3.92*$aScale*0.5/(100*0.5291772)" | bc)
+
+        #Print the strain in percent as the first column:
+        echo -n $((aScale-100)), " "
+
+        #Run JDFTx to compute the energy (with input from a here document)
+        #and use awk to extract and report the final energy from the log
+        $JDFTx <<EOF | awk '$1=="IonicMinimize:" && $4=="F:" {print $5}'
+            lattice \
+                0.000 $aBy2 $aBy2 \
+                $aBy2 0.000 $aBy2 \
+                $aBy2 $aBy2 0.000
+            ion-species Pt.fhi
+            ion Pt 0 0 0  0
+            
+            kpoint-folding 4 4 4
+            kpoint .5 .5 .5  1
+
+            elec-ex-corr gga-pbe
+            dump End None
+
+            elec-n-bands 12
+            elec-fermi-fillings 0 0.01
+    EOF
+    done
+
+
+which produces output similar to:
+
+    -5  -2.669861355551623e+01
+    -4  -2.670472797610590e+01
+    -3  -2.670945662690582e+01
+    -2  -2.671274947286359e+01
+    -1  -2.671494598649965e+01
+    0  -2.671607957671839e+01
+    1  -2.671635927342334e+01
+    2  -2.671578666995583e+01
+    3  -2.671458307389652e+01
+    4  -2.671277432086174e+01
+    5  -2.671053667426573e+01
+
+
+
+We can achieve the same using another feature: variable substitution in the input file.
+Create an input file BulkPt.in with:
+
+    :::bash
+    lattice \
+        0.00000 ${aBy2} ${aBy2} \
+        ${aBy2} 0.00000 ${aBy2} \
+        ${aBy2} ${aBy2} 0.00000
+    ion-species Pt.fhi
+    ion Pt 0 0 0  0
+            
+    kpoint-folding 4 4 4
+    kpoint .5 .5 .5  1
+
+    elec-ex-corr gga-pbe
+    dump End None
+
+    elec-n-bands 12
+    elec-fermi-fillings 0 0.01
+
+and then the following bash script prints the energy vs strain curve:
+
+    #!/bin/bash
+    JDFTx=/path/to/jdftx  #Reminder: aliases don't work in scripts
+
+    #Loop over strains from -5% to +5%
+    for aScale in {95..105}; do
+
+        #Compute a/2 in bohrs for the stretched lattice
+        #Note that export makes this variable visible to child process jdftx
+        export aBy2=$(echo "scale=6; 3.92*$aScale*0.5/(100*0.5291772)" | bc)
+
+        #Print the strain in percent as the first column:
+        echo -n $((aScale-100)), " "
+
+        $JDFTx -i BulkPt.in | awk '$1=="IonicMinimize:" && $4=="F:" {print $5}'
+    done
+
+Of course for this example, the first method is more elegant. 
+The real power of this variable substitution lies in the fact
+that it happens before include commands are processed -
+this means that the input files can be dynamic by
+including different files depending on the environment!
+
+*/

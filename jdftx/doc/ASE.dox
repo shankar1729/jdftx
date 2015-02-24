@@ -1,0 +1,54 @@
+/** \page ASE ASE Interface
+
+JDFTx contains a python interface class to the Atomic Simulation Environment (<https://wiki.fysik.dtu.dk/ase/>), developed by [CAMd](http://www.fysik.dtu.dk/english/Research/camd/) in [DTU](http://www.dtu.dk/english).  This provides a quick but powerful interface to many features, including [phonons](https://wiki.fysik.dtu.dk/ase/ase/phonons.html) and [ab-initio molecular dynamics](https://wiki.fysik.dtu.dk/ase/ase/md.html).
+
+The current implementation of the interface is as a force calculator.  Potential energies and forces are implemented, but stresses are still under development.
+
+Installation
+------------
+
+The interface is available with JDFTx source code, under the scripts directory (/jdftx/scripts/ase).
+
+Installing the JDFTx calculator can be done in three steps:
+
+1. **Download and compile JDFTx**
+
+   See [here](https://sourceforge.net/p/jdftx/wiki/Compiling/) for more details on compiling JDFTx.
+
+2. **Install Atomic Simulation Environment (ASE):** 
+
+   ASE is not distributed with JDFTx, and requires separate installation.  See [here](https://wiki.fysik.dtu.dk/ase/download.html) about installing ASE.
+
+3. **Add JDFTx interface to PythonPath:**
+
+   To be able to use the JDFTx interface, python needs to know where the interface file is located.  This is done by adding the *jdftx/scripts/ase* to your PythonPath variable.
+
+   In unix based systems, the easiest way to do this is by adding the line 
+
+       export PYTHONPATH=/path-to-jdftx/scripts/ase:$PYTHONPATH
+
+   to your ~/.bashrc or ~/.profile files.  Once this is done, you can import the JDFTx calculator simply by
+
+       from JDFTx import JDFTx
+
+Use
+---
+
+JDFTx interface needs to know where your executable and pseudopotentials are located. This can be done at runtime by specifying paths to the class constructor, or by setting environment variables in your system.
+
+A JDFTx calculator object uses variables *executable* and *pseudoDir* to find the executable and the pseudopotential directory. By default, they are set to the envionment variables $JDFTx and $JDFTx_pseudo. These can be set in the constructor or changed later.
+
+The easiest way to use the interface is to set these environment variables. On Ubuntu, this can be accomplished by to accomplish this is to have the lines
+
+    export JDFTx=/path/to/jdftx
+    export JDFTx_pseudo=/path/to/pseudopotential/directory
+
+in your ~/.bashrc or ~/.profile files.
+
+On clusters with resource management programs (e.g. slurm, torque...), you can override the executable with a command that submits a job to the queue. For example, on slurm, the following would work:
+
+    calculator = JDFTx(executable='srun /path/to/jdftx')
+
+Take note that when you do that, the command that submits the job (in this case, srun) should not release the shell until the job is completed. For example, in slurm, srun would work, but not sbatch.
+
+*/

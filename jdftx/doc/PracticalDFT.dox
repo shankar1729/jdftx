@@ -1,0 +1,15 @@
+/** \page PracticalDFT Practical DFT mini-course
+
+A 6-lecture mini course on developing your own density functional theory code, taught by Prof. Tomas Arias at Cornell University.
+These lectures briefly introduce the algebraic formulation of density functional theory and total energy minimization algorithms which have been used in JDFTx.
+
+ + Lecture 1: [Part1](http://youtu.be/oyvGeQ8ehBM) [Part 2](http://youtu.be/dGYOsRsLII4)
+ + Lecture 2: [Part1](http://youtu.be/FJpqaax7G-Y) [Part 2](http://youtu.be/M6pCUXum6b0)
+ + Lecture 3: [Part1](http://youtu.be/HHEyBpvsWys)
+ + Lecture 4: [Part1](http://youtu.be/LeSA-aBwx7g) [Part 2](http://youtu.be/FM7g61yU8lU)
+ + Lecture 5: [Part1](http://youtu.be/3hsHxL5Ws24) [Part 2](http://youtu.be/T8fA7IS_i8A) [Part 3](http://youtu.be/owxxeaQ27ow)
+ + Lecture 6: [Part1](http://youtu.be/eixqE1mRZEw) [Part 2](http://youtu.be/vK_0n0aGrJM)
+
+The course material (assignments, lecture notes and octave code) is available for download [here](https://docs.google.com/#folders/0B8lnMKudhQYMMjljNzNjNjctMzk5MS00YjRmLWE4YTAtNjE2Y2JjOGE4N2Y2).
+
+*/

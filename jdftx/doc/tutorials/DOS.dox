@@ -1,0 +1,123 @@
+/** \page DOS Density of states
+
+In this section, we'll learn how to calculate the total density of states (both local and total) using JDFTx.
+
+Total Density of States    -- Silicon
+------------------------
+
+The first system we will look at is Silicon.  Silicon is a semiconductor with a diamond lattice.  Here is the input file:
+
+    #---------------- Total DOS of Silicon ------------------
+    lattice \
+        0   0.5 0.5 \
+        0.5 0   0.5 \
+        0.5 0.5 0
+    
+    latt-scale 10.263 10.263 10.263
+    
+    ion-species Si.fhi
+    
+    coords-type lattice    
+    ion Si  0.125  0.125  0.125 0
+    ion Si -0.125 -0.125 -0.125 0
+    
+    kpoint-folding 12 12 12
+    
+    elec-ex-corr gga
+    
+    dump-name silicon.$VAR
+    
+    density-of-states Total
+
+
+As you see, there is very little you have to change in the input file to do a DOS calculation. The output, dumped into silicon.dos, will be a file of this form
+
+    "Energy"	"Total"
+    -2.452595908623653e-01	0.000000000000000e+00
+    -2.452595908623653e-01	1.985389076965883e-01
+    -2.419416664205766e-01	5.967466162011501e-01
+    -2.419393745011055e-01	2.951626975536481e+00
+    -2.408308695225579e-01	2.978328525183836e+00
+    -2.364378672160734e-01	3.417438729805059e+00
+    -2.364352613843460e-01	4.748327506650917e+00
+    -2.331377289563245e-01	5.073314563854836e+00
+    -2.331331085433860e-01	5.494152954370364e+00
+    -2.320892138049616e-01	5.218672040590314e+00
+    .                       .
+    .                       .
+    .                       .
+
+
+The first line in the file is a header.  It tells you what is in each column.  In this case, the first column is the energy (in Hartree) and the second one is the density of states (per Hartree) at that energy.
+
+Here is a plot of what we got:
+
+<img src="https://sourceforge.net/p/jdftx/wiki/DOS_Images/attachment/DOS_Si.png" height="412.5px" width="550px" />
+
+The density of states is properly normalized.  If you integrate it, you will get the total number of bands in your calculation.  If you are using the density of electrons (i.e. *Occupied DOS*, see next paragraph), the integral will give you the total number of electrons.
+
+Here is an important detail: Unless you specify otherwise, JDFTx will output the density of *states*, not the density of *electrons*.  For fully occupied bands, they are the same.  But if you have empty bands in your calculation, the density of electrons can be different from the density of states.  In such cases, you can use 
+
+    density-of-states Occupied Total
+
+to get the density of electrons at each energy.
+
+Local Density of States    -- p orbitals in Graphene
+------------------------
+
+In JDFTx, calculating the local density of states is as easy as calculating the total one!
+
+In this exercise, we will calculate the occupied local density of states of graphene.  If you don't know what graphene is, here is the wikipedia page: http://en.wikipedia.org/wiki/Graphene
+
+Graphene is a 2D material, meaning that all atoms lie in a 2D plane.  Because of this, the in-plane p orbital (px and py) are different than out-of-plane p orbital.  We can see this very easily by projecting the DOS to these orbitals in each atom.
+
+Here is the input file that does this. We'll use a dense (24x24x1) kpoint sampling to get a good, high-resolution, density of states.
+
+    lattice \
+    0.5                  0.5                0 \
+    -0.866025403784439   0.866025403784439  0 \
+    0                    0                  1    
+    
+    latt-scale 4.649 4.649 20 # This just scales each lattice vector.
+                              # latt-scale-z is high to avoid interlayer interactions
+    
+    ion-species C.fhi
+    
+    coords-type lattice
+    ion C 0 0 0    0
+    ion C 0.33333333333 0.66666666667 0   0
+    
+    dump-name graphene.$VAR
+    
+    kpoint-folding 24 24 1 # Since the material is 2D, we don't need k-point in z
+    
+    elec-ex-corr gga
+    
+    density-of-states \
+        Total \
+        Orbital  C 1   s \ 
+        Orbital  C 1   px \
+        Orbital  C 1   py \
+        Orbital  C 1   pz \
+
+If you look at the *density-of-states* command, you will see that it is now made up from multiple lines.  Each line adds another column in the graphene.dos file.  In this case, we have added the s, px, py and pz orbitals of the 1st carbon atom.  Lets plot the p orbitals (columns 3 to 5):
+
+<img src="https://sourceforge.net/p/jdftx/wiki/DOS_Images/attachment/graphene_DOS.png" height="412.5px" width="550px" />
+
+As you can see, pz orbital has greater contributions to higher energy bands than the in-plane px and py orbitals.  This is an expected result.  The in-plane p orbitals form [sigma bonds](http://en.wikipedia.org/wiki/Sigma_bond) whereas the out-of-plane pz orbitals from a [pi bonds](http://en.wikipedia.org/wiki/Pi_bond).
+
+Here is a fun mental exercise: According to this calculation, px and py are very similar, but not exactly equivalent.  Since they are both in-plane, shouldn't they be equivalent? (Hint: What symmetries does graphene have in-plane?)
+
+The local density of states is not restricted to projecting to atomic orbitals.  JDFTx can also project to arbitrary regions in real-space.  These options are *Slice*, *Sphere*, *AtomSlice*, *AtomSphere* and *File*.  You can look at the template (jdftx -t) to see how they are used.
+
+Tips & Tricks
+------------
+
+If you are a [gnuplot](http://www.gnuplot.info/) user, it is very simple to plot JDFTx .dos files!  In general only 2 lines of code suffice!  For example, the graphene example can be plotted using
+
+    set key autotitle columnhead
+    plot for [i=4:6] "silicon.dos" u 1:i w l
+
+If you are interested in how the density of states is computed, check  out this reference: http://onlinelibrary.wiley.com/doi/10.1002/pssb.2220540211/abstract
+
+*/
