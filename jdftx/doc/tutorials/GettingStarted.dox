@@ -78,7 +78,7 @@ Once your new water calculation has finished, you can visualize the ionic minimi
 Run:
 [path to scripts]/createXSF water.out water.axsf Animated
 
-Now open XcrySDen, for instance, and open the water.axsf.  You should be able to click through a number of slides corresponding to the geometry optimization steps.  To visualize the water molecule as a molecule, rather than at the corners of the box, change the unit of repetition (Display -> Unit of Repetition -> Translational asymmetric unit)  You should see something like this:
+Now open XcrySDen, for instance, and open the water.axsf.  You should be able to click through a number of slides corresponding to the geometry optimization steps.  To visualize the water molecule as a molecule, rather than at the corners of the box, change the unit of repetition (Display -> Unit of Repetition -> Translational asymmetric unit)  
 
 
 Look through the beginning of the output file for various defaults that you might want to tweak next. Here follow some of the most likely candidates:

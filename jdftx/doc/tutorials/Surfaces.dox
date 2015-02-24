@@ -98,7 +98,7 @@ and run **jdftx -i Pt3-neutral.in -o Pt3-neutral.out**. Note that with
 ionic-screening present, the absolute values of mu reported in the lines 
 starting with FillingsAux are now meaningful, and in this case correspond to the 
 potential of zero charge of Platinum (See K. Letchworth-Weaver and T.A. Arias, 
-[*Phys. Rev. B* **86**, 075140 
+[Phys. Rev. B 86, 075140 
 (2012)](http://prb.aps.org/abstract/PRB/v86/i7/e075140)).
 
 Finally, we can run a calculation at constant electron chemical potential: a 

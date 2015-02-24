@@ -1,0 +1,24 @@
+/** \page QMC quantum Monte Carlo Calculations
+
+Using the JDFTx to CASINO interface
+------------------------
+
+JDFTx provides an option to output wavefunctions and potentials for use in quantum Monte Carlo calculations, through the CASINO code.  Both vacuum and solvated calculations can be performed.
+
+The potential from any solvation model in JDFTx can be exported.
+
+To produce QMC output, perform the calculation, and include:
+
+    dump QMC
+
+in the input file.  This command will convert the wavefunction coefficients to only of real numbers, and then dump wavefunctions and potential.  Care must be taken to pick appropriate pseudopotentials (See [CASINO site](http://vallico.net/casinoqmc/))- pseudopotentials must be available in both CASINO format and fhi, or an appropriate converter tool must be used.  To understand how to extract the solvation energy from the resulting QMC run, see:
+ K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig, [Phys. Rev. B 85, 201102(R) (2012)](http://link.aps.org/doi/10.1103/PhysRevB.85.201102).  
+
+---
+A few more tips
+---
+
+- Some solvation models may behave in casino better than others, depending on the features of the potentials used- sharp features in potentials will cause numerical problems in QMC.
+- If molecules are being studied in JDFTx and CASINO, Coulomb truncation can be used to turn off periodicity in the JDFTx part of the calculation.
+
+*/
