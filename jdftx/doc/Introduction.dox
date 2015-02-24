@@ -1,8 +1,4 @@
-/** \page Introduction
-
-
-Introduction
-------------
+/** \page Introduction Introduction
 
 JDFTx is a plane-wave density functional code designed for Joint Density %Functional Theory (JDFT),
 a framework for *ab initio* calculations of electronic systems in contact with liquid environments.
