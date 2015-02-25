@@ -119,7 +119,8 @@ unique capability of this program. Save the following to Pt3-charged.in:
     
     target-mu -0.16  #Note that this is ~ 1V away from the neutral mu: -0.197
 
-and run **jdftx -i Pt3-charged.in -o Pt3-charged.out**. Note that the reported 
+and run **jdftx -i Pt3-charged.in -o Pt3-charged.out**. The "target-mu" that sets the electron chemical potential is given, and reported, in Hartrees.
+  Note that the reported 
 energy now changes from F to G, because the variational quantity is the grand 
 potential for the electrons which includes Lagrange multiplier term mu N for the 
 corresponding Legendre transform.

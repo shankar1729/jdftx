@@ -9,31 +9,7 @@ Ionic relaxation
 Lattice relaxation
 ------------------
 
-Suppose you had a crystal structure for which you knew the relative positions of 
-all atoms in the unit cell.  How do you go about finding what the unit cell size 
-(or even the angles between lattice vectors) should be?
-
-You know that the lattice constant(s) should be those corresponding to the 
-lowest energy. So all you need to find is the lattice constant(s) that give the 
-lowest energy! (Those of you who are not happy with that statement, just humor 
-me for a little while.  I know that things expand when heated.  What we are 
-trying to find is the zero temperature structure.  Finding the lattice constant 
-as a function of temperature is a *much* harder problem.)
-
-For simple crystals (say a cubic unit cell), this is very simple!  You could do 
-it by simply calculating the total energy of the crystal at different lattice 
-constants.  But, for structures with many lattice parameters, it is not so 
-trival.
-
-One of the handy features implemented in JDFTx is a **lattice minimizer**.  The 
-lattice minimizer allows you to find the lattice constant with very little 
-hassle.  In this tutorial, we will learn to use this cool feature.
-
-Silicon
---------
-
-Why silicon? Because it is a very important material that also happens to have a relatively simple crystal structure with just one lattice parameter.
-You might want to check out this wikipedia page of the [diamond cubic](http://en.wikipedia.org/wiki/Diamond_cubic) structure before we proceed.
+We will first look at the lattice relaxation of silicon.
 
 Here is the input file.  It is essentially the same as the one in the [Density of States](http://sourceforge.net/p/jdftx/wiki/Density%20of%20States/) tutorial page.
 
@@ -65,9 +41,7 @@ Here is the input file.  It is essentially the same as the one in the [Density o
     electronic-minimize \
         energyDiffThreshold 1e-7
 
-The experimental (cubic) lattice constant of Silicon is 5.43 Angstroms, or roughly 10.26 bohrs.  Lets start it from a 5 % strained initial state and see what it does (**jdftx -i silicon.in -o silicon.out**).
-
-This calculation took about 14 seconds in my rusty laptop.  Let's look at the output file.
+The experimental (cubic) lattice constant of Silicon is 5.43 Angstroms, or roughly 10.26 bohrs.  We run the calculation, starting from a 5 % strained initial state. (**jdftx -i silicon.in -o silicon.out**).
 
 Just before the electronic minimization starts, you should see something like this:
 
@@ -81,7 +55,7 @@ This means that jdftx has detected the symmetries of your crystal and realized t
 
 Calculations with lattice minimization tend to produce rather long output files, so it can be useful to use search tools (such as UNIX's grep) to look at them. 
 
-Lets grep the output file for lattice minimization iterations. **grep LatticeMinimize silicon.out** produced this for me
+Lets grep the output file for lattice minimization iterations. **grep LatticeMinimize silicon.out** produces the following output:
 
     LatticeMinimize: Iter:   0  Etot: -7.927814070374968e+00  |grad|_K:  1.940e-01  alpha:  1.000e+00
     LatticeMinimize: Iter:   1  Etot: -7.937043278195619e+00  |grad|_K:  3.265e-02  alpha:  3.966e-01, linmin = -1.000e+00, cgtest =  1.000e+00
@@ -122,7 +96,7 @@ Lets now grep for the strain tensor, i.e **grep Strain -A 3 silicon.out**. -A 3 
     [ -0.0512534          0          0  ]
     [          0 -0.0512534          0  ]
     [          0          0 -0.0512534  ]
-
+ 
 It seems that the crystal strained down by roughly 5.1 % from the initial size, i.e. almost back to the exprimental value.  Lets look at the lattice vectors, **grep "R = " -A 3 silicon.out**
 
     R = 
@@ -155,9 +129,9 @@ It seems that the crystal strained down by roughly 5.1 % from the initial size, 
     [      5.109          0      5.109  ]
     [      5.109      5.109          0  ]
 
-The calculated lattice constant is 10.218 Bohrs (5.109x2), or 5.41 Angstroms, roughly 0.02 Angstorms off the experimental value.  Please take a moment to appreciate how good an agreement this is.
+The calculated lattice constant is 10.218 Bohrs (5.109x2), or 5.41 Angstroms, roughly 0.02 Angstorms off the experimental value.
 
-Some important stuff
+Tips
 --------------------
 
 + Whether you are using lattice or cartesian coordinates becomes very important 
