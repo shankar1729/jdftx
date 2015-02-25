@@ -78,9 +78,9 @@ EnumStringMap<SCFparams::MixedVariable> scfMixing
 	SCFparams::MV_Potential, "Potential"
 );
 
-struct CommandsScfParams: public Command
+struct CommandsElectronicSCF: public Command
 {
-	CommandsScfParams() : Command("electronic-scf", "Electronic optimization")
+	CommandsElectronicSCF() : Command("electronic-scf", "Electronic optimization")
 	{	
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:"
@@ -139,7 +139,7 @@ struct CommandsScfParams: public Command
 		#undef PRINT
 	}
 }
-commandsScfParams;
+commandElectronicSCF;
 
 
 struct CommandEigenShift : public Command

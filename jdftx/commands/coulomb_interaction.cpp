@@ -43,39 +43,48 @@ EnumStringMap<int> truncationDirMap
 	2, "001"
 );
 
+
+/** \page CommandCoulombInteraction coulomb-interaction
+Syntax
+------
+    coulomb-interaction <truncationType> [<args> ...]
+
+Description
+-----------
+Optionally truncate the coulomb interaction. The available truncation modes
+and the corresponding arguments are:
+
+   + Periodic<br>
+      Standard periodic (untruncated) coulomb interaction (Default)
+   + Slab @<dir@>=100|010|001<br>
+      Truncate coulomb interaction along the specified lattice direction.
+      The other two lattice directions must be orthogonal to this one.
+      Useful for slab-like geometries.
+   + Cylindrical @<dir@>=100|010|001 [@<Rc@>=0]<br>
+      Truncate coulomb interaction on a cylinder of radius @<Rc@> bohrs
+      with axis along specified lattice direction. The other two lattice
+      directions must be orthogonal to this one. Rc=0 is understood to be
+      the in-radius of the 2D Wigner-Seitz cell perpendicular to @<dir@>.
+   + Wire @<dir@>=100|010|001<br>
+      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane
+      perpendicular to @<dir@>. The other two lattice directions must be
+      orthogonal to this one. Useful for wire-like geometries.
+   + Isolated<br>
+      Truncate coulomb interaction on the 3D Wigner-Seitz cell.
+   + Spherical [@<Rc@>=0]<br>
+      Truncate coulomb interaction on a sphere of radius @<Rc@> bohrs.
+      Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.
+
+For all the truncated modes, the charge density must be confined to a
+maximum separation of L/2 in each truncated direction, where L is the
+length of the unit cell in that direction or 2 Rc for Spherical and
+Cylindrical modes. The center of the charge density is not important
+and may cross unit cell boundaries.
+*/
 struct CommandCoulombInteraction : public Command
 {
 	CommandCoulombInteraction() : Command("coulomb-interaction", "Coulomb")
 	{
-		format = "<truncationType> [<args> ...]";
-		comments =
-			"Optionally truncate the coulomb interaction. The available truncation modes\n"
-			"and the corresponding arguments are:\n"
-			"   Periodic\n"
-			"      Standard periodic (untruncated) coulomb interaction (Default)\n"
-			"   Slab <dir>=" + truncationDirMap.optionList() + "\n"
-			"      Truncate coulomb interaction along the specified lattice direction.\n"
-			"      The other two lattice directions must be orthogonal to this one.\n"
-			"      Useful for slab-like geometries.\n"
-			"   Cylindrical <dir>=" + truncationDirMap.optionList() + " [<Rc>=0]\n"
-			"      Truncate coulomb interaction on a cylinder of radius <Rc> bohrs\n"
-			"      with axis along specified lattice direction. The other two lattice\n"
-			"      directions must be orthogonal to this one. Rc=0 is understood to be\n"
-			"      the in-radius of the 2D Wigner-Seitz cell perpendicular to <dir>.\n"
-			"   Wire <dir>=" + truncationDirMap.optionList() + "\n"
-			"      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane\n"
-			"      perpendicular to <dir>. The other two lattice directions must be\n"
-			"      orthogonal to this one. Useful for wire-like geometries.\n"
-			"   Isolated\n"
-			"      Truncate coulomb interaction on the 3D Wigner-Seitz cell.\n"
-			"   Spherical [<Rc>=0]\n"
-			"      Truncate coulomb interaction on a sphere of radius <Rc> bohrs.\n"
-			"      Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.\n"
-			"For all the truncated modes, the charge density must be confined to a\n"
-			"maximum separation of L/2 in each truncated direction, where L is the\n"
-			"length of the unit cell in that direction or 2 Rc for Spherical and\n"
-			"Cylindrical modes. The center of the charge density is not important\n"
-			"and may cross unit cell boundaries.";
 		hasDefault = true;
 	}
 
@@ -111,21 +120,30 @@ struct CommandCoulombInteraction : public Command
 }
 commandCoulombInteraction;
 
+/** \page CommandCoulombTruncationEmbed coulomb-truncation-embed
+Syntax
+------
+    coulomb-truncation-embed <c0> <c1> <c2>
 
+Description
+-----------
+Compute truncated Coulomb interaction in a double-sized box (doubled only
+along truncated directions). This relaxes the L/2 localization constraint
+otherwise required by truncated potentials (see command coulomb-interaction),
+but breaks translational invariance and requires the specification of a center.
+Coordinate system for center (@<c0@> @<c1@> @<c2@>) is as specified by coords-type.
+(Default: not enabled i.e. employs translationally invariant scheme)
+
+Requires
+--------
+\ref CommandCoulombInteraction
+\ref CommandLattScale
+\ref CommandCoordsType
+*/
 struct CommandCoulombTruncationEmbed : public Command
 {
 	CommandCoulombTruncationEmbed() : Command("coulomb-truncation-embed", "Coulomb")
 	{
-		format = "<c0> <c1> <c2>";
-		comments =
-			"Compute truncated Coulomb interaction in a double-sized box (doubled only\n"
-			"along truncated directions). This relaxes the L/2 localization constraint\n"
-			"otherwise required by truncated potentials (see command coulomb-interaction),\n"
-			"but breaks translational invariance and requires the specification of a center.\n"
-			"Coordinate system for center (<c0> <c1> <c2>) is as specified by coords-type.\n"
-			"(Default: not enabled i.e. employs translationally invariant scheme)";
-		
-		hasDefault = false;
 		require("coulomb-interaction");
 		//Dependencies due to coordinate system option:
 		require("latt-scale");
@@ -151,19 +169,23 @@ struct CommandCoulombTruncationEmbed : public Command
 }
 commandCoulombTruncationEmbed;
 
+/** \page CommandCoulombTruncationIonMargin coulomb-truncation-ion-margin
+Syntax
+------
+    coulomb-truncation-ion-margin <margin>
 
+Description
+-----------
+Extra margin (in bohrs) around the ions, when checking localization constraints
+for truncated Coulomb potentials (see \ref CommandCoulombInteraction). Set to a typical
+distance from nuclei where the electron density becomes negligible, so as to
+ensure the electron density satisfies those localization constraints.
+(Default: 5 bohrs, minimum allowed: 1 bohr)";
+*/
 struct CommandCoulombTruncationIonMargin : public Command
 {
 	CommandCoulombTruncationIonMargin() : Command("coulomb-truncation-ion-margin", "Coulomb")
 	{
-		format = "<margin>";
-		comments =
-			"Extra margin (in bohrs) around the ions, when checking localization constraints\n"
-			"for truncated Coulomb potentials (see command coulomb-interaction). Set to a typical\n"
-			"distance from nuclei where the electron density becomes negligible, so as to\n"
-			"ensure the electron density satisfies those localization constraints.\n"
-			"(Default: 5 bohrs, minimum allowed: 1 bohr)";
-		hasDefault = false;
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -178,36 +200,42 @@ struct CommandCoulombTruncationIonMargin : public Command
 commandCoulombTruncationIonMargin;
 
 
+/** \page CommandExchangeRegularization exchange-regularization
+Syntax
+------
+    exchange-regularization <method>
+
+Description
+-----------
+Regularization / singularity correction method for exact exchange.
+The allowed methods and defaults depend on the setting of @<geometry@>
+in \ref CommandCoulombInteraction
+ + None<br>
+      No singularity correction: default and only option for non-periodic
+      systems with no G=0 singularity (@<geometry@> = Spherical / Isolated).
+      This is allowed for fully or partially periodic systems, but is not
+      recommended due to extremely poor convergence with number of k-points.
+ + AuxiliaryFunction<br>
+      G=0 modification based on numerical integrals of an auxiliary
+      function, as described in P. Carrier et al, PRB 75, 205126 (2007).
+      Allowed for 3D/2D/1D periodic systems.
+ + ProbeChargeEwald<br>
+      G=0 modification based on the Ewald sum of a single point charge
+      per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.
+ + SphericalTruncated<br>
+      Truncate exchange kernel on a sphere whose volume equals the k-point
+      sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).
+      Allowed for any (partially) periodic @<geometry@>, but is recommended
+      only when the k-point sampled supercell is roughly isotropic.
+ + WignerSeitzTruncated<br>
+      Truncate exchange kernel on the Wigner-Seitz cell of the k-point
+      sampled supercell, as in R. Sundararaman et al (under preparation).
+      Default for any (partially) periodic @<geometry@>.
+*/
 struct CommandExchangeRegularization : public Command
 {
 	CommandExchangeRegularization() : Command("exchange-regularization", "Coulomb")
 	{
-		format = "<method>=" + exRegMethodMap.optionList();
-		comments =
-			"Regularization / singularity correction method for exact exchange.\n"
-			"The allowed methods and defaults depend on the setting of <geometry>\n"
-			"in command coulomb-interaction\n"
-			"   None\n"
-			"      No singularity correction: default and only option for non-periodic\n"
-			"      systems with no G=0 singularity (<geometry> = Spherical / Isolated).\n"
-			"      This is allowed for fully or partially periodic systems, but is not\n"
-			"      recommended due to extremely poor convergence with number of k-points.\n"
-			"   AuxiliaryFunction\n"
-			"      G=0 modification based on numerical integrals of an auxiliary\n"
-			"      function, as described in P. Carrier et al, PRB 75, 205126 (2007).\n"
-			"      Allowed for 3D/2D/1D periodic systems.\n"
-			"   ProbeChargeEwald\n"
-			"      G=0 modification based on the Ewald sum of a single point charge\n"
-			"      per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.\n"
-			"   SphericalTruncated\n"
-			"      Truncate exchange kernel on a sphere whose volume equals the k-point\n"
-			"      sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).\n"
-			"      Allowed for any (partially) periodic <geometry>, but is recommended\n"
-			"      only when the k-point sampled supercell is roughly isotropic.\n"
-			"   WignerSeitzTruncated\n"
-			"      Truncate exchange kernel on the Wigner-Seitz cell of the k-point\n"
-			"      sampled supercell, as in R. Sundararaman et al (under preparation).\n"
-			"      Default for any (partially) periodic <geometry>.";
 		hasDefault = true;
 		require("coulomb-interaction");
 	};

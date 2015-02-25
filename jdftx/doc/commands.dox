@@ -1,0 +1,154 @@
+/** \page Commands Input file documentation
+
+Input file format
+-----------------
+
++ The input file may contain commands in any order; commands will be
+   automatically processed in an order that satisfies all dependencies
+
++ Each command is a single line, but lines can be continued using '\'
+
++ Whitespace is unimportant, except for separating words in each line
+
++ Any text following '#' on an input line is treated as a comment
+
++ 'include @<file@>' can be used to include commands from @<file@>
+
++ Each instance of ${xxx} is replaced by environment variable 'xxx'
+   (Variable substitution occurs before command/include processing)
+
+
+Commands allowed in JDFTx input files
+-------------------------------------
+
+### %Electronic
+
+<i>%Functional</i>
+&nbsp;\subpage CommandAddU
+&nbsp;\subpage CommandElecExCorr
+&nbsp;\subpage CommandElecExCorrCompare
+&nbsp;\subpage CommandVanDerWaals
+
+<i>%Optimization</i>
+&nbsp;\subpage CommandConvergeEmptyStates
+&nbsp;\subpage CommandDavidsonBandRatio
+&nbsp;\subpage CommandElecEigenAlgo
+&nbsp;\subpage CommandElectronicMinimize
+&nbsp;\subpage CommandElectronicSCF
+&nbsp;\subpage CommandFixElectronDensity
+&nbsp;\subpage CommandFixElectronPotential
+&nbsp;\subpage CommandFixOccupied
+&nbsp;\subpage CommandInverseKohnShamMinimize
+&nbsp;\subpage CommandReorthogonalizeOrbitals
+&nbsp;\subpage CommandSubspaceRotationFactor
+
+<i>%Parameters</i>
+&nbsp;\subpage CommandBasis
+&nbsp;\subpage CommandBoxPot
+&nbsp;\subpage CommandElecCutoff
+&nbsp;\subpage CommandElecFermiFillings
+&nbsp;\subpage CommandElecInitialCharge
+&nbsp;\subpage CommandElecNbands
+&nbsp;\subpage CommandElectricField
+&nbsp;\subpage CommandFFTbox
+&nbsp;\subpage CommandKpoint
+&nbsp;\subpage CommandKpointFolding
+&nbsp;\subpage CommandSpinRestricted
+&nbsp;\subpage CommandSpinType
+&nbsp;\subpage CommandTargetMu
+&nbsp;\subpage CommandVexternal
+
+
+### %Ionic
+
+<i>%Geometry</i>
+&nbsp;\subpage CommandCoordsType
+&nbsp;\subpage CommandIon
+&nbsp;\subpage CommandLattScale
+&nbsp;\subpage CommandLattice
+
+<i>%Optimization</i>
+&nbsp;\subpage CommandCoreOverlapCheck
+&nbsp;\subpage CommandIonicMinimize
+&nbsp;\subpage CommandLattMoveScale
+&nbsp;\subpage CommandLatticeMinimize
+&nbsp;\subpage CommandWavefunctionDrag
+
+<i>%Species</i>
+&nbsp;\subpage CommandChargeball
+&nbsp;\subpage CommandIonSpecies
+&nbsp;\subpage CommandSetVDW
+&nbsp;\subpage CommandTauCore
+
+
+### %Coulomb interactions
+&nbsp;\subpage CommandCoulombInteraction
+&nbsp;\subpage CommandCoulombTruncationEmbed
+&nbsp;\subpage CommandCoulombTruncationIonMargin
+&nbsp;\subpage CommandExchangeRegularization
+&nbsp;\subpage CommandRhoExternal
+
+
+### %Fluid
+
+<i>%Constitutents</i>
+&nbsp;\subpage CommandFluidAnion
+&nbsp;\subpage CommandFluidCation
+&nbsp;\subpage CommandFluidMixingFunctional
+&nbsp;\subpage CommandFluidSiteParams
+&nbsp;\subpage CommandFluidSolvent
+
+<i>%Optimization</i>
+&nbsp;\subpage CommandFluidGummelLoop
+&nbsp;\subpage CommandFluidMinimize
+
+<i>%Parameters</i>
+&nbsp;\subpage CommandFluid
+&nbsp;\subpage CommandFluidDielectricConstant
+&nbsp;\subpage CommandFluidExCorr
+&nbsp;\subpage CommandFluidVDWscale
+&nbsp;\subpage CommandIonWidth
+&nbsp;\subpage CommandPCMnonlinearDebug
+&nbsp;\subpage CommandPcmParams
+&nbsp;\subpage CommandPcmVariant
+
+
+### %Initialization
+&nbsp;\subpage CommandElecInitialFillings
+&nbsp;\subpage CommandElecInitialHaux
+&nbsp;\subpage CommandFluidInitialState
+&nbsp;\subpage CommandInitialMagneticMoments
+&nbsp;\subpage CommandInitialOxidationState
+&nbsp;\subpage CommandInitialState
+&nbsp;\subpage CommandLCAOparams
+&nbsp;\subpage CommandWavefunction
+
+
+### %Output
+&nbsp;\subpage CommandChargedDefect
+&nbsp;\subpage CommandChargedDefectCorrection
+&nbsp;\subpage CommandDebug
+&nbsp;\subpage CommandDensityOfStates
+&nbsp;\subpage CommandDump
+&nbsp;\subpage CommandDumpEresolvedDensity
+&nbsp;\subpage CommandDumpFermiDensity
+&nbsp;\subpage CommandDumpInterval
+&nbsp;\subpage CommandDumpName
+&nbsp;\subpage CommandDumpOnly
+&nbsp;\subpage CommandElectronScattering
+&nbsp;\subpage CommandForcesOutputCoords
+&nbsp;\subpage CommandPolarizability
+&nbsp;\subpage CommandPolarizabilityKdiff
+&nbsp;\subpage CommandSlabEpsilon
+&nbsp;\subpage CommandVibrations
+
+
+### %Miscellaneous
+&nbsp;\subpage CommandCacheProjectors
+&nbsp;\subpage CommandCustomFilling
+&nbsp;\subpage CommandEigenShift
+&nbsp;\subpage CommandInvertKohnSham
+&nbsp;\subpage CommandSymmetries
+&nbsp;\subpage CommandSymmetryMatrix
+
+*/
