@@ -119,11 +119,11 @@ struct CommandForcesOutputCoords : public Command
 	{
 		format = "<coords>=" + forcesOutputCoordsMap.optionList();
 		comments =
-			"Coordinate system to use for force output in logPrintf-file as well as dump:\n"
-			"\tPositions: Use the same coordinate system as ionic position input (selected by coords-type) [default].\n"
-			"\tLattice:   Use (covariant) lattice coordinates\n"
-			"\tCartesian: Use cartesian coordinates\n"
-			"\tContravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))";
+			"Coordinate system to use for force output in log file as well as dump:\n"
+			"+ Positions: Use the same coordinate system as ionic position input (selected by coords-type) [default].\n"
+			"+ Lattice:   Use (covariant) lattice coordinates\n"
+			"+ Cartesian: Use cartesian coordinates\n"
+			"+ Contravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))";
 		hasDefault = true;
 	}
 

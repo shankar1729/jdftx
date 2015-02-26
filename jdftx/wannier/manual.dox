@@ -7,6 +7,7 @@ Syntax:
 
     wannier <key1> <args1...>  <key2> <args2...>  ...
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 Control \ref CommandWannier "wannier" calculation and output. The possible &lt;key&gt;'s and their
@@ -96,6 +97,7 @@ Syntax:
 
     wannier-center <aorb1> [<aorb2> ...]
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 Specify trial orbital for a \ref CommandWannier "wannier" function as a linear combination of
@@ -144,6 +146,7 @@ Syntax:
 
     wannier-center-pinned <aorb1> [<aorb2> ...]
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 Same as command \ref CommandWannierCenter "wannier-center", except that the minimizer tries to
@@ -178,6 +181,7 @@ Syntax:
 
     wannier-dump-name <format>
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 Control the filename pattern for \ref CommandWannier "wannier" output, where &lt;format&gt; must contain
@@ -206,6 +210,7 @@ Syntax:
 
     wannier-initial-state <format>
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 Control the filename pattern for \ref CommandWannier "wannier" state initialization, where &lt;format&gt; must contain
@@ -234,6 +239,7 @@ Syntax:
 
     wannier-minimize <key1> <value1> <key2> <value2> ...
 
+<b>Note:</b> only available in calculations using the 'wannier' executable.
 Description:
 ------------
 where possible keys and value types are:

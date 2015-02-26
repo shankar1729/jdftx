@@ -330,26 +330,39 @@ Description:
 ------------
 Optionally truncate the coulomb interaction. The available truncation modes
 and the corresponding arguments are:
-   Periodic
-      Standard periodic (untruncated) coulomb interaction (Default)
-   Slab &lt;dir&gt;=001|010|100
-      Truncate coulomb interaction along the specified lattice direction.
-      The other two lattice directions must be orthogonal to this one.
-      Useful for slab-like geometries.
-   Cylindrical &lt;dir&gt;=001|010|100 [&lt;Rc&gt;=0]
-      Truncate coulomb interaction on a cylinder of radius &lt;Rc&gt; bohrs
-      with axis along specified lattice direction. The other two lattice
-      directions must be orthogonal to this one. Rc=0 is understood to be
-      the in-radius of the 2D Wigner-Seitz cell perpendicular to &lt;dir&gt;.
-   Wire &lt;dir&gt;=001|010|100
-      Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane
-      perpendicular to &lt;dir&gt;. The other two lattice directions must be
-      orthogonal to this one. Useful for wire-like geometries.
-   Isolated
-      Truncate coulomb interaction on the 3D Wigner-Seitz cell.
-   Spherical [&lt;Rc&gt;=0]
-      Truncate coulomb interaction on a sphere of radius &lt;Rc&gt; bohrs.
-      Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.
+
++ Periodic
+
+    Standard periodic (untruncated) coulomb interaction (Default)
+
++ Slab &lt;dir&gt;=001|010|100
+
+    Truncate coulomb interaction along the specified lattice direction.
+    The other two lattice directions must be orthogonal to this one.
+    Useful for slab-like geometries.
+
++ Cylindrical &lt;dir&gt;=001|010|100 [&lt;Rc&gt;=0]
+
+    Truncate coulomb interaction on a cylinder of radius &lt;Rc&gt; bohrs
+    with axis along specified lattice direction. The other two lattice
+    directions must be orthogonal to this one. Rc=0 is understood to be
+    the in-radius of the 2D Wigner-Seitz cell perpendicular to &lt;dir&gt;.
+
++ Wire &lt;dir&gt;=001|010|100
+
+    Truncate coulomb interaction on the 2D Wigner-Seitz cell in the plane
+    perpendicular to &lt;dir&gt;. The other two lattice directions must be
+    orthogonal to this one. Useful for wire-like geometries.
+
++ Isolated
+
+    Truncate coulomb interaction on the 3D Wigner-Seitz cell.
+
++ Spherical [&lt;Rc&gt;=0]
+
+    Truncate coulomb interaction on a sphere of radius &lt;Rc&gt; bohrs.
+    Rc=0 is understood to be the in-radius of the Wigner-Seitz cell.
+
 For all the truncated modes, the charge density must be confined to a
 maximum separation of L/2 in each truncated direction, where L is the
 length of the unit cell in that direction or 2 Rc for Spherical and
@@ -1376,27 +1389,37 @@ Description:
 Regularization / singularity correction method for exact exchange.
 The allowed methods and defaults depend on the setting of &lt;geometry&gt;
 in command \ref CommandCoulombInteraction "coulomb-interaction"
-   None
-      No singularity correction: default and only option for non-periodic
-      systems with no G=0 singularity (&lt;geometry&gt; = Spherical / Isolated).
-      This is allowed for fully or partially periodic systems, but is not
-      recommended due to extremely poor convergence with number of k-points.
-   AuxiliaryFunction
-      G=0 modification based on numerical integrals of an auxiliary
-      function, as described in P. Carrier et al, PRB 75, 205126 (2007).
-      Allowed for 3D/2D/1D periodic systems.
-   ProbeChargeEwald
-      G=0 modification based on the Ewald sum of a single point charge
-      per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.
-   SphericalTruncated
-      Truncate exchange kernel on a sphere whose volume equals the k-point
-      sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).
-      Allowed for any (partially) periodic &lt;geometry&gt;, but is recommended
-      only when the k-point sampled supercell is roughly isotropic.
-   WignerSeitzTruncated
-      Truncate exchange kernel on the Wigner-Seitz cell of the k-point
-      sampled supercell, as in R. Sundararaman et al (under preparation).
-      Default for any (partially) periodic &lt;geometry&gt;.
+
++ None
+
+    No singularity correction: default and only option for non-periodic
+    systems with no G=0 singularity (&lt;geometry&gt; = Spherical / Isolated).
+    This is allowed for fully or partially periodic systems, but is not
+    recommended due to extremely poor convergence with number of k-points.
+
++ AuxiliaryFunction
+
+    G=0 modification based on numerical integrals of an auxiliary
+    function, as described in P. Carrier et al, PRB 75, 205126 (2007).
+    Allowed for 3D/2D/1D periodic systems.
+
++ ProbeChargeEwald
+
+    G=0 modification based on the Ewald sum of a single point charge
+    per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.
+
++ SphericalTruncated
+
+    Truncate exchange kernel on a sphere whose volume equals the k-point
+    sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).
+    Allowed for any (partially) periodic &lt;geometry&gt;, but is recommended
+    only when the k-point sampled supercell is roughly isotropic.
+
++ WignerSeitzTruncated
+
+    Truncate exchange kernel on the Wigner-Seitz cell of the k-point
+    sampled supercell, as in R. Sundararaman et al (under preparation).
+    Default for any (partially) periodic &lt;geometry&gt;.
 
 Properties:
 -----------
@@ -1978,11 +2001,11 @@ Syntax:
 
 Description:
 ------------
-Coordinate system to use for force output in logPrintf-file as well as dump:
-	Positions: Use the same coordinate system as ionic position input (selected by \ref CommandCoordsType "coords-type") [default].
-	Lattice:   Use (covariant) lattice coordinates
-	Cartesian: Use cartesian coordinates
-	Contravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))
+Coordinate system to use for force output in log file as well as dump:
++ Positions: Use the same coordinate system as ionic position input (selected by \ref CommandCoordsType "coords-type") [default].
++ Lattice:   Use (covariant) lattice coordinates
++ Cartesian: Use cartesian coordinates
++ Contravariant: Use contravariant lattice coordinates (covariant multiplied by inv(RT.R))
 
 Properties:
 -----------

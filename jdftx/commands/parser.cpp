@@ -508,6 +508,8 @@ void writeCommandManual(Everything& everything, string section)
 		logPrintf("-------\n");
 		logPrintf("\n    %s %s\n", ci.name.c_str(), ci.format.c_str());
 		logPrintf("\n");
+		if(ci.section != "jdftx")
+			logPrintf("<b>Note:</b> only available in calculations using the '%s' executable.\n", ci.section.c_str());
 		//Print description (comments):
 		logPrintf("Description:\n");
 		logPrintf("------------\n");

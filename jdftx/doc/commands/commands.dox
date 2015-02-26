@@ -1,0 +1,182 @@
+/// @cond
+/**
+NOTE: If you are adding a new command, add a ref command
+in the appropriate section(s). The actual command page
+is automatically sub-paged into the alphabetical index.
+*/
+/// @endcond
+
+/** \page Commands Input file documentation
+
+Input file format
+-----------------
+
++ The input file may contain commands in any order; commands will be
+   automatically processed in an order that satisfies all dependencies
+
++ Each command is a single line, but lines can be continued using '\'
+
++ Whitespace is unimportant, except for separating words in each line
+
++ Any text following '#' on an input line is treated as a comment
+
++ 'include @<file@>' can be used to include commands from @<file@>
+
++ Each instance of ${xxx} is replaced by environment variable 'xxx'
+   (Variable substitution occurs before command/include processing)
+
+See \subpage CommandIndex for an alphabetical list of all available commands.
+
+Commands allowed in jdftx input files
+-------------------------------------
+
+### %Electronic
+
+<i>%Functional</i>
+\bigsep\ref CommandAddU
+\bigsep\ref CommandElecExCorr
+\bigsep\ref CommandElecExCorrCompare
+\bigsep\ref CommandVanDerWaals
+
+<i>%Optimization</i>
+\bigsep\ref CommandConvergeEmptyStates
+\bigsep\ref CommandDavidsonBandRatio
+\bigsep\ref CommandElecEigenAlgo
+\bigsep\ref CommandElectronicMinimize
+\bigsep\ref CommandElectronicScf
+\bigsep\ref CommandFixElectronDensity
+\bigsep\ref CommandFixElectronPotential
+\bigsep\ref CommandFixOccupied
+\bigsep\ref CommandInverseKohnShamMinimize
+\bigsep\ref CommandReorthogonalizeOrbitals
+\bigsep\ref CommandSubspaceRotationFactor
+
+<i>%Parameters</i>
+\bigsep\ref CommandBasis
+\bigsep\ref CommandBoxPotential
+\bigsep\ref CommandElecCutoff
+\bigsep\ref CommandElecFermiFillings
+\bigsep\ref CommandElecInitialCharge
+\bigsep\ref CommandElecNbands
+\bigsep\ref CommandElectricField
+\bigsep\ref CommandFftbox
+\bigsep\ref CommandKpoint
+\bigsep\ref CommandKpointFolding
+\bigsep\ref CommandSpinRestricted
+\bigsep\ref CommandSpintype
+\bigsep\ref CommandTargetMu
+\bigsep\ref CommandVexternal
+
+
+### %Ionic
+
+<i>%Geometry</i>
+\bigsep\ref CommandCoordsType
+\bigsep\ref CommandIon
+\bigsep\ref CommandLattScale
+\bigsep\ref CommandLattice
+
+<i>%Optimization</i>
+\bigsep\ref CommandCoreOverlapCheck
+\bigsep\ref CommandIonicMinimize
+\bigsep\ref CommandLattMoveScale
+\bigsep\ref CommandLatticeMinimize
+\bigsep\ref CommandWavefunctionDrag
+
+<i>%Species</i>
+\bigsep\ref CommandChargeball
+\bigsep\ref CommandIonSpecies
+\bigsep\ref CommandSetVDW
+\bigsep\ref CommandTauCore
+
+
+### %Coulomb interactions
+\bigsep\ref CommandCoulombInteraction
+\bigsep\ref CommandCoulombTruncationEmbed
+\bigsep\ref CommandCoulombTruncationIonMargin
+\bigsep\ref CommandExchangeRegularization
+\bigsep\ref CommandRhoExternal
+
+
+### %Fluid
+
+<i>%Constitutents</i>
+\bigsep\ref CommandFluidAnion
+\bigsep\ref CommandFluidCation
+\bigsep\ref CommandFluidMixingFunctional
+\bigsep\ref CommandFluidSiteParams
+\bigsep\ref CommandFluidSolvent
+
+<i>%Optimization</i>
+\bigsep\ref CommandFluidGummelLoop
+\bigsep\ref CommandFluidMinimize
+
+<i>%Parameters</i>
+\bigsep\ref CommandFluid
+\bigsep\ref CommandFluidDielectricConstant
+\bigsep\ref CommandFluidExCorr
+\bigsep\ref CommandFluidVdwScale
+\bigsep\ref CommandIonWidth
+\bigsep\ref CommandPcmNonlinearDebug
+\bigsep\ref CommandPcmParams
+\bigsep\ref CommandPcmVariant
+
+
+### %Initialization
+\bigsep\ref CommandElecInitialFillings
+\bigsep\ref CommandElecInitialHaux
+\bigsep\ref CommandFluidInitialState
+\bigsep\ref CommandInitialMagneticMoments
+\bigsep\ref CommandInitialOxidationState
+\bigsep\ref CommandInitialState
+\bigsep\ref CommandLcaoParams
+\bigsep\ref CommandWavefunction
+
+
+### %Output
+\bigsep\ref CommandChargedDefect
+\bigsep\ref CommandChargedDefectCorrection
+\bigsep\ref CommandDebug
+\bigsep\ref CommandDensityOfStates
+\bigsep\ref CommandDump
+\bigsep\ref CommandDumpEresolvedDensity
+\bigsep\ref CommandDumpFermiDensity
+\bigsep\ref CommandDumpInterval
+\bigsep\ref CommandDumpName
+\bigsep\ref CommandDumpOnly
+\bigsep\ref CommandElectronScattering
+\bigsep\ref CommandForcesOutputCoords
+\bigsep\ref CommandPolarizability
+\bigsep\ref CommandPolarizabilityKdiff
+\bigsep\ref CommandSlabEpsilon
+\bigsep\ref CommandVibrations
+
+
+### %Miscellaneous
+\bigsep\ref CommandCacheProjectors
+\bigsep\ref CommandCustomFilling
+\bigsep\ref CommandEigenShift
+\bigsep\ref CommandInvertKohnSham
+\bigsep\ref CommandSymmetries
+\bigsep\ref CommandSymmetryMatrix
+
+
+
+Additional commands in phonon input files
+-----------------------------------------
+
+\bigsep\ref CommandPhonon
+
+
+
+Additional commands in wannier input files
+------------------------------------------
+
+\bigsep\ref CommandWannier
+\bigsep\ref CommandWannierCenter
+\bigsep\ref CommandWannierCenterPinned
+\bigsep\ref CommandWannierDumpName
+\bigsep\ref CommandWannierInitialState
+\bigsep\ref CommandWannierMinimize
+
+*/
