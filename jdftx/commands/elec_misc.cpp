@@ -76,8 +76,9 @@ struct CommandElecNbands : public Command
 	CommandElecNbands() : Command("elec-n-bands")
 	{
 		format = "<n>";
-		comments = "Manually specify the number of bands (Default: set nBands assuming insulator\n"
-			"or in the case of fillings, equal to total number of atomic orbitals.)";
+		comments = "Manually specify the number of bands.\n\n"
+			"(Default: set nBands assuming insulator, or in calculations with\n"
+			"fermi-fillings, set equal to total number of atomic orbitals.)";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -102,7 +103,7 @@ struct CommandDavidsonBandRatio : public Command
 			"Ratio of number of bands in the Davidson working set to the\n"
 			"number of actual bands in the calculation. Increasing this\n"
 			"number should improve eigen-problem convergence at the\n"
-			"expense of increased memory reuiqrements.";
+			"expense of increased memory requirements.";
 		hasDefault = true;
 	}
 
@@ -429,8 +430,7 @@ struct CommandCustomFilling : public Command
 	{
 		format = "<qnum> <band> <filling>";
 		comments = "Specify a custom filling for the input (quantum-number, band)\n"
-					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO\n"
-					"Fillings are in normalized units, as output by the dumpName.fillings file";
+					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO.";
 		allowMultiple = true;
 		forbid("eigen-shift");
 	}

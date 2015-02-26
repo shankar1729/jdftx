@@ -128,10 +128,10 @@ struct CommandElecInitialFillings : public Command
 	{
 		format = "read <filename> [<nBandsOld>]";
 		comments =
-			"Initial electronic fillings are read from <filename> instead of computed automatically (default)\n"
-			"\t<nBandsOld> specifies the number of bands in the file being read, if different from current nBands\n"
-			"\textra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands\n"
-			"\tdefault: 0 => fillings file has same number of bands as this run";
+			"Initial electronic fillings are read from <filename> instead of computed automatically (default).\n"
+			"+ <nBandsOld> specifies the number of bands in the file being read, if different from current nBands.\n"
+			"  Extra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands.\n"
+			"  Default: 0 => fillings file has same number of bands as this run.";
 		
 		forbid("initial-state");
 	}

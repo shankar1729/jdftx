@@ -12,13 +12,14 @@ Description:
 Add U correction (DFT+U) to specified species and orbitals, in the simplified
 rotationally-invariant scheme of [Dudarev et al, Phys. Rev. B 57, 1505], where
 the correction depends only on U - J.
-  &lt;species&gt; is one of the pseudopotential identifiers.
-  &lt;orbDesc&gt; is one of s,p,d or f.
-  &lt;UminusJ&gt; = U-J is the on-site correction energy in hartrees.
-  Vext &lt;atom&gt; &lt;V&gt;: optionally specify an external potential on the atomic projection
-         which may be used to calculate U from linear response. &lt;atom&gt; is the atom
-         number of this species (1-based) to perturb by strength &lt;V&gt; (in Eh). Multiple
-         Vext's may appear per U channel to perturb multiple atoms simultaneously.
++ &lt;species&gt; is a species identifier (see command \ref CommandIonSpecies "ion-species")
++ &lt;orbDesc&gt; is one of s,p,d or f.
++ &lt;UminusJ&gt; = U-J is the on-site correction energy in hartrees.
++ Vext &lt;atom&gt; &lt;V&gt;: optionally specify an external potential on the atomic projection
+   which may be used to calculate U from linear response. &lt;atom&gt; is the atom
+   number of this species (1-based) to perturb by strength &lt;V&gt; (in Eh). Multiple
+   Vext's may appear per U channel to perturb multiple atoms simultaneously.
+
 Repeat the sequence for corrections to multiple species.
 If pseudoatom has multiple shells of same angular momentum, prefix &lt;orbDesc&gt;
 with a number e.g. 1p or 2p to select the first or second p shell respectively.
@@ -37,7 +38,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandBasis basis
@@ -65,7 +66,7 @@ Properties:
 
     basis kpoint-dependent
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandBoxPotential box-potential
@@ -92,7 +93,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCacheProjectors cache-projectors
@@ -119,7 +120,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandChargeball chargeball
@@ -148,7 +149,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandChargedDefect charged-defect
@@ -180,7 +181,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandChargedDefectCorrection charged-defect-correction
@@ -194,17 +195,21 @@ Description:
 Calculate energy correction for bulk or surface charged defects.
 The correction is calculated assuming the defects to be model
 charges specified using command \ref CommandChargedDefect "charged-defect".
-    &lt;DtotFile&gt; contains the electrostatic potential from a reference
+
+&lt;DtotFile&gt; contains the electrostatic potential from a reference
 neutral calculation with similar geometry (lattice vectors and grid
 must match exactly).
-    For bulk defect calculations (\ref CommandCoulombInteraction "coulomb-interaction" Periodic),
+
+For bulk defect calculations (\ref CommandCoulombInteraction "coulomb-interaction" Periodic),
 &lt;bulkEps&gt; is the bulk dielectric constant to use in the correction.
-    For surface defect calculations (\ref CommandCoulombInteraction "coulomb-interaction" Slab ...)
+
+For surface defect calculations (\ref CommandCoulombInteraction "coulomb-interaction" Slab ...)
 &lt;slabEpsFile&gt; specifies a dielectric profile calculated using command
 \ref CommandSlabEpsilon "slab-epsilon" in a similar geometry (the number of points along the slab
 normal direction must match exactly). Note that \ref CommandCoulombTruncationEmbed "coulomb-truncation-embed"
 must be specified for \ref CommandChargedDefect "charged-defect" correction in Slab geometry.
-    &lt;rMin&gt; specifies the distance away from the defect center to use in
+
+&lt;rMin&gt; specifies the distance away from the defect center to use in
 the determination of the alignment potential, with rSigma specifying an
 error function turn-on distance. The code wil generate a text file with
 the spherically averaged model and DFT electrostatic potentials, which
@@ -226,7 +231,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandConvergeEmptyStates converge-empty-states
@@ -257,7 +262,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCoordsType coords-type
@@ -285,22 +290,21 @@ Properties:
 
     coords-type lattice
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCoreOverlapCheck core-overlap-check
 Syntax:
 -------
 
-    core-overlap-check <condition> = vectorial
+    core-overlap-check <condition>
 
 Description:
 ------------
-Checks for core overlaps between ionic pseudopotentials.
-	additive -&gt; checks for interatomic distance &lt; (R1 + R2)
-	vector   -&gt; checks for interatomic distance &lt; sqrt(R1^2 + R2^2)   (default)
-	none
-
+Checks for core overlaps between ionic pseudopotentials based on &lt;condition&gt;:
++ additive: checks for interatomic distance &lt; (R1 + R2)
++ vector: checks for interatomic distance &lt; sqrt(R1^2 + R2^2) (default)
++ none
 
 Properties:
 -----------
@@ -317,7 +321,7 @@ Properties:
 
     core-overlap-check vector
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCoulombInteraction coulomb-interaction
@@ -328,7 +332,7 @@ Syntax:
 
 Description:
 ------------
-Optionally truncate the coulomb interaction. The available truncation modes
+Optionally truncate the coulomb interaction. The available &lt;truncationType&gt;'s
 and the corresponding arguments are:
 
 + Periodic
@@ -384,7 +388,7 @@ Properties:
 
     coulomb-interaction Periodic
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCoulombTruncationEmbed coulomb-truncation-embed
@@ -399,8 +403,10 @@ Compute truncated Coulomb interaction in a double-sized box (doubled only
 along truncated directions). This relaxes the L/2 localization constraint
 otherwise required by truncated potentials (see command \ref CommandCoulombInteraction "coulomb-interaction"),
 but breaks translational invariance and requires the specification of a center.
+
 Coordinate system for center (&lt;c0&gt; &lt;c1&gt; &lt;c2&gt;) is as specified by \ref CommandCoordsType "coords-type".
-(Default: not enabled i.e. employs translationally invariant scheme)
+
+Default: not enabled; \ref CommandCoulombInteraction "coulomb-interaction" employs translationally invariant scheme
 
 Properties:
 -----------
@@ -418,7 +424,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCoulombTruncationIonMargin coulomb-truncation-ion-margin
@@ -449,7 +455,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandCustomFilling custom-filling
@@ -461,8 +467,7 @@ Syntax:
 Description:
 ------------
 Specify a custom filling for the input (quantum-number, band)
-Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO
-Fillings are in normalized units, as output by the dumpName.fillings file
+Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO.
 
 Properties:
 -----------
@@ -478,7 +483,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDavidsonBandRatio davidson-band-ratio
@@ -492,7 +497,7 @@ Description:
 Ratio of number of bands in the Davidson working set to the
 number of actual bands in the calculation. Increasing this
 number should improve eigen-problem convergence at the
-expense of increased memory reuiqrements.
+expense of increased memory requirements.
 
 Properties:
 -----------
@@ -509,7 +514,7 @@ Properties:
 
     davidson-band-ratio 1.1
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDebug debug
@@ -528,6 +533,7 @@ Each &lt;option&gt; is one of
 +  KpointsBasis: List details of each k-point and corresponding basis
 +  MuSearch    : Print progress of the mu bisect/fit routines
 +  Symmetries  : Print various symmetry matrices during start up
+
 Default: none of the optional outputs
 
 Properties:
@@ -544,7 +550,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDensityOfStates density-of-states
@@ -563,74 +569,105 @@ simultaneously, and they are all output as columns in the same file
 in the same order that they appear in this command, with the energy
 in the first column. The energy is in Hartrees, and the density of
 states is in electrons/UnitCell/Hartree.
-   This command is organized into subcommands, each with a keyword
+
+This command is organized into subcommands, each with a keyword
 followed by subcommand-specific arguments. The keywords that lead to a
 column in the output file (various weighting modes) and arguments are:
-   Total
-      Compute the total density of states (no arguments)
-   Slice  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
-      Density of states in a planar slab centered at (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;)
-      in the coordinate system selected by \ref CommandCoordsType "coords-type", parallel to
-      the lattice plane specified by Miller indices (&lt;i0&gt;,&lt;i1&gt;,&lt;i2&gt;),
-      with half-width &lt;r&gt; bohrs normal to the lattice plane.
-   Sphere  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;
-      Density of states in a sphere of radius &lt;r&gt; bohrs centered at
-      (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;) in the coordinate system selected by \ref CommandCoordsType "coords-type".
-   AtomSlice  &lt;species&gt; &lt;atomIndex&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
-      Like Slice mode, with center located at atom number &lt;atomIndex&gt;
-      (1-based index, in input file order) of species name &lt;species&gt;.
-   AtomSphere  &lt;species&gt; &lt;atomIndex&gt;   &lt;r&gt;
-      Like Sphere mode, but centered on an atom (specified as in AtomSlice)
-   File &lt;filename&gt;
-      Arbitrary real-space weight function read from file &lt;filename&gt;.
-      (double-precision binary, same format as electron density output)
-      A file with all 1.0's would yield the same result as mode Total.
-   Orbital  &lt;species&gt; &lt;atomIndex&gt;   &lt;orbDesc&gt;
-      Atomic-orbital projected density of states. The target atom is
-      selected as in AtomSphere mode. &lt;orbDesc&gt; selects the atomic orbital
-      used for projection, from those available in the pseudopotential.
-      s, p, d or f select the total projection in that angular momentum,
-      and px, py, pz, dxy, dyz, dz2, dxz, dx2-y2, d, fy(3x2-y2) fxyz, fyz2,
-      fz3, fxz2, fz(x2-y2) or fx(x2-3y2) select a specific orbital, where
-      (x,y,z) are cartesian directions. The orbital code may be prefixed
-      by the pseudo-atom principal quantum number in the case of multiple
-      orbitals per angular momentum eg. '2px' selects the second px orbital
-      in a psuedopotential with 2 l=1 orbitals, while '1px' or 'px' select
-      the first of the two. In non-collinear magnetism modes, the orbital
-      type may be suffixed by Up or Dn to get a specific z projection.
-      With relativistic pseudopotentials, all orbitals must use the
-      alternate syntax that specifies j,mj eg. p+(+1/2) selects the l=1,
-      j=3/2 and mj=+1/2 orbital.
-   OrthoOrbital  &lt;species&gt; &lt;atomIndex&gt;   &lt;orbDesc&gt;
-      Similar to Orbital, except the projectors are Lowdin-orthonormalized
-      atomic orbitals. This orthonormalization ensures that the sum of DOS
-      projected on all OrthoOrbitals is &lt;= the total DOS.
+
++ Total
+
+   Compute the total density of states (no arguments)
+
++ Slice  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
+
+   Density of states in a planar slab centered at (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;)
+   in the coordinate system selected by \ref CommandCoordsType "coords-type", parallel to
+   the lattice plane specified by Miller indices (&lt;i0&gt;,&lt;i1&gt;,&lt;i2&gt;),
+   with half-width &lt;r&gt; bohrs normal to the lattice plane.
+
++ Sphere  &lt;c0&gt; &lt;c1&gt; &lt;c2&gt;   &lt;r&gt;
+
+   Density of states in a sphere of radius &lt;r&gt; bohrs centered at
+   (&lt;c0&gt;,&lt;c1&gt;,&lt;c2&gt;) in the coordinate system selected by \ref CommandCoordsType "coords-type".
+
++ AtomSlice  &lt;species&gt; &lt;atomIndex&gt;   &lt;r&gt;   &lt;i0&gt; &lt;i1&gt; &lt;i2&gt;
+
+   Like Slice mode, with center located at atom number &lt;atomIndex&gt;
+   (1-based index, in input file order) of species name &lt;species&gt;.
+
++ AtomSphere  &lt;species&gt; &lt;atomIndex&gt;   &lt;r&gt;
+
+  Like Sphere mode, but centered on an atom (specified as in AtomSlice)
+
++ File &lt;filename&gt;
+
+   Arbitrary real-space weight function read from file &lt;filename&gt;.
+   (double-precision binary, same format as electron density output)
+   A file with all 1.0's would yield the same result as mode Total.
+
++ Orbital  &lt;species&gt; &lt;atomIndex&gt;   &lt;orbDesc&gt;
+
+   Atomic-orbital projected density of states. The target atom is
+   selected as in AtomSphere mode. &lt;orbDesc&gt; selects the atomic orbital
+   used for projection, from those available in the pseudopotential.
+   s, p, d or f select the total projection in that angular momentum,
+   and px, py, pz, dxy, dyz, dz2, dxz, dx2-y2, d, fy(3x2-y2) fxyz, fyz2,
+   fz3, fxz2, fz(x2-y2) or fx(x2-3y2) select a specific orbital, where
+   (x,y,z) are cartesian directions. The orbital code may be prefixed
+   by the pseudo-atom principal quantum number in the case of multiple
+   orbitals per angular momentum eg. '2px' selects the second px orbital
+   in a psuedopotential with 2 l=1 orbitals, while '1px' or 'px' select
+   the first of the two. In non-collinear magnetism modes, the orbital
+   type may be suffixed by Up or Dn to get a specific z projection.
+   With relativistic pseudopotentials, all orbitals must use the
+   alternate syntax that specifies j,mj eg. p+(+1/2) selects the l=1,
+   j=3/2 and mj=+1/2 orbital.
+
++ OrthoOrbital  &lt;species&gt; &lt;atomIndex&gt;   &lt;orbDesc&gt;
+
+   Similar to Orbital, except the projectors are Lowdin-orthonormalized
+   atomic orbitals. This orthonormalization ensures that the sum of DOS
+   projected on all OrthoOrbitals is &lt;= the total DOS.
+
 Any number of weight functions may be specified; only the total density
 of states is output if no weight functions are specified. Other flags
 that control aspects of the density of states computation are:
-   Etol &lt;Etol&gt;
-      Resolution in energy within which eigenvalues are identified,
-      and is used as the band width for Gamma-point only calculations.
-      This flag affects all columns of output, and is 1e-6 by default.
-   Esigma &lt;Esigma&gt;
-      Optional gaussian broadening of spectra in Hartrees. Applied after
-      the tetrahedron method, so it is safe to use a width smaller than
-      the typical level spacing. This flag affects all columns of output,
-      and is 0 by default. Warning: if finite but too small, output size
-      might be dangerously large; if non-zero, recommend at least 1e-4.
-   Occupied
-      All subsequent columns are occupied density of states, that is
-      they are weighted by the band fillings.
-   Complete
-      All subsequent columns are complete density of states, that is
-      they do not depend on band fillings: this is the default mode.
-   SpinProjected &lt;theta&gt; &lt;phi&gt;
-      Non-collinear magnetism mode only. All subsequent columns are
-      spin-projected along the specified polar direction (in degrees).
-      Note that this flag does not apply to orbital-projected columns.
-   SpinTotal
-      Non-collinear magnetism mode only (default spin-handling mode).
-      All subsequent columns are spin totals.
+
++ Etol &lt;Etol&gt;
+
+   Resolution in energy within which eigenvalues are identified,
+   and is used as the band width for Gamma-point only calculations.
+   This flag affects all columns of output, and is 1e-6 by default.
+
++ Esigma &lt;Esigma&gt;
+
+   Optional gaussian broadening of spectra in Hartrees. Applied after
+   the tetrahedron method, so it is safe to use a width smaller than
+   the typical level spacing. This flag affects all columns of output,
+   and is 0 by default. Warning: if finite but too small, output size
+   might be dangerously large; if non-zero, recommend at least 1e-4.
+
++ Occupied
+
+   All subsequent columns are occupied density of states, that is
+   they are weighted by the band fillings.
+
++ Complete
+
+   All subsequent columns are complete density of states, that is
+   they do not depend on band fillings: this is the default mode.
+
++ SpinProjected &lt;theta&gt; &lt;phi&gt;
+
+   Non-collinear magnetism mode only. All subsequent columns are
+   spin-projected along the specified polar direction (in degrees).
+   Note that this flag does not apply to orbital-projected columns.
+
++ SpinTotal
+
+   Non-collinear magnetism mode only (default spin-handling mode).
+   All subsequent columns are spin totals.
+
 This command adds DOS to dump-frequency End, but this may be altered
 within a dump command of appropriate frequency (see command \ref CommandDump "dump").
 
@@ -649,7 +686,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDump dump
@@ -668,7 +705,7 @@ Description:
 +  Ionic     : Dump specified vars every (few) ionic step(s)
 +  Lattice   : Dump specified vars every (few) lattice minimization step(s)
 
-and each &lt;var*&gt; is one of:
+and each &lt;var&gt; is one of:
 +  All                      : Dump most things (except those marked not in All)
 +  BandEigs                 : Band Eigenvalues
 +  BoundCharge              : Bound charge in the fluid
@@ -713,7 +750,7 @@ and each &lt;var*&gt; is one of:
 +  VfluidTot                : Total contribution of fluid to the electron potential
 +  Vlocps                   : Local part of pseudopotentials
 +  Vscloc                   : Self-consistent potential
-+  XCanalysis               : XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
++  XCanalysis               : Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
 List of dumped variables from multiple instances will be accumulated for each &lt;freq&gt;.
 Use command \ref CommandDumpInterval "dump-interval" to dump at regular intervals instead of every iteration.
 
@@ -732,7 +769,7 @@ Properties:
 
     dump End State
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDumpEresolvedDensity dump-Eresolved-density
@@ -744,10 +781,12 @@ Syntax:
 Description:
 ------------
 Output electron density from bands within a specified energy range
-[Emin,Emax] (in Eh). Command may be issued multiple times, and the
-outputs will be numbered sequenetially EresolvedDensity.0 etc.
-Will automatically be dumped at End; dumping at other frequencies
-may be requested using the dump command.
+[Emin,Emax] (in Eh).
+
+When issued multiple times, the outputs will be
+numbered sequenetially EresolvedDensity.0 etc.
+This automatically invokes dump at End; dumping at
+other frequencies may be requested using the dump command.
 
 Properties:
 -----------
@@ -763,7 +802,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDumpFermiDensity dump-fermi-density
@@ -775,12 +814,13 @@ Syntax:
 Description:
 ------------
 Output electron density calculated from derivative of Fermi-Dirac
-function evaluated at desired energy, muLevel.  If no energy specified,
-calculated mu will be used.
-Command may be issued multiple times, and the outputs will be numbered
-sequentially FermiDensity.0 etc.
-Will automatically be dumped at End; dumping at other frequencies
-may be requested using the dump command.
+function evaluated at desired chemical potential &lt;muLevel&gt;.
+If unspecified, calculated chemical potential will be used.
+
+When issued multiple times, the outputs will be
+numbered sequenetially FermiDensity.0 etc.
+This automatically invokes dump at End; dumping at
+other frequencies may be requested using the dump command.
 
 Properties:
 -----------
@@ -796,7 +836,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDumpInterval dump-interval
@@ -807,8 +847,9 @@ Syntax:
 
 Description:
 ------------
-Dump every &lt;interval&gt; iterations of type &lt;freq&gt;=Ionic|Electronic|Fluid|Gummel
+Dump every &lt;interval&gt; iterations of type &lt;freq&gt;=Ionic|Electronic|Fluid|Gummel.
 Without this command, the behavior defaults to &lt;interval&gt;=1 for each &lt;freq&gt;.
+(See command \ref CommandDump "dump" for more details)
 
 Properties:
 -----------
@@ -824,7 +865,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDumpName dump-name
@@ -835,10 +876,10 @@ Syntax:
 
 Description:
 ------------
-  Control the filename pattern for dump output:
-    &lt;format&gt; is an arbitrary format string that will be substituted according to:
-       $VAR -&gt; name of the variable being dumped (this must be present somewhere in the string)
-       $STAMP -&gt; time-stamp at the start of dump
+Control the filename pattern for dump output, where &lt;format&gt; is an
+arbitrary format string that will be substituted according to:
++ $VAR   -&gt; name of the variable being dumped (this must be present)
++ $STAMP -&gt; time-stamp at the start of dump
 
 Properties:
 -----------
@@ -855,7 +896,7 @@ Properties:
 
     dump-name $STAMP.$VAR
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandDumpOnly dump-only
@@ -884,7 +925,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandEigenShift eigen-shift
@@ -895,8 +936,9 @@ Syntax:
 
 Description:
 ------------
-When fillings are computed during \ref CommandElectronicScf "electronic-scf", shifts KS eigenvalue of (qnum, band) by shift
-Band index is calculated from HOMO, unless fromHOMO is set to no
+When fillings are computed during \ref CommandElectronicScf "electronic-scf", shifts Kohn-Sham
+eigenvalue of (qnum, band) by shift. Band index is calculated
+relative to HOMO if &lt;fromHOMO&gt; = yes and is absolute otherwise.
 
 
 Properties:
@@ -914,7 +956,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecCutoff elec-cutoff
@@ -943,7 +985,7 @@ Properties:
 
     elec-cutoff 20
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecEigenAlgo elec-eigen-algo
@@ -971,7 +1013,7 @@ Properties:
 
     elec-eigen-algo Davidson
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecExCorr elec-ex-corr
@@ -1002,6 +1044,7 @@ Specify the exchange-correlation functional, where &lt;functional&gt; is one of:
 +  mgga-TPSS   : Tao-Perdew-Staroverov-Scuseria meta GGA
 +  orb-GLLBsc  : Orbital-dependent GLLB-sc potential (no total energy)
 +  pot-LB94    : van Leeuwen-Baerends model potential (no total energy).
+
 Note that lda is an alias for lda-pz, and gga for gga-pbe.
 Additional functionals can be enabled by compiling with LibXC support.
 
@@ -1020,7 +1063,7 @@ Properties:
 
     elec-ex-corr gga-PBE
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecExCorrCompare elec-ex-corr-compare
@@ -1032,9 +1075,10 @@ Syntax:
 Description:
 ------------
 Compute total energies for other functionals at the final state for comparison.
+The available options for each parameter are identical to \ref CommandElecExCorr "elec-ex-corr".
+
 This command may be specified multiple times. It invokes 'dump End ExcCompare'
 automatically, but the compute frequency can be controlled using dump explicitly.
-The available options for each parameter are identical to \ref CommandElecExCorr "elec-ex-corr"
 
 Properties:
 -----------
@@ -1051,7 +1095,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecFermiFillings elec-fermi-fillings
@@ -1081,7 +1125,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecInitialCharge elec-initial-charge
@@ -1110,7 +1154,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecInitialFillings elec-initial-fillings
@@ -1121,10 +1165,10 @@ Syntax:
 
 Description:
 ------------
-Initial electronic fillings are read from &lt;filename&gt; instead of computed automatically (default)
-	&lt;nBandsOld&gt; specifies the number of bands in the file being read, if different from current nBands
-	extra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands
-	default: 0 =&gt; fillings file has same number of bands as this run
+Initial electronic fillings are read from &lt;filename&gt; instead of computed automatically (default).
++ &lt;nBandsOld&gt; specifies the number of bands in the file being read, if different from current nBands.
+  Extra new bands are filled with 0s, fillings of extra old bands are accumulated into other bands.
+  Default: 0 =&gt; fillings file has same number of bands as this run.
 
 Properties:
 -----------
@@ -1140,7 +1184,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecInitialHaux elec-initial-Haux
@@ -1168,7 +1212,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElecNbands elec-n-bands
@@ -1179,8 +1223,10 @@ Syntax:
 
 Description:
 ------------
-Manually specify the number of bands (Default: set nBands assuming insulator
-or in the case of fillings, equal to total number of atomic orbitals.)
+Manually specify the number of bands.
+
+(Default: set nBands assuming insulator, or in calculations with
+fermi-fillings, set equal to total number of atomic orbitals.)
 
 Properties:
 -----------
@@ -1196,7 +1242,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElectricField electric-field
@@ -1227,7 +1273,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElectronScattering electron-scattering
@@ -1270,7 +1316,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElectronicMinimize electronic-minimize
@@ -1331,7 +1377,7 @@ Properties:
 	wolfeGradient        0.9 \
 	fdTest               no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandElectronicScf electronic-scf
@@ -1375,7 +1421,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandExchangeRegularization exchange-regularization
@@ -1436,7 +1482,7 @@ Properties:
 
     exchange-regularization WignerSeitzTruncated
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFftbox fftbox
@@ -1463,7 +1509,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFixElectronDensity fix-electron-density
@@ -1499,7 +1545,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFixElectronPotential fix-electron-potential
@@ -1535,7 +1581,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFixOccupied fix-occupied
@@ -1564,7 +1610,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluid fluid
@@ -1594,7 +1640,7 @@ Properties:
 
     fluid None
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidAnion fluid-anion
@@ -1625,7 +1671,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidCation fluid-cation
@@ -1656,7 +1702,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidDielectricConstant fluid-dielectric-constant
@@ -1683,7 +1729,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidExCorr fluid-ex-corr
@@ -1716,7 +1762,7 @@ Properties:
 
     fluid-ex-corr lda-TF lda-PZ
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidGummelLoop fluid-gummel-loop
@@ -1746,7 +1792,7 @@ Properties:
 
     fluid-gummel-loop 10 1.000000e-05
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidInitialState fluid-initial-state
@@ -1773,7 +1819,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidMinimize fluid-minimize
@@ -1834,7 +1880,7 @@ Properties:
 	wolfeGradient        0.9 \
 	fdTest               no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidMixingFunctional fluid-mixing-functional
@@ -1864,7 +1910,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidSiteParams fluid-site-params
@@ -1906,7 +1952,7 @@ Properties:
 
     fluid-site-params 
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidSolvent fluid-solvent
@@ -1961,7 +2007,7 @@ Properties:
 	Rvdw 2.61727 \
 	Res 1.42
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandFluidVdwScale fluid-vdwScale
@@ -1990,7 +2036,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandForcesOutputCoords forces-output-coords
@@ -2022,7 +2068,7 @@ Properties:
 
     forces-output-coords Positions
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandInitialMagneticMoments initial-magnetic-moments
@@ -2058,7 +2104,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandInitialOxidationState initial-oxidation-state
@@ -2086,7 +2132,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandInitialState initial-state
@@ -2125,7 +2171,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandInverseKohnShamMinimize inverseKohnSham-minimize
@@ -2186,7 +2232,7 @@ Properties:
 	wolfeGradient        0.9 \
 	fdTest               no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandInvertKohnSham invertKohnSham
@@ -2230,7 +2276,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandIon ion
@@ -2264,7 +2310,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandIonSpecies ion-species
@@ -2281,7 +2327,8 @@ to internally by &lt;id&gt; in all other commands and in the output. Note that &
 is the start of the basename of the file, obtained by removing the path,
 extension and any suffix starting with non-aphanumeric characters eg.
 Br.fhi, ../Br.fhi and /home/foo/Br_theNotSoBadOne.uspp will all have &lt;id&gt; = Br.
-    If the filename contains the string $ID, then this command specifies an
+
+If the filename contains the string $ID, then this command specifies an
 entire set of pseudopotentials. Every time command ion encounters an otherwise
 undefined species, it will search for a pseudopotential file with this pattern
 (replacing $ID with the as yet undefined &lt;id&gt; needed by the ion command).
@@ -2289,9 +2336,10 @@ If there are multiple such patterns, then they will be searched in the order
 that they appear in the input file.
 
 Currently supported &lt;format&gt;'s are:
-   .fhi   ABINIT format FHI98 norm-conserving pseudopotentials (eg. generated by OPIUM).
-   .uspp  Ultrasoft pseudopotentials generated by the USPP program (native binary format).
-   .upf   Quantum Espresso Universal Pseudopotential Format (only the XML-like version 2).
++ .fhi   ABINIT format FHI98 norm-conserving pseudopotentials (eg. generated by OPIUM).
++ .uspp  Ultrasoft pseudopotentials generated by the USPP program (native binary format).
++ .upf   Quantum Espresso Universal Pseudopotential Format (only the XML-like version 2).
+
 If [&lt;path&gt;/]&lt;id&gt;.pulay exists, pulay data (derivative of total energy with respect to
 number of planewaves per unit volume) will be read from that file. This is useful for
 lattice minimization at low cutoffs; see script calcPulay for generating such files.
@@ -2310,7 +2358,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandIonWidth ion-width
@@ -2342,7 +2390,7 @@ Properties:
 
     ion-width 0
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandIonicMinimize ionic-minimize
@@ -2403,7 +2451,7 @@ Properties:
 	wolfeGradient        0.9 \
 	fdTest               no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandKpoint kpoint
@@ -2432,7 +2480,7 @@ Properties:
 
     kpoint   0.000000000000   0.000000000000   0.000000000000  1.00000000000000
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandKpointFolding kpoint-folding
@@ -2460,7 +2508,7 @@ Properties:
 
     kpoint-folding 1 1 1 
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandLattMoveScale latt-move-scale
@@ -2488,7 +2536,7 @@ Properties:
 
     latt-move-scale 1 1 1
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandLattScale latt-scale
@@ -2516,7 +2564,7 @@ Properties:
 
     latt-scale 1 1 1 
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandLattice lattice
@@ -2555,7 +2603,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandLatticeMinimize lattice-minimize
@@ -2616,7 +2664,7 @@ Properties:
 	wolfeGradient        0.9 \
 	fdTest               no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandLcaoParams lcao-params
@@ -2649,7 +2697,7 @@ Properties:
 
     lcao-params -1 1e-06 0.001
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandPcmNonlinearDebug pcm-nonlinear-debug
@@ -2676,7 +2724,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandPcmParams pcm-params
@@ -2711,7 +2759,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandPcmVariant pcm-variant
@@ -2744,7 +2792,7 @@ Properties:
 
     pcm-variant GLSSA13
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandPolarizability polarizability
@@ -2771,7 +2819,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandPolarizabilityKdiff polarizability-kdiff
@@ -2801,7 +2849,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandReorthogonalizeOrbitals reorthogonalize-orbitals
@@ -2831,7 +2879,7 @@ Properties:
 
     reorthogonalize-orbitals 20 1.5
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandRhoExternal rhoExternal
@@ -2861,7 +2909,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSetVDW setVDW
@@ -2889,7 +2937,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSlabEpsilon slab-epsilon
@@ -2921,7 +2969,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSpinRestricted spin-restricted
@@ -2952,7 +3000,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSpintype spintype
@@ -2984,7 +3032,7 @@ Properties:
 
     spintype no-spin
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSubspaceRotationFactor subspace-rotation-factor
@@ -3012,7 +3060,7 @@ Properties:
 
     subspace-rotation-factor 30
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSymmetries symmetries
@@ -3044,7 +3092,7 @@ Properties:
 
     symmetries automatic no
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandSymmetryMatrix symmetry-matrix
@@ -3072,7 +3120,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandTargetMu target-mu
@@ -3103,7 +3151,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandTauCore tau-core
@@ -3135,7 +3183,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandVanDerWaals van-der-waals
@@ -3165,7 +3213,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandVexternal Vexternal
@@ -3193,7 +3241,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandVibrations vibrations
@@ -3237,7 +3285,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandWavefunction wavefunction
@@ -3282,7 +3330,7 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */
 
 /** \page CommandWavefunctionDrag wavefunction-drag
@@ -3309,5 +3357,5 @@ Properties:
 <b>Default:</b>
 \bigsep (None)
 
-\ref Commands "List of commands"
+Back to: \ref Commands or \ref CommandIndex 
 */

@@ -60,7 +60,7 @@ struct CommandDebug : public Command
 		comments =
 			"Each <option> is one of "
 			+ addDescriptions(debugMap.optionList(), linkDescription(debugMap, debugDescMap))
-			+ "\nDefault: none of the optional outputs";
+			+ "\n\nDefault: none of the optional outputs";
 		allowMultiple = true;
 		hasDefault = false;
 	}

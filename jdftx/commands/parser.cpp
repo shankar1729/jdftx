@@ -539,7 +539,7 @@ void writeCommandManual(Everything& everything, string section)
 		}
 		else logPrintf("\\bigsep (None)\n");
 		//Link back to main page and close:
-		logPrintf("\n\\ref Commands \"List of commands\"\n");
+		logPrintf("\nBack to: \\ref Commands or \\ref CommandIndex \n");
 		logPrintf("*/\n");
 	}
 }

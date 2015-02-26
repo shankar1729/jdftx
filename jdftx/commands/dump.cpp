@@ -154,7 +154,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
 	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
 	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
-	DumpXCanalysis,     "XC analysis: debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
+	DumpXCanalysis,     "Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
 	DumpEresolvedDensity, "Electron density from bands within specified energy ranges",
 	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy" 
 );
@@ -167,7 +167,7 @@ struct CommandDump : public Command
 		comments =
 			"<freq> is one of:"
 			+ addDescriptions(freqMap.optionList(), linkDescription(freqMap, freqDescMap))
-			+ "\n\nand each <var*> is one of:"
+			+ "\n\nand each <var> is one of:"
 			+ addDescriptions(varMap.optionList(), linkDescription(varMap, varDescMap))
 			+ "\nList of dumped variables from multiple instances will be accumulated for each <freq>."
 			"\nUse command dump-interval to dump at regular intervals instead of every iteration.";
@@ -216,8 +216,9 @@ struct CommandDumpInterval : public Command
 	{
 		format = "<freq> <interval>";
 		comments = 
-			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel\n"
-			"Without this command, the behavior defaults to <interval>=1 for each <freq>.";
+			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel.\n"
+			"Without this command, the behavior defaults to <interval>=1 for each <freq>.\n"
+			"(See command dump for more details)";
 		allowMultiple = true;
 	}
 
@@ -253,10 +254,10 @@ struct CommandDumpName : public Command
 	{
 		format = "<format>";
 		comments = 
-			"  Control the filename pattern for dump output:\n"
-			"    <format> is an arbitrary format string that will be substituted according to:\n"
-			"       $VAR -> name of the variable being dumped (this must be present somewhere in the string)\n"
-			"       $STAMP -> time-stamp at the start of dump";
+			"Control the filename pattern for dump output, where <format> is an\n"
+			"arbitrary format string that will be substituted according to:\n"
+			"+ $VAR   -> name of the variable being dumped (this must be present)\n"
+			"+ $STAMP -> time-stamp at the start of dump";
 		hasDefault = true;
 	}
 
@@ -414,10 +415,12 @@ struct CommandDumpEresolvedDensity : public Command
 		format = "<Emin> <Emax>";
 		comments =
 			"Output electron density from bands within a specified energy range\n"
-			"[Emin,Emax] (in Eh). Command may be issued multiple times, and the\n"
-			"outputs will be numbered sequenetially EresolvedDensity.0 etc.\n"
-			"Will automatically be dumped at End; dumping at other frequencies\n"
-			"may be requested using the dump command.";
+			"[Emin,Emax] (in Eh).\n"
+			"\n"
+			"When issued multiple times, the outputs will be\n"
+			"numbered sequenetially EresolvedDensity.0 etc.\n"
+			"This automatically invokes dump at End; dumping at\n"
+			"other frequencies may be requested using the dump command.";
 		
 		allowMultiple = true;
 	}
@@ -445,12 +448,13 @@ struct CommandDumpFermiDensity : public Command
 		format = "[<muLevel>]";
 		comments =
 			"Output electron density calculated from derivative of Fermi-Dirac\n"
-			"function evaluated at desired energy, muLevel.  If no energy specified,\n"
-			"calculated mu will be used.\n"
-			"Command may be issued multiple times, and the outputs will be numbered\n"
-			"sequentially FermiDensity.0 etc.\n"
-			"Will automatically be dumped at End; dumping at other frequencies\n"
-			"may be requested using the dump command.";
+			"function evaluated at desired chemical potential <muLevel>.\n"
+			"If unspecified, calculated chemical potential will be used.\n"
+			"\n"
+			"When issued multiple times, the outputs will be\n"
+			"numbered sequenetially FermiDensity.0 etc.\n"
+			"This automatically invokes dump at End; dumping at\n"
+			"other frequencies may be requested using the dump command.";
 		
 		allowMultiple = true;
 		require("elec-fermi-fillings"); //require a temperature
@@ -606,17 +610,21 @@ struct CommandChargedDefectCorrection : public Command
 			"Calculate energy correction for bulk or surface charged defects.\n"
 			"The correction is calculated assuming the defects to be model\n"
 			"charges specified using command charged-defect.\n"
-			"    <DtotFile> contains the electrostatic potential from a reference\n"
+			"\n"
+			"<DtotFile> contains the electrostatic potential from a reference\n"
 			"neutral calculation with similar geometry (lattice vectors and grid\n"
 			"must match exactly).\n"
-			"    For bulk defect calculations (coulomb-interaction Periodic),\n"
+			"\n"
+			"For bulk defect calculations (coulomb-interaction Periodic),\n"
 			"<bulkEps> is the bulk dielectric constant to use in the correction.\n"
-			"    For surface defect calculations (coulomb-interaction Slab ...)\n"
+			"\n"
+			"For surface defect calculations (coulomb-interaction Slab ...)\n"
 			"<slabEpsFile> specifies a dielectric profile calculated using command\n"
 			"slab-epsilon in a similar geometry (the number of points along the slab\n"
 			"normal direction must match exactly). Note that coulomb-truncation-embed\n"
 			"must be specified for charged-defect correction in Slab geometry.\n"
-			"    <rMin> specifies the distance away from the defect center to use in\n"
+			"\n"
+			"<rMin> specifies the distance away from the defect center to use in\n"
 			"the determination of the alignment potential, with rSigma specifying an\n"
 			"error function turn-on distance. The code wil generate a text file with\n"
 			"the spherically averaged model and DFT electrostatic potentials, which\n"

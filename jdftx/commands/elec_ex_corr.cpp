@@ -385,7 +385,7 @@ struct CommandElecExCorr : public Command
 		format = "<functional>";
 		comments = "Specify the exchange-correlation functional, where <functional> is one of:"
 			+ addDescriptions(exCorrTypeMap.optionList(), linkDescription(exCorrTypeMap, exCorrDescriptionMap))
-			+ ".\nNote that lda is an alias for lda-pz, and gga for gga-pbe.\n";
+			+ ".\n\nNote that lda is an alias for lda-pz, and gga for gga-pbe.\n";
 		hasDefault = true;
 		emptyParamError = "   eXchange/Correlation functional(s) must be specified.";
 		
@@ -472,9 +472,10 @@ struct CommandElecExCorrCompare : public CommandElecExCorr
 		format = "<functional>";
 		comments =
 			"Compute total energies for other functionals at the final state for comparison.\n"
+			"The available options for each parameter are identical to elec-ex-corr.\n"
+			"\n"
 			"This command may be specified multiple times. It invokes 'dump End ExcCompare'\n"
-			"automatically, but the compute frequency can be controlled using dump explicitly.\n"
-			"The available options for each parameter are identical to elec-ex-corr";
+			"automatically, but the compute frequency can be controlled using dump explicitly.";
 		hasDefault = false;
 		allowMultiple = true;
 		emptyParamError = "   eXchange/Correlation functional(s) must be specified.";

@@ -207,11 +207,11 @@ struct CommandCoreOverlapCheck : public Command
 {
 	CommandCoreOverlapCheck() : Command("core-overlap-check")
 	{
-		format = "<condition> = vectorial";
-		comments = "Checks for core overlaps between ionic pseudopotentials.\n"
-				   "\tadditive -> checks for interatomic distance < (R1 + R2)\n"
-				   "\tvector   -> checks for interatomic distance < sqrt(R1^2 + R2^2)   (default)\n"
-				   "\tnone\n";
+		format = "<condition>";
+		comments = "Checks for core overlaps between ionic pseudopotentials based on <condition>:\n"
+				   "+ additive: checks for interatomic distance < (R1 + R2)\n"
+				   "+ vector: checks for interatomic distance < sqrt(R1^2 + R2^2) (default)\n"
+				   "+ none";
 		hasDefault = true;
 	}
 

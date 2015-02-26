@@ -49,7 +49,7 @@ struct CommandCoulombInteraction : public Command
 	{
 		format = "<truncationType> [<args> ...]";
 		comments =
-			"Optionally truncate the coulomb interaction. The available truncation modes\n"
+			"Optionally truncate the coulomb interaction. The available <truncationType>'s\n"
 			"and the corresponding arguments are:\n"
 			"\n+ Periodic\n\n"
 			"    Standard periodic (untruncated) coulomb interaction (Default)\n"
@@ -123,8 +123,10 @@ struct CommandCoulombTruncationEmbed : public Command
 			"along truncated directions). This relaxes the L/2 localization constraint\n"
 			"otherwise required by truncated potentials (see command coulomb-interaction),\n"
 			"but breaks translational invariance and requires the specification of a center.\n"
+			"\n"
 			"Coordinate system for center (<c0> <c1> <c2>) is as specified by coords-type.\n"
-			"(Default: not enabled i.e. employs translationally invariant scheme)";
+			"\n"
+			"Default: not enabled; coulomb-interaction employs translationally invariant scheme";
 		
 		hasDefault = false;
 		require("coulomb-interaction");
