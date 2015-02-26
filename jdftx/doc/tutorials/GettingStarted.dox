@@ -15,6 +15,7 @@ Talk about:
 + jdftx with command line input
 + JDFTx option to terminate calculation
 + accessing the documentation, list of commands
++ commands can be given in any order, case insensitive
 
 The list of available input file commands with documentation can also be obtained by running **jdftx -t**.
 

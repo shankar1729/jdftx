@@ -8,7 +8,7 @@ Electronic minimization is a good first step, but you probably want to optimize 
         energyDiffThreshold 1e-6 \
         knormThreshold 1e-4  #Threshold on RMS cartesian force
 
-Now, rerun jdftx.  The default behavior of jdftx is to concatenate output files- if you wish to overwrite your previous water.out file, then run jdftx with the option of -d.  To see other options for jdftx, run jdftx --help. 
+Now, rerun jdftx.  
 
 Once your new water calculation has finished, you can visualize the ionic minimize steps.  To do this, locate the "scripts" directory of JDFTx, and look inside.  This directory contains tools for postprocessing, for example.  createXSF is one such script- this creates an XcrySDen structure file from JDFTx output, which can be viewed in a visualization program such as VESTA or XcrySDen.  
 
