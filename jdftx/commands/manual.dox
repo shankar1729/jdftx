@@ -27,15 +27,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIon "ion"
+\bigsep \ref CommandIon "ion"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -54,12 +54,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -82,15 +82,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandInvertKohnSham "invertKohnSham"
+\bigsep \ref CommandInvertKohnSham "invertKohnSham"
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -109,15 +109,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -138,15 +138,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIonSpecies "ion-species"
+\bigsep \ref CommandIonSpecies "ion-species"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -170,15 +170,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandChargedDefectCorrection "charged-defect-correction"
+\bigsep \ref CommandChargedDefectCorrection "charged-defect-correction"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -214,17 +214,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoordsType "coords-type"
-\bigsep\ref CommandCoulombInteraction "coulomb-interaction"
-\bigsep\ref CommandLattScale "latt-scale"
+\bigsep \ref CommandCoordsType "coords-type"
+\bigsep \ref CommandCoulombInteraction "coulomb-interaction"
+\bigsep \ref CommandLattScale "latt-scale"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -247,15 +247,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -274,12 +274,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -306,12 +306,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -360,12 +360,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -393,17 +393,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoordsType "coords-type"
-\bigsep\ref CommandCoulombInteraction "coulomb-interaction"
-\bigsep\ref CommandLattScale "latt-scale"
+\bigsep \ref CommandCoordsType "coords-type"
+\bigsep \ref CommandCoulombInteraction "coulomb-interaction"
+\bigsep \ref CommandLattScale "latt-scale"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -426,15 +426,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -455,15 +455,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandEigenShift "eigen-shift"
+\bigsep \ref CommandEigenShift "eigen-shift"
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -485,12 +485,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -521,15 +521,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -625,16 +625,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIon "ion"
-\bigsep\ref CommandSpintype "spintype"
+\bigsep \ref CommandIon "ion"
+\bigsep \ref CommandSpintype "spintype"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -708,12 +708,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
 
@@ -740,15 +740,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -773,15 +773,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandElecFermiFillings "elec-fermi-fillings"
+\bigsep \ref CommandElecFermiFillings "elec-fermi-fillings"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -801,15 +801,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -831,12 +831,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -861,15 +861,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -890,16 +890,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandElecFermiFillings "elec-fermi-fillings"
-\bigsep\ref CommandElectronicScf "electronic-scf"
+\bigsep \ref CommandElecFermiFillings "elec-fermi-fillings"
+\bigsep \ref CommandElectronicScf "electronic-scf"
 
 <b>Forbids:</b>
-\bigsep\ref CommandCustomFilling "custom-filling"
+\bigsep \ref CommandCustomFilling "custom-filling"
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -919,12 +919,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -947,12 +947,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -996,12 +996,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1027,16 +1027,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1057,16 +1057,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandLcaoParams "lcao-params"
+\bigsep \ref CommandLcaoParams "lcao-params"
 
 <b>Forbids:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1087,15 +1087,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandTargetMu "target-mu"
+\bigsep \ref CommandTargetMu "target-mu"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1117,15 +1117,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandInitialState "initial-state"
+\bigsep \ref CommandInitialState "initial-state"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1145,15 +1145,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandInitialState "initial-state"
+\bigsep \ref CommandInitialState "initial-state"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1173,15 +1173,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1204,15 +1204,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoulombTruncationEmbed "coulomb-truncation-embed"
+\bigsep \ref CommandCoulombTruncationEmbed "coulomb-truncation-embed"
 
 <b>Forbids:</b>
-\bigsep\ref CommandInvertKohnSham "invertKohnSham"
+\bigsep \ref CommandInvertKohnSham "invertKohnSham"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1247,15 +1247,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandPolarizability "polarizability"
+\bigsep \ref CommandPolarizability "polarizability"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1291,12 +1291,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1350,17 +1350,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandElecEigenAlgo "elec-eigen-algo"
+\bigsep \ref CommandElecEigenAlgo "elec-eigen-algo"
 
 <b>Forbids:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
-\bigsep\ref CommandSpinRestricted "spin-restricted"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandSpinRestricted "spin-restricted"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1402,12 +1402,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoulombInteraction "coulomb-interaction"
+\bigsep \ref CommandCoulombInteraction "coulomb-interaction"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1430,15 +1430,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1461,20 +1461,20 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandSpintype "spintype"
+\bigsep \ref CommandSpintype "spintype"
 
 <b>Forbids:</b>
-\bigsep\ref CommandElecExCorrCompare "elec-ex-corr-compare"
-\bigsep\ref CommandElecFermiFillings "elec-fermi-fillings"
-\bigsep\ref CommandElectronicScf "electronic-scf"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
-\bigsep\ref CommandSpinRestricted "spin-restricted"
-\bigsep\ref CommandVibrations "vibrations"
+\bigsep \ref CommandElecExCorrCompare "elec-ex-corr-compare"
+\bigsep \ref CommandElecFermiFillings "elec-fermi-fillings"
+\bigsep \ref CommandElectronicScf "electronic-scf"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandSpinRestricted "spin-restricted"
+\bigsep \ref CommandVibrations "vibrations"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1497,20 +1497,20 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandSpintype "spintype"
+\bigsep \ref CommandSpintype "spintype"
 
 <b>Forbids:</b>
-\bigsep\ref CommandElecExCorrCompare "elec-ex-corr-compare"
-\bigsep\ref CommandElecFermiFillings "elec-fermi-fillings"
-\bigsep\ref CommandElectronicScf "electronic-scf"
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandSpinRestricted "spin-restricted"
-\bigsep\ref CommandVibrations "vibrations"
+\bigsep \ref CommandElecExCorrCompare "elec-ex-corr-compare"
+\bigsep \ref CommandElecFermiFillings "elec-fermi-fillings"
+\bigsep \ref CommandElectronicScf "electronic-scf"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandSpinRestricted "spin-restricted"
+\bigsep \ref CommandVibrations "vibrations"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1531,15 +1531,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1560,12 +1560,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoulombInteraction "coulomb-interaction"
+\bigsep \ref CommandCoulombInteraction "coulomb-interaction"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1592,15 +1592,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1623,15 +1623,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1650,15 +1650,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1682,12 +1682,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandElecExCorr "elec-ex-corr"
+\bigsep \ref CommandElecExCorr "elec-ex-corr"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1712,12 +1712,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1740,15 +1740,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandInitialState "initial-state"
+\bigsep \ref CommandInitialState "initial-state"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1784,12 +1784,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluid "fluid"
+\bigsep \ref CommandFluid "fluid"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -1831,15 +1831,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1872,12 +1872,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
 
@@ -1920,12 +1920,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandPcmVariant "pcm-variant"
+\bigsep \ref CommandPcmVariant "pcm-variant"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
 
@@ -1957,15 +1957,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -1988,12 +1988,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2024,16 +2024,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIon "ion"
-\bigsep\ref CommandSpintype "spintype"
+\bigsep \ref CommandIon "ion"
+\bigsep \ref CommandSpintype "spintype"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2053,15 +2053,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIonSpecies "ion-species"
+\bigsep \ref CommandIonSpecies "ion-species"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2089,18 +2089,18 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandElecInitialFillings "elec-initial-fillings"
-\bigsep\ref CommandElecInitialHaux "elec-initial-Haux"
-\bigsep\ref CommandFluidInitialState "fluid-initial-state"
-\bigsep\ref CommandWavefunction "wavefunction"
+\bigsep \ref CommandElecInitialFillings "elec-initial-fillings"
+\bigsep \ref CommandElecInitialHaux "elec-initial-Haux"
+\bigsep \ref CommandFluidInitialState "fluid-initial-state"
+\bigsep \ref CommandWavefunction "wavefunction"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2136,12 +2136,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2196,16 +2196,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
 
 <b>Forbids:</b>
-\bigsep\ref CommandBoxPotential "box-potential"
-\bigsep\ref CommandElectricField "electric-field"
+\bigsep \ref CommandBoxPotential "box-potential"
+\bigsep \ref CommandElectricField "electric-field"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2229,17 +2229,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoordsType "coords-type"
-\bigsep\ref CommandIonSpecies "ion-species"
-\bigsep\ref CommandLattScale "latt-scale"
+\bigsep \ref CommandCoordsType "coords-type"
+\bigsep \ref CommandIonSpecies "ion-species"
+\bigsep \ref CommandLattScale "latt-scale"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2277,15 +2277,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2308,12 +2308,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluid "fluid"
+\bigsep \ref CommandFluid "fluid"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2353,12 +2353,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2398,12 +2398,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
 
@@ -2426,12 +2426,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandKpoint "kpoint"
+\bigsep \ref CommandKpoint "kpoint"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2454,12 +2454,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2482,12 +2482,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandLattice "lattice"
+\bigsep \ref CommandLattice "lattice"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2522,15 +2522,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2566,12 +2566,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2615,12 +2615,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2643,15 +2643,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2678,15 +2678,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluidSolvent "fluid-solvent"
+\bigsep \ref CommandFluidSolvent "fluid-solvent"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2710,12 +2710,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandFluid "fluid"
+\bigsep \ref CommandFluid "fluid"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2738,15 +2738,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandElectronScattering "electron-scattering"
+\bigsep \ref CommandElectronScattering "electron-scattering"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2768,15 +2768,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandPolarizability "polarizability"
+\bigsep \ref CommandPolarizability "polarizability"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2797,12 +2797,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2828,15 +2828,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2856,15 +2856,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIon "ion"
+\bigsep \ref CommandIon "ion"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2888,15 +2888,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoulombTruncationEmbed "coulomb-truncation-embed"
+\bigsep \ref CommandCoulombTruncationEmbed "coulomb-truncation-embed"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2917,17 +2917,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandSpintype "spintype"
+\bigsep \ref CommandSpintype "spintype"
 
 <b>Forbids:</b>
-\bigsep\ref CommandElectronicScf "electronic-scf"
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandElectronicScf "electronic-scf"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -2950,12 +2950,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -2978,12 +2978,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -3010,12 +3010,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 
@@ -3039,15 +3039,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandSymmetries "symmetries"
+\bigsep \ref CommandSymmetries "symmetries"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3068,17 +3068,17 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandElecFermiFillings "elec-fermi-fillings"
-\bigsep\ref CommandFluidAnion "fluid-anion"
-\bigsep\ref CommandFluidCation "fluid-cation"
+\bigsep \ref CommandElecFermiFillings "elec-fermi-fillings"
+\bigsep \ref CommandFluidAnion "fluid-anion"
+\bigsep \ref CommandFluidCation "fluid-cation"
 
 <b>Forbids:</b>
-\bigsep\ref CommandElecInitialCharge "elec-initial-charge"
+\bigsep \ref CommandElecInitialCharge "elec-initial-charge"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3102,15 +3102,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandIonSpecies "ion-species"
+\bigsep \ref CommandIonSpecies "ion-species"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3132,15 +3132,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3160,15 +3160,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3203,16 +3203,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3249,15 +3249,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandInitialState "initial-state"
+\bigsep \ref CommandInitialState "initial-state"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -3276,15 +3276,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */

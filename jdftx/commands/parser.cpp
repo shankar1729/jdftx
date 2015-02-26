@@ -519,15 +519,15 @@ void writeCommandManual(Everything& everything, string section)
 		//--- requires
 		logPrintf("\n<b>Requires:</b>\n");
 		for(const string& s: ci.requires)
-			logPrintf("\\bigsep\\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
-		if(!ci.requires.size()) logPrintf("\\bigsep(None)\n");
+			logPrintf("\\bigsep \\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
+		if(!ci.requires.size()) logPrintf("\\bigsep (None)\n");
 		//--- forbids
 		logPrintf("\n<b>Forbids:</b>\n");
 		for(const string& s: ci.forbids)
-			logPrintf("\\bigsep\\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
-		if(!ci.forbids.size()) logPrintf("\\bigsep(None)\n");
+			logPrintf("\\bigsep \\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
+		if(!ci.forbids.size()) logPrintf("\\bigsep (None)\n");
 		//--- allowMultiple
-		logPrintf("\n<b>Allow multiple:</b>\\bigsep%s\n", boolMap.getString(ci.allowMultiple));
+		logPrintf("\n<b>Allow multiple:</b>\\bigsep %s\n", boolMap.getString(ci.allowMultiple));
 		//--- default
 		logPrintf("\n<b>Default:</b>\n");
 		if(ci.hasDefault)
@@ -535,7 +535,7 @@ void writeCommandManual(Everything& everything, string section)
 			ci.printStatus(everything, 0);
 			logPrintf("\n");
 		}
-		else logPrintf("\\bigsep(None)\n");
+		else logPrintf("\\bigsep (None)\n");
 		//Link back to main page and close:
 		logPrintf("\n\\ref Commands \"List of commands\"\n");
 		logPrintf("*/\n");

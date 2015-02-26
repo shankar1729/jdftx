@@ -77,15 +77,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -121,19 +121,19 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoordsType "coords-type"
-\bigsep\ref CommandLattScale "latt-scale"
-\bigsep\ref CommandSpintype "spintype"
-\bigsep\ref CommandWannierDumpName "wannier-dump-name"
-\bigsep\ref CommandWannierInitialState "wannier-initial-state"
+\bigsep \ref CommandCoordsType "coords-type"
+\bigsep \ref CommandLattScale "latt-scale"
+\bigsep \ref CommandSpintype "spintype"
+\bigsep \ref CommandWannierDumpName "wannier-dump-name"
+\bigsep \ref CommandWannierInitialState "wannier-initial-state"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -155,19 +155,19 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep\ref CommandCoordsType "coords-type"
-\bigsep\ref CommandLattScale "latt-scale"
-\bigsep\ref CommandSpintype "spintype"
-\bigsep\ref CommandWannierDumpName "wannier-dump-name"
-\bigsep\ref CommandWannierInitialState "wannier-initial-state"
+\bigsep \ref CommandCoordsType "coords-type"
+\bigsep \ref CommandLattScale "latt-scale"
+\bigsep \ref CommandSpintype "spintype"
+\bigsep \ref CommandWannierDumpName "wannier-dump-name"
+\bigsep \ref CommandWannierInitialState "wannier-initial-state"
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepyes
+<b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -187,15 +187,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -215,15 +215,15 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
@@ -259,12 +259,12 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep(None)
+\bigsep (None)
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
 

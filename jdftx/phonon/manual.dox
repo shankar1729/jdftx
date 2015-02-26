@@ -32,16 +32,16 @@ Properties:
 -----------
 
 <b>Requires:</b>
-\bigsep(None)
+\bigsep (None)
 
 <b>Forbids:</b>
-\bigsep\ref CommandFixElectronDensity "fix-electron-density"
-\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+\bigsep \ref CommandFixElectronDensity "fix-electron-density"
+\bigsep \ref CommandFixElectronPotential "fix-electron-potential"
 
-<b>Allow multiple:</b>\bigsepno
+<b>Allow multiple:</b>\bigsep no
 
 <b>Default:</b>
-\bigsep(None)
+\bigsep (None)
 
 \ref Commands "List of commands"
 */
