@@ -30,8 +30,8 @@ map<string,Command*>& getCommandMap()
 {	return updateCommandMap(0);
 }
 
-Command::Command(string name, string category)
-: name(name), category(category), allowMultiple(false), hasDefault(false)
+Command::Command(string name, string section)
+: name(name), section(section), allowMultiple(false), hasDefault(false)
 {	updateCommandMap(this);
 }
 

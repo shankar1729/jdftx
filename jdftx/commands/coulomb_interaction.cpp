@@ -45,7 +45,7 @@ EnumStringMap<int> truncationDirMap
 
 struct CommandCoulombInteraction : public Command
 {
-	CommandCoulombInteraction() : Command("coulomb-interaction", "Coulomb")
+	CommandCoulombInteraction() : Command("coulomb-interaction")
 	{
 		format = "<truncationType> [<args> ...]";
 		comments =
@@ -114,7 +114,7 @@ commandCoulombInteraction;
 
 struct CommandCoulombTruncationEmbed : public Command
 {
-	CommandCoulombTruncationEmbed() : Command("coulomb-truncation-embed", "Coulomb")
+	CommandCoulombTruncationEmbed() : Command("coulomb-truncation-embed")
 	{
 		format = "<c0> <c1> <c2>";
 		comments =
@@ -154,7 +154,7 @@ commandCoulombTruncationEmbed;
 
 struct CommandCoulombTruncationIonMargin : public Command
 {
-	CommandCoulombTruncationIonMargin() : Command("coulomb-truncation-ion-margin", "Coulomb")
+	CommandCoulombTruncationIonMargin() : Command("coulomb-truncation-ion-margin")
 	{
 		format = "<margin>";
 		comments =
@@ -180,7 +180,7 @@ commandCoulombTruncationIonMargin;
 
 struct CommandExchangeRegularization : public Command
 {
-	CommandExchangeRegularization() : Command("exchange-regularization", "Coulomb")
+	CommandExchangeRegularization() : Command("exchange-regularization")
 	{
 		format = "<method>=" + exRegMethodMap.optionList();
 		comments =

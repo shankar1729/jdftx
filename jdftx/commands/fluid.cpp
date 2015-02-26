@@ -31,7 +31,7 @@ EnumStringMap<FluidType> fluidTypeMap
 
 struct CommandFluid : public Command
 {
-	CommandFluid() : Command("fluid", "Fluid parameters")
+	CommandFluid() : Command("fluid")
 	{
 		format = "[<type>=None] [<Temperature>=298K] [<Pressure>=1.01325bar]";
 		comments = "Enable joint density functional theory\n"
@@ -62,7 +62,7 @@ commandFluid;
 
 struct CommandFluidGummelLoop : public Command
 {
-	CommandFluidGummelLoop() : Command("fluid-gummel-loop", "Fluid optimization")
+	CommandFluidGummelLoop() : Command("fluid-gummel-loop")
 	{
 		format = "[<maxIterations>=10] [<Atol>=1e-5]";
 		comments =
@@ -86,7 +86,7 @@ commandFluidGummelLoop;
 
 struct CommandFluidInitialState : public Command
 {
-	CommandFluidInitialState() : Command("fluid-initial-state", "Initialization")
+	CommandFluidInitialState() : Command("fluid-initial-state")
 	{
 		format = "<filename>";
 		comments = "Read initial state of a fluid (compatible with *.fluidState from dump End State)";
@@ -105,9 +105,9 @@ struct CommandFluidInitialState : public Command
 commandFluidInitialState;
 
 
-struct CommandFluidVDWscale : public Command
+struct CommandFluidVdwScale : public Command
 {
-	CommandFluidVDWscale() : Command("fluid-vdwScale", "Fluid parameters")
+	CommandFluidVdwScale() : Command("fluid-vdwScale")
 	{
 		format = "<scale=0.75>";
 		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
@@ -254,7 +254,7 @@ private:
 	
 protected:
 	CommandFluidComponent(string suffix, const EnumStringMap<FluidComponent::Name>& nameMap, FluidComponent::Name defaultName, FluidComponent::Functional defaultFunctional, bool defaultEnabled)
-	: Command("fluid-"+suffix, "Fluid constitutents"), nameMap(nameMap), defaultName(defaultName), defaultFunctional(defaultFunctional), defaultEnabled(defaultEnabled)
+	: Command("fluid-"+suffix), nameMap(nameMap), defaultName(defaultName), defaultFunctional(defaultFunctional), defaultEnabled(defaultEnabled)
 	{
 		format = (defaultEnabled ? ("[<name>=" + string(nameMap.getString(defaultName)) +"] [<concentration>=bulk]") : "<name> <concentration>")
 			+ " [<functional>=" + string(functionalMap.getString(defaultFunctional)) + "]"
@@ -498,7 +498,7 @@ struct CommandFluidSiteParams : public Command
 {
 	
 
-	CommandFluidSiteParams() : Command("fluid-site-params", "Fluid constitutents")
+	CommandFluidSiteParams() : Command("fluid-site-params")
 	{	
 		format = " <solvent> <siteName> <key1> <value1> <key2> <value2> ...";
 		comments = "Set parameters of <siteName> site for solvent component <solvent>=" + fluidComponentMap.optionList() 
@@ -624,7 +624,7 @@ EnumStringMap<FMixFunctional> fMixMap
 
 struct CommandFluidMixingFunctional : public Command 
 {
-    CommandFluidMixingFunctional() : Command("fluid-mixing-functional", "Fluid constitutents")
+    CommandFluidMixingFunctional() : Command("fluid-mixing-functional")
 	{
 	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=LJPotential]";
 	  comments = "       Couple named fluids <fluid1> and <fluid2> "+ fluidComponentMap.optionList() +" together \n"
@@ -689,7 +689,7 @@ commandFluidMixingFunctional;
 	
 struct CommandFluidDielectricConstant : public Command
 {
-    CommandFluidDielectricConstant() : Command("fluid-dielectric-constant", "Fluid parameters")
+    CommandFluidDielectricConstant() : Command("fluid-dielectric-constant")
 	{
 		format = "[<epsBulkOverride>=0] [<epsInfOverride>=0]";
 		comments = "Override bulk static or high frequency dieelctric constant of fluid (if non-zero values specified)";

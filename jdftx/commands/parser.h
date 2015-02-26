@@ -35,6 +35,6 @@ void parse(std::vector< std::pair<string,string> > input, Everything &everything
 void printDefaultTemplate(Everything &e);
 
 //! Write an HTML manual to stdout
-void writeCommandManual(Everything& e);
+void writeCommandManual(Everything& e, string section);
 
 #endif // JDFTX_PARSER_H

@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandDumpOnly : public Command
 {
-	CommandDumpOnly() : Command("dump-only", "Output")
+	CommandDumpOnly() : Command("dump-only")
 	{
 		comments = 
 			"Bypass all minimization, perform a single energy evaluation at\n"
@@ -161,13 +161,13 @@ EnumStringMap<DumpVariable> varDescMap
 
 struct CommandDump : public Command
 {
-	CommandDump() : Command("dump", "Output")
+	CommandDump() : Command("dump")
 	{
 		format = "<freq> <var> <var> ...";
 		comments =
 			"<freq> is one of:"
 			+ addDescriptions(freqMap.optionList(), linkDescription(freqMap, freqDescMap))
-			+ "\nand each <var*> is one of:"
+			+ "\n\nand each <var*> is one of:"
 			+ addDescriptions(varMap.optionList(), linkDescription(varMap, varDescMap))
 			+ "\nList of dumped variables from multiple instances will be accumulated for each <freq>."
 			"\nUse command dump-interval to dump at regular intervals instead of every iteration.";
@@ -212,7 +212,7 @@ commandDump;
 
 struct CommandDumpInterval : public Command
 {
-	CommandDumpInterval() : Command("dump-interval", "Output")
+	CommandDumpInterval() : Command("dump-interval")
 	{
 		format = "<freq> <interval>";
 		comments = 
@@ -249,7 +249,7 @@ commandDumpInterval;
 
 struct CommandDumpName : public Command
 {
-	CommandDumpName() : Command("dump-name", "Output")
+	CommandDumpName() : Command("dump-name")
 	{
 		format = "<format>";
 		comments = 
@@ -281,7 +281,7 @@ EnumStringMap<Polarizability::EigenBasis> polarizabilityMap
 
 struct CommandPolarizability : public Command
 {
-    CommandPolarizability() : Command("polarizability", "Output")
+    CommandPolarizability() : Command("polarizability")
 	{
 		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
 		comments = "Output polarizability matrix in specified eigeneigenBasis";
@@ -321,7 +321,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 
 struct CommandElectronScattering : public Command
 {
-    CommandElectronScattering() : Command("electron-scattering", "Output")
+    CommandElectronScattering() : Command("electron-scattering")
 	{
 		format = "<key1> <value1> ...";
 		comments = "Calculate electron-electron scattering rates (expensive!)\n"
@@ -375,7 +375,7 @@ commandElectronScattering;
 
 struct CommandPolarizabilityKdiff : public Command
 {
-    CommandPolarizabilityKdiff() : Command("polarizability-kdiff", "Output")
+    CommandPolarizabilityKdiff() : Command("polarizability-kdiff")
 	{
 		format = "<dk0> <dk1> <dk2> [<dkFilenamePattern>]";
 		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.\n"
@@ -409,7 +409,7 @@ commandPolarizabilityKdiff;
 
 struct CommandDumpEresolvedDensity : public Command
 {
-    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density", "Output")
+    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density")
 	{
 		format = "<Emin> <Emax>";
 		comments =
@@ -440,7 +440,7 @@ commandDumpEresolvedDensity;
 
 struct CommandDumpFermiDensity : public Command 
 {
-    CommandDumpFermiDensity() : Command("dump-fermi-density", "Output")
+    CommandDumpFermiDensity() : Command("dump-fermi-density")
 	{
 		format = "[<muLevel>]";
 		comments =
@@ -499,7 +499,7 @@ EnumStringMap<VibrationsMember> vibMap
 
 struct CommandVibrations : public Command
 {
-    CommandVibrations() : Command("vibrations", "Output")
+    CommandVibrations() : Command("vibrations")
 	{
 		format = "<key1> <args1> ...";
 		comments =
@@ -561,7 +561,7 @@ commandVibrations;
 
 struct CommandSlabEpsilon : public Command
 {
-	CommandSlabEpsilon() : Command("slab-epsilon", "Output")
+	CommandSlabEpsilon() : Command("slab-epsilon")
 	{
 		format = "<DtotFile> <sigma> [<Ex>=0] [<Ey>=0] [<Ez>=0]";
 		comments = 
@@ -599,7 +599,7 @@ commandSlabEpsilon;
 
 struct CommandChargedDefectCorrection : public Command
 {
-	CommandChargedDefectCorrection() : Command("charged-defect-correction", "Output")
+	CommandChargedDefectCorrection() : Command("charged-defect-correction")
 	{
 		format = "<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
 		comments = 
@@ -659,7 +659,7 @@ CommandChargedDefectCorrection;
 
 struct CommandChargedDefect : public Command
 {
-	CommandChargedDefect() : Command("charged-defect", "Output")
+	CommandChargedDefect() : Command("charged-defect")
 	{
 		format = "<x0> <x1> <x2> <q> <sigma>";
 		comments = 

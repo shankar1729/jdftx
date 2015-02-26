@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandElecFermiFillings : public Command
 {
-	CommandElecFermiFillings() : Command("elec-fermi-fillings", "Electronic parameters")
+	CommandElecFermiFillings() : Command("elec-fermi-fillings")
 	{
 		format = "<mixInterval> <kT> [<alpha>=0.5]";
 		comments =
@@ -59,7 +59,7 @@ commandElecFermiFillings;
 
 struct CommandTargetMu : public Command
 {
-	CommandTargetMu() : Command("target-mu", "Electronic parameters")
+	CommandTargetMu() : Command("target-mu")
 	{
 		format = "<mu> [<Cinitial>=1.0] [<dnMix>=0.7]";
 		comments =
@@ -90,7 +90,7 @@ commandTargetMu;
 
 struct CommandElecInitialCharge : public Command
 {
-    CommandElecInitialCharge() : Command("elec-initial-charge", "Electronic parameters")
+    CommandElecInitialCharge() : Command("elec-initial-charge")
 	{
 		format = "<QNet> | <QupNet> <QdnNet>";
 		comments =
@@ -124,7 +124,7 @@ CommandElecInitialCharge;
 
 struct CommandElecInitialFillings : public Command
 {
-	CommandElecInitialFillings() : Command("elec-initial-fillings", "Initialization")
+	CommandElecInitialFillings() : Command("elec-initial-fillings")
 	{
 		format = "read <filename> [<nBandsOld>]";
 		comments =
@@ -153,7 +153,7 @@ commandElecInitialFillings;
 
 struct CommandElecInitialHaux : public Command
 {
-	CommandElecInitialHaux() : Command("elec-initial-Haux", "Initialization")
+	CommandElecInitialHaux() : Command("elec-initial-Haux")
 	{
 		format = "<filename>";
 		comments = "Read the auxilliary hamiltonian for direct fillings (default: set to subspace hamiltonian)\n";
@@ -175,7 +175,7 @@ commandElecInitialHaux;
 
 struct CommandSubspaceRotationFactor : public Command
 {
-	CommandSubspaceRotationFactor() : Command("subspace-rotation-factor", "Electronic optimization")
+	CommandSubspaceRotationFactor() : Command("subspace-rotation-factor")
 	{	format = "<factor>";
 		comments = "preconditioning factor for subspace rotations";
 		hasDefault = true;

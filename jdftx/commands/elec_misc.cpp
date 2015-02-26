@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandElecCutoff : public Command
 {
-	CommandElecCutoff() : Command("elec-cutoff", "Electronic parameters")
+	CommandElecCutoff() : Command("elec-cutoff")
 	{
 		format = "<Ecut> [<EcutRho>=0]";
 		comments = "Electronic planewave cutoff in Hartree. Optionally specify charge density cutoff\n"
@@ -49,9 +49,9 @@ commandElecCutoff;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandFFTbox : public Command
+struct CommandFftbox : public Command
 {
-	CommandFFTbox() : Command("fftbox", "Electronic parameters")
+	CommandFftbox() : Command("fftbox")
 	{
 		format = "<S0> <S1> <S2>";
 		comments = "Specify a manual FFT box";
@@ -67,13 +67,13 @@ struct CommandFFTbox : public Command
 	{	logPrintf("%d %d %d", e.gInfo.S[0], e.gInfo.S[1], e.gInfo.S[2]);
 	}
 }
-commandFFTbox;
+commandFftbox;
 
 //-------------------------------------------------------------------------------------------------
 
 struct CommandElecNbands : public Command
 {
-	CommandElecNbands() : Command("elec-n-bands", "Electronic parameters")
+	CommandElecNbands() : Command("elec-n-bands")
 	{
 		format = "<n>";
 		comments = "Manually specify the number of bands (Default: set nBands assuming insulator\n"
@@ -95,7 +95,7 @@ commandElecNbands;
 
 struct CommandDavidsonBandRatio : public Command
 {
-	CommandDavidsonBandRatio() : Command("davidson-band-ratio", "Electronic optimization")
+	CommandDavidsonBandRatio() : Command("davidson-band-ratio")
 	{
 		format = "[<ratio>=1.1]";
 		comments =
@@ -120,9 +120,9 @@ commandDavidsonBandRatio;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandLCAOparams : public Command
+struct CommandLcaoParams : public Command
 {
-	CommandLCAOparams() : Command("lcao-params", "Initialization")
+	CommandLcaoParams() : Command("lcao-params")
 	{
 		format = "[<nIter>=-1] [<Ediff>=1e-6] [<kT>=1e-3]";
 		comments = "Control LCAO wavefunction initialization:\n"
@@ -144,7 +144,7 @@ struct CommandLCAOparams : public Command
 	{	logPrintf("%d %lg %lg", e.eVars.lcaoIter, e.eVars.lcaoTol, e.eInfo.kT);
 	}
 }
-commandLCAOparams;
+commandLcaoParams;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -162,9 +162,9 @@ EnumStringMap<SpinType> spinDescMap
 	SpinOrbit,  "Non-collinear without magnetization, to allow for spin-orbit"
 );
 
-struct CommandSpinType : public Command
+struct CommandSpintype : public Command
 {
-	CommandSpinType() : Command("spintype", "Electronic parameters")
+	CommandSpintype() : Command("spintype")
 	{
 		format = "<type>=" + spinMap.optionList();
 		comments = "Select spin-polarization type:"
@@ -180,13 +180,13 @@ struct CommandSpinType : public Command
 	{	fputs(spinMap.getString(e.eInfo.spinType), globalLog);
 	}
 }
-commandSpinType;
+commandSpintype;
 
 //-------------------------------------------------------------------------------------------------
 
 struct CommandSpinRestricted : public Command
 {
-	CommandSpinRestricted() : Command("spin-restricted", "Electronic parameters")
+	CommandSpinRestricted() : Command("spin-restricted")
 	{
 		format = "yes|no";
 		comments = "Select whether to perform restricted spin-polarized calculations (default no).\n"
@@ -214,7 +214,7 @@ commandSpinRestricted;
 //Base class for fix-electron-density and fix-electron-potential
 struct CommandFixElectronHamiltonian : public Command
 {	
-    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name, "Electronic optimization")
+    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name)
 	{
 		format = "<filenamePattern>";
 		comments = "Perform band structure calculations at fixed electron " + name + "\n"
@@ -261,7 +261,7 @@ commandFixElectronPotential;
 
 struct CommandFixOccupied : public Command
 {
-	CommandFixOccupied() : Command("fix-occupied", "Electronic optimization")
+	CommandFixOccupied() : Command("fix-occupied")
 	{
 		format = "[<fThreshold>=0]";
 		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations\n"
@@ -284,7 +284,7 @@ commandFixOccupied;
 
 struct CommandReorthogonalizeOrbitals : public Command
 {
-	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals", "Electronic optimization")
+	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals")
 	{
 		format = "[<interval=20> [<threshold>=1.5]";
 		comments =
@@ -312,7 +312,7 @@ commandReorthogonalizeOrbitals;
 
 struct CommandConvergeEmptyStates : public Command
 {
-	CommandConvergeEmptyStates() : Command("converge-empty-states", "Electronic optimization")
+	CommandConvergeEmptyStates() : Command("converge-empty-states")
 	{
 		format = "yes|no";
 		comments = "Whether to converge empty states after each electronic optimization (default no).\n"
@@ -336,7 +336,7 @@ commandConvergeEmptyStates;
 
 struct CommandWavefunctionDrag : public Command
 {
-	CommandWavefunctionDrag() : Command("wavefunction-drag", "Ionic optimization")
+	CommandWavefunctionDrag() : Command("wavefunction-drag")
 	{
 		format = "yes|no";
 		comments =
@@ -378,7 +378,7 @@ commandCacheProjectors;
 
 struct CommandBasis : public Command
 {
-	CommandBasis() : Command("basis", "Electronic parameters")
+	CommandBasis() : Command("basis")
 	{
 		format = "<kdep>=" + kdepMap.optionList();
 		comments = "Basis set at each k-point (default), or single basis set at gamma point";
@@ -402,7 +402,7 @@ static EnumStringMap<ElecEigenAlgo> elecEigenMap(ElecEigenCG, "CG", ElecEigenDav
 
 struct CommandElecEigenAlgo : public Command
 {
-    CommandElecEigenAlgo() : Command("elec-eigen-algo", "Electronic optimization")
+    CommandElecEigenAlgo() : Command("elec-eigen-algo")
 	{
 		format = "<algo>=" + elecEigenMap.optionList();
 		comments = "Selects eigenvalue algorithm for band-structure calculations or inner loop of SCF.";
@@ -510,7 +510,7 @@ struct CommandInvertKohnSham : public Command
 
 struct CommandRhoExternal : public Command
 {
-	CommandRhoExternal() : Command("rhoExternal", "Coulomb")
+	CommandRhoExternal() : Command("rhoExternal")
 	{
 		format = "<filename> [<includeSelfEnergy>=yes|no]";
 		comments =
@@ -535,7 +535,7 @@ commandRhoExternal;
 
 struct CommandVexternal : public Command
 {
-	CommandVexternal() : Command("Vexternal", "Electronic parameters")
+	CommandVexternal() : Command("Vexternal")
 	{
 		format = "<filename> | <filenameUp> <filenameDn>";
 		comments =
@@ -562,9 +562,9 @@ commandVexternal;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandBoxPot : public Command
+struct CommandBoxPotential : public Command
 {
-	CommandBoxPot() : Command("box-potential", "Electronic parameters")
+	CommandBoxPotential() : Command("box-potential")
 	{
 		format = "xmin xmax ymin ymax zmin zmax Vin Vout [<convolve_radius>=0.1]";
 		comments =
@@ -602,7 +602,7 @@ commandBoxPot;
 
 struct CommandElectricField : public Command
 {
-	CommandElectricField() : Command("electric-field", "Electronic parameters")
+	CommandElectricField() : Command("electric-field")
 	{
 		format = "<Ex> <Ey> <Ez>";
 		comments = 

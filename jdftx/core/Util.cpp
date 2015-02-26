@@ -255,11 +255,11 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			{"dry-run", no_argument, 0, 'n'},
 			{"cores", required_argument, 0, 'c'},
 			{"skip-defaults", no_argument, 0, 's'},
-			{"write-manual", no_argument, 0, 'w'},
+			{"write-manual", required_argument, 0, 'w'},
 			{0, 0, 0, 0}
 		};
 	while (1)
-	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:sw", long_options, 0);
+	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:sw:", long_options, 0);
 		if (c == -1) break; //end of options
 		#define RUN_HEAD(code) if(mpiUtil->isHead()) { code } delete mpiUtil;
 		switch (c)
@@ -280,7 +280,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 				break;
 			}
 			case 's': printDefaults=false; break;
-			case 'w': RUN_HEAD( Everything e; writeCommandManual(e); ) exit(0);
+			case 'w': RUN_HEAD( Everything e; writeCommandManual(e, optarg); ) exit(0);
 			default: RUN_HEAD( printUsage(argv[0], description); ) exit(1);
 		}
 		#undef RUN_HEAD

@@ -1,0 +1,47 @@
+//Auto-generated using writeCommandManual(everything, "phonon")
+//Do not edit manually: instead edit the documentation strings in the code.
+
+/** \page CommandPhonon phonon
+Syntax:
+-------
+
+    phonon <key1> <args1...>  <key2> <args2...>  ...
+
+Description:
+------------
+Control \ref CommandPhonon "phonon" calculation and output. The possible &lt;key&gt;'s and their
+corresponding arguments are:
+  supercell &lt;N0&gt; &lt;N1&gt; &lt;N2&gt;
+    Supercell for frozen \ref CommandPhonon "phonon" perturbation. Each entry must divide
+    the corresponding value in \ref CommandKpointFolding "kpoint-folding". The k-point mesh must
+    be uniform and centered on Gamma.
+  dr &lt;dr&gt;
+    Amplitude (in bohrs) of frozen \ref CommandPhonon "phonon" perturbation (default 0.01).
+  T &lt;T&gt;
+    Temperature (in Kelvins) used for vibrational free energy estimation (default 298).
+  Fcut &lt;Fcut&gt;
+    Fillings threshold to include in supercell calculation (default 1e-8).
+    The unit cell calculation may have extra bands for which matrix elements
+    are desired; this flag ensures that those extra bands do not affect the
+    performance or memory requirements of the supercell calculations.
+  CEDA yes|no
+    Whether to generate \ref CommandPhonon "phonon" * momentum matrix elements for CEDA completion
+    (default no).
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep(None)
+
+<b>Forbids:</b>
+\bigsep\ref CommandFixElectronDensity "fix-electron-density"
+\bigsep\ref CommandFixElectronPotential "fix-electron-potential"
+
+<b>Allow multiple:</b>\bigsepno
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/

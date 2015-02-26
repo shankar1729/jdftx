@@ -33,7 +33,8 @@ documentation strings (format and comment) and the parse code.
 See any of the existing commands for examples of using ParamList effectively.
 Note that there is no need to edit any global list of commands, this happens
 automatically during static initialization, just create an object of the
-new derived Command class at file scope.
+new derived Command class at file scope. However, for coherent documentation,
+edit doc/commands.dox and link to the command in the appropriate section.
 
 //! Implements command "dummy"
 typedef struct  CommandDummy : public Command
@@ -63,7 +64,7 @@ public:
 	string name; //!< identifier for the command in the input file (MUST be unique!)
 	string format; //!< usage syntax for the command (excluding the command name)
 	string comments; //!< more detailed help for the command (note comment characters are automatically added!)
-	string category; //!< name defining a category of related commands (used only in HTML command manual)
+	string section; //!< which executable the command belongs to, and hence which section it must be documented under
 	
 	std::set<string> requires; //!< names of other commands this requires (those will be processed before)
 	std::set<string> forbids; //!< names of other commands this is incompatibile with
@@ -84,7 +85,7 @@ public:
 protected:
 	//! This base class constructor adds the current command to a map from names to Command pointers
 	//! which can be accessed using getCommandMap(). This enables safe static initialization of the command list.
-	Command(string name, string category="Miscellaneous");
+	Command(string name, string section="jdftx");
 
 	void require(string); //!< utility to add a command to the requires list
 	void forbid(string); //!< utility to add a command to the forbids list
@@ -96,7 +97,7 @@ static EnumStringMap<bool> boolMap(false, "no", true, "yes"); //!< utility to pa
 
 //! Process the EnumStringMap::optionList() to add descriptions using an arbitrary functor
 template<typename GetDescription>
-string addDescriptions(string optionList, const GetDescription& getDescription, string spacer="\n   ")
+string addDescriptions(string optionList, const GetDescription& getDescription, string spacer="\n+  ")
 {
 	//Determine max width of name, so as to align:
 	istringstream iss(optionList);
@@ -121,7 +122,7 @@ string addDescriptions(string optionList, const GetDescription& getDescription, 
 		//Pad the name to required width:
 		if(name.length()<nameWidth)
 			name.resize(nameWidth, ' ');
-		ret += spacer + name + " " + desc;
+		ret += spacer + name + ": " + desc;
 	}
 	return ret;
 }

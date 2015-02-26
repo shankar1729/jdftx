@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandIonSpecies : public Command
 {
-	CommandIonSpecies() : Command("ion-species", "Ionic species")
+	CommandIonSpecies() : Command("ion-species")
 	{
 		format = "[<path>/]<id>[<suffix>].<format>\n"
 			"\t  | [<path>/]$ID[<suffix>].<format>";
@@ -177,7 +177,7 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 
 struct CommandChargeball : public Command
 {
-	CommandChargeball() : Command("chargeball", "Ionic species")
+	CommandChargeball() : Command("chargeball")
 	{
 		format = "<species-id> <norm> <width>";
 		comments =
@@ -217,7 +217,7 @@ commandChargeball;
 
 struct CommandTauCore : public Command
 {
-	CommandTauCore() : Command("tau-core", "Ionic species")
+	CommandTauCore() : Command("tau-core")
 	{
 		format = "<species-id> [<rCut>=0] [<plot>=yes|no]";
 		comments =
@@ -254,7 +254,7 @@ commandTauCore;
 
 struct CommandSetVDW : public Command
 {
-	CommandSetVDW() : Command("setVDW", "Ionic species")
+	CommandSetVDW() : Command("setVDW")
 	{	format = "<species> <C6> <R0> [ <species2> ... ]";
 		comments =
 			"Manually adjust DFT-D2 vdW parameters from the default (atomic number based) values.\n"
@@ -296,7 +296,7 @@ commandSetVDW;
 
 struct CommandAddU : public Command
 {
-	CommandAddU() : Command("add-U", "Electronic functional")
+	CommandAddU() : Command("add-U")
 	{	format = "<species> <orbDesc> <UminusJ> [Vext <atom> <V>] ... [ <species2> ... ]";
 		comments =
 			"Add U correction (DFT+U) to specified species and orbitals, in the simplified\n"

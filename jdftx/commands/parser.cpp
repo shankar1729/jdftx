@@ -83,7 +83,7 @@ struct ProcessedCommandMap : public map<string, pair<int,Command*> >
 					die("Inconsistency in command map: '%s' in '%s's forbids list is not a valid command.\n",
 						f->c_str(), ci.name.c_str());
 				Command& cj = *(j->second);
-				if(!cj.forbids.count(ci.name))
+				if(!cj.forbids.count(ci.name) && cj.section==ci.section) //don't report cross section errors as they can't be fixed
 				{	logPrintf("Command map WARNING: '%s' forbids '%s', but not vice versa (making this so)\n",
 						ci.name.c_str(), cj.name.c_str());
 					cj.forbids.insert(ci.name);
@@ -436,6 +436,24 @@ inline string htmlEscapeCharacters(string s)
 	return sOut;
 }
 
+inline string commandNameToID(string name)
+{	string id = "Command";
+	bool prevCaps = false, curCaps = true;
+	for(const char c: name)
+	{	if(c == '-')
+		{	curCaps = !prevCaps;
+		}
+		else
+		{	char cOut = curCaps ? toupper(c) : c;
+			id += cOut;
+			curCaps = false;
+			prevCaps = isupper(cOut);
+		}
+	}
+	return id;
+}
+
+
 inline string htmlAddLinks(string s)
 {	static std::set<string> cExcluded;
 	if(!cExcluded.size()) //Add commands to exclude from auto-linking (most likely because they are common words)
@@ -461,7 +479,7 @@ inline string htmlAddLinks(string s)
 			&& (cmap.find(word)==cmap.end() || cExcluded.count(word))) //Not a command name or excluded command, and not explicitly linked
 			sOut.append(word); //just forward
 		else //Command name that is not to be excluded
-			sOut.append("<a href=\"#" + word + "\">" + word + "</a>"); //add a link
+			sOut.append("\\ref " + commandNameToID(word) + " \"" + word + "\""); //add a link
 		pos = posNext;
 		wordPrev2 = wordPrev;
 		wordPrev = word;
@@ -473,87 +491,53 @@ inline void printHTMLformatted(string s)
 {	fputs(htmlAddLinks(htmlEscapeCharacters(s)).c_str(), globalLog);
 }
 
-void writeCommandManual(Everything& everything)
+void writeCommandManual(Everything& everything, string section)
 {	ProcessedCommandMap cmap;
 	processDefaults(everything, cmap);
-	//HTML header and stylesheet:
-	logPrintf("<html><head><style>\n");
-	logPrintf(".indexpane,.commandpane {"
-		"padding: 1em; margin: 1em;"
-		"border-style: solid; border-width: 2px; border-radius: 1em;"
-		"}\n");
-	logPrintf(".indexpane { background-color: #fed; border-color: #543; }\n");
-	logPrintf(".commandpane { background-color: #def; border-color: #345; }\n");
-	logPrintf("h1 { font-size: 150%%; }\n");
-	logPrintf("h2 { font-size: 120%%; }\n");
-	logPrintf("a:link    { color: #158; text-decoration: none; }\n");
-	logPrintf("a:visited { color: #858; text-decoration: none; }\n");
-	logPrintf("a:hover   { color: #18c; text-decoration: none; }\n");
-	logPrintf("a:active  { color: #158; text-decoration: none; }\n");
-	logPrintf("</style></head><body>\n");
-	//General input file format specification:
-	logPrintf("<div class=\"indexpane\">\n");
-	logPrintf("<h1>Input file format:</h1>\n<pre>");
-	printHTMLformatted(describeSyntax());
-	logPrintf("</pre></div>\n");
-	//Generate index:
-	std::multimap<string, string> categoryMap;
-	for(const auto& i: cmap)
-	{	const Command& ci = *(i.second.second);
-		categoryMap.insert(std::make_pair(ci.category, ci.name));
-	}
-	string prevCategory;
-	logPrintf("<div class=\"indexpane\">\n");
-	logPrintf("<h1>Commands:</h1>\n");
-	for(const auto& i: categoryMap)
-	{	const string& category = i.first;
-		const string& name = i.second;
-		if(category != prevCategory)
-		{	logPrintf("<p><b>%s</b>:\n", category.c_str());
-			prevCategory = category;
-		}
-		logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", name.c_str(), name.c_str());
-	}
-	logPrintf("</div>\n");
-	//All commands in alphabetical order:
+	//Print a doxygen page for all commands:
+	logPrintf("//Auto-generated using writeCommandManual(everything, \"%s\")\n", section.c_str());
+	logPrintf("//Do not edit manually: instead edit the documentation strings in the code.\n");
 	for(auto& i: cmap)
 	{	Command& ci = *(i.second.second);
-		//Print header:
-		logPrintf("<div class=\"commandpane\" id=\"%s\">\n", ci.name.c_str());
-		logPrintf("<h1>%s</h1>\n", ci.name.c_str());
+		if(ci.section != section) continue; //not in current section/executable
+		//Start page:
+		string id = commandNameToID(ci.name);
+		logPrintf("\n/** \\page %s %s\n", id.c_str(), ci.name.c_str());
 		//Print syntax:
-		logPrintf("<h2>Syntax:</h2>\n<pre>\n%s ", ci.name.c_str());
-		printHTMLformatted(ci.format);
-		logPrintf("\n</pre>\n");
-		//Print comments:
-		logPrintf("<h2>Description:</h2>\n<pre>\n");
+		logPrintf("Syntax:\n");
+		logPrintf("-------\n");
+		logPrintf("\n    %s %s\n", ci.name.c_str(), ci.format.c_str());
+		logPrintf("\n");
+		//Print description (comments):
+		logPrintf("Description:\n");
+		logPrintf("------------\n");
 		printHTMLformatted(ci.comments+'\n');
-		logPrintf("</pre>\n");
+		logPrintf("\n");
 		//Print properties:
-		logPrintf("<h2>Properties:</h2>\n");
+		logPrintf("Properties:\n");
+		logPrintf("-----------\n");
 		//--- requires
-		logPrintf("<p><b>Requires:</b>\n");
+		logPrintf("\n<b>Requires:</b>\n");
 		for(const string& s: ci.requires)
-			logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", s.c_str(), s.c_str());
-		if(!ci.requires.size()) logPrintf("&nbsp;&nbsp;&nbsp;(None)\n");
+			logPrintf("\\bigsep\\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
+		if(!ci.requires.size()) logPrintf("\\bigsep(None)\n");
 		//--- forbids
-		logPrintf("<p><b>Forbids:</b>\n");
+		logPrintf("\n<b>Forbids:</b>\n");
 		for(const string& s: ci.forbids)
-			logPrintf("&nbsp;&nbsp;&nbsp;<a href=\"#%s\">%s</a>\n", s.c_str(), s.c_str());
-		if(!ci.forbids.size()) logPrintf("&nbsp;&nbsp;&nbsp;(None)\n");
+			logPrintf("\\bigsep\\ref %s \"%s\"\n", commandNameToID(s).c_str(), s.c_str());
+		if(!ci.forbids.size()) logPrintf("\\bigsep(None)\n");
 		//--- allowMultiple
-		logPrintf("<p><b>Allow multiple:</b>&nbsp;&nbsp;&nbsp;%s\n", boolMap.getString(ci.allowMultiple));
+		logPrintf("\n<b>Allow multiple:</b>\\bigsep%s\n", boolMap.getString(ci.allowMultiple));
 		//--- default
-		logPrintf("<p><b>Default:</b>\n");
+		logPrintf("\n<b>Default:</b>\n");
 		if(ci.hasDefault)
-		{	logPrintf("<pre>\n%s ", ci.name.c_str());
+		{	logPrintf("\n    %s ", ci.name.c_str());
 			ci.printStatus(everything, 0);
-			logPrintf("</pre>\n");
+			logPrintf("\n");
 		}
-		else logPrintf("&nbsp;&nbsp;&nbsp;(None)");
-		logPrintf("<p><a href=\"#top\">Top</a>\n");
-		logPrintf("</div>\n");
+		else logPrintf("\\bigsep(None)\n");
+		//Link back to main page and close:
+		logPrintf("\n\\ref Commands \"List of commands\"\n");
+		logPrintf("*/\n");
 	}
-	//HTML footer:
-	logPrintf("</html></body>\n");
 }

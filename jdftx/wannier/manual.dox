@@ -1,0 +1,290 @@
+//Auto-generated using writeCommandManual(everything, "wannier")
+//Do not edit manually: instead edit the documentation strings in the code.
+
+/** \page CommandWannier wannier
+Syntax:
+-------
+
+    wannier <key1> <args1...>  <key2> <args2...>  ...
+
+Description:
+------------
+Control \ref CommandWannier "wannier" calculation and output. The possible &lt;key&gt;'s and their
+corresponding arguments are:
+  localizationMeasure FiniteDifference | RealSpace
+    Controls how the localization of the \ref CommandWannier "Wannier" functions is calculated.
+    The finite-difference reciprocal space measure of Marzari and Vanderbilt
+    (default) is inexpensive, but its error scales as Nkpoints^(-2./3).
+    The real space version is slower but its error scales as exp(-Nkpoints^(1/3)),
+    and is preferable for quantitative applications. Note that the real-space version
+    is not translationally invariant and wraps on a superlattice WIgner-Seitz cell
+    centered at the origin.
+  precondition yes|no
+    Whether to use an inverse-Hemholtz preconditioner for the minimization.
+    Affects only the FiniteDifference localizationMeasure. (default: no)
+  bStart &lt;band&gt;
+    For fixed band calculations, 0-based index of lowest band used.
+    The number of bands equals the number of wannier-centers specified.
+    Default: 0. Use in insulator calculations to ignore semi-core orbitals.
+  outerWindow &lt;eMin&gt; &lt;eMax&gt;
+    Energy window within which bands contribute to \ref CommandWannier "wannier" functions
+    bStart is ignored if outerWindow is specified.
+  innerWindow &lt;eMin&gt; &lt;eMax&gt;
+    Inner energy window within which bands are used exactly.
+    Requires outerWindow, and innerWindow must be its subset.
+  frozenCenters &lt;nFrozen&gt; &lt;filename&gt;
+    Include frozen \ref CommandWannier "Wannier" centers imported as unitary rotations from &lt;filename&gt;
+    (.mlwfU output from another \ref CommandWannier "wannier" run on the same jdftx state), and force
+    the current centers to be orthogonal to the imported ones. Note that all output
+    of this run will include the frozen as well as new centers for convenience.
+       Requires innerWindow if outerWindow is present, and the frozen centers
+    must lie entirely within the inner window or fixed band range. (Effectively,
+    the outer window used in generating the frozen centers must be a subset of
+    the present inner window / fixed band range.)
+  saveWfns yes|no
+    Whether to write supercell wavefunctions in a spherical reciprocal-space basis.
+    Default: no.
+  saveWfnsRealSpace yes|no
+    Whether to write supercell wavefunctions band-by-band in real space (can be enormous).
+    Default: no.
+  saveMomenta yes|no
+    Whether to write momentum matrix elements in the same format as Hamiltonian.
+    The output is real and antisymmetric (drops the iota so as to half the output size).
+    Default: no.
+  CEDA yes|no
+    Output extra matrix elements necessary for the completion of states in the
+    Common Energy Denominator Approximation fix for empty-states convergence.
+    Default: no.
+  loadRotations yes|no
+    Whether to load rotations (.mlwU and .mlwfU2) from a previous \ref CommandWannier "Wannier" run.
+    Default: no.
+  numericalOrbitals &lt;filename&gt;
+    Load numerical orbitals from &lt;filename&gt; with basis described in &lt;filename&gt;.header
+    that can then be used as trial orbitals. The reciprocal space wavefunction output
+    of \ref CommandWannier "wannier" is precisely in this format, so that supercell \ref CommandWannier "Wannier" calculations can
+    be initialized from previously calculated bulk / unit cell \ref CommandWannier "Wannier" functions.
+  numericalOrbitalsOffset &lt;x0&gt; &lt;x1&gt; &lt;x2&gt;
+    Origin of the numerical orbitals in lattice coordinates of the input.
+    The default [ .5 .5 .5 ] (cell center) is appropriate for output from \ref CommandWannier "wannier".
+  phononSupercell &lt;N0&gt; &lt;N1&gt; &lt;N2&gt;
+    If specified, \ref CommandWannier "wannier" will read in output (phononHsub and phononBasis) of the
+    phonon code with this supercell and output Wannierized electron-phonon matrix
+    elements (mlwfHePh). This file will contain matrices for pairs of cells in the
+    order specified in the mlwfCellMapSqPh output file, with an outer loop over
+    the nuclear displacement modes in phononBasis.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep(None)
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepno
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/
+
+/** \page CommandWannierCenter wannier-center
+Syntax:
+-------
+
+    wannier-center <aorb1> [<aorb2> ...]
+
+Description:
+------------
+Specify trial orbital for a \ref CommandWannier "wannier" function as a linear combination of
+atomic orbitals &lt;aorb*&gt;. The syntax for each &lt;aorb&gt; is:
+   &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; [&lt;a&gt;=1|spName] [&lt;orbDesc&gt;=s] [&lt;coeff&gt;=1.0]
+which represents an atomic orbital centered at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;
+(coordinate system set by \ref CommandCoordsType "coords-type"). If &lt;a&gt; is the name of one
+of the pseudopotentials, then its atomic orbitals will be used;
+otherwise a hydogenic orbital of decay length n*&lt;a&gt; bohrs, where
+n is the principal quantum number in &lt;orbDesc&gt; will be used.
+The orbital code &lt;orbDesc&gt; is as in command \ref CommandDensityOfStates "density-of-states".
+Specify a, orbDesc and coeff explicitly when using multiple
+orbitals; the defaults only apply to the single orbital case.
+   Alternately, for using numerical trial orbitals that have been
+input using command \ref CommandWannier "wannier", use the syntax:
+   &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; numerical &lt;b&gt; [&lt;coeff&gt;=1.0]
+where &lt;b&gt; is the 0-based index of the input orbital, and coeff may
+be used to linearly combine numerical orbitals with other numerical
+or atomic / hydrogenic orbitals as specified above.
+   Specify this command once for each \ref CommandWannier "Wannier" function.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep\ref CommandCoordsType "coords-type"
+\bigsep\ref CommandLattScale "latt-scale"
+\bigsep\ref CommandSpintype "spintype"
+\bigsep\ref CommandWannierDumpName "wannier-dump-name"
+\bigsep\ref CommandWannierInitialState "wannier-initial-state"
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepyes
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/
+
+/** \page CommandWannierCenterPinned wannier-center-pinned
+Syntax:
+-------
+
+    wannier-center-pinned <aorb1> [<aorb2> ...]
+
+Description:
+------------
+Same as command \ref CommandWannierCenter "wannier-center", except that the minimizer tries to
+center this orbital at the specified guess positions (weighted mean
+of the orbital centers, if usinga  linear combination). This can help
+improve the minimizer conditioning if the centers are known by symmetry.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep\ref CommandCoordsType "coords-type"
+\bigsep\ref CommandLattScale "latt-scale"
+\bigsep\ref CommandSpintype "spintype"
+\bigsep\ref CommandWannierDumpName "wannier-dump-name"
+\bigsep\ref CommandWannierInitialState "wannier-initial-state"
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepyes
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/
+
+/** \page CommandWannierDumpName wannier-dump-name
+Syntax:
+-------
+
+    wannier-dump-name <format>
+
+Description:
+------------
+Control the filename pattern for \ref CommandWannier "wannier" output, where &lt;format&gt; must contain
+a single instance of $VAR, which will be substituted by the name of each variable.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep(None)
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepno
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/
+
+/** \page CommandWannierInitialState wannier-initial-state
+Syntax:
+-------
+
+    wannier-initial-state <format>
+
+Description:
+------------
+Control the filename pattern for \ref CommandWannier "wannier" state initialization, where &lt;format&gt; must contain
+a single instance of $VAR, which will be substituted by the name of each variable.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep(None)
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepno
+
+<b>Default:</b>
+\bigsep(None)
+
+\ref Commands "List of commands"
+*/
+
+/** \page CommandWannierMinimize wannier-minimize
+Syntax:
+-------
+
+    wannier-minimize <key1> <value1> <key2> <value2> ...
+
+Description:
+------------
+where possible keys and value types are:
++  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++  alphaTmin           : minimum test step size
++  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++  energyDiffThreshold : convergence threshold for energy difference between successive iterations
++  fdTest              : no|yes, whether to perform a finite difference test
++  history             : number of past states and gradients retained for L-BFGS
++  knormThreshold      : convergence threshold for gradient (preconditioned) norm
++  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++  nAlphaAdjustMax     : maximum step-size adjustments per linmin
++  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++  nIterations         : maximum iterations (single point calculation if 0)
++  updateTestStepSize  : no|yes, whether test step size is updated
++  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+Any number of these key-value pairs may be specified in any order.
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep(None)
+
+<b>Forbids:</b>
+\bigsep(None)
+
+<b>Allow multiple:</b>\bigsepno
+
+<b>Default:</b>
+
+    wannier-minimize  \
+	dirUpdateScheme      PolakRibiere \
+	linminMethod         DirUpdateRecommended \
+	nIterations          100 \
+	history              15 \
+	knormThreshold       0 \
+	energyDiffThreshold  1e-08 \
+	nEnergyDiff          2 \
+	alphaTstart          1 \
+	alphaTmin            1e-10 \
+	updateTestStepSize   yes \
+	alphaTreduceFactor   0.1 \
+	alphaTincreaseFactor 3 \
+	nAlphaAdjustMax      3 \
+	wolfeEnergy          0.0001 \
+	wolfeGradient        0.9 \
+	fdTest               no
+
+\ref Commands "List of commands"
+*/

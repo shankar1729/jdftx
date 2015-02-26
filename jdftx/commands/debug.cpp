@@ -54,7 +54,7 @@ EnumStringMap<DebugOptions> debugDescMap
 
 struct CommandDebug : public Command
 {
-	CommandDebug() : Command("debug", "Output")
+	CommandDebug() : Command("debug")
 	{
 		format = "<option> <option> ...";
 		comments =
@@ -115,7 +115,7 @@ commandDebug;
 
 struct CommandForcesOutputCoords : public Command
 {
-	CommandForcesOutputCoords() : Command("forces-output-coords", "Output")
+	CommandForcesOutputCoords() : Command("forces-output-coords")
 	{
 		format = "<coords>=" + forcesOutputCoordsMap.optionList();
 		comments =

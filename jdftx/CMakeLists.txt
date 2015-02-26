@@ -196,12 +196,21 @@ add_JDFTx_executable(phonon "${phononSources}")
 #Documentation via Doxygen:
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
-        add_custom_target(doc
-                ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                COMMENT "Generating API documentation with Doxygen" VERBATIM
-        )
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
+	#Target for running doxygen:
+	add_custom_target(doc
+		${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+		COMMENT "Generating API documentation with Doxygen" VERBATIM
+		DEPENDS
+			${CMAKE_CURRENT_SOURCE_DIR}/commands/manual.dox
+			${CMAKE_CURRENT_SOURCE_DIR}/wannier/manual.dox 
+			${CMAKE_CURRENT_SOURCE_DIR}/phonon/manual.dox  
+	)
+	#Commands for autogenerating command dox files
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/commands/manual.dox COMMAND ${CMAKE_CURRENT_BINARY_DIR}/jdftx   -w jdftx   > ${CMAKE_CURRENT_SOURCE_DIR}/commands/manual.dox DEPENDS jdftx)
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/wannier/manual.dox  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/wannier -w wannier > ${CMAKE_CURRENT_SOURCE_DIR}/wannier/manual.dox  DEPENDS wannier)
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/phonon/manual.dox   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/phonon  -w phonon  > ${CMAKE_CURRENT_SOURCE_DIR}/phonon/manual.dox   DEPENDS phonon)
 endif()
 
 #Additional test executables, mostly related to the fluid
@@ -216,8 +225,3 @@ add_subdirectory(opt)
 
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
-
-#Command manual generator
-add_custom_target(manual
-	COMMAND ${CMAKE_CURRENT_BINARY_DIR}/jdftx -w > ${CMAKE_CURRENT_SOURCE_DIR}/commands/man.html
-	DEPENDS jdftx)

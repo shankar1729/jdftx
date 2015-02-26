@@ -43,7 +43,7 @@ EnumStringMap<PhononMember> phononMemberMap
 
 struct CommandPhonon : public Command
 {
-	CommandPhonon() : Command("phonon", "Phonon")
+	CommandPhonon() : Command("phonon", "phonon")
 	{
 		format = "<key1> <args1...>  <key2> <args2...>  ...";
 		comments =

@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandIon : public Command
 {
-	CommandIon() : Command("ion", "Ionic geometry")
+	CommandIon() : Command("ion")
 	{
 		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
 			+ constraintTypeMap.optionList() + " <d0> <d1> <d2>]";
@@ -102,7 +102,7 @@ commandIon;
 
 struct CommandInitialMagneticMoments : public Command
 {
-	CommandInitialMagneticMoments() : Command("initial-magnetic-moments", "Initialization")
+	CommandInitialMagneticMoments() : Command("initial-magnetic-moments")
 	{
 		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]\n"
 			"   | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]";
@@ -166,7 +166,7 @@ commandInitialMagneticMoments;
 
 struct CommandInitialOxidationState : public Command
 {
-	CommandInitialOxidationState() : Command("initial-oxidation-state", "Initialization")
+	CommandInitialOxidationState() : Command("initial-oxidation-state")
 	{
 		format = "<species> <oxState> [<species2> ...]";
 		comments =
@@ -205,7 +205,7 @@ EnumStringMap<coreOverlapCheck> overlapCheckMap
 
 struct CommandCoreOverlapCheck : public Command
 {
-	CommandCoreOverlapCheck() : Command("core-overlap-check", "Ionic optimization")
+	CommandCoreOverlapCheck() : Command("core-overlap-check")
 	{
 		format = "<condition> = vectorial";
 		comments = "Checks for core overlaps between ionic pseudopotentials.\n"

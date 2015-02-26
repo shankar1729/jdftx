@@ -152,7 +152,7 @@ private:
 	double lcaoTol; //!< tolerance for LCAO subspace minimization
 	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)
 	friend class CommandWavefunction;
-	friend class CommandLCAOparams;
+	friend class CommandLcaoParams;
 	friend class Dump;
 	
 	//! Overlap matrix U and cohorts
