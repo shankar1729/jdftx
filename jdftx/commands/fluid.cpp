@@ -34,9 +34,25 @@ struct CommandFluid : public Command
 	CommandFluid() : Command("fluid")
 	{
 		format = "[<type>=None] [<Temperature>=298K] [<Pressure>=1.01325bar]";
-		comments = "Enable joint density functional theory\n"
-			"\t<type> = " + fluidTypeMap.optionList() + "\n"
-			"\t<Temperature> in Kelvin and <Pressure> in bars.";
+		comments = "Perform joint density functional theory with fluid of <type>:\n"
+			"\n+ None:\n\n"
+			"   Standard vacuum DFT calculation with no solvation model.\n"
+			"\n+ LinearPCM:\n\n"
+			"   Use a solvation model that includes linear dielectric (and/or ionic)\n"
+			"    response. Select a specific linear solvation model using pcm-variant.\n"
+			"\n+ NonlinearPCM:\n\n"
+			"   Use a solvation model that includes nonlinear dielectric (and/or ionic)\n"
+			"   response, and accounts for dielectric saturation effects.\n"
+			"   Select a specific nonlinear solvation model using pcm-variant.\n"
+			"\n+ SaLSA:\n\n"
+			"   Use the non-empirical nonlocal-response solvation model based on the\n"
+			"   Spherically-averaged Liquid Susceptibility Ansatz.\n"
+			"\n+ ClassicalDFT:\n\n"
+			"   Full joint density-functional theory with a classical density-functional\n"
+			"   description of the solvent. See fluid-solvent, fluid-cation, fluid-anion\n"
+			"   and related commands for controlling the classical density-functional theory.\n"
+			"\n"
+			"Optionally adjust the fluid <Temperature> (in Kelvin) and <Pressure> (in bars).";
 		hasDefault = true;
 		require("coulomb-interaction");
 	}
@@ -268,7 +284,7 @@ protected:
 			+ (suffix=="solvent"
 				? ("Possible keys and value types are:"
 					+ addDescriptions(fcmMap.optionList(), linkDescription(fcmMap, fcmDescMap))
-					+ "\nAny number of these key-value pairs may be specified in any order.")
+					+ "\n\nAny number of these key-value pairs may be specified in any order.")
 				: string("See command fluid-solvent for a description of adjustable properties."));
 
 		hasDefault = defaultEnabled;
@@ -504,7 +520,7 @@ struct CommandFluidSiteParams : public Command
 		comments = "Set parameters of <siteName> site for solvent component <solvent>=" + fluidComponentMap.optionList() 
 			+ ".\nChanges default parameters of existing site. \nPossible keys and value types are:"
 			+ addDescriptions(FSParamMap.optionList(), linkDescription(FSParamMap, FSParamDescMap))
-			+ "\nAny number of these key-value pairs may be specified in any order.";
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
 		
 		require("fluid-solvent");
 		hasDefault = true;

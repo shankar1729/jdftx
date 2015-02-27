@@ -396,9 +396,9 @@ struct CommandElecExCorr : public Command
 			"(the internal threaded/gpu implementations above are usually much faster).\n"
 			"Here, <funcX> is one of:"
 			+ addDescriptions(xcMap_X.optionList(), getLibXCdescription_X)
-			+ ",\n<funcC> is one of:"
+			+ ",\n\n<funcC> is one of:"
 			+ addDescriptions(xcMap_C.optionList(), getLibXCdescription_C)
-			+ ",\nand <funcXC> is one of:"
+			+ ",\n\nand <funcXC> is one of:"
 			+ addDescriptions(xcMap_XC.optionList(), getLibXCdescription_XC)
 			+ ".";
 		#else
@@ -511,7 +511,7 @@ struct CommandFluidExCorr : public CommandElecExCorr
 			#ifdef LIBXC_ENABLED
 			addDescriptions(xcMap_K.optionList(), getLibXCdescription_K) +
 			#endif
-			".\nThe available options for <exchange-correlation> are identical to elec-ex-corr\n"
+			".\n\nThe available options for <exchange-correlation> are identical to elec-ex-corr\n"
 			"and defaults to lda-pz.";
 		hasDefault = true;
 		emptyParamError = "   A kinetic energy functional must be specified.";

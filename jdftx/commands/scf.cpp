@@ -85,7 +85,7 @@ struct CommandElectronicScf: public Command
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:"
 			+ addDescriptions(scfParamsMap.optionList(), linkDescription(scfParamsMap, scfParamsDescMap))
-			+ "\nAny number of these key-value pairs may be specified in any order.";
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
 		hasDefault = false;
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");

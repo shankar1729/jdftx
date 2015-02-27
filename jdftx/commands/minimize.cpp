@@ -98,7 +98,7 @@ CommandMinimize::CommandMinimize(string systemName, string section) : Command(sy
 	format = "<key1> <value1> <key2> <value2> ...";
 	comments = "where possible keys and value types are:"
 		+ addDescriptions(mpmMap.optionList(), linkDescription(mpmMap, mpmDescMap))
-		+ "\nAny number of these key-value pairs may be specified in any order.";
+		+ "\n\nAny number of these key-value pairs may be specified in any order.";
 	hasDefault = true;
 }
 

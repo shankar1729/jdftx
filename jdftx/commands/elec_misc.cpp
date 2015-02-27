@@ -54,7 +54,8 @@ struct CommandFftbox : public Command
 	CommandFftbox() : Command("fftbox")
 	{
 		format = "<S0> <S1> <S2>";
-		comments = "Specify a manual FFT box";
+		comments = "Manually override the real space grid dimensions used for scalar fields.\n"
+		 "(The default values are calculated based on the EcutRho setting from elec-cutoff).";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -219,9 +220,9 @@ struct CommandFixElectronHamiltonian : public Command
 	{
 		format = "<filenamePattern>";
 		comments = "Perform band structure calculations at fixed electron " + name + "\n"
-			"(or spin " + name + ") read from the specified <filenamePattern>, which\n"
-			"must contain $VAR which will be replaced by the appropriate variable\n"
-			"names accounting for spin-polarization (same as used for dump).\n"
+			"(or spin " + name + ") read from the specified <filenamePattern>.\n"
+			"This pattern must include $VAR which will be replaced by the appropriate\n"
+			"variable names accounting for spin-polarization (same as used for dump).\n"
 			"Meta-GGA calculations will also require the corresponding kinetic " + name + ".";
 		
 		require("spintype");
@@ -265,7 +266,7 @@ struct CommandFixOccupied : public Command
 	CommandFixOccupied() : Command("fix-occupied")
 	{
 		format = "[<fThreshold>=0]";
-		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations\n"
+		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations.\n"
 			"The occupied orbitals must be read in using the wavefunction / initial-state commands.\n";
 	}
 
@@ -607,9 +608,9 @@ struct CommandElectricField : public Command
 		format = "<Ex> <Ey> <Ez>";
 		comments = 
 			"Apply an external electric field (in Cartesian coordinates, atomic\n"
-			"units [Eh/e/a_0] and electron-is-positive sign convention).\n"
+			"units [Eh/e/a_0] and electron-is-positive sign convention).\n\n"
 			"Applied electric field must be zero along periodic directions.\n"
-			"Requires embedded coulomb truncation for the truncated directions.\n"
+			"Requires embedded coulomb truncation for the truncated directions.\n\n"
 			"Symmetries will be automatically reduced to account for this field.";
 		
 		require("coulomb-truncation-embed");

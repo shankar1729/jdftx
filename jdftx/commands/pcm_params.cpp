@@ -99,7 +99,7 @@ struct CommandPcmParams : public Command
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Adjust PCM solvent parameters. Possible keys and value types are:"
 			+ addDescriptions(pcmParamMap.optionList(), linkDescription(pcmParamMap, pcmParamDescMap))
-			+ "\nAny number of these key-value pairs may be specified in any order.";
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
 		
 		require("fluid-solvent");
 	}

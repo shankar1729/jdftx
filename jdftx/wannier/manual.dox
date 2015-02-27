@@ -259,6 +259,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:

@@ -169,7 +169,7 @@ struct CommandDump : public Command
 			+ addDescriptions(freqMap.optionList(), linkDescription(freqMap, freqDescMap))
 			+ "\n\nand each <var> is one of:"
 			+ addDescriptions(varMap.optionList(), linkDescription(varMap, varDescMap))
-			+ "\nList of dumped variables from multiple instances will be accumulated for each <freq>."
+			+ "\n\nList of dumped variables from multiple instances will be accumulated for each <freq>."
 			"\nUse command dump-interval to dump at regular intervals instead of every iteration.";
 		allowMultiple = true;
 		hasDefault = true;
@@ -328,20 +328,21 @@ struct CommandElectronScattering : public Command
 		comments = "Calculate electron-electron scattering rates (expensive!)\n"
 			"and output contribution to imaginary part of electron self-energy\n"
 			"(calculated effectively using full-frequency G0W0).\n"
+			"\n"
 			"The following key-value pairs can appear in any order:\n"
-			"  eta <eta>\n"
-			"    <eta> in Eh specifies frequency resolution and half the imaginary part\n"
-			"    ascribed to probe frequency (if zero, the electron temperature is used.)\n"
-			"  Ecut <Ecut>\n"
-			"    <Ecut> in Eh specifies energy cut-off for dielectric matrices.\n"
-			"    (If zero, the wavefunction cutoff from elec-cutoff is used instead.)\n"
-			"  fCut <fCut>\n"
-			"    <fCut> specifies threshold for considering states fully occupied or\n"
-			"    unoccupied in optimizing sums over states (default: 1e-6)\n"
-			"  omegaMax <omegaMax>\n"
-			"    <omegaMax> in Eh is the maximum energy transfer to account for\n"
-			"    and hence the maximum frequency in dielectric function frequency grid.\n"
-			"    (if zero, autodetermine from available eigenvalues)";
+			"\n+ eta <eta>\n\n"
+			"   <eta> in Eh specifies frequency resolution and half the imaginary part\n"
+			"   ascribed to probe frequency (if zero, the electron temperature is used.)\n"
+			"\n+ Ecut <Ecut>\n\n"
+			"   <Ecut> in Eh specifies energy cut-off for dielectric matrices.\n"
+			"   (If zero, the wavefunction cutoff from elec-cutoff is used instead.)\n"
+			"\n+ fCut <fCut>\n\n"
+			"   <fCut> specifies threshold for considering states fully occupied or\n"
+			"   unoccupied in optimizing sums over states (default: 1e-6)\n"
+			"\n+ omegaMax <omegaMax>\n\n"
+			"   <omegaMax> in Eh is the maximum energy transfer to account for\n"
+			"   and hence the maximum frequency in dielectric function frequency grid.\n"
+			"   (if zero, autodetermine from available eigenvalues)";
 		
 		forbid("polarizability"); //both are major operations that are given permission to destroy Everything if necessary
 	}

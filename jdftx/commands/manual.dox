@@ -751,6 +751,7 @@ and each &lt;var&gt; is one of:
 +  Vlocps                   : Local part of pseudopotentials
 +  Vscloc                   : Self-consistent potential
 +  XCanalysis               : Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
+
 List of dumped variables from multiple instances will be accumulated for each &lt;freq&gt;.
 Use command \ref CommandDumpInterval "dump-interval" to dump at regular intervals instead of every iteration.
 
@@ -1255,8 +1256,10 @@ Description:
 ------------
 Apply an external electric field (in Cartesian coordinates, atomic
 units [Eh/e/a_0] and electron-is-positive sign convention).
+
 Applied electric field must be zero along periodic directions.
 Requires embedded coulomb truncation for the truncated directions.
+
 Symmetries will be automatically reduced to account for this field.
 
 Properties:
@@ -1287,20 +1290,29 @@ Description:
 Calculate electron-electron scattering rates (expensive!)
 and output contribution to imaginary part of electron self-energy
 (calculated effectively using full-frequency G0W0).
+
 The following key-value pairs can appear in any order:
-  eta &lt;eta&gt;
-    &lt;eta&gt; in Eh specifies frequency resolution and half the imaginary part
-    ascribed to probe frequency (if zero, the electron temperature is used.)
-  Ecut &lt;Ecut&gt;
-    &lt;Ecut&gt; in Eh specifies energy cut-off for dielectric matrices.
-    (If zero, the wavefunction cutoff from \ref CommandElecCutoff "elec-cutoff" is used instead.)
-  fCut &lt;fCut&gt;
-    &lt;fCut&gt; specifies threshold for considering states fully occupied or
-    unoccupied in optimizing sums over states (default: 1e-6)
-  omegaMax &lt;omegaMax&gt;
-    &lt;omegaMax&gt; in Eh is the maximum energy transfer to account for
-    and hence the maximum frequency in dielectric function frequency grid.
-    (if zero, autodetermine from available eigenvalues)
+
++ eta &lt;eta&gt;
+
+   &lt;eta&gt; in Eh specifies frequency resolution and half the imaginary part
+   ascribed to probe frequency (if zero, the electron temperature is used.)
+
++ Ecut &lt;Ecut&gt;
+
+   &lt;Ecut&gt; in Eh specifies energy cut-off for dielectric matrices.
+   (If zero, the wavefunction cutoff from \ref CommandElecCutoff "elec-cutoff" is used instead.)
+
++ fCut &lt;fCut&gt;
+
+   &lt;fCut&gt; specifies threshold for considering states fully occupied or
+   unoccupied in optimizing sums over states (default: 1e-6)
+
++ omegaMax &lt;omegaMax&gt;
+
+   &lt;omegaMax&gt; in Eh is the maximum energy transfer to account for
+   and hence the maximum frequency in dielectric function frequency grid.
+   (if zero, autodetermine from available eigenvalues)
 
 Properties:
 -----------
@@ -1344,6 +1356,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -1403,6 +1416,7 @@ Enables self-consistent residual minimization.  If provided, keys adjust SCF par
 +  residualThreshold         : convergence threshold for the residual in the mixed variable (density or potential)
 +  single-particle-constraint: enforces the single particle constraint on the exchange
 +  verbose                   : whether the inner eigenvalue solver will print or not
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -1493,7 +1507,8 @@ Syntax:
 
 Description:
 ------------
-Specify a manual FFT box
+Manually override the real space grid dimensions used for scalar fields.
+(The default values are calculated based on the EcutRho setting from \ref CommandElecCutoff "elec-cutoff").
 
 Properties:
 -----------
@@ -1521,9 +1536,9 @@ Syntax:
 Description:
 ------------
 Perform band structure calculations at fixed electron density
-(or spin density) read from the specified &lt;filenamePattern&gt;, which
-must contain $VAR which will be replaced by the appropriate variable
-names accounting for spin-polarization (same as used for dump).
+(or spin density) read from the specified &lt;filenamePattern&gt;.
+This pattern must include $VAR which will be replaced by the appropriate
+variable names accounting for spin-polarization (same as used for dump).
 Meta-GGA calculations will also require the corresponding kinetic density.
 
 Properties:
@@ -1557,9 +1572,9 @@ Syntax:
 Description:
 ------------
 Perform band structure calculations at fixed electron potential
-(or spin potential) read from the specified &lt;filenamePattern&gt;, which
-must contain $VAR which will be replaced by the appropriate variable
-names accounting for spin-polarization (same as used for dump).
+(or spin potential) read from the specified &lt;filenamePattern&gt;.
+This pattern must include $VAR which will be replaced by the appropriate
+variable names accounting for spin-polarization (same as used for dump).
 Meta-GGA calculations will also require the corresponding kinetic potential.
 
 Properties:
@@ -1592,7 +1607,7 @@ Syntax:
 
 Description:
 ------------
-Fix orbitals with fillings larger than &lt;fThreshold&gt; in band-structure calculations
+Fix orbitals with fillings larger than &lt;fThreshold&gt; in band-structure calculations.
 The occupied orbitals must be read in using the wavefunction / \ref CommandInitialState "initial-state" commands.
 
 
@@ -1621,9 +1636,35 @@ Syntax:
 
 Description:
 ------------
-Enable joint density functional theory
-	&lt;type&gt; = ClassicalDFT|LinearPCM|None|NonlinearPCM|SaLSA
-	&lt;Temperature&gt; in Kelvin and &lt;Pressure&gt; in bars.
+Perform joint density functional theory with fluid of &lt;type&gt;:
+
++ None:
+
+   Standard vacuum DFT calculation with no solvation model.
+
++ LinearPCM:
+
+   Use a solvation model that includes linear dielectric (and/or ionic)
+    response. Select a specific linear solvation model using \ref CommandPcmVariant "pcm-variant".
+
++ NonlinearPCM:
+
+   Use a solvation model that includes nonlinear dielectric (and/or ionic)
+   response, and accounts for dielectric saturation effects.
+   Select a specific nonlinear solvation model using \ref CommandPcmVariant "pcm-variant".
+
++ SaLSA:
+
+   Use the non-empirical nonlocal-response solvation model based on the
+   Spherically-averaged Liquid Susceptibility Ansatz.
+
++ ClassicalDFT:
+
+   Full joint density-functional theory with a classical density-functional
+   description of the solvent. See \ref CommandFluidSolvent "fluid-solvent", \ref CommandFluidCation "fluid-cation", \ref CommandFluidAnion "fluid-anion"
+   and related commands for controlling the classical density-functional theory.
+
+Optionally adjust the fluid &lt;Temperature&gt; (in Kelvin) and &lt;Pressure&gt; (in bars).
 
 Properties:
 -----------
@@ -1744,6 +1785,7 @@ Kinetic energy functional for fluid convolution coupling where &lt;kinetic&gt; i
 +  gga-PW91k: Perdew-Wang GGA kinetic energy parameterized by Lembarki and Chermette
 +  gga-vW   : von Weisacker correction to LDA kinetic energy
 +  lda-TF   : Thomas-Fermi LDA kinetic energy.
+
 The available options for &lt;exchange-correlation&gt; are identical to \ref CommandElecExCorr "elec-ex-corr"
 and defaults to lda-pz.
 
@@ -1847,6 +1889,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -1935,6 +1978,7 @@ Possible keys and value types are:
 +  sigmaNuc     : gaussian width of the nuclear charge (positive)
 +  Zelec        : magnitude of electron charge (positive)
 +  Znuc         : magnitude of the nuclear charge (positive)
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -1983,6 +2027,7 @@ Possible keys and value types are:
 +  s2quadType    : orientation quadrature type = 10design60|11design70|12design84|13design94|14design108|15design120|16design144|17design156|18design180|19design204|20design216|21design240|7design24|8design36|9design48|Euler|Icosahedron|Octahedron|Tetrahedron
 +  sigmaBulk     : bulk surface tension in Eh/bohr^2
 +  translation   : translation operator type = ConstantSpline|Fourier|LinearSpline
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -2199,6 +2244,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -2418,6 +2464,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -2631,6 +2678,7 @@ where possible keys and value types are:
 +  updateTestStepSize  : no|yes, whether test step size is updated
 +  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
 +  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
@@ -2743,6 +2791,7 @@ Adjust PCM solvent parameters. Possible keys and value types are:
 +  pCavity      : sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
 +  sigma        : smoothing factor for the PCM cavity shape function
 +  sqrtC6eff    : sqrt(effective molecule C6 coefficient) for CANDLE
+
 Any number of these key-value pairs may be specified in any order.
 
 Properties:
