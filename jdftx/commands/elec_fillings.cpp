@@ -64,8 +64,10 @@ struct CommandTargetMu : public Command
 		format = "<mu> [<Cinitial>=1.0] [<dnMix>=0.7]";
 		comments =
 			"Fixed chemical potential <mu> (instead of fixed charge)\n"
-			"\tCinitial: Initial capacitance, affects only first few mixing steps\n"
-			"\tdnMix: Scale the ideal step in n by this factor";
+			"When using elec-fermi-fillings with non-zero mixInterval (deprecated),\n"
+			"the following parameters control the convergence:\n"
+			"+ Cinitial: Initial capacitance, affects only first few mixing steps\n"
+			"+ dnMix: Scale the ideal step in n by this factor";
 		hasDefault = false;
 
 		require("fluid-cation");

@@ -97,7 +97,7 @@ static EnumStringMap<bool> boolMap(false, "no", true, "yes"); //!< utility to pa
 
 //! Process the EnumStringMap::optionList() to add descriptions using an arbitrary functor
 template<typename GetDescription>
-string addDescriptions(string optionList, const GetDescription& getDescription, string spacer="\n+  ")
+string addDescriptions(string optionList, const GetDescription& getDescription, string spacer="\n+ ")
 {
 	//Determine max width of name, so as to align:
 	istringstream iss(optionList);
@@ -122,9 +122,15 @@ string addDescriptions(string optionList, const GetDescription& getDescription, 
 		//Pad the name to required width:
 		if(name.length()<nameWidth)
 			name.resize(nameWidth, ' ');
-		ret += spacer + name + ": " + desc;
+		ret += spacer + name;
+		if(desc.length()) ret += ": " + desc;
 	}
 	return ret;
+}
+
+//! Null description functor
+inline string nullDescription(const string&)
+{	return string();
 }
 
 //! Generate a description functor using a EnumStringMap holding the decsriptions:

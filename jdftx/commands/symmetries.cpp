@@ -30,11 +30,12 @@ struct CommandSymmetries : public Command
 	CommandSymmetries() : Command("symmetries")
 	{
 		format = "<symm>=" + symmMap.optionList() + " <moveAtoms>=" + boolMap.optionList();
-		comments = "\tnone: symmetries are off\n"
-			"\tautomatic: automatic calculation of symmetries (default)\n"
-			"\tmanual: symmetries specified using symmetry-matrix command\n"
-			"Check if symmetries could be increased by translating all the atoms\n"
-			"and quit after suggesting the translated positions if <moveAtoms>=yes.";
+		comments = "+ none: symmetries are off\n"
+			"+ automatic: automatic calculation of symmetries (default)\n"
+			"+ manual: symmetries specified using symmetry-matrix command\n"
+			"\n"
+			"If <moveAtoms>=yes, check if symmetries could be increased by translating\n"
+			"all the atoms, and quit after suggesting the translated positions.";
 		hasDefault = true;
 	}
 
@@ -54,7 +55,7 @@ struct CommandSymmetryMatrix : public Command
 {
 	CommandSymmetryMatrix() : Command("symmetry-matrix")
 	{
-		format = "<s00> <s01> <s02> <s10> <s11> <s12> <s20> <s21> <s22>";
+		format = " \\\n\t<s00> <s01> <s02> \\\n\t<s10> <s11> <s12> \\\n\t<s20> <s21> <s22>";
 		comments = "Specify symmetry operator matrices explicitly.\n"
 			"Requires symmetries command to be called with manual argument";
 		allowMultiple = true;

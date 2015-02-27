@@ -83,8 +83,8 @@ struct CommandFluidGummelLoop : public Command
 		format = "[<maxIterations>=10] [<Atol>=1e-5]";
 		comments =
 			"Settings for the fluid <--> electron self-consistency loop:\n"
-			"\t<maxIterations>: Max number of electron and fluid minimization pairs\n"
-			"\t<Atol>: Free energy convergence criterion for this outer loop";
+			"+ <maxIterations>: Max number of electron and fluid minimization pairs\n"
+			"+ <Atol>: Free energy convergence criterion for this outer loop";
 		hasDefault = true;
 	}
 
@@ -126,10 +126,9 @@ struct CommandFluidVdwScale : public Command
 	CommandFluidVdwScale() : Command("fluid-vdwScale")
 	{
 		format = "<scale=0.75>";
-		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n"
-					"   Default is fluid specific, but ranges between 0.4 to 1.3.\n"
-					"   Set to 0 to use the prefactor corresponding to fluid exchange-correlation.";
-					
+		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n\n"
+			"Default is fluid specific and ranges between 0.4 to 1.3.\n"
+			"Set to 0 to use the prefactor corresponding to fluid exchange-correlation.";
 		require("fluid-solvent");
 	}
 	
@@ -250,12 +249,12 @@ EnumStringMap<FluidComponentMember> fcmDescMap
 	FCM_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs",
 	FCM_Res, "electrostatic radius of solvent (derived from nonlocal response) in bohrs",
 	FCM_epsLJ, "Lennard-Jones well depth for Mean-Field LJ excess functional",
-	FCM_representation, "ideal gas representation = " + representationMap.optionList(),
-	FCM_s2quadType, "orientation quadrature type = " + s2quadTypeMap.optionList(),
+	FCM_representation, "ideal gas representation: " + addDescriptions(representationMap.optionList(), nullDescription, "\n   - "),
+	FCM_s2quadType, "orientation quadrature type:" + addDescriptions(s2quadTypeMap.optionList(), nullDescription, "\n   - "),
 	FCM_quad_nBeta, "number of beta samples for Euler quadrature",
 	FCM_quad_nAlpha, "number of alpha samples for Euler quadrature",
 	FCM_quad_nGamma, "number of gamma samples for Euler quadrature",
-	FCM_translationMode, "translation operator type = " + translationModeMap.optionList(),
+	FCM_translationMode, "translation operator type: " + addDescriptions(translationModeMap.optionList(), nullDescription, "\n   - "),
 	FCM_Nnorm, "unit cell molecule count constraint"
 );
 
@@ -275,11 +274,13 @@ protected:
 		format = (defaultEnabled ? ("[<name>=" + string(nameMap.getString(defaultName)) +"] [<concentration>=bulk]") : "<name> <concentration>")
 			+ " [<functional>=" + string(functionalMap.getString(defaultFunctional)) + "]"
 			" [<key1> <value1>] ...";
-		comments = "Add " + suffix + " component " + nameMap.optionList() + " to fluid.\n"
+		comments = "Add " + suffix + " component to fluid, where <name> may be one of:"
+			+ addDescriptions(nameMap.optionList(), nullDescription) + "\n\n"
 			+ string(defaultEnabled
 				? "The concentration may be specified explicitly in mol/liter or set to 'bulk' to use bulk fluid value."
 				: "The concentration must be specified explicitly in mol/liter.") + "\n"
-			"For classical DFT fluids, the excess functional may be one of " + functionalMap.optionList() + "\n"
+			"For classical DFT fluids, the excess functional may be one of " + functionalMap.optionList() + ".\n"
+			"\n"
 			"Optional component properties may be overridden using an arbitrary number of <key> <value> pairs.\n"
 			+ (suffix=="solvent"
 				? ("Possible keys and value types are:"
@@ -512,23 +513,22 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
 
 struct CommandFluidSiteParams : public Command
 {
-	
-
 	CommandFluidSiteParams() : Command("fluid-site-params")
 	{	
-		format = " <solvent> <siteName> <key1> <value1> <key2> <value2> ...";
-		comments = "Set parameters of <siteName> site for solvent component <solvent>=" + fluidComponentMap.optionList() 
-			+ ".\nChanges default parameters of existing site. \nPossible keys and value types are:"
+		format = " <component> <siteName> <key1> <value1> <key2> <value2> ...";
+		comments = "Set parameters of site <siteName> for fluid <component> which may be one of:"
+			+ addDescriptions(fluidComponentMap.optionList(), nullDescription)
+			+ "\n\nPossible keys and value types are:"
 			+ addDescriptions(FSParamMap.optionList(), linkDescription(FSParamMap, FSParamDescMap))
 			+ "\n\nAny number of these key-value pairs may be specified in any order.";
 		
 		require("fluid-solvent");
-		hasDefault = true;
+		hasDefault = false;
 		allowMultiple = true;
 	}
 	
-void process(ParamList& pl, Everything& e)
-	{	
+	void process(ParamList& pl, Everything& e)
+	{
 		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
 			return;
 		FluidSolverParams& fsp = e.eVars.fluidParams;
@@ -643,9 +643,12 @@ struct CommandFluidMixingFunctional : public Command
     CommandFluidMixingFunctional() : Command("fluid-mixing-functional")
 	{
 	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=LJPotential]";
-	  comments = "       Couple named fluids <fluid1> and <fluid2> "+ fluidComponentMap.optionList() +" together \n"
-	             "       through a mixing functional of type " + fMixMap.optionList() + "\n"
-	             "       with strength <energyScale> and range parameter <lengthScale>.\n"; 
+	  comments = 
+		"Couple named fluids <fluid1> and <fluid2> which could each be one of:"
+		+ addDescriptions(fluidComponentMap.optionList(), nullDescription)
+		+ "\n\ntogether with a mixing functional of type:"
+		+ addDescriptions(fMixMap.optionList(), nullDescription)
+		+ "\n\nwith strength <energyScale> (in Eh) and range parameter <lengthScale> (in bohrs).\n"; 
 
 	  require("fluid-solvent"); //which in turn requires fluid indirectly
 	  allowMultiple = true;

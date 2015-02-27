@@ -64,10 +64,10 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		case PCM_SGA13:
 		{	if(fsp.pcmVariant==PCM_SaLSA)
 				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
-					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, and T.A. Arias, J. Chem. Phys. 142, accepted (2015)");
+					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, and T.A. Arias, J. Chem. Phys. 142, 054102 (2015)");
 			else if(fsp.pcmVariant==PCM_CANDLE)
 			{	Citations::add("Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model",
-					"R. Sundararaman and W.A. Goddard III, J. Chem. Phys. 142, accepted (2015)");
+					"R. Sundararaman and W.A. Goddard III, J. Chem. Phys. 142, 064107 (2015)");
 				//Compute the gaussian width parameter from Rvdw:
 				double sigmaVdw = 1.;
 				for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration

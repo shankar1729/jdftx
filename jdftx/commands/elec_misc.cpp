@@ -128,10 +128,10 @@ struct CommandLcaoParams : public Command
 	{
 		format = "[<nIter>=-1] [<Ediff>=1e-6] [<kT>=1e-3]";
 		comments = "Control LCAO wavefunction initialization:\n"
-			" <nIter>: maximum subspace iterations in LCAO (negative => auto-select)\n"
-			" <Ediff>: energy-difference convergence threshold for subspace iteration\n"
-			" <kT>: Fermi temperature for the subspace iteration for T=0 calculations.\n"
-			"    If present, the Fermi temperature from elec-fermi-fillings overrides this.\n";
+			"+ <nIter>: maximum subspace iterations in LCAO (negative => auto-select)\n"
+			"+ <Ediff>: energy-difference convergence threshold for subspace iteration\n"
+			"+ <kT>: Fermi temperature for the subspace iteration for T=0 calculations.\n"
+			"   If present, the Fermi temperature from elec-fermi-fillings overrides this.\n";
 		hasDefault = true;
 	}
 
@@ -288,7 +288,7 @@ struct CommandReorthogonalizeOrbitals : public Command
 {
 	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals")
 	{
-		format = "[<interval=20> [<threshold>=1.5]";
+		format = "[<interval=20>] [<threshold>=1.5]";
 		comments =
 			"Every <interval> electronic steps, re-orthogonalize analytically-continued\n"
 			"orbitals if the condition number of their overlap matrix crosses <threshold>.\n"
@@ -469,19 +469,19 @@ struct CommandInvertKohnSham : public Command
 			"specified using fix-electron-density, find the corresponding\n"
 			"external potential (in addition to the pseudopotentials and\n"
 			"Hartree+XC potential evaluated at the given electron density).\n"
-			"Vexternal may be used to specify an initial guess.\n"
-			"Control outer optimization using inverseKohnSham-minimize, and\n"
-			"inner minimization using electronic-minimize (as usual). The\n"
-			"result is dumped with variable name \"optVext\" or \"optVextUp\"\n"
-			"and \"optVextDn\" depending on specified spin type.\n"
-			"Option <nonlocal>="+boolMap.optionList()+" controls whether to\n"
-			"include non-local parts of the pseudopotential (default yes).\n"
-			"Option <sigma> specifies a bandwidth cutoff in the external\n"
-			"potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).\n"
-			"Option <chiGuessFilename> specifies a preconditioner based on\n"
-			"the response function of a similar electronic system. The pattern\n"
-			"should contain $VAR which will be used to read wavefunctions,\n"
-			"eigenvalues and fillings (these should include empty states).";
+			"+ Vexternal may be used to specify an initial guess.\n"
+			"+ Control outer optimization using inverseKohnSham-minimize, and\n"
+			"  inner minimization using electronic-minimize (as usual).\n"
+			"+ The result is dumped with variable name \"optVext\" or \n"
+			"  \"optVextUp\" and \"optVextDn\" depending on spintype.\n"
+			"+ Option <nonlocal>="+boolMap.optionList()+" controls whether to\n"
+			"  include non-local parts of the pseudopotential (default yes).\n"
+			"+ Option <sigma> specifies a bandwidth cutoff in the external\n"
+			"  potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).\n"
+			"+ Option <chiGuessFilename> specifies a preconditioner based on\n"
+			"  the response function of a similar electronic system. The pattern\n"
+			"  should contain $VAR which will be used to read wavefunctions,\n"
+			"  eigenvalues and fillings (these should include empty states).";
 		
 		require("fix-electron-density");
 		forbid("box-potential");
@@ -517,6 +517,7 @@ struct CommandRhoExternal : public Command
 		comments =
 			"Include an external charge density [electrons/bohr^3] (real space binary)\n"
 			"which interacts electrostatically with the electrons, nuclei and fluid.\n"
+			"\n"
 			"If <includeSelfEnergy>=yes (default no), then the Coulomb self-energy\n"
 			"of rhoExternal is included in the output energy.";
 	}

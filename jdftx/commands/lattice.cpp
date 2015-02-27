@@ -41,16 +41,16 @@ struct CommandLattice : public Command
 	CommandLattice() : Command("lattice")
 	{
 		format = " [<modification>] <lattice> <parameters...>\n"
-			" | \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
+			"\t| \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
 		comments = "Specify lattice by name and parameters, or manually lattice vectors (in columns).\n"
 			"The options for the [<modification>] <lattice> <parameters...> scheme are:\n"
-			"   Triclinic <a> <b> <c> <alpha> <beta> <gamma>\n"
-			"   [Base-Centered] Monoclinic <a> <b> <c> <beta>\n"
-			"   [Base|Body|Face-Centered] Orthorhombic <a> <b> <c>\n"
-			"   [Body-Centered] Tetragonal <a> <c>\n"
-			"   Rhombohedral <a> <alpha>\n"
-			"   Hexagonal <a> <c>\n"
-			"   [Body|Face-Centered] Cubic <a>";
+			"+ Triclinic <a> <b> <c> <alpha> <beta> <gamma>\n"
+			"+ [Base-Centered] Monoclinic <a> <b> <c> <beta>\n"
+			"+ [Base|Body|Face-Centered] Orthorhombic <a> <b> <c>\n"
+			"+ [Body-Centered] Tetragonal <a> <c>\n"
+			"+ Rhombohedral <a> <alpha>\n"
+			"+ Hexagonal <a> <c>\n"
+			"+ [Body|Face-Centered] Cubic <a>";
 	}
 
 	void process(ParamList& pl, Everything& e)

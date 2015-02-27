@@ -29,7 +29,9 @@ struct CommandIon : public Command
 			+ constraintTypeMap.optionList() + " <d0> <d1> <d2>]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
+			"\n"
 			"<moveScale> preconditions the motion of this ion (set 0 to hold fixed)\n"
+			"\n"
 			"In addition, the ion may be constrained to a line or a plane with line\n"
 			"direction or plane normal equal to (<d0>,<d1>,<d2>) in the coordinate\n"
 			"system selected by command coords-type. Note that the constraints must\n"
@@ -105,13 +107,15 @@ struct CommandInitialMagneticMoments : public Command
 	CommandInitialMagneticMoments() : Command("initial-magnetic-moments")
 	{
 		format = "<species> <M1> <M2> ... <Mn> [<species2> ...]\n"
-			"   | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]";
+			"      | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]";
 		comments =
 			"Specify initial magnetic moments, defined as the difference between\n"
 			"up and down electron counts, on each atom of one or more species.\n"
+			"\n"
 			"The second syntax with polar angles (in degrees) must be used\n"
 			"for noncollinear  magnetism calculations.\n"
-			"  For each species, the initial magnetic moments are applied\n"
+			"\n"
+			"For each species, the initial magnetic moments are applied\n"
 			"to the atoms in the order of ion commands for that species.\n"
 			"This may be used to construct a spin-polarized reference density\n"
 			"for LCAO initialization of the Kohn-Sham orbitals.";

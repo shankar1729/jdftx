@@ -26,7 +26,7 @@ struct CommandKpoint : public Command
 	{
 		format = "<k0> <k1> <k2> <weight>";
 		comments =
-		  "Specify kpoint at lattice coordinates (<k0>, <k1>, <k2>) with weight <weight>\n"
+		  "Specify kpoint at lattice coordinates (<k0>, <k1>, <k2>) with weight <weight>.\n"
 		  "A single k-point at 0,0,0 (Gamma point) with weight 1 is used if unspecified.";
 		allowMultiple = true;
 		hasDefault = true;

@@ -49,22 +49,22 @@ struct CommandPhonon : public Command
 		comments =
 			"Control phonon calculation and output. The possible <key>'s and their\n"
 			"corresponding arguments are:\n"
-			"  supercell <N0> <N1> <N2>\n"
-			"    Supercell for frozen phonon perturbation. Each entry must divide\n"
-			"    the corresponding value in kpoint-folding. The k-point mesh must\n"
-			"    be uniform and centered on Gamma.\n"
-			"  dr <dr>\n"
-			"    Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
-			"  T <T>\n"
-			"    Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
-			"  Fcut <Fcut>\n"
-			"    Fillings threshold to include in supercell calculation (default 1e-8).\n"
-			"    The unit cell calculation may have extra bands for which matrix elements\n"
-			"    are desired; this flag ensures that those extra bands do not affect the\n"
-			"    performance or memory requirements of the supercell calculations.\n"
-			"  CEDA yes|no\n"
-			"    Whether to generate phonon * momentum matrix elements for CEDA completion\n"
-			"    (default no).";
+			"\n+ supercell <N0> <N1> <N2>\n\n"
+			"   Supercell for frozen phonon perturbation. Each entry must divide\n"
+			"   the corresponding value in kpoint-folding. The k-point mesh must\n"
+			"   be uniform and centered on Gamma.\n"
+			"\n+ dr <dr>\n\n"
+			"   Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
+			"\n+ T <T>\n\n"
+			"   Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
+			"\n+ Fcut <Fcut>\n\n"
+			"   Fillings threshold to include in supercell calculation (default 1e-8).\n"
+			"   The unit cell calculation may have extra bands for which matrix elements\n"
+			"   are desired; this flag ensures that those extra bands do not affect the\n"
+			"   performance or memory requirements of the supercell calculations.\n"
+			"\n+ CEDA yes|no\n\n"
+			"   Whether to generate phonon * momentum matrix elements for CEDA completion\n"
+			"   (default no).";
 		
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");

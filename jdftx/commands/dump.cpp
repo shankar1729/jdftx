@@ -285,7 +285,7 @@ struct CommandPolarizability : public Command
     CommandPolarizability() : Command("polarizability")
 	{
 		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
-		comments = "Output polarizability matrix in specified eigeneigenBasis";
+		comments = "Output polarizability matrix in specified eigenBasis";
 		
 		forbid("electron-scattering"); //both are major operations that are given permission to destroy Everything if necessary
 	}
@@ -381,6 +381,7 @@ struct CommandPolarizabilityKdiff : public Command
 	{
 		format = "<dk0> <dk1> <dk2> [<dkFilenamePattern>]";
 		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.\n"
+			"\n"
 			"<dkFilenamePattern> may be specified to read offset band structure calcualations when <dk>\n"
 			"does not belong to the k-point mesh. This string should be a filename pattern containing\n"
 			"$VAR (to be replaced by eigenvals and wfns) and $q (to be replaced by state index)";
@@ -512,19 +513,19 @@ struct CommandVibrations : public Command
 			"Note that this command should typically be issued in a run with converged ionic\n"
 			"positions; ionic (and lattice) minimization are bypassed by the vibrations module.\n"
 			"Any number of the following subcommands and their arguments may follow:\n"
-			"  dr <dr>: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).\n"
-			"  centralDiff yes|no: use a central difference formula for the second derivative\n"
-			"     to achieve higher accuracy at twice the cost (default: no)\n"
-			"  useConstraints yes|no: restrict modes of motion as specified by move flags\n"
-			"     and constraints in the ion command (default: no)\n"
-			"  traslationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
-			"     Can be turned off to get vibrational levels in an external potential.\n"
-			"  rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
-			"     molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"
-			"  omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)\n"
-			"  T <T>: temperature (in Kelvin) for free energy calculation (default: 298)\n"
-			"  omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
-			"     in modes (default: 1e-4). Does not affect free energies and all modes are still printed.";
+			"+ dr <dr>: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).\n"
+			"+ centralDiff yes|no: use a central difference formula for the second derivative\n"
+			"   to achieve higher accuracy at twice the cost (default: no)\n"
+			"+ useConstraints yes|no: restrict modes of motion as specified by move flags\n"
+			"   and constraints in the ion command (default: no)\n"
+			"+ traslationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
+			"   Can be turned off to get vibrational levels in an external potential.\n"
+			"+ rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
+			"   molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"
+			"+ omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)\n"
+			"+ T <T>: temperature (in Kelvin) for free energy calculation (default: 298)\n"
+			"+ omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
+			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.";
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
 	}
@@ -571,11 +572,11 @@ struct CommandSlabEpsilon : public Command
 		format = "<DtotFile> <sigma> [<Ex>=0] [<Ey>=0] [<Ez>=0]";
 		comments = 
 			"Calculate dielectric function of a slab given the electrostatic potential\n"
-			"output from another calculation on same system with a different electric\n"
-			"field. <DtotFile> contains the electrostatic potential from the other\n"
-			"calculation, <sigma> in bohrs specifies gaussian smoothing in output,\n"
-			"and the optional <Ex>,<Ey>,Ez> specify the electrc-field applied in\n"
-			"the calculation that generated <DtotFile>.";
+			"output from another calculation on same system with a different electric field.\n"
+			"+ <DtotFile> contains the electrostatic potential from the other calculation\n"
+			"+ <sigma> in bohrs specifies gaussian smoothing in output\n"
+			"+ optional <Ex>,<Ey>,Ez> specify the electric-field applied\n"
+			"  in the calculation that generated <DtotFile>.";
 		
 		require("coulomb-truncation-embed");
 	}

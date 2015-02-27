@@ -566,9 +566,12 @@ struct CommandVanDerWaals : public Command
 	CommandVanDerWaals() : Command("van-der-waals")
 	{
 		format = "[<scaleOverride>=0]";
-		comments = "Pair-potential corrections for the long range Van der Waals interaction.\n"
-			"Implementation follows \"S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)\"\n"
-			"Exchange-Correlation functionals supported with van-der-waals are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.\n"
+		comments =
+			"DFT+D2 pair-potential corrections for the long range Van der Waals\n"
+			"interaction [S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)].\n"
+			"\n"
+			"Default scale factors are available for the gga-PBE, hyb-gga-xc-b3lyp\n"
+			"and mgga-TPSS exchange-correlation functionals (see elec-ex-corr).\n"
 			"Manually specify <scaleOverride> to use with other functionals";
 	}
 

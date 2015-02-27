@@ -28,10 +28,11 @@ struct CommandInitialState : public Command
 		format = "<filename-pattern>";
 		comments = "Initialize state from a filename pattern which contains a $VAR,\n"
 			"equivalent to invoking the following commands:\n"
-			"   wavefunction          read  <filename-pattern>/$VAR/wfns\n"
-			"   elec-initial-fillings read  <filename-pattern>/$VAR/fillings\n"
-			"   elec-initial-Haux           <filename-pattern>/$VAR/Haux\n"
-			"   fluid-initial-state         <filename-pattern>/$VAR/fluidState\n"
+			"+ wavefunction          read  <filename-pattern>/$VAR/wfns\n"
+			"+ elec-initial-fillings read  <filename-pattern>/$VAR/fillings\n"
+			"+ elec-initial-Haux           <filename-pattern>/$VAR/Haux\n"
+			"+ fluid-initial-state         <filename-pattern>/$VAR/fluidState\n"
+			"\n"
 			"(where A/x/y is sed for 'find x in A and replace it with y'.)\n"
 			"This command will invoke the read only for those state variables for which\n"
 			"the corresponding files exist, leaving the rest with default initialization.\n"
@@ -96,21 +97,21 @@ struct CommandWavefunction : public Command
 			"           | read-rs <filename-pattern> [<nBandsOld>] [<NxOld>] [<NyOld>] [<NzOld>]";
 		comments =
 			"Wavefunction initialization: use atomic orbitals (default), randomize or read from files:\n"
-			"  read expects <filename> to point to a single file with fourier-space G-sphere wavefunctions.\n"
-			"  read-rs expects <filename> to be a printf format with 2 %%d's, the first for state index and\n"
-			"     the second for band. Each 'column' will be loaded from a separate file accordingly.\n"
-			"     For spinor wavefunctions, each spinor component has a separate second index, so that\n"
-			"     the first band is read from 0 and 1, the second one from 2 and 3 and so on.\n"
-			"  <nBandsOld> can be used to specify a wavefunction which has different bands\n"
-			"     extra bands will be discarded, unspecified bands will be randomized and orthogonalized\n"
-			"     Reminder: nBandsOlds for fillings file is specified separately in elec-initial-fillings\n"
-			"     default: 0 => old and current nBands must match exactly.\n"
-			"  <EcutOld> can be used to specify a wavefunction with different planewave cutoff\n"
-			"     the wavefunction will be appropriately up/down-sampled in Foruier space\n"
-			"     default: 0.0 => old and current Ecut must match exactly\n"
-			"  <N*old> specifies fftbox size of the input data when reading real-space wavefunctions\n"
-			"     the wavefunction will be appropriately up/down-sampled in Fourier space\n"
-			"     default: 0 => old and current fftbox must match exactly";
+			"+ read expects <filename> to point to a single file with fourier-space G-sphere wavefunctions.\n"
+			"+ read-rs expects <filename> to be a printf format with 2 %%d's, the first for state index and\n"
+			"   the second for band. Each 'column' will be loaded from a separate file accordingly.\n"
+			"   For spinor wavefunctions, each spinor component has a separate second index, so that\n"
+			"   the first band is read from 0 and 1, the second one from 2 and 3 and so on.\n"
+			"+ <nBandsOld> can be used to specify a wavefunction which has different bands\n"
+			"   extra bands will be discarded, unspecified bands will be randomized and orthogonalized.\n"
+			"   Reminder: nBandsOlds for fillings file is specified separately in elec-initial-fillings.\n"
+			"   Default: 0 => old and current nBands must match exactly.\n"
+			"+ <EcutOld> can be used to specify a wavefunction with different planewave cutoff.\n"
+			"   The wavefunction will be appropriately up/down-sampled in Fourier space.\n"
+			"   Default: 0.0 => old and current Ecut must match exactly.\n"
+			"+ <N*old> specify fftbox dimensions of the input data when reading real-space wavefunctions.\n"
+			"   The wavefunction will be appropriately up/down-sampled in Fourier space.\n"
+			"   Default: 0 => old and current fftbox must match exactly.";
 		hasDefault = false;
 		
 		forbid("initial-state");

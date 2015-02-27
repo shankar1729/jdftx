@@ -28,9 +28,9 @@ EnumStringMap<PCMVariant> pcmVariantMap
 	PCM_PRA05,   "PRA05"
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
-(	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion",
-	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]", 
-	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]",
+(	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model [R. Sundararaman and W.A. Goddard, JCP 142, 064107 (2015)]",
+	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]", 
+	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
 	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]"
 );

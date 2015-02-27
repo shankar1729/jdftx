@@ -225,10 +225,13 @@ struct CommandTauCore : public Command
 		comments =
 			"Control generation of kinetic energy core correction for species <id>.\n"
 			"The core KE density is set to the Thomas-Fermi + von-Weisacker functional\n"
-			"of the core electron density (if any), and is pseudized inside within <rCut>\n"
-			"If <rCut>=0, it is chosen to be 1.5 times the location of the first radial\n"
-			"maximum in the TF+VW KE density. Optionally, if <plot>=yes, the resulting\n"
-			"core KE density (and electron density) are output to a gnuplot-friendly file.";
+			"of the core electron density (if any), and is pseudized inside within <rCut>.\n"
+			"\n"
+			"If <rCut>=0, it is chosen to be 1.5 times the location of\n"
+			"the first radial maximum in the TF+VW KE density.\n"
+			"\n"
+			"Optionally, if <plot>=yes, the resulting core KE density\n"
+			"(and electron density) are output to a gnuplot-friendly file.";
 		allowMultiple = true;
 
 		require("ion-species");

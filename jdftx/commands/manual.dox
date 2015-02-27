@@ -526,13 +526,13 @@ Syntax:
 Description:
 ------------
 Each &lt;option&gt; is one of 
-+  Ecomponents : Print energy components and after each electronic iteration
-+  EigsFillings: Print eigenvalues, Hsub and fillings after each iteration
-+  Fluid       : Enable verbose logging of fluid (iterations for Linear, even more for others)
-+  Forces      : Print each contribution to the force separately (NL, loc etc.)
-+  KpointsBasis: List details of each k-point and corresponding basis
-+  MuSearch    : Print progress of the mu bisect/fit routines
-+  Symmetries  : Print various symmetry matrices during start up
++ Ecomponents : Print energy components and after each electronic iteration
++ EigsFillings: Print eigenvalues, Hsub and fillings after each iteration
++ Fluid       : Enable verbose logging of fluid (iterations for Linear, even more for others)
++ Forces      : Print each contribution to the force separately (NL, loc etc.)
++ KpointsBasis: List details of each k-point and corresponding basis
++ MuSearch    : Print progress of the mu bisect/fit routines
++ Symmetries  : Print various symmetry matrices during start up
 
 Default: none of the optional outputs
 
@@ -698,59 +698,59 @@ Syntax:
 Description:
 ------------
 &lt;freq&gt; is one of:
-+  Electronic: Dump specified vars every (few) electronic step(s)
-+  End       : Dump specified vars at the end of the calculation
-+  Fluid     : Dump specified vars every (few) fluid step(s)
-+  Gummel    : Dump specified vars every (few) fluid+electron minimize of the gummel loop
-+  Ionic     : Dump specified vars every (few) ionic step(s)
-+  Lattice   : Dump specified vars every (few) lattice minimization step(s)
++ Electronic: Dump specified vars every (few) electronic step(s)
++ End       : Dump specified vars at the end of the calculation
++ Fluid     : Dump specified vars every (few) fluid step(s)
++ Gummel    : Dump specified vars every (few) fluid+electron minimize of the gummel loop
++ Ionic     : Dump specified vars every (few) ionic step(s)
++ Lattice   : Dump specified vars every (few) lattice minimization step(s)
 
 and each &lt;var&gt; is one of:
-+  All                      : Dump most things (except those marked not in All)
-+  BandEigs                 : Band Eigenvalues
-+  BoundCharge              : Bound charge in the fluid
-+  ChargedDefect            : Calculate energy correction for charged defect (see command \ref CommandChargedDefect "charged-defect")  [not in All]
-+  CoreDensity              : Total core electron density (from partial core corrections)
-+  Dfluid                   : Electrostatic potential due to fluid alone
-+  Dipole                   : Dipole moment of explicit charges (ionic and electronic)
-+  DOS                      : Density of States (see command \ref CommandDensityOfStates "density-of-states") [not in All]
-+  Dtot                     : Total electrostatic potential
-+  Dvac                     : Electrostatic potential due to explicit system alone
-+  Ecomponents              : Components of the energy
-+  EigStats                 : Band eigenvalue statistics: HOMO, LUMO, min, max and Fermi level
-+  ElecDensity              : Electronic densities (n or nup,ndn)
-+  EresolvedDensity         : Electron density from bands within specified energy ranges
-+  ExcCompare               : Energies for other exchange-correlation functionals (see command \ref CommandElecExCorrCompare "elec-ex-corr-compare") [not in All]
-+  Excitations              : Dumps dipole moments and transition strength (electric-dipole) of excitations
-+  FermiDensity             : Electron density from fermi-derivative at specified energy
-+  Fillings                 : Fillings
-+  FluidDebug               : Fluid specific debug output if any  [not in All]
-+  FluidDensity             : Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
-+  Forces                   : Forces on the ions in the coordinate system selected by command \ref CommandForcesOutputCoords "forces-output-coords"
-+  Gvectors                 : List of G vectors in reciprocal lattice basis, for each k-point
-+  IonicDensity             : Nuclear charge density (with gaussians)
-+  IonicPositions           : Ionic positions in the same format (and coordinate system) as the input file
-+  KEdensity                : Kinetic energy density of the valence electrons
-+  Kpoints                  : List of reduced k-points in calculation, and mapping to the unreduced k-point mesh
-+  Lattice                  : Lattice vectors in the same format as the input file
-+  Momenta                  : Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)
-+  None                     : Dump nothing
-+  optVext                  : Optimized external potentials (see command \ref CommandInvertKohnSham "invertKohnSham") [not in All]
-+  OrbitalDep               : Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)
-+  QMC                      : Blip'd orbitals and potential for CASINO
-+  RealSpaceWfns            : Real-space wavefunctions (one column per file) [not in All]
-+  RhoAtom                  : Atomic-orbital projected density matrices (only for species with +U enabled)
-+  SelfInteractionCorrection: Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues
-+  SlabEpsilon              : Local dielectric function of a slab (see command \ref CommandSlabEpsilon "slab-epsilon")  [not in All]
-+  SolvationRadii           : Effective solvation radii based on fluid bound charge distribution
-+  State                    : All variables needed to restart calculation: wavefunction and fluid state/fillings if any
-+  Stress                   : Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector
-+  Symmetries               : List of symmetry matrices (in covariant lattice coordinates)
-+  Vcavity                  : Fluid cavitation potential on the electron density that determines the cavity
-+  VfluidTot                : Total contribution of fluid to the electron potential
-+  Vlocps                   : Local part of pseudopotentials
-+  Vscloc                   : Self-consistent potential
-+  XCanalysis               : Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
++ All                      : Dump most things (except those marked not in All)
++ BandEigs                 : Band Eigenvalues
++ BoundCharge              : Bound charge in the fluid
++ ChargedDefect            : Calculate energy correction for charged defect (see command \ref CommandChargedDefect "charged-defect")  [not in All]
++ CoreDensity              : Total core electron density (from partial core corrections)
++ Dfluid                   : Electrostatic potential due to fluid alone
++ Dipole                   : Dipole moment of explicit charges (ionic and electronic)
++ DOS                      : Density of States (see command \ref CommandDensityOfStates "density-of-states") [not in All]
++ Dtot                     : Total electrostatic potential
++ Dvac                     : Electrostatic potential due to explicit system alone
++ Ecomponents              : Components of the energy
++ EigStats                 : Band eigenvalue statistics: HOMO, LUMO, min, max and Fermi level
++ ElecDensity              : Electronic densities (n or nup,ndn)
++ EresolvedDensity         : Electron density from bands within specified energy ranges
++ ExcCompare               : Energies for other exchange-correlation functionals (see command \ref CommandElecExCorrCompare "elec-ex-corr-compare") [not in All]
++ Excitations              : Dumps dipole moments and transition strength (electric-dipole) of excitations
++ FermiDensity             : Electron density from fermi-derivative at specified energy
++ Fillings                 : Fillings
++ FluidDebug               : Fluid specific debug output if any  [not in All]
++ FluidDensity             : Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)
++ Forces                   : Forces on the ions in the coordinate system selected by command \ref CommandForcesOutputCoords "forces-output-coords"
++ Gvectors                 : List of G vectors in reciprocal lattice basis, for each k-point
++ IonicDensity             : Nuclear charge density (with gaussians)
++ IonicPositions           : Ionic positions in the same format (and coordinate system) as the input file
++ KEdensity                : Kinetic energy density of the valence electrons
++ Kpoints                  : List of reduced k-points in calculation, and mapping to the unreduced k-point mesh
++ Lattice                  : Lattice vectors in the same format as the input file
++ Momenta                  : Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)
++ None                     : Dump nothing
++ optVext                  : Optimized external potentials (see command \ref CommandInvertKohnSham "invertKohnSham") [not in All]
++ OrbitalDep               : Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)
++ QMC                      : Blip'd orbitals and potential for CASINO
++ RealSpaceWfns            : Real-space wavefunctions (one column per file) [not in All]
++ RhoAtom                  : Atomic-orbital projected density matrices (only for species with +U enabled)
++ SelfInteractionCorrection: Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues
++ SlabEpsilon              : Local dielectric function of a slab (see command \ref CommandSlabEpsilon "slab-epsilon")  [not in All]
++ SolvationRadii           : Effective solvation radii based on fluid bound charge distribution
++ State                    : All variables needed to restart calculation: wavefunction and fluid state/fillings if any
++ Stress                   : Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector
++ Symmetries               : List of symmetry matrices (in covariant lattice coordinates)
++ Vcavity                  : Fluid cavitation potential on the electron density that determines the cavity
++ VfluidTot                : Total contribution of fluid to the electron potential
++ Vlocps                   : Local part of pseudopotentials
++ Vscloc                   : Self-consistent potential
++ XCanalysis               : Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential
 
 List of dumped variables from multiple instances will be accumulated for each &lt;freq&gt;.
 Use command \ref CommandDumpInterval "dump-interval" to dump at regular intervals instead of every iteration.
@@ -1026,25 +1026,25 @@ Syntax:
 Description:
 ------------
 Specify the exchange-correlation functional, where &lt;functional&gt; is one of:
-+  gga         : Perdew-Burke-Ernzerhof GGA
-+  gga-PBE     : Perdew-Burke-Ernzerhof GGA
-+  gga-PBEsol  : Perdew-Burke-Ernzerhof GGA reparametrized for solids
-+  gga-PW91    : Perdew-Wang GGA
-+  Hartree-Fock: Full exact exchange with no correlation
-+  hyb-HSE06   : HSE06 'wPBEh' hybrid with 1/4 screened exact exchange
-+  hyb-HSE12   : Reparametrized screened exchange functional for accuracy (w=0.185 A^-1 and a=0.313)
-+  hyb-HSE12s  : Reparametrized screened exchange functional for k-point convergence (w=0.408 A^-1 and a=0.425)
-+  hyb-PBE0    : Hybrid PBE with 1/4 exact exchange
-+  lda         : Perdew-Zunger LDA
-+  lda-PW      : Perdew-Wang LDA
-+  lda-PW-prec : Perdew-Wang LDA with extended precision (used by PBE)
-+  lda-PZ      : Perdew-Zunger LDA
-+  lda-Teter   : Teter93 LSDA
-+  lda-VWN     : Vosko-Wilk-Nusair LDA
-+  mgga-revTPSS: revised Tao-Perdew-Staroverov-Scuseria meta GGA
-+  mgga-TPSS   : Tao-Perdew-Staroverov-Scuseria meta GGA
-+  orb-GLLBsc  : Orbital-dependent GLLB-sc potential (no total energy)
-+  pot-LB94    : van Leeuwen-Baerends model potential (no total energy).
++ gga         : Perdew-Burke-Ernzerhof GGA
++ gga-PBE     : Perdew-Burke-Ernzerhof GGA
++ gga-PBEsol  : Perdew-Burke-Ernzerhof GGA reparametrized for solids
++ gga-PW91    : Perdew-Wang GGA
++ Hartree-Fock: Full exact exchange with no correlation
++ hyb-HSE06   : HSE06 'wPBEh' hybrid with 1/4 screened exact exchange
++ hyb-HSE12   : Reparametrized screened exchange functional for accuracy (w=0.185 A^-1 and a=0.313)
++ hyb-HSE12s  : Reparametrized screened exchange functional for k-point convergence (w=0.408 A^-1 and a=0.425)
++ hyb-PBE0    : Hybrid PBE with 1/4 exact exchange
++ lda         : Perdew-Zunger LDA
++ lda-PW      : Perdew-Wang LDA
++ lda-PW-prec : Perdew-Wang LDA with extended precision (used by PBE)
++ lda-PZ      : Perdew-Zunger LDA
++ lda-Teter   : Teter93 LSDA
++ lda-VWN     : Vosko-Wilk-Nusair LDA
++ mgga-revTPSS: revised Tao-Perdew-Staroverov-Scuseria meta GGA
++ mgga-TPSS   : Tao-Perdew-Staroverov-Scuseria meta GGA
++ orb-GLLBsc  : Orbital-dependent GLLB-sc potential (no total energy)
++ pot-LB94    : van Leeuwen-Baerends model potential (no total energy).
 
 Note that lda is an alias for lda-pz, and gga for gga-pbe.
 Additional functionals can be enabled by compiling with LibXC support.
@@ -1340,22 +1340,22 @@ Syntax:
 Description:
 ------------
 where possible keys and value types are:
-+  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
-+  alphaTmin           : minimum test step size
-+  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
-+  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
-+  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
-+  energyDiffThreshold : convergence threshold for energy difference between successive iterations
-+  fdTest              : no|yes, whether to perform a finite difference test
-+  history             : number of past states and gradients retained for L-BFGS
-+  knormThreshold      : convergence threshold for gradient (preconditioned) norm
-+  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
-+  nAlphaAdjustMax     : maximum step-size adjustments per linmin
-+  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
-+  nIterations         : maximum iterations (single point calculation if 0)
-+  updateTestStepSize  : no|yes, whether test step size is updated
-+  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
-+  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
++ alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++ alphaTmin           : minimum test step size
++ alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++ alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++ dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++ energyDiffThreshold : convergence threshold for energy difference between successive iterations
++ fdTest              : no|yes, whether to perform a finite difference test
++ history             : number of past states and gradients retained for L-BFGS
++ knormThreshold      : convergence threshold for gradient (preconditioned) norm
++ linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++ nAlphaAdjustMax     : maximum step-size adjustments per linmin
++ nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++ nIterations         : maximum iterations (single point calculation if 0)
++ updateTestStepSize  : no|yes, whether test step size is updated
++ wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++ wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -1402,20 +1402,20 @@ Syntax:
 Description:
 ------------
 Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:
-+  eigDiffThreshold          : convergence threshold for the RMS difference in KS eigenvalues between successive iterations
-+  energyDiffThreshold       : convergence threshold for energy difference between successive iterations
-+  history                   : number of past residuals and vectors are kept cached and used in DIIS
-+  maximum-overlap-method    : uses the maximum-overlap method to determine fillings, discards \ref CommandElecFermiFillings "elec-fermi-fillings"
-+  mixedVariable             : whether density or potential will be mixed at each step
-+  mixFraction               : mix fraction for total density / potential (default 0.5)
-+  mixFractionMag            : mix fraction for magnetization density / potential (default 1.5)
-+  nEigSteps                 : number of eigenvalue steps per iteration (if 0, limited by \ref CommandElectronicMinimize "electronic-minimize" nIterations)
-+  nIterations               : maximum iterations (single point calculation if 0)
-+  qKerker                   : wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
-+  qMetric                   : wavevector controlling the DIIS metric (default: 0.8 bohr^-1)
-+  residualThreshold         : convergence threshold for the residual in the mixed variable (density or potential)
-+  single-particle-constraint: enforces the single particle constraint on the exchange
-+  verbose                   : whether the inner eigenvalue solver will print or not
++ eigDiffThreshold          : convergence threshold for the RMS difference in KS eigenvalues between successive iterations
++ energyDiffThreshold       : convergence threshold for energy difference between successive iterations
++ history                   : number of past residuals and vectors are kept cached and used in DIIS
++ maximum-overlap-method    : uses the maximum-overlap method to determine fillings, discards \ref CommandElecFermiFillings "elec-fermi-fillings"
++ mixedVariable             : whether density or potential will be mixed at each step
++ mixFraction               : mix fraction for total density / potential (default 0.5)
++ mixFractionMag            : mix fraction for magnetization density / potential (default 1.5)
++ nEigSteps                 : number of eigenvalue steps per iteration (if 0, limited by \ref CommandElectronicMinimize "electronic-minimize" nIterations)
++ nIterations               : maximum iterations (single point calculation if 0)
++ qKerker                   : wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
++ qMetric                   : wavevector controlling the DIIS metric (default: 0.8 bohr^-1)
++ residualThreshold         : convergence threshold for the residual in the mixed variable (density or potential)
++ single-particle-constraint: enforces the single particle constraint on the exchange
++ verbose                   : whether the inner eigenvalue solver will print or not
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -1692,9 +1692,16 @@ Syntax:
 
 Description:
 ------------
-Add anion component Cl-|ClO4-|F-|OH(4H2O)-|OH- to fluid.
+Add anion component to fluid, where &lt;name&gt; may be one of:
++ Cl-      
++ ClO4-    
++ F-       
++ OH(4H2O)-
++ OH-      
+
 The concentration must be specified explicitly in mol/liter.
-For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
+For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS.
+
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
 See command \ref CommandFluidSolvent "fluid-solvent" for a description of adjustable properties.
 
@@ -1723,9 +1730,17 @@ Syntax:
 
 Description:
 ------------
-Add cation component H3O(4H2O)+|H3O+|K(6H2O)+|K+|Na(6H2O)+|Na+ to fluid.
+Add cation component to fluid, where &lt;name&gt; may be one of:
++ H3O(4H2O)+
++ H3O+      
++ K(6H2O)+  
++ K+        
++ Na(6H2O)+ 
++ Na+       
+
 The concentration must be specified explicitly in mol/liter.
-For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
+For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS.
+
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
 See command \ref CommandFluidSolvent "fluid-solvent" for a description of adjustable properties.
 
@@ -1782,9 +1797,9 @@ Syntax:
 Description:
 ------------
 Kinetic energy functional for fluid convolution coupling where &lt;kinetic&gt; is one of:
-+  gga-PW91k: Perdew-Wang GGA kinetic energy parameterized by Lembarki and Chermette
-+  gga-vW   : von Weisacker correction to LDA kinetic energy
-+  lda-TF   : Thomas-Fermi LDA kinetic energy.
++ gga-PW91k: Perdew-Wang GGA kinetic energy parameterized by Lembarki and Chermette
++ gga-vW   : von Weisacker correction to LDA kinetic energy
++ lda-TF   : Thomas-Fermi LDA kinetic energy.
 
 The available options for &lt;exchange-correlation&gt; are identical to \ref CommandElecExCorr "elec-ex-corr"
 and defaults to lda-pz.
@@ -1816,8 +1831,8 @@ Syntax:
 Description:
 ------------
 Settings for the fluid &lt;--&gt; electron self-consistency loop:
-	&lt;maxIterations&gt;: Max number of electron and fluid minimization pairs
-	&lt;Atol&gt;: Free energy convergence criterion for this outer loop
++ &lt;maxIterations&gt;: Max number of electron and fluid minimization pairs
++ &lt;Atol&gt;: Free energy convergence criterion for this outer loop
 
 Properties:
 -----------
@@ -1873,22 +1888,22 @@ Syntax:
 Description:
 ------------
 where possible keys and value types are:
-+  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
-+  alphaTmin           : minimum test step size
-+  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
-+  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
-+  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
-+  energyDiffThreshold : convergence threshold for energy difference between successive iterations
-+  fdTest              : no|yes, whether to perform a finite difference test
-+  history             : number of past states and gradients retained for L-BFGS
-+  knormThreshold      : convergence threshold for gradient (preconditioned) norm
-+  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
-+  nAlphaAdjustMax     : maximum step-size adjustments per linmin
-+  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
-+  nIterations         : maximum iterations (single point calculation if 0)
-+  updateTestStepSize  : no|yes, whether test step size is updated
-+  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
-+  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
++ alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++ alphaTmin           : minimum test step size
++ alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++ alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++ dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++ energyDiffThreshold : convergence threshold for energy difference between successive iterations
++ fdTest              : no|yes, whether to perform a finite difference test
++ history             : number of past states and gradients retained for L-BFGS
++ knormThreshold      : convergence threshold for gradient (preconditioned) norm
++ linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++ nAlphaAdjustMax     : maximum step-size adjustments per linmin
++ nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++ nIterations         : maximum iterations (single point calculation if 0)
++ updateTestStepSize  : no|yes, whether test step size is updated
++ wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++ wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -1934,9 +1949,24 @@ Syntax:
 
 Description:
 ------------
-       Couple named fluids &lt;fluid1&gt; and &lt;fluid2&gt; CCl4|CH3CN|CHCl3|Cl-|ClO4-|CustomAnion|CustomCation|F-|H2O|Na(H2O)4+|Na+ together 
-       through a mixing functional of type GaussianKernel|LJPotential
-       with strength &lt;energyScale&gt; and range parameter &lt;lengthScale&gt;.
+Couple named fluids &lt;fluid1&gt; and &lt;fluid2&gt; which could each be one of:
++ CCl4        
++ CH3CN       
++ CHCl3       
++ Cl-         
++ ClO4-       
++ CustomAnion 
++ CustomCation
++ F-          
++ H2O         
++ Na(H2O)4+   
++ Na+         
+
+together with a mixing functional of type:
++ GaussianKernel
++ LJPotential   
+
+with strength &lt;energyScale&gt; (in Eh) and range parameter &lt;lengthScale&gt; (in bohrs).
 
 
 Properties:
@@ -1960,24 +1990,35 @@ Back to: \ref Commands or \ref CommandIndex
 Syntax:
 -------
 
-    fluid-site-params  <solvent> <siteName> <key1> <value1> <key2> <value2> ...
+    fluid-site-params  <component> <siteName> <key1> <value1> <key2> <value2> ...
 
 Description:
 ------------
-Set parameters of &lt;siteName&gt; site for solvent component &lt;solvent&gt;=CCl4|CH3CN|CHCl3|Cl-|ClO4-|CustomAnion|CustomCation|F-|H2O|Na(H2O)4+|Na+.
-Changes default parameters of existing site. 
+Set parameters of site &lt;siteName&gt; for fluid &lt;component&gt; which may be one of:
++ CCl4        
++ CH3CN       
++ CHCl3       
++ Cl-         
++ ClO4-       
++ CustomAnion 
++ CustomCation
++ F-          
++ H2O         
++ Na(H2O)4+   
++ Na+         
+
 Possible keys and value types are:
-+  aElec        : exponential decay width of electron charge distribution
-+  alpha        : isotropic polarizability
-+  aPol         : cuspless-exponential width of polarizability
-+  elecFilename : filename to read in additional radial realspace electron charge distribution
-+  elecFilenameG: filename to read in additional radial Gspace electron charge distribution
-+  rcElec       : location of peak in electron charge distribution
-+  Rhs          : hard sphere radius for use in FMT
-+  sigmaElec    : width of peak in electron charge distribution
-+  sigmaNuc     : gaussian width of the nuclear charge (positive)
-+  Zelec        : magnitude of electron charge (positive)
-+  Znuc         : magnitude of the nuclear charge (positive)
++ aElec        : exponential decay width of electron charge distribution
++ alpha        : isotropic polarizability
++ aPol         : cuspless-exponential width of polarizability
++ elecFilename : filename to read in additional radial realspace electron charge distribution
++ elecFilenameG: filename to read in additional radial Gspace electron charge distribution
++ rcElec       : location of peak in electron charge distribution
++ Rhs          : hard sphere radius for use in FMT
++ sigmaElec    : width of peak in electron charge distribution
++ sigmaNuc     : gaussian width of the nuclear charge (positive)
++ Zelec        : magnitude of electron charge (positive)
++ Znuc         : magnitude of the nuclear charge (positive)
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -1993,8 +2034,7 @@ Properties:
 <b>Allow multiple:</b>\bigsep yes
 
 <b>Default:</b>
-
-    fluid-site-params 
+\bigsep (None)
 
 Back to: \ref Commands or \ref CommandIndex 
 */
@@ -2007,26 +2047,73 @@ Syntax:
 
 Description:
 ------------
-Add solvent component CarbonDisulfide|CCl4|CH2Cl2|CH3CN|CHCl3|Chlorobenzene|DMC|DMF|DMSO|EC|Ethanol|EthyleneGlycol|EthylEther|Glyme|H2O|Isobutanol|Methanol|Octanol|PC|THF to fluid.
+Add solvent component to fluid, where &lt;name&gt; may be one of:
++ CarbonDisulfide
++ CCl4           
++ CH2Cl2         
++ CH3CN          
++ CHCl3          
++ Chlorobenzene  
++ DMC            
++ DMF            
++ DMSO           
++ EC             
++ Ethanol        
++ EthyleneGlycol 
++ EthylEther     
++ Glyme          
++ H2O            
++ Isobutanol     
++ Methanol       
++ Octanol        
++ PC             
++ THF            
+
 The concentration may be specified explicitly in mol/liter or set to 'bulk' to use bulk fluid value.
-For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
+For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS.
+
 Optional component properties may be overridden using an arbitrary number of &lt;key&gt; &lt;value&gt; pairs.
 Possible keys and value types are:
-+  epsBulk       : bulk dielectric constant
-+  epsInf        : optical-frequency dielectric constant
-+  epsLJ         : Lennard-Jones well depth for Mean-Field LJ excess functional
-+  Nnorm         : unit cell molecule count constraint
-+  pMol          : dipole moment of each molecule in e-bohr
-+  Pvap          : vapor pressure in Eh/bohr^3
-+  quad_nAlpha   : number of alpha samples for Euler quadrature
-+  quad_nBeta    : number of beta samples for Euler quadrature
-+  quad_nGamma   : number of gamma samples for Euler quadrature
-+  representation: ideal gas representation = MuEps|Pomega|PsiAlpha
-+  Res           : electrostatic radius of solvent (derived from nonlocal response) in bohrs
-+  Rvdw          : effective van der Waals radius of the fluid (derived from equation of state) in bohrs
-+  s2quadType    : orientation quadrature type = 10design60|11design70|12design84|13design94|14design108|15design120|16design144|17design156|18design180|19design204|20design216|21design240|7design24|8design36|9design48|Euler|Icosahedron|Octahedron|Tetrahedron
-+  sigmaBulk     : bulk surface tension in Eh/bohr^2
-+  translation   : translation operator type = ConstantSpline|Fourier|LinearSpline
++ epsBulk       : bulk dielectric constant
++ epsInf        : optical-frequency dielectric constant
++ epsLJ         : Lennard-Jones well depth for Mean-Field LJ excess functional
++ Nnorm         : unit cell molecule count constraint
++ pMol          : dipole moment of each molecule in e-bohr
++ Pvap          : vapor pressure in Eh/bohr^3
++ quad_nAlpha   : number of alpha samples for Euler quadrature
++ quad_nBeta    : number of beta samples for Euler quadrature
++ quad_nGamma   : number of gamma samples for Euler quadrature
++ representation: ideal gas representation: 
+   - MuEps   
+   - Pomega  
+   - PsiAlpha
++ Res           : electrostatic radius of solvent (derived from nonlocal response) in bohrs
++ Rvdw          : effective van der Waals radius of the fluid (derived from equation of state) in bohrs
++ s2quadType    : orientation quadrature type:
+   - 10design60 
+   - 11design70 
+   - 12design84 
+   - 13design94 
+   - 14design108
+   - 15design120
+   - 16design144
+   - 17design156
+   - 18design180
+   - 19design204
+   - 20design216
+   - 21design240
+   - 7design24  
+   - 8design36  
+   - 9design48  
+   - Euler      
+   - Icosahedron
+   - Octahedron 
+   - Tetrahedron
++ sigmaBulk     : bulk surface tension in Eh/bohr^2
++ translation   : translation operator type: 
+   - ConstantSpline
+   - Fourier       
+   - LinearSpline  
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2064,8 +2151,9 @@ Syntax:
 Description:
 ------------
 Scale van der Waals interactions between fluid and explicit system by a constant factor &lt;scale&gt;.
-   Default is fluid specific, but ranges between 0.4 to 1.3.
-   Set to 0 to use the prefactor corresponding to fluid exchange-correlation.
+
+Default is fluid specific and ranges between 0.4 to 1.3.
+Set to 0 to use the prefactor corresponding to fluid exchange-correlation.
 
 Properties:
 -----------
@@ -2121,15 +2209,17 @@ Syntax:
 -------
 
     initial-magnetic-moments <species> <M1> <M2> ... <Mn> [<species2> ...]
-   | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]
+      | <species> <M1> <theta1> <phi1> ... <Mn> <thetan> <phin> [<species2> ...]
 
 Description:
 ------------
 Specify initial magnetic moments, defined as the difference between
 up and down electron counts, on each atom of one or more species.
+
 The second syntax with polar angles (in degrees) must be used
 for noncollinear  magnetism calculations.
-  For each species, the initial magnetic moments are applied
+
+For each species, the initial magnetic moments are applied
 to the atoms in the order of ion commands for that species.
 This may be used to construct a spin-polarized reference density
 for LCAO initialization of the Kohn-Sham orbitals.
@@ -2190,10 +2280,11 @@ Description:
 ------------
 Initialize state from a filename pattern which contains a $VAR,
 equivalent to invoking the following commands:
-   wavefunction          read  &lt;filename-pattern&gt;/$VAR/wfns
-   \ref CommandElecInitialFillings "elec-initial-fillings" read  &lt;filename-pattern&gt;/$VAR/fillings
-   \ref CommandElecInitialHaux "elec-initial-Haux"           &lt;filename-pattern&gt;/$VAR/Haux
-   \ref CommandFluidInitialState "fluid-initial-state"         &lt;filename-pattern&gt;/$VAR/fluidState
++ wavefunction          read  &lt;filename-pattern&gt;/$VAR/wfns
++ \ref CommandElecInitialFillings "elec-initial-fillings" read  &lt;filename-pattern&gt;/$VAR/fillings
++ \ref CommandElecInitialHaux "elec-initial-Haux"           &lt;filename-pattern&gt;/$VAR/Haux
++ \ref CommandFluidInitialState "fluid-initial-state"         &lt;filename-pattern&gt;/$VAR/fluidState
+
 (where A/x/y is sed for 'find x in A and replace it with y'.)
 This command will invoke the read only for those state variables for which
 the corresponding files exist, leaving the rest with default initialization.
@@ -2228,22 +2319,22 @@ Syntax:
 Description:
 ------------
 where possible keys and value types are:
-+  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
-+  alphaTmin           : minimum test step size
-+  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
-+  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
-+  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
-+  energyDiffThreshold : convergence threshold for energy difference between successive iterations
-+  fdTest              : no|yes, whether to perform a finite difference test
-+  history             : number of past states and gradients retained for L-BFGS
-+  knormThreshold      : convergence threshold for gradient (preconditioned) norm
-+  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
-+  nAlphaAdjustMax     : maximum step-size adjustments per linmin
-+  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
-+  nIterations         : maximum iterations (single point calculation if 0)
-+  updateTestStepSize  : no|yes, whether test step size is updated
-+  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
-+  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
++ alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++ alphaTmin           : minimum test step size
++ alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++ alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++ dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++ energyDiffThreshold : convergence threshold for energy difference between successive iterations
++ fdTest              : no|yes, whether to perform a finite difference test
++ history             : number of past states and gradients retained for L-BFGS
++ knormThreshold      : convergence threshold for gradient (preconditioned) norm
++ linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++ nAlphaAdjustMax     : maximum step-size adjustments per linmin
++ nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++ nIterations         : maximum iterations (single point calculation if 0)
++ updateTestStepSize  : no|yes, whether test step size is updated
++ wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++ wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2293,19 +2384,19 @@ Solve inverse Kohn-Sham problem: for a given electron density
 specified using \ref CommandFixElectronDensity "fix-electron-density", find the corresponding
 external potential (in addition to the pseudopotentials and
 Hartree+XC potential evaluated at the given electron density).
-\ref CommandVexternal "Vexternal" may be used to specify an initial guess.
-Control outer optimization using \ref CommandInverseKohnShamMinimize "inverseKohnSham-minimize", and
-inner minimization using \ref CommandElectronicMinimize "electronic-minimize" (as usual). The
-result is dumped with variable name "optVext" or "optVextUp"
-and "optVextDn" depending on specified spin type.
-Option &lt;nonlocal&gt;=no|yes controls whether to
-include non-local parts of the pseudopotential (default yes).
-Option &lt;sigma&gt; specifies a bandwidth cutoff in the external
-potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).
-Option &lt;chiGuessFilename&gt; specifies a preconditioner based on
-the response function of a similar electronic system. The pattern
-should contain $VAR which will be used to read wavefunctions,
-eigenvalues and fillings (these should include empty states).
++ \ref CommandVexternal "Vexternal" may be used to specify an initial guess.
++ Control outer optimization using \ref CommandInverseKohnShamMinimize "inverseKohnSham-minimize", and
+  inner minimization using \ref CommandElectronicMinimize "electronic-minimize" (as usual).
++ The result is dumped with variable name "optVext" or 
+  "optVextUp" and "optVextDn" depending on \ref CommandSpintype "spintype".
++ Option &lt;nonlocal&gt;=no|yes controls whether to
+  include non-local parts of the pseudopotential (default yes).
++ Option &lt;sigma&gt; specifies a bandwidth cutoff in the external
+  potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).
++ Option &lt;chiGuessFilename&gt; specifies a preconditioner based on
+  the response function of a similar electronic system. The pattern
+  should contain $VAR which will be used to read wavefunctions,
+  eigenvalues and fillings (these should include empty states).
 
 Properties:
 -----------
@@ -2334,7 +2425,9 @@ Syntax:
 Description:
 ------------
 Add an atom of species &lt;species-id&gt; at coordinates (&lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;).
+
 &lt;moveScale&gt; preconditions the motion of this ion (set 0 to hold fixed)
+
 In addition, the ion may be constrained to a line or a plane with line
 direction or plane normal equal to (&lt;d0&gt;,&lt;d1&gt;,&lt;d2&gt;) in the coordinate
 system selected by command \ref CommandCoordsType "coords-type". Note that the constraints must
@@ -2448,22 +2541,22 @@ Syntax:
 Description:
 ------------
 where possible keys and value types are:
-+  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
-+  alphaTmin           : minimum test step size
-+  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
-+  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
-+  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
-+  energyDiffThreshold : convergence threshold for energy difference between successive iterations
-+  fdTest              : no|yes, whether to perform a finite difference test
-+  history             : number of past states and gradients retained for L-BFGS
-+  knormThreshold      : convergence threshold for gradient (preconditioned) norm
-+  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
-+  nAlphaAdjustMax     : maximum step-size adjustments per linmin
-+  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
-+  nIterations         : maximum iterations (single point calculation if 0)
-+  updateTestStepSize  : no|yes, whether test step size is updated
-+  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
-+  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
++ alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++ alphaTmin           : minimum test step size
++ alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++ alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++ dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++ energyDiffThreshold : convergence threshold for energy difference between successive iterations
++ fdTest              : no|yes, whether to perform a finite difference test
++ history             : number of past states and gradients retained for L-BFGS
++ knormThreshold      : convergence threshold for gradient (preconditioned) norm
++ linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++ nAlphaAdjustMax     : maximum step-size adjustments per linmin
++ nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++ nIterations         : maximum iterations (single point calculation if 0)
++ updateTestStepSize  : no|yes, whether test step size is updated
++ wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++ wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2509,7 +2602,7 @@ Syntax:
 
 Description:
 ------------
-Specify \ref CommandKpoint "kpoint" at lattice coordinates (&lt;k0&gt;, &lt;k1&gt;, &lt;k2&gt;) with weight &lt;weight&gt;
+Specify \ref CommandKpoint "kpoint" at lattice coordinates (&lt;k0&gt;, &lt;k1&gt;, &lt;k2&gt;) with weight &lt;weight&gt;.
 A single k-point at 0,0,0 (Gamma point) with weight 1 is used if unspecified.
 
 Properties:
@@ -2619,7 +2712,7 @@ Syntax:
 -------
 
     lattice  [<modification>] <lattice> <parameters...>
- | \
+	| \
 	<R00> <R01> <R02> \
 	<R10> <R11> <R12> \
 	<R20> <R21> <R22>
@@ -2628,13 +2721,13 @@ Description:
 ------------
 Specify lattice by name and parameters, or manually lattice vectors (in columns).
 The options for the [&lt;modification&gt;] &lt;lattice&gt; &lt;parameters...&gt; scheme are:
-   Triclinic &lt;a&gt; &lt;b&gt; &lt;c&gt; &lt;alpha&gt; &lt;beta&gt; &lt;gamma&gt;
-   [Base-Centered] Monoclinic &lt;a&gt; &lt;b&gt; &lt;c&gt; &lt;beta&gt;
-   [Base|Body|Face-Centered] Orthorhombic &lt;a&gt; &lt;b&gt; &lt;c&gt;
-   [Body-Centered] Tetragonal &lt;a&gt; &lt;c&gt;
-   Rhombohedral &lt;a&gt; &lt;alpha&gt;
-   Hexagonal &lt;a&gt; &lt;c&gt;
-   [Body|Face-Centered] Cubic &lt;a&gt;
++ Triclinic &lt;a&gt; &lt;b&gt; &lt;c&gt; &lt;alpha&gt; &lt;beta&gt; &lt;gamma&gt;
++ [Base-Centered] Monoclinic &lt;a&gt; &lt;b&gt; &lt;c&gt; &lt;beta&gt;
++ [Base|Body|Face-Centered] Orthorhombic &lt;a&gt; &lt;b&gt; &lt;c&gt;
++ [Body-Centered] Tetragonal &lt;a&gt; &lt;c&gt;
++ Rhombohedral &lt;a&gt; &lt;alpha&gt;
++ Hexagonal &lt;a&gt; &lt;c&gt;
++ [Body|Face-Centered] Cubic &lt;a&gt;
 
 Properties:
 -----------
@@ -2662,22 +2755,22 @@ Syntax:
 Description:
 ------------
 where possible keys and value types are:
-+  alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
-+  alphaTmin           : minimum test step size
-+  alphaTreduceFactor  : step size reduction factor when energy increases in linmin
-+  alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
-+  dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
-+  energyDiffThreshold : convergence threshold for energy difference between successive iterations
-+  fdTest              : no|yes, whether to perform a finite difference test
-+  history             : number of past states and gradients retained for L-BFGS
-+  knormThreshold      : convergence threshold for gradient (preconditioned) norm
-+  linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
-+  nAlphaAdjustMax     : maximum step-size adjustments per linmin
-+  nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
-+  nIterations         : maximum iterations (single point calculation if 0)
-+  updateTestStepSize  : no|yes, whether test step size is updated
-+  wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
-+  wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
++ alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin
++ alphaTmin           : minimum test step size
++ alphaTreduceFactor  : step size reduction factor when energy increases in linmin
++ alphaTstart         : initial test step size (constant step-size factor for Relax linmin)
++ dirUpdateScheme     : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)
++ energyDiffThreshold : convergence threshold for energy difference between successive iterations
++ fdTest              : no|yes, whether to perform a finite difference test
++ history             : number of past states and gradients retained for L-BFGS
++ knormThreshold      : convergence threshold for gradient (preconditioned) norm
++ linminMethod        : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)
++ nAlphaAdjustMax     : maximum step-size adjustments per linmin
++ nEnergyDiff         : number of iteration pairs that must satisfy energyDiffThreshold
++ nIterations         : maximum iterations (single point calculation if 0)
++ updateTestStepSize  : no|yes, whether test step size is updated
++ wolfeEnergy         : dimensionless energy threshold for Wolfe linmin stopping criterion
++ wolfeGradient       : dimensionless gradient threshold for Wolfe linmin stopping criterion
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2724,10 +2817,10 @@ Syntax:
 Description:
 ------------
 Control LCAO wavefunction initialization:
- &lt;nIter&gt;: maximum subspace iterations in LCAO (negative =&gt; auto-select)
- &lt;Ediff&gt;: energy-difference convergence threshold for subspace iteration
- &lt;kT&gt;: Fermi temperature for the subspace iteration for T=0 calculations.
-    If present, the Fermi temperature from \ref CommandElecFermiFillings "elec-fermi-fillings" overrides this.
++ &lt;nIter&gt;: maximum subspace iterations in LCAO (negative =&gt; auto-select)
++ &lt;Ediff&gt;: energy-difference convergence threshold for subspace iteration
++ &lt;kT&gt;: Fermi temperature for the subspace iteration for T=0 calculations.
+   If present, the Fermi temperature from \ref CommandElecFermiFillings "elec-fermi-fillings" overrides this.
 
 
 Properties:
@@ -2784,13 +2877,13 @@ Syntax:
 Description:
 ------------
 Adjust PCM solvent parameters. Possible keys and value types are:
-+  cavityTension: effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-+  eta_wDiel    : fit parameter for dielectric cavity in CANDLE
-+  lMax         : angular momentum truncation in SaLSA
-+  nc           : critical density for the PCM cavity shape function
-+  pCavity      : sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
-+  sigma        : smoothing factor for the PCM cavity shape function
-+  sqrtC6eff    : sqrt(effective molecule C6 coefficient) for CANDLE
++ cavityTension: effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
++ eta_wDiel    : fit parameter for dielectric cavity in CANDLE
++ lMax         : angular momentum truncation in SaLSA
++ nc           : critical density for the PCM cavity shape function
++ pCavity      : sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
++ sigma        : smoothing factor for the PCM cavity shape function
++ sqrtC6eff    : sqrt(effective molecule C6 coefficient) for CANDLE
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2820,11 +2913,11 @@ Syntax:
 Description:
 ------------
 Select LinearPCM or NonlinearPCM &lt;variant&gt; amongst:
-+  CANDLE : Charge-asymmetry corrected, local-response, nonlocal-cavity PCM with weighted-density cavitation and dispersion
-+  GLSSA13: PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, arXiv:1301.6189]
-+  LA12   : PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
-+  PRA05  : PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
-+  SGA13  : PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, (under preparation)]
++ CANDLE : Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model [R. Sundararaman and W.A. Goddard, JCP 142, 064107 (2015)]
++ GLSSA13: PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
++ LA12   : PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
++ PRA05  : PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
++ SGA13  : PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
 
 Properties:
 -----------
@@ -2852,7 +2945,7 @@ Syntax:
 
 Description:
 ------------
-Output polarizability matrix in specified eigeneigenBasis
+Output polarizability matrix in specified eigenBasis
 
 Properties:
 -----------
@@ -2880,6 +2973,7 @@ Syntax:
 Description:
 ------------
 Select k-point difference (in reciprocal lattice coords) for polarizability output.
+
 &lt;dkFilenamePattern&gt; may be specified to read offset band structure calcualations when &lt;dk&gt;
 does not belong to the k-point mesh. This string should be a filename pattern containing
 $VAR (to be replaced by eigenvals and wfns) and $q (to be replaced by state index)
@@ -2905,7 +2999,7 @@ Back to: \ref Commands or \ref CommandIndex
 Syntax:
 -------
 
-    reorthogonalize-orbitals [<interval=20> [<threshold>=1.5]
+    reorthogonalize-orbitals [<interval=20>] [<threshold>=1.5]
 
 Description:
 ------------
@@ -2941,6 +3035,7 @@ Description:
 ------------
 Include an external charge density [electrons/bohr^3] (real space binary)
 which interacts electrostatically with the electrons, nuclei and fluid.
+
 If &lt;includeSelfEnergy&gt;=yes (default no), then the Coulomb self-energy
 of \ref CommandRhoExternal "rhoExternal" is included in the output energy.
 
@@ -2998,11 +3093,11 @@ Syntax:
 Description:
 ------------
 Calculate dielectric function of a slab given the electrostatic potential
-output from another calculation on same system with a different electric
-field. &lt;DtotFile&gt; contains the electrostatic potential from the other
-calculation, &lt;sigma&gt; in bohrs specifies gaussian smoothing in output,
-and the optional &lt;Ex&gt;,&lt;Ey&gt;,Ez&gt; specify the electrc-field applied in
-the calculation that generated &lt;DtotFile&gt;.
+output from another calculation on same system with a different electric field.
++ &lt;DtotFile&gt; contains the electrostatic potential from the other calculation
++ &lt;sigma&gt; in bohrs specifies gaussian smoothing in output
++ optional &lt;Ex&gt;,&lt;Ey&gt;,Ez&gt; specify the \ref CommandElectricField "electric-field" applied
+  in the calculation that generated &lt;DtotFile&gt;.
 
 Properties:
 -----------
@@ -3061,10 +3156,10 @@ Syntax:
 Description:
 ------------
 Select spin-polarization type:
-+  no-spin    : Unpolarized calculation
-+  spin-orbit : Non-collinear without magnetization, to allow for spin-orbit
-+  vector-spin: Non-collinear magnetism (supports spin-orbit coupling)
-+  z-spin     : Spin-polarized calculation
++ no-spin    : Unpolarized calculation
++ spin-orbit : Non-collinear without magnetization, to allow for spin-orbit
++ vector-spin: Non-collinear magnetism (supports spin-orbit coupling)
++ z-spin     : Spin-polarized calculation
 
 Properties:
 -----------
@@ -3120,11 +3215,12 @@ Syntax:
 
 Description:
 ------------
-	none: symmetries are off
-	automatic: automatic calculation of symmetries (default)
-	manual: symmetries specified using \ref CommandSymmetryMatrix "symmetry-matrix" command
-Check if symmetries could be increased by translating all the atoms
-and quit after suggesting the translated positions if &lt;moveAtoms&gt;=yes.
++ none: symmetries are off
++ automatic: automatic calculation of symmetries (default)
++ manual: symmetries specified using \ref CommandSymmetryMatrix "symmetry-matrix" command
+
+If &lt;moveAtoms&gt;=yes, check if symmetries could be increased by translating
+all the atoms, and quit after suggesting the translated positions.
 
 Properties:
 -----------
@@ -3148,7 +3244,10 @@ Back to: \ref Commands or \ref CommandIndex
 Syntax:
 -------
 
-    symmetry-matrix <s00> <s01> <s02> <s10> <s11> <s12> <s20> <s21> <s22>
+    symmetry-matrix  \
+	<s00> <s01> <s02> \
+	<s10> <s11> <s12> \
+	<s20> <s21> <s22>
 
 Description:
 ------------
@@ -3181,8 +3280,10 @@ Syntax:
 Description:
 ------------
 Fixed chemical potential &lt;mu&gt; (instead of fixed charge)
-	Cinitial: Initial capacitance, affects only first few mixing steps
-	dnMix: Scale the ideal step in n by this factor
+When using \ref CommandElecFermiFillings "elec-fermi-fillings" with non-zero mixInterval (deprecated),
+the following parameters control the convergence:
++ Cinitial: Initial capacitance, affects only first few mixing steps
++ dnMix: Scale the ideal step in n by this factor
 
 Properties:
 -----------
@@ -3213,10 +3314,13 @@ Description:
 ------------
 Control generation of kinetic energy core correction for species &lt;id&gt;.
 The core KE density is set to the Thomas-Fermi + von-Weisacker functional
-of the core electron density (if any), and is pseudized inside within &lt;rCut&gt;
-If &lt;rCut&gt;=0, it is chosen to be 1.5 times the location of the first radial
-maximum in the TF+VW KE density. Optionally, if &lt;plot&gt;=yes, the resulting
-core KE density (and electron density) are output to a gnuplot-friendly file.
+of the core electron density (if any), and is pseudized inside within &lt;rCut&gt;.
+
+If &lt;rCut&gt;=0, it is chosen to be 1.5 times the location of
+the first radial maximum in the TF+VW KE density.
+
+Optionally, if &lt;plot&gt;=yes, the resulting core KE density
+(and electron density) are output to a gnuplot-friendly file.
 
 Properties:
 -----------
@@ -3243,9 +3347,11 @@ Syntax:
 
 Description:
 ------------
-Pair-potential corrections for the long range Van der Waals interaction.
-Implementation follows "S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)"
-Exchange-Correlation functionals supported with \ref CommandVanDerWaals "van-der-waals" are gga-PBE, hyb-gga-xc-b3lyp and mgga-TPSS.
+DFT+D2 pair-potential corrections for the long range Van der Waals
+interaction [S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)].
+
+Default scale factors are available for the gga-PBE, hyb-gga-xc-b3lyp
+and mgga-TPSS exchange-correlation functionals (see \ref CommandElecExCorr "elec-ex-corr").
 Manually specify &lt;scaleOverride&gt; to use with other functionals
 
 Properties:
@@ -3305,19 +3411,19 @@ Calculate vibrational modes of the system using a finite difference method.
 Note that this command should typically be issued in a run with converged ionic
 positions; ionic (and lattice) minimization are bypassed by the vibrations module.
 Any number of the following subcommands and their arguments may follow:
-  dr &lt;dr&gt;: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).
-  centralDiff yes|no: use a central difference formula for the second derivative
-     to achieve higher accuracy at twice the cost (default: no)
-  useConstraints yes|no: restrict modes of motion as specified by move flags
-     and constraints in the ion command (default: no)
-  traslationSym yes|no: whether to assume overall translation symmetry (default yes).
-     Can be turned off to get vibrational levels in an external potential.
-  rotationSym yes|no: project out rotational modes (default no). Improves reliability for
-     molecular calculations. Valid only for geometries with an unambiguous center of mass.
-  omegaMin &lt;omegaMin&gt;: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)
-  T &lt;T&gt;: temperature (in Kelvin) for free energy calculation (default: 298)
-  omegaResolution &lt;omegaResolution&gt;: resolution for detecting and reporting degeneracies
-     in modes (default: 1e-4). Does not affect free energies and all modes are still printed.
++ dr &lt;dr&gt;: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).
++ centralDiff yes|no: use a central difference formula for the second derivative
+   to achieve higher accuracy at twice the cost (default: no)
++ useConstraints yes|no: restrict modes of motion as specified by move flags
+   and constraints in the ion command (default: no)
++ traslationSym yes|no: whether to assume overall translation symmetry (default yes).
+   Can be turned off to get vibrational levels in an external potential.
++ rotationSym yes|no: project out rotational modes (default no). Improves reliability for
+   molecular calculations. Valid only for geometries with an unambiguous center of mass.
++ omegaMin &lt;omegaMin&gt;: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)
++ T &lt;T&gt;: temperature (in Kelvin) for free energy calculation (default: 298)
++ omegaResolution &lt;omegaResolution&gt;: resolution for detecting and reporting degeneracies
+   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.
 
 Properties:
 -----------
@@ -3349,21 +3455,21 @@ Syntax:
 Description:
 ------------
 Wavefunction initialization: use atomic orbitals (default), randomize or read from files:
-  read expects &lt;filename&gt; to point to a single file with fourier-space G-sphere wavefunctions.
-  read-rs expects &lt;filename&gt; to be a printf format with 2 %%d's, the first for state index and
-     the second for band. Each 'column' will be loaded from a separate file accordingly.
-     For spinor wavefunctions, each spinor component has a separate second index, so that
-     the first band is read from 0 and 1, the second one from 2 and 3 and so on.
-  &lt;nBandsOld&gt; can be used to specify a wavefunction which has different bands
-     extra bands will be discarded, unspecified bands will be randomized and orthogonalized
-     Reminder: nBandsOlds for fillings file is specified separately in \ref CommandElecInitialFillings "elec-initial-fillings"
-     default: 0 =&gt; old and current nBands must match exactly.
-  &lt;EcutOld&gt; can be used to specify a wavefunction with different planewave cutoff
-     the wavefunction will be appropriately up/down-sampled in Foruier space
-     default: 0.0 =&gt; old and current Ecut must match exactly
-  &lt;N*old&gt; specifies \ref CommandFftbox "fftbox" size of the input data when reading real-space wavefunctions
-     the wavefunction will be appropriately up/down-sampled in Fourier space
-     default: 0 =&gt; old and current \ref CommandFftbox "fftbox" must match exactly
++ read expects &lt;filename&gt; to point to a single file with fourier-space G-sphere wavefunctions.
++ read-rs expects &lt;filename&gt; to be a printf format with 2 %%d's, the first for state index and
+   the second for band. Each 'column' will be loaded from a separate file accordingly.
+   For spinor wavefunctions, each spinor component has a separate second index, so that
+   the first band is read from 0 and 1, the second one from 2 and 3 and so on.
++ &lt;nBandsOld&gt; can be used to specify a wavefunction which has different bands
+   extra bands will be discarded, unspecified bands will be randomized and orthogonalized.
+   Reminder: nBandsOlds for fillings file is specified separately in \ref CommandElecInitialFillings "elec-initial-fillings".
+   Default: 0 =&gt; old and current nBands must match exactly.
++ &lt;EcutOld&gt; can be used to specify a wavefunction with different planewave cutoff.
+   The wavefunction will be appropriately up/down-sampled in Fourier space.
+   Default: 0.0 =&gt; old and current Ecut must match exactly.
++ &lt;N*old&gt; specify \ref CommandFftbox "fftbox" dimensions of the input data when reading real-space wavefunctions.
+   The wavefunction will be appropriately up/down-sampled in Fourier space.
+   Default: 0 =&gt; old and current \ref CommandFftbox "fftbox" must match exactly.
 
 Properties:
 -----------
