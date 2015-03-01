@@ -78,16 +78,18 @@ public:
 	void dump(const char* fname, bool realPartOnly) const; //!< write as complex or real-part alone and report discarded imaginary part, if any
 	void zero(); //!< set all elements to zero
 	
+	static void reportUsage(); //!< print memory usage report
 protected:
-	void memFree(); //!< Do the job of destructor
-	void memInit(size_t nElem, bool ontoGpu=false); //!< Do the job of the constructor
+	void memFree(); //!< Free memory
+	void memInit(string category, size_t nElem, bool onGpu=false); //!< Allocate memory
 
 	void memMove(ManagedMemory&&); //!< Steal the other object's data (used for move constructors/assignment)
-	ManagedMemory(size_t nElements=0, bool onGpu=false); //!< Construct, optionally with data allocation
+	ManagedMemory(); //!< Initialize a valid state, but don't allocate anything
 	~ManagedMemory();
 
 private:
-	size_t nElements;
+	string category; //!< category of managed memory objects to report memory usage under
+	size_t nElements; //!< number of complex numbers
 	complex* c; //!< Actual data storage
 	bool onGpu; //!< For reduced #ifdef's, this flag is retained even in the absence of gpu support
 	#ifdef GPU_ENABLED

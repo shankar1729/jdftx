@@ -101,7 +101,7 @@ void matrix::init(int nrows, int ncols, bool onGpu)
 	nr = nrows;
 	nc = ncols;
 	
-	if(nr*nc>0) memInit(nr*nc, onGpu);
+	if(nr*nc>0) memInit("matrix", nr*nc, onGpu);
 }
 //Reshaping
 void matrix::reshape(int nrows, int ncols)
@@ -136,7 +136,7 @@ matrix::matrix(const diagMatrix& d)
 {	nr = d.size();
 	nc = d.size();
 	if(d.size())
-	{	memInit(nr*nc); zero();
+	{	memInit("matrix", nr*nc); zero();
 		complex* thisData = data();
 		for(int i=0; i<nRows(); i++) thisData[index(i,i)] = d[i];
 	}
@@ -146,7 +146,7 @@ matrix::matrix(const std::vector<complex>& d)
 {	nr = d.size();
 	nc = d.size();
 	if(d.size())
-	{	memInit(nr*nc); zero();
+	{	memInit("matrix", nr*nc); zero();
 		complex* thisData = data();
 		for(int i=0; i<nRows(); i++) thisData[index(i,i)] = d[i];
 	}
@@ -155,7 +155,7 @@ matrix::matrix(const std::vector<complex>& d)
 matrix::matrix(const matrix3<>& m)
 {	nr = 3;
 	nc = 3;
-	memInit(nr*nc);
+	memInit("matrix", nr*nc);
 	for(int j=0; j<3; j++)
 		for(int i=0; i<3; i++)
 			set(i,j, m(i,j));

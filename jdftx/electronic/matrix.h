@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_MATRIX_H
 
 #include <electronic/common.h>
-#include <electronic/ManagedMemory.h>
+#include <core/ManagedMemory.h>
 #include <core/matrix3.h>
 #include <core/scaled.h>
 #include <gsl/gsl_cblas.h>

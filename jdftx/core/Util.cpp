@@ -332,6 +332,7 @@ void finalizeSystem(bool successful)
 	
 	#ifdef ENABLE_PROFILING
 	stopWatchManager();
+	ManagedMemory::reportUsage();
 	#endif
 	
 	if(!mpiUtil->isHead())

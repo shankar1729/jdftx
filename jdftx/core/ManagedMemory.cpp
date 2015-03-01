@@ -17,22 +17,79 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/ManagedMemory.h>
+#include <core/ManagedMemory.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
 #include <fftw3.h>
 
+//-------- Memory usage profiler ---------
+
+namespace MemUsageReport
+{
+	enum Mode { Add, Remove, Print };
+	
+	//Add, remove or retrieve memory report based on mode
+	void manager(Mode mode, string category=string(), size_t nElements=0)
+	{	
+		#ifdef ENABLE_PROFILING
+		struct Usage
+		{	size_t current, peak; //!< current and peak memory usage (in unit of complex numbers i.e. 16 bytes)
+			Usage() : current(0), peak(0) {}
+			
+			Usage& operator+=(size_t n)
+			{	current += n;
+				if(current > peak)
+					peak = current;
+				return *this;
+			}
+			
+			Usage& operator-=(size_t n)
+			{	current -= n;
+				return *this;
+			}
+		};
+		static std::map<string, Usage> usageMap;
+		static Usage usageTotal;
+		
+		switch(mode)
+		{	case Add:
+			{	usageMap[category] += nElements;
+				usageTotal += nElements;
+				assert(category.length());
+				break;
+			}
+			case Remove:
+			{	usageMap[category] -= nElements;
+				usageTotal -= nElements;
+				assert(category.length());
+				break;
+			}
+			case Print:
+			{	const double elemToGB = 16./pow(1024.,3);
+				for(auto entry: usageMap)
+					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", entry.first.c_str(), entry.second.peak * elemToGB);
+				logPrintf("MEMUSAGE: %30s %12.6lf GB\n", "Total", usageTotal.peak * elemToGB);
+				break;
+			}
+		}
+		#endif //ENABLE_PROFILING
+	}
+}
+
+
+//---------- class ManagedMemory -----------
+
 // Construct, optionally with data allocation
-ManagedMemory::ManagedMemory(size_t nElements, bool onGpu)
+ManagedMemory::ManagedMemory()
 : nElements(0),c(0),onGpu(false)
-{	memInit(nElements,onGpu);
+{
 }
 
 ManagedMemory::~ManagedMemory()
 {	memFree();
 }
 
-// Do the job of destructor
+//Free memory
 void ManagedMemory::memFree()
 {	if(!nElements) return; //nothing to free
 	if(onGpu)
@@ -48,16 +105,19 @@ void ManagedMemory::memFree()
 	else
 	{	fftw_free(c);
 	}
+	MemUsageReport::manager(MemUsageReport::Remove, category, nElements);
 	c = 0;
 	nElements = 0;
+	category.clear();
 }
 
-// Do the job of the constructor
-void ManagedMemory::memInit(size_t nElem, bool ontoGpu)
-{	if(nElements==nElem && onGpu==ontoGpu) return; //already in required state
+//Allocate memory
+void ManagedMemory::memInit(string category, size_t nElements, bool onGpu)
+{	if(category==this->category && nElements==this->nElements && onGpu==this->onGpu) return; //already in required state
 	memFree();
-	nElements = nElem;
-	onGpu = ontoGpu;
+	this->category = category;
+	this->nElements = nElements;
+	this->onGpu = onGpu;
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
@@ -72,10 +132,12 @@ void ManagedMemory::memInit(size_t nElem, bool ontoGpu)
 	{	c = (complex*)fftw_malloc(sizeof(complex)*nElements);
 		if(!c) die("Memory allocation failed (out of memory)\n");
 	}
+	MemUsageReport::manager(MemUsageReport::Add, category, nElements);
 }
 
 void ManagedMemory::memMove(ManagedMemory&& mOther)
-{	std::swap(nElements, mOther.nElements);
+{	std::swap(category, mOther.category);
+	std::swap(nElements, mOther.nElements);
 	std::swap(onGpu, mOther.onGpu);
 	std::swap(c, mOther.c);
 	//Now mOther will be empty, while *this will have all its contents
@@ -234,6 +296,10 @@ void ManagedMemory::read_real(FILE *fp)
 
 void ManagedMemory::zero()
 {	callPref(eblas_zero)(nData(), dataPref());
+}
+
+void ManagedMemory::reportUsage()
+{	MemUsageReport::manager(MemUsageReport::Print);
 }
 
 void memcpy(ManagedMemory& a, const ManagedMemory& b)

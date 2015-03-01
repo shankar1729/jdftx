@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_COLUMNBUNDLE_H
 
 #include <electronic/common.h>
-#include <electronic/ManagedMemory.h>
+#include <core/ManagedMemory.h>
 #include <electronic/Basis.h>
 #include <electronic/matrix.h>
 #include <core/ScalarField.h>

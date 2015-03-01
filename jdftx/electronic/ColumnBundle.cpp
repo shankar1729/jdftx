@@ -37,7 +37,7 @@ void ColumnBundle::init(int nc, size_t len, const Basis *b, const QuantumNumber*
 
 	if(nCols() == 0) { memFree(); return; } //must be default constructor or assignment to empty ColumnBundle
 	assert(colLength() != 0);
-	memInit(nCols()*colLength(), onGpu); //in base class ManagedMemory
+	memInit("ColumnBundle", nCols()*colLength(), onGpu); //in base class ManagedMemory
 }
 
 void ColumnBundle::free()
