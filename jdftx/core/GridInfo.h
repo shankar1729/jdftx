@@ -34,7 +34,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <mutex>
 
 /** @brief Simulation grid descriptor
-//! @ingroup griddata
 
 To setup a simulation grid, create a blank GridInfo object,
 set the public data members #S and #R, and call #initialize().
