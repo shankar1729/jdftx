@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <core/WignerSeitz.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <electronic/Blip.h>
 #include <electronic/operators.h>
 

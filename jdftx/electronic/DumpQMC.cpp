@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <core/Thread.h>
 #include <core/Operators.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <config.h>
 #include <map>
 

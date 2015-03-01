@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/LinearPCM.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/operators.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Util.h>
 
 //Utility functions to extract/set the members of a MuEps
@@ -30,8 +30,8 @@ inline ScalarField& getMuPlus(ScalarFieldDataMuEps& X) { return X[0]; }
 inline const ScalarField& getMuPlus(const ScalarFieldDataMuEps& X) { return X[0]; }
 inline ScalarField& getMuMinus(ScalarFieldDataMuEps& X) { return X[1]; }
 inline const ScalarField& getMuMinus(const ScalarFieldDataMuEps& X) { return X[1]; }
-inline VectorField getEps(ScalarFieldDataMuEps& X) { return VectorField(X.component+2); }
-inline const VectorField getEps(const ScalarFieldDataMuEps& X) { return VectorField(X.component+2); }
+inline VectorField getEps(ScalarFieldDataMuEps& X) { return VectorField(&X[2]); }
+inline const VectorField getEps(const ScalarFieldDataMuEps& X) { return VectorField(&X[2]); }
 inline void setMuEps(ScalarFieldDataMuEps& mueps, ScalarField muPlus, ScalarField muMinus, VectorField eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
 

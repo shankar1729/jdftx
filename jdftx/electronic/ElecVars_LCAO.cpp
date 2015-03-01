@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <electronic/operators.h>
 #include <electronic/ElecMinimizer.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 void printSymmetryError(const matrix& m, const char* name)
 {	double num = nrm2(m - dagger(m));

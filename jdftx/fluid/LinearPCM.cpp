@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM_internal.h>
 #include <electronic/operators.h>
 #include <core/VectorField.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Thread.h>
 
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)

@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidSolver.h>
 #include <commands/parser.h>
 #include <core/VectorField.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Util.cpp>
 #include <core/WignerSeitz.h>
 #include <gsl/gsl_sf_bessel.h>

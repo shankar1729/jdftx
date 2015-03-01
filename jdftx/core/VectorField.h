@@ -47,22 +47,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @tparam T ScalarFieldData or ScalarFieldTildeData
 //! @tparam N Number of elements in multiplet
 template<class T, int N> struct ScalarFieldMultiplet
-{	Tptr component[N]; //!< the array of components (also accessible via #operator[])
-
-	Tptr& O() { return component[0]; } //!< get reference to component[0] (convenient for OH doublets)
-	Tptr& H() { return component[1]; } //!< get reference to component[1] (convenient for OH doublets)
-	const Tptr& O() const { return component[0]; } //!< get const reference to component[0] (convenient for OH doublets)
-	const Tptr& H() const { return component[1]; } //!< get const reference to component[1] (convenient for OH doublets)
+{	std::vector<Tptr> component; //!< the array of components (also accessible via #operator[])
 
 	//! @brief Construct multiplet from an array of data sets (or default: initialize to null)
 	//! @param in Pointer to array, or null to initialize each component to null
-	ScalarFieldMultiplet(const Tptr* in=0) { Nloop( component[i] = (in ? in[i] : 0); ) }
+	ScalarFieldMultiplet(const Tptr* in=0) : component(N) { Nloop( component[i] = (in ? in[i] : 0); ) }
 
 	//! @brief Construct a multiplet with allocated data
 	//! @param gInfo Simulation grid info / memory manager to use to allocate the data
-	ScalarFieldMultiplet(const GridInfo& gInfo, bool onGpu=false) { Nloop( component[i] = Tptr(T::alloc(gInfo,onGpu)); ) }
+	ScalarFieldMultiplet(const GridInfo& gInfo, bool onGpu=false) : component(N) { Nloop( component[i] = Tptr(T::alloc(gInfo,onGpu)); ) }
 
-	ScalarFieldMultiplet(const Tptr& O, const Tptr& H) { component[0]=O; component[1]=H; } //!< Initialize O and H components (really meaningful only for N=2)
 	Tptr& operator[](int i) { return component[i]; } //!< Retrieve a reference to the i'th component (no bound checks)
 	const Tptr& operator[](int i) const { return component[i]; } //!< Retrieve a const reference to the i'th component (no bound checks)
 	ScalarFieldMultiplet clone() const { TptrMul out; Nloop( out[i] = component[i]->clone(); ) return out; } //!< Clone data (note assignment will be reference for the actual data)

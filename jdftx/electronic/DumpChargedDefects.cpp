@@ -3,7 +3,7 @@
 #include <electronic/Dump_internal.h>
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/LatticeUtils.h>
 #include <core/Coulomb_internal.h>
 

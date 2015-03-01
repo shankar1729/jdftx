@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <electronic/operators.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)

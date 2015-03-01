@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/Operators.h>
 #include <core/GridInfo.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Coulomb.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
@@ -132,10 +132,10 @@ void timeEblas3(const GridInfo& gInfo)
 	int nCols = 213;
 
 	//A couple of column bundles:
-	FieldData cb1(gInfo, nCols*colLength, 2, isGpuEnabled());
-	FieldData cb2(gInfo, nCols*colLength, 2, isGpuEnabled());
+	FieldData cb1(gInfo, "ColumnBundle", nCols*colLength, 2, isGpuEnabled());
+	FieldData cb2(gInfo, "ColumnBundle", nCols*colLength, 2, isGpuEnabled());
 	//An nBandsxnBands matrix:
-	FieldData mat(gInfo, nCols*nCols, 2, isGpuEnabled());
+	FieldData mat(gInfo, "matrix", nCols*nCols, 2, isGpuEnabled());
 
 	sync();
 

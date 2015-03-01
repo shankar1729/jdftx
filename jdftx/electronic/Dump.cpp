@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/LatticeMinimizer.h>
 #include <fluid/FluidSolver.h>
 #include <core/VectorField.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <ctime>
 
 void Dump::setup(const Everything& everything)

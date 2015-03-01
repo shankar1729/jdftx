@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_H2O_BondedVoids.h>
 #include <fluid/Fex_LJ.h>
 #include <fluid/IdealGasMonoatomic.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Units.h>
 #include <core/WignerSeitz.h>
 

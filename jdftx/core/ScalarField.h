@@ -31,6 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <core/scalar.h>
 #include <core/Util.h>
+#include <core/ManagedMemory.h>
 
 class GridInfo; //Grid description and memory manager
 struct ScalarFieldData; //Real space data storage container for real scalar fields
@@ -56,14 +57,14 @@ typedef std::shared_ptr<complexScalarFieldTildeData> complexScalarFieldTilde; //
 #endif
 
 //! Base class for #ScalarFieldData and #ScalarFieldTildeData
-struct FieldData
+struct FieldData : private ManagedMemory
 {
 	int nElem; //!< number of elements = #gInfo.nr
 	double scale; //!< overall scale factor of the data array
 	const GridInfo& gInfo; //!< simulation grid info
 
 	void absorbScale() const; //!< absorb scale factor into data
-	void zero(); //!< initialize to zero
+	inline void zero() { ManagedMemory::zero(); } //!< initialize to zero
 
 	typedef void DataType; //!< this base class has no specific data type
 	
@@ -76,27 +77,21 @@ struct FieldData
 
 	DECLARE_DATA_PREF_ACCESS
 	
-	bool isOnGpu() const { return onGpu; } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
+	inline bool isOnGpu() const { return ManagedMemory::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
 
-	FieldData(const GridInfo& gInfo, int nElem, int nDoublesPerElem, bool onGpu);
-	~FieldData();
+	FieldData(const GridInfo& gInfo, string category, int nElem, int nDoublesPerElem=1, bool onGpu=false);
 	void copyData(const FieldData& other); //!< copy data and scale (used by clone())
 
-	//Inter-process communication:
-	void send(int dest, int tag=0) const; //send to another process
-	void recv(int src, int tag=0); //receive from another process
-	void bcast(int root=0); //synchronize across processes (using value on specified root process)
-	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //apply all-to-all reduction (see MPIUtil::allReduce)
+	//Inter-process communication (expose corresponding ManagedMemory functions):
+	inline void send(int dest, int tag=0) const { ManagedMemory::send(dest,tag); } //!< send to another process
+	inline void recv(int src, int tag=0) { ManagedMemory::recv(src,tag); } //!< receive from another process
+	inline void bcast(int root=0) { ManagedMemory::bcast(root); } //!< synchronize across processes (using value on specified root process)
+	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { ManagedMemory::allReduce(op, safeMode, isReal); } //!< apply all-to-all reduction
 
+protected:
+	struct PrivateTag {}; //!< Used to prevent direct use of ScalarField constructors, and force the shared_ptr usage
 private:
-	int nDoubles; //!< number of doubles stored in pData (typically either gInfo.nr or ginfo.nG*2)
-
-	void* pData; //!< managed data pointer
-	bool onGpu;
-	#ifdef GPU_ENABLED
-	void toCpu(); //!< move data to the CPU
-	void toGpu(); //!< move data to the GPU
-	#endif
+	bool isReal; //!< whether underlying data type is real (nDoublesPerElem==1 at construction)
 };
 
 //Shorthand for defining the data() and dataGpu() functions in derived classes of FieldData
@@ -124,16 +119,9 @@ struct ScalarFieldData : public FieldData
 	DECLARE_DATA_PREF_ACCESS
 	ScalarField clone() const; //!< clone the data (NOTE: assigning ScalarField's makes a new reference to the same data)
 	static ScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
-private:
-	ScalarFieldData(const GridInfo& gInfo, bool onGpu); //!< called only by ScalarFieldData::alloc()
+	ScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by ScalarFieldData::alloc()
 };
 
-//Override allReduce for DataType=complex to prevent unsupported operations
-#define OVERRIDE_allReduce \
-	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) \
-	{	assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); \
-		FieldData::allReduce(op, safeMode); \
-	}
 
 /**
 @brief Reciprocal space real scalar field data
@@ -149,9 +137,7 @@ struct ScalarFieldTildeData : public FieldData
 	static ScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	double getGzero() const; //!< get the G=0 component
 	void setGzero(double Gzero); //!< set the G=0 component
-	OVERRIDE_allReduce
-private:
-	ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu); //!< called only by ScalarFieldTildeData::alloc()
+	ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by ScalarFieldTildeData::alloc()
 };
 
 
@@ -167,9 +153,7 @@ struct complexScalarFieldData : public FieldData
 	DECLARE_DATA_PREF_ACCESS
 	complexScalarField clone() const; //!< clone the data (NOTE: assigning complexScalarField's makes a new reference to the same data)
 	static complexScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
-	OVERRIDE_allReduce
-private:
-	complexScalarFieldData(const GridInfo& gInfo, bool onGpu); //!< called only by complexScalarFieldData::alloc()
+	complexScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldData::alloc()
 };
 
 /**
@@ -184,9 +168,7 @@ struct complexScalarFieldTildeData : public FieldData
 	DECLARE_DATA_PREF_ACCESS
 	complexScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning complexScalarFieldTilde's makes a new reference to the same data)
 	static complexScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
-	OVERRIDE_allReduce
-private:
-	complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu); //!< called only by complexScalarFieldTildeData::alloc()
+	complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldTildeData::alloc()
 };
 
 
@@ -206,7 +188,6 @@ struct RealKernel
 	void set(); //!< call after initializing data on cpu (will copy from data to dataGpu if GPU_ENABLED)
 };
 
-#undef OVERRIDE_allReduce
 #undef DECLARE_DATA_PREF_ACCESS
 #undef DECLARE_DATA_ACCESS
 //! @}

@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasPomega.h>
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/Fex_ScalarEOS.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 void initHardSphere(int i, vector3<> r, const vector3<>& r0, double radius, double height, double* phi)
 {	phi[i] = ((r - r0).length() < radius ? height : 0.0);

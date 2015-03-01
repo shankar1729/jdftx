@@ -439,7 +439,7 @@ void axpy(double alpha, const ScalarField& X, ScalarField& Y)
 	//if X is null, nothing needs to be done, Y remains unchanged
 }
 ScalarField& operator+=(ScalarField& in, double scalar)
-{	FieldData dataScalar(in->gInfo, 1, 1, false); *((double*)dataScalar.data()) = scalar;
+{	FieldData dataScalar(in->gInfo, "ScalarField", 1, 1, false); *((double*)dataScalar.data()) = scalar;
 	callPref(eblas_daxpy)(in->nElem, 1.0, (double*)dataScalar.dataPref(), 0, in->dataPref(), 1);
 	return in;
 }
@@ -489,7 +489,7 @@ double nrm2(const ScalarFieldTilde& X)
 }
 
 double sum(const ScalarField& X)
-{	FieldData dataScale(X->gInfo, 1, 1, false); *((double*)dataScale.data()) = X->scale;
+{	FieldData dataScale(X->gInfo, "ScalarField", 1, 1, false); *((double*)dataScale.data()) = X->scale;
 	return callPref(eblas_ddot)(X->nElem, X->dataPref(false), 1, (double*)dataScale.dataPref(false), 0);
 }
 
@@ -497,7 +497,7 @@ double sum(const ScalarFieldTilde& X)
 {	int N = X->nElem;
 	int S2 = X->gInfo.S[2]/2 + 1; //inner dimension
 	int S01 = X->gInfo.S[0] * X->gInfo.S[1]; //number of inner dimension slices
-	FieldData dataOne(X->gInfo, 1, 2, false); *((complex*)dataOne.data()) = 1.0;
+	FieldData dataOne(X->gInfo, "ScalarFieldTilde", 1, 2, false); *((complex*)dataOne.data()) = 1.0;
 	complex complexSum = callPref(eblas_zdotc)(N, X->dataPref(false), 1, (complex*)dataOne.dataPref(false), 0);
 	complex correction1 = callPref(eblas_zdotc)(S01, X->dataPref(false), S2, (complex*)dataOne.dataPref(false), 0);
 	complex correction2 = callPref(eblas_zdotc)(S01, X->dataPref(false)+S2-1, S2, (complex*)dataOne.dataPref(false), 0);

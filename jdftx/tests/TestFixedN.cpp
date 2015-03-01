@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasMuEps.h>
 #include <fluid/Fex_ScalarEOS.h>
 #include <core/Units.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 void initSphere(int i, vector3<> r, const vector3<>& r0, double radius, double hIn, double hOut, double* v)
 {	v[i] = ((r - r0).length() < radius ? hIn : hOut);

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
 #include <fftw3.h>
+#include <mutex>
 
 //-------- Memory usage profiler ---------
 
@@ -50,17 +51,22 @@ namespace MemUsageReport
 		};
 		static std::map<string, Usage> usageMap;
 		static Usage usageTotal;
+		static std::mutex usageLock;
 		
 		switch(mode)
 		{	case Add:
-			{	usageMap[category] += nElements;
+			{	usageLock.lock();
+				usageMap[category] += nElements;
 				usageTotal += nElements;
+				usageLock.unlock();
 				assert(category.length());
 				break;
 			}
 			case Remove:
-			{	usageMap[category] -= nElements;
+			{	usageLock.lock();
+				usageMap[category] -= nElements;
 				usageTotal -= nElements;
+				usageLock.unlock();
 				assert(category.length());
 				break;
 			}
@@ -213,8 +219,9 @@ void ManagedMemory::bcast(int root)
 {	if(mpiUtil->nProcesses()>1)
 		mpiUtil->bcast((double*)data(), 2*nData(), root);
 }
-void ManagedMemory::allReduce(MPIUtil::ReduceOp op, bool safeMode)
-{	assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); //not supported for complex
+void ManagedMemory::allReduce(MPIUtil::ReduceOp op, bool safeMode, bool ignoreComplexCheck)
+{	if(!ignoreComplexCheck)
+		assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); //not supported for complex
 	if(mpiUtil->nProcesses()>1)
 		mpiUtil->allReduce((double*)data(), 2*nData(), op, safeMode);
 }

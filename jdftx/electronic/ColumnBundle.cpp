@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <fftw3.h>
 
 // Called by other constructors to do the work

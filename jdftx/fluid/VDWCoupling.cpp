@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ExCorr.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/Molecule.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/ScalarField.h>
 #include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>

@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <fluid/FluidMixture.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/string.h>
 #include <fluid/IdealGasPsiAlpha.h>
 #include <fluid/IdealGasMuEps.h>

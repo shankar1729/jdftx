@@ -332,6 +332,7 @@ void finalizeSystem(bool successful)
 	
 	#ifdef ENABLE_PROFILING
 	stopWatchManager();
+	logPrintf("\n");
 	ManagedMemory::reportUsage();
 	#endif
 	

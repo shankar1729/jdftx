@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/VectorField.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Units.h>
 
 inline double wExpand_calc(double G, double R)

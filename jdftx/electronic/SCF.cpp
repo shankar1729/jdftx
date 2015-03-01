@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
 #include <core/Minimize_linmin.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <queue>
 
 inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double* kerkerMix, double* diisMetric)

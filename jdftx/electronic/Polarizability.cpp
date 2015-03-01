@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 #include <core/VectorField.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
 {

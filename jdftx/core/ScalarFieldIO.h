@@ -17,13 +17,13 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_DATAIO_H
-#define JDFTX_CORE_DATAIO_H
+#ifndef JDFTX_CORE_SCALARFIELDIO_H
+#define JDFTX_CORE_SCALARFIELDIO_H
 
 //! @addtogroup griddata
 //! @{
 
-/** @file DataIO.h
+/** @file ScalarFieldIO.h
 @brief I/O utilities for the data arrays
 */
 
@@ -103,4 +103,4 @@ void saveSphericalized(const ScalarField* dataR, int nColumns, const char* filen
 void saveSphericalized(const ScalarFieldTilde* dataG, int nColumns, const char* filename, double dGFac=1.0);
 
 //! @}
-#endif // JDFTX_CORE_DATAIO_H
+#endif // JDFTX_CORE_SCALARFIELDIO_H

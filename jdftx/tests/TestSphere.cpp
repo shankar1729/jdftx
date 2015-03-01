@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/Minimize.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGasPsiAlpha.h>

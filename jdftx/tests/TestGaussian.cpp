@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/IdealGasMonoatomic.h>
 #include <fluid/Fex_ScalarEOS.h>
 #include <core/Units.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 
 void initQuadraticWell(int i, vector3<> r, const vector3<>& r0, double width, double depth, double dr, double beta, double* phi)
 {

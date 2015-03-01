@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/operators.h>
-#include <core/DataIO.h>
+#include <core/ScalarFieldIO.h>
 #include <core/LatticeUtils.h>
 #include <array>
 
