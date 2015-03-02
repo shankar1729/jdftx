@@ -20,16 +20,23 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_COMMAND_MINIMIZE_H
 #define JDFTX_COMMAND_MINIMIZE_H
 
+/** @file minimize.h
+@brief Provides base class for defining the minimize commands
+*/
+
 #include <commands/command.h>
 #include <electronic/Everything.h>
 
-//! Abstract base class for all the *-minimize commands
+//! @brief Abstract base class for all the minimize commands
 struct CommandMinimize : public Command
-{	CommandMinimize(string systemName, string section="jdftx"); //provide a command called systemName-minimize in specified section
+{	CommandMinimize(string systemName, string section="jdftx"); //!< provide a command called systemName-minimize in specified section
 	void process(ParamList& pl, Everything& e);
 	void printStatus(Everything& e, int iRep);
 protected:
-	virtual MinimizeParams& target(Everything&)=0; //!< derived class specifies where the parameters are stored
+	//! @brief Derived class should specify where the parameters are stored
+	//! @param e Reference to Everything
+	//! @return Return reference to the relevant MinimizeParams that this command should operate on.
+	virtual MinimizeParams& target(Everything& e)=0;
 };
 
 #endif // JDFTX_COMMAND_MINIMIZE_H

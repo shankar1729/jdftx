@@ -22,7 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 
-//! List of parameters for the command
+/** @file ParamList.h
+@brief Helper class for parsing command lines in input file
+*/
+
+//! @brief Wrapper to std::istringstream that eases parsing of input file command lines
 class ParamList
 {
 	istringstream iss;
@@ -33,10 +37,13 @@ public:
 	//! Rewind to beginning of stream (useful for commands with multiple alternate syntaxes)
 	void rewind() { iss.seekg(0, std::ios_base::beg); }
 	
-	//! Retreive a paremeter of type T in t, with default value tDefault if the stream ends
-	//! paramName is used to report an error if conversion failed
-	//! If required=true, error will be reported instead of just setting the default value on eof()
-	//! Note that t is set to tDefault on failure of any sort
+	//! @brief Retrieve a parameter from stream or, if stream ends, set it to a default value.
+	//! Note that t is set to tDefault if any error occurs.
+	//! @tparam T data type of parameter, which could be anything that std::istream supports
+	//! @param t Destination for the retrieved parameter
+	//! @param tDefault Default vaue of the parameter to set if stream ends while parsing
+	//! @param paramName Name of the parameter to use in error messages
+	//! @param required If true, report an error if the stream ends instead of using the default.
 	template<typename T>
 	void get(T& t, T tDefault, string paramName, bool required=false)
 	{	iss.clear(); //clear previous errors
@@ -50,11 +57,13 @@ public:
 		if(iss.fail()) { t = tDefault; throw string("Conversion of parameter <"+paramName+"> failed."); }
 	}
 
-	//! Retreive an enum paremeter of type T in t, with default value tDefault if the stream ends
-	//! tMap is used to convert the string to the enum
-	//! paramName is used to report an error if conversion failed
-	//! If required=true, error will be reported instead of setting the default value on eof()
-	//! Note that t is set to tDefault on failure of any sort
+	//! @brief Retreive an enum parameter from stream with default handling 
+	//! @tparam T Type of the enum parameter
+	//! @param t Destination for the retrieved parameter
+	//! @param tDefault Default vaue of the parameter to set if stream ends while parsing
+	//! @param tMap Map between the enum values and corresponding string names
+	//! @param paramName Name of the parameter to use in error messages
+	//! @param required If true, report an error if the stream ends instead of using the default.
 	template<typename T>
 	void get(T& t, T tDefault, const EnumStringMap<T>& tMap, string paramName, bool required=false)
 	{	iss.clear(); //clear previous errors

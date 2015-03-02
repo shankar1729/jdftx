@@ -27,6 +27,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 
 /** @file command.h
+@brief Provides the base class and various helpers for defining commands in the input file 
+
 To create a new command, paste this code block into a cpp file,
 replace all occurences of dummy with something suitable, add the
 documentation strings (format and comment) and the parse code.
@@ -99,7 +101,7 @@ static EnumStringMap<bool> boolMap(false, "no", true, "yes"); //!< utility to pa
 
 
 //! @brief Process the EnumStringMap::optionList() to add descriptions using an arbitrary functor
-//! @tparam GetDescription Function/functor with the signature string GetDescription(const string&).
+//! @tparam GetDescription Function/functor with the signature `string GetDescription(const string&)`.
 //! @param optionList List of strings separated by pipe characters as returned by EnumStringMap::optionList()
 //! @param getDescription A function/functor that returns the description given an option from optionList
 //! @param spacer Spacer to insert before each option/description pair
