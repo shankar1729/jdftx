@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <set>
 
-//!@file command.h
-/**  To create a new command, paste this code block into a cpp file,
+/** @file command.h
+To create a new command, paste this code block into a cpp file,
 replace all occurences of dummy with something suitable, add the
 documentation strings (format and comment) and the parse code.
 See any of the existing commands for examples of using ParamList effectively.
@@ -36,66 +36,74 @@ automatically during static initialization, just create an object of the
 new derived Command class at file scope. However, for coherent documentation,
 edit doc/commands.dox and link to the command in the appropriate section.
 
-//! Implements command "dummy"
-typedef struct  CommandDummy : public Command
-{
-	CommandDummy() : Command("dummy")
+	struct CommandDummy : public Command
 	{
-		format = "";
-		comments = "";
-	}
+		CommandDummy() : Command("dummy")
+		{
+			format = "";
+			comments = "";
+		}
 
-	void process(ParamList& pl, Everything& e)
-	{
-	}
+		void process(ParamList& pl, Everything& e)
+		{
+		}
 
-	void printStatus(Everything& e, int iRep)
-	{
+		void printStatus(Everything& e, int iRep)
+		{
+		}
 	}
-}
-commandDummy;
-
+	commandDummy;
 */
 
-//! Abstract base class for all commands
+//! @brief Abstract base class for all commands
 class Command
 {
 public:
-	string name; //!< identifier for the command in the input file (MUST be unique!)
-	string format; //!< usage syntax for the command (excluding the command name)
-	string comments; //!< more detailed help for the command (note comment characters are automatically added!)
-	string section; //!< which executable the command belongs to, and hence which section it must be documented under
+	string name; //!< Identifier for the command in the input file. Must be unique!
+	string format; //!< Usage syntax for the command (excluding the command name)
+	string comments; //!< Detailed help for the command which goes into jdftx -t as well as the Doxygen manual. Please check formatting in both versions.
+	string section; //!< Which executable the command belongs to, and hence which section it must be documented under.
 	
-	std::set<string> requires; //!< names of other commands this requires (those will be processed before)
-	std::set<string> forbids; //!< names of other commands this is incompatibile with
+	std::set<string> requires; //!< Names of other commands that this one requires; those commands will be processed before this one.
+	std::set<string> forbids; //!< Names of other commands that this one is incompatibile with.
 
-	bool allowMultiple; //!< whether this command can occur multiple times in an input file (default: false)
-	bool hasDefault; //!< whether this command has a default (process is called with no parameters) (default: false)
-	string emptyParamError; //!< error message if command is manually issued with no parameters (default: "" => allow empty parameter list)
+	bool allowMultiple; //!< Whether this command can occur multiple times in an input file (default: false).
+	bool hasDefault; //!< Whether this command has a default (default: false). If true, process() will be called with an empty parameter list.
+	string emptyParamError; //!< Error message if command is manually issued with no parameters. Ddefault: empty i.e. allow empty parameter list.
 	
-	//! Process the command given its parameters.
-	//! Throw a string with the message as an exception on error
+	//! @brief Process the command from its command line
+	//! @param pl Parser utility object that simplifies extraction of parameters from the commandline
+	//! @param e Object of class Everything into which the settings extracted form this command should be stored
+	//! @throw string On any syntax / parse errors, throw a string containing a brief error (preferably single phrase) error message.
 	virtual void process(ParamList& pl, Everything& e)=0;
 
-	//! Print the parameter set that would have reuslted in the current status
-	//! For commands with allowMultiple=true, this will be called with varying iRep
-	//! If the command takes no parameters, then nothing should be printed
+	//! @brief Print a command line that would result in the current status
+	//! @param e Objct of class Everything whose status to reproduce
+	//! @param iRep For commands with allowMultiple=true, printStatus will be called multiple times and iRep is the index of the present call
 	virtual void printStatus(Everything& e, int iRep)=0;
 
 protected:
 	//! This base class constructor adds the current command to a map from names to Command pointers
 	//! which can be accessed using getCommandMap(). This enables safe static initialization of the command list.
+	//! @param name Unique name of the command
+	//! @param section Which executable this command belongs to (override for commands outside of the main jdftx executable).
 	Command(string name, string section="jdftx");
 
 	void require(string); //!< utility to add a command to the requires list
 	void forbid(string); //!< utility to add a command to the forbids list
 };
 
-std::map<string,Command*>& getCommandMap(); //!< Get the list of commands created by static initialization
+std::map<string,Command*>& getCommandMap(); //!< Retrieve the map from command names to objects created during static initialization
 
 static EnumStringMap<bool> boolMap(false, "no", true, "yes"); //!< utility to parse yes/no into bools
 
-//! Process the EnumStringMap::optionList() to add descriptions using an arbitrary functor
+
+//! @brief Process the EnumStringMap::optionList() to add descriptions using an arbitrary functor
+//! @tparam GetDescription Function/functor with the signature string GetDescription(const string&).
+//! @param optionList List of strings separated by pipe characters as returned by EnumStringMap::optionList()
+//! @param getDescription A function/functor that returns the description given an option from optionList
+//! @param spacer Spacer to insert before each option/description pair
+//! @return string containing the options along with their descriptions
 template<typename GetDescription>
 string addDescriptions(string optionList, const GetDescription& getDescription, string spacer="\n+ ")
 {
@@ -128,22 +136,28 @@ string addDescriptions(string optionList, const GetDescription& getDescription, 
 	return ret;
 }
 
-//! Null description functor
+//! @brief Null description function that can be used with addDescriptions().
+//! This can be useful for simply reformatting EnumStringMap::optionList() 
 inline string nullDescription(const string&)
 {	return string();
 }
 
-//! Generate a description functor using a EnumStringMap holding the decsriptions:
+//! @brief Generate a description functor for addDescriptions() from an EnumStringMap
+//! @tparam Enum The template parameter of EnumStringMap
 template<typename Enum> struct LinkDescription
 {	const EnumStringMap<Enum>& nameMap;
 	const EnumStringMap<Enum>& descMap;
 	
+	//! @param nameMap Link between enum members to corresponding name strings
+	//! @param descMap Link between enum members to corresponding description strings
 	LinkDescription(const EnumStringMap<Enum>& nameMap, const EnumStringMap<Enum>& descMap)
 	: nameMap(nameMap), descMap(descMap)
 	{
 	}
 	
-	//! Look name up in nameMap, and return the corresponding description in descMap
+	//! @brief Look name up in nameMap, and return the corresponding description in descMap
+	//! @param name One of the string entries in nameMap
+	//! @return The corresponding string in descMap
 	string operator()(const string& name) const
 	{	Enum type = Enum();
 		bool nameFound = nameMap.getEnum(name.c_str(), type);
@@ -152,16 +166,27 @@ template<typename Enum> struct LinkDescription
 	}
 };
 
-//! Helper function to select appropriate LinkDescription<> by overloading
+//! @brief Helper function to select appropriate LinkDescription<> by overloading
+//! @tparam Enum The template parameter of EnumStringMap
+//! @param nameMap Link between enum members to corresponding name strings
+//! @param descMap Link between enum members to corresponding description strings
 template<typename Enum>
 LinkDescription<Enum> linkDescription(const EnumStringMap<Enum>& nameMap, const EnumStringMap<Enum>& descMap)
 {	return LinkDescription<Enum>(nameMap, descMap);
 }
 
-//! Find species matching an id (and create it from a wildcard if necessary)
+//! @brief Find species matching an id (and create it from a wildcard if necessary)
+//! @param id Psuedopotential species identifier string (typically chemical symbol)
+//! @param e Reference to Everything
+//! @return Smart pointer to SpeciesInfo corresponding to id.
 std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e);
 
-//! Check if file is readable in an MPI friendly way (must be called from all processes)
+//! @brief Check if file is readable in an MPI friendly way.
+//! This function must be called from all processes,
+//! the file will be checked on one process 
+//! and the result broadcast to all processes.
+//! @param fname File name to check for
+//! @return Whether file is readable
 bool isReadable(string fname);
 
 #endif // JDFTX_COMMAND_COMMAND_H
