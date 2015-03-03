@@ -46,6 +46,6 @@ That should complete in a few seconds and create files water.out and water.Ecomp
 
 The commands section is followed by initialization of the plane-wave grid, symmetries, pseudopotentials etc., and then the electronic minimization which logs the progress of the conjugate gradients minimizer. The default is to minimize for 100 iterations or the round-off error limit, whichever comes first. This example converges to double precision (16 digits) in around 40 iterations. Note that the ions have not been moved and the end of the output file lists the forces at the initial position. The output water.Ecomponents lists the break-up of the final minimized energy.  
 
-
+When the calculation has completed, files are written based on the options provided by the dump command.  Here, we have requested a dump at the end of the run, with the energy components printed out, and with the files named according to dump-name.
 
 */

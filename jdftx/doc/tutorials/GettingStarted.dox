@@ -9,14 +9,12 @@ The command-line usage information can be retrieved using **jdftx -h**. Note tha
 
      jdftx -i input.in -o output.out
 
-The input file contains commands that setup and control the calculation; the progress of the calculation is logged to the output file. 
+The input file contains commands that setup and control the calculation; the progress of the calculation is logged to the output file.  The commands in the input file are case-insensitive, and can be given in any order.  
 
-Talk about:
-+ jdftx with command line input
-+ JDFTx option to terminate calculation
-+ accessing the documentation, list of commands
-+ commands can be given in any order, case insensitive
+The code can also be run without arguments, and the input can be typed from the command line.  
 
-The list of available input file commands with documentation can also be obtained by running **jdftx -t**.
+The list of available input file commands with documentation is available [here](Commands.html), and can also be obtained by running **jdftx -t**.
+
+JDFTx provides the option to terminate calculations gracefully, with Ctrl-c.  This command allows the user to decide if the program should quit immediately, or after the current iteration, or to ignore the command.
 
 */
