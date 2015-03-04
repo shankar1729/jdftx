@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb_internal.h>
 #include <core/Operators.h>
 #include <core/Util.h>
-#include <core/Bspline.h>
+#include <core/Spline.h>
 #include <core/LoopMacros.h>
 #include <gsl/gsl_sf.h>
 

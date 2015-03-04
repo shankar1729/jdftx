@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file Coulomb_internal.h Shared inline functions / internal declarations for Coulomb framework
 
 #include <core/matrix3.h>
-#include <core/Bspline.h>
+#include <core/Spline.h>
 #include <gsl/gsl_integration.h>
 
 //Common citations for Coulomb truncation

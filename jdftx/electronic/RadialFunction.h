@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_RADIALFUNCTION_H
 #define JDFTX_ELECTRONIC_RADIALFUNCTION_H
 
-#include <core/Bspline.h>
+#include <core/Spline.h>
 
 struct RadialFunctionR;
 
