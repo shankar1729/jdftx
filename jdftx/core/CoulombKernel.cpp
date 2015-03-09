@@ -117,7 +117,7 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws) const
 	//Plan Fourier transforms:
 	complex* denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
 	double* denseRealArr = (double*)denseArr;
-	if(!denseArr) die("Memory allocation failed (out of memory)\n");
+	if(!denseArr) die_alone("Memory allocation failed (out of memory)\n");
 	logPrintf("Planning fourier transform ... "); logFlush();
 	fftw_plan_with_nthreads(nProcsAvailable);
 	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Sdense[0], Sdense[1], Sdense[2], denseRealArr, (fftw_complex*)denseArr, FFTW_ESTIMATE);
@@ -265,7 +265,7 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws) const
 	logPrintf("Planning fourier transform ... "); logFlush();
 	fftw_plan fftPlanR2C;
 	complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGdensePlanar);
-	if(!tempArr) die("Memory allocation failed (out of memory)\n");
+	if(!tempArr) die_alone("Memory allocation failed (out of memory)\n");
 	fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
 	fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
 	fftw_free(tempArr);
@@ -276,7 +276,7 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws) const
 	std::vector<CoulombKernelWire> ckwArr(nProcsAvailable);
 	for(CoulombKernelWire& c: ckwArr)
 	{	c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdensePlanar);
-		if(!c.denseArr) die("Memory allocation failed (out of memory)\n");
+		if(!c.denseArr) die_alone("Memory allocation failed (out of memory)\n");
 		c.Vc = data;
 		c.fftPlanR2C = fftPlanR2C;
 		//Copy geometry definitions:

@@ -192,7 +192,7 @@ void initSystem(int argc, char** argv)
 	registerHandlers();
 	
 	#ifdef GPU_ENABLED
-	if(!gpuInit(globalLog)) die("gpuInit() failed\n\n")
+	if(!gpuInit(globalLog)) die_alone("gpuInit() failed\n\n")
 	#endif
 	
 	//Divide up available cores between all MPI processes on a given node:
@@ -401,7 +401,7 @@ void printStack(bool detailedStackScript)
 // Exit on error with a more in-depth stack trace
 void stackTraceExit(int code)
 {	printStack(true);
-	exit(code);
+	mpiUtil->exit(code);
 }
 
 // Stack trace for failed assertions

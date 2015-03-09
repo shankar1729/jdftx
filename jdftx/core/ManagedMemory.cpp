@@ -136,7 +136,7 @@ void ManagedMemory::memInit(string category, size_t nElements, bool onGpu)
 	}
 	else
 	{	c = (complex*)fftw_malloc(sizeof(complex)*nElements);
-		if(!c) die("Memory allocation failed (out of memory)\n");
+		if(!c) die_alone("Memory allocation failed (out of memory)\n");
 	}
 	MemUsageReport::manager(MemUsageReport::Add, category, nElements);
 }
@@ -184,12 +184,11 @@ void ManagedMemory::toCpu()
 {	if(!onGpu || !c) return; //already on cpu, or no data
 	assert(isGpuMine());
 	complex* cCpu = (complex*)fftw_malloc(sizeof(complex)*nElements);
-	if(!cCpu) die("Memory allocation failed (out of memory)\n");
+	if(!cCpu) die_alone("Memory allocation failed (out of memory)\n");
 	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost); gpuErrorCheck();
 	cudaFree(c); gpuErrorCheck(); //Free GPU mem
 	c = cCpu; //Make c a cpu pointer
 	onGpu = false;
-	//logPrintf("\nDevice -> Host (%d elements at ptr %lX):\n", nElements, (unsigned long)c); printStack();
 }
 
 // Move data to GPU
@@ -202,7 +201,6 @@ void ManagedMemory::toGpu()
 	fftw_free(c); //Free CPU mem
 	c = cGpu; //Make c a gpu pointer
 	onGpu = true;
-	//logPrintf("\nHost -> Device (%d elements at ptr %lX)\n", nElements, (unsigned long)c); printStack();
 }
 
 #endif

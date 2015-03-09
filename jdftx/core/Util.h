@@ -110,8 +110,11 @@ extern FILE* globalLog;
 extern FILE* nullLog; //!< pointer to /dev/null
 void logSuspend(); //!< temporarily disable all log output (until logResume())
 void logResume(); //!< re-enable logging after a logSuspend() call
-#define logPrintf(...) fprintf(globalLog, __VA_ARGS__)
-#define logFlush() fflush(globalLog)
+
+#define logPrintf(...) fprintf(globalLog, __VA_ARGS__) //!< printf() for log files
+#define logFlush() fflush(globalLog) //!< fflush() for log files
+
+//! @brief Quit with an error message (formatted using printf()). Must be called from all processes.
 #define die(...) \
 	{	fprintf(globalLog, __VA_ARGS__); \
 		if(mpiUtil->isHead() && globalLog != stdout) \
@@ -120,6 +123,15 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 		exit(1); \
 	}
 
+//! @brief Version of die that should only be used when it is impossible to guarantee synchronized calls from all processes
+#define die_alone(...) \
+	{	fprintf(globalLog, __VA_ARGS__); \
+		fflush(globalLog); \
+		if(mpiUtil->isHead() && globalLog != stdout) \
+			fprintf(stderr, __VA_ARGS__); \
+		if(mpiUtil->nProcesses() == 1) finalizeSystem(false); /* Safe to call only if no other process */ \
+		mpiUtil->exit(1); \
+	}
 
 //--------------- Citations --------------------
 namespace Citations

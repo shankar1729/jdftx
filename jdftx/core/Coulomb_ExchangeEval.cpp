@@ -475,7 +475,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			//--- create kernel on supercell:
 			size_t nGsuper = Ssuper[0]*(Ssuper[1]*size_t(1+Ssuper[2]/2));
 			double* dataSuper = new double[nGsuper];
-			if(!dataSuper) die("Out of memory. (need %.1lfGB for supercell exchange kernel)\n", nGsuper*1e-9*sizeof(double));
+			if(!dataSuper) die_alone("Out of memory. (need %.1lfGB for supercell exchange kernel)\n", nGsuper*1e-9*sizeof(double));
 			WignerSeitz wsSuper(Rsuper);
 			CoulombKernel(Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
 			dataSuper[0] += VzeroCorrection; //For slab/wire geometry kernels in AuxiliaryFunction/ProbeChargeEwald methods
@@ -492,7 +492,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			size_t nKernelData = dkArr.size() * gInfo.nr;
 			kernelData = new double[nKernelData];
 			if(!kernelData)
-				die("Out of memory. (need %.1lfGB memory for precomputed exchange kernel)\n",
+				die_alone("Out of memory. (need %.1lfGB memory for precomputed exchange kernel)\n",
 					nKernelData*1e-9*sizeof(double));
 			for(size_t i=0; i<dkArr.size(); i++)
 				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkArr[i],
