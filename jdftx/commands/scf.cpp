@@ -120,7 +120,6 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 	SCFpm_mixedVariable, "mixedVariable",
 	SCFpm_verbose, "verbose",
 	SCFpm_mixFractionMag, "mixFractionMag",
-	SCFpm_sp_constraint, "single-particle-constraint",
 	SCFpm_maxOverlap, "maximum-overlap-method"
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
@@ -129,7 +128,6 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 	SCFpm_mixedVariable, "whether density or potential will be mixed at each step",
 	SCFpm_verbose, "whether the inner eigenvalue solver will print or not",
 	SCFpm_mixFractionMag, "mix fraction for magnetization density / potential (default 1.5)",
-	SCFpm_sp_constraint, "enforces the single particle constraint on the exchange",
 	SCFpm_maxOverlap, "uses the maximum-overlap method to determine fillings, discards elec-fermi-fillings"
 );
 
@@ -172,7 +170,6 @@ struct CommandElectronicScf: public CommandPulay
 				case SCFpm_mixedVariable: pl.get(sp.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
 				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFractionMag: pl.get(sp.mixFractionMag, 1.5, "mixFractionMag", true); break;
-				case SCFpm_sp_constraint: pl.get(sp.sp_constraint, 0., "single-particle-constraint", true); break;
 				case SCFpm_maxOverlap: sp.MOMenabled=true; break;
 			}
 		}

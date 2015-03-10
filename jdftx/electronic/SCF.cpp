@@ -137,8 +137,6 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	else if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) updateFillings(); // Update fillings
 		
 	double E = e.eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
-	
-	if(sp.sp_constraint) single_particle_constraint(sp.sp_constraint); //ensure the single particle limit of exchange 
 
 	extraValues[0] = eigDiffRMS(eigsPrev, e.eVars.Hsub_eigs);
 	return E;
@@ -452,86 +450,4 @@ void tauW_n_kernel(int i, vector3<> r, double* tauW_n, double* grad_n_sq, double
 
 void Vtau_kernel(int i, vector3<> r, double* Vtau, double* fz_z, double* tauW, double* tau, double* Ex, double* Eh, double* n, double N)
 {	Vtau[i] = (n[i]>cutoff ? fz_z[i]*tauW[i]*(Ex[i] + Eh[i]/N)/pow(tau[i], 2) : 0.);
-}
-
-void SCF::single_particle_constraint(double sp_constraint)
-{	
-	static StopWatch watch("single particle constraint"); watch.start(); 
-	
-	const auto& n = e.eVars.n;
-	const auto& tau = e.eVars.KEdensity(); //KE density
-	
-	assert(n.size() == 2);
-	
-	// Calculate 1/n and 1/tau
-	ScalarFieldArray nInverse(n.size()), tauInverse(n.size());
-	std::vector<double> N(n.size()), NInverse(n.size());
-	for(size_t j=0; j<n.size(); j++)
-	{	nullToZero(nInverse[j], e.gInfo); applyFunc_r(e.gInfo, varInverse_kernel, nInverse[j]->data(), n[j]->data());
-		nullToZero(tauInverse[j], e.gInfo); applyFunc_r(e.gInfo, varInverse_kernel, tauInverse[j]->data(), tau[j]->data());
-		N[j] = integral(n[j]);
-		NInverse[j] = (N[j]>cutoff ? 1./N[j] : 0.);
-	}
-	
-	// Single particle KE density and the single-particleness
-	ScalarFieldArray tauW(n.size());
-	ScalarFieldArray spness(n.size());
-	ScalarFieldArray fz(n.size()), fz_z(n.size()); // Interpolation cofficient and its gradient wrt z
-	ScalarFieldArray grad_n_sq(n.size()); // Square of grad_n
-	for(size_t j=0; j<n.size(); j++)
-	{	grad_n_sq[j] = lengthSquared(gradient(n[j]));	
-		nullToZero(tauW[j], e.gInfo); applyFunc_r(e.gInfo, tauW_kernel, tauW[j]->data(), grad_n_sq[j]->data(), n[j]->data());
-		nullToZero(spness[j], e.gInfo); applyFunc_r(e.gInfo, spness_kernel, tauW[j]->data(), tau[j]->data(), spness[j]->data());
-		fz[j] = pow(spness[j], sp_constraint);
-		fz_z[j] = sp_constraint*pow(spness[j], sp_constraint-1);
-	}
-
-	// Hartree energy and potential of a single channel
-	ScalarFieldArray Vhartree(n.size()), Ehartree(n.size());
-	ScalarFieldTildeArray nTilde = J(n);
-	for(size_t j=0; j<n.size(); j++)
-	{	Vhartree[j] = I((*(e.coulomb))(nTilde[j]));
-		Vhartree[j] = Vhartree[j];
-		Ehartree[j] = 0.5*n[j]*Vhartree[j];
-	}
-
-	// Gradient of tauW wrt n
-	ScalarFieldArray tauW_n(n.size());
-	for(size_t j=0; j<n.size(); j++)
-	{	ScalarField lap_n = I(L(J(n[j])));
-		nullToZero(tauW_n[j], e.gInfo);
-		tauW_n[j] = 0.125*grad_n_sq[j]*pow(nInverse[j],2) - 0.25*lap_n*nInverse[j];
-		//applyFunc_r(e.gInfo, tauW_n_kernel, tauW_n[j]->data(), grad_n_sq[j]->data(), n[j]->data(), lap_n->data());
-	}
-
-	// Slater exchange
-	ScalarFieldArray Vslater(n.size());
-	ScalarFieldArray Eslater(n.size());
-	for(size_t j=0; j<n.size(); j++)
-	{	double coef = pow(3/M_PI, 1./3.);
-		Vslater[j] = - coef * pow(2.*n[j], 1./3.);
-		Vslater[j] = Vslater[j];
-		Eslater[j] = -(3./4.)*coef*pow(2.*n[j], 4./3.) * 0.5;  // x2 and x0.5 are because of spin polarization
-		Eslater[j] = Eslater[j];
-	}
-	
-	for(size_t j=0; j<n.size(); j++)
-	{
-		// Update Vtau
-		e.eVars.Vtau[j] = fz_z[j]*tauW[j]*pow(tauInverse[j],2)*(Eslater[j] + Ehartree[j]*NInverse[j]);
-		//applyFunc_r(e.gInfo, Vtau_kernel, e.eVars.Vtau[j]->data(), fz_z[j]->data(), tauW[j]->data(), tau[j]->data(), Eslater[j]->data(),
-		//Ehartree[j]->data(), n[j]->data(), integral(n[j]));
-		e.eVars.Vtau[j] = JdagOJ(e.eVars.Vtau[j]);
-		
-		// Update Vscloc
-		e.eVars.Vscloc[j] += JdagOJ(- fz[j] * (Vslater[j] + Vhartree[j]*NInverse[j]));
-		e.eVars.Vscloc[j] += JdagOJ(- tauInverse[j] * fz_z[j] * tauW_n[j] * (Eslater[j] + Ehartree[j]*NInverse[j]));
-	}
-	
-	// Calculate energy
-	e.ener.E["Econstraint"] = 0.;
-	for(size_t j=0; j<n.size(); j++)
-		e.ener.E["Econstraint"] += integral(-fz[j]*(Eslater[j] + (1./integral(n[j]))*Ehartree[j]));
-
-	watch.stop();
 }
