@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
-#include <core/Minimize_linmin.h>
 #include <core/ScalarFieldIO.h>
 #include <queue>
 
@@ -40,9 +39,8 @@ inline ScalarFieldArray operator*(const RealKernel& K, const ScalarFieldArray& x
 	return Kx;
 }
 
-SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
+SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 {	SCFparams& sp = e.scfParams;
-	overlap.init(sp.history, sp.history);
 	eigenShiftInit();
 	mixTau = e.exCorr.needsKEdensity();
 	
@@ -53,59 +51,10 @@ SCF::SCF(Everything& e): e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 	
 	//Load history if available:
 	if(sp.historyFilename.length())
-	{	size_t nBytesCycle = 2 * variableSize(); //number of bytes per history entry
-		size_t nBytesFile = fileSize(sp.historyFilename.c_str());
-		size_t ndim = nBytesFile / nBytesCycle;
-		size_t dimOffset = 0;
-		if(int(ndim) > sp.history)
-		{	dimOffset = ndim - sp.history;
-			ndim = sp.history;
-		}
-		if(nBytesFile % nBytesCycle != 0)
-			die("SCF history file '%s' does not contain an integral multiple of the mixed variables and residuals.\n", sp.historyFilename.c_str());
-		logPrintf("Reading %lu past variables and residuals from '%s' ... ", ndim, sp.historyFilename.c_str()); logFlush();
-		pastVariables.resize(ndim);
-		pastResiduals.resize(ndim);
-		FILE* fp = fopen(sp.historyFilename.c_str(), "r");
-		if(dimOffset) fseek(fp, dimOffset*nBytesCycle, SEEK_SET);
-		for(size_t idim=0; idim<ndim; idim++)
-		{	readVariable(pastVariables[idim], fp);
-			readVariable(pastResiduals[idim], fp);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
+	{	loadState(sp.historyFilename.c_str());
 		sp.historyFilename.clear(); //make sure it doesn't get loaded again on subsequent SCFs (eg. in an ionic loop)
-		//Compute overlaps of loaded history:
-		for(size_t i=0; i<ndim; i++)
-		{	Variable Mresidual_i = applyMetric(pastResiduals[i]);
-			for(size_t j=0; j<=i; j++)
-			{	double thisOverlap = dot(pastResiduals[j], Mresidual_i);
-				overlap.set(i,j, thisOverlap);
-				overlap.set(j,i, thisOverlap);
-			}
-		}
 	}
 }
-
-//Norm convergence check (eigenvalue-difference or residual)
-//Make sure value is within tolerance for nCheck consecutive cycles
-class NormCheck
-{	unsigned nCheck; double threshold;
-	std::deque<bool> history;
-public:
-	NormCheck(unsigned nCheck, double threshold) : nCheck(nCheck), threshold(fabs(threshold)) {}
-	bool checkConvergence(double norm)
-	{	history.push_back(fabs(norm)<threshold);
-		if(history.size()==nCheck+1) history.pop_front(); //discard old unneeded elements 
-		if(history.size()==nCheck)
-		{	for(bool converged: history)
-				if(!converged)
-					return false;
-			return true;
-		}
-		else return false;
-	}
-};
 
 void SCF::minimize()
 {	
@@ -117,10 +66,16 @@ void SCF::minimize()
 		(mixTau ? "and kinetic " : ""),
 		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
+	string Elabel = relevantFreeEnergyName(e);
 	if(!e.exCorr.hasEnergy())
 	{	e.scfParams.energyDiffThreshold = 0.;
 		logPrintf("Turning off total energy convergence threshold for potential-only functionals.\n");
+		Elabel += "~"; //remind that the total energy is at best an estimate
 	}
+	sp.energyLabel = Elabel.c_str();
+	sp.linePrefix = "SCF: ";
+	sp.energyFormat = "%+.15lf";
+	sp.fpLog = globalLog;
 	
 	bool subspaceRotation=false;
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
@@ -131,96 +86,15 @@ void SCF::minimize()
 
 	//Compute energy for the initial guess
 	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
-	EdiffCheck ediffCheck(2, e.scfParams.energyDiffThreshold);
-	ediffCheck.checkConvergence(E); //store the initial energy in the check's history
-	NormCheck resCheck(2, e.scfParams.residualThreshold);
-	NormCheck eigCheck(2, e.scfParams.eigDiffThreshold);
 	
-	double Eprev = 0.;
-	double dE = E;
-	std::vector<diagMatrix> eigsPrev;
-	for(int scfCounter=0; scfCounter<e.scfParams.nIterations; scfCounter++)
-	{
-		//If history is full, remove oldest member
-		if(((int)pastResiduals.size() >= sp.history) or ((int)pastVariables.size() >= sp.history))
-		{	size_t ndim = pastResiduals.size();
-			if(ndim>1) overlap.set(0,ndim-1, 0,ndim-1, overlap(1,ndim, 1,ndim));
-			pastVariables.erase(pastVariables.begin());
-			pastResiduals.erase(pastResiduals.begin());
-		}
-		
-		//Cache the old energy and variables
-		Eprev = E;
-		eigsPrev = e.eVars.Hsub_eigs;
-		pastVariables.push_back(getVariable());
-
-		// If need be, cache the old wavefunctions
-		if(sp.MOMenabled)
-			Cold = eVars.C;
-		
-		//Band-structure minimize:
-		if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
-		e.elecMinParams.energyDiffThreshold = std::min(1e-6, std::abs(dE)/10.);
-		if(sp.nEigSteps) e.elecMinParams.nIterations = sp.nEigSteps;
-		bandMinimize(e);
-		if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
-
-		//Compute new density and energy
-		e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
-		if(sp.MOMenabled)  // The maximum-overlap-method
-			updateMOM();
-		else if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) // Update fillings
-			updateFillings();
-		E = eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
-		if(e.scfParams.sp_constraint)
-			single_particle_constraint(e.scfParams.sp_constraint); //ensure the single particle limit of exchange 
-		string Elabel(relevantFreeEnergyName(e));
-		if(!e.exCorr.hasEnergy()) Elabel += "~"; //remind that the total energy is at best an estimate
-		
-		//Debug output:
-		if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
-		if(e.cntrl.shouldPrintEcomponents) { logPrintf("\n"); e.ener.print(); logPrintf("\n"); }
-		
-		//Calculate and cache residual:
-		double residualNorm = 0.;
-		{	Variable residual = getVariable(); axpy(-1., pastVariables.back(), residual);
-			pastResiduals.push_back(residual);
-			residualNorm = sqrt(dot(residual,residual)); mpiUtil->bcast(residualNorm); //ensure consistency to machine precision
-		}
-		double deigs = eigDiffRMS(eigsPrev, eVars.Hsub_eigs); mpiUtil->bcast(deigs); //ensure consistency to machine precision
-		dE = E-Eprev; //change in energy is also used to determine energyDiffThreshold of the bandminimizer
-		logPrintf("SCF: Cycle: %2i   %s: %+.15f   dE: %.3e   |deigs|: %.3e   |Residual|: %.3e\n",
-			scfCounter, Elabel.c_str(), E, dE, deigs, residualNorm);
-		
-		//Per-cycle dumps if any (must do before the next mix step / convergence exit):
-		e.dump(DumpFreq_Electronic, scfCounter);
-		//--- write SCF history if dumping state:
-		if(e.dump.count(std::make_pair(DumpFreq_Electronic,DumpState)) && e.dump.checkInterval(DumpFreq_Electronic,scfCounter))
-		{	string fname = e.dump.getFilename("scfHistory");
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			if(mpiUtil->isHead())
-			{	FILE* fp = fopen(fname.c_str(), "w");
-				for(size_t idim=0; idim<pastVariables.size(); idim++)
-				{	writeVariable(pastVariables[idim], fp);
-					writeVariable(pastResiduals[idim], fp);
-				}
-				fclose(fp);
-			}
-			logPrintf("done\n"); logFlush();
-		}
-		
-		//Check for convergence and update variable:
-		if(ediffCheck.checkConvergence(E))               { logPrintf("SCF: Converged (|Delta E|<%le for 2 iters).\n\n", sp.energyDiffThreshold); break; }
-		else if(eigCheck.checkConvergence(deigs))        { logPrintf("SCF: Converged (|deigs|<%le for 2 iters).\n\n", sp.eigDiffThreshold); break; }
-		else if(resCheck.checkConvergence(residualNorm)) { logPrintf("SCF: Converged (|Residual|<%le for 2 iters).\n\n", sp.residualThreshold); break; }
-		else if(killFlag) break; //manually interrupted
-		else mixDIIS();
-		logFlush();
-	}
+	//Optimize using Pulay mixer:
+	std::vector<string> extraNames(1, "deigs");
+	std::vector<double> extraThresh(1, sp.eigDiffThreshold);
+	Pulay<SCFvariable>::minimize(E, extraNames, extraThresh);
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
 
-	//Backup electronic minimize params that are modified below:
+	//Restore electronic minimize params that were modified above:
 	e.elecMinParams.energyDiffThreshold = eMinThreshold;
 	e.elecMinParams.nIterations = eMinIterations;
 	
@@ -237,7 +111,57 @@ void SCF::minimize()
 	}
 }
 
-void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const
+double SCF::sync(double x) const
+{	mpiUtil->bcast(x);
+	return x;
+}
+
+double SCF::cycle(double dEprev, std::vector<double>& extraValues)
+{	const SCFparams& sp = e.scfParams;
+	
+	//Cache required quantities:
+	std::vector<diagMatrix> eigsPrev = e.eVars.Hsub_eigs;
+	if(sp.MOMenabled)
+		Cold = e.eVars.C;
+	
+	//Band-structure minimize:
+	if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
+	e.elecMinParams.energyDiffThreshold = std::min(1e-6, 0.1*fabs(dEprev));
+	if(sp.nEigSteps) e.elecMinParams.nIterations = sp.nEigSteps;
+	bandMinimize(e);
+	if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
+
+	//Compute new density and energy
+	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
+	if(sp.MOMenabled) updateMOM(); // The maximum-overlap-method
+	else if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) updateFillings(); // Update fillings
+		
+	double E = e.eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
+	
+	if(sp.sp_constraint) single_particle_constraint(sp.sp_constraint); //ensure the single particle limit of exchange 
+
+	extraValues[0] = eigDiffRMS(eigsPrev, e.eVars.Hsub_eigs);
+	return E;
+}
+
+void SCF::report(int iter)
+{
+	if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
+	if(e.cntrl.shouldPrintEcomponents) { logPrintf("\n"); e.ener.print(); logPrintf("\n"); }
+	logFlush();
+
+	e.dump(DumpFreq_Electronic, iter);
+	//--- write SCF history if dumping state:
+	if(e.dump.count(std::make_pair(DumpFreq_Electronic,DumpState)) && e.dump.checkInterval(DumpFreq_Electronic,iter))
+	{	string fname = e.dump.getFilename("scfHistory");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		saveState(fname.c_str());
+		logPrintf("done\n"); logFlush();
+	}
+}
+
+
+void SCF::axpy(double alpha, const SCFvariable& X, SCFvariable& Y) const
 {	//Density:
 	Y.n.resize(e.eVars.n.size());
 	::axpy(alpha, X.n, Y.n);
@@ -254,7 +178,7 @@ void SCF::axpy(double alpha, const SCF::Variable& X, SCF::Variable& Y) const
 	}
 }
 
-double SCF::dot(const SCF::Variable& X, const SCF::Variable& Y) const
+double SCF::dot(const SCFvariable& X, const SCFvariable& Y) const
 {	double ret = 0.;
 	//Density:
 	ret += e.gInfo.dV * ::dot(X.n, Y.n);
@@ -279,7 +203,7 @@ size_t SCF::variableSize() const
 	return nDoubles * sizeof(double);
 }
 
-void SCF::readVariable(SCF::Variable& v, FILE* fp) const
+void SCF::readVariable(SCFvariable& v, FILE* fp) const
 {	//Density:
 	nullToZero(v.n, e.gInfo, e.eVars.n.size());
 	for(ScalarField& X: v.n) loadRawBinary(X, fp);
@@ -295,7 +219,7 @@ void SCF::readVariable(SCF::Variable& v, FILE* fp) const
 	}
 }
 
-void SCF::writeVariable(const SCF::Variable& v, FILE* fp) const
+void SCF::writeVariable(const SCFvariable& v, FILE* fp) const
 {	//Density:
 	for(const ScalarField& X: v.n) saveRawBinary(X, fp);
 	//KE density:
@@ -342,9 +266,9 @@ namespace Magnetization
 	}
 }
 
-SCF::Variable SCF::getVariable() const
+SCFvariable SCF::getVariable() const
 {	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
-	Variable v;
+	SCFvariable v;
 	//Density:
 	v.n = Magnetization::fromSpinDensity(mixDensity ? e.eVars.n : e.eVars.Vscloc);
 	//KE density:
@@ -356,7 +280,7 @@ SCF::Variable SCF::getVariable() const
 	return v;
 }
 
-void SCF::setVariable(const SCF::Variable& v)
+void SCF::setVariable(const SCFvariable& v)
 {	bool mixDensity = (e.scfParams.mixedVariable==SCFparams::MV_Density);
 	//Density:
 	(mixDensity ? e.eVars.n : e.eVars.Vscloc) = Magnetization::toSpinDensity(v.n);
@@ -371,8 +295,8 @@ void SCF::setVariable(const SCF::Variable& v)
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 }
 
-SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
-{	Variable vOut;
+SCFvariable SCF::precondition(const SCFvariable& v) const
+{	SCFvariable vOut;
 	double magEnhance = e.scfParams.mixFractionMag / e.scfParams.mixFraction;
 	//Density:
 	vOut.n = kerkerMix * v.n;
@@ -393,8 +317,8 @@ SCF::Variable SCF::applyKerker(const SCF::Variable& v) const
 	return vOut;
 }
 
-SCF::Variable SCF::applyMetric(const SCF::Variable& v) const
-{	Variable vOut;
+SCFvariable SCF::applyMetric(const SCFvariable& v) const
+{	SCFvariable vOut;
 	//Density:
 	vOut.n = diisMetric * v.n;
 	//KE density:
@@ -404,38 +328,6 @@ SCF::Variable SCF::applyMetric(const SCF::Variable& v) const
 	if(e.eInfo.hasU)
 		vOut.rhoAtom = v.rhoAtom;
 	return vOut;
-}
-
-
-void SCF::mixDIIS()
-{	//Update the overlap matrix
-	size_t ndim = pastResiduals.size();
-	Variable MlastResidual = applyMetric(pastResiduals.back());
-	for(size_t j=0; j<ndim; j++)
-	{	double thisOverlap = dot(pastResiduals[j], MlastResidual);
-		overlap.set(j, ndim-1, thisOverlap);
-		overlap.set(ndim-1, j, thisOverlap);
-	}
-	
-	//Invert the residual overlap matrix to get the minimum of residual
-	matrix cOverlap(ndim+1, ndim+1); //Add row and column to enforce normalization constraint
-	cOverlap.set(0, ndim, 0, ndim, overlap(0, ndim, 0, ndim));
-	for(size_t j=0; j<ndim; j++)
-	{	cOverlap.set(j, ndim, 1);
-		cOverlap.set(ndim, j, 1);
-	}
-	cOverlap.set(ndim, ndim, 0);
-	matrix cOverlap_inv = inv(cOverlap);
-	
-	//Update variable:
-	complex* coefs = cOverlap_inv.data();
-	Variable v;
-	for(size_t j=0; j<ndim; j++)
-	{	double alpha = coefs[cOverlap_inv.index(j, ndim)].real();
-		axpy(alpha, pastVariables[j], v);
-		axpy(alpha, applyKerker(pastResiduals[j]), v);
-	}
-	setVariable(v);
 }
 
 void SCF::updateFillings()
