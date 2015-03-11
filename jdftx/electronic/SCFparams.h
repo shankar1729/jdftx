@@ -55,7 +55,6 @@ struct SCFparams : public PulayParams
 		mixedVariable = MV_Potential;
 		verbose = false;
 		mixFractionMag = 1.5;
-		MOMenabled = false;
 	}
 };
 

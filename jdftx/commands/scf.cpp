@@ -169,7 +169,7 @@ struct CommandElectronicScf: public CommandPulay
 				case SCFpm_mixedVariable: pl.get(sp.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
 				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFractionMag: pl.get(sp.mixFractionMag, 1.5, "mixFractionMag", true); break;
-				case SCFpm_maxOverlap: sp.MOMenabled=true; break;
+				case SCFpm_maxOverlap: e.eInfo.fillingsUpdate = ElecInfo::MaximumOverlapMethod; break;
 			}
 		}
 		else throw string("Parameter <key> must be one of " + pulayParamsMap.optionList() + "|" + scfParamsMap.optionList());

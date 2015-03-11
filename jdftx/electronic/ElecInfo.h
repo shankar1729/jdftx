@@ -68,7 +68,8 @@ public:
 	enum FillingsUpdate
 	{	ConstantFillings, //!< constant fillings (T=0)
 		FermiFillingsMix, //!< mix fermi functions every mixInterval iterations
-		FermiFillingsAux //!< fillings are a fermi function of the (auxilliary) subspace hamiltonian (recommended)
+		FermiFillingsAux, //!< fillings are a fermi function of the (auxilliary) subspace hamiltonian (recommended)
+		MaximumOverlapMethod //!< used as an alternative way of calculating excited states
 	}
 	fillingsUpdate;
 	

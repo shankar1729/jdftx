@@ -121,7 +121,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	
 	//Cache required quantities:
 	std::vector<diagMatrix> eigsPrev = e.eVars.Hsub_eigs;
-	if(sp.MOMenabled)
+	if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod)
 		Cold = e.eVars.C;
 	
 	//Band-structure minimize:
@@ -133,8 +133,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 
 	//Compute new density and energy
 	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
-	if(sp.MOMenabled) updateMOM(); // The maximum-overlap-method
-	else if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) updateFillings(); // Update fillings
+	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) updateFillings(); // Update fillings
 		
 	double E = e.eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
 
@@ -330,6 +329,12 @@ SCFvariable SCF::applyMetric(const SCFvariable& v) const
 
 void SCF::updateFillings()
 {
+	// The maximum-overlap-method is used, if enabled
+	if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod) 
+	{	updateMOM(); 
+		return;
+	}
+  
 	ElecInfo& eInfo = e.eInfo; 
 	ElecVars& eVars = e.eVars;
 	
