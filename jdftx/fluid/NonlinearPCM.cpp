@@ -70,41 +70,76 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		screeningEval = 0;
 	}
 	
-	//Initialize preconditioner (for mu channel):
-	double muByEps = (ionZ/pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-	preconditioner.init(0, 0.02, gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
+	if(fsp.nonlinearSCF)
+	{	//Initialize lookup tables for SCF version:
+	
+		double dxMapped = 1./512;
+		std::vector<double> samples;
+		for(double xMapped=0.; xMapped<=1.; xMapped+=dxMapped)
+		{	double x;
+			if(xMapped==0.) x = 1e-12;
+			else if(xMapped==1.) x = 1e+12;
+			else x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
+			samples.push_back(dielectricEval->eps_from_x(x)/x);
+		}
+		gLookup.init(0, samples, dxMapped);
+		
+		if(screeningEval)
+		{
+			double dVmapped = 1./512;
+			std::vector<double> samples;
+			for(double Vmapped=-1.; Vmapped<=1.; Vmapped+=dVmapped)
+			{	if(fabs(Vmapped)==1)
+					samples.push_back(0.);
+				else
+				{	double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
+					samples.push_back(1.-screeningEval->x_from_V(V));
+				}
+			}
+			xLookup.init(1, samples, dVmapped);
+		}
+	}
+	else
+	{	//Initialize preconditioner (for mu channel):
+		double muByEps = (ionZ/pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
+		preconditioner.init(0, 0.02, gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
+	}
 }
 
 NonlinearPCM::~NonlinearPCM()
-{	preconditioner.free();
-	delete dielectricEval;
-	if(screeningEval)
-		delete screeningEval;
+{	delete dielectricEval;
+	if(screeningEval) delete screeningEval;
+	if(preconditioner) preconditioner.free();
+	if(gLookup) gLookup.free();
+	if(xLookup) xLookup.free();
 }
 
 
 void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	
 	//Initialize state if required:
-	if(!state)
+	if(!state && !fsp.nonlinearSCF)
 	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
+		if(!linearPCM)
+		{	logSuspend();
+			linearPCM = std::make_shared<LinearPCM>(e, fsp);
+			logResume();
+		}
 		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
-		fpLog = fopen("/dev/null", "w"); //disable iteration log from LinearPCM
-		LinearPCM linearPCM(e, fsp);
-		linearPCM.set_internal(rhoExplicitTilde, nCavityTilde);
-		linearPCM.minimizeFluid();
-		fclose(fpLog);
-		fpLog = globalLog; //retsore usual iteration log
+		fpLog = nullLog; //disable iteration log from LinearPCM
+		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
+		linearPCM->minimizeFluid();
+		fpLog = globalLog; //restore usual iteration log
 		//Guess nonlinear states based on the electrostatic potential of the linear version:
 		//mu:
 		ScalarField mu;
 		if(screeningEval && screeningEval->linear)
-		{	mu = (-ionZ/fsp.T) * I(linearPCM.state);
+		{	mu = (-ionZ/fsp.T) * I(linearPCM->state);
 			mu -= integral(mu)/gInfo.detR; //project out G=0
 		}
 		else initZero(mu, gInfo); //initialization logic does not work well with hard sphere limit
 		//eps:
-		VectorField eps = (-pMol/fsp.T) * I(gradient(linearPCM.state));
+		VectorField eps = (-pMol/fsp.T) * I(gradient(linearPCM->state));
 		ScalarField E = sqrt(eps[0]*eps[0] + eps[1]*eps[1] + eps[2]*eps[2]);
 		ScalarField Ecomb = 0.5*((dielectricEval->alpha-3.) + E);
 		ScalarField epsByE = inv(E) * (Ecomb + sqrt(Ecomb*Ecomb + 3.*E));

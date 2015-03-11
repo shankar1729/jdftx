@@ -240,6 +240,28 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void convertDerivative_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#endif
+		
+		//! Root function used for finding packing fraction x at a given dimensionless potential V = Z phi / T
+		__hostanddev__ double rootFunc(double x, double V) const
+		{	double f_x; fHS(x, f_x); //hard sphere potential
+			return x - (x0plus*exp(-V-f_x*x0plus) + x0minus*exp(+V-f_x*x0minus));
+		}
+		
+		//! Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method
+		__hostanddev__ double x_from_V(double V) const
+		{	double xLo = x0; while(rootFunc(xLo, V) > 0.) xLo *= 0.5;
+			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi = 0.5*(xHi + 1.);
+			double x = 0.5*(xHi+xLo);
+			double dx = x*1e-13;
+			while(xHi-xLo > dx)
+			{	if(rootFunc(x, V) < 0.)
+					xLo = x;
+				else
+					xHi = x;
+				x = 0.5*(xHi+xLo);
+			}
+			return x;
+		}
 	};
 	
 	//!Helper class for dielectric portion of NonlinearPCM
@@ -251,11 +273,9 @@ namespace NonlinearPCMeval
 		
 		Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf);
 		
-		//! Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function
-		__hostanddev__ void compute(double epsSqHlf, double& F, double& F_epsSqHlf, double& ChiEff, double& ChiEff_epsSqHlf) const
-		{	double epsSq = 2.*epsSqHlf, eps = sqrt(epsSq);
-			//----- Nonlinear functions of eps
-			double frac, frac_epsSqHlf, logsinch;
+		//! Calculate the various nonlinear functions of epsilon used in calculating the free energy and its derivatives
+		__hostanddev__ void calcFunctions(double eps, double& frac, double& frac_epsSqHlf, double& logsinch) const
+		{	double epsSq = eps*eps;
 			if(linear)
 			{	frac = 1.0/3;
 				frac_epsSqHlf = 0.;
@@ -273,6 +293,14 @@ namespace NonlinearPCMeval
 					logsinch = eps<20. ? log(sinh(eps)/eps) : eps - log(2.*eps);
 				}
 			}
+		}
+		
+		//! Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function
+		__hostanddev__ void compute(double epsSqHlf, double& F, double& F_epsSqHlf, double& ChiEff, double& ChiEff_epsSqHlf) const
+		{	double epsSq = 2.*epsSqHlf, eps = sqrt(epsSq);
+			//----- Nonlinear functions of eps
+			double frac, frac_epsSqHlf, logsinch;
+			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
 			//----- Free energy and derivative
 			double screen = 1 - alpha*frac; //correlation screening factor = (pE/T) / eps where E is the real electric field
 			F = NT * (epsSq*(frac - 0.5*alpha*frac*frac + 0.5*X*screen*screen) - logsinch);
@@ -313,6 +341,31 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
 		#endif
+		
+		//! Calculate x = pMol E / T given eps
+		__hostanddev__ double x_from_eps(double eps) const
+		{	double frac, frac_epsSqHlf, logsinch;
+			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+			return eps*(1. - alpha*frac);
+		}
+		
+		//! Invert x_from_eps() using a bisection method. Note that x must be positive and finite.
+		__hostanddev__ double eps_from_x(double x) const
+		{	if(!x) return 0.;
+			double epsLo = x; while(x_from_eps(epsLo) > x) epsLo *= 0.95;
+			double epsHi = epsLo; while(x_from_eps(epsHi) < x) epsHi *= 1.05;
+			double eps = 0.5*(epsHi+epsLo);
+			double deps = eps*1e-13;
+			while(epsHi-epsLo > deps)
+			{	if(x_from_eps(eps) < x)
+					epsLo = eps;
+				else
+					epsHi = eps;
+				eps = 0.5*(epsHi+epsLo);
+			}
+			return eps;
+		}
+		
 	};
 }
 

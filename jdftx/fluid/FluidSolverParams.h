@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr.h>
 #include <fluid/FluidComponent.h>
+#include <core/PulayParams.h>
 
 enum FluidType
 {
@@ -96,7 +97,9 @@ struct FluidSolverParams
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
-
+	bool nonlinearSCF; //!< whether to use an SCF method for nonlinear PCMs
+	PulayParams scfParams; //!< parameters controlling Pulay mixing for SCF version of nonlinear PCM
+	
 	//For Explicit Fluid JDFT alone:
 	ExCorr exCorr; //!< Fluid exchange-correlation and kinetic energy functional
         std::vector<FmixParams> FmixList; //!< Tabulates which components interact through an additional Fmix

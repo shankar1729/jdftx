@@ -61,9 +61,11 @@ protected:
 
 private:
 	double pMol, ionNbulk, ionZ;
-	NonlinearPCMeval::Screening* screeningEval; //! Internal helper class for Screening from PCM_internal
-	NonlinearPCMeval::Dielectric* dielectricEval; //! Internal helper class for Dielectric from PCM_internal
+	NonlinearPCMeval::Screening* screeningEval; //!< Internal helper class for Screening from PCM_internal
+	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
 	RadialFunctionG preconditioner;
+	RadialFunctionG gLookup, xLookup; //!< lookup tables for transcendental solutions involved in the dielectric and ionic SCF method
+	std::shared_ptr<class LinearPCM> linearPCM;
 };
 
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

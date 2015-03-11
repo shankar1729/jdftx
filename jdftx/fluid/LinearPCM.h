@@ -40,9 +40,14 @@ public:
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
 	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
-	friend class NonlinearPCM;
 private:
 	RadialFunctionG Kkernel; ScalarField epsInv; // for preconditioner
+	void updatePreconditioner(const ScalarField& epsilon, const ScalarField& kappaSq);
+	
+	//Optionally override epsilon and kappaSq (when used as the inner solver in NonlinearPCM's SCF):
+	friend class NonlinearPCM;
+	ScalarField epsilonOverride, kappaSqOverride;
+	void override(const ScalarField& epsilon, const ScalarField& kappaSq);
 };
 
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

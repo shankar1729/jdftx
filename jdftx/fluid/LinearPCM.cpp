@@ -36,9 +36,14 @@ LinearPCM::~LinearPCM()
 
 
 ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
-{	ScalarField epsilon = 1. + (epsBulk-1.) * shape;
-	ScalarFieldTilde rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));  //dielectric term
-	if(k2factor) rhoTilde -= k2factor * J(shape*I(phiTilde)); // screening term
+{	//Dielectric term:
+	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape;
+	ScalarFieldTilde rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));
+	//Screening term:
+	if(k2factor)
+	{	ScalarField kappaSq = kappaSqOverride ? kappaSqOverride : k2factor * shape;
+		rhoTilde -= J(kappaSq * I(phiTilde));
+	}
 	return (-1./(4*M_PI)) * rhoTilde;
 }
 
@@ -67,15 +72,24 @@ void LinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const Sca
 	//Update the preconditioner
 	ScalarField epsilon = 1 + (epsBulk-1)*shape;
 	ScalarField kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
-	epsInv = inv(epsilon);
-	double epsMean = sum(epsilon) / gInfo.nr;
-	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
-	Kkernel.init(0, 0.02, gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
+	updatePreconditioner(epsilon, kappaSq);
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!state) nullToZero(state, gInfo);
 }
 
+void LinearPCM::updatePreconditioner(const ScalarField& epsilon, const ScalarField& kappaSq)
+{	epsInv = inv(epsilon);
+	double epsMean = sum(epsilon) / gInfo.nr;
+	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
+	Kkernel.init(0, 0.02, gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
+}
+
+void LinearPCM::override(const ScalarField& epsilon, const ScalarField& kappaSq)
+{	epsilonOverride = epsilon;
+	kappaSqOverride = kappaSq;
+	updatePreconditioner(epsilon, kappaSq);
+}
 
 void LinearPCM::minimizeFluid()
 {

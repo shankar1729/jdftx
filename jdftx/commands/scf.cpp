@@ -221,3 +221,31 @@ struct CommandEigenShift : public Command
 	}
 }
 commandEigenShift;
+
+
+struct CommandPcmNonlinearScf: public CommandPulay
+{
+	CommandPcmNonlinearScf() : CommandPulay("pcm-nonlinear-scf")
+	{	
+		comments =
+			"Enables self-consistent field optimization for nonlinear PCM fluids.\n"
+			"Possible keys and value types to control SCF optimization:"
+			+ addDescriptions(pulayParamsMap.optionList(), linkDescription(pulayParamsMap, pulayParamsDescMap))
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
+		hasDefault = false;
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.eVars.fluidParams.nonlinearSCF = true;
+		CommandPulay::process(pl, e, e.eVars.fluidParams.scfParams); //only base class parameters
+	}
+	
+	void process_sub(string keyStr, ParamList& pl, Everything& e)
+	{	throw string("Parameter <key> must be one of " + pulayParamsMap.optionList());
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	CommandPulay::printStatus(e.eVars.fluidParams.scfParams); //only base class parameters
+	}
+}
+commandPcmNonlinearScf;
