@@ -71,6 +71,7 @@
 + \subpage  CommandLattScale
 + \subpage  CommandLcaoParams
 + \subpage  CommandPcmNonlinearDebug
++ \subpage  CommandPcmNonlinearScf
 + \subpage  CommandPcmParams
 + \subpage  CommandPcmVariant
 + \subpage  CommandPhonon

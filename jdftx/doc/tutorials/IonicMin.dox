@@ -1,6 +1,6 @@
 /** \page IonicMin Ionic minimization of a water molecule
 
-Electronic minimization is a good first step, but you probably want to optimize the geometry of the water molecule.  To turn on ionic minimization, add something similar to the following lines to your water.in:
+Electronic minimization is a good first step, but you probably want to optimize the geometry of the water molecule.  To turn on ionic minimization, add something similar to the following lines to your [water.in](IonicMin.html):
 
     #Ionic minimization:
     ionic-minimize \

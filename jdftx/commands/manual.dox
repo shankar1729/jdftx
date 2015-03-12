@@ -1401,21 +1401,21 @@ Syntax:
 
 Description:
 ------------
-Enables self-consistent residual minimization.  If provided, keys adjust SCF parameters. Possible keys and value types are:
-+ eigDiffThreshold          : convergence threshold for the RMS difference in KS eigenvalues between successive iterations
-+ energyDiffThreshold       : convergence threshold for energy difference between successive iterations
-+ history                   : number of past residuals and vectors are kept cached and used in DIIS
-+ maximum-overlap-method    : uses the maximum-overlap method to determine fillings, discards \ref CommandElecFermiFillings "elec-fermi-fillings"
-+ mixedVariable             : whether density or potential will be mixed at each step
-+ mixFraction               : mix fraction for total density / potential (default 0.5)
-+ mixFractionMag            : mix fraction for magnetization density / potential (default 1.5)
-+ nEigSteps                 : number of eigenvalue steps per iteration (if 0, limited by \ref CommandElectronicMinimize "electronic-minimize" nIterations)
-+ nIterations               : maximum iterations (single point calculation if 0)
-+ qKerker                   : wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
-+ qMetric                   : wavevector controlling the DIIS metric (default: 0.8 bohr^-1)
-+ residualThreshold         : convergence threshold for the residual in the mixed variable (density or potential)
-+ single-particle-constraint: enforces the single particle constraint on the exchange
-+ verbose                   : whether the inner eigenvalue solver will print or not
+Enables self-consistent field optimization of electronic state.
+Possible keys and value types to control SCF optimization:
++ energyDiffThreshold: convergence threshold for energy difference between successive iterations
++ history            : number of past residuals that are cached and used for mixing
++ mixFraction        : mix fraction (default 0.5)
++ nIterations        : maximum iterations (single point calculation if 0)
++ qKerker            : wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
++ qMetric            : wavevector controlling the metric for overlaps (default: 0.8 bohr^-1)
++ residualThreshold  : convergence threshold for the residual in the mixed variable
++ eigDiffThreshold      : convergence threshold for the RMS difference in KS eigenvalues between successive iterations
++ maximum-overlap-method: uses the maximum-overlap method to determine fillings, discards \ref CommandElecFermiFillings "elec-fermi-fillings"
++ mixedVariable         : whether density or potential will be mixed at each step
++ mixFractionMag        : mix fraction for magnetization density / potential (default 1.5)
++ nEigSteps             : number of eigenvalue steps per iteration (if 0, limited by \ref CommandElectronicMinimize "electronic-minimize" nIterations)
++ verbose               : whether the inner eigenvalue solver will print or not
 
 Any number of these key-value pairs may be specified in any order.
 
@@ -2850,6 +2850,43 @@ Syntax:
 Description:
 ------------
 Emulate linear response of the dielectric or screening within NonlinearPCM (for debugging purposes only)
+
+Properties:
+-----------
+
+<b>Requires:</b>
+\bigsep (None)
+
+<b>Forbids:</b>
+\bigsep (None)
+
+<b>Allow multiple:</b>\bigsep no
+
+<b>Default:</b>
+\bigsep (None)
+
+Back to: \ref Commands or \ref CommandIndex 
+*/
+
+/** \page CommandPcmNonlinearScf pcm-nonlinear-scf
+Syntax:
+-------
+
+    pcm-nonlinear-scf <key1> <value1> <key2> <value2> ...
+
+Description:
+------------
+Enables self-consistent field optimization for nonlinear PCM fluids.
+Possible keys and value types to control SCF optimization:
++ energyDiffThreshold: convergence threshold for energy difference between successive iterations
++ history            : number of past residuals that are cached and used for mixing
++ mixFraction        : mix fraction (default 0.5)
++ nIterations        : maximum iterations (single point calculation if 0)
++ qKerker            : wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)
++ qMetric            : wavevector controlling the metric for overlaps (default: 0.8 bohr^-1)
++ residualThreshold  : convergence threshold for the residual in the mixed variable
+
+Any number of these key-value pairs may be specified in any order.
 
 Properties:
 -----------
