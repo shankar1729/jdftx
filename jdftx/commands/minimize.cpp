@@ -191,6 +191,9 @@ struct CommandFluidMinimize : public CommandMinimize
 				e.fluidMinParams.nIterations = 400; //override default value (100) in MinimizeParams.h
 				e.fluidMinParams.knormThreshold = (fluidType==FluidSaLSA) ? 1e-12 : 1e-11;
 				break;
+			case FluidNonlinearPCM:
+				e.fluidMinParams.knormThreshold = 1e-11;
+				break;
 			default:;
 		}
 		// Increase the nAlphaAdjustMax to avoid NaN's from hard spehere packing limit of nonlinear ions

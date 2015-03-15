@@ -26,13 +26,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 
 //Utility functions to extract/set the members of a MuEps
-inline ScalarField& getMuPlus(ScalarFieldDataMuEps& X) { return X[0]; }
-inline const ScalarField& getMuPlus(const ScalarFieldDataMuEps& X) { return X[0]; }
-inline ScalarField& getMuMinus(ScalarFieldDataMuEps& X) { return X[1]; }
-inline const ScalarField& getMuMinus(const ScalarFieldDataMuEps& X) { return X[1]; }
-inline VectorField getEps(ScalarFieldDataMuEps& X) { return VectorField(&X[2]); }
-inline const VectorField getEps(const ScalarFieldDataMuEps& X) { return VectorField(&X[2]); }
-inline void setMuEps(ScalarFieldDataMuEps& mueps, ScalarField muPlus, ScalarField muMinus, VectorField eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
+inline ScalarField& getMuPlus(ScalarFieldMuEps& X) { return X[0]; }
+inline const ScalarField& getMuPlus(const ScalarFieldMuEps& X) { return X[0]; }
+inline ScalarField& getMuMinus(ScalarFieldMuEps& X) { return X[1]; }
+inline const ScalarField& getMuMinus(const ScalarFieldMuEps& X) { return X[1]; }
+inline VectorField getEps(ScalarFieldMuEps& X) { return VectorField(&X[2]); }
+inline const VectorField getEps(const ScalarFieldMuEps& X) { return VectorField(&X[2]); }
+inline void setMuEps(ScalarFieldMuEps& mueps, ScalarField muPlus, ScalarField muMinus, VectorField eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
 
 inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEpsSq)
@@ -41,8 +41,12 @@ inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEp
 	return den ? muByEpsSq*G2/(den*den) : 0.;
 }
 
+inline void setMetric(int i, double Gsq, double qMetricSq, double* metric)
+{	metric[i] = qMetricSq ? Gsq / (qMetricSq + Gsq) : 1.;
+}
+
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), pMol(0.), ionNbulk(0.), ionZ(0.), screeningEval(0), dielectricEval(0)
+: PCM(e, fsp), Pulay(fsp.scfParams), pMol(0.), ionNbulk(0.), ionZ(0.), screeningEval(0), dielectricEval(0)
 {
 	const auto& solvent = fsp.solvents[0];
 	pMol = solvent->pMol ? solvent->pMol : solvent->molecule.getDipole().length();
@@ -72,7 +76,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	
 	if(fsp.nonlinearSCF)
 	{	//Initialize lookup tables for SCF version:
-	
+		//--- Dielectric lookup table
 		double dxMapped = 1./512;
 		std::vector<double> samples;
 		for(double xMapped=0.; xMapped<=1.; xMapped+=dxMapped)
@@ -83,7 +87,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 			samples.push_back(dielectricEval->eps_from_x(x)/x);
 		}
 		gLookup.init(0, samples, dxMapped);
-		
+		//--- Screening lookup table
 		if(screeningEval)
 		{
 			double dVmapped = 1./512;
@@ -98,6 +102,10 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 			}
 			xLookup.init(1, samples, dVmapped);
 		}
+		//--- Pulay metric
+		metric = std::make_shared<RealKernel>(gInfo);
+		applyFuncGsq(e.gInfo, setMetric, std::pow(fsp.scfParams.qMetric,2), metric->data);
+		metric->set();
 	}
 	else
 	{	//Initialize preconditioner (for mu channel):
@@ -117,19 +125,25 @@ NonlinearPCM::~NonlinearPCM()
 
 void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	
-	//Initialize state if required:
-	if(!state && !fsp.nonlinearSCF)
-	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM:\n");
-		if(!linearPCM)
+	if(fsp.nonlinearSCF || (!state))
+	{	if(!linearPCM)
 		{	logSuspend();
 			linearPCM = std::make_shared<LinearPCM>(e, fsp);
 			logResume();
 		}
+		logSuspend();
+		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
+		logResume();
+	}
+	
+	//Initialize state if required:
+	if(!state)
+	{	logPrintf("Initializing state of NonlinearPCM using a similar LinearPCM: "); logFlush();
 		FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
 		fpLog = nullLog; //disable iteration log from LinearPCM
-		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
 		linearPCM->minimizeFluid();
 		fpLog = globalLog; //restore usual iteration log
+		logFlush();
 		//Guess nonlinear states based on the electrostatic potential of the linear version:
 		//mu:
 		ScalarField mu;
@@ -150,11 +164,11 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	this->nCavity = I(nCavityTilde + getFullCore());
-
+		
 	updateCavity();
 }
 
-double NonlinearPCM::operator()(const ScalarFieldDataMuEps& state, ScalarFieldDataMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, bool electricOnly) const
+double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarField Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
@@ -235,7 +249,10 @@ double NonlinearPCM::operator()(const ScalarFieldDataMuEps& state, ScalarFieldDa
 }
 
 void NonlinearPCM::minimizeFluid()
-{	minimize(e.fluidMinParams);
+{	if(fsp.nonlinearSCF)
+		Pulay<ScalarFieldTilde>::minimize(compute(0));
+	else
+		Minimizable<ScalarFieldMuEps>::minimize(e.fluidMinParams);
 }
 
 void NonlinearPCM::loadState(const char* filename)
@@ -248,23 +265,23 @@ void NonlinearPCM::saveState(const char* filename) const
 }
 
 double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
-{	ScalarFieldDataMuEps Adiel_state;
+{	ScalarFieldMuEps Adiel_state;
 	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, electricOnly);
 	setExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
 }
 
-void NonlinearPCM::step(const ScalarFieldDataMuEps& dir, double alpha)
-{	axpy(alpha, dir, state);
+void NonlinearPCM::step(const ScalarFieldMuEps& dir, double alpha)
+{	::axpy(alpha, dir, state);
 }
 
-double NonlinearPCM::compute(ScalarFieldDataMuEps* grad)
-{	ScalarFieldDataMuEps gradUnused;
+double NonlinearPCM::compute(ScalarFieldMuEps* grad)
+{	ScalarFieldMuEps gradUnused;
 	return (*this)(state, grad ? *grad : gradUnused);
 }
 
-ScalarFieldDataMuEps NonlinearPCM::precondition(const ScalarFieldDataMuEps& in)
-{	ScalarFieldDataMuEps out;
+ScalarFieldMuEps NonlinearPCM::precondition(const ScalarFieldMuEps& in)
+{	ScalarFieldMuEps out;
 	double dielPrefac = 1./(gInfo.dV * dielectricEval->NT);
 	double ionsPrefac = screeningEval ? 1./(gInfo.dV * screeningEval->NT) : 0.;
 	setMuEps(out,
@@ -292,4 +309,77 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 		FLUID_DUMP(Nplus, "N+");
 		FLUID_DUMP(Nminus, "N-");
 	}
+}
+
+//--------- Interface for Pulay<ScalarFieldTilde> ---------
+
+double NonlinearPCM::cycle(double dEprev, std::vector<double>& extraValues)
+{	//Update epsilon / kappaSq based on current phi:
+	phiToState(false);
+	//Inner linear solve
+	logPrintf("\tInner linear fluid solve: "); logFlush();
+	FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
+	fpLog = nullLog; //disable iteration log from LinearPCM
+	linearPCM->minimizeFluid();
+	fpLog = globalLog; //restore usual iteration log
+	//Update state from new phi:
+	phiToState(true);
+	return compute(0);
+}
+
+
+void NonlinearPCM::readVariable(ScalarFieldTilde& X, FILE* fp) const
+{	nullToZero(X, gInfo);
+	loadRawBinary(X, fp);
+}
+
+void NonlinearPCM::writeVariable(const ScalarFieldTilde& X, FILE* fp) const
+{	saveRawBinary(X, fp);
+}
+
+ScalarFieldTilde NonlinearPCM::getVariable() const
+{	return clone(linearPCM->state);
+}
+
+void NonlinearPCM::setVariable(const ScalarFieldTilde& X)
+{	linearPCM->state = clone(X);
+}
+
+ScalarFieldTilde NonlinearPCM::precondition(const ScalarFieldTilde& X) const
+{	return fsp.scfParams.mixFraction * X;	
+}
+
+ScalarFieldTilde NonlinearPCM::applyMetric(const ScalarFieldTilde& X) const
+{	return (*metric) * X;
+}
+
+void NonlinearPCM::phiToState(bool setState)
+{	//Initialize inputs:
+	const ScalarField phi = I(linearPCM->state);
+	const VectorField Dphi = I(gradient(linearPCM->state));
+	//Prepare outputs:
+	ScalarField epsilon, kappaSq;
+	if(!setState)
+	{	nullToZero(epsilon, gInfo);
+		if(screeningEval)
+			nullToZero(kappaSq, gInfo);
+	}
+	VectorField eps = getEps(state);
+	ScalarField& muPlus = getMuPlus(state);
+	ScalarField& muMinus = getMuMinus(state);
+	//Calculate eps/mu or epsilon/kappaSq as needed:
+	vector3<double*> vecDataUnused(0,0,0); double* dataUnused=0;
+	callPref(dielectricEval->phiToState)(gInfo.nr, Dphi.dataPref(), shape->dataPref(), gLookup, setState,
+		setState ? eps.dataPref() : vecDataUnused,
+		setState ? dataUnused : epsilon->dataPref() );
+	if(screeningEval)
+		callPref(screeningEval->phiToState)(gInfo.nr, phi->dataPref(), shape->dataPref(), xLookup, setState,
+			setState ? muPlus->dataPref() : dataUnused,
+			setState ? muMinus->dataPref() : dataUnused, 
+			setState ? dataUnused : kappaSq->dataPref() );
+	//Save to global state or linearPCM as required:
+	if(setState)
+		setMuEps(state, muPlus, muMinus, eps);
+	else
+		linearPCM->override(epsilon, kappaSq);
 }

@@ -124,7 +124,7 @@ namespace ShapeFunction
 namespace NonlinearPCMeval
 {
 	Screening::Screening(bool linear, double T, double Nion, double Zion, double VhsPlus, double VhsMinus, double epsBulk)
-	: linear(linear), NT(Nion*T), NZ(Nion*Zion),
+	: linear(linear), NT(Nion*T), ZbyT(Zion/T), NZ(Nion*Zion),
 	x0plus(Nion * VhsPlus),
 	x0minus(Nion * VhsMinus),
 	x0(x0plus + x0minus)
@@ -150,9 +150,16 @@ namespace NonlinearPCMeval
 	{	threadLaunch(ScreeningConvertDerivative_sub, N, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s, *this);
 	}
 	
+	void ScreeningPhiToState_sub(size_t iStart, size_t iStop, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.phiToState_calc(i, phi, s, xLookup, setState, muPlus, muMinus, kappaSq);
+	}
+	void Screening::phiToState(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
+	{	threadLaunch(ScreeningPhiToState_sub, N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
+	}
+	
 	
 	Dielectric::Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf)
-	: linear(linear), Np(Nmol * pMol), NT(Nmol * T),
+	: linear(linear), Np(Nmol * pMol), pByT(pMol/T), NT(Nmol * T),
 		alpha(3 - 4*M_PI*Np*pMol/(T*(epsBulk-epsInf))),
 		X((epsInf-1.)*T/(4*M_PI*Np*pMol))
 	{	//Check parameter validity:
@@ -178,4 +185,12 @@ namespace NonlinearPCMeval
 	void Dielectric::convertDerivative(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
 	{	threadLaunch(DielectricConvertDerivative_sub, N, eps, s, A_p, A_eps, A_s, *this);
 	}
+	
+	void DielectricPhiToState_sub(size_t iStart, size_t iStop, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon, const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.phiToState_calc(i, Dphi, s, gLookup, setState, eps, epsilon);
+	}
+	void Dielectric::phiToState(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
+	{	threadLaunch(DielectricPhiToState_sub, N, Dphi, s, gLookup, setState, eps, epsilon, *this);
+	}
+
 }

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_PCM_INTERNAL_H
 
 #include <core/vector3.h>
+#include <electronic/RadialFunction.h>
 
 //----------- Common PCM functions (top level interface not seen by .cu files) ------------
 #ifndef __in_a_cu_file__
@@ -28,7 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include <core/EnergyComponents.h>
 #include <fluid/FluidSolverParams.h>
-#include <electronic/RadialFunction.h>
 
 namespace ShapeFunction
 {
@@ -125,7 +125,7 @@ namespace NonlinearPCMeval
 	struct Screening
 	{
 		bool linear; //!< whether ionic screening is linearized
-		double NT, NZ; //!< where T=temperature, N=bulk ionic concentration, Z=charge (all assumed +/- symmetric)
+		double NT, ZbyT, NZ; //!< where T=temperature, N=bulk ionic concentration, Z=charge (all assumed +/- symmetric)
 		double x0plus, x0minus, x0; //!< anion, cation and total packing fractions
 		
 		Screening(bool linear, double T, double Nion, double Zion, double VhsPlus, double VhsMinus, double epsBulk); //epsBulk is used only for printing screening length
@@ -262,13 +262,40 @@ namespace NonlinearPCMeval
 			}
 			return x;
 		}
+		
+		//! Given shape function s and phi, calculate state mu's if setState=true or effective kappaSq if setState=false
+		__hostanddev__ void phiToState_calc(size_t i, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
+		{	double V = ZbyT * phi[i];
+			if(!setState)
+			{	//Avoid V=0 in calculating kappaSq below
+				if(fabs(V) < -1e-7)
+					V = copysign(1e-7, V);
+			}
+			double twoCbrtV= 2.*pow(fabs(V), 1./3);
+			double Vmapped = copysign(twoCbrtV / (1. + sqrt(1. + twoCbrtV*twoCbrtV)), V);
+			double x = 1. - xLookup(1.+Vmapped);
+			double f_x; fHS(x, f_x); //hard sphere potential
+			double logEtaPlus = -V - f_x*x0plus;
+			double logEtaMinus = +V - f_x*x0minus;
+			if(setState)
+			{	muPlus[i] = logEtaPlus;
+				muMinus[i] = -logEtaMinus;
+			}
+			else
+				kappaSq[i] = (4*M_PI)*s[i]*(NZ*ZbyT)*(exp(logEtaMinus) - exp(logEtaPlus))/V;
+		}
+		void phiToState(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const;
+		#ifdef GPU_ENABLED
+		void phiToState_gpu(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const;
+		#endif
+
 	};
 	
 	//!Helper class for dielectric portion of NonlinearPCM
 	struct Dielectric
 	{
 		bool linear; //!< whether dielectric is linearized
-		double Np, NT; //!< N*p, p/T, N*T and N*chi where N is molecular density, p is molecular dipole and chi is molecular polarizability
+		double Np, pByT, NT; //!< N*p, p/T and N*T where N is molecular density and p is molecular dipole
 		double alpha, X; //!< dipole correlation factor and chi*T/p^2 where chi is the molecular susceptibility
 		
 		Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf);
@@ -366,6 +393,20 @@ namespace NonlinearPCMeval
 			return eps;
 		}
 		
+		//! Given shape function s and gradient of phi Dphi, calculate state vector eps if setState=true or effective epsilon if setState=false
+		__hostanddev__ void phiToState_calc(size_t i, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
+		{	vector3<> xVec = -pByT * loadVector(Dphi, i);
+			double x = xVec.length();
+			double g = gLookup(x/(1.+x));
+			if(setState)
+				storeVector(g * xVec, eps,i);
+			else
+				epsilon[i] = 1. + (4*M_PI)*s[i]*(Np*pByT)*((g-1.)/alpha + X);
+		}
+		void phiToState(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
+		#ifdef GPU_ENABLED
+		void phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
+		#endif
 	};
 }
 

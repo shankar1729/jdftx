@@ -24,17 +24,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <core/VectorField.h>
 #include <core/Minimize.h>
-
+#include <core/Pulay.h>
 
 namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward declaration of helper classes
 
-typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldDataMuEps;
+typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldMuEps;
 
 
-class NonlinearPCM : public PCM, public Minimizable<ScalarFieldDataMuEps>
+class NonlinearPCM : public PCM, public Minimizable<ScalarFieldMuEps>, public Pulay<ScalarFieldTilde>
 {
 public:
-	ScalarFieldDataMuEps state; //!< State of the solver = the total electrostatic potential
+	ScalarFieldMuEps state; //!< State of the solver = the total electrostatic potential
 
 	//! See createFluidSolver()
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
@@ -48,12 +48,12 @@ public:
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	//! Compute gradient and free energy (with optional outputs)
-	double operator()(const ScalarFieldDataMuEps& state, ScalarFieldDataMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, bool electricOnly=false) const;
+	double operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, bool electricOnly=false) const;
 
 	// Interface for Minimizable:
-	void step(const ScalarFieldDataMuEps& dir, double alpha);
-	double compute(ScalarFieldDataMuEps* grad);
-	ScalarFieldDataMuEps precondition(const ScalarFieldDataMuEps& in);
+	void step(const ScalarFieldMuEps& dir, double alpha);
+	double compute(ScalarFieldMuEps* grad);
+	ScalarFieldMuEps precondition(const ScalarFieldMuEps& in);
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
@@ -63,9 +63,25 @@ private:
 	double pMol, ionNbulk, ionZ;
 	NonlinearPCMeval::Screening* screeningEval; //!< Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
-	RadialFunctionG preconditioner;
+	RadialFunctionG preconditioner; //!< preconditioner for minimizer version
+	std::shared_ptr<RealKernel> metric; //!< Pulay metric for SCF version
 	RadialFunctionG gLookup, xLookup; //!< lookup tables for transcendental solutions involved in the dielectric and ionic SCF method
 	std::shared_ptr<class LinearPCM> linearPCM;
+
+protected:
+	//Interface for Pulay<ScalarFieldTilde>
+	double cycle(double dEprev, std::vector<double>& extraValues);
+	void axpy(double alpha, const ScalarFieldTilde& X, ScalarFieldTilde& Y) const { ::axpy(alpha, X, Y); }
+	double dot(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const { return ::dot(X, Y); }
+	size_t variableSize() const { return gInfo.nG * sizeof(complex); }
+	void readVariable(ScalarFieldTilde& X, FILE* fp) const;
+	void writeVariable(const ScalarFieldTilde& X, FILE* fp) const;
+	ScalarFieldTilde getVariable() const;
+	void setVariable(const ScalarFieldTilde&);
+	ScalarFieldTilde precondition(const ScalarFieldTilde&) const;
+	ScalarFieldTilde applyMetric(const ScalarFieldTilde&) const;
+private:
+	void phiToState(bool setState); //!< update state if setState=true and epsilon/kappaSq in linearPCM if setState=false from the current phi
 };
 
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H

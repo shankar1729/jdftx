@@ -237,7 +237,14 @@ struct CommandPcmNonlinearScf: public CommandPulay
 	
 	void process(ParamList& pl, Everything& e)
 	{	e.eVars.fluidParams.nonlinearSCF = true;
-		CommandPulay::process(pl, e, e.eVars.fluidParams.scfParams); //only base class parameters
+		PulayParams& pp = e.eVars.fluidParams.scfParams;
+		pp.energyLabel = "Adiel";
+		pp.linePrefix = "NonlinearFluidSCF: ";
+		pp.energyFormat = "%+.15lf";
+		pp.energyDiffThreshold = 1e-7;
+		pp.nIterations = 20;
+		pp.fpLog = globalLog;
+		CommandPulay::process(pl, e, pp); //only base class parameters
 	}
 	
 	void process_sub(string keyStr, ParamList& pl, Everything& e)

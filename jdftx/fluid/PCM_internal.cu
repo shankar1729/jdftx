@@ -94,6 +94,16 @@ namespace NonlinearPCMeval
 	}
 	
 	__global__
+	void ScreeningPhiToState_kernel(size_t N, const double* phi, const double* s, const RadialFunctionG xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.phiToState_calc(i, phi, s, xLookup, setState, muPlus, muMinus, kappaSq);
+	}
+	void Screening::phiToState_gpu(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
+	{	GpuLaunchConfig1D glc(ScreeningPhiToState_kernel, N);
+		ScreeningPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
+		gpuErrorCheck();
+	}
+	
+	__global__
 	void DielectricFreeEnergy_kernel(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s, const Dielectric eval)
 	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, eps, s, p, A, A_eps, A_s);
 	}
@@ -110,6 +120,16 @@ namespace NonlinearPCMeval
 	void Dielectric::convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
 	{	GpuLaunchConfig1D glc(DielectricConvertDerivative_kernel, N);
 		DielectricConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, eps, s, A_p, A_eps, A_s, *this);
+		gpuErrorCheck();
+	}
+
+	__global__
+	void DielectricPhiToState_kernel(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG gLookup, bool setState, vector3<double*> eps, double* epsilon, const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.phiToState_calc(i, Dphi, s, gLookup, setState, eps, epsilon);
+	}
+	void Dielectric::phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
+	{	GpuLaunchConfig1D glc(DielectricPhiToState_kernel, N);
+		DielectricPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, Dphi, s, gLookup, setState, eps, epsilon, *this);
 		gpuErrorCheck();
 	}
 }
