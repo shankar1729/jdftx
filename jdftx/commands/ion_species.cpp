@@ -142,10 +142,10 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 			for(const string& prefix: prefixes)
 			{	//Use ls to get a list of matching files:
 				FILE* pp = popen(("ls " + prefix + pattern + " 2>/dev/null").c_str(), "r");
-				const int bufLen=1024; char buf[bufLen];
+				const int bufLen=1024; std::vector<char> buf(bufLen);
 				while(!feof(pp))
-				{	fgets(buf, bufLen, pp);
-					string fname(buf);
+				{	fgets(buf.data(), bufLen, pp);
+					string fname(buf.data());
 					if(fname.length())
 					{	if(fname.back()=='\n') fname.erase(fname.length()-1);
 						validFilenames[i].push_back(fname);
