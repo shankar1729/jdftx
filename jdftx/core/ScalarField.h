@@ -83,10 +83,10 @@ struct FieldData : private ManagedMemory
 	void copyData(const FieldData& other); //!< copy data and scale (used by clone())
 
 	//Inter-process communication (expose corresponding ManagedMemory functions):
-	inline void send(int dest, int tag=0) const { ManagedMemory::send(dest,tag); } //!< send to another process
-	inline void recv(int src, int tag=0) { ManagedMemory::recv(src,tag); } //!< receive from another process
-	inline void bcast(int root=0) { ManagedMemory::bcast(root); } //!< synchronize across processes (using value on specified root process)
-	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { ManagedMemory::allReduce(op, safeMode, isReal); } //!< apply all-to-all reduction
+	inline void send(int dest, int tag=0) const { absorbScale(); ManagedMemory::send(dest,tag); } //!< send to another process
+	inline void recv(int src, int tag=0) { absorbScale(); ManagedMemory::recv(src,tag); } //!< receive from another process
+	inline void bcast(int root=0) { absorbScale(); ManagedMemory::bcast(root); } //!< synchronize across processes (using value on specified root process)
+	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { absorbScale(); ManagedMemory::allReduce(op, safeMode, isReal); } //!< apply all-to-all reduction
 
 protected:
 	struct PrivateTag {}; //!< Used to prevent direct use of ScalarField constructors, and force the shared_ptr usage
