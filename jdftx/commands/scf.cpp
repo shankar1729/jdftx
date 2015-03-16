@@ -184,7 +184,7 @@ struct CommandElectronicScf: public CommandPulay
 		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(sp.mixedVariable));
 		logPrintf(" \\\n\tverbose\t%s", boolMap.getString(sp.verbose));
 		PRINT(mixFractionMag, %lg)
-		if(sp.MOMenabled) logPrintf(" \\\n\tmaximum-overlap-method");
+		if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod) logPrintf(" \\\n\tmaximum-overlap-method");
 		#undef PRINT
 	}
 }

@@ -39,7 +39,6 @@ struct SCFparams : public PulayParams
 	
 	bool verbose; //!< Whether the inner eigensolver will print progress
 	double mixFractionMag;  //!< Mixing fraction for magnetization density / potential
-	bool MOMenabled; //!< Whether to use the maximum-overlap method or not
 	
 	struct EigenShift
 	{	int q; //!< Quantum number
@@ -55,7 +54,6 @@ struct SCFparams : public PulayParams
 		mixedVariable = MV_Potential;
 		verbose = false;
 		mixFractionMag = 1.5;
-		MOMenabled = false;
 	}
 };
 
