@@ -48,7 +48,9 @@ public:
 	virtual bool needsSigma() const=0; //!< return true if density gradients are used
 	virtual bool needsLap() const=0; //!< return true if laplacian of density is used (MGGA)
 	virtual bool needsTau() const=0; //!< return true if orbital kinetic energy density is used (MGGA)
-	virtual bool isKinetic() const=0; //!< whether this is a kinetic energy functional
+	virtual bool hasExchange() const=0; //!< whether this functional includes exchange
+	virtual bool hasCorrelation() const=0; //!< whether this functional includes correlation
+	virtual bool hasKinetic() const=0; //!< whether this functional includes kinetic energy
 	virtual bool hasEnergy() const=0; //!< whether total energy is meaningful for this functional
 	
 	//! Compute exchange-correlation energy densities and optionally gradients if E_n[0] is non-null.

@@ -194,7 +194,7 @@ public:
 	bool needsSigma() const { return funcUnpolarized.info->family != XC_FAMILY_LDA; } //!< gradients needed for GGA and HYB_GGA
 	bool needsLap() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs may need laplacian
 	bool needsTau() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs need KE density
-	bool isKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
+	bool hasKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
 	bool hasEnergy() const { return true; }
 	double exxScale() const { return funcUnpolarized.cam_alpha; }
 	double exxOmega() const { return funcUnpolarized.cam_omega; }
@@ -530,8 +530,25 @@ template<typename T> std::vector<const typename T::DataType*> constDataPref(cons
 	return xData;
 }
 
+//Return whether a functional should be included.
+//Die if the masks are incompatible: eg. requesting X only from a combined XC functional
+template<typename Func> bool shouldInclude(const std::shared_ptr<Func>& functional, const IncludeTXC& includeTXC)
+{	bool T = functional->hasKinetic();
+	bool X = functional->hasExchange();
+	bool C = functional->hasCorrelation();
+	bool hasNeeded = (includeTXC.T && T) || (includeTXC.X && X) || (includeTXC.C && C);
+	bool hasUnneeded = (!includeTXC.T && T) || (!includeTXC.X && X) || (!includeTXC.C && C);
+	if(hasNeeded && hasUnneeded)
+	{	string combination, spacer;
+		if(T) { combination += spacer + " kinetic"; spacer="-"; }
+		if(X) { combination += spacer + " exchange"; spacer="-"; }
+		if(C) { combination += spacer + " correlation"; spacer="-"; }
+		die("ExCorr cannot evaluate only some parts of combined %s functional.\n", combination.c_str());
+	}
+	return hasNeeded;
+}
 
-double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool includeKinetic,
+double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC,
 		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
@@ -557,14 +574,14 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
 	for(auto func: functionals->internal)
-		if(includeKinetic || !func->isKinetic())
+		if(shouldInclude(func, includeTXC))
 		{	needsSigma |= func->needsSigma();
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
 		}
 	#ifdef LIBXC_ENABLED
 	for(auto func: functionals->libXC)
-		if(includeKinetic || !func->isKinetic())
+		if(shouldInclude(func, includeTXC))
 		{	needsSigma |= func->needsSigma();
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
@@ -692,7 +709,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool
 		//Calculate all the required functionals:
 		watchFunc.start();
 		for(auto func: functionals->libXC)
-			if(includeKinetic || !func->isKinetic())
+			if(shouldInclude(func, includeTXC))
 				func->evaluate(nCount, gInfo.nr, nData, sigmaData, lapData, tauData,
 					eData, E_nData, E_sigmaData, E_lapData, E_tauData);
 		watchFunc.stop();
@@ -719,7 +736,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool
 	//---------------- Compute internal functionals ----------------
 	watchFunc.start();
 	for(auto func: functionals->internal)
-		if(includeKinetic || !func->isKinetic())
+		if(shouldInclude(func, includeTXC))
 			func->evaluateSub(gInfo.irStart, gInfo.irStop,
 				constDataPref(nCapped), constDataPref(sigma), constDataPref(lap), constDataPref(tau),
 				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
@@ -815,11 +832,11 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, bool
 }
 
 //Unpolarized wrapper to above function:
-double ExCorr::operator()(const ScalarField& n, ScalarField* Vxc, bool includeKinetic,
+double ExCorr::operator()(const ScalarField& n, ScalarField* Vxc, IncludeTXC includeTXC,
 		const ScalarField* tau, ScalarField* Vtau) const
 {	ScalarFieldArray VxcArr(1), tauArr(1), VtauArr(1);
 	if(tau) tauArr[0] = *tau;
-	double Exc =  (*this)(ScalarFieldArray(1, n), Vxc ? &VxcArr : 0, includeKinetic,
+	double Exc =  (*this)(ScalarFieldArray(1, n), Vxc ? &VxcArr : 0, includeTXC,
 		tau ? &tauArr :0, Vtau ? &VtauArr : 0);
 	if(Vxc) *Vxc = VxcArr[0];
 	if(Vtau) *Vtau = VtauArr[0];
@@ -835,14 +852,14 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
 	for(auto func: functionals->internal)
-		if(!func->isKinetic())
+		if(!func->hasKinetic())
 		{	needsSigma |= func->needsSigma();
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
 		}
 	#ifdef LIBXC_ENABLED
 	for(auto func: functionals->libXC)
-		if(!func->isKinetic())
+		if(!func->hasKinetic())
 		{	needsSigma |= func->needsSigma();
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
@@ -900,13 +917,13 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 		#ifdef LIBXC_ENABLED
 		//Compute LibXC functionals:
 		for(auto func: functionals->libXC)
-			if(!func->isKinetic())
+			if(!func->hasKinetic())
 				func->evaluate(1, gInfo.nr, nData[0], sigmaData[0], lapData[0], tauData[0],
 					eData, e_nData[0], e_sigmaData[0], e_lapData[0], e_tauData[0]);
 		#endif
 		//Compute internal functionals:
 		for(auto func: functionals->internal)
-			if(!func->isKinetic())
+			if(!func->hasKinetic())
 				func->evaluate(gInfo.nr, nData, sigmaData, lapData, tauData,
 					eData, e_nData, e_sigmaData, e_lapData, e_tauData);
 	}

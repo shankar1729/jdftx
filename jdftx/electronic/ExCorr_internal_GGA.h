@@ -48,7 +48,30 @@ public:
 	bool needsSigma() const { return true; }
 	bool needsLap() const { return false; }
 	bool needsTau() const { return false; }
-	bool isKinetic() const
+	bool hasExchange() const
+	{	switch(variant)
+		{	case GGA_X_PBE:
+			case GGA_X_PBEsol:
+			case GGA_X_PW91:
+			case GGA_X_wPBE_SR:
+			case GGA_X_GLLBsc:
+			case GGA_X_LB94:
+				return true;
+			default:
+				return false;
+		}
+	}
+	bool hasCorrelation() const
+	{	switch(variant)
+		{	case GGA_C_PBE:
+			case GGA_C_PBEsol:
+			case GGA_C_PW91:
+				return true;
+			default:
+				return false;
+		}
+	}
+	bool hasKinetic() const
 	{	switch(variant)
 		{	case GGA_KE_VW:
 			case GGA_KE_PW91:

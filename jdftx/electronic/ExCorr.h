@@ -60,6 +60,14 @@ enum KineticType
 	KineticPW91 //!< PW91 GGA kinetic energy
 };
 
+//! Which components to include in the results of ExCorr::operator()
+struct IncludeTXC
+{	bool T; //!< kinetic
+	bool X; //!< exchange
+	bool C; //!< correlation
+	
+	IncludeTXC(bool T=false, bool X=true, bool C=true) : T(T), X(X), C(C) {} //!< defaults to exchange-correlation without kinetic
+};
 
 class ExCorr
 {
@@ -68,20 +76,20 @@ public:
 	void setup(const Everything&); //!< Initialize
 	string getName() const; //!< Get a description of the DFT functional
 	
-	//! Compute the exchange-correlation energy (and optionally gradient) for a (spin) density n
-	//! Include kinetic energy if includeKinetic is set to true
+	//! Compute the exchange-correlation energy (and optionally gradient) for a (spin) density n.
+	//! includeTXC selects which components to include in result (XC without kinetic by default).
 	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
 	//! and the corresponding gradient will be returned in Vtau if non-null
 	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
-	double operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc=0, bool includeKinetic=false,
+	double operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc=0, IncludeTXC includeTXC=IncludeTXC(),
 		const ScalarFieldArray* tau=0, ScalarFieldArray* Vtau=0) const;
 	
 	//! Compute the exchange-correlation energy (and optionally gradient) for a unpolarized density n
-	//! Include kinetic energy if includeKinetic is set to true
+	//! includeTXC selects which components to include in result (XC without kinetic by default).
 	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
 	//! and the corresponding gradient will be returned in Vtau if non-null.
 	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
-	double operator()(const ScalarField& n, ScalarField* Vxc=0, bool includeKinetic=false,
+	double operator()(const ScalarField& n, ScalarField* Vxc=0, IncludeTXC includeTXC=IncludeTXC(),
 		const ScalarField* tau=0, ScalarField* Vtau=0) const;
 
 	double exxFactor() const; //!< retrieve the exact exchange scale factor (0 if no exact exchange)

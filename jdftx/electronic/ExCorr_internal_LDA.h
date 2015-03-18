@@ -44,7 +44,28 @@ public:
 	bool needsSigma() const { return false; }
 	bool needsLap() const { return false; }
 	bool needsTau() const { return false; }
-	bool isKinetic() const
+	bool hasExchange() const
+	{	switch(variant)
+		{	case LDA_X_Slater:
+			case LDA_XC_Teter:
+				return true;
+			default:
+				return false;
+		}
+	}
+	bool hasCorrelation() const
+	{	switch(variant)
+		{	case LDA_C_PZ:
+			case LDA_C_PW:
+			case LDA_C_PW_prec:
+			case LDA_C_VWN:
+			case LDA_XC_Teter:
+				return true;
+			default:
+				return false;
+		}
+	}
+	bool hasKinetic() const
 	{	switch(variant)
 		{	case LDA_KE_TF:
 				return true;
