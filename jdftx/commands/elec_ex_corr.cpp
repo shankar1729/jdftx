@@ -385,15 +385,14 @@ struct CommandElecExCorr : public Command
 		format = "<functional>";
 		comments = "Specify the exchange-correlation functional, where <functional> is one of:"
 			+ addDescriptions(exCorrTypeMap.optionList(), linkDescription(exCorrTypeMap, exCorrDescriptionMap))
-			+ ".\n\nNote that lda is an alias for lda-pz, and gga for gga-pbe.\n";
+			+ ".\n\nNote that lda is an alias for lda-pz, and gga for gga-pbe.";
 		hasDefault = true;
 		emptyParamError = "   eXchange/Correlation functional(s) must be specified.";
 		
 		#ifdef LIBXC_ENABLED
 		format += "\n\t| <funcX> <funcC>\n\t| <funcXC>";
-		comments +=
-			"The second and third lines use eXchange/Correlation functionals from libXC\n"
-			"(the internal threaded/gpu implementations above are usually much faster).\n"
+		comments += "\n\n"
+			"The second and third lines use eXchange/Correlation functionals from libXC.\n"
 			"Here, <funcX> is one of:"
 			+ addDescriptions(xcMap_X.optionList(), getLibXCdescription_X)
 			+ ",\n\n<funcC> is one of:"

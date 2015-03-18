@@ -1022,6 +1022,8 @@ Syntax:
 -------
 
     elec-ex-corr <functional>
+	| <funcX> <funcC>
+	| <funcXC>
 
 Description:
 ------------
@@ -1047,7 +1049,240 @@ Specify the exchange-correlation functional, where &lt;functional&gt; is one of:
 + pot-LB94    : van Leeuwen-Baerends model potential (no total energy).
 
 Note that lda is an alias for lda-pz, and gga for gga-pbe.
-Additional functionals can be enabled by compiling with LibXC support.
+
+The second and third lines use eXchange/Correlation functionals from libXC.
+Here, &lt;funcX&gt; is one of:
++ gga-x-2d-b86          : Becke 86 in 2D
++ gga-x-2d-b86-mgc      : Becke 86 with modified gradient correction for 2D
++ gga-x-2d-b88          : Becke 88
++ gga-x-2d-pbe          : Perdew, Burke & Ernzerhof in 2D
++ gga-x-airy            : Constantin et al based on the Airy gas
++ gga-x-am05            : Armiento & Mattsson 05
++ gga-x-apbe            : mu fixed from the semiclassical neutral atom
++ gga-x-b86             : Becke 86
++ gga-x-b86-mgc         : Becke 86 with modified gradient correction
++ gga-x-b88             : Becke 88
++ gga-x-bayesian        : Bayesian best fit for the enhancement factor
++ gga-x-bpccac          : BPCCAC (GRAC for the energy)
++ gga-x-c09x            : C09x to be used with the VdW of Rutgers-Chalmers
++ gga-x-dk87-r1         : dePristo & Kress 87 version R1
++ gga-x-dk87-r2         : dePristo & Kress 87 version R2
++ gga-x-ft97-a          : Filatov & Thiel 97 (version A)
++ gga-x-ft97-b          : Filatov & Thiel 97 (version B)
++ gga-x-g96             : Gill 96
++ gga-x-herman          : Herman Xalphabeta GGA
++ gga-x-hjs-b88         : HJS screened exchange B88 version
++ gga-x-hjs-b97x        : HJS screened exchange B97x version
++ gga-x-hjs-pbe         : HJS screened exchange PBE version
++ gga-x-hjs-pbe-sol     : HJS screened exchange PBE_SOL version
++ gga-x-htbs            : Haas, Tran, Blaha, and Schwarz
++ gga-x-ityh            : Short-range recipe for exchange GGA functionals
++ gga-x-kt1             : Keal and Tozer, version 1
++ gga-x-lag             : Local Airy Gas
++ gga-x-lb              : van Leeuwen & Baerends
++ gga-x-lbm             : van Leeuwen & Baerends modified
++ gga-x-lg93            : Lacks & Gordon 93
++ gga-x-mb88            : Modified Becke 88 for proton transfer
++ gga-x-mpbe            : Adamo & Barone modification to PBE
++ gga-x-mpw91           : mPW91 of Adamo & Barone
++ gga-x-ol2             : Exchange form based on Ou-Yang and Levy v.2
++ gga-x-optb88-vdw      : opt-Becke 88 for vdW
++ gga-x-optpbe-vdw      : Reparametrized PBE for vdW
++ gga-x-optx            : Handy & Cohen OPTX 01
++ gga-x-pbe             : Perdew, Burke & Ernzerhof
++ gga-x-pbe-jsjr        : Reparametrized PBE by Pedroza, Silva & Capelle
++ gga-x-pbe-r           : Revised PBE from Zhang & Yang
++ gga-x-pbe-sol         : Perdew, Burke & Ernzerhof SOL
++ gga-x-pbea            : Madsen 07
++ gga-x-pbek1-vdw       : Reparametrized PBE for vdW
++ gga-x-pw86            : Perdew & Wang 86
++ gga-x-pw91            : Perdew & Wang 91
++ gga-x-rge2            : Regularized PBE
++ gga-x-rpbe            : Hammer, Hansen, and Nørskov
++ gga-x-rpw86           : Refitted Perdew & Wang 86
++ gga-x-sogga           : Second-order generalized gradient approximation
++ gga-x-sogga11         : Second-order generalized gradient approximation 2011
++ gga-x-ssb             : Swarta, Sola and Bickelhaupt
++ gga-x-ssb-d           : Swarta, Sola and Bickelhaupt dispersion
++ gga-x-ssb-sw          : Swarta, Sola and Bickelhaupt correction to PBE
++ gga-x-wc              : Wu & Cohen
++ gga-x-wpbeh           : short-range part of the PBE (default w=0 gives PBEh)
++ gga-x-xpbe            : Extended PBE by Xu & Goddard III
++ lda-x                 : Slater exchange
++ lda-x-1d              : Exchange in 1D
++ lda-x-2d              : Slater exchange
++ mgga-x-2d-prhg07      : Pittalis-Rasanen-Helbig-Gross 2007
++ mgga-x-2d-prhg07-prp10: PRHG07 with Pittalis-Rasanen-Proetto 2010 correction
++ mgga-x-bj06           : Becke & Johnson 06
++ mgga-x-br89           : Becke-Roussel 89
++ mgga-x-gvt4           : GVT4 (X part of VSXC)
++ mgga-x-lta            : Local tau approximation
++ mgga-x-m05            : M05 functional of Minnesota
++ mgga-x-m05-2x         : M05-2X functional of Minnesota
++ mgga-x-m06            : M06 functional of Minnesota
++ mgga-x-m06-2x         : M06-2X functional of Minnesota
++ mgga-x-m06-hf         : M06-HF functional of Minnesota
++ mgga-x-m06-l          : M06-Local functional of Minnesota
++ mgga-x-m08-hx         : M08-HX functional of Minnesota
++ mgga-x-m08-so         : M08-SO functional of Minnesota
++ mgga-x-pkzb           : Perdew, Kurth, Zupan, and Blaha
++ mgga-x-revtpss        : revised Tao, Perdew, Staroverov & Scuseria
++ mgga-x-rpp09          : Rasanen, Pittalis & Proetto 09
++ mgga-x-tau-hcth       : tau-HCTH
++ mgga-x-tb09           : Tran & Blaha 09
++ mgga-x-tpss           : Tao, Perdew, Staroverov & Scuseria,
+
+&lt;funcC&gt; is one of:
++ gga-c-am05     : Armiento & Mattsson 05
++ gga-c-apbe     : mu fixed from the semiclassical neutral atom
++ gga-c-ft97     : Filatov & Thiel correlation
++ gga-c-lm       : Langreth & Mehl
++ gga-c-lyp      : Lee, Yang & Parr
++ gga-c-op-b88   : one-parameter progressive functional (B88 version)
++ gga-c-op-g96   : one-parameter progressive functional (G96 version)
++ gga-c-op-pbe   : one-parameter progressive functional (PBE version)
++ gga-c-op-xalpha: one-parameter progressive functional (Xalpha version)
++ gga-c-optc     : Optimized correlation functional of Cohen and Handy
++ gga-c-p86      : Perdew 86
++ gga-c-pbe      : Perdew, Burke & Ernzerhof
++ gga-c-pbe-jrgx : Reparametrized PBE by Pedroza, Silva & Capelle
++ gga-c-pbe-sol  : Perdew, Burke & Ernzerhof SOL
++ gga-c-pw91     : Perdew & Wang 91
++ gga-c-revtca   : Tognetti, Cortona, Adamo (revised)
++ gga-c-rge2     : Regularized PBE
++ gga-c-sogga11  : Second-order generalized gradient approximation 2011
++ gga-c-sogga11-x: To be used with hyb_gga_x_SOGGA11-X
++ gga-c-spbe     : PBE correlation to be used with the SSB exchange
++ gga-c-tca      : Tognetti, Cortona, Adamo
++ gga-c-wi       : Wilson & Ivanov
++ gga-c-wi0      : Wilson & Ivanov initial version
++ gga-c-wl       : Wilson & Levy
++ gga-c-xpbe     : Extended PBE by Xu & Goddard III
++ lda-c-1d-csc   : Casula, Sorella & Senatore
++ lda-c-1d-loos  : P-F Loos correlation LDA
++ lda-c-2d-amgb  : AMGB (for 2D systems)
++ lda-c-2d-prm   : PRM (for 2D systems)
++ lda-c-gl       : Gunnarson & Lundqvist
++ lda-c-gombas   : Gombas
++ lda-c-hl       : Hedin & Lundqvist
++ lda-c-ml1      : Modified LSD (version 1) of Proynov and Salahub
++ lda-c-ml2      : Modified LSD (version 2) of Proynov and Salahub
++ lda-c-ob-pw    : Ortiz & Ballone (PW parametrization)
++ lda-c-ob-pz    : Ortiz & Ballone (PZ parametrization)
++ lda-c-pw       : Perdew & Wang
++ lda-c-pw-mod   : Perdew & Wang (modified)
++ lda-c-pw-rpa   : Perdew & Wang (fit to the RPA energy)
++ lda-c-pz       : Perdew & Zunger
++ lda-c-pz-mod   : Perdew & Zunger (Modified)
++ lda-c-rc04     : Ragot-Cortona
++ lda-c-rpa      : Random Phase Approximation (RPA)
++ lda-c-vbh      : von Barth & Hedin
++ lda-c-vwn      : Vosko, Wilk & Nusair (VWN5)
++ lda-c-vwn-1    : Vosko, Wilk & Nusair (VWN1)
++ lda-c-vwn-2    : Vosko, Wilk & Nusair (VWN2)
++ lda-c-vwn-3    : Vosko, Wilk & Nusair (VWN3)
++ lda-c-vwn-4    : Vosko, Wilk & Nusair (VWN4)
++ lda-c-vwn-rpa  : Vosko, Wilk & Nusair (VWN5_RPA)
++ lda-c-wigner   : Wigner
++ lda-c-xalpha   : Slater's Xalpha
++ mgga-c-bc95    : Becke correlation 95
++ mgga-c-m05     : M05 functional of Minnesota
++ mgga-c-m05-2x  : M05-2X functional of Minnesota
++ mgga-c-m06     : M06 functional of Minnesota
++ mgga-c-m06-2x  : M06-2X functional of Minnesota
++ mgga-c-m06-hf  : M06-HF functional of Minnesota
++ mgga-c-m06-l   : M06-Local functional of Minnesota
++ mgga-c-pkzb    : Perdew, Kurth, Zupan, and Blaha
++ mgga-c-tpss    : Tao, Perdew, Staroverov & Scuseria
++ mgga-c-vsxc    : VSXC (correlation part),
+
+and &lt;funcXC&gt; is one of:
++ gga-xc-b97                : Becke 97
++ gga-xc-b97-1              : Becke 97-1
++ gga-xc-b97-2              : Becke 97-2
++ gga-xc-b97-3              : Becke 97-3
++ gga-xc-b97-d              : Becke 97-D
++ gga-xc-b97-gga1           : Becke 97 GGA-1
++ gga-xc-b97-k              : Boese-Martin for Kinetics
++ gga-xc-edf1               : EDF1
++ gga-xc-hcth-120           : HCTH/120
++ gga-xc-hcth-147           : HCTH/147
++ gga-xc-hcth-407           : HCTH/407
++ gga-xc-hcth-407p          : HCTH/407+
++ gga-xc-hcth-93            : HCTH/93
++ gga-xc-hcth-a             : HCTH-A
++ gga-xc-hcth-p14           : HCTH p=1/4
++ gga-xc-hcth-p76           : HCTH p=1/4
++ gga-xc-kt2                : Keal and Tozer, version 2
++ gga-xc-mohlyp             : Functional for organometallic chemistry
++ gga-xc-mohlyp2            : Functional for barrier heights
++ gga-xc-mpwlyp1w           : mPWLYP1w
++ gga-xc-pbe1w              : PBE1W
++ gga-xc-pbelyp1w           : PBELYP1W
++ gga-xc-sb98-1a            : SB98 (1a)
++ gga-xc-sb98-1b            : SB98 (1b)
++ gga-xc-sb98-1c            : SB98 (1c)
++ gga-xc-sb98-2a            : SB98 (2a)
++ gga-xc-sb98-2b            : SB98 (2b)
++ gga-xc-sb98-2c            : SB98 (2c)
++ gga-xc-th-fc              : Tozer and Handy v. FC
++ gga-xc-th-fcfo            : Tozer and Handy v. FCFO
++ gga-xc-th-fco             : Tozer and Handy v. FCO
++ gga-xc-th-fl              : Tozer and Handy v. FL
++ gga-xc-th1                : Tozer and Handy v. 1
++ gga-xc-th2                : Tozer and Handy v. 2
++ gga-xc-th3                : Tozer and Handy v. 3
++ gga-xc-th4                : Tozer and Handy v. 4
++ gga-xc-xlyp               : XLYP
++ hyb-gga-xc-b1lyp          : B1LYP
++ hyb-gga-xc-b1pw91         : B1PW91
++ hyb-gga-xc-b1wc           : B1WC
++ hyb-gga-xc-b3lyp          : B3LYP
++ hyb-gga-xc-b3p86          : B3P86
++ hyb-gga-xc-b3pw91         : The original (ACM, B3PW91) hybrid of Becke
++ hyb-gga-xc-b97            : Becke 97
++ hyb-gga-xc-b97-1          : Becke 97-1
++ hyb-gga-xc-b97-2          : Becke 97-2
++ hyb-gga-xc-b97-3          : Becke 97-3
++ hyb-gga-xc-b97-k          : Boese-Martin for Kinetics
++ hyb-gga-xc-bhandh         : BHandH
++ hyb-gga-xc-bhandhlyp      : BHandHLYP
++ hyb-gga-xc-cam-b3lyp      : CAM version of B3LYP
++ hyb-gga-xc-hjs-b88        : HJS hybrid screened exchange B88 version
++ hyb-gga-xc-hjs-b97x       : HJS hybrid screened exchange B97x version
++ hyb-gga-xc-hjs-pbe        : HJS hybrid screened exchange PBE version
++ hyb-gga-xc-hjs-pbe-sol    : HJS hybrid screened exchange PBE_SOL version
++ hyb-gga-xc-hse03          : HSE03
++ hyb-gga-xc-hse06          : HSE06
++ hyb-gga-xc-mb3lyp-rc04    : B3LYP with RC04 LDA
++ hyb-gga-xc-mpw1k          : mPW1K
++ hyb-gga-xc-mpw1pw         : mPW1PW
++ hyb-gga-xc-mpw3lyp        : MPW3LYP
++ hyb-gga-xc-mpw3pw         : MPW3PW of Adamo & Barone
++ hyb-gga-xc-o3lyp          : O3LYP
++ hyb-gga-xc-pbeh           : PBEH (PBE0)
++ hyb-gga-xc-sb98-1a        : SB98 (1a)
++ hyb-gga-xc-sb98-1b        : SB98 (1b)
++ hyb-gga-xc-sb98-1c        : SB98 (1c)
++ hyb-gga-xc-sb98-2a        : SB98 (2a)
++ hyb-gga-xc-sb98-2b        : SB98 (2b)
++ hyb-gga-xc-sb98-2c        : SB98 (2c)
++ hyb-gga-xc-tuned-cam-b3lyp: CAM version of B3LYP
++ hyb-gga-xc-x3lyp          : X3LYP
++ hyb-mgga-xc-b86b95        : Mixture of B86 with BC95
++ hyb-mgga-xc-b88b95        : Mixture of B88 with BC95 (B1B95)
++ hyb-mgga-xc-bb1k          : Mixture of B88 with BC95 from Zhao and Truhlar
++ hyb-mgga-xc-m05           : M05 functional of Minnesota
++ hyb-mgga-xc-m05-2x        : M05-2X functional of Minnesota
++ hyb-mgga-xc-m06           : M06 functional of Minnesota
++ hyb-mgga-xc-m06-2x        : M06-2X functional of Minnesota
++ hyb-mgga-xc-m06-hf        : M06-HF functional of Minnesota
++ hyb-mgga-xc-mpw1b95       : Mixture of mPW91 with BC95 from Zhao and Truhlar
++ hyb-mgga-xc-mpwb1k        : Mixture of mPW91 with BC95 for kinetics
++ hyb-mgga-xc-pw86b95       : Mixture of PW86 with BC95
++ hyb-mgga-xc-x1b95         : Mixture of X with BC95
++ hyb-mgga-xc-xb1k          : Mixture of X with BC95 for kinetics
++ lda-xc-teter93            : Teter 93.
 
 Properties:
 -----------
@@ -1072,6 +1307,8 @@ Syntax:
 -------
 
     elec-ex-corr-compare <functional>
+	| <funcX> <funcC>
+	| <funcXC>
 
 Description:
 ------------
@@ -1799,7 +2036,38 @@ Description:
 Kinetic energy functional for fluid convolution coupling where &lt;kinetic&gt; is one of:
 + gga-PW91k: Perdew-Wang GGA kinetic energy parameterized by Lembarki and Chermette
 + gga-vW   : von Weisacker correction to LDA kinetic energy
-+ lda-TF   : Thomas-Fermi LDA kinetic energy.
++ lda-TF   : Thomas-Fermi LDA kinetic energy
++ gga-k-absr1    : gamma-TFvW form by Acharya et al [g = 1 - 1.412/N^(1/3)]
++ gga-k-absr2    : gamma-TFvW form by Acharya et al [g = 1 - 1.332/N^(1/3)]
++ gga-k-apbe     : mu fixed from the semiclassical neutral atom
++ gga-k-baltin   : TF-lambda-vW form by Baltin (l = 5/9)
++ gga-k-dk       : DePristo and Kress
++ gga-k-ernzerhof: Ernzerhof
++ gga-k-fr-b88   : Fuentealba & Reyes (B88 version)
++ gga-k-fr-pw86  : Fuentealba & Reyes (PW86 version)
++ gga-k-ge2      : Second-order gradient expansion of the kinetic energy density
++ gga-k-golden   : TF-lambda-vW form by Golden (l = 13/45)
++ gga-k-gp85     : gamma-TFvW form by Ghosh and Parr
++ gga-k-gr       : gamma-TFvW form by Gázquez and Robles
++ gga-k-lc94     : Lembarki & Chermette
++ gga-k-lieb     : TF-lambda-vW form by Lieb (l = 0.185909191)
++ gga-k-llp      : Becke 88
++ gga-k-ludena   : gamma-TFvW form by Ludeña
++ gga-k-ol1      : Ou-Yang and Levy v.1
++ gga-k-ol2      : Ou-Yang and Levy v.2
++ gga-k-pearson  : Pearson 1992
++ gga-k-perdew   : Perdew
++ gga-k-thakkar  : Thakkar 1992
++ gga-k-tw1      : Tran and Wesolowski set 1 (Table II)
++ gga-k-tw2      : Tran and Wesolowski set 1 (Table II)
++ gga-k-tw3      : Tran and Wesolowski set 1 (Table II)
++ gga-k-tw4      : Tran and Wesolowski set 1 (Table II)
++ gga-k-vjks     : Vitos, Johansson, Kollar, and Skriver
++ gga-k-vsk      : Vitos, Skriver, and Kollar
++ gga-k-vw       : von Weiszaecker correction to Thomas-Fermi
++ gga-k-yt65     : TF-lambda-vW form by Yonei and Tomishima (l = 1/5)
++ lda-k-lp       : Lee and Parr Gaussian ansatz for the kinetic energy
++ lda-k-tf       : Thomas-Fermi kinetic energy.
 
 The available options for &lt;exchange-correlation&gt; are identical to \ref CommandElecExCorr "elec-ex-corr"
 and defaults to lda-pz.
@@ -1817,7 +2085,7 @@ Properties:
 
 <b>Default:</b>
 
-    fluid-ex-corr lda-TF lda-PZ
+    fluid-ex-corr (null) lda-PZ
 
 Back to: \ref Commands or \ref CommandIndex 
 */

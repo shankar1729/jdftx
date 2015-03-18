@@ -194,6 +194,8 @@ public:
 	bool needsSigma() const { return funcUnpolarized.info->family != XC_FAMILY_LDA; } //!< gradients needed for GGA and HYB_GGA
 	bool needsLap() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs may need laplacian
 	bool needsTau() const { return funcUnpolarized.info->family == XC_FAMILY_MGGA; } //!< MGGAs need KE density
+	bool hasExchange() const { return funcUnpolarized.info->kind == XC_EXCHANGE || funcUnpolarized.info->kind == XC_EXCHANGE_CORRELATION; }
+	bool hasCorrelation() const { return funcUnpolarized.info->kind == XC_CORRELATION || funcUnpolarized.info->kind == XC_EXCHANGE_CORRELATION; }
 	bool hasKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
 	bool hasEnergy() const { return true; }
 	double exxScale() const { return funcUnpolarized.cam_alpha; }
@@ -237,11 +239,9 @@ public:
 		std::vector<double> E_tauTemp(E_n && needsTau() ? Nn : 0);
 		//Invoke appropriate LibXC function in scratch space:
 		if(needsTau())
-		{	//HACK: LibXC (v1.0) metaGGAs mess up if gradients are not computed, so always compute them:
-			E_nTemp.resize(Nn); E_sigmaTemp.resize(Nsigma); E_lapTemp.resize(Nn); E_tauTemp.resize(Nn);
-			xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
+		{	if(E_n) xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
 				&eTemp[0], &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
-			if(!E_n) { E_nTemp.clear(); E_sigmaTemp.clear(); E_lapTemp.clear(); E_tauTemp.clear(); }
+			else xc_mgga_exc(&func, N, n, sigma, lap, tau, &eTemp[0]);
 		}
 		else if(needsSigma())
 		{	if(E_n) xc_gga_exc_vxc(&func, N, n, sigma, &eTemp[0], &E_nTemp[0], &E_sigmaTemp[0]); //need gradient
@@ -257,6 +257,29 @@ public:
 		if(E_sigmaTemp.size()) eblas_daxpy(Nsigma, 1., &E_sigmaTemp[0], 1, E_sigma, 1);
 		if(E_lapTemp.size()) eblas_daxpy(Nn, 1., &E_lapTemp[0], 1, E_lap, 1);
 		if(E_tauTemp.size()) eblas_daxpy(Nn, 1., &E_tauTemp[0], 1, E_tau, 1);
+	}
+	
+	static void evaluate_thread(int iStart, int iStop, const FunctionalLibXC* func, int iOffset,
+		int nCount, const double* n, const double* sigma, const double* lap, const double* tau,
+		double* e, double* E_n, double* E_sigma, double* E_lap, double* E_tau)
+	{
+		int offs_e = (iOffset+iStart);
+		int offs_n = offs_e * nCount;
+		int offs_sigma = offs_e * (2*nCount-1);
+		int N = iStop-iStart; if(!N) return;
+		#define OFFSET(ptr,offset) ((ptr) ? ((ptr)+(offset)) : 0)
+		func->evaluate(nCount, N, OFFSET(n,offs_n), OFFSET(sigma,offs_sigma), OFFSET(lap,offs_n), OFFSET(tau,offs_n),
+			OFFSET(e,offs_e), OFFSET(E_n,offs_n), OFFSET(E_sigma,offs_sigma), OFFSET(E_lap,offs_n), OFFSET(E_tau,offs_n) );
+		#undef OFFSET
+	}
+	
+	void evaluateSub(int nCount, int iStart, int iStop,
+		const double* n, const double* sigma, const double* lap, const double* tau,
+		double* e, double* E_n, double* E_sigma, double* E_lap, double* E_tau) const
+	{
+		int N = iStop-iStart; if(!N) return;
+		threadLaunch(FunctionalLibXC::evaluate_thread, N, this, iStart,
+			nCount, n, sigma, lap, tau, e, E_n, E_sigma, E_lap, E_tau);
 	}
 };
 
@@ -710,7 +733,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		watchFunc.start();
 		for(auto func: functionals->libXC)
 			if(shouldInclude(func, includeTXC))
-				func->evaluate(nCount, gInfo.nr, nData, sigmaData, lapData, tauData,
+				func->evaluateSub(nCount, gInfo.irStart, gInfo.irStop, nData, sigmaData, lapData, tauData,
 					eData, E_nData, E_sigmaData, E_lapData, E_tauData);
 		watchFunc.stop();
 		
