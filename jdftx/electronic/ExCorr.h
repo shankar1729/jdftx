@@ -72,7 +72,7 @@ struct IncludeTXC
 class ExCorr
 {
 public:
-	ExCorr(ExCorrType exCorrType=ExCorrGGA_PBE); 
+	ExCorr(ExCorrType exCorrType=ExCorrGGA_PBE, KineticType kineticType=KineticNone); 
 	void setup(const Everything&); //!< Initialize
 	string getName() const; //!< Get a description of the DFT functional
 	
