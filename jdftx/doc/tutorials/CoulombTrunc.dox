@@ -2,11 +2,68 @@
 
 \image html waterMolToBox.png
 
-New page for tutorial on Coulomb truncation, containing:
-    A water molecule in a 20 bohr box
-    xyzToIonPos opt script
+JDFTx is built as a tool for use with molecular systems, surfaces, and solids.  This 
+versatility is particularly evident in the Coulomb truncation features, allowing one 
+to construct systems where the Coulomb interaction ranges from aperiodic to fully periodic.  
+To illustrate this feature, we will take a molecule from the [NIST CCCBDB] (http://cccbdb.nist.gov),
+convert it from an xyz file to JDFTx input, put it in an appropriately-sized box, and truncate the 
+Coulomb interaction in 3 dimensions.
 
-Needs a less lame title
+Picking one of the many calculated geometries of water from the [NIST CCCBDB] (http://cccbdb.nist.gov),
+we create an xyz file:
+
+   	3
+
+    	8	0	0	0.127118
+    	1	0	0.75799	-0.50847
+    	1	0	-0.75799	-0.50847
+
+which we can save as Water.xyz (the "3" in the file is the total number of atoms).
+
+In the scripts directory (which is in the jdftx directory, not in the build directory),
+we have a script called xyzToIonpos which converts an xyz format file (cartesian Angstrom)
+ to JDFTx ionpos (cartesian Bohrs).  Running this script:
+
+<JDFTx directory>/scripts/xyzToIonpos WaterCart.xyz yes
+
+, where the "yes" is an optional argument that shifts the atoms so that their bounding
+box is centered on the origin (convenient when using coulomb-truncation-embed),
+(Note- You can run this script with no input to see the usage.)
+the following output is produced:
+
+    # Ionic positions in cartesian coordinates:
+    ion  8   0.000000000000000   0.000000000000000   0.600543636422734  0
+    ion  1   0.000000000000000   1.432393534717671  -0.600543636422733  1
+    ion  1   0.000000000000000  -1.432393534717671  -0.600543636422733  1
+    Offseting atoms by ( -0.000000000000000 -0.000000000000000 0.360325425963175 ) bohrs
+    Bounding box x: [ 0.000000000000000 to 0.000000000000000 ] bohrs
+    Bounding box y: [ -1.432393534717671 to 1.432393534717671 ] bohrs
+    Bounding box z: [ -0.600543636422733 to 0.600543636422733 ] bohrs
+
+We now have a centered molecule with coordinates in Bohr, and we can create the rest of 
+our input file, similarly to the [first tutorial](FirstCalc.html), except now we can see if we can make our box smaller.  We first run with a 10 bohr box:
+
+    lattice \
+        10 0  0 \
+        0  10 0 \
+        0  0  10
+
+    # Specify the pseudopotentials (this defines species O and H):
+    ion-species <path-to-build-directory>/pseudopotentials/GBRV/h_pbe_v1.uspp
+    ion-species <path-to-build-directory>/pseudopotentials/GBRV/o_pbe_v1.2.uspp
+
+    # Specify coordinate system and atom positions:
+    coords-type cartesian  
+    ion  8   0.000000000000000   0.000000000000000   0.600543636422734  0
+    ion  1   0.000000000000000   1.432393534717671  -0.600543636422733  1
+    ion  1   0.000000000000000  -1.432393534717671  -0.600543636422733  1
+
+    dump-name water.$VAR  #Filename pattern for outputs
+    dump End Ecomponents  #Output energy components at the end
+
+and record the energy:
+
+Then we see what happens to the energy with coulomb truncation, then we will make the box even smaller.
 
 
 */
