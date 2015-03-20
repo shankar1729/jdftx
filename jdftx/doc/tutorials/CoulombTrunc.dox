@@ -3,11 +3,11 @@
 \image html waterMolToBox.png
 
 JDFTx is built as a tool for use with molecular systems, surfaces, and solids.  This 
-versatility is particularly evident in the Coulomb truncation features, allowing one 
-to construct systems where the Coulomb interaction ranges from aperiodic to fully periodic.  
+versatility is particularly evident in the %Coulomb truncation features, allowing one 
+to construct systems where the %Coulomb interaction ranges from aperiodic to fully periodic.  
 To illustrate this feature, we will take a molecule from the [NIST CCCBDB] (http://cccbdb.nist.gov),
 convert it from an xyz file to JDFTx input, put it in an appropriately-sized box, and truncate the 
-Coulomb interaction in 3 dimensions.
+%Coulomb interaction in 3 dimensions.
 
 Picking one of the many calculated geometries of water from the [NIST CCCBDB] (http://cccbdb.nist.gov),
 we create an xyz file:
@@ -24,7 +24,7 @@ In the scripts directory (which is in the jdftx directory, not in the build dire
 we have a script called xyzToIonpos which converts an xyz format file (cartesian Angstrom)
  to JDFTx ionpos (cartesian Bohrs).  Running this script:
 
-<JDFTx directory>/scripts/xyzToIonpos WaterCart.xyz yes
+     <JDFTx directory>/scripts/xyzToIonpos WaterCart.xyz yes
 
 , where the "yes" is an optional argument that shifts the atoms so that their bounding
 box is centered on the origin (convenient when using coulomb-truncation-embed),

@@ -9,7 +9,7 @@ if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	to guide the selection of supercell dimensions.
 	Optionally, if centerBbox=yes, the atoms will be shifted so that their bounding
 	box is centered on the origin (convenient when using coulomb-truncation-embed)
-	' >&2
+	' #>&2
 	exit 0;
 fi
 

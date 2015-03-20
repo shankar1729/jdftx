@@ -13,7 +13,7 @@ List of Tutorials
   + Molecules
     - A first calculation
        + Electronic minimization of a water molecule in a 20 bohr box; introduce dump
-    - Coulomb truncation
+    - %Coulomb truncation
        + A water molecule in a 20 bohr box
        + xyzToIonPos opt script
     - Scripting tutorial
@@ -31,7 +31,7 @@ List of Tutorials
     - Phonons
     - DFT+U
   + Surfaces
-    - Coulomb Truncated slabs
+    - %Coulomb Truncated slabs
     - Solvation on surfaces
     - Electrochemistry- fixed electron chemical potential calculations    
 

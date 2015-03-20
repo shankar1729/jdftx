@@ -1,10 +1,10 @@
 #!/usr/bin/octave -qf
 
 function printUsage()
-	printf("Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]\n");
-	printf("   Create <dryRunFile>.PDB and launch pymol to visualize the\n");
-	printf("   system contained in the JDFTx dry-run output file <dryRunFile>.\n");
-	printf("   Optionally specify repetitions along each lattice direction.\n");
+	printf("\n\t Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]\n  ");
+	printf("\t Create <dryRunFile>.PDB and launch pymol to visualize the\n");
+	printf("\t system contained in the JDFTx dry-run output file <dryRunFile>.\n");
+	printf("\t Optionally specify repetitions along each lattice direction.\n");
 endfunction
 
 

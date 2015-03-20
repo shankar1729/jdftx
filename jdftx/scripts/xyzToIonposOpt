@@ -11,7 +11,7 @@ if [ -z "$2" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	will be centered at the origin, and rotated to minimize the unit cell volume.
 	This generates the optimum geometry for use with "coulomb-interaction Isolated"
 	and "coulomb-truncation-embed 0 0 0". (NOTE: requires octave to be available in path)
-	' >&2
+	' #>&2
 	exit 0;
 fi
 
