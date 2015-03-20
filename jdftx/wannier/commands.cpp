@@ -34,7 +34,6 @@ enum WannierMember
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
-	WM_CEDA,
 	WM_loadRotations,
 	WM_numericalOrbitals,
 	WM_numericalOrbitalsOffset,
@@ -52,7 +51,6 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
-	WM_CEDA, "CEDA",
 	WM_loadRotations, "loadRotations",
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
@@ -113,10 +111,6 @@ struct CommandWannier : public Command
 			"   Whether to write momentum matrix elements in the same format as Hamiltonian.\n"
 			"   The output is real and antisymmetric (drops the iota so as to half the output size).\n"
 			"   Default: no.\n"
-			"\n+ CEDA yes|no\n\n"
-			"   Output extra matrix elements necessary for the completion of states in the\n"
-			"   Common Energy Denominator Approximation fix for empty-states convergence.\n"
-			"   Default: no.\n"
 			"\n+ loadRotations yes|no\n\n"
 			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
 			"   Default: no.\n"
@@ -174,9 +168,6 @@ struct CommandWannier : public Command
 				case WM_saveMomenta:
 					pl.get(wannier.saveMomenta, false, boolMap, "saveMomenta", true);
 					break;
-				case WM_CEDA:
-					pl.get(wannier.ceda, false, boolMap, "CEDA", true);
-					break;
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
@@ -205,7 +196,6 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
-		logPrintf(" \\\n\tCEDA %s", boolMap.getString(wannier.ceda));
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
 		if(wannier.outerWindow)
 		{	logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);

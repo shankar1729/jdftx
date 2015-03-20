@@ -29,7 +29,6 @@ enum PhononMember
 	PM_dr,
  	PM_T,
 	PM_Fcut,
-	PM_CEDA,
 	PM_delim
 };
 
@@ -37,8 +36,7 @@ EnumStringMap<PhononMember> phononMemberMap
 (	PM_sup, "supercell",
 	PM_dr, "dr",
 	PM_T, "T",
-	PM_Fcut, "Fcut",
-	PM_CEDA, "CEDA"
+	PM_Fcut, "Fcut"
 );
 
 struct CommandPhonon : public Command
@@ -61,10 +59,7 @@ struct CommandPhonon : public Command
 			"   Fillings threshold to include in supercell calculation (default 1e-8).\n"
 			"   The unit cell calculation may have extra bands for which matrix elements\n"
 			"   are desired; this flag ensures that those extra bands do not affect the\n"
-			"   performance or memory requirements of the supercell calculations.\n"
-			"\n+ CEDA yes|no\n\n"
-			"   Whether to generate phonon * momentum matrix elements for CEDA completion\n"
-			"   (default no).";
+			"   performance or memory requirements of the supercell calculations.";
 		
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
@@ -94,9 +89,6 @@ struct CommandPhonon : public Command
 					pl.get(phonon.Fcut, 0., "Fcut", true);
 					if(phonon.Fcut < 0.) throw string("<Fcut> must be non-negative");
 					break;
-				case PM_CEDA:
-					pl.get(phonon.ceda, false, boolMap, "CEDA", true);
-					break;
 				case PM_delim: //should never be encountered
 					break;
 			}
@@ -108,7 +100,6 @@ struct CommandPhonon : public Command
 		logPrintf(" \\\n\tdr %lg", phonon.dr);
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
-		logPrintf(" \\\n\tCEDA %s", boolMap.getString(phonon.ceda));
 	}
 }
 commandPhonon;

@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin), Fcut(1e-8), ceda(false)
+: dr(0.01), T(298*Kelvin), Fcut(1e-8)
 {
 }
 

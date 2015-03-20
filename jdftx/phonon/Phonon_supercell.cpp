@@ -117,8 +117,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(3*nAtomsTot)));
 	//subspace Hamiltonian of supercell Gamma point:
 	std::vector<matrix> Hsub0;
-	std::vector< std::vector<matrix> > HPsub0;
-	setSupState(&Hsub0, ceda ? &HPsub0 : 0);
+	setSupState(&Hsub0);
 
 	//Move to perturbed configuration:
 	IonicGradient dir; dir.init(eSup->iInfo); //contains zeroes
@@ -134,13 +133,9 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
-	std::vector< std::vector<matrix> > HPsub, dHPsub_pert(3, std::vector<matrix>(nSpins));
-	setSupState(&Hsub, ceda ? &HPsub : 0);
+	setSupState(&Hsub);
 	for(size_t s=0; s<Hsub.size(); s++)
-	{	dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
-		if(ceda) for(int iDir=0; iDir<3; iDir++)
-			dHPsub_pert[iDir][s] = (1./dr) * (HPsub[iDir][s] - HPsub0[iDir][s]);
-	}
+		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
 	
 	//Restore atom position:
 	bool dragWfns = false;
@@ -190,19 +185,10 @@ void Phonon::processPerturbation(const Perturbation& pert)
 			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
 				dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
 		}
-		
-		//Accumulate HPsub contributions:
-		if(ceda) for(int iSpin=0; iSpin<nSpins; iSpin++)
-			for(int pDirIn=0; pDirIn<3; pDirIn++)
-			{	matrix contrib = stateRot[iSpin][iSym].transform(dHPsub_pert[pDirIn][iSpin]);
-				for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
-					for(int pDirOut=0; pDirOut<3; pDirOut++)
-						dHPsub[pDirOut][iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir) * symSupCart[iSym](pDirOut, pDirIn));
-			}
 	}
 }
 
-void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<matrix> >* HPsub)
+void Phonon::setSupState(std::vector<matrix>* Hsub)
 {
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
@@ -210,20 +196,16 @@ void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<mat
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	
 	//Compute gamma point Hamiltonian if requested:
-	if(Hsub || HPsub)
+	if(Hsub)
 	{	int nBands = e.eInfo.nBands;
 		int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
 		if(Hsub) Hsub->resize(nSpins);
-		if(HPsub) HPsub->resize(3, std::vector<matrix>(nSpins));
 		for(int s=0; s<nSpins; s++)
 		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
 			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
 			if(eSup->eInfo.isMine(qSup))
 			{	//Initialize outputs:
 				(*Hsub)[s] = zeroes(nBandsSup, nBandsSup);
-				if(HPsub)
-					for(int iDir=0; iDir<3; iDir++)
-						(*HPsub)[iDir][s] = zeroes(nBandsSup, nBandsSup);
 				//Loop over supercell-commensurate unit cell k-points:
 				for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
 				{	//Set supercell wavefunctions:
@@ -248,22 +230,13 @@ void Phonon::setSupState(std::vector<matrix>* Hsub, std::vector< std::vector<mat
 						int start2 = nBands * sme2.nqPrev;
 						int stop2 = nBands * (sme2.nqPrev+1);
 						if(Hsub) (*Hsub)[s].set(start,stop, start2,stop2, HC^C2);
-						if(HPsub)
-							for(int iDir=0; iDir<3; iDir++)
-								(*HPsub)[iDir][s].set(start,stop, start2,stop2, HC^D(C2,iDir));
 					}
 				}
 			}
 			else
 			{	if(Hsub) (*Hsub)[s].init(nBandsSup, nBandsSup);
-				if(HPsub)
-					for(int iDir=0; iDir<3; iDir++)
-						(*HPsub)[iDir][s].init(nBandsSup, nBandsSup);
 			}
 			if(Hsub) (*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
-			if(HPsub)
-				for(int iDir=0; iDir<3; iDir++)
-					(*HPsub)[iDir][s].bcast(eSup->eInfo.whose(qSup));
 		}
 	}
 	
