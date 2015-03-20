@@ -21,9 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/Wannier.h>
 #include <core/LatticeUtils.h>
 
-//Wannier-specific commands affect this static object:
-Wannier wannier;
-
 enum WannierMember
 {	WM_localizationMeasure,
 	WM_precond,
@@ -131,7 +128,8 @@ struct CommandWannier : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	while(true)
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		while(true)
 		{	WannierMember key; pl.get(key, WM_delim, wannierMemberMap, "key");
 			if(key==WM_delim) break;
 			switch(key)
@@ -191,7 +189,8 @@ struct CommandWannier : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
+	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
+		logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
 		logPrintf(" \\\n\tprecondition %s", boolMap.getString(wannier.precond));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
@@ -265,7 +264,8 @@ struct CommandWannierCenter : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	Wannier::TrialOrbital t;
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		Wannier::TrialOrbital t;
 		while(true)
 		{	Wannier::AtomicOrbital ao; string orbDesc;
 			pl.get(ao.r[0], nan(""), "x0"); if(std::isnan(ao.r[0])) break;
@@ -328,7 +328,8 @@ struct CommandWannierCenter : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	const Wannier::TrialOrbital& t = wannier.trialOrbitals[iRep];
+	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
+		const Wannier::TrialOrbital& t = wannier.trialOrbitals[iRep];
 		for(const Wannier::AtomicOrbital& ao: t)
 		{	if(t.size()>1) logPrintf(" \\\n\t");
 			vector3<> r = ao.r;
@@ -360,7 +361,8 @@ struct CommandWannierCenterPinned : public CommandWannierCenter
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	CommandWannierCenter::process(pl, e);
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		CommandWannierCenter::process(pl, e);
 		Wannier::TrialOrbital& t = wannier.trialOrbitals.back();
 		t.pinned = true;
 		vector3<> r0 = t.front().r;
@@ -384,9 +386,13 @@ commandWannierCenterPinned;
 
 struct CommandWannierMinimize : public CommandMinimize
 {	CommandWannierMinimize() : CommandMinimize("wannier", "wannier") {}
-    MinimizeParams& target(Everything& e) { return wannier.minParams; }
+    MinimizeParams& target(Everything& e)
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		return wannier.minParams;
+	}
     void process(ParamList& pl, Everything& e)
-	{	wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		wannier.minParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -394,8 +400,9 @@ commandWannierMinimize;
 
 
 struct CommandWannierFilenames : public Command
-{	string& target;
-	CommandWannierFilenames(string cmdSuffix, string comment, string& target) : Command("wannier-"+cmdSuffix, "wannier"), target(target)
+{	virtual string& getTarget(Everything&)=0; //derived class determines where to save the file
+	
+	CommandWannierFilenames(string cmdSuffix, string comment) : Command("wannier-"+cmdSuffix, "wannier")
 	{	format = "<format>";
 		comments = 
 			"Control the filename pattern for wannier " + comment + ", where <format> must contain\n"
@@ -403,14 +410,25 @@ struct CommandWannierFilenames : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(target, string("$STAMP.$VAR"), "format");
+	{	string& target = getTarget(e);
+		pl.get(target, string("$STAMP.$VAR"), "format");
 		if(target.find("$VAR")==string::npos)
 			throw "<format> = " + target + " doesn't contain the pattern $VAR";
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s", target.c_str());
+	{	logPrintf("%s", getTarget(e).c_str());
 	}
 };
-CommandWannierFilenames commandWannierInitialState("initial-state", "state initialization", wannier.initFilename);
-CommandWannierFilenames commandWannierDumpName("dump-name", "output", wannier.dumpFilename);
+
+struct CommandWannierInitialState : public CommandWannierFilenames
+{	CommandWannierInitialState() : CommandWannierFilenames("initial-state", "state initialization") {}
+	string& getTarget(Everything& e) { return ((WannierEverything&)e).wannier.initFilename; }
+}
+commandWannierInitialState;
+
+struct CommandWannierDumpName : public CommandWannierFilenames
+{	CommandWannierDumpName() : CommandWannierFilenames("dump-name", "output") {}
+	string& getTarget(Everything& e) { return ((WannierEverything&)e).wannier.dumpFilename; }
+}
+commandWannierDumpName;

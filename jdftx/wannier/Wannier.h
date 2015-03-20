@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_WANNIER_WANNIER_H
 
 #include <core/MinimizeParams.h>
+#include <electronic/Everything.h>
 #include <electronic/DOS.h>
 #include <memory>
 
@@ -89,6 +90,12 @@ private:
 	std::shared_ptr<class WannierMinimizer> wmin; //!< opaque struct to minimizer
 	friend class WannierMinimizer;
 	friend class CommandWannierMinimize;
+};
+
+//!Version of Everything with Wannier added
+struct WannierEverything : public Everything
+{	Wannier wannier;
+	void setup();
 };
 
 #endif // JDFTX_WANNIER_WANNIER_H

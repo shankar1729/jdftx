@@ -77,3 +77,10 @@ string Wannier::getFilename(FilenameType fnType, string varName, int* spin) cons
 	fname.replace(fname.find("$VAR"), 4, varName+spinSuffix);
 	return fname;
 }
+
+void WannierEverything::setup()
+{	Everything::setup(); //base class setup
+	if(!coulombParams.supercell) updateSupercell(true); //force supercell generation
+	wannier.setup(*this);
+}
+

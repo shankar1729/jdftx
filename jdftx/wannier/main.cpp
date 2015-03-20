@@ -24,8 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <wannier/Wannier.h>
 
-extern Wannier wannier; //defined in wannier/commands.cpp so that it can be initialized from inputs
-
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
@@ -33,12 +31,12 @@ int main(int argc, char** argv)
 	initSystemCmdline(argc, argv, "Compute maximally-localized Wannier functions.", inputFilename, dryRun, printDefaults);
 
 	//Parse input file:
-	Everything e;
+	WannierEverything e;
 	parse(readInputFile(inputFilename), e, printDefaults);
 	
 	//Set initial filenames and prevent unnecessary setup below:
-	e.eVars.wfnsFilename = wannier.getFilename(Wannier::FilenameInit, "wfns");
-	e.eVars.eigsFilename = wannier.getFilename(Wannier::FilenameInit, "eigenvals");
+	e.eVars.wfnsFilename = e.wannier.getFilename(Wannier::FilenameInit, "wfns");
+	e.eVars.eigsFilename = e.wannier.getFilename(Wannier::FilenameInit, "eigenvals");
 	e.eVars.nFilenamePattern.clear();
 	e.eVars.VFilenamePattern.clear();
 	e.eVars.HauxFilename.clear();
@@ -46,8 +44,6 @@ int main(int argc, char** argv)
 	
 	//Setup:
 	e.setup();
-	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
-	wannier.setup(e);
 	Citations::print();
 	if(dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
@@ -55,7 +51,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
-	wannier.saveMLWF();
+	e.wannier.saveMLWF();
 	
 	finalizeSystem();
 	return 0;
