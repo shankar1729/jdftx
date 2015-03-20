@@ -24,8 +24,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <core/Units.h>
 
+PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
+{
+}
+
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin), Fcut(1e-8)
+: dr(0.01), T(298*Kelvin), Fcut(1e-8), e(*this), eSupTemplate(*this)
 {
 }
 

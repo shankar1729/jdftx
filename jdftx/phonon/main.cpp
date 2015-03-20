@@ -24,14 +24,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <phonon/Phonon.h>
 
-extern Phonon phonon; //defined in phonon/commands.cpp so that it can be initialized from inputs
-
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
 	string inputFilename; bool dryRun, printDefaults;
 	initSystemCmdline(argc, argv, "Compute maximally-localized Phonon functions.", inputFilename, dryRun, printDefaults);
 
+	Phonon phonon;
 	phonon.input = readInputFile(inputFilename);
 	
 	//Read input file and setup unit cell:

@@ -37,7 +37,13 @@ public:
 	matrix transform(const matrix& in) const; //!< return rot * in * dagger(rot)
 };
 
+//!Add reference to class Phonon to Everything (for use with the parser)
+struct PhononEverything: public Everything
+{	class Phonon& phonon;
+	PhononEverything(class Phonon& phonon);
+};
 
+//! Calculate phonon dispersion, free energies and electron-phonon matrix elements
 class Phonon
 {
 public:
@@ -53,8 +59,8 @@ public:
 	void dump(); //main calculations (sequence of supercell calculations) as well as output
 	
 private:
-	Everything e; //data for original unit cell
-	Everything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
+	PhononEverything e; //data for original unit cell
+	PhononEverything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
 	std::shared_ptr<Everything> eSup; //supercell data for current perturbation
 
 	int nSpins, nSpinor; //number of explicit spins and spinor length

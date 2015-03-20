@@ -21,9 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <core/Units.h>
 
-Phonon phonon;
-
-
 enum PhononMember
 {	PM_sup,
 	PM_dr,
@@ -66,7 +63,8 @@ struct CommandPhonon : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	while(true)
+	{	Phonon& phonon = ((PhononEverything&)e).phonon;
+		while(true)
 		{	PhononMember key; pl.get(key, PM_delim, phononMemberMap, "key");
 			if(key==PM_delim) break;
 			switch(key)
@@ -96,7 +94,8 @@ struct CommandPhonon : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf(" \\\n\tsupercell %d %d %d", phonon.sup[0], phonon.sup[1], phonon.sup[2]);
+	{	const Phonon& phonon = ((const PhononEverything&)e).phonon;
+		logPrintf(" \\\n\tsupercell %d %d %d", phonon.sup[0], phonon.sup[1], phonon.sup[2]);
 		logPrintf(" \\\n\tdr %lg", phonon.dr);
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
