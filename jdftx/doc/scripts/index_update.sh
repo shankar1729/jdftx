@@ -1,9 +1,9 @@
 #!/bin/bash
 
 srcPath="$1"
-outFile="$2"
+outPath="$2"
 
-echo '/** \page Scripts Scripts' > $outFile
+echo '/** \page Scripts Scripts' > $outPath/Scripts.dox
 
 scriptList=( `ls "$srcPath/scripts" `)
 
@@ -12,17 +12,16 @@ do
 if [ "$t" = "ase" ]; then
   echo "Skipping ase directory"
 else
-  if [ "$t" = "dryRunToPDB" ]; then
-    echo $t >> $outFile
-    $srcPath/scripts/$t >> $outFile
-  else
-    echo $t >> $outFile
-    $srcPath/scripts/$t --help >> $outFile
+   echo " + \subpage " $t >> $outPath/Scripts.dox
+   echo '/** \page ' $t $t > $outPath/$t.dox    
+   echo "Details and usage:" >> $outPath/$t.dox
+     if [ "$t" = "dryRunToPDB" ]; then
+       $srcPath/scripts/$t >> $outPath/$t.dox
+     else
+       $srcPath/scripts/$t --help >> $outPath/$t.dox
   fi
+   echo '*/' >> $outPath/$t.dox
 fi
 done
 
-echo '*/' >> $outFile
-
-
-
+echo '*/' >> $outPath/Scripts.dox
