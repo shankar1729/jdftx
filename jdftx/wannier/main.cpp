@@ -51,6 +51,14 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
+	if(e.wannier.saveMomenta && e.eInfo.hasU)
+	{	//Calculate U_rho needed for the DFT+U correction to the [r,H] momentum matrix elements:
+		e.iInfo.rhoAtom_initZero(e.eVars.rhoAtom);
+		e.iInfo.rhoAtom_initZero(e.eVars.U_rhoAtom);
+		e.iInfo.rhoAtom_calc(e.eVars.F, e.eVars.C, e.eVars.rhoAtom);
+		e.iInfo.rhoAtom_computeU(e.eVars.rhoAtom, e.eVars.U_rhoAtom);
+	}
+	
 	e.wannier.saveMLWF();
 	
 	finalizeSystem();

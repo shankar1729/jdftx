@@ -445,7 +445,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			if(e.eInfo.qnums[q].spin==iSpin)
 				for(int iDir=0; iDir<3; iDir++)
-					pBloch[iDir][q] = e.gInfo.detR * (e.eVars.C[q] ^ D(e.eVars.C[q], iDir)); //note factor of iota dropped to make it real (and anti-symmetric)
+					pBloch[iDir][q] = (e.eVars.C[q] ^ e.iInfo.rHcommutator(e.eVars.C[q], iDir)); //note factor of iota dropped to make it real (and anti-symmetric)
 		//--- convert to Wannier basis:
 		matrix pWannierTilde = zeroes(nCenters*nCenters*3, nqMine);
 		int iqMine = 0;

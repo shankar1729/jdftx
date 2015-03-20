@@ -103,6 +103,8 @@ public:
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
 	void rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const; //!< get DFT+U Hamiltonian basis (atomic orbitals) and matrices
 	
+	ColumnBundle rHcommutator(const ColumnBundle &Y, int iDir) const; //!< Apply commutator operator [r_iDir,H] = D_iDir + nonlocal corrections
+	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	

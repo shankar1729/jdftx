@@ -358,6 +358,62 @@ void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_
 	}
 }
 
+ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
+{	ColumnBundle result = e->gInfo.detR * D(Y, iDir); //contribution from kinetic term (note ultrasoft not handled)
+	//Determine optimum k's for finite difference calculation of r * projectors
+	double dkMag = pow(1e-14, 1./3); //optimum for a second order FD formula
+	complex riPrefac(0, 0.5/dkMag); //prefactor in central-difference formula to get r * projectors
+	vector3<> dkCart; dkCart[iDir] = dkMag; //cartesian k offset
+	vector3<> dk = inv(e->gInfo.GT) * dkCart; //reciprocal-lattice k offset
+	QuantumNumber qnumPlus  = *(Y.qnum); qnumPlus.k  += dk;
+	QuantumNumber qnumMinus = *(Y.qnum); qnumMinus.k -= dk;
+	//--- dummy ColumnBundles for the getV functions below:
+	ColumnBundle Yplus (1, Y.colLength(), Y.basis, &qnumPlus,  isGpuEnabled());
+	ColumnBundle Yminus(1, Y.colLength(), Y.basis, &qnumMinus, isGpuEnabled());
+	//Nonlocal corrections:
+	//--- Get DFT+U matrices:
+	std::vector<matrix> Urho;
+	std::vector<ColumnBundle> psi, ri_psi;
+	if(e->eInfo.hasU)
+	{	rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
+		//Finite difference for ri_psi:
+		std::vector<matrix> UrhoUnused;
+		std::vector<ColumnBundle> psiPlus, psiMinus;
+		rhoAtom_getV(Yplus,  e->eVars.U_rhoAtom, psiPlus,  UrhoUnused); //get atomic orbitals at k+
+		rhoAtom_getV(Yminus, e->eVars.U_rhoAtom, psiMinus, UrhoUnused); //get atomic orbitals at k-
+		ri_psi.resize(species.size());
+		for(size_t sp=0; sp<species.size(); sp++)
+			if(Urho[sp].nRows())
+				ri_psi[sp] = riPrefac * (psiPlus[sp] - psiMinus[sp]);
+	}
+	for(size_t sp=0; sp<species.size(); sp++)
+	{	bool hasU = e->eInfo.hasU && Urho[sp].nRows();
+		//Get nonlocal psp matrices and projectors:
+		matrix Mnl;
+		std::shared_ptr<ColumnBundle> Vptr = species[sp]->getV(Y, &Mnl); //get projectors at kj
+		bool hasNL = Mnl.nRows();
+		const ColumnBundle& V = *Vptr;
+		ColumnBundle ri_V;
+		if(hasNL)
+		{	//Finite difference for ri_V:
+			std::shared_ptr<ColumnBundle> Vplus = species[sp]->getV(Yplus);
+			std::shared_ptr<ColumnBundle> Vminus = species[sp]->getV(Yminus);
+			ri_V = riPrefac * (*Vplus - *Vminus);
+		}
+		//Apply nonlocal corrections to the commutator:
+		if(hasU)
+			result
+				+= ri_psi[sp] * (Urho[sp] * (psi[sp] ^ Y))
+				 - psi[sp] * (Urho[sp] * (ri_psi[sp] ^ Y));
+		if(hasNL)
+			result
+				+= ri_V * (Mnl * (V ^ Y))
+				 - V * (Mnl * (ri_V ^ Y));
+	}
+	return result;
+}
+
+
 int IonInfo::nAtomicOrbitals() const
 {	int nAtomic = 0;
 	for(auto sp: species)
@@ -404,5 +460,4 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
 				(*forces)[sp][at] = (atom++)->force;
 	}
-	
 }

@@ -479,8 +479,8 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 		}
 		//Nonlocal corrections:
 		//--- get DFT+U matrices:
-		std::vector<matrix> Urho(e->iInfo.species.size());
-		std::vector<ColumnBundle> psi(e->iInfo.species.size());
+		std::vector<matrix> Urho;
+		std::vector<ColumnBundle> psi;
 		if(e->eInfo.hasU)
 			e->iInfo.rhoAtom_getV(Cj, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at kj
 		for(size_t sp=0; sp<e->iInfo.species.size(); sp++)
@@ -488,7 +488,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 			matrix Mnl;
 			std::shared_ptr<ColumnBundle> V = e->iInfo.species[sp]->getV(Cj, &Mnl); //get projectors at kj
 			bool hasNL = Mnl.nRows();
-			bool hasU = Urho[sp].nRows();
+			bool hasU = e->eInfo.hasU && Urho[sp].nRows();
 			if(!(hasNL || hasU)) continue;
 			//Put projectors and orbitals in real space:
 			std::vector<complexScalarField> IV;
