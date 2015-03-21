@@ -3,13 +3,17 @@
 if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Convert an xyz format file (cartesian Angstrom) to JDFTx ionpos (cartesian Bohrs).
+	
 	   Usage: xyzToIonpos <xyzFile> [<centerBbox>=yes|no]
+	  
 	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	
 	Additionally, the maximum extents in each dimension will be output to stderr,
 	to guide the selection of supercell dimensions.
+	
 	Optionally, if centerBbox=yes, the atoms will be shifted so that their bounding
 	box is centered on the origin (convenient when using coulomb-truncation-embed)
-	' #>&2
+	'
 	exit 0;
 fi
 

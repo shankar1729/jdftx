@@ -34,11 +34,6 @@ corresponding arguments are:
    are desired; this flag ensures that those extra bands do not affect the
    performance or memory requirements of the supercell calculations.
 
-+ CEDA yes|no
-
-   Whether to generate \ref CommandPhonon "phonon" * momentum matrix elements for CEDA completion
-   (default no).
-
 Properties:
 -----------
 

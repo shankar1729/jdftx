@@ -1,27 +1,20 @@
 #!/bin/bash
 
 srcPath="$1"
-outPath="$2"
 
-echo '/** \page Scripts Scripts' > $outPath/Scripts.dox
+scriptList=( ` find "$srcPath/scripts" -maxdepth 1 -type f -printf '%f\n' ` ) #get only files (ignore directories)
 
-scriptList=( `ls "$srcPath/scripts" `)
-
- for t in "${scriptList[@]}"
-do
-if [ "$t" = "ase" ]; then
-  echo "Skipping ase directory"
-else
-   echo " + \subpage " $t >> $outPath/Scripts.dox
-   echo '/** \page ' $t $t > $outPath/$t.dox    
-   echo "Details and usage:" >> $outPath/$t.dox
-     if [ "$t" = "dryRunToPDB" ]; then
-       $srcPath/scripts/$t >> $outPath/$t.dox
-     else
-       $srcPath/scripts/$t --help >> $outPath/$t.dox
-  fi
-   echo '*/' >> $outPath/$t.dox
-fi
+echo '/** \page Scripts Scripts'
+for t in "${scriptList[@]}"; do
+	echo " + \subpage " $t
 done
+echo '*/'
+echo
 
-echo '*/' >> $outPath/Scripts.dox
+for t in "${scriptList[@]}"; do
+	echo '/** \page ' $t $t
+	echo "-----------------"
+	$srcPath/scripts/$t --help
+	echo '*/'
+	echo
+done

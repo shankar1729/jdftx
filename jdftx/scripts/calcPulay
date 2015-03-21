@@ -3,22 +3,32 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Generate pulay correction file for a pseudopotential. Usage:
+	
 		calcPulay <pspSpec> [<EcutStart>:<dEcut>:<EcutStop>] [<outFile>]
+	
 	where
+	
 		<pspSpec> specifies the pseudopotential as per the ion-species command
 			in the JDFTx input file (i.e. just the filename for fhi/uspp files).
+	
 		<EcutStart>:<dEcut>:<EcutStop> specifies Pulay corrections should be
 			computed from <EcutStart> to <EcutStop> in increments of <dEcut>.
 			Defaults to "5:1:50".
+	
 		<outFile> is the path to the computed pulay correction file. Defaults
 			to the pseudopotential filename with the extension replaced by
 			.pulay. (<outFile> must be explicitly specified for .pot/.cpi)
+	
 	The details of the computation can be controlled by environment variables:
+	
 		boxSize: Periodic image separation of the atoms in bohrs (Default: 20)
+	
 		exCorr: Exchange-correlation to use (Default: gga-PBE)
+	
 		JDFTx: Path to executable jdftx (or jdftx_gpu) (Default: jdftx)
 			This is required if jdftx is not in $PATH, to use jdftx_gpu, or
 			to use a job management system eg. JDFTx="srun jdftx"
+	
 		scratchDir: Temporary directory to store wavefunctions and output files.
 			Must be writeable. Defaults to current directory.
 	'

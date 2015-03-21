@@ -4,6 +4,7 @@ if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Print a human readable stacktrace with source file and line numbers from
 	the raw output dumped by jdftx
+	
 		printStackTrace <path-to-jdftx-stracktrace>
 	'
 	exit 0

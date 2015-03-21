@@ -72,12 +72,6 @@ corresponding arguments are:
    The output is real and antisymmetric (drops the iota so as to half the output size).
    Default: no.
 
-+ CEDA yes|no
-
-   Output extra matrix elements necessary for the completion of states in the
-   Common Energy Denominator Approximation fix for empty-states convergence.
-   Default: no.
-
 + loadRotations yes|no
 
    Whether to load rotations (.mlwU and .mlwfU2) from a previous \ref CommandWannier "Wannier" run.
@@ -315,22 +309,22 @@ Properties:
 <b>Default:</b>
 
     wannier-minimize  \
-	dirUpdateScheme      PolakRibiere \
-	linminMethod         DirUpdateRecommended \
-	nIterations          100 \
-	history              15 \
-	knormThreshold       0 \
+	dirUpdateScheme      (null) \
+	linminMethod         (null) \
+	nIterations          -1710672830 \
+	history              423 \
+	knormThreshold       2.36488e-310 \
 	energyDiffThreshold  1e-08 \
-	nEnergyDiff          2 \
-	alphaTstart          1 \
-	alphaTmin            1e-10 \
-	updateTestStepSize   yes \
-	alphaTreduceFactor   0.1 \
-	alphaTincreaseFactor 3 \
-	nAlphaAdjustMax      3 \
-	wolfeEnergy          0.0001 \
-	wolfeGradient        0.9 \
-	fdTest               no
+	nEnergyDiff          -1710672904 \
+	alphaTstart          6.95314e-310 \
+	alphaTmin            2.36488e-310 \
+	updateTestStepSize   (null) \
+	alphaTreduceFactor   2.36488e-310 \
+	alphaTincreaseFactor 2.36475e-310 \
+	nAlphaAdjustMax      -1710672963 \
+	wolfeEnergy          2.36475e-310 \
+	wolfeGradient        2.36488e-310 \
+	fdTest               (null)
 
 Back to: \ref Commands or \ref CommandIndex 
 */

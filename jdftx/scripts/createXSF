@@ -4,12 +4,15 @@ function printUsageAndExit()
 {
 	echo '
 	Create an XcrySDen Structure File from a JDFTx output file. Usage:
+	
 		createXSF <jdftxOutFile> <xsfFile> [Animated | <var1> <var2> ...]
+	
 	The simplest usage saves the final structure from the JDFTx output
 	<jdftxOutFile> to <xsfFile>. Specifying "Animated" will include
 	ionic positions, forces and lattice vectors for all configurations
 	in the run (if geometry or lattice optimization was performed).
-		Additionally, scalar fields such as the electron density may
+	
+	Additionally, scalar fields such as the electron density may
 	also be saved, where var should name the file suffix used by JDFTx
 	for that type eg. n for density, nUp for up-spin density, d_tot
 	for total electrostatic potential etc. The full filenames may
@@ -17,7 +20,8 @@ function printUsageAndExit()
 	Note that XSF is an ascii format (unlike the default binary dump)
 	and adding many scalar field variables to it could make it enormous.
 	Scalar fields are only supported in non-animated XSF files.
-		Note: this tool requires awk and octave to be available in path.
+	
+	Note: this tool requires awk and octave to be available in path.
 	'
 	exit $1
 }

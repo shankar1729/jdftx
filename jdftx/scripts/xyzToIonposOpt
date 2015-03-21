@@ -3,15 +3,19 @@
 if [ -z "$2" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Convert an xyz format file (cartesian Angstrom) to a JDFTx geometry specification.
+	
 	   Usage: xyzToIonposOpt <file>.xyz <pad>
+	   
 	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	
 	This will output two files, <file>.ionpos containing Cartesian bohr coordinates
 	and <file>.lattice containing the optimum orthogonal cell. The unit cell will be
-	larger in each dimension by <pad> bohrs than any atom. The molecules bounding box
+	larger in each dimension by <pad> bohrs than any atom. The molecule bounding box
 	will be centered at the origin, and rotated to minimize the unit cell volume.
+	
 	This generates the optimum geometry for use with "coulomb-interaction Isolated"
 	and "coulomb-truncation-embed 0 0 0". (NOTE: requires octave to be available in path)
-	' #>&2
+	'
 	exit 0;
 fi
 

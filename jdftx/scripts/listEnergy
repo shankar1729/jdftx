@@ -3,7 +3,9 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	List the latest energy from JDFTx output files. Usage:
+	
 		listEnergy <file1> <file2> ...
+	
 	For each output file, one line with the energy and the
 	name of the output file will be printed.
 	'

@@ -1,7 +1,7 @@
 #!/usr/bin/octave -qf
 
 function printUsage()
-	printf("\n\t Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]\n  ");
+	printf("\n\t Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]\n\n");
 	printf("\t Create <dryRunFile>.PDB and launch pymol to visualize the\n");
 	printf("\t system contained in the JDFTx dry-run output file <dryRunFile>.\n");
 	printf("\t Optionally specify repetitions along each lattice direction.\n");
@@ -84,7 +84,11 @@ function jdftxDryRunToPDB(outfile, reps)
 endfunction
 
 arg_list = argv();
-if nargin < 1; printUsage(); exit(1); endif
+if (nargin < 1 || strcmp(arg_list{1},"--help") || strcmp(arg_list{1},"-h"))
+	printUsage();
+	exit(1);
+endif
+
 dryRunFile = arg_list{1};
 reps = [1 1 1];
 if nargin >= 2; reps(1) = uint8(str2double(arg_list{2})); endif

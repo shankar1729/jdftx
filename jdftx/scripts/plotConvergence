@@ -3,8 +3,11 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Plot the convergence of JDFTx from its output files using gnuplot. Usage:
+	
 		plotConvergence <file1> <file2> ...
+	
 	If multiple output files are specified, they will be plotted alongside.
+	
 	The behavior is controlled by several environment variables:
 		nLines      Plot the final $nLines iterations (default: 200)
 		skipLines   Ignore the first $skipLines iterations (default: 0)

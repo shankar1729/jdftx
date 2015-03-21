@@ -3,10 +3,13 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$#" -lt "3" ] ; then
 	echo '
 	Generate a kpoint path for band structure plots. Usage:
+	
 		listEnergy <inFile> <dk> <outfilePrefix>
+	
 	<inFile> should contain a list of kpoints in the JDFTx syntax,
 	except with the weight replaced by a label eg. Gamma, X, L etc.
 	<dk> is the typical dimensionless separation (BZ~1) between k-points.
+	
 	The script will generate <outfilePrefix>.kpoints containing a list
 	of kpoints in JDFTx input format and a gnuplot script <outfilePrefix>.plot
 	to plot the resulting bandstructure. Note that the plot script assumes

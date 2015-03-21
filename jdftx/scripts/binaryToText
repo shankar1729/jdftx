@@ -4,15 +4,20 @@ if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
 	Convert binary output from JDFTx to plain text. Specifically useful for
 	reading / processing eigenvalues and fillings. Usage:
+	
 		binaryToText <inFile> [<innerDim>=1] [<dataOrder>=C]
+	
 	Without the optional arguments, the script will write the contents of <inFile>
 	in plain text form in a single row to standard output, which can of course be
 	redirected to an output file of choice. The optional arguments allow the output
 	to be cast as a matrix and determine the dimensions and order of output.
+	
 		<innerDim>: length of the inner (faster) dimension. This should be set
 			to the number of bands for fillings / eigenvalue files.
+		
 		<dataOrder> = C | Fortran: In C order, the inner dimension stretches
 			 across rows, whereas in Fortran order it stretches across columns.
+	
 	This script requires GNU Octave to be installed and in the current path.
 	'
 	exit 0
