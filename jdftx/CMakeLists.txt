@@ -196,17 +196,20 @@ add_JDFTx_executable(phonon "${phononSources}")
 #Documentation via Doxygen:
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
+	set(DOC_TMP_DIR "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/doc.tmp")
+	file(MAKE_DIRECTORY ${DOC_TMP_DIR})
+	file(MAKE_DIRECTORY ${DOC_TMP_DIR}/commands)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
 	#Target for running doxygen:
 	add_custom_target(doc
 		COMMAND echo "--- Autogenerating command documentation"
-		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/jdftx   -w jdftx   > ${CMAKE_CURRENT_SOURCE_DIR}/commands/manual.dox
-		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/wannier -w wannier > ${CMAKE_CURRENT_SOURCE_DIR}/wannier/manual.dox
-		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/phonon  -w phonon  > ${CMAKE_CURRENT_SOURCE_DIR}/phonon/manual.dox
+		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/jdftx   -w jdftx   > "${DOC_TMP_DIR}/commands/jdftx.dox"
+		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/wannier -w wannier > "${DOC_TMP_DIR}/commands/wannier.dox"
+		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/phonon  -w phonon  > "${DOC_TMP_DIR}/commands/phonon.dox"
 		COMMAND echo "--- Updating command index"
-		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/commands/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/doc/commands/index.dox"
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/commands/index_update.sh "${DOC_TMP_DIR}" > "${DOC_TMP_DIR}/commands_index.dox"
 		COMMAND echo "--- Updating scripts documentation"
-		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" > "${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/scripts.dox"
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" > "${DOC_TMP_DIR}/scripts_manual.dox"
 		COMMAND echo "--- Running doxygen"
 		COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
