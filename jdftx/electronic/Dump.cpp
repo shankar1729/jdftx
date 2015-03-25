@@ -348,6 +348,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
 	
 	if(ShouldDump(QMC) && isCevec) dumpQMC();
+
+       	if(ShouldDump(Ocean) && isCevec) dumpOcean();
 	
 	if(ShouldDump(Dipole))
 	{	StartDump("Moments")
