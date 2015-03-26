@@ -69,9 +69,7 @@ void Dump::dumpOcean()
 	    fwrite(&basis.nbasis,sizeof(int),1, fp);
 	    
 	    for(size_t i=0; i<basis.nbasis; i++)
-	      {vector3<> Gvec = basis.iGarr[i] * gInfo.G;
-		fwrite(&Gvec,sizeof(double),3, fp);
-	      }
+	      fwrite(&basis.iGarr[i],sizeof(int),3, fp);
 	    
 	    for(int s=0; s<nSpins; s++)
 	      {
