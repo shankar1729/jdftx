@@ -78,7 +78,7 @@ void Everything::setup()
 
 	//Set up the reduced bases for wavefunctions:
 	logPrintf("\n----- Setting up reduced wavefunction bases (%s) -----\n",
-		(cntrl.basisKdep==BasisKpointIndep) ? "single at Gamma point\n" :  "one per k-point");
+		(cntrl.basisKdep==BasisKpointIndep) ? "single at Gamma point" :  "one per k-point");
 	basis.resize(eInfo.nStates);
 	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = gInfoWfns ? *gInfoWfns : gInfo;

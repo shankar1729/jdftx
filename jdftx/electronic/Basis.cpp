@@ -69,6 +69,8 @@ Basis& Basis::operator=(const Basis& basis)
 	indexGpu = basis.indexGpu;
 	#endif
 	indexPref = basis.indexPref;
+	iGarrPref = basis.iGarrPref;
+	head = basis.head;
 	ownsData = false; //referenced all the other data, so don't own data
 	return *this;
 }
