@@ -32,7 +32,6 @@ void Dump::dumpOcean()
 {
 	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
-	const Basis& basis = e->basis[0];
 	const GridInfo& gInfo = e->gInfo;
 
 	if(e->eInfo.isNoncollinear())
@@ -66,10 +65,6 @@ void Dump::dumpOcean()
 	    if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 	    
 	    
-	    fwrite(&basis.nbasis,sizeof(int),1, fp);
-	    
-	    for(size_t i=0; i<basis.nbasis; i++)
-	      fwrite(&basis.iGarr[i],sizeof(int),3, fp);
 	    
 	    for(int s=0; s<nSpins; s++)
 	      {
@@ -94,6 +89,11 @@ void Dump::dumpOcean()
 		      }
 		    continue; //only head performs computation below
 		  }
+		const Basis& basis = e->basis[q];
+		fwrite(&basis.nbasis,sizeof(int),1, fp);
+		
+		for(size_t i=0; i<basis.nbasis; i++)
+		  fwrite(&basis.iGarr[i],sizeof(int),3, fp);
 		
 		Cq->write_real(fp);
 		((*Cq) * complex(0,1)).write_real(fp);
