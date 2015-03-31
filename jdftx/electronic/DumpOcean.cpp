@@ -41,6 +41,7 @@ void Dump::dumpOcean()
 
 	int nSpins = (eInfo.spinType==SpinNone ? 1 : 2);
 	int nkPoints = eInfo.nStates / nSpins;
+	double sqrtvol=sqrt(gInfo.detR);
 
 	for(int ik=0; ik<nkPoints; ik++)
 	  {
@@ -90,13 +91,16 @@ void Dump::dumpOcean()
 		    continue; //only head performs computation below
 		  }
 		const Basis& basis = e->basis[q];
-		fwrite(&basis.nbasis,sizeof(int),1, fp);
-		
+		int nbasis = basis.nbasis;
+		fwrite(&nbasis,sizeof(int),1, fp);
+
 		for(size_t i=0; i<basis.nbasis; i++)
-		  fwrite(&basis.iGarr[i],sizeof(int),3, fp);
+		  { vector3<int> basisEle=basis.iGarr[i]; 
+		    fwrite(&basisEle,sizeof(int),3, fp);
+		  }
 		
-		Cq->write_real(fp);
-		((*Cq) * complex(0,1)).write_real(fp);
+		((*Cq) * complex(sqrtvol,0)).write_real(fp);
+		((*Cq) * complex(0,-sqrtvol)).write_real(fp);
 		fclose(fp);
 	      }
 	  }
