@@ -32,77 +32,63 @@ void Dump::dumpOcean()
 {
 	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
-	const GridInfo& gInfo = e->gInfo;
 
 	if(e->eInfo.isNoncollinear())
-		die("OCEAN output may not be supported for noncollinear spin modes.\n");
+		die("OCEAN output is not supported for noncollinear spin modes.\n");
 	
-	std::string fname; ofstream ofs;
-
 	int nSpins = (eInfo.spinType==SpinNone ? 1 : 2);
 	int nkPoints = eInfo.nStates / nSpins;
-	double sqrtvol=sqrt(gInfo.detR);
+	double sqrtvol=sqrt(e->gInfo.detR);
 
+	logPrintf("\nDumping Kohn-Sham orbitals for the OCEAN code:\n");
 	for(int ik=0; ik<nkPoints; ik++)
-	  {
-	    
-	    vector3<> k(eInfo.qnums[ik].k * gInfo.G); //cartesian k-vector
-	    
-	    //make a string for the output file with ik in it:
-	    std::string kfile = "kpoint" + std::to_string (ik);
-	    
-	    
-	    if(!mpiUtil->isHead()) fname = "/dev/null";
-	    else 
-	      {  fname=kfile;
-		
-		//open the file just to delete old contents
-		FILE *fp2 = fopen(fname.c_str(),"wb");
-		if(!fp2) die("Error opening %s for writing.\n", fname.c_str());
-		fclose(fp2);
-	      }
-
-	    FILE *fp = fopen(fname.c_str(),"ab");
-	    if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-	    
-	    
-	    
-	    for(int s=0; s<nSpins; s++)
-	      {
-		int q = ik + nkPoints*s; //net quantum number
-		
-		//Get relevant wavefunctions 
-		ColumnBundle CqTemp; 
-		const ColumnBundle* Cq=0; 
-		if(mpiUtil->isHead())
-		  {	if(eInfo.isMine(q))
-		      {	Cq = &eVars.C[q];
-		      }
-		    else
-		      {	Cq = &CqTemp;
-			CqTemp.init(eInfo.nBands, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q]);
-			CqTemp.recv(eInfo.whose(q));
-		      }
-		  }
-		else
-		  {	if(eInfo.isMine(q))
-		      {	eVars.C[q].send(0);
-		      }
-		    continue; //only head performs computation below
-		  }
-		const Basis& basis = e->basis[q];
-		int nbasis = basis.nbasis;
-		fwrite(&nbasis,sizeof(int),1, fp);
-
-		for(size_t i=0; i<basis.nbasis; i++)
-		  { vector3<int> basisEle=basis.iGarr[i]; 
-		    fwrite(&basisEle,sizeof(int),3, fp);
-		  }
-		
-		((*Cq) * complex(sqrtvol,0)).write_real(fp);
-		((*Cq) * complex(0,-sqrtvol)).write_real(fp);
-		fclose(fp);
-	      }
-	  }
-	logPrintf("done.\n"); logFlush();
+	{
+		if(!mpiUtil->isHead()) //Non-head processes only need to ship wavefunctions to head
+		{
+			for(int s=0; s<nSpins; s++)
+			{	int q = ik + nkPoints*s; //net quantum number
+				if(eInfo.isMine(q))
+					eVars.C[q].send(0, s); //use spin as a tag
+			}
+		}
+		else //All the writing happens from head
+		{
+			//Open a file for each k-point:			
+			std::string fname = "kpoint" + std::to_string (ik);
+			logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
+			FILE *fp = fopen(fname.c_str(), "wb");
+			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
+			
+			//Write header:
+			int nbasis = e->basis[ik].nbasis; //cast nbasis to int
+			fwrite(&nbasis, sizeof(int), 1, fp); //Number of G-vectors
+			fwrite(e->basis[ik].iGarr, sizeof(int), 3*nbasis, fp); //List of G-vectors
+			
+			//Collect relevant wavefunctions:
+			std::vector<ColumnBundle> CkTemp(nSpins);
+			std::vector<const ColumnBundle*> Ck(nSpins);
+			for(int s=0; s<nSpins; s++)
+			{	int q = ik + nkPoints*s; //net quantum number
+				if(eInfo.isMine(q))
+					Ck[s] = &eVars.C[q];
+				else
+				{	Ck[s] = &CkTemp[s];
+					CkTemp[s].init(eInfo.nBands, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q]);
+					CkTemp[s].recv(eInfo.whose(q), s);
+				}
+			}
+			
+			//Write wavefunctions:
+			std::vector<complex> phases(2);
+			phases[0] = complex(+sqrtvol, 0); //normalize and get real part below
+			phases[1] = complex(0, -sqrtvol); //normalize and get imag part below
+			for(complex phase: phases) //loop over real/imag part
+				for(const ColumnBundle* Cq: Ck) //loop over spin
+					(phase * (*Cq)).write_real(fp); //outer loop over bands, inner loop over G-vectors
+			
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+		}
+	}
+	
 }
