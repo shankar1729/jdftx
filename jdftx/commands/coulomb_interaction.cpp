@@ -209,7 +209,7 @@ struct CommandExchangeRegularization : public Command
 			"    only when the k-point sampled supercell is roughly isotropic.\n"
 			"\n+ WignerSeitzTruncated\n\n"
 			"    Truncate exchange kernel on the Wigner-Seitz cell of the k-point\n"
-			"    sampled supercell, as in R. Sundararaman et al (under preparation).\n"
+			"    sampled supercell, as in R. Sundararaman et al, PRB 87, 165122 (2013).\n"
 			"    Default for any (partially) periodic <geometry>.";
 		hasDefault = true;
 		require("coulomb-interaction");

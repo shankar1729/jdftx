@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //-------------- Auxiliary Function method --------------------------
 // Based on [ P. Carrier, S. Rohra and A. Gorling, Phys. Rev. B 75, 205126 (2007) ]
-// for 3D, and generalized to other geometries by R. Sundararaman et al (under preparation)
+// for 3D, and generalized to other geometries by R. Sundararaman et al, PRB 87, 165122 (2013)
 
 // Reciprocal space function periodic on Brillouin zone which ~ G^2 near G=0
 // and is strictly > 0 everywhere else in the zone for any crystal system
