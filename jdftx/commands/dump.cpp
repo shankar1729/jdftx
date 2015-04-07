@@ -33,6 +33,9 @@ struct CommandDumpOnly : public Command
 			"Bypass all minimization, perform a single energy evaluation at\n"
 			"the initial state, and process dump commands at the end state.\n"
 			"Useful for post-processing a converged calculation.";
+		
+		forbid("fix-electron-potential");
+		forbid("fix-electron-density");
 	}
 
 	void process(ParamList& pl, Everything& e)

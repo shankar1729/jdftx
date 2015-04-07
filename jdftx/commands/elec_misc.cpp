@@ -231,6 +231,7 @@ struct CommandFixElectronHamiltonian : public Command
 		forbid("electronic-scf");
 		forbid("vibrations");
 		forbid("spin-restricted");
+		forbid("dump-only");
 	}
 
 	void process(ParamList& pl, Everything& e, string& targetFilenamePattern)
