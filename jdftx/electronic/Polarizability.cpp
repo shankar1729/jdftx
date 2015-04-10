@@ -42,13 +42,8 @@ class PairDensityCalculator
 		
 		State() : index(0) {}
 		
-		void setup(const Everything& e, const Supercell::KmeshTransform& kTransform)
-		{	//get the columnbundle and eigenvalues:
-			C = &(e.eVars.C[kTransform.iReduced]);
-			eig = &(e.eVars.Hsub_eigs[kTransform.iReduced]);
-			invert = kTransform.invert;
-			//compute the index array
-			const Basis& basis = *(C->basis);
+		void initIndex(const Everything& e, const Basis& basis, const Supercell::KmeshTransform& kTransform)
+		{	invert = kTransform.invert;
 			const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym]) * kTransform.invert;
 			std::vector<int> indexVec(basis.nbasis);
 			for(unsigned j=0; j<basis.nbasis; j++)
@@ -62,10 +57,22 @@ class PairDensityCalculator
 			#endif
 		}
 		
+		void setup(const Everything& e, const Supercell::KmeshTransform& kTransform)
+		{	//Get the columnbundle and eigenvalues:
+			C = &(e.eVars.C[kTransform.iReduced]);
+			eig = &(e.eVars.Hsub_eigs[kTransform.iReduced]);
+			//Compute the index array
+			initIndex(e, *(C->basis), kTransform);
+		}
+		
 		void setup(const Everything& e, vector3<> k, string fnameWfns, string fnameEig)
-		{	//Setup basis:
+		{	//Wrap k point to (-0.5,0.5] (consistent with ElecInfo):
+			vector3<> kWrapped = k;
+			for(int j=0; j<3; j++)
+				kWrapped[j] -= ceil(kWrapped[j]-0.5);
+			//Setup basis:
 			logSuspend();
-			basisExt.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, k);
+			basisExt.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kWrapped);
 			logResume();
 			//Read wavefunctions:
 			Cext.init(e.eInfo.nBands, basisExt.nbasis, &basisExt, 0);
@@ -79,10 +86,17 @@ class PairDensityCalculator
 			eigExt.resize(e.eInfo.nBands);
 			if(fileSize(fnameEig.c_str()) < 0) die("\nFile '%s' does not exist.\n", fnameEig.c_str());
 			FILE* fpEig = fopen(fnameEig.c_str(), "r");
-			eigExt.scan(fpEig);
+			fread(eigExt.data(), sizeof(double), eigExt.nRows(), fpEig);
 			if(feof(fpEig))  die("\nFile '%s' ended before all eigenvalues could be read.\n", fnameEig.c_str());
 			fclose(fpEig);
 			eig = &eigExt;
+			//Compute the index array (for transforming from kWrapped to k):
+			Supercell::KmeshTransform kTransform;
+			kTransform.invert = +1;
+			kTransform.iReduced = 0; //not used
+			kTransform.iSym = 0; //always identity
+			kTransform.offset = round(k - kWrapped);
+			initIndex(e, *(C->basis), kTransform);
 		}
 		
 		~State()
@@ -96,13 +110,10 @@ class PairDensityCalculator
 		
 		//ColumnBundle::getColumn, but with custom index array:
 		complexScalarFieldTilde getColumn(int col) const
-		{	if(index)
-			{	complexScalarFieldTilde full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
-				callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
-				if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
-				return full;
-			}
-			else return Cext.getColumn(col,0);
+		{	complexScalarFieldTilde full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
+			callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
+			if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
+			return full;
 		}
 		
 	private:
@@ -355,11 +366,26 @@ void Polarizability::dump(const Everything& e)
 		logPrintf("\tDumping '%s' ... ", fname.c_str()); logFlush();
 		matrix epsInvEvecs; diagMatrix epsInvEigs;
 		matrix Khalf = pow(dagger_symmetrize(K), 0.5);
-		(eye(nColumns) + Khalf * Xext * Khalf).diagonalize(epsInvEvecs, epsInvEigs); //epsInv (symmetrized)
+		matrix epsInv = eye(nColumns) + Khalf * Xext * Khalf;
+		epsInv.diagonalize(epsInvEvecs, epsInvEigs); //epsInv (symmetrized)
 		FILE* fp=fopen(fname.c_str(), "w");
 		epsInvEigs.print(fp, "%.15f\n");
 		fclose(fp);
 		logPrintf("Done.\n"); logFlush();
+		//Print head:
+		int iGzero = -1;
+		for(size_t i=0; i<basis.nbasis; i++)
+			if(!basis.iGarr[i].length_squared())
+			{	iGzero = i;
+				break;
+			}
+		assert(iGzero >= 0);
+		matrix V0(1, nColumns);
+		for(int j=0; j<nColumns; j++)
+			V0.set(0,j, V.data()[V.index(j,iGzero)]);
+		V0 *= 1./sqrt(trace(V0*dagger(V0)).abs()); //normalize
+		double epsInvHead = trace(V0 * epsInv * dagger(V0)).abs();
+		logPrintf("\thead(epsInv): %lg   1/head(epsInv): %lg\n", epsInvHead, 1./epsInvHead);
 	}
 
 	//Determine transformation to chosen eigen-basis
