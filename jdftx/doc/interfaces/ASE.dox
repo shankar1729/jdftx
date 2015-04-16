@@ -13,7 +13,7 @@ Installing the JDFTx calculator can be done in three steps:
 
 1. **Download and compile JDFTx**
 
-   See [here](https://sourceforge.net/p/jdftx/wiki/Compiling/) for more details on compiling JDFTx.
+   See [here](Compiling.html) for more details on compiling JDFTx.
 
 2. **Install Atomic Simulation Environment (ASE):** 
 
@@ -50,5 +50,43 @@ On clusters with resource management programs (e.g. slurm, torque...), you can o
     calculator = JDFTx(executable='srun /path/to/jdftx')
 
 Take note that when you do that, the command that submits the job (in this case, srun) should not release the shell until the job is completed. For example, in slurm, srun would work, but not sbatch.
+
+Example
+-------
+
+Below is a sample python script that uses jdftx through the ASE interfae to calculate 
+the bond length of CO molecule using the BFGS minimization algorithm.
+Keep in mind that in order for the script to run, you need to modify the paths for the executable and the pseudopotentials.
+
+    from ase import Atoms
+    from JDFTx import *
+
+    d = 1.25
+    CO = Atoms('CO', positions=[(0, 0, 0), (0, 0, d)], cell=[(10,0,0),(0,10,0),(0,0,15)], pbc = [False, False, False])
+
+    # set up JDFTx calculator
+    jdftx_calculator = JDFTx(executable='/path/to/executable', pseudoDir='/path/to/pseudopotentials', commands={"elec-cutoff": 30})
+    CO.set_calculator(jdftx_calculator)
+
+    # print the initial total energy
+    print CO.get_potential_energy()
+
+    # perform structure optimization
+    from ase.optimize import BFGS
+    dyn = BFGS(CO)
+    dyn.run(fmax=0.05)
+
+Output from this script is:
+
+    -583.728565039
+    BFGS:   0  12:37:44     -583.728565       8.6537
+    BFGS:   1  12:38:44     -584.230224       3.4122
+    BFGS:   2  12:39:45     -584.274439       2.0316
+    BFGS:   3  12:40:48     -584.291420       0.2329
+    BFGS:   4  12:41:50     -584.291665       0.0144
+
+(warning: the exact energies depend on the pseudopotentials you use.)
+
+[More examples on how to use ASE can be found here](https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html)
 
 */
