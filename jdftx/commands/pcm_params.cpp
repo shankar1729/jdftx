@@ -71,6 +71,7 @@ enum PCMparameter
 	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
 	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
+	PCMp_Ztot, //! Total valence charge on the solvent, used by CANDLE
 	PCMp_Delim //!< Delimiter used in parsing
 };
 EnumStringMap<PCMparameter> pcmParamMap
@@ -80,7 +81,8 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_cavityTension, "cavityTension",
 	PCMp_eta_wDiel, "eta_wDiel",
 	PCMp_sqrtC6eff, "sqrtC6eff",
-	PCMp_pCavity, "pCavity"
+	PCMp_pCavity, "pCavity",
+	PCMp_Ztot, "Ztot"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_lMax, "angular momentum truncation in SaLSA",
@@ -89,7 +91,8 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
-	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE"
+	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE",
+	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE"
 );
 
 struct CommandPcmParams : public Command
@@ -122,6 +125,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(eta_wDiel, >=, 0.)
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
+				READ_AND_CHECK(Ztot, >, 0.)
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
