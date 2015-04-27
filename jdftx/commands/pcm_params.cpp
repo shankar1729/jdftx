@@ -142,6 +142,7 @@ struct CommandPcmParams : public Command
 		PRINT(eta_wDiel)
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)
+		PRINT(Ztot)
 		#undef PRINT
 	}
 }
