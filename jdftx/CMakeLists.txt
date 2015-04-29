@@ -137,8 +137,10 @@ set_JDFTx_flags(jdftxlib OFF)
 
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
-find_package(CUDA)
-if(CUDA_FOUND)
+option(EnableCUDA "Enable NVIDIA GPU support using CUDA" OFF)
+if(EnableCUDA)
+	find_package(CUDA REQUIRED)
+	
 	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
 	foreach(lib IN LISTS CUDA_LIBRARIES)
 		if("${lib}" MATCHES "libcuda.so")
@@ -170,7 +172,7 @@ macro(add_JDFTx_executable execName execSources)
 	target_link_libraries(${execName} jdftxlib)
 	set_JDFTX_flags(${execName} OFF)
 	
-	if(CUDA_FOUND) #GPU version
+	if(EnableCUDA) #GPU version
 	        add_executable(${execName}_gpu ${execSources})
 	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
 	        set_JDFTx_flags(${execName}_gpu ON)
