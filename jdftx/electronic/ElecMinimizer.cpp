@@ -271,6 +271,7 @@ void elecFluidMinimize(Everything &e)
 			eVars.B[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	
+	double Evac0 = NAN;
 	if(eVars.isRandom && eVars.fluidParams.fluidType!=FluidNone)
 	{	logPrintf("Fluid solver invoked on fresh (partially random / LCAO) wavefunctions\n");
 		logPrintf("Running a vacuum solve first:\n");
@@ -278,6 +279,8 @@ void elecFluidMinimize(Everything &e)
 		eVars.fluidParams.fluidType = FluidNone; //temporarily disable the fluid
 		logPrintf("\n-------- Initial electronic minimization -----------\n"); logFlush();
 		elecMinimize(e); //minimize without fluid
+		Evac0 = relevantFreeEnergy(e);
+		logPrintf("Vacuum energy after initial minimize, %s = %+.15f\n\n", relevantFreeEnergyName(e), Evac0);
 		eVars.fluidParams.fluidType = origType; //restore fluid flag
 	}
 	eVars.elecEnergyAndGrad(ener);
@@ -295,6 +298,7 @@ void elecFluidMinimize(Everything &e)
 	{	//gummel loop
 		logPrintf("\n-------- Electron <-> Fluid self-consistency loop -----------\n"); logFlush();
 		double dAtyp = 1.;
+		bool converged = false;
 		for(int iGummel=0; iGummel<cntrl.fluidGummel_nIterations && !killFlag; iGummel++)
 		{
 			//Fluid-side:
@@ -322,12 +326,17 @@ void elecFluidMinimize(Everything &e)
 			if(dAtyp<cntrl.fluidGummel_Atol)
 			{	logPrintf("\nFluid<-->Electron self-consistency loop converged to %le hartrees after %d minimization pairs.\n",
 					cntrl.fluidGummel_Atol, iGummel+1);
-				return;
+				converged = true;
+				break;
 			}
 		}
-		logPrintf("\nFluid<-->Electron self-consistency loop not yet converged to %le hartrees after %d minimization pairs.\n",
-			cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations);
+		if(!converged)
+			logPrintf("\nFluid<-->Electron self-consistency loop not yet converged to %le hartrees after %d minimization pairs.\n",
+				cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations);
 	}
+	
+	if(!isnan(Evac0))
+		logPrintf("Single-point solvation energy estimate, Delta%s = %+.15f\n", relevantFreeEnergyName(e), relevantFreeEnergy(e)-Evac0);
 }
 
 void convergeEmptyStates(Everything& e)
