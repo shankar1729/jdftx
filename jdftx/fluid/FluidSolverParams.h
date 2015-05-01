@@ -58,8 +58,29 @@ enum PCMVariant
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
-	PCM_PRA05 //!< Linear local-response dielectric fluid [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
+	PCM_PRA05, //!< Linear local-response dielectric fluid [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
+	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_g09beta,  //!< g09+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_g03beta,  //!< g03+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_g03pbeta, //!< g03'+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
+	PCM_SCCS_cation,   //!< cations-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]
+	PCM_SCCS_anion     //!< anions-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]
 };
+
+//! Check for any of the SCCS cases:
+#define case_PCM_SCCS_any \
+	case PCM_SCCS_g09: \
+	case PCM_SCCS_g03: \
+	case PCM_SCCS_g03p: \
+	case PCM_SCCS_g09beta: \
+	case PCM_SCCS_g03beta: \
+	case PCM_SCCS_g03pbeta: \
+	case PCM_SCCS_cation: \
+	case PCM_SCCS_anion
+inline bool isPCM_SCCS(PCMVariant pcmVariant) { switch(pcmVariant) { case_PCM_SCCS_any: return true; default: return false; } }
+
 
 //! Extra parameters for fluids:
 struct FluidSolverParams
@@ -90,6 +111,11 @@ struct FluidSolverParams
 	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
 	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-bohr/Eh]  (fit parameter)
+	
+	//For SCCS alone:
+	double rhoMin, rhoMax; //!< start and end of transition
+	double rhoDelta; //!< Delta used for "quantum surface"
+	double cavityPressure; //!< volume term (used in some parametrizations)
 	
 	//For SaLSA alone:
 	int lMax;

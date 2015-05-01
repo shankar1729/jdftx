@@ -25,14 +25,30 @@ EnumStringMap<PCMVariant> pcmVariantMap
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12", 
-	PCM_PRA05,   "PRA05"
+	PCM_PRA05,   "PRA05",
+	PCM_SCCS_g09,      "SCCS_g09",
+	PCM_SCCS_g03,      "SCCS_g03",
+	PCM_SCCS_g03p,     "SCCS_g03p",
+	PCM_SCCS_g09beta,  "SCCS_g09beta",
+	PCM_SCCS_g03beta,  "SCCS_g03beta",
+	PCM_SCCS_g03pbeta, "SCCS_g03pbeta",
+	PCM_SCCS_cation,   "SCCS_cation",
+	PCM_SCCS_anion,    "SCCS_anion"
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
 (	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model [R. Sundararaman and W.A. Goddard, JCP 142, 064107 (2015)]",
 	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]", 
 	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
-	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]"
+	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]",
+	PCM_SCCS_g09,      "g09 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_g03,      "g03 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_g03p,     "g03' parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_g09beta,  "g09+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_g03beta,  "g03+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_g03pbeta, "g03'+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
+	PCM_SCCS_cation,   "cations-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]",
+	PCM_SCCS_anion,    "anions-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]"
 );
 
 struct CommandPcmVariant : public Command
@@ -51,8 +67,15 @@ struct CommandPcmVariant : public Command
 		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 		if(fsp.fluidType==FluidSaLSA)
 			 fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
-		if(fsp.pcmVariant==PCM_CANDLE && fsp.fluidType!=FluidLinearPCM)
-			throw string("CANDLE can only be used with fluid LinearPCM");
+		//Check variant compatibility with fluidType
+		if(fsp.fluidType!=FluidNone)
+		{	//check only when fluid is not None, so that you can switch any
+			//fluid input file to vacuum simply by commenting out fluid line
+			if(fsp.pcmVariant==PCM_CANDLE && fsp.fluidType!=FluidLinearPCM)
+				throw string("CANDLE can only be used with fluid LinearPCM");
+			if(isPCM_SCCS(fsp.pcmVariant) && fsp.fluidType!=FluidLinearPCM)
+				throw string("SCCS variants can only be used with fluid LinearPCM");
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -68,6 +91,10 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
+	PCMp_cavityPressure, //!< effective pressure on the cavity (hartree per bohr^3) for SCCS
+	PCMp_rhoMin, //!< min electron density (bohr^-3) for SCCS cavity switching function
+	PCMp_rhoMax, //!< max electron density (bohr^-3) for SCCS cavity switching function
+	PCMp_rhoDelta, //!< electron density change (bohr^-3) for SCCS cavity area calculation
 	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
 	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
@@ -79,6 +106,10 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_nc,            "nc",
 	PCMp_sigma,         "sigma",
 	PCMp_cavityTension, "cavityTension",
+	PCMp_cavityPressure, "cavityPressure",
+	PCMp_rhoMin, "rhoMin",
+	PCMp_rhoMax, "rhoMin",
+	PCMp_rhoDelta, "rhoDelta",
 	PCMp_eta_wDiel, "eta_wDiel",
 	PCMp_sqrtC6eff, "sqrtC6eff",
 	PCMp_pCavity, "pCavity",
@@ -89,6 +120,10 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
+	PCMp_cavityPressure, "effective pressure on the cavity (hartree per bohr^3) for SCCS",
+	PCMp_rhoMin, "min electron density (bohr^-3) for SCCS cavity switching function",
+	PCMp_rhoMax, "max electron density (bohr^-3) for SCCS cavity switching function",
+	PCMp_rhoDelta, "electron density change (bohr^-3) for SCCS cavity area calculation",
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
 	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE",
@@ -122,6 +157,10 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(nc, >, 0.)
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
+				READ_AND_CHECK(cavityPressure, <, DBL_MAX)
+				READ_AND_CHECK(rhoMin, >, 0.)
+				READ_AND_CHECK(rhoMax, >, 0.)
+				READ_AND_CHECK(rhoDelta, >, 0.)
 				READ_AND_CHECK(eta_wDiel, >=, 0.)
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
@@ -139,6 +178,10 @@ struct CommandPcmParams : public Command
 		PRINT(nc)
 		PRINT(sigma)
 		PRINT(cavityTension)
+		PRINT(cavityPressure)
+		PRINT(rhoMin)
+		PRINT(rhoMax)
+		PRINT(rhoDelta)
 		PRINT(eta_wDiel)
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)

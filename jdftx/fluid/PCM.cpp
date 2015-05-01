@@ -57,7 +57,8 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	const double dG = 0.02;
 	
 	//Print common info and add relevant citations:
-	logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
+	if(!isPCM_SCCS(fsp.pcmVariant))
+		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA: //Nonlocal PCM
 		case PCM_CANDLE: //and local PCMs that uses weighted-density cavitation+dispersion
@@ -130,6 +131,15 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			logPrintf("   No cavitation model.\n");
 			break;
 		}
+		case_PCM_SCCS_any:
+		{	Citations::add("SCCS linear dielectric fluid model", "O. Andreussi et al., J. Chem. Phys. 136, 064102 (2012)");
+			if(fsp.pcmVariant==PCM_SCCS_cation || fsp.pcmVariant==PCM_SCCS_anion)
+				Citations::add("SCCS parametrization for charged systems", "C. Dupont et al., J. Chem. Phys. 139, 214110 (2013)]");
+			logPrintf("   Cavity determined by rhoMin: %lg  rhoMax: %lg\n", fsp.rhoMin, fsp.rhoMax);
+			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 and pressure: %lg Eh/bohr^3 to account for cavitation and dispersion.",
+				fsp.cavityTension, fsp.cavityPressure);
+			break;
+		}
 	}
 }
 
@@ -155,6 +165,8 @@ void PCM::updateCavity()
 			fsp.nc, fsp.sigma, fsp.pCavity); //vdW cavity
 		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
 	}
+	else if(isPCM_SCCS(fsp.pcmVariant))
+		ShapeFunctionSCCS::compute(nCavity, shape, fsp.rhoMin, fsp.rhoMax, epsBulk);
 	else //Compute directly from nCavity (which is a density product for SaLSA):
 		ShapeFunction::compute(nCavity, shape, fsp.nc, fsp.sigma);
 	
@@ -202,6 +214,17 @@ void PCM::updateCavity()
 		case PCM_LA12:
 		case PCM_PRA05:
 			break; //no contribution
+		case_PCM_SCCS_any:
+		{	//Volume contribution:
+			Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shape));
+			//Surface contribution:
+			ScalarField shapePlus, shapeMinus;
+			ShapeFunctionSCCS::compute(nCavity+(0.5*fsp.rhoDelta), shapePlus, fsp.rhoMin, fsp.rhoMax, epsBulk);
+			ShapeFunctionSCCS::compute(nCavity-(0.5*fsp.rhoDelta), shapeMinus, fsp.rhoMin, fsp.rhoMax, epsBulk);
+			ScalarField DnLength = sqrt(lengthSquared(gradient(nCavity)));
+			Adiel["CavityTension"] = (fsp.cavityTension/fsp.rhoDelta) * integral(DnLength * (shapeMinus - shapePlus));
+			break;
+		}
 	}
 }
 
@@ -229,6 +252,21 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
+	}
+	else if(isPCM_SCCS(fsp.pcmVariant))
+	{	//Electrostatic and volumetric combinations via shape:
+		ShapeFunctionSCCS::propagateGradient(nCavity, A_shape - fsp.cavityPressure, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
+		//Add surface contributions:
+		ScalarField shapePlus, shapeMinus;
+		ShapeFunctionSCCS::compute(nCavity+(0.5*fsp.rhoDelta), shapePlus, fsp.rhoMin, fsp.rhoMax, epsBulk);
+		ShapeFunctionSCCS::compute(nCavity-(0.5*fsp.rhoDelta), shapeMinus, fsp.rhoMin, fsp.rhoMax, epsBulk);
+		VectorField Dn = gradient(nCavity);
+		ScalarField DnLength = sqrt(lengthSquared(Dn));
+		ScalarField A_shapeMinus = (fsp.cavityTension/fsp.rhoDelta) * DnLength;
+		ScalarField A_DnLength = (fsp.cavityTension/fsp.rhoDelta) * (shapeMinus - shapePlus);
+		A_nCavity -= divergence(Dn * (inv(DnLength) * A_DnLength));
+		ShapeFunctionSCCS::propagateGradient(nCavity+(0.5*fsp.rhoDelta), -A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
+		ShapeFunctionSCCS::propagateGradient(nCavity-(0.5*fsp.rhoDelta),  A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
@@ -320,7 +358,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
 	
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
-	fprintf(fp, "   E_nc = %.15lg\n", A_nc);
+	if(!isPCM_SCCS(fsp.pcmVariant))
+		fprintf(fp, "   E_nc = %.15lg\n", A_nc);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_SGA13:
@@ -336,6 +375,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			break;
 		case PCM_LA12:
 		case PCM_PRA05:
+		case_PCM_SCCS_any:
 			break;
 	}
 	printDebug(fp);

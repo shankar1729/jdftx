@@ -119,6 +119,27 @@ namespace ShapeFunction
 	}
 }
 
+namespace ShapeFunctionSCCS
+{
+	void compute(int N, const double* n, double* shape, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	threadedLoop(compute_calc, N, n, shape, rhoMin, rhoMax, epsBulk);
+	}
+	void propagateGradient(int N, const double* n, const double* grad_shape, double* grad_n, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	threadedLoop(propagateGradient_calc, N, n, grad_shape, grad_n, rhoMin, rhoMax, epsBulk);
+	}
+	#ifdef GPU_ENABLED
+	void compute_gpu(int N, const double* n, double* shape, const double rhoMin, const double rhoMax, const double epsBulk);
+	void propagateGradient_gpu(int N, const double* n, const double* grad_shape, double* grad_n, const double rhoMin, const double rhoMax, const double epsBulk);
+	#endif
+	void compute(const ScalarField& n, ScalarField& shape, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	nullToZero(shape, n->gInfo);
+		callPref(compute)(n->gInfo.nr, n->dataPref(), shape->dataPref(), rhoMin, rhoMax, epsBulk);
+	}
+	void propagateGradient(const ScalarField& n, const ScalarField& grad_shape, ScalarField& grad_n, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	nullToZero(grad_n, n->gInfo);
+		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), rhoMin, rhoMax, epsBulk);
+	}
+}
 
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval

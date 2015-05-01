@@ -49,6 +49,16 @@ namespace ShapeFunction
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
 }
+
+namespace ShapeFunctionSCCS
+{
+	//! Compute the shape function (0 to 1) given the cavity-determining electron density
+	void compute(const ScalarField& n, ScalarField& shape, double rhoMin, double rhoMax, double epsBulk);
+
+	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density (accumulate to E_n)
+	void propagateGradient(const ScalarField& n, const ScalarField& E_shape, ScalarField& E_n, double rhoMin, double rhoMax, double epsBulk);
+}
+
 #endif
 
 
@@ -115,6 +125,34 @@ namespace ShapeFunction
 		nEx[i] = alpha*n + D2*nInv;
 		if(nEx_nBar) { nEx_nBar[i] = alpha - D2*nInv*nInv; }
 		if(nEx_DnBarSq) { nEx_DnBarSq[i] = nInv; }
+	}
+}
+
+//Cavity shape function and gradient for the SCCS models
+namespace ShapeFunctionSCCS
+{
+	__hostanddev__ void compute_calc(int i, const double* nCavity, double* shape,
+		const double rhoMin, const double rhoMax, const double epsBulk)
+	{	double rho = nCavity[i];
+		if(rho >= rhoMax) { shape[i] = 0.; return; }
+		if(rho <= rhoMin) { shape[i] = 1.; return; }
+		const double logDen = log(rhoMax/rhoMin);
+		double f = log(rhoMax/rho)/logDen;
+		double t = f - sin(2*M_PI*f)/(2*M_PI);
+		shape[i] = (pow(epsBulk,t) - 1.)/(epsBulk - 1.);
+	}
+	__hostanddev__ void propagateGradient_calc(int i, const double* nCavity, const double* grad_shape, double* grad_nCavity,
+		const double rhoMin, const double rhoMax, const double epsBulk)
+	{	double rho = nCavity[i];
+		if(rho >= rhoMax) return;
+		if(rho <= rhoMin) return;
+		const double logDen = log(rhoMax/rhoMin);
+		double f = log(rhoMax/rho)/logDen;
+		double f_rho = -1./(rho*logDen); //df/drho
+		double t = f - sin(2*M_PI*f)/(2*M_PI);
+		double t_f = 1. - cos(2*M_PI*f); //dt/df
+		double s_t = log(epsBulk) * pow(epsBulk,t)/(epsBulk - 1.); //dshape/dt
+		grad_nCavity[i] += grad_shape[i] * s_t * t_f * f_rho; //chain rule
 	}
 }
 

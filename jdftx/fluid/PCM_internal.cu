@@ -70,6 +70,29 @@ namespace ShapeFunction
 	}
 }
 
+namespace ShapeFunctionSCCS
+{
+	__global__
+	void compute_kernel(int N, const double* n, double* shape, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	int i = kernelIndex1D(); if(i<N) compute_calc(i, n, shape, rhoMin, rhoMax, epsBulk);
+	}
+	void compute_gpu(int N, const double* n, double* shape, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	GpuLaunchConfig1D glc(compute_kernel, N);
+		compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, shape, rhoMin, rhoMax, epsBulk);
+		gpuErrorCheck();
+	}
+
+	__global__
+	void propagateGradient_kernel(int N, const double* n, const double* grad_shape, double* grad_n, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	int i = kernelIndex1D(); if(i<N) propagateGradient_calc(i, n, grad_shape, grad_n, rhoMin, rhoMax, epsBulk);
+	}
+	void propagateGradient_gpu(int N, const double* n, const double* grad_shape, double* grad_n, const double rhoMin, const double rhoMax, const double epsBulk)
+	{	GpuLaunchConfig1D glc(propagateGradient_kernel, N);
+		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, grad_shape, grad_n, rhoMin, rhoMax, epsBulk);
+		gpuErrorCheck();
+	}
+}
+
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {

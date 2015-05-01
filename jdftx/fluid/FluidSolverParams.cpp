@@ -332,6 +332,28 @@ void FluidSolverParams::setPCMparams()
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has been fit only for H2O; using nc and sigma from H2O fit.\n";
 			break;
 		}
+		case_PCM_SCCS_any:
+		{	assert(fluidType == FluidLinearPCM);
+			if(solvents[0]->name != FluidComponent::H2O)
+			{	initWarnings += 
+					"WARNING: SCCS varinats have not been parametrized for this solvent; using water parameters\n";
+			}
+			const double dyn_per_cm = (1e-5*Newton)/(1e-2*meter);
+			const double GPa = 1e9*Pascal;
+			rhoDelta = 1e-4; //common to all variants
+			switch(pcmVariant)
+			{	case PCM_SCCS_g09:      rhoMin=1.00e-4; rhoMax=1.50e-3; cavityTension=2.50*dyn_per_cm; break;
+				case PCM_SCCS_g03:      rhoMin=1.00e-4; rhoMax=5.00e-3; cavityTension=11.5*dyn_per_cm; break;
+				case PCM_SCCS_g03p:     rhoMin=3.00e-4; rhoMax=3.00e-3; cavityTension=12.0*dyn_per_cm; break;
+				case PCM_SCCS_g09beta:  rhoMin=1.00e-4; rhoMax=1.50e-3; cavityTension=11.0*dyn_per_cm; cavityPressure=-0.08*GPa; break;
+				case PCM_SCCS_g03beta:  rhoMin=1.00e-4; rhoMax=5.00e-3; cavityTension=50.0*dyn_per_cm; cavityPressure=-0.35*GPa; break;
+				case PCM_SCCS_g03pbeta: rhoMin=3.00e-4; rhoMax=3.00e-3; cavityTension=20.0*dyn_per_cm; cavityPressure=-0.08*GPa; break;
+				case PCM_SCCS_cation:   rhoMin=2.00e-4; rhoMax=3.50e-3; cavityTension=5.00*dyn_per_cm; cavityPressure=+0.125*GPa; break;
+				case PCM_SCCS_anion:    rhoMin=2.40e-3; rhoMax=1.55e-2; cavityTension=0.00*dyn_per_cm; cavityPressure=+0.450*GPa; break;
+				default: break;
+			}
+			break;
+		}
 	}
 }
 
