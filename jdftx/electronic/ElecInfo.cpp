@@ -170,7 +170,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	if(fillingsUpdate != ConstantFillings)
 	{	//make sure there are extra bands:
 		int nBandsMin = (int)ceil(nElectrons/qWeightSum);
-		if(nBands <= nBandsMin)
+		if(nBands*qWeightSum <= nElectrons)
 			die("%d bands insufficient for fermi fillings with %lg electrons (need at least %d, recommend > %d)\n",
 				nBands, nElectrons, nBandsMin+1, nBandsMin+5);
 		
