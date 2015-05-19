@@ -1,0 +1,201 @@
+/** \page Scripts Scripts
+ + \subpage  bandstructKpoints
+ + \subpage  xyzToIonpos
+ + \subpage  listEnergy
+ + \subpage  dryRunToPDB
+ + \subpage  createXSF
+ + \subpage  xyzToIonposOpt
+ + \subpage  binaryToText
+ + \subpage  printStackTrace
+ + \subpage  calcPulay
+ + \subpage  plotConvergence
+*/
+
+/** \page  bandstructKpoints bandstructKpoints
+-----------------
+
+	Generate a kpoint path for band structure plots. Usage:
+	
+		listEnergy <inFile> <dk> <outfilePrefix>
+	
+	<inFile> should contain a list of kpoints in the JDFTx syntax,
+	except with the weight replaced by a label eg. Gamma, X, L etc.
+	<dk> is the typical dimensionless separation (BZ~1) between k-points.
+	
+	The script will generate <outfilePrefix>.kpoints containing a list
+	of kpoints in JDFTx input format and a gnuplot script <outfilePrefix>.plot
+	to plot the resulting bandstructure. Note that the plot script assumes
+	that the JDFTx run will produce <outfilePrefix>.eigenvals, so you may need
+	to set the dump-name in the JDFTx run, move the file or edit the plot script.
+	
+*/
+
+/** \page  xyzToIonpos xyzToIonpos
+-----------------
+
+	Convert an xyz format file (cartesian Angstrom) to JDFTx ionpos (cartesian Bohrs).
+	
+	   Usage: xyzToIonpos <xyzFile> [<centerBbox>=yes|no]
+	  
+	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	
+	Additionally, the maximum extents in each dimension will be output to stderr,
+	to guide the selection of supercell dimensions.
+	
+	Optionally, if centerBbox=yes, the atoms will be shifted so that their bounding
+	box is centered on the origin (convenient when using coulomb-truncation-embed)
+	
+*/
+
+/** \page  listEnergy listEnergy
+-----------------
+
+	List the latest energy from JDFTx output files. Usage:
+	
+		listEnergy <file1> <file2> ...
+	
+	For each output file, one line with the energy and the
+	name of the output file will be printed.
+	
+*/
+
+/** \page  dryRunToPDB dryRunToPDB
+-----------------
+
+	 Usage: dryRunToPDB <dryRunFile> [rep0=1] [rep1=1] [rep2=1]
+
+	 Create <dryRunFile>.PDB and launch pymol to visualize the
+	 system contained in the JDFTx dry-run output file <dryRunFile>.
+	 Optionally specify repetitions along each lattice direction.
+
+*/
+
+/** \page  createXSF createXSF
+-----------------
+
+	Create an XcrySDen Structure File from a JDFTx output file. Usage:
+	
+		createXSF <jdftxOutFile> <xsfFile> [Animated | <var1> <var2> ...]
+	
+	The simplest usage saves the final structure from the JDFTx output
+	<jdftxOutFile> to <xsfFile>. Specifying "Animated" will include
+	ionic positions, forces and lattice vectors for all configurations
+	in the run (if geometry or lattice optimization was performed).
+	
+	Additionally, scalar fields such as the electron density may
+	also be saved, where var should name the file suffix used by JDFTx
+	for that type eg. n for density, nUp for up-spin density, d_tot
+	for total electrostatic potential etc. The full filenames may
+	also be specified; this is a must when dump-name includes $STAMP.
+	Note that XSF is an ascii format (unlike the default binary dump)
+	and adding many scalar field variables to it could make it enormous.
+	Scalar fields are only supported in non-animated XSF files.
+	
+	Note: this tool requires awk and octave to be available in path.
+	
+*/
+
+/** \page  xyzToIonposOpt xyzToIonposOpt
+-----------------
+
+	Convert an xyz format file (cartesian Angstrom) to a JDFTx geometry specification.
+	
+	   Usage: xyzToIonposOpt <file>.xyz <pad>
+	   
+	NOTE: be sure to include command "coords-type cartesian" in the input file!
+	
+	This will output two files, <file>.ionpos containing Cartesian bohr coordinates
+	and <file>.lattice containing the optimum orthogonal cell. The unit cell will be
+	larger in each dimension by <pad> bohrs than any atom. The molecule bounding box
+	will be centered at the origin, and rotated to minimize the unit cell volume.
+	
+	This generates the optimum geometry for use with "coulomb-interaction Isolated"
+	and "coulomb-truncation-embed 0 0 0". (NOTE: requires octave to be available in path)
+	
+*/
+
+/** \page  binaryToText binaryToText
+-----------------
+
+	Convert binary output from JDFTx to plain text. Specifically useful for
+	reading / processing eigenvalues and fillings. Usage:
+	
+		binaryToText <inFile> [<innerDim>=1] [<dataOrder>=C]
+	
+	Without the optional arguments, the script will write the contents of <inFile>
+	in plain text form in a single row to standard output, which can of course be
+	redirected to an output file of choice. The optional arguments allow the output
+	to be cast as a matrix and determine the dimensions and order of output.
+	
+		<innerDim>: length of the inner (faster) dimension. This should be set
+			to the number of bands for fillings / eigenvalue files.
+		
+		<dataOrder> = C | Fortran: In C order, the inner dimension stretches
+			 across rows, whereas in Fortran order it stretches across columns.
+	
+	This script requires GNU Octave to be installed and in the current path.
+	
+*/
+
+/** \page  printStackTrace printStackTrace
+-----------------
+
+	Print a human readable stacktrace with source file and line numbers from
+	the raw output dumped by jdftx
+	
+		printStackTrace <path-to-jdftx-stracktrace>
+	
+*/
+
+/** \page  calcPulay calcPulay
+-----------------
+
+	Generate pulay correction file for a pseudopotential. Usage:
+	
+		calcPulay <pspSpec> [<EcutStart>:<dEcut>:<EcutStop>] [<outFile>]
+	
+	where
+	
+		<pspSpec> specifies the pseudopotential as per the ion-species command
+			in the JDFTx input file (i.e. just the filename for fhi/uspp files).
+	
+		<EcutStart>:<dEcut>:<EcutStop> specifies Pulay corrections should be
+			computed from <EcutStart> to <EcutStop> in increments of <dEcut>.
+			Defaults to "5:1:50".
+	
+		<outFile> is the path to the computed pulay correction file. Defaults
+			to the pseudopotential filename with the extension replaced by
+			.pulay. (<outFile> must be explicitly specified for .pot/.cpi)
+	
+	The details of the computation can be controlled by environment variables:
+	
+		boxSize: Periodic image separation of the atoms in bohrs (Default: 20)
+	
+		exCorr: Exchange-correlation to use (Default: gga-PBE)
+	
+		JDFTx: Path to executable jdftx (or jdftx_gpu) (Default: jdftx)
+			This is required if jdftx is not in $PATH, to use jdftx_gpu, or
+			to use a job management system eg. JDFTx="srun jdftx"
+	
+		scratchDir: Temporary directory to store wavefunctions and output files.
+			Must be writeable. Defaults to current directory.
+	
+*/
+
+/** \page  plotConvergence plotConvergence
+-----------------
+
+	Plot the convergence of JDFTx from its output files using gnuplot. Usage:
+	
+		plotConvergence <file1> <file2> ...
+	
+	If multiple output files are specified, they will be plotted alongside.
+	
+	The behavior is controlled by several environment variables:
+		nLines      Plot the final $nLines iterations (default: 200)
+		skipLines   Ignore the first $skipLines iterations (default: 0)
+		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
+		logTarget   Plot energy difference from $logTarget on a log axis.
+	
+*/
+
