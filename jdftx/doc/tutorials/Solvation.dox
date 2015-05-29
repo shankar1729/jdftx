@@ -1,0 +1,64 @@
+/** \page Solvation Solvation
+
+Solvation
+---------------
+
+A number of solvation models have been developed and implemented in in JDFTx, including Classical DFT functionals and different types of implicit solvents.  These implicit solvents range from linear polarizable continuum models to nonlinear and nonlocal polarizable continuum models that are more suited to higher electric fields and the presence of negative charge.
+
+To see many of the options for fluids in JDFTx, we can output the JDFTx template file into a file called "template":
+jdfx -t > template
+
+and open it with our favorite text editor.  We can see a number of "fluid" commands, including:
+
+    # fluid [<type>=None] [<Temperature>=298K] [<Pressure>=1.01325bar]
+    # Enable joint density functional theory
+    # 	<type> = ClassicalDFT|LinearPCM|None|NonlinearPCM|SaLSA
+    # 	<Temperature> in Kelvin and <Pressure> in bars.
+    fluid None
+    
+    # fluid-anion <name> <concentration> [<functional>=MeanFieldLJ] [<key1> <value1>] ...
+    # Add anion component Cl- to fluid.
+    # The concentration must be specified explicitly in mol/liter.
+    # For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
+    # Optional component properties may be overridden using an arbitrary number of <key> <value> pairs.
+    # See command fluid-solvent for a description of adjustable properties.
+    
+    # fluid-cation <name> <concentration> [<functional>=MeanFieldLJ] [<key1> <value1>] ...
+    # Add cation component Na+ to fluid.
+    # The concentration must be specified explicitly in mol/liter.
+    # For classical DFT fluids, the excess functional may be one of BondedVoids|FittedCorrelations|MeanFieldLJ|ScalarEOS
+    # Optional component properties may be overridden using an arbitrary number of <key> <value> pairs.
+    # See command fluid-solvent for a description of adjustable properties.
+    
+    # fluid-dielectric-constant [<epsBulkOverride>=0] [<epsInfOverride>=0]
+    # Override bulk static or high frequency dieelctric constant of fluid (if non-zero values specified)
+    
+To choose a fluid option, one must decide what features of the fluid the solvation model needs to capture.
+
+%LinearPCM is a the most basic isodensity polarizable continuum model, and is computationally inexpensive.  It has 
+essentially only one adjustable parameter, the dielectric constant of the fluid.  It is well-suited for the
+ solvation of neutral molecules.
+
+%NonlinearPCM is an extension of the polarizable continuum model which allows for the saturation of the dielectric
+response at high electric fields.  It was developed for non-conducting surfaces in the presence of an electric field,
+where linear polarizable continuum models fail.  
+
+%SaLSA, "the spherically-averaged liquid susceptibility {\it ansatz}", is an extension of the 
+polarizable continuum model, which gives the nonlocal dielectric response of the fluid.  %SaLSA
+is particularly useful for strongly polar and charged systems.
+
+[Can someone please include the Classical DFT info that would be most helpful?]
+
+To try out one of these fluid models, we can add the following fluid line to our water.in calculation from the [first tutorial](FirstCalc.html):
+
+fluid %LinearPCM
+
+This will give us the energy of the solvated water molecule in the linear polarizable continuum model, and we can subtract the vacuum energy to give the solvation energy.
+
+To see more information about this fluid, check the citation printed at the beginning of the JDFTx output file when the %LinearPCM fluid option is used.
+
+Extra practice:  
+1.  Perform an ionic relaxation of the molecule in the fluid, and compare the geometry to that of the molecule relaxed in vacuum.
+2.  Compare the solvation energy of the water molecule using different fluid models.
+
+*/

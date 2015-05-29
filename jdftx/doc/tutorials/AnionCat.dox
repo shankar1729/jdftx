@@ -1,0 +1,29 @@
+/** \page AnionCat Solvation in the presence of charged species
+
+Solvation in the presence of charged species
+---------------
+
+While the solvation options described in the previous tutorial are sufficient 
+to describe the solvation of molecules in fluids such as water, these fluids
+are not sufficient by themselves when the fluid contains charged species.
+There are a number of ways to approximate the effects of the ionic strength 
+of fluids with charged species.  Here, a modified Poisson-Boltzmann equation
+ is used to provide a screening length for charge, providing a Debye-Huckel
+type of ionic screening.  This should be appropriate for relatively low 
+concentrations of ions in solution, and where the ions do not strongly
+interact with the species/surfaces in the explicit portion of the calculation.  
+
+
+To try out ionic screening, we can add the following fluid line to our calculation from the [previous tutorial](Solvation.html):
+
+      fluid LinearPCM
+      fluid-anion Na 0.1
+      fluid-cation Cl 0.1
+    
+This will give us the energy of the solvated water molecule in the linear polarizable continuum model in a 0.1 M NaCl solution. 
+
+Extra practice:  
+1.  Instead of using a water molecule, look at the solvation energy associated with an anion or a cation.
+2.  Calculate the pKa of an organic acid. (Tricky- need to use the vibrations tutorial as well, can compare results with the CANDLE paper)
+
+*/

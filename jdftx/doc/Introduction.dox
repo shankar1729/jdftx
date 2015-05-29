@@ -6,7 +6,7 @@ It is distributed under the [GPL](http://www.gnu.org/licenses/gpl.html) license 
 and publications resulting from its use must cite the following:
 
 + The code itself:
-    - R. Sundararaman, D. Gunceler, K. Letchworth-Weaver and T.A. Arias, *JDFTx*, available from http://jdftx.sourceforge.net (2012)
+    - R. Sundararaman, D. Gunceler, K. Letchworth-Weaver, K. Schwarz and T.A. Arias, *JDFTx*, available from http://jdftx.sourceforge.net (2012)
 
 + The algebraic framework on which the software is based: 
     - S. Ismail-Beigi and T.A. Arias, <a href="http://dx.doi.org/10.1016/S0010-4655(00)00072-2"> *Computer Physics Communications* **128**, 1 (2000)</a>
