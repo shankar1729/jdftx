@@ -27,40 +27,43 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 DumpSelfInteractionCorrection::DumpSelfInteractionCorrection(const Everything& everything)
 {
 	e = &everything;	
-	DC.resize(3);
 }
 
-double DumpSelfInteractionCorrection::operator()(std::vector< diagMatrix >* correctedEigenvalues)
+double DumpSelfInteractionCorrection::operator()(std::vector<diagMatrix>* correctedEigenvalues)
 {
 	// Loop over all quantum numbers (spin+kpoint) and bands; and corrects their eigenvalues
 	double selfInteractionEnergy = 0;
-	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-	{	for(int iDir=0; iDir<3; iDir++)
-			DC[iDir] = D(e->eVars.C[q], iDir);
+	DC.resize(3);
+	for(int q=0; q<e->eInfo.nStates; q++) //need to loop over all states since XC is MPI parallelized
+	{	if(e->exCorr.needsKEdensity() && e->eInfo.isMine(q))
+			for(int iDir=0; iDir<3; iDir++)
+				DC[iDir] = D(e->eVars.C[q], iDir);
+		if(e->eInfo.isMine(q) && correctedEigenvalues)
+			(*correctedEigenvalues)[q].resize(e->eInfo.nBands);
 		for(int n=0; n<e->eInfo.nBands; n++)
 		{	double selfInteractionError = calcSelfInteractionError(q,n);
-			if(correctedEigenvalues)
-			{
-				(*correctedEigenvalues)[q][n] = e->eVars.Hsub_eigs[q][n] - selfInteractionError;
+			if(e->eInfo.isMine(q))
+			{	if(correctedEigenvalues)
+					(*correctedEigenvalues)[q][n] = e->eVars.Hsub_eigs[q][n] - selfInteractionError;
+				selfInteractionEnergy += e->eVars.F[q][n]*e->eInfo.qnums[q].weight*selfInteractionError;
 			}
-			selfInteractionEnergy += e->eVars.F[q][n]*e->eInfo.qnums[q].weight*selfInteractionError;
 		}
 	}
-	
-	// Frees DC
-	for(int i=0; i<3; i++)
-		DC[i].free();
-	
+	DC.clear();
+	mpiUtil->allReduce(selfInteractionEnergy, MPIUtil::ReduceSum);
 	return selfInteractionEnergy;
 	
 }
 
 double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
-{	
+{
 	// Get the real-space orbital density
-	complexScalarField realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
 	ScalarField orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
-	callPref(eblas_accumNorm)(e->gInfo.nr, 1., realSpaceOrbital->dataPref(), orbitalDensity->dataPref());
+	if(e->eInfo.isMine(q))
+	{	complexScalarField realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
+		callPref(eblas_accumNorm)(e->gInfo.nr, 1., realSpaceOrbital->dataPref(), orbitalDensity->dataPref());
+	}
+	orbitalDensity->bcast(e->eInfo.whose(q));
 	ScalarFieldTilde orbitalDensityTilde = J(orbitalDensity);
 	
 	// Calculate the Coulomb energy
@@ -75,19 +78,19 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	// Calculate the orbital KE if needed
 	ScalarFieldArray KEdensity(2);
 	if(e->exCorr.needsKEdensity())
-	{	nullToZero(KEdensity[0], e->gInfo); nullToZero(KEdensity[1], e->gInfo);
-		for(int iDir=0; iDir<3; iDir++)
-		{	ScalarField tempKE; nullToZero(tempKE, e->gInfo);
-			callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n,0))->dataPref(), tempKE->dataPref());
-			KEdensity[0] += 0.5 * tempKE;
-		}
+	{	nullToZero(KEdensity, e->gInfo);
+		if(e->eInfo.isMine(q))
+			for(int iDir=0; iDir<3; iDir++)
+			{	ScalarField tempKE; nullToZero(tempKE, e->gInfo);
+				callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n,0))->dataPref(), tempKE->dataPref());
+				KEdensity[0] += 0.5 * tempKE;
+			}
+		KEdensity[0]->bcast(e->eInfo.whose(q));
 	}
+
+	double xcEnergy = e->exCorr(orbitalSpinDensity, 0, IncludeTXC(), &KEdensity, 0);
 	
-	double xcEnergy = e->exCorr(orbitalSpinDensity, 0, e->exCorr.needsKEdensity(), &KEdensity, 0);
-	
-	//logPrintf("\n%i\t%i\t%f\t%f\n", q, n, coulombEnergy, xcEnergy);
-	
-	return coulombEnergy+xcEnergy;
+	return coulombEnergy + xcEnergy;
 }
 
 DumpSelfInteractionCorrection::~DumpSelfInteractionCorrection()
@@ -116,9 +119,10 @@ void DumpSelfInteractionCorrection::dump(const char* filename)
 	logPrintf("Dumping '%s'... ", filename);  logFlush();
 	
 	// Calculate correction
-	std::vector< diagMatrix > correctedEigenvalues;
-	correctedEigenvalues.resize(e->eInfo.qnums.size(), e->eInfo.nBands);
-	(*this)(&correctedEigenvalues);
+	std::vector<diagMatrix> correctedEigenvalues(e->eInfo.qnums.size());
+	double Esic = (*this)(&correctedEigenvalues);
 	
 	e->eInfo.write(correctedEigenvalues, filename);
+	logPrintf("done\n");
+	logPrintf("\tSelf-interaction energy: %.15lf\n", Esic);
 }

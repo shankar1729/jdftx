@@ -191,10 +191,8 @@ struct YlmProdTerm
 
 //! Real spherical harmonic expansion of product of two real spherical harmonics
 //! (effectively returns list of non-zero Clebsch-Gordon coefficients in the modified real Ylm basis)
-inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
-{	int lm1 = l1*(l1+1) + m1;
-	int lm2 = l2*(l2+1) + m2;
-	if(lm2 > lm1) std::swap(lm1, lm2);
+inline std::vector<YlmProdTerm> expandYlmProd(int lm1, int lm2)
+{	if(lm2 > lm1) std::swap(lm1, lm2);
 	std::vector<YlmProdTerm> result;
 	#define ADD(l,m,coeff) result.push_back(YlmProdTerm(l,m,coeff)) //shorthand for use in Mathematica generated list below:
 	switch(lm2 + (lm1*(lm1+1))/2)
@@ -337,6 +335,11 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 	}
 	#undef ADD
 	return result;
+}
+inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
+{	int lm1 = l1*(l1+1) + m1;
+	int lm2 = l2*(l2+1) + m2;
+	return expandYlmProd(lm1, lm2);
 }
 
 #endif // JDFTX_ELECTRONIC_SPHERICALHARMONICS_H
