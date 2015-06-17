@@ -34,13 +34,15 @@ double DumpSelfInteractionCorrection::operator()(std::vector< diagMatrix >* corr
 {
 	// Loop over all quantum numbers (spin+kpoint) and bands; and corrects their eigenvalues
 	double selfInteractionEnergy = 0;
-	for(size_t q=0; q<e->eInfo.qnums.size(); q++)
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	for(int iDir=0; iDir<3; iDir++)
 			DC[iDir] = D(e->eVars.C[q], iDir);
 		for(int n=0; n<e->eInfo.nBands; n++)
 		{	double selfInteractionError = calcSelfInteractionError(q,n);
 			if(correctedEigenvalues)
-				correctedEigenvalues[q][n] = e->eVars.Hsub_eigs[q][n] - selfInteractionError;
+			{
+				(*correctedEigenvalues)[q][n] = e->eVars.Hsub_eigs[q][n] - selfInteractionError;
+			}
 			selfInteractionEnergy += e->eVars.F[q][n]*e->eInfo.qnums[q].weight*selfInteractionError;
 		}
 	}
@@ -113,36 +115,10 @@ void DumpSelfInteractionCorrection::dump(const char* filename)
 	}
 	logPrintf("Dumping '%s'... ", filename);  logFlush();
 	
-	//Print to a buffer on each process:
-	ostringstream oss;
-	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-	{	for(int iDir=0; iDir<3; iDir++)
-			DC[iDir] = D(e->eVars.C[q], iDir);
-		for(int n=0; n<e->eInfo.nBands; n++)
-		{	double selfInteractionError = calcSelfInteractionError(q,n);
-			oss << q
-				<< '\t' << n
-				<< '\t' << e->eVars.Hsub_eigs[q][n]
-				<< '\t' << selfInteractionError
-				<< '\t' << e->eVars.Hsub_eigs[q][n]-(e->eVars.F[q][n] ? 1. : 0.)*selfInteractionError
-				<< '\t' << e->eVars.Hsub_eigs[q][n]-selfInteractionError
-				<< '\n';
-		}
-	}
-	if(!mpiUtil->isHead()) mpiUtil->send(oss.str(), 0, 0); //send to head for writing to file
+	// Calculate correction
+	std::vector< diagMatrix > correctedEigenvalues;
+	correctedEigenvalues.resize(e->eInfo.qnums.size(), e->eInfo.nBands);
+	(*this)(&correctedEigenvalues);
 	
-	if(mpiUtil->isHead()) //Write to file
-	{	FILE* fp = fopen(filename, "w");
-		if(!fp) die("Error opening %s for writing.\n", filename);
-		fprintf(fp, "WARNING: Self-Interaction Correction scheme is still experimental, take extreme care when using the numbers below!\n");
-		fprintf(fp, "q\tn\t\"KS Eigenvalue\"\t\"Self-Interaction Error\"\t\"Corrected Eigenvalue\"\t\"Corrected Eigenvalue (no-fillings)\"\n");
-		fputs(oss.str().c_str(), fp); //output own buffer
-		for(int iSrc=1; iSrc<mpiUtil->nProcesses(); iSrc++)
-		{	string buf;
-			mpiUtil->recv(buf, iSrc, 0);
-			fputs(buf.c_str(), fp); //output others' buffers in order
-		}
-		fclose(fp);
-	}
-	logPrintf("done\n"); logFlush();
+	e->eInfo.write(correctedEigenvalues, filename);
 }
