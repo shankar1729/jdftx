@@ -60,9 +60,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	// Get the real-space orbital density
 	ScalarField orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
 	if(e->eInfo.isMine(q))
-	{	complexScalarField realSpaceOrbital = I(e->eVars.C[q].getColumn(n,0));
-		callPref(eblas_accumNorm)(e->gInfo.nr, 1., realSpaceOrbital->dataPref(), orbitalDensity->dataPref());
-	}
+		orbitalDensity = diagouterI(eye(1), e->eVars.C[q].getSub(n,n+1), 1, &e->gInfo)[0];
 	orbitalDensity->bcast(e->eInfo.whose(q));
 	ScalarFieldTilde orbitalDensityTilde = J(orbitalDensity);
 	
@@ -81,10 +79,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	{	nullToZero(KEdensity, e->gInfo);
 		if(e->eInfo.isMine(q))
 			for(int iDir=0; iDir<3; iDir++)
-			{	ScalarField tempKE; nullToZero(tempKE, e->gInfo);
-				callPref(eblas_accumNorm)(e->gInfo.nr, 1., I(DC[iDir].getColumn(n,0))->dataPref(), tempKE->dataPref());
-				KEdensity[0] += 0.5 * tempKE;
-			}
+				KEdensity[0] += 0.5 * diagouterI(eye(1), DC[iDir].getSub(n,n+1), 1, &e->gInfo)[0];
 		KEdensity[0]->bcast(e->eInfo.whose(q));
 	}
 
