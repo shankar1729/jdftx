@@ -91,6 +91,7 @@ void SCF::minimize()
 	std::vector<string> extraNames(1, "deigs");
 	std::vector<double> extraThresh(1, sp.eigDiffThreshold);
 	Pulay<SCFvariable>::minimize(E, extraNames, extraThresh);
+	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //to make sure grid projections are compatible with final Vscloc
 	
 	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
 
