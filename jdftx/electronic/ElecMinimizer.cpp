@@ -88,14 +88,12 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 	{	if(dir.Y[q]) axpy(alpha, dir.Y[q], eVars.Y[q]);
 		if(dir.B[q]) axpy(alpha, dir.B[q], eVars.B[q]);
 	}
-	if(eInfo.spinRestricted) eVars.spinRestrict();
 }
 
 double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
 	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
 	if(grad) Knorm = sync(dot(*grad, Kgrad));
-	if(grad && eInfo.spinRestricted) spinRestrictGrad(*grad);
 	return ener;
 }
 
@@ -169,31 +167,6 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 double ElecMinimizer::sync(double x) const
 {	mpiUtil->bcast(x);
 	return x;
-}
-
-void ElecMinimizer::spinRestrictGrad(ElecGradient& grad)
-{	if(!eInfo.spinRestricted) return;
-	for(int q=eInfo.qStart; q<std::min(eInfo.qStop, eInfo.nStates/2); q++)
-	{	int qOther = q + eInfo.nStates/2;
-		//Move second spin channel gradient contributions to the first one (due to spin-restriction constraint)
-		if(eInfo.isMine(qOther))
-			grad.Y[q] += grad.Y[qOther];
-		else
-		{	ColumnBundle dY = grad.Y[q].similar();
-			dY.recv(eInfo.whose(qOther));
-			grad.Y[q] += dY;
-		}
-		//Recompute the preconditioned gradient including the fillings weights:
-		double KErollover = 2.*e.ener.E["KE"] / eInfo.nElectrons;
-		Kgrad.Y[q] = precond_inv_kinetic(grad.Y[q], KErollover);
-	}
-	for(int qOther=std::max(eInfo.qStart,eInfo.nStates/2); qOther<eInfo.qStop; qOther++)
-	{	int q = qOther - eInfo.nStates/2;
-		if(!eInfo.isMine(q))
-			grad.Y[qOther].send(eInfo.whose(q));
-		grad.Y[qOther].free();
-		Kgrad.Y[qOther].free();
-	}
 }
 
 void bandMinimize(Everything& e)

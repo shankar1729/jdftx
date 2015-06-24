@@ -267,7 +267,6 @@ void ElecVars::setup(const Everything &everything)
 			}
 		}
 	}
-	if(eInfo.spinRestricted) spinRestrict();
 	
 	//Orthogonalize initial wavefunctions:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -601,7 +600,6 @@ void ElecVars::setEigenvectors(int qActive)
 		Hsub[q] = Hsub_eigs[q]; //now diagonal
 		Hsub_evecs[q] = eye(eInfo.nBands);
 	}
-	if(eInfo.spinRestricted) spinRestrict();
 }
 
 int ElecVars::nOccupiedBands(int q) const
@@ -782,21 +780,3 @@ double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, Co
 	overlapCondition = *extremes.second / *extremes.first;
 	return Eband;
 }
-
-void ElecVars::spinRestrict()
-{	const ElecInfo& eInfo = e->eInfo;
-	if(!eInfo.spinRestricted) return;
-	for(int q=eInfo.qStart; q<std::min(eInfo.qStop, eInfo.nStates/2); q++)
-	{	int qOther = q + eInfo.nStates/2;
-		if(eInfo.isMine(qOther))
-			memcpy(Y[qOther], Y[q]); //not using operator= because it also changes quantum number
-		else
-			Y[q].send(eInfo.whose(qOther));
-	}
-	for(int qOther=std::max(eInfo.qStart,eInfo.nStates/2); qOther<eInfo.qStop; qOther++)
-	{	int q = qOther - eInfo.nStates/2;
-		if(!eInfo.isMine(q))
-			Y[qOther].recv(eInfo.whose(q));
-	}
-}
-

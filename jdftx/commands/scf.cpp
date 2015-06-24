@@ -148,7 +148,6 @@ struct CommandElectronicScf: public CommandPulay
 		hasDefault = false;
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
-		forbid("spin-restricted");
 		require("elec-eigen-algo");
 	}
 	

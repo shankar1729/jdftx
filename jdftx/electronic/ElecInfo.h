@@ -58,7 +58,6 @@ public:
 	int qStopOther(int iProc) const { return qDivision.stop(iProc); } //!< find out qStop for another process
 	
 	SpinType spinType; //!< tells us what sort of spins we are using if any
-	bool spinRestricted; //!< whether the calculation is spin restricted
 	double nElectrons; //!< the number of electrons = Sum w Tr[F]
 	std::vector<QuantumNumber> qnums; //!< k-points, spins and weights for each state
 	
