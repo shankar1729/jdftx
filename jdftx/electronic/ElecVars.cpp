@@ -601,6 +601,7 @@ void ElecVars::setEigenvectors(int qActive)
 		Hsub[q] = Hsub_eigs[q]; //now diagonal
 		Hsub_evecs[q] = eye(eInfo.nBands);
 	}
+	if(eInfo.spinRestricted) spinRestrict();
 }
 
 int ElecVars::nOccupiedBands(int q) const

@@ -197,6 +197,7 @@ struct CommandSpinRestricted : public Command
 		require("spintype");
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
+		forbid("elec-fermi-fillings");
 		forbid("electronic-scf");
 	}
 

@@ -190,7 +190,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 			for(int q=qStart; q<qStop; q++)
 				scalarFillings &= F[q].isScalar();
 			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
-			if(!scalarFillings)
+			if(!scalarFillings && !spinRestricted)
 			{	subspaceRotation = true;
 				logPrintf("Turning on subspace rotations due to non-diagonal fillings.\n");
 			}
