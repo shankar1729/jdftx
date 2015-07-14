@@ -11,10 +11,25 @@ Here are some pseudopotential libraries and generators that work with JDFTx:
 + **GBRV Library**
 
   Garrity-Bennett-Rabe-Vanderbilt library is a library of ultrasoft pseudopotentials for most of the periodic table, with the exception of f-block elements.
-  Available at (download .ussp): http://www.physics.rutgers.edu/gbrv/
-  More information available at: http://arxiv.org/pdf/1305.5973v3.pdf
-  <br>
+  See http://www.physics.rutgers.edu/gbrv and http://arxiv.org/pdf/1305.5973v3.pdf for more information about the design, construction and testing of these pseudopotentials.
+  These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax:
 
+      ion-species GBRV/$ID_pbe_v1.2.uspp
+      ion-species GBRV/$ID_pbe_v1.uspp
+
+  <br>
+  
++ **SG15 Library**
+
+  Schlipf-Gygi 2015 library is a library of norm-conserving pseudopotentials for most of the periodic table, with the exception of f-block elements.
+  See http://www.quantum-simulation.org and http://dx.doi.org/10.1016/j.cpc.2015.05.011 for more information about the design, construction and testing of these pseudopotentials.
+  These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax:
+
+      ion-species SG15/$ID_ONCV_PBE-1.1.upf
+      ion-species SG15/$ID_ONCV_PBE-1.0.upf
+
+  <br>
+  
 + **Virtual Vault for Pseudopotentials and PAW Datasets**
 
   NNIN Virtual Vault is a database of pseudopotentials organized by [Derek Stewart](https://sites.google.com/site/dft4nano/) at Cornell Nanoscale Facility: http://nninc.cnf.cornell.edu (The fhi and upf format files may be used)
@@ -27,7 +42,7 @@ Here are some pseudopotential libraries and generators that work with JDFTx:
 
 + **Opium Pseudopotential Generator**
 
-  Opium is a code to generate norm-conserving pseudopotentials: http://opium.sourceforge.net/
+  Opium is a code to generate norm-conserving pseudopotentials: http://opium.sourceforge.net.
   Dump results in .fhi format to use with JDFTx.
   <br>
 

@@ -34,10 +34,16 @@ and modify the pseudopotential path.  JDFTx comes with a set of ultrasoft pseudo
 Additionally, if you are using a specific group of pseudopotentials, you can specify that group instead of listing the individual species.
 For instance, to utilize pbe pseudopotentials from the GBRV set that comes with JDFTx, you can use the two commands:
 
-    ion-species  <path-to-build-directory>/pseudopotentials/GBRV/$ID_pbe_v2.uspp
-    ion-species  <path-to-build-directory>/pseudopotentials/GBRV/$ID_pbe_v1.uspp
+    ion-species  GBRV/$ID_pbe_v2.uspp
+    ion-species  GBRV/$ID_pbe_v1.uspp
 
 For the example given, these commands will search for O_pbe_v2.uspp and H_pbe_v2.uspp, and if those files aren't found, then O_pbe_v1.uspp and/or H_pbe_v1.uspp.
+Similarly, to use the SG15 norm-conserving set that is also distributed with JDFTx, use the two commands:
+
+    ion-species SG15/$ID_ONCV_PBE-1.1.upf
+    ion-species SG15/$ID_ONCV_PBE-1.0.upf
+
+<br>
 
 Now, that basic input file can be run with
 
