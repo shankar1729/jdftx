@@ -220,8 +220,7 @@ void ElecVars::setup(const Everything &everything)
 
 	//Read auxilliary hamiltonian if required
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-	{	dmuContrib = diagMatrix(eInfo.nBands, 0.);
-		if(HauxFilename.length())
+	{	if(HauxFilename.length())
 		{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
 			eInfo.read(B, HauxFilename.c_str());
 			HauxInitialized = true;
@@ -407,7 +406,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	//Determine whether Hsub and hence HC needs to be calculated:
 	bool need_Hsub = calc_Hsub || grad || e->cntrl.fixed_H;
-	double mu = 0.0;
+	double mu = 0., Bz = 0.;
 	
 	if(not e->cntrl.scf) //Wavefunctions are already orthonormal when this function is called in SCF mode
 	{
@@ -429,11 +428,11 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		//Update fillings if required:
 		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 		{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
-			if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons);
-			else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs); }
+			if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons, Bz);
+			else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs, Bz); }
 			//Compute fillings from aux hamiltonian eigenvalues:
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-				F[q] = eInfo.fermi(mu, B_eigs[q]);
+				F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), B_eigs[q]);
 			//Update TS and muN:
 			eInfo.updateFillingsEnergies(F, ener);
 		}
@@ -482,15 +481,35 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
 	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
-	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and std::isnan(eInfo.mu)) //contribution due to Nconstraint via the mu gradient 
-	{	double dmuNumDen[2] = { 0., 0. }; //numerator and denominator of dmuContrib
+	double dmuContrib = 0., dBzContrib = 0.;
+	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (std::isnan(eInfo.mu) or eInfo.Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
+	{	double dmuNum[2] = {0.,0.}, dmuDen[2] = {0.,0.}; //numerator and denominator of dmuContrib resolved by spin channels (if any)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	diagMatrix fprime = eInfo.fermiPrime(mu, B_eigs[q]);
-			dmuNumDen[0] += eInfo.qnums[q].weight * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
-			dmuNumDen[1] += eInfo.qnums[q].weight * trace(fprime);
+		{	diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), B_eigs[q]);
+			double w = eInfo.qnums[q].weight;
+			int sIndex = eInfo.qnums[q].index();
+			dmuNum[sIndex] += w * trace(fprime * (diag(Hsub[q])-B_eigs[q]));
+			dmuDen[sIndex] += w * trace(fprime);
 		}
-		mpiUtil->allReduce(dmuNumDen, 2, MPIUtil::ReduceSum);
-		dmuContrib = eye(eInfo.nBands) * (dmuNumDen[0]/dmuNumDen[1]);
+		mpiUtil->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
+		mpiUtil->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
+		if(std::isnan(eInfo.mu) and eInfo.Mconstrain)
+		{	//Fixed N and M (effectively independent constraints on Nup and Ndn)
+			double dmuContribUp = dmuNum[0]/dmuDen[0];
+			double dmuContribDn = dmuNum[1]/dmuDen[1];
+			dmuContrib = 0.5*(dmuContribUp + dmuContribDn);
+			dBzContrib = 0.5*(dmuContribUp - dmuContribDn);
+		}
+		else if(eInfo.Mconstrain)
+		{	//Fixed M only
+			dmuContrib = 0.;
+			dBzContrib = (dmuNum[0]-dmuNum[1])/(dmuDen[0]-dmuDen[1]);
+		}
+		else
+		{	//Fixed N only
+			dmuContrib = (dmuNum[0]+dmuNum[1])/(dmuDen[0]+dmuDen[1]);
+			dBzContrib = 0.;
+		}
 	}
 	
 	//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
@@ -506,9 +525,9 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			if(grad && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
 			{
 				const QuantumNumber& qnum = eInfo.qnums[q];
-				matrix gradF = Hsub[q]-B_eigs[q]-dmuContrib; //gradient w.r.t fillings
+				matrix gradF = Hsub[q]-B_eigs[q] - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
 				grad->B[q] = qnum.weight
-					* dagger_symmetrize(dagger(V[q]) * eInfo.fermiGrad(mu, B_eigs[q], gradF) * V[q]);
+					* dagger_symmetrize(dagger(V[q]) * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), B_eigs[q], gradF) * V[q]);
 				if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
 					Kgrad->B[q] = (-eInfo.kT * subspaceRotationFactor * qnum.weight)
 						* dagger_symmetrize(dagger(V[q]) * gradF * V[q]);

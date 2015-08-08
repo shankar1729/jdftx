@@ -269,9 +269,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		mpiUtil->allReduce(LUMO, qLUMO, MPIUtil::ReduceMin);
 		mpiUtil->allReduce(gap, qGap, MPIUtil::ReduceMin);
 		double gapIndirect = LUMO - HOMO;
-		double mu = NAN;
+		double mu = NAN, Bz;
 		if(std::isfinite(HOMO) && std::isfinite(LUMO))
-			mu = (!std::isnan(eInfo.mu)) ? eInfo.mu : eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons);
+			mu = (!std::isnan(eInfo.mu)) ? eInfo.mu : eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons, Bz);
 		//Print results:
 		FILE* fp = 0;
 		if(mpiUtil->isHead()) fp = fopen(fname.c_str(), "w");
@@ -592,9 +592,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		int iRange=0;
 		for(const auto& muLevel: fermiDensityLevels)
 		{	//Set fillings based on derivative of Fermi-Dirac function evaluated at muLevel
-			double muF;
+			double muF, Bz;
 			//calculate mu if not set
-			muF = ( !std::isnan(muLevel) ? muLevel : eInfo.findMu(eVars.Hsub_eigs,eInfo.nElectrons) );
+			muF = ( !std::isnan(muLevel) ? muLevel : eInfo.findMu(eVars.Hsub_eigs,eInfo.nElectrons,Bz) );
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 				for(int b=0; b<eInfo.nBands; b++)
 					F[q][b] = -eInfo.fermiPrime(muF,eVars.Hsub_eigs[q][b]);

@@ -238,7 +238,7 @@ void elecFluidMinimize(Everything &e)
 	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux && !std::isnan(eInfo.mu))
 	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			eVars.B[q].diagonalize(eVars.B_evecs[q], eVars.B_eigs[q]);
-		double mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons);
+		double Bz, mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons, Bz);
 		logPrintf("Shifting auxilliary hamiltonian by %lf to set nElectrons=%lf\n", eInfo.mu-mu, eInfo.nElectrons);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			eVars.B[q] += eye(eInfo.nBands)*(eInfo.mu-mu);

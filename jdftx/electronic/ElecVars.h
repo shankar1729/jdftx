@@ -159,8 +159,5 @@ private:
 	std::vector<diagMatrix> U_eigs; // eigenvalues of U[q]
 	std::vector<matrix> Umhalf; // Uhmalf[q] = invsqrt(U[q])
 	std::vector<matrix> V; // V=cis(B) or dagger(B_evecs) for subspace rotations / aux hamiltonian respectively
-	
-	// Used in subspace hamiltonian gradient if the auxillary hamiltonian approach to fillings is used.
-	diagMatrix dmuContrib;
 };
 #endif // JDFTX_ELECTRONIC_ELECVARS_H

@@ -94,33 +94,50 @@ struct CommandElecInitialCharge : public Command
 {
     CommandElecInitialCharge() : Command("elec-initial-charge")
 	{
-		format = "<QNet> | <QupNet> <QdnNet>";
+		format = "<QNet>";
 		comments =
-			"Initialize a system with <QNet> excess unpolarized electrons\n"
-			"or with <QupNet> and <QdnNet> excess electrons in each spin channel.\n"
-			"Both versions are valid irrespective of whether system is spin-polarized.";
-
-		forbid("target-mu");
+			"Initialize a system with <QNet> excess electrons compared to a neutral system.\n"
+			"If target-mu is specified, this charge will change upon SCF / minimization.";
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	double qTemp;
-		e.eInfo.qNet.clear();
-		//First q (required):
-		pl.get(qTemp, 0., "QNet", true);
-		e.eInfo.qNet.push_back(qTemp);
-		//Second q (optional):
-		pl.get(qTemp, std::numeric_limits<double>::quiet_NaN(), "QNet");
-		if(!std::isnan(qTemp)) e.eInfo.qNet.push_back(qTemp);
+	{	pl.get(e.eInfo.Qinitial, 0., "QNet", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%le", e.eInfo.qNet[0]);
-		if(e.eInfo.qNet.size()==2)
-			logPrintf(" %le", e.eInfo.qNet[1]);
+	{	logPrintf("%lf", e.eInfo.Qinitial);
 	}
 }
 CommandElecInitialCharge;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandElecInitialMagnetization : public Command
+{
+    CommandElecInitialMagnetization() : Command("elec-initial-magnetization")
+	{
+		format = "<M> <constrain>=yes|no";
+		comments =
+			"Initialize system with total magnetization <M> (= Nup - Ndn).\n"
+			"With Fermi fillings, the magnetization will be constrained if <constrain>=yes,\n"
+			"and will equilibriate otherwise. Without Fermi fillings, the magnetization will\n"
+			"remain constrained regardless. Only valid for spintype z-spin.";
+		
+		require("spintype");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	if(e.eInfo.spinType != SpinZ)
+			throw("Total magnetization can only be specified for spintype z-spin");
+		pl.get(e.eInfo.Minitial, 0., "M", true);
+		pl.get(e.eInfo.Mconstrain, true, boolMap, "constrain", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lf %s", e.eInfo.Minitial, boolMap.getString(e.eInfo.Mconstrain));
+	}
+}
+CommandElecInitialMagnetization;
 
 //-------------------------------------------------------------------------------------------------
 

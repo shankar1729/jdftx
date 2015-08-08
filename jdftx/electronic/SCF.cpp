@@ -341,15 +341,15 @@ void SCF::updateFillings()
 	
 	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 	eigenShiftApply(false);
-	double mu; // Electron chemical potential
-	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons);
+	double mu, Bz; // Electron chemical potential and magnetic field Lagrange multiplier
+	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
 	else
-	{	mu = eInfo.mu; 
-		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs); 
+	{	mu = eInfo.mu;
+		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs, Bz);
 	}
 	//Compute fillings from aux hamiltonian eigenvalues:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.F[q] = eInfo.fermi(mu, eVars.Hsub_eigs[q]);
+		eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Hsub_eigs[q]);
 	//Update TS and muN:
 	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
 	eigenShiftApply(true);

@@ -36,6 +36,7 @@ ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
 fillingsUpdate(ConstantFillings), kT(1e-3), mu(std::numeric_limits<double>::quiet_NaN()),
 mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
+Qinitial(0.), Minitial(0.), Mconstrain(false),
 fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
 Cmeasured(1.), Cweight(0.), dnMixFraction(0.7)
 {
@@ -62,13 +63,13 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	qDivision.init(nStates, mpiUtil);
 	qDivision.myRange(qStart, qStop);
 	
-	// allocate the fillings matrices.
+	//Allocate the fillings matrices.
 	F.resize(nStates);
 
-	// Convert initial charge(s) qNet to the correct size for spin / no-spin:
-	if(spinType!=SpinZ && qNet.size()==2) { qNet[0]+=qNet[1]; qNet.pop_back(); }
-	if(spinType==SpinZ && qNet.size()==1) { qNet.push_back(qNet[0]*=0.5); }
-	if(!qNet.size()) qNet.assign(spinType==SpinZ ? 2 : 1, 0.);
+	//Calculate initial charges per spin channel:
+	std::vector<double> qNet(spinType==SpinZ ? 2 : 1);
+	for(int s=0; s<int(qNet.size()); s++)
+		qNet[s] = (Qinitial + (s ? -1 : +1)*Minitial) / qNet.size();
 	double wInv = 1./spinWeight; //normalization factor from external to internal fillings
 	qWeightSum = qNet.size() * spinWeight;
 	
@@ -227,10 +228,11 @@ void ElecInfo::printFillings(FILE* fp) const
 }
 
 void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
-{	logPrintf("\tFillings%s:  mu: %+.9lf  nElectrons: %.6lf", suffix,
+{	double Bz = 0.;
+	logPrintf("\tFillings%s:  mu: %+.9lf  nElectrons: %.6lf", suffix,
 		muOverride ? *muOverride //use override value if provided
 			: ( !std::isnan(mu) ? mu //use target mu if in fixed-mu mode
-				: findMu(e->eVars.Hsub_eigs, nElectrons) ), //determine from eigenvalues otherwise
+				: findMu(e->eVars.Hsub_eigs, nElectrons, Bz) ), //determine from eigenvalues otherwise
 		nElectrons);
 	if(spinType == SpinZ)
 	{	ScalarField Mfield = e->eVars.n[0] - e->eVars.n[1];
@@ -259,11 +261,12 @@ void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
 void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 {	const ElecVars &eVars = e->eVars;
 	double muMix; //A chemical potential whose corresponding fermi distribution is mixed in
+	double Bz; //magnetization constraint Lagrange multiplier
 	
 	if(!std::isnan(mu)) //Fixed mu:
 	{	//Fit a fermi-dirac distribution to the current fillings:
-		double g0, &C = Cmeasured; //density of states at current mu, and measured electrostatic capacitance
-		double muMeasured = fitMu(F, eVars.Hsub_eigs, &g0); //this is the "measured" mu that fits the fillings
+		double &C = Cmeasured; //measured electrostatic capacitance
+		double muMeasured = findMu(eVars.Hsub_eigs, nElectrons, Bz); //this is the "measured" mu that fits the fillings
 
 		//If not the first iteration, update estimate of Ceff
 		if(!std::isnan(dnPrev))  //improve the capacitance estimate
@@ -277,21 +280,21 @@ void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
 	
 		//Determine the amount to change the charge by, and adjust chemical potential to get that charge
 		double dn = dnMixFraction * C * (mu-muMeasured);
-		muMix = findMu(eVars.Hsub_eigs, nElectrons + dn/fillingMixFraction); //this is the mu with which the fillings are mixed in
+		muMix = findMu(eVars.Hsub_eigs, nElectrons + dn/fillingMixFraction, Bz); //this is the mu with which the fillings are mixed in
 		nElectrons += dn;
 		dnPrev = dn;
-		logPrintf("FillingsMix:  MeasuredMu: %.9lf  g0: %le  C: %le  dn: %.6lf  n: %.6lf  SetMu: %.9lf\n",
-			muMeasured, g0, C, dn, nElectrons, muMix);
+		logPrintf("\tMuController:  MeasuredMu: %.9lf  C: %le  dn: %.6lf  n: %.6lf  SetMu: %.9lf\n",
+			muMeasured, C, dn, nElectrons, muMix);
 	}
 	else
 	{	//Fixed charge, just bisect to find mu:
-		muMix = findMu(eVars.Hsub_eigs, nElectrons);
-		printFermi("Mix", &muMix);
+		muMix = findMu(eVars.Hsub_eigs, nElectrons, Bz);
 	}
+	printFermi("Mix", &muMix);
 	
 	//Mix in fillings at new mu:
 	for(int q=qStart; q<qStop; q++)
-		F[q] = (1-fillingMixFraction)*F[q] + fillingMixFraction*fermi(muMix, eVars.Hsub_eigs[q]);
+		F[q] = (1-fillingMixFraction)*F[q] + fillingMixFraction*fermi(muEff(muMix,Bz,q), eVars.Hsub_eigs[q]);
 	
 	if(e->cntrl.shouldPrintEigsFillings)
 	{	logPrintf("\nCorresponding fillings:\n");
@@ -349,30 +352,66 @@ matrix ElecInfo::fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF
 }
 
 
-//Number of electrons in a fermi distribution of given mu and eigenvalues:
-double ElecInfo::nElectronsFermi(double mu, const std::vector<diagMatrix>& eps) const
-{	double N = 0.0;
+//Number of electrons and magnetization in a fermi distribution of given mu, Bz and eigenvalues:
+double ElecInfo::magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& N) const
+{	N = 0.;
+	double M = 0.;
 	for(int q=qStart; q<qStop; q++)
+	{	double s = qnums[q].spin;
+		double muEff = this->muEff(mu, Bz, q);
 		for(double epsCur: eps[q])
-			N += qnums[q].weight*fermi(mu, epsCur);
+		{	double wf = qnums[q].weight * fermi(muEff, epsCur);
+			N += wf;
+			M += s * wf;
+		}
+	}
 	mpiUtil->allReduce(N, MPIUtil::ReduceSum, true);
+	mpiUtil->allReduce(M, MPIUtil::ReduceSum, true);
+	return M;
+}
+
+//Calculate nElectrons at given mu, bisecting on Bz if M is constrained
+double ElecInfo::nElectronsFermi(double mu, const std::vector< diagMatrix >& eps, double& Bz) const
+{	Bz = 0.;
+	double N = 0.;
+	if(Mconstrain)
+	{	const bool& verbose = e->cntrl.shouldPrintMuSearch;
+		if(verbose) logPrintf("\nBisecting to find Bz(M=%5lf)\n", Minitial);
+		//Find a range which is known to bracket the result:
+		const double absTol = 1e-10, relTol = 1e-14;
+		double Mtol = std::max(absTol, relTol*fabs(Minitial));
+		double BzMin=-0.1; while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=0.1;
+		double BzMax=+0.0; while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=0.1;
+		//Bisect:
+		double BzTol = std::max(absTol*kT, relTol*std::max(fabs(BzMin),fabs(BzMax)));
+		while(BzMax-BzMin>=BzTol)
+		{	double Bz = 0.5*(BzMin + BzMax);
+			double M = magnetizationFermi(mu, Bz, eps, N);
+			if(verbose) logPrintf("BzBISECT: Bz = [ %.15le %.15le %.15le ]  M = %le\n", BzMin, Bz, BzMax, M);
+			if(M>Minitial) BzMax = Bz;
+			else BzMin = Bz;
+		}
+		Bz = 0.5*(BzMin + BzMax);
+	}
+	magnetizationFermi(mu, Bz, eps, N);
 	return N;
 }
 
+
 //Return the mu that would match Ntarget at the current eigenvalues (bisection method)
-double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons) const
+double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons, double& Bz) const
 {	const bool& verbose = e->cntrl.shouldPrintMuSearch;
 	if(verbose) logPrintf("\nBisecting to find mu(nElectrons=%.15le)\n", nElectrons);
 	//Find a range which is known to bracket the result:
 	const double absTol = 1e-10, relTol = 1e-14;
 	double nTol = std::max(absTol, relTol*fabs(nElectrons));
-	double muMin=-0.1; while(nElectronsFermi(muMin,eps)>=nElectrons+nTol) muMin-=0.1;
-	double muMax=+0.0; while(nElectronsFermi(muMax,eps)<=nElectrons-nTol) muMax+=0.1;
+	double muMin=-0.1; while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=0.1;
+	double muMax=+0.0; while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=0.1;
 	//Bisect:
 	double muTol = std::max(absTol*kT, relTol*std::max(fabs(muMin),fabs(muMax)));
 	while(muMax-muMin>=muTol)
 	{	double mu = 0.5*(muMin + muMax);
-		double N = nElectronsFermi(mu, eps);
+		double N = nElectronsFermi(mu, eps, Bz);
 		if(verbose) logPrintf("MUBISECT: mu = [ %.15le %.15le %.15le ]  N = %le\n", muMin, mu, muMax, N);
 		if(N>nElectrons) muMax = mu;
 		else muMin = mu;
@@ -380,79 +419,6 @@ double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons) c
 	return 0.5*(muMin + muMax);
 }
 
-
-//-------------- Fermi function fit -------------------
-
-#include <gsl/gsl_multifit_nlin.h>
-
-struct FitParams
-{	const ElecInfo& eInfo;
-	const std::vector<diagMatrix>& F;
-	const std::vector<diagMatrix>& eps;
-};
-
-//Compute residuals (error in each filling for the guessed mu)
-int fitMu_fdf(const gsl_vector* x, void* params, gsl_vector* residual, gsl_matrix* jacobian)
-{	const FitParams& p = *((const FitParams*)params);
-	double mu = gsl_vector_get(x, 0);
-	int resIndex = p.eInfo.nBands*p.eInfo.qStart;
-	for(int q=p.eInfo.qStart; q<p.eInfo.qStop; q++)
-	{	for(int b=0; b<p.eInfo.nBands; b++)
-		{	//Compute the fermi function and derivative
-			double f = p.eInfo.fermi(mu, p.eps[q][b]);
-			double fPrime = -p.eInfo.fermiPrime(mu, p.eps[q][b]); //note: fprime is df/deps (we need df/dmu)
-			double weight = p.eInfo.qnums[q].weight;
-			if(residual) gsl_vector_set(residual, resIndex, weight*(f - p.F[q][b]));
-			if(jacobian) gsl_matrix_set(jacobian, resIndex, 0, weight*fPrime);
-			resIndex++;
-		}
-	}
-	if(mpiUtil->nProcesses()>1)
-	{	for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
-		{	int qStart = p.eInfo.qStartOther(iSrc);
-			int qCount = p.eInfo.qStopOther(iSrc) - qStart;
-			mpiUtil->bcast(gsl_vector_ptr(residual, qStart*p.eInfo.nBands),    qCount*p.eInfo.nBands, iSrc);
-			mpiUtil->bcast(gsl_matrix_ptr(jacobian, qStart*p.eInfo.nBands, 0), qCount*p.eInfo.nBands, iSrc);
-		}
-	}
-	return 0;
-}
-int fitMu_f(const gsl_vector* x, void* params, gsl_vector* residual) { return fitMu_fdf(x,params,residual,0); }
-int fitMu_df(const gsl_vector* x, void* params, gsl_matrix* jacobian) { return fitMu_fdf(x,params,0,jacobian); }
-
-double nrm2(gsl_vector* f) { return eblas_dnrm2(f->size, f->data, f->stride); }
-
-double ElecInfo::fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu) const
-{	const bool& verbose = e->cntrl.shouldPrintMuSearch;
-	//Set up GSL fit utility:
-	unsigned nResiduals = nStates*nBands;
-	gsl_multifit_fdfsolver *solver = gsl_multifit_fdfsolver_alloc(gsl_multifit_fdfsolver_lmsder, nResiduals, 1);
-	FitParams params = {*this, F, eps};
-	gsl_multifit_function_fdf fitFunc = {&fitMu_f, &fitMu_df, &fitMu_fdf, nResiduals, 1, (void*)&params};
-	gsl_vector_const_view xInit = gsl_vector_const_view_array(&mu, 1);
-	gsl_multifit_fdfsolver_set(solver, &fitFunc, &xInit.vector);
-	//Fit:
-	if(verbose) logPrintf("\nFitting Fermi-dirac distribution to current fillings and eigenvalues\n");
-	bool converged=false;
-	for(int iter=0; iter<500; iter++)
-	{
-		gsl_multifit_fdfsolver_iterate(solver);
-		if(verbose)
-			logPrintf("MUFIT %3d: mu = %.15le Residual = %le\n", iter, gsl_vector_get(solver->x, 0), nrm2(solver->f));
-		if(gsl_multifit_test_delta(solver->dx, solver->x, 1e-14, 1e-14) != GSL_CONTINUE)
-		{	converged=true;
-			break;
-		}
-	}
-	if(!converged) die("Convergence failure in Fermi-dirac distribution fit to the fillings.\n");
-	double mu = gsl_vector_get(solver->x, 0);
-	if(dndmu) //dn/dmu is just the sum of w df/dmu, i.e. the sum of all elements of the Jacobian
-	{	*dndmu = 0.0;
-		for(unsigned i=0; i<nResiduals; i++) *dndmu += gsl_matrix_get(solver->J, i, 0);
-	}
-	gsl_multifit_fdfsolver_free(solver);
-	return mu;
-}
 
 // Positive remainder
 double fmodPositive(double x, double y)

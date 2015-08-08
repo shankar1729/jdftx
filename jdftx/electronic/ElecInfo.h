@@ -91,6 +91,7 @@ public:
 	void updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
 
 	//Fermi function utilities:
+	inline double muEff(double mu, double Bz, int q) const { return mu + Bz*qnums[q].spin; }
 	double fermi(double mu, double eps) const { return 0.5*(1.-tanh(betaBy2*(eps-mu))); } //!< fermi function
 	double fermiPrime(double mu, double eps) const { return -0.5*betaBy2/pow(cosh(betaBy2*(eps-mu)), 2); } //!< derivative of fermi function
 	diagMatrix fermi(double mu, const diagMatrix& eps) const; //!< elementwise fermi function
@@ -100,13 +101,12 @@ public:
 	matrix fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF) const;
 
 	//! Compute number of electrons for a fermi distribution with specified eigenvalues
-	double nElectronsFermi(double mu, const std::vector<diagMatrix>& eps) const; 
+	//! If magnetization is constrained, bisect on corresponding Lagrange multiplier Bz, and retrieve it too
+	double nElectronsFermi(double mu, const std::vector<diagMatrix>& eps, double& Bz) const; 
 	
 	//! Find the chemical potential for which the fermi distribution with specified eigenvalues adds up to nElectrons
-	double findMu(const std::vector<diagMatrix>& eps, double nElectrons) const; 
-
-	//!Find the best fit chemical potential (and optionally the density of states) given fillings and eigenvalues
-	double fitMu(const std::vector<diagMatrix>& F, const std::vector<diagMatrix>& eps, double* dndmu=0) const;
+	//! If magnetization is constrained, retrieve corresponding Lagrange multiplier Bz as well
+	double findMu(const std::vector<diagMatrix>& eps, double nElectrons, double& Bz) const; 
 	
 	void kpointsPrint(FILE* fp, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	void kpointPrint(FILE* fp, int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
@@ -126,11 +126,17 @@ private:
 	
 	//Initial fillings:
 	int nBandsOld; //!<number of bands in file being read
-	std::vector<double> qNet; //!< net excess electrons in each spin channel
+	double Qinitial, Minitial; //!< net excess electrons and initial magnetization
+	bool Mconstrain; //!< whether to constrain M
 	friend class CommandElecInitialFillings;
 	friend class CommandElecInitialCharge;
+	friend class CommandElecInitialMagnetization;
 	friend class CommandInitialState;
 	friend class ElecVars;
+	friend class LCAOminimizer;
+	
+	//!Calculate nElectrons and return magnetization at given mu, Bz and eigenvalues eps
+	double magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 
 	
 	//Fillings mix / mu-controller properties:
 	double fillingMixFraction; //!< amount of new fillings mixed with old fillings
