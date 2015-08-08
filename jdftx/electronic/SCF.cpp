@@ -345,7 +345,14 @@ void SCF::updateFillings()
 	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
 	else
 	{	mu = eInfo.mu;
+		double Nprev = eInfo.nElectrons;
 		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs, Bz);
+		const double dNmax = 0.01;
+		if(fabs(Nprev - eInfo.nElectrons) > dNmax)
+		{	//Limit nElectrons change:
+			((ElecInfo&)eInfo).nElectrons = Nprev + copysign(dNmax, eInfo.nElectrons-Nprev);
+			mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
+		}
 	}
 	//Compute fillings from aux hamiltonian eigenvalues:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
