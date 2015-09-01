@@ -300,7 +300,10 @@ FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp)
 	const double Qtol = 1e-12;
 	if(fabs(NQ)>Qtol)
 		die("Bulk fluid is non-neutral with a net charge density of %le e/bohr^3\n", NQ);
-	k2factor = NQ2>Qtol ? (4*M_PI/fsp.T) * NQ2 : 0.;
+	if(fsp.screenOverride)
+		k2factor = epsBulk / pow(fsp.screenOverride, 2);
+	else
+		k2factor = NQ2>Qtol ? (4*M_PI/fsp.T) * NQ2 : 0.;
 	
 	if(e.iInfo.ionWidth)
 		logPrintf("\nCorrection to mu due to finite nuclear width = %lg\n", ionWidthMuCorrection());

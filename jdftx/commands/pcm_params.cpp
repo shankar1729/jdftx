@@ -99,6 +99,7 @@ enum PCMparameter
 	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
 	PCMp_Ztot, //! Total valence charge on the solvent, used by CANDLE
+	PCMp_screenOverride, //! Overrides screening length
 	PCMp_Delim //!< Delimiter used in parsing
 };
 EnumStringMap<PCMparameter> pcmParamMap
@@ -113,7 +114,8 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_eta_wDiel, "eta_wDiel",
 	PCMp_sqrtC6eff, "sqrtC6eff",
 	PCMp_pCavity, "pCavity",
-	PCMp_Ztot, "Ztot"
+	PCMp_Ztot, "Ztot",
+	PCMp_screenOverride, "screenOverride"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
 (	PCMp_lMax, "angular momentum truncation in SaLSA",
@@ -127,7 +129,8 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
 	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE",
-	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE"
+	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE",
+	PCMp_screenOverride, "overrides the screening length calculated from fluid-components"
 );
 
 struct CommandPcmParams : public Command
@@ -165,6 +168,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
 				READ_AND_CHECK(Ztot, >, 0.)
+				READ_AND_CHECK(screenOverride, >, 0.)
 				case PCMp_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -186,6 +190,7 @@ struct CommandPcmParams : public Command
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)
 		PRINT(Ztot)
+		PRINT(screenOverride)
 		#undef PRINT
 	}
 }

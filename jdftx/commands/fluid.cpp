@@ -529,7 +529,7 @@ struct CommandFluidSiteParams : public Command
 	
 	void process(ParamList& pl, Everything& e)
 	{
-		if(e.eVars.fluidParams.fluidType == FluidNonlinearPCM || e.eVars.fluidParams.fluidType == FluidLinearPCM || e.eVars.fluidParams.fluidType == FluidNone)
+		if(e.eVars.fluidParams.fluidType == FluidNone)
 			return;
 		FluidSolverParams& fsp = e.eVars.fluidParams;
 

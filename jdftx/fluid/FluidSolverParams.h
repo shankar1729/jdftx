@@ -124,6 +124,7 @@ struct FluidSolverParams
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
 	bool nonlinearSCF; //!< whether to use an SCF method for nonlinear PCMs
+	double screenOverride; //! overrides screening factor with this value
 	PulayParams scfParams; //!< parameters controlling Pulay mixing for SCF version of nonlinear PCM
 	
 	//For Explicit Fluid JDFT alone:
