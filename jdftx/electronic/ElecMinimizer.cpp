@@ -200,7 +200,7 @@ void elecMinimize(Everything& e)
 	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor())
 	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
-		e.eVars.setEigenvectors();
+		if (!e.verletParams.tMax) e.eVars.setEigenvectors(); //Don't spend time with this if running MD
 	}
 	else
 	{	bandMinimize(e);

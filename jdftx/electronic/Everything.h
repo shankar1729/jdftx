@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/GridInfo.h>
 #include <core/MinimizeParams.h>
+#include <core/VerletParams.h>
 #include <core/Coulomb.h>
 #include <electronic/common.h>
 #include <electronic/Control.h>
@@ -60,6 +61,7 @@ public:
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
 	MinimizeParams latticeMinParams; //!< lattice minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
+	VerletParams verletParams; //!< Molecular dynamics parameters
 	SCFparams scfParams; //!< Self-consistent field mixing parameters
 	
 	CoulombParams coulombParams; //!< Coulomb truncation parameters

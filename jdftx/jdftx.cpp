@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/InverseKohnSham.h>
 #include <electronic/Vibrations.h>
+#include <electronic/IonDynamics.h>
 #include <fluid/FluidSolver.h>
 #include <core/Util.h>
 #include <commands/parser.h>
@@ -81,6 +82,11 @@ int main(int argc, char** argv)
 	{	//Lattice minimization loop (which invokes the ionic minimization loop)
 		LatticeMinimizer lmin(e);
 		lmin.minimize(e.latticeMinParams);
+	}
+	else if(e.verletParams.tMax)
+	{	//Molecular Dynamics with Verlet algorithm
+		IonDynamics verlet(e);
+		verlet.run();
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)

@@ -120,7 +120,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	strain += alpha * dir;
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
-	updateLatticeDependent(true); // Updates lattice information but does not touch electronic state / calc electronic energy
+	updateLatticeDependent(e, true); // Updates lattice information but does not touch electronic state / calc electronic energy
 
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Restore wavefunctions from atomic orbitals:
@@ -166,7 +166,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		for(size_t i=0; i<strainBasis.size(); i++)
 			*grad += stress[i]*strainBasis[i];
 		e.gInfo.R = Rorig + Rorig*strain;
-		updateLatticeDependent();
+		updateLatticeDependent(e);
 	}
 	
 	return relevantFreeEnergy(e);
@@ -188,19 +188,19 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 { //! Implements a central difference derivative with O(h^4)
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(-2*h*direction));
-	updateLatticeDependent();
+	updateLatticeDependent(e);
 	const double En2h = relevantFreeEnergy(e);
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(-h*direction));
-	updateLatticeDependent();
+	updateLatticeDependent(e);
 	const double Enh = relevantFreeEnergy(e);
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(h*direction));
-	updateLatticeDependent();
+	updateLatticeDependent(e);
 	const double Eph = relevantFreeEnergy(e);
 	
 	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
-	updateLatticeDependent();
+	updateLatticeDependent(e);
 	const double Ep2h = relevantFreeEnergy(e);
 	
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
@@ -232,7 +232,7 @@ double LatticeMinimizer::sync(double x) const
 	return x;
 }
 
-void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
+void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectronic)
 {	logSuspend();
 	e.gInfo.update();
 	if(e.gInfoWfns)
@@ -253,5 +253,5 @@ void LatticeMinimizer::updateLatticeDependent(bool ignoreElectronic)
 void LatticeMinimizer::restore()
 {	strain *= 0;
 	e.gInfo.R = Rorig;
-	updateLatticeDependent();
+	updateLatticeDependent(e);
 }

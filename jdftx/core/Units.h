@@ -52,4 +52,8 @@ const double KPascal = 1000*Pascal;  //!< @f$ KPa / (E_h/a_0^2) @f$
 const double Bar = 100*KPascal;   //!< @f$ bar / (E_h/a_0^2) @f$
 const double mmHg = 133.322387415*Pascal;  //!< @f$ mmHg / (E_h/a_0^2) @f$
 
+//Time
+const double sec = sqrt((kg*meter)/Newton); //!< @f$ \sqrt{kg m/N} @f$
+const double fs = sec*1.0e-15; //!< @f$ 10^{-15} sec @f$
+
 #endif //JDFTX_CORE_UNITS_H

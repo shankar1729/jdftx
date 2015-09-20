@@ -41,6 +41,7 @@ public:
 	bool fromWildcard; //!< whether this pseudopotential was automatically added using a wildcard (for command printing purposes only)
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
+	std::vector<vector3<> > velocities; //!< array of atomic velocities (null unless running MD) in lattice coordinates
 	#ifdef GPU_ENABLED
 	vector3<> *atposGpu; //!< copy of atomic positions on the gpu
 	#endif
