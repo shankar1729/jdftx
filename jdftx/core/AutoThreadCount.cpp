@@ -56,6 +56,7 @@ void resumeOperatorThreading()
 {	threadOperators = true;
 	#if defined(MKL_PROVIDES_BLAS) || defined(MKL_PROVIDES_FFT)
 	mkl_set_num_threads(nProcsAvailable);
+	mkl_disable_fast_mm();
 	#endif
 }
 
