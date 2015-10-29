@@ -61,7 +61,7 @@ public:
 private:
 	PhononEverything e; //data for original unit cell
 	PhononEverything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
-	std::shared_ptr<Everything> eSup; //supercell data for current perturbation
+	std::shared_ptr<PhononEverything> eSup; //supercell data for current perturbation
 
 	int nSpins, nSpinor; //number of explicit spins and spinor length
 	int nBandsOpt; //optimized number of bands, accounting for Fcut

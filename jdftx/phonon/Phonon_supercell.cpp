@@ -27,7 +27,7 @@ inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { 
 void Phonon::processPerturbation(const Perturbation& pert)
 {
 	//Start with eSupTemplate:
-	eSup = std::make_shared<Everything>();
+	eSup = std::make_shared<PhononEverything>(*this);
 	eSup->cntrl.dragWavefunctions = false; //wavefunction-drag doesn't always play nice with setSupState (especially with relativity)
 	logSuspend(); parse(input, *eSup); logResume();
 	eSup->eInfo.kfold = eSupTemplate.eInfo.kfold;
