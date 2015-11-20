@@ -180,7 +180,7 @@ void Phonon::dump()
 	logPrintf("\tEvib:  %15.6lf\n", Evib);
 	logPrintf("\tTSvib: %15.6lf\n", TSvib);
 	logPrintf("\tAvib:  %15.6lf\n", Avib);
-	if(isnan(ZPE))
+	if(std::isnan(ZPE))
 		logPrintf("\tWARNING: free energies are undefined due to imaginary phonon frequencies.\n");
 	logPrintf("\n");
 }

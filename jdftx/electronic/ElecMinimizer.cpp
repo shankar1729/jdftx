@@ -308,7 +308,7 @@ void elecFluidMinimize(Everything &e)
 				cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations);
 	}
 	
-	if(!isnan(Evac0))
+	if(!std::isnan(Evac0))
 		logPrintf("Single-point solvation energy estimate, Delta%s = %+.15f\n", relevantFreeEnergyName(e), relevantFreeEnergy(e)-Evac0);
 }
 

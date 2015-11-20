@@ -247,7 +247,7 @@ void IonDynamics::run()
 	{	potentialEnergy = computeAcceleration(accel);
 		computeMomentum();computeKineticEnergy();computePressure();
 			
-		if (__isnan(initialPotentialEnergy ))
+		if (std::isnan(initialPotentialEnergy ))
 			initialPotentialEnergy = potentialEnergy;
 		report(t);
 		step(accel, e.verletParams.dt);	
