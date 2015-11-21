@@ -94,6 +94,11 @@ check_cxx_compiler_flag(-ipo HAS_IPO)
 if(HAS_IPO)
 	set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -ipo")
 endif()
+#--- Template recursion depth (more needed in Clang)
+check_cxx_compiler_flag(-ftemplate-depth-512 HAS_TEMPLATE_DEPTH)
+if(HAS_TEMPLATE_DEPTH)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-512")
+endif()
 
 #Architecture dependent optimizations
 option(CompileNative "Enable aggressive architecture-dependent optimizations for current CPU.")

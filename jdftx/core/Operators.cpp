@@ -166,7 +166,7 @@ complexScalarField I(complexScalarFieldTilde&& in, int nThreads)
 	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanInverseInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
-	return (complexScalarField&&)in;
+	return std::static_pointer_cast<complexScalarFieldData>(std::static_pointer_cast<FieldData>(in));
 }
 
 //Forward transform h.c.
@@ -204,7 +204,7 @@ complexScalarFieldTilde Idag(complexScalarField&& in, int nThreads)
 	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanForwardInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
-	return (complexScalarFieldTilde&&)in;
+	return std::static_pointer_cast<complexScalarFieldTildeData>(std::static_pointer_cast<FieldData>(in));
 }
 
 //Reverse transform (same as Idag upto the normalization factor)
