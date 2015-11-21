@@ -1,0 +1,67 @@
+/** \page Developer Overview
+
+Folder structure
+----------------
+
+commands
+
+core
+
+doc
+
+electronic
+
+fluid
+
+opt
+
+phonon
+
+pseudopotentials
+
+scripts
+
+tests
+
+testsuite
+
+wannier
+
+Fundamental data structres
+--------------------------
+
+An overview of the fundamental data structures in JDFTx.
+
+ScalarField
+
+ColumnBundle
+
+Important Classes/Templates
+---------------------------
+
+An overview of important classes and templates a developer should know about
+
+Minimize.h
+
+ElecInfo
+
+ElecVars
+
+IonInfo/SpeciesInfo
+
+FluidSolver
+
+Layers of parallelization
+-------------------------
+
+Multithreading and MPI explained:
+
+MPI is over kpoints.  For calculations without any kpoints, MPI parallelization can't be used.
+
+
+Debugging/Benchmarking info
+---------------------------
+
+The debug printout explained:
+
+*/
