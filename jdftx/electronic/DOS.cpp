@@ -296,8 +296,8 @@ struct EvalDOS
 		}
 		
 		double value(double t, int i) const
-		{	register double4 b = bArr[i];
-			register double c[3], d[2];
+		{	double4 b = bArr[i];
+			double c[3], d[2];
 			//deCasteljau's algorithm for cubic bezier:
 			for(int k=0; k<3; k++) c[k] = b[k] + t*(b[k+1]-b[k]);
 			for(int k=0; k<2; k++) d[k] = c[k] + t*(c[k+1]-c[k]);
@@ -305,8 +305,8 @@ struct EvalDOS
 		}
 		
 		double deriv(double t, int i) const
-		{	register double4 b = bArr[i];
-			register double c[3], d[2];
+		{	double4 b = bArr[i];
+			double c[3], d[2];
 			//Derivative is a bezier spline of degree 2 with coefficients:
 			for(int k=0; k<3; k++) c[k] = 3.0*(b[k+1]-b[k]);
 			//deCasteljau's algorithm for the quadtratic bezier:
@@ -581,8 +581,8 @@ struct EvalDOS
 		{	const double& E0 = in[ iIn ].first; const std::vector<double>& w0 = in[ iIn ].second;
 			const double& E1 = in[iIn+1].first; const std::vector<double>& w1 = in[iIn+1].second;
 			if(E1==E0) continue;
-			size_t iEstart = floor((E0-10*Esigma-Emin)/dE); if(iEstart<0) iEstart=0;
-			size_t iEstop = ceil((E1+10*Esigma-Emin)/dE); if(iEstop>nE) iEstop=nE;
+			size_t iEstart = std::max(floor((E0-10*Esigma-Emin)/dE), 0.);
+			size_t iEstop = std::min(ceil((E1+10*Esigma-Emin)/dE), double(nE));
 			for(size_t iE=iEstart; iE<iEstop; iE++)
 			{	double E = out[iE].first;
 				double e0 = (E-E0)*EsigmaDen;

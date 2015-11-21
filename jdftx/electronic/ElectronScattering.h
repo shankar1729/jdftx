@@ -64,7 +64,7 @@ private:
 		CEDA(int nBands, int nbasis); //!< initialize to zeroes with required sizes
 		void collect(const ElectronScattering& es, int iq, const diagMatrix& chiKS0, diagMatrix& num, diagMatrix& den); //!< collect net numerator and denominator contributions
 	};
-	friend class CEDA;
+	friend struct CEDA;
 	
 	std::vector<Event> getEvents( //!< return list of events
 		bool chiMode, //!< whether to calculate fWeight for chi (true) or ImSigma (false), and hence which events to select (occ-unocc or occ-occ + unocc-unocc)

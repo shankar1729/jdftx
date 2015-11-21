@@ -128,12 +128,12 @@ private:
 	int nBandsOld; //!<number of bands in file being read
 	double Qinitial, Minitial; //!< net excess electrons and initial magnetization
 	bool Mconstrain; //!< whether to constrain M
-	friend class CommandElecInitialFillings;
-	friend class CommandElecInitialCharge;
-	friend class CommandElecInitialMagnetization;
-	friend class CommandInitialState;
+	friend struct CommandElecInitialFillings;
+	friend struct CommandElecInitialCharge;
+	friend struct CommandElecInitialMagnetization;
+	friend struct CommandInitialState;
 	friend class ElecVars;
-	friend class LCAOminimizer;
+	friend struct LCAOminimizer;
 	
 	//!Calculate nElectrons and return magnetization at given mu, Bz and eigenvalues eps
 	double magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 
@@ -143,12 +143,12 @@ private:
 	double dnPrev, muMeasuredPrev; //!<The change in number of electrons and measured mu on the previous fillings update
 	double Cmeasured, Cweight; //!<The "measured" capacitance of the system, and the weight of the measurement
 	double dnMixFraction; //!<Scale the ideal stepsize in n by this factor
-	friend class CommandElecFermiFillings;
-	friend class CommandTargetMu;
+	friend struct CommandElecFermiFillings;
+	friend struct CommandTargetMu;
 	
 	//k-points:
 	vector3<int> kfold; //!< kpoint fold vector
-	friend class CommandKpointFolding;
+	friend struct CommandKpointFolding;
 	friend class Everything;
 	friend class Phonon;
 	void kpointsFold(); //!< Fold k-points by kfold

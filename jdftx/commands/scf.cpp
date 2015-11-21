@@ -62,7 +62,7 @@ struct CommandPulay : public Command
 	}
 	
 protected:
-	void process(ParamList& pl, Everything& e, PulayParams& pp)
+	void processCommon(ParamList& pl, Everything& e, PulayParams& pp)
 	{	while(true)
 		{	string keyStr;
 			pl.get(keyStr, string(), "key", false);
@@ -84,7 +84,7 @@ protected:
 		}
 	}
 	
-	void printStatus(const PulayParams& pp)
+	void printStatusCommon(const PulayParams& pp)
 	{
 		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, pp.param);
 		PRINT(nIterations, %i)
@@ -155,7 +155,7 @@ struct CommandElectronicScf: public CommandPulay
 	{	e.cntrl.scf = true;
 		SCFparams& sp = e.scfParams;
 		sp.nEigSteps = (e.cntrl.elecEigenAlgo==ElecEigenCG) ? 40 : 2; //default eigenvalue steps based on algo
-		CommandPulay::process(pl, e, sp);
+		processCommon(pl, e, sp);
 	}
 	
 	void process_sub(string keyStr, ParamList& pl, Everything& e)
@@ -176,7 +176,7 @@ struct CommandElectronicScf: public CommandPulay
 	
 	void printStatus(Everything& e, int iRep)
 	{	const SCFparams& sp = e.scfParams;
-		CommandPulay::printStatus(sp); //base class parameters
+		printStatusCommon(sp); //base class parameters
 		#define PRINT(param,format) logPrintf(" \\\n\t" #param "\t" #format, sp.param);
 		PRINT(nEigSteps, %i)
 		PRINT(eigDiffThreshold, %lg)
@@ -243,7 +243,7 @@ struct CommandPcmNonlinearScf: public CommandPulay
 		pp.energyDiffThreshold = 1e-7;
 		pp.nIterations = 20;
 		pp.fpLog = globalLog;
-		CommandPulay::process(pl, e, pp); //only base class parameters
+		processCommon(pl, e, pp); //only base class parameters
 	}
 	
 	void process_sub(string keyStr, ParamList& pl, Everything& e)
@@ -251,7 +251,7 @@ struct CommandPcmNonlinearScf: public CommandPulay
 	}
 	
 	void printStatus(Everything& e, int iRep)
-	{	CommandPulay::printStatus(e.eVars.fluidParams.scfParams); //only base class parameters
+	{	printStatusCommon(e.eVars.fluidParams.scfParams); //only base class parameters
 	}
 }
 commandPcmNonlinearScf;

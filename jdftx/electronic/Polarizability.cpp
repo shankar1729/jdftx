@@ -32,7 +32,7 @@ Polarizability::Polarizability() : eigenBasis(NonInteracting), Ecut(0), nEigs(0)
 
 class PairDensityCalculator
 {
-	const Everything& e; int ik, nK;
+	int nK;
 	
 	struct State
 	{	const ColumnBundle* C;
@@ -123,7 +123,7 @@ class PairDensityCalculator
 
 public:
 	//Setup to compute pair densities between kmesh[ik] and its partner dk away
-	PairDensityCalculator(const Everything& e, const vector3<>& dk, int ik) : e(e), ik(ik)
+	PairDensityCalculator(const Everything& e, const vector3<>& dk, int ik)
 	{
 		//Find the transformations / data sources for the two k-points:
 		const std::vector< vector3<> >& kmesh = e.coulombParams.supercell->kmesh;

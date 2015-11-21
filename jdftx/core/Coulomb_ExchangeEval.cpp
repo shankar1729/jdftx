@@ -195,7 +195,7 @@ void extractExchangeKernel_thread(size_t iStart, size_t iStop, const vector3<>& 
 //-------------------- class ExchangeEval -----------------------
 
 ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, const Coulomb& coulomb, double omega)
-: gInfo(gInfo), params(params), coulomb(coulomb), omega(omega), VcGamma(0), kernelData(0)
+: gInfo(gInfo), omega(omega), VcGamma(0), kernelData(0)
 {
 	if(!omega) logPrintf("\n-------- Setting up exchange kernel --------\n");
 	else logPrintf("\n--- Setting up screened exchange kernel (omega = %lg) ---\n", omega);

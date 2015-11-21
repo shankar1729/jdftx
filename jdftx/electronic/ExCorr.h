@@ -120,12 +120,12 @@ private:
 	ExCorrType exCorrType;
 	KineticType kineticType;
 	string xcName; // short name of the functional (set by command elec-ex-corr)
-	friend class CommandElecExCorr;
-	friend class CommandFluidExCorr;
+	friend struct CommandElecExCorr;
+	friend struct CommandFluidExCorr;
 	
 	double exxScale; //scale factor for exact exchange
 	double exxOmega; //Range parameter for exact exchange
-	std::shared_ptr<class FunctionalList> functionals; //List of component functionals
+	std::shared_ptr<struct FunctionalList> functionals; //List of component functionals
 #ifdef LIBXC_ENABLED
 	int xcExchange, xcCorr, xcExcorr, xcKinetic; //LibXC codes for various functional components (0 if unused)
 #endif

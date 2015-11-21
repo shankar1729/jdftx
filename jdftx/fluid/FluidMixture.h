@@ -126,7 +126,7 @@ private:
 	double Keps; //!< preconditioner weight for polarizability independent variable
 	
 	void addComponent(FluidComponent*); //!< Called by FluidComponent::addToFluidMixture() to add a component
-	friend class FluidComponent;
+	friend struct FluidComponent;
 
 	void addFmix(const Fmix* fmix); //!< Called by Fmix::Fmix() to add a mixing functional
 	friend class Fmix;
@@ -137,7 +137,7 @@ private:
 	//! Compute the pressure of the uniform fluid mixture of total molecular density Ntot
 	double compute_p(double Ntot) const;
 	
-	friend class BoilingPressureSolver;
+	friend struct BoilingPressureSolver;
 	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 

@@ -140,17 +140,17 @@ private:
 	const Everything* e;
 	
 	std::vector<string> VexternalFilename; //!< external potential filename (read in real space)
-	friend class CommandVexternal;
+	friend struct CommandVexternal;
 	friend class InverseKohnSham; //!< Adjusts Vexternal to produce target electron density
 	
 	string rhoExternalFilename; //!< external charge filename
-	friend class CommandRhoExternal;
+	friend struct CommandRhoExternal;
 
 	int lcaoIter; //!< number of iterations for LCAO (automatic if negative)
 	double lcaoTol; //!< tolerance for LCAO subspace minimization
 	int LCAO(); //!< Initialize LCAO wavefunctions (returns the number of bands initialized)
-	friend class CommandWavefunction;
-	friend class CommandLcaoParams;
+	friend struct CommandWavefunction;
+	friend struct CommandLcaoParams;
 	friend class Dump;
 	
 	//! Overlap matrix U and cohorts

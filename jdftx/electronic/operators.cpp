@@ -34,10 +34,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr)
 {	//Find mean phase
-	register double w0=0.0, r1=0.0, r2=0.0, i1=0.0, i2=0.0; //moments of normalized real and imaginary parts
+	double w0=0.0, r1=0.0, r2=0.0, i1=0.0, i2=0.0; //moments of normalized real and imaginary parts
 	for(size_t i=0; i<N; i++)
-	{	register complex c = data[i]*data[i];
-		register double w = abs(c); //weight
+	{	complex c = data[i]*data[i];
+		double w = abs(c); //weight
 		if(w > 1e-300)
 		{	w0 += w;
 			r1 += c.real();

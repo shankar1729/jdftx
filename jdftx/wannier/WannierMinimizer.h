@@ -102,7 +102,7 @@ public:
 	virtual double getOmegaI(bool grad=false)=0;
 	
 protected:
-	friend class WannierGradient;
+	friend struct WannierGradient;
 	const Everything& e;
 	const Wannier& wannier;
 	const std::vector< matrix3<int> >& sym;

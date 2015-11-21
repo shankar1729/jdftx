@@ -62,8 +62,8 @@ public:
 	void gatherAxpy(complex alpha, const ColumnBundle& C_D, int bDstart, int bDstep, ColumnBundle& C_C) const; //!< gather-accumulate all columns of C_C
 
 private:
-	const vector3<>& kC; const Basis& basisC;
-	const vector3<>& kD; const Basis& basisD;
+	const Basis& basisC;
+	const Basis& basisD;
 	int nSpinor, invert;
 	
 	//Index array:

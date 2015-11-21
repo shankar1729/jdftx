@@ -140,7 +140,7 @@ void ElecVars::setup(const Everything &everything)
 			if(!eInfo.isMine(qnum)) continue;
 			int HOMO = eInfo.findHOMO(qnum);
 			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
-			if(band >= F[qnum].size() or band<0)
+			if(band >= F[qnum].size())
 			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
 					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
 					(int) band, std::get<1>(eInfo.customFillings[j]));

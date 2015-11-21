@@ -41,7 +41,7 @@ ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(ba
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
 	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const matrix3<int>& sym, int invert, const matrix3<int>& super)
-: kC(kC), basisC(basisC), kD(kD), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
+: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
 {
 	//Check k-point transformation and determine offset
 	const matrix3<>& metricC = basisC.gInfo->RTR;

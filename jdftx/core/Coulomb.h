@@ -59,7 +59,7 @@ struct CoulombParams
 	};
 	ExchangeRegularization exchangeRegularization; //!< exchange regularization method
 	std::set<double> omegaSet; //!< set of exchange erf-screening parameters
-	std::shared_ptr<class Supercell> supercell; //!< Description of k-point supercell for exchange
+	std::shared_ptr<struct Supercell> supercell; //!< Description of k-point supercell for exchange
 	
 	CoulombParams();
 	
@@ -138,7 +138,7 @@ protected:
 	const GridInfo& gInfo; //!< embedding grid, which is 2x larger in truncated directions if params.embed == true
 	std::shared_ptr<Ewald> ewald;
 	std::map<double, std::shared_ptr<struct ExchangeEval>> exchangeEval;
-	friend class ExchangeEval;
+	friend struct ExchangeEval;
 	
 	Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params);
 	virtual ~Coulomb();
@@ -165,16 +165,16 @@ private:
 	vector3<> embedScale; //!< lattiec coordinates scale factor for moving from original to embedding mesh
 	int* embedIndex; //!< list of indices from original mesh to larger mesh
 	std::vector< std::pair<int,int*> > symmIndex; //!< list of number of equivalence classes and corresponding indices per cardinality for boundary symmetrization
-	struct WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
+	class WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	RealKernel* ionKernel;
 	ScalarFieldTilde embedExpand(const ScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
 	complexScalarFieldTilde embedExpand(complexScalarFieldTilde&& in) const; //!< expand to embedding grid and symmetrize boundaries
 	ScalarFieldTilde embedShrink(const ScalarFieldTilde& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
 	complexScalarFieldTilde embedShrink(complexScalarFieldTilde&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
-	friend class FluidSolver;
-	friend class SlabEpsilon;
-	friend class ChargedDefect;
+	friend struct FluidSolver;
+	friend struct SlabEpsilon;
+	friend struct ChargedDefect;
 };
 
 #endif // JDFTX_CORE_COULOMB_H

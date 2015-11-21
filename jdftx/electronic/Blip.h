@@ -50,8 +50,7 @@ public:
 //! and the values in the input WS outside the output WS are truncated, while the region in the
 //! output WS outside the input WS is set to zero.
 class BlipResampler
-{	const GridInfo& gInfoIn;
-	const GridInfo& gInfoOut;
+{	const GridInfo& gInfoOut;
 	BlipConverter converter;
 	WignerSeitz wsIn;
 	WignerSeitz wsOut;

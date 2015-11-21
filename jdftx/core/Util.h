@@ -153,7 +153,7 @@ off_t fileSize(const char *filename);
 
 //! For any x and y>0, compute z = x % y such that 0 <= z < y
 inline uint16_t positiveRemainder(int16_t x, uint16_t y)
-{	register int16_t xMody = x % y;
+{	int16_t xMody = x % y;
 	if(xMody < 0) return uint16_t(y + xMody);
 	else return xMody;
 }

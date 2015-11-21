@@ -105,7 +105,7 @@ namespace BlipPrivate
 					t[k] = vIn_k - ivIn[k];
 				}
 				//1D indices of the 64 coefficients:
-				register int j[3][4];
+				int j[3][4];
 				for(int k=0; k<3; k++)
 					for(int di=0; di<4; di++)
 					{	int& jCur = j[k][di];
@@ -114,15 +114,15 @@ namespace BlipPrivate
 						if(jCur < 0) jCur += Sin[k];
 					}
 				//Interpolate along the inner dimension first:
-				register scalar out2[4][4];
+				scalar out2[4][4];
 				for(int di0=0; di0<4; di0++)
 				for(int di1=0; di1<4; di1++)
-				{	register scalar coeff[4];
+				{	scalar coeff[4];
 					for(int di2=0; di2<4; di2++) coeff[di2] = inBlip[j[2][di2] + Sin[2]*(j[1][di1] + Sin[1]*j[0][di0])];
 					out2[di0][di1] = blip(t[2], coeff);
 				}
 				//Interpolate along the middle dimension:
-				register scalar out1[4];
+				scalar out1[4];
 				for(int di0=0; di0<4; di0++) out1[di0] = blip(t[1], out2[di0]);
 				//Finally interpolate along outer dimension:
 				out[i] = blip(t[0], out1);
@@ -136,7 +136,7 @@ namespace BlipPrivate
 }
 
 BlipResampler::BlipResampler(const GridInfo& gInfoIn, const GridInfo& gInfoOut)
-: gInfoIn(gInfoIn), gInfoOut(gInfoOut), converter(gInfoIn.S), wsIn(gInfoIn.R), wsOut(gInfoOut.R)
+: gInfoOut(gInfoOut), converter(gInfoIn.S), wsIn(gInfoIn.R), wsOut(gInfoOut.R)
 {
 }
 
@@ -165,7 +165,7 @@ template<typename scalar> struct TriCubic
 	//convert 1d blip coeffs to legendre coefficients (in-place)
 	static inline void convert1d(scalar& coeff0, scalar& coeff1, scalar& coeff2, scalar& coeff3)
 	{
-		register scalar a=coeff0, b=coeff1, c=coeff2, d=coeff3;
+		scalar a=coeff0, b=coeff1, c=coeff2, d=coeff3;
 		coeff0 = (1.0/16)*(a+d) + (11.0/16)*(b+c);
 		coeff1 = (9.0/80)*(d-a) + (33.0/80)*(c-b);
 		coeff2 = (1.0/16)*(a+d-b-c);
@@ -184,10 +184,10 @@ template<typename scalar> struct TriCubic
 		#undef WrapIndex
 		for(int k0=0; k0<4; k0++)
 		{
-			register int offs0 = j0[k0]*S[1];
+			int offs0 = j0[k0]*S[1];
 			for(int k1=0; k1<4; k1++)
 			{
-				register int offs01 = (offs0+j1[k1])*S[2];
+				int offs01 = (offs0+j1[k1])*S[2];
 				for(int k2=0; k2<4; k2++)
 					c[k0][k1][k2] = v[offs01+j2[k2]];
 			}
@@ -201,8 +201,8 @@ template<typename scalar> struct TriCubic
 
 inline double Tcell(const TriCubic<complex>& phi, const matrix3<>* Tmat)
 {
-	register double T00=0, T11=0, T22=0; //diagonal terms in oblique laplacian
-	register complex T01=0, T12=0, T20=0; //off-diagonal terms in oblique laplacian
+	double T00=0, T11=0, T22=0; //diagonal terms in oblique laplacian
+	complex T01=0, T12=0, T20=0; //off-diagonal terms in oblique laplacian
 
 	static const double w[4] = {1.0, 1.0/3, 1.0/5, 1.0/7}; //weights when no derivatives
 

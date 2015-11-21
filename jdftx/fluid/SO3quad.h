@@ -28,7 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <fluid/S2quad.h>
-class Molecule;
+struct Molecule;
 
 //! @brief Quadrature for SO(3)
 class SO3quad

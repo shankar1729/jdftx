@@ -34,7 +34,7 @@ protected:
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
-	friend class ExchangeEval;
+	friend struct ExchangeEval;
 };
 
 //! Coulomb interaction for an isolated system (no periodicity), truncated on a sphere
@@ -48,7 +48,7 @@ protected:
 private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
-	friend class ExchangeEval;
+	friend struct ExchangeEval;
 };
 
 #endif // JDFTX_CORE_COULOMBISOLATED_H

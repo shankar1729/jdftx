@@ -41,8 +41,6 @@ class BandMinimizer : public Minimizable<ColumnBundle>
 	private:
 		Everything& e;
 		ElecVars& eVars;
-		ElecInfo& eInfo;
-		
 		bool precond;	
 };
 

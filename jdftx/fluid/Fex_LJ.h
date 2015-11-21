@@ -44,7 +44,7 @@ public:
 	double computeUniform(const double* N, double* Phi_N) const;
 private:
 	friend class Fmix_LJ; //allow Fmix_LJ to peek at eps and sigma to select coupling parameters
-	double eps, sigma;
+	double sigma;
 	RadialFunctionG ljatt;
 };
 

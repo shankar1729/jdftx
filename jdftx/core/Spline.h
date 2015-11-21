@@ -84,7 +84,7 @@ namespace QuinticSpline
 	__hostanddev__ double value(const double* coeff, double x)
 	{	double tR, tL, b[6]; getBernsteinCoeffs(coeff, x, tR, tL, b);
 		//Evaluate Bernstein polynomial by de Casteljau's reduction
-		register double c[5], d[4];
+		double c[5], d[4];
 		for(int i=0; i<5; i++) c[i] = tL*b[i] + tR*b[i+1]; //5->4
 		for(int i=0; i<4; i++) d[i] = tL*c[i] + tR*c[i+1]; //4->3
 		for(int i=0; i<3; i++) c[i] = tL*d[i] + tR*d[i+1]; //3->2
@@ -96,7 +96,7 @@ namespace QuinticSpline
 	__hostanddev__ double deriv(const double* coeff, double x)
 	{	double tR, tL, b[6]; getBernsteinCoeffs(coeff, x, tR, tL, b);
 		//Derivative by by de Casteljau's reduction
-		register double c[5], d[4];
+		double c[5], d[4];
 		for(int i=0; i<5; i++) c[i] = b[i+1] - b[i]; //5->4
 		for(int i=0; i<4; i++) d[i] = tL*c[i] + tR*c[i+1]; //4->3
 		for(int i=0; i<3; i++) c[i] = tL*d[i] + tR*d[i+1]; //3->2
@@ -113,7 +113,7 @@ namespace QuinticSpline
 	{	int j = (int)x;
 		double tR = x - j; //right weight for interval
 		double tL = 1.-tR; //left weight for interval
-		register double b[6], c[6];
+		double b[6], c[6];
 		//Backtrace de Casteljau's reduction:
 		b[0]=tL; b[1]=tR; //0->1
 		c[0]=0.; for(int i=0; i<2; i++) { c[i] += tL*b[i]; c[i+1] = tR*b[i]; } //1->2

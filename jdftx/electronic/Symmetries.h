@@ -62,9 +62,9 @@ private:
 	
 	std::vector<int> kpointInvertList; //!< Contains +1 for empty or inversion-containing symmetry group, and contains +1 and -1 otherwise
 	std::vector<unsigned long long> kmap; //!< mapping from unreduced mesh to reduced set under symmetries
-	friend class CommandSymmetries;
-	friend class CommandSymmetryMatrix;
-	friend class CommandDebug;
+	friend struct CommandSymmetries;
+	friend struct CommandSymmetryMatrix;
+	friend struct CommandDebug;
 	
 	bool shouldPrintMatrices;
 	bool shouldMoveAtoms;

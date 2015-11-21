@@ -48,7 +48,7 @@ private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
 	RealKernel Vc;
-	friend class ExchangeEval;
+	friend struct ExchangeEval;
 };
 
 #endif // JDFTX_CORE_COULOMBWIRE_H

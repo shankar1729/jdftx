@@ -196,7 +196,7 @@ void threadedLoop(Callable* func, size_t nIter, Args... args)
 
 template<typename Callable,typename ... Args>
 void threadedAccumulate_sub(size_t iMin, size_t iMax, Callable* func, double* accumTot, std::mutex* m, Args... args)
-{	register double accum=0.0;
+{	double accum=0.0;
 	for(size_t i=iMin; i<iMax; i++) accum += (*func)(i, args...);
 	m->lock(); *accumTot += accum; m->unlock();
 }

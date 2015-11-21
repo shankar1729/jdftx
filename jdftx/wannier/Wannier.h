@@ -89,7 +89,7 @@ private:
 	MinimizeParams minParams;
 	std::shared_ptr<class WannierMinimizer> wmin; //!< opaque struct to minimizer
 	friend class WannierMinimizer;
-	friend class CommandWannierMinimize;
+	friend struct CommandWannierMinimize;
 };
 
 //!Version of Everything with Wannier added

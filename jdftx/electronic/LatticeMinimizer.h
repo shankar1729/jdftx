@@ -65,7 +65,7 @@ private:
 	//! reconverge ionic positions or wavefunctions
 	static void updateLatticeDependent(Everything& e, bool ignoreElectronic=false);
 	
-	friend class IonDynamics;
+	friend struct IonDynamics;
 };
 
 #endif // JDFTX_ELECTRONIC_LATTICEMINIMIZER_H

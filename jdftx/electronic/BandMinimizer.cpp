@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 
 BandMinimizer::BandMinimizer(Everything& e, int qActive, bool precond):
-qActive(qActive), e(e), eVars(e.eVars), eInfo(e.eInfo),
+qActive(qActive), e(e), eVars(e.eVars),
 precond(precond)
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed
 	e.elecMinParams.energyLabel = relevantFreeEnergyName(e);

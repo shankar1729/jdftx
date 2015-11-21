@@ -206,29 +206,29 @@ struct CommandFixElectronHamiltonian : public Command
 		forbid("dump-only");
 	}
 
-	void process(ParamList& pl, Everything& e, string& targetFilenamePattern)
+	void processCommon(ParamList& pl, Everything& e, string& targetFilenamePattern)
 	{	pl.get(targetFilenamePattern, string(), "filenamePattern", true);
 		if(targetFilenamePattern.find("$VAR") == string::npos)
 			throw string("<filenamePattern> must contain $VAR");
 		e.cntrl.fixed_H = true;
 	}
 
-	void printStatus(Everything& e, int iRep, const string& targetFilenamePattern)
+	void printStatusCommon(Everything& e, int iRep, const string& targetFilenamePattern)
 	{	logPrintf("%s", targetFilenamePattern.c_str());
 	}
 };
 
 struct CommandFixElectronDensity : public CommandFixElectronHamiltonian
 {   CommandFixElectronDensity() : CommandFixElectronHamiltonian("density") { forbid("fix-electron-potential"); }
-	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.nFilenamePattern); }
-	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.nFilenamePattern); }
+	void process(ParamList& pl, Everything& e) { processCommon(pl, e, e.eVars.nFilenamePattern); }
+	void printStatus(Everything& e, int iRep) { printStatusCommon(e, iRep, e.eVars.nFilenamePattern); }
 }
 commandFixElectronDensity;
 
 struct CommandFixElectronPotential : public CommandFixElectronHamiltonian
 {   CommandFixElectronPotential() : CommandFixElectronHamiltonian("potential") { forbid("fix-electron-density"); }
-	void process(ParamList& pl, Everything& e) { CommandFixElectronHamiltonian::process(pl, e, e.eVars.VFilenamePattern); }
-	void printStatus(Everything& e, int iRep) { CommandFixElectronHamiltonian::printStatus(e, iRep, e.eVars.VFilenamePattern); }
+	void process(ParamList& pl, Everything& e) { processCommon(pl, e, e.eVars.VFilenamePattern); }
+	void printStatus(Everything& e, int iRep) { printStatusCommon(e, iRep, e.eVars.VFilenamePattern); }
 }
 commandFixElectronPotential;
 

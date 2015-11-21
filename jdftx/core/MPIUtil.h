@@ -120,7 +120,7 @@ namespace MPIUtilPrivate
 	DECLARE_DataType(double, DOUBLE)
 	#undef DECLARE_DataType
 	
-	static MPI_Op mpiOp(MPIUtil::ReduceOp op)
+	static inline MPI_Op mpiOp(MPIUtil::ReduceOp op)
 	{	switch(op)
 		{	case MPIUtil::ReduceMax: return MPI_MAX;
 			case MPIUtil::ReduceMin: return MPI_MIN;
@@ -145,7 +145,7 @@ namespace MPIUtilPrivate
 	DECLARE_DataTypeIntPair(double, MPI_DOUBLE_INT)
 	#undef DECLARE_DataTypeIntPair
 	
-	static MPI_Op mpiLocOp(MPIUtil::ReduceOp op)
+	static inline MPI_Op mpiLocOp(MPIUtil::ReduceOp op)
 	{	switch(op)
 		{	case MPIUtil::ReduceMax: return MPI_MAXLOC;
 			case MPIUtil::ReduceMin: return MPI_MINLOC;

@@ -51,7 +51,7 @@ void setLJatt(RadialFunctionG& kernel, const GridInfo& gInfo, double eps, double
 
 
 Fex_LJ::Fex_LJ(const FluidMixture* fluidMixture, const FluidComponent* comp, double eps, double sigmaOverride)
-: Fex(fluidMixture, comp), eps(eps), sigma(2.*molecule.sites[0]->Rhs)
+: Fex(fluidMixture, comp), sigma(2.*molecule.sites[0]->Rhs)
 {
 	if(sigmaOverride) sigma = sigmaOverride;
 	logPrintf("     Initializing LJ excess functional with eps=%lf Eh and sigma=%lf bohrs\n", eps, sigma);

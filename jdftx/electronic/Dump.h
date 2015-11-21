@@ -69,7 +69,7 @@ public:
 	//! Check whether to dump at given frequency and iteration:
 	bool checkInterval(DumpFrequency freq, int iter) const;
 	
-	std::shared_ptr<struct DOS> dos; //!< density-of-states calculator
+	std::shared_ptr<class DOS> dos; //!< density-of-states calculator
 	std::shared_ptr<struct Polarizability> polarizability; //!< electronic polarizability calculator
 	std::shared_ptr<struct ElectronScattering> electronScattering; //!< electron-electron scattering calculator
 	std::vector< std::pair<double,double> > densityErange; //!< energy ranges for energy-resolved density output
@@ -81,9 +81,9 @@ private:
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.
 	string stamp; //!< timestamp for current dump
 	std::map<DumpFrequency,int> interval; //!< for each frequency, dump every interval times
-	friend class CommandDump;
-	friend class CommandDumpName;
-	friend class CommandDumpInterval;
+	friend struct CommandDump;
+	friend struct CommandDumpName;
+	friend struct CommandDumpInterval;
 	void dumpQMC(); //!< QMC export implemented in DumpQMC.cpp
 	void dumpOcean(); //!< BSE code export implemented in DumpOcean.cpp
 	void dumpRsol(ScalarField nbound, string fname);

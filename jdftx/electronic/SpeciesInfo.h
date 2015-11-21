@@ -214,13 +214,13 @@ private:
 	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial, bool forceNeutral) const; //!< Compute the atomic density per spin channel, given the magnetic moment
 	void getAtomPotential(RadialFunctionG& dRadial) const; //!< Get the total electrostatic potential of a neutral atom
 	
-	friend class CommandIonSpecies;
-	friend class CommandSetVDW;
+	friend struct CommandIonSpecies;
+	friend struct CommandSetVDW;
 	friend class VanDerWaals;
-	friend class CommandAddU;
-	friend class CommandChargeball;
-	friend class CommandTauCore;
-	friend class CommandWavefunction;
+	friend struct CommandAddU;
+	friend struct CommandChargeball;
+	friend struct CommandTauCore;
+	friend struct CommandWavefunction;
 	friend class WannierMinimizer;
 	friend class IonicMinimizer;
 	friend class Phonon;

@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Molecule.h>
 #include <core/ScalarFieldArray.h>
 class FluidMixture;
-class FluidComponent;
+struct FluidComponent;
 
 //! Abstract base class for an IdealGas evaluator
 class IdealGas

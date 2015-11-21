@@ -50,7 +50,7 @@ namespace QuinticSpline
 		for(int i=0; i<N; i++)
 			for(int m=1; m<=2; m++)
 				if(i+m<N)
-				{	register double rot = band[-m][i]/band[0][i]; //gauss elimination factor
+				{	double rot = band[-m][i]/band[0][i]; //gauss elimination factor
 					for(int n=1; n<m; n++)
 						band[n-m][i+n] -= rot*band[n][i];
 					for(int n=m; n<=2; n++)
@@ -60,7 +60,7 @@ namespace QuinticSpline
 				}
 		//Pentadiagonal solve: Reverse sweep:
 		for(int i=N-1; i>=0; i--)
-		{	register double invDiag = 1.0/band[0][i];
+		{	double invDiag = 1.0/band[0][i];
 			for(int m=1; m<=2; m++)
 				if(i+m<N) x[i] -= band[m][i]*x[i+m];
 			x[i] *= invDiag;

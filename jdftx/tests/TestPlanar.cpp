@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 void setPhi(int i, vector3<> r, double* phiApplied, double* phiWall,
 	double gridLength, double Dfield, double zWall)
 {
-	register double zEff;
+	double zEff;
 	if(r[2]<0.5*gridLength) zEff = r[2] - 0.25*gridLength;
 	else zEff = 0.75*gridLength - r[2];
 	phiApplied[i] = -Dfield * zEff;

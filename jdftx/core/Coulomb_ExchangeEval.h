@@ -32,8 +32,6 @@ struct ExchangeEval
 
 private:
 	const GridInfo& gInfo;
-	const CoulombParams& params;
-	const Coulomb& coulomb;
 	double omega;
 	
 	//Shorthand for combinations of regularization method and geometry

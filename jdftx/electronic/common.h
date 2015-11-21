@@ -43,7 +43,7 @@ class ExactExchange;	// Evaluates exact exchange (fock term)
 class ExCorr;			// Ionic dynamics information.
 class ElecInfo;			// parameters for electronic states
 class ElecVars;			// collection of electronic variables.
-class Energies;			// collection of all energies.
+struct Energies;		// collection of all energies.
 class Everything;		// A big collection of most of the above structures
 
 struct ElecGradient;

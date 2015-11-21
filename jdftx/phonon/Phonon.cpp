@@ -144,7 +144,7 @@ void Phonon::dump()
 	}
 
 	//Calculate free energy (properly handling singularities at Gamma point):
-	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(); //implemented below
+	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(void); //implemented below
 	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ();
 	int ikStart, ikStop;
 	TaskDivision(quad.size(), mpiUtil).myRange(ikStart, ikStop);

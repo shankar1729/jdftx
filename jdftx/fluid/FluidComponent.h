@@ -128,7 +128,7 @@ struct FluidComponent
 	std::shared_ptr<class TranslationOperator> trans; //!< translation operator
 	std::shared_ptr<class IdealGas> idealGas; //!< Indep <-> Density converter and entropy calculator
 	std::shared_ptr<class Fex> fex; //!< Excess functional (in excess to sphere mixture and long-range)
-	std::shared_ptr<class ScalarEOS> eos; //!< Equation of states for ScalarEOS functionals
+	std::shared_ptr<struct ScalarEOS> eos; //!< Equation of states for ScalarEOS functionals
 	unsigned offsetIndep; //!< Offset to the independent variables of this component
 	unsigned offsetDensity; //!< Offset to the site densities that belong to this component
 	void addToFluidMixture(class FluidMixture* fluidMixture); //!< Initialize fex, idealGas and register with fluidMixture

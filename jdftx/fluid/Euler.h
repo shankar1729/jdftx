@@ -37,7 +37,7 @@ All routines are inlined for performance.
 
 //! @brief Get the position of the new Z-axis, given alpha and beta (does not depend on gamma)
 inline vector3<> polarUnitVector(double alpha, double beta)
-{	register double sBeta = sin(beta);
+{	double sBeta = sin(beta);
 	return vector3<>(sBeta*cos(alpha), sBeta*sin(alpha), cos(beta));
 }
 
@@ -86,8 +86,8 @@ inline double wigner_d(const int j, const int m1, const int m2, const double bet
 	double sinbeta = sin(beta * 0.5);
 	double a = 0.5*(gsl_sf_lnfact(t1) + gsl_sf_lnfact(t2) + gsl_sf_lnfact(j-m1) + gsl_sf_lnfact(j+m2));
 
-	register double result = 0.0;
-	register double sign = (sMin % 2 ? -1.0 : 1.0);
+	double result = 0.0;
+	double sign = (sMin % 2 ? -1.0 : 1.0);
 	for(int s = sMin; s <= sMax; s++)
 	{	result += copysign(gsl_sf_pow_int(cosbeta, t4-2*s) * gsl_sf_pow_int(sinbeta, t3+2*s)
 				* exp(a - (gsl_sf_lnfact(t1 - s) + gsl_sf_lnfact(t2 - s) + gsl_sf_lnfact(t3 + s) + gsl_sf_lnfact(s))), sign);
