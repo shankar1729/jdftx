@@ -460,7 +460,7 @@ void SpeciesInfo::readUPF(istream& is)
 				for(int iPsi=0; iPsi<nPsi; iPsi++)
 				{	int l = lPsi[iPsi];
 					if(l>lMax)
-					{	atomEigs.resize(l+1);
+					{	if(haveEigs) atomEigs.resize(l+1);
 						psiRadial.resize(l+1);
 					}
 					for(int i=0; i<nGrid; i++)
