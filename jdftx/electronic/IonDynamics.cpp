@@ -83,7 +83,7 @@ void IonDynamics::velocitiesInit()
 		die("\nBye!");
 		return;
 	}
-	if( abs(kineticEnergy-3.0*kT*numberOfAtoms)>1.0e-8)
+	if( std::abs(kineticEnergy-3.0*kT*numberOfAtoms)>1.0e-8)
 	{	logPrintf("\nPROBLEM! Energy is not initialized correctly.");
 		die("\nBye!");
 		return;

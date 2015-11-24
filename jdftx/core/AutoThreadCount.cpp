@@ -28,7 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 int getPhysicalCores()
-{	FILE* pp = popen("awk '$1==\"physical\" && $2==\"id\" && !ID[$4] { PROCS++; ID[$4]=1; } $1=\"cpu\" && $2==\"cores\" { CORES=$4; }  END { print PROCS*CORES }' /proc/cpuinfo", "r");
+{	FILE* pp = popen("awk '$1==\"physical\" && $2==\"id\" && !ID[$4] { PROCS++; ID[$4]=1; } $1=\"cpu\" && $2==\"cores\" { CORES=$4; }  END { print PROCS*CORES }' /proc/cpuinfo 2>/dev/null", "r");
 	if(pp)
 	{	int nCores = 0;
 		fscanf(pp, "%d", &nCores);

@@ -464,7 +464,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					iG[k] = s[k] * (gInfo.S[k]/2 + 1); //include margin for k-point
 				vector3<> iGsuper = (~super) * iG;
 				for(int k=0; k<3; k++)
-				{	int Ssuper_k = 2*abs(iGsuper[k]);
+				{	int Ssuper_k = 2*std::abs(iGsuper[k]);
 					if(Ssuper_k > Ssuper[k])
 						Ssuper[k] = Ssuper_k;
 				}

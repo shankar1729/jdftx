@@ -149,7 +149,7 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 {	if(fsizeExpected)
 	{	off_t fsize = fileSize(fname);
 		if(fsize != off_t(fsizeExpected))
-			die("Length of '%s' was %ld instead of the expected %ld bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
+			die("Length of '%s' was %zd instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
 	#ifdef MPI_ENABLED
 	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)

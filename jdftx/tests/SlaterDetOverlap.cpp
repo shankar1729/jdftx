@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 		logPrintf("\n\t%f electrons on F1(q=%zu)\n\t%f electrons on F2(q=%zu)", n1, q, n2, q);
 		
 		double tol = 1e-4;
-		if(abs(n1-n2) > tol)  // If different number of electrons are detected, all matrix elements are 0
+		if(std::abs(n1-n2) > tol)  // If different number of electrons are detected, all matrix elements are 0
 		{	detDipoleX *= 0.;
 			detDipoleY *= 0.;
 			detDipoleZ *= 0.;

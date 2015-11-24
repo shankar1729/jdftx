@@ -545,7 +545,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	//Read from file:
 			int nBandsIn = fsize / (sizeof(double) * e.eInfo.nStates);
 			if(int(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
-				die("Length of file '%s' = %ld is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
+				die("Length of file '%s' = %zd is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
 			std::vector<diagMatrix> ImSigma_ePh;
 			e.eInfo.read(ImSigma_ePh, fname.c_str(), nBandsIn);
