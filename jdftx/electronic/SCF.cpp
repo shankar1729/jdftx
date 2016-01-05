@@ -24,8 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double* kerkerMix, double* diisMetric)
 {	if(mixDensity)
-	{	kerkerMix[i] = mixFraction * (qKerkerSq ? Gsq/(Gsq + qKerkerSq) : 1.);
-		diisMetric[i] = Gsq ? (Gsq + qMetricSq)/Gsq : 0.;
+	{	kerkerMix[i] = mixFraction * (qKerkerSq ? (Gsq ? Gsq/(Gsq + qKerkerSq) : 0.033) : 1.);
+		diisMetric[i] = Gsq ? (Gsq + qMetricSq)/Gsq : 30.;
 	}
 	else
 	{	kerkerMix[i] = mixFraction;
@@ -345,14 +345,7 @@ void SCF::updateFillings()
 	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
 	else
 	{	mu = eInfo.mu;
-		double Nprev = eInfo.nElectrons;
 		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs, Bz);
-		const double dNmax = 0.01;
-		if(fabs(Nprev - eInfo.nElectrons) > dNmax)
-		{	//Limit nElectrons change:
-			((ElecInfo&)eInfo).nElectrons = Nprev + copysign(dNmax, eInfo.nElectrons-Nprev);
-			mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
-		}
 	}
 	//Compute fillings from aux hamiltonian eigenvalues:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
