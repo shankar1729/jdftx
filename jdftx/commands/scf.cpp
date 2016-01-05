@@ -27,7 +27,6 @@ enum PulayParamsMember
 	PPM_energyDiffThreshold,
 	PPM_residualThreshold,
 	PPM_mixFraction,
-	PPM_qKerker,
 	PPM_qMetric,
 	PPM_history
 };
@@ -37,7 +36,6 @@ EnumStringMap<PulayParamsMember> pulayParamsMap
 	PPM_energyDiffThreshold, "energyDiffThreshold",
 	PPM_residualThreshold, "residualThreshold",
 	PPM_mixFraction, "mixFraction",
-	PPM_qKerker, "qKerker",
 	PPM_qMetric, "qMetric",
 	PPM_history, "history"
 );
@@ -47,7 +45,6 @@ EnumStringMap<PulayParamsMember> pulayParamsDescMap
 	PPM_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
 	PPM_residualThreshold, "convergence threshold for the residual in the mixed variable",
 	PPM_mixFraction, "mix fraction (default 0.5)",
-	PPM_qKerker, "wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)",
 	PPM_qMetric, "wavevector controlling the metric for overlaps (default: 0.8 bohr^-1)",
 	PPM_history, "number of past residuals that are cached and used for mixing"
 );
@@ -75,7 +72,6 @@ protected:
 					case PPM_residualThreshold: pl.get(pp.residualThreshold, 1e-7, "residualThreshold", true); break;
 					case PPM_nIterations: pl.get(pp.nIterations, 50, "nIterations", true); break;
 					case PPM_mixFraction: pl.get(pp.mixFraction, 0.5, "mixFraction", true); break;
-					case PPM_qKerker: pl.get(pp.qKerker, 0.8, "qKerker", true); break;
 					case PPM_qMetric: pl.get(pp.qMetric, 0.8, "qMetric", true); break;
 					case PPM_history: pl.get(pp.history, 10, "history", true); if(pp.history<1) throw string("<history> must be >= 1"); break;
 				}
@@ -91,7 +87,6 @@ protected:
 		PRINT(energyDiffThreshold, %lg)
 		PRINT(residualThreshold, %lg)
 		PRINT(mixFraction, %lg)
-		PRINT(qKerker, %lg)
 		PRINT(qMetric, %lg)
 		PRINT(history, %d)
 		#undef PRINT
@@ -108,15 +103,19 @@ enum SCFparamsMember
 	SCFpm_nEigSteps,
 	SCFpm_eigDiffThreshold,
 	SCFpm_mixedVariable,
+	SCFpm_qKerker,
+	SCFpm_qKappa,
 	SCFpm_verbose,
 	SCFpm_mixFractionMag,
-	SCFpm_maxOverlap,
+	SCFpm_maxOverlap
 };
 
 EnumStringMap<SCFparamsMember> scfParamsMap
 (	SCFpm_nEigSteps, "nEigSteps",
 	SCFpm_eigDiffThreshold, "eigDiffThreshold",
 	SCFpm_mixedVariable, "mixedVariable",
+	SCFpm_qKerker, "qKerker",
+	SCFpm_qKappa, "qKappa",
 	SCFpm_verbose, "verbose",
 	SCFpm_mixFractionMag, "mixFractionMag",
 	SCFpm_maxOverlap, "maximum-overlap-method"
@@ -125,6 +124,8 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	SCFpm_nEigSteps, "number of eigenvalue steps per iteration (if 0, limited by electronic-minimize nIterations)",
 	SCFpm_eigDiffThreshold, "convergence threshold for the RMS difference in KS eigenvalues between successive iterations",
 	SCFpm_mixedVariable, "whether density or potential will be mixed at each step",
+	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)",
+	SCFpm_qKappa, "wavevector for long-range damping. If negative (default), set to zero or fluid Debye wavevector as appropriate",
 	SCFpm_verbose, "whether the inner eigenvalue solver will print or not",
 	SCFpm_mixFractionMag, "mix fraction for magnetization density / potential (default 1.5)",
 	SCFpm_maxOverlap, "uses the maximum-overlap method to determine fillings, discards elec-fermi-fillings"
@@ -166,6 +167,8 @@ struct CommandElectronicScf: public CommandPulay
 			{	case SCFpm_nEigSteps: pl.get(sp.nEigSteps, 0, "nEigSteps", true); break;
 				case SCFpm_eigDiffThreshold: pl.get(sp.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
 				case SCFpm_mixedVariable: pl.get(sp.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
+				case SCFpm_qKerker: pl.get(sp.qKerker, 0.8, "qKerker", true); break;
+				case SCFpm_qKappa: pl.get(sp.qKerker, -1., "qKappa", true); break;
 				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFractionMag: pl.get(sp.mixFractionMag, 1.5, "mixFractionMag", true); break;
 				case SCFpm_maxOverlap: e.eInfo.fillingsUpdate = ElecInfo::MaximumOverlapMethod; break;
@@ -181,6 +184,8 @@ struct CommandElectronicScf: public CommandPulay
 		PRINT(nEigSteps, %i)
 		PRINT(eigDiffThreshold, %lg)
 		logPrintf(" \\\n\tmixedVariable\t%s", scfMixing.getString(sp.mixedVariable));
+		PRINT(qKerker, %lg)
+		PRINT(qKappa, %lg)
 		logPrintf(" \\\n\tverbose\t%s", boolMap.getString(sp.verbose));
 		PRINT(mixFractionMag, %lg)
 		if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod) logPrintf(" \\\n\tmaximum-overlap-method");

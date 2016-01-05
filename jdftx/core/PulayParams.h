@@ -36,13 +36,12 @@ struct PulayParams
 
 	int history; //!< Number of past residuals and vectors that are cached and used for mixing
 	double mixFraction;  //!< Mixing fraction for total density / potential
-	double qKerker; //!< Wavevector controlling Kerker preconditioning (if negative, auto-set to Gmin)
-	double qMetric; //!< Wavevector controlling the metric for overlaps (if negative, auto-set to Gmin)
+	double qMetric; //!< Wavevector controlling the metric for overlaps
 	
 	PulayParams()
 	: fpLog(stdout), linePrefix("Pulay: "), energyLabel("E"), energyFormat("%22.15le"),
 		nIterations(50), energyDiffThreshold(1e-8), residualThreshold(1e-7),
-		history(10), mixFraction(0.5), qKerker(0.8), qMetric(0.8)
+		history(10), mixFraction(0.5), qMetric(0.8)
 	{
 	}
 };

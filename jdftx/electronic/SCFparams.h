@@ -37,6 +37,9 @@ struct SCFparams : public PulayParams
 	}
 	mixedVariable; //!< Whether we are mixing the density or the potential
 	
+	double qKerker; //!< Wavevector controlling Kerker preconditioning
+	double qKappa; //!< wavevector controlling long-range damping (if negative, auto-set to zero or fluid Debye wave-vector as appropriate)
+	
 	bool verbose; //!< Whether the inner eigensolver will print progress
 	double mixFractionMag;  //!< Mixing fraction for magnetization density / potential
 	
@@ -52,6 +55,8 @@ struct SCFparams : public PulayParams
 	{	nEigSteps = 2; //for Davidson; the default for CG is 40 (and set by the command)
 		eigDiffThreshold = 1e-8;
 		mixedVariable = MV_Potential;
+		qKerker = 0.8;
+		qKappa = -1.;
 		verbose = false;
 		mixFractionMag = 1.5;
 	}
