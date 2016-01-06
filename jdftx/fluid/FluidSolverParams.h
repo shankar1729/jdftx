@@ -55,6 +55,7 @@ struct FmixParams
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, and T.A. Arias, JCP 142, 054102 (2015)]
 	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model [R. Sundararaman and W.A. Goddard III, JCP 142, 064107 (2015)]
+	PCM_CANDLE2, //!< Alternate version of CANDLE with better beahvior for mu (Under development)
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]

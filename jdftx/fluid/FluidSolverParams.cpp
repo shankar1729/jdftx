@@ -137,6 +137,25 @@ void FluidSolverParams::setPCMparams()
 			assert(fluidType == FluidLinearPCM);
 			break;
 		}
+		case PCM_CANDLE2:
+		{	nc = 1.42e-3;
+			sigma = sqrt(0.5);
+			cavityTension = 0.; //not used
+			vdwScale = 1.; //not used
+			switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+				default:
+					Ztot = 8;
+					eta_wDiel = 1.46;
+					sqrtC6eff = 0.770;
+					pCavity = 0.005;
+					if(solvents[0]->name != FluidComponent::H2O)
+						initWarnings += "WARNING: CANDLE2 LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
+					break;
+			}
+			assert(fluidType == FluidLinearPCM);
+			break;
+		}
 		case PCM_SGA13:
 		{	nc = 1e-2;
 			sigma = 0.6;
@@ -363,7 +382,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE || pcmVariant==PCM_CANDLE2);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:

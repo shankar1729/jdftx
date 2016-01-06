@@ -62,11 +62,12 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA: //Nonlocal PCM
 		case PCM_CANDLE: //and local PCMs that uses weighted-density cavitation+dispersion
+		case PCM_CANDLE2:
 		case PCM_SGA13:
 		{	if(fsp.pcmVariant==PCM_SaLSA)
 				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
 					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, and T.A. Arias, J. Chem. Phys. 142, 054102 (2015)");
-			else if(fsp.pcmVariant==PCM_CANDLE)
+			else if(fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANDLE2)
 			{	Citations::add("Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model",
 					"R. Sundararaman and W.A. Goddard III, J. Chem. Phys. 142, 064107 (2015)");
 				//Compute the gaussian width parameter from Rvdw:
@@ -99,7 +100,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
 			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
 			//Initialize structure factors for dispersion:
-			if(fsp.pcmVariant!= PCM_CANDLE) //CANDLE uses a single site version already initialized above
+			if(!Sf.size()) //CANDLE uses a single site version already initialized above
 			{	if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
 				Sf.resize(solvent->molecule.sites.size());
 				atomicNumbers.resize(solvent->molecule.sites.size());
@@ -165,6 +166,11 @@ void PCM::updateCavity()
 			fsp.nc, fsp.sigma, fsp.pCavity); //vdW cavity
 		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
 	}
+	else if(fsp.pcmVariant == PCM_CANDLE2)
+	{	nCavityEx[0] = fsp.Ztot * I(Sf[0] * J(nCavity));
+		ShapeFunction::compute(nCavityEx[0], shapeVdw, fsp.nc, fsp.sigma); //vdW cavity (asymmetry is added as an energy correction in this case)
+		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
+	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape, fsp.rhoMin, fsp.rhoMax, epsBulk);
 	else //Compute directly from nCavity (which is a density product for SaLSA):
@@ -175,6 +181,7 @@ void PCM::updateCavity()
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
+		case PCM_CANDLE2:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
 			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
@@ -200,6 +207,11 @@ void PCM::updateCavity()
 					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
+			//Add asymmetry correction for CANDLE2:
+			if(fsp.pcmVariant == PCM_CANDLE2)
+			{	A_pCavity = dot(shapeVdw-shape, I(coulomb(rhoExplicitTilde))) * gInfo.dV;
+				Adiel["Asymmetry"] = fsp.pCavity * A_pCavity;
+			}
 			break;
 		}
 		case PCM_GLSSA13:
@@ -253,6 +265,17 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
+	else if(fsp.pcmVariant == PCM_CANDLE2)
+	{	//Calculate gradients due to asymmetry correction:
+		A_rhoExplicitTilde += fsp.pCavity * coulomb(J(shapeVdw-shape));
+		ScalarField Aasym_shapeVdw = fsp.pCavity * I(coulomb(rhoExplicitTilde));
+		//Propagate shape gradients to nCavity:
+		ScalarField A_nCavityEx;
+		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape-Aasym_shapeVdw)) + (Acavity_shapeVdw+Aasym_shapeVdw), A_nCavityEx, fsp.nc, fsp.sigma);
+		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
+		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
+		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
+	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 	{	//Electrostatic and volumetric combinations via shape:
 		ShapeFunctionSCCS::propagateGradient(nCavity, A_shape - fsp.cavityPressure, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
@@ -281,6 +304,7 @@ void PCM::setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavit
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
+			case PCM_CANDLE2:
 			case PCM_SGA13:
 			{	const auto& solvent = fsp.solvents[0];
 				const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape : shapeVdw);
@@ -297,6 +321,7 @@ void PCM::setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavit
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
+			case PCM_CANDLE2:
 			{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 				for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 					for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
@@ -315,6 +340,7 @@ ScalarFieldTilde PCM::getFullCore() const
 {	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
+		case PCM_CANDLE2:
 		{	ScalarFieldTilde nFullCore, SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 			{	//Create GPU-friendly copy of atom positions:
@@ -335,7 +361,7 @@ ScalarFieldTilde PCM::getFullCore() const
 void PCM::dumpDensities(const char* filenamePattern) const
 {	string filename;
 	FLUID_DUMP(shape, "Shape");
-    if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE)
+    if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANDLE2)
 	{	FLUID_DUMP(shapeVdw, "ShapeVdw");
 	}
 }
@@ -366,6 +392,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_vdwScale = %.15lg\n", A_vdwScale);
 			break;
 		case PCM_CANDLE:
+		case PCM_CANDLE2:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
 			fprintf(fp, "   E_pCavity = %.15lg\n", A_pCavity);
@@ -392,7 +419,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		logPrintf("done\n"); logFlush();
 	}
 	
-	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANDLE2)
 	{
 		char filename[256];	ostringstream oss;
 		oss << "NvdWspherical";
