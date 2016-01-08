@@ -164,7 +164,7 @@ void initSystem(int argc, char** argv)
 	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
 	//---- hostname information
 	std::vector<string> hostname(mpiUtil->nProcesses()); //list of hostnames by MPI process ID
-	std::map< string, std::vector<int> > hostProcesses; //list of processes per hostname
+	std::map< string, std::vector<int> > hostProcesses, hostGpuProcesses; //list of processes (and GPU-enabled processes) per hostname
 	{	char hostnameTmp[256];
 		gethostname(hostnameTmp, 256);
 		hostname[mpiUtil->iProcess()] = hostnameTmp;
@@ -172,6 +172,11 @@ void initSystem(int argc, char** argv)
 	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
 	{	mpiUtil->bcast(hostname[jProcess], jProcess);
 		hostProcesses[hostname[jProcess]].push_back(jProcess);
+		//Update GPU-enabled version of list:
+		bool gpuEnabled = isGpuEnabled();
+		mpiUtil->bcast(gpuEnabled, jProcess);
+		if(gpuEnabled)
+			hostGpuProcesses[hostname[jProcess]].push_back(jProcess);
 	}
 	logPrintf("Running on hosts (process indices):");
 	for(const auto& iter: hostProcesses)
@@ -191,8 +196,10 @@ void initSystem(int argc, char** argv)
 	
 	registerHandlers();
 	
+	double nGPUs = 0.;
 	#ifdef GPU_ENABLED
-	if(!gpuInit(globalLog)) die_alone("gpuInit() failed\n\n")
+	const std::vector<int>& gpuSiblings = hostGpuProcesses[hostname[mpiUtil->iProcess()]];
+	if(!gpuInit(globalLog, &gpuSiblings, &nGPUs)) die_alone("gpuInit() failed\n\n")
 	#endif
 	
 	//Divide up available cores between all MPI processes on a given node:
@@ -224,12 +231,9 @@ void initSystem(int argc, char** argv)
 	resumeOperatorThreading(); //if necessary, this informs MKL of the thread count
 	
 	//Print total resources used by run:
-	{	int nResources[2] = { nProcsAvailable, 0 };
-		#ifdef GPU_ENABLED
-		nResources[1] = 1;
-		#endif
-		mpiUtil->allReduce(nResources, 2, MPIUtil::ReduceSum);
-		logPrintf("Run totals: %d processes, %d threads, %d GPUs\n", mpiUtil->nProcesses(), nResources[0], nResources[1]);
+	{	int nProcsTot = nProcsAvailable; mpiUtil->allReduce(nProcsTot, MPIUtil::ReduceSum);
+		double nGPUsTot = nGPUs; mpiUtil->allReduce(nGPUsTot, MPIUtil::ReduceSum);
+		logPrintf("Run totals: %d processes, %d threads, %lg GPUs\n", mpiUtil->nProcesses(), nProcsTot, nGPUsTot);
 	}
 	
 	//Add citations to the code and general framework:
