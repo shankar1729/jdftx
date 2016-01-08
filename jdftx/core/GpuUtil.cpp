@@ -48,10 +48,10 @@ bool gpuInit(FILE* fpLog, const std::vector<int>* mpiSiblings, double* nGPUs)
 			&& !prop.integrated) //reject on-board devices
 		{
 			fprintf(fpLog, "gpuInit: Found compatible cuda device %d '%s'\n", device, prop.name);
+			compatibleDevices.push_back(device);
 			if(prop.totalGlobalMem > maxGlobalMem)
 			{	maxGlobalMem = prop.totalGlobalMem;
 				selectedDevice = device;
-				compatibleDevices.push_back(device);
 			}
 		}
 	}
