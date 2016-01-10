@@ -145,9 +145,9 @@ void FluidSolverParams::setPCMparams()
 			switch(solvents[0]->name)
 			{	case FluidComponent::CH3CN:
 					Ztot = 16;
-					eta_wDiel = 3.15;
-					sqrtC6eff = 2.21;
-					pCavity = -0.001;
+					eta_wDiel = 3.00;
+					sqrtC6eff = 4.64;
+					pCavity = -0.00035;
 					break;
 				case FluidComponent::H2O:
 				default:
