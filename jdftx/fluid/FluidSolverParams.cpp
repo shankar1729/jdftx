@@ -143,12 +143,18 @@ void FluidSolverParams::setPCMparams()
 			cavityTension = 0.; //not used
 			vdwScale = 1.; //not used
 			switch(solvents[0]->name)
-			{	case FluidComponent::H2O:
+			{	case FluidComponent::CH3CN:
+					Ztot = 16;
+					eta_wDiel = 3.15;
+					sqrtC6eff = 2.21;
+					pCavity = -0.001;
+					break;
+				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
-					eta_wDiel = 1.46;
-					sqrtC6eff = 0.770;
-					pCavity = 0.005;
+					eta_wDiel = 1.88;
+					sqrtC6eff = 0.509;
+					pCavity = 0.00300;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: CANDLE2 LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
