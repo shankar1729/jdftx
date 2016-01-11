@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidSolver.h>
 #include <electronic/RadialFunction.h>
 #include <core/EnergyComponents.h>
+#include <core/Coulomb.h>
 
 //! Base class for all PCMs
 class PCM : public FluidSolver
@@ -48,10 +49,13 @@ protected:
 	ScalarFieldTilde getFullCore() const; //!< get full core correction for PCM variants that need them
 private:
 	ScalarField Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
-	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	ScalarFieldTilde Acavity_rhoExplicitTilde; //!< Cached gradients of cavity contributions w.r.t rhoExplicitTilde (CANDLE2 only)
+	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_pCavity2; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
+	CoulombParams truncatedCoulombParams; //!< parameters for truncated Coulomb interaction for CANDLE2 asymmetry correction 
+	std::shared_ptr<Coulomb> truncatedCoulomb; //!< truncated Coulomb interaction for CANDLE2 asymmetry correction 
 protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)

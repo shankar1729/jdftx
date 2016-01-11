@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), pCavity(0.), lMax(3),
+vdwScale(0.75), pCavity(0.), pCavity2(0.), lMax(3),
 linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)
 {
 }
@@ -146,15 +146,17 @@ void FluidSolverParams::setPCMparams()
 			{	case FluidComponent::CH3CN:
 					Ztot = 16;
 					eta_wDiel = 3.00;
-					sqrtC6eff = 4.64;
 					pCavity = -0.00035;
+					pCavity2 = 0.;
+					sqrtC6eff = 4.64;
 					break;
 				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
-					eta_wDiel = 1.88;
-					sqrtC6eff = 0.509;
-					pCavity = 0.00300;
+					eta_wDiel = 1.51;
+					pCavity = 0.00146;
+					pCavity2 = -0.165;
+					sqrtC6eff = 0.799;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: CANDLE2 LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;

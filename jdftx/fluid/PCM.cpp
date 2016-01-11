@@ -86,6 +86,17 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				wExpand[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_calc, fsp.eta_wDiel); //dielectric cavity expansion kernel
 				wExpand[1].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_d_calc, fsp.eta_wDiel); //derivative of above w.r.t d
 				atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
+				if(fsp.pcmVariant == PCM_CANDLE2)
+				{	//Initialize coulomb interaction for CANDLE2 asymmetry correction (real truncation when truncation is enabled):
+					truncatedCoulombParams = e.coulombParams;
+					truncatedCoulombParams.embed = false; //only use the translationally invariant truncation (if at all)
+					truncatedCoulombParams.embedFluidMode = false; //use real truncation on this box (if at all)
+					truncatedCoulombParams.omegaSet.clear();
+					truncatedCoulombParams.supercell = 0;
+					logPrintf("   Initializing Coulomb kernel for asymmetry correction ... "); logFlush(); logSuspend();
+					truncatedCoulomb = truncatedCoulombParams.createCoulomb(gInfo);
+					logResume(); logPrintf("done.\n"); logFlush();
+				}
 			}
 			else
 			{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
@@ -199,7 +210,7 @@ void PCM::updateCavity()
 			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANDLE2) ? fsp.sqrtC6eff : fsp.vdwScale;
 			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
@@ -209,8 +220,15 @@ void PCM::updateCavity()
 			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			//Add asymmetry correction for CANDLE2:
 			if(fsp.pcmVariant == PCM_CANDLE2)
-			{	A_pCavity = dot(shapeVdw-shape, I(coulomb(rhoExplicitTilde))) * gInfo.dV;
-				Adiel["Asymmetry"] = fsp.pCavity * A_pCavity;
+			{	VectorField Dphi = I(gradient((*truncatedCoulomb)(rhoExplicitTilde)));
+				VectorField Dshape = gradient(shape);
+				ScalarField En = dotElemwise(Dshape, Dphi);
+				A_pCavity = integral(En);
+				A_pCavity2 = integral(En*En);
+				Adiel["Asymmetry"] = fsp.pCavity*A_pCavity + fsp.pCavity2*A_pCavity2;
+				ScalarField Acavity_En = fsp.pCavity + (2.*fsp.pCavity2)*En;
+				Acavity_shape = -divergence(Acavity_En * Dphi);
+				Acavity_rhoExplicitTilde = -(*truncatedCoulomb)(divergence(J(Acavity_En * Dshape)));
 			}
 			break;
 		}
@@ -266,15 +284,13 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
 	else if(fsp.pcmVariant == PCM_CANDLE2)
-	{	//Calculate gradients due to asymmetry correction:
-		A_rhoExplicitTilde += fsp.pCavity * coulomb(J(shapeVdw-shape));
-		ScalarField Aasym_shapeVdw = fsp.pCavity * I(coulomb(rhoExplicitTilde));
-		//Propagate shape gradients to nCavity:
+	{	//Propagate shape gradients to nCavity:
 		ScalarField A_nCavityEx;
-		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape-Aasym_shapeVdw)) + (Acavity_shapeVdw+Aasym_shapeVdw), A_nCavityEx, fsp.nc, fsp.sigma);
+		ShapeFunction::propagateGradient(nCavityEx[0], I(wExpand[0]*J(A_shape+Acavity_shape)) + Acavity_shapeVdw, A_nCavityEx, fsp.nc, fsp.sigma);
+		A_rhoExplicitTilde += Acavity_rhoExplicitTilde;
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
-		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
+		((PCM*)this)->A_eta_wDiel = integral((A_shape+Acavity_shape) * I(wExpand[1]*J(shapeVdw)));
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 	{	//Electrostatic and volumetric combinations via shape:
@@ -396,6 +412,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
 			fprintf(fp, "   E_pCavity = %.15lg\n", A_pCavity);
+			if(fsp.pcmVariant == PCM_CANDLE2)
+				fprintf(fp, "   E_pCavity2 = %.15lg\n", A_pCavity2);
 			break;
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
