@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), pCavity(0.), pCavity2(0.), lMax(3),
+vdwScale(0.75), pCavity(0.), T0(0.), T1(0.), lMax(3),
 linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)
 {
 }
@@ -40,30 +40,29 @@ void FluidSolverParams::addComponent(const std::shared_ptr<FluidComponent>& comp
 
 void FluidSolverParams::setCDFTparams()
 {
-  if(solvents.size() == 1)
-    {
-	switch(solvents[0]->name)
+	if(solvents.size() == 1)
 	{
-		case FluidComponent::H2O:
-			vdwScale = 0.5299;
+		switch(solvents[0]->name)
+		{
+			case FluidComponent::H2O:
+				vdwScale = 0.5299;
+				break;
+			case FluidComponent::CHCl3:
+				vdwScale = 0.4048;
+				break;
+			case FluidComponent::CCl4:
+				vdwScale = 0.4375;
+				break;
+			case FluidComponent::CH3CN:
+			default:
+			vdwScale = 0.5;
+			initWarnings += "WARNING: Classical DFT has not been parameterized for this solvent, using 0.5 as the Van der Waals scale factor!\n";
 			break;
-		case FluidComponent::CHCl3:
-			vdwScale = 0.4048;
-			break;
-		case FluidComponent::CCl4:
-			vdwScale = 0.4375;
-			break;
-		case FluidComponent::CH3CN:
-		default:
-		  vdwScale = 0.5;
-		  initWarnings += "WARNING: Classical DFT has not been parameterized for this solvent, using 0.5 as the Van der Waals scale factor!\n";
-		break;
-			  
+				
+		}
 	}
-    }
-  else
-    initWarnings += "WARNING: Classical DFT has not been parameterized for solvent mixtures, using 0.5 as the Van der Waals scale factor!\n";
-	
+	else
+		initWarnings += "WARNING: Classical DFT has not been parameterized for solvent mixtures, using 0.5 as the Van der Waals scale factor!\n";
 }
 
 void FluidSolverParams::setPCMparams()
@@ -146,17 +145,17 @@ void FluidSolverParams::setPCMparams()
 			{	case FluidComponent::CH3CN:
 					Ztot = 16;
 					eta_wDiel = 3.00;
-					pCavity = -0.00035;
-					pCavity2 = 0.;
+					T0 = 3.;
+					T1 = 3.;
 					sqrtC6eff = 4.64;
 					break;
 				case FluidComponent::H2O:
 				default:
 					Ztot = 8;
-					eta_wDiel = 1.51;
-					pCavity = 0.00135;
-					pCavity2 = -0.146;
-					sqrtC6eff = 0.796;
+					eta_wDiel = 1.46;
+					T0 = 3.;
+					T1 = 3.;
+					sqrtC6eff = 0.77;
 					if(solvents[0]->name != FluidComponent::H2O)
 						initWarnings += "WARNING: CANDLE2 LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;

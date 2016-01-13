@@ -46,7 +46,10 @@ namespace ShapeFunction
 	{	nullToZero(grad_n, n->gInfo);
 		callPref(propagateGradient)(n->gInfo.nr, n->dataPref(), grad_shape->dataPref(), grad_n->dataPref(), nc, sigma);
 	}
-	
+}
+
+namespace ShapeFunctionCANDLE
+{
 	void compute_or_grad(int N, bool grad,
 		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
 		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
@@ -86,7 +89,50 @@ namespace ShapeFunction
 		E_phi -= divergence(J(E_Dphi));
 		E_pCavity += integral(E_pCavityArr);
 	}
-	
+}
+
+namespace ShapeFunctionCANDLE2
+{
+	void compute_or_grad(int N, bool grad,
+		const double* n, const double* DnSq, double* shape,
+		const double* A_shape, double* A_n, double* A_DnSq, double* A_T0, double* A_T1,
+		const double nc, const double invSigmaSqrt2, const double T0, const double T1)
+	{	threadedLoop(compute_or_grad_calc, N, grad, n, DnSq, shape, A_shape, A_n, A_DnSq, A_T0, A_T1, nc, invSigmaSqrt2, T0, T1);
+	}
+	#ifdef GPU_ENABLED
+	void compute_or_grad_gpu(int N, bool grad,
+		const double* n, const double* DnSq, double* shape,
+		const double* A_shape, double* A_n, double* A_DnSq, double* A_T0, double* A_T1,
+		const double nc, const double invSigmaSqrt2, const double T0, const double T1);
+	#endif
+	void compute(const ScalarField& n, ScalarField& shape, double nc, double sigma, double T0, double T1)
+	{	ScalarField DnSq = lengthSquared(gradient(n));
+		nullToZero(shape, n->gInfo);
+		callPref(compute_or_grad)(n->gInfo.nr, false,
+			n->dataPref(), DnSq->dataPref(), shape->dataPref(),
+			0, 0, 0, 0, 0,
+			nc, sqrt(0.5)/sigma, T0, T1);
+	}
+	void propagateGradient(const ScalarField& n, const ScalarField& E_shape,
+		ScalarField& E_n, double& E_T0, double& E_T1, double nc, double sigma, double T0, double T1)
+	{	VectorField Dn = gradient(n);
+		ScalarField DnSq = lengthSquared(Dn);
+		nullToZero(E_n, n->gInfo);
+		ScalarField E_DnSq; nullToZero(E_DnSq, n->gInfo);
+		ScalarField E_T0arr; nullToZero(E_T0arr, n->gInfo);
+		ScalarField E_T1arr; nullToZero(E_T1arr, n->gInfo);
+		callPref(compute_or_grad)(n->gInfo.nr, true,
+			n->dataPref(), DnSq->dataPref(), 0,
+			E_shape->dataPref(), E_n->dataPref(), E_DnSq->dataPref(), E_T0arr->dataPref(), E_T1arr->dataPref(),
+			nc, sqrt(0.5)/sigma, T0, T1);
+		E_n -= 2. * divergence(E_DnSq * Dn);
+		E_T0 += integral(E_T0arr);
+		E_T1 += integral(E_T1arr);
+	}
+}
+
+namespace ShapeFunctionSGA13
+{
 	void expandDensityHelper(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	threadedLoop(expandDensity_calc, N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
 	}

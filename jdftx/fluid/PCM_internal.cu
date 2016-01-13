@@ -41,7 +41,10 @@ namespace ShapeFunction
 		propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, grad_shape, grad_n, nc, sigma);
 		gpuErrorCheck();
 	}
+}
 
+namespace ShapeFunctionCANDLE
+{
 	__global__
 	void compute_or_grad_kernel(int N, bool grad,
 		const double* n, vector3<const double*> Dn, vector3<const double*> Dphi, double* shape,
@@ -58,7 +61,30 @@ namespace ShapeFunction
 		compute_or_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, grad, n, Dn, Dphi, shape, A_shape, A_n, A_Dn, A_Dphi, A_pCavity, nc, invSigmaSqrt2, pCavity);
 		gpuErrorCheck();
 	}
-	
+}
+
+namespace ShapeFunctionCANDLE2
+{
+	__global__
+	void compute_or_grad_kernel(int N, bool grad,
+		const double* n, const double* DnSq, double* shape,
+		const double* A_shape, double* A_n, double* A_DnSq, double* A_T0, double* A_T1,
+		const double nc, const double invSigmaSqrt2, const double T0, const double T1)
+	{	int i = kernelIndex1D();
+		if(i<N) compute_or_grad_calc(i, grad, n, DnSq, shape, A_shape, A_n, A_DnSq, A_T0, A_T1, nc, invSigmaSqrt2, T0, T1);
+	}
+	void compute_or_grad_gpu(int N, bool grad,
+		const double* n, const double* DnSq, double* shape,
+		const double* A_shape, double* A_n, double* A_DnSq, double* A_T0, double* A_T1,
+		const double nc, const double invSigmaSqrt2, const double T0, const double T1)
+	{	GpuLaunchConfig1D glc(compute_or_grad_kernel, N);
+		compute_or_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, grad, n, DnSq, shape, A_shape, A_n, A_DnSq, A_T0, A_T1, nc, invSigmaSqrt2, T0, T1);
+		gpuErrorCheck();
+	}
+}
+
+namespace ShapeFunctionSGA13
+{
 	__global__
 	void expandDensityHelper_kernel(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	int i = kernelIndex1D(); if(i<N) expandDensity_calc(i, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);

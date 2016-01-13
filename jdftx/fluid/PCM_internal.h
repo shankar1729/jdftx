@@ -37,7 +37,10 @@ namespace ShapeFunction
 
 	//! Propagate gradient w.r.t shape function to that w.r.t cavity-determining electron density (accumulate to E_n)
 	void propagateGradient(const ScalarField& n, const ScalarField& E_shape, ScalarField& E_n, double nc, double sigma);
-	
+}
+
+namespace ShapeFunctionCANDLE
+{
 	//! Compute shape function that includes charge asymmetry from cavity-determining electron density and vacuum electric potential
 	void compute(const ScalarField& n, const ScalarFieldTilde& phi,
 		ScalarField& shape, double nc, double sigma, double pCavity);
@@ -45,7 +48,20 @@ namespace ShapeFunction
 	//! Propagate gradients w.r.t shape function to n, phi and pCavity (accumulate to E_n, E_phi, E_pCavity)
 	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
+}
+
+namespace ShapeFunctionCANDLE2
+{
+	//! Compute shape function that includes charge asymmetry from cavity-determining electron density (and its spatial gradients)
+	void compute(const ScalarField& n, ScalarField& shape, double nc, double sigma, double T0, double T1);
 	
+	//! Propagate gradients w.r.t shape function to n, T0 and T1 (accumulate output derivatives)
+	void propagateGradient(const ScalarField& n, const ScalarField& E_shape,
+		ScalarField& E_n, double& E_T0, double& E_T1, double nc, double sigma, double T0, double T1);
+}
+
+namespace ShapeFunctionSGA13
+{
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
 }
@@ -74,8 +90,11 @@ namespace ShapeFunction
 	{	grad_nCavity[i] += (-1.0/(nc*sigma*sqrt(2*M_PI))) * grad_shape[i]
 			* exp(0.5*(pow(sigma,2) - pow(log(fabs(nCavity[i])/nc)/sigma + sigma, 2)));
 	}
-	
-	//version with charge asymmetry (combined compute and grad function)
+}
+
+namespace ShapeFunctionCANDLE
+{
+	//version with electric-field based charge asymmetry (combined compute and grad function)
 	__hostanddev__ void compute_or_grad_calc(int i, bool grad,
 		const double* nArr, vector3<const double*> DnArr, vector3<const double*> DphiArr, double* shape,
 		const double* A_shape, double* A_n, vector3<double*> A_Dn, vector3<double*> A_Dphi, double* A_pCavity,
@@ -112,7 +131,50 @@ namespace ShapeFunction
 			A_pCavity[i] += A_x*(-copysign(1.,pCavity))*eDotE;
 		}
 	}
-	
+}
+
+namespace ShapeFunctionCANDLE2
+{
+	//version with density-gradient based charge asymmetry (combined compute and grad function)
+	__hostanddev__ void compute_or_grad_calc(int i, bool grad,
+		const double* nArr, const double* DnSqArr, double* shape,
+		const double* A_shape, double* A_n, double* A_DnSq, double* A_T0, double* A_T1,
+		const double nc, const double invSigmaSqrt2, const double T0, const double T1)
+	{	double n = nArr[i];
+		if(n<1e-8) { if(!grad) shape[i]=1.; return; }
+		//Calculate ratio T = (Dn/n)^2
+		double DnSq = DnSqArr[i], nInv = 1./n;
+		double T_DnSq = nInv*nInv;
+		double T = T_DnSq*DnSq;
+		double T_n = -2.*T*nInv;
+		//Calculate asymmetry switching function on T:
+		double absT1 = fabs(T1);
+		double Tfac = absT1*(T-T0);
+		double asymm = 0.5*erfc(Tfac);
+		double asymm_Tfac = (-1./sqrt(M_PI)) * exp(-Tfac*Tfac);
+		double asymm_T = asymm_Tfac*absT1;
+		double asymm_T1 = asymm_Tfac*(T-T0)*copysign(1.,T1);
+		//Calculate effective combination that enters shape function:
+		double comb_asymm = -copysign(3., T1);
+		double comb = log(n/nc) + comb_asymm*asymm;
+		double comb_n = nInv;
+		//Calculate shape function or propagate gradients:
+		if(!grad)
+			shape[i] = 0.5*erfc(invSigmaSqrt2*comb);
+		else
+		{	double A_comb = (-invSigmaSqrt2/sqrt(M_PI)) * A_shape[i] * exp(-comb*comb*invSigmaSqrt2*invSigmaSqrt2);
+			double A_asymm = A_comb * comb_asymm;
+			double A_T = A_asymm * asymm_T;
+			A_n[i] += A_comb * comb_n + A_T * T_n;
+			A_DnSq[i] += A_T * T_DnSq;
+			A_T0[i] -= A_T;
+			A_T1[i] += A_asymm * asymm_T1;
+		}
+	}
+}
+
+namespace ShapeFunctionSGA13
+{
 	__hostanddev__ void expandDensity_calc(int i, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	double n = nBar[i], D2 = DnBarSq[i];
 		if(n < 1e-9) //Avoid numerical error in low density / gradient regions:
