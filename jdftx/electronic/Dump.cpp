@@ -63,6 +63,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	const IonInfo &iInfo = e->iInfo;
 
 	bool isCevec = (freq==DumpFreq_Gummel) || (freq==DumpFreq_Ionic) || (freq==DumpFreq_End); //whether C has been set to eigenfunctions
+	bool hasFluid = (eVars.fluidParams.fluidType != FluidNone);
 	
 	//Macro to determine which variables should be dumped:
 	//(Drop the "Dump" from the DumpVariables enum name to use as var)
@@ -127,7 +128,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		write(eVars.C, fname.c_str(), eInfo);
 		EndDump
 		
-		if(eVars.fluidSolver)
+		if(hasFluid)
 		{	//Dump state of fluid:
 			StartDump("fluidState")
 			if(mpiUtil->isHead()) eVars.fluidSolver->saveState(fname.c_str());
@@ -201,7 +202,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(e->coulombParams.Efield.length_squared()) d_vac += J(e->coulomb->getEfieldPotential());
 	}
 	DUMP(I(d_vac), "d_vac", Dvac);
-	if(eVars.fluidParams.fluidType != FluidNone)
+	if(hasFluid)
 	{	if(ShouldDump(Dfluid) || needDtot)
 		{	ScalarFieldTilde d_fluid; //electrostatic-only version of d_fluid
 			eVars.fluidSolver->get_Adiel_and_grad(&d_fluid, 0, 0, true);
@@ -331,7 +332,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && eVars.fluidParams.fluidType!=FluidNone)
+	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && hasFluid)
 	{	ScalarFieldTilde nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
 		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon)->getGzero()); //total bound charge will neutralize system
@@ -343,9 +344,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		DUMP(I(nboundTilde), "nbound", BoundCharge)
 	}
 	
-	if(ShouldDump(FluidDensity))
-		if(eVars.fluidSolver)
-			eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
+	if(ShouldDump(FluidDensity) && hasFluid)
+		eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
 	
 	if(ShouldDump(QMC) && isCevec) dumpQMC();
 
@@ -500,9 +500,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		logPrintf("\t"); EndDump
 	}
 	
-	if(ShouldDumpNoAll(FluidDebug))
-		if(eVars.fluidSolver)
-			eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
+	if(ShouldDumpNoAll(FluidDebug) && hasFluid)
+		eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
 	if(ShouldDumpNoAll(OptVext))
 	{	if(eInfo.spinType == SpinZ)
