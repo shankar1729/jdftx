@@ -45,24 +45,27 @@ void FluidSolverParams::setCDFTparams()
 		switch(solvents[0]->name)
 		{
 			case FluidComponent::H2O:
-				vdwScale = 0.5299;
+				vdwScale = 0.540;
 				break;
 			case FluidComponent::CHCl3:
-				vdwScale = 0.4048;
+				vdwScale = 0.393;
 				break;
 			case FluidComponent::CCl4:
-				vdwScale = 0.4375;
+				vdwScale = 0.407;
 				break;
 			case FluidComponent::CH3CN:
 			default:
-			vdwScale = 0.5;
-			initWarnings += "WARNING: Classical DFT has not been parameterized for this solvent, using 0.5 as the Van der Waals scale factor!\n";
+			vdwScale = 0.488;
+			initWarnings += "WARNING: Classical DFT has not been parameterized for this solvent, using 0.488 as the Van der Waals scale factor!\n";
 			break;
 				
 		}
 	}
 	else
-		initWarnings += "WARNING: Classical DFT has not been parameterized for solvent mixtures, using 0.5 as the Van der Waals scale factor!\n";
+	{
+	        vdwScale = 0.488;
+		initWarnings += "WARNING: Classical DFT has not been parameterized for solvent mixtures, using 0.488 as the Van der Waals scale factor!\n";
+	}
 }
 
 void FluidSolverParams::setPCMparams()
