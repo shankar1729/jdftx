@@ -24,6 +24,8 @@ ionposFile="${inFile/.xyz/.ionpos}"
 latticeFile="${inFile/.xyz/.lattice}"
 pad="$2"
 
+echo "lattice file is $latticeFile and inFile is $inFile and ionposFile is $ionposFile"
+
 cat > $infile.tmp.m <<EOF
 pkg load optim #Not loaded by default on many systems
 

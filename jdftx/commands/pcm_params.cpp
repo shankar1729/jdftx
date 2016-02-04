@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<PCMVariant> pcmVariantMap
 (	PCM_CANDLE,  "CANDLE",
-	PCM_CANDLE2, "CANDLE2",
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12", 
@@ -38,7 +37,6 @@ EnumStringMap<PCMVariant> pcmVariantMap
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
 (	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model [R. Sundararaman and W.A. Goddard, JCP 142, 064107 (2015)]",
-	PCM_CANDLE2, "Alternate version of CANDLE with better beahvior for mu (Under development)",
 	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]", 
 	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
@@ -73,7 +71,7 @@ struct CommandPcmVariant : public Command
 		if(fsp.fluidType!=FluidNone)
 		{	//check only when fluid is not None, so that you can switch any
 			//fluid input file to vacuum simply by commenting out fluid line
-			if(fsp.fluidType!=FluidLinearPCM && ( fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANDLE2 || isPCM_SCCS(fsp.pcmVariant) ) )
+			if(fsp.fluidType!=FluidLinearPCM && ( fsp.pcmVariant==PCM_CANDLE || isPCM_SCCS(fsp.pcmVariant) ) )
 				throw string("CANDLE and SCCS variants can only be used with fluid LinearPCM");
 		}
 	}
@@ -98,8 +96,6 @@ enum PCMparameter
 	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
 	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
-	PCMp_T0, //!< CANDLE2 asymmetry gradient-squared center [a0^-2]
-	PCMp_T1, //!< CANDLE2 asymmetry gradient-squared slope [a0^2]
 	PCMp_Ztot, //! Total valence charge on the solvent, used by CANDLE
 	PCMp_screenOverride, //! Overrides screening length
 	PCMp_Delim //!< Delimiter used in parsing
@@ -116,8 +112,6 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_eta_wDiel, "eta_wDiel",
 	PCMp_sqrtC6eff, "sqrtC6eff",
 	PCMp_pCavity, "pCavity",
-	PCMp_T0, "T0",
-	PCMp_T1, "T1",
 	PCMp_Ztot, "Ztot",
 	PCMp_screenOverride, "screenOverride"
 );
@@ -133,8 +127,6 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
 	PCMp_pCavity, "sensitivity of cavity to surface electric fields [a.u.] in CANDLE",
-	PCMp_T0, "CANDLE2 asymmetry gradient-squared center [a0^-2]",
-	PCMp_T1, "CANDLE2 asymmetry gradient-squared slope [a0^2]",
 	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE",
 	PCMp_screenOverride, "overrides the screening length calculated from fluid-components"
 );
@@ -173,8 +165,6 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(eta_wDiel, >=, 0.)
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
-				READ_AND_CHECK(T0, <, DBL_MAX)
-				READ_AND_CHECK(T1, <, DBL_MAX)
 				READ_AND_CHECK(Ztot, >, 0.)
 				READ_AND_CHECK(screenOverride, >, 0.)
 				case PCMp_Delim: return; //end of input
@@ -197,8 +187,6 @@ struct CommandPcmParams : public Command
 		PRINT(eta_wDiel)
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)
-		PRINT(T0)
-		PRINT(T1)
 		PRINT(Ztot)
 		PRINT(screenOverride)
 		#undef PRINT

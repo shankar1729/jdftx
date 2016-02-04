@@ -55,7 +55,6 @@ struct FmixParams
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, and T.A. Arias, JCP 142, 054102 (2015)]
 	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model [R. Sundararaman and W.A. Goddard III, JCP 142, 064107 (2015)]
-	PCM_CANDLE2, //!< Alternate version of CANDLE with better beahvior for mu (Under development)
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
 	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
@@ -112,8 +111,6 @@ struct FluidSolverParams
 	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
 	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter)
-	double T0; //!< CANDLE2 asymmetry gradient-squared center [a0^-2] (fit parameter)
-	double T1; //!< CANDLE2 asymmetry gradient-squared slope [a0^2] (fit parameter)
 	
 	//For SCCS alone:
 	double rhoMin, rhoMax; //!< start and end of transition
