@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2012 <AUTHORS>
+Copyright 2016 <AUTHORS>
 
 This file is part of JDFTx.
 
