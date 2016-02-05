@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #endif
 
-#include <config.h> //This file is generated during build based on SVN version etc.
+#include <config.h> //This file is generated during build based on Git hash etc.
 
 // Get the size of a file
 off_t fileSize(const char *filename)
@@ -45,8 +45,8 @@ off_t fileSize(const char *filename)
 //Program banner
 void printVersionBanner()
 {	logPrintf("\n*************** " PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH
-		" (svn revision " VERSION_SVN_REVISION ") " PACKAGE_DESCRIPTION
-		" ****************\n\n");
+		" %s " PACKAGE_DESCRIPTION " ****************\n\n",
+		(strlen(VERSION_HASH) ? "(git hash " VERSION_HASH ")" : ""));
 }
 
 //Print usage information

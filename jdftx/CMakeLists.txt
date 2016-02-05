@@ -7,18 +7,21 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 #Package configuration:
 set(CPACK_PACKAGE_NAME "JDFTx")
 set(CPACK_PACKAGE_DESCRIPTION "The playground for joint density functional theory")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "R&D code from the Arias group @ Cornell Physics")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolkit for rapid development of density-functional methods")
 set(CPACK_PACKAGE_VERSION_MAJOR "0")
 set(CPACK_PACKAGE_VERSION_MINOR "99")
 set(CPACK_PACKAGE_VERSION_PATCH "alpha")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
-#Get the subversion revision number
-find_package(Subversion)
-if(Subversion_FOUND)
-        Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} ER)
-        set(SUBVERSION_REVISION ${ER_WC_REVISION})
-        message(STATUS "SVN revision number: ${SUBVERSION_REVISION}")
+#Get revision information
+find_package(Git)
+if(GIT_FOUND)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_HASH
+		OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "Git revision hash: ${GIT_HASH}")
 endif()
 
 find_package(GSL REQUIRED)
