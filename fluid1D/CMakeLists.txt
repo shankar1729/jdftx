@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 2.6)
 
 set(CPACK_PACKAGE_NAME "fluid1D")
 set(CPACK_PACKAGE_DESCRIPTION "One-dimensional classical density functional theory")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "R&D code from the Arias group @ Cornell Physics")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Companion code to Comp. Phys. Comm. 185, 818 (2014)")
 set(CPACK_PACKAGE_VERSION_MAJOR "1")
 set(CPACK_PACKAGE_VERSION_MINOR "0")
-set(CPACK_PACKAGE_VERSION_PATCH "preAlpha")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
 add_definitions(-Wall -g -O3 -std=c++0x)
@@ -14,13 +14,24 @@ add_definitions(-Wall -g -O3 -std=c++0x)
 set(JDFTX_SRC "<full-path-to-jdftx>" CACHE STRING "Full path to the jdftx source root")
 set(CMAKE_MODULE_PATH "${JDFTX_SRC}/CMake-Modules/")
 
-#Get the subversion revision number
-find_package(Subversion)
-if(Subversion_FOUND)
-        Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} ER)
-        set(SUBVERSION_REVISION ${ER_WC_REVISION})
-        message(STATUS "SVN revision number: ${SUBVERSION_REVISION}")
-endif(Subversion_FOUND)
+#Get revision information
+find_package(Git)
+if(GIT_FOUND)
+        execute_process(
+                COMMAND ${GIT_EXECUTABLE} rev-parse --is-inside-work-tree
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE IS_GIT
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if("true" STREQUAL "${IS_GIT}")
+                execute_process(
+                        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                        OUTPUT_VARIABLE GIT_HASH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+                message(STATUS "Git revision hash: ${GIT_HASH}")
+        endif()
+endif()
 
 find_package(CBLAS REQUIRED)
 include_directories(${CBLAS_INCLUDE_DIR})
