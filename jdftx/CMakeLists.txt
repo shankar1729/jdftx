@@ -17,11 +17,19 @@ set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR
 find_package(Git)
 if(GIT_FOUND)
 	execute_process(
-		COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+		COMMAND ${GIT_EXECUTABLE} rev-parse --is-inside-work-tree
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		OUTPUT_VARIABLE GIT_HASH
+		OUTPUT_VARIABLE IS_GIT
+		ERROR_QUIET
 		OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "Git revision hash: ${GIT_HASH}")
+	if("true" STREQUAL "${IS_GIT}")	
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+			OUTPUT_VARIABLE GIT_HASH
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
+		message(STATUS "Git revision hash: ${GIT_HASH}")
+	endif()
 endif()
 
 find_package(GSL REQUIRED)
