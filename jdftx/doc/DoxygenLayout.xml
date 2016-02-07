@@ -22,6 +22,9 @@
       </tab>
       <tab type="examples" visible="yes" title="" intro=""/>
     </tab>
+	<tab type="user" title="Wiki"    url="https://sourceforge.net/p/jdftx/wiki"       />
+	<tab type="user" title="Forums"  url="https://sourceforge.net/p/jdftx/discussion" />
+	<tab type="user" title="Tickets" url="https://sourceforge.net/p/jdftx/tickets"    />
   </navindex>
 
   <!-- Layout definition for a class page -->

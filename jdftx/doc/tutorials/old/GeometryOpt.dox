@@ -1,11 +1,5 @@
 /** \page GeometryOpt Geometry optimization
 
-Ionic relaxation
-----------------
-
-\todo Add ionic relaxation section, and condense lattice minimization which is disproportionately verbose
-
-
 Lattice relaxation
 ------------------
 

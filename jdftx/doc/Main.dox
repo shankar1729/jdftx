@@ -1,8 +1,7 @@
 /** \mainpage
 
-\tableofcontents
-
-+ \subpage Introduction
+<table border="0" style="width:100%" ><tr>
+<td>
 + \subpage Compiling
 + \subpage Tutorials
 + \subpage Scripts
@@ -11,4 +10,107 @@
 + \subpage Resources
 + \subpage Contributors
 + \subpage DevGuide
++ [<b>Developer Reference</b>](usergroup0.html)
++ [<b>Wiki</b>](https://sourceforge.net/p/jdftx/wiki)
++ [<b>Forums</b>](https://sourceforge.net/p/jdftx/discussion)
++ [<b>Tickets</b>](https://sourceforge.net/p/jdftx/tickets)
+</td>
+<td>
+\image html jdftx-256.png
+</td>
+</tr></table>
+
+JDFTx is a plane-wave density functional code designed for Joint Density %Functional Theory (JDFT),
+a framework for *ab initio* calculations of electronic systems in contact with liquid environments.
+It is distributed under the [GPL](http://www.gnu.org/licenses/gpl.html) license (version 3 or higher)
+and publications resulting from its use must cite the following:
+
++ The code itself:
+    - R. Sundararaman, D. Gunceler, K. Letchworth-Weaver, K. Schwarz and T.A. Arias, *JDFTx*, available from http://jdftx.sourceforge.net (2012)
+
++ The algebraic framework on which the software is based: 
+    - S. Ismail-Beigi and T.A. Arias, <a href="http://dx.doi.org/10.1016/S0010-4655(00)00072-2"> *Computer Physics Communications* **128**, 1 (2000)</a>
+
++ The core algorithm employed in the electronic structure components of the software: 
+    - T.A. Arias, M.C. Payne and J.D. Joannopoulos, <a href="http://prl.aps.org/abstract/PRL/v69/i7/p1077_1"> *Physical Review Letters* **69**, 1077 (1992)</a>
+
+For any given calculation, JDFTx prints out a list of relevant citations for optional features of the code used in that run.
+This output appears at the end of initialization just before the first electronic solve starts.
+
+JDFTx evolved from an earlier in-house research code in the [Arias research group](http://people.ccmr.cornell.edu/~muchomas) at Cornell called DFT++,
+but at this point has been almost entirely rewritten in a modern object oriented framework taking advantage of C++11 for expressive code with advanced memory management,
+and CUDA for leveraging the computational power of GPUs. See [Compiling] for details on unlocking various features.
+
+Unlike most other electronic structure codes, JDFTx performs total energy minimization using analytically continued energy functionals
+implemented within the algebraic formulation described in the above references, rather than density-mixing SCF schemes.
+Hence our motto "Our SCF never diverges, because we don't do SCF".
+This might be advantageous for vanilla DFT calculations in some cases (try your problematic systems out!),
+but it is quite important for reliable convergence in the presence of liquids, particularly with charged systems.
+
+The framework of Joint Density functional theory is described in:
+
++ S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, [<i>J Phys Chem B.</i> <b>109</b>, 15436 (2005)](http://pubs.acs.org/doi/abs/10.1021/jp044822k)
+
+which should be cited for work using any of the fluid models.
+A polarizable continuum-like solvation approach which replaces the fluid by a local dielectric response is also described in that paper.
+The capability for handling charged systems and absolute voltage references for electrochemistry is added by incorporating ionic screening in the fluid according to:
+
++ K. Letchworth-Weaver and T.A. Arias, [<i>Phys. Rev. B</i> <b>86</b>, 075140 (2012)](http://prb.aps.org/abstract/PRB/v86/i7/e075140) (fluid "Linear" in the code)
+
+Recently reparametrized versions of the polarizable continuum model which include cavitation and dispersion terms and allow for nonlinear dielectric and ionic response according to
+
++ D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K. Schwarz and T.A. Arias,
+[<i>Modelling Simul. Mater. Sci. Eng.</i> <b>21</b> 074005 (2013)](http://iopscience.iop.org/0965-0393/21/7/074005)
+(fluids "LinearPCM" or "NonlinearPCM" in the code)
+
+The full power of Joint Density functional theory is unleashed when the electronic density functional
+is coupled to an explicit classical free energy functional for the fluid.
+The coupling is typically achieved using density-only electronic functionals as described in
+
++ K. Letchworth-Weaver, R. Sundararaman and T.A. Arias, <i>(under preparation)</i>
+
+and available functionals for water include
+
++ R. Sundararaman and T.A. Arias,
+[<i>Comp. Phys. Comm.</i> <b>185</b>, 818 (2014)</a>](http://dx.doi.org/10.1016/j.cpc.2013.11.013)
+(fluid "ScalarEOS" in the code)
+
++ R. Sundararaman, K. Letchworth-Weaver and T.A. Arias,
+[<i>J. Chem. Phys.</i> <b>137</b>, 044107 (2012)](http://dx.doi.org/10.1063/1.4737392)
+(fluid "BondedVoids" in the code)
+
++ J. Lischner and T.A. Arias,
+[<i>J Phys Chem B.</i> <b>114</b>, 1946 (2010)](http://pubs.acs.org/doi/abs/10.1021/jp9012224)
+(fluid "FittedCorrelations" in the code)
+
+
+JDFTx also incorporates advanced algorithms for converging metallic systems with
+finite temperature Fermi function fillings, critical for the study of electrochemical systems.
+Our implementation extends an analytically continued free energy functional version of the joint orbital and occupation minimization scheme,
+
++ C. Freysoldt, S. Boeck, and J. Neugebauer, [<i>Phys. Rev. B</i> <b>79</b>, 241103(R) (2009)](http://prb.aps.org/abstract/PRB/v79/i24/e241103),
+
+to include minimization at constant chemical potential.
+
+JDFTx also supports solvating Quantum Monte Carlo (QMC) calculations,
+by producing trial wavefunctions and external potentials for use in the QMC software
+[CASINO](http://www.tcm.phy.cam.ac.uk/~mdt26/casino2_introduction.html), as described in:
+
++ K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig,
+[<i>Phys. Rev. B</i> <b>85</b>, 201102(R) (2012)](http://link.aps.org/doi/10.1103/PhysRevB.85.201102)
+
+Please check back here (or in the code output after upgrading to the latest version)
+for updates on citations that are under preparation.
+
+-----
+
+<table>
+<tr>
+<td>This material is based upon work supported as part of the Energy Materials Center at Cornell (EMC2),
+an Energy Frontier Research Center funded by the U.S. Department of Energy, Office of Science,
+Office of Basic Energy Sciences under Award Number DE-SC0001086. </td>
+<td> <img src="http://www.emc2.cornell.edu/img/emc2logo.png"/> </td>
+</tr>
+</table>
+
 */
