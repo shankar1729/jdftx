@@ -3,10 +3,10 @@
 Running the code
 ----------------
 
-Now that you have a working jdftx executable (and optionally jdftx_gpu) in the directory \<path-to-JDFTx\>/build,
-add the directory <b>&lt;path-to-JDFTx&rt;/build</b> to your [PATH variable](http://www.linuxheadquarters.com/howto/basic/path.shtml).
-You might also want to add the scripts directory <b>&lt;path-to-JDFTx&rt;</b>/jdftx/scripts
-(or <b>&lt;path-to-JDFTx&rt;/jdftx-git/jdftx/scripts</b>) to the PATH variable.
+Now that you have a working jdftx executable (and optionally jdftx_gpu) in the directory &lt;path-to-JDFTx&gt;/build,
+add the directory <b>&lt;path-to-JDFTx&gt;/build</b> to your [PATH variable](http://www.linfo.org/path_env_var.html).
+You might also want to add the scripts directory <b>&lt;path-to-JDFTx&gt;</b>/jdftx/scripts
+(or <b>&lt;path-to-JDFTx&gt;/jdftx-git/jdftx/scripts</b>) to the PATH variable.
 Note that if you choose not to add these directories to your PATH,
 you should specify the full path to the jdftx executable (or scripts)
 when trying out the tutorials.
