@@ -3,29 +3,31 @@
 Download
 --------
 
-The software is currently in alpha status. It is available as source tarballs and on subversion. 
+Please download the latest JDFTx source tarball from [SourceForge](https://sf.net/projects/jdftx/files/).
+Unpack the downloaded file using (replacing the version numbers X, Y, Z below as appropriate):
 
-The source tarball for the latest release (0.99.alpha) can be downloaded from [here](https://sourceforge.net/projects/jdftx/files/).
+       tar xvpzf jdftx.X.Y.Z.tar.gz
 
-Alternatively, you can check out the latest revision using subversion (svn)
+This will create a sub-directory jdftx containing all the source files.
+To update the code, download a newer tarball and follow the usual compilation instructions.
 
-       svn co https://[<user>@]svn.code.sf.net/p/jdftx/code/trunk/jdftx
+Alternatively, if you need a recent update or wish to contribute changes, get the latest development version using one of
 
-
-The optional &lt;user&gt;@ is for developers only - if you are interested in participating in the development, please contact us with a sourceforge account so that we can give you commit permissions.
-
-The advantage of using subversion is that you can get the most recent features by doing a *svn update* and recompiling.
-
-Note: the svn repository was relocated to the new sourceforge server on April 11, 2013. If you checked out the code before that date, and haven't modified your local copy, please delete your working copy and check it out again from the above link. If you have pending changes, use the following command to point your working copy to the new server:
-
-       svn switch --relocate \
-           https://[<user>@]jdftx.svn.sourceforge.net/svnroot/jdftx/trunk/jdftx \
-           https://[<user>@]svn.code.sf.net/p/jdftx/code/trunk/jdftx
+       git clone http://git.code.sf.net/p/jdftx/git jdftx-git
+       git clone https://<user>@git.code.sf.net/p/jdftx/git jdftx-git
+       
+The first anonymous version will get you the full development tree, but you will not be able to push changes back to the server.
+For contributing changes, use the second authenticated version and contact us
+with your sourceforge user name so that we can give you write permissions.
+This will produce a directory jdftx-git, with a subdirectory jdftx containing all the source files.
+You can subsequently use **git pull** from within the jdftx-git directory to fetch latest changes from the repository.
+See the [git documentation](http://git-scm.com/documentation) for more details.
 
 Bugs / Feature requests
 -----------------------
 
-Please report any bugs by creating a ticket [here](tickets). Include program version (output of **jdftx -v**), input file and stack-trace (if jdftx produces one on exit).
+Please report any bugs on the  [tickets page](http://sf.net/p/jdftx/tickets).
+Include program version (output of **jdftx -v**), input file and stack-trace (if jdftx produces one on exit).
 
 Feature requests/suggetsions are also welcome.
 
@@ -35,68 +37,87 @@ Please check existing open tickets for similar bugs/requests and if there is one
 Compiling
 ---------
 
-JDFTx is written to take advantage of the code readability and memory management enhancements of C++11, and hence requires a recent C++ compiler (works on g++4.6). The following programs should be installed before compilation (using ubuntu package names for convenience):
+JDFTx is written to take advantage of the code readability and memory management enhancements of C++11,
+and hence requires a recent C++ compiler (works on g++4.6).
+The following programs should be installed before compilation (using ubuntu package names for definiteness):
 
 + cmake (>=2.8)
 + g++ (>=4.6)
 + libgsl0-dev
++ libopenmpi-dev (or equivalent for other MPI distributions)
 + libfftw3-dev
 + libatlas-base-dev (provides blas and cblas)
 + liblapack-dev
-+ libopenmpi-dev (or equivalent for other MPI distributions)
 
-If any of these packages are installed in non-standard locations, add the path to those installations by adding -D &lt;package&gt;_PATH=/path/to/package to the cmake command-line, where &lt;package&gt; is FFTW3, GSL etc. Note that cmake command-line options must be specified before the source path (i.e. between cmake and ../jdftx in the examples below).
+If any of these packages are installed in non-standard locations, add the path to those installations
+by adding <b>-D &lt;package&gt;_PATH=/path/to/package</b> to the cmake command-line, where &lt;package&gt; is FFTW3, GSL etc.
+Note that cmake command-line options must be specified before the source path (i.e. between cmake and ../jdftx in the examples below).
 
-FFT, BLAS and LAPACK may be provided by Intel's Math Kernel Library (MKL) instead. In that case, the last three packages of the above list are not required. To use MKL, add -D EnableMKL=yes to the command-line. If MKL is not installed to the default path of /opt/intel/mkl, then also add -D MKL_PATH=/path/to/mkl. 
+FFT, BLAS and LAPACK may be provided by Intel's Math Kernel Library (MKL) instead.
+In that case, the last three packages of the above list are not required.
+To use MKL, add <b>-D EnableMKL=yes</b> to the command-line.
+If MKL is not installed to the default path of /opt/intel/mkl, then also add -D MKL_PATH=/path/to/mkl.
+
+Additionally, you can use MKL to provide BLAS and LAPACK, but still use FFTW for Fourier transforms,
+by adding <b>-D ForceFFTW=yes</b> to the cmake command line.
+We find this option to often be more reliable than using the MKL FFTs.
 
 The following optional packages are recommended:
 
-+ subversion
-+ doxygen
-+ [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc) (for additional exchange-correlation functionals. Works with LibXC version 2.0; add -D EnableLibXC=yes and if necessary -D LIBXC_PATH=/path/to/libxc during compilation)
++ doxygen (enables offline documentation generation using **make doc**)
++ [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc)
+(for additional exchange-correlation functionals. Works with LibXC version 2.0;
+add -D EnableLibXC=yes and if necessary -D LIBXC_PATH=/path/to/libxc during compilation)
 
-For GPU support, install the [CUDA SDK](http://developer.nvidia.com/cuda-toolkit) (version 4.0 or higher) and comment out the GCC version check from $CUDA_DIR/include/host_config.h if you get an unsupported compiler error. CUDA 5.0 officially supports g++ 4.6, so you can avoid this error with that combination.
+For GPU support, install the [CUDA SDK](http://developer.nvidia.com/cuda-toolkit) (version 4.0 or higher)
+and add <b>-D EnableCUDA=yes</b> to the cmake commandline below to compile JDFTx with CUDA support.
+If you get an unsupported compiler error, comment out the GCC version check from $CUDA_DIR/include/host_config.h.
 
-If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU with compute capability >= 1.3, since that is the minimum for double precision. Also, you will get a real speedup only if your device has a higher memory bandwidth than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation. See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs. Finally, keep in mind that you also need a lot of memory on the GPU to actually fit systems of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
+If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
+with compute capability >= 1.3, since that is the minimum for double precision.
+Also, you will get a real speedup only if your device has a higher memory bandwidth
+than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation.
+See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs.
+Finally, keep in mind that you also need a lot of memory on the GPU to actually fit systems
+of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
 
-Add "-D EnableCUDA=yes" to the cmake commandline below to compile JDFTx with CUDA support.
+With the above packages installed, issue the following sequence of commands to build jdftx.
+This assumes that you unpacked the source tarball in the current directory \<path-to-JDFTx\>
+(so that a subdirectory jdftx contains the source).
+Adjust the path to the jdftx source directory, as appropriate.
+For example, if you used git as indicated above, it will be ../jdftx-git/jdftx isntead.
 
-With the above packages installed, the following sequence of commands should fetch and build jdftx in directory \<path-to-JDFTx\>/build:
-
-    :::bash
-    <path-to-JDFTx>$ svn co https://svn.code.sf.net/p/jdftx/code/trunk/jdftx
     <path-to-JDFTx>$ mkdir build
     <path-to-JDFTx>$ cd build
     <path-to-JDFTx>/build$ cmake [insert options here] ../jdftx
     <path-to-JDFTx>/build$ make
 
-A successful build will produce an executable jdftx in \<path-to-JDFTx\>/build, and an additional executable jdftx_gpu if cmake was configured with EnableCUDA=yes.
+A successful build will produce an executable jdftx in \<path-to-JDFTx\>/build,
+and an additional executable jdftx_gpu if cmake was configured with EnableCUDA=yes.
 
-To update your copy of jdftx:
+To update your copy of jdftx, either download and extract a newer tarball, or **git pull** in the source directory.
+Make sure you rerun cmake in the build directory: this is required to include any newly added source files to the build.
 
-    :::bash
-    <path-to-JDFTx>$ cd jdftx
-    <path-to-JDFTx>/jdftx$ svn update
-    <path-to-JDFTx>/jdftx$ cd ../build
-    <path-to-JDFTx>/build$ cmake .
-    <path-to-JDFTx>/build$ make
+The above commands use the default compiler (typically g++) and reasonable optimization flags.
+JDFTx has also been tested with Intel C++ compiler version 13. You can select the intel compiler during configuration:
 
-
-Make sure you rerun cmake after updating from svn - this is required to include newly added source files to the build.
-
-The above commands use the default compiler (typically g++) and reasonable optimization flags. JDFTx has also been tested with Intel C++ compiler version 13. You can select the intel compiler during configuration:
-
-    :::bash
     <path-to-JDFTx>/build$ CC=icc CXX=icpc cmake [insert options here] ../jdftx
 
-Make sure the environment variables for the intel compiler (path settings etc.) are loaded before issuing that command (see the compiler documentation / install notes). Of course, you would probably include -D EnableMKL=yes in the options to use Intel MKL.
+Make sure the environment variables for the intel compiler (path settings etc.) are loaded
+before issuing that command (see the compiler documentation / install notes).
+Of course, you would probably include -D EnableMKL=yes in the options to use Intel MKL.
 
-At the default optimization level, the compiled executable is not locked to specific CPU features. You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding "-D CompileNative=yes" to the cmake command-line option list. Note however that this might cause your executable to be usable only on mahcines with CPUs of the same or newer generation than the machine it was compiled on.
+At the default optimization level, the compiled executable is not locked to specific CPU features.
+You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
+"-D CompileNative=yes" to the cmake command-line option list.
+Note however that this might cause your executable to be usable only on mahcines with CPUs
+of the same or newer generation than the machine it was compiled on.
 
 Compiling on TACC Stampede
 --------------------------
 
-Use the GNU compilers and MKL for the easiest compilation on stampede. Assuming that the source is in ../jdftx and that the shell is bash, you can configure the JDFTx build as follows.
+Use the GNU compilers and MKL for the easiest compilation on Stampede.
+Assuming that the source is in ../jdftx and that the shell is bash, you can configure the JDFTx build as follows.
 
     #Select gcc as the compiler:
     module load gcc/4.7.1
@@ -114,10 +135,11 @@ Use the GNU compilers and MKL for the easiest compilation on stampede. Assuming 
 
 Make on the login nodes (as shown above) or on the gpu queue if you loaded cuda; it should work on any machine otherwise.
 
-Compiling on NERSC Edison
--------------------------
+Compiling on NERSC
+------------------
 
-Use the gnu compiler and MKL to compile JDFTx on NERSC. The following commands may be used to invoke cmake:
+Use the gnu compiler and MKL to compile JDFTx on NERSC edison/cori.
+The following commands may be used to invoke cmake:
 
     #Select the right compiler and load necessary modules
     module swap PrgEnv-intel PrgEnv-gnu
