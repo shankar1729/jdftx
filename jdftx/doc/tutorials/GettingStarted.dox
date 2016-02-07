@@ -1,20 +1,78 @@
 /** \page GettingStarted Getting started
 
-Getting started
----------------
+Running the code
+----------------
 
-Now that you have a working jdftx executable (and optionally jdftx_gpu) in the directory \<path-to-JDFTx\>/build, you might want to add [bash aliases](http://tldp.org/LDP/abs/html/aliases.html) for them, or add the directory \<path-to-JDFTx\>/build to your [path](http://www.linuxheadquarters.com/howto/basic/path.shtml).
+Now that you have a working jdftx executable (and optionally jdftx_gpu) in the directory \<path-to-JDFTx\>/build,
+add the directory <b>&lt;path-to-JDFTx&rt;/build</b> to your [PATH variable](http://www.linuxheadquarters.com/howto/basic/path.shtml).
+You might also want to add the scripts directory <b>&lt;path-to-JDFTx&rt;</b>/jdftx/scripts
+(or <b>&lt;path-to-JDFTx&rt;/jdftx-git/jdftx/scripts</b>) to the PATH variable.
+Note that if you choose not to add these directories to your PATH,
+you should specify the full path to the jdftx executable (or scripts)
+when trying out the tutorials.
 
-The command-line usage information can be retrieved using **jdftx -h**. Note that all command-line arguments follow the standard unix long/short option conventions. The typical usage of this program would be of the form:
+The command-line usage information can be retrieved using **jdftx -h**.
+Note that all command-line arguments follow the standard unix long/short option conventions.
+The typical usage of this program would be of the form:
 
      jdftx -i input.in -o output.out
 
-The input file contains commands that setup and control the calculation; the progress of the calculation is logged to the output file.  The commands in the input file are case-insensitive, and can be given in any order.  
+The input file contains commands that setup and control the calculation.
+The commands in the input file are case-insensitive, and can be given in any order.  
+
+The progress of the calculation is logged to the output file.
+If you want to see the output in the shell, and simultaneously log to file, use the form:
+
+     jdftx -i input.in | tee output.out
 
 The code can also be run without arguments, and the input can be typed from the command line.  
+See \ref Commands or the output of **jdftx -t** for the list of available
+input file commands with detailed documentation.
 
-The list of available input file commands with documentation is available [here](Commands.html), and can also be obtained by running **jdftx -t**.
+JDFTx provides the option to terminate calculations gracefully, with Ctrl-c.
+This command allows the user to decide if the program should quit immediately,
+or after the current iteration, or to ignore the command.
 
-JDFTx provides the option to terminate calculations gracefully, with Ctrl-c.  This command allows the user to decide if the program should quit immediately, or after the current iteration, or to ignore the command.
+Running the code on compute clusters
+------------------------------------
 
+The basic invocation above is sufficient to take advantage of all the compute power of one computer.
+JDFTx will, by default, launch as many threads as cores on your computer.
+
+You need to use MPI to run JDFTx over a cluster of computers.
+For example, if you have a cluster with two computers called node1 and node2
+with 8 compute cores each, you should run JDFTx as
+
+     mpirun -n 2 --host node1,node2 jdftx -c 8 -i input.in -o output.out
+
+Note that the -c specification is optional if JDFTx will be the only program running on those computers.
+However, to play nice with other programs sharing the compute node, use -c to control the number of threads.
+
+Most likely, you would want to run JDFTx on a compute cluster
+running a job scheduling system such as Torque/PBS or SLURM.
+For example, within SLURM, to run JDFTx on nNodes nodes with
+nCores cores per node, run **sbatch script.job** where script.job contains:
+
+     #!/bin/bash
+     #SBATCH -N nNodes (and any other flags your cluster requires)
+     
+     srun -n nNodes -c nCores jdftx -i input.in -o output.out
+
+Sometimes you would want to run more processes than nodes.
+It might be more efficient to run one process per 'socket' or physical processor chip:
+
+     #!/bin/bash
+     #SBATCH -N nNodes
+     
+     srun -n nSockets -c nCoresPerSocket jdftx -i input.in -o output.out
+
+where nSockets might be twice of nNodes for usual dual-processor compute nodes.
+Note that JDFTx will pick up the number of threads per process from -c specified to SLURM.
+
+In principle, you could divide the allocated number of cores into processes and threads in any combination.
+However, JDFTx implements MPI parallelization only over k-points and certain liquid-degrees of freedom.
+Therefore, you should rarely use more nProcesses than the number of reduced k-points in your calculation
+(see nStates in the initialization section of the input file).
+Most often, you should use the fewest nProcesses and maximum nThreads (-c option)
+that accomodates your calculation over the available node configuration.
 */
