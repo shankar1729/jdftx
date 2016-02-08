@@ -1,6 +1,6 @@
 /** \page CoulombTrunc Moving between single images and periodic systems
 
-\image html waterMolToBox.png
+\image html tutorials/waterMolToBox.png
 
 JDFTx is built as a tool for use with molecular systems, surfaces, and solids.  This 
 versatility is particularly evident in the %Coulomb truncation features, allowing one 
