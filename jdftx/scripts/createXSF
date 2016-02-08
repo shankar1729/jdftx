@@ -51,7 +51,7 @@ awk "
 	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" ? 0 : 1); }
 	mode==1 && \$1==\"forces-output-coords\" { forceCoords = (\$2==\"Positions\" ? 0 : (\$2==\"Lattice\" ? 1 : (\$2==\"Cartesian\" ? 2 : 3))); }
 	mode==1 && \$1==\"dump-name\" { print \$2  > \"$tmpDir/dumpName\" }
-	mode==1 && \$1==\"ion\" { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
+	mode==1 && ( \$1==\"ion\" || \$1==\"ion-vel\" ) { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
 	#Initial lattice vectors
 	mode==1 && \$0~/Initializing the Grid/ { mode=2; refLine=NR; Sprinted=0; Ssuffix=\"grid\" }
 	mode==2 && NR>refLine+1 && NR<=refLine+4 { print \$2, \$3, \$4 > \"$tmpDir/lattice.0\"; }
