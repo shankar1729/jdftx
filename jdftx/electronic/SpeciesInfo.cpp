@@ -47,10 +47,19 @@ inline bool isParallel(vector3<> x, vector3<> y)
 {	return fabs(1.-fabs(dot(x, y)/(x.length() * y.length()))) < symmThreshold;
 }
 
+inline bool areBothZero(vector3<> x, vector3<>y)
+{	return (x.length() < symmThresholdSq) and (y.length() < symmThresholdSq);
+}
+
+inline bool areBothNonZero(vector3<> x, vector3<>y)
+{	return (x.length() > symmThresholdSq) and (y.length() > symmThresholdSq);
+}
+
 bool SpeciesInfo::Constraint::isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const
 { 	if(moveScale != otherConstraint.moveScale) return false; //Ensure same moveSCale
 	if(type != otherConstraint.type) return false; //Ensure same constraint type
-	return (type==None) or isParallel(transform*d, otherConstraint.d);
+	return (type==None) or areBothZero(d, otherConstraint.d) or
+	       ( areBothNonZero(d, otherConstraint.d) and isParallel(transform*d, otherConstraint.d) );
 }
 
 int SpeciesInfo::Constraint::getDimension() const
@@ -64,10 +73,11 @@ int SpeciesInfo::Constraint::getDimension() const
 
 void SpeciesInfo::Constraint::print(FILE* fp, const Everything& e) const
 {	vector3<> d = this->d; //in cartesian coordinates
-	if(e.iInfo.coordsType == CoordsLattice)
+	if(e.iInfo.coordsType == CoordsLattice) //print in lattice coordinates
 	{	switch(type)
 		{	case SpeciesInfo::Constraint::Linear:       d = inv(e.gInfo.R) * d; break;
 			case SpeciesInfo::Constraint::Planar:       d =   ~(e.gInfo.R) * d; break;
+			case SpeciesInfo::Constraint::HyperPlane:   d =   ~(e.gInfo.R) * d; break;
 			default: break;
 		}
 	}

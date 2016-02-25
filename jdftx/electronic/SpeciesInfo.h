@@ -57,7 +57,7 @@ public:
 	struct Constraint
 	{	double moveScale; //! preconditioning factor (0 fixes ion)
 		vector3<> d; //! The direction or plane normal of the constraint (in cartesian coordinates)
-		enum ConstraintType {None, Linear, Planar} type; //! Type of the constraint that is being applied to the ion
+		enum ConstraintType {None, Linear, Planar, HyperPlane} type; //! Type of the constraint that is being applied to the ion
 		
 		vector3<> operator()(const vector3<>& grad);
 		bool isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const;
@@ -231,7 +231,8 @@ private:
 static EnumStringMap<SpeciesInfo::Constraint::ConstraintType> constraintTypeMap
 (	SpeciesInfo::Constraint::None, "None",
 	SpeciesInfo::Constraint::Linear, "Linear",
-	SpeciesInfo::Constraint::Planar, "Planar"
+	SpeciesInfo::Constraint::Planar, "Planar",
+	SpeciesInfo::Constraint::HyperPlane, "HyperPlane"
 );
 
 #endif // JDFTX_ELECTRONIC_SPECIESINFO_H
