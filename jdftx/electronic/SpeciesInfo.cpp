@@ -65,7 +65,12 @@ int SpeciesInfo::Constraint::getDimension() const
 void SpeciesInfo::Constraint::print(FILE* fp, const Everything& e) const
 {	vector3<> d = this->d; //in cartesian coordinates
 	if(e.iInfo.coordsType == CoordsLattice)
-		d = ~(e.gInfo.R) * d; //print in lattice coordinates
+	{	switch(type)
+		{	case SpeciesInfo::Constraint::Linear:       d = inv(e.gInfo.R) * d; break;
+			case SpeciesInfo::Constraint::Planar:       d =   ~(e.gInfo.R) * d; break;
+			default: break;
+		}
+	}
 	fprintf(fp, "  %s %.14lg %.14lg %.14lg", constraintTypeMap.getString(type), d[0], d[1], d[2]);
 }
 

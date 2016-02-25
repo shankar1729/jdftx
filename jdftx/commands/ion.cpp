@@ -75,8 +75,12 @@ struct CommandIon : public Command
 			pl.get(constraint.d[2], 0.0, "d2", true);
 			if(not constraint.d.length_squared())
 				throw string("Constraint vector must be non-null");
-			if(e.iInfo.coordsType == CoordsLattice) //Constraints transform like forces:
-				constraint.d = ~inv(e.gInfo.R) * constraint.d; 
+			if(e.iInfo.coordsType == CoordsLattice) //Planar constraint transforms like forces:
+				switch(constraint.type)
+				{	case SpeciesInfo::Constraint::Linear:       constraint.d = e.gInfo.R * constraint.d; break;
+					case SpeciesInfo::Constraint::Planar:       constraint.d = ~inv(e.gInfo.R) * constraint.d; break;
+					default: break;
+				}
 		}
 		sp->constraints.push_back(constraint);
 	}
