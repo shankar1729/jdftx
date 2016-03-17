@@ -21,33 +21,39 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_IONDYNAMICS_H
 
 #include <electronic/common.h>
+#include <electronic/Dump.h>
 #include <electronic/IonicMinimizer.h>
 #include <core/vector3.h>
 #include <core/matrix3.h>
 #include <vector>
 
-struct IonDynamics
-{	Everything& e;
+class IonDynamics
+{	
+public:
+	void run(); //!< Run the simulation
+	IonDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
+private:
+	Everything& e;
 	double initialPotentialEnergy;
 	double kineticEnergy, potentialEnergy;
 	double pressure, totalMomentumNorm;
 	double totalMass; int numberOfAtoms;
-	vector3<> totalMomentum;
+	vector3<double> totalMomentum;
 	
 	IonicMinimizer imin; //Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
 
-	IonDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
-	//Virtual functions from Minimizable:
-	void step(const IonicGradient&,const double&);
-	void velocitiesInit();
-	double computeAcceleration(IonicGradient&); //!< Write acceleration into `accel` in cartesian coordinates and return relevant energy.
-	void computeMomentum(); //!< Calculate totalMomentum and totalMomentumNorm.
-	void computePressure(); //!< Updates pressure.
-	void computeKineticEnergy();//!< Updates `kineticEnergy`
+	// similar to the virtual functions of Minimizable:
+	void step(const IonicGradient&, const double&);   //!< Given the acceleration, take a time step. Scale the velocities if heat bath exists
+	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into `accel` in cartesian coordinates and return relevant energy.
 	bool report(double t);
 	
-	void run(); //!< Run the simulation
-	
+	//Utility functions
+	void velocitiesInit();       //!< Randomly initialize the velocities assuming potential energy is zero (E_tot = KE = 3NkT at t=0)
+	void computeMomentum();      //!< Calculate totalMomentum and totalMomentumNorm.
+	void computePressure();      //!< Updates pressure.
+	void computeKineticEnergy(); //!< Updates `kineticEnergy`
+	void removeNetDrift();       //!< Removes net velocity
+	void centerOfMassToOrigin(); //!< Translate the entire system to put the center of mass to origin
 };
 
 #endif //JDFTX_ELECTRONIC_IONDYNAMICS_H

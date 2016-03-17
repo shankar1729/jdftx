@@ -555,3 +555,15 @@ void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsO
 	}
 	mpiUtil->fclose(fp);
 }
+
+void ElecInfo::appendWrite(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
+{	int nRows = nRowsOverride ? nRowsOverride : nBands;
+	assert(int(M.size())==nStates);
+	MPIUtil::File fp; mpiUtil->fopenAppend(fp, fname);
+	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_CUR);
+	for(int q=qStart; q<qStop; q++)
+	{	assert(M[q].nRows()==nRows);
+		mpiUtil->fwrite(M[q].data(), sizeof(double), nRows, fp);
+	}
+	mpiUtil->fclose(fp);
+}

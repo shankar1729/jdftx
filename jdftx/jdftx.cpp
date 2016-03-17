@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 		LatticeMinimizer lmin(e);
 		lmin.minimize(e.latticeMinParams);
 	}
-	else if(e.verletParams.tMax)
+	else if(e.ionDynamicsParams.tMax)
 	{	//Molecular Dynamics with Verlet algorithm
 		IonDynamics verlet(e);
 		verlet.run();

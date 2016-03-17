@@ -55,7 +55,8 @@ EnumStringMap<DumpFrequency> freqMap
 	DumpFreq_Ionic, "Ionic",
 	DumpFreq_Gummel, "Gummel",
 	DumpFreq_Fluid, "Fluid",
-	DumpFreq_Electronic, "Electronic"
+	DumpFreq_Electronic, "Electronic",
+	DumpFreq_Dynamics, "IonDynamics"
 );
 EnumStringMap<DumpFrequency> freqDescMap
 (	DumpFreq_End, "Dump specified vars at the end of the calculation",
@@ -63,7 +64,8 @@ EnumStringMap<DumpFrequency> freqDescMap
 	DumpFreq_Ionic, "Dump specified vars every (few) ionic step(s)",
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
-	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)"
+	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)",
+	DumpFreq_Dynamics, "Dump specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces and .Ecomponents"
 );
 
 
@@ -221,7 +223,7 @@ struct CommandDumpInterval : public Command
 	{
 		format = "<freq> <interval>";
 		comments = 
-			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel.\n"
+			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel|IonDynamics.\n"
 			"Without this command, the behavior defaults to <interval>=1 for each <freq>.\n"
 			"(See command dump for more details)";
 		allowMultiple = true;

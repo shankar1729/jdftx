@@ -118,6 +118,7 @@ public:
 	void read(std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
 	void write(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
 	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
+	void appendWrite(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
 
 private:
 	const Everything* e;
