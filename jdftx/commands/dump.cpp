@@ -65,7 +65,7 @@ EnumStringMap<DumpFrequency> freqDescMap
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
 	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)",
-	DumpFreq_Dynamics, "Dump specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces and .Ecomponents"
+	DumpFreq_Dynamics, "Dump specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces, .eigenvals and .Ecomponents"
 );
 
 
