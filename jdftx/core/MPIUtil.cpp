@@ -173,6 +173,20 @@ void MPIUtil::fopenWrite(File& fp, const char* fname) const
 		 die("Error opening file '%s' for writing.\n", fname);
 }
 
+void MPIUtil::fopenAppend(File& fp, const char* fname) const
+{
+	#ifdef MPI_ENABLED
+	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_APPEND|MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	#else
+	fp = ::fopen(fname, "a");
+	if(!fp)
+	#endif
+		 die("Error opening file '%s' for writing.\n", fname);
+	#ifdef MPI_ENABLED
+	MPI_Barrier(MPI_COMM_WORLD);
+	#endif
+}
+
 void MPIUtil::fclose(File& fp) const
 {
 	#ifdef MPI_ENABLED

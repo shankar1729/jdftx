@@ -17,21 +17,31 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_CORE_VERLETPARAMS_H
-#define JDFTX_CORE_VERLETPARAMS_H
+#ifndef JDFTX_ELECTRONIC_IONDYNAMICSPARAMS_H
+#define JDFTX_ELECTRONIC_IONDYNAMICSPARAMS_H
 
 #include <core/Units.h>
+
+enum ConfiningPotentialType
+{	ConfineLinear,
+	ConfineQuadratic,
+	ConfineCubic,
+	ConfineSmoothLinear,
+	ConfineNone
+};
+
 //! @addtogroup md
 //! @{
 
 //! @brief Parameters to control the Verlet algorithm
-struct VerletParams
+struct IonDynamicsParams
 {	double dt, tMax, kT, alpha;
-	
+	ConfiningPotentialType confineType;
+	std::vector<double> confineParameters;
 	//! Set the default values
-	VerletParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0){}
+	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), confineType(ConfineNone){}
 };
 
 //! @}
 
-#endif // JDFTX_CORE_VERLETPARAMS_H
+#endif // JDFTX_ELECTRONIC_IONDYNAMICSPARAMS_H

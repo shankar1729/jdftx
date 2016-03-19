@@ -35,7 +35,9 @@ enum DumpFrequency
 	DumpFreq_Ionic, //!< Every (few) ionic step(s)
 	DumpFreq_Lattice, //!< Every (few) lattice step(s)
 	DumpFreq_Gummel, //!< Every (few) gummel step(s)
+	DumpFreq_Dynamics, //!< Every (few) dynamic time step(s)
 	DumpFreq_Delim  //special value used as a delimiter during command processing
+	
 };
 
 //! Dump variable selection options:

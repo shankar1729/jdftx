@@ -79,6 +79,7 @@ void IonInfo::setup(const Everything &everything)
 void IonInfo::printPositions(FILE* fp) const
 {	fprintf(fp, "# Ionic positions in %s coordinates:\n", coordsType==CoordsLattice ? "lattice" : "cartesian");
 	for(auto sp: species) sp->print(fp);
+	fprintf(fp, "\n");
 }
 
 // Check for overlapping atoms, returns true if okay
