@@ -205,6 +205,7 @@ void Phonon::setup(bool printDefaults)
 		//generate all perturbations first:
 		std::vector<Perturbation> pertSp(nPert); //perturbations of this species
 		std::vector<matrix> proj(nPert); //projection operator into subspace spanned by star of current perturbation
+		std::vector<bool> isEven(nPert); //whether perturbation is even under symmetries of calculation
 		matrix projTot;
 		const auto& atomMap = eSupTemplate.symm.getAtomMap()[sp];
 		for(int iPert=0; iPert<nPert; iPert++)
@@ -219,6 +220,8 @@ void Phonon::setup(bool printDefaults)
 				for(int iDir=0; iDir<3; iDir++)
 					nHat.set(at*3+iDir,0, dir[iDir]);
 				proj[iPert] += pertSp[iPert].weight * nHat * dagger(nHat);
+				if(at==pertSp[iPert].at && (dir+pertSp[iPert].dir).length()<symmThreshold)
+					isEven[iPert] = true; //symmetries make positive and negative displacements equivalent
 			}
 			projTot += proj[iPert];
 		}
@@ -235,9 +238,17 @@ void Phonon::setup(bool printDefaults)
 		}
 		for(int iPert=0; iPert<nPert; iPert++)
 			if(irred[iPert])
-				perturbations.push_back(pertSp[iPert]);
+			{	if(isEven[iPert]) perturbations.push_back(pertSp[iPert]);
+				else //split into two perturbations to get a central difference formula
+				{	pertSp[iPert].weight *= 0.5;
+					for(int iSign=0; iSign<2; iSign++)
+					{	perturbations.push_back(pertSp[iPert]);
+						pertSp[iPert].dir *= -1.;
+					}
+				}
+			}
 	}
-	logPrintf("\n%d perturbations of the unit cell reduced to %d under symmetries:\n", int(modes.size()), int(perturbations.size()));
+	logPrintf("\n%d signed perturbations of the unit cell reduced to %d under symmetries:\n", 2*int(modes.size()), int(perturbations.size()));
 	for(const Perturbation& pert: perturbations)
 		logPrintf("%s %d  [ %+lf %+lf %+lf ] %lf\n", e.iInfo.species[pert.sp]->name.c_str(),
 			pert.at, pert.dir[0], pert.dir[1], pert.dir[2], pert.weight*symSupCart.size());
