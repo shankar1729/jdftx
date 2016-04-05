@@ -75,6 +75,7 @@ public:
 	#endif
 	void fopenRead(File& fp, const char* fname, size_t fsizeExpected=0, const char* fsizeErrMsg=0) const; //!< open file for reading and optionally check file size
 	void fopenWrite(File& fp, const char* fname) const; //!< open file for writing
+	void fopenAppend(File& fp, const char* fname) const; //!< open file for appending to the end. Implied barrier on exit.
 	void fclose(File& fp) const;
 	void fseek(File fp, long offset, int whence) const; //!< syntax consistent with fseek from stdio
 	void fread(void *ptr, size_t size, size_t nmemb, File fp) const;

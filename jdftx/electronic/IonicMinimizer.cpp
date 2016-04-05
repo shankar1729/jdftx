@@ -259,6 +259,20 @@ IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
 		for(unsigned atom=0; atom<grad[sp].size(); atom++)
 			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);  //Apply move constraints to the force gradient.
 	}
+	
+	// Deal with constrains of type HyperPlane
+	// Remove the component of the gradient along the direction of the 
+	// constraint in high dimensional space of all coordinates
+	IonicGradient D;   D.init(e.iInfo); // initialize direction to zero
+	for(unsigned sp=0; sp<D.size(); sp++)
+	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(unsigned atom=0; atom<D[sp].size(); atom++)
+			if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
+				D[sp][atom] = spInfo.constraints[atom].d;  // D is the high dimensional cousin of vector3<> constrain.d
+	}
+	double magD2 = dot(D, D); double alpha = (1/magD2) * dot(Kgrad, D);
+	if (magD2 > 1e-10) //nonzero D
+		Kgrad += D*(-alpha); //subtract the component along D
 	return Kgrad;
 }
 
