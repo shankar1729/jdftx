@@ -102,6 +102,9 @@ void Vibrations::calculate()
 				{	nSet.push_back(c.d / c.d.length());
 					break;
 				}
+				case SpeciesInfo::Constraint::HyperPlane:
+				{	die("Hyperplane constraint not yet supported in vibrations.\n")
+				}
 			}
 			//Check whether to fillin with translation symmetries:
 			bool fromTranslation = false;
