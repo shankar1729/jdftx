@@ -250,11 +250,14 @@ void elecFluidMinimize(Everything &e)
 		logPrintf("Running a vacuum solve first:\n");
 		FluidType origType = eVars.fluidParams.fluidType;
 		eVars.fluidParams.fluidType = FluidNone; //temporarily disable the fluid
+		double muOrig = eInfo.mu;
+		eInfo.mu = NAN; //temporarily disable fixed mu (if present)
 		logPrintf("\n-------- Initial electronic minimization -----------\n"); logFlush();
 		elecMinimize(e); //minimize without fluid
 		Evac0 = relevantFreeEnergy(e);
 		logPrintf("Vacuum energy after initial minimize, %s = %+.15f\n\n", relevantFreeEnergyName(e), Evac0);
 		eVars.fluidParams.fluidType = origType; //restore fluid flag
+		eInfo.mu = muOrig; //restore mu target (if any)
 	}
 	eVars.elecEnergyAndGrad(ener);
 	
