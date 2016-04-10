@@ -36,7 +36,14 @@ enum FluidType
 	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
 };
 
-	//!Mixing functional choices
+enum FluidSolveFrequency
+{
+	FluidFreqInner, //!< Solve fluid every electronic step
+	FluidFreqGummel, //!< Use a Gummel iteration
+	FluidFreqDefault //!< Decide based on fluid type (Inner for linear fluids, Gummel for rest)
+};
+
+//!Mixing functional choices
 enum FMixFunctional
 {
 	FMixNone, //!< No Interaction
@@ -92,6 +99,7 @@ struct FluidSolverParams
 	double P; //!< pressure
 	double epsBulkOverride, epsInfOverride; //!< Override default dielectric constants if non-zero
 	bool verboseLog; //!< whether iteration progress is printed for Linear PCM's, and whether sub-iteration progress is printed for others
+	FluidSolveFrequency solveFrequency;
 	
 	const std::vector< std::shared_ptr<FluidComponent> >& components; //!< list of all fluid components
 	const std::vector< std::shared_ptr<FluidComponent> >& solvents; //!< list of solvent components

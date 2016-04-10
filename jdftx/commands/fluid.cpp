@@ -84,7 +84,8 @@ struct CommandFluidGummelLoop : public Command
 		comments =
 			"Settings for the fluid <--> electron self-consistency loop:\n"
 			"+ <maxIterations>: Max number of electron and fluid minimization pairs\n"
-			"+ <Atol>: Free energy convergence criterion for this outer loop";
+			"+ <Atol>: Free energy convergence criterion for this outer loop.\n"
+			"Use fluid-solve-frequency to control whether such a loop is used at all.";
 		hasDefault = true;
 	}
 
@@ -98,6 +99,39 @@ struct CommandFluidGummelLoop : public Command
 	}
 }
 commandFluidGummelLoop;
+
+
+EnumStringMap<FluidSolveFrequency> fluidSolveFreqMap
+(	FluidFreqInner, "Inner",
+	FluidFreqGummel, "Gummel",
+	FluidFreqDefault, "Default"
+);
+EnumStringMap<FluidSolveFrequency> fluidSolveFreqDescMap
+(	FluidFreqInner, "Solve fluid every electronic step",
+	FluidFreqGummel, "Alternately minimize fluid and electrons (fluid-gummel-loop)",
+	FluidFreqDefault,  "Decide based on fluid type (Inner for LinearPCM/SaLSA, Gummel for rest)"
+);
+
+struct CommandFluidSolveFrequency : public Command
+{
+	CommandFluidSolveFrequency() : Command("fluid-solve-frequency")
+	{
+		format = "<freq>=" + fluidSolveFreqMap.optionList();
+		comments = "Select how often to optimize fluid state:"
+			+ addDescriptions(fluidSolveFreqMap.optionList(), linkDescription(fluidSolveFreqMap, fluidSolveFreqDescMap));
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.solveFrequency, FluidFreqDefault, fluidSolveFreqMap, "freq", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
+		logPrintf("%s", fluidSolveFreqMap.getString(fsp.solveFrequency));
+	}
+}
+commandFluidSolveFrequency;
 
 
 struct CommandFluidInitialState : public Command

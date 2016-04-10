@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 FluidSolverParams::FluidSolverParams()
-: T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false),
+: T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false), solveFrequency(FluidFreqDefault),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
 vdwScale(0.75), pCavity(0.), lMax(3),
 linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)

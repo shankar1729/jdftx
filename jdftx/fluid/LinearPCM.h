@@ -28,7 +28,7 @@ class LinearPCM : public PCM, public LinearSolvable<ScalarFieldTilde>
 public:
 	LinearPCM(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
     virtual ~LinearPCM();
-	bool needsGummel() { return false; }
+	bool prefersGummel() const { return false; }
 
 	ScalarFieldTilde hessian(const ScalarFieldTilde&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
 	ScalarFieldTilde precondition(const ScalarFieldTilde&) const; //!< Implements a modified inverse kinetic preconditioner

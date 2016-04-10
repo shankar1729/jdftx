@@ -28,7 +28,7 @@ class SaLSA : public PCM, public LinearSolvable<ScalarFieldTilde>
 public:
 	SaLSA(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()
     virtual ~SaLSA();
-	bool needsGummel() { return false; }
+	bool prefersGummel() const { return false; }
 
 	ScalarFieldTilde chi(const ScalarFieldTilde&) const; //!< Apply the non-local chi (i.e. compute induced charge density given a potential)
 	ScalarFieldTilde hessian(const ScalarFieldTilde&) const; //!< Implements #LinearSolvable::hessian for the non-local poisson-like equation

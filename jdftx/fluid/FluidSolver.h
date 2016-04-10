@@ -43,6 +43,15 @@ struct FluidSolver
 
 	double ionWidthMuCorrection() const; //!< correction to electron chemical potential due to finite ion width in fluid interaction
 
+	//Whether a gummel loop is in use
+	inline bool useGummel() const
+	{	switch(fsp.solveFrequency)
+		{	case FluidFreqGummel: return true;
+			case FluidFreqInner: return false;
+			default: return prefersGummel(); //pick by fluid type
+		}
+	}
+	
 	//! Set total explicit charge density and effective electron density to use in cavity formation (i.e. including charge balls)
 	//! and set list of explicit atoms to use in van der Waals corrections
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
@@ -68,8 +77,8 @@ struct FluidSolver
 
 	//------------Fluid solver implementations must provide these pure virtual functions
 
-	//! Specify whether fluid requires a gummel loop (true) or is minimized each time (false)
-	virtual bool needsGummel()=0;
+	//! Specify whether fluid prefers a gummel loop (true) or is minimized each time (false)
+	virtual bool prefersGummel() const=0;
 
 	//! Initialize fluid state from a file
 	virtual void loadState(const char* filename)=0;

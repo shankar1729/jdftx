@@ -151,7 +151,7 @@ public:
 	{	delete fluidMixture;
 	}
 
-	bool needsGummel() { return true; }
+	bool prefersGummel() const { return true; }
 
 	double bulkPotential() {return coupling->Vxc_bulk;}
 

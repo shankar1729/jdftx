@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 		if(eVars.nFilenamePattern.length())
 		{	//If starting from density, compute potential:
 			eVars.EdensityAndVscloc(e.ener);
-			if(eVars.fluidSolver && eVars.fluidSolver->needsGummel())
+			if(eVars.fluidSolver && eVars.fluidSolver->useGummel())
 			{	//Relies on the gummel loop, so EdensityAndVscloc would not have invoked minimize
 				eVars.fluidSolver->minimizeFluid();
 				eVars.EdensityAndVscloc(e.ener); //update Vscloc

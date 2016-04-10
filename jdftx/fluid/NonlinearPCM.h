@@ -40,7 +40,7 @@ public:
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
     virtual ~NonlinearPCM();
 	
-	bool needsGummel() { return true; }
+	bool prefersGummel() const { return true; }
 
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
