@@ -125,11 +125,14 @@ NonlinearPCM::~NonlinearPCM()
 
 void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	
+	bool setPhiFromState = false; //whether to set linearPCM phi from state (first time in SCF version when state has been read in)
+	
 	if(fsp.nonlinearSCF || (!state))
 	{	if(!linearPCM)
 		{	logSuspend();
 			linearPCM = std::make_shared<LinearPCM>(e, fsp);
 			logResume();
+			if(state) setPhiFromState = true; //set phi from state which has already been loaded (only in SCF mode)
 		}
 		logSuspend();
 		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
@@ -164,8 +167,15 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
 	this->nCavity = I(nCavityTilde + getFullCore());
-		
+	
 	updateCavity();
+	
+	if(setPhiFromState)
+	{	ScalarFieldMuEps gradUnused;
+		ScalarFieldTilde phiFluidTilde;
+		(*this)(state, gradUnused, &phiFluidTilde);
+		linearPCM->state = phiFluidTilde + coulomb(rhoExplicitTilde);
+	}
 }
 
 double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, bool electricOnly) const
