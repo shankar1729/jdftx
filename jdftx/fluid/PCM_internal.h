@@ -318,7 +318,7 @@ namespace NonlinearPCMeval
 		{	double V = ZbyT * phi[i];
 			if(!setState)
 			{	//Avoid V=0 in calculating kappaSq below
-				if(fabs(V) < -1e-7)
+				if(fabs(V) < 1e-7)
 					V = copysign(1e-7, V);
 			}
 			double twoCbrtV= 2.*pow(fabs(V), 1./3);
