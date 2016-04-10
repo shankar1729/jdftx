@@ -62,7 +62,6 @@ Commands allowed in jdftx input files
 \bigsep\ref CommandFftbox
 \bigsep\ref CommandKpoint
 \bigsep\ref CommandKpointFolding
-\bigsep\ref CommandSpinRestricted
 \bigsep\ref CommandSpintype
 \bigsep\ref CommandTargetMu
 \bigsep\ref CommandVexternal
@@ -109,6 +108,7 @@ Commands allowed in jdftx input files
 
 <i>%Optimization</i>
 \bigsep\ref CommandFluidGummelLoop
+\bigsep\ref CommandFluidSolveFrequency
 \bigsep\ref CommandFluidMinimize
 
 <i>%Parameters</i>
