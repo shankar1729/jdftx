@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 		finalizeSystem();
 		return 0;
 	}
+	else logPrintf("Initialization completed successfully at t[s]: %9.2lf\n\n", clock_sec());
 	
 	if(e.cntrl.dumpOnly)
 	{	//Single energy calculation so that all dependent quantities have been initialized:

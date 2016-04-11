@@ -98,7 +98,7 @@ void LinearPCM::minimizeFluid()
 	//Minimize:
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n", e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
 	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
-	logPrintf("\tCompleted after %d iterations.\n", nIter);
+	logPrintf("\tCompleted after %d iterations at t[s]: %9.2lf\n", nIter, clock_sec());
 }
 
 double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const

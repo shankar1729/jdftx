@@ -284,7 +284,7 @@ void elecFluidMinimize(Everything &e)
 			eVars.fluidSolver->minimizeFluid();
 			ener.E["A_diel"] = eVars.fluidSolver->get_Adiel_and_grad(&eVars.d_fluid, &eVars.V_cavity);
 			double dAfluid = ener.E["A_diel"] - A_diel_prev;
-			logPrintf("\nFluid minimization # %d changed total free energy by %le\n", iGummel+1, dAfluid);
+			logPrintf("\nFluid minimization # %d changed total free energy by %le at t[s]: %9.2lf\n", iGummel+1, dAfluid, clock_sec());
 
 			//Electron-side:
 			logPrintf("\n-------------------- Electronic Minimization # %d ---------------------\n", iGummel+1); logFlush();
@@ -292,7 +292,7 @@ void elecFluidMinimize(Everything &e)
 			e.elecMinParams.energyDiffThreshold = std::min(1e-5, 0.01*dAtyp);
 			elecMinimize(e);
 			double dAelec = relevantFreeEnergy(e) - A_JDFT_prev;
-			logPrintf("\nElectronic minimization # %d changed total free energy by %le\n", iGummel+1, dAelec);
+			logPrintf("\nElectronic minimization # %d changed total free energy by %le at t[s]: %9.2lf\n", iGummel+1, dAelec, clock_sec());
 			
 			//Dump:
 			e.dump(DumpFreq_Gummel, iGummel);
@@ -300,15 +300,15 @@ void elecFluidMinimize(Everything &e)
 			//Check self-consistency:
 			dAtyp = std::max(fabs(dAfluid), fabs(dAelec));
 			if(dAtyp<cntrl.fluidGummel_Atol)
-			{	logPrintf("\nFluid<-->Electron self-consistency loop converged to %le hartrees after %d minimization pairs.\n",
-					cntrl.fluidGummel_Atol, iGummel+1);
+			{	logPrintf("\nFluid<-->Electron self-consistency loop converged to %le hartrees after %d minimization pairs at t[s]: %9.2lf.\n",
+					cntrl.fluidGummel_Atol, iGummel+1, clock_sec());
 				converged = true;
 				break;
 			}
 		}
 		if(!converged)
-			logPrintf("\nFluid<-->Electron self-consistency loop not yet converged to %le hartrees after %d minimization pairs.\n",
-				cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations);
+			logPrintf("\nFluid<-->Electron self-consistency loop not yet converged to %le hartrees after %d minimization pairs at t[s]: %9.2lf.\n",
+				cntrl.fluidGummel_Atol, cntrl.fluidGummel_nIterations, clock_sec());
 	}
 	
 	if(!std::isnan(Evac0))

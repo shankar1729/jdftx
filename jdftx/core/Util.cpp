@@ -351,6 +351,22 @@ void finalizeSystem(bool successful)
 }
 
 
+//------------ Timing helpers ----------------
+
+inline double clock_us_epoch() //time in microseconds (since standard POSIX specified epoch)
+{	timeval tv;
+	gettimeofday(&tv,NULL);
+	return ((tv.tv_sec & 0x1fffff) * 1e6) + tv.tv_usec;
+}
+double clock_us()
+{	static double tStart = clock_us_epoch();
+	return clock_us_epoch() - tStart;
+}
+double clock_sec()
+{	return 1e-6*clock_us();
+}
+
+
 #ifdef ENABLE_PROFILING
 StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stopWatchManager(this, &name); }
 void StopWatch::start()

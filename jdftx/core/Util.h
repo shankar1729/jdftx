@@ -47,12 +47,8 @@ void finalizeSystem(bool successful=true); //!< Clean-up corresponding to initSy
 
 //----------------- Profiling --------------------------
 
-//! @brief Time of day in microseconds
-inline double clock_us()
-{	timeval tv;
-	gettimeofday(&tv,NULL);
-	return ((tv.tv_sec & 0x1fffff) * 1e6) + tv.tv_usec;
-}
+double clock_us(); //! @brief Elapsed time in microseconds (from start of program)
+double clock_sec(); //! @brief Elapsed time in seconds (from start of program)
 
 /** @brief Time a code section and print the timing (with title).\n
 Code must be self-contained as a scope, as it will be surrounded by { }, and should not define "runTime"

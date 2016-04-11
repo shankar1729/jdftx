@@ -155,6 +155,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 			double cgtest = dotgPrevKg/sqrt(gKNorm*gKNormPrev);
 			fprintf(p.fpLog, "  linmin: %10.3le", linmin);
 			fprintf(p.fpLog, "  cgtest: %10.3le", cgtest);
+			fprintf(p.fpLog, "  t[s]: %9.2lf", clock_sec());
 
 			//Update beta:
 			switch(currentDirUpdateScheme)
@@ -295,8 +296,8 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 		rdotz = sync(dot(r, z));
 		//Print info:
 		double rzNorm = sqrt(fabs(rdotz)/p.nDim);
-		fprintf(p.fpLog, "%sIter: %3d  sqrt(|r.z|): %12.6le  alpha: %12.6le  beta: %13.6le\n",
-			p.linePrefix, iter, rzNorm, alpha, beta); fflush(p.fpLog);
+		fprintf(p.fpLog, "%sIter: %3d  sqrt(|r.z|): %12.6le  alpha: %12.6le  beta: %13.6le  t[s]: %9.2lf\n",
+			p.linePrefix, iter, rzNorm, alpha, beta, clock_sec()); fflush(p.fpLog);
 		//Check convergence:
 		if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return iter; }
 	}

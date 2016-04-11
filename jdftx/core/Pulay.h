@@ -161,6 +161,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		fprintf(pp.fpLog, "   |Residual|: %.3e", residualNorm);
 		for(size_t iExtra=0; iExtra<extraNames.size(); iExtra++)
 			fprintf(pp.fpLog, "   |%s|: %.3e", extraNames[iExtra].c_str(), extraValues[iExtra]);
+		fprintf(pp.fpLog, "  t[s]: %9.2lf", clock_sec());
 		fprintf(pp.fpLog, "\n"); fflush(pp.fpLog);
 		
 		//Optional reporting:

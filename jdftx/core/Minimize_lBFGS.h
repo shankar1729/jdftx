@@ -68,6 +68,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		fprintf(p.fpLog, "  |grad|_K: %10.3le", sqrt(gKnorm/p.nDim));
 		if(alpha) fprintf(p.fpLog, "  alpha: %10.3le", alpha);
 		if(linminTest) fprintf(p.fpLog, "  linmin: %10.3le", linminTest);
+		fprintf(p.fpLog, "  t[s]: %9.2lf", clock_sec());
 		
 		//Check stopping conditions:
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
