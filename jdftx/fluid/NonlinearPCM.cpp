@@ -260,7 +260,9 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 
 void NonlinearPCM::minimizeFluid()
 {	if(fsp.nonlinearSCF)
+	{	clearState();
 		Pulay<ScalarFieldTilde>::minimize(compute(0));
+	}
 	else
 		Minimizable<ScalarFieldMuEps>::minimize(e.fluidMinParams);
 }

@@ -46,7 +46,8 @@ public:
 	
 	void loadState(const char* filename); //!< Load the state from a single binary file
 	void saveState(const char* filename) const; //!< Save the state to a single binary file
-
+	void clearState(); //!< remove past variables and residuals
+	
 	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
 	virtual double sync(double x) const { return x; }
 	
@@ -265,6 +266,11 @@ template<typename Variable> void Pulay<Variable>::saveState(const char* filename
 		}
 		fclose(fp);
 	}
+}
+
+template<typename Variable> void Pulay<Variable>::clearState()
+{	pastVariables.clear();
+	pastResiduals.clear();
 }
 
 //!@endcond
