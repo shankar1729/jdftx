@@ -47,6 +47,7 @@ protected:
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi
 	int rStart, rStop; //MPI division of response array
+	RadialFunctionG chi0eff; //effective weight function (l=0) for charge neutrality constraint
 	RadialFunctionG nFluid; //electron density model for the fluid
 	RadialFunctionG Kkernel; ScalarField epsInv; //for preconditioner
 	ScalarFieldArray siteShape; //shape functions for sites

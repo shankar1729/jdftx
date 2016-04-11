@@ -78,6 +78,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	
 	//Rotational and translational response (includes ionic response):
 	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
+	std::vector<double> chi0effSamples(nGradial);
 	for(const auto& c: fsp.components)
 		for(int l=0; l<=fsp.lMax; l++)
 		{	//Calculate radial densities for all m:
@@ -116,12 +117,15 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 				if(Smode*Smode < 1e-3) break;
 				std::vector<double> Vsamples(nGradial);
 				for(unsigned iG=0; iG<nGradial; iG++)
-					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
+				{	Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
+					if(l==0) chi0effSamples[iG] -= Vsamples[0] * Vsamples[iG];
+				}
 				response.push_back(std::make_shared<MultipoleResponse>(l, -1, 1, Vsamples, dG));
 			}
 			gsl_vector_free(S);
 			gsl_matrix_free(V);
 		}
+	if(this->k2factor) chi0eff.init(0, chi0effSamples, dG);
 	
 	//Polarizability response:
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
@@ -216,9 +220,6 @@ void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarF
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		siteShape[iSite] = I(Sf[iSite] * J(shape));
 	
-	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/gInfo.detR);
-	logFlush();
-
 	//Update the inhomogeneity factor of the preconditioner
 	epsInv = inv(1. + (epsBulk-1.)*shape);
 	
@@ -229,6 +230,7 @@ void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarF
 
 void SaLSA::minimizeFluid()
 {
+	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n",
 		e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
 	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
@@ -238,31 +240,67 @@ void SaLSA::minimizeFluid()
 double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
-	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
-
-	//First-order correct estimate of electrostatic energy:
-	ScalarFieldTilde phiExt = coulomb(rhoExplicitTilde);
-	Adiel["Electrostatic"] = -0.5*dot(phi, O(hessian(phi))) + dot(phi - 0.5*phiExt, O(rhoExplicitTilde));
+	ScalarFieldTilde phi = clone(state); // that's what we solved for in minimize
 	
-	//Gradient w.r.t rhoExplicitTilde:
-	Adiel_rhoExplicitTilde = phi - phiExt;
+	//Neutrality constraint (and derivatives):
+	double phi0_Qexp = 0.; ScalarField phi0_shape;
+	if(k2factor)
+	{	double chi00 = chi0eff(0.);
+		ScalarField rhoBar = I(chi0eff * phi);
+		double sRhoInt = integral(shape * rhoBar);
+		double sInt = integral(shape);
+		double Qexp = integral(rhoExplicitTilde);
+		phi0_Qexp = -1./(sInt*chi00);
+		double phi0 = phi0_Qexp * (Qexp + sRhoInt);
+		double phi0_sInt = -phi0/sInt;
+		phi0_shape = phi0_sInt + phi0_Qexp * rhoBar;
+		//Fix the G=0 of phi to include the constraint correction:
+		phi->setGzero(phi->getGzero() + phi0);
+	}
 
-	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
+	//Calculate Coulomb contribution and gradients:
+	ScalarFieldTilde Adiel_rhoFluid;
+	{	ScalarFieldTilde rhoFluid = chi(phi);
+		ScalarFieldTilde phiFluid = coulomb(rhoFluid);
+		Adiel["Coulomb"] = dot(phiFluid, O(0.5*rhoFluid+rhoExplicitTilde));
+		Adiel_rhoExplicitTilde = phiFluid;
+		Adiel_rhoFluid = coulomb(rhoFluid+rhoExplicitTilde);
+	}
+	
+	//Calculate internal energy and shape function gradients:
 	const auto& solvent = fsp.solvents[0];
 	ScalarField Adiel_shape; ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
+	diagMatrix Ainternal(fsp.lMax + 1); //energy components by angular momentum
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
+		const ScalarField& s = resp.iSite<0 ? shape : siteShape[resp.iSite];
 		ScalarField& Adiel_s = resp.iSite<0 ? Adiel_shape : Adiel_siteShape[resp.iSite];
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
-		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
+		double prefac = 4*M_PI/(2*resp.l+1);
 		ScalarFieldArray IlGradVphi = I(lGradient(resp.V * phi, resp.l));
+		ScalarFieldArray IlGradVAdiel_rhoFluid = I(lGradient(resp.V * Adiel_rhoFluid, resp.l));
 		for(int lpm=0; lpm<(2*resp.l+1); lpm++)
-			Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
+		{	Ainternal[resp.l] += 0.5*prefac * integral(s * IlGradVphi[lpm] * IlGradVphi[lpm]);
+			Adiel_s += prefac * (IlGradVphi[lpm] * (0.5*IlGradVphi[lpm] - IlGradVAdiel_rhoFluid[lpm]));
+		}
 	}
+	//--- accumulate and save internal energies
+	Ainternal.allReduce(MPIUtil::ReduceSum);
+	for(int l=0; l<=fsp.lMax; l++)
+	{	char Aname[16]; sprintf(Aname, "Aint_l=%d", l);
+		Adiel[Aname] = Ainternal[l];
+	}
+	//--- propagate site shape gradients to main shape
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
 			Adiel_shape += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
 	nullToZero(Adiel_shape, gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
+	//--- neutrality constraint contribution:
+	if(k2factor)
+	{	double Adiel_phi0 = integral(shape * I(chi0eff * (Adiel_rhoFluid - phi)));
+		Adiel_shape += Adiel_phi0 * phi0_shape;
+		Adiel_rhoExplicitTilde->setGzero(Adiel_phi0 * phi0_Qexp);
+	}
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
