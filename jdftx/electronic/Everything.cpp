@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <core/LatticeUtils.h>
+#include <fluid/FluidSolver.h>
 
 void Everything::setup()
 {
@@ -173,14 +174,19 @@ void Everything::setup()
 			fluidMinParams.nDim = 0;
 	}
 	fluidMinParams.fpLog = globalLog;
-	fluidMinParams.linePrefix = "FluidMinimize: ";
 	fluidMinParams.energyLabel = relevantFreeEnergyName(*this);
 	fluidMinParams.energyFormat = "%+.15lf";
-	//Tweak log format for fluid with inner minimization:
-	if(eVars.fluidParams.fluidType==FluidLinearPCM
-	|| eVars.fluidParams.fluidType==FluidSaLSA)
+	if(eVars.fluidSolver && eVars.fluidSolver->useGummel())
+	{	fluidMinParams.linePrefix = "FluidMinimize: ";
+		eVars.fluidParams.scfParams.linePrefix = "NonlinearFluidSCF: ";
+	}
+	else //indent for inner minimization:
 	{	fluidMinParams.linePrefix = "\tFluidMinimize: ";
-		if(!eVars.fluidParams.verboseLog)
+		eVars.fluidParams.scfParams.linePrefix = "\tNonlinearFluidSCF: ";
+		//Disable inner iterations for linear solvers:
+		if(!eVars.fluidParams.verboseLog
+			&& (eVars.fluidParams.fluidType==FluidLinearPCM
+			 || eVars.fluidParams.fluidType==FluidSaLSA) )
 			fluidMinParams.fpLog = nullLog;
 	}
 	

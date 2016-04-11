@@ -327,7 +327,6 @@ double NonlinearPCM::cycle(double dEprev, std::vector<double>& extraValues)
 {	//Update epsilon / kappaSq based on current phi:
 	phiToState(false);
 	//Inner linear solve
-	logPrintf("\tInner linear fluid solve: "); logFlush();
 	FILE*& fpLog = ((MinimizeParams&)e.fluidMinParams).fpLog;
 	fpLog = nullLog; //disable iteration log from LinearPCM
 	linearPCM->minimizeFluid();

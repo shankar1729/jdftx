@@ -243,7 +243,6 @@ struct CommandPcmNonlinearScf: public CommandPulay
 	{	e.eVars.fluidParams.nonlinearSCF = true;
 		PulayParams& pp = e.eVars.fluidParams.scfParams;
 		pp.energyLabel = "Adiel";
-		pp.linePrefix = "NonlinearFluidSCF: ";
 		pp.energyFormat = "%+.15lf";
 		pp.energyDiffThreshold = 1e-7;
 		pp.nIterations = 20;
