@@ -169,6 +169,10 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		report(iter);
 		
 		//Check for convergence and update variable:
+		if(isnan(E))
+		{	fprintf(pp.fpLog, "%sE=%le. Stopping ...\n\n", pp.linePrefix, E);
+			return E;
+		}
 		bool converged = false;
 		if(!converged && ediffCheck.checkConvergence(E))
 		{	fprintf(pp.fpLog, "%sConverged (|Delta E|<%le for 2 iters).\n\n", pp.linePrefix, pp.energyDiffThreshold);
