@@ -9,20 +9,32 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	If multiple output files are specified, they will be plotted alongside.
 	
 	The behavior is controlled by several environment variables:
-		nLines      Plot the final $nLines iterations (default: 200)
+		nLines      Plot the final $nLines iterations (default: 1000)
 		skipLines   Ignore the first $skipLines iterations (default: 0)
 		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
 		logTarget   Plot energy difference from $logTarget on a log axis.
+		xAxis       "iter" (default) or "time" to plot versus iteration count or run time
 	'
 	exit 0
 fi
 
+if [[ ( -z $xAxis ) || ( "$xAxis" == "iter" )  || ( "$xAxis" == "Iter" ) ]]; then
+	xCol=0
+	xLabel="Iteration number"
+elif [[ ( "$xAxis" == "time" ) || ( "$xAxis" == "Time" ) ]]; then
+	xCol=1
+	xLabel="Time [s]"
+else
+	echo "Unknown option: \$xAxis='$xAxis', must be 'iter' (default) or 'time'"
+	exit 1
+fi
+
 if [ -z $logTarget ]; then
-	using='0:2'
+	using="${xCol}:2"
 	yformat='"%.6f"'
 else
 	logCommand="Final=$logTarget; set logscale y"
-	using='0:($2-Final)'
+	using="${xCol}:(\$2-Final)"
 	yformat='"%g"'
 fi
 
@@ -31,7 +43,7 @@ if [ -z $skipLines ]; then
 fi
 
 if [ -z $nLines ]; then
-	nLines=200
+	nLines=1000
 fi
 
 if [ -z $iterType ]; then
@@ -47,8 +59,10 @@ fi
 for outFile in $@; do
 	tmpFile="/tmp/${outFile////_._}.dat"
 	
-	awk "\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print \$3,\$5 }
-	\"${iterType}\"==\"Elec\" && \$1==\"SCF:\" && \$2==\"Cycle:\" { print \$3,\$5 }
+	awk "BEGIN {t=0}
+	NF>2 && \$(NF-1)==\"t[s]:\" {t=\$NF}
+	\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print t,\$5 }
+	\"${iterType}\"==\"Elec\" && \$1==\"SCF:\" && \$2==\"Cycle:\" { print t,\$5 }
 	" $outFile | tail --lines=+$skipLines | tail -$nLines > $tmpFile
 	
 	if  [ -z "$plotCommand" ]; then
@@ -64,7 +78,7 @@ gnuplot -persist << EOF
 set term $term
 set format y $yformat
 set ylabel "Energy"
-set xlabel "Iteration number"
+set xlabel "$xLabel"
 $logCommand
 $plotCommand
 EOF
