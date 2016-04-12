@@ -14,6 +14,8 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
 		logTarget   Plot energy difference from $logTarget on a log axis.
 		xAxis       "iter" (default) or "time" to plot versus iteration count or run time
+		term        GNUPLOT terminal with options (default "wxt enhanced dashed", or "dumb" without X)
+		out         GNUPLOT output file; match this with term (default None)
 	'
 	exit 0
 fi
@@ -35,7 +37,7 @@ if [ -z $logTarget ]; then
 else
 	logCommand="Final=$logTarget; set logscale y"
 	using="${xCol}:(\$2-Final)"
-	yformat='"%g"'
+	yformat='"10^{%L}"'
 fi
 
 if [ -z $skipLines ]; then
@@ -50,10 +52,18 @@ if [ -z $iterType ]; then
 	iterType="Elec"
 fi
 
-if [ -z $DISPLAY ]; then
-	term="dumb"
+if [ -z "$term" ]; then
+	if [ -z $DISPLAY ]; then
+		term="dumb"
+	else
+		term="wxt enhanced dashed"
+	fi
+fi
+
+if [ -z "$out" ]; then
+	outCommand=""
 else
-	term="wxt"
+	outCommand="set output \"$out\""
 fi
 
 for outFile in $@; do
@@ -75,6 +85,7 @@ done
 
 #Plot output
 gnuplot -persist << EOF
+$outCommand
 set term $term
 set format y $yformat
 set ylabel "Energy"
