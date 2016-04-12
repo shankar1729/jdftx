@@ -149,6 +149,7 @@ Commands allowed in jdftx input files
 \bigsep\ref CommandPolarizability
 \bigsep\ref CommandPolarizabilityKdiff
 \bigsep\ref CommandSlabEpsilon
+\bigsep\ref CommandPotentialSubtraction
 \bigsep\ref CommandVibrations
 
 

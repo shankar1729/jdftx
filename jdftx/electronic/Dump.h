@@ -59,6 +59,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 class Dump : public std::set<std::pair<DumpFrequency,DumpVariable> >
 {
 public:
+	Dump();
 	void setup(const Everything&);
 	
 	//! Dump all variables that should be dumped at the given DumpFrequency type
@@ -78,6 +79,7 @@ public:
 	std::vector<double> fermiDensityLevels; //!< energies at which to evaluate fermi-dirac derivative
 	std::shared_ptr<struct SlabEpsilon> slabEpsilon; //!< slab dielectric function calculator
 	std::shared_ptr<struct ChargedDefect> chargedDefect; //!< charged defect correction calculator
+	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
 private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.

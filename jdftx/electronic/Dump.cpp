@@ -33,6 +33,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarFieldIO.h>
 #include <ctime>
 
+Dump::Dump()
+: potentialSubtraction(true)
+{
+}
+
 void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(dos) dos->setup(everything);
@@ -196,6 +201,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		//Subtract neutral-atom reference potential (gives smoother result):
+		if(potentialSubtraction)
 		{	ScalarFieldTilde dAtomic;
 			for(auto sp: e->iInfo.species) if(sp->atpos.size()) sp->accumulateAtomicPotential(dAtomic);
 			d_vac -= dAtomic;

@@ -712,3 +712,22 @@ struct CommandChargedDefect : public Command
 	}
 }
 commandChargedDefect;
+
+struct CommandPotentialSubtraction : public Command
+{
+	CommandPotentialSubtraction() : Command("potential-subtraction")
+	{	format = "<subtract>=yes|no";
+		comments = 
+			"Whether to subtract neutral atom potentials in dumped potentials (Dtot and Dvac).\n"
+			"This subtraction produces much smoother potentials and is enabled by default.";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.dump.potentialSubtraction, true, boolMap, "subtract");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.dump.potentialSubtraction));
+	}
+}
+commandPotentialSubtraction;
