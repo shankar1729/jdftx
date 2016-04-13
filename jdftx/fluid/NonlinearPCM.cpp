@@ -97,7 +97,9 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 					samples.push_back(0.);
 				else
 				{	double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
-					samples.push_back(1.-screeningEval->x_from_V(V));
+					double x = screeningEval->x_from_V(V);
+					double xMapped = 1./(1.+x); //maps [0,infty) -> (0,1]
+					samples.push_back(xMapped);
 				}
 			}
 			xLookup.init(1, samples, dVmapped);

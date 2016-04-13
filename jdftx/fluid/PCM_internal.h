@@ -229,13 +229,18 @@ namespace NonlinearPCMeval
 		#endif
 		
 		//! Hard sphere free energy per particle and derivative, where x is total packing fraction
-		__hostanddev__ double fHS(double x, double& f_x) const
-		{	if(x>=1.) { f_x = NAN; return NAN; }
+		__hostanddev__ double fHS(double xIn, double& f_xIn) const
+		{	double x = xIn, x_xIn = 1.;
+			if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
+			{	double xInInv = 1./xIn;
+				x = 1.-0.25*xInInv;
+				x_xIn = 0.25*xInInv*xInInv;
+			}
 			double den = 1./(1-x), den0 = 1./(1-x0);
 			double comb = (x-x0)*den*den0, comb_x = den*den;
 			double prefac = (2./x0);
 			double f = prefac * comb*comb;
-			f_x = prefac * 2.*comb*comb_x;
+			f_xIn = prefac * 2.*comb*comb_x * x_xIn;
 			return f;
 		}
 		
@@ -300,7 +305,7 @@ namespace NonlinearPCMeval
 		//! Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method
 		__hostanddev__ double x_from_V(double V) const
 		{	double xLo = x0; while(rootFunc(xLo, V) > 0.) xLo *= 0.5;
-			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi = 0.5*(xHi + 1.);
+			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi *= 2.;
 			double x = 0.5*(xHi+xLo);
 			double dx = x*1e-13;
 			while(xHi-xLo > dx)
@@ -323,7 +328,8 @@ namespace NonlinearPCMeval
 			}
 			double twoCbrtV= 2.*pow(fabs(V), 1./3);
 			double Vmapped = copysign(twoCbrtV / (1. + sqrt(1. + twoCbrtV*twoCbrtV)), V);
-			double x = 1. - xLookup(1.+Vmapped);
+			double xMapped = xLookup(1.+Vmapped);
+			double x = 1./xMapped - 1.;
 			double f_x; fHS(x, f_x); //hard sphere potential
 			double logEtaPlus = -V - f_x*x0plus;
 			double logEtaMinus = +V - f_x*x0minus;
