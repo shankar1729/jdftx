@@ -3,6 +3,7 @@
 <table border="0" style="width:100%" ><tr>
 <td>
 + \subpage Compiling
++ \subpage ChangeLog
 + \subpage Tutorials
 + \subpage Scripts
 + \subpage Commands

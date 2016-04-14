@@ -1,0 +1,83 @@
+/** \page ChangeLog Change log
+
+## Unversioned
+
++ Improved convergence and fixed initialization errors in the SCF version of NonlinearPCM,
+  and included softening of ion packing limit to eliminate NANs
+
++ Timing information in all iterations (electrons, fluids, geometry etc.),
+  and corresponding support in the plotConvergence script
+
++ Added command to control whether to use Gummel loop or inner minimization for any fluid type.
+  Correspondingly, energy evaluation in LinearPCM and SaLSA is now strictly variational
+  (rather than generically first-order correct) to support Gummel iteration.
+  
++ Added command to control electrostatic potential output (raw or atom-potential corrected)
+
++ Automatic initial vacuum electronic solve in fixed-mu fluid claculations remain neutral for consistency
+
++ Renamed ion dynamics classes (not named specifically Verlet any more), and added confining potential options
+
++ Added HyperPlane constraint to constrain combined motion of several ions
+  and fixed transformation of linear constraint from lattice coordinates
+
+
+## 1.0.0 - 2016-02-05
+
+First stable release of JDFTx, that marks the transition from SVN to Git code versioning.
+A detailed change log was unfortunately not maintained prior to this release,
+but here's a partial list of major developments since the first numbered release:
+
++ MPI parallelization over k-points for electronic DFT, orientations for classical DFT and angular momenta for SaLSA
+
++ Vibrations, phonons and improved Wannier support for *ab initio* tight binding models (including electron-light and electron-phonon coupling)
+
++ Noncollinear magentism and spin-orbit coupling, including support for DFT+U as well as phonons
+
++ Support for electronic-SCF and the Davidson eigenvalue solver
+  in addition to the default variational minimize using the Conjugate Gradients algorithm
+
++ Iterative LCAO initial guess for wavefunctions (essentially a fully self-consistent DFT calculation in the basis of atomic orbitals)
+
++ Substantial optimization of density augmentation code to speed up ultrafast pseudopotentials,
+  and projector caching to optimize nonlocal potential evaluations
+
++ Seperate wavefunction and charge density cutoff, with an optionally tighter plane-wave grid for wavefucntion transforms
+
++ Systematized fluid specification: solvent and ionic fluid components,
+  pcm-variant to control different parametrizations within classes of solvation models.
+
++ Enhanced Coulomb truncation using double-sized boxes, including for fluids
+
++ Refactored LinearPCM, NonlinearPCM and SaLSA code to use a common PCM base class
+
++ Added the CANDLE, SCCS and SGA13 solvation models
+
++ Polarizability support in Classical DFT fluids
+
++ Charged-defect energy and slab dielectric function calculations;
+  atom-potential correction for electrostatic potentials
+
++ Preliminary support for *ab initio* molecular dynamics
+
++ Added LibXC 2.0 support for additional exchange-correlation functionals
+
++ Convenient wildcard pseudopotential specification, support for QE's UPF format
+  and built-in GBRV and SG15 pseudopotential sets
+
++ Scripts to convert XYZ files to JDFTx geometries, and to
+  visualize JDFTx geometries and outputs via XSF support (XCrysDen, VESTA etc.)
+
++ Reorganized tutorials, website and documentation, merging them all within Doxygen
+
+## 0.99.alpha - 2013-03-05
+
+First numbered release of JDFTx:
+a fully-functional plane-wave electronic DFT code
+with particular emphasis on solvation models,
+classical DFT and joint DFT.
+
+Includes full support for GPU computing using CUDA,
+and efficient parallelization on multiprocessor machines using threads,
+but no support yet for cluster computing using MPI.
+*/
