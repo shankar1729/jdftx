@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandIonicDynamics : public Command
 {
-	CommandIonicDynamics() : Command("ionic-dynamics")
+	CommandIonicDynamics() : Command("ionic-dynamics", "jdftx/Ionic/Dynamics")
 	{	format = "<time-step> <total-time> [<kT>=0.001] [<alpha>=0.0]";
 		comments = "Applies Verlet molecular dynamics\n"
 			   "Takes the time in femtoseconds and kT is in Hartree.\n"
@@ -63,7 +63,7 @@ EnumStringMap<ConfiningPotentialType> confiningPotentialTypeMap
 
 struct CommandConfineDynamics : public Command
 {
-	CommandConfineDynamics() : Command("confine-dynamics")
+	CommandConfineDynamics() : Command("confine-dynamics", "jdftx/Ionic/Dynamics")
 	{	format = "<type> <parameter0> [<parameter1> ...]";
 		comments = "Apply an attractive gravitation-like potential of <type>=None|Linear|Quadratic|Cubic|SmoothLinear\n"
 			   "to every atom. Use this command to keep small clusters of molecules together during MD.\n"

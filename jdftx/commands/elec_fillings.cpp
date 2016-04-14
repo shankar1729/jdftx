@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandElecFermiFillings : public Command
 {
-	CommandElecFermiFillings() : Command("elec-fermi-fillings")
+	CommandElecFermiFillings() : Command("elec-fermi-fillings", "jdftx/Electronic/Parameters")
 	{
 		format = "<mixInterval> <kT> [<alpha>=0.5]";
 		comments =
@@ -59,7 +59,7 @@ commandElecFermiFillings;
 
 struct CommandTargetMu : public Command
 {
-	CommandTargetMu() : Command("target-mu")
+	CommandTargetMu() : Command("target-mu", "jdftx/Electronic/Parameters")
 	{
 		format = "<mu> [<Cinitial>=1.0] [<dnMix>=0.7]";
 		comments =
@@ -92,7 +92,7 @@ commandTargetMu;
 
 struct CommandElecInitialCharge : public Command
 {
-    CommandElecInitialCharge() : Command("elec-initial-charge")
+    CommandElecInitialCharge() : Command("elec-initial-charge", "jdftx/Initialization")
 	{
 		format = "<QNet>";
 		comments =
@@ -114,7 +114,7 @@ CommandElecInitialCharge;
 
 struct CommandElecInitialMagnetization : public Command
 {
-    CommandElecInitialMagnetization() : Command("elec-initial-magnetization")
+    CommandElecInitialMagnetization() : Command("elec-initial-magnetization", "jdftx/Initialization")
 	{
 		format = "<M> <constrain>=yes|no";
 		comments =
@@ -143,7 +143,7 @@ CommandElecInitialMagnetization;
 
 struct CommandElecInitialFillings : public Command
 {
-	CommandElecInitialFillings() : Command("elec-initial-fillings")
+	CommandElecInitialFillings() : Command("elec-initial-fillings", "jdftx/Initialization")
 	{
 		format = "read <filename> [<nBandsOld>]";
 		comments =
@@ -172,7 +172,7 @@ commandElecInitialFillings;
 
 struct CommandElecInitialHaux : public Command
 {
-	CommandElecInitialHaux() : Command("elec-initial-Haux")
+	CommandElecInitialHaux() : Command("elec-initial-Haux", "jdftx/Initialization")
 	{
 		format = "<filename>";
 		comments = "Read the auxilliary hamiltonian for direct fillings (default: set to subspace hamiltonian)\n";
@@ -194,7 +194,7 @@ commandElecInitialHaux;
 
 struct CommandSubspaceRotationFactor : public Command
 {
-	CommandSubspaceRotationFactor() : Command("subspace-rotation-factor")
+	CommandSubspaceRotationFactor() : Command("subspace-rotation-factor", "jdftx/Electronic/Optimization")
 	{	format = "<factor>";
 		comments = "preconditioning factor for subspace rotations";
 		hasDefault = true;

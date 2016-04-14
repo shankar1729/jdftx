@@ -36,7 +36,7 @@ EnumStringMap<DOS::Weight::Type> weightTypeMap
 
 struct CommandDensityOfStates : public Command
 {
-	CommandDensityOfStates() : Command("density-of-states")
+	CommandDensityOfStates() : Command("density-of-states", "jdftx/Output")
 	{
 		format = "[<key1> ...] [<key2> ...] [<key3> ...] ... ";
 		comments =

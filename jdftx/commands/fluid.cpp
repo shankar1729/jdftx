@@ -31,7 +31,7 @@ EnumStringMap<FluidType> fluidTypeMap
 
 struct CommandFluid : public Command
 {
-	CommandFluid() : Command("fluid")
+	CommandFluid() : Command("fluid", "jdftx/Fluid/Parameters")
 	{
 		format = "[<type>=None] [<Temperature>=298K] [<Pressure>=1.01325bar]";
 		comments = "Perform joint density functional theory with fluid of <type>:\n"
@@ -78,7 +78,7 @@ commandFluid;
 
 struct CommandFluidGummelLoop : public Command
 {
-	CommandFluidGummelLoop() : Command("fluid-gummel-loop")
+	CommandFluidGummelLoop() : Command("fluid-gummel-loop", "jdftx/Fluid/Optimization")
 	{
 		format = "[<maxIterations>=10] [<Atol>=1e-5]";
 		comments =
@@ -114,7 +114,7 @@ EnumStringMap<FluidSolveFrequency> fluidSolveFreqDescMap
 
 struct CommandFluidSolveFrequency : public Command
 {
-	CommandFluidSolveFrequency() : Command("fluid-solve-frequency")
+	CommandFluidSolveFrequency() : Command("fluid-solve-frequency", "jdftx/Fluid/Optimization")
 	{
 		format = "<freq>=" + fluidSolveFreqMap.optionList();
 		comments = "Select how often to optimize fluid state:"
@@ -136,7 +136,7 @@ commandFluidSolveFrequency;
 
 struct CommandFluidInitialState : public Command
 {
-	CommandFluidInitialState() : Command("fluid-initial-state")
+	CommandFluidInitialState() : Command("fluid-initial-state", "jdftx/Initialization")
 	{
 		format = "<filename>";
 		comments = "Read initial state of a fluid (compatible with *.fluidState from dump End State)";
@@ -157,7 +157,7 @@ commandFluidInitialState;
 
 struct CommandFluidVdwScale : public Command
 {
-	CommandFluidVdwScale() : Command("fluid-vdwScale")
+	CommandFluidVdwScale() : Command("fluid-vdwScale", "jdftx/Fluid/Parameters")
 	{
 		format = "<scale=0.75>";
 		comments = "Scale van der Waals interactions between fluid and explicit system by a constant factor <scale>.\n\n"
@@ -303,7 +303,8 @@ private:
 	
 protected:
 	CommandFluidComponent(string suffix, const EnumStringMap<FluidComponent::Name>& nameMap, FluidComponent::Name defaultName, FluidComponent::Functional defaultFunctional, bool defaultEnabled)
-	: Command("fluid-"+suffix), nameMap(nameMap), defaultName(defaultName), defaultFunctional(defaultFunctional), defaultEnabled(defaultEnabled)
+	: Command("fluid-"+suffix, "jdftx/Fluid/Constituents"),
+	nameMap(nameMap), defaultName(defaultName), defaultFunctional(defaultFunctional), defaultEnabled(defaultEnabled)
 	{
 		format = (defaultEnabled ? ("[<name>=" + string(nameMap.getString(defaultName)) +"] [<concentration>=bulk]") : "<name> <concentration>")
 			+ " [<functional>=" + string(functionalMap.getString(defaultFunctional)) + "]"
@@ -547,7 +548,7 @@ EnumStringMap<FluidComponent::Name> fluidComponentMap(
 
 struct CommandFluidSiteParams : public Command
 {
-	CommandFluidSiteParams() : Command("fluid-site-params")
+	CommandFluidSiteParams() : Command("fluid-site-params", "jdftx/Fluid/Constituents")
 	{	
 		format = " <component> <siteName> <key1> <value1> <key2> <value2> ...";
 		comments = "Set parameters of site <siteName> for fluid <component> which may be one of:"
@@ -674,7 +675,7 @@ EnumStringMap<FMixFunctional> fMixMap
 
 struct CommandFluidMixingFunctional : public Command 
 {
-    CommandFluidMixingFunctional() : Command("fluid-mixing-functional")
+    CommandFluidMixingFunctional() : Command("fluid-mixing-functional", "jdftx/Fluid/Constituents")
 	{
 	  format = "<fluid1> <fluid2> <energyScale> [<lengthScale>] [<FMixType>=LJPotential]";
 	  comments = 
@@ -742,7 +743,7 @@ commandFluidMixingFunctional;
 	
 struct CommandFluidDielectricConstant : public Command
 {
-    CommandFluidDielectricConstant() : Command("fluid-dielectric-constant")
+    CommandFluidDielectricConstant() : Command("fluid-dielectric-constant", "jdftx/Fluid/Parameters")
 	{
 		format = "[<epsBulkOverride>=0] [<epsInfOverride>=0]";
 		comments = "Override bulk static or high frequency dieelctric constant of fluid (if non-zero values specified)";

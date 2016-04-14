@@ -30,9 +30,22 @@ map<string,Command*>& getCommandMap()
 {	return updateCommandMap(0);
 }
 
-Command::Command(string name, string section)
-: name(name), section(section), allowMultiple(false), hasDefault(false)
+void fixCategoryName(string& name)
+{	//Replace spaces with underscore:
+	for(char& c: name) if(c==' ') c='_';
+	//Replace empty string with NULL:
+	if(!name.length()) name = "NULL";
+}
+
+Command::Command(string name, string path)
+: name(name), allowMultiple(false), hasDefault(false)
 {	updateCommandMap(this);
+	
+	//Parse the path to get section, category and subcategory:
+	istringstream iss(path);
+	getline(iss, section, '/');
+	getline(iss, category, '/'); fixCategoryName(category);
+	getline(iss, subcategory, '/'); fixCategoryName(subcategory);
 }
 
 void Command::require(string name) { requires.insert(name); }

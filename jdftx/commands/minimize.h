@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @brief Abstract base class for all the minimize commands
 struct CommandMinimize : public Command
-{	CommandMinimize(string systemName, string section="jdftx"); //!< provide a command called systemName-minimize in specified section
+{	CommandMinimize(string systemName, string path); //!< provide a command called systemName-minimize in specified section
 	void process(ParamList& pl, Everything& e);
 	void printStatus(Everything& e, int iRep);
 protected:

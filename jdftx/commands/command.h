@@ -65,6 +65,8 @@ public:
 	string format; //!< Usage syntax for the command (excluding the command name)
 	string comments; //!< Detailed help for the command which goes into jdftx -t as well as the Doxygen manual. Please check formatting in both versions.
 	string section; //!< Which executable the command belongs to, and hence which section it must be documented under.
+	string category; //!< Category of command under which to list the documentation
+	string subcategory; //!< Subcategory of command under which to list the documentation
 	
 	std::set<string> requires; //!< Names of other commands that this one requires; those commands will be processed before this one.
 	std::set<string> forbids; //!< Names of other commands that this one is incompatibile with.
@@ -88,8 +90,11 @@ protected:
 	//! This base class constructor adds the current command to a map from names to Command pointers
 	//! which can be accessed using getCommandMap(). This enables safe static initialization of the command list.
 	//! @param name Unique name of the command
-	//! @param section Which executable this command belongs to (override for commands outside of the main jdftx executable).
-	Command(string name, string section="jdftx");
+	//! @param path Documentation path for the command in the format
+	//!   "section/category/subcategory", where section is the name
+	//!   of the executable (jdftx, phonon or wannier),
+	//!   and the remaining help organize commands in the doc
+	Command(string name, string path);
 
 	void require(string); //!< utility to add a command to the requires list
 	void forbid(string); //!< utility to add a command to the forbids list

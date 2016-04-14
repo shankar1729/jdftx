@@ -502,6 +502,8 @@ void writeCommandManual(Everything& everything, string section)
 		if(ci.section != section) continue; //not in current section/executable
 		//Start page:
 		string id = commandNameToID(ci.name);
+		logPrintf("\n//SectionInfo %s %s %s\n", //non-Doxygen comment used by category_update to organize commands
+			ci.category.c_str(), ci.subcategory.c_str(), id.c_str());
 		logPrintf("\n/** \\page %s %s\n", id.c_str(), ci.name.c_str());
 		//Print syntax:
 		logPrintf("Syntax:\n");

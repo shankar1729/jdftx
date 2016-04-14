@@ -27,7 +27,7 @@ EnumStringMap<SymmetryMode> symmMap(
 
 struct CommandSymmetries : public Command
 {
-	CommandSymmetries() : Command("symmetries")
+	CommandSymmetries() : Command("symmetries", "jdftx/Miscellaneous")
 	{
 		format = "<symm>=" + symmMap.optionList() + " <moveAtoms>=" + boolMap.optionList();
 		comments = "+ none: symmetries are off\n"
@@ -53,7 +53,7 @@ commandSymmetries;
 
 struct CommandSymmetryMatrix : public Command
 {
-	CommandSymmetryMatrix() : Command("symmetry-matrix")
+	CommandSymmetryMatrix() : Command("symmetry-matrix", "jdftx/Miscellaneous")
 	{
 		format = " \\\n\t<s00> <s01> <s02> \\\n\t<s10> <s11> <s12> \\\n\t<s20> <s21> <s22>";
 		comments = "Specify symmetry operator matrices explicitly.\n"

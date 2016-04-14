@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandIonVelocity : public Command
 {
-	CommandIonVelocity() : Command("ion-vel")
+	CommandIonVelocity() : Command("ion-vel", "jdftx/Ionic/Dynamics")
 	{
 		format = "<species-id> <x0> <x1> <x2> <v0> <v1> <v2>";
 		comments =

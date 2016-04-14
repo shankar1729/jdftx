@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandInitialState : public Command
 {
-	CommandInitialState() : Command("initial-state")
+	CommandInitialState() : Command("initial-state", "jdftx/Initialization")
 	{
 		format = "<filename-pattern>";
 		comments = "Initialize state from a filename pattern which contains a $VAR,\n"
@@ -88,7 +88,7 @@ EnumStringMap<WfnsInit> wfnsInitMap(
 
 struct CommandWavefunction : public Command
 {
-	CommandWavefunction() : Command("wavefunction")
+	CommandWavefunction() : Command("wavefunction", "jdftx/Initialization")
 	{
 		format =
 			"lcao\n"

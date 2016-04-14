@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandElecCutoff : public Command
 {
-	CommandElecCutoff() : Command("elec-cutoff")
+	CommandElecCutoff() : Command("elec-cutoff", "jdftx/Electronic/Parameters")
 	{
 		format = "<Ecut> [<EcutRho>=0]";
 		comments = "Electronic planewave cutoff in Hartree. Optionally specify charge density cutoff\n"
@@ -51,7 +51,7 @@ commandElecCutoff;
 
 struct CommandFftbox : public Command
 {
-	CommandFftbox() : Command("fftbox")
+	CommandFftbox() : Command("fftbox", "jdftx/Electronic/Parameters")
 	{
 		format = "<S0> <S1> <S2>";
 		comments = "Manually override the real space grid dimensions used for scalar fields.\n"
@@ -74,7 +74,7 @@ commandFftbox;
 
 struct CommandElecNbands : public Command
 {
-	CommandElecNbands() : Command("elec-n-bands")
+	CommandElecNbands() : Command("elec-n-bands", "jdftx/Electronic/Parameters")
 	{
 		format = "<n>";
 		comments = "Manually specify the number of bands.\n\n"
@@ -97,7 +97,7 @@ commandElecNbands;
 
 struct CommandDavidsonBandRatio : public Command
 {
-	CommandDavidsonBandRatio() : Command("davidson-band-ratio")
+	CommandDavidsonBandRatio() : Command("davidson-band-ratio", "jdftx/Electronic/Optimization")
 	{
 		format = "[<ratio>=1.1]";
 		comments =
@@ -124,7 +124,7 @@ commandDavidsonBandRatio;
 
 struct CommandLcaoParams : public Command
 {
-	CommandLcaoParams() : Command("lcao-params")
+	CommandLcaoParams() : Command("lcao-params", "jdftx/Initialization")
 	{
 		format = "[<nIter>=-1] [<Ediff>=1e-6] [<kT>=1e-3]";
 		comments = "Control LCAO wavefunction initialization:\n"
@@ -166,7 +166,7 @@ EnumStringMap<SpinType> spinDescMap
 
 struct CommandSpintype : public Command
 {
-	CommandSpintype() : Command("spintype")
+	CommandSpintype() : Command("spintype", "jdftx/Electronic/Parameters")
 	{
 		format = "<type>=" + spinMap.optionList();
 		comments = "Select spin-polarization type:"
@@ -189,7 +189,7 @@ commandSpintype;
 //Base class for fix-electron-density and fix-electron-potential
 struct CommandFixElectronHamiltonian : public Command
 {	
-    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name)
+    CommandFixElectronHamiltonian(string name) : Command("fix-electron-"+name, "jdftx/Electronic/Optimization")
 	{
 		format = "<filenamePattern>";
 		comments = "Perform band structure calculations at fixed electron " + name + "\n"
@@ -236,7 +236,7 @@ commandFixElectronPotential;
 
 struct CommandFixOccupied : public Command
 {
-	CommandFixOccupied() : Command("fix-occupied")
+	CommandFixOccupied() : Command("fix-occupied", "jdftx/Electronic/Optimization")
 	{
 		format = "[<fThreshold>=0]";
 		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations.\n"
@@ -259,7 +259,7 @@ commandFixOccupied;
 
 struct CommandReorthogonalizeOrbitals : public Command
 {
-	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals")
+	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals", "jdftx/Electronic/Optimization")
 	{
 		format = "[<interval=20>] [<threshold>=1.5]";
 		comments =
@@ -287,7 +287,7 @@ commandReorthogonalizeOrbitals;
 
 struct CommandConvergeEmptyStates : public Command
 {
-	CommandConvergeEmptyStates() : Command("converge-empty-states")
+	CommandConvergeEmptyStates() : Command("converge-empty-states", "jdftx/Electronic/Optimization")
 	{
 		format = "yes|no";
 		comments = "Whether to converge empty states after each electronic optimization (default no).\n"
@@ -311,7 +311,7 @@ commandConvergeEmptyStates;
 
 struct CommandWavefunctionDrag : public Command
 {
-	CommandWavefunctionDrag() : Command("wavefunction-drag")
+	CommandWavefunctionDrag() : Command("wavefunction-drag", "jdftx/Ionic/Optimization")
 	{
 		format = "yes|no";
 		comments =
@@ -332,7 +332,7 @@ commandWavefunctionDrag;
 
 struct CommandCacheProjectors : public Command
 {
-	CommandCacheProjectors() : Command("cache-projectors")
+	CommandCacheProjectors() : Command("cache-projectors", "jdftx/Miscellaneous")
 	{
 		format = "yes|no";
 		comments =
@@ -353,7 +353,7 @@ commandCacheProjectors;
 
 struct CommandBasis : public Command
 {
-	CommandBasis() : Command("basis")
+	CommandBasis() : Command("basis", "jdftx/Electronic/Parameters")
 	{
 		format = "<kdep>=" + kdepMap.optionList();
 		comments = "Basis set at each k-point (default), or single basis set at gamma point";
@@ -377,7 +377,7 @@ static EnumStringMap<ElecEigenAlgo> elecEigenMap(ElecEigenCG, "CG", ElecEigenDav
 
 struct CommandElecEigenAlgo : public Command
 {
-    CommandElecEigenAlgo() : Command("elec-eigen-algo")
+    CommandElecEigenAlgo() : Command("elec-eigen-algo", "jdftx/Electronic/Optimization")
 	{
 		format = "<algo>=" + elecEigenMap.optionList();
 		comments = "Selects eigenvalue algorithm for band-structure calculations or inner loop of SCF.";
@@ -400,7 +400,7 @@ struct CommandCustomFilling : public Command
 {
 	int qnum, band; double filling;
 	
-	CommandCustomFilling() : Command("custom-filling")
+	CommandCustomFilling() : Command("custom-filling", "jdftx/Miscellaneous")
 	{
 		format = "<qnum> <band> <filling>";
 		comments = "Specify a custom filling for the input (quantum-number, band)\n"
@@ -434,7 +434,7 @@ commandCustomFilling;
 
 struct CommandInvertKohnSham : public Command
 {
-	CommandInvertKohnSham() : Command("invertKohnSham")
+	CommandInvertKohnSham() : Command("invertKohnSham", "jdftx/Miscellaneous")
 	{
 		format = "[<nonlocal>=yes] [<sigma>=0] [<chiGuessFilename>]";
 		comments =
@@ -484,7 +484,7 @@ struct CommandInvertKohnSham : public Command
 
 struct CommandRhoExternal : public Command
 {
-	CommandRhoExternal() : Command("rhoExternal")
+	CommandRhoExternal() : Command("rhoExternal", "jdftx/Coulomb interactions")
 	{
 		format = "<filename> [<includeSelfEnergy>=yes|no]";
 		comments =
@@ -510,7 +510,7 @@ commandRhoExternal;
 
 struct CommandVexternal : public Command
 {
-	CommandVexternal() : Command("Vexternal")
+	CommandVexternal() : Command("Vexternal", "jdftx/Electronic/Parameters")
 	{
 		format = "<filename> | <filenameUp> <filenameDn>";
 		comments =
@@ -539,7 +539,7 @@ commandVexternal;
 
 struct CommandBoxPotential : public Command
 {
-	CommandBoxPotential() : Command("box-potential")
+	CommandBoxPotential() : Command("box-potential", "jdftx/Electronic/Parameters")
 	{
 		format = "xmin xmax ymin ymax zmin zmax Vin Vout [<convolve_radius>=0.1]";
 		comments =
@@ -577,7 +577,7 @@ commandBoxPot;
 
 struct CommandElectricField : public Command
 {
-	CommandElectricField() : Command("electric-field")
+	CommandElectricField() : Command("electric-field", "jdftx/Electronic/Parameters")
 	{
 		format = "<Ex> <Ey> <Ez>";
 		comments = 

@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandKpoint : public Command
 {
-	CommandKpoint() : Command("kpoint")
+	CommandKpoint() : Command("kpoint", "jdftx/Electronic/Parameters")
 	{
 		format = "<k0> <k1> <k2> <weight>";
 		comments =
@@ -53,7 +53,7 @@ commandKpoint;
 
 struct CommandKpointFolding : public Command
 {
-	CommandKpointFolding() : Command("kpoint-folding")
+	CommandKpointFolding() : Command("kpoint-folding", "jdftx/Electronic/Parameters")
 	{
 		format = "[<n0>=1] [<n1>=1] [<n2>=1]";
 		comments = "Fold k-points in direction i by factor <ni> (for i=0,1,2)";

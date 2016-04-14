@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct CommandDumpOnly : public Command
 {
-	CommandDumpOnly() : Command("dump-only")
+	CommandDumpOnly() : Command("dump-only", "jdftx/Output")
 	{
 		comments = 
 			"Bypass all minimization, perform a single energy evaluation at\n"
@@ -168,7 +168,7 @@ EnumStringMap<DumpVariable> varDescMap
 
 struct CommandDump : public Command
 {
-	CommandDump() : Command("dump")
+	CommandDump() : Command("dump", "jdftx/Output")
 	{
 		format = "<freq> <var> <var> ...";
 		comments =
@@ -219,7 +219,7 @@ commandDump;
 
 struct CommandDumpInterval : public Command
 {
-	CommandDumpInterval() : Command("dump-interval")
+	CommandDumpInterval() : Command("dump-interval", "jdftx/Output")
 	{
 		format = "<freq> <interval>";
 		comments = 
@@ -257,7 +257,7 @@ commandDumpInterval;
 
 struct CommandDumpName : public Command
 {
-	CommandDumpName() : Command("dump-name")
+	CommandDumpName() : Command("dump-name", "jdftx/Output")
 	{
 		format = "<format>";
 		comments = 
@@ -289,7 +289,7 @@ EnumStringMap<Polarizability::EigenBasis> polarizabilityMap
 
 struct CommandPolarizability : public Command
 {
-    CommandPolarizability() : Command("polarizability")
+    CommandPolarizability() : Command("polarizability", "jdftx/Output")
 	{
 		format = "<eigenBasis>=" + polarizabilityMap.optionList() + " [<Ecut>=0] [<nEigs>=0]";
 		comments = "Output polarizability matrix in specified eigenBasis";
@@ -329,7 +329,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 
 struct CommandElectronScattering : public Command
 {
-    CommandElectronScattering() : Command("electron-scattering")
+    CommandElectronScattering() : Command("electron-scattering", "jdftx/Output")
 	{
 		format = "<key1> <value1> ...";
 		comments = "Calculate electron-electron scattering rates (expensive!)\n"
@@ -384,7 +384,7 @@ commandElectronScattering;
 
 struct CommandPolarizabilityKdiff : public Command
 {
-    CommandPolarizabilityKdiff() : Command("polarizability-kdiff")
+    CommandPolarizabilityKdiff() : Command("polarizability-kdiff", "jdftx/Output")
 	{
 		format = "<dk0> <dk1> <dk2> [<dkFilenamePattern>]";
 		comments = "Select k-point difference (in reciprocal lattice coords) for polarizability output.\n"
@@ -419,7 +419,7 @@ commandPolarizabilityKdiff;
 
 struct CommandDumpEresolvedDensity : public Command
 {
-    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density")
+    CommandDumpEresolvedDensity() : Command("dump-Eresolved-density", "jdftx/Output")
 	{
 		format = "<Emin> <Emax>";
 		comments =
@@ -452,7 +452,7 @@ commandDumpEresolvedDensity;
 
 struct CommandDumpFermiDensity : public Command 
 {
-    CommandDumpFermiDensity() : Command("dump-fermi-density")
+    CommandDumpFermiDensity() : Command("dump-fermi-density", "jdftx/Output")
 	{
 		format = "[<muLevel>]";
 		comments =
@@ -512,7 +512,7 @@ EnumStringMap<VibrationsMember> vibMap
 
 struct CommandVibrations : public Command
 {
-    CommandVibrations() : Command("vibrations")
+    CommandVibrations() : Command("vibrations", "jdftx/Output")
 	{
 		format = "<key1> <args1> ...";
 		comments =
@@ -574,7 +574,7 @@ commandVibrations;
 
 struct CommandSlabEpsilon : public Command
 {
-	CommandSlabEpsilon() : Command("slab-epsilon")
+	CommandSlabEpsilon() : Command("slab-epsilon", "jdftx/Output")
 	{
 		format = "<DtotFile> <sigma> [<Ex>=0] [<Ey>=0] [<Ez>=0]";
 		comments = 
@@ -612,7 +612,7 @@ commandSlabEpsilon;
 
 struct CommandChargedDefectCorrection : public Command
 {
-	CommandChargedDefectCorrection() : Command("charged-defect-correction")
+	CommandChargedDefectCorrection() : Command("charged-defect-correction", "jdftx/Output")
 	{
 		format = "<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
 		comments = 
@@ -676,7 +676,7 @@ CommandChargedDefectCorrection;
 
 struct CommandChargedDefect : public Command
 {
-	CommandChargedDefect() : Command("charged-defect")
+	CommandChargedDefect() : Command("charged-defect", "jdftx/Output")
 	{
 		format = "<x0> <x1> <x2> <q> <sigma>";
 		comments = 
@@ -715,7 +715,7 @@ commandChargedDefect;
 
 struct CommandPotentialSubtraction : public Command
 {
-	CommandPotentialSubtraction() : Command("potential-subtraction")
+	CommandPotentialSubtraction() : Command("potential-subtraction", "jdftx/Output")
 	{	format = "<subtract>=yes|no";
 		comments = 
 			"Whether to subtract neutral atom potentials in dumped potentials (Dtot and Dvac).\n"

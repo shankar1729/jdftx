@@ -38,7 +38,7 @@ EnumStringMap<GridInfo::LatticeModification> lattModMap
 
 struct CommandLattice : public Command
 {
-	CommandLattice() : Command("lattice")
+	CommandLattice() : Command("lattice", "jdftx/Ionic/Geometry")
 	{
 		format = " [<modification>] <lattice> <parameters...>\n"
 			"\t| \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
@@ -167,7 +167,7 @@ commandLattice;
 
 struct CommandLattScale : public Command
 {
-	CommandLattScale() : Command("latt-scale")
+	CommandLattScale() : Command("latt-scale", "jdftx/Ionic/Geometry")
 	{
 		format = "<s0> <s1> <s2>";
 		comments = "Scale lattice vector i by factor <si>";
@@ -197,7 +197,7 @@ commandLattScale;
 
 struct CommandLattMoveScale : public Command
 {
-	CommandLattMoveScale() : Command("latt-move-scale")
+	CommandLattMoveScale() : Command("latt-move-scale", "jdftx/Ionic/Optimization")
 	{
 		format = "<s0> <s1> <s2>";
 		comments = "Preconditioning factor for each lattice vector (must be commensurate with symmetries)";
@@ -224,7 +224,7 @@ EnumStringMap<CoordsType> coordsMap(
 
 struct CommandCoordsType : public Command
 {
-	CommandCoordsType() : Command("coords-type")
+	CommandCoordsType() : Command("coords-type", "jdftx/Ionic/Geometry")
 	{
 		format = "<coords>=" + coordsMap.optionList();
 		comments = "Coordinate system used in specifying ion positions (default: lattice)";

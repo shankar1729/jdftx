@@ -52,7 +52,7 @@ EnumStringMap<PulayParamsMember> pulayParamsDescMap
 //Base class for pulay-mixing commands
 struct CommandPulay : public Command
 {
-	CommandPulay(string name) : Command(name)
+	CommandPulay(string name, string path) : Command(name, path)
 	{
 		format = "<key1> <value1> <key2> <value2> ...";
 		//Derived classes must set all other necessary parameters
@@ -138,7 +138,7 @@ EnumStringMap<SCFparams::MixedVariable> scfMixing
 
 struct CommandElectronicScf: public CommandPulay
 {
-	CommandElectronicScf() : CommandPulay("electronic-scf")
+	CommandElectronicScf() : CommandPulay("electronic-scf", "jdftx/Electronic/Optimization")
 	{	
 		comments =
 			"Enables self-consistent field optimization of electronic state.\n"
@@ -197,7 +197,7 @@ commandElectronicScf;
 
 struct CommandEigenShift : public Command
 {
-	CommandEigenShift() : Command("eigen-shift")
+	CommandEigenShift() : Command("eigen-shift", "jdftx/Miscellaneous")
 	{
 		format = "<qnum> <band> <shift> [<fromHOMO>=yes]";
 		comments =
@@ -229,7 +229,7 @@ commandEigenShift;
 
 struct CommandPcmNonlinearScf: public CommandPulay
 {
-	CommandPcmNonlinearScf() : CommandPulay("pcm-nonlinear-scf")
+	CommandPcmNonlinearScf() : CommandPulay("pcm-nonlinear-scf", "jdftx/Fluid/Optimization")
 	{	
 		comments =
 			"Enables self-consistent field optimization for nonlinear PCM fluids.\n"

@@ -229,6 +229,7 @@ if(DOXYGEN_FOUND)
 		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/wannier -w wannier > "${DOC_TMP_DIR}/commands/wannier.dox"
 		COMMAND ${CMAKE_CURRENT_BINARY_DIR}/phonon  -w phonon  > "${DOC_TMP_DIR}/commands/phonon.dox"
 		COMMAND echo "--- Updating command index"
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/commands/category_update.sh "${DOC_TMP_DIR}" > "${DOC_TMP_DIR}/commands_categorized.dox"
 		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/commands/index_update.sh "${DOC_TMP_DIR}" > "${DOC_TMP_DIR}/commands_index.dox"
 		COMMAND echo "--- Updating scripts documentation"
 		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" > "${DOC_TMP_DIR}/scripts_manual.dox"

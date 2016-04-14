@@ -380,7 +380,7 @@ string getLibXCdescription_K(const string& name) { return getLibXCdescription(na
 
 struct CommandElecExCorr : public Command
 {
-	CommandElecExCorr(const char* cmdName = "elec-ex-corr") : Command(cmdName)
+	CommandElecExCorr(const char* cmdName = "elec-ex-corr", string path="jdftx/Electronic/Functional") : Command(cmdName, path)
 	{
 		format = "<functional>";
 		comments = "Specify the exchange-correlation functional, where <functional> is one of:"
@@ -501,7 +501,7 @@ commandElecExCorrCompare;
 
 struct CommandFluidExCorr : public CommandElecExCorr
 {
-	CommandFluidExCorr() : CommandElecExCorr("fluid-ex-corr")
+	CommandFluidExCorr() : CommandElecExCorr("fluid-ex-corr", "jdftx/Fluid/Parameters")
 	{
 		format = "<kinetic> [<exchange-correlation>]";
 		comments =
@@ -562,7 +562,7 @@ commandFluidExCorr;
 
 struct CommandVanDerWaals : public Command
 {
-	CommandVanDerWaals() : Command("van-der-waals")
+	CommandVanDerWaals() : Command("van-der-waals", "jdftx/Electronic/Functional")
 	{
 		format = "[<scaleOverride>=0]";
 		comments =
