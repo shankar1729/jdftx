@@ -22,7 +22,7 @@
   and fixed transformation of linear constraint from lattice coordinates
 
 
-## 1.0.0 - 2016-02-05
+## 1.0.0 - 2016-02-05 ([Site archive](http://jdftx.org/1.0.0))
 
 First stable release of JDFTx, that marks the transition from SVN to Git code versioning.
 A detailed change log was unfortunately not maintained prior to this release,
