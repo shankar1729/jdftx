@@ -642,7 +642,8 @@ void printStats(const ScalarField& X, const char* name, FILE* fp)
 {	int N = X->nElem;
 	double mean = sum(X)/N;
 	double stdDev = sqrt(fabs(dot(X,X)/N - mean*mean));
-	fprintf(fp, "vector3 %s\t= %.15le +/- %.15le\n", name, mean, stdDev);
+	double minVal, maxVal; callPref(eblas_capMinMax)(N, X->dataPref(), minVal, maxVal);
+	fprintf(fp, "vector %s\t= %.15le +/- %.15le  min: %le  max: %le\n", name, mean, stdDev, minVal, maxVal);
 }
 
 //------------------------------ From VectorField.h ------------------------------
