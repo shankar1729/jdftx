@@ -287,8 +287,8 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	//--- accumulate and save internal energies
 	Ainternal.allReduce(MPIUtil::ReduceSum);
 	for(int l=0; l<=fsp.lMax; l++)
-	{	char Aname[16]; sprintf(Aname, "Aint_l=%d", l);
-		Adiel[Aname] = Ainternal[l];
+	{	ostringstream oss; oss << "Aint_l=" << l;
+		Adiel[oss.str()] = Ainternal[l];
 	}
 	//--- propagate site shape gradients to main shape
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
