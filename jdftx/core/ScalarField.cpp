@@ -77,6 +77,23 @@ ScalarField ScalarFieldData::clone() const
 }
 ScalarField ScalarFieldData::alloc(const GridInfo& gInfo, bool onGpu) { return std::make_shared<ScalarFieldData>(gInfo, onGpu, PrivateTag()); }
 
+matrix ScalarFieldData::toMatrix() const
+{
+  matrix mat(gInfo.nr,1,isOnGpu());
+ 
+  #ifdef GPU_ENABLED
+  if(isOnGpu())
+  {
+    cudaMemcpy(&mat, dataGpu(false), gInfo.nr*sizeof(double), cudaMemcpyDeviceToDevice);
+    return mat * scale;
+  }
+  #endif
+  
+  memcpy(&mat, data(false), gInfo.nr*sizeof(double));    
+  return mat * scale;
+}
+
+
 
 //------------ class ScalarFieldTildeData ---------------
 
