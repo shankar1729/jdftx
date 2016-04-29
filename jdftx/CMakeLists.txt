@@ -43,12 +43,15 @@ if(EnableMKL)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
 	add_definitions("-DMKL_PROVIDES_BLAS") #Special handling is required for BLAS calls from threaded sections
 	include_directories(${MKL_INCLUDE_DIR})
+	#Explicitly add threads library
+	set(CMAKE_THREAD_PREFER_PTHREAD)
+	find_package(Threads REQUIRED)
 	if(ForceFFTW)
 		find_package(FFTW3 REQUIRED)
-		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES}) #Explicit FFTW3, rest from MKL
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}) #Explicit FFTW3, rest from MKL
 	else()
 		add_definitions("-DMKL_PROVIDES_FFT") #Special handling is required for FFT initialization
-		set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}) #MKL provides CBLAS, FFTW3 and LAPACK
 	endif()
 else()
 	find_package(FFTW3 REQUIRED)
