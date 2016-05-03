@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-+ Fixed compilation for new compilers: up to g++-5.3 and CUDA 7.5 
++ Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5 
 
 
 ## 1.1.0 - 2016-04-14 ([Site archive](http://jdftx.org/1.1.0))
