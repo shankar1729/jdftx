@@ -244,9 +244,9 @@ if(DOXYGEN_FOUND)
 	)
 endif()
 
-#Test suite
+#Tests
 enable_testing()
-add_subdirectory(testsuite)
+add_subdirectory(test)
 
 #Optional: additional auxiliary test executables, mostly related to fluid development
 add_subdirectory(aux)

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ Moved auxiliary executables to aux making their compilation optional, and renamed testuite to test
+
 + Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5 
 
 
