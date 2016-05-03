@@ -191,12 +191,12 @@ endif()
 
 macro(add_JDFTx_executable execName execSources)
 	#CPU version
-	add_executable(${execName} ${execSources})
+	add_executable(${execName} ${ARGN} ${execSources})
 	target_link_libraries(${execName} jdftxlib)
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(EnableCUDA) #GPU version
-	        add_executable(${execName}_gpu ${execSources})
+	        add_executable(${execName}_gpu ${ARGN} ${execSources})
 	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
 	        set_JDFTx_flags(${execName}_gpu ON)
 	endif()
@@ -244,15 +244,16 @@ if(DOXYGEN_FOUND)
 	)
 endif()
 
-#Additional test executables, mostly related to the fluid
-add_subdirectory(tests)
-
 #Test suite
 enable_testing()
 add_subdirectory(testsuite)
+
+#Optional: additional auxiliary test executables, mostly related to fluid development
+add_subdirectory(aux)
 
 #Optional features: primarily interfaces to other codes
 add_subdirectory(opt)
 
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
+
