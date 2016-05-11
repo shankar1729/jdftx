@@ -6,6 +6,7 @@
 #include <core/ScalarFieldIO.h>
 #include <core/LatticeUtils.h>
 #include <core/Coulomb_internal.h>
+#include <gsl/gsl_sf.h>
 
 //-------------------------- Slab epsilon ----------------------------------
 
@@ -123,10 +124,198 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	}
 };
 
-struct SlabIsolatedSolver : public LinearSolvable<matrix>
+
+struct CylindricalPoisson
 {
+	int NZ;
+	diagMatrix z; //real-space grid
+	matrix IZ, JZ, OZ; //axial operators (full-matrices)
+	diagMatrix DZ, EZ; //axial operators (diagonal ones)
+
+	CylindricalPoisson(int iDir, const ScalarField& epsSlab, double z0scale=1.)
+	{
+		//Determine grid mapping parameters:
+		const GridInfo& gInfo = epsSlab->gInfo;
+		double dzTyp = gInfo.h[iDir].length();
+		double z0 = 0.25*gInfo.R.column(iDir).length() * z0scale;
+		double dZtarget = 2.*dzTyp/(z0*(5.+sqrt(5.)));
+		NZ = 2*ceil(1./dZtarget); //keep even (Z in (-1,1))
+		logPrintf("\tSlabIsolated: Axial coordinate map with z0: %lg  NZ: %d\n", z0, NZ);
+		
+		//Initialize grid and spectral basis:
+		diagMatrix Z(NZ); z.resize(NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+		{	Z[iZ] = -1. + (iZ+1)*(2./(NZ+1));
+			z[iZ] = z0*Z[iZ]/(1.-Z[iZ]*Z[iZ]);
+		}
+		IZ.init(NZ, NZ);
+		{	complex* IZdata = IZ.data();
+			for(int alphaZ=0; alphaZ<NZ; alphaZ++)
+				for(int iZ=0; iZ<NZ; iZ++)
+					*(IZdata++) = sin((alphaZ+1)*(Z[iZ]+1.)*(0.5*M_PI));
+		}
+		
+		//Calculate the analytical matrix element generators:
+		diagMatrix OZtilde(2*NZ+1);
+		for(int n=0; n<(2*NZ+1); n++)
+			OZtilde[n] = -0.25* n*M_PI * gsl_sf_Si(n*M_PI);
+		
+		//Calculate the numerical matrix element generators:
+		//--- initialize quadrature grid:
+		const int Nquad = 11; //number of points in quadrature
+		const int NZint = (NZ + 1) * Nquad;
+		diagMatrix Zint(NZint), wZint(NZint);
+		{	gsl_integration_glfixed_table* glTable = gsl_integration_glfixed_table_alloc(Nquad);
+			double* ZintPtr = Zint.data();
+			double* wZintPtr = wZint.data();
+			double deltaZ = 2./(NZ+1);
+			for(int iZ=0; iZ<=NZ; iZ++)
+			{	double Zlo = -1. + deltaZ*iZ;
+				double Zhi = -1. + deltaZ*(iZ+1);
+				for(int iQuad=0; iQuad<Nquad; iQuad++)
+					gsl_integration_glfixed_point(Zlo, Zhi, iQuad, ZintPtr++, wZintPtr++, glTable);
+			}
+			gsl_integration_glfixed_table_free(glTable);
+		}
+		//--- interpolate dielectric function to quadrature grid:
+		diagMatrix epsInt(NZint); double epsBG;
+		{	//Extract spline coefficients from epsSlab:
+			int Sdir = gInfo.S[iDir];
+			int Shlf = Sdir / 2;
+			std::vector<double> epsSamples;
+			vector3<int> iR;
+			for(iR[iDir]=Sdir-Shlf; iR[iDir]<Sdir; iR[iDir]++)
+				epsSamples.push_back(epsSlab->data()[gInfo.fullRindex(iR)]);
+			for(iR[iDir]=0; iR[iDir]<=Shlf; iR[iDir]++)
+				epsSamples.push_back(epsSlab->data()[gInfo.fullRindex(iR)]);
+			std::vector<double> epsCoeff = QuinticSpline::getCoeff(epsSamples);
+			double zStart = -Shlf * dzTyp;
+			double zStop = +Shlf * dzTyp;
+			double dzInv = 1./dzTyp;
+			//Set and check background value:
+			epsBG = epsSamples.front();
+			assert(epsBG == epsSamples.back());
+			//Evaluate on quadrature grid:
+			FILE* fp = fopen("test_z.quad_eps", "w");
+			for(int iZint=0; iZint<NZint; iZint++)
+			{	double z = z0*Zint[iZint]/(1.-Zint[iZint]*Zint[iZint]);
+				epsInt[iZint] = (z<=zStart || z>=zStop)
+					? epsBG
+					: QuinticSpline::value(epsCoeff.data(), (z-zStart)*dzInv);
+				fprintf(fp, "%lg %lg %lg\n", Zint[iZint], wZint[iZint], epsInt[iZint]);
+			}
+			fclose(fp);
+		}
+		//--- compute integrands without the oscillatory factors:
+		diagMatrix EZtildeInt(NZint), DZtildeInt(NZint);
+		std::vector<diagMatrix> cosRefInt(2, diagMatrix(NZint));
+		for(int iZint=0; iZint<NZint; iZint++)
+		{	const double& Zcur = Zint[iZint];
+			const double& epsCur = epsInt[iZint];
+			double Zcomb = (1.+Zcur*Zcur) / std::pow(1.-Zcur*Zcur,2);
+			EZtildeInt[iZint] = wZint[iZint] * 0.5 * Zcomb * (epsCur - epsBG);
+			DZtildeInt[iZint] = wZint[iZint] * ((0.125*M_PI*M_PI) / Zcomb) * epsCur;
+			cosRefInt[0][iZint] = 1.;
+			cosRefInt[1][iZint] = cos(0.5*M_PI*(1.+Zcur));
+		}
+		//--- compute the integrals:
+		diagMatrix EZtilde(2*NZ+1), DZtilde(2*NZ+1);
+		diagMatrix cosInt(NZint);
+		for(int n=0; n<(2*NZ+1); n++)
+		{	//Set the oscillatory term:
+			double kZ = (0.5*M_PI) * n;
+			for(int iZint=0; iZint<NZint; iZint++)
+				cosInt[iZint] = cos(kZ * (1.+Zint[iZint]));
+			EZtilde[n] = dot(EZtildeInt, cosInt - cosRefInt[n%2]);
+			DZtilde[n] = dot(DZtildeInt, cosInt);
+		}
+		
+		//Calculate the matrix elements in spectral basis:
+		matrix OZ0(NZ,NZ);
+		matrix DZ0(NZ,NZ);
+		matrix EZ0(NZ,NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+		for(int jZ=0; jZ<NZ; jZ++)
+		{	int iDiff = abs(iZ-jZ);
+			int iSum = iZ+jZ+2;
+			double OZ0ij = iDiff%2==0 ? z0 * (OZtilde[iDiff] - OZtilde[iSum]) : 0.;
+			OZ0.set(iZ,jZ, OZ0ij);
+			EZ0.set(iZ,jZ, epsBG*OZ0ij + z0 * (EZtilde[iDiff] - EZtilde[iSum]));
+			DZ0.set(iZ,jZ, ((iZ+1)*(jZ+1)/z0) * (DZtilde[iDiff] + DZtilde[iSum]));
+		}
+		
+		//Switch to orthonormal basis that diagonalizes differential:
+		//--- orthonormalize w.r.t EZ, and diagonalize DZ:
+		matrix UZ = invsqrt(EZ0), DZevecs;
+		(UZ * DZ0 * UZ).diagonalize(DZevecs, DZ); //DZ is now ready in diagonal form
+		matrix VZ = UZ * DZevecs; //net transformation from spectral to new basis
+		EZ = eye(NZ); //EZ is now identity by definition
+		OZ = dagger(VZ) * OZ0 * VZ;
+		IZ = IZ * VZ;
+		JZ = inv(IZ);
+	}
+    
+    //Return a normalized gaussian of width = sigma and integral = norm cenetred on the z-axis at zCenter:
+    matrix gaussian(double norm, double sigma, double zCenter)
+	{	double expFac = -0.5/(sigma*sigma);
+		double normFac = norm/(sqrt(2.*M_PI)*sigma);
+		matrix result(NZ,1);
+		for(int iZ=0; iZ<NZ; iZ++)
+			result.set(iZ,0, normFac*exp(expFac*std::pow(z[iZ]-zCenter,2)));
+		return result;
+	}
 	
+	//Calculate exp(x) * E1(x) handling overflow/underflow issues correctly
+	double expE1prod(double x)
+	{	if(x < 50.) return exp(x) * gsl_sf_expint_E1(x);
+		else //Laurent series with ~ 1e-16 accuracy for x > 50.:
+		{	double xInv = 1./x;
+			double result = 1.;
+			for(int n=20; n>0; n--)
+				result = 1. - n * xInv * result;
+			return xInv * result;
+		}
+	}
+
+	
+	double getEnergy(double q, double sigma, double z)
+	{	matrix Orho = OZ * (JZ * gaussian(q, sigma, z));
+		double U = 0.;
+		for(int iZ=0; iZ<NZ; iZ++)
+		{	double q = Orho(iZ,0).real(); //q_i from derivation, since we are in DZ-diagonal basis
+			double betaSq = DZ[iZ]; //betaSq_i from derivation, since we are in DZ-diagonal basis
+			U += 0.5*q*q * expE1prod(betaSq * sigma*sigma);
+		}
+		return U;
+	}
 };
+//Refine CylindricalPoisson results with Richardson extrapolation:
+struct SlabIsolated
+{
+	const vector3<> zScale; //scale factors
+	vector3<std::shared_ptr<CylindricalPoisson> > cp;
+	matrix3<> Uextrap;
+	
+	SlabIsolated(int iDir, const ScalarField& epsSlab) : zScale(0.8, 1.0, 1.25)
+	{	//Initialize CylindircalPoisson instances:
+		for(int i=0; i<3; i++)
+			cp[i] = std::make_shared<CylindricalPoisson>(iDir, epsSlab, zScale[i]);
+		//Initialize extrapolation matrix:
+		matrix3<> scaleMat;
+		for(int i=0; i<3; i++)
+			for(int j=0; j<3; j++)
+				scaleMat(i,j) = std::pow(zScale[i], -j);
+		Uextrap = inv(scaleMat);
+	}
+	
+	double getEnergy(double q, double sigma, double z)
+	{	vector3<> U;
+		for(int i=0; i<3; i++)
+			U[i] = cp[i]->getEnergy(q, sigma, z);
+		return (Uextrap * U)[0];
+	}
+};
+
 
 //Get the averaged field in direction iDir between planes iCenter +/- iDist
 double getEfield(ScalarField V, int iDir, int iCenter, int iDist)
@@ -237,7 +426,11 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			Vmodel = I(e.coulomb->embedShrink(J(Vmodel)));
 			
 			//Isolated energy:
-			//TODO
+			SlabIsolated si(iDir, epsSlab);
+			for(const Center& cdc: center)
+			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
+				EmodelIsolated += si.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
+			}
 			break;
 		}
 		default: die("\tCoulomb-interaction geometry must be either slab or periodic for charged-defect correction.\n");
