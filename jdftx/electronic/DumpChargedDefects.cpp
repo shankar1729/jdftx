@@ -81,7 +81,7 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 		(	double K = slabCalc(iG, gInfo->GGT) / (4*M_PI);
 			Kinv[i] = (fabs(K)>1e-12) ? 1./K : 0.;
 			//Kinv[i] = gInfo->GGT.metric_length_squared(iG);
-			Ksqrt[i] = (Kinv[i] || kRMS) ? 1./(epsMean*sqrt(Kinv[i] + kRMS*kRMS)) : 0.;
+			Ksqrt[i] = (Kinv[i] || kRMS) ? 1./(epsMean*sqrt(fabs(Kinv[i]) + kRMS*kRMS)) : 0.;
 		)
 	}
 	
@@ -89,9 +89,6 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	: iDir(iDir), epsilon(epsilon), gInfo(epsilon->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(inv(epsilon))
 	{
 		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, integral(epsilon)/gInfo.detR, 0., Ksqrt.data, Kinv.data);
-		K0 = (4*M_PI)/Kinv.data[0];
-		Kinv.data[0] = 0.;
-		Ksqrt.data[0] = 0.;
 		Ksqrt.set(); Kinv.set();
 		nullToZero(state, gInfo);
 	}
@@ -119,235 +116,88 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 		solve(rho, mp);
 		
 		phi = state;
-		phi->setGzero(K0 * rho->getGzero());
-		return -0.5*dot(phi, O(hessian(phi))) + dot(phi, O(rho)); //first-order correct estimate of final answer
+		return 0.5*dot(phi,O(rho));
 	}
 };
 
 
 struct CylindricalPoisson
 {
-	int NZ;
-	diagMatrix z; //real-space grid
-	matrix IZ, JZ, OZ; //axial operators (full-matrices)
-	diagMatrix DZ, EZ; //axial operators (diagonal ones)
-
-	CylindricalPoisson(int iDir, const ScalarField& epsSlab, double z0scale=1.)
+	int NZ; //number of grid points along truncated direction
+	double L; //length along truncated direction
+	double epsilonBulk, kappaSqBulk; //bulk response
+	matrix epsilonTilde, kappaSqTilde; diagMatrix G; //Fourier space operators
+	
+	CylindricalPoisson(int iDir, const ScalarField& epsilonSlab, const ScalarField& kappaSqSlab)
 	{
-		//Determine grid mapping parameters:
-		const GridInfo& gInfo = epsSlab->gInfo;
-		double dzTyp = gInfo.h[iDir].length();
-		double z0 = 0.25*gInfo.R.column(iDir).length() * z0scale;
-		double dZtarget = 2.*dzTyp/(z0*(5.+sqrt(5.)));
-		NZ = 2*ceil(1./dZtarget); //keep even (Z in (-1,1))
-		logPrintf("\tSlabIsolated: Axial coordinate map with z0: %lg  NZ: %d\n", z0, NZ);
+		//Extract grid dimensions and bulk response:
+		const GridInfo& gInfo = epsilonSlab->gInfo;
+		NZ = gInfo.S[iDir];
+		L = gInfo.R.column(iDir).length();
+		vector3<int> iRbulk; iRbulk[iDir] = NZ/2;
+		size_t iBulk = gInfo.fullRindex(iRbulk);
+		epsilonBulk = epsilonSlab->data()[iBulk];
+		kappaSqBulk = kappaSqSlab->data()[iBulk];
 		
-		//Initialize grid and spectral basis:
-		diagMatrix Z(NZ); z.resize(NZ);
+		//Initialize Fourier space operators along truncated direction:
+		complexScalarFieldTilde epsilonSlabTilde = J(Complex(epsilonSlab - epsilonBulk));
+		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
+		std::vector<complex> epsilonDiagTilde(NZ), kappaSqDiagTilde(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
-		{	Z[iZ] = -1. + (iZ+1)*(2./(NZ+1));
-			z[iZ] = z0*Z[iZ]/(1.-Z[iZ]*Z[iZ]);
+		{	vector3<int> iG; iG[iDir]=iZ;
+			size_t iSlab = gInfo.fullRindex(iG);
+			epsilonDiagTilde[iZ] = epsilonSlabTilde->data()[iSlab];
+			kappaSqDiagTilde[iZ] = kappaSqSlabTilde->data()[iSlab];
 		}
-		IZ.init(NZ, NZ);
-		{	complex* IZdata = IZ.data();
-			for(int alphaZ=0; alphaZ<NZ; alphaZ++)
-				for(int iZ=0; iZ<NZ; iZ++)
-					*(IZdata++) = sin((alphaZ+1)*(Z[iZ]+1.)*(0.5*M_PI));
-		}
-		
-		//Calculate the analytical matrix element generators:
-		diagMatrix OZtilde(2*NZ+1);
-		for(int n=0; n<(2*NZ+1); n++)
-			OZtilde[n] = -0.25* n*M_PI * gsl_sf_Si(n*M_PI);
-		
-		//Calculate the numerical matrix element generators:
-		//--- initialize quadrature grid:
-		const int Nquad = 11; //number of points in quadrature
-		const int NZint = (NZ + 1) * Nquad;
-		diagMatrix Zint(NZint), wZint(NZint);
-		{	gsl_integration_glfixed_table* glTable = gsl_integration_glfixed_table_alloc(Nquad);
-			double* ZintPtr = Zint.data();
-			double* wZintPtr = wZint.data();
-			double deltaZ = 2./(NZ+1);
-			for(int iZ=0; iZ<=NZ; iZ++)
-			{	double Zlo = -1. + deltaZ*iZ;
-				double Zhi = -1. + deltaZ*(iZ+1);
-				for(int iQuad=0; iQuad<Nquad; iQuad++)
-					gsl_integration_glfixed_point(Zlo, Zhi, iQuad, ZintPtr++, wZintPtr++, glTable);
-			}
-			gsl_integration_glfixed_table_free(glTable);
-		}
-		//--- interpolate dielectric function to quadrature grid:
-		diagMatrix epsInt(NZint); double epsBG;
-		{	//Extract spline coefficients from epsSlab:
-			int Sdir = gInfo.S[iDir];
-			int Shlf = Sdir / 2;
-			std::vector<double> epsSamples;
-			vector3<int> iR;
-			for(iR[iDir]=Sdir-Shlf; iR[iDir]<Sdir; iR[iDir]++)
-				epsSamples.push_back(epsSlab->data()[gInfo.fullRindex(iR)]);
-			for(iR[iDir]=0; iR[iDir]<=Shlf; iR[iDir]++)
-				epsSamples.push_back(epsSlab->data()[gInfo.fullRindex(iR)]);
-			std::vector<double> epsCoeff = QuinticSpline::getCoeff(epsSamples);
-			double zStart = -Shlf * dzTyp;
-			double zStop = +Shlf * dzTyp;
-			double dzInv = 1./dzTyp;
-			//Set and check background value:
-			epsBG = epsSamples.front();
-			assert(epsBG == epsSamples.back());
-			//Evaluate on quadrature grid:
-			FILE* fp = fopen("test_z.quad_eps", "w");
-			for(int iZint=0; iZint<NZint; iZint++)
-			{	double z = z0*Zint[iZint]/(1.-Zint[iZint]*Zint[iZint]);
-				epsInt[iZint] = (z<=zStart || z>=zStop)
-					? epsBG
-					: QuinticSpline::value(epsCoeff.data(), (z-zStart)*dzInv);
-				fprintf(fp, "%lg %lg %lg\n", Zint[iZint], wZint[iZint], epsInt[iZint]);
-			}
-			fclose(fp);
-		}
-		//--- compute integrands without the oscillatory factors:
-		diagMatrix EZtildeInt(NZint), DZtildeInt(NZint);
-		std::vector<diagMatrix> cosRefInt(2, diagMatrix(NZint));
-		for(int iZint=0; iZint<NZint; iZint++)
-		{	const double& Zcur = Zint[iZint];
-			const double& epsCur = epsInt[iZint];
-			double Zcomb = (1.+Zcur*Zcur) / std::pow(1.-Zcur*Zcur,2);
-			EZtildeInt[iZint] = wZint[iZint] * 0.5 * Zcomb * (epsCur - epsBG);
-			DZtildeInt[iZint] = wZint[iZint] * ((0.125*M_PI*M_PI) / Zcomb) * epsCur;
-			cosRefInt[0][iZint] = 1.;
-			cosRefInt[1][iZint] = cos(0.5*M_PI*(1.+Zcur));
-		}
-		//--- compute the integrals:
-		diagMatrix EZtilde(2*NZ+1), DZtilde(2*NZ+1);
-		diagMatrix cosInt(NZint);
-		for(int n=0; n<(2*NZ+1); n++)
-		{	//Set the oscillatory term:
-			double kZ = (0.5*M_PI) * n;
-			for(int iZint=0; iZint<NZint; iZint++)
-				cosInt[iZint] = cos(kZ * (1.+Zint[iZint]));
-			EZtilde[n] = dot(EZtildeInt, cosInt - cosRefInt[n%2]);
-			DZtilde[n] = dot(DZtildeInt, cosInt);
-		}
-		
-		//Calculate the matrix elements in spectral basis:
-		matrix OZ0(NZ,NZ);
-		matrix DZ0(NZ,NZ);
-		matrix EZ0(NZ,NZ);
+		epsilonTilde.init(NZ,NZ);
+		kappaSqTilde.init(NZ,NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
-		for(int jZ=0; jZ<NZ; jZ++)
-		{	int iDiff = abs(iZ-jZ);
-			int iSum = iZ+jZ+2;
-			double OZ0ij = iDiff%2==0 ? z0 * (OZtilde[iDiff] - OZtilde[iSum]) : 0.;
-			OZ0.set(iZ,jZ, OZ0ij);
-			EZ0.set(iZ,jZ, epsBG*OZ0ij + z0 * (EZtilde[iDiff] - EZtilde[iSum]));
-			DZ0.set(iZ,jZ, ((iZ+1)*(jZ+1)/z0) * (DZtilde[iDiff] + DZtilde[iSum]));
-		}
-		
-		//Switch to orthonormal basis that diagonalizes differential:
-		//--- orthonormalize w.r.t EZ, and diagonalize DZ:
-		matrix UZ = invsqrt(EZ0), DZevecs;
-		(UZ * DZ0 * UZ).diagonalize(DZevecs, DZ); //DZ is now ready in diagonal form
-		matrix VZ = UZ * DZevecs; //net transformation from spectral to new basis
-		EZ = eye(NZ); //EZ is now identity by definition
-		OZ = dagger(VZ) * OZ0 * VZ;
-		IZ = IZ * VZ;
-		JZ = inv(IZ);
+			for(int jZ=0; jZ<NZ; jZ++)
+			{	int kZ = (jZ - iZ);
+				if(kZ<0) kZ += NZ; //wrap kZ to [0,NZ)
+				epsilonTilde.set(iZ,jZ, epsilonDiagTilde[kZ]);
+				kappaSqTilde.set(iZ,jZ, kappaSqDiagTilde[kZ]);
+			}
+		G.resize(NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
 	}
     
-    //Return a normalized gaussian of width = sigma and integral = norm cenetred on the z-axis at zCenter:
-    matrix gaussian(double norm, double sigma, double zCenter)
-	{	double expFac = -0.5/(sigma*sigma);
-		double normFac = norm/(sqrt(2.*M_PI)*sigma);
-		matrix result(NZ,1);
+	//Integrand
+	double integrand(double k, double sigma, double z0) const
+	{	//Initialize k-dependent operators and source terms:
+		matrix OgTilde(NZ,1); //Gaussian source term
+		diagMatrix KinvTilde(NZ); //Truncated Greens function
+		double alpha = sqrt(k*k + kappaSqBulk/epsilonBulk);
 		for(int iZ=0; iZ<NZ; iZ++)
-			result.set(iZ,0, normFac*exp(expFac*std::pow(z[iZ]-zCenter,2)));
-		return result;
-	}
-	
-	//Calculate exp(x) * E1(x) handling overflow/underflow issues correctly
-	double expE1prod(double x)
-	{	if(x < 50.) return exp(x) * gsl_sf_expint_E1(x);
-		else //Laurent series with ~ 1e-16 accuracy for x > 50.:
-		{	double xInv = 1./x;
-			double result = 1.;
-			for(int n=20; n>0; n--)
-				result = 1. - n * xInv * result;
-			return xInv * result;
+		{	OgTilde.set(iZ,0, exp(-0.5*std::pow(G[iZ]*sigma,2))*cis(-G[iZ]*z0)); //note O cancels 1./L in derivation
+			KinvTilde[iZ] = L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - exp(-0.5*alpha*L)*cos(0.5*L*G[iZ]));
 		}
+		matrix chiTilde = (1./L) * (G*epsilonTilde*G + kappaSqTilde + (k*k)*epsilonTilde);
+		double Uk = trace(dagger(OgTilde) * inv(KinvTilde + chiTilde) * OgTilde).real();
+		return k * exp(-std::pow(k*sigma,2)) * Uk;
 	}
-
-	
-	double getEnergy(double q, double sigma, double z)
-	{	matrix Orho = OZ * (JZ * gaussian(q, sigma, z));
-		double U = 0.;
-		for(int iZ=0; iZ<NZ; iZ++)
-		{	double q = Orho(iZ,0).real(); //q_i from derivation, since we are in DZ-diagonal basis
-			double betaSq = DZ[iZ]; //betaSq_i from derivation, since we are in DZ-diagonal basis
-			U += 0.5*q*q * expE1prod(betaSq * sigma*sigma);
-		}
-		return U;
-	}
-};
-//Refine CylindricalPoisson results with Richardson extrapolation:
-struct SlabIsolated
-{
-	const vector3<> zScale; //scale factors
-	vector3<std::shared_ptr<CylindricalPoisson> > cp;
-	matrix3<> Uextrap;
-	
-	SlabIsolated(int iDir, const ScalarField& epsSlab) : zScale(0.8, 1.0, 1.25)
-	{	//Initialize CylindircalPoisson instances:
-		for(int i=0; i<3; i++)
-			cp[i] = std::make_shared<CylindricalPoisson>(iDir, epsSlab, zScale[i]);
-		//Initialize extrapolation matrix:
-		matrix3<> scaleMat;
-		for(int i=0; i<3; i++)
-			for(int j=0; j<3; j++)
-				scaleMat(i,j) = std::pow(zScale[i], -j);
-		Uextrap = inv(scaleMat);
+	struct IntegrandParams { double sigma, z0; const CylindricalPoisson* cp; };
+	static double integrand_wrapper(double k, void* params) //wrapper for GSL integration routine
+	{	const IntegrandParams& ip = *((const IntegrandParams*)params);
+		return ip.cp->integrand(k, ip.sigma, ip.z0);
 	}
 	
-	double getEnergy(double q, double sigma, double z)
-	{	vector3<> U;
-		for(int i=0; i<3; i++)
-			U[i] = cp[i]->getEnergy(q, sigma, z);
-		return (Uextrap * U)[0];
+	//Calculate self energy of Gaussian with norm q and width sigma centered at z0
+	double getEnergy(double q, double sigma, double z0) const
+	{	size_t wsSize = 1024;
+		gsl_integration_workspace* ws = gsl_integration_workspace_alloc(wsSize);
+		IntegrandParams ip = { sigma, z0, this };
+		gsl_function f;
+		f.function = integrand_wrapper;
+		f.params = &ip;
+		double integral, intErr;
+		gsl_integration_qagiu(&f, 0., 1e-12, 1e-12, wsSize, ws, &integral, &intErr); //Calculate \int_0^infty dk integrand(k)
+		gsl_integration_workspace_free(ws);
+		return (q*q) * integral;
 	}
 };
 
-
-//Get the averaged field in direction iDir between planes iCenter +/- iDist
-double getEfield(ScalarField V, int iDir, int iCenter, int iDist)
-{	const GridInfo& gInfo = V->gInfo;
-	//Planarly average:
-	ScalarFieldTilde Vtilde = J(V);
-	planarAvg(Vtilde, iDir);
-	ScalarField Vavg = I(Vtilde);
-	//Extract field:
-	assert(2*iDist < gInfo.S[iDir]);
-	vector3<int> iRm, iRp;
-	iRm[iDir] = positiveRemainder(iCenter - iDist, gInfo.S[iDir]);
-	iRp[iDir] = positiveRemainder(iCenter + iDist, gInfo.S[iDir]);
-	double Vm = Vavg->data()[gInfo.fullRindex(iRm)];
-	double Vp = Vavg->data()[gInfo.fullRindex(iRp)];
-	double dx = (2*iDist) * gInfo.h[iDir].length();
-	return (Vm - Vp) / dx;
-}
-
-//Add electric field in direction iDir to given data
-//x0 in lattice coordinates specifies where the added potential is zero
-void addEfield_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double Efield, vector3<> x0, double* V)
-{	const vector3<int>& S = gInfo->S;
-	double h = gInfo->h[iDir].length();
-	double L = h * S[iDir];
-	double r0 = x0[iDir] * L;
-	THREAD_rLoop
-	(	double r = h * iv[iDir] - r0;
-		r -= L * floor(0.5 + r/L); //wrap to [-L/2,+L/2)
-		V[i] += -Efield*r;
-	)
-}
 
 void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 {	logPrintf("Calculating charged defect correction:\n"); logFlush();
@@ -417,19 +267,14 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			//Periodic potential and energy:
 			ScalarFieldTilde dModel;
 			Emodel = SlabPeriodicSolver(iDir, epsSlab).getEnergy(rhoModel, dModel);
-			//--- fix up net electric field in output potential (increases accuracy of alignment):
-			Vmodel = I(dModel);
-			double EfieldDft = getEfield(Vdft, iDir, e.coulomb->ivCenter[iDir], e.gInfo.S[iDir]/2-2);
-			double EfieldModel = getEfield(Vmodel, iDir, 0., e.gInfo.S[iDir]/2-2);
-			vector3<> posMeanEmbed = Diag(e.coulomb->embedScale) * ws.restrict(posMean - e.coulomb->xCenter);
-			threadLaunch(addEfield_sub, Vmodel->gInfo.nr, &(Vmodel->gInfo), iDir, EfieldDft-EfieldModel, posMeanEmbed, Vmodel->data());
-			Vmodel = I(e.coulomb->embedShrink(J(Vmodel)));
+			Vmodel = I(e.coulomb->embedShrink(dModel));
 			
 			//Isolated energy:
-			SlabIsolated si(iDir, epsSlab);
+			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab->gInfo);
+			CylindricalPoisson cp(iDir, epsSlab, kappaSqSlab);
 			for(const Center& cdc: center)
 			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
-				EmodelIsolated += si.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
+				EmodelIsolated += cp.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
 			}
 			break;
 		}
