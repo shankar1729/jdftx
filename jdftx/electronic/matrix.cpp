@@ -545,6 +545,7 @@ void randomize(matrix& x)
 extern "C"
 {	void zgetrf_(int* M, int* N, complex* A, int* LDA, int* IPIV, int* INFO);
 	void zgetri_(int* N, complex* A, int* LDA, int* IPIV, complex* WORK, int* LWORK, int* INFO);
+	void zposv_(char* UPLO, int* N, int* NRHS, complex* A, int* LDA, complex* B, int* LDB, int* INFO);
 }
 
 matrix inv(const matrix& A)
@@ -575,6 +576,48 @@ diagMatrix inv(const diagMatrix& A)
 {	diagMatrix invA = A;
 	for(double& x: invA) x = 1./x;
 	return invA;
+}
+
+matrix invApply(const matrix& A, const matrix& b)
+{	static StopWatch watch("invApply(matrix)");
+	watch.start();
+	
+	//Check dimensions:
+	assert(A.nCols()==A.nRows());
+	int N = A.nRows();
+	assert(N > 0);
+	assert(N == b.nRows());
+	int Nrhs = b.nCols();
+	assert(Nrhs > 0);
+	
+	//Check hermiticity
+	const complex* Adata = A.data();
+	double errNum=0.0, errDen=0.0;
+	for(int i=0; i<N; i++)
+		for(int j=0; j<N; j++)
+		{	errNum += norm(Adata[A.index(i,j)]-Adata[A.index(j,i)].conj());
+			errDen += norm(Adata[A.index(i,j)]);
+		}
+	double hermErr = sqrt(errNum / (errDen*N));
+	if(hermErr > 1e-10)
+	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in invApply\n", hermErr);
+		stackTraceExit(1);
+	}
+	
+	//Apply inverse using LAPACK routine:
+	char uplo = 'U';
+	matrix Acopy = A; //destructible copy; routine will factorize matrix in place
+	complex* AcopyData = Acopy.data();
+	matrix x = b; //solution will happen in place
+	complex* xData = x.data();
+	int ldA = N;
+	int ldx = N;
+	int info = 0;
+	zposv_(&uplo, &N, &Nrhs, AcopyData, &ldA, xData, &ldx, &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK linear solve routine ZPOSV is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in LAPACK linear solve routine ZPOSV.\n", info); stackTraceExit(1); }
+	watch.stop();
+	return x;
 }
 
 matrix LU(const matrix& A)
