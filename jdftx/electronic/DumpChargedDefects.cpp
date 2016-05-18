@@ -126,7 +126,7 @@ struct CylindricalPoisson
 	int NZ; //number of grid points along truncated direction
 	double L; //length along truncated direction
 	double epsilonBulk, kappaSqBulk; //bulk response
-	matrix epsilonTilde, kappaSqTilde; diagMatrix G; //Fourier space operators
+	matrix epsilonTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
 	
 	CylindricalPoisson(int iDir, const ScalarField& epsilonSlab, const ScalarField& kappaSqSlab)
 	{
@@ -140,6 +140,9 @@ struct CylindricalPoisson
 		kappaSqBulk = kappaSqSlab->data()[iBulk];
 		
 		//Initialize Fourier space operators along truncated direction:
+		G.resize(NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
 		complexScalarFieldTilde epsilonSlabTilde = J(Complex(epsilonSlab - epsilonBulk));
 		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
 		std::vector<complex> epsilonDiagTilde(NZ), kappaSqDiagTilde(NZ);
@@ -150,44 +153,47 @@ struct CylindricalPoisson
 			kappaSqDiagTilde[iZ] = kappaSqSlabTilde->data()[iSlab];
 		}
 		epsilonTilde.init(NZ,NZ);
-		kappaSqTilde.init(NZ,NZ);
+		GGepsKappaSq.init(NZ,NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			for(int jZ=0; jZ<NZ; jZ++)
 			{	int kZ = (jZ - iZ);
 				if(kZ<0) kZ += NZ; //wrap kZ to [0,NZ)
 				epsilonTilde.set(iZ,jZ, epsilonDiagTilde[kZ]);
-				kappaSqTilde.set(iZ,jZ, kappaSqDiagTilde[kZ]);
+				GGepsKappaSq.set(iZ,jZ, G[iZ]*epsilonDiagTilde[kZ]*G[jZ] + kappaSqDiagTilde[kZ]);
 			}
-		G.resize(NZ);
-		for(int iZ=0; iZ<NZ; iZ++)
-			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
 	}
     
 	//Integrand
-	double integrand(double k, double sigma, double z0) const
-	{	//Initialize k-dependent operators and source terms:
-		matrix OgTilde(NZ,1); //Gaussian source term
-		diagMatrix KinvTilde(NZ); //Truncated Greens function
+	double integrand(double k, double sigma, const matrix& OgTilde) const
+	{	matrix KinvTot = zeroes(NZ,NZ);
+		//Set truncated Greens function
 		double alpha = sqrt(k*k + kappaSqBulk/epsilonBulk);
+		double expMhlfAlphaL = exp(-0.5*alpha*L), cosMhlfGL = 1.;
 		for(int iZ=0; iZ<NZ; iZ++)
-		{	OgTilde.set(iZ,0, exp(-0.5*std::pow(G[iZ]*sigma,2))*cis(-G[iZ]*z0)); //note O cancels 1./L in derivation
-			KinvTilde[iZ] = L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - exp(-0.5*alpha*L)*cos(0.5*L*G[iZ]));
+		{	KinvTot.set(iZ,iZ, L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
+			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
 		}
-		matrix chiTilde = (1./L) * (G*epsilonTilde*G + kappaSqTilde + (k*k)*epsilonTilde);
-		double Uk = trace(dagger(OgTilde) * inv(KinvTilde + chiTilde) * OgTilde).real();
+		//Add inhomogeneous screening terms:
+		KinvTot += (1./L) * (GGepsKappaSq + (k*k)*epsilonTilde);
+		//Calculate self-energy at k:
+		double Uk = trace(dagger(OgTilde) * invApply(KinvTot, OgTilde)).real();
 		return k * exp(-std::pow(k*sigma,2)) * Uk;
 	}
-	struct IntegrandParams { double sigma, z0; const CylindricalPoisson* cp; };
+	struct IntegrandParams { double sigma; const matrix* OgTilde; const CylindricalPoisson* cp; };
 	static double integrand_wrapper(double k, void* params) //wrapper for GSL integration routine
 	{	const IntegrandParams& ip = *((const IntegrandParams*)params);
-		return ip.cp->integrand(k, ip.sigma, ip.z0);
+		return ip.cp->integrand(k, ip.sigma, *(ip.OgTilde));
 	}
 	
 	//Calculate self energy of Gaussian with norm q and width sigma centered at z0
 	double getEnergy(double q, double sigma, double z0) const
-	{	size_t wsSize = 1024;
+	{	//Source term:
+		matrix OgTilde(NZ,1);
+		for(int iZ=0; iZ<NZ; iZ++)
+			OgTilde.set(iZ,0, exp(-0.5*std::pow(G[iZ]*sigma,2))*cis(-G[iZ]*z0)); //note O cancels 1./L in derivation
+		size_t wsSize = 1024;
 		gsl_integration_workspace* ws = gsl_integration_workspace_alloc(wsSize);
-		IntegrandParams ip = { sigma, z0, this };
+		IntegrandParams ip = { sigma, &OgTilde, this };
 		gsl_function f;
 		f.function = integrand_wrapper;
 		f.params = &ip;
