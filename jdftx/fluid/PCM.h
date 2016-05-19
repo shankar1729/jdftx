@@ -57,6 +57,7 @@ protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)
 	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }
+	friend struct ChargedDefect;
 };
 
 #endif // JDFTX_ELECTRONIC_PCM_H
