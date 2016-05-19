@@ -156,7 +156,7 @@ struct CylindricalPoisson
 		GGepsKappaSq.init(NZ,NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			for(int jZ=0; jZ<NZ; jZ++)
-			{	int kZ = (jZ - iZ);
+			{	int kZ = (iZ - jZ);
 				if(kZ<0) kZ += NZ; //wrap kZ to [0,NZ)
 				epsilonTilde.set(iZ,jZ, epsilonDiagTilde[kZ]);
 				GGepsKappaSq.set(iZ,jZ, G[iZ]*epsilonDiagTilde[kZ]*G[jZ] + kappaSqDiagTilde[kZ]);
@@ -174,7 +174,7 @@ struct CylindricalPoisson
 			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
 		}
 		//Add inhomogeneous screening terms:
-		KinvTot += (1./L) * (GGepsKappaSq + (k*k)*epsilonTilde);
+		KinvTot += L * (GGepsKappaSq + (k*k)*epsilonTilde);
 		//Calculate self-energy at k:
 		double Uk = trace(dagger(OgTilde) * invApply(KinvTot, OgTilde)).real();
 		return k * exp(-std::pow(k*sigma,2)) * Uk;
