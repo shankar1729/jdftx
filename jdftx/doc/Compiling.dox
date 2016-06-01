@@ -121,13 +121,15 @@ Assuming that the source is in ../jdftx and that the shell is bash, you can conf
 
     #Select gcc as the compiler:
     module load gcc/4.7.1
-    module load mkl gsl cuda cmake
+    module load mkl gsl cuda cmake fftw3
     
     #Configure:
     CC=gcc CXX=g++ cmake \
        -D EnableCUDA=yes \
        -D EnableMKL=yes \
+       -D ForceFFTW=yes \
        -D MKL_PATH="$TACC_MKL_DIR" \
+       -D FFTW3_PATH="$TACC_FFTW3_DIR" \
        -D GSL_PATH="$TACC_GSL_DIR" \
        ../jdftx
     
