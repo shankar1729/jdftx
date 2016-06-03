@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ManagedMemory.h>
 #include <core/matrix3.h>
 #include <core/scaled.h>
+#include <core/GridInfo.h>
 #include <gsl/gsl_cblas.h>
 
 //! Real diagonal matrix
@@ -103,6 +104,12 @@ public:
 	void diagonalize(matrix& evecs, diagMatrix& eigs) const; //!< diagonalize a hermitian matrix
 	void diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& revecs) const; //!< diagonalize an arbitrary matrix
 	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
+	
+	//---------octave-like slicing operators on scalar fields converted to Nx*Ny*Nz x 1 matrices--------------
+
+	complex getElement(vector3< int > index, GridInfo& gInfo);
+	matrix getLine(vector3<int> line, vector3<int> point, GridInfo& gInfo);
+	matrix getPlane(vector3<int> normal, vector3<int> point, GridInfo& gInfo);
 };
 
 //! Matrix with a pending scale and transpose operation
@@ -237,5 +244,7 @@ public:
 	
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
 };
+
+
 
 #endif  // JDFTX_ELECTRONIC_MATRIX_H

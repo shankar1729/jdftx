@@ -32,6 +32,7 @@ FieldData::FieldData(const GridInfo& gInfo, string category, int nElem, int nDou
 	int nComplex = ceildiv(nDoubles,2);
 	memInit(category, nComplex, onGpu);
 }
+//WARNING: despite the fact that all dataPref() is stored as complex*, the real scalar fields just have nElem/2 complex data types.
 
 void FieldData::copyData(const FieldData& other)
 {	scale = other.scale;
@@ -76,21 +77,12 @@ ScalarField ScalarFieldData::clone() const
 	return copy;
 }
 ScalarField ScalarFieldData::alloc(const GridInfo& gInfo, bool onGpu) { return std::make_shared<ScalarFieldData>(gInfo, onGpu, PrivateTag()); }
-
+ 
 matrix ScalarFieldData::toMatrix() const
 {
-  matrix mat(gInfo.nr,1,isOnGpu());
- 
-  #ifdef GPU_ENABLED
-  if(isOnGpu())
-  {
-    cudaMemcpy(&mat, dataGpu(false), gInfo.nr*sizeof(double), cudaMemcpyDeviceToDevice);
-    return mat * scale;
-  }
-  #endif
-  
-  memcpy(&mat, data(false), gInfo.nr*sizeof(double));    
-  return mat * scale;
+  matrix mat = zeroes(gInfo.nr,1);
+  callPref(eblas_daxpy)(gInfo.nr, 1.0, dataPref(), 1, (double*) mat.dataPref(), 2);
+  return mat;
 }
 
 
@@ -142,6 +134,14 @@ complexScalarField complexScalarFieldData::clone() const
 	return copy;
 }
 complexScalarField complexScalarFieldData::alloc(const GridInfo& gInfo, bool onGpu) { return std::make_shared<complexScalarFieldData>(gInfo, onGpu, PrivateTag()); }
+
+matrix complexScalarFieldData::toMatrix() const
+{
+  matrix mat(gInfo.nr,1,isOnGpu());
+  callPref(eblas_copy)(mat.dataPref(), dataPref(), gInfo.nr);
+  return mat;
+}
+
 
 //------------ class complexScalarFieldTildeData ---------------
 

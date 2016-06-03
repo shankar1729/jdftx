@@ -121,7 +121,7 @@ struct ScalarFieldData : public FieldData
 	ScalarField clone() const; //!< clone the data (NOTE: assigning ScalarField's makes a new reference to the same data)
 	static ScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 	ScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by ScalarFieldData::alloc()
-	matrix toMatrix() const; //!<convert to matrix
+	matrix toMatrix() const; //!<convert to (complex) matrix
 };
 
 
@@ -156,6 +156,7 @@ struct complexScalarFieldData : public FieldData
 	complexScalarField clone() const; //!< clone the data (NOTE: assigning complexScalarField's makes a new reference to the same data)
 	static complexScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 	complexScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldData::alloc()
+	matrix toMatrix() const; //!<convert to matrix
 };
 
 /**
