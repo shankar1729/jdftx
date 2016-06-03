@@ -6,6 +6,8 @@
 #include <core/ScalarFieldIO.h>
 #include <core/LatticeUtils.h>
 #include <core/Coulomb_internal.h>
+#include <fluid/PCM.h>
+#include <gsl/gsl_sf.h>
 
 //-------------------------- Slab epsilon ----------------------------------
 
@@ -68,29 +70,31 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 {	int iDir; //truncated direction
 	const ScalarField& epsilon;
+	const ScalarField& kappaSq;
 	const GridInfo& gInfo;
 	RealKernel Ksqrt, Kinv;
 	const ScalarField epsInv;
 	double K0; //G=0 component of slab kernel
 	
-	static inline void setKernels_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double epsMean, double kRMS, double* Ksqrt, double* Kinv)
+	static inline void setKernels_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double kRMS, double* Ksqrt, double* Kinv, bool embedFluidMode)
 	{	const vector3<int>& S = gInfo->S;
 		CoulombSlab_calc slabCalc(iDir, 0.5*gInfo->R.column(iDir).length());
 		THREAD_halfGspaceLoop
-		(	double K = slabCalc(iG, gInfo->GGT) / (4*M_PI);
-			Kinv[i] = (fabs(K)>1e-12) ? 1./K : 0.;
-			//Kinv[i] = gInfo->GGT.metric_length_squared(iG);
-			Ksqrt[i] = (Kinv[i] || kRMS) ? 1./(epsMean*sqrt(Kinv[i] + kRMS*kRMS)) : 0.;
+		(	if(embedFluidMode)
+				Kinv[i] = gInfo->GGT.metric_length_squared(iG); //no truncation; image separation is due to fluid response
+			else
+			{	double K = slabCalc(iG, gInfo->GGT) / (4*M_PI);
+				Kinv[i] = (fabs(K)>1e-12) ? 1./K : 0.;
+			}
+			Ksqrt[i] = (Kinv[i] || kRMS) ? 1./sqrt(fabs(Kinv[i]) + kRMS*kRMS) : 0.;
 		)
 	}
 	
-	SlabPeriodicSolver(int iDir, const ScalarField& epsilon)
-	: iDir(iDir), epsilon(epsilon), gInfo(epsilon->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(inv(epsilon))
+	SlabPeriodicSolver(int iDir, const ScalarField& epsilon, const ScalarField& kappaSq, bool embedFluidMode)
+	: iDir(iDir), epsilon(epsilon), kappaSq(kappaSq), gInfo(epsilon->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(inv(epsilon))
 	{
-		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, integral(epsilon)/gInfo.detR, 0., Ksqrt.data, Kinv.data);
-		K0 = (4*M_PI)/Kinv.data[0];
-		Kinv.data[0] = 0.;
-		Ksqrt.data[0] = 0.;
+		double kRMS = sqrt(integral(kappaSq)/integral(epsilon)); //average Debye length of unit cell (for preconditioner)
+		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data, Kinv.data, embedFluidMode);
 		Ksqrt.set(); Kinv.set();
 		nullToZero(state, gInfo);
 	}
@@ -98,6 +102,7 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	ScalarFieldTilde hessian(const ScalarFieldTilde& phiTilde) const
 	{	ScalarFieldTilde rhoTilde = -(Kinv * phiTilde); //vacuum term
 		rhoTilde += divergence(J((epsilon-1.) * I(gradient(phiTilde))));  //dielectric term
+		rhoTilde -= J(kappaSq * I(phiTilde)); //Debye screening term
 		return (-1./(4*M_PI)) * rhoTilde;
 	}
 	
@@ -108,7 +113,6 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	double getEnergy(const ScalarFieldTilde& rho, ScalarFieldTilde& phi)
 	{	MinimizeParams mp;
 		mp.nDim = gInfo.nr;
-		mp.nIterations = 20;
 		mp.knormThreshold = 1e-11;
 		mp.fpLog = globalLog;
 		mp.linePrefix = "\tSlabPeriodicCG: ";
@@ -118,47 +122,94 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 		solve(rho, mp);
 		
 		phi = state;
-		phi->setGzero(K0 * rho->getGzero());
-		return -0.5*dot(phi, O(hessian(phi))) + dot(phi, O(rho)); //first-order correct estimate of final answer
+		return 0.5*dot(phi,O(rho));
 	}
 };
 
-struct SlabIsolatedSolver : public LinearSolvable<matrix>
+
+struct CylindricalPoisson
 {
+	int NZ; //number of grid points along truncated direction
+	double L; //length along truncated direction
+	double epsilonBulk, kappaSqBulk; //bulk response
+	matrix epsilonTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
 	
+	CylindricalPoisson(int iDir, const ScalarField& epsilonSlab, const ScalarField& kappaSqSlab)
+	{
+		//Extract grid dimensions and bulk response:
+		const GridInfo& gInfo = epsilonSlab->gInfo;
+		NZ = gInfo.S[iDir];
+		L = gInfo.R.column(iDir).length();
+		vector3<int> iRbulk; iRbulk[iDir] = NZ/2;
+		size_t iBulk = gInfo.fullRindex(iRbulk);
+		epsilonBulk = epsilonSlab->data()[iBulk];
+		kappaSqBulk = kappaSqSlab->data()[iBulk];
+		
+		//Initialize Fourier space operators along truncated direction:
+		G.resize(NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
+		complexScalarFieldTilde epsilonSlabTilde = J(Complex(epsilonSlab - epsilonBulk));
+		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
+		std::vector<complex> epsilonDiagTilde(NZ), kappaSqDiagTilde(NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+		{	vector3<int> iG; iG[iDir]=iZ;
+			size_t iSlab = gInfo.fullRindex(iG);
+			epsilonDiagTilde[iZ] = epsilonSlabTilde->data()[iSlab];
+			kappaSqDiagTilde[iZ] = kappaSqSlabTilde->data()[iSlab];
+		}
+		epsilonTilde.init(NZ,NZ);
+		GGepsKappaSq.init(NZ,NZ);
+		for(int iZ=0; iZ<NZ; iZ++)
+			for(int jZ=0; jZ<NZ; jZ++)
+			{	int kZ = (iZ - jZ);
+				if(kZ<0) kZ += NZ; //wrap kZ to [0,NZ)
+				epsilonTilde.set(iZ,jZ, epsilonDiagTilde[kZ]);
+				GGepsKappaSq.set(iZ,jZ, G[iZ]*epsilonDiagTilde[kZ]*G[jZ] + kappaSqDiagTilde[kZ]);
+			}
+	}
+    
+	//Integrand
+	double integrand(double k, double sigma, const matrix& OgTilde) const
+	{	matrix KinvTot = zeroes(NZ,NZ);
+		//Set truncated Greens function
+		double alpha = sqrt(k*k + kappaSqBulk/epsilonBulk);
+		double expMhlfAlphaL = exp(-0.5*alpha*L), cosMhlfGL = 1.;
+		for(int iZ=0; iZ<NZ; iZ++)
+		{	KinvTot.set(iZ,iZ, L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
+			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
+		}
+		//Add inhomogeneous screening terms:
+		KinvTot += L * (GGepsKappaSq + (k*k)*epsilonTilde);
+		//Calculate self-energy at k:
+		double Uk = trace(dagger(OgTilde) * invApply(KinvTot, OgTilde)).real();
+		return k * exp(-std::pow(k*sigma,2)) * Uk;
+	}
+	struct IntegrandParams { double sigma; const matrix* OgTilde; const CylindricalPoisson* cp; };
+	static double integrand_wrapper(double k, void* params) //wrapper for GSL integration routine
+	{	const IntegrandParams& ip = *((const IntegrandParams*)params);
+		return ip.cp->integrand(k, ip.sigma, *(ip.OgTilde));
+	}
+	
+	//Calculate self energy of Gaussian with norm q and width sigma centered at z0
+	double getEnergy(double q, double sigma, double z0) const
+	{	//Source term:
+		matrix OgTilde(NZ,1);
+		for(int iZ=0; iZ<NZ; iZ++)
+			OgTilde.set(iZ,0, exp(-0.5*std::pow(G[iZ]*sigma,2))*cis(-G[iZ]*z0)); //note O cancels 1./L in derivation
+		size_t wsSize = 1024;
+		gsl_integration_workspace* ws = gsl_integration_workspace_alloc(wsSize);
+		IntegrandParams ip = { sigma, &OgTilde, this };
+		gsl_function f;
+		f.function = integrand_wrapper;
+		f.params = &ip;
+		double integral, intErr;
+		gsl_integration_qagiu(&f, 0., 1e-12, 1e-12, wsSize, ws, &integral, &intErr); //Calculate \int_0^infty dk integrand(k)
+		gsl_integration_workspace_free(ws);
+		return (q*q) * integral;
+	}
 };
 
-//Get the averaged field in direction iDir between planes iCenter +/- iDist
-double getEfield(ScalarField V, int iDir, int iCenter, int iDist)
-{	const GridInfo& gInfo = V->gInfo;
-	//Planarly average:
-	ScalarFieldTilde Vtilde = J(V);
-	planarAvg(Vtilde, iDir);
-	ScalarField Vavg = I(Vtilde);
-	//Extract field:
-	assert(2*iDist < gInfo.S[iDir]);
-	vector3<int> iRm, iRp;
-	iRm[iDir] = positiveRemainder(iCenter - iDist, gInfo.S[iDir]);
-	iRp[iDir] = positiveRemainder(iCenter + iDist, gInfo.S[iDir]);
-	double Vm = Vavg->data()[gInfo.fullRindex(iRm)];
-	double Vp = Vavg->data()[gInfo.fullRindex(iRp)];
-	double dx = (2*iDist) * gInfo.h[iDir].length();
-	return (Vm - Vp) / dx;
-}
-
-//Add electric field in direction iDir to given data
-//x0 in lattice coordinates specifies where the added potential is zero
-void addEfield_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double Efield, vector3<> x0, double* V)
-{	const vector3<int>& S = gInfo->S;
-	double h = gInfo->h[iDir].length();
-	double L = h * S[iDir];
-	double r0 = x0[iDir] * L;
-	THREAD_rLoop
-	(	double r = h * iv[iDir] - r0;
-		r -= L * floor(0.5 + r/L); //wrap to [-L/2,+L/2)
-		V[i] += -Efield*r;
-	)
-}
 
 void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 {	logPrintf("Calculating charged defect correction:\n"); logFlush();
@@ -205,6 +256,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			if(!e.coulombParams.embed)
 				die("\tCoulomb truncation must be embedded for charged-defect correction in slab geometry.\n");
 			rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
+			
 			//Create dielectric model for slab:
 			ScalarField epsSlab; nullToZero(epsSlab, e.gInfo);
 			double* epsSlabData = epsSlab->data();
@@ -225,19 +277,34 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
 			epsSlab = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
 			
+			//Include solvation model dielectric / screening, if present:
+			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab->gInfo);
+			if(e.eVars.fluidSolver)
+			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
+					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
+				else
+				{	//Fluid is a PCM: use cavity shape to update epsilon, kappaSq
+					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
+					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
+					ScalarFieldTilde shapeTilde = J(pcm.shape);
+					planarAvg(shapeTilde, iDir); //planarly average cavity
+					ScalarField shapeSlab = I(shapeTilde);
+					epsSlab += shapeSlab * (pcm.epsBulk - 1.);
+					kappaSqSlab += shapeSlab * pcm.k2factor;
+				}
+			}
+			
 			//Periodic potential and energy:
 			ScalarFieldTilde dModel;
-			Emodel = SlabPeriodicSolver(iDir, epsSlab).getEnergy(rhoModel, dModel);
-			//--- fix up net electric field in output potential (increases accuracy of alignment):
-			Vmodel = I(dModel);
-			double EfieldDft = getEfield(Vdft, iDir, e.coulomb->ivCenter[iDir], e.gInfo.S[iDir]/2-2);
-			double EfieldModel = getEfield(Vmodel, iDir, 0., e.gInfo.S[iDir]/2-2);
-			vector3<> posMeanEmbed = Diag(e.coulomb->embedScale) * ws.restrict(posMean - e.coulomb->xCenter);
-			threadLaunch(addEfield_sub, Vmodel->gInfo.nr, &(Vmodel->gInfo), iDir, EfieldDft-EfieldModel, posMeanEmbed, Vmodel->data());
-			Vmodel = I(e.coulomb->embedShrink(J(Vmodel)));
+			Emodel = SlabPeriodicSolver(iDir, epsSlab, kappaSqSlab, e.coulombParams.embedFluidMode).getEnergy(rhoModel, dModel);
+			Vmodel = I(e.coulomb->embedShrink(dModel));
 			
 			//Isolated energy:
-			//TODO
+			CylindricalPoisson cp(iDir, epsSlab, kappaSqSlab);
+			for(const Center& cdc: center)
+			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
+				EmodelIsolated += cp.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
+			}
 			break;
 		}
 		default: die("\tCoulomb-interaction geometry must be either slab or periodic for charged-defect correction.\n");

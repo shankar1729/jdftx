@@ -169,7 +169,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		report(iter);
 		
 		//Check for convergence and update variable:
-		if(isnan(E))
+		if(std::isnan(E))
 		{	fprintf(pp.fpLog, "%sE=%le. Stopping ...\n\n", pp.linePrefix, E);
 			return E;
 		}

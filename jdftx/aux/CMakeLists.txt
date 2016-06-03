@@ -1,4 +1,4 @@
-# Various test and auxiliary utility codes
+# Various  auxiliary test and utility codes
 
 set(targetNameList
 	TestRandom          #Random tests during develoment (no specific purpose)
@@ -20,5 +20,7 @@ set(targetNameList
 )
 
 foreach(targetName ${targetNameList})
-	add_JDFTx_executable(${targetName} ${targetName}.cpp)
+	add_JDFTx_executable(${targetName} ${targetName}.cpp EXCLUDE_FROM_ALL)
 endforeach()
+add_custom_target(aux DEPENDS ${targetNameList})
+

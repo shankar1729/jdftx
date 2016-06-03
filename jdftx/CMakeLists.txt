@@ -10,7 +10,7 @@ set(CPACK_PACKAGE_DESCRIPTION "The playground for joint density functional theor
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolkit for rapid development of density-functional methods")
 set(CPACK_PACKAGE_VERSION_MAJOR "1")
 set(CPACK_PACKAGE_VERSION_MINOR "1")
-set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_VERSION_PATCH "1")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
 #Get revision information
@@ -43,12 +43,15 @@ if(EnableMKL)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
 	add_definitions("-DMKL_PROVIDES_BLAS") #Special handling is required for BLAS calls from threaded sections
 	include_directories(${MKL_INCLUDE_DIR})
+	#Explicitly add threads library
+	set(CMAKE_THREAD_PREFER_PTHREAD)
+	find_package(Threads REQUIRED)
 	if(ForceFFTW)
 		find_package(FFTW3 REQUIRED)
-		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES}) #Explicit FFTW3, rest from MKL
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}) #Explicit FFTW3, rest from MKL
 	else()
 		add_definitions("-DMKL_PROVIDES_FFT") #Special handling is required for FFT initialization
-		set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
+		set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}) #MKL provides CBLAS, FFTW3 and LAPACK
 	endif()
 else()
 	find_package(FFTW3 REQUIRED)
@@ -170,7 +173,7 @@ if(EnableCUDA)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=compute_20;-code=sm_20,sm_30;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=compute_20;-code=sm_20,sm_30;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})
@@ -188,12 +191,12 @@ endif()
 
 macro(add_JDFTx_executable execName execSources)
 	#CPU version
-	add_executable(${execName} ${execSources})
+	add_executable(${execName} ${ARGN} ${execSources})
 	target_link_libraries(${execName} jdftxlib)
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(EnableCUDA) #GPU version
-	        add_executable(${execName}_gpu ${execSources})
+	        add_executable(${execName}_gpu ${ARGN} ${execSources})
 	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
 	        set_JDFTx_flags(${execName}_gpu ON)
 	endif()
@@ -241,15 +244,16 @@ if(DOXYGEN_FOUND)
 	)
 endif()
 
-#Additional test executables, mostly related to the fluid
-add_subdirectory(tests)
-
-#Test suite
+#Tests
 enable_testing()
-add_subdirectory(testsuite)
+add_subdirectory(test)
+
+#Optional: additional auxiliary test executables, mostly related to fluid development
+add_subdirectory(aux)
 
 #Optional features: primarily interfaces to other codes
 add_subdirectory(opt)
 
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
+

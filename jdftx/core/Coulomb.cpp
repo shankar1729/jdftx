@@ -96,6 +96,7 @@ template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<i
 
 ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 {	assert(params.embed);
+	assert(&(in->gInfo) == &gInfoOrig);
 	ScalarField out; nullToZero(out, gInfo);
 	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
@@ -104,6 +105,7 @@ ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 
 complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
+	assert(&(in->gInfo) == &gInfoOrig);
 	complexScalarField out; nullToZero(out, gInfo);
 	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I((complexScalarFieldTilde&&)in)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
@@ -112,6 +114,7 @@ complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
 
 ScalarFieldTilde Coulomb::embedShrink(const ScalarFieldTilde& in) const
 {	assert(params.embed);
+	assert(&(in->gInfo) == &gInfo);
 	ScalarField Iin = I(in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	ScalarField out; nullToZero(out, gInfoOrig);
@@ -121,6 +124,7 @@ ScalarFieldTilde Coulomb::embedShrink(const ScalarFieldTilde& in) const
 
 complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
+	assert(&(in->gInfo) == &gInfo);
 	complexScalarField Iin = I((complexScalarFieldTilde&&)in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	complexScalarField out; nullToZero(out, gInfoOrig);

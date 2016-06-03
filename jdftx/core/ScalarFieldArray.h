@@ -94,17 +94,14 @@ inline ScalarFieldArray operator*(const ScalarFieldArray& x, ScalarFieldArray&& 
 	return y;
 }
 
-inline ScalarFieldArray operator*(const ScalarField& x, ScalarFieldArray&& y)
+inline ScalarFieldArray& operator*=(ScalarFieldArray& y, const ScalarField& x)
 {	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
 	return y;
 }
-inline ScalarFieldArray operator*(ScalarFieldArray&& y, const ScalarField& x)
-{	for(unsigned i=0; i<y.size(); i++) if(y[i]) y[i] *= x;
-	return y;
-}
-inline ScalarFieldArray operator*(const ScalarField& x, const ScalarFieldArray& y) { return x * clone(y); }
-inline ScalarFieldArray operator*(const ScalarFieldArray& y, const ScalarField& x) { return y * clone(x); }
-
+inline ScalarFieldArray operator*(const ScalarField& x, ScalarFieldArray&& y) { return y *= x; }
+inline ScalarFieldArray operator*(ScalarFieldArray&& y, const ScalarField& x) { return y *= x; }
+inline ScalarFieldArray operator*(const ScalarField& x, const ScalarFieldArray& y) { ScalarFieldArray z = clone(y); return z *= x; }
+inline ScalarFieldArray operator*(const ScalarFieldArray& y, const ScalarField& x) { ScalarFieldArray z = clone(y); return z *= x; }
 
 //! Increment
 template<class T> TptrCollection& operator+=(TptrCollection& in, const TptrCollection& other) { axpy(+1.0, other, in); return in; }

@@ -194,6 +194,7 @@ void randomize(matrix& x);
 //! Compute inverse of an arbitrary matrix A (via LU decomposition)
 matrix inv(const matrix& A);
 diagMatrix inv(const diagMatrix& A);
+matrix invApply(const matrix& A, const matrix& b); //return inv(A) * b (A must be hermitian, positive-definite)
 
 //! Compute the LU decomposition of the matrix
 matrix LU(const matrix& A);

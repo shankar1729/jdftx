@@ -139,7 +139,7 @@ double IonDynamics::computeAcceleration(IonicGradient& accel)
 				auto rNorm = r.length();
 				auto rHat = r/rNorm;
 				auto force = 0.0;
-				assert(abs(rHat.length_squared() - 1.0) < 1e-7);
+				assert(fabs(rHat.length_squared() - 1.0) < 1e-7);
 				if (isPolynomial)
 				{	auto V = 0.0;
 					auto g = 0.0, gtmp = 0.0; // Ftmp is the helper that holds the terms while taking the derivative inside for loop if polynomial

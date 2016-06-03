@@ -1,5 +1,12 @@
 /** \page ChangeLog Change log
 
+## 1.1.1 - 2016-05-04 ([Site archive](http://jdftx.org/1.1.1))
+
++ Moved auxiliary executables to aux making their compilation optional, and renamed testuite to test
+
++ Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5 
+
+
 ## 1.1.0 - 2016-04-14 ([Site archive](http://jdftx.org/1.1.0))
 
 + Improved convergence and fixed initialization errors in the SCF version of NonlinearPCM,
