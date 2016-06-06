@@ -171,6 +171,11 @@ cat > "$tmpDir/process.m" <<EOF
 		fp = fopen(fname, "r");
 		v = fread(fp, "double");
 		fclose(fp);
+		#Handle endianness, if necessary:
+		[comp,maxSize,endian] = computer();
+		if strcmp(endian,"B")
+			v = swapbytes(v); #files are always little-endian, so swap bytes in memory to make big-endian
+		endif
 		switch length(v)
 			case prod(Sgrid) #Real scalar field on charge-density grid
 				Scur = Sgrid;
