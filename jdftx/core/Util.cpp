@@ -35,13 +35,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h> //This file is generated during build based on Git hash etc.
 
-// Get the size of a file
-off_t fileSize(const char *filename)
-{	struct stat st;
-	if(stat(filename, &st) == 0) return st.st_size;
-    return -1;
-}
-
 //Program banner
 void printVersionBanner()
 {	logPrintf("\n*************** " PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH
@@ -417,6 +410,87 @@ void printStack(bool detailedStackScript)
 	}
 	free(funcNames);
 }
+
+//--------------- Miscellaneous ------------------
+
+// Get the size of a file
+off_t fileSize(const char *filename)
+{	struct stat st;
+	if(stat(filename, &st) == 0) return st.st_size;
+    return -1;
+}
+
+bool isLittleEndian()
+{	static bool isLE = false, initializedLE = false;
+	if(!initializedLE)
+	{	//To be absolutely sure, check with an 8-byte type:
+		uint64_t testData = 0x0001020304050607;
+		uint8_t* testPtr = (uint8_t*)(&testData);
+		bool littleCheck = true;
+		bool bigCheck = true;
+		for(int j=0; j<8; j++)
+		{	littleCheck &= (testPtr[j]==7-j);
+			bigCheck &= (testPtr[j]==j);
+		}
+		if(littleCheck) isLE = true; //little endian
+		else if(bigCheck) isLE = false; //big endian
+		else //neither:
+			die("Binary I/O not yet supported on mixed-endian CPUs.\n")
+	}
+	return isLE;
+}
+
+//Convert data from operating endianness to little-endian
+void convertToLE(void* ptr, size_t size, size_t nmemb)
+{	static StopWatch watch("endianSwap");
+	if(isLittleEndian() || size==1) return; //nothing to do on little-endian systems, or on byte-wise data
+	watch.start();
+	//Determine chunk size over which byte-swapping must occur:
+	size_t chunkSize = 0, nChunks = 0;
+	switch(size)
+	{	case 2:
+		case 4:
+		case 8:
+			chunkSize = size;
+			nChunks = nmemb;
+			break;
+		case 16: //only for complex, which is two 8-byte doubles:
+			chunkSize = 8;
+			nChunks = 2*nmemb;
+			break; 
+		default: die("Unsupported size '%zu' for binary I/O on big-endian systems.\n", size)
+	}
+	//Apply byte-swapping:
+	char* bytes = (char*)ptr;
+	for(size_t iChunk=0; iChunk<nChunks; iChunk++)
+	{	for(size_t iByte=0; iByte<chunkSize/2; iByte++)
+		{	std::swap(bytes[iByte], bytes[chunkSize-1-iByte]);
+		}
+		bytes += chunkSize; //move to next chunk
+	}
+	watch.stop();
+}
+
+//Convert data from little-endian to operating endianness
+void convertFromLE(void* ptr, size_t size, size_t nmemb)
+{	convertToLE(ptr, size, nmemb); //swapping between little and big endian is its own inverse
+}
+
+//Read from a little-endian binary file, regardless of operating endianness
+size_t freadLE(void *ptr, size_t size, size_t nmemb, FILE* fp)
+{	size_t result = fread(ptr, size, nmemb, fp); //byte-by-byte read
+	convertFromLE(ptr, size, nmemb); //modify byte-order in place, if necessary
+	return result;
+}
+
+//Write to a little-endian binary file, regardless of operating endianness
+size_t fwriteLE(const void *ptr, size_t size, size_t nmemb, FILE *fp)
+{	convertToLE((void*)ptr, size, nmemb); //modify byte-order in place, if necessary
+	size_t result = fwrite((void*)ptr, size, nmemb, fp); //byte-by-byte write
+	convertFromLE((void*)ptr, size, nmemb); //restore byte-order (since data should not be logically modified)
+	return result;
+}
+
 
 // Exit on error with a more in-depth stack trace
 void stackTraceExit(int code)

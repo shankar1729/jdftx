@@ -405,7 +405,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				FILE* fp = fopen(fname.c_str(), "wb");
 				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 				for(int i=0; i<gInfoSuper.nr; i++)
-					fwrite(psiData+i, sizeof(double), 1, fp);
+					fwriteLE(psiData+i, sizeof(double), 1, fp);
 				fclose(fp);
 			}
 			else saveRawBinary(psi, fname.c_str());

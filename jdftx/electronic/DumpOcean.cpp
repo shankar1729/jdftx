@@ -71,10 +71,10 @@ void Dump::dumpOcean()
 			
 			//Write header:
 			int nbasis = basis.nbasis; //cast nbasis to int
-			fwrite(&nbasis, sizeof(int), 1, fp); //Number of G-vectors
+			fwriteLE(&nbasis, sizeof(int), 1, fp); //Number of G-vectors
 			for(int n=0; n<nbasis; n++)
 			{	vector3<int> iGout = basis.iGarr[n] + kOffset;
-				fwrite(&iGout, sizeof(int), 3, fp); //List of G-vectors
+				fwriteLE(&iGout, sizeof(int), 3, fp); //List of G-vectors
 			}
 			
 			//Collect relevant wavefunctions:

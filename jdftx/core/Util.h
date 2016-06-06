@@ -147,6 +147,12 @@ namespace Citations
 //! Get the size of a file
 off_t fileSize(const char *filename);
 
+//Endianness utilities (all binary I/O is from little-endian files regardless of operating endianness):
+void convertToLE(void* ptr, size_t size, size_t nmemb); //!< Convert data from operating endianness to little-endian
+void convertFromLE(void* ptr, size_t size, size_t nmemb); //!< Convert data from little-endian to operating endianness
+size_t freadLE(void *ptr, size_t size, size_t nmemb, FILE* fp); //!< Read from a little-endian binary file, regardless of operating endianness
+size_t fwriteLE(const void *ptr, size_t size, size_t nmemb, FILE *fp); //!< Write to a little-endian binary file, regardless of operating endianness
+
 //! For any x and y>0, compute z = x % y such that 0 <= z < y
 inline uint16_t positiveRemainder(int16_t x, uint16_t y)
 {	int16_t xMody = x % y;
