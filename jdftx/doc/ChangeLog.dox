@@ -1,5 +1,12 @@
 /** \page ChangeLog Change log
 
+## Unreleased
+
++ Energy correction for charged defects at surfaces in vacuum and solution
+
++ Consistent behavior for binary file I/O on big-endian architectures such as PowerPC64 (eg. BlueGene)
+
+
 ## 1.1.1 - 2016-05-04 ([Site archive](http://jdftx.org/1.1.1))
 
 + Moved auxiliary executables to aux making their compilation optional, and renamed testuite to test
