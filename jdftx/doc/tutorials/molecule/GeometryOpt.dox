@@ -8,7 +8,7 @@ and also how to continue a calculation.
 
 This time, let's start with a very coarse geometry.
 In reality, the water molecule has an O-H bond length of roughly 0.97 Angstrom and a bond angle of 104.5 degrees.
-To give the geometry optimizer something to do, let's start with a bong length of 1 Angstrom and bond angle of 90 degrees.
+To give the geometry optimizer something to do, let's start with a bond length of 1 Angstrom and bond angle of 90 degrees.
 Save the following to water.xyz:
 
     3
