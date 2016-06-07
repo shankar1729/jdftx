@@ -136,6 +136,19 @@ if(CompileNative)
 	endif()
 endif()
 
+#Workarounds for Windows compilation:
+if(CYGWIN)
+	add_definitions("-D_GNU_SOURCE")
+	file(WRITE ${CMAKE_BINARY_DIR}/execinfo.h
+"#ifndef EXECINFO_H
+#define EXECINFO_H
+inline int backtrace(void **buffer, int size) { return 0; }
+inline char **backtrace_symbols(void *const *buffer, int size) { return 0; }
+#endif //EXECINFO_H
+"
+	)
+endif()
+
 #------------- Macro to set JDFTx flags -------------
 
 macro(set_JDFTx_flags targetName isGpu)
