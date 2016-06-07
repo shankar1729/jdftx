@@ -161,4 +161,27 @@ The following commands may be used to invoke cmake:
         ../jdftx
     make -j12
 
+
+Compiling on Windows
+--------------------
+
+Install [Cygwin](https://www.cygwin.com), which provides a POSIX environment on Windows
+and make sure the following packages (and their automatically selected dependencies) are installed:
+
++ make
++ cmake
++ gcc-g++
++ libgsl-devel
++ libfftw3-devel
++ libopenmpi-devel
++ liblapack-devel
+
+Optionally, you may also want to install:
+
++ git (to access development versions of the code)
++ octave (required by some useful postprocessing scripts)
+
+The generic compilation instructions above (cmake with default options, followed by make)
+should work just fine once the required packages above are installed.
+
 */
