@@ -58,6 +58,20 @@ Now, check the final energy of the water molecule (in Hartrees) using the script
 
 Next, check how the energy changes upon increasing the box size.
 Replace 15 with 20, 25 and then 30 in xyzToIonposOpt above, and rerun jdftx and listEnergy for each.
+You could do this manually, but could easily script all these calculations
+in the bash shell and retrieve their energies using:
+
+    #!/bin/bash
+    for padding in 15 20 25 30; do
+        xyzToIonposOpt water.xyz $padding
+        jdftx -i water.in | tee water-$padding.out
+    done
+    listEnergy water-*.out
+
+Note that you could directly type the above in the shell,
+or save them to a file, say run.sh, give execute permissions
+using chmod +x run.sh and then execute using ./run.sh
+
 Finally, also add the coulomb trunaction commands to the above water.in:
 
     coulomb-interaction Isolated         #Switch from periodic to isolated images mode
