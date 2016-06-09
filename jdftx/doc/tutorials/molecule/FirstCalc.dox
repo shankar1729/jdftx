@@ -2,8 +2,20 @@
 
 \image html tutorials/FirstCalc.png
 
-A lot of effort in the research behind JDFTx has involved water: its dielectric response, equation of state, free energy functional etc.
-Therefore, a water molecule is a fitting first calculation. Save the following to water.in:
+JDFTx is an electronic density-functional theory (DFT) software,
+which means that its primary functionality is to calculate
+the quantum-mechanical energy of electrons in an external potential,
+typically from nuclei (ions) in a molecule or solid.
+Specifically, the underlying theory is Kohn-Sham DFT
+which involves solving the single-particle Schrodinger equation
+in a self-consistent potential determined from the electron density.
+This tutorial demonstrates a DFT calculation of the energy
+and electron density of a water molecule.
+
+A lot of effort in the research behind JDFTx has involved water:
+its dielectric response, equation of state, free energy functional etc.
+Therefore, a water molecule is a fitting first calculation.
+Save the following to water.in:
 
     # The input file is a list of commands, one per line
     # The commands may appear in any order; group them to your liking
@@ -35,9 +47,13 @@ Therefore, a water molecule is a fitting first calculation. Save the following t
 
 This input-file illustrates the bare minimum commands needed to set up a calculation.
 The lattice and ion commands set up the unit cell and geometry,
-and elec-cutoff controls the resolution of the plane-wave basis.
+and elec-cutoff controls the resolution of the plane-wave basis
+that is used to represent the wavefunctions and densities. 
 See \ref Commands for a list of all available input file commands and their options.
 
+In a plane-wave basis, bare nuclei are replaced by an effective potential
+due to the nucleus and core electrons, termed the pseudopotential,
+and only the remaining valence electrons are included explicitly in the DFT calculation.
 The ion-species commands select the GBRV pseudopotentials distributed with JDFTx.
 These are installed to the build directory, and JDFTx will automatically look for them there.
 If you use pseudopotentials not built into JDFTx, specify the absolute or relative paths instead.

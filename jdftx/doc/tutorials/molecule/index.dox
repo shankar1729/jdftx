@@ -1,6 +1,7 @@
 /** \page MoleculeTutorials Molecules
 
 + \subpage FirstCalc
++ \subpage Outputs
 + \subpage CoulombTrunc
 + \subpage GeometryOpt
 + \subpage OpenShell
