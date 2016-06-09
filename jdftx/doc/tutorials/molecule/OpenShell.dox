@@ -1,5 +1,7 @@
 /** \page OpenShell Open-shell systems
 
+\image html Hatom.png
+
 This tutorial covers the basics for spin-polarized and open-shell calculations in JDFTx,
 using the most basic system of all, a hydrogen atom.
 Additionally, it introduces the eigenvalue output and the exact-exchange  options in the code.
@@ -50,10 +52,14 @@ whose contents you can examine using one of the distributed scripts:
 
     binaryToText Hatom.eigenvals
 
-Note that the Kohn-Sham eigenvalues for both the spin up and down orbitals
-are approximately -0.28 Hartrees, in very poor agreement with the
-exact analytical result of -0.5 Hartrees.
-This is a very well-known limitation of semi-local DFT approximations
+Note that the Kohn-Sham eigenvalues for the occupied (spin up) orbital is approximately
+-0.28 Hartrees, in very poor agreement with the exact analytical result of -0.5 Hartrees.
+(The unoccupied state eigenvalue does not converge in this variational minimize
+calculation since it absolutely does not contribute to the total energy.
+Converging empty state eigenvalues reliably requires a [band-structure calculation](BandStructure.html),
+or the use of the \ref CommandConvergeEmptyStates command.)
+
+This eigenvalue inaccuracy is a well-known limitation of semi-local DFT approximations
 such as the default PBE generalized-gradient approximation used here.
 In these functionals, the electrons effectively interact with themselves
 (self-interaction error) which makes the Kohn-Sham eigenvalues of occupied states
@@ -82,8 +88,6 @@ and examine the eigenvalues using binaryToText.
 Now we find that the eigenvalue of the occupied state is -0.4998 Hartrees,
 exactly equal to the total energy Etot = -0.4998 Hartrees,
 both in very good agreement with the analytical result of -0.5 Hartrees.
-The unoccupied state eigenvalue does not converge in this variational minimize
-calculation since it absolutely does not contribute to the total energy.
 
 The Hartree-Fock calculations are exact for the hydrogen atom,
 but are much less accurate than semi-local DFTs for most molecules and solids,
