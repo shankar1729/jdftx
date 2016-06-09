@@ -1,7 +1,4 @@
-/** \page AnionCat Solvation in the presence of charged species
-
-Solvation in the presence of charged species
----------------
+/** \page SolvationIon Solvation of ions
 
 While the solvation options described in the previous tutorial are sufficient 
 to describe the solvation of molecules in fluids such as water, these fluids

@@ -6,7 +6,7 @@
 + \subpage GeometryOpt
 + \subpage OpenShell
 + \subpage FreeEnergy
-+ \subpage Solvation
-+ \subpage AnionCat
++ \subpage SolvationMolecule
++ \subpage SolvationIon
 
 */

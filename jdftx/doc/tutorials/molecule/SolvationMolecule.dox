@@ -1,0 +1,115 @@
+/** \page SolvationMolecule Solvation of molecules
+
+All the calculations so far have been of isolated molecules in vacuum,
+which is a good description for dilute gases.
+However, chemical reactions often occur in a solution,
+and predicting reaction mechanisms using DFT requires
+calculating structures and free energies of molecules in solution.
+Directly describing the solvent using its constituent molecules
+requires several thousands of DFT calculations to sample all configurations
+of solvent molecules, and is extremely computationally intensive.
+A practical alternative is to use a continuum solvation model
+which directly approximates the equilibrium effect of the solvent
+on a solute, without treating individual solvent configurations.
+
+A major focus in the development of JDFTx has been the development of
+a heirarchy of solvation models from continuum to a detailed classical DFT approach,
+within the framework of Joint Density Functional Theory. (That's where JDFTx gets its J!)
+This tutorial shows how to put molecules in solution and
+introduces some of the commands that control solvation and fluid properties.
+
+Let's put a water molecule in liquid water.
+The free energy of this process is related to the vapor pressure of liquid water
+and can be calculated from experimental measurements as 0.0101 Hartrees (= 6.33 kcal/mol).
+First, we perform the calculation in vacuum using the input files
+
+    #Save to common.in
+    lattice Cubic 15
+    coulomb-interaction Isolated
+    coulomb-truncation-embed 0 0 0
+    ion-species GBRV/h_pbe_v1.uspp
+    ion-species GBRV/o_pbe_v1.2.uspp
+    elec-cutoff 20 100
+    coords-type cartesian     
+
+containing the shared commands as before, and
+
+    #Save to Vacuum.in and run as jdftx -i Vacuum.in | tee Vacuum.out:
+    include common.in
+    ion O   0.00 0.00  0.00  0
+    ion H   0.00 1.13 +1.45  1
+    ion H   0.00 1.13 -1.45  1
+    ionic-minimize nIterations 10
+    dump-name Vacuum.$VAR
+    dump End State
+
+Upon completion, this calculation will output the optimized geometry
+and wavefunctions of a water molecule in vacuum.
+Next, we run a solvated calculation starting from this state:
+
+    #Save to LinearPCM.in and run as jdftx -i LinearPCM.in | tee LinearPCM.out:
+    include common.in
+    include Vacuum.ionpos
+    initial-state Vacuum.$VAR
+    ionic-minimize nIterations 10
+    dump-name LinearPCM.$VAR
+    dump End State BoundCharge
+    
+    fluid LinearPCM     #Simple continuum fluid with linear response
+    pcm-variant GLSSA13 #default, if not specified
+    fluid-solvent H2O   #Solvent is water
+
+This runs a solvated calculation with the simplest GLSSA13 LinearPCM model
+(this is exactly the same model which was later implemented in VASP as VASPSOL)
+and outputs the bound charge density induced in the solvent
+by electrostatic interactions with the solute.
+Examine the output file: now there are lines starting with 'Linear fluid' between electronic steps.
+These correspond to optimization of the fluid degrees of freedom
+(in this simple case, by solving a linearized Poisson-Boltzmann equation)
+in response to the solute's charge density.
+The energy components now include an additional piece Adiel,
+which is the total contribution due to the solvent.
+
+The solvation free energy is the difference between the final energies in
+Vacuum.out and LinearPCM.out, which turns out to be around 0.0113 Hartrees
+in very good agreement with the experimental estimate of 0.0101 Hartrees.
+Visualizing the bound charge density (nbound) using
+
+    createXSF LinearPCM.out LinearPCM.xsf nbound
+
+results in the first panel of the figure above.
+
+A number of solvation models have been developed and implemented in in JDFTx,
+including Classical DFT functionals and different types of implicit solvents.
+These implicit solvents range from linear polarizable continuum models to nonlinear and nonlocal polarizable continuum models
+that are more suited to higher electric fields and the presence of negative charge.
+
+To choose a fluid option, one must decide what features of the fluid the solvation model needs to capture.
+
+%LinearPCM is a the most basic isodensity polarizable continuum model, and is computationally inexpensive.  It has 
+essentially only one adjustable parameter, the dielectric constant of the fluid.  It is well-suited for the
+ solvation of neutral molecules.
+
+%NonlinearPCM is an extension of the polarizable continuum model which allows for the saturation of the dielectric
+response at high electric fields.  It was developed for non-conducting surfaces in the presence of an electric field,
+where linear polarizable continuum models fail.  
+
+%SaLSA, "the spherically-averaged liquid susceptibility {\it ansatz}", is an extension of the 
+polarizable continuum model, which gives the nonlocal dielectric response of the fluid.  %SaLSA
+is particularly useful for strongly polar and charged systems.
+
+[Can someone please include the Classical DFT info that would be most helpful?]
+
+To try out one of these fluid models, we can add the following fluid line to our water.in calculation from the [first tutorial](FirstCalc.html):
+
+fluid %LinearPCM
+
+This will give us the energy of the solvated water molecule in the linear polarizable continuum model, and we can subtract the vacuum energy to give the solvation energy.
+
+To see more information about this fluid, check the citation printed at the beginning of the JDFTx output file when the %LinearPCM fluid option is used.
+
+Extra practice:  
+1.  Perform an ionic relaxation of the molecule in the fluid, and compare the geometry to that of the molecule relaxed in vacuum.
+2.  Compare the solvation energy of the water molecule using different fluid models.
+
+*/
