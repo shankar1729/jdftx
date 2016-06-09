@@ -198,7 +198,8 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	}
 	
 	//Set the Legendre multipliers corresponding to the initial fillings
-	updateFillingsEnergies(F, ener);
+	if(fillingsUpdate != ConstantFillings) //if ConstantFillings, let TS and muN remain 0
+		updateFillingsEnergies(F, ener);
 	
 	// Print out the current status of the electronic info before leaving
 	logPrintf("nElectrons: %10.6f   nBands: %d   nStates: %d", nElectrons, nBands, nStates);
