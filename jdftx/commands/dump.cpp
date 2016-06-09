@@ -525,7 +525,7 @@ struct CommandVibrations : public Command
 			"   to achieve higher accuracy at twice the cost (default: no)\n"
 			"+ useConstraints yes|no: restrict modes of motion as specified by move flags\n"
 			"   and constraints in the ion command (default: no)\n"
-			"+ traslationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
+			"+ translationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
 			"   Can be turned off to get vibrational levels in an external potential.\n"
 			"+ rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
 			"   molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"
