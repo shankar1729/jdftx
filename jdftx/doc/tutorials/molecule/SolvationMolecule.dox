@@ -1,5 +1,7 @@
 /** \page SolvationMolecule Solvation of molecules
 
+\image html WaterBoundCharge.png
+
 All the calculations so far have been of isolated molecules in vacuum,
 which is a good description for dilute gases.
 However, chemical reactions often occur in a solution,
@@ -14,7 +16,7 @@ on a solute, without treating individual solvent configurations.
 
 A major focus in the development of JDFTx has been the development of
 a heirarchy of solvation models from continuum to a detailed classical DFT approach,
-within the framework of Joint Density Functional Theory. (That's where JDFTx gets its J!)
+within the framework of Joint Density %Functional Theory. (That's where JDFTx gets its J!)
 This tutorial shows how to put molecules in solution and
 introduces some of the commands that control solvation and fluid properties.
 
@@ -59,7 +61,7 @@ Next, we run a solvated calculation starting from this state:
     pcm-variant GLSSA13 #default, if not specified
     fluid-solvent H2O   #Solvent is water
 
-This runs a solvated calculation with the simplest GLSSA13 LinearPCM model
+This runs a solvated calculation with the simplest GLSSA13 %LinearPCM model
 (this is exactly the same model which was later implemented in VASP as VASPSOL)
 and outputs the bound charge density induced in the solvent
 by electrostatic interactions with the solute.
@@ -79,37 +81,89 @@ Visualizing the bound charge density (nbound) using
 
 results in the first panel of the figure above.
 
-A number of solvation models have been developed and implemented in in JDFTx,
-including Classical DFT functionals and different types of implicit solvents.
-These implicit solvents range from linear polarizable continuum models to nonlinear and nonlocal polarizable continuum models
-that are more suited to higher electric fields and the presence of negative charge.
+The command \ref CommandFluid selects the broad class of solvation model,
+some of which support many variants selected by command \ref CommandPcmVariant.
+Some of the common / recommended models are:
 
-To choose a fluid option, one must decide what features of the fluid the solvation model needs to capture.
++ <b>%LinearPCM (GLSSA13)</b>:
+This default %LinearPCM is currently the most popular solvation model in solid-state calculations,
+especially in the form of the VASPSOL solvation module in the proprietary DFT software VASP.
+In this simple solvation model, the liquid responds with induced charge densities
+at the surface of a dielectric cavity surrounding the solute molecule,
+and this cavity in turn is determined as a function of the solute electron density.
+This solvation model is selected by the following commands, as described above:
 
-%LinearPCM is a the most basic isodensity polarizable continuum model, and is computationally inexpensive.  It has 
-essentially only one adjustable parameter, the dielectric constant of the fluid.  It is well-suited for the
- solvation of neutral molecules.
+    fluid LinearPCM
+    pcm-variant GLSSA13
 
-%NonlinearPCM is an extension of the polarizable continuum model which allows for the saturation of the dielectric
-response at high electric fields.  It was developed for non-conducting surfaces in the presence of an electric field,
-where linear polarizable continuum models fail.  
++ <b>SCCS</b>:
+The self-consistent continuum solvation (SCCS) method is closely related to the default %LinearPCM
+and primarily differs in the details of the function that determines the cavity from the electron density.
+This is the solvation model available in the Quantum Espresso DFT software.
+There are several parametrizations of this model, all with names starting with SCCS (see command \ref CommandPcmVariant):
 
-%SaLSA, "the spherically-averaged liquid susceptibility {\it ansatz}", is an extension of the 
-polarizable continuum model, which gives the nonlocal dielectric response of the fluid.  %SaLSA
-is particularly useful for strongly polar and charged systems.
+    fluid LinearPCM
+    pcm-variant SCCS_*
 
-[Can someone please include the Classical DFT info that would be most helpful?]
++ <b>CANDLE</b>
+This is the latest solvation model and recommended for most applications.
+It has the computational expense of the simpler %LinearPCM's above
+but incorporates the accuracy and robustness of the more expensive models discussed next.
+Ins ummary it uses %SaLSA's nonlocal electron-density overlap method to determine the cavity,
+but then uses a local dielectric response like other %LinearPCM's.
+It additionally corrects for the asymmetry in the response of the liquid
+to positively and negatively charged solutes.
 
-To try out one of these fluid models, we can add the following fluid line to our water.in calculation from the [first tutorial](FirstCalc.html):
+    fluid LinearPCM
+    pcm-variant CANDLE
+    
++ <b>%NonlinearPCM</b>:
+This class of solvation models captures the nonlinearity in the dielectric and ionic response of the solvent.
+This is necessary if you need to capture details in the capacitance of electrochemical systems, for example.
 
-fluid %LinearPCM
+    fluid NonlinearPCM
+    pcm-variant GLSSA13
 
-This will give us the energy of the solvated water molecule in the linear polarizable continuum model, and we can subtract the vacuum energy to give the solvation energy.
++ <b>%SaLSA</b>:
+This solvation model directly captures the nonlocal response of the liquid using an angular mometum expansion
+(not continuum like the rest), and determines the cavity from an overlap of solute and solvent electron densities.
+This model is typically a factor of 10 more expensive than the continuum solvation models.
+Usually CANDLE, which empirically mimics the %SaLSA response, should suffice,
+but %SaLSA is a parameter-free physically-motivated model that is a useful benchmark
+for the more empirical methods like CANDLE  in new / untested classes of solutes.
 
-To see more information about this fluid, check the citation printed at the beginning of the JDFTx output file when the %LinearPCM fluid option is used.
+    fluid SaLSA
 
-Extra practice:  
-1.  Perform an ionic relaxation of the molecule in the fluid, and compare the geometry to that of the molecule relaxed in vacuum.
-2.  Compare the solvation energy of the water molecule using different fluid models.
++ <b>ClassicalDFT</b>:
+A full classical DFT description of the fluid is used to fully capture
+the microscopic structuring of the liquid at the atomic scale.
+This method is typically a factor of 100 more expensive than the continuum methods,
+but is the only method that provides access to <i>liquid structure</i>
+in the solvent in addition to the electronic structure of the solute.
+This is particularly useful for analyzing in-situ structure measurements
+(eg. X-ray) of electrochemical interfaces.
+See commands \ref CommandFluidSolvent for controlling details of the solvent ClassicalDFT
+such as orinetation sampling and \ref CommandFluidGummelLoop to control the self-consistency
+algorithm that optimizes the liquid and electronic states.
+With default options, all it takes to use it is the command:
+
+     fluid ClassicalDFT
+
+Also see the various commands listed under fluid in the \ref Commands page for
+controlling numerous details of the fluid calculation.
+
+Now, as an exercise run the water calculation with each class of solvation model,
+compare the solvation energies and visualize the bound charge in the liquid
+using createXSF ad VESTA, as shown below and at the start of this tutorial.
+(%SaLSA and ClassicalDFT will take a while!)
+Note how %LinearPCM, the nonlocally-inspired variant CANDLE,
+as well as the non-local model %SaLSA have the bound charge
+mostly restricted to a surface surrounding the solute,
+whereas ClassicalDFT, exhibits a shell structure
+with several layers surrounding the solute.
+Additionally, in this simple case of a neutral solute,
+all the solvation models are comparably accurate.
+
+\image html WaterBoundCharge.png
 
 */
