@@ -1,6 +1,6 @@
 /** \page Outputs Output variables
 
-\image html tutorials/Orbitals.png
+\image html tutorials/Orbitals.jpg
 
 The previous tutorial introduced a basic calculation of a water molecule,
 and visualized one possible output: the electron density.
@@ -154,6 +154,6 @@ separated by a nodal plane (where the orbital is zero).
 Two of the three nodal planes are exact planes constrained by reflection symmetry
 of the molecule, while the third is only approximately a plane. (Which one is that?)
 
-\image html tutorials/Orbitals.png
+\image html tutorials/Orbitals.jpg
 
 */

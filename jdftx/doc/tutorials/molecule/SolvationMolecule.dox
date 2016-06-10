@@ -1,6 +1,6 @@
 /** \page SolvationMolecule Solvation of molecules
 
-\image html WaterBoundCharge.png
+\image html WaterBoundCharge.jpg
 
 All the calculations so far have been of isolated molecules in vacuum,
 which is a good description for dilute gases.
@@ -22,15 +22,15 @@ introduces some of the commands that control solvation and fluid properties.
 
 Let's put a water molecule in liquid water.
 The free energy of this process is related to the vapor pressure of liquid water
-and can be calculated from experimental measurements as 0.0101 Hartrees (= 6.33 kcal/mol).
+and can be calculated from experimental measurements as -0.0101 Hartrees (= -6.33 kcal/mol).
 First, we perform the calculation in vacuum using the input files
 
     #Save to common.in
     lattice Cubic 15
     coulomb-interaction Isolated
     coulomb-truncation-embed 0 0 0
-    ion-species GBRV/h_pbe_v1.uspp
-    ion-species GBRV/o_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     coords-type cartesian     
 
@@ -62,7 +62,7 @@ Next, we run a solvated calculation starting from this state:
     fluid-solvent H2O   #Solvent is water
 
 This runs a solvated calculation with the simplest GLSSA13 %LinearPCM model
-(this is exactly the same model which was later implemented in VASP as VASPSOL)
+(this is exactly the same model which was later implemented in VASP as VASPsol)
 and outputs the bound charge density induced in the solvent
 by electrostatic interactions with the solute.
 Examine the output file: now there are lines starting with 'Linear fluid' between electronic steps.
@@ -73,8 +73,9 @@ The energy components now include an additional piece Adiel,
 which is the total contribution due to the solvent.
 
 The solvation free energy is the difference between the final energies in
-Vacuum.out and LinearPCM.out, which turns out to be around 0.0113 Hartrees
-in very good agreement with the experimental estimate of 0.0101 Hartrees.
+Vacuum.out and LinearPCM.out, which turns out to be 
+(-17.2686) - (-17.2799) = -0.0113 Hartrees in good agreement
+with the experimental estimate of -0.0101 Hartrees.
 Visualizing the bound charge density (nbound) using
 
     createXSF LinearPCM.out LinearPCM.xsf nbound
@@ -87,7 +88,7 @@ Some of the common / recommended models are:
 
 + <b>%LinearPCM (GLSSA13)</b>:
 This default %LinearPCM is currently the most popular solvation model in solid-state calculations,
-especially in the form of the VASPSOL solvation module in the proprietary DFT software VASP.
+especially in the form of the VASPsol solvation module in the proprietary DFT software VASP.
 In this simple solvation model, the liquid responds with induced charge densities
 at the surface of a dielectric cavity surrounding the solute molecule,
 and this cavity in turn is determined as a function of the solute electron density.
@@ -164,6 +165,6 @@ with several layers surrounding the solute.
 Additionally, in this simple case of a neutral solute,
 all the solvation models are comparably accurate.
 
-\image html WaterBoundCharge.png
+\image html WaterBoundCharge.jpg
 
 */
