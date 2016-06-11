@@ -1,6 +1,12 @@
 /** \page ChangeLog Change log
 
-## Unreleased
+## 1.1.2 - 2016-06-10 ([Site archive](http://jdftx.org/1.1.2))
+
++ Added support for compiling and running on Windows using Cygwin
+
++ Added option to link JDFTx statically
+
++ New detailed tutorial set for molecular systems
 
 + Energy correction for charged defects at surfaces in vacuum and solution
 
