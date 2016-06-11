@@ -1,6 +1,6 @@
-project(dft)
+cmake_minimum_required(VERSION 2.8.4)
 
-cmake_minimum_required(VERSION 2.8)
+project(JDFTx)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 
@@ -136,8 +136,15 @@ if(CompileNative)
 	endif()
 endif()
 
+#Static linking:
+option(StaticLinking "Link statically instead of dynamically" OFF)
+
 #Workarounds for Windows compilation:
 if(CYGWIN)
+	if(NOT StaticLinking)
+		message(STATUS "Forcing static linking for Cygwin/Windows")
+		set(StaticLinking ON)
+	endif()
 	add_definitions("-D_GNU_SOURCE")
 	file(WRITE ${CMAKE_BINARY_DIR}/execinfo.h
 "#ifndef EXECINFO_H
@@ -167,9 +174,18 @@ endmacro()
 #External libraries to link to
 set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
+#Link options:
+if(StaticLinking)
+	set(LINK_TYPE STATIC)
+	set(LINK_PREFIX -Wl,--whole-archive)
+	set(LINK_SUFFIX -Wl,--no-whole-archive)
+else()
+	set(LINK_TYPE SHARED)
+endif()
+
 #Library with all the functionality:
 FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
-add_library(jdftxlib SHARED ${jdftxlibSources})
+add_library(jdftxlib ${LINK_TYPE} ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
 set_JDFTx_flags(jdftxlib OFF)
@@ -197,7 +213,7 @@ if(EnableCUDA)
 
 	#Library with all the functionality:
 	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
-	add_library(jdftxlib_gpu SHARED ${jdftxlibSources})
+	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
 	set_JDFTx_flags(jdftxlib_gpu ON)
@@ -208,12 +224,12 @@ endif()
 macro(add_JDFTx_executable execName execSources)
 	#CPU version
 	add_executable(${execName} ${ARGN} ${execSources})
-	target_link_libraries(${execName} jdftxlib)
+	target_link_libraries(${execName} ${LINK_PREFIX} jdftxlib ${LINK_SUFFIX})
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(EnableCUDA) #GPU version
 	        add_executable(${execName}_gpu ${ARGN} ${execSources})
-	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
+	        target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu ${LINK_SUFFIX})
 	        set_JDFTx_flags(${execName}_gpu ON)
 	endif()
 endmacro()
