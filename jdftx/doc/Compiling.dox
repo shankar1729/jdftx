@@ -41,10 +41,11 @@ JDFTx is written to take advantage of the code readability and memory management
 and hence requires a recent C++ compiler (works on g++4.6).
 The following programs should be installed before compilation (using ubuntu package names for definiteness):
 
-+ cmake (>=2.8)
-+ g++ (>=4.6)
++ cmake
++ g++
 + libgsl0-dev
-+ libopenmpi-dev (or equivalent for other MPI distributions)
++ libopenmpi-dev
++ openmpi-bin
 + libfftw3-dev
 + libatlas-base-dev (provides blas and cblas)
 + liblapack-dev
@@ -160,6 +161,25 @@ The following commands may be used to invoke cmake:
         -D CMAKE_INCLUDE_PATH=${FFTW_INC} \
         ../jdftx
     make -j12
+
+Compiling on MacOS X
+--------------------
+
+Install [MacPorts](https://www.macports.org/) and use it to install the following required packages:
+
++ cmake
++ gsl
++ fftw-3
++ openmpi
++ lapack
+
+Note that you may need to activate openmpi using "sudo port select mpi openmpi-VERSION";
+where you can figure out the installed VERSION string using "port select --list mpi".
+
+Optionally, you may also want to install:
+
++ git (to access development versions of the code)
++ octave (required by some useful postprocessing scripts)
 
 
 Compiling on Windows
