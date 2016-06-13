@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizer.h>
 #include <electronic/operators.h>
 #include <core/ScalarFieldIO.h>
+#include <inttypes.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -540,12 +541,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Electron-phonon linewidths:
 	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ePh", &iSpin);
-		off_t fsize = fileSize(fname.c_str());
+		intptr_t fsize = fileSize(fname.c_str());
 		if(fsize >= 0)
 		{	//Read from file:
 			int nBandsIn = fsize / (sizeof(double) * e.eInfo.nStates);
-			if(int(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
-				die("Length of file '%s' = %zd is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
+			if(intptr_t(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
+				die("Length of file '%s' = %" PRIdPTR " is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
 			std::vector<diagMatrix> ImSigma_ePh;
 			e.eInfo.read(ImSigma_ePh, fname.c_str(), nBandsIn);

@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #include <fftw3.h>
 #include <mutex>
+#include <inttypes.h>
 
 //-------- Memory usage profiler ---------
 
@@ -257,10 +258,10 @@ void ManagedMemory::dump(const char* fname, bool realPartOnly) const
 }
 
 void ManagedMemory::read(const char *fname)
-{	off_t fsizeExpected = nData() * sizeof(complex);
-	off_t fsize = fileSize(fname);
-	if(fsize != off_t(fsizeExpected))
-		die("Length of '%s' was %zd instead of the expected %zd bytes.\n", fname, fsize, fsizeExpected);
+{	intptr_t fsizeExpected = nData() * sizeof(complex);
+	intptr_t fsize = fileSize(fname);
+	if(fsize != fsizeExpected)
+		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname, "rb");
 	if(!fp) die("Error opening %s for reading.\n", fname);
 	read(fp);

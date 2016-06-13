@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <climits>
 #include <core/Random.h>
+#include <inttypes.h>
 
 MPIUtil::MPIUtil(int argc, char** argv)
 {
@@ -147,9 +148,9 @@ void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool saf
 
 void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const char* fsizeErrMsg) const
 {	if(fsizeExpected)
-	{	off_t fsize = fileSize(fname);
-		if(fsize != off_t(fsizeExpected))
-			die("Length of '%s' was %zd instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
+	{	intptr_t fsize = fileSize(fname);
+		if(fsize != intptr_t(fsizeExpected))
+			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
 	#ifdef MPI_ENABLED
 	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
