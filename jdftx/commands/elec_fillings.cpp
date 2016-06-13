@@ -96,8 +96,9 @@ struct CommandElecInitialCharge : public Command
 	{
 		format = "<QNet>";
 		comments =
-			"Initialize a system with <QNet> excess electrons compared to a neutral system.\n"
-			"If target-mu is specified, this charge will change upon SCF / minimization.";
+			"Initialize a system with <QNet> excess electrons compared to a neutral system.";
+		
+		forbid("target-mu");
 	}
 
 	void process(ParamList& pl, Everything& e)
