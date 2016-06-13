@@ -14,7 +14,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
 		logTarget   Plot energy difference from $logTarget on a log axis.
 		xAxis       "iter" (default) or "time" to plot versus iteration count or run time
-		term        GNUPLOT terminal with options (default "wxt enhanced dashed", or "dumb" without X)
+		term        GNUPLOT terminal with options (default: GNUPLOT default with X, "dumb" without)
 		out         GNUPLOT output file; match this with term (default None)
 	'
 	exit 0
@@ -53,7 +53,8 @@ if [ -z $iterType ]; then
 fi
 
 if [ -z "$term" ]; then
-	if [ -z $DISPLAY ]; then
+	#Check if GNUPLOT can access graphics (works without DISPLAY on MacOS)
+	if [[ ( -z $DISPLAY ) &&  ( "$(uname -s)" != "Darwin" ) ]]; then
 		termCommand="set term dumb"
 	else
 		termCommand=""  #use default terminal
