@@ -147,6 +147,11 @@ namespace Citations
 //! Get the size of a file
 off_t fileSize(const char *filename);
 
+#include <inttypes.h>
+#ifndef PRIdPTR
+	#define PRIdPTR "zd" //For pre-C++11 compilers
+#endif
+
 //Endianness utilities (all binary I/O is from little-endian files regardless of operating endianness):
 void convertToLE(void* ptr, size_t size, size_t nmemb); //!< Convert data from operating endianness to little-endian
 void convertFromLE(void* ptr, size_t size, size_t nmemb); //!< Convert data from little-endian to operating endianness

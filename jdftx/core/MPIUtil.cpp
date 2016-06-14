@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <climits>
 #include <core/Random.h>
-#include <inttypes.h>
 
 MPIUtil::MPIUtil(int argc, char** argv)
 {

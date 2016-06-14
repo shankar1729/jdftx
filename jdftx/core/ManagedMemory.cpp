@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #include <fftw3.h>
 #include <mutex>
-#include <inttypes.h>
 
 //-------- Memory usage profiler ---------
 

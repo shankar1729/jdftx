@@ -200,8 +200,32 @@ Optionally, you may also want to install:
 
 + git (to access development versions of the code)
 + octave (required by some useful postprocessing scripts)
++ gnuplot (required for plotting in some postprocessing scripts)
++ xinit (for graphical features in gnuplot / octave to work)
 
 The generic compilation instructions above (cmake with default options, followed by make)
 should work just fine once the required packages above are installed.
+
+Compiling on Redhat-based Linux distributions:
+----------------------------------------------
+
+Install the following required packages:
+
++ cmake
++ gcc-c++
++ gsl-devel
++ fftw-devel
++ openmpi-devel
++ atlas-devel
+
+In orde to activate the MPI, you may need to issue a command such as "module load openmpi-SUFFIX",
+where you can find the available SUFFIX using the command "module avail openmpi".
+You will need to invoke this command for each new shell where you plan to compile or run JDFTx,
+so it may be appropriate to add this to your shell startup script like .bashrc.
+
+Optionally, you may also want to install:
+
++ git (to access development versions of the code)
++ octave (required by some useful postprocessing scripts; first "yum install epel-release")
 
 */
