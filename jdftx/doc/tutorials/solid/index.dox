@@ -1,4 +1,11 @@
 /** \page SolidTutorials Solids
 
++ \subpage BrillouinZone
 + \subpage BandStructure
++ \subpage LatticeOpt
++ \subpage Metals
++ \subpage DFTplusU
++ \subpage SpinOrbit
++ \subpage WannierFunctions
+
 */

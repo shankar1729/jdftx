@@ -1,0 +1,76 @@
+/** \page BrillouinZone Brillouin-zone sampling
+
+\image html tutorials/Si.png
+
+The previous section dealt entirely with molecular calculations,
+where we calculate properties of isolated systems,
+surrounded by vacuum or liquid in all three dimensions.
+Now we move to crystalline materials, which are periodic in all three dimensions,
+starting with Brillouin zone sampling using the example of silicon.
+
+Previously, we used the lattice command primarily to create a large enough box
+to contain our molecules, and used %Coulomb truncation to isolate periodic images.
+Now, in a crystalline solid, the lattice vectors directly specify
+the periodicity of the crystal and are not arbitrary.
+Silicon has a diamond lattice structure with a cubic lattice constant
+of 5.43 Angstroms (10.263 bohrs).
+In each cubic unit cell, there would be 8 silicon atoms:
+at vertices, face centers and two half-cell body centers.
+However, this does not capture all the spatial periodicity of the lattice
+and we can work with the smaller unit cell of the face-centered Cubic lattice,
+which will contain only two silicon atoms:
+
+    lattice face-centered Cubic 5.43
+    latt-scale 1.88973 1.88973 1.88973  #Convert lattice vectors from Angstroms to bohrs
+    
+    coords-type lattice        #Specify atom coordinates in terms of the lattice vectors (fractional coordinates)
+    ion Si 0.00 0.00 0.00  0   #This covers the vertex and face centers of the cube
+    ion Si 0.25 0.25 0.25  0   #This covers the half-cell body centers
+    
+    kpoint-folding 4 4 4
+    
+    #Select pseudopotential set:
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    elec-cutoff 20 100
+    
+    dump-name Si.$VAR
+    dump End ElecDensity
+
+Save the above to Si.in, run jdftx -i Si.in | tee Si.out and examine the output file.
+First note the symmetry initialization:
+the Bravais lattice, in this case the face-centered Cubic structure,
+has 48 (point group) symmetries, which reduces to 24 symmetries
+after including the basis, in this case the two atoms per unit cell.
+
+Then, after the usual pseudopotential setup, it folds 1 k-point by 4x4x4 to 64 kpoints,
+which is the result of the kpoint-folding command included above.
+Kpoints correspond to Bloch wave-vectors which set the phase that
+the wavefunction picks up when moving from one unit cell to another.
+The default is a single kpoint with wavevector [0,0,0] (also called the Gamma-point),
+which means that the wavefunction picks up no phase or is periodic on the unit cell.
+This was acceptable for the molecules, where we picked large enough unit cells
+that the wavefunctions went to zero in each cell anyway and this periodicity didn't matter.
+But now, we need to account for all possible relative phases of wavefunctions
+in neighbouring unit cells, which corresponds to integrating over the 
+wave vectors in the reciprocal space unit cell, or equivalently the Brillouin zone.
+Essentially, kpoint-folding replaces the specified kpoint(s) (default Gamma in this case)
+with a uniform mesh of kpoints (4 x 4 x 4 in this case), covering the reciprocal space unit cell.
+
+Next, the code reduces the number of kpoints that need to be calculated
+explicitly using symmetries, from 64 to 8 in this case.
+The code then reports the number of electrons per unit cell,
+the number of bands (half of electrons due to spin degeneracy)
+and nStates, which is the number of symmetry-reduced kpoints
+(and spin, in z-spin calculations).
+JDFTx implements MPI parallelization over these "states",
+in addition to thread paralelization over other degrees of freedom.
+In this case, since we have 8 states, we could paralleize them over
+4 processes using:
+
+    mpirun -n 4 jdftx -i Si.in | tee Si-mpi.out
+
+Compare the first few lines of Si.out and Si-mpi.out (hint: head Si*.out).
+
+*/
+
