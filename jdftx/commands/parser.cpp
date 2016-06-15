@@ -197,8 +197,15 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 		//Break the line into command name and parameter list:
 		string cmd = line.substr(0, line.find_first_of(" \t\n\r"));
 		string params = line.substr(cmd.length());
-		//Handle includes:
-		if(cmd=="include")
+		if(cmd=="set") //Handle set (to environment variable):
+		{	//Extract variable name and value from params:
+			istringstream iss(params);
+			string varName, varValue;
+			iss >> varName >> varValue;
+			//Set to environment
+			setenv(varName.c_str(), varValue.c_str(), 1);
+		}
+		else if(cmd=="include") //Handle includes:
 		{	trim(params);
 			if(!params.length()) die("No file-name specified for command include.\n");
 			//Check for cyclic includes:
@@ -395,7 +402,12 @@ inline string describeSyntax()
 		" * 'include <file>' can be used to include commands from <file>\n"
 		"\n"
 		" * Each instance of ${xxx} is replaced by environment variable 'xxx'\n"
-		"   (Variable substitution occurs before command/include processing)\n";
+		"   (Variable substitution occurs before command/include processing)\n"
+		"\n"
+		" * 'set NAME VALUE' can be used to set an environment variable named NAME\n"
+		"   with value VALUE. This occurs before command/include processing,\n"
+		"   in the same pass as variable substitution. Therefore the order of\n"
+		"   'set xxx VALUE' and occurences of ${xxx} in the input file do matter.\n";
 }
 
 void printDefaultTemplate(Everything& everything)

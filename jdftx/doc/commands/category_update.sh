@@ -24,6 +24,11 @@ Input file format
 + Each instance of ${xxx} is replaced by environment variable "xxx"
    (Variable substitution occurs before command/include processing)
 
++ "set NAME VALUE" can be used to set an environment variable named NAME
+   with value VALUE. This occurs before command/include processing,
+   in the same pass as variable substitution. Therefore the order of
+   "set xxx VALUE" and occurences of ${xxx} in the input file does matter
+
 See \subpage CommandIndex for an alphabetical list of all available commands.
 
 '
