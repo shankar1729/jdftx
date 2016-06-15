@@ -12,21 +12,20 @@ So here are the prerequisites to installing JDFTx on your system:
 + <b>GNU/Linux</b> (any distribution):
   You already have a package manager (or you are on an advanced distribution and know how to do without one!).
   In high likelihood, your distribution is either:
-  
   - Debian-based (eg. Debian, Ubuntu, Mint and their numerous flavors),
     and you could use "sudo apt-get install <package names>", or
-  
   - Redhat-based (eg. RHEL, CentOS, Fedora etc.),
     and you could use "sudo yum install <package names>".
-  
   See [Linux Package Management](https://www.linode.com/docs/tools-reference/linux-package-management) for a detailed introduction.
+  <br><br>
   
 + <b>Mac OS X</b>:
   Install the [Xcode commandline tools and MacPorts](https://www.macports.org/install.php)
   (or another package manager such as [Homebrew](http://brew.sh) or [Fink](http://www.finkproject.org);
   but then you should translate the package-names below from MacPorts).
   You would then install packages using "sudo port install <package names>".
-
+  <br><br>
+  
 + <b>Windows</b>:
   Install [Cygwin](https://cygwin.com/install.html)
   which provides a POSIX-compatible environment on Windows
@@ -36,6 +35,7 @@ So here are the prerequisites to installing JDFTx on your system:
   and can rerun the installer to add / remove packages later.
   In addition, you should select the xinit package to get a [working X11 environment](http://x.cygwin.com),
   which will be necessary for opearting many of the Unix tools in graphical mode.
+  <br><br>
   
 + <b>Supercomputing cluster</b>:
   All the dependencies will likely already be installed by the administrators,
@@ -87,106 +87,133 @@ on all above platforms from its [website](http://jp-minerals.org/vesta/en/downlo
 in the build/doc/html directory by running "make doc" in the build directory
 
 
-## Downloading ##
+## Basic compilation ##
 
-Download the latest JDFTx source tarball from [SourceForge](https://sf.net/projects/jdftx/files/).
-Unpack the downloaded file using (replacing the version numbers X, Y, Z below as appropriate):
+Download the latest JDFTx source tarball from [SourceForge](https://sf.net/projects/jdftx/files/)
+into the directory where you want to install it (eg. /home/user/JDFTx), which we'll refer to as JDFTXDIR below.
+In a terminal, the following commands should unpack, configure and build jdftx:
 
-       tar xvpzf jdftx.X.Y.Z.tar.gz
+    cd JDFTXDIR                   #Replace JDFTXDIR with the path you chose
+    ls                            #This should show jdftx.X.Y.Z.tar.gz
+    tar xvpzf jdftx.X.Y.Z.tar.gz  #Unpack; replace X,Y,Z with the actual version numbers
+    mkdir build                   #Create a directory for the build
+    cd build                      #and enter the build directory
+    cmake [options] ../jdftx      #Configure; omit [options] or customize as in the next section
+    make -j4                      #Compile with 4 processes; adjust based on the cores available
 
-This will create a sub-directory jdftx containing all the source files.
-To update the code later, download a newer tarball and follow the usual compilation instructions.
+Note that these commands will unpack the source to JDFTXDIR/jdftx,
+and once successful will produce executables jdftx, phonon and wannier
+in the JDFTXDIR/build directory.
+Note that for a basic compilation with all the dependencies mentioned above
+installed in system locations, you don't need to specify any [options] to cmake.
+
+That should be it!  You can run "make test" to check that the code
+is producing expected numbers for a few built-in test cases.
+In order to use the executable from any directory in your system,
+and to also use post-processing scripts distributed with JDFTx,
+you will need to add the build and scripts directory to your PATH:
+
+    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx/scripts:$PATH"
+
+(Remember to replace JDFTXDIR with the actual path, eg. /home/user/JDFTx, throughout.)
+This setting will last only for the current session if you enter it in the terminal.
+To make it persistent, add the above line to .bashrc in your home directory.
+If you need to update the code, download a newer tarball and follow the same instructions.
 
 Alternatively, if you need a recent update or plan to modify the code,
-get the latest development version using:
+you can get and compile the latest development version using:
 
+       cd JDFTXDIR
        git clone http://git.code.sf.net/p/jdftx/git jdftx-git
-       
-This will produce a directory jdftx-git, with a subdirectory jdftx containing all the source files.
-You can subsequently use **git pull** from within the jdftx-git directory to fetch latest changes from the repository.
+       mkdir build
+       cd build
+       cmake [options] ../jdftx-git/jdftx
+       make -j4
+
+Note that the only difference is that git will fetch jdftx source files within a subdirectory called jdftx-git.
+Accordingly, if you choose to use git instead, your PATH setting will instead be:
+
+    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx-git/jdftx/scripts:$PATH"
+
+To update the code, you can subsequently use **git pull** from within the jdftx-git directory
+to fetch latest changes from the repository, and then run cmake and make in the build directory.
 See the [git documentation](http://git-scm.com/documentation) for more details.
 
 
-## Bugs / Feature requests ##
+## Customization ##
 
-Please report any bugs on the  [tickets page](http://sf.net/p/jdftx/tickets).
-Include program version (output of **jdftx -v**), input file and stack-trace (if jdftx produces one on exit).
+Above we indicated [options] for the cmake command, but left
+them blank since the defaults shoud work fine in most cases.
+Here, we'll discuss some common optional packages, features
+and performance tweaks, and the [options] used to activate them.
 
-Feature requests/suggetsions are also welcome.
++ If you manually installed some of the dependencies, and/or they happen to be installed
+  in non-standard locations, you can tell cmake where they are using [options].
+  For example, if you want to use a custom-installed the GNU Scientific Library in /home/user/gsl,
+  add <b>-D GSL_PATH=/home/user/gsl</b> to [options]
+  
++ You can use Intel's Math Kernel Library (MKL) to provide FFT, BLAS and LAPACK.
+  Add <b>-D EnableMKL=yes</b> to [options], and additionally specify MKL_PATH
+  as indicated above if MKL is in a non-standard location (besides /opt/intel/mkl)
 
-Please check existing open tickets for similar bugs/requests and if there is one, post there instead of creating a new ticket.
-
-
-## Compiling ##
-
-JDFTx is written to take advantage of the code readability and memory management enhancements of C++11,
-and hence requires a recent C++ compiler (works on g++4.6).
-The following programs should be installed before compilation (using ubuntu package names for definiteness):
-
-
-If any of these packages are installed in non-standard locations, add the path to those installations
-by adding <b>-D &lt;package&gt;_PATH=/path/to/package</b> to the cmake command-line, where &lt;package&gt; is FFTW3, GSL etc.
-Note that cmake command-line options must be specified before the source path (i.e. between cmake and ../jdftx in the examples below).
-
-FFT, BLAS and LAPACK may be provided by Intel's Math Kernel Library (MKL) instead.
-In that case, the last three packages of the above list are not required.
-To use MKL, add <b>-D EnableMKL=yes</b> to the command-line.
-If MKL is not installed to the default path of /opt/intel/mkl, then also add -D MKL_PATH=/path/to/mkl.
-
-Additionally, you can use MKL to provide BLAS and LAPACK, but still use FFTW for Fourier transforms,
-by adding <b>-D ForceFFTW=yes</b> to the cmake command line.
-We find this option to often be more reliable than using the MKL FFTs.
-
-The following optional packages are recommended:
++ You can use MKL to provide BLAS and LAPACK, but still use FFTW for Fourier transforms,
+  by adding <b>-D ForceFFTW=yes</b> to [options].
+  We find this option to often be more reliable than using the MKL FFTs.
 
 + [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc)
-(for additional exchange-correlation functionals. Works with LibXC version 2.0;
-add -D EnableLibXC=yes and if necessary -D LIBXC_PATH=/path/to/libxc during compilation)
+  provides additional exchange-correlation functionals. 
+  JDFTx can link to LibXC version 2; add <b>-D EnableLibXC=yes</b> to options,
+  and if necessary specify LIBXC_PATH
 
-For GPU support, install the [CUDA SDK](http://developer.nvidia.com/cuda-toolkit) (version 4.0 or higher)
-and add <b>-D EnableCUDA=yes</b> to the cmake commandline below to compile JDFTx with CUDA support.
-If you get an unsupported compiler error, comment out the GCC version check from $CUDA_DIR/include/host_config.h.
++ For GPU support, install the [CUDA SDK](http://developer.nvidia.com/cuda-toolkit)
+  (either from the website, or your package manager, if available)
+  and add <b>-D EnableCUDA=yes</b> to [options].
+  If you get an unsupported compiler error, comment out the GCC version check from $CUDA_DIR/include/host_config.h.
 
-If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
-with compute capability >= 1.3, since that is the minimum for double precision.
-Also, you will get a real speedup only if your device has a higher memory bandwidth
-than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation.
-See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs.
-Finally, keep in mind that you also need a lot of memory on the GPU to actually fit systems
-of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
+  If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
+  with compute capability >= 1.3, since that is the minimum for double precision.
+  Also, you will get a real speedup only if your device has a higher memory bandwidth
+  than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation.
+  See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs.
+  Finally, keep in mind that you also need a lot of memory on the GPU to actually fit systems
+  of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
 
-With the above packages installed, issue the following sequence of commands to build jdftx.
-This assumes that you unpacked the source tarball in the current directory \<path-to-JDFTx\>
-(so that a subdirectory jdftx contains the source).
-Adjust the path to the jdftx source directory, as appropriate.
-For example, if you used git as indicated above, it will be ../jdftx-git/jdftx isntead.
+  When you compile with GPU support, extra executables jdftx_gpu, phonon_gpu and wannier_gpu
+  will be generated that will run code almost exclusively on the GPUs,
+  in addition to the regular executables that only run on CPUs.
 
-    <path-to-JDFTx>$ mkdir build
-    <path-to-JDFTx>$ cd build
-    <path-to-JDFTx>/build$ cmake [insert options here] ../jdftx
-    <path-to-JDFTx>/build$ make
++ The above commands use the default compiler (typically g++) and reasonable optimization flags.
+  Using a different compiler require environment variables rather than [options] passed to cmake.
+  For example, you can use the intel compiler using the command
+  (note bash-specific syntax for environment variables):
 
-A successful build will produce an executable jdftx in \<path-to-JDFTx\>/build,
-and an additional executable jdftx_gpu if cmake was configured with EnableCUDA=yes.
+       CC=icc CXX=icpc cmake [options] ../jdftx
 
-To update your copy of jdftx, either download and extract a newer tarball, or **git pull** in the source directory.
-Make sure you rerun cmake in the build directory: this is required to include any newly added source files to the build.
+  Make sure the environment variables for the intel compiler (path settings etc.) are loaded
+  before issuing that command (see the compiler documentation / install notes).
+  Of course, you would probably include -D EnableMKL=yes [options] to also use Intel MKL.
+  
+  Similarly, to use the Clang compiler:
+  
+       CC=clang CXX=clang++ cmake [options] ../jdftx
 
-The above commands use the default compiler (typically g++) and reasonable optimization flags.
-JDFTx has also been tested with Intel C++ compiler version 13. You can select the intel compiler during configuration:
++ At the default optimization level, the compiled executable is not locked to specific CPU features.
+  You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
+  <b>-D CompileNative=yes</b> to [options].
+  Note however that this might cause your executable to be usable only on machines with CPUs
+  of the same or newer generation than the machine it was compiled on.
 
-    <path-to-JDFTx>/build$ CC=icc CXX=icpc cmake [insert options here] ../jdftx
++ Adding <b>-D LinkTimeOptimization=yes</b> will enable link-time optimizations
+  (-ipo for the Intel compilers and -flto for the GNU compilers).
+  Note that this significantly slows down the final link step of the build process.
 
-Make sure the environment variables for the intel compiler (path settings etc.) are loaded
-before issuing that command (see the compiler documentation / install notes).
-Of course, you would probably include -D EnableMKL=yes in the options to use Intel MKL.
-
-At the default optimization level, the compiled executable is not locked to specific CPU features.
-You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
-"-D CompileNative=yes" to the cmake command-line option list.
-Note however that this might cause your executable to be usable only on mahcines with CPUs
-of the same or newer generation than the machine it was compiled on.
-
++ Add <b>-D StaticLinking=yes</b> to compile JDFTx statically.
+  This is necessary on Windows and is turned on automatically there.
+  It could also be useful on other platforms to compile on one machine
+  and execute on another without the compiler and support libraries installed.
+  
++ Add <b>-D EnableProfiling=yes</b> to [options] to get summaries of run times
+  per function and memory usage by object type at the end of calculations.
 
 Compiling on supercomputing clusters    {#Supercomputers}
 ====================================
