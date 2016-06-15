@@ -2,13 +2,20 @@
 
 \image html tutorials/BandStructure.png
 
-To do: Link this with a sequence of previous tutorials, and add more details where appropriate
+In the previous tutorial, we calculated the total energy of silicon
+and explored its Brillouin zone convergence.
+This tutorial illustrates calculations of the electronic band structure,
+specifically, the variation of the Kohn-Sham eigenvalues
+along a special kpoint path in the Brillouin zone.
+It will also introduce an alternate algorithm for converging
+the electronic state, the self-consistent field (%SCF) method.
 
-First lets specify the common specifications for bulk silicon:
+First lets specify the common specifications for bulk silicon (same as previous tutorial):
 
     #Save the following to common.in:
     lattice face-centered Cubic 10.263
-    ion-species GBRV/si_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     
     ion Si 0.00 0.00 0.00  0
@@ -19,15 +26,33 @@ and a total energy calculation:
     #Save the following to totalE.in:
     include common.in
     kpoint-folding 8 8 8    #Use a Brillouin zone mesh
-    electronic-SCF          #Perform a self-consistent calculation
+    electronic-SCF          #Perform a Self-Consistent Field optimization
     dump-name totalE.$VAR
     dump End ElecDensity    #Save the self-consistent electron density
+    dump End EigStats       #Get eigenvalue statistics
 
 which we run with
 
-    jdftx -i totalE.in | tee totalE.out
+    mpirun -n 4 jdftx -i totalE.in | tee totalE.out
 
-Next, we list high-symmetry points in the Brillouin zone laying out the path along which we want the band structure:
+Note the new command \ref CommandElectronicSCF, which uses a different algorithm
+from the variational minimize to solve the Kohn-Sham equations.
+Essentially, Kohn-Sham eigenvalues and orbitals are calculated
+for a given potential, a new density and potential constructed
+from those, and iterated until the calcaulation converges.
+Examine the output file: instead of ElecMinimize lines,
+you will find lines starting with %SCF, which report
+the change in energy and eigenvalues between "cycles".
+This algorithm is usually faster than the variational minimize,
+but unlike the default minimize algorithm, it is not gauranteed to converge.
+
+Note that whether we used %SCF or Minimize is not important
+for the remainder of this tutorial demosntrating band structure calculations;
+we will interchangeably use both algorithms for total energy calculations
+from now on to gain familiarity with both.
+
+Next, we list high-symmetry points in the Brillouin zone
+laying out a path along which we want the band structure:
 
     #Save the following to bandstruct.kpoints.in
     kpoint 0.000 0.000 0.000     Gamma
@@ -37,7 +62,14 @@ Next, we list high-symmetry points in the Brillouin zone laying out the path alo
     kpoint 0.000 0.000 0.000     Gamma
     kpoint 0.375 0.750 0.375     K
 
-and generate the high-symmetry path and a band structure plot script using a script distributed with the jdftx source:
+For common crystal structures, you can find the high-symmetry points
+easily on the web, eg. [this course website](http://lampx.tugraz.at/~hadley/ss1/bzones).
+For a more complete listing, you can consult a crystallography database
+eg. the [Bilbao database](http://www.cryst.ehu.es), but to use that,
+you will first need to find the space group of your crystal.
+
+From the above path specification, we can generate a sequence of points
+along the path and a plot script by running bandstructKpoints (in the jdftx/scripts directory):
 
     bandstructKpoints bandstruct.kpoints.in 0.05 bandstruct
 
@@ -58,8 +90,41 @@ Now we can run a  band structure calculation along this path with the input file
 
 which we run using:
 
-    jdftx -i bandstruct.in | tee bandstruct.out
+    mpirun -n 4 jdftx -i bandstruct.in | tee bandstruct.out
 
-which produces bandstruct.eigenvals, which you can plot using the auto-generated GNUPLOT script bandstruct.plot to get the figure shown above.
+which produces bandstruct.eigenvals.
+Finally running
+
+    gnuplot bandstruct.plot
+
+will generate a plot of the electronic band structure.
+
+Note that the y-axis (energy) is in Hartrees and its absolute value
+is not particularly meaningful because the electrostatic potential
+in a 3D periodic system does not have an unambiguous zero reference point.
+Typically electronic band structure plots are referenced to
+the valence band maximum (VBM or HOMO) energy at zero for insulators,
+or the Fermi level for metals.
+Look at the eigStats output from the total energy calculation
+(totalE.eigStats) to identify the VBM (HOMO) energy
+and replace the final line of the auto-generated bandstruct.plot
+with the following lines:
+
+    set xzeroaxis               #Add dotted line at zero energy
+    set ylabel "E - VBM [eV]"   #Add y-axis label
+    set yrange [*:10]           #Truncate bands very far from VBM
+    plot for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)*27.21) w l
+
+replacing VBM in the last line with the relevant value from totalE.eigStats.
+Note that this modification also converts the energy from Hartrees to eV for the plot.
+Now rerunning gnuplot produces the plot shown below and at the top of this page.
+Notice that at the Gamma point, the lowest band is single
+while the next three higher bands are degenerate: these line up
+with the s and p valence orbitals on the Silicon atoms.
+These degeneracies change in different parts of the Brillouin zone:
+the XW segment has two pairs of degenerate bands,
+while the WL and Gamma-K segments have no degeneracies.
+
+\image html tutorials/BandStructure.png
 
 */

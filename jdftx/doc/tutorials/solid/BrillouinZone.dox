@@ -83,14 +83,17 @@ and the size of the calculations (see \ref GettingStarted),
 but most likely the MPI version is marginally faster in this case.
 The results should be the same (up to round off errors) regardless.
 
-Next, use "createXSF Si.out Si.xsf n" and open Si.xsf in VESTA
-to visualize the structure and electron density.
+Next, run
+    
+    createXSF Si.out Si.xsf n"
+
+and open Si.xsf in VESTA to visualize the structure and electron density.
 (Adjust the boundary setting to 2 repetitions in
 each dimension to get the result shown above.)
 Note the tubes of electron density along nearest-neighbour Si atoms,
 forming a tetrahedral network (diamond lattice).
 Now set the boundary setting to 8 in each dimension to match the kpoint-folding.
-Intuitively, Brillouin zone sampling makes the wavefuunctions periodic
+Intuitively, Brillouin zone sampling makes the wavefunctions periodic
 on this structure (with 512 unit cells and 1024 atoms),
 rather than on the much smaller unit cell with only 2 atoms.
 

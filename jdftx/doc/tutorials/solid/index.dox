@@ -2,10 +2,12 @@
 
 + \subpage BrillouinZone
 + \subpage BandStructure
++ \subpage DensityOfStates
 + \subpage LatticeOpt
 + \subpage Metals
 + \subpage DFTplusU
 + \subpage SpinOrbit
++ \subpage VanDerWaals
 + \subpage WannierFunctions
 
 */
