@@ -80,17 +80,27 @@ Next, let us examine contributions from various orbitals to the density of state
 Modify the density-of-states commands in Si.in to:
 
     density-of-states \
-        Orbital Si 0 s \
-        Orbital Si 0 p
+        OrthoOrbital Si 1 s \
+        OrthoOrbital Si 1 p
     
 and rerun jdftx on that input file.
 Here we requested s and p orbital-projected contributions,
 which will both be saved to columns in the same file Si.dos.
-Update the final section of the (latest version) of bandstruct.plot to:
+Update the final section of the latest version of bandstruct.plot to:
 
-    set key top right autotitle columnhead
+    set key top right outside
     plot \
-      for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)/eV) w l title "", \
-      for [i=2:3] "Si.dos" u (xEnd+0.2*column(i)):(($1-VBM)/eV) with filledcurves y1=xEnd
+       for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)/eV) w l title "", \
+       "Si.dos" u (xEnd+0.5*$2):(($1-VBM)/eV) w l lw 2 title "s", \
+       "Si.dos" u (xEnd+0.5*$3):(($1-VBM)/eV) w l lw 2 title "p"
+
+and rerun "gnuplot bandstruct.plot" to get the plot shown below.
+This time, instead of plotting a single total density of states,
+we plotted the contributions due to the s and p orbitals on the first Si atom.
+Note that the lower occupied bands exhibit s and p character, 
+while the higher occupied bands have predominantly p character.
+The unoccupied bands have mixed character, but with a higher p fraction.
+
+\image html tutorials/BandStructDOSprojected.png
 
 */
