@@ -5,12 +5,17 @@ function printUsageAndExit()
 	echo '
 	Create an XcrySDen Structure File from a JDFTx output file. Usage:
 	
-		createXSF <jdftxOutFile> <xsfFile> [Animated | <var1> <var2> ...]
+		createXSF <jdftxOutFile> <xsfFile> [Animated | Frames | <var1> <var2> ...]
 	
 	The simplest usage saves the final structure from the JDFTx output
 	<jdftxOutFile> to <xsfFile>. Specifying "Animated" will include
 	ionic positions, forces and lattice vectors for all configurations
 	in the run (if geometry or lattice optimization was performed).
+	
+	Specifying Frames will output one XSF file for each configuration.
+	In this case, <xsfFile> must contain "%d", which will be substituted
+	by the frame number.  For example, if <xsfFile> is test-%d.xsf,
+	this will produce output files test-1.xsf, test-2.xsf etc.
 	
 	Additionally, scalar fields such as the electron density may
 	also be saved, where var should name the file suffix used by JDFTx
@@ -19,7 +24,7 @@ function printUsageAndExit()
 	also be specified; this is a must when dump-name includes $STAMP.
 	Note that XSF is an ascii format (unlike the default binary dump)
 	and adding many scalar field variables to it could make it enormous.
-	Scalar fields are only supported in non-animated XSF files.
+	Scalar fields are only supported without animation or frames.
 	
 	Note: this tool requires awk and octave to be available in path.
 	'
@@ -37,7 +42,17 @@ if [ ! -f "$jdftxOutFile" ]; then
 	exit 1
 fi
 
-tmpDir="$xsfFile.tmp"
+varNameLcase=$(echo $3 | awk '{print tolower($0)}')
+if [ "$varNameLcase" == "frames" ]; then
+	xsfA=$(printf "$xsfFile" 1)
+	xsfB=$(printf "$xsfFile" 2)
+	if [ "$xsfA" == "$xsfB" ]; then
+		echo "In Frames mode, <xsfFile> must contain a '%d' (which will be replaced by frame numbers)."
+		exit 1
+	fi
+fi
+
+tmpDir="createXSF.tmp"
 mkdir -p "$tmpDir"
 if [ ! -d "$tmpDir" ]; then
 	echo "Could not create temporary working directory '$tmpDir'"
@@ -148,16 +163,19 @@ cat > "$tmpDir/process.m" <<EOF
 	#Read scalar fields (if any):
 	varNames = { $vars };
 	vars = {};
-	if !(length(varNames) && strcmp(tolower(varNames{1}),"animated"))
-		#Disable animation if first varName is not 'Animated'
+	isAnimated = length(varNames) && strcmp(tolower(varNames{1}),"animated");
+	isFrames = length(varNames) && strcmp(tolower(varNames{1}),"frames");
+	if (isAnimated || isFrames)
+		#No scalar fields output when multiple configurtions output
+		varNames = {};
+	else
+	    #Single configuration output, optionally with scalar fields
 		nSteps = 1;
 		lattice = lattice(:,:,end);
 		ionpos = ionpos(:,:,end);
 		if exist("forces", "var")
 			forces = forces(:,:,end);
 		endif
-	else
-		varNames = {}; #Keyword 'Animated'; not really scalar fields
 	endif
 	for iVar = 1:length(varNames)
 		fname = varNames{iVar};
@@ -218,13 +236,27 @@ cat > "$tmpDir/process.m" <<EOF
 	
 	#Output XSF file:
 	Angstrom = 1/0.5291772;
-	fp = fopen("$xsfFile", "w");
-	if nSteps > 1; fprintf(fp, "ANIMSTEPS %d\n", nSteps); endif
-	fprintf(fp, "CRYSTAL\n");
+	if (!isFrames)
+		#Open a single file and write header
+		fp = fopen("$xsfFile", "w");
+		if (nSteps>1)
+			fprintf(fp, "ANIMSTEPS %d\n", nSteps);
+		endif
+		fprintf(fp, "CRYSTAL\n");
+	endif
 	for iStep = 1:nSteps
+		if (isFrames)
+			#Open a file for each step and write header:
+			fp = fopen(sprintf("$xsfFile",iStep), "w");
+			fprintf(fp, "CRYSTAL\n");
+		endif
 		R = squeeze(lattice(:,:,iStep));
 		#Print lattice vectors:
-		if nSteps > 1; fprintf(fp, "PRIMVEC %d\n", iStep); else; fprintf(fp, "PRIMVEC\n"); endif
+		if (nSteps>1 && isAnimated)
+			fprintf(fp, "PRIMVEC %d\n", iStep);
+		else
+			fprintf(fp, "PRIMVEC\n");
+		endif
 		fprintf(fp, "%10.6f %10.6f %10.6f\n", R/Angstrom); #note printf order takes care of transposing lattice vectors
 		#Transform ionic positions:
 		pos = squeeze(ionpos(:,:,iStep));
@@ -247,9 +279,16 @@ cat > "$tmpDir/process.m" <<EOF
 			formatString = "%2d %10.6f %10.6f %10.6f %10.6f %10.6f %10.6f\n";
 		endif
 		#Print positions (and forces)
-		if nSteps > 1; fprintf(fp, "PRIMCOORD %d\n", iStep); else; fprintf(fp, "PRIMCOORD\n"); endif
+		if (nSteps>1 && isAnimated)
+			fprintf(fp, "PRIMCOORD %d\n", iStep);
+		else
+			fprintf(fp, "PRIMCOORD\n");
+		endif
 		fprintf(fp, "%d 1\n", nAtoms);
 		fprintf(fp, formatString, [ reshape(atnum,nAtoms,1) pos ]');
+		if (isFrames)
+			fclose(fp);
+		endif
 	endfor
 	#Output scalar fields (if any)
 	for iVar = 1:length(varNames)
@@ -272,7 +311,9 @@ cat > "$tmpDir/process.m" <<EOF
 		fprintf(fp, " END_DATAGRID_3D\n");
 		fprintf(fp, "END_BLOCK_DATAGRID_3D\n");
 	endfor
-	fclose(fp);
+	if (!isFrames)
+		fclose(fp);
+	endif
 EOF
 octave -qf "$tmpDir/process.m"
 rm -rf "$tmpDir"
