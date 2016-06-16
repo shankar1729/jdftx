@@ -85,7 +85,7 @@ The results should be the same (up to round off errors) regardless.
 
 Next, run
     
-    createXSF Si.out Si.xsf n"
+    createXSF Si.out Si.xsf n
 
 and open Si.xsf in VESTA to visualize the structure and electron density.
 (Adjust the boundary setting to 2 repetitions in
