@@ -1,5 +1,7 @@
 /** \page LatticeOpt Lattice optimization
 
+\image html tutorials/LatticeOpt.gif
+
 The previous tutorials have calculated properties of silicon at fixed geometry,
 which in the case of a crystal includes the ionic positions as well as the lattice vectors.
 To optimize the ionic positions at fixed lattice vectors,
@@ -106,6 +108,5 @@ Finally, we can export the variation of the geometry using
 
 and examine the animated XSF file using XCrysDen
 (since VESTA doesn't support animated XSFs).
-and optionally generate the animation shown at the top of the page.
 
 */
