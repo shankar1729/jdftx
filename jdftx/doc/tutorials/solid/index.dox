@@ -5,6 +5,7 @@
 + \subpage DensityOfStates
 + \subpage LatticeOpt
 + \subpage Metals
++ \subpage Magnetism
 + \subpage DFTplusU
 + \subpage SpinOrbit
 + \subpage Dispersion
