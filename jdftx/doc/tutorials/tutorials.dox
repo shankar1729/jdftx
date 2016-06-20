@@ -4,13 +4,6 @@
 + \subpage MoleculeTutorials
 + \subpage SolidTutorials
 + \subpage SurfaceTutorials
-+ \subpage OldTutorials
 
 */
 
-/*
-  + Surfaces
-    - %Coulomb Truncated slabs
-    - Solvation on surfaces
-    - Electrochemistry- fixed electron chemical potential calculations    
-*/

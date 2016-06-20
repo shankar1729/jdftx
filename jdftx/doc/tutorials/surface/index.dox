@@ -2,8 +2,14 @@
 
 */
 
-/*
----- Backup of old tutorial ----
+/*---- Surface tutorials: new plan ----
+
+    - %Coulomb Truncated slabs
+    - Solvation on surfaces
+    - Electrochemistry- fixed electron chemical potential calculations    
+*/
+
+/*---- Backup of old tutorial ----
 
 Solids: Pt-111 surface
 ------------------------
