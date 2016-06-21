@@ -139,6 +139,7 @@ and \ref CommandInitialMagneticMoments to initialize the magnetizations,
 which are now all vectors with directions (and not just + / - as in z-spin mode).
 Correspondingly, all magnetization output in the code: during FillingsUpdate lines
 as well as in Lowdin analysis will report a vector direction in addition to magnitude.
+
 Exercise: reproduce the [previous tutorial](DFTplusU.html) with spins along the x-axis
 and then again with spins along the y-axis using vector-spin \ref CommandSpintype.
 */
