@@ -95,7 +95,7 @@ which we run using:
 which produces bandstruct.eigenvals.
 Finally running
 
-    gnuplot bandstruct.plot
+    gnuplot --persist bandstruct.plot
 
 will generate a plot of the electronic band structure.
 

@@ -1,0 +1,158 @@
+/** \page MetalSurfaces Metal surfaces
+
+\image html tutorials/MetalSurfaces.png
+
+Constructing a slab-geometry calculation (specifically graphene) from graphite
+in the \ref TwoDmaterials tutorial was easy: graphite already consisted of distinct layers.
+This tutorial shows you how to manually set up single-crystal platinum surfaces
+of various orientations, starting from supercell transformations.
+
+## Geometry setup
+
+Let's start with the geometry of bulk platinum, written using
+explicit lattice vectors rather than the shorthand lattice name:
+
+    set aBy2 3.705   #a/2 in bohrs
+    lattice \
+           0    ${aBy2} ${aBy2} \
+        ${aBy2}    0    ${aBy2} \
+        ${aBy2} ${aBy2}    0
+    
+    ion Pt 0. 0. 0.  1
+
+Note that the lattice vectors are in columns of the 3x3 matrix ,
+and we have used variable substitution along with the set command
+(see \ref Commands) to declare the lattice constant in one place.
+
+We can construct a surface unit cell in three steps.
+First we transform the unit cell (construct a supercell)
+in a way that allows us to identify layers with the desired
+surface direction, so that we can cleave the material.
+Then we repeat this supercell along the surface normal direction
+till there is enough room for the desired number of atomic layers and the vacuum gap.
+Finally, we keep atoms from a desired number of layers and drop the rest
+to create a slab with two surfaces, separated by a vacuum gap along the third direction
+(which we will make non-periodic using slab-mode %Coulomb truncation).
+
+The setup for the three common low-index surfaces of platinum, (100), (110) and (111),
+are discussed below in detail:
+
++ \subpage Pt100
++ \subpage Pt110
++ \subpage Pt111
+
+After following through these pages you will have x.lattice and x.ionpos files
+for each x in 100, 110 and 111.
+
+*/
+
+/** \page Pt100 Pt(100) setup
+
+For (100) surfaces, the surface normal is along a (100) direction i.e. the cube axes.
+For a cubic system, all three axes are equivalent and we will pick
+the surface normal along the z direction.
+
+Thhe first step is to find a supercell consisting of layers parallel to the surface.
+To do this, we need to find the smallest integer linear combinations of lattice vectors that satisfy:
+
+1. Two lattice vectors are perpendicular to the surface normal (i.e. in-plane)
+2. The third lattice vector is parallel to the surface normal
+
+For the 100 surface, we can get a lattice vector along the z direction
+by adding the first two columns and subtracting the last column,
+which corresponds to a linear combination [ 1 1 -1 ].
+We now need two linearly-independent lattice vectors with no z component.
+The third column i.e. combination [ 0 0 1] already satisfies this criterion,
+and we can get another from the difference of the first two lattice vectors
+i.e. the linear combination [ 1 -1 0 ].
+Putting these linear combination together *along columns*,
+we get the lattice transformation matrix:
+
+        / 0  1  1 \
+    M = | 0 -1  1 |
+        \ 1  0 -1 /
+
+Multiplying the original lattice vectors R by this transformation matrix,
+we would get the superlattice vectors:
+
+                   /  0  a/2 a/2 \   / 0  1  1 \   / a/2 -a/2  0 \
+    Rsup = R . M = | a/2  0  a/2 | . | 0 -1  1 | = | a/2  a/2  0 |
+                   \ a/2 a/2  0  /   \ 1  0 -1 /   \  0    0   a /
+
+Note that these supercell lattice vectors are all perpendicular to each other,
+with the first two in the x-y plane and the third along z, as desired.
+The absolute orientation of the lattice vectors in space do not matter,
+we only need to preserve their lengths and the angles between them.
+Specifically the above is a tetragonal lattice with square side a/sqrt(2)
+and height a, which we could specify using a shorthand in JDFTx as
+
+    latttice Tetragonal ${aBySqrt2} ${a}  #With a/sqrt(2) and a set previously
+
+The determinant of the transformation matrix, det(M) = 2, which means that
+det(Rsup) = 2 det(R), or that the volume of the supercell is twice that of the unit cell.
+Therefore we would need two atoms per supercell, to get the original crystal again.
+We can leave the first atom at fractional coordinates [ 0 0 0 ] in the unit cell.
+We can add the second atom at any of the original lattice vectors which has a non-zero
+component along the surface normal direction.= eg. [ 1 0 0 ] in the unit cell.
+Now we need to transform these fractional coordinates from the unit cell to the supercell,
+using the inverse of the transformation matrix, inv(M).
+The first atom coordinates [ 0 0 0] of course transform to [ 0 0 0 ],
+and for the second atom, the new coordinates are:
+
+             / 1 \    / 1/2  1/2  1 \   / 1 \   / 1/2 \
+    inv(M) . | 0 | =  | 1/2 -1/2  0 | . | 0 | = | 1/2 |
+             \ 0 /    \ 1/2  1/2  0 /   \ 0 /   \ 1/2 /
+
+Therefore, the fractional atom coordinates for the supercell can be specified as:
+
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.5   1
+
+At this stage, we have the lattice and ionpos for a supercell calculation.
+Running JDFTx on this geometry (with appropriate k-point sampling etc.)
+would give you exactly the same material properties as on the original
+unit cell, except that extensive properties like the total energy
+would be twice as large since there are two atoms per unit cell (try it).
+
+Our current supercell has two layers with a 100 surface direction.
+The next step is to increase the number of layers, and cleave the crystal
+by adding some gap along the to-be non-periodic third direction.
+Let's say we want 5 atomic layers, and a minimum gap of 15 bohrs as before.
+The layer spacing is a/2 (third supercell lattice vector has length a,
+and there are two layers per supercell so far) = 3.705 bohrs,
+so 5 empty atomic layers is the minimum number > 15 bohrs of spacing.
+Therefore we pick a supercell that has 10 atomic layers i.e. five times as before.
+For this, we scale up our third lattice vector by five:
+
+    #Save the following to 100.lattice:
+    lattice Tetragonal 5.23966 37.05    #a/sqrt(2) and 5a in bohrs, respectively
+
+The third fractional coordinates of the atom would then scale down by a factor of five:
+
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.1   1
+
+and we need to repeat this with offsets of 1/5, 2/5 etc. along the third direction.
+This would produce layers with the third coordinate ranging from 0.0 to 0.9;
+using periodiocity we can wrap third coordinates in the range [0.5,1) to the range [-0.5,0).
+Finally, selecting the central five layers, we arrive at the coordinates:
+
+    #Save the following to 100.ionpos
+    ion Pt  0.0  0.0 -0.2   1
+    ion Pt  0.5  0.5 -0.1   1
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.1   1
+    ion Pt  0.0  0.0  0.2   1
+*/
+
+/** \page Pt110 Pt(110) setup
+
+For a (110) surface, we want the surface normal along a direction which combines two cubic axes with same coefficients.
+Note that the third lattice vector i.e. combination [ 0 0 1] already satisfies this property,
+so we only need to make the other two lattice vectors perpendicular to this direction:
+
+*/
+
+/** \page Pt111 Pt(111) setup
+
+*/
