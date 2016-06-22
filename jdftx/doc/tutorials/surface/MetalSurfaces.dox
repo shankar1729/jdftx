@@ -1,11 +1,22 @@
 /** \page MetalSurfaces Metal surfaces
 
-\image html tutorials/MetalSurfaces.png
+<center><table border="0">
+<tr>
+<td>\image html tutorials/Pt100.png
+<td>\image html tutorials/Pt110.png
+<td>\image html tutorials/Pt111.png
+<tr>
+<td style="text-align:center"><b>Pt(100)</b>
+<td style="text-align:center"><b>Pt(110)</b>
+<td style="text-align:center"><b>Pt(111)</b>
+</table></center>
 
 Constructing a slab-geometry calculation (specifically graphene) from graphite
 in the \ref TwoDmaterials tutorial was easy: graphite already consisted of distinct layers.
 This tutorial shows you how to manually set up single-crystal platinum surfaces
-of various orientations, starting from supercell transformations.
+of various orientations, starting from supercell transformations,
+and then shows examples of surface property calculations in vacuum and solution.
+
 
 ## Geometry setup
 
@@ -35,7 +46,7 @@ to create a slab with two surfaces, separated by a vacuum gap along the third di
 (which we will make non-periodic using slab-mode %Coulomb truncation).
 
 The setup for the three common low-index surfaces of platinum, (100), (110) and (111),
-are discussed below in detail:
+are discussed in the following pages in detail:
 
 + \subpage Pt100
 + \subpage Pt110
@@ -44,24 +55,35 @@ are discussed below in detail:
 After following through these pages you will have x.lattice and x.ionpos files
 for each x in 100, 110 and 111.
 
+## Calculations
+
 */
 
 /** \page Pt100 Pt(100) setup
+
+\image html tutorials/Pt100.png
 
 For (100) surfaces, the surface normal is along a (100) direction i.e. the cube axes.
 For a cubic system, all three axes are equivalent and we will pick
 the surface normal along the z direction.
 
 Thhe first step is to find a supercell consisting of layers parallel to the surface.
-To do this, we need to find the smallest integer linear combinations of lattice vectors that satisfy:
+The supercell lattice vectors are integer linear combinations of the original lattice vectors.
+Specifically, we need to find the smallest integer linear combinations that satisfy:
 
-1. Two lattice vectors are perpendicular to the surface normal (i.e. in-plane)
-2. The third lattice vector is parallel to the surface normal
+1. Two superlattice vectors are perpendicular to the surface normal (i.e. in-plane)
+2. The third superlattice vector is parallel to the surface normal
 
-For the 100 surface, we can get a lattice vector along the z direction
+Once again, the original face-centered cubic lattice vectors (in columns) are:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+For the 100 surface, we can get a superlattice vector along the z direction
 by adding the first two columns and subtracting the last column,
 which corresponds to a linear combination [ 1 1 -1 ].
-We now need two linearly-independent lattice vectors with no z component.
+We now need two linearly-independent superlattice vectors with no z component.
 The third column i.e. combination [ 0 0 1] already satisfies this criterion,
 and we can get another from the difference of the first two lattice vectors
 i.e. the linear combination [ 1 -1 0 ].
@@ -79,7 +101,7 @@ we would get the superlattice vectors:
     Rsup = R . M = | a/2  0  a/2 | . | 0 -1  1 | = | a/2  a/2  0 |
                    \ a/2 a/2  0  /   \ 1  0 -1 /   \  0    0   a /
 
-Note that these supercell lattice vectors are all perpendicular to each other,
+Note that these superlattice vectors are all perpendicular to each other,
 with the first two in the x-y plane and the third along z, as desired.
 The absolute orientation of the lattice vectors in space do not matter,
 we only need to preserve their lengths and the angles between them.
@@ -127,7 +149,7 @@ For this, we scale up our third lattice vector by five:
     #Save the following to 100.lattice:
     lattice Tetragonal 5.23966 37.05    #a/sqrt(2) and 5a in bohrs, respectively
 
-The third fractional coordinates of the atom would then scale down by a factor of five:
+The third fractional coordinates of the a tom would then scale down by a factor of five:
 
     ion Pt  0.0  0.0  0.0   1
     ion Pt  0.5  0.5  0.1   1
@@ -137,22 +159,191 @@ This would produce layers with the third coordinate ranging from 0.0 to 0.9;
 using periodiocity we can wrap third coordinates in the range [0.5,1) to the range [-0.5,0).
 Finally, selecting the central five layers, we arrive at the coordinates:
 
-    #Save the following to 100.ionpos
+    #Save the following to 100.ionpos:
     ion Pt  0.0  0.0 -0.2   1
     ion Pt  0.5  0.5 -0.1   1
     ion Pt  0.0  0.0  0.0   1
     ion Pt  0.5  0.5  0.1   1
     ion Pt  0.0  0.0  0.2   1
+
+We can quickly test the geometry without running a full calculation.
+Setup a dummy input file:
+
+    #Save the following to testGeometry.in
+    include ${surface}.lattice   #we will use the same input file later for 110 and 111
+    include ${surface}.ionpos
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    #Not a real calculation; missing kpoints and fillings!
+
+and run JDFTx using the dry-run (-n) commandline switch:
+
+    export surface="100"   #or "110" or "111" later on
+    jdftx -ni testGeometry.in | tee testGeometry-${surface}.out
+
+Examine the output file: it performs initialization and quits.
+We can create an XSF file even from this initialization-only output file as usual:
+
+    createXSF testGeometry-${surface}.out ${surface}.xsf
+
+and visualize 100.xsf using VESTA to get an image as shown at the top of the page.
 */
 
 /** \page Pt110 Pt(110) setup
 
-For a (110) surface, we want the surface normal along a direction which combines two cubic axes with same coefficients.
-Note that the third lattice vector i.e. combination [ 0 0 1] already satisfies this property,
-so we only need to make the other two lattice vectors perpendicular to this direction:
+\image html tutorials/Pt110.png
 
+We need to first find appropriate superlattice vectors starting from
+the face-centered cubic lattice vectors:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+as discussed in detail in the \ref Pt100 page.
+
+For a (110) surface, we want the surface normal along a direction
+which combines two cubic axes with equal coefficients.
+Note that the third lattice vector i.e. combination [ 0 0 1 ] already satisfies this property,
+so we only need to make the other two lattice vectors perpendicular to this direction.
+There are many ways to do this, but the combinations [ 1 -1 0 ] and [ 1 1 -1 ]
+satisfy the conditions and produce the smallest possible supercell.
+This yields the lattice transformation matrix:
+
+        /  1  1  0 \
+    M = | -1  1  0 |
+        \  0 -1  1 /
+
+and the superlattice vectors:
+
+            / -a/2  0  a/2 \
+    Rsup =  |  a/2  0  a/2 |
+            \   0   a   0  /
+
+If you observe carefully, these matrices have the same columns as the \ref Pt100 case, but just in a different order.
+This works because the in-plane lattice vectors in our 100 surface setup happen to both be 110 directions.
+
+Once again, we have two atoms and hence two layers per supercell.
+For the second atom, we can pick [ 1 0 0 ] as the unit cell fractional coordinate.
+Taking that as a column vector and multiplying by inv(M) yields the
+supercell fractional coordinates [ 0.5 0.5 0.5 ].
+Also note that the three superlattice vectors are orthogonal
+with lengths a/sqrt(2), a and a/sqrt(2).
+That is technically tetragonal, but in order to keep the lattice vectors in this order
+(lattice Tetragonal will make teh first two lattice vectors of equal length),
+we can specify it as orthorhombic.
+Therefore, we arrive at the supercell input:
+
+    lattice Orthorhombic 5.23966 7.41 5.23966  #a/sqrt(2), a and a/sqrt(2) in bohrs
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.5   1
+    
+This time the layer spacing is (a/sqrt(2))/2 = 2.62 bohrs,
+so five layers occupy approximately 13 bohrs.
+Therefor we need the third lattice vector to be at
+least 28 bohrs long to get a 15 bohr vacuum spacing.
+
+We can stretch the third direction by a factor of 28/5.23966,
+scaling the third fractional coordinates by 5.23966/28 = 0.18713.
+We can then repeat the supercell in both directions with
+offsets of 0.18713 in the third fractional coordinate,
+till we get at least five atomic layers centered symmetrically
+across zero, and then drop the extra layers.
+The resulting geometry for the 110 surface is then:
+
+    #Save the following to 110.lattice:
+    lattice Orthorhombic 5.23966 7.41 28
+    
+    
+    #Save the following to 110.ionpos:
+    ion Pt  0.0  0.0 -0.187130   1
+    ion Pt  0.5  0.5 -0.093565   1
+    ion Pt  0.0  0.0  0.000000   1
+    ion Pt  0.5  0.5  0.093565   1
+    ion Pt  0.0  0.0  0.187130   1
+
+Note that since we are breaking periodicity in the third direction
+anyway, we do not need to keep the final supercell equal to
+an integer number of atomic layers.
+We did that in the 110 setup only for simplicity.
+
+Visualize this geometry using testGeometry.in, JDFTx dry run, createXSF and VESTA
+as discussed at the end of the \ref Pt100 page to get an image similar to the one above.
 */
 
 /** \page Pt111 Pt(111) setup
 
+\image html tutorials/Pt111.png
+
+We need to first find appropriate superlattice vectors starting from
+the face-centered cubic lattice vectors:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+as discussed in detail in the \ref Pt100 page.
+
+For a (111) surface, we want the surface normal along a direction
+which combines all three cubic axes with equal coefficients.
+The most obvious combination for this is [ 1 1 1 ], which combines all
+three face-centered cubic lattice vectors with equal coefficients as well.
+Check that the combinations [ 0 -1 1 ] and [ 1 0 -1 ] produce
+superlattice vectors which are orthogonal to the [ 1 1 1 ] combination.
+This yields the lattice transformation matrix:
+
+        /  0  1  1 \
+    M = | -1  0  1 |
+        \  1 -1  1 /
+
+and the superlattice vectors:
+
+            /   0  -a/2  a \
+    Rsup =  |  a/2   0   a |
+            \ -a/2  a/2  a /
+
+Note that this time, the first two lattice vectors are orthogonal
+to the third (required), but not to each other.
+The in-plane lattice vectors instead have an angle of 120 degrees between them.
+(Their dot product divided by their lengths gives you the cosine.)
+For the 111 surface, this is the optimum super-cell and orthogonal
+in-plane lattice vectors are only possible with a larger
+less-efficient supercell (with more than one atom per layer).
+To sumamrize, we have the first two superlattice vectors of 
+equal length a/sqrt(2) = 5.23966 bohrs at a 120 degree angle,
+and a third of length sqrt(3)a = 12.8345 bohrs at right angles to the first two;
+we can specify this using the Hexagonal shorthand in JDFTx.
+
+Additionally, det(M) = 3 which means that we need three atoms in the supercell.
+We can start with [ 0 0 0 ], [ 0 0 1 ] and [ 0 0 -1 ] in unit-cell fractional coordinates.
+The first one remains invariant upon transforming to the supercell, as before.
+Taking the second one as a column vector and multiplying by inv(M) yields [ 1/3 -1/3 1/3 ].
+The third one is the negative of the second one,
+and we end up with the initial supercell geometry
+(after sorting the atoms by their third coordinate):
+
+    lattice Hexagonal 5.23966 12.8345  #a/sqrt(2) and sqrt(3)a in bohrs
+    ion Pt -0.333333  0.333333 -0.333333   1
+    ion Pt  0.000000  0.000000  0.000000   1
+    ion Pt  0.333333 -0.333333  0.333333   1
+
+The layer spacing is 12.8345/3 = 4.3 bohrs, so that 5 layers occupy approximately 21 bohrs.
+For 15 bohrs vacuum spacing, we need a unit cell length of 36 bohrs.
+Correspondingly, the scale factor for the third fractional coordinate
+and the offset between supercell repetitions equals 12.8345/36 = 0.356514.
+Adding repetitions and dropping extra layers, we then arrive at the geometry:
+
+    #Save the following to 111.lattice:
+    lattice Hexagonal 5.23966 36
+    
+    
+    #Save the following to 111.ionpos:
+    ion Pt  0.333333 -0.333333 -0.237676   1
+    ion Pt -0.333333  0.333333 -0.118838   1
+    ion Pt  0.000000  0.000000  0.000000   1
+    ion Pt  0.333333 -0.333333  0.118838   1
+    ion Pt -0.333333  0.333333  0.237676   1
+
+Visualize this geometry using testGeometry.in, JDFTx dry run, createXSF and VESTA
+as discussed at the end of the \ref Pt100 page to get an image similar to the one above.
 */

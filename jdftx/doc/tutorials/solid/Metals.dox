@@ -7,7 +7,7 @@ which we identified in the tutorials on \ref BandStructure and \ref DensityOfSta
 This gap clearly demarcates occupied states from unoccupied states for all k-points,
 so electron 'fillings' are straightforward: the lowest (nElectrons/2) bands
 of all k-points are filled, and the remaining are empty.
-This is no longer true for metals, where one or bands are partially filled,
+This is no longer true for metals, where one or more bands are partially filled,
 and these fillings (or occupation factors) must be optimized self-consistently.
 This tutorial introduces such a calculation for platinum.
 
