@@ -127,12 +127,12 @@ If you need to update the code, download a newer tarball and follow the same ins
 Alternatively, if you need a recent update or plan to modify the code,
 you can get and compile the latest development version using:
 
-       cd JDFTXDIR
-       git clone http://git.code.sf.net/p/jdftx/git jdftx-git
-       mkdir build
-       cd build
-       cmake [options] ../jdftx-git/jdftx
-       make -j4
+    cd JDFTXDIR
+    git clone http://git.code.sf.net/p/jdftx/git jdftx-git
+    mkdir build
+    cd build
+    cmake [options] ../jdftx-git/jdftx
+    make -j4
 
 Note that the only difference is that git will fetch jdftx source files within a subdirectory called jdftx-git.
 Accordingly, if you choose to use git instead, your PATH setting will instead be:
@@ -191,7 +191,7 @@ and performance tweaks, and the [options] used to activate them.
   For example, you can use the intel compiler using the command
   (note bash-specific syntax for environment variables):
 
-       CC=icc CXX=icpc cmake [options] ../jdftx
+    CC=icc CXX=icpc cmake [options] ../jdftx
 
   Make sure the environment variables for the intel compiler (path settings etc.) are loaded
   before issuing that command (see the compiler documentation / install notes).
@@ -199,7 +199,7 @@ and performance tweaks, and the [options] used to activate them.
   
   Similarly, to use the Clang compiler:
   
-       CC=clang CXX=clang++ cmake [options] ../jdftx
+    CC=clang CXX=clang++ cmake [options] ../jdftx
 
 + At the default optimization level, the compiled executable is not locked to specific CPU features.
   You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
