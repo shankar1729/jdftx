@@ -269,6 +269,7 @@ if(DOXYGEN_FOUND)
 		COMMAND echo "--- Updating scripts documentation"
 		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" > "${DOC_TMP_DIR}/scripts_manual.dox"
 		COMMAND echo "--- Running doxygen"
+		COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/doc/html
 		COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
 		COMMENT "Generating API documentation with Doxygen" VERBATIM
