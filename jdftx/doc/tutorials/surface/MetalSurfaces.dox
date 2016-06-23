@@ -60,7 +60,7 @@ for each x in 100, 110 and 111.
 Now that we have the geometry - lattice and fractional coordinates - of the surfaces,
 setting up the calculations is rather straightforward.
 We will run vacuum and solvated calculations for each surface,
-and our input files will closely resemble those in the \ref MoleculeSolvation tutorial;
+and our input files will closely resemble those in the \ref SolvationMolecule tutorial;
 the differences for the slab geometry will be familiar from the \ref TwoDmaterials tutorial.
 
 First we combine most of the setup in a common input file:

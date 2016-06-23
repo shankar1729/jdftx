@@ -1,0 +1,42 @@
+/** \page OxideSurfaces Oxide surfaces
+
+This tutorial introduces the setup of more complex surfaces,
+and demonstrates bound charge and electrostatic potential visualization,
+using the example of Rutile TiO<sub>2</sub>(110) in vacuum and solution.
+
+## Bulk Rutile TiO<sub>2</sub>
+
+Let's start with a calculation of the bulk titanium dixoide,
+which has a Rutile crystal structure consisting of a tetragonal unit cell
+with parameters a = 4.59 Angstroms (8.67 bohrs) and c = 2.96 Angstroms (5.59 bohrs).
+Each unit cell contains two TiO<sub>2</sub> units,
+with one Ti at a vertex and the other at the body center.
+To speed up the calculations, we skip geometry optimization in this tutorial,
+and I directly list the optimized ionic positions below.
+
+    #Save the following to bulk.in:
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    elec-cutoff 20 100
+    
+    lattice Tetragonal 8.67 5.59
+    ion Ti   0.5000 0.5000 0.5   0
+    ion Ti   0.0000 0.0000 0.0   0
+    ion  O   0.6958 0.6958 0.0   1
+    ion  O   0.8042 0.1958 0.5   1
+    ion  O   0.3042 0.3042 0.0   1
+    ion  O   0.1958 0.8042 0.5   1
+    
+    kpoint-folding 4 4 6   #Less kpoints along longer lattice vectors
+    electronic-SCF
+    dump End None
+    
+Run jdftx on bulk.in, use createXSF to generate bulk.xsf and visualize it using VESTA, as usual.
+
+\image html tutorials/TiO2bulk.png
+
+Note that each Ti atom is surrounded by six O atoms in a (distorted) octahedron,
+and that each O atom connects to two Ti atoms with a bent Ti-O-Ti link.
+Record the total energy of the bulk unit cell, as we will need it later for calculating surface energies.
+
+*/
