@@ -69,7 +69,7 @@ see script \ref calcPulay - but it is important to continue
 the lattice minimization over a few runs regardless.)
 
 Examine the output file.
-Note that the usual ionic minimize output, which performs electronic-SCF
+Note the usual ionic minimize output, which performs electronic-SCF
 repeatedly at several geometries till the forces are within threshold.
 But now additionally, there is a lattice minimizer which runs an ionic minimization at each lattice geometry.
 At the end of the ionic minimization at one lattice geometry,

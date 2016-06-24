@@ -9,7 +9,7 @@ crystalline solids using the archetypal example: metallic iron.
 
 Iron has a body-centered cubic structure with a
 cubic lattice constant of 2.87 Angstroms (5.42 bohrs).
-Not surprisingly, we can setup an iron calculation using:
+Not surprisingly, we can set up an iron calculation using:
 
     #Save the following to totalE.in:
     lattice body-centered Cubic 5.42

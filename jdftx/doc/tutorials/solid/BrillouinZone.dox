@@ -149,7 +149,7 @@ Notice however that each calculation had more symmetry-reduced
 kpoints now (grep nStates Si-?.out Si-??.out)
 compared to the Gamma-centered case, and hence ran slower.
 
-Exercise: plot the energy converence of both types of
+Exercise: plot the energy convergence of both types of
 kpoint meshes together, as a function of nStates.
 
 */

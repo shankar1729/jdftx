@@ -37,9 +37,14 @@ which we run with
 
 Note the new command \ref CommandElectronicSCF, which uses a different algorithm
 from the variational minimize to solve the Kohn-Sham equations.
-Essentially, Kohn-Sham eigenvalues and orbitals are calculated
-for a given potential, a new density and potential constructed
-from those, and iterated until the calcaulation converges.
+Essentially, Kohn-Sham eigenvalues and orbitals are calculated for an input potential,
+and a new density and potential are constructed from those orbitals.
+This output potential would in general be different from the input one,
+so the above step is repeated with successive guesses for the input potential
+until the input and output potentials become identical (within some threshold).
+In practice, the guess for the input potential at one step is based on
+input and output potentials from several previous steps (%Pulay algorithm).
+
 Examine the output file: instead of ElecMinimize lines,
 you will find lines starting with %SCF, which report
 the change in energy and eigenvalues between "cycles".

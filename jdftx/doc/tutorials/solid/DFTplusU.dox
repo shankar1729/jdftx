@@ -57,7 +57,7 @@ and repeated them once with an offset of 0.5 along the last direction.
 We also reduced the kpoint folding by half along that direction,
 since the unit cell is longer to start with in that direction.
 
-The remaining set up is similar to the iron calculation in the \ref Magnetism tutorial,
+The remaining setup is similar to the iron calculation in the \ref Magnetism tutorial,
 except that instead of specifying a guess for the total magnetization of the unit cell
 using \ref CommandElecInitialMagnetization (which would be zero for an antiferromagnet),
 we specify guesses for each Fe atom individually using \ref CommandInitialMagneticMoments.

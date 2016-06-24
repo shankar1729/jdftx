@@ -134,12 +134,17 @@ Analgously, spin-orbit specifies unpolarized relativistic calculations
 whereas the fourth mode, vector-spin, specifies polarized relativistic calculations.
 The number of bands and k-vectors will be identical between spin-orbit and vector-spin calculations
 since all the spin degrees of freedom are treated explicitly anyway.
-Additionally, in vector-spin mode, you can specify \ref CommandElecInitialMagnetization
-and \ref CommandInitialMagneticMoments to initialize the magnetizations,
+Additionally, in vector-spin mode, you can specify 
+\ref CommandInitialMagneticMoments to initialize the magnetizations on each atom,
 which are now all vectors with directions (and not just + / - as in z-spin mode).
-Correspondingly, all magnetization output in the code: during FillingsUpdate lines
-as well as in Lowdin analysis will report a vector direction in addition to magnitude.
+Correspondingly, all magnetization output in the code,
+such as in the FillingsUpdate lines and in the Lowdin analysis,
+report a vector direction in addition to magnitude.
 
 Exercise: reproduce the [previous tutorial](DFTplusU.html) with spins along the x-axis
 and then again with spins along the y-axis using vector-spin \ref CommandSpintype.
+Note that you can continue to use the non-relativistic GBRV pseudopotentials
+for this exercise, and you should then get the same answers irrespective of
+overall spin axis direction (since spin and spatial motion are decoupled).
+
 */

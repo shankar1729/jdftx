@@ -75,7 +75,7 @@ now outputs filles with suffix wfns, fillings and Haux.
 The wfns contain the wavefunctions (Kohn-Sham orbitals) as before,
 while fillings contains the occupations and Haux contains
 auxiliary Hamiltonian matrices used by the minimize algorithm with Fermi fillings.
-When running calculations with Femri fillings,
+When running calculations with Fermi fillings,
 \ref CommandInitialState will try to read in all these files instead of wfns alone.
 
 Examine the fillings file using:
@@ -106,7 +106,7 @@ Note that the band structure input file is almost identical to
 the Si band structure tutorial, varying only in the number of bands.
 (The band structure calculation should not specify Fermi fillings.)
 Edit bandstruct.plot to reference the energies relative to mu
-(from the final FillingsUPdate line, or equivalently using dump End EigStats).
+(from the final FillingsUpdate line, or equivalently using dump End EigStats).
 and convert to eV (see the end of the \ref BandStructure tutorial).
 Also update the y-axis range to exclude energies far below the Fermi level (mu),
 which we have set to zero in the plot and annotated with a dotted line.
