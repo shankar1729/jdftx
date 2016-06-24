@@ -75,7 +75,7 @@ Next, we setup the fixed potential calculations using the input file:
     target-mu ${mu}
 
 Note that we have used the robust, but slower, minimization algorithm instead of
-SCF because the SCF algorithm does not reliably converge in fixed-potential mode (yet)
+%SCF because the %SCF algorithm does not reliably converge in fixed-potential mode (yet)
 due to a charge-sloshing instability between the system and the electron reservoir.
 
 We will now run a sequence of fixed-potential calculations for mu varying from -1 to +1 eV

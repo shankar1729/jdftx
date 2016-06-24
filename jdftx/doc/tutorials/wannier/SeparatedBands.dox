@@ -1,0 +1,9 @@
+/** \page SeparatedBands Separated bands
+
+This tutorial will introduce the calculation of maximally-localized %Wannier
+functions (MLWFs) for a set of bands that are separated in energies from other bands.
+This is applicable for the occupied valence bands of semiconductors and insulators.
+Here, we will construct and visualize %Wannier functions for silicon in the diamond structure,
+and demonstrate band-structure interpolation using MLWF-based <i>ab initio</i> tight-binding models.
+
+*/

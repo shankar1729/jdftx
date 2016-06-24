@@ -1,0 +1,12 @@
+/** \page EntangledBands Entangled bands
+
+Here, we generalize from insulators and semiconductors where it is possible
+to single out sets of bands separated in energy from the rest, to the more
+general case where the bands of interest are mixed in with other bands.
+This is relevant not only for metals, but also for semiconductors,
+when we are interested in representing the unoccupied states.
+Specifically, this tutorial constructs maximally-localized
+%Wannier functions (MLWFs) for aluminum, and demostrates accurate
+density-of-states calculations using Monte Carlo sampling.
+
+*/

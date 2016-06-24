@@ -1,0 +1,9 @@
+/** \page DirectTransitions Direct transitions
+
+This tutorial will introduce more complicated post-processing
+techniques using MLWF-based <i>ab initio</i> tight-binding models.
+Here, we will calculate the frequency-dependent imaginary part of the
+dielectric function for aluminum, accounting for direct interband transitions.
+
+
+*/
