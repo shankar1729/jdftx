@@ -187,7 +187,7 @@ Save the above to collectResults.sh, give execute permissions using
 "chmod +x collectResults.sh", and execute using "./collectResults.sh"
 to get the results:
 
-<table>
+<center><table>
 <tr>
 <th rowspan=2> Surface
 <th colspan=3> E<sub>surf</sub> [eV/nm<sup>2</sup>]
@@ -197,7 +197,7 @@ to get the results:
 <tr> <td> (100) <td> 10.78  <td>  10.54   <td> -0.24 <td> -5.60  <td> -5.33     <td> 0.27  <td> 0.65
 <tr> <td> (110) <td> 11.46  <td>  11.26   <td> -0.21 <td> -5.28  <td> -4.99     <td> 0.29  <td> 0.31
 <tr> <td> (111) <td>  8.38  <td>   8.11   <td> -0.27 <td> -5.61  <td> -5.34     <td> 0.27  <td> 0.66
-</table>
+</table></center>
 
 Note that the surface formationn energies in vacuum follow the trend (111) < (100) < (110),
 indicating that (111) is most stable and (110) is least stable.
