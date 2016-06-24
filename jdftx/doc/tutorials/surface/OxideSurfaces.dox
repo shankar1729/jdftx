@@ -43,7 +43,7 @@ Run jdftx on bulk.in, use createXSF to generate bulk.xsf and visualize it using 
 \image html tutorials/TiO2bulk.png
 
 Note that each Ti atom is surrounded by six O atoms in a (distorted) octahedron,
-and that each O atom connects to two Ti atoms with a bent Ti-O-Ti link.
+and that each O atom connects to three Ti atoms in a plane.
 Record the total energy of the bulk unit cell, as we will need it later for calculating surface energies.
 
 

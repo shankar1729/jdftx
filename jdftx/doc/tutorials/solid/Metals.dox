@@ -34,8 +34,8 @@ and
 The only new command is \ref CommandElecFermiFillings which specifies that the fillings
 must be set using a Fermi function based on the current Kohn-Sham eigenvalues,
 rather than determined once at startup (the default we implicitly used so far).
-The first parameter of thic command specifies how often the fillings should be updated:
-0 implies update continuously (every minimize iteration or SCF cycle).
+The first parameter of this command specifies how often the fillings should be updated:
+0 implies update continuously (every minimize iteration or %SCF cycle).
 The second parameter is the temperature that determines the width in energy 
 over which the Fermi function goes from one to zero (occupied to unoccupied).
 
@@ -53,12 +53,20 @@ Run the calculation above as usual using
     mpirun -n 4 jdftx -i totalE.in | tee totalE.out
 
 and examine the output file.
-The main difference is that every SCF line is preceded by a line starting with FillingsUpdate.
+The main difference is that every %SCF line is preceded by a line starting with FillingsUpdate.
 (If you had used electronic-minimize instead, the line wouuld hav
 e started with FillingsAux.)
 This line reports the chemical potential, mu, of the Fermi function that produces
 the correct number of electrons with the current Kohn-Sham eigenvalues,
 and the number of electrons, nElectrons, which of course stays constant.
+
+Also notice that the energy in the %SCF lines is called F instead of Etot.
+The total energy Etot satisfies a variational theorem at fixed occupations,
+which we dealt with so far.
+However, now the occupations equilibrate at a specified temperature T,
+and the Helmholtz free energy F = E - TS, where S is the electronic entropy,
+is the appropriate variational free energy to work with.
+Note the corresponding changes in the energy component printout at the end as well.
 
 Additionally, in the initialization, note that nBands is now larger than nElectrons/2,
 since the code needs a few empty states  to use Fermi fillings.
