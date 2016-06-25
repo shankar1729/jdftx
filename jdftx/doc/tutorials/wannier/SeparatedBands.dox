@@ -1,5 +1,11 @@
 /** \page SeparatedBands Separated bands
 
+<center><table border=0>
+<tr>
+<td> \image html tutorials/SiWannierOrbital.png &nbsp;
+<td> \image html tutorials/SiWannierBandstruct.png
+</table></center>
+
 This tutorial will introduce the calculation of maximally-localized %Wannier
 functions (MLWFs) for a set of bands that are separated in energies from other bands.
 This is applicable for the occupied valence bands of semiconductors and insulators.
@@ -99,8 +105,105 @@ at each k-point, "mlwfH" which is the Hamiltonian in the MLWF basis, and
 "mlwfBandContrib" specifying the ranges of bands and energies covered by each MLWF.
 Additionally, during initialization, the code dumpes "mlwfBandRanges"
 which specifies the minimum and maximum energies of each band,
-which we will find useful in the [next tutorial](EntangledBands.html).
+which we will find useful in the [next tutorial](EntangledBands.html),
+and "mlwfCellMap" which specifies lattice vectors to surrounding
+unit cells in the order used for storing the Hamiltonian,
+which we will use below.
 Finally, since we asked for it, we also got real-space MLWF output
 in four files "0.mlwf", "1.mlwf" etc.
+
+You can use the createXSF script and VESTA to visualize %Wannier functions as well:
+
+    createXSF wannier.out wannier.0.xsf wannier.0.mlwf
+
+\image html tutorials/SiWannierOrbital.png
+
+Now the output is on a supercell rather than the unit cell.
+The dimensions of this supercell depend on the k-point sampling,
+and are 8 x 8 x 8 in this case.
+Use the boundary settings in VESTA to zoom in on the %Wannier function,
+as shown above. (I used the range [0.375, 0.67].)
+Note that the %Wannier function is centered on the Si-Si bond as expected,
+and has 3-fold symmetry around the bond becaue it is alongg a 111 axis.
+Similarly, plot the other three %Wannier functions and notice that they
+are identical except for being centered on a bond with a different direction
+(four bond directions over all for the tetrahedral lattice in a diamond structure).
+
+Next, we'll generate the band structure using the %Wannier Hamiltonian output.
+The "mlwfH" file contains the Hamiltonian in the optimized MLWF basis.
+It contains an array of matrices of dimensions nCenters x nCenters (4 x 4
+in this case) corresponding to the matrix elements between each of the MLWFs
+at one lattice site with each of the MLWFs at a nearby lattice site.
+The order of lattice sites is specified in the "mlwfCellMap" file.
+The number of lattice sites depends on the k-point sampling and fills up
+a Wigner-Seitz cell of the effective supercell (8 x 8 x 8 in this case).
+Examine wannier.mlwfCellMap, it will have a somewhat larger number of lines than
+8<sup>3</sup> = 512 because it repeats boundary cells to maintain crystal symmetry.
+(You can visualize the cell map in gnuplot using 'splot "wannier.mlwfCellMap" u 4:5:6'.)
+
+The above MLWF-basis Hamiltonian is a tight-binding model, but with multiple
+states on each lattice site (4 in this case), and connections to neighbouring
+sites beyond just the nearest ones (as specified by the cell map).
+This tight-binding model reproduces the first-principles band structure from DFT
+exactly, and is called an <i>ab initio</i> tight-binding model.
+The following Python script calculates band structure from MLWF Hamiltonian:
+
+    #Save the following to WannierBandstruct.py:
+    import numpy as np
+    from scipy.interpolate import interp1d
+    
+    #Read the MLWF cell map and Hamiltonian:    
+    cellMap = np.loadtxt("wannier.mlwfCellMap")[:,0:3].astype(np.int)
+    Hwannier = np.fromfile("wannier.mlwfH", dtype=np.float64)
+    nCells = cellMap.shape[0]
+    nBands = int(np.sqrt(Hwannier.shape[0] / nCells))
+    Hwannier = np.reshape(Hwannier, (nCells,nBands,nBands))
+    
+    #Read the band structure k-points:
+    kpointsIn = np.loadtxt('bandstruct.kpoints', skiprows=2, usecols=(1,2,3))
+    nKin = kpointsIn.shape[0]
+    #--- Interpolate to a 10x finer k-point path:
+    xIn = np.arange(nKin)
+    x = 0.1*np.arange(1+10*(nKin-1)) #same range with 10x density
+    kpoints = interp1d(xIn, kpointsIn, axis=0)(x)
+    nK = kpoints.shape[0]
+    
+    #Calculate band structure from MLWF Hamiltonian:
+    #--- Fourier transform from MLWF to k space:
+    Hk = np.tensordot(np.exp((2j*np.pi)*np.dot(kpoints,cellMap.T)), Hwannier, axes=1)
+    #--- Diagonalize:
+    Ek,Vk = np.linalg.eigh(Hk)
+    #--- Save:
+    np.savetxt("WannierBandstruct.eigenvals", Ek)
+
+Note that the first two sections read in the MLWF data and set up the
+k-point path respectively; all the real action happens in two lines of code!
+The Bloch Hamiltonian Hk is calculated by Fourier transforming the MLWF-basis Hamiltonian,
+and then we obtain the eigenavlues at each k (the band structure) by diagonalizing Hk.
+Run the above script "python WannierBandstruct.py",
+and examine the output file "WannierBandstruct.eigenvals":
+it is a text file with the eigenavlues for each band in a column.
+
+Modify the end of bandstruct.plot to compare the DFT and %Wannier band structure:
+
+    #Edit end of bandstruct.plot to the following:
+    VBM = +0.227554  #HOMO from totalE.eigStats
+    eV = 1/27.2114   #in Hartrees
+    set xzeroaxis
+    set yrange [:10]
+    set ylabel "E - VBM [eV]"
+    plot for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)/eV) every 2 w p lc rgb "black"
+    replot for [i=1:4] "WannierBandstruct.eigenvals" u (0.1*$0):((column(i)-VBM)/eV) w l lt 1
+
+and run "gnuplot --persist bandstruct.plot".
+
+\image html tutorials/SiWannierBandstruct.png
+
+The %Wannier band structure (plotted as lines) indeed reproduces
+the DFT band structure (plotted as points) exactly.
+Since we only constructed MLWFs from the lowest four (occupied) bands,
+we get the interpolated %Wannier band structure only for those bands.
+Extending %Wannier band structure interpolation to unoccupied bands
+and metals requires handling \ref EntangledBands as we discuss next.
 
 */
