@@ -174,14 +174,14 @@ The following Python script calculates band structure from MLWF Hamiltonian:
     #--- Diagonalize:
     Ek,Vk = np.linalg.eigh(Hk)
     #--- Save:
-    np.savetxt("WannierBandstruct.eigenvals", Ek)
+    np.savetxt("wannier.eigenvals", Ek)
 
 Note that the first two sections read in the MLWF data and set up the
 k-point path respectively; all the real action happens in two lines of code!
 The Bloch Hamiltonian Hk is calculated by Fourier transforming the MLWF-basis Hamiltonian,
 and then we obtain the eigenavlues at each k (the band structure) by diagonalizing Hk.
 Run the above script "python WannierBandstruct.py",
-and examine the output file "WannierBandstruct.eigenvals":
+and examine the output file "wannier.eigenvals":
 it is a text file with the eigenavlues for each band in a column.
 
 Modify the end of bandstruct.plot to compare the DFT and %Wannier band structure:
@@ -193,7 +193,7 @@ Modify the end of bandstruct.plot to compare the DFT and %Wannier band structure
     set yrange [:10]
     set ylabel "E - VBM [eV]"
     plot for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)/eV) every 2 w p lc rgb "black"
-    replot for [i=1:4] "WannierBandstruct.eigenvals" u (0.1*$0):((column(i)-VBM)/eV) w l lt 1
+    replot for [i=1:4] "wannier.eigenvals" u (0.1*$0):((column(i)-VBM)/eV) w l lt 1
 
 and run "gnuplot --persist bandstruct.plot".
 
