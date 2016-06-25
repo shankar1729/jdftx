@@ -28,6 +28,7 @@ and a total energy calculation:
     kpoint-folding 8 8 8    #Use a Brillouin zone mesh
     electronic-SCF          #Perform a Self-Consistent Field optimization
     dump-name totalE.$VAR
+    dump End State BandEigs #State and band eigenvalues
     dump End ElecDensity    #Save the self-consistent electron density
     dump End EigStats       #Get eigenvalue statistics
 
