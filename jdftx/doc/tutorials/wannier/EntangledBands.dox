@@ -44,7 +44,7 @@ supported for ultrasoft pseudopotentials in the next tutorial
 Run the total energy calculation "mpirun -n 4 jdftx -i totalE.in | tee totalE.out".
 Next, follow the \ref BandStructure tutorial to generate a k-point path,
 calculate the band structure and plot it.
-Sepcify 16 bands in the band structure calculation as well.
+Specify 16 bands in the band structure calculation as well.
 Since this is a metal, reference the energies to mu rather than the VBM.
 Also note that this pseudopotential includes core electrons,
 so set a lower energy bound in the plots to filter these out
