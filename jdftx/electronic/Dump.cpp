@@ -116,7 +116,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		<< mytm->tm_hour << '-' << mytm->tm_min << '-' << mytm->tm_sec;
 	stamp = stampStream.str();
 	
-	if((ShouldDump(State) and eInfo.fillingsUpdate!=ElecInfo::ConstantFillings) or ShouldDump(Fillings))
+	if((ShouldDump(State) and eInfo.fillingsUpdate==ElecInfo::FillingsHsub) or ShouldDump(Fillings))
 	{	//Dump fillings
 		double wInv = eInfo.spinType==SpinNone ? 0.5 : 1.0; //normalization factor from external to internal fillings
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) ((ElecVars&)eVars).F[q] *= (1./wInv);
@@ -140,7 +140,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			EndDump
 		}
 		
-		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	//Dump auxilliary hamiltonian
 			StartDump("Haux")
 			eInfo.write(eVars.B, fname.c_str());

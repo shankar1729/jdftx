@@ -396,42 +396,6 @@ commandElecEigenAlgo;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandCustomFilling : public Command
-{
-	int qnum, band; double filling;
-	
-	CommandCustomFilling() : Command("custom-filling", "jdftx/Miscellaneous")
-	{
-		format = "<qnum> <band> <filling>";
-		comments = "Specify a custom filling for the input (quantum-number, band)\n"
-					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO.";
-		allowMultiple = true;
-		forbid("eigen-shift");
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(qnum, 0, "qnum", true);
-		pl.get(band, 0, "band", true);
-		pl.get(filling, 0., "filling", true);
-		
-		if((filling > (e.eInfo.spinType == SpinZ ? 1. : 2.)) or (filling < 0))
-		{	ostringstream oss; oss << "Fillings must be between 0 and " << (e.eInfo.spinType == SpinZ ? 1. : 2.);
-			throw oss.str();
-		}
-		
-		e.eInfo.customFillings.push_back(std::make_tuple(qnum, band, filling/(e.eInfo.spinType == SpinZ ? 1. : 2.)));
-		
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	std::vector<std::tuple<int,int,double>>& customFillings = e.eInfo.customFillings;
-		logPrintf("%i %i %.2e", std::get<0>(customFillings[iRep]), std::get<1>(customFillings[iRep]), std::get<2>(customFillings[iRep])*(e.eInfo.spinType == SpinZ ? 1. : 2.));
-	}
-}
-commandCustomFilling;
-
-//-------------------------------------------------------------------------------------------------
-
 struct CommandInvertKohnSham : public Command
 {
 	CommandInvertKohnSham() : Command("invertKohnSham", "jdftx/Miscellaneous")

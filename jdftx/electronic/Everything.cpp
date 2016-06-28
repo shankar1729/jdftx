@@ -141,7 +141,7 @@ void Everything::setup()
 	elecMinParams.nDim = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	elecMinParams.nDim += 2 * basis[q].nbasis * eInfo.nBands;
-		if(eInfo.subspaceRotation)
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			elecMinParams.nDim += eInfo.nBands * eInfo.nBands;
 	}
 	mpiUtil->allReduce(elecMinParams.nDim, MPIUtil::ReduceSum);

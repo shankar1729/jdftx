@@ -160,7 +160,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the B entries of El
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	bool report(int iter)
-	{	eInfo.printFermi("LCAO");
+	{	eInfo.printFermi();
 		return false;
 	}
 };
@@ -231,7 +231,7 @@ int ElecVars::LCAO()
 	//Select a multi-pass method to use eVars.F, if it is non-default
 	int nPasses = 1;
 	if(!e->cntrl.fixed_H)
-	{	if(eInfo.customFillings.size() || eInfo.initialFillingsFilename.length()) nPasses = 2; //custom fillings
+	{	if(eInfo.initialFillingsFilename.length()) nPasses = 2; //custom fillings
 		if(eInfo.Qinitial || eInfo.Minitial) nPasses = 2; //net charges modified
 	}
 	
@@ -282,7 +282,7 @@ int ElecVars::LCAO()
 	mp.energyLabel = "F";
 	mp.energyFormat = "%+.16f";
 	mp.energyDiffThreshold = lcaoTol;
-	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.subspaceRotation ? 30 : 3 );
+	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub ? 30 : 3 );
 	if(e->cntrl.fixed_H) { C = Y; Hsub = lcao.B; } //bypass subspace iteration
 	else lcao.minimize(mp);
 	
@@ -294,7 +294,7 @@ int ElecVars::LCAO()
 			Hsub_eigs[q] = Hsub_eigs[q](0,eInfo.nBands); //drop extra eigenvalues
 		}
 		Y[q] = C[q] * Hsub_evecs[q]; C[q].free();
-		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	matrix Bq_evecs; diagMatrix Bq_eigs;
 			lcao.B[q].diagonalize(Bq_evecs, Bq_eigs);
 			B[q] = dagger(Hsub_evecs[q]) * Bq_eigs * Hsub_evecs[q];
@@ -302,7 +302,7 @@ int ElecVars::LCAO()
 		Hsub_evecs[q] = eye(eInfo.nBands);
 		Hsub[q] = Hsub_eigs[q];
 	}
-	if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings)
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	double Bz, mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons, Bz);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Hsub_eigs[q]);

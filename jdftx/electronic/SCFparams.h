@@ -43,14 +43,6 @@ struct SCFparams : public PulayParams
 	bool verbose; //!< Whether the inner eigensolver will print progress
 	double mixFractionMag;  //!< Mixing fraction for magnetization density / potential
 	
-	struct EigenShift
-	{	int q; //!< Quantum number
-		int n; //!< Band index
-		double shift; //!< Energy shift
-		bool fromHOMO; //!< Whether n-indexing is done from HOMO (or not)
-	};
-	std::vector<EigenShift> eigenShifts; //!< A list of all eigenshifts, used for non-ground-state calculations
-	
 	SCFparams()
 	{	nEigSteps = 2; //for Davidson; the default for CG is 40 (and set by the command)
 		eigDiffThreshold = 1e-8;

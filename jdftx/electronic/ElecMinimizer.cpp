@@ -117,17 +117,9 @@ bool ElecMinimizer::report(int iter)
 		logPrintf("\n"); logFlush();
 	}
 	
-	//Auxiliary hamiltonian fillings printout:
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		eInfo.printFermi("Aux");
-	
-	//Fillings mix update:
-	bool stateModified = false;
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsMix
-		&& iter % eInfo.mixInterval==0)
-	{	eInfo.mixFillings(eVars.F, e.ener);
-		stateModified = true;
-	}
+	//Fillings update report:
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+		eInfo.printFermi();
 	
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
@@ -150,7 +142,7 @@ bool ElecMinimizer::report(int iter)
 		return true;
 	}
 	
-	return stateModified;
+	return false;
 }
 
 void ElecMinimizer::constrain(ElecGradient& dir)
@@ -218,13 +210,13 @@ void elecFluidMinimize(Everything &e)
 	IonInfo& iInfo = e.iInfo;
 	Energies &ener = e.ener;
 
-	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	if(std::isnan(eInfo.mu)) //Constant nElectrons mode
 		{	logPrintf("\nSetting the auxilliary hamiltonian equal to the subspace hamiltonian.\n");
 			//calculate Hsub at current fillings:
-			eInfo.fillingsUpdate=ElecInfo::ConstantFillings; eInfo.subspaceRotation=false;
+			eInfo.fillingsUpdate=ElecInfo::FillingsConst;
 			eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
-			eInfo.fillingsUpdate=ElecInfo::FermiFillingsAux; eInfo.subspaceRotation=true;
+			eInfo.fillingsUpdate=ElecInfo::FillingsHsub;
 			//Update B:
 			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) eVars.B[q] = eVars.Hsub[q];
 			eVars.HauxInitialized = true;
@@ -235,7 +227,7 @@ void elecFluidMinimize(Everything &e)
 	}
 	
 	//Prevent change in mu from abruptly changing electron count:
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux && !std::isnan(eInfo.mu))
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !std::isnan(eInfo.mu))
 	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			eVars.B[q].diagonalize(eVars.B_evecs[q], eVars.B_eigs[q]);
 		double Bz, mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons, Bz);

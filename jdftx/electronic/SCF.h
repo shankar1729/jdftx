@@ -67,13 +67,8 @@ private:
 	
 	//! Updates fillings and recomputes filling energies
 	void updateFillings();
-	//! Updates the fillings using the maximum overlap method
-	void updateMOM();
-	std::vector<ColumnBundle> Cold; // Wavefunctions from the previous iteration
 	
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weighted RMS difference between two sets of eigenvalues
-	void eigenShiftInit(); //!< initialize and check eigenShifts
-	void eigenShiftApply(bool reverse);  //!< apply eigenshifts if false, and undo them if true
 };
 
 #endif

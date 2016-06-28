@@ -65,29 +65,22 @@ public:
 	int spinorLength() const { return isNoncollinear() ? 2 : 1; }
 	
 	enum FillingsUpdate
-	{	ConstantFillings, //!< constant fillings (T=0)
-		FermiFillingsMix, //!< mix fermi functions every mixInterval iterations
-		FermiFillingsAux, //!< fillings are a fermi function of the (auxilliary) subspace hamiltonian (recommended)
-		MaximumOverlapMethod //!< used as an alternative way of calculating excited states
+	{	FillingsConst, //!< constant fillings (T=0)
+		FillingsHsub //!< fillings are a function of subspace Hamiltonian (Fermi function for now)
 	}
 	fillingsUpdate;
 	
 	double kT; //!< Temperature for Fermi distribution of fillings
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this
 	
-	int mixInterval; //!< we recalc. fillings every so many iterations
-	bool subspaceRotation; //!< whether subspace variables are required (either rotation or aux hamiltonian)
-	
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
 
-	std::vector<std::tuple<int, int, double>> customFillings;
 	string initialFillingsFilename; //!< filename for initial fillings (zero-length if none)
 	
 	ElecInfo();
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
 	void printFillings(FILE* fp) const;
-	void printFermi(const char* suffix, const double* muOverride=0) const; //Fermi fillings report (compute mu from eigenvalues in eVars if muOverride not provided)
-	void mixFillings(std::vector<diagMatrix>& F, Energies& ener); //!< Fermi fillings with mixing / mu control
+	void printFermi(const double* muOverride=0) const; //Fermi fillings report (compute mu from eigenvalues in eVars if muOverride not provided)
 	void updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
 
 	//Fermi function utilities:
@@ -138,14 +131,6 @@ private:
 	
 	//!Calculate nElectrons and return magnetization at given mu, Bz and eigenvalues eps
 	double magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 
-	
-	//Fillings mix / mu-controller properties:
-	double fillingMixFraction; //!< amount of new fillings mixed with old fillings
-	double dnPrev, muMeasuredPrev; //!<The change in number of electrons and measured mu on the previous fillings update
-	double Cmeasured, Cweight; //!<The "measured" capacitance of the system, and the weight of the measurement
-	double dnMixFraction; //!<Scale the ideal stepsize in n by this factor
-	friend struct CommandElecFermiFillings;
-	friend struct CommandTargetMu;
 	
 	//k-points:
 	vector3<int> kfold; //!< kpoint fold vector

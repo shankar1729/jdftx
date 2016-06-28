@@ -26,11 +26,11 @@ struct CommandElecFermiFillings : public Command
 {
 	CommandElecFermiFillings() : Command("elec-fermi-fillings", "jdftx/Electronic/Parameters")
 	{
-		format = "<mixInterval> <kT> [<alpha>=0.5]";
+		format = "0 <kT>";
 		comments =
 			"Fermi-Dirac fillings at a temperature <kT> (in Hartrees).\n"
-			"  If <mixInterval> is zero, use the auxilliary hamiltonian method (recommended).\n"
-			"  Else, mix fermi functions every <mixInterval> iterations with mixing fraction <alpha>.";
+			"(The first unused argument, which used to be <mixInterval>,\n"
+			" is present only for backward compatibility; set it to zero.)";
 		
 		require("lcao-params");
 		forbid("fix-electron-density");
@@ -39,18 +39,15 @@ struct CommandElecFermiFillings : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	ElecInfo& eInfo = e.eInfo;
-		pl.get(eInfo.mixInterval, 0, "mixInterval", true);
-		//Determine algorithm based on mixInterval:
-		if(eInfo.mixInterval<0) throw string("<mixInterval> must be positive");
-		eInfo.fillingsUpdate = eInfo.mixInterval ? ElecInfo::FermiFillingsMix : ElecInfo::FermiFillingsAux;
+		string unusedParam;
+		pl.get(unusedParam, string(), "unusedParam", true);
+		eInfo.fillingsUpdate = ElecInfo::FillingsHsub;
 		pl.get(eInfo.kT, 0.0, "kT", true);
-		if(eInfo.mixInterval) pl.get(eInfo.fillingMixFraction, 0.5, "alpha");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const ElecInfo& eInfo = e.eInfo;
-		logPrintf("%d %lg", eInfo.mixInterval, eInfo.kT);
-		if(eInfo.mixInterval) logPrintf(" %lg", eInfo.fillingMixFraction);
+		logPrintf("0 %lg", eInfo.kT);
 	}
 }
 commandElecFermiFillings;
@@ -61,14 +58,15 @@ struct CommandTargetMu : public Command
 {
 	CommandTargetMu() : Command("target-mu", "jdftx/Electronic/Parameters")
 	{
-		format = "<mu> [<Cinitial>=1.0] [<dnMix>=0.7]";
+		format = "<mu>";
 		comments =
-			"Fixed chemical potential <mu> (instead of fixed charge)\n"
-			"When using elec-fermi-fillings with non-zero mixInterval (deprecated),\n"
-			"the following parameters control the convergence:\n"
-			"+ Cinitial: Initial capacitance, affects only first few mixing steps\n"
-			"+ dnMix: Scale the ideal step in n by this factor";
-		hasDefault = false;
+			"Fixed chemical potential <mu> (instead of fixed charge).\n"
+			"Note that <mu> is absolute (relative to vacuum level) and in Hartrees.\n"
+			"For example, potential V (in Volts) relative to SHE corresponds to\n"
+			"mu = -(Vref + V)/27.2114, where Vref is the absolute SHE potential\n"
+			"in Volts below vacuum; you could set Vref = 4.44 based on experiment\n"
+			"or use the value calibrated using potentials of zero charge with\n"
+			"the solvation model in use.";
 
 		require("fluid-cation");
 		require("fluid-anion");
@@ -78,12 +76,10 @@ struct CommandTargetMu : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eInfo.mu, 0.0, "mu", true);
-		pl.get(e.eInfo.Cmeasured, 1.0, "Cinitial");
-		pl.get(e.eInfo.dnMixFraction, 0.7, "dnMix");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg %lg %lg\n", e.eInfo.mu, e.eInfo.Cmeasured, e.eInfo.dnMixFraction);
+	{	logPrintf("%lg\n", e.eInfo.mu);
 	}
 }
 commandTargetMu;

@@ -113,7 +113,7 @@ void ElecVars::setup(const Everything &everything)
 	Hsub_evecs.resize(eInfo.nStates);
 	Hsub_eigs.resize(eInfo.nStates);
 	if(eigsFilename.length()) eInfo.read(Hsub_eigs, eigsFilename.c_str());
-	if(eInfo.subspaceRotation)
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	B.resize(eInfo.nStates);
 		B_evecs.resize(eInfo.nStates);
 		B_eigs.resize(eInfo.nStates);
@@ -129,37 +129,6 @@ void ElecVars::setup(const Everything &everything)
 	U_eigs.resize(eInfo.nStates);
 	Umhalf.resize(eInfo.nStates);
 	V.resize(eInfo.nStates);
-	
-	//Applies custom fillings, if present
-	if(eInfo.customFillings.size())
-	{	// macro to find the HOMO of a quantum-number
-		
-		std::vector<size_t> band_index;
-		for(size_t j=0; j<eInfo.customFillings.size(); j++)
-		{	int qnum = std::get<0>(eInfo.customFillings[j]);
-			if(!eInfo.isMine(qnum)) continue;
-			int HOMO = eInfo.findHOMO(qnum);
-			size_t band = std::get<1>(eInfo.customFillings[j])+HOMO;
-			if(band >= F[qnum].size())
-			{	die("\tERROR: Incorrect band index (%i) for custom fillings is specified! HOMO + %i"
-					" does not exist.\n\tEither increase the number of bands or change the band index\n\n", 
-					(int) band, std::get<1>(eInfo.customFillings[j]));
-			}
-			band_index.push_back(band);
-		}
-		for(size_t j=0; j<eInfo.customFillings.size(); j++)
-		{	int qnum = std::get<0>(eInfo.customFillings[j]);
-			if(!eInfo.isMine(qnum)) continue;
-			F[qnum][band_index[j]] = std::get<2>(eInfo.customFillings[j]);
-		}
-		
-		//Recompute electron count:
-		double& nElectrons = ((ElecInfo&)eInfo).nElectrons;
-		nElectrons = 0.;
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			nElectrons += eInfo.qnums[q].weight * trace(F[q]);
-		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
-	}
 	
 	//Read in electron (spin) density if needed
 	if(e->cntrl.fixed_H)
@@ -219,7 +188,7 @@ void ElecVars::setup(const Everything &everything)
 	}
 
 	//Read auxilliary hamiltonian if required
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	if(HauxFilename.length())
 		{	logPrintf("Reading auxilliary hamitonian from '%s'\n", HauxFilename.c_str());
 			eInfo.read(B, HauxFilename.c_str());
@@ -288,7 +257,7 @@ void ElecVars::setup(const Everything &everything)
 	//Citations:
 	Citations::add("Total energy minimization",
 		"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");
-	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		Citations::add("Direct minimization with Fermi fillings",
 			"C. Freysoldt, S. Boeck, and J. Neugebauer, Phys. Rev. B 79, 241103(R) (2009)");
 }
@@ -426,7 +395,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		overlapCondition = UeigMax / UeigMin;
 	
 		//Update fillings if required:
-		if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 			if(std::isnan(eInfo.mu)) mu = eInfo.findMu(B_eigs, eInfo.nElectrons, Bz);
 			else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, B_eigs, Bz); }
@@ -482,7 +451,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
 	double dmuContrib = 0., dBzContrib = 0.;
-	if(grad and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux and (std::isnan(eInfo.mu) or eInfo.Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
+	if(grad and eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (std::isnan(eInfo.mu) or eInfo.Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
 	{	double dmuNum[2] = {0.,0.}, dmuDen[2] = {0.,0.}; //numerator and denominator of dmuContrib resolved by spin channels (if any)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), B_eigs[q]);
@@ -522,7 +491,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			HC[q].free(); // Deallocate HCq when done.
 			
 			//Subspace hamiltonian gradient:
-			if(grad && eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+			if(grad && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			{
 				const QuantumNumber& qnum = eInfo.qnums[q];
 				matrix gradF = Hsub[q]-B_eigs[q] - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
@@ -609,11 +578,8 @@ void ElecVars::setEigenvectors(int qActive)
 		for(matrix& VdagCq_sp: VdagC[q])
 			if(VdagCq_sp) VdagCq_sp = VdagCq_sp * Hsub_evecs[q];
 		
-		if(eInfo.subspaceRotation)
-		{	if(eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-				B[q] = dagger(Hsub_evecs[q]) * B_eigs[q] * Hsub_evecs[q];
-			else B[q].zero();
-		}
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !e->cntrl.scf)
+			B[q] = dagger(Hsub_evecs[q]) * B_eigs[q] * Hsub_evecs[q];
 		
 		//Apply corresponding changes to Hsub:
 		Hsub[q] = Hsub_eigs[q]; //now diagonal
@@ -682,18 +648,13 @@ void ElecVars::orthonormalize(int q)
 	VdagC[q].clear();
 	U[q] = Yq^O(Yq, &VdagC[q]); //Compute U:
 	Umhalf[q] = invsqrt(U[q], &U_evecs[q], &U_eigs[q]); //Compute U^-0.5 (and retrieve U's eigensystem)
-	if(e->eInfo.subspaceRotation)
-	{	if(e->eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	//Diagonalize auxilliary subspace hamiltonian to get V:
-			B[q].diagonalize(B_evecs[q], B_eigs[q]);
-			V[q] = dagger(B_evecs[q]);
-		}
-		else 
-		{	//Old subspace rotations: Compute V = exp(i B) and retrieve B's eigensystem
-			V[q] = cis(B[q], &B_evecs[q], &B_eigs[q]);
-		}
+	matrix YtoC = Umhalf[q];
+	if(e->eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+	{	//Diagonalize auxilliary subspace hamiltonian to get V:
+		B[q].diagonalize(B_evecs[q], B_eigs[q]);
+		V[q] = dagger(B_evecs[q]);
+		YtoC = YtoC * dagger(V[q]);
 	}
-	matrix YtoC = e->eInfo.subspaceRotation ? Umhalf[q] * dagger(V[q]) : Umhalf[q];
 	C[q] = Yq * YtoC;
 	e->iInfo.project(C[q], VdagC[q], &YtoC); //update the atomic projections
 }
@@ -740,7 +701,9 @@ void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundl
 	
 	ColumnBundle OC = O(C[q]); //Note: O is not cheap for ultrasoft pseudopotentials
 	ColumnBundle PbarHC = HCq - OC * Hsub[q]; //PbarHC = HC - O C C^HC
-	matrix gradCtoY = e->eInfo.subspaceRotation ? V[q]*Umhalf[q] : Umhalf[q];
+	matrix gradCtoY = Umhalf[q];
+	if(e->eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+		gradCtoY = V[q] * gradCtoY;
 	
 	//First term of grad_Y, proportional to F:
 	gradYq = PbarHC * (Fq * gradCtoY);
@@ -748,19 +711,13 @@ void ElecVars::orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundl
 	grad_CdagOC[q] = -(Hsub[q]*Fq);
 	
 	//Second term of grad_Y, proportional to [F,Hsub]:
-	if(e->eInfo.subspaceRotation) // subspace rotation is on whenever [F,Hsub]!=0
-	{	matrix FcommHsub = Hsub[q] * Fq - Fq * Hsub[q];
-		matrix Q_FcommHsub = V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q]);
+	matrix FcommHsub = Hsub[q] * Fq - Fq * Hsub[q];
+	if(nrm2(FcommHsub) > 1e-12)
+	{	matrix Q_FcommHsub = V[q] * sqrt_grad(dagger(V[q])*FcommHsub*V[q], U_evecs[q], U_eigs[q]);
 		ColumnBundle OCQ = OC * Q_FcommHsub;
 		gradYq += OCQ;
 		if(KgradYq) *KgradYq += precond_inv_kinetic(OCQ, KErollover);
 		grad_CdagOC[q] += Q_FcommHsub * dagger(V[q]) * U[q] * Umhalf[q];
-		
-		//Subspace rotation gradient:
-		if(gradBq and e->eInfo.fillingsUpdate!=ElecInfo::FermiFillingsAux)
-		{	*gradBq = qnum.weight * dagger_symmetrize(cis_grad(FcommHsub, B_evecs[q], B_eigs[q]));
-			if(KgradBq) *KgradBq = subspaceRotationFactor * (*gradBq);
-		}
 	}
 
 	//Scale wavefunction gradients by state weight:
