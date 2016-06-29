@@ -364,18 +364,11 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	}
 	
 	//Update the density and density-dependent pieces if required:
-	//--- Calculate (spin) densities
 	n = calcDensity();
-	//--- Calculate kinetic energy density if required
-	if(e->exCorr.needsKEdensity())
-		tau = KEdensity();
-	//--- Update atomic density matrix contributions for DFT+U (if necessary):
-	if(eInfo.hasU)
-		e->iInfo.rhoAtom_calc(F, C, rhoAtom);
-	//--- Calculate density functional and its gradient:
-	EdensityAndVscloc(ener);
-	//--- Update Vscloc projected onto spherical functions (for ultrasoft psp's)
-	if(need_Hsub) e->iInfo.augmentDensityGridGrad(Vscloc);
+	if(e->exCorr.needsKEdensity()) tau = KEdensity();
+	if(eInfo.hasU) e->iInfo.rhoAtom_calc(F, C, rhoAtom); //Atomic density matrix contributions for DFT+U
+	EdensityAndVscloc(ener); //Calculate density functional and its gradient
+	if(need_Hsub) e->iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projected onto spherical functions for ultrasoft psps
 	
 	//--------- Wavefunction dependent parts -----------
 	
