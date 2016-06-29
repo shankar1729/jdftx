@@ -44,17 +44,17 @@ inline void printGvec(const GridInfo& gInfo, const Basis& b, int i, ofstream& of
 }
 
 
-struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B entries of ElecGradient
+struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux entries of ElecGradient
 {	const Everything& e;
 	std::vector<matrix> mask; //matrices of ones and zeroes indicating which columns are allowed to mix
-	std::vector<matrix> U, B; //unitary rotations and the hermitian matrices that generate them
+	std::vector<matrix> U, Haux; //unitary rotations and the hermitian matrices that generate them
 	int nDim; //dimension of minimize (no minimize needed if zero)
 	
-	ImagPartMinimizer(const Everything& e) : e(e), mask(e.eInfo.nStates), U(e.eInfo.nStates), B(e.eInfo.nStates)
+	ImagPartMinimizer(const Everything& e) : e(e), mask(e.eInfo.nStates), U(e.eInfo.nStates), Haux(e.eInfo.nStates)
 	{	//Initialize mask:
 		nDim = 0;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	B[q] = zeroes(e.eInfo.nBands, e.eInfo.nBands);
+		{	Haux[q] = zeroes(e.eInfo.nBands, e.eInfo.nBands);
 			mask[q] = zeroes(e.eInfo.nBands, e.eInfo.nBands);
 			const diagMatrix& eigs = e.eVars.Hsub_eigs[q];
 			complex* maskData = mask[q].data();
@@ -69,9 +69,9 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B en
 	}
 	
 	void step(const ElecGradient& dir, double alpha)
-	{	assert(dir.B.size() == B.size());
+	{	assert(dir.Haux.size() == Haux.size());
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(dir.B[q]) axpy(alpha, dir.B[q], B[q]);
+			if(dir.Haux[q]) axpy(alpha, dir.Haux[q], Haux[q]);
 	}
 	
 	double compute(ElecGradient* grad)
@@ -79,7 +79,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B en
 		double imagErr = 0.;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	matrix Bevecs; diagMatrix Beigs;
-			U[q] = cis(B[q], &Bevecs, &Beigs);
+			U[q] = cis(Haux[q], &Bevecs, &Beigs);
 			ColumnBundle Crot = e.eVars.C[q] * U[q], imagErr_Crot;
 			if(grad) imagErr_Crot = Crot.similar();
 			for(int b=0; b<e.eInfo.nBands; b++)
@@ -89,7 +89,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B en
 					imagErr_Crot.setColumn(b,0, Idag(Complex(0*imagIpsi, 2*e.gInfo.dV*imagIpsi)));
 			}
 			if(grad)
-				grad->B[q] = dagger_symmetrize(cis_grad(U[q] * (imagErr_Crot ^ Crot) * dagger(U[q]), Bevecs, Beigs));
+				grad->Haux[q] = dagger_symmetrize(cis_grad(U[q] * (imagErr_Crot ^ Crot) * dagger(U[q]), Bevecs, Beigs));
 		}
 		mpiUtil->allReduce(imagErr, MPIUtil::ReduceSum);
 		if(grad) constrain(*grad);
@@ -98,7 +98,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the B en
 	
 	void constrain(ElecGradient& grad)
 	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			callPref(eblas_zmul)(mask[q].nData(), mask[q].dataPref(),1, grad.B[q].dataPref(),1); //apply mask
+			callPref(eblas_zmul)(mask[q].nData(), mask[q].dataPref(),1, grad.Haux[q].dataPref(),1); //apply mask
 	}
 	
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error

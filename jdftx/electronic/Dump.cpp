@@ -139,13 +139,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			if(mpiUtil->isHead()) eVars.fluidSolver->saveState(fname.c_str());
 			EndDump
 		}
-		
-		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		{	//Dump auxilliary hamiltonian
-			StartDump("Haux")
-			eInfo.write(eVars.B, fname.c_str());
-			EndDump
-		}
 	}
 
 	if(ShouldDump(IonicPositions) || (ShouldDump(State) && e->ionicMinParams.nIterations>0))

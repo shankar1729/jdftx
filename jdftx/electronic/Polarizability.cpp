@@ -303,8 +303,6 @@ void Polarizability::dump(const Everything& e)
 		}
 	}
 	
-	logPrintf("\tClearing non-orthogonal wavefunctions (Y) to free memory.\n"); ((Everything&)e).eVars.Y.clear();
-	
 	if(Ecut<=0.) Ecut = 4.*e.cntrl.Ecut;
 	logPrintf("\tSetting up reduced basis at Ecut=%lg: ", Ecut);
 	Basis basis; basis.setup(e.gInfo, e.iInfo, Ecut, dk);

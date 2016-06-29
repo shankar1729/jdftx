@@ -190,9 +190,6 @@ void Phonon::processPerturbation(const Perturbation& pert)
 
 void Phonon::setSupState(std::vector<matrix>* Hsub)
 {
-	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
-		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
-	
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	
 	//Compute gamma point Hamiltonian if requested:
@@ -244,12 +241,11 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	int nBandsOptSup = nBandsOpt * prodSup;
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
-		eSup->eVars.Y[qSup].free(); //to save memory (will be regenerated below, after Hsub calculation)
 		if(Cq.nCols() != nBandsOptSup)
 			Cq.init(nBandsOptSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
 		Cq.zero();
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-			eSup->eVars.B[qSup] = zeroes(nBandsOptSup,nBandsOptSup);
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+			eSup->eVars.Haux_eigs[qSup].assign(nBandsOptSup, 0.);
 	}
 	
 	//Update supercell quantities:
@@ -259,7 +255,6 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		const ColumnBundle& C = e.eVars.C[sme.iReduced];
 		ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
 		sme.transform->scatterAxpy(scaleFac, C.getSub(0,nBandsOpt), Csup,nBandsPrev,1);
-		eSup->eVars.Y[sme.qSup] = Csup; //restore Y (which was cleared above to save memory)
 		eSup->iInfo.project(Csup, eSup->eVars.VdagC[sme.qSup]); //update wave function projections
 		//Fillings:
 		const diagMatrix& F = e.eVars.F[sme.iReduced];
@@ -267,17 +262,16 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		Fsup.resize(nBandsOptSup);
 		Fsup.set(nBandsPrev,nBandsPrev+nBandsOpt, F(0,nBandsOpt));
 		//Auxiliary Hamiltonian (if necessary):
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	const matrix& B = e.eVars.B[sme.iReduced];
-			matrix& Bsup = eSup->eVars.B[sme.qSup];
-			Bsup.set(nBandsPrev,nBandsPrev+nBandsOpt, nBandsPrev,nBandsPrev+nBandsOpt, B(0,nBandsOpt, 0,nBandsOpt));
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+		{	const diagMatrix& Haux_eigs = e.eVars.Haux_eigs[sme.iReduced];
+			diagMatrix& Haux_eigsSup = eSup->eVars.Haux_eigs[sme.qSup];
+			Haux_eigsSup.set(nBandsPrev,nBandsPrev+nBandsOpt, Haux_eigs(0,nBandsOpt));
 		}
 	}
 	
 	//Update entropy contributions:
-	if(eSup->eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
-		eSup->eInfo.updateFillingsEnergies(eSup->eVars.F, eSup->ener);
-	
-	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(eSup->eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+	{	eSup->eInfo.updateFillingsEnergies(eSup->eVars.F, eSup->ener);
 		eSup->eVars.HauxInitialized = true;
+	}
 }

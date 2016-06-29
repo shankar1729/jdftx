@@ -221,13 +221,3 @@ struct CommandLatticeMinimize : public CommandMinimize
 	}
 }
 commandLatticeMinimize;
-
-struct CommandInverseKohnShamMinimize : public CommandMinimize
-{	CommandInverseKohnShamMinimize() : CommandMinimize("inverseKohnSham", "jdftx/Electronic/Optimization") {}
-    MinimizeParams& target(Everything& e) { return e.inverseKSminParams; }
-    void process(ParamList& pl, Everything& e)
-	{	e.inverseKSminParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
-		CommandMinimize::process(pl, e);
-	}
-}
-commandInverseKohnShamMinimize;

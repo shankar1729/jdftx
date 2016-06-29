@@ -28,8 +28,8 @@ precond(precond)
 }
 
 void BandMinimizer::step(const ColumnBundle& dir, double alpha)
-{	assert(dir.nCols() == e.eVars.Y[qActive].nCols());
-	axpy(alpha, dir, e.eVars.Y[qActive]);
+{	assert(dir.nCols() == e.eVars.C[qActive].nCols());
+	axpy(alpha, dir, e.eVars.C[qActive]);
 }
 
 double BandMinimizer::compute(ColumnBundle* grad)
@@ -40,31 +40,6 @@ ColumnBundle BandMinimizer::precondition(const ColumnBundle& grad)
 {	return precond ? Kgrad : grad;
 }
 
-bool BandMinimizer::report(int iter)
-{
-	// Overlap check for orthogonalization
-	if(e.cntrl.overlapCheckInterval
-		&& (iter % e.cntrl.overlapCheckInterval == 0)
-		&& (eVars.overlapCondition > e.cntrl.overlapConditionThreshold) )
-	{
-		logPrintf("%s\tCondition number of orbital overlap matrix (%lg) exceeds threshold (%lg): ",
-			e.elecMinParams.linePrefix, eVars.overlapCondition, e.cntrl.overlapConditionThreshold);
-		eVars.setEigenvectors(qActive);
-		return true;
-	}
-	
-	//Dumps at every electronic step of each band, if asked for
-	e.dump(DumpFreq_Electronic, iter);
-	
-	return false;
-}
-
 void BandMinimizer::constrain(ColumnBundle& dir)
-{	if(e.cntrl.fixOccupied)
-	{	//Project out occupied directions:
-		int nOcc = eVars.nOccupiedBands(qActive);
-		if(nOcc)
-			callPref(eblas_zero)(dir.colLength()*nOcc, dir.dataPref());
-	}
-
+{	
 }

@@ -26,17 +26,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 
 struct ElecGradient
-{	std::vector<ColumnBundle> Y; 
-	std::vector<matrix> B;
+{	std::vector<ColumnBundle> C; 
+	std::vector<matrix> Haux;
 	const ElecInfo* eInfo;
 	
-	void init(const Everything& e); //!< initialize Y and B with the correct sizes for everything
+	void init(const Everything& e); //!< initialize C and Haux with the correct sizes for everything
 	
 	ElecGradient& operator*=(double alpha); //!< scalar multiply
 };
 
 //Functions required for minimize
-void axpy(double alpha, const ElecGradient& x, ElecGradient& y); //!< accumulate operation: Y += alpha*X
+void axpy(double alpha, const ElecGradient& x, ElecGradient& y); //!< accumulate operation: y += alpha*x
 double dot(const ElecGradient& x, const ElecGradient& y); //!< inner product
 ElecGradient clone(const ElecGradient& x); //!< create a copy
 void randomize(ElecGradient& x); //!< Initialize to random numbers

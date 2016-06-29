@@ -74,6 +74,9 @@ public:
 	
 	vector3<int> phononSup; //!< phonon supercell (process e-ph matrix elements on this supercell if non-zero)
 	
+	int rotationCheckInterval; //interval at which to check and reset rotations
+	double rotationThreshold; //reset rotations if generator (B) norm exceeds this value
+	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
 	enum FilenameType

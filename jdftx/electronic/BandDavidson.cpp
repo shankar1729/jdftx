@@ -27,8 +27,8 @@ BandDavidson::BandDavidson(Everything& e, int qActive): qActive(qActive), e(e), 
 
 void BandDavidson::minimize()
 {	//Use the same working set as the CG minimizer:
-	ColumnBundle& Y = eVars.Y[qActive]; //Use to store current guesses to eigenvectors
 	ColumnBundle& C = eVars.C[qActive]; //Use as expansion subset
+	ColumnBundle Y = C.similar();       //Use to store current guesses to eigenvectors
 	std::vector<matrix>& VdagC = eVars.VdagC[qActive];
 	const QuantumNumber& qnum = eInfo.qnums[qActive];
 	int nBandsOut = eInfo.nBands; //number of final output bands desired
@@ -140,5 +140,4 @@ void BandDavidson::minimize()
 	eVars.Hsub_eigs[qActive] = Hsub_eigs(0,nBandsOut);
 	eVars.Hsub[qActive] = eVars.Hsub_eigs[qActive];
 	eVars.Hsub_evecs[qActive] = I;
-	eVars.grad_CdagOC[qActive] = -eVars.Hsub_eigs[qActive];
 }

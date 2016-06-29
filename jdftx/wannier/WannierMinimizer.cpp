@@ -149,9 +149,9 @@ matrix WannierMinimizer::fixUnitary(const matrix& U)
 }
 
 bool WannierMinimizer::report(int iter)
-{	if(e.cntrl.overlapCheckInterval && (iter % e.cntrl.overlapCheckInterval == 0))
+{	if(wannier.rotationCheckInterval && (iter % wannier.rotationCheckInterval == 0))
 	{	bool needRestart = false;
-		double BnormThresh = e.cntrl.overlapConditionThreshold - 1.;
+		double BnormThresh = wannier.rotationThreshold;
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 			if(nrm2(kMesh[ik].B) > BnormThresh)
 			{	needRestart = true;

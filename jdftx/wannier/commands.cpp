@@ -432,3 +432,33 @@ struct CommandWannierDumpName : public CommandWannierFilenames
 	string& getTarget(Everything& e) { return ((WannierEverything&)e).wannier.dumpFilename; }
 }
 commandWannierDumpName;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandWannierRotationReset : public Command
+{
+	CommandWannierRotationReset() : Command("wannier-rotation-reset", "wannier")
+	{
+		format = "[<interval=20>] [<threshold>=1.5]";
+		comments =
+			"Every <interval> steps, set initial rotations to current values and \n"
+			"restart minimization if rotation generator magnitude crosses <threshold>.\n"
+			"Set <interval> = 0 to disable this check.";
+		
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		pl.get(wannier.rotationCheckInterval, 20, "interval");
+		pl.get(wannier.rotationThreshold, 0.5, "threshold");
+		if(wannier.rotationCheckInterval<0) throw string("<interval> must be non-negative");
+		if(wannier.rotationThreshold<=1.) throw string("<threshold> must be > 1");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const Wannier& wannier = ((WannierEverything&)e).wannier;
+		logPrintf("%d %lg", wannier.rotationCheckInterval, wannier.rotationThreshold);
+	}
+}
+commandWannierRotationReset;

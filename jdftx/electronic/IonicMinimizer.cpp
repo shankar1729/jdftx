@@ -160,7 +160,6 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{
 				//Get atomic orbitals at old positions:
-				eVars.Y[q].free();
 				ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
 				
 				//Compute atomic orbital projections:
@@ -204,9 +203,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		populationAnalysisPending = false;
 	}
 	if(!alpha) //case when step was invoked purely for population analysis
-	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			eVars.Y[q] = eVars.C[q];
-		watch.stop(); return; 
+	{	watch.stop(); return; 
 	}
 	
 	//Move the atoms:
@@ -222,8 +219,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	eVars.VdagC[q].clear();
 		matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
-		eVars.Y[q] = eVars.C[q] * orthoMat;
-		eVars.C[q] = eVars.Y[q];
+		eVars.C[q] = eVars.C[q] * orthoMat;
 		iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
 	}
 	

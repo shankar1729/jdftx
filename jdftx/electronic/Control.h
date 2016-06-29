@@ -35,8 +35,6 @@ class Control
 {
 public:
 	bool fixed_H; //!< fixed Hamiltonian (band structure) mode for electronic sector
-	bool fixOccupied; //!< whether to hold occupied orbitals fixed in band structure calculations
-	double occupiedThreshold; //!< fillings threshold for occupied states
 	bool cacheProjectors; //!< whether to cache nonlocal projectors
 	double davidsonBandRatio; //!< ratio of number of Davidson working bands to actual bands in system (>= 1)
 	
@@ -50,9 +48,6 @@ public:
 	int fluidGummel_nIterations; //!< max iterations of the fluid<->electron self-consistency loop
 	double fluidGummel_Atol; //!< stopping free-energy tolerance for the fluid<->electron self-consistency loop
 
-	double overlapConditionThreshold; //!< Threshold for overlap condition number at which wavefunctions are re-orthogonalized
-	int overlapCheckInterval; //!< Number of electronic steps between overlap condition checks
-	
 	bool shouldPrintEigsFillings; //!< whether eigenvalues and fillings should be printed at each iteration
 	bool shouldPrintEcomponents; //!< whether energy components should be printed at each iteration
 	bool shouldPrintMuSearch; //!< whether mu bisection progress should be printed
@@ -69,10 +64,9 @@ public:
 	
 	Control()
 	:	fixed_H(false),
-		fixOccupied(false), occupiedThreshold(0), cacheProjectors(true), davidsonBandRatio(1.1),
+		cacheProjectors(true), davidsonBandRatio(1.1),
 		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
-		overlapConditionThreshold(1.5), overlapCheckInterval(20),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),
 		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false), convergeEmptyStates(false), dumpOnly(false)
 	{

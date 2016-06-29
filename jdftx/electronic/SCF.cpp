@@ -61,7 +61,6 @@ SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInf
 
 void SCF::minimize()
 {	
-	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	SCFparams& sp = e.scfParams;
 	
@@ -97,17 +96,10 @@ void SCF::minimize()
 	e.elecMinParams.energyDiffThreshold = eMinThreshold;
 	e.elecMinParams.nIterations = eMinIterations;
 	
-	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
-	
 	//Set auxiliary Hamiltonian to subspace Hamiltonian
 	// (for general compatibility with minimizer; also important for lattice gradient in metals)
 	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
-	{	eVars.B = eVars.Hsub;
-		eVars.B_eigs = eVars.Hsub_eigs;
-		eVars.B_evecs = eVars.Hsub_evecs;
-	}
+		eVars.Haux_eigs = eVars.Hsub_eigs;
 }
 
 double SCF::sync(double x) const

@@ -32,7 +32,6 @@ class BandMinimizer : public Minimizable<ColumnBundle>
 		double compute(ColumnBundle* grad);
 		void step(const ColumnBundle& dir, double alpha);
 		ColumnBundle precondition(const ColumnBundle& grad);
-		bool report(int iter);
 		void constrain(ColumnBundle&);
 		
 		int qActive;  //! Quantum number of the subspace that is being minimized

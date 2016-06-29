@@ -31,14 +31,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void ElecGradient::init(const Everything& e)
 {	eInfo = &e.eInfo;
-	Y.resize(eInfo->nStates);
-	B.resize(eInfo->nStates);
+	C.resize(eInfo->nStates);
+	Haux.resize(eInfo->nStates);
 }
 
 ElecGradient& ElecGradient::operator*=(double alpha)
 {	for(int q=eInfo->qStart; q<eInfo->qStop; q++)
-	{	if(Y[q]) Y[q] *= alpha;
-		if(B[q]) B[q] *= alpha;
+	{	if(C[q]) C[q] *= alpha;
+		if(Haux[q]) Haux[q] *= alpha;
 	}
 	return *this;
 }
@@ -46,8 +46,8 @@ ElecGradient& ElecGradient::operator*=(double alpha)
 void axpy(double alpha, const ElecGradient& x, ElecGradient& y)
 {	assert(x.eInfo == y.eInfo);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.Y[q]) { if(y.Y[q]) axpy(alpha, x.Y[q], y.Y[q]); else y.Y[q] = alpha*x.Y[q]; }
-		if(x.B[q]) { if(y.B[q]) axpy(alpha, x.B[q], y.B[q]); else y.B[q] = alpha*x.B[q]; }
+	{	if(x.C[q]) { if(y.C[q]) axpy(alpha, x.C[q], y.C[q]); else y.C[q] = alpha*x.C[q]; }
+		if(x.Haux[q]) { if(y.Haux[q]) axpy(alpha, x.Haux[q], y.Haux[q]); else y.Haux[q] = alpha*x.Haux[q]; }
 	}
 }
 
@@ -55,8 +55,8 @@ double dot(const ElecGradient& x, const ElecGradient& y)
 {	assert(x.eInfo == y.eInfo);
 	complex result(0,0);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.Y[q] && y.Y[q]) result += dotc(x.Y[q], y.Y[q])*2.0;
-		if(x.B[q] && y.B[q]) result += dotc(x.B[q], y.B[q]);
+	{	if(x.C[q] && y.C[q]) result += dotc(x.C[q], y.C[q])*2.0;
+		if(x.Haux[q] && y.Haux[q]) result += dotc(x.Haux[q], y.Haux[q]);
 	}
 	mpiUtil->allReduce(result.real(), MPIUtil::ReduceSum);
 	return result.real();
@@ -67,11 +67,11 @@ ElecGradient clone(const ElecGradient& x)
 }
 
 void randomize(ElecGradient& x)
-{	randomize(x.Y, *x.eInfo);
+{	randomize(x.C, *x.eInfo);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-		if(x.B[q])
-		{	randomize(x.B[q]);
-			x.B[q] = dagger_symmetrize(x.B[q]); //make hermitian
+		if(x.Haux[q])
+		{	randomize(x.Haux[q]);
+			x.Haux[q] = dagger_symmetrize(x.Haux[q]); //make hermitian
 		}
 }
 
@@ -85,8 +85,12 @@ ElecMinimizer::ElecMinimizer(Everything& e)
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if(dir.Y[q]) axpy(alpha, dir.Y[q], eVars.Y[q]);
-		if(dir.B[q]) axpy(alpha, dir.B[q], eVars.B[q]);
+	{	if(dir.C[q]) axpy(alpha, dir.C[q], eVars.C[q]);
+		if(dir.Haux[q])
+		{	matrix Haux_q = eVars.Haux_eigs[q];
+			axpy(alpha, dir.Haux[q], Haux_q);
+			//TODO: diagonalize Haux_q and update rotations
+		}
 	}
 }
 
@@ -131,29 +135,11 @@ bool ElecMinimizer::report(int iter)
 		return true;
 	}
 	
-	//Re-orthogonalize wavefunctions if necessary:
-	if(e.cntrl.overlapCheckInterval
-		&& (iter % e.cntrl.overlapCheckInterval == 0)
-		&& (eVars.overlapCondition > e.cntrl.overlapConditionThreshold) )
-	{
-		logPrintf("%s\tCondition number of orbital overlap matrix (%lg) exceeds threshold (%lg): ",
-			e.elecMinParams.linePrefix, eVars.overlapCondition, e.cntrl.overlapConditionThreshold);
-		eVars.setEigenvectors();
-		return true;
-	}
-	
 	return false;
 }
 
 void ElecMinimizer::constrain(ElecGradient& dir)
-{	if(e.cntrl.fixOccupied)
-	{	//Project out occupied directions:
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	int nOcc = eVars.nOccupiedBands(q);
-			if(nOcc)
-				callPref(eblas_zero)(dir.Y[q].colLength()*nOcc, dir.Y[q].dataPref());
-		}
-	}
+{	
 }
 
 double ElecMinimizer::sync(double x) const
@@ -189,13 +175,13 @@ void elecMinimize(Everything& e)
 	{	SCF scf(e);
 		scf.minimize();
 	}
-	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor())
+	else if(e.cntrl.fixed_H)
+	{	bandMinimize(e);
+	}
+	else
 	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
 		if (!e.ionDynamicsParams.tMax) e.eVars.setEigenvectors(); //Don't spend time with this if running MD
-	}
-	else
-	{	bandMinimize(e);
 	}
 	e.eVars.isRandom = false; //wavefunctions are no longer random
 	//Converge empty states if necessary:
@@ -218,7 +204,7 @@ void elecFluidMinimize(Everything &e)
 			eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 			eInfo.fillingsUpdate=ElecInfo::FillingsHsub;
 			//Update B:
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) eVars.B[q] = eVars.Hsub[q];
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) eVars.Haux_eigs[q] = eVars.Hsub_eigs[q];
 			eVars.HauxInitialized = true;
 		}
 		else //constant mu mode
@@ -228,12 +214,10 @@ void elecFluidMinimize(Everything &e)
 	
 	//Prevent change in mu from abruptly changing electron count:
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !std::isnan(eInfo.mu))
-	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			eVars.B[q].diagonalize(eVars.B_evecs[q], eVars.B_eigs[q]);
-		double Bz, mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons, Bz);
+	{	double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
 		logPrintf("Shifting auxilliary hamiltonian by %lf to set nElectrons=%lf\n", eInfo.mu-mu, eInfo.nElectrons);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			eVars.B[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
+			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	
 	double Evac0 = NAN;

@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/LatticeMinimizer.h>
-#include <electronic/InverseKohnSham.h>
 #include <electronic/Vibrations.h>
 #include <electronic/IonDynamics.h>
 #include <fluid/FluidSolver.h>
@@ -67,14 +66,8 @@ int main(int argc, char** argv)
 			}
 		}
 		e.iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
-		if(e.cntrl.invertKS) //Inverse Kohn-Sham problem (sequence of band structure calculations)
-		{	InverseKohnSham inverseKS(e);
-			inverseKS.minimize(e.inverseKSminParams);
-		}
-		else //Single band structure calculation
-		{	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
-			bandMinimize(e); // Do the band-structure minimization
-		}
+		logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
+		bandMinimize(e); // Do the band-structure minimization
 	}
 	else if(e.vibrations) //Bypasses ionic/lattice minimization, calls electron/fluid minimization loops at various ionic configurations
 	{	e.vibrations->calculate();

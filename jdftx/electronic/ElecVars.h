@@ -30,24 +30,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class ElecVars
 {
 public:
-	//Independent variables:
-	std::vector<ColumnBundle> Y; //!< unconstrained electronic wavefunctions
-	std::vector<matrix> B; //!< subspace rotation / auxilliary hamiltonian
+	std::vector<ColumnBundle> C; //!< orthonormal electronic wavefunctions
+	std::vector<diagMatrix> Haux_eigs; //!< auxilliary hamiltonian eigenvalues
 	double subspaceRotationFactor; //!< preconditioning factor for subspace rotations / aux hamiltonian relative to wavefunctions
 	
-	//Derived quantities:
-	std::vector<matrix> B_evecs; //!<  eigenvectors of B[q] in columns
-	std::vector<diagMatrix> B_eigs; //!< eigenvalues of B[q]
-
 	std::vector<matrix> Hsub; //!< Subspace Hamiltonian:  Hsub[q]=C[q]^H*C[q]
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
 	std::vector<diagMatrix> Hsub_eigs; //!< eigenvalues of Hsub[q]
 	
-	std::vector<ColumnBundle> C; //!< orthonormal wavefunctions (after appropriate subspace rotation)
 	std::vector<diagMatrix> F;  //!< the fillings (diagonal matrices) for each state
 	
 	std::vector< std::vector<matrix> > VdagC; //cached pseudopotential projections (by state and then species)
-	std::vector<matrix> grad_CdagOC; //!< gradient w.r.t overlap (required for forces when O is atom dependent)
 	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
@@ -91,8 +84,6 @@ public:
 	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed
 	
-	double overlapCondition; //!< Current condition number of the orbital overlap matrix (over all states)
-	
 	string nFilenamePattern; //!< file pattern to read electron (spin,kinetic) density from
 	string VFilenamePattern; //!< file pattern to read electron (spin,kinetic) potential from
 	
@@ -103,7 +94,7 @@ public:
 	//! If supplied, alternateExCorr replaces the main exchange and correlaton functional
 	void EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr=0);
 	
-	//! Update and return the electronic system/band structure energy.
+	//! Update and return the electronic system energy.
 	//! Optionally compute the gradient, preconditioned gradient and/or the subspace hamiltonian
 	double elecEnergyAndGrad(Energies& ener, ElecGradient* grad=0, ElecGradient* Kgrad=0, bool calc_Hsub=false); 
 	
@@ -111,17 +102,14 @@ public:
 	//! input variable q controls the quantum number, -1 means all.
 	void setEigenvectors(int q=-1); 
 	
-	//! Return the number of occupied bands (f > occupiedThrehsold) for a given state
-	int nOccupiedBands(int q) const; 
-
 	//! Compute the kinetic energy density
 	ScalarFieldArray KEdensity() const;
 	
 	//! Calculate density using current orthonormal wavefunctions (C)
 	ScalarFieldArray calcDensity() const;
 	
-	//! Orthonormalise Y to compute C, U and its cohorts for a quantum number q
-	void orthonormalize(int q);
+	//! Orthonormalise wavefunctions, with an optional extra rotation
+	void orthonormalize(int q, const matrix* extraRotation=0);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, also computes Hsub if necessary
 	//! Function is implemented for a single quantum number
@@ -129,11 +117,8 @@ public:
 	//! If fixed hamiltonian, returns the trace of the subspace hamiltonian multiplied by the weight of that quantum number,
 	//! returns 0 if otherwise.
 	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
-	
-	//! Propagates the gradient wrt orthonormal C (HCq) to gradient wrt Y and B (if given).
-	void orthonormalizeGrad(int q, const diagMatrix& Fq, const ColumnBundle& HCq, ColumnBundle& gradYq, double KErollover=1., ColumnBundle* KgradYq=0, matrix* gradBq=0, matrix* KgradBq=0);
 
-	//! Returns the total single particle energy and gradient of all KS orbitals
+	//! Returns the total single particle (band structure) energy and optionally gradient of all KS orbitals
 	double bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad=0, ColumnBundle* Kgrad=0);
 	
 private:
@@ -141,7 +126,6 @@ private:
 	
 	std::vector<string> VexternalFilename; //!< external potential filename (read in real space)
 	friend struct CommandVexternal;
-	friend class InverseKohnSham; //!< Adjusts Vexternal to produce target electron density
 	
 	string rhoExternalFilename; //!< external charge filename
 	friend struct CommandRhoExternal;
@@ -152,12 +136,5 @@ private:
 	friend struct CommandWavefunction;
 	friend struct CommandLcaoParams;
 	friend class Dump;
-	
-	//! Overlap matrix U and cohorts
-	std::vector<matrix> U; // U[q] = Y[q]^O(Y[q])
-	std::vector<matrix> U_evecs; // eigenvectors of U[q] in columns
-	std::vector<diagMatrix> U_eigs; // eigenvalues of U[q]
-	std::vector<matrix> Umhalf; // Uhmalf[q] = invsqrt(U[q])
-	std::vector<matrix> V; // V=cis(B) or dagger(B_evecs) for subspace rotations / aux hamiltonian respectively
 };
 #endif // JDFTX_ELECTRONIC_ELECVARS_H
