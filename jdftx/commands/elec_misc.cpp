@@ -409,7 +409,6 @@ struct CommandBoxPotential : public Command
 			"Include an step-function shaped external potential (in hartrees) for the electrons";
 	
 		allowMultiple = true;
-		forbid("invertKohnSham");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -451,7 +450,6 @@ struct CommandElectricField : public Command
 			"Symmetries will be automatically reduced to account for this field.";
 		
 		require("coulomb-truncation-embed");
-		forbid("invertKohnSham");
 	}
 
 	void process(ParamList& pl, Everything& e)

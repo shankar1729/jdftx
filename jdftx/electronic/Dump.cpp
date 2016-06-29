@@ -507,14 +507,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDumpNoAll(FluidDebug) && hasFluid)
 		eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
-	if(ShouldDumpNoAll(OptVext))
-	{	if(eInfo.spinType == SpinZ)
-		{	DUMP(eVars.Vexternal[0], "optVextUp", OptVext)
-			DUMP(eVars.Vexternal[1], "optVextDn", OptVext)
-		}
-		else DUMP(eVars.Vexternal[0], "optVext", OptVext)
-	}
-	
 	if(ShouldDumpNoAll(DOS))
 	{	dos->dump();
 	}
