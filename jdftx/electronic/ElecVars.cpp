@@ -350,7 +350,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	bool need_Hsub = calc_Hsub || grad;
 	double mu = 0., Bz = 0.;
 	
-	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !e->cntrl.scf)
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(Haux_eigs, eInfo.nElectrons, Bz);
 		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, Haux_eigs, Bz); }
@@ -359,27 +359,23 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 		//Update TS and muN:
 		eInfo.updateFillingsEnergies(F, ener);
+		//Report for SCF (ElecMinimizer handles for minimize):
+		if(e->cntrl.scf) eInfo.printFermi();
 	}
 	
 	//Update the density and density-dependent pieces if required:
-	if(true) //TODO: branch for SCF
-	{	//Calculate (spin) densities
-		n = calcDensity();
-		
-		//Calculate kinetic energy density if required
-		if(e->exCorr.needsKEdensity())
-			tau = KEdensity();
-		
-		//Update atomic density matrix contributions for DFT+U (if necessary):
-		if(eInfo.hasU)
-			e->iInfo.rhoAtom_calc(F, C, rhoAtom);
-		
-		//Calculate density functional and its gradient:
-		EdensityAndVscloc(ener);
-		
-		//Update Vscloc projected onto spherical functions (for ultrasoft psp's)
-		if(need_Hsub) e->iInfo.augmentDensityGridGrad(Vscloc);
-	}
+	//--- Calculate (spin) densities
+	n = calcDensity();
+	//--- Calculate kinetic energy density if required
+	if(e->exCorr.needsKEdensity())
+		tau = KEdensity();
+	//--- Update atomic density matrix contributions for DFT+U (if necessary):
+	if(eInfo.hasU)
+		e->iInfo.rhoAtom_calc(F, C, rhoAtom);
+	//--- Calculate density functional and its gradient:
+	EdensityAndVscloc(ener);
+	//--- Update Vscloc projected onto spherical functions (for ultrasoft psp's)
+	if(need_Hsub) e->iInfo.augmentDensityGridGrad(Vscloc);
 	
 	//--------- Wavefunction dependent parts -----------
 	
