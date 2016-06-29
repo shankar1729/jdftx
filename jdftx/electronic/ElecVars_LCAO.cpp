@@ -296,13 +296,10 @@ int ElecVars::LCAO()
 			Hsub_eigs[q] = Hsub_eigs[q](0,eInfo.nBands); //drop extra eigenvalues
 		}
 		C[q] = C[q] * Hsub_evecs[q];
-		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		{	matrix Bq_evecs; diagMatrix Bq_eigs;
-			lcao.Haux[q].diagonalize(Bq_evecs, Bq_eigs);
-			Haux_eigs[q] = Bq_eigs;
-		}
 		Hsub_evecs[q] = eye(eInfo.nBands);
 		Hsub[q] = Hsub_eigs[q];
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+			Haux_eigs[q] = Hsub_eigs[q];
 	}
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	double Bz, mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons, Bz);
