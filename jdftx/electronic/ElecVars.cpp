@@ -439,10 +439,11 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			//Subspace hamiltonian gradient:
 			if(grad && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			{
-				matrix gradF = Hsub[q]-Haux_eigs[q] - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
+				matrix gradF0 = Hsub[q]-Haux_eigs[q]; //gradient w.r.t fillings except for constraint contributions
+				matrix gradF = gradF0 - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
 				grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
 				if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
-					Kgrad->Haux[q] = (-eInfo.kT * subspaceRotationFactor * qnum.weight) * gradF;
+					Kgrad->Haux[q] = (-eInfo.kT * subspaceRotationFactor) * gradF0;
 			}
 		}
 	}

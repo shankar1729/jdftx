@@ -48,6 +48,7 @@ class ElecMinimizer : public Minimizable<ElecGradient>
 	ElecInfo& eInfo;
 	ElecGradient Kgrad;
 	double Knorm;
+	std::vector<matrix> rotPrev; //cumulated unitary rotations of wavefunctions
 public:
 	ElecMinimizer(Everything& e);
 	

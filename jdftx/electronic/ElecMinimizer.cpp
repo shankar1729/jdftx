@@ -78,26 +78,38 @@ void randomize(ElecGradient& x)
 
 
 ElecMinimizer::ElecMinimizer(Everything& e)
-: e(e), eVars(e.eVars), eInfo(e.eInfo), Knorm(0.)
+: e(e), eVars(e.eVars), eInfo(e.eInfo), Knorm(0.), rotPrev(eInfo.nStates)
 {	Kgrad.init(e);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		rotPrev[q] = eye(eInfo.nBands);
 }
 
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if(dir.C[q]) axpy(alpha, dir.C[q], eVars.C[q]);
+	{	axpy(alpha, rotPrev[q] ? dir.C[q]*rotPrev[q] : dir.C[q], eVars.C[q]);
 		if(dir.Haux[q])
-		{	matrix Haux_q = eVars.Haux_eigs[q];
-			axpy(alpha, dir.Haux[q], Haux_q);
-			//TODO: diagonalize Haux_q and update rotations
+		{	matrix Haux = eVars.Haux_eigs[q], Haux_evecs;
+			axpy(alpha, dir.Haux[q], Haux);
+			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
+			eVars.orthonormalize(q, &Haux_evecs);
+			rotPrev[q] = rotPrev[q] * Haux_evecs;
+			//TODO: track rotations with search direction
 		}
+		else eVars.orthonormalize(q);
 	}
 }
 
 double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
 	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
-	if(grad) Knorm = sync(dot(*grad, Kgrad));
+	if(grad)
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
+			Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
+		}
+		Knorm = sync(dot(*grad, Kgrad));
+	}
 	return ener;
 }
 
@@ -139,7 +151,10 @@ bool ElecMinimizer::report(int iter)
 }
 
 void ElecMinimizer::constrain(ElecGradient& dir)
-{	
+{	assert(dir.eInfo == &eInfo);
+	//Project component of search direction along current wavefunctions:
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		dir.C[q] -= eVars.C[q] * (eVars.C[q]^O(dir.C[q]));
 }
 
 double ElecMinimizer::sync(double x) const
