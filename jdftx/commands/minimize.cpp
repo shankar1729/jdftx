@@ -156,6 +156,7 @@ struct CommandElectronicMinimize : public CommandMinimize
     void process(ParamList& pl, Everything& e)
 	{	//Use default value of 100 iterations from MinimizeParams.h
 		e.elecMinParams.energyDiffThreshold = 1e-8;
+		e.elecMinParams.dirUpdateScheme = MinimizeParams::FletcherReeves;
 		CommandMinimize::process(pl, e);
 	}
 }

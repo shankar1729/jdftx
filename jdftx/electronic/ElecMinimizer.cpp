@@ -94,7 +94,6 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
 			eVars.orthonormalize(q, &Haux_evecs);
 			rotPrev[q] = rotPrev[q] * Haux_evecs;
-			//TODO: track rotations with search direction
 		}
 		else eVars.orthonormalize(q);
 	}

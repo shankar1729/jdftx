@@ -428,13 +428,9 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
 				
-			ColumnBundle OC = O(C[q]); //Note: O is not cheap for ultrasoft pseudopotentials
-			ColumnBundle PbarHC = HC[q] - OC * Hsub[q]; //PbarHC = HC - O C C^HC
-			HC[q].free(); // Deallocate HCq when done.
-			
-			//First term of grad_Y, proportional to F:
-			grad->C[q] = PbarHC * F[q]*qnum.weight;
-			if(Kgrad) Kgrad->C[q] = precond_inv_kinetic(PbarHC, KErollover);
+			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
+			grad->C[q] = HC[q] * F[q]*qnum.weight;
+			if(Kgrad) Kgrad->C[q] = precond_inv_kinetic(HC[q], KErollover);
 			
 			//Subspace hamiltonian gradient:
 			if(grad && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
