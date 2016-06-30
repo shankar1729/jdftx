@@ -107,7 +107,7 @@ void Phonon::setup(bool printDefaults)
 		{	e.eVars.C[q].init(e.eInfo.nBands, e.basis[q].nbasis * e.eInfo.spinorLength(), &e.basis[q], &e.eInfo.qnums[q]);
 			e.eVars.F[q].resize(e.eInfo.nBands);
 			e.eVars.Hsub_eigs[q].resize(e.eInfo.nBands);
-			if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+			if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 				e.eVars.B[q].init(e.eInfo.nBands, e.eInfo.nBands);
 		}
 		//Broadcast from owner:
@@ -115,7 +115,7 @@ void Phonon::setup(bool printDefaults)
 		e.eVars.C[q].bcast(qSrc);
 		e.eVars.F[q].bcast(qSrc);
 		e.eVars.Hsub_eigs[q].bcast(qSrc);
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			e.eVars.B[q].bcast(qSrc);
 	}
 

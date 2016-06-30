@@ -248,7 +248,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		if(Cq.nCols() != nBandsOptSup)
 			Cq.init(nBandsOptSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
 		Cq.zero();
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			eSup->eVars.B[qSup] = zeroes(nBandsOptSup,nBandsOptSup);
 	}
 	
@@ -267,7 +267,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		Fsup.resize(nBandsOptSup);
 		Fsup.set(nBandsPrev,nBandsPrev+nBandsOpt, F(0,nBandsOpt));
 		//Auxiliary Hamiltonian (if necessary):
-		if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	const matrix& B = e.eVars.B[sme.iReduced];
 			matrix& Bsup = eSup->eVars.B[sme.qSup];
 			Bsup.set(nBandsPrev,nBandsPrev+nBandsOpt, nBandsPrev,nBandsPrev+nBandsOpt, B(0,nBandsOpt, 0,nBandsOpt));
@@ -275,9 +275,9 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	}
 	
 	//Update entropy contributions:
-	if(eSup->eInfo.fillingsUpdate != ElecInfo::ConstantFillings)
+	if(eSup->eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 		eSup->eInfo.updateFillingsEnergies(eSup->eVars.F, eSup->ener);
 	
-	if(e.eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
+	if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		eSup->eVars.HauxInitialized = true;
 }
