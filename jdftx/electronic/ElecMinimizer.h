@@ -49,6 +49,7 @@ class ElecMinimizer : public Minimizable<ElecGradient>
 	ElecGradient Kgrad;
 	double Knorm;
 	std::vector<matrix> rotPrev; //cumulated unitary rotations of wavefunctions
+	bool rotExists; //whether rotPrev is non-trivial (not identity)
 public:
 	ElecMinimizer(Everything& e);
 	

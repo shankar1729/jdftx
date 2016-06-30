@@ -82,18 +82,20 @@ ElecMinimizer::ElecMinimizer(Everything& e)
 {	Kgrad.init(e);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		rotPrev[q] = eye(eInfo.nBands);
+	rotExists = false; //rotation is identity
 }
 
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	axpy(alpha, dir.C[q]*rotPrev[q], eVars.C[q]);
+	{	axpy(alpha, rotExists ? dir.C[q]*rotPrev[q] : dir.C[q], eVars.C[q]);
 		if(dir.Haux[q])
 		{	matrix Haux = eVars.Haux_eigs[q], Haux_evecs;
-			axpy(alpha, dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q], Haux);
+			axpy(alpha, rotExists ? dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q] : dir.Haux[q], Haux);
 			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
 			eVars.orthonormalize(q, &Haux_evecs);
 			rotPrev[q] = rotPrev[q] * Haux_evecs;
+			rotExists = true; //rotation is no longer identity
 		}
 		else eVars.orthonormalize(q);
 	}
@@ -103,12 +105,14 @@ double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
 	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
 	if(grad)
-	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
-			Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
-			if(grad->Haux[q])
-			{	grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
-				Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+	{	if(rotExists)
+		{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
+				Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
+				if(grad->Haux[q])
+				{	grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
+					Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+				}
 			}
 		}
 		Knorm = sync(dot(*grad, Kgrad));
