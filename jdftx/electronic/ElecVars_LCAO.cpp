@@ -251,7 +251,10 @@ int ElecVars::LCAO()
 			std::vector<matrix> HVdagCq(iInfo.species.size());
 			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), VdagC[q], HVdagCq); //ultrasoft augmentation
 			iInfo.projectGrad(HVdagCq, C[q], HCq);
-			lcao.Haux[q] = lcao.HniSub[q] + (C[q]^HCq);
+			matrix dHsub = C[q]^HCq;
+			if(lcao.rotPrev[q]) //rotate dHsub to match initial C
+				dHsub = lcao.rotPrev[q] * dHsub * dagger(lcao.rotPrev[q]);
+			lcao.Haux[q] = lcao.HniSub[q] + dHsub;
 		}
 		
 		if(nPasses==2 && pass==0) //update the density for next pass
