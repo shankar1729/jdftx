@@ -429,7 +429,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
 				
 			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
-			grad->C[q] = HC[q] * F[q]*qnum.weight;
+			grad->C[q] = HC[q] * (F[q]*qnum.weight);
 			if(Kgrad) Kgrad->C[q] = precond_inv_kinetic(HC[q], KErollover);
 			
 			//Subspace hamiltonian gradient:
@@ -500,11 +500,11 @@ void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)
 	evecs = evecs*phaseFix;
 }
 
-void ElecVars::setEigenvectors(int qActive)
+void ElecVars::setEigenvectors()
 {	const ElecInfo& eInfo = e->eInfo;
 	logPrintf("Setting wave functions to eigenvectors of Hamiltonian\n"); logFlush();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if((qActive > -1) and (qActive != q)) continue;
+	{
 		fixPhase(Hsub_evecs[q], Hsub_eigs[q], C[q]);
 		C[q] = C[q] * Hsub_evecs[q];
 		for(matrix& VdagCq_sp: VdagC[q])
@@ -565,7 +565,7 @@ void ElecVars::orthonormalize(int q, const matrix* extraRotation)
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }
 
-double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
+void ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
 {	assert(e->eInfo.isMine(q));
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
@@ -596,21 +596,4 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	{	Hsub[q] = C[q] ^ HCq;
 		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
-	
-	if(e->cntrl.fixed_H) return qnum.weight * trace(Hsub[q]).real();
-	else return 0.;
-}
-
-double ElecVars::bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad, ColumnBundle* Kgrad)
-{	orthonormalize(q);
-	diagMatrix Fq = eye(e->eInfo.nBands);
-	ColumnBundle Hq;
-	double Eband = applyHamiltonian(q, Fq, Hq, ener, true);
-	if(grad)
-	{	double KErollover = 2.*e->ener.E["KE"]/(e->eInfo.qnums[q].weight*e->eInfo.nBands);
-		*grad = Hq - O(C[q])*Hsub[q];
-		if(Kgrad) *Kgrad = precond_inv_kinetic(*grad, KErollover);
-	}
-	Hq.free();
-	return Eband;
 }

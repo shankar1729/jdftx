@@ -32,13 +32,12 @@ class ElecVars
 public:
 	std::vector<ColumnBundle> C; //!< orthonormal electronic wavefunctions
 	std::vector<diagMatrix> Haux_eigs; //!< auxilliary hamiltonian eigenvalues
+	std::vector<diagMatrix> F;  //!< the fillings (diagonal matrices) for each state
 	double subspaceRotationFactor; //!< preconditioning factor for subspace rotations / aux hamiltonian relative to wavefunctions
 	
 	std::vector<matrix> Hsub; //!< Subspace Hamiltonian:  Hsub[q]=C[q]^H*C[q]
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
 	std::vector<diagMatrix> Hsub_eigs; //!< eigenvalues of Hsub[q]
-	
-	std::vector<diagMatrix> F;  //!< the fillings (diagonal matrices) for each state
 	
 	std::vector< std::vector<matrix> > VdagC; //cached pseudopotential projections (by state and then species)
 	
@@ -98,9 +97,8 @@ public:
 	//! Optionally compute the gradient, preconditioned gradient and/or the subspace hamiltonian
 	double elecEnergyAndGrad(Energies& ener, ElecGradient* grad=0, ElecGradient* Kgrad=0, bool calc_Hsub=false); 
 	
-	//! Set Y and C to eigenvectors of the subspace hamiltonian
-	//! input variable q controls the quantum number, -1 means all.
-	void setEigenvectors(int q=-1); 
+	//! Set C to eigenvectors of the subspace hamiltonian
+	void setEigenvectors(); 
 	
 	//! Compute the kinetic energy density
 	ScalarFieldArray KEdensity() const;
@@ -111,15 +109,8 @@ public:
 	//! Orthonormalise wavefunctions, with an optional extra rotation
 	void orthonormalize(int q, const matrix* extraRotation=0);
 	
-	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, also computes Hsub if necessary
-	//! Function is implemented for a single quantum number
-	//! WARNING: Does not apply exact exchange or +U.  Those require the all quantum numbers to be done at once.
-	//! If fixed hamiltonian, returns the trace of the subspace hamiltonian multiplied by the weight of that quantum number,
-	//! returns 0 if otherwise.
-	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
-
-	//! Returns the total single particle (band structure) energy and optionally gradient of all KS orbitals
-	double bandEnergyAndGrad(int q, Energies& ener, ColumnBundle* grad=0, ColumnBundle* Kgrad=0);
+	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
+	void applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
 	
 private:
 	const Everything* e;

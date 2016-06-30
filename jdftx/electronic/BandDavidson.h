@@ -26,16 +26,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 
 class BandDavidson
-{	
-	public:
-		BandDavidson(Everything& e, int qActive);
-		void minimize(); //!< converge eigenvalues till trace(Hsub); tolerance picked up from e.elecMinParams
-		
-		int qActive;  //!< Quantum number of the subspace that is being minimized
-	private:
-		Everything& e;
-		ElecVars& eVars;
-		ElecInfo& eInfo;
+{
+public:
+	BandDavidson(Everything& e, int q); //!< Construct Davidson eigenvalue solver for quantum number q
+	void minimize(); //!< Converge eigenproblem with tolerance set by e.elecMinParams
+	
+private:
+	Everything& e;
+	ElecVars& eVars;
+	ElecInfo& eInfo;
+	int q;  //!< Current quantum number
 };
 
 #endif // JDFTX_ELECTRONIC_BANDDAVIDSON_H

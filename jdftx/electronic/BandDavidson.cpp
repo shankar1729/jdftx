@@ -21,19 +21,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 
-BandDavidson::BandDavidson(Everything& e, int qActive): qActive(qActive), e(e), eVars(e.eVars), eInfo(e.eInfo)
+BandDavidson::BandDavidson(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.eInfo), q(q)
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed
 }
 
 void BandDavidson::minimize()
 {	//Use the same working set as the CG minimizer:
-	ColumnBundle& C = eVars.C[qActive];
+	ColumnBundle& C = eVars.C[q];
 	ColumnBundle Cexp = C.similar(); //expansion subspace
-	std::vector<matrix>& VdagC = eVars.VdagC[qActive];
-	matrix& Hsub = eVars.Hsub[qActive];
-	matrix& Hsub_evecs = eVars.Hsub_evecs[qActive];
-	diagMatrix& Hsub_eigs = eVars.Hsub_eigs[qActive];
-	const QuantumNumber& qnum = eInfo.qnums[qActive];
+	std::vector<matrix>& VdagC = eVars.VdagC[q];
+	matrix& Hsub = eVars.Hsub[q];
+	matrix& Hsub_evecs = eVars.Hsub_evecs[q];
+	diagMatrix& Hsub_eigs = eVars.Hsub_eigs[q];
+	const QuantumNumber& qnum = eInfo.qnums[q];
 	int nBandsOut = eInfo.nBands; //number of final output bands desired
 	int nBandsMax = ceil(e.cntrl.davidsonBandRatio * nBandsOut);
 	
@@ -45,7 +45,7 @@ void BandDavidson::minimize()
 	//--- compute HC
 	diagMatrix I = eye(nBandsOut);
 	Energies ener; //not really used here
-	eVars.applyHamiltonian(qActive, I, HC, ener, true);
+	eVars.applyHamiltonian(q, I, HC, ener, true);
 	//--- solve subspace eigenvalue problem
 	matrix U = invsqrt(C^OC); //symmetric orthonormalization
 	Hsub = dagger(U) * (C^HC) * U;
@@ -101,7 +101,7 @@ void BandDavidson::minimize()
 			std::swap(VdagC, VdagCexp); \
 			std::swap(Hsub_eigs, HsubExp_eigs);
 		SWAP_C_Cexp //Temporarily swap C and Cexp
-		eVars.applyHamiltonian(qActive, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
+		eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
 		SWAP_C_Cexp  //Restore C and Cexp to correct places
 		//Setup matrices for expanded subspace generalized eigenvalue problem:
 		matrix bigOsub(nBandsBig, nBandsBig);

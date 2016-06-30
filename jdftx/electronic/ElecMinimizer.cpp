@@ -176,7 +176,7 @@ void bandMinimize(Everything& e)
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
 		switch(e.cntrl.elecEigenAlgo)
-		{	case ElecEigenCG: { BandMinimizer(e, q, true).minimize(e.elecMinParams); break; }
+		{	case ElecEigenCG: { BandMinimizer(e, q).minimize(e.elecMinParams); break; }
 			case ElecEigenDavidson: { BandDavidson(e, q).minimize(); break; }
 		}
 		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
