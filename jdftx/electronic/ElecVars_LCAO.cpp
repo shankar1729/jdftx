@@ -38,61 +38,43 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	const ElecInfo& eInfo;
 	const ExCorr* exCorr;
 	std::vector<matrix> HniSub;
-	std::vector<matrix> Haux; //Auxiliary hamiltonian (minimizer state)
 	std::vector<matrix> rotPrev; //Accumulated rotations of the wavefunctions
 	ElecGradient Kgrad;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
-	: eVars(eVars), e(e), eInfo(e.eInfo), HniSub(eInfo.nStates), Haux(eInfo.nStates), rotPrev(eInfo.nStates)
+	: eVars(eVars), e(e), eInfo(e.eInfo), HniSub(eInfo.nStates), rotPrev(eInfo.nStates)
 	{	Kgrad.init(e);
 	}
 	
 	void step(const ElecGradient& dir, double alpha)
-	{	assert(dir.Haux.size() == Haux.size());
-		for(unsigned q=0; q<dir.Haux.size(); q++)
-			if(dir.Haux[q]) axpy(alpha, dir.Haux[q], Haux[q]);
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	assert(dir.Haux[q]);
+			//Move aux along dir after transforming dir to match rotations:
+			matrix Haux = eVars.Haux_eigs[q], Haux_evecs;
+			axpy(alpha, dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q], Haux);
+			//Adjust rotations to make Haux diagonal again:
+			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
+			rotPrev[q] = rotPrev[q] * Haux_evecs;
+			eVars.C[q] = eVars.C[q] * Haux_evecs;
+			for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
+				if(eVars.VdagC[q][sp]) eVars.VdagC[q][sp] = eVars.VdagC[q][sp] * Haux_evecs;
+		}
 	}
 	
 	double compute(ElecGradient* grad)
 	{	Energies ener = e.ener;
 		if(grad) grad->init(e);
 		
-		//Simplified version of ElecVars::orthonormalize()
-		std::vector<matrix> B_evecs(eInfo.nStates);
-		std::vector<diagMatrix> B_eigs(eInfo.nStates);
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	Haux[q].diagonalize(B_evecs[q], B_eigs[q]);
-			matrix rot = B_evecs[q];
-			if(rotPrev[q])
-				rot = dagger(rotPrev[q]) * rot; //account for previous rotation
-			eVars.C[q] = eVars.C[q] * rot;
-			for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
-				if(eVars.VdagC[q][sp]) eVars.VdagC[q][sp] = eVars.VdagC[q][sp] * rot; 
-			rotPrev[q] = B_evecs[q]; //total rotation thus far
-		}
-		
 		//Update fillings (Aux algorithm, fixed N only):
-		double Bz, mu = eInfo.findMu(B_eigs, eInfo.nElectrons, Bz);
+		double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
 		double dmuNum[2] = {0.,0.}, dmuDen[2]={0.,0.};
-		std::vector<diagMatrix> F(eInfo.nStates);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), B_eigs[q]);
-		eInfo.updateFillingsEnergies(F, ener);
+			eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
+		eInfo.updateFillingsEnergies(eVars.F, ener);
 		
-		//Update density:
-		for(ScalarField& ns: eVars.n) ns=0;
-		e.iInfo.augmentDensityInit();
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	eVars.n += eInfo.qnums[q].weight * diagouterI(F[q], eVars.C[q], eVars.n.size(), &e.gInfo);
-			e.iInfo.augmentDensitySpherical(eInfo.qnums[q], F[q], eVars.VdagC[q]); //pseudopotential contribution
-		}
-		e.iInfo.augmentDensityGrid(eVars.n);
-		for(ScalarField& ns: eVars.n)
-		{	nullToZero(ns, e.gInfo);
-			e.symm.symmetrize(ns);
-			ns->allReduce(MPIUtil::ReduceSum);
-		}
-		if(eInfo.hasU) e.iInfo.rhoAtom_calc(F, eVars.C, eVars.rhoAtom);
+		//Update density and density-matices if needed:
+		eVars.n = eVars.calcDensity();
+		if(eInfo.hasU) e.iInfo.rhoAtom_calc(eVars.F, eVars.C, eVars.rhoAtom);
 		
 		//Update local potential:
 		eVars.EdensityAndVscloc(ener, exCorr);
@@ -107,22 +89,22 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
 			
 			//KE and Nonlocal pseudopotential from precomputed subspace matrix:
-			matrix HniRot = dagger(B_evecs[q]) * HniSub[q] * B_evecs[q];
-			ener.E["NI"] += qnum.weight * trace(F[q] * HniRot).real();
+			matrix HniRot = dagger(rotPrev[q]) * HniSub[q] * rotPrev[q];
+			ener.E["NI"] += qnum.weight * trace(eVars.F[q] * HniRot).real();
 		
 			//Gradient and subspace Hamiltonian:
 			if(grad)
 			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
 				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
-				e.iInfo.augmentDensitySphericalGrad(qnum, F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
+				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
 				//N/M constraint contributions to gradient:
-				diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), B_eigs[q]);
+				diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
 				double w = eInfo.qnums[q].weight;
 				int sIndex = eInfo.qnums[q].index();
-				dmuNum[sIndex] += w * trace(fprime * (diag(eVars.Hsub[q])-B_eigs[q]));
+				dmuNum[sIndex] += w * trace(fprime * (diag(eVars.Hsub[q])-eVars.Haux_eigs[q]));
 				dmuDen[sIndex] += w * trace(fprime);
 			}
 		}
@@ -147,10 +129,12 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			}
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{	const QuantumNumber& qnum = eInfo.qnums[q];
-				matrix gradF = eVars.Hsub[q]-B_eigs[q] - eye(nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
-				grad->Haux[q] = qnum.weight * dagger_symmetrize(B_evecs[q] * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), B_eigs[q], gradF) * dagger(B_evecs[q]));
-				//Drop the fermiPrime factors and state weights in preconditioned gradient:
-				Kgrad.Haux[q] = dagger_symmetrize(B_evecs[q] * (-gradF) * dagger(B_evecs[q]));
+				matrix gradF = eVars.Hsub[q]-eVars.Haux_eigs[q] - eye(nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
+				grad->Haux[q] = qnum.weight * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
+				Kgrad.Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
+				//Transform gradients back to original rotation (which CG remains in):
+				grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
+				Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
 			}
 		}
 		return ener.F();
@@ -200,7 +184,10 @@ int ElecVars::LCAO()
 	//Temporarily disable the fluid (which is yet to be initialized)
 	FluidType fluidTypeTemp = FluidNone;
 	std::swap(fluidParams.fluidType, fluidTypeTemp);
-
+	
+	//Backup original fillings:
+	std::vector<diagMatrix> Forig = F;
+	
 	//Get orthonormal atomic orbitals and non-interacting part of subspace Hamiltonian:
 	lcao.nBands = std::max(nAtomic+1, std::max(eInfo.nBands, int(ceil(1+eInfo.nElectrons/eInfo.qWeightSum))));
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -213,6 +200,8 @@ int ElecVars::LCAO()
 		iInfo.EnlAndGrad(eInfo.qnums[q], eye(lcao.nBands), VdagC[q], HVdagCq); //non-local pseudopotentials
 		iInfo.projectGrad(HVdagCq, C[q], HniCq);
 		lcao.HniSub[q] = C[q]^HniCq;
+		lcao.rotPrev[q] = eye(lcao.nBands);
+		F[q].resize(lcao.nBands, 0.);
 	}
 	
 	//Get electron density obtained by adding those of the atoms:
@@ -245,51 +234,41 @@ int ElecVars::LCAO()
 		iInfo.augmentDensityInit();
 		iInfo.augmentDensityGridGrad(Vscloc); //Update Vscloc projections on ultrasoft pseudopotentials
 		
-		//Set initial auxiliary hamiltonian to the subspace Hamiltonian:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	ColumnBundle HCq = Idag_DiagV_I(C[q], Vscloc); //local self-consistent potential
+		{
+			//Calculate subspace Hamiltonian:
+			ColumnBundle HCq = Idag_DiagV_I(C[q], Vscloc); //local self-consistent potential
 			std::vector<matrix> HVdagCq(iInfo.species.size());
 			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), VdagC[q], HVdagCq); //ultrasoft augmentation
 			iInfo.projectGrad(HVdagCq, C[q], HCq);
-			matrix dHsub = C[q]^HCq;
-			if(lcao.rotPrev[q]) //rotate dHsub to match initial C
-				dHsub = lcao.rotPrev[q] * dHsub * dagger(lcao.rotPrev[q]);
-			lcao.Haux[q] = lcao.HniSub[q] + dHsub;
+			Hsub[q] = dagger(lcao.rotPrev[q]) * lcao.HniSub[q] * lcao.rotPrev[q] + (C[q]^HCq);
+			
+			//Switch to eigenvectors of Hsub:
+			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+			C[q] = C[q] * Hsub_evecs[q];
+			for(unsigned sp=0; sp<iInfo.species.size(); sp++)
+				if(VdagC[q][sp]) VdagC[q][sp] = VdagC[q][sp] * Hsub_evecs[q]; 
+			lcao.rotPrev[q] = lcao.rotPrev[q] * Hsub_evecs[q];
+			Hsub[q] = Hsub_eigs[q];
+			Hsub_evecs[q] = eye(lcao.nBands);
 		}
 		
-		if(nPasses==2 && pass==0) //update the density for next pass
-		{	for(ScalarField& ns: n) ns=0;
-			iInfo.augmentDensityInit();
-			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			{	matrix Bq_evecs; diagMatrix Bq_eigs; lcao.Haux[q].diagonalize(Bq_evecs, Bq_eigs);
-				C[q] = C[q] * Bq_evecs;
-				for(unsigned sp=0; sp<iInfo.species.size(); sp++)
-					if(VdagC[q][sp]) VdagC[q][sp] = VdagC[q][sp] * Bq_evecs; 
-				lcao.rotPrev[q] = Bq_evecs;
-				diagMatrix Fq = F[q]; Fq.resize(lcao.nBands, 0.); //length-corrected eVars.F
-				n += eInfo.qnums[q].weight * diagouterI(Fq, C[q], n.size(), &e->gInfo);
-				iInfo.augmentDensitySpherical(eInfo.qnums[q], Fq, VdagC[q]); //pseudopotential contribution
-			}
-			iInfo.augmentDensityGrid(n);
-			for(ScalarField& ns: n)
-			{	nullToZero(ns, e->gInfo);
-				e->symm.symmetrize(ns);
-				ns->allReduce(MPIUtil::ReduceSum);
-			}
-		}
+		if(pass+1<nPasses) n = calcDensity(); //only needed here for a subsequent pass
 	}
 	
 	//Subspace minimize:
-	MinimizeParams mp;
-	mp.nDim = eInfo.nStates * lcao.nBands*lcao.nBands;
-	mp.fpLog = globalLog;
-	mp.linePrefix = "LCAOMinimize: ";
-	mp.energyLabel = "F";
-	mp.energyFormat = "%+.16f";
-	mp.energyDiffThreshold = lcaoTol;
-	mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub ? 30 : 3 );
-	if(e->cntrl.fixed_H) { Hsub = lcao.Haux; } //bypass subspace iteration
-	else lcao.minimize(mp);
+	if(!e->cntrl.fixed_H) //current Hsub suffices for fixed_H
+	{	MinimizeParams mp;
+		mp.nDim = eInfo.nStates * lcao.nBands*lcao.nBands;
+		mp.fpLog = globalLog;
+		mp.linePrefix = "LCAOMinimize: ";
+		mp.energyLabel = "F";
+		mp.energyFormat = "%+.16f";
+		mp.energyDiffThreshold = lcaoTol;
+		mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub ? 30 : 3 );
+		Haux_eigs = Hsub_eigs;
+		lcao.minimize(mp);
+	}
 	
 	//Set wavefunctions to eigenvectors:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
@@ -301,13 +280,17 @@ int ElecVars::LCAO()
 		C[q] = C[q] * Hsub_evecs[q];
 		Hsub_evecs[q] = eye(eInfo.nBands);
 		Hsub[q] = Hsub_eigs[q];
-		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-			Haux_eigs[q] = Hsub_eigs[q];
 	}
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-	{	double Bz, mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons, Bz);
+	{	Haux_eigs = Hsub_eigs;
+		double Bz, mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons, Bz);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Hsub_eigs[q]);
+	}
+	else
+	{	//Constant fillings: restore Haux_eigs and F to original:
+		Haux_eigs.clear();
+		F = Forig;
 	}
 	HauxInitialized = true;
 	
