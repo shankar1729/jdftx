@@ -445,7 +445,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 				matrix gradF = gradF0 - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
 				grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
 				if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
-					Kgrad->Haux[q] = (-eInfo.kT * subspaceRotationFactor) * gradF0;
+					Kgrad->Haux[q] = (-eInfo.kT * e->cntrl.subspaceRotationFactor) * gradF0;
 			}
 		}
 	}

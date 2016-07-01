@@ -50,6 +50,11 @@ class ElecMinimizer : public Minimizable<ElecGradient>
 	double Knorm;
 	std::vector<matrix> rotPrev; //cumulated unitary rotations of wavefunctions
 	bool rotExists; //whether rotPrev is non-trivial (not identity)
+	
+	//Subspace rotation adjustment:
+	std::vector<matrix> KgPrevHaux; //preconditioned auxiliary gradient at previous step
+	double gDotKgPrevHaux; //overlap of current auxiliary gradient with KgPrevHaux
+	double subspaceRotationScale; //net change in subspace rotation factor since last direction reset
 public:
 	ElecMinimizer(Everything& e);
 	

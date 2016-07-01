@@ -53,10 +53,8 @@ public:
 	bool shouldPrintMuSearch; //!< whether mu bisection progress should be printed
 	bool shouldPrintKpointsBasis; //!< whether individual kpoint and basis details should be printed at the beginning
 	
-	bool invertKS; //!< Kohn-Sham inversion (sequence of band structure solves to find optimum potential)
-	bool invertKS_nonlocal; //!< whether to retain non-local portions of pseudopotential for Kohn-Sham inversion
-	double invertKS_sigma; //!< bandwidth cutoff for the external potential
-	string invertKS_chiGuessFilename; //!< filename pattern of variables (wfns/fillings/eigenvals) generating guess chi
+	double subspaceRotationFactor; //!< preconditioning factor for subspace rotations / aux hamiltonian relative to wavefunctions
+	bool subspaceRotationAdjust; //!< whether to automatically tune subspace rotation factor
 	
 	bool scf; //! whether SCF iteration or total energy minimizer will be called
 	bool convergeEmptyStates; //! whether to converge empty states after every electronic minimization
@@ -68,7 +66,7 @@ public:
 		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),
-		invertKS(false), invertKS_nonlocal(true), invertKS_sigma(0.), scf(false), convergeEmptyStates(false), dumpOnly(false)
+		subspaceRotationFactor(30.), subspaceRotationAdjust(true), scf(false), convergeEmptyStates(false), dumpOnly(false)
 	{
 	}
 };

@@ -33,7 +33,6 @@ public:
 	std::vector<ColumnBundle> C; //!< orthonormal electronic wavefunctions
 	std::vector<diagMatrix> Haux_eigs; //!< auxilliary hamiltonian eigenvalues
 	std::vector<diagMatrix> F;  //!< the fillings (diagonal matrices) for each state
-	double subspaceRotationFactor; //!< preconditioning factor for subspace rotations / aux hamiltonian relative to wavefunctions
 	
 	std::vector<matrix> Hsub; //!< Subspace Hamiltonian:  Hsub[q]=C[q]^H*C[q]
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
