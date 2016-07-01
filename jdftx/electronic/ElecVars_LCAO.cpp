@@ -270,25 +270,24 @@ int ElecVars::LCAO()
 		lcao.minimize(mp);
 	}
 	
-	//Set wavefunctions to eigenvectors:
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
-		if(eInfo.nBands<lcao.nBands)
-		{	Hsub_evecs[q] = Hsub_evecs[q](0,lcao.nBands, 0,eInfo.nBands); //drop extra eigenvectors
-			Hsub_eigs[q] = Hsub_eigs[q](0,eInfo.nBands); //drop extra eigenvalues
-		}
-		C[q] = C[q] * Hsub_evecs[q];
-		Hsub_evecs[q] = eye(eInfo.nBands);
-		Hsub[q] = Hsub_eigs[q];
-	}
-	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-	{	Haux_eigs = Hsub_eigs;
-		double Bz, mu = eInfo.findMu(Hsub_eigs, eInfo.nElectrons, Bz);
+	//Cut wavefunctions and subspace Hamiltonia back down to size:
+	if(eInfo.nBands<lcao.nBands)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Hsub_eigs[q]);
+		{	Hsub[q] = Hsub[q](0,eInfo.nBands, 0,eInfo.nBands);
+			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+			C[q] = C[q].getSub(0,eInfo.nBands);
+			Haux_eigs[q].resize(eInfo.nBands);
+		}
+	
+	//Transition fillings :
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+	{	//Hsub fillings: use same eigenvalues, but recalculate to account for reduced band count:
+		double Bz, mu = eInfo.findMu(Haux_eigs, eInfo.nElectrons, Bz);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 	}
 	else
-	{	//Constant fillings: restore Haux_eigs and F to original:
+	{	//Constant fillings: remove Haux_eigs and restore F to original:
 		Haux_eigs.clear();
 		F = Forig;
 	}
