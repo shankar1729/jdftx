@@ -34,7 +34,7 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(FillingsConst), kT(1e-3), mu(NAN),
+fillingsUpdate(FillingsConst), scalarFillings(true), kT(1e-3), mu(NAN),
 hasU(false), nBandsOld(0),
 Qinitial(0.), Minitial(0.), Mconstrain(false)
 {
@@ -176,6 +176,16 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	{	if(nBands < nBandsMin)
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",
 				nBands, nElectrons, nBandsMin);
+		
+		//Check for non-scalar fillings in a variational minimize calculation:
+		if(!e->cntrl.fixed_H && !e->cntrl.scf)
+		{	scalarFillings = true;
+			for(int q=qStart; q<qStop; q++)
+				scalarFillings &= F[q].isScalar();
+			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
+			if(!scalarFillings)
+				logPrintf("Turning on subspace rotations due to non-scalar fillings.\n");
+		}
 	}
 	
 	//Set the Legendre multipliers corresponding to the initial fillings

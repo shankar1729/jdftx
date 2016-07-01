@@ -89,15 +89,29 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	axpy(alpha, rotExists ? dir.C[q]*rotPrev[q] : dir.C[q], eVars.C[q]);
-		if(dir.Haux[q])
-		{	matrix Haux = eVars.Haux_eigs[q], Haux_evecs;
-			axpy(alpha, rotExists ? dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q] : dir.Haux[q], Haux);
-			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
-			eVars.orthonormalize(q, &Haux_evecs);
-			rotPrev[q] = rotPrev[q] * Haux_evecs;
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings)
+		{	//Constant scalar fillings: no rotations required
+			eVars.orthonormalize(q);
+		}
+		else
+		{	//Haux or non-scalar fillings: rotations required
+			assert(dir.Haux[q]);
+			matrix rot;
+			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			{	//Haux fillings:
+				matrix Haux = eVars.Haux_eigs[q];
+				axpy(alpha, rotExists ? dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q] : dir.Haux[q], Haux);
+				Haux.diagonalize(rot, eVars.Haux_eigs[q]); //rotation chosen to diagonalize auxiliary matrix
+			}
+			else
+			{	//Non-scalar fillings:
+				assert(!eInfo.scalarFillings);
+				rot = cis(alpha * dir.Haux[q]); //auxiliary matrix directly generates rotations
+			}
+			eVars.orthonormalize(q, &rot);
+			rotPrev[q] = rotPrev[q] * rot;
 			rotExists = true; //rotation is no longer identity
 		}
-		else eVars.orthonormalize(q);
 	}
 }
 
@@ -105,15 +119,26 @@ double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
 	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
 	if(grad)
-	{	if(rotExists)
-		{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	//Rotate wavefunction gradients if necessary:
+			if(rotExists)
 			{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
 				Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
-				if(grad->Haux[q])
+			}
+			//Subspace gradient handling depends on mode:
+			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			{	//Haux fillings: rotate gradient computed by ElecVars if necessary
+				if(rotExists)
 				{	grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
 					Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
 				}
 			}
+			else if(!eInfo.scalarFillings)
+			{	//Non-scalar fillings:
+				grad->Haux[q] = dagger_symmetrize(complex(0,1) * (eVars.F[q]*eVars.Hsub[q] - eVars.Hsub[q]*eVars.F[q]));
+				Kgrad.Haux[q] = eVars.subspaceRotationFactor * grad->Haux[q];
+			}
+			//else: constant scalar fillings (no subspace gradient)
 		}
 		Knorm = sync(dot(*grad, Kgrad));
 	}
