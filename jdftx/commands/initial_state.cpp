@@ -40,7 +40,7 @@ struct CommandInitialState : public Command
 		
 		forbid("wavefunction");
 		forbid("elec-initial-fillings");
-		forbid("elec-initial-Haux");
+		forbid("elec-initial-eigenvals");
 		forbid("fluid-initial-state");
 	}
 
@@ -52,7 +52,6 @@ struct CommandInitialState : public Command
 		processPattern("fillings", e.eInfo.initialFillingsFilename);
 		if(!e.eInfo.initialFillingsFilename.length())
 			processPattern("fill", e.eInfo.initialFillingsFilename); //alternate naming convention
-		processPattern("Haux", e.eVars.HauxFilename);
 		processPattern("fluidState", e.eVars.fluidInitialStateFilename);
 		if(!e.eVars.fluidInitialStateFilename.length())
 			processPattern("fS", e.eVars.fluidInitialStateFilename); //alternate naming convention

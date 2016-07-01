@@ -80,7 +80,6 @@ public:
 	string eigsFilename; //!< file to read eigenvalues from
 	
 	//Auxiliary hamiltonian initialization
-	string HauxFilename; //!< file to read auxilliary hamiltonian (B) from (used only for FermiFillingsAux mode)
 	bool HauxInitialized; //!< whether Haux has been read in/computed
 	
 	string nFilenamePattern; //!< file pattern to read electron (spin,kinetic) density from

@@ -112,9 +112,15 @@ void ElecVars::setup(const Everything &everything)
 	Hsub.resize(eInfo.nStates);
 	Hsub_evecs.resize(eInfo.nStates);
 	Hsub_eigs.resize(eInfo.nStates);
-	if(eigsFilename.length()) eInfo.read(Hsub_eigs, eigsFilename.c_str());
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		Haux_eigs.resize(eInfo.nStates);
+	if(eigsFilename.length())
+	{	eInfo.read(Hsub_eigs, eigsFilename.c_str());
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+		{	Haux_eigs = Hsub_eigs;
+			HauxInitialized = true;
+		}
+	}
 	VdagC.resize(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	//Read in electron (spin) density if needed

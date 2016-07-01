@@ -167,25 +167,25 @@ commandElecInitialFillings;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandElecInitialHaux : public Command
+struct CommandElecInitialEigenvals : public Command
 {
-	CommandElecInitialHaux() : Command("elec-initial-Haux", "jdftx/Initialization")
+	CommandElecInitialEigenvals() : Command("elec-initial-eigenvals", "jdftx/Initialization")
 	{
 		format = "<filename>";
-		comments = "Read the auxilliary hamiltonian for direct fillings (default: set to subspace hamiltonian)\n";
+		comments = "Read the initial eigenvalues for variable fillings (default: derive from subspace hamiltonian)\n";
 		
 		forbid("initial-state");
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.eVars.HauxFilename, string(), "filename", true);
+	{	pl.get(e.eVars.eigsFilename, string(), "filename", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s", e.eVars.HauxFilename.c_str());
+	{	logPrintf("%s", e.eVars.eigsFilename.c_str());
 	}
 }
-commandElecInitialHaux;
+commandElecInitialEigenvals;
 
 //-------------------------------------------------------------------------------------------------
 

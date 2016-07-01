@@ -47,7 +47,6 @@ void Phonon::processPerturbation(const Perturbation& pert)
 
 	//Remove initial state settings (incompatible with supercell):
 	eSup->eVars.wfnsFilename.clear();
-	eSup->eVars.HauxFilename.clear();
 	eSup->eVars.eigsFilename.clear();
 	eSup->eVars.fluidInitialStateFilename.clear();
 	eSup->eInfo.initialFillingsFilename.clear();

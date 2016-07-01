@@ -235,7 +235,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Vscloc) and e->exCorr.needsKEdensity())
 		DUMP_spinCollection(eVars.Vtau, "Vtau")
 	
-	if(ShouldDump(BandEigs) || (ShouldDump(State) && e->exCorr.orbitalDep && isCevec))
+	if(ShouldDump(BandEigs) ||
+		(ShouldDump(State) &&
+			( (eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			|| (e->exCorr.orbitalDep && isCevec) ) ) )
 	{	StartDump("eigenvals")
 		if (freq == DumpFreq_Dynamics)
 			eInfo.appendWrite(eVars.Hsub_eigs, fname.c_str());
