@@ -439,7 +439,7 @@ struct CommandWannierRotationReset : public Command
 {
 	CommandWannierRotationReset() : Command("wannier-rotation-reset", "wannier")
 	{
-		format = "[<interval=20>] [<threshold>=1.5]";
+		format = "[<interval=20>] [<threshold>=0.5]";
 		comments =
 			"Every <interval> steps, set initial rotations to current values and \n"
 			"restart minimization if rotation generator magnitude crosses <threshold>.\n"
@@ -453,7 +453,7 @@ struct CommandWannierRotationReset : public Command
 		pl.get(wannier.rotationCheckInterval, 20, "interval");
 		pl.get(wannier.rotationThreshold, 0.5, "threshold");
 		if(wannier.rotationCheckInterval<0) throw string("<interval> must be non-negative");
-		if(wannier.rotationThreshold<=1.) throw string("<threshold> must be > 1");
+		if(wannier.rotationThreshold<0.) throw string("<threshold> must be >= 0.");
 	}
 
 	void printStatus(Everything& e, int iRep)
