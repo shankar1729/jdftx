@@ -257,6 +257,7 @@ int ElecVars::LCAO()
 	}
 	
 	//Subspace minimize:
+	Haux_eigs = Hsub_eigs;
 	if(!e->cntrl.fixed_H) //current Hsub suffices for fixed_H
 	{	MinimizeParams mp;
 		mp.nDim = eInfo.nStates * lcao.nBands*lcao.nBands;
@@ -266,7 +267,6 @@ int ElecVars::LCAO()
 		mp.energyFormat = "%+.16f";
 		mp.energyDiffThreshold = lcaoTol;
 		mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub ? 30 : 3 );
-		Haux_eigs = Hsub_eigs;
 		lcao.minimize(mp);
 	}
 	
