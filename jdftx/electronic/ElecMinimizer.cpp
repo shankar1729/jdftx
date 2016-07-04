@@ -119,16 +119,18 @@ struct SubspaceRotationAdjust
 		//Adjust subspace rotation factor if necessary:
 		if(adjust)
 		{	if(gDotKgPrevHaux)
-			{	//Heuristic for adjusting subspace rotation factor (called kappa here):
-				double kappaVariation = gDotKgPrevHaux / KnormTot; //dimensionless version of dEmin/d(log kappa)
-				double scaleFactor = exp(kappaVariation/hypot(1,kappaVariation)); //saturated to range (1/e,e)
-				e.cntrl.subspaceRotationFactor *= scaleFactor;
+			{	double& kappa = e.cntrl.subspaceRotationFactor;
+				double Emin_kappa = gDotKgPrevHaux / KnormTot; //dimensionless version of dEmin/d(log kappa)
+				double kappaMax = 0.5*kappa*fabs(KnormTot)/fabs(KnormAux); //aux gradient magnitude should not exceed half that of total
+				//Heuristic for adjusting subspace rotation factor (called kappa here):
+				double scaleFactor = exp(Emin_kappa/hypot(1,Emin_kappa)); //saturated to range (1/e,e)
+				scaleFactor = std::min(scaleFactor, kappaMax/kappa); //cap scale factor at maximum
+				kappa *= scaleFactor;
 				cumulatedScale *= scaleFactor;
-				logPrintf("\tSubspaceRotationAdjust: set factor to %.3lg\n", e.cntrl.subspaceRotationFactor);
+				logPrintf("\tSubspaceRotationAdjust: set factor to %.3lg\n", kappa);
 				if(fabs(log(cumulatedScale)) > 2.) //cumulated scale adjustment > e^2
 				{	logPrintf("\tSubspaceRotationAdjust: resetting CG because factor has changed by %lg\n", cumulatedScale);
 					cumulatedScale = 1.;
-					KgPrevHaux.clear();
 					return true; //resets CG
 				}
 			}
