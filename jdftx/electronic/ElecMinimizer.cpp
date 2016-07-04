@@ -51,15 +51,16 @@ void axpy(double alpha, const ElecGradient& x, ElecGradient& y)
 	}
 }
 
-double dot(const ElecGradient& x, const ElecGradient& y)
+double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib)
 {	assert(x.eInfo == y.eInfo);
-	complex result(0,0);
+	std::vector<double> result(2, 0.); //calculate wavefunction and auxiliary contributions separately
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.C[q] && y.C[q]) result += dotc(x.C[q], y.C[q])*2.0;
-		if(x.Haux[q] && y.Haux[q]) result += dotc(x.Haux[q], y.Haux[q]);
+	{	if(x.C[q] && y.C[q]) result[0] += dotc(x.C[q], y.C[q]).real()*2.0;
+		if(x.Haux[q] && y.Haux[q]) result[1] += dotc(x.Haux[q], y.Haux[q]).real();
 	}
-	mpiUtil->allReduce(result.real(), MPIUtil::ReduceSum);
-	return result.real();
+	mpiUtil->allReduce(result.data(), 2, MPIUtil::ReduceSum);
+	if(auxContrib) *auxContrib=result[1]; //store auxiliary contribution, if requested
+	return result[0]+result[1]; //return total
 }
 
 ElecGradient clone(const ElecGradient& x)
@@ -75,14 +76,79 @@ void randomize(ElecGradient& x)
 		}
 }
 
+struct SubspaceRotationAdjust
+{
+	Everything& e;
+	bool adjust; //whether adjustment is active (otherwise only check for Knorm indefiniteness)
+	std::vector<matrix> KgPrevHaux; //preconditioned auxiliary gradient at previous step
+	double gDotKgPrevHaux; //overlap of current auxiliary gradient with KgPrevHaux
+	double cumulatedScale; //net change in subspace rotation factor since last direction reset
+	double KnormTot, KnormAux; //latest preconditioned gradient norms: total and auxiliary alone
+	
+	SubspaceRotationAdjust(Everything& e)
+	: e(e), adjust(e.cntrl.subspaceRotationAdjust), gDotKgPrevHaux(0.), cumulatedScale(1.)
+	{
+	}
+	
+	void cacheGradientOverlaps(const ElecGradient& grad, const ElecGradient& Kgrad)
+	{	//Calculate overlaps of current gradient:
+		KnormTot = dot(grad, Kgrad, &KnormAux);
+		mpiUtil->bcast(KnormTot);
+		mpiUtil->bcast(KnormAux);
+		
+		//Compute auxiliary overlap with previous preconditioned gradient:
+		if(KgPrevHaux.size())
+		{	gDotKgPrevHaux = 0.;
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				gDotKgPrevHaux += dotc(grad.Haux[q], KgPrevHaux[q]).real();
+			mpiUtil->allReduce(gDotKgPrevHaux, MPIUtil::ReduceSum);
+			mpiUtil->bcast(gDotKgPrevHaux);
+		}
+	}
+	
+	//Handle indefinite Knorm, adjust subspace rotation factor if necessary and report changes.
+	//Returns true if CG needs to be reset
+	bool report(const ElecGradient& Kgrad)
+	{
+		//Handle indefinite preconditioner issues:
+		if(KnormTot <= 0.)
+		{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): ", e.elecMinParams.linePrefix);
+			convergeEmptyStates(e);
+			return true; //resets CG
+		}
+		//Adjust subspace rotation factor if necessary:
+		if(adjust)
+		{	if(gDotKgPrevHaux)
+			{	//Heuristic for adjusting subspace rotation factor (called kappa here):
+				double kappaVariation = gDotKgPrevHaux / KnormTot; //dimensionless version of dEmin/d(log kappa)
+				double scaleFactor = exp(kappaVariation/hypot(1,kappaVariation)); //saturated to range (1/e,e)
+				e.cntrl.subspaceRotationFactor *= scaleFactor;
+				cumulatedScale *= scaleFactor;
+				logPrintf("\tSubspaceRotationAdjust: set factor to %.3lg\n", e.cntrl.subspaceRotationFactor);
+				if(fabs(log(cumulatedScale)) > 2.) //cumulated scale adjustment > e^2
+				{	logPrintf("\tSubspaceRotationAdjust: resetting CG because factor has changed by %lg\n", cumulatedScale);
+					cumulatedScale = 1.;
+					KgPrevHaux.clear();
+					return true; //resets CG
+				}
+			}
+			KgPrevHaux = Kgrad.Haux; //Cached preconditioned gradient for next step
+		}
+		return false;
+	}
+};
 
 
 ElecMinimizer::ElecMinimizer(Everything& e)
-: e(e), eVars(e.eVars), eInfo(e.eInfo), Knorm(0.), rotPrev(eInfo.nStates), gDotKgPrevHaux(0.), subspaceRotationScale(1.)
+: e(e), eVars(e.eVars), eInfo(e.eInfo), rotPrev(eInfo.nStates)
 {	Kgrad.init(e);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		rotPrev[q] = eye(eInfo.nBands);
 	rotExists = false; //rotation is identity
+	
+	//Initialize subspace rotation adjuster if required:
+	if(e.cntrl.subspaceRotationAdjust && ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub || !eInfo.scalarFillings) )
+		sra = std::make_shared<SubspaceRotationAdjust>(e);
 }
 
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
@@ -140,15 +206,9 @@ double ElecMinimizer::compute(ElecGradient* grad)
 			}
 			//else: constant scalar fillings (no subspace gradient)
 		}
-		Knorm = sync(dot(*grad, Kgrad));
 		
-		//Compute subspace gradient overlap:
-		if(e.cntrl.subspaceRotationAdjust && KgPrevHaux.size())
-		{	gDotKgPrevHaux = 0.;
-			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-				gDotKgPrevHaux += dotc(grad->Haux[q], KgPrevHaux[q]).real();
-			mpiUtil->allReduce(gDotKgPrevHaux, MPIUtil::ReduceSum);
-		}
+		//Cache gradient overlaps, if needed, for subspace rotation handling:
+		if(sra) sra->cacheGradientOverlaps(*grad, Kgrad);
 	}
 	return ener;
 }
@@ -180,34 +240,8 @@ bool ElecMinimizer::report(int iter)
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
 	
-	//Handle indefinite preconditioner issue for FermiFillingsAux:
-	if(Knorm < 0.)
-	{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): ", e.elecMinParams.linePrefix);
-		convergeEmptyStates(e);
-		return true;
-	}
-	
-	//Tune auxiliary gradient / subspace rotation factor:
-	if(e.cntrl.subspaceRotationAdjust && ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub || !eInfo.scalarFillings) )
-	{
-		if(gDotKgPrevHaux)
-		{	//Heuristic for adjusting subspace rotation factor:
-			double kappaVariation = gDotKgPrevHaux / Knorm; //dimensionless version of dEmin/d(log kappa) where kappa is subspace rotation factor
-			double kappaSat = kappaVariation/hypot(1,kappaVariation); //map (-infty,infty) -> (-1,1)
-			double scaleFactor = exp(kappaSat); //in range (1/e,e), so as to increase kappa for positive kappaVariation and vice versa
-			e.cntrl.subspaceRotationFactor *= scaleFactor;
-			subspaceRotationScale *= scaleFactor;
-			logPrintf("\tSubspaceRotation: preconditioning-factor: %.2lg\n", e.cntrl.subspaceRotationFactor);
-			if(fabs(log(subspaceRotationScale)) > 2.) //cumulated scale adjustment > e^2
-			{	logPrintf("\tSubspaceRotation: resetting CG since factor has cumulatively changed by %lg\n", subspaceRotationScale);
-				subspaceRotationScale = 1.;
-				KgPrevHaux.clear();
-				return true; //resets CG
-			}
-		}
-		KgPrevHaux = Kgrad.Haux; //Cached preconditioned gradient for next step
-	}
-	
+	//Subspace rotation preconditioner handling:
+	if(sra) return sra->report(Kgrad);
 	return false;
 }
 

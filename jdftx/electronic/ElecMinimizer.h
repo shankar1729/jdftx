@@ -37,7 +37,7 @@ struct ElecGradient
 
 //Functions required for minimize
 void axpy(double alpha, const ElecGradient& x, ElecGradient& y); //!< accumulate operation: y += alpha*x
-double dot(const ElecGradient& x, const ElecGradient& y); //!< inner product
+double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib=0); //!< inner product (optionally retrieve auxiliary contribution)
 ElecGradient clone(const ElecGradient& x); //!< create a copy
 void randomize(ElecGradient& x); //!< Initialize to random numbers
 
@@ -46,15 +46,11 @@ class ElecMinimizer : public Minimizable<ElecGradient>
 	Everything& e;
 	ElecVars& eVars;
 	ElecInfo& eInfo;
-	ElecGradient Kgrad;
-	double Knorm;
+	ElecGradient Kgrad; //cached preconditioned gradient
 	std::vector<matrix> rotPrev; //cumulated unitary rotations of wavefunctions
 	bool rotExists; //whether rotPrev is non-trivial (not identity)
 	
-	//Subspace rotation adjustment:
-	std::vector<matrix> KgPrevHaux; //preconditioned auxiliary gradient at previous step
-	double gDotKgPrevHaux; //overlap of current auxiliary gradient with KgPrevHaux
-	double subspaceRotationScale; //net change in subspace rotation factor since last direction reset
+	std::shared_ptr<struct SubspaceRotationAdjust> sra; //Subspace rotation adjustment
 public:
 	ElecMinimizer(Everything& e);
 	
