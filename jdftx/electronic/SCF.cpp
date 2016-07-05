@@ -61,7 +61,6 @@ SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInf
 
 void SCF::minimize()
 {	
-	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	SCFparams& sp = e.scfParams;
 	
@@ -97,17 +96,10 @@ void SCF::minimize()
 	e.elecMinParams.energyDiffThreshold = eMinThreshold;
 	e.elecMinParams.nIterations = eMinIterations;
 	
-	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
-	
 	//Set auxiliary Hamiltonian to subspace Hamiltonian
 	// (for general compatibility with minimizer; also important for lattice gradient in metals)
 	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
-	{	eVars.B = eVars.Hsub;
-		eVars.B_eigs = eVars.Hsub_eigs;
-		eVars.B_evecs = eVars.Hsub_evecs;
-	}
+		eVars.Haux_eigs = eVars.Hsub_eigs;
 }
 
 double SCF::sync(double x) const
@@ -130,9 +122,9 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 
 	//Compute new density and energy
 	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
-	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) updateFillings(); // Update fillings
-		
-	double E = e.eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
+	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) e.eVars.Haux_eigs = e.eVars.Hsub_eigs;
+	double E = e.eVars.elecEnergyAndGrad(e.ener); //updates fillings (if necessary), density and potential
+	mpiUtil->bcast(E); //ensure consistency to machine precision
 
 	extraValues[0] = eigDiffRMS(eigsPrev, e.eVars.Hsub_eigs);
 	return E;
@@ -323,29 +315,6 @@ SCFvariable SCF::applyMetric(const SCFvariable& v) const
 		vOut.rhoAtom = v.rhoAtom;
 	return vOut;
 }
-
-void SCF::updateFillings()
-{
-	ElecInfo& eInfo = e.eInfo; 
-	ElecVars& eVars = e.eVars;
-	
-	//Update nElectrons from mu, or mu from nElectrons as appropriate:
-	double mu, Bz; // Electron chemical potential and magnetic field Lagrange multiplier
-	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
-	else
-	{	mu = eInfo.mu;
-		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs, Bz);
-	}
-	//Compute fillings from aux hamiltonian eigenvalues:
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Hsub_eigs[q]);
-	//Update TS and muN:
-	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
-	
-	// Print filling update information
-	eInfo.printFermi(&mu);
-}	
-
 
 double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2, const Everything& e)
 {	double rmsNum=0., rmsDen=0.;

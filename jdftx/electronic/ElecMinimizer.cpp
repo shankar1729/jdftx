@@ -31,14 +31,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void ElecGradient::init(const Everything& e)
 {	eInfo = &e.eInfo;
-	Y.resize(eInfo->nStates);
-	B.resize(eInfo->nStates);
+	C.resize(eInfo->nStates);
+	Haux.resize(eInfo->nStates);
 }
 
 ElecGradient& ElecGradient::operator*=(double alpha)
 {	for(int q=eInfo->qStart; q<eInfo->qStop; q++)
-	{	if(Y[q]) Y[q] *= alpha;
-		if(B[q]) B[q] *= alpha;
+	{	if(C[q]) C[q] *= alpha;
+		if(Haux[q]) Haux[q] *= alpha;
 	}
 	return *this;
 }
@@ -46,20 +46,21 @@ ElecGradient& ElecGradient::operator*=(double alpha)
 void axpy(double alpha, const ElecGradient& x, ElecGradient& y)
 {	assert(x.eInfo == y.eInfo);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.Y[q]) { if(y.Y[q]) axpy(alpha, x.Y[q], y.Y[q]); else y.Y[q] = alpha*x.Y[q]; }
-		if(x.B[q]) { if(y.B[q]) axpy(alpha, x.B[q], y.B[q]); else y.B[q] = alpha*x.B[q]; }
+	{	if(x.C[q]) { if(y.C[q]) axpy(alpha, x.C[q], y.C[q]); else y.C[q] = alpha*x.C[q]; }
+		if(x.Haux[q]) { if(y.Haux[q]) axpy(alpha, x.Haux[q], y.Haux[q]); else y.Haux[q] = alpha*x.Haux[q]; }
 	}
 }
 
-double dot(const ElecGradient& x, const ElecGradient& y)
+double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib)
 {	assert(x.eInfo == y.eInfo);
-	complex result(0,0);
+	std::vector<double> result(2, 0.); //calculate wavefunction and auxiliary contributions separately
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.Y[q] && y.Y[q]) result += dotc(x.Y[q], y.Y[q])*2.0;
-		if(x.B[q] && y.B[q]) result += dotc(x.B[q], y.B[q]);
+	{	if(x.C[q] && y.C[q]) result[0] += dotc(x.C[q], y.C[q]).real()*2.0;
+		if(x.Haux[q] && y.Haux[q]) result[1] += dotc(x.Haux[q], y.Haux[q]).real();
 	}
-	mpiUtil->allReduce(result.real(), MPIUtil::ReduceSum);
-	return result.real();
+	mpiUtil->allReduce(result.data(), 2, MPIUtil::ReduceSum);
+	if(auxContrib) *auxContrib=result[1]; //store auxiliary contribution, if requested
+	return result[0]+result[1]; //return total
 }
 
 ElecGradient clone(const ElecGradient& x)
@@ -67,33 +68,150 @@ ElecGradient clone(const ElecGradient& x)
 }
 
 void randomize(ElecGradient& x)
-{	randomize(x.Y, *x.eInfo);
+{	randomize(x.C, *x.eInfo);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-		if(x.B[q])
-		{	randomize(x.B[q]);
-			x.B[q] = dagger_symmetrize(x.B[q]); //make hermitian
+		if(x.Haux[q])
+		{	randomize(x.Haux[q]);
+			x.Haux[q] = dagger_symmetrize(x.Haux[q]); //make hermitian
 		}
 }
 
+struct SubspaceRotationAdjust
+{
+	Everything& e;
+	bool adjust; //whether adjustment is active (otherwise only check for Knorm indefiniteness)
+	std::vector<matrix> KgPrevHaux; //preconditioned auxiliary gradient at previous step
+	double gDotKgPrevHaux; //overlap of current auxiliary gradient with KgPrevHaux
+	double cumulatedScale; //net change in subspace rotation factor since last direction reset
+	double KnormTot, KnormAux; //latest preconditioned gradient norms: total and auxiliary alone
+	
+	SubspaceRotationAdjust(Everything& e)
+	: e(e), adjust(e.cntrl.subspaceRotationAdjust), gDotKgPrevHaux(0.), cumulatedScale(1.)
+	{
+	}
+	
+	void cacheGradientOverlaps(const ElecGradient& grad, const ElecGradient& Kgrad)
+	{	//Calculate overlaps of current gradient:
+		KnormTot = dot(grad, Kgrad, &KnormAux);
+		mpiUtil->bcast(KnormTot);
+		mpiUtil->bcast(KnormAux);
+		
+		//Compute auxiliary overlap with previous preconditioned gradient:
+		if(KgPrevHaux.size())
+		{	gDotKgPrevHaux = 0.;
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				gDotKgPrevHaux += dotc(grad.Haux[q], KgPrevHaux[q]).real();
+			mpiUtil->allReduce(gDotKgPrevHaux, MPIUtil::ReduceSum);
+			mpiUtil->bcast(gDotKgPrevHaux);
+		}
+	}
+	
+	//Handle indefinite Knorm, adjust subspace rotation factor if necessary and report changes.
+	//Returns true if CG needs to be reset
+	bool report(const ElecGradient& Kgrad)
+	{
+		//Handle indefinite preconditioner issues:
+		if(KnormTot <= 0.)
+		{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): ", e.elecMinParams.linePrefix);
+			convergeEmptyStates(e);
+			return true; //resets CG
+		}
+		//Adjust subspace rotation factor if necessary:
+		if(adjust)
+		{	if(gDotKgPrevHaux)
+			{	double& kappa = e.cntrl.subspaceRotationFactor;
+				double Emin_kappa = gDotKgPrevHaux / KnormTot; //dimensionless version of dEmin/d(log kappa)
+				double kappaMax = 0.5*kappa*fabs(KnormTot)/fabs(KnormAux); //aux gradient magnitude should not exceed half that of total
+				//Heuristic for adjusting subspace rotation factor (called kappa here):
+				double scaleFactor = exp(Emin_kappa/hypot(1,Emin_kappa)); //saturated to range (1/e,e)
+				scaleFactor = std::min(scaleFactor, kappaMax/kappa); //cap scale factor at maximum
+				kappa *= scaleFactor;
+				cumulatedScale *= scaleFactor;
+				logPrintf("\tSubspaceRotationAdjust: set factor to %.3lg\n", kappa);
+				if(fabs(log(cumulatedScale)) > 2.) //cumulated scale adjustment > e^2
+				{	logPrintf("\tSubspaceRotationAdjust: resetting CG because factor has changed by %lg\n", cumulatedScale);
+					cumulatedScale = 1.;
+					return true; //resets CG
+				}
+			}
+			KgPrevHaux = Kgrad.Haux; //Cached preconditioned gradient for next step
+		}
+		return false;
+	}
+};
 
 
 ElecMinimizer::ElecMinimizer(Everything& e)
-: e(e), eVars(e.eVars), eInfo(e.eInfo), Knorm(0.)
+: e(e), eVars(e.eVars), eInfo(e.eInfo), rotPrev(eInfo.nStates)
 {	Kgrad.init(e);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		rotPrev[q] = eye(eInfo.nBands);
+	rotExists = false; //rotation is identity
+	
+	//Initialize subspace rotation adjuster if required:
+	if(e.cntrl.subspaceRotationAdjust && ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub || !eInfo.scalarFillings) )
+		sra = std::make_shared<SubspaceRotationAdjust>(e);
 }
 
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if(dir.Y[q]) axpy(alpha, dir.Y[q], eVars.Y[q]);
-		if(dir.B[q]) axpy(alpha, dir.B[q], eVars.B[q]);
+	{	axpy(alpha, rotExists ? dir.C[q]*rotPrev[q] : dir.C[q], eVars.C[q]);
+		if(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings)
+		{	//Constant scalar fillings: no rotations required
+			eVars.orthonormalize(q);
+		}
+		else
+		{	//Haux or non-scalar fillings: rotations required
+			assert(dir.Haux[q]);
+			matrix rot;
+			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			{	//Haux fillings:
+				matrix Haux = eVars.Haux_eigs[q];
+				axpy(alpha, rotExists ? dagger(rotPrev[q])*dir.Haux[q]*rotPrev[q] : dir.Haux[q], Haux);
+				Haux.diagonalize(rot, eVars.Haux_eigs[q]); //rotation chosen to diagonalize auxiliary matrix
+			}
+			else
+			{	//Non-scalar fillings:
+				assert(!eInfo.scalarFillings);
+				rot = cis(alpha * dir.Haux[q]); //auxiliary matrix directly generates rotations
+			}
+			eVars.orthonormalize(q, &rot);
+			rotPrev[q] = rotPrev[q] * rot;
+			rotExists = true; //rotation is no longer identity
+		}
 	}
 }
 
 double ElecMinimizer::compute(ElecGradient* grad)
 {	if(grad) grad->init(e);
 	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
-	if(grad) Knorm = sync(dot(*grad, Kgrad));
+	if(grad)
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	//Rotate wavefunction gradients if necessary:
+			if(rotExists)
+			{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
+				Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
+			}
+			//Subspace gradient handling depends on mode:
+			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			{	//Haux fillings: rotate gradient computed by ElecVars if necessary
+				if(rotExists)
+				{	grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
+					Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+				}
+			}
+			else if(!eInfo.scalarFillings)
+			{	//Non-scalar fillings:
+				grad->Haux[q] = dagger_symmetrize(complex(0,1) * (eVars.F[q]*eVars.Hsub[q] - eVars.Hsub[q]*eVars.F[q]));
+				Kgrad.Haux[q] = e.cntrl.subspaceRotationFactor * grad->Haux[q];
+			}
+			//else: constant scalar fillings (no subspace gradient)
+		}
+		
+		//Cache gradient overlaps, if needed, for subspace rotation handling:
+		if(sra) sra->cacheGradientOverlaps(*grad, Kgrad);
+	}
 	return ener;
 }
 
@@ -124,36 +242,16 @@ bool ElecMinimizer::report(int iter)
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
 	
-	//Handle indefinite preconditioner issue for FermiFillingsAux:
-	if(Knorm < 0.)
-	{	logPrintf("%s\tPreconditioner indefiniteness detected (grad_K will become NAN): ", e.elecMinParams.linePrefix);
-		convergeEmptyStates(e);
-		return true;
-	}
-	
-	//Re-orthogonalize wavefunctions if necessary:
-	if(e.cntrl.overlapCheckInterval
-		&& (iter % e.cntrl.overlapCheckInterval == 0)
-		&& (eVars.overlapCondition > e.cntrl.overlapConditionThreshold) )
-	{
-		logPrintf("%s\tCondition number of orbital overlap matrix (%lg) exceeds threshold (%lg): ",
-			e.elecMinParams.linePrefix, eVars.overlapCondition, e.cntrl.overlapConditionThreshold);
-		eVars.setEigenvectors();
-		return true;
-	}
-	
+	//Subspace rotation preconditioner handling:
+	if(sra) return sra->report(Kgrad);
 	return false;
 }
 
 void ElecMinimizer::constrain(ElecGradient& dir)
-{	if(e.cntrl.fixOccupied)
-	{	//Project out occupied directions:
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	int nOcc = eVars.nOccupiedBands(q);
-			if(nOcc)
-				callPref(eblas_zero)(dir.Y[q].colLength()*nOcc, dir.Y[q].dataPref());
-		}
-	}
+{	assert(dir.eInfo == &eInfo);
+	//Project component of search direction along current wavefunctions:
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		dir.C[q] -= eVars.C[q] * (eVars.C[q]^O(dir.C[q]));
 }
 
 double ElecMinimizer::sync(double x) const
@@ -168,7 +266,7 @@ void bandMinimize(Everything& e)
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
 		switch(e.cntrl.elecEigenAlgo)
-		{	case ElecEigenCG: { BandMinimizer(e, q, true).minimize(e.elecMinParams); break; }
+		{	case ElecEigenCG: { BandMinimizer(e, q).minimize(e.elecMinParams); break; }
 			case ElecEigenDavidson: { BandDavidson(e, q).minimize(); break; }
 		}
 		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
@@ -189,13 +287,13 @@ void elecMinimize(Everything& e)
 	{	SCF scf(e);
 		scf.minimize();
 	}
-	else if((not e.cntrl.fixed_H) or e.exCorr.exxFactor())
+	else if(e.cntrl.fixed_H)
+	{	bandMinimize(e);
+	}
+	else
 	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
 		if (!e.ionDynamicsParams.tMax) e.eVars.setEigenvectors(); //Don't spend time with this if running MD
-	}
-	else
-	{	bandMinimize(e);
 	}
 	e.eVars.isRandom = false; //wavefunctions are no longer random
 	//Converge empty states if necessary:
@@ -218,7 +316,7 @@ void elecFluidMinimize(Everything &e)
 			eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 			eInfo.fillingsUpdate=ElecInfo::FillingsHsub;
 			//Update B:
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) eVars.B[q] = eVars.Hsub[q];
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) eVars.Haux_eigs[q] = eVars.Hsub_eigs[q];
 			eVars.HauxInitialized = true;
 		}
 		else //constant mu mode
@@ -228,12 +326,10 @@ void elecFluidMinimize(Everything &e)
 	
 	//Prevent change in mu from abruptly changing electron count:
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !std::isnan(eInfo.mu))
-	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			eVars.B[q].diagonalize(eVars.B_evecs[q], eVars.B_eigs[q]);
-		double Bz, mu = eInfo.findMu(eVars.B_eigs, eInfo.nElectrons, Bz);
+	{	double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
 		logPrintf("Shifting auxilliary hamiltonian by %lf to set nElectrons=%lf\n", eInfo.mu-mu, eInfo.nElectrons);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			eVars.B[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
+			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	
 	double Evac0 = NAN;

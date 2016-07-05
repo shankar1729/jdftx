@@ -108,7 +108,7 @@ void Phonon::setup(bool printDefaults)
 			e.eVars.F[q].resize(e.eInfo.nBands);
 			e.eVars.Hsub_eigs[q].resize(e.eInfo.nBands);
 			if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-				e.eVars.B[q].init(e.eInfo.nBands, e.eInfo.nBands);
+				e.eVars.Haux_eigs[q].resize(e.eInfo.nBands);
 		}
 		//Broadcast from owner:
 		int qSrc = e.eInfo.whose(q);
@@ -116,7 +116,7 @@ void Phonon::setup(bool printDefaults)
 		e.eVars.F[q].bcast(qSrc);
 		e.eVars.Hsub_eigs[q].bcast(qSrc);
 		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-			e.eVars.B[q].bcast(qSrc);
+			e.eVars.Haux_eigs[q].bcast(qSrc);
 	}
 
 	logPrintf("\n------- Configuring supercell and perturbation modes -------\n");

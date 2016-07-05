@@ -48,7 +48,6 @@ class Everything;		// A big collection of most of the above structures
 
 struct ElecGradient;
 struct IonicGradient;
-class InverseKohnSham;
 class VanDerWaals;     // pair-potential van der waals corrections
 class Vibrations;
 

@@ -110,6 +110,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		}
 		d *= -1;
 		if((int)history.size() == p.history) history.pop_front(); //if full, make room for the upcoming history entry (do this here to free memory earlier)
+		constrain(d); //restrict search direction to allowed subspace
 		
 		//Line minimization
 		Vector y = clone(g); //store previous gradient before linmin changes it (this will later be converted to y = g-gPrev)

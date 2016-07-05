@@ -65,9 +65,6 @@ private:
 	bool mixTau; //!< whether KE needs to be mixed
 	RealKernel kerkerMix, diisMetric; //!< convolution kernels for kerker preconditioning and the DIIS overlap metric
 	
-	//! Updates fillings and recomputes filling energies
-	void updateFillings();
-	
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weighted RMS difference between two sets of eigenvalues
 };
 

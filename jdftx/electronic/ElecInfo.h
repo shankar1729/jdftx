@@ -69,6 +69,7 @@ public:
 		FillingsHsub //!< fillings are a function of subspace Hamiltonian (Fermi function for now)
 	}
 	fillingsUpdate;
+	bool scalarFillings; //!< whether fillings are scalar (equal for all bands) at all quantum numbers
 	
 	double kT; //!< Temperature for Fermi distribution of fillings
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this

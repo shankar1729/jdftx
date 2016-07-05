@@ -134,8 +134,7 @@ double ExactExchangeEval::calc_sub(int q1, int b1, std::mutex* lock, double aXX,
 	for(int q2 = q1<qCount ? 0 : qCount; q2<q1+1; q2++)
 		for(int b2=0; b2<(q1==q2 ? b1+1 : e.eInfo.nBands); b2++)
 		{	
-			if(F[q1][b1]<=e.cntrl.occupiedThreshold && F[q2][b2]<=e.cntrl.occupiedThreshold)
-				continue; //at least one of the orbitals must be occupied
+			if(!F[q1][b1] && !F[q2][b2]) continue; //at least one of the orbitals must be occupied
 			
 			bool diag = q1==q2 && b1==b2; // whether this is a diagonal (self) term
 			complexScalarField Ipsi2 = diag ? Ipsi1 : I(C[q2].getColumn(b2,0)), grad_Ipsi2;

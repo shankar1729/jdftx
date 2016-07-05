@@ -58,8 +58,7 @@ template<typename Vector> struct Minimizable
 	//! It should return whether the state was modified
 	virtual bool report(int iter) { return false; }
 	
-	//! Constrain an arbitrary vector to the space of free directions for minimize.
-	//! Used only to generate a random direction for fdTest within the valid minimization subspace.
+	//! Constrain search directions to the space of free directions for minimize.
 	virtual void constrain(Vector&) {}
 	
 	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
@@ -117,8 +116,18 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
 	
 	Vector d = clone(g); //step direction (will be reset in first iteration)
+	constrain(d); //restrict search direction to allowed subspace
 	bool forceGradDirection = true; //whether current direction is along the gradient
 	MinimizeParams::DirectionUpdateScheme currentDirUpdateScheme = p.dirUpdateScheme; //initially use the specified scheme, may switch to SD on trouble
+	bool gPrevUsed;
+	switch(currentDirUpdateScheme)
+	{	case MinimizeParams::FletcherReeves:
+		case MinimizeParams::SteepestDescent:
+			gPrevUsed = false;
+			break;
+		default:
+			gPrevUsed = true;
+	}
 	
 	double alphaT = p.alphaTstart; //test step size
 	double alpha = alphaT; //actual step size
@@ -149,12 +158,11 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		beta = 0.0;
 		if(!forceGradDirection)
 		{	double dotgd = sync(dot(g,d));
-			double dotgPrevKg = sync(dot(gPrev, Kg));
+			double dotgPrevKg = gPrevUsed ? sync(dot(gPrev, Kg)) : 0.;
 
-			double linmin = dotgd/sqrt(sync(dot(g,g))*sync(dot(d,d)));
-			double cgtest = dotgPrevKg/sqrt(gKNorm*gKNormPrev);
-			fprintf(p.fpLog, "  linmin: %10.3le", linmin);
-			fprintf(p.fpLog, "  cgtest: %10.3le", cgtest);
+			fprintf(p.fpLog, "  linmin: %10.3le", dotgd/sqrt(sync(dot(g,g))*sync(dot(d,d))));
+			if(gPrevUsed)
+				fprintf(p.fpLog, "  cgtest: %10.3le", dotgPrevKg/sqrt(gKNorm*gKNormPrev));
 			fprintf(p.fpLog, "  t[s]: %9.2lf", clock_sec());
 
 			//Update beta:
@@ -190,12 +198,13 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 			fflush(p.fpLog); return E;
 		}
 		if(iter>=p.nIterations) break;
-		gPrev = g;
+		if(gPrevUsed) gPrev = g;
 		gKNormPrev = gKNorm;
 
 		//Update search direction
 		d *= beta; axpy(-1.0, Kg, d);  // d = beta*d - Kg
-
+		constrain(d); //restrict search direction to allowed subspace
+	
 		//Line minimization
 		if(linmin(*this, p, d, alphaT, alpha, E, g))
 		{	//linmin succeeded:

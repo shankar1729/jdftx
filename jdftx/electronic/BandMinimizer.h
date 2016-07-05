@@ -25,23 +25,22 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 
 class BandMinimizer : public Minimizable<ColumnBundle>
-{	
-	public:
-		BandMinimizer(Everything& e, int qActive, bool precond=true);
-	
-		double compute(ColumnBundle* grad);
-		void step(const ColumnBundle& dir, double alpha);
-		ColumnBundle precondition(const ColumnBundle& grad);
-		bool report(int iter);
-		void constrain(ColumnBundle&);
-		
-		int qActive;  //! Quantum number of the subspace that is being minimized
+{
+public:
+	BandMinimizer(Everything& e, int q); //!< Construct band-structure minimizer for quantum number q
 
-		ColumnBundle Kgrad; //! Preconditioned gradient
-	private:
-		Everything& e;
-		ElecVars& eVars;
-		bool precond;	
+	//Interface for Minimizable:
+	double compute(ColumnBundle* grad);
+	void step(const ColumnBundle& dir, double alpha);
+	ColumnBundle precondition(const ColumnBundle& grad);
+	void constrain(ColumnBundle&);
+
+private:
+	Everything& e;
+	ElecVars& eVars;
+	const ElecInfo& eInfo;
+	int q; //!< Current quantum number
+	double KErollover; //!< Average kinetic energy per band (for preconditioner)
 };
 
 #endif

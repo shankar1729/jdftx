@@ -39,7 +39,6 @@ int main(int argc, char** argv)
 	e.eVars.eigsFilename = e.wannier.getFilename(Wannier::FilenameInit, "eigenvals");
 	e.eVars.nFilenamePattern.clear();
 	e.eVars.VFilenamePattern.clear();
-	e.eVars.HauxFilename.clear();
 	e.eVars.fluidParams.fluidType = FluidNone;
 	
 	//Setup:

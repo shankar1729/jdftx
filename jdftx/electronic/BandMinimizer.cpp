@@ -19,52 +19,38 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/BandMinimizer.h>
 #include <electronic/Everything.h>
+#include <electronic/operators.h>
 
-BandMinimizer::BandMinimizer(Everything& e, int qActive, bool precond):
-qActive(qActive), e(e), eVars(e.eVars),
-precond(precond)
+BandMinimizer::BandMinimizer(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.eInfo), q(q)
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed
 	e.elecMinParams.energyLabel = relevantFreeEnergyName(e);
 }
 
 void BandMinimizer::step(const ColumnBundle& dir, double alpha)
-{	assert(dir.nCols() == e.eVars.Y[qActive].nCols());
-	axpy(alpha, dir, e.eVars.Y[qActive]);
+{	assert(dir.nCols() == eVars.C[q].nCols());
+	axpy(alpha, dir, eVars.C[q]);
+	eVars.orthonormalize(q);
 }
 
 double BandMinimizer::compute(ColumnBundle* grad)
-{	return e.eVars.bandEnergyAndGrad(qActive, e.ener, grad, &Kgrad);
+{	if(grad) grad->free();
+	diagMatrix Fq = eye(eInfo.nBands);
+	const QuantumNumber& qnum = eInfo.qnums[q];
+	ColumnBundle Hq;
+	eVars.applyHamiltonian(q, Fq, Hq, e.ener, true);
+	if(grad)
+	{	KErollover = 2.*e.ener.E["KE"]/(qnum.weight*eInfo.nBands);
+		Hq -=  O(eVars.C[q])*eVars.Hsub[q]; //orthonormality contribution
+		Hq *= qnum.weight;
+		std::swap(*grad, Hq);
+	}
+	return qnum.weight * trace(eVars.Hsub[q]).real();
 }
 
 ColumnBundle BandMinimizer::precondition(const ColumnBundle& grad)
-{	return precond ? Kgrad : grad;
-}
-
-bool BandMinimizer::report(int iter)
-{
-	// Overlap check for orthogonalization
-	if(e.cntrl.overlapCheckInterval
-		&& (iter % e.cntrl.overlapCheckInterval == 0)
-		&& (eVars.overlapCondition > e.cntrl.overlapConditionThreshold) )
-	{
-		logPrintf("%s\tCondition number of orbital overlap matrix (%lg) exceeds threshold (%lg): ",
-			e.elecMinParams.linePrefix, eVars.overlapCondition, e.cntrl.overlapConditionThreshold);
-		eVars.setEigenvectors(qActive);
-		return true;
-	}
-	
-	//Dumps at every electronic step of each band, if asked for
-	e.dump(DumpFreq_Electronic, iter);
-	
-	return false;
+{	return precond_inv_kinetic(grad, KErollover);
 }
 
 void BandMinimizer::constrain(ColumnBundle& dir)
-{	if(e.cntrl.fixOccupied)
-	{	//Project out occupied directions:
-		int nOcc = eVars.nOccupiedBands(qActive);
-		if(nOcc)
-			callPref(eblas_zero)(dir.colLength()*nOcc, dir.dataPref());
-	}
-
+{	dir -= eVars.C[q] * (eVars.C[q]^O(dir));
 }

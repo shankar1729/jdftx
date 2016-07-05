@@ -34,7 +34,7 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(FillingsConst), kT(1e-3), mu(NAN),
+fillingsUpdate(FillingsConst), scalarFillings(true), kT(1e-3), mu(NAN),
 hasU(false), nBandsOld(0),
 Qinitial(0.), Minitial(0.), Mconstrain(false)
 {
@@ -176,6 +176,16 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	{	if(nBands < nBandsMin)
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",
 				nBands, nElectrons, nBandsMin);
+		
+		//Check for non-scalar fillings in a variational minimize calculation:
+		if(!e->cntrl.fixed_H && !e->cntrl.scf)
+		{	scalarFillings = true;
+			for(int q=qStart; q<qStop; q++)
+				scalarFillings &= F[q].isScalar();
+			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
+			if(!scalarFillings)
+				logPrintf("Turning on subspace rotations due to non-scalar fillings.\n");
+		}
 	}
 	
 	//Set the Legendre multipliers corresponding to the initial fillings
@@ -314,8 +324,9 @@ double ElecInfo::nElectronsFermi(double mu, const std::vector< diagMatrix >& eps
 		//Find a range which is known to bracket the result:
 		const double absTol = 1e-10, relTol = 1e-14;
 		double Mtol = std::max(absTol, relTol*fabs(Minitial));
-		double BzMin=-0.1; while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=0.1;
-		double BzMax=+0.0; while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=0.1;
+		double BzMin=-0.1, BzMax=+0.1;
+		while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=(BzMax-BzMin);
+		while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=(BzMax-BzMin);
 		//Bisect:
 		double BzTol = std::max(absTol*kT, relTol*std::max(fabs(BzMin),fabs(BzMax)));
 		while(BzMax-BzMin>=BzTol)
@@ -339,8 +350,9 @@ double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons, d
 	//Find a range which is known to bracket the result:
 	const double absTol = 1e-10, relTol = 1e-14;
 	double nTol = std::max(absTol, relTol*fabs(nElectrons));
-	double muMin=-0.1; while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=0.1;
-	double muMax=+0.0; while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=0.1;
+	double muMin=-0.1, muMax=+0.0;
+	while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=(muMax-muMin);
+	while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=(muMax-muMin);
 	//Bisect:
 	double muTol = std::max(absTol*kT, relTol*std::max(fabs(muMin),fabs(muMax)));
 	while(muMax-muMin>=muTol)
