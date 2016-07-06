@@ -309,7 +309,7 @@ void IonDynamics::run()
 		//Accumulate the averaged electronic density over the trajectory
 		for(unsigned s=0; s<e.eVars.nAccumulated.size(); s++)
 		{
-		  e.eVars.nAccumulated[s]=(e.eVars.nAccumulated[s]*(t-e.ionDynamicsParams.dt)+e.eVars.n[s]*e.ionDynamicsParams.dt)*(1.0/t);
+		  e.eVars.nAccumulated[s]=(e.eVars.nAccumulated[s]*t+e.eVars.n[s]*e.ionDynamicsParams.dt)*(1.0/(t+e.ionDynamicsParams.dt));
 		}
 	}
 }
