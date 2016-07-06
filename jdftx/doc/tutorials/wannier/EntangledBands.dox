@@ -12,11 +12,11 @@ general case where the bands of interest are mixed in with other bands.
 This is relevant not only for metals, but also for semiconductors,
 when we are interested in representing the unoccupied states.
 Specifically, this tutorial constructs maximally-localized
-%Wannier functions (MLWFs) for aluminum, and demostrates accurate
+%Wannier functions (MLWFs) for aluminum, and demonstrates accurate
 density-of-states calculations using Monte Carlo sampling.
 
 As before, we start with total-energy and band structure calculations.
-Aluminum is a face-centered cubic metal with a cubuc
+Aluminum is a face-centered cubic metal with a cubic
 lattice constant of 4.05 Angstroms (7.65 bohrs).
 We will use a norm-conserving pseudopotential for aluminum
 because we will use a feature (dipole matrix elements) not
@@ -74,7 +74,7 @@ bands throughout the Brillouin zone: we can start at the same lower end as
 the inner window and extend to 17 eV above the Fermi level to satisfy this,
 which corresponds to the eigenvalue range [-0.042,1.024] Hartrees.
 
-With these paramateres we can set up the %Wannier input file:
+With these parameters we can set up the %Wannier input file:
 
     include totalE.in
     
@@ -133,9 +133,9 @@ within the inner window, but deviates outside it.
 In fact, outside the window the %Wannier bands are smoother
 than the DFT bands since this increases localization.
 
-We can use the MLWF-basis Hamiltoninan to calculate electronic
+We can use the MLWF-basis Hamiltonian to calculate electronic
 properties accurately within the inner energy window.
-For example, the following sript calculates the density of states:
+For example, the following script calculates the density of states:
 
     #Save the following to WannierDOS.py:
     import numpy as np

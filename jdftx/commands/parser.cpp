@@ -472,7 +472,7 @@ inline string htmlAddLinks(string s)
 	{	cExcluded.insert("lattice"); cExcluded.insert("ion"); cExcluded.insert("basis");
 		cExcluded.insert("fluid"); cExcluded.insert("wavefunction"); cExcluded.insert("symmetries");
 		cExcluded.insert("debug"); cExcluded.insert("dump"); cExcluded.insert("polarizability");
-		cExcluded.insert("vibrations"); 
+		cExcluded.insert("vibrations"); cExcluded.insert("wannier"); cExcluded.insert("control");
 	}
 	std::map<string,Command*> cmap = getCommandMap();
 	string sOut; sOut.reserve(s.length()+400);

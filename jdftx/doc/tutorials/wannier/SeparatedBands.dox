@@ -73,8 +73,8 @@ have at least State and BandEigs output.
 Finally, the four \ref CommandWannierCenter commands indicate
 the initial guesses ("trial orbitals") for constructing four MLWFs.
 The invocation above corresponds to hydrogenic s orbitals of width
-2 bohrs, centered at the specified lattice coodinates: here we chose
-the centers of bonds from one Si atom to its nearest neighbours.
+2 bohrs, centered at the specified lattice coordinates: here we chose
+the centers of bonds from one Si atom to its nearest neighbors.
 There are many other options for trial orbitals, including atomic orbitals
 and arbitrary linear combinations of hydrogenic orbitals and atomic orbitals;
 see the \ref CommandWannierCenter command documentation for details.
@@ -94,7 +94,7 @@ Examine the output file wannier.out.
 The overall structure is very similar to jdftx output files.
 The initialization section contains the usual parts followed by %Wannier-specific parts.
 After initialization, we find WannierMinimize lines which are optimizing
-a quantity called Omega (analagous to ElecMinimize optimizing Etot or F).
+a quantity called Omega (analogous to ElecMinimize optimizing Etot or F).
 This Omega, called the spread function, is the sum of variances of the
 %Wannier functions, and minimizing it results in MLWFs.
 At the end, the code reports the converged centers and spreads for each
@@ -103,7 +103,7 @@ of the four MLWFs, and ends with %Wannier-specific outputs.
 By default, the code dumps "mlwfU" which are the optimized unitary rotations
 at each k-point, "mlwfH" which is the Hamiltonian in the MLWF basis, and
 "mlwfBandContrib" specifying the ranges of bands and energies covered by each MLWF.
-Additionally, during initialization, the code dumpes "mlwfBandRanges"
+Additionally, during initialization, the code dumps "mlwfBandRanges"
 which specifies the minimum and maximum energies of each band,
 which we will find useful in the [next tutorial](EntangledBands.html),
 and "mlwfCellMap" which specifies lattice vectors to surrounding
@@ -124,7 +124,7 @@ and are 8 x 8 x 8 in this case.
 Use the boundary settings in VESTA to zoom in on the %Wannier function,
 as shown above. (I used the range [0.375, 0.67].)
 Note that the %Wannier function is centered on the Si-Si bond as expected,
-and has 3-fold symmetry around the bond becaue it is alongg a 111 axis.
+and has 3-fold symmetry around the bond because it is along a 111 axis.
 Similarly, plot the other three %Wannier functions and notice that they
 are identical except for being centered on a bond with a different direction
 (four bond directions over all for the tetrahedral lattice in a diamond structure).
@@ -142,7 +142,7 @@ Examine wannier.mlwfCellMap, it will have a somewhat larger number of lines than
 (You can visualize the cell map in gnuplot using 'splot "wannier.mlwfCellMap" u 4:5:6'.)
 
 The above MLWF-basis Hamiltonian is a tight-binding model, but with multiple
-states on each lattice site (4 in this case), and connections to neighbouring
+states on each lattice site (4 in this case), and connections to neighboring
 sites beyond just the nearest ones (as specified by the cell map).
 This tight-binding model reproduces the first-principles band structure from DFT
 exactly, and is called an <i>ab initio</i> tight-binding model.
@@ -179,10 +179,10 @@ The following Python script calculates band structure from MLWF Hamiltonian:
 Note that the first two sections read in the MLWF data and set up the
 k-point path respectively; all the real action happens in two lines of code!
 The Bloch Hamiltonian Hk is calculated by Fourier transforming the MLWF-basis Hamiltonian,
-and then we obtain the eigenavlues at each k (the band structure) by diagonalizing Hk.
+and then we obtain the eigenvalues at each k (the band structure) by diagonalizing Hk.
 Run the above script "python WannierBandstruct.py",
 and examine the output file "wannier.eigenvals":
-it is a text file with the eigenavlues for each band in a column.
+it is a text file with the eigenvalues for each band in a column.
 
 Modify the end of bandstruct.plot to compare the DFT and %Wannier band structure:
 

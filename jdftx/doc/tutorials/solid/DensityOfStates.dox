@@ -94,7 +94,7 @@ Update the final section of the latest version of bandstruct.plot to:
        "Si.dos" u (xEnd+0.5*$2):(($1-VBM)/eV) w l lw 2 title "s", \
        "Si.dos" u (xEnd+0.5*$3):(($1-VBM)/eV) w l lw 2 title "p"
 
-and rerun "gnuplot bandstruct.plot" to get the plot shown below.
+and rerun "gnuplot --persist bandstruct.plot" to get the plot shown below.
 This time, instead of plotting a single total density of states,
 we plotted the contributions due to the s and p orbitals on the first Si atom.
 Note that the lower occupied bands exhibit s and p character, 
