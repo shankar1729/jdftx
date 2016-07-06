@@ -37,8 +37,7 @@ public:
 	
 	//Virtual functions from Minimizable:
 	void step(const matrix3<>& dir, double alpha);
-	double compute(matrix3<>* grad);
-	matrix3<> precondition(const matrix3<>& grad);
+	double compute(matrix3<>* grad, matrix3<>* Kgrad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
 	double safeStepSize(const matrix3<>& dir) const;

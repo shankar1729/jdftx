@@ -109,7 +109,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	setSupState();
 	IonicMinimizer imin(*eSup);
 	IonicGradient grad0;
-	imin.compute(&grad0); //compute initial forces and energy
+	imin.compute(&grad0, 0); //compute initial forces and energy
 	logPrintf("# Energy components:\n"); eSup->ener.print(); logPrintf("\n");
 	double E0 = relevantFreeEnergy(*eSup);
 	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
@@ -125,7 +125,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	
 	//Calculate energy and forces:
 	IonicGradient grad, dgrad_pert;
-	imin.compute(&grad);
+	imin.compute(&grad, 0);
 	dgrad_pert = (grad - grad0) * (1./dr);
 	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
 	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));

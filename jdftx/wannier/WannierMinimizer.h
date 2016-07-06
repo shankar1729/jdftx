@@ -57,8 +57,7 @@ public:
 	
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
-	double compute(WannierGradient* grad);
-	WannierGradient precondition(const WannierGradient& grad); //identity preconditioner, but impose hermiticity constraint
+	double compute(WannierGradient* grad, WannierGradient* Kgrad); //identity preconditioner, but impose hermiticity constraint
 	void constrain(WannierGradient& grad); //enforce hermiticity
 	bool report(int iter);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error

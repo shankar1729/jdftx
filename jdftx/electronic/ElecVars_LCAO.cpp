@@ -39,11 +39,10 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	const ExCorr* exCorr;
 	std::vector<matrix> HniSub;
 	std::vector<matrix> rotPrev; //Accumulated rotations of the wavefunctions
-	ElecGradient Kgrad;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
 	: eVars(eVars), e(e), eInfo(e.eInfo), HniSub(eInfo.nStates), rotPrev(eInfo.nStates)
-	{	Kgrad.init(e);
+	{
 	}
 	
 	void step(const ElecGradient& dir, double alpha)
@@ -61,9 +60,10 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		}
 	}
 	
-	double compute(ElecGradient* grad)
+	double compute(ElecGradient* grad, ElecGradient* Kgrad)
 	{	Energies ener = e.ener;
 		if(grad) grad->init(e);
+		if(Kgrad) Kgrad->init(e);
 		
 		//Update fillings (Aux algorithm, fixed N only):
 		double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
@@ -131,17 +131,13 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			{	const QuantumNumber& qnum = eInfo.qnums[q];
 				matrix gradF = eVars.Hsub[q]-eVars.Haux_eigs[q] - eye(nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
 				grad->Haux[q] = qnum.weight * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
-				Kgrad.Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
+				if(Kgrad) Kgrad->Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
 				//Transform gradients back to original rotation (which CG remains in):
 				grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
-				Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+				if(Kgrad) Kgrad->Haux[q] = rotPrev[q] * Kgrad->Haux[q] * dagger(rotPrev[q]);
 			}
 		}
 		return ener.F();
-	}
-	
-	ElecGradient precondition(const ElecGradient& grad)
-	{	return Kgrad;
 	}
 
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error

@@ -52,8 +52,7 @@ public:
 
 	// Interface for Minimizable:
 	void step(const ScalarFieldMuEps& dir, double alpha);
-	double compute(ScalarFieldMuEps* grad);
-	ScalarFieldMuEps precondition(const ScalarFieldMuEps& in);
+	double compute(ScalarFieldMuEps* grad, ScalarFieldMuEps* Kgrad);
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);

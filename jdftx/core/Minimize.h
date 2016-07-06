@@ -48,12 +48,8 @@ template<typename Vector> struct Minimizable
 	//! Move the state in parameter space along direction dir with scale alpha
 	virtual void step(const Vector& dir, double alpha)=0;
 	
-	//! Returns the objective function at the current state and store the gradient in grad, if non-null.
-	virtual double compute(Vector* grad)=0; 
-	
-	//! Override to enable preconditioning: return the preconditioned gradient, given the gradient
-	//! The last call to compute() is guaranteed to be at the same position, so a cached result may be returned
-	virtual Vector precondition(const Vector& grad) { return clone(grad); }
+	//! Returns the objective function at the current state and store the gradient in grad and preconditioned gradient in Kgrad, if non-null.
+	virtual double compute(Vector* grad, Vector* Kgrad)=0;
 	
 	//! Override for optional processing/reporting after each/every few iterations
 	//! It should return whether the state was modified
@@ -76,7 +72,7 @@ template<typename Vector> struct Minimizable
 	void fdTest(const MinimizeParams& params);
 	
 private:
-	typedef bool (*Linmin)(Minimizable<Vector>&, const MinimizeParams&, const Vector&, double, double&, double&, Vector&);
+	typedef bool (*Linmin)(Minimizable<Vector>&, const MinimizeParams&, const Vector&, double, double&, double&, Vector&, Vector&);
 	Linmin getLinmin(const MinimizeParams& params) const;
 	double lBFGS(const MinimizeParams& params); //limited memory BFGS implementation (differs sufficiently from CG to be justify a separate implementation)
 };
@@ -115,11 +111,11 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 {	if(p.fdTest) fdTest(p); // finite difference test
 	if(p.dirUpdateScheme == MinimizeParams::LBFGS) return lBFGS(p);
 	
-	Vector g, gPrev; //current and previous gradient
-	double E = sync(compute(&g)); //get initial energy and gradient
+	Vector g, gPrev, Kg; //current, previous and preconditioned gradients
+	double E = sync(compute(&g, &Kg)); //get initial energy and gradient
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
 	
-	Vector d = clone(g); //step direction (will be reset in first iteration)
+	Vector d = clone(Kg); //step direction (will be reset in first iteration)
 	constrain(d); //restrict search direction to allowed subspace
 	bool forceGradDirection = true; //whether current direction is along the gradient
 	MinimizeParams::DirectionUpdateScheme currentDirUpdateScheme = p.dirUpdateScheme; //initially use the specified scheme, may switch to SD on trouble
@@ -146,13 +142,12 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	for(iter=0; !killFlag; iter++)
 	{
 		if(report(iter)) //optional reporting/processing
-		{	E = sync(compute(&g)); //update energy and gradient if state was modified
+		{	E = sync(compute(&g, &Kg)); //update energy and gradient if state was modified
 			fprintf(p.fpLog, "%s\tState modified externally: resetting search direction.\n", p.linePrefix);
 			fflush(p.fpLog);
 			forceGradDirection = true; //reset search direction
 		}
 		
-		Vector Kg = precondition(g);
 		gKNorm = sync(dot(g,Kg));
 		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
 		fprintf(p.fpLog, p.energyFormat, E);
@@ -211,7 +206,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	
 		//Line minimization
 		alphaT = std::min(alphaT, safeStepSize(d));
-		if(linmin(*this, p, d, alphaT, alpha, E, g))
+		if(linmin(*this, p, d, alphaT, alpha, E, g, Kg))
 		{	//linmin succeeded:
 			if(p.updateTestStepSize)
 			{	alphaT = alpha;
@@ -223,7 +218,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		{	//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);
-			E = sync(compute(&g));
+			E = sync(compute(&g, &Kg));
 			if(beta)
 			{	//Failed, but not along the gradient direction:
 				fprintf(p.fpLog, "%s\tStep failed: resetting search direction.\n", p.linePrefix);
@@ -252,13 +247,12 @@ template<typename Vector> void Minimizable<Vector>::fdTest(const MinimizeParams&
 	string fdPrefixString = p.linePrefix + string("fdTest: ");
 	const char* fdPrefix = fdPrefixString.c_str();
 	fprintf(p.fpLog, "%s--------------------------------------\n", fdPrefix);
-	Vector g;
-	double E0 = sync(compute(&g));
+	Vector g, Kg;
+	double E0 = sync(compute(&g, &Kg));
 	
 	Vector dx;
 	{	// Set the direction to be a random vector of the same norm
 		// as the preconditioned gradient times the initial test step size
-		Vector Kg = precondition(g);
 		dx = clone(Kg);
 		randomize(dx);
 		constrain(dx);
@@ -270,7 +264,7 @@ template<typename Vector> void Minimizable<Vector>::fdTest(const MinimizeParams&
 	for(double delta=deltaMin; delta<=deltaMax; delta*=deltaScale)
 	{	double dE = dE_ddelta*delta;
 		step(dx, delta-deltaPrev); deltaPrev=delta;
-		double deltaE = sync(compute(0)) - E0;
+		double deltaE = sync(compute(0,0)) - E0;
 		fprintf(p.fpLog, "%s   delta=%le:\n", fdPrefix, delta);
 		fprintf(p.fpLog, "%s      d%s Ratio: %19.16lf\n", fdPrefix, p.energyLabel, deltaE/dE);
 		fprintf(p.fpLog, "%s      d%s Error: %19.16lf\n", fdPrefix, p.energyLabel, sqrt(p.nDim)*1.1e-16/fabs(dE));

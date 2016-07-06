@@ -56,8 +56,7 @@ public:
 	IonicMinimizer(Everything& e);
 	//Virtual functions from Minimizable:
 	void step(const IonicGradient& dir, double alpha);
-	double compute(IonicGradient* grad);
-	IonicGradient precondition(const IonicGradient& grad);
+	double compute(IonicGradient* grad, IonicGradient* Kgrad);
 	bool report(int iter);
 	void constrain(IonicGradient&);
 	static const double maxAtomTestDisplacement; //maximum allowed atom displacement in test step

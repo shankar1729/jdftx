@@ -250,21 +250,21 @@ void FluidMixture::step(const ScalarFieldArray& dir, double alpha)
 {	axpy(alpha, dir, state);
 }
 
-double FluidMixture::compute(ScalarFieldArray* grad)
+double FluidMixture::compute(ScalarFieldArray* grad, ScalarFieldArray* Kgrad)
 {	ScalarFieldArray tempGrad;
-	return (*this)(state, grad ? *grad : tempGrad, Outputs());
-}
-
-ScalarFieldArray FluidMixture::precondition(const ScalarFieldArray& grad)
-{	ScalarFieldArray Kgrad(get_nIndep());
-	for(unsigned ic=0; ic<component.size(); ic++)
-	{	const FluidComponent& c = *component[ic];
-		for(unsigned k=c.offsetIndep; k<c.offsetIndep+c.idealGas->nIndep; k++)
-			Kgrad[k] = Kindep[ic]*grad[k];
+	double E = (*this)(state, grad ? *grad : tempGrad, Outputs());
+	//Compute preconditioned gradient:
+	if(Kgrad)
+	{	*Kgrad = clone(grad ? *grad : tempGrad);
+		for(unsigned ic=0; ic<component.size(); ic++)
+		{	const FluidComponent& c = *component[ic];
+			for(unsigned k=c.offsetIndep; k<c.offsetIndep+c.idealGas->nIndep; k++)
+				Kgrad->at(k) *= Kindep[ic];
+		}
+		for(unsigned k=nIndepIdgas; k<get_nIndep(); k++)
+			Kgrad->at(k) *= Keps;
 	}
-	for(unsigned k=nIndepIdgas; k<get_nIndep(); k++)
-		Kgrad[k] = Keps * grad[k];
-	return Kgrad;
+	return E;
 }
 
 double FluidMixture::sync(double x) const

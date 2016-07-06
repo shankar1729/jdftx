@@ -97,7 +97,7 @@ matrix WannierMinimizer::KmeshEntry::calc_V1()
 }
 
 
-double WannierMinimizer::compute(WannierGradient* grad)
+double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 {	//Compute the unitary matrices:
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
@@ -129,14 +129,13 @@ double WannierMinimizer::compute(WannierGradient* grad)
 			matrix Omega_B2 = dagger_symmetrize(cis_grad(ki.V2 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2, ki.B2evecs, ki.B2eigs));
 			(*grad)[ik].set(nFrozen,nCenters, nFrozen,nCenters, Omega_B2(nFrozen,nCenters, nFrozen,nCenters));
 		}
+		
+		if(Kgrad)
+		{	*Kgrad = *grad;
+			constrain(*Kgrad);
+		}
 	}
 	return Omega;
-}
-
-WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
-{	WannierGradient Kgrad = grad;
-	constrain(Kgrad);
-	return Kgrad;
 }
 
 void WannierMinimizer::constrain(WannierGradient& grad)
