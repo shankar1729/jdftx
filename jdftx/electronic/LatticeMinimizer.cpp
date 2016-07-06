@@ -129,11 +129,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 			//Reconstitute wavefunctions:
 			e.eVars.C[q] += psi * coeff[q];
 		}
-		//Reorthonormalize wavefunctions:
-		e.eVars.VdagC[q].clear();
-		matrix orthoMat = invsqrt(e.eVars.C[q]^O(e.eVars.C[q], &e.eVars.VdagC[q]));
-		e.eVars.C[q] = e.eVars.C[q] * orthoMat;
-		e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q], &orthoMat);
+		e.eVars.orthonormalize(q); //Reorthonormalize wavefunctions
 	}
 }
 

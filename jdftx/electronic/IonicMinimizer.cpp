@@ -217,11 +217,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	
 	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	eVars.VdagC[q].clear();
-		matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
-		eVars.C[q] = eVars.C[q] * orthoMat;
-		iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
-	}
+		eVars.orthonormalize(q);
 	
 	watch.stop();
 }
