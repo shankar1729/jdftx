@@ -96,10 +96,8 @@ void SCF::minimize()
 	e.elecMinParams.energyDiffThreshold = eMinThreshold;
 	e.elecMinParams.nIterations = eMinIterations;
 	
-	//Set auxiliary Hamiltonian to subspace Hamiltonian
-	// (for general compatibility with minimizer; also important for lattice gradient in metals)
-	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
-		eVars.Haux_eigs = eVars.Hsub_eigs;
+	//Set auxiliary Hamiltonian equal to subspace Hamiltonian (used for fillings updates)
+	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) eVars.Haux_eigs = eVars.Hsub_eigs;
 }
 
 double SCF::sync(double x) const
