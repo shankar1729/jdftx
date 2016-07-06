@@ -37,7 +37,7 @@ void bcast(matrix3<>& x)
 
 //-------------  class LatticeMinimizer -----------------
 
-LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
+LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skipWfnsDrag(false)
 {
 	logPrintf("\n--------- Lattice Minimization ---------\n");
 	
@@ -101,10 +101,16 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 }
 
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
-{	//Project wavefunctions to atomic orbitals:
+{	//Check if strain will become too large beforehand
+	//(so that we can avoid updating wavefunctions for steps that will fail)
+	matrix3<> strainNext = strain + alpha*dir;
+	if(sqrt(dot(strainNext, strainNext)) > GridInfo::maxAllowedStrain) //strain will become large
+		skipWfnsDrag = true; //skip wavefunction drag till a 'real' compute occurs at an acceptable strain
+	
+	//Project wavefunctions to atomic orbitals:
 	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
 	int nAtomic = e.iInfo.nAtomicOrbitals();
-	if(e.cntrl.dragWavefunctions && nAtomic)
+	if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for old lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
@@ -123,7 +129,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Restore wavefunctions from atomic orbitals:
-		if(e.cntrl.dragWavefunctions && nAtomic)
+		if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
 		{	//Get atomic orbitals for new lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
 			//Reconstitute wavefunctions:
@@ -163,6 +169,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		updateLatticeDependent(e);
 	}
 	
+	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
 	return relevantFreeEnergy(e);
 }
 

@@ -57,6 +57,7 @@ private:
 	Everything& e;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
+	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
 	
 	double h; //! Finite difference step size
 	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain
