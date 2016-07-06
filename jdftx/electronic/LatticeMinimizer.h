@@ -41,6 +41,7 @@ public:
 	matrix3<> precondition(const matrix3<>& grad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
+	double safeStepSize(const matrix3<>& dir) const;
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Calculates the stresses along the strain directions

@@ -114,7 +114,8 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		
 		//Line minimization
 		Vector y = clone(g); //store previous gradient before linmin changes it (this will later be converted to y = g-gPrev)
-		if(!linmin(*this, p, d, p.alphaTstart, alpha, E, g))
+		double alphaT = std::min(p.alphaTstart, safeStepSize(d));
+		if(!linmin(*this, p, d, alphaT, alpha, E, g))
 		{	//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);

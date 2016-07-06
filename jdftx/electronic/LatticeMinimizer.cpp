@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Functions required by Minimizable<matrix3<>>
 void axpy(double alpha, const matrix3<>& x, matrix3<>& y) { y += alpha * x; }
 double dot(const matrix3<>& x, const matrix3<>& y) { return trace(x*(~y)); }
+inline double nrm2(matrix3<>& x) { return sqrt(dot(x,x)); }
 matrix3<> clone(const matrix3<>& x) { return x; }
 void randomize(matrix3<>& x) { for(int i=0; i<3; i++) for(int j=0; j<3; j++) x(i,j) = Random::normal(); }
 
@@ -103,8 +104,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skip
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 {	//Check if strain will become too large beforehand
 	//(so that we can avoid updating wavefunctions for steps that will fail)
-	matrix3<> strainNext = strain + alpha*dir;
-	if(sqrt(dot(strainNext, strainNext)) > GridInfo::maxAllowedStrain) //strain will become large
+	if(nrm2(strain+alpha*dir) > GridInfo::maxAllowedStrain) //strain will become large
 		skipWfnsDrag = true; //skip wavefunction drag till a 'real' compute occurs at an acceptable strain
 	
 	//Project wavefunctions to atomic orbitals:
@@ -142,7 +142,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
 	//Check for large lattice strain
-	if(sqrt(dot(strain, strain)) > GridInfo::maxAllowedStrain)
+	if(nrm2(strain) > GridInfo::maxAllowedStrain)
 	{	logPrintf("\nBacking of lattice step since strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
 		logPrintf("If this is a physical strain, restart calculation with these lattice vectors to prevent Pulay errors:\n");
 		e.gInfo.printLattice();
@@ -226,6 +226,14 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 	for(const matrix3<>& s: strainBasis)
 		result += s * dot(s, dir); //projection in basis
 	dir = result;
+}
+
+double LatticeMinimizer::safeStepSize(const matrix3<>& dir) const
+{	double alphaMax = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir);
+	if(nrm2(strain) < GridInfo::maxAllowedStrain) //not already at a disallowed strain
+		while(nrm2(strain+alphaMax*dir) > GridInfo::maxAllowedStrain)
+			alphaMax *= 0.5; //reduce step size further till new position will become safe
+	return alphaMax;
 }
 
 double LatticeMinimizer::sync(double x) const

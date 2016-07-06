@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MINIMIZE_H
 
 #include <cmath>
+#include <cfloat>
 #include <algorithm>
 #include <core/Util.h>
 #include <core/MinimizeParams.h>
@@ -63,6 +64,9 @@ template<typename Vector> struct Minimizable
 	
 	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
 	virtual double sync(double x) const { return x; }
+	
+	//! Override to return maximum safe step size along a given direction. Steps can be arbitrarily large by default.
+	virtual double safeStepSize(const Vector& dir) const { return DBL_MAX; }
 	
 	//! Minimize this objective function with algorithm controlled by params and return the minimized value
 	double minimize(const MinimizeParams& params);
@@ -206,6 +210,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		constrain(d); //restrict search direction to allowed subspace
 	
 		//Line minimization
+		alphaT = std::min(alphaT, safeStepSize(d));
 		if(linmin(*this, p, d, alphaT, alpha, E, g))
 		{	//linmin succeeded:
 			if(p.updateTestStepSize)
