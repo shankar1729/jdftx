@@ -1,9 +1,12 @@
 /** \page MoleculeTutorials Molecules
 
 + \subpage FirstCalc
++ \subpage Outputs
 + \subpage CoulombTrunc
-+ \subpage IonicMin
-+ \subpage Solvation
-+ \subpage AnionCat
++ \subpage GeometryOpt
++ \subpage OpenShell
++ \subpage FreeEnergy
++ \subpage SolvationMolecule
++ \subpage SolvationIon
 
 */

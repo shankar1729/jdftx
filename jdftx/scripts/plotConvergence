@@ -14,7 +14,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 		iterType    Select iteration type: Elec (default), Ionic, Fluid etc.
 		logTarget   Plot energy difference from $logTarget on a log axis.
 		xAxis       "iter" (default) or "time" to plot versus iteration count or run time
-		term        GNUPLOT terminal with options (default "wxt enhanced dashed", or "dumb" without X)
+		term        GNUPLOT terminal with options (default: GNUPLOT default with X, "dumb" without)
 		out         GNUPLOT output file; match this with term (default None)
 	'
 	exit 0
@@ -53,11 +53,14 @@ if [ -z $iterType ]; then
 fi
 
 if [ -z "$term" ]; then
-	if [ -z $DISPLAY ]; then
-		term="dumb"
+	#Check if GNUPLOT can access graphics (works without DISPLAY on MacOS)
+	if [[ ( -z $DISPLAY ) &&  ( "$(uname -s)" != "Darwin" ) ]]; then
+		termCommand="set term dumb"
 	else
-		term="wxt enhanced dashed"
+		termCommand=""  #use default terminal
 	fi
+else
+	termCommand="set term $term" #use specified terminal (with options)
 fi
 
 if [ -z "$out" ]; then
@@ -73,7 +76,7 @@ for outFile in $@; do
 	NF>2 && \$(NF-1)==\"t[s]:\" {t=\$NF}
 	\$1==\"${iterType}Minimize:\" && \$2==\"Iter:\" { print t,\$5 }
 	\"${iterType}\"==\"Elec\" && \$1==\"SCF:\" && \$2==\"Cycle:\" { print t,\$5 }
-	" $outFile | tail --lines=+$skipLines | tail -$nLines > $tmpFile
+	" $outFile | tail -n +$skipLines | tail -n -$nLines > $tmpFile
 	
 	if  [ -z "$plotCommand" ]; then
 		plotCommand="plot"
@@ -86,11 +89,12 @@ done
 #Plot output
 gnuplot -persist << EOF
 $outCommand
-set term $term
+$termCommand
 set format y $yformat
 set ylabel "Energy"
 set xlabel "$xLabel"
 $logCommand
 $plotCommand
+pause mouse
 EOF
 

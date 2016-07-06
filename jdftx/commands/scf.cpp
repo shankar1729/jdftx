@@ -106,8 +106,7 @@ enum SCFparamsMember
 	SCFpm_qKerker,
 	SCFpm_qKappa,
 	SCFpm_verbose,
-	SCFpm_mixFractionMag,
-	SCFpm_maxOverlap
+	SCFpm_mixFractionMag
 };
 
 EnumStringMap<SCFparamsMember> scfParamsMap
@@ -117,8 +116,7 @@ EnumStringMap<SCFparamsMember> scfParamsMap
 	SCFpm_qKerker, "qKerker",
 	SCFpm_qKappa, "qKappa",
 	SCFpm_verbose, "verbose",
-	SCFpm_mixFractionMag, "mixFractionMag",
-	SCFpm_maxOverlap, "maximum-overlap-method"
+	SCFpm_mixFractionMag, "mixFractionMag"
 );
 EnumStringMap<SCFparamsMember> scfParamsDescMap
 (	SCFpm_nEigSteps, "number of eigenvalue steps per iteration (if 0, limited by electronic-minimize nIterations)",
@@ -127,8 +125,7 @@ EnumStringMap<SCFparamsMember> scfParamsDescMap
 	SCFpm_qKerker, "wavevector controlling Kerker preconditioning (default: 0.8 bohr^-1)",
 	SCFpm_qKappa, "wavevector for long-range damping. If negative (default), set to zero or fluid Debye wavevector as appropriate",
 	SCFpm_verbose, "whether the inner eigenvalue solver will print or not",
-	SCFpm_mixFractionMag, "mix fraction for magnetization density / potential (default 1.5)",
-	SCFpm_maxOverlap, "uses the maximum-overlap method to determine fillings, discards elec-fermi-fillings"
+	SCFpm_mixFractionMag, "mix fraction for magnetization density / potential (default 1.5)"
 );
 
 EnumStringMap<SCFparams::MixedVariable> scfMixing
@@ -171,7 +168,6 @@ struct CommandElectronicScf: public CommandPulay
 				case SCFpm_qKappa: pl.get(sp.qKerker, -1., "qKappa", true); break;
 				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFractionMag: pl.get(sp.mixFractionMag, 1.5, "mixFractionMag", true); break;
-				case SCFpm_maxOverlap: e.eInfo.fillingsUpdate = ElecInfo::MaximumOverlapMethod; break;
 			}
 		}
 		else throw string("Parameter <key> must be one of " + pulayParamsMap.optionList() + "|" + scfParamsMap.optionList());
@@ -188,43 +184,10 @@ struct CommandElectronicScf: public CommandPulay
 		PRINT(qKappa, %lg)
 		logPrintf(" \\\n\tverbose\t%s", boolMap.getString(sp.verbose));
 		PRINT(mixFractionMag, %lg)
-		if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod) logPrintf(" \\\n\tmaximum-overlap-method");
 		#undef PRINT
 	}
 }
 commandElectronicScf;
-
-
-struct CommandEigenShift : public Command
-{
-	CommandEigenShift() : Command("eigen-shift", "jdftx/Miscellaneous")
-	{
-		format = "<qnum> <band> <shift> [<fromHOMO>=yes]";
-		comments =
-			"When fillings are computed during electronic-scf, shifts Kohn-Sham\n"
-			"eigenvalue of (qnum, band) by shift. Band index is calculated\n"
-			"relative to HOMO if <fromHOMO> = yes and is absolute otherwise.\n";
-		allowMultiple = true;
-		require("electronic-scf");
-		require("elec-fermi-fillings");
-		forbid("custom-filling");
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	SCFparams::EigenShift es;
-		pl.get(es.q, 0, "qnum", true);
-		pl.get(es.n, 0, "band", true);
-		pl.get(es.shift, 0., "filling", true);
-		pl.get(es.fromHOMO, true, boolMap, "fromHOMO", false);
-		e.scfParams.eigenShifts.push_back(es);
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	const SCFparams::EigenShift& es =  e.scfParams.eigenShifts[iRep];
-		logPrintf("%i %i %.5e %s", es.q, es.n, es.shift, boolMap.getString(es.fromHOMO));
-	}
-}
-commandEigenShift;
 
 
 struct CommandPcmNonlinearScf: public CommandPulay

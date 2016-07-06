@@ -170,7 +170,7 @@ template<typename T> void loadFromFile(TptrCollection& x, const char* filename)
 	if(!fp) die("Could not open %s for reading.\n", filename)
 	for(unsigned i=0; i<x.size(); i++)
 	{	if(!x[i]) die("x[%d] was null in loadFromFile(x,\"%s\").\n", i, filename)
-		if(fread(x[i]->data(), sizeof(typename T::DataType), x[i]->nElem, fp) < unsigned(x[i]->nElem))
+		if(freadLE(x[i]->data(), sizeof(typename T::DataType), x[i]->nElem, fp) < unsigned(x[i]->nElem))
 			die("File ended too soon while reading x[%d] in loadFromFile(x,\"%s\").\n", i, filename)
 	}
 	fclose(fp);
@@ -181,7 +181,7 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 	if(!fp) die("Could not open %s for writing.\n", filename)
 	for(unsigned i=0; i<x.size(); i++)
 	{	if(!x[i]) die("x[%d] was null in saveToFile(x,\"%s\").\n", i, filename)
-		fwrite(x[i]->data(), sizeof(typename T::DataType), x[i]->nElem, fp);
+		fwriteLE(x[i]->data(), sizeof(typename T::DataType), x[i]->nElem, fp);
 	}
 	fclose(fp);
 }

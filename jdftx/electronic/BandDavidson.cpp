@@ -21,58 +21,62 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/operators.h>
 
-BandDavidson::BandDavidson(Everything& e, int qActive): qActive(qActive), e(e), eVars(e.eVars), eInfo(e.eInfo)
+BandDavidson::BandDavidson(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.eInfo), q(q)
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed
 }
 
 void BandDavidson::minimize()
 {	//Use the same working set as the CG minimizer:
-	ColumnBundle& Y = eVars.Y[qActive]; //Use to store current guesses to eigenvectors
-	ColumnBundle& C = eVars.C[qActive]; //Use as expansion subset
-	std::vector<matrix>& VdagC = eVars.VdagC[qActive];
-	const QuantumNumber& qnum = eInfo.qnums[qActive];
+	ColumnBundle& C = eVars.C[q];
+	ColumnBundle Cexp = C.similar(); //expansion subspace
+	std::vector<matrix>& VdagC = eVars.VdagC[q];
+	matrix& Hsub = eVars.Hsub[q];
+	matrix& Hsub_evecs = eVars.Hsub_evecs[q];
+	diagMatrix& Hsub_eigs = eVars.Hsub_eigs[q];
+	const QuantumNumber& qnum = eInfo.qnums[q];
 	int nBandsOut = eInfo.nBands; //number of final output bands desired
 	int nBandsMax = ceil(e.cntrl.davidsonBandRatio * nBandsOut);
 	
 	//Initial subspace eigenvalue problem:
-	ColumnBundle OY = O(Y, &VdagC), HY;
-	//--- compute H * Y
-	C = Y; //Note Hamiltonian is always applied to C (as this is what makes sense in the CG context)
-	e.iInfo.project(C, VdagC);
+	VdagC.clear();
+	ColumnBundle OC = O(C, &VdagC), HC;
+	matrix rotExisting = eye(C.nCols());
+	e.iInfo.project(C, VdagC, &rotExisting);
+	//--- compute HC
 	diagMatrix I = eye(nBandsOut);
 	Energies ener; //not really used here
-	eVars.applyHamiltonian(qActive, I, HY, ener, true);
+	eVars.applyHamiltonian(q, I, HC, ener, true);
 	//--- solve subspace eigenvalue problem
-	matrix U = invsqrt(Y^OY); //symmetric orthonormalization
-	matrix Hsub = dagger(U) * (Y^HY) * U;
-	matrix Hsub_evecs; diagMatrix Hsub_eigs;
+	matrix U = invsqrt(C^OC); //symmetric orthonormalization
+	Hsub = dagger(U) * (C^HC) * U;
 	Hsub.diagonalize(Hsub_evecs, Hsub_eigs);
-	//--- switch Y to subspace eigenbasis:
+	//--- switch C to subspace eigenbasis:
 	matrix initialRot = U * Hsub_evecs;
-	Y = Y * initialRot;
-	OY = OY * initialRot;
-	HY = HY * initialRot;
+	C = C * initialRot;
+	OC = OC * initialRot;
+	HC = HC * initialRot;
+	e.iInfo.project(C, VdagC, &initialRot);
 	double Eband = qnum.weight * trace(Hsub_eigs);
 	logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf\n", 0, Eband); fflush(globalLog);
 	
 	const MinimizeParams& mp = e.elecMinParams;
 	int iter=1;
 	for(; iter<=mp.nIterations; iter++)
-	{	int nBands = Y.nCols();
+	{	int nBands = C.nCols();
 		//Compute subspace expansion:
-		diagMatrix KEref = (-0.5) * diagDot(Y, L(Y)); //Update reference KE for preconditioning:
-		C = HY; C -= OY * Hsub_eigs; //Set C to residual of current eigenvector guesses
-		precond_inv_kinetic_band(C, KEref); //Davidson approximate inverse (using KE as the diagonal)
+		diagMatrix KEref = (-0.5) * diagDot(C, L(C)); //Update reference KE for preconditioning:
+		Cexp = HC; Cexp -= OC * Hsub_eigs; //Set C to residual of current eigenvector guesses
+		precond_inv_kinetic_band(Cexp, KEref); //Davidson approximate inverse (using KE as the diagonal)
 		//Drop converged eigenpairs and approximately normalize subspace expansion (for avoiding roundoff issues only):
-		diagMatrix Cnorm = diagDot(C, C);
-		double CnormCut = std::max(mp.energyDiffThreshold/nBands, 1e-15*C.colLength());
+		diagMatrix CexpNorm = diagDot(Cexp, Cexp);
+		double CexpNormCut = std::max(mp.energyDiffThreshold/nBands, 1e-15*Cexp.colLength());
 		{	//Drop columns whose norm falls below above cutoff
-			complex* Cdata = C.dataPref();
+			complex* CexpData = Cexp.dataPref();
 			int bOut = 0;
 			for(int b=0; b<nBands; b++)
-			{	if(Cnorm[b]<CnormCut) continue;
-				Cnorm[bOut] = 1/sqrt(Cnorm[b]);
-				if(bOut<b) callPref(eblas_copy)(Cdata+C.index(bOut,0), Cdata+C.index(b,0), C.colLength());
+			{	if(CexpNorm[b]<CexpNormCut) continue;
+				CexpNorm[bOut] = 1/sqrt(CexpNorm[b]);
+				if(bOut<b) callPref(eblas_copy)(CexpData+Cexp.index(bOut,0), CexpData+Cexp.index(b,0), Cexp.colLength());
 				bOut++;
 			}
 			if(!bOut) //This is unlikely, but just in case (to avoid zero column matrices below)
@@ -80,46 +84,56 @@ void BandDavidson::minimize()
 				break;
 			}
 			if(bOut<nBands)
-			{	C = C.getSub(0,bOut);
-				Cnorm = Cnorm(0,bOut);
+			{	Cexp = Cexp.getSub(0,bOut);
+				CexpNorm = CexpNorm(0,bOut);
 			}
 		}
-		C = C * Cnorm;
-		int nBandsNew = C.nCols();
+		Cexp = Cexp * CexpNorm;
+		int nBandsNew = Cexp.nCols();
 		int nBandsBig = nBands + nBandsNew;
 		//Compute overlap and Hamiltonian on expansion:
-		ColumnBundle OC = O(C, &VdagC), HC;
-		e.iInfo.project(C, VdagC);
-		eVars.applyHamiltonian(qActive, eye(nBandsNew), HC, ener, true);
+		std::vector<matrix> VdagCexp; diagMatrix HsubExp_eigs;
+		ColumnBundle OCexp = O(Cexp, &VdagCexp), HCexp;
+		rotExisting = eye(Cexp.nCols());
+		e.iInfo.project(Cexp, VdagCexp, &rotExisting);
+		#define SWAP_C_Cexp \
+			std::swap(C, Cexp); \
+			std::swap(VdagC, VdagCexp); \
+			std::swap(Hsub_eigs, HsubExp_eigs);
+		SWAP_C_Cexp //Temporarily swap C and Cexp
+		eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
+		SWAP_C_Cexp  //Restore C and Cexp to correct places
 		//Setup matrices for expanded subspace generalized eigenvalue problem:
 		matrix bigOsub(nBandsBig, nBandsBig);
-		{	bigOsub.set(0,nBands, 0,nBands, eye(nBands)); //since Y's are already orthonormal
-			bigOsub.set(nBands,nBandsBig, nBands,nBandsBig, C^OC);
-			matrix YdagOC = Y^OC;
-			bigOsub.set(0,nBands, nBands,nBandsBig, YdagOC);
-			bigOsub.set(nBands,nBandsBig, 0,nBands, dagger(YdagOC));
+		{	bigOsub.set(0,nBands, 0,nBands, eye(nBands)); //since C's are already orthonormal
+			bigOsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp^OCexp);
+			matrix CdagOCexp = C^OCexp;
+			bigOsub.set(0,nBands, nBands,nBandsBig, CdagOCexp);
+			bigOsub.set(nBands,nBandsBig, 0,nBands, dagger(CdagOCexp));
 		}
 		matrix bigHsub(nBandsBig, nBandsBig);
 		{	bigHsub.set(0,nBands, 0,nBands, Hsub_eigs);
-			bigHsub.set(nBands,nBandsBig, nBands,nBandsBig, C^HC);
-			matrix YdagHC = Y^HC;
-			bigHsub.set(0,nBands, nBands,nBandsBig, YdagHC);
-			bigHsub.set(nBands,nBandsBig, 0,nBands, dagger(YdagHC));
+			bigHsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp^HCexp);
+			matrix CdagHCexp = C^HCexp;
+			bigHsub.set(0,nBands, nBands,nBandsBig, CdagHCexp);
+			bigHsub.set(nBands,nBandsBig, 0,nBands, dagger(CdagHCexp));
 		}
 		//Solve expanded subspace generalized eigenvalue problem:
 		matrix bigU = invsqrt(bigOsub);
 		bigHsub = dagger_symmetrize(dagger(bigU) * bigHsub * bigU); //switch to the symmetrically-orthonormalized basis
 		matrix bigHsub_evecs; diagMatrix bigHsub_eigs;
 		bigHsub.diagonalize(bigHsub_evecs, bigHsub_eigs);
-		matrix rot = bigU * bigHsub_evecs; //rotation from [Y,C] to the expanded subspace eigenbasis
+		matrix rot = bigU * bigHsub_evecs; //rotation from [C,Cexp] to the expanded subspace eigenbasis
 		int nBandsNext = std::min(nBandsMax, nBandsBig); //number of bands to retain for next iteration
-		matrix Yrot = rot(0,nBands, 0,nBandsNext); //contribution of Y to lowest nBands eigenvectors
-		matrix Crot = rot(nBands,nBandsBig, 0,nBandsNext); //contribution of C to lowest nBands eigenvectors
-		//Update Y to optimum nBands subspace from [Y,C]
-		Y = Y*Yrot + C*Crot;
-		OY = OY*Yrot + OC*Crot;
-		HY = HY*Yrot + HC*Crot;
+		matrix Crot = rot(0,nBands, 0,nBandsNext); //contribution of C to lowest nBandsNext eigenvectors
+		matrix CexpRot = rot(nBands,nBandsBig, 0,nBandsNext); //contribution of Cexp to lowest nBandsNext eigenvectors
+		//Update C to optimum nBands subspace from [C,Cexp]
+		C = C*Crot + Cexp*CexpRot;
+		OC = OC*Crot + OCexp*CexpRot;
+		HC = HC*Crot + HCexp*CexpRot;
 		Hsub_eigs = bigHsub_eigs(0,nBandsNext);
+		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])
+			VdagC[sp] = VdagC[sp]*Crot + VdagCexp[sp]*CexpRot;
 		//Print and test convergence
 		double EbandPrev = Eband;
 		Eband = qnum.weight * trace(Hsub_eigs(0,nBandsOut));
@@ -135,10 +149,13 @@ void BandDavidson::minimize()
 	fflush(globalLog);
 	
 	//Update final quantities:
-	C = (Y.nCols()==nBandsOut ? Y : Y.getSub(0, nBandsOut)); //already orthonormal and in eigenbasis
-	e.iInfo.project(C, VdagC);
-	eVars.Hsub_eigs[qActive] = Hsub_eigs(0,nBandsOut);
-	eVars.Hsub[qActive] = eVars.Hsub_eigs[qActive];
-	eVars.Hsub_evecs[qActive] = I;
-	eVars.grad_CdagOC[qActive] = -eVars.Hsub_eigs[qActive];
+	if(C.nCols() != nBandsOut)
+	{	//reduce outputs to size:
+		C = C.getSub(0, nBandsOut);
+		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])
+			VdagC[sp] = VdagC[sp](0,VdagC[sp].nRows(), 0,nBandsOut);
+		Hsub_eigs = Hsub_eigs(0,nBandsOut);
+	}
+	Hsub = Hsub_eigs;
+	Hsub_evecs = I;
 }

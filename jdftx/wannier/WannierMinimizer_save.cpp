@@ -405,7 +405,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				FILE* fp = fopen(fname.c_str(), "wb");
 				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
 				for(int i=0; i<gInfoSuper.nr; i++)
-					fwrite(psiData+i, sizeof(double), 1, fp);
+					fwriteLE(psiData+i, sizeof(double), 1, fp);
 				fclose(fp);
 			}
 			else saveRawBinary(psi, fname.c_str());
@@ -540,12 +540,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Electron-phonon linewidths:
 	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ePh", &iSpin);
-		off_t fsize = fileSize(fname.c_str());
+		intptr_t fsize = fileSize(fname.c_str());
 		if(fsize >= 0)
 		{	//Read from file:
 			int nBandsIn = fsize / (sizeof(double) * e.eInfo.nStates);
-			if(int(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
-				die("Length of file '%s' = %zd is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
+			if(intptr_t(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
+				die("Length of file '%s' = %" PRIdPTR " is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
 			std::vector<diagMatrix> ImSigma_ePh;
 			e.eInfo.read(ImSigma_ePh, fname.c_str(), nBandsIn);

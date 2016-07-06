@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Functions required by Minimizable<matrix3<>>
 void axpy(double alpha, const matrix3<>& x, matrix3<>& y) { y += alpha * x; }
 double dot(const matrix3<>& x, const matrix3<>& y) { return trace(x*(~y)); }
+inline double nrm2(matrix3<>& x) { return sqrt(dot(x,x)); }
 matrix3<> clone(const matrix3<>& x) { return x; }
 void randomize(matrix3<>& x) { for(int i=0; i<3; i++) for(int j=0; j<3; j++) x(i,j) = Random::normal(); }
 
@@ -37,7 +38,7 @@ void bcast(matrix3<>& x)
 
 //-------------  class LatticeMinimizer -----------------
 
-LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
+LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skipWfnsDrag(false)
 {
 	logPrintf("\n--------- Lattice Minimization ---------\n");
 	
@@ -101,13 +102,17 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R)
 }
 
 void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
-{	//Project wavefunctions to atomic orbitals:
+{	//Check if strain will become too large beforehand
+	//(so that we can avoid updating wavefunctions for steps that will fail)
+	if(nrm2(strain+alpha*dir) > GridInfo::maxAllowedStrain) //strain will become large
+		skipWfnsDrag = true; //skip wavefunction drag till a 'real' compute occurs at an acceptable strain
+	
+	//Project wavefunctions to atomic orbitals:
 	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
 	int nAtomic = e.iInfo.nAtomicOrbitals();
-	if(e.cntrl.dragWavefunctions && nAtomic)
+	if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for old lattice:
-			e.eVars.Y[q].free();
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
 			//Fit the wavefunctions to atomic orbitals (minimize C0^OC0 where C0 is the remainder)
 			ColumnBundle Opsi = O(psi); //non-trivial cost for uspp
@@ -124,25 +129,20 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Restore wavefunctions from atomic orbitals:
-		if(e.cntrl.dragWavefunctions && nAtomic)
+		if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
 		{	//Get atomic orbitals for new lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
 			//Reconstitute wavefunctions:
 			e.eVars.C[q] += psi * coeff[q];
 		}
-		//Reorthonormalize wavefunctions:
-		e.eVars.VdagC[q].clear();
-		matrix orthoMat = invsqrt(e.eVars.C[q]^O(e.eVars.C[q], &e.eVars.VdagC[q]));
-		e.eVars.Y[q] = e.eVars.C[q] * orthoMat;
-		e.eVars.C[q] = e.eVars.Y[q];
-		e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q], &orthoMat);
+		e.eVars.orthonormalize(q); //Reorthonormalize wavefunctions
 	}
 }
 
 double LatticeMinimizer::compute(matrix3<>* grad)
 {
 	//Check for large lattice strain
-	if(sqrt(dot(strain, strain)) > GridInfo::maxAllowedStrain)
+	if(nrm2(strain) > GridInfo::maxAllowedStrain)
 	{	logPrintf("\nBacking of lattice step since strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
 		logPrintf("If this is a physical strain, restart calculation with these lattice vectors to prevent Pulay errors:\n");
 		e.gInfo.printLattice();
@@ -169,6 +169,7 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 		updateLatticeDependent(e);
 	}
 	
+	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
 	return relevantFreeEnergy(e);
 }
 
@@ -227,6 +228,14 @@ void LatticeMinimizer::constrain(matrix3<>& dir)
 	dir = result;
 }
 
+double LatticeMinimizer::safeStepSize(const matrix3<>& dir) const
+{	double alphaMax = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir);
+	if(nrm2(strain) < GridInfo::maxAllowedStrain) //not already at a disallowed strain
+		while(nrm2(strain+alphaMax*dir) > GridInfo::maxAllowedStrain)
+			alphaMax *= 0.5; //reduce step size further till new position will become safe
+	return alphaMax;
+}
+
 double LatticeMinimizer::sync(double x) const
 {	mpiUtil->bcast(x);
 	return x;
@@ -243,9 +252,9 @@ void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectron
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
 	e.iInfo.update(e.ener);
 	if(!ignoreElectronic)
-	{	bool scf = false; std::swap(e.cntrl.scf, scf); //Temporarily disable scf flag so that orthogonalizations are not bypassed in elecEnergyAndGrad()
+	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			e.eVars.orthonormalize(q);
 		e.eVars.elecEnergyAndGrad(e.ener);
-		std::swap(e.cntrl.scf, scf);
 	}
 	logResume();
 }

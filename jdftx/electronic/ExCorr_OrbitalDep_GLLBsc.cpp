@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 ExCorr_OrbitalDep_GLLBsc::ExCorr_OrbitalDep_GLLBsc(const Everything& e) : ExCorr::OrbitalDep(e)
-{	T = (e.eInfo.fillingsUpdate==ElecInfo::ConstantFillings) ? 0. : e.eInfo.kT;
+{	T = (e.eInfo.fillingsUpdate==ElecInfo::FillingsConst) ? 0. : e.eInfo.kT;
 }
 
 

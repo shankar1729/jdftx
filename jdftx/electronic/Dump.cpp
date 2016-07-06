@@ -116,7 +116,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		<< mytm->tm_hour << '-' << mytm->tm_min << '-' << mytm->tm_sec;
 	stamp = stampStream.str();
 	
-	if((ShouldDump(State) and eInfo.fillingsUpdate!=ElecInfo::ConstantFillings) or ShouldDump(Fillings))
+	if((ShouldDump(State) and eInfo.fillingsUpdate==ElecInfo::FillingsHsub) or ShouldDump(Fillings))
 	{	//Dump fillings
 		double wInv = eInfo.spinType==SpinNone ? 0.5 : 1.0; //normalization factor from external to internal fillings
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) ((ElecVars&)eVars).F[q] *= (1./wInv);
@@ -137,13 +137,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		{	//Dump state of fluid:
 			StartDump("fluidState")
 			if(mpiUtil->isHead()) eVars.fluidSolver->saveState(fname.c_str());
-			EndDump
-		}
-		
-		if(eInfo.fillingsUpdate!=ElecInfo::ConstantFillings and eInfo.fillingsUpdate==ElecInfo::FermiFillingsAux)
-		{	//Dump auxilliary hamiltonian
-			StartDump("Haux")
-			eInfo.write(eVars.B, fname.c_str());
 			EndDump
 		}
 	}
@@ -244,7 +237,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Vscloc) and e->exCorr.needsKEdensity())
 		DUMP_spinCollection(eVars.Vtau, "Vtau")
 	
-	if(ShouldDump(BandEigs) || (ShouldDump(State) && e->exCorr.orbitalDep && isCevec))
+	if(ShouldDump(BandEigs) ||
+		(ShouldDump(State) &&
+			( (eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			|| (e->exCorr.orbitalDep && isCevec) ) ) )
 	{	StartDump("eigenvals")
 		if (freq == DumpFreq_Dynamics)
 			eInfo.appendWrite(eVars.Hsub_eigs, fname.c_str());
@@ -516,14 +512,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDumpNoAll(FluidDebug) && hasFluid)
 		eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
-	if(ShouldDumpNoAll(OptVext))
-	{	if(eInfo.spinType == SpinZ)
-		{	DUMP(eVars.Vexternal[0], "optVextUp", OptVext)
-			DUMP(eVars.Vexternal[1], "optVextDn", OptVext)
-		}
-		else DUMP(eVars.Vexternal[0], "optVext", OptVext)
-	}
-	
 	if(ShouldDumpNoAll(DOS))
 	{	dos->dump();
 	}

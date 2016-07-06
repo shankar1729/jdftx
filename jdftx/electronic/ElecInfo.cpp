@@ -34,11 +34,9 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(ConstantFillings), kT(1e-3), mu(std::numeric_limits<double>::quiet_NaN()),
-mixInterval(0), subspaceRotation(false), hasU(false), nBandsOld(0),
-Qinitial(0.), Minitial(0.), Mconstrain(false),
-fillingMixFraction(0.5), dnPrev(mu), muMeasuredPrev(mu), //set dnPrev and muMeasuredPrev to NaN
-Cmeasured(1.), Cweight(0.), dnMixFraction(0.7)
+fillingsUpdate(FillingsConst), scalarFillings(true), kT(1e-3), mu(NAN),
+hasU(false), nBandsOld(0),
+Qinitial(0.), Minitial(0.), Mconstrain(false)
 {
 }
 
@@ -91,7 +89,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	if(!nBands)
 	{	double nsElectronsMax = *std::max_element(nsElectrons.begin(), nsElectrons.end());
 		int nBandsMin = std::max(1, (int)ceil(nsElectronsMax*wInv));
-		if(fillingsUpdate == ConstantFillings) //pick nBands to just accommodate spin channel with most electrons
+		if(fillingsUpdate == FillingsConst) //pick nBands to just accommodate spin channel with most electrons
 		{	nBands = nBandsMin;
 		}
 		else //set to number of atomic orbitals (which will ensure that complete bands are included)
@@ -166,39 +164,33 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
 	}
 	
-	//subspace_rotation is false by default
-	if(fillingsUpdate != ConstantFillings)
+	//Check that number of bands is sufficient:
+	int nBandsMin = (int)ceil(nElectrons/qWeightSum);
+	if(fillingsUpdate == FillingsHsub)
 	{	//make sure there are extra bands:
-		int nBandsMin = (int)ceil(nElectrons/qWeightSum);
 		if(nBands*qWeightSum <= nElectrons)
-			die("%d bands insufficient for fermi fillings with %lg electrons (need at least %d, recommend > %d)\n",
+			die("%d bands insufficient for variable fillings with %lg electrons (need at least %d, recommend > %d)\n",
 				nBands, nElectrons, nBandsMin+1, nBandsMin+5);
-		
-		subspaceRotation = true;
-		logPrintf("Turning on subspace rotations for fermi fillings.\n");
 	}
-	else
-	{	//make sure there are sufficient bands:
-		int nBandsMin = (int)ceil(nElectrons/qWeightSum);
-		if(nBands < nBandsMin)
+	else //FillingsConst:
+	{	if(nBands < nBandsMin)
 			die("%d bands insufficient for %lg electrons (need at least %d)\n",
 				nBands, nElectrons, nBandsMin);
 		
-		if(!e->cntrl.fixed_H) //Band structure never requires subspace-rotations
-		{	//Check if fillings are scalar (then subspace rotations are not needed as [Hsub,F]=0)
-			bool scalarFillings = true;
+		//Check for non-scalar fillings in a variational minimize calculation:
+		if(!e->cntrl.fixed_H && !e->cntrl.scf)
+		{	scalarFillings = true;
 			for(int q=qStart; q<qStop; q++)
 				scalarFillings &= F[q].isScalar();
 			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
 			if(!scalarFillings)
-			{	subspaceRotation = true;
-				logPrintf("Turning on subspace rotations due to non-diagonal fillings.\n");
-			}
+				logPrintf("Turning on subspace rotations due to non-scalar fillings.\n");
 		}
 	}
 	
 	//Set the Legendre multipliers corresponding to the initial fillings
-	updateFillingsEnergies(F, ener);
+	if(fillingsUpdate == FillingsHsub) //if ConstantFillings, let TS and muN remain 0
+		updateFillingsEnergies(F, ener);
 	
 	// Print out the current status of the electronic info before leaving
 	logPrintf("nElectrons: %10.6f   nBands: %d   nStates: %d", nElectrons, nBands, nStates);
@@ -227,9 +219,9 @@ void ElecInfo::printFillings(FILE* fp) const
 			e->eVars.F[q].send(0);
 }
 
-void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
+void ElecInfo::printFermi(const double* muOverride) const
 {	double Bz = 0.;
-	logPrintf("\tFillings%s:  mu: %+.9lf  nElectrons: %.6lf", suffix,
+	logPrintf("\tFillingsUpdate:  mu: %+.9lf  nElectrons: %.6lf",
 		muOverride ? *muOverride //use override value if provided
 			: ( !std::isnan(mu) ? mu //use target mu if in fixed-mu mode
 				: findMu(e->eVars.Hsub_eigs, nElectrons, Bz) ), //determine from eigenvalues otherwise
@@ -255,54 +247,6 @@ void ElecInfo::printFermi(const char* suffix, const double* muOverride) const
 		logPrintf("  magneticMoment: [ Abs: %7.5f  Tot: %7.5f  theta: %6.2f  phi: %+7.2f ]", Mabs, Mtot.length(), euler[1], euler[0]);
 	}
 	logPrintf("\n"); logFlush();
-}
-
-
-void ElecInfo::mixFillings(std::vector<diagMatrix>& F, Energies& ener)
-{	const ElecVars &eVars = e->eVars;
-	double muMix; //A chemical potential whose corresponding fermi distribution is mixed in
-	double Bz; //magnetization constraint Lagrange multiplier
-	
-	if(!std::isnan(mu)) //Fixed mu:
-	{	//Fit a fermi-dirac distribution to the current fillings:
-		double &C = Cmeasured; //measured electrostatic capacitance
-		double muMeasured = findMu(eVars.Hsub_eigs, nElectrons, Bz); //this is the "measured" mu that fits the fillings
-
-		//If not the first iteration, update estimate of Ceff
-		if(!std::isnan(dnPrev))  //improve the capacitance estimate
-		{	double curC = dnPrev/(muMeasured - muMeasuredPrev);  //observed total effective capacitance
-			double curWeight = fabs(dnPrev); //weight of current measurement
-			C = (Cweight + curWeight)/(Cweight/C + curWeight/curC);
-			Cweight += curWeight;
-			Cweight *= 0.9; //gradually forget the older measurements
-		}
-		muMeasuredPrev = muMeasured;
-	
-		//Determine the amount to change the charge by, and adjust chemical potential to get that charge
-		double dn = dnMixFraction * C * (mu-muMeasured);
-		muMix = findMu(eVars.Hsub_eigs, nElectrons + dn/fillingMixFraction, Bz); //this is the mu with which the fillings are mixed in
-		nElectrons += dn;
-		dnPrev = dn;
-		logPrintf("\tMuController:  MeasuredMu: %.9lf  C: %le  dn: %.6lf  n: %.6lf  SetMu: %.9lf\n",
-			muMeasured, C, dn, nElectrons, muMix);
-	}
-	else
-	{	//Fixed charge, just bisect to find mu:
-		muMix = findMu(eVars.Hsub_eigs, nElectrons, Bz);
-	}
-	printFermi("Mix", &muMix);
-	
-	//Mix in fillings at new mu:
-	for(int q=qStart; q<qStop; q++)
-		F[q] = (1-fillingMixFraction)*F[q] + fillingMixFraction*fermi(muEff(muMix,Bz,q), eVars.Hsub_eigs[q]);
-	
-	if(e->cntrl.shouldPrintEigsFillings)
-	{	logPrintf("\nCorresponding fillings:\n");
-		printFillings(globalLog);
-	}
-	
-	// Update fillings contribution to free energy:
-	updateFillingsEnergies(F, ener);
 }
 
 
@@ -380,8 +324,9 @@ double ElecInfo::nElectronsFermi(double mu, const std::vector< diagMatrix >& eps
 		//Find a range which is known to bracket the result:
 		const double absTol = 1e-10, relTol = 1e-14;
 		double Mtol = std::max(absTol, relTol*fabs(Minitial));
-		double BzMin=-0.1; while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=0.1;
-		double BzMax=+0.0; while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=0.1;
+		double BzMin=-0.1, BzMax=+0.1;
+		while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=(BzMax-BzMin);
+		while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=(BzMax-BzMin);
 		//Bisect:
 		double BzTol = std::max(absTol*kT, relTol*std::max(fabs(BzMin),fabs(BzMax)));
 		while(BzMax-BzMin>=BzTol)
@@ -405,8 +350,9 @@ double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons, d
 	//Find a range which is known to bracket the result:
 	const double absTol = 1e-10, relTol = 1e-14;
 	double nTol = std::max(absTol, relTol*fabs(nElectrons));
-	double muMin=-0.1; while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=0.1;
-	double muMax=+0.0; while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=0.1;
+	double muMin=-0.1, muMax=+0.0;
+	while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=(muMax-muMin);
+	while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=(muMax-muMin);
 	//Bisect:
 	double muTol = std::max(absTol*kT, relTol*std::max(fabs(muMin),fabs(muMax)));
 	while(muMax-muMin>=muTol)

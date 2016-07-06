@@ -1,0 +1,103 @@
+/** \page OpenShell Open-shell systems
+
+\image html Hatom.png
+
+This tutorial covers the basics for spin-polarized and open-shell calculations in JDFTx,
+using the most basic system of all, a hydrogen atom.
+Additionally, it introduces the eigenvalue output and the exact-exchange  options in the code.
+
+First, lets set up a hydrogen atom calculation exactly as we would based on the previous tutorials.
+Save the following to Hatom.in:
+
+
+    lattice Cubic 15
+    ion H 0 0 0  1
+    
+    coulomb-interaction Isolated
+    coulomb-truncation-embed 0 0 0
+
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    elec-cutoff 20 100
+    
+    dump End None
+
+and run jdftx -i Hatom.in.
+Since there is only one atom, we don't need geometry optimization.
+Notice that the final energy Etot = -0.45851 Hartrees, which is rather different
+from the analytical exact energy -0.5 Hartree (= -1 Rydberg = -13.6 eV).
+
+The reason for this disrepancy is that, by default, this DFT calculation is spin-unpolarized,
+that is it assumes an equal number of up and down spin electrons.
+This assumption is correct for the water molecule with a closed shell of 8 valence electrons
+that we dealt with so far, but is incorrect for the hydrogen atom which has only one electron.
+This electron must be either an up or down spin, so that the magnetization (Nup - Ndn) is +1 or -1.
+We can invoke a spin-polarized calculation and specify the magentization using the commands:
+
+    spintype z-spin                     #z-spin = up/dn polarization (non-relativistic spin)
+    elec-initial-magnetization +1 yes   #yes = hold magnetization fixed, no = optimize it
+
+Add these commands to Hatom.in and rerun jdftx.
+Now we find Etot = -0.4994 Hartrees, in much better agreement with the analytical result.
+Check that using magnetization -1 produces exactly the same result.
+
+Next, let's examine the Kohn-Sham eigenvalue of the Hydrogen orbitals.
+Add the following commands to Hatom.in to output the eigenvalues:
+
+    dump End BandEigs
+    dump-name Hatom.$VAR
+
+and rerun jdftx. It will now output a binary file Hatom.eigenvals,
+whose contents you can examine using one of the distributed scripts:
+
+    binaryToText Hatom.eigenvals
+
+Note that the Kohn-Sham eigenvalues for the occupied (spin up) orbital is approximately
+-0.28 Hartrees, in very poor agreement with the exact analytical result of -0.5 Hartrees.
+(The unoccupied state eigenvalue does not converge in this variational minimize
+calculation since it absolutely does not contribute to the total energy.
+Converging empty state eigenvalues reliably requires a [band-structure calculation](BandStructure.html),
+or the use of the \ref CommandConvergeEmptyStates command.)
+
+This eigenvalue inaccuracy is a well-known limitation of semi-local DFT approximations
+such as the default PBE generalized-gradient approximation used here.
+In these functionals, the electrons effectively interact with themselves
+(self-interaction error) which makes the Kohn-Sham eigenvalues of occupied states
+too high, and leads to the well-known underestimation of band gaps of solids.
+Note however that the total energies are still almost surprisingly accurate.
+
+For the one-electron hydrogen atom, we can eliminate this self-interaction error
+using Hartree-Fock, which evaluates the exact exchange energy directly from the wavefunctions,
+instead of approximating it from the density (and omits the correlation density functional).
+We can specify Hartree-Fock theory using the command:
+
+     elec-ex-corr Hartree-Fock
+     
+Running jdftx on Hatom.in with this command added, will at first however fail
+because exact-exchange based calculations are only supported for norm-conserving pseudopotentials,
+whereas the GBRV pseudopotentials used above are ultrasoft pseudopotentials.
+Therefore, additionally replace the two ion-species lines and the elec-cutoff line above with
+
+     ion-species SG15/$ID_ONCV_PBE-1.1.upf
+     ion-species SG15/$ID_ONCV_PBE-1.0.upf
+     elec-cutoff 30
+
+to use the norm-conserving SG15 pseudopotential set, which requires a higher plane-wave cutoff.
+Now run jdftx again (it will take around ten times as long)
+and examine the eigenvalues using binaryToText.
+Now we find that the eigenvalue of the occupied state is -0.4998 Hartrees,
+exactly equal to the total energy Etot = -0.4998 Hartrees,
+both in very good agreement with the analytical result of -0.5 Hartrees.
+
+The Hartree-Fock calculations are exact for the hydrogen atom,
+but are much less accurate than semi-local DFTs for most molecules and solids,
+especially for calculating total energies and geometries.
+A common practice to empirically get the best of both worlds is to
+mix a fraction of exact exchange into a semi-local DFT calculation.
+For example, to use the popular PBE0 or HSE06 functionals in JDFTx,
+you would specify the hyb-PBE0 or hyb-HSE06 options to elec-ex-corr.
+In this special case however, we find that the eigenvalues for those
+(-0.336 and -0.329 respectively) are closer to the semi-local DFT result,
+than to the exact Hartree-Fock result.
+
+*/

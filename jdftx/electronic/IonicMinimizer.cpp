@@ -27,6 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 
+const double IonicMinimizer::maxAtomTestDisplacement = 0.1; //in bohrs
+const double IonicMinimizer::maxWfnsDragDisplacement = 0.02; //in bohrs
+
 void IonicGradient::init(const IonInfo& iInfo)
 {	clear();
 	resize(iInfo.species.size());
@@ -128,7 +131,7 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 }
 
 
-IonicMinimizer::IonicMinimizer(Everything& e) : e(e), populationAnalysisPending(false)
+IonicMinimizer::IonicMinimizer(Everything& e) : e(e), populationAnalysisPending(false), skipWfnsDrag(false)
 {	
 }
 
@@ -137,6 +140,14 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	ElecVars& eVars = e.eVars;
 	ElecInfo& eInfo = e.eInfo;
 	IonInfo& iInfo = e.iInfo;
+	
+	//Check step size to determine whether to allow wavefunction dragging:
+	double dMax = 0.;
+	for(const auto& spArr: dir)
+		for(const vector3<>& d: spArr)
+			dMax = std::max(dMax, d.length());
+	if(alpha*dMax > maxWfnsDragDisplacement)
+		skipWfnsDrag = true;
 	
 	IonicGradient dpos = alpha * e.gInfo.invR * dir; //dir is in cartesian, atpos in lattice
 	
@@ -160,7 +171,6 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{
 				//Get atomic orbitals at old positions:
-				eVars.Y[q].free();
 				ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
 				
 				//Compute atomic orbital projections:
@@ -171,11 +181,11 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 				}
 				
 				if(populationAnalysisPending)
-				{	matrix lowdin = invsqrt(psiDagOpsi) * psiDagOC; //Lowdin coefficients (note symmetric orthonormalizzation)
+				{	matrix lowdin = invsqrt(psiDagOpsi) * psiDagOC; //Lowdin coefficients (note symmetric orthonormalization)
 					Rho[eInfo.qnums[q].index()] += eInfo.qnums[q].weight * (lowdin * eVars.F[q] * dagger(lowdin)); //density matrix contribution
 				}
 				
-				if(alpha && e.cntrl.dragWavefunctions) //needed only if actually dragging wavefunctions
+				if(alpha && e.cntrl.dragWavefunctions && (!skipWfnsDrag)) //needed only if actually dragging wavefunctions
 				{	matrix coeff = inv(psiDagOpsi) * psiDagOC;  //LCAO coefficients for best fit (minimize C0^OC0 where C0 is the remainder)
 					eVars.C[q] -= psi * coeff; //now contains the residual C0 mentioned above
 				
@@ -204,9 +214,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		populationAnalysisPending = false;
 	}
 	if(!alpha) //case when step was invoked purely for population analysis
-	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			eVars.Y[q] = eVars.C[q];
-		watch.stop(); return; 
+	{	watch.stop(); return; 
 	}
 	
 	//Move the atoms:
@@ -220,12 +228,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	
 	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	eVars.VdagC[q].clear();
-		matrix orthoMat = invsqrt(eVars.C[q]^O(eVars.C[q], &eVars.VdagC[q]));
-		eVars.Y[q] = eVars.C[q] * orthoMat;
-		eVars.C[q] = eVars.Y[q];
-		iInfo.project(eVars.C[q], eVars.VdagC[q], &orthoMat);
-	}
+		eVars.orthonormalize(q);
 	
 	watch.stop();
 }
@@ -249,6 +252,7 @@ double IonicMinimizer::compute(IonicGradient* grad)
 		*grad = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
 	}
 	
+	skipWfnsDrag = false; //computed at physical atomic positions; safe to drag wfns at next step
 	return relevantFreeEnergy(e);
 }
 
@@ -287,6 +291,15 @@ bool IonicMinimizer::report(int iter)
 
 void IonicMinimizer::constrain(IonicGradient& x)
 {	e.symm.symmetrize(x); //minimization is constrained by symmetries on forces
+}
+
+double IonicMinimizer::safeStepSize(const IonicGradient& dir) const
+{	//Determine mx displacement in dir:
+	double dMax = 0.;
+	for(const auto& spArr: dir)
+		for(const vector3<>& d: spArr)
+			dMax = std::max(dMax, d.length());
+	return maxAtomTestDisplacement/dMax;
 }
 
 double IonicMinimizer::sync(double x) const

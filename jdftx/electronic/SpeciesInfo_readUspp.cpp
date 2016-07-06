@@ -52,11 +52,13 @@ struct UsppReader
 	//!Get a single element of type T
 	template<typename T> void get(T& t)
 	{	is.read((char*)&t, sizeof(T));
+		convertToLE(&t, sizeof(T), 1); //file is lalways little-endian; swap byte order if machine is not
 		if(is.eof()) die("  Error reading file.\n");
 	}
 	//!Get an array of length N of type T
 	template<typename T> void get(T* t, size_t N)
 	{	is.read((char*)t, sizeof(T)*N);
+		convertToLE(t, sizeof(T), N); //file is lalways little-endian; swap byte order if machine is not
 		if(is.eof()) die("  Error reading file.\n");
 	}
 	//!Get an vector of length N of type T

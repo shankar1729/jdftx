@@ -247,7 +247,7 @@ void TptrMul::loadFromFile(const char* filename)
 	if(!fp) die("Could not open %s for reading.\n", filename)
 	Nloop(
 		if(!component[i]) die("Component %d was null in loadFromFile(\"%s\").\n", i, filename)	
-		if(fread(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp) < unsigned(component[i]->nElem))
+		if(freadLE(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp) < unsigned(component[i]->nElem))
 			die("File ended too soon while reading component %d in loadFromFile(\"%s\").\n", i, filename)
 	)
 	fclose(fp);
@@ -258,7 +258,7 @@ void TptrMul::saveToFile(const char* filename) const
 	if(!fp) die("Could not open %s for writing.\n", filename)
 	Nloop(
 		if(!component[i]) die("Component %d was null in saveToFile(\"%s\").\n", i, filename)
-		fwrite(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp);
+		fwriteLE(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp);
 	)
 	fclose(fp);
 }

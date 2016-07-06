@@ -47,6 +47,12 @@ octave -qf <<EOF
 	data = reshape(fread(fp, "double"), [], 1); #read as a single column
 	fclose(fp);
 	
+	#Handle endianness, if necessary:
+	[comp,maxSize,endian] = computer();
+	if strcmp(endian,"B")
+		data = swapbytes(data); #files are always little-endian, so swap bytes in memory to make big-endian
+	endif
+	
 	#Reshape if necessary
 	if ($innerDim!=0)
 		if(mod(length(data),$innerDim) != 0)

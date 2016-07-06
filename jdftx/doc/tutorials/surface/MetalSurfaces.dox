@@ -1,0 +1,504 @@
+/** \page MetalSurfaces Metal surfaces
+
+<center><table border="0">
+<tr>
+<td>\image html tutorials/Pt100.png
+<td>\image html tutorials/Pt110.png
+<td>\image html tutorials/Pt111.png
+<tr>
+<td style="text-align:center"><b>Pt(100)</b>
+<td style="text-align:center"><b>Pt(110)</b>
+<td style="text-align:center"><b>Pt(111)</b>
+</table></center>
+
+Constructing a slab-geometry calculation (specifically graphene) from graphite
+in the \ref TwoDmaterials tutorial was easy: graphite already consisted of distinct layers.
+This tutorial shows you how to manually set up single-crystal platinum surfaces
+of various orientations, starting from supercell transformations,
+and then shows examples of surface property calculations in vacuum and solution.
+
+
+## Geometry setup
+
+Let's start with the geometry of bulk platinum, written using
+explicit lattice vectors rather than the shorthand lattice name:
+
+    set aBy2 3.705   #a/2 in bohrs
+    lattice \
+           0    ${aBy2} ${aBy2} \
+        ${aBy2}    0    ${aBy2} \
+        ${aBy2} ${aBy2}    0
+    
+    ion Pt 0. 0. 0.  1
+
+Note that the lattice vectors are in columns of the 3x3 matrix ,
+and we have used variable substitution along with the set command
+(see \ref Commands) to declare the lattice constant in one place.
+
+We can construct a surface unit cell in three steps.
+First we transform the unit cell (construct a supercell)
+in a way that allows us to identify layers with the desired
+surface direction, so that we can cleave the material.
+Then we repeat this supercell along the surface normal direction
+till there is enough room for the desired number of atomic layers and the vacuum gap.
+Finally, we keep atoms from a desired number of layers and drop the rest
+to create a slab with two surfaces, separated by a vacuum gap along the third direction
+(which we will make non-periodic using slab-mode %Coulomb truncation).
+
+The setup for the three common low-index surfaces of platinum, (100), (110) and (111),
+are discussed in the following pages in detail:
+
++ \subpage Pt100
++ \subpage Pt110
++ \subpage Pt111
+
+After following through these pages you will have x.lattice and x.ionpos files
+for each x in 100, 110 and 111.
+
+## Calculations
+
+Now that we have the geometry - lattice and fractional coordinates - of the surfaces,
+setting up the calculations is rather straightforward.
+We will run vacuum and solvated calculations for each surface,
+and our input files will closely resemble those in the \ref SolvationMolecule tutorial;
+the differences for the slab geometry will be familiar from the \ref TwoDmaterials tutorial.
+
+First we combine most of the setup in a common input file:
+
+    #Save the following to common.in:
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    elec-cutoff 20 100
+    
+    coulomb-interaction Slab 001
+    coulomb-truncation-embed 0 0 0
+    
+    kpoint-folding 12 12 1
+    elec-fermi-fillings 0 0.01
+    electronic-SCF
+    #ionic-minimize nIterations 10  #Uncomment to enable geometry optimization
+
+We will run a vacuum calculation starting from the geometry we set up:
+
+    #Save the following to Vacuum.in:
+    include common.in
+    include ${surface}.lattice
+    include ${surface}.ionpos
+    dump-name ${surface}-Vacuum.$VAR
+    dump End State IonicPositions
+
+These surface calculations are expensive, and to speed them up,
+I have disabled geometry optimization in Common.in.
+(So by default, all the results will be at the geometry we set up initially.)
+You can optionally enable geometry optimization and rerun
+the calculations to see how much difference it makes.
+
+We will then run a solvated calculation starting from the final vacuum geometry
+(same as initial, unless you enabled geometry optimization) and wavefunctions:
+
+    #Save the following to Solvated.in:
+    include common.in
+    include ${surface}.lattice
+    include ${surface}-Vacuum.ionpos
+    initial-state ${surface}-Vacuum.$VAR
+    dump End None
+    
+    fluid LinearPCM
+    pcm-variant CANDLE
+    fluid-solvent H2O
+    fluid-cation Na+ 1.
+    fluid-anion F- 1.
+
+As before, this sets up solvation in a 1M aqueous NaF electrolyte.
+
+We can run all the necessary calculations using the script:
+
+    #!/bin/bash
+    for surface in 100 110 111; do
+        export surface
+        jdftx -i Vacuum.in | tee ${surface}-Vacuum.out
+        jdftx -i Solvated.in | tee ${surface}-Solvated.out
+    done
+
+Save the above to run.sh, give execute permissions using "chmod +x run.sh",
+and execute using "./run.sh". This will take a while (~ half hour on a laptop)!
+
+Finally, let's analyze the total energies and electron chemical potentials (mu) of these calculations.
+We can calculate the formation energy of the surfaces (in vacuum and solution),
+by comparing against the energy of the bulk metal from the \ref Metals tutorial
+(scaled to the same number of atoms i.e. 5).
+The mu in vacuum is the work function, whereas the mu in solution is
+related to the electrode potential at which the surface is neutral,
+which is called the potential of zero charge (PZC) of the surface.
+
+We can convert the absolute mu to an electrode potential relative to a reference
+such as the standard hydogen electrode (SHE) by knowing the absolute potential
+of the reference electrode:
+
+    V_SHE = - (mu - mu_SHE)
+
+There is an overall negative sign due to differences in sign convention for
+electrode (reduction) potentials and electron chemical potentials.
+Experimentally, mu_SHE is calibrated to -4.44 eV.
+Alternately, we can calibrate mu_SHE by comparig theoretical calculations
+of the PZC of various metal surfaces against experimental measurements.
+We will use this approach, as it tends to cancel systematic errors in the solvation model.
+For the CANDLE solvation model, mu_SHE = -4.66 eV (from the CANDLE paper).
+
+We can extract all these results from the output files and print them nicely using the script:
+
+    #!/bin/bash
+    
+    Ebulk="-88.9330251" #Bulk metal energy per atom
+    
+    function parseOutputs()
+    {
+        logFile="$1"
+        awk "
+            /R =/ {RstartLine=NR}
+            NR==RstartLine+3 { Lz = \$4 }           #Height of unit cell
+            /unit cell volume/ { A = \$NF*2/Lz}     #Surface area (top+bottom)
+            /FillingsUpdate:/ { mu = \$3 }          #Electron chemical potential
+            /IonicMinimize: Iter/ { Esurf = (\$5 - $Ebulk*5)/A }  #Surface energy
+            END {
+                eV = 1/27.2114;
+                nm = 1/0.05291772;
+                print Esurf/(eV/(nm*nm)), mu/eV     #Output with unit conversion
+            }
+        " $logFile
+    }
+    
+    #Print header:
+    echo "Surface      Esurf [eV/nm^2]           Absolute mu [eV]     V_SHE"
+    echo "         Vacuum Solvated  Shift     Vacuum Solvated  Shift   [V]"
+    
+    #Print results:
+    for surface in 100 110 111; do
+        EmuVac="$(parseOutputs $surface-Vacuum.out)"
+        EmuSol="$(parseOutputs $surface-Solvated.out)"
+        echo -n "  $surface   "
+        #Print extracted results and solvation differences:
+        echo "$EmuVac $EmuSol" | awk '{
+            printf("%7.2f %7.2f %7.2f   %7.2f %7.2f %7.2f %7.2f\n",
+                $1, $3, $3-$1, $2, $4, $4-$2, -($4-(-4.68))) }'
+    done
+
+Save the above to collectResults.sh, give execute permissions using
+"chmod +x collectResults.sh", and execute using "./collectResults.sh"
+to get the results:
+
+<center><table>
+<tr>
+<th rowspan=2> Surface
+<th colspan=3> E<sub>surf</sub> [eV/nm<sup>2</sup>]
+<th colspan=3> Absolute mu [eV]
+<th rowspan=2> V<sub>SHE</sub> [V]
+<tr>            <th> Vacuum <th> Solvated <th> Shift <th> Vacuum <th> Solvated  <th> Shift
+<tr> <td> (100) <td> 10.78  <td>  10.54   <td> -0.24 <td> -5.60  <td> -5.33     <td> 0.27  <td> 0.65
+<tr> <td> (110) <td> 11.46  <td>  11.26   <td> -0.21 <td> -5.28  <td> -4.99     <td> 0.29  <td> 0.31
+<tr> <td> (111) <td>  8.38  <td>   8.11   <td> -0.27 <td> -5.61  <td> -5.34     <td> 0.27  <td> 0.66
+</table></center>
+
+Note that the surface formationn energies in vacuum follow the trend (111) < (100) < (110),
+indicating that (111) is most stable and (110) is least stable.
+This remains the case even in solvent: solvation reduces the formation energies
+of all three surfaces (stabilizes the surfaces), but only by a relatively small amount.
+
+The chemical potentials (negative of work function in vacuum / PZC in solution)
+also show a similar trend (111) <= (100) < (110).
+Solvation shifts up the chemical potentials towards zero
+consistently by about 0.3 eV for all three surfaces.
+
+Exercise: what happens with geometry optimization? How much do these results change?
+If you have issues with electronic-SCF convergence,
+try the stabler but slower electronic-minimize instead.
+*/
+
+/** \page Pt100 Pt(100) setup
+
+\image html tutorials/Pt100.png
+
+For (100) surfaces, the surface normal is along a (100) direction i.e. the cube axes.
+For a cubic system, all three axes are equivalent and we will pick
+the surface normal along the z direction.
+
+Thhe first step is to find a supercell consisting of layers parallel to the surface.
+The supercell lattice vectors are integer linear combinations of the original lattice vectors.
+Specifically, we need to find the smallest integer linear combinations that satisfy:
+
+1. Two superlattice vectors are perpendicular to the surface normal (i.e. in-plane)
+2. The third superlattice vector is parallel to the surface normal
+
+Once again, the original face-centered cubic lattice vectors (in columns) are:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+For the 100 surface, we can get a superlattice vector along the z direction
+by adding the first two columns and subtracting the last column,
+which corresponds to a linear combination [ 1 1 -1 ].
+We now need two linearly-independent superlattice vectors with no z component.
+The third column i.e. combination [ 0 0 1] already satisfies this criterion,
+and we can get another from the difference of the first two lattice vectors
+i.e. the linear combination [ 1 -1 0 ].
+Putting these linear combination together *along columns*,
+we get the lattice transformation matrix:
+
+        / 0  1  1 \
+    M = | 0 -1  1 |
+        \ 1  0 -1 /
+
+Multiplying the original lattice vectors R by this transformation matrix,
+we would get the superlattice vectors:
+
+                   /  0  a/2 a/2 \   / 0  1  1 \   / a/2 -a/2  0 \
+    Rsup = R . M = | a/2  0  a/2 | . | 0 -1  1 | = | a/2  a/2  0 |
+                   \ a/2 a/2  0  /   \ 1  0 -1 /   \  0    0   a /
+
+Note that these superlattice vectors are all perpendicular to each other,
+with the first two in the x-y plane and the third along z, as desired.
+The absolute orientation of the lattice vectors in space do not matter,
+we only need to preserve their lengths and the angles between them.
+Specifically the above is a tetragonal lattice with square side a/sqrt(2)
+and height a, which we could specify using a shorthand in JDFTx as
+
+    latttice Tetragonal ${aBySqrt2} ${a}  #With a/sqrt(2) and a set previously
+
+The determinant of the transformation matrix, det(M) = 2, which means that
+det(Rsup) = 2 det(R), or that the volume of the supercell is twice that of the unit cell.
+Therefore we would need two atoms per supercell, to get the original crystal again.
+We can leave the first atom at fractional coordinates [ 0 0 0 ] in the unit cell.
+We can add the second atom at any of the original lattice vectors which has a non-zero
+component along the surface normal direction.= eg. [ 1 0 0 ] in the unit cell.
+Now we need to transform these fractional coordinates from the unit cell to the supercell,
+using the inverse of the transformation matrix, inv(M).
+The first atom coordinates [ 0 0 0] of course transform to [ 0 0 0 ],
+and for the second atom, the new coordinates are:
+
+             / 1 \    / 1/2  1/2  1 \   / 1 \   / 1/2 \
+    inv(M) . | 0 | =  | 1/2 -1/2  0 | . | 0 | = | 1/2 |
+             \ 0 /    \ 1/2  1/2  0 /   \ 0 /   \ 1/2 /
+
+Therefore, the fractional atom coordinates for the supercell can be specified as:
+
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.5   1
+
+At this stage, we have the lattice and ionpos for a supercell calculation.
+Running JDFTx on this geometry (with appropriate k-point sampling etc.)
+would give you exactly the same material properties as on the original
+unit cell, except that extensive properties like the total energy
+would be twice as large since there are two atoms per unit cell (try it).
+
+Our current supercell has two layers with a 100 surface direction.
+The next step is to increase the number of layers, and cleave the crystal
+by adding some gap along the to-be non-periodic third direction.
+Let's say we want 5 atomic layers, and a minimum gap of 15 bohrs as before.
+The layer spacing is a/2 (third supercell lattice vector has length a,
+and there are two layers per supercell so far) = 3.705 bohrs,
+so 5 empty atomic layers is the minimum number > 15 bohrs of spacing.
+Therefore we pick a supercell that has 10 atomic layers i.e. five times as before.
+For this, we scale up our third lattice vector by five:
+
+    #Save the following to 100.lattice:
+    lattice Tetragonal 5.23966 37.05    #a/sqrt(2) and 5a in bohrs, respectively
+
+The third fractional coordinates of the a tom would then scale down by a factor of five:
+
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.1   1
+
+and we need to repeat this with offsets of 1/5, 2/5 etc. along the third direction.
+This would produce layers with the third coordinate ranging from 0.0 to 0.9;
+using periodiocity we can wrap third coordinates in the range [0.5,1) to the range [-0.5,0).
+Finally, selecting the central five layers, we arrive at the coordinates:
+
+    #Save the following to 100.ionpos:
+    ion Pt  0.0  0.0 -0.2   1
+    ion Pt  0.5  0.5 -0.1   1
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.1   1
+    ion Pt  0.0  0.0  0.2   1
+
+We can quickly test the geometry without running a full calculation.
+Setup a dummy input file:
+
+    #Save the following to testGeometry.in
+    include ${surface}.lattice   #we will use the same input file later for 110 and 111
+    include ${surface}.ionpos
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    #Not a real calculation; missing kpoints and fillings!
+
+and run JDFTx using the dry-run (-n) commandline switch:
+
+    export surface="100"   #or "110" or "111" later on
+    jdftx -ni testGeometry.in | tee testGeometry-${surface}.out
+
+Examine the output file: it performs initialization and quits.
+We can create an XSF file even from this initialization-only output file as usual:
+
+    createXSF testGeometry-${surface}.out ${surface}.xsf
+
+and visualize 100.xsf using VESTA to get an image as shown at the top of the page.
+*/
+
+/** \page Pt110 Pt(110) setup
+
+\image html tutorials/Pt110.png
+
+We need to first find appropriate superlattice vectors starting from
+the face-centered cubic lattice vectors:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+as discussed in detail in the \ref Pt100 page.
+
+For a (110) surface, we want the surface normal along a direction
+which combines two cubic axes with equal coefficients.
+Note that the third lattice vector i.e. combination [ 0 0 1 ] already satisfies this property,
+so we only need to make the other two lattice vectors perpendicular to this direction.
+There are many ways to do this, but the combinations [ 1 -1 0 ] and [ 1 1 -1 ]
+satisfy the conditions and produce the smallest possible supercell.
+This yields the lattice transformation matrix:
+
+        /  1  1  0 \
+    M = | -1  1  0 |
+        \  0 -1  1 /
+
+and the superlattice vectors:
+
+            / -a/2  0  a/2 \
+    Rsup =  |  a/2  0  a/2 |
+            \   0   a   0  /
+
+If you observe carefully, these matrices have the same columns as the \ref Pt100 case, but just in a different order.
+This works because the in-plane lattice vectors in our 100 surface setup happen to both be 110 directions.
+
+Once again, we have two atoms and hence two layers per supercell.
+For the second atom, we can pick [ 1 0 0 ] as the unit cell fractional coordinate.
+Taking that as a column vector and multiplying by inv(M) yields the
+supercell fractional coordinates [ 0.5 0.5 0.5 ].
+Also note that the three superlattice vectors are orthogonal
+with lengths a/sqrt(2), a and a/sqrt(2).
+That is technically tetragonal, but in order to keep the lattice vectors in this order
+(lattice Tetragonal will make teh first two lattice vectors of equal length),
+we can specify it as orthorhombic.
+Therefore, we arrive at the supercell input:
+
+    lattice Orthorhombic 5.23966 7.41 5.23966  #a/sqrt(2), a and a/sqrt(2) in bohrs
+    ion Pt  0.0  0.0  0.0   1
+    ion Pt  0.5  0.5  0.5   1
+    
+This time the layer spacing is (a/sqrt(2))/2 = 2.62 bohrs,
+so five layers occupy approximately 13 bohrs.
+Therefor we need the third lattice vector to be at
+least 28 bohrs long to get a 15 bohr vacuum spacing.
+
+We can stretch the third direction by a factor of 28/5.23966,
+scaling the third fractional coordinates by 5.23966/28 = 0.18713.
+We can then repeat the supercell in both directions with
+offsets of 0.18713 in the third fractional coordinate,
+till we get at least five atomic layers centered symmetrically
+across zero, and then drop the extra layers.
+The resulting geometry for the 110 surface is then:
+
+    #Save the following to 110.lattice:
+    lattice Orthorhombic 5.23966 7.41 28
+    
+    
+    #Save the following to 110.ionpos:
+    ion Pt  0.0  0.0 -0.187130   1
+    ion Pt  0.5  0.5 -0.093565   1
+    ion Pt  0.0  0.0  0.000000   1
+    ion Pt  0.5  0.5  0.093565   1
+    ion Pt  0.0  0.0  0.187130   1
+
+Note that since we are breaking periodicity in the third direction
+anyway, we do not need to keep the final supercell equal to
+an integer number of atomic layers.
+We did that in the 110 setup only for simplicity.
+
+Visualize this geometry using testGeometry.in, JDFTx dry run, createXSF and VESTA
+as discussed at the end of the \ref Pt100 page to get an image similar to the one above.
+*/
+
+/** \page Pt111 Pt(111) setup
+
+\image html tutorials/Pt111.png
+
+We need to first find appropriate superlattice vectors starting from
+the face-centered cubic lattice vectors:
+
+        /  0  a/2 a/2 \
+    R = | a/2  0  a/2 |
+        \ a/2 a/2  0  /
+
+as discussed in detail in the \ref Pt100 page.
+
+For a (111) surface, we want the surface normal along a direction
+which combines all three cubic axes with equal coefficients.
+The most obvious combination for this is [ 1 1 1 ], which combines all
+three face-centered cubic lattice vectors with equal coefficients as well.
+Check that the combinations [ 0 -1 1 ] and [ 1 0 -1 ] produce
+superlattice vectors which are orthogonal to the [ 1 1 1 ] combination.
+This yields the lattice transformation matrix:
+
+        /  0  1  1 \
+    M = | -1  0  1 |
+        \  1 -1  1 /
+
+and the superlattice vectors:
+
+            /   0  -a/2  a \
+    Rsup =  |  a/2   0   a |
+            \ -a/2  a/2  a /
+
+Note that this time, the first two lattice vectors are orthogonal
+to the third (required), but not to each other.
+The in-plane lattice vectors instead have an angle of 120 degrees between them.
+(Their dot product divided by their lengths gives you the cosine.)
+For the 111 surface, this is the optimum super-cell and orthogonal
+in-plane lattice vectors are only possible with a larger
+less-efficient supercell (with more than one atom per layer).
+To sumamrize, we have the first two superlattice vectors of 
+equal length a/sqrt(2) = 5.23966 bohrs at a 120 degree angle,
+and a third of length sqrt(3)a = 12.8345 bohrs at right angles to the first two;
+we can specify this using the Hexagonal shorthand in JDFTx.
+
+Additionally, det(M) = 3 which means that we need three atoms in the supercell.
+We can start with [ 0 0 0 ], [ 0 0 1 ] and [ 0 0 -1 ] in unit-cell fractional coordinates.
+The first one remains invariant upon transforming to the supercell, as before.
+Taking the second one as a column vector and multiplying by inv(M) yields [ 1/3 -1/3 1/3 ].
+The third one is the negative of the second one,
+and we end up with the initial supercell geometry
+(after sorting the atoms by their third coordinate):
+
+    lattice Hexagonal 5.23966 12.8345  #a/sqrt(2) and sqrt(3)a in bohrs
+    ion Pt -0.333333  0.333333 -0.333333   1
+    ion Pt  0.000000  0.000000  0.000000   1
+    ion Pt  0.333333 -0.333333  0.333333   1
+
+The layer spacing is 12.8345/3 = 4.3 bohrs, so that 5 layers occupy approximately 21 bohrs.
+For 15 bohrs vacuum spacing, we need a unit cell length of 36 bohrs.
+Correspondingly, the scale factor for the third fractional coordinate
+and the offset between supercell repetitions equals 12.8345/36 = 0.356514.
+Adding repetitions and dropping extra layers, we then arrive at the geometry:
+
+    #Save the following to 111.lattice:
+    lattice Hexagonal 5.23966 36
+    
+    
+    #Save the following to 111.ionpos:
+    ion Pt  0.333333 -0.333333 -0.237676   1
+    ion Pt -0.333333  0.333333 -0.118838   1
+    ion Pt  0.000000  0.000000  0.000000   1
+    ion Pt  0.333333 -0.333333  0.118838   1
+    ion Pt -0.333333  0.333333  0.237676   1
+
+Visualize this geometry using testGeometry.in, JDFTx dry run, createXSF and VESTA
+as discussed at the end of the \ref Pt100 page to get an image similar to the one above.
+*/

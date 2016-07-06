@@ -65,7 +65,7 @@ cat > $plotFile <<EOF
 $ticsCmd
 unset key
 nRows = real(system("awk '\$1==\"kpoint\" {nRows++} END {print nRows}' $outPrefix.kpoints"))
-nCols = real(system("stat -c%s $outPrefix.eigenvals")) / (8*nRows)
+nCols = real(system("wc -c < $outPrefix.eigenvals")) / (8*nRows)
 formatString = system(sprintf("echo '' | awk 'END { str=\"\"; for(i=0; i<%d; i++) str = str \"%%\" \"lf\"; print str}'", nCols))
 plot for [i=1:nCols] "$outPrefix.eigenvals" binary format=formatString u 0:i w l
 EOF

@@ -42,7 +42,6 @@ inline ScalarFieldArray operator*(const RealKernel& K, const ScalarFieldArray& x
 
 SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInfo), diisMetric(e.gInfo)
 {	SCFparams& sp = e.scfParams;
-	eigenShiftInit();
 	mixTau = e.exCorr.needsKEdensity();
 	
 	//Initialize the preconditioner and metric kernels:
@@ -62,7 +61,6 @@ SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInf
 
 void SCF::minimize()
 {	
-	ElecInfo& eInfo = e.eInfo;
 	ElecVars& eVars = e.eVars;
 	SCFparams& sp = e.scfParams;
 	
@@ -81,9 +79,6 @@ void SCF::minimize()
 	sp.energyFormat = "%+.15lf";
 	sp.fpLog = globalLog;
 	
-	bool subspaceRotation=false;
-	std::swap(eInfo.subspaceRotation, subspaceRotation); //Switch off subspace rotation for SCF
-	
 	//Backup electronic minimize params that are modified below:
 	double eMinThreshold = e.elecMinParams.energyDiffThreshold;
 	int eMinIterations = e.elecMinParams.nIterations;
@@ -97,23 +92,12 @@ void SCF::minimize()
 	Pulay<SCFvariable>::minimize(E, extraNames, extraThresh);
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //to make sure grid projections are compatible with final Vscloc
 	
-	std::swap(eInfo.subspaceRotation, subspaceRotation); //Restore subspaceRotation to its original state
-
 	//Restore electronic minimize params that were modified above:
 	e.elecMinParams.energyDiffThreshold = eMinThreshold;
 	e.elecMinParams.nIterations = eMinIterations;
 	
-	//Update gradient of energy w.r.t overlap matrix (important for ultrasoft forces)
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.grad_CdagOC[q] = -(eVars.Hsub_eigs[q] * eVars.F[q]);
-	
-	//Set auxiliary Hamiltonian to subspace Hamiltonian
-	// (for general compatibility with minimizer; also important for lattice gradient in metals)
-	if(e.eInfo.fillingsUpdate == ElecInfo::FermiFillingsAux)
-	{	eVars.B = eVars.Hsub;
-		eVars.B_eigs = eVars.Hsub_eigs;
-		eVars.B_evecs = eVars.Hsub_evecs;
-	}
+	//Set auxiliary Hamiltonian equal to subspace Hamiltonian (used for fillings updates)
+	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) eVars.Haux_eigs = eVars.Hsub_eigs;
 }
 
 double SCF::sync(double x) const
@@ -126,8 +110,6 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	
 	//Cache required quantities:
 	std::vector<diagMatrix> eigsPrev = e.eVars.Hsub_eigs;
-	if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod)
-		Cold = e.eVars.C;
 	
 	//Band-structure minimize:
 	if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
@@ -138,9 +120,9 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 
 	//Compute new density and energy
 	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
-	if(e.eInfo.fillingsUpdate != ElecInfo::ConstantFillings) updateFillings(); // Update fillings
-		
-	double E = e.eVars.elecEnergyAndGrad(e.ener); mpiUtil->bcast(E); //ensure consistency to machine precision
+	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) e.eVars.Haux_eigs = e.eVars.Hsub_eigs;
+	double E = e.eVars.elecEnergyAndGrad(e.ener); //updates fillings (if necessary), density and potential
+	mpiUtil->bcast(E); //ensure consistency to machine precision
 
 	extraValues[0] = eigDiffRMS(eigsPrev, e.eVars.Hsub_eigs);
 	return E;
@@ -332,75 +314,6 @@ SCFvariable SCF::applyMetric(const SCFvariable& v) const
 	return vOut;
 }
 
-void SCF::updateFillings()
-{
-	// The maximum-overlap-method is used, if enabled
-	if(e.eInfo.fillingsUpdate == ElecInfo::MaximumOverlapMethod) 
-	{	updateMOM(); 
-		return;
-	}
-  
-	ElecInfo& eInfo = e.eInfo; 
-	ElecVars& eVars = e.eVars;
-	
-	//Update nElectrons from mu, or mu from nElectrons as appropriate:
-	eigenShiftApply(false);
-	double mu, Bz; // Electron chemical potential and magnetic field Lagrange multiplier
-	if(std::isnan(eInfo.mu)) mu = eInfo.findMu(eVars.Hsub_eigs, eInfo.nElectrons, Bz);
-	else
-	{	mu = eInfo.mu;
-		((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, eVars.Hsub_eigs, Bz);
-	}
-	//Compute fillings from aux hamiltonian eigenvalues:
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Hsub_eigs[q]);
-	//Update TS and muN:
-	eInfo.updateFillingsEnergies(e.eVars.F, e.ener);
-	eigenShiftApply(true);
-	
-	// Print filling update information
-	eInfo.printFermi("Update", &mu);
-}	
-
-void SCF::updateMOM()
-{
-	std::vector<matrix> overlap_matrix(e.eInfo.nStates);
-	for(size_t s=0; s<overlap_matrix.size(); s++)
-	{	
-		// Overlap of the old and new wavefunctions
-		overlap_matrix[s] = Cold[s]^O(e.eVars.C[s]);
-		// Total no electrons in this channel
-		int nElec = 0.;
-		for(int j=0; j<e.eInfo.nBands; j++) nElec +=e.eVars.F[s][j];
-		// For each new wavefunction, calculate the total overlap with the span of the old ones
-		std::vector<double> span_overlap(e.eInfo.nBands);		
-		for(int i=0; i<e.eInfo.nBands; i++)  // Loop over new wavefunctions
-		{	span_overlap[i] = 0.;
-			for(int j=0; j<e.eInfo.nBands; j++)  // Loop over old wavefunctions
-				span_overlap[i] += e.eVars.F[s][j] * abs(overlap_matrix[s](i,j));
-			//logPrintf("%.2f ", span_overlap[i]);
-		}
-		//logPrintf("\n");
-		
-		// Construct the new fillings matrix
-		std::priority_queue<std::pair<double, int>> q;
-		for (size_t i = 0; i < span_overlap.size(); ++i) {
-			q.push(std::pair<double, int>(span_overlap[i], i));
-		}
-		diagMatrix Fnew = 0.*e.eVars.F[s];
-		for(int k=0; k<nElec; k++)
-		{	int index = q.top().second;
-			Fnew[index] = 1.;
-			q.pop();
-		}
-		//Fnew.print(globalLog);
-		
-		e.eVars.F[s] = Fnew;
-	}
-	logPrintf("\tRecomputed orbital fillings using the maximum overlap method.\n");
-
-}
-
 double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2, const Everything& e)
 {	double rmsNum=0., rmsDen=0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -418,46 +331,4 @@ double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<d
 
 double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const
 {	return eigDiffRMS(eigs1, eigs2, e);
-}
-
-void SCF::eigenShiftInit()
-{	for(SCFparams::EigenShift& es: e.scfParams.eigenShifts)
-	{	// Correct for the 0
-		if(es.fromHOMO)
-		{	es.n += e.eInfo.findHOMO(es.q);
-			es.fromHOMO = false; // Needed if SCF is called multiple times, e.g. from an ionic minimize
-		}
-		// Check for a meaningful q and n
-		if(es.q < 0) die("Eigenshift quantum number (q) must be greater than 0!\n");
-		if(es.q > e.eInfo.nStates) die("Eigenshift quantum number (q) must be less than nStates=%i!\n", e.eInfo.nStates);
-		if(es.n < 0) die("Eigenshift band index (n) must be greater than 0!\n");
-		if(es.n > e.eInfo.nBands) die("Eigenshift band index (n) must be less than nBands=%i!\n", e.eInfo.nBands);		
-	}
-}
-
-void SCF::eigenShiftApply(bool reverse)
-{	int sign = reverse ? -1 : +1;
-	for(const SCFparams::EigenShift& es: e.scfParams.eigenShifts)
-		if(e.eInfo.isMine(es.q))
-			e.eVars.Hsub_eigs[es.q][es.n] += sign * es.shift;
-}
-
-#define cutoff 1e-6
-void varInverse_kernel(int i, vector3<> r, double* varInverse, double* var)
-{	varInverse[i] = (var[i]>cutoff ? 1./var[i] : 0.);
-}
-
-void spness_kernel(int i, vector3<> r, double* tauW, double* tau, double* spness)
-{	spness[i] = (tau[i]>cutoff ? tauW[i]/tau[i] : 1.);
-}
-void tauW_kernel(int i, vector3<> r, double* tauW, double* grad_n_sq, double* n)
-{	tauW[i] = (n[i]>cutoff ? 0.125*grad_n_sq[i]/n[i] : 0.);
-}
-
-void tauW_n_kernel(int i, vector3<> r, double* tauW_n, double* grad_n_sq, double* n, complex* lap_n)
-{	tauW_n[i] = (n[i]>cutoff ? 0.125*grad_n_sq[i]/pow(n[i],2) - 0.25*real(lap_n[i])/n[i] : 0.);
-}
-
-void Vtau_kernel(int i, vector3<> r, double* Vtau, double* fz_z, double* tauW, double* tau, double* Ex, double* Eh, double* n, double N)
-{	Vtau[i] = (n[i]>cutoff ? fz_z[i]*tauW[i]*(Ex[i] + Eh[i]/N)/pow(tau[i], 2) : 0.);
 }

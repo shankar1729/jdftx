@@ -35,7 +35,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Save the data in raw binary format to stream
 template<typename T> void saveRawBinary(const Tptr& X, FILE* fp)
-{	int nWrote = fwrite(X->data(), sizeof(typename T::DataType), X->nElem, fp);
+{	int nWrote = fwriteLE(X->data(), sizeof(typename T::DataType), X->nElem, fp);
 	if(nWrote < X->nElem) die("Write failed after %d of %d records.\n", nWrote, X->nElem)
 }
 //! Save the data in raw binary format to file
@@ -48,7 +48,7 @@ template<typename T> void saveRawBinary(const Tptr& X, const char* filename)
 
 //! Load the data in raw binary format from stream
 template<typename T> void loadRawBinary(Tptr& X, FILE* fp)
-{	int nRead = fread(X->data(), sizeof(typename T::DataType), X->nElem, fp);
+{	int nRead = freadLE(X->data(), sizeof(typename T::DataType), X->nElem, fp);
 	if(nRead < X->nElem) die("Read failed after %d of %d records.\n", nRead, X->nElem)
 }
 //! Load the data in raw binary format from file

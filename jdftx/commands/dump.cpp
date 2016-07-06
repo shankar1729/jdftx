@@ -103,7 +103,6 @@ EnumStringMap<DumpVariable> varMap
 	DumpFluidDebug, "FluidDebug",
 	DumpSlabEpsilon, "SlabEpsilon",
 	DumpChargedDefect, "ChargedDefect",
-	DumpOptVext, "optVext",
 	DumpDOS, "DOS",
 	DumpSIC, "SelfInteractionCorrection",
 	DumpDipole, "Dipole",
@@ -152,7 +151,6 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
 	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon)  [not in All]",
 	DumpChargedDefect,  "Calculate energy correction for charged defect (see command charged-defect)  [not in All]",
-	DumpOptVext,        "Optimized external potentials (see command invertKohnSham) [not in All]",
 	DumpDOS,            "Density of States (see command density-of-states) [not in All]",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
 	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
@@ -527,7 +525,7 @@ struct CommandVibrations : public Command
 			"   to achieve higher accuracy at twice the cost (default: no)\n"
 			"+ useConstraints yes|no: restrict modes of motion as specified by move flags\n"
 			"   and constraints in the ion command (default: no)\n"
-			"+ traslationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
+			"+ translationSym yes|no: whether to assume overall translation symmetry (default yes).\n"
 			"   Can be turned off to get vibrational levels in an external potential.\n"
 			"+ rotationSym yes|no: project out rotational modes (default no). Improves reliability for\n"
 			"   molecular calculations. Valid only for geometries with an unambiguous center of mass.\n"

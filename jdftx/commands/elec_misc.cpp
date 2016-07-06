@@ -234,57 +234,6 @@ commandFixElectronPotential;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandFixOccupied : public Command
-{
-	CommandFixOccupied() : Command("fix-occupied", "jdftx/Electronic/Optimization")
-	{
-		format = "[<fThreshold>=0]";
-		comments = "Fix orbitals with fillings larger than <fThreshold> in band-structure calculations.\n"
-			"The occupied orbitals must be read in using the wavefunction / initial-state commands.\n";
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.cntrl.occupiedThreshold, 0., "fThreshold");
-		if(e.cntrl.occupiedThreshold<0) throw string("fThreshold must be >= 0");
-		e.cntrl.fixOccupied = true;
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg", e.cntrl.occupiedThreshold);
-	}
-}
-commandFixOccupied;
-
-//-------------------------------------------------------------------------------------------------
-
-struct CommandReorthogonalizeOrbitals : public Command
-{
-	CommandReorthogonalizeOrbitals() : Command("reorthogonalize-orbitals", "jdftx/Electronic/Optimization")
-	{
-		format = "[<interval=20>] [<threshold>=1.5]";
-		comments =
-			"Every <interval> electronic steps, re-orthogonalize analytically-continued\n"
-			"orbitals if the condition number of their overlap matrix crosses <threshold>.\n"
-			"Set <interval> = 0 to disable this check.";
-		
-		hasDefault = true;
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.cntrl.overlapCheckInterval, 20, "interval");
-		pl.get(e.cntrl.overlapConditionThreshold, 1.5, "threshold");
-		if(e.cntrl.overlapCheckInterval<0) throw string("<interval> must be non-negative");
-		if(e.cntrl.overlapConditionThreshold<=1.) throw string("<threshold> must be > 1");
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d %lg", e.cntrl.overlapCheckInterval, e.cntrl.overlapConditionThreshold);
-	}
-}
-commandReorthogonalizeOrbitals;
-
-//-------------------------------------------------------------------------------------------------
-
 struct CommandConvergeEmptyStates : public Command
 {
 	CommandConvergeEmptyStates() : Command("converge-empty-states", "jdftx/Electronic/Optimization")
@@ -396,92 +345,6 @@ commandElecEigenAlgo;
 
 //-------------------------------------------------------------------------------------------------
 
-struct CommandCustomFilling : public Command
-{
-	int qnum, band; double filling;
-	
-	CommandCustomFilling() : Command("custom-filling", "jdftx/Miscellaneous")
-	{
-		format = "<qnum> <band> <filling>";
-		comments = "Specify a custom filling for the input (quantum-number, band)\n"
-					"Bands are indexed from HOMO, i.e. band=0 is HOMO, band=1 is the LUMO.";
-		allowMultiple = true;
-		forbid("eigen-shift");
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	pl.get(qnum, 0, "qnum", true);
-		pl.get(band, 0, "band", true);
-		pl.get(filling, 0., "filling", true);
-		
-		if((filling > (e.eInfo.spinType == SpinZ ? 1. : 2.)) or (filling < 0))
-		{	ostringstream oss; oss << "Fillings must be between 0 and " << (e.eInfo.spinType == SpinZ ? 1. : 2.);
-			throw oss.str();
-		}
-		
-		e.eInfo.customFillings.push_back(std::make_tuple(qnum, band, filling/(e.eInfo.spinType == SpinZ ? 1. : 2.)));
-		
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	std::vector<std::tuple<int,int,double>>& customFillings = e.eInfo.customFillings;
-		logPrintf("%i %i %.2e", std::get<0>(customFillings[iRep]), std::get<1>(customFillings[iRep]), std::get<2>(customFillings[iRep])*(e.eInfo.spinType == SpinZ ? 1. : 2.));
-	}
-}
-commandCustomFilling;
-
-//-------------------------------------------------------------------------------------------------
-
-struct CommandInvertKohnSham : public Command
-{
-	CommandInvertKohnSham() : Command("invertKohnSham", "jdftx/Miscellaneous")
-	{
-		format = "[<nonlocal>=yes] [<sigma>=0] [<chiGuessFilename>]";
-		comments =
-			"Solve inverse Kohn-Sham problem: for a given electron density\n"
-			"specified using fix-electron-density, find the corresponding\n"
-			"external potential (in addition to the pseudopotentials and\n"
-			"Hartree+XC potential evaluated at the given electron density).\n"
-			"+ Vexternal may be used to specify an initial guess.\n"
-			"+ Control outer optimization using inverseKohnSham-minimize, and\n"
-			"  inner minimization using electronic-minimize (as usual).\n"
-			"+ The result is dumped with variable name \"optVext\" or \n"
-			"  \"optVextUp\" and \"optVextDn\" depending on spintype.\n"
-			"+ Option <nonlocal>="+boolMap.optionList()+" controls whether to\n"
-			"  include non-local parts of the pseudopotential (default yes).\n"
-			"+ Option <sigma> specifies a bandwidth cutoff in the external\n"
-			"  potential of the form exp(-(1/2) sigma^2 G^2) (default: 0).\n"
-			"+ Option <chiGuessFilename> specifies a preconditioner based on\n"
-			"  the response function of a similar electronic system. The pattern\n"
-			"  should contain $VAR which will be used to read wavefunctions,\n"
-			"  eigenvalues and fillings (these should include empty states).";
-		
-		require("fix-electron-density");
-		forbid("box-potential");
-		forbid("electric-field");
-	}
-
-	void process(ParamList& pl, Everything& e)
-	{	e.cntrl.invertKS = true;
-		e.dump.insert(std::make_pair(DumpFreq_End, DumpOptVext));
-		//Optional parameters:
-		pl.get(e.cntrl.invertKS_nonlocal, true, boolMap, "nonlocal");
-		pl.get(e.cntrl.invertKS_sigma, 0., "sigma");
-		string& fname = e.cntrl.invertKS_chiGuessFilename;
-		pl.get(fname, string(), "chiGuessFilename");
-		if(fname.length() && fname.find("$VAR")==string::npos)
-			throw "<chiGuessFilename> = " + fname + " doesn't contain '$VAR'";
-		Citations::add("Inverse Kohn-Sham algorithm", "Q. Wu and W. Yang, J Chem Phys 118, 2498 (2003)");
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s %lg %s", boolMap.getString(e.cntrl.invertKS_nonlocal),
-			e.cntrl.invertKS_sigma, e.cntrl.invertKS_chiGuessFilename.c_str());
-	}
-} commandInvertKohnSham;
-
-//-------------------------------------------------------------------------------------------------
-
 struct CommandRhoExternal : public Command
 {
 	CommandRhoExternal() : Command("rhoExternal", "jdftx/Coulomb interactions")
@@ -546,7 +409,6 @@ struct CommandBoxPotential : public Command
 			"Include an step-function shaped external potential (in hartrees) for the electrons";
 	
 		allowMultiple = true;
-		forbid("invertKohnSham");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -588,7 +450,6 @@ struct CommandElectricField : public Command
 			"Symmetries will be automatically reduced to account for this field.";
 		
 		require("coulomb-truncation-embed");
-		forbid("invertKohnSham");
 	}
 
 	void process(ParamList& pl, Everything& e)

@@ -1,69 +1,99 @@
-/** \page CoulombTrunc Moving between single images and periodic systems
+/** \page CoulombTrunc Setting up molecule geometries
 
-\image html tutorials/waterMolToBox.png
+\image html tutorials/CoulombTruncation.png
 
-JDFTx is built as a tool for use with molecular systems, surfaces, and solids.  This 
-versatility is particularly evident in the %Coulomb truncation features, allowing one 
-to construct systems where the %Coulomb interaction ranges from aperiodic to fully periodic.  
-To illustrate this feature, we will take a molecule from the [NIST CCCBDB] (http://cccbdb.nist.gov),
-convert it from an xyz file to JDFTx input, put it in an appropriately-sized box, and truncate the 
-%Coulomb interaction in 3 dimensions.
+The previous tutorial showed a water molecule calculation in a cucbic box of side 10 bohrs.
+JDFTx is a plane-wave DFT code, which means that it naturally incorporates periodic boundary conditions.
+However, for molecules we usually want to calculate the properties of one isolated molecule
+without incurring interactions between the molecule and its periodic images.
+JDFTx can eliminate image interactions in general geometries, for molecules, nanowires, slabs etc.
+using truncated %Coulomb potentials. (See command \ref CommandCoulombInteraction.)
+This tutorial shows you the most convenient and efficient way to set up molecule calculations,
+starting from molecule geometries in the XYZ format, often used by the chemistry community.
 
-Picking one of the many calculated geometries of water from the [NIST CCCBDB] (http://cccbdb.nist.gov),
-we create an xyz file:
+Let's stick to water, but this time fetch the geometry from the [NIST CCCBDB] (http://cccbdb.nist.gov) database.
+Picking one of the many calculated geometries of water from that database, we can create water.xyz containing:
 
-   	3
+    3
+    
+    O    0  0        0.127118
+    H    0  0.75799 -0.50847
+    H    0 -0.75799 -0.50847
 
-    	8	0	0	0.127118
-    	1	0	0.75799	-0.50847
-    	1	0	-0.75799	-0.50847
+The first line is the number of atoms, the second line is a comment line that is ignored,
+and the subsequent lines specify the atom type and cartesian coordinates in Angstroms.
 
-which we can save as Water.xyz (the "3" in the file is the total number of atoms).
+Now, we can use the script xyzToIonposOpt from the JDFTx scripts directory to convert this to JDFTx input
+(see \ref GettingStarted to add this directory to your run PATH, or specify full path to script below):
 
-In the scripts directory (which is in the jdftx directory, not in the build directory),
-we have a script called xyzToIonpos which converts an xyz format file (cartesian Angstrom)
- to JDFTx ionpos (cartesian Bohrs).  Running this script:
+    xyzToIonposOpt water.xyz 15
 
-     <JDFTx directory>/scripts/xyzToIonpos WaterCart.xyz yes
+This script outputs ionic positions in water.ionpos and lattice vectors in water.lattice after
+centering the molecule at the origin and rotating it such that you can use the smallest box 
+with a periodic image distance of 10 bohrs.
+Using these outputs, we can create the input file water.in:
 
-, where the "yes" is an optional argument that shifts the atoms so that their bounding
-box is centered on the origin (convenient when using coulomb-truncation-embed),
-(Note- You can run this script with no input to see the usage.)
-the following output is produced:
+    include water.lattice
+    include water.ionpos
+    coords-type cartesian
+    
+    ion-species GBRV/$ID_pbe_v1.2.uspp   #Replace $ID by any atom symbol to find a pseudopotential
+    ion-species GBRV/$ID_pbe_v1.uspp     #If not found in previous pattern, such with this pattern
+    elec-cutoff 20 100                   #Recommended cutoffs for GBRV pseudopotentials
+    dump End None                        #Don't output anything for this example
+    
+which we can run as
 
-    # Ionic positions in cartesian coordinates:
-    ion  8   0.000000000000000   0.000000000000000   0.600543636422734  0
-    ion  1   0.000000000000000   1.432393534717671  -0.600543636422733  1
-    ion  1   0.000000000000000  -1.432393534717671  -0.600543636422733  1
-    Offseting atoms by ( -0.000000000000000 -0.000000000000000 0.360325425963175 ) bohrs
-    Bounding box x: [ 0.000000000000000 to 0.000000000000000 ] bohrs
-    Bounding box y: [ -1.432393534717671 to 1.432393534717671 ] bohrs
-    Bounding box z: [ -0.600543636422733 to 0.600543636422733 ] bohrs
+    jdftx -i water.in | tee water.out
 
-We now have a centered molecule with coordinates in Bohr, and we can create the rest of 
-our input file, similarly to the [first tutorial](FirstCalc.html), except now we can see if we can make our box smaller.  We first run with a 10 bohr box:
+In this input file, we specified the entire set of GBRV pseudopotentials
+using the wildcard syntax of command \ref CommandIonSpecies instead of
+selecting O and H pseudopotentials specifically.
+Therefore, we could replace water with another molecule containing other atom types
+with almost no change to the input file, making it extremely easy to set up
+similar calculations for a large number of molecules.
+Now, check the final energy of the water molecule (in Hartrees) using the script:
 
-    lattice \
-        10 0  0 \
-        0  10 0 \
-        0  0  10
+    listEnergy water.out
 
-    # Specify the pseudopotentials (this defines species O and H):
-    ion-species <path-to-build-directory>/pseudopotentials/GBRV/h_pbe_v1.uspp
-    ion-species <path-to-build-directory>/pseudopotentials/GBRV/o_pbe_v1.2.uspp
+Next, check how the energy changes upon increasing the box size.
+Replace 15 with 20, 25 and then 30 in xyzToIonposOpt above, and rerun jdftx and listEnergy for each.
+You could do this manually, but could easily script all these calculations
+in the bash shell and retrieve their energies using:
 
-    # Specify coordinate system and atom positions:
-    coords-type cartesian  
-    ion  8   0.000000000000000   0.000000000000000   0.600543636422734  0
-    ion  1   0.000000000000000   1.432393534717671  -0.600543636422733  1
-    ion  1   0.000000000000000  -1.432393534717671  -0.600543636422733  1
+    #!/bin/bash
+    for padding in 15 20 25 30; do
+        xyzToIonposOpt water.xyz $padding
+        jdftx -i water.in | tee water-$padding.out
+    done
+    listEnergy water-*.out
 
-    dump-name water.$VAR  #Filename pattern for outputs
-    dump End Ecomponents  #Output energy components at the end
+Note that you could directly type the above in the shell,
+or save them to a file, say run.sh, give execute permissions
+using chmod +x run.sh and then execute using ./run.sh
 
-and record the energy:
+Finally, also add the coulomb trunaction commands to the above water.in:
 
-Then we see what happens to the energy with coulomb truncation, then we will make the box even smaller.
+    coulomb-interaction Isolated         #Switch from periodic to isolated images mode
+    coulomb-truncation-embed 0 0 0       #Center of molecule; origin for breaking periodicity
 
+and once again run the calculation for the four box sizes.
 
+I get the following energies with and without %Coulomb truncation for the different box sizes:
+
+ Padding | Without truncation  |   With truncation
+---------|---------------------|---------------------
+    15   | -17.268222645781691 | -17.268003657134862
+    20   | -17.268147969097498 | -17.268041483330446
+    25   | -17.268101327860506 | -17.268042627595506
+    30   | -17.268079759393924 | -17.268044242680695 
+
+Note that the energy converges much faster with box size after including truncation.
+In fact, with truncation, the energy converges exponentially with unit cell size,
+compared to an inverse-cubic convergence without truncation due to dipole-dipole interactions.
+
+In this example, the energy with 15 bohr spacing with %Coulomb truncation is within 5x10<sup>-5</sup> Hartrees
+of the value converged with box size, whereas only with a 30 bohr spacing achieves that accuracy without truncation.
+Also note that the calculation with the 30 bohr spacing is roughly 8 times slower than that with the 15 bohr spacing,
+so using optimized unit cells with truncated %Coulomb interactions can substantially speed up your calculation.
 */

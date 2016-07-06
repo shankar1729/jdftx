@@ -86,7 +86,7 @@ class PairDensityCalculator
 			eigExt.resize(e.eInfo.nBands);
 			if(fileSize(fnameEig.c_str()) < 0) die("\nFile '%s' does not exist.\n", fnameEig.c_str());
 			FILE* fpEig = fopen(fnameEig.c_str(), "r");
-			fread(eigExt.data(), sizeof(double), eigExt.nRows(), fpEig);
+			freadLE(eigExt.data(), sizeof(double), eigExt.nRows(), fpEig);
 			if(feof(fpEig))  die("\nFile '%s' ended before all eigenvalues could be read.\n", fnameEig.c_str());
 			fclose(fpEig);
 			eig = &eigExt;
@@ -302,8 +302,6 @@ void Polarizability::dump(const Everything& e)
 			return;
 		}
 	}
-	
-	logPrintf("\tClearing non-orthogonal wavefunctions (Y) to free memory.\n"); ((Everything&)e).eVars.Y.clear();
 	
 	if(Ecut<=0.) Ecut = 4.*e.cntrl.Ecut;
 	logPrintf("\tSetting up reduced basis at Ecut=%lg: ", Ecut);

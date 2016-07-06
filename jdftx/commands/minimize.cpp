@@ -156,6 +156,7 @@ struct CommandElectronicMinimize : public CommandMinimize
     void process(ParamList& pl, Everything& e)
 	{	//Use default value of 100 iterations from MinimizeParams.h
 		e.elecMinParams.energyDiffThreshold = 1e-8;
+		e.elecMinParams.dirUpdateScheme = MinimizeParams::FletcherReeves;
 		CommandMinimize::process(pl, e);
 	}
 }
@@ -221,13 +222,3 @@ struct CommandLatticeMinimize : public CommandMinimize
 	}
 }
 commandLatticeMinimize;
-
-struct CommandInverseKohnShamMinimize : public CommandMinimize
-{	CommandInverseKohnShamMinimize() : CommandMinimize("inverseKohnSham", "jdftx/Electronic/Optimization") {}
-    MinimizeParams& target(Everything& e) { return e.inverseKSminParams; }
-    void process(ParamList& pl, Everything& e)
-	{	e.inverseKSminParams.energyDiffThreshold = 1e-8; //override default value (0.) in MinimizeParams.h
-		CommandMinimize::process(pl, e);
-	}
-}
-commandInverseKohnShamMinimize;

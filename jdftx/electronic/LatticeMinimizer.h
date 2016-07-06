@@ -41,6 +41,7 @@ public:
 	matrix3<> precondition(const matrix3<>& grad);
 	bool report(int iter);
 	void constrain(matrix3<>&);
+	double safeStepSize(const matrix3<>& dir) const;
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Calculates the stresses along the strain directions
@@ -57,6 +58,7 @@ private:
 	Everything& e;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
+	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
 	
 	double h; //! Finite difference step size
 	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain

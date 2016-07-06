@@ -1,6 +1,6 @@
-project(dft)
+cmake_minimum_required(VERSION 2.8.4)
 
-cmake_minimum_required(VERSION 2.8)
+project(JDFTx)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake-Modules/")
 
@@ -10,7 +10,7 @@ set(CPACK_PACKAGE_DESCRIPTION "The playground for joint density functional theor
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolkit for rapid development of density-functional methods")
 set(CPACK_PACKAGE_VERSION_MAJOR "1")
 set(CPACK_PACKAGE_VERSION_MINOR "1")
-set(CPACK_PACKAGE_VERSION_PATCH "1")
+set(CPACK_PACKAGE_VERSION_PATCH "2")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
 #Get revision information
@@ -55,7 +55,7 @@ if(EnableMKL)
 	endif()
 else()
 	find_package(FFTW3 REQUIRED)
-	find_package(LAPACK REQUIRED)
+	find_package(LAPACK_ATLAS REQUIRED)
 	find_package(CBLAS REQUIRED)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${CBLAS_LIBRARY} ${LAPACK_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 endif()
@@ -98,18 +98,21 @@ check_cxx_compiler_flag(-Wno-unused-result HAS_NO_UNUSED_RESULT)
 if(HAS_NO_UNUSED_RESULT)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-result")
 endif()
-#--- Link-time optimizations (GCC / CLang)
-if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-	check_cxx_compiler_flag(-flto HAS_FLTO)
-	if(HAS_FLTO)
-		set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -flto")
+option(LinkTimeOptimization "Enable link-time optimizations (eg. flto on GNU, ipo on Intel).")
+if(LinkTimeOptimization)
+	#--- Link-time optimizations (GCC / CLang)
+	if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+		check_cxx_compiler_flag(-flto HAS_FLTO)
+		if(HAS_FLTO)
+			set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -flto")
+		endif()
 	endif()
-endif()
-#--- Link-time optimizations (ICC)
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-	check_cxx_compiler_flag(-ipo HAS_IPO)
-	if(HAS_IPO)
-		set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -ipo")
+	#--- Link-time optimizations (ICC)
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		check_cxx_compiler_flag(-ipo HAS_IPO)
+		if(HAS_IPO)
+			set(JDFTX_CPU_FLAGS "${JDFTX_CPU_FLAGS} -ipo")
+		endif()
 	endif()
 endif()
 #--- Template recursion depth (more needed in Clang)
@@ -133,6 +136,26 @@ if(CompileNative)
 	endif()
 endif()
 
+#Static linking:
+option(StaticLinking "Link statically instead of dynamically" OFF)
+
+#Workarounds for Windows compilation:
+if(CYGWIN)
+	if(NOT StaticLinking)
+		message(STATUS "Forcing static linking for Cygwin/Windows")
+		set(StaticLinking ON)
+	endif()
+	add_definitions("-D_GNU_SOURCE")
+	file(WRITE ${CMAKE_BINARY_DIR}/execinfo.h
+"#ifndef EXECINFO_H
+#define EXECINFO_H
+inline int backtrace(void **buffer, int size) { return 0; }
+inline char **backtrace_symbols(void *const *buffer, int size) { return 0; }
+#endif //EXECINFO_H
+"
+	)
+endif()
+
 #------------- Macro to set JDFTx flags -------------
 
 macro(set_JDFTx_flags targetName isGpu)
@@ -151,9 +174,18 @@ endmacro()
 #External libraries to link to
 set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
 
+#Link options:
+if(StaticLinking)
+	set(LINK_TYPE STATIC)
+	set(LINK_PREFIX -Wl,--whole-archive)
+	set(LINK_SUFFIX -Wl,--no-whole-archive)
+else()
+	set(LINK_TYPE SHARED)
+endif()
+
 #Library with all the functionality:
 FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
-add_library(jdftxlib SHARED ${jdftxlibSources})
+add_library(jdftxlib ${LINK_TYPE} ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
 set_JDFTx_flags(jdftxlib OFF)
@@ -181,7 +213,7 @@ if(EnableCUDA)
 
 	#Library with all the functionality:
 	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
-	add_library(jdftxlib_gpu SHARED ${jdftxlibSources})
+	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
 	set_JDFTx_flags(jdftxlib_gpu ON)
@@ -192,12 +224,12 @@ endif()
 macro(add_JDFTx_executable execName execSources)
 	#CPU version
 	add_executable(${execName} ${ARGN} ${execSources})
-	target_link_libraries(${execName} jdftxlib)
+	target_link_libraries(${execName} ${LINK_PREFIX} jdftxlib ${LINK_SUFFIX})
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(EnableCUDA) #GPU version
 	        add_executable(${execName}_gpu ${ARGN} ${execSources})
-	        target_link_libraries(${execName}_gpu jdftxlib_gpu)
+	        target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu ${LINK_SUFFIX})
 	        set_JDFTx_flags(${execName}_gpu ON)
 	endif()
 endmacro()
@@ -237,6 +269,7 @@ if(DOXYGEN_FOUND)
 		COMMAND echo "--- Updating scripts documentation"
 		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/doc/scripts/index_update.sh "${CMAKE_CURRENT_SOURCE_DIR}" > "${DOC_TMP_DIR}/scripts_manual.dox"
 		COMMAND echo "--- Running doxygen"
+		COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/doc/html
 		COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
 		COMMENT "Generating API documentation with Doxygen" VERBATIM

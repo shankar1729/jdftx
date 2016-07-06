@@ -231,7 +231,9 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq);
 		//Propagate to atomic positions:
 		for(unsigned sp=0; sp<species.size(); sp++) if(HVdagCq[sp])
-			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], eVars.grad_CdagOC[q], forcesNL[sp]);
+		{	matrix grad_CdagOCq = -(eVars.Hsub_eigs[q] * eVars.F[q]); //gradient of energy w.r.t overlap matrix
+			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], grad_CdagOCq, forcesNL[sp]);
+		}
 	}
 	for(auto& force: forcesNL) //Accumulate contributions over processes
 		mpiUtil->allReduce((double*)force.data(), 3*force.size(), MPIUtil::ReduceSum);

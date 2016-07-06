@@ -1,5 +1,6 @@
 find_library(CBLAS_LIBRARY NAMES cblas PATHS ${CBLAS_PATH} ${CBLAS_PATH}/lib ${CBLAS_PATH}/lib64 /usr/lib64/atlas /usr/lib/atlas NO_DEFAULT_PATH)
 find_library(CBLAS_LIBRARY NAMES cblas)
+find_library(CBLAS_LIBRARY NAMES gslcblas)
 
 if(CBLAS_LIBRARY)
 	set(CBLAS_FOUND TRUE)

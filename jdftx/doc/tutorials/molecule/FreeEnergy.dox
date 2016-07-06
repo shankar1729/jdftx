@@ -1,0 +1,107 @@
+/** \page FreeEnergy Free energy: Vibrations
+
+\image html H2.png
+
+The energies calculated so far have been at a specific set of
+atom coordinates, whether specificied manually or optimized.
+These energies correspond to the Born-Oppenheimer surface, and do not
+include (free-)energy components due to the ionic degrees of freedom.
+This tutorial introduces the vibrations post-processing module
+with the example of the binding (free-)energy of the hydrogen molecule.
+
+Start by setting up a hydrogen molecule calculation with H2.ionpos:
+
+     ion H 0 0 +0.7  1
+     ion H 0 0 -0.7  1
+
+and a split input file to reuse commands between two calculations.
+Save the following to common.in:
+
+    lattice Cubic 15
+    include H2.ionpos
+    coords-type Cartesian
+    
+    coulomb-interaction Isolated
+    coulomb-truncation-embed 0 0 0
+
+    ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.uspp
+    elec-cutoff 20 100
+
+and the following to totalE.in (for our total enegy calculation):
+
+    include common.in
+    ionic-minimize nIterations 10   #Geometry optimization
+    dump End State
+    dump-name H2.$VAR
+
+Run jdftx on totalE.in to optimize the molecule geometry (replaces H2.ionpos)
+and get the converged wavefunctions in H2.wfns.
+
+With the GBRV pseudopotentials, the final energy is -1.1647 Hartrees,
+and we can calculate the Born-Oppenheimer binding energy using the
+Hydrogen atom calculation from the [previous tutorial](OpenShell.html)
+as E_H2 - 2EH = -1.1647 - 2(-0.4994) = -0.1659 Hartrees = -4.514 eV.
+However, this binding energy doesn't yet include the ionic (nuclear) contributions
+and is not yet meaningfully comparable to the experimental results.
+
+Now, calculate the vibrational contributions by running jdftx on the input file:
+
+    include common.in
+    initial-state H2.$VAR
+    dump End None
+    vibrations \
+    	dr 0.01 \
+    	centralDiff yes \
+    	translationSym yes \
+    	rotationSym yes \
+    	T 298
+
+The \ref CommandVibrations command calculates the normal modes of vibration
+by perturbing each atom by displacements of magnitude dr and constructs the
+force matrix optionally using a central-difference derivative formula
+(controlled by centralDiff).
+The translationSym and rotationSym commands control whether translation and rotational
+symmetries are used to constrain and optimize the force matrix calculations.
+(These symmetries should be used for molecular calcuations,
+but should not be used for solid or surface calculations.)
+T specifies the temperature for vibrational free energy calculation.
+
+Now examine the generated output file.
+Notice that electronic minimization is performed for several perturbed configurations,
+and then normal modes obtained by diagonalizing the force matrix are reported.
+In this case, of the six degrees of freedom due to two hydrogen nuclei positions,
+five normal modes are zero (three translational and two rotational), and one normal mode,
+the H-H stretch, has a finite vibrational frequency of about 0.020 Hartrees.
+
+Finally the output file reports the vibrational free energy components
+including the zero-point energy (ZPE), the vibrational energy including ZPE (Evib),
+the vibrational entropy (TSvib) and the net vibrational free energy (Avib).
+We can now calculate the correct zero-temperature binding energy as
+
+        E_H2 + ZPE_H2 - 2EH
+     = -1.1647 + 0.00999 - 2(-0.4994)
+     = -0.1559 Hartrees
+     = -4.242 eV.
+
+At room temperature, the correct binding free energy is
+
+       E_H2 + Avib_H2 + (3/2)kT - 2(EH + (3/2)kT)
+     = -1.1647 + 0.00999 + 1.5*0.00094 - 2(-0.4994 + 1.5*0.00094)
+     = -0.1573 Hartrees
+     = -4.281 eV
+
+where the (3/2)kT contributions correspond to the ideal-gas translational free energies.
+In comparison, the experimental binding energy (negative of atomization energies)
+from [CCCBDB](http://cccbdb.nist.gov) is 4.48 eV at zero temperature
+and at 4.52 eV at room temperature.
+The PBE GGA predictions have an error of approximately 0.2 eV for the binding energies;
+note that these calculations agree well with the PBE-calculated atomization energy on CCCBDB.
+
+Exercise: check that the hybrid functionals (eg. PBE0) predict
+the binding energy of H2 in better agreement with experiment.
+(H2 is a special case with an unusually short bond length,
+and you will encounter a core-overlap issue with the SG15 pseudopotentials.
+Bypass this check using the command \ref CommandCoreOverlapCheck.)
+
+*/

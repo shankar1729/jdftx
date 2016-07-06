@@ -65,10 +65,10 @@ struct CommandWannier : public Command
 	{
 		format = "<key1> <args1...>  <key2> <args2...>  ...";
 		comments =
-			"Control wannier calculation and output. The possible <key>'s and their\n"
+			"%Control wannier calculation and output. The possible <key>'s and their\n"
 			"corresponding arguments are:\n"
 			"\n+ localizationMeasure FiniteDifference | RealSpace\n\n"
-			"   Controls how the localization of the Wannier functions is calculated.\n"
+			"   Controls how the localization of the %Wannier functions is calculated.\n"
 			"   The finite-difference reciprocal space measure of Marzari and Vanderbilt\n"
 			"   (default) is inexpensive, but its error scales as Nkpoints^(-2./3).\n"
 			"   The real space version is slower but its error scales as exp(-Nkpoints^(1/3)),\n"
@@ -89,7 +89,7 @@ struct CommandWannier : public Command
 			"   Inner energy window within which bands are used exactly.\n"
 			"   Requires outerWindow, and innerWindow must be its subset.\n"
 			"\n+ frozenCenters <nFrozen> <filename>\n\n"
-			"   Include frozen Wannier centers imported as unitary rotations from <filename>\n"
+			"   Include frozen %Wannier centers imported as unitary rotations from <filename>\n"
 			"   (.mlwfU output from another wannier run on the same jdftx state), and force\n"
 			"   the current centers to be orthogonal to the imported ones. Note that all output\n"
 			"   of this run will include the frozen as well as new centers for convenience.\n"
@@ -109,13 +109,13 @@ struct CommandWannier : public Command
 			"   The output is real and antisymmetric (drops the iota so as to half the output size).\n"
 			"   Default: no.\n"
 			"\n+ loadRotations yes|no\n\n"
-			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run.\n"
+			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous %Wannier run.\n"
 			"   Default: no.\n"
 			"\n+ numericalOrbitals <filename>\n\n"
 			"   Load numerical orbitals from <filename> with basis described in <filename>.header\n"
 			"   that can then be used as trial orbitals. The reciprocal space wavefunction output\n"
-			"   of wannier is precisely in this format, so that supercell Wannier calculations can\n"
-			"   be initialized from previously calculated bulk / unit cell Wannier functions.\n"
+			"   of wannier is precisely in this format, so that supercell %Wannier calculations can\n"
+			"   be initialized from previously calculated bulk / unit cell %Wannier functions.\n"
 			"\n+ numericalOrbitalsOffset <x0> <x1> <x2>\n\n"
 			"   Origin of the numerical orbitals in lattice coordinates of the input.\n"
 			"   The default [ .5 .5 .5 ] (cell center) is appropriate for output from wannier.\n"
@@ -233,7 +233,7 @@ struct CommandWannierCenter : public Command
 			"(coordinate system set by coords-type).\n"
 			"\n"
 			"If <a> is the name of one of the pseudopotentials, then its\n"
-			"atomic orbitals will be used; otherwise a hydogenic orbital\n"
+			"atomic orbitals will be used; otherwise a hydrogenic orbital\n"
 			"of decay length n*<a> bohrs, where n is the principal\n"
 			"quantum number in <orbDesc> will be used.\n"
 			"\n"
@@ -432,3 +432,33 @@ struct CommandWannierDumpName : public CommandWannierFilenames
 	string& getTarget(Everything& e) { return ((WannierEverything&)e).wannier.dumpFilename; }
 }
 commandWannierDumpName;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandWannierRotationReset : public Command
+{
+	CommandWannierRotationReset() : Command("wannier-rotation-reset", "wannier")
+	{
+		format = "[<interval=20>] [<threshold>=0.5]";
+		comments =
+			"Every <interval> steps, set initial rotations to current values and \n"
+			"restart minimization if rotation generator magnitude crosses <threshold>.\n"
+			"Set <interval> = 0 to disable this check.";
+		
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		pl.get(wannier.rotationCheckInterval, 20, "interval");
+		pl.get(wannier.rotationThreshold, 0.5, "threshold");
+		if(wannier.rotationCheckInterval<0) throw string("<interval> must be non-negative");
+		if(wannier.rotationThreshold<0.) throw string("<threshold> must be >= 0.");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const Wannier& wannier = ((WannierEverything&)e).wannier;
+		logPrintf("%d %lg", wannier.rotationCheckInterval, wannier.rotationThreshold);
+	}
+}
+commandWannierRotationReset;

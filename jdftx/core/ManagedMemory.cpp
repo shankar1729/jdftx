@@ -238,7 +238,7 @@ void ManagedMemory::writea(const char *fname) const
 	fclose(fp);
 }
 void ManagedMemory::write(FILE *fp) const
-{	size_t nDone = fwrite(data(), sizeof(complex), nData(), fp);
+{	size_t nDone = fwriteLE(data(), sizeof(complex), nData(), fp);
 	if(nDone<nData()) die("Error after processing %lu of %lu records.\n", nDone, nData());
 }
 void ManagedMemory::dump(const char* fname, bool realPartOnly) const
@@ -257,17 +257,17 @@ void ManagedMemory::dump(const char* fname, bool realPartOnly) const
 }
 
 void ManagedMemory::read(const char *fname)
-{	off_t fsizeExpected = nData() * sizeof(complex);
-	off_t fsize = fileSize(fname);
-	if(fsize != off_t(fsizeExpected))
-		die("Length of '%s' was %zd instead of the expected %zd bytes.\n", fname, fsize, fsizeExpected);
+{	intptr_t fsizeExpected = nData() * sizeof(complex);
+	intptr_t fsize = fileSize(fname);
+	if(fsize != fsizeExpected)
+		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname, "rb");
 	if(!fp) die("Error opening %s for reading.\n", fname);
 	read(fp);
 	fclose(fp);
 }
 void ManagedMemory::read(FILE *fp)
-{	size_t nDone = fread(data(), sizeof(complex), nData(), fp);
+{	size_t nDone = freadLE(data(), sizeof(complex), nData(), fp);
 	if(nDone<nData()) die("Error after processing %lu of %lu records.\n", nDone, nData());
 }
 
@@ -282,7 +282,7 @@ void ManagedMemory::write_real(FILE *fp) const
 {	const complex* thisData = this->data();
 	double *dataReal = new double[nData()];
 	for(size_t i=0; i<nData(); i++) dataReal[i] = thisData[i].real();
-	fwrite(dataReal, sizeof(double), nData(), fp);
+	fwriteLE(dataReal, sizeof(double), nData(), fp);
 	delete[] dataReal;
 }
 
@@ -293,7 +293,7 @@ void ManagedMemory::read_real(const char *fname)
 }
 void ManagedMemory::read_real(FILE *fp)
 {	double *dataReal = new double[nData()];
-	fread(dataReal, sizeof(double), nData(), fp);
+	freadLE(dataReal, sizeof(double), nData(), fp);
 	complex* thisData = this->data();
 	for (size_t i=0; i<nData(); i++) thisData[i] = dataReal[i];
 	delete[] dataReal;

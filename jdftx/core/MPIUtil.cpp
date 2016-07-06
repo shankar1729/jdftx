@@ -147,9 +147,9 @@ void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool saf
 
 void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const char* fsizeErrMsg) const
 {	if(fsizeExpected)
-	{	off_t fsize = fileSize(fname);
-		if(fsize != off_t(fsizeExpected))
-			die("Length of '%s' was %zd instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
+	{	intptr_t fsize = fileSize(fname);
+		if(fsize != intptr_t(fsizeExpected))
+			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
 	#ifdef MPI_ENABLED
 	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
@@ -216,19 +216,20 @@ void MPIUtil::fseek(File fp, long offset, int whence) const
 void MPIUtil::fread(void *ptr, size_t size, size_t nmemb, File fp) const
 {
 	#ifdef MPI_ENABLED
-	size_t nBytes = size*nmemb;
-	size_t blockSize = size_t(INT_MAX)/2;
-	size_t nBlocks = ceildiv(nBytes, blockSize);
+	size_t blockSize = size_t(INT_MAX)/(2*size);
+	size_t nBlocks = ceildiv(nmemb, blockSize);
 	for(size_t iBlock=0; iBlock<nBlocks; iBlock++)
 	{	size_t offset = iBlock * blockSize;
-		int length = int(std::min(nBytes, (iBlock+1)*blockSize) - offset);
+		int length = int(std::min(nmemb, (iBlock+1)*blockSize) - offset);
 		MPI_Status status;
-		MPI_File_read(fp, ((char*)ptr)+offset, length, MPI_BYTE, &status);
+		char* ptrOffset = ((char*)ptr)+offset*size;
+		MPI_File_read(fp, ptrOffset, length*size, MPI_BYTE, &status);
+		convertFromLE(ptrOffset, size, length); //modify byte-order in place, if necessary
 		int count; MPI_Get_count(&status, MPI_BYTE, &count);
-		if(count != length) die("Error in file read.\n");
+		if(count != int(length*size)) die("Error in file read.\n");
 	}
 	#else
-	if(::fread(ptr, size, nmemb, fp) != nmemb)
+	if(freadLE(ptr, size, nmemb, fp) != nmemb)
 		die("Error in file read.\n");
 	#endif
 }
@@ -236,19 +237,21 @@ void MPIUtil::fread(void *ptr, size_t size, size_t nmemb, File fp) const
 void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 {
 	#ifdef MPI_ENABLED
-	size_t nBytes = size*nmemb;
-	size_t blockSize = size_t(INT_MAX)/2;
-	size_t nBlocks = ceildiv(nBytes, blockSize);
+	size_t blockSize = size_t(INT_MAX)/(2*size);
+	size_t nBlocks = ceildiv(nmemb, blockSize);
 	for(size_t iBlock=0; iBlock<nBlocks; iBlock++)
 	{	size_t offset = iBlock * blockSize;
-		int length = int(std::min(nBytes, (iBlock+1)*blockSize) - offset);
+		int length = int(std::min(nmemb, (iBlock+1)*blockSize) - offset);
 		MPI_Status status;
-		MPI_File_write(fp, ((char*)ptr)+offset, length, MPI_BYTE, &status);
+		char* ptrOffset = ((char*)ptr)+offset*size;
+		convertToLE(ptrOffset, size, length); //modify byte-order in place, if necessary
+		MPI_File_write(fp, ptrOffset, length*size, MPI_BYTE, &status);
+		convertFromLE(ptrOffset, size, length); //restore byte-order (since data should not be logically modified)
 		int count; MPI_Get_count(&status, MPI_BYTE, &count);
-		if(count != length) die("Error in file write.\n");
+		if(count != int(length*size)) die("Error in file write.\n");
 	}
 	#else
-	if(::fwrite(ptr, size, nmemb, fp) != nmemb)
+	if(fwriteLE(ptr, size, nmemb, fp) != nmemb)
 		die("Error in file write.\n");
 	#endif
 }
