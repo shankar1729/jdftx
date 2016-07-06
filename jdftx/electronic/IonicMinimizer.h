@@ -60,11 +60,15 @@ public:
 	IonicGradient precondition(const IonicGradient& grad);
 	bool report(int iter);
 	void constrain(IonicGradient&);
+	static const double maxAtomTestDisplacement; //maximum allowed atom displacement in test step
+	static const double maxWfnsDragDisplacement; //maximum atom displacement for which wavefunction drag is allowed
+	double safeStepSize(const IonicGradient& dir) const; //enforces IonicMinimizer::maxAtomTestDisplacement on test step size
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
 private:
 	bool populationAnalysisPending; //!< report() has requested a charge analysis output that is yet to be done
+	bool skipWfnsDrag; //!< whether to temprarily skip wavefunction dragging due to large steps
 };
 
 #endif // JDFTX_ELECTRONIC_IONICMINIMIZER_H
