@@ -294,6 +294,7 @@ void IonDynamics::run()
 	
 	accel.init(e.iInfo);
 	initialPotentialEnergy = (double)NAN; // ground state potential
+	nullToZero(e.eVars.nAccumulated,e.gInfo);
 	
 	for(double t=0.0; t<e.ionDynamicsParams.tMax; t+=e.ionDynamicsParams.dt)
 	{	potentialEnergy = computeAcceleration(accel);
@@ -304,7 +305,12 @@ void IonDynamics::run()
 		if (std::isnan(initialPotentialEnergy ))
 			initialPotentialEnergy = potentialEnergy;
 		report(t);
-		step(accel, e.ionDynamicsParams.dt);	
+		step(accel, e.ionDynamicsParams.dt);
+		//Accumulate the averaged electronic density over the trajectory
+		for(unsigned s=0; s<e.eVars.nAccumulated.size(); s++)
+		{
+		  e.eVars.nAccumulated[s]=(e.eVars.nAccumulated[s]*(t-e.ionDynamicsParams.dt)+e.eVars.n[s]*e.ionDynamicsParams.dt)*(1.0/t);
+		}
 	}
 }
 

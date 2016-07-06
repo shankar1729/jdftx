@@ -821,3 +821,22 @@ matrix tiledBlockMatrix::operator*(const matrix& other) const
 	}
 	return result;
 }
+
+//---------octave-like slicing operators on scalar field matrices--------------
+
+//get a particular element (from the gpu if needed)
+complex matrix::getElement(vector3< int > index, GridInfo& gInfo)
+{
+/*  vector3<int> S = gInfo.S;
+  complex* elem;
+  int stride_z = sizeof(complex);
+  int stride_y = S[3]*sizeof(complex);
+  int stride_x = S[2]*S[3]*sizeof(complex);
+  elem = *this->dataPref() + index[0]*stride_x + index[1]*stride_y + index[2]*stride_z; 
+  
+  //HACK should I be moving this from gpu?
+    
+  return *elem;*/
+}
+
+
