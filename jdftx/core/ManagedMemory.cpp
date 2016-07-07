@@ -52,10 +52,21 @@ namespace MemUsageReport
 		static std::map<string, Usage> usageMap;
 		static Usage usageTotal;
 		static std::mutex usageLock;
+		static const double elemToGB = 16./pow(1024.,3);
 		
 		switch(mode)
 		{	case Add:
 			{	usageLock.lock();
+				/*
+				//DEBUG: Uncomment and tweak this block to trace execution point of highest memory of a given category
+				//NOTE: Avoid commiting changes to this block during memory optimization;
+				//restore it to this state and remember to comment it out before commiting!
+				if(category=="ColumnBundle"
+					&& (usageMap[category].current+nElements > usageMap[category].peak) )
+				{	printStack(true);
+					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", category.c_str(), (usageMap[category].current+nElements)*elemToGB);
+				}
+				*/
 				usageMap[category] += nElements;
 				usageTotal += nElements;
 				usageLock.unlock();
@@ -71,8 +82,7 @@ namespace MemUsageReport
 				break;
 			}
 			case Print:
-			{	const double elemToGB = 16./pow(1024.,3);
-				for(auto entry: usageMap)
+			{	for(auto entry: usageMap)
 					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", entry.first.c_str(), entry.second.peak * elemToGB);
 				logPrintf("MEMUSAGE: %30s %12.6lf GB\n", "Total", usageTotal.peak * elemToGB);
 				break;

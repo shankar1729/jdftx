@@ -81,9 +81,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		if(grad) e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
 		
 		//Wavefunction dependent parts:
-		std::vector<ColumnBundle> HC(eInfo.nStates);
-		std::vector< std::vector<matrix> > HVdagC(eInfo.nStates, std::vector<matrix>(e.iInfo.species.size()));
-
 		ener.E["NI"] = 0.;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
@@ -94,11 +91,12 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		
 			//Gradient and subspace Hamiltonian:
 			if(grad)
-			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
-				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
-				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
-				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
-				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
+			{	ColumnBundle HCq = Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
+				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq); //Contribution via atomic density matrices (DFT+U)
+				std::vector<matrix> HVdagCq(e.iInfo.species.size());
+				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+				e.iInfo.projectGrad(HVdagCq, eVars.C[q], HCq);
+				eVars.Hsub[q] = HniRot + (eVars.C[q]^HCq);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
 				//N/M constraint contributions to gradient:
 				diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);

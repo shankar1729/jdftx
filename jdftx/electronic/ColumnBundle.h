@@ -100,6 +100,8 @@ ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle
 ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
 
 ColumnBundle& operator*=(ColumnBundle& X, double s);
+ColumnBundle operator*(double s, ColumnBundle&& Y);
+ColumnBundle operator*(ColumnBundle&& Y, double s);
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y);
 scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s);
 scaled<ColumnBundle> operator-(const ColumnBundle &Y);

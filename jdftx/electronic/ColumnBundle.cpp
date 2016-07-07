@@ -302,6 +302,8 @@ ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle
 ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
 
 ColumnBundle& operator*=(ColumnBundle& X, double s) { scale(s, X); return X; }
+ColumnBundle operator*(double s, ColumnBundle&& Y) { scale(s, Y); return Y; }
+ColumnBundle operator*(ColumnBundle&& Y, double s) { scale(s, Y); return Y; }
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator-(const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, -1); }
