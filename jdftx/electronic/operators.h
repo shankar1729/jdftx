@@ -90,8 +90,8 @@ ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply 
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir); //!< Compute second spatial derivative of a column bundle along directions# iDir, jDir
 
-//! Apply inverse kinetic preconditioner inv((k+G)^2/2)
-ColumnBundle precond_inv_kinetic(const ColumnBundle &Y, double KErollover); 
+//! Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover); 
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y); //!< compute diag(X^Y) efficiently (avoid the off-diagonals)
 void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KEref); //!< In-place inverse kinetic preconditioner with band-by-band KE reference (Used by BandDavidson)

@@ -109,7 +109,8 @@ public:
 	void orthonormalize(int q, const matrix* extraRotation=0);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
-	void applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
+	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner
+	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false);
 	
 private:
 	const Everything* e;

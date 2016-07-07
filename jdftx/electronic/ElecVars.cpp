@@ -395,7 +395,19 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	ener.E["KE"] = 0.;
 	ener.E["Enl"] = 0.;
 	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
-		applyHamiltonian(q, F[q], HC[q], ener, need_Hsub);
+	{	double KEq = applyHamiltonian(q, F[q], HC[q], ener, need_Hsub);
+		if(grad) //Calculate wavefunction gradients:
+		{	const QuantumNumber& qnum = eInfo.qnums[q];
+			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
+			grad->C[q] = HC[q] * (F[q]*qnum.weight);
+			if(Kgrad)
+			{	double Nq = qnum.weight*trace(F[q]);
+				double KErollover = 2. * (Nq>1e-3 ? KEq/Nq : 1.);
+				precond_inv_kinetic(HC[q], KErollover); //apply preconditioner
+				std::swap(Kgrad->C[q], HC[q]); //this frees HC[q]
+			}
+		}
+	}
 	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
 	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
@@ -430,25 +442,15 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		}
 	}
 	
-	//Propagate grad_C to gradients and/or preconditioned gradients of Y, B:
-	if(grad)
-	{	double KErollover = 2.*ener.E["KE"] / eInfo.nElectrons;
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	//Auxiliary hamiltonian gradient:
+	if(grad && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
-				
-			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
-			grad->C[q] = HC[q] * (F[q]*qnum.weight);
-			if(Kgrad) Kgrad->C[q] = precond_inv_kinetic(HC[q], KErollover);
-			
-			//Subspace hamiltonian gradient:
-			if(grad && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-			{
-				matrix gradF0 = Hsub[q]-Haux_eigs[q]; //gradient w.r.t fillings except for constraint contributions
-				matrix gradF = gradF0 - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
-				grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
-				if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
-					Kgrad->Haux[q] = (-eInfo.kT * e->cntrl.subspaceRotationFactor) * gradF0;
-			}
+			matrix gradF0 = Hsub[q]-Haux_eigs[q]; //gradient w.r.t fillings except for constraint contributions
+			matrix gradF = gradF0 - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
+			grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
+			if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
+				Kgrad->Haux[q] = (-eInfo.kT * e->cntrl.subspaceRotationFactor) * gradF0;
 		}
 	}
 	
@@ -573,7 +575,7 @@ void ElecVars::orthonormalize(int q, const matrix* extraRotation)
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }
 
-void ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
+double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
 {	assert(e->eInfo.isMine(q));
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
@@ -591,9 +593,12 @@ void ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, 
 	}
 
 	//Kinetic energy:
-	ColumnBundle minushalfLCq = -0.5*L(C[q]);
-	if(HCq) HCq += minushalfLCq;
-	ener.E["KE"] += qnum.weight * traceinner(Fq, C[q], minushalfLCq).real();;
+	double KEq;
+	{	ColumnBundle minushalfLCq = -0.5*L(C[q]);
+		if(HCq) HCq += minushalfLCq;
+		KEq = qnum.weight * traceinner(Fq, C[q], minushalfLCq).real();
+		ener.E["KE"] += KEq;
+	}
 	
 	//Nonlocal pseudopotentials:
 	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
@@ -604,4 +609,5 @@ void ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, 
 	{	Hsub[q] = C[q] ^ HCq;
 		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
+	return KEq;
 }
