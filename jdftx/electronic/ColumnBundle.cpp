@@ -296,10 +296,10 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 
 //------------------------ Arithmetic --------------------
 
-ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundle &X) { if(Y) axpy(1.0, X, Y); else Y=X; return Y; }
-ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundle &X) { if(Y) axpy(-1.0, X, Y); else Y=-X; return Y; }
-ColumnBundle operator+(const ColumnBundle &Y1, const ColumnBundle &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
-ColumnBundle operator-(const ColumnBundle &Y1,const ColumnBundle &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
+ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(+X.scale, X.data, Y); else Y=X; return Y; }
+ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(-X.scale, X.data, Y); else Y=-X; return Y; }
+ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
+ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
 
 ColumnBundle& operator*=(ColumnBundle& X, double s) { scale(s, X); return X; }
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, s); }
@@ -346,6 +346,24 @@ void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, Colum
 
 ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst)
 {	return ColumnBundleMatrixProduct(sY.data, Mst, sY.scale);
+}
+ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(+1.,1.,Y);
+	return Y;
+}
+ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(-1.,1.,Y);
+	return Y;
+}
+ColumnBundle operator+(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result += XM2;
+	return result;
+}
+ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result -= XM2;
+	return result;
 }
 
 ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)

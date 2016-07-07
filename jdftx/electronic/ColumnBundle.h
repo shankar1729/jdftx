@@ -94,10 +94,10 @@ double dot(const ColumnBundle& x, const ColumnBundle& y); //!< inner product
 
 //----------- Arithmetic ------------
 
-ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundle &X);
-ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundle &X);
-ColumnBundle operator+(const ColumnBundle &Y1, const ColumnBundle &Y2);
-ColumnBundle operator-(const ColumnBundle &Y1,const ColumnBundle &Y2);
+ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
+ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
+ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
+ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
 
 ColumnBundle& operator*=(ColumnBundle& X, double s);
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y);
@@ -131,8 +131,10 @@ private:
 
 //Delay ColumnBundle * matrix and combine it with ColumnBundle accumulate operations when possible:
 ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst);
-inline ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM) { XM.scaleAccumulate(+1.,1.,Y); return Y; }
-inline ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM) { XM.scaleAccumulate(-1.,1.,Y); return Y; }
+ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM);
+ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM);
+ColumnBundle operator+(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2);
+ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2);
 
 ColumnBundle operator*(const scaled<ColumnBundle>&, const diagMatrix&);
 matrix operator^(const scaled<ColumnBundle>&, const scaled<ColumnBundle>&); //!< inner product

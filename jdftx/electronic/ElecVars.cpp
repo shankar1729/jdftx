@@ -594,9 +594,9 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 
 	//Kinetic energy:
 	double KEq;
-	{	ColumnBundle minushalfLCq = -0.5*L(C[q]);
-		if(HCq) HCq += minushalfLCq;
-		KEq = qnum.weight * traceinner(Fq, C[q], minushalfLCq).real();
+	{	ColumnBundle LCq = L(C[q]);
+		if(HCq) HCq += (-0.5) * LCq;
+		KEq = qnum.weight * (-0.5) * traceinner(Fq, C[q], LCq).real();
 		ener.E["KE"] += KEq;
 	}
 	
