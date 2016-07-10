@@ -1,20 +1,20 @@
 /** \page ChangeLog Change log
 
-## Unreleased
+## 1.2.0 - 2016-07-10 ([Site archive](http://jdftx.org/1.2.0))
 
 + Substantial memory optimizations, reducing typical usage by 30-50 % overall:
 
   - Total energy minimize: switched from analytically-continued (Y and C) to orthonormal-only
     (C alone) algorithm, which eliminates one persistent copy of the wavefunctions
   
-  - %SCF: reduced memory usage of the Davidson algorithm by eliminating cached copies of the
+  - SCF: reduced memory usage of the BandDavidson algorithm by eliminating cached copies of the
     overlap operator applied to the wavefunctions, and also of the conjugate-gradients
-    band minimizer by switching away from the analytically -continued approach.
+    BandMinimizer by switching away from the analytically -continued approach.
     
   - Reduced peak memory usage further by improving move semantics and delaying / combining
-    key %ColumnBundle and matrix operations using template meta-programming.
+    key ColumnBundle and matrix operations using template meta-programming.
     
-  - Added debug code options in %ManagedMemory to stack-trace peak memory usage points
+  - Added debug code options in ManagedMemory to stack-trace peak memory usage points
 
 + Rewrote auxiliary Hamiltonian fillings algorithm with automatic preconditioner tuning,
   resulting in substantially better convergence, including at fixed potential.
