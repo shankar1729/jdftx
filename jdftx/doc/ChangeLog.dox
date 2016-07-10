@@ -1,5 +1,37 @@
 /** \page ChangeLog Change log
 
+## Unreleased
+
++ Substantial memory optimizations, reducing typical usage by 30-50 % overall:
+
+  - Total energy minimize: switched from analytically-continued (Y and C) to orthonormal-only
+    (C alone) algorithm, which eliminates one persistent copy of the wavefunctions
+  
+  - %SCF: reduced memory usage of the Davidson algorithm by eliminating cached copies of the
+    overlap operator applied to the wavefunctions, and also of the conjugate-gradients
+    band minimizer by switching away from the analytically -continued approach.
+    
+  - Reduced peak memory usage further by improving move semantics and delaying / combining
+    key %ColumnBundle and matrix operations using template meta-programming.
+    
+  - Added debug code options in %ManagedMemory to stack-trace peak memory usage points
+
++ Rewrote auxiliary Hamiltonian fillings algorithm with automatic preconditioner tuning,
+  resulting in substantially better convergence, including at fixed potential.
+  Auxiliary Hamiltonian is kept diagonal in new algorithm; the state for the
+  new variable-fillings optimizer therefore uses eigenvals instead of Haux (deleted).
+
++ Improved stability of ionic and lattice minimizers against occasional unphysically large steps.
+
++ Removed: defunct fillings algorithms such as periodic mixing and mu controller, inverse Kohn-Sham minimizer and fix-occupied functionality
+
++ Individual-frame output and %Wannier orbital support in the createXSF script
+
++ Complete set of tutorials for molecules, solids, surfaces and %Wannier function calculations
+
++ Detailed compilation instructions for Debian and Redhat-based GNU/Linux, MacOS X and Cygwin/Windows
+
+
 ## 1.1.2 - 2016-06-10 ([Site archive](http://jdftx.org/1.1.2))
 
 + Added support for compiling and running on Windows using Cygwin
@@ -15,7 +47,7 @@
 
 ## 1.1.1 - 2016-05-04 ([Site archive](http://jdftx.org/1.1.1))
 
-+ Moved auxiliary executables to aux making their compilation optional, and renamed testuite to test
++ Moved auxiliary executables to aux making their compilation optional, and renamed testsuite to test
 
 + Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5 
 
@@ -34,7 +66,7 @@
   
 + Added command to control electrostatic potential output (raw or atom-potential corrected)
 
-+ Automatic initial vacuum electronic solve in fixed-mu fluid claculations remain neutral for consistency
++ Automatic initial vacuum electronic solve in fixed-mu fluid calculations remain neutral for consistency
 
 + Renamed ion dynamics classes (not named specifically Verlet any more), and added confining potential options
 
@@ -52,7 +84,7 @@ but here's a partial list of major developments since the first numbered release
 
 + Vibrations, phonons and improved Wannier support for *ab initio* tight binding models (including electron-light and electron-phonon coupling)
 
-+ Noncollinear magentism and spin-orbit coupling, including support for DFT+U as well as phonons
++ Non-collinear magnetism and spin-orbit coupling, including support for DFT+U as well as phonons
 
 + Support for electronic-SCF and the Davidson eigenvalue solver
   in addition to the default variational minimize using the Conjugate Gradients algorithm
@@ -62,10 +94,10 @@ but here's a partial list of major developments since the first numbered release
 + Substantial optimization of density augmentation code to speed up ultrafast pseudopotentials,
   and projector caching to optimize nonlocal potential evaluations
 
-+ Seperate wavefunction and charge density cutoff, with an optionally tighter plane-wave grid for wavefucntion transforms
++ Separate wavefunction and charge density cutoff, with an optionally tighter plane-wave grid for wavefunction transforms
 
 + Systematized fluid specification: solvent and ionic fluid components,
-  pcm-variant to control different parametrizations within classes of solvation models.
+  pcm-variant to control different parameterizations within classes of solvation models.
 
 + Enhanced Coulomb truncation using double-sized boxes, including for fluids
 
