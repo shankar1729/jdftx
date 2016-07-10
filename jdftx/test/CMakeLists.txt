@@ -5,6 +5,7 @@ macro(add_jdftx_test testName)
 	add_test(NAME ${testName} COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runTest.sh ${testName} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR})
 endmacro()
 
+add_jdftx_test(openShell)
 add_jdftx_test(vibrations)
 add_jdftx_test(moleculeSolvation)
 add_jdftx_test(ionSolvation)

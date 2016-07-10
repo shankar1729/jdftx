@@ -125,7 +125,7 @@ struct CommandElecInitialMagnetization : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	if(e.eInfo.spinType != SpinZ)
-			throw("Total magnetization can only be specified for spintype z-spin");
+			throw(string("Total magnetization can only be specified for spintype z-spin"));
 		pl.get(e.eInfo.Minitial, 0., "M", true);
 		pl.get(e.eInfo.Mconstrain, true, boolMap, "constrain", true);
 	}
