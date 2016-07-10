@@ -1,0 +1,20 @@
+lattice face-centered Cubic 7.88
+latt-scale 1 1 2
+kpoint-folding 4 4 2
+
+ion Ni 0.0 0.0 0.00  0
+ion Ni 0.0 0.0 0.50  0
+ion O  0.5 0.5 0.25  0
+ion O  0.5 0.5 0.75  0
+
+ion-species GBRV/$ID_pbe_v1.2.uspp
+ion-species GBRV/$ID_pbe_v1.uspp
+elec-cutoff 20 100
+elec-fermi-fillings 0 0.01
+electronic-SCF
+
+spintype z-spin
+initial-magnetic-moments Ni +3 -3
+add-U Ni d 0.169  #4.6eV
+
+dump End None
