@@ -10,12 +10,12 @@ testRunDir="$testsuiteRunDir/$testName"
 
 mkdir -p $testRunDir
 cd $testRunDir
+export SRCDIR="$testSrcDir"
 
 #Run JDFTx on all the runs that belong to this test (don't rerun tests which have succeeded)
 source $testSrcDir/sequence.sh
 for run in $runs; do
 	if [[ ! ( ( -f $run.out ) && ( "$(awk '/End date and time:/ {endLine=NR+1} NR==endLine {print}' $run.out)" == "Done!" ) ) ]]; then
-		export SRCDIR="$testSrcDir"
 		$JDFTX_LAUNCH $jdftxBuildDir/jdftx -i $testSrcDir/$run.in -d -o $run.out
 		if [ "$?" -ne "0" ]; then
 			echo "" > results

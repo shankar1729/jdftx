@@ -1,0 +1,8 @@
+include ${SRCDIR}/common.in
+kpoint 0.66667 -0.33333  0.0     1.
+
+fix-electron-density totalE.$VAR
+elec-n-bands 8
+dump-name bandstruct.$VAR
+dump End BandEigs
+
