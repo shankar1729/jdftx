@@ -240,6 +240,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Make initial rotations exactly unitary:
 		ke.U1 = fixUnitary(ke.U1);
 		ke.U2 = fixUnitary(ke.U2);
+		ke.U = ke.U1(0,nBands, 0,nCenters) * ke.U2;
 	}
 	mpiUtil->checkErrors(ossErr);
 	suspendOperatorThreading();
@@ -252,17 +253,15 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		if(!isMine_q(ik,iSpin))
 		{	ke.U1 = zeroes(nBands, ke.nIn);
 			ke.U2 = zeroes(nCenters, nCenters);
+			ke.U = zeroes(nBands, nCenters);
 		}
 		ke.U1.bcast(whose_q(ik,iSpin));
 		ke.U2.bcast(whose_q(ik,iSpin));
-		if(isMine(ik))
-			ke.B = zeroes(nCenters, ke.nIn);
-		else //No longer need sub-matrices on this process
+		ke.U.bcast(whose_q(ik,iSpin));
+		if(!isMine(ik)) //No longer need sub-matrices on this process
 		{	ke.U1 = matrix();
 			ke.U2 = matrix();
-			ke.B = matrix();
 		}
-		ke.U = zeroes(nBands, nCenters);
 	}
 	
 	//Sub-class specific initialization:

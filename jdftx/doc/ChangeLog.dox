@@ -23,9 +23,15 @@
 
 + Improved stability of ionic and lattice minimizers against occasional unphysically large steps.
 
++ Updated WannierMinimizer to continuously update rotations in-place,
+  analogous to the changes in  ElecMinimizer and BandMinimizer, and switched
+  to L-BFGS as the default optimizer (faster than CG after these changes).
+
 + Removed: defunct fillings algorithms such as periodic mixing and mu controller, inverse Kohn-Sham minimizer and fix-occupied functionality
 
 + Individual-frame output and %Wannier orbital support in the createXSF script
+
++ Expanded test set that covers salient features (loosely based on the new tutorial sequence)
 
 + Complete set of tutorials for molecules, solids, surfaces and %Wannier function calculations
 

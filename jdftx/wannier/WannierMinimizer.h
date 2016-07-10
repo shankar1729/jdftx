@@ -74,15 +74,9 @@ public:
 		//State of system for Wannier minimize:
 		int nIn; //number of bands that contribute to the Wannier subspace
 		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
-		matrix B; //!< Independent variable for minimization (nCenters x nIn)
 		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
-		//Stage 1: Select linear cominations of bands that enter Wannier subspace
-		matrix calc_V1();
-		matrix U1, V1, B1evecs; //U1 = initial rotation (nBands x nIn), V1 = subsequent rotation from B (nIn x nCenters)
-		diagMatrix B1eigs;
-		//Stage 2: Rotations within Wannier subspace (all nCenters x nCenters)
-		matrix U2, V2, B2evecs;
-		diagMatrix B2eigs;
+		matrix U1; //Initial rotation into Wannier subspace (nBands x nIn)
+		matrix U2; //Rotation within Wannier subspace (nCenters x nCenters)
 	};
 
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization
@@ -159,6 +153,9 @@ protected:
 	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
 	
 	static matrix fixUnitary(const matrix& U); //return an exactly unitary version of U (orthogonalize columns)
+	
+	//Preconditioner for Wannier optimization: identity by default, override in derived class to change
+	virtual WannierGradient precondition(const WannierGradient& grad);
 };
 
 #endif // JDFTX_WANNIER_WANNIERMINIMIZER_H
