@@ -1,4 +1,3 @@
-
 add_custom_target(testresults COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/printResults.sh ${CMAKE_CURRENT_BINARY_DIR} )
 add_custom_target(testclean COMMAND rm -f */*.out */*.wfns */*.fillings */*.ionpos */*.Haux */*.fluidState */results */summary WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )
 
@@ -8,3 +7,4 @@ endmacro()
 
 add_jdftx_test(vibrations)
 add_jdftx_test(moleculeSolvation)
+add_jdftx_test(ionSolvation)

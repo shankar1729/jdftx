@@ -1,0 +1,5 @@
+include ${SRCDIR}/LinearPCM.in
+initial-state common.$VAR   #Start CANDLE from GLSSA to check continuation
+
+pcm-variant CANDLE
+
