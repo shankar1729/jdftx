@@ -1,0 +1,25 @@
+lattice Hexagonal 5.23966 20
+ion Pt -0.333333  0.333333 -0.213908   1
+ion Pt  0.000000  0.000000  0.000000   1
+ion Pt  0.333333 -0.333333  0.213908   1
+
+ion-species GBRV/$ID_pbe_v1.2.uspp
+ion-species GBRV/$ID_pbe_v1.uspp
+elec-cutoff 20 100
+
+coulomb-interaction Slab 001
+coulomb-truncation-embed 0 0 0
+
+kpoint-folding 8 8 1
+elec-fermi-fillings 0 0.01
+
+fluid LinearPCM
+pcm-variant CANDLE
+fluid-solvent H2O
+fluid-cation Na+ 1.
+fluid-anion F- 1.
+
+dump-name common.$VAR      #This will overwrite outputs from successive runs
+initial-state common.$VAR  #This will initialize from the preceding calculation
+dump End State
+
