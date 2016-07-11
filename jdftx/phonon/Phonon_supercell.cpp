@@ -270,7 +270,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	
 	//Update entropy contributions:
 	if(eSup->eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
-	{	eSup->eInfo.updateFillingsEnergies(eSup->eVars.F, eSup->ener);
+	{	eSup->eInfo.updateFillingsEnergies(eSup->eVars.Haux_eigs, eSup->ener);
 		eSup->eVars.HauxInitialized = true;
 	}
 }

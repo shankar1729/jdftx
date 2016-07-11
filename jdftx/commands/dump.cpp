@@ -456,7 +456,7 @@ struct CommandDumpFermiDensity : public Command
 	{
 		format = "[<muLevel>]";
 		comments =
-			"Output electron density calculated from derivative of Fermi-Dirac\n"
+			"Output electron density calculated from derivative of smearing\n"
 			"function evaluated at desired chemical potential <muLevel>.\n"
 			"If unspecified, calculated chemical potential will be used.\n"
 			"\n"
@@ -466,7 +466,7 @@ struct CommandDumpFermiDensity : public Command
 			"other frequencies may be requested using the dump command.";
 		
 		allowMultiple = true;
-		require("elec-fermi-fillings"); //require a temperature
+		require("elec-smearing"); //require smearing
 	}
 	
 	void process(ParamList& pl, Everything& e)

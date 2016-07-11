@@ -235,7 +235,7 @@ bool ElecMinimizer::report(int iter)
 	
 	//Fillings update report:
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		eInfo.printFermi();
+		eInfo.smearReport();
 	
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);

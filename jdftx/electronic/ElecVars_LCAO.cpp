@@ -69,8 +69,8 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
 		double dmuNum[2] = {0.,0.}, dmuDen[2]={0.,0.};
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
-		eInfo.updateFillingsEnergies(eVars.F, ener);
+			eVars.F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
+		eInfo.updateFillingsEnergies(eVars.Haux_eigs, ener);
 		
 		//Update density and density-matices if needed:
 		eVars.n = eVars.calcDensity();
@@ -99,7 +99,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HCq);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
 				//N/M constraint contributions to gradient:
-				diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
+				diagMatrix fprime = eInfo.smearPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
 				double w = eInfo.qnums[q].weight;
 				int sIndex = eInfo.qnums[q].index();
 				dmuNum[sIndex] += w * trace(fprime * (diag(eVars.Hsub[q])-eVars.Haux_eigs[q]));
@@ -128,7 +128,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{	const QuantumNumber& qnum = eInfo.qnums[q];
 				matrix gradF = eVars.Hsub[q]-eVars.Haux_eigs[q] - eye(nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
-				grad->Haux[q] = qnum.weight * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
+				grad->Haux[q] = qnum.weight * eInfo.smearGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
 				if(Kgrad) Kgrad->Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
 				//Transform gradients back to original rotation (which CG remains in):
 				grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
@@ -141,7 +141,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	bool report(int iter)
-	{	eInfo.printFermi();
+	{	eInfo.smearReport();
 		return false;
 	}
 };
@@ -278,7 +278,7 @@ int ElecVars::LCAO()
 	{	//Hsub fillings: use same eigenvalues, but recalculate to account for reduced band count:
 		double Bz, mu = eInfo.findMu(Haux_eigs, eInfo.nElectrons, Bz);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
+			F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 	}
 	else
 	{	//Constant fillings: remove Haux_eigs and restore F to original:

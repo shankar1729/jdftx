@@ -591,13 +591,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		std::vector<diagMatrix> Forig = F; //backup fillings
 		int iRange=0;
 		for(const auto& muLevel: fermiDensityLevels)
-		{	//Set fillings based on derivative of Fermi-Dirac function evaluated at muLevel
+		{	//Set fillings based on derivative of smearing function evaluated at muLevel
 			double muF, Bz;
 			//calculate mu if not set
 			muF = ( !std::isnan(muLevel) ? muLevel : eInfo.findMu(eVars.Hsub_eigs,eInfo.nElectrons,Bz) );
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 				for(int b=0; b<eInfo.nBands; b++)
-					F[q][b] = -eInfo.fermiPrime(muF,eVars.Hsub_eigs[q][b]);
+					F[q][b] = -eInfo.smearPrime(muF,eVars.Hsub_eigs[q][b]);
 			//Calculate and dump density
 			ScalarFieldArray density = eVars.calcDensity();
 			ostringstream oss; oss << "FermiDensity." << iRange; iRange++;

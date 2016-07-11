@@ -28,7 +28,7 @@ struct ExCorr_OrbitalDep_GLLBsc : public ExCorr::OrbitalDep
 	ScalarFieldArray getPotential() const;
 	void dump() const;
 private:
-	double T; //smearing width
+	double smearingWidth; //smearing width
 	std::vector<double> getExtremalEnergy(bool HOMO) const; //!<  get HOMO or LUMO energy (depending on HOMO=true/false), optionally accounting for smearing (depending on T)
 	ScalarFieldArray getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //!< get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
 };

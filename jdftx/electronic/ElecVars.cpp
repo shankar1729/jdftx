@@ -361,14 +361,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	//Update nElectrons from mu, or mu from nElectrons as appropriate:
 		if(std::isnan(eInfo.mu)) mu = eInfo.findMu(Haux_eigs, eInfo.nElectrons, Bz);
-		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsFermi(mu, Haux_eigs, Bz); }
+		else { mu = eInfo.mu; ((ElecInfo&)eInfo).nElectrons = eInfo.nElectronsCalc(mu, Haux_eigs, Bz); }
 		//Compute fillings from aux hamiltonian eigenvalues:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
+			F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 		//Update TS and muN:
-		eInfo.updateFillingsEnergies(F, ener);
+		eInfo.updateFillingsEnergies(Haux_eigs, ener);
 		//Report for SCF (ElecMinimizer handles for minimize):
-		if(e->cntrl.scf) eInfo.printFermi();
+		if(e->cntrl.scf) eInfo.smearReport();
 	}
 	
 	//Update the density and density-dependent pieces if required:
@@ -415,7 +415,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	if(grad and eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (std::isnan(eInfo.mu) or eInfo.Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
 	{	double dmuNum[2] = {0.,0.}, dmuDen[2] = {0.,0.}; //numerator and denominator of dmuContrib resolved by spin channels (if any)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
+		{	diagMatrix fprime = eInfo.smearPrime(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 			double w = eInfo.qnums[q].weight;
 			int sIndex = eInfo.qnums[q].index();
 			dmuNum[sIndex] += w * trace(fprime * (diag(Hsub[q])-Haux_eigs[q]));
@@ -448,9 +448,9 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
 			matrix gradF0 = Hsub[q]-Haux_eigs[q]; //gradient w.r.t fillings except for constraint contributions
 			matrix gradF = gradF0 - eye(eInfo.nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
-			grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
+			grad->Haux[q] = qnum.weight * dagger_symmetrize(eInfo.smearGrad(eInfo.muEff(mu,Bz,q), Haux_eigs[q], gradF));
 			if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
-				Kgrad->Haux[q] = (-eInfo.kT * e->cntrl.subspaceRotationFactor) * gradF0;
+				Kgrad->Haux[q] = (-eInfo.smearingWidth * e->cntrl.subspaceRotationFactor) * gradF0;
 		}
 	}
 	

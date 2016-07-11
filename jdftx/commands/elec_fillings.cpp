@@ -22,15 +22,26 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file elec_misc.cpp Commands controlling electronic fillings algorithms
 
-struct CommandElecFermiFillings : public Command
+EnumStringMap<ElecInfo::SmearingType> smearingTypeMap(
+	ElecInfo::SmearingFermi, "Fermi",
+	ElecInfo::SmearingGauss, "Gauss",
+	ElecInfo::SmearingCold, "Cold" );
+
+EnumStringMap<ElecInfo::SmearingType> smearingTypeDescMap(
+	ElecInfo::SmearingFermi, "Use a Fermi-Dirac function for fillings",
+	ElecInfo::SmearingGauss, "Use a gaussian-based (erfc) function for fillings",
+	ElecInfo::SmearingCold, "Use the cold smearing function [PRL 82, 3296 (1999)] to approximate zero temperature" );
+
+struct CommandElecSmearing : public Command
 {
-	CommandElecFermiFillings() : Command("elec-fermi-fillings", "jdftx/Electronic/Parameters")
+	CommandElecSmearing() : Command("elec-smearing", "jdftx/Electronic/Parameters")
 	{
-		format = "0 <kT>";
+		format = "<smearingType>="+smearingTypeMap.optionList()+" <smearingWidth>";
 		comments =
-			"Fermi-Dirac fillings at a temperature <kT> (in Hartrees).\n"
-			"(The first unused argument, which used to be <mixInterval>,\n"
-			" is present only for backward compatibility; set it to zero.)";
+			"Use variable electronic fillings using a smearing function selected by <smearingType>:"
+			+ addDescriptions(smearingTypeMap.optionList(), linkDescription(smearingTypeMap, smearingTypeDescMap))
+			+ "with width set by <smearingWidth> in Hartrees.\n"
+			"(The width corresponds to electronic temperature for Fermi fillings.)";
 		
 		require("lcao-params");
 		forbid("fix-electron-density");
@@ -39,18 +50,30 @@ struct CommandElecFermiFillings : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	ElecInfo& eInfo = e.eInfo;
-		string unusedParam;
-		pl.get(unusedParam, string(), "unusedParam", true);
+		pl.get(eInfo.smearingType, ElecInfo::SmearingFermi, smearingTypeMap, "smearingType", true);
+		pl.get(eInfo.smearingWidth, 0.0, "smearingWidth", true);
 		eInfo.fillingsUpdate = ElecInfo::FillingsHsub;
-		pl.get(eInfo.kT, 0.0, "kT", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const ElecInfo& eInfo = e.eInfo;
-		logPrintf("0 %lg", eInfo.kT);
+		logPrintf("%s %lg", smearingTypeMap.getString(eInfo.smearingType), eInfo.smearingWidth);
 	}
 }
 commandElecFermiFillings;
+
+struct DeprecatedCommandElecFermiFillings : public DeprecatedCommand
+{	DeprecatedCommandElecFermiFillings() : DeprecatedCommand("elec-fermi-fillings") { }
+	
+	std::pair<string,string> replace(ParamList& pl) const
+	{	string unusedParam; double kT;
+		pl.get(unusedParam, string(), "unusedParam", true);
+		pl.get(kT, 0.0, "kT", true);
+		ostringstream oss; oss << "Fermi " << kT;
+		return std::make_pair(string("elec-smearing"), oss.str());
+	}
+}
+deprecatedCommandElecFermiFillings;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -70,7 +93,7 @@ struct CommandTargetMu : public Command
 
 		require("fluid-cation");
 		require("fluid-anion");
-		require("elec-fermi-fillings");
+		require("elec-smearing");
 		forbid("elec-initial-charge");
 	}
 
