@@ -117,9 +117,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		{	F[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
 			
 			//Check fillings:
+			const double fMin = 0.;
+			const double fMax = 1.083315; //maximum allowed for Cold smearing
 			for(int b=0; b<nBandsOld; b++)
-			{	if(F[q][b]<0) die("Filling of state %d band %d is negative.\n", q, b);
-				if(F[q][b]>1) die("Filling of state %d band %d exceeds maximum.\n", q, b);
+			{	if(F[q][b]<fMin) die("Filling of state %d band %d is negative.\n", q, b);
+				if(F[q][b]>fMax) die("Filling of state %d band %d exceeds maximum.\n", q, b);
 			}
 			
 			//Determine the total change in sum(F[q][0:nBands-1]):
@@ -255,7 +257,7 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energi
 	//Calculate entropy contributions:
 	ener.TS = 0.0;
 	for(int q=qStart; q<qStop; q++)
-		ener.TS -= smearingWidth * qnums[q].weight * trace(smearEntropy(muEff(mu,Bz,q), eps[q]));
+		ener.TS += smearingWidth * qnums[q].weight * trace(smearEntropy(muEff(mu,Bz,q), eps[q]));
 	mpiUtil->allReduce(ener.TS, MPIUtil::ReduceSum);
 
 	//Grand canonical multiplier if fixed mu:
@@ -265,34 +267,37 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energi
 //-------------------- Fermi function utilities --------------------------
 
 double ElecInfo::smear(double mu, double eps) const
-{	switch(smearingType)
-	{	case SmearingFermi: return 0.5*(1.-tanh((eps-mu)*(0.5/smearingWidth)));
-		case SmearingGauss: return NAN; //TODO
-		case SmearingCold: return NAN; //TODO
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
+	{	case SmearingFermi: return 0.5*(1.-tanh(x));
+		case SmearingGauss: return 0.5*erfc(x);
+		case SmearingCold: return 0.5*erfc(x+sqrt(0.5)) + exp(-std::pow(x+sqrt(0.5),2))/sqrt(2*M_PI);
 		default: return NAN; //to suppress warning
 	}
 }
 
 double ElecInfo::smearPrime(double mu, double eps) const
-{	switch(smearingType)
-	{	case SmearingFermi: return -0.25/(smearingWidth * std::pow(cosh((eps-mu)*(0.5/smearingWidth)), 2));
-		case SmearingGauss: return NAN; //TODO
-		case SmearingCold: return NAN; //TODO
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
+	{	case SmearingFermi: return -0.25/(smearingWidth * std::pow(cosh(x), 2));
+		case SmearingGauss: return -exp(-x*x) / (2.*sqrt(M_PI)*smearingWidth);
+		case SmearingCold: return -exp(-std::pow(x+sqrt(0.5),2)) * (2.+x*sqrt(2.)) / (2.*sqrt(M_PI)*smearingWidth);
 		default: return NAN; //to suppress warning
 	}
 }
 
 double ElecInfo::smearEntropy(double mu, double eps) const
-{	switch(smearingType)
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
 	{	case SmearingFermi: 
-		{	double f = smear(mu, eps);
+		{	double f = 0.5*(1.-tanh(x));
 			double S = 0.;
-			if(f>1e-300) S += f*log(f);
-			if(1-f>1e-300) S += (1-f)*log(1-f);
+			if(f>1e-300) S -= f*log(f);
+			if(1-f>1e-300) S -= (1-f)*log(1-f);
 			return S;
 		}
-		case SmearingGauss: return NAN; //TODO
-		case SmearingCold: return NAN; //TODO
+		case SmearingGauss: return exp(-x*x) / sqrt(M_PI);
+		case SmearingCold: return exp(-std::pow(x+sqrt(0.5),2)) * (1.+x*sqrt(2.)) / sqrt(M_PI);
 		default: return NAN; //to suppress warning
 	}
 }

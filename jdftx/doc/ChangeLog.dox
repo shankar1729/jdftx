@@ -1,5 +1,16 @@
 /** \page ChangeLog Change log
 
+## Unreleased
+
++ Added Gaussian and Cold smearing options in addition to the original Fermi fillings,
+  and deprecated the old elec-fermi-fillings command in favor of elec-smearing.
+  
++ Added a mechanism to gracefully deprecate commands: a placeholder for the old
+  command issues a deprecation warning and replaces itself with the new syntax,
+  so that the output file shows the new syntax and all other command code
+  (dependencies / forbids etc.) only need to deal with the new command.
+
+
 ## 1.2.0 - 2016-07-10 ([Site archive](http://jdftx.org/1.2.0))
 
 + Substantial memory optimizations, reducing typical usage by 30-50 % overall:
