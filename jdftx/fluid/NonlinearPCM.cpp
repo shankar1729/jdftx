@@ -263,7 +263,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 void NonlinearPCM::minimizeFluid()
 {	if(fsp.nonlinearSCF)
 	{	clearState();
-		Pulay<ScalarFieldTilde>::minimize(compute(0));
+		Pulay<ScalarFieldTilde>::minimize(compute(0,0));
 	}
 	else
 		Minimizable<ScalarFieldMuEps>::minimize(e.fluidMinParams);
@@ -289,20 +289,20 @@ void NonlinearPCM::step(const ScalarFieldMuEps& dir, double alpha)
 {	::axpy(alpha, dir, state);
 }
 
-double NonlinearPCM::compute(ScalarFieldMuEps* grad)
+double NonlinearPCM::compute(ScalarFieldMuEps* grad, ScalarFieldMuEps* Kgrad)
 {	ScalarFieldMuEps gradUnused;
-	return (*this)(state, grad ? *grad : gradUnused);
-}
-
-ScalarFieldMuEps NonlinearPCM::precondition(const ScalarFieldMuEps& in)
-{	ScalarFieldMuEps out;
-	double dielPrefac = 1./(gInfo.dV * dielectricEval->NT);
-	double ionsPrefac = screeningEval ? 1./(gInfo.dV * screeningEval->NT) : 0.;
-	setMuEps(out,
-		ionsPrefac * I(preconditioner*J(getMuPlus(in))),
-		ionsPrefac * I(preconditioner*J(getMuMinus(in))),
-		dielPrefac * getEps(in));
-	return out;
+	double E = (*this)(state, grad ? *grad : gradUnused);
+	//Compute preconditioned gradient:
+	if(Kgrad)
+	{	const ScalarFieldMuEps& in = grad ? *grad : gradUnused;
+		double dielPrefac = 1./(gInfo.dV * dielectricEval->NT);
+		double ionsPrefac = screeningEval ? 1./(gInfo.dV * screeningEval->NT) : 0.;
+		setMuEps(*Kgrad,
+			ionsPrefac * I(preconditioner*J(getMuPlus(in))),
+			ionsPrefac * I(preconditioner*J(getMuMinus(in))),
+			dielPrefac * getEps(in));
+	}
+	return E;
 }
 
 
@@ -337,7 +337,7 @@ double NonlinearPCM::cycle(double dEprev, std::vector<double>& extraValues)
 	fpLog = globalLog; //restore usual iteration log
 	//Update state from new phi:
 	phiToState(true);
-	return compute(0);
+	return compute(0,0);
 }
 
 

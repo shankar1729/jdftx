@@ -107,9 +107,8 @@ public:
 	void step(const ScalarFieldArray& dir, double alpha);
 
 	//! Return energy at current state, and optionally the gradient (interface for minimize())
-	double compute(ScalarFieldArray* grad);
-
-	ScalarFieldArray precondition(const ScalarFieldArray& grad);
+	double compute(ScalarFieldArray* grad, ScalarFieldArray* Kgrad);
+	
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 private:

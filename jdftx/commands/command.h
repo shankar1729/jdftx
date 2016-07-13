@@ -100,7 +100,19 @@ protected:
 	void forbid(string); //!< utility to add a command to the forbids list
 };
 
+//! Base class for a deprecated command which will translate old syntax into the new command that replaces it
+class DeprecatedCommand
+{
+public:
+	string name;
+	DeprecatedCommand(string name);
+	
+	//Return a replacement command and arguments pair
+	virtual std::pair<string,string> replace(ParamList& pl) const=0;
+};
+
 std::map<string,Command*>& getCommandMap(); //!< Retrieve the map from command names to objects created during static initialization
+std::map<string,DeprecatedCommand*>& getDeprecatedMap(); //!< Retrieve the map from deprecated command names to objects
 
 static EnumStringMap<bool> boolMap(false, "no", true, "yes"); //!< utility to parse yes/no into bools
 

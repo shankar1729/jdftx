@@ -30,9 +30,8 @@ public:
 	BandMinimizer(Everything& e, int q); //!< Construct band-structure minimizer for quantum number q
 
 	//Interface for Minimizable:
-	double compute(ColumnBundle* grad);
+	double compute(ColumnBundle* grad, ColumnBundle* Kgrad);
 	void step(const ColumnBundle& dir, double alpha);
-	ColumnBundle precondition(const ColumnBundle& grad);
 	void constrain(ColumnBundle&);
 
 private:
@@ -40,7 +39,6 @@ private:
 	ElecVars& eVars;
 	const ElecInfo& eInfo;
 	int q; //!< Current quantum number
-	double KErollover; //!< Average kinetic energy per band (for preconditioner)
 };
 
 #endif

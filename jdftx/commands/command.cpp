@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 using std::map;
 
 map<string,Command*>& updateCommandMap(Command* command=0)
-{	static map<string,Command*> commandMap; //make this local static for correct initializtaion order
+{	static map<string,Command*> commandMap; //make this local static for correct initialization order
 	if(command) commandMap[command->name] = command;
 	return commandMap;
 }
@@ -50,6 +50,20 @@ Command::Command(string name, string path)
 
 void Command::require(string name) { requires.insert(name); }
 void Command::forbid(string name) { forbids.insert(name); }
+
+
+map<string,DeprecatedCommand*>& updateDeprecatedMap(DeprecatedCommand* dc=0)
+{	static map<string,DeprecatedCommand*> deprecatedMap; //make this local static for correct initialization order
+	if(dc) deprecatedMap[dc->name] = dc;
+	return deprecatedMap;
+}
+map<string,DeprecatedCommand*>& getDeprecatedMap()
+{	return updateDeprecatedMap(0);
+}
+DeprecatedCommand::DeprecatedCommand(string name) : name(name)
+{	updateDeprecatedMap(this);
+}
+
 
 bool isReadable(string fname)
 {	bool readable = false;

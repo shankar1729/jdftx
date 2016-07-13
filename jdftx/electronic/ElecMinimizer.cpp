@@ -108,7 +108,7 @@ struct SubspaceRotationAdjust
 	
 	//Handle indefinite Knorm, adjust subspace rotation factor if necessary and report changes.
 	//Returns true if CG needs to be reset
-	bool report(const ElecGradient& Kgrad)
+	bool report(const std::vector<matrix>& KgradHaux)
 	{
 		//Handle indefinite preconditioner issues:
 		if(KnormTot <= 0.)
@@ -134,7 +134,7 @@ struct SubspaceRotationAdjust
 					return true; //resets CG
 				}
 			}
-			KgPrevHaux = Kgrad.Haux; //Cached preconditioned gradient for next step
+			KgPrevHaux = KgradHaux; //Cached preconditioned gradient for next step
 		}
 		return false;
 	}
@@ -143,7 +143,7 @@ struct SubspaceRotationAdjust
 
 ElecMinimizer::ElecMinimizer(Everything& e)
 : e(e), eVars(e.eVars), eInfo(e.eInfo), rotPrev(eInfo.nStates)
-{	Kgrad.init(e);
+{
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		rotPrev[q] = eye(eInfo.nBands);
 	rotExists = false; //rotation is identity
@@ -183,40 +183,38 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 	}
 }
 
-double ElecMinimizer::compute(ElecGradient* grad)
+double ElecMinimizer::compute(ElecGradient* grad, ElecGradient* Kgrad)
 {	if(grad) grad->init(e);
-	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, grad ? &Kgrad : 0);
+	if(Kgrad) Kgrad->init(e);
+	double ener = e.eVars.elecEnergyAndGrad(e.ener, grad, Kgrad);
 	if(grad)
 	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	//Rotate wavefunction gradients if necessary:
 			if(rotExists)
 			{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
-				Kgrad.C[q] = Kgrad.C[q] * dagger(rotPrev[q]);
+				Kgrad->C[q] = Kgrad->C[q] * dagger(rotPrev[q]);
 			}
 			//Subspace gradient handling depends on mode:
 			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 			{	//Haux fillings: rotate gradient computed by ElecVars if necessary
 				if(rotExists)
 				{	grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
-					Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+					Kgrad->Haux[q] = rotPrev[q] * Kgrad->Haux[q] * dagger(rotPrev[q]);
 				}
 			}
 			else if(!eInfo.scalarFillings)
 			{	//Non-scalar fillings:
 				grad->Haux[q] = dagger_symmetrize(complex(0,1) * (eVars.F[q]*eVars.Hsub[q] - eVars.Hsub[q]*eVars.F[q]));
-				Kgrad.Haux[q] = e.cntrl.subspaceRotationFactor * grad->Haux[q];
+				Kgrad->Haux[q] = e.cntrl.subspaceRotationFactor * grad->Haux[q];
 			}
 			//else: constant scalar fillings (no subspace gradient)
 		}
 		
 		//Cache gradient overlaps, if needed, for subspace rotation handling:
-		if(sra) sra->cacheGradientOverlaps(*grad, Kgrad);
+		if(sra) sra->cacheGradientOverlaps(*grad, *Kgrad);
+		KgradHaux = Kgrad->Haux;
 	}
 	return ener;
-}
-
-ElecGradient ElecMinimizer::precondition(const ElecGradient& grad)
-{	return Kgrad;
 }
 
 bool ElecMinimizer::report(int iter)
@@ -237,13 +235,13 @@ bool ElecMinimizer::report(int iter)
 	
 	//Fillings update report:
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		eInfo.printFermi();
+		eInfo.smearReport();
 	
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
 	
 	//Subspace rotation preconditioner handling:
-	if(sra) return sra->report(Kgrad);
+	if(sra) return sra->report(KgradHaux);
 	return false;
 }
 

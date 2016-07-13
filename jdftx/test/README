@@ -21,10 +21,10 @@ Creating tests
 
 In order to create a new test called "foo":
 
-* Add "add_jdftx_test(foo)" to the CMakeLists.txt in testsuite
+* Add "add_jdftx_test(foo)" to the CMakeLists.txt in test directory
   in the source tree.
 
-* Create subdirectory foo in testsuite in the source tree.
+* Create subdirectory foo in the test diretcory of the source tree.
   All subsequent steps are inside that subdirectory.
 
 * Create the necessary input files, say step1.in and step2.in.

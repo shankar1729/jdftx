@@ -105,8 +105,7 @@ public:
 	void diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& revecs) const; //!< diagonalize an arbitrary matrix
 	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
 	
-	//---------octave-like slicing operators on scalar fields converted to Nx*Ny*Nz x 1 matrices--------------
-
+	//---------octave-like slicing operators on scalar fields converted to Nx*Ny*Nz x 1 matrices --------------
 	complex getElement(vector3< int > index, GridInfo& gInfo);
 	matrix getLine(vector3<int> line, vector3<int> point, GridInfo& gInfo);
 	matrix getPlane(vector3<int> normal, vector3<int> point, GridInfo& gInfo);
@@ -245,7 +244,5 @@ public:
 	
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
 };
-
-
 
 #endif  // JDFTX_ELECTRONIC_MATRIX_H

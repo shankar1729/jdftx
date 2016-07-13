@@ -32,23 +32,23 @@ void BandMinimizer::step(const ColumnBundle& dir, double alpha)
 	eVars.orthonormalize(q);
 }
 
-double BandMinimizer::compute(ColumnBundle* grad)
+double BandMinimizer::compute(ColumnBundle* grad, ColumnBundle* Kgrad)
 {	if(grad) grad->free();
 	diagMatrix Fq = eye(eInfo.nBands);
 	const QuantumNumber& qnum = eInfo.qnums[q];
 	ColumnBundle Hq;
-	eVars.applyHamiltonian(q, Fq, Hq, e.ener, true);
+	double KEq = eVars.applyHamiltonian(q, Fq, Hq, e.ener, true);
 	if(grad)
-	{	KErollover = 2.*e.ener.E["KE"]/(qnum.weight*eInfo.nBands);
+	{	double KErollover = 2.*KEq/(qnum.weight*eInfo.nBands);
 		Hq -=  O(eVars.C[q])*eVars.Hsub[q]; //orthonormality contribution
 		Hq *= qnum.weight;
 		std::swap(*grad, Hq);
+		if(Kgrad)
+		{	*Kgrad = *grad;
+			precond_inv_kinetic(*Kgrad, KErollover); //apply precondition in place
+		}
 	}
 	return qnum.weight * trace(eVars.Hsub[q]).real();
-}
-
-ColumnBundle BandMinimizer::precondition(const ColumnBundle& grad)
-{	return precond_inv_kinetic(grad, KErollover);
 }
 
 void BandMinimizer::constrain(ColumnBundle& dir)

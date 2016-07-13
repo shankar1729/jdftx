@@ -86,8 +86,8 @@ void IonDynamics::velocitiesInit()
 	computeKineticEnergy();
 	//check if the momentum sums up to zero and we have the correct energy
 	computeMomentum();
-	assert(e.gInfo.RTR.metric_length_squared(totalMomentum)>1.0e-8);
-	assert( std::abs(kineticEnergy-3.0*kT*numberOfAtoms)>1.0e-8);
+	assert(e.gInfo.RTR.metric_length_squared(totalMomentum) < 1.0e-8);
+	assert( std::abs(kineticEnergy-3.0*kT*numberOfAtoms) < 1.0e-8);
 }
 
 double IonDynamics::computeAcceleration(IonicGradient& accel)

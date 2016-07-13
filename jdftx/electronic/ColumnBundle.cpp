@@ -296,12 +296,14 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 
 //------------------------ Arithmetic --------------------
 
-ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundle &X) { if(Y) axpy(1.0, X, Y); else Y=X; return Y; }
-ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundle &X) { if(Y) axpy(-1.0, X, Y); else Y=-X; return Y; }
-ColumnBundle operator+(const ColumnBundle &Y1, const ColumnBundle &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
-ColumnBundle operator-(const ColumnBundle &Y1,const ColumnBundle &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
+ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(+X.scale, X.data, Y); else Y=X; return Y; }
+ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(-X.scale, X.data, Y); else Y=-X; return Y; }
+ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
+ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
 
 ColumnBundle& operator*=(ColumnBundle& X, double s) { scale(s, X); return X; }
+ColumnBundle operator*(double s, ColumnBundle&& Y) { scale(s, Y); return Y; }
+ColumnBundle operator*(ColumnBundle&& Y, double s) { scale(s, Y); return Y; }
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator-(const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, -1); }
@@ -309,14 +311,19 @@ ColumnBundle& operator*=(ColumnBundle& X, complex s) { scale(s, X); return X; }
 ColumnBundle operator*(complex s, const ColumnBundle &Y) { ColumnBundle sY(Y); sY *= s; return sY; }
 ColumnBundle operator*(const ColumnBundle &Y, complex s) { ColumnBundle sY(Y); sY *= s; return sY; }
 
-ColumnBundle operator*(const scaled<ColumnBundle> &sY, const matrixScaledTransOp &Mst)
+ColumnBundleMatrixProduct::operator ColumnBundle() const
+{	ColumnBundle YM;
+	scaleAccumulate(1., 0., YM);
+	return YM;
+}
+
+void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, ColumnBundle& YM) const
 {	static StopWatch watch("Y*M");
 	watch.start();
-	const ColumnBundle& Y = sY.data;
-	double scaleFac = sY.scale * Mst.scale;
+	double scaleFac = alpha * scale * Mst.scale;
 	bool spinorMode = (2*Y.nCols() == Mst.nRows()); //treat each column of non-spinor Y as two identical consecutive spinor ones with opposite spins
 	assert(Y.nCols()==Mst.nRows() || spinorMode);
-	CBLAS_TRANSPOSE Mop; const matrix* M; ColumnBundle YM; matrix Mtmp;
+	CBLAS_TRANSPOSE Mop; const matrix* M; matrix Mtmp;
 	if(spinorMode)
 	{	matrix mIn(Mst); Mop=CblasNoTrans; //pre-apply the op in this case
 		Mtmp.init(Y.nCols(), 2*mIn.nCols(), isGpuEnabled());
@@ -324,18 +331,41 @@ ColumnBundle operator*(const scaled<ColumnBundle> &sY, const matrixScaledTransOp
 		Mtmp.set(0,1,Y.nCols(), 1,2,Mtmp.nCols(), mIn(1,2,mIn.nRows(), 0,1,mIn.nCols()));
 		M = &Mtmp;
 		assert(!Y.isSpinor());
-		YM.init(mIn.nCols(), Y.colLength()*2, Y.basis, Y.qnum, isGpuEnabled());
+		if(beta) { assert(YM); assert(YM.nCols()==mIn.nCols()); assert(YM.colLength()==Y.colLength()*2); }
+		else YM.init(mIn.nCols(), Y.colLength()*2, Y.basis, Y.qnum, isGpuEnabled());
 	}
 	else
 	{	Mop = Mst.op;
 		M = &Mst.mat;
-		YM = Y.similar(Mst.nCols());
+		if(beta) { assert(YM); assert(YM.nCols()==Mst.nCols()); assert(YM.colLength()==Y.colLength()); }
+		else YM = Y.similar(Mst.nCols());
 	}
 	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), M->nCols(), Y.nCols(),
 		scaleFac, Y.dataPref(), Y.colLength(), M->dataPref(), M->nRows(),
-		0.0, YM.dataPref(), Y.colLength());
+		beta, YM.dataPref(), Y.colLength());
 	watch.stop();
-	return YM;
+}
+
+ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst)
+{	return ColumnBundleMatrixProduct(sY.data, Mst, sY.scale);
+}
+ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(+1.,1.,Y);
+	return Y;
+}
+ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(-1.,1.,Y);
+	return Y;
+}
+ColumnBundle operator+(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result += XM2;
+	return result;
+}
+ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result -= XM2;
+	return result;
 }
 
 ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)

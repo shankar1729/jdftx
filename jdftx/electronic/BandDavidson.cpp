@@ -28,7 +28,6 @@ BandDavidson::BandDavidson(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.
 void BandDavidson::minimize()
 {	//Use the same working set as the CG minimizer:
 	ColumnBundle& C = eVars.C[q];
-	ColumnBundle Cexp = C.similar(); //expansion subspace
 	std::vector<matrix>& VdagC = eVars.VdagC[q];
 	matrix& Hsub = eVars.Hsub[q];
 	matrix& Hsub_evecs = eVars.Hsub_evecs[q];
@@ -38,24 +37,16 @@ void BandDavidson::minimize()
 	int nBandsMax = ceil(e.cntrl.davidsonBandRatio * nBandsOut);
 	
 	//Initial subspace eigenvalue problem:
-	VdagC.clear();
-	ColumnBundle OC = O(C, &VdagC), HC;
-	matrix rotExisting = eye(C.nCols());
-	e.iInfo.project(C, VdagC, &rotExisting);
-	//--- compute HC
+	ColumnBundle HC;
 	diagMatrix I = eye(nBandsOut);
 	Energies ener; //not really used here
 	eVars.applyHamiltonian(q, I, HC, ener, true);
-	//--- solve subspace eigenvalue problem
-	matrix U = invsqrt(C^OC); //symmetric orthonormalization
-	Hsub = dagger(U) * (C^HC) * U;
+	Hsub = C^HC;
 	Hsub.diagonalize(Hsub_evecs, Hsub_eigs);
 	//--- switch C to subspace eigenbasis:
-	matrix initialRot = U * Hsub_evecs;
-	C = C * initialRot;
-	OC = OC * initialRot;
-	HC = HC * initialRot;
-	e.iInfo.project(C, VdagC, &initialRot);
+	C = C * Hsub_evecs;
+	HC = HC * Hsub_evecs;
+	e.iInfo.project(C, VdagC, &Hsub_evecs);
 	double Eband = qnum.weight * trace(Hsub_eigs);
 	logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf\n", 0, Eband); fflush(globalLog);
 	
@@ -65,7 +56,7 @@ void BandDavidson::minimize()
 	{	int nBands = C.nCols();
 		//Compute subspace expansion:
 		diagMatrix KEref = (-0.5) * diagDot(C, L(C)); //Update reference KE for preconditioning:
-		Cexp = HC; Cexp -= OC * Hsub_eigs; //Set C to residual of current eigenvector guesses
+		ColumnBundle Cexp = HC; Cexp -= O(C) * Hsub_eigs; //Calculate residual of current eigenvector guesses
 		precond_inv_kinetic_band(Cexp, KEref); //Davidson approximate inverse (using KE as the diagonal)
 		//Drop converged eigenpairs and approximately normalize subspace expansion (for avoiding roundoff issues only):
 		diagMatrix CexpNorm = diagDot(Cexp, Cexp);
@@ -91,30 +82,33 @@ void BandDavidson::minimize()
 		Cexp = Cexp * CexpNorm;
 		int nBandsNew = Cexp.nCols();
 		int nBandsBig = nBands + nBandsNew;
-		//Compute overlap and Hamiltonian on expansion:
-		std::vector<matrix> VdagCexp; diagMatrix HsubExp_eigs;
-		ColumnBundle OCexp = O(Cexp, &VdagCexp), HCexp;
-		rotExisting = eye(Cexp.nCols());
-		e.iInfo.project(Cexp, VdagCexp, &rotExisting);
-		#define SWAP_C_Cexp \
-			std::swap(C, Cexp); \
-			std::swap(VdagC, VdagCexp); \
-			std::swap(Hsub_eigs, HsubExp_eigs);
-		SWAP_C_Cexp //Temporarily swap C and Cexp
-		eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
-		SWAP_C_Cexp  //Restore C and Cexp to correct places
-		//Setup matrices for expanded subspace generalized eigenvalue problem:
+		//Expansion subspace overlaps:
 		matrix bigOsub(nBandsBig, nBandsBig);
-		{	bigOsub.set(0,nBands, 0,nBands, eye(nBands)); //since C's are already orthonormal
-			bigOsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp^OCexp);
-			matrix CdagOCexp = C^OCexp;
+		std::vector<matrix> VdagCexp;
+		{	ColumnBundle OCexp = O(Cexp, &VdagCexp);
+			matrix rotExisting = eye(Cexp.nCols());
+			e.iInfo.project(Cexp, VdagCexp, &rotExisting);
+			matrix CdagOCexp = C ^ OCexp;
+			bigOsub.set(0,nBands, 0,nBands, eye(nBands)); //since C's are already orthonormal
+			bigOsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp ^ OCexp);
 			bigOsub.set(0,nBands, nBands,nBandsBig, CdagOCexp);
 			bigOsub.set(nBands,nBandsBig, 0,nBands, dagger(CdagOCexp));
 		}
+		//Expansion subspace Hamiltonian:
 		matrix bigHsub(nBandsBig, nBandsBig);
-		{	bigHsub.set(0,nBands, 0,nBands, Hsub_eigs);
-			bigHsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp^HCexp);
-			matrix CdagHCexp = C^HCexp;
+		ColumnBundle HCexp;
+		{	matrix HsubExp; diagMatrix HsubExp_eigs;
+			#define SWAP_C_Cexp \
+				std::swap(C, Cexp); \
+				std::swap(VdagC, VdagCexp); \
+				std::swap(Hsub, HsubExp); \
+				std::swap(Hsub_eigs, HsubExp_eigs);
+			SWAP_C_Cexp //Temporarily swap C and Cexp
+			eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
+			SWAP_C_Cexp  //Restore C and Cexp to correct places
+			matrix CdagHCexp = C  ^ HCexp;
+			bigHsub.set(0,nBands, 0,nBands, Hsub_eigs);
+			bigHsub.set(nBands,nBandsBig, nBands,nBandsBig, HsubExp);
 			bigHsub.set(0,nBands, nBands,nBandsBig, CdagHCexp);
 			bigHsub.set(nBands,nBandsBig, 0,nBands, dagger(CdagHCexp));
 		}
@@ -129,7 +123,6 @@ void BandDavidson::minimize()
 		matrix CexpRot = rot(nBands,nBandsBig, 0,nBandsNext); //contribution of Cexp to lowest nBandsNext eigenvectors
 		//Update C to optimum nBands subspace from [C,Cexp]
 		C = C*Crot + Cexp*CexpRot;
-		OC = OC*Crot + OCexp*CexpRot;
 		HC = HC*Crot + HCexp*CexpRot;
 		Hsub_eigs = bigHsub_eigs(0,nBandsNext);
 		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])

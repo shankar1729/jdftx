@@ -423,25 +423,22 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))
+void precond_inv_kinetic(int nbasis, int ncols, complex* Ydata,
+	double KErollover, const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
+{
+	threadedLoop(precond_inv_kinetic_calc, nbasis, nbasis, ncols, Ydata, KErollover, GGT, iGarr, k, invdetR);
+}
 #ifdef GPU_ENABLED
-void precond_inv_kinetic_gpu(int nbasis, int ncols, const complex* Ydata, complex* KYdata,
+void precond_inv_kinetic_gpu(int nbasis, int ncols, complex* Ydata,
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR);
 #endif
-ColumnBundle precond_inv_kinetic(const ColumnBundle &Y, double KErollover)
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int  nSpinors = Y.spinorLength();
-	ColumnBundle KY = Y.similar();
-	#ifdef GPU_ENABLED
-	precond_inv_kinetic_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), KY.dataGpu(),
-		KErollover, GGT, basis.iGarrGpu, Y.qnum->k, 1/basis.gInfo->detR);
-	#else
-	threadedLoop(precond_inv_kinetic_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), KY.data(),
-		KErollover, GGT, basis.iGarr, Y.qnum->k, 1/basis.gInfo->detR);
-	#endif
-	return KY;
+	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(),
+		KErollover, GGT, basis.iGarrPref, Y.qnum->k, 1./basis.gInfo->detR);
 }
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y)

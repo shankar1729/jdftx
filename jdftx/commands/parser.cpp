@@ -190,6 +190,7 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 	else
 		logPrintf("Waiting for commands from stdin (end input with EOF (Ctrl+D)):\n");
 	istream& is = filename.back().length() ? ifs : std::cin;
+	std::map<string,DeprecatedCommand*> deprecatedMap = getDeprecatedMap();
 	//Read the file line by line:
 	while(!is.eof())
 	{	string line = readLine(is);
@@ -214,6 +215,22 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 			//Read included file recursively:
 			filename.push_back(params);
 			readInputFile(filename, input);
+		}
+		else if(deprecatedMap.find(cmd) != deprecatedMap.end()) //Replace deprecated commands:
+		{	try
+			{	ParamList pl(params+" "); //add space to prevent EOF on last argument
+				std::pair<string,string> replacement = deprecatedMap[cmd]->replace(pl);
+				string remainder = pl.getRemainder();
+				if(remainder.length())
+					throw string("Extra arguments '" + remainder + "'  at end of command");
+				logPrintf("WARNING: command %s is deprecated; automatically switching to replacement %s\n",
+					cmd.c_str(), replacement.first.c_str());
+				input.push_back(replacement);
+			}
+			catch(string err)
+			{	die("Deprecated command %s with command line:\n\t%s %s\nfailed with message:\n\t%s\n",
+					cmd.c_str(), cmd.c_str(), params.c_str(), err.c_str());
+			}
 		}
 		else input.push_back(make_pair(cmd,params));
 	}

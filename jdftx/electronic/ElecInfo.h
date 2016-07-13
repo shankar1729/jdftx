@@ -66,12 +66,18 @@ public:
 	
 	enum FillingsUpdate
 	{	FillingsConst, //!< constant fillings (T=0)
-		FillingsHsub //!< fillings are a function of subspace Hamiltonian (Fermi function for now)
+		FillingsHsub //!< fillings are a function of subspace Hamiltonian
 	}
 	fillingsUpdate;
 	bool scalarFillings; //!< whether fillings are scalar (equal for all bands) at all quantum numbers
 	
-	double kT; //!< Temperature for Fermi distribution of fillings
+	enum SmearingType
+	{	SmearingFermi, //!< Fermi-Dirac smearing
+		SmearingGauss, //!< Gaussian smearing
+		SmearingCold //!< Cold smearing
+	}
+	smearingType;
+	double smearingWidth; //!< Smearing width (temperature in the Fermi case)
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this
 	
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
@@ -81,24 +87,26 @@ public:
 	ElecInfo();
 	void setup(const Everything &e, std::vector<diagMatrix>& F, Energies& ener); //!< setup bands and initial fillings
 	void printFillings(FILE* fp) const;
-	void printFermi(const double* muOverride=0) const; //Fermi fillings report (compute mu from eigenvalues in eVars if muOverride not provided)
-	void updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies&) const; //!< Calculate fermi fillings Legendre multipliers (TS/muN)
+	void smearReport(const double* muOverride=0) const; //Smearing report (compute mu from eigenvalues in eVars if muOverride not provided)
+	void updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energies&) const; //!< Calculate variable fillings Legendre multipliers (TS/muN)
 
-	//Fermi function utilities:
+	//Smearing function utilities:
 	inline double muEff(double mu, double Bz, int q) const { return mu + Bz*qnums[q].spin; }
-	double fermi(double mu, double eps) const { return 0.5*(1.-tanh(betaBy2*(eps-mu))); } //!< fermi function
-	double fermiPrime(double mu, double eps) const { return -0.5*betaBy2/pow(cosh(betaBy2*(eps-mu)), 2); } //!< derivative of fermi function
-	diagMatrix fermi(double mu, const diagMatrix& eps) const; //!< elementwise fermi function
-	diagMatrix fermiPrime(double mu, const diagMatrix& eps) const; //!< elementwise fermi function derivative
+	double smear(double mu, double eps) const; //!< smearing function
+	double smearPrime(double mu, double eps) const; //!< derivative of smearing function
+	double smearEntropy(double mu, double eps) const; //!< entropy associated with smearing function
+	diagMatrix smear(double mu, const diagMatrix& eps) const; //!< elementwise smearing function
+	diagMatrix smearPrime(double mu, const diagMatrix& eps) const; //!< elementwise smearing function derivative
+	diagMatrix smearEntropy(double mu, const diagMatrix& eps) const; //!< element-wise smearing function entropy
 	
 	//! Propagate matrix gradient w.r.t F to gradient w.r.t. eps (in the basis where fillings are diagonal)
-	matrix fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF) const;
+	matrix smearGrad(double mu, const diagMatrix& eps, const matrix& gradF) const;
 
-	//! Compute number of electrons for a fermi distribution with specified eigenvalues
+	//! Compute number of electrons for the smearing function with specified eigenvalues
 	//! If magnetization is constrained, bisect on corresponding Lagrange multiplier Bz, and retrieve it too
-	double nElectronsFermi(double mu, const std::vector<diagMatrix>& eps, double& Bz) const; 
+	double nElectronsCalc(double mu, const std::vector<diagMatrix>& eps, double& Bz) const; 
 	
-	//! Find the chemical potential for which the fermi distribution with specified eigenvalues adds up to nElectrons
+	//! Find the chemical potential for which the smearing function with specified eigenvalues adds up to nElectrons
 	//! If magnetization is constrained, retrieve corresponding Lagrange multiplier Bz as well
 	double findMu(const std::vector<diagMatrix>& eps, double nElectrons, double& Bz) const; 
 	
@@ -116,7 +124,6 @@ public:
 
 private:
 	const Everything* e;
-	double betaBy2; //!< initialized to 0.5/kT
 	TaskDivision qDivision; //!< MPI division of k-points
 	
 	//Initial fillings:
@@ -131,7 +138,7 @@ private:
 	friend struct LCAOminimizer;
 	
 	//!Calculate nElectrons and return magnetization at given mu, Bz and eigenvalues eps
-	double magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 
+	double magnetizationCalc(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 
 	
 	//k-points:
 	vector3<int> kfold; //!< kpoint fold vector

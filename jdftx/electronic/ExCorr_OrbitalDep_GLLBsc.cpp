@@ -25,13 +25,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 
 ExCorr_OrbitalDep_GLLBsc::ExCorr_OrbitalDep_GLLBsc(const Everything& e) : ExCorr::OrbitalDep(e)
-{	T = (e.eInfo.fillingsUpdate==ElecInfo::FillingsConst) ? 0. : e.eInfo.kT;
+{	smearingWidth = (e.eInfo.fillingsUpdate==ElecInfo::FillingsConst) ? 0. : e.eInfo.smearingWidth;
 }
 
 
 std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 {	int nSpins = e.eVars.n.size();
-	if(T) //smeared version
+	if(smearingWidth) //smeared version
 	{	std::vector<double> eExtremal(nSpins, 0.), wExtremal(nSpins, 0.);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	int s = e.eInfo.qnums[q].index();
@@ -161,11 +161,11 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 	else PRINT_GAP(0, "")
 }
 
-double smoothedSqrt(double de, double T)
-{	if(T)
-	{	double X = de/T;
+double smoothedSqrt(double de, double width)
+{	if(width)
+	{	double X = de/width;
 		if(X<-5.) return 0.;
-		else if(X<+5.) return sqrt(T * 0.5*(exp(-X*X)/sqrt(M_PI) + X*(1. + erf(X))));
+		else if(X<+5.) return sqrt(width * 0.5*(exp(-X*X)/sqrt(M_PI) + X*(1. + erf(X))));
 		else return sqrt(de);
 	}
 	else return sqrt(std::max(0., de));
@@ -181,8 +181,8 @@ ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOM
 		int s = qnum.index();
 		diagMatrix Feff(e.eInfo.nBands);
 		for(int b=0; b<e.eInfo.nBands; b++)
-		{	double deTerm = smoothedSqrt(eHOMO[s]-e.eVars.Hsub_eigs[q][b], T); //orbital-dep potential
-			if(eLUMO) deTerm = smoothedSqrt((*eLUMO)[s]-e.eVars.Hsub_eigs[q][b], T) - deTerm; //convert to the discontinuity contribution
+		{	double deTerm = smoothedSqrt(eHOMO[s]-e.eVars.Hsub_eigs[q][b], smearingWidth); //orbital-dep potential
+			if(eLUMO) deTerm = smoothedSqrt((*eLUMO)[s]-e.eVars.Hsub_eigs[q][b], smearingWidth) - deTerm; //convert to the discontinuity contribution
 			Feff[b] = e.eVars.F[q][b] * Kx * deTerm;
 		}
 		V += qnum.weight * diagouterI(Feff, e.eVars.C[q], V.size(), &e.gInfo); //without the 1/n(r) denominator

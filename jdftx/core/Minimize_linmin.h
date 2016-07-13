@@ -60,11 +60,11 @@ namespace MinimizePrivate
 	// It only ensures that the energy is not NaN/Inf.
 	template<typename Vector>
 	bool linminRelax(Minimizable<Vector>& obj, const MinimizeParams& p,
-		const Vector& d, double alphaT, double& alpha, double& E, Vector& g)
+		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
 	{
 		alpha = alphaT; //constant step-size equal to the starting value
 		obj.step(d, alpha);
-		E = obj.sync(obj.compute(&g));
+		E = obj.sync(obj.compute(&g, &Kg));
 		if(!std::isfinite(E))
 		{	fprintf(p.fpLog, "%s\tRelax step failed with %s = %le\n.", p.linePrefix, p.energyLabel, E); fflush(p.fpLog);
 			return false;
@@ -76,7 +76,7 @@ namespace MinimizePrivate
 	//Quadratic line minimization
 	template<typename Vector>
 	bool linminQuad(Minimizable<Vector>& obj, const MinimizeParams& p,
-		const Vector& d, double alphaT, double& alpha, double& E, Vector& g)
+		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
 	{
 		double alphaPrev = 0.0; //the progress made so far along d
 		double Eorig = E;
@@ -97,7 +97,7 @@ namespace MinimizePrivate
 			}
 			//Try the test step:
 			obj.step(d, alphaT-alphaPrev); alphaPrev = alphaT;
-			ET = obj.sync(obj.compute(0));
+			ET = obj.sync(obj.compute(0,0));
 			//Check if step crossed domain of validity of parameter space:
 			if(!std::isfinite(ET))
 			{	alphaT *= p.alphaTreduceFactor;
@@ -113,7 +113,7 @@ namespace MinimizePrivate
 				//That implies ET < E, so accept step for now, and try descending further next time
 				alphaT *= p.alphaTincreaseFactor;
 				fprintf(p.fpLog, "%s\tWrong curvature in test step, increasing alphaT to %le.\n", p.linePrefix, alphaT); fflush(p.fpLog);
-				E = obj.sync(obj.compute(&g));
+				E = obj.sync(obj.compute(&g, &Kg));
 				return true;
 			}
 			if(alpha/alphaT > p.alphaTincreaseFactor)
@@ -141,7 +141,7 @@ namespace MinimizePrivate
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	//Try the step:
 			obj.step(d, alpha-alphaPrev); alphaPrev=alpha;
-			E = obj.sync(obj.compute(&g));
+			E = obj.sync(obj.compute(&g, &Kg));
 			if(!std::isfinite(E))
 			{	alpha *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tStep failed with %s = %le, reducing alpha to %le.\n",
@@ -169,7 +169,7 @@ namespace MinimizePrivate
 	//Cubic line minimization, designed to handle fluids which can be highly non-quadratic
 	template<typename Vector>
 	bool linminCubicWolfe(Minimizable<Vector>& obj, const MinimizeParams& p,
-		const Vector& d, double alphaT, double& alpha, double& E, Vector& g)
+		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
 	{
 		double Eprev = E;
 		double gdotdPrev = obj.sync(dot(g,d)); //directional derivative at starting point
@@ -186,7 +186,7 @@ namespace MinimizePrivate
 		for(int s=0;; s++)
 		{	//Move by alpha:
 			obj.step(d, alpha-alphaState); alphaState=alpha;
-			E = obj.sync(obj.compute(&g));
+			E = obj.sync(obj.compute(&g, &Kg));
 			double gdotd = obj.sync(dot(g,d));
 			if(s > p.nAlphaAdjustMax) break; //step limit
 			//Check for domain error:

@@ -253,7 +253,7 @@ The following commands may be used to invoke cmake:
 
     #Select the right compiler and load necessary modules
     module swap PrgEnv-intel PrgEnv-gnu
-    module load gcc cmake gsl fftw mkl
+    module load gcc cmake gsl fftw
     module unload darshan
     
     #From inside your build directory
@@ -262,7 +262,6 @@ The following commands may be used to invoke cmake:
         -D EnableProfiling=yes \
         -D EnableMKL=yes \
         -D ForceFFTW=yes \
-        -D MKL_PATH=${MKL_HOME} \
         -D GSL_PATH=${GSL_DIR} \
         -D FFTW3_PATH=${FFTW_DIR} \
         -D CMAKE_INCLUDE_PATH=${FFTW_INC} \

@@ -1,0 +1,21 @@
+lattice Cubic 11
+ion F  0.00  0.00  0.00  1
+elec-initial-charge +1
+
+ion-species GBRV/$ID_pbe_v1.2.uspp
+ion-species GBRV/$ID_pbe_v1.uspp
+elec-cutoff 20 100
+
+coulomb-interaction isolated
+coulomb-truncation-embed 0 0 0
+
+electronic-scf
+
+#Check single-point estimate by not doing separate vacuum calculation
+dump-name common.$VAR
+dump End State
+
+fluid LinearPCM
+fluid-solvent H2O
+fluid-cation Na+ 1.
+fluid-anion   F- 1.

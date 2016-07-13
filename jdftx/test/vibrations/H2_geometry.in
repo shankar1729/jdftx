@@ -4,5 +4,5 @@ include ${SRCDIR}/common.in
 ion H   0  0.1  0.7  1
 ion H   0 -0.2 -0.6  1
 
-ionic-minimize nIterations 20 knormThreshold 1e-6 energyDiffthreshold 1e-9
+ionic-minimize nIterations 10
 dump End IonicPositions

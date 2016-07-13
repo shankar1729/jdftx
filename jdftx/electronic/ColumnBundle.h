@@ -94,12 +94,14 @@ double dot(const ColumnBundle& x, const ColumnBundle& y); //!< inner product
 
 //----------- Arithmetic ------------
 
-ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundle &X);
-ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundle &X);
-ColumnBundle operator+(const ColumnBundle &Y1, const ColumnBundle &Y2);
-ColumnBundle operator-(const ColumnBundle &Y1,const ColumnBundle &Y2);
+ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
+ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
+ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
+ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
 
 ColumnBundle& operator*=(ColumnBundle& X, double s);
+ColumnBundle operator*(double s, ColumnBundle&& Y);
+ColumnBundle operator*(ColumnBundle&& Y, double s);
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y);
 scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s);
 scaled<ColumnBundle> operator-(const ColumnBundle &Y);
@@ -107,7 +109,35 @@ ColumnBundle& operator*=(ColumnBundle& X, complex s);
 ColumnBundle operator*(complex s, const ColumnBundle &Y);
 ColumnBundle operator*(const ColumnBundle &Y, complex s);
 
-ColumnBundle operator*(const scaled<ColumnBundle>&, const matrixScaledTransOp&);
+//!ColumnBundle with a pending matrix multiply (on the right side)
+struct ColumnBundleMatrixProduct
+{	const ColumnBundle& Y; //!< the ColumnBundle in the product
+	const matrixScaledTransOp& Mst; //!< the matrix in the product (along with scale and transpose operations, if any)
+	double scale; //!< additional scale factor
+	
+	int nCols() const { return Mst.nCols(); } //!< number of columns accessor
+	size_t colLength() const { return Y.colLength(); } //!< column length accessor
+
+	//Scaling:
+	ColumnBundleMatrixProduct& operator*=(double s) { scale *= s; return *this; }
+	ColumnBundleMatrixProduct operator*(double s) const { return ColumnBundleMatrixProduct(Y,Mst,scale*s); }
+	friend ColumnBundleMatrixProduct operator*(double s, const ColumnBundleMatrixProduct& A) { return A * s; }
+
+	operator ColumnBundle() const; //!apply pending operation and convert to a ColumnBundle
+	void scaleAccumulate(double alpha, double beta, ColumnBundle& YM) const; //!< Perform YM = alpha*this + beta*YM. If empty, YM will be initialized only if beta=0.
+private:
+	//! Private constructor: to be used only from specific member and friend functions
+	ColumnBundleMatrixProduct(const ColumnBundle& Y, const matrixScaledTransOp& Mst, double scale=1.) : Y(Y), Mst(Mst), scale(scale) {}
+	friend ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst);
+};
+
+//Delay ColumnBundle * matrix and combine it with ColumnBundle accumulate operations when possible:
+ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst);
+ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM);
+ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM);
+ColumnBundle operator+(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2);
+ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2);
+
 ColumnBundle operator*(const scaled<ColumnBundle>&, const diagMatrix&);
 matrix operator^(const scaled<ColumnBundle>&, const scaled<ColumnBundle>&); //!< inner product
 

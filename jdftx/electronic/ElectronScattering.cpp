@@ -55,7 +55,7 @@ void ElectronScattering::dump(const Everything& everything)
 
 	//Update default parameters:
 	if(!eta)
-	{	eta = e.eInfo.kT;
+	{	eta = e.eInfo.smearingWidth;
 		if(!eta) die("eta must be specified explicitly since electronic temperature is zero.\n");
 	}
 	if(!Ecut) Ecut = e.cntrl.Ecut;

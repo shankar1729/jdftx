@@ -1,0 +1,7 @@
+include ${SRCDIR}/common.in
+kpoint-folding 12 12 1
+elec-fermi-fillings 0 0.002
+electronic-SCF
+dump-name totalE.$VAR
+dump End ElecDensity
+

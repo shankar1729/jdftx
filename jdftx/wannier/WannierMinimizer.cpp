@@ -81,36 +81,29 @@ void randomize(WannierGradient& x)
 void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 {	assert(grad.wmin == this);
 	for(unsigned ik=ikStart; ik<ikStop; ik++)
-		axpy(alpha, grad[ik], kMesh[ik].B);
-}
-
-matrix WannierMinimizer::KmeshEntry::calc_V1()
-{	int nCenters = U2.nRows();
-	if(nIn > nCenters)
-	{	matrix B1block = B(nFixed,nCenters, nCenters,nIn);
-		matrix B1 = zeroes(nIn, nIn);
-		B1.set(nFixed,nCenters, nCenters,nIn, B1block);
-		B1.set(nCenters,nIn, nFixed,nCenters, dagger(B1block));
-		return cis(B1, &B1evecs, &B1eigs);
-	}
-	else return eye(nCenters);
-}
-
-
-double WannierMinimizer::compute(WannierGradient* grad)
-{	//Compute the unitary matrices:
-	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
+		matrix B = alpha * grad[ik];
 		//Stage 1:
-		ki.V1 = ki.calc_V1()(0,ki.nIn, 0,nCenters);
+		if(ki.nIn > nCenters)
+		{	matrix B1block = B(ki.nFixed,nCenters, nCenters,ki.nIn);
+			matrix B1 = zeroes(ki.nIn, ki.nIn);
+			B1.set(ki.nFixed,nCenters, nCenters,ki.nIn, B1block);
+			B1.set(nCenters,ki.nIn, ki.nFixed,nCenters, dagger(B1block));
+			ki.U1 = ki.U1 * cis(B1);
+		}
 		//Stage 2:
 		matrix B2 = zeroes(nCenters, nCenters);
-		B2.set(nFrozen,nCenters, nFrozen,nCenters, ki.B(nFrozen,nCenters, nFrozen,nCenters));
-		ki.V2 = cis(B2, &ki.B2evecs, &ki.B2eigs);
+		B2.set(nFrozen,nCenters, nFrozen,nCenters, B(nFrozen,nCenters, nFrozen,nCenters));
+		ki.U2 = ki.U2 * cis(B2);
 		//Net rotation:
-		ki.U = ki.U1 * ki.V1 * ki.U2 * ki.V2;
+		ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 	}
 	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
+}
+
+
+double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
+{
 	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_U = zeroes(nCenters, nBands); //Clear Omega_U
 	
 	double Omega = getOmega(grad);
@@ -123,14 +116,31 @@ double WannierMinimizer::compute(WannierGradient* grad)
 		{	KmeshEntry& ki = kMesh[ik];
 			(*grad)[ik] = zeroes(nCenters, ki.nIn);
 			if(ki.nIn > nCenters) //Stage 1:
-			{	matrix Omega_B1 = dagger_symmetrize(cis_grad(ki.V1 * ki.U2 * ki.V2 * ki.Omega_U * ki.U1, ki.B1evecs, ki.B1eigs));
+			{	matrix Omega_B1 = complex(0,0.5)*(ki.U2 * ki.Omega_U * ki.U1);
 				(*grad)[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn));
 			}
-			matrix Omega_B2 = dagger_symmetrize(cis_grad(ki.V2 * ki.Omega_U * ki.U1 * ki.V1 * ki.U2, ki.B2evecs, ki.B2eigs));
+			matrix Omega_B2 = dagger_symmetrize(complex(0,1)*(ki.Omega_U * ki.U));
 			(*grad)[ik].set(nFrozen,nCenters, nFrozen,nCenters, Omega_B2(nFrozen,nCenters, nFrozen,nCenters));
 		}
+		
+		if(Kgrad) *Kgrad = precondition(*grad);
 	}
 	return Omega;
+}
+
+void WannierMinimizer::constrain(WannierGradient& grad)
+{	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	const KmeshEntry& ki = kMesh[ik];
+		//Pick out the parts that are allowed to be non-zero:
+		matrix gradB1;
+		if(ki.nIn > nCenters)
+			gradB1 = grad[ik](ki.nFixed,nCenters, nCenters,ki.nIn);
+		matrix gradB2 = grad[ik](nFrozen,nCenters, nFrozen,nCenters);
+		//Zero everything and only set back the non-zero parts:
+		grad[ik].zero();
+		if(gradB1) grad[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, gradB1);
+		grad[ik].set(nFrozen,nCenters, nFrozen,nCenters, dagger_symmetrize(gradB2));
+	}
 }
 
 WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
@@ -139,46 +149,29 @@ WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
 	return Kgrad;
 }
 
-void WannierMinimizer::constrain(WannierGradient& grad)
-{	for(size_t ik=ikStart; ik<ikStop; ik++)
-		grad[ik].set(0,nCenters, 0,nCenters, dagger_symmetrize(grad[ik](0,nCenters, 0,nCenters)));
-}
 
 matrix WannierMinimizer::fixUnitary(const matrix& U)
 {	return U * invsqrt(dagger(U) * U);
 }
 
 bool WannierMinimizer::report(int iter)
-{	if(wannier.rotationCheckInterval && (iter % wannier.rotationCheckInterval == 0))
-	{	bool needRestart = false;
-		double BnormThresh = wannier.rotationThreshold;
+{	//Check unitarity:
+	bool needRestart = false;
+	for(size_t ik=ikStart; ik<ikStop; ik++)
+		if(nrm2(dagger(kMesh[ik].U) * kMesh[ik].U - eye(nCenters)) > 1e-6)
+		{	needRestart = true;
+			break;
+		}
+	mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
+	if(needRestart)
+	{	logPrintf("%s\tUpdating rotations to enforce unitarity\n", wannier.minParams.linePrefix);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
-			if(nrm2(kMesh[ik].B) > BnormThresh)
-			{	needRestart = true;
-				break;
-			}
-		mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
-		if(needRestart)
-			logPrintf("%s\tUpdating initial rotations to mitigate large |B| issues\n", wannier.minParams.linePrefix);
-		else //check unitarity
-		{	for(size_t ik=ikStart; ik<ikStop; ik++)
-				if(nrm2(dagger(kMesh[ik].U) * kMesh[ik].U - eye(nCenters)) > 1e-6)
-				{	needRestart = true;
-					break;
-				}
-			mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
-			if(needRestart)
-				logPrintf("%s\tUpdating initial rotations to enforce unitarity\n", wannier.minParams.linePrefix);
+		{	KmeshEntry& ki = kMesh[ik];
+			ki.U1 = fixUnitary(ki.U1);
+			ki.U2 = fixUnitary(ki.U2);
+			ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 		}
-		if(needRestart)
-		{	for(size_t ik=ikStart; ik<ikStop; ik++)
-			{	KmeshEntry& ki = kMesh[ik];
-				ki.U1 = fixUnitary(ki.U1 * ki.calc_V1());
-				ki.U2 = fixUnitary(ki.U2 * ki.V2);
-				ki.B.zero();
-			}
-			return true;
-		}
+		return true;
 	}
     return false;
 }

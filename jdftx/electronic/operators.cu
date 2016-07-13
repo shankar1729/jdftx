@@ -166,15 +166,15 @@ void reducedLinv_gpu(int nbasis, int ncols, const complex* Y, complex* LinvY,
 
 
 __global__
-void precond_inv_kinetic_kernel(int nbasis, int ncols, const complex* Y, complex* KY, 
+void precond_inv_kinetic_kernel(int nbasis, int ncols, complex* Y, 
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
 {	int j = kernelIndex1D();
-	if(j<nbasis) precond_inv_kinetic_calc(j, nbasis, ncols, Y, KY, KErollover, GGT, iGarr, k, invdetR);
+	if(j<nbasis) precond_inv_kinetic_calc(j, nbasis, ncols, Y, KErollover, GGT, iGarr, k, invdetR);
 }
-void precond_inv_kinetic_gpu(int nbasis, int ncols, const complex* Y, complex* KY, 
+void precond_inv_kinetic_gpu(int nbasis, int ncols, complex* Y,
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
 {	GpuLaunchConfig1D glc(precond_inv_kinetic_kernel, nbasis);
-	precond_inv_kinetic_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, KY, KErollover, GGT, iGarr, k, invdetR);
+	precond_inv_kinetic_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, KErollover, GGT, iGarr, k, invdetR);
 	gpuErrorCheck();
 }
 

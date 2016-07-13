@@ -34,7 +34,7 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(FillingsConst), scalarFillings(true), kT(1e-3), mu(NAN),
+fillingsUpdate(FillingsConst), scalarFillings(true), smearingType(SmearingFermi), smearingWidth(1e-3), mu(NAN),
 hasU(false), nBandsOld(0),
 Qinitial(0.), Minitial(0.), Mconstrain(false)
 {
@@ -42,7 +42,6 @@ Qinitial(0.), Minitial(0.), Mconstrain(false)
 
 void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, Energies& ener)
 {	e = &everything;
-	betaBy2 = 0.5/kT;
 	
 	switch(spinType)
 	{	case SpinNone:   nDensities = 1; spinWeight = 2; break;
@@ -118,9 +117,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		{	F[q] *= wInv; //NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
 			
 			//Check fillings:
+			const double fMin = 0.;
+			const double fMax = 1.083315; //maximum allowed for Cold smearing
 			for(int b=0; b<nBandsOld; b++)
-			{	if(F[q][b]<0) die("Filling of state %d band %d is negative.\n", q, b);
-				if(F[q][b]>1) die("Filling of state %d band %d exceeds maximum.\n", q, b);
+			{	if(F[q][b]<fMin) die("Filling of state %d band %d is negative.\n", q, b);
+				if(F[q][b]>fMax) die("Filling of state %d band %d exceeds maximum.\n", q, b);
 			}
 			
 			//Determine the total change in sum(F[q][0:nBands-1]):
@@ -188,10 +189,6 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		}
 	}
 	
-	//Set the Legendre multipliers corresponding to the initial fillings
-	if(fillingsUpdate == FillingsHsub) //if ConstantFillings, let TS and muN remain 0
-		updateFillingsEnergies(F, ener);
-	
 	// Print out the current status of the electronic info before leaving
 	logPrintf("nElectrons: %10.6f   nBands: %d   nStates: %d", nElectrons, nBands, nStates);
 	if(e->cntrl.shouldPrintEigsFillings)
@@ -219,7 +216,7 @@ void ElecInfo::printFillings(FILE* fp) const
 			e->eVars.F[q].send(0);
 }
 
-void ElecInfo::printFermi(const double* muOverride) const
+void ElecInfo::smearReport(const double* muOverride) const
 {	double Bz = 0.;
 	logPrintf("\tFillingsUpdate:  mu: %+.9lf  nElectrons: %.6lf",
 		muOverride ? *muOverride //use override value if provided
@@ -251,17 +248,16 @@ void ElecInfo::printFermi(const double* muOverride) const
 
 
 // Fermi legendre multipliers (TS and optionally muN)
-void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies& ener) const
+void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energies& ener) const
 {
+	//Determine relevant Legenedre multipliers:
+	double Bz = 0.;
+	double mu = !std::isnan(this->mu) ? this->mu : findMu(eps, nElectrons, Bz);
+	
+	//Calculate entropy contributions:
 	ener.TS = 0.0;
 	for(int q=qStart; q<qStop; q++)
-	{	double Sq = 0.0;
-		for(double Fqi: F[q])
-		{	if(Fqi>1e-300) Sq += Fqi*log(Fqi);
-			if(1-Fqi>1e-300) Sq += (1-Fqi)*log(1-Fqi);
-		}
-		ener.TS -= kT * qnums[q].weight * Sq;
-	}
+		ener.TS += smearingWidth * qnums[q].weight * trace(smearEntropy(muEff(mu,Bz,q), eps[q]));
 	mpiUtil->allReduce(ener.TS, MPIUtil::ReduceSum);
 
 	//Grand canonical multiplier if fixed mu:
@@ -270,19 +266,62 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& F, Energies
 
 //-------------------- Fermi function utilities --------------------------
 
-diagMatrix ElecInfo::fermi(double mu, const diagMatrix& eps) const
+double ElecInfo::smear(double mu, double eps) const
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
+	{	case SmearingFermi: return 0.5*(1.-tanh(x));
+		case SmearingGauss: return 0.5*erfc(x);
+		case SmearingCold: return 0.5*erfc(x+sqrt(0.5)) + exp(-std::pow(x+sqrt(0.5),2))/sqrt(2*M_PI);
+		default: return NAN; //to suppress warning
+	}
+}
+
+double ElecInfo::smearPrime(double mu, double eps) const
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
+	{	case SmearingFermi: return -0.25/(smearingWidth * std::pow(cosh(x), 2));
+		case SmearingGauss: return -exp(-x*x) / (2.*sqrt(M_PI)*smearingWidth);
+		case SmearingCold: return -exp(-std::pow(x+sqrt(0.5),2)) * (2.+x*sqrt(2.)) / (2.*sqrt(M_PI)*smearingWidth);
+		default: return NAN; //to suppress warning
+	}
+}
+
+double ElecInfo::smearEntropy(double mu, double eps) const
+{	double x = (eps-mu)/(2.*smearingWidth);
+	switch(smearingType)
+	{	case SmearingFermi: 
+		{	double f = 0.5*(1.-tanh(x));
+			double S = 0.;
+			if(f>1e-300) S -= f*log(f);
+			if(1-f>1e-300) S -= (1-f)*log(1-f);
+			return S;
+		}
+		case SmearingGauss: return exp(-x*x) / sqrt(M_PI);
+		case SmearingCold: return exp(-std::pow(x+sqrt(0.5),2)) * (1.+x*sqrt(2.)) / sqrt(M_PI);
+		default: return NAN; //to suppress warning
+	}
+}
+
+diagMatrix ElecInfo::smear(double mu, const diagMatrix& eps) const
 {	diagMatrix ret(eps);
-	for(unsigned i=0; i<eps.size(); i++) ret[i] = fermi(mu, eps[i]);
+	for(unsigned i=0; i<eps.size(); i++) ret[i] = smear(mu, eps[i]);
 	return ret;
 }
 
-diagMatrix ElecInfo::fermiPrime(double mu, const diagMatrix& eps) const
+diagMatrix ElecInfo::smearPrime(double mu, const diagMatrix& eps) const
 {	diagMatrix ret(eps);
-	for(unsigned i=0; i<eps.size(); i++) ret[i] = fermiPrime(mu, eps[i]);
+	for(unsigned i=0; i<eps.size(); i++) ret[i] = smearPrime(mu, eps[i]);
 	return ret;
 }
 
-matrix ElecInfo::fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF) const
+diagMatrix ElecInfo::smearEntropy(double mu, const diagMatrix& eps) const
+{	diagMatrix ret(eps);
+	for(unsigned i=0; i<eps.size(); i++) ret[i] = smearEntropy(mu, eps[i]);
+	return ret;
+}
+
+
+matrix ElecInfo::smearGrad(double mu, const diagMatrix& eps, const matrix& gradF) const
 {	matrix gradEps(gradF); //copy input
 	complex* gradEpsData = gradEps.data();
 	//calculate result in place:
@@ -290,21 +329,21 @@ matrix ElecInfo::fermiGrad(double mu, const diagMatrix& eps, const matrix& gradF
 		for(int j=0; j<gradF.nCols(); j++)
 		{	double deps = eps[i] - eps[j];
 			gradEpsData[gradEps.index(i,j)]
-				*= (fabs(deps)<1e-6) ? fermiPrime(mu,eps[i]) : (fermi(mu,eps[i])-fermi(mu,eps[j]))/deps;
+				*= (fabs(deps)<1e-6) ? smearPrime(mu,eps[i]) : (smear(mu,eps[i])-smear(mu,eps[j]))/deps;
 		}
 	return gradEps;
 }
 
 
 //Number of electrons and magnetization in a fermi distribution of given mu, Bz and eigenvalues:
-double ElecInfo::magnetizationFermi(double mu, double Bz, const std::vector<diagMatrix>& eps, double& N) const
+double ElecInfo::magnetizationCalc(double mu, double Bz, const std::vector<diagMatrix>& eps, double& N) const
 {	N = 0.;
 	double M = 0.;
 	for(int q=qStart; q<qStop; q++)
 	{	double s = qnums[q].spin;
 		double muEff = this->muEff(mu, Bz, q);
 		for(double epsCur: eps[q])
-		{	double wf = qnums[q].weight * fermi(muEff, epsCur);
+		{	double wf = qnums[q].weight * smear(muEff, epsCur);
 			N += wf;
 			M += s * wf;
 		}
@@ -315,7 +354,7 @@ double ElecInfo::magnetizationFermi(double mu, double Bz, const std::vector<diag
 }
 
 //Calculate nElectrons at given mu, bisecting on Bz if M is constrained
-double ElecInfo::nElectronsFermi(double mu, const std::vector< diagMatrix >& eps, double& Bz) const
+double ElecInfo::nElectronsCalc(double mu, const std::vector< diagMatrix >& eps, double& Bz) const
 {	Bz = 0.;
 	double N = 0.;
 	if(Mconstrain)
@@ -325,20 +364,20 @@ double ElecInfo::nElectronsFermi(double mu, const std::vector< diagMatrix >& eps
 		const double absTol = 1e-10, relTol = 1e-14;
 		double Mtol = std::max(absTol, relTol*fabs(Minitial));
 		double BzMin=-0.1, BzMax=+0.1;
-		while(magnetizationFermi(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=(BzMax-BzMin);
-		while(magnetizationFermi(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=(BzMax-BzMin);
+		while(magnetizationCalc(mu,BzMin,eps,N)>=Minitial+Mtol) BzMin-=(BzMax-BzMin);
+		while(magnetizationCalc(mu,BzMax,eps,N)<=Minitial-Mtol) BzMax+=(BzMax-BzMin);
 		//Bisect:
-		double BzTol = std::max(absTol*kT, relTol*std::max(fabs(BzMin),fabs(BzMax)));
+		double BzTol = std::max(absTol*smearingWidth, relTol*std::max(fabs(BzMin),fabs(BzMax)));
 		while(BzMax-BzMin>=BzTol)
 		{	double Bz = 0.5*(BzMin + BzMax);
-			double M = magnetizationFermi(mu, Bz, eps, N);
+			double M = magnetizationCalc(mu, Bz, eps, N);
 			if(verbose) logPrintf("BzBISECT: Bz = [ %.15le %.15le %.15le ]  M = %le\n", BzMin, Bz, BzMax, M);
 			if(M>Minitial) BzMax = Bz;
 			else BzMin = Bz;
 		}
 		Bz = 0.5*(BzMin + BzMax);
 	}
-	magnetizationFermi(mu, Bz, eps, N);
+	magnetizationCalc(mu, Bz, eps, N);
 	return N;
 }
 
@@ -351,13 +390,13 @@ double ElecInfo::findMu(const std::vector<diagMatrix>& eps, double nElectrons, d
 	const double absTol = 1e-10, relTol = 1e-14;
 	double nTol = std::max(absTol, relTol*fabs(nElectrons));
 	double muMin=-0.1, muMax=+0.0;
-	while(nElectronsFermi(muMin,eps,Bz)>=nElectrons+nTol) muMin-=(muMax-muMin);
-	while(nElectronsFermi(muMax,eps,Bz)<=nElectrons-nTol) muMax+=(muMax-muMin);
+	while(nElectronsCalc(muMin,eps,Bz)>=nElectrons+nTol) muMin-=(muMax-muMin);
+	while(nElectronsCalc(muMax,eps,Bz)<=nElectrons-nTol) muMax+=(muMax-muMin);
 	//Bisect:
-	double muTol = std::max(absTol*kT, relTol*std::max(fabs(muMin),fabs(muMax)));
+	double muTol = std::max(absTol*smearingWidth, relTol*std::max(fabs(muMin),fabs(muMax)));
 	while(muMax-muMin>=muTol)
 	{	double mu = 0.5*(muMin + muMax);
-		double N = nElectronsFermi(mu, eps, Bz);
+		double N = nElectronsCalc(mu, eps, Bz);
 		if(verbose) logPrintf("MUBISECT: mu = [ %.15le %.15le %.15le ]  N = %le\n", muMin, mu, muMax, N);
 		if(N>nElectrons) muMax = mu;
 		else muMin = mu;

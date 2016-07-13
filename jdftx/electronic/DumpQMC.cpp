@@ -74,7 +74,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux
 			if(dir.Haux[q]) axpy(alpha, dir.Haux[q], Haux[q]);
 	}
 	
-	double compute(ElecGradient* grad)
+	double compute(ElecGradient* grad, ElecGradient* Kgrad)
 	{	if(grad) grad->init(e);
 		double imagErr = 0.;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -92,7 +92,10 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux
 				grad->Haux[q] = dagger_symmetrize(cis_grad(U[q] * (imagErr_Crot ^ Crot) * dagger(U[q]), Bevecs, Beigs));
 		}
 		mpiUtil->allReduce(imagErr, MPIUtil::ReduceSum);
-		if(grad) constrain(*grad);
+		if(grad)
+		{	constrain(*grad);
+			if(Kgrad) *Kgrad = *grad;
+		}
 		return imagErr;
 	}
 	

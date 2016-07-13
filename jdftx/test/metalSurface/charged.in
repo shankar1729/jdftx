@@ -1,0 +1,3 @@
+include ${SRCDIR}/common.in
+target-mu -0.16
+

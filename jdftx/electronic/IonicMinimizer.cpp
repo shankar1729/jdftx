@@ -233,7 +233,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	watch.stop();
 }
 
-double IonicMinimizer::compute(IonicGradient* grad)
+double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 {
 	if(not e.iInfo.checkPositions())
 	{	logPrintf("\nBacking off ionic step since it caused pseudopotential core overlaps.\n");
@@ -250,34 +250,31 @@ double IonicMinimizer::compute(IonicGradient* grad)
 	if(grad)
 	{	e.iInfo.ionicEnergyAndGrad(e.iInfo.forces); //compute forces in lattice coordinates
 		*grad = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
+		
+		//Preconditioned gradient:
+		if(Kgrad)
+		{	Kgrad->init(e.iInfo);
+			for(unsigned sp=0; sp<grad->size(); sp++)
+			{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+				for(unsigned atom=0; atom<grad->at(sp).size(); atom++)
+					Kgrad->at(sp)[atom] = spInfo.constraints[atom](grad->at(sp)[atom]);  //Apply move constraints to the force gradient.
+			}
+			
+			// HyperPlane constraint:
+			IonicGradient D; D.init(e.iInfo); // initialize direction to zero
+			for(unsigned sp=0; sp<D.size(); sp++)
+			{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+				for(unsigned atom=0; atom<D[sp].size(); atom++)
+					if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
+						D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
+			}
+			double Dsq = dot(D,D);
+			if(Dsq > 1e-10) *Kgrad += D*(-dot(D,*Kgrad)/Dsq); //subtract the component along D
+		}
 	}
 	
 	skipWfnsDrag = false; //computed at physical atomic positions; safe to drag wfns at next step
 	return relevantFreeEnergy(e);
-}
-
-IonicGradient IonicMinimizer::precondition(const IonicGradient& grad)
-{	IonicGradient Kgrad(grad);
-	for(unsigned sp=0; sp<grad.size(); sp++)
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<grad[sp].size(); atom++)
-			Kgrad[sp][atom] = spInfo.constraints[atom](grad[sp][atom]);  //Apply move constraints to the force gradient.
-	}
-	
-	// Deal with constrains of type HyperPlane
-	// Remove the component of the gradient along the direction of the 
-	// constraint in high dimensional space of all coordinates
-	IonicGradient D;   D.init(e.iInfo); // initialize direction to zero
-	for(unsigned sp=0; sp<D.size(); sp++)
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<D[sp].size(); atom++)
-			if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
-				D[sp][atom] = spInfo.constraints[atom].d;  // D is the high dimensional cousin of vector3<> constrain.d
-	}
-	double magD2 = dot(D, D); double alpha = (1/magD2) * dot(Kgrad, D);
-	if (magD2 > 1e-10) //nonzero D
-		Kgrad += D*(-alpha); //subtract the component along D
-	return Kgrad;
 }
 
 bool IonicMinimizer::report(int iter)

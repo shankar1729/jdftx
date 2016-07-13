@@ -43,24 +43,24 @@ void randomize(ElecGradient& x); //!< Initialize to random numbers
 
 class ElecMinimizer : public Minimizable<ElecGradient>
 {
-	Everything& e;
-	ElecVars& eVars;
-	ElecInfo& eInfo;
-	ElecGradient Kgrad; //cached preconditioned gradient
-	std::vector<matrix> rotPrev; //cumulated unitary rotations of wavefunctions
-	bool rotExists; //whether rotPrev is non-trivial (not identity)
-	
-	std::shared_ptr<struct SubspaceRotationAdjust> sra; //Subspace rotation adjustment
 public:
 	ElecMinimizer(Everything& e);
 	
 	//Virtual functions from Minimizable:
 	void step(const ElecGradient& dir, double alpha);
-	double compute(ElecGradient* grad);
-	ElecGradient precondition(const ElecGradient& grad);
+	double compute(ElecGradient* grad, ElecGradient* Kgrad);
 	bool report(int iter);
 	void constrain(ElecGradient&);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
+	
+private:
+	Everything& e;
+	ElecVars& eVars;
+	ElecInfo& eInfo;
+	std::vector<matrix> KgradHaux; //!< latest preconditioned auxiliary gradient
+	std::vector<matrix> rotPrev; //!< cumulated unitary rotations of wavefunctions
+	bool rotExists; //!< whether rotPrev is non-trivial (not identity)
+	std::shared_ptr<struct SubspaceRotationAdjust> sra; //!< Subspace rotation adjustment helper
 };
 
 void bandMinimize(Everything& e); //!< band structure minimization

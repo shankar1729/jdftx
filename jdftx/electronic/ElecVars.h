@@ -42,7 +42,7 @@ public:
 	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
-	ScalarFieldArray nAccumulated; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)]) accumulated over an MD trajectory
+	ScalarFieldArray nAccumulated; //!< ElecVars::n accumulated over an MD trajectory
 	ScalarFieldArray get_nXC() const; //!< return the total (spin) density including core contributions
 	ScalarField get_nTot() const { return n.size()==1 ? n[0] : n[0]+n[1]; } //!< return the total electron density (even in spin polarized situations)
 	
@@ -109,7 +109,8 @@ public:
 	void orthonormalize(int q, const matrix* extraRotation=0);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
-	void applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub=false);
+	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner
+	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false);
 	
 private:
 	const Everything* e;

@@ -1,4 +1,4 @@
-lattice Cubic 15
+lattice Cubic 13
 coords-type Cartesian
 
 ion-species GBRV/$ID_pbe_v1.2.uspp

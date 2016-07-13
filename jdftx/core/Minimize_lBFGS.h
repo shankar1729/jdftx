@@ -29,9 +29,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Following Nocedal and Liu, Math Prog 45, 503 (1989)
 template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams& p)
 {	
-	Vector g; //gradient
-	double E = sync(compute(&g)); //get initial energy and gradient
-	Vector Kg = precondition(g); //preconditioned gradient
+	Vector g, Kg; //gradient and preconditioned gradient
+	double E = sync(compute(&g, &Kg)); //get initial energy and gradient
 	
 	EdiffCheck ediffCheck(p.nEnergyDiff, p.energyDiffThreshold); //list of past energies
 
@@ -55,8 +54,7 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 	for(iter=0; !killFlag; iter++)
 	{	
 		if(report(iter)) //optional reporting/processing
-		{	E = sync(compute(&g)); //update energy and gradient if state was modified
-			Kg = precondition(g);
+		{	E = sync(compute(&g, &Kg)); //update energy and gradient if state was modified
 			fprintf(p.fpLog, "%s\tState modified externally: resetting history.\n", p.linePrefix);
 			fflush(p.fpLog);
 			history.clear();
@@ -113,14 +111,13 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		constrain(d); //restrict search direction to allowed subspace
 		
 		//Line minimization
-		Vector y = clone(g); //store previous gradient before linmin changes it (this will later be converted to y = g-gPrev)
+		Vector y = clone(g); h->Ky = clone(Kg); //store previous gradients before linmin changes it (these will later be converted to y = g-gPrev)
 		double alphaT = std::min(p.alphaTstart, safeStepSize(d));
-		if(!linmin(*this, p, d, alphaT, alpha, E, g))
+		if(!linmin(*this, p, d, alphaT, alpha, E, g, Kg))
 		{	//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);
-			E = sync(compute(&g));
-			Kg = precondition(g);
+			E = sync(compute(&g, &Kg));
 			if(history.size())
 			{	//Failed, but not along the gradient direction:
 				fprintf(p.fpLog, "%s\tStep failed: resetting history.\n", p.linePrefix);
@@ -142,7 +139,6 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		//Update history:
 		linminTest = sync(dot(g,d))/sqrt(sync(dot(g,g))*sync(dot(d,d)));
 		d *= alpha; //d -> alpha * d, which is change of state, and it resides in h->s
-		h->Ky = Kg; Kg = precondition(g); //store previous preconditioned gradient, and compute new one
 		h->Ky *= -1; axpy(1., Kg, h->Ky); //Ky = K(g-gPrev)
 		y *= -1; axpy(1., g, y); //y = g-gPrev
 		double ydots = sync(dot(y, h->s));

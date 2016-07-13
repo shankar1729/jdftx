@@ -39,11 +39,10 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	const ExCorr* exCorr;
 	std::vector<matrix> HniSub;
 	std::vector<matrix> rotPrev; //Accumulated rotations of the wavefunctions
-	ElecGradient Kgrad;
 	
 	LCAOminimizer(ElecVars& eVars, const Everything& e)
 	: eVars(eVars), e(e), eInfo(e.eInfo), HniSub(eInfo.nStates), rotPrev(eInfo.nStates)
-	{	Kgrad.init(e);
+	{
 	}
 	
 	void step(const ElecGradient& dir, double alpha)
@@ -61,16 +60,17 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		}
 	}
 	
-	double compute(ElecGradient* grad)
+	double compute(ElecGradient* grad, ElecGradient* Kgrad)
 	{	Energies ener = e.ener;
 		if(grad) grad->init(e);
+		if(Kgrad) Kgrad->init(e);
 		
 		//Update fillings (Aux algorithm, fixed N only):
 		double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
 		double dmuNum[2] = {0.,0.}, dmuDen[2]={0.,0.};
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			eVars.F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
-		eInfo.updateFillingsEnergies(eVars.F, ener);
+			eVars.F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
+		eInfo.updateFillingsEnergies(eVars.Haux_eigs, ener);
 		
 		//Update density and density-matices if needed:
 		eVars.n = eVars.calcDensity();
@@ -81,9 +81,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		if(grad) e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
 		
 		//Wavefunction dependent parts:
-		std::vector<ColumnBundle> HC(eInfo.nStates);
-		std::vector< std::vector<matrix> > HVdagC(eInfo.nStates, std::vector<matrix>(e.iInfo.species.size()));
-
 		ener.E["NI"] = 0.;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
@@ -94,14 +91,15 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		
 			//Gradient and subspace Hamiltonian:
 			if(grad)
-			{	HC[q] += Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
-				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HC[q]); //Contribution via atomic density matrices (DFT+U)
-				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagC[q]); //Contribution via pseudopotential density augmentation
-				e.iInfo.projectGrad(HVdagC[q], eVars.C[q], HC[q]);
-				eVars.Hsub[q] = HniRot + (eVars.C[q]^HC[q]);
+			{	ColumnBundle HCq = Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
+				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq); //Contribution via atomic density matrices (DFT+U)
+				std::vector<matrix> HVdagCq(e.iInfo.species.size());
+				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+				e.iInfo.projectGrad(HVdagCq, eVars.C[q], HCq);
+				eVars.Hsub[q] = HniRot + (eVars.C[q]^HCq);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
 				//N/M constraint contributions to gradient:
-				diagMatrix fprime = eInfo.fermiPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
+				diagMatrix fprime = eInfo.smearPrime(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q]);
 				double w = eInfo.qnums[q].weight;
 				int sIndex = eInfo.qnums[q].index();
 				dmuNum[sIndex] += w * trace(fprime * (diag(eVars.Hsub[q])-eVars.Haux_eigs[q]));
@@ -130,24 +128,20 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			{	const QuantumNumber& qnum = eInfo.qnums[q];
 				matrix gradF = eVars.Hsub[q]-eVars.Haux_eigs[q] - eye(nBands)*eInfo.muEff(dmuContrib,dBzContrib,q); //gradient w.r.t fillings
-				grad->Haux[q] = qnum.weight * eInfo.fermiGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
-				Kgrad.Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
+				grad->Haux[q] = qnum.weight * eInfo.smearGrad(eInfo.muEff(mu,Bz,q), eVars.Haux_eigs[q], gradF);
+				if(Kgrad) Kgrad->Haux[q] = -gradF; //Drop the fermiPrime factors and state weights in preconditioned gradient
 				//Transform gradients back to original rotation (which CG remains in):
 				grad->Haux[q] = rotPrev[q] * grad->Haux[q] * dagger(rotPrev[q]);
-				Kgrad.Haux[q] = rotPrev[q] * Kgrad.Haux[q] * dagger(rotPrev[q]);
+				if(Kgrad) Kgrad->Haux[q] = rotPrev[q] * Kgrad->Haux[q] * dagger(rotPrev[q]);
 			}
 		}
 		return ener.F();
-	}
-	
-	ElecGradient precondition(const ElecGradient& grad)
-	{	return Kgrad;
 	}
 
 	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	bool report(int iter)
-	{	eInfo.printFermi();
+	{	eInfo.smearReport();
 		return false;
 	}
 };
@@ -284,7 +278,7 @@ int ElecVars::LCAO()
 	{	//Hsub fillings: use same eigenvalues, but recalculate to account for reduced band count:
 		double Bz, mu = eInfo.findMu(Haux_eigs, eInfo.nElectrons, Bz);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			F[q] = eInfo.fermi(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
+			F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
 	}
 	else
 	{	//Constant fillings: remove Haux_eigs and restore F to original:

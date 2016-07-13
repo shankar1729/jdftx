@@ -126,24 +126,24 @@ struct CommandLcaoParams : public Command
 {
 	CommandLcaoParams() : Command("lcao-params", "jdftx/Initialization")
 	{
-		format = "[<nIter>=-1] [<Ediff>=1e-6] [<kT>=1e-3]";
+		format = "[<nIter>=-1] [<Ediff>=1e-6] [<smeaingWidth>=1e-3]";
 		comments = "Control LCAO wavefunction initialization:\n"
 			"+ <nIter>: maximum subspace iterations in LCAO (negative => auto-select)\n"
 			"+ <Ediff>: energy-difference convergence threshold for subspace iteration\n"
-			"+ <kT>: Fermi temperature for the subspace iteration for T=0 calculations.\n"
-			"   If present, the Fermi temperature from elec-fermi-fillings overrides this.\n";
+			"+ <smearingWidth>: smearing width for the subspace iteration for constant fillings calculations.\n"
+			"   If present, the smearing width from elec-smearing overrides this.\n";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eVars.lcaoIter, -1, "nIter");
 		pl.get(e.eVars.lcaoTol, 1e-6, "Ediff");
-		pl.get(e.eInfo.kT, 1e-3, "kT");
-		if(e.eInfo.kT<=0) throw string("<kT> must be positive.\n");
+		pl.get(e.eInfo.smearingWidth, 1e-3, "smeaingWidth");
+		if(e.eInfo.smearingWidth<=0) throw string("<kT> must be positive.\n");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d %lg %lg", e.eVars.lcaoIter, e.eVars.lcaoTol, e.eInfo.kT);
+	{	logPrintf("%d %lg %lg", e.eVars.lcaoIter, e.eVars.lcaoTol, e.eInfo.smearingWidth);
 	}
 }
 commandLcaoParams;
@@ -199,7 +199,7 @@ struct CommandFixElectronHamiltonian : public Command
 			"Meta-GGA calculations will also require the corresponding kinetic " + name + ".";
 		
 		require("spintype");
-		forbid("elec-fermi-fillings");
+		forbid("elec-smearing");
 		forbid("elec-ex-corr-compare");
 		forbid("electronic-scf");
 		forbid("vibrations");

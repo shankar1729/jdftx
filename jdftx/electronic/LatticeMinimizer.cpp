@@ -139,7 +139,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	}
 }
 
-double LatticeMinimizer::compute(matrix3<>* grad)
+double LatticeMinimizer::compute(matrix3<>* grad, matrix3<>* Kgrad)
 {
 	//Check for large lattice strain
 	if(nrm2(strain) > GridInfo::maxAllowedStrain)
@@ -167,6 +167,9 @@ double LatticeMinimizer::compute(matrix3<>* grad)
 			*grad += stress[i]*strainBasis[i];
 		e.gInfo.R = Rorig + Rorig*strain;
 		updateLatticeDependent(e);
+		
+		if(Kgrad)
+			*Kgrad = Diag(e.cntrl.lattMoveScale) * (*grad) * Diag(e.cntrl.lattMoveScale);
 	}
 	
 	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
@@ -207,9 +210,6 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
 }
 
-matrix3<> LatticeMinimizer::precondition(const matrix3<>& grad)
-{	return Diag(e.cntrl.lattMoveScale) * grad * Diag(e.cntrl.lattMoveScale);
-}
 
 bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n");

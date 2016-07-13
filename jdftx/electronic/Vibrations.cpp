@@ -165,7 +165,7 @@ void Vibrations::calculate()
 	int iConfiguration = 0;
 	IonicMinimizer imin(*e);
 	IonicGradient grad0;
-	imin.compute(&grad0);
+	imin.compute(&grad0, 0);
 	vector3<> Pel0 = getPel(); //electronic dipole moment
 	logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 	
@@ -182,14 +182,14 @@ void Vibrations::calculate()
 			//Compute forces at perturbed position:
 			IonicGradient gradPlus, gradMinus, Kcur;
 			imin.step(d-dPrev, dr); dPrev=d;
-			imin.compute(&gradPlus);
+			imin.compute(&gradPlus, 0);
 			vector3<> PelPlus = getPel(), PelMinus, dPcur; //electronic dipole moment and derivative w.r.t mode
 			logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 	
 			if(centralDiff)
 			{	d *= -1;
 				imin.step(d-dPrev, dr); dPrev=d;
-				imin.compute(&gradMinus);
+				imin.compute(&gradMinus, 0);
 				PelMinus = getPel();
 				logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
 				Kcur = (gradPlus - gradMinus) * (0.5/dr);
