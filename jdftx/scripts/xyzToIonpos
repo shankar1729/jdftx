@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-	echo '
-	Convert an xyz format file (cartesian Angstrom) to JDFTx ionpos (cartesian Bohrs).
+        echo '
+      	Convert an xyz format file (cartesian Angstrom) to JDFTx ionpos (cartesian Bohrs).
 	
 	   Usage: xyzToIonpos <xyzFile> [<centerBbox>=yes|no]
 	  

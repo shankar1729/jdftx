@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -44,6 +44,7 @@ inline double V_smoothLinear(double r, const std::vector<double>& ps)
 void IonDynamics::velocitiesInit()
 {	bool velocitiesGiven=true;
 	IonInfo& iInfo = e.iInfo;
+	IonDynamicsParams& idp = e.ionDynamicsParams;
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++) 
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		totalMass += spInfo.mass*amu*spInfo.atpos.size();
@@ -53,13 +54,13 @@ void IonDynamics::velocitiesInit()
 	}
 	if (velocitiesGiven)
 	{	computeMomentum(); 
-		removeNetDrift();		
+		if (idp.noNetDrift) removeNetDrift();		
 		computeKineticEnergy();
 		return;
 	}
-	double dt = e.ionDynamicsParams.dt, kT = e.ionDynamicsParams.kT;
+	double dt = idp.dt, kT = idp.kT;
 	double v,theta,phi;
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++) // Initialize random velocities
+	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Initialize random velocities
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 		{	v = Random::uniform(0.0,0.1);
@@ -70,14 +71,14 @@ void IonDynamics::velocitiesInit()
 	}
 	computeMomentum();
 	logPrintf("----------Ion Dynamics-----------\ndensity = %lg (in atomic units)\n",totalMass/e.gInfo.detR);
-	removeNetDrift();
+	if (idp.noNetDrift) removeNetDrift(); //OK to always remove the net momentum of randomly initialized velocities, as we assume our starting structure is at DFT minimum?
 	
 	//Now our lattice does not have an overall momentum
 	//We can scale the speeds to be give us the right temperature.
 	computeKineticEnergy();
 	double energyRatio = (3.0*kT)/(kineticEnergy/numberOfAtoms);
 	double velocityScaleFactor = sqrt(energyRatio);
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++) // Scale the velocities
+	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Scale the velocities
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.velocities.size(); atom++)
 			spInfo.velocities[atom] *= velocityScaleFactor;
@@ -314,7 +315,7 @@ void IonDynamics::run()
 	}
 }
 
-void IonDynamics::removeNetDrift()
+void IonDynamics::removeNetDrift()  //Kendra thinks this algorithm is suspect
 {	vector3<> averageDrift = totalMomentum / totalMass;
 	//Subtract average momentum from the individual momentums
 	for(auto& spInfo : e.iInfo.species)

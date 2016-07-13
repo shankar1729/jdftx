@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler
+Copyright 2011 Ravishankar Sundararaman, Deniz Gunceler, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -111,3 +111,24 @@ struct CommandConfineDynamics : public Command
 	}
 }
 commandConfineDynamic;
+
+struct CommandAllowNetMomentum : public Command
+{
+	CommandAllowNetMomentum() : Command("allow-net-momentum", "jdftx/Ionic/Dynamics")
+	{	format = "";
+		comments = "Allow a net momentum per unit cell at each timestep in ionic dynamics.\n"
+		           "CAUTION: may cause mean positions of your atoms to drift over time! \n";
+		allowMultiple = false;
+		hasDefault = false;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+		idp.noNetDrift=false;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	
+	}
+}
+CommandAllowNetMomentum;
