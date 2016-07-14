@@ -52,7 +52,8 @@ private:
 	void computeMomentum();      //!< Calculate totalMomentum and totalMomentumNorm.
 	void computePressure();      //!< Updates pressure.
 	void computeKineticEnergy(); //!< Updates `kineticEnergy`
-	void removeNetDrift();       //!< Removes net velocity
+	void removeNetDriftVelocity(); //!< Removes net velocity
+	void removeNetAvgMomentum(); //!< Removes net average momentum per particle
 	void centerOfMassToOrigin(); //!< Translate the entire system to put the center of mass to origin
 };
 

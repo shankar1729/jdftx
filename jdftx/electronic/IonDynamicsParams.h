@@ -30,17 +30,23 @@ enum ConfiningPotentialType
 	ConfineNone
 };
 
+enum DriftRemovalType
+{      DriftNone,
+       DriftVelocity,
+       DriftMomentum
+};
+
 //! @addtogroup md
 //! @{
 
 //! @brief Parameters to control the Verlet algorithm
 struct IonDynamicsParams
 {	double dt, tMax, kT, alpha;
-	bool noNetDrift;
+	DriftRemovalType driftType;
 	ConfiningPotentialType confineType;
 	std::vector<double> confineParameters;
 	//! Set the default values
-	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), noNetDrift(true), confineType(ConfineNone){}
+	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), driftType(DriftMomentum), confineType(ConfineNone){}
 };
 
 //! @}

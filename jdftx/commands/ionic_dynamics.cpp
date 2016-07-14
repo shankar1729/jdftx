@@ -112,23 +112,35 @@ struct CommandConfineDynamics : public Command
 }
 commandConfineDynamic;
 
-struct CommandAllowNetMomentum : public Command
-{
-	CommandAllowNetMomentum() : Command("allow-net-momentum", "jdftx/Ionic/Dynamics")
-	{	format = "";
-		comments = "Allow a net momentum per unit cell at each timestep in ionic dynamics.\n"
-		           "CAUTION: may cause mean positions of your atoms to drift over time! \n";
+EnumStringMap<DriftRemovalType> driftRemovalTypeMap
+(	DriftNone, "None",
+	DriftVelocity, "DriftVelocity",
+	DriftMomentum, "AvgMomentum"
+);
+
+struct CommandNetDriftRemoval : public Command
+{	
+        CommandNetDriftRemoval() : Command("net-drift-removal", "jdftx/Ionic/Dynamics")
+	{	format = "<scheme>=AvgMomentum";
+		comments = "Deal with the net momentum per unit cell when initializing ionic dynamics.\n"
+		           "Select <scheme>=AvgMomentum|DriftVelocity|None \n"
+			   "DriftVelocity removes the net drift velocity of the center of mass from each atom in the unit cell, \n"
+			   "AvgMomentum removes the average net momentum per atom from each atom in the unit cell, \n"
+			   "None does not remove the momentum from the unit cell. \n"
+		           "CAUTION: None may cause mean positions of your atoms to drift over time! \n";
 		allowMultiple = false;
 		hasDefault = false;
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	IonDynamicsParams& idp = e.ionDynamicsParams;
-		idp.noNetDrift=false;
+	        pl.get(idp.driftType, DriftMomentum, driftRemovalTypeMap, "scheme", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	
+		IonDynamicsParams& idp = e.ionDynamicsParams;
+		logPrintf("%s", driftRemovalTypeMap.getString(idp.driftType));
 	}
 }
-CommandAllowNetMomentum;
+CommandNetDriftRemoval;
