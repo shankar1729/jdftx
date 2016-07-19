@@ -42,7 +42,7 @@ struct CommandElecSmearing : public Command
 			+ addDescriptions(smearingTypeMap.optionList(), linkDescription(smearingTypeMap, smearingTypeDescMap))
 			+ "\n\nwith width set by <smearingWidth> in Hartrees.\n"
 			"The width corresponds to kT (electronic temperature) for Fermi smearing,\n"
-			"and 2*sigma for the Gauss and Cold smearing options: this convention\n"
+			"and sigma/2 for the Gauss and Cold smearing options: this convention\n"
 			"results in roughly the same rate of k-point convergence for all three\n"
 			"methods using the same width. However, the entropy contribution at the\n"
 			"same width will follow the order Fermi > Gauss >> Cold.";
