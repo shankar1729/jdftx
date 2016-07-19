@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -44,6 +44,7 @@ inline double V_smoothLinear(double r, const std::vector<double>& ps)
 void IonDynamics::velocitiesInit()
 {	bool velocitiesGiven=true;
 	IonInfo& iInfo = e.iInfo;
+	IonDynamicsParams& idp = e.ionDynamicsParams;
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++) 
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		totalMass += spInfo.mass*amu*spInfo.atpos.size();
@@ -53,13 +54,19 @@ void IonDynamics::velocitiesInit()
 	}
 	if (velocitiesGiven)
 	{	computeMomentum(); 
-		removeNetDrift();		
+		switch(idp.driftType)
+		{  
+		  case DriftVelocity: removeNetDriftVelocity(); break;
+		  case DriftNone: break;
+		  case DriftMomentum: 
+	          default: removeNetAvgMomentum(); break;
+		}		
 		computeKineticEnergy();
 		return;
 	}
-	double dt = e.ionDynamicsParams.dt, kT = e.ionDynamicsParams.kT;
+	double dt = idp.dt, kT = idp.kT;
 	double v,theta,phi;
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++) // Initialize random velocities
+	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Initialize random velocities
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 		{	v = Random::uniform(0.0,0.1);
@@ -70,14 +77,21 @@ void IonDynamics::velocitiesInit()
 	}
 	computeMomentum();
 	logPrintf("----------Ion Dynamics-----------\ndensity = %lg (in atomic units)\n",totalMass/e.gInfo.detR);
-	removeNetDrift();
+	 //OK to always remove the net momentum of randomly initialized velocities using the default or specified scheme
+	switch(idp.driftType)
+		{  
+		  case DriftVelocity: removeNetDriftVelocity(); break;
+		  case DriftNone: 
+		  case DriftMomentum: 
+	          default: removeNetAvgMomentum(); break;
+		}
 	
-	//Now our lattice does not have an overall momentum
-	//We can scale the speeds to be give us the right temperature.
+	//Now our lattice should not have an overall momentum
+	//We can scale the speeds to give us the right temperature.
 	computeKineticEnergy();
 	double energyRatio = (3.0*kT)/(kineticEnergy/numberOfAtoms);
 	double velocityScaleFactor = sqrt(energyRatio);
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++) // Scale the velocities
+	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Scale the velocities
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.velocities.size(); atom++)
 			spInfo.velocities[atom] *= velocityScaleFactor;
@@ -85,7 +99,7 @@ void IonDynamics::velocitiesInit()
 	computeKineticEnergy();
 	//check if the momentum sums up to zero and we have the correct energy
 	computeMomentum();
-	assert(e.gInfo.RTR.metric_length_squared(totalMomentum) < 1.0e-8);
+	if(idp.driftType!=DriftNone) assert(e.gInfo.RTR.metric_length_squared(totalMomentum) < 1.0e-8);
 	assert( std::abs(kineticEnergy-3.0*kT*numberOfAtoms) < 1.0e-8);
 }
 
@@ -314,14 +328,25 @@ void IonDynamics::run()
 	}
 }
 
-void IonDynamics::removeNetDrift()
+void IonDynamics::removeNetDriftVelocity()  
 {	vector3<> averageDrift = totalMomentum / totalMass;
-	//Subtract average momentum from the individual momentums
+	//Subtract average drift velocity of center of mass from the individual velocities
 	for(auto& spInfo : e.iInfo.species)
 	{	for(auto& v : spInfo->velocities)
 			v -= averageDrift;
 	}
 }
+
+void IonDynamics::removeNetAvgMomentum()
+{	vector3<> averageMomentum = totalMomentum / numberOfAtoms;
+	//Subtract average momentum from the individual momentums
+	for(auto& spInfo : e.iInfo.species)
+	{	for(unsigned atom=0; atom<spInfo->velocities.size(); atom++)
+			spInfo->velocities[atom] -= averageMomentum / (spInfo->mass*amu);
+	}
+
+}
+
 
 void IonDynamics::centerOfMassToOrigin()
 {	//Calculate the weighted average of positions

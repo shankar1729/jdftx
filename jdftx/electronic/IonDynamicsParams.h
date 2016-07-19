@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth-Weaver
 
 This file is part of JDFTx.
 
@@ -30,16 +30,23 @@ enum ConfiningPotentialType
 	ConfineNone
 };
 
+enum DriftRemovalType
+{      DriftNone,
+       DriftVelocity,
+       DriftMomentum
+};
+
 //! @addtogroup md
 //! @{
 
 //! @brief Parameters to control the Verlet algorithm
 struct IonDynamicsParams
 {	double dt, tMax, kT, alpha;
+	DriftRemovalType driftType;
 	ConfiningPotentialType confineType;
 	std::vector<double> confineParameters;
 	//! Set the default values
-	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), confineType(ConfineNone){}
+	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), driftType(DriftMomentum), confineType(ConfineNone){}
 };
 
 //! @}
