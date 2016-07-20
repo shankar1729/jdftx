@@ -106,7 +106,9 @@ public:
 	ScalarFieldArray calcDensity() const;
 	
 	//! Orthonormalise wavefunctions, with an optional extra rotation
-	void orthonormalize(int q, const matrix* extraRotation=0);
+	//! If extraRotation is present, it is applied after symmetric orthononormalization,
+	//! and on output extraRotation contains the net transformation applied to the wavefunctions.
+	void orthonormalize(int q, matrix* extraRotation=0);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner

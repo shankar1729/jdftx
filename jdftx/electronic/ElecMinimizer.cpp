@@ -142,10 +142,13 @@ struct SubspaceRotationAdjust
 
 
 ElecMinimizer::ElecMinimizer(Everything& e)
-: e(e), eVars(e.eVars), eInfo(e.eInfo), rotPrev(eInfo.nStates)
+: e(e), eVars(e.eVars), eInfo(e.eInfo), rotPrev(eInfo.nStates), rotPrevC(eInfo.nStates), rotPrevCinv(eInfo.nStates)
 {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		rotPrev[q] = eye(eInfo.nBands);
+	{	rotPrev[q] = eye(eInfo.nBands);
+		rotPrevC[q] = eye(eInfo.nBands);
+		rotPrevCinv[q] = eye(eInfo.nBands);
+	}
 	rotExists = false; //rotation is identity
 	
 	//Initialize subspace rotation adjuster if required:
@@ -156,7 +159,7 @@ ElecMinimizer::ElecMinimizer(Everything& e)
 void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	axpy(alpha, rotExists ? dir.C[q]*rotPrev[q] : dir.C[q], eVars.C[q]);
+	{	axpy(alpha, rotExists ? dir.C[q]*rotPrevC[q] : dir.C[q], eVars.C[q]);
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings)
 		{	//Constant scalar fillings: no rotations required
 			eVars.orthonormalize(q);
@@ -176,8 +179,11 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 				assert(!eInfo.scalarFillings);
 				rot = cis(alpha * dir.Haux[q]); //auxiliary matrix directly generates rotations
 			}
-			eVars.orthonormalize(q, &rot);
+			matrix rotC = rot;
+			eVars.orthonormalize(q, &rotC);
 			rotPrev[q] = rotPrev[q] * rot;
+			rotPrevC[q] = rotPrevC[q] * rotC;
+			rotPrevCinv[q] = inv(rotC) * rotPrevCinv[q];
 			rotExists = true; //rotation is no longer identity
 		}
 	}
@@ -191,8 +197,8 @@ double ElecMinimizer::compute(ElecGradient* grad, ElecGradient* Kgrad)
 	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	//Rotate wavefunction gradients if necessary:
 			if(rotExists)
-			{	grad->C[q] = grad->C[q] * dagger(rotPrev[q]);
-				Kgrad->C[q] = Kgrad->C[q] * dagger(rotPrev[q]);
+			{	grad->C[q] = grad->C[q] * rotPrevCinv[q];
+				Kgrad->C[q] = Kgrad->C[q] * rotPrevCinv[q];
 			}
 			//Subspace gradient handling depends on mode:
 			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
@@ -239,6 +245,13 @@ bool ElecMinimizer::report(int iter)
 	
 	//Dump:
 	e.dump(DumpFreq_Electronic, iter);
+	
+	//Re-unitarize rotations:
+	if(rotExists)
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	rotPrevC[q] = rotPrev[q];
+			rotPrevCinv[q] = dagger(rotPrev[q]);
+		}
 	
 	//Subspace rotation preconditioner handling:
 	if(sra) return sra->report(KgradHaux);

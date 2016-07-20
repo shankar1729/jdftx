@@ -566,11 +566,11 @@ ScalarFieldArray ElecVars::calcDensity() const
 	return density;
 }
 
-void ElecVars::orthonormalize(int q, const matrix* extraRotation)
+void ElecVars::orthonormalize(int q, matrix* extraRotation)
 {	assert(e->eInfo.isMine(q));
 	VdagC[q].clear();
 	matrix rot = invsqrt(C[q]^O(C[q], &VdagC[q])); //Compute U:
-	if(extraRotation) rot = rot * (*extraRotation);
+	if(extraRotation) *extraRotation = (rot = rot * (*extraRotation)); //set rot and extraRotation to the net transformation
 	C[q] = C[q] * rot;
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }

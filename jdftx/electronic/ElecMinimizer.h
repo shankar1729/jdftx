@@ -58,7 +58,10 @@ private:
 	ElecVars& eVars;
 	ElecInfo& eInfo;
 	std::vector<matrix> KgradHaux; //!< latest preconditioned auxiliary gradient
-	std::vector<matrix> rotPrev; //!< cumulated unitary rotations of wavefunctions
+	std::vector<matrix> rotPrev; //!< cumulated unitary rotations of subspace
+	std::vector<matrix> rotPrevC; //!< cumulated transormation of wavefunctions (including non-unitary orthonormalization components)
+	std::vector<matrix> rotPrevCinv; //!< inverse of rotPrevC (which is not just dagger, since these are not exactly unitary)
+	
 	bool rotExists; //!< whether rotPrev is non-trivial (not identity)
 	std::shared_ptr<struct SubspaceRotationAdjust> sra; //!< Subspace rotation adjustment helper
 };
