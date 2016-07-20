@@ -42,15 +42,24 @@ struct CommandLattice : public Command
 	{
 		format = " [<modification>] <lattice> <parameters...>\n"
 			"\t| \\\n\t<R00> <R01> <R02> \\\n\t<R10> <R11> <R12> \\\n\t<R20> <R21> <R22>";
-		comments = "Specify lattice by name and parameters, or manually lattice vectors (in columns).\n"
-			"The options for the [<modification>] <lattice> <parameters...> scheme are:\n"
+		comments = "Specify lattice by name and parameters, or explicitly using lattice vectors.\n"
+			"\n"
+			"The options for the first syntax ([<modification>] <lattice> <parameters...> scheme) are:\n"
 			"+ Triclinic <a> <b> <c> <alpha> <beta> <gamma>\n"
 			"+ [Base-Centered] Monoclinic <a> <b> <c> <beta>\n"
 			"+ [Base|Body|Face-Centered] Orthorhombic <a> <b> <c>\n"
 			"+ [Body-Centered] Tetragonal <a> <c>\n"
 			"+ Rhombohedral <a> <alpha>\n"
 			"+ Hexagonal <a> <c>\n"
-			"+ [Body|Face-Centered] Cubic <a>";
+			"+ [Body|Face-Centered] Cubic <a>\n"
+			"where lengths <a>,<b>,<c> are in bohrs and angles <alpha>,<beta,<gamma> are in degrees.\n"
+			"\n"
+			"Alternately, the second syntax directly specifies the transformation\n"
+			"matrix from lattice to Cartesian coordinates. Therefore, the columns\n"
+			"of this 3x3 matrix are the lattice vectors in bohrs.\n"
+			"\n"
+			"NOTE: other DFT codes may specify lattice vectors in rows;\n"
+			"confirm that you switch them to columns if porting an input file to JDFTx.";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -170,7 +179,8 @@ struct CommandLattScale : public Command
 	CommandLattScale() : Command("latt-scale", "jdftx/Ionic/Geometry")
 	{
 		format = "<s0> <s1> <s2>";
-		comments = "Scale lattice vector i by factor <si>";
+		comments = "Scale lattice vector i by factor <si>. This may be convenient\n"
+			"for unit conversions, or specifying lattice vectors of supercells.";
 		hasDefault = true;
 
 		require("lattice");
@@ -200,7 +210,9 @@ struct CommandLattMoveScale : public Command
 	CommandLattMoveScale() : Command("latt-move-scale", "jdftx/Ionic/Optimization")
 	{
 		format = "<s0> <s1> <s2>";
-		comments = "Preconditioning factor for each lattice vector (must be commensurate with symmetries)";
+		comments = "Preconditioning factor for each lattice vector (must be commensurate with symmetries).\n"
+			"Note that setting the factor for a direction to zero prevents it from being optimized,\n"
+			"which could especially be useful for lattice optimization of 1D and 2D systems.";
 		hasDefault = true;
 	}
 
@@ -219,15 +231,22 @@ struct CommandLattMoveScale : public Command
 commandLattMoveScale;
 
 EnumStringMap<CoordsType> coordsMap(
-	CoordsLattice, "lattice",
-	CoordsCartesian, "cartesian" );
+	CoordsLattice, "Lattice",
+	CoordsCartesian, "Cartesian" );
 
 struct CommandCoordsType : public Command
 {
 	CommandCoordsType() : Command("coords-type", "jdftx/Ionic/Geometry")
 	{
 		format = "<coords>=" + coordsMap.optionList();
-		comments = "Coordinate system used in specifying ion positions (default: lattice)";
+		comments = "Coordinate system used in specifying ion positions (default: Lattice).\n"
+			"+ Lattice coordinates correspond to fractional coordinates in terms of the\n"
+			"  lattice vectors, which is usually more convenient for periodic systems.\n"
+			"+ Cartesian coordinates specify absolute atom positions in bohr units,\n"
+			"  which is usually more convenient for non-periodic systems like molecules.\n"
+			"\n"
+			"NOTE: other DFT codes may specify Cartesian coordinates in Angstroms;\n"
+			"confirm that you switch them to bohrs if porting an input file to JDFTx.";
 		hasDefault = true;
 	}
 
