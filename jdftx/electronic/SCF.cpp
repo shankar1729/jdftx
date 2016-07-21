@@ -23,15 +23,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidSolver.h>
 #include <queue>
 
-inline void setKernels(int i, double Gsq, bool mixDensity, double mixFraction, double qKerkerSq, double qMetricSq, double kappaSq, double* kerkerMix, double* diisMetric)
-{	if(mixDensity)
-	{	kerkerMix[i] = mixFraction * (qKerkerSq ? (Gsq + kappaSq)/(Gsq + qKerkerSq) : 1.);
-		diisMetric[i] = (Gsq || kappaSq) ? (Gsq + qMetricSq)/(Gsq + kappaSq) : 0.;
-	}
-	else
-	{	kerkerMix[i] = mixFraction;
-		diisMetric[i] = qMetricSq ? (Gsq + kappaSq)/(qMetricSq + Gsq) : 1.;
-	}
+inline void setKernels(int i, double Gsq, double GminSq, bool mixDensity, double mixFraction,
+	double qKerkerSq, double qMetricSq, double kappaSq, double* kerkerMix, double* diisMetric)
+{
+	double GsqReg = std::max(Gsq + kappaSq, GminSq); //regularize to avoid G=0 issues
+	double kerkerSat = qKerkerSq ? GsqReg/(GsqReg + qKerkerSq) : 1.; //Saturation function [0,infty)->[0,1) with qKerkerSq
+	double metricSat = qMetricSq ? GsqReg/(GsqReg + qMetricSq) : 1.; //Saturation function [0,infty)->[0,1) with qMetricSq
+	kerkerMix[i] = kerkerSat * mixFraction;
+	diisMetric[i] = mixDensity ? 1./metricSat : metricSat;
 }
 
 inline ScalarFieldArray operator*(const RealKernel& K, const ScalarFieldArray& x)
@@ -44,12 +43,22 @@ SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInf
 {	SCFparams& sp = e.scfParams;
 	mixTau = e.exCorr.needsKEdensity();
 	
+	//Determine minimum Gsq (used for preconditioning):
+	double GminSq = DBL_MAX;
+	{	vector3<int> iG;
+		for(iG[0]=-1; iG[0]<=1; iG[0]++)
+		for(iG[1]=-1; iG[1]<=1; iG[1]++)
+		for(iG[2]=-1; iG[2]<=1; iG[2]++)
+			if(iG.length_squared()) //except G==0
+				GminSq = std::min(GminSq, e.gInfo.GGT.metric_length_squared(iG));
+	}
+	
 	//Initialize the preconditioner and metric kernels:
 	double qKappaSq = sp.qKappa >= 0.
 		? pow(sp.qKappa,2)
 		: (e.eVars.fluidSolver ? e.eVars.fluidSolver->k2factor / e.eVars.fluidSolver->epsBulk : 0.);
-	applyFuncGsq(e.gInfo, setKernels, sp.mixedVariable==SCFparams::MV_Density,
-		sp.mixFraction, pow(sp.qKerker,2), pow(sp.qMetric,2), qKappaSq, kerkerMix.data, diisMetric.data);
+	applyFuncGsq(e.gInfo, setKernels, GminSq, sp.mixedVariable==SCFparams::MV_Density, sp.mixFraction,
+		pow(sp.qKerker,2), pow(sp.qMetric,2), qKappaSq, kerkerMix.data, diisMetric.data);
 	kerkerMix.set(); diisMetric.set();
 	
 	//Load history if available:
