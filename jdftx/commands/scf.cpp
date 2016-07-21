@@ -165,7 +165,7 @@ struct CommandElectronicScf: public CommandPulay
 				case SCFpm_eigDiffThreshold: pl.get(sp.eigDiffThreshold, 1e-8, "eigDiffThreshold", true); break;
 				case SCFpm_mixedVariable: pl.get(sp.mixedVariable, SCFparams::MV_Potential, scfMixing, "mixedVariable", true); break;
 				case SCFpm_qKerker: pl.get(sp.qKerker, 0.8, "qKerker", true); break;
-				case SCFpm_qKappa: pl.get(sp.qKerker, -1., "qKappa", true); break;
+				case SCFpm_qKappa: pl.get(sp.qKappa, -1., "qKappa", true); break;
 				case SCFpm_verbose: pl.get(sp.verbose, false, boolMap, "verbose", true); break;
 				case SCFpm_mixFractionMag: pl.get(sp.mixFractionMag, 1.5, "mixFractionMag", true); break;
 			}
