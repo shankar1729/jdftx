@@ -46,7 +46,7 @@ struct SCFparams : public PulayParams
 	SCFparams()
 	{	nEigSteps = 2; //for Davidson; the default for CG is 40 (and set by the command)
 		eigDiffThreshold = 1e-8;
-		mixedVariable = MV_Potential;
+		mixedVariable = MV_Density;
 		qKerker = 0.8;
 		qKappa = -1.;
 		verbose = false;
