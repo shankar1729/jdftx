@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 inline void setKernels(int i, double Gsq, double GminSq, bool mixDensity, double mixFraction,
 	double qKerkerSq, double qMetricSq, double kappaSq, double* kerkerMix, double* diisMetric)
 {
-	double GsqReg = std::max(Gsq + kappaSq, GminSq); //regularize to avoid G=0 issues
+	double GsqReg = kappaSq ? (Gsq + kappaSq) : std::max(Gsq, GminSq); //regularize to avoid G=0 issues (either by qKappa or Gmin)
 	double kerkerSat = qKerkerSq ? GsqReg/(GsqReg + qKerkerSq) : 1.; //Saturation function [0,infty)->[0,1) with qKerkerSq
 	double metricSat = qMetricSq ? GsqReg/(GsqReg + qMetricSq) : 1.; //Saturation function [0,infty)->[0,1) with qMetricSq
 	kerkerMix[i] = kerkerSat * mixFraction;
