@@ -79,6 +79,7 @@ public:
 	smearingType;
 	double smearingWidth; //!< Smearing width (temperature in the Fermi case)
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this
+	bool muLoop; //!< Whether to optimize mu in an outer loop over fixed charge calculations
 	
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
 

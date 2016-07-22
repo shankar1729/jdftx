@@ -77,7 +77,7 @@ void SCF::minimize()
 		(mixTau ? "and kinetic " : ""),
 		(sp.mixedVariable==SCFparams::MV_Density ? "density" : "potential"));
 	
-	string Elabel = relevantFreeEnergyName(e);
+	string Elabel = e.elecMinParams.energyLabel;
 	if(!e.exCorr.hasEnergy())
 	{	e.scfParams.energyDiffThreshold = 0.;
 		logPrintf("Turning off total energy convergence threshold for potential-only functionals.\n");

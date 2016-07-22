@@ -34,7 +34,7 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(FillingsConst), scalarFillings(true), smearingType(SmearingFermi), smearingWidth(1e-3), mu(NAN),
+fillingsUpdate(FillingsConst), scalarFillings(true), smearingType(SmearingFermi), smearingWidth(1e-3), mu(NAN), muLoop(false),
 hasU(false), nBandsOld(0),
 Qinitial(0.), Minitial(0.), Mconstrain(false)
 {

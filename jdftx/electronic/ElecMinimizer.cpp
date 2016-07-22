@@ -292,9 +292,65 @@ void bandMinimize(Everything& e)
 	e.eVars.setEigenvectors();
 }
 
+
+void muOuterLoop(Everything& e)
+{	logPrintf("\n-------- mu target loop -----------\n"); logFlush();
+	assert(!std::isnan(e.eInfo.mu));
+	double muTarget = NAN;
+	std::swap(muTarget, e.eInfo.mu); //set ElecInfo::mu to NAN (fixed charge mode)
+
+	#define RunFixedCharge \
+		{	e.ener.E["minusMuN"] = -muTarget * Ncur; \
+			e.eInfo.nElectrons = Ncur; \
+			elecMinimize(e); \
+			double Bz; \
+			muCur = e.eInfo.findMu(e.eVars.Haux_eigs, Ncur, Bz); \
+			Gcur = relevantFreeEnergy(e); \
+		}
+	
+	//Initial calculation:
+	double Ncur = e.eInfo.nElectrons, muCur, Gcur;
+	RunFixedCharge
+	
+	//Secant-method:
+	double Nprev = NAN, muPrev = NAN, Gprev = NAN; //previous point for secant method
+	double EdiffThreshold = e.elecMinParams.energyDiffThreshold;
+	double muThreshold = EdiffThreshold;
+	double dN0 = 0.1; //initial step size
+	for(int iter=0; iter<e.elecMinParams.nIterations; iter++)
+	{	//Print and check convergence:
+		logPrintf("MuTargetLoop: Iter: %3d  G: %+.15lf  mu: %+.9lf  nElectrons: %.6lf\n", iter, Gcur, muCur, Ncur);
+		if(fabs(muCur-muTarget) < muThreshold)
+		{	logPrintf("MuTargetLoop: Converged (|mu-muTarget|<%le).\n", muThreshold);
+			break;
+		}
+		if(!std::isnan(Gprev) && (Gcur<Gprev) && fabs(Gcur-Gprev)<EdiffThreshold)
+		{	logPrintf("MuTargetLoop: Converged (|Delta G|<%le)\n", EdiffThreshold);
+			break;
+		}
+		//Determine next point:
+		double Nnext;
+		if(std::isnan(Nprev)) //No previous point, so take a fixed step:
+			Nnext = Ncur + copysign(dN0, muTarget-muCur);
+		else //Secant step:
+			Nnext = Ncur + (Ncur - Nprev)*(muTarget - muCur)/(muCur - muPrev);
+		//Switch to next point and calculate:
+		Nprev = Ncur; muPrev = muCur; Gprev = Gcur;
+		Ncur = Nnext;
+		RunFixedCharge
+		#undef RunFixedCharge
+	}
+	std::swap(muTarget, e.eInfo.mu); //restore finite ElecInfo::mu (fixed mu mode)
+	e.ener.E["minusMuN"] = 0.; e.ener.muN = e.eInfo.mu*e.eInfo.nElectrons; //restore normal storage of muN component
+}
+
+
 void elecMinimize(Everything& e)
 {	
-	if(e.cntrl.scf)
+	if(!std::isnan(e.eInfo.mu) && e.eInfo.muLoop)
+	{	muOuterLoop(e); //Run a loop over fixed charge calculations to target mu
+	}
+	else if(e.cntrl.scf)
 	{	SCF scf(e);
 		scf.minimize();
 	}

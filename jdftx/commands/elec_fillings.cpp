@@ -85,7 +85,7 @@ struct CommandTargetMu : public Command
 {
 	CommandTargetMu() : Command("target-mu", "jdftx/Electronic/Parameters")
 	{
-		format = "<mu>";
+		format = "<mu> [<outerLoop>=no]";
 		comments =
 			"Fixed chemical potential <mu> (instead of fixed charge).\n"
 			"Note that <mu> is absolute (relative to vacuum level) and in Hartrees.\n"
@@ -93,7 +93,16 @@ struct CommandTargetMu : public Command
 			"mu = -(Vref + V)/27.2114, where Vref is the absolute SHE potential\n"
 			"in Volts below vacuum; you could set Vref = 4.44 based on experiment\n"
 			"or use the value calibrated using potentials of zero charge with\n"
-			"the solvation model in use.";
+			"the solvation model in use.\n"
+			"\n"
+			"The default setting <outerLoop>=no directly performs variational minimization\n"
+			"or SCF in the grand canonical ensemble: keeping mu fixed throughout, letting\n"
+			"the number of electrons adjust continuously.\n"
+			"\n"
+			"Setting <outerLoop>=yes instead performs a sequence of conventional fixed-charge\n"
+			"optimizations, adjusting mu in an outer loop using the secant method.\n"
+			"This is usually much slower, and is only recommended if the default\n"
+			"direct grand canonical method fails.";
 
 		require("fluid-cation");
 		require("fluid-anion");
@@ -103,10 +112,11 @@ struct CommandTargetMu : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eInfo.mu, 0.0, "mu", true);
+		pl.get(e.eInfo.muLoop, false, boolMap, "outerLoop");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lg\n", e.eInfo.mu);
+	{	logPrintf("%lg %s\n", e.eInfo.mu, boolMap.getString(e.eInfo.muLoop));
 	}
 }
 commandTargetMu;
