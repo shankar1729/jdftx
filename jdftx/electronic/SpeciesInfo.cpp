@@ -84,12 +84,13 @@ void SpeciesInfo::Constraint::print(FILE* fp, const Everything& e) const
 	fprintf(fp, "  %s %.14lg %.14lg %.14lg", constraintTypeMap.getString(type), d[0], d[1], d[2]);
 }
 
-vector3<> SpeciesInfo::Constraint::operator()(const vector3<>& grad)
-{	vector3<> scaledGrad = moveScale * grad;
+//Apply constraints:
+vector3<> SpeciesInfo::Constraint::operator()(const vector3<>& grad) const
+{	if(not moveScale) return vector3<>(); //completely fixed
 	switch(type)
-	{	case Linear: return dot(scaledGrad, d)*d/ d.length_squared();
-		case Planar: return  scaledGrad - dot(scaledGrad, d)*d/d.length_squared();	
-		default: return scaledGrad;
+	{	case Linear: return dot(grad, d)*d/ d.length_squared();
+		case Planar: return  grad - dot(grad, d)*d/d.length_squared();	
+		default: return grad; //note: scale factor not applied here (applied by preconditioner)
 	}
 }
 

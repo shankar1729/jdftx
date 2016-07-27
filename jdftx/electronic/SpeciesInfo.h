@@ -59,7 +59,7 @@ public:
 		vector3<> d; //! The direction or plane normal of the constraint (in cartesian coordinates)
 		enum ConstraintType {None, Linear, Planar, HyperPlane} type; //! Type of the constraint that is being applied to the ion
 		
-		vector3<> operator()(const vector3<>& grad);
+		vector3<> operator()(const vector3<>& grad) const;
 		bool isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const;
 		int getDimension() const;
 		void print(FILE* fp, const Everything&) const;

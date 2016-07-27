@@ -253,23 +253,14 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 		
 		//Preconditioned gradient:
 		if(Kgrad)
-		{	Kgrad->init(e.iInfo);
-			for(unsigned sp=0; sp<grad->size(); sp++)
-			{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-				for(unsigned atom=0; atom<grad->at(sp).size(); atom++)
-					Kgrad->at(sp)[atom] = spInfo.constraints[atom](grad->at(sp)[atom]);  //Apply move constraints to the force gradient.
+		{	*Kgrad = *grad;
+			//Apply scale factors:
+			for(unsigned sp=0; sp<Kgrad->size(); sp++)
+			{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+				for(unsigned atom=0; atom<Kgrad->at(sp).size(); atom++)
+					Kgrad->at(sp)[atom] *= spInfo.constraints[atom].moveScale;
 			}
-			
-			// HyperPlane constraint:
-			IonicGradient D; D.init(e.iInfo); // initialize direction to zero
-			for(unsigned sp=0; sp<D.size(); sp++)
-			{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-				for(unsigned atom=0; atom<D[sp].size(); atom++)
-					if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
-						D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
-			}
-			double Dsq = dot(D,D);
-			if(Dsq > 1e-10) *Kgrad += D*(-dot(D,*Kgrad)/Dsq); //subtract the component along D
+			constrain(*Kgrad); //Apply constraints
 		}
 	}
 	
@@ -287,7 +278,34 @@ bool IonicMinimizer::report(int iter)
 }
 
 void IonicMinimizer::constrain(IonicGradient& x)
-{	e.symm.symmetrize(x); //minimization is constrained by symmetries on forces
+{	
+	#define SymmetrizeCartesian(x) \
+	{	x =  e.gInfo.RT * x; /* convert to contravariant lattice coordinates */ \
+		e.symm.symmetrize(x); /* symmetrize in contravariant lattice coordinates */ \
+		x =  e.gInfo.invRT * x; /* convert back to Cartesian coordinates */ \
+	}
+	SymmetrizeCartesian(x) //Symmetrize input
+	
+	//Per atom constraints:
+	for(unsigned sp=0; sp<x.size(); sp++)
+	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(unsigned atom=0; atom<x[sp].size(); atom++)
+			x[sp][atom] = spInfo.constraints[atom](x[sp][atom]);
+	}
+	
+	//HyperPlane (collective) constraint:
+	IonicGradient D; D.init(e.iInfo); // initialize direction to zero
+	for(unsigned sp=0; sp<D.size(); sp++)
+	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(unsigned atom=0; atom<D[sp].size(); atom++)
+			if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
+				D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
+	}
+	double Dsq = dot(D,D);
+	if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
+
+	SymmetrizeCartesian(x) //Symmetrize output
+	#undef SymmetrizeCartesian
 }
 
 double IonicMinimizer::safeStepSize(const IonicGradient& dir) const
