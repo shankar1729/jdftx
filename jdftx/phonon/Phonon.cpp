@@ -86,20 +86,34 @@ void Phonon::dump()
 	}
 	assert(nSymmetrizedCells == cellMap.size());
 	//--- enforce translational invariance:
-	matrix omegaSqSum;
-	for(const matrix& M: omegaSq)
-		omegaSqSum += M;
-	matrix Fmean; //3x3 force matrix for all atoms moving together at Gamma point (should be zero)
-	int nAtoms = modes.size()/3;
-	for(int at=0; at<nAtoms; at++)
-		Fmean += (1./(nAtoms*prodSup)) * omegaSqSum(3*at,3*(at+1), 3*at,3*(at+1)) * e.iInfo.species[modes[3*at].sp]->mass;
-	matrix omegaSqCorrection = zeroes(modes.size(), modes.size());
-	for(int at=0; at<nAtoms; at++)
-		omegaSqCorrection.set(3*at,3*(at+1), 3*at,3*(at+1), Fmean * (1./e.iInfo.species[modes[3*at].sp]->mass));
-	iter = cellMap.begin();
-	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	omegaSq[iCell] -= iter->second * omegaSqCorrection;
-		iter++;
+	{	//Collect masses by mode:
+		diagMatrix sqrtMmode, invsqrtMmode;
+		for(const Mode& mode: modes)
+		{	invsqrtMmode.push_back(invsqrtM[mode.sp]);
+			sqrtMmode.push_back(1./invsqrtM[mode.sp]);
+		}
+		//Collect Gamma-point force matrix:
+		matrix F0;
+		for(const matrix& mat: omegaSq)
+			F0 += sqrtMmode * mat * sqrtMmode;
+		//Project out each overall Cartesian displacement:
+		int nAtoms = modes.size()/3;
+		matrix proj(nAtoms, nAtoms); //set to ones(nAtoms)/nAtoms
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+			for(int jAtom=0; jAtom<nAtoms; jAtom++)
+				proj.set(iAtom, jAtom, 1./nAtoms);
+		matrix dF0 = zeroes(modes.size(), modes.size());
+		for(int iDir=0; iDir<3; iDir++)
+		{	matrix F0dir = F0(iDir,3,modes.size(), iDir,3,modes.size()); //Gamma forces for current direction
+			dF0.set(iDir,3,modes.size(), iDir,3,modes.size(), proj*F0dir*proj - proj*F0dir - F0dir*proj); //correction to F0
+		}
+		matrix domegaSq = invsqrtMmode * dF0 * invsqrtMmode; //correction to omegaSq (Gamma)
+		//Apply correction:
+		iter = cellMap.begin();
+		for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+		{	omegaSq[iCell] += (iter->second/prodSup) * domegaSq;
+			iter++;
+		}
 	}
 	//--- write to file
 	if(mpiUtil->isHead())
