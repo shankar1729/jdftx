@@ -393,7 +393,7 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 	for(const matrix3<int>& m: symLattice)
 	{	bool symmetric = true;
 		for(auto sp: e->iInfo.species) //For each species
-		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
+		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
 			{	if(string::npos == plook.find(offset + m*(sp->atpos[a1]-offset), M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and magentic moment
@@ -521,7 +521,7 @@ void Symmetries::checkSymmetries() const
 {	logPrintf("Checking manually specified symmetry matrices.\n");
 	for(const matrix3<int>& m: sym) //For each symmetry matrix
 		for(auto sp: e->iInfo.species) //For each species
-		{	PeriodicLookup< vector3<> > plook(sp->atpos, e->gInfo.RTR);
+		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
 			{	if(string::npos == plook.find(m * sp->atpos[a1], M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and spin
@@ -534,11 +534,13 @@ void Symmetries::initAtomMaps()
 {	const IonInfo& iInfo = e->iInfo;
 	if(shouldPrintMatrices) logPrintf("\nMapping of atoms according to symmetries:\n");
 	atomMap.resize(iInfo.species.size());
+	double datposSqSum = 0.; int nAtomsTot = 0; //counters for atom symmetrization statistics
 	
 	for(unsigned sp = 0; sp < iInfo.species.size(); sp++)
 	{	const SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		atomMap[sp].resize(spInfo.atpos.size());
-		PeriodicLookup< vector3<> > plook(spInfo.atpos, e->gInfo.RTR);
+		PeriodicLookup< vector3<> > plook(spInfo.atpos, (~e->gInfo.R) * e->gInfo.R);
+		std::vector<vector3<> > datpos(spInfo.atpos.size()); //Displacements to exactly symmetrize atpos
 		
 		for(size_t a1=0; a1<spInfo.atpos.size(); a1++)
 		{	if(shouldPrintMatrices) logPrintf("%s %3lu: ", spInfo.name.c_str(), a1);
@@ -553,9 +555,24 @@ void Symmetries::initAtomMaps()
 					"but have different move scale factors or inconsistent move constraints.\n\n",
 						spInfo.name.c_str(), a1, a2);
 				if(shouldPrintMatrices) logPrintf(" %3u", atomMap[sp][a1][iRot]);
+				
+				//Add contributions to symmetrization displacements:
+				vector3<> dat = sym[iRot] * spInfo.atpos[a1] - spInfo.atpos[a2];
+				for(int j=0; j<3; j++) dat[j] -= floor(0.5+dat[j]); //wrap to [-0.5,0.5)
+				datpos[a2] += (1./sym.size()) * dat;
 			}
 			if(shouldPrintMatrices) logPrintf("\n");
 		}
+		
+		//Symmetrize atoms:
+		for(size_t a=0; a<spInfo.atpos.size(); a++)
+		{	((IonInfo&)e->iInfo).species[sp]->atpos[a] += datpos[a];
+			datposSqSum += (e->gInfo.R * datpos[a]).length_squared();
+			nAtomsTot++;
+		}
 	}
+	
+	//Print atom symmetrization statistics:
+	logPrintf("Applied RMS atom displacement %lg bohrs to make symmetries exact.\n", sqrt(datposSqSum/nAtomsTot));
 	logFlush();
 }
