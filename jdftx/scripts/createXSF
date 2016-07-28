@@ -63,7 +63,7 @@ fi
 awk "
 	#Header mode
 	BEGIN { mode=1; nAtoms=0; nSteps=0; Sprinted=0; }
-	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" ? 0 : 1); }
+	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" || \$2==\"Lattice\" ? 0 : 1); }
 	mode==1 && \$1==\"forces-output-coords\" { forceCoords = (\$2==\"Positions\" ? 0 : (\$2==\"Lattice\" ? 1 : (\$2==\"Cartesian\" ? 2 : 3))); }
 	mode==1 && \$1==\"dump-name\" { print \$2  > \"$tmpDir/dumpName\" }
 	mode==1 && ( \$1==\"ion\" || \$1==\"ion-vel\" ) { print \$2 > \"$tmpDir/ionNames\"; print \$3, \$4, \$5 > \"$tmpDir/ionpos.0\"; nAtoms++; }
