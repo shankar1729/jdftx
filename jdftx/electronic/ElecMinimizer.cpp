@@ -387,16 +387,9 @@ void elecFluidMinimize(Everything &e)
 			eVars.HauxInitialized = true;
 		}
 		else //constant mu mode
-			die("Constant chemical potential auxilliary hamiltonian fillings requires the\n"
-				"auxilliary hamiltonian to be read in using Haux-initial (or initial-state)\n");
-	}
-	
-	//Prevent change in mu from abruptly changing electron count:
-	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !std::isnan(eInfo.mu))
-	{	double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
-		logPrintf("Shifting auxilliary hamiltonian by %lf to set nElectrons=%lf\n", eInfo.mu-mu, eInfo.nElectrons);
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
+			die("Constant chemical potential auxilliary hamiltonian fillings requires the band\n"
+				"eigenvalues to either be read in using one of the two commands initial-state\n"
+				"or elec-initial-eigenvals, or be automatically initialized during LCAO.");
 	}
 	
 	double Evac0 = NAN;
@@ -413,6 +406,14 @@ void elecFluidMinimize(Everything &e)
 		logPrintf("Vacuum energy after initial minimize, %s = %+.15f\n\n", relevantFreeEnergyName(e), Evac0);
 		eVars.fluidParams.fluidType = origType; //restore fluid flag
 		eInfo.mu = muOrig; //restore mu target (if any)
+	}
+	
+	//Prevent change in mu from abruptly changing electron count:
+	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !std::isnan(eInfo.mu))
+	{	double Bz, mu = eInfo.findMu(eVars.Haux_eigs, eInfo.nElectrons, Bz);
+		logPrintf("Shifting auxilliary hamiltonian by %lf to set nElectrons=%lf\n", eInfo.mu-mu, eInfo.nElectrons);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	eVars.elecEnergyAndGrad(ener);
 	
