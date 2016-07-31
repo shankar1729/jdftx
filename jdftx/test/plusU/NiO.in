@@ -10,7 +10,7 @@ ion O  0.5 0.5 0.75  0
 ion-species GBRV/$ID_pbe_v1.2.uspp
 ion-species GBRV/$ID_pbe_v1.uspp
 elec-cutoff 20 100
-elec-fermi-fillings 0 0.01
+elec-smearing Fermi 0.01
 electronic-SCF
 
 spintype z-spin

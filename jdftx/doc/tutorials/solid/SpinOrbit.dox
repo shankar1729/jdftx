@@ -47,7 +47,7 @@ exactly as in in the \ref Metals tutorial, but with the new pseudopotential:
     dump End ElecDensity
     dump-name totalE.$VAR
     kpoint-folding 12 12 12
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
 
     #Save the following to bandstruct.in
@@ -84,7 +84,7 @@ similarly make three input files, with the important differences annotated:
     dump End ElecDensity
     dump-name totalE-rel.$VAR
     kpoint-folding 12 12 12
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
 
     #Save the following to bandstruct-rel.in

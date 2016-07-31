@@ -41,7 +41,7 @@ We can setup a unit cell with the experimental geometry as:
     elec-cutoff 20 100
     kpoint-folding 12 12 4
     
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
     lattice-minimize nIterations 10
     dump End Lattice

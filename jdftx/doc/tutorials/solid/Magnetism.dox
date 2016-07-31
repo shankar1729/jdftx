@@ -21,7 +21,7 @@ Not surprisingly, we can set up an iron calculation using:
 	dump End ElecDensity
 	density-of-states Total
     kpoint-folding 12 12 12
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
     
     spintype z-spin                  #Allow up/dn spins (non-relativistic)

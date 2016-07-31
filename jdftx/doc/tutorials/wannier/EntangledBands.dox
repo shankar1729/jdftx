@@ -34,7 +34,7 @@ supported for ultrasoft pseudopotentials in the next tutorial
     include common.in
     kpoint-folding 12 12 12
     elec-n-bands 16
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
     converge-empty-states yes
     dump-name totalE.$VAR

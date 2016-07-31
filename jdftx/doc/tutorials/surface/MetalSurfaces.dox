@@ -74,7 +74,7 @@ First we combine most of the setup in a common input file:
     coulomb-truncation-embed 0 0 0
     
     kpoint-folding 12 12 1
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     electronic-SCF
     #ionic-minimize nIterations 10  #Uncomment to enable geometry optimization
 

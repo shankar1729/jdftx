@@ -42,7 +42,7 @@ We can collect most of the commands including fluid into the common setup file:
     coulomb-truncation-embed 0 0 0
     
     kpoint-folding 12 12 1
-    elec-fermi-fillings 0 0.01
+    elec-smearing Fermi 0.01
     
     fluid LinearPCM
     pcm-variant CANDLE

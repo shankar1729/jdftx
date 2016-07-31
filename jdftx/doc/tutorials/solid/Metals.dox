@@ -28,16 +28,16 @@ and
     dump End ElecDensity State
     dump-name totalE.$VAR
     kpoint-folding 12 12 12     #Metals need more k-points
-    elec-fermi-fillings 0 0.01  #Set fillings using Fermi function at T = 0.01 Hartrees
+    elec-smearing Fermi 0.01  #Set fillings using Fermi function at T = 0.01 Hartrees
     electronic-SCF
 
-The only new command is \ref CommandElecFermiFillings which specifies that the fillings
+The only new command is \ref CommandElecSmearing which specifies that the fillings
 must be set using a Fermi function based on the current Kohn-Sham eigenvalues,
 rather than determined once at startup (the default we implicitly used so far).
-The first parameter of this command specifies how often the fillings should be updated:
-0 implies update continuously (every minimize iteration or %SCF cycle).
-The second parameter is the temperature that determines the width in energy 
-over which the Fermi function goes from one to zero (occupied to unoccupied).
+The first parameter of this command specifies the functional form for the occupations,
+in this case selecting a Fermi function (see \ref CommandElecSmearing for other options).
+The second parameter determines the width in energy over which
+the Fermi function goes from one to zero (occupied to unoccupied).
 
 Metals are much more sensitive to k-point sampling, because for some bands,
 a part of the Brillouin zone is filled and the remiander is empty,
