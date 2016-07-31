@@ -118,7 +118,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 			
 			//Check fillings:
 			const double fMin = 0.;
-			const double fMax = 1.083315; //maximum allowed for Cold smearing
+			const double fMax = 1.0833154705877; //maximum allowed for Cold smearing
 			for(int b=0; b<nBandsOld; b++)
 			{	if(F[q][b]<fMin) die("Filling of state %d band %d is negative.\n", q, b);
 				if(F[q][b]>fMax) die("Filling of state %d band %d exceeds maximum.\n", q, b);
