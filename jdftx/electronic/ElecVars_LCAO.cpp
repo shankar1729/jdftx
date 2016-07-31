@@ -135,6 +135,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 				if(Kgrad) Kgrad->Haux[q] = rotPrev[q] * Kgrad->Haux[q] * dagger(rotPrev[q]);
 			}
 		}
+		if(!std::isnan(e.eInfo.mu)) ener.E["minusMuN"] = -e.eInfo.mu*e.eInfo.nElectrons; //Fix energy printout for fixed-mu calculation
 		return ener.F();
 	}
 
@@ -257,7 +258,7 @@ int ElecVars::LCAO()
 		mp.nDim = eInfo.nStates * lcao.nBands*lcao.nBands;
 		mp.fpLog = globalLog;
 		mp.linePrefix = "LCAOMinimize: ";
-		mp.energyLabel = "F";
+		mp.energyLabel = relevantFreeEnergyName(*e);
 		mp.energyFormat = "%+.16f";
 		mp.energyDiffThreshold = lcaoTol;
 		mp.nIterations = (lcaoIter>=0) ? lcaoIter : ( eInfo.fillingsUpdate==ElecInfo::FillingsHsub ? 30 : 3 );
