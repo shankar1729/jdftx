@@ -400,12 +400,14 @@ void elecFluidMinimize(Everything &e)
 		eVars.fluidParams.fluidType = FluidNone; //temporarily disable the fluid
 		double muOrig = eInfo.mu;
 		eInfo.mu = NAN; //temporarily disable fixed mu (if present)
+		if(!std::isnan(muOrig)) e.ener.E["minusMuN"] = -muOrig*e.eInfo.nElectrons; //but add constant to make G printout correct
 		logPrintf("\n-------- Initial electronic minimization -----------\n"); logFlush();
 		elecMinimize(e); //minimize without fluid
 		Evac0 = relevantFreeEnergy(e);
 		logPrintf("Vacuum energy after initial minimize, %s = %+.15f\n\n", relevantFreeEnergyName(e), Evac0);
 		eVars.fluidParams.fluidType = origType; //restore fluid flag
 		eInfo.mu = muOrig; //restore mu target (if any)
+		e.ener.E["minusMuN"] = 0.; //remove fixed-mu energy correction (if any)
 	}
 	
 	//Prevent change in mu from abruptly changing electron count:
