@@ -4,7 +4,20 @@
 
 + Added Gaussian and Cold smearing options in addition to the original Fermi fillings,
   and deprecated the old elec-fermi-fillings command in favor of elec-smearing.
-  
+
++ Added outer loop over fixed charge calculations (using secant method to optimize
+  nElectrons) as an alternate fall-back method for fixed-potential calculations.
+
++ Stabilized initialization of fixed-potential calculations using
+  LCAO followed by an automatic initial vacuum calculation
+
++ Switched to density mixing as the default for SCF.
+
++ Improved stability of new Y-less minimizer against large steps by remembering
+  subspace rotations for the duration of one line minimize.
+
++ Fixed a bug in ionic minimize search-direction symmetrization introduced in 1.2.0
+
 + Added a mechanism to gracefully deprecate commands: a placeholder for the old
   command issues a deprecation warning and replaces itself with the new syntax,
   so that the output file shows the new syntax and all other command code
