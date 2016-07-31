@@ -272,5 +272,6 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	if(eSup->eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 	{	eSup->eInfo.updateFillingsEnergies(eSup->eVars.Haux_eigs, eSup->ener);
 		eSup->eVars.HauxInitialized = true;
+		eSup->eVars.Hsub_eigs = eSup->eVars.Haux_eigs;
 	}
 }
