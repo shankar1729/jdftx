@@ -261,7 +261,7 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energi
 	mpiUtil->allReduce(ener.TS, MPIUtil::ReduceSum);
 
 	//Grand canonical multiplier if fixed mu:
-	if(!std::isnan(mu)) ener.muN = mu * nElectrons;
+	if(!std::isnan(this->mu)) ener.muN = this->mu * nElectrons;
 }
 
 //-------------------- Fermi function utilities --------------------------
