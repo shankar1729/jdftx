@@ -54,7 +54,7 @@ struct Supercell
 	matrix3<int> super; //!< linear combinations to get Rsuper (Rsuper = R * super)
 	
 	//! Transformation from reduced k-point mesh to full one. The resulting k-point
-	//! in the full mesh is (~sym[iSym]) * kmeshReduced[iReduced] + offset
+	//! in the full mesh is (~sym[iSym]) * kmeshReduced[iReduced] * invert + offset
 	struct KmeshTransform
 	{	unsigned iReduced; //!< corresponding reduced index
 		unsigned iSym; //!< symmetry matrix for transforming reduced to current value

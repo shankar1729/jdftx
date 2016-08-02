@@ -342,7 +342,7 @@ void Phonon::setup(bool printDefaults)
 					ColumnBundleTransform(qnums[ik].k, basis[ik], qnums[ikRot[ik]].k, *(basisWrapper[ikRot[ik]]),
 						nSpinor, symUnit, +1).scatterAxpy(1., C[ik], Crot,0,1);
 					matrix Urot = Crot ^ O(C[ikRot[ik]]); //will be unitary if Crot is a strict unitary rotation of C[ikRot[ik]]
-					//Check maximal subspace that is unitary: (remiander must be incomplete degenerate subspace)
+					//Check maximal subspace that is unitary: (remainder must be incomplete degenerate subspace)
 					int nBandsValid = nBands;
 					while(nBandsValid && !isUnitary(Urot(0,nBandsValid, 0,nBandsValid)))
 						nBandsValid--;

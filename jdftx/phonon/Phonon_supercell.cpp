@@ -87,6 +87,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 			sme.iReduced += iSpin*(e.eInfo.nStates/nSpins); //point to source k-point with appropriate spin
 			sme.qSup = qSup;
 			sme.nqPrev = nqPrev[qSup];
+			sme.k = supercell.kmesh[ik];
 			nqPrev[qSup]++;
 			stateMap.push_back(sme);
 		}
@@ -180,7 +181,22 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		
 		//Accumulate Hsub contributions:
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
-		{	matrix contrib = stateRot[iSpin][iSym].transform(dHsub_pert[iSpin]);
+		{	//Fetch Hsub with rotations:
+			matrix contrib = stateRot[iSpin][iSym].transform(dHsub_pert[iSpin]);
+			//Collect k-vectors in order of the blocks of Hsub:
+			int qSup = iSpin*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+			std::vector< vector3<> > k; k.reserve(prodSup);
+			for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+				k.push_back(sme.k);
+			assert(int(k.size()) == prodSup);
+			//Apply phase factors due to translations:
+			int nBands = e.eInfo.nBands;
+			for(unsigned ik1=0; ik1<k.size(); ik1++)
+				for(unsigned ik2=0; ik2<k.size(); ik2++)
+					contrib.set(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands,
+						contrib(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands)
+							* cis(-2*M_PI*dot(cellOffset, k[ik1]-k[ik2])));
 			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
 				dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
 		}

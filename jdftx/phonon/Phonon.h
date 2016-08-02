@@ -95,6 +95,7 @@ private:
 	struct StateMapEntry : public Supercell::KmeshTransform //contain source k-point rotation here
 	{	int qSup; //state index for supercell
 		int nqPrev; //number of previous unit cell k-points that point to this supercell
+		vector3<> k; //unit cell k-vector
 		std::shared_ptr<class ColumnBundleTransform> transform; //wavefunction map
 	};
 	std::vector<StateMapEntry> stateMap; //map from unit cell k-points to supercell k-points
