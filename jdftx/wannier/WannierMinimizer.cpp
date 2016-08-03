@@ -309,9 +309,10 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			}
 			//Handle atomic orbitals that are actually atom-centered:
 			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
+			complex lPhase =  cis(0.5*M_PI*od.l); //including this phase ensures odd l projectors are real (i^l term in spherical wave expansion)
 			if(ao.atom >= 0)
 			{	int iCol = e.iInfo.species[ao.sp]->atomicOrbitalOffset(ao.atom, od.n, od.l, od.m, od.s);
-				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
+				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
 				continue;
 			}
 			//--- Copy the center to GPU if necessary:
@@ -336,7 +337,7 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref()+od.s*basis.nbasis);
 			if(ao.sp < 0) hRadial.free();
 			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff * cis(0.5*M_PI*od.l)/e.gInfo.detR, temp.dataPref(),1, retData,1);  //phase ensures odd l projectors are real
+			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
 		}
 		retData += ret.colLength();
 	}
