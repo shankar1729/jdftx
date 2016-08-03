@@ -211,7 +211,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	if(Hsub)
 	{	int nBands = e.eInfo.nBands;
 		int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
-		if(Hsub) Hsub->resize(nSpins);
+		Hsub->resize(nSpins);
 		for(int s=0; s<nSpins; s++)
 		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
 			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
@@ -241,14 +241,14 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 						//Compute overlaps:
 						int start2 = nBands * sme2.nqPrev;
 						int stop2 = nBands * (sme2.nqPrev+1);
-						if(Hsub) (*Hsub)[s].set(start,stop, start2,stop2, HC^C2);
+						matrix Hsub12 = HC^C2; //subspace Hamiltonian in the complex-conjugate convention of reduced C2
+						if(sme2.invert<0) Hsub12 = conj(Hsub12); //switch conjugate convention back to that of supercell
+						(*Hsub)[s].set(start,stop, start2,stop2, Hsub12);
 					}
 				}
 			}
-			else
-			{	if(Hsub) (*Hsub)[s].init(nBandsSup, nBandsSup);
-			}
-			if(Hsub) (*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
+			else (*Hsub)[s].init(nBandsSup, nBandsSup);
+			(*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
 		}
 	}
 	
