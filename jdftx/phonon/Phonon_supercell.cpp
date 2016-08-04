@@ -131,6 +131,17 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
 	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
 	
+	//Translational invariance correction (zero mean force):
+	vector3<> fMean;
+	for(const std::vector<vector3<>>& fArr: dgrad_pert)
+		for(const vector3<>& f: fArr)
+			fMean += f;
+	fMean /= nAtomsTot;
+	for(std::vector<vector3<>>& fArr: dgrad_pert)
+		for(vector3<>& f: fArr)
+			f -= fMean;
+	logPrintf("Applied RMS translational invariance (net force) correction: %lg\n", sqrt(fMean.length_squared()/3.));
+	
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	setSupState(&Hsub);

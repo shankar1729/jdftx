@@ -28,7 +28,7 @@ void Phonon::dump()
 	
 	//Accumulate contributions to force matrix and electron-phonon matrix elements for each irreducible perturbation:
 	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
-	{	logPrintf("########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
+	{	logPrintf("\n########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
 		processPerturbation(perturbations[iPert]);
 	}
 	
@@ -68,7 +68,8 @@ void Phonon::dump()
 		}
 	}
 	//--- enforce hermiticity:
-	size_t nSymmetrizedCells = 0;
+	size_t nSymmetrizedCellsTot = 0;
+	double hermErrNum = 0., hermErrDen = 0.;
 	auto iter1 = cellMap.begin();
 	for(size_t iCell1=0; iCell1<cellMap.size(); iCell1++)
 	{	auto iter2 = cellMap.begin();
@@ -76,15 +77,20 @@ void Phonon::dump()
 		{	vector3<int> iRsum = iter1->first + iter2->first;
 			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
 			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
+				matrix Merr = 0.5*(omegaSq[iCell1] - dagger(omegaSq[iCell2]));
 				omegaSq[iCell1] = M;
 				omegaSq[iCell2] = dagger(M);
-				nSymmetrizedCells += (iCell1==iCell2 ? 1 : 2);
+				int nSymmetrizedCells = (iCell1==iCell2 ? 1 : 2);
+				nSymmetrizedCellsTot += nSymmetrizedCells;
+				hermErrNum += nSymmetrizedCells * std::pow(nrm2(Merr), 2);
+				hermErrDen += nSymmetrizedCells * std::pow(nrm2(M), 2);
 			}
 			iter2++;
 		}
 		iter1++;
 	}
-	assert(nSymmetrizedCells == cellMap.size());
+	assert(nSymmetrizedCellsTot == cellMap.size());
+	logPrintf("\nCorrected force-matrix hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
 	//--- enforce translational invariance:
 	{	//Collect masses by mode:
 		diagMatrix sqrtMmode, invsqrtMmode;
@@ -104,16 +110,20 @@ void Phonon::dump()
 				proj.set(iAtom, jAtom, 1./nAtoms);
 		matrix dF0 = zeroes(modes.size(), modes.size());
 		for(int iDir=0; iDir<3; iDir++)
-		{	matrix F0dir = F0(iDir,3,modes.size(), iDir,3,modes.size()); //Gamma forces for current direction
-			dF0.set(iDir,3,modes.size(), iDir,3,modes.size(), proj*F0dir*proj - proj*F0dir - F0dir*proj); //correction to F0
-		}
-		matrix domegaSq = invsqrtMmode * dF0 * invsqrtMmode; //correction to omegaSq (Gamma)
+			for(int jDir=0; jDir<3; jDir++)
+			{	matrix F0sub = F0(iDir,3,modes.size(), jDir,3,modes.size()); //Gamma forces for current direction pair
+				matrix dF0sub = proj*F0sub*proj - proj*F0sub - F0sub*proj; //correct net force, while preserving hermiticity
+				dF0.set(iDir,3,modes.size(), jDir,3,modes.size(), dF0sub);
+			}
+		matrix domegaSqMean = (1./prodSup) * (invsqrtMmode * dF0 * invsqrtMmode); //correction to mean omegaSq
 		//Apply correction:
 		iter = cellMap.begin();
 		for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-		{	omegaSq[iCell] += (iter->second/prodSup) * domegaSq;
+		{	omegaSq[iCell] += iter->second * domegaSqMean;
 			iter++;
 		}
+		double nrm2omegaSqMean = hermErrDen / sqrt(cellMap.size());
+		logPrintf("Corrected force-matrix translational invariance relative error: %lg\n\n", nrm2(domegaSqMean)/nrm2omegaSqMean);
 	}
 	//--- write to file
 	if(mpiUtil->isHead())
