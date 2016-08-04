@@ -200,9 +200,11 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 		string params = line.substr(cmd.length());
 		if(cmd=="set") //Handle set (to environment variable):
 		{	//Extract variable name and value from params:
-			istringstream iss(params);
-			string varName, varValue;
-			iss >> varName >> varValue;
+			trim(params);
+			string varName = params.substr(0, params.find_first_of(" \t\n\r"));
+			string varValue = params.substr(varName.length());
+			trim(varName);
+			trim(varValue);
 			//Set to environment
 			setenv(varName.c_str(), varValue.c_str(), 1);
 		}
