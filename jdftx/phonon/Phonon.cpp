@@ -28,8 +28,9 @@ void Phonon::dump()
 	
 	//Accumulate contributions to force matrix and electron-phonon matrix elements for each irreducible perturbation:
 	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
-	{	logPrintf("\n########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
+	{	logPrintf("########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
 		processPerturbation(perturbations[iPert]);
+		logPrintf("\n"); logFlush();
 	}
 	
 	//Construct frequency-squared matrix:
@@ -90,7 +91,7 @@ void Phonon::dump()
 		iter1++;
 	}
 	assert(nSymmetrizedCellsTot == cellMap.size());
-	logPrintf("\nCorrected force-matrix hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
+	logPrintf("Corrected force-matrix hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
 	//--- enforce translational invariance:
 	{	//Collect masses by mode:
 		diagMatrix sqrtMmode, invsqrtMmode;
@@ -123,7 +124,7 @@ void Phonon::dump()
 			iter++;
 		}
 		double nrm2omegaSqMean = hermErrDen / sqrt(cellMap.size());
-		logPrintf("Corrected force-matrix translational invariance relative error: %lg\n\n", nrm2(domegaSqMean)/nrm2omegaSqMean);
+		logPrintf("Corrected force-matrix translational invariance relative error: %lg\n", nrm2(domegaSqMean)/nrm2omegaSqMean);
 	}
 	//--- write to file
 	if(mpiUtil->isHead())

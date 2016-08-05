@@ -140,7 +140,8 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	for(std::vector<vector3<>>& fArr: dgrad_pert)
 		for(vector3<>& f: fArr)
 			f -= fMean;
-	logPrintf("Applied RMS translational invariance (net force) correction: %lg\n", sqrt(fMean.length_squared()/3.));
+	logPrintf("Applied translational invariance (net force) relative correction: %lg\n",
+		sqrt(fMean.length_squared()*nAtomsTot/dot(dgrad_pert,dgrad_pert)));
 	
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
