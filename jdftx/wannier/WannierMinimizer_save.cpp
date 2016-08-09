@@ -537,41 +537,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 	}
 	
-	//Electron-phonon linewidths:
-	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ePh", &iSpin);
-		intptr_t fsize = fileSize(fname.c_str());
-		if(fsize >= 0)
-		{	//Read from file:
-			int nBandsIn = fsize / (sizeof(double) * e.eInfo.nStates);
-			if(intptr_t(nBandsIn * e.eInfo.nStates * sizeof(double)) != fsize)
-				die("Length of file '%s' = %" PRIdPTR " is not a multiple of nStates = %d doubles.\n", fname.c_str(), fsize, e.eInfo.nStates);
-			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
-			std::vector<diagMatrix> ImSigma_ePh;
-			e.eInfo.read(ImSigma_ePh, fname.c_str(), nBandsIn);
-			logPrintf("done.\n"); logFlush();
-			//Fill in extra bands if necessary:
-			if(nBandsIn < nBands)
-				for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-					for(int b=nBandsIn; b<nBands; b++)
-						ImSigma_ePh[q].push_back(ImSigma_ePh[q].back());
-			//Convert to log for better interpolation:
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				for(double& IS: ImSigma_ePh[q])
-					IS = log(IS);
-			//Wannierize:
-			matrix ImSigma_ePhWannierTilde = zeroes(nCenters*nCenters, nqMine);
-			int iqMine = 0;
-			for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-			{	matrix ImSigma_ePhSub = dagger(kMesh[i].U) * ImSigma_ePh[kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
-				callPref(eblas_copy)(ImSigma_ePhWannierTilde.dataPref()+ImSigma_ePhWannierTilde.index(0,iqMine), ImSigma_ePhSub.dataPref(), ImSigma_ePhSub.nData());
-				iqMine++;
-			}
-			matrix ImSigma_ePhWannier = ImSigma_ePhWannierTilde * phase;
-			ImSigma_ePhWannier.allReduce(MPIUtil::ReduceSum);
-			dumpMatrix(ImSigma_ePhWannier, "mlwfImSigma_ePh", realPartOnly, iSpin);
-		}
-	}
-	
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
 	{	//--- generate list of commensurate k-points in order present in the unit cell calculation
