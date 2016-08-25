@@ -55,9 +55,6 @@ void Phonon::setup(bool printDefaults)
 	//Ensure phonon command specified:
 	if(!sup.length())
 		die("phonon supercell must be specified using the phonon command.\n");
-	if(!e.gInfo.S.length_squared())
-		die("Manual fftbox setting required for phonon. If supercell grid\n"
-			"initialization fails, specify slightly larger manual fftbox.\n");
 	//Check kpoint and supercell compatibility:
 	if(e.eInfo.qnums.size()>1 || e.eInfo.qnums[0].k.length_squared())
 		die("phonon requires a Gamma-centered uniform kpoint mesh.\n");

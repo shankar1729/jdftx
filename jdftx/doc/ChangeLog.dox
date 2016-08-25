@@ -1,5 +1,19 @@
 /** \page ChangeLog Change log
 
+## Unreleased ##
+
++ Adjusted automatic FFT grid selection to be supercell-consistent
+  i.e. minimum grid dimensions of unit cell, when multiplied by supercell count,
+  will satisfy minimum grid dimensions for corresponding supercell at same plane-wave cutoff.
+  IMPORTANT: default FFT boxes will change in some cases relative to 1.2.1 and earlier.
+  This will only alter real-space grid outputs; wavefunctions remain unchanged.
+
++ Fixed phase of odd-l trial orbitals in Wannier (these were previously pure-imaginary instead of real)
+
++ Fixed numerous bugs in phonon code for cases with more than one atom per unit cell,
+  eg. when symmetries of phonon supercell mapped atoms to ones in other unit cells,
+  complex conjugate handling of non-inversion-symmetric cells etc.
+
 ## 1.2.1 - 2016-07-30 ([Site archive](http://jdftx.org/1.2.1))
 
 + Added Gaussian and Cold smearing options in addition to the original Fermi fillings,

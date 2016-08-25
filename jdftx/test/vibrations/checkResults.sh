@@ -12,7 +12,7 @@ $1=="ion" && $2=="H" {
 		dy = $4-y;
 		dz = $5-z;
 		r = 0.5291772 * sqrt(dx*dx + dy*dy + dz*dz);
-		print r, "0.7589 0.010 H2 bond length [A]"
+		print r, "0.7588 0.010 H2 bond length [A]"
 	}
 }
 ' H2.ionpos

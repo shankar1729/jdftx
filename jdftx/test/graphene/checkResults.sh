@@ -2,7 +2,7 @@
 
 echo "4"  #number of checks
 
-awk '/IonicMinimize: Iter/ { E = $5 } END { print E, "-11.42189 0.0001 Graphene energy [Eh]" }' totalE.out
+awk '/IonicMinimize: Iter/ { E = $5 } END { print E, "-11.42190 0.0001 Graphene energy [Eh]" }' totalE.out
 awk '/FillingsUpdate/ { mu = $3 } END { print mu, "-0.15056 0.0001 Graphene mu [Eh]" }' totalE.out
 
 which octave > /dev/null

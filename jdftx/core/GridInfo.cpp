@@ -214,7 +214,7 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	{	//The integer coefficient of the nyquist component (half S) in each direction
 		//when multiplied by the spacing between the reciprocal lattice plane spacings
 		//must just exceed twice Gmax for the density sphere to be inscribed:
-		for(int k=0; k<3; k++) Smin[k] = std::max(1, 4*int(std::max(Gmax,0.5*GmaxRho) * R.column(k).length() / (2*M_PI)));
+		for(int k=0; k<3; k++) Smin[k] = std::max(1, 4*int(ceil(std::max(Gmax,0.5*GmaxRho) * R.column(k).length() / (2*M_PI))));
 		logPrintf("Minimum fftbox size, Smin = "); Smin.print(globalLog, " %d ");
 	}
 	if(autoS) //pick minimal FFT-suitable size
