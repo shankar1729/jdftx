@@ -262,10 +262,15 @@ The following commands may be used to invoke cmake:
         -D EnableProfiling=yes \
         -D EnableMKL=yes \
         -D ForceFFTW=yes \
+        -D ThreadedBLAS=no \
         -D GSL_PATH=${GSL_DIR} \
         -D FFTW3_PATH=${FFTW_DIR} \
         -D CMAKE_INCLUDE_PATH=${FFTW_INC} \
         ../jdftx
     make -j12
 
+The optional ThreadedBLAS=no line above uses single-threaded MKL with threads
+managed by JDFTx instead. This slightly reduces performance (around 5%)
+compared to using MKL threads, but MKL threads frequently lead to
+a crash when trying to create pthreads elsewhere in JDFTx on NERSC.
 */
