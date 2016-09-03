@@ -57,6 +57,9 @@ void resumeOperatorThreading()
 	#if defined(MKL_PROVIDES_BLAS) || defined(MKL_PROVIDES_FFT)
 	mkl_set_num_threads(nProcsAvailable);
 	mkl_disable_fast_mm();
+	#ifndef THREADED_BLAS
+	mkl_domain_set_num_threads(1, MKL_DOMAIN_BLAS); //Force single-threaded BLAS
+	#endif
 	#endif
 }
 

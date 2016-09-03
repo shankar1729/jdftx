@@ -63,7 +63,7 @@ void eblas_zgemm(
 	const complex& alpha, const complex *A, const int lda, const complex *B, const int ldb,
 	const complex& beta, complex *C, const int ldc)
 {
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_zgemm(CblasColMajor, TransA, TransB, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 	#else
 	threadLaunch(eblas_zgemm_sub, std::max(M,N), //parallelize along larger dimension of output
@@ -159,7 +159,7 @@ void eblas_zscal_sub(size_t iStart, size_t iStop, const complex* a, complex* x, 
 }
 void eblas_zscal(int N, const complex& a, complex* x, int incx)
 {
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_zscal(N, &a, x, incx);
 	#else
 	threadLaunch((N<100000) ? 1 : 0, 
@@ -171,7 +171,7 @@ void eblas_zdscal_sub(size_t iStart, size_t iStop, double a, complex* x, int inc
 }
 void eblas_zdscal(int N, double a, complex* x, int incx)
 {	
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_zdscal(N, a, x, incx);
 	#else
 	threadLaunch((N<100000) ? 1 : 0, 
@@ -183,7 +183,7 @@ void eblas_dscal_sub(size_t iStart, size_t iStop, double a, double* x, int incx)
 }
 void eblas_dscal(int N, double a, double* x, int incx)
 {
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_dscal(N, a, x, incx);
 	#else
 	threadLaunch((N<100000) ? 1 : 0,
@@ -197,7 +197,7 @@ void eblas_zaxpy_sub(size_t iStart, size_t iStop, const complex* a, const comple
 }
 void eblas_zaxpy(int N, const complex& a, const complex* x, int incx, complex* y, int incy)
 {	
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_zaxpy(N, &a, x, incx, y, incy);
 	#else
 	threadLaunch((N<100000) ? 1 : 0,
@@ -209,7 +209,7 @@ void eblas_daxpy_sub(size_t iStart, size_t iStop, double a, const double* x, int
 }
 void eblas_daxpy(int N, double a, const double* x, int incx, double* y, int incy)
 {	
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_daxpy(N, a, x, incx, y, incy);
 	#else
 	threadLaunch((N<100000) ? 1 : 0,
@@ -230,7 +230,7 @@ void eblas_zdotc_sub(size_t iStart, size_t iStop, const complex* x, int incx, co
 }
 complex eblas_zdotc(int N, const complex* x, int incx, const complex* y, int incy)
 {	complex ret = 0.;
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	cblas_zdotc_sub(N, x, incx, y, incy, &ret);
 	#else
 	std::mutex lock;
@@ -251,7 +251,7 @@ void eblas_ddot_sub(size_t iStart, size_t iStop, const double* x, int incx, cons
 }
 double eblas_ddot(int N, const double* x, int incx, const double* y, int incy)
 {	
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	return cblas_ddot(N, x, incx, y, incy);
 	#else
 	double ret = 0.;
@@ -272,7 +272,7 @@ void eblas_dznrm2_sub(size_t iStart, size_t iStop, const complex* x, int incx, d
 }
 double eblas_dznrm2(int N, const complex* x, int incx)
 {	
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	return cblas_dznrm2(N, x, incx);
 	#else
 	double ret = 0.;
@@ -292,7 +292,7 @@ void eblas_dnrm2_sub(size_t iStart, size_t iStop, const double* x, int incx, dou
 }
 double eblas_dnrm2(int N, const double* x, int incx)
 {
-	#ifdef MKL_PROVIDES_BLAS
+	#ifdef THREADED_BLAS
 	return cblas_dnrm2(N, x, incx);
 	#else
 	double ret = 0.;
