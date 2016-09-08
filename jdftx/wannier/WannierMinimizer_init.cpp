@@ -139,6 +139,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		}
 		//--- Count phonon modes:
 		nPhononModes = 0;
+		invsqrtM.clear();
 		string fname = wannier.getFilename(Wannier::FilenameInit, "phononBasis");
 		if(mpiUtil->isHead())
 		{	std::ifstream ifs(fname.c_str());
@@ -150,11 +151,16 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 					istringstream iss(line);
 					string spName; int atom; vector3<> disp;
 					iss >> spName >> atom >> disp[0] >> disp[1] >> disp[2];
-					if(!iss.fail()) nPhononModes++;
+					if(!iss.fail())
+					{	nPhononModes++;
+						invsqrtM.push_back(disp.length());
+					}
 				}
 			}
 		}
 		mpiUtil->bcast(nPhononModes);
+		invsqrtM.resize(nPhononModes);
+		invsqrtM.bcast();
 		if(!nPhononModes) die("Error reading phonon modes from '%s'\n", fname.c_str());
 		logPrintf("Found %d phonon modes in '%s'\n", nPhononModes, fname.c_str());
 	}

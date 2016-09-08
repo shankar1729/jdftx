@@ -114,6 +114,7 @@ protected:
 	QuantumNumber qnumSuper;
 	std::map<vector3<int>,double> iCellMap, phononCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
 	int nPhononModes; //number of phonon modes
+	diagMatrix invsqrtM; //1/sqrt(M) per nuclear displacement mode
 	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)

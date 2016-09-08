@@ -585,19 +585,58 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		size_t matSizeIn = nBands*nBands * sizeof(complex);
 		size_t modeStrideIn = kpointPairs.size() * matSizeIn; //input data size per phonon mode
 		mpiUtil->fopenRead(fpIn, fnameIn.c_str(), nPhononModes * modeStrideIn);
-		matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
+		std::vector<std::vector<matrix>> phononHsub(nPhononModes, std::vector<matrix>(kpointPairs.size()));
 		for(int iMode=0; iMode<nPhononModes; iMode++)
 		{	//Read phononHsub and store with Wannier rotations:
 			mpiUtil->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-			{	const KpointPair& pair = kpointPairs[iPair];
-				matrix phononHsub(nBands, nBands);
-				mpiUtil->fread(phononHsub.data(), sizeof(complex), phononHsub.nData(), fpIn); //read from file
-				phononHsub = (dagger(kMesh[pair.ik1].U) * phononHsub * kMesh[pair.ik2].U); //apply Wannier rotations
-				callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
-					phononHsub.dataPref(), phononHsub.nData());
+			{	matrix& phononHsubCur = phononHsub[iMode][iPair];
+				phononHsubCur.init(nBands, nBands);
+				mpiUtil->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
 			}
 		}
+		//--- apply translational invariance correction:
+		std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	Hsub_eigs[q].resize(nBands);
+			Hsub_eigs[q].bcast(e.eInfo.whose(q));
+		}
+		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+		{	const KpointPair& pair = kpointPairs[iPair];
+			if(pair.ik1 == pair.ik2) //only Gamma-point phonons
+			{	const diagMatrix& E = Hsub_eigs[kMesh[pair.ik1].point.iReduced + iSpin*qCount];
+				int nAtoms = nPhononModes/3;
+				assert(nAtoms*3 == nPhononModes);
+				for(int iDir=0; iDir<3; iDir++)
+				{	//Calculate matrix element due to uniform translation of all atoms:
+					matrix phononHsubMean;
+					for(int iAtom=0; iAtom<nAtoms; iAtom++)
+					{	int iMode = 3*iAtom + iDir;
+						phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
+					}
+					//Restrict correction to degenerate subspaces:
+					for(int b1=0; b1<nBands; b1++)
+						for(int b2=0; b2<nBands; b2++)
+							if(fabs(E[b1]-E[b2]) > 1e-4)
+								phononHsubMean.set(b1,b2, 0.);
+					//Apply correction:
+					for(int iAtom=0; iAtom<nAtoms; iAtom++)
+					{	int iMode = 3*iAtom + iDir;
+						phononHsub[iMode][iPair] -= invsqrtM[iMode] * phononHsubMean;
+					}
+				}
+			}
+		}
+		//--- apply Wannier rotations
+		matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
+		for(int iMode=0; iMode<nPhononModes; iMode++)
+			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+			{	const KpointPair& pair = kpointPairs[iPair];
+				matrix& phononHsubCur = phononHsub[iMode][iPair];
+				phononHsubCur = (dagger(kMesh[pair.ik1].U) * phononHsubCur * kMesh[pair.ik2].U); //apply Wannier rotations
+				callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
+					phononHsubCur.dataPref(), phononHsubCur.nData());
+			}
 		logPrintf("done.\n"); logFlush();
 		//--- convert phononHsub from Bloch to wannier for each nuclear displacement mode
 		matrix HePh = HePhTilde * phase;
