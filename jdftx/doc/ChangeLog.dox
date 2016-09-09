@@ -2,6 +2,8 @@
 
 ## Unreleased ##
 
++ Added command symmetry-threshold to control symmetry detection sensitivity in input file
+
 + Switched to reciprocal-space symmetrization of scalar fields
 
 + Added MPI and noncollinear support to exact exchange

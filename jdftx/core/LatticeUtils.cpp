@@ -23,6 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cfloat>
 #include <list>
 
+double symmThreshold = 1e-4;
+double symmThresholdSq = symmThreshold*symmThreshold;
+
 //Compute reduced lattice vectors:
 matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, matrix3<int>* invTransmission)
 {	matrix3<> Rreduced = R;

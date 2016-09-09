@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <core/LatticeUtils.h>
 
 EnumStringMap<SymmetryMode> symmMap(
 	SymmetriesNone, "none",
@@ -87,3 +88,25 @@ struct CommandSymmetryMatrix : public Command
 	}
 }
 commandSymmetryMatrix;
+
+
+struct CommandSymmetryThreshold : public Command
+{
+	CommandSymmetryThreshold() : Command("symmetry-threshold", "jdftx/Miscellaneous")
+	{
+		format = "[<threshold>=1e-4]";
+		comments = "Relative threshold parameter used for symmetry detection.";
+		hasDefault = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(symmThreshold, 1e-4, "threshold");
+		symmThresholdSq = symmThreshold*symmThreshold;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg", symmThreshold);
+	}
+}
+commandSymmetryThreshold;
+

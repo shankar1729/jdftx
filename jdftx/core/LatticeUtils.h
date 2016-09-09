@@ -26,8 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 
 //! Relative threshold for symmetry detection
-static const double symmThreshold = 1e-4;
-static const double symmThresholdSq = symmThreshold * symmThreshold;
+extern double symmThreshold, symmThresholdSq;
 
 //! Given a set of lattice vectors in the columns of R,
 //! return the minimal lattice vectors (shortest linear combinations)
