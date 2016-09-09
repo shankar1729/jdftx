@@ -203,10 +203,10 @@ void Everything::setup()
 void Everything::updateSupercell(bool force)
 {	if(force || coulombParams.omegaSet.size() || dump.dos || dump.electronScattering)
 	{	//Initialize k-point sampled supercell:
-		std::vector<vector3<>> kmeshUnreduced;
+		std::vector<vector3<>> kmeshReduced;
 		for(const QuantumNumber& qnum: eInfo.qnums)
-			kmeshUnreduced.push_back(qnum.k);
-		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshUnreduced, symm.getMatrices(), symm.getKpointInvertList());
+			kmeshReduced.push_back(qnum.k);
+		coulombParams.supercell = std::make_shared<Supercell>(gInfo, kmeshReduced, symm.getMatrices(), symm.getKpointInvertList());
 	}
 }
 
