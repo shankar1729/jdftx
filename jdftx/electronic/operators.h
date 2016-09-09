@@ -45,17 +45,6 @@ ScalarFieldTilde lDivergence(const ScalarFieldTildeArray&, int l); //!< spherica
 //! Multiply complex scalar field by Block phase for wave-vector k (in reciprocal lattice coordinates)
 void multiplyBlochPhase(complexScalarField&, const vector3<>& k);
 
-//! Resample scalar field by gathering from coordinates rotated by point group element
-//! specified in mesh coordinates. Hermitian conjugate of pointGroupScatter
-ScalarField pointGroupGather(const ScalarField&, const matrix3<int>& mMesh);
-complexScalarField pointGroupGather(const complexScalarField&, const matrix3<int>& mMesh);
-
-//! Resample scalar field by scattering to coordinates rotated by point group element
-//! specified in mesh coordinates. Hermitian conjugate of pointGroupGather
-ScalarField pointGroupScatter(const ScalarField&, const matrix3<int>& mMesh);
-complexScalarField pointGroupScatter(const complexScalarField&, const matrix3<int>& mMesh);
-
-
 //! Create a spherically symmetric real scalar field centered at lattice coordinates r0, given its radial fourier transform f
 ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //calls ScalarFieldTilde radialFunctionG
 

@@ -91,26 +91,6 @@ void multiplyBlochPhase_gpu(const vector3<int>& S, const vector3<>& invS, comple
 }
 
 
-template<typename scalar> __global__
-void pointGroupScatter_kernel(int zBlock, const vector3<int> S, const scalar* in, scalar* out, matrix3<int> mMesh)
-{	COMPUTE_rIndices
-	pointGroupScatter_calc(i, iv, S, in, out, mMesh);
-}
-template<typename scalar>
-void pointGroupScatter_gpu(const vector3<int>& S, const scalar* in, scalar* out, const matrix3<int>& mMesh)
-{	GpuLaunchConfig3D glc(pointGroupScatter_kernel<scalar>, S);
-	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		pointGroupScatter_kernel<scalar><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, in, out, mMesh);
-	gpuErrorCheck();
-}
-void pointGroupScatter_gpu(const vector3<int>& S, const double* in, double* out, const matrix3<int>& mMesh)
-{	pointGroupScatter_gpu<double>(S, in, out, mMesh);
-}
-void pointGroupScatter_gpu(const vector3<int>& S, const complex* in, complex* out, const matrix3<int>& mMesh)
-{	pointGroupScatter_gpu<complex>(S, in, out, mMesh);
-}
-
-
 __global__
 void radialFunction_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT,
 	complex* F, const RadialFunctionG f, vector3<> r0)

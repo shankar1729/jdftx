@@ -163,52 +163,6 @@ void multiplyBlochPhase(complexScalarField& v, const vector3<>& k)
 }
 
 
-//point group scatter
-template<typename scalar> void pointGroupScatter_sub(size_t iStart, size_t iStop,
-	const vector3<int>& S, const scalar* in, scalar* out, const matrix3<int>& mMesh)
-{	THREAD_rLoop( pointGroupScatter_calc(i, iv, S, in, out, mMesh); )
-}
-#ifdef GPU_ENABLED
-void pointGroupScatter_gpu(const vector3<int>& S, const double* in, double* out, const matrix3<int>& mMesh);
-void pointGroupScatter_gpu(const vector3<int>& S, const complex* in, complex* out, const matrix3<int>& mMesh);
-#endif
-template<typename T> std::shared_ptr<T> pointGroupScatter(const std::shared_ptr<T>& in, const matrix3<int>& mMesh)
-{	if(mMesh == matrix3<int>(1,1,1)) return in; //shortcut for identity
-	const GridInfo& gInfo = in->gInfo;
-	std::shared_ptr<T> out(T::alloc(gInfo, isGpuEnabled()));
-	#ifdef GPU_ENABLED
-	pointGroupScatter_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), mMesh);
-	#else
-	threadLaunch(pointGroupScatter_sub<typename T::DataType>, gInfo.nr, gInfo.S, in->data(), out->data(), mMesh);
-	#endif
-	return out;
-}
-ScalarField pointGroupScatter(const ScalarField& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<ScalarFieldData>(in, mMesh);
-}
-complexScalarField pointGroupScatter(const complexScalarField& in, const matrix3<int>& mMesh)
-{	return pointGroupScatter<complexScalarFieldData>(in, mMesh);
-}
-
-
-//point group gather
-template<typename Tptr> Tptr pointGroupGather(const Tptr& in, const matrix3<int>& mMesh)
-{	if(mMesh == matrix3<int>(1,1,1)) return in; //shortcut for identity
-	//Gathering is equivalent to gathering with inverse rotation
-	//Scattered stores are faster than scattered loads (so implement scatter in terms of gather)
-	int mMeshDet = det(mMesh);
-	assert(abs(mMeshDet)==1);
-	matrix3<int> mMeshInv = adjugate(mMesh)*mMeshDet; //inverse = adjugate*det since |det|=1
-	return pointGroupScatter(in, mMeshInv);
-}
-ScalarField pointGroupGather(const ScalarField& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<ScalarField>(in, mMesh);
-}
-complexScalarField pointGroupGather(const complexScalarField& in, const matrix3<int>& mMesh)
-{	return pointGroupGather<complexScalarField>(in, mMesh);
-}
-
-
 void radialFunction_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT,
 	complex* F, const RadialFunctionG& f, vector3<> r0 )
 {	THREAD_halfGspaceLoop( F[i] = radialFunction_calc(iG, GGT, f, r0); )

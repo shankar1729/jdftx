@@ -259,31 +259,6 @@ void fdtestGGAs()
 	FDtest2D(GGA_eval<GGA_X_wPBE_SR>);
 }
 
-void timePointGroupOps(const GridInfo& gInfo)
-{
-	std::vector<matrix3<int>> sym = getSymmetries(gInfo.R);
-	matrix3<int> m = sym[3]; //some random symmetry matrix
-	m.print(globalLog, " %2d ");
-	matrix3<int> mInv = det(m) * adjugate(m); //since |det(m)| = 0
-	
-	ScalarField x(ScalarFieldData::alloc(gInfo)); initRandom(x);
-	logPrintf("Rel. error in implementations = %le\n",
-		nrm2(pointGroupGather(x, m) - pointGroupScatter(x, mInv)) / nrm2(x));
-	
-	int nRepetitions = int(1e8/gInfo.nr);
-	logPrintf("Timing %d repetitions.\n", nRepetitions);
-	ScalarField y;
-	
-	TIME("Gather", globalLog,
-		for(int iRep=0; iRep<nRepetitions; iRep++)
-			 y = pointGroupGather(x, m);
-	)
-	TIME("Scatter", globalLog,
-		for(int iRep=0; iRep<nRepetitions; iRep++)
-			 y = pointGroupScatter(x, mInv);
-	)
-}
-
 void print(const ScalarFieldTilde& x)
 {	complex* xData = x->data();
 	const GridInfo& g = x->gInfo;
@@ -391,7 +366,6 @@ int main(int argc, char** argv)
 	gInfo.R.set_col(2, vector3<>(12.0, 12.0, 0.0));
 	gInfo.initialize();
 	//testCavitation(gInfo); return 0;
-	//timePointGroupOps(gInfo); return 0;
 	//timeEblas3(gInfo);
 	
 	OperatorTest op(gInfo);
