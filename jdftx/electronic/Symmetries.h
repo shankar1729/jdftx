@@ -43,6 +43,8 @@ public:
 	std::vector<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
 	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field
+	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field
+	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
@@ -78,8 +80,10 @@ private:
 	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries (and generate symMesh)
 	void checkSymmetries() const; //!< check validity of manually specified symmetry matrices
 	
-	//Index map for scalar field (electron density, potential) symmetrization
-	int *symmIndex, nSymmIndex;
+	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space
+	int *symmIndex, nSymmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
+	complex* symmIndexPhase; //phase factor for entry at each index
+	int* symmMult; //multiplicity (how many times each element is repeated) in each equivalence class
 	void initSymmIndex();
 	
 	//Atom maps:

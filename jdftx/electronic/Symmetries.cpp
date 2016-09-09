@@ -43,8 +43,12 @@ Symmetries::~Symmetries()
 	{	
 		#ifdef GPU_ENABLED
 		cudaFree(symmIndex);
+		cudaFree(symmMult);
+		cudaFree(symmIndexPhase);
 		#else
 		delete[] symmIndex;
+		delete[] symmMult;
+		delete[] symmIndexPhase;
 		#endif
 	}
 }
@@ -167,8 +171,20 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 //Symmetrize scalar fields:
 void Symmetries::symmetrize(ScalarField& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
+	complexScalarFieldTilde xTilde = J(Complex(x));
+	symmetrize(xTilde);
+	x = Real(I(xTilde));
+}
+void Symmetries::symmetrize(ScalarFieldTilde& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	complexScalarFieldTilde xComplex = Complex(x);
+	symmetrize(xComplex);
+	x = Real(xComplex);
+}
+void Symmetries::symmetrize(complexScalarFieldTilde& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
 	int nSymmClasses = nSymmIndex / sym.size(); //number of equivalence classes
-	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex, x->dataPref());
+	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex, symmMult, symmIndexPhase, x->dataPref());
 }
 
 //Symmetrize forces:
@@ -413,36 +429,56 @@ void Symmetries::initSymmIndex()
 {	const GridInfo& gInfo = e->gInfo;
 	if(sym.size()==1) return;
 
-	std::vector<int> symmIndexVec;
+	std::vector<int> symmIndexVec, symmMultVec;
+	std::vector<complex> symmIndexPhaseVec;
 	symmIndexVec.reserve(gInfo.nr);
-	vector3<int> r;
-	std::vector<bool> done(gInfo.nr, false);
+	symmMultVec.reserve(gInfo.nr / sym.size());
+	symmIndexPhaseVec.reserve(gInfo.nr);
+	std::vector<bool> done(gInfo.nr, false); //use full G-space for symmetrization
 	//Loop over all points not already handled as an image of a previous one:
-	for(r[0]=0; r[0]<gInfo.S[0]; r[0]+=1)
-		for(r[1]=0; r[1]<gInfo.S[1]; r[1]+=1)
-			for(r[2]=0; r[2]<gInfo.S[2]; r[2]+=1)
-			{	int index = gInfo.fullRindex(r);
-				if(!done[index])
-				{	//Loop over symmetry matrices:
-					for(const matrix3<int>& m: symMesh)
-					{	vector3<int> rNew = m * r;
-						//project back into range:
-						for(int i=0; i<3; i++)
-							rNew[i] = rNew[i] % gInfo.S[i];
-						int index2 = gInfo.fullGindex(rNew); //fullGindex handles wrapping negative indices
-						symmIndexVec.push_back(index2);
-						done[index2] = true;
+	{	const vector3<int>& S = gInfo.S;
+		size_t iStart = 0, iStop = gInfo.nr;
+		THREAD_fullGspaceLoop
+		(	if(!done[i])
+			{	std::set<int> orbit;
+				//Loop over symmetry matrices:
+				for(const matrix3<int>& m: sym)
+				{	vector3<int> iG2 = iG * m;
+					vector3<> a; //TODO: get from space group
+					complex phase = cis((-2*M_PI)*dot(iG,a));
+					//project back into range:
+					for(int k=0; k<3; k++)
+					{	iG2[k] = positiveRemainder(iG2[k], S[k]);
+						if(2*iG2[k]>S[k]) iG2[k]-=S[k];
 					}
+					int i2 = gInfo.fullGindex(iG2);
+					symmIndexPhaseVec.push_back(phase);
+					symmIndexVec.push_back(i2);
+					done[i2] = true;
+					orbit.insert(i2);
 				}
+				int multiplicity = sym.size()/orbit.size(); //number of times each point in orbit is covered
+				assert(multiplicity * orbit.size() == sym.size());
+				symmMultVec.push_back(multiplicity);
 			}
+		)
+	}
 	//Set the final pointers:
 	nSymmIndex = symmIndexVec.size();
 	#ifdef GPU_ENABLED
 	cudaMalloc(&symmIndex, nSymmIndex*sizeof(int));
+	cudaMalloc(&symmMult, symmMultVec.size()*sizeof(int));
+	cudaMalloc(&symmIndexPhase, nSymmIndex*sizeof(complex));
 	cudaMemcpy(symmIndex, &symmIndexVec[0], nSymmIndex*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(symmMult, &symmMultVec[0], symmMultVec.size()*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(symmIndexPhase, &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex), cudaMemcpyHostToDevice);
 	#else
 	symmIndex = new int[nSymmIndex];
+	symmMult = new int[symmMultVec.size()];
+	symmIndexPhase = new complex[nSymmIndex];
 	memcpy(symmIndex, &symmIndexVec[0], nSymmIndex*sizeof(int));
+	memcpy(symmMult, &symmMultVec[0], symmMultVec.size()*sizeof(int));
+	memcpy(symmIndexPhase, &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex));
 	#endif
 }
 

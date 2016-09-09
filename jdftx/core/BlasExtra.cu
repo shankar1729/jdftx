@@ -160,6 +160,26 @@ template<typename scalar> void eblas_symmetrize_gpu(int N, int n, const int* sym
 void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, double* x) { eblas_symmetrize_gpu<double>(N, n, symmIndex, x); }
 void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, complex* x) { eblas_symmetrize_gpu<complex>(N, n, symmIndex, x); }
 
+__global__
+void eblas_symmetrize_phase_kernel(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
+{	int i=kernelIndex1D();
+	if(i<N)
+	{	complex xSum = 0.;
+		for(int j=0; j<n; j++)
+			xSum += x[symmIndex[n*i+j]] * phase[n*i+j];
+		xSum *= 1./(n*symmMult[i]); //average n in the equivalence class, with weight for accumulation below accounted)
+		for(int j=0; j<n; j++)
+			x[symmIndex[n*i+j]] = 0.;
+		for(int j=0; j<n; j++)
+			x[symmIndex[n*i+j]] += xSum * phase[n*i+j].conj();
+	}
+}
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
+{	GpuLaunchConfig1D glc(eblas_symmetrize_phase_kernel, N);
+	eblas_symmetrize_phase_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, symmIndex, symmMult, phase, x);
+	gpuErrorCheck();
+}
+
 //BLAS-1 wrappers:
 void eblas_zero_gpu(int N, complex* x)
 {	cudaMemset(x, 0, N*sizeof(complex));

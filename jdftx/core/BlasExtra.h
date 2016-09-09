@@ -203,6 +203,20 @@ void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, double* x);
 void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, complex* x);
 #endif
 
+//! @brief Symmetrize a complex array x with phase factors, using N n-fold equivalence classes in symmIndex
+//! (useful for space group symmetrization in reciprocal space)
+//! @param N Length of array x
+//! @param n Length of symmetry equivalence classes
+//! @param symmIndex Every consecutive set of n indices in this array forms an equivalence class
+//! @param symmMult Multiplicity per equivalence class (number of repetitions of each element in orbit)
+//! @param phase Phase factors corresponding to each entry in symmIndex
+//! @param x Data array to be symmetrized in place
+void eblas_symmetrize(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x);
+#ifdef GPU_ENABLED
+//! @brief Equivalent of eblas_symmetrize() for complex GPU data pointers
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x);
+#endif
+
 //Threaded-wrappers for BLAS1 functions (Cblas)
 //! @brief Copy a data array
 //! @tparam T Data type of the input and output arrays

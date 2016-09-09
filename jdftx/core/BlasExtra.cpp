@@ -140,6 +140,23 @@ void eblas_symmetrize(int N, int n, const int* symmIndex, double* x) { eblas_sym
 void eblas_symmetrize(int N, int n, const int* symmIndex, complex* x) { eblas_symmetrize<complex>(N, n, symmIndex, x); }
 
 
+void eblas_symmetrize_phase_sub(size_t iStart, size_t iStop, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
+{	for(size_t i=iStart; i<iStop; i++)
+	{	complex xSum = 0.;
+		for(int j=0; j<n; j++)
+			xSum += x[symmIndex[n*i+j]] * phase[n*i+j];
+		xSum *= 1./(n*symmMult[i]); //average n in the equivalence class, with weight for accumulation below accounted)
+		for(int j=0; j<n; j++)
+			x[symmIndex[n*i+j]] = 0.;
+		for(int j=0; j<n; j++)
+			x[symmIndex[n*i+j]] += xSum * phase[n*i+j].conj();
+	}
+}
+void eblas_symmetrize(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
+{	threadLaunch((N*n<10000) ? 1 : 0, //force single threaded for small problem sizes
+		eblas_symmetrize_phase_sub, N, n, symmIndex, symmMult, phase, x);
+}
+
 //BLAS-1 threaded wrappers
 template<typename T>
 void eblas_zero_sub(size_t iStart, size_t iStop, T* x)
