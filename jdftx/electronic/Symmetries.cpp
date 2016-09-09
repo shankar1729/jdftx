@@ -330,8 +330,8 @@ void Symmetries::calcSymmetries()
 	//Find symmetries of bravais lattice
 	matrix3<> Rreduced; matrix3<int> transmission;
 	std::vector<matrix3<int>> symLattice = getSymmetries(e->gInfo.R, e->coulombParams.isTruncated(), &Rreduced, &transmission);
-	if(nrm2(Rreduced - e->gInfo.R) > symmThreshold * nrm2(Rreduced)) //i.e. if R != Rreduced
 	logPrintf("\n");
+	if(nrm2(Rreduced - e->gInfo.R) > symmThreshold * nrm2(Rreduced)) //i.e. if R != Rreduced
 	{	logPrintf("Non-trivial transmission matrix:\n"); transmission.print(globalLog," %2d ");
 		logPrintf("with reduced lattice vectors:\n"); Rreduced.print(globalLog," %12.6f ");
 		logPrintf("\n");
@@ -376,21 +376,65 @@ bool magMomEquivalent(const vector3<>& a, const vector3<>& b)
 std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<int> >& symLattice) const
 {	std::vector<SpaceGroupOp> spaceGroup;
 	//Loop over lattice symmetries:
-	for(const matrix3<int>& m: symLattice)
-	{	bool symmetric = true;
-		for(auto sp: e->iInfo.species) //For each species
-		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
-			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
-			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(m*sp->atpos[a1], M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and magentic moment
-				{	symmetric = false;
-					break;
+	for(const matrix3<int>& rot: symLattice)
+	{	
+		//Determine offsets after this rotation that map the structure onto itself 
+		std::vector<vector3<>> aArr; //list of candidates for the offset
+		bool firstAtom = true;
+		for(auto sp: e->iInfo.species)
+		{	const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
+			for(size_t a1=0; a1<sp->atpos.size(); a1++)
+			{
+				//Generate list of offsets that would work for current atom by itself:
+				std::vector<vector3<>> aCur;
+				vector3<> pos1rot = rot*sp->atpos[a1]; //rotated version of a1 position
+				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+				for(size_t a2=0; a2<sp->atpos.size(); a2++)
+					if( (!M) || magMomEquivalent(M1rot, (*M)[a2]) )
+					{	vector3<> dpos = sp->atpos[a2] - pos1rot;
+						for(int k=0; k<3; k++) dpos[k] -= floor(0.5+dpos[k]); //wrap offset to base cell
+						aCur.push_back(dpos);
+					}
+				
+				//Intersect current candidates with global list:
+				if(firstAtom)
+				{	aArr = aCur; //no previous list; intersection = current
+					firstAtom = false;
+					continue;
+				}
+				std::vector<vector3<>> aNext; //intersection results
+				if(aCur.size())
+				{	PeriodicLookup<vector3<>> plook(aCur, (~e->gInfo.R) * e->gInfo.R);
+					for(vector3<> a: aArr)
+						if(plook.find(a) != string::npos)
+							aNext.push_back(a);
+				}
+				aArr = aNext;
+				
+				if(!aArr.size()) break;
+			}
+			if(!aArr.size()) break;
+		}
+		
+		//Refine offsets:
+		for(vector3<>& a: aArr)
+		{	vector3<> daSum; int nAtoms = 0.;
+			for(auto sp: e->iInfo.species) //For each species
+			{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
+				const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
+				for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
+				{	vector3<> pos1rot = rot*sp->atpos[a1] + a; //now including offset
+					vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+					size_t a2 = plook.find(pos1rot, M1rot, M, magMomEquivalent); //match position and magentic moment
+					assert(a2 != string::npos); //the above algorithm should guarantee this
+					vector3<> da = sp->atpos[a2] - pos1rot;
+					for(int k=0; k<3; k++) da[k] -= floor(0.5+da[k]);
+					daSum += da; nAtoms++;
 				}
 			}
-			if(!symmetric) break;
+			a += daSum / nAtoms;
+			spaceGroup.push_back(SpaceGroupOp(rot, a));
 		}
-		if(symmetric) //For each species, each atom maps onto another
-			spaceGroup.push_back(SpaceGroupOp(m)); //TODO: find translations
 	}
 	return spaceGroup;
 }
@@ -427,7 +471,11 @@ void Symmetries::initSymmIndex()
 					orbit.insert(i2);
 				}
 				int multiplicity = sym.size()/orbit.size(); //number of times each point in orbit is covered
-				assert(multiplicity * orbit.size() == sym.size());
+				if(multiplicity * orbit.size() != sym.size())
+				{	die("\nSymmetry operations do not seem to form a group.\n"
+						"This is most likely because the geometry has some border-line symmetries.\n"
+						"Try either tightening or loosening the symmetry-threshold parameter.\n\n");
+				}
 				symmMultVec.push_back(multiplicity);
 			}
 		)
@@ -528,9 +576,10 @@ void Symmetries::checkSymmetries() const
 	for(const SpaceGroupOp& op: sym) //For each symmetry matrix
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
-			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
+			const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and spin
+			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? op.rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+				if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M1rot, M, magMomEquivalent)) //match position and spin
 				{	logPrintf("Ionic positions not invariant under symmetry matrix:\n");
 					op.rot.print(globalLog, " %2d ");
 					op.a.print(globalLog, " %lg ");
