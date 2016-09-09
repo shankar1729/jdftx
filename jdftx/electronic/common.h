@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <cstdarg>
 #include <core/scalar.h>
+#include <core/matrix3.h>
 #include <core/Util.h>
 
 class matrix;			// general purpose matrix.
@@ -50,5 +51,13 @@ struct ElecGradient;
 struct IonicGradient;
 class VanDerWaals;     // pair-potential van der waals corrections
 class Vibrations;
+
+//! Space group operation r -> rot * r + a in real-space lattice coordinates
+struct SpaceGroupOp
+{	matrix3<int> rot; //!< rotation matrix in covariant lattice coordinates
+	vector3<> a; //!< translation in covariant lattice coordinates
+	
+	SpaceGroupOp(matrix3<int> rot = matrix3<int>(1,1,1), vector3<> a = vector3<>(0,0,0)) : rot(rot), a(a) {}
+};
 
 #endif // JDFTX_ELECTRONIC_COMMON_H

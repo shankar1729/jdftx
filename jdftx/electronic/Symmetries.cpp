@@ -35,7 +35,6 @@ static const int lMaxSpherical = 3;
 Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1)
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
-	shouldMoveAtoms = false;
 }
 
 Symmetries::~Symmetries()
@@ -68,8 +67,8 @@ void Symmetries::setup(const Everything& everything)
 			sortSymmetries(); //make sure first symmetry is identity
 			checkSymmetries(); //make sure atoms respect the specified symmetries
 			break;
-		default: //No symmetry (only matrix is identity)
-			sym.assign(1, matrix3<int>(1,1,1)); 
+		default: //No symmetry (only operation is identity)
+			sym.assign(1, SpaceGroupOp()); 
 	}
 	
 	initAtomMaps(); // Map atoms to symmetry related ones
@@ -99,8 +98,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 	std::vector<int> invertList;
 	invertList.push_back(+1);
 	invertList.push_back(-1);
-	for(const matrix3<int>& m: sym)
-		if(m==matrix3<int>(-1,-1,-1))
+	for(const SpaceGroupOp& op: sym)
+		if(op.rot==matrix3<int>(-1,-1,-1))
 		{	invertList.resize(1); //inversion explicitly found in symmetry list, so remove from invertList
 			break;
 		}
@@ -114,7 +113,7 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 	for(size_t iSrc=iSrcStart; iSrc<iSrcStop; iSrc++)
 		for(int invert: invertList)
 			for(int iSym=0; iSym<int(sym.size()); iSym++)
-			{	size_t iDest = plook.find(invert * qnums[iSrc].k * sym[iSym]);
+			{	size_t iDest = plook.find(invert * qnums[iSrc].k * sym[iSym].rot);
 				if(iDest != string::npos)
 					kmap[iDest] = std::min(kmap[iDest], kmapPack(iSrc, invert, iSym));
 				else
@@ -131,7 +130,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 		if(shouldPrintMatrices)
 		{	for(int iSym=0; iSym<int(sym.size()); iSym++)
 				if(isSymKmesh[iSym])
-				{	sym[iSym].print(globalLog, " %2d ");
+				{	sym[iSym].rot.print(globalLog, " %2d ");
+					sym[iSym].a.print(globalLog, " %lg ");
 					logPrintf("\n");
 				}
 		}
@@ -194,7 +194,7 @@ void Symmetries::symmetrize(IonicGradient& f) const
 	{	std::vector<vector3<> > tempForces(f[sp].size());
 		for(unsigned atom=0; atom<f[sp].size(); atom++)
 			for(unsigned iRot=0; iRot<sym.size(); iRot++)
-				tempForces[atom] += (~sym[iRot]) * f[sp][atomMap[sp][atom][iRot]];
+				tempForces[atom] += (~sym[iRot].rot) * f[sp][atomMap[sp][atom][iRot]];
 		for(unsigned atom=0; atom<f[sp].size(); atom++)
 			f[sp][atom] = tempForces[atom] / sym.size();
 	}
@@ -230,7 +230,7 @@ void Symmetries::symmetrizeSpherical(matrix& X, const SpeciesInfo* specie) const
 }
 
 
-const std::vector< matrix3<int> >& Symmetries::getMatrices() const
+const std::vector<SpaceGroupOp>& Symmetries::getMatrices() const
 {	return sym;
 }
 
@@ -270,7 +270,7 @@ const std::vector<matrix>& Symmetries::getSphericalMatrices(int l, bool relativi
 		std::vector<matrix>& out = (std::vector<matrix>&)cache[l];
 		out.resize(sym.size());
 		for(unsigned iRot=0; iRot<sym.size(); iRot++)
-		{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix
+		{	matrix3<> rot = e->gInfo.R * sym[iRot].rot * inv(e->gInfo.R); //cartesian rotation matrix
 			matrix bRot = zeroes(msCount, msCount); complex* bRotData = bRot.data();
 			for(int nIndex=0; nIndex<mCount; nIndex++)
 				for(int m=-l; m<=l; m++)
@@ -327,34 +327,32 @@ matrix Symmetries::getSpinorRotation(const matrix3<>& rot)
 
 void Symmetries::calcSymmetries()
 {
-	const IonInfo& iInfo = e->iInfo;
-	logPrintf("Searching for point group symmetries:\n");
-
 	//Find symmetries of bravais lattice
 	matrix3<> Rreduced; matrix3<int> transmission;
 	std::vector<matrix3<int>> symLattice = getSymmetries(e->gInfo.R, e->coulombParams.isTruncated(), &Rreduced, &transmission);
 	if(nrm2(Rreduced - e->gInfo.R) > symmThreshold * nrm2(Rreduced)) //i.e. if R != Rreduced
+	logPrintf("\n");
 	{	logPrintf("Non-trivial transmission matrix:\n"); transmission.print(globalLog," %2d ");
 		logPrintf("with reduced lattice vectors:\n"); Rreduced.print(globalLog," %12.6f ");
+		logPrintf("\n");
 	}
-	logPrintf("\n%lu symmetries of the bravais lattice\n", symLattice.size()); logFlush();
+	logPrintf("Found %lu point-group symmetries of the bravais lattice\n", symLattice.size()); logFlush();
 
 	//Find symmetries commensurate with atom positions:
-	vector3<> rCenter;
-	sym = basisReduce(symLattice, rCenter);
-	logPrintf("reduced to %lu symmetries with basis\n", sym.size());
+	sym = findSpaceGroup(symLattice);
+	logPrintf("Found %lu space-group symmetries with basis\n", sym.size());
 	
 	//Find symmetries commensurate with external electric field (if any):
 	if(e->coulombParams.Efield.length_squared())
-	{	std::vector< matrix3<int> > symNew;
+	{	std::vector<SpaceGroupOp> symNew;
 		double threshold = symmThresholdSq * e->coulombParams.Efield.length_squared();
-		for(const matrix3<int>& m: sym)
-		{	matrix3<> mCart = e->gInfo.R * m * inv(e->gInfo.R); //cartesian transformation
+		for(const SpaceGroupOp& op: sym)
+		{	matrix3<> mCart = e->gInfo.R * op.rot * inv(e->gInfo.R); //cartesian transformation
 			if((e->coulombParams.Efield - mCart * e->coulombParams.Efield).length_squared() < threshold)
-				symNew.push_back(m); //leaves Efield invariant
+				symNew.push_back(op); //leaves Efield invariant
 		}
 		sym = symNew;
-		logPrintf("reduced to %lu symmetries with electric field\n", sym.size());
+		logPrintf("reduced to %lu space-group symmetries with electric field\n", sym.size());
 	}
 	
 	//Make sure identity is the first symmetry
@@ -362,46 +360,21 @@ void Symmetries::calcSymmetries()
 
 	//Print symmetry matrices
 	if(shouldPrintMatrices)
-	{	for(const matrix3<int>& m: sym)
-		{	m.print(globalLog, " %2d ");
+	{	for(const SpaceGroupOp& op: sym)
+		{	op.rot.print(globalLog, " %2d ");
+			op.a.print(globalLog, " %lg ");
 			logPrintf("\n");
 		}
 	}
 	logFlush();
-	
-	if(shouldMoveAtoms) //Check for better symmetry centers:
-	{	std::vector< vector3<> > rCenterCandidates;
-		//Check atom positions and midpoints of atom pairs as candidate symmetry centers:
-		for(auto sp: iInfo.species)
-			for(unsigned n1 = 0; n1 < sp->atpos.size(); n1++)
-			{	rCenterCandidates.push_back(sp->atpos[n1]);
-				for(unsigned n2 = 0; n2 < n1; n2++)
-					rCenterCandidates.push_back(0.5*(sp->atpos[n1] + sp->atpos[n2]));
-			}
-		//Check if any of the candidates leads to more symmetries than current rCenter:
-		size_t origSymSize = sym.size();
-		for(vector3<> rProposed: rCenterCandidates)
-		{	std::vector< matrix3<int> > symTemp = basisReduce(symLattice, rProposed);
-			if(symTemp.size() > sym.size())
-			{	rCenter = rProposed;
-				sym = symTemp;
-			}
-		}
-		//Print positions and quit if a better symmetry center is found:
-		if(sym.size()>origSymSize)
-		{	die("\nTranslating atoms by [ %lg %lg %lg ] (in lattice coordinates) will increase symmetry count\n"
-				"from %lu to %lu. Update the ionic positions, or set <moveAtoms>=no in command symmetry.\n",
-				-rCenter[0], -rCenter[1], -rCenter[2], origSymSize, sym.size());
-		}
-	}
 }
 
 bool magMomEquivalent(const vector3<>& a, const vector3<>& b)
 {	return (a-b).length_squared() < symmThresholdSq;
 }
 
-std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset) const
-{	std::vector< matrix3<int> > symBasis;
+std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<int> >& symLattice) const
+{	std::vector<SpaceGroupOp> spaceGroup;
 	//Loop over lattice symmetries:
 	for(const matrix3<int>& m: symLattice)
 	{	bool symmetric = true;
@@ -409,7 +382,7 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(offset + m*(sp->atpos[a1]-offset), M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and magentic moment
+			{	if(string::npos == plook.find(m*sp->atpos[a1], M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and magentic moment
 				{	symmetric = false;
 					break;
 				}
@@ -417,9 +390,9 @@ std::vector< matrix3<int> > Symmetries::basisReduce(const std::vector< matrix3<i
 			if(!symmetric) break;
 		}
 		if(symmetric) //For each species, each atom maps onto another
-			symBasis.push_back(m);
+			spaceGroup.push_back(SpaceGroupOp(m)); //TODO: find translations
 	}
-	return symBasis;
+	return spaceGroup;
 }
 
 void Symmetries::initSymmIndex()
@@ -439,10 +412,9 @@ void Symmetries::initSymmIndex()
 		(	if(!done[i])
 			{	std::set<int> orbit;
 				//Loop over symmetry matrices:
-				for(const matrix3<int>& m: sym)
-				{	vector3<int> iG2 = iG * m;
-					vector3<> a; //TODO: get from space group
-					complex phase = cis((-2*M_PI)*dot(iG,a));
+				for(const SpaceGroupOp& op: sym)
+				{	vector3<int> iG2 = iG * op.rot;
+					complex phase = cis((-2*M_PI)*dot(iG,op.a));
 					//project back into range:
 					for(int k=0; k<3; k++)
 					{	iG2[k] = positiveRemainder(iG2[k], S[k]);
@@ -481,9 +453,9 @@ void Symmetries::initSymmIndex()
 
 void Symmetries::sortSymmetries()
 {	//Ensure first matrix is identity:
-	matrix3<int> identity(1,1,1);
+	SpaceGroupOp id;
 	for(unsigned i=1; i<sym.size(); i++)
-		if(sym[i]==identity)
+		if(sym[i].rot==id.rot && sym[i].a==id.a)
 			std::swap(sym[0], sym[i]);
 }
 
@@ -493,7 +465,7 @@ void Symmetries::checkFFTbox()
 	for(unsigned iRot = 0; iRot<sym.size(); iRot++)
 	{	//the mesh coordinate symmetry matrices are Diag(S) * m * Diag(inv(S))
 		//and these must be integral for the mesh to be commensurate:
-		matrix3<int> mMesh = Diag(S) * sym[iRot];
+		matrix3<int> mMesh = Diag(S) * sym[iRot].rot;
 		//Right-multiply by Diag(inv(S)) and ensure integer results:
 		for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
@@ -501,7 +473,8 @@ void Symmetries::checkFFTbox()
 					mMesh(i,j) /= S[j];
 				else
 				{	logPrintf("FFT box not commensurate with symmetry matrix:\n");
-					sym[iRot].print(globalLog, " %2d ");
+					sym[iRot].rot.print(globalLog, " %2d ");
+					sym[iRot].a.print(globalLog, " %lg ");
 					die("FFT box not commensurate with symmetries.\n");
 				}
 	}
@@ -509,10 +482,11 @@ void Symmetries::checkFFTbox()
 	//Check embedded truncation center:
 	if(e->coulombParams.embed)
 	{	const vector3<>& c = e->coulombParams.embedCenter;
-		for(unsigned iRot = 0; iRot<sym.size(); iRot++)
-			if(circDistanceSquared(c, sym[iRot]*c) > symmThresholdSq)
+		for(const SpaceGroupOp& op: sym)
+			if(circDistanceSquared(c, op.rot*c + op.a) > symmThresholdSq)
 			{	logPrintf("Coulomb truncation embedding center is not invariant under symmetry matrix:\n");
-				sym[iRot].print(globalLog, " %2d ");
+				op.rot.print(globalLog, " %2d ");
+				op.a.print(globalLog, " %lg ");
 				die("Coulomb truncation embedding center is not invariant under symmetries.\n");
 			}
 		
@@ -530,8 +504,8 @@ void Symmetries::checkFFTbox()
 					{	vector3<int> iv = iv0 + dv;
 						vector3<> x = invDiagS * iv;
 						bool valid = true;
-						for(const matrix3<int>& m: sym)
-							if(circDistanceSquared(x, m*x) > symmThresholdSq)
+						for(const SpaceGroupOp& op: sym)
+							if(circDistanceSquared(x, op.rot*x + op.a) > symmThresholdSq)
 							{	valid = false;
 								break;
 							}
@@ -551,13 +525,17 @@ void Symmetries::checkFFTbox()
 
 void Symmetries::checkSymmetries() const
 {	logPrintf("Checking manually specified symmetry matrices.\n");
-	for(const matrix3<int>& m: sym) //For each symmetry matrix
+	for(const SpaceGroupOp& op: sym) //For each symmetry matrix
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >& M = sp->initialMagneticMoments;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	if(string::npos == plook.find(m * sp->atpos[a1], M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and spin
+			{	if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M.size()?M[a1]:vector3<>(), M.size()?&M:0, magMomEquivalent)) //match position and spin
+				{	logPrintf("Ionic positions not invariant under symmetry matrix:\n");
+					op.rot.print(globalLog, " %2d ");
+					op.a.print(globalLog, " %lg ");
 					die("Symmetries do not agree with atomic positions!\n");
+				}
 			}
 		}
 }
@@ -579,17 +557,18 @@ void Symmetries::initAtomMaps()
 			atomMap[sp][a1].resize(sym.size());
 			
 			for(unsigned iRot = 0; iRot<sym.size(); iRot++)
-			{	size_t a2 = plook.find(sym[iRot] * spInfo.atpos[a1]);
+			{	vector3<> idealPos = sym[iRot].rot * spInfo.atpos[a1] + sym[iRot].a;
+				size_t a2 = plook.find(idealPos);
 				assert(a2 != string::npos);
 				atomMap[sp][a1][iRot] = a2;
-				if(not spInfo.constraints[a1].isEquivalent(spInfo.constraints[a2], e->gInfo.R*sym[iRot]*inv(e->gInfo.R)))
-					die("Species %s atoms %lu and %lu are related by symmetry "
+				if(not spInfo.constraints[a1].isEquivalent(spInfo.constraints[a2], e->gInfo.R*sym[iRot].rot*inv(e->gInfo.R)))
+					die("\nSpecies %s atoms %lu and %lu are related by symmetry "
 					"but have different move scale factors or inconsistent move constraints.\n\n",
 						spInfo.name.c_str(), a1, a2);
 				if(shouldPrintMatrices) logPrintf(" %3u", atomMap[sp][a1][iRot]);
 				
 				//Add contributions to symmetrization displacements:
-				vector3<> dat = sym[iRot] * spInfo.atpos[a1] - spInfo.atpos[a2];
+				vector3<> dat = idealPos - spInfo.atpos[a2];
 				for(int j=0; j<3; j++) dat[j] -= floor(0.5+dat[j]); //wrap to [-0.5,0.5)
 				datpos[a2] += (1./sym.size()) * dat;
 			}

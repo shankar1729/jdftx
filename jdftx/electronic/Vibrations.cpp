@@ -73,7 +73,7 @@ void Vibrations::calculate()
 	int nPrimary = 0; //number of modes with isPrimary=true
 	bool foundTranslatable = false; //found an atom to fill in using translation symmetry
 	const auto& species = e->iInfo.species;
-	const std::vector< matrix3<int> >& sym = e->symmUnperturbed.getMatrices();
+	const std::vector<SpaceGroupOp>& sym = e->symmUnperturbed.getMatrices();
 	const std::vector< std::vector< std::vector<int> > >& atomMap = e->symmUnperturbed.getAtomMap();
 	for(unsigned s=0; s<species.size(); s++)
 	{	const SpeciesInfo& sp = *(species[s]);
@@ -150,7 +150,7 @@ void Vibrations::calculate()
 	std::vector<unsigned> iRotInv(sym.size());
 	for(unsigned iRot1=0; iRot1<sym.size(); iRot1++)
 		for(unsigned iRot2=iRot1; iRot2<sym.size(); iRot2++)
-			if(sym[iRot1]*sym[iRot2] == matrix3<int>(1,1,1))
+			if(sym[iRot1].rot * sym[iRot2].rot == matrix3<int>(1,1,1))
 			{	iRotInv[iRot1] = iRot2;
 				iRotInv[iRot2] = iRot1;
 				continue;
@@ -203,7 +203,7 @@ void Vibrations::calculate()
 			
 			//Collect contributions to force matrix from this mode and its symmetric counterparts:
 			for(unsigned iRot=0; iRot<sym.size(); iRot++)
-			{	matrix3<> rot = e->gInfo.R * sym[iRot] * inv(e->gInfo.R); //cartesian rotation matrix corresponding to symmetry
+			{	matrix3<> rot = e->gInfo.R * sym[iRot].rot * inv(e->gInfo.R); //cartesian rotation matrix corresponding to symmetry
 				//Modes corresponding to displacement (first index of matrix):
 				unsigned a1 = atomMap[mode.s][mode.a][iRot];
 				vector3<> n1 = rot * mode.n;

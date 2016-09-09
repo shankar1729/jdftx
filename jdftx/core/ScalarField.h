@@ -196,4 +196,3 @@ struct RealKernel
 //! @}
 
 #endif //JDFTX_CORE_SCALARFIELD_H
-

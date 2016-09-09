@@ -197,7 +197,7 @@ void processSb(vector3<int>& Sb, int j, const matrix3<int>& ratios, vector3<bool
 		}
 }
 
-void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym)
+void GridInfo::initialize(bool skipHeader, const std::vector<SpaceGroupOp> sym)
 {
 	this->~GridInfo(); //cleanup previously initialized quantities
 	
@@ -220,11 +220,11 @@ void GridInfo::initialize(bool skipHeader, const std::vector< matrix3<int> > sym
 	if(autoS) //pick minimal FFT-suitable size
 	{	//Determine constraints on S due to symmetries:
 		matrix3<int> ratios;
-		for(const matrix3<int>& m: sym)
+		for(const SpaceGroupOp& op: sym)
 			for(int j=0; j<3; j++)
 				for(int k=0; k<3; k++)
-					if(m(j,k))
-						ratios(j,k) = gcd(ratios(j,k), abs(m(j,k)));
+					if(op.rot(j,k))
+						ratios(j,k) = gcd(ratios(j,k), abs(op.rot(j,k)));
 		//Construct integer basis of S's that satisfy these constraints:
 		S = vector3<int>(0,0,0);
 		vector3<bool> dimsDone(false,false,false); //dimensions yet to be covered by Sbasis

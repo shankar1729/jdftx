@@ -48,7 +48,7 @@ public:
 	If the ColumnBundles are spinorial (nSpinor=2), corresponding spin-space transformations will also be applied
 	*/
 	ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD, const BasisWrapper& basisDwrapper,
-		int nSpinor, const matrix3<int>& sym, int invert, const matrix3<int>& super = matrix3<int>(1,1,1));
+		int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super = matrix3<int>(1,1,1));
 	~ColumnBundleTransform();
 	
 	//Non-copyable:

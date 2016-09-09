@@ -144,11 +144,12 @@ void Phonon::setup(bool printDefaults)
 	
 	//Supercell symmetries:
 	eSupTemplate.symm.setup(eSupTemplate);
-	const std::vector< matrix3<int> >& symSup = eSupTemplate.symm.getMatrices();
+	const std::vector<SpaceGroupOp>& symSup = eSupTemplate.symm.getMatrices();
 	symSupCart.clear();
 	eSupTemplate.gInfo.invR = inv(eSupTemplate.gInfo.R);
-	for(const matrix3<int>& m: symSup)
-		symSupCart.push_back(eSupTemplate.gInfo.R * m * eSupTemplate.gInfo.invR);
+	for(const SpaceGroupOp& op: symSup)
+		symSupCart.push_back(eSupTemplate.gInfo.R * op.rot * eSupTemplate.gInfo.invR);
+	//TODO: Handle translations
 	
 	//Pick maximally symmetric orthogonal basis:
 	logPrintf("\nFinding maximally-symmetric orthogonal basis for displacements:\n");

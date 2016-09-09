@@ -375,9 +375,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	{	StartDump("sym")
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
-			const std::vector< matrix3<int> >& sym = e->symm.getMatrices();
-			for(const matrix3<int>& m: sym)
-			{	m.print(fp, "%2d ", false);
+			const std::vector<SpaceGroupOp>& sym = e->symm.getMatrices();
+			for(const SpaceGroupOp& op: sym)
+			{	op.rot.print(fp, "%2d ", false);
+				fprintf(fp, "%lg %lg %lg\n", op.a[0], op.a[1], op.a[2]);
 				fprintf(fp, "\n");
 			}
 			fclose(fp);

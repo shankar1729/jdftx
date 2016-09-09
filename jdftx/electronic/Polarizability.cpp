@@ -44,10 +44,10 @@ class PairDensityCalculator
 		
 		void initIndex(const Everything& e, const Basis& basis, const Supercell::KmeshTransform& kTransform)
 		{	invert = kTransform.invert;
-			const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym]) * kTransform.invert;
+			const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym].rot) * kTransform.invert;
 			std::vector<int> indexVec(basis.nbasis);
 			for(unsigned j=0; j<basis.nbasis; j++)
-				indexVec[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset);
+				indexVec[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset); //TODO: Handle Space Group (and simplify using ColumnBundleTransform)
 			#ifdef GPU_ENABLED
 			cudaMalloc(&index, sizeof(int)*indexVec.size());
 			cudaMemcpy(index, indexVec.data(), sizeof(int)*indexVec.size(), cudaMemcpyHostToDevice);

@@ -73,7 +73,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		//--- Copy over base class KMeshTransform:
 		(Supercell::KmeshTransform&)ki.point = src;
 		//--- Initialize base class QuantumNumber:
-		ki.point.k = (~sym[src.iSym]) * (src.invert * qnums[src.iReduced].k) + src.offset;
+		ki.point.k = (~sym[src.iSym].rot) * (src.invert * qnums[src.iReduced].k) + src.offset;
 		ki.point.weight = 1./kMesh.size();
 		ki.point.spin = 0;
 		kpoints.insert(ki.point);

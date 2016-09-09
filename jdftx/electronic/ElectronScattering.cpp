@@ -197,7 +197,7 @@ void ElectronScattering::dump(const Everything& everything)
 	basis.setup(e.gInfo, e.iInfo, EcutEff, vector3<>());
 	logResume();
 	ColumnBundleTransform::BasisWrapper basisWrapper(basis);
-	std::vector<matrix3<int>> sym = e.symm.getMatrices();
+	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const vector3<>& k = supercell->kmesh[ik];
 		for(const QuantumNumber& qnum: qmesh)

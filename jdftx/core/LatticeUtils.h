@@ -67,7 +67,7 @@ struct Supercell
 	//! symmetry-reduced k-point mesh and list of symmetries
 	Supercell(const GridInfo& gInfo,
 		const std::vector<vector3<>>& kmeshReduced,
-		const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList);
+		const std::vector<SpaceGroupOp>& sym, const std::vector<int>& invertList);
 };
 
 //! Get a list of unit cells in a supercell, with duplicates added at the boundary to maintain symmetry

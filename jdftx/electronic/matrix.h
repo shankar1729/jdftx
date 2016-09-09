@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <core/ManagedMemory.h>
-#include <core/matrix3.h>
 #include <core/scaled.h>
 #include <core/GridInfo.h>
 #include <gsl/gsl_cblas.h>

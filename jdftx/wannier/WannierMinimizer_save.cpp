@@ -458,7 +458,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				callPref(eblas_copy)(pSub.dataPref()+pSub.index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
 			}
 			//Store with spatial transformation:
-			matrix rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym] * e.gInfo.invR)); //cartesian symmetry matrix
+			matrix rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR)); //cartesian symmetry matrix
 			pSub = pSub * dagger(rot);
 			callPref(eblas_copy)(pWannierTilde.dataPref()+pWannierTilde.index(0,iqMine), pSub.dataPref(), pSub.nData());
 			iqMine++;

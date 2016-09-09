@@ -41,7 +41,7 @@ public:
 private:
 	friend class ExactExchange;
 	const Everything& e;
-	const std::vector< matrix3<int> >& sym; //!< symmetry matrices in lattice coordinates
+	const std::vector<SpaceGroupOp>& sym; //!< symmetry matrices in lattice coordinates
 	const std::vector<int>& invertList; //!< whether to add inversion explicitly over the symmetry group
 	int nSpins;
 	int nSpinor;
@@ -123,7 +123,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	for(unsigned iInvert=0; iInvert<invertList.size(); iInvert++)
 	for(unsigned iSym=0; iSym<sym.size(); iSym++)
 	{	KmapEntry& ki = kmap[kmapIndex(iReduced, iInvert, iSym)];
-		ki.k = e.eInfo.qnums[iReduced].k * sym[iSym] * invertList[iInvert];
+		ki.k = e.eInfo.qnums[iReduced].k * sym[iSym].rot * invertList[iInvert];
 		ki.basis.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, ki.k);
 		if(e.eInfo.isMine(iReduced) || e.eInfo.isMine(iReduced + qCount))
 			ki.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[iReduced].k, e.basis[iReduced],

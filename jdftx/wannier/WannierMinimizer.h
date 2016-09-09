@@ -98,7 +98,7 @@ protected:
 	friend struct WannierGradient;
 	const Everything& e;
 	const Wannier& wannier;
-	const std::vector< matrix3<int> >& sym;
+	const std::vector<SpaceGroupOp>& sym;
 	int nCenters, nFrozen, nBands; //!< number of Wannier centers (total and frozen) and source bands
 	int nSpins, qCount; //!< number of spins, and number of states per spin
 	int nSpinor; //!< number of spinor components

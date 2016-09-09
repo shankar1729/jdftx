@@ -40,18 +40,19 @@ ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(ba
 }
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
-	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const matrix3<int>& sym, int invert, const matrix3<int>& super)
+	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super)
 : basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
 {
 	//Check k-point transformation and determine offset
 	const matrix3<>& metricC = basisC.gInfo->RTR;
-	assert(nrm2(metricC - (~sym)*metricC*sym) < symmThreshold * nrm2(metricC)); //check symmetry
+	assert(nrm2(metricC - (~sym.rot)*metricC*sym.rot) < symmThreshold * nrm2(metricC)); //check symmetry
 	assert(abs(invert) == 1); //check inversion
 	assert(nrm2(basisC.gInfo->R * super - basisD.gInfo->R) < symmThreshold * nrm2(basisD.gInfo->R)); //check supercell
-	matrix3<int> affine = sym * invert * super; //net affine transformation
+	matrix3<int> affine = sym.rot * invert * super; //net affine transformation
 	double offsetErr;
 	vector3<int> offset = round(kC * affine - kD, &offsetErr);
 	assert(offsetErr < symmThreshold);
+	//TODO: Account for Space Group translation
 	
 	//Initialize index map:
 	index.resize(basisC.nbasis);
@@ -73,7 +74,7 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	switch(nSpinor)
 	{	case 1: spinorRot = eye(1); break;
 		case 2: 
-		{	spinorRot = Symmetries::getSpinorRotation(~(basisC.gInfo->R * sym * inv(basisC.gInfo->R)));
+		{	spinorRot = Symmetries::getSpinorRotation(~(basisC.gInfo->R * sym.rot * inv(basisC.gInfo->R)));
 			if(invert<0)
 			{	matrix sInvert = zeroes(2,2);
 				sInvert.set(0,1, 1.);

@@ -43,11 +43,11 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skip
 	logPrintf("\n--------- Lattice Minimization ---------\n");
 	
 	//Ensure that lattice-move-scale is commensurate with symmetries:
-	std::vector<matrix3<int>> sym = e.symm.getMatrices();
-	for(const matrix3<int>& m: sym)
+	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
+	for(const SpaceGroupOp& op: sym)
 		for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
-				if(m(i,j) && e.cntrl.lattMoveScale[i] != e.cntrl.lattMoveScale[j])
+				if(op.rot(i,j) && e.cntrl.lattMoveScale[i] != e.cntrl.lattMoveScale[j])
 					die("latt-move-scale is not commensurate with symmetries:\n"
 						"\t(Lattice vectors #%d and #%d are connected by symmetry,\n"
 						"\tbut have different move scale factors %lg != %lg).\n",
@@ -74,9 +74,9 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skip
 		}
 		//Symmetrize:
 		matrix3<int> sSym;
-		for(const matrix3<int>& m: sym)
-		{	matrix3<int> mInv = det(m) * adjugate(m); //since |det(m)| = 1
-			sSym += mInv * s * m;
+		for(const SpaceGroupOp& op: sym)
+		{	matrix3<int> mInv = det(op.rot) * adjugate(op.rot); //since |det(rot)| = 1
+			sSym += mInv * s * op.rot;
 		}
 		//Orthonormalize w.r.t previous basis elements:
 		matrix3<> strain(sSym); //convert from integer to double matrix

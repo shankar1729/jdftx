@@ -88,7 +88,7 @@ public:
 	//! If S is specified and is too small for the given Gmax, the call will abort.
 	//! If skipHeader=true, the "initializing the grid" banner will be supressed (useful for auxiliary grids in calculation)
 	//! If sym is specified, then auto-computed S will be ensured commensurate with those symmetries
-	void initialize(bool skipHeader=false, const std::vector< matrix3<int> > sym = std::vector< matrix3<int> >(1, matrix3<int>(1,1,1)));
+	void initialize(bool skipHeader=false, const std::vector<SpaceGroupOp> sym = std::vector<SpaceGroupOp>(1, SpaceGroupOp()));
 
 	double detR; //!< cell volume
 	matrix3<> RT, RTR, invR, invRT, invRTR; //!< various combinations of lattice-vectors

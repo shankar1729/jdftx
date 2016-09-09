@@ -95,7 +95,7 @@ std::vector<matrix3<int>> getSymmetries(const matrix3<>& R, vector3<bool> isTrun
 
 Supercell::Supercell(const GridInfo& gInfo,
 	const std::vector<vector3<>>& kmeshReduced,
-	const std::vector<matrix3<int>>& sym, const std::vector<int>& invertList)
+	const std::vector<SpaceGroupOp>& sym, const std::vector<int>& invertList)
 : gInfo(gInfo)
 {
 	logPrintf("\n----- Initializing Supercell corresponding to k-point mesh -----\n");
@@ -106,7 +106,7 @@ Supercell::Supercell(const GridInfo& gInfo,
 		for(unsigned iReduced=0; iReduced<kmeshReduced.size(); iReduced++)
 		{	const vector3<>& kOrig = kmeshReduced[iReduced];
 			for(unsigned iSym=0; iSym<sym.size(); iSym++)
-			{	const matrix3<int>& m = sym[iSym];
+			{	const matrix3<int>& m = sym[iSym].rot;
 				vector3<> k = (~m) * kOrig * invert;
 				//Reduce to centered zone (each reciprocal lattice coord in [-0.5,0.5))
 				vector3<int> offset;

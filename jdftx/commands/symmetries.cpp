@@ -29,23 +29,19 @@ struct CommandSymmetries : public Command
 {
 	CommandSymmetries() : Command("symmetries", "jdftx/Miscellaneous")
 	{
-		format = "<symm>=" + symmMap.optionList() + " <moveAtoms>=" + boolMap.optionList();
+		format = "<symm>=" + symmMap.optionList();
 		comments = "+ none: symmetries are off\n"
 			"+ automatic: automatic calculation of symmetries (default)\n"
-			"+ manual: symmetries specified using symmetry-matrix command\n"
-			"\n"
-			"If <moveAtoms>=yes, check if symmetries could be increased by translating\n"
-			"all the atoms, and quit after suggesting the translated positions.";
+			"+ manual: symmetries specified using symmetry-matrix command.";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.symm.mode, SymmetriesAutomatic, symmMap, "symm");
-		pl.get(e.symm.shouldMoveAtoms, false, boolMap, "moveAtoms");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%s %s", symmMap.getString(e.symm.mode), boolMap.getString(e.symm.shouldMoveAtoms));
+	{	logPrintf("%s", symmMap.getString(e.symm.mode));
 	}
 }
 commandSymmetries;
@@ -55,9 +51,11 @@ struct CommandSymmetryMatrix : public Command
 {
 	CommandSymmetryMatrix() : Command("symmetry-matrix", "jdftx/Miscellaneous")
 	{
-		format = " \\\n\t<s00> <s01> <s02> \\\n\t<s10> <s11> <s12> \\\n\t<s20> <s21> <s22>";
-		comments = "Specify symmetry operator matrices explicitly.\n"
-			"Requires symmetries command to be called with manual argument";
+		format = " \\\n\t<s00> <s01> <s02> \\\n\t<s10> <s11> <s12> \\\n\t<s20> <s21> <s22> \\\n\t<a0> <a1> <a2>";
+		comments = "Specify symmetry operator matrices explicitly. The top 3 x 3 block\n"
+			"contains the integer rotation matrix in lattice coordinates, while the\n"
+			"final row contains the subsequent translation in lattice coordinates.\n"
+			"Requires symmetries command to be called with manual argument.";
 		allowMultiple = true;
 
 		require("symmetries");
@@ -67,19 +65,25 @@ struct CommandSymmetryMatrix : public Command
 	{	if(e.symm.mode != SymmetriesManual)
 			throw string("symmetry-matrix needs symmetries to be called with \"manual\"");
 
-		matrix3<int> m;
+		SpaceGroupOp op;
 		for(int j=0; j<3; j++) for(int k=0; k<3; k++)
 		{	ostringstream oss; oss << "s" << j << k;
-			pl.get(m(j,k), 0, oss.str(), true);
+			pl.get(op.rot(j,k), 0, oss.str(), true);
 		}
-		e.symm.sym.push_back(m);
+		for(int k=0; k<3; k++)
+		{	ostringstream oss; oss << "a" << k;
+			pl.get(op.a[k], 0., oss.str(), true);
+		}
+		e.symm.sym.push_back(op);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	for (int j=0; j < 3; j++)
 		{	logPrintf(" \\\n\t");
-			for (int k=0; k < 3; k++) logPrintf("%d ",e.symm.sym[iRep](j,k));
+			for(int k=0; k<3; k++) logPrintf("%d ",e.symm.sym[iRep].rot(j,k));
 		}
+		logPrintf(" \\\n\t");
+		for(int k=0; k<3; k++) logPrintf("%lg ",e.symm.sym[iRep].a[k]);
 	}
 }
 commandSymmetryMatrix;

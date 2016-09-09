@@ -47,7 +47,7 @@ public:
 	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a scalar field
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
-	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
+	const std::vector<SpaceGroupOp>& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector<matrix>& getSphericalMatrices(int l, bool relativistic) const; //!< directly access the symmetry matrices (in Ylm or spin-angle basis at specified l, depending on relativistic)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
 	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
@@ -56,7 +56,8 @@ public:
 	static matrix getSpinorRotation(const matrix3<>& rot); //calculate spinor rotation from Cartesian rotation matrix
 private:
 	const Everything* e;
-	std::vector< matrix3<int> > sym; //!< symmetry matrices in covariant lattice coordinates
+	
+	std::vector<SpaceGroupOp> sym; //!< set of space group operations
 	std::vector< std::vector<matrix> > symSpherical; //!< symmetry matrices for real-Ylm basis objects
 	std::vector< std::vector<matrix> > symSpinAngle; //!< symmetry matrices for spin-angle-function basis objects (relativistic version of symSpherical)
 	
@@ -67,12 +68,11 @@ private:
 	friend struct CommandDebug;
 	
 	bool shouldPrintMatrices;
-	bool shouldMoveAtoms;
 	
 	void calcSymmetries(); //!< Calculate symmetries of the entire system
 	
-	//! Find subgroup of lattice symmetries for the lattice with basis (optionally offset by some amount)
-	std::vector< matrix3<int> > basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset=vector3<>()) const; 
+	//! Find space group for the lattice with basis, given the point group symmetries of lattice alone
+	std::vector<SpaceGroupOp> findSpaceGroup(const std::vector< matrix3<int> >& symLattice) const; 
 
 	void sortSymmetries(); //!< ensure that the first symmetry is identity
 	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries

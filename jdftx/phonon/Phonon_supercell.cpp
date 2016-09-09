@@ -94,7 +94,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	for(int nq: nqPrev) assert(nq == prodSup); //each supercell k-point must be mapped to prod(sup) unit cell kpoints
 	
 	//Map corresponding basis objects:
-	std::vector< matrix3<int> > sym = e.symm.getMatrices();
+	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 	{	ColumnBundleTransform::BasisWrapper basisSupWrapper(eSup->basis[qSup]);
 		const vector3<>& kSup = eSup->eInfo.qnums[qSup].k;
