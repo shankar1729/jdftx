@@ -48,7 +48,6 @@ public:
 	void symmetrize(IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector< matrix3<int> >& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
-	const std::vector< matrix3<int> >& getMeshMatrices() const; //!< directly access the symmetry matrices (in mesh coords)
 	const std::vector<matrix>& getSphericalMatrices(int l, bool relativistic) const; //!< directly access the symmetry matrices (in Ylm or spin-angle basis at specified l, depending on relativistic)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)
 	const std::vector<std::vector<std::vector<int> > >& getAtomMap() const; //!< direct access to mapping of each atom under each symmetry matrix (index order species, atom, symmetry)
@@ -58,7 +57,6 @@ public:
 private:
 	const Everything* e;
 	std::vector< matrix3<int> > sym; //!< symmetry matrices in covariant lattice coordinates
-	std::vector< matrix3<int> > symMesh; //!< symmetry matrices in covariant mesh coordinates (lattice / sample counts)
 	std::vector< std::vector<matrix> > symSpherical; //!< symmetry matrices for real-Ylm basis objects
 	std::vector< std::vector<matrix> > symSpinAngle; //!< symmetry matrices for spin-angle-function basis objects (relativistic version of symSpherical)
 	
@@ -77,7 +75,7 @@ private:
 	std::vector< matrix3<int> > basisReduce(const std::vector< matrix3<int> >& symLattice, vector3<> offset=vector3<>()) const; 
 
 	void sortSymmetries(); //!< ensure that the first symmetry is identity
-	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries (and generate symMesh)
+	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries
 	void checkSymmetries() const; //!< check validity of manually specified symmetry matrices
 	
 	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space

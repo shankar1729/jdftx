@@ -233,9 +233,6 @@ void Symmetries::symmetrizeSpherical(matrix& X, const SpeciesInfo* specie) const
 const std::vector< matrix3<int> >& Symmetries::getMatrices() const
 {	return sym;
 }
-const std::vector< matrix3<int> >& Symmetries::getMeshMatrices() const
-{	return symMesh;
-}
 
 const std::vector<matrix>& Symmetries::getSphericalMatrices(int l, bool relativistic) const
 {	if(l>lMaxSpherical) die("l=%d > lMax=%d supported for density matrix symmetrization\n", l, lMaxSpherical);
@@ -493,16 +490,15 @@ void Symmetries::sortSymmetries()
 
 void Symmetries::checkFFTbox()
 {	const vector3<int>& S = e->gInfo.S;
-	symMesh.resize(sym.size());
 	for(unsigned iRot = 0; iRot<sym.size(); iRot++)
 	{	//the mesh coordinate symmetry matrices are Diag(S) * m * Diag(inv(S))
 		//and these must be integral for the mesh to be commensurate:
-		symMesh[iRot] = Diag(S) * sym[iRot];
+		matrix3<int> mMesh = Diag(S) * sym[iRot];
 		//Right-multiply by Diag(inv(S)) and ensure integer results:
 		for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
-				if(symMesh[iRot](i,j) % S[j] == 0)
-					symMesh[iRot](i,j) /= S[j];
+				if(mMesh(i,j) % S[j] == 0)
+					mMesh(i,j) /= S[j];
 				else
 				{	logPrintf("FFT box not commensurate with symmetry matrix:\n");
 					sym[iRot].print(globalLog, " %2d ");

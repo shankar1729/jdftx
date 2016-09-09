@@ -2,6 +2,10 @@
 
 ## Unreleased ##
 
++ Switched to reciprocal-space symmetrization of scalar fields
+
++ Added MPI and noncollinear support to exact exchange
+
 + Adjusted automatic FFT grid selection to be supercell-consistent
   i.e. minimum grid dimensions of unit cell, when multiplied by supercell count,
   will satisfy minimum grid dimensions for corresponding supercell at same plane-wave cutoff.
