@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/BlasExtra.h>
+#include <core/BlasExtra_internal.h>
 #include <cstring>
 
 void eblas_lincomb_sub(int iMin, int iMax,
@@ -71,35 +72,23 @@ void eblas_zgemm(
 	#endif
 }
 
-template<typename scalar, typename scalar2, bool conjugate> void eblas_scatter_axpy_sub(size_t iStart, size_t iStop, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	if(conjugate) { for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * conj(x[i]); }
-	else { for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * x[i]; }
+template<typename scalar, typename scalar2, typename Conjugator>
+void eblas_scatter_axpy_sub(size_t iStart, size_t iStop, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator)
+{	for(size_t i=iStart; i<iStop; i++) y[index[i]] += a * conjugator(x,i, w,i);
 }
-template<typename scalar, typename scalar2, bool conjugate> void eblas_scatter_axpy(const int Nindex, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	threadLaunch((Nindex<100000) ? 1 : 0, eblas_scatter_axpy_sub<scalar, scalar2, conjugate>, Nindex, a, index, x, y);
+template<typename scalar, typename scalar2, typename Conjugator>
+void eblas_gather_axpy_sub(size_t iStart, size_t iStop, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator)
+{	for(size_t i=iStart; i<iStop; i++) y[i] += a * conjugator(x,index[i], w,i);
 }
-template<typename scalar, typename scalar2> void eblas_scatter_axpy(const int Nindex, scalar2 a, const int* index, const scalar* x, scalar* y, bool conjugate=false)
-{	if(conjugate) eblas_scatter_axpy<scalar,scalar2,true>(Nindex, a, index, x, y);
-	else eblas_scatter_axpy<scalar,scalar2,false>(Nindex, a, index, x, y);
-}
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate)  { eblas_scatter_axpy<complex,double>(Nindex, a, index, x, y, conjugate); }
-void eblas_scatter_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate)  { eblas_scatter_axpy<complex,complex>(Nindex, a, index, x, y, conjugate); }
-void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_scatter_axpy<double,double>(Nindex, a, index, x, y); }
-
-template<typename scalar, typename scalar2, bool conjugate> void eblas_gather_axpy_sub(size_t iStart, size_t iStop, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	if(conjugate) { for(size_t i=iStart; i<iStop; i++) y[i] += a * conj(x[index[i]]); }
-	else { for(size_t i=iStart; i<iStop; i++) y[i] += a * x[index[i]]; }
-}
-template<typename scalar, typename scalar2, bool conjugate> void eblas_gather_axpy(const int Nindex, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	threadLaunch((Nindex<100000) ? 1 : 0, eblas_gather_axpy_sub<scalar,scalar2,conjugate>, Nindex, a, index, x, y);
-}
-template<typename scalar, typename scalar2> void eblas_gather_axpy(const int Nindex, scalar2 a, const int* index, const scalar* x, scalar* y, bool conjugate=false)
-{	if(conjugate) eblas_gather_axpy<scalar,scalar2,true>(Nindex, a, index, x, y);
-	else eblas_gather_axpy<scalar,scalar2,false>(Nindex, a, index, x, y);
-}
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_gather_axpy<complex,double>(Nindex, a, index, x, y, conjugate); }
-void eblas_gather_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_gather_axpy<complex,complex>(Nindex, a, index, x, y, conjugate); }
-void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y) { eblas_gather_axpy<double,double>(Nindex, a, index, x, y); }
+#define DEFINE_SPARSE_AXPY_CPU_LAUNCHER(type) \
+	template<typename scalar, typename scalar2, typename Conjugator> \
+	void eblas_##type##_axpy(const int Nindex, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator) \
+	{	threadLaunch((Nindex<100000) ? 1 : 0, eblas_##type##_axpy_sub<scalar, scalar2, Conjugator>, Nindex, a, index, x, y, w, conjugator); \
+	}
+DEFINE_SPARSE_AXPY_CPU_LAUNCHER(scatter)
+DEFINE_SPARSE_AXPY_CPU_LAUNCHER(gather)
+DEFINE_SPARSE_AXPY(scatter,)
+DEFINE_SPARSE_AXPY(gather,)
 
 
 void eblas_accumNorm_sub(size_t iStart, size_t iStop, const double& a, const complex* x, double* y)

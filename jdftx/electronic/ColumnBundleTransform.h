@@ -68,8 +68,10 @@ private:
 	
 	//Index array:
 	std::vector<int> index; int* indexPref;
+	std::vector<complex> phase; complex* phasePref; //Bloch phase for space-group translation
 	#ifdef GPU_ENABLED
 	int* indexGpu;
+	complex* phaseGpu;
 	#endif
 
 	matrix spinorRot; //spinor space rotation

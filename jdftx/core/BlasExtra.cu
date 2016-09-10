@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/GpuKernelUtils.h>
-#include <core/scalar.h>
+#include <core/BlasExtra_internal.h>
 #include <algorithm>
 #include <cublas.h>
 #include <cfloat>
@@ -78,42 +78,27 @@ void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int 
 		alpha, (const double2*)A, lda, (const double2*)B, ldb, beta, (double2*)C, ldc);
 }
 
-template<typename scalar, typename scalar2, bool conjugate> __global__ void eblas_scatter_axpy_kernel(const int N, scalar2 a, const int* index, const scalar* x, scalar* y)
+template<typename scalar, typename scalar2, typename Conjugator> __global__ 
+void eblas_scatter_axpy_kernel(const int N, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator)
 {	int i = kernelIndex1D();
-	if(conjugate) { if(i<N) y[index[i]] += a * conj(x[i]); }
-	else { if(i<N) y[index[i]] += a * x[i]; }
+	if(i<N) y[index[i]] += a * conjugator(x,i, w,i);
 }
-template<typename scalar, typename scalar2, bool conjugate> void eblas_scatter_axpy_gpu(const int N, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	GpuLaunchConfig1D glc(eblas_scatter_axpy_kernel<scalar,scalar2,conjugate>, N);
-	eblas_scatter_axpy_kernel<scalar,scalar,conjugate><<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
-	gpuErrorCheck();
-}
-template<typename scalar, typename scalar2> void eblas_scatter_axpy_gpu(const int N, scalar2 a, const int* index, const scalar* x, scalar* y, bool conjugate=false)
-{	if(conjugate) eblas_scatter_axpy_gpu<scalar,scalar2,true>(N,a,index,x,y);
-	else eblas_scatter_axpy_gpu<scalar,scalar2,false>(N,a,index,x,y);
-}
-void eblas_scatter_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_scatter_axpy_gpu<complex,double>(N, a, index, x, y, conjugate); }
-void eblas_scatter_zaxpy_gpu(const int N, complex a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_scatter_axpy_gpu<complex,complex>(N, a, index, x, y, conjugate); }
-void eblas_scatter_daxpy_gpu(const int N, double a, const int* index, const double* x, double* y) { eblas_scatter_axpy_gpu<double>(N, a, index, x, y); }
-
-
-template<typename scalar, typename scalar2, bool conjugate> __global__ void eblas_gather_axpy_kernel(const int N, scalar2 a, const int* index, const scalar* x, scalar* y)
+template<typename scalar, typename scalar2, typename Conjugator> __global__
+void eblas_gather_axpy_kernel(const int N, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator)
 {	int i = kernelIndex1D();
-	if(conjugate) { if(i<N) y[i] += a * conj(x[index[i]]); }
-	else { if(i<N) y[i] += a * x[index[i]]; }
+	if(i<N) y[i] += a * conjugator(x,index[i], w,i);
 }
-template<typename scalar, typename scalar2, bool conjugate> void eblas_gather_axpy_gpu(const int N, scalar2 a, const int* index, const scalar* x, scalar* y)
-{	GpuLaunchConfig1D glc(eblas_gather_axpy_kernel<scalar,scalar2,conjugate>, N);
-	eblas_gather_axpy_kernel<scalar,scalar2,conjugate><<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y);
-	gpuErrorCheck();
-}
-template<typename scalar, typename scalar2> void eblas_gather_axpy_gpu(const int N, scalar2 a, const int* index, const scalar* x, scalar* y, bool conjugate=false)
-{	if(conjugate) eblas_gather_axpy_gpu<scalar,scalar2,true>(N,a,index,x,y);
-	else eblas_gather_axpy_gpu<scalar,scalar2,false>(N,a,index,x,y);
-}
-void eblas_gather_zdaxpy_gpu(const int N, double a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_gather_axpy_gpu<complex,double>(N, a, index, x, y, conjugate); }
-void eblas_gather_zaxpy_gpu(const int N, complex a, const int* index, const complex* x, complex* y, bool conjugate) { eblas_gather_axpy_gpu<complex,complex>(N, a, index, x, y, conjugate); }
-void eblas_gather_daxpy_gpu(const int N, double a, const int* index, const double* x, double* y) { eblas_gather_axpy_gpu<double,double>(N, a, index, x, y); }
+#define DEFINE_SPARSE_AXPY_GPU_LAUNCHER(type) \
+	template<typename scalar, typename scalar2, typename Conjugator> \
+	void eblas_##type##_axpy_gpu(const int N, scalar2 a, const int* index, const scalar* x, scalar* y, const scalar* w, const Conjugator& conjugator) \
+	{	GpuLaunchConfig1D glc(eblas_##type##_axpy_kernel<scalar,scalar2,Conjugator>, N); \
+		eblas_##type##_axpy_kernel<scalar,scalar,Conjugator><<<glc.nBlocks,glc.nPerBlock>>>(N, a, index, x, y, w, conjugator); \
+		gpuErrorCheck(); \
+	}
+DEFINE_SPARSE_AXPY_GPU_LAUNCHER(scatter)
+DEFINE_SPARSE_AXPY_GPU_LAUNCHER(gather)
+DEFINE_SPARSE_AXPY(scatter, _gpu)
+DEFINE_SPARSE_AXPY(gather, _gpu)
 
 
 __global__

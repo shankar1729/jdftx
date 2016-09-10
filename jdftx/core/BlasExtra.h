@@ -132,12 +132,14 @@ void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int 
 //! @param index 0-based index array (with length at least Nindex)
 //! @param x Input array that is sampled consecutively (with length at least Nindex)
 //! @param y Output array that is sampled with the index array (with length at least max(index)+1)
-//! @param conjugate If true, accumulate from conj(x) instead of x
-void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate=false);
+//! @param conjx If true, use conj(x) instead of x
+//! @param w Optional array that is sampled consecutively and multiplies x elementwise
+//! @param conjw If true, use conj(w) instead of w
+void eblas_scatter_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_scatter_zdaxpy() with a complex scale factor
-void eblas_scatter_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_scatter_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_scatter_zdaxpy() for real data arrays
-void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y);
+void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const double* x, double* y, const double* w=0);
 
 //! @brief Gather y += a * x(index)
 //! @param Nindex Length of index array
@@ -145,26 +147,28 @@ void eblas_scatter_daxpy(const int Nindex, double a, const int* index, const dou
 //! @param index 0-based index array (with length at least Nindex)
 //! @param x Input array that is sampled with the index array (with length at least max(index)+1)
 //! @param y Output array that is sampled consecutively (with length at least Nindex)
-//! @param conjugate If true, accumulate from conj(x) instead of x
-void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate=false);
+//! @param conjx If true, use conj(x) instead of x
+//! @param w Optional array that is sampled consecutively and multiplies x elementwise
+//! @param conjw If true, use conj(w) instead of w
+void eblas_gather_zdaxpy(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_gather_zdaxpy() with a complex scale factor
-void eblas_gather_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_gather_zaxpy(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_scatter_zdaxpy() for real data arrays
-void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y);
+void eblas_gather_daxpy(const int Nindex, double a, const int* index, const double* x, double* y, const double* w=0);
 
 #ifdef GPU_ENABLED
 //! @brief Equivalent of eblas_scatter_zdaxpy() for GPU data pointers
-void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_scatter_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_scatter_zaxpy() for GPU data pointers
-void eblas_scatter_zaxpy_gpu(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_scatter_zaxpy_gpu(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_scatter_daxpy() for GPU data pointers
-void eblas_scatter_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y);
+void eblas_scatter_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y, const double* w=0);
 //! @brief Equivalent of eblas_gather_zdaxpy() for GPU data pointers
-void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_gather_zdaxpy_gpu(const int Nindex, double a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_gather_zaxpy() for GPU data pointers
-void eblas_gather_zaxpy_gpu(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjugate=false);
+void eblas_gather_zaxpy_gpu(const int Nindex, complex a, const int* index, const complex* x, complex* y, bool conjx=false, const complex* w=0, bool conjw=false);
 //! @brief Equivalent of eblas_gather_daxpy() for GPU data pointers
-void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y);
+void eblas_gather_daxpy_gpu(const int Nindex, double a, const int* index, const double* x, double* y, const double* w=0);
 #endif
 
 //! @brief Accumulate elementwise norm of a complex array x into y i.e. y += a x conj(x) 
