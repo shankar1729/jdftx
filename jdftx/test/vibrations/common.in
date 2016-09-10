@@ -5,7 +5,7 @@ ion-species GBRV/h_pbe_v1.uspp
 elec-cutoff 20 100
 
 coulomb-interaction isolated
-coulomb-truncation-embed 0 0 0
+coulomb-truncation-embed 0 -0.05 0.05
 
 electronic-scf
 
