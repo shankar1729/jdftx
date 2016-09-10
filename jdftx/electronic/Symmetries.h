@@ -87,6 +87,10 @@ private:
 	//Atom maps:
 	std::vector<std::vector<std::vector<int> > > atomMap;
 	void initAtomMaps();
+	
+	//Supercell handling (for phonon):
+	vector3<int> sup; //!< this is an exact supercell of some unit cell with this count and restrict space group to translations within that unit cell
+	friend class Phonon;
 };
 
 #endif // JDFTX_ELECTRONIC_SYMMETRIES_H

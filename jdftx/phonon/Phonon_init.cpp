@@ -143,13 +143,13 @@ void Phonon::setup(bool printDefaults)
 	}
 	
 	//Supercell symmetries:
+	eSupTemplate.symm.sup = sup; //restrict space group to translations within unit cell
 	eSupTemplate.symm.setup(eSupTemplate);
-	const std::vector<SpaceGroupOp>& symSup = eSupTemplate.symm.getMatrices();
+	symSup = eSupTemplate.symm.getMatrices();
 	symSupCart.clear();
 	eSupTemplate.gInfo.invR = inv(eSupTemplate.gInfo.R);
 	for(const SpaceGroupOp& op: symSup)
 		symSupCart.push_back(eSupTemplate.gInfo.R * op.rot * eSupTemplate.gInfo.invR);
-	//TODO: Handle translations
 	
 	//Pick maximally symmetric orthogonal basis:
 	logPrintf("\nFinding maximally-symmetric orthogonal basis for displacements:\n");
@@ -311,22 +311,23 @@ void Phonon::setup(bool printDefaults)
 		PeriodicLookup<QuantumNumber> plook(qnums, e.gInfo.GGT);
 		stateRot[iSpin].resize(symSupCart.size());
 		for(size_t iSym=0; iSym<symSupCart.size(); iSym++)
-		{	matrix3<> symUnitTmp = e.gInfo.invR * symSupCart[iSym] * e.gInfo.R; //in unit cell lattice coordinates
+		{	matrix3<> rotUnitTmp = e.gInfo.invR * symSupCart[iSym] * e.gInfo.R; //in unit cell lattice coordinates
 			#define SymmErrMsg \
 				"Supercell symmetries do not map unit cell k-point mesh onto itself.\n" \
 				"This implies that the supercell is more symmetric than the unit cell!\n" \
 				"Please check to make sure that you have used the minimal unit cell.\n\n"
-			matrix3<int> symUnit;
+			SpaceGroupOp symUnit;
 			for(int j1=0; j1<3; j1++)
 				for(int j2=0; j2<3; j2++)
-				{	symUnit(j1,j2) = round(symUnitTmp(j1,j2));
-					if(fabs(symUnit(j1,j2) - symUnitTmp(j1,j2)) > symmThreshold)
+				{	symUnit.rot(j1,j2) = round(rotUnitTmp(j1,j2));
+					if(fabs(symUnit.rot(j1,j2) - rotUnitTmp(j1,j2)) > symmThreshold)
 						die(SymmErrMsg)
 				}
+			symUnit.a = Diag(sup) * symSup[iSym].a;
 			//Find image kpoints under rotation: (do this for all k-points so that all processes exit together if necessary)
 			std::vector<int> ikRot(prodSup);
 			for(int ik=0; ik<prodSup; ik++)
-			{	size_t ikRotCur = plook.find(qnums[ik].k * symUnit);
+			{	size_t ikRotCur = plook.find(qnums[ik].k * symUnit.rot);
 				if(ikRotCur==string::npos) die(SymmErrMsg)
 				ikRot[ik] = ikRotCur;
 			}
@@ -348,6 +349,7 @@ void Phonon::setup(bool printDefaults)
 					{	//Update energy range of validity:
 						EmaxValid = std::min(EmaxValid, e.eVars.Hsub_eigs[kpoints[ik].iReduced][nBandsValid]);
 						//Make valid subspace exactly unitary:
+						printf("nBands: %d  nBandsValid: %d\n", nBands, nBandsValid);
 						matrix UrotSub = Urot(0,nBandsValid, 0,nBandsValid);
 						matrix UrotOverlap = dagger(UrotSub) * UrotSub;
 						UrotSub = UrotSub * invsqrt(UrotOverlap); //make exactly unitary

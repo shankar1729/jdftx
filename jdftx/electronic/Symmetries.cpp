@@ -32,7 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 static const int lMaxSpherical = 3;
 
-Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1)
+Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), sup(vector3<int>(1,1,1))
 {	nSymmIndex = 0;
 	shouldPrintMatrices = false;
 }
@@ -340,7 +340,8 @@ void Symmetries::calcSymmetries()
 
 	//Find symmetries commensurate with atom positions:
 	sym = findSpaceGroup(symLattice);
-	logPrintf("Found %lu space-group symmetries with basis\n", sym.size());
+	logPrintf("Found %lu space-group symmetries with basis%s\n", sym.size(),
+		sup==vector3<int>(1,1,1) ? "" : " (with translations restricted to unit cells)"); //clarify constraint in phonon case
 	
 	//Find symmetries commensurate with external electric field (if any):
 	if(e->coulombParams.Efield.length_squared())
@@ -387,13 +388,17 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 			{
 				//Generate list of offsets that would work for current atom by itself:
 				std::vector<vector3<>> aCur;
+				PeriodicLookup<vector3<>> plook(aCur, (~e->gInfo.R) * e->gInfo.R);
 				vector3<> pos1rot = rot*sp->atpos[a1]; //rotated version of a1 position
 				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				for(size_t a2=0; a2<sp->atpos.size(); a2++)
 					if( (!M) || magMomEquivalent(M1rot, (*M)[a2]) )
-					{	vector3<> dpos = sp->atpos[a2] - pos1rot;
+					{	vector3<> dpos = Diag(sup) * (sp->atpos[a2] - pos1rot); //note in unit cell coordinates (matters if this is a phonon supercell)
 						for(int k=0; k<3; k++) dpos[k] -= floor(0.5+dpos[k]); //wrap offset to base cell
-						aCur.push_back(dpos);
+						if(plook.find(dpos) == string::npos) //keep offsets unique modulo unit cell (rather than supercell in the phonon case)
+						{	plook.addPoint(aCur.size(), dpos);
+							aCur.push_back(dpos);
+						}
 					}
 				
 				//Intersect current candidates with global list:
@@ -404,8 +409,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 				}
 				std::vector<vector3<>> aNext; //intersection results
 				if(aCur.size())
-				{	PeriodicLookup<vector3<>> plook(aCur, (~e->gInfo.R) * e->gInfo.R);
-					for(vector3<> a: aArr)
+				{	for(vector3<> a: aArr)
 						if(plook.find(a) != string::npos)
 							aNext.push_back(a);
 				}
@@ -418,7 +422,8 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 		
 		//Refine offsets:
 		for(vector3<>& a: aArr)
-		{	vector3<> daSum; int nAtoms = 0.;
+		{	a = inv(Diag(vector3<>(sup))) * a; //switch offset back to current cell coordinates (matters if this is a phonon supercell)
+			vector3<> daSum; int nAtoms = 0.;
 			for(auto sp: e->iInfo.species) //For each species
 			{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 				const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;

@@ -66,6 +66,7 @@ private:
 	int nSpins, nSpinor; //number of explicit spins and spinor length
 	int nBandsOpt; //optimized number of bands, accounting for Fcut
 	int prodSup; //number of unit cells in supercell
+	std::vector<SpaceGroupOp> symSup; //Space group of unperturbed supercell (with translations restricted to unit cell)
 	std::vector< matrix3<> > symSupCart; //Cartesian symmetry rotation matrices for unperturbed supercell
 	std::vector< std::vector<BlockRotationMatrix> > stateRot; //Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
 	
