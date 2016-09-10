@@ -349,7 +349,6 @@ void Phonon::setup(bool printDefaults)
 					{	//Update energy range of validity:
 						EmaxValid = std::min(EmaxValid, e.eVars.Hsub_eigs[kpoints[ik].iReduced][nBandsValid]);
 						//Make valid subspace exactly unitary:
-						printf("nBands: %d  nBandsValid: %d\n", nBands, nBandsValid);
 						matrix UrotSub = Urot(0,nBandsValid, 0,nBandsValid);
 						matrix UrotOverlap = dagger(UrotSub) * UrotSub;
 						UrotSub = UrotSub * invsqrt(UrotOverlap); //make exactly unitary
