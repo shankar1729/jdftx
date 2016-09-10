@@ -536,12 +536,17 @@ void Symmetries::checkFFTbox()
 	if(e->coulombParams.embed)
 	{	const vector3<>& c = e->coulombParams.embedCenter;
 		for(const SpaceGroupOp& op: sym)
-			if(circDistanceSquared(c, op.rot*c + op.a) > symmThresholdSq)
+		{	vector3<> cRot = op.rot*c + op.a;
+			for(int dir=0; dir<3; dir++)
+				if(!e->coulombParams.isTruncated()[dir])
+					cRot[dir] = c[dir]; //don't need invariance in periodic directions
+			if(circDistanceSquared(c, cRot) > symmThresholdSq)
 			{	logPrintf("Coulomb truncation embedding center is not invariant under symmetry matrix:\n");
 				op.rot.print(globalLog, " %2d ");
 				op.a.print(globalLog, " %lg ");
 				die("Coulomb truncation embedding center is not invariant under symmetries.\n");
 			}
+		}
 		
 		//Find the nearest grid point to embedCenter that is commensurate with symmetries:
 		vector3<int> iv0; for(int k=0; k<3; k++) iv0[k] = round(c[k]*S[k]);
