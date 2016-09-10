@@ -41,7 +41,7 @@ ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(ba
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
 	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super)
-: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
+: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert), phasePref(0)
 {
 	//Check k-point transformation and determine offset
 	const matrix3<>& metricC = basisC.gInfo->RTR;
@@ -52,7 +52,6 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	double offsetErr;
 	vector3<int> offset = round(kC * affine - kD, &offsetErr);
 	assert(offsetErr < symmThreshold);
-	//TODO: Account for Space Group translation
 	
 	//Initialize index map:
 	index.resize(basisC.nbasis);
@@ -69,6 +68,22 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	#else
 	indexPref = index.data();
 	#endif
+	
+	//Initialize translation phase (if necessary)
+	if(sym.a.length_squared())
+	{	phase.resize(basisC.nbasis);
+		for(size_t n=0; n<basisC.nbasis; n++)
+		{	const vector3<int>& iG_C = basisC.iGarr[n];
+			phase[n] = cis((2*M_PI)*dot(iG_C + kC, sym.a));
+		}
+		#ifdef GPU_ENABLED
+		cudaMalloc(&phaseGpu, sizeof(int)*phase.size()); gpuErrorCheck();
+		cudaMemcpy(phaseGpu, phase.data(), sizeof(int)*phase.size(), cudaMemcpyHostToDevice); gpuErrorCheck();
+		phasePref = phaseGpu;
+		#else
+		phasePref = phase.data();
+		#endif
+	}
 	
 	//Initialize spinor transformation:
 	switch(nSpinor)
@@ -103,7 +118,8 @@ void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, 
 		for(int sC=0; sC<nSpinor; sC++)
 			callPref(eblas_scatter_zaxpy)(index.size(), alpha*spinorRot(sD,sC), indexPref,
 				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis),
-				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis), invert<0 );
+				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis), invert<0,
+				phasePref, false);
 }
 
 void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, int bD, ColumnBundle& C_C, int bC) const
@@ -116,7 +132,8 @@ void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, i
 		for(int sC=0; sC<nSpinor; sC++)
 			callPref(eblas_gather_zaxpy)(index.size(), alpha*spinorRotInv(sC,sD), indexPref,
 				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis),
-				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis), invert<0 );
+				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis), invert<0,
+				phasePref, !(invert < 0));
 }
 
 void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, ColumnBundle& C_D, int bDstart, int bDstep) const
