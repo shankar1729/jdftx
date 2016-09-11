@@ -1,8 +1,9 @@
 include ${SRCDIR}/common.in
 
 #Slightly randomized ionic positions to check geometry optimization
-ion H   0  0.1  0.7  1
-ion H   0 -0.2 -0.6  1
+#Also sraddling truncation boundary to check embedded COulomb truncation
+ion H   0  6.1  0.7  1
+ion H   0  5.8 -0.6  1
 
 ionic-minimize nIterations 10
 dump End IonicPositions

@@ -547,36 +547,6 @@ void Symmetries::checkFFTbox()
 				die("Coulomb truncation embedding center is not invariant under symmetries.\n");
 			}
 		}
-		
-		//Find the nearest grid point to embedCenter that is commensurate with symmetries:
-		vector3<int> iv0; for(int k=0; k<3; k++) iv0[k] = round(c[k]*S[k]);
-		matrix3<> invDiagS = inv(Diag(vector3<>(S)));
-		vector3<int> dv;
-		bool done = false;
-		for(int d=0; d<=(S[0]+S[1]+S[2])/2+1 && !done; d++) //search outwards (sorted by a Manhattan metric)
-			for(dv[0]=-d; dv[0]<=d && !done; dv[0]++)
-			{	int d0 = d - abs(dv[0]);
-				for(dv[1]=-d0; dv[1]<=d0 && !done; dv[1]++)
-				{	int d1 = d0 - abs(dv[1]);
-					for(dv[2]=-d1; dv[2]<=d1 && !done; dv[2]+=2*std::max(1,d1)) //only points that satisfy abs(dv[0])+abs(dv[1])+abs(dv[2])==d
-					{	vector3<int> iv = iv0 + dv;
-						vector3<> x = invDiagS * iv;
-						bool valid = true;
-						for(const SpaceGroupOp& op: sym)
-							if(circDistanceSquared(x, op.rot*x + op.a) > symmThresholdSq)
-							{	valid = false;
-								break;
-							}
-						if(valid)
-						{	((CoulombParams&)e->coulombParams).embedCenter = x;
-							done = true; //terminate the search (4 loops)
-						}
-					}
-				}
-			}
-		if(!done)
-			die("Could not find a (integer) grid point to use as the truncation embedding center that\n"
-				"is invariant under symmetries. HINT: center on the origin, or disable symmetries.\n");
 	}
 }
 

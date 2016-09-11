@@ -51,7 +51,8 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 	planarAvg(epsInvTilde, iDir);
 	//Fix values of epsilon near truncation boundary to 1:
 	ScalarField epsInv = I(epsInvTilde);
-	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, e.coulomb->ivCenter[iDir] + e.gInfo.S[iDir]/2, epsInv->data());
+	int iBoundary = int(round((e.coulomb->xCenter[iDir]+0.5) * e.gInfo.S[iDir]));
+	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, iBoundary, epsInv->data());
 	//Apply smoothing:
 	epsInv = I(gaussConvolve(J(epsInv), sigma));
 	//Write file:

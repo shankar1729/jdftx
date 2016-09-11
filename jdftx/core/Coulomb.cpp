@@ -98,7 +98,7 @@ ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	ScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(in, true)->dataPref(), out->dataPref());
+	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(centerToO * in, true)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J(out);
 }
@@ -107,7 +107,7 @@ complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	complexScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I((complexScalarFieldTilde&&)in)->dataPref(), out->dataPref());
+	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I(Complex(centerToO) * ((complexScalarFieldTilde&&)in))->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J((complexScalarField&&)out);
 }
@@ -119,7 +119,7 @@ ScalarFieldTilde Coulomb::embedShrink(const ScalarFieldTilde& in) const
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	ScalarField out; nullToZero(out, gInfoOrig);
 	callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
-	return J(out);
+	return centerFromO * J(out);
 }
 
 complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
@@ -129,7 +129,7 @@ complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	complexScalarField out; nullToZero(out, gInfoOrig);
 	callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
-	return J((complexScalarField&&)out);
+	return Complex(centerFromO) * J((complexScalarField&&)out);
 }
 
 ScalarFieldTilde Coulomb::operator()(ScalarFieldTilde&& in, PointChargeMode pointChargeMode) const
@@ -232,10 +232,10 @@ ScalarField Coulomb::getEfieldPotential() const
 	else return ScalarField();
 }
 
-void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sembed, const vector3<int>& ivCenter, const WignerSeitz* ws, int* embedIndex)
+void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sembed, const WignerSeitz* ws, int* embedIndex)
 {	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
 	THREAD_rLoop
-	(	vector3<int> ivEmbed = ws->restrict(iv - ivCenter, S, invS); //wrapped relative coordinates to ivCenter, within WS cell of original mesh
+	(	vector3<int> ivEmbed = ws->restrict(iv, S, invS); //wrapped coordinates within WS cell of original mesh
 		for(int k=0; k<3; k++) //wrapped embedding mesh cooridnates within first fundamental domain:
 		{	ivEmbed[k] = ivEmbed[k] % Sembed[k];
 			if(ivEmbed[k]<0) ivEmbed[k] += Sembed[k];
@@ -246,7 +246,7 @@ void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const
 
 //Initialize index maps for symmetric points on the boundary
 //Note: in this case S is the double size mesh and Sorig is the smaller original mesh
-void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& Sorig, const vector3<int>& S, const vector3<int>& ivCenter,
+void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& Sorig, const vector3<int>& S,
 	const WignerSeitz* wsOrig, std::mutex* m, std::multimap<int,int>* boundaryMap)
 {	//Compute partial index map per thread:
 	std::multimap<int,int> bMap;
@@ -257,9 +257,7 @@ void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& S
 		vector3<> xOrig; for(int k=0; k<3; k++) xOrig[k] = ivWS[k] * invSorig[k]; //original lattice coordinates
 		if(wsOrig->onBoundary(xOrig))
 		{	for(int k=0; k<3; k++)
-			{	ivWS[k] = (ivWS[k] + ivCenter[k]) % Sorig[k];
-				if(ivWS[k] < 0) ivWS[k] += Sorig[k];
-			}
+				ivWS[k] = positiveRemainder(ivWS[k], Sorig[k]);
 			bMap.insert(std::pair<int,int>(ivWS[2]+Sorig[2]*(ivWS[1]+Sorig[1]*ivWS[0]), i));
 		}
 	)
@@ -274,7 +272,7 @@ inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, doub
 }
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
-: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig)
+: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter)
 {
 	if(params.embed)
 	{	//Initialize embedding grid:
@@ -287,19 +285,22 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 			embedScale[k] = 1./dimScale;
 		}
 		gInfoEmbed.initialize(true);
-		//Set embedCenter in mesh coordinates:
-		for(int k=0; k<3; k++)
-		{	ivCenter[k] = int(round(params.embedCenter[k] * gInfoOrig.S[k]));
-			xCenter[k] = ivCenter[k] * (1./gInfoOrig.S[k]);
-		}
+		//Report embedding center in various coordinate systems:
+		vector3<int> ivCenter;
+		for(int k=0; k<3; k++) //Convert to mesh coordinates (only used by createXSF to align scalar fields):
+			ivCenter[k] = int(round(xCenter[k] * gInfoOrig.S[k]));
+		vector3<> rCenter = gInfoOrig.R * xCenter; //Cartesian coordinates
 		logPrintf("Integer grid location selected as the embedding center:\n");
 		logPrintf("   Grid: "); ivCenter.print(globalLog, " %d ");
 		logPrintf("   Lattice: "); xCenter.print(globalLog, " %lg ");
-		logPrintf("   Cartesian: "); (gInfoOrig.R * xCenter).print(globalLog, " %lg ");
+		logPrintf("   Cartesian: "); rCenter.print(globalLog, " %lg ");
+		//Setup translation operators:
+		nullToZero(centerToO, gInfoOrig);   initTranslation(centerToO, -rCenter);
+		nullToZero(centerFromO, gInfoOrig); initTranslation(centerFromO, rCenter);
 		//Setup Wigner-Seitz cell of original mesh and initialize index map:
 		wsOrig = new WignerSeitz(gInfoOrig.R);
 		embedIndex = new int[gInfoOrig.nr];
-		threadLaunch(setEmbedIndex_sub, gInfoOrig.nr, gInfoOrig.S, gInfo.S, ivCenter, wsOrig, embedIndex);
+		threadLaunch(setEmbedIndex_sub, gInfoOrig.nr, gInfoOrig.S, gInfo.S, wsOrig, embedIndex);
 		#ifdef GPU_ENABLED
 		int* embedIndexCpu = embedIndex;
 		cudaMalloc(&embedIndex, sizeof(int)*gInfoOrig.nr);
@@ -309,7 +310,7 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		#endif
 		//Setup boundary symmetrization:
 		std::multimap<int,int> boundaryMap; std::mutex m;
-		threadLaunch(setEmbedBoundarySymm_sub, gInfo.nr, gInfoOrig.S, gInfo.S, ivCenter, wsOrig, &m, &boundaryMap);
+		threadLaunch(setEmbedBoundarySymm_sub, gInfo.nr, gInfoOrig.S, gInfo.S, wsOrig, &m, &boundaryMap);
 		std::map<int, std::vector<int> > symmEquiv; //for each n, n-fold symmetry equivalence classes of the boundary
 		for(auto iter=boundaryMap.begin(); iter!=boundaryMap.end();)
 		{	int count = 0;

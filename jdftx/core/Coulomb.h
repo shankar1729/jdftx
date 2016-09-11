@@ -160,8 +160,8 @@ protected:
 private:
 	//Data for mesh-embedded truncation:
 	GridInfo gInfoEmbed; //!< embedding grid - internal object initialized only if params.embed == true
-	vector3<int> ivCenter; //!< params.embedCenter in original grid mesh coordinates, rounded to closest grid point
-	vector3<> xCenter; //!< meshCenter in original grid lattice coordinates (differs from params.embedCenter only due to grid-point rounding)
+	const vector3<>& xCenter; //!< meshCenter in original grid lattice coordinates
+	ScalarFieldTilde centerToO, centerFromO; //!< translation operators that take center to / from origin
 	vector3<> embedScale; //!< lattiec coordinates scale factor for moving from original to embedding mesh
 	int* embedIndex; //!< list of indices from original mesh to larger mesh
 	std::vector< std::pair<int,int*> > symmIndex; //!< list of number of equivalence classes and corresponding indices per cardinality for boundary symmetrization
