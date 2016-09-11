@@ -304,6 +304,18 @@ void IonicMinimizer::constrain(IonicGradient& x)
 	double Dsq = dot(D,D);
 	if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
 
+	//Ensure zero total force:
+	vector3<> xSum; int nAtoms = 0;
+	for(const auto& x_sp: x)
+		for(const vector3<>& x_sp_at: x_sp)
+		{	xSum += x_sp_at;
+			nAtoms++;
+		}
+	vector3<> xMean = (1./nAtoms) * xSum;
+	for(auto& x_sp: x)
+		for(vector3<>& x_sp_at: x_sp)
+			x_sp_at -= xMean;
+	
 	SymmetrizeCartesian(x) //Symmetrize output
 	#undef SymmetrizeCartesian
 }
