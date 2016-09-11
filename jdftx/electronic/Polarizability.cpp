@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Polarizability.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/ColumnBundleTransform.h>
 #include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 #include <core/VectorField.h>
@@ -37,32 +38,18 @@ class PairDensityCalculator
 	struct State
 	{	const ColumnBundle* C;
 		const diagMatrix* eig;
-		int invert;
-		int* index;
+		std::shared_ptr<ColumnBundleTransform> transform;
 		
-		State() : index(0) {}
-		
-		void initIndex(const Everything& e, const Basis& basis, const Supercell::KmeshTransform& kTransform)
-		{	invert = kTransform.invert;
-			const matrix3<int> mRot = (~e.symm.getMatrices()[kTransform.iSym].rot) * kTransform.invert;
-			std::vector<int> indexVec(basis.nbasis);
-			for(unsigned j=0; j<basis.nbasis; j++)
-				indexVec[j] = e.gInfo.fullGindex(mRot * basis.iGarr[j] - kTransform.offset); //TODO: Handle Space Group (and simplify using ColumnBundleTransform)
-			#ifdef GPU_ENABLED
-			cudaMalloc(&index, sizeof(int)*indexVec.size());
-			cudaMemcpy(index, indexVec.data(), sizeof(int)*indexVec.size(), cudaMemcpyHostToDevice);
-			#else
-			index = new int[indexVec.size()];
-			eblas_copy(index, indexVec.data(), indexVec.size());
-			#endif
-		}
-		
-		void setup(const Everything& e, const Supercell::KmeshTransform& kTransform)
+		void setup(const Everything& e, vector3<> k, const Supercell::KmeshTransform& kTransform)
 		{	//Get the columnbundle and eigenvalues:
 			C = &(e.eVars.C[kTransform.iReduced]);
 			eig = &(e.eVars.Hsub_eigs[kTransform.iReduced]);
 			//Compute the index array
-			initIndex(e, *(C->basis), kTransform);
+			logSuspend();
+			basisOut.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, k);
+			logResume();
+			transform = std::make_shared<ColumnBundleTransform>(C->qnum->k, *(C->basis), k, basisOut,
+				e.eInfo.spinorLength(), e.symm.getMatrices()[kTransform.iSym], kTransform.invert);
 		}
 		
 		void setup(const Everything& e, vector3<> k, string fnameWfns, string fnameEig)
@@ -75,7 +62,7 @@ class PairDensityCalculator
 			basisExt.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kWrapped);
 			logResume();
 			//Read wavefunctions:
-			Cext.init(e.eInfo.nBands, basisExt.nbasis, &basisExt, 0);
+			Cext.init(e.eInfo.nBands, basisExt.nbasis*e.eInfo.spinorLength(), &basisExt, 0);
 			off_t flen = fileSize(fnameWfns.c_str());
 			int nBytesPerBand = basisExt.nbasis*sizeof(complex);
 			if(flen < long(Cext.nData()*sizeof(complex))) die("\nFile '%s' does not exist or is too short.\n", fnameWfns.c_str());
@@ -90,34 +77,24 @@ class PairDensityCalculator
 			if(feof(fpEig))  die("\nFile '%s' ended before all eigenvalues could be read.\n", fnameEig.c_str());
 			fclose(fpEig);
 			eig = &eigExt;
-			//Compute the index array (for transforming from kWrapped to k):
-			Supercell::KmeshTransform kTransform;
-			kTransform.invert = +1;
-			kTransform.iReduced = 0; //not used
-			kTransform.iSym = 0; //always identity
-			kTransform.offset = round(k - kWrapped);
-			initIndex(e, *(C->basis), kTransform);
-		}
-		
-		~State()
-		{	if(index)
-				#ifdef GPU_ENABLED
-				cudaFree(index);
-				#else
-				delete[] index;
-				#endif
+			//Setup the output basis and transformation:
+			logSuspend();
+			basisOut.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, k);
+			logResume();
+			transform = std::make_shared<ColumnBundleTransform>(kWrapped, basisExt, k, basisOut,
+				e.eInfo.spinorLength(), SpaceGroupOp(), +1);
 		}
 		
 		//ColumnBundle::getColumn, but with custom index array:
 		complexScalarFieldTilde getColumn(int col) const
-		{	complexScalarFieldTilde full; nullToZero(full, *(C->basis->gInfo)); //initialize a full G-space vector to zero
-			callPref(eblas_scatter_zdaxpy)(C->basis->nbasis, 1., index, C->dataPref()+C->index(col,0), full->dataPref()); //scatter from col'th column
-			if(invert<0) callPref(eblas_dscal)(full->nElem, -1., ((double*)full->dataPref())+1, 2); //negate the imaginary parts (complex conjugate if inversion symmetry employed)
-			return full;
+		{	ColumnBundle Cout(1, C->colLength(), &basisOut, 0, isGpuEnabled());
+			Cout.zero();
+			transform->scatterAxpy(1., *C,col, Cout,0);
+			return Cout.getColumn(0,0);
 		}
 		
 	private:
-		ColumnBundle Cext; diagMatrix eigExt; Basis basisExt; //Externally read-in wavefunction, corresponding basis and eigenvalues
+		ColumnBundle Cext; diagMatrix eigExt; Basis basisExt, basisOut; //Externally read-in wavefunction, corresponding basis and eigenvalues
 	}
 	state1, state2;
 
@@ -131,7 +108,7 @@ public:
 		nK = kmesh.size();
 		vector3<> k2 = kmesh[ik] + dk;
 		
-		state1.setup(e, kmeshTransform[ik]); //setup first state (always from current system's kmesh)
+		state1.setup(e, kmesh[ik], kmeshTransform[ik]); //setup first state (always from current system's kmesh)
 		
 		if(e.dump.polarizability->dkFilenamePattern.length()) //get second state from external data
 		{	state2.setup(e, k2,
@@ -151,7 +128,7 @@ public:
 					break;
 				}
 			assert(foundk2); //such a partner should always be found for a uniform kmesh
-			state2.setup(e, kTransform2);
+			state2.setup(e, k2, kTransform2);
 		}
 	}
 
