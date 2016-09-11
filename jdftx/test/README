@@ -36,9 +36,11 @@ In order to create a new test called "foo":
 
 * Create a bash script sequence.sh which declares a variable
   "runs" containing a list of input file prefixes in the order
-  in which they should be run. In the present example,
+  in which they should be run, and "nProcs" containing the optimum
+  number of MPI processes for the calculation. In the present example,
   sequence.sh should contain:
        export runs="step1 step2"
+       export nProcs="4"     #if this calculation can use 4 processes
 
 * During the test run, the test mechanism will take care of
   running jdftx on these input files and produce output files

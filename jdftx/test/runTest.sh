@@ -14,9 +14,15 @@ export SRCDIR="$testSrcDir"
 
 #Run JDFTx on all the runs that belong to this test (don't rerun tests which have succeeded)
 source $testSrcDir/sequence.sh
+if [[ "$JDFTX_LAUNCH" == *'%d'* ]]; then
+	LAUNCH="$(printf "$JDFTX_LAUNCH" "$nProcs")"
+else
+	LAUNCH="$JDFTX_LAUNCH"
+fi
+echo "launch=\"$LAUNCH\""
 for run in $runs; do
 	if [[ ! ( ( -f $run.out ) && ( "$(awk '/End date and time:/ {endLine=NR+1} NR==endLine {print}' $run.out)" == "Done!" ) ) ]]; then
-		$JDFTX_LAUNCH $jdftxBuildDir/jdftx$JDFTX_SUFFIX -i $testSrcDir/$run.in -d -o $run.out
+		$LAUNCH $jdftxBuildDir/jdftx$JDFTX_SUFFIX -i $testSrcDir/$run.in -d -o $run.out
 		if [ "$?" -ne "0" ]; then
 			echo "" > results
 			echo "FAILED: error running $run" > summary
@@ -38,7 +44,7 @@ $testSrcDir/checkResults.sh | awk '
 		checkName = $4; for(k=5; k<=NF; k++) checkName = checkName " " $k;
 		fail = (xObtained < xExpected-xTolerance) || (xObtained > xExpected+xTolerance);
 		if(fail) nFail++;
-		printf("%30s: %19.12le %19.12le [%s]\n", checkName, xObtained, xExpected, fail ? "FAILED" : "Passed");
+		printf("%30s: %19.12e %19.12e [%s]\n", checkName, xObtained, xExpected, fail ? "FAILED" : "Passed");
 	}
 	END {
 		if(iCheck != nChecks)
