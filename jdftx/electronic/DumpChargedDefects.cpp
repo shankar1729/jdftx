@@ -33,35 +33,61 @@ inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, 
 void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 {	string fname = e.dump.getFilename("slabEpsilon");
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-	//Read reference Dtot:
-	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
-	loadRawBinary(d_totRef, dtotFname.c_str());
-	//Calculate inverse of epsilon:
+	
+	//Find change in d_tot and applied fields:
+	ScalarField dDiff;
+	{	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
+		loadRawBinary(d_totRef, dtotFname.c_str());
+		dDiff = d_tot - d_totRef;
+	}
+	vector3<> Ediff = e.coulombParams.Efield - Efield;
+	if(!Ediff.length_squared())
+		die("\nThe applied electric fields in the reference and present calculations are equal.\n");
+	
+	//Calculate inverse of epsilon along truncated direction:
 	int iDir = e.coulombParams.iDir;
+	double h = e.gInfo.h[iDir].length();
 	vector3<> zHat = e.gInfo.R.column(iDir);
 	zHat *= 1./zHat.length(); //unit vector along slab normal
-	double dE = dot(zHat, e.coulombParams.Efield - Efield);
-	if(!dE) die("\nThe applied electric fields in the reference and present calculations are equal.\n");
-	//--- calculate field using central-difference derivative:
-	ScalarFieldTilde tPlus(ScalarFieldTildeData::alloc(e.gInfo)), tMinus(ScalarFieldTildeData::alloc(e.gInfo));
-	initTranslation(tPlus, e.gInfo.h[iDir]);
-	initTranslation(tMinus, -e.gInfo.h[iDir]);
-	double h = e.gInfo.h[iDir].length();
-	ScalarFieldTilde epsInvTilde = (1./(dE * 2.*h)) * (tPlus - tMinus) * J(d_tot - d_totRef);
-	planarAvg(epsInvTilde, iDir);
-	//Fix values of epsilon near truncation boundary to 1:
-	ScalarField epsInv = I(epsInvTilde);
-	int iBoundary = int(round((e.coulomb->xCenter[iDir]+0.5) * e.gInfo.S[iDir]));
-	threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, iBoundary, epsInv->data());
-	//Apply smoothing:
-	epsInv = I(gaussConvolve(J(epsInv), sigma));
+	double EzDiff = dot(zHat, Ediff);
+	ScalarField epsInv_z;
+	if(EzDiff) 
+	{	//Calculate field using central-difference derivative:
+		ScalarFieldTilde tPlus(ScalarFieldTildeData::alloc(e.gInfo)), tMinus(ScalarFieldTildeData::alloc(e.gInfo));
+		initTranslation(tPlus, e.gInfo.h[iDir]);
+		initTranslation(tMinus, -e.gInfo.h[iDir]);
+		ScalarFieldTilde epsInvTilde = (1./(EzDiff * 2.*h)) * (tPlus - tMinus) * J(dDiff);
+		planarAvg(epsInvTilde, iDir);
+		//Fix values of epsilon near truncation boundary to 1:
+		epsInv_z = I(epsInvTilde);
+		int iBoundary = int(round((e.coulomb->xCenter[iDir]+0.5) * e.gInfo.S[iDir]));
+		threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, iBoundary, epsInv_z->data());
+		//Apply smoothing:
+		epsInv_z = I(gaussConvolve(J(epsInv_z), sigma));
+	}
+	
+	//Calculate inverse of epsilon along parallel directions:
+	ScalarField epsInv_xy;
+	if(fabs(fabs(EzDiff)/Ediff.length()-1.) > symmThreshold) //non-zero parallel components
+	{	vector3<> RT_Ediff = e.gInfo.RT * Ediff;
+		for(int jDir=0; jDir<3; jDir++) if(jDir!=iDir)
+		{	
+		}
+	}
+	
 	//Write file:
 	FILE* fp = fopen(fname.c_str(), "w");
-	fprintf(fp, "#distance[bohr]  epsilon\n");
+	fprintf(fp, "#distance[bohr]  epsilon_normal  epsilon_||\n");
 	vector3<int> iR;
-	double* epsInvData = epsInv->data();
+	double* epsInv_zData = epsInv_z ? epsInv_z->data() : 0;
+	double* epsInv_xyData = epsInv_xy ? epsInv_xy->data() : 0;
 	for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
-		fprintf(fp, "%lf %lf\n", h*iR[iDir], 1./epsInvData[e.gInfo.fullRindex(iR)]);
+	{	double z = h*iR[iDir];
+		size_t i = e.gInfo.fullRindex(iR);
+		fprintf(fp, "%lf %lf %lf\n", z,
+			(epsInv_z ? 1./epsInv_zData[i] : NAN), 
+			(epsInv_xy ? 1./epsInv_xyData[i] : NAN) );
+	}
 	fclose(fp);
 	logPrintf("done\n"); logFlush();
 }
