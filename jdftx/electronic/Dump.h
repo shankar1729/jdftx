@@ -37,7 +37,6 @@ enum DumpFrequency
 	DumpFreq_Gummel, //!< Every (few) gummel step(s)
 	DumpFreq_Dynamics, //!< Every (few) dynamic time step(s)
 	DumpFreq_Delim  //special value used as a delimiter during command processing
-	
 };
 
 //! Dump variable selection options:
@@ -48,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom,
 	DumpEcomponents, DumpExcCompare,
- 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpChargedDefect,
+ 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpMomenta, DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
 	DumpDelim, //special value used as a delimiter during command processing
@@ -78,6 +77,7 @@ public:
 	std::vector< std::pair<double,double> > densityErange; //!< energy ranges for energy-resolved density output
 	std::vector<double> fermiDensityLevels; //!< energies at which to evaluate fermi-dirac derivative
 	std::shared_ptr<struct SlabEpsilon> slabEpsilon; //!< slab dielectric function calculator
+	std::shared_ptr<struct BulkEpsilon> bulkEpsilon; //!< bulk dielectric constant calculator
 	std::shared_ptr<struct ChargedDefect> chargedDefect; //!< charged defect correction calculator
 	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
 private:

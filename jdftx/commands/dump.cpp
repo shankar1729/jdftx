@@ -98,10 +98,11 @@ EnumStringMap<DumpVariable> varMap
 	DumpBoundCharge, "BoundCharge",
 	DumpSolvationRadii, "SolvationRadii",
 	DumpQMC, "QMC",
-       	DumpOcean, "Ocean",
+	DumpOcean, "Ocean",
 	DumpRealSpaceWfns, "RealSpaceWfns",
 	DumpFluidDebug, "FluidDebug",
 	DumpSlabEpsilon, "SlabEpsilon",
+	DumpBulkEpsilon, "BulkEpsilon",
 	DumpChargedDefect, "ChargedDefect",
 	DumpDOS, "DOS",
 	DumpSIC, "SelfInteractionCorrection",
@@ -150,6 +151,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare) [not in All]",
 	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
 	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon)  [not in All]",
+	DumpBulkEpsilon,    "Dielectric constant of a periodic solid (see command bulk-epsilon)  [not in All]",
 	DumpChargedDefect,  "Calculate energy correction for charged defect (see command charged-defect)  [not in All]",
 	DumpDOS,            "Density of States (see command density-of-states) [not in All]",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
@@ -598,6 +600,8 @@ struct CommandSlabEpsilon : public Command
 		pl.get(se.Efield[0], 0., "Ex");
 		pl.get(se.Efield[1], 0., "Ey");
 		pl.get(se.Efield[2], 0., "Ez");
+		if(!(se.Efield-e.coulombParams.Efield).length_squared())
+			throw(string("Applied electric fields in reference and present calculations are equal"));
 		e.dump.insert(std::make_pair(DumpFreq_End, DumpSlabEpsilon)); //dump at end by default
 	}
 
@@ -607,6 +611,46 @@ struct CommandSlabEpsilon : public Command
 	}
 }
 commandSlabEpsilon;
+
+//-------------------------------------------------------------------------------------------------
+
+struct CommandBulkEpsilon : public Command
+{
+	CommandBulkEpsilon() : Command("bulk-epsilon", "jdftx/Output")
+	{
+		format = "<DtotFile> [<Ex>=0] [<Ey>=0] [<Ez>=0]";
+		comments = 
+			"Calculate dielectric constant of a bulk material given the electrostatic potential\n"
+			"output from another calculation on same system with a different electric field.\n"
+			"+ <DtotFile> contains the electrostatic potential from the other calculation\n"
+			"+ optional <Ex>,<Ey>,Ez> specify the electric-field applied\n"
+			"  in the calculation that generated <DtotFile>.\n"
+			"It is recommended to apply field only to one reciprocal lattice direction,\n"
+			"and use a supercell of the material along that direction.";
+		
+		require("electric-field");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	if(e.coulombParams.geometry != CoulombParams::Periodic)
+			throw string("coulomb-interaction must be in Periodic mode");
+		e.dump.bulkEpsilon = std::make_shared<BulkEpsilon>();
+		BulkEpsilon& be = *(e.dump.bulkEpsilon);
+		pl.get(be.dtotFname, string(), "DtotFile", true);
+		pl.get(be.Efield[0], 0., "Ex");
+		pl.get(be.Efield[1], 0., "Ey");
+		pl.get(be.Efield[2], 0., "Ez");
+		if(!(be.Efield-e.coulombParams.Efield).length_squared())
+			throw(string("Applied electric fields in reference and present calculations are equal"));
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpBulkEpsilon)); //dump at end by default
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const BulkEpsilon& be = *(e.dump.bulkEpsilon);
+		logPrintf("%s %lg %lg %lg", be.dtotFname.c_str(), be.Efield[0], be.Efield[1], be.Efield[2]);
+	}
+}
+commandBulkEpsilon;
 
 //-------------------------------------------------------------------------------------------------
 

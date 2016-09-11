@@ -65,6 +65,13 @@ struct SlabEpsilon
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
+struct BulkEpsilon
+{	string dtotFname;
+	vector3<> Efield;
+	
+	void dump(const Everything& e, ScalarField d_tot) const;
+};
+
 struct ChargedDefect
 {	struct Center
 	{	vector3<> pos; //defect center in lattice coordinates

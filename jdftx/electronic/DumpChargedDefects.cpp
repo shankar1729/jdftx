@@ -70,8 +70,7 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 		dDiff = d_tot - d_totRef;
 	}
 	vector3<> Ediff = e.coulombParams.Efield - Efield;
-	if(!Ediff.length_squared())
-		die("\nThe applied electric fields in the reference and present calculations are equal.\n");
+	assert(Ediff.length_squared());
 	
 	//Calculate inverse of epsilon along truncated direction:
 	int iDir = e.coulombParams.iDir;
@@ -124,6 +123,33 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 	}
 	fclose(fp);
 	logPrintf("done\n"); logFlush();
+}
+
+//----------- Bulk epsilon ------
+
+void BulkEpsilon::dump(const Everything& e, ScalarField d_tot) const
+{	//Find change in d_tot and applied fields:
+	ScalarField dDiff;
+	{	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
+		loadRawBinary(d_totRef, dtotFname.c_str());
+		dDiff = d_tot - d_totRef;
+	}
+	vector3<> Ediff = e.coulombParams.Efield - Efield;
+	assert(Ediff.length_squared());
+
+	//Calculate inverse of epsilon along parallel directions:
+	vector3<> RT_Ediff = e.gInfo.RT * Ediff;
+	double wSum = 0., epsInv = 0.;
+	for(int jDir=0; jDir<3; jDir++)
+	{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
+		if(w < symmThreshold) continue;
+		ScalarField epsInvCur = (1./RT_Ediff[jDir]) * dDiff;
+		sinMultiply(epsInvCur, jDir, e.coulombParams.embedCenter); //this extracts the sin component upon unit-cell averaging below
+		epsInv += w * integral(epsInvCur)/e.gInfo.detR; //average over unit cell
+		wSum += w;
+	}
+	epsInv *= (1./wSum); //Now contains the direction-averaged response (for whichever components are available)
+	logPrintf("bulkEpsilon = %lg\n", 1./epsInv);
 }
 
 //-------------------------- Charged defects ----------------------------------

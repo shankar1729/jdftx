@@ -192,7 +192,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	//Electrostatic and fluid potentials:
 	ScalarFieldTilde d_vac; ScalarField d_tot;
-	bool needDtot = ShouldDump(Dtot) || ShouldDumpNoAll(SlabEpsilon) || ShouldDumpNoAll(ChargedDefect);
+	bool needDtot = ShouldDump(Dtot)
+		|| ShouldDumpNoAll(SlabEpsilon)
+		|| ShouldDumpNoAll(BulkEpsilon)
+		|| ShouldDumpNoAll(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		//Subtract neutral-atom reference potential (gives smoother result):
@@ -226,6 +229,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDumpNoAll(SlabEpsilon))
 		if(slabEpsilon)
 			slabEpsilon->dump(*e, d_tot);
+	if(ShouldDumpNoAll(BulkEpsilon))
+		if(bulkEpsilon)
+			bulkEpsilon->dump(*e, d_tot);
 	if(ShouldDumpNoAll(ChargedDefect))
 		if(chargedDefect)
 			chargedDefect->dump(*e, d_tot);

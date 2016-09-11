@@ -304,7 +304,7 @@ inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, doub
 }
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
-: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter)
+: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0)
 {
 	if(params.embed)
 	{	//Initialize embedding grid:
@@ -390,13 +390,16 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		params.splitEfield(gInfoOrig.R, RT_Efield_ramp, RT_Efield_wave);
 		if(RT_Efield_ramp.length_squared() && !params.embed)
 			die("Electric field with component a truncated direction requires coulomb-truncation-embed.");
+		if(!wsOrig) wsOrig = new WignerSeitz(gInfoOrig.R);
 	}
 }
 
 Coulomb::~Coulomb()
 {
+	if(wsOrig) delete wsOrig;
+	
 	if(params.embed)
-	{	delete wsOrig;
+	{
 		#ifdef GPU_ENABLED
 		cudaFree(embedIndex);
 		#else
