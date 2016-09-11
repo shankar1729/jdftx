@@ -346,11 +346,13 @@ void Symmetries::calcSymmetries()
 	//Find symmetries commensurate with external electric field (if any):
 	if(e->coulombParams.Efield.length_squared())
 	{	std::vector<SpaceGroupOp> symNew;
-		double threshold = symmThresholdSq * e->coulombParams.Efield.length_squared();
+		vector3<> RT_Efield_ramp, RT_Efield_wave;
+		e->coulombParams.splitEfield(e->gInfo.R, RT_Efield_ramp, RT_Efield_wave);
 		for(const SpaceGroupOp& op: sym)
-		{	matrix3<> mCart = e->gInfo.R * op.rot * inv(e->gInfo.R); //cartesian transformation
-			if((e->coulombParams.Efield - mCart * e->coulombParams.Efield).length_squared() < threshold)
-				symNew.push_back(op); //leaves Efield invariant
+		{	if((RT_Efield_ramp - RT_Efield_ramp * op.rot).length() > RT_Efield_ramp.length()*symmThreshold) continue; //does not leave E_ramp invariant
+			if((RT_Efield_wave - RT_Efield_wave * op.rot).length() > RT_Efield_wave.length()*symmThreshold) continue; //does not leave E_wave invariant
+			if(fabs(dot(op.a, RT_Efield_wave)) > RT_Efield_wave.length()*symmThreshold) continue; //no longer a symmetry because of translation along E_wave
+			symNew.push_back(op); //leaves Efield invariant
 		}
 		sym = symNew;
 		logPrintf("reduced to %lu space-group symmetries with electric field\n", sym.size());

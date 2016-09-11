@@ -68,6 +68,10 @@ struct CoulombParams
 	
 	//! Get a list of which directions are truncated:
 	vector3<bool> isTruncated() const;
+	
+	//! Get electric field in contravariant lattice coordinates, split into
+	//! ramp (truncated directions) and wave (periodic directions) components
+	void splitEfield(const matrix3<>& R, vector3<>& RT_Efield_ramp, vector3<>& RT_Efield_wave) const;
 };
 
 

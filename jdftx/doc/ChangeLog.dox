@@ -22,6 +22,8 @@
   IMPORTANT: default FFT boxes will change in some cases relative to 1.2.1 and earlier.
   This will only alter real-space grid outputs; wavefunctions remain unchanged.
 
++ Added support for electric fields in periodic directions using low wave-vector perturbations
+
 + Fixed phase of odd-l trial orbitals in Wannier (these were previously pure-imaginary instead of real)
 
 + Fixed numerous bugs in phonon code for cases with more than one atom per unit cell,

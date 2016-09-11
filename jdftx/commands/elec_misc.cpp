@@ -445,11 +445,11 @@ struct CommandElectricField : public Command
 		comments = 
 			"Apply an external electric field (in Cartesian coordinates, atomic\n"
 			"units [Eh/e/a_0] and electron-is-positive sign convention).\n\n"
-			"Applied electric field must be zero along periodic directions.\n"
-			"Requires embedded coulomb truncation for the truncated directions.\n\n"
+			"In truncated directions, the field will be applied as a ramp potential,\n"
+			"and for periodic directions, it will be applied as a plane wave with\n"
+			"the smallest commensurate wave vector and amplitude set by peak field.\n\n"
+			"Coulomb truncation, if any, must be in embedded mode (command coulomb-truncation-embed).\n"
 			"Symmetries will be automatically reduced to account for this field.";
-		
-		require("coulomb-truncation-embed");
 	}
 
 	void process(ParamList& pl, Everything& e)

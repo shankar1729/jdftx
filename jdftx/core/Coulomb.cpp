@@ -85,6 +85,24 @@ vector3<bool> CoulombParams::isTruncated() const
 	}
 }
 
+void CoulombParams::splitEfield(const matrix3<>& R, vector3<>& RT_Efield_ramp, vector3< double >& RT_Efield_wave) const
+{	vector3<bool> isTrunc = isTruncated();
+	vector3<> RT_Efield = (~R) * Efield; //put in contravariant lattice coordinates
+	for(int k=0; k<3; k++)
+	{	//zero out component if it is within symmetry threshold:
+		if(fabs(RT_Efield[k]/R.column(k).length()) < Efield.length() * symmThreshold)
+			RT_Efield[k] = 0.;
+		if(isTrunc[k])
+		{	RT_Efield_ramp[k] = RT_Efield[k];
+			RT_Efield_wave[k] = 0.;
+		}
+		else
+		{	RT_Efield_ramp[k] = 0.;
+			RT_Efield_wave[k] = RT_Efield[k];
+		}
+	}
+}
+
 
 //--------------- class Coulomb ----------------
 
@@ -163,11 +181,10 @@ complexScalarFieldTilde Coulomb::operator()(const complexScalarFieldTilde& in, v
 
 double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 {	if(!ewald) ((Coulomb*)this)->ewald = createEwald(gInfo.R, atoms.size());
+	double Eewald = 0.;
 	if(params.embed)
 	{	matrix3<> embedScaleMat = Diag(embedScale);
 		matrix3<> invEmbedScaleMat = inv(embedScaleMat);
-		vector3<> RT_Efield = gInfoOrig.RT * params.Efield;
-		double Eewald = 0.;
 		//Convert atom positions to embedding grid's lattice coordinates:
 		for(unsigned i=0; i<atoms.size(); i++)
 		{	Atom& a = atoms[i];
@@ -195,11 +212,6 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 				}
 			}
 			if(!posValid) die("Atom %d lies within the margin of %lg bohrs from the truncation boundary.\n" ionMarginMessage, i+1, params.ionMargin);
-			//Electric field contributions if any:
-			if(params.Efield.length_squared())
-			{	Eewald += a.Z * dot(a.pos, RT_Efield); //note that Z is negative of nuclear charge in present sign convention
-				a.force -= a.Z * RT_Efield;
-			}
 			//Scale to embedding-mesh lattice coords:
 			a.pos = embedScaleMat * a.pos;
 			a.force = invEmbedScaleMat * a.force;
@@ -211,22 +223,42 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 		{	a.pos = xCenter + invEmbedScaleMat * a.pos;
 			a.force = embedScaleMat * a.force;
 		}
-		return Eewald;
 	}
-	else return ewald->energyAndGrad(atoms);
+	else Eewald = ewald->energyAndGrad(atoms);
+	//Electric field contributions if any:
+	if(params.Efield.length_squared())
+	{	vector3<> RT_Efield_ramp, RT_Efield_wave;
+		params.splitEfield(gInfoOrig.R, RT_Efield_ramp, RT_Efield_wave);
+		for(unsigned i=0; i<atoms.size(); i++)
+		{	Atom& a = atoms[i];
+			vector3<> x = a.pos - xCenter;
+			for(int k=0; k<3; k++)
+			{	//note that Z is negative of nuclear charge in present sign convention
+				Eewald += a.Z * (RT_Efield_ramp[k]*x[k] + RT_Efield_wave[k]*sin(2*M_PI*x[k])/(2*M_PI));
+				a.force[k] -= a.Z * (RT_Efield_ramp[k] + RT_Efield_wave[k]*cos(2*M_PI*x[k]));
+			}
+		}
+	}
+	return Eewald;
 }
 
-void getEfieldPotential_sub(size_t iStart, size_t iStop, const vector3<int>& S, const WignerSeitz* ws, const vector3<>& xCenter, const vector3<>& RT_Efield, double* V)
+void getEfieldPotential_sub(size_t iStart, size_t iStop, const vector3<int>& S, const WignerSeitz* ws,
+	const vector3<>& xCenter, const vector3<>& RT_Efield_ramp, const vector3<>& RT_Efield_wave, double* V)
 {	matrix3<> invS = inv(Diag(vector3<>(S)));
 	THREAD_rLoop
-	(	V[i] = -dot(ws->restrict(invS * iv - xCenter), RT_Efield); //Wigner-Seitz wrapped lattice coords, dotted with E in contra lattice coords
+	(	vector3<> x = ws->restrict(invS * iv - xCenter);
+		double Vcur = 0.;
+		for(int k=0; k<3; k++)
+			Vcur -= (RT_Efield_ramp[k]*x[k] + RT_Efield_wave[k]*sin(2*M_PI*x[k])/(2*M_PI));
+		V[i] = Vcur;
 	)
 }
 ScalarField Coulomb::getEfieldPotential() const
 {	if(params.Efield.length_squared())
-	{	assert(params.embed);
+	{	vector3<> RT_Efield_ramp, RT_Efield_wave;
+		params.splitEfield(gInfoOrig.R, RT_Efield_ramp, RT_Efield_wave);
 		ScalarField V(ScalarFieldData::alloc(gInfoOrig));
-		threadLaunch(getEfieldPotential_sub, gInfoOrig.nr, gInfoOrig.S, wsOrig, xCenter, gInfoOrig.RT*params.Efield, V->data());
+		threadLaunch(getEfieldPotential_sub, gInfoOrig.nr, gInfoOrig.S, wsOrig, xCenter, RT_Efield_ramp, RT_Efield_wave, V->data());
 		return V;
 	}
 	else return ScalarField();
@@ -354,15 +386,10 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 	
 	//Check electric field:
 	if(params.Efield.length_squared())
-	{	assert(params.embed);
-		vector3<bool> isTruncated = params.isTruncated();
-		for(int k=0; k<3; k++) if(!isTruncated[k])
-		{	vector3<> Rk = gInfoOrig.R.column(k);
-			if(fabs(dot(Rk, params.Efield)) > Rk.length() * params.Efield.length() * symmThreshold)
-			{	string dirName("000"); dirName[k] = '1';
-				die("Electric field has non-zero component along periodic direction (%s).\n", dirName.c_str());
-			}
-		}
+	{	vector3<> RT_Efield_ramp, RT_Efield_wave;
+		params.splitEfield(gInfoOrig.R, RT_Efield_ramp, RT_Efield_wave);
+		if(RT_Efield_ramp.length_squared() && !params.embed)
+			die("Electric field with component a truncated direction requires coulomb-truncation-embed.");
 	}
 }
 
