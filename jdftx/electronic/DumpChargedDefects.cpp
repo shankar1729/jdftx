@@ -16,9 +16,30 @@ inline void planarAvg_sub(size_t iStart, size_t iStop, const vector3<int>& S, in
 	int kDir = (iDir+2)%3;
 	THREAD_halfGspaceLoop( if(iG[jDir] || iG[kDir]) data[i] = 0.; )
 }
-void planarAvg(ScalarFieldTilde& X, int iDir)
+inline void planarAvg(ScalarFieldTilde& X, int iDir)
 {	threadLaunch(planarAvg_sub, X->gInfo.nG, X->gInfo.S, iDir, X->data());
 }
+inline ScalarField getPlanarAvg(const ScalarField& X, int iDir)
+{	ScalarFieldTilde Xtilde = J(X);
+	planarAvg(Xtilde, iDir);
+	return I(Xtilde);
+}
+inline void planarAvg(ScalarField& X, int iDir)
+{	X = getPlanarAvg(X, iDir);
+}
+
+//Multiply by phase factor, that when averaged extracts the prefactor of -sin(2 pi x)/(2pi) (the form used in Coulomb::getEfieldPotential) along direction jDir
+inline void sinMultiply_sub(size_t iStart, size_t iStop, const vector3<int>& S, int jDir, const vector3<>& xCenter, double* data)
+{	double invSj = 1./S[jDir];
+	THREAD_rLoop(
+		double xj = invSj * iv[jDir] - xCenter[jDir];
+		data[i] *= (-4*M_PI) * sin(2*M_PI*xj);
+	)
+}
+inline void sinMultiply(ScalarField& X, int jDir, const vector3<>& xCenter)
+{	threadLaunch(sinMultiply_sub, X->gInfo.nr, X->gInfo.S, jDir, xCenter, X->data());
+}
+
 
 inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
 {	iBoundary = positiveRemainder(iBoundary, S[iDir]);
@@ -28,6 +49,14 @@ inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, 
 		if(dist*2 < -S[iDir]) dist += S[iDir];
 		if(abs(dist)<=2) eps[i] = 1.;
 	)
+}
+inline void fixBoundarySmooth(ScalarField& epsInv, int iDir, const vector3<>& xCenter, double sigma)
+{	const GridInfo& gInfo = epsInv->gInfo;
+	//Fix values of epsilon near truncation boundary to 1:
+	int iBoundary = int(round((xCenter[iDir]+0.5) * gInfo.S[iDir]));
+	threadLaunch(fixBoundary_sub, gInfo.nr, gInfo.S, iDir, iBoundary, epsInv->data());
+	//Smooth:
+	epsInv = I(gaussConvolve(J(epsInv), sigma));
 }
 
 void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
@@ -51,28 +80,33 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 	zHat *= 1./zHat.length(); //unit vector along slab normal
 	double EzDiff = dot(zHat, Ediff);
 	ScalarField epsInv_z;
-	if(EzDiff) 
+	if(EzDiff)
 	{	//Calculate field using central-difference derivative:
 		ScalarFieldTilde tPlus(ScalarFieldTildeData::alloc(e.gInfo)), tMinus(ScalarFieldTildeData::alloc(e.gInfo));
 		initTranslation(tPlus, e.gInfo.h[iDir]);
 		initTranslation(tMinus, -e.gInfo.h[iDir]);
 		ScalarFieldTilde epsInvTilde = (1./(EzDiff * 2.*h)) * (tPlus - tMinus) * J(dDiff);
 		planarAvg(epsInvTilde, iDir);
-		//Fix values of epsilon near truncation boundary to 1:
 		epsInv_z = I(epsInvTilde);
-		int iBoundary = int(round((e.coulomb->xCenter[iDir]+0.5) * e.gInfo.S[iDir]));
-		threadLaunch(fixBoundary_sub, e.gInfo.nr, e.gInfo.S, iDir, iBoundary, epsInv_z->data());
-		//Apply smoothing:
-		epsInv_z = I(gaussConvolve(J(epsInv_z), sigma));
+		fixBoundarySmooth(epsInv_z, iDir, e.coulomb->xCenter, sigma);
 	}
 	
 	//Calculate inverse of epsilon along parallel directions:
 	ScalarField epsInv_xy;
 	if(fabs(fabs(EzDiff)/Ediff.length()-1.) > symmThreshold) //non-zero parallel components
 	{	vector3<> RT_Ediff = e.gInfo.RT * Ediff;
+		double wSum = 0.;
 		for(int jDir=0; jDir<3; jDir++) if(jDir!=iDir)
-		{	
+		{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
+			if(w < symmThreshold) continue;
+			ScalarField epsInvCur = (1./RT_Ediff[jDir]) * dDiff;
+			sinMultiply(epsInvCur, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
+			epsInv_xy += w * epsInvCur;
+			wSum += w;
 		}
+		epsInv_xy *= (1./wSum); //Now contains the average response in x and y (for whichever components are available)
+		planarAvg(epsInv_xy, iDir);
+		fixBoundarySmooth(epsInv_xy, iDir, e.coulomb->xCenter, sigma);
 	}
 	
 	//Write file:
@@ -313,9 +347,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 				{	//Fluid is a PCM: use cavity shape to update epsilon, kappaSq
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
-					ScalarFieldTilde shapeTilde = J(pcm.shape);
-					planarAvg(shapeTilde, iDir); //planarly average cavity
-					ScalarField shapeSlab = I(shapeTilde);
+					ScalarField shapeSlab = getPlanarAvg(pcm.shape, iDir);
 					epsSlab += shapeSlab * (pcm.epsBulk - 1.);
 					kappaSqSlab += shapeSlab * pcm.k2factor;
 				}
@@ -377,9 +409,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 		logPrintf("\tWriting %s (planarly-averaged normal to lattice direction# %d) ... ", fname.c_str(), iDir); logFlush();
 		ScalarField Vavg[2]; double* VavgData[2];
 		for(int k=0; k<2; k++)
-		{	ScalarFieldTilde Vtilde = J(Varr[k]);
-			planarAvg(Vtilde, iDir);
-			Vavg[k] = I(Vtilde);
+		{	Vavg[k] = getPlanarAvg(Varr[k], iDir);
 			VavgData[k] = Vavg[k]->data();
 		}
 		if(mpiUtil->isHead())
