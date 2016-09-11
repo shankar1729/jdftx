@@ -62,7 +62,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 	{	axpy(alpha, dir, width);
 	}
 	
-	double compute(diagMatrix* grad=0)
+	double compute(diagMatrix* grad=0, diagMatrix* Kgrad=0)
 	{	//Initialize basis functions for model dielectric matrix at current parameters:
 		ColumnBundle U = V.similar(3*nAtoms); //basis functions for the model response
 		ColumnBundle dU = U.similar(); //derivative of basis functions w.r.t width parameter
@@ -129,6 +129,7 @@ struct SphericalFit : public Minimizable<diagMatrix>
 			for(int i=0; i<nSpecies; i++)
 				grad->at(i) = 2. * trace(R_w(colStart[i],colStop[i]));
 			constrain(*grad);
+			if(Kgrad) *Kgrad = *grad;
 		}
 		return R;
 	}
