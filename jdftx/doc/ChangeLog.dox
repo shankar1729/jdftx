@@ -2,6 +2,14 @@
 
 ## Unreleased ##
 
++ Space group symmetrization instead of point groups alone.
+  This now allows for calculations to be equally efficient
+  regardless of where the structure is centered.
+  This also substantially reduces the number of supercell
+  calculations required by phonon for many systems.
+  IMPORTANT: this may reduce number of k points for certain systems
+  which will make the state incompatible from previous versions.
+
 + Added command symmetry-threshold to control symmetry detection sensitivity in input file
 
 + Switched to reciprocal-space symmetrization of scalar fields
