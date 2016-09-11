@@ -40,7 +40,7 @@ which will contain only two silicon atoms:
 Save the above to Si.in, run jdftx -i Si.in | tee Si.out and examine the output file.
 First note the symmetry initialization:
 the Bravais lattice, in this case the face-centered Cubic structure,
-has 48 (point group) symmetries, which reduces to 24 symmetries
+has 48 point group symmetries, and 48 space group symmetries (defined with translations modulo unit cell)
 after including the basis, in this case the two atoms per unit cell.
 
 Then, after the usual pseudopotential setup, it folds 1 k-point by 8x8x8 to 512 kpoints,
