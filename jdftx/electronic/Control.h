@@ -66,7 +66,7 @@ public:
 		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),
-		subspaceRotationFactor(30.), subspaceRotationAdjust(true), scf(false), convergeEmptyStates(false), dumpOnly(false)
+		subspaceRotationFactor(1.), subspaceRotationAdjust(true), scf(false), convergeEmptyStates(false), dumpOnly(false)
 	{
 	}
 };

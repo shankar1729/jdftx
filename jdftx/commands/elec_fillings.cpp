@@ -239,7 +239,7 @@ struct CommandSubspaceRotationFactor : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.cntrl.subspaceRotationFactor, 30.0, "factor");
+	{	pl.get(e.cntrl.subspaceRotationFactor, 1., "factor");
 		pl.get(e.cntrl.subspaceRotationAdjust, true, boolMap, "adjust");
 	}
 
