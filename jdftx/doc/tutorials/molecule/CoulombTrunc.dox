@@ -2,7 +2,7 @@
 
 \image html tutorials/CoulombTruncation.png
 
-The previous tutorial showed a water molecule calculation in a cucbic box of side 10 bohrs.
+The previous tutorial showed a water molecule calculation in a cubic box of side 10 bohrs.
 JDFTx is a plane-wave DFT code, which means that it naturally incorporates periodic boundary conditions.
 However, for molecules we usually want to calculate the properties of one isolated molecule
 without incurring interactions between the molecule and its periodic images.

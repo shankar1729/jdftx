@@ -41,6 +41,28 @@ inline void sinMultiply(ScalarField& X, int jDir, const vector3<>& xCenter)
 }
 
 
+//Convert ratio of sin-wave potential components to dielectric function (compensate for Coulomb coupling of induced charges in different planes)
+inline void getEpsInvParallel_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, double h, double kSq, const double* phiRatio, double* epsInv)
+{	off_t iStride = 1; for(int jDir=iDir+1; jDir<3; jDir++) iStride *= S[jDir]; //data stride along i'th direction
+	double inv_hSq = 1./(h*h);
+	THREAD_rLoop(
+		double phiCur = phiRatio[i];
+		double phiPlus = phiRatio[i + iStride*(iv[iDir]+1<S[iDir] ? 1 : 1-S[iDir])];
+		double phiMinus = phiRatio[i - iStride*(iv[iDir]>0 ? 1 : 1-S[iDir])];
+		double phi_zz = inv_hSq * (phiPlus + phiMinus - 2.*phiCur); //second z-derivative
+		epsInv[i] = phiCur - phi_zz/kSq;
+	)
+}
+inline ScalarField getEpsInvParallel(const ScalarField& phiRatio, int iDir, int jDir)
+{	const GridInfo& gInfo = phiRatio->gInfo;
+	ScalarField epsInv(ScalarFieldData::alloc(gInfo));
+	double h = gInfo.h[iDir].length(); //grid separation along slab normal
+	double kSq = gInfo.GGT(jDir,jDir); //wave-vector squared for parallel perturbation
+	threadLaunch(getEpsInvParallel_sub, gInfo.nr, gInfo.S, iDir, h, kSq, phiRatio->data(), epsInv->data());
+	return epsInv;
+}
+
+
 inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
 {	iBoundary = positiveRemainder(iBoundary, S[iDir]);
 	THREAD_rLoop(
@@ -98,13 +120,13 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 		for(int jDir=0; jDir<3; jDir++) if(jDir!=iDir)
 		{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
 			if(w < symmThreshold) continue;
-			ScalarField epsInvCur = (1./RT_Ediff[jDir]) * dDiff;
-			sinMultiply(epsInvCur, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
-			epsInv_xy += w * epsInvCur;
+			ScalarField phiRatio = (1./RT_Ediff[jDir]) * dDiff;
+			sinMultiply(phiRatio, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
+			planarAvg(phiRatio, iDir);
+			epsInv_xy += w * getEpsInvParallel(phiRatio, iDir, jDir); //convert phi ratio to epsilon inverse
 			wSum += w;
 		}
 		epsInv_xy *= (1./wSum); //Now contains the average response in x and y (for whichever components are available)
-		planarAvg(epsInv_xy, iDir);
 		fixBoundarySmooth(epsInv_xy, iDir, e.coulomb->xCenter, sigma);
 	}
 	
