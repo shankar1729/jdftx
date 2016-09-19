@@ -32,7 +32,7 @@ that is it assumes an equal number of up and down spin electrons.
 This assumption is correct for the water molecule with a closed shell of 8 valence electrons
 that we dealt with so far, but is incorrect for the hydrogen atom which has only one electron.
 This electron must be either an up or down spin, so that the magnetization (Nup - Ndn) is +1 or -1.
-We can invoke a spin-polarized calculation and specify the magentization using the commands:
+We can invoke a spin-polarized calculation and specify the magnetization using the commands:
 
     spintype z-spin                     #z-spin = up/dn polarization (non-relativistic spin)
     elec-initial-magnetization +1 yes   #yes = hold magnetization fixed, no = optimize it

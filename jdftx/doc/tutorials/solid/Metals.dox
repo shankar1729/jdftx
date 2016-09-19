@@ -40,7 +40,7 @@ The second parameter determines the width in energy over which
 the Fermi function goes from one to zero (occupied to unoccupied).
 
 Metals are much more sensitive to k-point sampling, because for some bands,
-a part of the Brillouin zone is filled and the remiander is empty,
+a part of the Brillouin zone is filled and the remainder is empty,
 separated by a Fermi surface. The number of k-points directly
 determines how accurately the Fermi surface(s) can be resolved.
 The Fermi temperature is essentially a smoothing parameter that allows us
@@ -54,8 +54,6 @@ Run the calculation above as usual using
 
 and examine the output file.
 The main difference is that every %SCF line is preceded by a line starting with FillingsUpdate.
-(If you had used electronic-minimize instead, the line wouuld hav
-e started with FillingsAux.)
 This line reports the chemical potential, mu, of the Fermi function that produces
 the correct number of electrons with the current Kohn-Sham eigenvalues,
 and the number of electrons, nElectrons, which of course stays constant.

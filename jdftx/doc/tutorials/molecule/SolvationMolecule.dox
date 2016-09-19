@@ -110,7 +110,7 @@ There are several parametrizations of this model, all with names starting with S
 This is the latest solvation model and recommended for most applications.
 It has the computational expense of the simpler %LinearPCM's above
 but incorporates the accuracy and robustness of the more expensive models discussed next.
-Ins ummary it uses %SaLSA's nonlocal electron-density overlap method to determine the cavity,
+In summary it uses %SaLSA's nonlocal electron-density overlap method to determine the cavity,
 but then uses a local dielectric response like other %LinearPCM's.
 It additionally corrects for the asymmetry in the response of the liquid
 to positively and negatively charged solutes.

@@ -50,10 +50,10 @@ Examine the output file: instead of ElecMinimize lines,
 you will find lines starting with %SCF, which report
 the change in energy and eigenvalues between "cycles".
 This algorithm is usually faster than the variational minimize,
-but unlike the default minimize algorithm, it is not gauranteed to converge.
+but unlike the default minimize algorithm, it is not guaranteed to converge.
 
 Note that whether we used %SCF or Minimize is not important
-for the remainder of this tutorial demosntrating band structure calculations;
+for the remainder of this tutorial demonstrating band structure calculations;
 we will interchangeably use both algorithms for total energy calculations
 from now on to gain familiarity with both.
 
