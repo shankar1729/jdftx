@@ -199,14 +199,18 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 			if(populationAnalysisPending)
 			{	logPrintf("\n#--- Lowdin population analysis ---\n");
 				for(unsigned iSp=0; iSp<iInfo.species.size(); iSp++)
-				{	std::vector<matrix> RhoSub(Rho.size());
-					for(unsigned s=0; s<Rho.size(); s++)
-					{	RhoSub[s] = Rho[s]
-							? Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1])
-							: zeroes(spOffset[iSp+1]-spOffset[iSp], spOffset[iSp+1]-spOffset[iSp]);
-						RhoSub[s].allReduce(MPIUtil::ReduceSum);
+				{	const SpeciesInfo& sp = *(iInfo.species[iSp]);
+					if(sp.nAtomicOrbitals())
+					{	std::vector<matrix> RhoSub(Rho.size());
+						for(unsigned s=0; s<Rho.size(); s++)
+						{	RhoSub[s] = Rho[s]
+								? Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1])
+								: zeroes(spOffset[iSp+1]-spOffset[iSp], spOffset[iSp+1]-spOffset[iSp]);
+							RhoSub[s].allReduce(MPIUtil::ReduceSum);
+						}
+						sp.populationAnalysis(RhoSub);
 					}
-					iInfo.species[iSp]->populationAnalysis(RhoSub);
+					else logPrintf("# species %s skipped because pseudopotential does not contain atomic orbitals\n", sp.name.c_str());
 				}
 				logPrintf("\n");
 			}
