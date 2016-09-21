@@ -4,7 +4,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$#" -lt "3" ] ; then
 	echo '
 	Generate a kpoint path for band structure plots. Usage:
 	
-		listEnergy <inFile> <dk> <outfilePrefix>
+		bandstructKpoints <inFile> <dk> <outfilePrefix>
 	
 	<inFile> should contain a list of kpoints in the JDFTx syntax,
 	except with the weight replaced by a label eg. Gamma, X, L etc.
