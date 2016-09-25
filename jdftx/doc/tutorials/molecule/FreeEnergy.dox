@@ -82,16 +82,22 @@ We can now calculate the correct zero-temperature binding energy as
         E_H2 + ZPE_H2 - 2EH
      = -1.1647 + 0.00999 - 2(-0.4994)
      = -0.1559 Hartrees
-     = -4.242 eV.
+     = -4.242 eV,
+
+where E's are the final energies obtained from the total energy calculations
+for H2 (above) and H (previous tutorial), and ZPE is the zero-point energy
+obtained at the end of the H2 vibration calculation.
 
 At room temperature, the correct binding free energy is
 
        E_H2 + Avib_H2 + (3/2)kT - 2(EH + (3/2)kT)
      = -1.1647 + 0.00999 + 1.5*0.00094 - 2(-0.4994 + 1.5*0.00094)
      = -0.1573 Hartrees
-     = -4.281 eV
+     = -4.281 eV,
 
-where the (3/2)kT contributions correspond to the ideal-gas translational free energies.
+where Avib is the vibrational free energy from the end of
+the H2 vibration calculation (instead of ZPE used above) and
+the (3/2)kT contributions correspond to the ideal-gas translational free energies.
 In comparison, the experimental binding energy (negative of atomization energies)
 from [CCCBDB](http://cccbdb.nist.gov) is 4.48 eV at zero temperature
 and at 4.52 eV at room temperature.
