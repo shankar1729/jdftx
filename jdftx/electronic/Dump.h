@@ -47,7 +47,7 @@ enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those requ
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom,
 	DumpEcomponents, DumpExcCompare,
- 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
+ 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations,
 	DumpMomenta, DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
 	DumpDelim, //special value used as a delimiter during command processing
@@ -90,6 +90,7 @@ private:
 	friend struct CommandDumpInterval;
 	void dumpQMC(); //!< QMC export implemented in DumpQMC.cpp
 	void dumpOcean(); //!< BSE code export implemented in DumpOcean.cpp
+	void dumpBGW(); //!< BerkeleyGW code export implemented in DumpBGW.cpp
 	void dumpRsol(ScalarField nbound, string fname);
 };
 
