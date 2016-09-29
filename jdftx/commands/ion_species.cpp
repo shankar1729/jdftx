@@ -130,47 +130,50 @@ const std::vector<string>& getPseudopotentialPrefixes()
 	return prefixes;
 }
 
-std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
-{	//Initialize cache of available filenames for each wildcard
-	static std::vector<std::vector<string> > validFilenames;
-	const std::vector<string>& prefixes = getPseudopotentialPrefixes();
-	if(validFilenames.size()<e.iInfo.pspFilenamePatterns.size())
-	{	validFilenames.resize(e.iInfo.pspFilenamePatterns.size());
-		for(size_t i=0; i<validFilenames.size(); i++)
-		{	string pattern = e.iInfo.pspFilenamePatterns[i];
-			pattern.replace(pattern.find("$ID"),3, "*");
-			for(const string& prefix: prefixes)
-			{	//Use ls to get a list of matching files:
-				FILE* pp = popen(("ls " + prefix + pattern + " 2>/dev/null").c_str(), "r");
-				const int bufLen=1024; std::vector<char> buf(bufLen);
-				while(!feof(pp))
-				{	fgets(buf.data(), bufLen, pp);
-					string fname(buf.data());
-					if(fname.length())
-					{	if(fname.back()=='\n') fname.erase(fname.length()-1);
-						validFilenames[i].push_back(fname);
-					}
-				}
-				pclose(pp);
+//Return all uppercase/lowercase variations of s:
+std::vector<string> getCaseVariations(string s)
+{	std::vector<string> result;
+	//Estimate length:
+	int nAlpha = 0; for(char c: s) if(isalpha(c)) nAlpha++;
+	size_t nResults = ((size_t)1) << nAlpha; //2^nAlpha
+	result.reserve(1<<nAlpha);
+	//Loop over all case variations:
+	for(char& c: s) c = tolower(c); //make all lower case
+	while(result.size() < nResults)
+	{	result.push_back(s);
+		//Generate next case combination:
+		for(char& c: s)
+			if(isalpha(c))
+			{	if(islower(c)) { c = toupper(c); break; } //on l->u, don't toggle next char's case
+				else { c = tolower(c); } // on u->l, toggle next char's case
 			}
-		}
 	}
-	
+	return result;
+}
+
+std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
+{
 	//Search existing species first:
 	for(auto sp: e.iInfo.species)
 		if(sp->name == id)
 			return sp;
 	
 	//Search wildcards in order:
-	for(size_t i=0; i<validFilenames.size(); i++)
+	const std::vector<string>& prefixes = getPseudopotentialPrefixes();
+	std::vector<string> idVariants = getCaseVariations(id);
+	for(const string& pspFilenamePattern: e.iInfo.pspFilenamePatterns)
 		for(const string& prefix: prefixes)
-		{	string pattern = prefix + e.iInfo.pspFilenamePatterns[i];
-			pattern.replace(pattern.find("$ID"),3, id);
-			for(const string& fname: validFilenames[i])
-				if(fname == pattern)
+		{	string pattern = prefix + pspFilenamePattern;
+			size_t idPos = pattern.find("$ID"); assert(idPos != string::npos);
+			string patternLeft = pattern.substr(0, idPos);
+			string patternRight = pattern.substr(idPos+3);
+			for(const string& idVariant: idVariants)
+			{	string fname = patternLeft + idVariant + patternRight;
+				if(fileSize(fname.c_str()) > 0) //file exists and non-empty
 				{	CommandIonSpecies::addSpecies(fname, e, true);
 					return e.iInfo.species.back();
 				}
+			}
 		}
 	
 	return 0; //not found
