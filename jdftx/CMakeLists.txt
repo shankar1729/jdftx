@@ -32,6 +32,30 @@ if(GIT_FOUND)
 	endif()
 endif()
 
+#Static linking:
+option(StaticLinking "Link statically instead of dynamically" OFF)
+if(CYGWIN) #Force static linking on Windows:
+	if(NOT StaticLinking)
+		message(STATUS "Forcing static linking for Cygwin/Windows")
+		set(StaticLinking ON)
+	endif()
+endif()
+if(StaticLinking)
+	if(WIN32)
+		set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+	else()
+		set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+	endif()
+	set(CMAKE_EXE_LINKER_FLAGS -static)
+	set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
+	set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
+	set(CMAKE_SHARED_LIBRARY_C_FLAGS)         # remove -fPIC
+	set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
+	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+endif()
+
+#GSL:
 find_package(GSL REQUIRED)
 include_directories(${GSL_INCLUDE_DIR})
 
@@ -39,15 +63,14 @@ include_directories(${GSL_INCLUDE_DIR})
 option(EnableMKL "Use Intel MKL to provide BLAS, LAPACK and FFTs")
 option(ForceFFTW "Force usage of FFTW (even if MKL is enabled)")
 option(ThreadedBLAS "Used built-in threading of the BLAS library if yes; thread in JDFTx if no (currently affects only MKL)" ON)
+set(CMAKE_THREAD_PREFER_PTHREAD)
+find_package(Threads REQUIRED)
 if(EnableMKL)
 	find_package(MKL REQUIRED)
 	set(CBLAS_LAPACK_FFT_LIBRARIES ${MKL_LIBRARIES}) #MKL provides CBLAS, FFTW3 and LAPACK
 	add_definitions("-DMKL_PROVIDES_BLAS") #Special handling is required for BLAS calls from threaded sections
 	include_directories(${MKL_INCLUDE_DIR})
-	#Explicitly add threads library
-	set(CMAKE_THREAD_PREFER_PTHREAD)
-	find_package(Threads REQUIRED)
-	if(ForceFFTW)
+		if(ForceFFTW)
 		find_package(FFTW3 REQUIRED)
 		set(CBLAS_LAPACK_FFT_LIBRARIES ${FFTW3_THREADS_LIBRARY} ${FFTW3_LIBRARY} ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}) #Explicit FFTW3, rest from MKL
 	else()
@@ -140,15 +163,8 @@ if(CompileNative)
 	endif()
 endif()
 
-#Static linking:
-option(StaticLinking "Link statically instead of dynamically" OFF)
-
 #Workarounds for Windows compilation:
 if(CYGWIN)
-	if(NOT StaticLinking)
-		message(STATUS "Forcing static linking for Cygwin/Windows")
-		set(StaticLinking ON)
-	endif()
 	add_definitions("-D_GNU_SOURCE")
 	file(WRITE ${CMAKE_BINARY_DIR}/execinfo.h
 "#ifndef EXECINFO_H
@@ -176,7 +192,7 @@ endmacro()
 #----------------------- Regular CPU targets ----------------
 
 #External libraries to link to
-set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${CBLAS_LAPACK_FFT_LIBRARIES} ${GSL_LIBRARY} ${LIBXC_LIBRARY})
+set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${GSL_LIBRARY} ${CBLAS_LAPACK_FFT_LIBRARIES} ${LIBXC_LIBRARY} ${EXTRA_LIBRARIES})
 
 #Link options:
 if(StaticLinking)
