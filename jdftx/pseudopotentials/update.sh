@@ -2,7 +2,7 @@
 
 DEST_DIR="$1"
 SRC_DIR="$2"
-URL_PREFIX="http://sourceforge.net/p/jdftx/git/ci/1ae9823b0ce9f11f3a2b0f2cb6fea35dfcc8eab3/tree/jdftx/pseudopotentials/"
+URL_PREFIX="http://sourceforge.net/p/jdftx/git/ci/HEAD/tree/jdftx/pseudopotentials/"
 
 function processSet()
 {
@@ -18,4 +18,5 @@ function processSet()
 
 processSet GBRV
 processSet SG15
+processSet SG15-pulay
 
