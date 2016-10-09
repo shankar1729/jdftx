@@ -32,6 +32,7 @@ void Phonon::dump()
 		processPerturbation(perturbations[iPert]);
 		logPrintf("\n"); logFlush();
 	}
+	if(dryRun) return;
 	
 	//Construct frequency-squared matrix:
 	//--- convert forces to frequency-squared (divide by mass symmetrically):

@@ -32,18 +32,16 @@ int main(int argc, char** argv)
 
 	Phonon phonon;
 	phonon.input = readInputFile(inputFilename);
+	phonon.dryRun = dryRun;
 	
 	//Read input file and setup unit cell:
 	phonon.setup(printDefaults);
 	Citations::print();
-	if(dryRun)
-	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
-		finalizeSystem();
-		return 0;
-	}
 	
 	//Calculate:
 	phonon.dump();
+	if(dryRun)
+		logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 	
 	finalizeSystem();
 	return 0;

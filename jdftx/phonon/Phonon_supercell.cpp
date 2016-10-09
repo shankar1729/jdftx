@@ -67,6 +67,10 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	eSup->setup();
 	eSup->iInfo.species[pert.sp]->atpos[pert.at] -= dxSym; //restore unperturbed geometry
 	eSup->iInfo.species[pert.sp]->sync_atpos();
+	if(dryRun)
+	{	logPrintf("Dry run: supercell setup successful.\n");
+		return;
+	}
 	
 	//Map states:
 	PeriodicLookup<QuantumNumber> plook(eSup->eInfo.qnums, eSup->gInfo.GGT);

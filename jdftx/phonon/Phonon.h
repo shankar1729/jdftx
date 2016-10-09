@@ -53,6 +53,7 @@ public:
 	double dr; //perturbation amplitude in Cartesian coordinates
 	double T; //temperature for free energy estimation
 	double Fcut; //fillings cutoff for optimizing number of bands
+	bool dryRun; //whether this is a dry run (test setup only; skip calculation)
 	
 	Phonon();
 	void setup(bool printDefaults); //setup unit cell and basis modes for perturbations
