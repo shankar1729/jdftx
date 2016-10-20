@@ -170,8 +170,8 @@ void Phonon::dump()
 	}
 
 	//Calculate free energy (properly handling singularities at Gamma point):
-	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(void); //implemented below
-	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ();
+	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<int>); //implemented below
+	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ(sup);
 	int ikStart, ikStop;
 	TaskDivision(quad.size(), mpiUtil).myRange(ikStart, ikStop);
 	double ZPE = 0., Evib = 0., Avib = 0.;
@@ -229,41 +229,52 @@ int Phonon::getUnit(const vector3<int>& cell) const
 
 //Generate quadrature for BZ integrals with singularity at Gamma point:
 //--- add contribution to quadrature due to box of size scale centered at gCenter (in reciprocal lattice coords)
-void addQuadratureBZ_box(std::vector< std::pair<vector3<>,double> >& quad, double scale, vector3<> gCenter)
+void addQuadratureBZ_box(std::vector< std::pair<vector3<>,double> >& quad, double scale, vector3<> gCenter, vector3<int> dim)
 {	//Weights and abscissae of the 7-point gauss quadrature:
 	const int N = 3;
 	static const double w[N+1] = { 0.129484966168869693270611432679082, 0.279705391489276667901467771423780, 0.381830050505118944950369775488975, 0.417959183673469387755102040816327 };
 	static const double x[N+1] = { 0.949107912342758524526189684047851, 0.741531185599394439863864773280788, 0.405845151377397166906606412076961, 0.000000000000000000000000000000000 };
 	double h = 0.5 * scale; 
 	vector3<> g;
-	for(int i0=-N; i0<=N; i0++)
-	{	g[0] = gCenter[0] + h*x[N-abs(i0)]*(i0>0?1:-1);
-		double w0 = (N ? h*w[N-abs(i0)] : 1.);
-		for(int i1=-N; i1<=N; i1++)
-		{	g[1] = gCenter[1] + h*x[N-abs(i1)]*(i1>0?1:-1);
-			double w01 = w0 * (N ? h*w[N-abs(i1)] : 1.);
-			for(int i2=-N; i2<=N; i2++)
-			{	g[2] = gCenter[2] + h*x[N-abs(i2)]*(i2>0?1:-1);
-				double w012 = w01 * (N ? h*w[N-abs(i2)] : 1.);
+	vector3<int> i;
+	#define LOOP(j) for(i[j]=-N*dim[j]; i[j]<=N*dim[j]; i[j]++)
+	#define ABSCISSA(j) gCenter[j] + (dim[j] ? (h*x[N-abs(i[j])]*(i[j]>0?1:-1)) : 0)
+	#define WEIGHT(j) (dim[j] ? h*w[N-abs(i[j])] : 1.)
+	LOOP(0)
+	{	g[0] = ABSCISSA(0);
+		double w0 = WEIGHT(0);
+		LOOP(1)
+		{	g[1] = ABSCISSA(1);
+			double w01 = w0 * WEIGHT(1);
+			LOOP(2)
+			{	g[2] = ABSCISSA(2);
+				double w012 = w01 * WEIGHT(2);
 				quad.push_back(std::make_pair(g, w012));
 			}
 		}
 	}
+	#undef LOOP
+	#undef ABSCISSA
+	#undef WEIGHT
 }
-//--- add contribution to quadrature between bozes of size scale and scale/3
-void addQuadratureBZ_scale(std::vector< std::pair<vector3<>,double> >& quad, double scale) 
+//--- add contribution to quadrature between boxes of size scale and scale/3
+//--- dim is 0 or 1 depending on whether that dimension should be sampled
+void addQuadratureBZ_scale(std::vector< std::pair<vector3<>,double> >& quad, double scale, vector3<int> dim)
 {	double scaleBy3 = scale/3.;
 	vector3<int> ig;
-	for(ig[0]=-1; ig[0]<=1; ig[0]++)
-	for(ig[1]=-1; ig[1]<=1; ig[1]++)
-	for(ig[2]=-1; ig[2]<=1; ig[2]++)
+	for(ig[0]=-dim[0]; ig[0]<=dim[0]; ig[0]++)
+	for(ig[1]=-dim[1]; ig[1]<=dim[1]; ig[1]++)
+	for(ig[2]=-dim[2]; ig[2]<=dim[2]; ig[2]++)
 		if(ig.length_squared()) //except the center box
-			addQuadratureBZ_box(quad, scaleBy3, scaleBy3*ig);
+			addQuadratureBZ_box(quad, scaleBy3, scaleBy3*ig, dim);
 }
-std::vector< std::pair<vector3<>,double> > getQuadratureBZ()
-{	std::vector< std::pair<vector3<>,double> > quad;
+std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<int> sup)
+{	vector3<int> dim;
+	for(int j=0; j<3; j++)
+		dim[j] = (abs(sup[j])>1 ? 1 : 0);
+	std::vector< std::pair<vector3<>,double> > quad;
 	for(double scale=1.; scale>1e-3; scale/=3.)
-		addQuadratureBZ_scale(quad, scale);
+		addQuadratureBZ_scale(quad, scale, dim);
 	return quad;
 }
 
