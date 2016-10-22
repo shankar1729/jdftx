@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <phonon/Phonon.h>
 #include <core/Units.h>
+#include <core/WignerSeitz.h>
 
 void Phonon::dump()
 {	//Zero force matrix and electron-phonon matrix elements:
@@ -69,64 +70,15 @@ void Phonon::dump()
 			}
 		}
 	}
-	//--- enforce hermiticity:
-	size_t nSymmetrizedCellsTot = 0;
-	double hermErrNum = 0., hermErrDen = 0.;
-	auto iter1 = cellMap.begin();
-	for(size_t iCell1=0; iCell1<cellMap.size(); iCell1++)
-	{	auto iter2 = cellMap.begin();
-		for(size_t iCell2=0; iCell2<cellMap.size(); iCell2++)
-		{	vector3<int> iRsum = iter1->first + iter2->first;
-			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
-			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
-				matrix Merr = 0.5*(omegaSq[iCell1] - dagger(omegaSq[iCell2]));
-				omegaSq[iCell1] = M;
-				omegaSq[iCell2] = dagger(M);
-				int nSymmetrizedCells = (iCell1==iCell2 ? 1 : 2);
-				nSymmetrizedCellsTot += nSymmetrizedCells;
-				hermErrNum += nSymmetrizedCells * std::pow(nrm2(Merr), 2);
-				hermErrDen += nSymmetrizedCells * std::pow(nrm2(M), 2);
-			}
-			iter2++;
-		}
-		iter1++;
-	}
-	assert(nSymmetrizedCellsTot == cellMap.size());
-	logPrintf("Corrected force-matrix hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
-	//--- enforce translational invariance:
-	{	//Collect masses by mode:
-		diagMatrix sqrtMmode, invsqrtMmode;
-		for(const Mode& mode: modes)
-		{	invsqrtMmode.push_back(invsqrtM[mode.sp]);
-			sqrtMmode.push_back(1./invsqrtM[mode.sp]);
-		}
-		//Collect Gamma-point force matrix:
-		matrix F0;
-		for(const matrix& mat: omegaSq)
-			F0 += sqrtMmode * mat * sqrtMmode;
-		//Project out each overall Cartesian displacement:
-		int nAtoms = modes.size()/3;
-		matrix proj(nAtoms, nAtoms); //set to ones(nAtoms)/nAtoms
-		for(int iAtom=0; iAtom<nAtoms; iAtom++)
-			for(int jAtom=0; jAtom<nAtoms; jAtom++)
-				proj.set(iAtom, jAtom, 1./nAtoms);
-		matrix dF0 = zeroes(modes.size(), modes.size());
-		for(int iDir=0; iDir<3; iDir++)
-			for(int jDir=0; jDir<3; jDir++)
-			{	matrix F0sub = F0(iDir,3,modes.size(), jDir,3,modes.size()); //Gamma forces for current direction pair
-				matrix dF0sub = proj*F0sub*proj - proj*F0sub - F0sub*proj; //correct net force, while preserving hermiticity
-				dF0.set(iDir,3,modes.size(), jDir,3,modes.size(), dF0sub);
-			}
-		matrix domegaSqMean = (1./prodSup) * (invsqrtMmode * dF0 * invsqrtMmode); //correction to mean omegaSq
-		//Apply correction:
-		iter = cellMap.begin();
-		for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-		{	omegaSq[iCell] += iter->second * domegaSqMean;
-			iter++;
-		}
-		double nrm2omegaSqMean = hermErrDen / sqrt(cellMap.size());
-		logPrintf("Corrected force-matrix translational invariance relative error: %lg\n", nrm2(domegaSqMean)/nrm2omegaSqMean);
-	}
+	
+	logPrintf("\nRefining force matrix:\n");
+	forceMatrixDaggerSymmetrize(omegaSq, cellMap); //enforce hermiticity
+	forceMatrixWSrestrict(omegaSq, cellMap); //restrict forces to supercell WS cells centered on each atom
+	forceMatrixSymmetrize(omegaSq, cellMap); //symmetrize force matrix on WS supercell
+	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
+	forceMatrixSymmetrize(omegaSq, cellMap); //symmetrize force matrix on WS supercell
+	logPrintf("\n");
+	
 	//--- write to file
 	if(mpiUtil->isHead())
 	{	string fname = e.dump.getFilename("phononOmegaSq");
@@ -329,4 +281,197 @@ matrix BlockRotationMatrix::transform(const matrix& in) const
 			temp(0,matSize, colBlock*blockSize,(colBlock+1)*blockSize) * dagger(rots[rowBlock]));
 	}
 	return out;
+}
+
+//Enforce hermiticity of force matrix
+void Phonon::forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const
+{	size_t nSymmetrizedCellsTot = 0;
+	double hermErrNum = 0., hermErrDen = 0.;
+	auto iter1 = cellMap.begin();
+	for(size_t iCell1=0; iCell1<cellMap.size(); iCell1++)
+	{	auto iter2 = cellMap.begin();
+		for(size_t iCell2=0; iCell2<cellMap.size(); iCell2++)
+		{	vector3<int> iRsum = iter1->first + iter2->first;
+			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
+			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
+				matrix Merr = 0.5*(omegaSq[iCell1] - dagger(omegaSq[iCell2]));
+				omegaSq[iCell1] = M;
+				omegaSq[iCell2] = dagger(M);
+				int nSymmetrizedCells = (iCell1==iCell2 ? 1 : 2);
+				nSymmetrizedCellsTot += nSymmetrizedCells;
+				hermErrNum += nSymmetrizedCells * std::pow(nrm2(Merr), 2);
+				hermErrDen += nSymmetrizedCells * std::pow(nrm2(M), 2);
+			}
+			iter2++;
+		}
+		iter1++;
+	}
+	assert(nSymmetrizedCellsTot == cellMap.size());
+	logPrintf("\tCorrected hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
+}
+
+//Enforce translational invariance sum rule on force matrix
+void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap, const std::vector<double>& invsqrtM) const
+{	//Collect masses by mode:
+	diagMatrix sqrtMmode, invsqrtMmode;
+	for(const Mode& mode: modes)
+	{	invsqrtMmode.push_back(invsqrtM[mode.sp]);
+		sqrtMmode.push_back(1./invsqrtM[mode.sp]);
+	}
+	//Collect Gamma-point force matrix:
+	matrix F0;
+	for(const matrix& mat: omegaSq)
+		F0 += sqrtMmode * mat * sqrtMmode;
+	//Project out each overall Cartesian displacement:
+	int nAtoms = modes.size()/3;
+	matrix proj(nAtoms, nAtoms); //set to ones(nAtoms)/nAtoms
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+			proj.set(iAtom, jAtom, 1./nAtoms);
+	matrix dF0 = zeroes(modes.size(), modes.size());
+	for(int iDir=0; iDir<3; iDir++)
+		for(int jDir=0; jDir<3; jDir++)
+		{	matrix F0sub = F0(iDir,3,modes.size(), jDir,3,modes.size()); //Gamma forces for current direction pair
+			matrix dF0sub = proj*F0sub*proj - proj*F0sub - F0sub*proj; //correct net force, while preserving hermiticity
+			dF0.set(iDir,3,modes.size(), jDir,3,modes.size(), dF0sub);
+		}
+	matrix omegaSqMean = (1./prodSup) * (invsqrtMmode * F0 * invsqrtMmode); //mean omegaSq (used for caculating relative error below)
+	matrix domegaSqMean = (1./prodSup) * (invsqrtMmode * dF0 * invsqrtMmode); //correction to mean omegaSq
+	//Apply correction:
+	auto iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+	{	omegaSq[iCell] += iter->second * domegaSqMean;
+		iter++;
+	}
+	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(domegaSqMean)/nrm2(omegaSqMean));
+}
+
+void Phonon::forceMatrixWSrestrict(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const
+{	//Initialize supercell Wigner-Seitz cell:
+	logSuspend();
+	WignerSeitz ws(eSupTemplate.gInfo.R);
+	logResume();
+	//Compile all atomic positions in unit cell:
+	std::vector<vector3<>> atpos;
+	for(const auto& sp: e.iInfo.species)
+		atpos.insert(atpos.end(), sp->atpos.begin(), sp->atpos.end());
+	int nAtoms = atpos.size();
+	assert(3*nAtoms == omegaSq[0].nRows());
+	//Create cell displacement list:
+	std::vector<vector3<int>> cellVec;
+	for(const auto& entry: cellMap)
+		cellVec.push_back(entry.first);
+	//Loop over all pairs of atoms:
+	matrix3<> DiagSup = Diag(vector3<>(sup));
+	matrix3<> invDiagSup = inv(DiagSup);
+	size_t nCells = cellVec.size();
+	assert(nCells = omegaSq.size());
+	double normTot = 0., normErr = 0.;
+	for(size_t iCell=0; iCell<nCells; iCell++)
+	{	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+			for(int jAtom=0; jAtom<nAtoms; jAtom++)
+			{	if(iAtom==jAtom) continue; //same atom pair will always be within WS or on WS boundary
+				vector3<> dx = invDiagSup * (cellVec[iCell] + atpos[jAtom] - atpos[iAtom]); //relative position in supercell lattice coordinates
+				if(ws.onBoundary(dx)) continue; //no change needed on WS boundary
+				vector3<> dxOut = ws.restrict(dx); //map displacement to within boundary
+				vector3<int> dcell = round(DiagSup*(dxOut - dx)); //displacement in terms of unit cells
+				if(!dcell.length_squared()) continue;
+				vector3<int> cellVecOut = cellVec[iCell] + dcell;
+				size_t iCellOut = std::lower_bound(cellVec.begin(), cellVec.end(), cellVecOut) - cellVec.begin();
+				if(iCellOut>=nCells || !(cellVecOut==cellVec[iCellOut])) continue;
+				//Move this contribution from iCell to iCellOut:
+				#define RANGE 3*iAtom,3*(iAtom+1), 3*jAtom,3*(jAtom+1)
+				matrix contrib = omegaSq[iCell](RANGE);
+				omegaSq[iCellOut].set(RANGE, omegaSq[iCellOut](RANGE) + contrib);
+				omegaSq[iCell].set(RANGE, zeroes(3,3));
+				#undef RANGE
+				normErr += std::pow(nrm2(contrib), 2);
+			}
+		normTot += std::pow(nrm2(omegaSq[iCell]), 2);
+	}
+	logPrintf("\tRestricted to WS supercell with relative correction: %lg\n", sqrt(normErr/normTot));
+}
+
+//Load/store matrix3<> from/to matrix:
+inline matrix3<> getMatrix3(const matrix& m, int i, int j)
+{	const complex* mData = m.data();
+	matrix3<> out;
+	for(int y=0; y<3; y++)
+		for(int x=0; x<3; x++)
+			out(x,y) = mData[m.index(3*i+x,3*j+y)].real();
+	return out;
+}
+inline void setMatrix3(matrix& m, int i, int j, const matrix3<>& in)
+{	complex* mData = m.data();
+	matrix3<> out;
+	for(int y=0; y<3; y++)
+		for(int x=0; x<3; x++)
+			mData[m.index(3*i+x,3*j+y)] = in(x,y);
+}
+
+void Phonon::forceMatrixSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const
+{
+	//Compile combined atomic positions and symmetry maps for all atoms in unit cell:
+	std::vector<vector3<>> atpos;
+	const auto& atomMapSup = eSupTemplate.symm.getAtomMap();
+	std::vector<std::vector<int>> atomMap;
+	int nSym = symSup.size();
+	int nAtoms = 0;
+	for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
+	{	const auto& sp = e.iInfo.species[iSp];
+		int nAtomsCur = sp->atpos.size();
+		atpos.insert(atpos.end(), sp->atpos.begin(), sp->atpos.end());
+		for(int iAtomCur=0; iAtomCur<nAtomsCur; iAtomCur++)
+		{	std::vector<int> atomMapCur(nSym);
+			for(int iSym=0; iSym<nSym; iSym++)
+				atomMapCur[iSym] = nAtoms + atomMapSup[iSp][iAtomCur][iSym] % nAtomsCur;
+			atomMap.push_back(atomMapCur);
+		}
+		nAtoms += nAtomsCur;
+	}
+	assert(3*nAtoms == omegaSq[0].nRows());
+	//Create cell displacement list:
+	std::vector<vector3<int>> cellVec;
+	for(const auto& entry: cellMap)
+		cellVec.push_back(entry.first);
+	size_t nCells = cellVec.size();
+	//Symmetrize:
+	std::vector<matrix> omegaSqSymm = omegaSq;
+	matrix3<> DiagSup = Diag(vector3<>(sup));
+	matrix3<> invDiagSup = inv(DiagSup);
+	for(size_t iCell=0; iCell<nCells; iCell++)
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+	for(int jAtom=0; jAtom<nAtoms; jAtom++)
+	{	int nCollected = 0;
+		matrix3<> contrib;
+		for(int iSym=0; iSym<nSym; iSym++)
+		{	double offsetErr;
+			const SpaceGroupOp& op = symSup[iSym];
+			//Map iAtom under symmetry operation:
+			int iAtomOut = atomMap[iAtom][iSym];
+			vector3<int> iRout = round(DiagSup*(op.a+op.rot*(invDiagSup*atpos[iAtom])) - atpos[iAtomOut], &offsetErr);
+			assert(offsetErr < symmThreshold);
+			//Map jAtom under symmetry operation:
+			int jAtomOut = atomMap[jAtom][iSym];
+			vector3<int> jRout = round(DiagSup*(op.a+op.rot*(invDiagSup*(atpos[jAtom]+cellVec[iCell]))) - atpos[jAtomOut], &offsetErr);
+			assert(offsetErr < symmThreshold);
+			//Find mapped cell:
+			vector3<int> cellVecOut = jRout - iRout;
+			size_t iCellOut = std::lower_bound(cellVec.begin(), cellVec.end(), cellVecOut) - cellVec.begin();
+			if(iCellOut>=nCells || !(cellVecOut==cellVec[iCellOut])) continue;
+			//Collect contribution:
+			contrib += (~symSupCart[iSym]) * getMatrix3(omegaSq[iCellOut], iAtomOut, jAtomOut) * symSupCart[iSym];
+			nCollected++;
+		}
+		double wSym = (nCollected==nSym ? 1./nCollected : 0.); //zero out contributions which use cells outside symmetric domain
+		setMatrix3(omegaSqSymm[iCell], iAtom, jAtom, wSym*contrib);
+	}
+	//Calculate relative change:
+	double normTot = 0., normErr = 0.;
+	for(size_t iCell=0; iCell<nCells; iCell++)
+	{	normTot += std::pow(nrm2(omegaSq[iCell]), 2);
+		normErr += std::pow(nrm2(omegaSq[iCell]-omegaSqSymm[iCell]), 2);
+	}
+	omegaSq = omegaSqSymm;
+	logPrintf("\tSymmetrized on WS supercell with relative correction: %lg\n", sqrt(normErr/normTot));
 }

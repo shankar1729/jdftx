@@ -105,6 +105,18 @@ private:
 	//Utilities for mapping 3-dimensional and flattened cell indices:
 	vector3<int> getCell(int unit) const;
 	int getUnit(const vector3<int>& cell) const;
+	
+	//! Enforce hermiticity of force matrix
+	void forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const;
+
+	//! Enforce translational invariance sum rule on force matrix
+	void forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap, const std::vector<double>& invsqrtM) const;
+	
+	//! Restrict forces to within Wigner-Seitz supercells centered on each atom
+	void forceMatrixWSrestrict(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const;
+
+	//! Symmetrize force matrix on Wigner-Seitz supercell
+	void forceMatrixSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const;
 };
 
 #endif //JDFTX_PHONON_PHONON_H
