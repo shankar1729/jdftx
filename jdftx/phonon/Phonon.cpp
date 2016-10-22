@@ -76,7 +76,6 @@ void Phonon::dump()
 	forceMatrixWSrestrict(omegaSq, cellMap); //restrict forces to supercell WS cells centered on each atom
 	forceMatrixSymmetrize(omegaSq, cellMap); //symmetrize force matrix on WS supercell
 	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
-	forceMatrixSymmetrize(omegaSq, cellMap); //symmetrize force matrix on WS supercell
 	logPrintf("\n");
 	
 	//--- write to file
@@ -322,28 +321,29 @@ void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::
 	matrix F0;
 	for(const matrix& mat: omegaSq)
 		F0 += sqrtMmode * mat * sqrtMmode;
-	//Project out each overall Cartesian displacement:
-	int nAtoms = modes.size()/3;
-	matrix proj(nAtoms, nAtoms); //set to ones(nAtoms)/nAtoms
-	for(int iAtom=0; iAtom<nAtoms; iAtom++)
-		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-			proj.set(iAtom, jAtom, 1./nAtoms);
+	//Project out net force for each atom displacement:
+	F0 = dagger_symmetrize(F0);
 	matrix dF0 = zeroes(modes.size(), modes.size());
+	int nAtoms = modes.size()/3;
+	const complex* F0data = F0.data();
+	complex* dF0data = dF0.data();
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
 	for(int iDir=0; iDir<3; iDir++)
+	{	int iMode = 3*iAtom+iDir;
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
 		for(int jDir=0; jDir<3; jDir++)
-		{	matrix F0sub = F0(iDir,3,modes.size(), jDir,3,modes.size()); //Gamma forces for current direction pair
-			matrix dF0sub = proj*F0sub*proj - proj*F0sub - F0sub*proj; //correct net force, while preserving hermiticity
-			dF0.set(iDir,3,modes.size(), jDir,3,modes.size(), dF0sub);
-		}
-	matrix omegaSqMean = (1./prodSup) * (invsqrtMmode * F0 * invsqrtMmode); //mean omegaSq (used for caculating relative error below)
-	matrix domegaSqMean = (1./prodSup) * (invsqrtMmode * dF0 * invsqrtMmode); //correction to mean omegaSq
+		{	int jMode = 3*jAtom+jDir;
+			dF0data[dF0.index(iMode,3*iAtom+jDir)] -= F0data[F0.index(iMode,jMode)];
+		} //Note this makes dF0 block diagonal with block size 3
+	}
 	//Apply correction:
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	omegaSq[iCell] += iter->second * domegaSqMean;
+	{	if(!iter->first.length_squared()) //apply correction to diagonal elements
+			omegaSq[iCell] += (invsqrtMmode * dF0 * invsqrtMmode);
 		iter++;
 	}
-	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(domegaSqMean)/nrm2(omegaSqMean));
+	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(dF0)/nrm2(F0));
 }
 
 void Phonon::forceMatrixWSrestrict(std::vector<matrix>& omegaSq, const std::map<vector3<int>,double>& cellMap) const
