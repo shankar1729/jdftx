@@ -39,6 +39,7 @@ int main(int argc, char** argv)
 	Everything e; //the parent data structure for, well, everything
 	ElecVars& eVars = e.eVars;
 	parse(readInputFile(inputFilename), e, printDefaults);
+	if(dryRun) eVars.skipWfnsInit = true;
 	e.setup();
 	Citations::print();
 	if(dryRun)

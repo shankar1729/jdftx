@@ -159,7 +159,8 @@ void init(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const Basis* ba
 
 // Randomize with a high frequency cutoff of 0.75 hartrees
 void ColumnBundle::randomize(int colStart, int colStop)
-{	assert(basis->nbasis==colLength() || 2*basis->nbasis==colLength());
+{	static StopWatch watch("ColumnBundle::randomize"); watch.start();
+	assert(basis->nbasis==colLength() || 2*basis->nbasis==colLength());
 	complex* thisData = data(); //currently only on cpu
 	for(size_t j=0; j<colLength(); j++)
 	{	size_t jBasis = (j < basis->nbasis) ? j : (j - basis->nbasis);
@@ -170,6 +171,7 @@ void ColumnBundle::randomize(int colStart, int colStop)
 		for(int i=colStart; i < colStop; i++)
 			thisData[index(i,j)] = Random::normalComplex(sigma);
 	}
+	watch.stop();
 }
 void randomize(std::vector<ColumnBundle>& Y, const ElecInfo& eInfo)
 {	for(int q=eInfo.qStart; q<eInfo.qStop; q++)

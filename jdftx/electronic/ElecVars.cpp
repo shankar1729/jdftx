@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 
 ElecVars::ElecVars()
-: isRandom(true), initLCAO(true), HauxInitialized(false), lcaoIter(-1), lcaoTol(1e-6)
+: isRandom(true), initLCAO(true), skipWfnsInit(false), HauxInitialized(false), lcaoIter(-1), lcaoTol(1e-6)
 {
 }
 
@@ -178,50 +178,56 @@ void ElecVars::setup(const Everything &everything)
 			die("Band-structure (fixed electron density) calculations temporarily\n"
 				"unsupported with hybrid functionals: use v1.1.2 or earlier.\n");
 	}
-
-	// Initialize ColumnBundle arrays for the electronic wave-functions:
-	logPrintf("Initializing wave functions:  ");
-	init(C, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo);
-
-	//Initial wave functions
-	int nBandsInited = 0;
-	if(wfnsFilename.length())
-	{	logPrintf("reading from '%s'\n", wfnsFilename.c_str()); logFlush();
-		if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
-		read(C, wfnsFilename.c_str(), eInfo, readConversion.get());
-		nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
-		isRandom = (nBandsInited<eInfo.nBands);
-	}
-	else if(initLCAO)
-	{	nBandsInited = LCAO();
-	}
 	
-	//Randomize and orthogonalize any uninitialized bands:
-	if(nBandsInited < eInfo.nBands)
-	{	if(nBandsInited) logPrintf("Setting upper %d bands to ", eInfo.nBands-nBandsInited);
-		logPrintf("bandwidth-limited random numbers\n"); logFlush();
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	//randomize uninitialized bands:
-			C[q].randomize(nBandsInited, eInfo.nBands);
-			//don't mix (during orthogonalization) the random columns with the init'd ones:
-			if(nBandsInited)
-			{	//Ensure that the initalized bands are orthonormal:
-				ColumnBundle Cfixed = C[q].getSub(0, nBandsInited);
-				ColumnBundle OCfixed = O(Cfixed);
-				matrix ortho = invsqrt(Cfixed^OCfixed);
-				Cfixed = Cfixed * ortho;
-				OCfixed = OCfixed * ortho;
-				//Project out initalized band directions from the rest:
-				C[q] -= Cfixed * (OCfixed^C[q]);
-				C[q].setSub(0, Cfixed);
+	//Wavefunction initialiation (bypass in dry runs and phonon supercell calculations)
+	if(skipWfnsInit)
+		logPrintf("Skipped wave function initialization.\n");
+	else
+	{
+		// Initialize ColumnBundle arrays for the electronic wave-functions:
+		logPrintf("Initializing wave functions:  ");
+		init(C, eInfo.nStates, eInfo.nBands, &basis[0], &eInfo);
+
+		//Initial wave functions
+		int nBandsInited = 0;
+		if(wfnsFilename.length())
+		{	logPrintf("reading from '%s'\n", wfnsFilename.c_str()); logFlush();
+			if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
+			read(C, wfnsFilename.c_str(), eInfo, readConversion.get());
+			nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
+			isRandom = (nBandsInited<eInfo.nBands);
+		}
+		else if(initLCAO)
+		{	nBandsInited = LCAO();
+		}
+		
+		//Randomize and orthogonalize any uninitialized bands:
+		if(nBandsInited < eInfo.nBands)
+		{	if(nBandsInited) logPrintf("Setting upper %d bands to ", eInfo.nBands-nBandsInited);
+			logPrintf("bandwidth-limited random numbers\n"); logFlush();
+			for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			{	//randomize uninitialized bands:
+				C[q].randomize(nBandsInited, eInfo.nBands);
+				//don't mix (during orthogonalization) the random columns with the init'd ones:
+				if(nBandsInited)
+				{	//Ensure that the initalized bands are orthonormal:
+					ColumnBundle Cfixed = C[q].getSub(0, nBandsInited);
+					ColumnBundle OCfixed = O(Cfixed);
+					matrix ortho = invsqrt(Cfixed^OCfixed);
+					Cfixed = Cfixed * ortho;
+					OCfixed = OCfixed * ortho;
+					//Project out initalized band directions from the rest:
+					C[q] -= Cfixed * (OCfixed^C[q]);
+					C[q].setSub(0, Cfixed);
+				}
 			}
 		}
-	}
-	
-	//Orthogonalize initial wavefunctions:
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	C[q] = C[q] * invsqrt(C[q]^O(C[q]));
-		iInfo.project(C[q], VdagC[q]);
+		
+		//Orthogonalize initial wavefunctions:
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	C[q] = C[q] * invsqrt(C[q]^O(C[q]));
+			iInfo.project(C[q], VdagC[q]);
+		}
 	}
 	
 	//Fluid setup:

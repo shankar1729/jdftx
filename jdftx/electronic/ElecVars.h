@@ -76,6 +76,7 @@ public:
 	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
+	bool skipWfnsInit; //!< whether to skip wavefunction initialization (used to speed up dry runs, phonon calculations)
 
 	string eigsFilename; //!< file to read eigenvalues from
 	

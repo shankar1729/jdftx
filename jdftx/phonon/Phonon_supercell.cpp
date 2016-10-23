@@ -46,6 +46,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	}
 
 	//Remove initial state settings (incompatible with supercell):
+	eSup->eVars.skipWfnsInit = true; //skip because wavefunctions are set from unit cell calculation
 	eSup->eVars.wfnsFilename.clear();
 	eSup->eVars.eigsFilename.clear();
 	eSup->eVars.fluidInitialStateFilename.clear();

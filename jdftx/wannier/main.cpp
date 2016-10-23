@@ -40,6 +40,7 @@ int main(int argc, char** argv)
 	e.eVars.nFilenamePattern.clear();
 	e.eVars.VFilenamePattern.clear();
 	e.eVars.fluidParams.fluidType = FluidNone;
+	if(dryRun) e.eVars.skipWfnsInit = true;
 	
 	//Setup:
 	e.setup();
