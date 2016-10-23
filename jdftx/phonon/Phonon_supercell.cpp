@@ -94,16 +94,17 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	
 	//Map corresponding basis objects:
 	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
-	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
-	{	ColumnBundleTransform::BasisWrapper basisSupWrapper(eSup->basis[qSup]);
-		const vector3<>& kSup = eSup->eInfo.qnums[qSup].k;
-		//Initialize index map for each unit cell k-point
-		for(StateMapEntry& sme: stateMap) if(sme.qSup == qSup)
-		{	const Basis& basis = e.basis[sme.iReduced];
-			const vector3<>& k = e.eInfo.qnums[sme.iReduced].k;
-			sme.transform = std::make_shared<ColumnBundleTransform>(k, basis, kSup, basisSupWrapper, nSpinor, sym[sme.iSym], sme.invert, Diag(sup));
+	for(int qSup=0; qSup<eSup->eInfo.nStates; qSup++)
+		if(eSup->eInfo.isMine(qSup) || eSup->eInfo.qnums[qSup].k.length_squared()==0) //Make Gamma-point available on all processes
+		{	ColumnBundleTransform::BasisWrapper basisSupWrapper(eSup->basis[qSup]);
+			const vector3<>& kSup = eSup->eInfo.qnums[qSup].k;
+			//Initialize index map for each unit cell k-point
+			for(StateMapEntry& sme: stateMap) if(sme.qSup == qSup)
+			{	const Basis& basis = e.basis[sme.iReduced];
+				const vector3<>& k = e.eInfo.qnums[sme.iReduced].k;
+				sme.transform = std::make_shared<ColumnBundleTransform>(k, basis, kSup, basisSupWrapper, nSpinor, sym[sme.iSym], sme.invert, Diag(sup));
+			}
 		}
-	}
 	
 	//Initialize state of supercell:
 	std::vector<diagMatrix> Hsub0 = setSupState();
@@ -262,19 +263,20 @@ std::vector<diagMatrix> Phonon::setSupState()
 }
 
 std::vector<matrix> Phonon::getPerturbedHsub()
-{	static StopWatch watch("phonon::setSupState"); watch.start();
+{	static StopWatch watch("phonon::getPerturbedHsub"); watch.start();
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	int nBands = e.eInfo.nBands;
 	int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
+	int nqPrevStart, nqPrevStop; TaskDivision(prodSup, mpiUtil).myRange(nqPrevStart, nqPrevStop);
 	std::vector<matrix> Hsub(nSpins);
 	for(int s=0; s<nSpins; s++)
 	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
 		assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-		if(eSup->eInfo.isMine(qSup))
-		{	//Initialize outputs:
-			Hsub[s] = zeroes(nBandsSup, nBandsSup);
-			//Loop over supercell-commensurate unit cell k-points:
-			for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+		//Initialize outputs:
+		Hsub[s] = zeroes(nBandsSup, nBandsSup);
+		//Loop over supercell-commensurate unit cell k-points:
+		for(const StateMapEntry& sme: stateMap)
+			if(sme.qSup==qSup && sme.nqPrev>=nqPrevStart && sme.nqPrev<nqPrevStop) //MPI divide on nqPrev
 			{	//Set supercell wavefunctions:
 				const ColumnBundle& C = e.eVars.C[sme.iReduced];
 				ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
@@ -301,11 +303,8 @@ std::vector<matrix> Phonon::getPerturbedHsub()
 					Hsub[s].set(start,stop, start2,stop2, Hsub12);
 				}
 			}
-		}
-		else Hsub[s].init(nBandsSup, nBandsSup);
-		Hsub[s].bcast(eSup->eInfo.whose(qSup));
+		Hsub[s].allReduce(MPIUtil::ReduceSum);
 	}
-	
 	watch.stop();
 	return Hsub; 
 }

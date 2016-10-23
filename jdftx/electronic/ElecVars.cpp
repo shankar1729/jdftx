@@ -584,7 +584,7 @@ void ElecVars::orthonormalize(int q, matrix* extraRotation)
 }
 
 double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
-{	assert(e->eInfo.isMine(q));
+{	assert(C[q]); //make sure wavefunction is available for this states
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	
