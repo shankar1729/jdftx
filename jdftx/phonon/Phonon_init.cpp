@@ -142,6 +142,15 @@ void Phonon::setup(bool printDefaults)
 		spOut.constraints.assign(spOut.atpos.size(), constraintFull);
 	}
 	
+	//Store ideal energy and forces for unperturbed supercell:
+	E0 = prodSup * relevantFreeEnergy(e);
+	e.iInfo.ionicEnergyAndGrad(e.iInfo.forces); //compute forces in lattice coordinates
+	IonicGradient grad0unit = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
+	grad0.assign(e.iInfo.forces.size(), std::vector<vector3<>>());
+	for(size_t iSp=0; iSp<grad0.size(); iSp++)
+		for(int iCell=0; iCell<prodSup; iCell++) //repeat for each unit cell in supercell
+			grad0[iSp].insert(grad0[iSp].end(), grad0unit[iSp].begin(), grad0unit[iSp].end());
+	
 	//Supercell symmetries:
 	eSupTemplate.symm.sup = sup; //restrict space group to translations within unit cell
 	eSupTemplate.symm.setup(eSupTemplate);

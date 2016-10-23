@@ -59,15 +59,9 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	eSup->cntrl.convergeEmptyStates = false; //has no effect on any phonon results, so force-disable to save time
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
-	double drSym = 0.;
-	for(int iDir=0; iDir<3; iDir++)
-		drSym = std::max(drSym, eSup->gInfo.R.column(iDir).length());
-	drSym *= (10*symmThreshold); //ensure temporary perturbation is an order of magnitude larger than symmetry detection threshold
-	vector3<> dxSym = inv(eSup->gInfo.R) * drSym * pert.dir;
-	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxSym; //apply perturbation for detection of symmetry reduction
+	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
+	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
 	eSup->setup();
-	eSup->iInfo.species[pert.sp]->atpos[pert.at] -= dxSym; //restore unperturbed geometry
-	eSup->iInfo.species[pert.sp]->sync_atpos();
 	if(dryRun)
 	{	logPrintf("Dry run: supercell setup successful.\n");
 		return;
@@ -112,26 +106,11 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	}
 	
 	//Initialize state of supercell:
-	setSupState();
-	IonicMinimizer imin(*eSup);
-	IonicGradient grad0;
-	imin.compute(&grad0, 0); //compute initial forces and energy
-	logPrintf("# Energy components:\n"); eSup->ener.print(); logPrintf("\n");
-	double E0 = relevantFreeEnergy(*eSup);
-	logPrintf("Supercell energy discrepancy: %lg / unit cell\n", E0/prodSup - relevantFreeEnergy(e));
-	logPrintf("RMS force in initial configuration: %lg\n", sqrt(dot(grad0,grad0)/(3*nAtomsTot)));
-	//subspace Hamiltonian of supercell Gamma point:
-	std::vector<matrix> Hsub0;
-	setSupState(&Hsub0);
-
-	//Move to perturbed configuration:
-	IonicGradient dir; dir.init(eSup->iInfo); //contains zeroes
-	dir[pert.sp][pert.at] = pert.dir;
-	imin.step(dir, dr);
+	std::vector<diagMatrix> Hsub0 = setSupState();
 	
 	//Calculate energy and forces:
 	IonicGradient grad, dgrad_pert;
-	imin.compute(&grad, 0);
+	IonicMinimizer(*eSup).compute(&grad, 0);
 	dgrad_pert = (grad - grad0) * (1./dr);
 	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
 	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
@@ -149,16 +128,12 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		sqrt(fMean.length_squared()*nAtomsTot/dot(dgrad_pert,dgrad_pert)));
 	
 	//Subspace hamiltonian change:
-	std::vector<matrix> Hsub, dHsub_pert(nSpins);
-	setSupState(&Hsub);
+	std::vector<matrix> Hsub = getPerturbedHsub(), dHsub_pert(nSpins);
 	for(size_t s=0; s<Hsub.size(); s++)
 		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
 	
 	//Restore atom position:
-	bool dragWfns = false;
-	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //disable wave function drag because state has already been restored to unperturbed version
-	imin.step(dir, -dr);
-	std::swap(dragWfns, eSup->cntrl.dragWavefunctions); //restore wave function drag flag
+	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
 	
 	//Accumulate results for all symmetric images of perturbation:
 	const auto& atomMap = eSupTemplate.symm.getAtomMap();
@@ -220,59 +195,13 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	}
 }
 
-void Phonon::setSupState(std::vector<matrix>* Hsub)
+#define INITwfnsSup(C, nCols) \
+	C.init(nCols, eSup->basis[qSup].nbasis * eSup->eInfo.spinorLength(), \
+		&eSup->basis[qSup], &eSup->eInfo.qnums[qSup], isGpuEnabled());
+
+std::vector<diagMatrix> Phonon::setSupState()
 {	static StopWatch watch("phonon::setSupState"); watch.start();
-	
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
-	
-	#define INITwfnsSup(C, nCols) \
-		C.init(nCols, eSup->basis[qSup].nbasis * eSup->eInfo.spinorLength(), \
-			&eSup->basis[qSup], &eSup->eInfo.qnums[qSup], isGpuEnabled());
-	
-	//Compute gamma point Hamiltonian if requested:
-	if(Hsub)
-	{	int nBands = e.eInfo.nBands;
-		int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
-		Hsub->resize(nSpins);
-		for(int s=0; s<nSpins; s++)
-		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
-			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-			if(eSup->eInfo.isMine(qSup))
-			{	//Initialize outputs:
-				(*Hsub)[s] = zeroes(nBandsSup, nBandsSup);
-				//Loop over supercell-commensurate unit cell k-points:
-				for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
-				{	//Set supercell wavefunctions:
-					const ColumnBundle& C = e.eVars.C[sme.iReduced];
-					ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
-					if(Csup.nCols() != nBands) INITwfnsSup(Csup, nBands)
-					Csup.zero();
-					sme.transform->scatterAxpy(scaleFac, C, Csup,0,1);
-					//Apply Hamiltonian:
-					ColumnBundle HCsup; Energies ener;
-					eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wavefunction projections
-					eSup->eVars.applyHamiltonian(qSup, eye(nBands), HCsup, ener, true);
-					int start = nBands * sme.nqPrev;
-					int stop = nBands * (sme.nqPrev+1);
-					//Second loop over supercell-commensurate unit cell k-points:
-					for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)
-					{	const ColumnBundle& C2 = e.eVars.C[sme2.iReduced];
-						ColumnBundle HC = C2.similar();
-						HC.zero();
-						sme2.transform->gatherAxpy(1./scaleFac, HCsup,0,1, HC);
-						//Compute overlaps:
-						int start2 = nBands * sme2.nqPrev;
-						int stop2 = nBands * (sme2.nqPrev+1);
-						matrix Hsub12 = HC^C2; //subspace Hamiltonian in the complex-conjugate convention of reduced C2
-						if(sme2.invert<0) Hsub12 = conj(Hsub12); //switch conjugate convention back to that of supercell
-						(*Hsub)[s].set(start,stop, start2,stop2, Hsub12);
-					}
-				}
-			}
-			else (*Hsub)[s].init(nBandsSup, nBandsSup);
-			(*Hsub)[s].bcast(eSup->eInfo.whose(qSup));
-		}
-	}
 	
 	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
 	int nBandsOptSup = nBandsOpt * prodSup;
@@ -283,8 +212,6 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			eSup->eVars.Haux_eigs[qSup].assign(nBandsOptSup, 0.);
 	}
-	
-	#undef INITwfnsSup
 	
 	//Update supercell quantities:
 	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
@@ -313,5 +240,72 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		eSup->eVars.HauxInitialized = true;
 		eSup->eVars.Hsub_eigs = eSup->eVars.Haux_eigs;
 	}
+	
+	//Return unperturbed subspace Hamiltonian (supercell Gamma point only, but all bands):
+	std::vector<diagMatrix> Hsub0(nSpins);
+	int nBands = e.eInfo.nBands;
+	int nBandsSup = nBands * prodSup;
+	for(int s=0; s<nSpins; s++)
+	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+		assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+		Hsub0[s].resize(nBandsSup);
+		if(eSup->eInfo.isMine(qSup))
+		{	for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+			{	int nBandsPrev = nBands * sme.nqPrev;
+				Hsub0[s].set(nBandsPrev,nBandsPrev+nBands, e.eVars.Hsub_eigs[sme.iReduced]);
+			}
+		}
+		Hsub0[s].bcast(eSup->eInfo.whose(qSup));
+	}
 	watch.stop();
+	return Hsub0;
+}
+
+std::vector<matrix> Phonon::getPerturbedHsub()
+{	static StopWatch watch("phonon::setSupState"); watch.start();
+	double scaleFac = 1./sqrt(prodSup); //to account for normalization
+	int nBands = e.eInfo.nBands;
+	int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
+	std::vector<matrix> Hsub(nSpins);
+	for(int s=0; s<nSpins; s++)
+	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+		assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+		if(eSup->eInfo.isMine(qSup))
+		{	//Initialize outputs:
+			Hsub[s] = zeroes(nBandsSup, nBandsSup);
+			//Loop over supercell-commensurate unit cell k-points:
+			for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+			{	//Set supercell wavefunctions:
+				const ColumnBundle& C = e.eVars.C[sme.iReduced];
+				ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
+				if(Csup.nCols() != nBands) INITwfnsSup(Csup, nBands)
+				Csup.zero();
+				sme.transform->scatterAxpy(scaleFac, C, Csup,0,1);
+				//Apply Hamiltonian:
+				ColumnBundle HCsup; Energies ener;
+				eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wavefunction projections
+				eSup->eVars.applyHamiltonian(qSup, eye(nBands), HCsup, ener, true);
+				int start = nBands * sme.nqPrev;
+				int stop = nBands * (sme.nqPrev+1);
+				//Second loop over supercell-commensurate unit cell k-points:
+				for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)
+				{	const ColumnBundle& C2 = e.eVars.C[sme2.iReduced];
+					ColumnBundle HC = C2.similar();
+					HC.zero();
+					sme2.transform->gatherAxpy(1./scaleFac, HCsup,0,1, HC);
+					//Compute overlaps:
+					int start2 = nBands * sme2.nqPrev;
+					int stop2 = nBands * (sme2.nqPrev+1);
+					matrix Hsub12 = HC^C2; //subspace Hamiltonian in the complex-conjugate convention of reduced C2
+					if(sme2.invert<0) Hsub12 = conj(Hsub12); //switch conjugate convention back to that of supercell
+					Hsub[s].set(start,stop, start2,stop2, Hsub12);
+				}
+			}
+		}
+		else Hsub[s].init(nBandsSup, nBandsSup);
+		Hsub[s].bcast(eSup->eInfo.whose(qSup));
+	}
+	
+	watch.stop();
+	return Hsub; 
 }
