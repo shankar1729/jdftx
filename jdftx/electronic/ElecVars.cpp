@@ -181,7 +181,9 @@ void ElecVars::setup(const Everything &everything)
 	
 	//Wavefunction initialiation (bypass in dry runs and phonon supercell calculations)
 	if(skipWfnsInit)
+	{	C.resize(eInfo.nStates); //skip memory allocation, but initialize array
 		logPrintf("Skipped wave function initialization.\n");
+	}
 	else
 	{
 		// Initialize ColumnBundle arrays for the electronic wave-functions:

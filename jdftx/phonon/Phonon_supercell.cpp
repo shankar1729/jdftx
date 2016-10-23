@@ -221,8 +221,13 @@ void Phonon::processPerturbation(const Perturbation& pert)
 }
 
 void Phonon::setSupState(std::vector<matrix>* Hsub)
-{
+{	static StopWatch watch("phonon::setSupState"); watch.start();
+	
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
+	
+	#define INITwfnsSup(C, nCols) \
+		C.init(nCols, eSup->basis[qSup].nbasis * eSup->eInfo.spinorLength(), \
+			&eSup->basis[qSup], &eSup->eInfo.qnums[qSup], isGpuEnabled());
 	
 	//Compute gamma point Hamiltonian if requested:
 	if(Hsub)
@@ -240,7 +245,7 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 				{	//Set supercell wavefunctions:
 					const ColumnBundle& C = e.eVars.C[sme.iReduced];
 					ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
-					if(Csup.nCols() != nBands) Csup.init(nBands, Csup.colLength(), Csup.basis, Csup.qnum, isGpuEnabled());
+					if(Csup.nCols() != nBands) INITwfnsSup(Csup, nBands)
 					Csup.zero();
 					sme.transform->scatterAxpy(scaleFac, C, Csup,0,1);
 					//Apply Hamiltonian:
@@ -273,12 +278,13 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 	int nBandsOptSup = nBandsOpt * prodSup;
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
-		if(Cq.nCols() != nBandsOptSup)
-			Cq.init(nBandsOptSup, Cq.colLength(), Cq.basis, Cq.qnum, isGpuEnabled());
+		if(Cq.nCols() != nBandsOptSup) INITwfnsSup(Cq, nBandsOptSup);
 		Cq.zero();
 		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			eSup->eVars.Haux_eigs[qSup].assign(nBandsOptSup, 0.);
 	}
+	
+	#undef INITwfnsSup
 	
 	//Update supercell quantities:
 	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
@@ -307,4 +313,5 @@ void Phonon::setSupState(std::vector<matrix>* Hsub)
 		eSup->eVars.HauxInitialized = true;
 		eSup->eVars.Hsub_eigs = eSup->eVars.Haux_eigs;
 	}
+	watch.stop();
 }
