@@ -251,34 +251,37 @@ std::vector<diagMatrix> Phonon::setSupState()
 		return Hsub0;
 	}
 	
-	//Zero wavefunctions (since a scatter used below)
+	//Update supercell quantities:
 	int nBandsOptSup = nBandsOpt * prodSup;
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
-	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
-		if(Cq.nCols() != nBandsOptSup) INITwfnsSup(Cq, nBandsOptSup);
-		Cq.zero();
-	}
-	
-	//Update supercell quantities:
-	for(const StateMapEntry& sme: stateMap) if(eSup->eInfo.isMine(sme.qSup))
-	{	int nBandsPrev = nBandsOpt * sme.nqPrev;
-		//Wavefunctions:
-		const ColumnBundle& C = e.eVars.C[sme.iReduced];
-		ColumnBundle& Csup = eSup->eVars.C[sme.qSup];
-		sme.transform->scatterAxpy(scaleFac, C.getSub(0,nBandsOpt), Csup,nBandsPrev,1);
-		eSup->iInfo.project(Csup, eSup->eVars.VdagC[sme.qSup]); //update wave function projections
-		//Fillings:
-		const diagMatrix& F = e.eVars.F[sme.iReduced];
-		diagMatrix& Fsup = eSup->eVars.F[sme.qSup];
+	{	//Prepare outputs:
+		//--- Wavefuntions:
+		ColumnBundle& Csup = eSup->eVars.C[qSup];
+		if(Csup.nCols() != nBandsOptSup) INITwfnsSup(Csup, nBandsOptSup);
+		Csup.zero(); //zero wavefunctions (since a scatter used below)
+		//--- Fillings:
+		diagMatrix& Fsup = eSup->eVars.F[qSup];
 		Fsup.resize(nBandsOptSup);
-		Fsup.set(nBandsPrev,nBandsPrev+nBandsOpt, F(0,nBandsOpt));
-		//Auxiliary Hamiltonian (if necessary):
-		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		{	const diagMatrix& Haux_eigs = e.eVars.Haux_eigs[sme.iReduced];
-			diagMatrix& Haux_eigsSup = eSup->eVars.Haux_eigs[sme.qSup];
-			Haux_eigsSup.resize(nBandsOptSup);
-			Haux_eigsSup.set(nBandsPrev,nBandsPrev+nBandsOpt, Haux_eigs(0,nBandsOpt));
+		//--- Auxiliary Hamiltonian (if necessary):
+		diagMatrix unused;
+		diagMatrix& Haux_eigsSup = (e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub) ? eSup->eVars.Haux_eigs[qSup] : unused;
+		Haux_eigsSup.resize(nBandsOptSup);
+		//Collect from unit cell to supercell:
+		for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+		{	int nBandsPrev = nBandsOpt * sme.nqPrev;
+			//Wavefunctions:
+			const ColumnBundle& C = e.eVars.C[sme.iReduced];
+			sme.transform->scatterAxpy(scaleFac, C.getSub(0,nBandsOpt), Csup,nBandsPrev,1);
+			//Fillings:
+			const diagMatrix& F = e.eVars.F[sme.iReduced];
+			Fsup.set(nBandsPrev,nBandsPrev+nBandsOpt, F(0,nBandsOpt));
+			//Auxiliary Hamiltonian (if necessary):
+			if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+			{	const diagMatrix& Haux_eigs = e.eVars.Haux_eigs[sme.iReduced];
+				Haux_eigsSup.set(nBandsPrev,nBandsPrev+nBandsOpt, Haux_eigs(0,nBandsOpt));
+			}
 		}
+		eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wave function projections
 	}
 	
 	//Update entropy contributions:
