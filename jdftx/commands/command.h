@@ -208,4 +208,12 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e);
 //! @return Whether file is readable
 bool isReadable(string fname);
 
+//! Set target to the filename for reading variable varName from file with pattern
+//! specified by filenamePattern if that file exists and is readable
+void setAvailableFilename(string filenamePattern, string varName, string& target);
+
+//! Apply setAvailableFilename for all standard input variables (action of CommandInitialState)
+void setAvailableFilenames(string filenamePattern, Everything& e);
+
+
 #endif // JDFTX_COMMAND_COMMAND_H

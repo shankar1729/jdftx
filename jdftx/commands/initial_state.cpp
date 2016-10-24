@@ -46,17 +46,7 @@ struct CommandInitialState : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(filenamePattern, string(), "filename-pattern", true);
-		if(filenamePattern.find("$VAR")==string::npos)
-			throw "<filename-pattern> = " + filenamePattern + " doesn't contain '$VAR'";
-		processPattern("wfns", e.eVars.wfnsFilename);
-		processPattern("fillings", e.eInfo.initialFillingsFilename);
-		if(!e.eInfo.initialFillingsFilename.length())
-			processPattern("fill", e.eInfo.initialFillingsFilename); //alternate naming convention
-		processPattern("fluidState", e.eVars.fluidInitialStateFilename);
-		if(!e.eVars.fluidInitialStateFilename.length())
-			processPattern("fS", e.eVars.fluidInitialStateFilename); //alternate naming convention
-		processPattern("scfHistory", e.scfParams.historyFilename);
-		processPattern("eigenvals", e.eVars.eigsFilename);
+		setAvailableFilenames(filenamePattern, e);
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -65,15 +55,29 @@ struct CommandInitialState : public Command
 
 private:
 	string filenamePattern;
-	
-	void processPattern(string varName, string& target) const
-	{	string filename = filenamePattern;
-		filename.replace(filename.find("$VAR"),4, varName);
-		if(isReadable(filename))
-			target = filename; //file exists and is readable
-	}
 }
 commandInitialState;
+
+void setAvailableFilename(string filenamePattern, string varName, string& target)
+{	string filename = filenamePattern;
+	filename.replace(filename.find("$VAR"),4, varName);
+	if(isReadable(filename))
+		target = filename; //file exists and is readable
+}
+
+void setAvailableFilenames(string filenamePattern, Everything& e)
+{	if(filenamePattern.find("$VAR")==string::npos)
+		throw "<filename-pattern> = " + filenamePattern + " doesn't contain '$VAR'";
+	setAvailableFilename(filenamePattern, "wfns", e.eVars.wfnsFilename);
+	setAvailableFilename(filenamePattern, "fillings", e.eInfo.initialFillingsFilename);
+	if(!e.eInfo.initialFillingsFilename.length())
+		setAvailableFilename(filenamePattern, "fill", e.eInfo.initialFillingsFilename); //alternate naming convention
+	setAvailableFilename(filenamePattern, "fluidState", e.eVars.fluidInitialStateFilename);
+	if(!e.eVars.fluidInitialStateFilename.length())
+		setAvailableFilename(filenamePattern, "fS", e.eVars.fluidInitialStateFilename); //alternate naming convention
+	setAvailableFilename(filenamePattern, "scfHistory", e.scfParams.historyFilename);
+	setAvailableFilename(filenamePattern, "eigenvals", e.eVars.eigsFilename);
+}
 
 //-----------------------------------------------------------------------
 
