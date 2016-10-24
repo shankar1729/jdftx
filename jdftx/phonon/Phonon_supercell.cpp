@@ -142,6 +142,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		eSup->dump(DumpFreq_End, 0);
 		dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
 	}
+	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
 	
 	//Translational invariance correction (zero mean force):
 	vector3<> fMean;
