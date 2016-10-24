@@ -28,12 +28,30 @@ void Phonon::dump()
 	dHsub.assign(modes.size(), std::vector<matrix>(nSpins));
 	
 	//Accumulate contributions to force matrix and electron-phonon matrix elements for each irreducible perturbation:
-	for(unsigned iPert=0; iPert<perturbations.size(); iPert++)
+	unsigned iPertStart = (iPerturbation>=0) ? iPerturbation : 0;
+	unsigned iPertStop  = (iPerturbation>=0) ? iPerturbation+1 : perturbations.size();
+	std::vector<int> nStatesPert(perturbations.size());
+	for(unsigned iPert=iPertStart; iPert<iPertStop; iPert++)
 	{	logPrintf("########### Perturbed supercell calculation %u of %d #############\n", iPert+1, int(perturbations.size()));
-		processPerturbation(perturbations[iPert]);
+		ostringstream oss; oss << "phonon." << iPert+1 << ".$@#!"; //placeholder for $VAR
+		string fnamePattern = e.dump.getFilename(oss.str()); //(because dump variable name cannot contain $VAR)
+		fnamePattern.replace(fnamePattern.find("$@#!"), 4, "$VAR"); //replace placeholder with $VAR
+		processPerturbation(perturbations[iPert], fnamePattern);
+		nStatesPert[iPert] = eSup->eInfo.nStates;
 		logPrintf("\n"); logFlush();
 	}
-	if(dryRun) return;
+	if(dryRun)
+	{	logPrintf("\nParameter summary for supercell calculations:\n");
+		for(unsigned iPert=iPertStart; iPert<iPertStop; iPert++)
+			logPrintf("\tPerturbation: %u  nStates: %d\n", iPert+1, nStatesPert[iPert]);
+		logPrintf("Use option iPerturbation of command phonon to run each supercell calculation separately.\n");
+		return;
+	}
+	if(iPerturbation>=0)
+	{	logPrintf("Completed supercell calculation for iPerturbation %d.\n", iPerturbation+1);
+		logPrintf("After completing all supercells, rerun with option collectPerturbations in command phonon.\n");
+		return;
+	}
 	
 	//Construct frequency-squared matrix:
 	//--- convert forces to frequency-squared (divide by mass symmetrically):

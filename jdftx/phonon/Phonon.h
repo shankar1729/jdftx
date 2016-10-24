@@ -55,6 +55,9 @@ public:
 	double Fcut; //fillings cutoff for optimizing number of bands
 	bool dryRun; //whether this is a dry run (test setup only; skip calculation)
 	
+	int iPerturbation; //if >=0, only run one supercell calculation
+	bool collectPerturbations; //if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
+	
 	Phonon();
 	void setup(bool printDefaults); //setup unit cell and basis modes for perturbations
 	void dump(); //main calculations (sequence of supercell calculations) as well as output
@@ -88,8 +91,8 @@ private:
 	};
 	std::vector<Perturbation> perturbations;
 	
-	//Run supercell calculation for specified perturbation
-	void processPerturbation(const Perturbation& pert);
+	//Run supercell calculation for specified perturbation (using fnamePattern to load/restore required properties)
+	void processPerturbation(const Perturbation& pert, string fnamePattern);
 	
 	//Set unperturbed state of supercell from unit cell and retrieve unperturbed subspace Hamiltonian at supercell Gamma point (for all bands)
 	std::vector<diagMatrix> setSupState();

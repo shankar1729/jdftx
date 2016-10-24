@@ -29,7 +29,7 @@ PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
 }
 
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin), Fcut(1e-8), e(*this), eSupTemplate(*this)
+: dr(0.01), T(298*Kelvin), Fcut(1e-8), iPerturbation(-1), collectPerturbations(false), e(*this), eSupTemplate(*this)
 {
 }
 
@@ -259,6 +259,8 @@ void Phonon::setup(bool printDefaults)
 	for(const Perturbation& pert: perturbations)
 		logPrintf("%s %d  [ %+lf %+lf %+lf ] %lf\n", e.iInfo.species[pert.sp]->name.c_str(),
 			pert.at, pert.dir[0], pert.dir[1], pert.dir[2], pert.weight*symSupCart.size());
+	if(iPerturbation>=int(perturbations.size()))
+		die("Specified iPerturbation %d in command phonon is invalid (since it is > %lu).\n", iPerturbation+1, perturbations.size());
 	
 	//Determine wavefunction unitary rotations:
 	logPrintf("\nCalculating unitary rotations of unit cell states under symmetries:\n");

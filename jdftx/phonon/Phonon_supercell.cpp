@@ -19,12 +19,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <phonon/Phonon.h>
 #include <commands/parser.h>
+#include <commands/command.h>
 #include <electronic/ColumnBundleTransform.h>
 #include <electronic/operators.h>
 
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 
-void Phonon::processPerturbation(const Perturbation& pert)
+void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 {
 	//Start with eSupTemplate:
 	eSup = std::make_shared<PhononEverything>(*this);
@@ -45,7 +46,7 @@ void Phonon::processPerturbation(const Perturbation& pert)
 		nAtomsTot += spOut.atpos.size();
 	}
 
-	//Remove initial state settings (incompatible with supercell):
+	//Remove unit cell initial state settings (incompatible with supercell):
 	eSup->eVars.skipWfnsInit = true; //skip because wavefunctions are set from unit cell calculation
 	eSup->eVars.wfnsFilename.clear();
 	eSup->eVars.eigsFilename.clear();
@@ -57,6 +58,20 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	//ElecVars:
 	eSup->eVars.initLCAO = false; //state will be initialized from unit cell anyway
 	eSup->cntrl.convergeEmptyStates = false; //has no effect on any phonon results, so force-disable to save time
+	
+	//Instead read in appropriate supercell quantities:
+	if(collectPerturbations)
+	{	//Read perturbed Vscloc and fix H below (no minimize/SCF necessary):
+		eSup->eVars.VFilenamePattern = fnamePattern;
+		eSup->cntrl.fixed_H = true;
+	}
+	else
+	{	//Read in supercell state if available:
+		setAvailableFilenames(fnamePattern, *eSup);
+		if(eSup->eVars.wfnsFilename.length())
+			eSup->eVars.skipWfnsInit = false; //do read in wfns if available
+	}
+	eSup->dump.format = fnamePattern;
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
 	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
@@ -110,11 +125,23 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	std::vector<diagMatrix> Hsub0 = setSupState();
 	
 	//Calculate energy and forces:
-	IonicGradient grad, dgrad_pert;
-	IonicMinimizer(*eSup).compute(&grad, 0);
-	dgrad_pert = (grad - grad0) * (1./dr);
-	logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
-	logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
+	IonicGradient dgrad_pert;
+	if(collectPerturbations)
+	{	dgrad_pert.init(eSup->iInfo);
+		dgrad_pert.read(eSup->dump.getFilename("dforces").c_str());
+		eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
+	}
+	else
+	{	IonicGradient grad;
+		IonicMinimizer(*eSup).compute(&grad, 0);
+		dgrad_pert = (grad - grad0) * (1./dr);
+		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
+		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
+		//Output potentials and forces for future calculations:
+		eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
+		eSup->dump(DumpFreq_End, 0);
+		dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
+	}
 	
 	//Translational invariance correction (zero mean force):
 	vector3<> fMean;
@@ -132,9 +159,6 @@ void Phonon::processPerturbation(const Perturbation& pert)
 	std::vector<matrix> Hsub = getPerturbedHsub(), dHsub_pert(nSpins);
 	for(size_t s=0; s<Hsub.size(); s++)
 		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
-	
-	//Restore atom position:
-	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
 	
 	//Accumulate results for all symmetric images of perturbation:
 	const auto& atomMap = eSupTemplate.symm.getAtomMap();
@@ -204,14 +228,34 @@ std::vector<diagMatrix> Phonon::setSupState()
 {	static StopWatch watch("phonon::setSupState"); watch.start();
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	
-	//Zero wavefunctions and auxiliary Hamiltonia (since a scatter used below)
+	//Calculate unperturbed subspace Hamiltonian (supercell Gamma point only, but all bands):
+	std::vector<diagMatrix> Hsub0(nSpins);
+	int nBands = e.eInfo.nBands;
+	int nBandsSup = nBands * prodSup;
+	for(int s=0; s<nSpins; s++)
+	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+		assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+		Hsub0[s].resize(nBandsSup);
+		if(eSup->eInfo.isMine(qSup))
+		{	for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+			{	int nBandsPrev = nBands * sme.nqPrev;
+				Hsub0[s].set(nBandsPrev,nBandsPrev+nBands, e.eVars.Hsub_eigs[sme.iReduced]);
+			}
+		}
+		Hsub0[s].bcast(eSup->eInfo.whose(qSup));
+	}
+	if(collectPerturbations || eSup->eVars.wfnsFilename.length())
+	{	//skip state initialization below if already read in, or if not needed since in collect mode:
+		watch.stop();
+		return Hsub0;
+	}
+	
+	//Zero wavefunctions (since a scatter used below)
 	int nBandsOptSup = nBandsOpt * prodSup;
 	for(int qSup=eSup->eInfo.qStart; qSup<eSup->eInfo.qStop; qSup++)
 	{	ColumnBundle& Cq = eSup->eVars.C[qSup];
 		if(Cq.nCols() != nBandsOptSup) INITwfnsSup(Cq, nBandsOptSup);
 		Cq.zero();
-		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-			eSup->eVars.Haux_eigs[qSup].assign(nBandsOptSup, 0.);
 	}
 	
 	//Update supercell quantities:
@@ -231,6 +275,7 @@ std::vector<diagMatrix> Phonon::setSupState()
 		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	const diagMatrix& Haux_eigs = e.eVars.Haux_eigs[sme.iReduced];
 			diagMatrix& Haux_eigsSup = eSup->eVars.Haux_eigs[sme.qSup];
+			Haux_eigsSup.resize(nBandsOptSup);
 			Haux_eigsSup.set(nBandsPrev,nBandsPrev+nBandsOpt, Haux_eigs(0,nBandsOpt));
 		}
 	}
@@ -242,22 +287,6 @@ std::vector<diagMatrix> Phonon::setSupState()
 		eSup->eVars.Hsub_eigs = eSup->eVars.Haux_eigs;
 	}
 	
-	//Return unperturbed subspace Hamiltonian (supercell Gamma point only, but all bands):
-	std::vector<diagMatrix> Hsub0(nSpins);
-	int nBands = e.eInfo.nBands;
-	int nBandsSup = nBands * prodSup;
-	for(int s=0; s<nSpins; s++)
-	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
-		assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-		Hsub0[s].resize(nBandsSup);
-		if(eSup->eInfo.isMine(qSup))
-		{	for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
-			{	int nBandsPrev = nBands * sme.nqPrev;
-				Hsub0[s].set(nBandsPrev,nBandsPrev+nBands, e.eVars.Hsub_eigs[sme.iReduced]);
-			}
-		}
-		Hsub0[s].bcast(eSup->eInfo.whose(qSup));
-	}
 	watch.stop();
 	return Hsub0;
 }

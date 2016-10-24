@@ -24,6 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 enum PhononMember
 {	PM_sup,
 	PM_dr,
+	PM_iPerturbation,
+	PM_collectPerturbations,
  	PM_T,
 	PM_Fcut,
 	PM_delim
@@ -32,6 +34,8 @@ enum PhononMember
 EnumStringMap<PhononMember> phononMemberMap
 (	PM_sup, "supercell",
 	PM_dr, "dr",
+	PM_iPerturbation,"iPerturbation",
+	PM_collectPerturbations, "collectPerturbations",
 	PM_T, "T",
 	PM_Fcut, "Fcut"
 );
@@ -50,6 +54,15 @@ struct CommandPhonon : public Command
 			"   be uniform and centered on Gamma.\n"
 			"\n+ dr <dr>\n\n"
 			"   Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
+			"\n+ iPerturbation <iPert>\n\n"
+			"   Only run supercell calculation for perturbation number <iPert> (1-based).\n"
+			"   Use the dry run to list out the number of perturbations, and the nStates for each\n"
+			"   so that they can each be run individually with the optimum MPI configuration.\n"
+			"   Use collectPerturbations below after all iPerturbation calculations complete.\n"
+			"\n+ collectPerturbations\n\n"
+			"   Collect results of previous individual supercell calculations.\n"
+			"   Note that this requires all iPerturbation calculations (listed at\n"
+			"   the end of the phonon dry run) to have already completed.\n"
 			"\n+ T <T>\n\n"
 			"   Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
 			"\n+ Fcut <Fcut>\n\n"
@@ -79,6 +92,19 @@ struct CommandPhonon : public Command
 				case PM_dr:
 					pl.get(phonon.dr, 0., "dr", true);
 					break;
+				case PM_iPerturbation:
+					pl.get(phonon.iPerturbation, -1, "iPert", true);
+					phonon.iPerturbation--; //internally store 0-based index
+					if(phonon.iPerturbation<0)
+						throw string("perturbation number must be positive");
+					if(phonon.collectPerturbations)
+						throw string("cannot use iPerturbation in the same calculation as collectPerturbations");
+					break;
+				case PM_collectPerturbations:
+					phonon.collectPerturbations = true;
+					if(phonon.iPerturbation>=0)
+						throw string("cannot use iPerturbation in the same calculation as collectPerturbations");
+					break;
 				case PM_T:
 					pl.get(phonon.T, 0., "T", true);
 					phonon.T *= Kelvin;
@@ -97,6 +123,8 @@ struct CommandPhonon : public Command
 	{	const Phonon& phonon = ((const PhononEverything&)e).phonon;
 		logPrintf(" \\\n\tsupercell %d %d %d", phonon.sup[0], phonon.sup[1], phonon.sup[2]);
 		logPrintf(" \\\n\tdr %lg", phonon.dr);
+		if(phonon.iPerturbation>=0) logPrintf(" \\\n\tiPerturbation %d", phonon.iPerturbation+1); //print 1-based index
+		if(phonon.collectPerturbations) logPrintf(" \\\n\tcollectPerturbations");
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
 	}

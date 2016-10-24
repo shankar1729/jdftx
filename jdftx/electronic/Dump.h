@@ -85,6 +85,7 @@ private:
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.
 	string stamp; //!< timestamp for current dump
 	std::map<DumpFrequency,int> interval; //!< for each frequency, dump every interval times
+	friend class Phonon;
 	friend struct CommandDump;
 	friend struct CommandDumpName;
 	friend struct CommandDumpInterval;
