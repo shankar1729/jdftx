@@ -59,6 +59,31 @@ void IonicGradient::print(const Everything& e, FILE* fp, const char* prefix) con
 	fprintf(fp, "\n");
 }
 
+void IonicGradient::write(const char* fname) const
+{	logPrintf("Dumping '%s' ... ", fname); logFlush();
+	FILE *fp = fopen(fname, "wb");
+	if(!fp) die("Error opening %s for writing.\n", fname);
+	for(const auto& gradSp: *this)
+	{	size_t nData = 3*gradSp.size();
+		size_t nDone = fwriteLE(gradSp.data(), sizeof(double), nData, fp);
+		if(nDone<nData) die("Error after processing %lu of %lu records.\n", nDone, nData);
+	}
+	fclose(fp);
+	logPrintf("done.\n");
+}
+
+void IonicGradient::read(const char* fname)
+{	logPrintf("Reading '%s' ... ", fname); logFlush();
+	FILE *fp = fopen(fname, "rb");
+	if(!fp) die("Error opening %s for reading.\n", fname);
+	for(auto& gradSp: *this)
+	{	size_t nData = 3*gradSp.size();
+		size_t nDone = freadLE(gradSp.data(), sizeof(double), nData, fp);
+		if(nDone<nData) die("Error after processing %lu of %lu records.\n", nDone, nData);
+	}
+	fclose(fp);
+	logPrintf("done.\n");
+}
 
 IonicGradient& IonicGradient::operator*=(double s)
 {	for(unsigned sp=0; sp<size(); sp++)

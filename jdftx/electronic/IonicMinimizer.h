@@ -32,6 +32,8 @@ struct IonicGradient : std::vector< std::vector< vector3<> > >
 {
 	void init(const IonInfo&); //!< initialize to zeroes with the correct species and atom numbers for iInfo
 	void print(const Everything&, FILE*, const char* prefix="force") const;
+	void write(const char* fname) const; //binary write to file
+	void read(const char* fname); //binary read from file
 	
 	IonicGradient& operator*=(double);
 	IonicGradient& operator+=(const IonicGradient&);
