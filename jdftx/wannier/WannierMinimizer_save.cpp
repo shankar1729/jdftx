@@ -92,7 +92,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				while(bFixedStop<bStop && eigs[bFixedStop]<=wannier.eInnerMax)
 					bFixedStop++;
 				if(bFixedStop-bFixedStart > nCenters)
-				{	ossErr << "Number of bands within inner window = " << bStop-bStart
+				{	ossErr << "Number of bands within inner window = " << bFixedStop-bFixedStart
 						<< " exceeds nCenters = " << nCenters << kString;
 					break;
 				}
