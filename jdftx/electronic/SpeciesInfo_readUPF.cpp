@@ -342,7 +342,7 @@ void SpeciesInfo::readUPF(istream& is)
 						Vnl[iBeta].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
 					Vnl[iBeta].transform(l, dG, nGridNL, VnlRadial[l].back());
 					//Determine core radius:
-					for(int i=nGrid; i>=0; i--)
+					for(int i=nGrid-1; i>=0; i--)
 						if(4*M_PI*rGrid[i]*rGrid[i]*drGrid[i] * fabs(D[iBeta][iBeta]) * Vnl[iBeta].f[i]*Vnl[iBeta].f[i] > 1e-3)
 						{	coreRadii.insert(rGrid[i]);
 							break;
