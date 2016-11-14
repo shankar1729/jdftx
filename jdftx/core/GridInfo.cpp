@@ -37,15 +37,7 @@ GridInfo::GridInfo():Gmax(0),GmaxRho(0),nr(0),initialized(false)
 GridInfo::~GridInfo()
 {
 	if(initialized)
-	{	//Save FFTW wisdom in run directory for future use
-		if(mpiUtil->isHead())
-		{	FILE* fp = fopen(".fftw-wisdom", "w");
-			if(fp)  //ignore if running in a read-only directory
-			{	fftw_export_wisdom_to_file(fp);
-				fclose(fp);
-			}
-		}
-		//Destroy cached FFTW plans, if any:
+	{	//Destroy cached FFTW plans, if any:
 		for(auto entry: planCache)
 			fftw_destroy_plan(entry.second);
 		//Destroy GPU plans, if any:
@@ -295,11 +287,6 @@ fftw_plan GridInfo::getPlan(GridInfo::PlanType planType, int nThreads) const
 	//Create plan:
 	//--- import wisdom if available:
 	fftw_import_system_wisdom();
-	FILE* fp = fopen(".fftw-wisdom", "r");
-	if(fp)
-	{	fftw_import_wisdom_from_file(fp);
-		fclose(fp);
-	}
 	//--- setup threading:
 	#ifdef MKL_PROVIDES_FFT
 	fftw3_mkl.number_of_user_threads = ceildiv(nProcsAvailable, nThreads); //maximum number of user threads from which plan could be called simultaneously
