@@ -165,8 +165,6 @@ double LatticeMinimizer::compute(matrix3<>* grad, matrix3<>* Kgrad)
 		auto stress = calculateStress();
 		for(size_t i=0; i<strainBasis.size(); i++)
 			*grad += stress[i]*strainBasis[i];
-		e.gInfo.R = Rorig + Rorig*strain;
-		updateLatticeDependent(e);
 		
 		if(Kgrad)
 			*Kgrad = Diag(e.cntrl.lattMoveScale) * (*grad) * Diag(e.cntrl.lattMoveScale);
@@ -179,10 +177,12 @@ double LatticeMinimizer::compute(matrix3<>* grad, matrix3<>* Kgrad)
 std::vector< double > LatticeMinimizer::calculateStress()
 {
 	std::vector<double> stress(strainBasis.size());
-	
+
 	logPrintf("\nCalculating stress tensor... "); logFlush();
 	for(size_t i=0; i<strainBasis.size(); i++)
 		stress[i] = centralDifference(strainBasis[i]);
+	e.gInfo.R = Rorig + Rorig*strain;
+	updateLatticeDependent(e);
 	logPrintf(" done!\n");
 	
 	return stress;
@@ -257,10 +257,4 @@ void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectron
 		e.eVars.elecEnergyAndGrad(e.ener);
 	}
 	logResume();
-}
-
-void LatticeMinimizer::restore()
-{	strain *= 0;
-	e.gInfo.R = Rorig;
-	updateLatticeDependent(e);
 }

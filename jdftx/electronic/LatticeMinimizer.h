@@ -49,10 +49,6 @@ public:
 	//!Set of independent directions in the space of all allowed strains.
 	//!Their span is consistent with symmetries and truncation (if any).
 	std::vector<matrix3<>> strainBasis;
-	
-	//! Restores the lattice to the original state (i.e. strain=0)
-	void restore();
-	
 private:
 	Everything& e;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)

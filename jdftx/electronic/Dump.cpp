@@ -534,7 +534,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		matrix3<> stressTensor;
 		for(size_t i=0; i<lattMin.strainBasis.size(); i++)
 			stressTensor += stress[i]*lattMin.strainBasis[i];
-		lattMin.restore();
 		logResume();
 		
 		if(mpiUtil->isHead())
