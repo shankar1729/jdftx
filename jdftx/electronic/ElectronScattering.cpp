@@ -40,8 +40,40 @@ matrix imag(const matrix& m)
 	return out;
 }
 
+//Setup an ellipsoidal basis with different Ecuts along iDir and remaining tranverse directions.
+//The plane waves with no transverse component are listed first, and their count is returned.
+int setupEllipsoidalBasis(Basis& basis, const GridInfo& gInfo, const IonInfo& iInfo, double Ecut, double EcutTransverse, int iDir, const vector3<> k)
+{
+	//Bounding box:
+	vector3<int> iGbox;
+	for(int i=0; i<3; i++)
+	{	const double& Ecut_i = i==iDir ? Ecut : EcutTransverse;
+		iGbox[i] = 1 + int(sqrt(2*Ecut_i) * gInfo.R.column(i).length() / (2*M_PI));
+	}
+	//Add the indices with normal components alone first:
+	std::vector<int> indexVec;
+	vector3<int> iG;
+	for(iG[iDir]=-iGbox[iDir]; iG[iDir]<=iGbox[iDir]; iG[iDir]++)
+		if(0.5*gInfo.GGT.metric_length_squared(iG+k) <= Ecut)
+			indexVec.push_back(gInfo.fullGindex(iG));
+	int nSlab = indexVec.size();
+	//Add remaining:
+	double iDirScale = sqrt(EcutTransverse/Ecut); //scale factor on iDir to make ellipsoid spherical
+	for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
+	for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
+	for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
+	{	if(iG.length_squared()==iG[iDir]*iG[iDir]) continue; //normal-component-only already included above
+		vector3<> iGkScaled = iG+k;
+		iGkScaled[iDir] *= iDirScale;
+		if(0.5*gInfo.GGT.metric_length_squared(iGkScaled) <= EcutTransverse)
+			indexVec.push_back(gInfo.fullGindex(iG));
+	}
+	basis.setup(gInfo, iInfo, indexVec);
+	return nSlab; //number of normal-component only bases
+}
+
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.)
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), slabResponse(false), EcutTransverse(0.)
 {
 }
 
@@ -51,14 +83,19 @@ void ElectronScattering::dump(const Everything& everything)
 	nBands = e.eInfo.nBands;
 	nSpinor = e.eInfo.spinorLength();
 	
-	logPrintf("\n----- Electron-electron scattering Im(Sigma) -----\n"); logFlush();
-
+	if(slabResponse)
+		logPrintf("\n----- Slab dielectric matrix calculation -----\n");
+	else
+		logPrintf("\n----- Electron-electron scattering Im(Sigma) -----\n");
+	logFlush();
+	
 	//Update default parameters:
 	if(!eta)
 	{	eta = e.eInfo.smearingWidth;
 		if(!eta) die("eta must be specified explicitly since electronic temperature is zero.\n");
 	}
 	if(!Ecut) Ecut = e.cntrl.Ecut;
+	if(!EcutTransverse) EcutTransverse = e.cntrl.Ecut;
 	double oMin = DBL_MAX, oMax = -DBL_MAX; //occupied energy range
 	double uMin = DBL_MAX, uMax = -DBL_MAX; //unoccupied energy range
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -156,29 +193,47 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Maximum k-neighbour dE: %lg (guide for selecting eta)\n", dEmax);
 	
 	//Initialize reduced q-Mesh:
-	//--- q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
-	qmesh.resize(supercell->kmesh.size());
-	for(size_t iq=0; iq<qmesh.size(); iq++)
-	{	qmesh[iq].k = supercell->kmesh[iq] - supercell->kmesh[0]; //k-difference
-		qmesh[iq].weight = 1./qmesh.size(); //uniform mesh
-		qmesh[iq].spin = 0;
+	if(slabResponse)
+	{	QuantumNumber qnum;
+		qnum.k = vector3<>(); //only zero momentum transfer for slab response
+		qnum.weight = 1.;
+		qnum.spin = 0;
+		qmesh.assign(1, qnum);
 	}
-	logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
-	qmesh = e.symm.reduceKmesh(qmesh);
-	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
+	else
+	{	//q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
+		qmesh.resize(supercell->kmesh.size());
+		for(size_t iq=0; iq<qmesh.size(); iq++)
+		{	qmesh[iq].k = supercell->kmesh[iq] - supercell->kmesh[0]; //k-difference
+			qmesh[iq].weight = 1./qmesh.size(); //uniform mesh
+			qmesh[iq].spin = 0;
+		}
+		logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
+		qmesh = e.symm.reduceKmesh(qmesh);
+		logPrintf("%d entries\n", int(qmesh.size())); logFlush();
+	}
 	
 	//Initialize polarizability/dielectric bases corresponding to qmesh:
-	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
 	basisChi.resize(qmesh.size());
-	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
-	logSuspend();
-	for(size_t iq=0; iq<qmesh.size(); iq++)
-	{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
-		avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
+	int nBasisSlab = 0; //number of basis functions for purely normal response of slab
+	if(slabResponse)
+	{	logPrintf("Setting up reduced polarizability bases at Ecut = %lg and EcutTransverse = %lg: ", Ecut, EcutTransverse); logFlush();
+		assert(e.coulombParams.geometry == CoulombParams::Slab);
+		nBasisSlab = setupEllipsoidalBasis(basisChi[0], gInfoBasis, e.iInfo, Ecut, EcutTransverse, e.coulombParams.iDir, qmesh[0].k);
+		logPrintf("nbasis = %lu, %.2lf ideal\n", basisChi[0].nbasis, sqrt(2*Ecut)*(2*EcutTransverse)*(e.gInfo.detR/(6*M_PI*M_PI)));
 	}
-	logResume();
-	logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	else
+	{	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
+		double avg_nbasis = 0.;
+		logSuspend();
+		for(size_t iq=0; iq<qmesh.size(); iq++)
+		{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
+			avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
+		}
+		logResume();
+		logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, std::pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	}
 	logFlush();
 
 
@@ -275,17 +330,54 @@ void ElectronScattering::dump(const Everything& everything)
 			}
 		assert(iHead >= 0);
 		
+		//In slab response mode, export that and bypass remainder
+		if(slabResponse)
+		{	if(mpiUtil->isHead())
+			{	//--- Output frequency list:
+				string fname = e.dump.getFilename("slabResponseOmega");
+				logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+				FILE* fp = fopen(fname.c_str(), "w");
+				if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
+				omegaGrid.print(fp);
+				fclose(fp); logPrintf("done.\n");
+				//--- Output basis:
+				fname = e.dump.getFilename("slabResponseBasis");
+				logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+				fp = fopen(fname.c_str(), "w");
+				if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
+				for(int n=0; n<nBasisSlab; n++)
+				{	const vector3<int>& iGn = basisChi[0].iGarr[n];
+					fprintf(fp, "%d %d %d\n", iGn[0], iGn[1], iGn[2]);
+				}
+				fclose(fp); logPrintf("done.\n");
+			}
+			//Output result:
+			string fname = e.dump.getFilename("slabResponse");
+			logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+			MPIUtil::File fp;
+			mpiUtil->fopenWrite(fp, fname.c_str());
+			mpiUtil->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
+			for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
+			{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
+				mpiUtil->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
+			}
+			mpiUtil->fclose(fp); logPrintf("done.\n");
+			logPrintf("\n"); return;
+		}
+		
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
-		std::vector<matrix> ImKscr(omegaGrid.nRows(), zeroes(nbasis, nbasis));
+		std::vector<matrix> ImKscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 		{	ImKscr[iOmega] = imag(inv(invKq - chiKS[iOmega]));
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
+		chiKS.clear(); //free memory; no longer needed
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+		{	if(!omegaDiv.isMine(iOmega)) ImKscr[iOmega] = zeroes(nbasis,nbasis);
 			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
-		chiKS.clear();
+		}
 		logPrintf("done.\n"); logFlush();
 		
 		//Calculate ImSigma contributions:

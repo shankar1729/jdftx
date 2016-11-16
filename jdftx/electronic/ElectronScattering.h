@@ -33,6 +33,9 @@ struct ElectronScattering
 	double fCut; //!< threshold for considering states fully occupied / unoccupied (default: 1e-6)
 	double omegaMax; //!< maximum energy transfer to account for and hence maximum frequency in dielectric grid (if zero, autodetermine from available eigenvalues)
 	
+	bool slabResponse; //!< whether to work in slab response output mode
+	double EcutTransverse; //!< energy cutoff in directions transverse to slab normal (same as Ecut above if unspecified)
+	
 	ElectronScattering();
 	void dump(const Everything& e); //!< compute and dump Im(Sigma_ee) for each eigenstate
 

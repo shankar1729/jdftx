@@ -322,13 +322,17 @@ enum ElectronScatteringMember
 	ESM_Ecut,
 	ESM_fCut,
 	ESM_omegaMax,
+	ESM_slabResponse,
+	ESM_EcutTransverse,
 	ESM_delim
 };
 EnumStringMap<ElectronScatteringMember> esmMap
 (	ESM_eta, "eta",
 	ESM_Ecut, "Ecut",
 	ESM_fCut, "fCut",
-	ESM_omegaMax, "omegaMax"
+	ESM_omegaMax, "omegaMax",
+	ESM_slabResponse, "slabResponse",
+	ESM_EcutTransverse, "EcutTransverse"
 );
 
 struct CommandElectronScattering : public Command
@@ -353,8 +357,17 @@ struct CommandElectronScattering : public Command
 			"\n+ omegaMax <omegaMax>\n\n"
 			"   <omegaMax> in Eh is the maximum energy transfer to account for\n"
 			"   and hence the maximum frequency in dielectric function frequency grid.\n"
-			"   (if zero, autodetermine from available eigenvalues)";
+			"   (if zero, autodetermine from available eigenvalues)\n"
+			"\n+ slabResponse yes|no\n\n"
+			"   Whether to output slab-normal-direction susceptibility instead.\n"
+			"   This needs slab geometry in coulomb-interaction, and will bypass the\n"
+			"   actual electron-electron scattering calculation and output.\n"
+			"\n+ EcutTransverse <EcutTransverse>\n\n"
+			"   <EcutTransverse> in Eh specifies energy cut-off for dielectric matrix in.\n"
+			"   directions trasverse to the slab normal; only valid when slabResponse = yes.\n"
+			"   (If zero, use the same value as Ecut above.)";
 		
+		require("coulomb-interaction");
 		forbid("polarizability"); //both are major operations that are given permission to destroy Everything if necessary
 	}
 	
@@ -370,8 +383,17 @@ struct CommandElectronScattering : public Command
 				case ESM_Ecut: pl.get(es.Ecut, 0., "Ecut", true); break;
 				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
+				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
+				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
 				case ESM_delim: return; //end of input
 			}
+		}
+		if(es.slabResponse)
+		{	if(e.coulombParams.geometry != CoulombParams::Slab)
+				throw string("slabResponse = yes requires slab geometry in coulomb-interaction");
+		}
+		else
+		{	if(es.EcutTransverse) throw string("Cannot specify EcutTransverse when slabResponse = no");
 		}
 	}
 
@@ -381,6 +403,8 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tEcut     %lg", es.Ecut);
 		logPrintf(" \\\n\tfCut     %lg", es.fCut);
 		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
+		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
+		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
 	}
 }
 commandElectronScattering;
