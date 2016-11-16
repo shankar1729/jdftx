@@ -40,38 +40,6 @@ matrix imag(const matrix& m)
 	return out;
 }
 
-//Setup an ellipsoidal basis with different Ecuts along iDir and remaining tranverse directions.
-//The plane waves with no transverse component are listed first, and their count is returned.
-int setupEllipsoidalBasis(Basis& basis, const GridInfo& gInfo, const IonInfo& iInfo, double Ecut, double EcutTransverse, int iDir, const vector3<> k)
-{
-	//Bounding box:
-	vector3<int> iGbox;
-	for(int i=0; i<3; i++)
-	{	const double& Ecut_i = i==iDir ? Ecut : EcutTransverse;
-		iGbox[i] = 1 + int(sqrt(2*Ecut_i) * gInfo.R.column(i).length() / (2*M_PI));
-	}
-	//Add the indices with normal components alone first:
-	std::vector<int> indexVec;
-	vector3<int> iG;
-	for(iG[iDir]=-iGbox[iDir]; iG[iDir]<=iGbox[iDir]; iG[iDir]++)
-		if(0.5*gInfo.GGT.metric_length_squared(iG+k) <= Ecut)
-			indexVec.push_back(gInfo.fullGindex(iG));
-	int nSlab = indexVec.size();
-	//Add remaining:
-	double iDirScale = sqrt(EcutTransverse/Ecut); //scale factor on iDir to make ellipsoid spherical
-	for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
-	for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
-	for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
-	{	if(iG.length_squared()==iG[iDir]*iG[iDir]) continue; //normal-component-only already included above
-		vector3<> iGkScaled = iG+k;
-		iGkScaled[iDir] *= iDirScale;
-		if(0.5*gInfo.GGT.metric_length_squared(iGkScaled) <= EcutTransverse)
-			indexVec.push_back(gInfo.fullGindex(iG));
-	}
-	basis.setup(gInfo, iInfo, indexVec);
-	return nSlab; //number of normal-component only bases
-}
-
 ElectronScattering::ElectronScattering()
 : eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), slabResponse(false), EcutTransverse(0.)
 {
@@ -136,6 +104,15 @@ void ElectronScattering::dump(const Everything& everything)
 	omegaDiv.myRange(iOmegaStart, iOmegaStop);
 	logPrintf("Initialized frequency grid with resolution %lg and %d points.\n", eta, omegaGrid.nRows());
 
+	//Handle simpler slab response case, which only requires zero momentum transfer, separately:
+	if(slabResponse)
+	{	std::swap(C, e.eVars.C);
+		std::swap(E, e.eVars.Hsub_eigs);
+		std::swap(F, e.eVars.F);
+		dumpSlabResponse(e, omegaGrid);
+		return;
+	}
+	
 	//Make necessary quantities available on all processes:
 	C.resize(e.eInfo.nStates);
 	E.resize(e.eInfo.nStates);
@@ -193,49 +170,30 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Maximum k-neighbour dE: %lg (guide for selecting eta)\n", dEmax);
 	
 	//Initialize reduced q-Mesh:
-	if(slabResponse)
-	{	QuantumNumber qnum;
-		qnum.k = vector3<>(); //only zero momentum transfer for slab response
-		qnum.weight = 1.;
-		qnum.spin = 0;
-		qmesh.assign(1, qnum);
+	//--- q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
+	qmesh.resize(supercell->kmesh.size());
+	for(size_t iq=0; iq<qmesh.size(); iq++)
+	{	qmesh[iq].k = supercell->kmesh[iq] - supercell->kmesh[0]; //k-difference
+		qmesh[iq].weight = 1./qmesh.size(); //uniform mesh
+		qmesh[iq].spin = 0;
 	}
-	else
-	{	//q-mesh is a k-point dfference mesh, which could differ from k-mesh for off-Gamma meshes
-		qmesh.resize(supercell->kmesh.size());
-		for(size_t iq=0; iq<qmesh.size(); iq++)
-		{	qmesh[iq].k = supercell->kmesh[iq] - supercell->kmesh[0]; //k-difference
-			qmesh[iq].weight = 1./qmesh.size(); //uniform mesh
-			qmesh[iq].spin = 0;
-		}
-		logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
-		qmesh = e.symm.reduceKmesh(qmesh);
-		logPrintf("%d entries\n", int(qmesh.size())); logFlush();
-	}
+	logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
+	qmesh = e.symm.reduceKmesh(qmesh);
+	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
 	
 	//Initialize polarizability/dielectric bases corresponding to qmesh:
+	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
 	basisChi.resize(qmesh.size());
+	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
-	int nBasisSlab = 0; //number of basis functions for purely normal response of slab
-	if(slabResponse)
-	{	logPrintf("Setting up reduced polarizability bases at Ecut = %lg and EcutTransverse = %lg: ", Ecut, EcutTransverse); logFlush();
-		assert(e.coulombParams.geometry == CoulombParams::Slab);
-		nBasisSlab = setupEllipsoidalBasis(basisChi[0], gInfoBasis, e.iInfo, Ecut, EcutTransverse, e.coulombParams.iDir, qmesh[0].k);
-		logPrintf("nbasis = %lu, %.2lf ideal\n", basisChi[0].nbasis, sqrt(2*Ecut)*(2*EcutTransverse)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	logSuspend();
+	for(size_t iq=0; iq<qmesh.size(); iq++)
+	{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
+		avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
 	}
-	else
-	{	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
-		double avg_nbasis = 0.;
-		logSuspend();
-		for(size_t iq=0; iq<qmesh.size(); iq++)
-		{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
-			avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
-		}
-		logResume();
-		logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, std::pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
-	}
+	logResume();
+	logPrintf("nbasis = %.2lf average, %.2lf ideal\n", avg_nbasis, pow(sqrt(2*Ecut),3)*(e.gInfo.detR/(6*M_PI*M_PI)));
 	logFlush();
-
 
 	//Initialize common wavefunction basis and ColumnBundle transforms for full k-mesh:
 	logPrintf("Setting up k-mesh wavefunction transforms ... "); logFlush();
@@ -318,7 +276,9 @@ void ElectronScattering::dump(const Everything& everything)
 			}
 		}
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-			chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
+		{	chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
+			if(!omegaDiv.isMine(iOmega)) chiKS[iOmega] = 0; //no longer needed on this process
+		}
 		logPrintf("done.\n"); logFlush();
 		
 		//Figure out head entry index:
@@ -329,41 +289,6 @@ void ElectronScattering::dump(const Everything& everything)
 				break;
 			}
 		assert(iHead >= 0);
-		
-		//In slab response mode, export that and bypass remainder
-		if(slabResponse)
-		{	if(mpiUtil->isHead())
-			{	//--- Output frequency list:
-				string fname = e.dump.getFilename("slabResponseOmega");
-				logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-				FILE* fp = fopen(fname.c_str(), "w");
-				if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
-				omegaGrid.print(fp);
-				fclose(fp); logPrintf("done.\n");
-				//--- Output basis:
-				fname = e.dump.getFilename("slabResponseBasis");
-				logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-				fp = fopen(fname.c_str(), "w");
-				if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
-				for(int n=0; n<nBasisSlab; n++)
-				{	const vector3<int>& iGn = basisChi[0].iGarr[n];
-					fprintf(fp, "%d %d %d\n", iGn[0], iGn[1], iGn[2]);
-				}
-				fclose(fp); logPrintf("done.\n");
-			}
-			//Output result:
-			string fname = e.dump.getFilename("slabResponse");
-			logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-			MPIUtil::File fp;
-			mpiUtil->fopenWrite(fp, fname.c_str());
-			mpiUtil->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
-			for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-			{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
-				mpiUtil->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
-			}
-			mpiUtil->fclose(fp); logPrintf("done.\n");
-			logPrintf("\n"); return;
-		}
 		
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
@@ -465,14 +390,20 @@ diagMatrix diagouter(const matrix& A, const matrix& B)
 std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij) const
 {	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ");
 	//Find target k-point:
-	const vector3<>& ki = supercell->kmesh[ik];
+	const vector3<>& ki = slabResponse ? e->eInfo.qnums[ik].k : supercell->kmesh[ik];
 	const vector3<> kj = ki + qmesh[iq].k;
-	jk = plook->find(kj);
-	assert(jk != string::npos);
+	if(slabResponse)
+	{	assert(iq == 0);
+		jk = ik;
+	}
+	else	
+	{	jk = plook->find(kj);
+		assert(jk != string::npos);
+	}
 	
 	//Compile list of events:
-	int iReduced = supercell->kmeshTransform[ik].iReduced;
-	int jReduced = supercell->kmeshTransform[jk].iReduced;
+	int iReduced = slabResponse ? ik: supercell->kmeshTransform[ik].iReduced;
+	int jReduced = slabResponse ? jk: supercell->kmeshTransform[jk].iReduced;
 	const diagMatrix &Ei = E[iReduced], &Fi = F[iReduced];
 	const diagMatrix &Ej = E[jReduced], &Fj = F[jReduced];
 	std::vector<Event> events; events.reserve((nBands*nBands)/2);
@@ -498,18 +429,18 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	if(!events.size()) return events;
 	
 	//Get wavefunctions in real space:
-	ColumnBundle Ci = getWfns(ik, ki), Cj = getWfns(jk, kj);
+	ColumnBundle Ci, Cj; if(!slabResponse) { Ci = getWfns(ik, ki); Cj = getWfns(jk, kj); }
 	std::vector< std::vector<complexScalarField> > conjICi(nBands), ICj(nBands);
 	watchI.start();
 	for(int i=0; i<nBands; i++) if(iUsed[i])
 	{	conjICi[i].resize(nSpinor);
 		for(int s=0; s<nSpinor; s++)
-			conjICi[i][s] = conj(I(Ci.getColumn(i,s))); 
+			conjICi[i][s] = conj(I((slabResponse ? C[ik] : Ci).getColumn(i,s))); 
 	}
 	for(int j=0; j<nBands; j++) if(jUsed[j])
 	{	ICj[j].resize(nSpinor);
 		for(int s=0; s<nSpinor; s++)
-			ICj[j][s] = I(Cj.getColumn(j,s));
+			ICj[j][s] = I((slabResponse ? C[jk] : Cj).getColumn(j,s));
 	}
 	watchI.stop();
 	
@@ -554,4 +485,132 @@ matrix ElectronScattering::coulombMatrix(size_t iq) const
 	for(size_t b=0; b<basis_q.nbasis; b++)
 		Vdata[V.index(b,b)] = normFac;
 	return coulombMatrix(V, *e, qmesh[iq].k);
+}
+
+//-----  Slab response related; eventually merge these with Polarizability instead -----
+
+//Setup an ellipsoidal basis with different Ecuts along iDir and remaining tranverse directions.
+//The plane waves with no transverse component are listed first, and their count is returned.
+int setupEllipsoidalBasis(Basis& basis, const GridInfo& gInfo, const IonInfo& iInfo, double Ecut, double EcutTransverse, int iDir, const vector3<> k)
+{
+	//Bounding box:
+	vector3<int> iGbox;
+	for(int i=0; i<3; i++)
+	{	const double& Ecut_i = i==iDir ? Ecut : EcutTransverse;
+		iGbox[i] = 1 + int(sqrt(2*Ecut_i) * gInfo.R.column(i).length() / (2*M_PI));
+	}
+	//Add the indices with normal components alone first:
+	std::vector<int> indexVec;
+	vector3<int> iG;
+	for(iG[iDir]=-iGbox[iDir]; iG[iDir]<=iGbox[iDir]; iG[iDir]++)
+		if(0.5*gInfo.GGT.metric_length_squared(iG+k) <= Ecut)
+			indexVec.push_back(gInfo.fullGindex(iG));
+	int nSlab = indexVec.size();
+	//Add remaining:
+	double iDirScale = sqrt(EcutTransverse/Ecut); //scale factor on iDir to make ellipsoid spherical
+	for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
+	for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
+	for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
+	{	if(iG.length_squared()==iG[iDir]*iG[iDir]) continue; //normal-component-only already included above
+		vector3<> iGkScaled = iG+k;
+		iGkScaled[iDir] *= iDirScale;
+		if(0.5*gInfo.GGT.metric_length_squared(iGkScaled) <= EcutTransverse)
+			indexVec.push_back(gInfo.fullGindex(iG));
+	}
+	basis.setup(gInfo, iInfo, indexVec);
+	return nSlab; //number of normal-component only bases
+}
+
+
+void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid)
+{
+	//Zero momentum transfer quantum number:
+	QuantumNumber qnum;
+	qnum.k = vector3<>(); //only zero momentum transfer for slab response
+	qnum.weight = 1.;
+	qnum.spin = 0;
+	qmesh.assign(1, qnum);
+	
+	//Basis:
+	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
+	logPrintf("Setting up reduced polarizability bases at Ecut = %lg and EcutTransverse = %lg: ", Ecut, EcutTransverse); logFlush();
+	assert(e.coulombParams.geometry == CoulombParams::Slab);
+	basisChi.resize(qmesh.size());
+	int nBasisSlab = setupEllipsoidalBasis(basisChi[0], gInfoBasis, e.iInfo, Ecut, EcutTransverse, e.coulombParams.iDir, qmesh[0].k);
+	logPrintf("nbasis = %lu, %.2lf ideal\n", basisChi[0].nbasis, sqrt(2*Ecut)*(2*EcutTransverse)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	
+	//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
+	matrix invKq = inv(coulombMatrix(0));
+	
+	//Calculate chi_KS:
+	std::vector<matrix> chiKS(omegaGrid.nRows());
+	logPrintf("\tComputing chi_KS ...  "); logFlush(); 
+	int nqMine = e.eInfo.qStop - e.eInfo.qStart;
+	int iqInterval = std::max(1, int(round(nqMine/20.))); //interval for reporting progress
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	//Report progress:
+		size_t iqDone = q-e.eInfo.qStart+1;
+		if(iqDone % iqInterval == 0)
+		{	logPrintf("%d%% ", int(round(iqDone*100./nqMine)));
+			logFlush();
+		}
+		//Get events:
+		size_t jk; matrix nij;
+		std::vector<Event> events = getEvents(true, q, 0, jk, nij);
+		if(!events.size()) continue;
+		//Collect contributions for each frequency:
+		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+		{	double omega = omegaGrid[iOmega];
+			complex omegaTilde(omega, 2*eta);
+			complex one(1,0);
+			std::vector<complex> Xks; Xks.reserve(events.size());
+			for(const Event& event: events)
+				Xks.push_back(-e.gInfo.detR * e.eInfo.qnums[q].weight * event.fWeight
+					* (one/(event.Eji - omegaTilde) + one/(event.Eji + omegaTilde)) );
+			chiKS[iOmega] += (nij * Xks) * dagger(nij);
+		}
+	}
+	int iOmegaStart, iOmegaStop; //split remaining computation over frequency grid
+	TaskDivision omegaDiv(omegaGrid.size(), mpiUtil);
+	omegaDiv.myRange(iOmegaStart, iOmegaStop);
+	for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
+	{	chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
+		if(!omegaDiv.isMine(iOmega)) chiKS[iOmega] = 0; //no longer needed on this process
+	}
+	logPrintf("done.\n"); logFlush();
+
+	//Output result:
+	string fname = e.dump.getFilename("slabResponse");
+	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+	MPIUtil::File fp;
+	mpiUtil->fopenWrite(fp, fname.c_str());
+	mpiUtil->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
+	for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
+	{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
+		mpiUtil->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
+	}
+	mpiUtil->fclose(fp); logPrintf("done.\n");
+	
+	if(mpiUtil->isHead())
+	{
+		//Output frequency list:
+		string fname = e.dump.getFilename("slabResponseOmega");
+		logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
+		omegaGrid.print(fp);
+		fclose(fp); logPrintf("done.\n");
+		
+		//Output basis:
+		fname = e.dump.getFilename("slabResponseBasis");
+		logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
+		fp = fopen(fname.c_str(), "w");
+		if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
+		for(int n=0; n<nBasisSlab; n++)
+		{	const vector3<int>& iGn = basisChi[0].iGarr[n];
+			fprintf(fp, "%d %d %d\n", iGn[0], iGn[1], iGn[2]);
+		}
+		fclose(fp); logPrintf("done.\n");
+	}
+	logPrintf("\n");
 }

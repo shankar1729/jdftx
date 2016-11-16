@@ -69,6 +69,7 @@ private:
 	
 	ColumnBundle getWfns(size_t ik, const vector3<>& k) const; //get wavefunctions at an arbitrary point in k-mesh
 	matrix coulombMatrix(size_t iq) const; //retrieve the Coulomb operator for a specific momentum transfer
+	void dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid);
 };
 
 #endif //JDFTX_ELECTRONIC_ELECTRONSCATTERING_H
