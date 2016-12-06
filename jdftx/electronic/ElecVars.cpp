@@ -376,7 +376,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		//Update TS and muN:
 		eInfo.updateFillingsEnergies(Haux_eigs, ener);
 		//Report for SCF (ElecMinimizer handles for minimize):
-		if(e->cntrl.scf) eInfo.smearReport();
+		if(e->cntrl.scf && n[0]) eInfo.smearReport();
 	}
 	
 	//Update the density and density-dependent pieces if required:
