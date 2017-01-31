@@ -469,7 +469,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
 			{	size_t i = e.gInfo.fullRindex(iR);
 				fprintf(fp, "%lf %le %le %le\n", iR[iDir]*h,
-					VavgData[1][i]-VavgData[0][i], VavgData[0][i], VavgData[1][i]);
+					VavgData[1][i]-VavgData[0][i], VavgData[1][i], VavgData[0][i]);
 			}
 			fclose(fp);
 		}
