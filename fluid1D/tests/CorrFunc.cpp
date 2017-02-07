@@ -17,11 +17,11 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid1D/FluidMixture.h>
-#include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_FittedCorrelations.h>
-#include <fluid1D/Fex_H2O_ScalarEOS.h>
-#include <fluid1D/Fex_H2O_BondedVoids.h>
+#include <fluid/FluidMixture.h>
+#include <fluid/IdealGasPomega.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
+#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_H2O_BondedVoids.h>
 
 #define ChosenFex ScalarEOS
 

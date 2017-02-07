@@ -18,13 +18,13 @@ along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/Minimize.h>
-#include <fluid1D/FluidMixture.h>
-#include <fluid1D/IdealGasPsiAlpha.h>
-#include <fluid1D/IdealGasMuEps.h>
-#include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_FittedCorrelations.h>
-#include <fluid1D/Fex_H2O_ScalarEOS.h>
-#include <fluid1D/Fex_H2O_BondedVoids.h>
+#include <fluid/FluidMixture.h>
+#include <fluid/IdealGasPsiAlpha.h>
+#include <fluid/IdealGasMuEps.h>
+#include <fluid/IdealGasPomega.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
+#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_H2O_BondedVoids.h>
 
 //#define TDEP
 #define ChosenFex ScalarEOS

@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <core1D/Operators.h>
+#include <core/Operators.h>
 #include <core/Util.h>
 #include <cmath>
 

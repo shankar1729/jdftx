@@ -1,5 +1,5 @@
 add_executable(TestOperators TestOperators.cpp)
-target_link_libraries(TestOperators core1D)
+target_link_libraries(TestOperators fluid1D)
 
 add_executable(TestSphere TestSphere.cpp)
 target_link_libraries(TestSphere fluid1D)

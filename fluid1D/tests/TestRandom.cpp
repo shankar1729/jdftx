@@ -17,10 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid1D/FluidMixture.h>
-#include <fluid1D/IdealGasMonoatomic.h>
-#include <fluid1D/Fex_LJ.h>
-#include <fluid1D/TranslationOperator.h>
+#include <fluid/FluidMixture.h>
+#include <fluid/IdealGasMonoatomic.h>
+#include <fluid/Fex_LJ.h>
+#include <fluid/TranslationOperator.h>
 #include <core/Units.h>
 #include <cstdio>
 

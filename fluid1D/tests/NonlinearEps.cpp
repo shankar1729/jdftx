@@ -17,15 +17,15 @@ You should have received a copy of the GNU General Public License
 along with Fluid1D.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <fluid1D/FluidMixture.h>
-#include <fluid1D/IdealGasMuEps.h>
-#include <fluid1D/IdealGasPomega.h>
-#include <fluid1D/Fex_H2O_FittedCorrelations.h>
-#include <fluid1D/Fex_H2O_ScalarEOS.h>
-#include <fluid1D/Fex_TM_ScalarEOS.h>
-#include <fluid1D/Fex_H2O_BondedVoids.h>
-#include <core1D/DataCollection.h>
-#include <core1D/Operators.h>
+#include <fluid/FluidMixture.h>
+#include <fluid/IdealGasMuEps.h>
+#include <fluid/IdealGasPomega.h>
+#include <fluid/Fex_H2O_FittedCorrelations.h>
+#include <fluid/Fex_H2O_ScalarEOS.h>
+#include <fluid/Fex_TM_ScalarEOS.h>
+#include <fluid/Fex_H2O_BondedVoids.h>
+#include <core/DataCollection.h>
+#include <core/Operators.h>
 
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 		fprintf(fpEps, "%le\t%le\t%le\t%le\n", D_SI, epsilon,
 			pTyp/(nTyp*fex.getMolecule()->get_dipole()), nTyp);
 		fflush(fpEps);
-		if(isnan(epsilon) || epsilon<0.0) break;
+		if(std::isnan(epsilon) || epsilon<0.0) break;
 	}
 	fclose(fpEps);
 	return 0;

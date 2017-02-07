@@ -1,0 +1,22 @@
+find_path(GSL_INCLUDE_DIR gsl/gsl_cblas.h ${GSL_PATH} ${GSL_PATH}/include /usr/include /usr/local/include)
+find_library(GSL_LIBRARY NAMES gsl PATHS ${GSL_PATH} ${GSL_PATH}/lib ${GSL_PATH}/lib64 /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+
+if(GSL_INCLUDE_DIR AND GSL_LIBRARY)
+	set(GSL_FOUND TRUE)
+endif()
+
+
+if(GSL_FOUND)
+	if(NOT GSL_FIND_QUIETLY)
+		message(STATUS "Found GSL: ${GSL_LIBRARY}")
+	endif()
+else()
+	if(GSL_FIND_REQUIRED)
+		if(NOT GSL_INCLUDE_DIR)
+			message(FATAL_ERROR "Could not find the GNU Scientific Library headers (Add -D GSL_PATH=<path> to the cmake commandline for a non-standard installation)")
+		endif()
+		if(NOT GSL_LIBRARY)
+			message(FATAL_ERROR "Could not find the GNU Scientific Library shared libraries (Add -D GSL_PATH=<path> to the cmake commandline for a non-standard installation)")
+		endif()
+	endif()
+endif()
