@@ -350,7 +350,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && hasFluid)
 	{	ScalarFieldTilde nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
-		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon)->getGzero()); //total bound charge will neutralize system
+		nboundTilde->setGzero(-(J(eVars.get_nTot())+iInfo.rhoIon+eVars.rhoExternal)->getGzero()); //total bound charge will neutralize system
 		if(ShouldDump(SolvationRadii))
 		{	StartDump("Rsol")
 			if(mpiUtil->isHead()) dumpRsol(I(nboundTilde), fname);
