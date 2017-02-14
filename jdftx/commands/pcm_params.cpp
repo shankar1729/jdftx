@@ -56,7 +56,10 @@ struct CommandPcmVariant : public Command
 	CommandPcmVariant() : Command("pcm-variant", "jdftx/Fluid/Parameters")
 	{
 		format = "[<variant>=GLSSA13]";
-		comments = "Select LinearPCM or NonlinearPCM <variant> amongst:"
+		comments = "Select <variant> of LinearPCM or NonlinearPCM that determines\n"
+			"the cavity and related energies (cavitation, dispersion etc.).\n"
+			"CANDLE and SCCS variants are only supported for LinearPCM.\n"
+			"Here, <variant> must be one of:"
 			+ addDescriptions(pcmVariantMap.optionList(), linkDescription(pcmVariantMap, pcmVariantDescMap));
 		hasDefault = true;
 		require("fluid");

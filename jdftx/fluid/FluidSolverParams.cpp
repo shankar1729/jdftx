@@ -136,7 +136,7 @@ void FluidSolverParams::setPCMparams()
 						initWarnings += "WARNING: CANDLE LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
 			}
-			assert(fluidType == FluidLinearPCM);
+			if(fluidType != FluidLinearPCM) initWarnings += "WARNING: CANDLE has only been parametrized for LinearPCM.\n";
 			break;
 		}
 		case PCM_SGA13:
@@ -335,7 +335,7 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case_PCM_SCCS_any:
-		{	assert(fluidType == FluidLinearPCM);
+		{	if(fluidType != FluidLinearPCM) initWarnings += "WARNING: SCCS has only been parametrized for LinearPCM.\n";
 			if(solvents[0]->name != FluidComponent::H2O)
 			{	initWarnings += 
 					"WARNING: SCCS varinats have not been parametrized for this solvent; using water parameters\n";
