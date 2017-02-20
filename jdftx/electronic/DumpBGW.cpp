@@ -101,7 +101,7 @@ void Dump::dumpBGW()
 	Fall.reserve(eInfo.nStates*eInfo.nBands);
 	for(int q=0; q<eInfo.nStates; q++)
 	{	diagMatrix Ecur(eInfo.nBands), Fcur(eInfo.nBands);
-		if(eInfo.isMine(q)) { Ecur = eVars.Hsub_eigs[q]/Ryd; Fcur = eVars.F[q]; }
+		if(eInfo.isMine(q)) { Ecur = eVars.Hsub_eigs[q]*(1./Ryd); Fcur = eVars.F[q]; }
 		Ecur.bcast(eInfo.whose(q)); Eall.insert(Eall.end(), Ecur.begin(), Ecur.end());
 		Fcur.bcast(eInfo.whose(q)); Fall.insert(Fall.end(), Fcur.begin(), Fcur.end());
 	}
