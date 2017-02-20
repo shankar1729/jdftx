@@ -104,10 +104,60 @@ void Dump::dumpBGW()
 	hsize_t dimsKspinBands[3] = { hsize_t(nSpins), hsize_t(nReducedKpts), hsize_t(eInfo.nBands) };
 	h5writeVector(gidKpts, "el", Eall.data(), dimsKspinBands, 3);
 	h5writeVector(gidKpts, "occ", Fall.data(), dimsKspinBands, 3);
-	
 	H5Gclose(gidKpts);
+	//----- G-space related -----
+	hid_t gidGspace = h5createGroup(gidHeader, "gspace");
+	const GridInfo& gInfo = e->gInfo;
+	std::vector<vector3<int>> iGarr(gInfo.nr);
+	{	const vector3<int>& S = gInfo.S;
+		size_t iStart = 0, iStop = gInfo.nr;
+		THREAD_fullGspaceLoop( iGarr[i] = iG; )
+	}
+	hsize_t dimsG[2] = { hsize_t(gInfo.nr), 3 };
+	h5writeScalar(gidGspace, "ng", gInfo.nr);
+	h5writeScalar(gidGspace, "ecutrho", std::max(e->cntrl.EcutRho, 4*e->cntrl.Ecut));
+	h5writeVector(gidGspace, "FFTgrid", &gInfo.S[0], 3);
+	h5writeVector(gidGspace, "components", &iGarr[0][0], dimsG, 2);
+	H5Gclose(gidGspace);
+	//----- symmetries related -----
+	hid_t gidSymm = h5createGroup(gidHeader, "symmetry");
+	const std::vector<SpaceGroupOp> ops = e->symm.getMatrices();
+	std::vector<matrix3<int> > rots(ops.size());
+	std::vector<vector3<> > trans(ops.size());
+	for(size_t iSym=0; iSym<ops.size(); iSym++)
+	{	rots[iSym] = ops[iSym].rot;
+		trans[iSym] = ops[iSym].a;
+	}
+	hsize_t dimsRot[3] = { ops.size(), 3, 3 };
+	hsize_t dimsTrans[2] = { ops.size(), 3 };
+	h5writeScalar(gidSymm, "ntran", int(ops.size()));
+	h5writeScalar(gidSymm, "cell_symmetry", 0);
+	h5writeVector(gidSymm, "mtrx", &rots[0](0,0), dimsRot, 3);
+	h5writeVector(gidSymm, "tnp", &trans[0][0], dimsTrans, 2);
+	H5Gclose(gidSymm);
+	//----- crystal related -----
+	hid_t gidCrystal = h5createGroup(gidHeader, "crystal");
+	hsize_t dims33[2] = { 3, 3 };
+	h5writeScalar(gidCrystal, "celvol", gInfo.detR);
+	h5writeScalar(gidCrystal, "recvol", fabs(det(gInfo.G)));
+	h5writeScalar(gidCrystal, "alat", 1);
+	h5writeScalar(gidCrystal, "blat", 1);
+	h5writeVector(gidCrystal, "avec", &gInfo.R(0,0), dims33, 2);
+	h5writeVector(gidCrystal, "bvec", &gInfo.GT(0,0), dims33, 2);
+	h5writeVector(gidCrystal, "adot", &gInfo.RTR(0,0), dims33, 2);
+	h5writeVector(gidCrystal, "bdot", &gInfo.GGT(0,0), dims33, 2);
+	//--- collect atoms:
+	std::vector<vector3<>> apos; std::vector<int> atyp;
+	for(const auto& sp: e->iInfo.species)
+	{	apos.insert(apos.end(), sp->atpos.begin(), sp->atpos.end());
+		atyp.insert(atyp.end(), sp->atpos.size(), sp->atomicNumber);
+	}
+	hsize_t dimsApos[2] = { apos.size(), 3 };
+	h5writeScalar(gidCrystal, "nat", int(apos.size()));
+	h5writeVector(gidCrystal, "atyp", atyp);
+	h5writeVector(gidCrystal, "apos", &apos[0][0], dimsApos, 2);
+	H5Gclose(gidCrystal);
 	H5Gclose(gidHeader);
-	
 	
 	//Close file:
 	H5Fclose(fid);
