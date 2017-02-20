@@ -102,6 +102,13 @@ if(EnableLibXC)
 	add_definitions("-DLIBXC_ENABLED")
 endif()
 
+option(EnableHDF5 "Enable HDF5 features (currently required only by Berkeley GW dump option)")
+if(EnableHDF5)
+	find_package(HDF5 REQUIRED)
+	include_directories(${HDF5_INCLUDE_DIRS})
+	add_definitions("-DHDF5_ENABLED")
+endif()
+
 #Process configuration information into config.h (with config.in.h as a template)
 configure_file(${CMAKE_SOURCE_DIR}/config.in.h ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
@@ -192,7 +199,7 @@ endmacro()
 #----------------------- Regular CPU targets ----------------
 
 #External libraries to link to
-set(EXTERNAL_LIBS ${MPI_CXX_LIBRARIES} ${GSL_LIBRARY} ${CBLAS_LAPACK_FFT_LIBRARIES} ${LIBXC_LIBRARY} ${EXTRA_LIBRARIES})
+set(EXTERNAL_LIBS ${HDF5_LIBRARIES} ${MPI_CXX_LIBRARIES} ${GSL_LIBRARY} ${CBLAS_LAPACK_FFT_LIBRARIES} ${LIBXC_LIBRARY} ${EXTRA_LIBRARIES})
 
 #Link options:
 if(StaticLinking)

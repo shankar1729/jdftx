@@ -19,7 +19,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Dump.h>
 
+#ifndef HDF5_ENABLED
 void Dump::dumpBGW()
-{
-	die("Not yet implemented.\n");
+{	assert(!"BerkeleyGW output requires HDF5 support.");
 }
+#else
+
+void Dump::dumpBGW()
+{	die("Not yet implemented.\n");
+}
+
+#endif

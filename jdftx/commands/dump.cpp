@@ -148,7 +148,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpSolvationRadii, "Effective solvation radii based on fluid bound charge distribution",
 	DumpQMC,            "Blip'd orbitals and potential for CASINO [not in All]",
 	DumpOcean,          "Wave functions for Ocean code [not in All]",
-	DumpBGW,            "G-space wavefunctions, density and potential for Berkeley GW [not in All]",
+	DumpBGW,            "G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support) [not in All]",
 	DumpRealSpaceWfns,  "Real-space wavefunctions (one column per file) [not in All]",
 	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare) [not in All]",
 	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
@@ -200,6 +200,10 @@ struct CommandDump : public Command
 			pl.get(var, DumpDelim, varMap, "var");
 			if(var==DumpDelim) break; //will happen at end of command line
 			e.dump.insert(std::make_pair(freq,var));
+			//Check for unsupported features:
+			#ifndef HDF5_ENABLED
+			if(var==DumpBGW) throw string("BerkeleyGW interface requires HDF5 support (CMake option EnableHDF5)\n");
+			#endif
 		}
 	}
 
