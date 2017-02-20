@@ -48,6 +48,7 @@ void Dump::dumpBGW()
 		if(q+1<nReducedKpts) nBasisPrev[q+1] = nBasisPrev[q] + nBasis[q];
 	}
 	int nBasisMax = *std::max_element(nBasis.begin(), nBasis.end());
+	const double Ryd = 0.5; //in Hartrees
 	
 	//Open file:
 	hid_t plid = H5Pcreate(H5P_FILE_ACCESS);
@@ -67,7 +68,7 @@ void Dump::dumpBGW()
 	h5writeScalar(gidKpts, "nrk", nReducedKpts);
 	h5writeScalar(gidKpts, "mnband", eInfo.nBands);
 	h5writeScalar(gidKpts, "ngkmax", nBasisMax);
-	h5writeScalar(gidKpts, "ecutwfc", e->cntrl.Ecut);
+	h5writeScalar(gidKpts, "ecutwfc", e->cntrl.Ecut/Ryd);
 	h5writeVector(gidKpts, "kgrid", &eInfo.kFoldingCount()[0], 3);
 	h5writeVector(gidKpts, "shift", &kShift[0], 3);
 	h5writeVector(gidKpts, "ngk", nBasis);
@@ -100,7 +101,7 @@ void Dump::dumpBGW()
 	Fall.reserve(eInfo.nStates*eInfo.nBands);
 	for(int q=0; q<eInfo.nStates; q++)
 	{	diagMatrix Ecur(eInfo.nBands), Fcur(eInfo.nBands);
-		if(eInfo.isMine(q)) { Ecur = eVars.Hsub_eigs[q]; Fcur = eVars.F[q]; }
+		if(eInfo.isMine(q)) { Ecur = eVars.Hsub_eigs[q]/Ryd; Fcur = eVars.F[q]; }
 		Ecur.bcast(eInfo.whose(q)); Eall.insert(Eall.end(), Ecur.begin(), Ecur.end());
 		Fcur.bcast(eInfo.whose(q)); Fall.insert(Fall.end(), Fcur.begin(), Fcur.end());
 	}
@@ -118,7 +119,7 @@ void Dump::dumpBGW()
 	}
 	hsize_t dimsG[2] = { hsize_t(gInfo.nr), 3 };
 	h5writeScalar(gidGspace, "ng", gInfo.nr);
-	h5writeScalar(gidGspace, "ecutrho", std::max(e->cntrl.EcutRho, 4*e->cntrl.Ecut));
+	h5writeScalar(gidGspace, "ecutrho", std::max(e->cntrl.EcutRho, 4*e->cntrl.Ecut)/Ryd);
 	h5writeVector(gidGspace, "FFTgrid", &gInfo.S[0], 3);
 	h5writeVector(gidGspace, "components", &iGarr[0][0], dimsG, 2);
 	H5Gclose(gidGspace);
