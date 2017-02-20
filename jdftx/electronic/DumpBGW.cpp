@@ -18,7 +18,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Dump.h>
-#include "Everything.h"
+#include <electronic/Everything.h>
+#include <electronic/ColumnBundle.h>
 
 #ifndef HDF5_ENABLED
 void Dump::dumpBGW()
@@ -41,9 +42,11 @@ void Dump::dumpBGW()
 	int nReducedKpts = eInfo.nStates/nSpins;
 	vector3<> kShift = Diag(eInfo.qnums[0].k) * eInfo.kFoldingCount(); //k-shift used before folding
 	//--- nBasis array:
-	std::vector<int> nBasis(nReducedKpts);
+	std::vector<int> nBasis(nReducedKpts), nBasisPrev(nReducedKpts, 0);
 	for(int q=0; q<nReducedKpts; q++)
-		nBasis[q] = e->basis[q].nbasis;
+	{	nBasis[q] = e->basis[q].nbasis;
+		if(q+1<nReducedKpts) nBasisPrev[q+1] = nBasisPrev[q] + nBasis[q];
+	}
 	int nBasisMax = *std::max_element(nBasis.begin(), nBasis.end());
 	
 	//Open file:
@@ -158,6 +161,47 @@ void Dump::dumpBGW()
 	h5writeVector(gidCrystal, "apos", &apos[0][0], dimsApos, 2);
 	H5Gclose(gidCrystal);
 	H5Gclose(gidHeader);
+	
+	//========= Wavefunctions ========
+	hid_t gidWfns = h5createGroup(fid, "wfns");
+	//--- G-vectors:
+	iGarr.clear();
+	for(int q=0; q<nReducedKpts; q++)
+		iGarr.insert(iGarr.end(), e->basis[q].iGarr, e->basis[q].iGarr+nBasis[q]);
+	hsize_t dimsGwfns[2] = { iGarr.size(), 3 };
+	h5writeVector(gidWfns, "gvecs", &iGarr[0][0], dimsGwfns, 2);
+	//--- Coefficients:
+	{	//Create dataset (must happen on all processes together):
+		hsize_t dims[4] = { hsize_t(eInfo.nBands), hsize_t(nSpins*nSpinor), iGarr.size(), 2 };
+		hid_t sid = H5Screate_simple(4, dims, NULL);
+		hid_t did = H5Dcreate(gidWfns, "coeffs", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+		H5Sclose(sid);
+		//Loop over k, bands and spin/spinors:
+		hsize_t offset[4] = { 0, 0, 0, 0 };
+		hsize_t count[4] = { 1, 1, 1, 2 };
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
+		for(int iSpinor=0; iSpinor<nSpinor; iSpinor++)
+		{	offset[1] = iSpin*nSpinor + iSpinor;
+			for(int ik=0; ik<nReducedKpts; ik++)
+			{	int q=iSpin*nReducedKpts+ik;
+				if(!eInfo.isMine(q)) continue;
+				count[2] = nBasis[ik];
+				offset[2] = nBasisPrev[ik];
+				hid_t sidMem = H5Screate_simple(4, count, NULL);
+				for(int b=0; b<eInfo.nBands; b++)
+				{	offset[0] = b;
+					sid = H5Dget_space(did);
+					H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+					H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, eVars.C[q].data()+eVars.C[q].index(b, iSpinor*nBasis[ik]));
+				}
+				H5Sclose(sidMem);
+			}
+		}
+		H5Pclose(plid);
+		H5Dclose(did);
+	}
+	H5Gclose(gidWfns);
 	
 	//Close file:
 	H5Fclose(fid);
