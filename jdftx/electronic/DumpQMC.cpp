@@ -276,7 +276,7 @@ void Dump::dumpQMC()
 		"\n"
 		"WAVE FUNCTION\n"
 		"-------------\n";
-	int nSpins = (eInfo.spinType==SpinNone ? 1 : 2);
+	int nSpins = eInfo.nSpins();
 	int nkPoints = eInfo.nStates / nSpins;
 	ofs <<
 		" Number of k-points\n"

@@ -63,6 +63,8 @@ public:
 	
 	bool isNoncollinear() const { return spinType==SpinVector || spinType==SpinOrbit; }
 	int spinorLength() const { return isNoncollinear() ? 2 : 1; }
+	int nSpins() const { return spinType==SpinZ ? 2 : 1; }
+	vector3<int> kFoldingCount() const { return kfold; }
 	
 	enum FillingsUpdate
 	{	FillingsConst, //!< constant fillings (T=0)

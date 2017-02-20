@@ -75,7 +75,7 @@ void Phonon::setup(bool printDefaults)
 	e.setup();
 	if(!e.coulombParams.supercell) e.updateSupercell(true); //force supercell generation
 
-	nSpins = e.eInfo.spinType==SpinZ ? 2 : 1;
+	nSpins = e.eInfo.nSpins();
 	nSpinor = e.eInfo.spinorLength();
 
 	//Initialize state of unit cell:

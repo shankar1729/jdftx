@@ -100,7 +100,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 : e(e),
 	sym(e.symm.getMatrices()),
 	invertList(e.symm.getKpointInvertList()),
-	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1),
+	nSpins(e.eInfo.nSpins()),
 	nSpinor(e.eInfo.spinorLength()),
 	qCount(e.eInfo.nStates/nSpins),
 	kmap(qCount * invertList.size() * sym.size())

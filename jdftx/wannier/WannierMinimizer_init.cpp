@@ -26,7 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride)
 : e(e), wannier(wannier), sym(e.symm.getMatrices()),
 	nCenters(wannier.nCenters), nFrozen(wannier.nFrozen), nBands(e.eInfo.nBands),
-	nSpins(e.eInfo.spinType==SpinZ ? 2 : 1), qCount(e.eInfo.qnums.size()/nSpins),
+	nSpins(e.eInfo.nSpins()), qCount(e.eInfo.qnums.size()/nSpins),
 	nSpinor(e.eInfo.spinorLength()),
 	rSqExpect(nCenters), rExpect(nCenters), pinned(nCenters, false), rPinned(nCenters),
 	needSuper(needSuperOverride || wannier.saveWfns || wannier.saveWfnsRealSpace || wannier.numericalOrbitalsFilename.length()),

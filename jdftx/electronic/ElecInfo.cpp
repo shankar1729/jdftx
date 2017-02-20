@@ -64,7 +64,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	F.resize(nStates);
 
 	//Calculate initial charges per spin channel:
-	std::vector<double> qNet(spinType==SpinZ ? 2 : 1);
+	std::vector<double> qNet(nSpins());
 	for(int s=0; s<int(qNet.size()); s++)
 		qNet[s] = (Qinitial + (s ? -1 : +1)*Minitial) / qNet.size();
 	double wInv = 1./spinWeight; //normalization factor from external to internal fillings

@@ -683,7 +683,7 @@ inline vector3<int> round(const vector3<> v, const double tol)
 void DOS::dump()
 {
 	const ElecInfo& eInfo = e->eInfo;
-	int nSpins = (eInfo.spinType==SpinZ) ? 2 : 1;
+	int nSpins = eInfo.nSpins();
 	int qCount = eInfo.qnums.size()/nSpins;
 	const Supercell& supercell = *(e->coulombParams.supercell);
 	

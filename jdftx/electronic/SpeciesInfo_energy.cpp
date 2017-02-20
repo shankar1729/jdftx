@@ -54,7 +54,7 @@ size_t SpeciesInfo::rhoAtom_nMatrices() const
 }
 
 #define rhoAtom_COMMONinit \
-	int nSpins = e->eInfo.spinType==SpinZ ? 2  : 1; \
+	int nSpins = e->eInfo.nSpins(); \
 	int spinorLength = e->eInfo.spinorLength();
 
 #define UparamLOOP(code) \

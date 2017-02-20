@@ -190,7 +190,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		}
 		
 		if(drColumns.size()) 
-		{	int nSpins = (eInfo.spinType==SpinZ ? 2 : 1);
+		{	int nSpins = eInfo.nSpins();
 			std::vector<matrix> Rho(nSpins); //density matrix in the basis of Lowdin symmetrized orbitals
 			
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++)

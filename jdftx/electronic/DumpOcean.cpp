@@ -37,7 +37,7 @@ void Dump::dumpOcean()
 	if(e->eInfo.isNoncollinear())
 		die("OCEAN output is not supported for noncollinear spin modes.\n");
 	
-	int nSpins = (eInfo.spinType==SpinNone ? 1 : 2);
+	int nSpins = eInfo.nSpins();
 	int nkPoints = eInfo.nStates / nSpins;
 	double sqrtvol=sqrt(e->gInfo.detR);
 
