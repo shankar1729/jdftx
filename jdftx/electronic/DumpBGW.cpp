@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2016 Ravishankar Sundararaman
+Copyright 2017 Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -90,7 +90,7 @@ void Dump::dumpBGW()
 	std::vector<double> wk(nReducedKpts);
 	for(int q=0; q<nReducedKpts; q++)
 	{	k[q] = eInfo.qnums[q].k;
-		wk[q] = eInfo.qnums[q].weight;
+		wk[q] = eInfo.qnums[q].weight / eInfo.spinWeight; //Set sum(wk) = 1 in all cases
 	}
 	hsize_t dimsK[2] = { hsize_t(nReducedKpts), 3 };
 	h5writeVector(gidKpts, "rk", &k[0][0], dimsK, 2);
