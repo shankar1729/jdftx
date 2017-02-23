@@ -214,7 +214,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			eVars.fluidSolver->get_Adiel_and_grad(&d_fluid, 0, 0, true);
 			double GzeroCorrection = eVars.fluidSolver->ionWidthMuCorrection() - eVars.fluidSolver->bulkPotential();
 			DUMP(I(d_fluid), "d_fluid", Dfluid);
-			d_tot = I(d_vac + d_fluid) + GzeroCorrection;
+			if(needDtot) d_tot = I(d_vac + d_fluid) + GzeroCorrection;
 			DUMP(d_tot, "d_tot", Dtot);
 		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
