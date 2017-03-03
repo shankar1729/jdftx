@@ -70,8 +70,7 @@ EnumStringMap<DumpFrequency> freqDescMap
 
 
 EnumStringMap<DumpVariable> varMap
-(	DumpAll, "All",
-	DumpNone, "None",
+(	DumpNone, "None",
 	DumpState, "State",
 	DumpIonicPositions, "IonicPositions",
 	DumpForces, "Forces",
@@ -120,8 +119,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpFermiDensity, "FermiDensity" 
 );
 EnumStringMap<DumpVariable> varDescMap
-(	DumpAll,            "Dump most things (except those marked not in All)",
-	DumpNone,           "Dump nothing",
+(	DumpNone,           "Dump nothing",
 	DumpState,          "All variables needed to restart calculation: wavefunction and fluid state/fillings if any",
 	DumpIonicPositions, "Ionic positions in the same format (and coordinate system) as the input file",
 	DumpForces,         "Forces on the ions in the coordinate system selected by command forces-output-coords",
@@ -146,16 +144,16 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpEcomponents,    "Components of the energy",
 	DumpBoundCharge,    "Bound charge in the fluid",
 	DumpSolvationRadii, "Effective solvation radii based on fluid bound charge distribution",
-	DumpQMC,            "Blip'd orbitals and potential for CASINO [not in All]",
-	DumpOcean,          "Wave functions for Ocean code [not in All]",
-	DumpBGW,            "G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support) [not in All]",
-	DumpRealSpaceWfns,  "Real-space wavefunctions (one column per file) [not in All]",
-	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare) [not in All]",
-	DumpFluidDebug,     "Fluid specific debug output if any  [not in All]",
-	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon)  [not in All]",
-	DumpBulkEpsilon,    "Dielectric constant of a periodic solid (see command bulk-epsilon)  [not in All]",
-	DumpChargedDefect,  "Calculate energy correction for charged defect (see command charged-defect)  [not in All]",
-	DumpDOS,            "Density of States (see command density-of-states) [not in All]",
+	DumpQMC,            "Blip'd orbitals and potential for CASINO",
+	DumpOcean,          "Wave functions for Ocean code",
+	DumpBGW,            "G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support)",
+	DumpRealSpaceWfns,  "Real-space wavefunctions (one column per file)",
+	DumpExcCompare,     "Energies for other exchange-correlation functionals (see command elec-ex-corr-compare)",
+	DumpFluidDebug,     "Fluid specific debug output if any ",
+	DumpSlabEpsilon,    "Local dielectric function of a slab (see command slab-epsilon) ",
+	DumpBulkEpsilon,    "Dielectric constant of a periodic solid (see command bulk-epsilon) ",
+	DumpChargedDefect,  "Calculate energy correction for charged defect (see command charged-defect) ",
+	DumpDOS,            "Density of States (see command density-of-states)",
 	DumpSIC,            "Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues",
 	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
 	DumpStress,         "Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector",

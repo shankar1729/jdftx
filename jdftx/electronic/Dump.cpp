@@ -72,10 +72,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	//Macro to determine which variables should be dumped:
 	//(Drop the "Dump" from the DumpVariables enum name to use as var)
-	#define ShouldDump(var) (  ShouldDumpNoAll(var) || count(std::make_pair(freq,DumpAll)) )
-
-	//Determine whether to dump, but don't include in the 'All' collection
-	#define ShouldDumpNoAll(var) count(std::make_pair(freq,Dump##var))
+	#define ShouldDump(var) count(std::make_pair(freq,Dump##var))
 
 	#define StartDump(prefix) \
 		string fname = getFilename(prefix); \
@@ -83,7 +80,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	#define EndDump \
 		logPrintf("done\n"); logFlush();
-	
 
 	#define DUMP_nocheck(object, prefix) \
 		{	StartDump(prefix) \
@@ -93,7 +89,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	#define DUMP_spinCollection(object, prefix) \
 		{	if(object.size()==1) DUMP_nocheck(object[0], prefix) \
-			else \
+			else if(object.size()!=0) \
 			{	DUMP_nocheck(object[0], (prefix+string("_up")).c_str()) \
 				DUMP_nocheck(object[1], (prefix+string("_dn")).c_str()) \
 				if(object.size()==4) \
@@ -193,9 +189,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	//Electrostatic and fluid potentials:
 	ScalarFieldTilde d_vac; ScalarField d_tot;
 	bool needDtot = ShouldDump(Dtot)
-		|| ShouldDumpNoAll(SlabEpsilon)
-		|| ShouldDumpNoAll(BulkEpsilon)
-		|| ShouldDumpNoAll(ChargedDefect);
+		|| ShouldDump(SlabEpsilon)
+		|| ShouldDump(BulkEpsilon)
+		|| ShouldDump(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		//Subtract neutral-atom reference potential (gives smoother result):
@@ -226,13 +222,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			DUMP(d_tot, "d_tot", Dtot);
 		}
 	}
-	if(ShouldDumpNoAll(SlabEpsilon))
+	if(ShouldDump(SlabEpsilon))
 		if(slabEpsilon)
 			slabEpsilon->dump(*e, d_tot);
-	if(ShouldDumpNoAll(BulkEpsilon))
+	if(ShouldDump(BulkEpsilon))
 		if(bulkEpsilon)
 			bulkEpsilon->dump(*e, d_tot);
-	if(ShouldDumpNoAll(ChargedDefect))
+	if(ShouldDump(ChargedDefect))
 		if(chargedDefect)
 			chargedDefect->dump(*e, d_tot);
 	d_tot = 0;
@@ -364,9 +360,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(FluidDensity) && hasFluid)
 		eVars.fluidSolver->dumpDensities(getFilename("fluid%s").c_str());
 	
-	if(ShouldDumpNoAll(QMC) && isCevec) dumpQMC();
-	if(ShouldDumpNoAll(Ocean) && isCevec) dumpOcean();
-	if(ShouldDumpNoAll(BGW) && isCevec) dumpBGW();
+	if(ShouldDump(QMC) && isCevec) dumpQMC();
+	if(ShouldDump(Ocean) && isCevec) dumpOcean();
+	if(ShouldDump(BGW) && isCevec) dumpBGW();
 	
 	if(ShouldDump(Dipole))
 	{	StartDump("Moments")
@@ -440,7 +436,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	//----------------- The following are not included in 'All' -----------------------
 
-	if(ShouldDumpNoAll(Excitations))
+	if(ShouldDump(Excitations))
 	{	if(e->eInfo.isNoncollinear()) logPrintf("WARNING: Excitations dump not supported with noncollinear spins (Skipping)\n");
 		else
 		{	StartDump("Excitations")
@@ -449,7 +445,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 	
-	if(ShouldDumpNoAll(Momenta))
+	if(ShouldDump(Momenta))
 	{	StartDump("momenta")
 		std::vector<matrix> momenta(eInfo.nStates);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
@@ -462,7 +458,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDumpNoAll(RealSpaceWfns))
+	if(ShouldDump(RealSpaceWfns))
 	{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	int nSpinor = eVars.C[q].spinorLength();
 			for(int b=0; b<eInfo.nBands; b++) for(int s=0; s<nSpinor; s++)
@@ -475,7 +471,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 
-	if(ShouldDumpNoAll(ExcCompare))
+	if(ShouldDump(ExcCompare))
 	{	StartDump("ExcCompare") logPrintf("\n");
 		FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
@@ -518,14 +514,14 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		logPrintf("\t"); EndDump
 	}
 	
-	if(ShouldDumpNoAll(FluidDebug) && hasFluid)
+	if(ShouldDump(FluidDebug) && hasFluid)
 		eVars.fluidSolver->dumpDebug(getFilename("fluid%s").c_str());
 
-	if(ShouldDumpNoAll(DOS))
+	if(ShouldDump(DOS))
 	{	dos->dump();
 	}
 	
-	if(ShouldDumpNoAll(Stress))
+	if(ShouldDump(Stress))
 	{	
 		StartDump("stress")
 		
@@ -569,13 +565,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDumpNoAll(XCanalysis))
+	if(ShouldDump(XCanalysis))
 	{	ScalarFieldArray tauW = XC_Analysis::tauWeizsacker(*e); DUMP_spinCollection(tauW, "tauW");
 		ScalarFieldArray spness = XC_Analysis::spness(*e); DUMP_spinCollection(spness, "spness");
 		ScalarFieldArray sVh = XC_Analysis::sHartree(*e); DUMP_spinCollection(sVh, "sHartree");
 	}
 
-	if(ShouldDumpNoAll(EresolvedDensity))
+	if(ShouldDump(EresolvedDensity))
 	{	std::vector<diagMatrix>& F = ((ElecVars&)e->eVars).F;
 		std::vector<diagMatrix> Forig = F; //backup fillings
 		int iRange=0;
@@ -594,7 +590,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		F = Forig; //restore fillings
 	}
 	
-	if(ShouldDumpNoAll(FermiDensity)) 
+	if(ShouldDump(FermiDensity)) 
 	{	std::vector<diagMatrix>& F = ((ElecVars&)e->eVars).F;
 		std::vector<diagMatrix> Forig = F; //backup fillings
 		int iRange=0;
@@ -618,11 +614,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	//The following compute-intensive things are free to clear wavefunctions
 	//to conserve memory etc. and should therefore happen at the very end
 	
-	if(freq==DumpFreq_End && ShouldDumpNoAll(Polarizability))
+	if(freq==DumpFreq_End && ShouldDump(Polarizability))
 	{	polarizability->dump(*e);
 	}
 
-	if(freq==DumpFreq_End && ShouldDumpNoAll(ElectronScattering))
+	if(freq==DumpFreq_End && ShouldDump(ElectronScattering))
 	{	electronScattering->dump(*e);
 	}
 }

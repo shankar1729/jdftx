@@ -40,7 +40,7 @@ enum DumpFrequency
 };
 
 //! Dump variable selection options:
-enum DumpVariable { DumpAll, DumpNone, DumpState, //All, none or only those required to restart calculation
+enum DumpVariable { DumpNone, DumpState, //None or exactly those required to restart calculation
 	DumpIonicPositions, DumpForces, DumpLattice, DumpIonicDensity, //Ionic positions, Forces, Lattice vectors, Nuclear charge density
 	DumpElecDensity, DumpElecDensityAccum, DumpCoreDensity, DumpKEdensity, DumpFluidDensity, // electronic valence, core and KE densities, fluid densities
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
