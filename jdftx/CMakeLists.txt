@@ -92,6 +92,7 @@ option(EnableMPI "Use MPI parallelization (in addition to threads / gpu)" ON)
 if(EnableMPI)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
+	set(CMAKE_INCLUDE_PATH "${CMAKE_INCLUDE_PATH};${MPI_INCLUDE_PATH}") #To find libraries installed to MPI specific paths
 	add_definitions("-DMPI_ENABLED")
 endif()
 
