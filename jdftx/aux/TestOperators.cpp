@@ -99,6 +99,12 @@ public:
 			ScalarField saveR[2] = {n, phi};
 			saveSphericalized(saveR, 2, "poissontest.spherical", 0.25);
 		}
+		
+		{	logPrintf("\nTest 5: Asymmetric Fourier transform test\n");
+			ScalarField r1(ScalarFieldData::alloc(gInfo)); initRandom(r1);
+			ScalarField r2(ScalarFieldData::alloc(gInfo)); initRandom(r2);
+			logPrintf("\tAnti-hermiticity of D: %le\n", fabs(dot(r1,gradient(r2)[0])/dot(r2,gradient(r1)[0]) + 1.));
+		}
 	}
 
 	void timeParallel()
@@ -288,8 +294,8 @@ void testChangeGrid()
 	for(iv[2]=0; iv[2]<1+g1.S[2]/2; iv[2]++)
 		x1data[g1.halfGindex(g1.wrapGcoords(iv))] = i++;
 	
-	x2 = J(changeGrid(I(x1,true), g2));
-	x3 = J(changeGrid(I(x2,true), g1));
+	x2 = J(changeGrid(I(x1), g2));
+	x3 = J(changeGrid(I(x2), g1));
 	logPrintf("\n--------- x1 --------\n"); print(x1);
 	logPrintf("\n--------- x2 --------\n"); print(x2);
 	logPrintf("\n--------- x3 --------\n"); print(x3);

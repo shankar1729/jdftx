@@ -65,7 +65,7 @@ namespace ShapeFunctionCANDLE
 	void compute(const ScalarField& n, const ScalarFieldTilde& phi,
 		ScalarField& shape, double nc, double sigma, double pCavity)
 	{	VectorField Dn = gradient(n);
-		VectorField Dphi = I(gradient(phi), true);
+		VectorField Dphi = I(gradient(phi));
 		nullToZero(shape, n->gInfo);
 		callPref(compute_or_grad)(n->gInfo.nr, false,
 			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), shape->dataPref(),
@@ -75,7 +75,7 @@ namespace ShapeFunctionCANDLE
 	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity)
 	{	VectorField Dn = gradient(n);
-		VectorField Dphi = I(gradient(phi), true);
+		VectorField Dphi = I(gradient(phi));
 		nullToZero(E_n, n->gInfo);
 		VectorField E_Dn; nullToZero(E_Dn, n->gInfo);
 		VectorField E_Dphi; nullToZero(E_Dphi, n->gInfo);

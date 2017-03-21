@@ -319,7 +319,7 @@ void Dump::dumpRsol(ScalarField nbound, string fname)
 		{	ScalarField w = radialFunction(e->gInfo, nRadial, sp->atpos[atom]) * nboundByAtomic;
 			//Get r centered at current atom:
 			ScalarFieldTilde trans; nullToZero(trans, e->gInfo); initTranslation(trans, e->gInfo.R*sp->atpos[atom]);
-			ScalarField rInv = I(trans * J(rInv0), true);
+			ScalarField rInv = I(trans * J(rInv0));
 			//Compute moments:
 			double wNorm = integral(w);
 			double rInvMean = integral(w * rInv) / wNorm;

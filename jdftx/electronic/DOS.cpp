@@ -804,7 +804,7 @@ void DOS::dump()
 						wData, weight.center, weight.radius, fabs(gInfo.detR));
 				//Store weight function in real space:
 				weightFunc.resize(1);
-				weightFunc[0] = I(weightFuncTilde, true);
+				weightFunc[0] = I(weightFuncTilde);
 				needDensity = true;
 				break;
 			}

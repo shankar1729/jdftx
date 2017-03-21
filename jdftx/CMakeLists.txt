@@ -223,7 +223,9 @@ set_JDFTx_flags(jdftxlib OFF)
 option(EnableCUDA "Enable NVIDIA GPU support using CUDA" OFF)
 if(EnableCUDA)
 	find_package(CUDA REQUIRED)
-	
+	set(CUDA_ARCH "compute_35" CACHE STRING "CUDA virtual architecture to compile for")
+	set(CUDA_CODE "sm_35" CACHE STRING "CUDA gpu feature set version (sm_*) to compile for")
+
 	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
 	foreach(lib IN LISTS CUDA_LIBRARIES)
 		if("${lib}" MATCHES "libcuda.so")
@@ -233,7 +235,8 @@ if(EnableCUDA)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=compute_20;-code=sm_20,sm_30;-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	message(STATUS "CUDA_NVCC_FLAGS = ${CUDA_NVCC_FLAGS}")
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})

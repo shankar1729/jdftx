@@ -116,7 +116,7 @@ ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	ScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(centerToO * in, true)->dataPref(), out->dataPref());
+	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(centerToO * in)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J(out);
 }

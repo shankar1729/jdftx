@@ -49,11 +49,10 @@ complexScalarFieldTilde O(const complexScalarFieldTilde&); //!<Inner product ope
 complexScalarFieldTilde O(complexScalarFieldTilde&&); //!<Inner product operator (diagonal in PW basis)
 
 //Transform operators:
-//  compat: force GPU transform output to be FFTW compatible (affects only how redundant Nyquist frequency components in the C->R transforms are handled)
 //  nThreads: maximum number of threads to use; use to prevent thread nesting when performing transforms of vector fields etc.
 
-ScalarField I(const ScalarFieldTilde&, bool compat=false, int nThreads=0); //!< Forward transform: PW basis -> real space (preserve input)
-ScalarField I(ScalarFieldTilde&&, bool compat=false, int nThreads=0); //!< Forward transform: PW basis -> real space (destructible input)
+ScalarField I(const ScalarFieldTilde&, int nThreads=0); //!< Forward transform: PW basis -> real space (preserve input)
+ScalarField I(ScalarFieldTilde&&, int nThreads=0); //!< Forward transform: PW basis -> real space (destructible input)
 complexScalarField I(const complexScalarFieldTilde&, int nThreads=0); //!< Forward transform: PW basis -> real space (preserve input)
 complexScalarField I(complexScalarFieldTilde&&, int nThreads=0); //!< Forward transform: PW basis -> real space (destructible input)
 
@@ -65,8 +64,8 @@ ScalarFieldTilde Idag(const ScalarField&, int nThreads=0); //!< Forward transfor
 complexScalarFieldTilde Idag(const complexScalarField&, int nThreads=0); //!< Forward transform transpose: Real space -> PW basis (preserve input)
 complexScalarFieldTilde Idag(complexScalarField&&, int nThreads=0); //!< Forward transform transpose: Real space -> PW basis (destructible input)
 
-ScalarField Jdag(const ScalarFieldTilde&, bool compat=false, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (preserve input)
-ScalarField Jdag(ScalarFieldTilde&&, bool compat=false, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (destructible input)
+ScalarField Jdag(const ScalarFieldTilde&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (preserve input)
+ScalarField Jdag(ScalarFieldTilde&&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (destructible input)
 complexScalarField Jdag(const complexScalarFieldTilde&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (preserve input)
 complexScalarField Jdag(complexScalarFieldTilde&&, int nThreads=0); //!< Inverse transform transpose: PW basis -> real space (destructible input)
 

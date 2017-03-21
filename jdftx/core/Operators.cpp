@@ -124,11 +124,11 @@ complexScalarFieldTilde O(complexScalarFieldTilde&& in) { return in *= in->gInfo
 
 
 //Forward transform
-ScalarField I(ScalarFieldTilde&& in, bool compat, int nThreads)
+ScalarField I(ScalarFieldTilde&& in, int nThreads)
 {	//CPU c2r transforms destroy input, but this input can be destroyed
 	ScalarField out(ScalarFieldData::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
-	cufftExecZ2D(compat ? in->gInfo.planZ2Dcompat : in->gInfo.planZ2D, (double2*)in->dataGpu(false), out->dataGpu(false));
+	cufftExecZ2D(in->gInfo.planZ2D, (double2*)in->dataGpu(false), out->dataGpu(false));
 	#else
 	if(!nThreads) nThreads = shouldThreadOperators() ? nProcsAvailable : 1;
 	fftw_execute_dft_c2r(in->gInfo.getPlan(GridInfo::PlanCtoR, nThreads),
@@ -137,12 +137,12 @@ ScalarField I(ScalarFieldTilde&& in, bool compat, int nThreads)
 	out->scale = in->scale;
 	return out;
 }
-ScalarField I(const ScalarFieldTilde& in, bool compat, int nThreads)
+ScalarField I(const ScalarFieldTilde& in, int nThreads)
 {	//CPU c2r transforms destroy input, hence copy input in that case (and let that copy be destroyed above)
 	#ifdef GPU_ENABLED
-	return I((ScalarFieldTilde&&)in, compat, nThreads);
+	return I((ScalarFieldTilde&&)in, nThreads);
 	#else
-	return  I(in->clone(), compat, nThreads);
+	return  I(in->clone(), nThreads);
 	#endif
 }
 complexScalarField I(const complexScalarFieldTilde& in, int nThreads)
@@ -213,8 +213,8 @@ complexScalarFieldTilde J(const complexScalarField& in, int nThreads) { return (
 complexScalarFieldTilde J(complexScalarField&& in, int nThreads) { return Idag((complexScalarField&&)(in *= 1.0/in->gInfo.nr), nThreads); }
 
 //Reverse transform h.c. (same as I upto the normalization factor)
-ScalarField Jdag(const ScalarFieldTilde& in, bool compat, int nThreads) { return (1.0/in->gInfo.nr)*I(in, compat, nThreads); }
-ScalarField Jdag(ScalarFieldTilde&& in, bool compat, int nThreads) { return (1.0/in->gInfo.nr)*I(in, compat, nThreads); }
+ScalarField Jdag(const ScalarFieldTilde& in, int nThreads) { return (1.0/in->gInfo.nr)*I(in, nThreads); }
+ScalarField Jdag(ScalarFieldTilde&& in, int nThreads) { return (1.0/in->gInfo.nr)*I(in, nThreads); }
 complexScalarField Jdag(const complexScalarFieldTilde& in, int nThreads) { return (1.0/in->gInfo.nr)*I(in, nThreads); }
 complexScalarField Jdag(complexScalarFieldTilde&& in, int nThreads) { return I((complexScalarFieldTilde&&)(in *= 1.0/in->gInfo.nr), nThreads); }
 
@@ -556,7 +556,7 @@ ScalarFieldTilde changeGrid(const ScalarFieldTilde& in, const GridInfo& gInfoNew
 }
 
 ScalarField changeGrid(const ScalarField& in, const GridInfo& gInfoNew)
-{	return I(changeGrid(J(in), gInfoNew), true);
+{	return I(changeGrid(J(in), gInfoNew));
 }
 
 

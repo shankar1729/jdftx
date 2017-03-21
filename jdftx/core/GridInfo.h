@@ -125,7 +125,6 @@ public:
 	cufftHandle planZ2Z; //!< CUFFT plan for all the complex transforms
 	cufftHandle planD2Z; //!< CUFFT plan for R -> G
 	cufftHandle planZ2D; //!< CUFFT plan for G -> R
-	cufftHandle planZ2Dcompat; //!< CUFFT plan for G -> R in FFTW compatibility mode (required when nyquist component is assymetric)
 	#endif
 
 	//Indexing utilities (inlined for efficiency)

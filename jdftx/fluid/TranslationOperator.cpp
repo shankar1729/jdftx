@@ -107,5 +107,5 @@ void TranslationOperatorFourier::taxpy(const vector3<>& t, double alpha, const S
 	#else
 	threadLaunch(fourierTranslate_sub, gInfo.nG, gInfo.S, gInfo.G*t, xTilde->data(false));
 	#endif
-	y += alpha*I(xTilde, true);
+	y += alpha*I(xTilde);
 }

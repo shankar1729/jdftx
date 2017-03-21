@@ -141,7 +141,7 @@ void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
 		}
-		n[s] += I(nAugTilde,true);
+		n[s] += I(nAugTilde);
 	}
 	watch.stop();
 }

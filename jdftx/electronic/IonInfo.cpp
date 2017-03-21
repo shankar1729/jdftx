@@ -143,8 +143,8 @@ void IonInfo::update(Energies& ener)
 	Vlocps += (*e->coulomb)(rhoIon, Coulomb::PointChargeRight);
 	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
-	if(nCoreTilde) nCore = I(nCoreTilde, true); // put in real space
-	if(tauCoreTilde) tauCore = I(tauCoreTilde, true); // put in real space
+	if(nCoreTilde) nCore = I(nCoreTilde); // put in real space
+	if(tauCoreTilde) tauCore = I(tauCoreTilde); // put in real space
 	
 	//---------- energies dependent on ionic positions alone ----------------
 	

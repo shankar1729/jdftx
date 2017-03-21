@@ -620,7 +620,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		for(int s=0; s<nInCount; s++)
 		{	const ScalarFieldTilde Jn = J(n[s]);
 			for(int i=iDirStart; i<iDirStop; i++)
-				Dn[s][i] = I(D(Jn,i),true);
+				Dn[s][i] = I(D(Jn,i));
 		}
 	}
 	

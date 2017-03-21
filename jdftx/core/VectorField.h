@@ -177,12 +177,12 @@ template<int N> GptrMul operator*(GptrMul&& in, const RealKernel& kernel) { retu
 //Transform operators:
 template<int N> GptrMul O(GptrMul&& X) { Nloop( O((ScalarFieldTilde&&)X[i]); ) return X; } //!< Inner product operator (diagonal in PW basis)
 template<int N> GptrMul O(const GptrMul& X) { return O(X.clone()); } //!< Inner product operator (diagonal in PW basis)
-template<int N> RptrMul I(GptrMul&& X, bool compat=false); //!< Forward transform: PW basis -> real space (destructible input)
+template<int N> RptrMul I(GptrMul&& X); //!< Forward transform: PW basis -> real space (destructible input)
 template<int N> GptrMul J(const RptrMul& X); //!< Inverse transform: Real space -> PW basis
 template<int N> GptrMul Idag(const RptrMul& X); //!< Forward transform transpose: Real space -> PW basis
-template<int N> RptrMul Jdag(GptrMul&& X, bool compat=false); //!< Inverse transform transpose: PW basis -> real space (destructible input)
-template<int N> RptrMul Jdag(const GptrMul& X, bool compat=false) { return Jdag(X.clone(), compat); } //!< Inverse transform transpose: PW basis -> real space (preserve input)
-template<int N> RptrMul I(const GptrMul& X, bool compat=false) { return I(X.clone(), compat); } //!< Forward transform: PW basis -> real space (preserve input)
+template<int N> RptrMul Jdag(GptrMul&& X); //!< Inverse transform transpose: PW basis -> real space (destructible input)
+template<int N> RptrMul Jdag(const GptrMul& X) { return Jdag(X.clone()); } //!< Inverse transform transpose: PW basis -> real space (preserve input)
+template<int N> RptrMul I(const GptrMul& X) { return I(X.clone()); } //!< Forward transform: PW basis -> real space (preserve input)
 
 //Special operators for triplets (implemented in operators.cpp):
 VectorFieldTilde gradient(const ScalarFieldTilde&); //!< compute the gradient of a complex field, returns cartesian components
@@ -265,11 +265,6 @@ void TptrMul::saveToFile(const char* filename) const
 
 namespace ScalarFieldMultipletPrivate
 {
-	inline ScalarField IcompatTrue(ScalarFieldTilde&& in, int nThreads) { return I((ScalarFieldTilde&&)in, true, nThreads); }
-	inline ScalarField IcompatFalse(ScalarFieldTilde&& in, int nThreads) { return I((ScalarFieldTilde&&)in, false, nThreads); }
-	inline ScalarField JdagCompatTrue(ScalarFieldTilde&& in, int nThreads) { return Jdag((ScalarFieldTilde&&)in, true, nThreads); }
-	inline ScalarField JdagCompatFalse(ScalarFieldTilde&& in, int nThreads) { return Jdag((ScalarFieldTilde&&)in, false, nThreads); }
-	
 	template<typename FuncOut, typename FuncIn, typename Out, typename In>
 	void threadUnary_sub(int iOpThread, int nOpThreads, int nThreadsTot, int N, FuncOut (*func)(FuncIn,int), Out* out, In in)
 	{	//Divide jobs amongst operator threads:
@@ -290,10 +285,10 @@ namespace ScalarFieldMultipletPrivate
 };
 
 template<int N>
-RptrMul I(GptrMul&& X, bool compat)
+RptrMul I(GptrMul&& X)
 {	using namespace ScalarFieldMultipletPrivate;
 	RptrMul out;
-	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? IcompatTrue : IcompatFalse;
+	ScalarField (*func)(ScalarFieldTilde&&,int) = I;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, N, &out, X);
 	return out;
 }
@@ -317,10 +312,10 @@ GptrMul Idag(const RptrMul& X)
 }
 
 template<int N>
-RptrMul Jdag(GptrMul&& X, bool compat)
+RptrMul Jdag(GptrMul&& X)
 {	using namespace ScalarFieldMultipletPrivate;
 	RptrMul out;
-	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	ScalarField (*func)(ScalarFieldTilde&&,int) = Jdag;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, N, &out, X);
 	return out;
 }

@@ -188,14 +188,14 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 
 //----------------- Transform operators -------------------------
 
-inline ScalarFieldArray I(ScalarFieldTildeArray&& X, bool compat=false)
+inline ScalarFieldArray I(ScalarFieldTildeArray&& X)
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldArray out(X.size());
-	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? IcompatTrue : IcompatFalse;
+	ScalarField (*func)(ScalarFieldTilde&&,int) = I;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline ScalarFieldArray I(const ScalarFieldTildeArray& X, bool compat=false) { return I(clone(X), compat); }
+inline ScalarFieldArray I(const ScalarFieldTildeArray& X) { return I(clone(X)); }
 
 inline ScalarFieldTildeArray J(const ScalarFieldArray& X)
 {	using namespace ScalarFieldMultipletPrivate;
@@ -213,14 +213,14 @@ inline ScalarFieldTildeArray Idag(const ScalarFieldArray& X)
 	return out;
 }
 
-inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X, bool compat=false)
+inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X)
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldArray out(X.size());
-	ScalarField (*func)(ScalarFieldTilde&&,int) = compat ? JdagCompatTrue : JdagCompatFalse;
+	ScalarField (*func)(ScalarFieldTilde&&,int) = Jdag;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X, bool compat=false) { return Jdag(clone(X), compat); }
+inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X) { return Jdag(clone(X)); }
 
 #undef TptrCollection
 #endif // JDFTX_CORE_SCALARFIELDARRAY_H

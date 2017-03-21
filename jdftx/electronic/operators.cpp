@@ -185,7 +185,7 @@ ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f
 ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
 {	
 	ScalarFieldTilde F = radialFunctionG(gInfo, f, r0);
-	return (1.0/gInfo.detR) * I(F, true);
+	return (1.0/gInfo.detR) * I(F);
 }
 
 void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel)

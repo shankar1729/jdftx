@@ -238,7 +238,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	}
 	
 	//Propagate gradients from p to eps, shape
-	{	VectorField Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde), true); //Because dagger(-divergence) = gradient
+	{	VectorField Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde)); //Because dagger(-divergence) = gradient
 		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
 			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 	}

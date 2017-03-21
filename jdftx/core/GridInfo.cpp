@@ -45,7 +45,6 @@ GridInfo::~GridInfo()
 		cufftDestroy(planZ2Z);
 		cufftDestroy(planD2Z);
 		cufftDestroy(planZ2D);
-		cufftDestroy(planZ2Dcompat);
 		#endif
 	}
 }
@@ -265,8 +264,6 @@ void GridInfo::initialize(bool skipHeader, const std::vector<SpaceGroupOp> sym)
 	cufftPlan3d(&planZ2Z, S[0], S[1], S[2], CUFFT_Z2Z);
 	cufftPlan3d(&planD2Z, S[0], S[1], S[2], CUFFT_D2Z);
 	cufftPlan3d(&planZ2D, S[0], S[1], S[2], CUFFT_Z2D);
-	cufftPlan3d(&planZ2Dcompat, S[0], S[1], S[2], CUFFT_Z2D);
-	cufftSetCompatibilityMode(planZ2Dcompat, CUFFT_COMPATIBILITY_FFTW_ALL);
 	gpuErrorCheck();
 	#endif //CPU plans (FFTW/MKL) are created on demand and cached
 
