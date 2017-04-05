@@ -38,15 +38,21 @@ and publications resulting from its use must cite the following:
 For any given calculation, JDFTx prints out a list of relevant citations for optional features of the code used in that run.
 This output appears at the end of initialization just before the first electronic solve starts.
 
-JDFTx evolved from an earlier in-house research code in the [Arias research group](http://people.ccmr.cornell.edu/~muchomas) at Cornell called DFT++,
-but at this point has been almost entirely rewritten in a modern object oriented framework taking advantage of C++11 for expressive code with advanced memory management,
-and CUDA for leveraging the computational power of GPUs. See [Compiling] for details on unlocking various features.
+JDFTx is written using highly-templated and object oriented C++11 code
+in order to express all the physics in the DFT++ algeraic framework,
+while simultaneously maintaining a small memory footprint and supporting
+a range of hardware architectures (such as GPUs using CUDA) without
+requiring hand-optimized implementations for each architecture.
+See \ref Compiling for details on unlocking various features.
 
-Unlike most other electronic structure codes, JDFTx performs total energy minimization using analytically continued energy functionals
-implemented within the algebraic formulation described in the above references, rather than density-mixing SCF schemes.
-Hence our motto "Our SCF never diverges, because we don't do SCF".
-This might be advantageous for vanilla DFT calculations in some cases (try your problematic systems out!),
-but it is quite important for reliable convergence in the presence of liquids, particularly with charged systems.
+Unlike most other electronic structure codes, by default, JDFTx performs total energy minimization
+using analytically continued energy functionals, rather than the conventional SCF schemes.
+Density and potential-mixing SCF algorithms are also implemented in JDFTx,
+but for difficult systems when SCF diverges, variational minimization provides
+a useful fallback that is guaranteed to converge.
+This might be advantageous for vanilla DFT calculations in some cases,
+but it is critical for reliable convergence in the presence of liquids,
+especially with charged systems and at fixed electrochemical potential.
 
 The framework of Joint Density functional theory is described in:
 
@@ -87,11 +93,15 @@ and available functionals for water include
 
 JDFTx also incorporates advanced algorithms for converging metallic systems with
 finite temperature Fermi function fillings, critical for the study of electrochemical systems.
-Our implementation extends an analytically continued free energy functional version of the joint orbital and occupation minimization scheme,
+Our implementation extends an analytically continued free energy functional version
+of the joint orbital and occupation minimization scheme,
 
 + C. Freysoldt, S. Boeck, and J. Neugebauer, [<i>Phys. Rev. B</i> <b>79</b>, 241103(R) (2009)](http://prb.aps.org/abstract/PRB/v79/i24/e241103),
 
-to include minimization at constant chemical potential.
+to include minimization at constant chemical potential:
+
++ R. Sundararaman, W. A. Goddard III and T. A. Arias, [<i>J. Chem. Phys.</i> <b>146</b>, 114104 (2017)](http://dx.doi.org/10.1063/1.4978411) 
+
 
 JDFTx also supports solvating Quantum Monte Carlo (QMC) calculations,
 by producing trial wavefunctions and external potentials for use in the QMC software
