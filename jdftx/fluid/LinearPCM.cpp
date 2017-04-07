@@ -34,21 +34,6 @@ LinearPCM::~LinearPCM()
 {	Kkernel.free();
 }
 
-//HACK:
-static int nIter = 0;
-static double get_dCenter(const ScalarFieldTilde& dTilde)
-{	ScalarField d = I(dTilde);
-	const GridInfo& gInfo = d->gInfo;
-	const double* dData = d->data();
-	double dSum = 0;
-	vector3<int> iv;
-	iv[2] = gInfo.S[2]/2;
-	for(iv[0]=0; iv[0]<gInfo.S[0]; iv[0]++)
-		for(iv[1]=0; iv[1]<gInfo.S[1]; iv[1]++)
-			dSum += dData[gInfo.fullRindex(iv)];
-	return dSum / (gInfo.S[0]*gInfo.S[1]);
-}
-
 ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
 {	//Dielectric term:
 	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape;
@@ -66,16 +51,7 @@ ScalarFieldTilde LinearPCM::chi(const ScalarFieldTilde& phiTilde) const
 }
 
 ScalarFieldTilde LinearPCM::precondition(const ScalarFieldTilde& rTilde) const
-{
-	//HACK (mimicking corresponding part in Dump.cpp):
-	ScalarFieldTilde Vcavity, dFluid; get_Adiel_and_grad_internal(dFluid, Vcavity, 0, false);
-	ScalarFieldTilde dTot = dFluid + e.iInfo.Vlocps + (*e.coulomb)(J(e.eVars.get_nTot()));
-	double GzeroCorrection = ((FluidSolver*)this)->ionWidthMuCorrection() - ((FluidSolver*)this)->bulkPotential();
-	double Adiel = dot(state, O(-0.5*hessian(state) + rhoExplicitTilde)) - 0.5*dot(rhoExplicitTilde, O(coulomb(rhoExplicitTilde)));
-	logPrintf("HACKLinearPCM:  %4d  %+15.9le  %+15.9le  %+15.9le\n", nIter++, get_dCenter(state), get_dCenter(dTot)+GzeroCorrection, Adiel); //HACK
-
-	//return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
-	return Kkernel*(Kkernel*rTilde);
+{	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
 
 //Initialize Kkernel to square-root of the inverse kinetic operator
@@ -102,8 +78,8 @@ void LinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const Sca
 
 void LinearPCM::updatePreconditioner(const ScalarField& epsilon, const ScalarField& kappaSq)
 {	epsInv = inv(epsilon);
-	double epsMean = epsBulk; //sum(epsilon) / gInfo.nr;
-	double kappaSqMean = k2factor; //(kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
+	double epsMean = sum(epsilon) / gInfo.nr;
+	double kappaSqMean = (kappaSq ? sum(kappaSq) : 0.) / gInfo.nr;
 	Kkernel.init(0, 0.02, gInfo.GmaxGrid, setPreconditionerKernel, epsMean, sqrt(kappaSqMean/epsMean));
 }
 
@@ -119,7 +95,6 @@ void LinearPCM::minimizeFluid()
 	if(k2factor) logPrintf(", screening length: %g Bohr", sqrt(epsBulk/k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
 	//Minimize:
-	logPrintf("\n"); nIter = -1; //HACK
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n", e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
 	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
 	logPrintf("\tCompleted after %d iterations at t[s]: %9.2lf\n", nIter, clock_sec());
