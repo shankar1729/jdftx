@@ -48,6 +48,7 @@ struct MultipoleResponse
 SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
 {	
+	assert(!useGummel()); //Non-variational energy: cannot use Gummel loop!
 	logPrintf("   Initializing non-local response weight functions:\n");
 	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
 	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;

@@ -119,11 +119,18 @@ struct CommandFluidSolveFrequency : public Command
 		format = "<freq>=" + fluidSolveFreqMap.optionList();
 		comments = "Select how often to optimize fluid state:"
 			+ addDescriptions(fluidSolveFreqMap.optionList(), linkDescription(fluidSolveFreqMap, fluidSolveFreqDescMap));
+	
+		require("fluid");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	FluidSolverParams& fsp = e.eVars.fluidParams;
 		pl.get(fsp.solveFrequency, FluidFreqDefault, fluidSolveFreqMap, "freq", true);
+		//Check for cases that don't support Gummel loop:
+		if(fsp.solveFrequency==FluidFreqGummel)
+		{	if(fsp.fluidType==FluidLinearPCM) throw string("Fluid type 'LinearPCM' does not support fluid-solve-frequency Gummel");
+			if(fsp.fluidType==FluidSaLSA) throw string("Fluid type 'SaLSA' does not support fluid-solve-frequency Gummel");
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)

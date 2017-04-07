@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 LinearPCM::LinearPCM(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp)
 {
+	assert(!useGummel()); //Non-variational energy: cannot use Gummel loop!
 }
 
 LinearPCM::~LinearPCM()
