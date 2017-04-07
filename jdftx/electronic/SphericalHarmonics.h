@@ -24,9 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Spherical bessel function
 inline double bessel_jl(int l, double x)
-{	double xInv=1./x, xInvSq = xInv * xInv;
-	if(fabs(x) > 1.+0.1*l)
+{	if(fabs(x) > 1.+0.1*l)
 	{	double s, c; sincos(x, &s, &c);
+		double xInv=1./x, xInvSq = xInv * xInv;
 		switch(l)
 		{	case 0: return xInv * s;
 			case 1: return xInv * (xInv*s - c);

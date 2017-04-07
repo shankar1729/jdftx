@@ -131,6 +131,14 @@ SpeciesInfo::~SpeciesInfo()
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
 			delete OpsiRadial;
 		}
+		//nagIndex:
+		#ifdef GPU_ENABLED
+		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
+		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
+		#else
+		if(nagIndex) delete[] nagIndex; nagIndex=0;
+		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
+		#endif
 	}
 }
 
