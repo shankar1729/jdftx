@@ -31,7 +31,6 @@ public:
 	bool prefersGummel() const { return false; }
 
 	ScalarFieldTilde hessian(const ScalarFieldTilde&) const; //!< Implements #LinearSolvable::hessian for the dielectric poisson equation
-	ScalarFieldTilde chi(const ScalarFieldTilde&) const; //!< Apply susceptility operator (return fluid charge given net potential)
 	ScalarFieldTilde precondition(const ScalarFieldTilde&) const; //!< Implements a modified inverse kinetic preconditioner
 
 	void minimizeFluid(); //!< Converge using linear conjugate gradients

@@ -46,10 +46,6 @@ ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
 	return (-1./(4*M_PI)) * rhoTilde;
 }
 
-ScalarFieldTilde LinearPCM::chi(const ScalarFieldTilde& phiTilde) const
-{	return (-1./(4*M_PI*gInfo.detR)) * L(phiTilde) - hessian(phiTilde);
-}
-
 ScalarFieldTilde LinearPCM::precondition(const ScalarFieldTilde& rTilde) const
 {	return Kkernel*(J(epsInv*I(Kkernel*rTilde)));
 }
@@ -103,57 +99,18 @@ void LinearPCM::minimizeFluid()
 double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
 {
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
-	ScalarFieldTilde phi = clone(state); // that's what we solved for in minimize
+	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
+
+	//First-order correct estimate of electrostatic energy:
+	ScalarFieldTilde phiExt = coulomb(rhoExplicitTilde);
+	Adiel["Electrostatic"] = -0.5*dot(phi, O(hessian(phi))) + dot(phi - 0.5*phiExt, O(rhoExplicitTilde));
 	
-	//Neutrality constraint (and derivatives):
-	double phi0_Qexp = 0.; ScalarField phi0_shape;
-	if(k2factor)
-	{	double chiPrefac = k2factor/(4*M_PI);
-		ScalarField Iphi = I(phi);
-		double Qexp = integral(rhoExplicitTilde);
-		double sPhiInt = integral(shape * Iphi);
-		double sInt = integral(shape);
-		phi0_Qexp = 1./(sInt*chiPrefac);
-		double phi0_sPhiInt = -1./sInt;
-		double phi0 = phi0_Qexp * Qexp + phi0_sPhiInt * sPhiInt;
-		double phi0_sInt = -phi0/sInt;
-		phi0_shape = phi0_sInt + phi0_sPhiInt * Iphi;
-		//Fix the G=0 of phi to include the constraint correction:
-		phi->setGzero(phi->getGzero() + phi0);
-	}
+	//Gradient w.r.t rhoExplicitTilde:
+	Adiel_rhoExplicitTilde = phi - phiExt;
 	
-	//Calculate Coulomb contribution and gradients:
-	ScalarFieldTilde Adiel_rhoFluid;
-	{	ScalarFieldTilde rhoFluid = chi(phi);
-		ScalarFieldTilde phiFluid = coulomb(rhoFluid);
-		Adiel["Coulomb"] = dot(phiFluid, O(0.5*rhoFluid+rhoExplicitTilde));
-		Adiel_rhoExplicitTilde = phiFluid;
-		Adiel_rhoFluid = coulomb(rhoFluid+rhoExplicitTilde);
-	}
-	
-	//Calculate internal energy and shape function gradients:
-	ScalarField Adiel_shape;
-	//--- dielectric
-	{	double chiPrefac = (epsBulk-1)/(4*M_PI);
-		VectorField IgradPhi = I(gradient(phi));
-		ScalarField Aeps_shape = (0.5*chiPrefac) * lengthSquared(IgradPhi);
-		Adiel["Aeps"] = integral(shape * Aeps_shape);
-		Adiel_shape += Aeps_shape //internal energy contribution
-			- chiPrefac * dotElemwise(IgradPhi, I(gradient(Adiel_rhoFluid))); //propagate Coulomb contribution
-	}
-	//--- screening
-	if(k2factor)
-	{	double chiPrefac = k2factor/(4*M_PI);
-		ScalarField Iphi = I(phi), IAdiel_rhoFluid = I(Adiel_rhoFluid);
-		ScalarField Akappa_shape = (0.5*chiPrefac) * (Iphi*Iphi);
-		Adiel["Akappa"] = integral(shape * Akappa_shape);
-		Adiel_shape += Akappa_shape //internal energy contribution
-			- chiPrefac * (Iphi * IAdiel_rhoFluid); //propagate Coulomb contribution
-		//Propagate neutrality constraint gradient contributions
-		double Adiel_phi0 = chiPrefac * integral(shape * (Iphi - IAdiel_rhoFluid));
-		Adiel_shape += Adiel_phi0 * phi0_shape;
-		Adiel_rhoExplicitTilde->setGzero(Adiel_phi0 * phi0_Qexp);
-	}
+	//Compute gradient w.r.t shape function:
+	ScalarField Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
+	if(k2factor) Adiel_shape -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
