@@ -253,15 +253,6 @@ struct CommandFluidExCorr : public CommandElecExCorr
 		fluidExCorr.exCorrType =  ExCorrLDA_PZ;
 		fluidExCorr.xcName = exCorrTypeMap.getString(ExCorrLDA_PZ);
 		  
-
-		//old code which set default exchange correlation to be that of electronic system
-		/*	fluidExCorr.exCorrType = e.exCorr.exCorrType;
-			fluidExCorr.xcName = e.exCorr.xcName;		
-		#ifdef LIBXC_ENABLED
-		fluidExCorr.xcExchange = e.exCorr.xcExchange;
-		fluidExCorr.xcCorr = e.exCorr.xcCorr;
-		fluidExCorr.xcExcorr = e.exCorr.xcExcorr;
-		#endif*/
 		CommandElecExCorr::process(pl, fluidExCorr);
 	}
 	
