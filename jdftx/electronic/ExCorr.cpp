@@ -213,7 +213,7 @@ public:
 			"M. A. L. Marques, M. J. T. Oliveira and T. Burnus, Comput. Phys. Commun. 183, 2272 (2012)");
 		Citations::add(
 			funcUnpolarized.info->name + string(" ") + typeName + string(" functional"),
-			funcUnpolarized.info->refs);
+				xc_func_info_get_ref(funcUnpolarized.info,0) );
 	}
 	~FunctionalLibXC()
 	{	xc_func_end(&funcUnpolarized);

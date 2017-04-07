@@ -101,6 +101,8 @@ if(EnableLibXC)
 	find_package(LIBXC REQUIRED)
 	include_directories(${LIBXC_INCLUDE_DIR})
 	add_definitions("-DLIBXC_ENABLED")
+	#Generate functional list available from LibXC:
+	execute_process(COMMAND ${CMAKE_SOURCE_DIR}/opt/indexLibXC.sh ${LIBXC_INCLUDE_DIR}/xc_funcs.h OUTPUT_FILE ${CMAKE_BINARY_DIR}/xcMap.h)
 endif()
 
 option(EnableHDF5 "Enable HDF5 features (currently required only by Berkeley GW dump option)")
