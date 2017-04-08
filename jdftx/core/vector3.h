@@ -43,7 +43,8 @@ public:
 	__hostanddev__ const scalar& x() const { return v[0]; }
 	__hostanddev__ const scalar& y() const { return v[1]; }
 	__hostanddev__ const scalar& z() const { return v[2]; }
-
+	__hostanddev__ bool isNonzero() const { return v[0] || v[1] || v[2]; } //true if any component nonzero
+	
 	//Constructor
 	__hostanddev__ explicit vector3(scalar a=0, scalar b=0, scalar c=0) { v[0]=a; v[1]=b; v[2]=c; }
 	vector3(std::vector<scalar> a) { LOOP3(v[k]=a[k];) }
