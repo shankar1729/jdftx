@@ -184,7 +184,6 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarField Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
-	bool nonVariational = fsp.nonlinearSCF and (not useGummel()); //whether it is OK to return a non-variational calculation of energy
 	
 	ScalarFieldTilde rhoFluidTilde;
 	ScalarField muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
@@ -194,10 +193,8 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	{	//Get neutrality Lagrange multiplier:
 		muPlus = getMuPlus(state);
 		muMinus = getMuMinus(state);
-		if(not nonVariational) //For the SCF version, neutrality instead implemented by the inner LinearPCMs
-		{	Qexp = integral(rhoExplicitTilde);
-			mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
-		}
+		Qexp = integral(rhoExplicitTilde);
+		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
 		//Compute ionic free energy and bound charge
 		ScalarField Aout, rhoIon;
 		initZero(Aout, gInfo);
@@ -221,19 +218,9 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	} //scoped to automatically deallocate temporaries
 	
 	//Compute the electrostatic terms:
+	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
-	ScalarFieldTilde phiFluidTilde;
-	if(nonVariational)
-	{	const ScalarFieldTilde& phiTilde = linearPCM->state; //use total potential from inner LinearPCM
-		ScalarFieldTilde rhoTilde = (-1./(4*M_PI*gInfo.detR)) * L(phiTilde); //corresponding total charge
-		phiFluidTilde = phiTilde - phiExplicitTilde;
-		Adiel["Coulomb"] = dot(phiTilde, O(rhoFluidTilde - 0.5*rhoTilde))
-			+ dot(phiTilde - 0.5*phiExplicitTilde, O(rhoExplicitTilde));
-	}
-	else
-	{	phiFluidTilde = coulomb(rhoFluidTilde); //explicitly calculate from bound charge
-		Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
-	}
+	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
@@ -241,15 +228,13 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 		callPref(screeningEval->convertDerivative)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
 			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
 		//Propagate gradients from mu0 to mu, shape, Qexp:
-		if(not nonVariational)
-		{	double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
-			ScalarField mu0_muPlus, mu0_muMinus, mu0_shape;
-			screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
-			Adiel_muPlus += Adiel_mu0 * mu0_muPlus;
-			Adiel_muMinus += Adiel_mu0 * mu0_muMinus;
-			if(Adiel_shape) Adiel_shape += Adiel_mu0 * mu0_shape;
-			Adiel_Qexp = Adiel_mu0 * mu0_Qexp;
-		}
+		double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
+		ScalarField mu0_muPlus, mu0_muMinus, mu0_shape;
+		screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
+		Adiel_muPlus += Adiel_mu0 * mu0_muPlus;
+		Adiel_muMinus += Adiel_mu0 * mu0_muMinus;
+		if(Adiel_shape) Adiel_shape += Adiel_mu0 * mu0_shape;
+		Adiel_Qexp = Adiel_mu0 * mu0_Qexp;
 	}
 	
 	//Propagate gradients from p to eps, shape
@@ -260,8 +245,15 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	
 	//Optional outputs:
 	if(Adiel_rhoExplicitTilde)
-	{	*Adiel_rhoExplicitTilde = phiFluidTilde;
-		if(not nonVariational) (*Adiel_rhoExplicitTilde)->setGzero(Adiel_Qexp);
+	{	if(fsp.nonlinearSCF && !useGummel())
+		{	//Non-variational version (from inner solve):
+			*Adiel_rhoExplicitTilde = linearPCM->state - phiExplicitTilde;
+		}
+		else
+		{	//Variational version (from bound charge with neutrality constraint):
+			*Adiel_rhoExplicitTilde = phiFluidTilde;
+			(*Adiel_rhoExplicitTilde)->setGzero(Adiel_Qexp);
+		}
 	}
 	if(Adiel_nCavityTilde)
 	{	ScalarField Adiel_nCavity;
