@@ -37,6 +37,9 @@ if [ -z "$2" ]; then printUsageAndExit 1; fi
 jdftxOutFile="$1"
 xsfFile="$2"
 
+command -v awk >/dev/null 2>&1 || { echo "createXSF requires awk, which was not found in path.  Aborting." >&2; exit 1; }
+command -v octave >/dev/null 2>&1 || { echo "createXSF requires octave, which was not found in path.  Aborting." >&2; exit 1; }
+
 if [ ! -f "$jdftxOutFile" ]; then
 	echo "Could not open '$jdftxOutFile' for reading"
 	exit 1
