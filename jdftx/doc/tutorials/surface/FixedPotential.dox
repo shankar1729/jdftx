@@ -35,6 +35,7 @@ We can collect most of the commands including fluid into the common setup file:
     ion Pt -0.333333  0.333333  0.237676   1
 
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     

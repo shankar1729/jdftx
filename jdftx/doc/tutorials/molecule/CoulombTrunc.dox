@@ -38,7 +38,8 @@ Using these outputs, we can create the input file water.in:
     coords-type cartesian
     
     ion-species GBRV/$ID_pbe_v1.2.uspp   #Replace $ID by any atom symbol to find a pseudopotential
-    ion-species GBRV/$ID_pbe_v1.uspp     #If not found in previous pattern, such with this pattern
+    ion-species GBRV/$ID_pbe_v1.01.uspp  #If not found in previous pattern, search with this pattern
+    ion-species GBRV/$ID_pbe_v1.uspp     #If not found in previous patterns, search with this pattern
     elec-cutoff 20 100                   #Recommended cutoffs for GBRV pseudopotentials
     dump End None                        #Don't output anything for this example
     

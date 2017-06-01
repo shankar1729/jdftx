@@ -17,6 +17,7 @@ Save the following to Hatom.in:
     coulomb-truncation-embed 0 0 0
 
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     

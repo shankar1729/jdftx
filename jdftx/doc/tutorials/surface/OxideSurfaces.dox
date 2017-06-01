@@ -23,6 +23,7 @@ and I directly list the optimized ionic positions below.
 
     #Save the following to bulk.in:
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     
@@ -190,6 +191,7 @@ and we will output electrostatic potentials and bound charge for visualization.
     include Rutile110.lattice
     include Rutile110.ionpos
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     coulomb-interaction Slab 001

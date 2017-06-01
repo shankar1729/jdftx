@@ -34,6 +34,7 @@ from the \ref Dispersion tutorial:
     ion C  0.333333 -0.333333  0.0   0
     
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     

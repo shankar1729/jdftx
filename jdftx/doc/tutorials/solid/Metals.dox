@@ -17,6 +17,7 @@ Platinum is a face-centered cubic metal with a cubic lattice constant of
     #Save the following to common.in:
     lattice face-centered Cubic 7.41
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     ion Pt  0 0 0  0      #Single atom per unit cell

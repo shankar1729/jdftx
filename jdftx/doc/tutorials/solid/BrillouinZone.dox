@@ -31,6 +31,7 @@ which will contain only two silicon atoms:
     
     #Select pseudopotential set:
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     

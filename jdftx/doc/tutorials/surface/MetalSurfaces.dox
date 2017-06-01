@@ -67,6 +67,7 @@ First we combine most of the setup in a common input file:
 
     #Save the following to common.in:
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     
@@ -328,6 +329,7 @@ Setup a dummy input file:
     include ${surface}.lattice   #we will use the same input file later for 110 and 111
     include ${surface}.ionpos
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     #Not a real calculation; missing kpoints and fillings!
 

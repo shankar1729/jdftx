@@ -12,6 +12,7 @@ First, we calculate the total density of states using:
     #Save to Si.in and run "mpirun -n 4 jdftx -i Si.in"
     lattice face-centered Cubic 10.263
     ion-species GBRV/$ID_pbe_v1.2.uspp
+    ion-species GBRV/$ID_pbe_v1.01.uspp
     ion-species GBRV/$ID_pbe_v1.uspp
     elec-cutoff 20 100
     

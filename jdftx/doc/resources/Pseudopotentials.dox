@@ -15,6 +15,7 @@ Here are some pseudopotential libraries and generators that work with JDFTx:
   These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax:
 
       ion-species GBRV/$ID_pbe_v1.2.uspp
+      ion-species GBRV/$ID_pbe_v1.01.uspp
       ion-species GBRV/$ID_pbe_v1.uspp
 
   <br>
