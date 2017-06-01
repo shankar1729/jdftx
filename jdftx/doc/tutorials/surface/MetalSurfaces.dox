@@ -305,7 +305,7 @@ For this, we scale up our third lattice vector by five:
     #Save the following to 100.lattice:
     lattice Tetragonal 5.23966 37.05    #a/sqrt(2) and 5a in bohrs, respectively
 
-The third fractional coordinates of the a tom would then scale down by a factor of five:
+The third fractional coordinates of the atom would then scale down by a factor of five:
 
     ion Pt  0.0  0.0  0.0   1
     ion Pt  0.5  0.5  0.1   1
@@ -344,6 +344,12 @@ We can create an XSF file even from this initialization-only output file as usua
     createXSF testGeometry-${surface}.out ${surface}.xsf
 
 and visualize 100.xsf using VESTA to get an image as shown at the top of the page.
+
+Note that you should adjust the boundary settings, particularly for the z direction
+to [-0.5,0.5), in order to not tear the visualization across periodic boundaries.
+You could also repeat the x and y directions by more units say [0,2) or [0,3)
+to more clearly see the surfce structure (not included in the image shown above).
+
 */
 
 /** \page Pt110 Pt(110) setup

@@ -225,7 +225,8 @@ Then run both the vacuum and solvated calculations (these will take a while):
     createXSF Solvated.out Solvated.xsf nbound
 
 and visualize the resulting XSF file with VESTA to see the structure with
-the bound charge distribution in the solvent (as shown at the top of this page).
+the bound charge distribution in the solvent (as shown at the top of this page,
+after adjusting the boundary setting in VESTA as described previously).
 Notice the positive bound charge near the oxygen bridges at the surface
 and the negative bound charge in the solvent near the exposed Ti atoms at the surface.
 
