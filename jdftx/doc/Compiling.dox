@@ -56,7 +56,7 @@ Install the following packages, depending on your system type, using your packag
 
 <table>
 <tr><th> OS                        <th> Debian-based                    <th> Redhat-based             <th> Mac OS X<sup>a</sup> <th> Windows<sup>b</sup>
-<tr><td> Build tools               <td> g++ cmake                       <td> gcc-c++ cmake            <td> cmake                <td> gcc-g++ make cmake
+<tr><td> Build tools               <td> g++ cmake                       <td> gcc-c++ cmake            <td> cmake                <td> gcc-g++ make cmake wget
 <tr><td> GNU Scientific Library    <td> libgsl0-dev                     <td> gsl-devel                <td> gsl                  <td> libgsl-devel
 <tr><td> Message Passing Interface <td> libopenmpi-dev openmpi-bin      <td> openmpi-devel<sup>c</sup><td> openmpi<sup>d</sup>  <td> libopenmpi-devel
 <tr><td> Fast Fourier Transforms   <td> libfftw3-dev                    <td> fftw-devel               <td> fftw-3               <td> libfftw3-devel
