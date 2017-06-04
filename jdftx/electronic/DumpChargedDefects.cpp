@@ -1,6 +1,7 @@
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/Dump_internal.h>
+#include <electronic/operators.h>
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
 #include <core/ScalarFieldIO.h>
@@ -40,28 +41,11 @@ inline void sinMultiply(ScalarField& X, int jDir, const vector3<>& xCenter)
 {	threadLaunch(sinMultiply_sub, X->gInfo.nr, X->gInfo.S, jDir, xCenter, X->data());
 }
 
-
-//Convert ratio of sin-wave potential components to dielectric function (compensate for Coulomb coupling of induced charges in different planes)
-inline void getEpsInvParallel_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, double h, double kSq, const double* phiRatio, double* epsInv)
-{	off_t iStride = 1; for(int jDir=iDir+1; jDir<3; jDir++) iStride *= S[jDir]; //data stride along i'th direction
-	double inv_hSq = 1./(h*h);
-	THREAD_rLoop(
-		double phiCur = phiRatio[i];
-		double phiPlus = phiRatio[i + iStride*(iv[iDir]+1<S[iDir] ? 1 : 1-S[iDir])];
-		double phiMinus = phiRatio[i - iStride*(iv[iDir]>0 ? 1 : 1-S[iDir])];
-		double phi_zz = inv_hSq * (phiPlus + phiMinus - 2.*phiCur); //second z-derivative
-		epsInv[i] = phiCur - phi_zz/kSq;
-	)
+//Convolution kernel for screening of parallel (x/y) field response from other z layers
+//(effectively convolves with normalized version of exp(-k(z-z')) in real space)
+inline double epsParallelScreenKernel(double G, double kSq)
+{	return kSq/(kSq + G*G);
 }
-inline ScalarField getEpsInvParallel(const ScalarField& phiRatio, int iDir, int jDir)
-{	const GridInfo& gInfo = phiRatio->gInfo;
-	ScalarField epsInv(ScalarFieldData::alloc(gInfo));
-	double h = gInfo.h[iDir].length(); //grid separation along slab normal
-	double kSq = gInfo.GGT(jDir,jDir); //wave-vector squared for parallel perturbation
-	threadLaunch(getEpsInvParallel_sub, gInfo.nr, gInfo.S, iDir, h, kSq, phiRatio->data(), epsInv->data());
-	return epsInv;
-}
-
 
 inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
 {	iBoundary = positiveRemainder(iBoundary, S[iDir]);
@@ -112,22 +96,29 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 		fixBoundarySmooth(epsInv_z, iDir, e.coulomb->xCenter, sigma);
 	}
 	
-	//Calculate inverse of epsilon along parallel directions:
-	ScalarField epsInv_xy;
+	//Calculate epsilon along parallel directions:
+	ScalarField eps_xy;
 	if(fabs(fabs(EzDiff)/Ediff.length()-1.) > symmThreshold) //non-zero parallel components
 	{	vector3<> RT_Ediff = e.gInfo.RT * Ediff;
 		double wSum = 0.;
 		for(int jDir=0; jDir<3; jDir++) if(jDir!=iDir)
 		{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
 			if(w < symmThreshold) continue;
-			ScalarField phiRatio = (1./RT_Ediff[jDir]) * dDiff;
-			sinMultiply(phiRatio, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
-			planarAvg(phiRatio, iDir);
-			epsInv_xy += w * getEpsInvParallel(phiRatio, iDir, jDir); //convert phi ratio to epsilon inverse
+			double kSq = e.gInfo.GGT(jDir,jDir); //wave-vector squared for parallel perturbation
+			ScalarField chiTot = ((1./RT_Ediff[jDir]) * (-1/(4*M_PI*e.gInfo.detR))) * I(L(J(dDiff))); //includes a spurious contribution from external sin field subtracted below
+			sinMultiply(chiTot, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
+			planarAvg(chiTot, iDir);
+			ScalarField KchiTot = (4*M_PI/kSq)*chiTot - 1.; //the -1 cancels spurious contribution from external field
+			//Calculate screening factor:
+			RadialFunctionG screenKernel;
+			screenKernel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, epsParallelScreenKernel, kSq);
+			ScalarField screenFactor = inv(1. + I(screenKernel*J(KchiTot)));
+			screenKernel.free();
+			eps_xy += w * (1. - KchiTot * screenFactor);
 			wSum += w;
 		}
-		epsInv_xy *= (1./wSum); //Now contains the average response in x and y (for whichever components are available)
-		fixBoundarySmooth(epsInv_xy, iDir, e.coulomb->xCenter, sigma);
+		eps_xy *= (1./wSum); //Now contains the average response in x and y (for whichever components are available)
+		fixBoundarySmooth(eps_xy, iDir, e.coulomb->xCenter, sigma);
 	}
 	
 	//Write file:
@@ -135,13 +126,13 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 	fprintf(fp, "#distance[bohr]  epsilon_normal  epsilon_||\n");
 	vector3<int> iR;
 	double* epsInv_zData = epsInv_z ? epsInv_z->data() : 0;
-	double* epsInv_xyData = epsInv_xy ? epsInv_xy->data() : 0;
+	double* eps_xyData = eps_xy ? eps_xy->data() : 0;
 	for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
 	{	double z = h*iR[iDir];
 		size_t i = e.gInfo.fullRindex(iR);
 		fprintf(fp, "%lf %lf %lf\n", z,
 			(epsInv_z ? 1./epsInv_zData[i] : NAN), 
-			(epsInv_xy ? 1./epsInv_xyData[i] : NAN) );
+			(eps_xy ? eps_xyData[i] : NAN) );
 	}
 	fclose(fp);
 	logPrintf("done\n"); logFlush();
