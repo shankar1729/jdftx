@@ -422,6 +422,12 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 			if(!aArr.size()) break;
 		}
 		
+		//Special handling for system with no atoms:
+		if(firstAtom)
+		{	spaceGroup.push_back(SpaceGroupOp(rot, vector3<>())); //space group = point group
+			continue;
+		}
+		
 		//Refine offsets:
 		for(vector3<>& a: aArr)
 		{	a = inv(Diag(vector3<>(sup))) * a; //switch offset back to current cell coordinates (matters if this is a phonon supercell)
