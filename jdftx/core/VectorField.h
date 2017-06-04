@@ -103,7 +103,7 @@ template<int N> void randomize(RptrMul& X) { initRandom(X, 3.); } //!< alternate
 template<class T,int N> TptrMul& operator*=(TptrMul& in, const TptrMul& other) { Nloop(in[i]*=other[i];) return in; } //!< Elementwise multiply each component
 template<class T,int N> TptrMul operator*(const TptrMul& in1, const TptrMul& in2) { TptrMul out(in1.clone()); return out *= in2; } //!< Elementwise multiply each component (preserve inputs)
 template<class T,int N> TptrMul operator*(TptrMul&& in1, const TptrMul& in2) { return in1 *= in2; } //!< Elementwise multiply each component (destructible input)
-template<class T,int N> TptrMul operator*(const TptrMul& in2, TptrMul&& in1) { return in2 *= in1; } //!< Elementwise multiply each component (destructible input)
+template<class T,int N> TptrMul operator*(const TptrMul& in1, TptrMul&& in2) { return in2 *= in1; } //!< Elementwise multiply each component (destructible input)
 template<class T,int N> TptrMul operator*(TptrMul&& in1, TptrMul&& in2) { return in1 *= in2; } //!< Elementwise multiply each component (destructible inputs)
 
 //Multiplication of multiplets with singlets

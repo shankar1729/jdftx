@@ -169,7 +169,7 @@ void BulkEpsilon::dump(const Everything& e, ScalarField d_tot) const
 
 struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 {	int iDir; //truncated direction
-	const ScalarField& epsilon;
+	VectorField epsMinus1; //anisotropic epsilon - 1
 	const ScalarField& kappaSq;
 	const GridInfo& gInfo;
 	RealKernel Ksqrt, Kinv;
@@ -190,10 +190,13 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 		)
 	}
 	
-	SlabPeriodicSolver(int iDir, const ScalarField& epsilon, const ScalarField& kappaSq, bool embedFluidMode)
-	: iDir(iDir), epsilon(epsilon), kappaSq(kappaSq), gInfo(epsilon->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(inv(epsilon))
+	SlabPeriodicSolver(int iDir, const ScalarField& epsPerp, const ScalarField& epsPar, const ScalarField& kappaSq, bool embedFluidMode)
+	: iDir(iDir), kappaSq(kappaSq), gInfo(epsPerp->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(3.*inv(epsPerp+2.*epsPar))
 	{
-		double kRMS = sqrt(integral(kappaSq)/integral(epsilon)); //average Debye length of unit cell (for preconditioner)
+		for(int jDir=0; jDir<3; jDir++)
+			epsMinus1[jDir] = (jDir==iDir) ? (epsPerp-1.) : (epsPar-1.);
+		
+		double kRMS = sqrt(integral(kappaSq)*3./integral(epsPerp+2.*epsPar)); //average Debye length of unit cell (for preconditioner)
 		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data, Kinv.data, embedFluidMode);
 		Ksqrt.set(); Kinv.set();
 		nullToZero(state, gInfo);
@@ -201,7 +204,7 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	
 	ScalarFieldTilde hessian(const ScalarFieldTilde& phiTilde) const
 	{	ScalarFieldTilde rhoTilde = -(Kinv * phiTilde); //vacuum term
-		rhoTilde += divergence(J((epsilon-1.) * I(gradient(phiTilde))));  //dielectric term
+		rhoTilde += divergence(J(epsMinus1 * I(gradient(phiTilde))));  //dielectric term
 		rhoTilde -= J(kappaSq * I(phiTilde)); //Debye screening term
 		return (-1./(4*M_PI)) * rhoTilde;
 	}
@@ -232,40 +235,42 @@ struct CylindricalPoisson
 	int NZ; //number of grid points along truncated direction
 	double L; //length along truncated direction
 	double epsilonBulk, kappaSqBulk; //bulk response
-	matrix epsilonTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
+	matrix epsParTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
 	
-	CylindricalPoisson(int iDir, const ScalarField& epsilonSlab, const ScalarField& kappaSqSlab)
+	CylindricalPoisson(int iDir, const ScalarField& epsPerpSlab, const ScalarField& epsParSlab, const ScalarField& kappaSqSlab)
 	{
 		//Extract grid dimensions and bulk response:
-		const GridInfo& gInfo = epsilonSlab->gInfo;
+		const GridInfo& gInfo = epsPerpSlab->gInfo;
 		NZ = gInfo.S[iDir];
 		L = gInfo.R.column(iDir).length();
 		vector3<int> iRbulk; iRbulk[iDir] = NZ/2;
 		size_t iBulk = gInfo.fullRindex(iRbulk);
-		epsilonBulk = epsilonSlab->data()[iBulk];
+		epsilonBulk = (epsPerpSlab->data()[iBulk] + 2.*epsParSlab->data()[iBulk])/3; //should be isotropic anyway
 		kappaSqBulk = kappaSqSlab->data()[iBulk];
 		
 		//Initialize Fourier space operators along truncated direction:
 		G.resize(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
-		complexScalarFieldTilde epsilonSlabTilde = J(Complex(epsilonSlab - epsilonBulk));
+		complexScalarFieldTilde epsPerpSlabTilde = J(Complex(epsPerpSlab - epsilonBulk));
+		complexScalarFieldTilde epsParSlabTilde  = J(Complex(epsParSlab  - epsilonBulk ));
 		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
-		std::vector<complex> epsilonDiagTilde(NZ), kappaSqDiagTilde(NZ);
+		std::vector<complex> epsPerpDiagTilde(NZ), epsParDiagTilde(NZ), kappaSqDiagTilde(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 		{	vector3<int> iG; iG[iDir]=iZ;
 			size_t iSlab = gInfo.fullRindex(iG);
-			epsilonDiagTilde[iZ] = epsilonSlabTilde->data()[iSlab];
+			epsPerpDiagTilde[iZ] = epsPerpSlabTilde->data()[iSlab];
+			epsParDiagTilde[iZ]  = epsParSlabTilde->data()[iSlab];
 			kappaSqDiagTilde[iZ] = kappaSqSlabTilde->data()[iSlab];
 		}
-		epsilonTilde.init(NZ,NZ);
+		epsParTilde.init(NZ,NZ);
 		GGepsKappaSq.init(NZ,NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			for(int jZ=0; jZ<NZ; jZ++)
 			{	int kZ = (iZ - jZ);
 				if(kZ<0) kZ += NZ; //wrap kZ to [0,NZ)
-				epsilonTilde.set(iZ,jZ, epsilonDiagTilde[kZ]);
-				GGepsKappaSq.set(iZ,jZ, G[iZ]*epsilonDiagTilde[kZ]*G[jZ] + kappaSqDiagTilde[kZ]);
+				epsParTilde.set(iZ,jZ, epsParDiagTilde[kZ]);
+				GGepsKappaSq.set(iZ,jZ, G[iZ]*epsPerpDiagTilde[kZ]*G[jZ] + kappaSqDiagTilde[kZ]);
 			}
 	}
     
@@ -280,7 +285,7 @@ struct CylindricalPoisson
 			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
 		}
 		//Add inhomogeneous screening terms:
-		KinvTot += L * (GGepsKappaSq + (k*k)*epsilonTilde);
+		KinvTot += L * (GGepsKappaSq + (k*k)*epsParTilde);
 		//Calculate self-energy at k:
 		double Uk = trace(dagger(OgTilde) * invApply(KinvTot, OgTilde)).real();
 		return k * exp(-std::pow(k*sigma,2)) * Uk;
@@ -358,27 +363,38 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
 			
 			//Create dielectric model for slab:
-			ScalarField epsSlab; nullToZero(epsSlab, e.gInfo);
-			double* epsSlabData = epsSlab->data();
+			ScalarFieldArray epsSlab; nullToZero(epsSlab, e.gInfo, 2); //2 components = perp, par
+			double* epsSlabData[2] = { epsSlab[0]->data(), epsSlab[1]->data() };
 			std::ifstream ifs(slabEpsFname.c_str());
 			if(!ifs.is_open()) die("\tCould not open slab dielectric model file '%s' for reading.\n", slabEpsFname.c_str());
 			string commentLine; getline(ifs, commentLine); //get and ignore comment line
 			vector3<int> iR;
 			double h = e.gInfo.h[iDir].length();
 			for(iR[iDir]=0; iR[iDir]<e.gInfo.S[iDir]; iR[iDir]++)
-			{	double dExpected = h*iR[iDir];
-				double d; ifs >> d >> epsSlabData[e.gInfo.fullRindex(iR)];
+			{	//Read data from line:
+				string epsLine; getline(ifs, epsLine);
+				istringstream iss(epsLine);
+				double d;
+				double &epsPerp = epsSlabData[0][e.gInfo.fullRindex(iR)];
+				double &epsPar = epsSlabData[1][e.gInfo.fullRindex(iR)];
+				iss >> d >> epsPerp;
+				iss >> epsPar;
+				if(iss.fail()) epsPar = epsPerp; //seperate parallel value not available
+				//Check grid point:
+				double dExpected = h*iR[iDir];
 				if(fabs(d-dExpected) > symmThreshold)
 					die("\tGeometry mismatch in '%s': expecting distance %lg on line %d; found %lg instead.\n",
 						slabEpsFname.c_str(), dExpected, iR[iDir]+2, d);
 			}
-			ScalarFieldTilde epsSlabMinus1tilde = J(epsSlab) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
-			epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
-			planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
-			epsSlab = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
+			for(int dir=0; dir<2; dir++)
+			{	ScalarFieldTilde epsSlabMinus1tilde = J(epsSlab[dir]) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
+				epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
+				planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
+				epsSlab[dir] = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
+			}
 			
 			//Include solvation model dielectric / screening, if present:
-			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab->gInfo);
+			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab[0]->gInfo);
 			if(e.eVars.fluidSolver)
 			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
@@ -387,18 +403,19 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
 					ScalarField shapeSlab = getPlanarAvg(pcm.shape, iDir);
-					epsSlab += shapeSlab * (pcm.epsBulk - 1.);
+					for(int dir=0; dir<2; dir++)
+						epsSlab[dir] += shapeSlab * (pcm.epsBulk - 1.); //fluid dielectric is isotropic
 					kappaSqSlab += shapeSlab * pcm.k2factor;
 				}
 			}
 			
 			//Periodic potential and energy:
 			ScalarFieldTilde dModel;
-			Emodel = SlabPeriodicSolver(iDir, epsSlab, kappaSqSlab, e.coulombParams.embedFluidMode).getEnergy(rhoModel, dModel);
+			Emodel = SlabPeriodicSolver(iDir, epsSlab[0], epsSlab[1], kappaSqSlab, e.coulombParams.embedFluidMode).getEnergy(rhoModel, dModel);
 			Vmodel = I(e.coulomb->embedShrink(dModel));
 			
 			//Isolated energy:
-			CylindricalPoisson cp(iDir, epsSlab, kappaSqSlab);
+			CylindricalPoisson cp(iDir, epsSlab[0], epsSlab[1], kappaSqSlab);
 			for(const Center& cdc: center)
 			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
 				EmodelIsolated += cp.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
