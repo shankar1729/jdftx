@@ -295,3 +295,30 @@ struct CommandVanDerWaals : public Command
 	}
 }
 commandVanDerWaals;
+
+
+struct CommandExchangeParameters : public Command
+{
+	CommandExchangeParameters() : Command("exchange-parameters", "jdftx/Electronic/Functional")
+	{
+		format = "<exxScale> [<exxOmega>=0]";
+		comments =
+			"Override exact-exchange parameters in a hybrid functional.\n"
+			"Here <exxScale> is the scale fraction of exact exchange,\n"
+			"and <exxOmega> is the screening parameter.\n"
+			"This is only supported for internal hybrid functionals PBE0\n"
+			"and HSExx, and not for the LibXC hybrid functionals.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.exCorr.exxScaleOverride, 0., "exxScale", true);
+		pl.get(e.exCorr.exxOmegaOverride, 0., "exxOmega");
+		if(e.exCorr.exxScaleOverride <= 0.) throw string("<exxScale> must be >= 0");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf(" %lg", e.exCorr.exxScaleOverride);
+		if(e.exCorr.exxOmegaOverride) logPrintf(" %lg", e.exCorr.exxOmegaOverride);
+	}
+}
+commandExchangeParameters;

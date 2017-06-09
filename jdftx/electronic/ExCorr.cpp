@@ -337,7 +337,7 @@ struct FunctionalList
 extern EnumStringMap<ExCorrType> exCorrTypeMap;
 
 ExCorr::ExCorr(ExCorrType exCorrType, KineticType kineticType) : exCorrType(exCorrType), kineticType(kineticType), xcName(exCorrTypeMap.getString(exCorrType)),
-exxScale(0.), exxOmega(0.),
+exxScale(0.), exxOmega(0.), exxScaleOverride(0.), exxOmegaOverride(0.),
 functionals(std::make_shared<FunctionalList>())
 #ifdef LIBXC_ENABLED
 , xcExchange(0), xcCorr(0), xcExcorr(0), xcKinetic(0)
@@ -357,15 +357,18 @@ void ExCorr::setup(const Everything& everything)
 		{	if(xcExcorr)
 			{	functionals->add(xcExcorr, "exchange-correlation");
 				exxScale = functionals->libXC.back()->exxScale(); //set exact exchange factor
-				exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange factor
+				exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange screening parameter
 			}
 			else
 			{	functionals->add(xcExchange, "exchange");
+				exxScale = functionals->libXC.back()->exxScale(); //set exact exchange factor
+				exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange screening parameter
 				functionals->add(xcCorr, "correlation");
-				//exact exchange factor 0 by default (all hybrids are listed as combined XC functionals)
 			}
 			break;
 		}
+		if(exxScaleOverride) die("Exact-exchange scale factor cannot be overriden for LibXC functionals.\n")
+		if(exxOmegaOverride) die("Exact-exchange screening parameter cannot be overriden for LibXC functionals.\n")
 		#endif //LIBXC_ENABLED
 		
 		case ExCorrLDA_PZ:
@@ -432,30 +435,30 @@ void ExCorr::setup(const Everything& everything)
 			Citations::add(citeReason, "R. van Leeuwen and E. J. Baerends, Phys. Rev. A 49, 2421 (1994)");
 			break;
 		case ExCorrHYB_PBE0:
-			exxScale = 1./4;
-			functionals->add(GGA_X_PBE, 3./4);
+			exxScale = exxScaleOverride ? exxScaleOverride : 1./4;
+			functionals->add(GGA_X_PBE, 1.-exxScale);
 			functionals->add(GGA_C_PBE);
 			Citations::add(citeReason, "M. Ernzerhof and G. E. Scuseria, J. Chem. Phys. 110, 5029 (1999)");
 			break;
 		case ExCorrHYB_HSE06:
-			exxOmega = 0.11;
-			exxScale = 1./4;
-			functionals->add(GGA_X_wPBE_SR, -1./4);
+			exxOmega = exxOmegaOverride ? exxOmegaOverride : 0.11;
+			exxScale = exxScaleOverride ? exxScaleOverride : 1./4;
+			functionals->add(GGA_X_wPBE_SR, -exxScale);
 			functionals->add(GGA_X_PBE);
 			functionals->add(GGA_C_PBE);
 			Citations::add(citeReason, "A.V. Krukau, O.A. Vydrov, A.F. Izmaylov and G.E. Scuseria, J. Chem. Phys. 125, 224106 (2006)");
 			break;
 		case ExCorrHYB_HSE12:
-			exxOmega = 0.185;
-			exxScale = 0.313;
+			exxOmega = exxOmegaOverride ? exxOmegaOverride : 0.185;
+			exxScale = exxScaleOverride ? exxScaleOverride : 0.313;
 			functionals->add(GGA_X_wPBE_SR, -exxScale);
 			functionals->add(GGA_X_PBE);
 			functionals->add(GGA_C_PBE);
 			Citations::add(citeReason, "J.E. Moussa, P.A. Schultz and J.R. Chelikowsky, J. Chem. Phys. 136, 204117 (2012)");
 			break;
 		case ExCorrHYB_HSE12s:
-			exxOmega = 0.408;
-			exxScale = 0.425;
+			exxOmega = exxOmegaOverride ? exxOmegaOverride : 0.408;
+			exxScale = exxScaleOverride ? exxScaleOverride : 0.425;
 			functionals->add(GGA_X_wPBE_SR, -exxScale);
 			functionals->add(GGA_X_PBE);
 			functionals->add(GGA_C_PBE);
@@ -465,6 +468,11 @@ void ExCorr::setup(const Everything& everything)
 			exxScale = 1.;
 			break;
 	}
+	
+	if(exxScaleOverride && exxScale!=exxScaleOverride)
+		die("Exact-exchange scale factor override is only allowed for hybrid functionals.\n")
+	if(exxOmegaOverride && exxOmega!=exxOmegaOverride)
+		die("Exact-exchange screening parameter override is only allowed for screened hybrid functionals.\n")
 	
 	if(exxScale)
 	{	logPrintf("Will include %lg x ", exxScale);

@@ -125,6 +125,10 @@ private:
 	
 	double exxScale; //scale factor for exact exchange
 	double exxOmega; //Range parameter for exact exchange
+	
+	double exxScaleOverride, exxOmegaOverride; //override default values of EXX scale and omega
+	friend struct CommandExchangeParameters; //command that sets the override parameters
+	
 	std::shared_ptr<struct FunctionalList> functionals; //List of component functionals
 #ifdef LIBXC_ENABLED
 	int xcExchange, xcCorr, xcExcorr, xcKinetic; //LibXC codes for various functional components (0 if unused)
