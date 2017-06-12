@@ -41,10 +41,25 @@ inline void sinMultiply(ScalarField& X, int jDir, const vector3<>& xCenter)
 {	threadLaunch(sinMultiply_sub, X->gInfo.nr, X->gInfo.S, jDir, xCenter, X->data());
 }
 
-//Convolution kernel for screening of parallel (x/y) field response from other z layers
-//(effectively convolves with normalized version of exp(-k(z-z')) in real space)
-inline double epsParallelScreenKernel(double G, double kSq)
-{	return kSq/(kSq + G*G);
+//Convert ratio of sin-wave potential components to dielectric function (compensate for Coulomb coupling of induced charges in different planes)
+inline void getEpsParallel_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, double h, double kSq, const double* phiRatio, double* eps)
+{	off_t iStride = 1; for(int jDir=iDir+1; jDir<3; jDir++) iStride *= S[jDir]; //data stride along i'th direction
+	double inv_hSq = 1./(h*h);
+	THREAD_rLoop(
+		double phiCur = phiRatio[i];
+		double phiPlus = phiRatio[i + iStride*(iv[iDir]+1<S[iDir] ? 1 : 1-S[iDir])];
+		double phiMinus = phiRatio[i - iStride*(iv[iDir]>0 ? 1 : 1-S[iDir])];
+		double phi_zz = inv_hSq * (phiPlus + phiMinus - 2.*phiCur); //second z-derivative
+		eps[i] = phiCur - phi_zz/kSq;
+	)
+}
+inline ScalarField getEpsParallel(const ScalarField& phiRatio, int iDir, int jDir)
+{	const GridInfo& gInfo = phiRatio->gInfo;
+	ScalarField eps(ScalarFieldData::alloc(gInfo));
+	double h = gInfo.h[iDir].length(); //grid separation along slab normal
+	double kSq = gInfo.GGT(jDir,jDir); //wave-vector squared for parallel perturbation
+	threadLaunch(getEpsParallel_sub, gInfo.nr, gInfo.S, iDir, h, kSq, phiRatio->data(), eps->data());
+	return eps;
 }
 
 inline void fixBoundary_sub(size_t iStart, size_t iStop, const vector3<int>& S, int iDir, int iBoundary, double* eps)
@@ -104,17 +119,10 @@ void SlabEpsilon::dump(const Everything& e, ScalarField d_tot) const
 		for(int jDir=0; jDir<3; jDir++) if(jDir!=iDir)
 		{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
 			if(w < symmThreshold) continue;
-			double kSq = e.gInfo.GGT(jDir,jDir); //wave-vector squared for parallel perturbation
-			ScalarField chiTot = ((1./RT_Ediff[jDir]) * (-1/(4*M_PI*e.gInfo.detR))) * I(L(J(dDiff))); //includes a spurious contribution from external sin field subtracted below
-			sinMultiply(chiTot, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
-			planarAvg(chiTot, iDir);
-			ScalarField KchiTot = (4*M_PI/kSq)*chiTot - 1.; //the -1 cancels spurious contribution from external field
-			//Calculate screening factor:
-			RadialFunctionG screenKernel;
-			screenKernel.init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, epsParallelScreenKernel, kSq);
-			ScalarField screenFactor = inv(1. + I(screenKernel*J(KchiTot)));
-			screenKernel.free();
-			eps_xy += w * (1. - KchiTot * screenFactor);
+			ScalarField epsCur = getEpsParallel((1./RT_Ediff[jDir]) * dDiff, iDir, jDir);
+			sinMultiply(epsCur, jDir, e.coulomb->xCenter); //this extracts the sin component (after planar averaging below)
+			planarAvg(epsCur, iDir);
+			eps_xy += w * epsCur;
 			wSum += w;
 		}
 		eps_xy *= (1./wSum); //Now contains the average response in x and y (for whichever components are available)
@@ -152,17 +160,17 @@ void BulkEpsilon::dump(const Everything& e, ScalarField d_tot) const
 
 	//Calculate inverse of epsilon along parallel directions:
 	vector3<> RT_Ediff = e.gInfo.RT * Ediff;
-	double wSum = 0., epsInv = 0.;
+	double wSum = 0., eps = 0.;
 	for(int jDir=0; jDir<3; jDir++)
 	{	double w = fabs(RT_Ediff[jDir])/(e.gInfo.R.column(jDir).length() * Ediff.length());
 		if(w < symmThreshold) continue;
-		ScalarField epsInvCur = (1./RT_Ediff[jDir]) * dDiff;
-		sinMultiply(epsInvCur, jDir, e.coulombParams.embedCenter); //this extracts the sin component upon unit-cell averaging below
-		epsInv += w * integral(epsInvCur)/e.gInfo.detR; //average over unit cell
+		ScalarField epsCur = (1./RT_Ediff[jDir]) * dDiff;
+		sinMultiply(epsCur, jDir, e.coulombParams.embedCenter); //this extracts the sin component upon unit-cell averaging below
+		eps += w * integral(epsCur)/e.gInfo.detR; //average over unit cell
 		wSum += w;
 	}
-	epsInv *= (1./wSum); //Now contains the direction-averaged response (for whichever components are available)
-	logPrintf("bulkEpsilon = %lg\n", 1./epsInv);
+	eps *= (1./wSum); //Now contains the direction-averaged response (for whichever components are available)
+	logPrintf("bulkEpsilon = %lg\n", eps);
 }
 
 //-------------------------- Charged defects ----------------------------------

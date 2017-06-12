@@ -448,6 +448,10 @@ struct CommandElectricField : public Command
 			"In truncated directions, the field will be applied as a ramp potential,\n"
 			"and for periodic directions, it will be applied as a plane wave with\n"
 			"the smallest commensurate wave vector and amplitude set by peak field.\n\n"
+			"Additionally, in periodic directions the net potential at the chosen\n"
+			"wave will be constrained to be entirely due to the electric field,\n"
+			"which corresponds to specifying the total 'E' field, compared to the\n"
+			"truncated case which corresponds to specifying the applied 'D' field.\n\n" 
 			"Coulomb truncation, if any, must be in embedded mode (command coulomb-truncation-embed).\n"
 			"Symmetries will be automatically reduced to account for this field.";
 	}

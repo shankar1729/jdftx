@@ -193,7 +193,14 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		|| ShouldDump(BulkEpsilon)
 		|| ShouldDump(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
-	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
+	{	ScalarFieldTilde phiRemoved;
+		d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot()), Coulomb::PointChargeNone, &phiRemoved); //local pseudopotential + Hartree term
+		//If E-field in periodic direction, set the sin-components to correspond to the total applied field (D rather than E)
+		if(phiRemoved)
+		{	ScalarFieldTilde phiRemovedIon;
+			(*e->coulomb)(iInfo.rhoIon, Coulomb::PointChargeRight, &phiRemovedIon);
+			d_vac -= (phiRemoved + phiRemovedIon);
+		}
 		//Subtract neutral-atom reference potential (gives smoother result):
 		if(potentialSubtraction)
 		{	ScalarFieldTilde dAtomic;
