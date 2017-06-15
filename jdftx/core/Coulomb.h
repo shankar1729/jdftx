@@ -115,11 +115,10 @@ public:
 	//! Apply Coulomb kernel (destructible input).
 	//! Pass appropriate pointChargeMode when applying to nucelar densities for special handling of high-frequency
 	//! components necessary in the non-translationally invariant scheme i.e. when params.embed==true
-	//! If phiRemoved is non-null, it will be set to the projected out components of the potential due to periodic-direction Efields, if any
-	ScalarFieldTilde operator()(ScalarFieldTilde&&, PointChargeMode pointChargeMode=PointChargeNone, ScalarFieldTilde* phiRemoved=0) const;
+	ScalarFieldTilde operator()(ScalarFieldTilde&&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Apply Coulomb kernel (parameters same as destructible input version above)
-	ScalarFieldTilde operator()(const ScalarFieldTilde&, PointChargeMode pointChargeMode=PointChargeNone, ScalarFieldTilde* phiRemoved=0) const;
+	ScalarFieldTilde operator()(const ScalarFieldTilde&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
 	//! Includes interaction with Efield, if present (Requires embedded truncation)
@@ -135,6 +134,9 @@ public:
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
 	complexScalarFieldTilde operator()(const complexScalarFieldTilde&, vector3<> kDiff, double omega) const;
+
+	//! Kernel for extracting contributions at sin-wave E-field wavevectors
+	RealKernel* EfieldExtract;
 
 private:
 	const GridInfo& gInfoOrig; //!< original grid
@@ -173,7 +175,6 @@ private:
 	class WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	RealKernel* ionKernel;
-	RealKernel* EfieldProjection; //!< kernel for projecting out E-field contributions
 	ScalarFieldTilde embedExpand(const ScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
 	complexScalarFieldTilde embedExpand(complexScalarFieldTilde&& in) const; //!< expand to embedding grid and symmetrize boundaries
 	ScalarFieldTilde embedShrink(const ScalarFieldTilde& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)

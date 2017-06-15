@@ -150,26 +150,19 @@ complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
 	return Complex(centerFromO) * J((complexScalarField&&)out);
 }
 
-ScalarFieldTilde Coulomb::operator()(ScalarFieldTilde&& in, PointChargeMode pointChargeMode, ScalarFieldTilde* phiRemoved) const
-{	ScalarFieldTilde result;
-	if(params.embed)
+ScalarFieldTilde Coulomb::operator()(ScalarFieldTilde&& in, PointChargeMode pointChargeMode) const
+{	if(params.embed)
 	{	ScalarFieldTilde outSR;
 		if(pointChargeMode!=PointChargeNone) outSR = (*ionKernel) * in; //Special handling (range separation) to avoid Nyquist frequency issues
 		if(pointChargeMode==PointChargeRight) in = gaussConvolve(in, ionWidth); //bandwidth-limit point charge to the right and compute long-ranged part below
 		ScalarFieldTilde outLR = embedShrink(apply(embedExpand(in))); //Apply truncated Coulomb in expanded grid and shrink back
 		if(pointChargeMode==PointChargeLeft) outLR = gaussConvolve(outLR, ionWidth); //since point-charge to left, bandwidth-limit long-range part computed above
-		result = outLR + outSR;
+		return outLR + outSR;
 	}
-	else result = apply((ScalarFieldTilde&&)in);
-	//Check for E-field projection (remove component of potential along sin-wave external perturbation):
-	if(EfieldProjection)
-	{	if(phiRemoved) *phiRemoved = result - (*EfieldProjection) * result;
-		return (*EfieldProjection) * result;
-	}
-	else return result;
+	else return apply((ScalarFieldTilde&&)in);
 }
 
-ScalarFieldTilde Coulomb::operator()(const ScalarFieldTilde& in, PointChargeMode pointChargeMode, ScalarFieldTilde* phiRemoved) const
+ScalarFieldTilde Coulomb::operator()(const ScalarFieldTilde& in, PointChargeMode pointChargeMode) const
 {	ScalarFieldTilde out(in->clone()); //create destructible copy
 	return (*this)((ScalarFieldTilde&&)out, pointChargeMode);
 }
@@ -310,18 +303,18 @@ inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, doub
 {	kernel[i] = (4*M_PI) * (Gsq ? (1.-exp(-expFac*Gsq))/Gsq : GzeroVal);
 }
 
-inline void setEfieldProjection(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<>& mask, double* kernel)
+inline void setEfieldExtract(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<bool>& mask, double* kernel)
 {	THREAD_halfGspaceLoop
-	(	kernel[i] = 1.;
+	(	kernel[i] = 0.;
 		for(int k=0; k<3; k++)
 			if(mask[k] && abs(iG[k])==1)
-				kernel[i] = 0.;
+				kernel[i] = 1.;
 	)
 }
 
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
-: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0), ionKernel(0), EfieldProjection(0)
+: EfieldExtract(0), gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0), ionKernel(0)
 {
 	if(params.embed)
 	{	//Initialize embedding grid:
@@ -411,9 +404,13 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		
 		//Initialize projection kernel for Efield in periodic directions:
 		if(RT_Efield_wave.length_squared())
-		{	EfieldProjection = new RealKernel(gInfoOrig);
-			threadLaunch(setEfieldProjection, gInfoOrig.nG, gInfoOrig.S, RT_Efield_wave, EfieldProjection->data);
-			EfieldProjection->set();
+		{	double Ethresh = symmThreshold * params.Efield.length();
+			vector3<bool> removeSin;
+			for(int k=0; k<3; k++)
+				removeSin[k] = (fabs(RT_Efield_wave[k]) > Ethresh * gInfoOrig.R.column(k).length());
+			EfieldExtract = new RealKernel(gInfoOrig);
+			threadLaunch(setEfieldExtract, gInfoOrig.nG, gInfoOrig.S, removeSin, EfieldExtract->data);
+			EfieldExtract->set();
 		}
 	}
 }
@@ -439,7 +436,7 @@ Coulomb::~Coulomb()
 		delete ionKernel;
 	}
 	
-	if(EfieldProjection) delete EfieldProjection;
+	if(EfieldExtract) delete EfieldExtract;
 }
 
 
