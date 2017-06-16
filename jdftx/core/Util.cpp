@@ -563,5 +563,6 @@ namespace Citations
 		fprintf(fp,
 			"This list may not be complete. Please suggest additional citations and report\n"
 			"any other bugs by creating a ticket at https://sourceforge.net/p/jdftx/tickets\n\n");
+		fflush(fp);
 	}
 }
