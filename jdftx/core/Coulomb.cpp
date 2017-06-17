@@ -303,18 +303,8 @@ inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, doub
 {	kernel[i] = (4*M_PI) * (Gsq ? (1.-exp(-expFac*Gsq))/Gsq : GzeroVal);
 }
 
-inline void setEfieldExtract(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<bool>& mask, double* kernel)
-{	THREAD_halfGspaceLoop
-	(	kernel[i] = 0.;
-		for(int k=0; k<3; k++)
-			if(mask[k] && abs(iG[k])==1)
-				kernel[i] = 1.;
-	)
-}
-
-
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
-: EfieldExtract(0), gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0), ionKernel(0)
+: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0), ionKernel(0)
 {
 	if(params.embed)
 	{	//Initialize embedding grid:
@@ -401,17 +391,6 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		if(RT_Efield_ramp.length_squared() && !params.embed)
 			die("Electric field with component along truncated direction requires coulomb-truncation-embed.");
 		if(!wsOrig) wsOrig = new WignerSeitz(gInfoOrig.R);
-		
-		//Initialize projection kernel for Efield in periodic directions:
-		if(RT_Efield_wave.length_squared())
-		{	double Ethresh = symmThreshold * params.Efield.length();
-			vector3<bool> removeSin;
-			for(int k=0; k<3; k++)
-				removeSin[k] = (fabs(RT_Efield_wave[k]) > Ethresh * gInfoOrig.R.column(k).length());
-			EfieldExtract = new RealKernel(gInfoOrig);
-			threadLaunch(setEfieldExtract, gInfoOrig.nG, gInfoOrig.S, removeSin, EfieldExtract->data);
-			EfieldExtract->set();
-		}
 	}
 }
 
@@ -435,8 +414,6 @@ Coulomb::~Coulomb()
 				#endif
 		delete ionKernel;
 	}
-	
-	if(EfieldExtract) delete EfieldExtract;
 }
 
 

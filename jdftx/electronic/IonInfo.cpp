@@ -141,10 +141,6 @@ void IonInfo::update(Energies& ener)
 		sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde);
 	//Add long-range part to Vlocps and smoothen rhoIon:
 	Vlocps += (*e->coulomb)(rhoIon, Coulomb::PointChargeRight);
-	if(e->coulomb->EfieldExtract)
-	{	Vlocps_Efield = (*e->coulomb->EfieldExtract) * Vlocps;
-		Vlocps -= Vlocps_Efield;
-	}
 	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
 	if(nCoreTilde) nCore = I(nCoreTilde); // put in real space
@@ -188,11 +184,9 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	
 	//---------- local part: Vlocps, chargeball, partial core etc.: --------------
 	//compute the complex-conjugate gradient w.r.t the relevant densities/potentials:
-	ScalarFieldTilde ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
-	if(e->coulomb->EfieldExtract) ccgrad_Vlocps -= (*e->coulomb->EfieldExtract) * ccgrad_Vlocps;
+	const ScalarFieldTilde ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
 	const ScalarFieldTilde ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
 	ScalarFieldTilde ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps, Coulomb::PointChargeLeft); //long-range portion of Vlocps for rhoIon
-	if(e->coulomb->EfieldExtract) ccgrad_rhoIon -= (*e->coulomb->EfieldExtract) * ccgrad_rhoIon;
 	if(eVars.d_fluid) //and electrostatic potential due to fluid (if any):
 		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
 	ScalarFieldTilde ccgrad_nCore, ccgrad_tauCore;

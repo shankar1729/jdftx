@@ -276,7 +276,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	
 	// Hartree term:
 	ScalarFieldTilde dH = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
-	if(e->coulomb->EfieldExtract) dH -= (*e->coulomb->EfieldExtract) * dH; //project out component along Efield sin wave
 	ener.E["EH"] = 0.5*dot(nTilde, O(dH));
 	VsclocTilde += dH;
 

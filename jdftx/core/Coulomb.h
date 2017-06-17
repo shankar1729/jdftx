@@ -135,9 +135,6 @@ public:
 	//! and optionally screened with range parameter omega (destructible input)
 	complexScalarFieldTilde operator()(const complexScalarFieldTilde&, vector3<> kDiff, double omega) const;
 
-	//! Kernel for extracting contributions at sin-wave E-field wavevectors
-	RealKernel* EfieldExtract;
-
 private:
 	const GridInfo& gInfoOrig; //!< original grid
 protected:

@@ -63,8 +63,6 @@ public:
 	ScalarField nCore; //!< Core electron density for partial (nonlinear) core correction
 	ScalarField tauCore; //!< Model for the KE density of the core (TF+vW applied to nCore) (used by meta-GGAs)
 	
-	ScalarFieldTilde Vlocps_Efield; //!< Removed component of Vlocps along sin-wave Efield (if any)
-	
 	IonInfo();
 	
 	void setup(const Everything&);

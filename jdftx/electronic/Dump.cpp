@@ -193,18 +193,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		|| ShouldDump(BulkEpsilon)
 		|| ShouldDump(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
-	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot()), Coulomb::PointChargeNone); //local pseudopotential + Hartree term
-		//If E-field in periodic direction, set the sin-components to correspond to the total applied field (D rather than E)
-		if(e->coulomb->EfieldExtract)
-		{	ScalarFieldTilde dH_Efield = (*e->coulomb->EfieldExtract) * d_vac; //Vlocps part already subtracted in IonInfo
-			d_vac -= dH_Efield;
-			d_vac -= (iInfo.Vlocps_Efield + dH_Efield); //Now add the external response field (negative of projected out component)
-		}
+	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
 		//Subtract neutral-atom reference potential (gives smoother result):
 		if(potentialSubtraction)
 		{	ScalarFieldTilde dAtomic;
 			for(auto sp: e->iInfo.species) if(sp->atpos.size()) sp->accumulateAtomicPotential(dAtomic);
-			if(e->coulomb->EfieldExtract) dAtomic -= (*e->coulomb->EfieldExtract) * dAtomic;
 			d_vac -= dAtomic;
 		}
 		if(eVars.rhoExternal) d_vac += (*e->coulomb)(eVars.rhoExternal); //potential due to external charge (if any)
