@@ -1,0 +1,30 @@
+\form#0:$ eV / E_h $
+\form#1:$ J / E_h $
+\form#2:$ KJ / E_h $
+\form#3:$ Kcal / E_h $
+\form#4:$ k_B K / E_h $
+\form#5:$ cm^{-1} / E_h $
+\form#6:$ \AA / a_0 $
+\form#7:$ m / a_0 $
+\form#8:$ l / a_0^3 $
+\form#9:$ amu / m_e $
+\form#10:$ kg / m_e $
+\form#11:$ mol/\# $
+\form#12:$ N / (E_h/a_0) $
+\form#13:$ Pa / (E_h/a_0^2) $
+\form#14:$ KPa / (E_h/a_0^2) $
+\form#15:$ bar / (E_h/a_0^2) $
+\form#16:$ mmHg / (E_h/a_0^2) $
+\form#17:$ \sqrt{kg m/N} $
+\form#18:$ 10^{-15} sec $
+\form#19:\[ \mathrm{Im}\epsilon(\omega) = \frac{4\pi^2 e^2}{3m_e^2\omega^2 \Omega} \int_{\mathrm{BZ}} \frac{2d\vec{k}}{V_{\mathrm{BZ}}} \sum_{n'n} (f_{\vec{k}n} - f_{\vec{k}n'}) \delta(\varepsilon_{\vec{k}n'} - \varepsilon_{\vec{k}n} - \hbar\omega) \left| \langle\vec{p}\rangle^{\vec{k}}_{n'n} \right|^2, \]
+\form#20:$\Omega$
+\form#21:$\varepsilon_{\vec{k}n}$
+\form#22:$f_{\vec{k}n}$
+\form#23:$\langle\vec{p}\rangle^{\vec{k}}_{n'n}$
+\form#24:$ \int_0^\infty dy y^n e^{-Ay^2} \textrm{erfc}{By} $
+\form#25:$ y += alpha T_t(x) $
+\form#26:$ T_t $
+\form#27:$ T_t(x(r)) = x(r+t) $
+\form#28:$ T^{\dagger}_t = T_{-t} $
+\form#29:$ T^{-1}_t = T_{-t} $

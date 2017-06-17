@@ -1,0 +1,26 @@
+var ExCorr__internal__LDA_8h =
+[
+    [ "FunctionalLDA", "classFunctionalLDA.html", "classFunctionalLDA" ],
+    [ "LDA_calc", "structLDA__calc.html", null ],
+    [ "LDA_calc< LDA_KE_TF, nCount >", "structLDA__calc_3_01LDA__KE__TF_00_01nCount_01_4.html", null ],
+    [ "LDA_calc< LDA_X_Slater, nCount >", "structLDA__calc_3_01LDA__X__Slater_00_01nCount_01_4.html", null ],
+    [ "LDA_eval_C_PZ", "structLDA__eval__C__PZ.html", "structLDA__eval__C__PZ" ],
+    [ "LDA_eval_C_PW", "structLDA__eval__C__PW.html", "structLDA__eval__C__PW" ],
+    [ "LDA_eval_C_VWN", "structLDA__eval__C__VWN.html", "structLDA__eval__C__VWN" ],
+    [ "SwitchTemplate_LDA", "ExCorr__internal__LDA_8h.html#a6c039f3a7785a2eabfad5957edd1ed97", null ],
+    [ "LDA_Variant", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040d", [
+      [ "LDA_X_Slater", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da5d262b0fe4ae826d356c8ac053efb013", null ],
+      [ "LDA_C_PZ", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da1b8cf6ef72a361d8cbf896ea88e77489", null ],
+      [ "LDA_C_PW", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040dad05cc2906bce859fa17ba053e66aa784", null ],
+      [ "LDA_C_PW_prec", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da0a95aa023163bf530150022ee941a6ba", null ],
+      [ "LDA_C_VWN", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da4fdf47332a216918ba99aaa5d32409e2", null ],
+      [ "LDA_XC_Teter", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da5b260b0b292492e4cec5b63a84b76f1e", null ],
+      [ "LDA_KE_TF", "ExCorr__internal__LDA_8h.html#aaf6dc9486e1bfd6e173ff92013b4040da0d2c66d573f174e8e3fcecebd835aedb", null ]
+    ] ],
+    [ "LDA_eval", "ExCorr__internal__LDA_8h.html#a3b268dc23d9a2cc1f7777769b91d42cb", null ],
+    [ "LDA_eval< LDA_C_PW >", "ExCorr__internal__LDA_8h.html#ab6694d7e98d8850f5ebb6f499ffaacd3", null ],
+    [ "LDA_eval< LDA_C_PW_prec >", "ExCorr__internal__LDA_8h.html#acb858ca5725cad106a1abe28237185b9", null ],
+    [ "LDA_eval< LDA_C_PZ >", "ExCorr__internal__LDA_8h.html#a168a0c3507d7dbfb366799a3d22c4eb5", null ],
+    [ "LDA_eval< LDA_C_VWN >", "ExCorr__internal__LDA_8h.html#a7b6bc770042cd1e1f6b89794bc02f673", null ],
+    [ "LDA_eval< LDA_XC_Teter >", "ExCorr__internal__LDA_8h.html#abe36907f0749cec4f4417359a179be18", null ]
+];
