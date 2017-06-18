@@ -1,5 +1,7 @@
 var NAVTREEINDEX14 =
 {
+"structWannierMinimizerFD_1_1Edge.html#a11cc630b8595ea189c1dc4644dcb976f":[9,2,0,218,0,4],
+"structWannierMinimizerFD_1_1Edge.html#aeb51af2c49533547d60540b7b97f0b24":[9,2,0,218,0,1],
 "structWannierMinimizerFD_1_1Edge.html#af426c670b56daaf951221e7cb6912d40":[9,2,0,218,0,3],
 "structWannierMinimizer_1_1KmeshEntry.html":[9,2,0,217,0],
 "structWannierMinimizer_1_1KmeshEntry.html#a5e52b35f901d19e6454ec7b70a5d3675":[9,2,0,217,0,5],

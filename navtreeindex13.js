@@ -1,5 +1,7 @@
 var NAVTREEINDEX13 =
 {
+"structMolecule_1_1Site.html#ae7da27de7280c630b0bad805efb50246":[9,2,0,144,0,8],
+"structMolecule_1_1Site.html#aea7bdbf38701fcaf395a6658ade0d851":[9,2,0,144,0,21],
 "structMolecule_1_1Site.html#afb76ac7741efcddee5f78d4dfd068921":[9,2,0,144,0,11],
 "structMolecule_1_1Site.html#aff120a3a452bc8b2f66d78423dea3885":[9,2,0,144,0,0],
 "structNonlinearPCMeval_1_1Dielectric.html":[9,2,0,0,1],
@@ -247,7 +249,5 @@ var NAVTREEINDEX13 =
 "structWannierGradient.html#ac1e3fc457d78526b9e4b47ac14e8ca8d":[9,2,0,216,0],
 "structWannierMinimizerFD_1_1Edge.html":[9,2,0,218,0],
 "structWannierMinimizerFD_1_1Edge.html#a098e64a0d8515217e42fcddd6679e72f":[9,2,0,218,0,2],
-"structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f":[9,2,0,218,0,0],
-"structWannierMinimizerFD_1_1Edge.html#a11cc630b8595ea189c1dc4644dcb976f":[9,2,0,218,0,4],
-"structWannierMinimizerFD_1_1Edge.html#aeb51af2c49533547d60540b7b97f0b24":[9,2,0,218,0,1]
+"structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f":[9,2,0,218,0,0]
 };

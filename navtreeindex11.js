@@ -1,5 +1,7 @@
 var NAVTREEINDEX11 =
 {
+"structConjugator_3_01double_00_01false_00_01true_00_01false_01_4.html#a9a1e714d5fb0c490ad6d183be5e3e749":[9,2,0,33,0],
+"structCoulombKernel.html":[9,2,0,39],
 "structCoulombKernel.html#a3c7e59b98eb5be548fdbe06170a7e9b8":[9,2,0,39,3],
 "structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f":[9,2,0,39,4],
 "structCoulombKernel.html#aaf1e00027212a6535b400a8772f3f1a3":[9,2,0,39,1],
@@ -247,7 +249,5 @@ var NAVTREEINDEX11 =
 "structFluidComponent.html#aa987270cff702d6b0cbc7e8dae3dc5ddaec7a47ad1c55a4835ac5a969dd82cf2f":[9,2,0,81,0,4],
 "structFluidComponent.html#ab08ea2b391e9a816b3a21a805f6b2437":[9,2,0,81,14],
 "structFluidComponent.html#ab86813a1c6b76aa0d6c3f6da6c024de9":[9,2,0,81,25],
-"structFluidComponent.html#ac41af2743138f0af48360a8d2e2e2481":[9,2,0,81,18],
-"structFluidComponent.html#ad3eb112ba6c0913e7c18e8ad55cff9fa":[9,2,0,81,15],
-"structFluidComponent.html#ad43759db6c3521472e7ff19204bad0c9":[9,2,0,81,13]
+"structFluidComponent.html#ac41af2743138f0af48360a8d2e2e2481":[9,2,0,81,18]
 };

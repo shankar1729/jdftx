@@ -21,7 +21,7 @@ var searchData=
   ['idealgasmueps',['IdealGasMuEps',['../classIdealGasMuEps.html',1,'IdealGasMuEps'],['../classIdealGasMuEps.html#a76d30714388ddd3122154b502d8c3836',1,'IdealGasMuEps::IdealGasMuEps()']]],
   ['idealgaspomega',['IdealGasPomega',['../classIdealGasPomega.html',1,'IdealGasPomega'],['../classIdealGasPomega.html#a5e5161380c383765c77bb56fef5dde7e',1,'IdealGasPomega::IdealGasPomega()']]],
   ['idealgaspsialpha',['IdealGasPsiAlpha',['../classIdealGasPsiAlpha.html',1,'IdealGasPsiAlpha'],['../classIdealGasPsiAlpha.html#a127d35004379c8f052df07c5bda956c2',1,'IdealGasPsiAlpha::IdealGasPsiAlpha()']]],
-  ['idir',['iDir',['../structCoulombParams.html#a70fa19165bfde14ed44e7e0bc5cd89ff',1,'CoulombParams']]],
+  ['idir',['iDir',['../structCoulombParams.html#a70fa19165bfde14ed44e7e0bc5cd89ff',1,'CoulombParams::iDir()'],['../structChargedDefect.html#a3a948e7fe62296b9593894294ac57a6b',1,'ChargedDefect::iDir()']]],
   ['ifstream',['ifstream',['../structifstream.html',1,'']]],
   ['igarr',['iGarr',['../classBasis.html#a3991bd061a8df4860a9cf3394b280434',1,'Basis']]],
   ['igarrgpu',['iGarrGpu',['../classBasis.html#aff29c13df65426262023630d33c6a809',1,'Basis']]],

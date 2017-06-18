@@ -1,7 +1,7 @@
 var searchData=
 [
   ['idealgas',['idealGas',['../structFluidComponent.html#ab08ea2b391e9a816b3a21a805f6b2437',1,'FluidComponent']]],
-  ['idir',['iDir',['../structCoulombParams.html#a70fa19165bfde14ed44e7e0bc5cd89ff',1,'CoulombParams']]],
+  ['idir',['iDir',['../structCoulombParams.html#a70fa19165bfde14ed44e7e0bc5cd89ff',1,'CoulombParams::iDir()'],['../structChargedDefect.html#a3a948e7fe62296b9593894294ac57a6b',1,'ChargedDefect::iDir()']]],
   ['igarr',['iGarr',['../classBasis.html#a3991bd061a8df4860a9cf3394b280434',1,'Basis']]],
   ['igarrgpu',['iGarrGpu',['../classBasis.html#aff29c13df65426262023630d33c6a809',1,'Basis']]],
   ['igarrpref',['iGarrPref',['../classBasis.html#a799080c2c5ba99b459686bc0a183b3e8',1,'Basis']]],

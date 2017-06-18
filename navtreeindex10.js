@@ -191,12 +191,14 @@ var NAVTREEINDEX10 =
 "structCbar__k__sigma.html#abc5012a49b0219717717c6c153573149":[9,2,0,14,2],
 "structCbar__k__sigma.html#ac9732d8fdf4d01d84582edea4d0aba38":[9,2,0,14,1],
 "structChargedDefect.html":[9,2,0,15],
+"structChargedDefect.html#a0191fc54d3e33231437c4a0f855672d8":[9,2,0,15,5],
+"structChargedDefect.html#a3a948e7fe62296b9593894294ac57a6b":[9,2,0,15,6],
 "structChargedDefect.html#a4f385fe619e842bbc272a8afc5fda9c4":[9,2,0,15,4],
-"structChargedDefect.html#a618e24db40cf37a59522c15878c252d2":[9,2,0,15,7],
+"structChargedDefect.html#a618e24db40cf37a59522c15878c252d2":[9,2,0,15,9],
 "structChargedDefect.html#a71440e30d5cdf98e5e08ff282708bbea":[9,2,0,15,2],
-"structChargedDefect.html#a7ac828b7e503da0f279db71c198c5c24":[9,2,0,15,5],
+"structChargedDefect.html#a7ac828b7e503da0f279db71c198c5c24":[9,2,0,15,7],
 "structChargedDefect.html#aa850476b196e699a65f5d6b8251c323e":[9,2,0,15,1],
-"structChargedDefect.html#ad291e816a9bce1d3b4c9f88e2b7b26d6":[9,2,0,15,6],
+"structChargedDefect.html#ad291e816a9bce1d3b4c9f88e2b7b26d6":[9,2,0,15,8],
 "structChargedDefect.html#afbf30adbca8d9339e452c2ab5f242668":[9,2,0,15,3],
 "structChargedDefect_1_1Center.html":[9,2,0,15,0],
 "structChargedDefect_1_1Center.html#aa888c7199bc46bc2dbfc21732b91f8e4":[9,2,0,15,0,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX10 =
 "structConjugator_3_01complex_00_01true_00_01true_00_01true_01_4.html#aa0654ee80935abd76822fcde46890d8a":[9,2,0,31,0],
 "structConjugator_3_01double_00_01false_00_01false_00_01false_01_4.html":[9,2,0,32],
 "structConjugator_3_01double_00_01false_00_01false_00_01false_01_4.html#a8fdc5bc73833acdcab92afb4ab83fdb6":[9,2,0,32,0],
-"structConjugator_3_01double_00_01false_00_01true_00_01false_01_4.html":[9,2,0,33],
-"structConjugator_3_01double_00_01false_00_01true_00_01false_01_4.html#a9a1e714d5fb0c490ad6d183be5e3e749":[9,2,0,33,0],
-"structCoulombKernel.html":[9,2,0,39]
+"structConjugator_3_01double_00_01false_00_01true_00_01false_01_4.html":[9,2,0,33]
 };
