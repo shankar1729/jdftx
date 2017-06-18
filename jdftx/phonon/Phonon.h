@@ -62,8 +62,8 @@ public:
 	void setup(bool printDefaults); //setup unit cell and basis modes for perturbations
 	void dump(); //main calculations (sequence of supercell calculations) as well as output
 	
-private:
 	PhononEverything e; //data for original unit cell
+private:
 	PhononEverything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
 	std::shared_ptr<PhononEverything> eSup; //supercell data for current perturbation
 

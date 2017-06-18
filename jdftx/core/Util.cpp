@@ -19,14 +19,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 #include <core/Thread.h>
+#include <core/ManagedMemory.h>
+#include <core/GpuUtil.h>
 #include <cmath>
 #include <csignal>
 #include <list>
 #include <vector>
+#include <algorithm>
 #include <getopt.h>
-#include <electronic/Everything.h>
-#include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
 #include <commands/parser.h>
 
 #ifdef GPU_ENABLED
@@ -234,7 +234,7 @@ void initSystem(int argc, char** argv)
 	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
 }
 
-void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults)
+void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e)
 {
 	mpiUtil = new MPIUtil(argc, argv);
 	
@@ -265,7 +265,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			case 'i': inputFilename.assign(optarg); break;
 			case 'o': logFilename.assign(optarg); break;
 			case 'd': appendOutput=false; break;
-			case 't': RUN_HEAD( Everything e; printDefaultTemplate(e); ) exit(0);
+			case 't': RUN_HEAD( printDefaultTemplate(*e); ) exit(0);
 			case 'm': mpiDebugLog=true; break;
 			case 'n': dryRun=true; break;
 			case 'c':
@@ -277,7 +277,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 				break;
 			}
 			case 's': printDefaults=false; break;
-			case 'w': RUN_HEAD( Everything e; writeCommandManual(e, optarg); ) exit(0);
+			case 'w': RUN_HEAD( writeCommandManual(*e, optarg); ) exit(0);
 			default: RUN_HEAD( printUsage(argv[0], description); ) exit(1);
 		}
 		#undef RUN_HEAD

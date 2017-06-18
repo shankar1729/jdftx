@@ -33,10 +33,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
 	string inputFilename; bool dryRun, printDefaults;
-	initSystemCmdline(argc, argv, "Performs Joint Density Functional Theory calculations.", inputFilename, dryRun, printDefaults);
+	Everything e; //the parent data structure for, well, everything
+	initSystemCmdline(argc, argv, "Performs Joint Density Functional Theory calculations.", inputFilename, dryRun, printDefaults, &e);
 	
 	//Parse input file and setup
-	Everything e; //the parent data structure for, well, everything
 	ElecVars& eVars = e.eVars;
 	parse(readInputFile(inputFilename), e, printDefaults);
 	if(dryRun) eVars.skipWfnsInit = true;

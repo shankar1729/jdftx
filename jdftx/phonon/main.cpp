@@ -28,9 +28,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
 	string inputFilename; bool dryRun, printDefaults;
-	initSystemCmdline(argc, argv, "Compute maximally-localized Phonon functions.", inputFilename, dryRun, printDefaults);
-
 	Phonon phonon;
+	initSystemCmdline(argc, argv, "Compute maximally-localized Phonon functions.", inputFilename, dryRun, printDefaults, &phonon.e);
+
 	phonon.input = readInputFile(inputFilename);
 	phonon.dryRun = dryRun;
 	

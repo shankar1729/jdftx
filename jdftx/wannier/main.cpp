@@ -28,10 +28,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
 	string inputFilename; bool dryRun, printDefaults;
-	initSystemCmdline(argc, argv, "Compute maximally-localized Wannier functions.", inputFilename, dryRun, printDefaults);
+	WannierEverything e;
+	initSystemCmdline(argc, argv, "Compute maximally-localized Wannier functions.", inputFilename, dryRun, printDefaults, &e);
 
 	//Parse input file:
-	WannierEverything e;
 	parse(readInputFile(inputFilename), e, printDefaults);
 	
 	//Set initial filenames and prevent unnecessary setup below:
