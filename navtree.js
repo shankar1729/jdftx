@@ -59,21 +59,20 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 ".html",
-"Euler_8h.html#ga33f0de0da1638437b4558665eb062e5b",
-"Operators_8h.html#ga5e5135ae93f26039a3aa73c1c626819a",
-"TranslationOperator_8h.html",
-"classCommand.html#ab36d2185082e1d590019dd728f414599",
-"classElecVars.html#aff079a353670d89b21118ef228f1a32c",
-"classGridInfo.html#abf724117cdeec911b7d5aeece4ee143a",
-"classNonlinearPCM.html#af8c2bd3301a4aa772589ac82896d1e64",
-"classSpeciesInfo.html#ae9b5302749cca4f0a67ac5c4bb130d77",
-"classmatrix.html#aee2c8ae3630a0f73322e83bec71a0d95",
-"group__griddata.html#ga16e9b94d62ed8b3316a62c5750f25be5",
-"operators_8h.html#a76c02c0a54ff6df6b5a5677fa135788e",
-"structExCorr__OrbitalDep__GLLBsc.html#ab6b59c2788ac806582635146fc1896cf",
-"structIonicGradient.html#a60c4d7e9a581e0df01323fdb1a90897b",
-"structS2quad.html#a8e4f3f12bd4b0ec5b882c9c566a741ab",
-"structnAugmentGradFunctor.html#ab2bf9d6e8f4ab3058eaf82610a2ef692"
+"ExCorr__internal__GGA_8h.html#a7e632abbc9ef5defcbdd57c5cb13bd66",
+"OxideSurfaces.html",
+"VectorField_8h.html#ga780c940ac041e746e8a22dd09f3e2ff1",
+"classDump.html#ad018aac89b578fad3a7992b6d0ed2e0f",
+"classFluidMixture.html#a792f60063a131d89925017e5a2cfac4e",
+"classIonInfo.html#ade05a0f025c8af8c1f4838338f69f48d",
+"classS2__17design__156.html#a83d7e9f6433e8b726700fd3c6ec86e16",
+"classWannier.html#ae0085003e941128e2fd9222f621f390aa6837090af05b4c6f65f0be19af405b86",
+"functions_0x76.html",
+"group__griddata.html#ga953694362b42d77b960a6f1a02de8d1c",
+"structCoulombKernel.html#a3c7e59b98eb5be548fdbe06170a7e9b8",
+"structFluidComponent.html#ad8973ff322f6c14fe84be613a17eec09",
+"structMolecule_1_1Site.html#afb76ac7741efcddee5f78d4dfd068921",
+"structWannierMinimizerFD_1_1Edge.html#af426c670b56daaf951221e7cb6912d40"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
