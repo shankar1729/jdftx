@@ -50,9 +50,8 @@ var NAVTREE =
         ] ]
       ] ]
     ] ],
-    [ "Wiki", "^https://sourceforge.net/p/jdftx/wiki", null ],
-    [ "Forums", "^https://sourceforge.net/p/jdftx/discussion", null ],
-    [ "Tickets", "^https://sourceforge.net/p/jdftx/tickets", null ]
+    [ "Wiki", "^https://github.com/shankar1729/jdftx/wiki", null ],
+    [ "Issues", "^https://github.com/shankar1729/jdftx/issues", null ]
   ] ]
 ];
 
