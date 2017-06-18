@@ -2,8 +2,8 @@
 
 ## Prerequisites ##
 
-JDFTx is distributed as [source packages](https://sf.net/projects/jdftx/files/),
-or for development via [git](https://sourceforge.net/p/jdftx/git/ci/master/tree/jdftx),
+JDFTx is distributed as [source packages](https://github.com/shankar1729/jdftx/releases),
+or for development via [git](https://github.com/shankar1729/jdftx),
 and requires a POSIX-compatible environment and a C++11 compiler
 to install and get running.
 It also depends on several GNU and open-source libraries,
@@ -46,7 +46,7 @@ So here are the prerequisites to installing JDFTx on your system:
   but you will have to load necessary modules and specify some paths manually.
   See the explicit compilation instructions for [NERSC](#NERSC) and [TACC](#TACC) below for examples.
   If you compile sucessfully on other shared compute clusters,
-  please post instructions in the [forums](https://sourceforge.net/p/jdftx/discussion/).
+  please post instructions in the [Wiki](https://github.com/shankar1729/jdftx/wiki).
   We would greatly appreciate it and include those instructions below as well. 
 
 
@@ -95,19 +95,21 @@ in the build/doc/html directory by running "make doc" in the build directory
 
 ## Basic compilation ##
 
-Download the latest JDFTx source tarball from [SourceForge](https://sf.net/projects/jdftx/files/)
+Download the latest JDFTx source package from [GitHub](https://github.com/shankar1729/jdftx/releases)
 into the directory where you want to install it (eg. /home/user/JDFTx), which we'll refer to as JDFTXDIR below.
 In a terminal, the following commands should unpack, configure and build jdftx:
 
-    cd JDFTXDIR                   #Replace JDFTXDIR with the path you chose
-    ls                            #This should show jdftx.X.Y.Z.tar.gz
-    tar xvpzf jdftx.X.Y.Z.tar.gz  #Unpack; replace X,Y,Z with the actual version numbers
-    mkdir build                   #Create a directory for the build
-    cd build                      #and enter the build directory
-    cmake [options] ../jdftx      #Configure; omit [options] or customize as in the next section
-    make -j4                      #Compile with 4 processes; adjust based on the cores available
+    cd JDFTXDIR                     #Replace JDFTXDIR with the path you chose
+    ls                              #This should show jdftx-VERSION.tar.gz
+    tar xvpzf jdftx-VERSION.tar.gz  #Unpack; replace X,Y,Z with the actual version numbers
+                                    #(Or for jdftx-VERSION.zip, use the unzip command)
+    
+    mkdir build                             #Create a directory for the build
+    cd build                                #and enter the build directory
+    cmake [options] ../jdftx-VERSION/jdftx  #Configure; omit [options] or see Customization below
+    make -j4                                #Compile with 4 processes (adjust as needed)
 
-Note that these commands will unpack the source to JDFTXDIR/jdftx,
+Note that these commands will unpack the source to JDFTXDIR/jdftx-VERSION/jdftx,
 and once successful will produce executables jdftx, phonon and wannier
 in the JDFTXDIR/build directory.
 Note that for a basic compilation with all the dependencies mentioned above
@@ -119,9 +121,10 @@ In order to use the executable from any directory in your system,
 and to also use post-processing scripts distributed with JDFTx,
 you will need to add the build and scripts directory to your PATH:
 
-    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx/scripts:$PATH"
+    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx-VERSION/jdftx/scripts:$PATH"
 
-(Remember to replace JDFTXDIR with the actual path, eg. /home/user/JDFTx, throughout.)
+(Remember to replace JDFTXDIR with the actual path, eg. /home/user/JDFTx,
+and VERSION with the actual version string throughout.)
 This setting will last only for the current session if you enter it in the terminal.
 To make it persistent, add the above line to .bashrc in your home directory.
 If you need to update the code, download a newer tarball and follow the same instructions.
@@ -130,16 +133,14 @@ Alternatively, if you need a recent update or plan to modify the code,
 you can get and compile the latest development version using:
 
     cd JDFTXDIR
-    git clone http://git.code.sf.net/p/jdftx/git jdftx-git
+    git clone https://github.com/shankar1729/jdftx.git jdftx-git
     mkdir build
     cd build
     cmake [options] ../jdftx-git/jdftx
     make -j4
 
-Note that the only difference is that git will fetch jdftx source files within a subdirectory called jdftx-git.
-Accordingly, if you choose to use git instead, your PATH setting will instead be:
-
-    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx-git/jdftx/scripts:$PATH"
+Note that the only difference is that git will fetch jdftx source files within
+a subdirectory called jdftx-git, so that VERSION is now "git" instead.
 
 To update the code, you can subsequently use **git pull** from within the jdftx-git directory
 to fetch latest changes from the repository, and then run cmake and make in the build directory.
@@ -198,7 +199,7 @@ and performance tweaks, and the [options] used to activate them.
   For example, you can use the intel compiler using the command
   (note bash-specific syntax for environment variables):
 
-    CC=icc CXX=icpc cmake [options] ../jdftx
+    CC=icc CXX=icpc cmake [options] ../jdftx-VERSION/jdftx
 
   Make sure the environment variables for the intel compiler (path settings etc.) are loaded
   before issuing that command (see the compiler documentation / install notes).
@@ -206,7 +207,7 @@ and performance tweaks, and the [options] used to activate them.
   
   Similarly, to use the Clang compiler:
   
-    CC=clang CXX=clang++ cmake [options] ../jdftx
+    CC=clang CXX=clang++ cmake [options] ../jdftx-VERSION/jdftx
 
 + At the default optimization level, the compiled executable is not locked to specific CPU features.
   You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
@@ -232,7 +233,7 @@ Compiling on supercomputing clusters    {#Supercomputers}
 ## Compiling on TACC ##         {#TACC}
 
 Use the GNU compilers and MKL for the easiest compilation on [TACC Stampede](https://www.tacc.utexas.edu/stampede).
-Assuming that the source is in ../jdftx and that the shell is bash, you can configure the JDFTx build as follows.
+The following commands may be used to invoke cmake (assuming bash shell):
 
     #Select gcc as the compiler:
     module load gcc/4.7.1
@@ -246,7 +247,7 @@ Assuming that the source is in ../jdftx and that the shell is bash, you can conf
        -D MKL_PATH="$TACC_MKL_DIR" \
        -D FFTW3_PATH="$TACC_FFTW3_DIR" \
        -D GSL_PATH="$TACC_GSL_DIR" \
-       ../jdftx
+       ../jdftx-VERSION/jdftx
     
     make -j12
 
@@ -256,7 +257,7 @@ Make on the login nodes (as shown above) or on the gpu queue if you loaded cuda;
 ## Compiling on NERSC ##         {#NERSC}
 
 Use the gnu compiler and MKL to compile JDFTx on [NERSC edison/cori](http://www.nersc.gov).
-The following commands may be used to invoke cmake:
+The following commands may be used to invoke cmake (assuming bash shell):
 
     #Select the right compiler and load necessary modules
     module swap PrgEnv-intel PrgEnv-gnu
@@ -273,7 +274,7 @@ The following commands may be used to invoke cmake:
         -D GSL_PATH=${GSL_DIR} \
         -D FFTW3_PATH=${FFTW_DIR} \
         -D CMAKE_INCLUDE_PATH=${FFTW_INC} \
-        ../jdftx
+        ../jdftx-VERSION/jdftx
     make -j12
 
 The optional ThreadedBLAS=no line above uses single-threaded MKL with threads

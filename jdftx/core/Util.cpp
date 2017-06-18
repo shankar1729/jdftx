@@ -561,8 +561,8 @@ namespace Citations
 			}
 		}
 		fprintf(fp,
-			"This list may not be complete. Please suggest additional citations and report\n"
-			"any other bugs by creating a ticket at https://sourceforge.net/p/jdftx/tickets\n\n");
+			"This list may not be complete. Please suggest additional citations or\n"
+			"report any other bugs at https://github.com/shankar1729/jdftx/issues\n\n");
 		fflush(fp);
 	}
 }
