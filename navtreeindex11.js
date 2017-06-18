@@ -1,5 +1,6 @@
 var NAVTREEINDEX11 =
 {
+"operators_8h.html#a76c02c0a54ff6df6b5a5677fa135788e":[9,3,0,2,30,15],
 "operators_8h.html#a79546ba0d7ac12699a7052cd9078062b":[9,3,0,2,30,11],
 "operators_8h.html#a7ed74fe1efd5d6a3593b8db2e422643c":[9,3,0,2,30,1],
 "operators_8h.html#a863b1f8ec326f0263724a0c948a034fa":[9,3,0,2,30,21],
@@ -248,6 +249,5 @@ var NAVTREEINDEX11 =
 "structExCorr__OrbitalDep__GLLBsc.html":[9,2,0,74],
 "structExCorr__OrbitalDep__GLLBsc.html#a470ef86fef3c57345f08fcee87b78447":[9,2,0,74,3],
 "structExCorr__OrbitalDep__GLLBsc.html#a4cc43fbe55121ef5f59a062621a98c9a":[9,2,0,74,0],
-"structExCorr__OrbitalDep__GLLBsc.html#a9489bb16344ea59590ee80b112291b05":[9,2,0,74,1],
-"structExCorr__OrbitalDep__GLLBsc.html#ab6b59c2788ac806582635146fc1896cf":[9,2,0,74,2]
+"structExCorr__OrbitalDep__GLLBsc.html#a9489bb16344ea59590ee80b112291b05":[9,2,0,74,1]
 };

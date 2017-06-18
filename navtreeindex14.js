@@ -1,5 +1,6 @@
 var NAVTREEINDEX14 =
 {
+"structS2quad.html#a8e4f3f12bd4b0ec5b882c9c566a741ab":[9,0,0,3,4],
 "structS2quad.html#a9795e10948a4832b6bd901f1b131c655":[9,0,0,3,5],
 "structS2quad.html#abe15534e80750cc0f8c2b13135d6cacb":[9,0,0,3,1],
 "structS2quad.html#abeb6d590872e96d1757e779e1c4eaeef":[9,0,0,3,3],
@@ -248,6 +249,5 @@ var NAVTREEINDEX14 =
 "structnAugmentGradFunctor.html#a531e17ee20f9a8ce6a08b75678aae1b0":[9,2,0,147,1],
 "structnAugmentGradFunctor.html#a691efd0835767d4f8983c1382df0ae75":[9,2,0,147,9],
 "structnAugmentGradFunctor.html#a9ee67b4e389a311a1c9833120e98eecd":[9,2,0,147,3],
-"structnAugmentGradFunctor.html#aa7689fd92c25a623c4e2c8bca626c2ed":[9,2,0,147,0],
-"structnAugmentGradFunctor.html#ab2bf9d6e8f4ab3058eaf82610a2ef692":[9,2,0,147,8]
+"structnAugmentGradFunctor.html#aa7689fd92c25a623c4e2c8bca626c2ed":[9,2,0,147,0]
 };

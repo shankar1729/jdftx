@@ -66,14 +66,14 @@ var NAVTREEINDEX =
 "classElecVars.html#aff079a353670d89b21118ef228f1a32c",
 "classGridInfo.html#abf724117cdeec911b7d5aeece4ee143a",
 "classNonlinearPCM.html#af8c2bd3301a4aa772589ac82896d1e64",
-"classSpeciesInfo.html#af407cb02ae09a76e770252d45bb622ac",
-"classmatrix.html#af653743c906fcc045df21990f816b14d",
-"group__griddata.html#ga1a2d309de2810b6ff1f198df958705be",
-"operators_8h.html#a79546ba0d7ac12699a7052cd9078062b",
-"structExchangeEval.html",
-"structIonicGradient.html#ac269b9648ebf49ab182bc4d4ea004d88",
-"structS2quad.html#a9795e10948a4832b6bd901f1b131c655",
-"structnAugmentGradFunctor.html#aec699713525523a6b819b6c58a8555e3"
+"classSpeciesInfo.html#ae9b5302749cca4f0a67ac5c4bb130d77",
+"classmatrix.html#aee2c8ae3630a0f73322e83bec71a0d95",
+"group__griddata.html#ga16e9b94d62ed8b3316a62c5750f25be5",
+"operators_8h.html#a76c02c0a54ff6df6b5a5677fa135788e",
+"structExCorr__OrbitalDep__GLLBsc.html#ab6b59c2788ac806582635146fc1896cf",
+"structIonicGradient.html#a60c4d7e9a581e0df01323fdb1a90897b",
+"structS2quad.html#a8e4f3f12bd4b0ec5b882c9c566a741ab",
+"structnAugmentGradFunctor.html#ab2bf9d6e8f4ab3058eaf82610a2ef692"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

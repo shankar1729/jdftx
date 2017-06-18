@@ -1,5 +1,6 @@
 var NAVTREEINDEX12 =
 {
+"structExCorr__OrbitalDep__GLLBsc.html#ab6b59c2788ac806582635146fc1896cf":[9,2,0,74,2],
 "structExchangeEval.html":[9,2,0,67],
 "structExchangeEval.html#a75dfa4971afcef3e47844edb93c876f8":[9,2,0,67,0],
 "structExchangeEval.html#ac9cf1412dd998c02f2b710f7536ec4fa":[9,2,0,67,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX12 =
 "structIonicGradient.html#a1cbd7544ff32fa07c4f6acbcd0c1b76b":[9,2,0,115,5],
 "structIonicGradient.html#a2dc011ef86a9f49d6107b815ebea0ae0":[9,2,0,115,7],
 "structIonicGradient.html#a389a9fcca100b96fed7c951d08fc9fc7":[9,2,0,115,2],
-"structIonicGradient.html#a50af768802cb9e67ee50a16555bf9a3a":[9,2,0,115,8],
-"structIonicGradient.html#a60c4d7e9a581e0df01323fdb1a90897b":[9,2,0,115,6]
+"structIonicGradient.html#a50af768802cb9e67ee50a16555bf9a3a":[9,2,0,115,8]
 };

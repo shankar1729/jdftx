@@ -1,5 +1,6 @@
 var NAVTREEINDEX13 =
 {
+"structIonicGradient.html#a60c4d7e9a581e0df01323fdb1a90897b":[9,2,0,115,6],
 "structIonicGradient.html#ac269b9648ebf49ab182bc4d4ea004d88":[9,2,0,115,4],
 "structIonicGradient.html#afc704cb5766af9140c21dd7556aaf84b":[9,2,0,115,1],
 "structJeffereyAustinEOS.html":[9,2,0,119],
@@ -248,6 +249,5 @@ var NAVTREEINDEX13 =
 "structS2quad.html":[9,0,0,3],
 "structS2quad.html#a2ede05511df8e6c15504740b0156eac1":[9,0,0,3,6],
 "structS2quad.html#a3be7243c61d1a9a4eefc4e97ee3a339b":[9,0,0,3,0],
-"structS2quad.html#a5c3362a686fdcd5d4b07fec004ed205f":[9,0,0,3,2],
-"structS2quad.html#a8e4f3f12bd4b0ec5b882c9c566a741ab":[9,0,0,3,4]
+"structS2quad.html#a5c3362a686fdcd5d4b07fec004ed205f":[9,0,0,3,2]
 };
