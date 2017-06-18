@@ -143,11 +143,11 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 	const ScalarField epsInv;
 	double K0; //G=0 component of slab kernel
 	
-	static inline void setKernels_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double kRMS, double* Ksqrt, double* Kinv, bool embedFluidMode)
+	static inline void setKernels_sub(size_t iStart, size_t iStop, const GridInfo* gInfo, int iDir, double kRMS, double* Ksqrt, double* Kinv, bool periodicCoulomb)
 	{	const vector3<int>& S = gInfo->S;
 		CoulombSlab_calc slabCalc(iDir, 0.5*gInfo->R.column(iDir).length());
 		THREAD_halfGspaceLoop
-		(	if(embedFluidMode)
+		(	if(periodicCoulomb)
 				Kinv[i] = gInfo->GGT.metric_length_squared(iG); //no truncation; image separation is due to fluid response
 			else
 			{	double K = slabCalc(iG, gInfo->GGT) / (4*M_PI);
@@ -157,14 +157,14 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 		)
 	}
 	
-	SlabPeriodicSolver(int iDir, const ScalarField& epsPerp, const ScalarField& epsPar, const ScalarField& kappaSq, bool embedFluidMode)
+	SlabPeriodicSolver(int iDir, const ScalarField& epsPerp, const ScalarField& epsPar, const ScalarField& kappaSq, bool periodicCoulomb)
 	: iDir(iDir), kappaSq(kappaSq), gInfo(epsPerp->gInfo), Ksqrt(gInfo), Kinv(gInfo), epsInv(3.*inv(epsPerp+2.*epsPar))
 	{
 		for(int jDir=0; jDir<3; jDir++)
 			epsMinus1[jDir] = (jDir==iDir) ? (epsPerp-1.) : (epsPar-1.);
 		
 		double kRMS = sqrt(integral(kappaSq)*3./integral(epsPerp+2.*epsPar)); //average Debye length of unit cell (for preconditioner)
-		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data, Kinv.data, embedFluidMode);
+		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data, Kinv.data, periodicCoulomb);
 		Ksqrt.set(); Kinv.set();
 		nullToZero(state, gInfo);
 	}
@@ -300,7 +300,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 	
 	//Find center of defects for alignment calculations:
 	logSuspend(); WignerSeitz ws(e.gInfo.R); logResume();
-	vector3<> pos0 = e.coulombParams.geometry==CoulombParams::Periodic ? center[0].pos : e.coulomb->xCenter;
+	vector3<> pos0 = geometry==CoulombParams::Periodic ? center[0].pos : e.coulomb->xCenter;
 	vector3<> posMean = pos0;
 	for(const Center& cdc: center)
 		posMean += (1./center.size()) * ws.restrict(cdc.pos - pos0);
@@ -312,7 +312,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 	
 	//Calculate isolated and periodic self-energy (and potential) of model charge
 	ScalarField Vmodel; double Emodel=0., EmodelIsolated=0.;
-	switch(e.coulombParams.geometry)
+	switch(geometry)
 	{	case CoulombParams::Periodic: //Bulk defect
 		{	//Periodic potential and energy:
 			ScalarFieldTilde dModel = (*e.coulomb)(rhoModel) * (1./bulkEps); //assuming uniform dielectric
@@ -324,10 +324,10 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			break;
 		}
 		case CoulombParams::Slab: //Surface defect
-		{	int iDir = e.coulombParams.iDir;
-			if(!e.coulombParams.embed)
+		{	bool truncated = (e.coulombParams.geometry==CoulombParams::Slab);
+			if(truncated && !e.coulombParams.embed)
 				die("\tCoulomb truncation must be embedded for charged-defect correction in slab geometry.\n");
-			rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
+			if(truncated) rhoModel = e.coulomb->embedExpand(rhoModel); //switch to embedding grid
 			
 			//Create dielectric model for slab:
 			ScalarFieldArray epsSlab; nullToZero(epsSlab, e.gInfo, 2); //2 components = perp, par
@@ -357,11 +357,14 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			{	ScalarFieldTilde epsSlabMinus1tilde = J(epsSlab[dir]) * (e.gInfo.nr / e.gInfo.S[iDir]); //multiply by number of points per plane (to account for average below)
 				epsSlabMinus1tilde->setGzero(epsSlabMinus1tilde->getGzero() - 1.); //subtract 1
 				planarAvg(epsSlabMinus1tilde, iDir); //now contains a planarly-uniform version of epsSlab-1
-				epsSlab[dir] = 1. + I(e.coulomb->embedExpand(epsSlabMinus1tilde)); //switch to embedding grid (note embedding eps-1 (instead of eps) since it is zero in vacuum)
+				if(truncated)
+					epsSlabMinus1tilde = e.coulomb->embedExpand(epsSlabMinus1tilde); //switch to embedding grid (note embedding eps-1 because it is zero far away)
+				epsSlab[dir] = 1. + I(epsSlabMinus1tilde);
 			}
 			
 			//Include solvation model dielectric / screening, if present:
 			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab[0]->gInfo);
+			double epsilonBulk = 1., kappaSqBulk = 0.;
 			if(e.eVars.fluidSolver)
 			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
@@ -373,15 +376,38 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					for(int dir=0; dir<2; dir++)
 						epsSlab[dir] += shapeSlab * (pcm.epsBulk - 1.); //fluid dielectric is isotropic
 					kappaSqSlab += shapeSlab * pcm.k2factor;
+					epsilonBulk = pcm.epsBulk;
+					kappaSqBulk = pcm.k2factor;
 				}
 			}
 			
 			//Periodic potential and energy:
 			ScalarFieldTilde dModel;
-			Emodel = SlabPeriodicSolver(iDir, epsSlab[0], epsSlab[1], kappaSqSlab, e.coulombParams.embedFluidMode).getEnergy(rhoModel, dModel);
-			Vmodel = I(e.coulomb->embedShrink(dModel));
+			bool periodicCoulomb = e.coulombParams.embedFluidMode || (!truncated); //if true, don't use slab truncation in periodic model
+			Emodel = SlabPeriodicSolver(iDir, epsSlab[0], epsSlab[1], kappaSqSlab, periodicCoulomb).getEnergy(rhoModel, dModel);
+			if(truncated) dModel = e.coulomb->embedShrink(dModel);
+			Vmodel = I(dModel);
 			
 			//Isolated energy:
+			std::shared_ptr<Coulomb> truncatedCoulomb;
+			if(!truncated)
+			{	//Still use truncation for the isolated case:
+				CoulombParams truncatedParams = e.coulombParams;
+				truncatedParams.geometry = geometry; //Slab
+				truncatedParams.iDir = iDir;
+				truncatedParams.embed = true;
+				logSuspend();
+				truncatedCoulomb = truncatedParams.createCoulomb(e.gInfo);
+				logResume();
+				#define EMBED_EXPAND(x, xBulk) \
+				{	ScalarFieldTilde xTilde = J(x - xBulk); /*subtract bulk value*/ \
+					xTilde = truncatedCoulomb->embedExpand(xTilde); /*switch to embedding grid*/ \
+					x = xBulk + I(xTilde); \
+				}
+				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir], epsilonBulk)
+				EMBED_EXPAND(kappaSqSlab, kappaSqBulk);
+				#undef EMBED_EXPAND
+			}
 			CylindricalPoisson cp(iDir, epsSlab[0], epsSlab[1], kappaSqSlab);
 			for(const Center& cdc: center)
 			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid

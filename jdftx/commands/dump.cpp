@@ -682,28 +682,35 @@ commandBulkEpsilon;
 
 //-------------------------------------------------------------------------------------------------
 
+extern EnumStringMap<int> truncationDirMap;
+
 struct CommandChargedDefectCorrection : public Command
 {
 	CommandChargedDefectCorrection() : Command("charged-defect-correction", "jdftx/Output")
 	{
-		format = "<DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
+		format = "[Slab <dir>=100|010|001] <DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
 		comments = 
 			"Calculate energy correction for bulk or surface charged defects.\n"
 			"The correction is calculated assuming the defects to be model\n"
 			"charges specified using command charged-defect.\n"
 			"\n"
+			"By default, the defect is assumed bulk for coulomb-interaction Periodic\n"
+			"and surface for coulomb-interaction Slab.  However, for the Periodic case,\n"
+			"the optional [Slab <dir>] overrides this to calculate surface defects\n"
+			"without truncated Coulomb potentials.  Note that coulomb-truncation-embed\n"
+			"must be specified when using truncated coulomb potentials in Slab mode.\n"
+			"In Periodic mode, the correction assumes a slab centered at the origin\n"
+			"(i.e. analogous to using xCenter 0 0 0 in the truncated mode).\n"
+			"\n"
 			"<DtotFile> contains the electrostatic potential from a reference\n"
 			"neutral calculation with similar geometry (lattice vectors and grid\n"
 			"must match exactly).\n"
 			"\n"
-			"For bulk defect calculations (coulomb-interaction Periodic),\n"
-			"<bulkEps> is the bulk dielectric constant to use in the correction.\n"
+			"For bulk defect calculations, <bulkEps> is the bulk dielectric constant.\n"
 			"\n"
-			"For surface defect calculations (coulomb-interaction Slab ...)\n"
-			"<slabEpsFile> specifies a dielectric profile calculated using command\n"
-			"slab-epsilon in a similar geometry (the number of points along the slab\n"
-			"normal direction must match exactly). Note that coulomb-truncation-embed\n"
-			"must be specified for charged-defect correction in Slab geometry.\n"
+			"For surface defect calculations, <slabEpsFile> specifies a dielectric\n"
+			"profile calculated using command slab-epsilon in a similar geometry\n"
+			"(the number of points along the slab normal direction must match exactly).\n"
 			"Optionally, the <slabEpsFile> may contain an additional column for the\n"
 			"in-plane response (which is not computed by command slab-epsilon),\n"
 			"in which case an anisotropic dielectric model is used.\n"
@@ -722,10 +729,22 @@ struct CommandChargedDefectCorrection : public Command
 	void process(ParamList& pl, Everything& e)
 	{	e.dump.chargedDefect = std::make_shared<ChargedDefect>();
 		ChargedDefect& cd = *(e.dump.chargedDefect);
+		//Check for geometry override:
+		cd.geometry = e.coulombParams.geometry;
+		cd.iDir = e.coulombParams.iDir;
+		string slabSpec;
+		pl.get(slabSpec, string(), "Slab|DtotFile", true);
+		if(slabSpec == "Slab")
+		{	if(cd.geometry != CoulombParams::Periodic)
+				throw string("Slab geometry override should only be specified for coulomb-interaction Periodic");
+			cd.geometry = CoulombParams::Slab;
+			pl.get(cd.iDir, 0, truncationDirMap, "dir", true);
+		}
+		else pl.rewind();
 		//Ref potential:
 		pl.get(cd.dtotFname, string(), "DtotFile", true);
 		//Dielectric function:
-		switch(e.coulombParams.geometry)
+		switch(cd.geometry)
 		{	case CoulombParams::Periodic: pl.get(cd.bulkEps, 1., "bulkEps", true); break;
 			case CoulombParams::Slab: pl.get(cd.slabEpsFname, string(), "slabEpsFile", true); break;
 			default: throw string("coulomb-interaction must be either Slab or Periodic");
@@ -738,8 +757,10 @@ struct CommandChargedDefectCorrection : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	const ChargedDefect& cd = *(e.dump.chargedDefect);
+		if(cd.geometry != e.coulombParams.geometry)
+			logPrintf("Slab %s ", truncationDirMap.getString(cd.iDir));
 		logPrintf("%s ", cd.dtotFname.c_str());
-		switch(e.coulombParams.geometry)
+		switch(cd.geometry)
 		{	case CoulombParams::Periodic: logPrintf("%lg", cd.bulkEps); break;
 			case CoulombParams::Slab: logPrintf("%s", cd.slabEpsFname.c_str()); break;
 			default:; //should never be encountered

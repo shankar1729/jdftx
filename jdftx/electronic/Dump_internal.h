@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 #include <core/ScalarFieldArray.h>
+#include <core/Coulomb.h>
 #include <vector>
 
 //-------------------- Implemented in DumpSIC.cpp ---------------------------
@@ -78,6 +79,9 @@ struct ChargedDefect
 		double q, sigma; //defect electron-count and Gaussian width
 	};
 	std::vector<Center> center; //list of defect positions in unit cell
+	
+	CoulombParams::Geometry geometry;
+	int iDir; //!< slab trunctaion direction
 	
 	string dtotFname; //electrostatic potential from reference neutral calculation
 	
