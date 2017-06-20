@@ -265,7 +265,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			case 'i': inputFilename.assign(optarg); break;
 			case 'o': logFilename.assign(optarg); break;
 			case 'd': appendOutput=false; break;
-			case 't': RUN_HEAD( printDefaultTemplate(*e); ) exit(0);
+			case 't': RUN_HEAD( if(e) printDefaultTemplate(*e); ) exit(0);
 			case 'm': mpiDebugLog=true; break;
 			case 'n': dryRun=true; break;
 			case 'c':
@@ -277,7 +277,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 				break;
 			}
 			case 's': printDefaults=false; break;
-			case 'w': RUN_HEAD( writeCommandManual(*e, optarg); ) exit(0);
+			case 'w': RUN_HEAD( if(e) writeCommandManual(*e, optarg); ) exit(0);
 			default: RUN_HEAD( printUsage(argv[0], description); ) exit(1);
 		}
 		#undef RUN_HEAD
