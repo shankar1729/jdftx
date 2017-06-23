@@ -27,12 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void Everything::setup()
 {
-	//Removes unused pseudopotentials
-	for(auto iter=iInfo.species.begin(); iter!=iInfo.species.end();)
-		if(not (*iter)->atpos.size())
-			iter = iInfo.species.erase(iter);
-		else iter++;
-	
 	//Symmetries (phase 1: lattice+basis dependent)
 	if(vibrations)
 	{	symmUnperturbed = symm;

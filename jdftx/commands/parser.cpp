@@ -386,6 +386,11 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 		}
 	}
 	logPrintf("\n\n");
+	//Remove unused pseudopotentials:
+	for(auto iter=everything.iInfo.species.begin(); iter!=everything.iInfo.species.end();)
+		if(not (*iter)->atpos.size())
+			iter = everything.iInfo.species.erase(iter);
+		else iter++;
 }
 
 inline void processDefaults(Everything& everything, ProcessedCommandMap& cmap)
