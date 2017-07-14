@@ -324,6 +324,7 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 	set<string> unknown; //unknown command names
 	map<string,int> encountered; //command names, and the number of times they were encountered
 	std::vector< pair<Command*,string> > errors; //command classes that encountered errors, with error messages
+	std::vector<std::shared_ptr<SpeciesInfo>> species; //temporary copy of ion-info species
 	
 	//First check for, take note of, and remove unknown commands
 	for(unsigned i=0; i<input.size();)
@@ -337,10 +338,12 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 	//All command names in input are now known to be in cmap (so can safely use cmap[] instead of cmap.find())
 	for(int pass=0; pass<=cmap.nPasses; pass++)
 	{	//Run through all commands marked for this pass:
+		bool encounteredIon = false;
 		for(unsigned i=0; i<input.size(); i++)
 		{	pair<int,Command*>& icPair = cmap[input[i].first];
 			if(icPair.first==pass)
 			{	Command& c = *(icPair.second);
+				if(c.name == "ion") encounteredIon = true;
 				//Check for empty parameter list:
 				string trimmedParams = input[i].second;
 				trim(trimmedParams);
@@ -361,6 +364,14 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 				if(c.hasDefault && !encountered[c.name])
 					safeProcess(c, "", everything, encountered, errors);
 			}
+		//Remove unused pseudopotentials as soon as ion command has been processed:
+		if(encounteredIon)
+		{	species = everything.iInfo.species; //backup of species that retains unused ones
+			for(auto iter=everything.iInfo.species.begin(); iter!=everything.iInfo.species.end();)
+				if(not (*iter)->atpos.size())
+					iter = everything.iInfo.species.erase(iter);
+				else iter++;
+		}
 	}
 	//Quit on errors:
 	size_t errTot = unknown.size() + errors.size();
@@ -374,6 +385,7 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 		die("\n\nInput parsing failed with %lu errors (run with -t for command syntax)\n\n", errTot);
 	}
 	//Print status:
+	std::swap(species, everything.iInfo.species); //present original list of species for printStatus
 	std::map<string,int> explicitlyEncountered; //List of commands explicitly in input file (with corresponding multiplicities)
 	if(!printDefaults) for(auto cmd: input) explicitlyEncountered[cmd.first]++;
 	logPrintf("\n\nInput parsed successfully to the following command list (%sincluding defaults):\n\n", printDefaults ? "" : "not ");
@@ -386,11 +398,7 @@ void parse(std::vector< pair<string,string> > input, Everything& everything, boo
 		}
 	}
 	logPrintf("\n\n");
-	//Remove unused pseudopotentials:
-	for(auto iter=everything.iInfo.species.begin(); iter!=everything.iInfo.species.end();)
-		if(not (*iter)->atpos.size())
-			iter = everything.iInfo.species.erase(iter);
-		else iter++;
+	std::swap(species, everything.iInfo.species); //restore list of species with unused ones removed
 }
 
 inline void processDefaults(Everything& everything, ProcessedCommandMap& cmap)

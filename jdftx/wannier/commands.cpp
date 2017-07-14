@@ -256,10 +256,7 @@ struct CommandWannierCenter : public Command
 		allowMultiple = true;
 		require("wannier-initial-state");
 		require("wannier-dump-name");
-		
-		//Dependencies due to optional conversion from cartesian coords:
-		require("latt-scale");
-		require("coords-type");
+		require("ion");
 		require("spintype");
 	}
 
