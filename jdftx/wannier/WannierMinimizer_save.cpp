@@ -565,8 +565,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
-	{	//--- Generate phonon cell map and output cellMapSq:
-		std::map<vector3<int>,matrix> phononCellMap; //TODO = getCellMap(e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup));
+	{	//--- Generate phonon cell map:
+		std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
+		for(const auto& sp: e.iInfo.species)
+			xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
+		assert(3*int(xAtoms.size()) == nPhononModes);
+		std::map<vector3<int>,matrix> phononCellMap = getCellMap(e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
+			e.coulombParams.isTruncated(), xAtoms, xExpect, rSmooth);
+		//--- Output phonon cellMapSq:
 		if(mpiUtil->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
