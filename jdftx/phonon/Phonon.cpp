@@ -65,7 +65,7 @@ void Phonon::dump()
 				f *= invsqrtM[sp]; // divide by sqrt(M) on the right
 	}
 	//--- remap to cells:
-	std::map<vector3<int>,double> cellMap = getCellMap(e.gInfo.R, eSupTemplate.gInfo.R, e.dump.getFilename("phononCellMap"));
+	std::map<vector3<int>,double> cellMap; //TODO = getCellMap(e.gInfo.R, eSupTemplate.gInfo.R, e.dump.getFilename("phononCellMap"));
 	std::vector<matrix> omegaSq(cellMap.size());
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)

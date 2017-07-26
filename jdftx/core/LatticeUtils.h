@@ -69,10 +69,13 @@ struct Supercell
 		const std::vector<SpaceGroupOp>& sym, const std::vector<int>& invertList);
 };
 
-//! Get a list of unit cells in a supercell, with duplicates added at the boundary to maintain symmetry
-//! Returns a list of cell positions in lattice coordinates, along with their weights (1 / multiplicity)
-//! Optionally write the cell map to a file, if filename is non-null
-std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, string fname=string());
+//! Get a list of unit cells in a supercell, with padding at the boundaries to maintain a Wigner-Seitz
+//! supercell range (smoothed by rSmooth) for all pairs of lattice coordinates between arrays x1 and x2.
+//! Returns a list of cell positions in lattice coordinates, along with the weights for matrix elements
+//! connecting each pair from x1 and x2 (which will add to 1 over each set of equivalent cells)
+//! Optionally write the cell map to a file, if fname is non-null
+std::map<vector3<int>, struct matrix> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, const vector3<bool>& isTruncated,
+	const std::vector<vector3<>>& x1, const std::vector<vector3<>>& x2, double rSmooth, string fname=string());
 
 //Helper function for PeriodicLookup< vector3<> > used in Supercell::Supercell
 inline vector3<> getCoord(const vector3<>& pos) { return pos; }

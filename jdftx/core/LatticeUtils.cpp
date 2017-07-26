@@ -20,6 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/WignerSeitz.h>
 #include <core/Util.h>
+#include <electronic/matrix.h>
+#include <algorithm>
 #include <cfloat>
 #include <list>
 
@@ -235,7 +237,107 @@ Supercell::Supercell(const GridInfo& gInfo,
 	Rsuper.print(globalLog, " %lg ");
 }
 
+std::map<vector3<int>, matrix> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, const vector3<bool>& isTruncated,
+	const std::vector<vector3<>>& x1, const std::vector<vector3<>>& x2, double rSmooth, string fname)
+{
+	//Get neighbouring supercell lattice points defining supercell WS cell:
+	logSuspend();
+	WignerSeitz wsSup(Rsup);
+	logResume();
+	std::vector<vector3<int>> xSupNeigh = wsSup.getNeighbours(isTruncated);
+	std::vector<vector3<>> rSupNeigh; //Cartesian version of above
+	for(const vector3<int>& xSup: xSupNeigh)
+		rSupNeigh.push_back(Rsup * xSup);
+	
+	//Calculate range of neighbouring cells required:
+	double d12sqMax = 0.;
+	matrix3<> RTR = (~R)*R;
+	for(const vector3<>& x1i: x1)
+		for(const vector3<>& x2j: x2)
+		{	vector3<> dx = x1i - x2j;
+			for(int l=0; l<3; l++) if(isTruncated[l]) dx[l] = 0.; //project out truncated directions
+			d12sqMax = std::max(d12sqMax, RTR.metric_length_squared(dx));
+		}
+	double Rmax = wsSup.circumRadius() + sqrt(d12sqMax);
+	
+	//Collect lattice vectors and weight matrices:
+	matrix3<> invR = inv(R);
+	vector3<int> iCellMax; //bounding box of rMax (in unit-cell lattice coordinates)
+	for(int l=0; l<3; l++)
+		iCellMax[l] = isTruncated[l] ? 0 : (1 + int(ceil(Rmax * invR.row(l).length())));
+	vector3<int> iCell;
+	std::map<vector3<int>, matrix> iCellMap;
+	for(iCell[0]=-iCellMax[0]; iCell[0]<=iCellMax[0]; iCell[0]++)
+	for(iCell[1]=-iCellMax[1]; iCell[1]<=iCellMax[1]; iCell[1]++)
+	for(iCell[2]=-iCellMax[2]; iCell[2]<=iCellMax[2]; iCell[2]++)
+	{	matrix w = zeroes(x1.size(), x2.size());
+		bool nonZero = false;
+		for(size_t i=0; i<x1.size(); i++)
+		for(size_t j=0; j<x2.size(); j++)
+		{	vector3<> dx = iCell + x1[i] -x2[j];
+			for(int l=0; l<3; l++) if(isTruncated[l]) dx[l] = 0.; //project out truncated directions
+			vector3<> dr = R*dx; //cartesian displacement
+			double drSq0 = dr.length_squared(); //distance from origin
+			//Get distance to nearest supercell neighbour:
+			double drSqNeigh = DBL_MAX;
+			for(const vector3<>& rSup: rSupNeigh)
+				drSqNeigh = std::min(drSqNeigh, (dr-rSup).length_squared());
+			//Calculate weight:
+			double t = 0.5*(drSq0-drSqNeigh)/rSmooth; //<0 inside and >0 outside
+			if(t < 1.) //within smoothed margin of wsSup
+			{	w.set(i,j, (t<=-1.) ? 1. : 0.25*(2.-t*(3.-t*t)));
+				nonZero = true;
+			}
+		}
+		if(nonZero) iCellMap[iCell] = w;
+	}
+	
+	//Normalize weights:
+	std::set<vector3<int>> cellsDone;
+	typedef std::map<vector3<int>, matrix>::iterator Iter;
+	matrix3<> superInv = inv(Rsup) * R;
+	for(Iter iter=iCellMap.begin(); iter!=iCellMap.end(); iter++) if(!cellsDone.count(iter->first))
+	{	std::vector<Iter> equiv(1, iter);
+		matrix wSum = iter->second;
+		//Loop over equivalent cells:
+		Iter iter2=iter; iter2++;
+		for(; iter2!=iCellMap.end(); iter2++) if(!cellsDone.count(iter2->first))
+		{	double err; round(superInv * (iter2->first - iter->first), &err); //difference in super-lattice coordinates
+			if(err < symmThreshold) //integer superlattice offset
+			{	equiv.push_back(iter2);
+				wSum += iter2->second;
+				cellsDone.insert(iter2->first); //mark as done
+			}
+		}
+		//Replace weight sum with reciprocal:
+		for(size_t i=0; i<x1.size(); i++)
+		for(size_t j=0; j<x2.size(); j++)
+		{	double& wCur = wSum.data()[wSum.index(i,j)].real();
+			assert(wCur > symmThreshold);
+			wCur = 1./wCur;
+		}
+		//Normalize weights element-wise:
+		for(Iter& iter2: equiv) scale(wSum, iter2->second);
+	}
 
+	//Write the cell map if requested
+	if(mpiUtil->isHead() && fname.length())
+	{	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
+		for(const auto& entry: iCellMap)
+		{	const vector3<int>& i = entry.first;
+			vector3<> r = R * i;
+			fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
+	return iCellMap;
+}
+
+/*
 std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, string fname)
 {
 	//Initialize WIgner-Seitz cell:
@@ -303,3 +405,4 @@ std::map<vector3<int>, double> getCellMap(const matrix3<>& R, const matrix3<>& R
 	
 	return iCellMap;
 }
+*/

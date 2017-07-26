@@ -39,9 +39,6 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	gInfoSuper.GmaxRho = e.gInfo.Gmax;
 	if(needSuper) gInfoSuper.initialize(true, sym);
 
-	//Initialize cell map (for matrix element output):
-	iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
-	
 	//Determine and output the band ranges:
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 	{	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
@@ -120,22 +117,6 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 			{	die("Wannier supercell count %d is not a multiple of phonon supercell count %d for lattice direction %d.\n",
 					supercell.super(j,j), wannier.phononSup[j], j);
 			}
-		}
-		//--- Generate phonon cell map and output cellMapSq:
-		phononCellMap = getCellMap(e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup));
-		if(mpiUtil->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "w");
-			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
-			for(const auto& entry1: phononCellMap)
-			for(const auto& entry2: phononCellMap)
-			{	const vector3<int>& iR1 = entry1.first;
-				const vector3<int>& iR2 = entry2.first;
-				fprintf(fp, "%+2d %+2d %+2d  %+2d %+2d %+2d\n", iR1[0], iR1[1], iR1[2], iR2[0], iR2[1], iR2[2]);
-			}
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
 		}
 		//--- Count phonon modes:
 		nPhononModes = 0;

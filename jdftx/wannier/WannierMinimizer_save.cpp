@@ -21,6 +21,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/ScalarFieldIO.h>
 
+//Apply cell map weights due to repeated images near supercell boundaries
+//nVector specifies number of vecor components in each cell eg. 3 for momentum, 1 for Hamiltonian.
+void applyCellMapWeights(matrix& M, const std::map<vector3<int>,matrix>& cellMap, int nVector=1)
+{	complex* Mdata = M.dataPref();
+	for(auto cell: cellMap)
+	{	const matrix& w = cell.second;
+		for(int iVector=0; iVector<nVector; iVector++)
+		{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Mdata, 1);
+			Mdata += w.nData();
+		}
+	}
+}
+
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin=0; iSpin<nSpins; iSpin++)
 		saveMLWF(iSpin);
@@ -412,6 +425,16 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		suspendOperatorThreading();
 	}
 	
+	//Initialize cell map (for matrix element output):
+	const double rSmooth = 1.; //TODO: controllable by command
+	//--- get wannier centers in lattice coordinates:
+	std::vector<vector3<>> xExpect;
+	for(vector3<> r: rExpect)
+		xExpect.push_back(e.gInfo.invR * r);
+	//--- get cell map with weights based on these center positions:
+	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
+		xExpect, xExpect, rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
+
 	//Save Hamiltonian in Wannier basis:
 	int nqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
@@ -427,12 +450,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Calculate required phases:
 			int iCell = 0;
 			for(auto cell: iCellMap)
-				phase.set(iqMine, iCell++, cell.second * kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first)));
+				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first)));
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
 		matrix Hwannier = HwannierTilde * phase;
 		Hwannier.allReduce(MPIUtil::ReduceSum);
+		applyCellMapWeights(Hwannier, iCellMap);
 		dumpMatrix(Hwannier, "mlwfH", realPartOnly, iSpin);
 	}
 	resumeOperatorThreading();
@@ -466,6 +490,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Fourier transform to Wannier space and save
 		matrix pWannier = pWannierTilde * phase;
 		pWannier.allReduce(MPIUtil::ReduceSum);
+		applyCellMapWeights(pWannier, iCellMap, 3);
 		dumpMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
 	}
 	
@@ -533,13 +558,30 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 			matrix ImSigma_eeWannier = ImSigma_eeWannierTilde * phase;
 			ImSigma_eeWannier.allReduce(MPIUtil::ReduceSum);
+			applyCellMapWeights(ImSigma_eeWannier, iCellMap);
 			dumpMatrix(ImSigma_eeWannier, "mlwfImSigma_ee", realPartOnly, iSpin);
 		}
 	}
 	
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
-	{	//--- generate list of commensurate k-points in order present in the unit cell calculation
+	{	//--- Generate phonon cell map and output cellMapSq:
+		std::map<vector3<int>,matrix> phononCellMap; //TODO = getCellMap(e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup));
+		if(mpiUtil->isHead())
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "w");
+			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
+			for(const auto& entry1: phononCellMap)
+			for(const auto& entry2: phononCellMap)
+			{	const vector3<int>& iR1 = entry1.first;
+				const vector3<int>& iR2 = entry2.first;
+				fprintf(fp, "%+2d %+2d %+2d  %+2d %+2d %+2d\n", iR1[0], iR1[1], iR1[2], iR2[0], iR2[1], iR2[2]);
+			}
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+		}
+		//--- generate list of commensurate k-points in order present in the unit cell calculation
 		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
 		std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
 		for(unsigned ik=0; ik<kMesh.size(); ik++)
@@ -574,8 +616,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			for(const auto& entry2: phononCellMap)
 			{	const vector3<int>& iR1 = entry1.first;
 				const vector3<int>& iR2 = entry2.first;
-				double weight = kPairWeight * entry1.second * entry2.second;
-				phase.set(iPair-iPairStart, iCellPair++, weight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
+				phase.set(iPair-iPairStart, iCellPair++, kPairWeight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
 			}
 		}
 		//--- read Bloch electron - nuclear displacement matrix elements
@@ -642,6 +683,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		matrix HePh = HePhTilde * phase;
 		HePhTilde = 0; //free memory
 		HePh.allReduce(MPIUtil::ReduceSum);
+		//--- apply cell weights:
+		//TODO
 		//--- save output:
 		dumpMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
 	}

@@ -175,6 +175,18 @@ double WignerSeitz::circumRadius(int iDir) const
 	return sqrt(rSqMax);
 }
 
+//Neighbouring lattice vectors along non-truncated directions
+std::vector<vector3<int>> WignerSeitz::getNeighbours(vector3<bool> isTruncated) const
+{	std::vector<vector3<int>> neighbours;
+	for(const Face* f: face)
+	{	for(int k=0; k<3; k++)
+			if(isTruncated[k] && f->img[k]) //component along truncated direction
+				continue; //ignore this neighbour
+		neighbours.push_back(f->img);
+	}
+	return neighbours;
+}
+
 //Write a wireframe plot to file (for gnuplot)
 void WignerSeitz::writeWireframePlot(const char* filename) const
 {	FILE* fp = fopen(filename, "w");

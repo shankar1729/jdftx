@@ -112,7 +112,6 @@ protected:
 	GridInfo gInfoSuper;
 	Basis basisSuper;
 	QuantumNumber qnumSuper;
-	std::map<vector3<int>,double> iCellMap, phononCellMap; //unit-cell indices in supercell (and weights to account for surface multiplicity)
 	int nPhononModes; //number of phonon modes
 	diagMatrix invsqrtM; //1/sqrt(M) per nuclear displacement mode
 	

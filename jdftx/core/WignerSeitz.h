@@ -114,6 +114,9 @@ public:
 	//! Ignore direction iDir to obtain 2D behavior, if iDir >= 0
 	double circumRadius(int iDir=-1) const;
 	
+	//! Get list of neighbouring lattice vectors (along non-truncated directions) that share faces with origin
+	std::vector<vector3<int>> getNeighbours(vector3<bool> isTruncated) const;
+	
 	//! Write a wireframe plot to file (for gnuplot)
 	void writeWireframePlot(const char* filename) const;
 	

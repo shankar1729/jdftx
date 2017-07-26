@@ -333,6 +333,10 @@ void scale(double alpha, ManagedMemory& y)
 void scale(complex alpha, ManagedMemory& y)
 {	callPref(eblas_zscal)(y.nData(), alpha, y.dataPref(), 1);
 }
+void scale(const ManagedMemory& x, ManagedMemory& y)
+{	assert(x.nData() == y.nData());
+	callPref(eblas_zmul)(x.nData(), x.dataPref(), 1, y.dataPref(), 1);
+}
 
 void axpy(complex alpha, const ManagedMemory& x, ManagedMemory& y)
 {	assert(x.nData() == y.nData());

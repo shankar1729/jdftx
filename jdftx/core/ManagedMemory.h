@@ -102,6 +102,7 @@ private:
 void memcpy(ManagedMemory&, const ManagedMemory&); //!< copy entire object over
 void scale(double alpha, ManagedMemory& y); //! scale y *= alpha
 void scale(complex alpha, ManagedMemory& y); //! scale y *= alpha
+void scale(const ManagedMemory& x, ManagedMemory& y); //! scale y *= x elementwise
 void axpy(complex alpha, const ManagedMemory& x, ManagedMemory& y); //!< standard blas y += alpha*x
 double nrm2(const ManagedMemory&); //!< 2-norm, pretending it is a vector
 complex dotc(const ManagedMemory& a, const ManagedMemory& b); //!< return a^H b
