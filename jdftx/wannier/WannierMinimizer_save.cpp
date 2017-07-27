@@ -426,14 +426,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Initialize cell map (for matrix element output):
-	const double rSmooth = 1.; //TODO: controllable by command
 	//--- get wannier centers in lattice coordinates:
 	std::vector<vector3<>> xExpect;
 	for(vector3<> r: rExpect)
 		xExpect.push_back(e.gInfo.invR * r);
 	//--- get cell map with weights based on these center positions:
 	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
-		xExpect, xExpect, rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
+		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
 
 	//Save Hamiltonian in Wannier basis:
 	int nqMine = 0;
@@ -572,10 +571,10 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		assert(3*int(xAtoms.size()) == nPhononModes);
 		std::map<vector3<int>,matrix> phononCellMap = getCellMap(
 			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtoms, xAtoms, rSmooth); //phonon force-matrix cell map
+			e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
 		std::map<vector3<int>,matrix> ePhCellMap = getCellMap(
 			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtoms, xExpect, rSmooth); //e-ph elements cell map
+			e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
 		//--- Read phonon force matrix:
 		std::map<vector3<int>, matrix> phononOmegaSq;
 		if(mpiUtil->isHead())

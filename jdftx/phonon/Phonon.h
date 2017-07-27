@@ -53,6 +53,7 @@ public:
 	double dr; //perturbation amplitude in Cartesian coordinates
 	double T; //temperature for free energy estimation
 	double Fcut; //fillings cutoff for optimizing number of bands
+	double rSmooth; //supercell boundary width over which matrix elements are smoothed
 	bool dryRun; //whether this is a dry run (test setup only; skip calculation)
 	
 	int iPerturbation; //if >=0, only run one supercell calculation

@@ -54,7 +54,6 @@ void Phonon::dump()
 	}
 	
 	//Generate phonon cell map:
-	const double rSmooth = 1.; //TODO: controllable by command
 	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
 	for(const auto& sp: e.iInfo.species)
 		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());

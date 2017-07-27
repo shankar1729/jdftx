@@ -73,6 +73,7 @@ public:
 	vector3<> numericalOrbitalsOffset; //!< lattice coordinates of the origin in the input
 	
 	vector3<int> phononSup; //!< phonon supercell (process e-ph matrix elements on this supercell if non-zero)
+	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	

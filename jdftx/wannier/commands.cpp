@@ -35,6 +35,7 @@ enum WannierMember
 	WM_numericalOrbitals,
 	WM_numericalOrbitalsOffset,
 	WM_phononSup,
+	WM_rSmooth,
 	WM_delim
 };
 
@@ -51,7 +52,8 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_loadRotations, "loadRotations",
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
-	WM_phononSup, "phononSupercell"
+	WM_phononSup, "phononSupercell",
+	WM_rSmooth, "rSmooth"
 );
 
 EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
@@ -124,7 +126,11 @@ struct CommandWannier : public Command
 			"   phonon code with this supercell and output Wannierized electron-phonon matrix\n"
 			"   elements (mlwfHePh). This file will contain matrices for pairs of cells in the\n"
 			"   order specified in the mlwfCellMapSqPh output file, with an outer loop over\n"
-			"   the nuclear displacement modes in phononBasis.";
+			"   the nuclear displacement modes in phononBasis.\n"
+			"\n+ rSmooth <rSmooth>\n\n"
+			"   Width in bohrs of the supercell boundary region over which matrix elements are smoothed.\n"
+			"   If phononSupercell is specified to process phonon quantities, the rSmooth specified here\n"
+			"   must exactly match the value specified in the calculation in command phonon.";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -182,6 +188,10 @@ struct CommandWannier : public Command
 					pl.get(wannier.phononSup[1], 0, "N1", true);
 					pl.get(wannier.phononSup[2], 0, "N2", true);
 					break;
+				case WM_rSmooth:
+					pl.get(wannier.rSmooth, 1., "rSmooth", true);
+					if(wannier.rSmooth <= 0.) throw string("<rSmooth> must be positive");
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -213,6 +223,7 @@ struct CommandWannier : public Command
 		}
 		if(wannier.phononSup.length_squared())
 			logPrintf(" \\\n\tphononSupercell %d %d %d", wannier.phononSup[0], wannier.phononSup[1], wannier.phononSup[2]);
+		logPrintf(" \\\n\trSmooth %lg", wannier.rSmooth);
 	}
 }
 commandWannier;

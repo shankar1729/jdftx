@@ -28,6 +28,7 @@ enum PhononMember
 	PM_collectPerturbations,
  	PM_T,
 	PM_Fcut,
+	PM_rSmooth,
 	PM_delim
 };
 
@@ -37,7 +38,8 @@ EnumStringMap<PhononMember> phononMemberMap
 	PM_iPerturbation,"iPerturbation",
 	PM_collectPerturbations, "collectPerturbations",
 	PM_T, "T",
-	PM_Fcut, "Fcut"
+	PM_Fcut, "Fcut",
+	PM_rSmooth, "rSmooth"
 );
 
 struct CommandPhonon : public Command
@@ -69,7 +71,9 @@ struct CommandPhonon : public Command
 			"   Fillings threshold to include in supercell calculation (default 1e-8).\n"
 			"   The unit cell calculation may have extra bands for which matrix elements\n"
 			"   are desired; this flag ensures that those extra bands do not affect the\n"
-			"   performance or memory requirements of the supercell calculations.";
+			"   performance or memory requirements of the supercell calculations.\n"
+			"\n+ rSmooth <rSmooth>\n\n"
+			"   Width in bohrs of the supercell boundary region over which matrix elements are smoothed.";
 		
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
@@ -113,6 +117,10 @@ struct CommandPhonon : public Command
 					pl.get(phonon.Fcut, 0., "Fcut", true);
 					if(phonon.Fcut < 0.) throw string("<Fcut> must be non-negative");
 					break;
+				case PM_rSmooth:
+					pl.get(phonon.rSmooth, 1., "rSmooth", true);
+					if(phonon.rSmooth <= 0.) throw string("<rSmooth> must be positive");
+					break;
 				case PM_delim: //should never be encountered
 					break;
 			}
@@ -127,6 +135,7 @@ struct CommandPhonon : public Command
 		if(phonon.collectPerturbations) logPrintf(" \\\n\tcollectPerturbations");
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
+		logPrintf(" \\\n\trSmooth %lg", phonon.rSmooth);
 	}
 }
 commandPhonon;
