@@ -47,35 +47,35 @@ struct PhononEverything: public Everything
 class Phonon
 {
 public:
-	std::vector<std::pair<string,string> > input; //input file contents
+	std::vector<std::pair<string,string> > input; //!< input file contents
 	
-	vector3<int> sup; //phonon supercell 
-	double dr; //perturbation amplitude in Cartesian coordinates
-	double T; //temperature for free energy estimation
-	double Fcut; //fillings cutoff for optimizing number of bands
-	double rSmooth; //supercell boundary width over which matrix elements are smoothed
-	bool dryRun; //whether this is a dry run (test setup only; skip calculation)
+	vector3<int> sup; //!< phonon supercell 
+	double dr; //!< perturbation amplitude in Cartesian coordinates
+	double T; //!< temperature for free energy estimation
+	double Fcut; //!< fillings cutoff for optimizing number of bands
+	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed
+	bool dryRun; //!< whether this is a dry run (test setup only; skip calculation)
 	
-	int iPerturbation; //if >=0, only run one supercell calculation
-	bool collectPerturbations; //if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
+	int iPerturbation; //!< if >=0, only run one supercell calculation
+	bool collectPerturbations; //!< if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
 	
 	Phonon();
-	void setup(bool printDefaults); //setup unit cell and basis modes for perturbations
-	void dump(); //main calculations (sequence of supercell calculations) as well as output
+	void setup(bool printDefaults); //!< setup unit cell and basis modes for perturbations
+	void dump(); //!< main calculations (sequence of supercell calculations) as well as output
 	
-	PhononEverything e; //data for original unit cell
+	PhononEverything e; //!< data for original unit cell
 private:
-	PhononEverything eSupTemplate; //uninitialized version of eSup, with various flags later used to create eSup for each mode
-	std::shared_ptr<PhononEverything> eSup; //supercell data for current perturbation
+	PhononEverything eSupTemplate; //!< uninitialized version of eSup, with various flags later used to create eSup for each mode
+	std::shared_ptr<PhononEverything> eSup; //!< supercell data for current perturbation
 
-	int nSpins, nSpinor; //number of explicit spins and spinor length
-	int nBandsOpt; //optimized number of bands, accounting for Fcut
-	int prodSup; //number of unit cells in supercell
-	std::vector<SpaceGroupOp> symSup; //Space group of unperturbed supercell (with translations restricted to unit cell)
-	std::vector< matrix3<> > symSupCart; //Cartesian symmetry rotation matrices for unperturbed supercell
-	std::vector< std::vector<BlockRotationMatrix> > stateRot; //Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
+	int nSpins, nSpinor; //!< number of explicit spins and spinor length
+	int nBandsOpt; //!< optimized number of bands, accounting for Fcut
+	int prodSup; //!< number of unit cells in supercell
+	std::vector<SpaceGroupOp> symSup; //!< Space group of unperturbed supercell (with translations restricted to unit cell)
+	std::vector< matrix3<> > symSupCart; //!< Cartesian symmetry rotation matrices for unperturbed supercell
+	std::vector< std::vector<BlockRotationMatrix> > stateRot; //!< Unitary rotation of states involved in gamma-point Hsub for each supercell symmetry operation
 	
-	//Basis for phonon modes (not reduced by symmetries):
+	//!Basis for phonon modes (not reduced by symmetries):
 	struct Mode
 	{	int sp, at; //!< species and atom number (within first unit cell)
 		vector3<> dir; //!< Cartesian unit vector for displacement
@@ -86,29 +86,29 @@ private:
 	std::vector<IonicGradient> dgrad; //!< change in forces per unit displacement in each mode (force matrix)
 	std::vector< std::vector<matrix> > dHsub; //!< change in electronic subspace Hamiltonian per unit displacement in each mode (precursor to electron-phonon matrix elements)
 	
-	//Minimal basis of perturbations for supercell calculations:
+	//!Minimal basis of perturbations for supercell calculations:
 	struct Perturbation : public Mode
 	{	double weight; //!< weight of perturbation (adds up to nModes / nSymmetries)
 	};
 	std::vector<Perturbation> perturbations;
 	
-	//Run supercell calculation for specified perturbation (using fnamePattern to load/restore required properties)
+	//!Run supercell calculation for specified perturbation (using fnamePattern to load/restore required properties)
 	void processPerturbation(const Perturbation& pert, string fnamePattern);
 	
-	//Set unperturbed state of supercell from unit cell and retrieve unperturbed subspace Hamiltonian at supercell Gamma point (for all bands)
+	//!Set unperturbed state of supercell from unit cell and retrieve unperturbed subspace Hamiltonian at supercell Gamma point (for all bands)
 	std::vector<diagMatrix> setSupState();
 	
-	//Calculate subspace Hamiltonian of perturbed supercell:
+	//!Calculate subspace Hamiltonian of perturbed supercell:
 	std::vector<matrix> getPerturbedHsub();
 	
-	//Mapping between unit cell and current supercell k-points (generated by processPerturbation and used by setSupState)
+	//!Mapping between unit cell and current supercell k-points (generated by processPerturbation and used by setSupState)
 	struct StateMapEntry : public Supercell::KmeshTransform //contain source k-point rotation here
-	{	int qSup; //state index for supercell
-		int nqPrev; //number of previous unit cell k-points that point to this supercell
-		vector3<> k; //unit cell k-vector
-		std::shared_ptr<class ColumnBundleTransform> transform; //wavefunction map
+	{	int qSup; //!< state index for supercell
+		int nqPrev; //!< number of previous unit cell k-points that point to this supercell
+		vector3<> k; //!< unit cell k-vector
+		std::shared_ptr<class ColumnBundleTransform> transform; //!< wavefunction map
 	};
-	std::vector<StateMapEntry> stateMap; //map from unit cell k-points to supercell k-points
+	std::vector<StateMapEntry> stateMap; //!< map from unit cell k-points to supercell k-points
 	
 	//Utilities for mapping 3-dimensional and flattened cell indices:
 	vector3<int> getCell(int unit) const;
