@@ -45,7 +45,6 @@ as usual using the input files:
     include common.in
     kpoint-folding 12 12 1               #Need k-points only in periodic directions
     elec-smearing Fermi 0.01
-    electronic-SCF
     dump-name totalE.$VAR
     dump End ElecDensity
     
