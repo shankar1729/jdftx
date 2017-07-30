@@ -1,6 +1,6 @@
 /** \page ChangeLog Change log
 
-## Unreleased ##
+## 1.3.0 - 2017-07-29 ([Site archive](http://jdftx.org/1.3.0))
 
 + Space group symmetrization instead of point groups alone.
   This now allows for calculations to be equally efficient
@@ -10,25 +10,64 @@
   IMPORTANT: this may reduce number of k points for certain systems
   which will make the state incompatible from previous versions.
 
-+ Added command symmetry-threshold to control symmetry detection sensitivity in input file
-
-+ Switched to reciprocal-space symmetrization of scalar fields
-
-+ Added MPI and noncollinear support to exact exchange
-
 + Adjusted automatic FFT grid selection to be supercell-consistent
   i.e. minimum grid dimensions of unit cell, when multiplied by supercell count,
   will satisfy minimum grid dimensions for corresponding supercell at same plane-wave cutoff.
   IMPORTANT: default FFT boxes will change in some cases relative to 1.2.1 and earlier.
   This will only alter real-space grid outputs; wavefunctions remain unchanged.
 
-+ Added support for electric fields in periodic directions using low wave-vector perturbations
++ Switched to reciprocal-space symmetrization of scalar fields
 
-+ Fixed phase of odd-l trial orbitals in Wannier (these were previously pure-imaginary instead of real)
++ Changed supercell cell map determination to use %Wannier centers / atom positions
+  which makes %Wannier tight-binding Hamiltonians and phonon force matrices strictly
+  supercell-consistent and translation-invariant  (which they previously weren't).
+  Importantly, this allows Gamma-only %Wannier and phonon calculations for large systems.
 
 + Fixed numerous bugs in phonon code for cases with more than one atom per unit cell,
   eg. when symmetries of phonon supercell mapped atoms to ones in other unit cells,
   complex conjugate handling of non-inversion-symmetric cells etc.
+
++ Support to split phonon calculations into individual perturbations that
+  can be run separately (and in parallel) and collected together at the end.
+  Added a summary output to phonon dry runs that facilitates planning the split calculations.
+
++ Added phonon tutorials
+
++ Added support for electric fields in periodic directions using low wave-vector perturbations.
+  This enables bulk dielectric calculations using new command bulk-epsilon.
+
++ Added support for anisotropic dielectric functions and surface defects
+  without slab-mode %Coulomb truncation in charged-defect-correction
+
++ Added command exchange-parameters for controlling EXX scale factor and screening in hybrid functionals
+
++ Added MPI and noncollinear support to exact exchange
+
++ Added command symmetry-threshold to control symmetry detection sensitivity in input file
+
++ Fixed phase of odd-l trial orbitals in %Wannier (these were previously pure-imaginary instead of real)
+
++ Fixed strange bugs in phonon and %Wannier codes that resulted from unused pseudopotentials specified in input file
+
++ Redefined subspace rotation factor to be consistent with the grand-canonical DFT paper,
+  so that reasonable initial values are close to 1 (rather than 100 previously).
+
++ Restored non-variational energy and gradient calculation for LinearPCM and SaLSA
+  because it substantially improves the quality of the electrostatic potential,
+  especially in large unit cells and low concentrations.
+  Correspondingly, removed the option to run them with a Gummel iteration (introduced in 1.1.0).
+  A related change substantially improves potentials output
+  by NonlinearPCM when using pcm-nonlinear-scf.
+
++ Updated LibXC support version to >=3, and added mechanism to auto-generate
+  list of LibXC functionals by parsing its header file.
+
++ Added a 1D (planarly-averaged for slabs) dielectric matrix output to electron-scattering
+
++ Added support for BlueGene/Q systems
+
++ Added a CMake option for automating static linking
+
 
 ## 1.2.1 - 2016-07-30 ([Site archive](http://jdftx.org/1.2.1))
 
@@ -157,7 +196,7 @@ but here's a partial list of major developments since the first numbered release
 + Separate wavefunction and charge density cutoff, with an optionally tighter plane-wave grid for wavefunction transforms
 
 + Systematized fluid specification: solvent and ionic fluid components,
-  pcm-variant to control different parameterizations within classes of solvation models.
+  pcm-variant to control different parametrizations within classes of solvation models.
 
 + Enhanced Coulomb truncation using double-sized boxes, including for fluids
 
