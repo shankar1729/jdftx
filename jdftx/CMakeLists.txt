@@ -252,6 +252,11 @@ if(EnableCUDA)
 	set_JDFTx_flags(jdftxlib_gpu ON)
 endif()
 
+option(PinnedHostMemory "Use page-locked host memory to speed up GPU transfers" OFF)
+if(PinnedHostMemory)
+	add_definitions("-DPINNED_HOST_MEMORY")
+endif()
+
 #------------- Macro to add an executable pair (regular and GPU) -------------
 
 macro(add_JDFTx_executable execName execSources)

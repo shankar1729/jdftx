@@ -93,6 +93,21 @@ namespace MemUsageReport
 }
 
 
+//---- Wrappers to CPU alloc / free: optionally pinned in GPU mode ----
+#if defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
+inline void hostAlloc(complex** ptr, size_t size)
+{	if(cudaMallocHost(ptr, size) != cudaSuccess)
+		die_alone("Host memory allocation failed (out of pinned memory)\n");
+}
+inline void hostFree(complex* ptr) { cudaFreeHost(ptr); }
+#else
+inline void hostAlloc(complex** ptr, size_t size)
+{	*ptr = (complex*)fftw_malloc(size);
+	if(!(*ptr)) die_alone("Memory allocation failed (out of memory)\n");
+}
+inline void hostFree(complex* ptr) { fftw_free(ptr); }
+#endif
+
 //---------- class ManagedMemory -----------
 
 // Construct, optionally with data allocation
@@ -118,9 +133,7 @@ void ManagedMemory::memFree()
 		assert(!"onGpu=true without GPU_ENABLED"); //Should never get here!
 		#endif
 	}
-	else
-	{	fftw_free(c);
-	}
+	else hostFree(c);
 	MemUsageReport::manager(MemUsageReport::Remove, category, nElements);
 	c = 0;
 	nElements = 0;
@@ -144,10 +157,7 @@ void ManagedMemory::memInit(string category, size_t nElements, bool onGpu)
 		assert(!"onGpu=true without GPU_ENABLED");
 		#endif
 	}
-	else
-	{	c = (complex*)fftw_malloc(sizeof(complex)*nElements);
-		if(!c) die_alone("Memory allocation failed (out of memory)\n");
-	}
+	else hostAlloc(&c, sizeof(complex)*nElements);
 	MemUsageReport::manager(MemUsageReport::Add, category, nElements);
 }
 
@@ -193,8 +203,7 @@ const complex* ManagedMemory::dataGpu() const
 void ManagedMemory::toCpu()
 {	if(!onGpu || !c) return; //already on cpu, or no data
 	assert(isGpuMine());
-	complex* cCpu = (complex*)fftw_malloc(sizeof(complex)*nElements);
-	if(!cCpu) die_alone("Memory allocation failed (out of memory)\n");
+	complex* cCpu; hostAlloc(&cCpu, sizeof(complex)*nElements);
 	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost); gpuErrorCheck();
 	cudaFree(c); gpuErrorCheck(); //Free GPU mem
 	c = cCpu; //Make c a cpu pointer
@@ -208,7 +217,7 @@ void ManagedMemory::toGpu()
 	complex* cGpu;
 	cudaMalloc(&cGpu, sizeof(complex)*nElements); gpuErrorCheck();
 	cudaMemcpy(cGpu, c, sizeof(complex)*nElements, cudaMemcpyHostToDevice);
-	fftw_free(c); //Free CPU mem
+	hostFree(c); //Free CPU mem
 	c = cGpu; //Make c a gpu pointer
 	onGpu = true;
 }
