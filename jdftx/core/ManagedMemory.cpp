@@ -224,23 +224,30 @@ void ManagedMemory::toGpu()
 
 #endif
 
+//Which data to use for MPI operations:
+#if defined(GPU_ENABLED) && defined(CUDA_AWARE_MPI)
+#define dataMPI dataGpu
+#else
+#define dataMPI data
+#endif
+
 void ManagedMemory::send(int dest, int tag) const
 {	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->send((const double*)data(), 2*nData(), dest, tag);
+	mpiUtil->send((const double*)dataMPI(), 2*nData(), dest, tag);
 }
 void ManagedMemory::recv(int src, int tag)
 {	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->recv((double*)data(), 2*nData(), src, tag);
+	mpiUtil->recv((double*)dataMPI(), 2*nData(), src, tag);
 }
 void ManagedMemory::bcast(int root)
 {	if(mpiUtil->nProcesses()>1)
-		mpiUtil->bcast((double*)data(), 2*nData(), root);
+		mpiUtil->bcast((double*)dataMPI(), 2*nData(), root);
 }
 void ManagedMemory::allReduce(MPIUtil::ReduceOp op, bool safeMode, bool ignoreComplexCheck)
 {	if(!ignoreComplexCheck)
 		assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); //not supported for complex
 	if(mpiUtil->nProcesses()>1)
-		mpiUtil->allReduce((double*)data(), 2*nData(), op, safeMode);
+		mpiUtil->allReduce((double*)dataMPI(), 2*nData(), op, safeMode);
 }
 
 

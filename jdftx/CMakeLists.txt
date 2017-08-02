@@ -257,6 +257,11 @@ if(PinnedHostMemory)
 	add_definitions("-DPINNED_HOST_MEMORY")
 endif()
 
+option(CudaAwareMPI "Whether MPI library supports directly accessing CUDA pointer" OFF)
+if(CudaAwareMPI)
+	add_definitions("-DCUDA_AWARE_MPI")
+endif()
+
 #------------- Macro to add an executable pair (regular and GPU) -------------
 
 macro(add_JDFTx_executable execName execSources)
