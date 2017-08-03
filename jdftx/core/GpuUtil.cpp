@@ -25,6 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <algorithm>
 
+cudaDeviceProp cudaDevProps; //cached properties of currently running device
+
 pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns gpu
 //NOTE: At the time of writing, c++0x threads implemented in g++, but not thread-local storage
 //Using pthreads mechanism here, assuming that pthreads underly the c++0x threads
@@ -71,6 +73,7 @@ bool gpuInit(FILE* fpLog, const std::vector<int>* mpiSiblings, double* nGPUs)
 	//Print selected devices:
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);
 	cudaSetDevice(selectedDevice);
+	cudaGetDeviceProperties(&cudaDevProps, selectedDevice);
 	return true;
 }
 
