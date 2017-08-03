@@ -157,7 +157,15 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 
 
 IonicMinimizer::IonicMinimizer(Everything& e) : e(e), populationAnalysisPending(false), skipWfnsDrag(false)
-{	
+{	//Check if any atoms constrained:
+	anyConstrained = false;
+	for(const auto sp: e.iInfo.species)
+		for(const auto& constraint: sp->constraints)
+			if((constraint.getDimension()<3)
+				|| (constraint.type==SpeciesInfo::Constraint::HyperPlane))
+			{	anyConstrained = true;
+				break;
+			}
 }
 
 void IonicMinimizer::step(const IonicGradient& dir, double alpha)
@@ -333,17 +341,19 @@ void IonicMinimizer::constrain(IonicGradient& x)
 	double Dsq = dot(D,D);
 	if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
 
-	//Ensure zero total force:
-	vector3<> xSum; int nAtoms = 0;
-	for(const auto& x_sp: x)
-		for(const vector3<>& x_sp_at: x_sp)
-		{	xSum += x_sp_at;
-			nAtoms++;
-		}
-	vector3<> xMean = (1./nAtoms) * xSum;
-	for(auto& x_sp: x)
-		for(vector3<>& x_sp_at: x_sp)
-			x_sp_at -= xMean;
+	//Ensure zero total force (if no atom is constrained):
+	if(!anyConstrained)
+	{	vector3<> xSum; int nAtoms = 0;
+		for(const auto& x_sp: x)
+			for(const vector3<>& x_sp_at: x_sp)
+			{	xSum += x_sp_at;
+				nAtoms++;
+			}
+		vector3<> xMean = (1./nAtoms) * xSum;
+		for(auto& x_sp: x)
+			for(vector3<>& x_sp_at: x_sp)
+				x_sp_at -= xMean;
+	}
 	
 	SymmetrizeCartesian(x) //Symmetrize output
 	#undef SymmetrizeCartesian

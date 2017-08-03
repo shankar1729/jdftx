@@ -70,6 +70,7 @@ public:
 private:
 	bool populationAnalysisPending; //!< report() has requested a charge analysis output that is yet to be done
 	bool skipWfnsDrag; //!< whether to temprarily skip wavefunction dragging due to large steps
+	bool anyConstrained; //!< whether any atoms are constrained
 };
 
 #endif // JDFTX_ELECTRONIC_IONICMINIMIZER_H
