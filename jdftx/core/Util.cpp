@@ -132,6 +132,7 @@ void logResume()
 MPIUtil* mpiUtil = 0;
 bool mpiDebugLog = false;
 bool manualThreadCount = false;
+size_t mempoolSize = 0;
 static double startTime_us; //Time at which system was initialized in microseconds
 const char* argv0 = 0;
 
@@ -227,6 +228,18 @@ void initSystem(int argc, char** argv)
 	{	int nProcsTot = nProcsAvailable; mpiUtil->allReduce(nProcsTot, MPIUtil::ReduceSum);
 		double nGPUsTot = nGPUs; mpiUtil->allReduce(nGPUsTot, MPIUtil::ReduceSum);
 		logPrintf("Run totals: %d processes, %d threads, %lg GPUs\n", mpiUtil->nProcesses(), nProcsTot, nGPUsTot);
+	}
+	
+	//Memory pool size:
+	const char* mempoolSizeStr = getenv("JDFTX_MEMPOOL_SIZE");
+	if(mempoolSizeStr)
+	{	int mempoolSizeMB;
+		if(sscanf(mempoolSizeStr, "%d", &mempoolSizeMB)==1 && mempoolSizeMB>=0)
+		{	mempoolSize = ((size_t)mempoolSizeMB) << 20; //convert to bytes
+			logPrintf("Memory pool size: %d MB (per process)\n", mempoolSizeMB);
+		}
+		else
+			logPrintf("Could not determine memory pool size from JDFTX_MEMPOOL_SIZE=\"%s\".\n", mempoolSizeStr);
 	}
 	
 	//Add citations to the code and general framework:

@@ -111,7 +111,8 @@ namespace MemPool
 		typedef std::multimap<size_t,void*>::iterator Iter;
 	public:
 		void* alloc(size_t size)
-		{	//Check if a suitable unused pointer is available:
+		{	if(!mempoolSize) return MemSpace::alloc(size); //pool not in use
+			//Check if a suitable unused pointer is available:
 			Iter ubound = unused.upper_bound(size); //iterator to first entry with larger size
 			if( (ubound != unused.end()) //an entry was found
 				&& (ubound->first < 2*size) ) //and is not too large (to not be wasteful)
@@ -147,7 +148,8 @@ namespace MemPool
 		}
 		
 		void free(void* ptr)
-		{	//Find size:
+		{	if(!mempoolSize) return MemSpace::free(ptr); //pool not in use
+			//Find size:
 			auto invIter = usedInv.find(ptr);
 			assert(invIter != usedInv.end());
 			size_t size = invIter->second;

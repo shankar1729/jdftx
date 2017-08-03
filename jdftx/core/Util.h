@@ -40,6 +40,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
 extern MPIUtil* mpiUtil;
 extern bool mpiDebugLog; //!< If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling initSystem())
+extern size_t mempoolSize; //!< If non-zero, size of memory pool managed internally by JDFTx
 void printVersionBanner(); //!< Print package name, version, revision etc. to log
 void initSystem(int argc, char** argv); //!< Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers
 void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e=0); //!< initSystem along with commandline options
