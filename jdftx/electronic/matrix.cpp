@@ -763,11 +763,8 @@ matrix cis_grad(const matrix& gradIn, const matrix& Aevecs, const diagMatrix& Ae
 
 complex trace(const matrix &A)
 {	assert(A.nRows() == A.nCols());
-	const complex* Adata = A.data();
-	complex tr = 0.0;
-	for(int i=0; i<A.nRows(); i++)
-		tr += Adata[A.index(i,i)];
-	return tr;
+	matrix one(eye(1));
+	return callPref(eblas_zdotc)(A.nRows(), one.dataPref(),0, A.dataPref(),A.nCols()+1);
 }
 
 double trace(const diagMatrix& A)
