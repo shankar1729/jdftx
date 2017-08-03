@@ -134,7 +134,7 @@ cat > "$tmpDir/process.m" <<EOF
 	endfor
 	#--- ionpos to lattice coordinates:
 	if posCoords==1
-		ionpos = ionpos * inv(R)'; #convert Cartesian to Lattice
+		ionpos = ionpos * inv(lattice)'; #convert Cartesian to Lattice
 	endif
 	#--- ionpos to [0,1] range:
 	ionpos -= floor(ionpos);
