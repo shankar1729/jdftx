@@ -9,8 +9,8 @@ function printUsageAndExit()
 	
 	The simplest usage saves the final structure from the JDFTx output
 	<jdftxOutFile> to <xsfFile>. Specifying "Animated" will include
-	ionic positions, forces and lattice vectors for all configurations
-	in the run (if geometry or lattice optimization was performed).
+	ionic positions and lattice vectors for all configurations in
+	the run (if geometry or lattice optimization was performed).
 	
 	Specifying Frames will output one XSF file for each configuration.
 	In this case, <xsfFile> must contain "%d", which will be substituted
@@ -67,7 +67,6 @@ awk "
 	#Header mode
 	BEGIN { mode=1; nAtoms=0; nSteps=0; Sprinted=0; }
 	mode==1 && \$1==\"coords-type\" { posCoords = (\$2==\"lattice\" || \$2==\"Lattice\" ? 0 : 1); }
-	mode==1 && \$1==\"forces-output-coords\" { forceCoords = (\$2==\"Positions\" ? 0 : (\$2==\"Lattice\" ? 1 : (\$2==\"Cartesian\" ? 2 : 3))); }
 	mode==1 && \$1==\"dump-name\" { fp=\"$tmpDir/dumpName\"; print \$2  > fp; close(fp) }
 	mode==1 && ( \$1==\"ion\" || \$1==\"ion-vel\" ) {
 		fpIonNames=\"$tmpDir/ionNames\"; print \$2 > fpIonNames;
@@ -87,22 +86,15 @@ awk "
 	/# Ionic positions in / { mode=3; refLine=NR; nSteps++; fp=(\"$tmpDir/ionpos.\" nSteps) }
 	mode==3 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > fp }
 	mode==3 && NR==refLine+nAtoms { close(fp) }
-	#Forces
-	/# Forces in / { mode=4; refLine=NR; fp=(\"$tmpDir/force.\" nSteps) }
-	mode==4 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > fp }
-	mode==4 && NR==refLine+nAtoms { close(fp) }
 	#Lattice vectors
-	mode==4 && \$0~/R =/ { mode=5; refLine=NR; fp=(\"$tmpDir/lattice.\" nSteps) }
-	mode==5 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > fp }
-	mode==5 && NR==refLine+3 { close(fp) }
+	mode==3 && \$0~/R =/ { mode=4; refLine=NR; fp=(\"$tmpDir/lattice.\" nSteps) }
+	mode==4 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > fp }
+	mode==4 && NR==refLine+3 { close(fp) }
 	#Supercell combinations:
-	/Lattice vector linear combinations in supercell/ { mode=6; refLine=NR; fp=\"$tmpDir/super\" }
-	mode==6 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > fp; }
-	mode==6 && NR==refLine+3 { refLine=0; mode=2; close(fp) }
-	END {
-		if(forceCoords==0) forceCoords = (posCoords==0 ? 1 : 2);
-		print nSteps, nAtoms, posCoords, forceCoords > \"$tmpDir/dimensions\";
-	}
+	/Lattice vector linear combinations in supercell/ { mode=5; refLine=NR; fp=\"$tmpDir/super\" }
+	mode==5 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > fp; }
+	mode==5 && NR==refLine+3 { refLine=0; mode=2; close(fp) }
+	END { print nSteps, nAtoms, posCoords > \"$tmpDir/dimensions\"; }
 " $jdftxOutFile
 
 #Initialize array of variables
@@ -119,7 +111,6 @@ cat > "$tmpDir/process.m" <<EOF
 	nSteps = dims(1);
 	nAtoms = dims(2);
 	posCoords = dims(3);
-	forceCoords = dims(4);
 	fp = fopen("$tmpDir/dumpName", "r");
 	dumpName = fscanf(fp, "%s");
 	fclose(fp);
@@ -179,11 +170,9 @@ cat > "$tmpDir/process.m" <<EOF
 	if nSteps > 0
 		lattice = repmat(reshape(lattice0, [3,3,1]), [1,1,nSteps]);
 		ionpos = zeros(nAtoms,3,nSteps);
-		forces = zeros(nAtoms,3,nSteps);
 		iLatDone=0;
 		for iStep = 1:nSteps
 			ionpos(:,:,iStep) = load("-ascii", sprintf("$tmpDir/ionpos.%d",iStep));
-			forces(:,:,iStep) = load("-ascii", sprintf("$tmpDir/force.%d",iStep));
 			latFile = sprintf("$tmpDir/lattice.%d",iStep);
 			if exist(latFile, "file")
 				lattice(:,:,iLatDone+1:iStep) = repmat(reshape(load("-ascii", latFile),[3,3,1]), [1,1,iStep-iLatDone]);
@@ -209,9 +198,6 @@ cat > "$tmpDir/process.m" <<EOF
 		nSteps = 1;
 		lattice = lattice(:,:,end);
 		ionpos = ionpos(:,:,end);
-		if exist("forces", "var")
-			forces = forces(:,:,end);
-		endif
 	endif
 	for iVar = 1:length(varNames)
 		fname = varNames{iVar};
@@ -304,20 +290,7 @@ cat > "$tmpDir/process.m" <<EOF
 		endif
 		pos /= Angstrom;
 		formatString = "%2d %10.6f %10.6f %10.6f\n";
-		#Transform and append forces (if any)
-		if exist("forces", "var")
-			force = squeeze(forces(:,:,iStep));
-			switch(forceCoords)
-				case 1
-					force = force * inv(R); #convert Lattice (Covariant) to Cartesian
-				case 3
-					force = force * R'; #convert Contravariant to Cartesian
-			endswitch
-			force *= Angstrom;
-			pos = [ pos force ];
-			formatString = "%2d %10.6f %10.6f %10.6f %10.6f %10.6f %10.6f\n";
-		endif
-		#Print positions (and forces)
+		#Print positions
 		if (nSteps>1 && isAnimated)
 			fprintf(fp, "PRIMCOORD %d\n", iStep);
 		else

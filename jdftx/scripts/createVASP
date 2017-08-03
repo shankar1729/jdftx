@@ -136,6 +136,8 @@ cat > "$tmpDir/process.m" <<EOF
 	if posCoords==1
 		ionpos = ionpos * inv(R)'; #convert Cartesian to Lattice
 	endif
+	#--- ionpos to [0,1] range:
+	ionpos -= floor(ionpos);
 	#--- multiply electron density by volume:
 	n *= abs(det(lattice));
 	#--- lattice to Angstroms:
@@ -161,7 +163,7 @@ cat > "$tmpDir/process.m" <<EOF
 	fprintf(fp, "\n");
 	#--- Charge density:
 	fprintf(fp, "%5d%5d%5d\n", Sgrid);
-	fprintf(fp, "%18.11e%18.11e%18.11e%18.11e%18.11e\n", n);
+	fprintf(fp, "%18.10e%18.10e%18.10e%18.10e%18.10e\n", n);
 	fprintf(fp, "\n");
 	fclose(fp);
 	exit(0);
