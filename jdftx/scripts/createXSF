@@ -217,7 +217,7 @@ cat > "$tmpDir/process.m" <<EOF
 		fname = varNames{iVar};
 		if index(fname,".")==0 #Assume variable name if no .
 			if index(dumpName,"\$STAMP")
-				printf("Cannot use variable names when \$STAMP is used i th dump-name; use full file names instead\n");
+				printf("Cannot use variable names when \$STAMP is used in the dump-name; use full file names instead\n");
 				exit(1);
 			endif
 			fname = strrep(dumpName, "\$VAR", fname);
