@@ -22,6 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #include <fftw3.h>
 #include <mutex>
+#include <map>
+#include <set>
 
 //-------- Memory usage profiler ---------
 
@@ -93,20 +95,111 @@ namespace MemUsageReport
 }
 
 
-//---- Wrappers to CPU alloc / free: optionally pinned in GPU mode ----
-#if defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
-inline void hostAlloc(complex** ptr, size_t size)
-{	if(cudaMallocHost(ptr, size) != cudaSuccess)
-		die_alone("Host memory allocation failed (out of pinned memory)\n");
+//-------- Memory pool to reduce system alloc/free calls ---------
+
+namespace MemPool
+{
+	//Pool memory allocations in a memory space abstracted by MemSpace
+	//MemSpace is a tag class with static functions:
+	// void* alloc(size_t);  //returns 0 when out of memory
+	// void free(void*);     //assumed to not fail
+	// void outOfMemory();   //exit with appropriate out of memory error
+	template<typename MemSpace> class MemPool
+	{	std::map<size_t,std::set<void*>> used; //map from sizes to used pointers
+		std::multimap<size_t,void*> unused; //map from sizes to unused pointers
+		std::map<void*,size_t> usedInv; //inverse map from used pointers to sizes (to speed up free)
+		typedef std::multimap<size_t,void*>::iterator Iter;
+	public:
+		void* alloc(size_t size)
+		{	//Check if a suitable unused pointer is available:
+			Iter ubound = unused.upper_bound(size); //iterator to first entry with larger size
+			if( (ubound != unused.end()) //an entry was found
+				&& (ubound->first < 2*size) ) //and is not too large (to not be wasteful)
+			{	void* ptr = ubound->second;
+				usedInv[ptr] = ubound->first;
+				used[ubound->first].insert(ptr); //add entry to used
+				unused.erase(ubound); //remove it from unused
+				return ptr;
+			}
+			//Allocate a new pointer:
+			while(true)
+			{	void* ptr = MemSpace::alloc(size);
+				if(ptr) //allocation succeeded:
+				{	usedInv[ptr] = size;
+					used[size].insert(ptr);
+					return ptr;
+				}
+				else //allocation failed:
+				{	if(unused.size()) //Try freeing unused memory
+					{	size_t freed = 0;
+						while(freed < size && unused.size())
+						{	Iter iter = unused.begin(); //free smallest first (reduce fragmentation)
+							MemSpace::free(iter->second);
+							freed += iter->first;
+							unused.erase(iter);
+						}
+					}
+					else //Nothing to free: actually out of memory!
+					{	MemSpace::outOfMemory();
+					}
+				}
+			}
+		}
+		
+		void free(void* ptr)
+		{	//Find size:
+			auto invIter = usedInv.find(ptr);
+			assert(invIter != usedInv.end());
+			size_t size = invIter->second;
+			//Mark unused:
+			usedInv.erase(invIter); //remove from usedInv
+			used[size].erase(ptr); //remove from used
+			unused.insert(std::make_pair(size,ptr)); //add to unused
+		}
+	};
+	
+	
+	//---- MemSpace classes for each memory space ----
+	#if defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
+	struct MemSpaceCPU
+	{	static void* alloc(size_t size)
+		{	void* ptr;
+			cudaError_t ret = cudaMallocHost(&ptr, size);
+			return (ret==cudaSuccess) ? ptr : 0;
+		}
+		static void free(void* ptr) { cudaFreeHost(ptr); }
+		static void outOfMemory() die_alone("Host memory allocation failed (out of pinned memory)\n");
+	};
+	#else
+	struct MemSpaceCPU
+	{	static void* alloc(size_t size) { return fftw_malloc(size); }
+		static void free(void* ptr) { fftw_free(ptr); }
+		static void outOfMemory() die_alone("Memory allocation failed (out of memory)\n");
+	};
+	#endif
+	#ifdef GPU_ENABLED
+	struct MemSpaceGPU
+	{	static void* alloc(size_t size)
+		{	assert(isGpuMine());
+			void* ptr;
+			cudaError_t ret = cudaMalloc(&ptr, size);
+			return (ret==cudaSuccess) ? ptr : 0;
+		}
+		static void free(void* ptr)
+		{	assert(isGpuMine());
+			cudaFree(ptr);
+		}
+		static void outOfMemory() die_alone("GPU memory allocation failed (out of memory)\n");
+	};
+	#endif
+	
+	//Pool accessor functions (to avoid file-level static variables):
+	MemPool<MemSpaceCPU>& CPU() { static MemPool<MemSpaceCPU> pool; return pool; }
+	#ifdef GPU_ENABLED
+	MemPool<MemSpaceGPU>& GPU() { static MemPool<MemSpaceGPU> pool; return pool; }
+	#endif
 }
-inline void hostFree(complex* ptr) { cudaFreeHost(ptr); }
-#else
-inline void hostAlloc(complex** ptr, size_t size)
-{	*ptr = (complex*)fftw_malloc(size);
-	if(!(*ptr)) die_alone("Memory allocation failed (out of memory)\n");
-}
-inline void hostFree(complex* ptr) { fftw_free(ptr); }
-#endif
+
 
 //---------- class ManagedMemory -----------
 
@@ -126,14 +219,12 @@ void ManagedMemory::memFree()
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		assert(isGpuMine());
-		cudaFree(c);
-		gpuErrorCheck();
+		MemPool::GPU().free(c);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED"); //Should never get here!
 		#endif
 	}
-	else hostFree(c);
+	else MemPool::CPU().free(c);
 	MemUsageReport::manager(MemUsageReport::Remove, category, nElements);
 	c = 0;
 	nElements = 0;
@@ -150,14 +241,12 @@ void ManagedMemory::memInit(string category, size_t nElements, bool onGpu)
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		assert(isGpuMine());
-		cudaMalloc(&c, sizeof(complex)*nElements);
-		gpuErrorCheck();
+		c = (complex*)MemPool::GPU().alloc(sizeof(complex)*nElements);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED");
 		#endif
 	}
-	else hostAlloc(&c, sizeof(complex)*nElements);
+	else c = (complex*)MemPool::CPU().alloc(sizeof(complex)*nElements);
 	MemUsageReport::manager(MemUsageReport::Add, category, nElements);
 }
 
@@ -203,9 +292,9 @@ const complex* ManagedMemory::dataGpu() const
 void ManagedMemory::toCpu()
 {	if(!onGpu || !c) return; //already on cpu, or no data
 	assert(isGpuMine());
-	complex* cCpu; hostAlloc(&cCpu, sizeof(complex)*nElements);
-	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost); gpuErrorCheck();
-	cudaFree(c); gpuErrorCheck(); //Free GPU mem
+	complex* cCpu = (complex*)MemPool::CPU().alloc(sizeof(complex)*nElements);
+	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost);
+	MemPool::GPU().free(c); //Free GPU mem
 	c = cCpu; //Make c a cpu pointer
 	onGpu = false;
 }
@@ -214,10 +303,9 @@ void ManagedMemory::toCpu()
 void ManagedMemory::toGpu()
 {	if(onGpu || !c) return; //already on gpu, or no data
 	assert(isGpuMine());
-	complex* cGpu;
-	cudaMalloc(&cGpu, sizeof(complex)*nElements); gpuErrorCheck();
+	complex* cGpu = (complex*)MemPool::GPU().alloc(sizeof(complex)*nElements);
 	cudaMemcpy(cGpu, c, sizeof(complex)*nElements, cudaMemcpyHostToDevice);
-	hostFree(c); //Free CPU mem
+	MemPool::CPU().free(c); //Free CPU mem
 	c = cGpu; //Make c a gpu pointer
 	onGpu = true;
 }
