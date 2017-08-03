@@ -240,7 +240,7 @@ void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const Sca
 	int nSpinor = VC->spinorLength();
 	for(int col=colStart; col<colEnd; col++)
 		for(int s=0; s<nSpinor; s++)
-			VC->setColumn(col,s, Idag(Vs * I(C->getColumn(col,s))));
+			VC->accumColumn(col,s, Idag(Vs * I(C->getColumn(col,s)))); //note VC is zero'd just before
 }
 
 //Noncollinear version of above (with the preprocessing of complex off-diagonal potentials done in calling function)
@@ -249,15 +249,15 @@ void Idag_DiagVmat_I_sub(int colStart, int colEnd, const ColumnBundle* C, const 
 {	for(int col=colStart; col<colEnd; col++)
 	{	complexScalarField ICup = I(C->getColumn(col,0));
 		complexScalarField ICdn = I(C->getColumn(col,1));
-		VC->setColumn(col,0, Idag((*Vup)*ICup + (*VupDn)*ICdn));
-		VC->setColumn(col,1, Idag((*Vdn)*ICdn + (*VdnUp)*ICup));
+		VC->accumColumn(col,0, Idag((*Vup)*ICup + (*VupDn)*ICdn));
+		VC->accumColumn(col,1, Idag((*Vdn)*ICdn + (*VdnUp)*ICup));
 	}
 	
 }
 
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
-	ColumnBundle VC = C.similar();
+	ColumnBundle VC = C.similar(); VC.zero();
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
 	ScalarFieldArray Vtmp;
