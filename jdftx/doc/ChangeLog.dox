@@ -4,6 +4,13 @@
 
 + Added script createVASP to export structure and electron density in VASP's CHGCAR format
 
++ Added CMake option PinnedHostMemory to use page-locked host memory for GPU mode (default off)
+
++ Added CMake option CudaAwareMPI to apply MPI operations directly on GPU pointers (default off)
+
++ Added an optional memory pool to ManagedMemory selected by environment variable JDFTX_MEMPOOL_SIZE,
+  which is especially advantageous in multi-GPU jobs to avoid expensive cudaMallocs.
+
 
 ## 1.3.0 - 2017-07-29 ([Site archive](http://jdftx.org/1.3.0))
 
