@@ -90,7 +90,8 @@ The full power of Joint Density functional theory is unleashed when electronic D
 is coupled to a classical DFT or free energy functional for the fluid
 (see option ClassicalDFT in command \ref CommandFluid), which accounts for
 atomic-scale structure in the fluid \cite BondedVoids \cite RigidCDFT \cite PolarizableCDFT.
-Additionally, JDFT implements a hierarchy of continuum solvation models,
+
+Additionally, JDFTx implements a hierarchy of continuum solvation models,
 starting with simple local and linear solvation models \cite PCM-Kendra
 (option %LinearPCM in command \ref CommandFluid) with several variants
 (command \ref CommandPcmVariant) including the default GLSSA13 \cite NonlinearPCM,
@@ -99,6 +100,12 @@ and CANDLE \cite CANDLE, which is the recommended solvation model
 especially for strongly charged and polar solutes.
 Note that GLSSA13 was later ported to [VASP](http://www.vasp.at)
 as VASPsol \cite VASPsol; these models are identical.
+JDFTx also includes nonlinear solvation models \cite NonlinearPCM
+(option %NonlinearPCM in command \ref CommandFluid) that account for
+dielectric saturation and ionic nonlinearities in the fluid response.
+Finally, the non-empirical solvation model SaLSA captures atomic-scale
+nonlocality of the fluid response at a linear-response level
+(option %SaLSA in command \ref CommandSaLSA).
 
 Unlike most other electronic structure codes, by default, JDFTx performs
 total energy minimization using analytically continued energy functionals
@@ -115,6 +122,19 @@ is grand-canonical DFT \cite GC-DFT (see command \ref CommandTargetMu),
 which allows the number of electrons to adjust automatically at
 a fixed electron chemical potential; variational minimization
 is also important for stable convergence in this mode.
+
+JDFTx can export a wide-range of electronic structure and liquid properties
+including charge/site densities, potentials, density of states,
+vibrational/phonon modes and free energies, optical and electron-phonon
+matrix elements etc. (See command \ref CommandDump.)
+It can generate maximally-localized %Wannier functions \cite MLWF and
+transform Hamiltonians and matrix elements into an *ab initio* tight-binding model.
+JDFTx is interfaced with several commonly-used visualization software, and
+with the [Atomistic Simulation Environment](https://wiki.fysik.dtu.dk/ase)
+for additional features such NEB barrier calculations and molecular dynamics.
+It also provides solvation functionality to other electronic structure software
+through interfaces, such as for Quantum Monte-Carlo (QMC) simulations in 
+[CASINO](https://vallico.net/casinoqmc/what-is-casino) \cite Katie-QMC.
 
 -----
 

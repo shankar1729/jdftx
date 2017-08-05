@@ -20,7 +20,6 @@
         <tab type="filelist" visible="yes" title="" intro=""/>
         <tab type="globals" visible="yes" title="" intro=""/>
       </tab>
-      <tab type="examples" visible="yes" title="" intro=""/>
     </tab>
 	<tab type="user" title="Wiki"   url="https://github.com/shankar1729/jdftx/wiki"   />
 	<tab type="user" title="Issues" url="https://github.com/shankar1729/jdftx/issues" />
