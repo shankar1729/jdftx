@@ -51,7 +51,7 @@ public:
 	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field
 	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field
 	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a scalar field
-	void symmetrize(class IonicGradient&) const; //!< symmetrize forces
+	void symmetrize(struct IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const class SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector<SpaceGroupOp>& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector<matrix>& getSphericalMatrices(int l, bool relativistic) const; //!< directly access the symmetry matrices (in Ylm or spin-angle basis at specified l, depending on relativistic)

@@ -45,7 +45,7 @@ public:
 	//! The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and
 	//! the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null)
 	double energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const ScalarFieldTildeArray& Ntilde, const std::vector<int>& atomicNumber,
-		const double scaleFac, ScalarFieldTildeArray* grad_Ntilde=0, class IonicGradient* forces=0) const;
+		const double scaleFac, ScalarFieldTildeArray* grad_Ntilde=0, struct IonicGradient* forces=0) const;
 	
 	//! Retrieve the scale factor for a specified exchange-correlation functional (or return scaleOverride if supplied)
 	//! Quits with an appropriate error message suggesting the scale-override if functional not parametrized

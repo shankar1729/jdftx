@@ -121,7 +121,7 @@ public:
 
 	//Functions for Minimizable interface:
 	void step(const diagMatrix& dV, double alpha);
-	double compute(diagMatrix* E_V);
+	double compute(diagMatrix* E_V, diagMatrix* KE_V);
 	diagMatrix precondition(const diagMatrix& grad);
 	
 private:

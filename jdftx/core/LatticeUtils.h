@@ -78,7 +78,7 @@ struct Supercell
 //! Returns a list of cell positions in lattice coordinates, along with the weights for matrix elements
 //! connecting each pair from x1 and x2 (which will add to 1 over each set of equivalent cells)
 //! Optionally write the cell map to a file, if fname is non-null
-std::map<vector3<int>, struct matrix> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, const vector3<bool>& isTruncated,
+std::map<vector3<int>, class matrix> getCellMap(const matrix3<>& R, const matrix3<>& Rsup, const vector3<bool>& isTruncated,
 	const std::vector<vector3<>>& x1, const std::vector<vector3<>>& x2, double rSmooth, string fname=string());
 
 //Helper function for PeriodicLookup< vector3<> > used in Supercell::Supercell

@@ -30,8 +30,9 @@ class Everything;
 //! @file Energies.h Energies class and related utilities
 
 //! Electronic energy components
-struct Energies
+class Energies
 {
+public:
 	EnergyComponents E; //!< All components of the internal energy (excluding TS and muN)
 	
 	double TS; //!< Fillings entropy

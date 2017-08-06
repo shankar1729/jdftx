@@ -47,7 +47,7 @@ public:
 private:
 	Everything* e;
 	vector3<> getSplit() const; //get optimum latttice coordinates for splitting periodicity in a molecular geometry
-	class IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
+	struct IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
 	VectorField Ptest; //vector field that measures dipole moment in lattice coordinates
 	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
 };

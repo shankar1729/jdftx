@@ -397,7 +397,7 @@ void InvertKS::step(const diagMatrix& dV, double alpha)
 {	axpy(alpha, dV, V);
 }
 
-double InvertKS::compute(diagMatrix* E_V)
+double InvertKS::compute(diagMatrix* E_V, diagMatrix* KE_V)
 {	RadialSchrodinger atom(r, dr, V, 0);
 	F = atom.getFillings(nElectrons);
 	double Etot = atom.compute(F, RadialSchrodinger::Outputs(&n));
@@ -408,6 +408,7 @@ double InvertKS::compute(diagMatrix* E_V)
 		Vdotn0 += wr * V[i] * n0[i];
 		if(E_V) E_V->at(i) = wr*(n0[i] - n[i]);
 	}
+	if(KE_V) *KE_V = precondition(*E_V);
 	return Vdotn0 - Etot;
 }
 
