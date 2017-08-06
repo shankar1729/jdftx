@@ -27,7 +27,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <vector>
 
-//! Object to hold all the forces
+//! @addtogroup IonicSystem
+//! @{
+//! @file IonicMinimizer.h Class IonicMinimizer and helpers
+
+//! Vector space entry for ionic minimization (forces)
 struct IonicGradient : std::vector< std::vector< vector3<> > >
 {
 	void init(const IonInfo&); //!< initialize to zeroes with the correct species and atom numbers for iInfo
@@ -50,7 +54,7 @@ void randomize(IonicGradient& x); //!< initialize with random numbers
 
 IonicGradient operator*(const matrix3<>&, const IonicGradient&); //!< coordinate transformations
 
-
+//! Ionic minimizer
 class IonicMinimizer : public Minimizable<IonicGradient>
 {	Everything& e;
 	
@@ -61,9 +65,9 @@ public:
 	double compute(IonicGradient* grad, IonicGradient* Kgrad);
 	bool report(int iter);
 	void constrain(IonicGradient&);
-	static const double maxAtomTestDisplacement; //maximum allowed atom displacement in test step
-	static const double maxWfnsDragDisplacement; //maximum atom displacement for which wavefunction drag is allowed
-	double safeStepSize(const IonicGradient& dir) const; //enforces IonicMinimizer::maxAtomTestDisplacement on test step size
+	static const double maxAtomTestDisplacement; //!< maximum allowed atom displacement in test step
+	static const double maxWfnsDragDisplacement; //!< maximum atom displacement for which wavefunction drag is allowed
+	double safeStepSize(const IonicGradient& dir) const; //!< enforces IonicMinimizer::maxAtomTestDisplacement on test step size
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
@@ -73,4 +77,5 @@ private:
 	bool anyConstrained; //!< whether any atoms are constrained
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_IONICMINIMIZER_H

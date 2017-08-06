@@ -27,6 +27,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 #include <memory>
 
+//! @addtogroup Output
+//! @{
+//! @file Dump.h Selection of output quantities
+
 //! Dump frequency options:
 enum DumpFrequency
 {	DumpFreq_End, //!< At the end of calculation
@@ -54,7 +58,7 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 };
 
 
-//! Stores the list of what to dump and when, and implements the functions to do so
+//! Stores list of what to output and when, and implements functions to do so
 class Dump : public std::set<std::pair<DumpFrequency,DumpVariable> >
 {
 public:
@@ -95,6 +99,5 @@ private:
 	void dumpRsol(ScalarField nbound, string fname);
 };
 
-namespace Moments{void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx);}
-
+//! @}
 #endif // JDFTX_ELECTRONIC_DUMP_H

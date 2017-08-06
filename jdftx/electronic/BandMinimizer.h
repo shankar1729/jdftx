@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <electronic/ColumnBundle.h>
 
+//! @addtogroup ElecSystem
+//! @{
+
+//! Conjugate gradients eigen-solver
 class BandMinimizer : public Minimizable<ColumnBundle>
 {
 public:
@@ -41,4 +45,5 @@ private:
 	int q; //!< Current quantum number
 };
 
+//! @}
 #endif

@@ -27,6 +27,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarField.h>
 #include <core/scaled.h>
 
+//! @addtogroup DataStructures
+//! @{
+//! @file ColumnBundle.h ColumnBundle class and operators
+
+//! Wavefunction data structure
 class ColumnBundle : public ManagedMemory
 {
 	int ncols;
@@ -46,9 +51,9 @@ public:
 	const QuantumNumber *qnum;
 	const Basis *basis;
 
-	void init(int nc, size_t len, const Basis* b, const QuantumNumber* q, bool onGpu=false); //!< onGpu MUST remain false if no GPU_ENABLED!
+	void init(int nc, size_t len, const Basis* b, const QuantumNumber* q, bool onGpu=false); //!< constructor helper
 	void free(); //!< Force cleanup
-	ColumnBundle(int nc=0, size_t len=0, const Basis* b=NULL, const QuantumNumber* q=NULL, bool onGpu=false); //!< onGpu MUST remain false if no GPU_ENABLED!
+	ColumnBundle(int nc=0, size_t len=0, const Basis* b=NULL, const QuantumNumber* q=NULL, bool onGpu=false);
 	ColumnBundle(const ColumnBundle&); //!< copy constructor
 	ColumnBundle(ColumnBundle&&); //!< move constructor
 
@@ -73,9 +78,10 @@ public:
 //! Initialize an array of column bundles (with appropriate wavefunction sizes if ncols, basis, qnum and eInfo are all non-zero)
 void init(std::vector<ColumnBundle>&, int nbundles, int ncols=0, const Basis* basis=0, const ElecInfo* eInfo=0);
 
-void randomize(std::vector<ColumnBundle>&, const ElecInfo& eInfo);
-void write(const std::vector<ColumnBundle>&, const char *fname, const ElecInfo& eInfo);
+void randomize(std::vector<ColumnBundle>&, const ElecInfo& eInfo); //!< randomize an array of columnbundles
+void write(const std::vector<ColumnBundle>&, const char *fname, const ElecInfo& eInfo); //!< write an array of columnbundles to file
 
+//! Utility to convert columnbundle basis / bands
 struct ColumnBundleReadConversion
 {	bool realSpace; //!< whether to read realspace wavefunctions
 	int nBandsOld; //!< nBands for the input wavefunction
@@ -84,6 +90,8 @@ struct ColumnBundleReadConversion
 	
 	ColumnBundleReadConversion();
 };
+
+//! Read array of columnbundles, optionally with conversion
 void read(std::vector<ColumnBundle>&, const char *fname, const ElecInfo& eInfo, const ColumnBundleReadConversion* conversion=0);
 
 // Used in the CG template Minimize.h
@@ -141,4 +149,5 @@ ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleM
 ColumnBundle operator*(const scaled<ColumnBundle>&, const diagMatrix&);
 matrix operator^(const scaled<ColumnBundle>&, const scaled<ColumnBundle>&); //!< inner product
 
+//! @}
 #endif // JDFTX_ELECTRONIC_COLUMNBUNDLE_H

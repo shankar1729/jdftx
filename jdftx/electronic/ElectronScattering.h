@@ -26,6 +26,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <vector>
 
+//! @addtogroup Output
+//! @{
+
+//! Electron-electron scattering (ImSigma_ee) calculator
 struct ElectronScattering
 {
 	double eta; //!< frequency resolution and half the imaginary part ascribed to probe frequency (set to eInfo.kT if unspecified)
@@ -72,4 +76,5 @@ private:
 	void dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid);
 };
 
+//! @}
 #endif //JDFTX_ELECTRONIC_ELECTRONSCATTERING_H

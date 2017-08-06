@@ -28,6 +28,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <map>
 
+//! @addtogroup Output
+//! @{
+//! @file RadialSchrodinger Radial Schrodinger equation solution and Kohn-Sham inversion
+
 //! Radial schrodinger equation solver (non-interacting eigen-problem for an atom)
 class RadialSchrodinger
 {
@@ -128,4 +132,5 @@ private:
 	std::vector< std::vector<double> > F; //!< non-interacting fillings
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_RADIALSCHRODINGER_H

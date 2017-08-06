@@ -23,6 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/EnergyComponents.h>
 
+//! @addtogroup ElecSystem
+//! @{
+//! @file Energies.h Energies class and related utilities
+
+//! Electronic energy components
 struct Energies
 {
 	EnergyComponents E; //!< All components of the internal energy (excluding TS and muN)
@@ -44,5 +49,5 @@ const char* relevantFreeEnergyName(const Everything&); //!< return the name of t
 
 void print_Hsub_eigs(const Everything&); //!< Print eigenvalues to logPrintf
 
-
+//! @}
 #endif // JDFTX_ELECTRONIC_ENERGIES_H

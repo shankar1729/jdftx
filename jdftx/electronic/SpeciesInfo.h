@@ -29,7 +29,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/string.h>
 
+//! @addtogroup IonicSystem
+//! @{
 
+//! Pseudopotential for a species of ions, and atom positions and other properties for that species
 class SpeciesInfo
 {
 public:
@@ -37,7 +40,8 @@ public:
 	double Z; //!< Valence charge of the species (prefactor to 1/r in long-range part of pseudopotential)
 	int atomicNumber; //!< Atomic number of the species (0 if unavailable)
 	string name; //!< Identifier
-	string potfilename, pulayfilename;
+	string potfilename; //!< pseudopotential filename
+	string pulayfilename; //!< pulay correction filename
 	bool fromWildcard; //!< whether this pseudopotential was automatically added using a wildcard (for command printing purposes only)
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
@@ -72,8 +76,8 @@ public:
 	SpeciesInfo();
 	~SpeciesInfo();
 	void setup(const Everything&);
-	void print(FILE* fp) const;
-	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //print population analysis given the density matrix in the Lowdin basis
+	void print(FILE* fp) const; //!< print ionic positions from current species
+	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //!< print population analysis given the density matrix in the Lowdin basis
 	bool isRelativistic() const { return psi2j.size(); } //!< whether pseudopotential is relativistic
 	
 	enum PseudopotentialFormat
@@ -84,7 +88,7 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, matrix* M=0) const; //get projectors with qnum and basis matching Cq  (optionally cached, and optionally retrieve full M repeated over atoms)
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, matrix* M=0) const; //!< get projectors with qnum and basis matching Cq  (optionally cached, and optionally retrieve full M repeated over atoms)
 
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
@@ -235,4 +239,5 @@ static EnumStringMap<SpeciesInfo::Constraint::ConstraintType> constraintTypeMap
 	SpeciesInfo::Constraint::HyperPlane, "HyperPlane"
 );
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SPECIESINFO_H

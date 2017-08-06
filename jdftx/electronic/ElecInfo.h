@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/vector3.h>
 
+//! @addtogroup ElecSystem
+//! @{
+//! @file ElecInfo.h
+
 //! Spin polarization options
 enum SpinType {
 	SpinNone, //!< unpolarized
@@ -32,6 +36,7 @@ enum SpinType {
 	SpinOrbit //!< noncollinear but unpolarized (spin-orbit in nonmagnetic systems)
 };
 
+//! Quantum number of Bloch state: k-point and spin
 class QuantumNumber
 {
 public:
@@ -46,6 +51,7 @@ public:
 //! Conversion function needed for PeriodicLookup<QuantumNumber> used for k-point reduction
 inline vector3<> getCoord(const QuantumNumber& qnum) { return qnum.k; }
 
+//! Electronic system auxiliary information, fillings and related functions
 class ElecInfo
 {
 public:
@@ -57,7 +63,7 @@ public:
 	int qStartOther(int iProc) const { return qDivision.start(iProc); } //!< find out qStart for another process
 	int qStopOther(int iProc) const { return qDivision.stop(iProc); } //!< find out qStop for another process
 	
-	SpinType spinType; //!< tells us what sort of spins we are using if any
+	SpinType spinType; //!< type of spin treatment
 	double nElectrons; //!< the number of electrons = Sum w Tr[F]
 	std::vector<QuantumNumber> qnums; //!< k-points, spins and weights for each state
 	
@@ -66,19 +72,21 @@ public:
 	int nSpins() const { return spinType==SpinZ ? 2 : 1; }
 	vector3<int> kFoldingCount() const { return kfold; }
 	
+	//! Fillings update mode
 	enum FillingsUpdate
 	{	FillingsConst, //!< constant fillings (T=0)
 		FillingsHsub //!< fillings are a function of subspace Hamiltonian
 	}
-	fillingsUpdate;
+	fillingsUpdate; //!< fillings update mode
 	bool scalarFillings; //!< whether fillings are scalar (equal for all bands) at all quantum numbers
 	
+	//! Smearing options
 	enum SmearingType
 	{	SmearingFermi, //!< Fermi-Dirac smearing
 		SmearingGauss, //!< Gaussian smearing
 		SmearingCold //!< Cold smearing
 	}
-	smearingType;
+	smearingType; //!< smearing option
 	double smearingWidth; //!< Smearing width (temperature in the Fermi case)
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this
 	bool muLoop; //!< Whether to optimize mu in an outer loop over fixed charge calculations
@@ -94,7 +102,7 @@ public:
 	void updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energies&) const; //!< Calculate variable fillings Legendre multipliers (TS/muN)
 
 	//Smearing function utilities:
-	inline double muEff(double mu, double Bz, int q) const { return mu + Bz*qnums[q].spin; }
+	inline double muEff(double mu, double Bz, int q) const { return mu + Bz*qnums[q].spin; } //!< effective mu for each spin
 	double smear(double mu, double eps) const; //!< smearing function
 	double smearPrime(double mu, double eps) const; //!< derivative of smearing function
 	double smearEntropy(double mu, double eps) const; //!< entropy associated with smearing function
@@ -116,14 +124,14 @@ public:
 	void kpointsPrint(FILE* fp, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	void kpointPrint(FILE* fp, int q, bool printSpin=false) const; //!< Output k-points, weights and optionally spins
 	
-	int findHOMO(int q) const; //! Returns the band index of the Highest Occupied Kohn-Sham Orbital
+	int findHOMO(int q) const; //!< Returns the band index of the Highest Occupied Kohn-Sham Orbital
 
 	//Parallel I/O utilities for diagMatrix/matrix array (one-per-kpoint, with nBands rows and columns unless overridden):
-	void read(std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
-	void read(std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
-	void write(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
-	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;
-	void appendWrite(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;
+	void read(std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const; //!< parallel read array of diagonal matrices
+	void read(std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const; //!< parallel read array of matrices
+	void write(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const; //!< parallel write array of diagonal matrices
+	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;  //!< parallel write array of matrices
+	void appendWrite(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;  //!< append-write array of diagonal matrices
 
 private:
 	const Everything* e;
@@ -152,4 +160,5 @@ private:
 	void kpointsReduce(); //!< Reduce folded k-points under symmetries
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_ELECINFO_H

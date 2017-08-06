@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr.h>
 
+//! @addtogroup ExchangeCorrelation
+//! @{
+
+//! Orbital-dependent GLLBsc functional
 struct ExCorr_OrbitalDep_GLLBsc : public ExCorr::OrbitalDep
 {	ExCorr_OrbitalDep_GLLBsc(const Everything&);
 	bool ignore_nCore() const { return true; }
@@ -33,4 +37,5 @@ private:
 	ScalarFieldArray getPotential(std::vector<double> eHOMO, std::vector<double>* eLUMO=0) const; //!< get the orbital dep potential (or discontinuity contribution if eLUMO is non-null)
 };
 
+//! @}
 #endif //JDFTX_ELECTRONIC_EXCORR_ORBITALDEP_GLLBSC_H

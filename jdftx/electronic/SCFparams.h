@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/PulayParams.h>
 #include <vector>
 
+//! @addtogroup ElecSystem
+//! @{
+
+//! Parameters controlling SCF iteration
 struct SCFparams : public PulayParams
 {
 	int nEigSteps; //!< number of steps of the eigenvalue solver per iteration (use elecMinParams.nIterations if 0)
@@ -54,4 +58,5 @@ struct SCFparams : public PulayParams
 	}
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SCFPARAMS_H

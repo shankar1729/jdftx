@@ -25,6 +25,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarFieldArray.h>
 #include <core/Coulomb.h>
 
+
+//! @addtogroup LongRange
+//! @{
+
+//! DFT-D2 pair potential dispersion correction \cite Dispersion-Grimme
 class VanDerWaals
 {
 public:
@@ -73,4 +78,5 @@ private:
 	std::map<std::pair<int,int>,RadialFunctionG> radialFunctions;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_VANDERWAALS_H

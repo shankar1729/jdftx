@@ -38,23 +38,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/IonDynamicsParams.h>
 #include <memory>
 
+//! @addtogroup ElectronicDFT
+//! @{
+
+//! Container class that contains, well, everything.
 class Everything
 {
 public:
-	Control cntrl;
-	Dump dump;
-	GridInfo gInfo;
-	std::shared_ptr<GridInfo> gInfoWfns; //tighter grid sufficient for wavefunction operations
-	std::vector<Basis> basis;
-	IonInfo iInfo;
-	Symmetries symm;
-	Symmetries symmUnperturbed; //symmetries of unperturbed system in vibration calculations (symm is set to mode=SymmNone in these calculations)
+	Control cntrl;  //!< control variables
+	Dump dump;      //!< output options
+	GridInfo gInfo; //!< main grid descriptor
+	std::shared_ptr<GridInfo> gInfoWfns; //!< tighter grid sufficient for wavefunction operations
+	std::vector<Basis> basis; //!< wavefunction basis for all k points
+	IonInfo iInfo;   //!< ionic system
+	Symmetries symm; //!< symmetries
+	Symmetries symmUnperturbed; //!< symmetries of unperturbed system in vibration calculations (symm is set to mode=SymmNone in these calculations)
 	ExCorr exCorr; //!< Exchange and correlation functional
 	std::vector<std::shared_ptr<ExCorr> > exCorrDiff; //!< Other exchange and correlation functionals for comparison
 	std::shared_ptr<ExactExchange> exx; //!< Exact exchange
-	ElecInfo eInfo;
-	ElecVars eVars;
-	Energies ener;
+	ElecInfo eInfo; //!< Auxiliary electronic information
+	ElecVars eVars; //!< Electroic variables
+	Energies ener;  //!< Energy components
 	
 	MinimizeParams elecMinParams; //!< electronic minimization parameters
 	MinimizeParams ionicMinParams; //!< ionic minimization parameters
@@ -75,4 +79,5 @@ public:
 	void updateSupercell(bool force=false); //!< (re-)initialize coulombParams.supercell if necessary (or if forced)
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EVERYTHING_H

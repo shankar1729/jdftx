@@ -23,6 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/vector3.h>
 
+//! @addtogroup Output
+//! @{
+
 //! Calculate the polarizability in a convenient eigenbasis
 struct Polarizability
 {
@@ -49,4 +52,5 @@ private:
 	friend class PairDensityCalculator;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_POLARIZABILITY_H

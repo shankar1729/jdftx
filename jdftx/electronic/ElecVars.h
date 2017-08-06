@@ -27,6 +27,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <memory>
 
+//! @addtogroup ElecSystem
+//! @{
+
+//! Electronic variables and main energy calculator
 class ElecVars
 {
 public:
@@ -38,7 +42,7 @@ public:
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
 	std::vector<diagMatrix> Hsub_eigs; //!< eigenvalues of Hsub[q]
 	
-	std::vector< std::vector<matrix> > VdagC; //cached pseudopotential projections (by state and then species)
+	std::vector< std::vector<matrix> > VdagC; //!< cached pseudopotential projections (by state and then species)
 	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
@@ -60,11 +64,14 @@ public:
 	ScalarFieldArray Vexternal; //!< external potential
 	ScalarFieldTilde rhoExternal; //!< external charge density
 	bool rhoExternalSelfEnergy; //!< whether to include self-energy of rhoExternal in output energy
-	struct BoxPotential
-	{	vector3<> min, max;
-		double Vin, Vout, convolve_radius;
+	struct BoxPotential //!< box potetial desciptor
+	{	vector3<> min; //!< minimum of bounding box
+		vector3<> max; //!< maximum of bounding box
+		double Vin; //!< potential inside
+		double Vout; //!< potential outside
+		double convolve_radius; //!< smoothing radius
 	};
-	std::vector<BoxPotential> boxPot; //! parameters for the external box potential
+	std::vector<BoxPotential> boxPot; //!< parameters for the external box potential
 
 	//Fluid properties
 	FluidSolverParams fluidParams;
@@ -131,4 +138,6 @@ private:
 	friend struct CommandLcaoParams;
 	friend class Dump;
 };
+
+//! @}
 #endif // JDFTX_ELECTRONIC_ELECVARS_H

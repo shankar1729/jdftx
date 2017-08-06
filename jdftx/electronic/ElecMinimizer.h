@@ -25,9 +25,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <core/Minimize.h>
 
+//! @addtogroup ElecSystem
+//! @{
+//! @file ElecMinimizer.h ElecMinimizer and helpers
+
+//! Vector space entry for electronic minimization
 struct ElecGradient
-{	std::vector<ColumnBundle> C; 
-	std::vector<matrix> Haux;
+{	std::vector<ColumnBundle> C; //!< wavefunctions
+	std::vector<matrix> Haux; //!< auxiliary Hamiltonian
 	const ElecInfo* eInfo;
 	
 	void init(const Everything& e); //!< initialize C and Haux with the correct sizes for everything
@@ -41,6 +46,7 @@ double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib=0); 
 ElecGradient clone(const ElecGradient& x); //!< create a copy
 void randomize(ElecGradient& x); //!< Initialize to random numbers
 
+//! Variational total energy minimizer for electrons
 class ElecMinimizer : public Minimizable<ElecGradient>
 {
 public:
@@ -71,4 +77,5 @@ void elecMinimize(Everything& e); //!< minimize electonic system
 void elecFluidMinimize(Everything& e); //!< minimize electrons and fluid in a gummel loop if necessary
 void convergeEmptyStates(Everything& e); //!< run bandMinimize to converge empty states (usually called from SCF / total energy calculations)
 
+//! @}
 #endif // JDFTX_ELECTRONIC_ELECMINIMIZER_H

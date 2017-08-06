@@ -22,8 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr_internal.h>
 
-//! @file ExCorr_internal_LDA.h
-//! Shared CPU-GPU implementation of LDA functionals
+//! @addtogroup ExchangeCorrelation
+//! @{
+//! @file ExCorr_internal_LDA.h Shared CPU-GPU implementation of LDA functionals
 
 //! Available LDA functionals
 enum LDA_Variant
@@ -304,4 +305,5 @@ double LDA_eval<LDA_XC_Teter>(double rs, double zeta, double& e_rs, double& e_ze
 	return -num/den;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXCORR_INTERNAL_LDA_H

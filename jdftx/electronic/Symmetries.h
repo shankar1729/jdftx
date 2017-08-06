@@ -27,8 +27,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <list>
 
+//! @addtogroup ElectronicDFT
+//! @{
+
 enum SymmetryMode {SymmetriesNone, SymmetriesAutomatic, SymmetriesManual}; //!< symmetry modes
 
+//! Symmetry detection and symmetrization of various quantities
 class Symmetries
 {
 public:
@@ -93,4 +97,5 @@ private:
 	friend class Phonon;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SYMMETRIES_H

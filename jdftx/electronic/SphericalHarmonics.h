@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/vector3.h>
 
+//! @addtogroup Utilities
+//! @{
+//! @file SphericalHarmonics.h Real spherical Harmonics and spherical bessel functions
+
 //! Spherical bessel function
 inline double bessel_jl(int l, double x)
 {	if(fabs(x) > 1.+0.1*l)
@@ -336,11 +340,13 @@ inline std::vector<YlmProdTerm> expandYlmProd(int lm1, int lm2)
 	#undef ADD
 	return result;
 }
+//! Wrapper function expandYlmProd with individual indices
 inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 {	int lm1 = l1*(l1+1) + m1;
 	int lm2 = l2*(l2+1) + m2;
 	return expandYlmProd(lm1, lm2);
 }
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SPHERICALHARMONICS_H
 

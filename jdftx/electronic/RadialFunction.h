@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Spline.h>
 
+//! @addtogroup DataStructures
+//! @{
+//! @file RadialFunction.h Radial functions in real and reciprocal space
+
 struct RadialFunctionR;
 
 //! G-space radial function stored on a uniform grid (of |G|)
@@ -121,4 +125,5 @@ struct RadialFunctionR
 	void transform(int l, double dG, int nGrid, RadialFunctionG& func) const;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_RADIALFUNCTION_H

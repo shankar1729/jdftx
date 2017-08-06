@@ -34,7 +34,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/EnergyComponents.h>
 #include <fluid/FluidSolverParams.h>
 
-//! Original shape function from \cite JDFT, \cite PCM-Kendra and \cite GLSSA13
+//! Original shape function from \cite JDFT, \cite PCM-Kendra and \cite NonlinearPCM
 namespace ShapeFunction
 {
 	//! Compute the shape function (0 to 1) given the cavity-determining electron density
@@ -56,7 +56,7 @@ namespace ShapeFunctionCANDLE
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
 }
 
-//! Shape function for \cite CavitySDA
+//! Shape function for \cite CavityWDA
 namespace ShapeFunctionSGA13
 {
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)

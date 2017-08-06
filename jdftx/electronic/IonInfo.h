@@ -29,6 +29,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <core/Thread.h>
 
+//! @addtogroup IonicSystem
+//! @{
+//! @file IonInfo.h Class IonInfo and related definitions
+
 //! Coordinate system for ion positions
 enum CoordsType {CoordsLattice, CoordsCartesian}; 
 
@@ -43,6 +47,7 @@ static EnumStringMap<ForcesOutputCoords> forcesOutputCoordsMap(
 //! Check method used for determining whether pseudopotential cores overlap
 enum coreOverlapCheck { additive, vector, none };
 
+//! Container class for ionic system: collection of species, each with several atoms
 class IonInfo
 {
 public:
@@ -84,11 +89,11 @@ public:
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
 	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
-	void augmentDensityInit() const;
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const;
-	void augmentDensityGrid(ScalarFieldArray& n) const;
-	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const;
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
+	void augmentDensityInit() const; //!< initialize density augmentation
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const; //!< calculate density augmentation in spherical functions
+	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const; //! propagate grid gradients to spherical functions
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //! propagate spherical function gradients to wavefunctions
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
@@ -108,6 +113,7 @@ public:
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	
+	//! Method for determining ion charge width
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
 		IonWidthFFTbox, //!< determine ion width from grid spacing
@@ -124,4 +130,5 @@ private:
 	void pairPotentialsAndGrad(Energies* ener=0, IonicGradient* forces=0) const;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_IONINFO_H

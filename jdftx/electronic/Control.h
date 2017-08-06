@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/vector3.h>
 
+//! @addtogroup ElectronicDFT
+//! @{
+//! @file Control.h Flags controlling electronic DFT
+
 //! K-point dependence of basis
 enum BasisKdep { BasisKpointDep, BasisKpointIndep } ; 
 static EnumStringMap<BasisKdep> kdepMap(BasisKpointDep, "kpoint-dependent", BasisKpointIndep, "single" );
@@ -31,6 +35,7 @@ static EnumStringMap<BasisKdep> kdepMap(BasisKpointDep, "kpoint-dependent", Basi
 //! Electronic eigenvalue method
 enum ElecEigenAlgo { ElecEigenCG, ElecEigenDavidson };
 
+//! Miscellaneous flags controlling electronic DFT
 class Control
 {
 public:
@@ -56,9 +61,9 @@ public:
 	double subspaceRotationFactor; //!< preconditioning factor for subspace rotations / aux hamiltonian relative to wavefunctions
 	bool subspaceRotationAdjust; //!< whether to automatically tune subspace rotation factor
 	
-	bool scf; //! whether SCF iteration or total energy minimizer will be called
-	bool convergeEmptyStates; //! whether to converge empty states after every electronic minimization
-	bool dumpOnly; //! run a single-electronic-point energy evaluation and process the end dump
+	bool scf; //!< whether SCF iteration or total energy minimizer will be called
+	bool convergeEmptyStates; //!< whether to converge empty states after every electronic minimization
+	bool dumpOnly; //!< run a single-electronic-point energy evaluation and process the end dump
 	
 	Control()
 	:	fixed_H(false),
@@ -70,4 +75,6 @@ public:
 	{
 	}
 };
+
+//! @}
 #endif // JDFTX_ELECTRONIC_CONTROL_H

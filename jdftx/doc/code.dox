@@ -9,13 +9,15 @@
 	@defgroup Utilities Shared utilities
 	@defgroup Geometry Lattice geometry
 	@defgroup Input Input-file parser and commands
-	@defgroup Output Outputs
 @}
 
 @defgroup ElectronicDFT Electronic DFT
 @{
-	@defgroup LongRange Long-range interactions
+	@defgroup ElecSystem Electronic system
+	@defgroup IonicSystem Ionic system
 	@defgroup ExchangeCorrelation Exchange-correlation terms
+	@defgroup LongRange Long-range interactions
+	@defgroup Output Outputs
 @}
 
 @defgroup Fluid Fluid models

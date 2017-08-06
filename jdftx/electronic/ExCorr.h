@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/ScalarFieldArray.h>
 
+//! @addtogroup ExchangeCorrelation
+//! @{
+//! @file ExCorr.h Class ExCorr and helpers
+
 //! Types of exchange correlation functionals
 enum ExCorrType
 {
@@ -69,6 +73,7 @@ struct IncludeTXC
 	IncludeTXC(bool T=false, bool X=true, bool C=true) : T(T), X(X), C(C) {} //!< defaults to exchange-correlation without kinetic
 };
 
+//! Exchange-Correlation energy calculator
 class ExCorr
 {
 public:
@@ -135,4 +140,5 @@ private:
 #endif
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXCORR_H

@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SPECIESINFO_INTERNAL_H
 #define JDFTX_ELECTRONIC_SPECIESINFO_INTERNAL_H
 
+
+//! @addtogroup IonicSystem
+//! @{
 //!@file SpeciesInfo_internal.h Shared GPU/CPU code for ion/pseudopotential related calculations
 
 #include <core/matrix3.h>
@@ -311,5 +314,5 @@ void gradSGtoAtpos_gpu(const vector3<int> S, const vector3<> atpos,
 	const complex* ccgrad_SG, vector3<complex*> grad_atpos);
 #endif
 
-
+//! @}
 #endif // JDFTX_ELECTRONIC_SPECIESINFO_INTERNAL_H

@@ -26,6 +26,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <vector>
 
+//! @addtogroup ElecSystem
+//! @{
+
+//! Wavefunction basis
 class Basis
 {
 public:
@@ -63,4 +67,5 @@ private:
 		const std::vector< vector3<int> >& iGvec); //set the data arrays from vectors
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_BASIS_H

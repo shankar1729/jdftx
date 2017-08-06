@@ -24,6 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecInfo.h>
 #include <core/vector3.h>
 
+//! @addtogroup Output
+//! @{
+
 //! (Weighted-) density of states calculator
 class DOS
 {
@@ -90,4 +93,5 @@ private:
 	const Everything* e;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_DOS_H

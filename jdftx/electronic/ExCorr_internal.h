@@ -20,8 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_EXCORR_INTERNAL_H
 #define JDFTX_ELECTRONIC_EXCORR_INTERNAL_H
 
-//! @file ExCorr_internal.h
-//! Internal abstractions of, and helper routines for the internal exchange and correlation routines
+//! @addtogroup ExchangeCorrelation
+//! @{
+//! @file ExCorr_internal.h Internal abstractions of, and helper routines for the internal exchange and correlation routines
 
 #include <electronic/operators_internal.h>
 
@@ -182,5 +183,5 @@ double spinInterpolate(double rs, double zeta, double& e_rs, double& e_zeta,
 	}
 }
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXCORR_INTERNAL_H
-

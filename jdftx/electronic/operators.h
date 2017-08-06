@@ -20,13 +20,15 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_OPERATORS_H
 #define JDFTX_ELECTRONIC_OPERATORS_H
 
-//! @file operators.h Operators specific to the electronic code
-
 #include <electronic/common.h>
 #include <electronic/RadialFunction.h>
 #include <core/VectorField.h>
 #include <core/ScalarFieldArray.h>
 #include <core/matrix3.h>
+
+//! @addtogroup Operators
+//! @{
+//! @file operators.h Operators used extensively in the electronic sector
 
 //! Convert a complex wavefunction to a real one with optimum phase choice
 //! Store the phase statistics before conversion in meanPhase and sigmaPhase
@@ -104,4 +106,5 @@ complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle
 //! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
 ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
 
+//! @}
 #endif // JDFTX_ELECTRONIC_OPERATORS_H

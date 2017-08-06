@@ -22,6 +22,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 
+
+//! @addtogroup Utilities
+//! @{
+//! @file symbols.h Maps between chemical symbols, atomic numbers and masses
+
+//! Atomic symbol to atomic number
 enum class AtomicSymbol : int
 {	H = 1,
 	He = 2,
@@ -147,4 +153,5 @@ extern EnumStringMap<AtomicSymbol> atomicSymbolMap; //!< Relate chemical symbols
 
 double atomicMass(AtomicSymbol); //!< retrieve atomic mass for each element
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SYMBOLS_H

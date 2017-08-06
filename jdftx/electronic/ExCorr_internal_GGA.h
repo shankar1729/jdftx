@@ -22,8 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr_internal_LDA.h>
 
-//! @file ExCorr_internal_GGA.h
-//! Shared CPU-GPU implementation of GGA functionals
+//! @addtogroup ExchangeCorrelation
+//! @{
+//! @file ExCorr_internal_GGA.h Shared CPU-GPU implementation of GGA functionals
 
 //! Available GGA functionals 
 enum GGA_Variant
@@ -653,4 +654,5 @@ template<> __hostanddev__ double GGA_eval<GGA_KE_PW91>(double rs, double s2, dou
 	return eTF * F;
 }
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXCORR_INTERNAL_GGA_H

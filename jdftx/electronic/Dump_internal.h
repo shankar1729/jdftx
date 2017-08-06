@@ -25,73 +25,87 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb.h>
 #include <vector>
 
+//! @addtogroup Output
+//! @{
+//! @file Dump_internal.h Implementation internals for output modules
+
 //-------------------- Implemented in DumpSIC.cpp ---------------------------
 
+//! Output self-interaction correction for the KS eigenvalues
 class DumpSelfInteractionCorrection
 {
 public:
 	DumpSelfInteractionCorrection(const Everything& everything);
 	~DumpSelfInteractionCorrection();
-	double operator()(std::vector<diagMatrix>* correctedEigenvalues); //! Evaluates the self interaction energy and (optionally) returns the corrected band eigenvalues
-	double coulombExciton(int q1, int n1, int q2, int n2);  //! Approximates the coulomb excitonic contribution between two states
+	double operator()(std::vector<diagMatrix>* correctedEigenvalues); //!< Evaluates the self interaction energy and (optionally) returns the corrected band eigenvalues
+	double coulombExciton(int q1, int n1, int q2, int n2);  //!< Approximates the coulomb excitonic contribution between two states
 	void dump(const char* filenamePattern);
-	bool needsTau;  //! The kinetic energy density is needed for meta-gga functionals.
+	bool needsTau;  //!< The kinetic energy density is needed for meta-gga functionals.
 private:
 	const Everything* e;
-	double calcSelfInteractionError(int q, int n); //! Calculates the self-interaction error of the KS orbital atthe n'th band at q'th quantum number
+	double calcSelfInteractionError(int q, int n); //!< Calculates the self-interaction error of the KS orbital atthe n'th band at q'th quantum number
 	std::vector<ColumnBundle> DC; //!< ColumnBundle for the derivative of the wavefunctions in each cartesian direction
 };
 
 //---------------- Implemented in DumpExcitationsMoments.cpp -----------------
 
+//! Dump information about excitation energies and matrix elements
 void dumpExcitations(const Everything& e, const char* filename);
 
+//! Helper functions for moment calculations
 namespace Moments
-{	void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin);
+{	void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx); //!< set multipole spatial weights
+	void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin); //!< output multipole moments
 }
 
 namespace XC_Analysis
-{	ScalarFieldArray tauWeizsacker(const Everything& e);
-	ScalarFieldArray spness(const Everything& e);
-	ScalarFieldArray sHartree(const Everything& e);
+{	ScalarFieldArray tauWeizsacker(const Everything& e); //!< Output Weizsacker KE density
+	ScalarFieldArray spness(const Everything& e); //!< Output 'single-particle-ness'
+	ScalarFieldArray sHartree(const Everything& e); //!< output spin Hartree potentials
 }
 
 //---------------- Implemented in DumpChargedDefects.cpp -----------------
 
+//! Slab dielectric function calculator
 struct SlabEpsilon
-{	string dtotFname;
-	double sigma;
-	vector3<> Efield;
+{	string dtotFname; //!< reference electrostatic potential filename
+	double sigma; //!< smoothing width
+	vector3<> Efield; //!< reference electric field
 	
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
+//! Bulk dielectric function calculator
 struct BulkEpsilon
-{	string dtotFname;
-	vector3<> Efield;
+{	string dtotFname; //!< reference electrostatic potential filename
+	vector3<> Efield; //!< reference electric field
 	
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
+//! Charged defect correction calculator
 struct ChargedDefect
-{	struct Center
-	{	vector3<> pos; //defect center in lattice coordinates
-		double q, sigma; //defect electron-count and Gaussian width
+{	//! Model charge decsription (one for each defect in unit cell)
+	struct Center
+	{	vector3<> pos; //!< defect center in lattice coordinates
+		double q; //!< defect electron-count
+		double sigma; //!< model charge Gaussian width
 	};
-	std::vector<Center> center; //list of defect positions in unit cell
+	std::vector<Center> center; //!< list of defect positions in unit cell
 	
-	CoulombParams::Geometry geometry;
+	CoulombParams::Geometry geometry; //!< geometry of Coulomb interaction used for correction (could differ from main calculation)
 	int iDir; //!< slab trunctaion direction
 	
-	string dtotFname; //electrostatic potential from reference neutral calculation
+	string dtotFname; //!< electrostatic potential from reference neutral calculation
 	
-	double bulkEps; //bulk dielectric constant (Bulk mode only)
-	string slabEpsFname; //slab dielectric profile (Slab mode only)
+	double bulkEps; //!< bulk dielectric constant (Bulk mode only)
+	string slabEpsFname; //!< slab dielectric profile (Slab mode only)
 	
-	double rMin, rSigma; //! Minimum distance from defect and turn-on width used for calculating alignment
+	double rMin; //!< Minimum distance from defect used for calculating alignment
+	double rSigma; //!< Turn-on width of region used for calculating alignment
 	
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
-
+//! @}
 #endif // JDFTX_ELECTRONIC_DUMP_INTERNAL_H

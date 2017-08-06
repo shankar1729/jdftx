@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarField.h>
 #include <vector>
 
+//! @addtogroup ExchangeCorrelation
+//! @{
+
+//! Exact-exchange calculator
 class ExactExchange
 {
 public:
@@ -40,4 +44,5 @@ private:
 	class ExactExchangeEval* eval; //!< opaque pointer to an internal computation class
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXACTEXCHANGE_H

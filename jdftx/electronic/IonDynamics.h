@@ -27,8 +27,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <vector>
 
+//! @addtogroup IonicSystem
+//! @{
+
+//! Ionic dynamics (AIMD)
 class IonDynamics
-{	
+{
 public:
 	void run(); //!< Run the simulation
 	IonDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
@@ -57,4 +61,5 @@ private:
 	void centerOfMassToOrigin(); //!< Translate the entire system to put the center of mass to origin
 };
 
+//! @}
 #endif //JDFTX_ELECTRONIC_IONDYNAMICS_H

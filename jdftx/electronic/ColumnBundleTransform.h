@@ -23,6 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Basis.h>
 #include <electronic/matrix.h>
 
+//! @addtogroup Operators
+//! @{
+
 //! Handle transformation of ColumnBundles upon symmetry operations
 class ColumnBundleTransform
 {
@@ -77,4 +80,5 @@ private:
 	matrix spinorRot; //spinor space rotation
 };
 
+//! @}
 #endif //JDFTX_ELECTRONIC_COLUMNBUNDLETRANSFORM_H

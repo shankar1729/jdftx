@@ -25,6 +25,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <vector>
 
+
+//! @cond
+
 //Copied from Util.h (which cannot be included here due to lack of CUDA C++11 support)
 int assertStackTraceExit(const char* expr, const char* function, const char* file, long line);
 #ifndef assert
@@ -161,4 +164,5 @@ __hostanddev__ void reducedDD_calc(int j, int nbasis, int ncols, const complex* 
 		DYdata[nbasis*i+j] = Di*Dj*Ydata[nbasis*i+j];
 }
 
+//! @endcond
 #endif // JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H

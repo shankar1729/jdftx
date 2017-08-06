@@ -24,11 +24,15 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/WignerSeitz.h>
 
-//PW to blip conversion utility
-//To use, create an object:
-//	BlipConverter convert(Nx,Ny,Nz);
-//and conversions can be done as:
-//	vBlip = convert(vPW);
+//! @addtogroup Utilities
+//! @{
+//! @file Blip.h 3D cubic spline (blip) utilities
+
+//! PW to blip conversion utility
+//! To use, create an object:
+//! 	BlipConverter convert(Nx,Ny,Nz);
+//! and conversions can be done as:
+//! 	vBlip = convert(vPW);
 class BlipConverter
 {
 	vector3<int> S;
@@ -36,9 +40,9 @@ class BlipConverter
 public:
 	BlipConverter(const vector3<int>& S);
 
-	//Given a PW basis object (in real or reciprocal space) v,
-	//return corresponding real-space Blip coefficient set
-	// (for double or complex vectors)
+	//! Given a PW basis object (in real or reciprocal space) v,
+	//! return corresponding real-space Blip coefficient set
+	//! (for double or complex vectors)
 	ScalarField operator()(const ScalarFieldTilde& v) const;
 	ScalarField operator()(const ScalarField& v) const;
 	complexScalarField operator()(const complexScalarFieldTilde& v) const;
@@ -61,10 +65,11 @@ public:
 	complexScalarField operator()(const complexScalarFieldTilde& v) const;
 };
 
-//Compute the kinetic energy for a blip orbital phi (and set max local KE and location in unit cell)
+//! Compute the kinetic energy for a blip orbital phi (and set max local KE and location in unit cell)
 double Tblip(const complexScalarField& phi, double* tMax=0, int* i0max=0, int* i1max=0, int*i2max=0);
 
-//Compute the local potential energy for blip orbital phi in blip potential V
+//! Compute the local potential energy for blip orbital phi in blip potential V
 double Vblip(const complexScalarField& phi, const ScalarField& V);
 
+//! @}
 #endif // JDFTX_ELECTRONIC_BLIP_H

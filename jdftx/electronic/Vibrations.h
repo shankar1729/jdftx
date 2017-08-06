@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <core/VectorField.h>
 
+//! @addtogroup Output
+//! @{
+
+//! Vibrational modes and free energy calculator
 class Vibrations
 {
 public:
@@ -48,4 +52,5 @@ private:
 	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
 };
 
+//! @}
 #endif //JDFTX_ELECTRONIC_VIBRATIONS_H

@@ -25,6 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <electronic/ColumnBundle.h>
 
+//! @addtogroup ElecSystem
+//! @{
+
+//! Davidson eigensolver
 class BandDavidson
 {
 public:
@@ -38,4 +42,5 @@ private:
 	int q;  //!< Current quantum number
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_BANDDAVIDSON_H

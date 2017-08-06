@@ -26,6 +26,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <gsl/gsl_cblas.h>
 
+//! @addtogroup DataStructures
+//! @{
+//! @file matrix.h General size diagonal and dense matrices, and their operators
+
 //! Real diagonal matrix
 class diagMatrix : public std::vector<double>
 {	
@@ -38,19 +42,19 @@ public:
 	diagMatrix& operator*=(double s) { for(double& d: *this) d*=s; return *this; }
 	
 	//Splicing operations:
-	diagMatrix operator()(int iStart, int iStop) const; //! get submatrix of elements (iStart \<= i \< iStop)
-	diagMatrix operator()(int iStart, int iStep, int iStop) const; //! get submatrix of elements (iStart \<= i \< iStop) with arbitrary increments
-	void set(int iStart, int iStop, const diagMatrix& m); //! set submatrix to m
-	void set(int iStart, int iStep, int iStop, const diagMatrix& m); //! set submatrix to m at arbitrary increments
+	diagMatrix operator()(int iStart, int iStop) const; //!< get submatrix of elements (iStart \<= i \< iStop)
+	diagMatrix operator()(int iStart, int iStep, int iStop) const; //!< get submatrix of elements (iStart \<= i \< iStop) with arbitrary increments
+	void set(int iStart, int iStop, const diagMatrix& m); //!< set submatrix to m
+	void set(int iStart, int iStep, int iStop, const diagMatrix& m); //!< set submatrix to m at arbitrary increments
 
 	void scan(FILE* fp); //!< read (ascii) from stream
 	void print(FILE* fp, const char* fmt="%lg\t") const; //!< print (ascii) to stream
 
 	//Inter-process communication:
-	void send(int dest, int tag=0) const; //send to another process
-	void recv(int src, int tag=0); //receive from another process
-	void bcast(int root=0); //synchronize across processes (using value on specified root process)
-	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //apply all-to-all reduction (see MPIUtil::allReduce)
+	void send(int dest, int tag=0) const; //!< send to another process
+	void recv(int src, int tag=0); //!< receive from another process
+	void bcast(int root=0); //!< synchronize across processes (using value on specified root process)
+	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //!< apply all-to-all reduction (see MPIUtil::allReduce)
 };
 
 //! General complex matrix
@@ -105,9 +109,9 @@ public:
 	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
 	
 	//---------octave-like slicing operators on scalar fields converted to Nx*Ny*Nz x 1 matrices --------------
-	complex getElement(vector3< int > index, GridInfo& gInfo);
-	matrix getLine(vector3<int> line, vector3<int> point, GridInfo& gInfo);
-	matrix getPlane(vector3<int> normal, vector3<int> point, GridInfo& gInfo);
+	complex getElement(vector3<int> index, GridInfo& gInfo); //!< get element at grid coordinate from a Nx*Ny*Nzx1 matrix
+	matrix getLine(vector3<int> line, vector3<int> point, GridInfo& gInfo); //!< get a linear slice from a Nx*Ny*Nzx1 matrix
+	matrix getPlane(vector3<int> normal, vector3<int> point, GridInfo& gInfo); //!< get a planar slice from a Nx*Ny*Nzx1 matrix
 };
 
 //! Matrix with a pending scale and transpose operation
@@ -190,9 +194,9 @@ void randomize(matrix& x);
 //------- Nonlinear matrix functions and their gradients ---------
 
 //! Compute inverse of an arbitrary matrix A (via LU decomposition)
-matrix inv(const matrix& A);
-diagMatrix inv(const diagMatrix& A);
-matrix invApply(const matrix& A, const matrix& b); //return inv(A) * b (A must be hermitian, positive-definite)
+matrix inv(const matrix& A); //!< inverse of matrix
+diagMatrix inv(const diagMatrix& A); //!< inverse of diagonal matrix
+matrix invApply(const matrix& A, const matrix& b); //!< return inv(A) * b (A must be hermitian, positive-definite)
 
 //! Compute the LU decomposition of the matrix
 matrix LU(const matrix& A);
@@ -225,9 +229,9 @@ matrix cis_grad(const matrix& grad_cisA, const matrix& Aevecs, const diagMatrix&
 
 
 //------------ Misc matrix functions --------------
-complex trace(const matrix &m);
-double trace(const diagMatrix& m);
-double nrm2(const diagMatrix& m);
+complex trace(const matrix &m); //!< trace of matrix
+double trace(const diagMatrix& m); //!< trace of diagonal matrix
+double nrm2(const diagMatrix& m); //!< RMS of matrix entries
 diagMatrix diag(const matrix &m); //!< obtain the real diagonal part of a hermitian matrix
 diagMatrix eye(int N); //!< identity
 matrix zeroes(int nRows, int nCols); //!< a dense-matrix of zeroes
@@ -244,4 +248,5 @@ public:
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
 };
 
+//! @}
 #endif  // JDFTX_ELECTRONIC_MATRIX_H

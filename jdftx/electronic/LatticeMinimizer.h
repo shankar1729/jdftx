@@ -24,12 +24,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <core/matrix3.h>
 
+//! @addtogroup IonicSystem
+//! @{
+//! @file LatticeMinimizer.h Class LatticeMinimizer and related definitions
+
 //Functions required by Minimizable<matrix3<>>
 void axpy(double alpha, const matrix3<>& x, matrix3<>& y); //!< accumulate operation: Y += alpha*X
 double dot(const matrix3<>& x, const matrix3<>& y); //!< inner product
 matrix3<> clone(const matrix3<>& x); //!< create a copy
 void randomize(matrix3<>& x); //!< initialize with random numbers
 
+//! Lattice minimizer
 class LatticeMinimizer : public Minimizable<matrix3<>>
 {
 public:
@@ -65,4 +70,5 @@ private:
 	friend class IonDynamics;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_LATTICEMINIMIZER_H

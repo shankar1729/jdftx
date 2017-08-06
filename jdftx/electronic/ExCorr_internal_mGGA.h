@@ -22,8 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr_internal_GGA.h>
 
-//! @file ExCorr_internal_mGGA.h
-//! Shared CPU-GPU implementation of meta GGA functionals
+//! @addtogroup ExchangeCorrelation
+//! @{
+//! @file ExCorr_internal_mGGA.h Shared CPU-GPU implementation of meta GGA functionals
 
 static const double tauCutoff = 1e-8; //!< ignore densities below this value
 
@@ -499,4 +500,5 @@ template<> __hostanddev__ double mGGA_eval<mGGA_C_revTPSS>(
 		e_rs, e_zeta, e_g, e_t2, e_t2up, e_t2dn, e_zi2, e_z);
 }
 
+//! @}
 #endif // JDFTX_ELECTRONIC_EXCORR_INTERNAL_MGGA_H

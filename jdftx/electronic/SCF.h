@@ -26,6 +26,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <core/Pulay.h>
 
+//! @addtogroup ElecSystem
+//! @{
+//! @file SCF.h Class SCF and related definitions
+
 //! @brief Variable that is mixed during SCF
 //! Component names are density-like, but when mixing potential, they refer to corresponding gradient.
 struct SCFvariable
@@ -68,4 +72,5 @@ private:
 	double eigDiffRMS(const std::vector<diagMatrix>&, const std::vector<diagMatrix>&) const; //!< weighted RMS difference between two sets of eigenvalues
 };
 
+//! @}
 #endif

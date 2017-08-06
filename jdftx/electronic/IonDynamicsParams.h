@@ -22,6 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Units.h>
 
+//! @addtogroup IonicSystem
+//! @{
+//! @file IonDynamicsParams.h IonDynamicsParams and related definitions
+
+//! Type of confining potential
 enum ConfiningPotentialType
 {	ConfineLinear,
 	ConfineQuadratic,
@@ -30,25 +35,26 @@ enum ConfiningPotentialType
 	ConfineNone
 };
 
+//! Strategy for eliminating drift 
 enum DriftRemovalType
-{      DriftNone,
-       DriftVelocity,
-       DriftMomentum
+{      DriftNone, //!< No drift correction
+       DriftVelocity, //!< Zero total velocity
+       DriftMomentum //!< Zero total momentum
 };
 
-//! @addtogroup md
-//! @{
-
-//! @brief Parameters to control the Verlet algorithm
+//! Parameters to control IonicDynamics
 struct IonDynamicsParams
-{	double dt, tMax, kT, alpha;
-	DriftRemovalType driftType;
-	ConfiningPotentialType confineType;
-	std::vector<double> confineParameters;
+{	double dt; //!< time step
+	double tMax; //!< maximum time
+	double kT; //!< temperature
+	double alpha; //!< velocity scaling parameter
+	DriftRemovalType driftType; //!< drift removal strategy
+	ConfiningPotentialType confineType; //!< confinement potential type
+	std::vector<double> confineParameters; //!< parameters controlling confinement potential
+	
 	//! Set the default values
 	IonDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0), driftType(DriftMomentum), confineType(ConfineNone){}
 };
 
 //! @}
-
 #endif // JDFTX_ELECTRONIC_IONDYNAMICSPARAMS_H
