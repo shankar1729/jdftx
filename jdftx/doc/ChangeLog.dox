@@ -11,6 +11,11 @@
 + Added an optional memory pool to ManagedMemory selected by environment variable JDFTX_MEMPOOL_SIZE,
   which is especially advantageous in multi-GPU jobs to avoid expensive cudaMallocs.
 
++ Substantial improvements to GPU performance under CUDA-7 and greater by consolidating
+  cudaGetDevice() and cudaGetDeviceProperties() calls (order of magnitude for small calculations)
+
++ Reorganization of code between electronic and core, consolidating most non-wavefunction-specific structures and operators to core
+
 + Reorganization of documentation with bibliography and better use of Doxygen modules
 
 
