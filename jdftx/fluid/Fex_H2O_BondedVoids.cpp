@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_LJ.h>
 #include <core/Units.h>
 #include <core/Operators.h>
-#include <electronic/operators.h>
 
 //EOS functional fit parameters:
 const double Fex_H2O_BondedVoids::RV0 = 1.290*Angstrom;

@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/MixedFMT.h>
 #include <fluid/IdealGas.h>
 #include <fluid/Fex.h>
-#include <electronic/operators.h>
 #include <core/VectorField.h>
 
 //! Compute the total charge of a set of components: original number of molecules N0 and charge per molecule Q

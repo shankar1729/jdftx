@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/BandMinimizer.h>
 #include <electronic/Everything.h>
-#include <electronic/operators.h>
+#include <electronic/ColumnBundle.h>
 
 BandMinimizer::BandMinimizer(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.eInfo), q(q)
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed

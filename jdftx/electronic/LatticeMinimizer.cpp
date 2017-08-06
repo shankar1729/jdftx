@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 

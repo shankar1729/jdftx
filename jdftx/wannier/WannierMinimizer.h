@@ -151,7 +151,7 @@ protected:
 	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
 	
 	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
-	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)
+	//! (Note that the augmentation in the O() from electronic/ColumnBundle.h assumes both sides have same k-point)
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
 	
 	//! Dump a named matrix variable to file, optionally zeroing out the real parts

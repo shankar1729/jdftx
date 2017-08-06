@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <core/SphericalHarmonics.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/operators.h>
 #include <core/ScalarFieldIO.h>
 #include <core/LatticeUtils.h>
 #include <array>

@@ -20,9 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ElecVars.h>
 #include <electronic/ColumnBundle.h>
-#include <core/matrix.h>
-#include <electronic/operators.h>
 #include <electronic/ElecMinimizer.h>
+#include <core/matrix.h>
 #include <core/ScalarFieldIO.h>
 
 void printSymmetryError(const matrix& m, const char* name)

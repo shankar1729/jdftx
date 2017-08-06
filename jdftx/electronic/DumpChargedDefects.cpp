@@ -1,7 +1,6 @@
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/Dump_internal.h>
-#include <electronic/operators.h>
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
 #include <core/ScalarFieldIO.h>

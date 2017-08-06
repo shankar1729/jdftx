@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
-#include <electronic/operators.h>
 #include <core/Operators.h>
 #include <core/VectorField.h>
 #include <core/Units.h>

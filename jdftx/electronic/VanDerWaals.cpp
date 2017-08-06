@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaals.h>
 #include <electronic/Everything.h>
 #include <electronic/SpeciesInfo_internal.h>
-#include <electronic/operators.h>
 #include <core/VectorField.h>
 #include <core/Units.h>
 

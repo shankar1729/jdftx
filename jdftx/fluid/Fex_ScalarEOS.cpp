@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Fex_LJ.h>
 #include <core/Units.h>
 #include <core/Operators.h>
-#include <electronic/operators.h>
 
 string rigidMoleculeCDFT_ScalarEOSpaper = "R. Sundararaman and T.A. Arias, arXiv:1302.0026";
 

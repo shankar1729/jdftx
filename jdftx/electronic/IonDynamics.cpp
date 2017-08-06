@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <electronic/Dump.h>
 #include <electronic/LatticeMinimizer.h>
-#include <electronic/operators.h>
 #include <electronic/IonDynamics.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>

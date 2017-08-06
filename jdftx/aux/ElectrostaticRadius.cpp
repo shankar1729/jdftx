@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/Polarizability.h>
 #include <electronic/VanDerWaals.h>
-#include <electronic/operators.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <fluid/FluidSolver.h>
 #include <commands/parser.h>

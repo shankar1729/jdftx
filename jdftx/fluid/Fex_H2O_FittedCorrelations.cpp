@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Fex_H2O_FittedCorrelations_internal.h>
 #include <fluid/Fex_H2O_FittedCorrelations.h>
-#include <electronic/operators.h>
 #include <core/Units.h>
 #include <core/Operators.h>
 

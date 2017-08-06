@@ -23,8 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/Molecule.h>
 #include <core/ScalarFieldIO.h>
 #include <core/ScalarField.h>
-#include <core/RadialFunction.h>
-#include <electronic/operators.h>
 
 ConvCoupling::ConvCoupling(FluidMixture* fluidMixture, const ExCorr& exCorr)
 : Fmix(fluidMixture), exCorr(exCorr), component(fluidMixture->getComponents())

@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 
 //------- SpeciesInfo functions related to atomic orbitals -------

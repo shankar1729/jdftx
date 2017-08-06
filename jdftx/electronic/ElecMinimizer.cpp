@@ -20,8 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <electronic/BandMinimizer.h>
 #include <electronic/BandDavidson.h>
+#include <electronic/ColumnBundle.h>
 #include <electronic/Everything.h>
-#include <electronic/operators.h>
 #include <electronic/Dump.h>
 #include <fluid/FluidSolver.h>
 #include <core/Random.h>

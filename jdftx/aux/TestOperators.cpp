@@ -29,7 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/SphericalHarmonics.h>
 #include <electronic/SpeciesInfo.h>
 #include <electronic/ExCorr_internal_GGA.h>
-#include <electronic/operators.h>
 #include <core/matrix.h>
 #include <core/Blip.h>
 #include <gsl/gsl_sf.h>

@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <wannier/WannierMinimizer.h>
-#include <electronic/operators.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/BlasExtra.h>
 #include <core/Random.h>

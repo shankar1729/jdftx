@@ -20,9 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/Everything.h>
-#include <core/matrix.h>
-#include <electronic/operators.h>
 #include <electronic/ColumnBundle.h>
+#include <core/matrix.h>
 
 //------- additional SpeciesInfo functions for ultrasoft pseudopotentials (density and overlap augmentation) -------
 

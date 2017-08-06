@@ -21,11 +21,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <electronic/Everything.h>
-#include <core/matrix.h>
-#include <electronic/operators.h>
 #include <electronic/symbols.h>
 #include <electronic/ColumnBundle.h>
 #include <fluid/Euler.h>
+#include <core/matrix.h>
 #include <core/LatticeUtils.h>
 #include <core/VectorField.h>
 #include <fstream>

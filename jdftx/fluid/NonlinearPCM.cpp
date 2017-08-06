@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/NonlinearPCM.h>
 #include <fluid/LinearPCM.h>
 #include <fluid/PCM_internal.h>
-#include <electronic/operators.h>
 #include <core/ScalarFieldIO.h>
 #include <core/Util.h>
 

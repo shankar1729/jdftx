@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/IonicMinimizer.h>
 #include <electronic/Everything.h>
-#include <electronic/operators.h>
 #include <core/LatticeUtils.h>
 #include <core/Units.h>
 

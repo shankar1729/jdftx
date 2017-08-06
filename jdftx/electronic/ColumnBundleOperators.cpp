@@ -18,13 +18,12 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/operators.h>
-#include <electronic/operators_internal.h>
 #include <electronic/ColumnBundle.h>
-#include <core/matrix.h>
+#include <electronic/ColumnBundleOperators_internal.h>
 #include <electronic/Basis.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/IonInfo.h>
+#include <core/matrix.h>
 #include <core/Thread.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
@@ -32,7 +31,132 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LoopMacros.h>
 #include <core/Operators.h>
 
-//------------------------------ ColumnBundle operators ---------------------------------
+//------------------------ Arithmetic operators --------------------
+
+ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(+X.scale, X.data, Y); else Y=X; return Y; }
+ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(-X.scale, X.data, Y); else Y=-X; return Y; }
+ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
+ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
+
+ColumnBundle& operator*=(ColumnBundle& X, double s) { scale(s, X); return X; }
+ColumnBundle operator*(double s, ColumnBundle&& Y) { scale(s, Y); return Y; }
+ColumnBundle operator*(ColumnBundle&& Y, double s) { scale(s, Y); return Y; }
+scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, s); }
+scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s) { return scaled<ColumnBundle>(Y, s); }
+scaled<ColumnBundle> operator-(const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, -1); }
+ColumnBundle& operator*=(ColumnBundle& X, complex s) { scale(s, X); return X; }
+ColumnBundle operator*(complex s, const ColumnBundle &Y) { ColumnBundle sY(Y); sY *= s; return sY; }
+ColumnBundle operator*(const ColumnBundle &Y, complex s) { ColumnBundle sY(Y); sY *= s; return sY; }
+
+ColumnBundleMatrixProduct::operator ColumnBundle() const
+{	ColumnBundle YM;
+	scaleAccumulate(1., 0., YM);
+	return YM;
+}
+
+void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, ColumnBundle& YM) const
+{	static StopWatch watch("Y*M");
+	watch.start();
+	double scaleFac = alpha * scale * Mst.scale;
+	bool spinorMode = (2*Y.nCols() == Mst.nRows()); //treat each column of non-spinor Y as two identical consecutive spinor ones with opposite spins
+	assert(Y.nCols()==Mst.nRows() || spinorMode);
+	CBLAS_TRANSPOSE Mop; const matrix* M; matrix Mtmp;
+	if(spinorMode)
+	{	matrix mIn(Mst); Mop=CblasNoTrans; //pre-apply the op in this case
+		Mtmp.init(Y.nCols(), 2*mIn.nCols(), isGpuEnabled());
+		Mtmp.set(0,1,Y.nCols(), 0,2,Mtmp.nCols(), mIn(0,2,mIn.nRows(), 0,1,mIn.nCols()));
+		Mtmp.set(0,1,Y.nCols(), 1,2,Mtmp.nCols(), mIn(1,2,mIn.nRows(), 0,1,mIn.nCols()));
+		M = &Mtmp;
+		assert(!Y.isSpinor());
+		if(beta) { assert(YM); assert(YM.nCols()==mIn.nCols()); assert(YM.colLength()==Y.colLength()*2); }
+		else YM.init(mIn.nCols(), Y.colLength()*2, Y.basis, Y.qnum, isGpuEnabled());
+	}
+	else
+	{	Mop = Mst.op;
+		M = &Mst.mat;
+		if(beta) { assert(YM); assert(YM.nCols()==Mst.nCols()); assert(YM.colLength()==Y.colLength()); }
+		else YM = Y.similar(Mst.nCols());
+	}
+	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), M->nCols(), Y.nCols(),
+		scaleFac, Y.dataPref(), Y.colLength(), M->dataPref(), M->nRows(),
+		beta, YM.dataPref(), Y.colLength());
+	watch.stop();
+}
+
+ColumnBundleMatrixProduct operator*(const scaled<ColumnBundle>& sY, const matrixScaledTransOp& Mst)
+{	return ColumnBundleMatrixProduct(sY.data, Mst, sY.scale);
+}
+ColumnBundle& operator+=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(+1.,1.,Y);
+	return Y;
+}
+ColumnBundle& operator-=(ColumnBundle& Y, const ColumnBundleMatrixProduct &XM)
+{	XM.scaleAccumulate(-1.,1.,Y);
+	return Y;
+}
+ColumnBundle operator+(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result += XM2;
+	return result;
+}
+ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleMatrixProduct &XM2)
+{	ColumnBundle result(XM1);
+	result -= XM2;
+	return result;
+}
+
+ColumnBundle operator*(const scaled<ColumnBundle> &sY, const diagMatrix& d)
+{	const ColumnBundle& Y = sY.data;
+	assert(Y.nCols()==d.nRows());
+	ColumnBundle Yd = Y; complex* YdData = Yd.dataPref();
+	for(int i=0; i<d.nCols(); i++)
+		callPref(eblas_zscal)(Yd.colLength(), sY.scale*d[i], YdData+Yd.index(i,0), 1);
+	return Yd;
+}
+
+matrix operator^(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY2)
+{	static StopWatch watch("Y1^Y2");
+	watch.start();
+	const ColumnBundle& Y1 = sY1.data;
+	const ColumnBundle& Y2 = sY2.data;
+	double scaleFac = sY1.scale * sY2.scale;
+	int nCols1, nCols2, colLength;
+	if(Y1.colLength() == Y2.colLength()) //standard mode
+	{	nCols1 = Y1.nCols();
+		nCols2 = Y2.nCols();
+		colLength = Y1.colLength();
+	}
+	else //exactly one of the two columnbundles is a spinor (but they have a common basis)
+	{	assert(Y1.basis);
+		assert(Y2.basis);
+		assert(Y1.basis->nbasis == Y2.basis->nbasis);
+		assert(Y1.isSpinor() xor Y2.isSpinor());
+		nCols1 = Y1.nCols() * Y1.spinorLength();
+		nCols2 = Y2.nCols() * Y2.spinorLength();
+		colLength = Y1.basis->nbasis;
+	}
+	matrix Y1dY2(nCols1, nCols2, isGpuEnabled());
+	callPref(eblas_zgemm)(CblasConjTrans, CblasNoTrans, nCols1, nCols2, colLength,
+		scaleFac, Y1.dataPref(), colLength, Y2.dataPref(), colLength,
+		0.0, Y1dY2.dataPref(), Y1dY2.nRows());
+	watch.stop();
+	//If one of the columnbundles was spinor, shape the matrix as if the non-spinor columnbundle had consecutive spinor columns with identical pure up and down spinors
+	if(Y1.nCols() != nCols1) //Y1 is spinor, so double the dimension of output along Y2
+	{	matrix out(Y1.nCols(), 2*nCols2);
+		out.set(0,1,Y1.nCols(), 0,2,2*nCols2, Y1dY2(0,2,nCols1, 0,1,nCols2));
+		out.set(0,1,Y1.nCols(), 1,2,2*nCols2, Y1dY2(1,2,nCols1, 0,1,nCols2));
+		return out;
+	}
+	else if(Y2.nCols() != nCols2) //Y2 is spinor, so double the dimension of output along Y1
+	{	matrix out(2*nCols1, Y2.nCols());
+		out.set(0,2,2*nCols1, 0,1,Y2.nCols(), Y1dY2(0,1,nCols1, 0,2,nCols2));
+		out.set(1,2,2*nCols1, 0,1,Y2.nCols(), Y1dY2(0,1,nCols1, 1,2,nCols2));
+		return out;
+	}
+	else return Y1dY2; //normal mode (neither is a spinor)
+}
+
+//------------------------------ Other operators ---------------------------------
 
 void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarFieldArray* V, ColumnBundle* VC)
 {	const ScalarField& Vs = V->at(V->size()==1 ? 0 : C->qnum->index());

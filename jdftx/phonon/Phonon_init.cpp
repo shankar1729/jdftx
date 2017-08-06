@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <phonon/Phonon.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/ColumnBundleTransform.h>
-#include <electronic/operators.h>
 #include <commands/parser.h>
 #include <core/Units.h>
 

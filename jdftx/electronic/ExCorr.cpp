@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ExCorr.h>
 #include <electronic/Basis.h>
-#include <electronic/operators.h>
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
 #include <electronic/ExCorr_internal.h>

@@ -17,10 +17,9 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <core/scalar.h>
-#include <core/LoopMacros.h>
+#include <electronic/ColumnBundleOperators_internal.h>
 #include <core/GpuKernelUtils.h>
-#include <electronic/operators_internal.h>
+#include <core/LoopMacros.h>
 
 
 __global__

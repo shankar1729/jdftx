@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGas.h>
-#include <electronic/operators.h>
 #include <gsl/gsl_multiroots.h>
 
 extern string rigidMoleculeCDFT_ScalarEOSpaper;

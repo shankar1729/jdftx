@@ -20,10 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
-#include <core/SphericalHarmonics.h>
-#include <electronic/operators.h>
 #include <electronic/VanDerWaals.h>
 #include <electronic/SpeciesInfo_internal.h>
+#include <core/SphericalHarmonics.h>
 #include <core/VectorField.h>
 #include <core/ScalarFieldIO.h>
 #include <core/Units.h>

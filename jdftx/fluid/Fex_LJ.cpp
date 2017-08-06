@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Fex_LJ.h>
 #include <fluid/FluidMixture.h>
-#include <electronic/operators.h>
 #include <core/Operators.h>
 #include <gsl/gsl_sf.h>
 

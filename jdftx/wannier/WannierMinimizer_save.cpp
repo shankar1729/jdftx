@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <wannier/WannierMinimizer.h>
-#include <electronic/operators.h>
 #include <core/ScalarFieldIO.h>
 
 //Apply cell map weights due to repeated images near supercell boundaries

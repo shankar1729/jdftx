@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/ScalarFieldIO.h>
 #include <core/Blip.h>
-#include <electronic/operators.h>
 
 WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride)
 : e(e), wannier(wannier), sym(e.symm.getMatrices()),

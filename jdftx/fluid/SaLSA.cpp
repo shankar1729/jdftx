@@ -17,14 +17,13 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
+#include <electronic/Everything.h>
+#include <electronic/VanDerWaals.h>
 #include <core/ScalarFieldIO.h>
 #include <core/VectorField.h>
+#include <core/SphericalHarmonics.h>
 #include <fluid/SaLSA.h>
 #include <fluid/PCM_internal.h>
-#include <electronic/Everything.h>
-#include <core/SphericalHarmonics.h>
-#include <electronic/VanDerWaals.h>
-#include <electronic/operators.h>
 #include <gsl/gsl_linalg.h>
 #include <cstring>
 

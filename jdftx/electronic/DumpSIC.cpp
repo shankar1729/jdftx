@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/operators.h>
 #include <core/Operators.h>
 #include <core/Util.h>
 

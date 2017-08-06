@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/SpeciesInfo.h>
-#include <electronic/operators.h>
 #include <electronic/ExactExchange.h>
 #include <electronic/DOS.h>
 #include <electronic/Polarizability.h>

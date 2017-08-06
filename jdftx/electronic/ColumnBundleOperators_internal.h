@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H
-#define JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H
+#ifndef JDFTX_ELECTRONIC_COLUMNBUNDLEOPERATORS_INTERNAL_H
+#define JDFTX_ELECTRONIC_COLUMNBUNDLEOPERATORS_INTERNAL_H
 
 #include <core/matrix3.h>
 
@@ -88,4 +88,4 @@ __hostanddev__ void reducedDD_calc(int j, int nbasis, int ncols, const complex* 
 }
 
 //! @endcond
-#endif // JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H
+#endif // JDFTX_ELECTRONIC_COLUMNBUNDLEOPERATORS_INTERNAL_H

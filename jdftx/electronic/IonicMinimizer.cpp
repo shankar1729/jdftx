@@ -22,8 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Symmetries.h>
 #include <electronic/Everything.h>
 #include <electronic/ElecMinimizer.h>
+#include <electronic/ColumnBundle.h>
 #include <electronic/Dump.h>
-#include <electronic/operators.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 
