@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/Operators.h>
 #include <core/vector3.h>
-#include <vector>
+#include <core/RadialFunction.h>
 
 #define Tptr std::shared_ptr<T> //!< shorthand for writing the template operators (undef'd at end of header)
 #define TptrMul ScalarFieldMultiplet<T,N> //!< shorthand for the template operators/functions (undef'd at end of file)
@@ -182,11 +182,13 @@ template<int N> RptrMul Jdag(GptrMul&& X); //!< Inverse transform transpose: PW 
 template<int N> RptrMul Jdag(const GptrMul& X) { return Jdag(X.clone()); } //!< Inverse transform transpose: PW basis -> real space (preserve input)
 template<int N> RptrMul I(const GptrMul& X) { return I(X.clone()); } //!< Forward transform: PW basis -> real space (preserve input)
 
-//Special operators for triplets (implemented in operators.cpp):
+//Special operators for triplets (implemented in Operators.cpp):
 VectorFieldTilde gradient(const ScalarFieldTilde&); //!< compute the gradient of a complex field, returns cartesian components
 VectorField gradient(const ScalarField&); //!< compute the gradient of a complex field, returns cartesian components
 ScalarFieldTilde divergence(const VectorFieldTilde&); //!< compute the divergence of a vector field specified in cartesian components
 ScalarField divergence(const VectorField&); //!< compute the divergence of a vector field specified in cartesian components
+VectorFieldTilde operator*(const RadialFunctionG&, const VectorFieldTilde&); //!< Convolve a vector field by a radial function (preserve input)
+VectorFieldTilde operator*(const RadialFunctionG&, VectorFieldTilde&&); //!< Convolve a vector field by a radial function (destructible input)
 
 //Special operators for symmetric traceless tensors (implemented in operators.cpp)
 TensorFieldTilde tensorGradient(const ScalarFieldTilde&); //!< symmetric traceless tensor second derivative of a scalar field

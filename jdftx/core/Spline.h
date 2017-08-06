@@ -25,9 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file Spline.h Spline interpolation routines
 
-#include <cstdio>
-#include <vector>
 #include <core/scalar.h>
+#include <cstdio>
 
 //! C4-continuous interpolation using quintic splines
 namespace QuinticSpline

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators_internal.h>
 #include <core/GridInfo.h>
 #include <core/VectorField.h>
+#include <core/ScalarFieldArray.h>
 #include <core/Random.h>
 #include <string.h>
 
@@ -312,6 +313,207 @@ void zeroNyquist(ScalarFieldTilde& Gptr)
 	threadLaunch(zeroNyquist_sub<complex>, gInfo.nG, gInfo.S, Gptr->data());
 }
 void zeroNyquist(ScalarField& Rptr) { ScalarFieldTilde Rtilde=J(Rptr); zeroNyquist(Rtilde); Rptr = I((ScalarFieldTilde&&)Rtilde); }
+
+void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr)
+{	//Find mean phase
+	double w0=0.0, r1=0.0, r2=0.0, i1=0.0, i2=0.0; //moments of normalized real and imaginary parts
+	for(size_t i=0; i<N; i++)
+	{	complex c = data[i]*data[i];
+		double w = abs(c); //weight
+		if(w > 1e-300)
+		{	w0 += w;
+			r1 += c.real();
+			i1 += c.imag();
+			r2 += c.real() * c.real() / w;
+			i2 += c.imag() * c.imag() / w;
+		}
+	}
+	double rMean=r1/w0, rSigma=sqrt(std::max(0.,r2/w0-pow(rMean,2)));
+	double iMean=i1/w0, iSigma=sqrt(std::max(0.,i2/w0-pow(iMean,2)));
+	meanPhase = 0.5*atan2(iMean, rMean);
+	sigmaPhase = 0.5*hypot(iMean*rSigma, rMean*iSigma)/(pow(rMean,2) + pow(iMean,2));
+	
+	//Remove phase:
+	complex phaseCompensate = cis(-meanPhase);
+	double imSqSum=0.0, reSqSum=0.0;
+	for(size_t i=0; i<N; i++)
+	{	complex& c = data[i];
+		c *= phaseCompensate;
+		reSqSum += pow(c.real(),2);
+		imSqSum += pow(c.imag(),2);
+		c = c.real();
+	}
+	rmsImagErr = sqrt(imSqSum/(imSqSum+reSqSum));
+}
+
+
+//------------------------------ Spatial gradients of scalar fields ---------------------------------
+
+//first cartesian derivative
+void D_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge)
+{	THREAD_halfGspaceLoop( D_calc(i, iG, in, out, Ge); )
+}
+#ifdef GPU_ENABLED
+void D_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> Ge);
+#endif
+ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir)
+{	const GridInfo& gInfo = in->gInfo;
+	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
+	#ifdef GPU_ENABLED
+	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G.column(iDir));
+	#else
+	threadLaunch(D_sub, gInfo.nG, gInfo.S, in->data(), out->data(), gInfo.G.column(iDir));
+	#endif
+	return out;
+}
+
+//second cartesian derivative
+void DD_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge1, vector3<> Ge2)
+{	THREAD_halfGspaceLoop( DD_calc(i, iG, in, out, Ge1, Ge2); )
+}
+#ifdef GPU_ENABLED
+void DD_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> g, vector3<> q);
+#endif
+ScalarFieldTilde DD(const ScalarFieldTilde& in, int iDir, int jDir)
+{	const GridInfo& gInfo = in->gInfo;
+	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
+	#ifdef GPU_ENABLED
+	DD_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G.column(iDir), gInfo.G.column(jDir));
+	#else
+	threadLaunch(DD_sub, gInfo.nG, gInfo.S, in->data(), out->data(), gInfo.G.column(iDir), gInfo.G.column(jDir));
+	#endif
+	return out;
+}
+
+
+template<int l> void lGradient_sub(size_t iStart, size_t iStop, const vector3<int>& S, const complex* in, const array<complex*, 2*l+1>& out, const matrix3<>& G)
+{	THREAD_halfGspaceLoop( lGradient_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+}
+template<int l> void lGradient(const vector3<int>& S, const complex* in, array<complex*, 2*l+1> out, const matrix3<>& G)
+{	threadLaunch(lGradient_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);
+}
+void lGradient(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G)
+{	SwitchTemplate_l(l, lGradient, (S, in, out, G))
+}
+#ifdef GPU_ENABLED
+void lGradient_gpu(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G);
+#endif
+
+ScalarFieldTildeArray lGradient(const ScalarFieldTilde& in, int l)
+{	ScalarFieldTildeArray out; nullToZero(out, in->gInfo, 2*l+1);
+	callPref(lGradient)(in->gInfo.S, in->dataPref(), dataPref(out), l, in->gInfo.G);
+	return out;
+}
+
+template<int l> void lDivergence_sub(size_t iStart, size_t iStop, const vector3<int>& S, const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
+{	THREAD_halfGspaceLoop( lDivergence_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+}
+template<int l> void lDivergence(const vector3<int>& S, array<const complex*,2*l+1> in, complex* out, const matrix3<>& G)
+{	threadLaunch(lDivergence_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);
+}
+void lDivergence(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G)
+{	SwitchTemplate_l(l, lDivergence, (S, in, out, G))
+}
+#ifdef GPU_ENABLED
+void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G);
+#endif
+
+ScalarFieldTilde lDivergence(const ScalarFieldTildeArray& in, int l)
+{	assert(int(in.size()) == 2*l+1);
+	ScalarFieldTilde out; nullToZero(out, in[0]->gInfo);
+	callPref(lDivergence)(in[0]->gInfo.S, constDataPref(in), out->dataPref(), l, in[0]->gInfo.G);
+	return out;
+}
+
+
+
+void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
+	const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k)
+{	THREAD_rLoop( v[i] *= blochPhase_calc(iv, invS, k); )
+}
+#ifdef GPU_ENABLED
+void multiplyBlochPhase_gpu(const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k);
+#endif
+void multiplyBlochPhase(complexScalarField& v, const vector3<>& k)
+{	const GridInfo& gInfo = v->gInfo;
+	vector3<> invS(1./gInfo.S[0], 1./gInfo.S[1], 1./gInfo.S[2]);
+	#ifdef GPU_ENABLED
+	multiplyBlochPhase_gpu(gInfo.S, invS, v->dataGpu(), k);
+	#else
+	threadLaunch(multiplyBlochPhase_sub, gInfo.nr, gInfo.S, invS, v->data(), k);
+	#endif
+}
+
+//------ RadialFunction related operators ------
+
+void radialFunction_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT,
+	complex* F, const RadialFunctionG& f, vector3<> r0 )
+{	THREAD_halfGspaceLoop( F[i] = radialFunction_calc(iG, GGT, f, r0); )
+}
+#ifdef GPU_ENABLED
+void radialFunction_gpu(const vector3<int> S, const matrix3<>& GGT,
+	complex* F, const RadialFunctionG& f, vector3<> r0);
+#endif
+ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
+{	
+	ScalarFieldTilde F(ScalarFieldTildeData::alloc(gInfo,isGpuEnabled()));
+	#ifdef GPU_ENABLED
+	radialFunction_gpu(gInfo.S, gInfo.GGT, F->dataGpu(), f, r0);
+	#else
+	threadLaunch(radialFunction_sub, gInfo.nG, gInfo.S, gInfo.GGT, F->data(), f, r0);
+	#endif
+	return F;
+}
+
+ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0)
+{	
+	ScalarFieldTilde F = radialFunctionG(gInfo, f, r0);
+	return (1.0/gInfo.detR) * I(F);
+}
+
+void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel)
+{	
+	ScalarFieldTilde F = radialFunctionG(Kernel.gInfo, f, vector3<>(0,0,0));
+	const complex* FData = F->data(); //put F into Kernel
+	for(int i=0; i<Kernel.gInfo.nG; i++)
+		Kernel.data[i] = FData[i].real();
+	Kernel.set();
+}
+
+
+void radialFunctionMultiply_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT,
+	complex* in, const RadialFunctionG& f)
+{	THREAD_halfGspaceLoop( in[i] *= f(sqrt(GGT.metric_length_squared(iG))); )
+}
+#ifdef GPU_ENABLED
+void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, complex* in, const RadialFunctionG& f);
+#endif
+
+ScalarFieldTilde operator*(const RadialFunctionG& f, ScalarFieldTilde&& in)
+{	const GridInfo& gInfo = in->gInfo;
+	#ifdef GPU_ENABLED
+	radialFunctionMultiply_gpu(gInfo.S, gInfo.GGT, in->dataGpu(), f);
+	#else
+	threadLaunch(radialFunctionMultiply_sub, gInfo.nG, gInfo.S, gInfo.GGT, in->data(), f);
+	#endif
+	return in;
+}
+
+ScalarFieldTilde operator*(const RadialFunctionG& f, const ScalarFieldTilde& in)
+{	ScalarFieldTilde out(in->clone()); //destructible copy
+	return f * ((ScalarFieldTilde&&)out);
+}
+
+VectorFieldTilde operator*(const RadialFunctionG& f, VectorFieldTilde&& in)
+{	for(int k=0; k<3; k++) in[k] = f * (ScalarFieldTilde&&)in[k];
+	return in;
+}
+
+VectorFieldTilde operator*(const RadialFunctionG& f, const VectorFieldTilde& in)
+{	VectorFieldTilde out;
+	for(int k=0; k<3; k++) out[k] = f * in[k];
+	return out;
+}
 
 //------------------------------ Nonlinear Unary operators ------------------------------
 

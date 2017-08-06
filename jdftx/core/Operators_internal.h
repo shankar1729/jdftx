@@ -21,9 +21,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_OPERATORS_INTERNAL_H
 
 #include <core/matrix3.h>
-#include <core/vector3.h>
 #include <core/tensor3.h>
 #include <core/LoopMacros.h>
+#include <core/SphericalHarmonics.h>
+#include <core/RadialFunction.h>
 
 //! @cond
 
@@ -94,6 +95,65 @@ void changeGridFull_calc(const vector3<int>& iG, const vector3<int>& Sin, const 
 	#undef COMPUTE_index
 	out[iout] = in[iin];
 }
+
+__hostanddev__ void D_calc(int i, const vector3<int>& iG, const complex* in, complex* out,
+	const vector3<>& Ge)
+{	out[i] = in[i] * complex(0, dot(iG,Ge));
+}
+__hostanddev__ void DD_calc(int i, const vector3<int>& iG, const complex* in, complex* out,
+	const vector3<>& Ge1, const vector3<>& Ge2)
+{	out[i] =  in[i] * (-dot(iG,Ge1) * dot(iG,Ge2));
+}
+
+
+//! Switch a function templated over l for all supported l with parenthesis enclosed argument list argList
+#define SwitchTemplate_l(l,fTemplate,argList) \
+	switch(l) \
+	{	case 0: fTemplate<0> argList; break; \
+		case 1: fTemplate<1> argList; break; \
+		case 2: fTemplate<2> argList; break; \
+		case 3: fTemplate<3> argList; break; \
+		case 4: fTemplate<4> argList; break; \
+		case 5: fTemplate<5> argList; break; \
+		case 6: fTemplate<6> argList; break; \
+	}
+
+template<int l, int lpm> struct lGradient_staticLoop
+{	static __hostanddev__ void set(int i, const vector3<>& g, const complex& phasedIn, const array<complex*,2*l+1>& out)
+	{	out[lpm][i] = phasedIn * Ylm<l,lpm-l>(g);
+		lGradient_staticLoop<l,lpm-1>::set(i, g, phasedIn, out);
+	}
+};
+template<int l> struct lGradient_staticLoop<l,-1> { static __hostanddev__ void set(int i, const vector3<>& g, const complex& phasedIn, const array<complex*,2*l+1>& out) {} }; //end recursion
+
+template<int l> __hostanddev__ void lGradient_calc(int i, const vector3<int>& iG, bool isNyq, const complex* in, const array<complex*,2*l+1>& out, const matrix3<>& G)
+{	const complex phase = cis(l*0.5*M_PI); // iota^l (computable at compile time)
+	lGradient_staticLoop<l,l+l>::set(i, iG*G, isNyq ? 0. : phase * in[i], out);
+}
+
+template<int l, int lpm> struct lDivergence_staticLoop
+{	static __hostanddev__ complex get(int i, const vector3<>& g, const array<const complex*,2*l+1>& in)
+	{	return in[lpm][i] * Ylm<l,lpm-l>(g) +  lDivergence_staticLoop<l,lpm-1>::get(i, g, in);
+	}
+};
+template<int l> struct lDivergence_staticLoop<l,-1> { static __hostanddev__ complex get(int i, const vector3<>& g, const array<const complex*,2*l+1>& in) { return complex(); } }; //end recursion
+
+template<int l> __hostanddev__ void lDivergence_calc(int i, const vector3<int>& iG, bool isNyq, const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
+{	const complex phase = cis(l*0.5*M_PI); // iota^l (computable at compile time)
+	out[i] = (isNyq ? 0. : phase) * lDivergence_staticLoop<l,l+l>::get(i, iG*G, in);
+}
+
+
+__hostanddev__ complex blochPhase_calc(const vector3<int>& iv, const vector3<>& invS, const vector3<>& k)
+{	return cis(2*M_PI*dot(k, vector3<>(iv[0]*invS[0], iv[1]*invS[1], iv[2]*invS[2])));
+}
+
+__hostanddev__ complex radialFunction_calc(const vector3<int>& iG, const matrix3<>& GGT, const RadialFunctionG& f, const vector3<>& r0)
+{	return f(sqrt(GGT.metric_length_squared(iG))) * cis(-2*M_PI*dot(iG,r0));
+}
+
+
+//----------- Functions from VectorField.h -------
 
 __hostanddev__ void gradient_calc(int i, const vector3<int> iG, bool nyq, const matrix3<> G,
 	const complex* Xtilde, vector3<complex*>& gradTilde)

@@ -27,7 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/GridInfo.h>
 #include <core/Util.h>
-#include <vector>
 
 //! Relative threshold for symmetry detection
 extern double symmThreshold, symmThresholdSq;

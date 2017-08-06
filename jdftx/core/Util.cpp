@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <csignal>
 #include <list>
-#include <vector>
 #include <algorithm>
 #include <getopt.h>
 #include <commands/parser.h>

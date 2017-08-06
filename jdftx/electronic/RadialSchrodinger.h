@@ -23,9 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/RadialFunction.h>
 #include <core/matrix.h>
 #include <core/Minimize.h>
-#include <core/scalar.h>
 #include <cstring>
-#include <vector>
 #include <map>
 
 //! @addtogroup Output

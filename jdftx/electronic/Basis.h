@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_BASIS_H
 
 #include <core/vector3.h>
-#include <vector>
 
 class GridInfo;
 class IonInfo;

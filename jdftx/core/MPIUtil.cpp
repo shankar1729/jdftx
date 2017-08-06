@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/MPIUtil.h>
 #include <core/Util.h>
 #include <core/scalar.h>
-#include <vector>
 #include <algorithm>
 #include <climits>
 #include <core/Random.h>

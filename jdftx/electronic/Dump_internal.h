@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/ScalarFieldArray.h>
 #include <core/Coulomb.h>
-#include <vector>
 
 class Everything;
 class ColumnBundle;

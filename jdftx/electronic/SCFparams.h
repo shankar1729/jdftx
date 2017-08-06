@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 #include <core/PulayParams.h>
-#include <vector>
 
 //! @addtogroup ElecSystem
 //! @{

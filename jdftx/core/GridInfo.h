@@ -25,11 +25,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/matrix3.h>
 #include <core/GpuUtil.h>
-#include <map>
 #include <fftw3.h>
 #include <stdint.h>
 #include <cstdio>
 #include <mutex>
+#include <map>
 
 /** @brief Simulation grid descriptor
 

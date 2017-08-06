@@ -21,9 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_IONDYNAMICS_H
 
 #include <electronic/IonicMinimizer.h>
-#include <core/vector3.h>
 #include <core/matrix3.h>
-#include <vector>
 
 //! @addtogroup IonicSystem
 //! @{

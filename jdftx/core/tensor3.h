@@ -26,7 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file tensor3.h Symmetric traceless tensor with CPU and GPU operators
 
 #include <core/scalar.h>
-#include <vector>
 
 #define LOOP5(code) { for(int k=0; k<5; k++) { code } }
 

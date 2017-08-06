@@ -31,6 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <core/GridInfo.h>
 #include <core/LoopMacros.h>
+#include <core/RadialFunction.h>
 
 //----------------- Real / complex conversion ------------------
 ScalarField Real(const complexScalarField&); //!< real part of a complex scalar field (real-space)
@@ -84,9 +85,27 @@ ScalarFieldTilde Linv(ScalarFieldTilde&&); //!< Inverse Laplacian
 complexScalarFieldTilde Linv(const complexScalarFieldTilde&); //!< Inverse Laplacian
 complexScalarFieldTilde Linv(complexScalarFieldTilde&&); //!< Inverse Laplacian
 
+ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
+ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
+
 void zeroNyquist(RealKernel& Gdata); //!< zeros out all the nyquist components of a real G-kernel
 void zeroNyquist(ScalarFieldTilde& Gptr); //!< zeros out all the nyquist components of a G-space data array
 void zeroNyquist(ScalarField& Rptr); //!< zeros out all the nyquist components of an R-space data array
+
+//! Convert a complex wavefunction to a real one with optimum phase choice
+//! Store the phase statistics before conversion in meanPhase and sigmaPhase
+//! and the relative rms imaginary part truncated during conversion in rmsImagErr
+//! (Useful for getting real wavefunctions in gamma point only calculations or Wannier functions)
+void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr);
+
+void multiplyBlochPhase(complexScalarField&, const vector3<>& k); //!< Multiply by Block phase for wave-vector k (in reciprocal lattice coordinates)
+ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //!< Create spherically-symmetric scalar field from radial form f, centered at lattice coordinates r0
+void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel); //!< Create a spherically-symmetric RealKernel from its radial form f 
+ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //!< Create spherically-symmetric scalar field from radial form f, centered at lattice coordinates r0
+
+//Convolution by spherical function:
+ScalarFieldTilde operator*(const RadialFunctionG&, const ScalarFieldTilde&); //!< Convolve a scalar field by a radial function (preserve input)
+ScalarFieldTilde operator*(const RadialFunctionG&, ScalarFieldTilde&&); //!< Convolve a scalar field by a radial function (destructible input)
 
 //------------------------------ Nonlinear Unary operators ------------------------------
 

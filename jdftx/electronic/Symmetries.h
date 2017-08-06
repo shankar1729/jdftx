@@ -23,7 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/matrix3.h>
 #include <core/ScalarField.h>
-#include <vector>
 #include <list>
 
 class Everything;

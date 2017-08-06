@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file LoopMacros.h
 
+
 //! One thread of a loop over real space (see applyFunc_r_sub for example)
 #define THREAD_rLoop(code) \
 	size_t i=iStart; \

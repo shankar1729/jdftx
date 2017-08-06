@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_EXACTEXCHANGE_H
 
 #include <core/ScalarField.h>
-#include <vector>
 
 class Everything;
 class ColumnBundle;

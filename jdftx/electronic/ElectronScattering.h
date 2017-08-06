@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Basis.h>
 #include <core/LatticeUtils.h>
-#include <vector>
 #include <memory>
 
 class ColumnBundle;

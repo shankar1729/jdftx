@@ -26,7 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file ScalarFieldArray.h Variable length arrays of ScalarField and ScalarFieldTildeArray, and their operators
 
 #include <core/VectorField.h>
-#include <vector>
 #include <cstdio>
 
 typedef std::vector<ScalarField> ScalarFieldArray; //!< dynamic size collection of real space scalar fields
@@ -133,6 +132,10 @@ template<typename T> double dot(const TptrCollection& x, const TptrCollection& y
 	for(unsigned i=0; i<x.size(); i++) if(x[i] && y[i]) ret += dot(x[i], y[i]);
 	return ret;
 }
+
+//Spherical tensor derivatives
+ScalarFieldTildeArray lGradient(const ScalarFieldTilde&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
+ScalarFieldTilde lDivergence(const ScalarFieldTildeArray&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
 
 //! Initialize (non-null) data to zero
 template<typename T> void initZero(TptrCollection& x)

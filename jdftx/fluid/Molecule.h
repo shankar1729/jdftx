@@ -21,10 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_FLUID_MOLECULE_H
 
 #include <core/RadialFunction.h>
-#include <core/vector3.h>
-#include <core/string.h>
 #include <core/ScalarField.h>
-#include <vector>
+#include <core/string.h>
 #include <map>
 
 //! @addtogroup Fluid

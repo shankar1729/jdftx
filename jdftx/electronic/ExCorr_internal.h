@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 //! @file ExCorr_internal.h Internal abstractions of, and helper routines for the internal exchange and correlation routines
 
-#include <electronic/operators_internal.h>
+#include <core/vector3.h>
 
 static const double nCutoff = 1e-16; //!< ignore densities below this value
 

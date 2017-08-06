@@ -24,10 +24,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 //! @file S2quad.h Quadratures on S2 used to generate quadratures on SO(3)
 
-#include <vector>
-#include <core/vector3.h>
-#include <core/string.h>
 #include <core/Util.h>
+#include <core/string.h>
+#include <core/vector3.h>
 
 //! Abstract base class for a S2 quadrature definition (used to generate the SO3 qudarature)
 struct S2quad

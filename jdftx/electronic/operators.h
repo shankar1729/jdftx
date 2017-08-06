@@ -30,45 +30,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 //! @file operators.h Operators used extensively in the electronic sector
 
-//! Convert a complex wavefunction to a real one with optimum phase choice
-//! Store the phase statistics before conversion in meanPhase and sigmaPhase
-//! and the relative rms imaginary part truncated during conversion in rmsImagErr
-//! (Useful for getting real wavefunctions in gamma point only calculations or Wannier functions)
-void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr);
-
-//----------------- Scalar field operators ---------------------------
-
-ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
-ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
-ScalarFieldTildeArray lGradient(const ScalarFieldTilde&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
-ScalarFieldTilde lDivergence(const ScalarFieldTildeArray&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
-
-
-//! Multiply complex scalar field by Block phase for wave-vector k (in reciprocal lattice coordinates)
-void multiplyBlochPhase(complexScalarField&, const vector3<>& k);
-
-//! Create a spherically symmetric real scalar field centered at lattice coordinates r0, given its radial fourier transform f
-ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //calls ScalarFieldTilde radialFunctionG
-
-//! Create a spherically symmetric scalar G-space kernel given its radial form f 
-void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel);  //calls ScalarFieldTilde radialFunctionG
-
-//! Create a spherically symmetric G-space scalar field centered at lattice coordinates r0 given its radial form f 
-ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0);
-
-//! Convolve a scalar field by a radial function (preserve input)
-ScalarFieldTilde operator*(const RadialFunctionG&, const ScalarFieldTilde&);
-
-//! Convolve a scalar field by a radial function (destructible input)
-ScalarFieldTilde operator*(const RadialFunctionG&, ScalarFieldTilde&&);
-
-//! Convolve a vector field by a radial function (preserve input)
-VectorFieldTilde operator*(const RadialFunctionG&, const VectorFieldTilde&);
-
-//! Convolve a vector field by a radial function (destructible input)
-VectorFieldTilde operator*(const RadialFunctionG&, VectorFieldTilde&&);
-
-
 //------------------------------ ColumnBundle operators ---------------------------------
 
 //! Return Idag V .* I C (evaluated columnwise)

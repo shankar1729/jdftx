@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix.h>
 #include <core/string.h>
 #include <cfloat>
-#include <vector>
 
 //! @addtogroup Algorithms
 //! @{

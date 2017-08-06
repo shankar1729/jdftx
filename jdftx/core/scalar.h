@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 #include <cstdlib>
+#include <vector>
 
 //! @addtogroup DataStructures
 //! @{
@@ -35,6 +36,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 	#define __in_a_cu_file__
 	#include <cuda_runtime.h>
 #endif
+
+//! Struct to wrap a fixed size array for passing to templated functions
+//! (Pretty much std::array, but that is not yet supported in CUDA)
+template<typename T, int N>
+struct array
+{	T arr[N];
+	array(const std::vector<T>& vec) { for(int s=0; s<N; s++) arr[s]=vec[s]; }
+	__hostanddev__ array(T t=0) { for(int s=0; s<N; s++) arr[s]=t; }
+	__hostanddev__ T& operator[](int i) { return arr[i]; }
+	__hostanddev__ const T& operator[](int i) const { return arr[i]; }
+};
 
 //! Ceiling of a positive integer division, templated over int types
 template<class T> T ceildiv(T num, T den) { return (num + den - 1)/den; }

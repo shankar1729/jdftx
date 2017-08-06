@@ -25,7 +25,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/IonicMinimizer.h>
 #include <core/matrix.h>
 #include <core/ScalarField.h>
-#include <vector>
 #include <core/Thread.h>
 
 //! @addtogroup IonicSystem

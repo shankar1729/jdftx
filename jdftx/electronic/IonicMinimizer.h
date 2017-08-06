@@ -22,9 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/RadialFunction.h>
 #include <core/Minimize.h>
-#include <core/vector3.h>
 #include <core/matrix3.h>
-#include <vector>
 
 //! @addtogroup IonicSystem
 //! @{

@@ -26,7 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file vector3.h 3-vector with CPU and GPU operators
 
 #include <core/scalar.h>
-#include <vector>
 #include <cstdio>
 
 #define LOOP3(code) { for(int k=0; k<3; k++) { code } }

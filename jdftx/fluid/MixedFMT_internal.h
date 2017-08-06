@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_MIXEDFMT_INTERNAL_H
 #define JDFTX_FLUID_MIXEDFMT_INTERNAL_H
 
-#include <vector>
 #include <core/matrix3.h>
 #include <core/tensor3.h>
 
