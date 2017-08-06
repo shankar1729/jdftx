@@ -20,8 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_TRANSLATIONOPERATOR_H
 #define JDFTX_FLUID_TRANSLATIONOPERATOR_H
 
-//! @file TranslationOperator.h
-//! Options for translating site densities for rigid molecule ideal gas implementations
+//! @addtogroup Operators
+//! @{
+//! @file TranslationOperator.h Various ways of translation used by rigid molecule ideal gas implementations
 
 #include <core/GridInfo.h>
 #include <core/ScalarField.h>
@@ -64,4 +65,5 @@ public:
 	void taxpy(const vector3<>& t, double alpha, const ScalarField& x, ScalarField& y) const;
 };
 
+//! @}
 #endif // JDFTX_FLUID_TRANSLATIONOPERATOR_H

@@ -20,8 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_FLUIDSOLVER_H
 #define JDFTX_ELECTRONIC_FLUIDSOLVER_H
 
-//! @file FluidSolver.h
-//! Common interface for all the fluids to the electronic code
+//! @addtogroup Fluid
+//! @{
+//! @file FluidSolver.h Common interface for all the fluids to the electronic code
 
 #include <core/ScalarField.h>
 #include <fluid/FluidSolverParams.h>
@@ -100,4 +101,5 @@ protected:
 //! Create and return a JDFTx solver (the solver can be freed using delete)
 FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& params);
 
+//! @}
 #endif // JDFTX_ELECTRONIC_FLUIDSOLVER_H

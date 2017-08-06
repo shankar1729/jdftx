@@ -22,9 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Operators.h>
 
-//!@file MixedFMT.h
-//!@brief Sphere mixture functional via (optionally soft) Fundamental Measure Theory
+//! @addtogroup ClassicalDFT
+//! @{
 
+//!@file MixedFMT.h Sphere mixture functional via (optionally soft) Fundamental Measure Theory
 
 //! Returns the `White-Bear mark II' mixed sphere free energy/T given the weighted densities n*
 //! and accumulates the gradients in grad_n*. Note that n1v and n2m are scalar
@@ -58,4 +59,5 @@ double PhiBond(double Rhm, double scale, const ScalarField& n0mol, const ScalarF
 double phiBondUniform(double Rhm, double scale, double n0mol, double n2, double n3,
 	double& grad_n0mol, double& grad_n2, double& grad_n3);
 
+//! @}
 #endif // JDFTX_FLUID_MIXEDFMT_H

@@ -25,6 +25,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class FluidMixture;
 struct FluidComponent;
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! Abstract base class for an IdealGas evaluator
 class IdealGas
 {
@@ -73,4 +76,5 @@ protected:
 	friend class FluidMixture; //!< FluidMixture::initialize() adjusts Nbulk and mu to get target pressure and mole fractions
 };
 
+//! @}
 #endif // JDFTX_FLUID_IDEALGAS_H

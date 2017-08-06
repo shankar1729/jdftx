@@ -26,6 +26,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <core/EnergyComponents.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! @brief Mixture of fluids that provides the total free energy functional for minimization
 //! Constructing Fex and IdealGas objects require a FluidMixture reference, to which they add themselves.
 //! The FluidMixture object is ready to use after initialize() is called.
@@ -140,4 +143,5 @@ private:
 	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }
 };
 
+//! @}
 #endif // JDFTX_FLUID_FLUIDMIXTURE_H

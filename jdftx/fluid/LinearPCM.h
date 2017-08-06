@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <core/Minimize.h>
 
+//! @addtogroup Solvation
+//! @{
+
+//! Linear solvation models: shared electrostatics implementation
 class LinearPCM : public PCM, public LinearSolvable<ScalarFieldTilde>
 {
 public:
@@ -50,4 +54,5 @@ private:
 	void override(const ScalarField& epsilon, const ScalarField& kappaSq);
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_LINEARPCM_H

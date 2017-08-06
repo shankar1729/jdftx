@@ -22,6 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/IdealGas.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! IdealGas for monoatomic molecules (i.e. no orientation integral)
 class IdealGasMonoatomic : public IdealGas
 {
@@ -35,4 +38,5 @@ public:
 	void convertGradients(const ScalarField* psi, const ScalarField* N, const ScalarField* Phi_N, const vector3<>&  Phi_P0, ScalarField* Phi_psi, const double Nscale) const;
 };
 
+//! @}
 #endif // JDFTX_FLUID_IDEALGASMONOATOMIC_H

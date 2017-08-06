@@ -23,6 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/S2quad.h>
 #include <fluid/Molecule.h>
 
+//! @addtogroup Fluid
+//! @{
+
 //!Named fluid components for which bulk properties / geometries / excess functionals are available
 struct FluidComponent
 {
@@ -134,4 +137,5 @@ struct FluidComponent
 	void addToFluidMixture(class FluidMixture* fluidMixture); //!< Initialize fex, idealGas and register with fluidMixture
 };
 
+//! @}
 #endif // JDFTX_FLUID_FLUIDCOMPONENT_H

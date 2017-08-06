@@ -21,12 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_FLUID_FEX_H2O_BONDEDVOIDS_H
 #include <fluid/Fex.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
+//! Water 'BondedVoids' excess functional from \cite BondedVoids
 class Fex_H2O_BondedVoids : public Fex
 {
 public:
-	//! Create water with the BondedVoids functional as per [arXiv:1112.1442]
-	//! which includes a minor update (in the site charge kernel) to
-	//! [R. Sundararaman et al., J. Chem. Phys 137, 044107 (2012)]
 	Fex_H2O_BondedVoids(const FluidMixture*, const FluidComponent*);
     virtual ~Fex_H2O_BondedVoids();
 	
@@ -38,5 +39,5 @@ private:
 	RadialFunctionG Ua;
 };
 
-
+//! @}
 #endif // JDFTX_FLUID_FEX_H2O_BONDEDVOIDS_H

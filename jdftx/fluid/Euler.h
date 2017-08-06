@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_EULER_H
 #define JDFTX_FLUID_EULER_H
 
-//! @addtogroup so3quad
+//! @addtogroup Utilities
 //! @{
 
 /** @file Euler.h

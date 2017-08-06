@@ -25,6 +25,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/EnergyComponents.h>
 #include <core/Coulomb.h>
 
+//! @addtogroup Solvation
+//! @{
+
 //! Base class for all PCMs
 class PCM : public FluidSolver
 {
@@ -60,4 +63,5 @@ protected:
 	friend struct ChargedDefect;
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_PCM_H

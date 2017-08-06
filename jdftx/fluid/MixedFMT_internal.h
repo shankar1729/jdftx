@@ -24,6 +24,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <core/tensor3.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+//! @file MixedFMT_internal.h Implementation of Mixed FMT (internals)
+
+//! Calculate tensor derivative
 __hostanddev__ void tensorKernel_calc(int i, const vector3<int> iG, bool nyq, const matrix3<> G,
 	const complex* nTilde, tensor3<complex*> mTilde)
 {	complex minus_nTilde = nyq ? complex(0,0) : -nTilde[i];
@@ -36,6 +41,7 @@ __hostanddev__ void tensorKernel_calc(int i, const vector3<int> iG, bool nyq, co
 	mTilde.yyr()[i] = minus_nTilde*(Gvec.y()*Gvec.y() - (1.0/3)*Gsq);
 }
 
+//! Propagate gradients with respect to tensor derivative
 __hostanddev__ void tensorKernel_grad_calc(int i, const vector3<int> iG, bool nyq, const matrix3<> G,
 	tensor3<const complex*> grad_mTilde, complex* grad_nTilde)
 {	complex temp = complex(0,0);
@@ -51,12 +57,12 @@ __hostanddev__ void tensorKernel_grad_calc(int i, const vector3<int> iG, bool ny
 	grad_nTilde[i] = -temp;
 }
 
-//Compute vT*m*v for a vector v and a symmetric traceless tensor m
+//! Compute vT*m*v for a vector v and a symmetric traceless tensor m
 __hostanddev__ double mul_vTmv(const tensor3<>& m, const vector3<>& v)
 {	return 2*(m.xy()*v.x()*v.y() + m.yz()*v.y()*v.z() + m.zx()*v.z()*v.x())
 		+ m.xxr()*v.x()*v.x() + m.yyr()*v.y()*v.y() - (m.xxr()+m.yyr())*v.z()*v.z();
 }
-//Accumulate gradient of above function
+//! Accumulate gradient of above function
 __hostanddev__ void mul_vTmv_grad(const double grad_mul, const tensor3<>& m, const vector3<>& v,
 	tensor3<>& grad_m, vector3<>& grad_v)
 {	grad_m.xy() += (2*grad_mul)*v.x()*v.y();
@@ -70,11 +76,11 @@ __hostanddev__ void mul_vTmv_grad(const double grad_mul, const tensor3<>& m, con
 }
 
 
-//Compute tr(m^3) for a symmetric traceless tensor m (See ~/Water1D/FMT_tensorWeights.m for expressions)
+//! Compute tr(m^3) for a symmetric traceless tensor m (See ~/Water1D/FMT_tensorWeights.m for expressions)
 __hostanddev__ double trace_cubed(const tensor3<>& m)
 {	return -3.0 * (-2.0*m.xy()*m.yz()*m.zx() + pow(m.yz(),2)*m.xxr() - pow(m.xy(),2)*(m.xxr()+m.yyr()) + m.yyr()*(pow(m.zx(),2)+m.xxr()*(m.xxr()+m.yyr())));
 }
-//Accumulate gradient of above function
+//! Accumulate gradient of above function
 __hostanddev__ void trace_cubed_grad(const double grad_trace, const tensor3<>& m, tensor3<>& grad_m)
 {	grad_m.xy() += (6*grad_trace)* (m.yz()*m.zx()+m.xy()*(m.xxr()+m.yyr()));
 	grad_m.yz() += (6*grad_trace)* (m.xy()*m.zx()-m.yz()*m.xxr());
@@ -83,7 +89,7 @@ __hostanddev__ void trace_cubed_grad(const double grad_trace, const tensor3<>& m
 	grad_m.yyr() += (-3*grad_trace)* (-pow(m.xy(),2)+pow(m.zx(),2)+m.xxr()*(m.xxr()+2*m.yyr()));
 }
 
-//White-Bear mark II FMT scale functions (and derivatives) [replace with f2(x)=f3(x)=1 for standard Tarazona FMT]:
+//! White-Bear mark II FMT scale function f2 (and derivative) [replace with f2(x)=f3(x)=1 for standard Tarazona FMT]:
 __hostanddev__ double WB_f2(double x, double& f2_x)
 {	if(x<0.002)
 	{	f2_x = x*((2./9) + x*(3./18 + x*(4./30)));
@@ -94,6 +100,8 @@ __hostanddev__ double WB_f2(double x, double& f2_x)
 		return 1 + (1./3)*(2-x + 2*(1-x)*log(1-x)/x);
 	}
 }
+
+//! White-Bear mark II FMT scale function f3 (and derivative) [replace with f2(x)=f3(x)=1 for standard Tarazona FMT]:
 __hostanddev__ double WB_f3(double x, double& f3_x)
 {	if(x<0.005)
 	{	f3_x = -4./9 + x*(2./18 + x*(3./45 + x*(4./90)));
@@ -105,6 +113,7 @@ __hostanddev__ double WB_f3(double x, double& f3_x)
 	}
 }
 
+//! Calculate FMT functional
 __hostanddev__ double phiFMT_calc(int i,
 	const double *n0arr, const double *n1arr, const double *n2arr, const double *n3arr,
 	vector3<const double*> n1vArr, vector3<const double*> n2vArr, tensor3<const double*> n2mArr,
@@ -151,6 +160,7 @@ __hostanddev__ double phiFMT_calc(int i,
 	return phi;
 }
 
+//! Calculate bonding term
 __hostanddev__ double phiBond_calc(int i, double Rhm, double scale,
 	const double *n0arr, const double *n2arr, const double *n3arr, vector3<const double*> n2vArr,
 	double *grad_n0arr, double *grad_n2arr, double *grad_n3arr, vector3<double*> grad_n2vArr)
@@ -185,4 +195,5 @@ __hostanddev__ double phiBond_calc(int i, double Rhm, double scale,
 	return phi;
 }
 
+//! @}
 #endif // JDFTX_FLUID_MIXEDFMT_INTERNAL_H

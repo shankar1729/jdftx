@@ -27,6 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/VanDerWaals.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! Van der Waals coupling between atoms from electronic DFT and fluid density fields
 class VDWCoupling : public Fmix
 {	
@@ -48,4 +51,5 @@ private:
 	std::vector<int> atomicNumber; 
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_VDWCOUPLING_H

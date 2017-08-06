@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <core/Minimize.h>
 
+//! @addtogroup Solvation
+//! @{
+
+//! Nonlocal SaLSA \cite SaLSA solvation model implementation (electrostatic part)
 class SaLSA : public PCM, public LinearSolvable<ScalarFieldTilde>
 {
 public:
@@ -52,4 +56,5 @@ private:
 	ScalarFieldArray siteShape; //shape functions for sites
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_SALSA_H

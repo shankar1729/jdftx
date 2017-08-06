@@ -23,7 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SphericalHarmonics.h>
 #include <cmath>
 
-//! Utility for creating soft FMT weight functions
+//! @addtogroup ClassicalDFT
+//! @{
+
+//! Utility for creating (optionally soft) FMT weight functions
 class ErfFMTweight
 {
 public:
@@ -61,4 +64,5 @@ private:
 	double R, sigma, r0, c0;
 };
 
+//! @}
 #endif // JDFTX_FLUID_ERFFMTWEIGHT_H

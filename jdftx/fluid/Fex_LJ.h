@@ -20,8 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_FEX_LJ_H
 #define JDFTX_FLUID_FEX_LJ_H
 
-//! @file Fex_LJ.h
-//! @brief Lennard-Jones fluids
+//! @addtogroup ClassicalDFT
+//! @{
+
+//! @file Fex_LJ.h Lennard-Jones fluids
 
 #include <fluid/Fex.h>
 #include <fluid/Fmix.h>
@@ -85,4 +87,5 @@ private:
 	
 };
 
+//! @}
 #endif // JDFTX_FLUID_FEX_LJ_H

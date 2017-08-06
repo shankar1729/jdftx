@@ -20,12 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_SO3QUAD_H
 #define JDFTX_FLUID_SO3QUAD_H
 
-//! @addtogroup so3quad
+//! @addtogroup ClassicalDFT
 //! @{
-
-/** @file SO3quad.h
-@brief Quadratures for SO(3)
-*/
 
 #include <fluid/S2quad.h>
 struct Molecule;

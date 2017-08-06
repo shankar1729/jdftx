@@ -27,6 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <map>
 
+//! @addtogroup Fluid
+//! @{
+
 //! Multi-site molecule model
 struct Molecule
 {	
@@ -79,4 +82,5 @@ private:
 	bool initialized;
 };
 
+//! @}
 #endif // JDFTX_FLUID_MOLECULE_H

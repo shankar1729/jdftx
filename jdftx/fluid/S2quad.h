@@ -22,10 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @addtogroup ClassicalDFT
 //! @{
-
-/** @file S2quad.h
-@brief Quadratures on S2 used to generate quadratures on SO(3)
-*/
+//! @file S2quad.h Quadratures on S2 used to generate quadratures on SO(3)
 
 #include <vector>
 #include <core/vector3.h>
@@ -302,5 +299,4 @@ public:
 };
 
 //! @}
-
 #endif // JDFTX_FLUID_S2QUAD_H

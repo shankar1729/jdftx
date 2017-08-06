@@ -25,6 +25,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 class FluidMixture;
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! Abstract base class for mixing functionals: interactions between fluids (beyond hard sphere and scaled coulomb)
 class Fmix
 {
@@ -55,4 +58,5 @@ public:
 	virtual double computeUniform(const std::vector<double>& N, std::vector<double>& Phi_N) const=0;
 };
 
+//! @}
 #endif // JDFTX_FLUID_FMIX_H

@@ -22,6 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/vector3.h>
 
+//! @cond
+
 //! Get the index into data arrays for a vector3<int> which could be in the 2nd zone due to a translation
 __hostanddev__ int wrappedIndex(const vector3<int> i, const vector3<int> S)
 {
@@ -67,5 +69,5 @@ void fourierTranslate_calc(int i, const vector3<int> iG, const vector3<int> S, c
 {	xTilde[i] *= cis(-dot(iG,Gt));
 }
 
-
+//! @endcond
 #endif // JDFTX_FLUID_TRANSLATIONOPERATORINTERNAL_H

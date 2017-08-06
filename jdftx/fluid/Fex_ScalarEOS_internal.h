@@ -23,6 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Units.h>
 #include <core/scalar.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+//! @file Fex_ScalarEOS_internal.h Equation of state evaluators for ScalarEOS functional
+
+//! Base class for equation of state evaluators
 struct ScalarEOS_eval
 {	double T, b; //!< temperature and exclusion volume
 	
@@ -38,6 +43,7 @@ struct ScalarEOS_eval
 	}
 };
 
+//! Jefferey-Austin Equation of state for water
 struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 {
 	double alpha, prefacHB, prefacVW1, prefacVW2; //!< prefactors to the HB and VW terms
@@ -121,7 +127,7 @@ struct JeffereyAustinEOS_eval : public ScalarEOS_eval
 	}
 };
 
-//!Tao-Mason equation of state [F. Tao and E. A. Mason, J. Chem. Phys. 100, 9075 (1994)]
+//! Tao-Mason equation of state [F. Tao and E. A. Mason, J. Chem. Phys. 100, 9075 (1994)]
 struct TaoMasonEOS_eval : public ScalarEOS_eval
 {
 	double lambda, prefacQuad, prefacVap, prefacPole;
@@ -174,4 +180,5 @@ struct TaoMasonEOS_eval : public ScalarEOS_eval
 	}
 };
 
+//! @}
 #endif // JDFTX_FLUID_FEX_SCALAREOS_INTERNAL_H

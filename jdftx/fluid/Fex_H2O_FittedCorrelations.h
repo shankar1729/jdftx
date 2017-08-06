@@ -21,11 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_H
 #include <fluid/Fex.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
+//! Water excess functional from \cite FittedCorrelations
 class Fex_H2O_FittedCorrelations : public Fex
 {
 public:
-	//! Create water with the excess functional from:
-	//! J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010).
 	Fex_H2O_FittedCorrelations(const FluidMixture*, const FluidComponent*);
     virtual ~Fex_H2O_FittedCorrelations();
 	
@@ -35,5 +37,5 @@ private:
 	RadialFunctionG COO, COH, CHH, fex_gauss;
 };
 
-
+//! @}
 #endif // JDFTX_FLUID_FEX_H2O_FITTEDCORRELATIONS_H

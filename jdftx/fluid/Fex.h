@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Molecule.h>
 #include <core/ScalarField.h>
+
+//! @addtogroup ClassicalDFT
+//! @{
+
 class FluidMixture;
 struct FluidComponent;
 
@@ -47,4 +51,5 @@ public:
 	virtual double computeUniform(const double* N, double* Phi_N) const=0;
 };
 
+//! @}
 #endif // JDFTX_FLUID_FEX_H

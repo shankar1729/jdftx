@@ -22,6 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/IdealGasPomega.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! IdealGas for polyatomic molecules with the monopole-dipole 'MuEps' independent variables
 class IdealGasMuEps : public IdealGasPomega
 {
@@ -37,4 +40,5 @@ protected:
 	void convertGradients_o(int o, const matrix3<>& rot, const ScalarField& Phi_logPomega_o, ScalarField* Phi_mueps) const;
 };
 
+//! @}
 #endif // JDFTX_FLUID_IDEALGASMUEPS_H

@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/vector3.h>
 #include <electronic/RadialFunction.h>
 
+//! @addtogroup Solvation
+//! @{
+//! @file PCM_internal.h Internal implementation shared by solvation models
+
 //----------- Common PCM functions (top level interface not seen by .cu files) ------------
 #ifndef __in_a_cu_file__
 
@@ -30,6 +34,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/EnergyComponents.h>
 #include <fluid/FluidSolverParams.h>
 
+//! Original shape function from \cite JDFT, \cite PCM-Kendra and \cite GLSSA13
 namespace ShapeFunction
 {
 	//! Compute the shape function (0 to 1) given the cavity-determining electron density
@@ -39,6 +44,7 @@ namespace ShapeFunction
 	void propagateGradient(const ScalarField& n, const ScalarField& E_shape, ScalarField& E_n, double nc, double sigma);
 }
 
+//! Shape function in CANDLE \cite CANDLE
 namespace ShapeFunctionCANDLE
 {
 	//! Compute shape function that includes charge asymmetry from cavity-determining electron density and vacuum electric potential
@@ -50,12 +56,14 @@ namespace ShapeFunctionCANDLE
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
 }
 
+//! Shape function for \cite CavitySDA
 namespace ShapeFunctionSGA13
 {
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
 }
 
+//! Shape function for SCCS models \cite PCM-SCCS
 namespace ShapeFunctionSCCS
 {
 	//! Compute the shape function (0 to 1) given the cavity-determining electron density
@@ -69,8 +77,8 @@ namespace ShapeFunctionSCCS
 
 
 //--------- Compute kernels (shared by CPU and GPU implementations) --------
+//! @cond
 
-//Cavity shape function and gradient
 namespace ShapeFunction
 {
 	__hostanddev__ void compute_calc(int i, const double* nCavity, double* shape, const double nc, const double sigma)
@@ -167,8 +175,10 @@ namespace ShapeFunctionSCCS
 		grad_nCavity[i] += grad_shape[i] * s_t * t_f * f_rho; //chain rule
 	}
 }
+//! @endcond
 
-//------------- Helper classes for NonlinearPCM  -------------
+
+//! Helper classes for NonlinearPCM
 namespace NonlinearPCMeval
 {
 	//!Helper class for ionic screening portion of NonlinearPCM
@@ -474,4 +484,5 @@ namespace NonlinearPCMeval
 		if(mpiUtil->isHead()) saveRawBinary(object, filename.c_str()); \
 		logPrintf("done.\n"); logFlush();
 
+//! @}
 #endif // JDFTX_ELECTRONIC_PCM_INTERNAL_H

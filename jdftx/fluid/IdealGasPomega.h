@@ -25,6 +25,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/TranslationOperator.h>
 #include <core/VectorField.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! IdealGas for polyatomic molecules with the orientation densities 'P_omega' as independent variables
 //! This is also the base class for IdealGas's which used compressed representations of Pomega
 class IdealGasPomega : public IdealGas
@@ -57,4 +60,5 @@ private:
 	double Ecorr; VectorField Ecorr_P; //!< cache the correlation correction and its derivatives, since they are most efficiently computed during getDensities()
 };
 
+//! @}
 #endif // JDFTX_FLUID_IDEALGASPOMEGA_H

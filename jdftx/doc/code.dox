@@ -1,19 +1,27 @@
 //------------- Define grouping for code documentation ----------------
 /** 
 
-@defgroup DataStructures Data structures
-@defgroup Operators Operator implementations
-@defgroup Algorithms Algorithms
-@defgroup Geometry Lattice geometry
-@defgroup Utilities Shared utilities
+@defgroup Core Core functionality
+@{
+	@defgroup DataStructures Data structures
+	@defgroup Operators Operator implementations
+	@defgroup Algorithms Algorithms
+	@defgroup Utilities Shared utilities
+	@defgroup Geometry Lattice geometry
+	@defgroup Input Input-file parser and commands
+	@defgroup Output Outputs
+@}
 
-@defgroup Input Input-file parser and commands
-@defgroup Output Outputs
-
-@defgroup LongRange Long-range interactions
-@defgroup ExchangeCorrelation Exchange-correlation terms
 @defgroup ElectronicDFT Electronic DFT
-@defgroup ClassicalDFT Classical and joint DFT
-@defgroup Solvation Solvation models
+@{
+	@defgroup LongRange Long-range interactions
+	@defgroup ExchangeCorrelation Exchange-correlation terms
+@}
+
+@defgroup Fluid Fluid models
+@{
+	@defgroup ClassicalDFT Classical and joint DFT
+	@defgroup Solvation Solvation models
+@}
 
 */

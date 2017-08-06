@@ -22,6 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/IdealGasPomega.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+
 //! IdealGas for polyatomic molecules with the effective potential 'psi_alpha' independent variables
 class IdealGasPsiAlpha : public IdealGasPomega
 {
@@ -39,4 +42,5 @@ protected:
 	void convertGradients_o(int o, const matrix3<>& rot, const ScalarField& Phi_logPomega_o, ScalarField* Phi_psi) const;
 };
 
+//! @}
 #endif // JDFTX_FLUID_IDEALGASPSIALPHA_H

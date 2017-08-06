@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Fex.h>
 
+//! @addtogroup ClassicalDFT
+//! @{
+//! @file Fex_ScalarEOS.h ScalarEOS functional and helper classes
+
 //! Abstract base class for the equation of state evaluator for ScalarEOS functionals
 struct ScalarEOS
 {	double sigmaEOS;
@@ -34,10 +38,10 @@ struct ScalarEOS
 	virtual ~ScalarEOS() {}
 };
 
+//! Scalar EOS functional from \cite RigidCDFT and its extension from \cite PolarizableCDFT
 class Fex_ScalarEOS : public Fex
 {
 public:
-	//! Create water with the ScalarEOS functional (can choose soft or hard sphere version)
 	Fex_ScalarEOS(const FluidMixture*, const FluidComponent*, const ScalarEOS& eos);
     virtual ~Fex_ScalarEOS();
 	
@@ -73,4 +77,5 @@ private:
 	std::shared_ptr<struct TaoMasonEOS_eval> eval;
 };
 
+//! @}
 #endif // JDFTX_FLUID_FEX_SCALAREOS_H

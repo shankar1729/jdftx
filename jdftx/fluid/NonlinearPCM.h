@@ -26,15 +26,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <core/Pulay.h>
 
+//! @addtogroup Solvation
+//! @{
+//! @file NonlinearPCM.h NonlinearPCM and helper classes
+
 namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward declaration of helper classes
 
-typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldMuEps;
+typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldMuEps; //!< ion chemical potentials and effective local electric field
 
-
+//! Nonlinear solvation models: shared electrostatci part implementation
 class NonlinearPCM : public PCM, public Minimizable<ScalarFieldMuEps>, public Pulay<ScalarFieldTilde>
 {
 public:
-	ScalarFieldMuEps state; //!< State of the solver = the total electrostatic potential
+	ScalarFieldMuEps state; //!< State of the solver = ion chemical potentials and effective local electric field
 
 	//! See createFluidSolver()
 	NonlinearPCM(const Everything& e, const FluidSolverParams& params);
@@ -83,4 +87,5 @@ private:
 	void phiToState(bool setState); //!< update state if setState=true and epsilon/kappaSq in linearPCM if setState=false from the current phi
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_NONLINEARPCM_H
