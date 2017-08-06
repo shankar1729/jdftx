@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <electronic/SpeciesInfo.h>
 #include <electronic/IonicMinimizer.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <core/ScalarField.h>
 #include <vector>
 #include <core/Thread.h>

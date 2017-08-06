@@ -32,7 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/scalar.h>
 #include <core/Util.h>
 #include <core/ManagedMemory.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 class GridInfo; //Grid description and memory manager
 struct ScalarFieldData; //Real space data storage container for real scalar fields

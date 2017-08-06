@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/ColumnBundleTransform.h>
 #include <wannier/Wannier.h>
 

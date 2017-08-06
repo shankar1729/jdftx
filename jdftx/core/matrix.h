@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_MATRIX_H
-#define JDFTX_ELECTRONIC_MATRIX_H
+#ifndef JDFTX_CORE_MATRIX_H
+#define JDFTX_CORE_MATRIX_H
 
 #include <electronic/common.h>
 #include <core/ManagedMemory.h>
@@ -249,4 +249,4 @@ public:
 };
 
 //! @}
-#endif  // JDFTX_ELECTRONIC_MATRIX_H
+#endif  // JDFTX_CORE_MATRIX_H

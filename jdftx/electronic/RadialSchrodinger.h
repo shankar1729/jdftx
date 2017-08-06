@@ -20,8 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_RADIALSCHRODINGER_H
 #define JDFTX_ELECTRONIC_RADIALSCHRODINGER_H
 
-#include <electronic/RadialFunction.h>
-#include <electronic/matrix.h>
+#include <core/RadialFunction.h>
+#include <core/matrix.h>
 #include <core/Minimize.h>
 #include <core/scalar.h>
 #include <cstring>

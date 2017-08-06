@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_COLUMNBUNDLETRANSFORM_H
 
 #include <electronic/Basis.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 //! @addtogroup Operators
 //! @{

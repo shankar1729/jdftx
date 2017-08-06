@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/RadialFunction.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/RadialFunction.h>
+#include <core/SphericalHarmonics.h>
 #include <electronic/common.h>
 #include <core/GpuUtil.h>
 #include <core/Thread.h>

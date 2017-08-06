@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_VANDERWAALS_H
 #define JDFTX_ELECTRONIC_VANDERWAALS_H
 
-#include <electronic/RadialFunction.h>
+#include <core/RadialFunction.h>
 #include <electronic/common.h>
 #include <core/ScalarFieldArray.h>
 #include <core/Coulomb.h>

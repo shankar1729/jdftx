@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //!@file SpeciesInfo_internal.h Shared GPU/CPU code for ion/pseudopotential related calculations
 
 #include <core/matrix3.h>
-#include <electronic/RadialFunction.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/RadialFunction.h>
+#include <core/SphericalHarmonics.h>
 #include <stdint.h>
 
 //! Compute Vnl and optionally its gradients for a subset of the basis space, and for multiple atomic positions

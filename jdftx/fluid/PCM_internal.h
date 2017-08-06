@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_PCM_INTERNAL_H
 
 #include <core/vector3.h>
-#include <electronic/RadialFunction.h>
+#include <core/RadialFunction.h>
 
 //! @addtogroup Solvation
 //! @{

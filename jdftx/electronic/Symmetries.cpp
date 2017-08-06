@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/IonInfo.h>
 #include <electronic/Basis.h>
 #include <electronic/operators.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/SphericalHarmonics.h>
 #include <core/LatticeUtils.h>
 #include <core/GridInfo.h>
 #include <core/Thread.h>

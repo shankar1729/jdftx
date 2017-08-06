@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/SaLSA.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/SphericalHarmonics.h>
 #include <electronic/VanDerWaals.h>
 #include <electronic/operators.h>
 #include <gsl/gsl_linalg.h>

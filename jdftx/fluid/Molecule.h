@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_MOLECULE_H
 #define JDFTX_FLUID_MOLECULE_H
 
-#include <electronic/RadialFunction.h>
+#include <core/RadialFunction.h>
 #include <core/vector3.h>
 #include <core/string.h>
 #include <core/ScalarField.h>

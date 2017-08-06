@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 //---------------------- class diagMatrix --------------------------
 

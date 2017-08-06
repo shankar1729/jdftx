@@ -21,8 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_OPERATORS_INTERNAL_H
 
 #include <core/matrix3.h>
-#include <electronic/RadialFunction.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/RadialFunction.h>
+#include <core/SphericalHarmonics.h>
 #include <vector>
 
 

@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_FLUID_ERFFMTWEIGHT_H
 #define JDFTX_FLUID_ERFFMTWEIGHT_H
 
-#include <electronic/SphericalHarmonics.h>
+#include <core/SphericalHarmonics.h>
 #include <cmath>
 
 //! @addtogroup ClassicalDFT

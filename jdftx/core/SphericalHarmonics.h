@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_SPHERICALHARMONICS_H
-#define JDFTX_ELECTRONIC_SPHERICALHARMONICS_H
+#ifndef JDFTX_CORE_SPHERICALHARMONICS_H
+#define JDFTX_CORE_SPHERICALHARMONICS_H
 
 #include <core/vector3.h>
 
@@ -348,5 +348,5 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 }
 
 //! @}
-#endif // JDFTX_ELECTRONIC_SPHERICALHARMONICS_H
+#endif // JDFTX_CORE_SPHERICALHARMONICS_H
 

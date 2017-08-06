@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_OPERATORS_H
 
 #include <electronic/common.h>
-#include <electronic/RadialFunction.h>
+#include <core/RadialFunction.h>
 #include <core/VectorField.h>
 #include <core/ScalarFieldArray.h>
 #include <core/matrix3.h>

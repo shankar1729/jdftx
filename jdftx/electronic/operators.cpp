@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/operators.h>
 #include <electronic/operators_internal.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/Basis.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/IonInfo.h>

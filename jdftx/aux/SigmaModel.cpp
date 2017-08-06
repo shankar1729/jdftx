@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/IdealGas.h>
-#include <electronic/SphericalHarmonics.h>
+#include <core/SphericalHarmonics.h>
 #include <electronic/operators.h>
 
 inline void initSphere(int i, vector3<> r, const vector3<>& rCenter, double radius, double valIn, double valOut, double* phi)

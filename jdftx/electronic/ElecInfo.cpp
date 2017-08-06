@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Everything.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/SpeciesInfo.h>
 #include <fluid/Euler.h>
 #include <algorithm>

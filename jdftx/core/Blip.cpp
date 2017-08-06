@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/common.h>
-#include <electronic/Blip.h>
+#include <core/Blip.h>
 #include <core/GridInfo.h>
 #include <core/vector3.h>
 #include <core/Thread.h>

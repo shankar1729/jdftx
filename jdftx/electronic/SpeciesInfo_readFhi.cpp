@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SpeciesInfo.h>
 #include <electronic/Everything.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 namespace FhiFile
 {	//! Read line from Cpi/Fhi file (basically a raw getline())

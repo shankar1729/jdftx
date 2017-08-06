@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/Dump.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/LatticeMinimizer.h>

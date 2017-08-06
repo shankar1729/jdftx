@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_MANAGEDMEMORY_H
-#define JDFTX_ELECTRONIC_MANAGEDMEMORY_H
+#ifndef JDFTX_CORE_MANAGEDMEMORY_H
+#define JDFTX_CORE_MANAGEDMEMORY_H
 
 #include <electronic/common.h>
 
@@ -113,4 +113,4 @@ double nrm2(const ManagedMemory&); //!< 2-norm, pretending it is a vector
 complex dotc(const ManagedMemory& a, const ManagedMemory& b); //!< return a^H b
 
 //! @}
-#endif // JDFTX_ELECTRONIC_MANAGEDMEMORY_H
+#endif // JDFTX_CORE_MANAGEDMEMORY_H

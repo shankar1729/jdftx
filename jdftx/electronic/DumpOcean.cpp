@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/operators.h>
 #include <electronic/ElecMinimizer.h>
 #include <core/Thread.h>

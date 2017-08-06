@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <electronic/operators.h>
 #include <electronic/ExCorr.h>
 #include <electronic/ExactExchange.h>

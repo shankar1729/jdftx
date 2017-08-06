@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SpeciesInfo.h>
 #include <electronic/Everything.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 //! Length in bytes of Record markers used in Fortran sequential binary files
 //! Technically depends on the Fortran compiler, but it is 4 for gfortran as well as ifort,

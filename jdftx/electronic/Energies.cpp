@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/Energies.h>
 #include <electronic/Everything.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 
 Energies::Energies() : TS(0), muN(0), Eband(0)
 {

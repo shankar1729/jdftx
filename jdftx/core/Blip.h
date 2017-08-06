@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_BLIP_H
-#define JDFTX_ELECTRONIC_BLIP_H
+#ifndef JDFTX_CORE_BLIP_H
+#define JDFTX_CORE_BLIP_H
 
 #include <core/ScalarField.h>
 #include <core/vector3.h>
@@ -72,4 +72,4 @@ double Tblip(const complexScalarField& phi, double* tMax=0, int* i0max=0, int* i
 double Vblip(const complexScalarField& phi, const ScalarField& V);
 
 //! @}
-#endif // JDFTX_ELECTRONIC_BLIP_H
+#endif // JDFTX_CORE_BLIP_H

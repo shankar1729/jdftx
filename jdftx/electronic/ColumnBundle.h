@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/common.h>
 #include <core/ManagedMemory.h>
 #include <electronic/Basis.h>
-#include <electronic/matrix.h>
+#include <core/matrix.h>
 #include <core/ScalarField.h>
 #include <core/scaled.h>
 

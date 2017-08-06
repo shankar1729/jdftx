@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_PCM_H
 
 #include <fluid/FluidSolver.h>
-#include <electronic/RadialFunction.h>
+#include <core/RadialFunction.h>
 #include <core/EnergyComponents.h>
 #include <core/Coulomb.h>
 
