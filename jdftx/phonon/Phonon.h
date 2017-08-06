@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
 
+//! @addtogroup Output
+//! @{
+//! @file Phonon.h Phonon class and related utilities
+
 //! Block rotation matrix: used for symmetrization of electronic states
 class BlockRotationMatrix
 {	int nBlocks, blockSize;
@@ -121,4 +125,5 @@ private:
 	void forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const;
 };
 
+//! @}
 #endif //JDFTX_PHONON_PHONON_H
