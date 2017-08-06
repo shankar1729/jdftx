@@ -344,3 +344,31 @@ void tensorDivergence_gpu(const vector3<int> S, const matrix3<> G, tensor3<const
 }
 
 
+//-------- GPU implementations of sub-matrix set/get for matrix.cpp ---------
+
+__global__
+void matrixSubGet_kernel(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out)
+{	int i = kernelIndex(x); if(i>=iDelta) return;
+	int j = kernelIndex(y); if(j>=jDelta) return;
+	out[iDelta*j+i] = in[nr*(j*jStep+jStart) + (i*iStep+iStart)];
+	
+}
+void matrixSubGet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out)
+{	GpuLaunchConfig3D glc(matrixSubGet_kernel, vector3<int>(1,jDelta,iDelta));
+	matrixSubGet_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, in, out);
+	gpuErrorCheck();
+}
+
+__global__
+void matrixSubSet_kernel(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out)
+{	int i = kernelIndex(x); if(i>=iDelta) return;
+	int j = kernelIndex(y); if(j>=jDelta) return;
+	out[nr*(j*jStep+jStart) + (i*iStep+iStart)] = in[iDelta*j+i];
+	
+}
+void matrixSubSet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out)
+{	GpuLaunchConfig3D glc(matrixSubSet_kernel, vector3<int>(1,jDelta,iDelta));
+	matrixSubSet_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, in, out);
+	gpuErrorCheck();
+}
+
