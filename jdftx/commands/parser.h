@@ -27,7 +27,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 @brief Functions for parsing JDFTx input files
 */
 
-#include <electronic/common.h>
 #include <vector>
 
 //! @brief Read input from file into an array of command/argument-list pairs.

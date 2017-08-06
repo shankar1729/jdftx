@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/RadialFunction.h>
 #include <core/SphericalHarmonics.h>
-#include <electronic/common.h>
 #include <core/GpuUtil.h>
 #include <core/Thread.h>
 

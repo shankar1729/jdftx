@@ -20,11 +20,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_MINIMIZE_H
 #define JDFTX_CORE_MINIMIZE_H
 
+#include <core/MinimizeParams.h>
+#include <core/Util.h>
+#include <deque>
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
-#include <core/Util.h>
-#include <core/MinimizeParams.h>
 
 //! @addtogroup Algorithms
 //! @{
@@ -73,8 +74,8 @@ template<typename Vector> struct Minimizable
 	
 private:
 	typedef bool (*Linmin)(Minimizable<Vector>&, const MinimizeParams&, const Vector&, double, double&, double&, Vector&, Vector&);
-	Linmin getLinmin(const MinimizeParams& params) const;
-	double lBFGS(const MinimizeParams& params); //limited memory BFGS implementation (differs sufficiently from CG to be justify a separate implementation)
+	Linmin getLinmin(const MinimizeParams& params) const; //!< Return function pointer to appropriate linmin method based on MinimizeParams
+	double lBFGS(const MinimizeParams& params); //!< limited memory BFGS implementation (differs sufficiently from CG to be justify a separate implementation)
 };
 
 /** Interface (abstract base class) for linear conjugate gradients template which
@@ -98,6 +99,16 @@ template<typename Vector> struct LinearSolvable
 	//! Solve the linear system hessian * state == rhs using conjugate gradients:
 	//! @return the number of iterations taken to achieve target tolerance
 	int solve(const Vector& rhs, const MinimizeParams& params);
+};
+
+
+//! Energy difference convergence check
+class EdiffCheck : std::deque<double>
+{	unsigned nDiff;
+	double threshold;
+public:
+	EdiffCheck(unsigned nDiff, double threshold); //!< Energy change within threshold nDiff consecutive times
+	bool checkConvergence(double E); //!< Given new energy, and based on past history of calls, return whether convergence has been achieved
 };
 
 //! @}
@@ -273,6 +284,24 @@ template<typename Vector> void Minimizable<Vector>::fdTest(const MinimizeParams&
 	step(dx, -deltaPrev); //restore state to original value
 }
 
+//Return function pointer to appropriate linmin method based on MinimizeParams
+template<typename Vector> typename Minimizable<Vector>::Linmin Minimizable<Vector>::getLinmin(const MinimizeParams& p) const
+{	using namespace MinimizeLinmin;
+	switch(p.linminMethod)
+	{	case MinimizeParams::DirUpdateRecommended:
+		{	switch(p.dirUpdateScheme)
+			{	case MinimizeParams::SteepestDescent: return linminRelax<Vector>;
+				case MinimizeParams::LBFGS: return linminCubicWolfe<Vector>;
+				default: return linminQuad<Vector>; //Default for all nonlinear CG methods
+			}
+		}
+		case MinimizeParams::Relax: return linminRelax<Vector>;
+		case MinimizeParams::Quad: return linminQuad<Vector>;
+		case MinimizeParams::CubicWolfe: return linminCubicWolfe<Vector>;
+	}
+	return 0;
+}
+
 
 template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, const MinimizeParams& p)
 {	//Initialize:
@@ -311,6 +340,23 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 	}
 	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
 	return iter;
+}
+
+//--- Implementation of EdiffCheck ---
+inline EdiffCheck::EdiffCheck(unsigned nDiff, double threshold) : nDiff(nDiff), threshold(fabs(threshold)) {}
+inline bool EdiffCheck::checkConvergence(double E)
+{	if(!size()) { push_back(E); return false; } //first element
+	if(E >= back()) { clear(); push_back(E); return false; } //energy increased, reset converge list
+	//Have atleast one energy difference in list:
+	push_back(E);
+	if(size()==nDiff+2) pop_front(); //discard old unneeded elements
+	if(size()==nDiff+1)
+	{	for(unsigned i=0; i<nDiff; i++)
+			if(at(i+1) < at(i)-threshold)
+				return false;
+		return true;
+	}
+	else return false;
 }
 
 //!@endcond

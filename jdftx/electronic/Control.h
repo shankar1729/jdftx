@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_CONTROL_H
 #define JDFTX_ELECTRONIC_CONTROL_H
 
-#include <electronic/common.h>
 #include <core/vector3.h>
 
 //! @addtogroup ElectronicDFT

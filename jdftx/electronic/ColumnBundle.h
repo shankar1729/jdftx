@@ -20,12 +20,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_COLUMNBUNDLE_H
 #define JDFTX_ELECTRONIC_COLUMNBUNDLE_H
 
-#include <electronic/common.h>
 #include <core/ManagedMemory.h>
-#include <electronic/Basis.h>
 #include <core/matrix.h>
 #include <core/ScalarField.h>
 #include <core/scaled.h>
+#include <electronic/Basis.h>
+
+class QuantumNumber;
+class ElecInfo;
 
 //! @addtogroup DataStructures
 //! @{

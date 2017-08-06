@@ -21,11 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SYMMETRIES_H
 #define JDFTX_ELECTRONIC_SYMMETRIES_H
 
-#include <electronic/common.h>
 #include <core/matrix3.h>
 #include <core/ScalarField.h>
 #include <vector>
 #include <list>
+
+class Everything;
+class QuantumNumber;
 
 //! @addtogroup ElectronicDFT
 //! @{
@@ -49,8 +51,8 @@ public:
 	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field
 	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field
 	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a scalar field
-	void symmetrize(IonicGradient&) const; //!< symmetrize forces
-	void symmetrizeSpherical(matrix&, const SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
+	void symmetrize(class IonicGradient&) const; //!< symmetrize forces
+	void symmetrizeSpherical(matrix&, const class SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector<SpaceGroupOp>& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector<matrix>& getSphericalMatrices(int l, bool relativistic) const; //!< directly access the symmetry matrices (in Ylm or spin-angle basis at specified l, depending on relativistic)
 	const std::vector<int>& getKpointInvertList() const; //!< direct access to inversion property of symmetry group (see kpointInvertList)

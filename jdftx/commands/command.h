@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_COMMAND_COMMAND_H
 #define JDFTX_COMMAND_COMMAND_H
 
-#include <electronic/common.h>
 #include <commands/ParamList.h>
 #include <core/string.h>
 #include <memory>
@@ -201,7 +200,7 @@ LinkDescription<Enum> linkDescription(const EnumStringMap<Enum>& nameMap, const 
 //! @param id Psuedopotential species identifier string (typically chemical symbol)
 //! @param e Reference to Everything
 //! @return Smart pointer to SpeciesInfo corresponding to id.
-std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e);
+std::shared_ptr<class SpeciesInfo> findSpecies(string id, Everything& e);
 
 //! @brief Check if file is readable in an MPI friendly way.
 //! This function must be called from all processes,

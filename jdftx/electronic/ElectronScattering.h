@@ -20,11 +20,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_ELECTRONSCATTERING_H
 #define JDFTX_ELECTRONIC_ELECTRONSCATTERING_H
 
-#include <electronic/common.h>
 #include <electronic/Basis.h>
-#include <electronic/ColumnBundle.h>
 #include <core/LatticeUtils.h>
 #include <vector>
+#include <memory>
+
+class ColumnBundle;
+class diagMatrix;
+class QuantumNumber;
 
 //! @addtogroup Output
 //! @{

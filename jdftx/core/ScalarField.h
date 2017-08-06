@@ -33,6 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/ManagedMemory.h>
 #include <core/matrix.h>
+#include <core/GridInfo.h>
 
 class GridInfo; //Grid description and memory manager
 struct ScalarFieldData; //Real space data storage container for real scalar fields

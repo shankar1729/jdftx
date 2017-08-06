@@ -20,8 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_MINIMIZE_LBFGS_H
 #define JDFTX_CORE_MINIMIZE_LBFGS_H
 
-#include <core/Minimize_linmin.h>
-#include <core/Minimize.h> //this include is present only to aid IDE's autocompletion (does nothing since this file is always used via Minimize.h)
 #include <memory>
 #include <list>
 #include <stack>

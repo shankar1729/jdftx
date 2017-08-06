@@ -20,10 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_MATRIX_H
 #define JDFTX_CORE_MATRIX_H
 
-#include <electronic/common.h>
 #include <core/ManagedMemory.h>
 #include <core/scaled.h>
-#include <core/GridInfo.h>
+#include <core/matrix3.h>
 #include <gsl/gsl_cblas.h>
 
 //! @addtogroup DataStructures
@@ -109,9 +108,9 @@ public:
 	void svd(matrix& U, diagMatrix& S, matrix& Vdag) const; //!< singular value decomposition (for dimensions of this: MxN, on output U: MxM, S: min(M,N), Vdag: NxN)
 	
 	//---------octave-like slicing operators on scalar fields converted to Nx*Ny*Nz x 1 matrices --------------
-	complex getElement(vector3<int> index, GridInfo& gInfo); //!< get element at grid coordinate from a Nx*Ny*Nzx1 matrix
-	matrix getLine(vector3<int> line, vector3<int> point, GridInfo& gInfo); //!< get a linear slice from a Nx*Ny*Nzx1 matrix
-	matrix getPlane(vector3<int> normal, vector3<int> point, GridInfo& gInfo); //!< get a planar slice from a Nx*Ny*Nzx1 matrix
+	complex getElement(vector3<int> index, class GridInfo& gInfo); //!< get element at grid coordinate from a Nx*Ny*Nzx1 matrix
+	matrix getLine(vector3<int> line, vector3<int> point, class GridInfo& gInfo); //!< get a linear slice from a Nx*Ny*Nzx1 matrix
+	matrix getPlane(vector3<int> normal, vector3<int> point, class GridInfo& gInfo); //!< get a planar slice from a Nx*Ny*Nzx1 matrix
 };
 
 //! Matrix with a pending scale and transpose operation

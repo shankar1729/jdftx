@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_SCALAR_H
 
 #include <cmath>
+#include <cstdlib>
 
 //! @addtogroup DataStructures
 //! @{

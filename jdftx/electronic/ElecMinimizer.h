@@ -20,10 +20,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_ELECMINIMIZER_H
 #define JDFTX_ELECTRONIC_ELECMINIMIZER_H
 
-#include <electronic/common.h>
-#include <electronic/ColumnBundle.h>
-#include <core/matrix.h>
 #include <core/Minimize.h>
+
+class Everything;
+class ElecInfo;
+class ColumnBundle;
+class matrix;
 
 //! @addtogroup ElecSystem
 //! @{
@@ -61,8 +63,8 @@ public:
 	
 private:
 	Everything& e;
-	ElecVars& eVars;
-	ElecInfo& eInfo;
+	class ElecVars& eVars;
+	const ElecInfo& eInfo;
 	std::vector<matrix> KgradHaux; //!< latest preconditioned auxiliary gradient
 	std::vector<matrix> rotPrev; //!< cumulated unitary rotations of subspace
 	std::vector<matrix> rotPrevC; //!< cumulated transormation of wavefunctions (including non-unitary orthonormalization components)

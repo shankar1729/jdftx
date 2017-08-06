@@ -20,8 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_IONDYNAMICS_H
 #define JDFTX_ELECTRONIC_IONDYNAMICS_H
 
-#include <electronic/common.h>
-#include <electronic/Dump.h>
 #include <electronic/IonicMinimizer.h>
 #include <core/vector3.h>
 #include <core/matrix3.h>

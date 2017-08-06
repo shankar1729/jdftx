@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_IONICMINIMIZER_H
 #define JDFTX_ELECTRONIC_IONICMINIMIZER_H
 
-#include <electronic/common.h>
 #include <core/RadialFunction.h>
 #include <core/Minimize.h>
 #include <core/vector3.h>
@@ -34,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Vector space entry for ionic minimization (forces)
 struct IonicGradient : std::vector< std::vector< vector3<> > >
 {
-	void init(const IonInfo&); //!< initialize to zeroes with the correct species and atom numbers for iInfo
+	void init(const class IonInfo&); //!< initialize to zeroes with the correct species and atom numbers for iInfo
 	void print(const Everything&, FILE*, const char* prefix="force") const;
 	void write(const char* fname) const; //binary write to file
 	void read(const char* fname); //binary read from file

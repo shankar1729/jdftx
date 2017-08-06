@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <electronic/Everything.h>
+#include <electronic/ColumnBundle.h>
 #include <electronic/Polarizability.h>
 #include <electronic/ElectronScattering.h>
 #include <electronic/Vibrations.h>

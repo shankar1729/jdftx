@@ -20,11 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SCF_H
 #define JDFTX_ELECTRONIC_SCF_H
 
-#include <electronic/common.h>
-#include <electronic/Everything.h>
-#include <electronic/BandMinimizer.h>
-#include <electronic/operators.h>
 #include <core/Pulay.h>
+#include <core/ScalarFieldArray.h>
 
 //! @addtogroup ElecSystem
 //! @{

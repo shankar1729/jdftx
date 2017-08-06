@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_DUMP_H
 #define JDFTX_ELECTRONIC_DUMP_H
 
-#include <electronic/common.h>
 #include <core/matrix.h>
 #include <core/ScalarField.h>
 #include <set>

@@ -17,9 +17,10 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
+#include <electronic/ElecInfo.h>
 #include <electronic/Everything.h>
-#include <core/matrix.h>
 #include <electronic/SpeciesInfo.h>
+#include <core/matrix.h>
 #include <fluid/Euler.h>
 #include <algorithm>
 #include <limits>

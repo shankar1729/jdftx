@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 
 #include <core/matrix3.h>
-#include <core/ScalarField.h>
 #include <core/GpuUtil.h>
 #include <map>
 #include <fftw3.h>

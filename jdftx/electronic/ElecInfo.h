@@ -21,8 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_ELECINFO_H
 #define JDFTX_ELECTRONIC_ELECINFO_H
 
-#include <electronic/common.h>
 #include <core/vector3.h>
+#include <core/MPIUtil.h>
+
+class matrix;
+class diagMatrix;
+class Energies;
+class Everything;
 
 //! @addtogroup ElecSystem
 //! @{

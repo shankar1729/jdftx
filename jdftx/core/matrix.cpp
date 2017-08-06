@@ -17,13 +17,14 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <cstdio>
-#include <cmath>
-#include <algorithm>
+#include <core/matrix.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
-#include <core/matrix.h>
+#include <core/GridInfo.h>
+#include <cstdio>
+#include <cmath>
+#include <algorithm>
 
 //---------------------- class diagMatrix --------------------------
 

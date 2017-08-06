@@ -26,6 +26,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file LatticeUtils.h Miscellaneous utilities relating to properties of Bravais Lattices
 
 #include <core/GridInfo.h>
+#include <core/Util.h>
 #include <vector>
 
 //! Relative threshold for symmetry detection

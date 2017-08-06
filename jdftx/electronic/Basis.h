@@ -21,10 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_BASIS_H
 #define JDFTX_ELECTRONIC_BASIS_H
 
-#include <electronic/common.h>
 #include <core/vector3.h>
-#include <core/GridInfo.h>
 #include <vector>
+
+class GridInfo;
+class IonInfo;
 
 //! @addtogroup ElecSystem
 //! @{

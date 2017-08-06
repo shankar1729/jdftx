@@ -21,9 +21,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_PULAY_H
 
 #include <core/PulayParams.h>
-#include <core/Util.h>
 #include <core/matrix.h>
+#include <core/string.h>
 #include <cfloat>
+#include <vector>
 
 //! @addtogroup Algorithms
 //! @{
@@ -85,7 +86,7 @@ private:
 //---------------------- Implementation ----------------------------
 //!@cond
 
-#include <core/Minimize_linmin.h>
+#include <core/Minimize.h>
 #include <memory>
 
 //Norm convergence check (eigenvalue-difference or residual)

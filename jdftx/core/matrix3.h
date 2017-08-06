@@ -268,5 +268,13 @@ __hostanddev__ matrix3<> rotation(double theta, int axis)
 	}
 }
 
+//! Space group operation r -> rot * r + a in real-space lattice coordinates
+struct SpaceGroupOp
+{	matrix3<int> rot; //!< rotation matrix in covariant lattice coordinates
+	vector3<> a; //!< translation in covariant lattice coordinates
+	
+	SpaceGroupOp(matrix3<int> rot = matrix3<int>(1,1,1), vector3<> a = vector3<>(0,0,0)) : rot(rot), a(a) {}
+};
+
 //! @}
 #endif //JDFTX_CORE_MATRIX3_H

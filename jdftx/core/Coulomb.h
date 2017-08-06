@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_COULOMB_H
 #define JDFTX_CORE_COULOMB_H
 
-#include <core/GridInfo.h>
+#include <core/ScalarField.h>
 #include <core/string.h>
 #include <memory>
 #include <set>

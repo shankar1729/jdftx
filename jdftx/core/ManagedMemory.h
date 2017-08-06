@@ -20,7 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_MANAGEDMEMORY_H
 #define JDFTX_CORE_MANAGEDMEMORY_H
 
-#include <electronic/common.h>
+#include <core/scalar.h>
+#include <core/MPIUtil.h>
 
 //! @addtogroup DataStructures
 //! @{

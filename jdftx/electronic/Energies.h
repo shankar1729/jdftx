@@ -20,8 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_ENERGIES_H
 #define JDFTX_ELECTRONIC_ENERGIES_H
 
-#include <electronic/common.h>
 #include <core/EnergyComponents.h>
+#include <core/Util.h>
+
+class Everything;
 
 //! @addtogroup ElecSystem
 //! @{

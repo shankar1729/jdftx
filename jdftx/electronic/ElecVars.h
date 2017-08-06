@@ -21,11 +21,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_ELECVARS_H
 #define JDFTX_ELECTRONIC_ELECVARS_H
 
-#include <electronic/common.h>
 #include <fluid/FluidSolverParams.h>
 #include <core/ScalarFieldArray.h>
 #include <string>
 #include <memory>
+
+struct ElecGradient;
 
 //! @addtogroup ElecSystem
 //! @{

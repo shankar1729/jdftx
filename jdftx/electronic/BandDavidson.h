@@ -21,9 +21,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_BANDDAVIDSON_H
 #define JDFTX_ELECTRONIC_BANDDAVIDSON_H
 
-#include <electronic/common.h>
 #include <core/Minimize.h>
-#include <electronic/ColumnBundle.h>
+
+class Everything;
 
 //! @addtogroup ElecSystem
 //! @{
@@ -37,8 +37,8 @@ public:
 	
 private:
 	Everything& e;
-	ElecVars& eVars;
-	ElecInfo& eInfo;
+	class ElecVars& eVars;
+	const class ElecInfo& eInfo;
 	int q;  //!< Current quantum number
 };
 

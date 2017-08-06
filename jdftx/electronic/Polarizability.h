@@ -20,8 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_POLARIZABILITY_H
 #define JDFTX_ELECTRONIC_POLARIZABILITY_H
 
-#include <electronic/common.h>
 #include <core/vector3.h>
+#include <core/string.h>
 
 //! @addtogroup Output
 //! @{
@@ -45,7 +45,7 @@ struct Polarizability
 	string dkFilenamePattern; //!< if non-null, read wavefunctions and eigenvalues for offset states form here
 	
 	Polarizability();
-	void dump(const Everything& e); //!< compute and dump polarizability eigenvectors and matrix elements
+	void dump(const class Everything& e); //!< compute and dump polarizability eigenvectors and matrix elements
 	
 private:
 	string dkFilename(int ik, string varName) const; //!< get the filename to read specified variable for specified k-point

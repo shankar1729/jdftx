@@ -21,13 +21,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SPECIESINFO_H
 #define JDFTX_ELECTRONIC_SPECIESINFO_H
 
-#include <electronic/common.h>
-#include <core/RadialFunction.h>
 #include <electronic/VanDerWaals.h>
+#include <core/RadialFunction.h>
 #include <core/matrix.h>
 #include <core/ScalarFieldArray.h>
 #include <core/vector3.h>
 #include <core/string.h>
+
+class ColumnBundle;
+class QuantumNumber;
+class Basis;
 
 //! @addtogroup IonicSystem
 //! @{

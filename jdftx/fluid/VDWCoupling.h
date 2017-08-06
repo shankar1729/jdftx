@@ -22,10 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_VDWCOUPLING_H
 
 #include <fluid/Fmix.h>
-#include <fluid/Molecule.h>
-#include <fluid/FluidMixture.h>
-#include <electronic/common.h>
-#include <electronic/VanDerWaals.h>
+
+class VanDerWaals;
 
 //! @addtogroup ClassicalDFT
 //! @{

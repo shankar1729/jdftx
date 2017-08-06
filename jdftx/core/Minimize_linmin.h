@@ -20,38 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_MINIMIZE_LINMIN_H
 #define JDFTX_CORE_MINIMIZE_LINMIN_H
 
-#include <core/Minimize.h> //this include is present only to aid IDE's autocompletion (does nothing since this file is always used via Minimize.h)
-#include <deque>
-
 //! @addtogroup Algorithms
 //! @{
-
-//! @file Minimize_linmin.h Line minimize and other utilities used for nonlinear minimization
-
-
-//! Energy difference convergence check
-class EdiffCheck : std::deque<double>
-{	unsigned nDiff;
-	double threshold;
-public:
-	EdiffCheck(unsigned nDiff, double threshold) : nDiff(nDiff), threshold(fabs(threshold))
-	{
-	}
-	bool checkConvergence(double E)
-	{	if(!size()) { push_back(E); return false; } //first element
-		if(E >= back()) { clear(); push_back(E); return false; } //energy increased, reset converge list
-		//Have atleast one energy difference in list:
-		push_back(E);
-		if(size()==nDiff+2) pop_front(); //discard old unneeded elements
-		if(size()==nDiff+1)
-		{	for(unsigned i=0; i<nDiff; i++)
-				if(at(i+1) < at(i)-threshold)
-					return false;
-			return true;
-		}
-		else return false;
-	}
-};
 
 //! @brief Line minimization methods
 //! Each of the linmin methods in this namespace advance the parameters in obj along direction d.
@@ -59,7 +29,7 @@ public:
 //! The return value specifies if the step succeeded at reducing E.
 //! If the step fails, alpha MUST contain the total progress along dir.
 //! made by this step, so that minimize may reset it back to the original value.
-namespace MinimizePrivate
+namespace MinimizeLinmin
 {
 	//! Equation-of-motion / Relaxation method stepping.
 	//! NOTE: Criterion for success of this method is different from the others.
@@ -246,24 +216,6 @@ namespace MinimizePrivate
 		if(!std::isfinite(E) || E>E0) return false; //minimize will roll back to the last known good state
 		else return true;
 	}
-}
-
-//! Return function pointer to appropriate linmin method based on MinimizeParams
-template<typename Vector> typename Minimizable<Vector>::Linmin Minimizable<Vector>::getLinmin(const MinimizeParams& p) const
-{	using namespace MinimizePrivate;
-	switch(p.linminMethod)
-	{	case MinimizeParams::DirUpdateRecommended:
-		{	switch(p.dirUpdateScheme)
-			{	case MinimizeParams::SteepestDescent: return linminRelax<Vector>;
-				case MinimizeParams::LBFGS: return linminCubicWolfe<Vector>;
-				default: return linminQuad<Vector>; //Default for all nonlinear CG methods
-			}
-		}
-		case MinimizeParams::Relax: return linminRelax<Vector>;
-		case MinimizeParams::Quad: return linminQuad<Vector>;
-		case MinimizeParams::CubicWolfe: return linminCubicWolfe<Vector>;
-	}
-	return 0;
 }
 
 //! @}

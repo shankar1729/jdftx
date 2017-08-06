@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_IONINFO_H
 #define JDFTX_ELECTRONIC_IONINFO_H
 
-#include <electronic/common.h>
 #include <electronic/SpeciesInfo.h>
 #include <electronic/IonicMinimizer.h>
 #include <core/matrix.h>
@@ -76,7 +75,7 @@ public:
 	double getZtot() const; //!< get total Z of all species and atoms
 	
 	//! Update Vlocps, rhoIon, nChargeball, nCore and the energies dependent only on ionic positions
-	void update(Energies&); 
+	void update(class Energies&); 
 
 	//! Return the total (free) energy and calculate the ionic gradient (forces)
 	double ionicEnergyAndGrad(IonicGradient& forces) const;
@@ -127,7 +126,7 @@ private:
 	const Everything* e;
 	
 	//! Compute all pair-potential terms in the energy or forces (electrostatic, and optionally vdW)
-	void pairPotentialsAndGrad(Energies* ener=0, IonicGradient* forces=0) const;
+	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0) const;
 };
 
 //! @}

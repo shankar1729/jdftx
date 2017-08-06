@@ -19,7 +19,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <commands/command.h>
 #include <commands/ParamList.h>
-#include <electronic/common.h>
 #include <electronic/Everything.h>
 #include <electronic/IonDynamicsParams.h>
 #include <core/Units.h>

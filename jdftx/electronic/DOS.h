@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_DOS_H
 #define JDFTX_ELECTRONIC_DOS_H
 
-#include <electronic/common.h>
 #include <electronic/ElecInfo.h>
 #include <core/vector3.h>
 

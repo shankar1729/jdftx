@@ -24,7 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GridInfo.h>
 #include <core/MinimizeParams.h>
 #include <core/Coulomb.h>
-#include <electronic/common.h>
 #include <electronic/Control.h>
 #include <electronic/Basis.h>
 #include <electronic/IonInfo.h>
@@ -55,7 +54,7 @@ public:
 	Symmetries symmUnperturbed; //!< symmetries of unperturbed system in vibration calculations (symm is set to mode=SymmNone in these calculations)
 	ExCorr exCorr; //!< Exchange and correlation functional
 	std::vector<std::shared_ptr<ExCorr> > exCorrDiff; //!< Other exchange and correlation functionals for comparison
-	std::shared_ptr<ExactExchange> exx; //!< Exact exchange
+	std::shared_ptr<class ExactExchange> exx; //!< Exact exchange
 	ElecInfo eInfo; //!< Auxiliary electronic information
 	ElecVars eVars; //!< Electroic variables
 	Energies ener;  //!< Energy components
@@ -72,7 +71,7 @@ public:
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
 
 	std::shared_ptr<VanDerWaals> vanDerWaals; //! Pair potential for vdw correction
-	std::shared_ptr<Vibrations> vibrations; //! Vibrational mode calculator
+	std::shared_ptr<class Vibrations> vibrations; //! Vibrational mode calculator
 
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();

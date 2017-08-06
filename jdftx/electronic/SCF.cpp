@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
+#include <electronic/Everything.h>
 #include <core/ScalarFieldIO.h>
 #include <fluid/FluidSolver.h>
 #include <queue>

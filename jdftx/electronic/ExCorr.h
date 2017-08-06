@@ -20,7 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_EXCORR_H
 #define JDFTX_ELECTRONIC_EXCORR_H
 
-#include <electronic/common.h>
 #include <core/ScalarFieldArray.h>
 
 //! @addtogroup ExchangeCorrelation

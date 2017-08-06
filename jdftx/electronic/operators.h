@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_OPERATORS_H
 #define JDFTX_ELECTRONIC_OPERATORS_H
 
-#include <electronic/common.h>
+#include <electronic/ColumnBundle.h>
 #include <core/RadialFunction.h>
 #include <core/VectorField.h>
 #include <core/ScalarFieldArray.h>

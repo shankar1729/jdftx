@@ -17,9 +17,9 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
+#include <electronic/Symmetries.h>
 #include <electronic/Everything.h>
 #include <electronic/SpeciesInfo.h>
-#include <electronic/Symmetries.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/IonInfo.h>
 #include <electronic/Basis.h>

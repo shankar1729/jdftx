@@ -20,10 +20,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_DUMP_INTERNAL_H
 #define JDFTX_ELECTRONIC_DUMP_INTERNAL_H
 
-#include <electronic/common.h>
 #include <core/ScalarFieldArray.h>
 #include <core/Coulomb.h>
 #include <vector>
+
+class Everything;
+class ColumnBundle;
 
 //! @addtogroup Output
 //! @{
