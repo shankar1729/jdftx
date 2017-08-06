@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 
+//! @addtogroup Output
+//! @{
+
+//! Wannier minimization with k-point finite difference localization measure
 class WannierMinimizerFD : public WannierMinimizer
 {
 public:
@@ -40,8 +44,9 @@ public:
 		Kpoint point; //!< description of neighbour (source state, rotation, translation etc.)
 		matrix M0; //!< initial overlap matrix for this pair
 	};
-	std::vector< std::vector<Edge> > edges;
-	matrix kHelmholtzInv;
+	std::vector< std::vector<Edge> > edges; //!< set of all edges
+	matrix kHelmholtzInv; //!< inverse Helmholtz preconditioner
 };
 
+//! @}
 #endif //JDFTX_WANNIER_WANNIERMINIMIZERFD_H

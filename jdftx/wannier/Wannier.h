@@ -25,6 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/DOS.h>
 #include <memory>
 
+//! @addtogroup Output
+//! @{
+//! @file Wannier.h
+
 //! Compute Maximally-Localized Wannier Functions
 class Wannier
 {
@@ -99,4 +103,5 @@ struct WannierEverything : public Everything
 	void setup();
 };
 
+//! @}
 #endif // JDFTX_WANNIER_WANNIER_H

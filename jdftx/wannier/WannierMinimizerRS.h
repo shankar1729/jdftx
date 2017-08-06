@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 
+//! @addtogroup Output
+//! @{
+
+//! Wannier minimization with real-space localization measure
 class WannierMinimizerRS : public WannierMinimizer
 {
 public:
@@ -32,10 +36,11 @@ public:
 	double getOmegaI(bool grad);
 	
 private:
-	VectorField r; ScalarField rSq; //r and r^2 wrapped on the Wigner-Seitz cell
+	VectorField r; ScalarField rSq; //!< r and r^2 wrapped on the Wigner-Seitz cell
 	int iSpin; //!< spin channel currently being minimized
 	int nStart, nStop; //!< center MPI division
-	double getOmega(bool grad, bool invariant); //compute Omega or OmegaI depending on invariant
+	double getOmega(bool grad, bool invariant); //!< compute Omega or OmegaI depending on invariant
 };
 
+//! @}
 #endif //  JDFTX_WANNIER_WANNIERMINIMIZERRS_H

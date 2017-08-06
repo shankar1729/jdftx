@@ -29,6 +29,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundleTransform.h>
 #include <wannier/Wannier.h>
 
+//! @addtogroup Output
+//! @{
+//! @file WannierMinimizer.h
+
+//! State / vector space entry for wannier minimization
 struct WannierGradient : public std::vector<matrix>
 {	const class WannierMinimizer* wmin;
     void init(const class WannierMinimizer* wmin);
@@ -44,21 +49,21 @@ void axpy(double alpha, const WannierGradient& x, WannierGradient& y);
 matrix randomMatrix(int nRows, int nCols);
 void randomize(WannierGradient& x);
 
-//!Base class for different wannier minimizers:
+//! Base class for different wannier minimizers:
 class WannierMinimizer : public Minimizable<WannierGradient>
 {
 public:
 	WannierMinimizer(const Everything& e, const Wannier& wannier, bool needSuperOverride=false);
 	virtual ~WannierMinimizer() {}
-	void initTransformDependent(); //second half of common initialization that must happen after sub-class is fully initialized
+	void initTransformDependent(); //!< second half of common initialization that must happen after sub-class is fully initialized
 	
-	void saveMLWF(); //save wannier functions for all spins
-	void saveMLWF(int iSpin); //save for specified spin
+	void saveMLWF(); //!< save wannier functions for all spins
+	void saveMLWF(int iSpin); //!< save for specified spin
 	
 	//Interface for minimize:
 	void step(const WannierGradient& grad, double alpha);
-	double compute(WannierGradient* grad, WannierGradient* Kgrad); //identity preconditioner, but impose hermiticity constraint
-	void constrain(WannierGradient& grad); //enforce hermiticity
+	double compute(WannierGradient* grad, WannierGradient* Kgrad); //!< identity preconditioner, but impose hermiticity constraint
+	void constrain(WannierGradient& grad); //!< enforce hermiticity
 	bool report(int iter);
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
@@ -91,7 +96,7 @@ public:
 	//! Base class will accumulate Omega_U across processes on return.
 	virtual double getOmega(bool grad=false)=0;
 	
-	//Like getOmega, but for the subspace-invariant OmegaI instead.
+	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
 protected:
@@ -104,16 +109,16 @@ protected:
 	int nSpinor; //!< number of spinor components
 	std::vector<double> rSqExpect; //!< Expectation values for r^2 per center in current group
 	std::vector< vector3<> > rExpect; //!< Expectation values for r per center in current group
-	std::vector<bool> pinned; //! Whether centers are pinned or free
-	std::vector< vector3<> > rPinned; //! Where centers are pinned to (if they are)
+	std::vector<bool> pinned; //!< Whether centers are pinned or free
+	std::vector< vector3<> > rPinned; //!< Where centers are pinned to (if they are)
 	
 	//Supercell grid and basis:
-	bool needSuper;
-	GridInfo gInfoSuper;
-	Basis basisSuper;
-	QuantumNumber qnumSuper;
-	int nPhononModes; //number of phonon modes
-	diagMatrix invsqrtM; //1/sqrt(M) per nuclear displacement mode
+	bool needSuper; //!< whether supercell is necessary
+	GridInfo gInfoSuper; //!< supercell grid
+	Basis basisSuper; //!< supercell wavefcuntion basis
+	QuantumNumber qnumSuper; //!< supercell k-point
+	int nPhononModes; //!< number of phonon modes
+	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
 	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
@@ -133,7 +138,7 @@ protected:
 	
 	//! Get the wavefunctions for a particular k-point in the common basis
 	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
-	std::vector<ColumnBundle> Cother; //wavefunctions from another process
+	std::vector<ColumnBundle> Cother; //!< wavefunctions from another process
 	
 	//! Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
 	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result) const;
@@ -143,19 +148,20 @@ protected:
 	
 	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
-	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals;
+	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
 	
 	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
 	//! (Note that the augmentation in the O() from electronic/operators.h assumes both sides have same k-point)
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
 	
-	//Dump a named matrix variable to file, optionally zeroing out the real parts
+	//! Dump a named matrix variable to file, optionally zeroing out the real parts
 	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
 	
-	static matrix fixUnitary(const matrix& U); //return an exactly unitary version of U (orthogonalize columns)
+	static matrix fixUnitary(const matrix& U); //!< return an exactly unitary version of U (orthogonalize columns)
 	
-	//Preconditioner for Wannier optimization: identity by default, override in derived class to change
+	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
 	virtual WannierGradient precondition(const WannierGradient& grad);
 };
 
+//! @}
 #endif // JDFTX_WANNIER_WANNIERMINIMIZER_H
