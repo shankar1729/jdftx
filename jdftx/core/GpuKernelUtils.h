@@ -27,6 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector_types.h>
 #include <core/vector3.h>
 
+//! @addtogroup Utilities
+//! @{
+
 //! @file GpuKernelUtils.h
 //! @brief Common utility functions/macros for the gpu kernels and launchers in the .cu files
 
@@ -103,4 +106,5 @@ struct GpuLaunchConfigHalf3D : public GpuLaunchConfig3D
 //! Check for gpu errors and print a useful message (implemented in GpuUtils.cpp)
 void gpuErrorCheck();
 
+//! @}
 #endif // JDFTX_CORE_GPUKERNELUTILS_H

@@ -20,8 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_VECTOR3_H
 #define JDFTX_CORE_VECTOR3_H
 
-//! @file vector3.h
-//! 3-vector and fields there of
+//! @addtogroup DataStructures
+//! @{
+
+//! @file vector3.h 3-vector with CPU and GPU operators
 
 #include <core/scalar.h>
 #include <vector>
@@ -35,20 +37,20 @@ template<typename scalar=double> class vector3
 	scalar v[3];
 public:
 	//Accessors
-	__hostanddev__ scalar& operator[](int k) { return v[k]; }
-	__hostanddev__ const scalar& operator[](int k) const { return v[k]; }
+	__hostanddev__ scalar& operator[](int k) { return v[k]; } //!< Access element
+	__hostanddev__ const scalar& operator[](int k) const { return v[k]; } //!< Access element
 	__hostanddev__ scalar& x() { return v[0]; }
 	__hostanddev__ scalar& y() { return v[1]; }
 	__hostanddev__ scalar& z() { return v[2]; }
 	__hostanddev__ const scalar& x() const { return v[0]; }
 	__hostanddev__ const scalar& y() const { return v[1]; }
 	__hostanddev__ const scalar& z() const { return v[2]; }
-	__hostanddev__ bool isNonzero() const { return v[0] || v[1] || v[2]; } //true if any component nonzero
+	__hostanddev__ bool isNonzero() const { return v[0] || v[1] || v[2]; } //!< true if any component nonzero
 	
 	//Constructor
-	__hostanddev__ explicit vector3(scalar a=0, scalar b=0, scalar c=0) { v[0]=a; v[1]=b; v[2]=c; }
-	vector3(std::vector<scalar> a) { LOOP3(v[k]=a[k];) }
-	template<typename scalar2> __hostanddev__ explicit vector3(const vector3<scalar2>& a) { LOOP3(v[k]=a[k];) } 
+	__hostanddev__ explicit vector3(scalar a=0, scalar b=0, scalar c=0) { v[0]=a; v[1]=b; v[2]=c; } //!< Construct from elements
+	vector3(std::vector<scalar> a) { LOOP3(v[k]=a[k];) } //!< convert from std::vector
+	template<typename scalar2> __hostanddev__ explicit vector3(const vector3<scalar2>& a) { LOOP3(v[k]=a[k];) } //!< convert scalar type
 	
 	//Arithmetic:
 	__hostanddev__ vector3 operator+(const vector3 &a) const { return vector3(v[0]+a[0], v[1]+a[1], v[2]+a[2]); }
@@ -66,9 +68,9 @@ public:
 	__hostanddev__ scalar length_squared() const { return v[0]*v[0] + v[1]*v[1] + v[2]*v[2]; }
 	__hostanddev__ scalar length() const { return sqrt(length_squared()); }
 
-	void print(FILE* fp, const char *format) const { std::fprintf(fp, "[ "); LOOP3( fprintf(fp, format, v[k]); ) std::fprintf(fp, " ]\n"); }
+	void print(FILE* fp, const char *format) const { std::fprintf(fp, "[ "); LOOP3( fprintf(fp, format, v[k]); ) std::fprintf(fp, " ]\n"); } //!< print to file / stream
 	__hostanddev__ bool operator==(const vector3& w) const { LOOP3( if(v[k] != w[k]) return false; ) return true; }
-	__hostanddev__ bool operator<(const vector3& w) const { LOOP3( if(v[k]!=w[k]) return v[k]<w[k]; ) return false; }
+	__hostanddev__ bool operator<(const vector3& w) const { LOOP3( if(v[k]!=w[k]) return v[k]<w[k]; ) return false; } //!< comparison in lexicographic order
 };
 
 template<typename scalar> __hostanddev__ vector3<scalar> operator+(scalar s, const vector3<scalar>& a) { return vector3<scalar>(a[0]+s, a[1]+s, a[2]+s); }
@@ -178,4 +180,5 @@ template<typename scalar> __hostanddev__ void accumVector(const vector3<scalar>&
 }
 
 #undef LOOP3
+//!@}
 #endif // JDFTX_CORE_VECTOR3_H

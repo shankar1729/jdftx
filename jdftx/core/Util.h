@@ -20,9 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_UTIL_H
 #define JDFTX_CORE_UTIL_H
 
-/** @file Util.h
-@brief Miscellaneous utilities
-*/
+//! @addtogroup Utilities
+//! @{
+
+//! @file Util.h Miscellaneous utilities
 
 #include <core/MPIUtil.h>
 #include <map>
@@ -215,4 +216,5 @@ public:
 	}
 };
 
+//! @}
 #endif //JDFTX_CORE_UTIL_H

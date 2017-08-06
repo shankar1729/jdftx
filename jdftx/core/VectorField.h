@@ -20,12 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_VECTORFIELD_H
 #define JDFTX_CORE_VECTORFIELD_H
 
-//! @addtogroup griddata
+//! @addtogroup DataStructures
 //! @{
 
-/** @file VectorField.h
-@brief Generic multiplet of data arrays (and specialized to triplets for vector fields in real/reciprocal space)
-*/
+//! @file VectorField.h Fixed-length multiplet of ScalarField and ScalarFieldTilde, and specialization to vector fields (3-component)
 
 #include <core/ScalarField.h>
 #include <core/GridInfo.h>

@@ -20,14 +20,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_SCALED_H
 #define JDFTX_CORE_SCALED_H
 
-//! @file scaled.h Template to avoid (delay) scaling operations on linear objects
+//! @addtogroup DataStructures
+//! @{
 
+//! Template to avoid (delay) scaling operations on linear objects
 template<typename T> struct scaled
-{	const T& data;
-	double scale;
+{	const T& data; //!< linear object reference
+	double scale; //!< pending scale factor
 	scaled(const T& data, double scale=1.0) : data(data), scale(scale) {}
-	operator T() const { T ret(data); return ret *= scale; }
-	scaled<T>& operator*=(double s) { scale *= s; return *this; }
+	operator T() const { T ret(data); return ret *= scale; } //!< apply scale
+	scaled<T>& operator*=(double s) { scale *= s; return *this; } //!< merge scale operation into pending scale factor
 };
 
 template<typename T> T& operator+=(T& y, const scaled<T>& x) { if(y) axpy(x.scale, x.data, y); else y = x.scale * x.data; return y; }
@@ -39,4 +41,5 @@ template<typename T> scaled<T> operator-(const scaled<T>& x)  { return scaled<T>
 template<typename T> scaled<T> operator*(double s, const scaled<T>& x) { return scaled<T>(x.data, x.scale * s); }
 template<typename T> scaled<T> operator*(const scaled<T>& x, double s) { return scaled<T>(x.data, x.scale * s); }
 
+//! @}
 #endif

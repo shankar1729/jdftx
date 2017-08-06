@@ -23,6 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb.h>
 #include <core/Coulomb_internal.h>
 
+//! @addtogroup LongRange
+//! @{
+
 //! Helper class for evaluating regularized Coulomb kernel for exchange
 struct ExchangeEval
 {
@@ -57,4 +60,5 @@ private:
 	double* kernelData; //data for all the kernels (either on the CPU or GPU, as appropriate)
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMB_EXCHANGEEVAL_H

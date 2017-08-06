@@ -20,9 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_SCALARFIELDARRAY_H
 #define JDFTX_CORE_SCALARFIELDARRAY_H
 
+//! @addtogroup DataStructures
+//! @{
 
-//! @file ScalarFieldArray.h
-//! @brief classes ScalarFieldArray, ScalarFieldTildeArray and just enough operators to enable CG w.r.t to them
+//! @file ScalarFieldArray.h Variable length arrays of ScalarField and ScalarFieldTildeArray, and their operators
 
 #include <core/VectorField.h>
 #include <vector>
@@ -155,6 +156,7 @@ template<typename T> void randomize(TptrCollection& x)
 {	for(unsigned i=0; i<x.size(); i++) initRandom(x[i], 3.0);
 }
 
+//! Load an array of scalar fields from a file
 template<typename T> void loadFromFile(TptrCollection& x, const char* filename)
 {	//Checks for the correct filesize
 	off_t expectedLen = 0;
@@ -176,6 +178,7 @@ template<typename T> void loadFromFile(TptrCollection& x, const char* filename)
 	fclose(fp);
 }
 
+//! Save an array of scalar fields to a file
 template<typename T> void saveToFile(const TptrCollection& x, const char* filename)
 {	FILE* fp = fopen(filename, "wb");
 	if(!fp) die("Could not open %s for writing.\n", filename)
@@ -188,16 +191,16 @@ template<typename T> void saveToFile(const TptrCollection& x, const char* filena
 
 //----------------- Transform operators -------------------------
 
-inline ScalarFieldArray I(ScalarFieldTildeArray&& X)
+inline ScalarFieldArray I(ScalarFieldTildeArray&& X) //!< Reciprocal to real space
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldArray out(X.size());
 	ScalarField (*func)(ScalarFieldTilde&&,int) = I;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline ScalarFieldArray I(const ScalarFieldTildeArray& X) { return I(clone(X)); }
+inline ScalarFieldArray I(const ScalarFieldTildeArray& X) { return I(clone(X)); } //!< Reciprocal to real space
 
-inline ScalarFieldTildeArray J(const ScalarFieldArray& X)
+inline ScalarFieldTildeArray J(const ScalarFieldArray& X) //!< Real to reciprocal space
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldTildeArray out(X.size());
 	ScalarFieldTilde (*func)(const ScalarField&,int) = J;
@@ -205,7 +208,7 @@ inline ScalarFieldTildeArray J(const ScalarFieldArray& X)
 	return out;
 }
 
-inline ScalarFieldTildeArray Idag(const ScalarFieldArray& X)
+inline ScalarFieldTildeArray Idag(const ScalarFieldArray& X) //!< Hermitian conjugate of I
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldTildeArray out(X.size());
 	ScalarFieldTilde (*func)(const ScalarField&,int) = Idag;
@@ -213,14 +216,16 @@ inline ScalarFieldTildeArray Idag(const ScalarFieldArray& X)
 	return out;
 }
 
-inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X)
+inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X) //!< Hermitian conjugate of J
 {	using namespace ScalarFieldMultipletPrivate;
 	ScalarFieldArray out(X.size());
 	ScalarField (*func)(ScalarFieldTilde&&,int) = Jdag;
 	threadUnary<ScalarField,ScalarFieldTilde&&>(func, int(X.size()), &out, X);
 	return out;
 }
-inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X) { return Jdag(clone(X)); }
+inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X) { return Jdag(clone(X)); } //!< Hermitian conjugate of J
 
 #undef TptrCollection
+
+//! @}
 #endif // JDFTX_CORE_SCALARFIELDARRAY_H

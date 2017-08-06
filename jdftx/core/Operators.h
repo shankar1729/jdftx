@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_OPERATORS_H
 #define JDFTX_CORE_OPERATORS_H
 
-//! @addtogroup griddata
+//! @addtogroup Operators
 //! @{
 
 /** @file Operators.h

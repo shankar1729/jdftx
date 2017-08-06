@@ -17,10 +17,10 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_FLUID_SO3PLATONIC_H
-#define JDFTX_FLUID_SO3PLATONIC_H
+#ifndef JDFTX_FLUID_S2QUAD_H
+#define JDFTX_FLUID_S2QUAD_H
 
-//! @addtogroup so3quad
+//! @addtogroup ClassicalDFT
 //! @{
 
 /** @file S2quad.h
@@ -303,4 +303,4 @@ public:
 
 //! @}
 
-#endif // JDFTX_FLUID_SO3PLATONIC_H
+#endif // JDFTX_FLUID_S2QUAD_H

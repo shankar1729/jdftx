@@ -23,7 +23,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Minimize.h> //this include is present only to aid IDE's autocompletion (does nothing since this file is always used via Minimize.h)
 #include <deque>
 
-//Energy difference convergence check
+//! @addtogroup Algorithms
+//! @{
+
+//! @file Minimize_linmin.h Line minimize and other utilities used for nonlinear minimization
+
+
+//! Energy difference convergence check
 class EdiffCheck : std::deque<double>
 {	unsigned nDiff;
 	double threshold;
@@ -47,17 +53,17 @@ public:
 	}
 };
 
+//! @brief Line minimization methods
+//! Each of the linmin methods in this namespace advance the parameters in obj along direction d.
+//! updating the energy E, gradient g, and the step-size alpha.
+//! The return value specifies if the step succeeded at reducing E.
+//! If the step fails, alpha MUST contain the total progress along dir.
+//! made by this step, so that minimize may reset it back to the original value.
 namespace MinimizePrivate
 {
-	//Each of these linmin methods advance the parameters in obj along direction d
-	//updating the energy E, gradient g, and the step-size alpha
-	//The return value specifies if the step succeeded at reducing E
-	//If the step fails, alpha MUST contain the total progress along dir
-	//made by this step, so that minimize may reset it back to the original value
-	
-	//Equation-of-motion / Relaxation method stepping
-	//NOTE: Criterion for success of this method is different from the others
-	// It only ensures that the energy is not NaN/Inf.
+	//! Equation-of-motion / Relaxation method stepping.
+	//! NOTE: Criterion for success of this method is different from the others.
+	//! It only ensures that the energy is not NaN/Inf.
 	template<typename Vector>
 	bool linminRelax(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
@@ -73,7 +79,7 @@ namespace MinimizePrivate
 	}
 
 
-	//Quadratic line minimization
+	//! Quadratic line minimization
 	template<typename Vector>
 	bool linminQuad(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
@@ -166,7 +172,7 @@ namespace MinimizePrivate
 	}
 
 
-	//Cubic line minimization, designed to handle fluids which can be highly non-quadratic
+	//! Cubic line minimization, designed to handle fluids which can be highly non-quadratic
 	template<typename Vector>
 	bool linminCubicWolfe(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
@@ -242,6 +248,7 @@ namespace MinimizePrivate
 	}
 }
 
+//! Return function pointer to appropriate linmin method based on MinimizeParams
 template<typename Vector> typename Minimizable<Vector>::Linmin Minimizable<Vector>::getLinmin(const MinimizeParams& p) const
 {	using namespace MinimizePrivate;
 	switch(p.linminMethod)
@@ -259,4 +266,5 @@ template<typename Vector> typename Minimizable<Vector>::Linmin Minimizable<Vecto
 	return 0;
 }
 
+//! @}
 #endif //JDFTX_CORE_MINIMIZE_LINMIN_H

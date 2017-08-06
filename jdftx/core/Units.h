@@ -20,40 +20,50 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_UNITS_H
 #define JDFTX_CORE_UNITS_H
 
-//! @file Units.h
-//! @brief Commonly used measurement units in terms of atomic units
+//! @addtogroup Utilities
+//! @{
+
+//! @file Units.h Commonly used measurement units in terms of atomic units
 
 #include <cmath>
 
 //Energy, temperature units in Hartrees:
-const double eV = 1/27.21138505; //!< @f$ eV / E_h @f$
-const double Joule = 1/4.35974434e-18; //!< @f$ J / E_h @f$
-const double KJoule = 1000*Joule; //!< @f$ KJ / E_h @f$
-const double Kcal = KJoule * 4.184; //!< @f$ Kcal / E_h @f$
-const double Kelvin = 1.3806488e-23*Joule; //!< @f$ k_B K / E_h @f$
-const double invcm = 1./219474.6313705; //!< @f$ cm^{-1} / E_h @f$
+const double eV = 1/27.21138505; //!< eV in Hartrees
+const double Joule = 1/4.35974434e-18; //!< Joule in Hartrees
+const double KJoule = 1000*Joule; //!< KJoule in Hartrees
+const double Kcal = KJoule * 4.184; //!< Kcal in Hartrees
+const double Kelvin = 1.3806488e-23*Joule; //!< Kelvin in Hartrees
+const double invcm = 1./219474.6313705; //!< Inverse cm in Hartrees
 
 //Length units in bohrs:
-const double Angstrom = 1/0.5291772; //!< @f$ \AA / a_0 @f$
-const double meter = 1e10*Angstrom; //!< @f$ m / a_0 @f$
-const double liter = 1e-3*pow(meter,3);  //!< @f$ l / a_0^3 @f$
+const double Angstrom = 1/0.5291772; //!< Angstrom in bohrs
+const double meter = 1e10*Angstrom; //!< meter in bohrs
+const double liter = 1e-3*pow(meter,3);  //!< liter in cubic bohrs
 
 //Mass units in electron masses:
-const double amu = 1822.88839; //!< @f$ amu / m_e @f$
-const double kg = 1./9.10938291e-31; //!< @f$ kg / m_e @f$
+const double amu = 1822.88839; //!< atomic mass unit in electron masses
+const double kg = 1./9.10938291e-31; //!< kilogram in electron masses
 
 //Dimensionless:
-const double mol = 6.0221367e23; //!< @f$ mol/\# @f$ (= Avogadro number)
+const double mol = 6.0221367e23; //!< mole in number (i.e. Avogadro number)
 
 //Commonly used derived units:
-const double Newton = Joule/meter;  //!< @f$ N / (E_h/a_0) @f$
-const double Pascal = Newton/(meter*meter); //!< @f$ Pa / (E_h/a_0^2) @f$
-const double KPascal = 1000*Pascal;  //!< @f$ KPa / (E_h/a_0^2) @f$
-const double Bar = 100*KPascal;   //!< @f$ bar / (E_h/a_0^2) @f$
-const double mmHg = 133.322387415*Pascal;  //!< @f$ mmHg / (E_h/a_0^2) @f$
+const double Newton = Joule/meter;  //!< Newton in Hartree/bohr
+const double Pascal = Newton/(meter*meter); //!< Pascal in Hartree/bohr^3
+const double KPascal = 1000*Pascal;  //!< KPa in Hartree/bohr^3
+const double Bar = 100*KPascal;   //!< bar in Hartree/bohr^3
+const double mmHg = 133.322387415*Pascal;  //!< mm Hg in Hartree/bohr^3
 
 //Time
-const double sec = sqrt((kg*meter)/Newton); //!< @f$ \sqrt{kg m/N} @f$
-const double fs = sec*1.0e-15; //!< @f$ 10^{-15} sec @f$
+const double sec = sqrt((kg*meter)/Newton); //!< second in inverse Hartrees
+const double invSec = 1./sec; //!< inverse second in Hartrees
+const double fs = sec*1.0e-15; //!< femtosecond in inverse Hartrees
 
+//Electrical:
+const double Coul = Joule/eV; //!< Coulomb in electrons
+const double Volt = Joule/Coul; //!< Volt in Hartrees
+const double Ampere = Coul/sec; //!< Ampere in electrons/inverse Hartree
+const double Ohm = Volt/Ampere; //!< Ohm in inverse conductance quanta
+
+//! @}
 #endif //JDFTX_CORE_UNITS_H

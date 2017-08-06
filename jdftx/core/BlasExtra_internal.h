@@ -22,6 +22,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/scalar.h>
 
+//! @cond
+
 //------ Helpers for scatter / axpy -----
 template<typename scalar, bool conjx, bool havew, bool conjw> struct Conjugator {};
 template<> struct Conjugator<double,false,false,false> { __hostanddev__ double operator()(const double* x, int ix, const double* w, int iw) const { return x[ix]; } };
@@ -60,5 +62,7 @@ template<> struct Conjugator<complex,true,true,true> { __hostanddev__ complex op
 	{	if(w) eblas_##type##_axpy##suffix(Nindex, a, index, x, y, w, Conjugator<double,false,true,false>()); \
 		else eblas_##type##_axpy##suffix(Nindex, a, index, x, y, w, Conjugator<double,false,false,false>()); \
 	}
+
+//! @endcond
 
 #endif // JDFTX_CORE_BLASEXTRA_INTERNAL_H

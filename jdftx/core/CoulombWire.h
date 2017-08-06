@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb.h>
 #include <core/WignerSeitz.h>
 
+//! @addtogroup LongRange
+//! @{
+//! @file CoulombWire.h Coulomb-interactions in 1D
+
 //! Coulomb interaction for a 1D periodic system, truncated on the transverse Wigner-Seitz cell
 class CoulombWire : public Coulomb
 {
@@ -51,4 +55,5 @@ private:
 	friend struct ExchangeEval;
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMBWIRE_H

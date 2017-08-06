@@ -26,12 +26,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/MinimizeParams.h>
 
-//! @addtogroup optimization
+//! @addtogroup Algorithms
 //! @{
 
 /**
 @file Minimize.h
-@brief Nonlinear minimization templates
+@brief Nonlinear minimization and linear solve templates
 */
 
 /** Interface (abstract base class) for the minimization algorithm template

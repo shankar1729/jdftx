@@ -22,8 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/scalar.h>
 
-//! @file Random.h Random number generation
+//! @addtogroup Utilities
+//! @{
 
+//! Random number generation
 namespace Random
 {
 	void seed(int i); //seed random number generator
@@ -32,4 +34,5 @@ namespace Random
 	complex normalComplex(double sigma=1.0); //!< normal complex number with mean 0 and deviation sigma
 }
 
+//! @}
 #endif //JDFTX_CORE_RANDOM_H

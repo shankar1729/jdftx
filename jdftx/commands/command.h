@@ -26,6 +26,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <set>
 
+//! @addtogroup Input
+//! @{
+
 /** @file command.h
 @brief Provides the base class and various helpers for defining commands in the input file 
 
@@ -215,5 +218,5 @@ void setAvailableFilename(string filenamePattern, string varName, string& target
 //! Apply setAvailableFilename for all standard input variables (action of CommandInitialState)
 void setAvailableFilenames(string filenamePattern, Everything& e);
 
-
+//! @}
 #endif // JDFTX_COMMAND_COMMAND_H

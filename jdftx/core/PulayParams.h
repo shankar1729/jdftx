@@ -22,6 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdio>
 
+//! @addtogroup Algorithms
+//! @{
+
 //! Parameters to control Pulay mixing
 struct PulayParams
 {
@@ -46,4 +49,5 @@ struct PulayParams
 	}
 };
 
+//! @}
 #endif //JDFTX_CORE_PULAYPARAMS_H

@@ -20,8 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_SPLINE_H
 #define JDFTX_CORE_SPLINE_H
 
-//! @file Spline.h
-//! @brief Spline interpolation routines
+//! @addtogroup Utilities
+//! @{
+
+//! @file Spline.h Spline interpolation routines
 
 #include <cstdio>
 #include <vector>
@@ -54,10 +56,9 @@ namespace QuinticSpline
 	__hostanddev__ void valueGrad(double E_value, double* E_coeff, double x);
 }
 
+//! @}
 
-//###################################################################################################
-//####  Implementation  ####
-//##########################
+//--------------  Implementation -----------------
 //!@cond
 
 #include <cmath>

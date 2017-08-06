@@ -105,7 +105,7 @@ JDFTx also includes nonlinear solvation models \cite NonlinearPCM
 dielectric saturation and ionic nonlinearities in the fluid response.
 Finally, the non-empirical solvation model SaLSA captures atomic-scale
 nonlocality of the fluid response at a linear-response level
-(option %SaLSA in command \ref CommandSaLSA).
+(option %SaLSA in command \ref CommandFluid).
 
 Unlike most other electronic structure codes, by default, JDFTx performs
 total energy minimization using analytically continued energy functionals

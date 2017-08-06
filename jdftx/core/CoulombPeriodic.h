@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Coulomb.h>
 
+//! @addtogroup LongRange
+//! @{
+//! @file CoulombPeriodic.h Coulomb-interactions in 3D
+
 //! Untruncated Coulomb interaction
 class CoulombPeriodic : public Coulomb
 {
@@ -32,4 +36,5 @@ protected:
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMBPERIODIC_H

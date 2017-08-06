@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_SCALARFIELD_H
 
 
-//! @addtogroup griddata
+//! @addtogroup DataStructures
 //! @{
 
 /** @file ScalarField.h

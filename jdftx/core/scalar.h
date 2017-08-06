@@ -22,6 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 
+//! @addtogroup DataStructures
+//! @{
+
+//! @file scalar.h Complex numbers with CPU and GPU operators
+
 #ifndef __device__ //in .cpp files
 	#define __hostanddev__ inline
 #else //in .cu files
@@ -50,13 +55,13 @@ struct complex
 {	double x, y;
 
 	//Accessors
-	__hostanddev__ double& real() { return x; }
-	__hostanddev__ double& imag() { return y; }
-	__hostanddev__ const double& real() const { return x; }
-	__hostanddev__ const double& imag() const { return y; }
+	__hostanddev__ double& real() { return x; } //!< real part
+	__hostanddev__ double& imag() { return y; } //!< imaginary part
+	__hostanddev__ const double& real() const { return x; } //!< real part
+	__hostanddev__ const double& imag() const { return y; } //!< imaginary part
 
 	//Constructors
-	__hostanddev__ complex(double x=0, double y=0) : x(x), y(y) {}
+	__hostanddev__ complex(double x=0, double y=0) : x(x), y(y) {} //!< construct from real and imaginary parts
 	#ifdef __in_a_cu_file__
 	__hostanddev__ complex(const double2& c) : x(c.x), y(c.y) {} //!< convert from cuda complex
 	__hostanddev__ operator double2() const { double2 ret; ret.x=x; ret.y=y; return ret;} //!< convert to cuda complex
@@ -81,19 +86,19 @@ struct complex
 	__hostanddev__ complex operator/(const complex& c) const { return complex(x*c.x+y*c.y, y*c.x-x*c.y) / c.norm(); }
 	__hostanddev__ complex operator/(double r) const { return *this * (1.0/r); }
 
-	__hostanddev__ double norm() const { return x*x + y*y; }
-	__hostanddev__ double abs() const { return sqrt(norm()); }
-	__hostanddev__ double arg() const { return atan2(y,x); }
-	__hostanddev__ complex conj() const { return complex(x,-y); }
+	__hostanddev__ double norm() const { return x*x + y*y; } //!< absolute value squared
+	__hostanddev__ double abs() const { return sqrt(norm()); } //!< absolute value
+	__hostanddev__ double arg() const { return atan2(y,x); } //!< argument (phase angle)
+	__hostanddev__ complex conj() const { return complex(x,-y); } //!< complex conjugate
 };
 
-__hostanddev__ double real(const complex& c) { return c.real(); }
-__hostanddev__ double imag(const complex& c) { return c.imag(); }
-__hostanddev__ double norm(const complex& c) { return c.norm(); }
-__hostanddev__ double abs(const complex& c) { return c.abs(); }
-__hostanddev__ double arg(const complex& c) { return c.arg(); }
-__hostanddev__ complex conj(const complex& c) { return c.conj(); }
-__hostanddev__ double conj(const double& c) { return c; } //provided to ease templating over complex and double
+__hostanddev__ double real(const complex& c) { return c.real(); } //!< real part
+__hostanddev__ double imag(const complex& c) { return c.imag(); } //!< imaginary part
+__hostanddev__ double norm(const complex& c) { return c.norm(); } //!< absolute value squared
+__hostanddev__ double abs(const complex& c) { return c.abs(); } //!< absolute value
+__hostanddev__ double arg(const complex& c) { return c.arg(); } //!< argument (phase angle)
+__hostanddev__ complex conj(const complex& c) { return c.conj(); } //!< complex conjugate
+__hostanddev__ double conj(const double& c) { return c; } //!< identity operation provided to ease templating over complex and double
 
 __hostanddev__ complex operator+(double r, const complex& c) { return c+r; }
 __hostanddev__ complex operator-(double r, const complex& c) { return -c+r; }
@@ -106,4 +111,5 @@ __hostanddev__ complex cis(double x)
 	return complex(c, s);
 }
 
+//! @}
 #endif // JDFTX_CORE_SCALAR_H

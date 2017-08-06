@@ -22,40 +22,46 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/vector3.h>
 
+//! @addtogroup DataStructures
+//! @{
+
+//! @file matrix3.h 3x3 matrices with CPU and GPU operators
+
+//! 3x3 matrix
 template<typename scalar=double> class matrix3
 {
 	scalar m[3][3];
 
 public:
 	//accessors:
-	__hostanddev__ scalar& operator()(int i, int j) { return m[i][j]; }
-	__hostanddev__ const scalar& operator()(int i, int j) const { return m[i][j]; }
-	__hostanddev__ vector3<scalar> row(int i) const { return vector3<scalar>(m[i][0], m[i][1], m[i][2]); }
-	__hostanddev__ vector3<scalar> column(int i) const { return vector3<scalar>(m[0][i], m[1][i], m[2][i]); }
+	__hostanddev__ scalar& operator()(int i, int j) { return m[i][j]; } //!< Access element
+	__hostanddev__ const scalar& operator()(int i, int j) const { return m[i][j]; } //!< Access element
+	__hostanddev__ vector3<scalar> row(int i) const { return vector3<scalar>(m[i][0], m[i][1], m[i][2]); } //!< Extract row
+	__hostanddev__ vector3<scalar> column(int i) const { return vector3<scalar>(m[0][i], m[1][i], m[2][i]); } //!< Extract column
 
-	__hostanddev__ void set_row(int i, const vector3<scalar>& v) { for(int j=0; j<3; j++) m[i][j] = v[j]; }
-	__hostanddev__ void set_rows(const vector3<scalar>& v0, const vector3<scalar>& v1, const vector3<scalar>& v2)
+	__hostanddev__ void set_row(int i, const vector3<scalar>& v) { for(int j=0; j<3; j++) m[i][j] = v[j]; } //!< Set row
+	__hostanddev__ void set_rows(const vector3<scalar>& v0, const vector3<scalar>& v1, const vector3<scalar>& v2) //!< Set all rows
 	{	for(int j=0; j<3; j++) { m[0][j] = v0[j]; m[1][j] = v1[j]; m[2][j] = v2[j]; }
 	}
-	__hostanddev__ void set_col(int j, const vector3<scalar>& v) { for(int i=0; i<3; i++) m[i][j] = v[i]; }
-	__hostanddev__ void set_cols(const vector3<scalar>& v0, const vector3<scalar>& v1, const vector3<scalar>& v2)
+	__hostanddev__ void set_col(int j, const vector3<scalar>& v) { for(int i=0; i<3; i++) m[i][j] = v[i]; } //!< Set column
+	__hostanddev__ void set_cols(const vector3<scalar>& v0, const vector3<scalar>& v1, const vector3<scalar>& v2) //!< Set all columns
 	{	for(int i=0; i<3; i++) { m[i][0] = v0[i]; m[i][1] = v1[i]; m[i][2] = v2[i]; }
 	}
 
 	//constructors:
-	explicit __hostanddev__ matrix3(scalar d0=0, scalar d1=0, scalar d2=0)
+	explicit __hostanddev__ matrix3(scalar d0=0, scalar d1=0, scalar d2=0) //!< Construct diagonal
 	{	m[0][0] = d0; m[1][1] = d1, m[2][2] = d2;
 		m[0][1] = m[0][2] = m[1][0] = m[1][2] = m[2][0] = m[2][1] = 0.0;
 	}
 	__hostanddev__ matrix3(
 		scalar m00, scalar m01, scalar m02,
 		scalar m10, scalar m11, scalar m12,
-		scalar m20, scalar m21, scalar m22 )
+		scalar m20, scalar m21, scalar m22 ) //!< Construct from all elements
 	{	m[0][0] = m00; m[0][1] = m01; m[0][2] = m02;
 		m[1][0] = m10; m[1][1] = m11; m[1][2] = m12;
 		m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
 	}
-	template<typename scalar2> explicit __hostanddev__ matrix3(const matrix3<scalar2>& n)
+	template<typename scalar2> explicit __hostanddev__ matrix3(const matrix3<scalar2>& n) //!< Convert type
 	{	for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
 				m[i][j] = scalar(n(i,j));
@@ -113,15 +119,15 @@ public:
 	#define METRIC_LENGTH_SQUARED \
 		return v[0]*v[0]*m[0][0] + v[1]*v[1]*m[1][1] + v[2]*v[2]*m[2][2] \
 			+ 2*(v[0]*v[1]*m[0][1] + v[0]*v[2]*m[0][2] + v[1]*v[2]*m[1][2]);
-	__hostanddev__ double metric_length_squared(const vector3<double> &v) const { METRIC_LENGTH_SQUARED }
-	__hostanddev__ scalar metric_length_squared(const vector3<int> &v) const { METRIC_LENGTH_SQUARED }
+	__hostanddev__ double metric_length_squared(const vector3<double> &v) const { METRIC_LENGTH_SQUARED } //!< Compute vector length with this as metric
+	__hostanddev__ scalar metric_length_squared(const vector3<int> &v) const { METRIC_LENGTH_SQUARED } //!< Compute vector length with this as metric
 	#undef METRIC_LENGTH_SQUARED
 	
 	__hostanddev__ matrix3<scalar> operator/(scalar s) const { return (*this) * (1.0/s); }
 	__hostanddev__ matrix3<scalar>& operator/(scalar s) { return (*this) *= (1.0/s); }
 
 	//! transpose
-	__hostanddev__ matrix3<scalar> operator~() const
+	__hostanddev__ matrix3<scalar> operator~() const //!< Transpose matrix
 	{	matrix3<scalar> ret;
 		for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
@@ -129,7 +135,7 @@ public:
 		return ret;
 	}
 
-	void print(FILE* fp, const char *format, bool brackets=true) const
+	void print(FILE* fp, const char *format, bool brackets=true) const //!< print to a file / stream
 	{	for(int i=0; i<3; i++)
 		{	if(brackets) fprintf(fp, "[ ");
 			for(int j=0; j<3; j++) fprintf(fp, format, m[i][j]);
@@ -153,7 +159,7 @@ public:
 //Multiplies:
 template<typename scalar> __hostanddev__ matrix3<scalar> operator*(scalar s, const matrix3<scalar> &m) { return m*s; }
 
-template<typename scalar> __hostanddev__ matrix3<scalar> outer(const vector3<scalar> &a, const vector3<scalar> &b)
+template<typename scalar> __hostanddev__ matrix3<scalar> outer(const vector3<scalar> &a, const vector3<scalar> &b) //!< outer product
 {	matrix3<scalar> m;
 	for(int i=0; i<3; i++)
 		for(int j=0; j<3; j++)
@@ -225,17 +231,17 @@ template<typename scalar> __hostanddev__ matrix3<scalar>& operator*=(matrix3<sca
 { return (m = m * n); }
 
 
-template<typename scalar> __hostanddev__ matrix3<scalar> Diag(vector3<scalar> v)
+template<typename scalar> __hostanddev__ matrix3<scalar> Diag(vector3<scalar> v) //!< Construct diagonal matrix
 { return matrix3<scalar>(v[0],v[1],v[2]); }
 
-template<typename scalar> __hostanddev__ scalar trace(const matrix3<scalar> &m) { return m(0,0)+m(1,1)+m(2,2); }
-template<typename scalar> __hostanddev__ scalar det(const matrix3<scalar> &m) { return box(m.row(0),m.row(1),m.row(2)); }
-template<typename scalar> __hostanddev__ matrix3<scalar> adjugate(const matrix3<scalar> &m)
+template<typename scalar> __hostanddev__ scalar trace(const matrix3<scalar> &m) { return m(0,0)+m(1,1)+m(2,2); } //!< Trace of matrix
+template<typename scalar> __hostanddev__ scalar det(const matrix3<scalar> &m) { return box(m.row(0),m.row(1),m.row(2)); } //!< Determinant of matrix
+template<typename scalar> __hostanddev__ matrix3<scalar> adjugate(const matrix3<scalar> &m) //!< Calculate adjugate (matrix of signed cofactors)
 {	matrix3<scalar> adj;
 	adj.set_cols(cross(m.row(1),m.row(2)), cross(m.row(2),m.row(0)), cross(m.row(0),m.row(1)));
 	return adj;
 }
-__hostanddev__ matrix3<> inv(const matrix3<> &m)
+__hostanddev__ matrix3<> inv(const matrix3<> &m) //!< Matrix inverse
 {	return (1./det(m)) * adjugate(m);
 }
 __hostanddev__ double nrm2(const matrix3<>& m) { return sqrt(trace((~m)*m)); } //!< 2-norm of matrix
@@ -262,4 +268,5 @@ __hostanddev__ matrix3<> rotation(double theta, int axis)
 	}
 }
 
+//! @}
 #endif //JDFTX_CORE_MATRIX3_H

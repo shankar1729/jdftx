@@ -20,8 +20,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_GPUUTIL_H
 #define JDFTX_CORE_GPUUTIL_H
 
-
-
 #ifdef GPU_ENABLED
 
 #include <cstdio>
@@ -29,6 +27,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cublas.h>
 #include <cufft.h>
 #include <vector>
+
+//! @addtogroup Utilities
+//! @{
 
 //! @file GpuUtil.h
 
@@ -48,7 +49,7 @@ extern void gpuErrorCheck();
 #endif //GPU_ENABLED
 
 
-//A utility function to eliminate ugly #ifdef's when not required
+//! A utility function to eliminate ugly #ifdef's when not required
 inline bool isGpuEnabled()
 {
 	#ifdef GPU_ENABLED
@@ -57,4 +58,6 @@ inline bool isGpuEnabled()
 	return false;
 	#endif
 }
+
+//! @}
 #endif // JDFTX_CORE_GPUUTIL_H

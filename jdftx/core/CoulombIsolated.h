@@ -23,6 +23,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb.h>
 #include <core/WignerSeitz.h>
 
+//! @addtogroup LongRange
+//! @{
+//! @file CoulombIsolated.h Coulomb-interactions in 0D
+
 //! Coulomb interaction for an isolated system (no periodicity), truncated on the Wigner-Seitz cell
 class CoulombIsolated : public Coulomb
 {
@@ -51,4 +55,5 @@ private:
 	friend struct ExchangeEval;
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMBISOLATED_H

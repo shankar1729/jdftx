@@ -22,6 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Util.h>
 
+//! @addtogroup Input
+//! @{
+
 /** @file ParamList.h
 @brief Helper class for parsing command lines in input file
 */
@@ -98,4 +101,5 @@ public:
 	}
 };
 
+//! @}
 #endif //JDFTX_COMMAND_PARAMLIST_H

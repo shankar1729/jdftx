@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_ISTRING_H
 #define JDFTX_CORE_ISTRING_H
 
+//! @addtogroup Utilities
+//! @{
+
 //! @file string.h STL strings and streams with case insensitive comparison
 
 #include <string>
@@ -83,4 +86,5 @@ struct ostringstream : public std::ostringstream
 {	string str() const { return string(std::ostringstream::str().c_str()); }
 };
 
+//! @}
 #endif

@@ -20,8 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_TENSOR3_H
 #define JDFTX_CORE_TENSOR3_H
 
-//! @file tensor3.h
-//! Symmetric traceless tensor and fields there of
+//! @addtogroup DataStructures
+//! @{
+
+//! @file tensor3.h Symmetric traceless tensor with CPU and GPU operators
 
 #include <core/scalar.h>
 #include <vector>
@@ -68,5 +70,6 @@ template<typename scalar> __hostanddev__ void accumTensor(const tensor3<scalar>&
 {	LOOP5( tArr[k][i] += t[k]; )
 }
 
+//! @}
 #undef LOOP5
 #endif // JDFTX_CORE_TENSOR3_H

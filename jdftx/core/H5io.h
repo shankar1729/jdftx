@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_H5IO_H
 #define JDFTX_CORE_H5IO_H
 
+//! @addtogroup Output
+//! @{
+
 /** @file H5io.h
 @brief HDF5 helper routines
 */
@@ -35,6 +38,8 @@ template<typename T> void h5writeScalar(hid_t fid, const char* dname, const T& d
 template<typename T> void h5writeVector(hid_t fid, const char* dname, const std::vector<T>& data); //Collectively write contiguous array to a 1D dataset when all the data is available on all the processes
 template<typename T> void h5writeVector(hid_t fid, const char* dname, const T* data, hsize_t nData); //Collectively write contiguous array to a 1D dataset when all the data is available on all the processes
 template<typename T> void h5writeVector(hid_t fid, const char* dname, const T* data, const hsize_t* dims, hsize_t rank); //Collectively write contiguous array to a nD dataset when all the data is available on all the processes
+
+//! @}
 
 //------------ Implementations -------------------
 //!@cond

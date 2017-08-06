@@ -24,6 +24,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix3.h>
 #include <core/string.h>
 
+//! @addtogroup LongRange
+//! @{
+//! @file CoulombKernel.h Cached Wigner-Seitz truncated Coulomb kernels
+
 //! Wigner-Seitz truncated coulomb kernel generator
 struct CoulombKernel
 {	const matrix3<> R; //!< lattice vectors
@@ -48,4 +52,5 @@ private:
 	void computeWire(double* data, const WignerSeitz& ws) const; //!< 1 periodic direction
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMBKERNEL_H

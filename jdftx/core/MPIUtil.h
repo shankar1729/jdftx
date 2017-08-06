@@ -29,6 +29,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <mpi.h>
 #endif
 
+//! @addtogroup Utilities
+//! @{
+
+//! @file MPIUtil.h Helper classes for MPI parallelization
+
 //! MPI wrapper class
 class MPIUtil
 {
@@ -83,7 +88,7 @@ public:
 };
 
 
-//Helper for optimally dividing a specified number of (equal) tasks over MPI:
+//! Helper for optimally dividing a specified number of (equal) tasks over MPI
 class TaskDivision
 {
 public:
@@ -101,6 +106,7 @@ private:
 	std::vector<size_t> stopArr; //!< array of sttop values for other processes
 };
 
+//! @}
 
 //-------------------------- Template implementations ------------------------------------
 //!@cond

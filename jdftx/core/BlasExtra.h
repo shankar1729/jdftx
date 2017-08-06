@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_BLASEXTRA_H
 #define JDFTX_CORE_BLASEXTRA_H
 
+//! @addtogroup Operators
+//! @{
+
 /** @file BlasExtra.h
 @brief Commonly used BLAS-like routines
 */
@@ -303,6 +306,7 @@ void eblas_capMinMax(const int N, double* x, double& xMin, double& xMax, double 
 void eblas_capMinMax_gpu(const int N, double* x, double& xMin, double& xMax, double capLo=-DBL_MAX, double capHi=+DBL_MAX);
 #endif
 
+//! @}
 
 //###################################################################################################
 //####  Implementation  ####

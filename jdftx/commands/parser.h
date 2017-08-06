@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_PARSER_H
 #define JDFTX_PARSER_H
 
+//! @addtogroup Input
+//! @{
+
 /** @file parser.h
 @brief Functions for parsing JDFTx input files
 */
@@ -50,4 +53,5 @@ void printDefaultTemplate(Everything &e);
 //! @param section Which executable to generate documentation for i.e. only include commands whose section matches this
 void writeCommandManual(Everything& e, string section);
 
+//! @}
 #endif // JDFTX_PARSER_H

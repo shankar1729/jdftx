@@ -25,6 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/tensor3.h>
 #include <core/LoopMacros.h>
 
+//! @cond
+
 //! Compute the full G-space indices corresponding to a half Gspace index and its mirror image:
 #define COMPUTE_fullRefIndices \
 	vector3<int> iv(iG), ivRef; \
@@ -134,5 +136,5 @@ __hostanddev__ void tensorDivergence_calc(int i, const vector3<int> iG, bool nyq
 	divTilde[i] = -temp;
 }
 
-
+//! @endcond
 #endif //JDFTX_CORE_OPERATORS_INTERNAL_H

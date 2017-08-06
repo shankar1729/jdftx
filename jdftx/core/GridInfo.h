@@ -20,9 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_GRIDINFO_H
 #define JDFTX_CORE_GRIDINFO_H
 
-/** @file GridInfo.h
-@brief Geometry of the simulation grid
-*/
+//! @addtogroup Geometry
+//! @{
 
 #include <core/matrix3.h>
 #include <core/ScalarField.h>
@@ -49,9 +48,9 @@ public:
 	GridInfo();
 	~GridInfo();
 
-	void update(); //! Update the grid information on changing the lattice vectors
-	void printLattice(); //! Print the lattice vectors
-	void printReciprocalLattice(); //! Print the reciprocal lattice vectors
+	void update(); //!< Update the grid information on changing the lattice vectors
+	void printLattice(); //!< Print the lattice vectors
+	void printReciprocalLattice(); //!< Print the reciprocal lattice vectors
 	
 	enum LatticeType
 	{	Manual, //!< Directly specify R
@@ -155,4 +154,5 @@ private:
 	static std::mutex planLock; //Global lock since planner routines are not thread safe
 };
 
+//! @}
 #endif //JDFTX_CORE_GRIDINFO_H

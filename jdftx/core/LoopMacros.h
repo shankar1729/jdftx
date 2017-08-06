@@ -20,6 +20,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_LOOPMACROS_H
 #define JDFTX_CORE_LOOPMACROS_H
 
+//! @addtogroup Utilities
+//! @{
+
+//! @file LoopMacros.h
+
 //! One thread of a loop over real space (see applyFunc_r_sub for example)
 #define THREAD_rLoop(code) \
 	size_t i=iStart; \
@@ -126,4 +131,5 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! NOTE: no component is nyquist for odd sizes in this convention
 #define IS_NYQUIST ( (!(2*iG[0]-S[0])) | (!(2*iG[1]-S[1])) | (!(2*iG[2]-S[2])) )
 
+//! @}
 #endif // JDFTX_CORE_LOOPMACROS_H

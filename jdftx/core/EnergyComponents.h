@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_ENERGYCOMPONENTS_H
 #define JDFTX_CORE_ENERGYCOMPONENTS_H
 
+//! @addtogroup Utilities
+//! @{
+
 //! @file EnergyComponents.h
 //! @brief Represent components of the (free) energy
 
@@ -83,4 +86,5 @@ public:
 	}
 };
 
+//! @}
 #endif //JDFTX_CORE_ENERGYCOMPONENTS_H

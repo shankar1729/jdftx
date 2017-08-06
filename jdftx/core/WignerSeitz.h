@@ -20,7 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_WIGNERSEITZ_H
 #define JDFTX_CORE_WIGNERSEITZ_H
 
-//! @file WignerSeitz.h
+//! @addtogroup Geometry
+//! @{
 
 #include <core/matrix3.h>
 #include <float.h>
@@ -28,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <list>
 #include <set>
 
-//! Wigner-Seitz construction for a 3D lattice (2D lattice may be handled with orthogonal 3rd direction)
+//! Wigner-Seitz construction for a 3D lattice (and 2D lattice with orthogonal 3rd direction)
 class WignerSeitz
 {
 public:
@@ -174,4 +175,5 @@ private:
 	void addEdge(Face* f, Vertex* vStart, Vertex* vEnd, bool lastEdge=false);
 };
 
+//! @}
 #endif // JDFTX_CORE_WIGNERSEITZ_H

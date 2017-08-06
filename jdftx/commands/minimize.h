@@ -20,6 +20,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_COMMAND_MINIMIZE_H
 #define JDFTX_COMMAND_MINIMIZE_H
 
+//! @addtogroup Input
+//! @{
+
 /** @file minimize.h
 @brief Provides base class for defining the minimize commands
 */
@@ -38,5 +41,7 @@ protected:
 	//! @return Return reference to the relevant MinimizeParams that this command should operate on.
 	virtual MinimizeParams& target(Everything& e)=0;
 };
+
+//! @}
 
 #endif // JDFTX_COMMAND_MINIMIZE_H

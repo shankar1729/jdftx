@@ -25,10 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/matrix.h>
 #include <cfloat>
 
-/**
-@file Pulay.h
-@brief Pulay mixing algorithm template
-*/
+//! @addtogroup Algorithms
+//! @{
 
 //! @brief Pulay mixing to optimize self-consistent field optimization
 //! @
@@ -82,6 +80,7 @@ private:
 	matrix overlap; //!< Overlap matrix of residuals
 };
 
+//! @}
 
 //---------------------- Implementation ----------------------------
 //!@cond

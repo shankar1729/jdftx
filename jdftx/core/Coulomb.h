@@ -25,7 +25,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <set>
 
+//! @addtogroup LongRange
+//! @{
 
+//! @file Coulomb.h Coulomb interactions in various geometries
+
+//! Parameters controlling Coulomb interactions
 struct CoulombParams
 {	//! Truncation geometry
 	enum Geometry
@@ -181,4 +186,5 @@ private:
 	friend struct ChargedDefect;
 };
 
+//! @}
 #endif // JDFTX_CORE_COULOMB_H

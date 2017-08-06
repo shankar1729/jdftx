@@ -22,6 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/common.h>
 
+//! @addtogroup DataStructures
+//! @{
+
+//! @file ManagedMemory.h Base class and operators for managed-memory objects
+
 //! Base class for managed-memory objects (that could potentially live on GPUs as well)
 class ManagedMemory
 {
@@ -107,4 +112,5 @@ void axpy(complex alpha, const ManagedMemory& x, ManagedMemory& y); //!< standar
 double nrm2(const ManagedMemory&); //!< 2-norm, pretending it is a vector
 complex dotc(const ManagedMemory& a, const ManagedMemory& b); //!< return a^H b
 
+//! @}
 #endif // JDFTX_ELECTRONIC_MANAGEDMEMORY_H

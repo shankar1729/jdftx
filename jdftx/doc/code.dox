@@ -1,7 +1,19 @@
 //------------- Define grouping for code documentation ----------------
 /** 
-@defgroup so3quad Quadratures for SO(3)/Z2 integration
-@defgroup parallel Parallelization utilities
-@defgroup griddata Simulation grid and data management
-@defgroup optimization Optimization algorithms
+
+@defgroup DataStructures Data structures
+@defgroup Operators Operator implementations
+@defgroup Algorithms Algorithms
+@defgroup Geometry Lattice geometry
+@defgroup Utilities Shared utilities
+
+@defgroup Input Input-file parser and commands
+@defgroup Output Outputs
+
+@defgroup LongRange Long-range interactions
+@defgroup ExchangeCorrelation Exchange-correlation terms
+@defgroup ElectronicDFT Electronic DFT
+@defgroup ClassicalDFT Classical and joint DFT
+@defgroup Solvation Solvation models
+
 */

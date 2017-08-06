@@ -20,13 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_THREAD_H
 #define JDFTX_CORE_THREAD_H
 
-//! @addtogroup parallel
+//! @addtogroup Utilities
 //! @{
 
-/**
-@file Thread.h
-@brief Utilities for threading (wrappers around std::thread)
-*/
+//! @file Thread.h Utilities for threading (wrappers around std::thread)
 
 #include <core/Util.h>
 #include <thread>

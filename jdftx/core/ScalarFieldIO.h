@@ -20,12 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_SCALARFIELDIO_H
 #define JDFTX_CORE_SCALARFIELDIO_H
 
-//! @addtogroup griddata
+//! @addtogroup Output
 //! @{
 
-/** @file ScalarFieldIO.h
-@brief I/O utilities for the data arrays
-*/
+//! @file ScalarFieldIO.h I/O utilities for the data arrays
 
 #include <core/ScalarField.h>
 #include <core/vector3.h>

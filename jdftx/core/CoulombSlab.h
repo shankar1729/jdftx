@@ -22,6 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/Coulomb.h>
 
+//! @addtogroup LongRange
+//! @{
+//! @file CoulombSlab.h Coulomb-interactions in 2D
+
 //! Coulomb interaction for a 2D periodic system, truncated on the transverse Wigner-Seitz cell
 class CoulombSlab : public Coulomb
 {
@@ -32,5 +36,5 @@ protected:
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
 };
 
-
+//! @}
 #endif // JDFTX_CORE_COULOMBSLAB_H

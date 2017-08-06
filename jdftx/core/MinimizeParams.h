@@ -22,10 +22,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdio>
 
-//! @addtogroup optimization
+//! @addtogroup Algorithms
 //! @{
 
-//! @brief Parameters to control the minimization algorithm
+//! Parameters to control the minimization algorithm
 struct MinimizeParams
 {
 	//! Search direction update scheme

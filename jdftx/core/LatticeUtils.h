@@ -20,7 +20,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_LATTICEUTILS_H
 #define JDFTX_CORE_LATTICEUTILS_H
 
-//! @file GridInfo.h Miscellaneous utilities relating to properties of Bravais Lattices
+//! @addtogroup Geometry
+//! @{
+
+//! @file LatticeUtils.h Miscellaneous utilities relating to properties of Bravais Lattices
 
 #include <core/GridInfo.h>
 #include <vector>
@@ -146,4 +149,5 @@ public:
 	}
 };
 
+//! @}
 #endif // JDFTX_CORE_LATTICEUTILS_H
