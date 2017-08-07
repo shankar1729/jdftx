@@ -317,7 +317,7 @@ template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedAr
 }
 
 template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(ManagedArray<T>&& other)
-{	ManagedMemory<T>::memMove(other);
+{	ManagedMemory<T>::memMove((ManagedMemory<T>&&)other);
 	return *this;
 }
 

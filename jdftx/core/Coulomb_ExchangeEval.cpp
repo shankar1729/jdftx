@@ -353,15 +353,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				for(int i=0; i<nSamples; i++)
 					samples[i] = truncatedErfcTilde(dG*i, omega, Rc);
 				Vzero = samples[0]; //Note: this mode will always have VzeroCorrection = 0.
-				std::vector<double> coeff = QuinticSpline::getCoeff(samples);
-				#ifdef GPU_ENABLED
-				cudaMalloc(&sphericalScreenedCalc.coeff, sizeof(double)*coeff.size());
-				cudaMemcpy(sphericalScreenedCalc.coeff, coeff.data(), sizeof(double)*coeff.size(), cudaMemcpyHostToDevice);
-				gpuErrorCheck();
-				#else
-				sphericalScreenedCalc.coeff = new double[coeff.size()];
-				memcpy(sphericalScreenedCalc.coeff, coeff.data(), sizeof(double)*coeff.size());
-				#endif
+				sphericalScreenedCoeff = ManagedArray<double>(QuinticSpline::getCoeff(samples));
+				sphericalScreenedCalc.coeff = sphericalScreenedCoeff.dataPref();
 				sphericalScreenedCalc.dGinv = 1.0/dG;
 				sphericalScreenedCalc.nSamples = nSamples;
 			}
@@ -421,14 +414,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				{	coeffSub = QuinticSpline::getCoeff(samples[iAxis]); //coefficients for a given iAxis
 					coeff.insert(coeff.end(), coeffSub.begin(), coeffSub.end());
 				}
-				#ifdef GPU_ENABLED
-				cudaMalloc(&slabCalc.coeff, sizeof(double)*coeff.size());
-				cudaMemcpy(slabCalc.coeff, coeff.data(), sizeof(double)*coeff.size(), cudaMemcpyHostToDevice);
-				gpuErrorCheck();
-				#else
-				slabCalc.coeff = new double[coeff.size()];
-				memcpy(slabCalc.coeff, coeff.data(), sizeof(double)*coeff.size());
-				#endif
+				slabCoeff = ManagedArray<double>(coeff);
+				slabCalc.coeff = slabCoeff.dataPref();
 				slabCalc.dGinv = 1.0/dG;
 				slabCalc.nSamples = nSamples;
 				slabCalc.nCoeff = coeffSub.size();
@@ -489,21 +476,11 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			//Split supercell kernel into one for each k-point difference:
 			logPrintf("Splitting supercell kernel to unit-cell with k-points ... "); logFlush();
 			size_t nKernelData = dkArr.size() * gInfo.nr;
-			kernelData = new double[nKernelData];
-			if(!kernelData)
-				die_alone("Out of memory. (need %.1lfGB memory for precomputed exchange kernel)\n",
-					nKernelData*1e-9*sizeof(double));
+			kernelData.init(nKernelData);
 			for(size_t i=0; i<dkArr.size(); i++)
 				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkArr[i],
-					gInfo.S, Ssuper, super, dataSuper, kernelData + i*gInfo.nr);
+					gInfo.S, Ssuper, super, dataSuper, kernelData.data() + i*gInfo.nr);
 			delete[] dataSuper;
-			#ifdef GPU_ENABLED //Move to GPU if required:
-			double* kernelDataCpu = kernelData;
-			cudaMalloc(&kernelData, nKernelData*sizeof(double)); gpuErrorCheck();
-			cudaMemcpy(kernelData, kernelDataCpu, nKernelData*sizeof(double), cudaMemcpyHostToDevice);
-			gpuErrorCheck();
-			delete[] kernelDataCpu;
-			#endif
 			logPrintf("Done.\n");
 			break;
 		}
@@ -512,32 +489,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 
 ExchangeEval::~ExchangeEval()
 {	
-	if(sphericalScreenedCalc.coeff)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(sphericalScreenedCalc.coeff);
-		#else
-		delete[] sphericalScreenedCalc.coeff;
-		#endif
-	}
-	if(slabCalc.coeff)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(slabCalc.coeff);
-		#else
-		delete[] slabCalc.coeff;
-		#endif
-	}
 	if(VcGamma && omega)
 		delete VcGamma;
-	if(kernelMode == NumericalKernel)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(kernelData);
-		#else
-		delete[] kernelData;
-		#endif
-	}
 }
 
 
@@ -583,7 +536,7 @@ complexScalarFieldTilde ExchangeEval::operator()(complexScalarFieldTilde&& in, v
 					vector3<int> offset = round(dkArr[ik] - kDiff, &err);
 					assert(err < symmThreshold);
 					//Multiply kernel:
-					multTransformedKernel(in, kernelData + gInfo.nr * ik, offset);
+					multTransformedKernel(in, kernelData.dataPref() + gInfo.nr * ik, offset);
 					kDiffFound = true;
 					break;
 				}

@@ -51,13 +51,15 @@ private:
 	//For spherical mode
 	double Rc;
 	ExchangeSphericalScreened_calc sphericalScreenedCalc; //for screened exchange
+	ManagedArray<double> sphericalScreenedCoeff;
 	//For slab mode:
 	ExchangeSlab_calc slabCalc;
+	ManagedArray<double> slabCoeff;
 	//For Wigner-Seitz Gamma-only truncated mode:
 	RealKernel* VcGamma; //Gamma-point-only kernel (used for Isolated geometry (with no need for regularization))
 	//For precomputed numerical kernel mode:
 	std::vector< vector3<> > dkArr; //list of allowed k-point differences (modulo integer offsets)
-	double* kernelData; //data for all the kernels (either on the CPU or GPU, as appropriate)
+	ManagedArray<double> kernelData; //data for all the kernels
 };
 
 //! @}
