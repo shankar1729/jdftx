@@ -1,67 +1,98 @@
 /** \page DevGuide Developer Guide
 
-Folder structure
-----------------
+\image html tutorials/Architecture.png
 
-commands
+The figure above outlines the overall organization of the JDFTx codebase,
+and points out some of the key classes and their interactions.
+See the [API reference](usergroup0.html) for more details about specific headers and classes.
+Within the API reference, [the modules list page](modules.html) would be a good starting point.
 
-core
+Within CMake, the overall compilation is divided into four main targets.
+Most of the functionality is compiled into a dynamic link library **libjdftx**.
+Three light-weight executables act as a front-end to this functionality:
 
-doc
++ **jdftx**: most DFT, solvation, liquids calculations, including post-processing
++ **phonon**: phonon dispersion and electron-phonon interaction calculations
++ **wannier**: generation of maximally-localized Wannier functions \cite MLWF and *ab initio* tight binding models.
 
-electronic
+This organization makes it potentially easy for other
+DFT codes to take advantage of JDFTx features, especially
+JDFT and solvation models, by linking directly to libjdftx.
+It is also easy to add custom user executables that link to libjdftx
+to do specialized calculations; use jdftx.cpp as a starting point:
+it has < 100 lines of code (linked to libjdftx) to produce jdftx.
 
-fluid
+The source code compiled into libjdftx is divided into four
+subdirectories (shown in green dotted lines in the chart above):
 
-opt
++ **core**: implements the basic [data structures](group__DataStructures.html),
+  [operators](group__Operators.html) and [algorithms](group__Algorithms.html)
+  used by the rest of JDFTx.
+  ManagedMemory handles the separate CPU and GPU memory spaces,
+  automatically moving data between them when necessary.
+  There are few explicit memory allocation / device memory
+  copy calls outside the implementation of this class.
+  Scalar fields used by the electronic and fluid codes,
+  eg. ScalarField in real space and ScalarFieldTilde in reciprocal space
+  derive from this class.
+  Minimize.h provides Conjugate Gradients and L-BFGS algorithms,
+  which are used for electronic and fluid free energy minimization,
+  as well as ionic geometry optimization.
+  Pulay provides a templated self-consistent field iteration
+  used for electrons as well as the nonlinear solvation model in class NonlinearPCM.
+  Electronic wavefunctions in ColumnBundle also use the same mechanism.
+  Among the data structures, GridInfo describes the plane-wave grid and Fourier transforms,
+  while Coulomb implements the Coulomb kernel in various dimensions \cite TruncatedEXX.
 
-phonon
++ **fluid**: contains a hierarchy of fluid models abstracted by base class FluidSolver.
+  The classical DFT class of fluid models \cite RigidCDFT \cite PolarizableCDFT
+  are implemented in FluidMixture which ties together several FluidComponent objects;
+  each component in turn contains an IdealGas and Fex to describe the fluid functional,
+  while the components may interact with each other using mixing functionals in Fmix.
+  The hierarchy of solvation models are implemented in LinearPCM \cite PCM-Kendra,
+  NonlinearPCM \cite NonlinearPCM and SaLSA \cite SaLSA, which are all abstracted by \cite PCM.
 
-pseudopotentials
++ **electronic**: implements Kohn-Sham electronic DFT in the plane-wave basis.
+  ElecInfo and ElecVars contain electronic occupations, wavefunctions,
+  density, potential etc. and the functions to calculate dependent quantities,
+  energies and the analytical derivatives of the energy with respect to these quantities.
+  ExCorr and ExactExchange handle exchange-correlation terms of the functional.
+  ElecMinimizer and SCF handle variational minimization and
+  self-consistent field iteration on the electronic degrees of freedom.
+  SpeciesInfo handles electron-ion interactions (pseudopotentials) and force calculations
+  for one type of ion, which are then collected together into IonInfo for the whole system.
+  IonicMinimizer and LatticeMinimizer implement optimization of the ionic and lattice geometries.
+  Dump manages quantities to output and invokes requested post-processing routines.
+  All above functionality (including fluids) is encapsulated in container
+  class Everything, which describes the state of a JDFTx calculation.
 
-scripts
++ **commands**: provides an object-oriented interface to defining commands and parsing input files.
+  All three executables use this module to provide a [consistent input file syntax](Commands.html),
+  with phonon and wannier recognizing a few extra commands in addition to all commands understood by jdftx.
+  Custom user executables can also take advantage of this mechanism, and easily extend jdftx
+  by just adding necessary commands to the existing set that already describes full DFT calculations.
 
-tests
+In addition, the source code distribution has the following subdirectories at the top level:
 
-testsuite
++ **phonon**: code for the phonon executable, beyond functionality in libjdftx.
 
-wannier
++ **wannier**: code for the wannier executable, beyond functionality in libjdftx.
 
-Fundamental data structres
---------------------------
++ **aux**: several executables that link to libjdftx to do very specific tasks,
+  which were mostly used for the development and unit testing of new (fluid) models
+  prior to integration into main-line JDFTx. (Not compiled by default.)
 
-An overview of the fundamental data structures in JDFTx.
++ **opt**: optional interface libraries to other programs that can be compiled with JDFTx.
 
-ScalarField
++ **pseudopotentials**: archives of the pseudopotential libraries, GBRV \cite GBRV and SG15 \cite SG15,
+  that are installed with JDFTx.  These get extracted and installed into the build path.
 
-ColumnBundle
++ **scripts**: helper scripts for geometry creation, output file parsing,
+  conversion for visulaization and interfaces with other codes.
+  See the [Scripts page](Scripts.html) for documentation of all included scripts.
 
-Important Classes/Templates
----------------------------
++ **CMake-modules**: customized library location code for the CMake build system.
 
-An overview of important classes and templates a developer should know about
-
-Minimize.h
-
-ElecInfo
-
-ElecVars
-
-IonInfo/SpeciesInfo
-
-FluidSolver
-
-Layers of parallelization
--------------------------
-
-Multithreading and MPI explained:
-
-MPI is over kpoints.  For calculations without any kpoints, MPI parallelization can't be used.
-
-
-Debugging/Benchmarking info
----------------------------
-
-The debug printout explained:
++ **doc** and **images**: source files for generating all documentation contained in this website.
 
 */
