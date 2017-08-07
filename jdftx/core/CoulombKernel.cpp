@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Coulomb_internal.h>
 #include <core/LatticeUtils.h>
 #include <core/LoopMacros.h>
-#include <core/Util.h>
+#include <core/ManagedMemory.h>
 #include <core/Thread.h>
 #include <cfloat>
 
@@ -115,9 +115,9 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws) const
 	size_t nGdense = Sdense[0] * (Sdense[1] * size_t(1+Sdense[2]/2));
 	
 	//Plan Fourier transforms:
-	complex* denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdense);
+	ManagedArray<complex> dense; dense.init(nGdense);
+	complex* denseArr = dense.data();
 	double* denseRealArr = (double*)denseArr;
-	if(!denseArr) die_alone("Memory allocation failed (out of memory)\n");
 	logPrintf("Planning fourier transform ... "); logFlush();
 	fftw_plan_with_nthreads(nProcsAvailable);
 	fftw_plan fftPlanR2C = fftw_plan_dft_r2c_3d(Sdense[0], Sdense[1], Sdense[2], denseRealArr, (fftw_complex*)denseArr, FFTW_ESTIMATE);
@@ -134,7 +134,6 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws) const
 	matrix3<> G = (2.*M_PI) * inv(R);
 	matrix3<> GGT = G * (~G);
 	threadLaunch(CoulombKernelIsolated::recipSpace_thread, nG, S, GGT, denseArr, Sdense, data, sigma);
-	fftw_free(denseArr);
 	fftw_destroy_plan(fftPlanR2C);
 	logPrintf("Done.\n");
 }
@@ -145,7 +144,7 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws) const
 struct CoulombKernelWire
 {	
 	//Data arrays:
-	complex* denseArr; //2D fft array on dense grid
+	ManagedArray<complex> dense; //2D fft array on dense grid
 	double* Vc; //output kernel (3D fftw c2r layout)
 	fftw_plan fftPlanR2C; //2D fftw r2c plan
 	
@@ -169,6 +168,7 @@ struct CoulombKernelWire
 		matrix3<> RTR = (~R)*R;
 		Cbar_k_sigma cbar_k_sigma(kCur, sigma, rhoMax), *cbar_k_screen=0; //Look-up table for convolved cylindrical potential
 		if(omega) cbar_k_screen = new Cbar_k_sigma(kCur, sqrt(0.5)/omega, rhoMax); //Look-up table for screened cylindrical potential
+		complex* denseArr = dense.data();
 		double* denseRealArr = (double*)denseArr; //in-place transform
 		for(int ij=0; ij<Sdense[jDir]; ij++)
 			for(int ik=0; ik<Sdense[kDir]; ik++)
@@ -264,19 +264,16 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws) const
 	//Plan Fourier transforms:
 	logPrintf("Planning fourier transform ... "); logFlush();
 	fftw_plan fftPlanR2C;
-	complex* tempArr = (complex*)fftw_malloc(sizeof(complex)*nGdensePlanar);
-	if(!tempArr) die_alone("Memory allocation failed (out of memory)\n");
+	ManagedArray<complex> temp; temp.init(nGdensePlanar);
 	fftw_plan_with_nthreads(1); //Multiple simultaneous single threaded fourier transforms
-	fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)tempArr, (fftw_complex*)tempArr, FFTW_ESTIMATE);
-	fftw_free(tempArr);
+	fftPlanR2C = fftw_plan_dft_r2c_2d(Sdense[jDir], Sdense[kDir], (double*)temp.data(), (fftw_complex*)temp.data(), FFTW_ESTIMATE);
 	logPrintf("Done.\n");
 	
 	//Launch threads for initializing each plane perpendicular to axis:
 	logPrintf("Computing truncated coulomb kernel ... "); logFlush();
 	std::vector<CoulombKernelWire> ckwArr(nProcsAvailable);
 	for(CoulombKernelWire& c: ckwArr)
-	{	c.denseArr = (complex*)fftw_malloc(sizeof(complex)*nGdensePlanar);
-		if(!c.denseArr) die_alone("Memory allocation failed (out of memory)\n");
+	{	c.dense.init(nGdensePlanar);
 		c.Vc = data;
 		c.fftPlanR2C = fftPlanR2C;
 		//Copy geometry definitions:
@@ -287,6 +284,5 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws) const
 	std::mutex mJobCount; int nPlanesDone = 0; //for job management
 	threadLaunch(CoulombKernelWire::thread, 0, ckwArr.data(), 1+S[iDir]/2, &nPlanesDone, &mJobCount);
 	fftw_destroy_plan(fftPlanR2C);
-	for(CoulombKernelWire& c: ckwArr) fftw_free(c.denseArr); //Cleanup threads:
 	logPrintf("Done.\n");
 }

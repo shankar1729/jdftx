@@ -383,7 +383,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				int nAxis = gInfo.S[params.iDir]/2+1;
 				double hAxis = 2.*slabCalc.hlfL/gInfo.S[params.iDir];
 				std::vector<std::vector<double>> samples(nAxis, std::vector<double>(nSamples));
-				double* fftArr = (double*)fftw_malloc(sizeof(double)*nAxis);
+				ManagedArray<double> fftMem; fftMem.init(nAxis);
+				double* fftArr = fftMem.data();
 				fftw_plan planDCT = fftw_plan_r2r_1d(nAxis, fftArr, fftArr, FFTW_REDFT00, FFTW_ESTIMATE);
 				for(int iSample=0; iSample<nSamples; iSample++)
 				{	double Gplane = iSample*dG;
@@ -403,7 +404,6 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					for(int iAxis=0; iAxis<nAxis; iAxis++)
 						samples[iAxis][iSample] = (2*M_PI * hAxis) * fftArr[iAxis];
 				}
-				fftw_free(fftArr);
 				fftw_destroy_plan(planDCT);
 				//--- Initialize splines for each iAxis:
 				Vzero = samples[0][0] + (-2.*M_PI)*pow(slabCalc.hlfL,2) + VzeroCorrection;

@@ -292,8 +292,14 @@ fftw_plan GridInfo::getPlan(GridInfo::PlanType planType, int nThreads) const
 	fftw_plan_with_nthreads(nThreads);
 	//--- temp data for planning:
 	bool inPlace = (planType==PlanForwardInPlace) || (planType==PlanInverseInPlace);
-	fftw_complex* testData = (fftw_complex*)fftw_malloc(nr*sizeof(complex));
-	fftw_complex* testData2 = inPlace ? 0 : (fftw_complex*)fftw_malloc(nr*sizeof(complex));
+	ManagedArray<fftw_complex> testMem, testMem2;
+	testMem.init(nr);
+	fftw_complex* testData = testMem.data();
+	fftw_complex* testData2 = 0;
+	if(!inPlace)
+	{	testMem2.init(nr);
+		testData2 = testMem2.data();
+	}
 	//--- plan:
 	#define PLANNER_FLAGS FFTW_MEASURE
 	fftw_plan plan = 0;
@@ -306,9 +312,6 @@ fftw_plan GridInfo::getPlan(GridInfo::PlanType planType, int nThreads) const
 		case PlanCtoR:           plan = fftw_plan_dft_c2r_3d(S[0], S[1], S[2], testData, (double*)testData2, PLANNER_FLAGS); break;
 	}
 	if(!plan) die("Failed to create FFT plan with %d threads",  nThreads);
-	//--- cleanup:
-	fftw_free(testData);
-	if(!inPlace) fftw_free(testData2);
 	//--- cache and return plan:
 	((GridInfo*)this)->planCache.insert(std::make_pair(key, plan));
 	planLock.unlock();
