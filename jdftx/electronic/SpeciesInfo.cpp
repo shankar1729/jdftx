@@ -107,8 +107,6 @@ SpeciesInfo::SpeciesInfo()
 
 	nAug = 0;
 	E_nAug = 0;
-	nagIndex = 0;
-	nagIndexPtr = 0;
 }
 
 SpeciesInfo::~SpeciesInfo()
@@ -124,14 +122,6 @@ SpeciesInfo::~SpeciesInfo()
 		{	for(auto& Opsi_l: *OpsiRadial) for(auto& Opsi_lp: Opsi_l) Opsi_lp.free();
 			delete OpsiRadial;
 		}
-		//nagIndex:
-		#ifdef GPU_ENABLED
-		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
-		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
-		#else
-		if(nagIndex) delete[] nagIndex; nagIndex=0;
-		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
-		#endif
 	}
 }
 
@@ -442,14 +432,9 @@ void SpeciesInfo::updateLatticeDependent()
 			index++;
 		}
 		//nagIndex:
-		#ifdef GPU_ENABLED
-		if(nagIndex) cudaFree(nagIndex); nagIndex=0;
-		if(nagIndexPtr) cudaFree(nagIndexPtr); nagIndexPtr=0;
-		#else
-		if(nagIndex) delete[] nagIndex; nagIndex=0;
-		if(nagIndexPtr) delete[] nagIndexPtr; nagIndexPtr=0;
-		#endif
-		callPref(setNagIndex)(gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, 1./gInfo.dGradial, nagIndex, nagIndexPtr);
+		nagIndex.init(gInfo.iGstop-gInfo.iGstart);
+		nagIndexPtr.init(nCoeff+1);
+		setNagIndex(gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, 1./gInfo.dGradial, nagIndex.data(), nagIndexPtr.data());
 	}
 }
 

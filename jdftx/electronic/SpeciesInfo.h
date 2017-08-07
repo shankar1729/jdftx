@@ -174,7 +174,7 @@ private:
 	matrix QradialMat; //!< matrix with all the radial augmentation functions in columns (ordered by index)
 	matrix nAug; //!< intermediate electron density augmentation in the basis of Qradial functions (Flat array indexed by spin, atom number and then Qradial index)
 	matrix E_nAug; //!< Gradient w.r.t nAug (same layout)
-	uint64_t* nagIndex; size_t* nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad_gpu
+	ManagedArray<uint64_t> nagIndex; ManagedArray<size_t> nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad(_gpu)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
 	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials

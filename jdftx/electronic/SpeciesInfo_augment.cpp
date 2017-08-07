@@ -166,7 +166,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			if(forces) initZero(E_atpos);
 			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, forces? (nAugRadialData+atomOffs) :0, atpos[atom],
-				ccE_n->dataPref(), E_nAugRadialData+atomOffs, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex, nagIndexPtr);
+				ccE_n->dataPref(), E_nAugRadialData+atomOffs, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex.dataPref(), nagIndexPtr.dataPref());
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}

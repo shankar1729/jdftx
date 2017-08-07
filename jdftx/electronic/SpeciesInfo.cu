@@ -68,38 +68,6 @@ void nAugment_gpu(int Nlm, const vector3<int> S, const matrix3<>& G, int iGstart
 }
 
 
-//Function for initializing the index arrays used by nAugmentGrad
-__global__ void setNagIndex_kernel(int zBlock, const vector3<int> S, const matrix3<> G, int iGstart, int iGstop, double dGinv, uint64_t* nagIndex)
-{	COMPUTE_halfGindices
-	if(i<iGstart || i>=iGstop) return;
-	nagIndex[i-iGstart] = setNagIndex_calc(iG, S, G, dGinv);
-}
-__global__ void setNagIndexPtr_kernel(int iMax, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
-{	int i = kernelIndex1D();
-	if(i>=iMax) return;
-	setNagIndexPtr_calc(i, iMax, nCoeff, nagIndex, nagIndexPtr);
-}
-void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr)
-{	//First initialize the indices:
-	size_t nGsub = iGstop-iGstart;
-	{	if(!nagIndex) cudaMalloc(&nagIndex, nGsub*sizeof(uint64_t));
-		GpuLaunchConfigHalf3D glc(setNagIndex_kernel, S);
-		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-			setNagIndex_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, iGstart, iGstop, dGinv, nagIndex);
-		gpuErrorCheck();
-	}
-	//Now sort them to be ordered by Gindex
-	thrust::sort(thrust::device_ptr<uint64_t>(nagIndex), thrust::device_ptr<uint64_t>(nagIndex+nGsub));
-	gpuErrorCheck();
-	//Finally initialize the pointers to boundaries between different Gindices:
-	{	if(!nagIndexPtr) cudaMalloc(&nagIndexPtr, (nCoeff+1)*sizeof(size_t));
-		GpuLaunchConfig1D glc(setNagIndexPtr_kernel, nGsub);
-		setNagIndexPtr_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nGsub, nCoeff, nagIndex, nagIndexPtr);
-		gpuErrorCheck();
-	}
-}
-
-
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, const matrix3<> G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos,

@@ -289,9 +289,6 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			e.iInfo.species[sp]->setAtomicOrbitals(psiAtomic[sp], false);
 		}
 	}
-	#ifdef GPU_ENABLED
-	vector3<>* pos; cudaMalloc(&pos, sizeof(vector3<>));
-	#endif
 	ret.zero();
 	complex* retData = ret.dataPref();
 	for(const Wannier::TrialOrbital& t: wannier.trialOrbitals)
@@ -314,12 +311,8 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
 				continue;
 			}
-			//--- Copy the center to GPU if necessary:
-			#ifdef GPU_ENABLED
-			cudaMemcpy(pos, &ao.r, sizeof(vector3<>), cudaMemcpyHostToDevice);
-			#else
-			const vector3<>* pos = &ao.r;
-			#endif
+			//--- Copy the center to managed memory:
+			ManagedArray<vector3<>> pos(&ao.r, 1);
 			//--- Get / create the radial part:
 			RadialFunctionG hRadial;
 			if(ao.sp < 0)
@@ -333,16 +326,13 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			//--- Initialize the projector:
 			assert(od.s < nSpinor);
 			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos, atRadial, temp.dataPref()+od.s*basis.nbasis);
+			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos.dataPref(), atRadial, temp.dataPref()+od.s*basis.nbasis);
 			if(ao.sp < 0) hRadial.free();
 			//--- Accumulate to trial orbital:
 			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
 		}
 		retData += ret.colLength();
 	}
-	#ifdef GPU_ENABLED
-	cudaFree(pos);
-	#endif
 	return ret;
 }
 

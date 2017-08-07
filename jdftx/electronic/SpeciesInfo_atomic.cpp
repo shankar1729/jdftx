@@ -100,11 +100,6 @@ void SpeciesInfo::accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const
 		Mmag.Mdirs.push_back(Mdir);
 		Mmags.push_back(Mmag);
 	}
-	//Scratch space for atom positions on GPU:
-	#ifdef GPU_ENABLED
-	vector3<>* atposCurPref;
-	cudaMalloc(&atposCurPref, sizeof(vector3<>)*atpos.size());
-	#endif
 	//For each magnetization magnitude:
 	for(const MomentMagnitude& Mmag: Mmags)
 	{	if(e->eInfo.nDensities == 1) assert(!Mmag.Mlength);
@@ -115,13 +110,9 @@ void SpeciesInfo::accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const
 		//Collect contributions for each direction with this magnitude:
 		for(const MomentDirection& Mdir: Mmag.Mdirs)
 		{	//Compute structure factor for atoms with current magnetization vector:
-			#ifdef GPU_ENABLED
-			cudaMemcpy(atposCurPref, Mdir.atpos.data(), Mdir.atpos.size()*sizeof(vector3<>), cudaMemcpyHostToDevice);
-			#else
-			const vector3<>* atposCurPref = Mdir.atpos.data();
-			#endif
+			ManagedArray<vector3<>> atposCur(Mdir.atpos);
 			ScalarFieldTilde SG; nullToZero(SG, e->gInfo);
-			callPref(getSG)(e->gInfo.S, Mdir.atpos.size(), atposCurPref, 1./e->gInfo.detR, SG->dataPref());
+			callPref(getSG)(e->gInfo.S, Mdir.atpos.size(), atposCur.dataPref(), 1./e->gInfo.detR, SG->dataPref());
 			//Spin-densities in diagonal basis
 			std::vector<ScalarFieldTilde> nDiag;
 			for(const RadialFunctionG& nRad: nRadial)
@@ -146,10 +137,6 @@ void SpeciesInfo::accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const
 		}
 		for(RadialFunctionG& nRad: nRadial) nRad.free();
 	}
-	//Cleanup:
-	#ifdef GPU_ENABLED
-	cudaFree(atposCurPref);
-	#endif
 }
 
 void SpeciesInfo::accumulateAtomicPotential(ScalarFieldTilde& dTilde) const

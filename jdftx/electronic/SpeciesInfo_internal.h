@@ -125,23 +125,8 @@ void nAugment_gpu(int Nlm,
 
 //Function for initializing the index arrays used by nAugmentGrad
 //! (In MPI mode, only a subset of G-vectors are indexed on each process (to correspond to nAUgment))
-__hostanddev__ uint64_t setNagIndex_calc(const vector3<int>& iG, const vector3<int>& S, const matrix3<>& G, double dGinv)
-{	uint64_t Gindex = uint64_t((iG*G).length() * dGinv);
-	vector3<int> iv = iG; for(int k=0; k<3; k++) if(iv[k]<0) iv[k] += S[k];
-	return (Gindex << 48) //Putting Gindex in the higher word allows sorting by it first, and then by grid point index
-		+ (uint64_t(iv[0]) << 32) + (uint64_t(iv[1]) << 16) + uint64_t(iv[2]);
-}
-__hostanddev__ void setNagIndexPtr_calc(int i, int iMax, int nCoeff, const uint64_t* nagIndex, size_t* nagIndexPtr)
-{	int Gindex = int(nagIndex[i] >> 48);
-	int GindexNext = (i+1<iMax) ? int(nagIndex[i+1] >> 48) : nCoeff;
-	if(i==0) for(int j=0; j<=Gindex; j++) nagIndexPtr[j] = 0;
-	for(int j=Gindex; j<GindexNext; j++)
-		nagIndexPtr[j+1] = i+1;
-}
-void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
-#ifdef GPU_ENABLED
-void setNagIndex_gpu(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop, int nCoeff, double dGinv, uint64_t*& nagIndex, size_t*& nagIndexPtr);
-#endif
+void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGstop,
+	int nCoeff, double dGinv, uint64_t* nagIndex, size_t* nagIndexPtr);
 
 //Gradient propragation corresponding to nAugment:
 //(The MPI division happens implicitly here, because nagIndex is limited to each process's share (see above))

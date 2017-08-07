@@ -129,7 +129,7 @@ public:
 //! ManagedMemory and implement operators; do not use this wrapper.
 template<typename T> struct ManagedArray : public ManagedMemory<T>
 {	void init(size_t size, bool onGpu=false); //!< calls memInit with category "misc"
-	ManagedArray(T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
+	ManagedArray(const T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
 	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
 	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
 	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
@@ -293,7 +293,7 @@ template<typename T> void ManagedArray<T>::init(size_t size, bool onGpu)
 {	ManagedMemory<T>::memInit("misc", size, onGpu);
 }
 
-template<typename T> ManagedArray<T>::ManagedArray(T* ptr, size_t N)
+template<typename T> ManagedArray<T>::ManagedArray(const T* ptr, size_t N)
 {	if(ptr && N)
 	{	init(N);
 		eblas_copy(this->data(), ptr, N);
