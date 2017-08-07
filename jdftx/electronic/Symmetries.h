@@ -40,7 +40,6 @@ public:
 	SymmetryMode mode; //!< Symmetry mode (none, automatic or manual)
 
 	Symmetries();
-	~Symmetries();
 	void setup(const Everything& everything); //!< Phase 1 of setup which computes/checks lattice+basis symmetries
 	void setupMesh(); //!< Phase 2 of setup which computes / checks FFTbox and k-mesh dependent symmetries
 	
@@ -84,9 +83,9 @@ private:
 	void checkSymmetries() const; //!< check validity of manually specified symmetry matrices
 	
 	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space
-	int *symmIndex, nSymmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
-	complex* symmIndexPhase; //phase factor for entry at each index
-	int* symmMult; //multiplicity (how many times each element is repeated) in each equivalence class
+	IndexArray symmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
+	matrix symmIndexPhase; //phase factor for entry at each index
+	IndexArray symmMult; //multiplicity (how many times each element is repeated) in each equivalence class
 	void initSymmIndex();
 	
 	//Atom maps:

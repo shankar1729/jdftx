@@ -32,23 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 static const int lMaxSpherical = 3;
 
 Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), sup(vector3<int>(1,1,1))
-{	nSymmIndex = 0;
-	shouldPrintMatrices = false;
-}
-
-Symmetries::~Symmetries()
-{	if(nSymmIndex)
-	{	
-		#ifdef GPU_ENABLED
-		cudaFree(symmIndex);
-		cudaFree(symmMult);
-		cudaFree(symmIndexPhase);
-		#else
-		delete[] symmIndex;
-		delete[] symmMult;
-		delete[] symmIndexPhase;
-		#endif
-	}
+{	shouldPrintMatrices = false;
 }
 
 void Symmetries::setup(const Everything& everything)
@@ -182,8 +166,8 @@ void Symmetries::symmetrize(ScalarFieldTilde& x) const
 }
 void Symmetries::symmetrize(complexScalarFieldTilde& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
-	int nSymmClasses = nSymmIndex / sym.size(); //number of equivalence classes
-	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex, symmMult, symmIndexPhase, x->dataPref());
+	int nSymmClasses = symmIndex.nData() / sym.size(); //number of equivalence classes
+	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex.dataPref(), symmMult.dataPref(), symmIndexPhase.dataPref(), x->dataPref());
 }
 
 //Symmetrize forces:
@@ -493,22 +477,13 @@ void Symmetries::initSymmIndex()
 		)
 	}
 	//Set the final pointers:
-	nSymmIndex = symmIndexVec.size();
-	#ifdef GPU_ENABLED
-	cudaMalloc(&symmIndex, nSymmIndex*sizeof(int));
-	cudaMalloc(&symmMult, symmMultVec.size()*sizeof(int));
-	cudaMalloc(&symmIndexPhase, nSymmIndex*sizeof(complex));
-	cudaMemcpy(symmIndex, &symmIndexVec[0], nSymmIndex*sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(symmMult, &symmMultVec[0], symmMultVec.size()*sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(symmIndexPhase, &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex), cudaMemcpyHostToDevice);
-	#else
-	symmIndex = new int[nSymmIndex];
-	symmMult = new int[symmMultVec.size()];
-	symmIndexPhase = new complex[nSymmIndex];
-	memcpy(symmIndex, &symmIndexVec[0], nSymmIndex*sizeof(int));
-	memcpy(symmMult, &symmMultVec[0], symmMultVec.size()*sizeof(int));
-	memcpy(symmIndexPhase, &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex));
-	#endif
+	int nSymmIndex = symmIndexVec.size();
+	symmIndex.init(nSymmIndex);
+	symmMult.init(symmMultVec.size());
+	symmIndexPhase.init(nSymmIndex,1);
+	memcpy(symmIndex.data(), &symmIndexVec[0], nSymmIndex*sizeof(int));
+	memcpy(symmMult.data(), &symmMultVec[0], symmMultVec.size()*sizeof(int));
+	memcpy(symmIndexPhase.data(), &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex));
 }
 
 void Symmetries::sortSymmetries()
