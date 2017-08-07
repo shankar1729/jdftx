@@ -21,7 +21,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <core/LoopMacros.h>
 
-
 __global__
 void reducedL_kernel(int nbasis, int ncols, const complex* Y, complex* LY,
 	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
@@ -92,17 +91,9 @@ void translateColumns_kernel(int nbasis, int ncols, complex* Y, const vector3<in
 	if(j<nbasis) translateColumns_calc(j, nbasis, ncols, Y, iGarr, k, dr);
 }
 void translateColumns_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr, const vector3<>& k, const vector3<>* dr)
-{	//Create a GPU copy of dr:
-	vector3<>* dr_gpu;
-	cudaMalloc(&dr_gpu, ncols*sizeof(vector3<>));
-	cudaMemcpy(dr_gpu, dr, ncols*sizeof(vector3<>), cudaMemcpyHostToDevice);
+{	GpuLaunchConfig1D glc(translateColumns_kernel, nbasis);
+	translateColumns_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, iGarr, k, dr);
 	gpuErrorCheck();
-	//Launch kernel:
-	GpuLaunchConfig1D glc(translateColumns_kernel, nbasis);
-	translateColumns_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, iGarr, k, dr_gpu);
-	gpuErrorCheck();
-	//Cleanup:
-	cudaFree(dr_gpu);
 }
 
 

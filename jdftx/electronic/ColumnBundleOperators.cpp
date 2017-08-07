@@ -390,7 +390,9 @@ void translateColumns(ColumnBundle& Y, const vector3<>* dr)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	int nSpinors = Y.spinorLength();
-	callPref(translateColumns)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(), basis.iGarr.dataPref(), Y.qnum->k, dr);
+	int nColsTot = Y.nCols()*nSpinors;
+	ManagedArray<vector3<>> drManaged(dr, nColsTot);
+	callPref(translateColumns)(basis.nbasis, nColsTot, Y.dataPref(), basis.iGarr.dataPref(), Y.qnum->k, drManaged.dataPref());
 }
 
 
