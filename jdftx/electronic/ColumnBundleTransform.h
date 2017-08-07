@@ -54,7 +54,6 @@ public:
 	*/
 	ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD, const BasisWrapper& basisDwrapper,
 		int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super = matrix3<int>(1,1,1));
-	~ColumnBundleTransform();
 	
 	//Non-copyable:
 	ColumnBundleTransform(const ColumnBundleTransform&)=delete;
@@ -72,12 +71,8 @@ private:
 	int nSpinor, invert;
 	
 	//Index array:
-	std::vector<int> index; int* indexPref;
-	std::vector<complex> phase; complex* phasePref; //Bloch phase for space-group translation
-	#ifdef GPU_ENABLED
-	int* indexGpu;
-	complex* phaseGpu;
-	#endif
+	IndexArray index;
+	matrix phase; //Bloch phase for space-group translation
 
 	matrix spinorRot; //spinor space rotation
 };

@@ -42,7 +42,7 @@ ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(ba
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
 	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super)
-: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert), phasePref(0)
+: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
 {
 	//Check k-point transformation and determine offset
 	const matrix3<>& metricC = basisC.gInfo->RTR;
@@ -55,34 +55,20 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	assert(offsetErr < symmThreshold);
 	
 	//Initialize index map:
-	index.resize(basisC.nbasis);
+	index.init(basisC.nbasis);
 	int* indexPtr = index.data();
 	for(const vector3<int>& iG_C: basisC.iGarr) //for each C recip lattice coords
 	{	vector3<int> iG_D = iG_C * affine + offset; //corresponding D recip lattice coords
 		*(indexPtr++) = basisDwrapper.table[dot(basisDwrapper.pitch, iG_D + basisDwrapper.iGbox)]; //use lookup table to get D index
 	}
 	assert(*std::min_element(index.begin(), index.end()) >= 0); //make sure all entries were found
-	#ifdef GPU_ENABLED
-	cudaMalloc(&indexGpu, sizeof(int)*index.size()); gpuErrorCheck();
-	cudaMemcpy(indexGpu, index.data(), sizeof(int)*index.size(), cudaMemcpyHostToDevice); gpuErrorCheck();
-	indexPref = indexGpu;
-	#else
-	indexPref = index.data();
-	#endif
 	
 	//Initialize translation phase (if necessary)
 	if(sym.a.length_squared())
-	{	phase.resize(basisC.nbasis);
+	{	phase.init(basisC.nbasis, 1);
 		complex* phasePtr = phase.data();
 		for(const vector3<int>& iG_C: basisC.iGarr)
 			*(phasePtr++) = cis((2*M_PI)*dot(iG_C + kC, sym.a));
-		#ifdef GPU_ENABLED
-		cudaMalloc(&phaseGpu, sizeof(int)*phase.size()); gpuErrorCheck();
-		cudaMemcpy(phaseGpu, phase.data(), sizeof(int)*phase.size(), cudaMemcpyHostToDevice); gpuErrorCheck();
-		phasePref = phaseGpu;
-		#else
-		phasePref = phase.data();
-		#endif
 	}
 	
 	//Initialize spinor transformation:
@@ -102,13 +88,6 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	}
 }
 
-ColumnBundleTransform::~ColumnBundleTransform()
-{
-	#ifdef GPU_ENABLED
-	cudaFree(indexGpu);
-	#endif
-}
-
 void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, int bC, ColumnBundle& C_D, int bD) const
 {	//Check inputs:
 	assert(C_C.colLength() == nSpinor*basisC.nbasis); assert(bC >= 0 && bC < C_C.nCols());
@@ -116,10 +95,10 @@ void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, 
 	//Scatter:
 	for(int sD=0; sD<nSpinor; sD++)
 		for(int sC=0; sC<nSpinor; sC++)
-			callPref(eblas_scatter_zaxpy)(index.size(), alpha*spinorRot(sD,sC), indexPref,
+			callPref(eblas_scatter_zaxpy)(index.nData(), alpha*spinorRot(sD,sC), index.dataPref(),
 				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis),
 				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis), invert<0,
-				phasePref, false);
+				phase.dataPref(), false);
 }
 
 void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, int bD, ColumnBundle& C_C, int bC) const
@@ -130,10 +109,10 @@ void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, i
 	matrix spinorRotInv = (invert<0) ? transpose(spinorRot) : dagger(spinorRot);
 	for(int sD=0; sD<nSpinor; sD++)
 		for(int sC=0; sC<nSpinor; sC++)
-			callPref(eblas_gather_zaxpy)(index.size(), alpha*spinorRotInv(sC,sD), indexPref,
+			callPref(eblas_gather_zaxpy)(index.nData(), alpha*spinorRotInv(sC,sD), index.dataPref(),
 				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis),
 				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis), invert<0,
-				phasePref, !(invert < 0));
+				phase.dataPref(), !(invert < 0));
 }
 
 void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, ColumnBundle& C_D, int bDstart, int bDstep) const
@@ -143,3 +122,4 @@ void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, 
 void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, int bDstart, int bDstep, ColumnBundle& C_C) const
 {	for(int bC=0; bC<C_C.nCols(); bC++) gatherAxpy(alpha, C_D,bDstart+bDstep*bC, C_C,bC);
 }
+
