@@ -57,7 +57,7 @@ public:
 };
 
 //! General complex matrix
-class matrix : public ManagedMemory
+class matrix : public ManagedMemory<complex>
 {
 	int nr; //!< number of rows
 	int nc; //!< number of columns

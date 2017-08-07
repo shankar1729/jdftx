@@ -23,52 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <string.h>
 
-//--------------- Base class FieldData -------------------------
-
-FieldData::FieldData(const GridInfo& gInfo, string category, int nElem, int nDoublesPerElem, bool onGpu)
-: nElem(nElem), scale(1.), gInfo(gInfo), isReal(nDoublesPerElem==1)
-{
-	int nDoubles = nElem * nDoublesPerElem;
-	int nComplex = ceildiv(nDoubles,2);
-	memInit(category, nComplex, onGpu);
-}
-//WARNING: despite the fact that all dataPref() is stored as complex*, the real scalar fields just have nElem/2 complex data types.
-
-void FieldData::copyData(const FieldData& other)
-{	scale = other.scale;
-	memcpy((ManagedMemory&)(*this), other);
-}
-
-void FieldData::absorbScale() const
-{	if(scale != 1.)
-	{	FieldData& X = (FieldData&)(*this); //cast to non-const (this function modifies data, but is logically constant)
-		::scale(scale, (ManagedMemory&)X);
-		X.scale = 1.;
-	}
-}
-
-void* FieldData::data(bool shouldAbsorbScale)
-{	if(shouldAbsorbScale) absorbScale();
-	return ManagedMemory::data();
-}
-const void* FieldData::data(bool shouldAbsorbScale) const
-{	if(shouldAbsorbScale) absorbScale();
-	return ManagedMemory::data();
-}
-#ifdef GPU_ENABLED
-void* FieldData::dataGpu(bool shouldAbsorbScale)
-{	if(shouldAbsorbScale) absorbScale();
-	return ManagedMemory::dataGpu();
-}
-const void* FieldData::dataGpu(bool shouldAbsorbScale) const
-{	if(shouldAbsorbScale) absorbScale();
-	return ManagedMemory::dataGpu();
-}
-#endif
 
 //------------ class ScalarFieldData ---------------
 
-ScalarFieldData::ScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag) : FieldData(gInfo, "ScalarField", gInfo.nr, 1, onGpu)
+ScalarFieldData::ScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag)
+: FieldData<double>(gInfo, "ScalarField", gInfo.nr, onGpu)
 {
 }
 ScalarField ScalarFieldData::clone() const
@@ -89,7 +48,8 @@ matrix ScalarFieldData::toMatrix() const
 
 //------------ class ScalarFieldTildeData ---------------
 
-ScalarFieldTildeData::ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag) : FieldData(gInfo, "ScalarFieldTilde", gInfo.nG, 2, onGpu)
+ScalarFieldTildeData::ScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag)
+: FieldData<complex>(gInfo, "ScalarFieldTilde", gInfo.nG, onGpu)
 {
 }
 ScalarFieldTilde ScalarFieldTildeData::clone() const
@@ -125,7 +85,8 @@ void ScalarFieldTildeData::setGzero(double Gzero)
 
 //------------ class complexScalarFieldData ---------------
 
-complexScalarFieldData::complexScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag) : FieldData(gInfo, "complexScalarField", gInfo.nr, 2, onGpu)
+complexScalarFieldData::complexScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag)
+: FieldData<complex>(gInfo, "complexScalarField", gInfo.nr, onGpu)
 {
 }
 complexScalarField complexScalarFieldData::clone() const
@@ -145,7 +106,8 @@ matrix complexScalarFieldData::toMatrix() const
 
 //------------ class complexScalarFieldTildeData ---------------
 
-complexScalarFieldTildeData::complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag) : FieldData(gInfo, "complexScalarFieldTilde", gInfo.nr, 2, onGpu)
+complexScalarFieldTildeData::complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag)
+: FieldData<complex>(gInfo, "complexScalarFieldTilde", gInfo.nr, onGpu)
 {
 }
 complexScalarFieldTilde complexScalarFieldTildeData::clone() const

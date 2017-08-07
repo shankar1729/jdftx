@@ -28,12 +28,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 @brief  Real and complex scalar fields in real and reciprocal space
 */
 
-#include <memory>
 #include <core/scalar.h>
 #include <core/Util.h>
 #include <core/ManagedMemory.h>
 #include <core/matrix.h>
 #include <core/GridInfo.h>
+#include <memory>
 
 class GridInfo; //Grid description and memory manager
 struct ScalarFieldData; //Real space data storage container for real scalar fields
@@ -47,67 +47,65 @@ typedef std::shared_ptr<ScalarFieldTildeData> ScalarFieldTilde; //!< A smart ref
 typedef std::shared_ptr<complexScalarFieldData> complexScalarField; //!< A smart reference-counting pointer to #complexScalarFieldData
 typedef std::shared_ptr<complexScalarFieldTildeData> complexScalarFieldTilde; //!< A smart reference-counting pointer to #complexScalarFieldTildeData
 
-//Define shorthands for fetching gpu data in gpu mode and cpu data in cpu mode:
-#ifdef GPU_ENABLED
-	#define DECLARE_DATA_PREF_ACCESS \
-		DataType* dataPref(bool shouldAbsorbScale=true) { return dataGpu(shouldAbsorbScale); } \
-		const DataType* dataPref(bool shouldAbsorbScale=true) const { return dataGpu(shouldAbsorbScale); }
-#else
-	#define DECLARE_DATA_PREF_ACCESS \
-		DataType* dataPref(bool shouldAbsorbScale=true) { return data(shouldAbsorbScale); } \
-		const DataType* dataPref(bool shouldAbsorbScale=true) const { return data(shouldAbsorbScale); }
-#endif
-
-//! Base class for #ScalarFieldData and #ScalarFieldTildeData
-struct FieldData : private ManagedMemory
+//! ManagedMemory wrapper with gridInfo and pending scale factor for ScalarField* classes
+template<typename T> struct FieldData : private ManagedMemory<T>
 {
-	int nElem; //!< number of elements = #gInfo.nr
+	const int nElem; //!< number of elements
 	double scale; //!< overall scale factor of the data array
 	const GridInfo& gInfo; //!< simulation grid info
 
-	void absorbScale() const; //!< absorb scale factor into data
-	inline void zero() { ManagedMemory::zero(); } //!< initialize to zero
-
-	typedef void DataType; //!< this base class has no specific data type
+	FieldData(const GridInfo& gInfo, string category, int nElem, bool onGpu=false) : nElem(nElem), scale(1.), gInfo(gInfo)
+	{	ManagedMemory<T>::memInit(category, nElem, onGpu);
+	}
 	
-	void* data(bool shouldAbsorbScale=true); //!< get a pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
-	const void* data(bool shouldAbsorbScale=true) const; //!< get a const pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
+	//! Copy data and scale (used by clone())
+	void copyData(const FieldData<T>& other)
+	{	scale = other.scale;
+		memcpy((ManagedMemory<T>&)(*this), other);
+	}
+	
+	//! Absorb scale factor into data
+	void absorbScale() const
+	{	if(scale != 1.)
+		{	FieldData& X = (FieldData&)(*this); //cast to non-const (this function modifies data, but is logically constant)
+			::scale(scale, (ManagedMemory<T>&)X);
+			X.scale = 1.;
+		}
+	}
+	
+	#define getDataCode(dataLoc) \
+		if(shouldAbsorbScale) absorbScale(); \
+		return ManagedMemory<T>::dataLoc();
+	T* data(bool shouldAbsorbScale=true) { getDataCode(data) } //!< get a pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
+	const T* data(bool shouldAbsorbScale=true) const { getDataCode(data) } //!< get a const pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
 	#ifdef GPU_ENABLED
-	void* dataGpu(bool shouldAbsorbScale=true); //!< get a pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
-	const void* dataGpu(bool shouldAbsorbScale=true) const; //!< get a const pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
+	T* dataGpu(bool shouldAbsorbScale=true) { getDataCode(dataGpu) } //!< get a pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
+	const T* dataGpu(bool shouldAbsorbScale=true) const { getDataCode(dataGpu) } //!< get a const pointer to the actual data (after absorbing the scale factor, unless otherwise specified)
 	#endif
-
-	DECLARE_DATA_PREF_ACCESS
+	#undef getDataCode
 	
-	inline bool isOnGpu() const { return ManagedMemory::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
+	//Shorthands for fetching gpu data in gpu mode and cpu data in cpu mode:
+	#ifdef GPU_ENABLED
+	T* dataPref(bool shouldAbsorbScale=true) { return dataGpu(shouldAbsorbScale); }
+	const T* dataPref(bool shouldAbsorbScale=true) const { return dataGpu(shouldAbsorbScale); }
+	#else
+	T* dataPref(bool shouldAbsorbScale=true) { return data(shouldAbsorbScale); }
+	const T* dataPref(bool shouldAbsorbScale=true) const { return data(shouldAbsorbScale); }
+	#endif
+	
 
-	FieldData(const GridInfo& gInfo, string category, int nElem, int nDoublesPerElem=1, bool onGpu=false);
-	void copyData(const FieldData& other); //!< copy data and scale (used by clone())
+	inline void zero() { ManagedMemory<T>::zero(); } //!< initialize to zero
+	inline bool isOnGpu() const { return ManagedMemory<T>::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
 
 	//Inter-process communication (expose corresponding ManagedMemory functions):
-	inline void send(int dest, int tag=0) const { absorbScale(); ManagedMemory::send(dest,tag); } //!< send to another process
-	inline void recv(int src, int tag=0) { absorbScale(); ManagedMemory::recv(src,tag); } //!< receive from another process
-	inline void bcast(int root=0) { absorbScale(); ManagedMemory::bcast(root); } //!< synchronize across processes (using value on specified root process)
-	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { absorbScale(); ManagedMemory::allReduce(op, safeMode, isReal); } //!< apply all-to-all reduction
+	inline void send(int dest, int tag=0) const { absorbScale(); ManagedMemory<T>::send(dest,tag); } //!< send to another process
+	inline void recv(int src, int tag=0) { absorbScale(); ManagedMemory<T>::recv(src,tag); } //!< receive from another process
+	inline void bcast(int root=0) { absorbScale(); ManagedMemory<T>::bcast(root); } //!< synchronize across processes (using value on specified root process)
+	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { absorbScale(); ManagedMemory<T>::allReduce(op, safeMode); } //!< apply all-to-all reduction
 
 protected:
 	struct PrivateTag {}; //!< Used to prevent direct use of ScalarField constructors, and force the shared_ptr usage
-private:
-	bool isReal; //!< whether underlying data type is real (nDoublesPerElem==1 at construction)
 };
-
-//Shorthand for defining the data() and dataGpu() functions in derived classes of FieldData
-#ifdef GPU_ENABLED
-	#define DECLARE_DATA_ACCESS \
-		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)FieldData::data(shouldAbsorbScale); } \
-		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::data(shouldAbsorbScale); } \
-		DataType* dataGpu(bool shouldAbsorbScale=true) { return (DataType*)FieldData::dataGpu(shouldAbsorbScale); } \
-		const DataType* dataGpu(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::dataGpu(shouldAbsorbScale); }
-#else
-	#define DECLARE_DATA_ACCESS \
-		DataType* data(bool shouldAbsorbScale=true) { return (DataType*)FieldData::data(shouldAbsorbScale); } \
-		const DataType* data(bool shouldAbsorbScale=true) const { return (const DataType*)FieldData::data(shouldAbsorbScale); }
-#endif
 
 /**
 @brief Real space real scalar field data
@@ -115,10 +113,8 @@ Do not use this data structure directly or from a simple pointer
 ScalarFieldData*; work only with #ScalarField's. The public functions of ScalarFieldData
 can be accessed with -> from the ScalarField.
 */
-struct ScalarFieldData : public FieldData
+struct ScalarFieldData : public FieldData<double>
 {	typedef double DataType; //!< Type of data in container (useful for templating)
-	DECLARE_DATA_ACCESS
-	DECLARE_DATA_PREF_ACCESS
 	ScalarField clone() const; //!< clone the data (NOTE: assigning ScalarField's makes a new reference to the same data)
 	static ScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 	ScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by ScalarFieldData::alloc()
@@ -132,10 +128,8 @@ Do not use this data structure directly or from a simple pointer
 ScalarFieldTildeData*; work only with #ScalarFieldTilde's. The public functions of ScalarFieldTildeData
 can be accessed with -> from the ScalarFieldTilde.
 */
-struct ScalarFieldTildeData : public FieldData
+struct ScalarFieldTildeData : public FieldData<complex>
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
-	DECLARE_DATA_ACCESS
-	DECLARE_DATA_PREF_ACCESS
 	ScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning ScalarFieldTilde's makes a new reference to the same data)
 	static ScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	double getGzero() const; //!< get the G=0 component
@@ -150,10 +144,8 @@ Do not use this data structure directly or from a simple pointer
 complexScalarFieldData*; work only with #complexScalarField's. The public functions of complexScalarFieldData
 can be accessed with -> from the complexScalarField.
 */
-struct complexScalarFieldData : public FieldData
+struct complexScalarFieldData : public FieldData<complex>
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
-	DECLARE_DATA_ACCESS
-	DECLARE_DATA_PREF_ACCESS
 	complexScalarField clone() const; //!< clone the data (NOTE: assigning complexScalarField's makes a new reference to the same data)
 	static complexScalarField alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create real space data
 	complexScalarFieldData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldData::alloc()
@@ -166,10 +158,8 @@ Do not use this data structure directly or from a simple pointer
 complexScalarFieldTildeData*; work only with #complexScalarFieldTilde's. The public functions of complexScalarFieldTildeData
 can be accessed with -> from the complexScalarFieldTilde.
 */
-struct complexScalarFieldTildeData : public FieldData
+struct complexScalarFieldTildeData : public FieldData<complex>
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
-	DECLARE_DATA_ACCESS
-	DECLARE_DATA_PREF_ACCESS
 	complexScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning complexScalarFieldTilde's makes a new reference to the same data)
 	static complexScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
 	complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldTildeData::alloc()

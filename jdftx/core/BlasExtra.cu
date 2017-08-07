@@ -166,12 +166,6 @@ void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMul
 }
 
 //BLAS-1 wrappers:
-void eblas_zero_gpu(int N, complex* x)
-{	cudaMemset(x, 0, N*sizeof(complex));
-}
-void eblas_zero_gpu(int N, double* x)
-{	cudaMemset(x, 0, N*sizeof(double));
-}
 void eblas_zdscal_gpu(int N, double a, complex* x, int incx)
 {	cublasZdscal(N, a, (double2*)x, incx);
 }

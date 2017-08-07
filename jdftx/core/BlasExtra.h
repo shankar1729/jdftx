@@ -232,11 +232,10 @@ void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMul
 //! @param N Number of elements of the data type T to copy
 template<typename T> void eblas_copy(T* dest, const T* src, int N) { memcpy(dest, src, N*sizeof(T)); }
 //! @brief Zero a data array
+//! @tparam T Data type of the array
 //! @param N Number of elements to zero
 //! @param x Data pointer
-void eblas_zero(int N, double* x);
-//! @brief Equivalent of eblas_zero() for complex data arrays
-void eblas_zero(int N, complex* x);
+template<typename T> void eblas_zero(int N, T* x) { memset(x, 0, N*sizeof(T)); }
 //! @brief Scale a real array: threaded wrapper to the cblas_dscal BLAS1 function
 void eblas_dscal(int N, double a, double* x, int incx);
 //! @brief Scale a complex array by a real scale factor: threaded wrapper to the cblas_zdscal BLAS1 function
@@ -261,9 +260,7 @@ double eblas_dnrm2(int N, const double* x, int incx);
 //! @brief Equivalent of eblas_copy() for GPU data pointers
 template<typename T> void eblas_copy_gpu(T* dest, const T* src, int N) { cudaMemcpy(dest, src, N*sizeof(T), cudaMemcpyDeviceToDevice); }
 //! @brief Equivalent of eblas_zero() for GPU data pointers
-void eblas_zero_gpu(int N, double* x);
-//! @brief Equivalent of eblas_zero() for GPU data pointers
-void eblas_zero_gpu(int N, complex* x);
+template<typename T> void eblas_zero_gpu(int N, T* x) { cudaMemset(x, 0, N*sizeof(T)); }
 //! @brief Equivalent of eblas_dscal() for GPU data pointers
 #define eblas_dscal_gpu cublasDscal
 //! @brief Equivalent of eblas_zdscal() for GPU data pointers

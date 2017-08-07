@@ -167,7 +167,7 @@ complexScalarField I(complexScalarFieldTilde&& in, int nThreads)
 	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanInverseInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
-	return std::static_pointer_cast<complexScalarFieldData>(std::static_pointer_cast<FieldData>(in));
+	return std::static_pointer_cast<complexScalarFieldData>(std::static_pointer_cast<FieldData<complex>>(in));
 }
 
 //Forward transform h.c.
@@ -205,7 +205,7 @@ complexScalarFieldTilde Idag(complexScalarField&& in, int nThreads)
 	fftw_execute_dft(in->gInfo.getPlan(GridInfo::PlanForwardInPlace, nThreads),
 		(fftw_complex*)in->data(false), (fftw_complex*)in->data(false));
 	#endif
-	return std::static_pointer_cast<complexScalarFieldTildeData>(std::static_pointer_cast<FieldData>(in));
+	return std::static_pointer_cast<complexScalarFieldTildeData>(std::static_pointer_cast<FieldData<complex>>(in));
 }
 
 //Reverse transform (same as Idag upto the normalization factor)
@@ -641,8 +641,8 @@ void axpy(double alpha, const ScalarField& X, ScalarField& Y)
 	//if X is null, nothing needs to be done, Y remains unchanged
 }
 ScalarField& operator+=(ScalarField& in, double scalar)
-{	FieldData dataScalar(in->gInfo, "ScalarField", 1, 1, false); *((double*)dataScalar.data()) = scalar;
-	callPref(eblas_daxpy)(in->nElem, 1.0, (double*)dataScalar.dataPref(), 0, in->dataPref(), 1);
+{	FieldData<double> dataScalar(in->gInfo, "ScalarField", 1, false); *(dataScalar.data()) = scalar;
+	callPref(eblas_daxpy)(in->nElem, 1.0, dataScalar.dataPref(), 0, in->dataPref(), 1);
 	return in;
 }
 ScalarField operator+(double scalar, const ScalarField& in) { ScalarField out(in->clone()); return out += scalar; }
@@ -691,18 +691,18 @@ double nrm2(const ScalarFieldTilde& X)
 }
 
 double sum(const ScalarField& X)
-{	FieldData dataScale(X->gInfo, "ScalarField", 1, 1, false); *((double*)dataScale.data()) = X->scale;
-	return callPref(eblas_ddot)(X->nElem, X->dataPref(false), 1, (double*)dataScale.dataPref(false), 0);
+{	FieldData<double> dataScale(X->gInfo, "ScalarField", 1, false); *(dataScale.data()) = X->scale;
+	return callPref(eblas_ddot)(X->nElem, X->dataPref(false), 1, dataScale.dataPref(false), 0);
 }
 
 double sum(const ScalarFieldTilde& X)
 {	int N = X->nElem;
 	int S2 = X->gInfo.S[2]/2 + 1; //inner dimension
 	int S01 = X->gInfo.S[0] * X->gInfo.S[1]; //number of inner dimension slices
-	FieldData dataOne(X->gInfo, "ScalarFieldTilde", 1, 2, false); *((complex*)dataOne.data()) = 1.0;
-	complex complexSum = callPref(eblas_zdotc)(N, X->dataPref(false), 1, (complex*)dataOne.dataPref(false), 0);
-	complex correction1 = callPref(eblas_zdotc)(S01, X->dataPref(false), S2, (complex*)dataOne.dataPref(false), 0);
-	complex correction2 = callPref(eblas_zdotc)(S01, X->dataPref(false)+S2-1, S2, (complex*)dataOne.dataPref(false), 0);
+	FieldData<complex> dataOne(X->gInfo, "ScalarFieldTilde", 1, false); *(dataOne.data()) = 1.0;
+	complex complexSum = callPref(eblas_zdotc)(N, X->dataPref(false), 1, dataOne.dataPref(false), 0);
+	complex correction1 = callPref(eblas_zdotc)(S01, X->dataPref(false), S2, dataOne.dataPref(false), 0);
+	complex correction2 = callPref(eblas_zdotc)(S01, X->dataPref(false)+S2-1, S2, dataOne.dataPref(false), 0);
 	if(S2==1) correction2 = 0; //because slices 1 and 2 are the same
 	return X->scale * (2.0*complexSum - correction1 - correction2).real();
 }

@@ -34,7 +34,7 @@ class ElecInfo;
 //! @file ColumnBundle.h ColumnBundle class and operators
 
 //! Wavefunction data structure
-class ColumnBundle : public ManagedMemory
+class ColumnBundle : public ManagedMemory<complex>
 {
 	int ncols;
 	size_t col_length; //typically equal to either basis->nbasis (or 2*basis->nbasis for spinors in noncollinear mode)

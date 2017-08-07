@@ -66,7 +66,7 @@ class PairDensityCalculator
 			int nBytesPerBand = basisExt.nbasis*sizeof(complex);
 			if(flen < long(Cext.nData()*sizeof(complex))) die("\nFile '%s' does not exist or is too short.\n", fnameWfns.c_str());
 			if(flen % nBytesPerBand) die("\nFile '%s' is not a multiple of %d bytes per band (basis mismatch?).\n", fnameWfns.c_str(), nBytesPerBand);
-			((ManagedMemory&)Cext).read(fnameWfns.c_str());
+			((ManagedMemory<complex>&)Cext).read(fnameWfns.c_str());
 			C = &Cext;
 			//Read eigenvalues:
 			eigExt.resize(e.eInfo.nBands);

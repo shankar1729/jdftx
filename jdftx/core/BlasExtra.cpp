@@ -147,18 +147,6 @@ void eblas_symmetrize(int N, int n, const int* symmIndex, const int* symmMult, c
 }
 
 //BLAS-1 threaded wrappers
-template<typename T>
-void eblas_zero_sub(size_t iStart, size_t iStop, T* x)
-{	memset(x+iStart, 0, (iStop-iStart)*sizeof(T));
-}
-void eblas_zero(int N, complex* x)
-{	threadLaunch((N<100000) ? 1 : 0,
-		eblas_zero_sub<complex>, N, x);
-}
-void eblas_zero(int N, double* x)
-{	threadLaunch((N<100000) ? 1 : 0,
-		eblas_zero_sub<double>, N, x);
-}
 
 void eblas_zscal_sub(size_t iStart, size_t iStop, const complex* a, complex* x, int incx)
 {	cblas_zscal(iStop-iStart, a, x+incx*iStart, incx);

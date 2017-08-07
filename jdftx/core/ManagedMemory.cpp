@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/ManagedMemory.h>
-#include <core/BlasExtra.h>
 #include <core/GpuUtil.h>
 #include <fftw3.h>
 #include <mutex>
@@ -32,7 +31,7 @@ namespace MemUsageReport
 	enum Mode { Add, Remove, Print };
 	
 	//Add, remove or retrieve memory report based on mode
-	void manager(Mode mode, string category=string(), size_t nElements=0)
+	void manager(Mode mode, string category=string(), size_t nBytes=0)
 	{	
 		#ifdef ENABLE_PROFILING
 		struct Usage
@@ -54,7 +53,7 @@ namespace MemUsageReport
 		static std::map<string, Usage> usageMap;
 		static Usage usageTotal;
 		static std::mutex usageLock;
-		static const double elemToGB = 16./pow(1024.,3);
+		static const double bytesToGB = 1./pow(1024.,3);
 		
 		switch(mode)
 		{	case Add:
@@ -64,29 +63,29 @@ namespace MemUsageReport
 				//NOTE: Avoid commiting changes to this block during memory optimization;
 				//restore it to this state and remember to comment it out before commiting!
 				if(category=="ColumnBundle"
-					&& (usageMap[category].current+nElements > usageMap[category].peak) )
+					&& (usageMap[category].current+nBytes > usageMap[category].peak) )
 				{	printStack(true);
-					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", category.c_str(), (usageMap[category].current+nElements)*elemToGB);
+					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", category.c_str(), (usageMap[category].current+nBytes)*bytesToGB);
 				}
 				*/
-				usageMap[category] += nElements;
-				usageTotal += nElements;
+				usageMap[category] += nBytes;
+				usageTotal += nBytes;
 				usageLock.unlock();
 				assert(category.length());
 				break;
 			}
 			case Remove:
 			{	usageLock.lock();
-				usageMap[category] -= nElements;
-				usageTotal -= nElements;
+				usageMap[category] -= nBytes;
+				usageTotal -= nBytes;
 				usageLock.unlock();
 				assert(category.length());
 				break;
 			}
 			case Print:
 			{	for(auto entry: usageMap)
-					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", entry.first.c_str(), entry.second.peak * elemToGB);
-				logPrintf("MEMUSAGE: %30s %12.6lf GB\n", "Total", usageTotal.peak * elemToGB);
+					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", entry.first.c_str(), entry.second.peak * bytesToGB);
+				logPrintf("MEMUSAGE: %30s %12.6lf GB\n", "Total", usageTotal.peak * bytesToGB);
 				break;
 			}
 		}
@@ -258,21 +257,15 @@ namespace MemPool
 }
 
 
-//---------- class ManagedMemory -----------
+//---------- class ManagedMemoryBase -----------
 
-// Construct, optionally with data allocation
-ManagedMemory::ManagedMemory()
-: nElements(0),c(0),onGpu(false)
-{
-}
-
-ManagedMemory::~ManagedMemory()
-{	memFree();
+void ManagedMemoryBase::reportUsage()
+{	MemUsageReport::manager(MemUsageReport::Print);
 }
 
 //Free memory
-void ManagedMemory::memFree()
-{	if(!nElements) return; //nothing to free
+void ManagedMemoryBase::memFree()
+{	if(!nBytes) return; //nothing to free
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
@@ -282,233 +275,95 @@ void ManagedMemory::memFree()
 		#endif
 	}
 	else MemPool::CPU().free(c);
-	MemUsageReport::manager(MemUsageReport::Remove, category, nElements);
+	MemUsageReport::manager(MemUsageReport::Remove, category, nBytes);
 	c = 0;
-	nElements = 0;
+	nBytes = 0;
 	category.clear();
 }
 
 //Allocate memory
-void ManagedMemory::memInit(string category, size_t nElements, bool onGpu)
-{	if(category==this->category && nElements==this->nElements && onGpu==this->onGpu) return; //already in required state
+void ManagedMemoryBase::memInit(string category, size_t nBytes, bool onGpu)
+{	if(category==this->category && nBytes==this->nBytes && onGpu==this->onGpu) return; //already in required state
 	memFree();
 	this->category = category;
-	this->nElements = nElements;
+	this->nBytes = nBytes;
 	this->onGpu = onGpu;
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		c = (complex*)MemPool::GPU().alloc(sizeof(complex)*nElements);
+		c = MemPool::GPU().alloc(nBytes);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED");
 		#endif
 	}
-	else c = (complex*)MemPool::CPU().alloc(sizeof(complex)*nElements);
-	MemUsageReport::manager(MemUsageReport::Add, category, nElements);
+	else c = MemPool::CPU().alloc(nBytes);
+	MemUsageReport::manager(MemUsageReport::Add, category, nBytes);
 }
 
-void ManagedMemory::memMove(ManagedMemory&& mOther)
+void ManagedMemoryBase::memMove(ManagedMemoryBase&& mOther)
 {	std::swap(category, mOther.category);
-	std::swap(nElements, mOther.nElements);
+	std::swap(nBytes, mOther.nBytes);
 	std::swap(onGpu, mOther.onGpu);
 	std::swap(c, mOther.c);
 	//Now mOther will be empty, while *this will have all its contents
 }
 
-complex* ManagedMemory::data()
-{
-	#ifdef GPU_ENABLED
-	toCpu();
-	#endif
-	return c;
-}
-
-const complex* ManagedMemory::data() const
-{
-	#ifdef GPU_ENABLED
-	((ManagedMemory*)this)->toCpu(); //logically const, but may change data location
-	#endif
-	return c;
-}
-
-
-
-#ifdef GPU_ENABLED
-
-complex* ManagedMemory::dataGpu()
-{	toGpu();
-	return (complex*)c;
-}
-
-const complex* ManagedMemory::dataGpu() const
-{	((ManagedMemory*)this)->toGpu(); //logically const, but may change data location
-	return (complex*)c;
-}
-
 //Move data to CPU
-void ManagedMemory::toCpu()
+void ManagedMemoryBase::toCpu() const
 {	if(!onGpu || !c) return; //already on cpu, or no data
+#ifdef GPU_ENABLED
 	assert(isGpuMine());
-	complex* cCpu = (complex*)MemPool::CPU().alloc(sizeof(complex)*nElements);
-	cudaMemcpy(cCpu, c, sizeof(complex)*nElements, cudaMemcpyDeviceToHost);
-	MemPool::GPU().free(c); //Free GPU mem
-	c = cCpu; //Make c a cpu pointer
-	onGpu = false;
+	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	void* cCpu = MemPool::CPU().alloc(nBytes);
+	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
+	MemPool::GPU().free(me.c); //Free GPU mem
+	me.c = cCpu; //Make c a cpu pointer
+	me.onGpu = false;
+#endif
 }
 
 // Move data to GPU
-void ManagedMemory::toGpu()
+void ManagedMemoryBase::toGpu() const
 {	if(onGpu || !c) return; //already on gpu, or no data
+#ifdef GPU_ENABLED
 	assert(isGpuMine());
-	complex* cGpu = (complex*)MemPool::GPU().alloc(sizeof(complex)*nElements);
-	cudaMemcpy(cGpu, c, sizeof(complex)*nElements, cudaMemcpyHostToDevice);
-	MemPool::CPU().free(c); //Free CPU mem
-	c = cGpu; //Make c a gpu pointer
-	onGpu = true;
-}
-
-#endif
-
-//Which data to use for MPI operations:
-#if defined(GPU_ENABLED) && defined(CUDA_AWARE_MPI)
-#define dataMPI dataGpu
+	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	void* cGpu = MemPool::GPU().alloc(nBytes);
+	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
+	MemPool::CPU().free(me.c); //Free CPU mem
+	me.c = cGpu; //Make c a gpu pointer
+	me.onGpu = true;
 #else
-#define dataMPI data
+	assert(!"toGpu() called without GPU_ENABLED");
 #endif
-
-void ManagedMemory::send(int dest, int tag) const
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->send((const double*)dataMPI(), 2*nData(), dest, tag);
-}
-void ManagedMemory::recv(int src, int tag)
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->recv((double*)dataMPI(), 2*nData(), src, tag);
-}
-void ManagedMemory::bcast(int root)
-{	if(mpiUtil->nProcesses()>1)
-		mpiUtil->bcast((double*)dataMPI(), 2*nData(), root);
-}
-void ManagedMemory::allReduce(MPIUtil::ReduceOp op, bool safeMode, bool ignoreComplexCheck)
-{	if(!ignoreComplexCheck)
-		assert(op!=MPIUtil::ReduceProd && op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin); //not supported for complex
-	if(mpiUtil->nProcesses()>1)
-		mpiUtil->allReduce((double*)dataMPI(), 2*nData(), op, safeMode);
 }
 
+//--------- ManagedMemory<complex> and ManagedMemory<double> operators ------
 
-void ManagedMemory::write(const char *fname) const
-{	FILE *fp = fopen(fname,"wb");
-	if(!fp) die("Error opening %s for writing.\n", fname);
-	write(fp);
-	fclose(fp);
+void scale(double alpha, ManagedMemory<double>& y)
+{	callPref(eblas_dscal)(y.nData(), alpha, y.dataPref(), 1);
 }
-void ManagedMemory::writea(const char *fname) const
-{	FILE *fp = fopen(fname,"ab");
-	if(!fp) die("Error opening %s for appending.\n", fname);
-	write(fp);
-	fclose(fp);
-}
-void ManagedMemory::write(FILE *fp) const
-{	size_t nDone = fwriteLE(data(), sizeof(complex), nData(), fp);
-	if(nDone<nData()) die("Error after processing %lu of %lu records.\n", nDone, nData());
-}
-void ManagedMemory::dump(const char* fname, bool realPartOnly) const
-{	logPrintf("Dumping '%s' ... ", fname); logFlush();
-	if(realPartOnly)
-	{	write_real(fname);
-		//Collect imaginary part:
-		double nrm2tot = nrm2(*this); 
-		double nrm2im = callPref(eblas_dnrm2)(nData(), ((double*)dataPref())+1, 2); //look only at imaginary parts with a stride of 2
-		logPrintf("done. Relative discarded imaginary part: %le\n", nrm2im / nrm2tot);
-	}
-	else
-	{	write(fname);
-		logPrintf("done.\n");
-	}
-}
-
-void ManagedMemory::read(const char *fname)
-{	intptr_t fsizeExpected = nData() * sizeof(complex);
-	intptr_t fsize = fileSize(fname);
-	if(fsize != fsizeExpected)
-		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
-	FILE *fp = fopen(fname, "rb");
-	if(!fp) die("Error opening %s for reading.\n", fname);
-	read(fp);
-	fclose(fp);
-}
-void ManagedMemory::read(FILE *fp)
-{	size_t nDone = freadLE(data(), sizeof(complex), nData(), fp);
-	if(nDone<nData()) die("Error after processing %lu of %lu records.\n", nDone, nData());
-}
-
-
-void ManagedMemory::write_real(const char *fname) const
-{	FILE *fp = fopen(fname,"wb");
-	if(!fp) die("Error opening %s for writing.\n", fname);
-	write_real(fp);
-	fclose(fp);
-}
-void ManagedMemory::write_real(FILE *fp) const
-{	const complex* thisData = this->data();
-	double *dataReal = new double[nData()];
-	for(size_t i=0; i<nData(); i++) dataReal[i] = thisData[i].real();
-	fwriteLE(dataReal, sizeof(double), nData(), fp);
-	delete[] dataReal;
-}
-
-void ManagedMemory::read_real(const char *fname)
-{	FILE *fp = fopen(fname,"rb");
-	read_real(fp);
-	fclose(fp);
-}
-void ManagedMemory::read_real(FILE *fp)
-{	double *dataReal = new double[nData()];
-	freadLE(dataReal, sizeof(double), nData(), fp);
-	complex* thisData = this->data();
-	for (size_t i=0; i<nData(); i++) thisData[i] = dataReal[i];
-	delete[] dataReal;
-}
-
-void ManagedMemory::zero()
-{	callPref(eblas_zero)(nData(), dataPref());
-}
-
-void ManagedMemory::reportUsage()
-{	MemUsageReport::manager(MemUsageReport::Print);
-}
-
-void memcpy(ManagedMemory& a, const ManagedMemory& b)
-{	assert(a.nData() == b.nData());
-	if(!a.nData()) return; //no data to copy
-	#ifdef GPU_ENABLED
-	cudaMemcpy(a.dataGpu(), b.dataGpu(), a.nData()*sizeof(complex), cudaMemcpyDeviceToDevice);
-	#else
-	memcpy(a.data(), b.data(), a.nData()*sizeof(complex));
-	#endif
-}
-
-void scale(double alpha, ManagedMemory& y)
+void scale(double alpha, ManagedMemory<complex>& y)
 {	callPref(eblas_zdscal)(y.nData(), alpha, y.dataPref(), 1);
 }
-void scale(complex alpha, ManagedMemory& y)
+void scale(complex alpha, ManagedMemory<complex>& y)
 {	callPref(eblas_zscal)(y.nData(), alpha, y.dataPref(), 1);
 }
-void scale(const ManagedMemory& x, ManagedMemory& y)
+void scale(const ManagedMemory<complex>& x, ManagedMemory<complex>& y)
 {	assert(x.nData() == y.nData());
 	callPref(eblas_zmul)(x.nData(), x.dataPref(), 1, y.dataPref(), 1);
 }
 
-void axpy(complex alpha, const ManagedMemory& x, ManagedMemory& y)
+void axpy(complex alpha, const ManagedMemory<complex>& x, ManagedMemory<complex>& y)
 {	assert(x.nData() == y.nData());
 	callPref(eblas_zaxpy)(x.nData(), alpha, x.dataPref(), 1, y.dataPref(), 1);
 }
 
-double nrm2(const ManagedMemory& a)
+double nrm2(const ManagedMemory<complex>& a)
 {	return callPref(eblas_dznrm2)(a.nData(), a.dataPref(), 1);
 }
 
-complex dotc(const ManagedMemory& a, const ManagedMemory& b)
+complex dotc(const ManagedMemory<complex>& a, const ManagedMemory<complex>& b)
 {	assert(a.nData() == b.nData());
 	return callPref(eblas_zdotc)(a.nData(), a.dataPref(), 1, b.dataPref(), 1);
 }

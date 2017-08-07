@@ -83,6 +83,14 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 
 //----------------------- Point-to-point routines -------------------------------
 
+void MPIUtil::send(const complex* data, size_t nData, int dest, int tag) const
+{	send((const double*)data, 2*nData, dest, tag);
+}
+
+void MPIUtil::recv(complex* data, size_t nData, int dest, int tag) const
+{	recv((double*)data, 2*nData, dest, tag);
+}
+
 void MPIUtil::send(const bool* data, size_t nData, int dest, int tag) const
 {	std::vector<int> intCopy(nData);
 	std::copy(data, data+nData, intCopy.begin());  //Copy data into an integer version
@@ -110,6 +118,10 @@ void MPIUtil::recv(string& s, int src, int tag) const
 
 //----------------------- Broadcast routines -------------------------------
 
+void MPIUtil::bcast(complex* data, size_t nData, int root) const
+{	bcast((double*)data, 2*nData, root);
+}
+
 void MPIUtil::bcast(bool* data, size_t nData, int root) const
 {	if(nProcs>1)
 	{	std::vector<int> intCopy(nData); //Copy data into an integer version (bool is not natively supported by MPI)
@@ -131,6 +143,11 @@ void MPIUtil::bcast(string& s, int root) const
 }
 
 //----------------------- Reduction routines -------------------------------
+
+void MPIUtil::allReduce(complex* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode) const
+{	assert(op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin && op!=MPIUtil::ReduceProd);
+	allReduce((double*)data, 2*nData, op, safeMode);
+}
 
 void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode) const
 {	if(nProcs>1)

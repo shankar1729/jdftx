@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MPIUTIL_H
 
 #include <core/string.h>
+#include <core/scalar.h>
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
@@ -54,6 +55,8 @@ public:
 	template<typename T> void recv(T* data, size_t nData, int src, int tag) const; //!< generic array receive
 	template<typename T> void send(const T& data, int dest, int tag) const; //!< generic scalar send
 	template<typename T> void recv(T& data, int src, int tag) const; //!< generic scalar receive
+	void send(const complex* data, size_t nData, int dest, int tag) const; //!< send specialization for complex which is not natively supported by MPI
+	void recv(complex* data, size_t nData, int src, int tag) const; //!< receive specialization for complex which is not natively supported by MPI
 	void send(const bool* data, size_t nData, int dest, int tag) const; //!< send specialization for bool which is not natively supported by MPI
 	void recv(bool* data, size_t nData, int src, int tag) const; //!< receive specialization for bool which is not natively supported by MPI
 	void send(const string& s, int dest, int tag) const; //!< send string
@@ -62,6 +65,7 @@ public:
 	//Broadcast functions:
 	template<typename T> void bcast(T* data, size_t nData, int root=0) const; //!< generic array broadcast
 	template<typename T> void bcast(T& data, int root=0) const; //!< generic scalar broadcast
+	void bcast(complex* data, size_t nData, int root=0) const; //!< specialization for complex which is not natively supported by MPI
 	void bcast(bool* data, size_t nData, int root=0) const; //!< specialization for bool which is not natively supported by MPI
 	void bcast(string& s, int root=0) const; //!< broadcast string
 
@@ -69,6 +73,7 @@ public:
 	enum ReduceOp { ReduceMin, ReduceMax, ReduceSum, ReduceProd, ReduceLAnd, ReduceBAnd, ReduceLOr, ReduceBOr, ReduceLXor, ReduceBXor };
 	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false) const; //!< generic array reduction
 	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false) const; //!< generic scalar reduction
+	void allReduce(complex* data, size_t nData, ReduceOp op, bool safeMode=false) const;  //!< specialization for complex which is not natively supported by MPI
 	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false) const;  //!< specialization for bool which is not natively supported by MPI
 	template<typename T> void allReduce(T& data, int& index, ReduceOp op) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
 	
