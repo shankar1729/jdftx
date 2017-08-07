@@ -84,7 +84,7 @@ private:
 	
 	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space
 	IndexArray symmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
-	matrix symmIndexPhase; //phase factor for entry at each index
+	ManagedArray<complex> symmIndexPhase; //phase factor for entry at each index
 	IndexArray symmMult; //multiplicity (how many times each element is repeated) in each equivalence class
 	void initSymmIndex();
 	

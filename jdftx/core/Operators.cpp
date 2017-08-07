@@ -641,7 +641,7 @@ void axpy(double alpha, const ScalarField& X, ScalarField& Y)
 	//if X is null, nothing needs to be done, Y remains unchanged
 }
 ScalarField& operator+=(ScalarField& in, double scalar)
-{	FieldData<double> dataScalar(in->gInfo, "ScalarField", 1, false); *(dataScalar.data()) = scalar;
+{	ManagedArray<double> dataScalar(&scalar, 1); //Managed array holding scalar
 	callPref(eblas_daxpy)(in->nElem, 1.0, dataScalar.dataPref(), 0, in->dataPref(), 1);
 	return in;
 }
@@ -691,18 +691,18 @@ double nrm2(const ScalarFieldTilde& X)
 }
 
 double sum(const ScalarField& X)
-{	FieldData<double> dataScale(X->gInfo, "ScalarField", 1, false); *(dataScale.data()) = X->scale;
-	return callPref(eblas_ddot)(X->nElem, X->dataPref(false), 1, dataScale.dataPref(false), 0);
+{	ManagedArray<double> dataScale(&X->scale, 1); //Managed array holding X->scale
+	return callPref(eblas_ddot)(X->nElem, X->dataPref(false), 1, dataScale.dataPref(), 0);
 }
 
 double sum(const ScalarFieldTilde& X)
 {	int N = X->nElem;
 	int S2 = X->gInfo.S[2]/2 + 1; //inner dimension
 	int S01 = X->gInfo.S[0] * X->gInfo.S[1]; //number of inner dimension slices
-	FieldData<complex> dataOne(X->gInfo, "ScalarFieldTilde", 1, false); *(dataOne.data()) = 1.0;
-	complex complexSum = callPref(eblas_zdotc)(N, X->dataPref(false), 1, dataOne.dataPref(false), 0);
-	complex correction1 = callPref(eblas_zdotc)(S01, X->dataPref(false), S2, dataOne.dataPref(false), 0);
-	complex correction2 = callPref(eblas_zdotc)(S01, X->dataPref(false)+S2-1, S2, dataOne.dataPref(false), 0);
+	ManagedArray<complex> dataOne(std::vector<complex>(1, complex(1.,0.))); //Managed data storing "1"
+	complex complexSum = callPref(eblas_zdotc)(N, X->dataPref(false), 1, dataOne.dataPref(), 0);
+	complex correction1 = callPref(eblas_zdotc)(S01, X->dataPref(false), S2, dataOne.dataPref(), 0);
+	complex correction2 = callPref(eblas_zdotc)(S01, X->dataPref(false)+S2-1, S2, dataOne.dataPref(), 0);
 	if(S2==1) correction2 = 0; //because slices 1 and 2 are the same
 	return X->scale * (2.0*complexSum - correction1 - correction2).real();
 }

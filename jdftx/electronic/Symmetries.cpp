@@ -480,7 +480,7 @@ void Symmetries::initSymmIndex()
 	int nSymmIndex = symmIndexVec.size();
 	symmIndex.init(nSymmIndex);
 	symmMult.init(symmMultVec.size());
-	symmIndexPhase.init(nSymmIndex,1);
+	symmIndexPhase.init(nSymmIndex);
 	memcpy(symmIndex.data(), &symmIndexVec[0], nSymmIndex*sizeof(int));
 	memcpy(symmMult.data(), &symmMultVec[0], symmMultVec.size()*sizeof(int));
 	memcpy(symmIndexPhase.data(), &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex));

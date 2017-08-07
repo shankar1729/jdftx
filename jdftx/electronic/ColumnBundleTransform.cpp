@@ -65,7 +65,7 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	
 	//Initialize translation phase (if necessary)
 	if(sym.a.length_squared())
-	{	phase.init(basisC.nbasis, 1);
+	{	phase.init(basisC.nbasis);
 		complex* phasePtr = phase.data();
 		for(const vector3<int>& iG_C: basisC.iGarr)
 			*(phasePtr++) = cis((2*M_PI)*dot(iG_C + kC, sym.a));

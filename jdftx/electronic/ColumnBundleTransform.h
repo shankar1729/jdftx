@@ -72,7 +72,7 @@ private:
 	
 	//Index array:
 	IndexArray index;
-	matrix phase; //Bloch phase for space-group translation
+	ManagedArray<complex> phase; //Bloch phase for space-group translation
 
 	matrix spinorRot; //spinor space rotation
 };

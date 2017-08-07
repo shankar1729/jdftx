@@ -218,7 +218,7 @@ template<typename T> double nrm2(const Tptr& X) //!< Generic 2-norm for complex 
 {	return callPref(eblas_dznrm2)(X->nElem, X->dataPref(), 1); 
 }
 template<typename T> complex sum(const Tptr& X) //!< Generic sum for complex types
-{	FieldData<complex> dataOne(X->gInfo, "complexScalarField", 1, false); *(dataOne.data()) = 1.;
+{	ManagedArray<complex> dataOne(std::vector<complex>(1, complex(1.,0.))); //Managed data storing "1"
 	return callPref(eblas_zdotc)(X->nElem, (complex*)dataOne.dataPref(), 0, X->dataPref(), 1); 
 }
 //Special handling for real scalar fields:

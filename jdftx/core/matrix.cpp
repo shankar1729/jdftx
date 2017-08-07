@@ -475,16 +475,10 @@ matrix operator*(const matrixScaledTransOp &m1st, const matrixScaledTransOp &m2s
 matrix operator*(const diagMatrix& d, const matrix& m)
 {	assert(d.nCols()==m.nRows());
 	matrix ret(m); //copy input to output
-	//transfer diagonal matrix to managed memory (for potential GPU access)
-	struct Dmanaged : public ManagedMemory<double>
-	{	Dmanaged(diagMatrix d)
-		{	memInit("misc",d.nRows());
-			memcpy(data(), d.data(), d.nRows()*sizeof(double));
-		}
-	} dCopy(d);
+	ManagedArray<double> dManaged(d); //transfer diagonal matrix to managed memory (for potential GPU access)
 	//Elementwise-multiply each column by the scale factors (better contiguous access pattern than row-wise)
 	for(int j=0; j<ret.nCols(); j++)
-		callPref(eblas_zmuld)(ret.nRows(), dCopy.dataPref(), 1, ret.dataPref()+ret.index(0,j), 1);
+		callPref(eblas_zmuld)(ret.nRows(), dManaged.dataPref(), 1, ret.dataPref()+ret.index(0,j), 1);
 	return ret;
 }
 

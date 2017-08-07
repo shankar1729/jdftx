@@ -51,7 +51,7 @@ protected:
 	void toGpu() const; //!< move data to the GPU (does nothing without GPU_ENABLED); logically const, but data location may change
 };
 
-//! Managed memory of a specified data type
+//! Base class for managed memory of a specified data type
 template<typename T> class ManagedMemory : private ManagedMemoryBase
 {
 protected:
@@ -122,6 +122,17 @@ public:
 	void write_real(FILE *filep) const; //!< binary write real-parts to stream
 	void dump(const char* fname, bool realPartOnly) const; //!< write as complex or real-part alone and report discarded imaginary part, if any
 	void zero(); //!< set all elements to zero
+};
+
+//! General ManagedMemory class for one-off use as a CPU <-> GPU array.
+//! For each commonly-used physical object, derive  directly from
+//! ManagedMemory and implement operators; do not use this wrapper.
+template<typename T> struct ManagedArray : public ManagedMemory<T>
+{	void init(size_t size, bool onGpu=false); //!< calls memInit with category "misc"
+	ManagedArray(T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
+	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
+	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
+	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
 };
 
 //! Managed array of integers (indices)
@@ -275,6 +286,39 @@ template<typename T> void memcpy(ManagedMemory<T>& a, const ManagedMemory<T>& b)
 {	assert(a.nData() == b.nData());
 	if(!a.nData()) return; //no data to copy
 	callPref(eblas_copy)(a.dataPref(), b.dataPref(), a.nData());
+}
+
+//---- Implementations of ManagedArray ----
+template<typename T> void ManagedArray<T>::init(size_t size, bool onGpu)
+{	ManagedMemory<T>::memInit("misc", size, onGpu);
+}
+
+template<typename T> ManagedArray<T>::ManagedArray(T* ptr, size_t N)
+{	if(ptr && N)
+	{	init(N);
+		eblas_copy(this->data(), ptr, N);
+	}
+}
+
+template<typename T> ManagedArray<T>::ManagedArray(const std::vector<T>& v)
+{	if(v.size())
+	{	init(v.size());
+		eblas_copy(this->data(), v.data(), v.size());
+	}
+}
+
+template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedArray<T>& other)
+{	if(other.nData())
+	{	init(other.nData());
+		memcpy(*this, other);
+	}
+	else ManagedMemory<T>::memFree();
+	return *this;
+}
+
+template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(ManagedArray<T>&& other)
+{	ManagedMemory<T>::memMove(other);
+	return *this;
 }
 
 //! @endcond

@@ -17,23 +17,20 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <core/BlasExtra.h>
+#include <electronic/SpeciesInfo.h>
+#include <electronic/ColumnBundle.h>
+#include <electronic/ExCorr_internal_GGA.h>
 #include <core/Util.h>
 #include <core/Operators.h>
-#include <core/GridInfo.h>
 #include <core/ScalarFieldIO.h>
 #include <core/Coulomb.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
-#include <fluid/SO3quad.h>
 #include <core/SphericalHarmonics.h>
-#include <electronic/SpeciesInfo.h>
-#include <electronic/ExCorr_internal_GGA.h>
-#include <core/matrix.h>
 #include <core/Blip.h>
+#include <fluid/SO3quad.h>
 #include <gsl/gsl_sf.h>
 #include <stdlib.h>
-
 
 class OperatorTest
 {	const GridInfo& gInfo;
@@ -137,10 +134,10 @@ void timeEblas3(const GridInfo& gInfo)
 	int nCols = 213;
 
 	//A couple of column bundles:
-	FieldData<complex> cb1(gInfo, "ColumnBundle", nCols*colLength, isGpuEnabled());
-	FieldData<complex> cb2(gInfo, "ColumnBundle", nCols*colLength, isGpuEnabled());
+	ColumnBundle cb1(nCols, colLength, 0, 0, isGpuEnabled());
+	ColumnBundle cb2(nCols, colLength, 0, 0, isGpuEnabled());
 	//An nBandsxnBands matrix:
-	FieldData<complex> mat(gInfo, "matrix", nCols*nCols, isGpuEnabled());
+	matrix mat(nCols, nCols, isGpuEnabled());
 
 	sync();
 

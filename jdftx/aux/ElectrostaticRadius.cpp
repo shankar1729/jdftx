@@ -35,16 +35,13 @@ struct MultipoleBasis
 {
 	const Basis& basis;
 	
-	struct ManagedVector3 : public ManagedMemory<vector3<>>
-	{	ManagedVector3(vector3<> x) { memInit("misc",1); data()[0]=x; }
-	}
-	center; //center of cell in lattice coordinates
+	ManagedArray<vector3<>> center; //center of cell in lattice coordinates
 	double Rmax; //grid truncation radius
 	double Gmax; //max G-vector in basis
 	
 	MultipoleBasis(const Basis& basis, vector3<> center, double Ecut)
-	: basis(basis), center(center), Rmax(WignerSeitz(basis.gInfo->R).inRadius()), Gmax(sqrt(2*Ecut))
-	{	
+	: basis(basis), center(&center, 1), Rmax(WignerSeitz(basis.gInfo->R).inRadius()), Gmax(sqrt(2*Ecut))
+	{
 	}
 	
 	//Create the projectors for each G (> 0) in Garr at given l,m:
