@@ -34,27 +34,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct MultipoleBasis
 {
 	const Basis& basis;
-	vector3<> center, *centerPref; //center of cell in lattice coordinates
+	
+	struct ManagedVector3 : public ManagedMemory<vector3<>>
+	{	ManagedVector3(vector3<> x) { memInit("misc",1); data()[0]=x; }
+	}
+	center; //center of cell in lattice coordinates
 	double Rmax; //grid truncation radius
 	double Gmax; //max G-vector in basis
 	
 	MultipoleBasis(const Basis& basis, vector3<> center, double Ecut)
 	: basis(basis), center(center), Rmax(WignerSeitz(basis.gInfo->R).inRadius()), Gmax(sqrt(2*Ecut))
 	{	
-		#ifdef GPU_ENABLED
-		cudaMalloc(&centerPref, sizeof(vector3<>));
-		cudaMemcpy(centerPref, &center, sizeof(vector3<>), cudaMemcpyHostToDevice);
-		gpuErrorCheck();
-		#else
-		centerPref = &center;
-		#endif
-	}
-	
-	~MultipoleBasis()
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(centerPref);
-		#endif
 	}
 	
 	//Create the projectors for each G (> 0) in Garr at given l,m:
@@ -80,7 +70,7 @@ struct MultipoleBasis
 			RadialFunctionG jlTilde;
 			jl.transform(l, dG, nG, jlTilde);
 			//Store onto projector:
-			callPref(Vnl)(basis.nbasis, 0, 1, l, m, vector3<>(0,0,0), basis.iGarr.dataPref(), basis.gInfo->G, centerPref, jlTilde, projData+proj.index(i,0));
+			callPref(Vnl)(basis.nbasis, 0, 1, l, m, vector3<>(0,0,0), basis.iGarr.dataPref(), basis.gInfo->G, center.dataPref(), jlTilde, projData+proj.index(i,0));
 			jlTilde.free();
 		}
 		proj *= (sqrt(4*M_PI) * cis(-l*M_PI/2)); //makes stuff real for real wavefunctions and set normalization
