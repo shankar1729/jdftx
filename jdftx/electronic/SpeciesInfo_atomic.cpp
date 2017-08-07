@@ -158,7 +158,7 @@ void SpeciesInfo::accumulateAtomicPotential(ScalarFieldTilde& dTilde) const
 	getAtomPotential(dRadial);
 	//Gets tructure factor:
 	ScalarFieldTilde SG; nullToZero(SG, e->gInfo);
-	callPref(getSG)(e->gInfo.S, atpos.size(), atposPref, 1./e->gInfo.detR, SG->dataPref());
+	callPref(getSG)(e->gInfo.S, atpos.size(), atposManaged.dataPref(), 1./e->gInfo.detR, SG->dataPref());
 	//Accumulate contrbutions:
 	dTilde += dRadial * SG;
 	dRadial.free();
@@ -208,7 +208,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 		for(int p: pArr) for(int m=-l; m<=l; m++)
 		{	size_t atomStride = V.colLength() * nOrbitalsPerAtom;
 			size_t offs = iCol * V.colLength();
-			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(), e->gInfo.G, atposPref, fRadial[l][p], V.dataPref()+offs);
+			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(), e->gInfo.G, atposManaged.dataPref(), fRadial[l][p], V.dataPref()+offs);
 			iCol++;
 		}
 		//Transform the non-spinor ColumnBundle to the spinorial j eigenfunctions:
@@ -225,7 +225,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 		{	//Set atomic orbitals for all atoms at specified (n,l,m):
 			size_t atomStride = psi.colLength() * atomColStride;
 			size_t offs = iCol * psi.colLength();
-			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(), e->gInfo.G, atposPref, fRadial[l][n], psi.dataPref()+offs);
+			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(), e->gInfo.G, atposManaged.dataPref(), fRadial[l][n], psi.dataPref()+offs);
 			if(nSpinCopies>1) //make copy for other spin
 			{	complex* dataPtr = psi.dataPref()+offs;
 				for(size_t a=0; a<atpos.size(); a++)

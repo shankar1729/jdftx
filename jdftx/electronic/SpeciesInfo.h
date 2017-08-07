@@ -49,11 +49,8 @@ public:
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	std::vector<vector3<> > velocities; //!< array of atomic velocities (null unless running MD) in lattice coordinates
-	#ifdef GPU_ENABLED
-	vector3<> *atposGpu; //!< copy of atomic positions on the gpu
-	#endif
-	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atpos_gpu and invalidate cached projectors, if any)
-	vector3<>* atposPref; //!< points to atposGpu in GPU mode and atpos otherwise
+	ManagedArray<vector3<>> atposManaged; //!< managed copy of atpos accessed from operator code (for auto cpu/gpu transfers)
+	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atposManaged and invalidate cached projectors, if any)
 	
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
 	double mass; //!< ionic mass (currently unused)	

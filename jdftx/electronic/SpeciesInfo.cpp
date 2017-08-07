@@ -33,11 +33,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void SpeciesInfo::sync_atpos()
 {	if(!atpos.size()) return; //unused species
-	#ifdef GPU_ENABLED
-	//Transfer atomic positions to the GPU:
-	cudaMemcpy(atposGpu, &atpos[0], sizeof(vector3<>)*atpos.size(), cudaMemcpyHostToDevice);
-	gpuErrorCheck();
-	#endif
+	//Update managed version of atpos:
+	atposManaged = ManagedArray<vector3<>>(atpos); //it will get transferred to GPU if/when necessary
 	//Invalidate cached projectors:
 	cachedV.clear();
 }
@@ -117,9 +114,6 @@ SpeciesInfo::SpeciesInfo()
 SpeciesInfo::~SpeciesInfo()
 {	if(atpos.size())
 	{
-		#ifdef GPU_ENABLED
-		cudaFree(atposGpu);
-		#endif
 		VlocRadial.free();
 		nCoreRadial.free();
 		tauCoreRadial.free();
@@ -278,13 +272,6 @@ void SpeciesInfo::setup(const Everything &everything)
 		}
 	}
 	
-	#ifdef GPU_ENABLED
-	//Alloc and init GPU atomic positions:
-	cudaMalloc(&atposGpu, sizeof(vector3<>)*atpos.size());
-	atposPref = atposGpu;
-	#else
-	atposPref = &atpos[0];
-	#endif
 	sync_atpos();
 	
 	Rprev = e->gInfo.R; //remember initial lattice vectors, so that updateLatticeDependent can check if an update is necessary

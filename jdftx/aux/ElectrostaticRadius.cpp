@@ -160,7 +160,7 @@ int main(int argc, char** argv)
 	for(size_t spIndex=0; spIndex<e.iInfo.species.size(); spIndex++)
 	{	const auto& sp = e.iInfo.species[spIndex];
 		ScalarFieldTilde SG; nullToZero(SG, e.gInfo);
-		callPref(getSG)(e.gInfo.S, sp->atpos.size(), sp->atposPref, 1./e.gInfo.detR, SG->dataPref()); //get structure factor for current species
+		callPref(getSG)(e.gInfo.S, sp->atpos.size(), sp->atposManaged.dataPref(), 1./e.gInfo.detR, SG->dataPref()); //get structure factor for current species
 		rho -= sp->Z * gaussConvolve(SG, vdW.getParams(sp->atomicNumber,spIndex).R0/6.);
 	}
 	//Replace the last (least significant) polarizability eigencomponent with the rotational one:
