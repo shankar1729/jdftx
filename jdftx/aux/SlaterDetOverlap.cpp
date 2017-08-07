@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <core/matrix.h>
-#include <electronic/Dump.h>
+#include <electronic/Dump_internal.h>
 
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:

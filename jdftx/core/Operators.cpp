@@ -306,7 +306,7 @@ template<typename Scalar> void zeroNyquist_sub(size_t iStart, size_t iStop, cons
 {	THREAD_halfGspaceLoop( if(IS_NYQUIST) data[i] = Scalar(0.0); )
 }
 void zeroNyquist(RealKernel& K)
-{	threadLaunch(zeroNyquist_sub<double>, K.gInfo.nG, K.gInfo.S, K.data);
+{	threadLaunch(zeroNyquist_sub<double>, K.gInfo.nG, K.gInfo.S, K.data());
 }
 void zeroNyquist(ScalarFieldTilde& Gptr)
 {	const GridInfo& gInfo = Gptr->gInfo;
@@ -475,9 +475,9 @@ void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel)
 {	
 	ScalarFieldTilde F = radialFunctionG(Kernel.gInfo, f, vector3<>(0,0,0));
 	const complex* FData = F->data(); //put F into Kernel
+	double* KernelData = Kernel.data();
 	for(int i=0; i<Kernel.gInfo.nG; i++)
-		Kernel.data[i] = FData[i].real();
-	Kernel.set();
+		KernelData[i] = FData[i].real();
 }
 
 
@@ -619,7 +619,7 @@ complexScalarField operator*(complexScalarField&& inC, const ScalarField& inR) {
 complexScalarField operator*(const ScalarField& inR, complexScalarField&& inC) { return inC *= inR; }
 
 ScalarFieldTilde& operator*=(ScalarFieldTilde& inG, const RealKernel& inR)
-{	callPref(eblas_zmuld)(inG->nElem, inR.dataPref, 1, inG->dataPref(false), 1);
+{	callPref(eblas_zmuld)(inG->nElem, inR.dataPref(), 1, inG->dataPref(false), 1);
 	return inG;
 }
 ScalarFieldTilde operator*(const RealKernel& inR, const ScalarFieldTilde& inG) { ScalarFieldTilde out(inG->clone()); return out *= inR; }
@@ -806,8 +806,7 @@ void initGaussianKernel_sub(int i, double Gsq, double expfac, double* X)
 {	X[i] = exp(expfac*Gsq);
 }
 void initGaussianKernel(RealKernel& X, double x0)
-{	applyFuncGsq(X.gInfo, initGaussianKernel_sub, -pow(0.5*x0,2), X.data);
-	X.set();
+{	applyFuncGsq(X.gInfo, initGaussianKernel_sub, -pow(0.5*x0,2), X.data());
 }
 
 void initTranslation_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gr, complex* X)

@@ -77,8 +77,7 @@ struct EwaldIsolated : public Ewald
 CoulombIsolated::CoulombIsolated(const GridInfo& gInfoOrig, const CoulombParams& params)
 : Coulomb(gInfoOrig, params), ws(gInfo.R), Vc(gInfo)
 {	//Compute kernel:
-	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data, ws);
-	Vc.set();
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws);
 	initExchangeEval();
 }
 
@@ -111,3 +110,4 @@ ScalarFieldTilde CoulombSpherical::apply(ScalarFieldTilde&& in) const
 std::shared_ptr<Ewald> CoulombSpherical::createEwald(matrix3<> R, size_t nAtoms) const
 {	return std::make_shared<EwaldIsolated>(R, ws, params.ionMargin, Rc);
 }
+

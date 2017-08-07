@@ -176,7 +176,7 @@ private:
 	std::vector< std::pair<int,int*> > symmIndex; //!< list of number of equivalence classes and corresponding indices per cardinality for boundary symmetrization
 	class WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
-	RealKernel* ionKernel;
+	std::shared_ptr<RealKernel> ionKernel;
 	ScalarFieldTilde embedExpand(const ScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
 	complexScalarFieldTilde embedExpand(complexScalarFieldTilde&& in) const; //!< expand to embedding grid and symmetrize boundaries
 	ScalarFieldTilde embedShrink(const ScalarFieldTilde& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)

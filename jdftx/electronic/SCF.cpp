@@ -59,8 +59,7 @@ SCF::SCF(Everything& e): Pulay<SCFvariable>(e.scfParams), e(e), kerkerMix(e.gInf
 		? pow(sp.qKappa,2)
 		: (e.eVars.fluidSolver ? e.eVars.fluidSolver->k2factor / e.eVars.fluidSolver->epsBulk : 0.);
 	applyFuncGsq(e.gInfo, setKernels, GminSq, sp.mixedVariable==SCFparams::MV_Density, sp.mixFraction,
-		pow(sp.qKerker,2), pow(sp.qMetric,2), qKappaSq, kerkerMix.data, diisMetric.data);
-	kerkerMix.set(); diisMetric.set();
+		pow(sp.qKerker,2), pow(sp.qMetric,2), qKappaSq, kerkerMix.data(), diisMetric.data());
 	
 	//Load history if available:
 	if(sp.historyFilename.length())

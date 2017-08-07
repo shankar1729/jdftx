@@ -163,8 +163,7 @@ struct SlabPeriodicSolver : public LinearSolvable<ScalarFieldTilde>
 			epsMinus1[jDir] = (jDir==iDir) ? (epsPerp-1.) : (epsPar-1.);
 		
 		double kRMS = sqrt(integral(kappaSq)*3./integral(epsPerp+2.*epsPar)); //average Debye length of unit cell (for preconditioner)
-		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data, Kinv.data, periodicCoulomb);
-		Ksqrt.set(); Kinv.set();
+		threadLaunch(setKernels_sub, gInfo.nG, &gInfo, iDir, kRMS, Ksqrt.data(), Kinv.data(), periodicCoulomb);
 		nullToZero(state, gInfo);
 	}
 	

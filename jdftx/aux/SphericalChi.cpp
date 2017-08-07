@@ -187,7 +187,7 @@ int main(int argc, char** argv)
 	logPrintf("Reading polarizability eigensystem\n");
 	ColumnBundle V(pol.nEigs, basis.nbasis, &basis);
 	matrix Xext(pol.nEigs, pol.nEigs);
-	((ManagedMemory&)V).read(e.dump.getFilename("pol_basis").c_str());
+	((ManagedMemory<complex>&)V).read(e.dump.getFilename("pol_basis").c_str());
 	Xext.read(e.dump.getFilename("pol_Xext").c_str());
 	
 	logPrintf("Computing eigenfunction dipole moments\n");

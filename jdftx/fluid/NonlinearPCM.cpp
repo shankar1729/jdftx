@@ -105,8 +105,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		}
 		//--- Pulay metric
 		metric = std::make_shared<RealKernel>(gInfo);
-		applyFuncGsq(e.gInfo, setMetric, std::pow(fsp.scfParams.qMetric,2), metric->data);
-		metric->set();
+		applyFuncGsq(e.gInfo, setMetric, std::pow(fsp.scfParams.qMetric,2), metric->data());
 	}
 	else
 	{	//Initialize preconditioner (for mu channel):

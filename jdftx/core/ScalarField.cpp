@@ -120,24 +120,8 @@ complexScalarFieldTilde complexScalarFieldTildeData::alloc(const GridInfo& gInfo
 
 //------------ class RealKernel ---------------
 
-RealKernel::RealKernel(const GridInfo& gInfo) : gInfo(gInfo), nElem(gInfo.nG)
-{	data = new double[nElem];
-	#ifdef GPU_ENABLED
-	cudaMalloc(&dataGpu, nElem*sizeof(double));
-	dataPref = dataGpu;
-	#else
-	dataPref = data;
-	#endif
-}
-RealKernel::~RealKernel()
-{	delete[] data;
-	#ifdef GPU_ENABLED
-	cudaFree(dataGpu);
-	#endif
-}
-void RealKernel::set()
+RealKernel::RealKernel(const GridInfo& gInfo)
+ : FieldData<double>(gInfo, "RealKernel", gInfo.nG, false) //basically real version of scalarFieldTilde
 {
-	#ifdef GPU_ENABLED
-	cudaMemcpy(dataGpu, data, nElem*sizeof(double), cudaMemcpyHostToDevice);
-	#endif
 }
+

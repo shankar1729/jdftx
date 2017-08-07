@@ -304,7 +304,7 @@ inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, doub
 }
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
-: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0), ionKernel(0)
+: gInfoOrig(gInfoOrig), params(params), gInfo(params.embed ? gInfoEmbed : gInfoOrig), xCenter(params.embedCenter), wsOrig(0)
 {
 	if(params.embed)
 	{	//Initialize embedding grid:
@@ -375,13 +375,12 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		double Gnyq = M_PI / hMax; //Minimum Nyquist frequency on original grid
 		ionWidth = sqrt(params.ionMargin / Gnyq); //Minimize real and reciprocal space errors
 		logPrintf("Range-separation parameter for embedded mesh potentials due to point charges: %lg bohrs.\n", ionWidth);
-		ionKernel = new RealKernel(gInfoOrig);
+		ionKernel = std::make_shared<RealKernel>(gInfoOrig);
 		double expFac = 0.5*ionWidth*ionWidth;
 		double GzeroVal = expFac;
 		if(params.embedFluidMode)
 			GzeroVal -= expFac * det(Diag(embedScale));
-		applyFuncGsq(gInfoOrig, setIonKernel, expFac, GzeroVal, ionKernel->data);
-		ionKernel->set();
+		applyFuncGsq(gInfoOrig, setIonKernel, expFac, GzeroVal, ionKernel->data());
 	}
 	
 	//Check electric field:
@@ -412,7 +411,6 @@ Coulomb::~Coulomb()
 				#else
 				delete[] entry.second;
 				#endif
-		delete ionKernel;
 	}
 }
 

@@ -237,8 +237,7 @@ CoulombWire::CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
 	//Create kernel:
-	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data, ws);
-	Vc.set();
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws);
 	initExchangeEval();
 }
 
@@ -282,8 +281,7 @@ CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombP
 		die("Cylindrical truncation radius %lg exceeds 2D Wigner-Seitz cell in-radius of %lg bohrs.\n", Rc, RcMax);
 	if(!Rc) Rc = RcMax;
 	//Set the kernel:
-	threadLaunch(setVcylindrical, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, Vc.data);
-	Vc.set();
+	threadLaunch(setVcylindrical, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, Vc.data());
 	logPrintf("Initialized cylindrical truncation of radius %lg bohrs with axis along lattice direction %s\n", Rc, dirName.c_str());
 	initExchangeEval();
 }

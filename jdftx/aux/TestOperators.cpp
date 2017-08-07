@@ -137,10 +137,10 @@ void timeEblas3(const GridInfo& gInfo)
 	int nCols = 213;
 
 	//A couple of column bundles:
-	FieldData cb1(gInfo, "ColumnBundle", nCols*colLength, 2, isGpuEnabled());
-	FieldData cb2(gInfo, "ColumnBundle", nCols*colLength, 2, isGpuEnabled());
+	FieldData<complex> cb1(gInfo, "ColumnBundle", nCols*colLength, isGpuEnabled());
+	FieldData<complex> cb2(gInfo, "ColumnBundle", nCols*colLength, isGpuEnabled());
 	//An nBandsxnBands matrix:
-	FieldData mat(gInfo, "matrix", nCols*nCols, 2, isGpuEnabled());
+	FieldData<complex> mat(gInfo, "matrix", nCols*nCols, isGpuEnabled());
 
 	sync();
 

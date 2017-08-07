@@ -168,22 +168,9 @@ struct complexScalarFieldTildeData : public FieldData<complex>
 
 
 //! Special class for storing real reciprocal-space kernels encountered ever so often for convolutions
-struct RealKernel
-{	const GridInfo& gInfo;
-	int nElem; //!< number of elements = gInfo.nG
-	double* data; //!< cpu data pointer
-	#ifdef GPU_ENABLED
-	double* dataGpu; //!< gpu data pointer (unlike above classes, both cpu and gpu stored simultaneously)
-	#endif
-	double* dataPref; //!< points to data or dataGpu depending on GPU_ENABLED
-
-	RealKernel(const GridInfo&); //!< allocates data (and dataGpu if GPU_ENABLED)
-	~RealKernel();
-	void set(); //!< call after initializing data on cpu (will copy from data to dataGpu if GPU_ENABLED)
+struct RealKernel : public FieldData<double>
+{	RealKernel(const GridInfo& gInfo); 
 };
 
-#undef DECLARE_DATA_PREF_ACCESS
-#undef DECLARE_DATA_ACCESS
 //! @}
-
 #endif //JDFTX_CORE_SCALARFIELD_H

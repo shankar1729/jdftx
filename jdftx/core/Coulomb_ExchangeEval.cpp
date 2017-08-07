@@ -441,8 +441,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				die("Exact-exchange in Isolated geometry should be used only with a single k-point.\n");
 			if(omega) //Create an omega-screened version (but gamma-point only):
 			{	VcGamma = new RealKernel(gInfo);
-				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data, ((CoulombIsolated&)coulomb).ws);
-				VcGamma->set();
+				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data(), ((CoulombIsolated&)coulomb).ws);
 			}
 			else //use the same kernel as hartree/Vloc
 			{	VcGamma = &((CoulombIsolated&)coulomb).Vc; 
@@ -571,7 +570,7 @@ complexScalarFieldTilde ExchangeEval::operator()(complexScalarFieldTilde&& in, v
 		}
 		case WignerSeitzGammaKernel:
 		{	assert(kDiff.length_squared() < symmThresholdSq); //gamma-point only
-			callPref(multRealKernel)(gInfo.S, VcGamma->dataPref, in->dataPref(false));
+			callPref(multRealKernel)(gInfo.S, VcGamma->dataPref(), in->dataPref(false));
 			break;
 		}
 		case NumericalKernel:
