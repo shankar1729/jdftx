@@ -172,8 +172,8 @@ private:
 	const vector3<>& xCenter; //!< meshCenter in original grid lattice coordinates
 	ScalarFieldTilde centerToO, centerFromO; //!< translation operators that take center to / from origin
 	vector3<> embedScale; //!< lattiec coordinates scale factor for moving from original to embedding mesh
-	int* embedIndex; //!< list of indices from original mesh to larger mesh
-	std::vector< std::pair<int,int*> > symmIndex; //!< list of number of equivalence classes and corresponding indices per cardinality for boundary symmetrization
+	IndexArray embedIndex; //!< list of indices from original mesh to larger mesh
+	std::vector< std::pair<int,IndexArray> > symmIndex; //!< list of number of equivalence classes and corresponding indices per cardinality for boundary symmetrization
 	class WignerSeitz* wsOrig; //!< Wigner-seitz cell of original mesh
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	std::shared_ptr<RealKernel> ionKernel;

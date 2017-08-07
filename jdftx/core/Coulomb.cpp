@@ -106,17 +106,17 @@ void CoulombParams::splitEfield(const matrix3<>& R, vector3<>& RT_Efield_ramp, v
 
 //--------------- class Coulomb ----------------
 
-template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<int,int*> >& symmIndex, scalar* data)
+template<typename scalar> void boundarySymmetrize(const std::vector< std::pair<int,IndexArray> >& symmIndex, scalar* data)
 {	for(unsigned n=2; n<symmIndex.size(); n++)
 		if(symmIndex[n].first)
-			callPref(eblas_symmetrize)(symmIndex[n].first, n, symmIndex[n].second, data);
+			callPref(eblas_symmetrize)(symmIndex[n].first, n, symmIndex[n].second.dataPref(), data);
 }
 
 ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	ScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex, I(centerToO * in)->dataPref(), out->dataPref());
+	callPref(eblas_scatter_daxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), I(centerToO * in)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J(out);
 }
@@ -125,7 +125,7 @@ complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	complexScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex, I(Complex(centerToO) * ((complexScalarFieldTilde&&)in))->dataPref(), out->dataPref());
+	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), I(Complex(centerToO) * ((complexScalarFieldTilde&&)in))->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J((complexScalarField&&)out);
 }
@@ -136,7 +136,7 @@ ScalarFieldTilde Coulomb::embedShrink(const ScalarFieldTilde& in) const
 	ScalarField Iin = I(in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	ScalarField out; nullToZero(out, gInfoOrig);
-	callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
+	callPref(eblas_gather_daxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), Iin->dataPref(), out->dataPref());
 	return centerFromO * J(out);
 }
 
@@ -146,7 +146,7 @@ complexScalarFieldTilde Coulomb::embedShrink(complexScalarFieldTilde&& in) const
 	complexScalarField Iin = I((complexScalarFieldTilde&&)in);
 	boundarySymmetrize(symmIndex, Iin->dataPref());
 	complexScalarField out; nullToZero(out, gInfoOrig);
-	callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex, Iin->dataPref(), out->dataPref());
+	callPref(eblas_gather_zdaxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), Iin->dataPref(), out->dataPref());
 	return Complex(centerFromO) * J((complexScalarField&&)out);
 }
 
@@ -331,15 +331,8 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 		nullToZero(centerFromO, gInfoOrig); initTranslation(centerFromO, rCenter);
 		//Setup Wigner-Seitz cell of original mesh and initialize index map:
 		wsOrig = new WignerSeitz(gInfoOrig.R);
-		embedIndex = new int[gInfoOrig.nr];
-		threadLaunch(setEmbedIndex_sub, gInfoOrig.nr, gInfoOrig.S, gInfo.S, wsOrig, embedIndex);
-		#ifdef GPU_ENABLED
-		int* embedIndexCpu = embedIndex;
-		cudaMalloc(&embedIndex, sizeof(int)*gInfoOrig.nr);
-		cudaMemcpy(embedIndex, embedIndexCpu, sizeof(int)*gInfoOrig.nr, cudaMemcpyHostToDevice);
-		gpuErrorCheck();
-		delete[] embedIndexCpu;
-		#endif
+		embedIndex.init(gInfoOrig.nr);
+		threadLaunch(setEmbedIndex_sub, gInfoOrig.nr, gInfoOrig.S, gInfo.S, wsOrig, embedIndex.data());
 		//Setup boundary symmetrization:
 		std::multimap<int,int> boundaryMap; std::mutex m;
 		threadLaunch(setEmbedBoundarySymm_sub, gInfo.nr, gInfoOrig.S, gInfo.S, wsOrig, &m, &boundaryMap);
@@ -353,7 +346,7 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 			}
 			for(; iter!=iterNext; iter++) symmEquiv[count].push_back(iter->second);
 		}
-		symmIndex.resize(symmEquiv.rbegin()->first+1, std::make_pair<int,int*>(0,0));
+		symmIndex.resize(symmEquiv.rbegin()->first+1, std::make_pair(0,IndexArray()));
 		for(const auto& entry: symmEquiv)
 		{	int n = entry.first; if(n<=1) continue; //Ignore singletons
 			int N = entry.second.size();
@@ -361,14 +354,8 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 			assert(N > 0);
 			assert(N % n == 0);
 			symmIndex[n].first = N/n;
-			#ifdef GPU_ENABLED
-			cudaMalloc(&symmIndex[n].second, sizeof(int)*N);
-			cudaMemcpy(symmIndex[n].second, srcData, sizeof(int)*N, cudaMemcpyHostToDevice);
-			gpuErrorCheck();
-			#else
-			symmIndex[n].second = new int[N];
-			memcpy(symmIndex[n].second, srcData, sizeof(int)*N);
-			#endif
+			symmIndex[n].second.init(N);
+			memcpy(symmIndex[n].second.data(), srcData, sizeof(int)*N);
 		}
 		//Range-separation for ions:
 		double hMax = std::max(gInfoOrig.h[0].length(), std::max(gInfoOrig.h[1].length(), gInfoOrig.h[2].length()));
@@ -394,24 +381,7 @@ Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
 }
 
 Coulomb::~Coulomb()
-{
-	if(wsOrig) delete wsOrig;
-	
-	if(params.embed)
-	{
-		#ifdef GPU_ENABLED
-		cudaFree(embedIndex);
-		#else
-		delete[] embedIndex;
-		#endif
-		for(std::pair<int,int*>& entry: symmIndex)
-			if(entry.first)
-				#ifdef GPU_ENABLED
-				cudaFree(entry.second);
-				#else
-				delete[] entry.second;
-				#endif
-	}
+{	if(wsOrig) delete wsOrig;
 }
 
 
