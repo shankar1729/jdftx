@@ -80,7 +80,7 @@ struct MultipoleBasis
 			RadialFunctionG jlTilde;
 			jl.transform(l, dG, nG, jlTilde);
 			//Store onto projector:
-			callPref(Vnl)(basis.nbasis, 0, 1, l, m, vector3<>(0,0,0), basis.iGarrPref, basis.gInfo->G, centerPref, jlTilde, projData+proj.index(i,0));
+			callPref(Vnl)(basis.nbasis, 0, 1, l, m, vector3<>(0,0,0), basis.iGarr.dataPref(), basis.gInfo->G, centerPref, jlTilde, projData+proj.index(i,0));
 			jlTilde.free();
 		}
 		proj *= (sqrt(4*M_PI) * cis(-l*M_PI/2)); //makes stuff real for real wavefunctions and set normalization

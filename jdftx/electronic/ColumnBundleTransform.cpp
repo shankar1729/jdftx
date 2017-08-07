@@ -27,16 +27,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(basis)
 {	//Determine bounds on iG:
 	iGbox = vector3<int>();
-	for(size_t n=0; n<basis.nbasis; n++)
+	for(const vector3<int>& iG: basis.iGarr)
 		for(int i=0; i<3; i++)
-			iGbox[i] = std::max(iGbox[i], abs(basis.iGarr[n][i]));
+			iGbox[i] = std::max(iGbox[i], abs(iG[i]));
 	//Initialize look-up table:
 	pitch[2] = 1;
 	pitch[1] = pitch[2] * (2*iGbox[2]+1);
 	pitch[0] = pitch[1] * (2*iGbox[1]+1);
 	table.assign(pitch[0] * (2*iGbox[0]+1), -1); //unused parts of box will contain -1
-	for(size_t n=0; n<basis.nbasis; n++)
-		table[dot(pitch,basis.iGarr[n]+iGbox)] = n; //valid parts of box will contain corresponding index in basis
+	size_t n=0;
+	for(const vector3<int>& iG: basis.iGarr)
+		table[dot(pitch,iG+iGbox)] = n++; //valid parts of box will contain corresponding index in basis
 }
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
@@ -55,10 +56,10 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	
 	//Initialize index map:
 	index.resize(basisC.nbasis);
-	for(size_t n=0; n<basisC.nbasis; n++)
-	{	const vector3<int>& iG_C = basisC.iGarr[n]; //C recip lattice coords
-		vector3<int> iG_D = iG_C * affine + offset; //corresponding D recip lattice coords
-		index[n] = basisDwrapper.table[dot(basisDwrapper.pitch, iG_D + basisDwrapper.iGbox)]; //use lookup table to get D index
+	int* indexPtr = index.data();
+	for(const vector3<int>& iG_C: basisC.iGarr) //for each C recip lattice coords
+	{	vector3<int> iG_D = iG_C * affine + offset; //corresponding D recip lattice coords
+		*(indexPtr++) = basisDwrapper.table[dot(basisDwrapper.pitch, iG_D + basisDwrapper.iGbox)]; //use lookup table to get D index
 	}
 	assert(*std::min_element(index.begin(), index.end()) >= 0); //make sure all entries were found
 	#ifdef GPU_ENABLED
@@ -72,10 +73,9 @@ ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& b
 	//Initialize translation phase (if necessary)
 	if(sym.a.length_squared())
 	{	phase.resize(basisC.nbasis);
-		for(size_t n=0; n<basisC.nbasis; n++)
-		{	const vector3<int>& iG_C = basisC.iGarr[n];
-			phase[n] = cis((2*M_PI)*dot(iG_C + kC, sym.a));
-		}
+		complex* phasePtr = phase.data();
+		for(const vector3<int>& iG_C: basisC.iGarr)
+			*(phasePtr++) = cis((2*M_PI)*dot(iG_C + kC, sym.a));
 		#ifdef GPU_ENABLED
 		cudaMalloc(&phaseGpu, sizeof(int)*phase.size()); gpuErrorCheck();
 		cudaMemcpy(phaseGpu, phase.data(), sizeof(int)*phase.size(), cudaMemcpyHostToDevice); gpuErrorCheck();

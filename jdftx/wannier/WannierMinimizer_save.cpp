@@ -387,9 +387,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				for(int j=0; j<3; j++)
 					fprintf(fp, "%.15g ", gInfoSuper.GT(i,j));
 			fprintf(fp, "#GT row-major (G col-major), iGarr follows:\n");
-			const vector3<int>* iGarr = basisSuper.iGarr;
-			for(size_t j=0; j<basisSuper.nbasis; j++)
-				fprintf(fp, "%d %d %d\n", iGarr[j][0], iGarr[j][1], iGarr[j][2]);
+			for(const vector3<int>& iG: basisSuper.iGarr)
+				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}

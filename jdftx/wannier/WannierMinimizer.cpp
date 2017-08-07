@@ -333,7 +333,7 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 			//--- Initialize the projector:
 			assert(od.s < nSpinor);
 			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarrPref, e.gInfo.G, pos, atRadial, temp.dataPref()+od.s*basis.nbasis);
+			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos, atRadial, temp.dataPref()+od.s*basis.nbasis);
 			if(ao.sp < 0) hRadial.free();
 			//--- Accumulate to trial orbital:
 			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);

@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MANAGEDMEMORY_H
 
 #include <core/Util.h>
-#include <core/scalar.h>
+#include <core/vector3.h>
 #include <core/BlasExtra.h>
 
 //! @addtogroup DataStructures
@@ -88,6 +88,14 @@ public:
 	size_t nData() const { return nElem; } //!< number of data points
 	bool isOnGpu() const { return onGpu; } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
 
+	//Iterator access on CPU:
+	T* begin() { return data(); } //!< pointer to start of array
+	const T* begin() const { return data(); } //!< const pointer to start of array
+	const T* cbegin() const { return data(); } //!< const pointer to start of array
+	T* end() { return data()+nElem; } //!< pointer just past end of array
+	const T* end() const { return data()+nElem; } //!< const pointer just past end of array
+	const T* cend() const { return data()+nElem; } //!< const pointer just past end of array
+
 	//Utilities to automatically select "preferred" data i.e. GPU when it is enabled, CPU otherwise
 	//This eases the overload of CPU/GPU functions based on complex vs complex
 	#ifdef GPU_ENABLED
@@ -115,6 +123,17 @@ public:
 	void dump(const char* fname, bool realPartOnly) const; //!< write as complex or real-part alone and report discarded imaginary part, if any
 	void zero(); //!< set all elements to zero
 };
+
+//! Managed array of integers (indices)
+struct IndexArray : public ManagedMemory<int>
+{	void init(size_t size, bool onGpu=false) { memInit("IndexArrays", size, onGpu); }
+};
+
+//! Managed array of integer vectors
+struct IndexVecArray : public ManagedMemory<vector3<int>>
+{	void init(size_t size, bool onGpu=false) { memInit("IndexArrays", size, onGpu); }
+};
+
 
 //Some common elementwise / vector-like operations
 template<typename T> void memcpy(ManagedMemory<T>&, const ManagedMemory<T>&); //!< copy entire object over

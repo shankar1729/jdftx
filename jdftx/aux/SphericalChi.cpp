@@ -88,8 +88,8 @@ struct SphericalFit : public Minimizable<diagMatrix>
 			int atomStride = basis.nbasis;
 			colStart.push_back(colOffset);
 			for(int m=-l; m<=l; m++)
-			{	callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarrPref, e.gInfo.G, sp.atposPref, f, U.dataPref()+colOffset*basis.nbasis);
-				callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarrPref, e.gInfo.G, sp.atposPref, df, dU.dataPref()+colOffset*basis.nbasis);
+			{	callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarr.dataPref(), e.gInfo.G, sp.atposPref, f, U.dataPref()+colOffset*basis.nbasis);
+				callPref(Vnl)(basis.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis.iGarr.dataPref(), e.gInfo.G, sp.atposPref, df, dU.dataPref()+colOffset*basis.nbasis);
 				colOffset += sp.atpos.size();
 			}
 			colStop.push_back(colOffset);

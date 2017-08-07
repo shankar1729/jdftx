@@ -281,7 +281,7 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, matrix* 
 			for(int m=-l; m<=l; m++)
 			{	size_t offs = iProj * basis.nbasis;
 				size_t atomStride = nProj * basis.nbasis;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarrPref, basis.gInfo->G, atposPref, VnlRadial[l][p], V->dataPref()+offs);
+				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarr.dataPref(), basis.gInfo->G, atposPref, VnlRadial[l][p], V->dataPref()+offs);
 				iProj++;
 			}
 	//Add to cache if necessary:

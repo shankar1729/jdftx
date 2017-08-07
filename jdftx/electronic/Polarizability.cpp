@@ -347,13 +347,12 @@ void Polarizability::dump(const Everything& e)
 		fclose(fp);
 		logPrintf("Done.\n"); logFlush();
 		//Print head:
-		int iGzero = -1;
-		for(size_t i=0; i<basis.nbasis; i++)
-			if(!basis.iGarr[i].length_squared())
-			{	iGzero = i;
-				break;
-			}
-		assert(iGzero >= 0);
+		size_t iGzero = 0;
+		for(const vector3<int>& iG: basis.iGarr)
+		{	if(!iG.length_squared()) break;
+			iGzero++;
+		}
+		assert(iGzero < basis.nbasis);
 		matrix V0(1, nColumns);
 		for(int j=0; j<nColumns; j++)
 			V0.set(0,j, V.data()[V.index(j,iGzero)]);
@@ -399,10 +398,8 @@ void Polarizability::dump(const Everything& e)
 	//G-vectors:
 	if(mpiUtil->isHead())
 	{	FILE* fp = fopen(e.dump.getFilename("pol_Gvectors").c_str(), "w");
-		for(size_t i=0; i<basis.nbasis; i++)
-		{	const vector3<int>& iG = basis.iGarr[i];
+		for(const vector3<int>& iG: basis.iGarr)
 			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
-		}
 		fclose(fp);
 	}
 	logPrintf("Done.\n");

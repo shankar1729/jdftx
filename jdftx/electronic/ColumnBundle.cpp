@@ -125,7 +125,7 @@ complexScalarFieldTilde ColumnBundle::getColumn(int i, int s) const
 	CHECK_COLUMN_INDEX
 	complexScalarFieldTilde full; nullToZero(full, gInfo); //initialize a full G-space vector to zero
 	//scatter from the i'th column to the full vector:
-	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->indexPref, dataPref()+index(i,s*basis->nbasis), full->dataPref());
+	callPref(eblas_scatter_zdaxpy)(basis->nbasis, 1., basis->index.dataPref(), dataPref()+index(i,s*basis->nbasis), full->dataPref());
 	return full;
 }
 
@@ -140,7 +140,7 @@ void ColumnBundle::accumColumn(int i, int s, const complexScalarFieldTilde& full
 {	assert(full);
 	CHECK_COLUMN_INDEX
 	//Gather-accumulate from the full vector into the i'th column
-	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1., basis->indexPref, full->dataPref(), dataPref()+index(i,s*basis->nbasis));
+	callPref(eblas_gather_zdaxpy)(basis->nbasis, 1., basis->index.dataPref(), full->dataPref(), dataPref()+index(i,s*basis->nbasis));
 }
 #undef CHECK_COLUMN_INDEX
 
@@ -161,14 +161,17 @@ void ColumnBundle::randomize(int colStart, int colStop)
 {	static StopWatch watch("ColumnBundle::randomize"); watch.start();
 	assert(basis->nbasis==colLength() || 2*basis->nbasis==colLength());
 	complex* thisData = data(); //currently only on cpu
-	for(size_t j=0; j<colLength(); j++)
-	{	size_t jBasis = (j < basis->nbasis) ? j : (j - basis->nbasis);
-		vector3<> kplusG = basis->iGarr[jBasis] + qnum->k;
+	int nSpinor = colLength()/basis->nbasis;
+	size_t j=0; //basis index
+	for(const vector3<int>& iG: basis->iGarr)
+	{	vector3<> kplusG = iG + qnum->k;
 		double KE = 0.5*dot(kplusG, basis->gInfo->GGT*kplusG);
 		double t = KE/0.75;
 		double sigma = 1.0/(1.0+t*t*t*t*t*t);
-		for(int i=colStart; i < colStop; i++)
-			thisData[index(i,j)] = Random::normalComplex(sigma);
+		for(int s=0; s<nSpinor; s++)
+			for(int i=colStart; i<colStop; i++)
+				thisData[index(i,j+s*basis->nbasis)] = Random::normalComplex(sigma);
+		j++;
 	}
 	watch.stop();
 }

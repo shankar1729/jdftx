@@ -29,29 +29,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 Basis::Basis()
 {	gInfo = 0;
 	nbasis = 0;
-	iGarr = NULL;
-	index = NULL;
-	#ifdef GPU_ENABLED
-	iGarrGpu = NULL;
-	indexGpu = NULL;
-	#endif
-	indexPref = NULL;
-	ownsData = false;
-}
-
-Basis::~Basis()
-{	if(ownsData)
-	{	gInfo = 0;
-		nbasis = 0;
-		delete[] iGarr;
-		delete[] index;
-		#ifdef GPU_ENABLED
-		cudaFree(iGarrGpu);
-		cudaFree(indexGpu);
-		#endif
-		indexPref = NULL;
-		ownsData = false;
-	}
 }
 
 Basis::Basis(const Basis& basis)
@@ -64,14 +41,7 @@ Basis& Basis::operator=(const Basis& basis)
 	nbasis = basis.nbasis;
 	iGarr = basis.iGarr;
 	index = basis.index;
-	#ifdef GPU_ENABLED
-	iGarrGpu = basis.iGarrGpu;
-	indexGpu = basis.indexGpu;
-	#endif
-	indexPref = basis.indexPref;
-	iGarrPref = basis.iGarrPref;
 	head = basis.head;
-	ownsData = false; //referenced all the other data, so don't own data
 	return *this;
 }
 
@@ -121,31 +91,15 @@ void Basis::setup(const GridInfo& gInfo, const IonInfo& iInfo,
 	this->iInfo = &iInfo;
 	
 	nbasis = iGvec.size();
-	iGarr = new vector3<int>[nbasis];
-	index = new int[nbasis];
-	memcpy(iGarr, &iGvec[0], sizeof(vector3<int>)*nbasis);
-	memcpy(index, &indexVec[0], sizeof(int)*nbasis);
-
-	#ifdef GPU_ENABLED
-	//Copy index arrays over to GPU
-	cudaMalloc(&indexGpu, sizeof(int)*nbasis);
-	cudaMalloc(&iGarrGpu, sizeof(vector3<int>)*nbasis);
-	gpuErrorCheck();
-	cudaMemcpy(indexGpu, index, sizeof(int)*nbasis, cudaMemcpyHostToDevice);
-	cudaMemcpy(iGarrGpu, iGarr, sizeof(vector3<int>)*nbasis, cudaMemcpyHostToDevice);
-	gpuErrorCheck();
-	indexPref = indexGpu;
-	iGarrPref = iGarrGpu;
-	#else
-	indexPref = index;
-	iGarrPref = iGarr;
-	#endif
+	iGarr.init(nbasis);
+	index.init(nbasis);
+	memcpy(iGarr.data(), &iGvec[0], sizeof(vector3<int>)*nbasis);
+	memcpy(index.data(), &indexVec[0], sizeof(int)*nbasis);
 
 	//Initialize head:
 	head.clear();
 	for(size_t n=0; n<nbasis; n++)
 		if(iGvec[n].length_squared() < 4) //selects 27 entries (basically [-1,+1]^3)
 			head.push_back(n);
-	
-	ownsData = true;
 }
+

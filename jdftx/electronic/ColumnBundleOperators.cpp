@@ -216,10 +216,10 @@ ColumnBundle L(const ColumnBundle &Y)
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int nSpinors = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarrGpu, Y.qnum->k, basis.gInfo->detR);
+	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
 	#else
 	threadedLoop(reducedL_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LY.data(), GGT, basis.iGarr, Y.qnum->k, basis.gInfo->detR);
+		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
 	#endif
 	return LY;
 }
@@ -236,10 +236,10 @@ ColumnBundle Linv(const ColumnBundle &Y)
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int nSpinors = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	reducedLinv_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LinvY.dataGpu(), GGT, basis.iGarrGpu, Y.qnum->k, basis.gInfo->detR);
+	reducedLinv_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LinvY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
 	#else
 	threadedLoop(reducedLinv_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LinvY.data(), GGT, basis.iGarr, Y.qnum->k, basis.gInfo->detR);
+		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LinvY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
 	#endif
 	return LinvY;
 }
@@ -265,10 +265,10 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 	const vector3<> Ge = basis.gInfo->G.column(iDir);
 	double kdotGe = dot(Y.qnum->k, Ge);
 	#ifdef GPU_ENABLED
-	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DY.dataGpu(), basis.iGarrGpu, kdotGe, Ge);
+	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
 	#else
 	threadedLoop(reducedD_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DY.data(), basis.iGarr, kdotGe, Ge);
+		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DY.data(), basis.iGarr.data(), kdotGe, Ge);
 	#endif
 	return DY;
 }
@@ -289,10 +289,10 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 	double kdotGe1 = dot(Y.qnum->k, Ge1);
 	double kdotGe2 = dot(Y.qnum->k, Ge2);
 	#ifdef GPU_ENABLED
-	reducedDD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DDY.dataGpu(), basis.iGarrGpu, kdotGe1, kdotGe2, Ge1, Ge2);
+	reducedDD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DDY.dataGpu(), basis.iGarr.dataGpu(), kdotGe1, kdotGe2, Ge1, Ge2);
 	#else
 	threadedLoop(reducedDD_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DDY.data(), basis.iGarr, kdotGe1, kdotGe2, Ge1, Ge2);
+		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DDY.data(), basis.iGarr.data(), kdotGe1, kdotGe2, Ge1, Ge2);
 	#endif
 	return DDY;
 }
@@ -315,7 +315,7 @@ void precond_inv_kinetic(ColumnBundle &Y, double KErollover)
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int  nSpinors = Y.spinorLength();
 	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(),
-		KErollover, GGT, basis.iGarrPref, Y.qnum->k, 1./basis.gInfo->detR);
+		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR);
 }
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y)
@@ -358,7 +358,7 @@ void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KErefIn)
 	const double* KErefData = KEref.data();
 	#endif
 	callPref(precond_inv_kinetic_band)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(), KErefData,
-		basis.gInfo->GGT, basis.iGarrPref, Y.qnum->k);
+		basis.gInfo->GGT, basis.iGarr.dataPref(), Y.qnum->k);
 }
 
 
@@ -370,9 +370,9 @@ ColumnBundle translate(ColumnBundle&& Y, vector3<> dr)
 	const Basis& basis = *Y.basis;
 	int nSpinors = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	translate_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), basis.iGarrGpu, Y.qnum->k, dr);
+	translate_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), basis.iGarr.dataGpu(), Y.qnum->k, dr);
 	#else
-	threadedLoop(translate_calc, basis.nbasis, basis.nbasis, Y.nCols()*nSpinors, Y.data(), basis.iGarr, Y.qnum->k, dr);
+	threadedLoop(translate_calc, basis.nbasis, basis.nbasis, Y.nCols()*nSpinors, Y.data(), basis.iGarr.data(), Y.qnum->k, dr);
 	#endif
 	return Y;
 }
@@ -390,7 +390,7 @@ void translateColumns(ColumnBundle& Y, const vector3<>* dr)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	int nSpinors = Y.spinorLength();
-	callPref(translateColumns)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(), basis.iGarrPref, Y.qnum->k, dr);
+	callPref(translateColumns)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(), basis.iGarr.dataPref(), Y.qnum->k, dr);
 }
 
 

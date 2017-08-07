@@ -419,10 +419,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				fprintf(fp, "\n");
 				//G-vectors
 				const Basis& basis = e->basis[q];
-				for(size_t i=0; i<basis.nbasis; i++)
-				{	const vector3<int>& iG = basis.iGarr[i];
+				for(const vector3<int>& iG: basis.iGarr)
 					fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
-				}
 				fprintf(fp, "\n");
 			}
 			fclose(fp);

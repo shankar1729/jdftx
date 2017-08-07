@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_BASIS_H
 #define JDFTX_ELECTRONIC_BASIS_H
 
-#include <core/vector3.h>
+#include <core/ManagedMemory.h>
 
 class GridInfo;
 class IonInfo;
@@ -37,20 +37,11 @@ public:
 	const IonInfo* iInfo; //!< pointer to the ion information (basis is conceptually ultrasoft-pseudopotential dependent)
 	
 	size_t nbasis; //!< number of basis elements (i.e. G-vectors)
-	vector3<int> *iGarr; //!< the (integer) G-vectors for the basis in recip. lattice coords
-	int *index; //!< indices of the basis functions in the FFT boxes used
-	#ifdef GPU_ENABLED
-	vector3<int> *iGarrGpu; //!< GPU copy of G-vector index coefficients
-	int *indexGpu; //!< copy of index array on the GPU
-	#endif
-	int* indexPref; //!< points to indexGpu in GPU mode and index otherwise
-	vector3<int> *iGarrPref; //!< points to iGarrGpu in GPU mode and iGarr otherwise
-	
+	IndexVecArray iGarr;
+	IndexArray index;
 	std::vector<int> head; //!< short list of low G basis locations (used for phase fixing)
 	
 	Basis();
-	~Basis();
-
 	Basis(const Basis&); //!< copy by reference
 	Basis& operator=(const Basis&); //!< copy by reference
 
@@ -61,7 +52,6 @@ public:
 	void setup(const GridInfo& gInfo, const IonInfo& iInfo, const std::vector<int>& indexVec);
 	
 private:
-	bool ownsData; //whether the pointers were allocated by this object and need to be freed
 	void setup(const GridInfo& gInfo, const IonInfo& iInfo,
 		const std::vector<int>& indexVec,
 		const std::vector< vector3<int> >& iGvec); //set the data arrays from vectors

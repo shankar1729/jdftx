@@ -36,13 +36,6 @@ int nAtomsTot(const IonInfo& iInfo)
 	return res;
 }
 
-
-inline void printGvec(const GridInfo& gInfo, const Basis& b, int i, ofstream& ofs)
-{	vector3<> Gvec = b.iGarr[i] * gInfo.G;
-	ofs << "  " << Gvec[0] << " " << Gvec[1] << " " << Gvec[2] << "\n";
-}
-
-
 struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux entries of ElecGradient
 {	const Everything& e;
 	std::vector<matrix> mask; //matrices of ones and zeroes indicating which columns are allowed to mix
@@ -262,13 +255,13 @@ void Dump::dumpQMC()
 		" Number of G-vectors\n"
 		"  " << basis.nbasis << "\n"
 		" Gx Gy Gz (au)\n";
-	size_t iG0 = 0;								  //index of the G=0 component
-	for(size_t i=0; i<basis.nbasis; i++)
-		if(basis.iGarr[i]==vector3<int>(0,0,0))
-			iG0=i;
-	printGvec(gInfo, basis, iG0, ofs);
-	for(size_t i=0; i<basis.nbasis; i++)
-		if(i!=iG0) printGvec(gInfo, basis, i, ofs);
+	vector3<> Gvec;
+	ofs << "  " << Gvec[0] << " " << Gvec[1] << " " << Gvec[2] << "\n"; //G=0
+	for(const vector3<int>& iG: basis.iGarr) //G!=0:
+		if(iG.length_squared())
+		{	vector3<> Gvec = iG * gInfo.G;		
+			ofs << "  " << Gvec[0] << " " << Gvec[1] << " " << Gvec[2] << "\n";
+		}
 	ofs <<
 		" Blip Grid\n"
 		"  " << gInfo.S[0] << " " << gInfo.S[1] << " " << gInfo.S[2] << "\n"

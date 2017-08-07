@@ -282,13 +282,12 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("done.\n"); logFlush();
 		
 		//Figure out head entry index:
-		int iHead = -1;
-		for(int n=0; n<nbasis; n++)
-			if(!basisChi[iq].iGarr[n].length_squared())
-			{	iHead = n;
-				break;
-			}
-		assert(iHead >= 0);
+		int iHead = 0;
+		for(const vector3<int>& iG: basisChi[iq].iGarr)
+		{	if(!iG.length_squared()) break;
+			iHead++;
+		}
+		assert(iHead < nbasis);
 		
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
@@ -454,7 +453,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	{	complexScalarField Inij;
 		for(int s=0; s<nSpinor; s++)
 			Inij += conjICi[event.i][s] * ICj[event.j][s];
-		callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.indexPref, J(Inij)->dataPref(), nijData);
+		callPref(eblas_gather_zdaxpy)(nbasis, 1., basis_q.index.dataPref(), J(Inij)->dataPref(), nijData);
 		nijData += nbasis;
 	}
 	watchJ.stop();
@@ -606,10 +605,8 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 		logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
 		fp = fopen(fname.c_str(), "w");
 		if(!fp) die("Failed to open '%s' for writing.\n", fname.c_str());
-		for(int n=0; n<nBasisSlab; n++)
-		{	const vector3<int>& iGn = basisChi[0].iGarr[n];
+		for(const vector3<int>& iGn: basisChi[0].iGarr)
 			fprintf(fp, "%d %d %d\n", iGn[0], iGn[1], iGn[2]);
-		}
 		fclose(fp); logPrintf("done.\n");
 	}
 	logPrintf("\n");
