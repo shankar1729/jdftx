@@ -20,31 +20,38 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_LATTICEMINIMIZER_H
 #define JDFTX_ELECTRONIC_LATTICEMINIMIZER_H
 
-#include <core/Minimize.h>
-#include <core/matrix3.h>
+#include <electronic/IonicMinimizer.h>
 
 //! @addtogroup IonicSystem
 //! @{
 //! @file LatticeMinimizer.h Class LatticeMinimizer and related definitions
 
-//Functions required by Minimizable<matrix3<>>
-void axpy(double alpha, const matrix3<>& x, matrix3<>& y); //!< accumulate operation: Y += alpha*X
-double dot(const matrix3<>& x, const matrix3<>& y); //!< inner product
-matrix3<> clone(const matrix3<>& x); //!< create a copy
-void randomize(matrix3<>& x); //!< initialize with random numbers
+//!Vector-space entry for lattice minimization (stress and forces):
+struct LatticeGradient
+{	matrix3<> lattice; //!< lattice component (stress)
+	IonicGradient ionic; //!< ionic or internal geometry component (forces)
+	
+	LatticeGradient& operator*=(double scale);
+};
+
+//Functions required by Minimizable<LatticeGradient>
+void axpy(double alpha, const LatticeGradient& x, LatticeGradient& y); //!< accumulate operation: Y += alpha*X
+double dot(const LatticeGradient& x, const LatticeGradient& y); //!< inner product
+LatticeGradient clone(const LatticeGradient& x); //!< create a copy
+void randomize(LatticeGradient& x); //!< initialize with random numbers
 
 //! Lattice minimizer
-class LatticeMinimizer : public Minimizable<matrix3<>>
+class LatticeMinimizer : public Minimizable<LatticeGradient>
 {
 public:
 	LatticeMinimizer(Everything&);
 	
 	//Virtual functions from Minimizable:
-	void step(const matrix3<>& dir, double alpha);
-	double compute(matrix3<>* grad, matrix3<>* Kgrad);
+	void step(const LatticeGradient& dir, double alpha);
+	double compute(LatticeGradient* grad, LatticeGradient* Kgrad);
 	bool report(int iter);
-	void constrain(matrix3<>&);
-	double safeStepSize(const matrix3<>& dir) const;
+	void constrain(LatticeGradient&);
+	double safeStepSize(const LatticeGradient& dir) const;
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 
 	//! Calculates the stresses along the strain directions
@@ -53,10 +60,14 @@ public:
 	//!Set of independent directions in the space of all allowed strains.
 	//!Their span is consistent with symmetries and truncation (if any).
 	std::vector<matrix3<>> strainBasis;
+
+	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
 private:
 	Everything& e;
+	IonicMinimizer imin;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
+	vector3<> K; //!< preconditioner (scale factors on each lattice gradient direction)
 	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
 	
 	double h; //! Finite difference step size

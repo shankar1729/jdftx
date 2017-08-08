@@ -23,12 +23,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
-//Functions required by Minimizable<matrix3<>>
-void axpy(double alpha, const matrix3<>& x, matrix3<>& y) { y += alpha * x; }
-double dot(const matrix3<>& x, const matrix3<>& y) { return trace(x*(~y)); }
-inline double nrm2(matrix3<>& x) { return sqrt(dot(x,x)); }
-matrix3<> clone(const matrix3<>& x) { return x; }
-void randomize(matrix3<>& x) { for(int i=0; i<3; i++) for(int j=0; j<3; j++) x(i,j) = Random::normal(); }
+//Functions required by Minimizable<LatticeGradient>
+LatticeGradient& LatticeGradient::operator*=(double scale)
+{	lattice *= scale;
+	ionic *= scale;
+	return *this;
+}
+void axpy(double alpha, const LatticeGradient& x, LatticeGradient& y)
+{	y.lattice += alpha * x.lattice;
+	axpy(alpha, x.ionic, y.ionic);
+}
+double dot(const matrix3<>& x, const matrix3<>& y)
+{	return trace(x*(~y));
+}
+double dot(const LatticeGradient& x, const LatticeGradient& y)
+{	return dot(x.lattice,y.lattice) + dot(x.ionic,y.ionic);
+}
+inline double nrm2(LatticeGradient& x) { return sqrt(dot(x,x)); }
+LatticeGradient clone(const LatticeGradient& x) { return x; }
+void randomize(LatticeGradient& x)
+{	for(int i=0; i<3; i++)
+		for(int j=0; j<3; j++)
+			x.lattice(i,j) = Random::normal();
+	randomize(x.ionic);
+}
 
 void bcast(matrix3<>& x)
 {	for(int k=0; k<3; k++)
@@ -37,7 +55,8 @@ void bcast(matrix3<>& x)
 
 //-------------  class LatticeMinimizer -----------------
 
-LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skipWfnsDrag(false)
+LatticeMinimizer::LatticeMinimizer(Everything& e)
+: e(e), imin(e), Rorig(e.gInfo.R), skipWfnsDrag(false)
 {
 	logPrintf("\n--------- Lattice Minimization ---------\n");
 	
@@ -98,13 +117,20 @@ LatticeMinimizer::LatticeMinimizer(Everything& e) : e(e), Rorig(e.gInfo.R), skip
 	}
 
 	h = 1e-5;
+	
+	//Set preconditioner (brings lattice Hessian to same dimensions as ionic):
+	for(int iDir=0; iDir<3; iDir++)
+		K[iDir] = e.cntrl.lattMoveScale[iDir] / e.gInfo.R.column(iDir).length();
 }
 
-void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
+void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 {	//Check if strain will become too large beforehand
 	//(so that we can avoid updating wavefunctions for steps that will fail)
-	if(nrm2(strain+alpha*dir) > GridInfo::maxAllowedStrain) //strain will become large
+	if(nrm2(strain+alpha*dir.lattice) > GridInfo::maxAllowedStrain) //strain will become large
 		skipWfnsDrag = true; //skip wavefunction drag till a 'real' compute occurs at an acceptable strain
+	
+	//Update atomic positions first (with associated wavefunction drag, if any):
+	imin.step(dir.ionic, alpha);
 	
 	//Project wavefunctions to atomic orbitals:
 	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
@@ -121,7 +147,7 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 		}
 	
 	//Change lattice:
-	strain += alpha * dir;
+	strain += alpha * dir.lattice;
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(e, true); // Updates lattice information but does not touch electronic state / calc electronic energy
@@ -138,12 +164,12 @@ void LatticeMinimizer::step(const matrix3<>& dir, double alpha)
 	}
 }
 
-double LatticeMinimizer::compute(matrix3<>* grad, matrix3<>* Kgrad)
+double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 {
 	//Check for large lattice strain
 	if(nrm2(strain) > GridInfo::maxAllowedStrain)
-	{	logPrintf("\nBacking of lattice step since strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
-		logPrintf("If this is a physical strain, restart calculation with these lattice vectors to prevent Pulay errors:\n");
+	{	logPrintf("\nBacking off lattice step because strain tensor has become enormous:\n"); strain.print(globalLog, "%10lg ");
+		logPrintf("If such large strain is expected, restart calculation with these lattice vectors to prevent Pulay errors:\n");
 		e.gInfo.printLattice();
 		logPrintf("\n");
 		return NAN;
@@ -153,20 +179,19 @@ double LatticeMinimizer::compute(matrix3<>* grad, matrix3<>* Kgrad)
 		return NAN;
 	}
 	
-	//! Run an ionic minimizer at the current strain
-	IonicMinimizer ionicMinimizer(e);
-	ionicMinimizer.minimize(e.ionicMinParams);
+	//! Compute energy (and ionic gradients if needed)
+	imin.compute(grad ? &grad->ionic : 0, Kgrad ? &Kgrad->ionic : 0);
 	
 	//! If asked for, returns the gradient of the strain tensor
 	if(grad)
 	{	//! Loop over all basis vectors and get the gradient.
-		*grad = matrix3<>();
+		grad->lattice = matrix3<>();
 		auto stress = calculateStress();
 		for(size_t i=0; i<strainBasis.size(); i++)
-			*grad += stress[i]*strainBasis[i];
+			grad->lattice += stress[i]*strainBasis[i];
 		
 		if(Kgrad)
-			*Kgrad = Diag(e.cntrl.lattMoveScale) * (*grad) * Diag(e.cntrl.lattMoveScale);
+			Kgrad->lattice = Diag(K) * grad->lattice * Diag(K);
 	}
 	
 	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
@@ -186,6 +211,15 @@ std::vector< double > LatticeMinimizer::calculateStress()
 	
 	return stress;
 }
+
+
+double LatticeMinimizer::minimize(const MinimizeParams& params)
+{	double result = Minimizable<LatticeGradient>::minimize(params);
+	LatticeGradient dir; dir.ionic = e.iInfo.forces; //just needs to be right size; values irrelevant since used with step size 0
+	step(dir, 0.); //so that population analysis may be performed at final positions / lattice
+	return result;
+}
+
 
 double LatticeMinimizer::centralDifference(matrix3<> direction)
 { //! Implements a central difference derivative with O(h^4)
@@ -214,25 +248,31 @@ bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n");
 	e.gInfo.printLattice();
 	e.gInfo.printReciprocalLattice();
-	logPrintf("\nStrain Tensor = \n"); strain.print(globalLog, "%10lg ");
+	logPrintf("\n# Strain Tensor:\n");
+	strain.print(globalLog, "%10lg ");
 	logPrintf("\n");
-	e.dump(DumpFreq_Lattice, iter);
-	return false;
+	return imin.report(iter); //IonicMInimizer::report will print atomic positions, forces etc.
 }
 
-void LatticeMinimizer::constrain(matrix3<>& dir)
-{	matrix3<> result;
+void LatticeMinimizer::constrain(LatticeGradient& dir)
+{	//Ionic part:
+	imin.constrain(dir.ionic);
+	//Lattice part:
+	matrix3<> latticeNew;
 	for(const matrix3<>& s: strainBasis)
-		result += s * dot(s, dir); //projection in basis
-	dir = result;
+		latticeNew += s * dot(s, dir.lattice); //projection in basis
+	dir.lattice = latticeNew;
 }
 
-double LatticeMinimizer::safeStepSize(const matrix3<>& dir) const
-{	double alphaMax = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir);
+double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const
+{	//Lattice criterion:
+	double alphaMaxLattice = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir.lattice);
 	if(nrm2(strain) < GridInfo::maxAllowedStrain) //not already at a disallowed strain
-		while(nrm2(strain+alphaMax*dir) > GridInfo::maxAllowedStrain)
-			alphaMax *= 0.5; //reduce step size further till new position will become safe
-	return alphaMax;
+		while(nrm2(strain+alphaMaxLattice*dir.lattice) > GridInfo::maxAllowedStrain)
+			alphaMaxLattice *= 0.5; //reduce step size further till new position will become safe
+	//Ionic criterion:
+	double alphaMaxIonic = imin.safeStepSize(dir.ionic);
+	return std::min(alphaMaxLattice, alphaMaxIonic); //minimum of the two criterio
 }
 
 double LatticeMinimizer::sync(double x) const

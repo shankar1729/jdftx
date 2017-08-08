@@ -12,4 +12,4 @@ ionic-minimize nIterations 10
 lattice-minimize nIterations 10
 
 dump-name latticeOpt.$VAR
-dump Lattice Lattice IonicPositions
+dump Ionic Lattice IonicPositions
