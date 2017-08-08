@@ -71,6 +71,7 @@ See \ref Compiling for setting up the code and \ref Tutorials for getting starte
 + Solvated QMC with [CASINO](https://vallico.net/casinoqmc/what-is-casino) \cite Katie-QMC
 + [Atomistic Simulation Environment](https://wiki.fysik.dtu.dk/ase/) (NEB, MD etc.)
 + Visualization: [VESTA](http://jp-minerals.org/vesta/en), [XCrySDen](http://www.xcrysden.org), [PyMOL](https://www.pymol.org) etc.
++ [Bader analysis](http://theory.cm.utexas.edu/henkelman/code/bader) (\ref createVASP script)
 </td>
 </tr></table>
 
