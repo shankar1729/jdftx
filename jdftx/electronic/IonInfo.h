@@ -59,6 +59,7 @@ public:
 	double vdWscale; //!< If non-zero, override the default scale parameter
 	
 	IonicGradient forces; //!< forces at current atomic positions
+	matrix3<> stress; //!< stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress)
 	
 	ScalarFieldTilde Vlocps; //!< Net local pseudopotential
 	ScalarFieldTilde rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)

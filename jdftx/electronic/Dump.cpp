@@ -136,7 +136,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 
-	if(ShouldDump(IonicPositions) || (ShouldDump(State) && e->ionicMinParams.nIterations>0))
+	if(ShouldDump(IonicPositions) || (ShouldDump(State) && (e->ionicMinParams.nIterations>0 || e->latticeMinParams.nIterations>0)))
 	{	StartDump("ionpos")
 		FILE* fp;
 		if (freq==DumpFreq_Dynamics) fp = mpiUtil->isHead() ? fopen(fname.c_str(), "a") : nullLog;
@@ -519,44 +519,19 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	
 	if(ShouldDump(Stress))
-	{	
-		StartDump("stress")
-		
-		//This part needs to happen on all processes (since it calls ElecVars::energyAndGrad())
-		logSuspend();
-		LatticeMinimizer lattMin(*((Everything*) e));
-		auto stress = lattMin.calculateStress();
-		matrix3<> stressTensor;
-		for(size_t i=0; i<lattMin.strainBasis.size(); i++)
-			stressTensor += stress[i]*lattMin.strainBasis[i];
-		logResume();
-		
+	{	StartDump("stress")
+		if(!e->latticeMinParams.nIterations)
+		{	//IonInfo::stress needs to be calculated:
+			//(This part needs to happen on all processes)
+			logSuspend();
+			LatticeMinimizer(*((Everything*)e)).calculateStress();
+			logResume();
+		}
 		if(mpiUtil->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
-			
-			// Dump stress in strain basis units
-			fprintf(fp, "%zu strain basis elements\n", lattMin.strainBasis.size());
-			for(const matrix3<>& s: lattMin.strainBasis)
-			{	s.print(fp, " %lg ");
-				fprintf(fp, "\n");
-			}
-			fprintf(fp, "\n\n");
-			
-			fprintf(fp, "stress (in strain units, magnitudes along directions above)\n");
-			for(size_t j=0; j<lattMin.strainBasis.size(); j++)
-			{	fprintf(fp, "%.5e \t ", stress[j]);
-			}
-			fprintf(fp, "\n\n");
-			
-			// Dump stress in lattice units
-			fprintf(fp, "stress (in strain units)");
-			for(int j=0; j<3; j++)
-			{	fprintf(fp, " \\\n\t");
-				for(int k=0; k<3; k++)
-					fprintf(fp, "%20.15lf ", stressTensor(j,k));
-			}
-
+			fprintf(fp, "# Stress tensor [Eh/a0^3]:\n");
+			e->iInfo.stress.print(fp, "%12lg ", false);
 			fclose(fp);
 		}
 		EndDump
