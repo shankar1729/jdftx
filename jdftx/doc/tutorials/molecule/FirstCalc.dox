@@ -73,6 +73,9 @@ Have a look at water.out.
 It lists the commands that were issued in the input file along with several more which have sensible defaults.
 For instance, the exchange functional defaults to GGA (<b>elec-ex-corr gga-PBE</b>).
 To use LDA instead, you would add command <b>elec-ex-corr lda</b> to the input file.
+Other commands do not have defaults, such as \ref CommandVanDerWaals to include dispersion
+interactions which standard DFT functionals miss (discussed later in \ref Dispersion tutorial);
+so don't forget to see \ref Commands for the full list of available commands.
 
 The commands section is followed by initialization of the plane-wave grid, symmetries, pseudopotentials etc.,
 and then the electronic minimization which logs the progress of the conjugate gradients minimizer

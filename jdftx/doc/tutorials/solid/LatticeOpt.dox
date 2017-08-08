@@ -15,13 +15,13 @@ but in order to test the minimizer, we'll artificially introduce a strain:
     #Save the following to Si.lattice
     lattice face-centered Cubic 11.3   #this is deliberately about 10% too large
 
-and specify the ionic positions to a separate file as well:
+Write the ionic positions to a separate file:
 
     #Save the following to Si.ionpos
     ion Si 0.00 0.00 0.00  1
     ion Si 0.30 0.30 0.30  1   #deliberately perturbed (should have been 0.25)
 
-and the input file for lattice optimization:
+and create the input file for lattice optimization:
 
     #Save the following to latticeOpt.in
     include Si.lattice
@@ -34,16 +34,15 @@ and the input file for lattice optimization:
     elec-cutoff 20 100
     
     electronic-SCF                   #Electronic state optimization
-    ionic-minimize nIterations 10    #Internal geometry optimization
-    lattice-minimize nIterations 10  #Lattice geometry optimization
+    lattice-minimize nIterations 10  #Lattice and ionic geometry optimization
     dump-name Si.$VAR
     dump Ionic State                 #Output state every geometry (ionic/lattice) step
     
 For silicon, symmetries completely determine the internal geometry
-(fractional ion coordinates), and therefore only lattice optimization is necessary.
-But in order to illustrate a more general situation, the above input
-starts from a perturbed internal geometry as well.
-Therefore, we specify commands for both ionic and lattice minimization.
+(fractional ion coordinates), but in order to illustrate a more general situation,
+the above input starts from a perturbed internal geometry as well.
+Lattice minimization updates both the lattice vectors and the internal geometry;
+the internal geometry can be constrained using zero moveScale factors in command \ref CommandIon.
 
 Run JDFTx on this input file a few times:
 
@@ -65,31 +64,27 @@ However, this means that the basis is inconsistent with the original
 This is why it is essential to rerun lattice optimizations a few times,
 especially if the initial strain is large, and stop when the
 lattice changes negligibly (around 0.1%) in a given run.
-(This issue can be mitigated partially using Pulay corrections -
+(This issue can be mitigated partially using %Pulay corrections -
 see script \ref calcPulay - but it is important to continue
 the lattice minimization over a few runs regardless.)
 
 Examine the output file.
-Note the usual ionic minimize output, which performs electronic-SCF
-repeatedly at several geometries till the forces are within threshold.
-But now additionally, there is a lattice minimizer which runs an ionic minimization at each lattice geometry.
-At the end of the ionic minimization at one lattice geometry,
-it calculates and reports the stress and strain tensors,
-following which it updates the lattice vectors and iterates.
+Note that the usual IonicMinimize output is now replaced by LatticeMinimize,
+with the overall structure of the output remaining very similar.
+The |grad|_K reported by LatticeMinimize includes both the forces
+and the stresses (with the stresses brought to the same dimensions
+as the forces by scaling with the unit cell dimensions).
+Additionally, LatticeMinimize reports the lattice vectors, strain
+and stress at every step, in addition to ionic positions and forces.
+
 Note that in the present case, the first run ends with a strain of -8.5%,
 while the second run ends with a strain less than 0.001%,
 so we can stop after the second run;
 but often more runs will be necessary.
-
-You can easily see this inner-outer minimization structure
-using "grep Minimize latticeOpt.out". In this case it only prints
-IonicMinimize and LatticeMinimize since we used electronic-SCF;
-if we didn't specify electronic-SCF, you would also see ElecMinimize in that output.
 You can also visualize the convergence of the energy using the \ref plotConvergence script.
 By default "plotConvergence latticeOpt.out" will plot the convergence every electronic iteration,
-but you can use "iterType=Ionic plotConvergence latticeOpt.out"
-or "iterType=Lattice plotConvergence latticeOpt.out" to examine
-the convergence with ionic or lattice opimization steps.
+but you can use "iterType=Lattice plotConvergence latticeOpt.out"
+to examine the convergence with lattice opimization steps.
 
 Check the final lattice vectors and internal geometry (Si.lattice and Si.ionpos).
 The final lattice is face-centered Cubic with a cubic lattice constant of 10.33 bohrs,
@@ -101,7 +96,7 @@ toward each other to fix the perturbation we introduced.
 Of course, with periodic boundary conditions and the plane-wave basis,
 this makes no difference at all.
 If we wanted to keep the first Si atom pinned to the origin,
-we could have zero'd its moveScale factor (last parameter to ion command).
+we could have zero'd its moveScale factor (in command \ref CommandIon).
 
 Finally, we can export the variation of the geometry using
 
