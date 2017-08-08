@@ -37,7 +37,7 @@ and the input file for lattice optimization:
     ionic-minimize nIterations 10    #Internal geometry optimization
     lattice-minimize nIterations 10  #Lattice geometry optimization
     dump-name Si.$VAR
-    dump Lattice State               #Output state every lattice step
+    dump Ionic State                 #Output state every geometry (ionic/lattice) step
     
 For silicon, symmetries completely determine the internal geometry
 (fractional ion coordinates), and therefore only lattice optimization is necessary.

@@ -52,7 +52,6 @@ commandDumpOnly;
 
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
-	DumpFreq_Lattice, "Lattice",
 	DumpFreq_Ionic, "Ionic",
 	DumpFreq_Gummel, "Gummel",
 	DumpFreq_Fluid, "Fluid",
@@ -61,8 +60,7 @@ EnumStringMap<DumpFrequency> freqMap
 );
 EnumStringMap<DumpFrequency> freqDescMap
 (	DumpFreq_End, "Dump specified vars at the end of the calculation",
-	DumpFreq_Lattice, "Dump specified vars every (few) lattice minimization step(s)",
-	DumpFreq_Ionic, "Dump specified vars every (few) ionic step(s)",
+	DumpFreq_Ionic, "Dump specified vars every (few) ionic / lattice step(s)",
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
 	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)",

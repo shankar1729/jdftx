@@ -35,8 +35,7 @@ enum DumpFrequency
 {	DumpFreq_End, //!< At the end of calculation
 	DumpFreq_Electronic, //!< Every (few) electronic step(s)
 	DumpFreq_Fluid, //!< Every (few) fluid step(s)
-	DumpFreq_Ionic, //!< Every (few) ionic step(s)
-	DumpFreq_Lattice, //!< Every (few) lattice step(s)
+	DumpFreq_Ionic, //!< Every (few) ionic (or lattice) optimization step(s)
 	DumpFreq_Gummel, //!< Every (few) gummel step(s)
 	DumpFreq_Dynamics, //!< Every (few) dynamic time step(s)
 	DumpFreq_Delim  //special value used as a delimiter during command processing
