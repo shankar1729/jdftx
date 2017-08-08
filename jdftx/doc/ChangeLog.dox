@@ -4,6 +4,8 @@
 
 + Added script createVASP to export structure and electron density in VASP's CHGCAR format
 
++ Updated LatticeMinimizer to jointly optimize ionic positions, rather than in an inner loop
+
 + Switched ManagedMemory to a templated version on arbitrary data types,
   and used it to handle all GPU/CPU allocations and data transfers automatically.
 
