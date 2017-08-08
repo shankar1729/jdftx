@@ -5,7 +5,7 @@ cd "$srcPath/scripts"
 
 scriptList=( ` find . -maxdepth 1 -type f -printf '%f\n' ` ) #get only files (ignore directories)
 
-echo '/** \page Scripts Scripts
+echo '/** \page Scripts Helper scripts
 
 JDFTx includes several scripts to ease input generation and process / visualize output.
 These scripts are located in the jdftx/scripts source directory.
