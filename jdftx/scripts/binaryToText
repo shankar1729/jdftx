@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Output examination and debugging
+#SYNOPSIS: Convert binary output from JDFTx to plain text
 
 if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '

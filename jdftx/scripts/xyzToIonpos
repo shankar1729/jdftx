@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Input creation
+#SYNOPSIS: Convert xyz format file to JDFTx ionpos
 
 if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
         echo '

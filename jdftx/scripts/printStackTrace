@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Output examination and debugging
+#SYNOPSIS: Print human-readable stacktrace from raw error output
 
 if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '

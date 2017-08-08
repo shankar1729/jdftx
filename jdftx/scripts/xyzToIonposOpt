@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Input creation
+#SYNOPSIS: Convert xyz file to optimally-rotated JDFTx ionpos and lattice
 
 if [ -z "$2" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '

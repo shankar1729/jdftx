@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Visualization and post-processing
+#SYNOPSIS: Create an XcrySDen Structure File from a JDFTx output file
 
 function printUsageAndExit()
 {

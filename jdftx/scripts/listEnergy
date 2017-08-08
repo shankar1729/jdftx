@@ -1,8 +1,10 @@
 #!/bin/bash
+#CATEGORY: Output examination and debugging
+#SYNOPSIS: List the last energy from several JDFTx output files
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
-	List the latest energy from JDFTx output files. Usage:
+	List the last energy from several JDFTx output files. Usage:
 	
 		listEnergy <file1> <file2> ...
 	

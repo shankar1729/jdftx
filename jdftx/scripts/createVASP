@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Visualization and post-processing
+#SYNOPSIS: Create a VASP CHGCAR file from a JDFTx output file
 
 function printUsageAndExit()
 {

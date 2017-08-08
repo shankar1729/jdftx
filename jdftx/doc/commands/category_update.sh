@@ -45,8 +45,8 @@ function processExecutable()
 	echo "-------------------------------------"
 	
 	awk '/^\/\/SectionInfo/ {print $2, $3, $4}' "$1.dox" | sort | awk '
-	{	if(($1 != catPrev)    && ($1 != "NULL")) printf("\n### %%%s\n", $1);
-		if(($2 != subCatPrev) && ($2 != "NULL")) printf("\n<i>%%%s</i>\n", $2);
+	{	if(($1 != catPrev)    && ($1 != "NULL")) {cat=$1;    gsub("_"," ",cat);    printf("\n### %%%s\n", cat);}
+		if(($2 != subCatPrev) && ($2 != "NULL")) {subCat=$2; gsub("_"," ",subCat); printf("\n<i>%%%s</i>\n", subCat);}
 		printf("\\bigsep\\ref %s\n", $3);
 		catPrev=$1; subCatPrev=$2;
 	}

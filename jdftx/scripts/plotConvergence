@@ -1,8 +1,10 @@
 #!/bin/bash
+#CATEGORY: Output examination and debugging
+#SYNOPSIS: Plot convergence in JDFTx output files using gnuplot
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '
-	Plot the convergence of JDFTx from its output files using gnuplot. Usage:
+	Plot convergence in JDFTx output files using gnuplot. Usage:
 	
 		plotConvergence <file1> <file2> ...
 	

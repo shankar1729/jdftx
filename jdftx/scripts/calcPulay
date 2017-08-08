@@ -1,4 +1,6 @@
 #!/bin/bash
+#CATEGORY: Input creation
+#SYNOPSIS: Generate pulay correction file for a pseudopotential
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo '

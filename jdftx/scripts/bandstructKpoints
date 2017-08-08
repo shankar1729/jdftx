@@ -1,8 +1,10 @@
 #!/bin/bash
+#CATEGORY: Input creation
+#SYNOPSIS: Generate a kpoint path for band structure calculations
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$#" -lt "3" ] ; then
 	echo '
-	Generate a kpoint path for band structure plots. Usage:
+	Generate a k-point path for band structure plots. Usage:
 	
 		bandstructKpoints <inFile> <dk> <outfilePrefix>
 	
