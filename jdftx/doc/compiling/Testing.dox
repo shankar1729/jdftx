@@ -1,0 +1,67 @@
+/** \page Testing Test correctness / performance
+
+After building, in the build directory, run
+
+    make test
+
+to check that the code runs correctly.
+
+If all the tests fail immediately, then the executables are not
+able to start, likely due to a runtime library path issue.
+Run ./jdftx to check the specific error messages;
+if it is a library path issue, use 'ldd ./jdftx'
+to identify all the missing libraries.
+
+If the tests take a while, but then some or all of them fail,
+most likely one of the linked libraries is behaving inconsistently.
+Try linking to alternate BLAS, LAPACK and FFT libraries, if possible.
+If you linked to MKL and found tests that fail,
+try using ForceFFTW, and if it still doesn't work, try using 
+ThreadedBlas=no. (See \ref Customization for more details.)
+
+If all the tests pass in the serial mode above,
+then you can test it with MPI using:
+
+    make testclean
+    export JDFTX_LAUNCH="mpirun -n %d"
+    make test
+
+This will invoke each test with a different optimal 
+number of MPI processes (in range 1 - 4).
+If any of these tests fail, check the MPI installation
+or try compiling with an alternate MPI, if possible.
+
+Next, if you compiled with CUDA and have a GPU available, try:
+
+    make testclean
+    export JDFTX_LAUNCH=""   #disable MPI (not needed if you have 4 GPUs)
+    export JDFTX_SUFFIX="_gpu"
+    make test
+
+If you encounter issues with the GPU test,
+try different CUDA compilation flags or a newer CUDA version, if appropriate.
+
+If the tests work, then make sure the performance is reasonable.
+Here are some approximate timings (all tests in the latest JDFTx combined)
+on selected hardware to serve as a guide:
+
+| Hardware                          | Total time |
+|:----------------------------------|-----------:|
+| 4-core laptop (i7-3632QM)         | 800 s      |
+| 16-core workstation (2x E5-2620)  | 400 s      |
+| Tesla K80: one GPU (without MPI)  | 250 s      |
+
+If the tests run substantially slower on comparable hardware
+and you compiled with MPI (even if you didn't issue mpirun explicitly),
+a very likely cause is CPU binding of threads imposed by MPI:
+try passing "--bind-to none" to mpirun (for OpenMPI).
+Also check whether linking to alternate BLAS and FFT libraries improves performance.
+Note that MPI will not likely speed up the test calculations much (or at all)
+on a single computer because JDFTx already parallelizes aggressively
+using pthreads to use all cores of the machine; just make sure that
+it does not slow down by more than 20 - 30%.
+
+The run time on Windows/Cygwin will be substantially slower,
+and there is no easy fix (in the JDFTx compilation anyway).
+
+*/

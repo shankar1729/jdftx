@@ -1,0 +1,54 @@
+/** \page Supercomputers Compiling on supercomputers
+
+## Compiling on TACC
+
+Use the GNU compilers and MKL for the easiest compilation on [TACC Stampede](https://www.tacc.utexas.edu/stampede).
+The following commands may be used to invoke cmake (assuming bash shell):
+
+    #Select gcc as the compiler:
+    module load gcc/4.7.1
+    module load mkl gsl cuda cmake fftw3
+    
+    #Configure:
+    CC=gcc CXX=g++ cmake \
+       -D EnableCUDA=yes \
+       -D EnableMKL=yes \
+       -D ForceFFTW=yes \
+       -D MKL_PATH="$TACC_MKL_DIR" \
+       -D FFTW3_PATH="$TACC_FFTW3_DIR" \
+       -D GSL_PATH="$TACC_GSL_DIR" \
+       ../jdftx-VERSION/jdftx
+    
+    make -j12
+
+Make on the login nodes (as shown above) or on the gpu queue if you loaded cuda; it should work on any machine otherwise.
+
+
+## Compiling on NERSC
+
+Use the gnu compiler and MKL to compile JDFTx on [NERSC edison/cori](http://www.nersc.gov).
+The following commands may be used to invoke cmake (assuming bash shell):
+
+    #Select the right compiler and load necessary modules
+    module swap PrgEnv-intel PrgEnv-gnu
+    module load gcc cmake gsl fftw
+    module unload darshan
+    
+    #From inside your build directory
+    #(assuming relative paths as in the generic instructions above)
+    CC="cc -dynamic -lmpich" CXX="CC -dynamic -lmpich" cmake \
+        -D EnableProfiling=yes \
+        -D EnableMKL=yes \
+        -D ForceFFTW=yes \
+        -D ThreadedBLAS=no \
+        -D GSL_PATH=${GSL_DIR} \
+        -D FFTW3_PATH=${FFTW_DIR} \
+        -D CMAKE_INCLUDE_PATH=${FFTW_INC} \
+        ../jdftx-VERSION/jdftx
+    make -j12
+
+The optional ThreadedBLAS=no line above uses single-threaded MKL with threads
+managed by JDFTx instead. This slightly reduces performance (around 5%)
+compared to using MKL threads, but MKL threads frequently lead to
+a crash when trying to create pthreads elsewhere in JDFTx on NERSC.
+*/

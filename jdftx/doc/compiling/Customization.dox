@@ -1,4 +1,4 @@
-/** \page Customization Customization
+/** \page Customization
 
 In \ref CompilingBasic we indicated [options] for the cmake command,
 but left them blank because the defaults should work fine in most cases.
@@ -20,6 +20,11 @@ and performance tweaks, and the [options] used to activate them.
   by adding <b>-D ForceFFTW=yes</b> to [options].
   We find this option to often be more reliable than using the MKL FFTs.
 
++ Set <b>-D ThreadedBlas=yes</b> or <b>no</b> to indicate
+  whether the BLAS library is multithreaded or not.
+  When used with MKL, this will automatically select whether JDFTx links
+  to the sequential or threaded layers of MKL.
+  
 + [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc)
   provides additional exchange-correlation functionals. 
   JDFTx can link to LibXC version >= 3; add <b>-D EnableLibXC=yes</b> to options,
