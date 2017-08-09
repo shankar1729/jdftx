@@ -1,0 +1,42 @@
+/** \page Dependencies Dependencies
+
+Install the following packages, depending on your system type, using your package manager (as discussed in \ref CompilingPrereq):
+
+<table>
+<tr><th> OS                        <th> Debian-based                    <th> Redhat-based             <th> Mac OS X<sup>a</sup> <th> Windows<sup>b</sup>
+<tr><td> Build tools               <td> g++ cmake                       <td> gcc-c++ cmake            <td> cmake                <td> gcc-g++ make cmake wget
+<tr><td> GNU Scientific Library    <td> libgsl0-dev                     <td> gsl-devel                <td> gsl                  <td> libgsl-devel
+<tr><td> Message Passing Interface <td> libopenmpi-dev openmpi-bin      <td> openmpi-devel<sup>c</sup><td> openmpi<sup>d</sup>  <td> libopenmpi-devel
+<tr><td> Fast Fourier Transforms   <td> libfftw3-dev                    <td> fftw-devel               <td> fftw-3               <td> libfftw3-devel
+<tr><td> Linear Algebra            <td> libatlas-base-dev liblapack-dev <td> atlas-devel              <td> atlas<sup>e</sup>    <td> liblapack-devel
+<tr><td> Postprocessing            <td colspan="4"> octave
+<tr><td> Plotting                  <td colspan="4"> gnuplot
+<tr><td> Visualization             <td colspan="4"> VESTA<sup>f</sup>
+<tr><td> Code versioning (optional)<td colspan="4"> git
+<tr><td> Offline docs (optional)   <td colspan="4"> doxygen<sup>g</sup>
+</table>
+<br>
+<sup>a</sup> Listing MacPorts package names, substitute appropriately if using Homebrew or Fink.
+<br>
+<sup>b</sup> Select packages in the Cygwin graphical installer
+<br>
+<sup>c</sup> In order to activate the MPI, you may need to issue a command such as
+"module load openmpi-SUFFIX" or "module load mpi/openmpi-SUFFIX",
+where you can find the available SUFFIX using the command "module avail openmpi"
+or "module avail mpi" (depending on the distribution version).
+You will need to invoke this command for each new shell where you plan to compile or run JDFTx,
+so it may be appropriate to add this to your shell startup script like .bashrc.
+<br>
+<sup>d</sup> Note that you may need to activate openmpi using "sudo port select mpi openmpi-VERSION";
+where you can figure out the installed VERSION string using "port select --list mpi".
+<br>
+<sup>e</sup> ATLAS is installed from source on MacPorts, and this can be very slow.
+You may replace "atlas" with "lapack" if strapped for time during installation,
+but the ATLAS version is significantly faster at run time.
+<br>
+<sup>f</sup> VESTA is not available in package managers, but can be installed directly
+on all above platforms from its [website](http://jp-minerals.org/vesta/en/download.html)
+<br>
+<sup>g</sup> With doxygen installed, you can generate offline documentation (this website)
+in the build/doc/html directory by running "make doc" in the build directory
+*/

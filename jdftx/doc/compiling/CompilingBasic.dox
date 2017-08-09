@@ -1,0 +1,53 @@
+/** \page CompilingBasic Basic compilation
+
+Download the latest JDFTx source package from [GitHub](https://github.com/shankar1729/jdftx/releases)
+into the directory where you want to install it (eg. /home/user/JDFTx), which we'll refer to as JDFTXDIR below.
+In a terminal, the following commands should unpack, configure and build jdftx:
+
+    cd JDFTXDIR                     #Replace JDFTXDIR with the path you chose
+    ls                              #This should show jdftx-VERSION.tar.gz
+    tar xvpzf jdftx-VERSION.tar.gz  #Unpack; replace X,Y,Z with the actual version numbers
+                                    #(Or for jdftx-VERSION.zip, use the unzip command)
+    
+    mkdir build                             #Create a directory for the build
+    cd build                                #and enter the build directory
+    cmake [options] ../jdftx-VERSION/jdftx  #Configure; omit [options] or see Customization below
+    make -j4                                #Compile with 4 processes (adjust as needed)
+
+Note that these commands will unpack the source to JDFTXDIR/jdftx-VERSION/jdftx,
+and once successful will produce executables jdftx, phonon and wannier
+in the JDFTXDIR/build directory.
+Note that for a basic compilation with all the dependencies mentioned above
+installed in system locations, you don't need to specify any [options] to cmake.
+
+That should be it!  You can run "make test" to check that the code
+is producing expected numbers for a few built-in test cases.
+In order to use the executable from any directory in your system,
+and to also use post-processing scripts distributed with JDFTx,
+you will need to add the build and scripts directory to your PATH:
+
+    export PATH="JDFTXDIR/build:JDFTXDIR/jdftx-VERSION/jdftx/scripts:$PATH"
+
+(Remember to replace JDFTXDIR with the actual path, eg. /home/user/JDFTx,
+and VERSION with the actual version string throughout.)
+This setting will last only for the current session if you enter it in the terminal.
+To make it persistent, add the above line to .bashrc in your home directory.
+If you need to update the code, download a newer tarball and follow the same instructions.
+
+Alternatively, if you need a recent update or plan to modify the code,
+you can get and compile the latest development version using:
+
+    cd JDFTXDIR
+    git clone https://github.com/shankar1729/jdftx.git jdftx-git
+    mkdir build
+    cd build
+    cmake [options] ../jdftx-git/jdftx
+    make -j4
+
+Note that the only difference is that git will fetch jdftx source files within
+a subdirectory called jdftx-git, so that VERSION is now "git" instead.
+
+To update the code, you can subsequently use **git pull** from within the jdftx-git directory
+to fetch latest changes from the repository, and then run cmake and make in the build directory.
+See the [git documentation](http://git-scm.com/documentation) for more details.
+*/

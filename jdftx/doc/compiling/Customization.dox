@@ -1,0 +1,105 @@
+/** \page Customization Customization
+
+In \ref CompilingBasic we indicated [options] for the cmake command,
+but left them blank because the defaults should work fine in most cases.
+Here, we'll discuss some common optional packages, features
+and performance tweaks, and the [options] used to activate them.
+
+## Finding libraries / optional libraries
+
++ If you manually installed some of the dependencies, and/or they happen to be installed
+  in non-standard locations, you can tell cmake where they are using [options].
+  For example, if you want to use a custom-installed the GNU Scientific Library in /home/user/gsl,
+  add <b>-D GSL_PATH=/home/user/gsl</b> to [options]
+  
++ You can use Intel's Math Kernel Library (MKL) to provide FFT, BLAS and LAPACK.
+  Add <b>-D EnableMKL=yes</b> to [options], and additionally specify MKL_PATH
+  as indicated above if MKL is in a non-standard location (besides /opt/intel/mkl)
+
++ You can use MKL to provide BLAS and LAPACK, but still use FFTW for Fourier transforms,
+  by adding <b>-D ForceFFTW=yes</b> to [options].
+  We find this option to often be more reliable than using the MKL FFTs.
+
++ [LibXC](http://www.tddft.org/programs/octopus/wiki/index.php/Libxc)
+  provides additional exchange-correlation functionals. 
+  JDFTx can link to LibXC version >= 3; add <b>-D EnableLibXC=yes</b> to options,
+  and if necessary specify LIBXC_PATH
+
+## Optional compilation flags
+
++ Add <b>-D EnableProfiling=yes</b> to [options] to get summaries of run times
+  per function and memory usage by object type at the end of calculations.
+
++ Adding <b>-D LinkTimeOptimization=yes</b> will enable link-time optimizations
+  (-ipo for the Intel compilers and -flto for the GNU compilers).
+  Note that this significantly slows down the final link step of the build process.
+
++ Add <b>-D StaticLinking=yes</b> to compile JDFTx statically.
+  This is necessary on Windows and is turned on automatically there.
+  It could also be useful on other platforms to compile on one machine
+  and execute on another without the compiler and support libraries installed.
+  
++ At the default optimization level, the compiled executable is not locked to specific CPU features.
+  You can enable machine specific optimizations (-march=native on gcc, -fast on icc) by adding
+  <b>-D CompileNative=yes</b> to [options].
+  Note however that this might cause your executable to be usable only on machines with CPUs
+  of the same or newer generation than the machine it was compiled on.
+  Also, this rarely provides any real performance benefits, because most
+  of the JDFTx execution time is in the BLAS and FFT libraries anyway.
+
+## Changing compilers
+
+The cmake commands in \ref CompilingBasic use the default compiler (typically g++) and reasonable optimization flags.
+Using a different compiler require environment variables rather than [options] passed to cmake.
+For example, you can use the intel compiler using the command
+(note bash-specific syntax for environment variables):
+
+    CC=icc CXX=icpc cmake [options] ../jdftx-VERSION/jdftx
+
+Make sure the environment variables for the intel compiler (path settings etc.) are loaded
+before issuing that command (see the compiler documentation / install notes).
+Of course, you would probably include -D EnableMKL=yes [options] to also use Intel MKL.
+
+Similarly, to use the Clang compiler:
+
+    CC=clang CXX=clang++ cmake [options] ../jdftx-VERSION/jdftx
+
+## GPU support
+
+For GPU support, install the [CUDA SDK](http://developer.nvidia.com/cuda-toolkit)
+(either from the website, or your package manager, if available)
+and add <b>-D EnableCUDA=yes</b> to [options].
+If you get an unsupported compiler error, comment out the GCC version check from $CUDA_DIR/include/host_config.h.
+
+Also consider compiling with the following optional flags:
+
++ <b>-D PinnedHostMemory=yes</b>: use page-locked memory on the host (CPU) to speed up memory transfers to the GPU.
+  Make sure the usage limits allow sufficient / unlimited page-locked memory (see eg. ulimit man page).
+
++ <b>-D CudaAwareMPI=yes</b>: If your MPI library supports direct transfers from GPU memory,
+  this flag will speed up MPI data transfers between GPUs.
+
++ Prior to GPU runs, consider setting the environment variable JDFTX_MEMPOOL_SIZE
+  to a large fraction of the memory size in MB / GPU.  For example, say
+  "export JDFTX_MEMPOOL_SIZE=4096" (i.e 4 GB) for a GPU with 6 GB memory.
+  This makes a single memory allocation at the start of the run, and then
+  manages memory internally, bypassing expensive cudaMalloc / cudaFree calls.
+  
+If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
+with compute capability >= 1.3, since that is the minimum for double precision.
+You may also need to specify <b>-D CUDA_ARCH=compute_xy</b> and  <b>-D CUDA_CODE=sm_xy</b>
+to match the compute architecture x.y of the oldest GPU you want to run on.
+It currently defaults to compute capability 3.5 which is the most prominent
+among compute-capable GPUs and Tesla coprocessors available today.
+See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs.
+  
+Note that you will get a real speedup only if your device has a higher memory bandwidth
+than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation.
+Also keep in mind that you need a lot of memory on the GPU to actually fit systems
+of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
+
+When you compile with GPU support, extra executables jdftx_gpu, phonon_gpu and wannier_gpu
+will be generated that will run code almost exclusively on the GPUs,
+in addition to the regular executables that only run on CPUs.
+
+*/
