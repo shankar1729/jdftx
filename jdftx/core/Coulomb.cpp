@@ -35,14 +35,9 @@ CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(fal
 
 std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) const
 {	if(geometry != Periodic)
-		logPrintf("\n---------- Setting up coulomb interaction ----------\n");
-	
-	if(geometry==Wire || geometry==Isolated)
-		Citations::add("Wigner-Seitz truncated coulomb interaction", wsTruncationPaper);
-	if((embed && geometry==Slab) || geometry==Cylindrical || geometry==Spherical)
-		Citations::add("Truncated Coulomb interaction", expandedTruncationPaper);
-	if((!embed) && geometry==Slab)
-		Citations::add("Truncated Coulomb interaction", invariantTruncationPaper);
+	{	logPrintf("\n---------- Setting up coulomb interaction ----------\n");
+		Citations::add("Truncated Coulomb potentials", wsTruncationPaper);
+	}
 	
 	if(embedFluidMode) //Use embedding box, but periodic Coulomb kernel (fluid response does the approx image separation)
 	{	logPrintf("Fluid mode embedding: using embedded box, but periodic Coulomb kernel.\n");

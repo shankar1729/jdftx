@@ -120,7 +120,6 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			break;
 		}
 		case PCM_LA12:
-		case PCM_PRA05:
 		{	if(k2factor)
 				Citations::add("Linear dielectric fluid model with ionic screening",
 					"K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)");
@@ -211,7 +210,6 @@ void PCM::updateCavity()
 			break;
 		}
 		case PCM_LA12:
-		case PCM_PRA05:
 			break; //no contribution
 		case_PCM_SCCS_any:
 		{	//Volume contribution:
@@ -352,7 +350,6 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
 		case PCM_LA12:
-		case PCM_PRA05:
 		case_PCM_SCCS_any:
 			break;
 	}

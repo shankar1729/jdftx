@@ -34,7 +34,7 @@ namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward de
 
 typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldMuEps; //!< ion chemical potentials and effective local electric field
 
-//! Nonlinear solvation models: shared electrostatci part implementation
+//! Nonlinear solvation models: shared electrostatic part implementation
 class NonlinearPCM : public PCM, public Minimizable<ScalarFieldMuEps>, public Pulay<ScalarFieldTilde>
 {
 public:

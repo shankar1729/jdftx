@@ -324,7 +324,6 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_LA12:
-		case PCM_PRA05:
 		{	nc = 7e-4;
 			sigma = 0.6;
 			cavityTension = 0.;

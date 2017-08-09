@@ -41,11 +41,26 @@ void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(dos) dos->setup(everything);
 	
-	//Add citation for QMC coupling if required (done here so that it works in dry run):
+	//Add some citations here so that they are included in a dry run:
 	for(auto dumpPair: *this)
-		if(dumpPair.second == DumpQMC)
-			Citations::add("Quantum Monte Carlo solvation",
-				"K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig, Phys. Rev. B 85, 201102(R) (2012)");
+		switch(dumpPair.second)
+		{	case DumpQMC:
+			{	Citations::add("Quantum Monte Carlo solvation",
+					"K.A. Schwarz, R. Sundararaman, K. Letchworth-Weaver, T.A. Arias and R. Hennig, Phys. Rev. B 85, 201102(R) (2012)");
+				break;
+			}
+			case DumpDvac:
+			case DumpDtot:
+			case DumpBulkEpsilon:
+			case DumpSlabEpsilon:
+			case DumpChargedDefect:
+			{	if(potentialSubtraction)
+					Citations::add("Smooth electrostatic potentials by atom-potential subtraction",
+						"R. Sundararaman and Y. Ping, J. Chem. Phys. 146, 104109 (2017)");
+				break;
+			}
+			default:; //No action necessary (needed only to suppress compiler warnings)
+		}
 }
 
 

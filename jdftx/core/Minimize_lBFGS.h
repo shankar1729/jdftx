@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @addtogroup Algorithms
 //! @{
 
-//! L-BFGS algorithm following Nocedal and Liu, Math Prog 45, 503 (1989)
+//! L-BFGS algorithm following \cite LBFGS
 template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams& p)
 {	
 	Vector g, Kg; //gradient and preconditioned gradient

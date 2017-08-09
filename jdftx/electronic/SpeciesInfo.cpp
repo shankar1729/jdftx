@@ -151,7 +151,15 @@ void SpeciesInfo::setup(const Everything &everything)
 		case Uspp: readUspp(ifs); break;
 		case UPF: readUPF(ifs); break;
 	}
-
+	
+	//Add citation for recognized sources:
+	if(potfilenameFull.find("GBRV") != string::npos)
+		Citations::add("Pseudopotentials",
+			"KF Garrity, JW Bennett, KM Rabe and D Vanderbilt, Comput. Mater. Sci. 81, 446 (2014)");
+	if(potfilenameFull.find("SG15") != string::npos)
+		Citations::add("Pseudopotentials",
+			"M Schlipf and F Gygi, Comput. Phys. Commun. 196, 36 (2015)");
+	
 	//Initialize Opsi if needed:
 	if(Qint.size())
 	{	OpsiRadial = new std::vector<std::vector<RadialFunctionG> >(psiRadial.size());

@@ -41,10 +41,10 @@ struct FluidComponent
 		PC, //!< Propylene carbonate
 		DMF, //!< Dimethylformamide
 		THF, //!< Tetrahydrofuran
-		EthylEther, //!< Diethyl ether (http://en.wikipedia.org/wiki/Diethyl_ether_(data_page))
-		Chlorobenzene, //! (http://en.wikipedia.org/wiki/Chlorobenzene)
-		Isobutanol, //! (http://en.wikipedia.org/wiki/Isobutanol)
-		CarbonDisulfide, //! (http://en.wikipedia.org/wiki/Carbon_disulfide),
+		EthylEther, //!< Diethyl ether
+		Chlorobenzene, //! Chlorobenzene
+		Isobutanol, //! Isobutanol
+		CarbonDisulfide, //! Carbon disulfide
 		DMSO, //! Dimethyl sulfoxide
 		CH2Cl2, //! Dichloromethane (methyl chloride)
 		Ethanol,
@@ -80,9 +80,9 @@ struct FluidComponent
 	
 	//!Excess functional choices
 	enum Functional
-	{	ScalarEOS, //!< Generic hard sphere + weighted density functional constrained to equation of state based on [R. Sundararaman and T.A. Arias, arXiv:1302.0026]
-		FittedCorrelations, //!< H2O functional from [J. Lischner and T. A. Arias, J. Phys. Chem. B 114, 1946 (2010)] (DEPRECATED)
-		BondedVoids, //!< H2O functional from [R. Sundararaman, K. Letchworth-Weaver and T.A. Arias, J. Chem. Phys. 137, 044107 (2012)]
+	{	ScalarEOS, //!< Generic hard sphere + weighted density functional constrained to equation of state \cite RigidCDFT \cite PolarizableCDFT
+		FittedCorrelations, //!< H2O functional from \cite FittedCorrelations (DEPRECATED)
+		BondedVoids, //!< H2O functional from \cite BondedVoids
 		MeanFieldLJ, //!< Hard sphere + mean field Lennard-Jones perturbation (useful for ions in solution)
 		FunctionalNone //!< No excess functional beyond hard spheres / electrostatics (or fex may be initialized manually)
 	};
@@ -97,7 +97,7 @@ struct FluidComponent
 	}
 	representation;
 	
-	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature (default: Octahedron) HACK: Kendra made default 7design24
+	S2quadType s2quadType; //!< Quadrature on S2 that generates the SO(3) quadrature (default: 7design24)
 	unsigned quad_nBeta, quad_nAlpha, quad_nGamma; //!< Subdivisions for euler angle outer-product quadrature
 	
 	enum TranslationMode

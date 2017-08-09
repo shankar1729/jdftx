@@ -20,6 +20,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_FLUIDSOLVERPARAMS_H
 #define JDFTX_ELECTRONIC_FLUIDSOLVERPARAMS_H
 
+//! @addtogroup Fluid
+//! @{
 //! @file FluidSolverParams.h
 //! Parameters describing the fluids in the electronic code
 
@@ -30,10 +32,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 enum FluidType
 {
 	FluidNone, //!< No fluid
-	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms
-	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms
-	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz (nonlocal PCM)
-	FluidClassicalDFT //!< Classical density functional description of fluid (EXPERIMENTAL)
+	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms \cite PCM-Kendra
+	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms \cite NonlinearPCM
+	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz \cite SaLSA
+	FluidClassicalDFT //!< Classical density functional description of fluid \cite PolarizableCDFT \cite RigidCDFT
 };
 
 enum FluidSolveFrequency
@@ -60,20 +62,19 @@ struct FmixParams
 };
 
 enum PCMVariant
-{	PCM_SaLSA, //!< Use only with fluid type SaLSA [R. Sundararaman, K. Schwarz, K. Letchworth-Weaver, and T.A. Arias, JCP 142, 054102 (2015)]
-	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model [R. Sundararaman and W.A. Goddard III, JCP 142, 064107 (2015)]
-	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]
-	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]
-	PCM_LA12, //!< Linear local-response electrolyte [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]
-	PCM_PRA05, //!< Linear local-response dielectric fluid [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]
-	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_g09beta,  //!< g09+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_g03beta,  //!< g03+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_g03pbeta, //!< g03'+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]
-	PCM_SCCS_cation,   //!< cations-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]
-	PCM_SCCS_anion     //!< anions-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]
+{	PCM_SaLSA, //!< Use only with fluid type FluidSaLSA \cite SaLSA
+	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model \cite CANDLE
+	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion \cite CavityWDA
+	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM
+	PCM_LA12, //!< Linear local-response electrolyte \cite PCM-Kendra
+	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water \cite PCM-SCCS
+	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water \cite PCM-SCCS
+	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water  \cite PCM-SCCS
+	PCM_SCCS_g09beta,  //!< g09+beta parametrization of SCCS local linear model for water \cite PCM-SCCS
+	PCM_SCCS_g03beta,  //!< g03+beta parametrization of SCCS local linear model for water \cite PCM-SCCS
+	PCM_SCCS_g03pbeta, //!< g03'+beta parametrization of SCCS local linear model for water \cite PCM-SCCS
+	PCM_SCCS_cation,   //!< cations-only parametrization of SCCS local linear model for water \cite PCM-SCCS-charged
+	PCM_SCCS_anion     //!< anions-only parametrization of SCCS local linear model for water \cite PCM-SCCS-charged
 };
 
 //! Check for any of the SCCS cases:
@@ -150,4 +151,5 @@ private:
 	std::vector< std::shared_ptr<FluidComponent> > components_, solvents_, cations_, anions_; //internal mutable versions of the public component lists
 };
 
+//! @}
 #endif // JDFTX_ELECTRONIC_FLUIDSOLVERPARAMS_H

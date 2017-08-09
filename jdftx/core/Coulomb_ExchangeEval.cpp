@@ -246,7 +246,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					Citations::add("Probe-charge Ewald method for exact exchange", "J. Paier et al, J. Chem. Phys. 122, 234102 (2005)");
 			}
 			else if(params.exchangeRegularization!=CoulombParams::None)
-				Citations::add("Exact exchange in reduced dimensionality systems", wsTruncationPaper);
+				Citations::add("Exact exchange in reduced-dimensionality systems", wsTruncationPaper);
 			break;
 		//Truncation based modes:
 		case CoulombParams::SphericalTruncated:

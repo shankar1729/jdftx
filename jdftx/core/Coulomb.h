@@ -57,10 +57,10 @@ struct CoulombParams
 	//! Regularization method for G=0 singularities in exchange
 	enum ExchangeRegularization
 	{	None, //!< No regularization (3D periodic or non-periodic systems only)
-		AuxiliaryFunction, //!< Auxiliary function method (3D periodic systems only) [P. Carrier et al, PRB 75, 205126 (2007)]
-		ProbeChargeEwald, //!< Ewald sum on a probe charge per unit cell (3D/2D/1D periodic systems) [J. Paier et al, JCP 122, 234102 (2005)]
-		SphericalTruncated, //!< Wigner-Seitz volume spherical truncation  [J. Spencer et al, PRB 77, 193110 (2008)]
-		WignerSeitzTruncated //!< Wigner-Seitz cell truncation [R. Sundararaman et al, arXiv:1302.6204]
+		AuxiliaryFunction, //!< Auxiliary function method (3D periodic systems only) \cite AuxFunc-Carrier
+		ProbeChargeEwald, //!< Ewald sum on a probe charge per unit cell (3D/2D/1D periodic systems)
+		SphericalTruncated, //!< Wigner-Seitz volume spherical truncation  \cite SphericalTruncation
+		WignerSeitzTruncated //!< Wigner-Seitz cell truncation \cite TruncatedEXX
 	};
 	ExchangeRegularization exchangeRegularization; //!< exchange regularization method
 	std::set<double> omegaSet; //!< set of exchange erf-screening parameters

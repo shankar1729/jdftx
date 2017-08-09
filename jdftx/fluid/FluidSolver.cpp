@@ -347,9 +347,7 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 
 
 FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& fsp)
-{	if(fsp.fluidType != FluidNone)
-		Citations::add("Framework of Joint Density Functional Theory", "S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
-	logPrintf("%s", fsp.initWarnings.c_str());
+{	logPrintf("%s", fsp.initWarnings.c_str());
 	switch(fsp.fluidType)
 	{	case FluidNone:
 			return 0; //No solver needed

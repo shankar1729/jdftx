@@ -241,9 +241,9 @@ void initSystem(int argc, char** argv)
 			logPrintf("Could not determine memory pool size from JDFTX_MEMPOOL_SIZE=\"%s\".\n", mempoolSizeStr);
 	}
 	
-	//Add citations to the code and general framework:
-	Citations::add("Software package", "R. Sundararaman, D. Gunceler, K. Letchworth-Weaver, K.A. Schwarz and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
-	Citations::add("Algebraic framework", "S. Ismail-Beigi and T.A. Arias, Computer Physics Communications 128, 1 (2000)");
+	//Add citations to the code for all calculations:
+	Citations::add("Software package",
+		"R. Sundararaman, D. Gunceler, K. Letchworth-Weaver, K.A. Schwarz and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
 }
 
 void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e)

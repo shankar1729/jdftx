@@ -111,7 +111,7 @@ struct CommandElecExCorr : public Command
 		#ifdef LIBXC_ENABLED
 		format += "\n\t| <funcX> <funcC>\n\t| <funcXC>";
 		comments +=
-			"The second and third lines use eXchange/Correlation functionals from libXC.\n"
+			"The second and third lines use eXchange/Correlation functionals from libXC \\cite LibXC.\n"
 			"The exact entries below will depend on the version of LibXC linked against.\n"
 			"Here, <funcX> is one of:"
 			+ addDescriptions(xcMap_X.optionList(), getLibXCdescription_X)
@@ -121,7 +121,7 @@ struct CommandElecExCorr : public Command
 			+ addDescriptions(xcMap_XC.optionList(), getLibXCdescription_XC)
 			+ ".";
 		#else
-		comments += "Additional functionals can be enabled by compiling with LibXC support.";
+		comments += "Additional functionals can be enabled by compiling with LibXC support \\cite LibXC.";
 		#endif
 	}
 

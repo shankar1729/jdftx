@@ -243,11 +243,17 @@ void ElecVars::setup(const Everything &everything)
 	}
 	
 	//Citations:
-	Citations::add("Total energy minimization",
-		"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");
-	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-		Citations::add("Direct minimization with Fermi fillings",
-			"C. Freysoldt, S. Boeck, and J. Neugebauer, Phys. Rev. B 79, 241103(R) (2009)");
+	if(!e->cntrl.scf)
+	{	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
+			Citations::add("Total energy minimization with Auxiliary Hamiltonian",
+				"C. Freysoldt, S. Boeck, and J. Neugebauer, Phys. Rev. B 79, 241103(R) (2009)");
+		else
+			Citations::add("Total energy minimization",
+				"T.A. Arias, M.C. Payne and J.D. Joannopoulos, Phys. Rev. Lett. 69, 1077 (1992)");
+	}
+	if(!std::isnan(eInfo.mu))
+		Citations::add("Grand-canonical (fixed-potential) DFT",
+			"R. Sundararaman, W. A. Goddard III and T. A. Arias, J. Chem. Phys. 146, 114104 (2017)");
 }
 
 ScalarFieldArray ElecVars::get_nXC() const

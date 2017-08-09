@@ -742,10 +742,20 @@ struct CommandChargedDefectCorrection : public Command
 		else pl.rewind();
 		//Ref potential:
 		pl.get(cd.dtotFname, string(), "DtotFile", true);
-		//Dielectric function:
+		//Dielectric function (and add citation depending on geometry):
 		switch(cd.geometry)
-		{	case CoulombParams::Periodic: pl.get(cd.bulkEps, 1., "bulkEps", true); break;
-			case CoulombParams::Slab: pl.get(cd.slabEpsFname, string(), "slabEpsFile", true); break;
+		{	case CoulombParams::Periodic:
+			{	pl.get(cd.bulkEps, 1., "bulkEps", true);
+				Citations::add("Correction scheme for charged bulk defects",
+					"C Freysoldt, J Neugebauer and C. van de Walle, Phys. Rev. Lett. 102, 016402 (2009)");
+				break;
+			}
+			case CoulombParams::Slab:
+			{	pl.get(cd.slabEpsFname, string(), "slabEpsFile", true);
+				Citations::add("Correction scheme for charged surface defects",
+					"H Komsa and A Pasquarello, Alfredo, Phys. Rev. Lett. 110, 095505 (2013)");
+				break;
+			}
 			default: throw string("coulomb-interaction must be either Slab or Periodic");
 		}
 		//Alignment potential ranges:
