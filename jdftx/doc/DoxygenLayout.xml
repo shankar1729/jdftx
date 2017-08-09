@@ -3,8 +3,10 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="pages" visible="yes" title="" intro=""/>
-    <tab type="usergroup" title="API Reference" intro="">
+	<!-- <tab type="pages" visible="yes" title="" intro=""/> -->
+    <tab type="usergroup" title="Developer's guide" url="DevGuide.html">
+      <tab type="user" title="Change log" url="ChangeLog.html"   />
+      <tab type="user" title="Contributors" url="Contributors.html"   />
       <tab type="modules" visible="yes" title="" intro=""/>
       <tab type="namespaces" visible="yes" title="">
         <tab type="namespacelist" visible="yes" title="" intro=""/>
@@ -22,7 +24,7 @@
       </tab>
     </tab>
 	<tab type="user" title="Wiki"   url="https://github.com/shankar1729/jdftx/wiki"   />
-	<tab type="user" title="Issues" url="https://github.com/shankar1729/jdftx/issues" />
+	<tab type="user" title="Report Issues" url="https://github.com/shankar1729/jdftx/issues" />
   </navindex>
 
   <!-- Layout definition for a class page -->

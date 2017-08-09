@@ -1,4 +1,4 @@
-/** \page Compiling Downloading/Compiling
+/** \page Compiling Setting up JDFTx
 
 + \subpage CompilingPrereq
 + \subpage CompilingDep
@@ -262,7 +262,7 @@ in addition to the regular executables that only run on CPUs.
 
 */
   
-/**\page Supercomputers Compiling on supercomputing clusters
+/**\page Supercomputers Compiling on supercomputers
 
 ## Compiling on TACC
 

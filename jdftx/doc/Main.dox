@@ -1,20 +1,20 @@
 /** \mainpage
 
-<table border="0" style="width:100%" ><tr>
+<table border="0"><tr>
 <td>
 + \subpage Compiling
-+ \subpage ChangeLog
-+ \subpage Tutorials
-+ \subpage Scripts
-+ \subpage Commands
-+ \subpage Interfaces
-+ \subpage Resources
-+ \subpage Contributors
-+ \subpage citelist
-+ \subpage DevGuide
-+ [<b>API Reference</b>](usergroup0.html)
++ \subpage Using
+  - \ref Tutorials
+  - \ref Commands
+  - \ref Scripts
+  - \ref Interfaces
+  - \ref Resources
++ \ref DevGuide
+  - \ref ChangeLog
+  - \ref Contributors
+  - [<b>Module list</b>](modules.html)
 + [<b>Wiki</b>](https://github.com/shankar1729/jdftx/wiki)
-+ [<b>Issues</b>](https://github.com/shankar1729/jdftx/issues)
++ [<b>Report Issues</b>](https://github.com/shankar1729/jdftx/issues)
 </td>
 <td>
 \image html jdftx-256.png
@@ -36,7 +36,7 @@ in order to express all the physics in the DFT++ algeraic framework \cite Algebr
 while simultaneously maintaining a small memory footprint and supporting
 a range of hardware architectures (such as GPUs using CUDA) without
 requiring hand-optimized implementations for each architecture.
-See \ref Compiling for setting up the code and \ref Tutorials for getting started with it.
+See \ref Compiling and \ref Using for setting up and getting started with JDFTx.
 
 ## Features
 

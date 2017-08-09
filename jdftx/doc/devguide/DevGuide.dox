@@ -1,11 +1,14 @@
-/** \page DevGuide Developer Guide
+/** \page DevGuide Developer's Guide
 
 \image html tutorials/Architecture.png
 
 The figure above outlines the overall organization of the JDFTx codebase,
 and points out some of the key classes and their interactions.
-See the [API reference](usergroup0.html) for more details about specific headers and classes.
-Within the API reference, [the modules list page](modules.html) would be a good starting point.
+Use [the modules list page](modules.html) to delve further into the
+functional organization of the code, and to find details about
+[header files](files.html) and [classes](classes.html).
+See \ref ChangeLog for the latest updates to the code, and
+\ref Contributors to get in touch with other developers.
 
 Within CMake, the overall compilation is divided into four main targets.
 Most of the functionality is compiled into a dynamic link library **libjdftx**.
