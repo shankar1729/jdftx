@@ -15,6 +15,7 @@
   - [<b>Module list</b>](modules.html)
 + [<b>Wiki</b>](https://github.com/shankar1729/jdftx/wiki)
 + [<b>Report Issues</b>](https://github.com/shankar1729/jdftx/issues)
++ [<b>References</b>](citelist.html)
 </td>
 <td>
 \image html jdftx-256.png
@@ -139,13 +140,11 @@ through interfaces, such as for Quantum Monte-Carlo (QMC) simulations in
 
 -----
 
-<table>
-<tr>
-<td>This material is based upon work supported as part of the Energy Materials Center at Cornell (EMC2),
-an Energy Frontier Research Center funded by the U.S. Department of Energy, Office of Science,
-Office of Basic Energy Sciences under Award Number DE-SC0001086. </td>
-<td> <img src="http://www.emc2.cornell.edu/img/emc2logo.png"/> </td>
-</tr>
-</table>
+<table border="0" cellpadding="5"><tr>
+<td> \image html logos/RPI.jpg </td>
+<td> \image html logos/Cornell.jpg </td>
+<td> \image html logos/jcap.jpg </td>
+<td> \image html logos/emc2.jpg </td>
+</tr></table>
 
 */
