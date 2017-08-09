@@ -1,4 +1,4 @@
-/** \page Testing Test correctness / performance
+/** \page Testing Test compiled executable
 
 After building, in the build directory, run
 
@@ -26,8 +26,9 @@ then you can test it with MPI using:
     export JDFTX_LAUNCH="mpirun -n %d"
     make test
 
-This will invoke each test with a different optimal 
-number of MPI processes (in range 1 - 4).
+This will invoke each test with a different optimal number
+of MPI processes (in range 1 - 4) on the same machine.
+(See \ref GettingStarted for more details on running the code with MPI.)
 If any of these tests fail, check the MPI installation
 or try compiling with an alternate MPI, if possible.
 

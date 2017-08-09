@@ -72,7 +72,8 @@ Note that JDFTx will pick up the number of threads per process from -c specified
 In principle, you could divide the allocated number of cores into processes and threads in any combination.
 However, JDFTx implements MPI parallelization only over k-points and certain liquid-degrees of freedom.
 Therefore, you should rarely use more nProcesses than the number of reduced k-points in your calculation
-(see nStates in the initialization section of the input file).
+(see nStates in the initialization section of the input file);
+see the \ref BrillouinZone tutorial for more details.
 Most often, you should use the fewest nProcesses and maximum nThreads (-c option)
 that accomodates your calculation over the available node configuration.
 */
