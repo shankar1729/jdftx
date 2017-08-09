@@ -24,8 +24,7 @@ EnumStringMap<PCMVariant> pcmVariantMap
 (	PCM_CANDLE,  "CANDLE",
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
-	PCM_LA12,    "LA12", 
-	PCM_PRA05,   "PRA05",
+	PCM_LA12,    "LA12",
 	PCM_SCCS_g09,      "SCCS_g09",
 	PCM_SCCS_g03,      "SCCS_g03",
 	PCM_SCCS_g03p,     "SCCS_g03p",
@@ -36,19 +35,18 @@ EnumStringMap<PCMVariant> pcmVariantMap
 	PCM_SCCS_anion,    "SCCS_anion"
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
-(	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model [R. Sundararaman and W.A. Goddard, JCP 142, 064107 (2015)]",
-	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion [R. Sundararaman, D. Gunceler and T.A. Arias, JCP 141, 134105 (2014)]", 
-	PCM_GLSSA13, "PCM with empirical cavity tension [D. Gunceler, K. Letchworth-Weaver, R. Sundararaman, K.A. Schwarz and T.A. Arias, MSMSE 21, 074005 (2013)]",
-	PCM_LA12,    "PCM with no cavitation/dispersion contributions [K. Letchworth-Weaver and T.A. Arias, Phys. Rev. B 86, 075140 (2012)]", 
-	PCM_PRA05,   "PCM with no cavitation/dispersion contributions [S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)]",
-	PCM_SCCS_g09,      "g09 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_g03,      "g03 parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_g03p,     "g03' parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_g09beta,  "g09+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_g03beta,  "g03+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_g03pbeta, "g03'+beta parametrization of SCCS local linear model for water [Andreussi et al. J. Chem. Phys. 136, 064102 (2012)]",
-	PCM_SCCS_cation,   "cations-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]",
-	PCM_SCCS_anion,    "anions-only parametrization of SCCS local linear model for water [Dupont et al., J. Chem. Phys. 139, 214110 (2013)]"
+(	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model \\cite CANDLE",
+	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion \\cite CavityWDA", 
+	PCM_GLSSA13, "PCM with empirical cavity tension \\cite NonlinearPCM",
+	PCM_LA12,    "PCM with no cavitation/dispersion contributions \\cite PCM-Kendra", 
+	PCM_SCCS_g09,      "g09 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_g03,      "g03 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_g03p,     "g03' parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_g09beta,  "g09+beta parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_g03beta,  "g03+beta parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_g03pbeta, "g03'+beta parametrization of SCCS local linear model for water \\cite PCM-SCCS",
+	PCM_SCCS_cation,   "cations-only parametrization of SCCS local linear model for water \\cite PCM-SCCS-charged",
+	PCM_SCCS_anion,    "anions-only parametrization of SCCS local linear model for water \\cite PCM-SCCS-charged"
 );
 
 struct CommandPcmVariant : public Command

@@ -59,7 +59,7 @@ See \ref Compiling and \ref Using for setting up and getting started with JDFTx.
 <td>
 <b>Fluid</b>
 + Linear solvation: GLSSA13 \cite NonlinearPCM, SCCS \cite PCM-SCCS, CANDLE \cite CANDLE
-+ Nonlinear solvation: GLSSA13 \cite NonlinearPCM
++ Nonlinear solvation: GLSSA13 \cite NonlinearPCM \cite CavityWDA
 + Nonlocal solvation: %SaLSA \cite SaLSA
 + JDFT with classical DFT fluids \cite RigidCDFT \cite PolarizableCDFT
 

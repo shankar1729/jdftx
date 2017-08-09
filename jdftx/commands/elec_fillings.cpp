@@ -30,7 +30,7 @@ EnumStringMap<ElecInfo::SmearingType> smearingTypeMap(
 EnumStringMap<ElecInfo::SmearingType> smearingTypeDescMap(
 	ElecInfo::SmearingFermi, "Use a Fermi-Dirac function for fillings",
 	ElecInfo::SmearingGauss, "Use a gaussian-based (erfc) function for fillings",
-	ElecInfo::SmearingCold, "Use the cold smearing function [PRL 82, 3296 (1999)] to approximate zero temperature" );
+	ElecInfo::SmearingCold, "Use the cold smearing function \\cite ColdSmearing to approximate zero temperature" );
 
 struct CommandElecSmearing : public Command
 {
@@ -97,7 +97,7 @@ struct CommandTargetMu : public Command
 			"\n"
 			"The default setting <outerLoop>=no directly performs variational minimization\n"
 			"or SCF in the grand canonical ensemble: keeping mu fixed throughout, letting\n"
-			"the number of electrons adjust continuously.\n"
+			"the number of electrons adjust continuously \\cite GC-DFT.\n"
 			"\n"
 			"Setting <outerLoop>=yes instead performs a sequence of conventional fixed-charge\n"
 			"optimizations, adjusting mu in an outer loop using the secant method.\n"

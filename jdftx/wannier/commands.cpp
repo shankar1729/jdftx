@@ -67,8 +67,8 @@ struct CommandWannier : public Command
 	{
 		format = "<key1> <args1...>  <key2> <args2...>  ...";
 		comments =
-			"%Control wannier calculation and output. The possible <key>'s and their\n"
-			"corresponding arguments are:\n"
+			"%Control calculation and output of maximally-localized Wannier functions \\cite MLWF.\n"
+			"The possible <key>'s and their corresponding arguments are:\n"
 			"\n+ localizationMeasure FiniteDifference | RealSpace\n\n"
 			"   Controls how the localization of the %Wannier functions is calculated.\n"
 			"   The finite-difference reciprocal space measure of Marzari and Vanderbilt\n"
@@ -85,10 +85,10 @@ struct CommandWannier : public Command
 			"   The number of bands equals the number of wannier-centers specified.\n"
 			"   Default: 0. Use in insulator calculations to ignore semi-core orbitals.\n"
 			"\n+ outerWindow <eMin> <eMax>\n\n"
-			"   Energy window within which bands contribute to wannier functions\n"
+			"   Energy window within which bands contribute to wannier functions \\cite MLWFmetal.\n"
 			"   bStart is ignored if outerWindow is specified.\n"
 			"\n+ innerWindow <eMin> <eMax>\n\n"
-			"   Inner energy window within which bands are used exactly.\n"
+			"   Inner energy window within which bands are used exactly \\cite MLWFmetal.\n"
 			"   Requires outerWindow, and innerWindow must be its subset.\n"
 			"\n+ frozenCenters <nFrozen> <filename>\n\n"
 			"   Include frozen %Wannier centers imported as unitary rotations from <filename>\n"

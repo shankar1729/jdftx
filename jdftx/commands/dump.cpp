@@ -143,7 +143,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpEcomponents,    "Components of the energy",
 	DumpBoundCharge,    "Bound charge in the fluid",
 	DumpSolvationRadii, "Effective solvation radii based on fluid bound charge distribution",
-	DumpQMC,            "Blip'd orbitals and potential for CASINO",
+	DumpQMC,            "Blip'd orbitals and potential for CASINO \\cite Katie-QMC",
 	DumpOcean,          "Wave functions for Ocean code",
 	DumpBGW,            "G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support)",
 	DumpRealSpaceWfns,  "Real-space wavefunctions (one column per file)",
@@ -689,7 +689,7 @@ struct CommandChargedDefectCorrection : public Command
 	{
 		format = "[Slab <dir>=100|010|001] <DtotFile> <bulkEps>|<slabEpsFile> <rMin> <rSigma>";
 		comments = 
-			"Calculate energy correction for bulk or surface charged defects.\n"
+			"Calculate energy correction for bulk or surface charged defects \\cite ElectrostaticPotential\n"
 			"The correction is calculated assuming the defects to be model\n"
 			"charges specified using command charged-defect.\n"
 			"\n"
@@ -814,7 +814,7 @@ struct CommandPotentialSubtraction : public Command
 	{	format = "<subtract>=yes|no";
 		comments = 
 			"Whether to subtract neutral atom potentials in dumped potentials (Dtot and Dvac).\n"
-			"This subtraction produces much smoother potentials and is enabled by default.";
+			"This subtraction produces much smoother potentials and is enabled by default \\cite ElectrostaticPotential.";
 	}
 	
 	void process(ParamList& pl, Everything& e)

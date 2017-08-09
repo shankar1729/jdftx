@@ -197,19 +197,19 @@ struct CommandExchangeRegularization : public Command
 			"    recommended due to extremely poor convergence with number of k-points.\n"
 			"\n+ AuxiliaryFunction\n\n"
 			"    G=0 modification based on numerical integrals of an auxiliary\n"
-			"    function, as described in P. Carrier et al, PRB 75, 205126 (2007).\n"
+			"    function, as described in Ref. \\cite AuxFunc-Carrier\n"
 			"    Allowed for 3D/2D/1D periodic systems.\n"
 			"\n+ ProbeChargeEwald\n\n"
 			"    G=0 modification based on the Ewald sum of a single point charge\n"
 			"    per k-point sampled supercell. Valid for 3D/2D/1D periodic systems.\n"
 			"\n+ SphericalTruncated\n\n"
 			"    Truncate exchange kernel on a sphere whose volume equals the k-point\n"
-			"    sampled supercell, as in J. Spencer et al, PRB 77, 193110 (2008).\n"
+			"    sampled supercell, as in Ref. \\cite SphericalTruncation.\n"
 			"    Allowed for any (partially) periodic <geometry>, but is recommended\n"
 			"    only when the k-point sampled supercell is roughly isotropic.\n"
 			"\n+ WignerSeitzTruncated\n\n"
 			"    Truncate exchange kernel on the Wigner-Seitz cell of the k-point\n"
-			"    sampled supercell, as in R. Sundararaman et al, PRB 87, 165122 (2013).\n"
+			"    sampled supercell, as in Ref. \\cite TruncatedEXX.\n"
 			"    Default for any (partially) periodic <geometry>.";
 		hasDefault = true;
 		require("coulomb-interaction");
