@@ -1,4 +1,4 @@
-/** \page Customization
+/** \page Customization Customization
 
 In \ref CompilingBasic we indicated [options] for the cmake command,
 but left them blank because the defaults should work fine in most cases.
