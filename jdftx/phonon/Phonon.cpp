@@ -144,8 +144,8 @@ void Phonon::dump()
 	}
 
 	//Calculate free energy (properly handling singularities at Gamma point):
-	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<int>); //implemented below
-	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ(sup);
+	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<bool>); //implemented below
+	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ(e.coulombParams.isTruncated());
 	int ikStart, ikStop;
 	TaskDivision(quad.size(), mpiUtil).myRange(ikStart, ikStop);
 	double ZPE = 0., Evib = 0., Avib = 0.;
@@ -242,10 +242,10 @@ void addQuadratureBZ_scale(std::vector< std::pair<vector3<>,double> >& quad, dou
 		if(ig.length_squared()) //except the center box
 			addQuadratureBZ_box(quad, scaleBy3, scaleBy3*ig, dim);
 }
-std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<int> sup)
+std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<bool> isTruncated)
 {	vector3<int> dim;
 	for(int j=0; j<3; j++)
-		dim[j] = (abs(sup[j])>1 ? 1 : 0);
+		dim[j] = (isTruncated[j] ? 0 : 1);
 	std::vector< std::pair<vector3<>,double> > quad;
 	for(double scale=1.; scale>1e-3; scale/=3.)
 		addQuadratureBZ_scale(quad, scale, dim);
