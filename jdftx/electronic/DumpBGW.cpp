@@ -168,7 +168,7 @@ void Dump::dumpBGW()
 	//--- G-vectors:
 	iGarr.clear();
 	for(int q=0; q<nReducedKpts; q++)
-		iGarr.insert(iGarr.end(), e->basis[q].iGarr, e->basis[q].iGarr+nBasis[q]);
+		iGarr.insert(iGarr.end(), e->basis[q].iGarr.begin(), e->basis[q].iGarr.end());
 	hsize_t dimsGwfns[2] = { iGarr.size(), 3 };
 	h5writeVector(gidWfns, "gvecs", &iGarr[0][0], dimsGwfns, 2);
 	//--- Coefficients:
