@@ -243,7 +243,8 @@ void initSystem(int argc, char** argv)
 	
 	//Add citations to the code for all calculations:
 	Citations::add("Software package",
-		"R. Sundararaman, D. Gunceler, K. Letchworth-Weaver, K.A. Schwarz and T.A. Arias, JDFTx, available from http://jdftx.sourceforge.net (2012)");
+		"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, D. Gunceler, Y. Ozhabes and T.A. Arias, "
+		"'JDFTx: software for joint density-functional theory', arXiv:1708.03621 (2017)");
 }
 
 void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e)
