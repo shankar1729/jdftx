@@ -105,7 +105,7 @@ H    0 -0.75799 -0.50847
 </pre><p>The first line is the number of atoms, the second line is a comment line that is ignored, and the subsequent lines specify the atom type and cartesian coordinates in Angstroms.</p>
 <p>Now, we can use the script xyzToIonposOpt from the JDFTx scripts directory to convert this to JDFTx input (see <a class="el" href="GettingStarted.html">Getting started</a> to add this directory to your run PATH, or specify full path to script below): </p>
 <pre class="fragment">xyzToIonposOpt water.xyz 15
-</pre><p>This script outputs ionic positions in water.ionpos and lattice vectors in water.lattice after centering the molecule at the origin and rotating it such that you can use the smallest box with a periodic image distance of 10 bohrs. Using these outputs, we can create the input file water.in: </p>
+</pre><p>This script outputs ionic positions in water.ionpos and lattice vectors in water.lattice after centering the molecule at the origin and rotating it such that you can use the smallest box with a periodic image distance of 15 bohrs. Using these outputs, we can create the input file water.in: </p>
 <pre class="fragment">include water.lattice
 include water.ionpos
 coords-type cartesian
