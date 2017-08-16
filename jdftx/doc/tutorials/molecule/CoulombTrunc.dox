@@ -30,7 +30,7 @@ Now, we can use the script xyzToIonposOpt from the JDFTx scripts directory to co
 
 This script outputs ionic positions in water.ionpos and lattice vectors in water.lattice after
 centering the molecule at the origin and rotating it such that you can use the smallest box 
-with a periodic image distance of 10 bohrs.
+with a periodic image distance of 15 bohrs.
 Using these outputs, we can create the input file water.in:
 
     include water.lattice
