@@ -31,8 +31,7 @@ you will need to add the build and scripts directory to your PATH:
 (Remember to replace JDFTXDIR with the actual path, eg. /home/user/JDFTx,
 and VERSION with the actual version string throughout.)
 This setting will last only for the current session if you enter it in the terminal.
-To make it persistent, add the above line to .bashrc in your home directory.
-If you need to update the code, download a newer tarball and follow the same instructions.
+To make it persistent, add the above line to **.bashrc** in your home directory. For Mac users, add the above line to **.bash_profile** in your home directory. If you need to update the code, download a newer tarball and follow the same instructions.
 
 Alternatively, if you need a recent update or plan to modify the code,
 you can get and compile the latest development version using:
