@@ -20,6 +20,12 @@
 <script type="text/javascript">
   $(document).ready(function() { searchBox.OnSelectItem(0); });
 </script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+});
+</script><script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -98,9 +104,9 @@ $(document).ready(function(){initNavTree('DirectTransitions.html','');});
 <p>This tutorial will introduce more complicated post-processing techniques using MLWF-based <em>ab initio</em> tight-binding models. Here, we will calculate the frequency-dependent imaginary part of the dielectric function for aluminum, accounting for direct interband transitions.</p>
 <p>The simplest mechanism of light absorption in materials is the direct excitation of an electron from an occupied state to an unoccupied state, absorbing one photon. Energy conservation requires that the difference between these states equals the energy of the photon. In solids, momentum conservation implies that the initial and final state are at the same k point because photons have negligible momentum at the electronic scale. Using perturbation theory and Fermi's golden rule, we can calculate the rate of this process for a given light intensity. From this rate, we can determine the corresponding imaginary part of the dielectric function as:</p>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \mathrm{Im}\epsilon(\omega) = \frac{4\pi^2 e^2}{3m_e^2\omega^2 \Omega} \int_{\mathrm{BZ}} \frac{2d\vec{k}}{V_{\mathrm{BZ}}} \sum_{n'n} (f_{\vec{k}n} - f_{\vec{k}n'}) \delta(\varepsilon_{\vec{k}n'} - \varepsilon_{\vec{k}n} - \hbar\omega) \left| \langle\vec{p}\rangle^{\vec{k}}_{n'n} \right|^2, \]" src="form_0.png"/>
+\[ \mathrm{Im}\epsilon(\omega) = \frac{4\pi^2 e^2}{3m_e^2\omega^2 \Omega} \int_{\mathrm{BZ}} \frac{2d\vec{k}}{V_{\mathrm{BZ}}} \sum_{n&#39;n} (f_{\vec{k}n} - f_{\vec{k}n&#39;}) \delta(\varepsilon_{\vec{k}n&#39;} - \varepsilon_{\vec{k}n} - \hbar\omega) \left| \langle\vec{p}\rangle^{\vec{k}}_{n&#39;n} \right|^2, \]
 </p>
-<p>where <img class="formulaInl" alt="$\Omega$" src="form_1.png"/> is the unit cell volume, <img class="formulaInl" alt="$\varepsilon_{\vec{k}n}$" src="form_2.png"/> and <img class="formulaInl" alt="$f_{\vec{k}n}$" src="form_3.png"/> are Kohn-Sham eigenvalues and occupations respectively, and <img class="formulaInl" alt="$\langle\vec{p}\rangle^{\vec{k}}_{n'n}$" src="form_4.png"/> are the momentum matrix elements connecting band <em>n</em> and <em>n'</em> at Bloch wave-vector <em>k</em>. The integral averages over the Brillouin zone, and the delta function implements energy conservation. See <a href="http://dx.doi.org/10.1021/acsnano.5b06199">this paper</a> for more details; small differences here include a factor of 2 for spin degeneracy since we will use a non-relativistic calculation, and an average over spatial directions for an isotropic material that yields the factor of 3 in the denominator.</p>
+<p>where \(\Omega\) is the unit cell volume, \(\varepsilon_{\vec{k}n}\) and \(f_{\vec{k}n}\) are Kohn-Sham eigenvalues and occupations respectively, and \(\langle\vec{p}\rangle^{\vec{k}}_{n&#39;n}\) are the momentum matrix elements connecting band <em>n</em> and <em>n'</em> at Bloch wave-vector <em>k</em>. The integral averages over the Brillouin zone, and the delta function implements energy conservation. See <a href="http://dx.doi.org/10.1021/acsnano.5b06199">this paper</a> for more details; small differences here include a factor of 2 for spin degeneracy since we will use a non-relativistic calculation, and an average over spatial directions for an isotropic material that yields the factor of 3 in the denominator.</p>
 <p>In the <a href="EntangledBands.html">previous tutorial</a>, we generated an <em>ab initio</em> tight-binding Hamiltonian for aluminum, which allows us to calculate the Kohn-Sham eigenvalues at arbitrary k. The occupation factors are 1 for eigenvalues smaller than mu, and 0 for those above mu. (The intermediate occupations for eigenvalues within k<sub>B</sub>T of mu contribute negligibly for optical properties.) We also output the momentum matrix elements using the saveMomenta option of the <a class="el" href="CommandWannier.html">wannier</a> command. We will now use these outputs to calculate ImEps for aluminum: </p>
 <pre class="fragment">#Save the following to WannierImEps.py:
 import numpy as np

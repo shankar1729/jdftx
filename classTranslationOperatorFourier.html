@@ -20,6 +20,12 @@
 <script type="text/javascript">
   $(document).ready(function() { searchBox.OnSelectItem(0); });
 </script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+});
+</script><script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -175,7 +181,7 @@ const <a class="el" href="classGridInfo.html">GridInfo</a> &amp;&#160;</td><td c
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Compute <img class="formulaInl" alt="$ y += alpha T_t(x) $" src="form_6.png"/> , where <img class="formulaInl" alt="$ T_t $" src="form_7.png"/> is the translation operator <img class="formulaInl" alt="$ T_t(x(r)) = x(r+t) $" src="form_8.png"/> modulo the lattice vectors T must conserve integral(x) and satisfy <img class="formulaInl" alt="$ T^{\dagger}_t = T_{-t} $" src="form_9.png"/> exactly for gradient correctness Note that <img class="formulaInl" alt="$ T^{-1}_t = T_{-t} $" src="form_10.png"/> may only be approximately true for some implementations. </p>
+<p>Compute \( y += alpha T_t(x) \) , where \( T_t \) is the translation operator \( T_t(x(r)) = x(r+t) \) modulo the lattice vectors T must conserve integral(x) and satisfy \( T^{\dagger}_t = T_{-t} \) exactly for gradient correctness Note that \( T^{-1}_t = T_{-t} \) may only be approximately true for some implementations. </p>
 
 <p>Implements <a class="el" href="classTranslationOperator.html#a959e9b996ec3be6280c440dc694981ff">TranslationOperator</a>.</p>
 

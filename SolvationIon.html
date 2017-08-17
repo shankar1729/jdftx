@@ -20,6 +20,12 @@
 <script type="text/javascript">
   $(document).ready(function() { searchBox.OnSelectItem(0); });
 </script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+});
+</script><script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -177,9 +183,9 @@ jdftx -i vibrations.in | tee $CONFIG-vibrations.out
 </table>
 <p>Notice that the vibrational contribution almost cancels out in the difference, because the reactants and the products all have the same number of O-H bonds of comparable stiffness. This will not be true in general though, and vibration calculations are usually necessary for reliable free energies.</p>
 <p>The reaction free energy, DeltaA, calculated above sets the equilibrium:</p>
-<p>exp(-DeltaA/kT) = [H3O+][OH-]/[H2O]<sup>2</sup></p>
+<p>\( exp(\frac{-\triangle A}{kT}) = \frac{[H3O+][OH-]}{[H2O]^2} \)</p>
 <p>Using its definition, the dissociation constant of water is therefore:</p>
-<p>pKw = -log<sub>10</sub>([H3O+][OH-]) = DeltaA/(2.303 kT) - 2 log<sub>10</sub>[H2O]</p>
+<p>\( pK_w = -log_{10}([H3O+][OH-]) = \frac{\triangle A}{2.303 kT} - 2 log_{10}[H2O] \)</p>
 <p>With kT = 0.000944 Hartrees and [H2O] = 55.5M at standard temperature and pressure, CANDLE therefore predicts pKw = 17.5 in good agreement with the well-known experimental value pKw = 14.</p>
 <p>In contrast, rerunning all the above calculations with the GLSSA13 <a class="el" href="classLinearPCM.html" title="Linear solvation models: shared electrostatics implementation. ">LinearPCM</a> (what all would you change in the input file?), which once again is identical to VASPsol and vey similar to SCCS, we get the results:</p>
 <table class="doxtable">

@@ -20,6 +20,12 @@
 <script type="text/javascript">
   $(document).ready(function() { searchBox.OnSelectItem(0); });
 </script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+});
+</script><script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -117,7 +123,7 @@ dump End ElecDensity    #Save the self-consistent electron density
 dump End EigStats       #Get eigenvalue statistics
 </pre><p>which we run with </p>
 <pre class="fragment">mpirun -n 4 jdftx -i totalE.in | tee totalE.out
-</pre><p>Note the new command CommandElectronicSCF, which uses a different algorithm from the variational minimize to solve the Kohn-Sham equations. Essentially, Kohn-Sham eigenvalues and orbitals are calculated for an input potential, and a new density and potential are constructed from those orbitals. This output potential would in general be different from the input one, so the above step is repeated with successive guesses for the input potential until the input and output potentials become identical (within some threshold). In practice, the guess for the input potential at one step is based on input and output potentials from several previous steps (Pulay algorithm).</p>
+</pre><p>Note the new command <a class="el" href="CommandElectronicScf.html">electronic-scf</a>, which uses a different algorithm from the variational minimize to solve the Kohn-Sham equations. Essentially, Kohn-Sham eigenvalues and orbitals are calculated for an input potential, and a new density and potential are constructed from those orbitals. This output potential would in general be different from the input one, so the above step is repeated with successive guesses for the input potential until the input and output potentials become identical (within some threshold). In practice, the guess for the input potential at one step is based on input and output potentials from several previous steps (Pulay algorithm).</p>
 <p>Examine the output file: instead of ElecMinimize lines, you will find lines starting with SCF, which report the change in energy and eigenvalues between "cycles". This algorithm is usually faster than the variational minimize, but unlike the default minimize algorithm, it is not guaranteed to converge.</p>
 <p>Note that whether we used SCF or Minimize is not important for the remainder of this tutorial demonstrating band structure calculations; we will interchangeably use both algorithms for total energy calculations from now on to gain familiarity with both.</p>
 <p>Next, we list high-symmetry points in the Brillouin zone laying out a path along which we want the band structure: </p>
