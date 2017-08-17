@@ -164,11 +164,11 @@ and vibration calculations are usually necessary for reliable free energies.
 
 The reaction free energy, DeltaA, calculated above sets the equilibrium:
 
-exp(-DeltaA/kT) = [H3O+][OH-]/[H2O]<sup>2</sup>
+\f$ exp(\frac{-\triangle A}{kT}) = \frac{[H3O+][OH-]}{[H2O]^2} \f$
 
 Using its definition, the dissociation constant of water is therefore:
 
-pKw = -log<sub>10</sub>([H3O+][OH-]) = DeltaA/(2.303 kT) - 2 log<sub>10</sub>[H2O]
+\f$ pK_w = -log_{10}([H3O+][OH-]) = \frac{\triangle A}{2.303 kT} - 2 log_{10}[H2O] \f$
 
 With kT = 0.000944 Hartrees and [H2O] = 55.5M at standard temperature and pressure,
 CANDLE therefore predicts pKw = 17.5 in good agreement

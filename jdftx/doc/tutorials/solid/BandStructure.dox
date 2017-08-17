@@ -37,7 +37,7 @@ which we run with
 
     mpirun -n 4 jdftx -i totalE.in | tee totalE.out
 
-Note the new command \ref CommandElectronicSCF, which uses a different algorithm
+Note the new command \ref CommandElectronicScf, which uses a different algorithm
 from the variational minimize to solve the Kohn-Sham equations.
 Essentially, Kohn-Sham eigenvalues and orbitals are calculated for an input potential,
 and a new density and potential are constructed from those orbitals.
