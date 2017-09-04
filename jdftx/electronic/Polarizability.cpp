@@ -170,8 +170,14 @@ private:
 };
 
 inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
-{	for(int b=bStart; b<bStop; b++)
-		Krho->setColumn(b,0, (*(e->coulomb))(rho->getColumn(b,0), dk, 0.));
+{	const GridInfo& gInfoWfns = *(rho->basis->gInfo);
+	for(int b=bStart; b<bStop; b++)
+	{	complexScalarFieldTilde rho_b = rho->getColumn(b,0);
+		if(&gInfoWfns != &e->gInfo) rho_b = changeGrid(rho_b, e->gInfo);
+		complexScalarFieldTilde Krho_b = (*(e->coulomb))(rho_b, dk, 0.);
+		if(&gInfoWfns != &e->gInfo) Krho_b = changeGrid(Krho_b, gInfoWfns);
+		Krho->setColumn(b,0, Krho_b);
+	}
 }
 
 matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
