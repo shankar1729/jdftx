@@ -87,7 +87,9 @@ void Phonon::setup(bool printDefaults)
 	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
 
 	//Determine optimum number of bands for supercell calculation:
-	nBandsOpt = 0;
+	nBandsOpt = (e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+		? 1+int(ceil(e.eInfo.nElectrons/e.eInfo.qWeightSum)) //make sure extra band present for smearing
+		: 0; //no smearing: tightest number of bands acceptable
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int nBands_q = std::upper_bound(e.eVars.F[q].begin(), e.eVars.F[q].end(), Fcut, std::greater<double>()) - e.eVars.F[q].begin();
 		nBandsOpt = std::max(nBandsOpt, nBands_q);
