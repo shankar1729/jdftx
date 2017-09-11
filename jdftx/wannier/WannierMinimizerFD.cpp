@@ -52,7 +52,9 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	matrix U, Vdag; diagMatrix S;
 	Lhs.svd(U, S, Vdag);
 	for(double& s: S) s = (s<symmThreshold) ? 0. : 1./s; //invert and zero out small singular values
-	matrix wShells = dagger(Vdag) * S * dagger(U(0,nEquations, 0,nShells)) * rhs;
+	matrix wShells = (nShells < nEquations)
+			? ( dagger(Vdag) * S * dagger(U(0,nEquations, 0,nShells)) * rhs )
+			: ( dagger(Vdag(0,nEquations, 0,nShells)) * S * dagger(U) * rhs );
 	if(nrm2(Lhs * wShells - rhs) > symmThreshold) //check solution by substitution
 		return std::vector<double>(); //Not an exact solution, so quit (and try with more shells)
 	//Store the weights in the original indexing:

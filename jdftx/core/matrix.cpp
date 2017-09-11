@@ -202,8 +202,8 @@ matrix matrix::operator()(int iStart, int iStep,  int iStop, int jStart, int jSt
 	assert(iStart>=0 && iStart<nr);
 	assert(iStop>iStart && iStop<=nr);
 	assert(iStep>0);
-	assert(jStart>=0 || jStart<nc);
-	assert(jStop>jStart || jStop<=nc);
+	assert(jStart>=0 && jStart<nc);
+	assert(jStop>jStart && jStop<=nc);
 	assert(jStep>0);
 	
 	int iDelta = ceildiv(iStop-iStart, iStep), jDelta = ceildiv(jStop-jStart, jStep);
