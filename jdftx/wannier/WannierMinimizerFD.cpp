@@ -76,12 +76,21 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
 	const Supercell& supercell = *(e.coulombParams.supercell);
 	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
+	//--- determine maximum dk among lattice directions:
+	double dkMax = 0.;
+	for(int iDir=0; iDir<3; iDir++)
+		dkMax = std::max(dkMax, kbasis.column(iDir).length());
+	//--- determine ik bounding box to contain dkMax sphere (with margins)
+	vector3<int> ikBound;
+	const matrix3<> kbasisInvT = ~inv(kbasis);
+	for(int iDir=0; iDir<3; iDir++)
+		ikBound[iDir] = std::max(2, 1+int(ceil(dkMax * kbasisInvT.column(iDir).length())));
+	//--- collect non-zero dk's within ik boudning box in ascending order of magnitude:
 	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
 	vector3<int> ik;
-	const int ikBound = 2;
-	for(ik[0]=-ikBound; ik[0]<=+ikBound; ik[0]++)
-	for(ik[1]=-ikBound; ik[1]<=+ikBound; ik[1]++)
-	for(ik[2]=-ikBound; ik[2]<=+ikBound; ik[2]++)
+	for(ik[0]=-ikBound[0]; ik[0]<=+ikBound[0]; ik[0]++)
+	for(ik[1]=-ikBound[1]; ik[1]<=+ikBound[1]; ik[1]++)
+	for(ik[2]=-ikBound[2]; ik[2]<=+ikBound[2]; ik[2]++)
 		if(ik.length_squared()) //ignore self
 		{	vector3<> dk = kbasis * ik;
 			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
