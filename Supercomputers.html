@@ -122,6 +122,7 @@ make -j12
 module swap PrgEnv-intel PrgEnv-gnu
 module load gcc cmake gsl fftw
 module unload darshan
+export CRAYPE_LINK_TYPE="dynamic"
 
 #From inside your build directory
 #(assuming relative paths as in the generic instructions above)
