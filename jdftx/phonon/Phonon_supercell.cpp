@@ -44,7 +44,9 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 			Uparams.Vext.resize(spOut.atpos.size());
 		nAtomsTot += spOut.atpos.size();
 	}
-
+	if(eSup->symm.sym.size()) eSup->symm.sym = eSupTemplate.symm.sym; //use supercell version of manual symmetry matrices (if any)
+	eSup->symm.isPertSup = true; //perturbed supercell; atom positions will reduce instead of check manual symmetries (if any)
+	
 	//Remove unit cell initial state settings (incompatible with supercell):
 	eSup->eVars.skipWfnsInit = true; //skip because wavefunctions are set from unit cell calculation
 	eSup->eVars.wfnsFilename.clear();
