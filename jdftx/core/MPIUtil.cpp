@@ -24,13 +24,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <climits>
 #include <core/Random.h>
 
-MPIUtil::MPIUtil(int argc, char** argv)
+MPIUtil::MPIUtil(int argc, char** argv, MPIUtil *parent_MPIUtil)
 {
 	#ifdef MPI_ENABLED
-	int rc = MPI_Init(&argc, &argv);
-	if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
-	MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
-	MPI_Comm_rank(MPI_COMM_WORLD, &iProc);
+
+	if (parent_MPIUtil == NULL) {
+		int rc = MPI_Init(&argc, &argv);
+		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
+		comm = MPI_COMM_WORLD;
+	}
+	// else {
+		// MPI_Comm parent_comm = parent_MPIUtil.comm;
+		// use the appropriate MPI_Comm and assign it to 'comm'
+	// }
+	MPI_Comm_size(comm, &nProcs);
+	MPI_Comm_rank(comm, &iProc);
 	#else
 	//No MPI:
 	nProcs = 1;
@@ -50,7 +58,7 @@ MPIUtil::~MPIUtil()
 void MPIUtil::exit(int errCode) const
 {
 	#ifdef MPI_ENABLED
-	MPI_Abort(MPI_COMM_WORLD, errCode);
+	MPI_Abort(comm, errCode);
 	#else
 	::exit(errCode);
 	#endif
@@ -168,7 +176,7 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
 	#ifdef MPI_ENABLED
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "rb");
 	if(!fp)
@@ -180,8 +188,8 @@ void MPIUtil::fopenWrite(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
 	if(mpiUtil->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
-	MPI_Barrier(MPI_COMM_WORLD);
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	MPI_Barrier(comm);
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "wb");
 	if(!fp)
@@ -192,14 +200,14 @@ void MPIUtil::fopenWrite(File& fp, const char* fname) const
 void MPIUtil::fopenAppend(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_APPEND|MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_APPEND|MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "a");
 	if(!fp)
 	#endif
 		 die("Error opening file '%s' for writing.\n", fname);
 	#ifdef MPI_ENABLED
-	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(comm);
 	#endif
 }
 
