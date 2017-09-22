@@ -176,7 +176,7 @@ public:
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
 				logPrintf("Dumping %s... ", filename); logFlush();
-				if(mpiUtil->isHead()) saveRawBinary(N[c->offsetDensity+j], filename);
+				if(mpiWorld->isHead()) saveRawBinary(N[c->offsetDensity+j], filename);
 				logPrintf("Done.\n"); logFlush();
 			}
 	}
@@ -203,7 +203,7 @@ public:
 		string fname(filenamePattern);
 		fname.replace(fname.find("%s"), 2, "Debug");
 		logPrintf("Dumping '%s'... \t", fname.c_str());  logFlush();
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
 			fprintf(fp, "\nComponents of Adiel:\n");

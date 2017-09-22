@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 IdealGasPomega::IdealGasPomega(const FluidMixture* fluidMixture, const FluidComponent* comp, const SO3quad& quad, const TranslationOperator& trans, unsigned nIndepOverride)
 : IdealGas(nIndepOverride ? nIndepOverride : quad.nOrientations(), fluidMixture, comp), quad(quad), trans(trans), pMol(molecule.getDipole())
 {
-	TaskDivision(quad.nOrientations(), mpiUtil).myRange(oStart, oStop);
+	TaskDivision(quad.nOrientations(), mpiWorld).myRange(oStart, oStop);
 }
 
 string IdealGasPomega::representationName() const
@@ -69,9 +69,9 @@ void IdealGasPomega::initState(const ScalarField* Vex, ScalarField* indep, doubl
 	}
 	//MPI collect:
 	for(int k=0; k<nIndep; k++) { nullToZero(indep[k],gInfo); indep[k]->allReduce(MPIUtil::ReduceSum); }
-	mpiUtil->allReduce(Emin, MPIUtil::ReduceMin);
-	mpiUtil->allReduce(Emax, MPIUtil::ReduceMax);
-	mpiUtil->allReduce(Emean, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(Emin, MPIUtil::ReduceMin);
+	mpiWorld->allReduce(Emax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(Emean, MPIUtil::ReduceSum);
 	//Print stats:
 	logPrintf("\tIdealGas%s[%s] single molecule energy: min = %le, max = %le, mean = %le\n",
 		   representationName().c_str(), molecule.name.c_str(), Emin, Emax, Emean);
@@ -98,7 +98,7 @@ void IdealGasPomega::getDensities(const ScalarField* indep, ScalarField* N, vect
 	}
 	//MPI collect:
 	for(unsigned i=0; i<molecule.sites.size(); i++) { nullToZero(N[i],gInfo); N[i]->allReduce(MPIUtil::ReduceSum); }
-	mpiUtil->allReduce(S, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(S, MPIUtil::ReduceSum);
 	if(pMol.length_squared()) for(int k=0; k<3; k++) { nullToZero(P[k],gInfo); P[k]->allReduce(MPIUtil::ReduceSum); }
 	//Compute and cache dipole correlation correction:
 	IdealGasPomega* cache = ((IdealGasPomega*)this);

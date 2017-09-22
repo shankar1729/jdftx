@@ -105,12 +105,12 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 				dmuDen[sIndex] += w * trace(fprime);
 			}
 		}
-		mpiUtil->allReduce(ener.E["NI"], MPIUtil::ReduceSum);
+		mpiWorld->allReduce(ener.E["NI"], MPIUtil::ReduceSum);
 		
 		//Final gradient propagation to auxiliary Hamiltonian:
 		if(grad) 
-		{	mpiUtil->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
-			mpiUtil->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
+		{	mpiWorld->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
+			mpiWorld->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
 			double dmuContrib, dBzContrib;
 			if(eInfo.Mconstrain)
 			{	//Fixed N and M (effectively independent constraints on Nup and Ndn)
@@ -138,7 +138,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		return ener.F();
 	}
 
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const { mpiWorld->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 	
 	bool report(int iter)
 	{	eInfo.smearReport();

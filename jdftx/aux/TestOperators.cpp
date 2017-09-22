@@ -173,7 +173,7 @@ void timeEblas3(const GridInfo& gInfo)
 		 sync();
 	)
 
-	mpiUtil->exit(0);
+	mpiWorld->exit(0);
 }
 
 
@@ -305,16 +305,16 @@ void testHugeFileIO()
 	const char* fname = "testHugeFileIO.dat";
 	//Write:
 	logPrintf("Writing ... "); logFlush();
-	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
-	mpiUtil->fwrite(Mdata, sizeof(complex), M.nData(), fp);
-	mpiUtil->fclose(fp);
+	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
+	mpiWorld->fwrite(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Read back:
 	logPrintf("Reading ... "); logFlush();
 	M.zero();
-	mpiUtil->fopenRead(fp, fname, M.nData()*sizeof(complex));
-	mpiUtil->fread(Mdata, sizeof(complex), M.nData(), fp);
-	mpiUtil->fclose(fp);
+	mpiWorld->fopenRead(fp, fname, M.nData()*sizeof(complex));
+	mpiWorld->fread(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Check results:
 	double rmsErr = 0.;

@@ -39,7 +39,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //------------- Common Initialization -----------------
 
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
-extern MPIUtil* mpiUtil;
+extern MPIUtil* mpiWorld;
 extern bool mpiDebugLog; //!< If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling initSystem())
 extern size_t mempoolSize; //!< If non-zero, size of memory pool managed internally by JDFTx
 void printVersionBanner(); //!< Print package name, version, revision etc. to log
@@ -115,7 +115,7 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 //! @brief Quit with an error message (formatted using printf()). Must be called from all processes.
 #define die(...) \
 	{	fprintf(globalLog, __VA_ARGS__); \
-		if(mpiUtil->isHead() && globalLog != stdout) \
+		if(mpiWorld->isHead() && globalLog != stdout) \
 			fprintf(stderr, __VA_ARGS__); \
 		finalizeSystem(false); \
 		exit(1); \
@@ -125,10 +125,10 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 #define die_alone(...) \
 	{	fprintf(globalLog, __VA_ARGS__); \
 		fflush(globalLog); \
-		if(mpiUtil->isHead() && globalLog != stdout) \
+		if(mpiWorld->isHead() && globalLog != stdout) \
 			fprintf(stderr, __VA_ARGS__); \
-		if(mpiUtil->nProcesses() == 1) finalizeSystem(false); /* Safe to call only if no other process */ \
-		mpiUtil->exit(1); \
+		if(mpiWorld->nProcesses() == 1) finalizeSystem(false); /* Safe to call only if no other process */ \
+		mpiWorld->exit(1); \
 	}
 
 //--------------- Citations --------------------

@@ -58,7 +58,7 @@ double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib)
 	{	if(x.C[q] && y.C[q]) result[0] += dotc(x.C[q], y.C[q]).real()*2.0;
 		if(x.Haux[q] && y.Haux[q]) result[1] += dotc(x.Haux[q], y.Haux[q]).real();
 	}
-	mpiUtil->allReduce(result.data(), 2, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(result.data(), 2, MPIUtil::ReduceSum);
 	if(auxContrib) *auxContrib=result[1]; //store auxiliary contribution, if requested
 	return result[0]+result[1]; //return total
 }
@@ -93,16 +93,16 @@ struct SubspaceRotationAdjust
 	void cacheGradientOverlaps(const ElecGradient& grad, const ElecGradient& Kgrad)
 	{	//Calculate overlaps of current gradient:
 		KnormTot = dot(grad, Kgrad, &KnormAux);
-		mpiUtil->bcast(KnormTot);
-		mpiUtil->bcast(KnormAux);
+		mpiWorld->bcast(KnormTot);
+		mpiWorld->bcast(KnormAux);
 		
 		//Compute auxiliary overlap with previous preconditioned gradient:
 		if(KgPrevHaux.size())
 		{	gDotKgPrevHaux = 0.;
 			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 				gDotKgPrevHaux += dotc(grad.Haux[q], KgPrevHaux[q]).real();
-			mpiUtil->allReduce(gDotKgPrevHaux, MPIUtil::ReduceSum);
-			mpiUtil->bcast(gDotKgPrevHaux);
+			mpiWorld->allReduce(gDotKgPrevHaux, MPIUtil::ReduceSum);
+			mpiWorld->bcast(gDotKgPrevHaux);
 		}
 	}
 	
@@ -266,7 +266,7 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 }
 
 double ElecMinimizer::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 
@@ -282,7 +282,7 @@ void bandMinimize(Everything& e)
 		}
 		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
 	}
-	mpiUtil->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
 	if(e.cntrl.shouldPrintEigsFillings)
 	{	//Print the eigenvalues if requested
 		print_Hsub_eigs(e);

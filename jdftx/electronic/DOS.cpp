@@ -968,13 +968,13 @@ void DOS::dump()
 		}
 		
 	//Synchronize eigenvalues and weights between processes:
-	if(mpiUtil->nProcesses()>1)
-	{	if(mpiUtil->isHead())
-		{	for(int iSrc=1; iSrc<mpiUtil->nProcesses(); iSrc++)
+	if(mpiWorld->nProcesses()>1)
+	{	if(mpiWorld->isHead())
+		{	for(int iSrc=1; iSrc<mpiWorld->nProcesses(); iSrc++)
 			{	int qStart = eInfo.qStartOther(iSrc);
 				int qStop = eInfo.qStopOther(iSrc);
 				std::vector<double> message((qStop-qStart)*eInfo.nBands*(weights.size()+1));
-				mpiUtil->recv(message.data(), message.size(), iSrc, 0);
+				mpiWorld->recv(message.data(), message.size(), iSrc, 0);
 				const double* messagePtr = message.data();
 				for(int iState=qStart; iState<qStop; iState++)
 					for(int iBand=0; iBand<eInfo.nBands; iBand++)
@@ -994,10 +994,10 @@ void DOS::dump()
 						*(messagePtr++) = eval.w(iWeight, iState, iBand);
 					*(messagePtr++) = eval.e(iState, iBand);
 				}
-			mpiUtil->send(message.data(), message.size(), 0, 0);
+			mpiWorld->send(message.data(), message.size(), 0, 0);
 		}
 	}
-	if(!mpiUtil->isHead()) return;
+	if(!mpiWorld->isHead()) return;
 	
 	//Compute and print density of states (head only):
 	string header = "\"Energy\"";

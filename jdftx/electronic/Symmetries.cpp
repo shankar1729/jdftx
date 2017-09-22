@@ -91,7 +91,7 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 	kmap.assign(qnums.size(), ~0ULL); //list of source k-point and symmetry operation (ordered to prefer no inversion, earliest k-point and then earliest symmetry matrix)
 	std::vector<int> isSymKmesh(sym.size(), true); //whether each symmetry matrix leaves the k-mesh invariant
 	size_t iSrcStart, iSrcStop;
-	TaskDivision(qnums.size(), mpiUtil).myRange(iSrcStart, iSrcStop);
+	TaskDivision(qnums.size(), mpiWorld).myRange(iSrcStart, iSrcStop);
 	PeriodicLookup<QuantumNumber> plook(qnums, e->gInfo.GGT);
 	for(size_t iSrc=iSrcStart; iSrc<iSrcStop; iSrc++)
 		for(int invert: invertList)
@@ -104,8 +104,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 				}
 			}
 	//Sync map across processes
-	mpiUtil->allReduce(kmap.data(), kmap.size(), MPIUtil::ReduceMin);
-	mpiUtil->allReduce(isSymKmesh.data(), isSymKmesh.size(), MPIUtil::ReduceLAnd);
+	mpiWorld->allReduce(kmap.data(), kmap.size(), MPIUtil::ReduceMin);
+	mpiWorld->allReduce(isSymKmesh.data(), isSymKmesh.size(), MPIUtil::ReduceLAnd);
 	//Print symmetry-incommensurate kmesh warning if necessary:
 	size_t nSymKmesh = std::count(isSymKmesh.begin(), isSymKmesh.end(), true);
 	if(nSymKmesh < sym.size()) //if even one of them is false

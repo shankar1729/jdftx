@@ -41,7 +41,7 @@ WannierMinimizerRS::WannierMinimizerRS(const Everything& e, const Wannier& wanni
 	threadLaunch(setRealSpaceMeasures, gInfoSuper.nr, gInfoSuper.S, gInfoSuper.R, &ws, r.data(), rSq->dataPref());
 	
 	//Split centers over MPI processes:
-	TaskDivision(nCenters, mpiUtil).myRange(nStart, nStop);
+	TaskDivision(nCenters, mpiWorld).myRange(nStart, nStop);
 }
 
 void WannierMinimizerRS::initialize(int iSpin)
@@ -119,9 +119,9 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 			for(int s=0; s<nSpinor; s++)
 				Omega_Csuper.accumColumn(n,s, Idag(Omega_psi[s]));
 	}
-	mpiUtil->allReduce(Omega, MPIUtil::ReduceSum);
-	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
-	mpiUtil->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(Omega, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
 	
 	if(grad)
 	{	//Collect across processes:

@@ -79,10 +79,10 @@ void ElectronScattering::dump(const Everything& everything)
 				uMax = std::max(uMax, E);
 			}
 		}
-	mpiUtil->allReduce(oMin, MPIUtil::ReduceMin);
-	mpiUtil->allReduce(oMax, MPIUtil::ReduceMax);
-	mpiUtil->allReduce(uMin, MPIUtil::ReduceMin);
-	mpiUtil->allReduce(uMax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(oMin, MPIUtil::ReduceMin);
+	mpiWorld->allReduce(oMax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(uMin, MPIUtil::ReduceMin);
+	mpiWorld->allReduce(uMax, MPIUtil::ReduceMax);
 	if(!omegaMax) omegaMax = std::max(uMax-uMin, oMax-oMin);
 	Emin = uMin - omegaMax;
 	Emax = oMax + omegaMax;
@@ -100,7 +100,7 @@ void ElectronScattering::dump(const Everything& everything)
 		wOmega.push_back(eta);
 	}
 	int iOmegaStart, iOmegaStop; //split dielectric computation over frequency grid
-	TaskDivision omegaDiv(omegaGrid.size(), mpiUtil);
+	TaskDivision omegaDiv(omegaGrid.size(), mpiWorld);
 	omegaDiv.myRange(iOmegaStart, iOmegaStop);
 	logPrintf("Initialized frequency grid with resolution %lg and %d points.\n", eta, omegaGrid.nRows());
 
@@ -119,7 +119,7 @@ void ElectronScattering::dump(const Everything& everything)
 	F.resize(e.eInfo.nStates);
 	for(int q=0; q<e.eInfo.nStates; q++)
 	{	int procSrc = e.eInfo.whose(q);
-		if(procSrc == mpiUtil->iProcess())
+		if(procSrc == mpiWorld->iProcess())
 		{	std::swap(C[q], e.eVars.C[q]);
 			std::swap(E[q], e.eVars.Hsub_eigs[q]);
 			std::swap(F[q], e.eVars.F[q]);
@@ -139,7 +139,7 @@ void ElectronScattering::dump(const Everything& everything)
 		std::vector<Supercell::KmeshTransform>& kmeshTransform = e.coulombParams.supercell->kmeshTransform;
 		for(size_t ik=0; ik<kmesh.size()-1; ik++)
 		{	size_t jk = ik + floor(Random::uniform(kmesh.size()-ik));
-			mpiUtil->bcast(jk);
+			mpiWorld->bcast(jk);
 			if(jk !=ik && jk < kmesh.size())
 			{	std::swap(kmesh[ik], kmesh[jk]);
 				std::swap(kmeshTransform[ik], kmeshTransform[jk]);
@@ -153,7 +153,7 @@ void ElectronScattering::dump(const Everything& everything)
 	vector3<> kBasis[3]; for(int j=0; j<3; j++) kBasis[j] = kBasisT.row(j);
 	plook = std::make_shared< PeriodicLookup< vector3<> > >(supercell->kmesh, e.gInfo.GGT);
 	size_t ikStart, ikStop;
-	TaskDivision(supercell->kmesh.size(), mpiUtil).myRange(ikStart, ikStop);
+	TaskDivision(supercell->kmesh.size(), mpiWorld).myRange(ikStart, ikStop);
 	double dEmax = 0.;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const diagMatrix& Ei = E[supercell->kmeshTransform[ik].iReduced];
@@ -166,7 +166,7 @@ void ElectronScattering::dump(const Everything& everything)
 					dEmax = std::max(dEmax, fabs(Ej[b]-Ei[b]));
 		}
 	}
-	mpiUtil->allReduce(dEmax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(dEmax, MPIUtil::ReduceMax);
 	logPrintf("Maximum k-neighbour dE: %lg (guide for selecting eta)\n", dEmax);
 	
 	//Initialize reduced q-Mesh:
@@ -359,7 +359,7 @@ void ElectronScattering::dump(const Everything& everything)
 
 	fname = e.dump.getFilename("ImKscrHead");
 	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 			fprintf(fp, "%lf %le\n", omegaGrid[iOmega], ImKscrHead[iOmega]);
@@ -570,7 +570,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 		}
 	}
 	int iOmegaStart, iOmegaStop; //split remaining computation over frequency grid
-	TaskDivision omegaDiv(omegaGrid.size(), mpiUtil);
+	TaskDivision omegaDiv(omegaGrid.size(), mpiWorld);
 	omegaDiv.myRange(iOmegaStart, iOmegaStop);
 	for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 	{	chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
@@ -582,15 +582,15 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	string fname = e.dump.getFilename("slabResponse");
 	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
 	MPIUtil::File fp;
-	mpiUtil->fopenWrite(fp, fname.c_str());
-	mpiUtil->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
+	mpiWorld->fopenWrite(fp, fname.c_str());
+	mpiWorld->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
 	for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 	{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
-		mpiUtil->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
+		mpiWorld->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
 	}
-	mpiUtil->fclose(fp); logPrintf("done.\n");
+	mpiWorld->fclose(fp); logPrintf("done.\n");
 	
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{
 		//Output frequency list:
 		string fname = e.dump.getFilename("slabResponseOmega");

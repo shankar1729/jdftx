@@ -102,7 +102,7 @@ void Phonon::dump()
 	logPrintf("\n");
 	
 	//--- write to file
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	string fname = e.dump.getFilename("phononOmegaSq");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "w");
@@ -124,7 +124,7 @@ void Phonon::dump()
 	}
 	
 	//Output electron-phonon matrix elements:
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	const int& nBands = e.eInfo.nBands;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
@@ -147,7 +147,7 @@ void Phonon::dump()
 	std::vector< std::pair<vector3<>,double> > getQuadratureBZ(vector3<bool>); //implemented below
 	std::vector< std::pair<vector3<>,double> > quad = getQuadratureBZ(e.coulombParams.isTruncated());
 	int ikStart, ikStop;
-	TaskDivision(quad.size(), mpiUtil).myRange(ikStart, ikStop);
+	TaskDivision(quad.size(), mpiWorld).myRange(ikStart, ikStop);
 	double ZPE = 0., Evib = 0., Avib = 0.;
 	for(int ik=ikStart; ik<ikStop; ik++)
 	{	//Calculate phonon omegaSq at current k:
@@ -171,9 +171,9 @@ void Phonon::dump()
 			Avib += w*( 0.5*omega + T * log(1.-expMomegaByT) );
 		}
 	}
-	mpiUtil->allReduce(ZPE, MPIUtil::ReduceSum);
-	mpiUtil->allReduce(Evib, MPIUtil::ReduceSum);
-	mpiUtil->allReduce(Avib, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(ZPE, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(Evib, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(Avib, MPIUtil::ReduceSum);
 	double TSvib = Evib - Avib;
 	logPrintf("\nPhonon free energy components (per unit cell) at T = %lg K:\n", T/Kelvin);
 	logPrintf("\tZPE:   %15.6lf\n", ZPE);
@@ -275,10 +275,10 @@ void BlockRotationMatrix::allReduce()
 	{	//Make sure exactly one process has rotation:
 		bool myRot = colOffset[rowBlock]>=0;
 		int haveRot = (myRot ? 1 : 0);
-		mpiUtil->allReduce(haveRot, MPIUtil::ReduceSum);
+		mpiWorld->allReduce(haveRot, MPIUtil::ReduceSum);
 		assert(haveRot == 1);
 		//Reduce:
-		mpiUtil->allReduce(colOffset[rowBlock], MPIUtil::ReduceMax);
+		mpiWorld->allReduce(colOffset[rowBlock], MPIUtil::ReduceMax);
 		if(!myRot) rots[rowBlock] = zeroes(blockSize, blockSize);
 		rots[rowBlock].allReduce(MPIUtil::ReduceSum);
 	}

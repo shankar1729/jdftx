@@ -259,7 +259,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 			spInfo.atpos[atom] += dpos[sp][atom]; 
-		mpiUtil->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
+		mpiWorld->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
 		spInfo.sync_atpos();
 	}
 	
@@ -369,7 +369,7 @@ double IonicMinimizer::safeStepSize(const IonicGradient& dir) const
 }
 
 double IonicMinimizer::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 

@@ -78,20 +78,20 @@ void diagMatrix::print(FILE* fp, const char* fmt) const
 }
 
 void diagMatrix::send(int dest, int tag) const
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->send(data(), size(), dest, tag);
+{	assert(mpiWorld->nProcesses()>1);
+	mpiWorld->send(data(), size(), dest, tag);
 }
 void diagMatrix::recv(int src, int tag)
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->recv(data(), size(), src, tag);
+{	assert(mpiWorld->nProcesses()>1);
+	mpiWorld->recv(data(), size(), src, tag);
 }
 void diagMatrix::bcast(int root)
-{	if(mpiUtil->nProcesses()>1)
-		mpiUtil->bcast(data(), size(), root);
+{	if(mpiWorld->nProcesses()>1)
+		mpiWorld->bcast(data(), size(), root);
 }
 void diagMatrix::allReduce(MPIUtil::ReduceOp op, bool safeMode)
-{	if(mpiUtil->nProcesses()>1)
-		mpiUtil->allReduce(data(), size(), op, safeMode);
+{	if(mpiWorld->nProcesses()>1)
+		mpiWorld->allReduce(data(), size(), op, safeMode);
 }
 
 //----------------------- class matrix ---------------------------

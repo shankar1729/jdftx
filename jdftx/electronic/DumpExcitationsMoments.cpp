@@ -91,7 +91,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 			}
 		}
 	}
-	mpiUtil->allReduce(insufficientBands, MPIUtil::ReduceLOr);
+	mpiWorld->allReduce(insufficientBands, MPIUtil::ReduceLOr);
 	if(insufficientBands)
 	{	logPrintf("Insufficient bands to calculate excited states!\n");
 		logPrintf("Increase the number of bands (elec-n-bands) and try again!\n");
@@ -99,15 +99,15 @@ void dumpExcitations(const Everything& e, const char* filename)
 	}
 	
 	//Transmit results to head process:
-	if(mpiUtil->isHead())
-	{	excitations.reserve(excitations.size() * mpiUtil->nProcesses());
-		for(int jProcess=1; jProcess<mpiUtil->nProcesses(); jProcess++)
+	if(mpiWorld->isHead())
+	{	excitations.reserve(excitations.size() * mpiWorld->nProcesses());
+		for(int jProcess=1; jProcess<mpiWorld->nProcesses(); jProcess++)
 		{	//Receive data:
-			size_t nExcitations; mpiUtil->recv(nExcitations, jProcess, 0);
+			size_t nExcitations; mpiWorld->recv(nExcitations, jProcess, 0);
 			std::vector<int> msgInt(4 + nExcitations*3); 
 			std::vector<double> msgDbl(2 + nExcitations*4);
-			mpiUtil->recv(msgInt.data(), msgInt.size(), jProcess, 1);
-			mpiUtil->recv(msgDbl.data(), msgDbl.size(), jProcess, 2);
+			mpiWorld->recv(msgInt.data(), msgInt.size(), jProcess, 1);
+			mpiWorld->recv(msgDbl.data(), msgDbl.size(), jProcess, 2);
 			//Unpack:
 			std::vector<int>::const_iterator intPtr = msgInt.begin();
 			std::vector<double>::const_iterator dblPtr = msgDbl.begin();
@@ -139,13 +139,13 @@ void dumpExcitations(const Everything& e, const char* filename)
 			msgDbl.push_back(e.dreal); msgDbl.push_back(e.dimag); msgDbl.push_back(e.dnorm);
 		}
 		//Send data:
-		mpiUtil->send(nExcitations, 0, 0);
-		mpiUtil->send(msgInt.data(), msgInt.size(), 0, 1);
-		mpiUtil->send(msgDbl.data(), msgDbl.size(), 0, 2);
+		mpiWorld->send(nExcitations, 0, 0);
+		mpiWorld->send(msgInt.data(), msgInt.size(), 0, 1);
+		mpiWorld->send(msgDbl.data(), msgDbl.size(), 0, 2);
 	}
 
 	//Process and print excitations:
-	if(!mpiUtil->isHead()) return;
+	if(!mpiWorld->isHead()) return;
 	
 	FILE* fp = fopen(filename, "w");
 	if(!fp) die("Error opening %s for writing.\n", filename);

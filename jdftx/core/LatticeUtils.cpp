@@ -322,7 +322,7 @@ std::map<vector3<int>, matrix> getCellMap(const matrix3<>& R, const matrix3<>& R
 	}
 
 	//Write the cell map if requested
-	if(mpiUtil->isHead() && fname.length())
+	if(mpiWorld->isHead() && fname.length())
 	{	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "w");
 		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");

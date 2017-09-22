@@ -93,7 +93,7 @@ void SCF::minimize()
 	int eMinIterations = e.elecMinParams.nIterations;
 
 	//Compute energy for the initial guess
-	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiUtil->bcast(E); //Compute energy (and ensure consistency to machine precision)
+	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiWorld->bcast(E); //Compute energy (and ensure consistency to machine precision)
 	
 	//Optimize using Pulay mixer:
 	std::vector<string> extraNames(1, "deigs");
@@ -110,7 +110,7 @@ void SCF::minimize()
 }
 
 double SCF::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 
@@ -131,7 +131,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	e.ener.Eband = 0.; //only affects printing (if non-zero Energies::print assumes band structure calc)
 	if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub) e.eVars.Haux_eigs = e.eVars.Hsub_eigs;
 	double E = e.eVars.elecEnergyAndGrad(e.ener); //updates fillings (if necessary), density and potential
-	mpiUtil->bcast(E); //ensure consistency to machine precision
+	mpiWorld->bcast(E); //ensure consistency to machine precision
 
 	extraValues[0] = eigDiffRMS(eigsPrev, e.eVars.Hsub_eigs);
 	return E;
@@ -333,8 +333,8 @@ double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<d
 			rmsDen += wq;
 		}
 	}
-	mpiUtil->allReduce(rmsNum, MPIUtil::ReduceSum);
-	mpiUtil->allReduce(rmsDen, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(rmsNum, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(rmsDen, MPIUtil::ReduceSum);
 	return sqrt(rmsNum/rmsDen);
 }
 

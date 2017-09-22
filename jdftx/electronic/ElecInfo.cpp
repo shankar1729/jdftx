@@ -58,7 +58,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	nStates = qnums.size();
 	
 	//Determine distribution amongst processes:
-	qDivision.init(nStates, mpiUtil);
+	qDivision.init(nStates, mpiWorld);
 	qDivision.myRange(qStart, qStop);
 	
 	//Allocate the fillings matrices.
@@ -163,7 +163,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		nElectrons=0.;
 		for(int q=qStart; q<qStop; q++)
 			nElectrons += qnums[q].weight * trace(F[q]);
-		mpiUtil->allReduce(nElectrons, MPIUtil::ReduceSum, true);
+		mpiWorld->allReduce(nElectrons, MPIUtil::ReduceSum, true);
 	}
 	
 	//Check that number of bands is sufficient:
@@ -184,7 +184,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		{	scalarFillings = true;
 			for(int q=qStart; q<qStop; q++)
 				scalarFillings &= F[q].isScalar();
-			mpiUtil->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
+			mpiWorld->allReduce(scalarFillings, MPIUtil::ReduceLAnd);
 			if(!scalarFillings)
 				logPrintf("Turning on subspace rotations due to non-scalar fillings.\n");
 		}
@@ -201,7 +201,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 
 void ElecInfo::printFillings(FILE* fp) const
 {	//NOTE: fillings are always 0 to 1 internally, but read/write 0 to 2 for SpinNone
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 		for(int q=0; q<nStates; q++)
 		{	diagMatrix const* Fq = &e->eVars.F[q];
 			diagMatrix FqTemp;
@@ -259,7 +259,7 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energi
 	ener.TS = 0.0;
 	for(int q=qStart; q<qStop; q++)
 		ener.TS += smearingWidth * qnums[q].weight * trace(smearEntropy(muEff(mu,Bz,q), eps[q]));
-	mpiUtil->allReduce(ener.TS, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(ener.TS, MPIUtil::ReduceSum);
 
 	//Grand canonical multiplier if fixed mu:
 	if(!std::isnan(this->mu)) ener.muN = this->mu * nElectrons;
@@ -349,8 +349,8 @@ double ElecInfo::magnetizationCalc(double mu, double Bz, const std::vector<diagM
 			M += s * wf;
 		}
 	}
-	mpiUtil->allReduce(N, MPIUtil::ReduceSum, true);
-	mpiUtil->allReduce(M, MPIUtil::ReduceSum, true);
+	mpiWorld->allReduce(N, MPIUtil::ReduceSum, true);
+	mpiWorld->allReduce(M, MPIUtil::ReduceSum, true);
 	return M;
 }
 
@@ -494,62 +494,62 @@ void ElecInfo::kpointPrint(FILE* fp, int q, bool printSpin) const
 void ElecInfo::read(std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	M.resize(nStates);
-	MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, nStates*nRows*sizeof(double));
-	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
+	MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, nStates*nRows*sizeof(double));
+	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].resize(nRows);
-		mpiUtil->fread(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->fread(M[q].data(), sizeof(double), nRows, fp);
 	}
-	mpiUtil->fclose(fp);
+	mpiWorld->fclose(fp);
 }
 
 void ElecInfo::read(std::vector<matrix>& M, const char *fname, int nRowsOverride, int nColsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	int nCols = nColsOverride ? nColsOverride : nBands;
 	M.resize(nStates);
-	MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, nStates*nRows*nCols*sizeof(complex));
-	mpiUtil->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
+	MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, nStates*nRows*nCols*sizeof(complex));
+	mpiWorld->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].init(nRows, nCols);
-		mpiUtil->fread(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->fread(M[q].data(), sizeof(complex), M[q].nData(), fp);
 	}
-	mpiUtil->fclose(fp);
+	mpiWorld->fclose(fp);
 }
 
 void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	assert(int(M.size())==nStates);
-	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
-	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
+	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
+	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
-		mpiUtil->fwrite(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
 	}
-	mpiUtil->fclose(fp);
+	mpiWorld->fclose(fp);
 }
 
 void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsOverride, int nColsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	int nCols = nColsOverride ? nColsOverride : nBands;
 	assert(int(M.size())==nStates);
-	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
-	mpiUtil->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
+	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
+	mpiWorld->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
 		assert(M[q].nCols()==nCols);
-		mpiUtil->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
 	}
-	mpiUtil->fclose(fp);
+	mpiWorld->fclose(fp);
 }
 
 void ElecInfo::appendWrite(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	assert(int(M.size())==nStates);
-	MPIUtil::File fp; mpiUtil->fopenAppend(fp, fname);
-	mpiUtil->fseek(fp, qStart*nRows*sizeof(double), SEEK_CUR);
+	MPIUtil::File fp; mpiWorld->fopenAppend(fp, fname);
+	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_CUR);
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
-		mpiUtil->fwrite(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
 	}
-	mpiUtil->fclose(fp);
+	mpiWorld->fclose(fp);
 }

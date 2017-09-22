@@ -81,7 +81,7 @@ void Dump::dumpBGW()
 			ifmax[q] = b+1;
 		}
 	}
-	mpiUtil->allReduce(ifmax.data(), ifmax.size(), MPIUtil::ReduceMax);
+	mpiWorld->allReduce(ifmax.data(), ifmax.size(), MPIUtil::ReduceMax);
 	hsize_t dimsKspin[2] = { hsize_t(nSpins), hsize_t(nReducedKpts) };
 	h5writeVector(gidKpts, "ifmin", ifmin.data(), dimsKspin, 2);
 	h5writeVector(gidKpts, "ifmax", ifmax.data(), dimsKspin, 2);

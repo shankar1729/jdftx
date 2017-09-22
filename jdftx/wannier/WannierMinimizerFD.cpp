@@ -166,10 +166,10 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 void WannierMinimizerFD::initialize(int iSpin)
 {
 	//Compute the overlap matrices for current spin:
-	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
+	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
 		Cother.assign(e.eInfo.nStates, ColumnBundle());
-		if(jProcess == mpiUtil->iProcess()) //send
+		if(jProcess == mpiWorld->iProcess()) //send
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 				((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
 		}
@@ -220,8 +220,8 @@ double WannierMinimizerFD::getOmega(bool grad)
 			}
 		}
 	}
-	mpiUtil->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
-	mpiUtil->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
 	
 	//Compute the total variance of the Wannier centers
 	double Omega = 0.;
@@ -274,7 +274,7 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 			}
 		}
 	}
-	mpiUtil->allReduce(OmegaI, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(OmegaI, MPIUtil::ReduceSum);
 	return OmegaI;
 }
 
@@ -289,7 +289,7 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	int nInMax = 0;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 		nInMax = std::max(nInMax, kMesh[ik].nIn);
-	mpiUtil->allReduce(nInMax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(nInMax, MPIUtil::ReduceMax);
 	//Copy each matrix of gradient into a column of a giant matrix:
 	matrix gradMat = zeroes(nCenters*nInMax, ikStop-ikStart);
 	complex* gradMatData = gradMat.dataPref();

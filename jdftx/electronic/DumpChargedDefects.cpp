@@ -440,7 +440,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 	//--- write alignment data (spherical)
 	string fname = e.dump.getFilename("chargedDefectDeltaV");
 	logPrintf("\tWriting %s (spherically-averaged; plot to check DeltaV manually) ... ", fname.c_str()); logFlush();
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die("\tError opening %s for writing.\n", fname.c_str())
 		fprintf(fp, "#r DeltaV Vmodel Vdft weight\n");
@@ -459,7 +459,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 		{	Vavg[k] = getPlanarAvg(Varr[k], iDir);
 			VavgData[k] = Vavg[k]->data();
 		}
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("\tError opening %s for writing.\n", fname.c_str())
 			fprintf(fp, "#x[bohr] DeltaV Vmodel Vdft\n");

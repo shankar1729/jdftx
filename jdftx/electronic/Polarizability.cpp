@@ -402,7 +402,7 @@ void Polarizability::dump(const Everything& e)
 	K.write(e.dump.getFilename("pol_K").c_str());
 	KXC.write(e.dump.getFilename("pol_KXC").c_str());
 	//G-vectors:
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(e.dump.getFilename("pol_Gvectors").c_str(), "w");
 		for(const vector3<int>& iG: basis.iGarr)
 			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
