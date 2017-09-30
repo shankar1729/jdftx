@@ -582,7 +582,10 @@ void Symmetries::initAtomMaps()
 			for(unsigned iRot = 0; iRot<sym.size(); iRot++)
 			{	vector3<> idealPos = sym[iRot].rot * spInfo.atpos[a1] + sym[iRot].a;
 				size_t a2 = plook.find(idealPos);
-				assert(a2 != string::npos);
+				if(a2 == string::npos)
+					die("Atom positions are marginally symmetric (errors comparable to detection threshold).\n"
+						"Use command symmetry-threshold to either increase tolerance and include marginal\n"
+						"symmetries, or reduce tolerance and exclude marginal symmetries, as appropriate.\n\n");
 				atomMap[sp][a1][iRot] = a2;
 				if(not spInfo.constraints[a1].isEquivalent(spInfo.constraints[a2], e->gInfo.R*sym[iRot].rot*inv(e->gInfo.R)))
 					die("\nSpecies %s atoms %lu and %lu are related by symmetry "
