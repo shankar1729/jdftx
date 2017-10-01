@@ -269,7 +269,7 @@ createXSF Solvated.out Solvated.xsf nbound
 <pre class="fragment">import numpy as np
 import matplotlib.pyplot as plt
 
-S = [ 54, 24, 150 ]            #Sample count
+S = [ 56, 28, 160 ]            #Sample count
 L = [ 12.26123, 5.59, 33. ]    #Lattice vector lengths (bohrs)
 z = np.arange(S[2])*L[2]/S[2]  #z-coordinates of grid points
 
@@ -291,7 +291,7 @@ plt.ylabel('Potential [eV]')
 plt.xlim([0, L[2]/2*0.529])            #Select first half (top surface only)
 plt.show()
 </pre><p>This Octave/MATLAB script achieves the same result, with some minor differences due to data ordering: </p>
-<pre class="fragment">S = [ 54 24 150 ];          %Sample count
+<pre class="fragment">S = [ 56 28 160 ];          %Sample count
 L = [ 12.26123 5.59 33 ];   %Lattice vector lengths (bohrs)
 z = [0:S(3)-1]*L(3)/S(3);   %z-coordinates of grid points
 

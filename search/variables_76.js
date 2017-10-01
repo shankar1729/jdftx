@@ -4,7 +4,7 @@ var searchData=
   ['v_5fcavity',['V_cavity',['../classElecVars.html#aeeea5b5f2fa9d29aec61802365f56632',1,'ElecVars']]],
   ['vdagc',['VdagC',['../classElecVars.html#a30c00b6e328d9c023d6d77fdda7edfad',1,'ElecVars']]],
   ['vdwenable',['vdWenable',['../classIonInfo.html#a2d66570e234eb46b297246d4f079eafb',1,'IonInfo']]],
-  ['vdwscale',['vdWscale',['../classIonInfo.html#aec5ab9fe8aa095250aaf78fe83e84c24',1,'IonInfo::vdWscale()'],['../structFluidSolverParams.html#a614f8626026a0bc7ff20f10d53fa3148',1,'FluidSolverParams::vdwScale()']]],
+  ['vdwscale',['vdwScale',['../structFluidSolverParams.html#a614f8626026a0bc7ff20f10d53fa3148',1,'FluidSolverParams::vdwScale()'],['../classIonInfo.html#aec5ab9fe8aa095250aaf78fe83e84c24',1,'IonInfo::vdWscale()']]],
   ['velocities',['velocities',['../classSpeciesInfo.html#abb5f6168cdd29a2f1097a2e33ca010e4',1,'SpeciesInfo']]],
   ['verbose',['verbose',['../structSCFparams.html#a5aa62d1667819749bca620c8031a1f59',1,'SCFparams']]],
   ['verboselog',['verboseLog',['../classFluidMixture.html#a12e267989f1843a726b43a4c48bde3a7',1,'FluidMixture::verboseLog()'],['../structFluidSolverParams.html#ac4fe32ad71d0a32508bd5feb81a131ff',1,'FluidSolverParams::verboseLog()']]],
