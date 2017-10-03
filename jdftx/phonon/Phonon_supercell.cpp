@@ -145,17 +145,15 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	}
 	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
 	
-	//Translational invariance correction (zero mean force):
-	vector3<> fMean;
+	//Translational invariance correction (zero sum force):
+	vector3<> fSum;
 	for(const std::vector<vector3<>>& fArr: dgrad_pert)
 		for(const vector3<>& f: fArr)
-			fMean += f;
-	fMean /= nAtomsTot;
-	for(std::vector<vector3<>>& fArr: dgrad_pert)
-		for(vector3<>& f: fArr)
-			f -= fMean;
+			fSum += f;
+	//--- apply to perturbed atom:
+	dgrad_pert[pert.sp][pert.at] -= fSum;
 	logPrintf("Applied translational invariance (net force) relative correction: %lg\n",
-		sqrt(fMean.length_squared()*nAtomsTot/dot(dgrad_pert,dgrad_pert)));
+		sqrt(fSum.length_squared()/dot(dgrad_pert,dgrad_pert)));
 	
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub = getPerturbedHsub(), dHsub_pert(nSpins);
