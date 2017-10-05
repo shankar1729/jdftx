@@ -96,7 +96,10 @@ void Phonon::dump()
 		}
 	}
 	
+	//--- refine force matrix
+	std::vector<matrix> omegaSqRaw = omegaSq; //back up original (uncorrected) force matrix
 	logPrintf("\nRefining force matrix:\n");
+	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
 	forceMatrixDaggerSymmetrize(omegaSq, cellMap); //enforce hermiticity
 	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
 	logPrintf("\n");
@@ -110,14 +113,24 @@ void Phonon::dump()
 			M.write_real(fp); //M is explicitly real by construction above
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
+		//Uncorrected version:
+		fname = e.dump.getFilename("phononOmegaSqRaw");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		fp = fopen(fname.c_str(), "w");
+		for(const matrix& M: omegaSqRaw)
+			M.write_real(fp);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
 		//Write description of modes:
 		fname = e.dump.getFilename("phononBasis");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#species atom dx dy dz [bohrs]\n");
+		fprintf(fp, "#species atom dx[bohrs] dy[bohrs] dz[bohrs] M[amu]\n");
 		for(const Mode& mode: modes)
 		{	vector3<> r = mode.dir * invsqrtM[mode.sp];
-			fprintf(fp, "%s %d  %+lf %+lf %+lf\n", e.iInfo.species[mode.sp]->name.c_str(), mode.at, r[0], r[1], r[2]);
+			fprintf(fp, "%s %d  %+lf %+lf %+lf  %lf\n",
+				e.iInfo.species[mode.sp]->name.c_str(), mode.at,
+				r[0], r[1], r[2], e.iInfo.species[mode.sp]->mass);
 		}
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
