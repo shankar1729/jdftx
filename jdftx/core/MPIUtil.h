@@ -114,6 +114,13 @@ private:
 	std::vector<size_t> stopArr; //!< array of sttop values for other processes
 };
 
+//! Helper for dividing MPI processes into groups
+class ProcDivision
+{
+public:
+	ProcDivision(size_t nGroups=1, const MPIUtil *mpiUtil);
+}
+
 //! @}
 
 //-------------------------- Template implementations ------------------------------------

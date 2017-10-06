@@ -303,3 +303,18 @@ int TaskDivision::whose(size_t q) const
 	else return 0;
 }
 
+//---------- class ProcDivision ----------
+ProcDivision::ProcDivision(size_t nGroups, const MPIUtil *mpiUtil)
+{
+	if(mpiUtil) init(nGroups, mpiUtil);
+}
+
+ProcDivision::init(size_t nGroups, const MPIUtil *mpiUtil)
+{
+	size_t nProcs = mpiUtil.nProcesses();
+	
+	for (int iProc = 0; i < nProcs; ++i)
+		mpiUtil.fixGroup((iProc + 1) * nGroups / nProcs);
+	
+	mpiUtil.createGroups();
+}
