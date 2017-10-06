@@ -100,8 +100,8 @@ public:
 class TaskDivision
 {
 public:
-	TaskDivision(size_t nTasks=0, const MPIUtil* mpiWorld=0);
-	void init(size_t nTasks, const MPIUtil* mpiWorld);
+	TaskDivision(size_t nTasks=0, const MPIUtil* mpiUtil=0);
+	void init(size_t nTasks, const MPIUtil* mpiUtil);
 	inline size_t start() const { return startMine; } //!< Task number that current process should start on
 	inline size_t stop() const  { return stopMine; } //!< Task number that current process should stop before (non-inclusive)
 	inline size_t start(int iProc) const { return iProc ? stopArr[iProc-1] : 0; } //!< Task number that the specified process should start on

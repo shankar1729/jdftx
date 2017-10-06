@@ -82,7 +82,7 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 	}
 	//Mimic the behaviour of die with collected error message:
 	fputs(bufTot.c_str(), globalLog);
-	if(mpiWorld->isHead() && globalLog != stdout)
+	if(mpiUtil->isHead() && globalLog != stdout)
 		fputs(bufTot.c_str(), stderr);
 	finalizeSystem(false);
 	::exit(1);
@@ -187,7 +187,7 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 void MPIUtil::fopenWrite(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
-	if(mpiWorld->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
+	if(mpiUtil->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
 	MPI_Barrier(comm);
 	if(MPI_File_open(comm, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
@@ -283,18 +283,18 @@ void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 
 //------- class TaskDivision ---------
 
-TaskDivision::TaskDivision(size_t nTasks, const MPIUtil* mpiWorld)
+TaskDivision::TaskDivision(size_t nTasks, const MPIUtil* mpiUtil)
 : startMine(0), stopMine(nTasks), stopArr(1, nTasks) //initialize for no MPI division
 {
-	if(mpiWorld) init(nTasks, mpiWorld); //actually initialize if MPIUtil pointer provided
+	if(mpiUtil) init(nTasks, mpiUtil); //actually initialize if MPIUtil pointer provided
 }
 
-void TaskDivision::init(size_t nTasks, const MPIUtil* mpiWorld)
-{	stopArr.resize(mpiWorld->nProcesses());
-	for(int iProc=0; iProc<mpiWorld->nProcesses(); iProc++)
-		stopArr[iProc] = (nTasks * (iProc+1)) / mpiWorld->nProcesses();
-	startMine = start(mpiWorld->iProcess());
-	stopMine = stop(mpiWorld->iProcess());
+void TaskDivision::init(size_t nTasks, const MPIUtil* mpiUtil)
+{	stopArr.resize(mpiUtil->nProcesses());
+	for(int iProc=0; iProc<mpiUtil->nProcesses(); iProc++)
+		stopArr[iProc] = (nTasks * (iProc+1)) / mpiUtil->nProcesses();
+	startMine = start(mpiUtil->iProcess());
+	stopMine = stop(mpiUtil->iProcess());
 }
 
 int TaskDivision::whose(size_t q) const
