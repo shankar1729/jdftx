@@ -115,7 +115,12 @@ void Dump::dumpBGW()
 	std::vector<vector3<int>> iGarr(gInfo.nr);
 	{	const vector3<int>& S = gInfo.S;
 		size_t iStart = 0, iStop = gInfo.nr;
-		THREAD_fullGspaceLoop( iGarr[i] = iG; )
+		THREAD_fullGspaceLoop(
+			iGarr[i] = iG;
+			for(int iDir=0; iDir<3; iDir++)
+				if(2*iGarr[i][iDir]==gInfo.S[iDir])
+					iGarr[i][iDir]-=gInfo.S[iDir]; //[-S/2,S/2) in BGW (rather than (-S/2,S/2] in JDFTx)
+		)
 	}
 	hsize_t dimsG[2] = { hsize_t(gInfo.nr), 3 };
 	h5writeScalar(gidGspace, "ng", gInfo.nr);
