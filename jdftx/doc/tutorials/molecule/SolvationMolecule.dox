@@ -156,7 +156,7 @@ controlling numerous details of the fluid calculation.
 
 Now, as an exercise run the water calculation with each class of solvation model,
 compare the solvation energies and visualize the bound charge in the liquid
-using createXSF ad VESTA, as shown below and at the start of this tutorial.
+using createXSF and VESTA, as shown below and at the start of this tutorial.
 (%SaLSA and ClassicalDFT will take a while!)
 Note how %LinearPCM, the nonlocally-inspired variant CANDLE,
 as well as the non-local model %SaLSA have the bound charge
