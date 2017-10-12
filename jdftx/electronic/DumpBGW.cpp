@@ -186,6 +186,8 @@ void Dump::dumpBGW()
 		//Loop over k, bands and spin/spinors:
 		hsize_t offset[4] = { 0, 0, 0, 0 };
 		hsize_t count[4] = { 1, 1, 1, 2 };
+		std::vector<complex> buffer(*std::max_element(nBasis.begin(), nBasis.end()));
+		double volScaleFac = sqrt(gInfo.detR);
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
 		for(int iSpinor=0; iSpinor<nSpinor; iSpinor++)
 		{	offset[1] = iSpin*nSpinor + iSpinor;
@@ -199,7 +201,11 @@ void Dump::dumpBGW()
 				{	offset[0] = b;
 					sid = H5Dget_space(did);
 					H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
-					H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, eVars.C[q].data()+eVars.C[q].index(b, iSpinor*nBasis[ik]));
+					//Copy to buffer and scale:
+					eblas_copy(buffer.data(), eVars.C[q].data()+eVars.C[q].index(b, iSpinor*nBasis[ik]), nBasis[ik]);
+					eblas_zdscal(nBasis[ik], volScaleFac, buffer.data(), 1);
+					//Write buffer to HDF5:
+					H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buffer.data());
 				}
 				H5Sclose(sidMem);
 			}
