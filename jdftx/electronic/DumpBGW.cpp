@@ -134,8 +134,9 @@ void Dump::dumpBGW()
 	std::vector<matrix3<int> > rots(ops.size());
 	std::vector<vector3<> > trans(ops.size());
 	for(size_t iSym=0; iSym<ops.size(); iSym++)
-	{	rots[iSym] = ops[iSym].rot;
-		trans[iSym] = ops[iSym].a;
+	{	matrix3<int> rotInv = det(ops[iSym].rot) * adjugate(ops[iSym].rot); //since |det(rot)| = 1
+		rots[iSym] = rotInv; //BGW uses inverse convention
+		trans[iSym] = (2*M_PI)*ops[iSym].a; //BGW used 2*pi times translation
 	}
 	hsize_t dimsRot[3] = { ops.size(), 3, 3 };
 	hsize_t dimsTrans[2] = { ops.size(), 3 };
