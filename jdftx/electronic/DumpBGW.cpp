@@ -219,6 +219,44 @@ void Dump::dumpBGW()
 	//Close file:
 	H5Fclose(fid);
 	logPrintf("done\n"); logFlush();
+	
+	//Output exchange-correlation matrix elements:
+	fname = getFilename("bgw.vxc.dat");
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	std::vector<matrix> VxcSub(eInfo.nStates);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	ColumnBundle HCq = e->gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
+		if(e->exCorr.needsKEdensity() && eVars.Vtau[eInfo.qnums[q].index()]) //metaGGA KE potential
+		{	for(int iDir=0; iDir<3; iDir++)
+				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(eVars.C[q],iDir), eVars.Vtau), iDir);
+		}
+		if(e->eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
+			e->iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq);
+		VxcSub[q] = eVars.C[q] ^ HCq;
+	}
+	//--- make available on all processes
+	for(int q=0; q<eInfo.nStates; q++)
+	{	if(!eInfo.isMine(q)) VxcSub[q] = zeroes(eInfo.nBands, eInfo.nBands);
+		VxcSub[q].bcast(eInfo.whose(q));
+	}
+	//--- output from head
+	if(mpiUtil->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("failed to open for writing.\n");
+		for(int ik=0; ik<nReducedKpts; ik++)
+		{	const vector3<>& k = eInfo.qnums[ik].k;
+			fprintf(fp, "%+.9f %+.9f %+.9f %4d %4d\n", k[0], k[1], k[2], eInfo.nBands*nSpins, 0);
+			for(int iSpin=0; iSpin<nSpins; iSpin++)
+			{	int q=iSpin*nReducedKpts+ik;
+				for(int b=0; b<eInfo.nBands; b++)
+				{	complex V_eV = VxcSub[q](b,b) / eV; //convert to eV
+					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin, b, V_eV.real(), V_eV.imag());
+				}
+			}
+		}
+		fclose(fp);
+	}
+	logPrintf("Done.\n");
 }
 
 #endif

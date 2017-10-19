@@ -57,6 +57,7 @@ public:
 	ScalarFieldTilde V_cavity; //!< non-electrostatic potential on electrons due to fluid
 	
 	ScalarFieldArray Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
+	ScalarFieldArray Vxc; //! Exchange-correlation potential
 	ScalarFieldArray Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
 	std::vector<matrix> rhoAtom, U_rhoAtom; //!< Atomic density matrices and gradients w.r.t them (for DFT+U)

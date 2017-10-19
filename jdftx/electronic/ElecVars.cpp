@@ -327,7 +327,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		ener.E["U"] = iInfo.rhoAtom_computeU(rhoAtom, U_rhoAtom);
 	
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
-	ScalarFieldArray Vxc;
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	if(!exCorr.hasEnergy() && !e->cntrl.scf)
