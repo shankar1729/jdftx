@@ -87,9 +87,15 @@ void Dump::dumpBGW()
 	h5writeVector(gidKpts, "ifmax", ifmax.data(), dimsKspin, 2);
 	//--- kpoints and weights:
 	std::vector<vector3<>> k(nReducedKpts);
+	std::vector<vector3<int>> kOffset(nReducedKpts); //k offset to switch from JDFTx to BGW convention
 	std::vector<double> wk(nReducedKpts);
 	for(int q=0; q<nReducedKpts; q++)
 	{	k[q] = eInfo.qnums[q].k;
+		//Switch k to BGW convention of [0,1)
+		for(int iDir=0; iDir<3; iDir++)
+		{	kOffset[q][iDir] = int(floor(k[q][iDir]));
+			k[q][iDir] -= kOffset[q][iDir];
+		}
 		wk[q] = eInfo.qnums[q].weight / eInfo.spinWeight; //Set sum(wk) = 1 in all cases
 	}
 	hsize_t dimsK[2] = { hsize_t(nReducedKpts), 3 };
@@ -174,7 +180,8 @@ void Dump::dumpBGW()
 	//--- G-vectors:
 	iGarr.clear();
 	for(int q=0; q<nReducedKpts; q++)
-		iGarr.insert(iGarr.end(), e->basis[q].iGarr.begin(), e->basis[q].iGarr.end());
+		for(const vector3<int>& iG: e->basis[q].iGarr)
+			iGarr.push_back(iG + kOffset[q]); //shift iG to account for change in k convention from JDFTx to BGW
 	hsize_t dimsGwfns[2] = { iGarr.size(), 3 };
 	h5writeVector(gidWfns, "gvecs", &iGarr[0][0], dimsGwfns, 2);
 	//--- Coefficients:
@@ -244,13 +251,12 @@ void Dump::dumpBGW()
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
-		{	const vector3<>& k = eInfo.qnums[ik].k;
-			fprintf(fp, "%+.9f %+.9f %+.9f %4d %4d\n", k[0], k[1], k[2], eInfo.nBands*nSpins, 0);
+		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2], eInfo.nBands*nSpins, 0);
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
 				for(int b=0; b<eInfo.nBands; b++)
 				{	complex V_eV = VxcSub[q](b,b) / eV; //convert to eV
-					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin, b, V_eV.real(), V_eV.imag());
+					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
 				}
 			}
 		}
