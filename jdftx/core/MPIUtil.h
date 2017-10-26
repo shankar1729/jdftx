@@ -39,6 +39,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class MPIUtil
 {
 	int nProcs, iProc;
+	ProcDivision procDivision;
+
 	#ifdef MPI_ENABLED
 		MPI_Comm comm;
 	#endif
@@ -47,7 +49,7 @@ public:
 	int nProcesses() const { return nProcs; }  //!< number of processes
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
 
-	MPIUtil(int argc, char** argv, MPIUtil *parent_MPIUtil=NULL);
+	MPIUtil(int argc, char** argv, ProcDivision procDivision=ProcDivision());
 	~MPIUtil();
 	void exit(int errCode) const; //!< global exit (kill other MPI processes as well)
 
@@ -118,7 +120,10 @@ private:
 class ProcDivision
 {
 public:
-	ProcDivision(size_t nGroups=1, const MPIUtil *mpiUtil);
+	ProcDivision(size_t nGroups=1, const MPIUtil *mpiUtil=0);
+	const MPIUtil* mpiUtil;
+	const int nGroups, iGroup;
+	operator bool() const { return mpiUtil; }
 }
 
 //! @}

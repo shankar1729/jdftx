@@ -24,21 +24,28 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <climits>
 #include <core/Random.h>
 
-MPIUtil::MPIUtil(int argc, char** argv, MPIUtil *parent_MPIUtil)
+MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
+: procDivision(procDivision)
 {
 	#ifdef MPI_ENABLED
 
-	if (parent_MPIUtil == NULL) {
+	if(procDivision)
+	{
+		MPI_Comm childComm;
+		MPI_Comm_split(procDivision.mpiUtil->comm, procDivision.iGroup,
+			procDivision.mpiUtil->iProcess(), &childComm);
+		// how to return a pointer to collection of comms
+	}
+	else
+	{
 		int rc = MPI_Init(&argc, &argv);
 		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
 		comm = MPI_COMM_WORLD;
 	}
-	// else {
-		// MPI_Comm parent_comm = parent_MPIUtil.comm;
-		// use the appropriate MPI_Comm and assign it to 'comm'
-	// }
+
 	MPI_Comm_size(comm, &nProcs);
 	MPI_Comm_rank(comm, &iProc);
+
 	#else
 	//No MPI:
 	nProcs = 1;
@@ -280,7 +287,6 @@ void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 	#endif
 }
 
-
 //------- class TaskDivision ---------
 
 TaskDivision::TaskDivision(size_t nTasks, const MPIUtil* mpiUtil)
@@ -305,16 +311,9 @@ int TaskDivision::whose(size_t q) const
 
 //---------- class ProcDivision ----------
 ProcDivision::ProcDivision(size_t nGroups, const MPIUtil *mpiUtil)
+: mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
+	(nGroups and mpiUtil)
+	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
+	: 0 )
 {
-	if(mpiUtil) init(nGroups, mpiUtil);
-}
-
-ProcDivision::init(size_t nGroups, const MPIUtil *mpiUtil)
-{
-	size_t nProcs = mpiUtil.nProcesses();
-	
-	for (int iProc = 0; i < nProcs; ++i)
-		mpiUtil.fixGroup((iProc + 1) * nGroups / nProcs);
-	
-	mpiUtil.createGroups();
 }
