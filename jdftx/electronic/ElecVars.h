@@ -82,7 +82,7 @@ public:
 
 	//Wavefunction initialization:
 	string wfnsFilename; //!< file to read wavefunctions from
-	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
+	std::shared_ptr<struct ElecInfo::ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
 	bool skipWfnsInit; //!< whether to skip wavefunction initialization (used to speed up dry runs, phonon calculations)

@@ -194,7 +194,7 @@ void ElecVars::setup(const Everything &everything)
 		if(wfnsFilename.length())
 		{	logPrintf("reading from '%s'\n", wfnsFilename.c_str()); logFlush();
 			if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
-			read(C, wfnsFilename.c_str(), eInfo, readConversion.get());
+			eInfo.read(C, wfnsFilename.c_str(), readConversion.get());
 			nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
 			isRandom = (nBandsInited<eInfo.nBands);
 		}

@@ -132,7 +132,7 @@ struct CommandWavefunction : public Command
 				break;
 			case WfnsRead:
 			{	pl.get(e.eVars.wfnsFilename, string(), "filename", true);
-				auto conversion = std::make_shared<ColumnBundleReadConversion>();
+				auto conversion = std::make_shared<ElecInfo::ColumnBundleReadConversion>();
 				conversion-> realSpace = false;
 				pl.get(conversion->nBandsOld, -1, "nBandsOld");
 				pl.get(conversion->EcutOld, 0.0, "EcutOld");
@@ -141,7 +141,7 @@ struct CommandWavefunction : public Command
 			}
 			case WfnsReadRS:
 			{	pl.get(e.eVars.wfnsFilename, string(), "filename", true);
-				auto conversion = std::make_shared<ColumnBundleReadConversion>();
+				auto conversion = std::make_shared<ElecInfo::ColumnBundleReadConversion>();
 				conversion-> realSpace = true;
 				pl.get(conversion->nBandsOld, 0, "nBandsOld");
 				pl.get(conversion->S_old[0], 0, "NxOld");

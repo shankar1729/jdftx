@@ -81,20 +81,6 @@ public:
 void init(std::vector<ColumnBundle>&, int nbundles, int ncols=0, const Basis* basis=0, const ElecInfo* eInfo=0);
 
 void randomize(std::vector<ColumnBundle>&, const ElecInfo& eInfo); //!< randomize an array of columnbundles
-void write(const std::vector<ColumnBundle>&, const char *fname, const ElecInfo& eInfo); //!< write an array of columnbundles to file
-
-//! Utility to convert columnbundle basis / bands
-struct ColumnBundleReadConversion
-{	bool realSpace; //!< whether to read realspace wavefunctions
-	int nBandsOld; //!< nBands for the input wavefunction
-	double Ecut, EcutOld; //!< Ecut for the current calculation and input wavefunction in fourier space
-	vector3<int> S_old; //!< fftbox size for the input wavefunction in double space
-	
-	ColumnBundleReadConversion();
-};
-
-//! Read array of columnbundles, optionally with conversion
-void read(std::vector<ColumnBundle>&, const char *fname, const ElecInfo& eInfo, const ColumnBundleReadConversion* conversion=0);
 
 // Used in the CG template Minimize.h
 ColumnBundle clone(const ColumnBundle&);  //! Copies the input

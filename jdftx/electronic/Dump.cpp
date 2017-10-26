@@ -140,7 +140,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	{
 		//Dump wave functions
 		StartDump("wfns")
-		write(eVars.C, fname.c_str(), eInfo);
+		eInfo.write(eVars.C, fname.c_str());
 		EndDump
 		
 		if(hasFluid)
