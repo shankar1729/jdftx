@@ -1,6 +1,5 @@
 var NAVTREEINDEX16 =
 {
-"structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63":[2,2,1,1,6,7],
 "structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d":[2,2,1,1,6,0],
 "structIonDynamicsParams.html#abbc15afb3f89c824f890c947faab3c74":[2,2,1,1,6,2],
 "structIonDynamicsParams.html#afa3957f32fd050327c77141e0b633055":[2,2,1,1,6,4],
@@ -249,5 +248,6 @@ var NAVTREEINDEX16 =
 "structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4":[2,2,0,0,23,8],
 "structRadialFunctionR.html#a93c236f19361a7728f7062ebd3a2068b":[2,2,0,0,23,2],
 "structRadialFunctionR.html#ac6a283584fa298fc4fa608c4241c8a69":[2,2,0,0,23,6],
-"structRadialFunctionR.html#ae066780133367469e7b516c3fde670e8":[2,2,0,0,23,0]
+"structRadialFunctionR.html#ae066780133367469e7b516c3fde670e8":[2,2,0,0,23,0],
+"structRadialFunctionR.html#af42bb945c35ed11a628eb637192c1cc5":[2,2,0,0,23,3]
 };

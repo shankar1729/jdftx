@@ -9,7 +9,7 @@ var searchData=
   ['naugmentfunctor',['nAugmentFunctor',['../structnAugmentFunctor.html',1,'']]],
   ['naugmentgradfunctor',['nAugmentGradFunctor',['../structnAugmentGradFunctor.html',1,'']]],
   ['nbands',['nBands',['../classWannierMinimizer.html#aca28446911c26fb767c94aa4a0f25809',1,'WannierMinimizer']]],
-  ['nbandsold',['nBandsOld',['../structColumnBundleReadConversion.html#a5d4d306fb5c47d31306d9e7ef392511c',1,'ColumnBundleReadConversion']]],
+  ['nbandsold',['nBandsOld',['../structElecInfo_1_1ColumnBundleReadConversion.html#aaa5880830ae2ac84b25666af37257883',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['nbasis',['nbasis',['../classBasis.html#ab9845a4bbdc0a1a9445b57e9f867c352',1,'Basis']]],
   ['nblocks',['nBlocks',['../structGpuLaunchConfig1D.html#a6a76f8d36567526c0029ffb939b23bb9',1,'GpuLaunchConfig1D::nBlocks()'],['../structGpuLaunchConfig3D.html#a4bfce99563839d0890fb648846e072b4',1,'GpuLaunchConfig3D::nBlocks()']]],
   ['nbulk',['Nbulk',['../structFluidComponent.html#aa297c62cb1e6ae6a5bcfaaecff033777',1,'FluidComponent::Nbulk()'],['../classIdealGas.html#a6adb05f30e1c0e7233b7e00219de1ca9',1,'IdealGas::Nbulk()']]],

@@ -1,7 +1,5 @@
 var NAVTREEINDEX1 =
 {
-"Coulomb__internal_8h.html#ga84cda0865feaabdce67342cf3e39dec4":[2,5,0,1,3,3],
-"Coulomb__internal_8h.html#ga88ec8ec6c5b124aede160102d3fea322":[2,5,0,1,3,1],
 "Coulomb__internal_8h.html#ga95d0b514b5d750e10f7bb88a4af82018":[2,5,0,1,3,25],
 "Coulomb__internal_8h.html#ga960c16c1b8544a969b51e5fc3664b388":[2,5,0,1,3,6],
 "Coulomb__internal_8h.html#ga96c16f0d32f6f647cf81ab64c1c63c24":[2,5,0,1,3,4],
@@ -90,12 +88,12 @@ var NAVTREEINDEX1 =
 "Dump__internal_8h.html#aa27d2205cb65617fcc59eaacea756444":[2,5,0,2,3,4],
 "Dump__internal_8h.html#gae45f6c5bd0d6c46bc9eef1ed833dd344":[2,5,0,2,3,1],
 "ElecInfo_8h.html":[2,5,0,2,4],
-"ElecInfo_8h.html#ga2da52cab635edcbb0d8728674b1787de":[2,5,0,2,4,0],
-"ElecInfo_8h.html#ga7c0672b60062032d772ae23f1cea519b":[2,5,0,2,4,1],
-"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787dea2ec5350f288952738d7d16060a596aa5":[2,5,0,2,4,0,2],
-"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac2c308b5689ccda6e07cd8a16745695a":[2,5,0,2,4,0,0],
-"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac3fdf39e58074dad71aa50ce446daf47":[2,5,0,2,4,0,1],
-"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac4f402ed746825875aa68d573c8df623":[2,5,0,2,4,0,3],
+"ElecInfo_8h.html#ga2da52cab635edcbb0d8728674b1787de":[2,5,0,2,4,1],
+"ElecInfo_8h.html#ga7c0672b60062032d772ae23f1cea519b":[2,5,0,2,4,2],
+"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787dea2ec5350f288952738d7d16060a596aa5":[2,5,0,2,4,1,2],
+"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac2c308b5689ccda6e07cd8a16745695a":[2,5,0,2,4,1,0],
+"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac3fdf39e58074dad71aa50ce446daf47":[2,5,0,2,4,1,1],
+"ElecInfo_8h.html#gga2da52cab635edcbb0d8728674b1787deac4f402ed746825875aa68d573c8df623":[2,5,0,2,4,1,3],
 "ElecMinimizer_8h.html":[2,5,0,2,5],
 "ElecMinimizer_8h.html#ga0894f790ef88ef4380926b4033bec89e":[2,5,0,2,5,7],
 "ElecMinimizer_8h.html#ga38c896fda498752c81c4a2bc447cd24b":[2,5,0,2,5,1],
@@ -249,5 +247,7 @@ var NAVTREEINDEX1 =
 "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2aafac72606bd6539b6c9f28b8bd46a541":[2,5,0,3,5,4,7],
 "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2ac492ef261e5693ca4cdac5d36ff4f484":[2,5,0,3,5,4,11],
 "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2ae0faf2b2bd7d125082c10b8d8834720c":[2,5,0,3,5,4,9],
-"FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2aead983bcf9556487ad6b1521a6610825":[2,5,0,3,5,4,8]
+"FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2aead983bcf9556487ad6b1521a6610825":[2,5,0,3,5,4,8],
+"FluidSolverParams_8h.html#ggadc697686fa0f3cf8cd69c627219cdd27a238296975bde7886f5f1db4cd135abfa":[2,5,0,3,5,2,4],
+"FluidSolverParams_8h.html#ggadc697686fa0f3cf8cd69c627219cdd27a4aa1f2412b1c75980fb179a02c9b463e":[2,5,0,3,5,2,0]
 };

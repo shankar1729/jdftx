@@ -6,7 +6,7 @@ var searchData=
   ['chargeddefect',['ChargedDefect',['../structChargedDefect.html',1,'']]],
   ['columnbundle',['ColumnBundle',['../classColumnBundle.html',1,'']]],
   ['columnbundlematrixproduct',['ColumnBundleMatrixProduct',['../structColumnBundleMatrixProduct.html',1,'']]],
-  ['columnbundlereadconversion',['ColumnBundleReadConversion',['../structColumnBundleReadConversion.html',1,'']]],
+  ['columnbundlereadconversion',['ColumnBundleReadConversion',['../structElecInfo_1_1ColumnBundleReadConversion.html',1,'ElecInfo']]],
   ['columnbundletransform',['ColumnBundleTransform',['../classColumnBundleTransform.html',1,'']]],
   ['command',['Command',['../classCommand.html',1,'']]],
   ['commandminimize',['CommandMinimize',['../structCommandMinimize.html',1,'']]],

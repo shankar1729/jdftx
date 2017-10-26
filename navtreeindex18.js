@@ -1,6 +1,5 @@
 var NAVTREEINDEX18 =
 {
-"structnAugmentFunctor.html#ae966dffcb5dece401e35f0be1fe8af50":[2,2,1,1,16,7],
 "structnAugmentGradFunctor.html":[2,2,1,1,17],
 "structnAugmentGradFunctor.html#a0606445280c8e300fee0c3bac11923b7":[2,2,1,1,17,6],
 "structnAugmentGradFunctor.html#a280988bfb89829e290bc875bcd3be5ce":[2,2,1,1,17,4],

@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"classPeriodicLookup.html":[2,2,0,4,3],
 "classPeriodicLookup.html#a4d608a38fe079c931822a2dcae26249b":[2,2,0,4,3,0],
 "classPeriodicLookup.html#a5b0f52f29a1a4b66a5f1d03d3c7d59ad":[2,2,0,4,3,1],
 "classPeriodicLookup.html#a8b05aa7aa673b4181e568bf1b0f68b65":[2,2,0,4,3,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX8 =
 "classSymmetries.html#aff0ca879e2be3108fdac1185a7dac31c":[2,2,1,8,6],
 "classTaskDivision.html":[2,2,0,3,25],
 "classTaskDivision.html#a52e5213a2e8105f045d74a046e834b4a":[2,2,0,3,25,7],
-"classTaskDivision.html#a7cb01ff982a648f7c5cb68c14c711d7c":[2,2,0,3,25,2],
-"classTaskDivision.html#a8bc2add32f48cb4b41292a838db4eec1":[2,2,0,3,25,4]
+"classTaskDivision.html#a7cb01ff982a648f7c5cb68c14c711d7c":[2,2,0,3,25,2]
 };

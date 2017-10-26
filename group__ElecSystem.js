@@ -35,6 +35,14 @@ var group__ElecSystem =
       [ "weight", "classQuantumNumber.html#a9afc04e07d4d22ed54cdd0c2b5d061d7", null ]
     ] ],
     [ "ElecInfo", "classElecInfo.html", [
+      [ "ColumnBundleReadConversion", "structElecInfo_1_1ColumnBundleReadConversion.html", [
+        [ "ColumnBundleReadConversion", "structElecInfo_1_1ColumnBundleReadConversion.html#aca380079de49b10b8bdfd8dd2cafc39a", null ],
+        [ "Ecut", "structElecInfo_1_1ColumnBundleReadConversion.html#a64c372464f856b6e8f57a7ee3ae3d6a7", null ],
+        [ "EcutOld", "structElecInfo_1_1ColumnBundleReadConversion.html#aaa2e8d1ecd7c327e7bdab19d6207ba01", null ],
+        [ "nBandsOld", "structElecInfo_1_1ColumnBundleReadConversion.html#aaa5880830ae2ac84b25666af37257883", null ],
+        [ "realSpace", "structElecInfo_1_1ColumnBundleReadConversion.html#a485d1fd9e8add0bca7cc4e88eb0705c9", null ],
+        [ "S_old", "structElecInfo_1_1ColumnBundleReadConversion.html#a98e75d45f1c2b89fdeb02bad1c2f9fa1", null ]
+      ] ],
       [ "FillingsUpdate", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9b", [
         [ "FillingsConst", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9ba92fd425915cf2b8c50e03304775aa460", null ],
         [ "FillingsHsub", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9badc81bea18ece98f66269cb66ffcf85f6", null ]
@@ -61,6 +69,7 @@ var group__ElecSystem =
       [ "qStopOther", "classElecInfo.html#a09016163ce46ca2ee2df526219cdf923", null ],
       [ "read", "classElecInfo.html#ab0223d602e00b2d2589c0983c63f7466", null ],
       [ "read", "classElecInfo.html#a1fbe0f16f7a15c58729e7e52f52fdd5a", null ],
+      [ "read", "classElecInfo.html#ad52e060a71661492238167a306afa007", null ],
       [ "setup", "classElecInfo.html#af534bf619d9d26103e56d9705fa678a2", null ],
       [ "smear", "classElecInfo.html#ae8eadd6aa2dfff2241198cf8f2c80d48", null ],
       [ "smear", "classElecInfo.html#af125a0986ec4173122d1b3468ee55850", null ],
@@ -75,6 +84,7 @@ var group__ElecSystem =
       [ "whose", "classElecInfo.html#a09793842595e512c18ef06553e488490", null ],
       [ "write", "classElecInfo.html#a5eb0635c4d04e31473cbeabcbc67b4ae", null ],
       [ "write", "classElecInfo.html#a299b895a3a4ad84aa3df884ed98bc6d7", null ],
+      [ "write", "classElecInfo.html#a2a5f95e8aed71d6e082fc643f91097cb", null ],
       [ "CommandElecInitialCharge", "classElecInfo.html#a12320d6bfd2f3eb8b68b2dddcdcfd548", null ],
       [ "CommandElecInitialFillings", "classElecInfo.html#ab8062b907364c549158d936763ebe3c9", null ],
       [ "CommandElecInitialMagnetization", "classElecInfo.html#ae01d8e36e7cd51a1aa723c6d5b948100", null ],
@@ -160,7 +170,7 @@ var group__ElecSystem =
       [ "n", "classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1", null ],
       [ "nAccumulated", "classElecVars.html#a0552af897d82aef1dbec2b9ae24214c2", null ],
       [ "nFilenamePattern", "classElecVars.html#aaa52e1886b211eb9f97e1d4c510e4cae", null ],
-      [ "readConversion", "classElecVars.html#a862df9668b360e5d7f9cc3e4996e0a25", null ],
+      [ "readConversion", "classElecVars.html#a4394c7f4c24e3ffddaedd6fce10c17a1", null ],
       [ "rhoAtom", "classElecVars.html#abab4c93c06aea2862abb9aa0352e9ee0", null ],
       [ "rhoExternal", "classElecVars.html#a20936a3eee5840fcfe938c19c7c7c64a", null ],
       [ "rhoExternalSelfEnergy", "classElecVars.html#a06c7aac380af62d7b1b2f63af839e7db", null ],
@@ -173,6 +183,7 @@ var group__ElecSystem =
       [ "VFilenamePattern", "classElecVars.html#a1e8bb06c24bcf6fd4ec85633e1842a5a", null ],
       [ "Vscloc", "classElecVars.html#a7a64003ec506aeea01e8551d8978e525", null ],
       [ "Vtau", "classElecVars.html#a13bc9e46a51d18b020895dab0bdaeb3c", null ],
+      [ "Vxc", "classElecVars.html#aac4d76abfd002d62dbcd8c20a31667a7", null ],
       [ "wfnsFilename", "classElecVars.html#aa8f6ed81e0e5f45b6fe0e5a6c762efe2", null ]
     ] ],
     [ "Energies", "classEnergies.html", [

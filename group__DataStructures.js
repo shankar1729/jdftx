@@ -382,14 +382,6 @@ var group__DataStructures =
       [ "basis", "classColumnBundle.html#a93b3398919293736a41c4d0c1bf8838c", null ],
       [ "qnum", "classColumnBundle.html#ae53811cc0a3336ed64473f3e76a3fd3f", null ]
     ] ],
-    [ "ColumnBundleReadConversion", "structColumnBundleReadConversion.html", [
-      [ "ColumnBundleReadConversion", "structColumnBundleReadConversion.html#ac6f99b4e9372462380bab39123a9d66d", null ],
-      [ "Ecut", "structColumnBundleReadConversion.html#aa60c383cc92f98b8421c2c3d9d54a03d", null ],
-      [ "EcutOld", "structColumnBundleReadConversion.html#a30ee33fd3e7a7d61e090b059c821811f", null ],
-      [ "nBandsOld", "structColumnBundleReadConversion.html#a5d4d306fb5c47d31306d9e7ef392511c", null ],
-      [ "realSpace", "structColumnBundleReadConversion.html#a6ab31677870bf4e78c4931d63c2ca24b", null ],
-      [ "S_old", "structColumnBundleReadConversion.html#ae612303d64814c12b1b132319fc18c4b", null ]
-    ] ],
     [ "ColumnBundleMatrixProduct", "structColumnBundleMatrixProduct.html", [
       [ "colLength", "structColumnBundleMatrixProduct.html#ad25d5ed05231eabcb0d45721fcdcc2aa", null ],
       [ "nCols", "structColumnBundleMatrixProduct.html#a99590fb9641070d3a84e6bea6a85ebb2", null ],
@@ -586,10 +578,9 @@ var group__DataStructures =
     [ "precond_inv_kinetic_band", "group__DataStructures.html#gace29b86767491a48256e630ddf1987ee", null ],
     [ "printStats", "group__DataStructures.html#ga05fc8b903a88cf922fae2758248527e0", null ],
     [ "randomize", "group__DataStructures.html#ga154f2b27888a17bca1abaa30af98e6a5", null ],
-    [ "randomize", "group__DataStructures.html#gad479e6246a6d1e7ee1685f3cb452fe56", null ],
     [ "randomize", "group__DataStructures.html#ga43d193ff0e3fd9054f0fae66b741fe7d", null ],
+    [ "randomize", "group__DataStructures.html#gad479e6246a6d1e7ee1685f3cb452fe56", null ],
     [ "randomize", "group__DataStructures.html#ga5acf0b67c60d2fdff2d6626909d9cd4f", null ],
-    [ "read", "group__DataStructures.html#gae8010c2a3d186b0af74626fa95e2bcdf", null ],
     [ "real", "group__DataStructures.html#ga4d047ea5d654a962a5d84d43ec111fd8", null ],
     [ "rotation", "group__DataStructures.html#ga4e13e7fc4752ad7dba78dd140ff7ff70", null ],
     [ "round", "group__DataStructures.html#ga1d71ba81a33c8660e7ab68bf0c3b3f44", null ],
@@ -615,6 +606,5 @@ var group__DataStructures =
     [ "translateColumns", "group__DataStructures.html#gad45659650b6bb083aabae792b10d2507", null ],
     [ "transpose", "group__DataStructures.html#gaca8c1df1a31d5454598c8f51a60431f8", null ],
     [ "transpose_symmetrize", "group__DataStructures.html#gaf3f986881fe08eb8031073a91796fda7", null ],
-    [ "write", "group__DataStructures.html#ga56416afb378a64388a346e959196c6bc", null ],
     [ "zeroes", "group__DataStructures.html#gab8de35fb66d31fa6a8546f6f364377ae", null ]
 ];

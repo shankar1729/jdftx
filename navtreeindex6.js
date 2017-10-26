@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"classExCorr.html#a0aa828376d5b004b0057f15fab5874b9":[2,2,1,2,7,11],
 "classExCorr.html#a0ad1b712f8c9dd5f6897b1e020dcbd71":[2,2,1,2,7,7],
 "classExCorr.html#a53e2c00fecad70c21d358d7a8da3357b":[2,2,1,2,7,10],
 "classExCorr.html#a5c147d1f1a24c5a1fea11d266ff59c11":[2,2,1,2,7,12],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "classIdealGasPomega.html#a4ae5cf2fb66e5ea90ec76043cc4a495a":[2,2,2,0,26,4],
 "classIdealGasPomega.html#a52b5950ddbfe03e881de2e12a934fb4d":[2,2,2,0,26,12],
 "classIdealGasPomega.html#a5793c558c459cf3b9ba4bdbf2933b401":[2,2,2,0,26,11],
-"classIdealGasPomega.html#a5e5161380c383765c77bb56fef5dde7e":[2,2,2,0,26,0],
-"classIdealGasPomega.html#a64eda51a0c82b5283105068f2ba984b0":[2,2,2,0,26,6]
+"classIdealGasPomega.html#a5e5161380c383765c77bb56fef5dde7e":[2,2,2,0,26,0]
 };

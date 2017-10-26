@@ -25,7 +25,6 @@ var annotated =
     [ "ChargedDefect", "structChargedDefect.html", "structChargedDefect" ],
     [ "ColumnBundle", "classColumnBundle.html", "classColumnBundle" ],
     [ "ColumnBundleMatrixProduct", "structColumnBundleMatrixProduct.html", "structColumnBundleMatrixProduct" ],
-    [ "ColumnBundleReadConversion", "structColumnBundleReadConversion.html", "structColumnBundleReadConversion" ],
     [ "ColumnBundleTransform", "classColumnBundleTransform.html", "classColumnBundleTransform" ],
     [ "Command", "classCommand.html", "classCommand" ],
     [ "CommandMinimize", "structCommandMinimize.html", "structCommandMinimize" ],

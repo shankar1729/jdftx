@@ -35,7 +35,7 @@ var classElecVars =
     [ "n", "classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1", null ],
     [ "nAccumulated", "classElecVars.html#a0552af897d82aef1dbec2b9ae24214c2", null ],
     [ "nFilenamePattern", "classElecVars.html#aaa52e1886b211eb9f97e1d4c510e4cae", null ],
-    [ "readConversion", "classElecVars.html#a862df9668b360e5d7f9cc3e4996e0a25", null ],
+    [ "readConversion", "classElecVars.html#a4394c7f4c24e3ffddaedd6fce10c17a1", null ],
     [ "rhoAtom", "classElecVars.html#abab4c93c06aea2862abb9aa0352e9ee0", null ],
     [ "rhoExternal", "classElecVars.html#a20936a3eee5840fcfe938c19c7c7c64a", null ],
     [ "rhoExternalSelfEnergy", "classElecVars.html#a06c7aac380af62d7b1b2f63af839e7db", null ],
@@ -48,5 +48,6 @@ var classElecVars =
     [ "VFilenamePattern", "classElecVars.html#a1e8bb06c24bcf6fd4ec85633e1842a5a", null ],
     [ "Vscloc", "classElecVars.html#a7a64003ec506aeea01e8551d8978e525", null ],
     [ "Vtau", "classElecVars.html#a13bc9e46a51d18b020895dab0bdaeb3c", null ],
+    [ "Vxc", "classElecVars.html#aac4d76abfd002d62dbcd8c20a31667a7", null ],
     [ "wfnsFilename", "classElecVars.html#aa8f6ed81e0e5f45b6fe0e5a6c762efe2", null ]
 ];

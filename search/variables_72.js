@@ -1,11 +1,11 @@
 var searchData=
 [
-  ['r',['R',['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()'],['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()']]],
+  ['r',['r',['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()'],['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()']]],
   ['radius',['radius',['../structDOS_1_1Weight.html#a8ade2870de40ed0fdf3540730d25885b',1,'DOS::Weight']]],
   ['rc',['Rc',['../structCoulombParams.html#a5c9698e933681a9770396f5362edd0d3',1,'CoulombParams']]],
   ['rcelec',['rcElec',['../structMolecule_1_1Site.html#a96ac84d29d81858d079b2ff71687e226',1,'Molecule::Site']]],
-  ['readconversion',['readConversion',['../classElecVars.html#a862df9668b360e5d7f9cc3e4996e0a25',1,'ElecVars']]],
-  ['realspace',['realSpace',['../structColumnBundleReadConversion.html#a6ab31677870bf4e78c4931d63c2ca24b',1,'ColumnBundleReadConversion']]],
+  ['readconversion',['readConversion',['../classElecVars.html#a4394c7f4c24e3ffddaedd6fce10c17a1',1,'ElecVars']]],
+  ['realspace',['realSpace',['../structElecInfo_1_1ColumnBundleReadConversion.html#a485d1fd9e8add0bca7cc4e88eb0705c9',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['requires',['requires',['../classCommand.html#ad5a1b3133dd68bfab5374c433fefa50d',1,'Command']]],
   ['res',['Res',['../structFluidComponent.html#a4b63bc440a054748678e6cb529916ee6',1,'FluidComponent']]],
   ['residualthreshold',['residualThreshold',['../structPulayParams.html#ac4c73699de58c24ea84e3bdb92aad4d3',1,'PulayParams']]],

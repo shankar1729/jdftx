@@ -5,7 +5,7 @@ var searchData=
   ['nalphaadjustmax',['nAlphaAdjustMax',['../structMinimizeParams.html#aa2a8ed43a9ab2bd24ba90f32bd98e8f9',1,'MinimizeParams']]],
   ['name',['name',['../classCommand.html#a206f1dd0b28c9fafa0e457dc58bb66b4',1,'Command::name()'],['../classSpeciesInfo.html#a5cdc4258e5f741adb7582677ff0f46d3',1,'SpeciesInfo::name()'],['../structMolecule.html#a8af5d36d8b418e217b1013112d052616',1,'Molecule::name()'],['../structMolecule_1_1Site.html#a6d0a89c29abd52f842de28d9a3d15b19',1,'Molecule::Site::name()']]],
   ['nbands',['nBands',['../classWannierMinimizer.html#aca28446911c26fb767c94aa4a0f25809',1,'WannierMinimizer']]],
-  ['nbandsold',['nBandsOld',['../structColumnBundleReadConversion.html#a5d4d306fb5c47d31306d9e7ef392511c',1,'ColumnBundleReadConversion']]],
+  ['nbandsold',['nBandsOld',['../structElecInfo_1_1ColumnBundleReadConversion.html#aaa5880830ae2ac84b25666af37257883',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['nbasis',['nbasis',['../classBasis.html#ab9845a4bbdc0a1a9445b57e9f867c352',1,'Basis']]],
   ['nblocks',['nBlocks',['../structGpuLaunchConfig1D.html#a6a76f8d36567526c0029ffb939b23bb9',1,'GpuLaunchConfig1D::nBlocks()'],['../structGpuLaunchConfig3D.html#a4bfce99563839d0890fb648846e072b4',1,'GpuLaunchConfig3D::nBlocks()']]],
   ['nbulk',['Nbulk',['../structFluidComponent.html#aa297c62cb1e6ae6a5bcfaaecff033777',1,'FluidComponent::Nbulk()'],['../classIdealGas.html#a6adb05f30e1c0e7233b7e00219de1ca9',1,'IdealGas::Nbulk()']]],

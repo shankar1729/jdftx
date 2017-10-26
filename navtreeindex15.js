@@ -1,6 +1,5 @@
 var NAVTREEINDEX15 =
 {
-"structExCorr_1_1OrbitalDep.html#a65d2b2f13fd8a96443eb10e8c25f2a8f":[2,2,1,2,7,0,3],
 "structExCorr_1_1OrbitalDep.html#ac8137615d27c505e61572933e472959b":[2,2,1,2,7,0,5],
 "structExCorr_1_1OrbitalDep.html#acaa1871d8d071fc572bbcbcc9fdbb025":[2,2,1,2,7,0,4],
 "structExCorr__OrbitalDep__GLLBsc.html":[2,2,1,2,26],
@@ -249,5 +248,6 @@ var NAVTREEINDEX15 =
 "structIonDynamicsParams.html#a043a20d993f4807edd7311c9828dd15b":[2,2,1,1,6,6],
 "structIonDynamicsParams.html#a0e27138ee1e3783d5ab126ae5afedd41":[2,2,1,1,6,5],
 "structIonDynamicsParams.html#a14d0448ac7a1cae62bc781c4d7ef1e0a":[2,2,1,1,6,3],
-"structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878":[2,2,1,1,6,1]
+"structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878":[2,2,1,1,6,1],
+"structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63":[2,2,1,1,6,7]
 };

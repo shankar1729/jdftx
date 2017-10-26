@@ -35,11 +35,9 @@ var ColumnBundle_8h =
     [ "precond_inv_kinetic_band", "ColumnBundle_8h.html#gace29b86767491a48256e630ddf1987ee", null ],
     [ "randomize", "ColumnBundle_8h.html#ga154f2b27888a17bca1abaa30af98e6a5", null ],
     [ "randomize", "ColumnBundle_8h.html#ga43d193ff0e3fd9054f0fae66b741fe7d", null ],
-    [ "read", "ColumnBundle_8h.html#gae8010c2a3d186b0af74626fa95e2bcdf", null ],
     [ "switchBasis", "ColumnBundle_8h.html#ga87862f94df4798ea5228ba9508aa598d", null ],
     [ "traceinner", "ColumnBundle_8h.html#gaa738ca3a7d2d3d6aac2c10fda8c7212c", null ],
     [ "translate", "ColumnBundle_8h.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40", null ],
     [ "translate", "ColumnBundle_8h.html#ga1281b30e04ec70a4c9cd0fff1cc145be", null ],
-    [ "translateColumns", "ColumnBundle_8h.html#gad45659650b6bb083aabae792b10d2507", null ],
-    [ "write", "ColumnBundle_8h.html#ga56416afb378a64388a346e959196c6bc", null ]
+    [ "translateColumns", "ColumnBundle_8h.html#gad45659650b6bb083aabae792b10d2507", null ]
 ];

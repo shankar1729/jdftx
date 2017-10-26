@@ -1,7 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"VectorField_8h.html#ga0476676fa87e2f98286b4f3ee7f49a7b":[2,5,0,1,34,62],
-"VectorField_8h.html#ga05fc8b903a88cf922fae2758248527e0":[2,5,0,1,34,83],
 "VectorField_8h.html#ga0688d60b07f42a1122271953a3ad8399":[2,5,0,1,34,48],
 "VectorField_8h.html#ga094ab21a790faad8161f8311a6d5c3b5":[2,5,0,1,34,12],
 "VectorField_8h.html#ga11e3c438208492875f17a252bb1e6516":[2,5,0,1,34,22],
@@ -249,5 +247,7 @@ var NAVTREEINDEX4 =
 "classCoulomb.html#afefa09bfd45a6909bfab9a278eafd09b":[2,2,1,3,10,14],
 "classCoulombCylindrical.html":[2,2,1,3,28],
 "classCoulombCylindrical.html#a0557e3a5974e41919365303fb98cac87":[2,2,1,3,28,3],
-"classCoulombCylindrical.html#a8697a314999f79415f5dae48ba6f1d2e":[2,2,1,3,28,1]
+"classCoulombCylindrical.html#a8697a314999f79415f5dae48ba6f1d2e":[2,2,1,3,28,1],
+"classCoulombCylindrical.html#a901a0fe7aff5baf41cee3a1720e919b4":[2,2,1,3,28,2],
+"classCoulombCylindrical.html#abb42fa4ea4df86fae8ca4a3613e8d7f3":[2,2,1,3,28,0]
 };

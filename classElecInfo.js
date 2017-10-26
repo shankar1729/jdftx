@@ -1,5 +1,6 @@
 var classElecInfo =
 [
+    [ "ColumnBundleReadConversion", "structElecInfo_1_1ColumnBundleReadConversion.html", "structElecInfo_1_1ColumnBundleReadConversion" ],
     [ "FillingsUpdate", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9b", [
       [ "FillingsConst", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9ba92fd425915cf2b8c50e03304775aa460", null ],
       [ "FillingsHsub", "classElecInfo.html#a92faa29cb05e176784b0dbe4bd249b9badc81bea18ece98f66269cb66ffcf85f6", null ]
@@ -26,6 +27,7 @@ var classElecInfo =
     [ "qStopOther", "classElecInfo.html#a09016163ce46ca2ee2df526219cdf923", null ],
     [ "read", "classElecInfo.html#ab0223d602e00b2d2589c0983c63f7466", null ],
     [ "read", "classElecInfo.html#a1fbe0f16f7a15c58729e7e52f52fdd5a", null ],
+    [ "read", "classElecInfo.html#ad52e060a71661492238167a306afa007", null ],
     [ "setup", "classElecInfo.html#af534bf619d9d26103e56d9705fa678a2", null ],
     [ "smear", "classElecInfo.html#ae8eadd6aa2dfff2241198cf8f2c80d48", null ],
     [ "smear", "classElecInfo.html#af125a0986ec4173122d1b3468ee55850", null ],
@@ -40,6 +42,7 @@ var classElecInfo =
     [ "whose", "classElecInfo.html#a09793842595e512c18ef06553e488490", null ],
     [ "write", "classElecInfo.html#a5eb0635c4d04e31473cbeabcbc67b4ae", null ],
     [ "write", "classElecInfo.html#a299b895a3a4ad84aa3df884ed98bc6d7", null ],
+    [ "write", "classElecInfo.html#a2a5f95e8aed71d6e082fc643f91097cb", null ],
     [ "CommandElecInitialCharge", "classElecInfo.html#a12320d6bfd2f3eb8b68b2dddcdcfd548", null ],
     [ "CommandElecInitialFillings", "classElecInfo.html#ab8062b907364c549158d936763ebe3c9", null ],
     [ "CommandElecInitialMagnetization", "classElecInfo.html#ae01d8e36e7cd51a1aa723c6d5b948100", null ],

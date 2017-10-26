@@ -1,6 +1,5 @@
 var NAVTREEINDEX17 =
 {
-"structRadialFunctionR.html#af42bb945c35ed11a628eb637192c1cc5":[2,2,0,0,23,3],
 "structRadialSchrodinger_1_1Outputs.html":[2,2,1,4,16,0],
 "structRadialSchrodinger_1_1Outputs.html#a8d2bc1a99b52efa62632421d4768d4a8":[2,2,1,4,16,0,1],
 "structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb":[2,2,1,4,16,0,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX17 =
 "structnAugmentFunctor.html#a4e28a655c577af76f411dee96fd7ac17":[2,2,1,1,16,1],
 "structnAugmentFunctor.html#a4f6ead0b42d0dca8b531d572bc900c38":[2,2,1,1,16,3],
 "structnAugmentFunctor.html#a5979c04151ad534b6913f9bffa55dcb1":[2,2,1,1,16,5],
-"structnAugmentFunctor.html#a9e185aa7aa66944e47cacf9eb8cb19d4":[2,2,1,1,16,2]
+"structnAugmentFunctor.html#a9e185aa7aa66944e47cacf9eb8cb19d4":[2,2,1,1,16,2],
+"structnAugmentFunctor.html#ae966dffcb5dece401e35f0be1fe8af50":[2,2,1,1,16,7]
 };

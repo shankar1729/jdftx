@@ -1,6 +1,5 @@
 var NAVTREEINDEX13 =
 {
-"group__Operators.html#ga8d7f3fb6cf181094d3969a28f2d661f1":[2,2,0,1,40],
 "group__Operators.html#ga8f28a65ff8c0f48d2d04129b16c4111d":[2,2,0,1,133],
 "group__Operators.html#ga8f8e8322bf8d0729f1499680e0dfe7cb":[2,2,0,1,87],
 "group__Operators.html#ga90dc7695ae5fa193758cf1dd1167cef2":[2,2,0,1,71],
@@ -249,5 +248,6 @@ var NAVTREEINDEX13 =
 "matrix_8h.html#ga8796c3b4c33ebe9f6dd952f600803585":[2,5,0,1,16,52],
 "matrix_8h.html#ga8972d8f885993952a244f30af5913c4a":[2,5,0,1,16,47],
 "matrix_8h.html#ga9201d2bb818d751ddeabdedd9cdf7fc1":[2,5,0,1,16,1],
-"matrix_8h.html#ga978a2396885e9e2727b317cabd017f4d":[2,5,0,1,16,12]
+"matrix_8h.html#ga978a2396885e9e2727b317cabd017f4d":[2,5,0,1,16,12],
+"matrix_8h.html#ga97e8069845a1c3760c5c2f699811afc1":[2,5,0,1,16,7]
 };

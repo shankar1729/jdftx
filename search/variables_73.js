@@ -2,7 +2,7 @@ var searchData=
 [
   ['s',['S',['../structCoulombKernel.html#ab3b92fdfd65afaf1ac2afa038b6e69cd',1,'CoulombKernel::S()'],['../classGridInfo.html#ad610046b43e79816f474dda260ec2091',1,'GridInfo::S()']]],
   ['s2quadtype',['s2quadType',['../structFluidComponent.html#ad8973ff322f6c14fe84be613a17eec09',1,'FluidComponent']]],
-  ['s_5fold',['S_old',['../structColumnBundleReadConversion.html#ae612303d64814c12b1b132319fc18c4b',1,'ColumnBundleReadConversion']]],
+  ['s_5fold',['S_old',['../structElecInfo_1_1ColumnBundleReadConversion.html#a98e75d45f1c2b89fdeb02bad1c2f9fa1',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['savemomenta',['saveMomenta',['../classWannier.html#a91db9d0742e6e012b2f6af22776b28f8',1,'Wannier']]],
   ['savewfns',['saveWfns',['../classWannier.html#a75493237f96463466af51f1a6fe077c6',1,'Wannier']]],
   ['savewfnsrealspace',['saveWfnsRealSpace',['../classWannier.html#a9227b89e50bb5853456aab646572e8b5',1,'Wannier']]],

@@ -1,6 +1,5 @@
 var NAVTREEINDEX12 =
 {
-"group__ExchangeCorrelation.html#gafc67e3227e14be722f08c9c1f2649bcd":[2,2,1,2,33],
 "group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373ba177c46eb0b6505dfb053a9556d2f2398":[2,2,1,2,31,9],
 "group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373ba27ca4b70dcc06d6c7343eae574ffee64":[2,2,1,2,31,15],
 "group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373ba34ccef1a5d6e78dee08791601dbca901":[2,2,1,2,31,14],
@@ -249,5 +248,6 @@ var NAVTREEINDEX12 =
 "group__Operators.html#ga8a08a1b978e355bd3abd3428f7486446":[2,2,0,1,167],
 "group__Operators.html#ga8a426fdd52157c7d1a984f5d2c4876c8":[2,2,0,1,67],
 "group__Operators.html#ga8a7fe4d328e4fcf5727dcafceb44b7b5":[2,2,0,1,175],
-"group__Operators.html#ga8d58c4fae414cd9011e7f50d8943b6fc":[2,2,0,1,54]
+"group__Operators.html#ga8d58c4fae414cd9011e7f50d8943b6fc":[2,2,0,1,54],
+"group__Operators.html#ga8d7f3fb6cf181094d3969a28f2d661f1":[2,2,0,1,40]
 };

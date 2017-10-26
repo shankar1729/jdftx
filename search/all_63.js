@@ -54,7 +54,7 @@ var searchData=
   ['columnbundle',['ColumnBundle',['../classColumnBundle.html',1,'ColumnBundle'],['../classColumnBundle.html#ac761e5f17c0527caaf199a7e2d545b26',1,'ColumnBundle::ColumnBundle(const ColumnBundle &amp;)'],['../classColumnBundle.html#ab1b7cd88ab6bc1c77da9587770c71c73',1,'ColumnBundle::ColumnBundle(ColumnBundle &amp;&amp;)']]],
   ['columnbundle_2eh',['ColumnBundle.h',['../ColumnBundle_8h.html',1,'']]],
   ['columnbundlematrixproduct',['ColumnBundleMatrixProduct',['../structColumnBundleMatrixProduct.html',1,'']]],
-  ['columnbundlereadconversion',['ColumnBundleReadConversion',['../structColumnBundleReadConversion.html',1,'']]],
+  ['columnbundlereadconversion',['ColumnBundleReadConversion',['../structElecInfo_1_1ColumnBundleReadConversion.html',1,'ElecInfo']]],
   ['columnbundletransform',['ColumnBundleTransform',['../classColumnBundleTransform.html',1,'ColumnBundleTransform'],['../classColumnBundleTransform.html#ac224e1db4578d1539eb0099a8638544e',1,'ColumnBundleTransform::ColumnBundleTransform()']]],
   ['command',['Command',['../classCommand.html',1,'Command'],['../classCommand.html#a170a90f92219fadbc7860b0c62351606',1,'Command::Command()']]],
   ['command_2eh',['command.h',['../command_8h.html',1,'']]],

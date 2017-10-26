@@ -21,7 +21,7 @@ var hierarchy =
     ] ],
     [ "ChargedDefect", "structChargedDefect.html", null ],
     [ "ColumnBundleMatrixProduct", "structColumnBundleMatrixProduct.html", null ],
-    [ "ColumnBundleReadConversion", "structColumnBundleReadConversion.html", null ],
+    [ "ElecInfo::ColumnBundleReadConversion", "structElecInfo_1_1ColumnBundleReadConversion.html", null ],
     [ "ColumnBundleTransform", "classColumnBundleTransform.html", null ],
     [ "Command", "classCommand.html", [
       [ "CommandMinimize", "structCommandMinimize.html", null ]
