@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizer.h>
 #include <core/ScalarFieldIO.h>
+#include <core/WignerSeitz.h>
 
 //Apply cell map weights due to repeated images near supercell boundaries
 //nVector specifies number of vecor components in each cell eg. 3 for momentum, 1 for Hamiltonian.
@@ -283,6 +284,34 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	double Omega = minimize(wannier.minParams);
 	double OmegaI = getOmegaI();
 	logPrintf("\nOptimum spread:\n\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);
+	
+	//Wrap centers to WS cell (if requested):
+	std::shared_ptr<WignerSeitz> ws;
+	if(wannier.wrapWS)
+	{	logPrintf("\nWrapping wannier centers to Wigner-Seitz cell:\n\t");
+		ws = std::make_shared<WignerSeitz>(e.gInfo.R);
+		//Calculate offsets:
+		std::vector<vector3<int>> offsets;
+		for(const vector3<>& r: rExpect)
+		{	vector3<> x = e.gInfo.invR * r - e.coulombParams.embedCenter; //lattice coordinates w.r.t Coulomb center
+			vector3<> xWS = ws->restrict(x);
+			offsets.push_back(round(xWS-x));
+		}
+		//Apply offsets by changing phase of U:
+		for(size_t ik=0; ik<kMesh.size(); ik++)
+		{	KmeshEntry& ki = kMesh[ik];
+			std::vector<complex> transPhase;
+			for(const vector3<int>& offset: offsets)
+				transPhase.push_back(cis(-2*M_PI*dot(offset, ki.point.k)));
+			if(isMine(ik))
+				ki.U2 = ki.U2 * transPhase;
+			ki.U = ki.U * transPhase;
+		}
+		//Recalculate spreads:
+		Omega = getOmega(); //this updates rExpect etc.
+		OmegaI = getOmegaI();
+		logPrintf("\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);
+	}
 	
 	//List the centers:
 	logPrintf("\nCenters in %s coords:\n", e.iInfo.coordsType==CoordsCartesian ? "cartesian" : "lattice");

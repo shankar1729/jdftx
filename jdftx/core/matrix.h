@@ -160,8 +160,9 @@ inline diagMatrix operator*(const diagMatrix &m, double s) { diagMatrix ret(m); 
 inline diagMatrix operator-(const diagMatrix &m) { return m * (-1); }
 
 matrix operator*(const matrixScaledTransOp&, const matrixScaledTransOp&);
-matrix operator*(const matrix&, const diagMatrix&);
 matrix operator*(const diagMatrix&, const matrix&);
+matrix operator*(const matrix&, const diagMatrix&);
+matrix operator*(const matrix& m, const std::vector<complex>& d);
 diagMatrix operator*(const diagMatrix&, const diagMatrix&);
 
 inline matrix& operator+=(matrix &m1, const matrix &m2) { if(m1) axpy(1.0, m2, m1); else m1 = m2; return m1; }

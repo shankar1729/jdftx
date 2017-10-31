@@ -78,6 +78,7 @@ public:
 	
 	vector3<int> phononSup; //!< phonon supercell (process e-ph matrix elements on this supercell if non-zero)
 	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed
+	bool wrapWS; //!< whether to wrap Wannier centers (and phonon atom perturbations) to a Wigner-Seitz cell
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
