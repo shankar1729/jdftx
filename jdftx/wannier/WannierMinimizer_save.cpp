@@ -660,20 +660,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		int iPairStart, iPairStop;
 		TaskDivision(kpointPairs.size(), mpiUtil).myRange(iPairStart, iPairStop);
-		//--- calculate Fourier transform phase (with integration weights)
-		int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
-		matrix phase = zeroes(nPairsMine, std::pow(phononCellMap.size(),2));
-		double kPairWeight = 1./(prodPhononSup*prodPhononSup);
-		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-		{	const KpointPair& pair = kpointPairs[iPair];
-			int iCellPair = 0;
-			for(const auto& entry1: phononCellMap)
-			for(const auto& entry2: phononCellMap)
-			{	const vector3<int>& iR1 = entry1.first;
-				const vector3<int>& iR2 = entry2.first;
-				phase.set(iPair-iPairStart, iCellPair++, kPairWeight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
-			}
-		}
 		//--- read Bloch electron - nuclear displacement matrix elements
 		string fnameIn = wannier.getFilename(Wannier::FilenameInit, "phononHsub", &iSpin);
 		logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
@@ -724,6 +710,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 		}
 		//--- apply Wannier rotations
+		int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
 		matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
 		for(int iMode=0; iMode<nPhononModes; iMode++)
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
@@ -734,25 +721,49 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					phononHsubCur.dataPref(), phononHsubCur.nData());
 			}
 		logPrintf("done.\n"); logFlush();
-		//--- convert phononHsub from Bloch to wannier for each nuclear displacement mode
-		matrix HePh = HePhTilde * phase;
-		HePhTilde = 0; //free memory
-		HePh.allReduce(MPIUtil::ReduceSum);
-		//--- apply cell weights:
-		complex* HePhData = HePh.dataPref();
+		//--- calculate HePh and output one cell fixed at a time to minimize memory usage:
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = 0;
+		if(mpiUtil->isHead())
+		{	fp = fopen(fname.c_str(), "wb");
+			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
+		}
+		matrix phase = zeroes(nPairsMine, phononCellMap.size());
+		double kPairWeight = 1./(prodPhononSup*prodPhononSup);
+		double nrm2totSq = 0., nrm2imSq = 0.;
 		for(const auto& entry1: ePhCellMap)
-		for(const auto& entry2: ePhCellMap)
-			for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
-			{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
-				matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
-				matrix w = transpose(w1i) * w2i;
-				for(int iVector=0; iVector<3; iVector++)
-				{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, HePhData, 1);
-					HePhData += w.nData();
+		{	//calculate Fourier transform phase (with integration weights):
+			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
+			{	const KpointPair& pair = kpointPairs[iPair];
+				int iCell2 = 0;
+				for(const auto& entry2: ePhCellMap)
+				{	const vector3<int>& iR1 = entry1.first;
+					const vector3<int>& iR2 = entry2.first;
+					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
 				}
 			}
-		//--- save output:
-		dumpMatrix(HePh, "mlwfHePh", realPartOnly, iSpin);
+			//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
+			matrix HePh = HePhTilde * phase;
+			HePh.allReduce(MPIUtil::ReduceSum);
+			//apply cell weights:
+			complex* HePhData = HePh.dataPref();
+			for(const auto& entry2: ePhCellMap)
+				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
+				{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
+					matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
+					matrix w = transpose(w1i) * w2i;
+					for(int iVector=0; iVector<3; iVector++)
+					{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, HePhData, 1);
+						HePhData += w.nData();
+					}
+				}
+			if(mpiUtil->isHead()) HePh.write_real(fp);
+			nrm2totSq += std::pow(nrm2(HePh), 2); 
+			nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+		}
+		if(mpiUtil->isHead()) fclose(fp);
+		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
 	}
 }
 
