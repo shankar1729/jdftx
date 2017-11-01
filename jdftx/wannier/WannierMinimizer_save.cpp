@@ -591,7 +591,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Electron-phonon matrix elements:
 	if(wannier.phononSup.length_squared())
-	{	//--- Generate phonon and e-ph cell maps:
+	{	//--- Generate phonon cell map (will match that used by phonon):
 		std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
 		for(const auto& sp: e.iInfo.species)
 			xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
@@ -599,9 +599,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		std::map<vector3<int>,matrix> phononCellMap = getCellMap(
 			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
 			e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
-		std::map<vector3<int>,matrix> ePhCellMap = getCellMap(
-			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
 		//--- Read phonon force matrix:
 		std::map<vector3<int>, matrix> phononOmegaSq;
 		if(mpiUtil->isHead())
@@ -616,6 +613,71 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}
+		//--- generate list of commensurate k-points in order present in the unit cell calculation
+		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
+		std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
+		for(unsigned ik=0; ik<kMesh.size(); ik++)
+		{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
+			double roundErr; round(kSup, &roundErr);
+			if(roundErr < symmThreshold) //integral => commensurate with supercell
+				ikArr.push_back(ik);
+		}
+		assert(int(ikArr.size()) == prodPhononSup);
+		//--- Wrap atoms to WS cell if necessary:
+		std::vector<vector3<int>> dxAtoms;
+		if(wannier.wrapWS)
+		{	logPrintf("\nWrapping phonon basis to Wigner-Seitz cell:\n");
+			//Calculate offsets and new atom positions:
+			std::vector<vector3<>> xAtomsNew;
+			for(const vector3<>& xAt: xAtoms)
+			{	vector3<> x = xAt - e.coulombParams.embedCenter; //lattice coordinates w.r.t Coulomb center
+				vector3<> xWS = ws->restrict(x);
+				vector3<int> dx = round(xWS-x);
+				logPrintf("\t[ %3d %3d %3d ]\n", dx[0], dx[1], dx[2]);
+				dxAtoms.push_back(dx);
+				xAtomsNew.push_back(xAt + dx);
+			}
+			//Construct offset force matrix:
+			std::map<vector3<int>, matrix> phononOmegaSqNew;
+			for(const auto& iter: phononOmegaSq)
+				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
+				for(size_t jAtom=0; jAtom<xAtoms.size(); jAtom++)
+				{	vector3<int> iRnew = iter.first + dxAtoms[jAtom] - dxAtoms[iAtom];
+					matrix& oSqCur = phononOmegaSqNew[iRnew];
+					if(!oSqCur) oSqCur = zeroes(nPhononModes, nPhononModes);
+					oSqCur.set(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3,
+						iter.second(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3) );
+				}
+			//Construct new cell map:
+			std::map<vector3<int>,matrix> phononCellMapNew = getCellMap(
+				e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
+				e.coulombParams.isTruncated(), xAtomsNew, xAtomsNew, wannier.rSmooth);
+			//Reduce force matrix to it:
+			double nrmSqKept = 0., nrmSqDropped = 0.;
+			for(auto iter=phononOmegaSqNew.begin(); iter!=phononOmegaSqNew.end();)
+			{	double nrmSqCur = std::pow(nrm2(iter->second), 2);
+				if(phononCellMapNew.find(iter->first) == phononCellMapNew.end())
+				{	//Not in new cell map; remove
+					nrmSqDropped += nrmSqCur;
+					iter = phononOmegaSqNew.erase(iter);
+				}
+				else
+				{	//In new cell map; keep
+					nrmSqKept += nrmSqCur;
+					iter++;
+				}
+			}
+			logPrintf("\tRelative error in phonon force matrix remapping: %le\n\n",
+				sqrt(nrmSqDropped / (nrmSqKept + nrmSqDropped)));
+			//Replace originals:
+			xAtoms = xAtomsNew;
+			phononOmegaSq = phononOmegaSqNew;
+			phononCellMap = phononCellMapNew;
+		}
+		//--- Generate electron-phonon cell map:
+		std::map<vector3<int>,matrix> ePhCellMap = getCellMap(
+			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
+			e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
 		//--- Add ePhCellMap cells missing in phononCellMap:
 		for(const auto iter: ePhCellMap)
 			if(phononCellMap.find(iter.first) == phononCellMap.end())
@@ -665,16 +727,6 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}
-		//--- generate list of commensurate k-points in order present in the unit cell calculation
-		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
-		std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
-		for(unsigned ik=0; ik<kMesh.size(); ik++)
-		{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
-			double roundErr; round(kSup, &roundErr);
-			if(roundErr < symmThreshold) //integral => commensurate with supercell
-				ikArr.push_back(ik);
-		}
-		assert(int(ikArr.size()) == prodPhononSup);
 		//--- generate pairs of commensurate k-points along with pointer to Wannier rotation
 		struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
 		std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
@@ -704,6 +756,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			{	matrix& phononHsubCur = phononHsub[iMode][iPair];
 				phononHsubCur.init(nBands, nBands);
 				mpiUtil->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
+				//Translate for phonon basis wrapping (if any):
+				if(wannier.wrapWS)
+					phononHsubCur *= cis(2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k2 - kpointPairs[iPair].k1));
 			}
 		}
 		//--- apply translational invariance correction:
