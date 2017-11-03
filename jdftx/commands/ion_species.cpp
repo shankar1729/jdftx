@@ -302,6 +302,44 @@ struct CommandSetVDW : public Command
 commandSetVDW;
 
 
+struct CommandSetAtomicRadius : public Command
+{
+	CommandSetAtomicRadius() : Command("set-atomic-radius", "jdftx/Ionic/Species")
+	{	format = "<species> <Ri> [ <species2> ... ]";
+		comments =
+			"Override atomic radii used by some solvation models. Ri should be specified in Angstroms.";
+		
+		require("ion");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	string id;
+		pl.get(id, string(), "species", true);
+		while(id.length())
+		{	auto sp = findSpecies(id, e);
+			if(sp)
+			{	double Ri;
+				pl.get(Ri, 0.0, "Ri", true);
+				sp->atomicRadiusOverride = std::make_shared<double>(Ri*Angstrom);
+			}
+			else throw string("Species "+id+" has not been defined");
+			//Check for additional species:
+			pl.get(id, string(), "species");
+		}
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	bool first = true;
+		for(auto sp: e.iInfo.species)
+			if(sp->atomicRadiusOverride)
+			{	if(!first) logPrintf(" \\\n"); first = false;
+				logPrintf("\t%s %lg", sp->name.c_str(), *(sp->atomicRadiusOverride)/Angstrom);
+			}
+	}
+}
+commandSetAtomicRadius;
+
+
 struct CommandAddU : public Command
 {
 	CommandAddU() : Command("add-U", "jdftx/Electronic/Functional")

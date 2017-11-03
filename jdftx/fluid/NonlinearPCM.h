@@ -52,7 +52,9 @@ public:
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	//! Compute gradient and free energy (with optional outputs)
-	double operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state, ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, bool electricOnly=false) const;
+	double operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state,
+		ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0,
+		IonicGradient* forces=0, bool electricOnly=false) const;
 
 	// Interface for Minimizable:
 	void step(const ScalarFieldMuEps& dir, double alpha);

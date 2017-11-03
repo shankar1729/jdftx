@@ -25,6 +25,7 @@ EnumStringMap<PCMVariant> pcmVariantMap
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12",
+	PCM_SoftSphere, "SoftSphere",
 	PCM_SCCS_g09,      "SCCS_g09",
 	PCM_SCCS_g03,      "SCCS_g03",
 	PCM_SCCS_g03p,     "SCCS_g03p",
@@ -39,6 +40,7 @@ EnumStringMap<PCMVariant> pcmVariantDescMap
 	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion \\cite CavityWDA", 
 	PCM_GLSSA13, "PCM with empirical cavity tension \\cite NonlinearPCM",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions \\cite PCM-Kendra", 
+	PCM_SoftSphere, "Soft-sphere continuum solvation model \\cite PCM-SoftSphere",
 	PCM_SCCS_g09,      "g09 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
 	PCM_SCCS_g03,      "g03 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
 	PCM_SCCS_g03p,     "g03' parametrization of SCCS local linear model for water \\cite PCM-SCCS",
@@ -90,7 +92,8 @@ enum PCMparameter
 	PCMp_nc, //!< critical density for the PCM cavity shape function
 	PCMp_sigma, //!< smoothing factor for the PCM cavity shape function
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
-	PCMp_cavityPressure, //!< effective pressure on the cavity (hartree per bohr^3) for SCCS
+	PCMp_cavityPressure, //!< effective pressure on the cavity (hartree per bohr^3) for SCCS and SoftSphere models
+	PCMp_cavityScale, //!< atomic radius scale factor for soft sphere solvation model
 	PCMp_rhoMin, //!< min electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoMax, //!< max electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoDelta, //!< electron density change (bohr^-3) for SCCS cavity area calculation
@@ -107,6 +110,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_sigma,         "sigma",
 	PCMp_cavityTension, "cavityTension",
 	PCMp_cavityPressure, "cavityPressure",
+	PCMp_cavityScale, "cavityScale",
 	PCMp_rhoMin, "rhoMin",
 	PCMp_rhoMax, "rhoMin",
 	PCMp_rhoDelta, "rhoDelta",
@@ -121,7 +125,8 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_nc, "critical density for the PCM cavity shape function",
 	PCMp_sigma, "smoothing factor for the PCM cavity shape function",
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
-	PCMp_cavityPressure, "effective pressure on the cavity (hartree per bohr^3) for SCCS",
+	PCMp_cavityPressure, "effective pressure on the cavity (hartree per bohr^3) for SCCS and soft sphere models",
+	PCMp_cavityScale, "atomic radius scale factor for soft sphere model",
 	PCMp_rhoMin, "min electron density (bohr^-3) for SCCS cavity switching function",
 	PCMp_rhoMax, "max electron density (bohr^-3) for SCCS cavity switching function",
 	PCMp_rhoDelta, "electron density change (bohr^-3) for SCCS cavity area calculation",
@@ -160,6 +165,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(sigma, >, 0.)
 				READ_AND_CHECK(cavityTension, <, DBL_MAX)
 				READ_AND_CHECK(cavityPressure, <, DBL_MAX)
+				READ_AND_CHECK(cavityScale, >, 0.)
 				READ_AND_CHECK(rhoMin, >, 0.)
 				READ_AND_CHECK(rhoMax, >, 0.)
 				READ_AND_CHECK(rhoDelta, >, 0.)
@@ -182,6 +188,7 @@ struct CommandPcmParams : public Command
 		PRINT(sigma)
 		PRINT(cavityTension)
 		PRINT(cavityPressure)
+		PRINT(cavityScale)
 		PRINT(rhoMin)
 		PRINT(rhoMax)
 		PRINT(rhoDelta)

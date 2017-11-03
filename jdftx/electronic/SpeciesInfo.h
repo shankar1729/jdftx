@@ -193,9 +193,9 @@ private:
 	};
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
-	//!Pointer for struct containing optional VDW overrides
-	std::shared_ptr<VanDerWaals::AtomParams> vdwOverride;
-
+	std::shared_ptr<VanDerWaals::AtomParams> vdwOverride; //!< optional override of vdW parameters for this species
+	std::shared_ptr<double> atomicRadiusOverride; //!< optional override of atomic radius (used for some solvation models) for this species
+	
 	PseudopotentialFormat pspFormat;
 	
 	// gaussian chargeball used to prevent dielectric spikes
@@ -221,6 +221,9 @@ private:
 	friend struct CommandIonSpecies;
 	friend struct CommandSetVDW;
 	friend class VanDerWaals;
+	friend struct CommandSetAtomicRadius;
+	friend class FluidSolverParams;
+	friend class PCM;
 	friend struct CommandAddU;
 	friend struct CommandChargeball;
 	friend struct CommandTauCore;

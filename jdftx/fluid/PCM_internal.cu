@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <core/GpuKernelUtils.h>
+#include <core/LoopMacros.h>
 #include <fluid/PCM_internal.h>
 
 namespace ShapeFunction
@@ -72,6 +73,41 @@ namespace ShapeFunctionSGA13
 	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
 	{	GpuLaunchConfig1D glc(expandDensityHelper_kernel, N);
 		expandDensityHelper_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, alpha, nBar, DnBarSq, nEx, nEx_nBar, nEx_DnBarSq);
+		gpuErrorCheck();
+	}
+}
+
+namespace ShapeFunctionSoftSphere
+{
+	__global__
+	void compute_kernel(int zBlock, const vector3<int> S, const vector3<> Sinv, const matrix3<> RTR,
+		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+	{	COMPUTE_rIndices
+		compute_calc(i, iv, Sinv, RTR, nAtoms, x, radius, shape, sigmaInv);
+	}
+	void compute_gpu(const vector3<int>& S, const matrix3<>& RTR,
+		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+	{	GpuLaunchConfig3D glc(compute_kernel, S);
+		vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
+		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+			compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, nAtoms, x, radius, shape, sigmaInv);
+		gpuErrorCheck();
+	}
+	
+	__global__
+	void propagateGradient_kernel(int zBlock, const vector3<int> S, const vector3<> Sinv, const matrix3<> RTR,
+		int iAtom, const vector3<>* x, const double* radius, const double* shape,
+		const double* E_shape, vector3<double*> E_x, double sigmaInv)
+	{	COMPUTE_rIndices
+		propagateGradient_calc(i, iv, Sinv, RTR, iAtom, x, radius, shape, E_shape, E_x, sigmaInv);
+	}
+	void propagateGradient_gpu(const vector3<int>& S, const matrix3<>& RTR,
+		int iAtom, const vector3<>* x, const double* radius, const double* shape,
+		const double* E_shape, vector3<double*> E_x, double sigmaInv)
+	{	GpuLaunchConfig3D glc(propagateGradient_kernel, S);
+		vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
+		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+			propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, iAtom, x, radius, shape, E_shape, E_x, sigmaInv);
 		gpuErrorCheck();
 	}
 }

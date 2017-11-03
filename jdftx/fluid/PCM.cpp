@@ -56,7 +56,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	const double dG = 0.02;
 	
 	//Print common info and add relevant citations:
-	if(!isPCM_SCCS(fsp.pcmVariant))
+	if(!isPCM_SCCS(fsp.pcmVariant) && fsp.pcmVariant!=PCM_SoftSphere)
 		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA: //Nonlocal PCM
@@ -129,6 +129,20 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			logPrintf("   No cavitation model.\n");
 			break;
 		}
+		case PCM_SoftSphere:
+		{	Citations::add("Soft-sphere continuum solvation model", "G. Fisicaro et al., J. Chem. Theory Comput. 13, 3829 (2017)");
+			logPrintf("   Cavity determined with scale factor: %lg  width: %lg  atomic radii:\n", fsp.cavityScale, fsp.sigma);
+			Rall.clear();
+			for(const auto& sp: e.iInfo.species)
+			{	assert(sp->atomicNumber);
+				double R = fsp.getAtomicRadius(*sp);
+				logPrintf("\t%2s:  %.3f bohr%s\n", sp->name.c_str(), R, sp->atomicRadiusOverride ? " (Manually overriden)" : "");
+				Rall.insert(Rall.end(), sp->atpos.size(), R * fsp.cavityScale); //store scaled radius
+			}
+			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 and pressure: %lg Eh/bohr^3 to account for cavitation and dispersion.",
+				fsp.cavityTension, fsp.cavityPressure);
+			break;
+		}
 		case_PCM_SCCS_any:
 		{	Citations::add("SCCS linear dielectric fluid model", "O. Andreussi et al., J. Chem. Phys. 136, 064102 (2012)");
 			if(fsp.pcmVariant==PCM_SCCS_cation || fsp.pcmVariant==PCM_SCCS_anion)
@@ -162,6 +176,18 @@ void PCM::updateCavity()
 		ShapeFunctionCANDLE::compute(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), shapeVdw,
 			fsp.nc, fsp.sigma, fsp.pCavity); //vdW cavity
 		shape = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
+	}
+	else if(fsp.pcmVariant == PCM_SoftSphere)
+	{	//Construct flat list of all atom positions:
+		std::vector<vector3<>> atposAllCur;
+		for(const std::vector<vector3<>>& atposSp: atpos)
+			atposAllCur.insert(atposAllCur.end(), atposSp.begin(), atposSp.end());
+		//Update cavity only if atomic positions have changed:
+		if(atposAllCur != atposAll)
+		{	atposAll = atposAllCur;
+			nullToZero(shape, gInfo);
+			ShapeFunctionSoftSphere::compute(atposAll, Rall, shape, fsp.sigma);
+		}
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape, fsp.rhoMin, fsp.rhoMax, epsBulk);
@@ -201,12 +227,17 @@ void PCM::updateCavity()
 			break;
 		}
 		case PCM_GLSSA13:
+		case PCM_SoftSphere:
 		{	VectorField Dshape = gradient(shape);
 			ScalarField surfaceDensity = sqrt(lengthSquared(Dshape));
 			ScalarField invSurfaceDensity = inv(surfaceDensity);
 			A_tension = integral(surfaceDensity);
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
 			Acavity_shape = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
+			if(fsp.cavityPressure)
+			{	Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shape));
+				Acavity_shape = Acavity_shape - fsp.cavityPressure;
+			}
 			break;
 		}
 		case PCM_LA12:
@@ -225,8 +256,11 @@ void PCM::updateCavity()
 	}
 }
 
-void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, bool electricOnly) const
-{	if(fsp.pcmVariant == PCM_SGA13)
+void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, bool electricOnly) const
+{
+	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
+	
+	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
 		((PCM*)this)->A_nc = 0;
 		const ScalarField* A_shapeEx[2] = { &A_shape, &Acavity_shapeVdw };
@@ -250,6 +284,17 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
+	else if(fsp.pcmVariant == PCM_SoftSphere)
+	{	nullToZero(A_nCavity, gInfo);
+		if(forces)
+		{	std::vector<vector3<>> A_atposAll; //gradient w.r.t atomic positions
+			ShapeFunctionSoftSphere::propagateGradient(atposAll, Rall, shape, Acavity_shape + A_shape, A_atposAll, fsp.sigma);
+			auto A_atposAllPtr = A_atposAll.begin();
+			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+				for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
+					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
+		}
+	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 	{	//Electrostatic and volumetric combinations via shape:
 		ShapeFunctionSCCS::propagateGradient(nCavity, A_shape - fsp.cavityPressure, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
@@ -271,9 +316,9 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 	}
 }
 
-void PCM::setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const
+void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const
 {	if(forces)
-	{	forces->init(e.iInfo);
+	{
 		//VDW contribution:
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
@@ -294,6 +339,15 @@ void PCM::setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavit
 		switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
+			{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
+				for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+					for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
+					{	callPref(gradSGtoAtpos)(gInfo.S, atpos[iSp][iAtom], A_nCavityTilde->dataPref(), gradAtpos.dataPref());
+						for(int k=0; k<3; k++)
+							(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient
+					}
+				break;
+			}
 			default: break; //no full-core forces
 		}
 	}
@@ -303,6 +357,15 @@ ScalarFieldTilde PCM::getFullCore() const
 {	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
+		{	ScalarFieldTilde nFullCore, SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
+			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+			{	ManagedArray<vector3<>> atposManaged(atpos[iSp]);
+				//Compute structure factor and accumulate contribution from this species:
+				callPref(getSG)(gInfo.S, atposManaged.nData(), atposManaged.dataPref(), 1./gInfo.detR, SG->dataPref());
+				nFullCore += e.iInfo.species[iSp]->ZfullCore * SG;
+			}
+			return nFullCore;
+		}
 		default: return 0; //no full-core
 	}
 }
@@ -350,6 +413,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
 		case PCM_LA12:
+		case PCM_SoftSphere:
 		case_PCM_SCCS_any:
 			break;
 	}

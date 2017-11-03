@@ -67,6 +67,7 @@ enum PCMVariant
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion \cite CavityWDA
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM
 	PCM_LA12, //!< Linear local-response electrolyte \cite PCM-Kendra
+	PCM_SoftSphere, //!< Soft-sphere continuum solvation model \cite PCM-SoftSphere
 	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water  \cite PCM-SCCS
@@ -111,7 +112,7 @@ struct FluidSolverParams
 	
 	//Fit parameters:
 	double nc; //!< critical density for the PCM cavity shape function
-	double sigma; //!< smoothing factor for the PCM cavity shape function
+	double sigma; //!< smoothing factor for the PCM cavity shape function (dimensionless for most, but in bohrs for SoftSphere)
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	
@@ -128,6 +129,10 @@ struct FluidSolverParams
 	
 	//For SaLSA alone:
 	int lMax;
+	
+	//For soft sphere model alone:
+	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
+	double cavityScale; //!< radius scale factor
 	
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit

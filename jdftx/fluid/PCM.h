@@ -47,8 +47,14 @@ protected:
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
-	void propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, bool electricOnly) const; //!< propagate A_shape (+ cached Acavity_shape) and accumulate to those w.r.t nCavity and rhoExplicitTilde
-	void setExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const; //!< set extra fluid forces (vdw and full-core forces, when applicable)
+	
+	//! Propagate A_shape (+ cached Acavity_shape) and accumulate to gradients w.r.t nCavity and rhoExplicitTilde.
+	//! Set fluid force contributions (for atom-sphere cavities) if non-null.
+	void propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, bool electricOnly) const;
+	
+	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable)
+	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const;
+	
 	ScalarFieldTilde getFullCore() const; //!< get full core correction for PCM variants that need them
 private:
 	ScalarField Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions
@@ -56,6 +62,8 @@ private:
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
+	std::vector<vector3<>> atposAll; //!< all solute atomic positions (SoftSphere only)
+	std::vector<double> Rall; //!< all solute atomic radii, with overall scale factor pre-multiplied (SoftSphere only)
 protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)

@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_PCM_INTERNAL_H
 #define JDFTX_ELECTRONIC_PCM_INTERNAL_H
 
-#include <core/vector3.h>
+#include <core/matrix3.h>
 #include <core/RadialFunction.h>
 
 //! @addtogroup Solvation
@@ -61,6 +61,17 @@ namespace ShapeFunctionSGA13
 {
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
 	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
+}
+
+//! Shape function for the soft-sphere model \cite PCM-SoftSphere
+namespace ShapeFunctionSoftSphere
+{
+	//! Compute the shape function (0 to 1) given list of atom lattice coordinates x and sphere radii
+	void compute(const std::vector<vector3<>>& x, const std::vector<double>& radius, ScalarField& shape, double sigma);
+
+	//! Propagate gradient w.r.t shape function to that w.r.t atomic positions
+	void propagateGradient(const std::vector<vector3<>>& x, const std::vector<double>& radius,
+		const ScalarField& shape, const ScalarField& E_shape, std::vector<vector3<>>& E_x, double sigma);
 }
 
 //! Shape function for SCCS models \cite PCM-SCCS
@@ -145,6 +156,41 @@ namespace ShapeFunctionSGA13
 		nEx[i] = alpha*n + D2*nInv;
 		if(nEx_nBar) { nEx_nBar[i] = alpha - D2*nInv*nInv; }
 		if(nEx_DnBarSq) { nEx_DnBarSq[i] = nInv; }
+	}
+}
+
+//Cavity shape function and gradient for the soft-sphere model
+namespace ShapeFunctionSoftSphere
+{
+	__hostanddev__ void compute_calc(int i, const vector3<int>& iv, const vector3<>& Sinv, const matrix3<>& RTR,
+		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+	{	double s = 1.;
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		{	vector3<> dx;
+			for(int iDir=0; iDir<3; iDir++)
+			{	dx[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
+				dx[iDir] -= floor(0.5+dx[iDir]); //wrap to [-0.5,0.5]
+			}
+			double dr = sqrt(RTR.metric_length_squared(dx));
+			s *= 0.5*erfc(sigmaInv*(radius[iAtom]-dr));
+		}
+		shape[i] = s;
+	}
+	
+	__hostanddev__ void propagateGradient_calc(int i, const vector3<int>& iv, const vector3<>& Sinv, const matrix3<>& RTR,
+		int iAtom, const vector3<>* x, const double* radius, const double* shape, const double* E_shape, vector3<double*> E_x, double sigmaInv)
+	{	double s = shape[i];
+		if(s < 1e-14) { storeVector(vector3<>(), E_x, i); return; } //avoid 0/0 below
+		vector3<> dx;
+		for(int iDir=0; iDir<3; iDir++)
+		{	dx[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
+			dx[iDir] -= floor(0.5+dx[iDir]); //wrap to [-0.5,0.5]
+		}
+		double dr = sqrt(RTR.metric_length_squared(dx));
+		double drComb = sigmaInv*(radius[iAtom]-dr);
+		double sContrib = 0.5*erfc(drComb);
+		double sContrib_dr = (sigmaInv/sqrt(M_PI)) * exp(-drComb*drComb);
+		storeVector(((E_shape[i]*s/sContrib) * (sContrib_dr/dr)) * (RTR*dx), E_x, i);
 	}
 }
 
