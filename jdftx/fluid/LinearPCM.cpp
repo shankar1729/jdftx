@@ -96,7 +96,7 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations at t[s]: %9.2lf\n", nIter, clock_sec());
 }
 
-double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
@@ -114,7 +114,7 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
-	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, electricOnly);
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);

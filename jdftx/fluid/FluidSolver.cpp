@@ -242,7 +242,7 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
 	{
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
@@ -327,10 +327,10 @@ void FluidSolver::set(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFiel
 		set_internal(rhoExplicitTilde, nCavityTilde);
 }
 
-double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces) const
 {	if(e.coulombParams.embed)
 	{	ScalarFieldTilde Adiel_rho_big, Adiel_n_big;
-		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces, electricOnly);
+		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces);
 		if(Adiel_rhoExplicitTilde) *Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
 		if(Adiel_nCavityTilde) *Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
 		if(extraForces) *extraForces = Diag(e.coulomb->embedScale) * (*extraForces); //transform to original contravariant lattice coordinates
@@ -340,8 +340,7 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 	{	ScalarFieldTilde Adiel_rho_temp, Adiel_n_temp;
 		return get_Adiel_and_grad_internal(
 			Adiel_rhoExplicitTilde ? (*Adiel_rhoExplicitTilde) : Adiel_rho_temp,
-			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp,
-			extraForces, electricOnly);
+			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp, extraForces);
 	}
 }
 

@@ -53,8 +53,7 @@ public:
 
 	//! Compute gradient and free energy (with optional outputs)
 	double operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state,
-		ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0,
-		IonicGradient* forces=0, bool electricOnly=false) const;
+		ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* forces=0) const;
 
 	// Interface for Minimizable:
 	void step(const ScalarFieldMuEps& dir, double alpha);
@@ -62,7 +61,7 @@ public:
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
-	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const;
 
 private:
 	double pMol, ionNbulk, ionZ;

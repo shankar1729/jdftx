@@ -234,7 +234,7 @@ void SaLSA::minimizeFluid()
 }
 
 
-double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
@@ -265,7 +265,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
-	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, electricOnly);
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);

@@ -50,7 +50,7 @@ protected:
 	
 	//! Propagate A_shape (+ cached Acavity_shape) and accumulate to gradients w.r.t nCavity and rhoExplicitTilde.
 	//! Set fluid force contributions (for atom-sphere cavities) if non-null.
-	void propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, bool electricOnly) const;
+	void propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const;
 	
 	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable)
 	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const;

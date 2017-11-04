@@ -179,8 +179,7 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 }
 
 double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state,
-	ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde,
-	IonicGradient* forces, bool electricOnly) const
+	ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* forces) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarField Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
@@ -257,7 +256,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	}
 	if(Adiel_nCavityTilde)
 	{	ScalarField Adiel_nCavity;
-		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, forces, electricOnly);
+		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, forces);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	
@@ -285,9 +284,9 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const
+double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
 {	ScalarFieldMuEps Adiel_state;
-	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces, electricOnly);
+	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces);
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
 }

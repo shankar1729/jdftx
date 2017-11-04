@@ -256,7 +256,7 @@ void PCM::updateCavity()
 	}
 }
 
-void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, bool electricOnly) const
+void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const
 {
 	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
 	
@@ -279,7 +279,7 @@ void PCM::propagateCavityGradients(const ScalarField& A_shape, ScalarField& A_nC
 		ShapeFunctionCANDLE::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape)) + Acavity_shapeVdw,
 			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
-		if(!electricOnly) A_rhoExplicitTilde += coulomb(Sf[0]*A_phiExt);
+		A_rhoExplicitTilde += coulomb(Sf[0]*A_phiExt);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
