@@ -40,6 +40,7 @@ public:
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
+	void dumpDensities(const char* filenamePattern) const; //!< Dump fluid densities to file
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);

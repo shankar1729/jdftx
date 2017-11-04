@@ -67,10 +67,10 @@ namespace ShapeFunctionSGA13
 namespace ShapeFunctionSoftSphere
 {
 	//! Compute the shape function (0 to 1) given list of atom lattice coordinates x and sphere radii
-	void compute(const std::vector<vector3<>>& x, const std::vector<double>& radius, ScalarField& shape, double sigma);
+	void compute(const std::vector<vector3<>>& x, const std::vector<vector3<int>>& reps, const std::vector<double>& radius, ScalarField& shape, double sigma);
 
 	//! Propagate gradient w.r.t shape function to that w.r.t atomic positions
-	void propagateGradient(const std::vector<vector3<>>& x, const std::vector<double>& radius,
+	void propagateGradient(const std::vector<vector3<>>& x, const std::vector<vector3<int>>& reps, const std::vector<double>& radius,
 		const ScalarField& shape, const ScalarField& E_shape, std::vector<vector3<>>& E_x, double sigma);
 }
 
@@ -163,34 +163,44 @@ namespace ShapeFunctionSGA13
 namespace ShapeFunctionSoftSphere
 {
 	__hostanddev__ void compute_calc(int i, const vector3<int>& iv, const vector3<>& Sinv, const matrix3<>& RTR,
-		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv)
 	{	double s = 1.;
 		for(int iAtom=0; iAtom<nAtoms; iAtom++)
-		{	vector3<> dx;
+		{	vector3<> dx0;
 			for(int iDir=0; iDir<3; iDir++)
-			{	dx[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
-				dx[iDir] -= floor(0.5+dx[iDir]); //wrap to [-0.5,0.5]
+			{	dx0[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
+				dx0[iDir] -= floor(0.5+dx0[iDir]); //wrap to [-0.5,0.5]
 			}
-			double dr = sqrt(RTR.metric_length_squared(dx));
-			s *= 0.5*erfc(sigmaInv*(radius[iAtom]-dr));
+			for(int iRep=0; iRep<nReps; iRep++)
+			{	vector3<> dx = dx0 + reps[iRep];
+				double dr = sqrt(RTR.metric_length_squared(dx));
+				s *= 0.5*erfc(sigmaInv*(radius[iAtom]-dr));
+			}
 		}
 		shape[i] = s;
 	}
 	
 	__hostanddev__ void propagateGradient_calc(int i, const vector3<int>& iv, const vector3<>& Sinv, const matrix3<>& RTR,
-		int iAtom, const vector3<>* x, const double* radius, const double* shape, const double* E_shape, vector3<double*> E_x, double sigmaInv)
+		int iAtom, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, const double* shape,
+		const double* E_shape, vector3<double*> E_x, double sigmaInv)
 	{	double s = shape[i];
-		if(s < 1e-14) { storeVector(vector3<>(), E_x, i); return; } //avoid 0/0 below
-		vector3<> dx;
+		vector3<> dx0;
 		for(int iDir=0; iDir<3; iDir++)
-		{	dx[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
-			dx[iDir] -= floor(0.5+dx[iDir]); //wrap to [-0.5,0.5]
+		{	dx0[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
+			dx0[iDir] -= floor(0.5+dx0[iDir]); //wrap to [-0.5,0.5]
 		}
-		double dr = sqrt(RTR.metric_length_squared(dx));
-		double drComb = sigmaInv*(radius[iAtom]-dr);
-		double sContrib = 0.5*erfc(drComb);
-		double sContrib_dr = (sigmaInv/sqrt(M_PI)) * exp(-drComb*drComb);
-		storeVector(((E_shape[i]*s/sContrib) * (sContrib_dr/dr)) * (RTR*dx), E_x, i);
+		vector3<> E_xCur;
+		if(s > 1e-14) //avoid 0/0 below
+		{	for(int iRep=0; iRep<nReps; iRep++)
+			{	vector3<> dx = dx0 + reps[iRep];
+				double dr = sqrt(RTR.metric_length_squared(dx));
+				double drComb = sigmaInv*(radius[iAtom]-dr);
+				double sContrib = 0.5*erfc(drComb);
+				double sContrib_dr = (sigmaInv/sqrt(M_PI)) * exp(-drComb*drComb);
+				E_xCur += ((E_shape[i]*s/sContrib) * (sContrib_dr/dr)) * (RTR*dx);
+			}
+		}
+		storeVector(E_xCur, E_x, i);
 	}
 }
 

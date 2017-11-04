@@ -81,33 +81,33 @@ namespace ShapeFunctionSoftSphere
 {
 	__global__
 	void compute_kernel(int zBlock, const vector3<int> S, const vector3<> Sinv, const matrix3<> RTR,
-		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv)
 	{	COMPUTE_rIndices
-		compute_calc(i, iv, Sinv, RTR, nAtoms, x, radius, shape, sigmaInv);
+		compute_calc(i, iv, Sinv, RTR, nAtoms, x, nReps, reps, radius, shape, sigmaInv);
 	}
 	void compute_gpu(const vector3<int>& S, const matrix3<>& RTR,
-		int nAtoms, const vector3<>* x, const double* radius, double* shape, double sigmaInv)
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv)
 	{	GpuLaunchConfig3D glc(compute_kernel, S);
 		vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
 		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-			compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, nAtoms, x, radius, shape, sigmaInv);
+			compute_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, nAtoms, x, nReps, reps, radius, shape, sigmaInv);
 		gpuErrorCheck();
 	}
 	
 	__global__
 	void propagateGradient_kernel(int zBlock, const vector3<int> S, const vector3<> Sinv, const matrix3<> RTR,
-		int iAtom, const vector3<>* x, const double* radius, const double* shape,
-		const double* E_shape, vector3<double*> E_x, double sigmaInv)
+		int iAtom, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius,
+		const double* shape, const double* E_shape, vector3<double*> E_x, double sigmaInv)
 	{	COMPUTE_rIndices
-		propagateGradient_calc(i, iv, Sinv, RTR, iAtom, x, radius, shape, E_shape, E_x, sigmaInv);
+		propagateGradient_calc(i, iv, Sinv, RTR, iAtom, x, nReps, reps, radius, shape, E_shape, E_x, sigmaInv);
 	}
 	void propagateGradient_gpu(const vector3<int>& S, const matrix3<>& RTR,
-		int iAtom, const vector3<>* x, const double* radius, const double* shape,
-		const double* E_shape, vector3<double*> E_x, double sigmaInv)
+		int iAtom, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius,
+		const double* shape, const double* E_shape, vector3<double*> E_x, double sigmaInv)
 	{	GpuLaunchConfig3D glc(propagateGradient_kernel, S);
 		vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
 		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-			propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, iAtom, x, radius, shape, E_shape, E_x, sigmaInv);
+			propagateGradient_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, Sinv, RTR, iAtom, x, nReps, reps, radius, shape, E_shape, E_x, sigmaInv);
 		gpuErrorCheck();
 	}
 }

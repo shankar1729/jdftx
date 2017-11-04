@@ -133,6 +133,7 @@ struct FluidSolverParams
 	//For soft sphere model alone:
 	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
 	double cavityScale; //!< radius scale factor
+	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs)
 	
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit

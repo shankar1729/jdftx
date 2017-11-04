@@ -135,6 +135,7 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 			if(state) setPhiFromState = true; //set phi from state which has already been loaded (only in SCF mode)
 		}
 		logSuspend();
+		linearPCM->atpos = atpos;
 		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
 		logResume();
 	}
@@ -182,7 +183,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* forces) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
-	ScalarField Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo);
+	ScalarFieldArray Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo, shape.size());
 	
 	ScalarFieldTilde rhoFluidTilde;
 	ScalarField muPlus, muMinus, Adiel_muPlus, Adiel_muMinus;
@@ -193,13 +194,13 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 		muPlus = getMuPlus(state);
 		muMinus = getMuMinus(state);
 		Qexp = integral(rhoExplicitTilde);
-		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
+		mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape.back(), Qexp);
 		//Compute ionic free energy and bound charge
 		ScalarField Aout, rhoIon;
 		initZero(Aout, gInfo);
 		initZero(rhoIon, gInfo);
-		callPref(screeningEval->freeEnergy)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
-			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(screeningEval->freeEnergy)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape.back()->dataPref(),
+			rhoIon->dataPref(), Aout->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape.size() ? Adiel_shape.back()->dataPref() : 0);
 		Adiel["Akappa"] = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
 	}
@@ -210,8 +211,8 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 		initZero(Aout, gInfo);
 		nullToZero(p, gInfo);
 		nullToZero(Adiel_eps, gInfo);
-		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
-			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
 		Adiel["Aeps"] = integral(Aout);
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
 	} //scoped to automatically deallocate temporaries
@@ -224,22 +225,22 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
 		ScalarField Adiel_rhoIon = I(phiFluidTilde+phiExplicitTilde);
-		callPref(screeningEval->convertDerivative)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape->dataPref(),
-			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(screeningEval->convertDerivative)(gInfo.nr, mu0, muPlus->dataPref(), muMinus->dataPref(), shape.back()->dataPref(),
+			Adiel_rhoIon->dataPref(), Adiel_muPlus->dataPref(), Adiel_muMinus->dataPref(), Adiel_shape.size() ? Adiel_shape.back()->dataPref() : 0);
 		//Propagate gradients from mu0 to mu, shape, Qexp:
 		double Adiel_mu0 = integral(Adiel_muPlus) + integral(Adiel_muMinus), mu0_Qexp;
 		ScalarField mu0_muPlus, mu0_muMinus, mu0_shape;
-		screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
+		screeningEval->neutralityConstraint(muPlus, muMinus, shape.back(), Qexp, &mu0_muPlus, &mu0_muMinus, &mu0_shape, &mu0_Qexp);
 		Adiel_muPlus += Adiel_mu0 * mu0_muPlus;
 		Adiel_muMinus += Adiel_mu0 * mu0_muMinus;
-		if(Adiel_shape) Adiel_shape += Adiel_mu0 * mu0_shape;
+		if(Adiel_shape.size()) Adiel_shape.back() += Adiel_mu0 * mu0_shape;
 		Adiel_Qexp = Adiel_mu0 * mu0_Qexp;
 	}
 	
 	//Propagate gradients from p to eps, shape
 	{	VectorField Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde)); //Because dagger(-divergence) = gradient
-		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape->dataPref(),
-			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape ? Adiel_shape->dataPref() : 0);
+		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
 	}
 	
 	//Optional outputs:
@@ -315,19 +316,30 @@ double NonlinearPCM::compute(ScalarFieldMuEps* grad, ScalarFieldMuEps* Kgrad)
 void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 {	PCM::dumpDensities(filenamePattern);
 
+	//Output dielectric bound charge:
+	string filename;
+	{	ScalarField Aout; initZero(Aout, gInfo);
+		VectorField p; nullToZero(p, gInfo);
+		VectorField Adiel_eps; nullToZero(Adiel_eps, gInfo);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, getEps(state).const_dataPref(), shape[0]->dataPref(),
+			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), 0);
+		ScalarField rhoDiel = -divergence(p); //include bound charge due to dielectric
+		FLUID_DUMP(rhoDiel, "RhoDiel");
+	}
+	
+	//Output ionic bound charge (if any):
 	if(screeningEval)
-	{
-		ScalarField Nplus, Nminus;
+	{	ScalarField Nplus, Nminus;
 		{	ScalarField muPlus = getMuPlus(state);
 			ScalarField muMinus = getMuMinus(state);
 			double Qexp = integral(rhoExplicitTilde);
-			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape, Qexp);
-			Nplus = ionNbulk * shape * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
-			Nminus = ionNbulk * shape * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
+			double mu0 = screeningEval->neutralityConstraint(muPlus, muMinus, shape.back(), Qexp);
+			Nplus = ionNbulk * shape.back() * (fsp.linearScreening ? 1.+(mu0+muPlus) : exp(mu0+muPlus));
+			Nminus = ionNbulk * shape.back() * (fsp.linearScreening ? 1.-(mu0+muMinus) : exp(-(mu0+muMinus)));
 		}
-		string filename;
 		FLUID_DUMP(Nplus, "N+");
 		FLUID_DUMP(Nminus, "N-");
+		FLUID_DUMP(ionZ*(Nplus-Nminus), "RhoIon");
 	}
 }
 
@@ -388,11 +400,11 @@ void NonlinearPCM::phiToState(bool setState)
 	ScalarField& muMinus = getMuMinus(state);
 	//Calculate eps/mu or epsilon/kappaSq as needed:
 	vector3<double*> vecDataUnused(0,0,0); double* dataUnused=0;
-	callPref(dielectricEval->phiToState)(gInfo.nr, Dphi.dataPref(), shape->dataPref(), gLookup, setState,
+	callPref(dielectricEval->phiToState)(gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(), gLookup, setState,
 		setState ? eps.dataPref() : vecDataUnused,
 		setState ? dataUnused : epsilon->dataPref() );
 	if(screeningEval)
-		callPref(screeningEval->phiToState)(gInfo.nr, phi->dataPref(), shape->dataPref(), xLookup, setState,
+		callPref(screeningEval->phiToState)(gInfo.nr, phi->dataPref(), shape.back()->dataPref(), xLookup, setState,
 			setState ? muPlus->dataPref() : dataUnused,
 			setState ? muMinus->dataPref() : dataUnused, 
 			setState ? dataUnused : kappaSq->dataPref() );

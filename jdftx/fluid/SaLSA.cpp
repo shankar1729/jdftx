@@ -180,7 +180,7 @@ ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 {	ScalarFieldTilde rhoTilde;
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		const ScalarField& s = resp.iSite<0 ? shape : siteShape[resp.iSite];
+		const ScalarField& s = resp.iSite<0 ? shape[0] : siteShape[resp.iSite];
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
@@ -214,10 +214,10 @@ void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarF
 	//Compute site shape functions with the spherical ansatz:
 	const auto& solvent = fsp.solvents[0];
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
-		siteShape[iSite] = I(Sf[iSite] * J(shape));
+		siteShape[iSite] = I(Sf[iSite] * J(shape[0]));
 	
 	//Update the inhomogeneity factor of the preconditioner
-	epsInv = inv(1. + (epsBulk-1.)*shape);
+	epsInv = inv(1. + (epsBulk-1.)*shape[0]);
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!state) nullToZero(state, gInfo);
@@ -226,7 +226,7 @@ void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarF
 
 void SaLSA::minimizeFluid()
 {
-	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
+	logPrintf("\tSaLSA fluid occupying %lf of unit cell:", integral(shape[0])/gInfo.detR); logFlush();
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n",
 		e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
 	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
@@ -248,10 +248,10 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	const auto& solvent = fsp.solvents[0];
-	ScalarField Adiel_shape; ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
+	ScalarFieldArray Adiel_shape(shape.size()); ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		ScalarField& Adiel_s = resp.iSite<0 ? Adiel_shape : Adiel_siteShape[resp.iSite];
+		ScalarField& Adiel_s = resp.iSite<0 ? Adiel_shape[0] : Adiel_siteShape[resp.iSite];
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
 		ScalarFieldArray IlGradVphi = I(lGradient(resp.V * phi, resp.l));
@@ -260,8 +260,8 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	}
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
-			Adiel_shape += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
-	nullToZero(Adiel_shape, gInfo); Adiel_shape->allReduce(MPIUtil::ReduceSum);
+			Adiel_shape[0] += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
+	nullToZero(Adiel_shape[0], gInfo); Adiel_shape[0]->allReduce(MPIUtil::ReduceSum);
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;

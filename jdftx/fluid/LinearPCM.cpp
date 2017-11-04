@@ -36,11 +36,11 @@ LinearPCM::~LinearPCM()
 
 ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
 {	//Dielectric term:
-	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape;
+	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape[0];
 	ScalarFieldTilde rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));
 	//Screening term:
 	if(k2factor)
-	{	ScalarField kappaSq = kappaSqOverride ? kappaSqOverride : k2factor * shape;
+	{	ScalarField kappaSq = kappaSqOverride ? kappaSqOverride : k2factor * shape.back();
 		rhoTilde -= J(kappaSq * I(phiTilde));
 	}
 	return (-1./(4*M_PI)) * rhoTilde;
@@ -64,8 +64,8 @@ void LinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const Sca
 	updateCavity();
 
 	//Update the preconditioner
-	ScalarField epsilon = 1 + (epsBulk-1)*shape;
-	ScalarField kappaSq = k2factor ? k2factor*shape : 0; //set kappaSq to null pointer if no screening
+	ScalarField epsilon = 1 + (epsBulk-1)*shape[0];
+	ScalarField kappaSq = k2factor ? k2factor*shape.back() : 0; //set kappaSq to null pointer if no screening
 	updatePreconditioner(epsilon, kappaSq);
 	
 	//Initialize the state if it hasn't been loaded:
@@ -89,7 +89,7 @@ void LinearPCM::minimizeFluid()
 {	//Info:
 	logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
 	if(k2factor) logPrintf(", screening length: %g Bohr", sqrt(epsBulk/k2factor));
-	logPrintf(") occupying %lf of unit cell:", integral(shape)/gInfo.detR); logFlush();
+	logPrintf(") occupying %lf of unit cell:", integral(shape[0])/gInfo.detR); logFlush();
 	//Minimize:
 	fprintf(e.fluidMinParams.fpLog, "\n\tWill stop at %d iterations, or sqrt(|r.z|)<%le\n", e.fluidMinParams.nIterations, e.fluidMinParams.knormThreshold);
 	int nIter = solve(rhoExplicitTilde, e.fluidMinParams);
@@ -109,8 +109,9 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	Adiel_rhoExplicitTilde = phi - phiExt;
 	
 	//Compute gradient w.r.t shape function:
-	ScalarField Adiel_shape = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
-	if(k2factor) Adiel_shape -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
+	ScalarFieldArray Adiel_shape(shape.size());
+	Adiel_shape[0] = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
+	if(k2factor) Adiel_shape.back() -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
@@ -129,4 +130,20 @@ void LinearPCM::loadState(const char* filename)
 
 void LinearPCM::saveState(const char* filename) const
 {	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
+}
+
+void LinearPCM::dumpDensities(const char* filenamePattern) const
+{	PCM::dumpDensities(filenamePattern);
+	//Output dielectric bound charge
+	string filename;
+	{	ScalarField chiDiel = ((epsBulk-1.)/(4*M_PI)) * shape[0];
+		ScalarField rhoDiel = divergence(chiDiel * I(gradient(state)));
+		FLUID_DUMP(rhoDiel, "RhoDiel");
+	}
+	//Output ionic bound charge (if any):
+	if(k2factor)
+	{	ScalarField chiIon = (-k2factor/(4*M_PI)) * shape.back();
+		ScalarField rhoIon = chiIon * I(state);
+		FLUID_DUMP(rhoIon, "RhoIon");
+	}
 }

@@ -370,9 +370,11 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 				{	//Fluid is a PCM: use cavity shape to update epsilon, kappaSq
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
-					ScalarField shapeSlab = getPlanarAvg(pcm.shape, iDir);
+					ScalarField shapeSlab = getPlanarAvg(pcm.shape[0], iDir);
 					for(int dir=0; dir<2; dir++)
 						epsSlab[dir] += shapeSlab * (pcm.epsBulk - 1.); //fluid dielectric is isotropic
+					if(pcm.shape.size() > 1)
+						shapeSlab = getPlanarAvg(pcm.shape[1], iDir); //planarly average separate ionic cavity
 					kappaSqSlab += shapeSlab * pcm.k2factor;
 					epsilonBulk = pcm.epsBulk;
 					kappaSqBulk = pcm.k2factor;
