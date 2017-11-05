@@ -358,19 +358,6 @@ void FluidSolverParams::setPCMparams()
 				}
 			}
 		}
-		case PCM_CASS:
-		{	sigma = 0.5; //in bohrs for this model
-			switch(solvents[0]->name)
-			{	default: // For water and unparametrized fluids
-				{	eta_wDiel = 1.5;   //TODO: fit to solvation
-					cavityScale = 0.8; //TODO: fit to solvation
-					sqrtC6eff = 1.0;   //TODO: fit to solvation
-					//Warn when not explicitly parametrized:
-					if(solvents[0]->name != FluidComponent::H2O)
-						initWarnings += "WARNING: CANDLE LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
-				}
-			}
-		}
 		case_PCM_SCCS_any:
 		{	if(fluidType != FluidLinearPCM) initWarnings += "WARNING: SCCS has only been parametrized for LinearPCM.\n";
 			if(solvents[0]->name != FluidComponent::H2O)
@@ -420,7 +407,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE || pcmVariant==PCM_CASS);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:
