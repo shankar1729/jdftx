@@ -338,16 +338,16 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_SoftSphere:
-		{	sigma = 0.5; //in bohrs for this model alone
+		{	sigma = 0.5; //in bohrs for this model
 			switch(solvents[0]->name)
 			{	case FluidComponent::Ethanol:
-				{	cavityTension = 11.5*dyn_per_cm;
-					cavityScale = 1.16;
+				{	cavityTension = -4.0*dyn_per_cm;
+					cavityScale = 1.22;
 					break;
 				}
 				default: // For water and unparametrized fluids
-				{	cavityTension = -4.0*dyn_per_cm;
-					cavityScale = 1.22;
+				{	cavityTension = 11.5*dyn_per_cm;
+					cavityScale = 1.16;
 					//Warn when not explicitly parametrized:
 					if(solvents[0]->name != FluidComponent::H2O)
 					{	initWarnings +=
@@ -355,6 +355,19 @@ void FluidSolverParams::setPCMparams()
 							"   surface tension as effective cavity tension and water parameters for everything else.\n";
 						cavityTension = solvents[0]->sigmaBulk;
 					}
+				}
+			}
+		}
+		case PCM_CASS:
+		{	sigma = 0.5; //in bohrs for this model
+			switch(solvents[0]->name)
+			{	default: // For water and unparametrized fluids
+				{	eta_wDiel = 1.5;   //TODO: fit to solvation
+					cavityScale = 0.8; //TODO: fit to solvation
+					sqrtC6eff = 1.0;   //TODO: fit to solvation
+					//Warn when not explicitly parametrized:
+					if(solvents[0]->name != FluidComponent::H2O)
+						initWarnings += "WARNING: CANDLE LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 				}
 			}
 		}
@@ -407,7 +420,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE || pcmVariant==PCM_CASS);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:

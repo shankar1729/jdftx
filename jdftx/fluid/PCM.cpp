@@ -56,62 +56,53 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	const double dG = 0.02;
 	shape.resize(1); //single component shape by default (overridden for soft-sphere model below)
 	
-	//Print common info and add relevant citations:
-	if(!isPCM_SCCS(fsp.pcmVariant) && fsp.pcmVariant!=PCM_SoftSphere)
+	//Shared information for most models:
+	if(!isPCM_SCCS(fsp.pcmVariant) && (fsp.pcmVariant!=PCM_SoftSphere) && (fsp.pcmVariant!=PCM_CASS))
 		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
+
+	//Add citations, initialization and print information unique to the model:
+	bool atomSpheres = false; //cavity based on atomic spheres
+	bool useEta = false; //uses eta to expand electrostatic cavity
+	bool cavitationNL = false; //nonlocal cavitation model
+	bool dispNLatomic = false; //nonlocal dispersion model using explicit atomic sites
+	bool dispNLunified = false; //nonlocal dispersion model with unified atom (single sqrtC6eff)
+	double sigmaVdw = 0.; //gaussian width for unified dispersion model
 	switch(fsp.pcmVariant)
-	{	case PCM_SaLSA: //Nonlocal PCM
-		case PCM_CANDLE: //and local PCMs that uses weighted-density cavitation+dispersion
-		case PCM_SGA13:
-		{	if(fsp.pcmVariant==PCM_SaLSA)
-				Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
+	{	case PCM_SaLSA:
+		{	Citations::add("Spherically-averaged liquid susceptibility ansatz (SaLSA) nonlocal fluid model",
 					"R. Sundararaman, K.A. Schwarz, K. Letchworth-Weaver, and T.A. Arias, J. Chem. Phys. 142, 054102 (2015)");
-			else if(fsp.pcmVariant==PCM_CANDLE)
-			{	Citations::add("Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model",
+			cavitationNL = true;
+			dispNLatomic = true;
+			break;
+		}
+		case PCM_CANDLE:
+		{	Citations::add("Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model",
 					"R. Sundararaman and W.A. Goddard III, J. Chem. Phys. 142, 064107 (2015)");
-				//Compute the gaussian width parameter from Rvdw:
-				double sigmaVdw = 1.;
-				for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
-				{	double sigmaVdwNew = (2*solvent->Rvdw) / sqrt(-4. * log(fsp.nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(fsp.Ztot,2)));
-					if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
-					sigmaVdw = sigmaVdwNew;
-				}
-				logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", fsp.Ztot, sigmaVdw);
-				logPrintf("   Charge asymmetry in cavity with sensitivity pCavity = %lg e-bohr/Eh\n", fsp.pCavity);
-				logPrintf("   Electrostatic cavity expanded by eta = %lg bohrs\n", fsp.eta_wDiel);
-				//Initialize kernels:
-				Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
-				Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //used for vdw cavity as well as dispersion
-				wExpand[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_calc, fsp.eta_wDiel); //dielectric cavity expansion kernel
-				wExpand[1].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_d_calc, fsp.eta_wDiel); //derivative of above w.r.t d
-				atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
+			useEta = true;
+			cavitationNL = true;
+			dispNLunified = true;
+			//Compute the gaussian width parameter from Rvdw:
+			sigmaVdw = 1.;
+			for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
+			{	double sigmaVdwNew = (2*solvent->Rvdw) / sqrt(-4. * log(fsp.nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(fsp.Ztot,2)));
+				if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
+				sigmaVdw = sigmaVdwNew;
 			}
-			else
-			{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
+			logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", fsp.Ztot, sigmaVdw);
+			logPrintf("   Charge asymmetry in cavity with sensitivity pCavity = %lg e-bohr/Eh\n", fsp.pCavity);
+			break;
+		}
+		case PCM_SGA13:
+		{	Citations::add("Linear/nonlinear dielectric/ionic fluid model with weighted-density cavitation and dispersion",
 					"R. Sundararaman, D. Gunceler, and T.A. Arias, J. Chem. Phys. 141, 134105 (2014)");
-				Rex[0] = solvent->Rvdw - solvent->Res;
-				Rex[1] = solvent->Rvdw;
-				logPrintf("   Electrostatic cavity expanded by Rvdw-Res: %lg bohr, and cavitation/dispersion cavity by Rvdw: %lg bohr.\n", Rex[0], Rex[1]);
-				//Initialize cavity expansion weight functions:
-				for(int i=0; i<2; i++)
-					wExpand[i].init(0, dG, e.gInfo.GmaxGrid, wExpand_calc, Rex[i]);
-			}
-			wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
-			logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n", solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
-			//Initialize structure factors for dispersion:
-			if(!Sf.size()) //CANDLE uses a single site version already initialized above
-			{	if(!solvent->molecule.sites.size()) die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
-				Sf.resize(solvent->molecule.sites.size());
-				atomicNumbers.resize(solvent->molecule.sites.size());
-				for(unsigned i=0; i<Sf.size(); i++)
-				{	std::vector<double> r; //radial distances of solvent sites from center
-					for(vector3<> pos: solvent->molecule.sites[i]->positions) r.push_back(pos.length());
-					Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
-					atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
-				}
-				logPrintf("   Weighted density dispersion model using vdW pair potentials with atomic C6's and scale factor s6: %lg.\n", fsp.vdwScale);
-			}
-			else logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
+			cavitationNL = true;
+			dispNLatomic = true;
+			Rex[0] = solvent->Rvdw - solvent->Res;
+			Rex[1] = solvent->Rvdw;
+			logPrintf("   Electrostatic cavity expanded by Rvdw-Res: %lg bohr, and cavitation/dispersion cavity by Rvdw: %lg bohr.\n", Rex[0], Rex[1]);
+			//Initialize cavity expansion weight functions:
+			for(int i=0; i<2; i++)
+				wExpand[i].init(0, dG, e.gInfo.GmaxGrid, wExpand_calc, Rex[i]);
 			break;
 		}
 		case PCM_GLSSA13:
@@ -132,58 +123,113 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		}
 		case PCM_SoftSphere:
 		{	Citations::add("Soft-sphere continuum solvation model", "G. Fisicaro et al., J. Chem. Theory Comput. 13, 3829 (2017)");
+			atomSpheres = true;
+			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 and pressure: %lg Eh/bohr^3 to account for cavitation and dispersion.\n", fsp.cavityTension, fsp.cavityPressure);
 			logPrintf("   Cavity determined with scale factor: %lg  width: %lg  atomic radii:\n", fsp.cavityScale, fsp.sigma);
-			Rall.clear();
-			for(const auto& sp: e.iInfo.species)
-			{	assert(sp->atomicNumber);
-				double R = fsp.getAtomicRadius(*sp);
-				logPrintf("\t%2s:  %.3f bohr%s\n", sp->name.c_str(), R, sp->atomicRadiusOverride ? " (Manually overriden)" : "");
-				Rall.insert(Rall.end(), sp->atpos.size(), R * fsp.cavityScale); //store scaled radius
-			}
-			double Rmax = *std::max_element(Rall.begin(), Rall.end());
-			if(fsp.ionSpacing)
-			{	shape.resize(2); //need separate ionic cavity
-				logPrintf("   Ionic cavity large than dielectric cavity by %lg bohr\n", fsp.ionSpacing);
-				RallIonic.clear();
-				for(const double R: Rall)
-					RallIonic.push_back(R + fsp.ionSpacing);
-				Rmax += fsp.ionSpacing;
-			}
-			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 and pressure: %lg Eh/bohr^3 to account for cavitation and dispersion.\n",
-				fsp.cavityTension, fsp.cavityPressure);
-			//Initialize lattice repetitions:
-			vector3<bool> isTruncated = e.coulombParams.isTruncated();
-			latticeReps.clear();
-			//--- circum radius of [-0.5,0.5) unit cell
-			double circumR = 0.;
-			vector3<int> iMax;
-			for(int iDir=0; iDir<3; iDir++)
-				iMax[iDir] = isTruncated[iDir] ? 0 : 1;
-			vector3<int> rep;
-			for(rep[0]=-iMax[0]; rep[0]<=+iMax[0]; rep[0]++)
-			for(rep[1]=-iMax[1]; rep[1]<=+iMax[1]; rep[1]++)
-			for(rep[2]=-iMax[2]; rep[2]<=+iMax[2]; rep[2]++)
-				circumR = std::max(circumR, sqrt(gInfo.RTR.metric_length_squared(0.5*rep)));
-			//--- lattice vectors in reach of this unit cell
-			double inRsup = circumR + Rmax + 5.*fsp.sigma; //in-radius of supercell that contains all such points
-			for(int iDir=0; iDir<3; iDir++)
-				iMax[iDir] = isTruncated[iDir] ? 0 : int(ceil(inRsup * gInfo.invR.row(iDir).length()));
-			for(rep[0]=-iMax[0]; rep[0]<=+iMax[0]; rep[0]++)
-			for(rep[1]=-iMax[1]; rep[1]<=+iMax[1]; rep[1]++)
-			for(rep[2]=-iMax[2]; rep[2]<=+iMax[2]; rep[2]++)
-				if(sqrt(gInfo.RTR.metric_length_squared(rep)) <= inRsup)
-					latticeReps.push_back(rep);
+			break;
+		}
+		case PCM_CASS:
+		{	Citations::add("Convolved Atomic Soft-Sphere solvation model", "R. Sundararaman et al., under preparation (2017)");
+			atomSpheres = true;
+			useEta = true;
+			cavitationNL = true;
+			dispNLunified = true;
+			logPrintf("   Cavity determined with scale factor: %lg  width: %lg  Rvdw: %lg  atomic radii:\n", fsp.cavityScale, fsp.sigma, solvent->Rvdw);
 			break;
 		}
 		case_PCM_SCCS_any:
 		{	Citations::add("SCCS linear dielectric fluid model", "O. Andreussi et al., J. Chem. Phys. 136, 064102 (2012)");
 			if(fsp.pcmVariant==PCM_SCCS_cation || fsp.pcmVariant==PCM_SCCS_anion)
-				Citations::add("SCCS parametrization for charged systems", "C. Dupont et al., J. Chem. Phys. 139, 214110 (2013)]");
+				Citations::add("SCCS parametrization for charged systems", "C. Dupont et al., J. Chem. Phys. 139, 214110 (2013)");
 			logPrintf("   Cavity determined by rhoMin: %lg  rhoMax: %lg\n", fsp.rhoMin, fsp.rhoMax);
 			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 and pressure: %lg Eh/bohr^3 to account for cavitation and dispersion.\n",
 				fsp.cavityTension, fsp.cavityPressure);
 			break;
 		}
+	}
+	
+	//Initialization for atomic spheres:
+	if(atomSpheres)
+	{	Rall.clear();
+		for(const auto& sp: e.iInfo.species)
+		{	assert(sp->atomicNumber);
+			double R = fsp.getAtomicRadius(*sp);
+			logPrintf("\t%2s:  %.3f bohr%s\n", sp->name.c_str(), R, sp->atomicRadiusOverride ? " (Manually overriden)" : "");
+			if(fsp.pcmVariant==PCM_CASS) R += solvent->Rvdw; //solvent radius added for CASS
+			R *= fsp.cavityScale; //apply cavity scale factor
+			Rall.insert(Rall.end(), sp->atpos.size(), R); //store net radius used for cavity determination
+		}
+		double Rmax = *std::max_element(Rall.begin(), Rall.end());
+		if(fsp.ionSpacing)
+		{	shape.resize(2); //need separate ionic cavity
+			logPrintf("   Ionic cavity large than dielectric cavity by %lg bohr\n", fsp.ionSpacing);
+			RallIonic.clear();
+			for(const double R: Rall)
+				RallIonic.push_back(R + fsp.ionSpacing);
+			Rmax += fsp.ionSpacing;
+		}
+		//Initialize lattice repetitions:
+		vector3<bool> isTruncated = e.coulombParams.isTruncated();
+		latticeReps.clear();
+		//--- circum radius of [-0.5,0.5) unit cell
+		double circumR = 0.;
+		vector3<int> iMax;
+		for(int iDir=0; iDir<3; iDir++)
+			iMax[iDir] = isTruncated[iDir] ? 0 : 1;
+		vector3<int> rep;
+		for(rep[0]=-iMax[0]; rep[0]<=+iMax[0]; rep[0]++)
+		for(rep[1]=-iMax[1]; rep[1]<=+iMax[1]; rep[1]++)
+		for(rep[2]=-iMax[2]; rep[2]<=+iMax[2]; rep[2]++)
+			circumR = std::max(circumR, sqrt(gInfo.RTR.metric_length_squared(0.5*rep)));
+		//--- lattice vectors in reach of this unit cell
+		double inRsup = circumR + Rmax + 5.*fsp.sigma; //in-radius of supercell that contains all such points
+		for(int iDir=0; iDir<3; iDir++)
+			iMax[iDir] = isTruncated[iDir] ? 0 : int(ceil(inRsup * gInfo.invR.row(iDir).length()));
+		for(rep[0]=-iMax[0]; rep[0]<=+iMax[0]; rep[0]++)
+		for(rep[1]=-iMax[1]; rep[1]<=+iMax[1]; rep[1]++)
+		for(rep[2]=-iMax[2]; rep[2]<=+iMax[2]; rep[2]++)
+			if(sqrt(gInfo.RTR.metric_length_squared(rep)) <= inRsup)
+				latticeReps.push_back(rep);
+	}
+	
+	//Electrostatic cavity expansion:
+	if(useEta)
+	{	logPrintf("   Electrostatic cavity expanded by eta = %lg bohrs\n", fsp.eta_wDiel);
+		wExpand[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_calc, fsp.eta_wDiel); //dielectric cavity expansion kernel
+		wExpand[1].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_d_calc, fsp.eta_wDiel); //derivative of above w.r.t d
+	}
+	
+	//Nonlocal cavitation:
+	if(cavitationNL)
+	{	wCavity.init(0, dG, e.gInfo.GmaxGrid, wCavity_calc, 2.*solvent->Rvdw); //Initialize nonlocal cavitation weight function
+		logPrintf("   Weighted density cavitation model constrained by Nbulk: %lg bohr^-3, Pvap: %lg kPa, Rvdw: %lg bohr and sigmaBulk: %lg Eh/bohr^2 at T: %lg K.\n",
+			solvent->Nbulk, solvent->Pvap/KPascal, solvent->Rvdw, solvent->sigmaBulk, fsp.T/Kelvin);
+	}
+	
+	//Nonlocal dispersion with explicit atoms:
+	if(dispNLatomic)
+	{	if(!solvent->molecule.sites.size())
+			die("Nonlocal dispersion model requires solvent molecule geometry, which is not yet implemented for selected solvent\n");
+		Sf.resize(solvent->molecule.sites.size());
+		atomicNumbers.resize(solvent->molecule.sites.size());
+		for(unsigned i=0; i<Sf.size(); i++)
+		{	std::vector<double> r; //radial distances of solvent sites from center
+			for(vector3<> pos: solvent->molecule.sites[i]->positions) r.push_back(pos.length());
+			Sf[i].init(0, dG, e.gInfo.GmaxGrid, Sf_calc, &r);
+			atomicNumbers[i] = solvent->molecule.sites[i]->atomicNumber;
+		}
+		logPrintf("   Weighted density dispersion model using vdW pair potentials with atomic C6's and scale factor s6: %lg.\n", fsp.vdwScale);
+	}
+	
+	//Nonlocal dispersion with united atoms:
+	if(dispNLunified)
+	{	logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
+		Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
+		if(fsp.pcmVariant == PCM_CANDLE)
+			Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //CANDLE also uses this for vdW cavity
+		if(fsp.pcmVariant == PCM_CASS)
+			Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, wCavity_calc, fsp.eta_wDiel); //CASS uses same kernel as for dielectric cavity expansion
+		atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
 	}
 }
 
@@ -209,7 +255,7 @@ void PCM::updateCavity()
 			fsp.nc, fsp.sigma, fsp.pCavity); //vdW cavity
 		shape[0] = I(wExpand[0] * J(shapeVdw)); //dielectric cavity
 	}
-	else if(fsp.pcmVariant == PCM_SoftSphere)
+	else if(fsp.pcmVariant==PCM_SoftSphere || fsp.pcmVariant==PCM_CASS)
 	{	//Construct flat list of all atom positions:
 		std::vector<vector3<>> atposAllCur;
 		for(const std::vector<vector3<>>& atposSp: atpos)
@@ -221,6 +267,10 @@ void PCM::updateCavity()
 			ShapeFunctionSoftSphere::compute(atposAll, latticeReps, Rall, shape[0], fsp.sigma);
 			if(fsp.ionSpacing)
 				ShapeFunctionSoftSphere::compute(atposAll, latticeReps, RallIonic, shape[1], fsp.sigma);
+			if(fsp.pcmVariant==PCM_CASS)
+			{	std::swap(shapeVdw, shape[0]); //shape[0] calculated above is the vdW cavity
+				shape[0] = I(wExpand[0] * J(shapeVdw)); //dielectric cavity obtained by expansion
+			}
 		}
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
@@ -234,6 +284,7 @@ void PCM::updateCavity()
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
 		case PCM_SGA13:
+		case PCM_CASS:
 		{	//Select relevant shape function:
 			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
 			ScalarFieldTilde A_sTilde;
@@ -250,12 +301,14 @@ void PCM::updateCavity()
 			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CASS) ? fsp.sqrtC6eff : fsp.vdwScale;
 			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])
 					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
+			if(fsp.pcmVariant == PCM_CASS) //set dispersion contribution to fit-parameter derivative:
+				Acavity_eta = integral(Jdag(solvent->Nbulk*(wExpand[1]*A_Ntilde[0])) * shapeVdw);
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			break;
@@ -318,17 +371,31 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
-	else if(fsp.pcmVariant == PCM_SoftSphere)
+	else if(fsp.pcmVariant == PCM_SoftSphere || fsp.pcmVariant == PCM_CASS)
 	{	nullToZero(A_nCavity, gInfo);
 		if(forces)
-		{	std::vector<vector3<>> A_atposAll; //gradient w.r.t atomic positions
-			ShapeFunctionSoftSphere::propagateGradient(atposAll, latticeReps, Rall, shape[0], Acavity_shape + A_shape[0], A_atposAll, fsp.sigma);
+		{	//Collect gradients w.r.t. dielectric / vdw shape function:
+			ScalarField A_shape0; const ScalarField *shape0 = 0;
+			if(fsp.pcmVariant == PCM_SoftSphere)
+			{	A_shape0 = Acavity_shape + A_shape[0]; //cavity and dielectric contributions on same cavity
+				shape0 = &shape[0];
+			}
+			if(fsp.pcmVariant == PCM_CASS)
+			{	A_shape0 = Acavity_shapeVdw + I(wExpand[0]*J(A_shape[0])); //account for dielectric cavity expansion
+				shape0 = &shapeVdw;
+				((PCM*)this)->A_eta_wDiel = Acavity_eta + integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
+			}
+			//Propagate to atomic positions:
+			std::vector<vector3<>> A_atposAll; //gradient w.r.t atomic positions
+			std::vector<double> A_Rall; //gradient w.r.t atomic radii
+			ShapeFunctionSoftSphere::propagateGradient(atposAll, latticeReps, Rall, *shape0, A_shape0, A_atposAll, A_Rall, fsp.sigma);
 			if(fsp.ionSpacing)
-				ShapeFunctionSoftSphere::propagateGradient(atposAll, latticeReps, RallIonic, shape[1], A_shape[1], A_atposAll, fsp.sigma);
+				ShapeFunctionSoftSphere::propagateGradient(atposAll, latticeReps, RallIonic, shape[1], A_shape[1], A_atposAll, A_Rall, fsp.sigma);
 			auto A_atposAllPtr = A_atposAll.begin();
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 				for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
 					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
+			((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale; //gradient w.r.t scale factor used for fits
 		}
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
@@ -360,12 +427,13 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
 			case PCM_SGA13:
+			case PCM_CASS:
 			{	const auto& solvent = fsp.solvents[0];
 				const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
 				ScalarFieldTildeArray Ntilde(Sf.size());
 				for(unsigned i=0; i<Sf.size(); i++)
 					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CASS) ? fsp.sqrtC6eff : fsp.vdwScale;
 				e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 				break;
 			}
@@ -413,7 +481,7 @@ void PCM::dumpDensities(const char* filenamePattern) const
     if(shape.size() > 1)
 	{	FLUID_DUMP(shape[1], "ShapeIonic");
 	}
-	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CASS)
 	{	FLUID_DUMP(shapeVdw, "ShapeVdw");
 	}
 }
@@ -431,7 +499,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	{	fprintf(fp, "Ionic cavity volume = %f\n", integral(1.-shape[1]));
 		fprintf(fp, "Ionic cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shape[1])))));
 	}
-	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CASS)
 	{	fprintf(fp, "VDW cavity volume = %f\n", integral(1.-shapeVdw));
 		fprintf(fp, "VDW cavity surface area = %f\n", integral(sqrt(lengthSquared(gradient(shapeVdw)))));
 	}
@@ -440,7 +508,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
 	
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
-	if(!isPCM_SCCS(fsp.pcmVariant))
+	if((!isPCM_SCCS(fsp.pcmVariant)) && (fsp.pcmVariant!=PCM_SoftSphere) && (fsp.pcmVariant!=PCM_CASS))
 		fprintf(fp, "   E_nc = %.15lg\n", A_nc);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
@@ -455,8 +523,14 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_GLSSA13:
 			fprintf(fp, "   E_t = %.15lg\n", A_tension);
 			break;
-		case PCM_LA12:
+		case PCM_CASS:
+			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
+			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
+			fprintf(fp, "   E_cavityScale = %.15lg\n", A_cavityScale);
+			break;
 		case PCM_SoftSphere:
+			fprintf(fp, "   E_cavityScale = %.15lg\n", A_cavityScale);
+		case PCM_LA12:
 		case_PCM_SCCS_any:
 			break;
 	}

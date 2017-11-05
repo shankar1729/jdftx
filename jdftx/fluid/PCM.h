@@ -59,7 +59,7 @@ protected:
 	ScalarFieldTilde getFullCore() const; //!< get full core correction for PCM variants that need them
 private:
 	ScalarField Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions (assumed Acavity does not depend on ionic cavity)
-	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, Acavity_eta, A_pCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy

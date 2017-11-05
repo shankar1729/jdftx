@@ -71,7 +71,7 @@ namespace ShapeFunctionSoftSphere
 
 	//! Propagate gradient w.r.t shape function to that w.r.t atomic positions
 	void propagateGradient(const std::vector<vector3<>>& x, const std::vector<vector3<int>>& reps, const std::vector<double>& radius,
-		const ScalarField& shape, const ScalarField& E_shape, std::vector<vector3<>>& E_x, double sigma);
+		const ScalarField& shape, const ScalarField& E_shape, std::vector<vector3<>>& E_x, std::vector<double>& E_radius, double sigma);
 }
 
 //! Shape function for SCCS models \cite PCM-SCCS
@@ -181,26 +181,31 @@ namespace ShapeFunctionSoftSphere
 	}
 	
 	__hostanddev__ void propagateGradient_calc(int i, const vector3<int>& iv, const vector3<>& Sinv, const matrix3<>& RTR,
-		int iAtom, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, const double* shape,
-		const double* E_shape, vector3<double*> E_x, double sigmaInv)
+		const vector3<>& x, int nReps, const vector3<int>* reps, double radius, const double* shape,
+		const double* E_shape, vector3<double*> E_x, double* E_radius, double sigmaInv)
 	{	double s = shape[i];
 		vector3<> dx0;
 		for(int iDir=0; iDir<3; iDir++)
-		{	dx0[iDir] = x[iAtom][iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
+		{	dx0[iDir] = x[iDir] - iv[iDir]*Sinv[iDir]; //lattice coodinate displacement
 			dx0[iDir] -= floor(0.5+dx0[iDir]); //wrap to [-0.5,0.5]
 		}
 		vector3<> E_xCur;
+		double E_radiusCur = 0.;
 		if(s > 1e-14) //avoid 0/0 below
 		{	for(int iRep=0; iRep<nReps; iRep++)
 			{	vector3<> dx = dx0 + reps[iRep];
 				double dr = sqrt(RTR.metric_length_squared(dx));
-				double drComb = sigmaInv*(radius[iAtom]-dr);
+				if(dr<1e-14) continue; //avoid 0/0 below
+				double drComb = sigmaInv*(radius-dr);
 				double sContrib = 0.5*erfc(drComb);
 				double sContrib_dr = (sigmaInv/sqrt(M_PI)) * exp(-drComb*drComb);
-				E_xCur += ((E_shape[i]*s/sContrib) * (sContrib_dr/dr)) * (RTR*dx);
+				double E_dr = (E_shape[i]*s/sContrib) * sContrib_dr;
+				E_xCur += (E_dr/dr) * (RTR*dx);
+				E_radiusCur -= E_dr;
 			}
 		}
 		storeVector(E_xCur, E_x, i);
+		E_radius[i] = E_radiusCur;
 	}
 }
 
