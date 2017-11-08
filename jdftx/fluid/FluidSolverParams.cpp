@@ -346,8 +346,14 @@ void FluidSolverParams::setPCMparams()
 					break;
 				}
 				default: // For water and unparametrized fluids
-				{	cavityTension = 11.5*dyn_per_cm;
-					cavityScale = 1.16;
+				{	if(fluidType==FluidLinearPCM)
+					{	cavityTension = 9.67e-6;
+						cavityScale = 1.11;
+					}
+					else
+					{	cavityTension = 1.02e-5;
+						cavityScale = 1.00;
+					}
 					//Warn when not explicitly parametrized:
 					if(solvents[0]->name != FluidComponent::H2O)
 					{	initWarnings +=
