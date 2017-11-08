@@ -137,7 +137,7 @@ void Phonon::dump()
 	}
 	
 	//Output electron-phonon matrix elements:
-	if(mpiUtil->isHead())
+	if(mpiUtil->isHead() && saveHsub)
 	{	const int& nBands = e.eInfo.nBands;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
