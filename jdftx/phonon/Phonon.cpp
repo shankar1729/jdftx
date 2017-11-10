@@ -99,11 +99,10 @@ void Phonon::dump()
 		}
 	}
 	
-	//--- refine force matrix
-	logPrintf("\nRefining force matrix:\n");
-	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
-	forceMatrixDaggerSymmetrize(omegaSq, cellMap); //enforce hermiticity
-	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
+	//--- check force matrix
+	logPrintf("\nChecking force matrix in real space:\n");
+	forceMatrixHermCheck(omegaSq, cellMap); //enforce hermiticity
+	forceMatrixSumRuleCheck(omegaSq, cellMap, invsqrtM); //enforce translational invariance
 	logPrintf("\n");
 	
 	//--- write to file
@@ -314,7 +313,7 @@ matrix BlockRotationMatrix::transform(const matrix& in) const
 
 //Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space)
 void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
-{	logPrintf("Refining force matrix:\n"); logFlush();
+{	logPrintf("Refining force matrix in reciprocal space:\n"); logFlush();
 	int nModes= modes.size();
 	int nModesSq = std::pow(nModes,2);
 	//Collect into a nModesSq x nCells matrix:
@@ -399,8 +398,8 @@ void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
 }
 
 
-//Enforce hermiticity of force matrix
-void Phonon::forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const
+//Check hermiticity of force matrix
+void Phonon::forceMatrixHermCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const
 {	size_t nSymmetrizedCellsTot = 0;
 	double hermErrNum = 0., hermErrDen = 0.;
 	auto iter1 = cellMap.begin();
@@ -411,8 +410,6 @@ void Phonon::forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std
 			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
 			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
 				matrix Merr = 0.5*(omegaSq[iCell1] - dagger(omegaSq[iCell2]));
-				omegaSq[iCell1] = M;
-				omegaSq[iCell2] = dagger(M);
 				int nSymmetrizedCells = (iCell1==iCell2 ? 1 : 2);
 				nSymmetrizedCellsTot += nSymmetrizedCells;
 				hermErrNum += nSymmetrizedCells * std::pow(nrm2(Merr), 2);
@@ -423,11 +420,11 @@ void Phonon::forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std
 		iter1++;
 	}
 	assert(nSymmetrizedCellsTot == cellMap.size());
-	logPrintf("\tCorrected hermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
+	logPrintf("\tHermiticity relative error: %lg\n", sqrt(hermErrNum/hermErrDen));
 }
 
-//Enforce translational invariance sum rule on force matrix
-void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const
+//Check translational invariance sum rule of force matrix
+void Phonon::forceMatrixSumRuleCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const
 {	//Collect masses by mode:
 	diagMatrix sqrtMmode, invsqrtMmode;
 	for(const Mode& mode: modes)
@@ -450,23 +447,5 @@ void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::
 			mask.set(iAtom*3+iDir,iDir, 1.);
 	matrix proj = (1./nAtoms) * (mask * dagger(mask));
 	matrix dF0 = (1./prodSup) * (proj*F0*proj - F0*proj - proj*F0); //double sum - row sum - column sum
-	//Apply correction:
-	auto iter = cellMap.begin();
-	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	matrix dOmegaSq = invsqrtMmode * dF0 * invsqrtMmode;
-		//Apply weights:
-		complex* dOmegaSqData = dOmegaSq.data();
-		for(int iAtom=0; iAtom<nAtoms; iAtom++)
-		for(int iDir=0; iDir<3; iDir++)
-		{	int iMode = 3*iAtom+iDir;
-			for(int jAtom=0; jAtom<nAtoms; jAtom++)
-			for(int jDir=0; jDir<3; jDir++)
-			{	int jMode = 3*jAtom+jDir;
-				dOmegaSqData[dOmegaSq.index(iMode,jMode)] *= iter->second(iAtom,jAtom);
-			}
-		}
-		omegaSq[iCell] += dOmegaSq;
-		iter++;
-	}
-	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(dF0)/sqrt(Fnorm));
+	logPrintf("\tTranslational invariance relative error: %lg\n", nrm2(dF0)/sqrt(Fnorm/prodSup));
 }
