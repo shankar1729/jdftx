@@ -119,6 +119,9 @@ private:
 	vector3<int> getCell(int unit) const;
 	int getUnit(const vector3<int>& cell) const;
 	
+	//! Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space):
+	void dgradSymmetrize(std::vector<IonicGradient>& dgrad) const;
+	
 	//! Enforce hermiticity of force matrix
 	void forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const;
 

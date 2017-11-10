@@ -53,6 +53,9 @@ void Phonon::dump()
 		return;
 	}
 	
+	//Refine force matrix:
+	dgradSymmetrize(dgrad);
+	
 	//Generate phonon cell map:
 	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
 	for(const auto& sp: e.iInfo.species)
@@ -309,6 +312,93 @@ matrix BlockRotationMatrix::transform(const matrix& in) const
 	return out;
 }
 
+//Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space)
+void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
+{	logPrintf("Refining force matrix:\n"); logFlush();
+	int nModes= modes.size();
+	int nModesSq = std::pow(nModes,2);
+	//Collect into a nModesSq x nCells matrix:
+	matrix F(nModesSq, prodSup);
+	complex* Fdata = F.data();
+	for(int iCell=0; iCell<prodSup; iCell++)
+	{	for(int iMode=0; iMode<nModes; iMode++)
+		{	int jMode = 0;
+			for(const std::vector<vector3<>>& dgradSp: dgrad[iMode])
+			{	int nAtomsSp = dgradSp.size()/prodSup;
+				for(int jAtom=0; jAtom<nAtomsSp; jAtom++)
+				{	const vector3<>& f = dgradSp[iCell*nAtomsSp+jAtom];
+					for(int jDir=0; jDir<3; jDir++)
+						Fdata[F.index(iMode*nModes+jMode++, iCell)] = f[jDir];
+				}
+			}
+		}
+	}
+	//Calculate Fourier transform phase:
+	matrix phase(prodSup, prodSup);
+	matrix3<> invDiagSup = inv(Diag(vector3<>(sup)));
+	complex* phaseData = phase.data();
+	vector3<int> iR;
+	for(iR[0]=0; iR[0]<sup[0]; iR[0]++)
+	for(iR[1]=0; iR[1]<sup[1]; iR[1]++)
+	for(iR[2]=0; iR[2]<sup[2]; iR[2]++)
+	{	vector3<> xR_2pi = (2.*M_PI) * (invDiagSup * iR);
+		vector3<int> ik;
+		for(ik[0]=0; ik[0]<sup[0]; ik[0]++)
+		for(ik[1]=0; ik[1]<sup[1]; ik[1]++)
+		for(ik[2]=0; ik[2]<sup[2]; ik[2]++)
+			*(phaseData++) = cis(dot(ik, xR_2pi));
+	}
+	//Forward transform:
+	matrix Ftilde = F * phase;
+	//Apply corrections per k:
+	double Fnorm = 0., dFtransNorm = 0., dFhermNorm = 0.;
+	for(int ik=0; ik<prodSup; ik++)
+	{	matrix Fk = Ftilde(0,nModesSq, ik,ik+1);
+		Fk.reshape(nModes, nModes);
+		Fnorm += std::pow(nrm2(Fk),2);
+		//Hermiticity correction:
+		{	matrix FkNew = dagger_symmetrize(Fk);
+			dFhermNorm += std::pow(nrm2(FkNew-Fk),2);
+			Fk = FkNew;
+		}
+		//Translational invariance correction:
+		if(ik==0) //Gamma point
+		{	matrix mask = zeroes(nModes,3);
+			int nAtoms = nModes/3;
+			for(int iAtom=0; iAtom<nAtoms; iAtom++)
+				for(int iDir=0; iDir<3; iDir++)
+					mask.set(iAtom*3+iDir,iDir, 1.);
+			matrix proj = (1./nAtoms) * (mask * dagger(mask));
+			matrix dF0 = proj*Fk*proj - Fk*proj - proj*Fk; //double sum - row sum - column sum
+			dFtransNorm = std::pow(nrm2(dF0),2);
+			Fk += dF0;
+		}
+		//Store corrected version
+		Fk.reshape(nModesSq, 1);
+		Ftilde.set(0,nModesSq, ik,ik+1, Fk);
+	}
+	//Inverse transform:
+	F = (Ftilde * dagger(phase)) * (1./prodSup);
+	//Convert back to atoms:
+	Fdata = F.data();
+	for(int iCell=0; iCell<prodSup; iCell++)
+	{	for(int iMode=0; iMode<nModes; iMode++)
+		{	int jMode = 0;
+			for(std::vector<vector3<>>& dgradSp: dgrad[iMode])
+			{	int nAtomsSp = dgradSp.size()/prodSup;
+				for(int jAtom=0; jAtom<nAtomsSp; jAtom++)
+				{	vector3<>& f = dgradSp[iCell*nAtomsSp+jAtom];
+					for(int jDir=0; jDir<3; jDir++)
+						f[jDir] = Fdata[F.index(iMode*nModes+jMode++, iCell)].real();
+				}
+			}
+		}
+	}
+	logPrintf("\tCorrected hermiticity relative error: %lg\n", sqrt(dFhermNorm/Fnorm));
+	logPrintf("\tCorrected translational invariance relative error: %lg\n\n", sqrt(dFtransNorm/Fnorm));
+}
+
+
 //Enforce hermiticity of force matrix
 void Phonon::forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const
 {	size_t nSymmetrizedCellsTot = 0;
@@ -352,56 +442,14 @@ void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::
 		Fnorm += std::pow(nrm2(Fcontrib),2);
 	}
 	//Calculate correction matrix:
-	matrix dF0 = zeroes(modes.size(), modes.size());
-	complex* dF0data = dF0.data();
-	int nAtoms = modes.size()/3;
-	int nAtomsTot = nAtoms * prodSup;
-	matrix3<> Fmean; //mean along both directions
-	//--- row sum:
-	for(unsigned iMode=0; iMode<modes.size(); iMode++)
-	{	vector3<> fMean;
-		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		for(int jDir=0; jDir<3; jDir++)
-		{	int jMode = 3*jAtom+jDir;
-			fMean[jDir] += F0(iMode,jMode).real();
-		}
-		fMean *= 1./nAtomsTot;
-		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		for(int jDir=0; jDir<3; jDir++)
-		{	int jMode = 3*jAtom+jDir;
-			dF0data[dF0.index(iMode,jMode)] -= fMean[jDir];
-		}
-		//collect double sum contributions:
-		int iDir = iMode%3;
-		for(int jDir=0; jDir<3; jDir++)
-			Fmean(iDir,jDir) += fMean[jDir];
-	}
-	Fmean *= (1./nAtoms);
-	//--- column sum:
-	for(unsigned jMode=0; jMode<modes.size(); jMode++)
-	{	vector3<> fMean;
-		for(int iAtom=0; iAtom<nAtoms; iAtom++)
-		for(int iDir=0; iDir<3; iDir++)
-		{	int iMode = 3*iAtom+iDir;
-			fMean[iDir] += F0(iMode,jMode).real();
-		}
-		fMean *= 1./nAtomsTot;
-		for(int iAtom=0; iAtom<nAtoms; iAtom++)
-		for(int iDir=0; iDir<3; iDir++)
-		{	int iMode = 3*iAtom+iDir;
-			dF0data[dF0.index(iMode,jMode)] -= fMean[iDir];
-		}
-	}
-	//--- double-counting correction (row & column sum)
+	int nModes = modes.size();
+	matrix mask = zeroes(nModes,3);
+	int nAtoms = nModes/3;
 	for(int iAtom=0; iAtom<nAtoms; iAtom++)
-	for(int iDir=0; iDir<3; iDir++)
-	{	int iMode = 3*iAtom+iDir;
-		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		for(int jDir=0; jDir<3; jDir++)
-		{	int jMode = 3*jAtom+jDir;
-			dF0data[dF0.index(iMode,jMode)] += Fmean(iDir,jDir);
-		}
-	}
+		for(int iDir=0; iDir<3; iDir++)
+			mask.set(iAtom*3+iDir,iDir, 1.);
+	matrix proj = (1./nAtoms) * (mask * dagger(mask));
+	matrix dF0 = (1./prodSup) * (proj*F0*proj - F0*proj - proj*F0); //double sum - row sum - column sum
 	//Apply correction:
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
