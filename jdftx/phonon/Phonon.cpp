@@ -97,7 +97,6 @@ void Phonon::dump()
 	}
 	
 	//--- refine force matrix
-	std::vector<matrix> omegaSqRaw = omegaSq; //back up original (uncorrected) force matrix
 	logPrintf("\nRefining force matrix:\n");
 	forceMatrixEnforceSumRule(omegaSq, cellMap, invsqrtM); //enforce translational invariance
 	forceMatrixDaggerSymmetrize(omegaSq, cellMap); //enforce hermiticity
@@ -111,14 +110,6 @@ void Phonon::dump()
 		FILE* fp = fopen(fname.c_str(), "w");
 		for(const matrix& M: omegaSq)
 			M.write_real(fp); //M is explicitly real by construction above
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-		//Uncorrected version:
-		fname = e.dump.getFilename("phononOmegaSqRaw");
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		fp = fopen(fname.c_str(), "w");
-		for(const matrix& M: omegaSqRaw)
-			M.write_real(fp);
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 		//Write description of modes:
@@ -354,30 +345,80 @@ void Phonon::forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::
 		sqrtMmode.push_back(1./invsqrtM[mode.sp]);
 	}
 	//Collect Gamma-point force matrix:
-	matrix F0;
+	matrix F0; double Fnorm=0.;
 	for(const matrix& mat: omegaSq)
-		F0 += sqrtMmode * mat * sqrtMmode;
-	//Project out net force for each atom displacement:
-	F0 = dagger_symmetrize(F0);
+	{	matrix Fcontrib = sqrtMmode * mat * sqrtMmode;
+		F0 += Fcontrib;
+		Fnorm += std::pow(nrm2(Fcontrib),2);
+	}
+	//Calculate correction matrix:
 	matrix dF0 = zeroes(modes.size(), modes.size());
-	int nAtoms = modes.size()/3;
-	const complex* F0data = F0.data();
 	complex* dF0data = dF0.data();
+	int nAtoms = modes.size()/3;
+	int nAtomsTot = nAtoms * prodSup;
+	matrix3<> Fmean; //mean along both directions
+	//--- row sum:
+	for(unsigned iMode=0; iMode<modes.size(); iMode++)
+	{	vector3<> fMean;
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+		for(int jDir=0; jDir<3; jDir++)
+		{	int jMode = 3*jAtom+jDir;
+			fMean[jDir] += F0(iMode,jMode).real();
+		}
+		fMean *= 1./nAtomsTot;
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+		for(int jDir=0; jDir<3; jDir++)
+		{	int jMode = 3*jAtom+jDir;
+			dF0data[dF0.index(iMode,jMode)] -= fMean[jDir];
+		}
+		//collect double sum contributions:
+		int iDir = iMode%3;
+		for(int jDir=0; jDir<3; jDir++)
+			Fmean(iDir,jDir) += fMean[jDir];
+	}
+	Fmean *= (1./nAtoms);
+	//--- column sum:
+	for(unsigned jMode=0; jMode<modes.size(); jMode++)
+	{	vector3<> fMean;
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int iDir=0; iDir<3; iDir++)
+		{	int iMode = 3*iAtom+iDir;
+			fMean[iDir] += F0(iMode,jMode).real();
+		}
+		fMean *= 1./nAtomsTot;
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int iDir=0; iDir<3; iDir++)
+		{	int iMode = 3*iAtom+iDir;
+			dF0data[dF0.index(iMode,jMode)] -= fMean[iDir];
+		}
+	}
+	//--- double-counting correction (row & column sum)
 	for(int iAtom=0; iAtom<nAtoms; iAtom++)
 	for(int iDir=0; iDir<3; iDir++)
 	{	int iMode = 3*iAtom+iDir;
 		for(int jAtom=0; jAtom<nAtoms; jAtom++)
 		for(int jDir=0; jDir<3; jDir++)
 		{	int jMode = 3*jAtom+jDir;
-			dF0data[dF0.index(iMode,3*iAtom+jDir)] -= F0data[F0.index(iMode,jMode)];
-		} //Note this makes dF0 block diagonal with block size 3
+			dF0data[dF0.index(iMode,jMode)] += Fmean(iDir,jDir);
+		}
 	}
 	//Apply correction:
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	if(!iter->first.length_squared()) //apply correction to diagonal elements
-			omegaSq[iCell] += (invsqrtMmode * dF0 * invsqrtMmode);
+	{	matrix dOmegaSq = invsqrtMmode * dF0 * invsqrtMmode;
+		//Apply weights:
+		complex* dOmegaSqData = dOmegaSq.data();
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int iDir=0; iDir<3; iDir++)
+		{	int iMode = 3*iAtom+iDir;
+			for(int jAtom=0; jAtom<nAtoms; jAtom++)
+			for(int jDir=0; jDir<3; jDir++)
+			{	int jMode = 3*jAtom+jDir;
+				dOmegaSqData[dOmegaSq.index(iMode,jMode)] *= iter->second(iAtom,jAtom);
+			}
+		}
+		omegaSq[iCell] += dOmegaSq;
 		iter++;
 	}
-	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(dF0)/nrm2(F0));
+	logPrintf("\tCorrected translational invariance relative error: %lg\n", nrm2(dF0)/sqrt(Fnorm));
 }
