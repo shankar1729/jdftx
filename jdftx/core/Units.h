@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Energy, temperature units in Hartrees:
 const double eV = 1/27.21138505; //!< eV in Hartrees
+const double Ryd = 0.5; //!< Rydberg in Hartrees
 const double Joule = 1/4.35974434e-18; //!< Joule in Hartrees
 const double KJoule = 1000*Joule; //!< KJoule in Hartrees
 const double Kcal = KJoule * 4.184; //!< Kcal in Hartrees
