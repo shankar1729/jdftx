@@ -424,9 +424,14 @@ void Phonon::forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vec
 	}
 	//Invert weight sums:
 	double normFac = 1./(nAtoms*nAtoms);
+	vector3<bool> isTruncated = e.coulombParams.isTruncated();
 	for(int iAtom=0; iAtom<nAtoms; iAtom++)
 		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+		{	for(int iDir=0; iDir<3; iDir++)
+				if(isTruncated[iDir])
+					wSum[iAtom][jAtom](iDir,iDir) = 1.; //handle singularity in truncated directions
 			wSum[iAtom][jAtom] = normFac*inv(wSum[iAtom][jAtom]);
+		}
 	//Apply correction:
 	iter = cellMap.begin();
 	matrix dFsum;
