@@ -50,9 +50,10 @@ public:
 	BGW(const Everything& e);
 	void writeWfn() const; //!< Write wavefunction file
 	void writeVxc() const; //!< Write exchange-correlation matrix elements
+	void writeChiFluid() const; //!< Write fluid polarizability
 private:
 	hid_t openHDF5(string fname) const; //!< Open HDF5 file for collective access
-	void writeHeader(hid_t fid) const; //!< Write common HDF5 header for BGW outputs
+	void writeHeaderMF(hid_t fid) const; //!< Write common HDF5 header specifying the mean-field claculation for BGW outputs
 };
 
 
@@ -60,6 +61,8 @@ void Dump::dumpBGW()
 {	BGW bgw(*e);
 	bgw.writeWfn();
 	bgw.writeVxc();
+	if(e->eVars.fluidSolver)
+		bgw.writeChiFluid();
 }
 
 
@@ -98,7 +101,7 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 void BGW::writeWfn() const
 {	//Open file and write common header:
 	hid_t fid = openHDF5(e.dump.getFilename("bgw.wfn.h5"));
-	writeHeader(fid);
+	writeHeaderMF(fid);
 	
 	//Wavefucntion group:
 	hid_t gidWfns = h5createGroup(fid, "wfns");
@@ -200,6 +203,39 @@ void BGW::writeVxc() const
 }
 
 
+//Write fluid polarizability
+void BGW::writeChiFluid() const
+{	assert(eVars.fluidSolver); //should only be called in solvated cases
+	
+	//Open file and write common header:
+	hid_t fid = openHDF5(e.dump.getFilename("bgw.chiFluid.h5"));
+	writeHeaderMF(fid);
+	
+	//---------- Epsilon header ----------
+	hid_t gidHeader = h5createGroup(fid, "eps_header");
+	h5writeScalar(gidHeader, "versionnumber", 1);
+	h5writeScalar(gidHeader, "flavor", 2);  //=> complex wavefunctions
+	
+	//----- Params group:
+	hid_t gidParams = h5createGroup(gidHeader, "params");
+	h5writeScalar(gidParams, "matrix_type", 2); //=> chi
+	h5writeScalar(gidParams, "has_advanced", 0); //=> retarded response only
+	h5writeScalar(gidParams, "nmatrix", nSpins); //=> polarizability per spin
+	h5writeScalar(gidParams, "matrix_flavor", 2); //=> complex matrices
+	h5writeScalar(gidParams, "icutv", 0); //TODO: what is this?
+	h5writeScalar(gidParams, "ecuts", e.cntrl.Ecut); //TODO: what Ecut should I use here?
+	h5writeScalar(gidParams, "nband", 0); //No bands used for fluid polarizability
+	h5writeScalar(gidParams, "efermi", 0.); //Not meaningful for fluid polarizability
+	
+	//---- q-points group:
+	die("Not yet implemented!\n"); //TODO
+	
+	//Close file:
+	H5Fclose(fid);
+	logPrintf("done\n"); logFlush();
+}
+
+
 //Open HDF5 file for collective access:
 hid_t BGW::openHDF5(string fname) const
 {	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
@@ -214,8 +250,8 @@ hid_t BGW::openHDF5(string fname) const
 }
 
 
-//Write common HDF5 header for BGW outputs
-void BGW::writeHeader(hid_t fid) const
+//Write common HDF5 header specifying the mean-field claculation for BGW outputs
+void BGW::writeHeaderMF(hid_t fid) const
 {
 	hid_t gidHeader = h5createGroup(fid, "mf_header");
 	h5writeScalar(gidHeader, "versionnumber", 1);
