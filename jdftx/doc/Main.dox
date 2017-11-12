@@ -89,8 +89,8 @@ of systems of any dimensionality from 0 to 3: molecules, wires, slabs / 2D mater
 
 A key feature of JDFTx is Joint Density %Functional Theory (JDFT) \cite JDFT, a framework
 for *ab initio* calculations of electronic systems in contact with liquid environments.
-The full power of Joint Density functional theory is unleashed when electronic DFT
-is coupled to a classical DFT or free energy functional for the fluid
+The full power of Joint Density functional theory is unleashed \cite JDFTcoupling
+when electronic DFT is coupled to a classical DFT or free energy functional for the fluid
 (see option ClassicalDFT in command \ref CommandFluid), which accounts for
 atomic-scale structure in the fluid \cite BondedVoids \cite RigidCDFT \cite PolarizableCDFT.
 

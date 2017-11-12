@@ -491,6 +491,15 @@ matrix operator*(const matrix& m, const diagMatrix& d)
 	return ret;
 }
 
+matrix operator*(const matrix& m, const std::vector<complex>& d)
+{	assert(m.nCols()==int(d.size()));
+	matrix ret(m); //copy input to out
+	//Scale each column:
+	for(int j=0; j<ret.nCols(); j++)
+		callPref(eblas_zscal)(ret.nRows(), d[j], ret.dataPref()+ret.index(0,j), 1);
+	return ret;
+}
+
 diagMatrix operator*(const diagMatrix& d1, const diagMatrix& d2)
 {	assert(d1.nCols()==d2.nRows());
 	diagMatrix ret(d1);

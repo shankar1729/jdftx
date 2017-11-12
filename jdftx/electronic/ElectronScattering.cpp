@@ -24,15 +24,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
-matrix operator*(const matrix& m, const std::vector<complex>& d)
-{	assert(m.nCols()==int(d.size()));
-	matrix ret(m); //copy input to out
-	//Scale each column:
-	for(int j=0; j<ret.nCols(); j++)
-		callPref(eblas_zscal)(ret.nRows(), d[j], ret.dataPref()+ret.index(0,j), 1);
-	return ret;
-}
-
 //Extract imaginary part:
 matrix imag(const matrix& m)
 {	matrix out = zeroes(m.nRows(), m.nCols());

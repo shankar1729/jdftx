@@ -138,8 +138,8 @@ struct CommandLcaoParams : public Command
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eVars.lcaoIter, -1, "nIter");
 		pl.get(e.eVars.lcaoTol, 1e-6, "Ediff");
-		pl.get(e.eInfo.smearingWidth, 1e-3, "smeaingWidth");
-		if(e.eInfo.smearingWidth<=0) throw string("<kT> must be positive.\n");
+		pl.get(e.eInfo.smearingWidth, 1e-3, "smearingWidth");
+		if(e.eInfo.smearingWidth<=0) throw string("<smearingWidth> must be positive.\n");
 	}
 
 	void printStatus(Everything& e, int iRep)

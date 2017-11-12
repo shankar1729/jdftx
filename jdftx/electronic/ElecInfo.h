@@ -138,6 +138,17 @@ public:
 	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;  //!< parallel write array of matrices
 	void appendWrite(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;  //!< append-write array of diagonal matrices
 
+	//Parallel I/O utilities for ColumnBundle array (defined in COlumnBUndle.cpp):
+	struct ColumnBundleReadConversion //!< Utility to convert columnbundle basis / bands
+	{	bool realSpace; //!< whether to read realspace wavefunctions
+		int nBandsOld; //!< nBands for the input wavefunction
+		double Ecut, EcutOld; //!< Ecut for the current calculation and input wavefunction in fourier space
+		vector3<int> S_old; //!< fftbox size for the input wavefunction in double space
+		ColumnBundleReadConversion();
+	};
+	void read(std::vector<class ColumnBundle>&, const char *fname, const ColumnBundleReadConversion* conversion=0) const; //!< Read array of columnbundles, optionally with conversion
+	void write(const std::vector<class ColumnBundle>&, const char *fname) const; //!< write an array of columnbundles to file
+
 private:
 	const Everything* e;
 	TaskDivision qDivision; //!< MPI division of k-points

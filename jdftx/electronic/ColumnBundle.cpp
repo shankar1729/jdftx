@@ -182,10 +182,10 @@ void randomize(std::vector<ColumnBundle>& Y, const ElecInfo& eInfo)
 
 //--------- Read/write an array of ColumnBundles from/to a file --------------
 
-void write(const std::vector<ColumnBundle>& Y, const char* fname, const ElecInfo& eInfo)
+void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) const
 {	//Compute output length from each process:
 	std::vector<long> nBytes(mpiWorld->nProcesses(), 0); //total bytes to be written on each process
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	for(int q=qStart; q<qStop; q++)
 		nBytes[mpiWorld->iProcess()] += Y[q].nData()*sizeof(complex);
 	//Sync nBytes across processes:
 	if(mpiWorld->nProcesses()>1)
@@ -200,21 +200,21 @@ void write(const std::vector<ColumnBundle>& Y, const char* fname, const ElecInfo
 	//Write to file:
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, offset, SEEK_SET);
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	for(int q=qStart; q<qStop; q++)
 		mpiWorld->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
 	mpiWorld->fclose(fp);
 }
 
 
-ColumnBundleReadConversion::ColumnBundleReadConversion()
+ElecInfo::ColumnBundleReadConversion::ColumnBundleReadConversion()
 : realSpace(false), nBandsOld(0), Ecut(0), EcutOld(0)
 {
 }
 
-void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo, const ColumnBundleReadConversion* conversion)
+void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const ColumnBundleReadConversion* conversion) const
 {	if(conversion && conversion->realSpace)
-	{	if(eInfo.qStop==eInfo.qStart) return; //no k-point on this process
-		const GridInfo* gInfoWfns = Y[eInfo.qStart].basis->gInfo;
+	{	if(qStop==qStart) return; //no k-point on this process
+		const GridInfo* gInfoWfns = Y[qStart].basis->gInfo;
 		//Create a custom gInfo if necessary:
 		GridInfo gInfoCustom;
 		gInfoCustom.R = gInfoWfns->R;
@@ -225,7 +225,7 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 		const GridInfo& gInfo = needCustom ? gInfoCustom : *gInfoWfns;
 		//Read one column at a time:
 		complexScalarField Icol; nullToZero(Icol, gInfo);
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		for(int q=qStart; q<qStop; q++)
 		{	int nCols = Y[q].nCols();
 			int nSpinor = Y[q].spinorLength();
 			if(conversion->nBandsOld) nCols = std::min(nCols, conversion->nBandsOld);
@@ -239,10 +239,10 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 	}
 	else
 	{	//Check if a conversion is actually needed:
-		std::vector<ColumnBundle> Ytmp(eInfo.qStop);
-		std::vector<Basis> basisTmp(eInfo.qStop);
+		std::vector<ColumnBundle> Ytmp(qStop);
+		std::vector<Basis> basisTmp(qStop);
 		std::vector<long> nBytes(mpiWorld->nProcesses(), 0); //total bytes to be read on each process
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		for(int q=qStart; q<qStop; q++)
 		{	bool needTmp = false, customBasis = false;
 			int nCols = Y[q].nCols();
 			if(conversion)
@@ -275,9 +275,13 @@ void read(std::vector<ColumnBundle>& Y, const char *fname, const ElecInfo& eInfo
 			fsize += nBytes[iSrc];
 		}
 		//Read data into Ytmp or Y as appropriate, and convert if necessary:
-		MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, fsize, "Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n");
+		MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, fsize,
+			(e->vibrations and qnums.size()>1)
+			? "Hint: Vibrations requires wavefunctions without symmetries:\n"
+				"either don't read in state, or consider using phonon instead.\n"
+			: "Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n");
 		mpiWorld->fseek(fp, offset, SEEK_SET);
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		for(int q=qStart; q<qStop; q++)
 		{	ColumnBundle& Ycur = Ytmp[q] ? Ytmp[q] : Y[q];
 			mpiWorld->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
 			if(Ytmp[q]) //apply conversions:

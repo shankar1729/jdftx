@@ -18,12 +18,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <fluid/FluidSolverParams.h>
+#include <electronic/SpeciesInfo.h>
 #include <core/Units.h>
 
 FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false), solveFrequency(FluidFreqDefault),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
-vdwScale(0.75), pCavity(0.), lMax(3),
+vdwScale(0.75), pCavity(0.), lMax(3), cavityScale(1.), ionSpacing(0.),
 linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)
 {
 }
@@ -71,13 +72,20 @@ void FluidSolverParams::setCDFTparams()
 void FluidSolverParams::setPCMparams()
 {
 	assert(solvents.size()==1);
+	const double dyn_per_cm = (1e-5*Newton)/(1e-2*meter);
+	const double GPa = 1e9*Pascal;
+	
+	//Set common default values:
+	cavityTension = 0.;
+	cavityPressure = 0.;
+	cavityScale = 1.;
+	vdwScale = 1.;
 	
 	//Set PCM fit parameters:
 	switch(pcmVariant)
 	{	case PCM_SaLSA:
 		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);
-			cavityTension = 0.;
 			switch(solvents[0]->name)
 			{
 				case FluidComponent::H2O:
@@ -103,8 +111,6 @@ void FluidSolverParams::setPCMparams()
 		case PCM_CANDLE:
 		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);
-			cavityTension = 0.; //not used
-			vdwScale = 1.; //not used
 			switch(solvents[0]->name)
 			{	case FluidComponent::CH3CN:
 					Ztot = 16;
@@ -142,7 +148,6 @@ void FluidSolverParams::setPCMparams()
 		case PCM_SGA13:
 		{	nc = 1e-2;
 			sigma = 0.6;
-			cavityTension = 0.;
 			switch(solvents[0]->name)
 			{
 				case FluidComponent::H2O:
@@ -326,21 +331,45 @@ void FluidSolverParams::setPCMparams()
 		case PCM_LA12:
 		{	nc = 7e-4;
 			sigma = 0.6;
-			cavityTension = 0.;
 			if(fluidType == FluidNonlinearPCM)
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has not been parametrized for NonlinearPCM; using LinearPCM fit parameters.\n";
 			if( (fluidType==FluidLinearPCM || fluidType==FluidNonlinearPCM) && solvents[0]->name != FluidComponent::H2O)
 				initWarnings += "WARNING: PCM variant LA12/PRA05 has been fit only for H2O; using nc and sigma from H2O fit.\n";
 			break;
 		}
+		case PCM_SoftSphere:
+		{	sigma = 0.5; //in bohrs for this model
+			switch(solvents[0]->name)
+			{	case FluidComponent::Ethanol:
+				{	cavityTension = -4.0*dyn_per_cm;
+					cavityScale = 1.22;
+					break;
+				}
+				default: // For water and unparametrized fluids
+				{	if(fluidType==FluidLinearPCM)
+					{	cavityTension = 9.67e-6;
+						cavityScale = 1.11;
+					}
+					else
+					{	cavityTension = 1.02e-5;
+						cavityScale = 1.00;
+					}
+					//Warn when not explicitly parametrized:
+					if(solvents[0]->name != FluidComponent::H2O)
+					{	initWarnings +=
+							"WARNING: PCM variant SoftSphere has not been parametrized for this solvent; using bulk\n"
+							"   surface tension as effective cavity tension and water parameters for everything else.\n";
+						cavityTension = solvents[0]->sigmaBulk;
+					}
+				}
+			}
+		}
 		case_PCM_SCCS_any:
 		{	if(fluidType != FluidLinearPCM) initWarnings += "WARNING: SCCS has only been parametrized for LinearPCM.\n";
 			if(solvents[0]->name != FluidComponent::H2O)
 			{	initWarnings += 
-					"WARNING: SCCS varinats have not been parametrized for this solvent; using water parameters\n";
+					"WARNING: SCCS variants have not been parametrized for this solvent; using water parameters\n";
 			}
-			const double dyn_per_cm = (1e-5*Newton)/(1e-2*meter);
-			const double GPa = 1e9*Pascal;
 			rhoDelta = 1e-4; //common to all variants
 			switch(pcmVariant)
 			{	case PCM_SCCS_g09:      rhoMin=1.00e-4; rhoMax=1.50e-3; cavityTension=2.50*dyn_per_cm; break;
@@ -357,6 +386,26 @@ void FluidSolverParams::setPCMparams()
 		}
 	}
 }
+
+double FluidSolverParams::getAtomicRadius(const SpeciesInfo& sp) const
+{	static const int Zmax = 103;
+	static double uffDiaAngst[Zmax] = {
+		2.886, 2.362, 2.451, 2.745, 4.083, 3.851, 3.100, 3.500, 3.364, 3.243, //Z -> 10 (Z=7 i.e. N overridden to Bondi vdW radius)
+		2.983, 3.021, 4.499, 4.295, 4.147, 4.035, 3.947, 3.868, 3.812, 3.399, //Z -> 20
+		3.295, 3.175, 3.144, 3.023, 2.961, 2.912, 2.872, 2.834, 3.495, 2.763, //Z -> 30
+		4.383, 4.280, 4.230, 4.205, 4.189, 4.141, 4.114, 3.641, 3.345, 3.124, //Z -> 40
+		3.165, 3.052, 2.998, 2.963, 2.929, 2.899, 1.386, 2.848, 4.463, 4.392, //Z -> 50
+		4.420, 4.470, 4.500, 4.404, 4.517, 3.703, 3.522, 3.556, 3.606, 3.575, //Z -> 60
+		3.547, 3.520, 3.493, 3.368, 3.451, 3.428, 3.409, 3.391, 3.374, 3.355, //Z -> 70
+		3.640, 3.141, 3.170, 3.069, 2.954, 3.120, 2.840, 2.754, 3.293, 2.705, //Z -> 80
+		4.347, 4.297, 4.370, 4.709, 4.750, 4.765, 4.900, 3.677, 3.478, 3.396, //Z -> 90
+		3.424, 3.395, 3.424, 3.424, 3.381, 3.326, 3.339, 3.313, 3.299, 3.286, //Z -> 100
+		3.274, 3.248, 3.236 }; //Z -> 103
+	if(sp.atomicRadiusOverride) return *(sp.atomicRadiusOverride); //Return override value, if available
+	assert(sp.atomicNumber && sp.atomicNumber <= Zmax);
+	return uffDiaAngst[sp.atomicNumber-1]*0.5*Angstrom; //convert to radius in bohrs
+}
+
 
 bool FluidSolverParams::needsVDW() const
 {	switch(fluidType)

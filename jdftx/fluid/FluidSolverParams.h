@@ -67,6 +67,7 @@ enum PCMVariant
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion \cite CavityWDA
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM
 	PCM_LA12, //!< Linear local-response electrolyte \cite PCM-Kendra
+	PCM_SoftSphere, //!< Soft-sphere continuum solvation model \cite PCM-SoftSphere
 	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water  \cite PCM-SCCS
@@ -111,13 +112,13 @@ struct FluidSolverParams
 	
 	//Fit parameters:
 	double nc; //!< critical density for the PCM cavity shape function
-	double sigma; //!< smoothing factor for the PCM cavity shape function
+	double sigma; //!< smoothing factor for the PCM cavity shape function (dimensionless for most, but in bohrs for SoftSphere)
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	
 	//For CANDLE alone:
 	double Ztot; //!< number of valence electrons
-	double eta_wDiel; //!< control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter)
+	double eta_wDiel; //!< electrostatic cavity expansion widthin bohrs (fit parameter)
 	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
 	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter)
 	
@@ -128,6 +129,11 @@ struct FluidSolverParams
 	
 	//For SaLSA alone:
 	int lMax;
+	
+	//For soft sphere model alone:
+	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
+	double cavityScale; //!< radius scale factor
+	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs)
 	
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit

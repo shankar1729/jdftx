@@ -28,7 +28,7 @@ PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
 }
 
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), e(*this), eSupTemplate(*this)
+: dr(0.01), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), e(*this), eSupTemplate(*this)
 {
 }
 
@@ -153,6 +153,25 @@ void Phonon::setup(bool printDefaults)
 			grad0[iSp].insert(grad0[iSp].end(), grad0unit[iSp].begin(), grad0unit[iSp].end());
 	
 	//Supercell symmetries:
+	//--- handle manual symmetries:
+	if(eSupTemplate.symm.sym.size())
+	{	eSupTemplate.symm.sym.clear();
+		matrix3<> DiagSup = Diag(vector3<>(sup)), invDiagSup = inv(DiagSup);
+		for(const SpaceGroupOp& op: e.symm.sym)
+		{	matrix3<> rotSupTemp = DiagSup * op.rot * invDiagSup;
+			SpaceGroupOp opSup;
+			bool isSymSup = true;
+			for(int i=0; i<3; i++)
+				for(int j=0; j<3; j++)
+				{	opSup.rot(i,j) = int(round(rotSupTemp(i,j)));
+					if(fabs(rotSupTemp(i,j) - opSup.rot(i,j)) > symmThreshold)
+						isSymSup = false; //not a supercell symmetry
+				}
+			if(!isSymSup) continue;
+			opSup.a = op.a * invDiagSup;
+			eSupTemplate.symm.sym.push_back(opSup);
+		}
+	}
 	eSupTemplate.symm.sup = sup; //restrict space group to translations within unit cell
 	eSupTemplate.symm.setup(eSupTemplate);
 	symSup = eSupTemplate.symm.getMatrices();

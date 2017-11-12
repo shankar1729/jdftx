@@ -292,7 +292,7 @@ plots the difference and reports the VBM shift.
     import numpy as np
     import matplotlib.pyplot as plt
     
-    S = [ 54, 24, 150 ]            #Sample count
+    S = [ 56, 28, 160 ]            #Sample count
     L = [ 12.26123, 5.59, 33. ]    #Lattice vector lengths (bohrs)
     z = np.arange(S[2])*L[2]/S[2]  #z-coordinates of grid points
     
@@ -317,7 +317,7 @@ plots the difference and reports the VBM shift.
 This Octave/MATLAB script achieves the same result,
 with some minor differences due to data ordering:
 
-    S = [ 54 24 150 ];          %Sample count
+    S = [ 56 28 160 ];          %Sample count
     L = [ 12.26123 5.59 33 ];   %Lattice vector lengths (bohrs)
     z = [0:S(3)-1]*L(3)/S(3);   %z-coordinates of grid points
     

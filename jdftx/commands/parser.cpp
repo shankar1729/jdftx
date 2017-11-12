@@ -185,7 +185,7 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 	ifstream ifs;
 	if(filename.back().length())
 	{	ifs.open(filename.back().c_str()); //open the last file in the list
-		if(!ifs.is_open()) die("Could not open file '%s' for reading.\n", filename.back().c_str());
+		if(!ifs.is_open()) die_alone("Could not open file '%s' for reading.\n", filename.back().c_str());
 	}
 	else
 		logPrintf("Waiting for commands from stdin (end input with EOF (Ctrl+D)):\n");
@@ -210,10 +210,10 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 		}
 		else if(cmd=="include") //Handle includes:
 		{	trim(params);
-			if(!params.length()) die("No file-name specified for command include.\n");
+			if(!params.length()) die_alone("No file-name specified for command include.\n");
 			//Check for cyclic includes:
 			if(find(filename.begin(), filename.end(), params) != filename.end())
-				die("File '%s' tries to (in)directly include itself.\n", params.c_str());
+				die_alone("File '%s' tries to (in)directly include itself.\n", params.c_str());
 			//Read included file recursively:
 			filename.push_back(params);
 			readInputFile(filename, input);
@@ -230,7 +230,7 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 				input.push_back(replacement);
 			}
 			catch(string err)
-			{	die("Deprecated command %s with command line:\n\t%s %s\nfailed with message:\n\t%s\n",
+			{	die_alone("Deprecated command %s with command line:\n\t%s %s\nfailed with message:\n\t%s\n",
 					cmd.c_str(), cmd.c_str(), params.c_str(), err.c_str());
 			}
 		}

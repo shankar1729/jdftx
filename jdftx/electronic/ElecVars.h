@@ -57,6 +57,7 @@ public:
 	ScalarFieldTilde V_cavity; //!< non-electrostatic potential on electrons due to fluid
 	
 	ScalarFieldArray Vscloc; //! Local part of (optionally spin-dependent) self-consistent potential
+	ScalarFieldArray Vxc; //! Exchange-correlation potential
 	ScalarFieldArray Vtau; //! Gradient w.r.t kinetic energy density (if meta-GGA)
 	
 	std::vector<matrix> rhoAtom, U_rhoAtom; //!< Atomic density matrices and gradients w.r.t them (for DFT+U)
@@ -81,7 +82,7 @@ public:
 
 	//Wavefunction initialization:
 	string wfnsFilename; //!< file to read wavefunctions from
-	std::shared_ptr<struct ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
+	std::shared_ptr<struct ElecInfo::ColumnBundleReadConversion> readConversion; //!< ColumnBundle conversion
 	bool isRandom; //!< indicates whether the electronic state is random (not yet minimized)
 	bool initLCAO; //!< initialize wave functions using linear combinations of atomic orbitals
 	bool skipWfnsInit; //!< whether to skip wavefunction initialization (used to speed up dry runs, phonon calculations)

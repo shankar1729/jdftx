@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 static const int lMaxSpherical = 3;
 
-Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), sup(vector3<int>(1,1,1))
+Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), sup(vector3<int>(1,1,1)), isPertSup(false)
 {	shouldPrintMatrices = false;
 }
 
@@ -533,22 +533,34 @@ void Symmetries::checkFFTbox()
 }
 
 
-void Symmetries::checkSymmetries() const
+void Symmetries::checkSymmetries()
 {	logPrintf("Checking manually specified symmetry matrices.\n");
+	std::vector<SpaceGroupOp> symReduced; //reduced symmetries for a perturbed supercell
 	for(const SpaceGroupOp& op: sym) //For each symmetry matrix
+	{	bool isPertSym = true;
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
 			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? op.rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M1rot, M, magMomEquivalent)) //match position and spin
-				{	logPrintf("Ionic positions not invariant under symmetry matrix:\n");
+				{	if(isPertSup)
+					{	isPertSym = false;
+						break;
+					}
+					logPrintf("Ionic positions not invariant under symmetry matrix:\n");
 					op.rot.print(globalLog, " %2d ");
 					op.a.print(globalLog, " %lg ");
 					die("Symmetries do not agree with atomic positions!\n");
 				}
 			}
 		}
+		if(isPertSup && isPertSym) symReduced.push_back(op);
+	}
+	if(isPertSup)
+	{	logPrintf("Reduced %lu manually specified symmetries of unit cell to %lu symmetries of perturbed supercell.\n", sym.size(), symReduced.size());
+		std::swap(sym, symReduced);
+	}
 }
 
 void Symmetries::initAtomMaps()
@@ -570,7 +582,10 @@ void Symmetries::initAtomMaps()
 			for(unsigned iRot = 0; iRot<sym.size(); iRot++)
 			{	vector3<> idealPos = sym[iRot].rot * spInfo.atpos[a1] + sym[iRot].a;
 				size_t a2 = plook.find(idealPos);
-				assert(a2 != string::npos);
+				if(a2 == string::npos)
+					die("Atom positions are marginally symmetric (errors comparable to detection threshold).\n"
+						"Use command symmetry-threshold to either increase tolerance and include marginal\n"
+						"symmetries, or reduce tolerance and exclude marginal symmetries, as appropriate.\n\n");
 				atomMap[sp][a1][iRot] = a2;
 				if(not spInfo.constraints[a1].isEquivalent(spInfo.constraints[a2], e->gInfo.R*sym[iRot].rot*inv(e->gInfo.R)))
 					die("\nSpecies %s atoms %lu and %lu are related by symmetry "

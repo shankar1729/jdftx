@@ -80,7 +80,7 @@ private:
 
 	void sortSymmetries(); //!< ensure that the first symmetry is identity
 	void checkFFTbox(); //!< verify that the sampled mesh is commensurate with symmetries
-	void checkSymmetries() const; //!< check validity of manually specified symmetry matrices
+	void checkSymmetries(); //!< check validity of manually specified symmetry matrices
 	
 	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space
 	IndexArray symmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
@@ -94,6 +94,7 @@ private:
 	
 	//Supercell handling (for phonon):
 	vector3<int> sup; //!< this is an exact supercell of some unit cell with this count and restrict space group to translations within that unit cell
+	bool isPertSup; //!< whether this is a perturbed supercell; if so, manual symmetries are reduced by atom positions (instead of raising an error)
 	friend class Phonon;
 };
 

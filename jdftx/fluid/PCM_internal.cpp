@@ -124,6 +124,65 @@ namespace ShapeFunctionSGA13
 	}
 }
 
+
+namespace ShapeFunctionSoftSphere
+{
+	void compute_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& RTR,
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv)
+	{	vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
+		THREAD_rLoop( compute_calc(i, iv, Sinv, RTR, nAtoms, x, nReps, reps, radius, shape, sigmaInv); )
+	}
+	void compute(const vector3<int>& S, const matrix3<>& RTR,
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv)
+	{	threadLaunch(compute_thread, S[0]*S[1]*S[2], S, RTR, nAtoms, x, nReps, reps, radius, shape, sigmaInv);
+	}
+	#ifdef GPU_ENABLED
+	void compute_gpu(const vector3<int>& S, const matrix3<>& RTR,
+		int nAtoms, const vector3<>* x, int nReps, const vector3<int>* reps, const double* radius, double* shape, double sigmaInv);
+	#endif
+	void compute(const std::vector<vector3<>>& x, const std::vector<vector3<int>>& reps, const std::vector<double>& radius, ScalarField& shape, double sigma)
+	{	const GridInfo& gInfo = shape->gInfo;
+		ManagedArray<vector3<>> xManaged(x);
+		ManagedArray<vector3<int>> repsManaged(reps);
+		ManagedArray<double> radiusManaged(radius);
+		callPref(compute)(gInfo.S, gInfo.RTR, x.size(), xManaged.dataPref(), reps.size(), repsManaged.dataPref(),
+			radiusManaged.dataPref(), shape->dataPref(), 1./sigma);
+	}
+
+	void propagateGradient_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& RTR,
+		const vector3<>& x, int nReps, const vector3<int>* reps, double radius,
+		const double* shape, const double* E_shape, vector3<double*> E_x, double* E_radius, double sigmaInv)
+	{	vector3<> Sinv(1./S[0], 1./S[1], 1./S[2]);
+		THREAD_rLoop( propagateGradient_calc(i, iv, Sinv, RTR, x, nReps, reps, radius, shape, E_shape, E_x, E_radius, sigmaInv); )
+	}
+	void propagateGradient(const vector3<int>& S, const matrix3<>& RTR,
+		const vector3<>& x, int nReps, const vector3<int>* reps, double radius,
+		const double* shape, const double* E_shape, vector3<double*> E_x, double* E_radius, double sigmaInv)
+	{	threadLaunch(propagateGradient_thread, S[0]*S[1]*S[2], S, RTR, x, nReps, reps, radius, shape, E_shape, E_x, E_radius, sigmaInv);
+	}
+	#ifdef GPU_ENABLED
+	void propagateGradient_gpu(const vector3<int>& S, const matrix3<>& RTR,
+		const vector3<>& x, int nReps, const vector3<int>* reps, double radius,
+		const double* shape, const double* E_shape, vector3<double*> E_x, double* E_radius, double sigmaInv);
+	#endif
+	void propagateGradient(const std::vector<vector3<>>& x, const std::vector<vector3<int>>& reps, const std::vector<double>& radius,
+		const ScalarField& shape, const ScalarField& E_shape, std::vector<vector3<>>& E_x, std::vector<double>& E_radius, double sigma)
+	{	const GridInfo& gInfo = shape->gInfo;
+		ManagedArray<vector3<int>> repsManaged(reps);
+		VectorField E_xField; nullToZero(E_xField, gInfo);
+		ScalarField E_radiusField; nullToZero(E_radiusField, gInfo);
+		E_x.resize(x.size());
+		E_radius.resize(x.size());
+		for(int iAtom=0; iAtom<int(x.size()); iAtom++)
+		{	callPref(propagateGradient)(gInfo.S, gInfo.RTR, x[iAtom], reps.size(), repsManaged.dataPref(), radius[iAtom],
+				shape->dataPref(), E_shape->dataPref(), E_xField.dataPref(), E_radiusField->dataPref(), 1./sigma);
+			E_x[iAtom] += gInfo.dV * sumComponents(E_xField);
+			E_radius[iAtom] += integral(E_radiusField);
+		}
+	}
+}
+
+
 namespace ShapeFunctionSCCS
 {
 	void compute(int N, const double* n, double* shape, const double rhoMin, const double rhoMax, const double epsBulk)

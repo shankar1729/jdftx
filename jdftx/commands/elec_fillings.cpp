@@ -56,6 +56,7 @@ struct CommandElecSmearing : public Command
 	{	ElecInfo& eInfo = e.eInfo;
 		pl.get(eInfo.smearingType, ElecInfo::SmearingFermi, smearingTypeMap, "smearingType", true);
 		pl.get(eInfo.smearingWidth, 0.0, "smearingWidth", true);
+		if(e.eInfo.smearingWidth<=0) throw string("<smearingWidth> must be positive.\n");
 		eInfo.fillingsUpdate = ElecInfo::FillingsHsub;
 	}
 
@@ -73,7 +74,7 @@ struct DeprecatedCommandElecFermiFillings : public DeprecatedCommand
 	{	string unusedParam; double kT;
 		pl.get(unusedParam, string(), "unusedParam", true);
 		pl.get(kT, 0.0, "kT", true);
-		ostringstream oss; oss << "Fermi " << kT;
+		ostringstream oss; oss << " Fermi " << kT;
 		return std::make_pair(string("elec-smearing"), oss.str());
 	}
 }

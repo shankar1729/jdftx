@@ -194,7 +194,7 @@ void ElecVars::setup(const Everything &everything)
 		if(wfnsFilename.length())
 		{	logPrintf("reading from '%s'\n", wfnsFilename.c_str()); logFlush();
 			if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
-			read(C, wfnsFilename.c_str(), eInfo, readConversion.get());
+			eInfo.read(C, wfnsFilename.c_str(), readConversion.get());
 			nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
 			isRandom = (nBandsInited<eInfo.nBands);
 		}
@@ -327,7 +327,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		ener.E["U"] = iInfo.rhoAtom_computeU(rhoAtom, U_rhoAtom);
 	
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
-	ScalarFieldArray Vxc;
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	if(!exCorr.hasEnergy() && !e->cntrl.scf)

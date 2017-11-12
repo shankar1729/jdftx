@@ -36,6 +36,7 @@ enum WannierMember
 	WM_numericalOrbitalsOffset,
 	WM_phononSup,
 	WM_rSmooth,
+	WM_wrapWignerSeitz,
 	WM_delim
 };
 
@@ -53,7 +54,8 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
 	WM_phononSup, "phononSupercell",
-	WM_rSmooth, "rSmooth"
+	WM_rSmooth, "rSmooth",
+	WM_wrapWignerSeitz, "wrapWignerSeitz"
 );
 
 EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
@@ -130,7 +132,12 @@ struct CommandWannier : public Command
 			"\n+ rSmooth <rSmooth>\n\n"
 			"   Width in bohrs of the supercell boundary region over which matrix elements are smoothed.\n"
 			"   If phononSupercell is specified to process phonon quantities, the rSmooth specified here\n"
-			"   must exactly match the value specified in the calculation in command phonon.";
+			"   must exactly match the value specified in the calculation in command phonon.\n"
+			"\n+ wrapWignerSeitz yes|no\n\n"
+			"   If yes, wrap Wannier centers (and atom positions for phonon modes) to a Wigner-Seitz cell\n"
+			"   so as to minimize the number of cells in the Wannier-basis output.  As a consequence,\n"
+			"   however, minimized Wannier centers may differ from the guesses by some lattice vector.\n"
+			"   Default: no.";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -192,6 +199,9 @@ struct CommandWannier : public Command
 					pl.get(wannier.rSmooth, 1., "rSmooth", true);
 					if(wannier.rSmooth <= 0.) throw string("<rSmooth> must be positive");
 					break;
+				case WM_wrapWignerSeitz:
+					pl.get(wannier.wrapWS, false, boolMap, "wrapWignerSeitz", true);
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -224,6 +234,7 @@ struct CommandWannier : public Command
 		if(wannier.phononSup.length_squared())
 			logPrintf(" \\\n\tphononSupercell %d %d %d", wannier.phononSup[0], wannier.phononSup[1], wannier.phononSup[2]);
 		logPrintf(" \\\n\trSmooth %lg", wannier.rSmooth);
+		logPrintf(" \\\n\twrapWignerSeitz %s", boolMap.getString(wannier.wrapWS));
 	}
 }
 commandWannier;

@@ -24,20 +24,31 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <climits>
 #include <core/Random.h>
 
+//---------- class MPIUtil::ProcDivision ----------
+
+MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups)
+: mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
+	(nGroups and mpiUtil)
+	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
+	: 0 )
+{
+}
+
+
+//---------- class MPIUtil ----------
+
 MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 : procDivision(procDivision)
 {
 	#ifdef MPI_ENABLED
 
 	if(procDivision)
-	{
-		MPI_Comm childComm;
+	{	//Split parent communicator in procDivision using iGroup:
 		MPI_Comm_split(procDivision.mpiUtil->comm, procDivision.iGroup,
-			procDivision.mpiUtil->iProcess(), &childComm);
-		// how to return a pointer to collection of comms
+			procDivision.mpiUtil->iProcess(), &comm);
 	}
 	else
-	{
+	{	//Initialize MPI (use COMM_WORLD)
 		int rc = MPI_Init(&argc, &argv);
 		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
 		comm = MPI_COMM_WORLD;
@@ -50,9 +61,10 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	//No MPI:
 	nProcs = 1;
 	iProc = 0;
+	assert(!procDivision);
 	#endif
 	
-	Random::seed(iProc);
+	if(!procDivision) Random::seed(iProc); //Reproducible random seed per process in mpiWorld
 }
 
 MPIUtil::~MPIUtil()
@@ -89,7 +101,7 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 	}
 	//Mimic the behaviour of die with collected error message:
 	fputs(bufTot.c_str(), globalLog);
-	if(mpiUtil->isHead() && globalLog != stdout)
+	if(isHead() && globalLog != stdout)
 		fputs(bufTot.c_str(), stderr);
 	finalizeSystem(false);
 	::exit(1);
@@ -194,7 +206,7 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 void MPIUtil::fopenWrite(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
-	if(mpiUtil->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
+	if(isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
 	MPI_Barrier(comm);
 	if(MPI_File_open(comm, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
@@ -307,13 +319,4 @@ int TaskDivision::whose(size_t q) const
 {	if(stopArr.size()>1)
 		return std::upper_bound(stopArr.begin(),stopArr.end(), q) - stopArr.begin();
 	else return 0;
-}
-
-//---------- class ProcDivision ----------
-ProcDivision::ProcDivision(size_t nGroups, const MPIUtil *mpiUtil)
-: mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
-	(nGroups and mpiUtil)
-	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
-	: 0 )
-{
 }

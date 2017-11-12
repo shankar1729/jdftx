@@ -66,10 +66,8 @@ struct CommandKpointFolding : public Command
 	{	for(int k=0; k<3; k++)
 		{	ostringstream oss; oss << "n" << k;
 			string paramName = oss.str();
-
 			pl.get(e.eInfo.kfold[k], 1, paramName);
-			if(e.eInfo.kfold[k]<1)
-				logPrintf("<%s> must be a positive integer.", paramName.c_str());
+			if(e.eInfo.kfold[k]<1) throw string("<" + paramName + "> must be positive");
 		}
 	}
 

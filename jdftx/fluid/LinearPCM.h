@@ -40,10 +40,11 @@ public:
 	void minimizeFluid(); //!< Converge using linear conjugate gradients
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
+	void dumpDensities(const char* filenamePattern) const; //!< Dump fluid densities to file
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
-	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces, bool electricOnly) const;
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces) const;
 private:
 	RadialFunctionG Kkernel; ScalarField epsInv; // for preconditioner
 	void updatePreconditioner(const ScalarField& epsilon, const ScalarField& kappaSq);

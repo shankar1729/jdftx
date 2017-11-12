@@ -44,7 +44,9 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 			Uparams.Vext.resize(spOut.atpos.size());
 		nAtomsTot += spOut.atpos.size();
 	}
-
+	if(eSup->symm.sym.size()) eSup->symm.sym = eSupTemplate.symm.sym; //use supercell version of manual symmetry matrices (if any)
+	eSup->symm.isPertSup = true; //perturbed supercell; atom positions will reduce instead of check manual symmetries (if any)
+	
 	//Remove unit cell initial state settings (incompatible with supercell):
 	eSup->eVars.skipWfnsInit = true; //skip because wavefunctions are set from unit cell calculation
 	eSup->eVars.wfnsFilename.clear();
@@ -61,8 +63,10 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Instead read in appropriate supercell quantities:
 	if(collectPerturbations)
 	{	//Read perturbed Vscloc and fix H below (no minimize/SCF necessary):
-		eSup->eVars.VFilenamePattern = fnamePattern;
-		eSup->cntrl.fixed_H = true;
+		if(saveHsub) //only need Vscloc if outputting e-ph matrix elements
+		{	eSup->eVars.VFilenamePattern = fnamePattern;
+			eSup->cntrl.fixed_H = true;
+		}
 	}
 	else
 	{	//Read in supercell state if available:
@@ -121,14 +125,16 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		}
 	
 	//Initialize state of supercell:
-	std::vector<diagMatrix> Hsub0 = setSupState();
+	std::vector<diagMatrix> Hsub0;
+	if(!collectPerturbations || saveHsub)
+		Hsub0 = setSupState();
 	
 	//Calculate energy and forces:
 	IonicGradient dgrad_pert;
 	if(collectPerturbations)
 	{	dgrad_pert.init(eSup->iInfo);
 		dgrad_pert.read(eSup->dump.getFilename("dforces").c_str());
-		eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
+		if(saveHsub) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
 	}
 	else
 	{	IonicGradient grad;
@@ -143,22 +149,25 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	}
 	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
 	
-	//Translational invariance correction (zero mean force):
+	//Apply translational invariance correction:
 	vector3<> fMean;
 	for(const std::vector<vector3<>>& fArr: dgrad_pert)
 		for(const vector3<>& f: fArr)
 			fMean += f;
-	fMean /= nAtomsTot;
+	fMean *= (1./nAtomsTot);
 	for(std::vector<vector3<>>& fArr: dgrad_pert)
 		for(vector3<>& f: fArr)
 			f -= fMean;
 	logPrintf("Applied translational invariance (net force) relative correction: %lg\n",
-		sqrt(fMean.length_squared()*nAtomsTot/dot(dgrad_pert,dgrad_pert)));
+		sqrt(nAtomsTot*fMean.length_squared()/dot(dgrad_pert,dgrad_pert)));
 	
 	//Subspace hamiltonian change:
-	std::vector<matrix> Hsub = getPerturbedHsub(), dHsub_pert(nSpins);
-	for(size_t s=0; s<Hsub.size(); s++)
-		dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	std::vector<matrix> Hsub, dHsub_pert(nSpins);
+	if(saveHsub)
+	{	Hsub = getPerturbedHsub();
+		for(size_t s=0; s<Hsub.size(); s++)
+			dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	}
 	
 	//Accumulate results for all symmetric images of perturbation:
 	const auto& atomMap = eSupTemplate.symm.getAtomMap();
@@ -197,26 +206,27 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		}
 		
 		//Accumulate Hsub contributions:
-		for(int iSpin=0; iSpin<nSpins; iSpin++)
-		{	//Fetch Hsub with rotations:
-			matrix contrib = stateRot[iSpin][iSym].transform(dHsub_pert[iSpin]);
-			//Collect k-vectors in order of the blocks of Hsub:
-			int qSup = iSpin*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
-			assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
-			std::vector< vector3<> > k; k.reserve(prodSup);
-			for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
-				k.push_back(sme.k);
-			assert(int(k.size()) == prodSup);
-			//Apply phase factors due to translations:
-			int nBands = e.eInfo.nBands;
-			for(unsigned ik1=0; ik1<k.size(); ik1++)
-				for(unsigned ik2=0; ik2<k.size(); ik2++)
-					contrib.set(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands,
-						contrib(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands)
-							* cis(-2*M_PI*dot(cellOffset, k[ik1]-k[ik2])));
-			for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
-				dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
-		}
+		if(saveHsub)
+			for(int iSpin=0; iSpin<nSpins; iSpin++)
+			{	//Fetch Hsub with rotations:
+				matrix contrib = stateRot[iSpin][iSym].transform(dHsub_pert[iSpin]);
+				//Collect k-vectors in order of the blocks of Hsub:
+				int qSup = iSpin*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+				assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0); //make sure that above is true
+				std::vector< vector3<> > k; k.reserve(prodSup);
+				for(const StateMapEntry& sme: stateMap) if(sme.qSup==qSup)
+					k.push_back(sme.k);
+				assert(int(k.size()) == prodSup);
+				//Apply phase factors due to translations:
+				int nBands = e.eInfo.nBands;
+				for(unsigned ik1=0; ik1<k.size(); ik1++)
+					for(unsigned ik2=0; ik2<k.size(); ik2++)
+						contrib.set(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands,
+							contrib(ik1*nBands,(ik1+1)*nBands, ik2*nBands,(ik2+1)*nBands)
+								* cis(-2*M_PI*dot(cellOffset, k[ik1]-k[ik2])));
+				for(unsigned iMode2=iModeStart; iMode2<iModeStart+3; iMode2++)
+					dHsub[iMode2][iSpin] += contrib * (pert.weight * dot(modes[iMode2].dir, mode.dir));
+			}
 	}
 }
 

@@ -26,6 +26,7 @@ enum PhononMember
 	PM_dr,
 	PM_iPerturbation,
 	PM_collectPerturbations,
+	PM_saveHsub,
  	PM_T,
 	PM_Fcut,
 	PM_rSmooth,
@@ -37,6 +38,7 @@ EnumStringMap<PhononMember> phononMemberMap
 	PM_dr, "dr",
 	PM_iPerturbation,"iPerturbation",
 	PM_collectPerturbations, "collectPerturbations",
+	PM_saveHsub, "saveHsub",
 	PM_T, "T",
 	PM_Fcut, "Fcut",
 	PM_rSmooth, "rSmooth"
@@ -65,6 +67,9 @@ struct CommandPhonon : public Command
 			"   Collect results of previous individual supercell calculations.\n"
 			"   Note that this requires all iPerturbation calculations (listed at\n"
 			"   the end of the phonon dry run) to have already completed.\n"
+			"\n+ saveHsub yes|no\n\n"
+			"   Whether to compute / save phononHsub: the electron-phonon matrix elements.\n"
+			"   Default: yes.\n"
 			"\n+ T <T>\n\n"
 			"   Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
 			"\n+ Fcut <Fcut>\n\n"
@@ -109,6 +114,9 @@ struct CommandPhonon : public Command
 					if(phonon.iPerturbation>=0)
 						throw string("cannot use iPerturbation in the same calculation as collectPerturbations");
 					break;
+				case PM_saveHsub:
+					pl.get(phonon.saveHsub, true, boolMap, "saveHsub", true);
+					break;
 				case PM_T:
 					pl.get(phonon.T, 0., "T", true);
 					phonon.T *= Kelvin;
@@ -133,6 +141,7 @@ struct CommandPhonon : public Command
 		logPrintf(" \\\n\tdr %lg", phonon.dr);
 		if(phonon.iPerturbation>=0) logPrintf(" \\\n\tiPerturbation %d", phonon.iPerturbation+1); //print 1-based index
 		if(phonon.collectPerturbations) logPrintf(" \\\n\tcollectPerturbations");
+		logPrintf(" \\\n\tsaveHsub %s", boolMap.getString(phonon.saveHsub));
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
 		logPrintf(" \\\n\trSmooth %lg", phonon.rSmooth);

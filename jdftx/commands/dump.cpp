@@ -548,6 +548,7 @@ struct CommandVibrations : public Command
 			"Calculate vibrational modes of the system using a finite difference method.\n"
 			"Note that this command should typically be issued in a run with converged ionic\n"
 			"positions; ionic (and lattice) minimization are bypassed by the vibrations module.\n"
+			"\n"
 			"Any number of the following subcommands and their arguments may follow:\n"
 			"+ dr <dr>: perturbation amplitude in bohrs for force matrix calculation (default: 0.01).\n"
 			"+ centralDiff yes|no: use a central difference formula for the second derivative\n"
@@ -561,7 +562,13 @@ struct CommandVibrations : public Command
 			"+ omegaMin <omegaMin>: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)\n"
 			"+ T <T>: temperature (in Kelvin) for free energy calculation (default: 298)\n"
 			"+ omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
-			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.";
+			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.\n"
+			"\n"
+			"Note that for a periodic system with k-points, wave functions may be incompatible\n"
+			"with and without the vibrations command due to symmetry-breaking by the perturbations.\n"
+			"To avoid this, perform electronic optimization (without initial-state) in the\n"
+			"vibration calculation itself, or consider using the phonon code instead."
+			;
 		forbid("fix-electron-density");
 		forbid("fix-electron-potential");
 	}

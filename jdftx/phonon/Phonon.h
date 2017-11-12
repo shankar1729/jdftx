@@ -62,6 +62,7 @@ public:
 	
 	int iPerturbation; //!< if >=0, only run one supercell calculation
 	bool collectPerturbations; //!< if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
+	bool saveHsub; //!< whether to compute / output electron-phonon matrix elements
 	
 	Phonon();
 	void setup(bool printDefaults); //!< setup unit cell and basis modes for perturbations
@@ -118,11 +119,17 @@ private:
 	vector3<int> getCell(int unit) const;
 	int getUnit(const vector3<int>& cell) const;
 	
-	//! Enforce hermiticity of force matrix
-	void forceMatrixDaggerSymmetrize(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const;
+	//! Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space):
+	void dgradSymmetrize(std::vector<IonicGradient>& dgrad) const;
+	
+	//! Correct Gamma point derivative:
+	void forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
+	
+	//! Check hermiticity of force matrix
+	void forceMatrixHermCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
 
-	//! Enforce translational invariance sum rule on force matrix
-	void forceMatrixEnforceSumRule(std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const;
+	//! Check translational invariance sum rule of force matrix
+	void forceMatrixSumRuleCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
 };
 
 //! @}
