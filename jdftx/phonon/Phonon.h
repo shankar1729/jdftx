@@ -122,11 +122,14 @@ private:
 	//! Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space):
 	void dgradSymmetrize(std::vector<IonicGradient>& dgrad) const;
 	
+	//! Correct Gamma point derivative:
+	void forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
+	
 	//! Check hermiticity of force matrix
-	void forceMatrixHermCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const;
+	void forceMatrixHermCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
 
 	//! Check translational invariance sum rule of force matrix
-	void forceMatrixSumRuleCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const;
+	void forceMatrixSumRuleCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const;
 };
 
 //! @}

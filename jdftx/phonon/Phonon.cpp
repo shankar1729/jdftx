@@ -53,10 +53,11 @@ void Phonon::dump()
 		return;
 	}
 	
-	//Refine force matrix:
+	//Process force matrix:
+	//--- refine in reciprocal space
 	dgradSymmetrize(dgrad);
 	
-	//Generate phonon cell map:
+	//--- generate phonon cell map:
 	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
 	for(const auto& sp: e.iInfo.species)
 		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
@@ -64,19 +65,8 @@ void Phonon::dump()
 	std::map<vector3<int>,matrix> cellMap = getCellMap(e.gInfo.R, eSupTemplate.gInfo.R,
 		e.coulombParams.isTruncated(), xAtoms, xAtoms, rSmooth, e.dump.getFilename("phononCellMap"));
 	
-	//Construct frequency-squared matrix:
-	//--- convert forces to frequency-squared (divide by mass symmetrically):
-	std::vector<double> invsqrtM;
-	for(auto sp: e.iInfo.species)
-		invsqrtM.push_back(1./sqrt(sp->mass * amu));
-	for(size_t iMode=0; iMode<modes.size(); iMode++)
-	{	dgrad[iMode] *= invsqrtM[modes[iMode].sp]; //divide by sqrt(M) on the left
-		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
-			for(vector3<>& f: dgrad[iMode][sp])
-				f *= invsqrtM[sp]; // divide by sqrt(M) on the right
-	}
-	//--- remap to cells:
-	std::vector<matrix> omegaSq(cellMap.size());
+	//--- remap force matrix on cells (with duplicated ones on WS-supercell boundary):
+	std::vector<matrix> F(cellMap.size());
 	auto iter = cellMap.begin();
 	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
 	{	//Get cell map entry:
@@ -88,22 +78,36 @@ void Phonon::dump()
 			iR[j] = positiveRemainder(iR[j], sup[j]);
 		int cellIndex =  (iR[0]*sup[1] + iR[1])*sup[2] + iR[2]; //corresponding to the order of atom replication in setup()
 		//Collect omegaSq entries:
-		omegaSq[iCell].init(modes.size(), modes.size());
+		F[iCell].init(modes.size(), modes.size());
 		for(size_t iMode1=0; iMode1<modes.size(); iMode1++)
 		{	const IonicGradient& F1 = dgrad[iMode1];
 			for(size_t iMode2=0; iMode2<modes.size(); iMode2++)
 			{	const Mode& mode2 = modes[iMode2];
 				size_t cellOffsetSp = cellIndex * e.iInfo.species[mode2.sp]->atpos.size(); //offset into atoms of current cell for current species
-				omegaSq[iCell].set(iMode1,iMode2, weight(iMode1/3,iMode2/3) * dot(F1[mode2.sp][mode2.at + cellOffsetSp], mode2.dir));
+				F[iCell].set(iMode1,iMode2, weight(iMode1/3,iMode2/3) * dot(F1[mode2.sp][mode2.at + cellOffsetSp], mode2.dir));
 			}
 		}
 	}
 	
 	//--- check force matrix
-	logPrintf("\nChecking force matrix in real space:\n");
-	forceMatrixHermCheck(omegaSq, cellMap); //enforce hermiticity
-	forceMatrixSumRuleCheck(omegaSq, cellMap, invsqrtM); //enforce translational invariance
+	logPrintf("\nFinalizing force matrix in real space:\n");
+	forceMatrixGammaPrimeFix(F, cellMap);
+	forceMatrixHermCheck(F, cellMap); //enforce hermiticity
+	forceMatrixSumRuleCheck(F, cellMap); //enforce translational invariance
 	logPrintf("\n");
+	
+	//--- collect species and mode masses:
+	std::vector<double> invsqrtM; //by species
+	for(auto sp: e.iInfo.species)
+		invsqrtM.push_back(1./sqrt(sp->mass * amu));
+	diagMatrix invsqrtMmode; //by mode
+	for(const Mode& mode: modes)
+		invsqrtMmode.push_back(invsqrtM[mode.sp]);
+	
+	//--- convert force matrix to omegaSq (divide symmetrically by sqrt(M)):
+	std::vector<matrix> omegaSq;
+	for(const matrix& Fi: F)
+		omegaSq.push_back(invsqrtMmode * Fi * invsqrtMmode);
 	
 	//--- write to file
 	if(mpiUtil->isHead())
@@ -397,9 +401,61 @@ void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
 	logPrintf("\tCorrected translational invariance relative error: %lg\n\n", sqrt(dFtransNorm/Fnorm));
 }
 
+void Phonon::forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const
+{	double Fnorm=0., dFnorm=0.;
+	//Collect Gamma-point derivative error:
+	int nAtoms = modes.size()/3;
+	std::vector<std::vector<vector3<>>> Hp0(3, std::vector<vector3<>>(3));
+	std::vector<std::vector<matrix3<>>> wSum(nAtoms, std::vector<matrix3<>>(nAtoms));
+	auto iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+	{	vector3<> rCell = e.gInfo.R * iter->first; //cartesian coordinates of cell
+		const matrix& weight = iter->second;
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+		{	//Collect weights:
+			wSum[iAtom][jAtom] += outer(rCell, rCell) * weight(iAtom,jAtom).real();
+			//Collect Hprime:
+			for(int iDir=0; iDir<3; iDir++)
+			for(int jDir=0; jDir<3; jDir++)
+				Hp0[iDir][jDir] += rCell * F[iCell](3*iAtom+iDir,3*jAtom+jDir).real();
+		}
+		iter++;
+	}
+	//Invert weight sums:
+	double normFac = 1./(nAtoms*nAtoms);
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+			wSum[iAtom][jAtom] = normFac*inv(wSum[iAtom][jAtom]);
+	//Apply correction:
+	iter = cellMap.begin();
+	matrix dFsum;
+	size_t iCell0 = 0;
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
+	{	if(!iter->first.length_squared()) iCell0 = iCell; //index of 0-cell
+		vector3<> rCell = e.gInfo.R * iter->first; //cartesian coordinates of cell
+		const matrix& weight = iter->second;
+		matrix dF(modes.size(), modes.size());
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int jAtom=0; jAtom<nAtoms; jAtom++)
+		{	vector3<> wrCell = (wSum[iAtom][jAtom] * rCell) * weight(iAtom,jAtom).real();
+			for(int iDir=0; iDir<3; iDir++)
+			for(int jDir=0; jDir<3; jDir++)
+				dF.set(3*iAtom+iDir,3*jAtom+jDir, -dot(wrCell, Hp0[iDir][jDir]));
+		}
+		Fnorm += std::pow(nrm2(F[iCell]),2);
+		dFnorm += std::pow(nrm2(dF),2);
+		F[iCell] += dF;
+		dFsum += dF;
+		iter++;
+	}
+	dFnorm += std::pow(nrm2(dFsum),2);
+	F[iCell0] -= dFsum; //so as to preserve translational invariance
+	logPrintf("\tCorrected gamma-point derivative relative error: %lg\n", sqrt(dFnorm/Fnorm));
+}
 
 //Check hermiticity of force matrix
-void Phonon::forceMatrixHermCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap) const
+void Phonon::forceMatrixHermCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const
 {	size_t nSymmetrizedCellsTot = 0;
 	double hermErrNum = 0., hermErrDen = 0.;
 	auto iter1 = cellMap.begin();
@@ -408,8 +464,8 @@ void Phonon::forceMatrixHermCheck(const std::vector<matrix>& omegaSq, const std:
 		for(size_t iCell2=0; iCell2<cellMap.size(); iCell2++)
 		{	vector3<int> iRsum = iter1->first + iter2->first;
 			if(!iRsum.length_squared() && iCell2>=iCell1) //loop over iR1 + iR2 == 0 pairs
-			{	matrix M = 0.5*(omegaSq[iCell1] + dagger(omegaSq[iCell2]));
-				matrix Merr = 0.5*(omegaSq[iCell1] - dagger(omegaSq[iCell2]));
+			{	matrix M = 0.5*(F[iCell1] + dagger(F[iCell2]));
+				matrix Merr = 0.5*(F[iCell1] - dagger(F[iCell2]));
 				int nSymmetrizedCells = (iCell1==iCell2 ? 1 : 2);
 				nSymmetrizedCellsTot += nSymmetrizedCells;
 				hermErrNum += nSymmetrizedCells * std::pow(nrm2(Merr), 2);
@@ -424,19 +480,12 @@ void Phonon::forceMatrixHermCheck(const std::vector<matrix>& omegaSq, const std:
 }
 
 //Check translational invariance sum rule of force matrix
-void Phonon::forceMatrixSumRuleCheck(const std::vector<matrix>& omegaSq, const std::map<vector3<int>,matrix>& cellMap, const std::vector<double>& invsqrtM) const
-{	//Collect masses by mode:
-	diagMatrix sqrtMmode, invsqrtMmode;
-	for(const Mode& mode: modes)
-	{	invsqrtMmode.push_back(invsqrtM[mode.sp]);
-		sqrtMmode.push_back(1./invsqrtM[mode.sp]);
-	}
-	//Collect Gamma-point force matrix:
+void Phonon::forceMatrixSumRuleCheck(const std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const
+{	//Collect Gamma-point force matrix:
 	matrix F0; double Fnorm=0.;
-	for(const matrix& mat: omegaSq)
-	{	matrix Fcontrib = sqrtMmode * mat * sqrtMmode;
-		F0 += Fcontrib;
-		Fnorm += std::pow(nrm2(Fcontrib),2);
+	for(const matrix& Fi: F)
+	{	F0 += Fi;
+		Fnorm += std::pow(nrm2(Fi),2);
 	}
 	//Calculate correction matrix:
 	int nModes = modes.size();
