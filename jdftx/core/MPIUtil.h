@@ -35,12 +35,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file MPIUtil.h Helper classes for MPI parallelization
 
+
 //! MPI wrapper class
 class MPIUtil
 {
 	int nProcs, iProc;
-	ProcDivision procDivision;
-
 	#ifdef MPI_ENABLED
 		MPI_Comm comm;
 	#endif
@@ -48,6 +47,16 @@ public:
 	int iProcess() const { return iProc; } //!< rank of current process
 	int nProcesses() const { return nProcs; }  //!< number of processes
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
+
+	//! Helper for dividing MPI processes into groups
+	const struct ProcDivision
+	{	const MPIUtil* mpiUtil; //!< parent MPI communictaor that is being divided
+		const int nGroups; //!< number of groups in this division
+		const int iGroup; //!< which group the current process belongs to
+		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1);
+		operator bool() const { return mpiUtil; } //!< check if this is an actual division
+	}
+	procDivision;
 
 	MPIUtil(int argc, char** argv, ProcDivision procDivision=ProcDivision());
 	~MPIUtil();
@@ -115,16 +124,6 @@ private:
 	size_t startMine, stopMine; //!< range for current process
 	std::vector<size_t> stopArr; //!< array of sttop values for other processes
 };
-
-//! Helper for dividing MPI processes into groups
-class ProcDivision
-{
-public:
-	ProcDivision(size_t nGroups=1, const MPIUtil *mpiUtil=0);
-	const MPIUtil* mpiUtil;
-	const int nGroups, iGroup;
-	operator bool() const { return mpiUtil; }
-}
 
 //! @}
 
