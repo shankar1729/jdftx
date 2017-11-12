@@ -457,7 +457,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 {	string filename(filenamePattern);
 	filename.replace(filename.find("%s"), 2, "Debug");
 	logPrintf("Dumping '%s' ... ", filename.c_str());  logFlush();
-	FILE* fp = mpiUtil->isHead() ? fopen(filename.c_str(), "w") : nullLog;
+	FILE* fp = mpiWorld->isHead() ? fopen(filename.c_str(), "w") : nullLog;
 	if(!fp) die("Error opening %s for writing.\n", filename.c_str());
 
 	fprintf(fp, "Dielectric cavity volume = %f\n", integral(1.-shape[0]));
@@ -499,7 +499,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	}
 	printDebug(fp);
 
-	if(mpiUtil->isHead()) fclose(fp);
+	if(mpiWorld->isHead()) fclose(fp);
 	logPrintf("done\n"); logFlush();
 	
 	{ //scope for overriding filename

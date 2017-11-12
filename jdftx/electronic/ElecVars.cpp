@@ -420,8 +420,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			}
 		}
 	}
-	mpiUtil->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
-	mpiUtil->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
+	mpiWorld->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
+	mpiWorld->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
 	double dmuContrib = 0., dBzContrib = 0.;
 	if(grad and eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (std::isnan(eInfo.mu) or eInfo.Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
@@ -433,8 +433,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			dmuNum[sIndex] += w * trace(fprime * (diag(Hsub[q])-Haux_eigs[q]));
 			dmuDen[sIndex] += w * trace(fprime);
 		}
-		mpiUtil->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
-		mpiUtil->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
+		mpiWorld->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
+		mpiWorld->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
 		if(std::isnan(eInfo.mu) and eInfo.Mconstrain)
 		{	//Fixed N and M (effectively independent constraints on Nup and Ndn)
 			double dmuContribUp = dmuNum[0]/dmuDen[0];

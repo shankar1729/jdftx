@@ -49,7 +49,7 @@ double DumpSelfInteractionCorrection::operator()(std::vector<diagMatrix>* correc
 		}
 	}
 	DC.clear();
-	mpiUtil->allReduce(selfInteractionEnergy, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(selfInteractionEnergy, MPIUtil::ReduceSum);
 	return selfInteractionEnergy;
 	
 }

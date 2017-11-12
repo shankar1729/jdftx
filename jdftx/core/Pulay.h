@@ -261,7 +261,7 @@ template<typename Variable> void Pulay<Variable>::loadState(const char* filename
 
 template<typename Variable> void Pulay<Variable>::saveState(const char* filename) const
 {
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(filename, "w");
 		for(size_t idim=0; idim<pastVariables.size(); idim++)
 		{	writeVariable(pastVariables[idim], fp);

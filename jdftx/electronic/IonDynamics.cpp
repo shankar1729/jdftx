@@ -291,7 +291,7 @@ void IonDynamics::step(const IonicGradient& accel, const double& dt)
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 			spInfo.velocities[atom] = dpos[sp][atom]/dt;
 		
-		mpiUtil->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
+		mpiWorld->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
 		spInfo.sync_atpos();
 	}
 }
@@ -360,7 +360,7 @@ void IonDynamics::centerOfMassToOrigin()
 	for(auto& spInfo : e.iInfo.species)
 	{	for(auto& pos : spInfo->atpos)
 			pos -= centerOfMass;
-		mpiUtil->bcast((double*)spInfo->atpos.data(), 3*spInfo->atpos.size());
+		mpiWorld->bcast((double*)spInfo->atpos.data(), 3*spInfo->atpos.size());
 		spInfo->sync_atpos();
 	}
 	

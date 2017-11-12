@@ -542,7 +542,7 @@ namespace NonlinearPCMeval
 		filename = filenamePattern; \
 		filename.replace(filename.find("%s"), 2, suffix); \
 		logPrintf("Dumping '%s'... ", filename.c_str());  logFlush(); \
-		if(mpiUtil->isHead()) saveRawBinary(object, filename.c_str()); \
+		if(mpiWorld->isHead()) saveRawBinary(object, filename.c_str()); \
 		logPrintf("done.\n"); logFlush();
 
 //! @}

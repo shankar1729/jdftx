@@ -45,7 +45,7 @@ double dot(const WannierGradient& x, const WannierGradient& y)
 			result += dotc(x[ik](rStart,rStop,cStart,cStop), y[ik](rStart,rStop,cStart,cStop)).real();
 		}
 	}
-	mpiUtil->allReduce(result, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
 	return result;
 }
 WannierGradient& operator*=(WannierGradient& x, double alpha)
@@ -161,7 +161,7 @@ bool WannierMinimizer::report(int iter)
 		{	needRestart = true;
 			break;
 		}
-	mpiUtil->allReduce(needRestart, MPIUtil::ReduceLOr);
+	mpiWorld->allReduce(needRestart, MPIUtil::ReduceLOr);
 	if(needRestart)
 	{	logPrintf("%s\tUpdating rotations to enforce unitarity\n", wannier.minParams.linePrefix);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
@@ -176,7 +176,7 @@ bool WannierMinimizer::report(int iter)
 }
 
 double WannierMinimizer::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 

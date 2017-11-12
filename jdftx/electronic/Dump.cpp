@@ -97,7 +97,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	#define DUMP_nocheck(object, prefix) \
 		{	StartDump(prefix) \
-			if(mpiUtil->isHead()) saveRawBinary(object, fname.c_str()); \
+			if(mpiWorld->isHead()) saveRawBinary(object, fname.c_str()); \
 			EndDump \
 		}
 	
@@ -146,7 +146,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		if(hasFluid)
 		{	//Dump state of fluid:
 			StartDump("fluidState")
-			if(mpiUtil->isHead()) eVars.fluidSolver->saveState(fname.c_str());
+			if(mpiWorld->isHead()) eVars.fluidSolver->saveState(fname.c_str());
 			EndDump
 		}
 	}
@@ -154,16 +154,16 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(IonicPositions) || (ShouldDump(State) && (e->ionicMinParams.nIterations>0 || e->latticeMinParams.nIterations>0)))
 	{	StartDump("ionpos")
 		FILE* fp;
-		if (freq==DumpFreq_Dynamics) fp = mpiUtil->isHead() ? fopen(fname.c_str(), "a") : nullLog;
-		else fp = mpiUtil->isHead() ? fopen(fname.c_str(), "w") : nullLog;
+		if (freq==DumpFreq_Dynamics) fp = mpiWorld->isHead() ? fopen(fname.c_str(), "a") : nullLog;
+		else fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 		iInfo.printPositions(fp);  //needs to be called from all processes (for magnetic moment computation)
-		if(mpiUtil->isHead())fclose(fp);
+		if(mpiWorld->isHead())fclose(fp);
 		EndDump
 	}
 	if(ShouldDump(Forces))
 	{	StartDump("force")
-		if(mpiUtil->isHead()) 
+		if(mpiWorld->isHead()) 
 		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 			iInfo.forces.print(*e, fp);
@@ -173,7 +173,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	if(ShouldDump(Lattice) || (ShouldDump(State) && e->latticeMinParams.nIterations>0))
 	{	StartDump("lattice")
-		if(mpiUtil->isHead()) 
+		if(mpiWorld->isHead()) 
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 			fprintf(fp, "lattice");
@@ -287,22 +287,22 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			if(curLUMO < LUMO) { LUMO=curLUMO; qLUMO=q; }
 			if(curGap < gap) { gap=curGap; qGap=q; }
 		}
-		mpiUtil->allReduce(Emin, qEmin, MPIUtil::ReduceMin);
-		mpiUtil->allReduce(Emax, qEmax, MPIUtil::ReduceMax);
-		mpiUtil->allReduce(HOMO, qHOMO, MPIUtil::ReduceMax);
-		mpiUtil->allReduce(LUMO, qLUMO, MPIUtil::ReduceMin);
-		mpiUtil->allReduce(gap, qGap, MPIUtil::ReduceMin);
+		mpiWorld->allReduce(Emin, qEmin, MPIUtil::ReduceMin);
+		mpiWorld->allReduce(Emax, qEmax, MPIUtil::ReduceMax);
+		mpiWorld->allReduce(HOMO, qHOMO, MPIUtil::ReduceMax);
+		mpiWorld->allReduce(LUMO, qLUMO, MPIUtil::ReduceMin);
+		mpiWorld->allReduce(gap, qGap, MPIUtil::ReduceMin);
 		double gapIndirect = LUMO - HOMO;
 		double mu = NAN, Bz;
 		if(std::isfinite(HOMO) && std::isfinite(LUMO))
 			mu = (!std::isnan(eInfo.mu)) ? eInfo.mu : eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons, Bz);
 		//Print results:
 		FILE* fp = 0;
-		if(mpiUtil->isHead()) fp = fopen(fname.c_str(), "w");
+		if(mpiWorld->isHead()) fp = fopen(fname.c_str(), "w");
 		logPrintf("\n");
 		#define teePrintf(...) \
 			{	fprintf(globalLog, "\t" __VA_ARGS__); \
-				if(mpiUtil->isHead()) fprintf(fp, __VA_ARGS__); \
+				if(mpiWorld->isHead()) fprintf(fp, __VA_ARGS__); \
 			}
 		#define printQuantity(name, value, q) \
 			if(std::isfinite(value)) \
@@ -320,13 +320,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		printQuantity("Optical gap  ", gap, qGap)
 		#undef printQuantity
 		#undef teePrintf
-		if(mpiUtil->isHead()) fclose(fp);
+		if(mpiWorld->isHead()) fclose(fp);
 		logFlush();
 	}
 	
 	if(eInfo.hasU && (ShouldDump(RhoAtom) || ShouldDump(ElecDensity)))
 	{	StartDump("rhoAtom")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			for(const matrix& m: eVars.rhoAtom) m.write(fp);
 			fclose(fp);
@@ -336,7 +336,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(eInfo.hasU && ShouldDump(Vscloc))
 	{	StartDump("U_rhoAtom")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			for(const matrix& m: eVars.U_rhoAtom) m.write(fp);
 			fclose(fp);
@@ -346,7 +346,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
 			e->ener.print(fp);
@@ -363,7 +363,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		nboundTilde->setGzero(-rhoTot_Gzero); //total bound charge will neutralize system
 		if(ShouldDump(SolvationRadii))
 		{	StartDump("Rsol")
-			if(mpiUtil->isHead()) dumpRsol(I(nboundTilde), fname);
+			if(mpiWorld->isHead()) dumpRsol(I(nboundTilde), fname);
 			EndDump
 		}
 		DUMP(I(nboundTilde), "nbound", BoundCharge)
@@ -378,7 +378,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Dipole))
 	{	StartDump("Moments")
-		if(mpiUtil->isHead()) Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
+		if(mpiWorld->isHead()) Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
 		EndDump
 	}
 	
@@ -389,7 +389,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	if(ShouldDump(Symmetries))
 	{	StartDump("sym")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			const std::vector<SpaceGroupOp>& sym = e->symm.getMatrices();
 			for(const SpaceGroupOp& op: sym)
@@ -404,7 +404,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Kpoints))
 	{	StartDump("kPts")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			eInfo.kpointsPrint(fp, true);
 			fclose(fp);
@@ -412,7 +412,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 		if(e->symm.mode != SymmetriesNone)
 		{	StartDump("kMap")
-			if(mpiUtil->isHead())
+			if(mpiWorld->isHead())
 			{	FILE* fp = fopen(fname.c_str(), "w");
 				e->symm.printKmap(fp);
 				fclose(fp);
@@ -423,7 +423,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Gvectors))
 	{	StartDump("Gvectors")
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			for(int q=0; q<eInfo.nStates; q++)
 			{	//Header:
@@ -540,7 +540,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			LatticeMinimizer(*((Everything*)e)).calculateStress();
 			logResume();
 		}
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 			fprintf(fp, "# Stress tensor [Eh/a0^3]:\n");

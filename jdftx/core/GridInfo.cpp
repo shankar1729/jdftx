@@ -256,8 +256,8 @@ void GridInfo::initialize(bool skipHeader, const std::vector<SpaceGroupOp> sym)
 	updateSdependent();
 	
 	//Process division recommendations:
-	TaskDivision(nr, mpiUtil).myRange(irStart, irStop);
-	TaskDivision(nG, mpiUtil).myRange(iGstart, iGstop);
+	TaskDivision(nr, mpiWorld).myRange(irStart, irStop);
+	TaskDivision(nG, mpiWorld).myRange(iGstart, iGstop);
 	
 	//FFT plans:
 	#ifdef GPU_ENABLED //GPU plans:

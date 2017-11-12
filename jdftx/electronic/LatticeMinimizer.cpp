@@ -50,7 +50,7 @@ void randomize(LatticeGradient& x)
 
 void bcast(matrix3<>& x)
 {	for(int k=0; k<3; k++)
-		mpiUtil->bcast(&x(k,0), 3);
+		mpiWorld->bcast(&x(k,0), 3);
 }
 
 //-------------  class LatticeMinimizer -----------------
@@ -269,7 +269,7 @@ double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const
 }
 
 double LatticeMinimizer::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 

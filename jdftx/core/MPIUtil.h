@@ -35,16 +35,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file MPIUtil.h Helper classes for MPI parallelization
 
+
 //! MPI wrapper class
 class MPIUtil
 {
 	int nProcs, iProc;
+	#ifdef MPI_ENABLED
+		MPI_Comm comm;
+	#endif
 public:
 	int iProcess() const { return iProc; } //!< rank of current process
 	int nProcesses() const { return nProcs; }  //!< number of processes
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
 
-	MPIUtil(int argc, char** argv);
+	//! Helper for dividing MPI processes into groups
+	const struct ProcDivision
+	{	const MPIUtil* mpiUtil; //!< parent MPI communictaor that is being divided
+		const int nGroups; //!< number of groups in this division
+		const int iGroup; //!< which group the current process belongs to
+		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1);
+		operator bool() const { return mpiUtil; } //!< check if this is an actual division
+	}
+	procDivision;
+
+	MPIUtil(int argc, char** argv, ProcDivision procDivision=ProcDivision());
 	~MPIUtil();
 	void exit(int errCode) const; //!< global exit (kill other MPI processes as well)
 
@@ -172,14 +186,14 @@ namespace MPIUtilPrivate
 template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, int tag) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Send((T*)data, nData, DataType<T>::get(), dest, tag, MPI_COMM_WORLD);
+	if(nProcs>1) MPI_Send((T*)data, nData, DataType<T>::get(), dest, tag, comm);
 	#endif
 }
 
 template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Recv(data, nData, DataType<T>::get(), src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	if(nProcs>1) MPI_Recv(data, nData, DataType<T>::get(), src, tag, comm, MPI_STATUS_IGNORE);
 	#endif
 }
 
@@ -194,7 +208,7 @@ template<typename T> void MPIUtil::recv(T& data, int src, int tag) const
 template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Bcast(data, nData, DataType<T>::get(), root, MPI_COMM_WORLD);
+	if(nProcs>1) MPI_Bcast(data, nData, DataType<T>::get(), root, comm);
 	#endif
 }
 
@@ -207,11 +221,11 @@ template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::Red
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(safeMode) //Reduce to root node and then broadcast result (to ensure identical values)
-		{	MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), 0, MPI_COMM_WORLD);
+		{	MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), 0, comm);
 			bcast(data, nData, 0);
 		}
 		else //standard Allreduce
-			MPI_Allreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), MPI_COMM_WORLD);
+			MPI_Allreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm);
 	}
 	#endif
 }
@@ -226,7 +240,7 @@ template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::Reduc
 	if(nProcs>1)
 	{	struct Pair { T data; int index; } pair;
 		pair.data = data; pair.index = index;
-		MPI_Allreduce(MPI_IN_PLACE, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), MPI_COMM_WORLD);
+		MPI_Allreduce(MPI_IN_PLACE, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), comm);
 		data = pair.data; index = pair.index;
 	}
 	#endif

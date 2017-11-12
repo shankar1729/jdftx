@@ -67,13 +67,13 @@ DeprecatedCommand::DeprecatedCommand(string name) : name(name)
 
 bool isReadable(string fname)
 {	bool readable = false;
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "r");
 		if(fp)
 		{	readable = true;
 			fclose(fp);
 		}
 	}
-	mpiUtil->bcast(readable);
+	mpiWorld->bcast(readable);
 	return readable;
 }

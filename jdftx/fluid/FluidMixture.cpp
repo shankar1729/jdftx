@@ -229,7 +229,7 @@ void FluidMixture::loadState(const char* filename)
 }
 
 void FluidMixture::saveState(const char* filename) const
-{	if(mpiUtil->isHead()) saveToFile(state, filename);
+{	if(mpiWorld->isHead()) saveToFile(state, filename);
 }
 
 FluidMixture::Outputs::Outputs(ScalarFieldArray* N, vector3<>* electricP,
@@ -267,7 +267,7 @@ double FluidMixture::compute(ScalarFieldArray* grad, ScalarFieldArray* Kgrad)
 }
 
 double FluidMixture::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 

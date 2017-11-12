@@ -167,7 +167,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	Kkernel.init(0, KkernelSamples, dG);
 	
 	//MPI division:
-	TaskDivision(response.size(), mpiUtil).myRange(rStart, rStop);
+	TaskDivision(response.size(), mpiWorld).myRange(rStart, rStop);
 }
 
 SaLSA::~SaLSA()
@@ -199,7 +199,7 @@ ScalarFieldTilde SaLSA::precondition(const ScalarFieldTilde& rTilde) const
 }
 
 double SaLSA::sync(double x) const
-{	mpiUtil->bcast(x);
+{	mpiWorld->bcast(x);
 	return x;
 }
 
@@ -279,7 +279,7 @@ void SaLSA::loadState(const char* filename)
 }
 
 void SaLSA::saveState(const char* filename) const
-{	if(mpiUtil->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
+{	if(mpiWorld->isHead()) saveRawBinary(I(state), filename); //saved data is in real space
 }
 
 void SaLSA::dumpDensities(const char* filenamePattern) const
@@ -338,7 +338,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 			if(c->molecule.sites.size()>1) oss << "_" << s.name;
 			sprintf(filename, filenamePattern, oss.str().c_str());
 			logPrintf("Dumping %s... ", filename); logFlush();
-			if(mpiUtil->isHead()) saveRawBinary(N, filename);
+			if(mpiWorld->isHead()) saveRawBinary(N, filename);
 			{
 				//debug sphericalized site densities
 				ostringstream oss; oss << "Nspherical_" << c->molecule.name;

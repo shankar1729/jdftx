@@ -193,7 +193,7 @@ double ExactExchangeEval::calc(int iSpin, unsigned iReduced, unsigned iInvert, u
 					HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
 		}
 	}
-	mpiUtil->allReduce(EXX, MPIUtil::ReduceSum, true);
+	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
 	
 	//Move ik state gradient back to host process (if necessary):
 	if(HC)

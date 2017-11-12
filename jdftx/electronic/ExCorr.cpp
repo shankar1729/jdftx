@@ -621,7 +621,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	//Calculate spatial gradients for GGA (if needed)
 	std::vector<VectorField> Dn(nInCount);
 	int iDirStart, iDirStop;
-	TaskDivision(3, mpiUtil).myRange(iDirStart, iDirStop);
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
 	if(needsSigma)
 	{	//Compute the gradients of the (spin-)densities:
 		for(int s=0; s<nInCount; s++)
@@ -781,7 +781,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	
 	//---------------- Collect results over processes ----------------
 	watchComm.start();
-	mpiUtil->allReduce(Exc, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(Exc, MPIUtil::ReduceSum);
 	for(ScalarField& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
 	for(ScalarField& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
 	for(ScalarField& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);

@@ -104,7 +104,7 @@ std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nC
 	for(int c=0; c<nColumns; c++)
 		data[c] = dataR[c]->data();
 	size_t iStart, iStop;
-	TaskDivision(gInfo.nr, mpiUtil).myRange(iStart, iStop);
+	TaskDivision(gInfo.nr, mpiWorld).myRange(iStart, iStop);
 	const vector3<int> &S = gInfo.S;
 	matrix3<> invS = inv(Diag(vector3<>(S)));
 	THREAD_rLoop
@@ -124,9 +124,9 @@ std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nC
 				out[c+1][iRadial+1] += wRight * data[c][i];
 		}
 	)
-	mpiUtil->allReduce(weight.data(), nRadial, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(weight.data(), nRadial, MPIUtil::ReduceSum);
 	for(int c=0; c<nColumns; c++)
-	{	mpiUtil->allReduce(out[c+1].data(), nRadial, MPIUtil::ReduceSum);
+	{	mpiWorld->allReduce(out[c+1].data(), nRadial, MPIUtil::ReduceSum);
 		eblas_ddiv(nRadial, weight.data(),1, out[c+1].data(),1); //convert from sum to mean
 	}
 	//Fix rows of zero weight:
@@ -151,7 +151,7 @@ std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nC
 
 void saveSphericalized(const ScalarField* dataR, int nColumns, const char* filename, double drFac, vector3<>* center)
 {	std::vector< std::vector<double> > out = sphericalize(dataR, nColumns, drFac, center);
-	if(!mpiUtil->isHead()) return; //all processes calculate, but only head needs to write file
+	if(!mpiWorld->isHead()) return; //all processes calculate, but only head needs to write file
 	int nRadial = out[0].size();
 	//Output data:
 	FILE* fp = fopen(filename, "w");

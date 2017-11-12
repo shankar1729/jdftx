@@ -76,7 +76,7 @@ void registerHandlers()
 	signal(SIGABRT, sigErrorHandler);
 }
 void sigIntHandler(int sig)
-{	if(feof(stdin)) mpiUtil->exit(0);
+{	if(feof(stdin)) mpiWorld->exit(0);
 	resetHandlers();
 	printf(
 		"\n---------------------------------------------\n"
@@ -89,7 +89,7 @@ void sigIntHandler(int sig)
 		printf("Enter [Q/A/I]: "); fflush(stdout);
 		char c = getchar();
 		switch(c)
-		{	case 'q': case 'Q': printf("Quitting now ...\n"); mpiUtil->exit(0);
+		{	case 'q': case 'Q': printf("Quitting now ...\n"); mpiWorld->exit(0);
 			case 'a': case 'A':
 				printf("Will quit after current iteration ...\n");
 				killFlag = true; registerHandlers(); return;
@@ -128,7 +128,7 @@ void logResume()
 {	globalLog = globalLogOrig;
 }
 
-MPIUtil* mpiUtil = 0;
+MPIUtil* mpiWorld = 0;
 bool mpiDebugLog = false;
 bool manualThreadCount = false;
 size_t mempoolSize = 0;
@@ -139,11 +139,11 @@ void initSystem(int argc, char** argv)
 {
 	argv0 = argv[0]; //remember how the executable was issued (for stack traces)
 	
-	if(!mpiUtil) mpiUtil = new MPIUtil(argc, argv);
+	if(!mpiWorld) mpiWorld = new MPIUtil(argc, argv);
 	nullLog = fopen("/dev/null", "w");
-	if(!mpiUtil->isHead())
+	if(!mpiWorld->isHead())
 	{	if(mpiDebugLog)
-		{	char fname[256]; sprintf(fname, "jdftx.%d.mpiDebugLog", mpiUtil->iProcess());
+		{	char fname[256]; sprintf(fname, "jdftx.%d.mpiDebugLog", mpiWorld->iProcess());
 			globalLog = fopen(fname, "w");
 		}
 		else globalLog = nullLog;
@@ -156,18 +156,18 @@ void initSystem(int argc, char** argv)
 	startTime_us = clock_us();
 	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
 	//---- hostname information
-	std::vector<string> hostname(mpiUtil->nProcesses()); //list of hostnames by MPI process ID
+	std::vector<string> hostname(mpiWorld->nProcesses()); //list of hostnames by MPI process ID
 	std::map< string, std::vector<int> > hostProcesses, hostGpuProcesses; //list of processes (and GPU-enabled processes) per hostname
 	{	char hostnameTmp[256];
 		gethostname(hostnameTmp, 256);
-		hostname[mpiUtil->iProcess()] = hostnameTmp;
+		hostname[mpiWorld->iProcess()] = hostnameTmp;
 	}
-	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
-	{	mpiUtil->bcast(hostname[jProcess], jProcess);
+	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
+	{	mpiWorld->bcast(hostname[jProcess], jProcess);
 		hostProcesses[hostname[jProcess]].push_back(jProcess);
 		//Update GPU-enabled version of list:
 		bool gpuEnabled = isGpuEnabled();
-		mpiUtil->bcast(gpuEnabled, jProcess);
+		mpiWorld->bcast(gpuEnabled, jProcess);
 		if(gpuEnabled)
 			hostGpuProcesses[hostname[jProcess]].push_back(jProcess);
 	}
@@ -191,15 +191,15 @@ void initSystem(int argc, char** argv)
 	
 	double nGPUs = 0.;
 	#ifdef GPU_ENABLED
-	const std::vector<int>& gpuSiblings = hostGpuProcesses[hostname[mpiUtil->iProcess()]];
+	const std::vector<int>& gpuSiblings = hostGpuProcesses[hostname[mpiWorld->iProcess()]];
 	if(!gpuInit(globalLog, &gpuSiblings, &nGPUs)) die_alone("gpuInit() failed\n\n")
 	#endif
 	
 	//Divide up available cores between all MPI processes on a given node:
 	if(!manualThreadCount) //skip if number of cores per process has been set with -c
-	{	const std::vector<int>& siblings = hostProcesses[hostname[mpiUtil->iProcess()]];
+	{	const std::vector<int>& siblings = hostProcesses[hostname[mpiWorld->iProcess()]];
 		int nSiblings = siblings.size();
-		int iSibling = std::find(siblings.begin(), siblings.end(), mpiUtil->iProcess()) - siblings.begin();
+		int iSibling = std::find(siblings.begin(), siblings.end(), mpiWorld->iProcess()) - siblings.begin();
 		nProcsAvailable = std::max(1, (nProcsAvailable * (iSibling+1))/nSiblings - (nProcsAvailable*iSibling)/nSiblings);
 	}
 	
@@ -215,18 +215,18 @@ void initSystem(int argc, char** argv)
 
 	//Print number of threads per process:
 	logPrintf("Maximum cpu threads by process:");
-	for(int jProcess=0; jProcess<mpiUtil->nProcesses(); jProcess++)
+	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
 	{	int nThreads = nProcsAvailable;
-		mpiUtil->bcast(nThreads, jProcess);
+		mpiWorld->bcast(nThreads, jProcess);
 		logPrintf(" %d", nThreads);
 	}
 	logPrintf("\n");
 	resumeOperatorThreading(); //if necessary, this informs MKL of the thread count
 	
 	//Print total resources used by run:
-	{	int nProcsTot = nProcsAvailable; mpiUtil->allReduce(nProcsTot, MPIUtil::ReduceSum);
-		double nGPUsTot = nGPUs; mpiUtil->allReduce(nGPUsTot, MPIUtil::ReduceSum);
-		logPrintf("Run totals: %d processes, %d threads, %lg GPUs\n", mpiUtil->nProcesses(), nProcsTot, nGPUsTot);
+	{	int nProcsTot = nProcsAvailable; mpiWorld->allReduce(nProcsTot, MPIUtil::ReduceSum);
+		double nGPUsTot = nGPUs; mpiWorld->allReduce(nGPUsTot, MPIUtil::ReduceSum);
+		logPrintf("Run totals: %d processes, %d threads, %lg GPUs\n", mpiWorld->nProcesses(), nProcsTot, nGPUsTot);
 	}
 	
 	//Memory pool size:
@@ -249,7 +249,7 @@ void initSystem(int argc, char** argv)
 
 void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e)
 {
-	mpiUtil = new MPIUtil(argc, argv);
+	mpiWorld = new MPIUtil(argc, argv);
 	
 	//Parse command line:
 	string logFilename; bool appendOutput=true;
@@ -271,7 +271,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 	while (1)
 	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:sw:", long_options, 0);
 		if (c == -1) break; //end of options
-		#define RUN_HEAD(code) if(mpiUtil->isHead()) { code } delete mpiUtil;
+		#define RUN_HEAD(code) if(mpiWorld->isHead()) { code } delete mpiWorld;
 		switch (c)
 		{	case 'v': RUN_HEAD( printVersionBanner(); ) exit(0);
 			case 'h': RUN_HEAD( printUsage(argv[0], description); ) exit(0);
@@ -336,7 +336,7 @@ void finalizeSystem(bool successful)
 	if(successful) logPrintf("Done!\n");
 	else
 	{	logPrintf("Failed.\n");
-		if(mpiUtil->isHead() && globalLog != stdout)
+		if(mpiWorld->isHead() && globalLog != stdout)
 			fprintf(stderr, "Failed.\n");
 	}
 	
@@ -346,14 +346,14 @@ void finalizeSystem(bool successful)
 	ManagedMemoryBase::reportUsage();
 	#endif
 	
-	if(!mpiUtil->isHead())
+	if(!mpiWorld->isHead())
 	{	if(mpiDebugLog) fclose(globalLog);
 		globalLog = 0;
 	}
 	fclose(nullLog);
 	if(globalLog && globalLog != stdout)
 		fclose(globalLog);
-	delete mpiUtil;
+	delete mpiWorld;
 }
 
 
@@ -508,7 +508,7 @@ size_t fwriteLE(const void *ptr, size_t size, size_t nmemb, FILE *fp)
 // Exit on error with a more in-depth stack trace
 void stackTraceExit(int code)
 {	printStack(true);
-	mpiUtil->exit(code);
+	mpiWorld->exit(code);
 }
 
 // Stack trace for failed assertions

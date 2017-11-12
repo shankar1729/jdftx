@@ -41,8 +41,8 @@ std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 				wExtremal[s] += w;
 			}
 		}
-		mpiUtil->allReduce(eExtremal.data(), eExtremal.size(), MPIUtil::ReduceSum);
-		mpiUtil->allReduce(wExtremal.data(), wExtremal.size(), MPIUtil::ReduceSum);
+		mpiWorld->allReduce(eExtremal.data(), eExtremal.size(), MPIUtil::ReduceSum);
+		mpiWorld->allReduce(wExtremal.data(), wExtremal.size(), MPIUtil::ReduceSum);
 		for(int s=0; s<nSpins; s++) eExtremal[s] /= wExtremal[s];
 		return eExtremal;
 	}
@@ -59,7 +59,7 @@ std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 				}
 			}
 		}
-		mpiUtil->allReduce(eExtremal.data(), eExtremal.size(), HOMO ? MPIUtil::ReduceMax : MPIUtil::ReduceMin);
+		mpiWorld->allReduce(eExtremal.data(), eExtremal.size(), HOMO ? MPIUtil::ReduceMax : MPIUtil::ReduceMin);
 		return eExtremal;
 	}
 }
@@ -109,7 +109,7 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 			logPrintf("done\n"); logFlush();
 		#define DUMP(object, prefix) \
 			{	StartDump(prefix) \
-				if(mpiUtil->isHead()) saveRawBinary(object, fname.c_str()); \
+				if(mpiWorld->isHead()) saveRawBinary(object, fname.c_str()); \
 				EndDump \
 			}
 		if(e.eInfo.spinType == SpinZ)
@@ -145,8 +145,8 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 			if(e.eVars.F[q][b]<=0.5) eLUMOqp[s] = std::min(eLUMOqp[s], eigsQP[q][b]);
 		}
 	}
-	mpiUtil->allReduce(eHOMOqp.data(), eHOMOqp.size(), MPIUtil::ReduceMax);
-	mpiUtil->allReduce(eLUMOqp.data(), eLUMOqp.size(), MPIUtil::ReduceMin);
+	mpiWorld->allReduce(eHOMOqp.data(), eHOMOqp.size(), MPIUtil::ReduceMax);
+	mpiWorld->allReduce(eLUMOqp.data(), eLUMOqp.size(), MPIUtil::ReduceMin);
 	#define PRINT_GAP(s, sName) \
 		{	double Egap = eLUMOqp[s] - eHOMOqp[s]; \
 			double Edisc = eLUMOqp[s] - eLUMO[s]; \

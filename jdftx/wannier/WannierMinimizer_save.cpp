@@ -255,14 +255,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		ke.U2 = fixUnitary(ke.U2);
 		ke.U = ke.U1(0,nBands, 0,nCenters) * ke.U2;
 	}
-	mpiUtil->checkErrors(ossErr);
+	mpiWorld->checkErrors(ossErr);
 	suspendOperatorThreading();
 	
 	//Broadcast initial rotations:
 	for(size_t ik=0; ik<kMesh.size(); ik++)
 	{	KmeshEntry& ke = kMesh[ik];
-		mpiUtil->bcast(ke.nIn, whose_q(ik,iSpin));
-		mpiUtil->bcast(ke.nFixed, whose_q(ik,iSpin));
+		mpiWorld->bcast(ke.nIn, whose_q(ik,iSpin));
+		mpiWorld->bcast(ke.nFixed, whose_q(ik,iSpin));
 		if(!isMine_q(ik,iSpin))
 		{	ke.U1 = zeroes(nBands, ke.nIn);
 			ke.U2 = zeroes(nCenters, nCenters);
@@ -323,7 +323,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	logFlush();
 	
 	//Save the matrices:
-	if(mpiUtil->isHead() && wannier.minParams.nIterations) //re-save only if any minimization has occured
+	if(mpiWorld->isHead() && wannier.minParams.nIterations) //re-save only if any minimization has occured
 	{	//Write U:
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str());
@@ -367,14 +367,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						eMin = std::max(eMin, eMin_k);
 						eMax = std::min(eMax, eMax_k);
 					}
-					mpiUtil->allReduce(eMin, MPIUtil::ReduceMax);
-					mpiUtil->allReduce(eMax, MPIUtil::ReduceMin);
+					mpiWorld->allReduce(eMin, MPIUtil::ReduceMax);
+					mpiWorld->allReduce(eMax, MPIUtil::ReduceMin);
 					if(eMin >= eMax) { eMin = eMax = NAN; }
 					nRangeToErange[nRange] = std::make_pair(eMin, eMax);
 				}
 			}
 			else { nMin[b] = nMax[b] = -1; } //unused band
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			for(int b=0; b<nBands; b++)
 			{	const std::pair<double,double> eRange = nRangeToErange[std::make_pair(nMin[b],nMax[b])];
@@ -402,7 +402,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 		
 		//--- Save supercell wavefunctions in reciprocal space:
-		if(mpiUtil->isHead() && wannier.saveWfns)
+		if(mpiWorld->isHead() && wannier.saveWfns)
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfC", &iSpin);
 			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
 			Csuper.write(fname.c_str());
@@ -423,7 +423,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		
 		//--- Save supercell wavefunctions in real space:
-		if(mpiUtil->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++) for(int s=0; s<nSpinor; s++)
+		if(mpiWorld->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++) for(int s=0; s<nSpinor; s++)
 		{	//Generate filename
 			ostringstream varName;
 			varName << (nSpinor*n+s) << ".mlwf";
@@ -601,7 +601,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
 		//--- Read phonon force matrix:
 		std::map<vector3<int>, matrix> phononOmegaSq;
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameInit, "phononOmegaSq");
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "r");
@@ -689,7 +689,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			if(ePhCellMap.find(iter.first) == ePhCellMap.end())
 				ePhCellMap[iter.first] = zeroes(xAtoms.size(), xExpect.size());
 		//--- Output force matrix on unified phonon cellMap:
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
@@ -699,7 +699,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			logPrintf("done.\n"); logFlush();
 		}
 		//--- Output unified phonon cellMap:
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
@@ -713,7 +713,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			logPrintf("done.\n"); logFlush();
 		}
 		//--- Output phonon cellMapSq:
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
@@ -740,22 +740,22 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			kpointPairs.push_back(kPair);
 		}
 		int iPairStart, iPairStop;
-		TaskDivision(kpointPairs.size(), mpiUtil).myRange(iPairStart, iPairStop);
+		TaskDivision(kpointPairs.size(), mpiWorld).myRange(iPairStart, iPairStop);
 		//--- read Bloch electron - nuclear displacement matrix elements
 		string fnameIn = wannier.getFilename(Wannier::FilenameInit, "phononHsub", &iSpin);
 		logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
 		MPIUtil::File fpIn;
 		size_t matSizeIn = nBands*nBands * sizeof(complex);
 		size_t modeStrideIn = kpointPairs.size() * matSizeIn; //input data size per phonon mode
-		mpiUtil->fopenRead(fpIn, fnameIn.c_str(), nPhononModes * modeStrideIn);
+		mpiWorld->fopenRead(fpIn, fnameIn.c_str(), nPhononModes * modeStrideIn);
 		std::vector<std::vector<matrix>> phononHsub(nPhononModes, std::vector<matrix>(kpointPairs.size()));
 		for(int iMode=0; iMode<nPhononModes; iMode++)
 		{	//Read phononHsub and store with Wannier rotations:
-			mpiUtil->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
+			mpiWorld->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 			{	matrix& phononHsubCur = phononHsub[iMode][iPair];
 				phononHsubCur.init(nBands, nBands);
-				mpiUtil->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
+				mpiWorld->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
 				//Translate for phonon basis wrapping (if any):
 				if(wannier.wrapWS)
 					phononHsubCur *= cis(2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k2 - kpointPairs[iPair].k1));
@@ -809,7 +809,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		FILE* fp = 0;
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	fp = fopen(fname.c_str(), "wb");
 			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 		}
@@ -842,17 +842,17 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						HePhData += w.nData();
 					}
 				}
-			if(mpiUtil->isHead()) HePh.write_real(fp);
+			if(mpiWorld->isHead()) HePh.write_real(fp);
 			nrm2totSq += std::pow(nrm2(HePh), 2); 
 			nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
 		}
-		if(mpiUtil->isHead()) fclose(fp);
+		if(mpiWorld->isHead()) fclose(fp);
 		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
 	}
 }
 
 
 void WannierMinimizer::dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const
-{	if(mpiUtil->isHead())
+{	if(mpiWorld->isHead())
 		H.dump(wannier.getFilename(Wannier::FilenameDump, varName, &iSpin).c_str(), realPartOnly);
 }

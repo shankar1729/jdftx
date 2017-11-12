@@ -184,7 +184,7 @@ void BGW::writeVxc() const
 	}
 	
 	//Output from head
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
@@ -279,7 +279,7 @@ void BGW::writeHeaderMF(hid_t fid) const
 			ifmax[q] = b+1;
 		}
 	}
-	mpiUtil->allReduce(ifmax.data(), ifmax.size(), MPIUtil::ReduceMax);
+	mpiWorld->allReduce(ifmax.data(), ifmax.size(), MPIUtil::ReduceMax);
 	hsize_t dimsKspin[2] = { hsize_t(nSpins), hsize_t(nReducedKpts) };
 	h5writeVector(gidKpts, "ifmin", ifmin.data(), dimsKspin, 2);
 	h5writeVector(gidKpts, "ifmax", ifmax.data(), dimsKspin, 2);

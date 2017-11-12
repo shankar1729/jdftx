@@ -265,20 +265,20 @@ template<typename T> void ManagedMemory<T>::zero()
 #define dataMPI data
 #endif
 template<typename T> void ManagedMemory<T>::send(int dest, int tag) const
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->send(dataMPI(), nData(), dest, tag);
+{	assert(mpiWorld->nProcesses()>1);
+	mpiWorld->send(dataMPI(), nData(), dest, tag);
 }
 template<typename T> void ManagedMemory<T>::recv(int src, int tag)
-{	assert(mpiUtil->nProcesses()>1);
-	mpiUtil->recv(dataMPI(), nData(), src, tag);
+{	assert(mpiWorld->nProcesses()>1);
+	mpiWorld->recv(dataMPI(), nData(), src, tag);
 }
 template<typename T> void ManagedMemory<T>::bcast(int root)
-{	if(mpiUtil->nProcesses()>1)
-		mpiUtil->bcast(data(), nData(), root); //bcast fails from GPU pointers as of OpenMPI 2.1.1 (Needs extensive MPI testing)
+{	if(mpiWorld->nProcesses()>1)
+		mpiWorld->bcast(data(), nData(), root); //bcast fails from GPU pointers as of OpenMPI 2.1.1 (Needs extensive MPI testing)
 }
 template<typename T> void ManagedMemory<T>::allReduce(MPIUtil::ReduceOp op, bool safeMode)
-{	if(mpiUtil->nProcesses()>1)
-		mpiUtil->allReduce(dataMPI(), nData(), op, safeMode);
+{	if(mpiWorld->nProcesses()>1)
+		mpiWorld->allReduce(dataMPI(), nData(), op, safeMode);
 }
 #undef dataMPI
 

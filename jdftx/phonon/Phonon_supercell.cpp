@@ -309,7 +309,7 @@ std::vector<matrix> Phonon::getPerturbedHsub()
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	int nBands = e.eInfo.nBands;
 	int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
-	int nqPrevStart, nqPrevStop; TaskDivision(prodSup, mpiUtil).myRange(nqPrevStart, nqPrevStop);
+	int nqPrevStart, nqPrevStop; TaskDivision(prodSup, mpiWorld).myRange(nqPrevStart, nqPrevStop);
 	std::vector<matrix> Hsub(nSpins);
 	for(int s=0; s<nSpins; s++)
 	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin

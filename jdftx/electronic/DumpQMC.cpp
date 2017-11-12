@@ -57,7 +57,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux
 						if(b1<b2) nDim++;
 					}
 		}
-		mpiUtil->allReduce(nDim, MPIUtil::ReduceSum);
+		mpiWorld->allReduce(nDim, MPIUtil::ReduceSum);
 	}
 	
 	void step(const ElecGradient& dir, double alpha)
@@ -83,7 +83,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux
 			if(grad)
 				grad->Haux[q] = dagger_symmetrize(cis_grad(U[q] * (imagErr_Crot ^ Crot) * dagger(U[q]), Bevecs, Beigs));
 		}
-		mpiUtil->allReduce(imagErr, MPIUtil::ReduceSum);
+		mpiWorld->allReduce(imagErr, MPIUtil::ReduceSum);
 		if(grad)
 		{	constrain(*grad);
 			if(Kgrad) *Kgrad = *grad;
@@ -96,7 +96,7 @@ struct ImagPartMinimizer: public Minimizable<ElecGradient>  //Uses only the Haux
 			callPref(eblas_zmul)(mask[q].nData(), mask[q].dataPref(),1, grad.Haux[q].dataPref(),1); //apply mask
 	}
 	
-	double sync(double x) const { mpiUtil->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
+	double sync(double x) const { mpiWorld->bcast(x); return x; } //!< All processes minimize together; make sure scalars are in sync to round-off error
 };
 
 void Dump::dumpQMC()
@@ -136,7 +136,7 @@ void Dump::dumpQMC()
 	#define StartDump(varName) \
 		fname = getFilename(varName); \
 		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush(); \
-		if(!mpiUtil->isHead()) fname = "/dev/null";
+		if(!mpiWorld->isHead()) fname = "/dev/null";
 	StartDump("expot.data")
 	ofs.open(fname);
 	ofs.precision(12);
@@ -187,7 +187,7 @@ void Dump::dumpQMC()
 			varName += s==0 ? "Up" : "Dn";
 		fname = getFilename(varName);
 		logPrintf("Dumping '%s'...", fname.c_str()); logFlush();
-		if(mpiUtil->isHead()) saveRawBinary(blipConvert(eVars.Vexternal[s]), fname.c_str());
+		if(mpiWorld->isHead()) saveRawBinary(blipConvert(eVars.Vexternal[s]), fname.c_str());
 		logPrintf("done.\n"); logFlush();
 	}
 	
@@ -308,7 +308,7 @@ void Dump::dumpQMC()
 			//Get relevant wavefunctions and eigenvalues (from another process if necessary)
 			ColumnBundle CqTemp; diagMatrix Hsub_eigsqTemp;
 			const ColumnBundle* Cq=0; const diagMatrix* Hsub_eigsq=0;
-			if(mpiUtil->isHead())
+			if(mpiWorld->isHead())
 			{	if(eInfo.isMine(q))
 				{	Cq = &eVars.C[q];
 					Hsub_eigsq = &eVars.Hsub_eigs[q];

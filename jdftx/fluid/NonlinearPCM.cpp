@@ -282,7 +282,7 @@ void NonlinearPCM::loadState(const char* filename)
 }
 
 void NonlinearPCM::saveState(const char* filename) const
-{	if(mpiUtil->isHead()) state.saveToFile(filename);
+{	if(mpiWorld->isHead()) state.saveToFile(filename);
 }
 
 double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const

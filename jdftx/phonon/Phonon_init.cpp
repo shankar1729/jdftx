@@ -94,7 +94,7 @@ void Phonon::setup(bool printDefaults)
 	{	int nBands_q = std::upper_bound(e.eVars.F[q].begin(), e.eVars.F[q].end(), Fcut, std::greater<double>()) - e.eVars.F[q].begin();
 		nBandsOpt = std::max(nBandsOpt, nBands_q);
 	}
-	mpiUtil->allReduce(nBandsOpt, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(nBandsOpt, MPIUtil::ReduceMax);
 	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n", Fcut, e.eInfo.nBands, nBandsOpt);
 
 	//Make unit cell state available on all processes 
@@ -316,13 +316,13 @@ void Phonon::setup(bool printDefaults)
 		}
 		logResume();
 		//Get wavefunctions for all these k-points:
-		#define whose_ik(ik) (((ik) * mpiUtil->nProcesses())/prodSup) //local MPI division
+		#define whose_ik(ik) (((ik) * mpiWorld->nProcesses())/prodSup) //local MPI division
 		std::vector<ColumnBundle> C(prodSup);
 		std::vector<std::shared_ptr<ColumnBundleTransform::BasisWrapper> > basisWrapper(prodSup);
 		auto sym = e.symm.getMatrices(); //unit cell symmetries
 		for(int ik=0; ik<prodSup; ik++)
 		{	C[ik].init(e.eInfo.nBands, basis[ik].nbasis*nSpinor, &basis[ik], &qnums[ik], isGpuEnabled());
-			if(whose_ik(ik) == mpiUtil->iProcess())
+			if(whose_ik(ik) == mpiWorld->iProcess())
 			{	int q = kpoints[ik].iReduced;
 				C[ik].zero();
 				basisWrapper[ik] = std::make_shared<ColumnBundleTransform::BasisWrapper>(basis[ik]);
@@ -336,7 +336,7 @@ void Phonon::setup(bool printDefaults)
 		double Emax = -INFINITY;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			Emax = std::max(Emax, e.eVars.Hsub_eigs[q].back());
-		mpiUtil->allReduce(Emax, MPIUtil::MPIUtil::ReduceMax);
+		mpiWorld->allReduce(Emax, MPIUtil::MPIUtil::ReduceMax);
 		double EmaxValid = +INFINITY;
 		//Loop over supercell symmetry operations:
 		PeriodicLookup<QuantumNumber> plook(qnums, e.gInfo.GGT);
@@ -366,7 +366,7 @@ void Phonon::setup(bool printDefaults)
 			//Calculate unitary transformation matrix:
 			stateRot[iSpin][iSym].init(prodSup, nBands);
 			for(int ik=0; ik<prodSup; ik++)
-				if(whose_ik(ikRot[ik]) == mpiUtil->iProcess()) //MPI division by target k-point
+				if(whose_ik(ikRot[ik]) == mpiWorld->iProcess()) //MPI division by target k-point
 				{	ColumnBundle Crot = C[ikRot[ik]].similar();
 					Crot.zero();
 					ColumnBundleTransform(qnums[ik].k, basis[ik], qnums[ikRot[ik]].k, *(basisWrapper[ikRot[ik]]),
@@ -393,13 +393,13 @@ void Phonon::setup(bool printDefaults)
 			stateRot[iSpin][iSym].allReduce();
 		}
 		#undef whose_ik
-		mpiUtil->allReduce(EmaxValid, MPIUtil::ReduceMin);
+		mpiWorld->allReduce(EmaxValid, MPIUtil::ReduceMin);
 		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin ? +1 : -1);  else logPrintf("\t");
 		logPrintf("Matrix elements valid for ");
 		if(std::isfinite(EmaxValid)) logPrintf("E < %+.6lf (Emax = %+.6lf) due to incomplete degenerate subspaces.\n", EmaxValid, Emax);
 		else logPrintf("all available states (all degenerate subspaces are complete).\n");
 	}
-	mpiUtil->allReduce(unitarityErr, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(unitarityErr, MPIUtil::ReduceSum);
 	unitarityErr = sqrt(unitarityErr / (nSpins * prodSup * symSupCart.size()));
 	logPrintf("\tRMS unitarity error in valid subspaces: %le\n", unitarityErr);
 }

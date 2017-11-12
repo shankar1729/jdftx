@@ -46,9 +46,9 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 			{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
 				eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
 			}
-		mpiUtil->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
-		mpiUtil->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
-		if(mpiUtil->isHead())
+		mpiWorld->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
+		mpiWorld->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
+		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandRanges", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
@@ -90,7 +90,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	}
 	
 	//Determine distribution amongst processes:
-	kDivision.init(kMesh.size(), mpiUtil);
+	kDivision.init(kMesh.size(), mpiWorld);
 	kDivision.myRange(ikStart, ikStop);
 	
 	//Initialized pinned arrays:
@@ -121,7 +121,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		nPhononModes = 0;
 		invsqrtM.clear();
 		string fname = wannier.getFilename(Wannier::FilenameInit, "phononBasis");
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	std::ifstream ifs(fname.c_str());
 			if(ifs.is_open())
 			{	while(!ifs.eof())
@@ -138,7 +138,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 				}
 			}
 		}
-		mpiUtil->bcast(nPhononModes);
+		mpiWorld->bcast(nPhononModes);
 		invsqrtM.resize(nPhononModes);
 		invsqrtM.bcast();
 		if(!nPhononModes) die("Error reading phonon modes from '%s'\n", fname.c_str());

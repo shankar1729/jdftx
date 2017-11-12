@@ -24,20 +24,47 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <climits>
 #include <core/Random.h>
 
-MPIUtil::MPIUtil(int argc, char** argv)
+//---------- class MPIUtil::ProcDivision ----------
+
+MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups)
+: mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
+	(nGroups and mpiUtil)
+	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
+	: 0 )
+{
+}
+
+
+//---------- class MPIUtil ----------
+
+MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
+: procDivision(procDivision)
 {
 	#ifdef MPI_ENABLED
-	int rc = MPI_Init(&argc, &argv);
-	if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
-	MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
-	MPI_Comm_rank(MPI_COMM_WORLD, &iProc);
+
+	if(procDivision)
+	{	//Split parent communicator in procDivision using iGroup:
+		MPI_Comm_split(procDivision.mpiUtil->comm, procDivision.iGroup,
+			procDivision.mpiUtil->iProcess(), &comm);
+	}
+	else
+	{	//Initialize MPI (use COMM_WORLD)
+		int rc = MPI_Init(&argc, &argv);
+		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
+		comm = MPI_COMM_WORLD;
+	}
+
+	MPI_Comm_size(comm, &nProcs);
+	MPI_Comm_rank(comm, &iProc);
+
 	#else
 	//No MPI:
 	nProcs = 1;
 	iProc = 0;
+	assert(!procDivision);
 	#endif
 	
-	Random::seed(iProc);
+	if(!procDivision) Random::seed(iProc); //Reproducible random seed per process in mpiWorld
 }
 
 MPIUtil::~MPIUtil()
@@ -50,7 +77,7 @@ MPIUtil::~MPIUtil()
 void MPIUtil::exit(int errCode) const
 {
 	#ifdef MPI_ENABLED
-	MPI_Abort(MPI_COMM_WORLD, errCode);
+	MPI_Abort(comm, errCode);
 	#else
 	::exit(errCode);
 	#endif
@@ -74,7 +101,7 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 	}
 	//Mimic the behaviour of die with collected error message:
 	fputs(bufTot.c_str(), globalLog);
-	if(mpiUtil->isHead() && globalLog != stdout)
+	if(isHead() && globalLog != stdout)
 		fputs(bufTot.c_str(), stderr);
 	finalizeSystem(false);
 	::exit(1);
@@ -168,7 +195,7 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
 	#ifdef MPI_ENABLED
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "rb");
 	if(!fp)
@@ -179,9 +206,9 @@ void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const
 void MPIUtil::fopenWrite(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
-	if(mpiUtil->isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
-	MPI_Barrier(MPI_COMM_WORLD);
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	if(isHead()) MPI_File_delete((char*)fname, MPI_INFO_NULL); //delete existing file, if any
+	MPI_Barrier(comm);
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "wb");
 	if(!fp)
@@ -192,14 +219,14 @@ void MPIUtil::fopenWrite(File& fp, const char* fname) const
 void MPIUtil::fopenAppend(File& fp, const char* fname) const
 {
 	#ifdef MPI_ENABLED
-	if(MPI_File_open(MPI_COMM_WORLD, (char*)fname, MPI_MODE_APPEND|MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
+	if(MPI_File_open(comm, (char*)fname, MPI_MODE_APPEND|MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, &fp) != MPI_SUCCESS)
 	#else
 	fp = ::fopen(fname, "a");
 	if(!fp)
 	#endif
 		 die("Error opening file '%s' for writing.\n", fname);
 	#ifdef MPI_ENABLED
-	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(comm);
 	#endif
 }
 
@@ -272,7 +299,6 @@ void MPIUtil::fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const
 	#endif
 }
 
-
 //------- class TaskDivision ---------
 
 TaskDivision::TaskDivision(size_t nTasks, const MPIUtil* mpiUtil)
@@ -294,4 +320,3 @@ int TaskDivision::whose(size_t q) const
 		return std::upper_bound(stopArr.begin(),stopArr.end(), q) - stopArr.begin();
 	else return 0;
 }
-

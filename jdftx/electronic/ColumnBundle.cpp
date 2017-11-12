@@ -184,25 +184,25 @@ void randomize(std::vector<ColumnBundle>& Y, const ElecInfo& eInfo)
 
 void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) const
 {	//Compute output length from each process:
-	std::vector<long> nBytes(mpiUtil->nProcesses(), 0); //total bytes to be written on each process
+	std::vector<long> nBytes(mpiWorld->nProcesses(), 0); //total bytes to be written on each process
 	for(int q=qStart; q<qStop; q++)
-		nBytes[mpiUtil->iProcess()] += Y[q].nData()*sizeof(complex);
+		nBytes[mpiWorld->iProcess()] += Y[q].nData()*sizeof(complex);
 	//Sync nBytes across processes:
-	if(mpiUtil->nProcesses()>1)
-		for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
-			mpiUtil->bcast(nBytes[iSrc], iSrc);
+	if(mpiWorld->nProcesses()>1)
+		for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
+			mpiWorld->bcast(nBytes[iSrc], iSrc);
 	//Compute offset of current process, and expected file length:
 	long offset=0, fsize=0;
-	for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
-	{	if(iSrc<mpiUtil->iProcess()) offset += nBytes[iSrc];
+	for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
+	{	if(iSrc<mpiWorld->iProcess()) offset += nBytes[iSrc];
 		fsize += nBytes[iSrc];
 	}
 	//Write to file:
-	MPIUtil::File fp; mpiUtil->fopenWrite(fp, fname);
-	mpiUtil->fseek(fp, offset, SEEK_SET);
+	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
+	mpiWorld->fseek(fp, offset, SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
-		mpiUtil->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
-	mpiUtil->fclose(fp);
+		mpiWorld->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
+	mpiWorld->fclose(fp);
 }
 
 
@@ -241,7 +241,7 @@ void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const Colum
 	{	//Check if a conversion is actually needed:
 		std::vector<ColumnBundle> Ytmp(qStop);
 		std::vector<Basis> basisTmp(qStop);
-		std::vector<long> nBytes(mpiUtil->nProcesses(), 0); //total bytes to be read on each process
+		std::vector<long> nBytes(mpiWorld->nProcesses(), 0); //total bytes to be read on each process
 		for(int q=qStart; q<qStop; q++)
 		{	bool needTmp = false, customBasis = false;
 			int nCols = Y[q].nCols();
@@ -262,28 +262,28 @@ void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const Colum
 			const Basis* basis = customBasis ? &basisTmp[q] : Y[q].basis;
 			int nSpinor = Y[q].spinorLength();
 			if(needTmp) Ytmp[q].init(nCols, basis->nbasis*nSpinor, basis, Y[q].qnum);
-			nBytes[mpiUtil->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
+			nBytes[mpiWorld->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
 		}
 		//Sync nBytes:
-		if(mpiUtil->nProcesses()>1)
-			for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
-				mpiUtil->bcast(nBytes[iSrc], iSrc);
+		if(mpiWorld->nProcesses()>1)
+			for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
+				mpiWorld->bcast(nBytes[iSrc], iSrc);
 		//Compute offset of current process, and expected file length:
 		long offset=0, fsize=0;
-		for(int iSrc=0; iSrc<mpiUtil->nProcesses(); iSrc++)
-		{	if(iSrc<mpiUtil->iProcess()) offset += nBytes[iSrc];
+		for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
+		{	if(iSrc<mpiWorld->iProcess()) offset += nBytes[iSrc];
 			fsize += nBytes[iSrc];
 		}
 		//Read data into Ytmp or Y as appropriate, and convert if necessary:
-		MPIUtil::File fp; mpiUtil->fopenRead(fp, fname, fsize,
+		MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, fsize,
 			(e->vibrations and qnums.size()>1)
 			? "Hint: Vibrations requires wavefunctions without symmetries:\n"
 				"either don't read in state, or consider using phonon instead.\n"
 			: "Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n");
-		mpiUtil->fseek(fp, offset, SEEK_SET);
+		mpiWorld->fseek(fp, offset, SEEK_SET);
 		for(int q=qStart; q<qStop; q++)
 		{	ColumnBundle& Ycur = Ytmp[q] ? Ytmp[q] : Y[q];
-			mpiUtil->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
+			mpiWorld->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
 			if(Ytmp[q]) //apply conversions:
 			{	if(Ytmp[q].basis!=Y[q].basis)
 				{	int nSpinor = Y[q].spinorLength();
@@ -298,6 +298,6 @@ void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const Colum
 				Ytmp[q].free();
 			}
 		}
-		mpiUtil->fclose(fp);
+		mpiWorld->fclose(fp);
 	}
 }

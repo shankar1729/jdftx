@@ -243,26 +243,26 @@ void readInputFile(std::vector<string>& filename, std::vector< pair<string,strin
 std::vector< pair<string,string> > readInputFile(string filename)
 {	std::vector< pair<string,string> > input;
 	//Read input on head:
-	if(mpiUtil->isHead())
+	if(mpiWorld->isHead())
 	{	std::vector<string> filenameList(1, filename);
 		readInputFile(filenameList, input);
 	}
 	//Broadcast to other processes
-	if(mpiUtil->nProcesses()>1)
+	if(mpiWorld->nProcesses()>1)
 	{	//Synchronize lengths:
 		int nInputs = input.size();
-		mpiUtil->bcast(nInputs);
-		if(!mpiUtil->isHead()) input.resize(nInputs);
+		mpiWorld->bcast(nInputs);
+		if(!mpiWorld->isHead()) input.resize(nInputs);
 		//Serialize to string and synchronize content:
 		string inputStr;
-		if(mpiUtil->isHead())
+		if(mpiWorld->isHead())
 		{	ostringstream oss;
 			for(const auto& p: input)
 				oss << p.first << '\n' << p.second << '\n';
 			inputStr = oss.str();
 		}
-		mpiUtil->bcast(inputStr);
-		if(!mpiUtil->isHead())
+		mpiWorld->bcast(inputStr);
+		if(!mpiWorld->isHead())
 		{	istringstream iss(inputStr);
 			for(auto& p: input)
 			{	getline(iss, p.first);

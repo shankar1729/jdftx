@@ -65,7 +65,7 @@ bool gpuInit(FILE* fpLog, const std::vector<int>* mpiSiblings, double* nGPUs)
 	
 	//Divide GPUs between processes, if requested:
 	if(mpiSiblings && mpiSiblings->size()>1) //only if more than one process per node
-	{	int iSibling = std::find(mpiSiblings->begin(), mpiSiblings->end(), mpiUtil->iProcess()) - mpiSiblings->begin();
+	{	int iSibling = std::find(mpiSiblings->begin(), mpiSiblings->end(), mpiWorld->iProcess()) - mpiSiblings->begin();
 		selectedDevice = iSibling % int(compatibleDevices.size());
 		if(nGPUs) *nGPUs = std::min(1., compatibleDevices.size()*1./mpiSiblings->size());
 	}
