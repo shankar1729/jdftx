@@ -126,6 +126,13 @@ template<typename scalar> __hostanddev__ scalar box(const vector3<scalar>& a, co
 {	return dot(a,cross(b,c));
 }
 
+//! normalise vector
+__hostanddev__ vector3<double> normalize(const vector3<> &v)
+{
+	return vector3<double>(v/v.length());
+}
+
+
 //! Round vector3<> to vector3<int> (and optionally retrieve error)
 __hostanddev__ vector3<int> round(const vector3<>& v, double* err=0)
 {	vector3<int> out;
