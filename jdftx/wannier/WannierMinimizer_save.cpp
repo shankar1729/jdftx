@@ -476,7 +476,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Calculate required phases:
 			int iCell = 0;
 			for(auto cell: iCellMap)
-				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first)));
+				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(-2*M_PI*dot(kMesh[i].point.k, cell.first)));
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
@@ -642,7 +642,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			for(const auto& iter: phononOmegaSq)
 				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
 				for(size_t jAtom=0; jAtom<xAtoms.size(); jAtom++)
-				{	vector3<int> iRnew = iter.first + dxAtoms[jAtom] - dxAtoms[iAtom];
+				{	vector3<int> iRnew = iter.first - (dxAtoms[jAtom] - dxAtoms[iAtom]); //iR + x_j - x_i stays invariant
 					matrix& oSqCur = phononOmegaSqNew[iRnew];
 					if(!oSqCur) oSqCur = zeroes(nPhononModes, nPhononModes);
 					oSqCur.set(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3,
@@ -758,7 +758,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				mpiWorld->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
 				//Translate for phonon basis wrapping (if any):
 				if(wannier.wrapWS)
-					phononHsubCur *= cis(2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k2 - kpointPairs[iPair].k1));
+					phononHsubCur *= cis(-2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k1 - kpointPairs[iPair].k2));
 			}
 		}
 		//--- apply translational invariance correction:
@@ -824,7 +824,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				for(const auto& entry2: ePhCellMap)
 				{	const vector3<int>& iR1 = entry1.first;
 					const vector3<int>& iR2 = entry2.first;
-					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
+					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k1,iR1) - dot(pair.k2,iR2))) );
 				}
 			}
 			//convert phononHsub from Bloch to wannier for each nuclear displacement mode:

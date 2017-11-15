@@ -275,7 +275,7 @@ std::map<vector3<int>, matrix> getCellMap(const matrix3<>& R, const matrix3<>& R
 		bool nonZero = false;
 		for(size_t i=0; i<x1.size(); i++)
 		for(size_t j=0; j<x2.size(); j++)
-		{	vector3<> dx = iCell + x1[i] -x2[j];
+		{	vector3<> dx = iCell + x2[j] - x1[i];
 			for(int l=0; l<3; l++) if(isTruncated[l]) dx[l] = 0.; //project out truncated directions
 			vector3<> dr = R*dx; //cartesian displacement
 			double drSq0 = dr.length_squared(); //distance from origin
