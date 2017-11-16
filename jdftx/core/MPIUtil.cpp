@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups, size_t iGroup)
 : mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
 	(nGroups and mpiUtil)
-	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
+	?  mpiUtil->iProcess() * nGroups / mpiUtil->nProcesses()
 	: iGroup )
 {
 }

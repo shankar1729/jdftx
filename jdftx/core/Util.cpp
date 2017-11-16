@@ -55,7 +55,8 @@ void printUsage(const char *name, const char* description)
 	logPrintf("\t-t --template           print an input file template\n");
 	logPrintf("\t-m --mpi-debug-log      write output from secondary MPI processes to jdftx.<proc>.mpiDebugLog (instead of /dev/null)\n");
 	logPrintf("\t-n --dry-run            quit after initialization (to verify commands and other input files)\n");
-	logPrintf("\t-c --cores              number of cores to use (ignored when launched using SLURM)\n");
+	logPrintf("\t-c --cores              number of cores per process (ignored when launched using SLURM)\n");
+	logPrintf("\t-G --nGroups            number of MPI process groups (default or 0 => each process in own group of size 1)\n");
 	logPrintf("\t-s --skip-defaults      skip printing status of default commands issued automatically.\n");
 	logPrintf("\n");
 }
@@ -128,7 +129,10 @@ void logResume()
 {	globalLog = globalLogOrig;
 }
 
+int nProcessGroups = 0;
 MPIUtil* mpiWorld = 0;
+MPIUtil* mpiGroup = 0;
+MPIUtil* mpiGroupHead = 0;
 bool mpiDebugLog = false;
 bool manualThreadCount = false;
 size_t mempoolSize = 0;
@@ -151,11 +155,22 @@ void initSystem(int argc, char** argv)
 	}
 	globalLogOrig = globalLog;
 	
-	//Print a welcome banner with useful information
+	//Star time and commandline:
 	printVersionBanner();
 	time_t startTime = time(0);
 	startTime_us = clock_us();
 	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
+	//---- commandline
+	logPrintf("Executable %s with ", argv[0]);
+	if(argc>1)
+	{	logPrintf("command-line:");
+		for(int i=1; i<argc; i++) logPrintf(" %s", argv[i]);
+		logPrintf("\n");
+	}
+	else logPrintf("empty command-line (run with -h or --help for command-line options).\n");
+	registerHandlers();
+
+	//Determine and print distribution of processes on hosts:
 	//--- get current hostname and checksum:
 	string hostname;
 	{	char hostnameTmp[256];
@@ -190,16 +205,33 @@ void initSystem(int argc, char** argv)
 		else mpiHostHead.send(oss.str(), 0, 0);
 	}
 	else mpiHost.send(mpiWorld->iProcess(), 0, 0);
-	//---- commandline
-	logPrintf("Executable %s with ", argv[0]);
-	if(argc>1)
-	{	logPrintf("command-line:");
-		for(int i=1; i<argc; i++) logPrintf(" %s", argv[i]);
-		logPrintf("\n");
-	}
-	else logPrintf("empty command-line (run with -h or --help for command-line options).\n");
 	
-	registerHandlers();
+	//Initialize process groups:
+	if(nProcessGroups <= 0) nProcessGroups = mpiWorld->nProcesses(); //default: one group per process
+	mpiGroup = new MPIUtil(0,0, MPIUtil::ProcDivision(mpiWorld, nProcessGroups));
+	mpiGroupHead = new MPIUtil(0,0, MPIUtil::ProcDivision(mpiWorld, 0, mpiGroup->iProcess())); //communicator between similar rank within each group
+	if(mpiGroup->isHead())
+	{	ostringstream oss;
+		oss << mpiGroup->procDivision.iGroup << " ( " << mpiWorld->iProcess();
+		for(int jProc=1; jProc<mpiGroup->nProcesses(); jProc++)
+		{	int jProcWorld; //rank of jProc in world
+			mpiGroup->recv(jProcWorld, jProc, 0);
+			oss << ' ' << jProcWorld;
+		}
+		oss << " )";
+		//send to world head to print:
+		if(mpiGroupHead->isHead()) //note that mpiGroupHead->head == mpiWorld->head
+		{	logPrintf("Divided in process groups (process indices):  %s", oss.str().c_str());
+			for(int jHead=1; jHead<mpiGroupHead->nProcesses(); jHead++)
+			{	string buf; 
+				mpiGroupHead->recv(buf, jHead, 0);
+				logPrintf("  %s", buf.c_str());
+			}
+			logPrintf("\n");
+		}
+		else mpiGroupHead->send(oss.str(), 0, 0);
+	}
+	else mpiGroup->send(mpiWorld->iProcess(), 0, 0);
 	
 	double nGPUs = 0.;
 	#ifdef GPU_ENABLED
@@ -266,12 +298,13 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			{"mpi-debug-log", no_argument, 0, 'm'},
 			{"dry-run", no_argument, 0, 'n'},
 			{"cores", required_argument, 0, 'c'},
+			{"nGroups", required_argument, 0, 'G'},
 			{"skip-defaults", no_argument, 0, 's'},
 			{"write-manual", required_argument, 0, 'w'},
 			{0, 0, 0, 0}
 		};
 	while (1)
-	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:sw:", long_options, 0);
+	{	int c = getopt_long(argc, argv, "hvi:o:dtmnc:G:sw:", long_options, 0);
 		if (c == -1) break; //end of options
 		#define RUN_HEAD(code) if(mpiWorld->isHead()) { code } delete mpiWorld;
 		switch (c)
@@ -288,6 +321,16 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 				if(sscanf(optarg, "%d", &nCores)==1 && nCores>0)
 				{	nProcsAvailable=nCores;
 					manualThreadCount =true;
+				}
+				break;
+			}
+			case 'G':
+			{	if(!(sscanf(optarg, "%d", &nProcessGroups)==1 && nProcessGroups>=0))
+				{	RUN_HEAD(
+						printf("\nOption -G (--nGroups) must be a non-negative integer.\n");
+						printUsage(argv[0], description);
+					)
+					exit(1);
 				}
 				break;
 			}
@@ -355,6 +398,8 @@ void finalizeSystem(bool successful)
 	fclose(nullLog);
 	if(globalLog && globalLog != stdout)
 		fclose(globalLog);
+	delete mpiGroupHead;
+	delete mpiGroup;
 	delete mpiWorld;
 }
 
