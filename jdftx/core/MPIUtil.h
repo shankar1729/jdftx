@@ -51,9 +51,9 @@ public:
 	//! Helper for dividing MPI processes into groups
 	const struct ProcDivision
 	{	const MPIUtil* mpiUtil; //!< parent MPI communictaor that is being divided
-		const int nGroups; //!< number of groups in this division
+		const int nGroups; //!< number of groups in this division; if nGroups=0, then grouping is based on custom value of iGroup
 		const int iGroup; //!< which group the current process belongs to
-		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1);
+		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1, size_t iGroup=0);
 		operator bool() const { return mpiUtil; } //!< check if this is an actual division
 	}
 	procDivision;

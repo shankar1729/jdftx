@@ -26,11 +26,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //---------- class MPIUtil::ProcDivision ----------
 
-MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups)
+MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups, size_t iGroup)
 : mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
 	(nGroups and mpiUtil)
 	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
-	: 0 )
+	: iGroup )
 {
 }
 
@@ -70,7 +70,10 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 MPIUtil::~MPIUtil()
 {
 	#ifdef MPI_ENABLED
-	MPI_Finalize();
+	if(procDivision)
+		MPI_Comm_free(&comm);
+	else
+		MPI_Finalize();
 	#endif
 }
 
