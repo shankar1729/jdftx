@@ -140,6 +140,32 @@ static double startTime_us; //Time at which system was initialized in microsecon
 const char* argv0 = 0;
 uint32_t crc32(const string& s); //CRC32 checksum for a string (implemented below)
 
+//Print process index distribution given communicators:
+void printProcessDistribution(string header, string label, const MPIUtil* mpiUtil, const MPIUtil* mpiUtilHead)
+{	if(mpiUtil->isHead())
+	{	ostringstream oss;
+		oss << label << " ( " << mpiWorld->iProcess();
+		for(int jProc=1; jProc<mpiUtil->nProcesses(); jProc++)
+		{	int jProcWorld; //rank of jProc in world
+			mpiUtil->recv(jProcWorld, jProc, 0);
+			oss << ' ' << jProcWorld;
+		}
+		oss << " )";
+		//send to world head to print:
+		if(mpiUtilHead->isHead()) //note that mpiUtilHead->head == mpiWorld->head
+		{	logPrintf("%s (process indices):  %s", header.c_str(), oss.str().c_str());
+			for(int jHead=1; jHead<mpiUtilHead->nProcesses(); jHead++)
+			{	string buf;
+				mpiUtilHead->recv(buf, jHead, 0);
+				logPrintf("  %s", buf.c_str());
+			}
+			logPrintf("\n");
+		}
+		else mpiUtilHead->send(oss.str(), 0, 0);
+	}
+	else mpiUtil->send(mpiWorld->iProcess(), 0, 0);
+}
+
 void initSystem(int argc, char** argv)
 {
 	argv0 = argv[0]; //remember how the executable was issued (for stack traces)
@@ -182,56 +208,15 @@ void initSystem(int argc, char** argv)
 	MPIUtil mpiHost(0,0, MPIUtil::ProcDivision(mpiWorld, 0, hostsum));
 	MPIUtil mpiHostGpu(0,0, MPIUtil::ProcDivision(mpiWorld, 0, isGpuEnabled() ? hostsum : 0)); //for grouping processes with GPUs
 	MPIUtil mpiHostHead(0,0, MPIUtil::ProcDivision(mpiWorld, 0, mpiHost.iProcess())); //communicator between similar rank within each host
-	//---- collect process numbers on each host and print on head:
-	if(mpiHost.isHead())
-	{	ostringstream oss;
-		oss << hostname << " ( " << mpiWorld->iProcess();
-		for(int jProc=1; jProc<mpiHost.nProcesses(); jProc++)
-		{	int jProcWorld; //rank of jProc in world
-			mpiHost.recv(jProcWorld, jProc, 0);
-			oss << ' ' << jProcWorld;
-		}
-		oss << " )";
-		//send to world head to print:
-		if(mpiHostHead.isHead()) //note that mpiHostHead.head == mpiWorld.head
-		{	logPrintf("Running on hosts (process indices):  %s", oss.str().c_str());
-			for(int jHead=1; jHead<mpiHostHead.nProcesses(); jHead++)
-			{	string buf; 
-				mpiHostHead.recv(buf, jHead, 0);
-				logPrintf("  %s", buf.c_str());
-			}
-			logPrintf("\n");
-		}
-		else mpiHostHead.send(oss.str(), 0, 0);
-	}
-	else mpiHost.send(mpiWorld->iProcess(), 0, 0);
+	printProcessDistribution("Running on hosts", hostname, &mpiHost, &mpiHostHead);
 	
 	//Initialize process groups:
 	if(nProcessGroups <= 0) nProcessGroups = mpiWorld->nProcesses(); //default: one group per process
 	mpiGroup = new MPIUtil(0,0, MPIUtil::ProcDivision(mpiWorld, nProcessGroups));
 	mpiGroupHead = new MPIUtil(0,0, MPIUtil::ProcDivision(mpiWorld, 0, mpiGroup->iProcess())); //communicator between similar rank within each group
-	if(mpiGroup->isHead())
-	{	ostringstream oss;
-		oss << mpiGroup->procDivision.iGroup << " ( " << mpiWorld->iProcess();
-		for(int jProc=1; jProc<mpiGroup->nProcesses(); jProc++)
-		{	int jProcWorld; //rank of jProc in world
-			mpiGroup->recv(jProcWorld, jProc, 0);
-			oss << ' ' << jProcWorld;
-		}
-		oss << " )";
-		//send to world head to print:
-		if(mpiGroupHead->isHead()) //note that mpiGroupHead->head == mpiWorld->head
-		{	logPrintf("Divided in process groups (process indices):  %s", oss.str().c_str());
-			for(int jHead=1; jHead<mpiGroupHead->nProcesses(); jHead++)
-			{	string buf; 
-				mpiGroupHead->recv(buf, jHead, 0);
-				logPrintf("  %s", buf.c_str());
-			}
-			logPrintf("\n");
-		}
-		else mpiGroupHead->send(oss.str(), 0, 0);
+	{	ostringstream oss; oss << mpiGroup->procDivision.iGroup;
+		printProcessDistribution("Divided in process groups", oss.str(), mpiGroup, mpiGroupHead);
 	}
-	else mpiGroup->send(mpiWorld->iProcess(), 0, 0);
 	
 	double nGPUs = 0.;
 	#ifdef GPU_ENABLED
