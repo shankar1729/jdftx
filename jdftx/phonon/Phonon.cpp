@@ -160,6 +160,7 @@ void Phonon::dump()
 	TaskDivision(quad.size(), mpiWorld).myRange(ikStart, ikStop);
 	double ZPE = 0., Evib = 0., Avib = 0.;
 	double kSqMaxIm = 0.; //maximum |k|^2 with imaginary frequencies (if any)
+	double omegaSqMin = 0.; int ikMin=-1; //most negative frequency squared and corresponding k index
 	for(int ik=ikStart; ik<ikStop; ik++)
 	{	//Calculate phonon omegaSq at current k:
 		matrix omegaSq_k;
@@ -175,6 +176,10 @@ void Phonon::dump()
 		//Check for imaginary frequencies:
 		if(omegaSqEigs[0] <= 0.) //eigenvalues in ascending order
 		{	kSqMaxIm = std::max(kSqMaxIm, e.gInfo.GGT.metric_length_squared(quad[ik].first));
+			if(omegaSqEigs[0] < omegaSqMin)
+			{	omegaSqMin = omegaSqEigs[0];
+				ikMin = ik;
+			}
 			continue;
 		}
 		//Collect contributions:
@@ -191,6 +196,7 @@ void Phonon::dump()
 	mpiWorld->allReduce(Evib, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(Avib, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(kSqMaxIm, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(omegaSqMin, ikMin, MPIUtil::ReduceMin);
 	double TSvib = Evib - Avib;
 	logPrintf("\nPhonon free energy components (per unit cell) at T = %lg K:\n", T/Kelvin);
 	logPrintf("\tZPE:   %15.6lf\n", ZPE);
@@ -198,7 +204,11 @@ void Phonon::dump()
 	logPrintf("\tTSvib: %15.6lf\n", TSvib);
 	logPrintf("\tAvib:  %15.6lf\n", Avib);
 	if(kSqMaxIm)
-		logPrintf("\tWARNING: discarded imaginary frequencies at max |k| = %lg bohr^-1\n", sqrt(kSqMaxIm));
+	{	logPrintf("\tWARNING: discarded imaginary frequencies at max |k| = %lg bohr^-1\n", sqrt(kSqMaxIm));
+		const vector3<>& kMin = quad[ikMin].first;
+		logPrintf("\tStrongest imaginary |omega|: %.6lf at k: [ %lg %lg %lg ]\n",
+			sqrt(-omegaSqMin), kMin[0], kMin[1], kMin[2]);
+	}
 	logPrintf("\n");
 }
 
