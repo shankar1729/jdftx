@@ -144,13 +144,19 @@ uint32_t crc32(const string& s); //CRC32 checksum for a string (implemented belo
 void printProcessDistribution(string header, string label, const MPIUtil* mpiUtil, const MPIUtil* mpiUtilHead)
 {	if(mpiUtil->isHead())
 	{	ostringstream oss;
-		oss << label << " ( " << mpiWorld->iProcess();
+		oss << label << " (";
+		int jStart=mpiWorld->iProcess(), jStop=jStart; //range yet to be printed
 		for(int jProc=1; jProc<mpiUtil->nProcesses(); jProc++)
-		{	int jProcWorld; //rank of jProc in world
-			mpiUtil->recv(jProcWorld, jProc, 0);
-			oss << ' ' << jProcWorld;
+		{	int jCur; //rank of jProc in world
+			mpiUtil->recv(jCur, jProc, 0);
+			if(jCur == jStop+1)
+				jStop = jCur; //contiguous with previous range
+			else
+			{	oss << jStart; if(jStop>jStart) oss << '-' << jStop; oss << ','; //flush previous range
+				jStart = jStop = jCur; //start new range
+			}
 		}
-		oss << " )";
+		oss << jStart; if(jStop>jStart) oss << '-' << jStop; oss << ')'; //flush pending range
 		//send to world head to print:
 		if(mpiUtilHead->isHead()) //note that mpiUtilHead->head == mpiWorld->head
 		{	logPrintf("%s (process indices):  %s", header.c_str(), oss.str().c_str());
