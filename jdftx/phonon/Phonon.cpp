@@ -91,9 +91,9 @@ void Phonon::dump()
 	
 	//--- check force matrix
 	logPrintf("\nFinalizing force matrix in real space:\n");
-	forceMatrixGammaPrimeFix(F, cellMap);
-	forceMatrixHermCheck(F, cellMap); //enforce hermiticity
-	forceMatrixSumRuleCheck(F, cellMap); //enforce translational invariance
+	forceMatrixGammaPrimeFix(F, cellMap, xAtoms); //fix first-derivative behavior near Gamma
+	forceMatrixHermCheck(F, cellMap); //final hermiticity check
+	forceMatrixSumRuleCheck(F, cellMap); //final translational invariance check
 	logPrintf("\n");
 	
 	//--- collect species and mode masses:
@@ -322,6 +322,8 @@ matrix BlockRotationMatrix::transform(const matrix& in) const
 	return out;
 }
 
+//------------ force matrix symmetrization / check routines ---------------
+
 //Enforce hermitian and translation invariance symmetry on dgrad (apply in reciprocal space)
 void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
 {	logPrintf("Refining force matrix in reciprocal space:\n"); logFlush();
@@ -408,61 +410,104 @@ void Phonon::dgradSymmetrize(std::vector<IonicGradient>& dgrad) const
 	logPrintf("\tCorrected translational invariance relative error: %lg\n\n", sqrt(dFtransNorm/Fnorm));
 }
 
-void Phonon::forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap) const
+//Fix first-derivative behavior near Gamma (to ensure finite sound velocities)
+void Phonon::forceMatrixGammaPrimeFix(std::vector<matrix>& F, const std::map<vector3<int>,matrix>& cellMap, const std::vector<vector3<>>& xAtoms) const
 {	double Fnorm=0., dFnorm=0.;
-	//Collect Gamma-point derivative error:
+	//Collect the GammaPrime error and various moments of the weights:
 	int nAtoms = modes.size()/3;
-	std::vector<std::vector<vector3<>>> Hp0(3, std::vector<vector3<>>(3));
-	std::vector<std::vector<matrix3<>>> wSum(nAtoms, std::vector<matrix3<>>(nAtoms));
+	std::vector<std::vector<vector3<>>> Err(3, std::vector<vector3<>>(3)); //Gamma prime errors
+	std::vector<std::vector<vector3<>>> V(nAtoms, std::vector<vector3<>>(nAtoms)); //Sum(w.r)
+	matrix3<> rho; //Sum(w.r.r)
 	auto iter = cellMap.begin();
-	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	vector3<> rCell = e.gInfo.R * iter->first; //cartesian coordinates of cell
-		const matrix& weight = iter->second;
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++,iter++)
+	{	const matrix& weight = iter->second;
 		for(int iAtom=0; iAtom<nAtoms; iAtom++)
 		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		{	//Collect weights:
-			wSum[iAtom][jAtom] += outer(rCell, rCell) * weight(iAtom,jAtom).real();
-			//Collect Hprime:
+		{	vector3<> dr = e.gInfo.R * (iter->first + xAtoms[jAtom] - xAtoms[iAtom]); //vector distance between atoms
+			//Collect Gamma prime error:
 			for(int iDir=0; iDir<3; iDir++)
 			for(int jDir=0; jDir<3; jDir++)
-				Hp0[iDir][jDir] += rCell * F[iCell](3*iAtom+iDir,3*jAtom+jDir).real();
+				Err[iDir][jDir] += dr * F[iCell](3*iAtom+iDir,3*jAtom+jDir).real();
+			//Collect weight moments:
+			double w = weight(iAtom,jAtom).real();
+			V[iAtom][jAtom] += w * dr;
+			rho += w * outer(dr, dr);
 		}
-		iter++;
 	}
-	//Invert weight sums:
-	double normFac = 1./(nAtoms*nAtoms);
-	vector3<bool> isTruncated = e.coulombParams.isTruncated();
+	//Pre-account for Gamma-prime error due to subsequent translation-invariance correction:
+	std::vector<vector3<>> Vr(nAtoms), Vc(nAtoms); //row and column means of V
+	vector3<> Vrc; //overall mean of V
+	double nAtomsInv = 1./nAtoms;
 	for(int iAtom=0; iAtom<nAtoms; iAtom++)
 		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		{	for(int iDir=0; iDir<3; iDir++)
-				if(isTruncated[iDir])
-					wSum[iAtom][jAtom](iDir,iDir) = 1.; //handle singularity in truncated directions
-			wSum[iAtom][jAtom] = normFac*inv(wSum[iAtom][jAtom]);
+		{	vector3<> wV = nAtomsInv * V[iAtom][jAtom];
+			Vr[iAtom] += wV;
+			Vc[jAtom] += wV;
+			Vrc += nAtomsInv * wV;
 		}
+	double prodSupInv = 1./prodSup;
+	matrix3<> T; //translation invariance correction to rho
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+	for(int jAtom=0; jAtom<nAtoms; jAtom++)
+	{	vector3<> Vcur = V[iAtom][jAtom];
+		vector3<> Ucur = prodSupInv*(Vrc - Vr[iAtom] - Vc[jAtom]);
+		T += outer(Vcur, Ucur);
+	}
+	//Invert weight sums to calculate correction tensor:
+	matrix3<> alphaInv = rho + T;
+	vector3<bool> isTruncated = e.coulombParams.isTruncated();
+	for(int iDir=0; iDir<3; iDir++)
+		if(isTruncated[iDir])
+			alphaInv(iDir,iDir) = 1.; //handle singularity in truncated directions
+	matrix3<> alpha = inv(alphaInv);
+	std::vector<std::vector<vector3<>>> g(3, std::vector<vector3<>>(3)); //correction tensor
+	for(int iDir=0; iDir<3; iDir++)
+	for(int jDir=0; jDir<3; jDir++)
+		g[iDir][jDir] = -(alpha * Err[iDir][jDir]);
 	//Apply correction:
-	iter = cellMap.begin();
 	matrix dFsum;
-	size_t iCell0 = 0;
-	for(size_t iCell=0; iCell<cellMap.size(); iCell++)
-	{	if(!iter->first.length_squared()) iCell0 = iCell; //index of 0-cell
-		vector3<> rCell = e.gInfo.R * iter->first; //cartesian coordinates of cell
-		const matrix& weight = iter->second;
+	iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++,iter++)
+	{	const matrix& weight = iter->second;
 		matrix dF(modes.size(), modes.size());
 		for(int iAtom=0; iAtom<nAtoms; iAtom++)
 		for(int jAtom=0; jAtom<nAtoms; jAtom++)
-		{	vector3<> wrCell = (wSum[iAtom][jAtom] * rCell) * weight(iAtom,jAtom).real();
+		{	vector3<> dr = e.gInfo.R * (iter->first + xAtoms[jAtom] - xAtoms[iAtom]); //vector distance between atoms
+			double w = weight(iAtom,jAtom).real();
 			for(int iDir=0; iDir<3; iDir++)
 			for(int jDir=0; jDir<3; jDir++)
-				dF.set(3*iAtom+iDir,3*jAtom+jDir, -dot(wrCell, Hp0[iDir][jDir]));
+				dF.set(3*iAtom+iDir,3*jAtom+jDir, w * dot(dr, g[iDir][jDir]));
 		}
 		Fnorm += std::pow(nrm2(F[iCell]),2);
 		dFnorm += std::pow(nrm2(dF),2);
 		F[iCell] += dF;
 		dFsum += dF;
-		iter++;
 	}
-	dFnorm += std::pow(nrm2(dFsum),2);
-	F[iCell0] -= dFsum; //so as to preserve translational invariance
+	//Restore exact translational invariance:
+	matrix mask = zeroes(modes.size(),3);
+	for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int iDir=0; iDir<3; iDir++)
+			mask.set(iAtom*3+iDir,iDir, 1.);
+	matrix proj = (1./nAtoms) * (mask * dagger(mask));
+	matrix dF0 = (1./prodSup) * (proj*dFsum*proj - dFsum*proj - proj*dFsum); //double sum - row sum - column sum
+	iter = cellMap.begin();
+	for(size_t iCell=0; iCell<cellMap.size(); iCell++,iter++)
+	{	matrix dFcur(modes.size(), modes.size());
+		const matrix& weight = iter->second;
+		int iMode = 0;
+		for(int iAtom=0; iAtom<nAtoms; iAtom++)
+		for(int iDir=0; iDir<3; iDir++)
+		{	int jMode = 0;
+			for(int jAtom=0; jAtom<nAtoms; jAtom++)
+			for(int jDir=0; jDir<3; jDir++)
+			{	dFcur.set(iMode, jMode, dF0(iMode,jMode) * weight(iAtom,jAtom));
+				jMode++;
+			}
+			iMode++;
+		}
+		F[iCell] += dFcur;
+		dFnorm += std::pow(nrm2(dFcur),2);
+	}
 	logPrintf("\tCorrected gamma-point derivative relative error: %lg\n", sqrt(dFnorm/Fnorm));
 }
 
