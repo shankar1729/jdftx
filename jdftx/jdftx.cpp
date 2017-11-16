@@ -41,6 +41,7 @@ int main(int argc, char** argv)
 	parse(readInputFile(inputFilename), e, printDefaults);
 	if(dryRun) eVars.skipWfnsInit = true;
 	e.setup();
+	e.dump(DumpFreq_Init, 0);
 	Citations::print();
 	if(dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");

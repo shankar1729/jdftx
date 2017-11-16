@@ -153,9 +153,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	if(ShouldDump(IonicPositions) || (ShouldDump(State) && (e->ionicMinParams.nIterations>0 || e->latticeMinParams.nIterations>0)))
 	{	StartDump("ionpos")
-		FILE* fp;
-		if (freq==DumpFreq_Dynamics) fp = mpiWorld->isHead() ? fopen(fname.c_str(), "a") : nullLog;
-		else fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
+		FILE* fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 		iInfo.printPositions(fp);  //needs to be called from all processes (for magnetic moment computation)
 		if(mpiWorld->isHead())fclose(fp);
@@ -163,8 +161,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	if(ShouldDump(Forces))
 	{	StartDump("force")
-		if(mpiWorld->isHead()) 
-		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
+		if(mpiWorld->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 			iInfo.forces.print(*e, fp);
 			fclose(fp);
@@ -256,10 +254,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			( (eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 			|| (e->exCorr.orbitalDep && isCevec) ) ) )
 	{	StartDump("eigenvals")
-		if (freq == DumpFreq_Dynamics)
-			eInfo.appendWrite(eVars.Hsub_eigs, fname.c_str());
-		else
-			eInfo.write(eVars.Hsub_eigs, fname.c_str());
+		eInfo.write(eVars.Hsub_eigs, fname.c_str());
 		EndDump
 	}
 	
@@ -347,7 +342,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
 		if(mpiWorld->isHead())
-		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
+		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
 			e->ener.print(fp);
 			fclose(fp);

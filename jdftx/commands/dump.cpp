@@ -49,22 +49,33 @@ struct CommandDumpOnly : public Command
 }
 commandDumpOnly;
 
+//Variables allowed at dump frequency Init
+EnumStringMap<DumpVariable> varInitMap
+(	DumpNone, "None",
+	DumpIonicPositions, "IonicPositions",
+	DumpLattice, "Lattice",
+	DumpCoreDensity, "CoreDensity",
+	DumpVlocps, "Vlocps",
+	DumpSymmetries, "Symmetries",
+	DumpKpoints, "Kpoints",
+	DumpGvectors, "Gvectors"
+);
 
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
+	DumpFreq_Init, "Init",
 	DumpFreq_Ionic, "Ionic",
 	DumpFreq_Gummel, "Gummel",
 	DumpFreq_Fluid, "Fluid",
-	DumpFreq_Electronic, "Electronic",
-	DumpFreq_Dynamics, "IonDynamics"
+	DumpFreq_Electronic, "Electronic"
 );
 EnumStringMap<DumpFrequency> freqDescMap
 (	DumpFreq_End, "Dump specified vars at the end of the calculation",
+	DumpFreq_Init, "Dump specified vars from " + varInitMap.optionList() + " after initialization (even in dry run)",
 	DumpFreq_Ionic, "Dump specified vars every (few) ionic / lattice step(s)",
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
-	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)",
-	DumpFreq_Dynamics, "Dump specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces, .eigenvals and .Ecomponents"
+	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)"
 );
 
 
@@ -194,7 +205,7 @@ struct CommandDump : public Command
 		//For any real dump frequency:
 		while(true)
 		{	DumpVariable var;
-			pl.get(var, DumpDelim, varMap, "var");
+			pl.get(var, DumpDelim, freq==DumpFreq_Init ? varInitMap : varMap, "var");
 			if(var==DumpDelim) break; //will happen at end of command line
 			e.dump.insert(std::make_pair(freq,var));
 			//Check for unsupported features:
