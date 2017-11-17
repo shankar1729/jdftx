@@ -117,6 +117,7 @@ void sigErrorHandler(int sig)
 	stackTraceExit(1);
 }
 
+string inputBasename("stdin"); //!< Basename of input file or "stdin" that can be used as a default run-name
 FILE* globalLog = stdout; // this might be replaced by a file pointer in main before calling initSystem()
 FILE* globalLogOrig;
 FILE* nullLog = 0;
@@ -332,7 +333,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 		#undef RUN_HEAD
 	}
 	
-	// Open the logfile (if any):
+	//Open the logfile (if any):
 	if(logFilename.length())
 	{	globalLog = fopen(logFilename.c_str(), appendOutput ? "a" : "w");
 		if(!globalLog)
@@ -340,7 +341,20 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			logPrintf("WARNING: Could not open log file '%s' for writing, using standard output.\n", logFilename.c_str());
 		}
 	}
-
+	
+	//Set input base name if necessary:
+	if(inputFilename.length())
+	{	inputBasename = inputFilename;
+		//Remove extension:
+		size_t lastDot = inputBasename.find_last_of(".");
+		if(lastDot != string::npos)
+			inputBasename = inputBasename.substr(0, lastDot); //Remove extension
+		//Remove leading path:
+		size_t lastSlash = inputBasename.find_last_of("\\/");
+		if(lastSlash != string::npos)
+			inputBasename = inputBasename.substr(lastSlash+1);
+	}
+	
 	//Print banners, setup threads, GPUs and signal handlers
 	initSystem(argc, argv);
 }

@@ -86,7 +86,9 @@ private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.
 	string stamp; //!< timestamp for current dump
+	int curIter; DumpFrequency curFreq; //!< iteration number and dump-frequency of most recent operator() call
 	std::map<DumpFrequency,int> interval; //!< for each frequency, dump every interval times
+	std::map<DumpFrequency,string> formatFreq; //!< frequency-dependent format override
 	friend class Phonon;
 	friend struct CommandDump;
 	friend struct CommandDumpName;

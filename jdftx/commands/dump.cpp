@@ -239,7 +239,7 @@ struct CommandDumpInterval : public Command
 	{
 		format = "<freq> <interval>";
 		comments = 
-			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel|IonDynamics.\n"
+			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel.\n"
 			"Without this command, the behavior defaults to <interval>=1 for each <freq>.\n"
 			"(See command dump for more details)";
 		allowMultiple = true;
@@ -249,7 +249,7 @@ struct CommandDumpInterval : public Command
 	{	//get the frequency:
 		DumpFrequency freq;
 		pl.get(freq, DumpFreq_Delim, freqMap, "freq", true);
-		if(freq==DumpFreq_End)
+		if(freq==DumpFreq_End || freq==DumpFreq_Init)
 			throw string("<freq> must be one of Ionic|Electronic|Fluid|Gummel");
 		if(e.dump.interval.find(freq) != e.dump.interval.end())
 			throw string("dump-interval has been specified multiple times for <freq>=") + freqMap.getString(freq);
@@ -275,23 +275,38 @@ struct CommandDumpName : public Command
 {
 	CommandDumpName() : Command("dump-name", "jdftx/Output")
 	{
-		format = "<format>";
+		format = "<format> [<freq1> <format1>] [<freq2> <format2>] ...";
 		comments = 
 			"Control the filename pattern for dump output, where <format> is an\n"
 			"arbitrary format string that will be substituted according to:\n"
 			"+ $VAR   -> name of the variable being dumped (this must be present)\n"
-			"+ $STAMP -> time-stamp at the start of dump";
+			"+ $ITER  -> iteration number of relevant dump frequency\n"
+			"+ $INPUT -> base name of input file, or 'stdin'\n"
+			"+ $STAMP -> time-stamp at the start of dump\n"
+			"\n"
+			"Optionally, a different <format> could be specified for some dump frequencies.";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.dump.format, string("$STAMP.$VAR"), "format");
+	{	pl.get(e.dump.format, string("$INPUT.$VAR"), "format");
 		if(e.dump.format.find("$VAR")==string::npos)
 			throw "<format> = " + e.dump.format + " doesn't contain the pattern $VAR";
+		//Check for additional specifictaions:
+		while(true)
+		{	DumpFrequency freq; pl.get(freq, DumpFreq_Delim, freqMap, "<freqN>");
+			if(freq==DumpFreq_Delim) break; //no more freq's
+			string format; pl.get(format, string(), "<formatN>", true);
+			if(format.find("$VAR")==string::npos)
+				throw "<format> = " + format + " doesn't contain the pattern $VAR";
+			e.dump.formatFreq[freq] = format;
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	logPrintf("%s", e.dump.format.c_str());
+		for(auto entry: e.dump.formatFreq)
+			logPrintf(" \\\n\t%s %s", freqMap.getString(entry.first), entry.second.c_str());
 	}
 }
 commandDumpName;

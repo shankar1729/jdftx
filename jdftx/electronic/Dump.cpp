@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true)
+: potentialSubtraction(true), curIter(0)
 {
 }
 
@@ -67,6 +67,7 @@ void Dump::setup(const Everything& everything)
 void Dump::operator()(DumpFrequency freq, int iter)
 {
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
+	curIter = iter; curFreq = freq; //used by getFilename()
 	
 	bool foundVars = false; //whether any variables are to be dumped at this frequency
 	for(auto entry: *this)
@@ -613,10 +614,17 @@ bool Dump::checkInterval(DumpFrequency freq, int iter) const
 string Dump::getFilename(string varName) const
 {	//Create a map of substitutions:
 	std::map<string,string> subMap;
+	ostringstream ossIter; ossIter << curIter;
 	subMap["$VAR"] = varName;
+	subMap["$ITER"] = ossIter.str();
 	subMap["$STAMP"] = stamp;
-	//Apply the substitutions:
+	subMap["$INPUT"] = inputBasename;
+	//Find the relevant pattern:
 	string fname = format;
+	auto iter = formatFreq.find(curFreq);
+	if(iter != formatFreq.end())
+		fname = iter->second; //override with frequency-dependent format
+	//Apply the substitutions:
 	while(true)
 	{	bool found = false;
 		for(auto sub: subMap)

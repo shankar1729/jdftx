@@ -38,6 +38,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //------------- Common Initialization -----------------
 
+extern string inputBasename; //!< Basename of input file or "stdin" that can be used as a default run-name
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
 extern MPIUtil* mpiWorld; //!< MPI across all processes
 extern MPIUtil* mpiGroup; //!< MPI within current group of processes
