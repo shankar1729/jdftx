@@ -34,18 +34,33 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h> //This file is generated during build based on Git hash etc.
 
+InitParams::InitParams(const char* description, class Everything* e)
+: description(description), e(e), packageName(0), versionString(0), versionHash(0)
+{
+}
+
 //Program banner
-void printVersionBanner()
-{	logPrintf("\n*************** " PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH
-		" %s " PACKAGE_DESCRIPTION " ****************\n\n",
-		(strlen(VERSION_HASH) ? "(git hash " VERSION_HASH ")" : ""));
+void printVersionBanner(const InitParams* ip)
+{	string deco(15, '*');
+	string prefix;
+	logPrintf("\n");
+	if(ip && ip->packageName)
+	{	//Print other package's information (JDFTx is only a helper)
+		logPrintf("%s %s %s %s %s\n", deco.c_str(), ip->packageName, ip->versionString,
+			(strlen(ip->versionHash) ? ("(git hash " + string(ip->versionHash) + ")").c_str() : ""), deco.c_str());
+		deco.assign(15, '+');
+		prefix = "Linked to ";
+	}
+	logPrintf("%s %s" PACKAGE_NAME " " VERSION_MAJOR_MINOR_PATCH " %s %s\n",
+		deco.c_str(), prefix.c_str(), (strlen(VERSION_HASH) ? "(git hash " VERSION_HASH ")" : ""), deco.c_str());
+	logPrintf("\n"); logFlush();
 }
 
 //Print usage information
-void printUsage(const char *name, const char* description)
-{	printVersionBanner();
+void printUsage(const char *name, const InitParams& ip)
+{	printVersionBanner(&ip);
 	logPrintf("Usage: %s [options]\n",name);
-	logPrintf("\n\t%s\n\n", description);
+	logPrintf("\n\t%s\n\n", ip.description);
 	logPrintf("options:\n\n");
 	logPrintf("\t-h --help               help (this output)\n");
 	logPrintf("\t-v --version            version\n");
@@ -173,7 +188,7 @@ void printProcessDistribution(string header, string label, const MPIUtil* mpiUti
 	else mpiUtil->send(mpiWorld->iProcess(), 0, 0);
 }
 
-void initSystem(int argc, char** argv)
+void initSystem(int argc, char** argv, const InitParams* ip)
 {
 	argv0 = argv[0]; //remember how the executable was issued (for stack traces)
 	
@@ -189,7 +204,7 @@ void initSystem(int argc, char** argv)
 	globalLogOrig = globalLog;
 	
 	//Star time and commandline:
-	printVersionBanner();
+	printVersionBanner(ip);
 	time_t startTime = time(0);
 	startTime_us = clock_us();
 	logPrintf("Start date and time: %s", ctime(&startTime)); //note ctime output has a "\n" at the end
@@ -273,13 +288,13 @@ void initSystem(int argc, char** argv)
 		"'JDFTx: software for joint density-functional theory', arXiv:1708.03621 (2017)");
 }
 
-void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e)
+void initSystemCmdline(int argc, char** argv, InitParams& ip)
 {
 	mpiWorld = new MPIUtil(argc, argv);
 	
 	//Parse command line:
 	string logFilename; bool appendOutput=true;
-	dryRun=false; printDefaults=true;
+	ip.dryRun=false; ip.printDefaults=true;
 	option long_options[] =
 		{	{"help", no_argument, 0, 'h'},
 			{"version", no_argument, 0, 'v'},
@@ -300,14 +315,14 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 		if (c == -1) break; //end of options
 		#define RUN_HEAD(code) if(mpiWorld->isHead()) { code } delete mpiWorld;
 		switch (c)
-		{	case 'v': RUN_HEAD( printVersionBanner(); ) exit(0);
-			case 'h': RUN_HEAD( printUsage(argv[0], description); ) exit(0);
-			case 'i': inputFilename.assign(optarg); break;
+		{	case 'v': RUN_HEAD( printVersionBanner(&ip); ) exit(0);
+			case 'h': RUN_HEAD( printUsage(argv[0], ip); ) exit(0);
+			case 'i': ip.inputFilename.assign(optarg); break;
 			case 'o': logFilename.assign(optarg); break;
 			case 'd': appendOutput=false; break;
-			case 't': RUN_HEAD( if(e) printDefaultTemplate(*e); ) exit(0);
+			case 't': RUN_HEAD( if(ip.e) printDefaultTemplate(*ip.e); ) exit(0);
 			case 'm': mpiDebugLog=true; break;
-			case 'n': dryRun=true; break;
+			case 'n': ip.dryRun=true; break;
 			case 'c':
 			{	int nCores = 0;
 				if(sscanf(optarg, "%d", &nCores)==1 && nCores>0)
@@ -320,15 +335,15 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 			{	if(!(sscanf(optarg, "%d", &nProcessGroups)==1 && nProcessGroups>=0))
 				{	RUN_HEAD(
 						printf("\nOption -G (--nGroups) must be a non-negative integer.\n");
-						printUsage(argv[0], description);
+						printUsage(argv[0], ip);
 					)
 					exit(1);
 				}
 				break;
 			}
-			case 's': printDefaults=false; break;
-			case 'w': RUN_HEAD( if(e) writeCommandManual(*e, optarg); ) exit(0);
-			default: RUN_HEAD( printUsage(argv[0], description); ) exit(1);
+			case 's': ip.printDefaults=false; break;
+			case 'w': RUN_HEAD( if(ip.e) writeCommandManual(*ip.e, optarg); ) exit(0);
+			default: RUN_HEAD( printUsage(argv[0], ip); ) exit(1);
 		}
 		#undef RUN_HEAD
 	}
@@ -343,8 +358,8 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 	}
 	
 	//Set input base name if necessary:
-	if(inputFilename.length())
-	{	inputBasename = inputFilename;
+	if(ip.inputFilename.length())
+	{	inputBasename = ip.inputFilename;
 		//Remove extension:
 		size_t lastDot = inputBasename.find_last_of(".");
 		if(lastDot != string::npos)
@@ -356,7 +371,7 @@ void initSystemCmdline(int argc, char** argv, const char* description, string& i
 	}
 	
 	//Print banners, setup threads, GPUs and signal handlers
-	initSystem(argc, argv);
+	initSystem(argc, argv, &ip);
 }
 
 #ifdef ENABLE_PROFILING

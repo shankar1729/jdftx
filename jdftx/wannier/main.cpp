@@ -27,12 +27,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
-	string inputFilename; bool dryRun, printDefaults;
 	WannierEverything e;
-	initSystemCmdline(argc, argv, "Compute maximally-localized Wannier functions.", inputFilename, dryRun, printDefaults, &e);
+	InitParams ip("Compute maximally-localized Wannier functions.", &e);
+	initSystemCmdline(argc, argv, ip);
 
 	//Parse input file:
-	parse(readInputFile(inputFilename), e, printDefaults);
+	parse(readInputFile(ip.inputFilename), e, ip.printDefaults);
 	
 	//Set initial filenames and prevent unnecessary setup below:
 	e.eVars.wfnsFilename = e.wannier.getFilename(Wannier::FilenameInit, "wfns");
@@ -40,12 +40,12 @@ int main(int argc, char** argv)
 	e.eVars.nFilenamePattern.clear();
 	e.eVars.VFilenamePattern.clear();
 	e.eVars.fluidParams.fluidType = FluidNone;
-	if(dryRun) e.eVars.skipWfnsInit = true;
+	if(ip.dryRun) e.eVars.skipWfnsInit = true;
 	
 	//Setup:
 	e.setup();
 	Citations::print();
-	if(dryRun)
+	if(ip.dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 		finalizeSystem();
 		return 0;

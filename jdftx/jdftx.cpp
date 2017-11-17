@@ -32,18 +32,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
-	string inputFilename; bool dryRun, printDefaults;
 	Everything e; //the parent data structure for, well, everything
-	initSystemCmdline(argc, argv, "Performs Joint Density Functional Theory calculations.", inputFilename, dryRun, printDefaults, &e);
+	InitParams ip("Performs Joint Density Functional Theory calculations.", &e);
+	initSystemCmdline(argc, argv, ip);
 	
 	//Parse input file and setup
 	ElecVars& eVars = e.eVars;
-	parse(readInputFile(inputFilename), e, printDefaults);
-	if(dryRun) eVars.skipWfnsInit = true;
+	parse(readInputFile(ip.inputFilename), e, ip.printDefaults);
+	if(ip.dryRun) eVars.skipWfnsInit = true;
 	e.setup();
 	e.dump(DumpFreq_Init, 0);
 	Citations::print();
-	if(dryRun)
+	if(ip.dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 		finalizeSystem();
 		return 0;
