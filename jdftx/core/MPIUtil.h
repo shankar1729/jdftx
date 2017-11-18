@@ -41,12 +41,15 @@ class MPIUtil
 {
 	int nProcs, iProc;
 	#ifdef MPI_ENABLED
-		MPI_Comm comm;
+	MPI_Comm comm;
 	#endif
 public:
 	int iProcess() const { return iProc; } //!< rank of current process
 	int nProcesses() const { return nProcs; }  //!< number of processes
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
+	#ifdef MPI_ENABLED
+	MPI_Comm communicator() const { return comm; }; //!< retrieve underlying communicator
+	#endif
 
 	//! Helper for dividing MPI processes into groups
 	const struct ProcDivision
