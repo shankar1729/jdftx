@@ -194,6 +194,8 @@ void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool saf
 void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const char* fsizeErrMsg) const
 {	if(fsizeExpected)
 	{	intptr_t fsize = fileSize(fname);
+		if(fsize < 0)
+			die("Error opening file '%s' for reading.\n", fname);
 		if(fsize != intptr_t(fsizeExpected))
 			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}
