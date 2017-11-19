@@ -316,7 +316,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	
 	//Check hermiticity
 	const complex* thisData = data();
-	double errNum=0.0, errDen=0.0;
+	double errNum=0.0, errDen=1e-20; //avoid irrelevant error for zero matrix
 	for(int i=0; i<N; i++)
 		for(int j=0; j<N; j++)
 		{	errNum += norm(thisData[index(i,j)]-thisData[index(j,i)].conj());
