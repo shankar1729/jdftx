@@ -460,7 +460,20 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//--- get cell map with weights based on these center positions:
 	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
 		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
-
+	//--- output cell map weights:
+	if(mpiWorld->isHead())
+	{	matrix w = zeroes(nCenters*nCenters, iCellMap.size());
+		complex* wData = w.dataPref();
+		for(auto iter: iCellMap)
+		{	callPref(eblas_copy)(wData, iter.second.dataPref(), w.nRows());
+			wData += w.nRows();
+		}
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights");
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		w.write_real(fname.c_str());
+		logPrintf("done.\n"); logFlush();
+	}
+	
 	//Save Hamiltonian in Wannier basis:
 	int nqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
