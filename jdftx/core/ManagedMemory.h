@@ -181,6 +181,8 @@ template<typename T> void ManagedMemory<T>::memMove(ManagedMemory<T>&& mOther)
 template<typename T> void ManagedMemory<T>::read(const char *fname)
 {	intptr_t fsizeExpected = nData() * sizeof(T);
 	intptr_t fsize = fileSize(fname);
+	if(fsize < 0)
+		die("Could not open file for reading.\n");
 	if(fsize != fsizeExpected)
 		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname, "rb");
@@ -208,6 +210,8 @@ template<typename T> void ManagedMemory<T>::read_real(const char *fname)
 {	assert((std::is_same<T,complex>::value));
 	intptr_t fsizeExpected = nData() * sizeof(double);
 	intptr_t fsize = fileSize(fname);
+	if(fsize < 0)
+		die("Could not open file for reading.\n");
 	if(fsize != fsizeExpected)
 		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname,"rb");
