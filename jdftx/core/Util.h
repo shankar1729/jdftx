@@ -146,7 +146,6 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 		fflush(globalLog); \
 		if(mpiWorld->isHead() && globalLog != stdout) \
 			fprintf(stderr, __VA_ARGS__); \
-		if(mpiWorld->nProcesses() == 1) finalizeSystem(false); /* Safe to call only if no other process */ \
 		mpiWorld->exit(1); \
 	}
 
