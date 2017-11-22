@@ -285,7 +285,7 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 	//Add citations to the code for all calculations:
 	Citations::add("Software package",
 		"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, D. Gunceler, Y. Ozhabes and T.A. Arias, "
-		"'JDFTx: software for joint density-functional theory', arXiv:1708.03621 (2017)");
+		"'JDFTx: software for joint density-functional theory', SoftwareX 6, 278 (2017)");
 }
 
 void initSystemCmdline(int argc, char** argv, InitParams& ip)
