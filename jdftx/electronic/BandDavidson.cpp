@@ -35,6 +35,9 @@ void BandDavidson::minimize()
 	const QuantumNumber& qnum = eInfo.qnums[q];
 	int nBandsOut = eInfo.nBands; //number of final output bands desired
 	int nBandsMax = ceil(e.cntrl.davidsonBandRatio * nBandsOut);
+	if(2*nBandsMax >= int(C.basis->nbasis))
+		die_alone("Cannot use Davidson eigenvalue algorithm when 2 x nBands x davidsonBandRatio > nBasis.\n"
+			"Reduce nBands or davidsonBandRatio, increase nBasis (Ecut) or use elec-eigen-algo CG.\n\n");
 	
 	//Initial subspace eigenvalue problem:
 	ColumnBundle HC;
