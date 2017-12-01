@@ -28,7 +28,8 @@ It is distributed under the [GPL](http://www.gnu.org/licenses/gpl.html)
 license (version 3 or higher) and publications resulting from its use must cite:
 
 + R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, D. Gunceler, Y. Ozhabes and T.A. Arias,
-  'JDFTx: software for joint density-functional theory', [arXiv:1708.03621](https://arxiv.org/abs/1708.03621) (2017)
+  'JDFTx: software for joint density-functional theory',
+  [<i>SoftwareX</i> <b>6</b>, 278 (2017)](http://doi.org/10.1016/j.softx.2017.10.006)
 
 For any given calculation, JDFTx prints out a list of relevant citations for optional features of the code used in that run.
 This output appears at the end of initialization just before the first electronic solve starts.
