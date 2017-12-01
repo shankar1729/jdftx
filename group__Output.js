@@ -189,6 +189,7 @@ var group__Output =
       [ "input", "classPhonon.html#a0f1b1889d475044a403aa83434423292", null ],
       [ "iPerturbation", "classPhonon.html#a3c9c8645cc2ea47a68e66006ab107c6e", null ],
       [ "rSmooth", "classPhonon.html#a0e91ea69468e75a7876ca20156512404", null ],
+      [ "saveHsub", "classPhonon.html#a484fbacd997995d6e55f143ad10bd021", null ],
       [ "sup", "classPhonon.html#a8de5046e3d4a29fdf35b774d6e62cc80", null ],
       [ "T", "classPhonon.html#ac1dddd0f405d0d09622390237ffdc08d", null ]
     ] ],
@@ -244,7 +245,8 @@ var group__Output =
       [ "saveMomenta", "classWannier.html#a91db9d0742e6e012b2f6af22776b28f8", null ],
       [ "saveWfns", "classWannier.html#a75493237f96463466af51f1a6fe077c6", null ],
       [ "saveWfnsRealSpace", "classWannier.html#a9227b89e50bb5853456aab646572e8b5", null ],
-      [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ]
+      [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ],
+      [ "wrapWS", "classWannier.html#afa373e45069fdb9b0964aa1f5b0f5869", null ]
     ] ],
     [ "WannierEverything", "structWannierEverything.html", [
       [ "setup", "structWannierEverything.html#a9b45fb0978443dd425e9d4841e55e8f3", null ],
@@ -351,11 +353,11 @@ var group__Output =
     ] ],
     [ "DumpFrequency", "group__Output.html#ga4a9d2cb5ab5cb83ddb6262b28be1069e", [
       [ "DumpFreq_End", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eacd15906dd7932d4d81294b18193eefab", null ],
+      [ "DumpFreq_Init", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea8e8f11c1ca44d94ca394bce63a418b91", null ],
       [ "DumpFreq_Electronic", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eaeb89f2227990f9093694478237884ff5", null ],
       [ "DumpFreq_Fluid", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea9692afe4764a8ac5540bbf3f08d90ee1", null ],
       [ "DumpFreq_Ionic", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea9646b3a2febe6e6164be45d692374b09", null ],
-      [ "DumpFreq_Gummel", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eadafcdfeb612400c3647093bed39c9698", null ],
-      [ "DumpFreq_Dynamics", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eafb875189f44663d12db2024be041bedc", null ]
+      [ "DumpFreq_Gummel", "group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eadafcdfeb612400c3647093bed39c9698", null ]
     ] ],
     [ "DumpVariable", "group__Output.html#gab78cde8e08849746f8d4ea413fb1a6d7", null ],
     [ "dumpExcitations", "group__Output.html#gae45f6c5bd0d6c46bc9eef1ed833dd344", null ],

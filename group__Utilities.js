@@ -58,6 +58,13 @@ var group__Utilities =
       [ "GpuLaunchConfigHalf3D", "structGpuLaunchConfigHalf3D.html#aac6ecfd4ca1c1c4d634c5e307f72956e", null ]
     ] ],
     [ "MPIUtil", "classMPIUtil.html", [
+      [ "ProcDivision", "structMPIUtil_1_1ProcDivision.html", [
+        [ "ProcDivision", "structMPIUtil_1_1ProcDivision.html#add830362b6c984b9c8cdf8d80784554f", null ],
+        [ "operator bool", "structMPIUtil_1_1ProcDivision.html#accc67903ac260b8a1e6ec211a8c1221e", null ],
+        [ "iGroup", "structMPIUtil_1_1ProcDivision.html#a525247d8d3986a3fc0610c71a237a064", null ],
+        [ "mpiUtil", "structMPIUtil_1_1ProcDivision.html#ae8e2ab869436138e79697ca6262e29a8", null ],
+        [ "nGroups", "structMPIUtil_1_1ProcDivision.html#a814770ada26212e51f171dec8d1e0ff1", null ]
+      ] ],
       [ "File", "classMPIUtil.html#aef5835d7ced6026d3ab3d26b9a735e47", null ],
       [ "ReduceOp", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257", [
         [ "ReduceMin", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a5d45e0d76f971f3cb21897c4e919240b", null ],
@@ -71,7 +78,7 @@ var group__Utilities =
         [ "ReduceLXor", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a9107a89992a9425ddc40460e9de291fb", null ],
         [ "ReduceBXor", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a75a28829cc1cc3b069d86d89e4979b54", null ]
       ] ],
-      [ "MPIUtil", "classMPIUtil.html#acb848f71bcd7e9c0881b558c4563de87", null ],
+      [ "MPIUtil", "classMPIUtil.html#a9b80915d473183c627036a005b794b15", null ],
       [ "~MPIUtil", "classMPIUtil.html#a1a7c422645ae60128e7394aeae53b0bd", null ],
       [ "allReduce", "classMPIUtil.html#ab6660635a0f6b294e65d082c5f7c2ff4", null ],
       [ "allReduce", "classMPIUtil.html#a2bbcc46bc0441603590fcc3fdc744323", null ],
@@ -104,7 +111,8 @@ var group__Utilities =
       [ "send", "classMPIUtil.html#a28500baefaec173b19f87e3a64c96961", null ],
       [ "send", "classMPIUtil.html#a09110157dfb87fedbda22e8653f6db43", null ],
       [ "send", "classMPIUtil.html#a38b841bbaade2fdff223074847c38a1d", null ],
-      [ "send", "classMPIUtil.html#a4e9f0de93f42cb884008e04bdf7bba0a", null ]
+      [ "send", "classMPIUtil.html#a4e9f0de93f42cb884008e04bdf7bba0a", null ],
+      [ "procDivision", "classMPIUtil.html#a7903d1c84985985c153e452efb45c4fc", null ]
     ] ],
     [ "TaskDivision", "classTaskDivision.html", [
       [ "TaskDivision", "classTaskDivision.html#ad3a924888cb8378c33831cc9079b30a4", null ],
@@ -146,6 +154,17 @@ var group__Utilities =
       [ "AutoThreadCount", "classAutoThreadCount.html#aa89a9f813ea3d39075a24310a8eeb837", null ],
       [ "~AutoThreadCount", "classAutoThreadCount.html#a14611ab41a973b74b70978eee1deb97f", null ],
       [ "threadLaunch", "classAutoThreadCount.html#a3171d6b8ca56e191a11827faff335f4f", null ]
+    ] ],
+    [ "InitParams", "structInitParams.html", [
+      [ "InitParams", "structInitParams.html#a6cde23f48a92381c4012d7c668016695", null ],
+      [ "description", "structInitParams.html#a850dfdea8e7158b6336b336927b803c6", null ],
+      [ "dryRun", "structInitParams.html#a2659b915373a3eb3af5a9b6731c442a9", null ],
+      [ "e", "structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19", null ],
+      [ "inputFilename", "structInitParams.html#a471ab752be2f305baedfc3431a7145c6", null ],
+      [ "packageName", "structInitParams.html#adc5da7aa00e31864265f9413fb20d01a", null ],
+      [ "printDefaults", "structInitParams.html#abb7f583b55c326d16ac655edf617cce4", null ],
+      [ "versionHash", "structInitParams.html#aeca5f6c50e5d56a6050f649ed61534f8", null ],
+      [ "versionString", "structInitParams.html#af705a56257c3b60f942859628ede8bea", null ]
     ] ],
     [ "StopWatch", "classStopWatch.html", [
       [ "StopWatch", "classStopWatch.html#a3f8e4a47c0133369399a85438a176cbe", null ],
@@ -190,9 +209,9 @@ var group__Utilities =
     [ "fwriteLE", "group__Utilities.html#gaf3003a7aeb4e5617361b355dc6efc25f", null ],
     [ "getEulerAxis", "group__Utilities.html#ga6e6633fc217010aa922d4d55bebdc748", null ],
     [ "gpuErrorCheck", "group__Utilities.html#gaddeccb0542ece591bd13b548ff1e286a", null ],
-    [ "gpuInit", "group__Utilities.html#ga28d12414b491b8481531c8fc53ab8d52", null ],
-    [ "initSystem", "group__Utilities.html#ga579bd890c75bfca099becdfe18b03e8c", null ],
-    [ "initSystemCmdline", "group__Utilities.html#gacd28104c78f3d53a0873788155317449", null ],
+    [ "gpuInit", "group__Utilities.html#ga954747d4f410c1a83dcca87abf3d086c", null ],
+    [ "initSystem", "group__Utilities.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe", null ],
+    [ "initSystemCmdline", "group__Utilities.html#gaa1515ffce5133c99a71f4229f8221f48", null ],
     [ "isGpuEnabled", "group__Utilities.html#gabe01a530b3bbc203a3cac3958acd0456", null ],
     [ "isGpuMine", "group__Utilities.html#ga369db504180734269f984d97191a3e10", null ],
     [ "logResume", "group__Utilities.html#ga2e328f5822df6619349d3353d189497e", null ],
@@ -201,7 +220,7 @@ var group__Utilities =
     [ "polarUnitVector", "group__Utilities.html#gadadad860978971669c1c3148afab052e", null ],
     [ "positiveRemainder", "group__Utilities.html#ga88c9854a4a88877675f64663e75b73db", null ],
     [ "printStack", "group__Utilities.html#ga6882e40124f99c596a73986669bd7bab", null ],
-    [ "printVersionBanner", "group__Utilities.html#gaa55bf007c9472a561520d7e524b0d3b1", null ],
+    [ "printVersionBanner", "group__Utilities.html#ga826bc16e893333c0ead2af397619ca62", null ],
     [ "resumeOperatorThreading", "group__Utilities.html#ga0579e267e9b37069145013bb7e309064", null ],
     [ "set_Ylm", "group__Utilities.html#ga247eb18a0ca1f556f73d20730a00d64d", null ],
     [ "shouldThreadOperators", "group__Utilities.html#gae05949d6e64da0df9c924ee4a20a1935", null ],
@@ -227,6 +246,7 @@ var group__Utilities =
     [ "cudaDevProps", "group__Utilities.html#gac05c6e7e2788683fda8f63d711576be7", null ],
     [ "eV", "group__Utilities.html#ga87b385f118e3715860117a77eda7136d", null ],
     [ "fs", "group__Utilities.html#gae9b6ba26b138aafb089d93703ea2758c", null ],
+    [ "inputBasename", "group__Utilities.html#ga907316040fd97459f37e166f613b88cb", null ],
     [ "invcm", "group__Utilities.html#ga19afd8422ee1ca180223db46437f54b1", null ],
     [ "invSec", "group__Utilities.html#ga492a43b4b0284563867905d8ac7d635d", null ],
     [ "Joule", "group__Utilities.html#gafac7c0ac1f52ed66bfcb864dc6d1dfee", null ],
@@ -242,11 +262,15 @@ var group__Utilities =
     [ "mmHg", "group__Utilities.html#gaef987b98e46a94d8b97eebe70a71e7e8", null ],
     [ "mol", "group__Utilities.html#gaabefcc198b3e2606497fd55b370846fa", null ],
     [ "mpiDebugLog", "group__Utilities.html#gae33e980fb4eaf243be1c38d7e1fcdf0b", null ],
+    [ "mpiGroup", "group__Utilities.html#ga1fb83d6aa6b4f89361b2a93425b89a7e", null ],
+    [ "mpiGroupHead", "group__Utilities.html#gae63b2082e1ef86f146a99592b64dbf16", null ],
+    [ "mpiWorld", "group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4", null ],
     [ "Newton", "group__Utilities.html#gab8fbe0e564f63aedc8d34c558be1612b", null ],
     [ "nProcsAvailable", "group__Utilities.html#ga08f23ff704a488738a9741bde7feab45", null ],
     [ "nullLog", "group__Utilities.html#ga5a037ad642646d7d094bc2278d206d70", null ],
     [ "Ohm", "group__Utilities.html#ga0a0d6eb5d6e69e8d3d00e31903e5624f", null ],
     [ "Pascal", "group__Utilities.html#ga126cef65679c94a01e8fb216febfde82", null ],
+    [ "Ryd", "group__Utilities.html#gad5b3d738b790c3465c2162fbb7c53e08", null ],
     [ "sec", "group__Utilities.html#ga775a3e65279359fb2b464f0aedc383f1", null ],
     [ "Volt", "group__Utilities.html#ga03677a0aece81df0433737cd11bc658f", null ]
 ];

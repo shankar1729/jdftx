@@ -103,11 +103,11 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 </pre><h2>Description: </h2>
 <p>&lt;freq&gt; is one of:</p>
 <ul>
-<li>Electronic : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) electronic step(s)</li>
+<li>Electronic: <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) electronic step(s)</li>
 <li>End : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars at the end of the calculation</li>
 <li>Fluid : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) fluid step(s)</li>
 <li>Gummel : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) fluid+electron minimize of the gummel loop</li>
-<li><a class="el" href="classIonDynamics.html" title="Ionic dynamics (AIMD) ">IonDynamics</a>: <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces, .eigenvals and .Ecomponents</li>
+<li>Init : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars from CoreDensity|Gvectors|IonicPositions|Kpoints|Lattice|None|Symmetries|Vlocps after initialization (even in dry run)</li>
 <li>Ionic : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> specified vars every (few) ionic / lattice step(s)</li>
 </ul>
 <p>and each &lt;var&gt; is one of:</p>
@@ -145,7 +145,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <li>None : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> nothing</li>
 <li>Ocean : Wave functions for Ocean code</li>
 <li>OrbitalDep : Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)</li>
-<li>QMC : Blip'd orbitals and potential for CASINO <a class="el" href="citelist.html#CITEREF_Katie-QMC">[22]</a></li>
+<li>QMC : Blip'd orbitals and potential for CASINO <a class="el" href="citelist.html#CITEREF_Katie-QMC">[24]</a></li>
 <li>RealSpaceWfns : Real-space wavefunctions (one column per file)</li>
 <li>RhoAtom : Atomic-orbital projected density matrices (only for species with +U enabled)</li>
 <li>SelfInteractionCorrection: Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues</li>

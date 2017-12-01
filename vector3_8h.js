@@ -18,6 +18,7 @@ var vector3_8h =
     [ "gcdReduce", "vector3_8h.html#ga80b49fd9f1210a3ed94d3a8c3eb8734b", null ],
     [ "loadVector", "vector3_8h.html#gaca3fcdf59579cfdf72f0f2287aea7537", null ],
     [ "loadVector", "vector3_8h.html#ga8046fd6c818e00ce7698060a3901b7eb", null ],
+    [ "normalize", "vector3_8h.html#gab1fb7c9fb98bf1c45d6f6f78ab66b514", null ],
     [ "operator*", "vector3_8h.html#ga5bf9ae2b8ed255dc0ca16b3030e4a351", null ],
     [ "operator*", "vector3_8h.html#ga37f9b91adc91033f0cd7b1fd681a3fb2", null ],
     [ "operator*", "vector3_8h.html#gaf616915b4b001863e21c354674de7e46", null ],

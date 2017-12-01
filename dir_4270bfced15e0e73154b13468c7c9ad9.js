@@ -19,7 +19,9 @@ var dir_4270bfced15e0e73154b13468c7c9ad9 =
     [ "matrix.h", "matrix_8h.html", "matrix_8h" ],
     [ "matrix3.h", "matrix3_8h.html", "matrix3_8h" ],
     [ "Minimize.h", "Minimize_8h.html", null ],
-    [ "MPIUtil.h", "MPIUtil_8h.html", null ],
+    [ "MPIUtil.h", "MPIUtil_8h.html", [
+      [ "ProcDivision", "structMPIUtil_1_1ProcDivision.html", "structMPIUtil_1_1ProcDivision" ]
+    ] ],
     [ "Operators.h", "Operators_8h.html", "Operators_8h" ],
     [ "RadialFunction.h", "RadialFunction_8h.html", null ],
     [ "scalar.h", "scalar_8h.html", "scalar_8h" ],

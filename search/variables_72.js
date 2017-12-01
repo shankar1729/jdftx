@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['r',['r',['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()'],['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()']]],
+  ['r',['R',['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()'],['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()']]],
   ['radius',['radius',['../structDOS_1_1Weight.html#a8ade2870de40ed0fdf3540730d25885b',1,'DOS::Weight']]],
   ['rc',['Rc',['../structCoulombParams.html#a5c9698e933681a9770396f5362edd0d3',1,'CoulombParams']]],
   ['rcelec',['rcElec',['../structMolecule_1_1Site.html#a96ac84d29d81858d079b2ff71687e226',1,'Molecule::Site']]],
@@ -27,5 +27,6 @@ var searchData=
   ['rsmooth',['rSmooth',['../classPhonon.html#a0e91ea69468e75a7876ca20156512404',1,'Phonon::rSmooth()'],['../classWannier.html#a44df300a5c7e4bdae38a7dec785bc310',1,'Wannier::rSmooth()']]],
   ['rsqexpect',['rSqExpect',['../classWannierMinimizer.html#a39c37b7b0d0d18e25200a2b7039cf447',1,'WannierMinimizer']]],
   ['rsuper',['Rsuper',['../structSupercell.html#a53da82b079628bc48cf3983bda88899b',1,'Supercell']]],
-  ['rvdw',['Rvdw',['../structFluidComponent.html#aa0438935adaff2927aba6a0e7a130a74',1,'FluidComponent']]]
+  ['rvdw',['Rvdw',['../structFluidComponent.html#aa0438935adaff2927aba6a0e7a130a74',1,'FluidComponent']]],
+  ['ryd',['Ryd',['../group__Utilities.html#gad5b3d738b790c3465c2162fbb7c53e08',1,'Units.h']]]
 ];

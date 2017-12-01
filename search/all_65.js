@@ -16,7 +16,7 @@ var searchData=
   ['electron_2dscattering',['electron-scattering',['../CommandElectronScattering.html',1,'CommandIndex']]],
   ['exchange_2dparameters',['exchange-parameters',['../CommandExchangeParameters.html',1,'CommandIndex']]],
   ['exchange_2dregularization',['exchange-regularization',['../CommandExchangeRegularization.html',1,'CommandIndex']]],
-  ['e',['e',['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()'],['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()']]],
+  ['e',['e',['../structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19',1,'InitParams::e()'],['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()'],['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()']]],
   ['eband',['Eband',['../classEnergies.html#a9c98ca35cbf5d3a9cb87c5f266051dd6',1,'Energies']]],
   ['eblas_5faccumnorm',['eblas_accumNorm',['../group__Operators.html#ga6c1b03241b133beaed04728d26a086e3',1,'BlasExtra.h']]],
   ['eblas_5faccumnorm_5fgpu',['eblas_accumNorm_gpu',['../group__Operators.html#ga4990759337c29d9752c444b78e3930db',1,'BlasExtra.h']]],

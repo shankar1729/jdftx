@@ -83,6 +83,7 @@ var CommandIndex =
     [ "polarizability-kdiff", "CommandPolarizabilityKdiff.html", null ],
     [ "potential-subtraction", "CommandPotentialSubtraction.html", null ],
     [ "rhoExternal", "CommandRhoExternal.html", null ],
+    [ "set-atomic-radius", "CommandSetAtomicRadius.html", null ],
     [ "setVDW", "CommandSetVDW.html", null ],
     [ "slab-epsilon", "CommandSlabEpsilon.html", null ],
     [ "spintype", "CommandSpintype.html", null ],

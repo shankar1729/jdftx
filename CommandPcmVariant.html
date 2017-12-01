@@ -103,9 +103,9 @@ $(document).ready(function(){initNavTree('CommandPcmVariant.html','');});
 </pre><h2>Description: </h2>
 <p>Select &lt;variant&gt; of <a class="el" href="classLinearPCM.html" title="Linear solvation models: shared electrostatics implementation. ">LinearPCM</a> or <a class="el" href="classNonlinearPCM.html" title="Nonlinear solvation models: shared electrostatic part implementation. ">NonlinearPCM</a> that determines the cavity and related energies (cavitation, dispersion etc.). CANDLE and SCCS variants are only supported for <a class="el" href="classLinearPCM.html" title="Linear solvation models: shared electrostatics implementation. ">LinearPCM</a>. Here, &lt;variant&gt; must be one of:</p>
 <ul>
-<li>CANDLE : Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model <a class="el" href="citelist.html#CITEREF_CANDLE">[27]</a></li>
-<li>GLSSA13 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with empirical cavity tension <a class="el" href="citelist.html#CITEREF_NonlinearPCM">[10]</a></li>
-<li>LA12 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with no cavitation/dispersion contributions <a class="el" href="citelist.html#CITEREF_PCM-Kendra">[13]</a></li>
+<li>CANDLE : Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model <a class="el" href="citelist.html#CITEREF_CANDLE">[29]</a></li>
+<li>GLSSA13 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with empirical cavity tension <a class="el" href="citelist.html#CITEREF_NonlinearPCM">[11]</a></li>
+<li>LA12 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with no cavitation/dispersion contributions <a class="el" href="citelist.html#CITEREF_PCM-Kendra">[14]</a></li>
 <li>SCCS_anion : anions-only parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS-charged">[6]</a></li>
 <li>SCCS_cation : cations-only parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS-charged">[6]</a></li>
 <li>SCCS_g03 : g03 parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS">[1]</a></li>
@@ -114,7 +114,8 @@ $(document).ready(function(){initNavTree('CommandPcmVariant.html','');});
 <li>SCCS_g03pbeta: g03'+beta parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS">[1]</a></li>
 <li>SCCS_g09 : g09 parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS">[1]</a></li>
 <li>SCCS_g09beta : g09+beta parametrization of SCCS local linear model for water <a class="el" href="citelist.html#CITEREF_PCM-SCCS">[1]</a></li>
-<li>SGA13 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with weighted-density cavitation and dispersion <a class="el" href="citelist.html#CITEREF_CavityWDA">[30]</a></li>
+<li>SGA13 : <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> with weighted-density cavitation and dispersion <a class="el" href="citelist.html#CITEREF_CavityWDA">[32]</a></li>
+<li>SoftSphere : Soft-sphere continuum solvation model <a class="el" href="citelist.html#CITEREF_PCM-SoftSphere">[7]</a></li>
 </ul>
 <h2>Properties: </h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandFluid.html">fluid</a></p>

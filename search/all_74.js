@@ -50,7 +50,7 @@ var searchData=
   ['transformmapsuper',['transformMapSuper',['../classWannierMinimizer.html#a7e2c55d452eca1a5a0164d38b1df914e',1,'WannierMinimizer']]],
   ['translate',['translate',['../group__DataStructures.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40',1,'translate(ColumnBundle &amp;&amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__DataStructures.html#ga1281b30e04ec70a4c9cd0fff1cc145be',1,'translate(const ColumnBundle &amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h']]],
   ['translatecolumns',['translateColumns',['../group__DataStructures.html#gad45659650b6bb083aabae792b10d2507',1,'ColumnBundle.h']]],
-  ['translationmode',['translationMode',['../structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b',1,'FluidComponent::translationMode()'],['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent::TranslationMode()']]],
+  ['translationmode',['TranslationMode',['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent::TranslationMode()'],['../structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b',1,'FluidComponent::translationMode()']]],
   ['translationoperator',['TranslationOperator',['../classTranslationOperator.html',1,'']]],
   ['translationoperator_2eh',['TranslationOperator.h',['../TranslationOperator_8h.html',1,'']]],
   ['translationoperatorfourier',['TranslationOperatorFourier',['../classTranslationOperatorFourier.html',1,'']]],

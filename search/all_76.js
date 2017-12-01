@@ -26,6 +26,8 @@ var searchData=
   ['velocities',['velocities',['../classSpeciesInfo.html#abb5f6168cdd29a2f1097a2e33ca010e4',1,'SpeciesInfo']]],
   ['verbose',['verbose',['../structSCFparams.html#a5aa62d1667819749bca620c8031a1f59',1,'SCFparams']]],
   ['verboselog',['verboseLog',['../classFluidMixture.html#a12e267989f1843a726b43a4c48bde3a7',1,'FluidMixture::verboseLog()'],['../structFluidSolverParams.html#ac4fe32ad71d0a32508bd5feb81a131ff',1,'FluidSolverParams::verboseLog()']]],
+  ['versionhash',['versionHash',['../structInitParams.html#aeca5f6c50e5d56a6050f649ed61534f8',1,'InitParams']]],
+  ['versionstring',['versionString',['../structInitParams.html#af705a56257c3b60f942859628ede8bea',1,'InitParams']]],
   ['vexternal',['Vexternal',['../classElecVars.html#a1da1d6b0bf98149f116053a0fbdf87b6',1,'ElecVars']]],
   ['vfilenamepattern',['VFilenamePattern',['../classElecVars.html#a1e8bb06c24bcf6fd4ec85633e1842a5a',1,'ElecVars']]],
   ['vibrations',['Vibrations',['../classVibrations.html',1,'Vibrations'],['../classEverything.html#a20bd568165570c81e2a8c06181213f63',1,'Everything::vibrations()']]],

@@ -2,7 +2,8 @@ var classLinearPCM =
 [
     [ "LinearPCM", "classLinearPCM.html#a5aca17dd2fe976308ab289e48eef4eb6", null ],
     [ "~LinearPCM", "classLinearPCM.html#a4c1d99494821fc581b109ca057b37f72", null ],
-    [ "get_Adiel_and_grad_internal", "classLinearPCM.html#a19207c044e259d14d88ddb588b675efa", null ],
+    [ "dumpDensities", "classLinearPCM.html#ad974c84cdf4d4abcd6cf4136716b07ef", null ],
+    [ "get_Adiel_and_grad_internal", "classLinearPCM.html#a071abb36a08267ef15a53556fc9fce26", null ],
     [ "hessian", "classLinearPCM.html#ac43afd92e1178e2364fddc13d25da184", null ],
     [ "loadState", "classLinearPCM.html#a97b61c7f2495745d65d591c1f71c6c9c", null ],
     [ "minimizeFluid", "classLinearPCM.html#a1b25cc1d3c45e582dc0ada5829ddabd6", null ],

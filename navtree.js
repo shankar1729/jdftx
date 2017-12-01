@@ -49,24 +49,24 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "ASE.html",
-"Coulomb__internal_8h.html#ga95d0b514b5d750e10f7bb88a4af82018",
-"FluidSolverParams_8h.html#ggadc697686fa0f3cf8cd69c627219cdd27a7c0a1682d4bbbe15a63538d83e8408c7",
-"PCM__internal_8h.html#a285fff5c90b2e5be406a89ea2dd21cf9",
-"VectorField_8h.html#ga0688d60b07f42a1122271953a3ad8399",
-"classCoulombIsolated.html",
-"classExCorr.html#a0aa828376d5b004b0057f15fab5874b9",
-"classIdealGasPomega.html#a64eda51a0c82b5283105068f2ba984b0",
-"classPeriodicLookup.html",
-"classTaskDivision.html#a8bc2add32f48cb4b41292a838db4eec1",
-"classtensor3.html#a012c42862258ee168bcb0473c8b596ab",
-"group__DataStructures.html#ga26ed28149a05c401b0e30b85b4a36aab",
-"group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373ba177c46eb0b6505dfb053a9556d2f2398",
-"group__Operators.html#ga8f28a65ff8c0f48d2d04129b16c4111d",
-"matrix_8h.html#ga9dc55c1322bdf09d5fddf48e9e14fdda",
-"structExCorr_1_1OrbitalDep.html#ac8137615d27c505e61572933e472959b",
-"structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d",
-"structRadialSchrodinger_1_1Outputs.html",
-"structnAugmentGradFunctor.html"
+"Coulomb__internal_8h.html#ga88ec8ec6c5b124aede160102d3fea322",
+"FluidSolverParams_8h.html#ggadc697686fa0f3cf8cd69c627219cdd27a238296975bde7886f5f1db4cd135abfa",
+"OxideSurfaces.html",
+"Util_8h.html#gae63b2082e1ef86f146a99592b64dbf16",
+"classCoulomb.html#af268cc5e01552b760ce0408a44a8512e",
+"classEverything.html#ae75fab70bd7c1c6de31d97155d821c80",
+"classIdealGasPomega.html#a2da06692596c19a4f4ae527eccd6795f",
+"classPCM.html#ad7f62b64056599984ba769f2f06ca5c0",
+"classSymmetries.html#aa10e7f66d9f0bc938884c3438efbc1ef",
+"classmatrix3.html#a82d9f26d5c8f60b2d702601189407cb0",
+"group__DataStructures.html#ga16e9b94d62ed8b3316a62c5750f25be5",
+"group__ExchangeCorrelation.html#gabcb69fb8e4fed587c7cc35712f592daa",
+"group__Operators.html#ga79546ba0d7ac12699a7052cd9078062b",
+"matrix_8h.html#ga4946d8501891e74f25c449623bdfac15",
+"structElecInfo_1_1ColumnBundleReadConversion.html#a64c372464f856b6e8f57a7ee3ae3d6a7",
+"structGpuLaunchConfig.html#a7d122b5282452099bb6e02cc608d6c83",
+"structPolarizability.html#aab3c975e6921e8b5b64fbc7b8b9be340",
+"structcomplexScalarFieldData.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

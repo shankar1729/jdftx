@@ -95,8 +95,10 @@ $(document).ready(function(){initNavTree('classMPIUtil.html','');});
 
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="classMPIUtil-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">MPIUtil Class Reference<div class="ingroups"><a class="el" href="group__Utilities.html">Shared utilities</a></div></div>  </div>
@@ -108,6 +110,12 @@ $(document).ready(function(){initNavTree('classMPIUtil.html','');});
 
 <p><code>#include &lt;MPIUtil.h&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structMPIUtil_1_1ProcDivision.html">ProcDivision</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper for dividing MPI processes into groups.  <a href="structMPIUtil_1_1ProcDivision.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a72d71b0b3ea252d4cab0edcd08b20257"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><b>ReduceOp</b> { <br/>
@@ -144,9 +152,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">isHead</a> () const </td></tr>
 <tr class="memdesc:a073f840aa8e37b6c215f23789729bd60"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether this is the root process (makes code more readable) <br/></td></tr>
 <tr class="separator:a073f840aa8e37b6c215f23789729bd60"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acb848f71bcd7e9c0881b558c4563de87"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acb848f71bcd7e9c0881b558c4563de87"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>MPIUtil</b> (int argc, char **argv)</td></tr>
-<tr class="separator:acb848f71bcd7e9c0881b558c4563de87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b80915d473183c627036a005b794b15"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9b80915d473183c627036a005b794b15"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>MPIUtil</b> (int argc, char **argv, <a class="el" href="structMPIUtil_1_1ProcDivision.html">ProcDivision</a> procDivision=<a class="el" href="structMPIUtil_1_1ProcDivision.html">ProcDivision</a>())</td></tr>
+<tr class="separator:a9b80915d473183c627036a005b794b15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa67c624ff9127d7c6ad5d308e854ad1c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa67c624ff9127d7c6ad5d308e854ad1c"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">exit</a> (int errCode) const </td></tr>
 <tr class="memdesc:aa67c624ff9127d7c6ad5d308e854ad1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">global exit (kill other MPI processes as well) <br/></td></tr>
@@ -269,6 +277,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>fread</b> (void *ptr,
 <tr class="memitem:a212bb20159c50643a2455d6a76c244e1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a212bb20159c50643a2455d6a76c244e1"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>fwrite</b> (const void *ptr, size_t size, size_t nmemb, File fp) const </td></tr>
 <tr class="separator:a212bb20159c50643a2455d6a76c244e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
+Public Attributes</h2></td></tr>
+<tr class="memitem:a7903d1c84985985c153e452efb45c4fc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7903d1c84985985c153e452efb45c4fc"></a>
+struct <a class="el" href="structMPIUtil_1_1ProcDivision.html">MPIUtil::ProcDivision</a>&#160;</td><td class="memItemRight" valign="bottom"><b>procDivision</b></td></tr>
+<tr class="separator:a7903d1c84985985c153e452efb45c4fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>MPI wrapper class. </p>

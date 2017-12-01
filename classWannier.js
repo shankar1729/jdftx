@@ -39,5 +39,6 @@ var classWannier =
     [ "saveMomenta", "classWannier.html#a91db9d0742e6e012b2f6af22776b28f8", null ],
     [ "saveWfns", "classWannier.html#a75493237f96463466af51f1a6fe077c6", null ],
     [ "saveWfnsRealSpace", "classWannier.html#a9227b89e50bb5853456aab646572e8b5", null ],
-    [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ]
+    [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ],
+    [ "wrapWS", "classWannier.html#afa373e45069fdb9b0964aa1f5b0f5869", null ]
 ];

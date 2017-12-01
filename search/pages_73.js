@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['set_2datomic_2dradius',['set-atomic-radius',['../CommandSetAtomicRadius.html',1,'CommandIndex']]],
   ['setvdw',['setVDW',['../CommandSetVDW.html',1,'CommandIndex']]],
   ['slab_2depsilon',['slab-epsilon',['../CommandSlabEpsilon.html',1,'CommandIndex']]],
   ['spintype',['spintype',['../CommandSpintype.html',1,'CommandIndex']]],

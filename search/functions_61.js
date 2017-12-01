@@ -3,6 +3,7 @@ var searchData=
   ['abs',['abs',['../structcomplex.html#af509fd288e2d811cb772795b8fd86c2a',1,'complex::abs()'],['../group__DataStructures.html#ga5296197431bc0b3ca45de9d930fed67f',1,'abs():&#160;scalar.h']]],
   ['absorbscale',['absorbScale',['../structFieldData.html#ae339b4740d15c76a3f7d8b7fa39acb75',1,'FieldData']]],
   ['accumcolumn',['accumColumn',['../classColumnBundle.html#a16e52bd2417e2ad6e80868a429112089',1,'ColumnBundle']]],
+  ['accumextraforces',['accumExtraForces',['../classPCM.html#aac9a1ce92f566f409da39a8041d5499b',1,'PCM']]],
   ['accumnonlocalforces',['accumNonlocalForces',['../classSpeciesInfo.html#a2a5fe2fb56d80f416d4ec3fd273af98f',1,'SpeciesInfo']]],
   ['accumtensor',['accumTensor',['../group__DataStructures.html#gae4991b2e4de144ea2acd5fda3a75cb28',1,'tensor3.h']]],
   ['accumulateatomicdensity',['accumulateAtomicDensity',['../classSpeciesInfo.html#a5d7b7cdcedb9b50db478d40cf319dcb6',1,'SpeciesInfo']]],

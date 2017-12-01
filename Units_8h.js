@@ -22,6 +22,7 @@ var Units_8h =
     [ "Newton", "Units_8h.html#gab8fbe0e564f63aedc8d34c558be1612b", null ],
     [ "Ohm", "Units_8h.html#ga0a0d6eb5d6e69e8d3d00e31903e5624f", null ],
     [ "Pascal", "Units_8h.html#ga126cef65679c94a01e8fb216febfde82", null ],
+    [ "Ryd", "Units_8h.html#gad5b3d738b790c3465c2162fbb7c53e08", null ],
     [ "sec", "Units_8h.html#ga775a3e65279359fb2b464f0aedc383f1", null ],
     [ "Volt", "Units_8h.html#ga03677a0aece81df0433737cd11bc658f", null ]
 ];

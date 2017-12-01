@@ -1,5 +1,6 @@
 var classMPIUtil =
 [
+    [ "ProcDivision", "structMPIUtil_1_1ProcDivision.html", "structMPIUtil_1_1ProcDivision" ],
     [ "File", "classMPIUtil.html#aef5835d7ced6026d3ab3d26b9a735e47", null ],
     [ "ReduceOp", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257", [
       [ "ReduceMin", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a5d45e0d76f971f3cb21897c4e919240b", null ],
@@ -13,7 +14,7 @@ var classMPIUtil =
       [ "ReduceLXor", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a9107a89992a9425ddc40460e9de291fb", null ],
       [ "ReduceBXor", "classMPIUtil.html#a72d71b0b3ea252d4cab0edcd08b20257a75a28829cc1cc3b069d86d89e4979b54", null ]
     ] ],
-    [ "MPIUtil", "classMPIUtil.html#acb848f71bcd7e9c0881b558c4563de87", null ],
+    [ "MPIUtil", "classMPIUtil.html#a9b80915d473183c627036a005b794b15", null ],
     [ "~MPIUtil", "classMPIUtil.html#a1a7c422645ae60128e7394aeae53b0bd", null ],
     [ "allReduce", "classMPIUtil.html#ab6660635a0f6b294e65d082c5f7c2ff4", null ],
     [ "allReduce", "classMPIUtil.html#a2bbcc46bc0441603590fcc3fdc744323", null ],
@@ -46,5 +47,6 @@ var classMPIUtil =
     [ "send", "classMPIUtil.html#a28500baefaec173b19f87e3a64c96961", null ],
     [ "send", "classMPIUtil.html#a09110157dfb87fedbda22e8653f6db43", null ],
     [ "send", "classMPIUtil.html#a38b841bbaade2fdff223074847c38a1d", null ],
-    [ "send", "classMPIUtil.html#a4e9f0de93f42cb884008e04bdf7bba0a", null ]
+    [ "send", "classMPIUtil.html#a4e9f0de93f42cb884008e04bdf7bba0a", null ],
+    [ "procDivision", "classMPIUtil.html#a7903d1c84985985c153e452efb45c4fc", null ]
 ];

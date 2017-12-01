@@ -2,6 +2,7 @@ var structFluidSolverParams =
 [
     [ "FluidSolverParams", "structFluidSolverParams.html#a96a5fa4bbad673455ef33122aca12e54", null ],
     [ "addComponent", "structFluidSolverParams.html#a6032e0dcac8eea8afb8cdd482ffd05a4", null ],
+    [ "getAtomicRadius", "structFluidSolverParams.html#a7e4aaf317c24e3fd465e5c6f1bb14366", null ],
     [ "ionicScreening", "structFluidSolverParams.html#ac8f5ea4fa7f48403a465dc7a840864f3", null ],
     [ "needsVDW", "structFluidSolverParams.html#a6dd173baebb46c51d3c10d521602da92", null ],
     [ "setCDFTparams", "structFluidSolverParams.html#ac3b63d36a25e2fbf1fba4862027db103", null ],
@@ -9,6 +10,7 @@ var structFluidSolverParams =
     [ "anions", "structFluidSolverParams.html#ad5a9b9ea515192b2ef92c8ded0337c6f", null ],
     [ "cations", "structFluidSolverParams.html#a4b82e46dca7a11bb618f3d7be10f9cbc", null ],
     [ "cavityPressure", "structFluidSolverParams.html#ada4f7926ef2beb648f624a4d3a4ea342", null ],
+    [ "cavityScale", "structFluidSolverParams.html#a61f035ba179e32f6df198277cc72c82e", null ],
     [ "cavityTension", "structFluidSolverParams.html#a0d9d83ace9cf64ad3a5815f4c57f2650", null ],
     [ "components", "structFluidSolverParams.html#a001ee767d8b4f4e97d8e253a6842b8e0", null ],
     [ "epsBulkOverride", "structFluidSolverParams.html#a9b61354069819369b48f3cada4070031", null ],
@@ -18,6 +20,7 @@ var structFluidSolverParams =
     [ "fluidType", "structFluidSolverParams.html#a459747a667a9db7d1f2baf9de5a5b288", null ],
     [ "FmixList", "structFluidSolverParams.html#a3089166840fce194fe0fcb13cf0d39a0", null ],
     [ "initWarnings", "structFluidSolverParams.html#afb91bc0d52f73188e28f81f3bacf1de2", null ],
+    [ "ionSpacing", "structFluidSolverParams.html#aab96da8e927dbb512c8d223ccf5fe223", null ],
     [ "linearDielectric", "structFluidSolverParams.html#a66c40f0b3e5d187c90289cca4361e2d8", null ],
     [ "linearScreening", "structFluidSolverParams.html#ac0c9d395e0512ffa227e863cfac58241", null ],
     [ "lMax", "structFluidSolverParams.html#a23cf41b48966721c8ef69c80fb0d6008", null ],

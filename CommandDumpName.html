@@ -99,19 +99,22 @@ $(document).ready(function(){initNavTree('CommandDumpName.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2>Syntax: </h2>
-<pre class="fragment">dump-name &lt;format&gt;
+<pre class="fragment">dump-name &lt;format&gt; [&lt;freq1&gt; &lt;format1&gt;] [&lt;freq2&gt; &lt;format2&gt;] ...
 </pre><h2>Description: </h2>
 <p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT. ">Control</a> the filename pattern for dump output, where &lt;format&gt; is an arbitrary format string that will be substituted according to:</p>
 <ul>
 <li>$VAR -&gt; name of the variable being dumped (this must be present)</li>
+<li>$ITER -&gt; iteration number of relevant dump frequency</li>
+<li>$INPUT -&gt; base name of input file, or 'stdin'</li>
 <li>$STAMP -&gt; time-stamp at the start of dump</li>
 </ul>
+<p>Optionally, a different &lt;format&gt; could be specified for some dump frequencies.</p>
 <h2>Properties: </h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
 <p><b>Default:</b> </p>
-<pre class="fragment">dump-name $STAMP.$VAR
+<pre class="fragment">dump-name $INPUT.$VAR
 </pre><p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->

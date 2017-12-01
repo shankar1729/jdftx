@@ -11,6 +11,7 @@ var searchData=
   ['includetxc',['IncludeTXC',['../structIncludeTXC.html',1,'']]],
   ['indexarray',['IndexArray',['../structIndexArray.html',1,'']]],
   ['indexvecarray',['IndexVecArray',['../structIndexVecArray.html',1,'']]],
+  ['initparams',['InitParams',['../structInitParams.html',1,'']]],
   ['invertks',['InvertKS',['../classInvertKS.html',1,'']]],
   ['iondynamics',['IonDynamics',['../classIonDynamics.html',1,'']]],
   ['iondynamicsparams',['IonDynamicsParams',['../structIonDynamicsParams.html',1,'']]],

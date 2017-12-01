@@ -117,7 +117,8 @@ $(document).ready(function(){initNavTree('createXSF.html','');});
     also be saved, where var should name the file suffix used by JDFTx
     for that type eg. n for density, nUp for up-spin density, d_tot
     for total electrostatic potential etc. The full filenames may
-    also be specified; this is a must when dump-name includes $STAMP.
+    also be specified; this is a must when dump-name includes $STAMP,
+    or $ITER, or if the dump was from a &lt;freq&gt;-dependent dump-name.
     Note that XSF is an ascii format (unlike the default binary dump)
     and adding many scalar field variables to it could make it enormous.
     Scalar fields are only supported without animation or frames.

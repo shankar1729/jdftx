@@ -9,5 +9,6 @@ var namespaces =
     [ "ShapeFunctionCANDLE", "namespaceShapeFunctionCANDLE.html", null ],
     [ "ShapeFunctionSCCS", "namespaceShapeFunctionSCCS.html", null ],
     [ "ShapeFunctionSGA13", "namespaceShapeFunctionSGA13.html", null ],
+    [ "ShapeFunctionSoftSphere", "namespaceShapeFunctionSoftSphere.html", null ],
     [ "YlmInternal", "namespaceYlmInternal.html", null ]
 ];

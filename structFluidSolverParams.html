@@ -114,6 +114,10 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a6032e0dcac8eea8afb8cdd482ffd05a4">addComponent</a> (const std::shared_ptr&lt; <a class="el" href="structFluidComponent.html">FluidComponent</a> &gt; &amp;component)</td></tr>
 <tr class="memdesc:a6032e0dcac8eea8afb8cdd482ffd05a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add component to the component list as well as one of solvents, anions or cations as appropriate. <br/></td></tr>
 <tr class="separator:a6032e0dcac8eea8afb8cdd482ffd05a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7e4aaf317c24e3fd465e5c6f1bb14366"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7e4aaf317c24e3fd465e5c6f1bb14366"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a7e4aaf317c24e3fd465e5c6f1bb14366">getAtomicRadius</a> (const class <a class="el" href="classSpeciesInfo.html">SpeciesInfo</a> &amp;sp) const </td></tr>
+<tr class="memdesc:a7e4aaf317c24e3fd465e5c6f1bb14366"><td class="mdescLeft">&#160;</td><td class="mdescRight">get the solute atom radius for the soft-sphere solvation model given species <br/></td></tr>
+<tr class="separator:a7e4aaf317c24e3fd465e5c6f1bb14366"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae300bba4f5865bbadb9a62d4dd9285e4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae300bba4f5865bbadb9a62d4dd9285e4"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#ae300bba4f5865bbadb9a62d4dd9285e4">setPCMparams</a> ()</td></tr>
 <tr class="memdesc:ae300bba4f5865bbadb9a62d4dd9285e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set predefined parameters for solventName (for a specific model) <br/></td></tr>
@@ -191,7 +195,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="separator:a7e3f7f19d46d357883773fb1261ea43f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa0a4608bba2ba56c16fb3870e1387e83"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa0a4608bba2ba56c16fb3870e1387e83"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#aa0a4608bba2ba56c16fb3870e1387e83">sigma</a></td></tr>
-<tr class="memdesc:aa0a4608bba2ba56c16fb3870e1387e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">smoothing factor for the <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> cavity shape function <br/></td></tr>
+<tr class="memdesc:aa0a4608bba2ba56c16fb3870e1387e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">smoothing factor for the <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> cavity shape function (dimensionless for most, but in bohrs for SoftSphere) <br/></td></tr>
 <tr class="separator:aa0a4608bba2ba56c16fb3870e1387e83"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d9d83ace9cf64ad3a5815f4c57f2650"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0d9d83ace9cf64ad3a5815f4c57f2650"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a0d9d83ace9cf64ad3a5815f4c57f2650">cavityTension</a></td></tr>
@@ -207,7 +211,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="separator:a9b954a752d0895e93603bdb1a7622c7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a819e080231f1a5d3e8249256d4705576"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a819e080231f1a5d3e8249256d4705576"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a819e080231f1a5d3e8249256d4705576">eta_wDiel</a></td></tr>
-<tr class="memdesc:a819e080231f1a5d3e8249256d4705576"><td class="mdescLeft">&#160;</td><td class="mdescRight">control electrostatic weight function (gaussian convolved by delta(r-eta) at l=1) (fit parameter) <br/></td></tr>
+<tr class="memdesc:a819e080231f1a5d3e8249256d4705576"><td class="mdescLeft">&#160;</td><td class="mdescRight">electrostatic cavity expansion widthin bohrs (fit parameter) <br/></td></tr>
 <tr class="separator:a819e080231f1a5d3e8249256d4705576"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a342bba0659e996782806dde899bd6bd5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a342bba0659e996782806dde899bd6bd5"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a342bba0659e996782806dde899bd6bd5">sqrtC6eff</a></td></tr>
@@ -235,6 +239,14 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="memitem:a23cf41b48966721c8ef69c80fb0d6008"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a23cf41b48966721c8ef69c80fb0d6008"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>lMax</b></td></tr>
 <tr class="separator:a23cf41b48966721c8ef69c80fb0d6008"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61f035ba179e32f6df198277cc72c82e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a61f035ba179e32f6df198277cc72c82e"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a61f035ba179e32f6df198277cc72c82e">cavityScale</a></td></tr>
+<tr class="memdesc:a61f035ba179e32f6df198277cc72c82e"><td class="mdescLeft">&#160;</td><td class="mdescRight">radius scale factor <br/></td></tr>
+<tr class="separator:a61f035ba179e32f6df198277cc72c82e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab96da8e927dbb512c8d223ccf5fe223"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aab96da8e927dbb512c8d223ccf5fe223"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#aab96da8e927dbb512c8d223ccf5fe223">ionSpacing</a></td></tr>
+<tr class="memdesc:aab96da8e927dbb512c8d223ccf5fe223"><td class="mdescLeft">&#160;</td><td class="mdescRight">extra spacing from dielectric to ionic cavity (in bohrs) <br/></td></tr>
+<tr class="separator:aab96da8e927dbb512c8d223ccf5fe223"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a66c40f0b3e5d187c90289cca4361e2d8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a66c40f0b3e5d187c90289cca4361e2d8"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a66c40f0b3e5d187c90289cca4361e2d8">linearDielectric</a></td></tr>
 <tr class="memdesc:a66c40f0b3e5d187c90289cca4361e2d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, work in the linear dielectric response limit. <br/></td></tr>

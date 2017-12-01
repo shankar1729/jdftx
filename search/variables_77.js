@@ -6,5 +6,6 @@ var searchData=
   ['weights',['weights',['../classDOS.html#ab00b4e46fa1e5c7477b888f8610beb0b',1,'DOS']]],
   ['wfnsfilename',['wfnsFilename',['../classElecVars.html#aa8f6ed81e0e5f45b6fe0e5a6c762efe2',1,'ElecVars']]],
   ['wolfeenergy',['wolfeEnergy',['../structMinimizeParams.html#a3e1d7d8b99c6435fee268c799587181c',1,'MinimizeParams']]],
-  ['wolfegradient',['wolfeGradient',['../structMinimizeParams.html#ad3f3e3b2e06814c569eec5c8947f31de',1,'MinimizeParams']]]
+  ['wolfegradient',['wolfeGradient',['../structMinimizeParams.html#ad3f3e3b2e06814c569eec5c8947f31de',1,'MinimizeParams']]],
+  ['wrapws',['wrapWS',['../classWannier.html#afa373e45069fdb9b0964aa1f5b0f5869',1,'Wannier']]]
 ];

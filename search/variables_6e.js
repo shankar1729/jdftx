@@ -27,6 +27,7 @@ var searchData=
   ['newton',['Newton',['../group__Utilities.html#gab8fbe0e564f63aedc8d34c558be1612b',1,'Units.h']]],
   ['nfilenamepattern',['nFilenamePattern',['../classElecVars.html#aaa52e1886b211eb9f97e1d4c510e4cae',1,'ElecVars']]],
   ['ng',['nG',['../classGridInfo.html#ac0162a6fd597581f6b6a2126f1470416',1,'GridInfo']]],
+  ['ngroups',['nGroups',['../structMPIUtil_1_1ProcDivision.html#a814770ada26212e51f171dec8d1e0ff1',1,'MPIUtil::ProcDivision']]],
   ['nindep',['nIndep',['../classIdealGas.html#a6b1cfca20b3bcb4ad3f047f7157332ae',1,'IdealGas']]],
   ['niterations',['nIterations',['../structMinimizeParams.html#a576c4d66b3c94766f9b143f5a233d9e3',1,'MinimizeParams::nIterations()'],['../structPulayParams.html#a69d815271585f70a35bae97fd7d19e66',1,'PulayParams::nIterations()']]],
   ['nnorm',['Nnorm',['../structFluidComponent.html#ac41af2743138f0af48360a8d2e2e2481',1,'FluidComponent']]],

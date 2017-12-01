@@ -2,11 +2,11 @@ var Dump_8h =
 [
     [ "DumpFrequency", "Dump_8h.html#ga4a9d2cb5ab5cb83ddb6262b28be1069e", [
       [ "DumpFreq_End", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eacd15906dd7932d4d81294b18193eefab", null ],
+      [ "DumpFreq_Init", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea8e8f11c1ca44d94ca394bce63a418b91", null ],
       [ "DumpFreq_Electronic", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eaeb89f2227990f9093694478237884ff5", null ],
       [ "DumpFreq_Fluid", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea9692afe4764a8ac5540bbf3f08d90ee1", null ],
       [ "DumpFreq_Ionic", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea9646b3a2febe6e6164be45d692374b09", null ],
       [ "DumpFreq_Gummel", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eadafcdfeb612400c3647093bed39c9698", null ],
-      [ "DumpFreq_Dynamics", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069eafb875189f44663d12db2024be041bedc", null ],
       [ "DumpFreq_Delim", "Dump_8h.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea4b0b5a36e2d84b533bfefd6958dea786", null ]
     ] ],
     [ "DumpVariable", "Dump_8h.html#gab78cde8e08849746f8d4ea413fb1a6d7", [

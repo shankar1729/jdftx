@@ -103,9 +103,11 @@ $(document).ready(function(){initNavTree('CommandPcmParams.html','');});
 </pre><h2>Description: </h2>
 <p>Adjust <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> solvent parameters. Possible keys and value types are:</p>
 <ul>
-<li>cavityPressure: effective pressure on the cavity (hartree per bohr^3) for SCCS</li>
+<li>cavityPressure: effective pressure on the cavity (hartree per bohr^3) for SCCS and soft sphere models</li>
+<li>cavityScale : atomic radius scale factor for soft sphere model</li>
 <li>cavityTension : effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)</li>
 <li>eta_wDiel : fit parameter for dielectric cavity in CANDLE</li>
+<li>ionSpacing : extra spacing from dielectric to ionic cavity in bohrs for soft sphere model</li>
 <li>lMax : angular momentum truncation in <a class="el" href="classSaLSA.html" title="Nonlocal SaLSA  solvation model implementation (electrostatic part) ">SaLSA</a></li>
 <li>nc : critical density for the <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> cavity shape function</li>
 <li>pCavity : sensitivity of cavity to surface electric fields [a.u.] in CANDLE</li>

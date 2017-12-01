@@ -117,6 +117,7 @@ var hierarchy =
       ] ]
     ] ],
     [ "IncludeTXC", "structIncludeTXC.html", null ],
+    [ "InitParams", "structInitParams.html", null ],
     [ "IonDynamics", "classIonDynamics.html", null ],
     [ "IonDynamicsParams", "structIonDynamicsParams.html", null ],
     [ "IonInfo", "classIonInfo.html", null ],
@@ -257,6 +258,7 @@ var hierarchy =
     [ "Phonon", "classPhonon.html", null ],
     [ "Polarizability", "structPolarizability.html", null ],
     [ "FieldData< T >::PrivateTag", "structFieldData_1_1PrivateTag.html", null ],
+    [ "MPIUtil::ProcDivision", "structMPIUtil_1_1ProcDivision.html", null ],
     [ "Pulay< Variable >", "classPulay.html", null ],
     [ "Pulay< ScalarFieldTilde >", "classPulay.html", [
       [ "NonlinearPCM", "classNonlinearPCM.html", null ]

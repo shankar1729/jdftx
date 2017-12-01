@@ -31,7 +31,6 @@ var searchData=
   ['setcolumn',['setColumn',['../classColumnBundle.html#a8a7c775c0859303cee0348d4122718af',1,'ColumnBundle']]],
   ['seteigenvectors',['setEigenvectors',['../classElecVars.html#ac5aacf0153457f48d7141c52ac821c78',1,'ElecVars']]],
   ['setexplicit',['setExplicit',['../classConvCoupling.html#aad96f47eca3c448c645c3cc64a3c2525',1,'ConvCoupling']]],
-  ['setextraforces',['setExtraForces',['../classPCM.html#ac28019b15dbd9cd67b4fda724fd6d5ed',1,'PCM']]],
   ['setgzero',['setGzero',['../structScalarFieldTildeData.html#ac4be3ca97edf86eb9376ee5fa784ebd8',1,'ScalarFieldTildeData::setGzero()'],['../group__DataStructures.html#ga7a4057bbfc4e6a6bdd3922af18f83e07',1,'setGzero():&#160;VectorField.h']]],
   ['setlatticevectors',['setLatticeVectors',['../classGridInfo.html#ab2c12c21d57c509270fe2cab53748c6e',1,'GridInfo']]],
   ['setljatt',['setLJatt',['../group__ClassicalDFT.html#gaa95cfabeeec993e4a422cde3f46a9a16',1,'Fex_LJ.h']]],

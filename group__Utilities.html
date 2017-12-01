@@ -202,6 +202,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classAutoThreadCount.html">AutoThreadCount</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maintain thread timing statistics and automatically choose the optimum number of threads.  <a href="classAutoThreadCount.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structInitParams.html">InitParams</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameters used for common initialization functions.  <a href="structInitParams.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classStopWatch.html">StopWatch</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEnumStringMap.html">EnumStringMap&lt; Enum &gt;</a></td></tr>
@@ -439,8 +442,8 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <tr class="memitem:gaddeccb0542ece591bd13b548ff1e286a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaddeccb0542ece591bd13b548ff1e286a">gpuErrorCheck</a> ()</td></tr>
 <tr class="memdesc:gaddeccb0542ece591bd13b548ff1e286a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check for gpu errors and print a useful message (implemented in GpuUtils.cpp)  <a href="#gaddeccb0542ece591bd13b548ff1e286a">More...</a><br/></td></tr>
 <tr class="separator:gaddeccb0542ece591bd13b548ff1e286a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga28d12414b491b8481531c8fc53ab8d52"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga28d12414b491b8481531c8fc53ab8d52">gpuInit</a> (FILE *fpLog=stdout, const std::vector&lt; int &gt; *mpiSiblings=0, double *nGPUs=0)</td></tr>
-<tr class="separator:ga28d12414b491b8481531c8fc53ab8d52"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga954747d4f410c1a83dcca87abf3d086c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga954747d4f410c1a83dcca87abf3d086c">gpuInit</a> (FILE *fpLog=stdout, const class <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiHostGpu=0, double *nGPUs=0)</td></tr>
+<tr class="separator:ga954747d4f410c1a83dcca87abf3d086c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga369db504180734269f984d97191a3e10"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga369db504180734269f984d97191a3e10">isGpuMine</a> ()</td></tr>
 <tr class="separator:ga369db504180734269f984d97191a3e10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabe01a530b3bbc203a3cac3958acd0456"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gabe01a530b3bbc203a3cac3958acd0456"></a>
@@ -516,21 +519,21 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:gacd3e4ee4aa4c2a6b734065a8ac0bbafb"><td class="memTemplItemLeft" align="right" valign="top">double&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gacd3e4ee4aa4c2a6b734065a8ac0bbafb">threadedAccumulate</a> (Callable *func, size_t nIter, Args...args)</td></tr>
 <tr class="memdesc:gacd3e4ee4aa4c2a6b734065a8ac0bbafb"><td class="mdescLeft">&#160;</td><td class="mdescRight">A parallelized loop with an accumulated return value.  <a href="#gacd3e4ee4aa4c2a6b734065a8ac0bbafb">More...</a><br/></td></tr>
 <tr class="separator:gacd3e4ee4aa4c2a6b734065a8ac0bbafb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa55bf007c9472a561520d7e524b0d3b1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaa55bf007c9472a561520d7e524b0d3b1"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaa55bf007c9472a561520d7e524b0d3b1">printVersionBanner</a> ()</td></tr>
-<tr class="memdesc:gaa55bf007c9472a561520d7e524b0d3b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print package name, version, revision etc. to log. <br/></td></tr>
-<tr class="separator:gaa55bf007c9472a561520d7e524b0d3b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga579bd890c75bfca099becdfe18b03e8c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga579bd890c75bfca099becdfe18b03e8c"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga579bd890c75bfca099becdfe18b03e8c">initSystem</a> (int argc, char **argv)</td></tr>
-<tr class="memdesc:ga579bd890c75bfca099becdfe18b03e8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. <br/></td></tr>
-<tr class="separator:ga579bd890c75bfca099becdfe18b03e8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacd28104c78f3d53a0873788155317449"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gacd28104c78f3d53a0873788155317449"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gacd28104c78f3d53a0873788155317449">initSystemCmdline</a> (int argc, char **argv, const char *description, <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;inputFilename, bool &amp;dryRun, bool &amp;printDefaults, class <a class="el" href="classEverything.html">Everything</a> *e=0)</td></tr>
-<tr class="memdesc:gacd28104c78f3d53a0873788155317449"><td class="mdescLeft">&#160;</td><td class="mdescRight">initSystem along with commandline options <br/></td></tr>
-<tr class="separator:gacd28104c78f3d53a0873788155317449"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga826bc16e893333c0ead2af397619ca62"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga826bc16e893333c0ead2af397619ca62"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga826bc16e893333c0ead2af397619ca62">printVersionBanner</a> (const <a class="el" href="structInitParams.html">InitParams</a> *ip=0)</td></tr>
+<tr class="memdesc:ga826bc16e893333c0ead2af397619ca62"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print package name, version, revision etc. to log. <br/></td></tr>
+<tr class="separator:ga826bc16e893333c0ead2af397619ca62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5fc279ce64bacfe5b20f578b7f0dfcfe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga5fc279ce64bacfe5b20f578b7f0dfcfe"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe">initSystem</a> (int argc, char **argv, const <a class="el" href="structInitParams.html">InitParams</a> *ip=0)</td></tr>
+<tr class="memdesc:ga5fc279ce64bacfe5b20f578b7f0dfcfe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. <br/></td></tr>
+<tr class="separator:ga5fc279ce64bacfe5b20f578b7f0dfcfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa1515ffce5133c99a71f4229f8221f48"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaa1515ffce5133c99a71f4229f8221f48"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaa1515ffce5133c99a71f4229f8221f48">initSystemCmdline</a> (int argc, char **argv, <a class="el" href="structInitParams.html">InitParams</a> &amp;ip)</td></tr>
+<tr class="memdesc:gaa1515ffce5133c99a71f4229f8221f48"><td class="mdescLeft">&#160;</td><td class="mdescRight">initSystem along with commandline options <br/></td></tr>
+<tr class="separator:gaa1515ffce5133c99a71f4229f8221f48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5fef61c606012425069c5b49e27b000e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga5fef61c606012425069c5b49e27b000e"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">finalizeSystem</a> (bool successful=true)</td></tr>
-<tr class="memdesc:ga5fef61c606012425069c5b49e27b000e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean-up corresponding to <a class="el" href="group__Utilities.html#ga579bd890c75bfca099becdfe18b03e8c" title="Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. ">initSystem()</a>, final messages (depending on successful) and clean-up MPI. <br/></td></tr>
+<tr class="memdesc:ga5fef61c606012425069c5b49e27b000e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean-up corresponding to <a class="el" href="group__Utilities.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe" title="Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. ">initSystem()</a>, final messages (depending on successful) and clean-up MPI. <br/></td></tr>
 <tr class="separator:ga5fef61c606012425069c5b49e27b000e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaab5b92a5e81a00388ded8fd4c9ee71f4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaab5b92a5e81a00388ded8fd4c9ee71f4"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><b>clock_us</b> ()</td></tr>
@@ -624,6 +627,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group
 const double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga87b385f118e3715860117a77eda7136d">eV</a> = 1/27.21138505</td></tr>
 <tr class="memdesc:ga87b385f118e3715860117a77eda7136d"><td class="mdescLeft">&#160;</td><td class="mdescRight">eV in Hartrees <br/></td></tr>
 <tr class="separator:ga87b385f118e3715860117a77eda7136d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad5b3d738b790c3465c2162fbb7c53e08"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gad5b3d738b790c3465c2162fbb7c53e08"></a>
+const double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gad5b3d738b790c3465c2162fbb7c53e08">Ryd</a> = 0.5</td></tr>
+<tr class="memdesc:gad5b3d738b790c3465c2162fbb7c53e08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rydberg in Hartrees. <br/></td></tr>
+<tr class="separator:gad5b3d738b790c3465c2162fbb7c53e08"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafac7c0ac1f52ed66bfcb864dc6d1dfee"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gafac7c0ac1f52ed66bfcb864dc6d1dfee"></a>
 const double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gafac7c0ac1f52ed66bfcb864dc6d1dfee">Joule</a> = 1/4.35974434e-18</td></tr>
 <tr class="memdesc:gafac7c0ac1f52ed66bfcb864dc6d1dfee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Joule in Hartrees. <br/></td></tr>
@@ -716,16 +723,29 @@ const double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 const double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga0a0d6eb5d6e69e8d3d00e31903e5624f">Ohm</a> = <a class="el" href="group__Utilities.html#ga03677a0aece81df0433737cd11bc658f">Volt</a>/<a class="el" href="group__Utilities.html#ga2d85af88821df152c2edd97c64a6ce10">Ampere</a></td></tr>
 <tr class="memdesc:ga0a0d6eb5d6e69e8d3d00e31903e5624f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ohm in inverse conductance quanta. <br/></td></tr>
 <tr class="separator:ga0a0d6eb5d6e69e8d3d00e31903e5624f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga907316040fd97459f37e166f613b88cb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga907316040fd97459f37e166f613b88cb"></a>
+<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga907316040fd97459f37e166f613b88cb">inputBasename</a></td></tr>
+<tr class="memdesc:ga907316040fd97459f37e166f613b88cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Basename of input file or "stdin" that can be used as a default run-name. <br/></td></tr>
+<tr class="separator:ga907316040fd97459f37e166f613b88cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8ba71496e65bcc3dbbc022da69307265"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga8ba71496e65bcc3dbbc022da69307265"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga8ba71496e65bcc3dbbc022da69307265">killFlag</a></td></tr>
 <tr class="memdesc:ga8ba71496e65bcc3dbbc022da69307265"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag set by signal handlers - all compute loops should quit cleanly when this is set. <br/></td></tr>
 <tr class="separator:ga8ba71496e65bcc3dbbc022da69307265"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga43884476a21674d236ed7dbf7418679f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga43884476a21674d236ed7dbf7418679f"></a>
-<a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>mpiUtil</b></td></tr>
-<tr class="separator:ga43884476a21674d236ed7dbf7418679f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga0597f5fb1522f1d652f4aa4219b2a8a4"></a>
+<a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></td></tr>
+<tr class="memdesc:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI across all processes. <br/></td></tr>
+<tr class="separator:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1fb83d6aa6b4f89361b2a93425b89a7e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga1fb83d6aa6b4f89361b2a93425b89a7e"></a>
+<a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga1fb83d6aa6b4f89361b2a93425b89a7e">mpiGroup</a></td></tr>
+<tr class="memdesc:ga1fb83d6aa6b4f89361b2a93425b89a7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI within current group of processes. <br/></td></tr>
+<tr class="separator:ga1fb83d6aa6b4f89361b2a93425b89a7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae63b2082e1ef86f146a99592b64dbf16"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gae63b2082e1ef86f146a99592b64dbf16"></a>
+<a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae63b2082e1ef86f146a99592b64dbf16">mpiGroupHead</a></td></tr>
+<tr class="memdesc:gae63b2082e1ef86f146a99592b64dbf16"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI across equal ranks in each group. <br/></td></tr>
+<tr class="separator:gae63b2082e1ef86f146a99592b64dbf16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gae33e980fb4eaf243be1c38d7e1fcdf0b"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae33e980fb4eaf243be1c38d7e1fcdf0b">mpiDebugLog</a></td></tr>
-<tr class="memdesc:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling <a class="el" href="group__Utilities.html#ga579bd890c75bfca099becdfe18b03e8c" title="Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. ">initSystem()</a>) <br/></td></tr>
+<tr class="memdesc:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling <a class="el" href="group__Utilities.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe" title="Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers. ">initSystem()</a>) <br/></td></tr>
 <tr class="separator:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabd502861db54565ab958658de49f3da1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gabd502861db54565ab958658de49f3da1"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabd502861db54565ab958658de49f3da1">mempoolSize</a></td></tr>
@@ -822,12 +842,13 @@ FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">{       fprintf(globalLog, __VA_ARGS__); \</div>
-<div class="line">                if(mpiUtil-&gt;<a class="code" href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">isHead</a>() &amp;&amp; globalLog != stdout) \</div>
+<div class="line">                if(<a class="code" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a>-&gt;<a class="code" href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">isHead</a>() &amp;&amp; globalLog != stdout) \</div>
 <div class="line">                        fprintf(stderr, __VA_ARGS__); <a class="code" href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">\</a></div>
 <div class="line"><a class="code" href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">		finalizeSystem</a>(<span class="keyword">false</span>); \</div>
 <div class="line">                exit(1); \</div>
 <div class="line">        }</div>
-<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:45</div></div>
+<div class="ttc" id="group__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes. </div></div>
+<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:49</div></div>
 <div class="ttc" id="group__Utilities_html_ga5fef61c606012425069c5b49e27b000e"><div class="ttname"><a href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">finalizeSystem</a></div><div class="ttdeci">void finalizeSystem(bool successful=true)</div><div class="ttdoc">Clean-up corresponding to initSystem(), final messages (depending on successful) and clean-up MPI...</div></div>
 </div><!-- fragment -->
 <p>Quit with an error message (formatted using printf()). Must be called from all processes. </p>
@@ -849,14 +870,13 @@ FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">{       fprintf(globalLog, __VA_ARGS__); \</div>
 <div class="line">                fflush(globalLog); \</div>
-<div class="line">                if(mpiUtil-&gt;<a class="code" href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">isHead</a>() &amp;&amp; globalLog != stdout) \</div>
-<div class="line">                        fprintf(stderr, __VA_ARGS__); \</div>
-<div class="line">                if(mpiUtil-&gt;<a class="code" href="classMPIUtil.html#a39df2ed45024ef9a725baf6211c60236">nProcesses</a>() == 1) <a class="code" href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">finalizeSystem</a>(<span class="keyword">false</span>); <span class="comment">/* Safe to call only if no other process */</span> \</div>
-<div class="line">                mpiUtil-&gt;exit(1); \</div>
+<div class="line">                if(<a class="code" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a>-&gt;<a class="code" href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">isHead</a>() &amp;&amp; globalLog != stdout) \</div>
+<div class="line">                        fprintf(stderr, __VA_ARGS__); <a class="code" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">\</a></div>
+<div class="line"><a class="code" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">		mpiWorld</a>-&gt;<a class="code" href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">exit</a>(1); \</div>
 <div class="line">        }</div>
-<div class="ttc" id="classMPIUtil_html_a39df2ed45024ef9a725baf6211c60236"><div class="ttname"><a href="classMPIUtil.html#a39df2ed45024ef9a725baf6211c60236">MPIUtil::nProcesses</a></div><div class="ttdeci">int nProcesses() const </div><div class="ttdoc">number of processes </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:44</div></div>
-<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:45</div></div>
-<div class="ttc" id="group__Utilities_html_ga5fef61c606012425069c5b49e27b000e"><div class="ttname"><a href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">finalizeSystem</a></div><div class="ttdeci">void finalizeSystem(bool successful=true)</div><div class="ttdoc">Clean-up corresponding to initSystem(), final messages (depending on successful) and clean-up MPI...</div></div>
+<div class="ttc" id="group__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes. </div></div>
+<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:49</div></div>
+<div class="ttc" id="classMPIUtil_html_aa67c624ff9127d7c6ad5d308e854ad1c"><div class="ttname"><a href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">MPIUtil::exit</a></div><div class="ttdeci">void exit(int errCode) const </div><div class="ttdoc">global exit (kill other MPI processes as well) </div></div>
 </div><!-- fragment -->
 <p>Version of die that should only be used when it is impossible to guarantee synchronized calls from all processes. </p>
 
@@ -1130,7 +1150,7 @@ Code must be self-contained as a scope, as it will be surrounded by { }, and sho
 
 </div>
 </div>
-<a class="anchor" id="ga28d12414b491b8481531c8fc53ab8d52"></a>
+<a class="anchor" id="ga954747d4f410c1a83dcca87abf3d086c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -1143,8 +1163,8 @@ Code must be self-contained as a scope, as it will be surrounded by { }, and sho
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const std::vector&lt; int &gt; *&#160;</td>
-          <td class="paramname"><em>mpiSiblings</em> = <code>0</code>, </td>
+          <td class="paramtype">const class <a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td>
+          <td class="paramname"><em>mpiHostGpu</em> = <code>0</code>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -1159,7 +1179,7 @@ Code must be self-contained as a scope, as it will be surrounded by { }, and sho
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Must be called before any GPU use (preferably from main(), see <a class="el" href="group__Utilities.html#ga369db504180734269f984d97191a3e10">isGpuMine</a>) If mpiSiblings (list of processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory nGPUs returns the number of physical GPUs used (fraction if a GPU is shared with other processes) Returns false on failure to find a suitable GPU </p>
+<p>Must be called before any GPU use (preferably from main(), see <a class="el" href="group__Utilities.html#ga369db504180734269f984d97191a3e10">isGpuMine</a>) If mpiHostGpu (group of GPU processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory nGPUs returns the number of physical GPUs used (fraction if a GPU is shared with other processes) Returns false on failure to find a suitable GPU </p>
 
 </div>
 </div>
@@ -1175,7 +1195,7 @@ Code must be self-contained as a scope, as it will be surrounded by { }, and sho
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Only the thread that called <a class="el" href="group__Utilities.html#ga28d12414b491b8481531c8fc53ab8d52">gpuInit()</a> is allowed to use GPU resources This function will return true only on the one thread that rules the gpu. </p>
+<p>Only the thread that called <a class="el" href="group__Utilities.html#ga954747d4f410c1a83dcca87abf3d086c">gpuInit()</a> is allowed to use GPU resources This function will return true only on the one thread that rules the gpu. </p>
 
 </div>
 </div>
