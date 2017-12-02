@@ -360,11 +360,11 @@ void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_
 	}
 }
 
-ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
-{	ColumnBundle result = e->gInfo.detR * D(Y, iDir); //contribution from kinetic term (note ultrasoft not handled)
+matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& YdagHY) const
+{	matrix result = e->gInfo.detR * (Y ^ D(Y, iDir)); //contribution from kinetic term
 	//Determine optimum k's for finite difference calculation of r * projectors
 	double dkMag = pow(1e-14, 1./3); //optimum for a second order FD formula
-	complex riPrefac(0, 0.5/dkMag); //prefactor in central-difference formula to get r * projectors
+	complex riPrefacDag(0, -0.5/dkMag); //prefactor in central-difference formula to get r * projectors
 	vector3<> dkCart; dkCart[iDir] = dkMag; //cartesian k offset
 	vector3<> dk = inv(e->gInfo.GT) * dkCart; //reciprocal-lattice k offset
 	QuantumNumber qnumPlus  = *(Y.qnum); qnumPlus.k  += dk;
@@ -372,52 +372,51 @@ ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
 	//--- dummy ColumnBundles for the getV functions below:
 	ColumnBundle Yplus (1, Y.colLength(), Y.basis, &qnumPlus,  isGpuEnabled());
 	ColumnBundle Yminus(1, Y.colLength(), Y.basis, &qnumMinus, isGpuEnabled());
-	//Nonlocal corrections:
-	//--- Get DFT+U matrices:
-	std::vector<matrix> Urho;
-	std::vector<ColumnBundle> psi, ri_psi;
+	//DFT+U corrections:
 	if(e->eInfo.hasU)
-	{	rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
+	{	std::vector<ColumnBundle> psi;
+		std::vector<matrix> Urho;
+		rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
 		//Finite difference for ri_psi:
 		std::vector<matrix> UrhoUnused;
 		std::vector<ColumnBundle> psiPlus, psiMinus;
 		rhoAtom_getV(Yplus,  e->eVars.U_rhoAtom, psiPlus,  UrhoUnused); //get atomic orbitals at k+
 		rhoAtom_getV(Yminus, e->eVars.U_rhoAtom, psiMinus, UrhoUnused); //get atomic orbitals at k-
-		ri_psi.resize(species.size());
 		for(size_t sp=0; sp<species.size(); sp++)
 			if(Urho[sp].nRows())
-				ri_psi[sp] = riPrefac * (psiPlus[sp] - psiMinus[sp]);
+			{	matrix psiDagY = psi[sp] ^ Y;
+				matrix ri_psiDagY = riPrefacDag * ((psiPlus[sp] - psiMinus[sp]) ^ Y);
+				matrix contrib = dagger(ri_psiDagY) * (Urho[sp] * psiDagY);
+				result += contrib - dagger(contrib);
+			}
 	}
+	//Nonlocal corrections:
 	for(size_t sp=0; sp<species.size(); sp++)
-	{	bool hasU = e->eInfo.hasU && Urho[sp].nRows();
-		//Get nonlocal psp matrices and projectors:
+	{	//Get nonlocal psp matrices and projectors:
 		matrix Mnl;
 		std::shared_ptr<ColumnBundle> Vptr = species[sp]->getV(Y, &Mnl); //get projectors at kj
-		bool hasNL = Mnl.nRows();
-		const ColumnBundle& V = *Vptr;
-		ColumnBundle ri_V;
-		if(hasNL)
-		{	//Finite difference for ri_V:
+		if(Mnl.nRows())
+		{	matrix VdagY = (*Vptr) ^ Y;
+			//Finite difference for ri_V:
 			std::shared_ptr<ColumnBundle> Vplus = species[sp]->getV(Yplus);
 			std::shared_ptr<ColumnBundle> Vminus = species[sp]->getV(Yminus);
-			ri_V = riPrefac * (*Vplus - *Vminus);
+			matrix ri_VdagY = riPrefacDag * ((*Vplus - *Vminus) ^ Y);
 			//Add ultrasoft augmentation contribution (if any):
 			const matrix id = eye(Mnl.nRows()); //identity
 			species[sp]->augmentDensitySphericalGrad(*Y.qnum, id, Mnl); //adds augmentation H to Mnl
+			//Apply nonlocal corrections to the commutator:
+			matrix contrib = dagger(ri_VdagY) * (Mnl * VdagY);
+			result += contrib - dagger(contrib);
+			//Account for overlap augmentation (if any):
+			if(species[sp]->QintAll.nRows())
+			{	tiledBlockMatrix Qint(species[sp]->QintAll, species[sp]->atpos.size());
+				matrix contrib = (dagger(ri_VdagY) * (Qint * VdagY)) * YdagHY;
+				result -= contrib - dagger(contrib);
+			}
 		}
-		//Apply nonlocal corrections to the commutator:
-		if(hasU)
-			result
-				+= ri_psi[sp] * (Urho[sp] * (psi[sp] ^ Y))
-				 - psi[sp] * (Urho[sp] * (ri_psi[sp] ^ Y));
-		if(hasNL)
-			result
-				+= ri_V * (Mnl * (V ^ Y))
-				 - V * (Mnl * (ri_V ^ Y));
 	}
 	return result;
 }
-
 
 int IonInfo::nAtomicOrbitals() const
 {	int nAtomic = 0;

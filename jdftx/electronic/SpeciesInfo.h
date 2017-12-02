@@ -232,6 +232,7 @@ private:
 	friend class IonicMinimizer;
 	friend class Phonon;
 	friend class Dump;
+	friend class IonInfo;
 };
 
 

@@ -458,7 +458,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		{	momenta[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
 			for(int k=0; k<3; k++) //cartesian direction
 				momenta[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1),
-					complex(0,-1) * (eVars.C[q] ^ iInfo.rHcommutator(eVars.C[q], k)) );
+					complex(0,-1) * iInfo.rHcommutator(eVars.C[q], k, eVars.Hsub_eigs[q]) );
 		}
 		eInfo.write(momenta, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
 		EndDump
