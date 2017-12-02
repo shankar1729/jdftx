@@ -861,12 +861,11 @@ void DOS::dump()
 			{	//Project weight functions from grid to atom-centered spherical functions:
 				e->iInfo.augmentDensityGridGrad(weightFuncs[iWeight]);
 				//Propagate from spherical functions to bands:
-				diagMatrix Fq(eInfo.nBands, 1.); //actual fillings incorporated later if required
 				for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 				{	const std::vector<matrix>& VdagCq = e->eVars.VdagC[iState];
 					std::vector<matrix> wVdagCq(e->iInfo.species.size());
 					const QuantumNumber& qnum = e->eInfo.qnums[iState];
-					e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagCq, wVdagCq);
+					e->iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);
 					//Sum diagonal contributions per band over species
 					diagMatrix wAug(e->eInfo.nBands, 0.);
 					for(size_t sp=0; sp<VdagCq.size(); sp++)

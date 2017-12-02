@@ -107,7 +107,7 @@ public:
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0);
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const;
 	
 	//DFT+U functions: handle IonInfo::rhoAtom_*() for this species
 	//The rhoAtom pointers point to the start of those relevant to this species (and ends at that pointer + rhoAtom_nMatrices())

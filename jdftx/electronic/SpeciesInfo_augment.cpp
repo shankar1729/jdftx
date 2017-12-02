@@ -175,7 +175,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const
+void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const
 {	static StopWatch watch("augmentDensitySphericalGrad"); watch.start();
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();

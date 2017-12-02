@@ -91,8 +91,8 @@ public:
 	void augmentDensityInit() const; //!< initialize density augmentation
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const; //!< calculate density augmentation in spherical functions
 	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
-	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const; //! propagate grid gradients to spherical functions
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //! propagate spherical function gradients to wavefunctions
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const; //!< propagate grid gradients to spherical functions
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //!< propagate spherical function gradients to wavefunctions
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
