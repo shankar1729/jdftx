@@ -401,6 +401,9 @@ ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
 			std::shared_ptr<ColumnBundle> Vplus = species[sp]->getV(Yplus);
 			std::shared_ptr<ColumnBundle> Vminus = species[sp]->getV(Yminus);
 			ri_V = riPrefac * (*Vplus - *Vminus);
+			//Add ultrasoft augmentation contribution (if any):
+			const matrix id = eye(Mnl.nRows()); //identity
+			species[sp]->augmentDensitySphericalGrad(*Y.qnum, id, Mnl); //adds augmentation H to Mnl
 		}
 		//Apply nonlocal corrections to the commutator:
 		if(hasU)
