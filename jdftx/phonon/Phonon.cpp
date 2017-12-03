@@ -180,12 +180,12 @@ void Phonon::dump()
 			{	omegaSqMin = omegaSqEigs[0];
 				ikMin = ik;
 			}
-			continue;
 		}
 		//Collect contributions:
 		double w = quad[ik].second; //integration weight of current k-point
 		for(double omegaSqEig: omegaSqEigs)
-		{	double omega = sqrt(omegaSqEig);
+		{	if(omegaSqEig <= 0.) continue; //ignore imag frequency in free energy
+			double omega = sqrt(omegaSqEig);
 			double expMomegaByT = exp(-omega/T);
 			ZPE += w*( 0.5*omega );
 			Evib += w*( 0.5*omega + omega * expMomegaByT / (1.-expMomegaByT) );
