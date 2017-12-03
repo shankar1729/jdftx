@@ -253,17 +253,9 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 	}
 }
 
-std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, matrix* M) const
+std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
-	if(M)
-	{	int N = MnlAll.nRows();
-		if(N) //else purely local psp
-		{	*M = zeroes(N*atpos.size(), N*atpos.size());
-			for(size_t at=0; at<atpos.size(); at++)
-				M->set(at*N,(at+1)*N, at*N,(at+1)*N, MnlAll);
-		}
-	}
 	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
 	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
 	if(!nProj) return 0; //purely local psp

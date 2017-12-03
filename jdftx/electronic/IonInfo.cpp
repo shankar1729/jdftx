@@ -25,9 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/VanDerWaals.h>
 #include <fluid/FluidSolver.h>
+#include <core/SphericalHarmonics.h>
+#include <core/Units.h>
 #include <cstdio>
 #include <cmath>
-#include <core/Units.h>
 
 #define MIN_ION_DISTANCE 1e-10
 
@@ -392,29 +393,31 @@ matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& Ydag
 	}
 	//Nonlocal corrections:
 	for(size_t sp=0; sp<species.size(); sp++)
-	{	//Get nonlocal psp matrices and projectors:
-		matrix Mnl;
-		std::shared_ptr<ColumnBundle> Vptr = species[sp]->getV(Y, &Mnl); //get projectors at kj
-		if(Mnl.nRows())
-		{	matrix VdagY = (*Vptr) ^ Y;
-			//Finite difference for ri_V:
-			std::shared_ptr<ColumnBundle> Vplus = species[sp]->getV(Yplus);
-			std::shared_ptr<ColumnBundle> Vminus = species[sp]->getV(Yminus);
-			matrix ri_VdagY = riPrefacDag * ((*Vplus - *Vminus) ^ Y);
+		if(species[sp]->MnlAll.nRows())
+		{	const SpeciesInfo& s = *species[sp];
+			//Get nonlocal psp matrices and projections:
+			matrix Mnl = s.MnlAll;
+			matrix VdagY = (*(s.getV(Y))) ^ Y;
+			matrix ri_VdagY = riPrefacDag * ((*(s.getV(Yplus)) - *(s.getV(Yminus))) ^ Y); //Finite difference for ri_V
 			//Add ultrasoft augmentation contribution (if any):
 			const matrix id = eye(Mnl.nRows()); //identity
-			species[sp]->augmentDensitySphericalGrad(*Y.qnum, id, Mnl); //adds augmentation H to Mnl
+			s.augmentDensitySphericalGrad(*Y.qnum, id, Mnl); //adds augmentation H to Mnl
 			//Apply nonlocal corrections to the commutator:
 			matrix contrib = dagger(ri_VdagY) * (Mnl * VdagY);
 			result += contrib - dagger(contrib);
 			//Account for overlap augmentation (if any):
-			if(species[sp]->QintAll.nRows())
-			{	tiledBlockMatrix Qint(species[sp]->QintAll, species[sp]->atpos.size());
-				matrix contrib = (dagger(ri_VdagY) * (Qint * VdagY)) * YdagHY;
-				result -= contrib - dagger(contrib);
+			if(s.QintAll.nRows())
+			{	const int nAtoms = s.atpos.size();
+				const matrix& Q = s.QintAll;
+				std::vector<complex> riArr;
+				for(const vector3<>& x: s.atpos)
+					riArr.push_back(dot(e->gInfo.R.row(iDir), x));
+				matrix contrib =
+					( dagger(VdagY) * (tiledBlockMatrix(Q, nAtoms, &riArr) * VdagY)
+					- dagger(ri_VdagY) * (tiledBlockMatrix(Q, nAtoms) * VdagY) ) * YdagHY;
+				result += contrib - dagger(contrib);
 			}
 		}
-	}
 	return result;
 }
 

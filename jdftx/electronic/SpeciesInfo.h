@@ -88,7 +88,7 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, matrix* M=0) const; //!< get projectors with qnum and basis matching Cq  (optionally cached, and optionally retrieve full M repeated over atoms)
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //!< get projectors with qnum and basis matching Cq  (optionally cached)
 
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
