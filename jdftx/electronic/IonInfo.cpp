@@ -395,20 +395,21 @@ matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& Ydag
 	for(size_t sp=0; sp<species.size(); sp++)
 		if(species[sp]->MnlAll.nRows())
 		{	const SpeciesInfo& s = *species[sp];
+			const int nAtoms = s.atpos.size();
 			//Get nonlocal psp matrices and projections:
 			matrix Mnl = s.MnlAll;
 			matrix VdagY = (*(s.getV(Y))) ^ Y;
 			matrix ri_VdagY = riPrefacDag * ((*(s.getV(Yplus)) - *(s.getV(Yminus))) ^ Y); //Finite difference for ri_V
-			//Add ultrasoft augmentation contribution (if any):
-			const matrix id = eye(Mnl.nRows()); //identity
-			s.augmentDensitySphericalGrad(*Y.qnum, id, Mnl); //adds augmentation H to Mnl
-			//Apply nonlocal corrections to the commutator:
-			matrix contrib = dagger(ri_VdagY) * (Mnl * VdagY);
+			//Ultrasoft augmentation contribution (if any):
+			const matrix id = eye(Mnl.nRows()*nAtoms); //identity
+			matrix Maug = zeroes(id.nRows(), id.nCols());
+			s.augmentDensitySphericalGrad(*Y.qnum, id, Maug);
+			//Apply nonlocal and augmentation corrections to the commutator:
+			matrix contrib = dagger(ri_VdagY) * (tiledBlockMatrix(Mnl, nAtoms)*VdagY + Maug*VdagY);
 			result += contrib - dagger(contrib);
 			//Account for overlap augmentation (if any):
 			if(s.QintAll.nRows())
-			{	const int nAtoms = s.atpos.size();
-				const matrix& Q = s.QintAll;
+			{	const matrix& Q = s.QintAll;
 				std::vector<complex> riArr;
 				for(const vector3<>& x: s.atpos)
 					riArr.push_back(dot(e->gInfo.R.row(iDir), x));
