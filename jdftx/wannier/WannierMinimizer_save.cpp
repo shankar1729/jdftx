@@ -780,6 +780,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	Hsub_eigs[q].resize(nBands);
 			Hsub_eigs[q].bcast(e.eInfo.whose(q));
 		}
+		double nrmTot = 0., nrmCorr = 0.;
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 		{	const KpointPair& pair = kpointPairs[iPair];
 			if(pair.ik1 == pair.ik2) //only Gamma-point phonons
@@ -792,12 +793,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					for(int iAtom=0; iAtom<nAtoms; iAtom++)
 					{	int iMode = 3*iAtom + iDir;
 						phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
+						nrmTot += std::pow(nrm2(phononHsub[iMode][iPair])/invsqrtM[iMode], 2);
 					}
 					//Restrict correction to degenerate subspaces:
 					for(int b1=0; b1<nBands; b1++)
 						for(int b2=0; b2<nBands; b2++)
 							if(fabs(E[b1]-E[b2]) > 1e-4)
 								phononHsubMean.set(b1,b2, 0.);
+					nrmCorr += nAtoms*std::pow(nrm2(phononHsubMean), 2);
 					//Apply correction:
 					for(int iAtom=0; iAtom<nAtoms; iAtom++)
 					{	int iMode = 3*iAtom + iDir;
@@ -817,7 +820,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
 					phononHsubCur.dataPref(), phononHsubCur.nData());
 			}
-		logPrintf("done.\n"); logFlush();
+		logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 		//--- calculate HePh and output one cell fixed at a time to minimize memory usage:
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
@@ -827,7 +830,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 		}
 		matrix phase = zeroes(nPairsMine, phononCellMap.size());
-		double kPairWeight = 1./(prodPhononSup*prodPhononSup);
+		double kPairWeight = 1./prodPhononSup;
 		double nrm2totSq = 0., nrm2imSq = 0.;
 		for(const auto& entry1: ePhCellMap)
 		{	//calculate Fourier transform phase (with integration weights):
