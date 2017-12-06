@@ -124,7 +124,7 @@ public:
 	#undef METRIC_LENGTH_SQUARED
 	
 	__hostanddev__ matrix3<scalar> operator/(scalar s) const { return (*this) * (1.0/s); }
-	__hostanddev__ matrix3<scalar>& operator/(scalar s) { return (*this) *= (1.0/s); }
+	__hostanddev__ matrix3<scalar>& operator/=(scalar s) { return (*this) *= (1.0/s); }
 
 	//! transpose
 	__hostanddev__ matrix3<scalar> operator~() const //!< Transpose matrix
