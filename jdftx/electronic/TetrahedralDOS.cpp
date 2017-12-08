@@ -316,11 +316,11 @@ void TetrahedralDOS::coalesceIntervals(Cspline& cspline) const
 	//Now break each original spline piece down to the intervals in e
 	std::vector<double> v(nWeights), d(nWeights); //temporary storage for values and derivatives
 	std::map<Interval, CsplineElem> combined;
-	for(Cspline::const_iterator i=cspline.begin(); i!=cspline.end(); i++)
-	{	const double& eStart = i->first.eStart;
-		const double& eStop = i->first.eStop;
+	for(Cspline::const_iterator cIter=cspline.begin(); cIter!=cspline.end(); cIter++)
+	{	const double& eStart = cIter->first.eStart;
+		const double& eStop = cIter->first.eStop;
 		double inv_de = 1.0/(eStop-eStart);
-		const CsplineElem& celem = i->second;
+		const CsplineElem& celem = cIter->second;
 		std::set<double>::iterator j=e.find(eStart), jStop=e.find(eStop);
 		double e = *j;
 		double t = (e-eStart)*inv_de;
@@ -349,9 +349,51 @@ void TetrahedralDOS::coalesceIntervals(Cspline& cspline) const
 			t=tNext;
 		}
 	}
-	//Replace continuous part with combined cubics:
+	//Fix interior discontinuities and incorporate interior deltas:
+	auto cIter = combined.begin();
+	double h = cIter->first.eStop - cIter->first.eStart;
+	auto cIterNext = cIter; cIterNext++;
+	while(cIterNext != combined.end())
+	{	double hNext = cIterNext->first.eStop - cIterNext->first.eStart;
+		assert(cIterNext->first.eStart == cIter->first.eStop);
+		//Check for a delta at the intersection of the two intervals:
+		std::vector<double>* deltaPtr = 0;
+		auto dIter = cspline.deltas.find(cIter->first.eStop);
+		if(dIter != cspline.deltas.end())
+			deltaPtr = &(dIter->second);
+		//Update weights at the interval intersection:
+		for(int i=0; i<nWeights; i++)
+		{	double integral = h*cIter->second.bArr[i][3] + hNext*cIterNext->second.bArr[i][0];
+			if(deltaPtr) integral += 4*deltaPtr->at(i);
+			double wMean = integral/(h + hNext);
+			cIter->second.bArr[i][3] = wMean;
+			cIterNext->second.bArr[i][0] = wMean;
+		}
+		//Advance to next interval
+		h = hNext;
+		cIter = cIterNext;
+		cIterNext++;
+	}
+	//Incorporate delta at start of range:
+	cIter = combined.begin();
+	auto dIter = cspline.deltas.begin();
+	if(dIter->first == cIter->first.eStart)
+	{	double h = cIter->first.eStop - cIter->first.eStart;
+		for(int i=0; i<nWeights; i++)
+			cIter->second.bArr[i][0] += dIter->second[i]*(4./h);
+	}
+	//Incorporate delta at end of range:
+	cIter = combined.end(); cIter--; //iterator to last entry
+	dIter = cspline.deltas.end(); dIter--; //iterator to last entry
+	if(dIter->first == cIter->first.eStop)
+	{	double h = cIter->first.eStop - cIter->first.eStart;
+		for(int i=0; i<nWeights; i++)
+			cIter->second.bArr[i][3] += dIter->second[i]*(4./h);
+	}
+	//Set results:
 	cspline.clear();
 	cspline.insert(combined.begin(), combined.end());
+	cspline.deltas.clear(); //deltas incorporated in above
 }
 
 static bool LsplineCmp(const TetrahedralDOS::LsplineElem& l1, const TetrahedralDOS::LsplineElem& l2) { return l1.first < l2.first; }
@@ -359,48 +401,35 @@ static bool LsplineCmp(const TetrahedralDOS::LsplineElem& l1, const TetrahedralD
 //Convert cubic splines to integrated linear splines which handle discontinuities and singularities better:
 //The Cspline object must be coalesced before passing to this function
 TetrahedralDOS::Lspline TetrahedralDOS::convertLspline(const Cspline& cspline) const
-{	//Collect all the energy points:
-	std::set<double> eSet;
-	for(auto iter: cspline)
-	{	eSet.insert(iter.first.eStart);
-		eSet.insert(iter.first.eStop);
-	}
-	for(auto iter: cspline.deltas)
-		eSet.insert(iter.first);
-	//Allocate linear spline and set its nodes:
-	Lspline lspline(eSet.size());
-	auto vecIter = lspline.begin();
-	for(double e: eSet)
-		(vecIter++)->first = e;
-	//Find left- and right-linear-weighted integrals for each interval:
-	lspline[0].second.assign(nWeights, 0.);
-	for(unsigned j=0; j<lspline.size()-1; j++)
-	{	double eStart = lspline[j].first;
-		double eStop = lspline[j+1].first;
-		double h = eStop - eStart;
-		Cspline::const_iterator cIter = cspline.find(Interval(eStart, eStop));
-		if(cIter == cspline.end()) assert(!"Brillouin zone triangulation must have holes!\n");
-		lspline[j+1].second.assign(nWeights, 0.);
-		for(int i=0; i<nWeights; i++)
-		{	const CsplineElem::double4& b = cIter->second.bArr[i];
-			lspline[ j ].second[i] += h * (0.20*b[0] + 0.15*b[1] + 0.10*b[2] + 0.05*b[3]);
-			lspline[j+1].second[i] += h * (0.05*b[0] + 0.10*b[1] + 0.15*b[2] + 0.20*b[3]);
+{	//Convert each cubic-spline interval into three linear spline ones:
+	int nIntervals = cspline.size();
+	Lspline lspline(1+3*nIntervals);
+	auto lIter = lspline.begin();
+	for(auto cIter = cspline.begin(); cIter != cspline.end(); cIter++) //loop over c-spline intervals
+	{	const double& e0 = cIter->first.eStart;
+		const double& e3 = cIter->first.eStop;
+		const CsplineElem& ce = cIter->second;
+		//Macro to add interval:
+		#define ADD_interval(e, wiCode) \
+		{	lIter->first = e; \
+			lIter->second.resize(nWeights); \
+			for(int i=0; i<nWeights; i++) \
+				lIter->second[i] = (wiCode); \
+			lIter++; \
 		}
+		//Add intervals:
+		const double e1 = (1./3)*(2*e0 + e3);
+		const double e2 = (1./3)*(e0 + 2*e3);
+		const double a10 = 13./60;
+		const double a11 = 0.60;
+		const double a12 = 0.15;
+		const double a13 = 1./30;
+		if(cIter==cspline.begin()) ADD_interval(e0, ce.bArr[i][0]) //only need at start of spline
+		ADD_interval(e1, a10*ce.bArr[i][0] + a11*ce.bArr[i][1] + a12*ce.bArr[i][2] + a13*ce.bArr[i][3])
+		ADD_interval(e2, a10*ce.bArr[i][3] + a11*ce.bArr[i][2] + a12*ce.bArr[i][1] + a13*ce.bArr[i][0])
+		ADD_interval(e3, ce.bArr[i][3])
 	}
-	//Include contributions from deltas:
-	for(const LsplineElem& delta: cspline.deltas)
-	{	Lspline::iterator lIter = std::lower_bound(lspline.begin(), lspline.end(), delta, LsplineCmp);
-		for(int i=0; i<nWeights; i++)
-			lIter->second[i] += delta.second[i];
-	}
-	//Convert interval integrals to linear spline coefficients:
-	for(unsigned j=0; j<lspline.size(); j++)
-	{	double eStart = (j==0) ? lspline[j].first : lspline[j-1].first;
-		double eStop = (j+1==lspline.size()) ? lspline[j].first : lspline[j+1].first;
-		double normFac = 2./(eStop-eStart);
-		for(int i=0; i<nWeights; i++)
-			lspline[j].second[i] *= normFac;
-	}
+	assert(lIter == lspline.end());
 	return lspline;
 }
 
