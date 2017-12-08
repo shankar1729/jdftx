@@ -374,21 +374,24 @@ void TetrahedralDOS::coalesceIntervals(Cspline& cspline) const
 		cIter = cIterNext;
 		cIterNext++;
 	}
-	//Incorporate delta at start of range:
-	cIter = combined.begin();
-	auto dIter = cspline.deltas.begin();
-	if(dIter->first == cIter->first.eStart)
-	{	double h = cIter->first.eStop - cIter->first.eStart;
-		for(int i=0; i<nWeights; i++)
-			cIter->second.bArr[i][0] += dIter->second[i]*(4./h);
-	}
-	//Incorporate delta at end of range:
-	cIter = combined.end(); cIter--; //iterator to last entry
-	dIter = cspline.deltas.end(); dIter--; //iterator to last entry
-	if(dIter->first == cIter->first.eStop)
-	{	double h = cIter->first.eStop - cIter->first.eStart;
-		for(int i=0; i<nWeights; i++)
-			cIter->second.bArr[i][3] += dIter->second[i]*(4./h);
+	//Incorporate deltas at the extrema:
+	if(cspline.deltas.size())
+	{	//Delta at bottom of band:
+		auto cIter = combined.begin();
+		auto dIter = cspline.deltas.begin();
+		if(dIter->first == cIter->first.eStart)
+		{	double h = cIter->first.eStop - cIter->first.eStart;
+			for(int i=0; i<nWeights; i++)
+				cIter->second.bArr[i][0] += dIter->second[i]*(4./h);
+		}
+		//Delta at top of band:
+		cIter = combined.end(); cIter--; //iterator to last entry
+		dIter = cspline.deltas.end(); dIter--; //iterator to last entry
+		if(dIter->first == cIter->first.eStop)
+		{	double h = cIter->first.eStop - cIter->first.eStart;
+			for(int i=0; i<nWeights; i++)
+				cIter->second.bArr[i][3] += dIter->second[i]*(4./h);
+		}
 	}
 	//Set results:
 	cspline.clear();
