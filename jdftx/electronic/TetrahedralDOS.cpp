@@ -28,8 +28,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 TetrahedralDOS::TetrahedralDOS(std::vector<vector3<>> kmesh, std::vector<int> iReduced,
 	const matrix3<>& R, const matrix3<int>& super, int nSpins, int nBands, int nWeights, double weightSum)
 : nSpins(nSpins), nBands(nBands), nWeights(nWeights),
-nReduced(*std::max_element(iReduced.begin(),iReduced.end())+1),
-nStates(nReduced*nSpins), eigs(nStates*nBands), weights(nStates*nBands*nWeights)
+nReduced(iReduced.size()
+	? *std::max_element(iReduced.begin(),iReduced.end())+1 //reduced k-pt mapping provided
+	: kmesh.size()), //no mapping to reduced; use full mesh
+nStates(nReduced*nSpins), eigs(nStates*nBands, 0.), weights(nStates*nBands*nWeights, 1.)
 {
 	//Pick optimum tetrahedral tesselation of each parallelopiped cell in BZ:
 	vector3<> dk[8]; //k-point offsets of basis parallelopiped relative to its first vertex
@@ -85,7 +87,7 @@ nStates(nReduced*nSpins), eigs(nStates*nBands), weights(nStates*nBands*nWeights)
 		for(unsigned t=0; t<6; t++)
 		{	Tetrahedron& tet = tetrahedra[6*i+t];
 			for(int p=0; p<4; p++)
-				tet.q[p] = iReduced[iv[cellVerts[t][p]]];
+				tet.q[p] = iReduced.size() ? iReduced[iv[cellVerts[t][p]]] : iv[cellVerts[t][p]];
 			tet.V = box(
 				GT * (v[cellVerts[t][1]] - v[cellVerts[t][0]]),
 				GT * (v[cellVerts[t][2]] - v[cellVerts[t][0]]),
@@ -96,6 +98,20 @@ nStates(nReduced*nSpins), eigs(nStates*nBands), weights(nStates*nBands*nWeights)
 	double VnormFac = weightSum/Vtot;
 	for(Tetrahedron& t: tetrahedra)
 		t.V *= VnormFac; //normalize volume of tetrahedra to add up to qWeightSum/nSpins
+}
+
+void TetrahedralDOS::setEigs(const std::vector<diagMatrix>& E)
+{	assert(int(E.size())==nStates);
+	for(int q=0; q<nStates; q++)
+		for(int b=0; b<nBands; b++)
+			e(q,b) = E[q][b];
+}
+
+void TetrahedralDOS::setWeights(int iWeight, const std::vector<diagMatrix>& weights)
+{	assert(int(weights.size())==nStates);
+	for(int q=0; q<nStates; q++)
+		for(int b=0; b<nBands; b++)
+			w(iWeight,q,b) = weights[q][b];
 }
 
 

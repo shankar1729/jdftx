@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_TETRAHEDRALDOS_H
 #define JDFTX_ELECTRONIC_TETRAHEDRALDOS_H
 
-#include <core/matrix3.h>
+#include <core/matrix.h>
 #include <core/string.h>
 #include <vector>
 #include <array>
@@ -37,6 +37,7 @@ public:
 	const int nStates; //!< nReduced * nSpins
 	
 	//! Initialize calculator for a given uniform k-point mesh kmesh and indices iReduced to reduced mesh.
+	//! If iReduced is empty, then nReduced = kmesh.size() and eigenvalues / weights must be provided on the full mesh
 	//! R is the unit cell lattice vectors, while super are its linear combinations in the k-point sampled supercell.
 	//! nSpins, nBands and nWeights initialize corresponding members of class.
 	//! weightSum sets the net contribution from the BZ integral (can include spin-degeneracy factors here, if any).
@@ -48,6 +49,9 @@ public:
 	inline const double& e(int iState, int iBand) const { return eigs[iState + nStates*iBand]; } //!< access eigenvalue (const version)
 	inline double& w(int iWeight, int iState, int iBand) { return weights[iWeight + nWeights*(iState + nStates*iBand)]; } //!< access weight
 	inline const double& w(int iWeight, int iState, int iBand) const { return weights[iWeight + nWeights*(iState + nStates*iBand)]; } //!< access weight (const version)
+	
+	void setEigs(const std::vector<diagMatrix>& E); //!< set all eigenvalues together (instead of using e())
+	void setWeights(int iWeight, const std::vector<diagMatrix>& weights); //!< set all weights for given iWeight together (instead of using e()); all weights are initially 1
 	
 	//! Replace clusters of eigenvalues that differ by less than Etol by a single value equal to their mean
 	void weldEigenvalues(double Etol);

@@ -271,13 +271,6 @@ void DOS::dump()
 	TetrahedralDOS eval(supercell.kmesh, iReduced, e->gInfo.R, supercell.super,
 		nSpins, eInfo.nBands, weights.size(), eInfo.qWeightSum/nSpins);
 	
-	//Set uniform weights for Total mode:
-	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
-		for(int iBand=0; iBand<eInfo.nBands; iBand++)
-			for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
-				if(weights[iWeight].type == Weight::Total)
-					eval.w(iWeight, iState, iBand) = 1.;
-	
 	//Compute the weight functions on the real-space grid for weighted-density modes:
 	std::vector<ScalarFieldArray> weightFuncs(weights.size());
 	bool needDensity = false; //check if any of the modes need the density
