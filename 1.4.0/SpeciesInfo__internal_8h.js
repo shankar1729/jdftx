@@ -1,0 +1,27 @@
+var SpeciesInfo__internal_8h =
+[
+    [ "SwitchTemplate_Nlm", "SpeciesInfo__internal_8h.html#gacde774675fa68820f1188de15f479f25", null ],
+    [ "getSG", "SpeciesInfo__internal_8h.html#ga5ab86743b62908a61fef2c2a7dc02f6e", null ],
+    [ "getSG_calc", "SpeciesInfo__internal_8h.html#ga062be4b800741122227b81372f88d1d3", null ],
+    [ "getSG_gpu", "SpeciesInfo__internal_8h.html#gad79b063f6aaae683010a9d06d0bb1d7a", null ],
+    [ "gradLocalToSG", "SpeciesInfo__internal_8h.html#ga0b304f8a6563d5fb35371b5c54abf788", null ],
+    [ "gradLocalToSG_calc", "SpeciesInfo__internal_8h.html#ga574973e06b14530c61e5ca9e34b640d2", null ],
+    [ "gradLocalToSG_gpu", "SpeciesInfo__internal_8h.html#ga240d069c936517f813d31edc01244bb8", null ],
+    [ "gradSGtoAtpos", "SpeciesInfo__internal_8h.html#gab7705fe3005e3db29a9c5031ea906333", null ],
+    [ "gradSGtoAtpos_calc", "SpeciesInfo__internal_8h.html#ga0181add7a53fd50cc36602656c0c6b67", null ],
+    [ "gradSGtoAtpos_gpu", "SpeciesInfo__internal_8h.html#ga38a8d5797643fc67f4bec5ba31fb7a04", null ],
+    [ "nAugment", "SpeciesInfo__internal_8h.html#gab53a4c9d792e3e8667d4b9544ce8c06a", null ],
+    [ "nAugment_calc", "SpeciesInfo__internal_8h.html#gaa6bff294f8267c8f851b07f13569c05c", null ],
+    [ "nAugment_gpu", "SpeciesInfo__internal_8h.html#gaaf91609eaf9fe4b9cb24039517ff22fd", null ],
+    [ "nAugmentGrad", "SpeciesInfo__internal_8h.html#gaaae8f62e200300c774be53d83eec3c9e", null ],
+    [ "nAugmentGrad_calc", "SpeciesInfo__internal_8h.html#ga3b6ad7d56730ea921022123f67700eed", null ],
+    [ "nAugmentGrad_gpu", "SpeciesInfo__internal_8h.html#gabf2f3c624518613d0685bd13c61e4875", null ],
+    [ "setNagIndex", "SpeciesInfo__internal_8h.html#ga6e077853ad428e3cbf86553460aea08c", null ],
+    [ "staticLoopYlm", "SpeciesInfo__internal_8h.html#ga517f3df0fbf652f2100c9479dc2fb633", null ],
+    [ "updateLocal", "SpeciesInfo__internal_8h.html#gaf276d997914e671ab0daa5dae494225d", null ],
+    [ "updateLocal_calc", "SpeciesInfo__internal_8h.html#gab47298832cb2a3a4e1c5523407a88bd9", null ],
+    [ "updateLocal_gpu", "SpeciesInfo__internal_8h.html#gacc0b572b764c07253476375cbd7d5f57", null ],
+    [ "Vnl", "SpeciesInfo__internal_8h.html#gacf56e3da54fbfd28724652e670058d8a", null ],
+    [ "Vnl_calc", "SpeciesInfo__internal_8h.html#gac8d837d27ce0457c35d152464e6c03a7", null ],
+    [ "Vnl_gpu", "SpeciesInfo__internal_8h.html#gafa8455d7af9c1030a7a36d278aad7b3d", null ]
+];
