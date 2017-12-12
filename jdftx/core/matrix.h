@@ -208,11 +208,13 @@ complex det(const matrix& A);
 //! Compute the determinant of an diagonal matrix A
 double det(const diagMatrix& A);
 
-//! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
-matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0);
+//! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null).
+//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0, bool* isSingular=0);
 
-//! Compute matrix A^-0.5 and optionally the eigensystem of A (if non-null)
-matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
+//! Compute matrix A^-0.5 and optionally the eigensystem of A (if non-null).
+//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0, bool* isSingular=0);
 
 //! Compute cis(A) = exp(iota A) and optionally the eigensystem of A (if non-null)
 matrix cis(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);

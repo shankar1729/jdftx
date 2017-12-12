@@ -678,11 +678,16 @@ double det(const diagMatrix& A)
 	return evecs * matrix(eigOut) * dagger(evecs);
 
 // Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
-matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs)
-{	MATRIX_FUNC
+matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs, bool* isSingular)
+{	if(isSingular) *isSingular = false;
+	MATRIX_FUNC
 	(	if(exponent<0. && eigs[i]<=0.0)
-		{	logPrintf("Eigenvalue# %d is non-positive (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
-			stackTraceExit(1);
+		{	if(isSingular)
+				*isSingular = true; //project out current eigenvalue; calling function will handle if needed
+			else //Unhandled: print stack-trace
+			{	logPrintf("Eigenvalue# %d is non-positive (%le) in pow (exponent %lg)\n", i, eigs[i], exponent);
+				stackTraceExit(1);
+			}
 		}
 		else if(exponent>=0. && eigs[i]<0.0)
 		{	logPrintf("WARNING: Eigenvalue# %d is negative (%le) in pow (exponent %lg); zeroing it out.\n", i, eigs[i], exponent);
@@ -693,8 +698,8 @@ matrix pow(const matrix& A, double exponent, matrix* Aevecs, diagMatrix* Aeigs)
 }
 
 // Compute matrix A^-0.5 and optionally the eigensystem of A (if non-null)
-matrix invsqrt(const matrix& A, matrix* Aevecs, diagMatrix* Aeigs)
-{	return pow(A, -0.5, Aevecs, Aeigs);
+matrix invsqrt(const matrix& A, matrix* Aevecs, diagMatrix* Aeigs, bool* isSingular)
+{	return pow(A, -0.5, Aevecs, Aeigs, isSingular);
 }
 
 // Compute cis(A) = exp(iota A) and optionally the eigensystem of A (if non-null)

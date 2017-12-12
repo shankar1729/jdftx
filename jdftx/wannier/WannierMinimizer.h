@@ -157,7 +157,9 @@ protected:
 	//! Dump a named matrix variable to file, optionally zeroing out the real parts
 	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
 	
-	static matrix fixUnitary(const matrix& U); //!< return an exactly unitary version of U (orthogonalize columns)
+	//! Return an exactly unitary version of U (orthogonalize columns)
+	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
 	
 	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
 	virtual WannierGradient precondition(const WannierGradient& grad);

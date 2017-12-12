@@ -1,5 +1,10 @@
 /** \page ChangeLog Change log
 
+## Development version on git
+
++ Wannier enhancements:
+	- Clear error messages rather than stack trace for linearly-dependent trial orbitals 
+
 ## 1.4.0 - 2017-12-11 ([Site archive](http://jdftx.org/1.4.0))
 
 + Support for ultrasoft pseudopotentials in phonon, %Wannier, momentum matrix elements and e-ph matrix elements

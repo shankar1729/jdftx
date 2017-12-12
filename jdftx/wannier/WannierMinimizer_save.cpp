@@ -248,11 +248,21 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Optimal initial rotation within Wannier subspace:
 			matrix WdagG = dagger(ke.U1(0,nBands, nFrozen,nCenters)) * CdagG;
 			ke.U2 = eye(nCenters);
-			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG));
+			bool isSingular = false;
+			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG, 0, 0, &isSingular));
+			if(isSingular)
+			{	ossErr << "Trial orbitals are linearly dependent / do not cover desired subspace" << kString;
+				break;
+			}
 		}
 		//Make initial rotations exactly unitary:
-		ke.U1 = fixUnitary(ke.U1);
-		ke.U2 = fixUnitary(ke.U2);
+		bool isSingular = false;
+		ke.U1 = fixUnitary(ke.U1, &isSingular);
+		ke.U2 = fixUnitary(ke.U2, &isSingular);
+		if(isSingular)
+		{	ossErr << "Initial rotations are singular" << kString;
+			break;
+		}
 		ke.U = ke.U1(0,nBands, 0,nCenters) * ke.U2;
 	}
 	mpiWorld->checkErrors(ossErr);

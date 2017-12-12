@@ -102,6 +102,7 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 		bcast(bufTotData, nChars_j, jProcess);
 		bufTotData += nChars_j;
 	}
+	bufTot += '\n';
 	//Mimic the behaviour of die with collected error message:
 	fputs(bufTot.c_str(), globalLog);
 	if(isHead() && globalLog != stdout)

@@ -149,8 +149,8 @@ WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
 }
 
 
-matrix WannierMinimizer::fixUnitary(const matrix& U)
-{	return U * invsqrt(dagger(U) * U);
+matrix WannierMinimizer::fixUnitary(const matrix& U, bool* isSingular)
+{	return U * invsqrt(dagger(U) * U, 0, 0, isSingular);
 }
 
 bool WannierMinimizer::report(int iter)
@@ -164,12 +164,20 @@ bool WannierMinimizer::report(int iter)
 	mpiWorld->allReduce(needRestart, MPIUtil::ReduceLOr);
 	if(needRestart)
 	{	logPrintf("%s\tUpdating rotations to enforce unitarity\n", wannier.minParams.linePrefix);
+		ostringstream ossErr;
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
-			ki.U1 = fixUnitary(ki.U1);
-			ki.U2 = fixUnitary(ki.U2);
+			bool isSingular = false;
+			ki.U1 = fixUnitary(ki.U1, &isSingular);
+			ki.U2 = fixUnitary(ki.U2, &isSingular);
+			if(isSingular)
+			{	ossErr << "Unitary rotations are singular at k = [ "
+					<< ki.point.k[0] << ' ' << ki.point.k[1] << ' ' << ki.point.k[2] << " ]\n";
+				break;
+			}
 			ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 		}
+		mpiWorld->checkErrors(ossErr);
 		return true;
 	}
     return false;
