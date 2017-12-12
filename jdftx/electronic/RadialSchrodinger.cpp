@@ -420,7 +420,7 @@ diagMatrix InvertKS::precondition(const diagMatrix& grad)
 	double Qin = 0.;
 	for(size_t i=0; i<r.size(); i++)
 	{	double expc = r[i] ? exp(-kappa*r[i])/r[i] : 0.;
-		double sinch = kappa*r[i] ? sinh(kappa*r[i])/(kappa*r[i]) : 1.;
+		double sinch = (kappa && r[i]) ? sinh(kappa*r[i])/(kappa*r[i]) : 1.;
 		double dQin = grad[i] * sinch;
 		Qin += 0.5*dQin;
 		Kgrad[i] = Qin * expc;
@@ -430,7 +430,7 @@ diagMatrix InvertKS::precondition(const diagMatrix& grad)
 	double Qout = 0.;
 	for(size_t i=r.size()-1; ; i--)
 	{	double expc = r[i] ? exp(-kappa*r[i])/r[i] : 0.;
-		double sinch = kappa*r[i] ? sinh(kappa*r[i])/(kappa*r[i]) : 1.;
+		double sinch = (kappa && r[i]) ? sinh(kappa*r[i])/(kappa*r[i]) : 1.;
 		double dQout = grad[i] * expc;
 		Qout += 0.5*dQout;
 		Kgrad[i] += Qout * sinch;

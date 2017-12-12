@@ -66,7 +66,7 @@ public:
 	int nRows() const { return nr; }
 	int nCols() const { return nc; }
 	int index(int i, int j) const { return nr*j+i; } //!< Index into data()
-	explicit operator bool() const { return nr*nc; } //!< Test null-ness of matrix
+	explicit operator bool() const { return nr && nc; } //!< Test null-ness of matrix
 
 	void init(int nrows,int ncols, bool onGpu=false); //!< called by the constructors
 	void reshape(int nrows, int ncols); //!< change the dimensions without altering the data (zero dimensions are filled in to match size)

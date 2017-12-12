@@ -32,12 +32,8 @@ DOS::DOS() : Etol(1e-6), Esigma(0)
 
 void DOS::setup(const Everything& everything)
 {	e = &everything;
-	if(!weights.size()) //Add the default of just total density of states:
-	{	Weight weight;
-		weight.type = Weight::Total;
-		weight.fillingMode = Weight::Complete;
-		weights.push_back(weight);
-	}
+	if(!weights.size()) //Add the default of Total Complete DOS:
+		weights.push_back(Weight());
 	//Check compatibility of orbital modes with pseudopotentials:
 	for(const Weight& weight: weights)
 		if(weight.type == Weight::Orbital)
