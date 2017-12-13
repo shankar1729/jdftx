@@ -174,20 +174,19 @@ void SpeciesInfo::readFhi(istream& in)
 			}
 	}
 	
-	//Radial wavefunctions:
-	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
-	psiRadial.resize(channels.size());
+	//Set wavefunctions:
+	std::vector<std::vector<RadialFunctionR>> psiArr(channels.size());
 	for(unsigned l=0; l<channels.size(); l++)
 	{	if(channels[l].hasPsi())
 		{	if(l>3) die("  Atomic orbitals with l>3 not implemented.\n");
-			psiRadial[l].push_back(RadialFunctionG());
-			channels[l].getPsi().transform(l, dG, nGridNL, psiRadial[l].back());
+			psiArr[l].push_back(channels[l].getPsi());
 		}
 		else
-		{	psiRadial.resize(l); //no more wavefunctions
+		{	psiArr.resize(l); //no more wavefunctions
 			break;
 		}
 	}
+	setPsi(psiArr);
 	
 	//Determine max core radius of all the nonlocal projectors:
 	for(int l=0; l<lCount; l++)

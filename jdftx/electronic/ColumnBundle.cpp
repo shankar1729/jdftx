@@ -167,7 +167,7 @@ void ColumnBundle::randomize(int colStart, int colStop)
 	{	vector3<> kplusG = iG + qnum->k;
 		double KE = 0.5*dot(kplusG, basis->gInfo->GGT*kplusG);
 		double t = KE/0.75;
-		double sigma = 1.0/(1.0+t*t*t*t*t*t);
+		double sigma = 1.0/((1.0+t*t*t*t*t*t) * basis->gInfo->detR);
 		for(int s=0; s<nSpinor; s++)
 			for(int i=colStart; i<colStop; i++)
 				thisData[index(i,j+s*basis->nbasis)] = Random::normalComplex(sigma);

@@ -160,17 +160,17 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 	)
 }
 
-void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const
+void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M) const
 {	rhoAtom_COMMONinit
 	int matSizeTot = 0; UparamLOOP( matSizeTot += orbCount * atpos.size(); )
 	if(!matSizeTot) return;
-	psi = Cq.similar(matSizeTot);
+	Opsi = Cq.similar(matSizeTot);
 	M = zeroes(matSizeTot, matSizeTot);
 	int matSizePrev = 0;
 	UparamLOOP
 	(	U_rho_PACK
 		int s = Cq.qnum->index();
-		setAtomicOrbitals(psi, true, Uparams.n, Uparams.l, matSizePrev);
+		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l, matSizePrev);
 		M.set(matSizePrev,matSizePrev+matSize, matSizePrev,matSizePrev+matSize, (1./e->eInfo.spinWeight) * U_rho[s]);
 		matSizePrev += matSize;
 	)

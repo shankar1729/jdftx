@@ -117,7 +117,7 @@ public:
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
 	void rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
-	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
+	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
@@ -177,7 +177,7 @@ private:
 	ManagedArray<uint64_t> nagIndex; ManagedArray<size_t> nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad(_gpu)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
-	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
+	std::vector<std::vector<RadialFunctionG> > OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
 	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
 	
 	//! Extra information for spin-orbit coupling:
@@ -212,6 +212,7 @@ private:
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
 	void readUPF(istream&); //Implemented in SpeciesInfo_readUPF.cpp
 	void setupPulay();
+	void setPsi(std::vector<std::vector<RadialFunctionR> >& psi); //!< Normalize, transform from real space and set psiRadial, OpsiRadial (for ultrasoft psps, call after setting Qint)
 	
 	//Following implemented in SpeciesInfo_atomFillings.cpp
 	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.

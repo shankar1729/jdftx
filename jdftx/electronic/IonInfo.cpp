@@ -349,14 +349,14 @@ void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector
 	}
 }
 
-void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const
+void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& Opsi, std::vector<matrix>& M) const
 {	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
-	psi.resize(species.size());
+	Opsi.resize(species.size());
 	M.resize(species.size());
-	ColumnBundle* psiPtr = psi.data();
+	ColumnBundle* OpsiPtr = Opsi.data();
 	matrix* Mptr = M.data();
 	for(const auto& sp: species)
-	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(psiPtr++), *(Mptr++));
+	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(OpsiPtr++), *(Mptr++));
 		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
 	}
 }

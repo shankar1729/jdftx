@@ -329,23 +329,21 @@ void SpeciesInfo::readUspp(istream& is)
 	
 	//Wavefunctions:
 	if(nPsi == nValence) // <- this seems to always be the case, but just to be sure
-	{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
-		psiRadial.resize(lMax+1);
+	{	std::vector<std::vector<RadialFunctionR>> psiArr(lMax+1);
 		atomEigs.resize(lMax+1);
 		for(int v=0; v<nValence; v++)
 		{	int l = (voCode[v]/10)%10; //l is 2nd digit of orbital code (ie. |210> is l=1)
 			if(l>lMax) //this can happen occassionaly when lLocal==lMax
-			{	psiRadial.resize(l+1);
+			{	psiArr.resize(l+1);
 				atomEigs.resize(l+1);
 			}
 			voPsi[v].set(rGrid, drGrid);
 			for(int i=0; i<nGrid; i++)
 				voPsi[v].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
-			psiRadial[l].push_back(RadialFunctionG());
-			voPsi[v].transform(l, dG, nGridNL, psiRadial[l].back());
-			//Store eigenvalue:
-			atomEigs[l].push_back(voEnergy[v]);
+			psiArr[l].push_back(voPsi[v]); //Store orbital by l
+			atomEigs[l].push_back(voEnergy[v]); //Store eigenvalue by l
 		}
+		setPsi(psiArr);
 	}
 	
 	//Determine max core radius:

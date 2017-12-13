@@ -454,21 +454,20 @@ void SpeciesInfo::readUPF(istream& is)
 				tagPsi.close();
 			}
 			if(nPsi > 0)
-			{	logPrintf("  Transforming atomic orbitals to a uniform radial grid of dG=%lg with %d points.\n", dG, nGridNL);
-				psiRadial.resize(lMax+1);
+			{	std::vector<std::vector<RadialFunctionR>> psiArr(lMax+1);
 				if(haveEigs) atomEigs.resize(lMax+1);
 				for(int iPsi=0; iPsi<nPsi; iPsi++)
 				{	int l = lPsi[iPsi];
 					if(l>lMax)
 					{	if(haveEigs) atomEigs.resize(l+1);
-						psiRadial.resize(l+1);
+						psiArr.resize(l+1);
 					}
 					for(int i=0; i<nGrid; i++)
-						psi[iPsi].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0);
-					psiRadial[l].push_back(RadialFunctionG());
-					psi[iPsi].transform(l, dG, nGridNL, psiRadial[l].back());
+						psi[iPsi].f[i] *= (rGrid[i] ? 1./rGrid[i] : 0); //convert from r*psi(r) to just psi(r)
+					psiArr[l].push_back(psi[iPsi]);
 					if(haveEigs) atomEigs[l].push_back(eigs[iPsi]);
 				}
+				setPsi(psiArr);
 			}
 		}
 		else if(tag.name == "PP_SPIN_ORB")
