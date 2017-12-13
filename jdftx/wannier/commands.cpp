@@ -249,19 +249,21 @@ struct CommandWannierCenter : public Command
 			"Specify trial orbital for a wannier function as a linear combination of\n"
 			"atomic orbitals <aorb*>. The syntax for each <aorb> is:\n"
 			"\n"
-			"   <x0> <x1> <x2> [<a>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
+			"   <x0> <x1> <x2> [<sigma>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
 			"\n"
 			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
 			"(coordinate system set by coords-type).\n"
 			"\n"
-			"If <a> is the name of one of the pseudopotentials, then its\n"
-			"atomic orbitals will be used; otherwise a hydrogenic orbital\n"
-			"of decay length n*<a> bohrs, where n is the principal\n"
+			"If <sigma> is the name of one of the pseudopotentials, then its\n"
+			"atomic orbitals will be used; otherwise a Gaussian orbital\n"
+			"of sigma = n*<sigma> bohrs, where n is the principal\n"
 			"quantum number in <orbDesc> will be used.\n"
 			"\n"
-			"The orbital code <orbDesc> is as in command density-of-states.\n"
+			"The orbital code <orbDesc> is as in command density-of-states,\n"
+			"but only codes for individual orbitals eg. px, dxy can be used.\n"
+			"(Codes for a set of orbitals eg. p, d are not allowed here.)\n"
 			"\n"
-			"Specify <a>, <orbDesc> and <coeff> explicitly when using multiple\n"
+			"Specify <sigma>, <orbDesc> and <coeff> explicitly when using multiple\n"
 			"orbitals; the defaults only apply to the single orbital case.\n"
 			"\n"
 			"Alternately, for using numerical trial orbitals that have been\n"
@@ -271,7 +273,7 @@ struct CommandWannierCenter : public Command
 			"\n"
 			"where <b> is the 0-based index of the input orbital, and <coeff> may\n"
 			"be used to linearly combine numerical orbitals with other numerical\n"
-			"or atomic / hydrogenic orbitals as specified above.\n"
+			"or atomic / Gaussian orbitals as specified above.\n"
 			"\n"
 			"Specify this command once for each Wannier function.";
 		
@@ -294,17 +296,17 @@ struct CommandWannierCenter : public Command
 			if(e.iInfo.coordsType == CoordsCartesian)
 				ao.r = inv(e.gInfo.R)*ao.r;
 			//Determine trial orbital type:
-			string aKey; pl.get(aKey, string(), "a");
+			string sigmaKey; pl.get(sigmaKey, string(), "sigma");
 			ao.numericalOrbIndex = -1;
 			ao.sp = -1;
 			ao.atom = -1;
-			if(aKey == "numerical")
+			if(sigmaKey == "numerical")
 			{	pl.get(ao.numericalOrbIndex, -1, "b", true);
 				if(ao.numericalOrbIndex<0) throw(string("Numerical orbital index must be non-negative"));
 			}
 			else
 			{	for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
-					if(e.iInfo.species[sp]->name == aKey)
+					if(e.iInfo.species[sp]->name == sigmaKey)
 					{	ao.sp = sp;
 						//Match to an atom if possible:
 						const std::vector< vector3<> >& atpos = e.iInfo.species[sp]->atpos;
@@ -316,14 +318,12 @@ struct CommandWannierCenter : public Command
 						break;
 					}
 				if(ao.sp<0)
-					ParamList(aKey).get(ao.a, 1., "a");
+					ParamList(sigmaKey+" ").get(ao.sigma, 1., "a");
 				pl.get(orbDesc, string(), "orbDesc");
 				if(orbDesc.length())
 				{	ao.orbitalDesc.parse(orbDesc);
 					if(ao.orbitalDesc.m > ao.orbitalDesc.l)
 						throw(string("Must specify a specific projection eg. px,py (not just p)"));
-					if(ao.sp>=0 && ao.orbitalDesc.n + ao.orbitalDesc.l > 3)
-						throw(string("Hydrogenic orbitals with n+l>4 not supported"));
 				}
 				else //default is nodeless s orbital
 				{	ao.orbitalDesc.l = 0;
@@ -359,7 +359,7 @@ struct CommandWannierCenter : public Command
 				logPrintf("numerical %d", ao.numericalOrbIndex);
 			else
 			{	if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
-				else logPrintf("%lg", ao.a);
+				else logPrintf("%lg", ao.sigma);
 				logPrintf(" %s", string(ao.orbitalDesc).c_str());
 			}
 			logPrintf("  %lg", ao.coeff);

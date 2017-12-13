@@ -253,36 +253,10 @@ void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const Wannie
 
 #undef axpyWfns_COMMON
 
-//Fourier transform of hydrogenic orbitals
-inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPrefac)
-{	int n = nIn+1 + l; //conventional principal quantum number
-	double nG = n*G*a/(l+1), nGsq = nG*nG;
-	double prefac = normPrefac / pow(1.+nGsq, n+1);
-	switch(l)
-	{	case 0:
-			switch(n)
-			{	case 1: return prefac;
-				case 2: return prefac*8.*(-1.+nGsq);
-				case 3: return prefac*9.*(3.+nGsq*(-10.+nGsq*3.));
-				case 4: return prefac*64.*(-1.+nGsq*(7.+nGsq*(-7.+nGsq)));
-			}
-		case 1:
-			switch(n)
-			{	case 2: return prefac*16.*nG;
-				case 3: return prefac*144.*nG*(-1.+nGsq);
-				case 4: return prefac*128.*nG*(5.+nGsq*(-14.+nGsq*5.));
-			}
-		case 2:
-			switch(n)
-			{	case 3: return prefac*288.*nGsq;
-				case 4: return prefac*3072.*nGsq*(-1.+nGsq);
-			}
-		case 3:
-			switch(n)
-			{	case 4: return prefac*6144.*nG*nGsq;
-			}
-	}
-	return 0.;
+//Gaussian orbital of specified width and angular momentum
+inline double gaussTilde(double G, double sigma, int l, double normPrefac)
+{	double Gsigma = G*sigma;
+	return normPrefac * std::pow(Gsigma,l) * exp(-0.5*Gsigma*Gsigma);
 }
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
@@ -319,18 +293,20 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
 				continue;
 			}
+			//Gaussian or non-atom-centered orbitals:
 			//--- Copy the center to managed memory:
 			ManagedArray<vector3<>> pos(&ao.r, 1);
 			//--- Get / create the radial part:
 			RadialFunctionG hRadial;
 			if(ao.sp < 0)
-			{	double normPrefac = pow((od.l+1)/ao.a,3);
-				for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
-					normPrefac *= p;
-				normPrefac = 16*M_PI/sqrt(normPrefac);
-				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, ao.a, od.n, od.l, normPrefac);
+			{	double Al = 0.25*sqrt(M_PI);
+				for(int p=1; p<=od.l; p++)
+					Al *= (p+0.5);
+				double sigma = (od.n+1) * ao.sigma;
+				double normPrefac = sqrt(std::pow(2*M_PI*sigma,3) / Al);
+				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, gaussTilde, sigma, od.l, normPrefac);
 			}
-			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial->at(od.l)[od.n];
+			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial[od.l][od.n];
 			//--- Initialize the projector:
 			assert(od.s < nSpinor);
 			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
