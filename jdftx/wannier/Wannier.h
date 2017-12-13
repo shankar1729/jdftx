@@ -42,7 +42,8 @@ public:
 		int sp, atom; //!< species code (<0 if not using a pseudopotential atomic orbital) and atom number (<0 if not using an orbital located on an atom)
 		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
-		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
+		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)	
+		AtomicOrbital() : sigma(0.), sp(-1), atom(-1), numericalOrbIndex(-1), coeff(1.) {}
 	};
 	struct TrialOrbital : public std::vector<AtomicOrbital>
 	{	bool pinned;

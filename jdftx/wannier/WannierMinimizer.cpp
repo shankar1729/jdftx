@@ -285,35 +285,36 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, temp.dataPref(),1, retData,1);
 				continue;
 			}
-			//Handle atomic orbitals that are actually atom-centered:
+			//Handle atomic orbitals:
 			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
 			complex lPhase =  cis(0.5*M_PI*od.l); //including this phase ensures odd l projectors are real (i^l term in spherical wave expansion)
-			if(ao.atom >= 0)
+			if(ao.sp >= 0)
 			{	int iCol = e.iInfo.species[ao.sp]->atomicOrbitalOffset(ao.atom, od.n, od.l, od.m, od.s);
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
 				continue;
 			}
-			//Gaussian or non-atom-centered orbitals:
-			//--- Copy the center to managed memory:
-			ManagedArray<vector3<>> pos(&ao.r, 1);
-			//--- Get / create the radial part:
-			RadialFunctionG hRadial;
-			if(ao.sp < 0)
-			{	double Al = 0.25*sqrt(M_PI);
+			//Gaussian orbital:
+			if(ao.sigma > 0.)
+			{	//--- Copy the center to managed memory:
+				ManagedArray<vector3<>> pos(&ao.r, 1);
+				//--- Get / create the radial part:
+				RadialFunctionG hRadial;
+				double Al = 0.25*sqrt(M_PI);
 				for(int p=1; p<=od.l; p++)
 					Al *= (p+0.5);
 				double sigma = (od.n+1) * ao.sigma;
 				double normPrefac = sqrt(std::pow(2*M_PI*sigma,3) / Al);
 				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, gaussTilde, sigma, od.l, normPrefac);
+				//--- Initialize the projector:
+				assert(od.s < nSpinor);
+				if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); }
+				callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos.dataPref(), hRadial, temp.dataPref()+od.s*basis.nbasis);
+				hRadial.free();
+				//--- Accumulate to trial orbital:
+				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
+				continue;
 			}
-			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial[od.l][od.n];
-			//--- Initialize the projector:
-			assert(od.s < nSpinor);
-			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos.dataPref(), atRadial, temp.dataPref()+od.s*basis.nbasis);
-			if(ao.sp < 0) hRadial.free();
-			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
+			assert(!"Orbital was neither Numerical, Gaussian nor Atomic.");
 		}
 		retData += ret.colLength();
 	}

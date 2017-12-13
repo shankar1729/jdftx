@@ -247,35 +247,37 @@ struct CommandWannierCenter : public Command
 		format = "<aorb1> [<aorb2> ...]";
 		comments =
 			"Specify trial orbital for a wannier function as a linear combination of\n"
-			"atomic orbitals <aorb*>. The syntax for each <aorb> is:\n"
+			"atomic orbitals <aorb*>. The syntax for each <aorb> is one of:\n"
 			"\n"
-			"   <x0> <x1> <x2> [<sigma>=1|spName] [<orbDesc>=s] [<coeff>=1.0]\n"
+			" +  <species> <atom> <orbDesc> [<coeff>=1.0]\n"
+			" +  Gaussian <x0> <x1> <x2>  [<sigma>=1] [<orbDesc>=s] [<coeff>=1.0]\n"
+			" +  Numerical <b>  [<x0> <x1> <x2>] [<coeff>=1.0]\n"
 			"\n"
-			"which represents an atomic orbital centered at <x0>,<x1>,<x2>\n"
-			"(coordinate system set by coords-type).\n"
-			"\n"
-			"If <sigma> is the name of one of the pseudopotentials, then its\n"
-			"atomic orbitals will be used; otherwise a Gaussian orbital\n"
-			"of sigma = n*<sigma> bohrs, where n is the principal\n"
-			"quantum number in <orbDesc> will be used.\n"
-			"\n"
-			"The orbital code <orbDesc> is as in command density-of-states,\n"
+			"The first syntax selects an atomic orbital of the <atom>th atom\n"
+			"(1-based index) of species named <species>.\n"
+			"Orbital code <orbDesc> is as in command density-of-states,\n"
 			"but only codes for individual orbitals eg. px, dxy can be used.\n"
 			"(Codes for a set of orbitals eg. p, d are not allowed here.)\n"
 			"\n"
-			"Specify <sigma>, <orbDesc> and <coeff> explicitly when using multiple\n"
-			"orbitals; the defaults only apply to the single orbital case.\n"
+			"The second syntax selects a Gaussian orbital of sigma = n*<sigma> bohrs,\n"
+			"where n is the principal quantum number in <orbDesc> (default 1),\n"
+			"and with angular quantum numbers as specified in <orbDesc> (default s).\n"
+			"The orbital will be centered at <x0>,<x1>,<x2> in the coordinate system set by coords-type.\n"
 			"\n"
-			"Alternately, for using numerical trial orbitals that have been\n"
-			"input using command wannier, use the syntax:\n"
+			"The third syntax selects numerical orbital number <b> (0-based index)\n"
+			"read from the file specified in command wannier, and optionally\n"
+			"offsets it to the location specified by <x0>,<x1>,<x2>.\n"
 			"\n"
-			"   <x0> <x1> <x2> numerical <b> [<coeff>=1.0]\n"
+			"When using multiple orbitals (of any type) in a linear combination,\n"
+			"specify all default parameters explicitly before providing <coeff>.\n"
 			"\n"
-			"where <b> is the 0-based index of the input orbital, and <coeff> may\n"
-			"be used to linearly combine numerical orbitals with other numerical\n"
-			"or atomic / Gaussian orbitals as specified above.\n"
+			"Specify this command once for each Wannier function.\n"
 			"\n"
-			"Specify this command once for each Wannier function.";
+			"Examples:\n"
+			"+ wannier-center Cu 1 dxy            #dxy orbital on first Cu atom.\n"
+			"+ wannier-center Gaussian 0 0 0 1.5  #Gaussian orbital at origin with sigma=1.5.\n"
+			"+ wannier-center Numerical 1         #Second numerical orbital without offset.\n"
+			"+ wannier-center Cu 1 dxy 0.707  Numerical 1 0 0 0 0.707  #Linear combination of first and third example above.";
 		
 		allowMultiple = true;
 		require("wannier-initial-state");
@@ -288,49 +290,58 @@ struct CommandWannierCenter : public Command
 	{	Wannier& wannier = ((WannierEverything&)e).wannier;
 		Wannier::TrialOrbital t;
 		while(true)
-		{	Wannier::AtomicOrbital ao; string orbDesc;
-			pl.get(ao.r[0], nan(""), "x0"); if(std::isnan(ao.r[0])) break;
-			pl.get(ao.r[1], 0., "x1", true);
-			pl.get(ao.r[2], 0., "x2", true);
-			//Transform to lattice coordinates if necessary:
-			if(e.iInfo.coordsType == CoordsCartesian)
-				ao.r = inv(e.gInfo.R)*ao.r;
-			//Determine trial orbital type:
-			string sigmaKey; pl.get(sigmaKey, string(), "sigma");
-			ao.numericalOrbIndex = -1;
-			ao.sp = -1;
-			ao.atom = -1;
-			if(sigmaKey == "numerical")
-			{	pl.get(ao.numericalOrbIndex, -1, "b", true);
-				if(ao.numericalOrbIndex<0) throw(string("Numerical orbital index must be non-negative"));
+		{	Wannier::AtomicOrbital ao;
+			string key; pl.get(key, string(), "species");
+			if(!key.size()) break;
+			bool isGaussian = (key=="Gaussian");
+			bool isNumerical = (key=="Numerical");
+			if(isGaussian || isNumerical)
+			{	if(isNumerical)
+				{	pl.get(ao.numericalOrbIndex, -1, "b", true); //required orbital index
+					if(ao.numericalOrbIndex<0) throw string("0-based numerical orbital index must be non-negative");
+				}
+				//Get position:
+				pl.get(ao.r[0], 0., "x0", isGaussian); //position required for Gaussian, optional for numerical
+				pl.get(ao.r[1], 0., "x1", isGaussian);
+				pl.get(ao.r[2], 0., "x2", isGaussian);
+				//Transform to lattice coordinates if necessary:
+				if(e.iInfo.coordsType == CoordsCartesian)
+					ao.r = inv(e.gInfo.R)*ao.r;
+				if(isGaussian)
+					pl.get(ao.sigma, 1., "sigma"); //optional sigma
 			}
-			else
+			else //must be atomic orbital
 			{	for(int sp=0; sp<int(e.iInfo.species.size()); sp++)
-					if(e.iInfo.species[sp]->name == sigmaKey)
+					if(e.iInfo.species[sp]->name == key)
 					{	ao.sp = sp;
-						//Match to an atom if possible:
-						const std::vector< vector3<> >& atpos = e.iInfo.species[sp]->atpos;
-						for(size_t atom=0; atom<atpos.size(); atom++)
-							if(circDistanceSquared(ao.r, atpos[atom]) < symmThresholdSq)
-							{	ao.atom = atom;
-								wannier.needAtomicOrbitals = true;
-							}
 						break;
 					}
-				if(ao.sp<0)
-					ParamList(sigmaKey+" ").get(ao.sigma, 1., "a");
+				if(ao.sp<0) //defaults to -1 in AtomicOrbital()
+					throw string("<species> must match one of the atom-type names in the calculation, or 'Gaussian' or Numerical'");
+				pl.get(ao.atom, 0, "atom", true);
+				if(ao.atom <= 0) throw string("1-based atom index must be positive");
+				ao.atom--; //store as zero-based index internally
+				wannier.needAtomicOrbitals = true;
+			}
+			//Read orbital description if needed:
+			if(!isNumerical) //i.e. Gaussian or atomic orbital
+			{	string orbDesc;
 				pl.get(orbDesc, string(), "orbDesc");
 				if(orbDesc.length())
 				{	ao.orbitalDesc.parse(orbDesc);
 					if(ao.orbitalDesc.m > ao.orbitalDesc.l)
-						throw(string("Must specify a specific projection eg. px,py (not just p)"));
+						throw string("Must specify a specific projection eg. px,py (not just p)");
 				}
-				else //default is nodeless s orbital
-				{	ao.orbitalDesc.l = 0;
-					ao.orbitalDesc.m = 0;
-					ao.orbitalDesc.n = 0;
-					ao.orbitalDesc.s = 0;
-					ao.orbitalDesc.spinType = SpinNone;
+				else 
+				{	if(isGaussian)
+					{	//default s orbital
+						ao.orbitalDesc.l = 0;
+						ao.orbitalDesc.m = 0;
+						ao.orbitalDesc.n = 0;
+						ao.orbitalDesc.s = 0;
+						ao.orbitalDesc.spinType = SpinNone;
+					}
+					else throw string("Must specify <orbDesc> explicitly for atomic orbitals.\n");
 				}
 				if((e.eInfo.spinType==SpinOrbit || e.eInfo.spinType==SpinVector) && ao.orbitalDesc.spinType==SpinNone)
 					throw string("Must specify an explicit spin projection for noncollinear modes");
@@ -352,15 +363,24 @@ struct CommandWannierCenter : public Command
 		for(const Wannier::AtomicOrbital& ao: t)
 		{	if(t.size()>1) logPrintf(" \\\n\t");
 			vector3<> r = ao.r;
-			if(e.iInfo.coordsType == CoordsCartesian)
-				r = e.gInfo.R * r; //report cartesian positions
-			logPrintf("%lg %lg %lg ", r[0], r[1], r[2]);
-			if(ao.numericalOrbIndex >= 0)
-				logPrintf("numerical %d", ao.numericalOrbIndex);
-			else
-			{	if(ao.sp>=0) logPrintf("%s", e.iInfo.species[ao.sp]->name.c_str());
-				else logPrintf("%lg", ao.sigma);
-				logPrintf(" %s", string(ao.orbitalDesc).c_str());
+			bool isNumerical = (ao.numericalOrbIndex>=0);
+			bool isGaussian = (ao.sigma>0.);
+			if(isGaussian || isNumerical)
+			{	if(isNumerical)
+					logPrintf("Numerical %d", ao.numericalOrbIndex);
+				else
+					logPrintf("Gaussian");
+				if(e.iInfo.coordsType == CoordsCartesian)
+					r = e.gInfo.R * r; //report cartesian positions
+				logPrintf(" %lg %lg %lg", r[0], r[1], r[2]);
+				if(isGaussian)
+					logPrintf(" %lg", ao.sigma);
+			}
+			else //atomic
+			{	logPrintf("%s %d", e.iInfo.species[ao.sp]->name.c_str(), ao.atom+1);
+			}
+			if(!isNumerical) //Gaussian or atomic:
+			{	logPrintf(" %s", string(ao.orbitalDesc).c_str());
 			}
 			logPrintf("  %lg", ao.coeff);
 		}
@@ -375,7 +395,7 @@ struct CommandWannierCenterPinned : public CommandWannierCenter
 	{	comments =
 			"Same as command wannier-center, except that the minimizer tries to\n"
 			"center this orbital at the specified guess positions (weighted mean\n"
-			"of the orbital centers, if usinga  linear combination). This can help\n"
+			"of the orbital centers, if using a  linear combination). This can help\n"
 			"improve the minimizer conditioning if the centers are known by symmetry.";
 	}
 	
