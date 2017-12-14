@@ -158,16 +158,20 @@ double RadialFunctionR::transform(int l, double G) const
 	return (4*M_PI/3) * sum;
 }
 
-static void RadialFunction_transform_sub(int iGstart, int iGstop, int l, double dG, const RadialFunctionR* rFunc, double* fTilde)
-{	for(int iG=iGstart; iG<iGstop; iG++)
+static void RadialFunction_transform_sub(int iMineStart, int iMineStop, int iGstart, int l, double dG, const RadialFunctionR* rFunc, double* fTilde)
+{	for(int iG=iGstart+iMineStart; iG<iGstart+iMineStop; iG++)
 		fTilde[iG] = rFunc->transform(l, iG*dG);
 }
 
 // Initialize a uniform G radial function from the log-grid function
 void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& func) const
 {	static StopWatch watch("RadialFunctionR::transform"); watch.start();
-	std::vector<double> fTilde(nGrid);
-	threadLaunch(RadialFunction_transform_sub, nGrid, l, dG, this, fTilde.data());
+	std::vector<double> fTilde(nGrid, 0.);
+	int iGstart, iGstop; TaskDivision(nGrid, mpiWorld).myRange(iGstart, iGstop);
+	int nGridMine = iGstop-iGstart;
+	if(nGridMine)
+		threadLaunch(RadialFunction_transform_sub, nGridMine, iGstart, l, dG, this, fTilde.data());
+	mpiWorld->allReduce(fTilde.data(), fTilde.size(), MPIUtil::ReduceSum);
 	func.free(this!=func.rFunc);
 	func.init(l, fTilde, dG);
 	if(this!=func.rFunc) func.rFunc = new RadialFunctionR(*this);
