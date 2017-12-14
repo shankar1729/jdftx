@@ -3,7 +3,11 @@
 ## Development version on git
 
 + Wannier enhancements:
-	- Clear error messages rather than stack trace for linearly-dependent trial orbitals 
+	- New syntax for [wannier-center](CommandWannierCenter.html) specification, with atomic orbitals selected by atom index rather than position
+	- Clear error messages rather than stack trace for linearly-dependent trial orbitals
+
++ Updated normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions
+
 
 ## 1.4.0 - 2017-12-11 ([Site archive](http://jdftx.org/1.4.0))
 
