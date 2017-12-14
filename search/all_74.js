@@ -66,5 +66,5 @@ var searchData=
   ['ts',['TS',['../classEnergies.html#a93cbc9ce6ff54320c2b3e389245d39b3',1,'Energies']]],
   ['tutorials',['Tutorials',['../Tutorials.html',1,'Using']]],
   ['two_2ddimensional_20materials',['Two-dimensional materials',['../TwoDmaterials.html',1,'SurfaceTutorials']]],
-  ['type',['Type',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()'],['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()']]]
+  ['type',['type',['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()'],['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()']]]
 ];

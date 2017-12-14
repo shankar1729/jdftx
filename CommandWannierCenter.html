@@ -102,16 +102,24 @@ $(document).ready(function(){initNavTree('CommandWannierCenter.html','');});
 <pre class="fragment">wannier-center &lt;aorb1&gt; [&lt;aorb2&gt; ...]
 </pre><p><b>Note:</b> only available in calculations using the 'wannier' executable. </p>
 <h2>Description: </h2>
-<p>Specify trial orbital for a wannier function as a linear combination of atomic orbitals &lt;aorb*&gt;. The syntax for each &lt;aorb&gt; is:</p>
-<p>&lt;x0&gt; &lt;x1&gt; &lt;x2&gt; [&lt;a&gt;=1|spName] [&lt;orbDesc&gt;=s] [&lt;coeff&gt;=1.0]</p>
-<p>which represents an atomic orbital centered at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt; (coordinate system set by <a class="el" href="CommandCoordsType.html">coords-type</a>).</p>
-<p>If &lt;a&gt; is the name of one of the pseudopotentials, then its atomic orbitals will be used; otherwise a hydrogenic orbital of decay length n*&lt;a&gt; bohrs, where n is the principal quantum number in &lt;orbDesc&gt; will be used.</p>
-<p>The orbital code &lt;orbDesc&gt; is as in command <a class="el" href="CommandDensityOfStates.html">density-of-states</a>.</p>
-<p>Specify &lt;a&gt;, &lt;orbDesc&gt; and &lt;coeff&gt; explicitly when using multiple orbitals; the defaults only apply to the single orbital case.</p>
-<p>Alternately, for using numerical trial orbitals that have been input using command wannier, use the syntax:</p>
-<p>&lt;x0&gt; &lt;x1&gt; &lt;x2&gt; numerical &lt;b&gt; [&lt;coeff&gt;=1.0]</p>
-<p>where &lt;b&gt; is the 0-based index of the input orbital, and &lt;coeff&gt; may be used to linearly combine numerical orbitals with other numerical or atomic / hydrogenic orbitals as specified above.</p>
+<p>Specify trial orbital for a wannier function as a linear combination of atomic orbitals &lt;aorb*&gt;. The syntax for each &lt;aorb&gt; is one of:</p>
+<ul>
+<li>&lt;species&gt; &lt;atom&gt; &lt;orbDesc&gt; [&lt;coeff&gt;=1.0]</li>
+<li>Gaussian &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; [&lt;sigma&gt;=1] [&lt;orbDesc&gt;=s] [&lt;coeff&gt;=1.0]</li>
+<li>Numerical &lt;b&gt; [&lt;x0&gt; &lt;x1&gt; &lt;x2&gt;] [&lt;coeff&gt;=1.0]</li>
+</ul>
+<p>The first syntax selects an atomic orbital of the &lt;atom&gt;th atom (1-based index) of species named &lt;species&gt;. Orbital code &lt;orbDesc&gt; is as in command <a class="el" href="CommandDensityOfStates.html">density-of-states</a>, but only codes for individual orbitals eg. px, dxy can be used. (Codes for a set of orbitals eg. p, d are not allowed here.)</p>
+<p>The second syntax selects a Gaussian orbital of sigma = n*&lt;sigma&gt; bohrs, where n is the principal quantum number in &lt;orbDesc&gt; (default 1), and with angular quantum numbers as specified in &lt;orbDesc&gt; (default s). The orbital will be centered at &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt; in the coordinate system set by <a class="el" href="CommandCoordsType.html">coords-type</a>.</p>
+<p>The third syntax selects numerical orbital number &lt;b&gt; (0-based index) read from the file specified in command wannier, and optionally offsets it to the location specified by &lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;.</p>
+<p>When using multiple orbitals (of any type) in a linear combination, specify all default parameters explicitly before providing &lt;coeff&gt;.</p>
 <p>Specify this command once for each <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> function.</p>
+<p>Examples:</p>
+<ul>
+<li><a class="el" href="CommandWannierCenter.html">wannier-center</a> Cu 1 dxy #dxy orbital on first Cu atom.</li>
+<li><a class="el" href="CommandWannierCenter.html">wannier-center</a> Gaussian 0 0 0 1.5 #Gaussian orbital at origin with sigma=1.5.</li>
+<li><a class="el" href="CommandWannierCenter.html">wannier-center</a> Numerical 1 #Second numerical orbital without offset.</li>
+<li><a class="el" href="CommandWannierCenter.html">wannier-center</a> Cu 1 dxy 0.707 Numerical 1 0 0 0 0.707 #Linear combination of first and third example above.</li>
+</ul>
 <h2>Properties: </h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandIon.html">ion</a> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a> &#160;&#160;&#160; <a class="el" href="CommandWannierDumpName.html">wannier-dump-name</a> &#160;&#160;&#160; <a class="el" href="CommandWannierInitialState.html">wannier-initial-state</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

@@ -11,7 +11,7 @@ var searchData=
   ['findhomo',['findHOMO',['../classElecInfo.html#aeadb5b1fc79a9a02773a9178dfe4ea67',1,'ElecInfo']]],
   ['findmu',['findMu',['../classElecInfo.html#a456bda9df6181b91e0453f3f8d8fbfde',1,'ElecInfo']]],
   ['findspecies',['findSpecies',['../group__Input.html#ga34e9710df7f66c9753ad85f0c22c96ad',1,'command.h']]],
-  ['fixunitary',['fixUnitary',['../classWannierMinimizer.html#a0cf164c1e64ac4b3441be4eac52c6035',1,'WannierMinimizer']]],
+  ['fixunitary',['fixUnitary',['../classWannierMinimizer.html#ad9e72e264f748b9d307b914d47d9f24e',1,'WannierMinimizer']]],
   ['floormultiple',['floorMultiple',['../group__DataStructures.html#ga05e53bb06490e63add7d08d3010df672',1,'scalar.h']]],
   ['fluidcomponent',['FluidComponent',['../structFluidComponent.html#a4cec48b287d7869257548da26bb1b5c8',1,'FluidComponent']]],
   ['fluidsolver',['FluidSolver',['../structFluidSolver.html#accfffddd849751ac7f424f0c43dbbb7b',1,'FluidSolver']]],

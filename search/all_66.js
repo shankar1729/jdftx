@@ -50,7 +50,7 @@ var searchData=
   ['fittedcorrelations',['FittedCorrelations',['../structFluidComponent.html#aa987270cff702d6b0cbc7e8dae3dc5dda7db2a2d4909249e311d089db8727fc95',1,'FluidComponent']]],
   ['fixed_5fh',['fixed_H',['../classControl.html#a84f6403bc9c1c82d0a5ba37ea04fd030',1,'Control']]],
   ['fixed_2dpotential_20calculations',['Fixed-potential calculations',['../FixedPotential.html',1,'SurfaceTutorials']]],
-  ['fixunitary',['fixUnitary',['../classWannierMinimizer.html#a0cf164c1e64ac4b3441be4eac52c6035',1,'WannierMinimizer']]],
+  ['fixunitary',['fixUnitary',['../classWannierMinimizer.html#ad9e72e264f748b9d307b914d47d9f24e',1,'WannierMinimizer']]],
   ['fletcherreeves',['FletcherReeves',['../structMinimizeParams.html#a2a48ea762721fef16f9678af99834697aed9b1d8c59166be44cb75d7a8c1b30d7',1,'MinimizeParams']]],
   ['floormultiple',['floorMultiple',['../group__DataStructures.html#ga05e53bb06490e63add7d08d3010df672',1,'scalar.h']]],
   ['fluid_20models',['Fluid models',['../group__Fluid.html',1,'']]],

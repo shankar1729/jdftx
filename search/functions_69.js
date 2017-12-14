@@ -31,7 +31,7 @@ var searchData=
   ['inv',['inv',['../group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f',1,'inv(const matrix &amp;A):&#160;matrix.h'],['../group__DataStructures.html#ga9f4484fe01b16e0ac592eb7193b13969',1,'inv(const diagMatrix &amp;A):&#160;matrix.h'],['../group__DataStructures.html#ga1c7734bf6b22b8a2f4a10da7b8df0820',1,'inv(const matrix3&lt;&gt; &amp;m):&#160;matrix3.h'],['../group__Operators.html#ga552fff0c5ef39bb77d1e7a597e125f25',1,'inv(const ScalarField &amp;):&#160;Operators.h'],['../group__Operators.html#gacddc36faacbda0b7a685b09bef7104af',1,'inv(ScalarField &amp;&amp;):&#160;Operators.h']]],
   ['invapply',['invApply',['../group__DataStructures.html#ga375e009dd87fd48696e10da190e1d571',1,'matrix.h']]],
   ['invertks',['InvertKS',['../classInvertKS.html#af604120f88d4452b77c42060343e51ea',1,'InvertKS']]],
-  ['invsqrt',['invsqrt',['../group__DataStructures.html#gaeaa1eb0a2fd92f1fc38384255b77a75b',1,'matrix.h']]],
+  ['invsqrt',['invsqrt',['../group__DataStructures.html#ga6fa8ca4139babeadbf4025193cbb13a3',1,'matrix.h']]],
   ['iondynamicsparams',['IonDynamicsParams',['../structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d',1,'IonDynamicsParams']]],
   ['ionicenergyandgrad',['ionicEnergyAndGrad',['../classIonInfo.html#ae0bf667acc37ade16bec21abca3fe379',1,'IonInfo']]],
   ['ionicscreening',['ionicScreening',['../structFluidSolverParams.html#ac8f5ea4fa7f48403a465dc7a840864f3',1,'FluidSolverParams']]],

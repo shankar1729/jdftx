@@ -21,7 +21,7 @@ var searchData=
   ['shouldprinteigsfillings',['shouldPrintEigsFillings',['../classControl.html#a08cf9af87a6f452e81879764484d68a3',1,'Control']]],
   ['shouldprintkpointsbasis',['shouldPrintKpointsBasis',['../classControl.html#ab3f1845140105a117375f198fbd0696b',1,'Control']]],
   ['shouldprintmusearch',['shouldPrintMuSearch',['../classControl.html#a5eb3ac230640269a0d3375d53273dfa6',1,'Control']]],
-  ['sigma',['sigma',['../structSlabEpsilon.html#a4b61116099d5b96f1959dd6f73795d32',1,'SlabEpsilon::sigma()'],['../structChargedDefect_1_1Center.html#adda1cd1562da3fecb3542e51e8324e16',1,'ChargedDefect::Center::sigma()'],['../structFluidSolverParams.html#aa0a4608bba2ba56c16fb3870e1387e83',1,'FluidSolverParams::sigma()']]],
+  ['sigma',['sigma',['../structSlabEpsilon.html#a4b61116099d5b96f1959dd6f73795d32',1,'SlabEpsilon::sigma()'],['../structChargedDefect_1_1Center.html#adda1cd1562da3fecb3542e51e8324e16',1,'ChargedDefect::Center::sigma()'],['../structFluidSolverParams.html#aa0a4608bba2ba56c16fb3870e1387e83',1,'FluidSolverParams::sigma()'],['../structWannier_1_1AtomicOrbital.html#a8b8783dd69e89f49e08b67142313a3d0',1,'Wannier::AtomicOrbital::sigma()']]],
   ['sigmabulk',['sigmaBulk',['../structFluidComponent.html#a5818300669e2fe32fd3d623bc962450f',1,'FluidComponent']]],
   ['sigmanuc',['sigmaNuc',['../structMolecule_1_1Site.html#a841eabea4e7b18846ae9f819be1f08a6',1,'Molecule::Site']]],
   ['sigmau',['sigmaU',['../classFex__H2O__BondedVoids.html#a6646f710b0804407f14b333371084d27',1,'Fex_H2O_BondedVoids']]],

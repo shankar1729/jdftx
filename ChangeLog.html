@@ -98,7 +98,16 @@ $(document).ready(function(){initNavTree('ChangeLog.html','');});
 <div class="title">Change log </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>1.4.0 - 2017-12-11 (<a href="http://jdftx.org/1.4.0">Site archive</a>)</h2>
+<div class="textblock"><h2>Development version on git</h2>
+<ul>
+<li><a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> enhancements:<ul>
+<li>New syntax for <a href="CommandWannierCenter.html">wannier-center</a> specification, with atomic orbitals selected by atom index rather than position</li>
+<li>Clear error messages rather than stack trace for linearly-dependent trial orbitals</li>
+</ul>
+</li>
+<li>Updated normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions</li>
+</ul>
+<h2>1.4.0 - 2017-12-11 (<a href="http://jdftx.org/1.4.0">Site archive</a>)</h2>
 <ul>
 <li>Support for ultrasoft pseudopotentials in phonon, Wannier, momentum matrix elements and e-ph matrix elements</li>
 <li><a class="el" href="classPhonon.html" title="Calculate phonon dispersion, free energies and electron-phonon matrix elements. ">Phonon</a> enhancements:<ul>

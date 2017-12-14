@@ -15,6 +15,7 @@ var structDOS_1_1Weight =
       [ "Orbital", "structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83aaf9ae4973e5ad1728fb090803c87cf8d", null ],
       [ "OrthoOrbital", "structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83a9676f9e26af96f0ae7a3230550e15992", null ]
     ] ],
+    [ "Weight", "structDOS_1_1Weight.html#a7b268021ad9e5c0afd2ef94a88ebd772", null ],
     [ "getDescription", "structDOS_1_1Weight.html#a7a28d41764c3a02e6f7df34fc62dae0e", null ],
     [ "atomIndex", "structDOS_1_1Weight.html#ade6998e6a2d5e40bd368b5c82c1b07b9", null ],
     [ "center", "structDOS_1_1Weight.html#a511610ec9f31f244b37d23809a612f7f", null ],

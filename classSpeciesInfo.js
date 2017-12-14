@@ -31,7 +31,7 @@ var classSpeciesInfo =
     [ "rhoAtom_calc", "classSpeciesInfo.html#a2b7d79fa72055ea4862368adf2841088", null ],
     [ "rhoAtom_computeU", "classSpeciesInfo.html#a864ebd7a14d9be45c770f07dbeb95072", null ],
     [ "rhoAtom_forces", "classSpeciesInfo.html#a3fd8e5da12862fb0f19e1a70e68d6b0f", null ],
-    [ "rhoAtom_getV", "classSpeciesInfo.html#afb15d1c0f61fa72ee7e9dd58ce88cec0", null ],
+    [ "rhoAtom_getV", "classSpeciesInfo.html#a7a0a30a9d83422cd81901710faabc373", null ],
     [ "rhoAtom_grad", "classSpeciesInfo.html#a6aad370620b5c2ec3041979b0e902d86", null ],
     [ "rhoAtom_initZero", "classSpeciesInfo.html#a5849a9090d33f5ac870f4bf796a3cb1c", null ],
     [ "rhoAtom_nMatrices", "classSpeciesInfo.html#adfe30a6755cc211624133ccfc5fd886a", null ],

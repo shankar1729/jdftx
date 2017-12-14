@@ -1,5 +1,6 @@
 var NAVTREEINDEX17 =
 {
+"structNonlinearPCMeval_1_1Screening.html#abc55ed2f5f099de342ec95b00d14d191":[2,4,0,2,0,2],
 "structNonlinearPCMeval_1_1Screening.html#abf52f427c6b4cc2f3754b5f0cee4dd1e":[2,4,0,2,0,15],
 "structNonlinearPCMeval_1_1Screening.html#ad40a8a74b03b0db8bc0edb9716070efa":[2,4,0,2,0,13],
 "structNonlinearPCMeval_1_1Screening.html#ad6a134ac695bfbc1341de22230632ae7":[2,4,0,2,0,11],
@@ -220,12 +221,13 @@ var NAVTREEINDEX17 =
 "structWannierMinimizer_1_1Kpoint.html#ae3bfbb7060dbe4090fb0b1e4abcb4b6d":[2,2,1,4,25,1,0],
 "structWannier_1_1AtomicOrbital.html":[2,2,1,4,22,0],
 "structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab":[2,2,1,4,22,0,5],
-"structWannier_1_1AtomicOrbital.html#a4d47607b09354407955781dfb830a5de":[2,2,1,4,22,0,6],
+"structWannier_1_1AtomicOrbital.html#a4d47607b09354407955781dfb830a5de":[2,2,1,4,22,0,7],
 "structWannier_1_1AtomicOrbital.html#a55b62e52a60ba4af2ac3d1998ef0f074":[2,2,1,4,22,0,2],
 "structWannier_1_1AtomicOrbital.html#a71aec3c762aaa88efede1210ab341e37":[2,2,1,4,22,0,1],
 "structWannier_1_1AtomicOrbital.html#a81ef50296a96d60c77cb563bd22e43a7":[2,2,1,4,22,0,4],
+"structWannier_1_1AtomicOrbital.html#a8b8783dd69e89f49e08b67142313a3d0":[2,2,1,4,22,0,6],
 "structWannier_1_1AtomicOrbital.html#a8f4acad460233c36df0d9574d2825de2":[2,2,1,4,22,0,3],
-"structWannier_1_1AtomicOrbital.html#aeeb548c372bc8cf1dc1ce69d851e6821":[2,2,1,4,22,0,0],
+"structWannier_1_1AtomicOrbital.html#ad58983d313d57d8d9309230c0615395b":[2,2,1,4,22,0,0],
 "structWannier_1_1TrialOrbital.html":[2,2,1,4,22,1],
 "structWannier_1_1TrialOrbital.html#a11d606e9631fae27568b5b001a485052":[2,2,1,4,22,1,1],
 "structWannier_1_1TrialOrbital.html#a35276d4ba1e93bfff4e9988cac092902":[2,2,1,4,22,1,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX17 =
 "structcomplex.html#a1cd7d6c81b79aec5dfdd38e77e0b1f5e":[2,2,0,0,25,22],
 "structcomplex.html#a2190cd7c98bc5e148651bf71bf3d2d55":[2,2,0,0,25,21],
 "structcomplex.html#a27fe4bb7da3ba96db14f2a13a4801145":[2,2,0,0,25,11],
-"structcomplex.html#a3222e28d04d05e7a97858d8e42cad943":[2,2,0,0,25,5],
-"structcomplex.html#a3754582a2d8ba9205aad30ebb38351e1":[2,2,0,0,25,25],
-"structcomplex.html#a387c25a52326bcb9141bb1dd930ab702":[2,2,0,0,25,14]
+"structcomplex.html#a3222e28d04d05e7a97858d8e42cad943":[2,2,0,0,25,5]
 };

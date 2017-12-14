@@ -1,5 +1,6 @@
 var NAVTREEINDEX15 =
 {
+"structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65":[2,2,1,4,8,0,1],
 "structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65a4955e8cd43c60cb59f99fcff3bf6de32":[2,2,1,4,8,0,1,0],
 "structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65a6751bb06cd1325b65d845e79048c4412":[2,2,1,4,8,0,1,1],
 "structDOS_1_1Weight_1_1OrbitalDesc.html":[2,2,1,4,8,0,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX15 =
 "structFluidSolverParams.html#ac0799367b9bda3fc09e434bafc9e47ea":[2,2,2,7,14],
 "structFluidSolverParams.html#ac0c9d395e0512ffa227e863cfac58241":[2,2,2,7,22],
 "structFluidSolverParams.html#ac10855a61052f9267270c498209dd6c9":[2,2,2,7,32],
-"structFluidSolverParams.html#ac3b63d36a25e2fbf1fba4862027db103":[2,2,2,7,5],
-"structFluidSolverParams.html#ac4fe32ad71d0a32508bd5feb81a131ff":[2,2,2,7,40]
+"structFluidSolverParams.html#ac3b63d36a25e2fbf1fba4862027db103":[2,2,2,7,5]
 };

@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['a',['a',['../structSpaceGroupOp.html#a0cd5f053eb9ae47a7e0b34c735238e1f',1,'SpaceGroupOp::a()'],['../structWannier_1_1AtomicOrbital.html#aeeb548c372bc8cf1dc1ce69d851e6821',1,'Wannier::AtomicOrbital::a()']]],
+  ['a',['a',['../structSpaceGroupOp.html#a0cd5f053eb9ae47a7e0b34c735238e1f',1,'SpaceGroupOp']]],
   ['abs',['abs',['../structcomplex.html#af509fd288e2d811cb772795b8fd86c2a',1,'complex::abs()'],['../group__DataStructures.html#ga5296197431bc0b3ca45de9d930fed67f',1,'abs():&#160;scalar.h']]],
   ['absorbscale',['absorbScale',['../structFieldData.html#ae339b4740d15c76a3f7d8b7fa39acb75',1,'FieldData']]],
   ['accumcolumn',['accumColumn',['../classColumnBundle.html#a16e52bd2417e2ad6e80868a429112089',1,'ColumnBundle']]],

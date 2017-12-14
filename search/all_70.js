@@ -83,7 +83,7 @@ var searchData=
   ['potassium',['Potassium',['../structFluidComponent.html#a21fb6a04c997caabd16d1f819a998eb5a90a10b25a0351665c0ca64d41bce7357',1,'FluidComponent']]],
   ['potentialsubtraction',['potentialSubtraction',['../classDump.html#a713622fac53d455a012301aef4747f77',1,'Dump']]],
   ['potfilename',['potfilename',['../classSpeciesInfo.html#ade89254c19a6590f88ac41bc72a82e41',1,'SpeciesInfo']]],
-  ['pow',['pow',['../group__DataStructures.html#ga660774f10df8817061446d475fbf0827',1,'pow(const matrix &amp;A, double exponent, matrix *Aevecs=0, diagMatrix *Aeigs=0):&#160;matrix.h'],['../group__Operators.html#gafaf5bf5049a80cf28b125aef3ede245c',1,'pow(const ScalarField &amp;, double alpha):&#160;Operators.h'],['../group__Operators.html#ga499fcbc8528b9b777a3bdb2697fadde3',1,'pow(ScalarField &amp;&amp;, double alpha):&#160;Operators.h']]],
+  ['pow',['pow',['../group__DataStructures.html#ga14b9a5827ac926f8d4d73eb619ddbc1b',1,'pow(const matrix &amp;A, double exponent, matrix *Aevecs=0, diagMatrix *Aeigs=0, bool *isSingular=0):&#160;matrix.h'],['../group__Operators.html#gafaf5bf5049a80cf28b125aef3ede245c',1,'pow(const ScalarField &amp;, double alpha):&#160;Operators.h'],['../group__Operators.html#ga499fcbc8528b9b777a3bdb2697fadde3',1,'pow(ScalarField &amp;&amp;, double alpha):&#160;Operators.h']]],
   ['practical_20dft_20mini_2dcourse',['Practical DFT mini-course',['../PracticalDFT.html',1,'Resources']]],
   ['precond_5finv_5fkinetic',['precond_inv_kinetic',['../group__DataStructures.html#ga2e2d594da9f22588fbea9783cf49b29b',1,'ColumnBundle.h']]],
   ['precond_5finv_5fkinetic_5fband',['precond_inv_kinetic_band',['../group__DataStructures.html#gace29b86767491a48256e630ddf1987ee',1,'ColumnBundle.h']]],

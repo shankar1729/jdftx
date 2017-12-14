@@ -71,7 +71,7 @@ var searchData=
   ['invggt',['invGGT',['../classGridInfo.html#aba29a95605cb1af5d81681383f5827d3',1,'GridInfo']]],
   ['invrtr',['invRTR',['../classGridInfo.html#af0655e0168e9f2a168efa11209f576ba',1,'GridInfo']]],
   ['invsec',['invSec',['../group__Utilities.html#ga492a43b4b0284563867905d8ac7d635d',1,'Units.h']]],
-  ['invsqrt',['invsqrt',['../group__DataStructures.html#gaeaa1eb0a2fd92f1fc38384255b77a75b',1,'matrix.h']]],
+  ['invsqrt',['invsqrt',['../group__DataStructures.html#ga6fa8ca4139babeadbf4025193cbb13a3',1,'matrix.h']]],
   ['invsqrtm',['invsqrtM',['../classWannierMinimizer.html#a396cbbd533e58417fb04bc2a6c21b976',1,'WannierMinimizer']]],
   ['iondynamics',['IonDynamics',['../classIonDynamics.html',1,'']]],
   ['iondynamicsparams',['IonDynamicsParams',['../structIonDynamicsParams.html',1,'IonDynamicsParams'],['../classEverything.html#a60dca832b71d7d7559e074f65bef71f8',1,'Everything::ionDynamicsParams()'],['../structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d',1,'IonDynamicsParams::IonDynamicsParams()']]],

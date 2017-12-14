@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['a',['a',['../structSpaceGroupOp.html#a0cd5f053eb9ae47a7e0b34c735238e1f',1,'SpaceGroupOp::a()'],['../structWannier_1_1AtomicOrbital.html#aeeb548c372bc8cf1dc1ce69d851e6821',1,'Wannier::AtomicOrbital::a()']]],
+  ['a',['a',['../structSpaceGroupOp.html#a0cd5f053eb9ae47a7e0b34c735238e1f',1,'SpaceGroupOp']]],
   ['adiel',['Adiel',['../classPCM.html#a5319547579afafbbc7c2dd3a3671d1a3',1,'PCM']]],
   ['aelec',['aElec',['../structMolecule_1_1Site.html#a413260fbd1e6cab78c9bafa619e14a6a',1,'Molecule::Site']]],
   ['allowmultiple',['allowMultiple',['../classCommand.html#acb6734f7e2a87580c8cab761737d42bc',1,'Command']]],

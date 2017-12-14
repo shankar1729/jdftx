@@ -1,5 +1,7 @@
 var NAVTREEINDEX19 =
 {
+"vector3_8h.html#ga8e334398b6ae1292e72507e00d34397f":[2,5,0,1,33,11],
+"vector3_8h.html#ga8e56d04e3ba0ba871d0c5405e33f4aad":[2,5,0,1,33,29],
 "vector3_8h.html#ga978e71b78073f41c30447119d2e0b5c6":[2,5,0,1,33,43],
 "vector3_8h.html#gaa3d4f7cddde0bfb172ad0e549c497c01":[2,5,0,1,33,44],
 "vector3_8h.html#gab1fb7c9fb98bf1c45d6f6f78ab66b514":[2,5,0,1,33,18],
