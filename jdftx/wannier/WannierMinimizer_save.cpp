@@ -213,7 +213,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		else
 		{	//Determine from trial orbitals:
-			matrix CdagG = getWfns(ke.point, iSpin) ^ trialWfns(ke.point);
+			matrix CdagG = getWfns(ke.point, iSpin) ^ O(trialWfns(ke.point));
 			int nNew = nCenters - nFrozen; //number of new centers
 			//--- Pick up best linear combination of remaining bands (if any)
 			if(nFree > 0)

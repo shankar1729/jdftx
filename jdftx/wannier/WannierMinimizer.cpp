@@ -322,7 +322,8 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 }
 
 matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2) const
-{	const GridInfo& gInfo = *(C1.basis->gInfo);
+{	static StopWatch watch("WannierMinimizer::overlap"); watch.start();
+	const GridInfo& gInfo = *(C1.basis->gInfo);
 	const IonInfo& iInfo = *(C1.basis->iInfo);
 	matrix ret = gInfo.detR * (C1 ^ C2);
 	//k-point difference:
@@ -338,5 +339,6 @@ matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2)
 		matrix VdagC2 = (*sp->getV(C2)) ^ C2;
 		ret += dagger(VdagC1) * (tiledBlockMatrix(sp->QintAll, sp->atpos.size(),&phaseArr) * VdagC2);
 	}
+	watch.stop();
 	return ret;
 }
