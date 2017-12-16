@@ -169,24 +169,39 @@ void WannierMinimizerFD::initialize(int iSpin)
 	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
 		Cother.assign(e.eInfo.nStates, ColumnBundle());
+		VdagCother.clear(); VdagCother.resize(e.eInfo.nStates);
 		if(jProcess == mpiWorld->iProcess()) //send
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
+			{	((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
+				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
+					if(e.iInfo.species[iSp]->Qint.size())
+						((matrix&)e.eVars.VdagC[q][iSp]).bcast(jProcess);
+			}
 		}
 		else //recv
 		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
 			{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
 				Cother[q].bcast(jProcess);
+				VdagCother[q].resize(e.iInfo.species.size());
+				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
+				{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
+					if(sp.Qint.size())
+					{	int nRowsV = sp.MnlAll.nRows() * sp.atpos.size();
+						VdagCother[q][iSp].init(nRowsV, nBands);
+						VdagCother[q][iSp].bcast(jProcess);
+					}
+				}
 			}
 		}
 		
 		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
 		{	KmeshEntry& ke = kMesh[ik];
-			ColumnBundle Ci = getWfns(ke.point, iSpin); //Bloch functions at ik
+			std::vector<matrix> VdagCi, VdagCj;
+			ColumnBundle Ci = getWfns(ke.point, iSpin, &VdagCi); //Bloch functions at ik
 			//Overlap with neighbours:
 			for(Edge& edge: edges[ik])
 				if(whose_q(edge.ik,iSpin)==jProcess)
-					edge.M0 = overlap(Ci, getWfns(edge.point, iSpin));
+					edge.M0 = overlap(Ci, getWfns(edge.point, iSpin, &VdagCj), &VdagCi, &VdagCj);
 		}
 	}
 	Cother.clear();

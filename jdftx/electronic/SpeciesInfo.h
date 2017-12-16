@@ -230,6 +230,7 @@ private:
 	friend struct CommandTauCore;
 	friend struct CommandWavefunction;
 	friend class WannierMinimizer;
+	friend class WannierMinimizerFD;
 	friend class IonicMinimizer;
 	friend class Phonon;
 	friend class Dump;
