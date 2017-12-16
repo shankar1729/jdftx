@@ -75,6 +75,7 @@ private:
 	ManagedArray<complex> phase; //Bloch phase for space-group translation
 
 	matrix spinorRot; //spinor space rotation
+	friend class WannierMinimizer;
 };
 
 //! @}

@@ -98,7 +98,7 @@ void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, 
 			callPref(eblas_scatter_zaxpy)(index.nData(), alpha*spinorRot(sD,sC), index.dataPref(),
 				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis),
 				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis), invert<0,
-				phase.dataPref(), false);
+				phase.dataPref(), invert<0);
 }
 
 void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, int bD, ColumnBundle& C_C, int bC) const
@@ -112,7 +112,7 @@ void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, i
 			callPref(eblas_gather_zaxpy)(index.nData(), alpha*spinorRotInv(sC,sD), index.dataPref(),
 				C_D.dataPref() + C_D.index(bD, sD*C_D.basis->nbasis),
 				C_C.dataPref() + C_C.index(bC, sC*C_C.basis->nbasis), invert<0,
-				phase.dataPref(), !(invert < 0));
+				phase.dataPref(), true);
 }
 
 void ColumnBundleTransform::scatterAxpy(complex alpha, const ColumnBundle& C_C, ColumnBundle& C_D, int bDstart, int bDstep) const
