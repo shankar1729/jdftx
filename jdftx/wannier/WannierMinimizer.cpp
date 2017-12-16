@@ -221,117 +221,6 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	const ColumnBundle* C = e.eInfo.isMine(q) ? &e.eVars.C[q] : &Cother[q]; \
 	assert(*C);
 
-#include <iomanip>
-std::vector<complex> diagDotRatio(const ColumnBundle& X, const ColumnBundle& Y)
-{	assert(X.nCols()==Y.nCols());
-	assert(X.basis==Y.basis);
-	diagMatrix Xnorm = diagDot(X,X);
-	diagMatrix Ynorm = diagDot(Y,Y);
-	std::vector<complex> ret(X.nCols());
-	const complex* Xdata = X.dataPref();
-	const complex* Ydata = Y.dataPref();
-	for(size_t b=0; b<ret.size(); b++)
-		ret[b] = callPref(eblas_zdotc)(X.colLength(), Xdata+X.index(b,0),1, Ydata+Y.index(b,0),1) / sqrt(Xnorm[b]*Ynorm[b]);
-	return ret;
-}
-
-void testVtransform(const Everything& e, std::vector<std::vector<int>> nProjArr)
-{	int nSpinor = e.eInfo.spinorLength();
-	QuantumNumber qnumIn;
-	for(int iDir=0; iDir<3; iDir++)
-		qnumIn.k[iDir] = Random::uniform();
-	Basis basisIn; logSuspend(); basisIn.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, qnumIn.k); logResume();
-	ColumnBundle Cin(1, basisIn.nbasis*nSpinor, &basisIn, &qnumIn);
-	const std::vector<SpaceGroupOp>& sym = e.symm.getMatrices();
-	const std::vector<std::vector<std::vector<int> > >& atomMap = e.symm.getAtomMap();
-	//Species loop:
-	for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
-	{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
-		logPrintf("\n\nSpecies %s:\n", sp.name.c_str());
-		//Projectors at kIn:
-		std::shared_ptr<ColumnBundle> Vin = sp.getV(Cin);
-		//Loop over symmetry operations and inversions:
-		for(unsigned iSym=0; iSym<sym.size(); iSym++)
-		for(int invert=-1; invert<=+1; invert+=2)
-		{	QuantumNumber qnumOut;
-			qnumOut.k = invert * (qnumIn.k * sym[iSym].rot);
-			vector3<int> kOffset;
-			for(int iDir=0; iDir<3; iDir++)
-			{	kOffset[iDir] = int(round(Random::normal()));
-				qnumOut.k[iDir] -= kOffset[iDir];
-			}
-			logPrintf("\niSym: %u  invert: %+d  |a|: %6.3lf  |off|^2: %2d\n",
-				iSym, invert, sym[iSym].a.length(), kOffset.length_squared());
-			Basis basisOut; logSuspend(); basisOut.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, qnumOut.k); logResume();
-			ColumnBundle Cout(1, basisOut.nbasis*nSpinor, &basisOut, &qnumOut);
-			//Initialize transformation:
-			ColumnBundleTransform transform(qnumIn.k, basisIn, qnumOut.k, basisOut, 1, sym[iSym], invert);
-			int nAtoms = sp.atpos.size();
-			std::vector<vector3<int>> offsets(nAtoms);
-			for(int atom=0; atom<nAtoms; atom++)
-			{	int atomOut = atomMap[iSp][atom][iSym];
-				const SpaceGroupOp& op = sym[iSym];
-				offsets[atom] = round((op.rot * sp.atpos[atom] + op.a) - sp.atpos[atomOut]);
-			}
-			//Set up projector transformation matrix:
-			int nProj = 0;
-			for(int l=0; l<int(nProjArr[iSp].size()); l++)
-				nProj += nProjArr[iSp][l]*(2*l+1);
-			int nProjTot = nProj * nAtoms;
-			matrix rot = zeroes(nProjTot, nProjTot);
-			int nProjPrev = 0;
-			double lSign = 1.;
-			for(int l=0; l<int(nProjArr[iSp].size()); l++)
-			{	matrix sym_l = e.symm.getSphericalMatrices(l, false)[iSym](0,2,4*l+2, 0,2,4*l+2); //projectors done in (l,m) not (j,mj)
-				int nm = sym_l.nRows(); //= (2l + 1)
-				//Set for each atom, accounting for atom mapping under symmetry:
-				for(int p=0; p<nProjArr[iSp][l]; p++)
-				{	for(int atom=0; atom<nAtoms; atom++)
-					{	int atomOut = atomMap[iSp][atom][iSym];
-						int pStart = atom*nProj + nProjPrev;
-						int pStartOut = atomOut*nProj + nProjPrev;
-						rot.set(pStartOut,pStartOut+nm, pStart,pStart+nm, lSign*sym_l);
-					}
-					nProjPrev += nm;
-				}
-				if(invert<0.) lSign = -lSign; //(-1)^l due to effect of inversion on Ylm
-			}
-			assert(nProjPrev == nProj);
-			//Projectors directly at kOut:
-			std::shared_ptr<ColumnBundle> VoutD = sp.getV(Cout);
-			//Projectors transformed from kIn:
-			ColumnBundle VoutT = VoutD->similar();
-			VoutT.zero();
-			transform.scatterAxpy(1., (*Vin), VoutT,0,1);
-			VoutT = VoutT * rot;
-			//Compare:
-			std::vector<complex> ratio = diagDotRatio(*VoutD, VoutT);
-			//--- measured phases:
-			logPrintf("\tPhases: [");
-			for(complex r: ratio)
-				logPrintf(" %+f", r.arg()/(2*M_PI));
-			logPrintf(" ]\n");
-			//--- offset.kIn:
-			logPrintf("\toffset.kIn:  [");
-			for(vector3<int> offset: offsets)
-			{	double d = invert*dot(qnumIn.k, offset);
-				d -= floor(d+0.5);
-				logPrintf(" %+f", d);
-			}
-			logPrintf(" ]\n");
-			//--- offset.kOut:
-			logPrintf("\toffset.kOut: [");
-			for(vector3<int> offset: offsets)
-			{	double d = invert*dot(qnumOut.k, offset);
-				d -= floor(d+0.5);
-				logPrintf(" %+f", d);
-			}
-			logPrintf(" ]\n");
-		}
-	}
-	die("\nTesting.\n");
-}
-
 void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result, std::vector<matrix>* VdagResult) const
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
 	axpyWfns_COMMON(result)
@@ -362,9 +251,6 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 		for(size_t iSp=0; iSp<VdagC->size(); iSp++)
 			if(VdagC->at(iSp))
 			{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
-				
-				//VdagResult->at(iSp) = *sp.getV(result) ^ result; continue; //Bypass HACK
-				
 				//Determine phases due to atom offsets:
 				int nAtoms = sp.atpos.size();
 				std::vector<complex> phase(nAtoms);
@@ -404,41 +290,7 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 				//Apply transform
 				VdagResult->at(iSp) = dagger(rot) * VdagC->at(iSp); //apply rotation
 				if(kpoint.invert < 0) VdagResult->at(iSp) = conj(VdagResult->at(iSp));
-				
-				//HACK
-				matrix directAll = (*sp.getV(result) ^ result);
-				for(int atom=0; atom<nAtoms; atom++)
-				{	matrix transformed = VdagResult->at(iSp)(atom*nProj,(atom+1)*nProj, 0, result.nCols());
-					matrix direct = directAll(atom*nProj,(atom+1)*nProj, 0, result.nCols());
-					double err = nrm2(transformed-direct)/nrm2(direct);
-					double phaseSum=0., magSum=0., wSum = 0.;
-					for(unsigned i=0; i<direct.nData(); i++)
-					{	double w = direct.data()[i].abs();
-						if(w > 1e-8)
-						{	complex ratio = transformed.data()[i]/direct.data()[i];
-							double mag=ratio.abs(); magSum+=w*mag;
-							double phase=ratio.arg()/(2*M_PI); phaseSum+=w*phase;
-							wSum += w;
-						}
-					}
-					double magMean = magSum/wSum;
-					double phaseMean = phaseSum/wSum;
-					double phaseErr = nrm2(direct*cis(2*M_PI*phaseMean)-transformed)/nrm2(direct);
-					if(err > 1e-14)
-						printf("sp: %2s  atom: %d  iSym: %2d  invert: %+d  |a|: %6.3lf  |off|^2: %2d  err: %.2le  ratio: %lg  phase: %+.4lf  phaseErr: %.2le\n",
-							sp.name.c_str(), atom, kpoint.iSym, kpoint.invert, sym[kpoint.iSym].a.length(), kpoint.offset.length_squared(), err, magMean, phaseMean, phaseErr);
-				}
 			}
-		
-		//HACK
-		std::vector<std::vector<int>> nProjArr;
-		for(const auto& sp: e.iInfo.species)
-		{	std::vector<int> nProj_sp;
-			for(const auto& Vl: sp->VnlRadial)
-				nProj_sp.push_back(Vl.size());
-			nProjArr.push_back(nProj_sp);
-		}
-		//testVtransform(e, nProjArr); 
 	}
 	watch.stop();
 }
