@@ -1,8 +1,7 @@
 #Using Fe to test Fermi fillings and magnetism
 
 lattice body-centered Cubic 5.42
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 ion Fe  0 0 0  0
 dump End None

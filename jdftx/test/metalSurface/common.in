@@ -3,8 +3,7 @@ ion Pt -0.333333  0.333333 -0.213908   1
 ion Pt  0.000000  0.000000  0.000000   1
 ion Pt  0.333333 -0.333333  0.213908   1
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 coulomb-interaction Slab 001

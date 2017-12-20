@@ -6,8 +6,7 @@ ion O  0.00  0.00 -1.14  1
 spintype z-spin
 elec-initial-magnetization +2 yes
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 coulomb-interaction isolated
