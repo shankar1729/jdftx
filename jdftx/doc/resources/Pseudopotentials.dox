@@ -14,8 +14,14 @@ Here are some pseudopotential libraries and generators that work with JDFTx:
   See http://www.physics.rutgers.edu/gbrv and Ref. \cite GBRV for more information about the design, construction and testing of these pseudopotentials.
   These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax:
 
-      ion-species GBRV/$ID_pbe_v1.2.uspp
-      ion-species GBRV/$ID_pbe_v1.01.uspp
+      ion-species GBRV/$ID_pbe.uspp
+  
+  for the PBE pseudeopotentials, and similarly using GBRV/$ID_lda.uspp or GBRV/$ID_pbesol.uspp for the LDA and PBEsol pseudeopotentials respectively.
+  
+  Some pseudopotentials have multiple version numbers installed: a subset of v1, v1.01, v1.1, v1.2, v1.4 and v1.5 for each element.
+  You can select older versions by explicitly selecting version numbers eg. to only use the latest among v1 or v1.4 but none of the others:
+  
+      ion-species GBRV/$ID_pbe_v1.4.uspp
       ion-species GBRV/$ID_pbe_v1.uspp
 
   <br>
@@ -26,8 +32,14 @@ Here are some pseudopotential libraries and generators that work with JDFTx:
   See http://www.quantum-simulation.org and Ref. \cite SG15 for more information about the design, construction and testing of these pseudopotentials.
   These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax:
 
-      ion-species SG15/$ID_ONCV_PBE-1.1.upf
+      ion-species SG15/$ID_ONCV_PBE.upf
+  
+  Some pseudopotentials have multiple version numbers installed: a subset of 1.0 and 1.1 for each element.
+  You can select to use specific versions by explicitly specifying version numbers, eg.
+  
       ion-species SG15/$ID_ONCV_PBE-1.0.upf
+   
+  to only use the 1.0 version.
 
   <br>
   

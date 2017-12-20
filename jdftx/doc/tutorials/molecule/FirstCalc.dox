@@ -33,8 +33,8 @@ Save the following to water.in:
     elec-cutoff 20 100    #Plane-wave kinetic energy cutoff for wavefunctions and charge density in Hartrees
     
     # Specify the pseudopotentials (this defines species O and H):
-    ion-species GBRV/h_pbe_v1.uspp
-    ion-species GBRV/o_pbe_v1.2.uspp
+    ion-species GBRV/h_pbe.uspp
+    ion-species GBRV/o_pbe.uspp
 
     # Specify coordinate system and atom positions:
     coords-type cartesian       #the other option is lattice (suitable for solids)
@@ -60,7 +60,7 @@ If you use pseudopotentials not built into JDFTx, specify the absolute or relati
 See the \ref Pseudopotentials page for supported pseudopotential formats,
 other sets of pseudopotentials distributed with JDFTx, and a wildcard syntax
 for selecting an entire set of pseudopotentials (which we shall use henceforth).
-    
+
 Now, that basic input file can be run with
 
     jdftx -i water.in -o water.out

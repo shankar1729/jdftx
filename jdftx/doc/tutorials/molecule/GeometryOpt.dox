@@ -28,9 +28,7 @@ Next save the following water.in including ionic optimization:
     coulomb-interaction Isolated
     coulomb-truncation-embed 0 0 0
 
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     dump-name water.$VAR    #Filename pattern for saving outputs
@@ -81,7 +79,7 @@ the geometry optimizer now converges with RMS forces within the threshold we spe
 
 Calculate the DFT-predicted bond length and angle from the final water.ionpos.
 With the GBRV pseudopotentials and the PBE exchange-correlation functional,
-I get a converged O-H bond length of 0.976 A and an H-O-H bond angle of 103.8 degrees.
+I get a converged O-H bond length of 0.98 A and an H-O-H bond angle of 103.7 degrees.
 
 We can visualize the geometry optimization steps using:
 
