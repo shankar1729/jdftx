@@ -1,8 +1,9 @@
 #Check noncollinear mode, but using non-relativistic psp (since no distributed relativistic one)
 spintype spin-orbit
 lattice face-centered Cubic 7.41
-ion-species GBRV/$ID_pbe.uspp
+ion-species GBRV/$ID_pbesol.uspp
 elec-cutoff 20 100
+elec-ex-corr gga-PBEsol
 ion Pt  0 0 0  0
 
 dump End None
