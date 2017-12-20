@@ -183,7 +183,31 @@ void randomize(std::vector<ColumnBundle>& Y, const ElecInfo& eInfo)
 //--------- Read/write an array of ColumnBundles from/to a file --------------
 
 void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) const
-{	//Compute output length from each process:
+{
+#if MPI_SAFE_WRITE
+	//Safe mode / write from head:
+	if(mpiWorld->isHead())
+	{	FILE* fp = fopen(fname, "w");
+		if(!fp) die_alone("Error opening file '%s' for writing.\n", fname);
+		for(int q=0; q<nStates; q++)
+		{	if(!isMine(q))
+			{	size_t nData = 0;
+				mpiWorld->recv(nData, whose(q), q);
+				ManagedArray<complex> buf; buf.init(nData);
+				buf.recv(whose(q), q);
+				buf.write(fp);
+			}
+			else Y[q].write(fp);
+		}
+		fclose(fp);
+	}
+	else
+		for(int q=qStart; q<qStop; q++)
+		{	mpiWorld->send(Y[q].nData(), 0, q);
+			Y[q].send(0, q);
+		}
+#else
+	//Compute output length from each process:
 	std::vector<long> nBytes(mpiWorld->nProcesses(), 0); //total bytes to be written on each process
 	for(int q=qStart; q<qStop; q++)
 		nBytes[mpiWorld->iProcess()] += Y[q].nData()*sizeof(complex);
@@ -203,6 +227,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 	for(int q=qStart; q<qStop; q++)
 		mpiWorld->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
 	mpiWorld->fclose(fp);
+#endif
 }
 
 

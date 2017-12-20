@@ -173,6 +173,12 @@ if(CompileNative)
 	endif()
 endif()
 
+#MPI I/O options:
+option(MPISafeWrite "Safe mode for MPI writes: write from one process; may be needed on some NFS installations")
+if(MPISafeWrite)
+	add_definitions("-DMPI_SAFE_WRITE")
+endif()
+
 #Workarounds for Windows compilation:
 if(CYGWIN)
 	add_definitions("-D_GNU_SOURCE")
