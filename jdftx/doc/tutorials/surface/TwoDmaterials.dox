@@ -33,9 +33,7 @@ from the \ref Dispersion tutorial:
     ion C  0.000000  0.000000  0.0   0
     ion C  0.333333 -0.333333  0.0   0
     
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
 We will then perform total energy and band structure calculations
@@ -92,10 +90,10 @@ For graphene, testing the convergence of mu (in Hartrees) with respect to cell l
 
 Lz | mu with truncation | mu without truncation
 ---|--------------------|----------------------
-15 |     -0.155826      |    +0.019650
-20 |     -0.156104      |    -0.024395
-25 |     -0.156108      |    -0.050739
-30 |     -0.156103      |    -0.068296
+15 |     -0.155825      |    +0.019651
+20 |     -0.156102      |    -0.024394
+25 |     -0.156106      |    -0.050738
+30 |     -0.156103      |    -0.068295
 
 As expected, mu converges exponentially with cell size with truncation,
 but very slowly (with an error inversely proportional to cell volume) without truncation.

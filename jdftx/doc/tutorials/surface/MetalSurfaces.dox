@@ -66,9 +66,8 @@ the differences for the slab geometry will be familiar from the \ref TwoDmateria
 First we combine most of the setup in a common input file:
 
     #Save the following to common.in:
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbesol.uspp
+    elec-ex-corr gga-PBEsol
     elec-cutoff 20 100
     
     coulomb-interaction Slab 001
@@ -150,7 +149,7 @@ We can extract all these results from the output files and print them nicely usi
 
     #!/bin/bash
     
-    Ebulk="-88.9330251" #Bulk metal energy per atom
+    Ebulk="-89.035087" #Bulk metal energy per atom
     
     function parseOutputs()
     {
@@ -195,12 +194,12 @@ to get the results:
 <th colspan=3> Absolute mu [eV]
 <th rowspan=2> V<sub>SHE</sub> [V]
 <tr>            <th> Vacuum <th> Solvated <th> Shift <th> Vacuum <th> Solvated  <th> Shift
-<tr> <td> (100) <td> 10.78  <td>  10.54   <td> -0.24 <td> -5.60  <td> -5.33     <td> 0.27  <td> 0.65
-<tr> <td> (110) <td> 11.46  <td>  11.26   <td> -0.21 <td> -5.28  <td> -4.99     <td> 0.29  <td> 0.31
-<tr> <td> (111) <td>  8.38  <td>   8.11   <td> -0.27 <td> -5.61  <td> -5.34     <td> 0.27  <td> 0.66
+<tr> <td> (100) <td>  8.77  <td>   8.51   <td> -0.26 <td> -5.72  <td> -5.46     <td> 0.26  <td> 0.78
+<tr> <td> (110) <td> 11.18  <td>  10.96   <td> -0.22 <td> -5.38  <td> -5.11     <td> 0.28  <td> 0.43
+<tr> <td> (111) <td>  5.22  <td>   4.94   <td> -0.28 <td> -5.74  <td> -5.48     <td> 0.26  <td> 0.80
 </table></center>
 
-Note that the surface formationn energies in vacuum follow the trend (111) < (100) < (110),
+Note that the surface formation energies in vacuum follow the trend (111) < (100) < (110),
 indicating that (111) is most stable and (110) is least stable.
 This remains the case even in solvent: solvation reduces the formation energies
 of all three surfaces (stabilizes the surfaces), but only by a relatively small amount.
@@ -328,9 +327,7 @@ Setup a dummy input file:
     #Save the following to testGeometry.in
     include ${surface}.lattice   #we will use the same input file later for 110 and 111
     include ${surface}.ionpos
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     #Not a real calculation; missing kpoints and fillings!
 
 and run JDFTx using the dry-run (-n) commandline switch:

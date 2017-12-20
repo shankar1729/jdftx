@@ -28,9 +28,7 @@ and create the input file for lattice optimization:
     include Si.ionpos
     
     kpoint-folding 8 8 8
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     electronic-SCF                   #Electronic state optimization
@@ -77,10 +75,9 @@ as the forces by scaling with the unit cell dimensions).
 Additionally, LatticeMinimize reports the lattice vectors, strain
 and stress at every step, in addition to ionic positions and forces.
 
-Note that in the present case, the first run ends with a strain of -8.5%,
+Note that in the present case, the first run ends with a strain of -8.6%,
 while the second run ends with a strain less than 0.001%,
-so we can stop after the second run;
-but often more runs will be necessary.
+so we can stop after the second run; but often more runs could be necessary.
 You can also visualize the convergence of the energy using the \ref plotConvergence script.
 By default "plotConvergence latticeOpt.out" will plot the convergence every electronic iteration,
 but you can use "iterType=Lattice plotConvergence latticeOpt.out"

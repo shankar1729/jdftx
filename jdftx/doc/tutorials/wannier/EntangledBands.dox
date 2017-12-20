@@ -25,8 +25,7 @@ supported for ultrasoft pseudopotentials in the next tutorial
 
     #Save the following to common.in:
     lattice face-centered Cubic 7.65
-    ion-species SG15/$ID_ONCV_PBE-1.1.upf
-    ion-species SG15/$ID_ONCV_PBE-1.0.upf
+    ion-species SG15/$ID_ONCV_PBE.upf
     elec-cutoff 30
     ion Al 0.00 0.00 0.00  0
     
