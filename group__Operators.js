@@ -17,7 +17,8 @@ var group__Operators =
       [ "gatherAxpy", "classColumnBundleTransform.html#a93a21cd40bb14930d06a4cfb76cca9d4", null ],
       [ "operator=", "classColumnBundleTransform.html#a6250a9d0448f9119534316547707ea3a", null ],
       [ "scatterAxpy", "classColumnBundleTransform.html#aa6614c553e90ef0d88c17b1a366ee253", null ],
-      [ "scatterAxpy", "classColumnBundleTransform.html#ae889f01d67a952dbe0c0fa73afdcb0e1", null ]
+      [ "scatterAxpy", "classColumnBundleTransform.html#ae889f01d67a952dbe0c0fa73afdcb0e1", null ],
+      [ "WannierMinimizer", "classColumnBundleTransform.html#a9c6bb04ab13fd2f92d41d72889789c6f", null ]
     ] ],
     [ "TranslationOperator", "classTranslationOperator.html", [
       [ "TranslationOperator", "classTranslationOperator.html#a903878a02c796ecdcb7825f5aaf32a3d", null ],

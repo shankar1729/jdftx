@@ -1,5 +1,8 @@
 var NAVTREEINDEX11 =
 {
+"group__ClassicalDFT.html#gaceb7ad5e61364cb64b44fd254ba0ced8":[2,2,2,0,54],
+"group__ClassicalDFT.html#gadafda23b6a9873dd5ae6c07bfd5285b9":[2,2,2,0,57],
+"group__ClassicalDFT.html#gadd4355df84659bc948b64693a30c0323":[2,2,2,0,50],
 "group__ClassicalDFT.html#gaeab8847977077f18225a61a05fa489ba":[2,2,2,0,60],
 "group__Core.html":[2,2,0],
 "group__DataStructures.html":[2,2,0,0],
@@ -246,8 +249,5 @@ var NAVTREEINDEX11 =
 "group__ExchangeCorrelation.html#ga19583657ce6fd67d447b409ea42d2d7e":[2,2,1,2,47],
 "group__ExchangeCorrelation.html#ga20bcc8874a623ac8acccb35aae73a78f":[2,2,1,2,66],
 "group__ExchangeCorrelation.html#ga2135f9e4dfe653f147d9e46db66129d3":[2,2,1,2,50],
-"group__ExchangeCorrelation.html#ga24d08faf74fc3077cbb0091001001ea9":[2,2,1,2,43],
-"group__ExchangeCorrelation.html#ga2693e311e8d99b568503eb7fba6a110a":[2,2,1,2,71],
-"group__ExchangeCorrelation.html#ga3b268dc23d9a2cc1f7777769b91d42cb":[2,2,1,2,52],
-"group__ExchangeCorrelation.html#ga3d332869a5f206e38eaefe5bf353b5f5":[2,2,1,2,51]
+"group__ExchangeCorrelation.html#ga24d08faf74fc3077cbb0091001001ea9":[2,2,1,2,43]
 };

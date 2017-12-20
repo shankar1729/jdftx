@@ -146,9 +146,7 @@ ion Pt  0.0  0.0  0.2   1
 <pre class="fragment">#Save the following to testGeometry.in
 include ${surface}.lattice   #we will use the same input file later for 110 and 111
 include ${surface}.ionpos
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 #Not a real calculation; missing kpoints and fillings!
 </pre><p>and run JDFTx using the dry-run (-n) commandline switch: </p>
 <pre class="fragment">export surface="100"   #or "110" or "111" later on

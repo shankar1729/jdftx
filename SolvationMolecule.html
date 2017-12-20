@@ -108,9 +108,7 @@ $(document).ready(function(){initNavTree('SolvationMolecule.html','');});
 lattice Cubic 15
 coulomb-interaction Isolated
 coulomb-truncation-embed 0 0 0
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 coords-type cartesian     
 </pre><p>containing the shared commands as before, and </p>
@@ -135,7 +133,7 @@ fluid LinearPCM     #Simple continuum fluid with linear response
 pcm-variant GLSSA13 #default, if not specified
 fluid-solvent H2O   #Solvent is water
 </pre><p>This runs a solvated calculation with the simplest GLSSA13 LinearPCM model (this is exactly the same model which was later implemented in VASP as VASPsol) and outputs the bound charge density induced in the solvent by electrostatic interactions with the solute. Examine the output file: now there are lines starting with 'Linear fluid' between electronic steps. These correspond to optimization of the fluid degrees of freedom (in this simple case, by solving a linearized Poisson-Boltzmann equation) in response to the solute's charge density. The energy components now include an additional piece Adiel, which is the total contribution due to the solvent.</p>
-<p>The solvation free energy is the difference between the final energies in Vacuum.out and LinearPCM.out, which turns out to be (-17.2686) - (-17.2799) = -0.0113 Hartrees in good agreement with the experimental estimate of -0.0101 Hartrees. Visualizing the bound charge density (nbound) using </p>
+<p>The solvation free energy is the difference between the final energies in Vacuum.out and LinearPCM.out, which turns out to be (-17.2682) - (-17.2795) = -0.0113 Hartrees in good agreement with the experimental estimate of -0.0101 Hartrees. Visualizing the bound charge density (nbound) using </p>
 <pre class="fragment">createXSF LinearPCM.out LinearPCM.xsf nbound
 </pre><p>results in the first panel of the figure above.</p>
 <p>The command <a class="el" href="CommandFluid.html">fluid</a> selects the broad class of solvation model, some of which support many variants selected by command <a class="el" href="CommandPcmVariant.html">pcm-variant</a>. Some of the common / recommended models are:</p>

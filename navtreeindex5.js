@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"classCoulomb.html#af2113cdbe96a273ed2ebfbec4c72f18a":[2,2,1,3,10,12],
 "classCoulomb.html#af268cc5e01552b760ce0408a44a8512e":[2,2,1,3,10,3],
 "classCoulomb.html#afca175f9a2d84a0e95535f3e8211eafe":[2,2,1,3,10,4],
 "classCoulomb.html#afefa09bfd45a6909bfab9a278eafd09b":[2,2,1,3,10,14],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "classEverything.html#ac5a38ab405dd8bbd3b5f2c5a1aba0b7a":[2,2,1,7,0],
 "classEverything.html#ad58a47455c8ee118043b6a3e0f05f8d7":[2,2,1,7,11],
 "classEverything.html#ad6414a61cbbaf109415d6b2ec26bbd54":[2,2,1,7,18],
-"classEverything.html#ae68ab48473f1acad4eddbfc2e25e7e89":[2,2,1,7,16],
-"classEverything.html#ae6cd84317b70bf9dc57e37c9b97ab080":[2,2,1,7,5]
+"classEverything.html#ae68ab48473f1acad4eddbfc2e25e7e89":[2,2,1,7,16]
 };

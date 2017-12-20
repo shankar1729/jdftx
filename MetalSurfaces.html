@@ -136,9 +136,8 @@ ion Pt 0. 0. 0.  1
 <p>Now that we have the geometry - lattice and fractional coordinates - of the surfaces, setting up the calculations is rather straightforward. We will run vacuum and solvated calculations for each surface, and our input files will closely resemble those in the <a class="el" href="SolvationMolecule.html">Solvation of molecules</a> tutorial; the differences for the slab geometry will be familiar from the <a class="el" href="TwoDmaterials.html">Two-dimensional materials</a> tutorial.</p>
 <p>First we combine most of the setup in a common input file: </p>
 <pre class="fragment">#Save the following to common.in:
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbesol.uspp
+elec-ex-corr gga-PBEsol
 elec-cutoff 20 100
 
 coulomb-interaction Slab 001
@@ -185,7 +184,7 @@ done
 <p>We can extract all these results from the output files and print them nicely using the script: </p>
 <pre class="fragment">#!/bin/bash
 
-Ebulk="-88.9330251" #Bulk metal energy per atom
+Ebulk="-89.035087" #Bulk metal energy per atom
 
 function parseOutputs()
 {
@@ -225,13 +224,13 @@ done
 <tr>
 <th>Vacuum </th><th>Solvated </th><th>Shift </th><th>Vacuum </th><th>Solvated </th><th>Shift </th></tr>
 <tr>
-<td>(100) </td><td>10.78 </td><td>10.54 </td><td>-0.24 </td><td>-5.60 </td><td>-5.33 </td><td>0.27 </td><td>0.65 </td></tr>
+<td>(100) </td><td>8.77 </td><td>8.51 </td><td>-0.26 </td><td>-5.72 </td><td>-5.46 </td><td>0.26 </td><td>0.78 </td></tr>
 <tr>
-<td>(110) </td><td>11.46 </td><td>11.26 </td><td>-0.21 </td><td>-5.28 </td><td>-4.99 </td><td>0.29 </td><td>0.31 </td></tr>
+<td>(110) </td><td>11.18 </td><td>10.96 </td><td>-0.22 </td><td>-5.38 </td><td>-5.11 </td><td>0.28 </td><td>0.43 </td></tr>
 <tr>
-<td>(111) </td><td>8.38 </td><td>8.11 </td><td>-0.27 </td><td>-5.61 </td><td>-5.34 </td><td>0.27 </td><td>0.66 </td></tr>
+<td>(111) </td><td>5.22 </td><td>4.94 </td><td>-0.28 </td><td>-5.74 </td><td>-5.48 </td><td>0.26 </td><td>0.80 </td></tr>
 </table>
-</center><p>Note that the surface formationn energies in vacuum follow the trend (111) &lt; (100) &lt; (110), indicating that (111) is most stable and (110) is least stable. This remains the case even in solvent: solvation reduces the formation energies of all three surfaces (stabilizes the surfaces), but only by a relatively small amount.</p>
+</center><p>Note that the surface formation energies in vacuum follow the trend (111) &lt; (100) &lt; (110), indicating that (111) is most stable and (110) is least stable. This remains the case even in solvent: solvation reduces the formation energies of all three surfaces (stabilizes the surfaces), but only by a relatively small amount.</p>
 <p>The chemical potentials (negative of work function in vacuum / PZC in solution) also show a similar trend (111) &lt;= (100) &lt; (110). Solvation shifts up the chemical potentials towards zero consistently by about 0.3 eV for all three surfaces.</p>
 <p>Exercise: what happens with geometry optimization? How much do these results change? If you have issues with electronic-SCF convergence, try the stabler but slower electronic-minimize instead. </p>
 </div></div><!-- contents -->

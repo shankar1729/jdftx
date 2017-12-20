@@ -109,13 +109,12 @@ $(document).ready(function(){initNavTree('FreeEnergy.html','');});
 <pre class="fragment">lattice Cubic 15
 include H2.ionpos
 coords-type Cartesian
+core-overlap-check None  #GBRV H psp core radius &gt; H2 bond length/2
 
 coulomb-interaction Isolated
 coulomb-truncation-embed 0 0 0
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 </pre><p>and the following to totalE.in (for our total enegy calculation): </p>
 <pre class="fragment">include common.in
@@ -123,7 +122,8 @@ ionic-minimize nIterations 10   #Geometry optimization
 dump End State
 dump-name H2.$VAR
 </pre><p>Run jdftx on totalE.in to optimize the molecule geometry (replaces H2.ionpos) and get the converged wavefunctions in H2.wfns.</p>
-<p>With the GBRV pseudopotentials, the final energy is -1.1647 Hartrees, and we can calculate the Born-Oppenheimer binding energy using the Hydrogen atom calculation from the <a href="OpenShell.html">previous tutorial</a> as E_H2 - 2EH = -1.1647 - 2(-0.4994) = -0.1659 Hartrees = -4.514 eV. However, this binding energy doesn't yet include the ionic (nuclear) contributions and is not yet meaningfully comparable to the experimental results.</p>
+<p>Note that in this case we needed to specify an extra command <a class="el" href="CommandCoreOverlapCheck.html">core-overlap-check</a> to tell JDFTx that it is okay that the H pseudopotential core radii overlap; otherwise the code will fail with an error specifying that the atoms are too close. In general, this should not be required as the pseudopotential cores should not substantially overlap in bonded geometries; the H2 molecule and this H pseudopotential are a somewhat rare exception.</p>
+<p>With the GBRV pseudopotentials, the final energy is -1.1651 Hartrees, and we can calculate the Born-Oppenheimer binding energy using the Hydrogen atom calculation from the <a href="OpenShell.html">previous tutorial</a> as E_H2 - 2EH = -1.1651 - 2(-0.4999) = -0.1653 Hartrees = -4.498 eV. However, this binding energy doesn't yet include the ionic (nuclear) contributions and is not yet meaningfully comparable to the experimental results.</p>
 <p>Now, calculate the vibrational contributions by running jdftx on the input file: </p>
 <pre class="fragment">include common.in
 initial-state H2.$VAR
@@ -138,17 +138,17 @@ vibrations \
 <p>Now examine the generated output file. Notice that electronic minimization is performed for several perturbed configurations, and then normal modes obtained by diagonalizing the force matrix are reported. In this case, of the six degrees of freedom due to two hydrogen nuclei positions, five normal modes are zero (three translational and two rotational), and one normal mode, the H-H stretch, has a finite vibrational frequency of about 0.020 Hartrees.</p>
 <p>Finally the output file reports the vibrational free energy components including the zero-point energy (ZPE), the vibrational energy including ZPE (Evib), the vibrational entropy (TSvib) and the net vibrational free energy (Avib). We can now calculate the correct zero-temperature binding energy as </p>
 <pre class="fragment">    E_H2 + ZPE_H2 - 2EH
- = -1.1647 + 0.00999 - 2(-0.4994)
- = -0.1559 Hartrees
- = -4.242 eV,
+ = -1.1651 + 0.00997 - 2(-0.4999)
+ = -0.1553 Hartrees
+ = -4.227 eV,
 </pre><p>where E's are the final energies obtained from the total energy calculations for H2 (above) and H (previous tutorial), and ZPE is the zero-point energy obtained at the end of the H2 vibration calculation.</p>
 <p>At room temperature, the correct binding free energy is </p>
 <pre class="fragment">   E_H2 + Avib_H2 + (3/2)kT - 2(EH + (3/2)kT)
- = -1.1647 + 0.00999 + 1.5*0.00094 - 2(-0.4994 + 1.5*0.00094)
- = -0.1573 Hartrees
- = -4.281 eV,
+ = -1.1651 + 0.00997 + 1.5*0.00094 - 2(-0.4999 + 1.5*0.00094)
+ = -0.1567 Hartrees
+ = -4.265 eV,
 </pre><p>where Avib is the vibrational free energy from the end of the H2 vibration calculation (instead of ZPE used above) and the (3/2)kT contributions correspond to the ideal-gas translational free energies. In comparison, the experimental binding energy (negative of atomization energies) from <a href="http://cccbdb.nist.gov">CCCBDB</a> is 4.48 eV at zero temperature and at 4.52 eV at room temperature. The PBE GGA predictions have an error of approximately 0.2 eV for the binding energies; note that these calculations agree well with the PBE-calculated atomization energy on CCCBDB.</p>
-<p>Exercise: check that the hybrid functionals (eg. PBE0) predict the binding energy of H2 in better agreement with experiment. (H2 is a special case with an unusually short bond length, and you will encounter a core-overlap issue with the SG15 pseudopotentials. Bypass this check using the command <a class="el" href="CommandCoreOverlapCheck.html">core-overlap-check</a>.) </p>
+<p>Exercise: check that the hybrid functionals (eg. PBE0) predict the binding energy of H2 in better agreement with experiment. Remember that you will need to use the norm-conserving SG15 pseudopotentials. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

@@ -177,6 +177,7 @@ var group__IonicSystem =
       [ "Phonon", "classSpeciesInfo.html#a11e682b702900987689e5aeaa68f3cbb", null ],
       [ "VanDerWaals", "classSpeciesInfo.html#a47722120d310536855aaef07710b757a", null ],
       [ "WannierMinimizer", "classSpeciesInfo.html#a9c6bb04ab13fd2f92d41d72889789c6f", null ],
+      [ "WannierMinimizerFD", "classSpeciesInfo.html#a7a5216d41db56c861edf1a16b7f6dab7", null ],
       [ "atomicNumber", "classSpeciesInfo.html#a4ad2967e0f4a8f54ca4805c8147e1edf", null ],
       [ "atpos", "classSpeciesInfo.html#a343b757bb35b1ee545ec810781afc80c", null ],
       [ "atposManaged", "classSpeciesInfo.html#ae055f3aedcee980b10a5033c8886e69a", null ],

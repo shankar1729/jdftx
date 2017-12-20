@@ -100,12 +100,16 @@ $(document).ready(function(){initNavTree('ChangeLog.html','');});
 <div class="contents">
 <div class="textblock"><h2>Development version on git</h2>
 <ul>
+<li>Added newer versions of PBE and LDA GBRV pseudopotentials where evailable, and added PBEsol GBRV pseudopotentials for all elements</li>
+<li>Added links pointing to the latest version of each GBRV and SG15 pseudopotential (eg. GBRV/$ID_pbe.uspp and SG15/$ID_ONCV_PBE.upf)</li>
 <li><a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> enhancements:<ul>
 <li>New syntax for <a href="CommandWannierCenter.html">wannier-center</a> specification, with atomic orbitals selected by atom index rather than position</li>
+<li>Improved start-up time and memory requirement with ultrasoft pseudopotentials by transforming projections along with wavefunctions</li>
 <li>Clear error messages rather than stack trace for linearly-dependent trial orbitals</li>
 </ul>
 </li>
-<li>Updated normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions</li>
+<li>Added normalization of atomic orbitals on radial grid to fix DFT+U for bad pseudopotentials (not a problem for GBRV, but previously an issue for some SG15 pseudopotentials)</li>
+<li>Updated internal normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions</li>
 </ul>
 <h2>1.4.0 - 2017-12-11 (<a href="http://jdftx.org/1.4.0">Site archive</a>)</h2>
 <ul>

@@ -117,9 +117,7 @@ coords-type cartesian
 coulomb-interaction Isolated
 coulomb-truncation-embed 0 0 0
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 dump-name water.$VAR    #Filename pattern for saving outputs
@@ -140,7 +138,7 @@ ionic-minimize \
 </pre><p>update nIterations in IonicMinimize to 10 (I chose 3, which is too small, specifically to demonstrate continuation), and rerun jdftx </p>
 <pre class="fragment"> jdftx -i water.in | tee -a water.out   #The -a says append to water.out
 </pre><p>Examine the output file again. (If you appended the outut file as indicated above, scroll past the first calculation to where the second one begins.) Note that unlike previous times, the calculation skips the LCAOMinimize section because the wavefunctions have already been read in. The first ElecMinimize completes very quickly since it starts with previously converged wavefunctions at the last ionic positions. Look at the remaining ionic steps (using grep IonicMinimize again): the geometry optimizer now converges with RMS forces within the threshold we specified.</p>
-<p>Calculate the DFT-predicted bond length and angle from the final water.ionpos. With the GBRV pseudopotentials and the PBE exchange-correlation functional, I get a converged O-H bond length of 0.976 A and an H-O-H bond angle of 103.8 degrees.</p>
+<p>Calculate the DFT-predicted bond length and angle from the final water.ionpos. With the GBRV pseudopotentials and the PBE exchange-correlation functional, I get a converged O-H bond length of 0.98 A and an H-O-H bond angle of 103.7 degrees.</p>
 <p>We can visualize the geometry optimization steps using: </p>
 <pre class="fragment"> createXSF water.out water.axsf Animated
 </pre><p>Unfortunately, VESTA, that we have been using so far (and that has a more polished interface), does not support animated XSF files. Open this file in XCrysDen instead, and you should be able to click through a number of slides corresponding to the geometry optimization steps. As before, you need to change the boundary settings to see the molecule intact instead of torn across the boundaries. Change the unit of repetition in the XCrysDen menu: Display -&gt; Unit of Repetition -&gt; Translational asymmetric unit. </p>

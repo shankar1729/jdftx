@@ -112,9 +112,7 @@ $(document).ready(function(){initNavTree('OxideSurfaces.html','');});
 <h2>Bulk Rutile TiO<sub>2</sub></h2>
 <p>Let's start with a calculation of the bulk titanium dixoide, which has a Rutile crystal structure consisting of a tetragonal unit cell with parameters a = 4.59 Angstroms (8.67 bohrs) and c = 2.96 Angstroms (5.59 bohrs). Each unit cell contains two TiO<sub>2</sub> units, with one Ti at a vertex and the other at the body center. To speed up the calculations, we skip geometry optimization in this tutorial, and I directly list the optimized ionic positions below. </p>
 <pre class="fragment">#Save the following to bulk.in:
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 lattice Tetragonal 8.67 5.59
@@ -213,9 +211,7 @@ lattice Orthorhombic 12.26123 5.59 33   #Respectively sqrt(2)a, c and chosen hei
 <pre class="fragment">#Save the following to common.in:
 include Rutile110.lattice
 include Rutile110.ionpos
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 coulomb-interaction Slab 001
 coulomb-truncation-embed 0 0 0
@@ -252,15 +248,15 @@ createXSF Solvated.out Solvated.xsf nbound
 <tr>
 <th>Vacuum </th><th>Solvated </th><th>Shift </th></tr>
 <tr>
-<td>CANDLE </td><td rowspan="2">8.64 </td><td>6.82 </td><td>-1.82 </td><td>1.05 </td></tr>
+<td>CANDLE </td><td rowspan="2">8.58 </td><td>6.78 </td><td>-1.80 </td><td>1.04 </td></tr>
 <tr>
-<td>GLSSA13 </td><td>2.61 </td><td>-6.03 </td><td>3.50 </td></tr>
+<td>GLSSA13 </td><td>2.50 </td><td>-6.08 </td><td>3.15 </td></tr>
 </table>
 </center><p>Note that the surface energy reduction due to solvent stabilization is much larger compared to the metal surface case because of the positive (Ti) and negative (O) charge regions on the surface. The VBM shift predicted by CANDLE (extracted using the scripts below) is in good agreement with experimental estimates (0.9-1.1 eV). But this agreement is somewhat fortuitous: converging the result with number of layers and geometry opimization lowers the predicted shift to 0.6 eV and worsens agreement somewhat. See Refs. <a class="el" href="citelist.html#CITEREF_ElectrostaticPotential">[30]</a> and <a class="el" href="citelist.html#CITEREF_BandAlignmentGW">[3]</a> for further discussion of energy level alignment in oxide-water interfaces.</p>
 <p>For comparison, I also show results for the GLSSA13 LinearPCM (same as VASPsol, similar to SCCS). Note that those solvation models have two fundamental difficulties with oxide surfaces resulting in poor convergence and unphysical results:</p>
 <ol type="1">
 <li>Leakage of fluids into small voids in the crystal</li>
-<li>Not parametrized for transition metals exposed to solution</li>
+<li>Not parametrized for transition metal atoms exposed to solution</li>
 </ol>
 <p>By starting from the non-empirical and nonlocally-determined SaLSA cavity, CANDLE and SaLSA address both these issues. The non-locality ensures that an entire water molecule must fit in the voids, significantly minimizing the probability of unphysical leakage. Additionally, the density-product cavity determination is calibrated to work on all atoms in the periodic table, and not just organic solutes.</p>
 <h2>Electrostatic potentials</h2>

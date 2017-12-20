@@ -114,9 +114,7 @@ lattice Hexagonal 4.651 15           #Exact vertical dimension no longer matters
 ion C  0.000000  0.000000  0.0   0
 ion C  0.333333 -0.333333  0.0   0
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 </pre><p>We will then perform total energy and band structure calculations as usual using the input files: </p>
 <pre class="fragment">#Save the following to totalE.in:
@@ -153,13 +151,13 @@ gnuplot --persist bandstruct.plot                        #Plot band structure
 <tr>
 <th>Lz </th><th>mu with truncation </th><th>mu without truncation  </th></tr>
 <tr>
-<td>15 </td><td>-0.155826 </td><td>+0.019650 </td></tr>
+<td>15 </td><td>-0.155825 </td><td>+0.019651 </td></tr>
 <tr>
-<td>20 </td><td>-0.156104 </td><td>-0.024395 </td></tr>
+<td>20 </td><td>-0.156102 </td><td>-0.024394 </td></tr>
 <tr>
-<td>25 </td><td>-0.156108 </td><td>-0.050739 </td></tr>
+<td>25 </td><td>-0.156106 </td><td>-0.050738 </td></tr>
 <tr>
-<td>30 </td><td>-0.156103 </td><td>-0.068296 </td></tr>
+<td>30 </td><td>-0.156103 </td><td>-0.068295 </td></tr>
 </table>
 <p>As expected, mu converges exponentially with cell size with truncation, but very slowly (with an error inversely proportional to cell volume) without truncation. </p>
 </div></div><!-- contents -->

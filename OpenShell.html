@@ -109,9 +109,7 @@ ion H 0 0 0  1
 coulomb-interaction Isolated
 coulomb-truncation-embed 0 0 0
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 dump End None
@@ -129,9 +127,8 @@ dump-name Hatom.$VAR
 <p>This eigenvalue inaccuracy is a well-known limitation of semi-local DFT approximations such as the default PBE generalized-gradient approximation used here. In these functionals, the electrons effectively interact with themselves (self-interaction error) which makes the Kohn-Sham eigenvalues of occupied states too high, and leads to the well-known underestimation of band gaps of solids. Note however that the total energies are still almost surprisingly accurate.</p>
 <p>For the one-electron hydrogen atom, we can eliminate this self-interaction error using Hartree-Fock, which evaluates the exact exchange energy directly from the wavefunctions, instead of approximating it from the density (and omits the correlation density functional). We can specify Hartree-Fock theory using the command: </p>
 <pre class="fragment"> elec-ex-corr Hartree-Fock
-</pre><p>Running jdftx on Hatom.in with this command added, will at first however fail because exact-exchange based calculations are only supported for norm-conserving pseudopotentials, whereas the GBRV pseudopotentials used above are ultrasoft pseudopotentials. Therefore, additionally replace the two ion-species lines and the elec-cutoff line above with </p>
-<pre class="fragment"> ion-species SG15/$ID_ONCV_PBE-1.1.upf
- ion-species SG15/$ID_ONCV_PBE-1.0.upf
+</pre><p>Running jdftx on Hatom.in with this command added, will at first however fail because exact-exchange based calculations are only supported for norm-conserving pseudopotentials, whereas the GBRV pseudopotentials used above are ultrasoft pseudopotentials. Therefore, additionally replace the ion-species line and the elec-cutoff line above with </p>
+<pre class="fragment"> ion-species SG15/$ID_ONCV_PBE.upf
  elec-cutoff 30
 </pre><p>to use the norm-conserving SG15 pseudopotential set, which requires a higher plane-wave cutoff. Now run jdftx again (it will take around ten times as long) and examine the eigenvalues using binaryToText. Now we find that the eigenvalue of the occupied state is -0.4998 Hartrees, exactly equal to the total energy Etot = -0.4998 Hartrees, both in very good agreement with the analytical result of -0.5 Hartrees.</p>
 <p>The Hartree-Fock calculations are exact for the hydrogen atom, but are much less accurate than semi-local DFTs for most molecules and solids, especially for calculating total energies and geometries. A common practice to empirically get the best of both worlds is to mix a fraction of exact exchange into a semi-local DFT calculation. For example, to use the popular PBE0 or HSE06 functionals in JDFTx, you would specify the hyb-PBE0 or hyb-HSE06 options to elec-ex-corr. In this special case however, we find that the eigenvalues for those (-0.336 and -0.329 respectively) are closer to the semi-local DFT result, than to the exact Hartree-Fock result. </p>

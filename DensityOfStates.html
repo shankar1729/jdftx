@@ -105,9 +105,7 @@ $(document).ready(function(){initNavTree('DensityOfStates.html','');});
 <p>First, we calculate the total density of states using: </p>
 <pre class="fragment">#Save to Si.in and run "mpirun -n 4 jdftx -i Si.in"
 lattice face-centered Cubic 10.263
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 ion Si 0.00 0.00 0.00  0
@@ -130,7 +128,7 @@ density-of-states Total     #Output total density-of-states
 set ylabel "E - VBM [eV]"   #Add y-axis label
 set yrange [*:10]           #Truncate bands very far from VBM
 eV = 1/27.2114              #Value of eV in Hartrees
-VBM = 0.227554              #VBM value (HOMO from totalE.eigStats)
+VBM = 0.227557              #VBM value (HOMO from totalE.eigStats)
 xEnd = 68                   #Last x-tic value on k-path
 set arrow \
   from first xEnd, graph 0 \

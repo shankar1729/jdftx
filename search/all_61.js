@@ -1,6 +1,7 @@
 var searchData=
 [
   ['a',['a',['../structSpaceGroupOp.html#a0cd5f053eb9ae47a7e0b34c735238e1f',1,'SpaceGroupOp']]],
+  ['a_5frhonones',['A_rhoNonES',['../structFluidSolver.html#a4b3c25337d6be705fb9f57a145e408cb',1,'FluidSolver']]],
   ['abs',['abs',['../structcomplex.html#af509fd288e2d811cb772795b8fd86c2a',1,'complex::abs()'],['../group__DataStructures.html#ga5296197431bc0b3ca45de9d930fed67f',1,'abs():&#160;scalar.h']]],
   ['absorbscale',['absorbScale',['../structFieldData.html#ae339b4740d15c76a3f7d8b7fa39acb75',1,'FieldData']]],
   ['accumcolumn',['accumColumn',['../classColumnBundle.html#a16e52bd2417e2ad6e80868a429112089',1,'ColumnBundle']]],
@@ -52,8 +53,8 @@ var searchData=
   ['atomicsymbol',['AtomicSymbol',['../group__Utilities.html#gabedd0fe74c4efec04212cb4e8d4c8aaf',1,'symbols.h']]],
   ['atomicsymbolmap',['atomicSymbolMap',['../group__Utilities.html#ga3f40bf9127a9a50b62a03e85bc957d9a',1,'symbols.h']]],
   ['atomindex',['atomIndex',['../structDOS_1_1Weight.html#ade6998e6a2d5e40bd368b5c82c1b07b9',1,'DOS::Weight']]],
-  ['atomparams',['AtomParams',['../structVanDerWaals_1_1AtomParams.html',1,'VanDerWaals']]],
   ['atomparams',['AtomParams',['../structVanDerWaals_1_1AtomParams.html#a1fc0fba616fe048baff7fc7b15559d48',1,'VanDerWaals::AtomParams']]],
+  ['atomparams',['AtomParams',['../structVanDerWaals_1_1AtomParams.html',1,'VanDerWaals']]],
   ['atomslice',['AtomSlice',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83a2d9060f4c17095a15d48641799462928',1,'DOS::Weight']]],
   ['atomsphere',['AtomSphere',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83af9ae050dbb2cf5dfaee9df3b17fc99c7',1,'DOS::Weight']]],
   ['atpos',['atpos',['../classSpeciesInfo.html#a343b757bb35b1ee545ec810781afc80c',1,'SpeciesInfo']]],
@@ -68,7 +69,7 @@ var searchData=
   ['autothreadcount',['AutoThreadCount',['../classAutoThreadCount.html',1,'AutoThreadCount'],['../classAutoThreadCount.html#aa89a9f813ea3d39075a24310a8eeb837',1,'AutoThreadCount::AutoThreadCount()']]],
   ['auxiliaryfunction',['AuxiliaryFunction',['../structCoulombParams.html#a4c748577e8daa85d6c37203d93842daca0d0fcd2843f2d80657f6a0f43f194977',1,'CoulombParams']]],
   ['axpy',['axpy',['../classPulay.html#ab846fdcb3ffd02158838c506140a5de3',1,'Pulay::axpy()'],['../classSCF.html#a15fd859ba3e3a7ce86b2a9bed12b4cad',1,'SCF::axpy()'],['../classNonlinearPCM.html#a8845b976023db7e6c5ff30a023855225',1,'NonlinearPCM::axpy()'],['../group__DataStructures.html#gac5df245d577add645fc2935e8778c956',1,'axpy(complex alpha, const ManagedMemory&lt; complex &gt; &amp;x, ManagedMemory&lt; complex &gt; &amp;y):&#160;ManagedMemory.h'],['../group__Operators.html#ga347d66dc69dd8703c75adb28188806d6',1,'axpy(double alpha, const Tptr &amp;X, Tptr &amp;Y):&#160;Operators.h'],['../group__Operators.html#ga1f016fc2f3c65605f533ac7a40344624',1,'axpy(double alpha, const ScalarField &amp;X, ScalarField &amp;Y):&#160;Operators.h'],['../group__DataStructures.html#ga1aa0262ff08942d2dddc095b08b69fc7',1,'axpy(double alpha, const TptrCollection &amp;x, TptrCollection &amp;y):&#160;ScalarFieldArray.h'],['../group__DataStructures.html#gaf8c1d6b3785577edf0528240a6d8f232',1,'axpy(double alpha, const TptrMul &amp;X, TptrMul &amp;Y):&#160;VectorField.h'],['../group__DataStructures.html#ga64d3b5a003a5ac91c91fa291ddfbee53',1,'axpy(double alpha, const Tptr &amp;X, TptrMul &amp;Y):&#160;VectorField.h'],['../group__ElecSystem.html#ga59f3cf64fd8dc7188a082665e67bc420',1,'axpy(double alpha, const ElecGradient &amp;x, ElecGradient &amp;y):&#160;ElecMinimizer.h'],['../group__IonicSystem.html#gadb19b763ffa737879ca675e3950b95b8',1,'axpy(double alpha, const IonicGradient &amp;x, IonicGradient &amp;y):&#160;IonicMinimizer.h'],['../group__IonicSystem.html#gab3ac5f3cda877685bea789473aa6cf24',1,'axpy(double alpha, const LatticeGradient &amp;x, LatticeGradient &amp;y):&#160;LatticeMinimizer.h']]],
-  ['axpywfns',['axpyWfns',['../classWannierMinimizer.html#ac3a794d3cf645d773cd63e66d669b613',1,'WannierMinimizer']]],
+  ['axpywfns',['axpyWfns',['../classWannierMinimizer.html#adfdaa2d582bdcc525cee1eed4ae90644',1,'WannierMinimizer']]],
   ['axpywfns_5fgrad',['axpyWfns_grad',['../classWannierMinimizer.html#ac46abcfc62f6d7f02dd155c09009404e',1,'WannierMinimizer']]],
   ['add_2du',['add-U',['../CommandAddU.html',1,'CommandIndex']]],
   ['a_20first_20calculation',['A first calculation',['../FirstCalc.html',1,'MoleculeTutorials']]],

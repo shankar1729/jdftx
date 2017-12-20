@@ -116,9 +116,7 @@ H    0 -0.75799 -0.50847
 include water.ionpos
 coords-type cartesian
 
-ion-species GBRV/$ID_pbe_v1.2.uspp   #Replace $ID by any atom symbol to find a pseudopotential
-ion-species GBRV/$ID_pbe_v1.01.uspp  #If not found in previous pattern, search with this pattern
-ion-species GBRV/$ID_pbe_v1.uspp     #If not found in previous patterns, search with this pattern
+ion-species GBRV/$ID_pbe.uspp        #Replace $ID by any atom symbol to find a pseudopotential
 elec-cutoff 20 100                   #Recommended cutoffs for GBRV pseudopotentials
 dump End None                        #Don't output anything for this example
 </pre><p>which we can run as </p>
@@ -142,16 +140,16 @@ coulomb-truncation-embed 0 0 0       #Center of molecule; origin for breaking pe
 <tr>
 <th>Padding </th><th>Without truncation </th><th>With truncation  </th></tr>
 <tr>
-<td>15 </td><td>-17.268222645781691 </td><td>-17.268003657134862 </td></tr>
+<td>15 </td><td>-17.268078941702573 </td><td>-17.267860822043808 </td></tr>
 <tr>
-<td>20 </td><td>-17.268147969097498 </td><td>-17.268041483330446 </td></tr>
+<td>20 </td><td>-17.268005076655513 </td><td>-17.267899023265009 </td></tr>
 <tr>
-<td>25 </td><td>-17.268101327860506 </td><td>-17.268042627595506 </td></tr>
+<td>25 </td><td>-17.267959775753003 </td><td>-17.267901318302076 </td></tr>
 <tr>
-<td>30 </td><td>-17.268079759393924 </td><td>-17.268044242680695 </td></tr>
+<td>30 </td><td>-17.267937318025449 </td><td>-17.267901948787543 </td></tr>
 </table>
 <p>Note that the energy converges much faster with box size after including truncation. In fact, with truncation, the energy converges exponentially with unit cell size, compared to an inverse-cubic convergence without truncation due to dipole-dipole interactions.</p>
-<p>In this example, the energy with 15 bohr spacing with Coulomb truncation is within 5x10<sup>-5</sup> Hartrees of the value converged with box size, whereas only with a 30 bohr spacing achieves that accuracy without truncation. Also note that the calculation with the 30 bohr spacing is roughly 8 times slower than that with the 15 bohr spacing, so using optimized unit cells with truncated Coulomb interactions can substantially speed up your calculation. </p>
+<p>In this example, the energy with 15 bohr spacing with Coulomb truncation is within 5x10<sup>-5</sup> Hartrees of the value converged with box size, whereas a 30 bohr spacing is required to achieve that accuracy without truncation. Note that the calculation with the 30 bohr spacing is roughly 8 times slower than that with the 15 bohr spacing, so using optimized unit cells with truncated Coulomb interactions can substantially speed up your calculation. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

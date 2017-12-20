@@ -69,7 +69,7 @@ var searchData=
   ['getv',['getV',['../classSpeciesInfo.html#a51bc7d5c96fc9d4e355fe5eaa9ab5ed6',1,'SpeciesInfo']]],
   ['getvariable',['getVariable',['../classPulay.html#a01aa8897e8c9f3cb24f16489daa22115',1,'Pulay::getVariable()'],['../classSCF.html#a1804f5fc176c2fd5c30949837e943cd4',1,'SCF::getVariable()'],['../classNonlinearPCM.html#a6ded249794b2cc84cda0a05b7a35daa4',1,'NonlinearPCM::getVariable()']]],
   ['getvhs',['getVhs',['../structMolecule.html#abbc21612ddbde22e6c9fb5574aaa844b',1,'Molecule']]],
-  ['getwfns',['getWfns',['../classWannierMinimizer.html#a9a357b09186608d39125109083504bf0',1,'WannierMinimizer']]],
+  ['getwfns',['getWfns',['../classWannierMinimizer.html#ac1422f605900b4666b14d9a3ae6b62f3',1,'WannierMinimizer']]],
   ['getylmoverlapmatrix',['getYlmOverlapMatrix',['../classSpeciesInfo.html#a89bddf12e2b5c8455ca4612f4234300d',1,'SpeciesInfo']]],
   ['getylmtospinanglematrix',['getYlmToSpinAngleMatrix',['../classSpeciesInfo.html#ae4f586d7d82eef33755ad20eaeef6561',1,'SpeciesInfo']]],
   ['getztot',['getZtot',['../classIonInfo.html#ad08b2d205a825ba77abac2eb3c777a0c',1,'IonInfo']]],

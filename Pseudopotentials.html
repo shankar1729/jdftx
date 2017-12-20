@@ -105,17 +105,21 @@ $(document).ready(function(){initNavTree('Pseudopotentials.html','');});
 <ul>
 <li><p class="startli"><b>GBRV Library</b></p>
 <p class="startli">Garrity-Bennett-Rabe-Vanderbilt library is a library of ultrasoft pseudopotentials for most of the periodic table, with the exception of f-block elements. See <a href="http://www.physics.rutgers.edu/gbrv">http://www.physics.rutgers.edu/gbrv</a> and Ref. <a class="el" href="citelist.html#CITEREF_GBRV">[9]</a> for more information about the design, construction and testing of these pseudopotentials. These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax: </p>
-<pre class="fragment">ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
+<pre class="fragment">ion-species GBRV/$ID_pbe.uspp
+</pre><p class="startli">for the PBE pseudeopotentials, and similarly using GBRV/$ID_lda.uspp or GBRV/$ID_pbesol.uspp for the LDA and PBEsol pseudeopotentials respectively.</p>
+<p class="startli">Some pseudopotentials have multiple version numbers installed: a subset of v1, v1.01, v1.1, v1.2, v1.4 and v1.5 for each element. You can select older versions by explicitly selecting version numbers eg. to only use the latest among v1 or v1.4 but none of the others: </p>
+<pre class="fragment">ion-species GBRV/$ID_pbe_v1.4.uspp
 ion-species GBRV/$ID_pbe_v1.uspp
 </pre><p class="startli"><br/>
 </p>
 </li>
 <li><p class="startli"><b>SG15 Library</b></p>
 <p class="startli">Schlipf-Gygi 2015 library is a library of norm-conserving pseudopotentials for most of the periodic table, with the exception of f-block elements. See <a href="http://www.quantum-simulation.org">http://www.quantum-simulation.org</a> and Ref. <a class="el" href="citelist.html#CITEREF_SG15">[23]</a> for more information about the design, construction and testing of these pseudopotentials. These pseudopotentials are pre-distributed with JDFTx, and you can access the latest version for any element using the wildcard syntax: </p>
-<pre class="fragment">ion-species SG15/$ID_ONCV_PBE-1.1.upf
-ion-species SG15/$ID_ONCV_PBE-1.0.upf
-</pre><p class="startli"><br/>
+<pre class="fragment">ion-species SG15/$ID_ONCV_PBE.upf
+</pre><p class="startli">Some pseudopotentials have multiple version numbers installed: a subset of 1.0 and 1.1 for each element. You can select to use specific versions by explicitly specifying version numbers, eg. </p>
+<pre class="fragment">ion-species SG15/$ID_ONCV_PBE-1.0.upf
+</pre><p class="startli">to only use the 1.0 version.</p>
+<p class="startli"><br/>
 </p>
 </li>
 <li><p class="startli"><b>Virtual Vault for Pseudopotentials and PAW Datasets</b></p>

@@ -105,9 +105,8 @@ $(document).ready(function(){initNavTree('Metals.html','');});
 <p>Platinum is a face-centered cubic metal with a cubic lattice constant of 3.92 Angstroms (7.41 bohrs), which we can specify easily in the input files: </p>
 <pre class="fragment">#Save the following to common.in:
 lattice face-centered Cubic 7.41
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.01.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbesol.uspp
+elec-ex-corr gga-PBEsol
 elec-cutoff 20 100
 ion Pt  0 0 0  0      #Single atom per unit cell
 </pre><p>and </p>
@@ -120,6 +119,7 @@ elec-smearing Fermi 0.01  #Set fillings using Fermi function at T = 0.01 Hartree
 electronic-SCF
 </pre><p>The only new command is <a class="el" href="CommandElecSmearing.html">elec-smearing</a> which specifies that the fillings must be set using a Fermi function based on the current Kohn-Sham eigenvalues, rather than determined once at startup (the default we implicitly used so far). The first parameter of this command specifies the functional form for the occupations, in this case selecting a Fermi function (see <a class="el" href="CommandElecSmearing.html">elec-smearing</a> for other options). The second parameter determines the width in energy over which the Fermi function goes from one to zero (occupied to unoccupied).</p>
 <p>Metals are much more sensitive to k-point sampling, because for some bands, a part of the Brillouin zone is filled and the remainder is empty, separated by a Fermi surface. The number of k-points directly determines how accurately the Fermi surface(s) can be resolved. The Fermi temperature is essentially a smoothing parameter that allows us to resolve the Fermi surface accurately at moderate k-point counts. Note that the tempreature we chose is around ten times room temperature in order to increase the smoothing and use a practical number of k-points.</p>
+<p>Finally, we have selected the PBEsol exchange-correlation functional using the <a class="el" href="CommandElecExCorr.html">elec-ex-corr</a> command, which is generally more accurate than PBE for solids (especially for metals). Correspondingly, we selected PBEsol pseudopotentials from the GBRV set.</p>
 <p>Run the calculation above as usual using </p>
 <pre class="fragment">mpirun -n 4 jdftx -i totalE.in | tee totalE.out
 </pre><p>and examine the output file. The main difference is that every SCF line is preceded by a line starting with FillingsUpdate. This line reports the chemical potential, mu, of the Fermi function that produces the correct number of electrons with the current Kohn-Sham eigenvalues, and the number of electrons, nElectrons, which of course stays constant.</p>
