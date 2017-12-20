@@ -346,7 +346,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		ShapeFunctionCANDLE::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape[0])) + Acavity_shapeVdw,
 			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
-		A_rhoExplicitTilde += coulomb(Sf[0]*A_phiExt);
+		((PCM*)this)->A_rhoNonES = coulomb(Sf[0]*A_phiExt);
+		A_rhoExplicitTilde += A_rhoNonES;
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;

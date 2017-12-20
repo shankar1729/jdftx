@@ -220,8 +220,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(hasFluid)
 	{	if(ShouldDump(Dfluid) || needDtot)
 		{	double GzeroCorrection = eVars.fluidSolver->ionWidthMuCorrection() - eVars.fluidSolver->bulkPotential();
-			DUMP(I(eVars.d_fluid), "d_fluid", Dfluid);
-			if(needDtot) d_tot = I(d_vac + eVars.d_fluid) + GzeroCorrection;
+			ScalarFieldTilde d_fluid = clone(eVars.d_fluid);
+			if(eVars.fluidSolver->A_rhoNonES)
+				d_fluid -= eVars.fluidSolver->A_rhoNonES;
+			DUMP(I(d_fluid), "d_fluid", Dfluid);
+			if(needDtot) d_tot = I(d_vac + d_fluid) + GzeroCorrection;
 			DUMP(d_tot, "d_tot", Dtot);
 		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);

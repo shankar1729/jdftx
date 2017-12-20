@@ -37,6 +37,7 @@ struct FluidSolver
 	double epsBulk, epsInf; //!< bulk dielectric constants of fluid
 	double k2factor; //!< prefactor to screening term (0 => no ionic screening)
 	std::vector<std::vector< vector3<> > > atpos; //!atomic positions per species in the relevant coordinate system (depending on embedding option)
+	ScalarFieldTilde A_rhoNonES; //!Any non-electrostatic contributions to A_rhoExplicitTilde (removed from dumped d_fluid / d_tot)
 	
 	//! Abstract base class constructor - do not use directly - see FluidSolver::createSolver
 	FluidSolver(const Everything &e, const FluidSolverParams& fsp);

@@ -331,6 +331,7 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 {	if(e.coulombParams.embed)
 	{	ScalarFieldTilde Adiel_rho_big, Adiel_n_big;
 		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces);
+		if(A_rhoNonES) ((FluidSolver*)this)->A_rhoNonES = e.coulomb->embedShrink(A_rhoNonES);
 		if(Adiel_rhoExplicitTilde) *Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
 		if(Adiel_nCavityTilde) *Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
 		if(extraForces) *extraForces = Diag(e.coulomb->embedScale) * (*extraForces); //transform to original contravariant lattice coordinates

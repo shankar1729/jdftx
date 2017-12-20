@@ -242,8 +242,8 @@ as described in the next section.
 <th colspan=3> E<sub>surf</sub> [eV/nm<sup>2</sup>]
 <th rowspan=2> VBM shift [eV]
 <tr>              <th> Vacuum           <th> Solvated <th> Shift 
-<tr> <td> CANDLE  <td rowspan=2>  8.58  <td>   6.78   <td> -1.80 <td> 1.05
-<tr> <td> GLSSA13                       <td>   2.50   <td> -6.08 <td> 3.50
+<tr> <td> CANDLE  <td rowspan=2>  8.58  <td>   6.78   <td> -1.80 <td> 1.04
+<tr> <td> GLSSA13                       <td>   2.50   <td> -6.08 <td> 3.15
 </table></center>
 
 Note that the surface energy reduction due to solvent stabilization
