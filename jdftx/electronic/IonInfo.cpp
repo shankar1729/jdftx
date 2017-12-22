@@ -393,7 +393,7 @@ matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& Ydag
 	}
 	//Nonlocal corrections:
 	for(size_t sp=0; sp<species.size(); sp++)
-		if(species[sp]->MnlAll.nRows())
+		if(species[sp]->nProjectors())
 		{	const SpeciesInfo& s = *species[sp];
 			const int nAtoms = s.atpos.size();
 			//Get nonlocal psp matrices and projections:

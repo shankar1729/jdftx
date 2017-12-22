@@ -174,7 +174,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			{	((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
-					if(e.iInfo.species[iSp]->Qint.size())
+					if(e.iInfo.species[iSp]->isUltrasoft())
 						((matrix&)e.eVars.VdagC[q][iSp]).bcast(jProcess);
 			}
 		}
@@ -185,9 +185,8 @@ void WannierMinimizerFD::initialize(int iSpin)
 				VdagCother[q].resize(e.iInfo.species.size());
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 				{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
-					if(sp.Qint.size())
-					{	int nRowsV = sp.MnlAll.nRows() * sp.atpos.size();
-						VdagCother[q][iSp].init(nRowsV, nBands);
+					if(sp.isUltrasoft())
+					{	VdagCother[q][iSp].init(sp.nProjectors(), nBands);
 						VdagCother[q][iSp].bcast(jProcess);
 					}
 				}

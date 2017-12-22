@@ -245,53 +245,7 @@ void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMini
 	transform.scatterAxpy(alpha, *C, result,0,1);
 	//Corresponding transformation in projections:
 	if(VdagResult)
-	{	VdagResult->clear();
-		VdagResult->resize(VdagC->size());
-		const std::vector<std::vector<std::vector<int> > >& atomMap = e.symm.getAtomMap();
-		for(size_t iSp=0; iSp<VdagC->size(); iSp++)
-			if(VdagC->at(iSp))
-			{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
-				//Determine phases due to atom offsets:
-				int nAtoms = sp.atpos.size();
-				std::vector<complex> phase(nAtoms);
-				for(int atom=0; atom<nAtoms; atom++)
-				{	int atomOut = atomMap[iSp][atom][kpoint.iSym];
-					const SpaceGroupOp& op = sym[kpoint.iSym];
-					vector3<int> offset = round((op.rot * sp.atpos[atom] + op.a) - sp.atpos[atomOut]);
-					phase[atom] = cis(-2*M_PI*dot(C->qnum->k, offset));
-				}
-				//Set up projector transformation matrix:
-				int nProjTot = VdagC->at(iSp).nRows();
-				int nProj = nProjTot / nAtoms; //projectors per atom
-				matrix rot = zeroes(nProjTot, nProjTot);
-				int nProjPrev = 0;
-				double lSign = 1.;
-				for(int l=0; l<int(sp.VnlRadial.size()); l++)
-				{	const matrix& sym_l = e.symm.getSphericalMatrices(l, false)[kpoint.iSym]; //projectors done in (l,m) not (j,mj)
-					int nms = sym_l.nRows(); //= (2l + 1) * nSpinor
-					//Set for each atom, accounting for atom mapping under symmetry:
-					for(size_t p=0; p<sp.VnlRadial[l].size(); p++)
-					{	for(int atom=0; atom<nAtoms; atom++)
-						{	int atomOut = atomMap[iSp][atom][kpoint.iSym];
-							int pStart = atom*nProj + nProjPrev;
-							int pStartOut = atomOut*nProj + nProjPrev;
-							rot.set(pStartOut,pStartOut+nms, pStart,pStart+nms, (lSign*phase[atom])*sym_l);
-						}
-						nProjPrev += nms;
-					}
-					if(kpoint.invert<0.) lSign = -lSign; //(-1)^l due to effect of inversion on Ylm
-				}
-				assert(nProjPrev == nProj);
-				//Account for spinor rotations:
-				if(nSpinor > 1)
-				{	matrix spinorRotDag = (kpoint.invert<0) ? transpose(transform.spinorRot) : dagger(transform.spinorRot);
-					rot = tiledBlockMatrix(spinorRotDag, nProjTot/nSpinor) * rot;
-				}
-				//Apply transform
-				VdagResult->at(iSp) = dagger(rot) * VdagC->at(iSp); //apply rotation
-				if(kpoint.invert < 0) VdagResult->at(iSp) = conj(VdagResult->at(iSp));
-			}
-	}
+		*VdagResult = transform.transformVdagC(*VdagC, kpoint.iSym);
 	watch.stop();
 }
 

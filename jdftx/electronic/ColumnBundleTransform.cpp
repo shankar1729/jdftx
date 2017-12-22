@@ -19,7 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/ColumnBundleTransform.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/Symmetries.h>
+#include <electronic/Everything.h>
 #include <core/LatticeUtils.h>
 #include <core/BlasExtra.h>
 #include <algorithm>
@@ -42,7 +42,7 @@ ColumnBundleTransform::BasisWrapper::BasisWrapper(const Basis& basis) : basis(ba
 
 ColumnBundleTransform::ColumnBundleTransform(const vector3<>& kC, const Basis& basisC, const vector3<>& kD,
 	const ColumnBundleTransform::BasisWrapper& basisDwrapper, int nSpinor, const SpaceGroupOp& sym, int invert, const matrix3<int>& super)
-: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert)
+: basisC(basisC), basisD(basisDwrapper.basis), nSpinor(nSpinor), invert(invert), kC(kC), kD(kD), sym(sym)
 {
 	//Check k-point transformation and determine offset
 	const matrix3<>& metricC = basisC.gInfo->RTR;
@@ -123,3 +123,57 @@ void ColumnBundleTransform::gatherAxpy(complex alpha, const ColumnBundle& C_D, i
 {	for(int bC=0; bC<C_C.nCols(); bC++) gatherAxpy(alpha, C_D,bDstart+bDstep*bC, C_C,bC);
 }
 
+std::vector<matrix> ColumnBundleTransform::transformVdagC(const std::vector<matrix>& VdagC_C, int iSym) const
+{	//Fetch required global properties:
+	assert(fabs(basisC.gInfo->detR - basisD.gInfo->detR) < symmThreshold); //supercell transformations not supported
+	const IonInfo& iInfo = *(basisC.iInfo);
+	const Everything& e = *(iInfo.species[0]->e);
+	const std::vector<std::vector<std::vector<int> > >& atomMap = e.symm.getAtomMap();
+	assert(VdagC_C.size() == iInfo.species.size());
+	//Transform for each species presnt in input:
+	std::vector<matrix> VdagC_D(iInfo.species.size());
+	for(size_t iSp=0; iSp<iInfo.species.size(); iSp++)
+	{	if(VdagC_C[iSp])
+		{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
+			//Determine phases due to atom offsets:
+			int nAtoms = sp.atpos.size();
+			std::vector<complex> phase(nAtoms);
+			for(int atom=0; atom<nAtoms; atom++)
+			{	int atomOut = atomMap[iSp][atom][iSym];
+				vector3<int> offset = round((sym.rot * sp.atpos[atom] + sym.a) - sp.atpos[atomOut]);
+				phase[atom] = cis(-2*M_PI*dot(kC, offset));
+			}
+			//Set up projector transformation matrix:
+			int nProjTot = sp.nProjectors();
+			int nProj = nProjTot / nAtoms; //projectors per atom
+			matrix rot = zeroes(nProjTot, nProjTot);
+			int nProjPrev = 0;
+			double lSign = 1.;
+			for(int l=0; l<int(sp.VnlRadial.size()); l++)
+			{	const matrix& sym_l = e.symm.getSphericalMatrices(l, false)[iSym]; //projectors done in (l,m) not (j,mj)
+				int nms = sym_l.nRows(); //= (2l + 1) * nSpinor
+				//Set for each atom, accounting for atom mapping under symmetry:
+				for(size_t p=0; p<sp.VnlRadial[l].size(); p++)
+				{	for(int atom=0; atom<nAtoms; atom++)
+					{	int atomOut = atomMap[iSp][atom][iSym];
+						int pStart = atom*nProj + nProjPrev;
+						int pStartOut = atomOut*nProj + nProjPrev;
+						rot.set(pStartOut,pStartOut+nms, pStart,pStart+nms, (lSign*phase[atom])*sym_l);
+					}
+					nProjPrev += nms;
+				}
+				if(invert<0.) lSign = -lSign; //(-1)^l due to effect of inversion on Ylm
+			}
+			assert(nProjPrev == nProj);
+			//Account for spinor rotations:
+			if(nSpinor > 1)
+			{	matrix spinorRotDag = (invert<0) ? transpose(spinorRot) : dagger(spinorRot);
+				rot = tiledBlockMatrix(spinorRotDag, nProjTot/nSpinor) * rot;
+			}
+			//Apply transform
+			VdagC_D[iSp] = dagger(rot) * VdagC_C[iSp]; //apply rotation
+			if(invert < 0) VdagC_D[iSp] = conj(VdagC_D[iSp]);
+		}
+	}
+	return VdagC_D;
+}

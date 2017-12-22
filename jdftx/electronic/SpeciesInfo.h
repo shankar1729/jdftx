@@ -79,6 +79,7 @@ public:
 	void print(FILE* fp) const; //!< print ionic positions from current species
 	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //!< print population analysis given the density matrix in the Lowdin basis
 	bool isRelativistic() const { return psi2j.size(); } //!< whether pseudopotential is relativistic
+	bool isUltrasoft() const { return Qint.size(); } //!< whether pseudopotential is ultrasoft
 	
 	enum PseudopotentialFormat
 	{	Fhi, //!< FHI format with ABINIT header (.fhi files)
@@ -89,7 +90,8 @@ public:
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
 	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //!< get projectors with qnum and basis matching Cq  (optionally cached)
-
+	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
+	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
@@ -218,23 +220,23 @@ private:
 	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.
 	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial, bool forceNeutral) const; //!< Compute the atomic density per spin channel, given the magnetic moment
 	void getAtomPotential(RadialFunctionG& dRadial) const; //!< Get the total electrostatic potential of a neutral atom
-	
-	friend struct CommandIonSpecies;
-	friend struct CommandSetVDW;
-	friend class VanDerWaals;
-	friend struct CommandSetAtomicRadius;
-	friend class FluidSolverParams;
-	friend class PCM;
+
 	friend struct CommandAddU;
 	friend struct CommandChargeball;
+	friend struct CommandIonSpecies;
+	friend struct CommandSetVDW;
+	friend struct CommandSetAtomicRadius;
 	friend struct CommandTauCore;
 	friend struct CommandWavefunction;
-	friend class WannierMinimizer;
-	friend class WannierMinimizerFD;
-	friend class IonicMinimizer;
-	friend class Phonon;
+	friend class ColumnBundleTransform;
 	friend class Dump;
+	friend class FluidSolverParams;
+	friend class IonicMinimizer;
 	friend class IonInfo;
+	friend class PCM;
+	friend class Phonon;
+	friend class VanDerWaals;
+	friend class WannierMinimizer;
 };
 
 
