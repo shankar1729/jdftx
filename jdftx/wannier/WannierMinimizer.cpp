@@ -339,10 +339,39 @@ matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2,
 	matrix ret = gInfo.detR * (C1 ^ C2);
 	//k-point difference:
 	vector3<> dkVec = C2.qnum->k - C1.qnum->k;
+	double dk = sqrt(gInfo.GGT.metric_length_squared(dkVec));
+	vector3<> dkHat = gInfo.GT * dkVec * (dk ? 1.0/dk : 0.0); //the unit Vector along dkVec (set dkHat to 0 for dk=0 (doesn't matter))
 	//Augment at each species:
 	for(size_t iSp=0; iSp<iInfo.species.size(); iSp++)
 	{	const SpeciesInfo& sp = *(iInfo.species[iSp]);
-		if(!sp.Qint.size()) continue; //no augmentation
+		if(!sp.isUltrasoft()) continue; //no augmentation
+		//Create the Q matrix appropriate for current k-point difference:
+		matrix Qk = zeroes(sp.QintAll.nRows(), sp.QintAll.nCols());
+		complex* QkData = Qk.data();
+		int i1 = 0;
+		for(int l1=0; l1<int(sp.VnlRadial.size()); l1++)
+		for(int p1=0; p1<int(sp.VnlRadial[l1].size()); p1++)
+		for(int m1=-l1; m1<=l1; m1++)
+		{	//Triple loop over second projector:
+			int i2 = 0;
+			for(int l2=0; l2<int(sp.VnlRadial.size()); l2++)
+			for(int p2=0; p2<int(sp.VnlRadial[l2].size()); p2++)
+			for(int m2=-l2; m2<=l2; m2++)
+			{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+				complex q12 = 0.;
+				for(const YlmProdTerm& term: terms)
+				{	SpeciesInfo::QijIndex qIndex = { l1, p1, l2, p2, term.l };
+					auto Qijl = sp.Qradial.find(qIndex);
+					if(Qijl==sp.Qradial.end()) continue; //no entry at this l
+					q12 += term.coeff * cis(0.5*M_PI*(l2-l1-term.l)) * Ylm(term.l,term.m, dkHat) * Qijl->second(dk);
+				}
+				for(int s=0; s<nSpinor; s++)
+					QkData[Qk.index(i1+s,i2+s)] = q12;
+				i2 += nSpinor;
+			}
+			i1 += nSpinor;
+		}
+		if(sp.isRelativistic()) Qk = sp.fljAll * Qk * sp.fljAll;
 		//Phases for each atom:
 		std::vector<complex> phaseArr;
 		for(vector3<> x: sp.atpos)
@@ -350,7 +379,7 @@ matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2,
 		//Augment the overlap
 		matrix VdagC1 = VdagC1ptr ? VdagC1ptr->at(iSp) : (*sp.getV(C1)) ^ C1;
 		matrix VdagC2 = VdagC2ptr ? VdagC2ptr->at(iSp) : (*sp.getV(C2)) ^ C2;
-		ret += dagger(VdagC1) * (tiledBlockMatrix(sp.QintAll, sp.atpos.size(),&phaseArr) * VdagC2);
+		ret += dagger(VdagC1) * (tiledBlockMatrix(Qk, sp.atpos.size(), &phaseArr) * VdagC2);
 	}
 	watch.stop();
 	return ret;
