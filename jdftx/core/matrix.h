@@ -248,7 +248,9 @@ public:
 	tiledBlockMatrix(const matrix& mBlock, int nBlocks, const std::vector<complex>* phaseArr=0);
 	
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
+	friend matrix operator*(const matrix& m, const tiledBlockMatrix& tbm);
 };
+matrix operator*(const matrix& m, const tiledBlockMatrix& tbm);  //!< multiply dense matrix by block matrix
 
 //! @}
 #endif  // JDFTX_CORE_MATRIX_H

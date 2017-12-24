@@ -51,6 +51,7 @@ private:
 	double Emin, Emax; //!< energy range that contributes to transitions less than omegaMax
 	std::vector<ColumnBundle> C; //wavefunctions, made available on all processes
 	std::vector<diagMatrix> E, F; //energies and fillings, available on all processes
+	std::vector<std::vector<matrix>> VdagC; //pseudopotential projections
 	std::shared_ptr<const Supercell> supercell; //contains transformations between full and reduced k-mesh
 	std::shared_ptr<const PeriodicLookup< vector3<> > > plook; //O(1) lookup for finding k-points in mesh
 	std::vector<QuantumNumber> qmesh; //reduced momentum-transfer mesh
@@ -58,6 +59,7 @@ private:
 	Basis basis; //common wavefunction  basis
 	std::map< vector3<int>, std::shared_ptr<class ColumnBundleTransform> > transform; //k-mesh transformations
 	std::map< vector3<int>, QuantumNumber > qnumMesh; //equivalent of eInfo.qnums for entire k-mesh
+	std::vector<matrix> nAugRhoAtom; //augmentation pair densities per atomic density-matrix element for each species
 	
 	struct Event
 	{	int i, j; //band indices
@@ -73,8 +75,9 @@ private:
 		matrix& nij //!< set pair densities for each event, one per column
 	) const;
 	
-	ColumnBundle getWfns(size_t ik, const vector3<>& k) const; //get wavefunctions at an arbitrary point in k-mesh
+	ColumnBundle getWfns(size_t ik, const vector3<>& k, std::vector<matrix>* VdagCi=0) const; //get wavefunctions at an arbitrary point in k-mesh
 	matrix coulombMatrix(size_t iq) const; //retrieve the Coulomb operator for a specific momentum transfer
+	void nAugRhoAtomInit(size_t iq); //Initialize nAugRhoAtom for a specific momentum transfer
 	void dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid);
 };
 

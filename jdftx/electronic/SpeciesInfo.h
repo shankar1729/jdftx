@@ -99,7 +99,7 @@ public:
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
 	
-	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
+	//! Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point)
 	void augmentDensityInit();
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
@@ -230,6 +230,7 @@ private:
 	friend struct CommandWavefunction;
 	friend class ColumnBundleTransform;
 	friend class Dump;
+	friend class ElectronScattering;
 	friend class FluidSolverParams;
 	friend class IonicMinimizer;
 	friend class IonInfo;

@@ -824,6 +824,21 @@ matrix tiledBlockMatrix::operator*(const matrix& other) const
 	return result;
 }
 
+matrix operator*(const matrix& m, const tiledBlockMatrix& tbm)
+{	assert(m.nCols() == tbm.mBlock.nRows()*tbm.nBlocks);
+	matrix result(m.nRows(), tbm.mBlock.nCols()*tbm.nBlocks, isGpuEnabled());
+	//Dense matrix multiply for each block:
+	for(int iBlock=0; iBlock<tbm.nBlocks; iBlock++)
+	{	int offsIn = iBlock * tbm.mBlock.nRows() * m.nRows();
+		int offsOut = iBlock * tbm.mBlock.nCols() * m.nRows();
+		complex phase = tbm.phaseArr ? tbm.phaseArr->at(iBlock) : 1.;
+		callPref(eblas_zgemm)(CblasNoTrans, CblasNoTrans, m.nRows(), tbm.mBlock.nCols(), tbm.mBlock.nRows(),
+			phase, m.dataPref()+offsIn, m.nRows(), tbm.mBlock.dataPref(), tbm.mBlock.nRows(),
+			0.0, result.dataPref()+offsOut, result.nRows());
+	}
+	return result;
+}
+
 //---------octave-like slicing operators on scalar field matrices--------------
 
 //get a particular element (from the gpu if needed)
