@@ -41,7 +41,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	//Determine and output the band ranges:
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 	{	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].spin==iSpin)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].index()==iSpin)
 			for(int b=0; b<nBands; b++)
 			{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
 				eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);

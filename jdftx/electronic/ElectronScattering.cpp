@@ -554,7 +554,7 @@ void ElectronScattering::nAugRhoAtomInit(size_t iq)
 			for(const auto& entry: sp.Qradial)
 			{	const int& l = entry.first.l;
 				for(int m=-l; m<=l; m++)
-				{	callPref(Vnl)(basis_q.nbasis, atomStride, sp.atpos.size(), l, m, vector3<>(), basis_q.iGarr.dataPref(),
+				{	callPref(Vnl)(basis_q.nbasis, atomStride, sp.atpos.size(), l, m, qmesh[iq].k, basis_q.iGarr.dataPref(),
 						e->gInfo.G, sp.atposManaged.dataPref(), entry.second, nData);
 					ijlmMap[std::make_pair(entry.first,m)] = ijlmIndex;
 					nData += basis_q.nbasis;
@@ -591,11 +591,7 @@ void ElectronScattering::nAugRhoAtomInit(size_t iq)
 				i1++;
 			}
 			assert(i1==nProj);
-			//Phases for each atom:
-			std::vector<complex> phaseArr;
-			for(vector3<> x: sp.atpos)
-				phaseArr.push_back(cis(-2*M_PI*dot(qmesh[iq].k,x)));
-			n = n * tiledBlockMatrix(ijlmTOVV, sp.atpos.size(), &phaseArr);
+			n = n * tiledBlockMatrix(ijlmTOVV, sp.atpos.size());
 			watch.stop();
 		}
 	}
