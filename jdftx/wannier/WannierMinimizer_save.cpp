@@ -515,7 +515,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	{	//--- compute momentum matrix elements of Bloch states:
 		std::vector< std::vector<matrix> > pBloch(3, std::vector<matrix>(e.eInfo.nStates));
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(e.eInfo.qnums[q].spin==iSpin)
+			if(e.eInfo.qnums[q].index()==iSpin)
 				for(int iDir=0; iDir<3; iDir++)
 					pBloch[iDir][q] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
 		//--- convert to Wannier basis:
