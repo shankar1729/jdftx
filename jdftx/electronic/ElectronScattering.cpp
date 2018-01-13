@@ -26,11 +26,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
-//Extract imaginary part:
-matrix imag(const matrix& m)
-{	matrix out = zeroes(m.nRows(), m.nCols());
-	callPref(eblas_daxpy)(m.nData(), 1., ((const double*)m.dataPref())+1,2, (double*)out.dataPref(),2); //copy with stride of 2 to extract imaginary part
-	return out;
+//Matrix imaginary part (in the operator sense; not elementwise):
+matrix Im(const matrix& m)
+{	return complex(0,-0.5)*(m - dagger(m)); //(m - dagger(m))/(2i)
 }
 
 ElectronScattering::ElectronScattering()
@@ -293,18 +291,18 @@ void ElectronScattering::dump(const Everything& everything)
 		}
 		assert(iHead < nbasis);
 		
-		//Calculate screened Coulomb operator:
-		logPrintf("\tComputing Kscreened ... "); logFlush();
-		std::vector<matrix> Kscr(omegaGrid.nRows());
+		//Calculate Im(screened Coulomb operator):
+		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
+		std::vector<matrix> ImKscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-		{	Kscr[iOmega] = inv(invKq - chiKS[iOmega]);
+		{	ImKscr[iOmega] = Im(inv(invKq - chiKS[iOmega]));
 			chiKS[iOmega] = 0; //free to save memory
-			ImKscrHead[iOmega] += qmesh[iq].weight * Kscr[iOmega](iHead,iHead).imag(); //accumulate Im(head of Kscr)
+			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
 		chiKS.clear(); //free memory; no longer needed
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-		{	if(!omegaDiv.isMine(iOmega)) Kscr[iOmega] = zeroes(nbasis,nbasis);
-			Kscr[iOmega].bcast(omegaDiv.whose(iOmega));
+		{	if(!omegaDiv.isMine(iOmega)) ImKscr[iOmega] = zeroes(nbasis,nbasis);
+			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
 		}
 		logPrintf("done.\n"); logFlush();
 		
@@ -331,7 +329,7 @@ void ElectronScattering::dump(const Everything& everything)
 				for(const Event& event: events)
 					delta.push_back(e.gInfo.detR * event.fWeight //overlap and sign for electron / hole
 						* (2*eta/M_PI) * ( 1./(event.Eji - omegaTilde).norm() - 1./(event.Eji + omegaTilde).norm()) ); //Normalized Lorentzians
-				eventContrib += wOmega[iOmega] * delta * diag(imag(dagger(nij) * Kscr[iOmega] * nij));
+				eventContrib += wOmega[iOmega] * delta * diag(dagger(nij) * ImKscr[iOmega] * nij);
 			}
 			//Accumulate contributions to linewidth:
 			int iReduced = supercell->kmeshTransform[ik].iReduced; //directly collect to reduced k-point
