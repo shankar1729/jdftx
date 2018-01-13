@@ -419,7 +419,6 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 		if(!chiMode)
 		{	if(Eii<Emin || Eii>Emax) event.fWeight = 0.; //state out of relevant range
 			if(event.fWeight * (Eii-Ejj) <= 0) event.fWeight = 0; //wrong sign for energy transfer
-			//if(event.fWeight * (Eii-Ejj) < 0) event.fWeight = 0; //wrong sign for energy transfer //HACK
 		}
 		bool needEvent = (fabs(event.fWeight) > fCut);
 		if(needEvent)
@@ -497,22 +496,6 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 		}
 	}
 	watchAug.stop();
-	
-	/*
-	//HACK
-	logPrintf("\n");
-	int iGzero = 0;
-	for(const vector3<int>& iG: basis_q.iGarr)
-	{	if(!iG.length_squared()) break;
-		iGzero++;
-	}
-	int iEvent = 0;
-	for(const Event& event: events)
-	{	if(event.i == event.j)
-			logPrintf("NORMCHECK i: %d  err: %le\n", event.i, (e->gInfo.detR*nij(iGzero,iEvent)-1.).abs());
-		iEvent++;
-	}
-	*/
 	
 	return events;
 }

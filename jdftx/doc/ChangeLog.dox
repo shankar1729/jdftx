@@ -6,6 +6,8 @@
 
 + Added links pointing to the latest version of each GBRV and SG15 pseudopotential (eg. GBRV/$ID_pbe.uspp and SG15/$ID_ONCV_PBE.upf)
 
++ Added ultrasoft support for electron-electron scattering
+
 + Wannier enhancements:
 	- New syntax for [wannier-center](CommandWannierCenter.html) specification, with atomic orbitals selected by atom index rather than position
 	- Improved start-up time and memory requirement with ultrasoft pseudopotentials by transforming projections along with wavefunctions
