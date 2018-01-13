@@ -293,18 +293,18 @@ void ElectronScattering::dump(const Everything& everything)
 		}
 		assert(iHead < nbasis);
 		
-		//Calculate Im(screened Coulomb operator):
-		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
-		std::vector<matrix> ImKscr(omegaGrid.nRows());
+		//Calculate screened Coulomb operator:
+		logPrintf("\tComputing Kscreened ... "); logFlush();
+		std::vector<matrix> Kscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-		{	ImKscr[iOmega] = imag(inv(invKq - chiKS[iOmega]));
+		{	Kscr[iOmega] = inv(invKq - chiKS[iOmega]);
 			chiKS[iOmega] = 0; //free to save memory
-			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
+			ImKscrHead[iOmega] += qmesh[iq].weight * Kscr[iOmega](iHead,iHead).imag(); //accumulate Im(head of Kscr)
 		}
 		chiKS.clear(); //free memory; no longer needed
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-		{	if(!omegaDiv.isMine(iOmega)) ImKscr[iOmega] = zeroes(nbasis,nbasis);
-			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
+		{	if(!omegaDiv.isMine(iOmega)) Kscr[iOmega] = zeroes(nbasis,nbasis);
+			Kscr[iOmega].bcast(omegaDiv.whose(iOmega));
 		}
 		logPrintf("done.\n"); logFlush();
 		
@@ -331,7 +331,7 @@ void ElectronScattering::dump(const Everything& everything)
 				for(const Event& event: events)
 					delta.push_back(e.gInfo.detR * event.fWeight //overlap and sign for electron / hole
 						* (2*eta/M_PI) * ( 1./(event.Eji - omegaTilde).norm() - 1./(event.Eji + omegaTilde).norm()) ); //Normalized Lorentzians
-				eventContrib += wOmega[iOmega] * delta * diag(dagger(nij) * ImKscr[iOmega] * nij);
+				eventContrib += wOmega[iOmega] * delta * diag(imag(dagger(nij) * Kscr[iOmega] * nij));
 			}
 			//Accumulate contributions to linewidth:
 			int iReduced = supercell->kmeshTransform[ik].iReduced; //directly collect to reduced k-point
