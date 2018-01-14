@@ -311,7 +311,7 @@ void Phonon::setup(bool printDefaults)
 		logSuspend();
 		for(int ik=0; ik<prodSup; ik++)
 		{	qnums[ik].k = kpoints[ik].k;
-			qnums[ik].spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			qnums[ik].spin = (nSpins==1 ? 0 : (iSpin==0 ? +1 : -1));
 			qnums[ik].weight = 1./prodSup;
 			basis[ik].setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpoints[ik].k);
 		}
@@ -395,7 +395,7 @@ void Phonon::setup(bool printDefaults)
 		}
 		#undef whose_ik
 		mpiWorld->allReduce(EmaxValid, MPIUtil::ReduceMin);
-		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin ? +1 : -1);  else logPrintf("\t");
+		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin==0 ? +1 : -1);  else logPrintf("\t");
 		logPrintf("Matrix elements valid for ");
 		if(std::isfinite(EmaxValid)) logPrintf("E < %+.6lf (Emax = %+.6lf) due to incomplete degenerate subspaces.\n", EmaxValid, Emax);
 		else logPrintf("all available states (all degenerate subspaces are complete).\n");

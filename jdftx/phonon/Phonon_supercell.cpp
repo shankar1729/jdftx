@@ -94,7 +94,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
 		{	QuantumNumber qnum;
 			qnum.k = supercell.kmesh[ik];
-			qnum.spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			qnum.spin = (nSpins==1 ? 0 : (iSpin==0 ? +1 : -1));
 			vector3<> kSup = matrix3<>(Diag(sup)) * qnum.k; //qnum.k in supercell reciprocal lattice coords
 			size_t qSup = plook.find(kSup, qnum, &(eSup->eInfo.qnums), spinEqual);
 			if(qSup == string::npos) continue; //the corresponding supercell k-point must have been eliminated by symmetries
