@@ -544,7 +544,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Electron-electron linewidths:
-	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee", &iSpin);
+	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee");
 		if(fileSize(fname.c_str()) >= 0)
 		{	//Read Bloch version:
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
