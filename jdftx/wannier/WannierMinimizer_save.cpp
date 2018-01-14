@@ -469,7 +469,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		xExpect.push_back(e.gInfo.invR * r);
 	//--- get cell map with weights based on these center positions:
 	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
-		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
+		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap", &iSpin));
 	//--- output cell map weights:
 	if(mpiWorld->isHead())
 	{	matrix w = zeroes(nCenters*nCenters, iCellMap.size());
@@ -478,7 +478,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	callPref(eblas_copy)(wData, iter.second.dataPref(), w.nRows());
 			wData += w.nRows();
 		}
-		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights");
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights", &iSpin);
 		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
 		w.write_real(fname.c_str());
 		logPrintf("done.\n"); logFlush();
@@ -713,7 +713,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				ePhCellMap[iter.first] = zeroes(xAtoms.size(), xExpect.size());
 		//--- Output force matrix on unified phonon cellMap:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			for(const auto iter: phononOmegaSq)
@@ -723,7 +723,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		//--- Output unified phonon cellMap:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
@@ -737,7 +737,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		//--- Output phonon cellMapSq:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
