@@ -90,6 +90,7 @@ void Phonon::setup(bool printDefaults)
 	nBandsOpt = (e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 		? 1+int(ceil(e.eInfo.nElectrons/e.eInfo.qWeightSum)) //make sure extra band present for smearing
 		: 0; //no smearing: tightest number of bands acceptable
+	nBandsOpt = std::min(e.eInfo.nBands, nBandsOpt); //in-case nBands was borderline
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int nBands_q = std::upper_bound(e.eVars.F[q].begin(), e.eVars.F[q].end(), Fcut, std::greater<double>()) - e.eVars.F[q].begin();
 		nBandsOpt = std::max(nBandsOpt, nBands_q);
