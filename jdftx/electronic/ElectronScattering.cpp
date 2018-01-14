@@ -41,6 +41,8 @@ void ElectronScattering::dump(const Everything& everything)
 	this->e = &everything;
 	nBands = e.eInfo.nBands;
 	nSpinor = e.eInfo.spinorLength();
+	nSpins = e.eInfo.nSpins();
+	qCount = e.eInfo.nStates / nSpins; //reduce k-mesh size (without spin)
 	
 	if(slabResponse)
 		logPrintf("\n----- Slab dielectric matrix calculation -----\n");
@@ -157,11 +159,12 @@ void ElectronScattering::dump(const Everything& everything)
 	TaskDivision(supercell->kmesh.size(), mpiWorld).myRange(ikStart, ikStop);
 	double dEmax = 0.;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const diagMatrix& Ei = E[supercell->kmeshTransform[ik].iReduced];
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	{	const diagMatrix& Ei = E[supercell->kmeshTransform[ik].iReduced+iSpin*qCount];
 		for(int j=0; j<3; j++)
 		{	size_t jk = plook->find(supercell->kmesh[ik] + kBasis[j]);
 			assert(jk != string::npos);
-			const diagMatrix& Ej = E[supercell->kmeshTransform[jk].iReduced];
+			const diagMatrix& Ej = E[supercell->kmeshTransform[jk].iReduced+iSpin*qCount];
 			for(int b=0; b<nBands; b++)
 				if(Emin <= Ei[b] && Ei[b] <= Emax)
 					dEmax = std::max(dEmax, fabs(Ej[b]-Ei[b]));
@@ -255,15 +258,16 @@ void ElectronScattering::dump(const Everything& everything)
 		size_t nkMine = ikStop-ikStart;
 		int ikInterval = std::max(1, int(round(nkMine/20.))); //interval for reporting progress
 		for(size_t ik=ikStart; ik<ikStop; ik++)
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
 		{	//Report progress:
 			size_t ikDone = ik-ikStart+1;
-			if(ikDone % ikInterval == 0)
+			if(ikDone % ikInterval == 0 && !iSpin)
 			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
 				logFlush();
 			}
 			//Get events:
 			size_t jk; matrix nij;
-			std::vector<Event> events = getEvents(true, ik, iq, jk, nij);
+			std::vector<Event> events = getEvents(true, iSpin, ik, iq, jk, nij);
 			if(!events.size()) continue;
 			//Collect contributions for each frequency:
 			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
@@ -309,15 +313,16 @@ void ElectronScattering::dump(const Everything& everything)
 		//Calculate ImSigma contributions:
 		logPrintf("\tComputing ImSigma ... "); logFlush(); 
 		for(size_t ik=ikStart; ik<ikStop; ik++)
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
 		{	//Report progress:
 			size_t ikDone = ik-ikStart+1;
-			if(ikDone % ikInterval == 0)
+			if(ikDone % ikInterval == 0 && !iSpin)
 			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
 				logFlush();
 			}
 			//Get events:
 			size_t jk; matrix nij;
-			std::vector<Event> events = getEvents(false, ik, iq, jk, nij);
+			std::vector<Event> events = getEvents(false, iSpin, ik, iq, jk, nij);
 			if(!events.size()) continue;
 			//Integrate over frequency for event contributions to linewidth:
 			diagMatrix eventContrib(events.size(), 0);
@@ -337,7 +342,7 @@ void ElectronScattering::dump(const Everything& everything)
 			double qWeight = qmesh[iq].weight;
 			for(size_t iEvent=0; iEvent<events.size(); iEvent++)
 			{	const Event& event = events[iEvent];
-				ImSigma[iReduced][event.i] += symFactor * qWeight * eventContrib[iEvent];
+				ImSigma[iReduced+iSpin*qCount][event.i] += symFactor * qWeight * eventContrib[iEvent];
 			}
 		}
 		logPrintf("done.\n"); logFlush();
@@ -388,7 +393,7 @@ diagMatrix diagouter(const matrix& A, const matrix& B)
 	return result;
 }
 
-std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij) const
+std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, int iSpin, size_t ik, size_t iq, size_t& jk, matrix& nij) const
 {	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ"), watchAug("ElectronScattering::nAug");
 	//Find target k-point:
 	const vector3<>& ki = slabResponse ? e->eInfo.qnums[ik].k : supercell->kmesh[ik];
@@ -403,8 +408,8 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	}
 	
 	//Compile list of events:
-	int iReduced = slabResponse ? ik: supercell->kmeshTransform[ik].iReduced;
-	int jReduced = slabResponse ? jk: supercell->kmeshTransform[jk].iReduced;
+	int iReduced = slabResponse ? ik: supercell->kmeshTransform[ik].iReduced+iSpin*qCount;
+	int jReduced = slabResponse ? jk: supercell->kmeshTransform[jk].iReduced+iSpin*qCount;
 	const diagMatrix &Ei = E[iReduced], &Fi = F[iReduced];
 	const diagMatrix &Ej = E[jReduced], &Fj = F[jReduced];
 	std::vector<Event> events; events.reserve((nBands*nBands)/2);
@@ -433,8 +438,8 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	ColumnBundle Ci, Cj;
 	std::vector<matrix> VdagCi, VdagCj;
 	if(!slabResponse)
-	{	Ci = getWfns(ik, ki, &VdagCi);
-		Cj = getWfns(jk, kj, &VdagCj);
+	{	Ci = getWfns(ik, iSpin, ki, &VdagCi);
+		Cj = getWfns(jk, iSpin, kj, &VdagCj);
 	}
 	else
 	{	VdagCi = VdagC[ik];
@@ -500,7 +505,7 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	return events;
 }
 
-ColumnBundle ElectronScattering::getWfns(size_t ik, const vector3<>& k, std::vector<matrix>* VdagCi) const
+ColumnBundle ElectronScattering::getWfns(size_t ik, int iSpin, const vector3<>& k, std::vector<matrix>* VdagCi) const
 {	static StopWatch watch("ElectronScattering::getWfns"); watch.start();
 	double roundErr;
 	vector3<int> kSup = round((k - supercell->kmesh[0]) * supercell->super, &roundErr);
@@ -509,8 +514,8 @@ ColumnBundle ElectronScattering::getWfns(size_t ik, const vector3<>& k, std::vec
 	result.zero();
 	const ColumnBundleTransform& cbt = *(transform.find(kSup)->second);
 	const Supercell::KmeshTransform& kmt = supercell->kmeshTransform[ik];
-	cbt.scatterAxpy(1., C[kmt.iReduced], result,0,1);
-	if(VdagCi) *VdagCi = cbt.transformVdagC(VdagC[kmt.iReduced], kmt.iSym);
+	cbt.scatterAxpy(1., C[kmt.iReduced+iSpin*qCount], result,0,1);
+	if(VdagCi) *VdagCi = cbt.transformVdagC(VdagC[kmt.iReduced+iSpin*qCount], kmt.iSym);
 	watch.stop();
 	return result;
 }
@@ -666,7 +671,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 		}
 		//Get events:
 		size_t jk; matrix nij;
-		std::vector<Event> events = getEvents(true, q, 0, jk, nij);
+		std::vector<Event> events = getEvents(true, 0, q, 0, jk, nij);
 		if(!events.size()) continue;
 		//Collect contributions for each frequency:
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)

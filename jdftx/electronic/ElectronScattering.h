@@ -47,7 +47,7 @@ struct ElectronScattering
 
 private:
 	const Everything* e;
-	int nBands, nSpinor;
+	int nBands, nSpinor, nSpins, qCount;
 	double Emin, Emax; //!< energy range that contributes to transitions less than omegaMax
 	std::vector<ColumnBundle> C; //wavefunctions, made available on all processes
 	std::vector<diagMatrix> E, F; //energies and fillings, available on all processes
@@ -69,13 +69,14 @@ private:
 	
 	std::vector<Event> getEvents( //!< return list of events
 		bool chiMode, //!< whether to calculate fWeight for chi (true) or ImSigma (false), and hence which events to select (occ-unocc or occ-occ + unocc-unocc)
+		int iSpin, //!< spin index (0 or 1 if z-spin, 0 otherwise)
 		size_t ik, //!< k-mesh index for first state
 		size_t iq, //!< q-mesh index for momentum transfer
 		size_t& jk, //!< set k-mesh index for second state
 		matrix& nij //!< set pair densities for each event, one per column
 	) const;
 	
-	ColumnBundle getWfns(size_t ik, const vector3<>& k, std::vector<matrix>* VdagCi=0) const; //get wavefunctions at an arbitrary point in k-mesh
+	ColumnBundle getWfns(size_t ik, int iSpin, const vector3<>& k, std::vector<matrix>* VdagCi=0) const; //get wavefunctions at an arbitrary point in k-mesh
 	matrix coulombMatrix(size_t iq) const; //retrieve the Coulomb operator for a specific momentum transfer
 	void nAugRhoAtomInit(size_t iq); //Initialize nAugRhoAtom for a specific momentum transfer
 	void dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid);
