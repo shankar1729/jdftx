@@ -10,6 +10,7 @@
 
 + Wannier enhancements:
 	- New syntax for [wannier-center](CommandWannierCenter.html) specification, with atomic orbitals selected by atom index rather than position
+	- Option spinMode in command [wannier](CommandWannier.html) to optionally select %Wannier function generation for specific spin channels
 	- Improved start-up time and memory requirement with ultrasoft pseudopotentials by transforming projections along with wavefunctions
 	- Clear error messages rather than stack trace for linearly-dependent trial orbitals
 

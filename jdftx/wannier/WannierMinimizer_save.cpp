@@ -35,8 +35,10 @@ void applyCellMapWeights(matrix& M, const std::map<vector3<int>,matrix>& cellMap
 }
 
 void WannierMinimizer::saveMLWF()
-{	for(int iSpin=0; iSpin<nSpins; iSpin++)
+{	for(int iSpin: wannier.iSpinArr)
+	{	logPrintf("\n");
 		saveMLWF(iSpin);
+	}
 }
 
 void WannierMinimizer::saveMLWF(int iSpin)

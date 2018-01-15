@@ -37,6 +37,7 @@ enum WannierMember
 	WM_phononSup,
 	WM_rSmooth,
 	WM_wrapWignerSeitz,
+	WM_spinMode,
 	WM_delim
 };
 
@@ -55,13 +56,21 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
 	WM_phononSup, "phononSupercell",
 	WM_rSmooth, "rSmooth",
-	WM_wrapWignerSeitz, "wrapWignerSeitz"
+	WM_wrapWignerSeitz, "wrapWignerSeitz",
+	WM_spinMode, "spinMode"
 );
 
 EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
 (	Wannier::LM_FiniteDifference, "FiniteDifference",
 	Wannier::LM_RealSpace, "RealSpace"
 );
+
+EnumStringMap<Wannier::SpinMode> spinModeMap
+(	Wannier::SpinUp, "Up",
+	Wannier::SpinDn, "Dn",
+	Wannier::SpinAll, "All"
+);
+
 
 struct CommandWannier : public Command
 {
@@ -137,7 +146,11 @@ struct CommandWannier : public Command
 			"   If yes, wrap Wannier centers (and atom positions for phonon modes) to a Wigner-Seitz cell\n"
 			"   so as to minimize the number of cells in the Wannier-basis output.  As a consequence,\n"
 			"   however, minimized Wannier centers may differ from the guesses by some lattice vector.\n"
-			"   Default: no.";
+			"   Default: no.\n"
+			"\n+ spinMode" + spinModeMap.optionList() + "\n\n"
+			"   If Up or Dn, only generate Wannier functions for that spin channel, allowing\n"
+			"   different input files for each channel (independent centers, windows etc.).\n"
+			"   Default: All, generate for all spin channels (only valid option for spintype != z-spin).";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -202,6 +215,11 @@ struct CommandWannier : public Command
 				case WM_wrapWignerSeitz:
 					pl.get(wannier.wrapWS, false, boolMap, "wrapWignerSeitz", true);
 					break;
+				case WM_spinMode:
+					pl.get(wannier.spinMode, Wannier::SpinAll,  spinModeMap, "spinMode", true);
+					if(e.eInfo.spinType!=SpinZ && wannier.spinMode!=Wannier::SpinAll)
+						throw string("<spinMode> must be All for spintype != z-spin");
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -235,6 +253,7 @@ struct CommandWannier : public Command
 			logPrintf(" \\\n\tphononSupercell %d %d %d", wannier.phononSup[0], wannier.phononSup[1], wannier.phononSup[2]);
 		logPrintf(" \\\n\trSmooth %lg", wannier.rSmooth);
 		logPrintf(" \\\n\twrapWignerSeitz %s", boolMap.getString(wannier.wrapWS));
+		logPrintf(" \\\n\tspinMode %s", spinModeMap.getString(wannier.spinMode));
 	}
 }
 commandWannier;

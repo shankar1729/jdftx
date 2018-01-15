@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference), precond(false),
 	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false),
-	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5), rSmooth(1.), wrapWS(false)
+	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5), rSmooth(1.), wrapWS(false), spinMode(SpinAll)
 {
 }
 
@@ -50,6 +50,16 @@ void Wannier::setup(const Everything& everything)
 	{	int bStop = bStart + nCenters;
 		if(bStart<0 || bStop>e->eInfo.nBands)
 			die("Index range [%d,%d) of participating bands incompatible with available bands [0,%d).\n", bStart, bStop, e->eInfo.nBands);
+	}
+	//Initialize spin selection:
+	iSpinArr.clear();
+	if(e->eInfo.spinType == SpinZ)
+	{	if(spinMode==SpinAll || spinMode==SpinUp) iSpinArr.push_back(0);
+		if(spinMode==SpinAll || spinMode==SpinDn) iSpinArr.push_back(1);
+	}
+	else
+	{	assert(spinMode==SpinAll);
+		iSpinArr.push_back(0);
 	}
 	//Initialize minimizer:
 	switch(localizationMeasure)

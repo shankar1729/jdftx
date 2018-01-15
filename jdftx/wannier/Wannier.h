@@ -81,6 +81,14 @@ public:
 	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed
 	bool wrapWS; //!< whether to wrap Wannier centers (and phonon atom perturbations) to a Wigner-Seitz cell
 	
+	enum SpinMode
+	{	SpinUp,
+		SpinDn,
+		SpinAll
+	}
+	spinMode; //!< which spin(s) to generate Wannier functions for
+	std::vector<int> iSpinArr; //!< set of spin indices corresponding to spinMode
+	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
 	enum FilenameType

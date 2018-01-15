@@ -39,7 +39,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	if(needSuper) gInfoSuper.initialize(true, sym);
 
 	//Determine and output the band ranges:
-	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	for(int iSpin: wannier.iSpinArr)
 	{	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].index()==iSpin)
 			for(int b=0; b<nBands; b++)
