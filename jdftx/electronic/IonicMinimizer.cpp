@@ -190,11 +190,11 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 		std::vector<int> spOffset(iInfo.species.size()+1, 0); //species offsets into atomic orbitals
 		for(unsigned iSp=0; iSp<iInfo.species.size(); iSp++)
 		{	const SpeciesInfo& sp = *(iInfo.species[iSp]);
-			int spOrbCount = sp.nAtomicOrbitals(); //total number of orbitals for currents species
+			int spOrbCount = sp.nAtomicOrbitals(); //total number of orbitals for current species
 			spOffset[iSp+1] = spOffset[iSp] + spOrbCount;
-			int nOrb = spOrbCount / sp.atpos.size(); //number of orbitals per atom
-			for(int iOrb=0; iOrb<nOrb; iOrb++)
-				drColumns.insert(drColumns.end(), dpos[iSp].begin(), dpos[iSp].end());
+			int nOrb = (spOrbCount / sp.atpos.size()) * eInfo.spinorLength(); //number of dr entries (orbitals * nSpinor) per atom
+			for(const vector3<>& dr: dpos[iSp])
+				drColumns.insert(drColumns.end(), nOrb, dr);
 		}
 		
 		if(drColumns.size()) 
