@@ -308,6 +308,7 @@ std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std
 {	static StopWatch watch("phonon::getPerturbedHsub"); watch.start();
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	int nBands = e.eInfo.nBands;
+	int nSpinor = e.eInfo.spinorLength();
 	int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
 	int nqPrevStart, nqPrevStop; TaskDivision(prodSup, mpiWorld).myRange(nqPrevStart, nqPrevStop);
 	//Get unperturbed projectors to account for ultrasoft augmentation in overlap (if any):
@@ -325,9 +326,9 @@ std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std
 			pStart = spPert.QintAll.nRows() * pert.at; //perturbed atom projector starts here ...
 			pStop = spPert.QintAll.nRows() * (pert.at+1); //... and ends here
 			ColumnBundle Csup; INITwfnsSup(Csup, 1) //Dummy columnbundle for getV below
-			V0[s] = spPert.getV(Csup)->getSub(pStart,pStop);
-			V0dagC[s] = zeroes(V0[s].nCols(), nBandsSup);
-			VdagC[s] = zeroes(V0[s].nCols(), nBandsSup);
+			V0[s] = spPert.getV(Csup)->getSub(pStart/nSpinor,pStop/nSpinor);
+			V0dagC[s] = zeroes(pStop-pStart, nBandsSup);
+			VdagC[s] = zeroes(pStop-pStart, nBandsSup);
 		}
 		//Restore perturbation:
 		std::swap(spPert.atpos[pert.at], atpos0);
@@ -356,8 +357,8 @@ std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std
 				int stop = nBands * (sme.nqPrev+1);
 				//Store projections for augmentation correction (if needed)
 				if(spPert.QintAll)
-				{	V0dagC[s].set(0,V0[s].nCols(), start,stop, V0[s] ^ Csup);
-					VdagC[s].set(0,V0[s].nCols(), start,stop, eSup->eVars.VdagC[qSup][pert.sp](pStart,pStop, 0,Csup.nCols()));
+				{	V0dagC[s].set(0,pStop-pStart, start,stop, V0[s] ^ Csup);
+					VdagC[s].set(0,pStop-pStart, start,stop, eSup->eVars.VdagC[qSup][pert.sp](pStart,pStop, 0,Csup.nCols()));
 				}
 				//Second loop over supercell-commensurate unit cell k-points:
 				for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)
