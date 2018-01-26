@@ -870,12 +870,18 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						HePhData += w.nData();
 					}
 				}
-			if(mpiWorld->isHead()) HePh.write_real(fp);
-			nrm2totSq += std::pow(nrm2(HePh), 2); 
-			nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+			if(realPartOnly)
+			{	if(mpiWorld->isHead()) HePh.write_real(fp);
+				nrm2totSq += std::pow(nrm2(HePh), 2); 
+				nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+			}
+			else { if(mpiWorld->isHead()) HePh.write(fp); }
 		}
 		if(mpiWorld->isHead()) fclose(fp);
-		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+		if(realPartOnly)
+			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+		else
+			logPrintf("done.\n");
 	}
 }
 
