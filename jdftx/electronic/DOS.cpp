@@ -102,6 +102,8 @@ const EnumStringMap<DOS::Weight::OrbitalDesc>& getOrbitalDescMap()
 		DOS::Weight::OrbitalDesc(2, 1, 0, SpinNone), "dxz",
 		DOS::Weight::OrbitalDesc(2, 2, 0, SpinNone), "dx2-y2",
 		DOS::Weight::OrbitalDesc(2,3, 0, SpinNone), "d",
+		DOS::Weight::OrbitalDesc(2,4, 0, SpinNone), "t2g",
+		DOS::Weight::OrbitalDesc(2,5, 0, SpinNone), "eg",
 		DOS::Weight::OrbitalDesc(3,-3, 0, SpinNone), "fy(3x2-y2)",
 		DOS::Weight::OrbitalDesc(3,-2, 0, SpinNone), "fxyz",
 		DOS::Weight::OrbitalDesc(3,-1, 0, SpinNone), "fyz2",
@@ -133,6 +135,10 @@ const EnumStringMap<DOS::Weight::OrbitalDesc>& getOrbitalDescMap()
 		DOS::Weight::OrbitalDesc(2, 2, 1, SpinZ), "dx2-y2Dn",
 		DOS::Weight::OrbitalDesc(2,3, 0, SpinZ), "dUp",
 		DOS::Weight::OrbitalDesc(2,3, 1, SpinZ), "dDn",
+		DOS::Weight::OrbitalDesc(2,4, 0, SpinZ), "t2gUp",
+		DOS::Weight::OrbitalDesc(2,4, 1, SpinZ), "t2gDn",
+		DOS::Weight::OrbitalDesc(2,5, 0, SpinZ), "egUp",
+		DOS::Weight::OrbitalDesc(2,5, 1, SpinZ), "egDn",
 		DOS::Weight::OrbitalDesc(3,-3, 0, SpinZ), "fy(3x2-y2)Up",
 		DOS::Weight::OrbitalDesc(3,-3, 1, SpinZ), "fy(3x2-y2)Dn",
 		DOS::Weight::OrbitalDesc(3,-2, 0, SpinZ), "fxyzUp",
@@ -414,6 +420,9 @@ void DOS::dump()
 					{	if(oDesc.spinType==SpinOrbit)
 							die("Only l>0 projections in relativistic pseudopotentials may use the j,mj specification.\n");
 					}
+					//Initialize to zero (eval has 1 by default):
+					for(int iBand=0; iBand<eInfo.nBands; iBand++)
+						eval.w(iWeight, iState, iBand) = 0.;
 					//Accumulate weights:
 					int sStart, sStop;
 					if(oDesc.spinType==SpinNone)
@@ -425,18 +434,28 @@ void DOS::dump()
 						sStop=oDesc.s+1;
 					}
 					for(int s=sStart; s<sStop; s++)
-					{	int mMin, mMax;
-						if(oDesc.m==l+1) //multi-orbital mode
-						{	mMin = -l;
-							mMax = +l;
+					{	std::vector<int> mArr; //set of m to include
+						if(oDesc.m==l+1) //all orbitals
+						{	int mMin = -l;
+							int mMax = +l;
 							if(e->iInfo.species[weight.specieIndex]->isRelativistic())
 								mMin -= (s ? -1 : +1);
+							for(int m=mMin; m<=mMax; m++)
+								mArr.push_back(m);
+						}
+						else if(l==2 && oDesc.m==l+2) //t2g set of d orbitals
+						{	mArr.push_back(-2); //dxy
+							mArr.push_back(-1); //dyz
+							mArr.push_back(+1); //dxz
+						}
+						else if(l==2 && oDesc.m==l+3) //eg set of d orbitals
+						{	mArr.push_back(0); //dz2
+							mArr.push_back(2); //dx2-y2
 						}
 						else //single orbital mode
-						{	mMin = oDesc.m;
-							mMax = oDesc.m;
+						{	mArr.push_back(oDesc.m);
 						}
-						for(int m=mMin; m<=mMax; m++)
+						for(int m: mArr)
 						{	int iCol = spOffset[weight.specieIndex] + e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(weight.atomIndex, oDesc.n, l, m, s);
 							for(int iBand=0; iBand<eInfo.nBands; iBand++)
 								eval.w(iWeight, iState, iBand) += (CdagOpsiRel.data()[CdagOpsiRel.index(iBand, iCol)]).norm();
