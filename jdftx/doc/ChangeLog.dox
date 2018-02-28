@@ -1,8 +1,8 @@
 /** \page ChangeLog Change log
 
-## Development version on git
+## 1.4.1 - 2018-02-28 ([Site archive](http://jdftx.org/1.4.1))
 
-+ Added newer versions of PBE and LDA GBRV pseudopotentials where evailable, and added PBEsol GBRV pseudopotentials for all elements
++ Added newer versions of PBE and LDA GBRV pseudopotentials where available, and added PBEsol GBRV pseudopotentials for all elements
 
 + Added links pointing to the latest version of each GBRV and SG15 pseudopotential (eg. GBRV/$ID_pbe.uspp and SG15/$ID_ONCV_PBE.upf)
 
@@ -12,7 +12,11 @@
 	- New syntax for [wannier-center](CommandWannierCenter.html) specification, with atomic orbitals selected by atom index rather than position
 	- Option spinMode in command [wannier](CommandWannier.html) to optionally select %Wannier function generation for specific spin channels
 	- Improved start-up time and memory requirement with ultrasoft pseudopotentials by transforming projections along with wavefunctions
-	- Clear error messages rather than stack trace for linearly-dependent trial orbitals
+	- Meaningful error messages rather than stack trace for linearly-dependent trial orbitals
+
++ Added t2g and eg orbital-set projection options to DOS
+
++ Added option to restrict fluid cavity with a z-directed slab, controlled by command \ref CommandPcmParams
 
 + Added normalization of atomic orbitals on radial grid to fix DFT+U for bad pseudopotentials (not a problem for GBRV, but previously an issue for some SG15 pseudopotentials)
 

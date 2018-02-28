@@ -10,7 +10,7 @@ set(CPACK_PACKAGE_DESCRIPTION "The playground for joint density functional theor
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolkit for rapid development of density-functional methods")
 set(CPACK_PACKAGE_VERSION_MAJOR "1")
 set(CPACK_PACKAGE_VERSION_MINOR "4")
-set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_VERSION_PATCH "1")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
 #Get revision information
