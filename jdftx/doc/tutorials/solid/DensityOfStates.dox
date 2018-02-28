@@ -30,7 +30,7 @@ First, we calculate the total density of states using:
 Starting from the total energy calculations of the previous two tutorials,
 all we needed to do is add the command \ref CommandDensityOfStates.
 Additionally, in order to get a few unoccupied states,
-we ask for more bands using \ref CommandElecNBands
+we ask for more bands using \ref CommandElecNbands
 and make sure the empty states are converged at
 the end of the calculation using \ref CommandConvergeEmptyStates.
 (Note that empty or unoccupied states that don't affect

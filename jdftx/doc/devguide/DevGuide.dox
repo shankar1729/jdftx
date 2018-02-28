@@ -53,7 +53,7 @@ subdirectories (shown in green dotted lines in the chart above):
   each component in turn contains an IdealGas and Fex to describe the fluid functional,
   while the components may interact with each other using mixing functionals in Fmix.
   The hierarchy of solvation models are implemented in LinearPCM \cite PCM-Kendra,
-  NonlinearPCM \cite NonlinearPCM and SaLSA \cite SaLSA, which are all abstracted by \cite PCM.
+  NonlinearPCM \cite NonlinearPCM and SaLSA \cite SaLSA, which are all abstracted by \cite PCM-SCCS.
 
 + **electronic**: implements Kohn-Sham electronic DFT in the plane-wave basis.
   ElecInfo and ElecVars contain electronic occupations, wavefunctions,

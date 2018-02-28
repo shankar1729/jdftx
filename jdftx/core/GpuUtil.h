@@ -49,7 +49,7 @@ extern void gpuErrorCheck();
 #endif //GPU_ENABLED
 
 
-//! A utility function to eliminate ugly #ifdef's when not required
+//! A utility function to eliminate ugly \#ifdef's when not required
 inline bool isGpuEnabled()
 {
 	#ifdef GPU_ENABLED

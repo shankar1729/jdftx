@@ -120,7 +120,7 @@ rather than just the suffix 'nbound', because we moved the file in our run scrip
 Visualizing these XSF files in VESTA, you shoud see distributions as shown at the top of this page.
 Note that the bound charge density is closer and larger next to the negatively charged 
 surface as compared to the positively charged one due to the charge-asymmetry of CANDLE,
-exactly as we saw before in the \ref SolvationIons tutorial.
+exactly as we saw before in the \ref SolvationIon tutorial.
 
 Finally, we will extract the charging curve of the Pt(111) surface:
 

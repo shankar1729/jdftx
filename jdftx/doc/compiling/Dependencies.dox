@@ -1,6 +1,6 @@
 /** \page Dependencies Dependencies
 
-Install the following packages, depending on your system type, using your package manager (as discussed in \ref CompilingPrereq):
+Install the following packages, depending on your system type, using your package manager (as discussed in \ref Prerequisites):
 
 <table>
 <tr><th> OS                        <th> Debian-based                    <th> Redhat-based             <th> Mac OS X<sup>a</sup> <th> Windows<sup>b</sup>
