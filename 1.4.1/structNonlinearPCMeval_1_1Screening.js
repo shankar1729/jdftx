@@ -1,0 +1,25 @@
+var structNonlinearPCMeval_1_1Screening =
+[
+    [ "Screening", "structNonlinearPCMeval_1_1Screening.html#afa6a34dee6ff7af6251c321fdad510b6", null ],
+    [ "compute", "structNonlinearPCMeval_1_1Screening.html#a39d23312f2c654b6f1e8aa27d293d360", null ],
+    [ "convertDerivative", "structNonlinearPCMeval_1_1Screening.html#abc55ed2f5f099de342ec95b00d14d191", null ],
+    [ "convertDerivative_calc", "structNonlinearPCMeval_1_1Screening.html#a5bb7f3cda2c66e556b2c08f939e41f2f", null ],
+    [ "convertDerivative_gpu", "structNonlinearPCMeval_1_1Screening.html#ae06b1b811108997a803bfb56700c005d", null ],
+    [ "fHS", "structNonlinearPCMeval_1_1Screening.html#a1f0f8c56b2446b1705b736c8c06527ca", null ],
+    [ "freeEnergy", "structNonlinearPCMeval_1_1Screening.html#a5d260463cc23b6a8a8bf494fc52955ee", null ],
+    [ "freeEnergy_calc", "structNonlinearPCMeval_1_1Screening.html#ad78b97cdeb716e1a6efde7a26260b493", null ],
+    [ "freeEnergy_gpu", "structNonlinearPCMeval_1_1Screening.html#a0a151dd5d23d8433021f572c28e5ef49", null ],
+    [ "neutralityConstraint", "structNonlinearPCMeval_1_1Screening.html#a6ffa96de39019494867606ee98f454fa", null ],
+    [ "phiToState", "structNonlinearPCMeval_1_1Screening.html#a539bc7cdcc635a61ed39f433f10c9c5d", null ],
+    [ "phiToState_calc", "structNonlinearPCMeval_1_1Screening.html#ad6a134ac695bfbc1341de22230632ae7", null ],
+    [ "phiToState_gpu", "structNonlinearPCMeval_1_1Screening.html#a6866d116326d970300f688b8710dfd23", null ],
+    [ "rootFunc", "structNonlinearPCMeval_1_1Screening.html#ad40a8a74b03b0db8bc0edb9716070efa", null ],
+    [ "x_from_V", "structNonlinearPCMeval_1_1Screening.html#a26dd5ac317d0a60446f81839580d1252", null ],
+    [ "linear", "structNonlinearPCMeval_1_1Screening.html#abf52f427c6b4cc2f3754b5f0cee4dd1e", null ],
+    [ "NT", "structNonlinearPCMeval_1_1Screening.html#a857b42ce83bf3cfc2ae95c3cc04e3dd6", null ],
+    [ "NZ", "structNonlinearPCMeval_1_1Screening.html#af1158f075cebfdbfd3b7c11fb443dd67", null ],
+    [ "x0", "structNonlinearPCMeval_1_1Screening.html#afc48c54472d9d2cbe4cc91bfbb2ae6d1", null ],
+    [ "x0minus", "structNonlinearPCMeval_1_1Screening.html#a87eaf7ae46ecf6f629e6b90f9bd30870", null ],
+    [ "x0plus", "structNonlinearPCMeval_1_1Screening.html#a2d71fead891fc770bf6b0fe2e34ee053", null ],
+    [ "ZbyT", "structNonlinearPCMeval_1_1Screening.html#ae999514b18b734978a1d5f9e1ff1266e", null ]
+];
