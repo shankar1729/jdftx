@@ -57,7 +57,7 @@ struct CommandPhonon : public Command
 			"   the corresponding value in kpoint-folding. The k-point mesh must\n"
 			"   be uniform and centered on Gamma.\n"
 			"\n+ dr <dr>\n\n"
-			"   Amplitude (in bohrs) of frozen phonon perturbation (default 0.01).\n"
+			"   Amplitude (in bohrs) of frozen phonon perturbation (default 0.1).\n"
 			"\n+ iPerturbation <iPert>\n\n"
 			"   Only run supercell calculation for perturbation number <iPert> (1-based).\n"
 			"   Use the dry run to list out the number of perturbations, and the nStates for each\n"
