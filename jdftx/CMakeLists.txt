@@ -243,7 +243,7 @@ if(EnableCUDA)
 	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable")
 	message(STATUS "CUDA_NVCC_FLAGS = ${CUDA_NVCC_FLAGS}")
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
@@ -266,11 +266,6 @@ endif()
 option(CudaAwareMPI "Whether MPI library supports directly accessing CUDA pointer" OFF)
 if(CudaAwareMPI)
 	add_definitions("-DCUDA_AWARE_MPI")
-endif()
-
-option(CudaUnifiedMemory "Use CUDA Unified Memory instead of managing separate CPU / GPU mmeory spaces" OFF)
-if(CudaUnifiedMemory)
-	add_definitions("-DCUDA_UNIFIED_MEMORY")
 endif()
 
 #------------- Macro to add an executable pair (regular and GPU) -------------

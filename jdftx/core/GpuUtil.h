@@ -33,9 +33,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file GpuUtil.h
 
-extern int gpuDeviceID; //!< ID of GPU selected on current process (declared in GppuUtil.cpp and set by gpuInit())
-extern int gpuSupportsConcurrentManagedAccess; //!< Whether GPU supports concurrent managed access (declared in GppuUtil.cpp and set by gpuInit())
-
 //! Must be called before any GPU use (preferably from main(), see #isGpuMine)
 //! If mpiHostGpu (group of GPU processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory
 //! nGPUs returns the number of physical GPUs used (fraction if a GPU is shared with other processes)

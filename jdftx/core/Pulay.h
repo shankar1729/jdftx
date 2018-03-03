@@ -211,7 +211,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		}
 		cOverlap.set(ndim, ndim, 0);
 		matrix cOverlap_inv = inv(cOverlap);
-			
+		
 		//Update variable:
 		Variable v;
 		for(size_t j=0; j<ndim; j++)
