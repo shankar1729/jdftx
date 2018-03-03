@@ -26,6 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <algorithm>
 
+int gpuDeviceID; //ID of currently selected GPU
+int gpuSupportsConcurrentManagedAccess; //!< Whether GPU supports concurrent managed access
 cudaDeviceProp cudaDevProps; //cached properties of currently running device
 
 pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns gpu
@@ -72,8 +74,10 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	
 	//Print selected devices:
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);
+	gpuDeviceID = selectedDevice;
 	cudaSetDevice(selectedDevice);
 	cudaGetDeviceProperties(&cudaDevProps, selectedDevice);
+	cudaDeviceGetAttribute(&gpuSupportsConcurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, selectedDevice);
 	return true;
 }
 

@@ -238,7 +238,13 @@ namespace MemPool
 	{	static void* alloc(size_t size)
 		{	assert(isGpuMine());
 			void* ptr;
+			#ifdef CUDA_UNIFIED_MEMORY
+			cudaError_t ret = cudaMallocManaged(&ptr, size);
+			if(!gpuSupportsConcurrentManagedAccess) 
+				cudaDeviceSynchronize();
+			#else
 			cudaError_t ret = cudaMalloc(&ptr, size);
+			#endif
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr)
@@ -250,7 +256,9 @@ namespace MemPool
 	#endif
 	
 	//Pool accessor functions (to avoid file-level static variables):
+	#if !defined(GPU_ENABLED) || !defined(CUDA_UNIFIED_MEMORY) //expose CPU() without GPU_ENABLED or if no CUDA_UNIFIED_MEMORY
 	MemPool<MemSpaceCPU>& CPU() { static MemPool<MemSpaceCPU> pool; return pool; }
+	#endif
 	#ifdef GPU_ENABLED
 	MemPool<MemSpaceGPU>& GPU() { static MemPool<MemSpaceGPU> pool; return pool; }
 	#endif
@@ -266,15 +274,20 @@ void ManagedMemoryBase::reportUsage()
 //Free memory
 void ManagedMemoryBase::memFree()
 {	if(!nBytes) return; //nothing to free
-	if(onGpu)
-	{
-		#ifdef GPU_ENABLED
+
+	#ifdef GPU_ENABLED
+		#ifdef CUDA_UNIFIED_MEMORY
 		MemPool::GPU().free(c);
 		#else
-		assert(!"onGpu=true without GPU_ENABLED"); //Should never get here!
+		if(onGpu)
+			MemPool::GPU().free(c);
+		else
+			MemPool::CPU().free(c);
 		#endif
-	}
-	else MemPool::CPU().free(c);
+	#else
+		if(onGpu) assert(!"onGpu=true without GPU_ENABLED"); //Should never get here!
+		MemPool::CPU().free(c);
+	#endif
 	MemUsageReport::manager(MemUsageReport::Remove, category, nBytes);
 	c = 0;
 	nBytes = 0;
@@ -288,15 +301,19 @@ void ManagedMemoryBase::memInit(string category, size_t nBytes, bool onGpu)
 	this->category = category;
 	this->nBytes = nBytes;
 	this->onGpu = onGpu;
-	if(onGpu)
-	{
-		#ifdef GPU_ENABLED
+	#ifdef GPU_ENABLED
+		#ifdef CUDA_UNIFIED_MEMORY
 		c = MemPool::GPU().alloc(nBytes);
 		#else
-		assert(!"onGpu=true without GPU_ENABLED");
+		if(onGpu)
+			c = MemPool::GPU().alloc(nBytes);
+		else
+			c = MemPool::CPU().alloc(nBytes);
 		#endif
-	}
-	else c = MemPool::CPU().alloc(nBytes);
+	#else
+		if(onGpu) assert(!"onGpu=true without GPU_ENABLED");
+		c = MemPool::CPU().alloc(nBytes);
+	#endif
 	MemUsageReport::manager(MemUsageReport::Add, category, nBytes);
 }
 
@@ -310,28 +327,42 @@ void ManagedMemoryBase::memMove(ManagedMemoryBase&& mOther)
 
 //Move data to CPU
 void ManagedMemoryBase::toCpu() const
-{	if(!onGpu || !c) return; //already on cpu, or no data
+{
 #ifdef GPU_ENABLED
 	assert(isGpuMine());
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	#ifdef CUDA_UNIFIED_MEMORY
+	//No need to copy data, single memory space managed by CUDA
+	if(!gpuSupportsConcurrentManagedAccess)
+		cudaDeviceSynchronize(); 
+	#else
+	if(!onGpu || !c) return; //already on cpu, or no data
 	void* cCpu = MemPool::CPU().alloc(nBytes);
 	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
 	MemPool::GPU().free(me.c); //Free GPU mem
 	me.c = cCpu; //Make c a cpu pointer
+	#endif
 	me.onGpu = false;
 #endif
 }
 
 // Move data to GPU
 void ManagedMemoryBase::toGpu() const
-{	if(onGpu || !c) return; //already on gpu, or no data
+{
 #ifdef GPU_ENABLED
 	assert(isGpuMine());
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	#ifdef CUDA_UNIFIED_MEMORY
+	//No need to copy data, single memory space managed by CUDA
+	if(gpuSupportsConcurrentManagedAccess)
+		cudaMemPrefetchAsync(c, nBytes, gpuDeviceID);
+	#else
+	if(onGpu || !c) return; //already on gpu, or no data
 	void* cGpu = MemPool::GPU().alloc(nBytes);
 	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
 	MemPool::CPU().free(me.c); //Free CPU mem
 	me.c = cGpu; //Make c a gpu pointer
+	#endif
 	me.onGpu = true;
 #else
 	assert(!"toGpu() called without GPU_ENABLED");

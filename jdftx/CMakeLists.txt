@@ -268,6 +268,11 @@ if(CudaAwareMPI)
 	add_definitions("-DCUDA_AWARE_MPI")
 endif()
 
+option(CudaUnifiedMemory "Use CUDA Unified Memory instead of managing separate CPU / GPU mmeory spaces" OFF)
+if(CudaUnifiedMemory)
+	add_definitions("-DCUDA_UNIFIED_MEMORY")
+endif()
+
 #------------- Macro to add an executable pair (regular and GPU) -------------
 
 macro(add_JDFTx_executable execName execSources)

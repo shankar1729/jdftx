@@ -211,12 +211,11 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		}
 		cOverlap.set(ndim, ndim, 0);
 		matrix cOverlap_inv = inv(cOverlap);
-		
+			
 		//Update variable:
-		complex* coefs = cOverlap_inv.data();
 		Variable v;
 		for(size_t j=0; j<ndim; j++)
-		{	double alpha = coefs[cOverlap_inv.index(j, ndim)].real();
+		{	double alpha = cOverlap_inv.data()[cOverlap_inv.index(j, ndim)].real();
 			axpy(alpha, pastVariables[j], v);
 			axpy(alpha, precondition(pastResiduals[j]), v);
 		}
