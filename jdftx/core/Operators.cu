@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <core/LoopMacros.h>
 #include <core/Operators_internal.h>
-
+#include <cublas_v2.h>
 
 __global__
 void RealG_kernel(int zBlock, const vector3<int> S, const complex* vFull, complex* vHalf, double scaleFac)
@@ -344,7 +344,34 @@ void tensorDivergence_gpu(const vector3<int> S, const matrix3<> G, tensor3<const
 }
 
 
-//-------- GPU implementations of sub-matrix set/get for matrix.cpp ---------
+//-------- GPU implementations for matrix.cpp ---------
+
+__global__
+void relativeHermiticityError_kernel(int N, const complex* data, double* buf)
+{	int i = kernelIndex1D();
+	if(i<N)
+	{	double errNum = 0., errDen = 0.;
+		for(int j=0; j<N; j++)
+		{	int index = N*i + j;
+			int indexT = N*j + i;
+			errNum += norm(data[index]-data[indexT].conj());
+			errDen += norm(data[index]);
+		}
+		buf[i] = errNum;
+		buf[i+N] = errDen;
+	}
+}
+double relativeHermiticityError_gpu(int N, const complex* data)
+{	GpuLaunchConfig1D glc(relativeHermiticityError_kernel, N);
+	double* buf; cudaMalloc(&buf, sizeof(double)*(2*N)); //buffer to store results per row
+	relativeHermiticityError_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, data, buf);
+	gpuErrorCheck();
+	double errNum = 0., errDen = 0.;
+	cublasDasum(cublasHandle, N, buf, 1, &errNum);
+	cublasDasum(cublasHandle, N, buf+N, 1, &errDen);
+	cudaFree(buf);
+	return sqrt(errNum / (errDen*N));
+}
 
 __global__
 void matrixSubGet_kernel(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out)

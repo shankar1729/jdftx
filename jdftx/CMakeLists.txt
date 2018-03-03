@@ -233,22 +233,35 @@ if(EnableCUDA)
 	find_package(CUDA REQUIRED)
 	set(CUDA_ARCH "compute_35" CACHE STRING "CUDA virtual architecture to compile for")
 	set(CUDA_CODE "sm_35" CACHE STRING "CUDA gpu feature set version (sm_*) to compile for")
-
+	set(CUDA_AUX_LIBRARIES ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
+	
 	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
 	foreach(lib IN LISTS CUDA_LIBRARIES)
 		if("${lib}" MATCHES "libcuda.so")
 			list(REMOVE_ITEM CUDA_LIBRARIES "${lib}")
 		endif("${lib}" MATCHES "libcuda.so")
 	endforeach(lib)
-	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
+	#Check for cuSolver:
+	if(CUDA_cuSolver_LIBRARY)
+		set(CUSOLVER_LIBRARY ${CUDA_cuSolver_LIBRARY})
+	else()
+		find_library(CUSOLVER_LIBRARY NAMES cusolver PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+	endif()
+	if(CUSOLVER_LIBRARY)
+		find_package(OpenMP REQUIRED)
+		set(CUDA_AUX_LIBRARIES ${CUDA_AUX_LIBRARIES} ${CUSOLVER_LIBRARY} ${OpenMP_CXX_FLAGS})
+		add_definitions("-DCUSOLVER_ENABLED")
+	endif()
+	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES};${CUDA_AUX_LIBRARIES}")
+	
 	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable")
 	message(STATUS "CUDA_NVCC_FLAGS = ${CUDA_NVCC_FLAGS}")
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})
-	target_link_libraries(gpukernels ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
+	target_link_libraries(gpukernels ${CUDA_AUX_LIBRARIES})
 
 	#Library with all the functionality:
 	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)

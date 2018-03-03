@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <algorithm>
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 #include <driver_types.h>
 #include <vector_types.h>
 #include <core/vector3.h>
@@ -34,6 +35,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @brief Common utility functions/macros for the gpu kernels and launchers in the .cu files
 
 extern cudaDeviceProp cudaDevProps; //!< cached properties of currently running device (defined in GpuUtil.cpp)
+extern cublasHandle_t cublasHandle; //!< global handle to cublas (defined in GpuUtil.cpp)
 
 //! Base-class for launch configuration for gpu kernels
 struct GpuLaunchConfig

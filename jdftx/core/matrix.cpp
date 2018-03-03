@@ -26,6 +26,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <algorithm>
 
+#if defined(GPU_ENABLED) and defined(CUSOLVER_ENABLED)
+#include <cusolverDn.h>
+#endif
+
 //---------------------- class diagMatrix --------------------------
 
 bool diagMatrix::isScalar(double absTol, double relTol) const
@@ -300,6 +304,21 @@ void matrix::print_real(FILE* fp, const char* fmt) const
 
 //------------------------- Eigensystem -----------------------------------
 
+#ifdef GPU_ENABLED
+double relativeHermiticityError_gpu(int N, const complex* data); //implemented in Operators.cu
+#endif
+double relativeHermiticityError(int N, const complex* data)
+{	double errNum=0.0, errDen=1e-20; //avoid irrelevant error for zero matrix
+	for(int i=0; i<N; i++)
+		for(int j=0; j<N; j++)
+		{	int index = N*i + j;
+			int indexT = N*j + i;
+			errNum += norm(data[index]-data[indexT].conj());
+			errDen += norm(data[index]);
+		}
+	return sqrt(errNum / (errDen*N));
+}
+
 extern "C"
 {	void zheevr_(char* JOBZ, char* RANGE, char* UPLO, int * N, complex* A, int * LDA,
 		double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
@@ -315,14 +334,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	assert(N > 0);
 	
 	//Check hermiticity
-	const complex* thisData = data();
-	double errNum=0.0, errDen=1e-20; //avoid irrelevant error for zero matrix
-	for(int i=0; i<N; i++)
-		for(int j=0; j<N; j++)
-		{	errNum += norm(thisData[index(i,j)]-thisData[index(j,i)].conj());
-			errDen += norm(thisData[index(i,j)]);
-		}
-	double hermErr = sqrt(errNum / (errDen*N));
+	const double hermErr = callPref(relativeHermiticityError)(N, dataPref());
 	if(hermErr > 1e-10)
 	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in diagonalize\n", hermErr);
 		stackTraceExit(1);
@@ -591,14 +603,7 @@ matrix invApply(const matrix& A, const matrix& b)
 	assert(Nrhs > 0);
 	
 	//Check hermiticity
-	const complex* Adata = A.data();
-	double errNum=0.0, errDen=0.0;
-	for(int i=0; i<N; i++)
-		for(int j=0; j<N; j++)
-		{	errNum += norm(Adata[A.index(i,j)]-Adata[A.index(j,i)].conj());
-			errDen += norm(Adata[A.index(i,j)]);
-		}
-	double hermErr = sqrt(errNum / (errDen*N));
+	const double hermErr = callPref(relativeHermiticityError)(N, A.dataPref());
 	if(hermErr > 1e-10)
 	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in invApply\n", hermErr);
 		stackTraceExit(1);

@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdio>
 #include <cuda_runtime.h>
-#include <cublas.h>
+#include <cublas_v2.h>
 #include <cufft.h>
 #include <vector>
 
@@ -32,6 +32,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 
 //! @file GpuUtil.h
+
+extern cublasHandle_t cublasHandle; //!< global handle to cublas (defined in GpuUtil.cpp)
 
 //! Must be called before any GPU use (preferably from main(), see #isGpuMine)
 //! If mpiHostGpu (group of GPU processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory
