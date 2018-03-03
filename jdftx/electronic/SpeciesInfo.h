@@ -228,10 +228,10 @@ private:
 	friend struct CommandSetAtomicRadius;
 	friend struct CommandTauCore;
 	friend struct CommandWavefunction;
+	friend struct ElectronScattering;
+	friend struct FluidSolverParams;
 	friend class ColumnBundleTransform;
 	friend class Dump;
-	friend class ElectronScattering;
-	friend class FluidSolverParams;
 	friend class IonicMinimizer;
 	friend class IonInfo;
 	friend class PCM;
