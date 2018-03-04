@@ -383,19 +383,34 @@ matrix invApply(const matrix& A, const matrix& b)
 matrix LU(const matrix& A)
 {	static StopWatch watch("LU(matrix)");
 	watch.start();
-	
 	// Perform LU decomposition
 	int N = A.nRows();
 	assert(N > 0);
 	assert(N == A.nCols());
 	matrix LU(A); //destructible copy
 	int ldA = A.nRows(); //leading dimension
+#ifdef USE_CUSOLVER
+	if(N > NcutCuSolver)
+	{	//Get buffer size and allocate:
+		int lwork = 0;
+		cusolverDnZgetrf_bufferSize(cusolverHandle, N, N, (double2*)LU.dataPref(), ldA, &lwork);
+		ManagedArray<double2> work; work.init(lwork, true);
+		ManagedArray<int> iPivot; iPivot.init(N, true); //pivot info
+		ManagedArray<int> infoArr; infoArr.init(1, true);
+		//Main call:
+		cusolverDnZgetrf(cusolverHandle, N, N, (double2*)LU.dataPref(), ldA, work.dataPref(), iPivot.dataPref(), infoArr.dataPref());
+		gpuErrorCheck();
+		int info = infoArr.data()[0];
+		if(info<0) { logPrintf("Argument# %d to CuSolver LU decomposition routine Zgetrf is invalid.\n", -info); stackTraceExit(1); }
+		watch.stop();
+		return LU;
+	}
+#endif
 	std::vector<int> iPivot(N); //pivot info
 	int info; //error code in return
 	//LU decomposition (in place):
 	zgetrf_(&N, &N, LU.data(), &ldA, iPivot.data(), &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
-
 	watch.stop();
 	return LU;
 }
