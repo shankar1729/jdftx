@@ -92,7 +92,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 			return;
 		}
 		if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevj is invalid.\n", -info); stackTraceExit(1); }
-		if(info>0) logPrintf("WARNING: %d elements failed to converge in cusolverDn eigenvalue routine Zheevj; falling backto CPU LAPACK.\n", info);
+		if(info>0) logPrintf("WARNING: %d elements failed to converge in cusolverDn eigenvalue routine Zheevj; falling back to CPU LAPACK.\n", info);
 	}
 #endif
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
@@ -121,11 +121,14 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 void matrix::diagonalize(matrix& levecs, std::vector<complex>& eigs, matrix& revecs) const
 {	static StopWatch watch("matrix::diagonalizeNH");
 	watch.start();
+	int N = nRows();
+	assert(N > 0);
+	assert(nCols()==N);
+#ifdef USE_CUSOLVER
+	//No general-matrix eigenvalue solver in CuSolver yet (as of 9.1)
+#endif
 	//Prepare inputs and outputs:
 	matrix A = *this; //destructible copy
-	int N = A.nRows();
-	assert(N > 0);
-	assert(A.nCols()==N);
 	eigs.resize(N);
 	levecs.init(N, N);
 	revecs.init(N, N);
@@ -145,12 +148,43 @@ void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 {	static StopWatch watch("matrix::svd");
 	watch.start();
 	//Initialize input and outputs:
+	int M = nRows();
+	int N = nCols();
 	matrix A = *this; //destructible copy
-	int M = A.nRows();
-	int N = A.nCols();
-	U.init(M,M);
+	U.init(M,M, isGpuEnabled());
 	Vdag.init(N,N);
 	S.resize(std::min(M,N));
+#ifdef USE_CUSOLVER
+	if(M>=N && M>NcutCuSolver)
+	{	//Determine buffer size and allocate buffers:
+		ManagedArray<double> Smanaged; Smanaged.init(S.size(), true);
+		matrix V(N,N, true);
+		cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
+		int lwork = 0;
+		int econ = 0; //return full matrices
+		gesvdjInfo_t params; cusolverDnCreateGesvdjInfo(&params);
+		cusolverDnZgesvdj_bufferSize(cusolverHandle, jobz, econ, M, N, (double2*)A.dataPref(), M,
+			Smanaged.dataPref(), (double2*)U.dataPref(), M, (double2*)V.dataPref(), N,
+			&lwork, params);
+		ManagedArray<double2> work; work.init(lwork, true);
+		ManagedArray<int> infoArr; infoArr.init(1, true);
+		//Main call:
+		cusolverDnZgesvdj(cusolverHandle, jobz, econ, M, N, (double2*)A.dataPref(), M,
+			Smanaged.dataPref(), (double2*)U.dataPref(), M, (double2*)V.dataPref(), N,
+			work.dataPref(), lwork, infoArr.dataPref(), params);
+		cusolverDnDestroyGesvdjInfo(params);
+		gpuErrorCheck();
+		int info = infoArr.data()[0];
+		if(!info) //Success
+		{	eblas_copy(S.data(), Smanaged.data(), S.size());
+			Vdag = dagger(V);
+			watch.stop();
+			return;
+		}
+		if(info<0) { logPrintf("Argument# %d to CuSolver SVD routine Zgesvd is invalid.\n", -info); stackTraceExit(1); }
+		if(info>0) logPrintf("WARNING: %d elements did not converge in CuSolver SVD routine Zgesvd; falling back to CPU LAPACK.\n", info);
+	}
+#endif
 	//Initialize temporaries:
 	char jobz = 'A'; //full SVD (return complete unitary matrices)
 	int lwork = 2*(M*N + M + N);
