@@ -28,6 +28,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #if defined(GPU_ENABLED) and defined(CUSOLVER_ENABLED)
 	#define USE_CUSOLVER
+	#define NcutCuSolver 32  //minimum matrix dimension for which to use CuSolver (CPU LAPACK faster for small matrices)
 	#include <cusolverDn.h>
 #endif
 
@@ -342,25 +343,32 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 	}
 	
 #ifdef USE_CUSOLVER
-	cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
-	cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
-	ManagedArray<double> eigsManaged; eigsManaged.init(N, true);
-	evecs = *this;
-	//Determine buffer size:
-	int lwork = 0;
-	cusolverDnZheevd_bufferSize(cusolverHandle, jobz, uplo, N, (const double2*)evecs.dataPref(), N, eigsManaged.dataPref(), &lwork);
-	//Main call:
-	ManagedArray<double2> work; work.init(lwork, true);
-	ManagedArray<int> infoArr; infoArr.init(1, true);
-	cusolverDnZheevd(cusolverHandle, jobz, uplo, N, (double2*)evecs.dataPref(), N, eigsManaged.dataPref(), work.dataPref(), lwork, infoArr.dataPref());
-	gpuErrorCheck();
-	int info = infoArr.data()[0];
-	if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevd is invalid.\n", -info); stackTraceExit(1); }
-	if(info>0) { logPrintf("%d elements failed to converge in cusolverDn eigenvalue routine Zheevd.\n", info); stackTraceExit(1); }
-	//Store results:
-	eigs.resize(N);
-	eblas_copy(eigs.data(), eigsManaged.data(), N); //eigenvectores generated in place in evecs above
-#else
+	if(N >= NcutCuSolver)
+	{	cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
+		cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+		ManagedArray<double> eigsManaged; eigsManaged.init(N, true);
+		evecs = *this;
+		//Determine buffer size:
+		int lwork = 0;
+		syevjInfo_t params; cusolverDnCreateSyevjInfo(&params);
+		cusolverDnZheevj_bufferSize(cusolverHandle, jobz, uplo, N, (const double2*)evecs.dataPref(), N, eigsManaged.dataPref(), &lwork, params);
+		//Main call:
+		ManagedArray<double2> work; work.init(lwork, true);
+		ManagedArray<int> infoArr; infoArr.init(1, true);
+		cusolverDnZheevj(cusolverHandle, jobz, uplo, N, (double2*)evecs.dataPref(), N, eigsManaged.dataPref(), work.dataPref(), lwork, infoArr.dataPref(), params);
+		cusolverDnDestroySyevjInfo(params);
+		gpuErrorCheck();
+		int info = infoArr.data()[0];
+		if(!info) //Success
+		{	eigs.resize(N);
+			eblas_copy(eigs.data(), eigsManaged.data(), N); //eigenvectors generated in place in evecs above
+			watch.stop();
+			return;
+		}
+		if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevj is invalid.\n", -info); stackTraceExit(1); }
+		if(info>0) logPrintf("WARNING: %d elements failed to converge in cusolverDn eigenvalue routine Zheevj; falling backto CPU LAPACK.\n", info);
+	}
+#endif
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
 	char range = 'A'; //compute all eigenvalues
 	char uplo = 'U'; //use upper-triangular part
@@ -381,7 +389,6 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		rwork.data(), &lrwork, iwork.data(), &liwork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); stackTraceExit(1); }
-#endif
 	watch.stop();
 }
 
@@ -874,5 +881,3 @@ complex matrix::getElement(vector3<int> index, GridInfo& gInfo)
 	callPref(eblas_copy)(result.dataPref(), dataPref()+gInfo.fullRindex(index), 1);
 	return trace(result).real(); //this takes care of GPU->CPU copy
 }
-
-
