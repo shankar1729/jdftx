@@ -36,6 +36,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 extern cudaDeviceProp cudaDevProps; //!< cached properties of currently running device (defined in GpuUtil.cpp)
 extern cublasHandle_t cublasHandle; //!< global handle to cublas (defined in GpuUtil.cpp)
+#ifdef CUSOLVER_ENABLED
+#include <cusolverDn.h>
+extern cusolverDnHandle_t cusolverHandle;  //!< global handle to cusolverDn (defined in GpuUtil.cpp)
+#endif
 
 //! Base-class for launch configuration for gpu kernels
 struct GpuLaunchConfig

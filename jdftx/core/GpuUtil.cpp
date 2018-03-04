@@ -28,6 +28,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 cudaDeviceProp cudaDevProps; //cached properties of currently running device
 cublasHandle_t cublasHandle;
+#ifdef CUSOLVER_ENABLED
+cusolverDnHandle_t cusolverHandle;
+#endif
 
 pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns gpu
 //NOTE: At the time of writing, c++0x threads implemented in g++, but not thread-local storage
@@ -76,6 +79,9 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	cudaSetDevice(selectedDevice);
 	cudaGetDeviceProperties(&cudaDevProps, selectedDevice);
 	cublasCreate(&cublasHandle);
+	#ifdef CUSOLVER_ENABLED
+	cusolverDnCreate(&cusolverHandle);
+	#endif
 	return true;
 }
 
@@ -91,6 +97,5 @@ void gpuErrorCheck()
 		stackTraceExit(1);
 	}
 }
-
 
 #endif //GPU_ENABLED

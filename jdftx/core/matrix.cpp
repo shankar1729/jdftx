@@ -27,7 +27,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 
 #if defined(GPU_ENABLED) and defined(CUSOLVER_ENABLED)
-#include <cusolverDn.h>
+	#define USE_CUSOLVER
+	#include <cusolverDn.h>
 #endif
 
 //---------------------- class diagMatrix --------------------------
@@ -340,6 +341,26 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		stackTraceExit(1);
 	}
 	
+#ifdef USE_CUSOLVER
+	cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
+	cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+	ManagedArray<double> eigsManaged; eigsManaged.init(N, true);
+	evecs = *this;
+	//Determine buffer size:
+	int lwork = 0;
+	cusolverDnZheevd_bufferSize(cusolverHandle, jobz, uplo, N, (const double2*)evecs.dataPref(), N, eigsManaged.dataPref(), &lwork);
+	//Main call:
+	ManagedArray<double2> work; work.init(lwork, true);
+	ManagedArray<int> infoArr; infoArr.init(1, true);
+	cusolverDnZheevd(cusolverHandle, jobz, uplo, N, (double2*)evecs.dataPref(), N, eigsManaged.dataPref(), work.dataPref(), lwork, infoArr.dataPref());
+	gpuErrorCheck();
+	int info = infoArr.data()[0];
+	if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevd is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("%d elements failed to converge in cusolverDn eigenvalue routine Zheevd.\n", info); stackTraceExit(1); }
+	//Store results:
+	eigs.resize(N);
+	eblas_copy(eigs.data(), eigsManaged.data(), N); //eigenvectores generated in place in evecs above
+#else
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
 	char range = 'A'; //compute all eigenvalues
 	char uplo = 'U'; //use upper-triangular part
@@ -360,6 +381,7 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		rwork.data(), &lrwork, iwork.data(), &liwork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK eigenvalue routine ZHEEVR is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("Error code %d in LAPACK eigenvalue routine ZHEEVR.\n", info); stackTraceExit(1); }
+#endif
 	watch.stop();
 }
 
