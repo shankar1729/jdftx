@@ -316,32 +316,66 @@ matrix cis_grad(const matrix& gradIn, const matrix& Aevecs, const diagMatrix& Ae
 
 //--------- LU, linear solve and inverse ----------
 
-matrix inv(const matrix& A)
-{	static StopWatch watch("inv(matrix)");
-	watch.start();
-	int N = A.nRows();
+//Return LU decomposition if calcInv = false and inverse if calcInv = true
+matrix invOrLU(const matrix& A, bool calcInv)
+{	int N = A.nRows();
 	assert(N > 0);
 	assert(N == A.nCols());
+	matrix LU(A); //destructible copy
 #ifdef USE_CUSOLVER
 	if(N > NcutCuSolver)
-		return invApply(A, eye(N)); //use Cholesky + solver since no direct inversion routine
+	{	//Get buffer size and allocate for LU decomposition:
+		int lwork = 0;
+		cusolverDnZgetrf_bufferSize(cusolverHandle, N, N, (double2*)LU.dataPref(), N, &lwork);
+		ManagedArray<double2> work; work.init(lwork, true);
+		ManagedArray<int> iPivot; iPivot.init(N, true); //pivot info
+		ManagedArray<int> infoArr; infoArr.init(1, true);
+		//Main call:
+		cusolverDnZgetrf(cusolverHandle, N, N, (double2*)LU.dataPref(), N, work.dataPref(), iPivot.dataPref(), infoArr.dataPref());
+		gpuErrorCheck();
+		int info = infoArr.data()[0];
+		if(info<0) { logPrintf("Argument# %d to CuSolver LU decomposition routine Zgetrf is invalid.\n", -info); stackTraceExit(1); }
+		if(!calcInv) return LU; //rest only needed to calc inv() from LU
+		if(info>0) { logPrintf("CuSolver LU decomposition routine Zgetrf found input matrix to be singular at the %d'th step.\n", info); stackTraceExit(1); }
+		//Calculate inverse:
+		matrix result(eye(N)); //will contain inv(A) on output
+		cusolverDnZgetrs(cusolverHandle, CUBLAS_OP_N, N, N, (double2*)LU.dataPref(), N,
+           iPivot.dataPref(), (double2*)result.dataPref(), N, infoArr.dataPref());
+		info = infoArr.data()[0];
+		if(info<0) { logPrintf("Argument# %d to CuSolver linear solve routine Zgetrs is invalid.\n", -info); stackTraceExit(1); }
+		return result;
+	}
 #endif
-	matrix invA(A); //destructible copy
-	int ldA = A.nRows(); //leading dimension
 	std::vector<int> iPivot(N); //pivot info
 	int info; //error code in return
 	//LU decomposition (in place):
-	zgetrf_(&N, &N, invA.data(), &ldA, iPivot.data(), &info);
+	zgetrf_(&N, &N, LU.data(), &N, iPivot.data(), &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
+	if(!calcInv) return LU; //rest only needed to calc inv() from LU
 	if(info>0) { logPrintf("LAPACK LU decomposition routine ZGETRF found input matrix to be singular at the %d'th step.\n", info); stackTraceExit(1); }
 	//Compute inverse in place:
 	int lWork = (64+1)*N;
 	std::vector<complex> work(lWork);
-	zgetri_(&N, invA.data(), &ldA, iPivot.data(), work.data(), &lWork, &info);
+	zgetri_(&N, LU.data(), &N, iPivot.data(), work.data(), &lWork, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK matrix inversion routine ZGETRI is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("LAPACK matrix inversion routine ZGETRI found input matrix to be singular at the %d'th step.\n", info); stackTraceExit(1); }
+	return LU;
+}
+
+matrix LU(const matrix& A)
+{	static StopWatch watch("LU(matrix)");
+	watch.start();
+	matrix result = invOrLU(A, false);
 	watch.stop();
-	return invA;
+	return result;
+}
+
+matrix inv(const matrix& A)
+{	static StopWatch watch("inv(matrix)");
+	watch.start();
+	matrix result = invOrLU(A, true);
+	watch.stop();
+	return result;
 }
 
 diagMatrix inv(const diagMatrix& A)
@@ -401,38 +435,4 @@ matrix invApply(const matrix& A, const matrix& b)
 	if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in LAPACK linear solve routine ZPOSV.\n", info); stackTraceExit(1); }
 	watch.stop();
 	return x;
-}
-
-matrix LU(const matrix& A)
-{	static StopWatch watch("LU(matrix)");
-	watch.start();
-	// Perform LU decomposition
-	int N = A.nRows();
-	assert(N > 0);
-	assert(N == A.nCols());
-	matrix LU(A); //destructible copy
-#ifdef USE_CUSOLVER
-	if(N > NcutCuSolver)
-	{	//Get buffer size and allocate:
-		int lwork = 0;
-		cusolverDnZgetrf_bufferSize(cusolverHandle, N, N, (double2*)LU.dataPref(), N, &lwork);
-		ManagedArray<double2> work; work.init(lwork, true);
-		ManagedArray<int> iPivot; iPivot.init(N, true); //pivot info
-		ManagedArray<int> infoArr; infoArr.init(1, true);
-		//Main call:
-		cusolverDnZgetrf(cusolverHandle, N, N, (double2*)LU.dataPref(), N, work.dataPref(), iPivot.dataPref(), infoArr.dataPref());
-		gpuErrorCheck();
-		int info = infoArr.data()[0];
-		if(info<0) { logPrintf("Argument# %d to CuSolver LU decomposition routine Zgetrf is invalid.\n", -info); stackTraceExit(1); }
-		watch.stop();
-		return LU;
-	}
-#endif
-	std::vector<int> iPivot(N); //pivot info
-	int info; //error code in return
-	//LU decomposition (in place):
-	zgetrf_(&N, &N, LU.data(), &N, iPivot.data(), &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
-	watch.stop();
-	return LU;
 }
