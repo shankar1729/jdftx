@@ -150,13 +150,13 @@ void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 	//Initialize input and outputs:
 	int M = nRows();
 	int N = nCols();
-	matrix A = *this; //destructible copy
 	U.init(M,M, isGpuEnabled());
 	Vdag.init(N,N);
 	S.resize(std::min(M,N));
 #ifdef USE_CUSOLVER
 	if(M>=N && M>NcutCuSolver)
 	{	//Determine buffer size and allocate buffers:
+		matrix A = *this; //destructible copy
 		ManagedArray<double> Smanaged; Smanaged.init(S.size(), true);
 		matrix V(N,N, true);
 		cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
@@ -186,6 +186,7 @@ void matrix::svd(matrix& U, diagMatrix& S, matrix& Vdag) const
 	}
 #endif
 	//Initialize temporaries:
+	matrix A = *this; //destructible copy
 	char jobz = 'A'; //full SVD (return complete unitary matrices)
 	int lwork = 2*(M*N + M + N);
 	std::vector<complex> work(lwork);
@@ -321,6 +322,10 @@ matrix inv(const matrix& A)
 	int N = A.nRows();
 	assert(N > 0);
 	assert(N == A.nCols());
+#ifdef USE_CUSOLVER
+	if(N > NcutCuSolver)
+		return invApply(A, eye(N)); //use Cholesky + solver since no direct inversion routine
+#endif
 	matrix invA(A); //destructible copy
 	int ldA = A.nRows(); //leading dimension
 	std::vector<int> iPivot(N); //pivot info
@@ -363,17 +368,35 @@ matrix invApply(const matrix& A, const matrix& b)
 	{	logPrintf("Relative hermiticity error of %le (>1e-10) encountered in invApply\n", hermErr);
 		stackTraceExit(1);
 	}
-	
+
+#ifdef USE_CUSOLVER
+	if(N > NcutCuSolver)
+	{	//Get buffer size and allocate for Cholesky factorization:
+		matrix Acopy = A; //destructible copy; routine will factorize matrix in place
+		cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+		int lwork = 0;
+		cusolverDnZpotrf_bufferSize(cusolverHandle, uplo, N, (double2*)Acopy.dataPref(), N, &lwork);
+		ManagedArray<double2> work; work.init(lwork, true);
+		ManagedArray<int> infoArr; infoArr.init(1, true);
+		//Main call:
+		cusolverDnZpotrf(cusolverHandle, uplo, N, (double2*)Acopy.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
+		int info = infoArr.data()[0];
+		if(info<0) { logPrintf("Argument# %d to CuSolver Cholesky routine Zpotrf is invalid.\n", -info); stackTraceExit(1); }
+		if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in CuSolver Cholesky routine Zpotrf.\n", info); stackTraceExit(1); }
+		//Solve:
+		matrix x = b; //solution will happen in place
+		cusolverDnZpotrs(cusolverHandle, uplo, N, Nrhs, (double2*)Acopy.dataPref(), N, (double2*)x.dataPref(), N, infoArr.dataPref());
+		info = infoArr.data()[0];
+		if(info<0) { logPrintf("Argument# %d to CuSolver solver routine Zpotrs is invalid.\n", -info); stackTraceExit(1); }
+		return x;
+	}
+#endif
 	//Apply inverse using LAPACK routine:
 	char uplo = 'U';
 	matrix Acopy = A; //destructible copy; routine will factorize matrix in place
-	complex* AcopyData = Acopy.data();
 	matrix x = b; //solution will happen in place
-	complex* xData = x.data();
-	int ldA = N;
-	int ldx = N;
 	int info = 0;
-	zposv_(&uplo, &N, &Nrhs, AcopyData, &ldA, xData, &ldx, &info);
+	zposv_(&uplo, &N, &Nrhs, Acopy.data(), &N, x.data(), &N, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK linear solve routine ZPOSV is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in LAPACK linear solve routine ZPOSV.\n", info); stackTraceExit(1); }
 	watch.stop();
@@ -388,17 +411,16 @@ matrix LU(const matrix& A)
 	assert(N > 0);
 	assert(N == A.nCols());
 	matrix LU(A); //destructible copy
-	int ldA = A.nRows(); //leading dimension
 #ifdef USE_CUSOLVER
 	if(N > NcutCuSolver)
 	{	//Get buffer size and allocate:
 		int lwork = 0;
-		cusolverDnZgetrf_bufferSize(cusolverHandle, N, N, (double2*)LU.dataPref(), ldA, &lwork);
+		cusolverDnZgetrf_bufferSize(cusolverHandle, N, N, (double2*)LU.dataPref(), N, &lwork);
 		ManagedArray<double2> work; work.init(lwork, true);
 		ManagedArray<int> iPivot; iPivot.init(N, true); //pivot info
 		ManagedArray<int> infoArr; infoArr.init(1, true);
 		//Main call:
-		cusolverDnZgetrf(cusolverHandle, N, N, (double2*)LU.dataPref(), ldA, work.dataPref(), iPivot.dataPref(), infoArr.dataPref());
+		cusolverDnZgetrf(cusolverHandle, N, N, (double2*)LU.dataPref(), N, work.dataPref(), iPivot.dataPref(), infoArr.dataPref());
 		gpuErrorCheck();
 		int info = infoArr.data()[0];
 		if(info<0) { logPrintf("Argument# %d to CuSolver LU decomposition routine Zgetrf is invalid.\n", -info); stackTraceExit(1); }
@@ -409,7 +431,7 @@ matrix LU(const matrix& A)
 	std::vector<int> iPivot(N); //pivot info
 	int info; //error code in return
 	//LU decomposition (in place):
-	zgetrf_(&N, &N, LU.data(), &ldA, iPivot.data(), &info);
+	zgetrf_(&N, &N, LU.data(), &N, iPivot.data(), &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK LU decomposition routine ZGETRF is invalid.\n", -info); stackTraceExit(1); }
 	watch.stop();
 	return LU;
