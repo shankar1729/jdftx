@@ -244,7 +244,8 @@ template<typename scalar> __hostanddev__ matrix3<scalar> adjugate(const matrix3<
 __hostanddev__ matrix3<> inv(const matrix3<> &m) //!< Matrix inverse
 {	return (1./det(m)) * adjugate(m);
 }
-__hostanddev__ double nrm2(const matrix3<>& m) { return sqrt(trace((~m)*m)); } //!< 2-norm of matrix
+template<typename scalar> __hostanddev__ scalar nrm2sq(const matrix3<scalar>& m) { return trace((~m)*m); } //!< square of 2-norm of matrix
+template<typename scalar> __hostanddev__ double nrm2(const matrix3<scalar>& m) { return sqrt(nrm2sq(m)); } //!< 2-norm of matrix
 
 //! Create a rotation matrix
 __hostanddev__ matrix3<> rotation(double theta, int axis)
