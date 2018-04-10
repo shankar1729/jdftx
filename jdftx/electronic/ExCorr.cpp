@@ -185,6 +185,13 @@ void FunctionalMGGA::evaluate(int N, std::vector<const double*> n, std::vector<c
 #ifdef LIBXC_ENABLED
 #include <xc.h>
 
+#if XC_MAJOR_VERSION >= 4
+//Provide wrapper emulating libxc v3's interface to get XC reference:
+char const* xc_func_info_get_ref(const xc_func_info_type *info, int number)
+{	return xc_func_info_get_references(info, number)->ref;
+}
+#endif
+
 //! LibXC wrapper that provides an interface similar to that of the internal functionals
 //! with minor differences to handle the different data order and conventions used by LibXC
 class FunctionalLibXC
@@ -238,7 +245,38 @@ public:
 		std::vector<double> E_tauTemp(E_n && needsTau() ? Nn : 0);
 		//Invoke appropriate LibXC function in scratch space:
 		if(needsTau())
-		{	if(E_n) xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
+		{	//Project out problematic mGGA points (not handled correctly by LibXC 4:
+			#if XC_MAJOR_VERSION >= 4
+			for(int i=0; i<N; i++)
+			{	double* nPtr = (double*)(n + i*nCount);
+				double* tauPtr = (double*)(tau + i*nCount);
+				double nTot = nCount==1 ? *nPtr : (*nPtr + *(nPtr+1));
+				double tauTot = nCount==1 ? *tauPtr : (*tauPtr + *(tauPtr+1));
+				double sigmaTot = nCount==1 ? sigma[i] : sigma[3*i]+2*sigma[3*i+1]+sigma[3*i+2];
+				bool zOffRange = 0.125*sigmaTot > (nTot * tauTot);
+				if(tauTot < tauCutoff) //Small tau
+				{	if(nCount==1)
+					{	*nPtr = 0.;
+						*tauPtr = 0.;
+					}
+					else
+					{	*nPtr = *(nPtr+1) = 0.;
+						*tauPtr = *(tauPtr+1) = 0.;
+					}
+				}
+				else if(zOffRange && nTot>nCutoff) //tauVW/tau ratio out of range
+				{	double tauTotNew = 0.125*sigmaTot/nTot; //von-Weisacker value
+					if(nCount==1)
+						*tauPtr = tauTotNew;
+					else
+					{	double tauScale = tauTotNew/tauTot;
+						*tauPtr *= tauScale;
+						*(tauPtr+1) *= tauScale;
+					}
+				}
+			}
+			#endif
+			if(E_n) xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
 				&eTemp[0], &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
 			else xc_mgga_exc(&func, N, n, sigma, lap, tau, &eTemp[0]);
 		}
