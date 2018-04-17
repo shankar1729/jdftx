@@ -61,7 +61,6 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	//No MPI:
 	nProcs = 1;
 	iProc = 0;
-	assert(!procDivision);
 	#endif
 	
 	if(!procDivision) Random::seed(iProc); //Reproducible random seed per process in mpiWorld
