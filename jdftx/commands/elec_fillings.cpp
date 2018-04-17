@@ -48,8 +48,6 @@ struct CommandElecSmearing : public Command
 			"same width will follow the order Fermi > Gauss >> Cold.";
 		
 		require("lcao-params");
-		forbid("fix-electron-density");
-		forbid("fix-electron-potential");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -109,6 +107,8 @@ struct CommandTargetMu : public Command
 		require("fluid-anion");
 		require("elec-smearing");
 		forbid("elec-initial-charge");
+		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
 	}
 
 	void process(ParamList& pl, Everything& e)

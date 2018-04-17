@@ -199,11 +199,11 @@ struct CommandFixElectronHamiltonian : public Command
 			"Meta-GGA calculations will also require the corresponding kinetic " + name + ".";
 		
 		require("spintype");
-		forbid("elec-smearing");
 		forbid("elec-ex-corr-compare");
 		forbid("electronic-scf");
 		forbid("vibrations");
 		forbid("dump-only");
+		forbid("target-mu");
 	}
 
 	void processCommon(ParamList& pl, Everything& e, string& targetFilenamePattern)
