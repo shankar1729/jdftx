@@ -147,3 +147,19 @@ void LinearPCM::dumpDensities(const char* filenamePattern) const
 		FLUID_DUMP(rhoIon, "RhoIon");
 	}
 }
+
+void LinearPCM::dumpDensities(const char* filenamePattern) const
+{	PCM::dumpDensities(filenamePattern);
+	//Output dielectric bound charge
+	string filename;
+	{	ScalarField chiDiel = ((epsBulk-1.)/(4*M_PI)) * shape[0];
+		ScalarField rhoDiel = divergence(chiDiel * I(gradient(state)));
+		FLUID_DUMP(rhoDiel, "RhoDiel");
+	}
+	//Output ionic bound charge (if any):
+	if(k2factor)
+	{	ScalarField chiIon = (-k2factor/(4*M_PI)) * shape.back();
+		ScalarField rhoIon = chiIon * I(state);
+		FLUID_DUMP(rhoIon, "RhoIon");
+	}
+}
