@@ -218,6 +218,30 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //CANDLE also uses this for vdW cavity
 		atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
 	}
+	
+	//Optional cavity mask:
+	if(fsp.zMaskH)
+	{	logPrintf("   Cavity mask centered at z = %lg with half-width %lg in lattice coordinates, with smoothness %lg bohrs.\n",
+			fsp.zMask0, fsp.zMaskH, fsp.zMaskSigma);
+		double z0 = fsp.zMask0, zH = fsp.zMaskH;
+		if(e.coulombParams.embed)
+		{	z0 -= e.coulombParams.embedCenter[2]; //offset from embedding grid center
+			z0 -= floor(0.5+z0); //wrap to [-0.5,0.5)
+			z0 *= 0.5; //switch to embedded double-sized grid coordinates
+			zH *= 0.5;
+		}
+		nullToZero(zMask, gInfo);
+		double* zMaskData = zMask->data();
+		const vector3<int>& S = gInfo.S;
+		const size_t iStart=0, iStop = gInfo.nr;
+		double SzInv = 1./S[2];
+		double sigmaInv = gInfo.R.column(2).length()/fsp.zMaskSigma; //1/sigma in lattice coordinates
+		THREAD_rLoop(
+			double zDiff = SzInv*iv[2] - z0;
+			zDiff -= floor(0.5+zDiff); //wrap to [-0.5,0.5)
+			zMaskData[i] = 0.5*erfc(sigmaInv*(zH - fabs(zDiff))); //smoothly goes to 0 when |zDiff| < zH
+		)
+	}
 }
 
 PCM::~PCM()
@@ -254,12 +278,16 @@ void PCM::updateCavity()
 			ShapeFunctionSoftSphere::compute(atposAll, latticeReps, Rall, shape[0], fsp.sigma);
 			if(fsp.ionSpacing)
 				ShapeFunctionSoftSphere::compute(atposAll, latticeReps, RallIonic, shape[1], fsp.sigma);
+			if(zMask) shape *= zMask;
 		}
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape[0], fsp.rhoMin, fsp.rhoMax, epsBulk);
 	else //Compute directly from nCavity (which is a density product for SaLSA):
 		ShapeFunction::compute(nCavity, shape[0], fsp.nc, fsp.sigma);
+	
+	//Apply cavity mask (if any):
+	if(zMask && fsp.pcmVariant!=PCM_SoftSphere) shape *= zMask; //soft-sphere case above; only done when cavity changes
 	
 	//Compute and cache cavitation energy and gradients:
 	const auto& solvent = fsp.solvents[0];
@@ -326,6 +354,7 @@ void PCM::updateCavity()
 void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const
 {
 	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
+	if(zMask) (ScalarFieldArray&)A_shape *= zMask; //account for zMask in cavity, if any
 	
 	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
@@ -346,7 +375,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		ShapeFunctionCANDLE::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape[0])) + Acavity_shapeVdw,
 			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
-		A_rhoExplicitTilde += coulomb(Sf[0]*A_phiExt);
+		((PCM*)this)->A_rhoNonES = coulomb(Sf[0]*A_phiExt);
+		A_rhoExplicitTilde += A_rhoNonES;
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;

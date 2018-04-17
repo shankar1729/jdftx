@@ -39,9 +39,9 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	if(needSuper) gInfoSuper.initialize(true, sym);
 
 	//Determine and output the band ranges:
-	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	for(int iSpin: wannier.iSpinArr)
 	{	std::vector<double> eMin(nBands, DBL_MAX), eMax(nBands, -DBL_MAX);
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].spin==iSpin)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++) if(e.eInfo.qnums[q].index()==iSpin)
 			for(int b=0; b<nBands; b++)
 			{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
 				eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
@@ -241,18 +241,20 @@ void WannierMinimizer::initTransformDependent()
 		
 		//Split supercell wavefunction into kpoints:
 		logPrintf("Dividing supercell numerical orbitals to k-points ... "); logFlush();
-		{	ColumnBundle temp(nCols, basis.nbasis, &basis, 0, isGpuEnabled());
-			for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,0) || isMine_q(ik,1))
-			{	const KmeshEntry& ki = kMesh[ik];
-				const ColumnBundleTransform& transform = *(transformMap.find(ki.point)->second);
-				const ColumnBundleTransform& transformSuper = *(transformMapSuper.find(ki.point)->second);
-				auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
-				temp.zero();
-				transformSuper.gatherAxpy(1., C,0,1, temp);
-				Ck->zero();
-				transform.scatterAxpy(1./ki.point.weight, temp, *Ck,0,1);
-				numericalOrbitals[ki.point] = Ck;
-			}
+		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,0) || isMine_q(ik,1))
+		{	const KmeshEntry& ki = kMesh[ik];
+			const ColumnBundleTransform& transform = *(transformMap.find(ki.point)->second);
+			const ColumnBundleTransform& transformSuper = *(transformMapSuper.find(ki.point)->second);
+			//Collect in k-dependent unit-cell basis:
+			const Basis& basisC = e.basis[ki.point.iReduced];
+			ColumnBundle temp(nCols, basisC.nbasis*nSpinor, &basisC, 0, isGpuEnabled());
+			temp.zero();
+			transformSuper.gatherAxpy(1., C,0,1, temp);
+			//Transfer to common unit-cell basis:
+			auto Ck = std::make_shared<ColumnBundle>(nCols, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
+			Ck->zero();
+			transform.scatterAxpy(1./ki.point.weight, temp, *Ck,0,1);
+			numericalOrbitals[ki.point] = Ck;
 		}
 		logPrintf("done.\n"); logFlush();
 	}

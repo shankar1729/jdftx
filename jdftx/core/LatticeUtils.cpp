@@ -28,9 +28,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 double symmThreshold = 1e-4;
 double symmThresholdSq = symmThreshold*symmThreshold;
 
-//Compute reduced lattice vectors:
-matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, matrix3<int>* invTransmission)
-{	matrix3<> Rreduced = R;
+//Generic routine to reduce matrix norm by linearly combining columns:
+template<typename scalar> matrix3<scalar> reduceMatrix(const matrix3<scalar>& R, matrix3<int>* transmission, matrix3<int>* invTransmission)
+{	matrix3<scalar> Rreduced = R;
 	matrix3<int> t (1,1,1);
 	matrix3<int> tInv(1,1,1);
 	while(true)
@@ -46,7 +46,7 @@ matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, m
 					dInv(k2,k1)=-i; dInv(k3,k1)=-j; 
 					
 					//Check if that transformation reduces R:
-					matrix3<> Rproposed = Rreduced * d;
+					matrix3<scalar> Rproposed = Rreduced * d;
 					if(nrm2(Rproposed) < nrm2(Rreduced) - symmThreshold)
 					{	changed = true;
 						Rreduced = Rproposed;
@@ -60,6 +60,11 @@ matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, m
 	if(transmission) *transmission = t;
 	if(invTransmission) *invTransmission = tInv;
 	return Rreduced;
+}
+
+//Compute reduced lattice vectors:
+matrix3<> reduceLatticeVectors(const matrix3<>& R, matrix3<int>* transmission, matrix3<int>* invTransmission)
+{	return reduceMatrix(R, transmission, invTransmission);
 }
 
 //Determine symmetries of Bravais lattice:
@@ -229,7 +234,16 @@ Supercell::Supercell(const GridInfo& gInfo,
 		for(int k=0; k<3; k++)
 			super.set_col(k, superOrig.column(permutation[pBest][k]));
 	}
+	
+	//Eliminate off-diagonal elements if possible:
+	super = reduceMatrix(super, 0, 0);
+	
+	//Eliminate negative signs on diagonal:
+	for(int iDir=0; iDir<3; iDir++)
+		if(super(iDir,iDir) < 0)
+			super.set_col(iDir, -super.column(iDir));
 	if(det(super) < 0) super *= -1;
+	
 	logPrintf("Lattice vector linear combinations in supercell:\n");
 	super.print(globalLog, " %2d ");
 	Rsuper = gInfo.R * super;
@@ -275,7 +289,7 @@ std::map<vector3<int>, matrix> getCellMap(const matrix3<>& R, const matrix3<>& R
 		bool nonZero = false;
 		for(size_t i=0; i<x1.size(); i++)
 		for(size_t j=0; j<x2.size(); j++)
-		{	vector3<> dx = iCell + x1[i] -x2[j];
+		{	vector3<> dx = iCell + x2[j] - x1[i];
 			for(int l=0; l<3; l++) if(isTruncated[l]) dx[l] = 0.; //project out truncated directions
 			vector3<> dr = R*dx; //cartesian displacement
 			double drSq0 = dr.length_squared(); //distance from origin

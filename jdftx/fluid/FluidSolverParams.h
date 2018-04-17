@@ -135,6 +135,11 @@ struct FluidSolverParams
 	double cavityScale; //!< radius scale factor
 	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs)
 	
+	//Cavity masking parameters (erf slab centered at zMask0 with half-width zMaskH where fluid is excluded):
+	double zMask0; //z center in lattice coordinates for cavity mask
+	double zMaskH; //half-width in z lattice coordinates for cavity mask
+	double zMaskSigma; //smoothness of z-mask in bohrs
+	
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions

@@ -38,13 +38,32 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //------------- Common Initialization -----------------
 
+extern string inputBasename; //!< Basename of input file or "stdin" that can be used as a default run-name
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
-extern MPIUtil* mpiWorld;
+extern MPIUtil* mpiWorld; //!< MPI across all processes
+extern MPIUtil* mpiGroup; //!< MPI within current group of processes
+extern MPIUtil* mpiGroupHead; //!< MPI across equal ranks in each group
 extern bool mpiDebugLog; //!< If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling initSystem())
 extern size_t mempoolSize; //!< If non-zero, size of memory pool managed internally by JDFTx
-void printVersionBanner(); //!< Print package name, version, revision etc. to log
-void initSystem(int argc, char** argv); //!< Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers
-void initSystemCmdline(int argc, char** argv, const char* description, string& inputFilename, bool& dryRun, bool& printDefaults, class Everything* e=0); //!< initSystem along with commandline options
+
+//! Parameters used for common initialization functions
+struct InitParams
+{	//Input parameters:
+	const char* description; //!< description of program used when printing usage
+	class Everything* e; //!< pointer to use when calling template
+	InitParams(const char* description=0, class Everything* e=0);
+	//Output parameters retrieved from command-line:
+	string inputFilename; //!< name of input file
+	bool dryRun; //!< whether this is a dry run
+	bool printDefaults; //!< whether to print default commands
+	//Optional parameters useful when calling from outside JDFTx:
+	const char* packageName; //!< package name dispalyed in banner
+	const char* versionString; //!< version string displayed in banner
+	const char* versionHash; //!< git hash displayed in banner (if any)
+};
+void printVersionBanner(const InitParams* ip=0); //!< Print package name, version, revision etc. to log
+void initSystem(int argc, char** argv, const InitParams* ip=0); //!< Init MPI (if not already done), print banner, set up threads (play nice with job schedulers), GPU and signal handlers
+void initSystemCmdline(int argc, char** argv, InitParams& ip); //!< initSystem along with commandline options
 void finalizeSystem(bool successful=true); //!< Clean-up corresponding to initSystem(), final messages (depending on successful) and clean-up MPI
 
 //----------------- Profiling --------------------------
@@ -127,7 +146,6 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 		fflush(globalLog); \
 		if(mpiWorld->isHead() && globalLog != stdout) \
 			fprintf(stderr, __VA_ARGS__); \
-		if(mpiWorld->nProcesses() == 1) finalizeSystem(false); /* Safe to call only if no other process */ \
 		mpiWorld->exit(1); \
 	}
 

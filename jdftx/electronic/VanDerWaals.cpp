@@ -138,31 +138,40 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 {
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
-	vector3<int> n;
+	vector3<int> S; //number of unit cells sampled in each direction
 	for(int k=0; k<3; k++)
-		n[k] = isTruncated[k] ? 0 : (int)ceil(200. / e->gInfo.R.column(k).length());
+		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(200./e->gInfo.R.column(k).length()));
+	size_t nCellsHlf = S[0] * S[1] * (S[2]/2+1);; //similar to the half-G-space used for FFTs
+	size_t iStart, iStop; TaskDivision(nCellsHlf, mpiWorld).myRange(iStart, iStop);
 	
 	double Etot = 0.;  //Total VDW Energy
+	std::vector<vector3<>> forces(atoms.size()); //VDW forces per atom
 	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const AtomParams& c1params = getParams(atoms[c1].atomicNumber, atoms[c1].sp);
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const AtomParams& c2params = getParams(atoms[c2].atomicNumber, atoms[c2].sp);
 			double C6 = sqrt(c1params.C6 * c2params.C6);
 			double R0 = c1params.R0 + c2params.R0;
-			vector3<int> iR;
-			for(iR[0] = -n[0]; iR[0]<=n[0]; iR[0]++)
-			for(iR[1] = -n[1]; iR[1]<=n[1]; iR[1]++)
-			for(iR[2] = -n[2]; iR[2]<=n[2]; iR[2]++)
-			{	vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+			THREAD_halfGspaceLoop(
+				const vector3<int>& iR = iG;
+				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
 				double rSq = e->gInfo.RTR.metric_length_squared(x);
-				if(!rSq) continue; //exclude self-interaction
-				double r = sqrt(rSq);
-				double E_r, E = vdwPairEnergyAndGrad(r, C6, R0, E_r);
-				Etot -= 0.5 * scaleFac * E;
-				atoms[c1].force += scaleFac * E_r * (e->gInfo.RTR * x)/r;
-			}
+				if(rSq)
+				{	double r = sqrt(rSq); double E_r = 0.;
+					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+					Etot -= cellWeight * scaleFac * vdwPairEnergyAndGrad(r, C6, R0, E_r);
+					vector3<> E_x = (cellWeight * scaleFac * E_r/r) * (e->gInfo.RTR * x); 
+					forces[c1] += E_x;
+					forces[c2] -= E_x;
+				}
+			)
 		}
 	}
+	//Collect over MPI:
+	mpiWorld->allReduce(Etot, MPIUtil::ReduceSum, true);
+	mpiWorld->allReduce(&forces[0][0], 3*atoms.size(), MPIUtil::ReduceSum, true);
+	for(int c=0; c<int(atoms.size()); c++)
+		atoms[c].force += forces[c];
 	return Etot;
 }
 

@@ -271,7 +271,7 @@ void BGW::writeHeaderMF(hid_t fid) const
 	h5writeVector(gidKpts, "ngk", nBasis);
 	
 	//--- occupied band ranges:
-	const double Fcut = 1e-6;
+	const double Fcut = 0.5;
 	std::vector<int> ifmin(eInfo.nStates, 1), ifmax(eInfo.nStates, 1);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	for(int b=0; b<eInfo.nBands; b++)

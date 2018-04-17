@@ -65,16 +65,24 @@ public:
 	void scatterAxpy(complex alpha, const ColumnBundle& C_C, ColumnBundle& C_D, int bDstart, int bDstep) const; //!< scatter-accumulate all columns of C_C
 	void gatherAxpy(complex alpha, const ColumnBundle& C_D, int bDstart, int bDstep, ColumnBundle& C_C) const; //!< gather-accumulate all columns of C_C
 
+	//! Transform psp projection VdagC_C to VdagC_D.
+	//! Need iSym for spherical and atom transformations.
+	//! Does not support supercell transformations.
+	std::vector<matrix> transformVdagC(const std::vector<matrix>& VdagC_C, int iSym) const; 
+	
 private:
 	const Basis& basisC;
 	const Basis& basisD;
 	int nSpinor, invert;
+	const vector3<> kC, kD;
+	const SpaceGroupOp& sym;
 	
 	//Index array:
 	IndexArray index;
 	ManagedArray<complex> phase; //Bloch phase for space-group translation
 
 	matrix spinorRot; //spinor space rotation
+	friend class WannierMinimizer;
 };
 
 //! @}

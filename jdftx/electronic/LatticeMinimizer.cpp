@@ -149,6 +149,7 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 	//Change lattice:
 	strain += alpha * dir.lattice;
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	bcast(strain); //ensure consistency to numerical precision
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(e, true); // Updates lattice information but does not touch electronic state / calc electronic energy
 
@@ -204,8 +205,10 @@ void LatticeMinimizer::calculateStress()
 	for(size_t i=0; i<strainBasis.size(); i++)
 		E_strain += strainBasis[i]*centralDifference(strainBasis[i]);
 	e.gInfo.R = Rorig + Rorig*strain;
+	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(e);
 	e.iInfo.stress = E_strain * (1./e.gInfo.detR);
+	bcast(e.iInfo.stress); //ensure consistency to numerical precision
 }
 
 double LatticeMinimizer::minimize(const MinimizeParams& params)
@@ -217,25 +220,16 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 
 
 double LatticeMinimizer::centralDifference(matrix3<> direction)
-{ //! Implements a central difference derivative with O(h^4)
-	
-	e.gInfo.R = Rorig + Rorig*(strain+(-2*h*direction));
-	updateLatticeDependent(e);
-	const double En2h = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(strain+(-h*direction));
-	updateLatticeDependent(e);
-	const double Enh = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(strain+(h*direction));
-	updateLatticeDependent(e);
-	const double Eph = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(strain+(2*h*direction));
-	updateLatticeDependent(e);
-	const double Ep2h = relevantFreeEnergy(e);
-	
-	return (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h);
+{ 	//Central difference derivative with O(h^4)
+	double hArr[4] = { -2*h, -h, +h, +2*h };
+	double Earr[4];
+	for(int j=0; j<4; j++)
+	{	e.gInfo.R = Rorig + Rorig*(strain+(hArr[j]*direction));
+		bcast(e.gInfo.R); //ensure consistency to numerical precision
+		updateLatticeDependent(e);
+		Earr[j] = sync(relevantFreeEnergy(e));
+	}
+	return (1./(12.*h))*(Earr[0] - 8.*Earr[1] + 8.*Earr[2] - Earr[3]);
 }
 
 

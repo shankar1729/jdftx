@@ -154,7 +154,7 @@ void SpeciesInfo::accumulateAtomicPotential(ScalarFieldTilde& dTilde) const
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
 void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset) const
 {	if(!atpos.size()) return;
-	const auto& fRadial = applyO ? *OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
+	const auto& fRadial = applyO ? OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	int nOrbitalsPerAtom = 0;
 	for(int l=0; l<int(fRadial.size()); l++)
@@ -170,7 +170,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 {	if(!atpos.size()) return;
 	assert(l < int(psiRadial.size()));
 	assert(int(n) < nAtomicOrbitals(l));
-	const auto& fRadial = applyO ? *OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
+	const auto& fRadial = applyO ? OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
 	int nOrbitalsPerAtom = (2*l+1)*nSpinCopies;
 	if(atomColStride) assert(atomColStride >= nOrbitalsPerAtom); else atomColStride = nOrbitalsPerAtom;
@@ -282,12 +282,13 @@ void SpeciesInfo::estimateAtomEigs()
 	{	std::map<int,int> invalidPsis; //some FHI pseudodpotentials store unbound projectors which need to be discarded for LCAO
 		logPrintf("  Approximate pseudo-atom eigenvalues: ");
 		atomEigs.resize(psiRadial.size());
+		double normFac = 1./e->gInfo.detR; //normalization factor in wavefunctions
 		for(unsigned l=0; l<psiRadial.size(); l++)
 		{	for(unsigned p=0; p<psiRadial[l].size(); p++)
 			{	const RadialFunctionR& psi = *(psiRadial[l][p].rFunc);
 				//Find points deep in the tail of the wavefunction, but still far above roundoff limit:
 				double r[2], e[2];
-				double psiThresh[2] = { 3e-7, 3e-6 };
+				double psiThresh[2] = { 3e-7*normFac, 3e-6*normFac };
 				unsigned i = psi.r.size()-2;
 				for(int j=0; j<2; j++)
 				{	for(; i>1; i--) if(fabs(psi.f[i]) > psiThresh[j]) break;
@@ -412,7 +413,7 @@ void SpeciesInfo::getAtom_nRadial(int spin, double magneticMoment, RadialFunctio
 		}
 	}
 	//Fix normalization:
-	double normFac = 1./(4.*M_PI);
+	double normFac = std::pow(e->gInfo.detR,2)/(4.*M_PI);
 	for(unsigned i=0; i<n.r.size(); i++) n.f[i] *= normFac;
 	//Transform density:
 	const double dG = e->gInfo.dGradial;

@@ -149,8 +149,8 @@ WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)
 }
 
 
-matrix WannierMinimizer::fixUnitary(const matrix& U)
-{	return U * invsqrt(dagger(U) * U);
+matrix WannierMinimizer::fixUnitary(const matrix& U, bool* isSingular)
+{	return U * invsqrt(dagger(U) * U, 0, 0, isSingular);
 }
 
 bool WannierMinimizer::report(int iter)
@@ -164,12 +164,20 @@ bool WannierMinimizer::report(int iter)
 	mpiWorld->allReduce(needRestart, MPIUtil::ReduceLOr);
 	if(needRestart)
 	{	logPrintf("%s\tUpdating rotations to enforce unitarity\n", wannier.minParams.linePrefix);
+		ostringstream ossErr;
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
-			ki.U1 = fixUnitary(ki.U1);
-			ki.U2 = fixUnitary(ki.U2);
+			bool isSingular = false;
+			ki.U1 = fixUnitary(ki.U1, &isSingular);
+			ki.U2 = fixUnitary(ki.U2, &isSingular);
+			if(isSingular)
+			{	ossErr << "Unitary rotations are singular at k = [ "
+					<< ki.point.k[0] << ' ' << ki.point.k[1] << ' ' << ki.point.k[2] << " ]\n";
+				break;
+			}
 			ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 		}
+		mpiWorld->checkErrors(ossErr);
 		return true;
 	}
     return false;
@@ -198,10 +206,10 @@ bool WannierMinimizer::Kpoint::operator==(const WannierMinimizer::Kpoint& other)
 	return true;
 }
 
-ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin) const
+ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, int iSpin, std::vector<matrix>* VdagResult) const
 {	ColumnBundle ret(nBands, basis.nbasis*nSpinor, &basis, &kpoint, isGpuEnabled());
 	ret.zero();
-	axpyWfns(1., matrix(), kpoint, iSpin, ret);
+	axpyWfns(1., matrix(), kpoint, iSpin, ret, VdagResult);
 	return ret;
 }
 
@@ -210,23 +218,34 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 	const ColumnBundleTransform& transform = *(((result.basis==&basisSuper) ? transformMapSuper : transformMap).find(kpoint)->second); \
 	/* Pick source ColumnBundle: */ \
 	int q = kpoint.iReduced + iSpin*qCount; \
-	const ColumnBundle& Cin = e.eInfo.isMine(q) ? e.eVars.C[q] : Cother[q]; \
-	assert(Cin); \
-	const ColumnBundle* C = &Cin; \
+	const ColumnBundle* C = e.eInfo.isMine(q) ? &e.eVars.C[q] : &Cother[q]; \
+	assert(*C);
 
-void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result) const
+void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result, std::vector<matrix>* VdagResult) const
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
 	axpyWfns_COMMON(result)
+	const std::vector<matrix>* VdagC = VdagResult ? (e.eInfo.isMine(q) ? &e.eVars.VdagC[q] : &VdagCother[q]) : 0;
 	//Apply transformation if provided:
-	ColumnBundle Cout;
+	ColumnBundle Cout; std::vector<matrix> VdagCout;
 	if(A)
 	{	matrix Astar = (kpoint.invert<0 ? conj(A) : A);
 		Cout = (*C) * Astar;
 		C = &Cout;
+		//Similarly for projections, if needed:
+		if(VdagResult)
+		{	VdagCout.resize(VdagC->size());
+			for(size_t iSp=0; iSp<VdagC->size(); iSp++)
+				if(VdagC->at(iSp))
+					VdagCout[iSp] = VdagC->at(iSp) * Astar;
+			VdagC = &VdagCout;
+		}
 	}
 	//Scatter from reduced basis to common basis with transformations:
 	assert(C->nCols() == result.nCols());
 	transform.scatterAxpy(alpha, *C, result,0,1);
+	//Corresponding transformation in projections:
+	if(VdagResult)
+		*VdagResult = transform.transformVdagC(*VdagC, kpoint.iSym);
 	watch.stop();
 }
 
@@ -245,36 +264,10 @@ void WannierMinimizer::axpyWfns_grad(double alpha, matrix& Omega_A, const Wannie
 
 #undef axpyWfns_COMMON
 
-//Fourier transform of hydrogenic orbitals
-inline double hydrogenicTilde(double G, double a, int nIn, int l, double normPrefac)
-{	int n = nIn+1 + l; //conventional principal quantum number
-	double nG = n*G*a/(l+1), nGsq = nG*nG;
-	double prefac = normPrefac / pow(1.+nGsq, n+1);
-	switch(l)
-	{	case 0:
-			switch(n)
-			{	case 1: return prefac;
-				case 2: return prefac*8.*(-1.+nGsq);
-				case 3: return prefac*9.*(3.+nGsq*(-10.+nGsq*3.));
-				case 4: return prefac*64.*(-1.+nGsq*(7.+nGsq*(-7.+nGsq)));
-			}
-		case 1:
-			switch(n)
-			{	case 2: return prefac*16.*nG;
-				case 3: return prefac*144.*nG*(-1.+nGsq);
-				case 4: return prefac*128.*nG*(5.+nGsq*(-14.+nGsq*5.));
-			}
-		case 2:
-			switch(n)
-			{	case 3: return prefac*288.*nGsq;
-				case 4: return prefac*3072.*nGsq*(-1.+nGsq);
-			}
-		case 3:
-			switch(n)
-			{	case 4: return prefac*6144.*nG*nGsq;
-			}
-	}
-	return 0.;
+//Gaussian orbital of specified width and angular momentum
+inline double gaussTilde(double G, double sigma, int l, double normPrefac)
+{	double Gsigma = G*sigma;
+	return normPrefac * std::pow(Gsigma,l) * exp(-0.5*Gsigma*Gsigma);
 }
 
 ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint) const
@@ -303,41 +296,45 @@ ColumnBundle WannierMinimizer::trialWfns(const WannierMinimizer::Kpoint& kpoint)
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff, temp.dataPref(),1, retData,1);
 				continue;
 			}
-			//Handle atomic orbitals that are actually atom-centered:
+			//Handle atomic orbitals:
 			const DOS::Weight::OrbitalDesc& od = ao.orbitalDesc;
 			complex lPhase =  cis(0.5*M_PI*od.l); //including this phase ensures odd l projectors are real (i^l term in spherical wave expansion)
-			if(ao.atom >= 0)
+			if(ao.sp >= 0)
 			{	int iCol = e.iInfo.species[ao.sp]->atomicOrbitalOffset(ao.atom, od.n, od.l, od.m, od.s);
 				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase, psiAtomic[ao.sp].dataPref()+iCol*ret.colLength(),1, retData,1);
 				continue;
 			}
-			//--- Copy the center to managed memory:
-			ManagedArray<vector3<>> pos(&ao.r, 1);
-			//--- Get / create the radial part:
-			RadialFunctionG hRadial;
-			if(ao.sp < 0)
-			{	double normPrefac = pow((od.l+1)/ao.a,3);
-				for(unsigned p=od.n+1; p<=od.n+1+2*od.l; p++)
-					normPrefac *= p;
-				normPrefac = 16*M_PI/sqrt(normPrefac);
-				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, hydrogenicTilde, ao.a, od.n, od.l, normPrefac);
+			//Gaussian orbital:
+			if(ao.sigma > 0.)
+			{	//--- Copy the center to managed memory:
+				ManagedArray<vector3<>> pos(&ao.r, 1);
+				//--- Get / create the radial part:
+				RadialFunctionG hRadial;
+				double Al = 0.25*sqrt(M_PI);
+				for(int p=1; p<=od.l; p++)
+					Al *= (p+0.5);
+				double sigma = (od.n+1) * ao.sigma;
+				double normPrefac = sqrt(std::pow(2*M_PI*sigma,3) / Al);
+				hRadial.init(od.l, 0.02, e.gInfo.GmaxSphere, gaussTilde, sigma, od.l, normPrefac);
+				//--- Initialize the projector:
+				assert(od.s < nSpinor);
+				if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); }
+				callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos.dataPref(), hRadial, temp.dataPref()+od.s*basis.nbasis);
+				hRadial.free();
+				//--- Accumulate to trial orbital:
+				callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
+				continue;
 			}
-			const RadialFunctionG& atRadial = (ao.sp<0) ? hRadial : e.iInfo.species[ao.sp]->OpsiRadial->at(od.l)[od.n];
-			//--- Initialize the projector:
-			assert(od.s < nSpinor);
-			if(nSpinor > 1) { temp.zero(); assert(od.spinType==SpinZ); } //The relativistic orbitals must be handled above via atom-centered orbitals
-			callPref(Vnl)(basis.nbasis, basis.nbasis, 1, od.l, od.m, kpoint.k, basis.iGarr.dataPref(), e.gInfo.G, pos.dataPref(), atRadial, temp.dataPref()+od.s*basis.nbasis);
-			if(ao.sp < 0) hRadial.free();
-			//--- Accumulate to trial orbital:
-			callPref(eblas_zaxpy)(ret.colLength(), ao.coeff*lPhase/e.gInfo.detR, temp.dataPref(),1, retData,1);
+			assert(!"Orbital was neither Numerical, Gaussian nor Atomic.");
 		}
 		retData += ret.colLength();
 	}
 	return ret;
 }
 
-matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2) const
-{	const GridInfo& gInfo = *(C1.basis->gInfo);
+matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2, const std::vector<matrix>* VdagC1ptr, const std::vector<matrix>* VdagC2ptr) const
+{	static StopWatch watch("WannierMinimizer::overlap"); watch.start();
+	const GridInfo& gInfo = *(C1.basis->gInfo);
 	const IonInfo& iInfo = *(C1.basis->iInfo);
 	matrix ret = gInfo.detR * (C1 ^ C2);
 	//k-point difference:
@@ -345,43 +342,45 @@ matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2)
 	double dk = sqrt(gInfo.GGT.metric_length_squared(dkVec));
 	vector3<> dkHat = gInfo.GT * dkVec * (dk ? 1.0/dk : 0.0); //the unit Vector along dkVec (set dkHat to 0 for dk=0 (doesn't matter))
 	//Augment at each species:
-	for(const auto& sp: iInfo.species) if(sp->Qint.size())
-	{	//Create the Q matrix appropriate for current k-point difference:
-		matrix Qk = zeroes(sp->QintAll.nRows(), sp->QintAll.nCols());
+	for(size_t iSp=0; iSp<iInfo.species.size(); iSp++)
+	{	const SpeciesInfo& sp = *(iInfo.species[iSp]);
+		if(!sp.isUltrasoft()) continue; //no augmentation
+		//Create the Q matrix appropriate for current k-point difference:
+		matrix Qk = zeroes(sp.QintAll.nRows(), sp.QintAll.nCols());
 		complex* QkData = Qk.data();
 		int i1 = 0;
-		for(int l1=0; l1<int(sp->VnlRadial.size()); l1++)
-		for(int p1=0; p1<int(sp->VnlRadial[l1].size()); p1++)
+		for(int l1=0; l1<int(sp.VnlRadial.size()); l1++)
+		for(int p1=0; p1<int(sp.VnlRadial[l1].size()); p1++)
 		for(int m1=-l1; m1<=l1; m1++)
 		{	//Triple loop over second projector:
 			int i2 = 0;
-			for(int l2=0; l2<int(sp->VnlRadial.size()); l2++)
-			for(int p2=0; p2<int(sp->VnlRadial[l2].size()); p2++)
+			for(int l2=0; l2<int(sp.VnlRadial.size()); l2++)
+			for(int p2=0; p2<int(sp.VnlRadial[l2].size()); p2++)
 			for(int m2=-l2; m2<=l2; m2++)
-			{	if(i2<=i1) //rest handled by i1<->i2 symmetry
-				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
-					complex q12 = 0.;
-					for(const YlmProdTerm& term: terms)
-					{	SpeciesInfo::QijIndex qIndex = { l1, p1, l2, p2, term.l };
-						auto Qijl = sp->Qradial.find(qIndex);
-						if(Qijl==sp->Qradial.end()) continue; //no entry at this l
-						q12 += term.coeff * cis(-0.5*M_PI*term.l) * Ylm(term.l,term.m, dkHat) * Qijl->second(dk);
-					}
-					QkData[Qk.index(i1,i2)] = q12;
-					QkData[Qk.index(i2,i1)] = q12.conj();
+			{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+				complex q12 = 0.;
+				for(const YlmProdTerm& term: terms)
+				{	SpeciesInfo::QijIndex qIndex = { l1, p1, l2, p2, term.l };
+					auto Qijl = sp.Qradial.find(qIndex);
+					if(Qijl==sp.Qradial.end()) continue; //no entry at this l
+					q12 += term.coeff * cis(0.5*M_PI*(l2-l1-term.l)) * Ylm(term.l,term.m, dkHat) * Qijl->second(dk);
 				}
-				i2++;
+				for(int s=0; s<nSpinor; s++)
+					QkData[Qk.index(i1+s,i2+s)] = q12;
+				i2 += nSpinor;
 			}
-			i1++;
+			i1 += nSpinor;
 		}
+		if(sp.isRelativistic()) Qk = sp.fljAll * Qk * sp.fljAll;
 		//Phases for each atom:
 		std::vector<complex> phaseArr;
-		for(vector3<> x: sp->atpos)
+		for(vector3<> x: sp.atpos)
 			phaseArr.push_back(cis(-2*M_PI*dot(dkVec,x)));
 		//Augment the overlap
-		matrix VdagC1 = (*sp->getV(C1)) ^ C1;
-		matrix VdagC2 = (*sp->getV(C2)) ^ C2;
-		ret += dagger(VdagC1) * (tiledBlockMatrix(Qk, sp->atpos.size(),&phaseArr) * VdagC2);
+		matrix VdagC1 = VdagC1ptr ? VdagC1ptr->at(iSp) : (*sp.getV(C1)) ^ C1;
+		matrix VdagC2 = VdagC2ptr ? VdagC2ptr->at(iSp) : (*sp.getV(C2)) ^ C2;
+		ret += dagger(VdagC1) * (tiledBlockMatrix(Qk, sp.atpos.size(), &phaseArr) * VdagC2);
 	}
+	watch.stop();
 	return ret;
 }

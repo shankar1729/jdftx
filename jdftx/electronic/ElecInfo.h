@@ -136,7 +136,6 @@ public:
 	void read(std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const; //!< parallel read array of matrices
 	void write(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const; //!< parallel write array of diagonal matrices
 	void write(const std::vector<matrix>&, const char *fname, int nRowsOverride=0, int nColsOverride=0) const;  //!< parallel write array of matrices
-	void appendWrite(const std::vector<diagMatrix>&, const char *fname, int nRowsOverride=0) const;  //!< append-write array of diagonal matrices
 
 	//Parallel I/O utilities for ColumnBundle array (defined in COlumnBUndle.cpp):
 	struct ColumnBundleReadConversion //!< Utility to convert columnbundle basis / bands

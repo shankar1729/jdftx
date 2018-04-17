@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdio>
 #include <cuda_runtime.h>
-#include <cublas.h>
+#include <cublas_v2.h>
 #include <cufft.h>
 #include <vector>
 
@@ -33,11 +33,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file GpuUtil.h
 
+extern cublasHandle_t cublasHandle; //!< global handle to cublas (defined in GpuUtil.cpp)
+#ifdef CUSOLVER_ENABLED
+#include <cusolverDn.h>
+extern cusolverDnHandle_t cusolverHandle;  //!< global handle to cusolverDn (defined in GpuUtil.cpp)
+#endif
+
 //! Must be called before any GPU use (preferably from main(), see #isGpuMine)
-//! If mpiSiblings (list of processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory
+//! If mpiHostGpu (group of GPU processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory
 //! nGPUs returns the number of physical GPUs used (fraction if a GPU is shared with other processes)
 //! Returns false on failure to find a suitable GPU
-bool gpuInit(FILE* fpLog=stdout, const std::vector<int>* mpiSiblings=0, double* nGPUs=0);
+bool gpuInit(FILE* fpLog=stdout, const class MPIUtil* mpiHostGpu=0, double* nGPUs=0);
 
 //! Only the thread that called gpuInit() is allowed to use GPU resources
 //! This function will return true only on the one thread that rules the gpu.
@@ -49,7 +55,7 @@ extern void gpuErrorCheck();
 #endif //GPU_ENABLED
 
 
-//! A utility function to eliminate ugly #ifdef's when not required
+//! A utility function to eliminate ugly \#ifdef's when not required
 inline bool isGpuEnabled()
 {
 	#ifdef GPU_ENABLED

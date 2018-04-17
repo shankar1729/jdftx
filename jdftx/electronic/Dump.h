@@ -33,11 +33,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! Dump frequency options:
 enum DumpFrequency
 {	DumpFreq_End, //!< At the end of calculation
+	DumpFreq_Init, //!< After completing initialization (included in dry run)
 	DumpFreq_Electronic, //!< Every (few) electronic step(s)
 	DumpFreq_Fluid, //!< Every (few) fluid step(s)
 	DumpFreq_Ionic, //!< Every (few) ionic (or lattice) optimization step(s)
 	DumpFreq_Gummel, //!< Every (few) gummel step(s)
-	DumpFreq_Dynamics, //!< Every (few) dynamic time step(s)
 	DumpFreq_Delim  //special value used as a delimiter during command processing
 };
 
@@ -86,7 +86,9 @@ private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.
 	string stamp; //!< timestamp for current dump
+	int curIter; DumpFrequency curFreq; //!< iteration number and dump-frequency of most recent operator() call
 	std::map<DumpFrequency,int> interval; //!< for each frequency, dump every interval times
+	std::map<DumpFrequency,string> formatFreq; //!< frequency-dependent format override
 	friend class Phonon;
 	friend struct CommandDump;
 	friend struct CommandDumpName;

@@ -78,6 +78,7 @@ public:
 		};
 		OrbitalDesc orbitalDesc;
 		
+		Weight() : fillingMode(Complete), type(Total), radius(0.), specieIndex(0), atomIndex(0) {}
 		string getDescription(const Everything&) const; //!< return a descriptive string
 	};
 	

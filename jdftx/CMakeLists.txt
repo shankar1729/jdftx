@@ -9,7 +9,7 @@ set(CPACK_PACKAGE_NAME "JDFTx")
 set(CPACK_PACKAGE_DESCRIPTION "The playground for joint density functional theory")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolkit for rapid development of density-functional methods")
 set(CPACK_PACKAGE_VERSION_MAJOR "1")
-set(CPACK_PACKAGE_VERSION_MINOR "3")
+set(CPACK_PACKAGE_VERSION_MINOR "4")
 set(CPACK_PACKAGE_VERSION_PATCH "1")
 set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
@@ -173,6 +173,12 @@ if(CompileNative)
 	endif()
 endif()
 
+#MPI I/O options:
+option(MPISafeWrite "Safe mode for MPI writes: write from one process; may be needed on some NFS installations")
+if(MPISafeWrite)
+	add_definitions("-DMPI_SAFE_WRITE")
+endif()
+
 #Workarounds for Windows compilation:
 if(CYGWIN)
 	add_definitions("-D_GNU_SOURCE")
@@ -223,26 +229,44 @@ set_JDFTx_flags(jdftxlib OFF)
 #--------------- Nvidia GPU support using CUDA -----------------------
 #----- Add another set of libraries and executables with a _gpu suffix
 option(EnableCUDA "Enable NVIDIA GPU support using CUDA" OFF)
+option(EnableCuSolver "Whether to use cuSolver GPU LAPACK (Requires CUDA >= 9)" OFF)
+
 if(EnableCUDA)
 	find_package(CUDA REQUIRED)
 	set(CUDA_ARCH "compute_35" CACHE STRING "CUDA virtual architecture to compile for")
 	set(CUDA_CODE "sm_35" CACHE STRING "CUDA gpu feature set version (sm_*) to compile for")
-
+	set(CUDA_AUX_LIBRARIES ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
+	
 	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
 	foreach(lib IN LISTS CUDA_LIBRARIES)
 		if("${lib}" MATCHES "libcuda.so")
 			list(REMOVE_ITEM CUDA_LIBRARIES "${lib}")
 		endif("${lib}" MATCHES "libcuda.so")
 	endforeach(lib)
-	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES}")
 	include_directories(${CUDA_INCLUDE_DIRS})
 
-	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable") #Compile for Fermi or higher (change this for older cards)
+	#Check for cuSolver:
+	if(EnableCuSolver)
+		if(CUDA_VERSION_MAJOR LESS 9)
+			message(FATAL_ERROR "cuSolver support requires CUDA >= 9.")
+		endif()
+		find_library(CUSOLVER_LIBRARY NAMES cusolver PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+		if(CUSOLVER_LIBRARY)
+			find_package(OpenMP REQUIRED)
+			set(CUDA_AUX_LIBRARIES ${CUDA_AUX_LIBRARIES} ${CUSOLVER_LIBRARY} ${OpenMP_CXX_FLAGS})
+			add_definitions("-DCUSOLVER_ENABLED")
+		else()
+			message(FATAL_ERROR "Could not find the cuSolver library in the CUDA toolkkt located at ${CUDA_TOOLKIT_ROOT_DIR}.")
+		endif()
+	endif()
+	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES};${CUDA_AUX_LIBRARIES}")
+	
+	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic,-Wno-unused-but-set-variable")
 	message(STATUS "CUDA_NVCC_FLAGS = ${CUDA_NVCC_FLAGS}")
 
 	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
 	cuda_add_library(gpukernels ${gpukernelsSources})
-	target_link_libraries(gpukernels ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
+	target_link_libraries(gpukernels ${CUDA_AUX_LIBRARIES})
 
 	#Library with all the functionality:
 	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)

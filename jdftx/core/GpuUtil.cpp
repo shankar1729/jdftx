@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>
+#include <core/MPIUtil.h>
 #include <core/Util.h>
 #include <pthread.h>
 #include <utility>
@@ -26,13 +27,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 
 cudaDeviceProp cudaDevProps; //cached properties of currently running device
+cublasHandle_t cublasHandle;
+#ifdef CUSOLVER_ENABLED
+cusolverDnHandle_t cusolverHandle;
+#endif
 
 pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns gpu
 //NOTE: At the time of writing, c++0x threads implemented in g++, but not thread-local storage
 //Using pthreads mechanism here, assuming that pthreads underly the c++0x threads
 //This may not be true on Windows or for non-gcc compilers!
 
-bool gpuInit(FILE* fpLog, const std::vector<int>* mpiSiblings, double* nGPUs)
+bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 {	//Thread local storage to identify GPU owner thread
 	pthread_key_create(&gpuOwnerKey, 0);
 	pthread_setspecific(gpuOwnerKey, (const void*)1); //this will show up as 1 only on current thread
@@ -64,16 +69,19 @@ bool gpuInit(FILE* fpLog, const std::vector<int>* mpiSiblings, double* nGPUs)
 	if(nGPUs) *nGPUs = 1.;
 	
 	//Divide GPUs between processes, if requested:
-	if(mpiSiblings && mpiSiblings->size()>1) //only if more than one process per node
-	{	int iSibling = std::find(mpiSiblings->begin(), mpiSiblings->end(), mpiWorld->iProcess()) - mpiSiblings->begin();
-		selectedDevice = iSibling % int(compatibleDevices.size());
-		if(nGPUs) *nGPUs = std::min(1., compatibleDevices.size()*1./mpiSiblings->size());
+	if(mpiHostGpu && mpiHostGpu->nProcesses()>1) //only if more than one process per node
+	{	selectedDevice = mpiHostGpu->iProcess() % int(compatibleDevices.size()); //round-robin selection of GPU
+		if(nGPUs) *nGPUs = std::min(1., compatibleDevices.size()*1./mpiHostGpu->nProcesses());
 	}
 	
 	//Print selected devices:
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);
 	cudaSetDevice(selectedDevice);
 	cudaGetDeviceProperties(&cudaDevProps, selectedDevice);
+	cublasCreate(&cublasHandle);
+	#ifdef CUSOLVER_ENABLED
+	cusolverDnCreate(&cusolverHandle);
+	#endif
 	return true;
 }
 
@@ -89,6 +97,5 @@ void gpuErrorCheck()
 		stackTraceExit(1);
 	}
 }
-
 
 #endif //GPU_ENABLED

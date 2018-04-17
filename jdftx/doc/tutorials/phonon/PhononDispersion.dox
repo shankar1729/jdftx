@@ -109,7 +109,7 @@ except it is now the (free-)energy contributions per unit cell
 of a periodic system.
 Note that phonon accounts for 3D periodicity for the Si example here,
 but will automatically switch to 2D or 1D periodicity, as appropriate,
-based on the geometry specified in the \ref CoulombInteraction command.
+based on the geometry specified in the \ref CommandCoulombInteraction command.
 
 Finally, we will calculate and plot the phonon dispersion
 from the force matrix output using this python script:

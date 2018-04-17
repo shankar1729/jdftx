@@ -7,13 +7,15 @@ function printUsageAndExit()
 	echo '
 	Create a VASP CHGCAR file from a JDFTx output file. Usage:
 	
-		createVASP <jdftxOutFile> <vaspFile> [<nFilename>]
+		createVASP <jdftxOutFile> <vaspFile> [<nFilename>] [<Ninterp>=1]
 	
 	Save the final structure and electron density from JDFTx output
 	file <jdftxOutFile> to a VASP CHGCAR format file in <vaspFile>.
 	The electron density is read from the appropriate filename
 	determined by parsing the output; this can be overriden by
 	explicitly specifying <nFilename>.
+	
+	Optional <Ninterp> specifies a grid multiplier for Fourier interpolation.
 	
 	Note: this tool requires awk and octave to be available in path.
 	'
@@ -26,6 +28,10 @@ if [ -z "$2" ]; then printUsageAndExit 1; fi
 jdftxOutFile="$1"
 vaspFile="$2"
 nFilename="$3"
+Ninterp="$4"
+if [ -z "$Ninterp" ]; then
+	Ninterp=1
+fi
 
 command -v awk >/dev/null 2>&1 || { echo "createXSF requires awk, which was not found in path.  Aborting." >&2; exit 1; }
 command -v octave >/dev/null 2>&1 || { echo "createXSF requires octave, which was not found in path.  Aborting." >&2; exit 1; }
@@ -105,6 +111,17 @@ cat > "$tmpDir/process.m" <<EOF
 	endif
 	#--- C -> Fortran data order:
 	n = reshape(permute(reshape(n,fliplr(Sgrid)), [3,2,1]), [],1);
+	
+	#Interpolate charge density if necessary:
+	Ninterp = ceil($Ninterp);
+	if Ninterp > 1
+		Sshift = floor(Sgrid/2)
+		SgridNew = Sgrid * Ninterp;
+		nTildeNew = zeros(SgridNew);
+		nTildeNew(1:Sgrid(1),1:Sgrid(2),1:Sgrid(3)) = circshift(fftn(reshape(n, Sgrid)), Sshift);
+		n = reshape(real(ifftn(circshift(nTildeNew, -Sshift))), [],1) * (Ninterp^3);
+		Sgrid = SgridNew;
+	endif
 	
 	#Read atom names
 	fp = fopen("$tmpDir/ionNames", "r");

@@ -35,8 +35,10 @@ void applyCellMapWeights(matrix& M, const std::map<vector3<int>,matrix>& cellMap
 }
 
 void WannierMinimizer::saveMLWF()
-{	for(int iSpin=0; iSpin<nSpins; iSpin++)
+{	for(int iSpin: wannier.iSpinArr)
+	{	logPrintf("\n");
 		saveMLWF(iSpin);
+	}
 }
 
 void WannierMinimizer::saveMLWF(int iSpin)
@@ -213,7 +215,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		else
 		{	//Determine from trial orbitals:
-			matrix CdagG = getWfns(ke.point, iSpin) ^ trialWfns(ke.point);
+			matrix CdagG = getWfns(ke.point, iSpin) ^ O(trialWfns(ke.point));
 			int nNew = nCenters - nFrozen; //number of new centers
 			//--- Pick up best linear combination of remaining bands (if any)
 			if(nFree > 0)
@@ -248,11 +250,21 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Optimal initial rotation within Wannier subspace:
 			matrix WdagG = dagger(ke.U1(0,nBands, nFrozen,nCenters)) * CdagG;
 			ke.U2 = eye(nCenters);
-			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG));
+			bool isSingular = false;
+			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG, 0, 0, &isSingular));
+			if(isSingular)
+			{	ossErr << "Trial orbitals are linearly dependent / do not cover desired subspace" << kString;
+				break;
+			}
 		}
 		//Make initial rotations exactly unitary:
-		ke.U1 = fixUnitary(ke.U1);
-		ke.U2 = fixUnitary(ke.U2);
+		bool isSingular = false;
+		ke.U1 = fixUnitary(ke.U1, &isSingular);
+		ke.U2 = fixUnitary(ke.U2, &isSingular);
+		if(isSingular)
+		{	ossErr << "Initial rotations are singular" << kString;
+			break;
+		}
 		ke.U = ke.U1(0,nBands, 0,nCenters) * ke.U2;
 	}
 	mpiWorld->checkErrors(ossErr);
@@ -459,8 +471,21 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		xExpect.push_back(e.gInfo.invR * r);
 	//--- get cell map with weights based on these center positions:
 	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
-		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap"));
-
+		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap", &iSpin));
+	//--- output cell map weights:
+	if(mpiWorld->isHead())
+	{	matrix w = zeroes(nCenters*nCenters, iCellMap.size());
+		complex* wData = w.dataPref();
+		for(auto iter: iCellMap)
+		{	callPref(eblas_copy)(wData, iter.second.dataPref(), w.nRows());
+			wData += w.nRows();
+		}
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights", &iSpin);
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		w.write_real(fname.c_str());
+		logPrintf("done.\n"); logFlush();
+	}
+	
 	//Save Hamiltonian in Wannier basis:
 	int nqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
@@ -476,7 +501,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//Calculate required phases:
 			int iCell = 0;
 			for(auto cell: iCellMap)
-				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(2*M_PI*dot(kMesh[i].point.k, cell.first)));
+				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(-2*M_PI*dot(kMesh[i].point.k, cell.first)));
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
@@ -492,9 +517,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	{	//--- compute momentum matrix elements of Bloch states:
 		std::vector< std::vector<matrix> > pBloch(3, std::vector<matrix>(e.eInfo.nStates));
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(e.eInfo.qnums[q].spin==iSpin)
+			if(e.eInfo.qnums[q].index()==iSpin)
 				for(int iDir=0; iDir<3; iDir++)
-					pBloch[iDir][q] = (e.eVars.C[q] ^ e.iInfo.rHcommutator(e.eVars.C[q], iDir)); //note factor of iota dropped to make it real (and anti-symmetric)
+					pBloch[iDir][q] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
 		//--- convert to Wannier basis:
 		matrix pWannierTilde = zeroes(nCenters*nCenters*3, nqMine);
 		int iqMine = 0;
@@ -521,7 +546,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	}
 	
 	//Electron-electron linewidths:
-	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee", &iSpin);
+	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee");
 		if(fileSize(fname.c_str()) >= 0)
 		{	//Read Bloch version:
 			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
@@ -642,7 +667,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			for(const auto& iter: phononOmegaSq)
 				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
 				for(size_t jAtom=0; jAtom<xAtoms.size(); jAtom++)
-				{	vector3<int> iRnew = iter.first + dxAtoms[jAtom] - dxAtoms[iAtom];
+				{	vector3<int> iRnew = iter.first - (dxAtoms[jAtom] - dxAtoms[iAtom]); //iR + x_j - x_i stays invariant
 					matrix& oSqCur = phononOmegaSqNew[iRnew];
 					if(!oSqCur) oSqCur = zeroes(nPhononModes, nPhononModes);
 					oSqCur.set(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3,
@@ -690,7 +715,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				ePhCellMap[iter.first] = zeroes(xAtoms.size(), xExpect.size());
 		//--- Output force matrix on unified phonon cellMap:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			for(const auto iter: phononOmegaSq)
@@ -700,7 +725,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		//--- Output unified phonon cellMap:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
@@ -714,7 +739,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		}
 		//--- Output phonon cellMapSq:
 		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh");
+		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
 			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
@@ -758,7 +783,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				mpiWorld->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
 				//Translate for phonon basis wrapping (if any):
 				if(wannier.wrapWS)
-					phononHsubCur *= cis(2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k2 - kpointPairs[iPair].k1));
+					phononHsubCur *= cis(-2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k1 - kpointPairs[iPair].k2));
 			}
 		}
 		//--- apply translational invariance correction:
@@ -767,6 +792,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	Hsub_eigs[q].resize(nBands);
 			Hsub_eigs[q].bcast(e.eInfo.whose(q));
 		}
+		double nrmTot = 0., nrmCorr = 0.;
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 		{	const KpointPair& pair = kpointPairs[iPair];
 			if(pair.ik1 == pair.ik2) //only Gamma-point phonons
@@ -779,12 +805,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					for(int iAtom=0; iAtom<nAtoms; iAtom++)
 					{	int iMode = 3*iAtom + iDir;
 						phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
+						nrmTot += std::pow(nrm2(phononHsub[iMode][iPair])/invsqrtM[iMode], 2);
 					}
 					//Restrict correction to degenerate subspaces:
 					for(int b1=0; b1<nBands; b1++)
 						for(int b2=0; b2<nBands; b2++)
 							if(fabs(E[b1]-E[b2]) > 1e-4)
 								phononHsubMean.set(b1,b2, 0.);
+					nrmCorr += nAtoms*std::pow(nrm2(phononHsubMean), 2);
 					//Apply correction:
 					for(int iAtom=0; iAtom<nAtoms; iAtom++)
 					{	int iMode = 3*iAtom + iDir;
@@ -804,7 +832,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
 					phononHsubCur.dataPref(), phononHsubCur.nData());
 			}
-		logPrintf("done.\n"); logFlush();
+		logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 		//--- calculate HePh and output one cell fixed at a time to minimize memory usage:
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
@@ -814,7 +842,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 		}
 		matrix phase = zeroes(nPairsMine, phononCellMap.size());
-		double kPairWeight = 1./(prodPhononSup*prodPhononSup);
+		double kPairWeight = 1./prodPhononSup;
 		double nrm2totSq = 0., nrm2imSq = 0.;
 		for(const auto& entry1: ePhCellMap)
 		{	//calculate Fourier transform phase (with integration weights):
@@ -824,7 +852,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				for(const auto& entry2: ePhCellMap)
 				{	const vector3<int>& iR1 = entry1.first;
 					const vector3<int>& iR2 = entry2.first;
-					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k2,iR2) - dot(pair.k1,iR1))) );
+					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k1,iR1) - dot(pair.k2,iR2))) );
 				}
 			}
 			//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
@@ -842,12 +870,18 @@ void WannierMinimizer::saveMLWF(int iSpin)
 						HePhData += w.nData();
 					}
 				}
-			if(mpiWorld->isHead()) HePh.write_real(fp);
-			nrm2totSq += std::pow(nrm2(HePh), 2); 
-			nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+			if(realPartOnly)
+			{	if(mpiWorld->isHead()) HePh.write_real(fp);
+				nrm2totSq += std::pow(nrm2(HePh), 2); 
+				nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+			}
+			else { if(mpiWorld->isHead()) HePh.write(fp); }
 		}
 		if(mpiWorld->isHead()) fclose(fp);
-		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+		if(realPartOnly)
+			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+		else
+			logPrintf("done.\n");
 	}
 }
 

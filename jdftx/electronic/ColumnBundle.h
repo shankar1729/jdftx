@@ -42,7 +42,7 @@ class ColumnBundle : public ManagedMemory<complex>
 public:
 	int nCols() const { return ncols; } //!< number of columns accessor
 	size_t colLength() const { return col_length; } //!< column length accessor
-	explicit operator bool() const { return ncols*col_length; } //!< Test nullness of ColumnBundle
+	explicit operator bool() const { return ncols && col_length; } //!< Test nullness of ColumnBundle
 
 	//! Index of the i'th column j'th point into the data array
 	size_t index(int i, size_t j) const { return i*col_length+j; }

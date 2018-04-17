@@ -595,7 +595,7 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
 	{	HCq += Idag_DiagV_I(C[q], Vscloc); //Accumulate Idag Diag(Vscloc) I C
-		e->iInfo.augmentDensitySphericalGrad(qnum, Fq, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+		e->iInfo.augmentDensitySphericalGrad(qnum, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
 		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau), iDir);

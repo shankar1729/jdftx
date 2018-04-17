@@ -25,8 +25,7 @@ supported for ultrasoft pseudopotentials in the next tutorial
 
     #Save the following to common.in:
     lattice face-centered Cubic 7.65
-    ion-species SG15/$ID_ONCV_PBE-1.1.upf
-    ion-species SG15/$ID_ONCV_PBE-1.0.upf
+    ion-species SG15/$ID_ONCV_PBE.upf
     elec-cutoff 30
     ion Al 0.00 0.00 0.00  0
     
@@ -83,11 +82,11 @@ With these parameters we can set up the %Wannier input file:
         outerWindow -0.042 1.024 \
         saveMomenta yes
     
-    wannier-center -0.101403   0.435547   0.487558
-    wannier-center -0.443339   0.055289  -0.446398
-    wannier-center -0.361538  -0.010718   0.032397
-    wannier-center -0.296948   0.326939  -0.400117
-    wannier-center  0.030459  -0.158043  -0.194850
+    wannier-center Gaussian -0.101403   0.435547   0.487558
+    wannier-center Gaussian -0.443339   0.055289  -0.446398
+    wannier-center Gaussian -0.361538  -0.010718   0.032397
+    wannier-center Gaussian -0.296948   0.326939  -0.400117
+    wannier-center Gaussian  0.030459  -0.158043  -0.194850
     
     wannier-initial-state totalE.$VAR
     wannier-dump-name wannier.$VAR

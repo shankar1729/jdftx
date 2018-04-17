@@ -66,7 +66,7 @@ public:
 	int nRows() const { return nr; }
 	int nCols() const { return nc; }
 	int index(int i, int j) const { return nr*j+i; } //!< Index into data()
-	explicit operator bool() const { return nr*nc; } //!< Test null-ness of matrix
+	explicit operator bool() const { return nr && nc; } //!< Test null-ness of matrix
 
 	void init(int nrows,int ncols, bool onGpu=false); //!< called by the constructors
 	void reshape(int nrows, int ncols); //!< change the dimensions without altering the data (zero dimensions are filled in to match size)
@@ -208,11 +208,13 @@ complex det(const matrix& A);
 //! Compute the determinant of an diagonal matrix A
 double det(const diagMatrix& A);
 
-//! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null)
-matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0);
+//! Compute matrix A^exponent, and optionally the eigensystem of A (if non-null).
+//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs=0, bool* isSingular=0);
 
-//! Compute matrix A^-0.5 and optionally the eigensystem of A (if non-null)
-matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
+//! Compute matrix A^-0.5 and optionally the eigensystem of A (if non-null).
+//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0, bool* isSingular=0);
 
 //! Compute cis(A) = exp(iota A) and optionally the eigensystem of A (if non-null)
 matrix cis(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
@@ -246,7 +248,9 @@ public:
 	tiledBlockMatrix(const matrix& mBlock, int nBlocks, const std::vector<complex>* phaseArr=0);
 	
 	matrix operator*(const matrix&) const; //!< multiply block matrix by dense matrix
+	friend matrix operator*(const matrix& m, const tiledBlockMatrix& tbm);
 };
+matrix operator*(const matrix& m, const tiledBlockMatrix& tbm);  //!< multiply dense matrix by block matrix
 
 //! @}
 #endif  // JDFTX_CORE_MATRIX_H

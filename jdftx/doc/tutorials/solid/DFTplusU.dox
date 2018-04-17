@@ -32,9 +32,7 @@ one possible antiferromagnetic structure by doubling up the unit cell:
     ion O  0.5 0.5 0.25  0
     ion O  0.5 0.5 0.75  0
     
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     elec-smearing Fermi 0.01
     electronic-SCF

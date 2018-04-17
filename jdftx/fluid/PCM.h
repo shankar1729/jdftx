@@ -67,6 +67,7 @@ private:
 	std::vector<vector3<int>> latticeReps; //!< lattice repetitions needed to treat periodic boundaries correctly for SoftSphere
 	std::vector<double> Rall; //!< all solute atomic radii, with overall scale factor pre-multiplied (SoftSphere only)
 	std::vector<double> RallIonic; //!< Rall + ion spacing adde, used for separate ionic cavity, if any (SoftSphere only)
+	ScalarField zMask; //optional cavity mask function
 protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)

@@ -172,7 +172,7 @@ namespace MemPool
 		{	if(!mempoolSize) return MemSpace::alloc(sizeRequested); //pool not in use
 			lock.lock();
 			//Find size adjusted to chunk size:
-			const size_t chunkSize = 64; // 4096; //typical page size
+			const size_t chunkSize = 4096; //typical page size
 			const size_t chunkMask = chunkSize - 1;
 			size_t size = (sizeRequested + chunkMask) & (~chunkMask); //round up to multiple of chunkSize
 			//Find hole just big enough to fit it:

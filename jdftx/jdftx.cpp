@@ -32,17 +32,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
-	string inputFilename; bool dryRun, printDefaults;
 	Everything e; //the parent data structure for, well, everything
-	initSystemCmdline(argc, argv, "Performs Joint Density Functional Theory calculations.", inputFilename, dryRun, printDefaults, &e);
+	InitParams ip("Performs Joint Density Functional Theory calculations.", &e);
+	initSystemCmdline(argc, argv, ip);
 	
 	//Parse input file and setup
 	ElecVars& eVars = e.eVars;
-	parse(readInputFile(inputFilename), e, printDefaults);
-	if(dryRun) eVars.skipWfnsInit = true;
+	parse(readInputFile(ip.inputFilename), e, ip.printDefaults);
+	if(ip.dryRun) eVars.skipWfnsInit = true;
 	e.setup();
+	e.dump(DumpFreq_Init, 0);
 	Citations::print();
-	if(dryRun)
+	if(ip.dryRun)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 		finalizeSystem();
 		return 0;
@@ -70,6 +71,17 @@ int main(int argc, char** argv)
 		e.iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 		bandMinimize(e); // Do the band-structure minimization
+		//Update fillings if necessary:
+		if(e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+		{	//Calculate mu from nElectrons:
+			double Bz, mu = e.eInfo.findMu(eVars.Hsub_eigs, e.eInfo.nElectrons, Bz);
+			//Update fillings:
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				eVars.F[q] = e.eInfo.smear(e.eInfo.muEff(mu,Bz,q), eVars.Hsub_eigs[q]);
+			//Update TS and muN:
+			e.eInfo.updateFillingsEnergies(eVars.Hsub_eigs, e.ener);
+			e.eInfo.smearReport();
+		}
 	}
 	else if(e.vibrations) //Bypasses ionic/lattice minimization, calls electron/fluid minimization loops at various ionic configurations
 	{	e.vibrations->calculate();

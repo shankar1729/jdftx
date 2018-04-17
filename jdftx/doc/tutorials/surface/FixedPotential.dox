@@ -34,9 +34,8 @@ We can collect most of the commands including fluid into the common setup file:
     ion Pt  0.333333 -0.333333  0.118838   1
     ion Pt -0.333333  0.333333  0.237676   1
 
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbesol.uspp
+    elec-ex-corr gga-PBEsol
     elec-cutoff 20 100
     
     coulomb-interaction Slab 001
@@ -80,11 +79,11 @@ Note that we have used the robust, but slower, minimization algorithm instead of
 due to a charge-sloshing instability between the system and the electron reservoir.
 
 We will now run a sequence of fixed-potential calculations for mu varying from -1 to +1 eV
-relative to the neutral potential (PZC) of -0.1963 Hartrees (final mu from Neutral.out).
+relative to the neutral potential (PZC) of -0.2015 Hartrees (final mu from Neutral.out).
 
     #!/bin/bash
     for iMu in {-10..10}; do
-        export mu="$(echo $iMu | awk '{printf("%.4f", -0.1963+0.1*$1/27.2114)}')"
+        export mu="$(echo $iMu | awk '{printf("%.4f", -0.2015+0.1*$1/27.2114)}')"
         mpirun -n 4 jdftx -i Charged.in | tee Charged$mu.out
         mv common.nbound Charged$mu.nbound
     done
@@ -100,7 +99,7 @@ The intermediate calculations are quicker since they only shift the potential
 by 0.1 eV, and each calculation starts at the final state of the previous one
 (all stored in common.$VAR).
 
-Examine one of the output files, say Charged-0.2330.out.
+Examine one of the output files, say Charged-0.2382.out.
 Notice that the energy output is now called G, instead of F.
 This is the grand free energy, G = F - mu N, where N is the number
 of electrons (also check the energy components output at the end).
@@ -113,15 +112,15 @@ at fixed electron number and temperature.
 Next examine the bound charge distribution in the fluid for the
 two extremes of potential using:
 
-    createXSF Charged-0.2330.out Charged-0.2330.xsf Charged-0.2330.nbound
-    createXSF Charged-0.1596.out Charged-0.1596.xsf Charged-0.1596.nbound
+    createXSF Charged-0.2382.out Charged-0.2382.xsf Charged-0.2382.nbound
+    createXSF Charged-0.1648.out Charged-0.1648.xsf Charged-0.1648.nbound
 
 We need to specify the full file name for the bound charge file,
 rather than just the suffix 'nbound', because we moved the file in our run script.
 Visualizing these XSF files in VESTA, you shoud see distributions as shown at the top of this page.
 Note that the bound charge density is closer and larger next to the negatively charged 
 surface as compared to the positively charged one due to the charge-asymmetry of CANDLE,
-exactly as we saw before in the \ref SolvationIons tutorial.
+exactly as we saw before in the \ref SolvationIon tutorial.
 
 Finally, we will extract the charging curve of the Pt(111) surface:
 
@@ -138,7 +137,7 @@ We can plot the extracted results using gnuplot:
     #Within an interactive gnuplot session:
     A = 2*((5.23966*0.529e-8)**2)*sin(pi/3) #top+bottom surface area in cm^2
     qe = -1.602e-13                         #electron charge in microCoulombs
-    mu0 = -0.1963                           #mu corresponding to PZC
+    mu0 = -0.2015                           #mu corresponding to PZC
     N0 = 80                                 #Nelectrons in neutral surface
     set xlabel "V - PZC [V]"
     set ylabel "Charge [uC/cm^2]"

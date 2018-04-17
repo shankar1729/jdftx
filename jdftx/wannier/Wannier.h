@@ -38,11 +38,12 @@ public:
 	
 	struct AtomicOrbital
 	{	vector3<> r; //!< guess for center of localized wannier function
-		double a; //!< exponential decay length of nodeless hydrogenic orbital of current l
+		double sigma; //!< width parameter of Gaussian orbital of current l
 		int sp, atom; //!< species code (<0 if not using a pseudopotential atomic orbital) and atom number (<0 if not using an orbital located on an atom)
 		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
-		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)
+		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)	
+		AtomicOrbital() : sigma(0.), sp(-1), atom(-1), numericalOrbIndex(-1), coeff(1.) {}
 	};
 	struct TrialOrbital : public std::vector<AtomicOrbital>
 	{	bool pinned;
@@ -79,6 +80,14 @@ public:
 	vector3<int> phononSup; //!< phonon supercell (process e-ph matrix elements on this supercell if non-zero)
 	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed
 	bool wrapWS; //!< whether to wrap Wannier centers (and phonon atom perturbations) to a Wigner-Seitz cell
+	
+	enum SpinMode
+	{	SpinUp,
+		SpinDn,
+		SpinAll
+	}
+	spinMode; //!< which spin(s) to generate Wannier functions for
+	std::vector<int> iSpinArr; //!< set of spin indices corresponding to spinMode
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	

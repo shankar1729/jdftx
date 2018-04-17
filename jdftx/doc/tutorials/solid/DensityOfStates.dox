@@ -11,9 +11,7 @@ First, we calculate the total density of states using:
 
     #Save to Si.in and run "mpirun -n 4 jdftx -i Si.in"
     lattice face-centered Cubic 10.263
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     ion Si 0.00 0.00 0.00  0
@@ -32,7 +30,7 @@ First, we calculate the total density of states using:
 Starting from the total energy calculations of the previous two tutorials,
 all we needed to do is add the command \ref CommandDensityOfStates.
 Additionally, in order to get a few unoccupied states,
-we ask for more bands using \ref CommandElecNBands
+we ask for more bands using \ref CommandElecNbands
 and make sure the empty states are converged at
 the end of the calculation using \ref CommandConvergeEmptyStates.
 (Note that empty or unoccupied states that don't affect
@@ -55,7 +53,7 @@ Edit the last section of bandstruct.plot
     set ylabel "E - VBM [eV]"   #Add y-axis label
     set yrange [*:10]           #Truncate bands very far from VBM
     eV = 1/27.2114              #Value of eV in Hartrees
-    VBM = 0.227554              #VBM value (HOMO from totalE.eigStats)
+    VBM = 0.227557              #VBM value (HOMO from totalE.eigStats)
     xEnd = 68                   #Last x-tic value on k-path
     set arrow \
       from first xEnd, graph 0 \

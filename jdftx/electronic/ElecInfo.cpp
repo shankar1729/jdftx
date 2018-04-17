@@ -519,6 +519,26 @@ void ElecInfo::read(std::vector<matrix>& M, const char *fname, int nRowsOverride
 void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	assert(int(M.size())==nStates);
+#if MPI_SAFE_WRITE
+	//Safe mode / write from head:
+	if(mpiWorld->isHead())
+	{	FILE* fp = fopen(fname, "w");
+		if(!fp) die_alone("Error opening file '%s' for writing.\n", fname);
+		for(int q=0; q<nStates; q++)
+		{	const double* outData = M[q].data();
+			diagMatrix buf;
+			if(!isMine(q))
+			{	buf.resize(nRows);
+				buf.recv(whose(q), q);
+				outData = buf.data();
+			}
+			fwriteLE(outData, sizeof(double), nRows, fp);
+		}
+		fclose(fp);
+	}
+	else for(int q=qStart; q<qStop; q++) M[q].send(0, q);
+#else
+	//Collective write using MPI I/O:
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
@@ -526,12 +546,31 @@ void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nR
 		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
 	}
 	mpiWorld->fclose(fp);
+#endif
 }
 
 void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsOverride, int nColsOverride) const
 {	int nRows = nRowsOverride ? nRowsOverride : nBands;
 	int nCols = nColsOverride ? nColsOverride : nBands;
 	assert(int(M.size())==nStates);
+#if MPI_SAFE_WRITE
+	//Safe mode / write from head:
+	if(mpiWorld->isHead())
+	{	FILE* fp = fopen(fname, "w");
+		if(!fp) die_alone("Error opening file '%s' for writing.\n", fname);
+		for(int q=0; q<nStates; q++)
+		{	if(!isMine(q))
+			{	matrix buf(nRows, nCols);
+				buf.recv(whose(q), q);
+				buf.write(fp);
+			}
+			else M[q].write(fp);
+		}
+		fclose(fp);
+	}
+	else for(int q=qStart; q<qStop; q++) M[q].send(0, q);
+#else
+	//Collective write using MPI I/O:
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
@@ -540,16 +579,5 @@ void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsO
 		mpiWorld->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
 	}
 	mpiWorld->fclose(fp);
-}
-
-void ElecInfo::appendWrite(const std::vector<diagMatrix>& M, const char *fname, int nRowsOverride) const
-{	int nRows = nRowsOverride ? nRowsOverride : nBands;
-	assert(int(M.size())==nStates);
-	MPIUtil::File fp; mpiWorld->fopenAppend(fp, fname);
-	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_CUR);
-	for(int q=qStart; q<qStop; q++)
-	{	assert(M[q].nRows()==nRows);
-		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
-	}
-	mpiWorld->fclose(fp);
+#endif
 }

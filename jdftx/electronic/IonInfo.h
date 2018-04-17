@@ -91,8 +91,8 @@ public:
 	void augmentDensityInit() const; //!< initialize density augmentation
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const; //!< calculate density augmentation in spherical functions
 	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
-	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const; //! propagate grid gradients to spherical functions
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //! propagate spherical function gradients to wavefunctions
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0) const; //!< propagate grid gradients to spherical functions
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //!< propagate spherical function gradients to wavefunctions
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
@@ -105,9 +105,9 @@ public:
 	double rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const; //!< compute U energy and gradient w.r.t atomic density matrices
 	void rhoAtom_grad(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
-	void rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const; //!< get DFT+U Hamiltonian basis (atomic orbitals) and matrices
+	void rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& Opsi, std::vector<matrix>& M) const; //!< get DFT+U Hamiltonian basis (atomic orbitals) and matrices
 	
-	ColumnBundle rHcommutator(const ColumnBundle &Y, int iDir) const; //!< Apply commutator operator [r_iDir,H] = D_iDir + nonlocal corrections
+	matrix rHcommutator(const ColumnBundle &Y, int iDir, const matrix& YdagHY) const; //!< Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections
 	
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)

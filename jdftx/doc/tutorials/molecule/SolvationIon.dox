@@ -25,9 +25,7 @@ First, let's collect the common commands as usual in common.in:
     lattice Cubic 15
     coulomb-interaction Isolated
     coulomb-truncation-embed 0 0 0
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     coords-type cartesian
     
@@ -152,10 +150,10 @@ all in Hartrees:
 
 Configuration |   Etot    |   Avib  |  A (free energy)
 --------------|-----------|---------|-----------------
-     H2O      | -17.28132 | 0.02073 | -17.26059
-     H3O+     | -17.70612 | 0.03297 | -17.67315
-     OH-      | -16.81101 | 0.00864 | -16.80237
-  Reaction    |   0.04551 | 0.00015 |   0.04566
+     H2O      | -17.28095 | 0.02076 | -17.26019
+     H3O+     | -17.70547 | 0.03305 | -17.67242
+     OH-      | -16.81064 | 0.00871 | -16.80193
+  Reaction    |   0.04579 | 0.00024 |   0.04603
 
 Notice that the vibrational contribution almost cancels out in the difference,
 because the reactants and the products all have the same number of O-H bonds
@@ -171,7 +169,7 @@ Using its definition, the dissociation constant of water is therefore:
 \f$ pK_w = -log_{10}([H3O+][OH-]) = \frac{\triangle A}{2.303 kT} - 2 log_{10}[H2O] \f$
 
 With kT = 0.000944 Hartrees and [H2O] = 55.5M at standard temperature and pressure,
-CANDLE therefore predicts pKw = 17.5 in good agreement
+CANDLE therefore predicts pKw = 17.7 in reasonable agreement
 with the well-known experimental value pKw = 14.
 
 In contrast, rerunning all the above calculations with the GLSSA13 LinearPCM
@@ -180,12 +178,12 @@ identical to VASPsol and vey similar to SCCS, we get the results:
 
 Configuration |   Etot    |   Avib  |  A (free energy)
 --------------|-----------|---------|-----------------
-     H2O      | -17.27989 |  0.02087 | -17.25902
-     H3O+     | -17.71030 |  0.03200 | -17.67830
-     OH-      | -16.76717 |  0.00863 | -16.75854
-  Reaction    |   0.08231 | -0.00111 |   0.08120
+     H2O      | -17.27957 |  0.02082 | -17.25875
+     H3O+     | -17.70966 |  0.03218 | -17.67748
+     OH-      | -16.76710 |  0.00866 | -16.75844
+  Reaction    |   0.08238 | -0.00080 |   0.08158
 
-which predicts pKw = 35.9, which is quite incorrect.
+which predicts a pKw = 34.0 that is rather inaccurate.
 Looking at the energies, note that the one which differs the most from CANDLE is OH-.
 A very important feature in CANDLE is that it correctly handles the difference in
 solvation between cations and anions of the same size (CA expands to Charge-Asymmetric).

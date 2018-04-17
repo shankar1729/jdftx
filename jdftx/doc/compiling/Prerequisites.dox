@@ -1,0 +1,50 @@
+/** \page Prerequisites Prerequisites
+
+JDFTx is distributed as [source packages](https://github.com/shankar1729/jdftx/releases),
+or for development via [git](https://github.com/shankar1729/jdftx),
+and requires a POSIX-compatible environment and a C++11 compiler
+to install and get running.
+It also depends on several GNU and open-source libraries,
+which will most easily be installed using a package manager.
+So here are the prerequisites to installing JDFTx on your system:
+
++ <b>GNU/Linux</b> (any distribution):
+  You already have a package manager (or you are on an advanced distribution and know how to do without one!).
+  In high likelihood, your distribution is either:
+  
+  - Debian-based (eg. Debian, Ubuntu, Mint and their numerous flavors),
+    and you could use "sudo apt-get install <package names>", or
+    
+  - Redhat-based (eg. RHEL, CentOS, Fedora etc.),
+    and you could use "sudo yum install <package names>".
+  
+  See [Linux Package Management](https://www.linode.com/docs/tools-reference/linux-package-management) for a detailed introduction.
+  <br><br>
+  
++ <b>Mac OS X</b>:
+  Install the [Xcode commandline tools and MacPorts](https://www.macports.org/install.php)
+  (or another package manager such as [Homebrew](http://brew.sh) or [Fink](http://www.finkproject.org);
+  but then you should translate the package-names below from MacPorts).
+  You would then install packages using "sudo port install <package names>".
+  <br><br>
+  
++ <b>Windows</b>:
+  Install [Cygwin](https://cygwin.com/install.html)
+  which provides a POSIX-compatible environment on Windows
+  including a terminal with the bash shell
+  (assumed here and in the tutorials).
+  You can select packages in the Cygwin installer graphical interface,
+  and can rerun the installer to add / remove packages later.
+  In addition, you should select the xinit package to get a [working X11 environment](http://x.cygwin.com),
+  which will be necessary for opearting many of the Unix tools in graphical mode.
+  <br><br>
+  
++ <b>Supercomputing cluster</b>:
+  All the dependencies will likely already be installed by the administrators,
+  but you will have to load necessary modules and specify some paths manually.
+  See explicit compilation instructions for NERSC and TACC in the \ref Supercomputers page.
+  If you compile sucessfully on other shared compute clusters,
+  please post instructions in the [Wiki](https://github.com/shankar1729/jdftx/wiki).
+  We would greatly appreciate it and include those instructions below as well. 
+
+*/

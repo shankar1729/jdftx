@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true)
+: potentialSubtraction(true), curIter(0)
 {
 }
 
@@ -67,6 +67,7 @@ void Dump::setup(const Everything& everything)
 void Dump::operator()(DumpFrequency freq, int iter)
 {
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
+	curIter = iter; curFreq = freq; //used by getFilename()
 	
 	bool foundVars = false; //whether any variables are to be dumped at this frequency
 	for(auto entry: *this)
@@ -153,9 +154,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	if(ShouldDump(IonicPositions) || (ShouldDump(State) && (e->ionicMinParams.nIterations>0 || e->latticeMinParams.nIterations>0)))
 	{	StartDump("ionpos")
-		FILE* fp;
-		if (freq==DumpFreq_Dynamics) fp = mpiWorld->isHead() ? fopen(fname.c_str(), "a") : nullLog;
-		else fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
+		FILE* fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 		iInfo.printPositions(fp);  //needs to be called from all processes (for magnetic moment computation)
 		if(mpiWorld->isHead())fclose(fp);
@@ -163,8 +162,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	}
 	if(ShouldDump(Forces))
 	{	StartDump("force")
-		if(mpiWorld->isHead()) 
-		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
+		if(mpiWorld->isHead())
+		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());
 			iInfo.forces.print(*e, fp);
 			fclose(fp);
@@ -221,8 +220,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(hasFluid)
 	{	if(ShouldDump(Dfluid) || needDtot)
 		{	double GzeroCorrection = eVars.fluidSolver->ionWidthMuCorrection() - eVars.fluidSolver->bulkPotential();
-			DUMP(I(eVars.d_fluid), "d_fluid", Dfluid);
-			if(needDtot) d_tot = I(d_vac + eVars.d_fluid) + GzeroCorrection;
+			ScalarFieldTilde d_fluid = clone(eVars.d_fluid);
+			if(eVars.fluidSolver->A_rhoNonES)
+				d_fluid -= eVars.fluidSolver->A_rhoNonES;
+			DUMP(I(d_fluid), "d_fluid", Dfluid);
+			if(needDtot) d_tot = I(d_vac + d_fluid) + GzeroCorrection;
 			DUMP(d_tot, "d_tot", Dtot);
 		}
 		DUMP(I(eVars.V_cavity), "V_cavity", Vcavity);
@@ -256,10 +258,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			( (eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 			|| (e->exCorr.orbitalDep && isCevec) ) ) )
 	{	StartDump("eigenvals")
-		if (freq == DumpFreq_Dynamics)
-			eInfo.appendWrite(eVars.Hsub_eigs, fname.c_str());
-		else
-			eInfo.write(eVars.Hsub_eigs, fname.c_str());
+		eInfo.write(eVars.Hsub_eigs, fname.c_str());
 		EndDump
 	}
 	
@@ -347,7 +346,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(Ecomponents))
 	{	StartDump("Ecomponents")
 		if(mpiWorld->isHead())
-		{	FILE* fp = freq==DumpFreq_Dynamics ? fopen(fname.c_str(), "a") : fopen(fname.c_str(), "w");
+		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());	
 			e->ener.print(fp);
 			fclose(fp);
@@ -462,7 +461,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		{	momenta[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
 			for(int k=0; k<3; k++) //cartesian direction
 				momenta[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1),
-					complex(0,1) * (eVars.C[q] ^ iInfo.rHcommutator(eVars.C[q], k)) );
+					complex(0,-1) * iInfo.rHcommutator(eVars.C[q], k, eVars.Hsub_eigs[q]) );
 		}
 		eInfo.write(momenta, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
 		EndDump
@@ -618,10 +617,17 @@ bool Dump::checkInterval(DumpFrequency freq, int iter) const
 string Dump::getFilename(string varName) const
 {	//Create a map of substitutions:
 	std::map<string,string> subMap;
+	ostringstream ossIter; ossIter << curIter;
 	subMap["$VAR"] = varName;
+	subMap["$ITER"] = ossIter.str();
 	subMap["$STAMP"] = stamp;
-	//Apply the substitutions:
+	subMap["$INPUT"] = inputBasename;
+	//Find the relevant pattern:
 	string fname = format;
+	auto iter = formatFreq.find(curFreq);
+	if(iter != formatFreq.end())
+		fname = iter->second; //override with frequency-dependent format
+	//Apply the substitutions:
 	while(true)
 	{	bool found = false;
 		for(auto sub: subMap)

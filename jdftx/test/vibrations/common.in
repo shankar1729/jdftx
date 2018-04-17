@@ -1,7 +1,7 @@
 lattice Cubic 12
 coords-type cartesian
 
-ion-species GBRV/h_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 coulomb-interaction isolated
@@ -11,3 +11,5 @@ electronic-scf
 
 dump-name H2.$VAR
 dump End None
+
+core-overlap-check none  #Needed for H2 due to increased H core radius

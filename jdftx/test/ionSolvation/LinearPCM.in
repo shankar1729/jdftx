@@ -2,8 +2,7 @@ lattice Cubic 11
 ion F  0.00  0.00  0.00  1
 elec-initial-charge +1
 
-ion-species GBRV/$ID_pbe_v1.2.uspp
-ion-species GBRV/$ID_pbe_v1.uspp
+ion-species GBRV/$ID_pbe.uspp
 elec-cutoff 20 100
 
 coulomb-interaction isolated

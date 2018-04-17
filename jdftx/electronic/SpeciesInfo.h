@@ -79,6 +79,7 @@ public:
 	void print(FILE* fp) const; //!< print ionic positions from current species
 	void populationAnalysis(const std::vector<matrix>& RhoAll) const; //!< print population analysis given the density matrix in the Lowdin basis
 	bool isRelativistic() const { return psi2j.size(); } //!< whether pseudopotential is relativistic
+	bool isUltrasoft() const { return Qint.size(); } //!< whether pseudopotential is ultrasoft
 	
 	enum PseudopotentialFormat
 	{	Fhi, //!< FHI format with ABINIT header (.fhi files)
@@ -88,8 +89,9 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, matrix* M=0) const; //!< get projectors with qnum and basis matching Cq  (optionally cached, and optionally retrieve full M repeated over atoms)
-
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //!< get projectors with qnum and basis matching Cq  (optionally cached)
+	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
+	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
@@ -97,7 +99,7 @@ public:
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
 	
-	//! Clear internal data and prepare for density augmentation (call before a loop ober augmentDensitySpherical per k-point)
+	//! Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point)
 	void augmentDensityInit();
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
@@ -107,7 +109,7 @@ public:
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0);
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const;
 	
 	//DFT+U functions: handle IonInfo::rhoAtom_*() for this species
 	//The rhoAtom pointers point to the start of those relevant to this species (and ends at that pointer + rhoAtom_nMatrices())
@@ -117,7 +119,7 @@ public:
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
 	void rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
-	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& psi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
+	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
@@ -177,7 +179,7 @@ private:
 	ManagedArray<uint64_t> nagIndex; ManagedArray<size_t> nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad(_gpu)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)
-	std::vector<std::vector<RadialFunctionG> >* OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
+	std::vector<std::vector<RadialFunctionG> > OpsiRadial; //!< O(psiRadial): includes Q contributions for ultrasoft pseudopotentials
 	std::vector<std::vector<double> > atomEigs; //!< Eigenvalues of the atomic orbitals in the atomic state (read in, or computed from tail of psi by estimateAtomEigs)
 	
 	//! Extra information for spin-orbit coupling:
@@ -212,26 +214,30 @@ private:
 	void readUspp(istream&); //Implemented in SpeciesInfo_readUspp.cpp
 	void readUPF(istream&); //Implemented in SpeciesInfo_readUPF.cpp
 	void setupPulay();
+	void setPsi(std::vector<std::vector<RadialFunctionR> >& psi); //!< Normalize, transform from real space and set psiRadial, OpsiRadial (for ultrasoft psps, call after setting Qint)
 	
 	//Following implemented in SpeciesInfo_atomFillings.cpp
 	void estimateAtomEigs(); //!< If not read from file, estimate atomic eigenvalues from orbitals.
 	void getAtom_nRadial(int spin, double magneticMoment, RadialFunctionG& nRadial, bool forceNeutral) const; //!< Compute the atomic density per spin channel, given the magnetic moment
 	void getAtomPotential(RadialFunctionG& dRadial) const; //!< Get the total electrostatic potential of a neutral atom
-	
-	friend struct CommandIonSpecies;
-	friend struct CommandSetVDW;
-	friend class VanDerWaals;
-	friend struct CommandSetAtomicRadius;
-	friend class FluidSolverParams;
-	friend class PCM;
+
 	friend struct CommandAddU;
 	friend struct CommandChargeball;
+	friend struct CommandIonSpecies;
+	friend struct CommandSetVDW;
+	friend struct CommandSetAtomicRadius;
 	friend struct CommandTauCore;
 	friend struct CommandWavefunction;
-	friend class WannierMinimizer;
-	friend class IonicMinimizer;
-	friend class Phonon;
+	friend struct ElectronScattering;
+	friend struct FluidSolverParams;
+	friend class ColumnBundleTransform;
 	friend class Dump;
+	friend class IonicMinimizer;
+	friend class IonInfo;
+	friend class PCM;
+	friend class Phonon;
+	friend class VanDerWaals;
+	friend class WannierMinimizer;
 };
 
 

@@ -38,7 +38,7 @@ WannierMinimizerRS::WannierMinimizerRS(const Everything& e, const Wannier& wanni
 	nullToZero(r, gInfoSuper);
 	nullToZero(rSq, gInfoSuper);
 	WignerSeitz ws(gInfoSuper.R);
-	threadLaunch(setRealSpaceMeasures, gInfoSuper.nr, gInfoSuper.S, gInfoSuper.R, &ws, r.data(), rSq->dataPref());
+	threadLaunch(setRealSpaceMeasures, gInfoSuper.nr, gInfoSuper.S, gInfoSuper.R, &ws, r.data(), rSq->data());
 	
 	//Split centers over MPI processes:
 	TaskDivision(nCenters, mpiWorld).myRange(nStart, nStop);

@@ -16,9 +16,7 @@ Save the following to Hatom.in:
     coulomb-interaction Isolated
     coulomb-truncation-embed 0 0 0
 
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     dump End None
@@ -77,10 +75,9 @@ We can specify Hartree-Fock theory using the command:
 Running jdftx on Hatom.in with this command added, will at first however fail
 because exact-exchange based calculations are only supported for norm-conserving pseudopotentials,
 whereas the GBRV pseudopotentials used above are ultrasoft pseudopotentials.
-Therefore, additionally replace the two ion-species lines and the elec-cutoff line above with
+Therefore, additionally replace the ion-species line and the elec-cutoff line above with
 
-     ion-species SG15/$ID_ONCV_PBE-1.1.upf
-     ion-species SG15/$ID_ONCV_PBE-1.0.upf
+     ion-species SG15/$ID_ONCV_PBE.upf
      elec-cutoff 30
 
 to use the norm-conserving SG15 pseudopotential set, which requires a higher plane-wave cutoff.

@@ -13,14 +13,13 @@ Not surprisingly, we can set up an iron calculation using:
 
     #Save the following to totalE.in:
     lattice body-centered Cubic 5.42
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbesol.uspp
+    elec-ex-corr gga-PBEsol
     elec-cutoff 20 100
     ion Fe  0 0 0  0
     dump-name totalE.$VAR
-	dump End ElecDensity
-	density-of-states Total
+    dump End ElecDensity
+    density-of-states Total
     kpoint-folding 12 12 12
     elec-smearing Fermi 0.01
     electronic-SCF
@@ -71,7 +70,7 @@ using the gnuplot script:
     #!/usr/bin/gnuplot --persist
     set xrange [-10:10]
     set xlabel "E - Ef [eV]"
-    mu = 0.6384     #From the final FillingsUpdate line
+    mu = 0.6377     #From the final FillingsUpdate line
     eV = 1/27.2114
     plot \
        "totalE.dosUp" u (($1-mu)/eV):2 w l title "up", \

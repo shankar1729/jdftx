@@ -49,22 +49,33 @@ struct CommandDumpOnly : public Command
 }
 commandDumpOnly;
 
+//Variables allowed at dump frequency Init
+EnumStringMap<DumpVariable> varInitMap
+(	DumpNone, "None",
+	DumpIonicPositions, "IonicPositions",
+	DumpLattice, "Lattice",
+	DumpCoreDensity, "CoreDensity",
+	DumpVlocps, "Vlocps",
+	DumpSymmetries, "Symmetries",
+	DumpKpoints, "Kpoints",
+	DumpGvectors, "Gvectors"
+);
 
 EnumStringMap<DumpFrequency> freqMap
 (	DumpFreq_End, "End",
+	DumpFreq_Init, "Init",
 	DumpFreq_Ionic, "Ionic",
 	DumpFreq_Gummel, "Gummel",
 	DumpFreq_Fluid, "Fluid",
-	DumpFreq_Electronic, "Electronic",
-	DumpFreq_Dynamics, "IonDynamics"
+	DumpFreq_Electronic, "Electronic"
 );
 EnumStringMap<DumpFrequency> freqDescMap
 (	DumpFreq_End, "Dump specified vars at the end of the calculation",
+	DumpFreq_Init, "Dump specified vars from " + varInitMap.optionList() + " after initialization (even in dry run)",
 	DumpFreq_Ionic, "Dump specified vars every (few) ionic / lattice step(s)",
 	DumpFreq_Gummel, "Dump specified vars every (few) fluid+electron minimize of the gummel loop",
 	DumpFreq_Fluid, "Dump specified vars every (few) fluid step(s)",
-	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)",
-	DumpFreq_Dynamics, "Dump specified vars every (few) dynamics time step(s). Appends to .ionpos, .forces, .eigenvals and .Ecomponents"
+	DumpFreq_Electronic, "Dump specified vars every (few) electronic step(s)"
 );
 
 
@@ -194,7 +205,7 @@ struct CommandDump : public Command
 		//For any real dump frequency:
 		while(true)
 		{	DumpVariable var;
-			pl.get(var, DumpDelim, varMap, "var");
+			pl.get(var, DumpDelim, freq==DumpFreq_Init ? varInitMap : varMap, "var");
 			if(var==DumpDelim) break; //will happen at end of command line
 			e.dump.insert(std::make_pair(freq,var));
 			//Check for unsupported features:
@@ -228,7 +239,7 @@ struct CommandDumpInterval : public Command
 	{
 		format = "<freq> <interval>";
 		comments = 
-			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel|IonDynamics.\n"
+			"Dump every <interval> iterations of type <freq>=Ionic|Electronic|Fluid|Gummel.\n"
 			"Without this command, the behavior defaults to <interval>=1 for each <freq>.\n"
 			"(See command dump for more details)";
 		allowMultiple = true;
@@ -238,7 +249,7 @@ struct CommandDumpInterval : public Command
 	{	//get the frequency:
 		DumpFrequency freq;
 		pl.get(freq, DumpFreq_Delim, freqMap, "freq", true);
-		if(freq==DumpFreq_End)
+		if(freq==DumpFreq_End || freq==DumpFreq_Init)
 			throw string("<freq> must be one of Ionic|Electronic|Fluid|Gummel");
 		if(e.dump.interval.find(freq) != e.dump.interval.end())
 			throw string("dump-interval has been specified multiple times for <freq>=") + freqMap.getString(freq);
@@ -264,23 +275,38 @@ struct CommandDumpName : public Command
 {
 	CommandDumpName() : Command("dump-name", "jdftx/Output")
 	{
-		format = "<format>";
+		format = "<format> [<freq1> <format1>] [<freq2> <format2>] ...";
 		comments = 
 			"Control the filename pattern for dump output, where <format> is an\n"
 			"arbitrary format string that will be substituted according to:\n"
 			"+ $VAR   -> name of the variable being dumped (this must be present)\n"
-			"+ $STAMP -> time-stamp at the start of dump";
+			"+ $ITER  -> iteration number of relevant dump frequency\n"
+			"+ $INPUT -> base name of input file, or 'stdin'\n"
+			"+ $STAMP -> time-stamp at the start of dump\n"
+			"\n"
+			"Optionally, a different <format> could be specified for some dump frequencies.";
 		hasDefault = true;
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	pl.get(e.dump.format, string("$STAMP.$VAR"), "format");
+	{	pl.get(e.dump.format, string("$INPUT.$VAR"), "format");
 		if(e.dump.format.find("$VAR")==string::npos)
 			throw "<format> = " + e.dump.format + " doesn't contain the pattern $VAR";
+		//Check for additional specifictaions:
+		while(true)
+		{	DumpFrequency freq; pl.get(freq, DumpFreq_Delim, freqMap, "<freqN>");
+			if(freq==DumpFreq_Delim) break; //no more freq's
+			string format; pl.get(format, string(), "<formatN>", true);
+			if(format.find("$VAR")==string::npos)
+				throw "<format> = " + format + " doesn't contain the pattern $VAR";
+			e.dump.formatFreq[freq] = format;
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	logPrintf("%s", e.dump.format.c_str());
+		for(auto entry: e.dump.formatFreq)
+			logPrintf(" \\\n\t%s %s", freqMap.getString(entry.first), entry.second.c_str());
 	}
 }
 commandDumpName;

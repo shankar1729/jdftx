@@ -14,9 +14,7 @@ First lets specify the common specifications for bulk silicon (same as previous 
 
     #Save the following to common.in:
     lattice face-centered Cubic 10.263
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     ion Si 0.00 0.00 0.00  0

@@ -28,7 +28,7 @@ PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
 }
 
 Phonon::Phonon()
-: dr(0.01), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), e(*this), eSupTemplate(*this)
+: dr(0.1), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), e(*this), eSupTemplate(*this)
 {
 }
 
@@ -90,6 +90,7 @@ void Phonon::setup(bool printDefaults)
 	nBandsOpt = (e.eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 		? 1+int(ceil(e.eInfo.nElectrons/e.eInfo.qWeightSum)) //make sure extra band present for smearing
 		: 0; //no smearing: tightest number of bands acceptable
+	nBandsOpt = std::min(e.eInfo.nBands, nBandsOpt); //in-case nBands was borderline
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	int nBands_q = std::upper_bound(e.eVars.F[q].begin(), e.eVars.F[q].end(), Fcut, std::greater<double>()) - e.eVars.F[q].begin();
 		nBandsOpt = std::max(nBandsOpt, nBands_q);
@@ -310,7 +311,7 @@ void Phonon::setup(bool printDefaults)
 		logSuspend();
 		for(int ik=0; ik<prodSup; ik++)
 		{	qnums[ik].k = kpoints[ik].k;
-			qnums[ik].spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			qnums[ik].spin = (nSpins==1 ? 0 : (iSpin==0 ? +1 : -1));
 			qnums[ik].weight = 1./prodSup;
 			basis[ik].setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpoints[ik].k);
 		}
@@ -394,7 +395,7 @@ void Phonon::setup(bool printDefaults)
 		}
 		#undef whose_ik
 		mpiWorld->allReduce(EmaxValid, MPIUtil::ReduceMin);
-		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin ? +1 : -1);  else logPrintf("\t");
+		if(nSpins>1) logPrintf("\tSpin %+d: ", iSpin==0 ? +1 : -1);  else logPrintf("\t");
 		logPrintf("Matrix elements valid for ");
 		if(std::isfinite(EmaxValid)) logPrintf("E < %+.6lf (Emax = %+.6lf) due to incomplete degenerate subspaces.\n", EmaxValid, Emax);
 		else logPrintf("all available states (all degenerate subspaces are complete).\n");

@@ -36,9 +36,7 @@ We can setup a unit cell with the experimental geometry as:
     ion C  0.000000  0.000000  0.5   0
     ion C -0.333333  0.333333  0.5   0
     
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     kpoint-folding 12 12 4
     

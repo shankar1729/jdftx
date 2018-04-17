@@ -46,7 +46,7 @@ protected:
 	string category; //!< category of managed memory objects to report memory usage under
 	size_t nBytes; //!< Size of stored data
 	void* c; //!< Actual data storage
-	bool onGpu; //!< For reduced #ifdef's, this flag is retained even in the absence of gpu support
+	bool onGpu; //!< For reduced \#ifdef's, this flag is retained even in the absence of gpu support
 	void toCpu() const; //!< move data to the CPU (does nothing without GPU_ENABLED); logically const, but data location may change
 	void toGpu() const; //!< move data to the GPU (does nothing without GPU_ENABLED); logically const, but data location may change
 };
@@ -86,7 +86,7 @@ public:
 	#endif
 
 	size_t nData() const { return nElem; } //!< number of data points
-	bool isOnGpu() const { return onGpu; } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
+	bool isOnGpu() const { return onGpu; } //!< Check where the data is (for \#ifdef simplicity exposed even when no GPU_ENABLED)
 
 	//Iterator access on CPU:
 	T* begin() { return data(); } //!< pointer to start of array
@@ -181,6 +181,8 @@ template<typename T> void ManagedMemory<T>::memMove(ManagedMemory<T>&& mOther)
 template<typename T> void ManagedMemory<T>::read(const char *fname)
 {	intptr_t fsizeExpected = nData() * sizeof(T);
 	intptr_t fsize = fileSize(fname);
+	if(fsize < 0)
+		die("Could not open file for reading.\n");
 	if(fsize != fsizeExpected)
 		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname, "rb");
@@ -208,6 +210,8 @@ template<typename T> void ManagedMemory<T>::read_real(const char *fname)
 {	assert((std::is_same<T,complex>::value));
 	intptr_t fsizeExpected = nData() * sizeof(double);
 	intptr_t fsize = fileSize(fname);
+	if(fsize < 0)
+		die("Could not open file for reading.\n");
 	if(fsize != fsizeExpected)
 		die("Length of '%s' was %" PRIdPTR " instead of the expected %" PRIdPTR " bytes.\n", fname, fsize, fsizeExpected);
 	FILE *fp = fopen(fname,"rb");

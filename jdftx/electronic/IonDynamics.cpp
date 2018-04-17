@@ -249,7 +249,7 @@ void IonDynamics::computePressure() // <!  A very similar code can be found in L
 bool IonDynamics::report(double t)
 {	int iter = lrint(t/e.ionDynamicsParams.dt); //round to int to get iteration number
 	//Dump:
-	e.dump(DumpFreq_Dynamics, iter);
+	e.dump(DumpFreq_Ionic, iter);
 	
 	logPrintf("\nVerletMD t = %f fs (dt = %f in atomic units) Iter: %d",t/fs,e.ionDynamicsParams.dt, iter);
 	logPrintf("\nE_Kin = %lg \t E_pot = %lg \t E_tot = %lg \t pressure(in Bar) = %lg Momentum = %lg",

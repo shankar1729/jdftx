@@ -26,11 +26,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //---------- class MPIUtil::ProcDivision ----------
 
-MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups)
+MPIUtil::ProcDivision::ProcDivision(const MPIUtil *mpiUtil, size_t nGroups, size_t iGroup)
 : mpiUtil(mpiUtil), nGroups(nGroups), iGroup(
 	(nGroups and mpiUtil)
-	?  (mpiUtil->iProcess() + 1) * nGroups / mpiUtil->nProcesses()
-	: 0 )
+	?  mpiUtil->iProcess() * nGroups / mpiUtil->nProcesses()
+	: iGroup )
 {
 }
 
@@ -61,7 +61,6 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	//No MPI:
 	nProcs = 1;
 	iProc = 0;
-	assert(!procDivision);
 	#endif
 	
 	if(!procDivision) Random::seed(iProc); //Reproducible random seed per process in mpiWorld
@@ -70,7 +69,10 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 MPIUtil::~MPIUtil()
 {
 	#ifdef MPI_ENABLED
-	MPI_Finalize();
+	if(procDivision)
+		MPI_Comm_free(&comm);
+	else
+		MPI_Finalize();
 	#endif
 }
 
@@ -99,6 +101,7 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 		bcast(bufTotData, nChars_j, jProcess);
 		bufTotData += nChars_j;
 	}
+	bufTot += '\n';
 	//Mimic the behaviour of die with collected error message:
 	fputs(bufTot.c_str(), globalLog);
 	if(isHead() && globalLog != stdout)
@@ -191,6 +194,8 @@ void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool saf
 void MPIUtil::fopenRead(File& fp, const char* fname, size_t fsizeExpected, const char* fsizeErrMsg) const
 {	if(fsizeExpected)
 	{	intptr_t fsize = fileSize(fname);
+		if(fsize < 0)
+			die("Error opening file '%s' for reading.\n", fname);
 		if(fsize != intptr_t(fsizeExpected))
 			die("Length of '%s' was %" PRIdPTR " instead of the expected %zu bytes.\n%s\n", fname, fsize, fsizeExpected, fsizeErrMsg ? fsizeErrMsg : "");
 	}

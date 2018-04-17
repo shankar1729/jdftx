@@ -136,12 +136,13 @@ protected:
 	bool isMine_q(int ik, int iSpin) const { return e.eInfo.isMine(kMesh[ik].point.iReduced + iSpin*qCount); }
 	int whose_q(int ik, int iSpin) const { return e.eInfo.whose(kMesh[ik].point.iReduced + iSpin*qCount); }
 	
-	//! Get the wavefunctions for a particular k-point in the common basis
-	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin) const;
+	//! Get the wavefunctions for a particular k-point in the common basis (and optionally retrieve psp projections)
+	ColumnBundle getWfns(const Kpoint& kpoint, int iSpin, std::vector<matrix>* VdagResultPtr=0) const;
 	std::vector<ColumnBundle> Cother; //!< wavefunctions from another process
+	std::vector<std::vector<matrix>> VdagCother; //!< psp projections of wavefunctions from another process
 	
 	//! Like getWfns, but accumulate instead of setting, and with optional transformation matrix: result += alpha * wfns * A
-	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result) const;
+	void axpyWfns(double alpha, const matrix& A, const Kpoint& kpoint, int iSpin, ColumnBundle& result, std::vector<matrix>* VdagResultPtr=0) const;
 	
 	//! Gradient propagation corresponding to axpyWfns: from dOmega/d(result) to dOmega/dA
 	void axpyWfns_grad(double alpha, matrix& Omega_A, const Kpoint& kpoint, int iSpin, const ColumnBundle& Omega_result) const;
@@ -150,14 +151,17 @@ protected:
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
 	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
 	
-	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation
-	//! (Note that the augmentation in the O() from electronic/ColumnBundle.h assumes both sides have same k-point)
-	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2) const;
+	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation.
+	//! Note that the augmentation in the O() from electronic/ColumnBundle.h assumes both sides have same k-point.
+	//! If provided, use the cached projections instead of recomputing them.
+	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2, const std::vector<matrix>* VdagC1ptr=0, const std::vector<matrix>* VdagC2ptr=0) const;
 	
 	//! Dump a named matrix variable to file, optionally zeroing out the real parts
 	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
 	
-	static matrix fixUnitary(const matrix& U); //!< return an exactly unitary version of U (orthogonalize columns)
+	//! Return an exactly unitary version of U (orthogonalize columns)
+	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
 	
 	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
 	virtual WannierGradient precondition(const WannierGradient& grad);

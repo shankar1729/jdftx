@@ -30,9 +30,7 @@ which will contain only two silicon atoms:
     kpoint-folding 8 8 8
     
     #Select pseudopotential set:
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbe.uspp
     elec-cutoff 20 100
     
     dump-name Si.$VAR
@@ -116,12 +114,12 @@ so that we can script several calculations using variable substitution:
 Save the above to run.sh, execute "chmod +x run.sh", and then run using "./run.sh".
 At the end, it will list the energies for the different calculations:
 
-    -7.317802979308219 Si-1.out
-    -7.849191074339190 Si-2.out
-    -7.936088850579713 Si-4.out
-    -7.942845235289110 Si-8.out
-    -7.942982291070273 Si-12.out
-    -7.942987555958934 Si-16.out
+    -7.317807660097655 Si-1.out
+    -7.849193634824133 Si-2.out
+    -7.936090648821331 Si-4.out
+    -7.942846959204424 Si-8.out
+    -7.942984013789327 Si-12.out
+    -7.942989279183072 Si-16.out
 
 Note that the energy converges rapidly after 8 kpoints per dimension,
 and the energy at 8 kpoints per dimension is only around 0.0001 Hartree
@@ -138,12 +136,12 @@ Add the following line to Si.in:
 which results in a mesh offset from the Gamma point, called the "Monkhost-Pack" mesh.
 Rerun the convergence test script to get the results:
 
-    -7.849458180271307 Si-1.out
-    -7.937018314239945 Si-2.out
-    -7.942890310219196 Si-4.out
-    -7.942987731184839 Si-8.out
-    -7.942987860695225 Si-12.out
-    -7.942987864592894 Si-16.out
+    -7.849461799239376 Si-1.out
+    -7.937020474685965 Si-2.out
+    -7.942892147278267 Si-4.out
+    -7.942989527101191 Si-8.out
+    -7.942989655201798 Si-12.out
+    -7.942989659123112 Si-16.out
 
 which converges faster with number of kpoints per dimension.
 Notice however that each calculation had more symmetry-reduced

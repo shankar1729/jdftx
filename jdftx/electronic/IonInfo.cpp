@@ -25,9 +25,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/VanDerWaals.h>
 #include <fluid/FluidSolver.h>
+#include <core/SphericalHarmonics.h>
+#include <core/Units.h>
 #include <cstdio>
 #include <cmath>
-#include <core/Units.h>
 
 #define MIN_ION_DISTANCE 1e-10
 
@@ -227,7 +228,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		//Collect gradients with respect to VdagCq (not including fillings and state weight):
 		std::vector<matrix> HVdagCq(species.size()); 
 		EnlAndGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq);
-		augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq);
+		augmentDensitySphericalGrad(qnum, eVars.VdagC[q], HVdagCq);
 		//Propagate to atomic positions:
 		for(unsigned sp=0; sp<species.size(); sp++) if(HVdagCq[sp])
 		{	matrix grad_CdagOCq = -(eVars.Hsub_eigs[q] * eVars.F[q]); //gradient of energy w.r.t overlap matrix
@@ -271,9 +272,9 @@ void IonInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient*
 {	for(unsigned sp=0; sp<species.size(); sp++)
 		((SpeciesInfo&)(*species[sp])).augmentDensityGridGrad(E_n, forces ? &forces->at(sp) : 0);
 }
-void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
+void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
-		species[sp]->augmentDensitySphericalGrad(qnum, Fq, VdagCq[sp], HVdagCq[sp]);
+		species[sp]->augmentDensitySphericalGrad(qnum, VdagCq[sp], HVdagCq[sp]);
 }
 
 void IonInfo::project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting) const
@@ -348,23 +349,23 @@ void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector
 	}
 }
 
-void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& psi, std::vector<matrix>& M) const
+void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& Opsi, std::vector<matrix>& M) const
 {	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
-	psi.resize(species.size());
+	Opsi.resize(species.size());
 	M.resize(species.size());
-	ColumnBundle* psiPtr = psi.data();
+	ColumnBundle* OpsiPtr = Opsi.data();
 	matrix* Mptr = M.data();
 	for(const auto& sp: species)
-	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(psiPtr++), *(Mptr++));
+	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(OpsiPtr++), *(Mptr++));
 		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
 	}
 }
 
-ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
-{	ColumnBundle result = e->gInfo.detR * D(Y, iDir); //contribution from kinetic term (note ultrasoft not handled)
+matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& YdagHY) const
+{	matrix result = e->gInfo.detR * (Y ^ D(Y, iDir)); //contribution from kinetic term
 	//Determine optimum k's for finite difference calculation of r * projectors
 	double dkMag = pow(1e-14, 1./3); //optimum for a second order FD formula
-	complex riPrefac(0, 0.5/dkMag); //prefactor in central-difference formula to get r * projectors
+	complex riPrefacDag(0, -0.5/dkMag); //prefactor in central-difference formula to get r * projectors
 	vector3<> dkCart; dkCart[iDir] = dkMag; //cartesian k offset
 	vector3<> dk = inv(e->gInfo.GT) * dkCart; //reciprocal-lattice k offset
 	QuantumNumber qnumPlus  = *(Y.qnum); qnumPlus.k  += dk;
@@ -372,49 +373,54 @@ ColumnBundle IonInfo::rHcommutator(const ColumnBundle& Y, int iDir) const
 	//--- dummy ColumnBundles for the getV functions below:
 	ColumnBundle Yplus (1, Y.colLength(), Y.basis, &qnumPlus,  isGpuEnabled());
 	ColumnBundle Yminus(1, Y.colLength(), Y.basis, &qnumMinus, isGpuEnabled());
-	//Nonlocal corrections:
-	//--- Get DFT+U matrices:
-	std::vector<matrix> Urho;
-	std::vector<ColumnBundle> psi, ri_psi;
+	//DFT+U corrections:
 	if(e->eInfo.hasU)
-	{	rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
+	{	std::vector<ColumnBundle> psi;
+		std::vector<matrix> Urho;
+		rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
 		//Finite difference for ri_psi:
 		std::vector<matrix> UrhoUnused;
 		std::vector<ColumnBundle> psiPlus, psiMinus;
 		rhoAtom_getV(Yplus,  e->eVars.U_rhoAtom, psiPlus,  UrhoUnused); //get atomic orbitals at k+
 		rhoAtom_getV(Yminus, e->eVars.U_rhoAtom, psiMinus, UrhoUnused); //get atomic orbitals at k-
-		ri_psi.resize(species.size());
 		for(size_t sp=0; sp<species.size(); sp++)
 			if(Urho[sp].nRows())
-				ri_psi[sp] = riPrefac * (psiPlus[sp] - psiMinus[sp]);
+			{	matrix psiDagY = psi[sp] ^ Y;
+				matrix ri_psiDagY = riPrefacDag * ((psiPlus[sp] - psiMinus[sp]) ^ Y);
+				matrix contrib = dagger(ri_psiDagY) * (Urho[sp] * psiDagY);
+				result += contrib - dagger(contrib);
+			}
 	}
+	//Nonlocal corrections:
 	for(size_t sp=0; sp<species.size(); sp++)
-	{	bool hasU = e->eInfo.hasU && Urho[sp].nRows();
-		//Get nonlocal psp matrices and projectors:
-		matrix Mnl;
-		std::shared_ptr<ColumnBundle> Vptr = species[sp]->getV(Y, &Mnl); //get projectors at kj
-		bool hasNL = Mnl.nRows();
-		const ColumnBundle& V = *Vptr;
-		ColumnBundle ri_V;
-		if(hasNL)
-		{	//Finite difference for ri_V:
-			std::shared_ptr<ColumnBundle> Vplus = species[sp]->getV(Yplus);
-			std::shared_ptr<ColumnBundle> Vminus = species[sp]->getV(Yminus);
-			ri_V = riPrefac * (*Vplus - *Vminus);
+		if(species[sp]->nProjectors())
+		{	const SpeciesInfo& s = *species[sp];
+			const int nAtoms = s.atpos.size();
+			//Get nonlocal psp matrices and projections:
+			matrix Mnl = s.MnlAll;
+			matrix VdagY = (*(s.getV(Y))) ^ Y;
+			matrix ri_VdagY = riPrefacDag * ((*(s.getV(Yplus)) - *(s.getV(Yminus))) ^ Y); //Finite difference for ri_V
+			//Ultrasoft augmentation contribution (if any):
+			const matrix id = eye(Mnl.nRows()*nAtoms); //identity
+			matrix Maug = zeroes(id.nRows(), id.nCols());
+			s.augmentDensitySphericalGrad(*Y.qnum, id, Maug);
+			//Apply nonlocal and augmentation corrections to the commutator:
+			matrix contrib = dagger(ri_VdagY) * (tiledBlockMatrix(Mnl, nAtoms)*VdagY + Maug*VdagY);
+			result += contrib - dagger(contrib);
+			//Account for overlap augmentation (if any):
+			if(s.QintAll.nRows())
+			{	const matrix& Q = s.QintAll;
+				std::vector<complex> riArr;
+				for(const vector3<>& x: s.atpos)
+					riArr.push_back(dot(e->gInfo.R.row(iDir), x));
+				matrix contrib =
+					( dagger(VdagY) * (tiledBlockMatrix(Q, nAtoms, &riArr) * VdagY)
+					- dagger(ri_VdagY) * (tiledBlockMatrix(Q, nAtoms) * VdagY) ) * YdagHY;
+				result += contrib - dagger(contrib);
+			}
 		}
-		//Apply nonlocal corrections to the commutator:
-		if(hasU)
-			result
-				+= ri_psi[sp] * (Urho[sp] * (psi[sp] ^ Y))
-				 - psi[sp] * (Urho[sp] * (ri_psi[sp] ^ Y));
-		if(hasNL)
-			result
-				+= ri_V * (Mnl * (V ^ Y))
-				 - V * (Mnl * (ri_V ^ Y));
-	}
 	return result;
 }
-
 
 int IonInfo::nAtomicOrbitals() const
 {	int nAtomic = 0;

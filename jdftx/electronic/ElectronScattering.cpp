@@ -21,14 +21,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/ColumnBundleTransform.h>
+#include <electronic/SpeciesInfo_internal.h>
+#include <core/SphericalHarmonics.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
-//Extract imaginary part:
-matrix imag(const matrix& m)
-{	matrix out = zeroes(m.nRows(), m.nCols());
-	callPref(eblas_daxpy)(m.nData(), 1., ((const double*)m.dataPref())+1,2, (double*)out.dataPref(),2); //copy with stride of 2 to extract imaginary part
-	return out;
+//Matrix imaginary part (in the operator sense; not elementwise):
+matrix Im(const matrix& m)
+{	return complex(0,-0.5)*(m - dagger(m)); //(m - dagger(m))/(2i)
 }
 
 ElectronScattering::ElectronScattering()
@@ -41,6 +41,8 @@ void ElectronScattering::dump(const Everything& everything)
 	this->e = &everything;
 	nBands = e.eInfo.nBands;
 	nSpinor = e.eInfo.spinorLength();
+	nSpins = e.eInfo.nSpins();
+	qCount = e.eInfo.nStates / nSpins; //reduce k-mesh size (without spin)
 	
 	if(slabResponse)
 		logPrintf("\n----- Slab dielectric matrix calculation -----\n");
@@ -100,6 +102,7 @@ void ElectronScattering::dump(const Everything& everything)
 	{	std::swap(C, e.eVars.C);
 		std::swap(E, e.eVars.Hsub_eigs);
 		std::swap(F, e.eVars.F);
+		std::swap(VdagC, e.eVars.VdagC);
 		dumpSlabResponse(e, omegaGrid);
 		return;
 	}
@@ -108,21 +111,30 @@ void ElectronScattering::dump(const Everything& everything)
 	C.resize(e.eInfo.nStates);
 	E.resize(e.eInfo.nStates);
 	F.resize(e.eInfo.nStates);
+	VdagC.resize(e.eInfo.nStates);
 	for(int q=0; q<e.eInfo.nStates; q++)
 	{	int procSrc = e.eInfo.whose(q);
-		if(procSrc == mpiWorld->iProcess())
+		if(e.eInfo.isMine(q))
 		{	std::swap(C[q], e.eVars.C[q]);
 			std::swap(E[q], e.eVars.Hsub_eigs[q]);
 			std::swap(F[q], e.eVars.F[q]);
+			std::swap(VdagC[q], e.eVars.VdagC[q]);
 		}
 		else
 		{	C[q].init(nBands, e.basis[q].nbasis * nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
 			E[q].resize(nBands);
 			F[q].resize(nBands);
+			VdagC[q].resize(e.iInfo.species.size());
 		}
 		C[q].bcast(procSrc);
 		E[q].bcast(procSrc);
 		F[q].bcast(procSrc);
+		for(unsigned iSp=0; iSp<e.iInfo.species.size(); iSp++)
+			if(e.iInfo.species[iSp]->isUltrasoft())
+			{	if(!e.eInfo.isMine(q))
+					VdagC[q][iSp].init(e.iInfo.species[iSp]->nProjectors(), nBands);
+				VdagC[q][iSp].bcast(procSrc);
+			}
 	}
 	
 	//Randomize supercell to improve load balancing on k-mesh:
@@ -147,11 +159,12 @@ void ElectronScattering::dump(const Everything& everything)
 	TaskDivision(supercell->kmesh.size(), mpiWorld).myRange(ikStart, ikStop);
 	double dEmax = 0.;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const diagMatrix& Ei = E[supercell->kmeshTransform[ik].iReduced];
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	{	const diagMatrix& Ei = E[supercell->kmeshTransform[ik].iReduced+iSpin*qCount];
 		for(int j=0; j<3; j++)
 		{	size_t jk = plook->find(supercell->kmesh[ik] + kBasis[j]);
 			assert(jk != string::npos);
-			const diagMatrix& Ej = E[supercell->kmeshTransform[jk].iReduced];
+			const diagMatrix& Ej = E[supercell->kmeshTransform[jk].iReduced+iSpin*qCount];
 			for(int b=0; b<nBands; b++)
 				if(Emin <= Ei[b] && Ei[b] <= Emax)
 					dEmax = std::max(dEmax, fabs(Ej[b]-Ei[b]));
@@ -198,7 +211,7 @@ void ElectronScattering::dump(const Everything& everything)
 	double GmaxEff = sqrt(2.*e.cntrl.Ecut) + sqrt(kMaxSq);
 	double EcutEff = 0.5*GmaxEff*GmaxEff * (1.+symmThreshold); //add some margin for round-off error safety
 	logSuspend();
-	basis.setup(e.gInfo, e.iInfo, EcutEff, vector3<>());
+	basis.setup(gInfoBasis, e.iInfo, EcutEff, vector3<>());
 	logResume();
 	ColumnBundleTransform::BasisWrapper basisWrapper(basis);
 	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
@@ -234,6 +247,7 @@ void ElectronScattering::dump(const Everything& everything)
 	{	logPrintf("\nMomentum transfer %d of %d: q = ", int(iq+1), int(qmesh.size()));
 		qmesh[iq].k.print(globalLog, " %+.5lf ");
 		int nbasis = basisChi[iq].nbasis;
+		nAugRhoAtomInit(iq);
 		
 		//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
 		matrix invKq = inv(coulombMatrix(iq));
@@ -244,15 +258,16 @@ void ElectronScattering::dump(const Everything& everything)
 		size_t nkMine = ikStop-ikStart;
 		int ikInterval = std::max(1, int(round(nkMine/20.))); //interval for reporting progress
 		for(size_t ik=ikStart; ik<ikStop; ik++)
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
 		{	//Report progress:
 			size_t ikDone = ik-ikStart+1;
-			if(ikDone % ikInterval == 0)
+			if(ikDone % ikInterval == 0 && !iSpin)
 			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
 				logFlush();
 			}
 			//Get events:
 			size_t jk; matrix nij;
-			std::vector<Event> events = getEvents(true, ik, iq, jk, nij);
+			std::vector<Event> events = getEvents(true, iSpin, ik, iq, jk, nij);
 			if(!events.size()) continue;
 			//Collect contributions for each frequency:
 			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
@@ -284,7 +299,7 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-		{	ImKscr[iOmega] = imag(inv(invKq - chiKS[iOmega]));
+		{	ImKscr[iOmega] = Im(inv(invKq - chiKS[iOmega]));
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
@@ -298,15 +313,16 @@ void ElectronScattering::dump(const Everything& everything)
 		//Calculate ImSigma contributions:
 		logPrintf("\tComputing ImSigma ... "); logFlush(); 
 		for(size_t ik=ikStart; ik<ikStop; ik++)
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
 		{	//Report progress:
 			size_t ikDone = ik-ikStart+1;
-			if(ikDone % ikInterval == 0)
+			if(ikDone % ikInterval == 0 && !iSpin)
 			{	logPrintf("%d%% ", int(round(ikDone*100./nkMine)));
 				logFlush();
 			}
 			//Get events:
 			size_t jk; matrix nij;
-			std::vector<Event> events = getEvents(false, ik, iq, jk, nij);
+			std::vector<Event> events = getEvents(false, iSpin, ik, iq, jk, nij);
 			if(!events.size()) continue;
 			//Integrate over frequency for event contributions to linewidth:
 			diagMatrix eventContrib(events.size(), 0);
@@ -326,7 +342,7 @@ void ElectronScattering::dump(const Everything& everything)
 			double qWeight = qmesh[iq].weight;
 			for(size_t iEvent=0; iEvent<events.size(); iEvent++)
 			{	const Event& event = events[iEvent];
-				ImSigma[iReduced][event.i] += symFactor * qWeight * eventContrib[iEvent];
+				ImSigma[iReduced+iSpin*qCount][event.i] += symFactor * qWeight * eventContrib[iEvent];
 			}
 		}
 		logPrintf("done.\n"); logFlush();
@@ -377,8 +393,8 @@ diagMatrix diagouter(const matrix& A, const matrix& B)
 	return result;
 }
 
-std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, size_t ik, size_t iq, size_t& jk, matrix& nij) const
-{	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ");
+std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, int iSpin, size_t ik, size_t iq, size_t& jk, matrix& nij) const
+{	static StopWatch watchI("ElectronScattering::getEventsI"), watchJ("ElectronScattering::getEventsJ"), watchAug("ElectronScattering::nAug");
 	//Find target k-point:
 	const vector3<>& ki = slabResponse ? e->eInfo.qnums[ik].k : supercell->kmesh[ik];
 	const vector3<> kj = ki + qmesh[iq].k;
@@ -392,8 +408,8 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	}
 	
 	//Compile list of events:
-	int iReduced = slabResponse ? ik: supercell->kmeshTransform[ik].iReduced;
-	int jReduced = slabResponse ? jk: supercell->kmeshTransform[jk].iReduced;
+	int iReduced = slabResponse ? ik: supercell->kmeshTransform[ik].iReduced+iSpin*qCount;
+	int jReduced = slabResponse ? jk: supercell->kmeshTransform[jk].iReduced+iSpin*qCount;
 	const diagMatrix &Ei = E[iReduced], &Fi = F[iReduced];
 	const diagMatrix &Ej = E[jReduced], &Fj = F[jReduced];
 	std::vector<Event> events; events.reserve((nBands*nBands)/2);
@@ -419,7 +435,16 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	if(!events.size()) return events;
 	
 	//Get wavefunctions in real space:
-	ColumnBundle Ci, Cj; if(!slabResponse) { Ci = getWfns(ik, ki); Cj = getWfns(jk, kj); }
+	ColumnBundle Ci, Cj;
+	std::vector<matrix> VdagCi, VdagCj;
+	if(!slabResponse)
+	{	Ci = getWfns(ik, iSpin, ki, &VdagCi);
+		Cj = getWfns(jk, iSpin, kj, &VdagCj);
+	}
+	else
+	{	VdagCi = VdagC[ik];
+		VdagCj = VdagC[jk];
+	}
 	std::vector< std::vector<complexScalarField> > conjICi(nBands), ICj(nBands);
 	watchI.start();
 	for(int i=0; i<nBands; i++) if(iUsed[i])
@@ -449,17 +474,48 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	}
 	watchJ.stop();
 	
+	//Augmentation:
+	watchAug.start();
+	for(unsigned iSp=0; iSp<e->iInfo.species.size(); iSp++)
+	{	const SpeciesInfo& sp = *(e->iInfo.species[iSp]);
+		if(sp.isUltrasoft())
+		{	int nProjSp = sp.MnlAll.nRows(); //number of projectors per atom including spinor indices
+			int nProj = nProjSp / nSpinor;
+			//Collect atomic density matrices for all events:
+			matrix RhoAll(nProj*nProj*sp.atpos.size(), events.size());
+			complex* RhoAllData = RhoAll.dataPref();
+			for(const Event& event: events)
+			{	for(unsigned atom=0; atom<sp.atpos.size(); atom++)
+				{	//Atomic density matrix:
+					matrix atomVdagCi = VdagCi[iSp](atom*nProjSp,(atom+1)*nProjSp, event.i,event.i+1);
+					matrix atomVdagCj = VdagCj[iSp](atom*nProjSp,(atom+1)*nProjSp, event.j,event.j+1);
+					matrix Rho = atomVdagCj * dagger(atomVdagCi); //density matrix in projector basis on this atom (Includes dagger(Vj) at inner index j, Vi at outer index i)
+					if(sp.isRelativistic()) Rho = sp.fljAll * Rho * sp.fljAll; //transformation for relativistic pseudopotential
+					if(nSpinor==2) Rho = Rho(0,2,nProjSp, 0,2,nProjSp) + Rho(1,2,nProjSp, 1,2,nProjSp); //contract spinorial index
+					callPref(eblas_copy)(RhoAllData, Rho.dataPref(), Rho.nData());
+					RhoAllData += Rho.nData();
+				}
+			}
+			//Augment:
+			nij += nAugRhoAtom[iSp] * RhoAll;
+		}
+	}
+	watchAug.stop();
+	
 	return events;
 }
 
-ColumnBundle ElectronScattering::getWfns(size_t ik, const vector3<>& k) const
+ColumnBundle ElectronScattering::getWfns(size_t ik, int iSpin, const vector3<>& k, std::vector<matrix>* VdagCi) const
 {	static StopWatch watch("ElectronScattering::getWfns"); watch.start();
 	double roundErr;
 	vector3<int> kSup = round((k - supercell->kmesh[0]) * supercell->super, &roundErr);
 	assert(roundErr < symmThreshold);
 	ColumnBundle result(nBands, basis.nbasis * nSpinor, &basis, &qnumMesh.find(kSup)->second, isGpuEnabled());
 	result.zero();
-	transform.find(kSup)->second->scatterAxpy(1., C[supercell->kmeshTransform[ik].iReduced], result,0,1);
+	const ColumnBundleTransform& cbt = *(transform.find(kSup)->second);
+	const Supercell::KmeshTransform& kmt = supercell->kmeshTransform[ik];
+	cbt.scatterAxpy(1., C[kmt.iReduced+iSpin*qCount], result,0,1);
+	if(VdagCi) *VdagCi = cbt.transformVdagC(VdagC[kmt.iReduced+iSpin*qCount], kmt.iSym);
 	watch.stop();
 	return result;
 }
@@ -476,6 +532,74 @@ matrix ElectronScattering::coulombMatrix(size_t iq) const
 		Vdata[V.index(b,b)] = normFac;
 	return coulombMatrix(V, *e, qmesh[iq].k);
 }
+
+void ElectronScattering::nAugRhoAtomInit(size_t iq)
+{	static StopWatch watch("ElectronScattering::nAugInit");
+	nAugRhoAtom.clear();
+	nAugRhoAtom.resize(e->iInfo.species.size());
+	const Basis& basis_q = basisChi[iq];
+	//For each ultrasoft species:
+	for(unsigned iSp=0; iSp<e->iInfo.species.size(); iSp++)
+	{	const SpeciesInfo& sp = *(e->iInfo.species[iSp]);
+		if(sp.isUltrasoft())
+		{	watch.start();
+			//Count  number of Qij,lm entries:
+			int nQijlm = 0;
+			for(const auto& entry: sp.Qradial)
+				nQijlm += (2*entry.first.l+1);
+			//Initialize matrix with Qij,lm functions in basis:
+			matrix& n = nAugRhoAtom[iSp];
+			n = zeroes(basis_q.nbasis, nQijlm*sp.atpos.size());
+			std::map<std::pair<SpeciesInfo::QijIndex,int>, int> ijlmMap;
+			complex* nData = n.dataPref();
+			int atomStride = basis_q.nbasis * nQijlm;
+			int ijlmIndex = 0;
+			for(const auto& entry: sp.Qradial)
+			{	const int& l = entry.first.l;
+				for(int m=-l; m<=l; m++)
+				{	callPref(Vnl)(basis_q.nbasis, atomStride, sp.atpos.size(), l, m, qmesh[iq].k, basis_q.iGarr.dataPref(),
+						e->gInfo.G, sp.atposManaged.dataPref(), entry.second, nData);
+					ijlmMap[std::make_pair(entry.first,m)] = ijlmIndex;
+					nData += basis_q.nbasis;
+					ijlmIndex++;
+				}
+			}
+			assert(ijlmIndex == nQijlm);
+			//Convert to augmentation functions per density-matrix entry:
+			int nProj = sp.MnlAll.nRows()/nSpinor;
+			const double invDetR = 1./e->gInfo.detR;
+			matrix ijlmTOVV = zeroes(nQijlm, nProj*nProj);
+			//--- Triple loop over first projector:
+			int i1 = 0;
+			for(int l1=0; l1<int(sp.VnlRadial.size()); l1++)
+			for(int p1=0; p1<int(sp.VnlRadial[l1].size()); p1++)
+			for(int m1=-l1; m1<=l1; m1++)
+			{	//--- Triple loop over second projector:
+				int i2 = 0;
+				for(int l2=0; l2<int(sp.VnlRadial.size()); l2++)
+				for(int p2=0; p2<int(sp.VnlRadial[l2].size()); p2++)
+				for(int m2=-l2; m2<=l2; m2++)
+				{	std::vector<YlmProdTerm> terms = expandYlmProd(l1,m1, l2,m2);
+					for(const YlmProdTerm& term: terms)
+					{	//Find index into ijlm function for current term (if any):
+						SpeciesInfo::QijIndex qIndex = { l1, p1, l2, p2, term.l };
+						auto ijlmIter = ijlmMap.find(std::make_pair(qIndex,term.m));
+						if(ijlmIter == ijlmMap.end()) continue;  //no entry at this l
+						const int& ijlmIndex = ijlmIter->second;
+						ijlmTOVV.set(ijlmIndex, i1*nProj+i2, (term.coeff*invDetR)*cis(0.5*M_PI*(l2-l1-term.l))); //phase=(-i)^(l+l1-l2)
+					}
+					i2++;
+				}
+				assert(i2==nProj);
+				i1++;
+			}
+			assert(i1==nProj);
+			n = n * tiledBlockMatrix(ijlmTOVV, sp.atpos.size());
+			watch.stop();
+		}
+	}
+}
+
 
 //-----  Slab response related; eventually merge these with Polarizability instead -----
 
@@ -528,6 +652,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	basisChi.resize(qmesh.size());
 	int nBasisSlab = setupEllipsoidalBasis(basisChi[0], gInfoBasis, e.iInfo, Ecut, EcutTransverse, e.coulombParams.iDir, qmesh[0].k);
 	logPrintf("nbasis = %lu, %.2lf ideal\n", basisChi[0].nbasis, sqrt(2*Ecut)*(2*EcutTransverse)*(e.gInfo.detR/(6*M_PI*M_PI)));
+	nAugRhoAtomInit(0);
 	
 	//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
 	matrix invKq = inv(coulombMatrix(0));
@@ -546,7 +671,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 		}
 		//Get events:
 		size_t jk; matrix nij;
-		std::vector<Event> events = getEvents(true, q, 0, jk, nij);
+		std::vector<Event> events = getEvents(true, 0, q, 0, jk, nij);
 		if(!events.size()) continue;
 		//Collect contributions for each frequency:
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)

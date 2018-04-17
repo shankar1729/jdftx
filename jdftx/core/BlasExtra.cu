@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuKernelUtils.h>
 #include <core/BlasExtra_internal.h>
 #include <algorithm>
-#include <cublas.h>
+#include <cublas_v2.h>
 #include <cfloat>
 #include <gsl/gsl_cblas.h>
 
@@ -63,19 +63,20 @@ void eblas_lincomb_gpu(const int N,
 	gpuErrorCheck();
 }
 
-inline char cublasTranspose(CBLAS_TRANSPOSE trans)
+inline cublasOperation_t cublasTranspose(CBLAS_TRANSPOSE trans)
 {	switch(trans)
-	{	case CblasNoTrans: return 'N';
-		case CblasTrans: return 'T';
-		case CblasConjTrans: return 'C';
+	{	case CblasNoTrans: return CUBLAS_OP_N;
+		case CblasTrans: return CUBLAS_OP_T;
+		case CblasConjTrans: return CUBLAS_OP_C;
 	}
-	return 0;
+	return CUBLAS_OP_N;
 }
 void eblas_zgemm_gpu(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, int M, int N, int K,
 	const complex& alpha, const complex *A, const int lda, const complex *B, const int ldb,
 	const complex& beta, complex *C, const int ldc)
-{	cublasZgemm(cublasTranspose(TransA), cublasTranspose(TransB), M, N, K,
-		alpha, (const double2*)A, lda, (const double2*)B, ldb, beta, (double2*)C, ldc);
+{	cublasZgemm(cublasHandle, cublasTranspose(TransA), cublasTranspose(TransB), M, N, K,
+		(const double2*)&alpha, (const double2*)A, lda, (const double2*)B, ldb,
+		(const double2*)&beta, (double2*)C, ldc);
 }
 
 template<typename scalar, typename scalar2, typename Conjugator> __global__ 
@@ -166,20 +167,40 @@ void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMul
 }
 
 //BLAS-1 wrappers:
+void eblas_dscal_gpu(int N, double a, double* x, int incx)
+{	cublasDscal_v2(cublasHandle, N, &a, x, incx);
+}
 void eblas_zdscal_gpu(int N, double a, complex* x, int incx)
-{	cublasZdscal(N, a, (double2*)x, incx);
+{	cublasZdscal_v2(cublasHandle, N, &a, (double2*)x, incx);
 }
 void eblas_zscal_gpu(int N, const complex& a, complex* x, int incx)
-{	cublasZscal(N, a, (double2*)x, incx);
+{	cublasZscal_v2(cublasHandle, N, (const double2*)&a, (double2*)x, incx);
+}
+void eblas_daxpy_gpu(int N, double a, const double* x, int incx, double* y, int incy)
+{	cublasDaxpy_v2(cublasHandle, N, &a, x, incx, y, incy);
 }
 void eblas_zaxpy_gpu(int N, const complex& a, const complex* x, int incx, complex* y, int incy)
-{	cublasZaxpy(N, a, (const double2*)x, incx, (double2*)y, incy);
+{	cublasZaxpy_v2(cublasHandle, N, (const double2*)&a, (const double2*)x, incx, (double2*)y, incy);
 }
 complex eblas_zdotc_gpu(int N, const complex* x, int incx, const complex* y, int incy)
-{	return cublasZdotc(N, (const double2*)x, incx, (const double2*)y, incy);
+{	complex result;
+	cublasZdotc_v2(cublasHandle, N, (const double2*)x, incx, (const double2*)y, incy, (double2*)&result);
+	return result;
+}
+double eblas_ddot_gpu(int N, const double* x, int incx, const double* y, int incy)
+{	double result;
+	cublasDdot_v2(cublasHandle, N, x, incx, y, incy, &result);
+	return result;
 }
 double eblas_dznrm2_gpu(int N, const complex* x, int incx)
-{	return cublasDznrm2(N, (const double2*)x, incx);
+{	double result;
+	cublasDznrm2_v2(cublasHandle, N, (const double2*)x, incx, &result);
+	return result;
+}
+double eblas_dnrm2_gpu(int N, const double* x, int incx)
+{	double result;
+	cublasDnrm2_v2(cublasHandle, N, x, incx, &result);
+	return result;
 }
 
 

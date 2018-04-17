@@ -143,7 +143,7 @@ struct CommandCoulombTruncationEmbed : public Command
 		pl.get(c[2], 0., "c2", true);
 		if(e.iInfo.coordsType==CoordsCartesian) c = inv(e.gInfo.R) * c; //Transform coordinates if necessary
 		if(e.coulombParams.geometry==CoulombParams::Periodic)
-			throw string("coulomb-truncation-embed should only be specified for truncated geometries");
+			e.coulombParams.embed = false; //No embedding, just use to specify center
 	}
 
 	void printStatus(Everything& e, int iRep)

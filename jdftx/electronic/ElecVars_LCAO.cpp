@@ -93,7 +93,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			{	ColumnBundle HCq = Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
 				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq); //Contribution via atomic density matrices (DFT+U)
 				std::vector<matrix> HVdagCq(e.iInfo.species.size());
-				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagCq, eVars.C[q], HCq);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HCq);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
@@ -233,7 +233,7 @@ int ElecVars::LCAO()
 			//Calculate subspace Hamiltonian:
 			ColumnBundle HCq = Idag_DiagV_I(C[q], Vscloc); //local self-consistent potential
 			std::vector<matrix> HVdagCq(iInfo.species.size());
-			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], eye(lcao.nBands), VdagC[q], HVdagCq); //ultrasoft augmentation
+			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], VdagC[q], HVdagCq); //ultrasoft augmentation
 			iInfo.projectGrad(HVdagCq, C[q], HCq);
 			Hsub[q] = dagger(lcao.rotPrev[q]) * lcao.HniSub[q] * lcao.rotPrev[q] + (C[q]^HCq);
 			

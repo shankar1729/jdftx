@@ -41,19 +41,22 @@ class MPIUtil
 {
 	int nProcs, iProc;
 	#ifdef MPI_ENABLED
-		MPI_Comm comm;
+	MPI_Comm comm;
 	#endif
 public:
 	int iProcess() const { return iProc; } //!< rank of current process
 	int nProcesses() const { return nProcs; }  //!< number of processes
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
+	#ifdef MPI_ENABLED
+	MPI_Comm communicator() const { return comm; }; //!< retrieve underlying communicator
+	#endif
 
 	//! Helper for dividing MPI processes into groups
 	const struct ProcDivision
 	{	const MPIUtil* mpiUtil; //!< parent MPI communictaor that is being divided
-		const int nGroups; //!< number of groups in this division
+		const int nGroups; //!< number of groups in this division; if nGroups=0, then grouping is based on custom value of iGroup
 		const int iGroup; //!< which group the current process belongs to
-		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1);
+		ProcDivision(const class MPIUtil *mpiUtil=0, size_t nGroups=1, size_t iGroup=0);
 		operator bool() const { return mpiUtil; } //!< check if this is an actual division
 	}
 	procDivision;

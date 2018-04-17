@@ -16,9 +16,8 @@ Platinum is a face-centered cubic metal with a cubic lattice constant of
 
     #Save the following to common.in:
     lattice face-centered Cubic 7.41
-    ion-species GBRV/$ID_pbe_v1.2.uspp
-    ion-species GBRV/$ID_pbe_v1.01.uspp
-    ion-species GBRV/$ID_pbe_v1.uspp
+    ion-species GBRV/$ID_pbesol.uspp
+    elec-ex-corr gga-PBEsol
     elec-cutoff 20 100
     ion Pt  0 0 0  0      #Single atom per unit cell
 
@@ -48,6 +47,11 @@ The Fermi temperature is essentially a smoothing parameter that allows us
 to resolve the Fermi surface accurately at moderate k-point counts.
 Note that the tempreature we chose is around ten times room temperature
 in order to increase the smoothing and use a practical number of k-points.
+
+Finally, we have selected the PBEsol exchange-correlation functional
+using the \ref CommandElecExCorr command, which is generally
+more accurate than PBE for solids (especially for metals).
+Correspondingly, we selected PBEsol pseudopotentials from the GBRV set.
 
 Run the calculation above as usual using
 

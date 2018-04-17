@@ -53,6 +53,7 @@ template<class T, int N> struct ScalarFieldMultiplet
 
 	//! @brief Construct a multiplet with allocated data
 	//! @param gInfo Simulation grid info / memory manager to use to allocate the data
+	//! @param onGpu Boolean flag to indicate whether memory is on GPU
 	ScalarFieldMultiplet(const GridInfo& gInfo, bool onGpu=false) : component(N) { Nloop( component[i] = Tptr(T::alloc(gInfo,onGpu)); ) }
 
 	Tptr& operator[](int i) { return component[i]; } //!< Retrieve a reference to the i'th component (no bound checks)

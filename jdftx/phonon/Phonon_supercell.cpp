@@ -94,7 +94,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
 		{	QuantumNumber qnum;
 			qnum.k = supercell.kmesh[ik];
-			qnum.spin = (nSpins==1 ? 0 : (iSpin ? +1 : -1));
+			qnum.spin = (nSpins==1 ? 0 : (iSpin==0 ? +1 : -1));
 			vector3<> kSup = matrix3<>(Diag(sup)) * qnum.k; //qnum.k in supercell reciprocal lattice coords
 			size_t qSup = plook.find(kSup, qnum, &(eSup->eInfo.qnums), spinEqual);
 			if(qSup == string::npos) continue; //the corresponding supercell k-point must have been eliminated by symmetries
@@ -164,7 +164,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	if(saveHsub)
-	{	Hsub = getPerturbedHsub();
+	{	Hsub = getPerturbedHsub(pert, Hsub0);
 		for(size_t s=0; s<Hsub.size(); s++)
 			dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
 	}
@@ -304,12 +304,36 @@ std::vector<diagMatrix> Phonon::setSupState()
 	return Hsub0;
 }
 
-std::vector<matrix> Phonon::getPerturbedHsub()
+std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std::vector<diagMatrix>& Hsub0)
 {	static StopWatch watch("phonon::getPerturbedHsub"); watch.start();
 	double scaleFac = 1./sqrt(prodSup); //to account for normalization
 	int nBands = e.eInfo.nBands;
+	int nSpinor = e.eInfo.spinorLength();
 	int nBandsSup = nBands * prodSup; //Note >= eSup->eInfo.nBands, depending on e.eInfo.nBands >= nBandsOpt
 	int nqPrevStart, nqPrevStop; TaskDivision(prodSup, mpiWorld).myRange(nqPrevStart, nqPrevStop);
+	//Get unperturbed projectors to account for ultrasoft augmentation in overlap (if any):
+	SpeciesInfo& spPert = *(eSup->iInfo.species[pert.sp]); //species that has been perturbed
+	std::vector<ColumnBundle> V0(nSpins); //unperturbed projectors of the perturbed atom
+	int pStart = 0, pStop = 0; //range of projectors for perturbed atom
+	std::vector<matrix> V0dagC(nSpins), VdagC(nSpins); //unperturbed and perturbed projections on perturbed atom
+	if(spPert.QintAll)
+	{	//Undo perturbation (needed to get unperturbed projectors below):
+		vector3<> atpos0 = eSupTemplate.iInfo.species[pert.sp]->atpos[pert.at]; //unperturbed atom position
+		std::swap(spPert.atpos[pert.at], atpos0);
+		spPert.sync_atpos(); //Note: also clears cached projectors
+		for(int s=0; s<nSpins; s++)
+		{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
+			pStart = spPert.QintAll.nRows() * pert.at; //perturbed atom projector starts here ...
+			pStop = spPert.QintAll.nRows() * (pert.at+1); //... and ends here
+			ColumnBundle Csup; INITwfnsSup(Csup, 1) //Dummy columnbundle for getV below
+			V0[s] = spPert.getV(Csup)->getSub(pStart/nSpinor,pStop/nSpinor);
+			V0dagC[s] = zeroes(pStop-pStart, nBandsSup);
+			VdagC[s] = zeroes(pStop-pStart, nBandsSup);
+		}
+		//Restore perturbation:
+		std::swap(spPert.atpos[pert.at], atpos0);
+		spPert.sync_atpos();
+	}
 	std::vector<matrix> Hsub(nSpins);
 	for(int s=0; s<nSpins; s++)
 	{	int qSup = s*(eSup->eInfo.nStates/nSpins); //Gamma point is always first in the list for each spin
@@ -331,12 +355,17 @@ std::vector<matrix> Phonon::getPerturbedHsub()
 				eSup->eVars.applyHamiltonian(qSup, eye(nBands), HCsup, ener, true);
 				int start = nBands * sme.nqPrev;
 				int stop = nBands * (sme.nqPrev+1);
+				//Store projections for augmentation correction (if needed)
+				if(spPert.QintAll)
+				{	V0dagC[s].set(0,pStop-pStart, start,stop, V0[s] ^ Csup);
+					VdagC[s].set(0,pStop-pStart, start,stop, eSup->eVars.VdagC[qSup][pert.sp](pStart,pStop, 0,Csup.nCols()));
+				}
 				//Second loop over supercell-commensurate unit cell k-points:
 				for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)
 				{	const ColumnBundle& C2 = e.eVars.C[sme2.iReduced];
 					ColumnBundle HC = C2.similar();
 					HC.zero();
-					sme2.transform->gatherAxpy(1./scaleFac, HCsup,0,1, HC);
+					sme2.transform->gatherAxpy(scaleFac, HCsup,0,1, HC);
 					//Compute overlaps:
 					int start2 = nBands * sme2.nqPrev;
 					int stop2 = nBands * (sme2.nqPrev+1);
@@ -346,6 +375,16 @@ std::vector<matrix> Phonon::getPerturbedHsub()
 				}
 			}
 		Hsub[s].allReduce(MPIUtil::ReduceSum);
+	}
+	//Account for ultrasoft overlap augmentation (if any):
+	if(spPert.QintAll)
+	{	for(int s=0; s<nSpins; s++)
+		{	VdagC[s].allReduce(MPIUtil::ReduceSum);
+			V0dagC[s].allReduce(MPIUtil::ReduceSum);
+			matrix dVdagC = VdagC[s] - V0dagC[s]; //change in projection of unperturbed states due to perturbation
+			matrix contrib = dagger(dVdagC) * spPert.QintAll * VdagC[s] * Hsub0[s];
+			Hsub[s] -= (contrib + dagger(contrib));
+		}
 	}
 	watch.stop();
 	return Hsub; 
