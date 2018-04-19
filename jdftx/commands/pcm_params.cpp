@@ -97,6 +97,7 @@ enum PCMparameter
 	PCMp_ionSpacing, //!< extra spacing from dielectric to ionic cavity in bohrs for soft sphere model
 	PCMp_zMask0, //z center in lattice coordinates for cavity mask
 	PCMp_zMaskH, //half-width in z lattice coordinates for cavity mask
+	PCMp_zMaskIonH, //half-width in z lattice coordinates for ion cavity mask
 	PCMp_zMaskSigma, //smoothness of z-mask in bohrs
 	PCMp_rhoMin, //!< min electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoMax, //!< max electron density (bohr^-3) for SCCS cavity switching function
@@ -118,6 +119,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_ionSpacing, "ionSpacing",
 	PCMp_zMask0, "zMask0",
 	PCMp_zMaskH, "zMaskH",
+	PCMp_zMaskIonH, "zMaskIonH",
 	PCMp_zMaskSigma, "zMaskSigma",
 	PCMp_rhoMin, "rhoMin",
 	PCMp_rhoMax, "rhoMin",
@@ -137,6 +139,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_cavityScale, "atomic radius scale factor for soft sphere model",
 	PCMp_ionSpacing, "extra spacing from dielectric to ionic cavity in bohrs for soft sphere model",
 	PCMp_zMask0, "center in z lattice coordinates for cavity mask (default: 0)",
+	PCMp_zMaskIonH, "half-width in z lattice coordinates for ion cavity mask (default: 0 => disabled)",
 	PCMp_zMaskH, "half-width in z lattice coordinates for cavity mask (default: 0 => disabled)",
 	PCMp_zMaskSigma, "smoothness of z-mask in bohrs (default: 0.5)",
 	PCMp_rhoMin, "min electron density (bohr^-3) for SCCS cavity switching function",
@@ -181,6 +184,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(ionSpacing, >=, 0.)
 				READ_AND_CHECK(zMask0, <, DBL_MAX)
 				READ_AND_CHECK(zMaskH, >=, 0.)
+				READ_AND_CHECK(zMaskIonH, >=, 0.)
 				READ_AND_CHECK(zMaskSigma, >, 0.)
 				READ_AND_CHECK(rhoMin, >, 0.)
 				READ_AND_CHECK(rhoMax, >, 0.)
@@ -208,6 +212,7 @@ struct CommandPcmParams : public Command
 		PRINT(ionSpacing)
 		PRINT(zMask0)
 		PRINT(zMaskH)
+		PRINT(zMaskIonH)
 		PRINT(zMaskSigma)
 		PRINT(rhoMin)
 		PRINT(rhoMax)

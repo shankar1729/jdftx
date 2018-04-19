@@ -138,6 +138,7 @@ struct FluidSolverParams
 	//Cavity masking parameters (erf slab centered at zMask0 with half-width zMaskH where fluid is excluded):
 	double zMask0; //z center in lattice coordinates for cavity mask
 	double zMaskH; //half-width in z lattice coordinates for cavity mask
+	double zMaskIonH; //half-width in z lattice coordinates for ionic cavity mask
 	double zMaskSigma; //smoothness of z-mask in bohrs
 	
 	//Debug parameters for Nonlinear PCM's:

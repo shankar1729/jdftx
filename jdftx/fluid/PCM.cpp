@@ -219,19 +219,21 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
 	}
 	
-	//Optional cavity mask:
-	if(fsp.zMaskH)
-	{	logPrintf("   Cavity mask centered at z = %lg with half-width %lg in lattice coordinates, with smoothness %lg bohrs.\n",
-			fsp.zMask0, fsp.zMaskH, fsp.zMaskSigma);
-		double z0 = fsp.zMask0, zH = fsp.zMaskH;
+	//Optional cavity masks:
+	zMask.resize(2);
+	for(int iMask=0; iMask<2; iMask++)
+	{	double z0 = fsp.zMask0, zH = (iMask==0 ? fsp.zMaskH : fsp.zMaskIonH);
+		if(!zH) continue;
+		logPrintf("   %s mask centered at z = %lg with half-width %lg in lattice coordinates, with smoothness %lg bohrs.\n",
+			(iMask==0 ? "Cavity" : "Ion cavity"), z0, zH, fsp.zMaskSigma);
 		if(e.coulombParams.embed)
 		{	z0 -= e.coulombParams.embedCenter[2]; //offset from embedding grid center
 			z0 -= floor(0.5+z0); //wrap to [-0.5,0.5)
 			z0 *= 0.5; //switch to embedded double-sized grid coordinates
 			zH *= 0.5;
 		}
-		nullToZero(zMask, gInfo);
-		double* zMaskData = zMask->data();
+		nullToZero(zMask[iMask], gInfo);
+		double* zMaskData = zMask[iMask]->data();
 		const vector3<int>& S = gInfo.S;
 		const size_t iStart=0, iStop = gInfo.nr;
 		double SzInv = 1./S[2];
@@ -242,6 +244,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			zMaskData[i] = 0.5*erfc(sigmaInv*(zH - fabs(zDiff))); //smoothly goes to 0 when |zDiff| < zH
 		)
 	}
+	nShape = shape.size(); //will be 2 when separate ionic cavity is used, 1 otherwise
 }
 
 PCM::~PCM()
@@ -252,6 +255,8 @@ PCM::~PCM()
 
 void PCM::updateCavity()
 {
+	bool cavityChanged = true; //keep track of whether cavity is updated in code below (usually yes, except for SS)
+	
 	//Cavities from expanded densities for SGA13 variant:
 	if(fsp.pcmVariant == PCM_SGA13)
 	{	ScalarField* shapeEx[2] = { &shape[0], &shapeVdw };
@@ -278,16 +283,28 @@ void PCM::updateCavity()
 			ShapeFunctionSoftSphere::compute(atposAll, latticeReps, Rall, shape[0], fsp.sigma);
 			if(fsp.ionSpacing)
 				ShapeFunctionSoftSphere::compute(atposAll, latticeReps, RallIonic, shape[1], fsp.sigma);
-			if(zMask) shape *= zMask;
 		}
+		else cavityChanged = false; //cavity not updated (so don't re-apply masks below)
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape[0], fsp.rhoMin, fsp.rhoMax, epsBulk);
 	else //Compute directly from nCavity (which is a density product for SaLSA):
 		ShapeFunction::compute(nCavity, shape[0], fsp.nc, fsp.sigma);
 	
-	//Apply cavity mask (if any):
-	if(zMask && fsp.pcmVariant!=PCM_SoftSphere) shape *= zMask; //soft-sphere case above; only done when cavity changes
+	//Apply cavity masks (if any):
+	if((zMask[0] || zMask[1]) && cavityChanged)
+	{	if(nShape==1)
+		{	if(zMask[1]) //ion mask specified on model with natually only one cavity
+			{	shape.resize(2); //so make ionic cavity separate based on specified ion mask
+				shape[1] = zMask[1] * shape[0];
+			}
+			if(zMask[0]) shape[0] *= zMask[0];
+		}
+		else //separate cavities anyway: apply masks separately
+			for(int iMask=0; iMask<2; iMask++)
+				if(zMask[iMask])
+					shape[iMask] *= zMask[iMask];
+	}
 	
 	//Compute and cache cavitation energy and gradients:
 	const auto& solvent = fsp.solvents[0];
@@ -354,7 +371,18 @@ void PCM::updateCavity()
 void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const
 {
 	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
-	if(zMask) (ScalarFieldArray&)A_shape *= zMask; //account for zMask in cavity, if any
+	
+	//Account for cavity masks, if any
+	if(zMask[0] || zMask[1])
+	{	if(nShape==1)
+		{	if(zMask[0]) (ScalarField&)A_shape[0] *= zMask[0];
+			if(zMask[1]) (ScalarField&)A_shape[0] += zMask[1] * A_shape[1]; //shape[1] was created from shape[0] above
+		}
+		else //separate cavities anyway: apply masks separately
+			for(int iMask=0; iMask<2; iMask++)
+				if(zMask[iMask])
+					(ScalarField&)A_shape[iMask] *= zMask[iMask];
+	}
 	
 	if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:

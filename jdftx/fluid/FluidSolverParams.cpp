@@ -25,7 +25,7 @@ FluidSolverParams::FluidSolverParams()
 : T(298*Kelvin), P(1.01325*Bar), epsBulkOverride(0.), epsInfOverride(0.), verboseLog(false), solveFrequency(FluidFreqDefault),
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
 vdwScale(0.75), pCavity(0.), lMax(3), cavityScale(1.), ionSpacing(0.),
-zMask0(0.), zMaskH(0.), zMaskSigma(0.5),
+zMask0(0.), zMaskH(0.), zMaskIonH(0.), zMaskSigma(0.5),
 linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)
 {
 }
