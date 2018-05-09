@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 struct MultipoleResponse
 {	int l; //!< angular momentum
-	int iSite; //!< site index (-1 => molecule center)
+	int iSite; //!< site index (-1 => molecule center, -2 => ion center)
 	int siteMultiplicity; //!< number of sites sharing index iSite
 	
 	RadialFunctionG V; //!< radial part of response eigenfunctions scaled by square root of eigenvalue and 1/G^l
@@ -42,7 +42,16 @@ struct MultipoleResponse
 	~MultipoleResponse()
 	{	V.free();
 	}
+	
+	//index into shape or site arrays, as appropriate for iSite
+	template<typename T> T& selectSite(std::vector<T>& shape, std::vector<T>& site) const
+	{	return  iSite<0 ? shape[std::min(-iSite, int(shape.size())) -1] : site[iSite];
+	}
+	template<typename T> const T& selectSite(const std::vector<T>& shape, const std::vector<T>& site) const
+	{	return  iSite<0 ? shape[std::min(-iSite, int(shape.size())) -1] : site[iSite];
+	}
 };
+
 
 SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 : PCM(e, fsp), siteShape(fsp.solvents[0]->molecule.sites.size())
@@ -78,7 +87,8 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	
 	//Rotational and translational response (includes ionic response):
 	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
-	for(const auto& c: fsp.components)
+	for(unsigned iComp=0; iComp<fsp.components.size(); iComp++)
+	{	const std::shared_ptr<FluidComponent>& c = fsp.components[iComp];
 		for(int l=0; l<=fsp.lMax; l++)
 		{	//Calculate radial densities for all m:
 			gsl_matrix* V = gsl_matrix_calloc(nGradial, 2*l+1); //allocate and set to zero
@@ -117,11 +127,12 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 				std::vector<double> Vsamples(nGradial);
 				for(unsigned iG=0; iG<nGradial; iG++)
 					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
-				response.push_back(std::make_shared<MultipoleResponse>(l, -1, 1, Vsamples, dG));
+				response.push_back(std::make_shared<MultipoleResponse>(l, -(iComp+1), 1, Vsamples, dG));
 			}
 			gsl_vector_free(S);
 			gsl_matrix_free(V);
 		}
+	}
 	
 	//Polarizability response:
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
@@ -180,7 +191,7 @@ ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 {	ScalarFieldTilde rhoTilde;
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		const ScalarField& s = resp.iSite<0 ? shape[0] : siteShape[resp.iSite];
+		const ScalarField& s = resp.selectSite(shape, siteShape);
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
@@ -251,7 +262,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	ScalarFieldArray Adiel_shape(shape.size()); ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
-		ScalarField& Adiel_s = resp.iSite<0 ? Adiel_shape[0] : Adiel_siteShape[resp.iSite];
+		ScalarField& Adiel_s = resp.selectSite(Adiel_shape, Adiel_siteShape);
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
 		ScalarFieldArray IlGradVphi = I(lGradient(resp.V * phi, resp.l));
@@ -261,7 +272,10 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
 			Adiel_shape[0] += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
-	nullToZero(Adiel_shape[0], gInfo); Adiel_shape[0]->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& A_s : Adiel_shape)
+	{	nullToZero(A_s, gInfo);
+		A_s->allReduce(MPIUtil::ReduceSum);
+	}
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
@@ -294,8 +308,10 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 	double sqrtCrot = (epsBulk>epsInf && chiRot) ? sqrt((epsBulk-epsInf)/(4.*M_PI*chiRot)) : 1.;
 	const double bessel_jl_by_Gl_zero[4] = {1., 1./3, 1./15, 1./105}; //G->0 limit of j_l(G)/G^l
 	
-	for(const auto& c: fsp.components)
-	{	ScalarFieldTildeArray Ntilde(c->molecule.sites.size());
+	for(unsigned iComp=0; iComp<fsp.components.size(); iComp++)
+	{	const std::shared_ptr<FluidComponent>& c = fsp.components[iComp];
+		int iShape = std::min(iComp, unsigned(shape.size()-1)); //index to relevant cavity
+		ScalarFieldTildeArray Ntilde(c->molecule.sites.size());
 		for(int l=0; l<=fsp.lMax; l++)
 		{	double prefac = sqrt(4.*M_PI*c->Nbulk/fsp.T) * (l==1 ? sqrtCrot : 1.);
 			for(int m=-l; m<=+l; m++)
@@ -319,7 +335,7 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 				}
 				
 				RadialFunctionG Vtot; Vtot.init(0, VtotSamples, dG);
-				ScalarFieldTilde temp = lDivergence(J(shape * I(lGradient(Vtot * state, l))), l);
+				ScalarFieldTilde temp = lDivergence(J(shape[iShape] * I(lGradient(Vtot * state, l))), l);
 				Vtot.free();
 				for(unsigned iSite=0; iSite<c->molecule.sites.size(); iSite++)
 				{	RadialFunctionG Vsite; Vsite.init(0, VsiteSamples[iSite], dG);
@@ -330,17 +346,15 @@ void SaLSA::dumpDensities(const char* filenamePattern) const
 		}
 		char filename[256]; 
 		for(unsigned j=0; j<c->molecule.sites.size(); j++)
-		{	
-			const Molecule::Site& s = *(c->molecule.sites[j]);
-			ScalarField N;
-			N=I(Ntilde[j])+c->Nbulk*siteShape[j];
+		{	const Molecule::Site& s = *(c->molecule.sites[j]);
+			ScalarField N = I(Ntilde[j]) + c->Nbulk*(iComp ? shape[iShape] : siteShape[j]);
 			ostringstream oss; oss << "N_" << c->molecule.name;
 			if(c->molecule.sites.size()>1) oss << "_" << s.name;
 			sprintf(filename, filenamePattern, oss.str().c_str());
-			logPrintf("Dumping %s... ", filename); logFlush();
+			logPrintf("Dumping '%s' ... ", filename); logFlush();
 			if(mpiWorld->isHead()) saveRawBinary(N, filename);
-			{
-				//debug sphericalized site densities
+			
+			{	//debug sphericalized site densities
 				ostringstream oss; oss << "Nspherical_" << c->molecule.name;
 				if(c->molecule.sites.size()>1) oss << "_" << s.name;
 				sprintf(filename, filenamePattern, oss.str().c_str());
