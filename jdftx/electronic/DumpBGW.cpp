@@ -103,7 +103,7 @@ void BGW::writeWfn() const
 	hid_t fid = openHDF5(e.dump.getFilename("bgw.wfn.h5"));
 	writeHeaderMF(fid);
 	
-	//Wavefucntion group:
+	//Wavefunction group:
 	hid_t gidWfns = h5createGroup(fid, "wfns");
 	//--- G-vectors:
 	std::vector<vector3<int>> iGarr;
@@ -348,8 +348,8 @@ void BGW::writeHeaderMF(hid_t fid) const
 	h5writeScalar(gidCrystal, "recvol", fabs(det(gInfo.G)));
 	h5writeScalar(gidCrystal, "alat", 1);
 	h5writeScalar(gidCrystal, "blat", 1);
-	h5writeVector(gidCrystal, "avec", &gInfo.R(0,0), dims33, 2);
-	h5writeVector(gidCrystal, "bvec", &gInfo.GT(0,0), dims33, 2);
+	h5writeVector(gidCrystal, "avec", &gInfo.RT(0,0), dims33, 2); //BGW lattice vectors in rows
+	h5writeVector(gidCrystal, "bvec", &gInfo.G(0,0), dims33, 2); //BGW recip lattice vectors in rows
 	h5writeVector(gidCrystal, "adot", &gInfo.RTR(0,0), dims33, 2);
 	h5writeVector(gidCrystal, "bdot", &gInfo.GGT(0,0), dims33, 2);
 	//--- collect atoms:
