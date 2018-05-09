@@ -124,6 +124,35 @@ commandTargetMu;
 
 //-------------------------------------------------------------------------------------------------
 
+struct CommandTargetBz : public Command
+{
+	CommandTargetBz() : Command("target-Bz", "jdftx/Electronic/Parameters")
+	{
+		format = "<Bz>";
+		comments =
+			"Fixed magnetic field <Bz> (instead of magnetization).\n"
+			"Note that <Bz> is in atomic units (1 T is approximately 4.26E-6 a.u.)\n"
+			"and in an electron-is-positive convention (Bz > 0 favors up spins).\n"
+			"Requires smearing and is only valid for spintype z-spin.";
+
+		require("elec-smearing");
+		require("elec-initial-magnetization");
+		forbid("fix-electron-density");
+		forbid("fix-electron-potential");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.eInfo.Bz, 0., "Bz", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg\n", e.eInfo.Bz);
+	}
+}
+commandTargetBz;
+
+//-------------------------------------------------------------------------------------------------
+
 struct CommandElecInitialCharge : public Command
 {
     CommandElecInitialCharge() : Command("elec-initial-charge", "jdftx/Initialization")
@@ -156,7 +185,8 @@ struct CommandElecInitialMagnetization : public Command
 			"Initialize system with total magnetization <M> (= Nup - Ndn).\n"
 			"With Fermi fillings, the magnetization will be constrained if <constrain>=yes,\n"
 			"and will equilibriate otherwise. Without Fermi fillings, the magnetization will\n"
-			"remain constrained regardless. Only valid for spintype z-spin.";
+			"remain constrained regardless. Note: target-Bz will override <constrain> to no.\n"
+			"Only valid for spintype z-spin.";
 		
 		require("spintype");
 	}
@@ -165,11 +195,14 @@ struct CommandElecInitialMagnetization : public Command
 	{	if(e.eInfo.spinType != SpinZ)
 			throw(string("Total magnetization can only be specified for spintype z-spin"));
 		pl.get(e.eInfo.Minitial, 0., "M", true);
-		pl.get(e.eInfo.Mconstrain, true, boolMap, "constrain", true);
+		//Constraint parameter:
+		bool Mconstrain = true;
+		pl.get(Mconstrain, true, boolMap, "constrain", true);
+		e.eInfo.Bz = Mconstrain ? NAN : 0.; //nan B signifies M constrained, M free otherwise
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%lf %s", e.eInfo.Minitial, boolMap.getString(e.eInfo.Mconstrain));
+	{	logPrintf("%lf %s", e.eInfo.Minitial, boolMap.getString(std::isnan(e.eInfo.Bz)));
 	}
 }
 CommandElecInitialMagnetization;

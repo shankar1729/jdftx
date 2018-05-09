@@ -204,6 +204,7 @@ struct CommandFixElectronHamiltonian : public Command
 		forbid("vibrations");
 		forbid("dump-only");
 		forbid("target-mu");
+		forbid("target-Bz");
 	}
 
 	void processCommon(ParamList& pl, Everything& e, string& targetFilenamePattern)

@@ -35,9 +35,11 @@ int ElecInfo::findHOMO(int q) const
 
 ElecInfo::ElecInfo()
 : nBands(0), nStates(0), qStart(0), qStop(0), spinType(SpinNone), nElectrons(0), 
-fillingsUpdate(FillingsConst), scalarFillings(true), smearingType(SmearingFermi), smearingWidth(1e-3), mu(NAN), muLoop(false),
+fillingsUpdate(FillingsConst), scalarFillings(true),
+smearingType(SmearingFermi), smearingWidth(1e-3),
+mu(NAN), Bz(NAN), muLoop(false),
 hasU(false), nBandsOld(0),
-Qinitial(0.), Minitial(0.), Mconstrain(false)
+Qinitial(0.), Minitial(0.)
 {
 }
 
@@ -261,6 +263,15 @@ void ElecInfo::updateFillingsEnergies(const std::vector<diagMatrix>& eps, Energi
 		ener.TS += smearingWidth * qnums[q].weight * trace(smearEntropy(muEff(mu,Bz,q), eps[q]));
 	mpiWorld->allReduce(ener.TS, MPIUtil::ReduceSum);
 
+	//Magnetic field contributions if any:
+	if(!std::isnan(this->Bz))
+	{	double Mz = 0.;
+		for(int q=qStart; q<qStop; q++)
+			Mz += qnums[q].spin * qnums[q].weight * trace(smear(muEff(mu,Bz,q), eps[q]));
+		mpiWorld->allReduce(Mz, MPIUtil::ReduceSum);
+		ener.E["minusMzBz"] = -Mz*Bz;
+	}
+	
 	//Grand canonical multiplier if fixed mu:
 	if(!std::isnan(this->mu)) ener.muN = this->mu * nElectrons;
 }
@@ -356,9 +367,9 @@ double ElecInfo::magnetizationCalc(double mu, double Bz, const std::vector<diagM
 
 //Calculate nElectrons at given mu, bisecting on Bz if M is constrained
 double ElecInfo::nElectronsCalc(double mu, const std::vector< diagMatrix >& eps, double& Bz) const
-{	Bz = 0.;
-	double N = 0.;
-	if(Mconstrain)
+{	double N = 0.;
+	Bz = this->Bz; //target value or NAN
+	if(std::isnan(Bz)) //Fixed magnetization
 	{	const bool& verbose = e->cntrl.shouldPrintMuSearch;
 		if(verbose) logPrintf("\nBisecting to find Bz(M=%5lf)\n", Minitial);
 		//Find a range which is known to bracket the result:

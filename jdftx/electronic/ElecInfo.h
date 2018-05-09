@@ -94,6 +94,7 @@ public:
 	smearingType; //!< smearing option
 	double smearingWidth; //!< Smearing width (temperature in the Fermi case)
 	double mu; //!< If NaN, fix nElectrons, otherwise fix/target chemical potential to this
+	double Bz; //!< If NaN, fix magnetization, otherwise fix/target magnetic field to this value
 	bool muLoop; //!< Whether to optimize mu in an outer loop over fixed charge calculations
 	
 	bool hasU; //! Flag to check whether the calculation has a DFT+U self-interaction correction
@@ -155,7 +156,6 @@ private:
 	//Initial fillings:
 	int nBandsOld; //!<number of bands in file being read
 	double Qinitial, Minitial; //!< net excess electrons and initial magnetization
-	bool Mconstrain; //!< whether to constrain M
 	friend struct CommandElecInitialFillings;
 	friend struct CommandElecInitialCharge;
 	friend struct CommandElecInitialMagnetization;
