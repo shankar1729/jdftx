@@ -424,7 +424,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	mpiWorld->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
 	double dmuContrib = 0., dBzContrib = 0.;
-	if(grad and eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (std::isnan(eInfo.mu) or std::isnan(eInfo.Bz))) //contribution due to N/M constraint via the mu/Bz gradient 
+	bool Mconstrain = (eInfo.spinType==SpinZ) and std::isnan(eInfo.Bz); //whether magnetization needs to be constrained
+	if(grad and eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (std::isnan(eInfo.mu) or Mconstrain)) //contribution due to N/M constraint via the mu/Bz gradient 
 	{	double dmuNum[2] = {0.,0.}, dmuDen[2] = {0.,0.}; //numerator and denominator of dmuContrib resolved by spin channels (if any)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	diagMatrix fprime = eInfo.smearPrime(eInfo.muEff(mu,Bz,q), Haux_eigs[q]);
@@ -435,14 +436,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		}
 		mpiWorld->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
 		mpiWorld->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
-		if(std::isnan(eInfo.mu) and std::isnan(eInfo.Bz))
+		if(std::isnan(eInfo.mu) and Mconstrain)
 		{	//Fixed N and M (effectively independent constraints on Nup and Ndn)
 			double dmuContribUp = dmuNum[0]/dmuDen[0];
 			double dmuContribDn = dmuNum[1]/dmuDen[1];
 			dmuContrib = 0.5*(dmuContribUp + dmuContribDn);
 			dBzContrib = 0.5*(dmuContribUp - dmuContribDn);
 		}
-		else if(std::isnan(eInfo.Bz))
+		else if(Mconstrain)
 		{	//Fixed M only
 			dmuContrib = 0.;
 			dBzContrib = (dmuNum[0]-dmuNum[1])/(dmuDen[0]-dmuDen[1]);

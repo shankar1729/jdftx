@@ -112,7 +112,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 		{	mpiWorld->allReduce(dmuNum, 2, MPIUtil::ReduceSum);
 			mpiWorld->allReduce(dmuDen, 2, MPIUtil::ReduceSum);
 			double dmuContrib, dBzContrib;
-			if(std::isnan(eInfo.Bz))
+			if((eInfo.spinType==SpinZ) and std::isnan(eInfo.Bz))
 			{	//Fixed N and M (effectively independent constraints on Nup and Ndn)
 				double dmuContribUp = dmuNum[0]/dmuDen[0];
 				double dmuContribDn = dmuNum[1]/dmuDen[1];
