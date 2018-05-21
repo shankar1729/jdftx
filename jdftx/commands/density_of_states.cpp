@@ -106,6 +106,11 @@ struct CommandDensityOfStates : public Command
 			"   the typical level spacing. This flag affects all columns of output,\n"
 			"   and is 0 by default. Warning: if finite but too small, output size\n"
 			"   might be dangerously large; if non-zero, recommend at least 1e-4.\n"
+			"\n+ EigsOverride <file>\n\n"
+			"   Override eigenvalues from an external file with the same format\n"
+			"   as the eigenvals dump output. Useful for interfacing with outputs\n"
+			"   of other DFT or many-body perturbation theory codes.\n"
+			"   This flag affects all columns of output, and is 1e-6 by default.\n"
 			"\n+ Occupied\n\n"
 			"   All subsequent columns are occupied density of states, that is\n"
 			"   they are weighted by the band fillings.\n"
@@ -145,6 +150,7 @@ struct CommandDensityOfStates : public Command
 			//Check if it is a flag:
 			if(key == "Etol") { pl.get(dos.Etol, 0., "Etol", true); continue; }
 			if(key == "Esigma") { pl.get(dos.Esigma, 0., "Esigma", true); continue; }
+			if(key == "EigsOverride") { pl.get(dos.eigsFilename, string(), "file", true); continue; }
 			if(key == "Occupied") { fillingMode = DOS::Weight::Occupied; continue; }
 			if(key == "Complete") { fillingMode = DOS::Weight::Complete; continue; }
 			if(key == "SpinProjected")
@@ -234,6 +240,8 @@ struct CommandDensityOfStates : public Command
 		DOS::Weight::FillingMode fillingMode = DOS::Weight::Complete;
 		vector3<> Mhat;
 		logPrintf("Etol %le Esigma %le", dos.Etol, dos.Esigma);
+		if(dos.eigsFilename.length())
+			logPrintf(" EigsOverride %s", dos.eigsFilename.c_str());
 		for(unsigned iWeight=0; iWeight<dos.weights.size(); iWeight++)
 		{	const DOS::Weight& weight = dos.weights[iWeight];
 			//Check for changed filling mode:

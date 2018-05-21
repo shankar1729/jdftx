@@ -466,13 +466,25 @@ void DOS::dump()
 		}
 	}
 	
+	//Read override eigenvalues if any:
+	const std::vector<diagMatrix>* eigs = &e->eVars.Hsub_eigs;
+	std::vector<diagMatrix> eigsOverride;
+	if(eigsFilename.length())
+	{	//Read over-ride eigenvalues from specified file:
+		logPrintf("Reading over-ride eigenvalues from file %s ... ", eigsFilename.c_str()); logFlush();
+		eigsOverride.resize(eInfo.nStates);
+		eInfo.read(eigsOverride, eigsFilename.c_str());
+		eigs = &eigsOverride;
+		logPrintf("done.\n");
+	}
+	
 	//Apply the filling weights and set the eigenvalues:
 	for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
 		for(int iBand=0; iBand<eInfo.nBands; iBand++)
 		{	for(unsigned iWeight=0; iWeight<weights.size(); iWeight++)
 				if(weights[iWeight].fillingMode == Weight::Occupied)
 					eval.w(iWeight, iState, iBand) *= e->eVars.F[iState][iBand];
-			eval.e(iState, iBand) = e->eVars.Hsub_eigs[iState][iBand];
+			eval.e(iState, iBand) = (*eigs)[iState][iBand];
 		}
 		
 	//Synchronize eigenvalues and weights between processes:

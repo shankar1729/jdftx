@@ -85,6 +85,7 @@ public:
 	std::vector<Weight> weights; //!< list of weight functions (default: total DOS only)
 	double Etol; //!< tolerance for identifying eigenvalues (energy resolution) (default: 1e-6)
 	double Esigma; //!< optional gaussian width in spectrum
+	string eigsFilename; //!< optional over-ride eigenvalues file
 	
 	DOS();
 	void setup(const Everything&); //!< initialize
