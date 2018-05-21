@@ -36,7 +36,9 @@ int main(int argc, char** argv)
 	
 	//Set initial filenames and prevent unnecessary setup below:
 	e.eVars.wfnsFilename = e.wannier.getFilename(Wannier::FilenameInit, "wfns");
-	e.eVars.eigsFilename = e.wannier.getFilename(Wannier::FilenameInit, "eigenvals");
+	e.eVars.eigsFilename = e.wannier.eigsFilename.length()
+		?	e.wannier.eigsFilename
+		:	e.wannier.getFilename(Wannier::FilenameInit, "eigenvals");
 	e.eVars.nFilenamePattern.clear();
 	e.eVars.VFilenamePattern.clear();
 	e.eVars.fluidParams.fluidType = FluidNone;

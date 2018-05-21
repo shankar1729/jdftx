@@ -32,6 +32,7 @@ enum WannierMember
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
 	WM_loadRotations,
+	WM_eigsOverride,
 	WM_numericalOrbitals,
 	WM_numericalOrbitalsOffset,
 	WM_phononSup,
@@ -52,6 +53,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
 	WM_loadRotations, "loadRotations",
+	WM_eigsOverride, "eigsOverride",
 	WM_numericalOrbitals, "numericalOrbitals",
 	WM_numericalOrbitalsOffset, "numericalOrbitalsOffset",
 	WM_phononSup, "phononSupercell",
@@ -124,6 +126,10 @@ struct CommandWannier : public Command
 			"\n+ loadRotations yes|no\n\n"
 			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous %Wannier run.\n"
 			"   Default: no.\n"
+			"\n+ eigsOverride <filename>\n\n"
+			"   Optionally read an alternate eigenvalues file to over-ride those from the total\n"
+			"   energy calculation. Useful for generating Wannier Hamiltonians using eigenvalues\n"
+			"   from another DFT or a many-body perturbation theory code.\n"
 			"\n+ numericalOrbitals <filename>\n\n"
 			"   Load numerical orbitals from <filename> with basis described in <filename>.header\n"
 			"   that can then be used as trial orbitals. The reciprocal space wavefunction output\n"
@@ -195,6 +201,9 @@ struct CommandWannier : public Command
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
+				case WM_eigsOverride:
+					pl.get(wannier.eigsFilename, string(), "filename", true);
+					break;
 				case WM_numericalOrbitals:
 					pl.get(wannier.numericalOrbitalsFilename, string(), "filename", true);
 					break;
@@ -234,6 +243,8 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
+		if(wannier.eigsFilename.length())
+			logPrintf(" \\\n\teigsFilename %s", wannier.eigsFilename.c_str());
 		if(wannier.outerWindow)
 		{	logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 			if(wannier.innerWindow)
