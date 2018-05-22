@@ -73,6 +73,7 @@ public:
 	bool saveMomenta; //!< whether to output momentum matrix elements
 	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
+	string eigsFilename; //!< optional override for eigenvals file
 	
 	string numericalOrbitalsFilename; //!< filename for reading numerical orbitals
 	vector3<> numericalOrbitalsOffset; //!< lattice coordinates of the origin in the input
