@@ -188,12 +188,21 @@ void BGW::writeVxc() const
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
-		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2], eInfo.nBands*nSpins, 0);
+		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2],
+				eInfo.nBands*nSpins, eInfo.nBands*eInfo.nBands*nSpins);
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
+				//Diagonal elements:
 				for(int b=0; b<eInfo.nBands; b++)
 				{	complex V_eV = VxcSub[q](b,b) / eV; //convert to eV
 					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
+				}
+				//Off-diagonal elements:
+				for(int b2=0; b2<eInfo.nBands; b2++)
+				{	for(int b1=0; b1<eInfo.nBands; b1++)
+					{	complex V_eV = VxcSub[q](b1,b2) / eV; //convert to eV
+						fprintf(fp, "%4d %4d %4d %+14.9f %+14.9f\n", iSpin+1, b1+1, b2+1, V_eV.real(), V_eV.imag());
+					}
 				}
 			}
 		}
