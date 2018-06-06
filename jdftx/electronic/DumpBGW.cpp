@@ -432,6 +432,10 @@ std::vector<int> distributedIndices(int nTotal, int blockSize, int iProcDim, int
 //Solve wavefunctions using ScaLAPACK and write to hdf5 file:
 void BGW::denseWriteWfn(hid_t gidWfns) const
 {	logPrintf("\n");
+	if(nSpinor > 1) die("\nDense diagonalization not yet implemented for spin-orbit / vector-spin modes.\n");
+	for(const auto& sp: e.iInfo.species)
+		if(sp->isUltrasoft())
+			 die("\nDense diagonalization not supported for ultrasoft pseudopotentials.\n");
 #ifdef SCALAPACK_ENABLED
 	//Calculate squarest possible process grid:
 	int nProcesses = mpiWorld->nProcesses();
@@ -457,7 +461,7 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		
 		//Initialize matrix distribution:
 		const int nRows = basis.nbasis * nSpinor; //Hamiltonian dimension
-		logPrintf("with dimension %d\n", nRows); logFlush();
+		logPrintf(" with dimension %d\n", nRows); logFlush();
 		const int blockSize = bgwp.blockSize; //block dimensions
 		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
 		std::vector<int> iRowsMine = distributedIndices(nRows, blockSize, iProcRow, nProcsRow); //indices of rows on current process
@@ -471,20 +475,35 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		
 		//Initialize Hamiltonian matrix:
 		matrix H = zeroes(nRowsMine, nColsMine);
-		{	//Kinetic energy:
-			int jCur=0;
-			for(int iCur=0; iCur<nRowsMine; iCur++)
-			{	for(; jCur<nColsMine; jCur++)
-				{	int iDiff = iColsMine[jCur] - iRowsMine[iCur];
-					if(iDiff == 0)
-					{	//Add diagonal element
-						vector3<> ikGcur = qnum.k + basis.iGarr.data()[iRowsMine[iCur]]; //current k+G in reciprocla lattice coordinates
-						H.set(iCur,jCur, 0.5*gInfo.GGT.metric_length_squared(ikGcur));
-					}
-					if(iDiff >= 0) break;
+		//--- Kinetic, potential and kinetic-potential contributions:
+		{	complex* Hdata = H.data();
+			const vector3<int>* iGarr = basis.iGarr.data();
+			//Prepare potential in reciprocal space:
+			complexScalarFieldTilde Vtilde = Complex(J(eVars.Vscloc[qnum.index()]*(1./e.gInfo.dV)));
+			const complex* Vdata = Vtilde->data();
+			//Prepare kinetic potential in reciprocal space (if needed):
+			complexScalarFieldTilde VtauTilde; const complex* VtauData = 0;
+			if(e.exCorr.needsKEdensity() && eVars.Vtau[qnum.index()])
+			{	VtauTilde = Complex(J(eVars.Vtau[qnum.index()]));
+				VtauData = VtauTilde->data();
+			}
+			for(int jCur=0; jCur<nColsMine; jCur++)
+			{	int j = iColsMine[jCur]; //global column index
+				for(int iCur=0; iCur<nRowsMine; iCur++)
+				{	int i = iRowsMine[iCur]; //global row index
+					//Kinetic (diagonal) contributions:
+					if(i == j)
+						*Hdata += 0.5*gInfo.GGT.metric_length_squared(qnum.k + iGarr[i]);
+					//Potential contributions:
+					size_t diffIndex = e.gInfo.fullGindex(iGarr[i] - iGarr[j]); //wrapped difference index into potential arrays
+					*Hdata += Vdata[diffIndex];
+					if(VtauData)
+						*Hdata += VtauData[diffIndex] * (0.5*dot(iGarr[i]+qnum.k, gInfo.GGT * (iGarr[j]+qnum.k)));
+					Hdata++;
 				}
 			}
 		}
+		
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
 		
