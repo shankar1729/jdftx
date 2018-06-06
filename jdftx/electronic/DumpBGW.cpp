@@ -450,9 +450,14 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 	
 	//Loop over states:
 	for(int q=0; q<eInfo.nStates; q++)
-	{
+	{	const Basis& basis = e.basis[q];
+		const QuantumNumber& qnum = eInfo.qnums[q];
+		logPrintf("\tDiagonalizing state ");
+		eInfo.kpointPrint(globalLog, q, true);
+		
 		//Initialize matrix distribution:
-		const int nRows = e.basis[q].nbasis * nSpinor; //Hamiltonian dimension
+		const int nRows = basis.nbasis * nSpinor; //Hamiltonian dimension
+		logPrintf("with dimension %d\n", nRows); logFlush();
 		const int blockSize = bgwp.blockSize; //block dimensions
 		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
 		std::vector<int> iRowsMine = distributedIndices(nRows, blockSize, iProcRow, nProcsRow); //indices of rows on current process
@@ -466,8 +471,19 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		
 		//Initialize Hamiltonian matrix:
 		matrix H = zeroes(nRowsMine, nColsMine);
-		{	//Kinetic energy part:
-			die("\tTODO: complete implementation.\n");
+		{	//Kinetic energy:
+			int jCur=0;
+			for(int iCur=0; iCur<nRowsMine; iCur++)
+			{	for(; jCur<nColsMine; jCur++)
+				{	int iDiff = iColsMine[jCur] - iRowsMine[iCur];
+					if(iDiff == 0)
+					{	//Add diagonal element
+						vector3<> ikGcur = qnum.k + basis.iGarr.data()[iRowsMine[iCur]]; //current k+G in reciprocla lattice coordinates
+						H.set(iCur,jCur, 0.5*gInfo.GGT.metric_length_squared(ikGcur));
+					}
+					if(iDiff >= 0) break;
+				}
+			}
 		}
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
@@ -479,12 +495,13 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		double orFac = -1.; //default orthogonalization threshold
 		int nEigsFound, nEvecsFound; //number of calculated eigenvalues and eigenvectors (output)
 		int lwork = -1, lrwork = -1, liwork = -1, one = 1;
-		std::vector<complex> work(1);
-		std::vector<double> rwork(1);
-		std::vector<int> iwork(1);
-		std::vector<int> iFail(nRows);
-		std::vector<int> iClusters(2*nProcesses);
-		std::vector<double> clusterGaps(nProcesses);
+		ManagedArray<complex> work; 
+		ManagedArray<double> rwork, clusterGaps; 
+		ManagedArray<int> iwork, iFail, iClusters;
+		work.init(1); rwork.init(1); iwork.init(1); //These will be sized after workspace query
+		iFail.init(nRows);
+		iClusters.init(2*nProcesses);
+		clusterGaps.init(nProcesses);
 		int info = 0;
 		for(int pass=0; pass<2; pass++) //first pass is workspace query, next pass is actual calculation
 		{	pzheevx_("V", "I", "U", &nRows, H.data(), &one, &one, descH,
@@ -507,9 +524,9 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 			if(pass) break; //done
 			//After first-pass, use results of work-space query to allocate:
 			int nClusterMax = 10; //max cluster size to accomodate
-			lwork = int(work[0].real()) + nClusterMax*nRows; work.resize(lwork);
-			lrwork = int(rwork[0]) + nClusterMax*nRows; rwork.resize(lrwork);
-			liwork = int(iwork[0]); iwork.resize(liwork);
+			lwork = int(work.data()[0].real()) + nClusterMax*nRows; work.init(lwork);
+			lrwork = int(rwork.data()[0]) + nClusterMax*nRows; rwork.init(lrwork);
+			liwork = int(iwork.data()[0]); iwork.init(liwork);
 		}
 		
 		//Select needed eigenvalues:
@@ -522,6 +539,7 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 			}
 		int nEigColsMine = iEigColsMine.size();
 	
+		eigs.print(globalLog);
 	}
 	
 	logPrintf("\t");
