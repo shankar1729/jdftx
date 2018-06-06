@@ -62,3 +62,38 @@ else()
 	endif()
 endif()
 
+
+if(EnableScaLAPACK)
+	#Find the ScaLAPACK library:
+	find_library(MKL_SCALAPACK_LIBRARY NAMES mkl_scalapack_lp64 PATHS ${MKL_LIB_PATH})
+	
+	#Find the fortran library:
+	find_library(MKL_FORT_LIBRARY NAMES mkl_gf_lp64 PATHS ${MKL_LIB_PATH})
+	
+	#Find the appropriate BLACS layer:
+	if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU") OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+		find_library(MKL_BLACS_LIBRARY NAMES mkl_blacs_openmpi_lp64 PATHS ${MKL_LIB_PATH})
+	elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
+		find_library(MKL_BLACS_LIBRARY NAMES mkl_blacs_intelmpi_lp64 PATHS ${MKL_LIB_PATH})
+	else()
+		message(WARNING "Unknown compiler: edit FindMKL.cmake to include appropriate BLACS link rules.")
+	endif()
+
+	if(MKL_SCALAPACK_LIBRARY AND MKL_FORT_LIBRARY AND MKL_BLACS_LIBRARY)
+		set(MKL_SCALAPACK_LIBRARIES ${MKL_SCALAPACK_LIBRARY} ${MKL_FORT_LIBRARY} ${MKL_BLACS_LIBRARY})
+		set(MKL_LIBRARIES ${MKL_SCALAPACK_LIBRARIES} ${MKL_LIBRARIES})
+		message(STATUS "Found MKL ScaLAPACK: ${MKL_SCALAPACK_LIBRARIES}")
+		add_definitions("-DSCALAPACK_ENABLED")
+	else()
+		if(NOT MKL_SCALAPACK_LIBRARY)
+			message(FATAL_ERROR "Could not find the MKL ScaLAPACK library (Add -D MKL_PATH=<path> to the cmake commandline for a non-standard installation)")
+		endif()
+		if(NOT MKL_FORT_LIBRARY)
+			message(FATAL_ERROR "Could not find the MKL fortran library for ScaLAPACK (Add -D MKL_PATH=<path> to the cmake commandline for a non-standard installation)")
+		endif()
+		if(NOT MKL_BLACS_LIBRARY)
+			message(FATAL_ERROR "Could not find the MKL BLACS library for ScaLAPACK (Add -D MKL_PATH=<path> to the cmake commandline for a non-standard installation)")
+		endif()
+	endif()
+endif()
+

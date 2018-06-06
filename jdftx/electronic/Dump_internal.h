@@ -108,5 +108,15 @@ struct ChargedDefect
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
+
+
+//! Parameters for BGW output
+struct BGWparams
+{	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
+	int blockSize; //!< block size for ScaLAPACK diagonalization
+	
+	BGWparams() : nBandsDense(0), blockSize(32) {}
+};
+
 //! @}
 #endif // JDFTX_ELECTRONIC_DUMP_INTERNAL_H

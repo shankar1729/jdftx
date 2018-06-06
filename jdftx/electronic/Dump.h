@@ -81,6 +81,7 @@ public:
 	std::shared_ptr<struct SlabEpsilon> slabEpsilon; //!< slab dielectric function calculator
 	std::shared_ptr<struct BulkEpsilon> bulkEpsilon; //!< bulk dielectric constant calculator
 	std::shared_ptr<struct ChargedDefect> chargedDefect; //!< charged defect correction calculator
+	std::shared_ptr<struct BGWparams> bgwParams; //!< parameters for BGW claculation if any
 	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
 private:
 	const Everything* e;

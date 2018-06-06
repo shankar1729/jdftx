@@ -443,8 +443,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(OrbitalDep) && e->exCorr.orbitalDep && isCevec)
 		e->exCorr.orbitalDep->dump();
 	
-	//----------------- The following are not included in 'All' -----------------------
-
 	if(ShouldDump(Excitations))
 	{	if(e->eInfo.isNoncollinear()) logPrintf("WARNING: Excitations dump not supported with noncollinear spins (Skipping)\n");
 		else

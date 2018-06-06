@@ -869,3 +869,59 @@ struct CommandPotentialSubtraction : public Command
 	}
 }
 commandPotentialSubtraction;
+
+
+enum BGWparamsMember
+{	BGWpm_nBandsDense,
+	BGWpm_blockSize,
+	BGWpm_Delim
+};
+EnumStringMap<BGWparamsMember> bgwpmMap
+(	BGWpm_nBandsDense, "nBandsDense",
+	BGWpm_blockSize, "blockSize"
+);
+EnumStringMap<BGWparamsMember> bgwpmDescMap
+(	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
+	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)"
+);
+
+struct CommandBGWparams : public Command
+{
+	CommandBGWparams() : Command("bgw-params", "jdftx/Output")
+	{	
+		format = "<key1> <value1> <key2> <value2> ...";
+		comments = "Control BGW output. Possible keys and value types are:"
+			+ addDescriptions(bgwpmMap.optionList(), linkDescription(bgwpmMap, bgwpmMap))
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.dump.bgwParams = std::make_shared<BGWparams>();
+		BGWparams& bgwp = *(e.dump.bgwParams);
+		while(true)
+		{	BGWparamsMember key;
+			pl.get(key, BGWpm_Delim, bgwpmMap, "key");
+			#define READ_AND_CHECK(param, op, val) \
+				case BGWpm_##param: \
+					pl.get(bgwp.param, val, #param, true); \
+					if(!(bgwp.param op val)) throw string(#param " must be " #op " " #val); \
+					break;
+			switch(key)
+			{	READ_AND_CHECK(nBandsDense, >=, 0)
+				READ_AND_CHECK(blockSize, >, 0)
+				case BGWpm_Delim: return; //end of input
+			}
+			#undef READ_AND_CHECK
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	assert(e.dump.bgwParams);
+		const BGWparams& bgwp = *(e.dump.bgwParams);
+		#define PRINT(param, format) logPrintf(" \\\n\t" #param " " format, bgwp.param);
+		PRINT(nBandsDense, "%d")
+		PRINT(blockSize, "%d")
+		#undef PRINT
+	}
+}
+commandBGWparams;

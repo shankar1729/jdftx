@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/Dump_internal.h>
 
 #ifndef HDF5_ENABLED
 void Dump::dumpBGW()
@@ -33,6 +34,7 @@ void Dump::dumpBGW()
 class BGW
 {
 	const Everything& e;
+	const BGWparams& bgwp;
 	const GridInfo& gInfo;
 	const ElecInfo& eInfo;
 	const ElecVars& eVars;
@@ -47,8 +49,9 @@ class BGW
 	std::vector<double> wk; //!< k-point weights
 	
 public:
-	BGW(const Everything& e);
+	BGW(const Everything& e, const BGWparams& bgwp);
 	void writeWfn() const; //!< Write wavefunction file
+	void denseWriteWfn(hid_t gidWfns) const; //!< Solve wavefunctions using ScaLAPACK and write to hdf5 file
 	void writeVxc() const; //!< Write exchange-correlation matrix elements
 	void writeChiFluid() const; //!< Write fluid polarizability
 private:
@@ -58,7 +61,8 @@ private:
 
 
 void Dump::dumpBGW()
-{	BGW bgw(*e);
+{	if(!bgwParams) bgwParams = std::make_shared<BGWparams>(); //default parameters
+	BGW bgw(*e, *bgwParams);
 	bgw.writeWfn();
 	bgw.writeVxc();
 	if(e->eVars.fluidSolver)
@@ -68,8 +72,8 @@ void Dump::dumpBGW()
 
 //------------ Implementation of class DumpBGW -----------------
 
-BGW::BGW(const Everything& e)
-: e(e), gInfo(e.gInfo), eInfo(e.eInfo), eVars(e.eVars),
+BGW::BGW(const Everything& e, const BGWparams& bgwp)
+: e(e), bgwp(bgwp), gInfo(e.gInfo), eInfo(e.eInfo), eVars(e.eVars),
 nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nStates/nSpins)
 {
 	//nBasis arrays:
@@ -99,9 +103,8 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 
 //Write wavefunction file for BGW
 void BGW::writeWfn() const
-{	//Open file and write common header:
+{	//Open file:
 	hid_t fid = openHDF5(e.dump.getFilename("bgw.wfn.h5"));
-	writeHeaderMF(fid);
 	
 	//Wavefunction group:
 	hid_t gidWfns = h5createGroup(fid, "wfns");
@@ -113,6 +116,11 @@ void BGW::writeWfn() const
 	hsize_t dimsGwfns[2] = { iGarr.size(), 3 };
 	h5writeVector(gidWfns, "gvecs", &iGarr[0][0], dimsGwfns, 2);
 	//--- Coefficients:
+	if(bgwp.nBandsDense)
+	{	//Write results of a ScaLAPACK solve:
+		denseWriteWfn(gidWfns);
+	}
+	else //Default output of bands from usual totalE / bandstructure calculation
 	{	//Create dataset (must happen on all processes together):
 		hsize_t dims[4] = { hsize_t(eInfo.nBands), hsize_t(nSpins*nSpinor), iGarr.size(), 2 };
 		hid_t sid = H5Screate_simple(4, dims, NULL);
@@ -150,10 +158,13 @@ void BGW::writeWfn() const
 		H5Dclose(did);
 	}
 	H5Gclose(gidWfns);
-		
+	
+	//Write common header at end (so as to use updated eigenvalues and fillings from scalapack solve, if any)
+	writeHeaderMF(fid);
+	
 	//Close file:
 	H5Fclose(fid);
-	logPrintf("done\n"); logFlush();
+	logPrintf("Done.\n"); logFlush();
 }
 
 
@@ -241,7 +252,7 @@ void BGW::writeChiFluid() const
 	
 	//Close file:
 	H5Fclose(fid);
-	logPrintf("done\n"); logFlush();
+	logPrintf("Done.\n"); logFlush();
 }
 
 
@@ -374,6 +385,149 @@ void BGW::writeHeaderMF(hid_t fid) const
 	H5Gclose(gidCrystal);
 
 	H5Gclose(gidHeader);
+}
+
+
+//--------------- ScaLAPACK solve of bands -------------
+#ifdef SCALAPACK_ENABLED
+extern "C"
+{
+	void blacs_pinfo_(int* mypnum, int* nprocs);
+	void blacs_get_(const int* icontxt, const int* what, int* val);
+	void blacs_gridinit_(const int* icontxt, const char* layout, const int* nprow, const int* npcol);
+	void blacs_gridinfo_(const int* icontxt, int* nprow, int* npcol, int* myprow, int* mypcol);
+	void blacs_gridexit_(const int* icontxt);
+	void blacs_exit_(const int* cont);
+	
+	void descinit_(int* desc, const int* m, const int* n, const int* mb, const int* nb,
+		const int* irsrc, const int* icsrc, const int* ictxt, const int* lld, int* info);
+	int numroc_(const int* n, const int* nb, const int* iproc, const int* srcproc, const int* nprocs);
+	
+	void pzheevx_(const char *jobz, const char *range, const char *uplo, const int* n, complex* a, const int* ia, const int* ja, int* desca,
+		double* vl, double* vu, int* il, int* iu, double* abstol, int* m, int* nz, double* w, double* orfac,
+		complex* z, const int* iz, const int* jz, int* descz, complex* work, int* lwork, double* rwork, int* lrwork,
+		int* iwork, int* liwork, int* ifail, int* iclustr, double* gap, int* info);
+	
+	void zlacpy_(const char* uplo, const int* m, const int* n, const complex* a, const int* lda, complex* b, const int* ldb);
+}
+
+//Return list of indices in a given dimension (row or column) that belong to me in block-cyclic distribution
+std::vector<int> distributedIndices(int nTotal, int blockSize, int iProcDim, int nProcsDim)
+{	int zero = 0;
+	int nMine = numroc_(&nTotal, &blockSize, &iProcDim, &zero, &nProcsDim);
+	std::vector<int> myIndices; myIndices.reserve(nMine);
+	int blockStride = blockSize * nProcsDim;
+	int nBlocksMineMax = (nTotal + blockStride - 1) / blockStride;
+	for(int iBlock=0; iBlock<nBlocksMineMax; iBlock++)
+	{	int iStart = iProcDim*blockSize + iBlock*blockStride;
+		int iStop = std::min(iStart+blockSize, nTotal);
+		for(int i=iStart; i<iStop; i++)
+			myIndices.push_back(i);
+	}
+	assert(int(myIndices.size()) == nMine);
+	return myIndices;
+}
+#endif
+
+//Solve wavefunctions using ScaLAPACK and write to hdf5 file:
+void BGW::denseWriteWfn(hid_t gidWfns) const
+{	logPrintf("\n");
+#ifdef SCALAPACK_ENABLED
+	//Calculate squarest possible process grid:
+	int nProcesses = mpiWorld->nProcesses();
+	int nProcsRow = int(round(sqrt(nProcesses)));
+	while(nProcesses % nProcsRow) nProcsRow--;
+	int nProcsCol = nProcesses / nProcsRow;
+
+	//Initialize BLACS process grid:
+	int blacsContext, iProcRow, iProcCol;
+	{	int unused=-1, what=0;
+		blacs_get_(&unused, &what, &blacsContext);
+		blacs_gridinit_(&blacsContext, "Row-major", &nProcsRow, &nProcsCol);
+		blacs_gridinfo_(&blacsContext, &nProcsRow, &nProcsCol, &iProcRow, &iProcCol);
+	}
+	logPrintf("\tInitialized %d x %d process BLACS grid.\n", nProcsRow, nProcsCol);
+	
+	//Loop over states:
+	for(int q=0; q<eInfo.nStates; q++)
+	{
+		//Initialize matrix distribution:
+		const int nRows = e.basis[q].nbasis * nSpinor; //Hamiltonian dimension
+		const int blockSize = bgwp.blockSize; //block dimensions
+		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
+		std::vector<int> iRowsMine = distributedIndices(nRows, blockSize, iProcRow, nProcsRow); //indices of rows on current process
+		std::vector<int> iColsMine = distributedIndices(nRows, blockSize, iProcCol, nProcsCol); //indices of cols on current process
+		int nRowsMine = iRowsMine.size();
+		int nColsMine = iColsMine.size();
+		int descH[9];
+		{	int zero=0, info;
+			descinit_(descH, &nRows, &nRows, &blockSize, &blockSize, &zero, &zero, &blacsContext, &nRowsMine, &info); assert(info==0);
+		}
+		
+		//Initialize Hamiltonian matrix:
+		matrix H = zeroes(nRowsMine, nColsMine);
+		{	//Kinetic energy part:
+			die("\tTODO: complete implementation.\n");
+		}
+		matrix evecs(nRowsMine, nColsMine);
+		diagMatrix eigs(nRows);
+		
+		//Call the scalapack diagonalizer:
+		int eigStart=1, eigStop=nEigs; //find lowest nEigs eigs
+		double vlUnused=0., vuUnused=0.; //eigenvalue ranges (unused)
+		double absTol = -1.; //use default accuracy
+		double orFac = -1.; //default orthogonalization threshold
+		int nEigsFound, nEvecsFound; //number of calculated eigenvalues and eigenvectors (output)
+		int lwork = -1, lrwork = -1, liwork = -1, one = 1;
+		std::vector<complex> work(1);
+		std::vector<double> rwork(1);
+		std::vector<int> iwork(1);
+		std::vector<int> iFail(nRows);
+		std::vector<int> iClusters(2*nProcesses);
+		std::vector<double> clusterGaps(nProcesses);
+		int info = 0;
+		for(int pass=0; pass<2; pass++) //first pass is workspace query, next pass is actual calculation
+		{	pzheevx_("V", "I", "U", &nRows, H.data(), &one, &one, descH,
+				&vlUnused, &vuUnused, &eigStart, &eigStop, &absTol, &nEigsFound, &nEvecsFound, eigs.data(), &orFac,
+				evecs.data(), &one, &one, descH, work.data(), &lwork, rwork.data(), &lrwork,
+				iwork.data(), &liwork, iFail.data(), iClusters.data(), clusterGaps.data(), &info);
+			if(info < 0)
+			{	int errCode = -info;
+				if(errCode < 100) logPrintf("\tError in argument# %d to pzheevx.\n", errCode);
+				else logPrintf("\tError in entry %d of argument# %d to pzheevx.\n", errCode%100, errCode/100);
+				MPI_Abort(MPI_COMM_WORLD, 1);
+			}
+			if(info > 0)
+			{	if(info & 0x01) logPrintf("\tSome eigenvectors failed to converge in pzheevx.\n");
+				if(info & 0x02) logPrintf("\tSome eigenvectors could not be orthogonalized in pzheevx.\n");
+				if(info & 0x04) logPrintf("\tInsufficeint space to compute eigenvectors in pzheevx.\n");
+				if(info & 0x08) logPrintf("\tFailed to compute tridiagonal-matrix eigenvalues in pzheevx.\n");
+				MPI_Abort(MPI_COMM_WORLD, 1);
+			}
+			if(pass) break; //done
+			//After first-pass, use results of work-space query to allocate:
+			int nClusterMax = 10; //max cluster size to accomodate
+			lwork = int(work[0].real()) + nClusterMax*nRows; work.resize(lwork);
+			lrwork = int(rwork[0]) + nClusterMax*nRows; rwork.resize(lrwork);
+			liwork = int(iwork[0]); iwork.resize(liwork);
+		}
+		
+		//Select needed eigenvalues:
+		eigs.resize(nEigs); //rest zero
+		std::vector<int> iEigColsMine = iColsMine;
+		for(int jMine=0; jMine<nColsMine; jMine++)
+			if(iEigColsMine[jMine] >= nEigs)
+			{	iEigColsMine.resize(jMine); //remaining columns irrelevant
+				break;
+			}
+		int nEigColsMine = iEigColsMine.size();
+	
+	}
+	
+	logPrintf("\t");
+#else
+	die("\nDense solve for extra bands for BGW (nBandsDense > 0) requires ScaLAPACK.\n\n");
+#endif
 }
 
 #endif
