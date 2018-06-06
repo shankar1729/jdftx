@@ -427,16 +427,26 @@ std::vector<int> distributedIndices(int nTotal, int blockSize, int iProcDim, int
 	assert(int(myIndices.size()) == nMine);
 	return myIndices;
 }
+
+//Create a vector by indexing an attay i.e. return v[index] in octave/numpy notation
+template<typename T> std::vector<T> indexVector(const T* v, const std::vector<int>& index)
+{	std::vector<T> result;
+	result.reserve(index.size());
+	for(int i: index)
+		result.push_back(v[i]);
+	return result;
+}
 #endif
 
 //Solve wavefunctions using ScaLAPACK and write to hdf5 file:
 void BGW::denseWriteWfn(hid_t gidWfns) const
-{	logPrintf("\n");
+{	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup");
+	logPrintf("\n");
+#ifdef SCALAPACK_ENABLED
 	if(nSpinor > 1) die("\nDense diagonalization not yet implemented for spin-orbit / vector-spin modes.\n");
 	for(const auto& sp: e.iInfo.species)
 		if(sp->isUltrasoft())
 			 die("\nDense diagonalization not supported for ultrasoft pseudopotentials.\n");
-#ifdef SCALAPACK_ENABLED
 	//Calculate squarest possible process grid:
 	int nProcesses = mpiWorld->nProcesses();
 	int nProcsRow = int(round(sqrt(nProcesses)));
@@ -462,6 +472,7 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		//Initialize matrix distribution:
 		const int nRows = basis.nbasis * nSpinor; //Hamiltonian dimension
 		logPrintf(" with dimension %d\n", nRows); logFlush();
+		watchSetup.start();
 		const int blockSize = bgwp.blockSize; //block dimensions
 		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
 		std::vector<int> iRowsMine = distributedIndices(nRows, blockSize, iProcRow, nProcsRow); //indices of rows on current process
@@ -472,6 +483,13 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		{	int zero=0, info;
 			descinit_(descH, &nRows, &nRows, &blockSize, &blockSize, &zero, &zero, &blacsContext, &nRowsMine, &info); assert(info==0);
 		}
+		
+		//Create basis objects restricted to row and column ranges of current process:
+		Basis basisRow, basisCol;
+		basisRow.setup(*basis.gInfo, *basis.iInfo, indexVector(basis.index.data(), iRowsMine));
+		basisCol.setup(*basis.gInfo, *basis.iInfo, indexVector(basis.index.data(), iColsMine));
+		ColumnBundle Crow(1, nRowsMine, &basisRow, &qnum); //dummy ColumnBundle for SpeciesInfo::getV() etc.
+		ColumnBundle Ccol(1, nColsMine, &basisCol, &qnum); //dummy ColumnBundle for SpeciesInfo::getV() etc.
 		
 		//Initialize Hamiltonian matrix:
 		matrix H = zeroes(nRowsMine, nColsMine);
@@ -503,11 +521,29 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 				}
 			}
 		}
+		//--- Nonlocal pseudopotential contributions:
+		for(const auto& sp: e.iInfo.species)
+		{	const ColumnBundle& Vrow = *(sp->getV(Crow));
+			const ColumnBundle& Vcol = *(sp->getV(Ccol));
+			int nAtoms = sp->atpos.size();
+			int nProj = sp->MnlAll.nRows(); //number of projectors per atom
+			if(!nAtoms || !nProj) continue; //unused species or purely local psp
+			matrix Vrow_a(Vrow.colLength(), nProj);
+			matrix Vcol_a(Vcol.colLength(), nProj);
+			for(int a=0; a<nAtoms; a++)
+			{	callPref(eblas_copy)(Vrow_a.dataPref(), Vrow.dataPref() + a*Vrow_a.nData(), Vrow_a.nData());
+				callPref(eblas_copy)(Vcol_a.dataPref(), Vcol.dataPref() + a*Vcol_a.nData(), Vcol_a.nData());
+				H += (1./e.gInfo.detR) * Vrow_a * sp->MnlAll * dagger(Vcol_a);
+			}
+			sp->sync_atpos(); //free cached projectors
+		}
 		
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
+		watchSetup.stop();
 		
 		//Call the scalapack diagonalizer:
+		watchDiag.start();
 		int eigStart=1, eigStop=nEigs; //find lowest nEigs eigs
 		double vlUnused=0., vuUnused=0.; //eigenvalue ranges (unused)
 		double absTol = -1.; //use default accuracy
@@ -547,6 +583,7 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 			lrwork = int(rwork.data()[0]) + nClusterMax*nRows; rwork.init(lrwork);
 			liwork = int(iwork.data()[0]); iwork.init(liwork);
 		}
+		watchDiag.stop();
 		
 		//Select needed eigenvalues:
 		eigs.resize(nEigs); //rest zero
@@ -558,6 +595,7 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 			}
 		int nEigColsMine = iEigColsMine.size();
 	
+		if(eInfo.isMine(q)) { eVars.Hsub_eigs[q].print(stdout); fflush(stdout); }
 		eigs.print(globalLog);
 	}
 	

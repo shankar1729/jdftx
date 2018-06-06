@@ -232,6 +232,7 @@ private:
 	friend struct FluidSolverParams;
 	friend class ColumnBundleTransform;
 	friend class Dump;
+	friend class BGW;
 	friend class IonicMinimizer;
 	friend class IonInfo;
 	friend class PCM;
