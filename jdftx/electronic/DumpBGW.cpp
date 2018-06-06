@@ -523,11 +523,11 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 		}
 		//--- Nonlocal pseudopotential contributions:
 		for(const auto& sp: e.iInfo.species)
-		{	const ColumnBundle& Vrow = *(sp->getV(Crow));
-			const ColumnBundle& Vcol = *(sp->getV(Ccol));
-			int nAtoms = sp->atpos.size();
+		{	int nAtoms = sp->atpos.size();
 			int nProj = sp->MnlAll.nRows(); //number of projectors per atom
 			if(!nAtoms || !nProj) continue; //unused species or purely local psp
+			const ColumnBundle& Vrow = *(sp->getV(Crow));
+			const ColumnBundle& Vcol = *(sp->getV(Ccol));
 			matrix Vrow_a(Vrow.colLength(), nProj);
 			matrix Vcol_a(Vcol.colLength(), nProj);
 			for(int a=0; a<nAtoms; a++)
@@ -537,7 +537,27 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 			}
 			sp->sync_atpos(); //free cached projectors
 		}
-		
+		//--- DFT+U contributions:
+		const matrix* U_rhoPtr = e.eVars.U_rhoAtom.data();
+		for(const auto& sp: e.iInfo.species)
+		{	int nAtoms = sp->atpos.size();
+			if(!nAtoms || !sp->plusU.size()) continue; //unused species or purely local psp
+			for(unsigned iU=0; iU<sp->plusU.size(); iU++)
+			{	const SpeciesInfo::PlusU& Uparams = sp->plusU[iU];
+				int orbCount = (2*Uparams.l+1) * nSpinor;
+				ColumnBundle OpsiRow(Crow.similar(orbCount*nAtoms)); sp->setAtomicOrbitals(OpsiRow, true, Uparams.n, Uparams.l);
+				ColumnBundle OpsiCol(Ccol.similar(orbCount*nAtoms)); sp->setAtomicOrbitals(OpsiCol, true, Uparams.n, Uparams.l);
+				matrix OpsiRow_a(OpsiRow.colLength(), orbCount);
+				matrix OpsiCol_a(OpsiCol.colLength(), orbCount);
+				for(int s=0; s<qnum.index(); s++) U_rhoPtr += nAtoms;
+				for(int a=0; a<nAtoms; a++)
+				{	callPref(eblas_copy)(OpsiRow_a.dataPref(), OpsiRow.dataPref() + a*OpsiRow_a.nData(), OpsiRow_a.nData());
+					callPref(eblas_copy)(OpsiCol_a.dataPref(), OpsiCol.dataPref() + a*OpsiCol_a.nData(), OpsiCol_a.nData());
+					H += (1./(e.gInfo.detR*eInfo.spinWeight)) * OpsiRow_a * (*(U_rhoPtr++)) * dagger(OpsiCol_a);
+				}
+				for(int s=qnum.index()+1; s<nSpins; s++) U_rhoPtr += nAtoms;
+			}
+		}
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
 		watchSetup.stop();
