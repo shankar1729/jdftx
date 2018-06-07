@@ -48,10 +48,13 @@ class BGW
 	std::vector<vector3<int>> kOffset; //!< k offsets to switch from JDFTx to BGW convention
 	std::vector<double> wk; //!< k-point weights
 	
+	int nBands; //!< eInfo.nBands, or overridden by nBandsDense
+	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
+	
 public:
 	BGW(const Everything& e, const BGWparams& bgwp);
 	void writeWfn() const; //!< Write wavefunction file
-	void denseWriteWfn(hid_t gidWfns) const; //!< Solve wavefunctions using ScaLAPACK and write to hdf5 file
+	void denseWriteWfn(hid_t gidWfns); //!< Solve wavefunctions using ScaLAPACK and write to hdf5 file
 	void writeVxc() const; //!< Write exchange-correlation matrix elements
 	void writeChiFluid() const; //!< Write fluid polarizability
 private:
@@ -98,6 +101,11 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 		}
 		wk[q] = eInfo.qnums[q].weight / eInfo.spinWeight; //Set sum(wk) = 1 in all cases
 	}
+	
+	//DFT nBands; corresponding E and F:
+	nBands = eInfo.nBands;
+	E = eVars.Hsub_eigs;
+	F = eVars.F;
 }
 
 
@@ -118,11 +126,11 @@ void BGW::writeWfn() const
 	//--- Coefficients:
 	if(bgwp.nBandsDense)
 	{	//Write results of a ScaLAPACK solve:
-		denseWriteWfn(gidWfns);
+		((BGW*)this)->denseWriteWfn(gidWfns);
 	}
 	else //Default output of bands from usual totalE / bandstructure calculation
 	{	//Create dataset (must happen on all processes together):
-		hsize_t dims[4] = { hsize_t(eInfo.nBands), hsize_t(nSpins*nSpinor), iGarr.size(), 2 };
+		hsize_t dims[4] = { hsize_t(nBands), hsize_t(nSpins*nSpinor), iGarr.size(), 2 };
 		hid_t sid = H5Screate_simple(4, dims, NULL);
 		hid_t did = H5Dcreate(gidWfns, "coeffs", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		hid_t plid = H5Pcreate(H5P_DATASET_XFER);
@@ -141,7 +149,7 @@ void BGW::writeWfn() const
 				count[2] = nBasis[ik];
 				offset[2] = nBasisPrev[ik];
 				hid_t sidMem = H5Screate_simple(4, count, NULL);
-				for(int b=0; b<eInfo.nBands; b++)
+				for(int b=0; b<nBands; b++)
 				{	offset[0] = b;
 					sid = H5Dget_space(did);
 					H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
@@ -283,7 +291,7 @@ void BGW::writeHeaderMF(hid_t fid) const
 	h5writeScalar(gidKpts, "nspin", nSpins);
 	h5writeScalar(gidKpts, "nspinor", nSpinor);
 	h5writeScalar(gidKpts, "nrk", nReducedKpts);
-	h5writeScalar(gidKpts, "mnband", eInfo.nBands);
+	h5writeScalar(gidKpts, "mnband", nBands);
 	h5writeScalar(gidKpts, "ngkmax", nBasisMax);
 	h5writeScalar(gidKpts, "ecutwfc", e.cntrl.Ecut/Ryd);
 	h5writeVector(gidKpts, "kgrid", &eInfo.kFoldingCount()[0], 3);
@@ -294,8 +302,8 @@ void BGW::writeHeaderMF(hid_t fid) const
 	const double Fcut = 0.5;
 	std::vector<int> ifmin(eInfo.nStates, 1), ifmax(eInfo.nStates, 1);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	for(int b=0; b<eInfo.nBands; b++)
-		{	if(eVars.F[q][b] < Fcut) break;
+	{	for(int b=0; b<nBands; b++)
+		{	if(F[q][b] < Fcut) break;
 			ifmax[q] = b+1;
 		}
 	}
@@ -311,17 +319,18 @@ void BGW::writeHeaderMF(hid_t fid) const
 	
 	//--- eigenvalues and occupations:
 	std::vector<double> Eall, Fall;
-	Eall.reserve(eInfo.nStates*eInfo.nBands);
-	Fall.reserve(eInfo.nStates*eInfo.nBands);
+	Eall.reserve(eInfo.nStates*nBands);
+	Fall.reserve(eInfo.nStates*nBands);
 	for(int q=0; q<eInfo.nStates; q++)
-	{	diagMatrix Ecur(eInfo.nBands), Fcur(eInfo.nBands);
-		if(eInfo.isMine(q)) { Ecur = eVars.Hsub_eigs[q]*(1./Ryd); Fcur = eVars.F[q]; }
+	{	diagMatrix Ecur(nBands), Fcur(nBands);
+		if(eInfo.isMine(q)) { Ecur = E[q]*(1./Ryd); Fcur = F[q]; }
 		Ecur.bcast(eInfo.whose(q)); Eall.insert(Eall.end(), Ecur.begin(), Ecur.end());
 		Fcur.bcast(eInfo.whose(q)); Fall.insert(Fall.end(), Fcur.begin(), Fcur.end());
 	}
-	hsize_t dimsKspinBands[3] = { hsize_t(nSpins), hsize_t(nReducedKpts), hsize_t(eInfo.nBands) };
+	hsize_t dimsKspinBands[3] = { hsize_t(nSpins), hsize_t(nReducedKpts), hsize_t(nBands) };
 	h5writeVector(gidKpts, "el", Eall.data(), dimsKspinBands, 3);
 	h5writeVector(gidKpts, "occ", Fall.data(), dimsKspinBands, 3);
+	Eall.clear(); Fall.clear();
 	H5Gclose(gidKpts);
 	
 	//---------- G-space group ----------
@@ -439,10 +448,11 @@ template<typename T> std::vector<T> indexVector(const T* v, const std::vector<in
 #endif
 
 //Solve wavefunctions using ScaLAPACK and write to hdf5 file:
-void BGW::denseWriteWfn(hid_t gidWfns) const
+void BGW::denseWriteWfn(hid_t gidWfns)
 {	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup");
 	logPrintf("\n");
 #ifdef SCALAPACK_ENABLED
+	nBands = bgwp.nBandsDense;
 	if(nSpinor > 1) die("\nDense diagonalization not yet implemented for spin-orbit / vector-spin modes.\n");
 	for(const auto& sp: e.iInfo.species)
 		if(sp->isUltrasoft())
@@ -614,11 +624,22 @@ void BGW::denseWriteWfn(hid_t gidWfns) const
 				break;
 			}
 		int nEigColsMine = iEigColsMine.size();
-	
-		if(eInfo.isMine(q)) { eVars.Hsub_eigs[q].print(stdout); fflush(stdout); }
-		eigs.print(globalLog);
+		if(eInfo.isMine(q))
+		{	E[q] = eigs;
+			F[q].resize(nBands, 0.); //update to nBandsDense (padded with zeroes)
+		}
+		
+		//Debug print
+		//if(eInfo.isMine(q)) { eVars.Hsub_eigs[q].print(stdout); fflush(stdout); }
+		//eigs.print(globalLog);
 	}
-	
+	//Update fillings if necessary:
+	if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+	{	double Bz, mu = eInfo.findMu(E, eInfo.nElectrons, Bz);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			F[q] = eInfo.smear(eInfo.muEff(mu,Bz,q), E[q]);
+		logPrintf("\t"); eInfo.smearReport();
+	}
 	logPrintf("\t");
 #else
 	die("\nDense solve for extra bands for BGW (nBandsDense > 0) requires ScaLAPACK.\n\n");
