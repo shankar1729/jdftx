@@ -874,15 +874,18 @@ commandPotentialSubtraction;
 enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
+	BGWpm_clusterSize,
 	BGWpm_Delim
 };
 EnumStringMap<BGWparamsMember> bgwpmMap
 (	BGWpm_nBandsDense, "nBandsDense",
-	BGWpm_blockSize, "blockSize"
+	BGWpm_blockSize, "blockSize",
+	BGWpm_clusterSize, "clusterSize"
 );
 EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
-	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)"
+	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
+	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)"
 );
 
 struct CommandBGWparams : public Command
@@ -909,6 +912,7 @@ struct CommandBGWparams : public Command
 			switch(key)
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
+				READ_AND_CHECK(clusterSize, >, 0)
 				case BGWpm_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -921,6 +925,7 @@ struct CommandBGWparams : public Command
 		#define PRINT(param, format) logPrintf(" \\\n\t" #param " " format, bgwp.param);
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
+		PRINT(clusterSize, "%d")
 		#undef PRINT
 	}
 }

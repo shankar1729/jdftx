@@ -114,8 +114,9 @@ struct ChargedDefect
 struct BGWparams
 {	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
 	int blockSize; //!< block size for ScaLAPACK diagonalization
+	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
 	
-	BGWparams() : nBandsDense(0), blockSize(32) {}
+	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10) {}
 };
 
 //! @}

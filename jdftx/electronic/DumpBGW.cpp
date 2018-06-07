@@ -472,9 +472,19 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 	}
 	logPrintf("\tInitialized %d x %d process BLACS grid.\n", nProcsRow, nProcsCol);
 	
+	//Create dataset (must happen on all processes together):
+	hsize_t nGtot = nBasisPrev.back() + nBasis.back();
+	hsize_t dims[4] = { hsize_t(nBands), hsize_t(nSpins*nSpinor), nGtot, 2 };
+	hid_t sid = H5Screate_simple(4, dims, NULL);
+	hid_t did = H5Dcreate(gidWfns, "coeffs", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+	H5Sclose(sid);
+	
 	//Loop over states:
-	for(int q=0; q<eInfo.nStates; q++)
-	{	const Basis& basis = e.basis[q];
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	for(int ik=0; ik<nReducedKpts; ik++)
+	{	int q = ik + iSpin*nReducedKpts;
+		const Basis& basis = e.basis[q];
 		const QuantumNumber& qnum = eInfo.qnums[q];
 		logPrintf("\tDiagonalizing state ");
 		eInfo.kpointPrint(globalLog, q, true);
@@ -608,9 +618,8 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 			}
 			if(pass) break; //done
 			//After first-pass, use results of work-space query to allocate:
-			int nClusterMax = 10; //max cluster size to accomodate
-			lwork = int(work.data()[0].real()) + nClusterMax*nRows; work.init(lwork);
-			lrwork = int(rwork.data()[0]) + nClusterMax*nRows; rwork.init(lrwork);
+			lwork = int(work.data()[0].real()) + bgwp.clusterSize*nRows; work.init(lwork);
+			lrwork = int(rwork.data()[0]) + bgwp.clusterSize*nRows; rwork.init(lrwork);
 			liwork = int(iwork.data()[0]); iwork.init(liwork);
 		}
 		watchDiag.stop();
@@ -632,7 +641,37 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		//Debug print
 		//if(eInfo.isMine(q)) { eVars.Hsub_eigs[q].print(stdout); fflush(stdout); }
 		//eigs.print(globalLog);
+		
+		//Write the wavefunctions:
+		hsize_t offset[4] = { 0, hsize_t(iSpin), 0, 0 };
+		hsize_t count[4] = { 1, 1, 1, 2 };
+		matrix buf(blockSize, blockSize);
+		int nBlockRows = (nRowsMine+blockSize-1)/blockSize;
+		int nBlockCols = (nEigColsMine+blockSize-1)/blockSize;
+		for(int jBlock=0; jBlock<nBlockCols; jBlock++)
+		{	int jStart = jBlock*blockSize; //start index in local matrix
+			int jCount = std::min(blockSize, nEigColsMine-jStart); //number
+			int jOffset = iEigColsMine[jStart]; //start index in global matrix
+			for(int iBlock=0; iBlock<nBlockRows; iBlock++)
+			{	int iStart = iBlock*blockSize; //start index in local matrix
+				int iCount = std::min(blockSize, nRowsMine-iStart); //number
+				int iOffset = iRowsMine[iStart]; //start index in global matrix
+				//Copy block from local matrix to contiguous buffer:
+				zlacpy_("A", &iCount, &jCount, evecs.data()+nRowsMine*jStart+iStart, &nRowsMine, buf.data(), &iCount);
+				//Select destination in hdf5 file and wwrite from buffer:
+				count[0] = jCount; offset[0] = jOffset; //band index
+				count[2] = iCount; offset[2] = iOffset+nBasisPrev[ik]; //G-vector index
+				sid = H5Dget_space(did);
+				H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+				hid_t sidMem = H5Screate_simple(4, count, NULL);
+				H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf.data());
+				H5Sclose(sidMem);
+			}
+		}
 	}
+	H5Pclose(plid);
+	H5Dclose(did);
+	
 	//Update fillings if necessary:
 	if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 	{	double Bz, mu = eInfo.findMu(E, eInfo.nElectrons, Bz);
