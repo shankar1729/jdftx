@@ -10,6 +10,7 @@ var searchData=
   ['center',['center',['../structDOS_1_1Weight.html#a511610ec9f31f244b37d23809a612f7f',1,'DOS::Weight::center()'],['../structChargedDefect.html#afbf30adbca8d9339e452c2ab5f242668',1,'ChargedDefect::center()']]],
   ['centraldiff',['centralDiff',['../classVibrations.html#a1b59cd3be0cca6131f42308dca03f78b',1,'Vibrations']]],
   ['chargeddefect',['chargedDefect',['../classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd',1,'Dump']]],
+  ['clustersize',['clusterSize',['../structBGWparams.html#a4467718884cfb205934e3120d2912ecd',1,'BGWparams']]],
   ['cntrl',['cntrl',['../classEverything.html#a0861dc24d754878632bcbf5f898fe65d',1,'Everything']]],
   ['coeff',['coeff',['../structExchangeSphericalScreened__calc.html#a7eb4f8f79af30b2c708769b2f2e63475',1,'ExchangeSphericalScreened_calc::coeff()'],['../structRadialFunctionG.html#a570dd683b5f5e54f884a103fb9c5e305',1,'RadialFunctionG::coeff()'],['../structYlmProdTerm.html#a8c25bef0774b9a9abbcf40a21503c82e',1,'YlmProdTerm::coeff()'],['../structWannier_1_1AtomicOrbital.html#a55b62e52a60ba4af2ac3d1998ef0f074',1,'Wannier::AtomicOrbital::coeff()']]],
   ['coeffgpu',['coeffGpu',['../structRadialFunctionG.html#a3a421ff0d06e91f3a2e6eb28b6d85d45',1,'RadialFunctionG']]],
@@ -29,5 +30,6 @@ var searchData=
   ['coul',['Coul',['../group__Utilities.html#gafd04f111d5fd8e870ef649913247cff4',1,'Units.h']]],
   ['coulomb',['coulomb',['../classEverything.html#abe00ed0913bb2861e2ce22806faa34fb',1,'Everything']]],
   ['coulombparams',['coulombParams',['../classEverything.html#ae6cd84317b70bf9dc57e37c9b97ab080',1,'Everything']]],
+  ['cublashandle',['cublasHandle',['../group__Utilities.html#gaee45391854905ae20d85d37211fe1754',1,'cublasHandle():&#160;GpuKernelUtils.h'],['../group__Utilities.html#gaee45391854905ae20d85d37211fe1754',1,'cublasHandle():&#160;GpuUtil.h']]],
   ['cudadevprops',['cudaDevProps',['../group__Utilities.html#gac05c6e7e2788683fda8f63d711576be7',1,'GpuKernelUtils.h']]]
 ];

@@ -101,13 +101,15 @@ $(document).ready(function(){initNavTree('createVASP.html','');});
 <div class="textblock"><hr/>
  <pre class="fragment">    Create a VASP CHGCAR file from a JDFTx output file. Usage:
 
-            createVASP &lt;jdftxOutFile&gt; &lt;vaspFile&gt; [&lt;nFilename&gt;]
+            createVASP &lt;jdftxOutFile&gt; &lt;vaspFile&gt; [&lt;nFilename&gt;] [&lt;Ninterp&gt;=1]
 
     Save the final structure and electron density from JDFTx output
     file &lt;jdftxOutFile&gt; to a VASP CHGCAR format file in &lt;vaspFile&gt;.
     The electron density is read from the appropriate filename
     determined by parsing the output; this can be overriden by
     explicitly specifying &lt;nFilename&gt;.
+
+    Optional &lt;Ninterp&gt; specifies a grid multiplier for Fourier interpolation.
 
     Note: this tool requires awk and octave to be available in path.</pre> </div></div><!-- contents -->
 </div><!-- doc-content -->

@@ -243,6 +243,8 @@ var group__Utilities =
     [ "atomicSymbolMap", "group__Utilities.html#ga3f40bf9127a9a50b62a03e85bc957d9a", null ],
     [ "Bar", "group__Utilities.html#gaab365c7f823c0119235f1be7c89e7718", null ],
     [ "Coul", "group__Utilities.html#gafd04f111d5fd8e870ef649913247cff4", null ],
+    [ "cublasHandle", "group__Utilities.html#gaee45391854905ae20d85d37211fe1754", null ],
+    [ "cublasHandle", "group__Utilities.html#gaee45391854905ae20d85d37211fe1754", null ],
     [ "cudaDevProps", "group__Utilities.html#gac05c6e7e2788683fda8f63d711576be7", null ],
     [ "eV", "group__Utilities.html#ga87b385f118e3715860117a77eda7136d", null ],
     [ "fs", "group__Utilities.html#gae9b6ba26b138aafb089d93703ea2758c", null ],

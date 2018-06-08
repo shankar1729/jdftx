@@ -135,6 +135,9 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 <li><p class="startli">loadRotations yes|no</p>
 <p class="startli">Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run. Default: no.</p>
 </li>
+<li><p class="startli">eigsOverride &lt;filename&gt;</p>
+<p class="startli">Optionally read an alternate eigenvalues file to over-ride those from the total energy calculation. Useful for generating <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> Hamiltonians using eigenvalues from another DFT or a many-body perturbation theory code.</p>
+</li>
 <li><p class="startli">numericalOrbitals &lt;filename&gt;</p>
 <p class="startli">Load numerical orbitals from &lt;filename&gt; with basis described in &lt;filename&gt;.header that can then be used as trial orbitals. The reciprocal space wavefunction output of wannier is precisely in this format, so that supercell Wannier calculations can be initialized from previously calculated bulk / unit cell Wannier functions.</p>
 </li>

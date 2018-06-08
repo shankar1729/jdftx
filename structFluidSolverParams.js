@@ -43,6 +43,7 @@ var structFluidSolverParams =
     [ "verboseLog", "structFluidSolverParams.html#ac4fe32ad71d0a32508bd5feb81a131ff", null ],
     [ "zMask0", "structFluidSolverParams.html#a9c9e2ab6772a9ce46aac31966b353aff", null ],
     [ "zMaskH", "structFluidSolverParams.html#ab7b303f6aa1dfb54154d9b7d51ed6ee1", null ],
+    [ "zMaskIonH", "structFluidSolverParams.html#acb0b11d5c1aa0e8857a89bd2ec3993ff", null ],
     [ "zMaskSigma", "structFluidSolverParams.html#aab2a68a030a4575b563a3741271fd779", null ],
     [ "Ztot", "structFluidSolverParams.html#a9b954a752d0895e93603bdb1a7622c7d", null ]
 ];

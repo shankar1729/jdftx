@@ -10,7 +10,7 @@ var searchData=
   ['eexternal',['Eexternal',['../classFluidMixture.html#a6fda9d8a348600cc0d7068c388915e8a',1,'FluidMixture']]],
   ['efield',['Efield',['../structCoulombParams.html#ad26c31ff87d569441b00ec3402f7f76b',1,'CoulombParams::Efield()'],['../structSlabEpsilon.html#afa591d1f765f4f0bd31b0bcb27c7d808',1,'SlabEpsilon::Efield()'],['../structBulkEpsilon.html#aee5063de0bb782b6f48e79aa304edbcc',1,'BulkEpsilon::Efield()']]],
   ['eigdiffthreshold',['eigDiffThreshold',['../structSCFparams.html#a1e1240556567207808c88529504793f4',1,'SCFparams']]],
-  ['eigsfilename',['eigsFilename',['../classElecVars.html#a2f7b935e01356eed8768257759cc3a63',1,'ElecVars']]],
+  ['eigsfilename',['eigsFilename',['../classDOS.html#ac5f2805dde6985d936cfe10e15fec8bb',1,'DOS::eigsFilename()'],['../classElecVars.html#a2f7b935e01356eed8768257759cc3a63',1,'ElecVars::eigsFilename()'],['../classWannier.html#abfe999854d4f8fa617ad64986beb147c',1,'Wannier::eigsFilename()']]],
   ['einfo',['eInfo',['../classEverything.html#aaa070005c7f05e95b583cbddf930b318',1,'Everything']]],
   ['einnermax',['eInnerMax',['../classWannier.html#ae5156864b89875184cdecffca245010e',1,'Wannier']]],
   ['eleceigenalgo',['elecEigenAlgo',['../classControl.html#a3ebc9a72430c3bf0785456ff41eb5803',1,'Control']]],

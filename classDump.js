@@ -9,6 +9,7 @@ var classDump =
     [ "CommandDumpInterval", "classDump.html#ad018aac89b578fad3a7992b6d0ed2e0f", null ],
     [ "CommandDumpName", "classDump.html#a5ae384ac2e97f4efbab2677d2f37bea9", null ],
     [ "Phonon", "classDump.html#a11e682b702900987689e5aeaa68f3cbb", null ],
+    [ "bgwParams", "classDump.html#aa5ea4c78759f86404f90305ba8b10c9c", null ],
     [ "bulkEpsilon", "classDump.html#a57ec90fb4d588fd1378463bb539242e0", null ],
     [ "chargedDefect", "classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd", null ],
     [ "densityErange", "classDump.html#a09106dabf8b6940789e41a07914c774b", null ],

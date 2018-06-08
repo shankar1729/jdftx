@@ -2,6 +2,7 @@ var CommandIndex =
 [
     [ "add-U", "CommandAddU.html", null ],
     [ "basis", "CommandBasis.html", null ],
+    [ "bgw-params", "CommandBgwParams.html", null ],
     [ "box-potential", "CommandBoxPotential.html", null ],
     [ "bulk-epsilon", "CommandBulkEpsilon.html", null ],
     [ "cache-projectors", "CommandCacheProjectors.html", null ],
@@ -91,6 +92,7 @@ var CommandIndex =
     [ "symmetries", "CommandSymmetries.html", null ],
     [ "symmetry-matrix", "CommandSymmetryMatrix.html", null ],
     [ "symmetry-threshold", "CommandSymmetryThreshold.html", null ],
+    [ "target-Bz", "CommandTargetBz.html", null ],
     [ "target-mu", "CommandTargetMu.html", null ],
     [ "tau-core", "CommandTauCore.html", null ],
     [ "van-der-waals", "CommandVanDerWaals.html", null ],

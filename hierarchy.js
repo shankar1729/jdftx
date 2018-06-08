@@ -8,6 +8,7 @@ var hierarchy =
     [ "BandDavidson", "classBandDavidson.html", null ],
     [ "Basis", "classBasis.html", null ],
     [ "ColumnBundleTransform::BasisWrapper", "structColumnBundleTransform_1_1BasisWrapper.html", null ],
+    [ "BGWparams", "structBGWparams.html", null ],
     [ "BlipConverter", "classBlipConverter.html", null ],
     [ "BlipResampler", "classBlipResampler.html", null ],
     [ "BlockRotationMatrix", "classBlockRotationMatrix.html", null ],

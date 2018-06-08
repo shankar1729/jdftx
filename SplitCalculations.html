@@ -106,7 +106,7 @@ $(document).ready(function(){initNavTree('SplitCalculations.html','');});
 <pre class="fragment">#Save the following to totalE.in:
 include common.in
 kpoint-folding 12 12 1
-elec-fermi-fillings 0 0.01
+elec-smearing Fermi 0.01
 dump-name totalE.$VAR
 dump End ElecDensity State
 </pre><p>which can be run with "mpirun -n 4 jdftx -i totalE.in | tee totalE.out". Also make sure that the k-point paths and plot script for band structure have been generated as described in the <a class="el" href="TwoDmaterials.html">Two-dimensional materials</a> tutorial.</p>

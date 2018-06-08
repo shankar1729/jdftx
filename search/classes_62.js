@@ -4,6 +4,7 @@ var searchData=
   ['bandminimizer',['BandMinimizer',['../classBandMinimizer.html',1,'']]],
   ['basis',['Basis',['../classBasis.html',1,'']]],
   ['basiswrapper',['BasisWrapper',['../structColumnBundleTransform_1_1BasisWrapper.html',1,'ColumnBundleTransform']]],
+  ['bgwparams',['BGWparams',['../structBGWparams.html',1,'']]],
   ['blipconverter',['BlipConverter',['../classBlipConverter.html',1,'']]],
   ['blipresampler',['BlipResampler',['../classBlipResampler.html',1,'']]],
   ['blockrotationmatrix',['BlockRotationMatrix',['../classBlockRotationMatrix.html',1,'']]],

@@ -195,7 +195,7 @@ var searchData=
   ['sumcomponents',['sumComponents',['../group__DataStructures.html#gaed33108356884e8689cb65c6190cbfa2',1,'VectorField.h']]],
   ['sup',['sup',['../classPhonon.html#a8de5046e3d4a29fdf35b774d6e62cc80',1,'Phonon']]],
   ['super',['super',['../structSupercell.html#a5dd268796b7169e81249bb11b589912e',1,'Supercell']]],
-  ['supercell',['Supercell',['../structSupercell.html',1,'Supercell'],['../structCoulombParams.html#af0c72edec7dc6040ac11a7d5d3aff6aa',1,'CoulombParams::supercell()'],['../structSupercell.html#a8376f1f967a189562b5b2e8dfd653e79',1,'Supercell::Supercell()']]],
+  ['supercell',['Supercell',['../structSupercell.html',1,'Supercell'],['../structSupercell.html#a8376f1f967a189562b5b2e8dfd653e79',1,'Supercell::Supercell()'],['../structCoulombParams.html#af0c72edec7dc6040ac11a7d5d3aff6aa',1,'CoulombParams::supercell()']]],
   ['surfaces',['Surfaces',['../SurfaceTutorials.html',1,'Tutorials']]],
   ['suspendoperatorthreading',['suspendOperatorThreading',['../group__Utilities.html#ga584bbfb44fcc16e6ef0d533539e40b77',1,'Thread.h']]],
   ['svd',['svd',['../classmatrix.html#a51230ffd5868706ac9f7a21d613b3835',1,'matrix']]],

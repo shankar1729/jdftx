@@ -6,7 +6,10 @@ var searchData=
   ['basiskdep',['basisKdep',['../classControl.html#afb40a85cdcf29fa297d073edd1769786',1,'Control']]],
   ['basissuper',['basisSuper',['../classWannierMinimizer.html#a4f61d57a5a1369b63cba59e2ca1cb3e5',1,'WannierMinimizer']]],
   ['basissuperwrapper',['basisSuperWrapper',['../classWannierMinimizer.html#a42953e05c86b764a9034e01beb2f904b',1,'WannierMinimizer']]],
+  ['bgwparams',['bgwParams',['../classDump.html#aa5ea4c78759f86404f90305ba8b10c9c',1,'Dump']]],
+  ['blocksize',['blockSize',['../structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97',1,'BGWparams']]],
   ['boxpot',['boxPot',['../classElecVars.html#a22fc50b47a2de0756427d770c3123688',1,'ElecVars']]],
   ['bulkeps',['bulkEps',['../structChargedDefect.html#a71440e30d5cdf98e5e08ff282708bbea',1,'ChargedDefect']]],
-  ['bulkepsilon',['bulkEpsilon',['../classDump.html#a57ec90fb4d588fd1378463bb539242e0',1,'Dump']]]
+  ['bulkepsilon',['bulkEpsilon',['../classDump.html#a57ec90fb4d588fd1378463bb539242e0',1,'Dump']]],
+  ['bz',['Bz',['../classElecInfo.html#ab6fd0155603086ed27ba9b4ab66032f2',1,'ElecInfo']]]
 ];

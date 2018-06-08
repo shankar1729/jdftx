@@ -23,6 +23,7 @@ var classWannier =
     [ "WannierMinimizer", "classWannier.html#a9c6bb04ab13fd2f92d41d72889789c6f", null ],
     [ "bStart", "classWannier.html#a1268295ebe7dd976e77f655b745554f7", null ],
     [ "dumpFilename", "classWannier.html#ac7a562dac55dc18af42a2603b18ae512", null ],
+    [ "eigsFilename", "classWannier.html#abfe999854d4f8fa617ad64986beb147c", null ],
     [ "eInnerMax", "classWannier.html#ae5156864b89875184cdecffca245010e", null ],
     [ "eInnerMin", "classWannier.html#a0100245e181f644159057be8a3aaf5a5", null ],
     [ "eOuterMax", "classWannier.html#a415e7ca729d5ce43740f355256f74fe0", null ],

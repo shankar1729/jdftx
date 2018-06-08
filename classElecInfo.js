@@ -51,6 +51,7 @@ var classElecInfo =
     [ "Everything", "classElecInfo.html#a33017c7621b786830c58963ad1d27edd", null ],
     [ "LCAOminimizer", "classElecInfo.html#ada9945d41b36ec7e805dcc0ca95e3758", null ],
     [ "Phonon", "classElecInfo.html#a11e682b702900987689e5aeaa68f3cbb", null ],
+    [ "Bz", "classElecInfo.html#ab6fd0155603086ed27ba9b4ab66032f2", null ],
     [ "fillingsUpdate", "classElecInfo.html#a82c964ae87d2169667ea8106f694a2b6", null ],
     [ "hasU", "classElecInfo.html#a60722d8d3ab02e51e881c5ca10283d74", null ],
     [ "initialFillingsFilename", "classElecInfo.html#a785f4d11dd61e2ef518fe0d8245f4c4a", null ],

@@ -1,7 +1,7 @@
 var searchData=
 [
   ['f',['f',['../structRadialFunctionR.html#a2ad7a7b9c59ff447872191416ce51fdf',1,'RadialFunctionR::f()'],['../classElecVars.html#a586abfb50a337ba4cfd9e4ef9567c631',1,'ElecVars::F()']]],
-  ['fcut',['fCut',['../structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522',1,'ElectronScattering::fCut()'],['../classPhonon.html#a92cf8b8a19f8cb09f8b145c6206fcd50',1,'Phonon::Fcut()']]],
+  ['fcut',['Fcut',['../classPhonon.html#a92cf8b8a19f8cb09f8b145c6206fcd50',1,'Phonon::Fcut()'],['../structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522',1,'ElectronScattering::fCut()']]],
   ['fdtest',['fdTest',['../structMinimizeParams.html#a05d34ae3e3fa6f075d950002fb2cdb9e',1,'MinimizeParams']]],
   ['fermidensitylevels',['fermiDensityLevels',['../classDump.html#a9e0d16c900c77208b07aa25a89a8c98d',1,'Dump']]],
   ['fex',['fex',['../structFluidComponent.html#a50cef2bffb56c357df05950f6fdf3478',1,'FluidComponent']]],

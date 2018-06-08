@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: Class Members - Variables</title>
+<title>JDFTx: bgw-params</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('functions_vars_0x66.html','');});
+$(document).ready(function(){initNavTree('CommandBgwParams.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -93,85 +93,28 @@ $(document).ready(function(){initNavTree('functions_vars_0x66.html','');});
 </iframe>
 </div>
 
+<div class="header">
+  <div class="headertitle">
+<div class="title">bgw-params </div>  </div>
+</div><!--header-->
 <div class="contents">
-&#160;
-
-<h3><a class="anchor" id="index_f"></a>- f -</h3><ul>
-<li>f
-: <a class="el" href="structRadialFunctionR.html#a2ad7a7b9c59ff447872191416ce51fdf">RadialFunctionR</a>
-</li>
-<li>F
-: <a class="el" href="classElecVars.html#a586abfb50a337ba4cfd9e4ef9567c631">ElecVars</a>
-</li>
-<li>fCut
-: <a class="el" href="structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522">ElectronScattering</a>
-</li>
-<li>Fcut
-: <a class="el" href="classPhonon.html#a92cf8b8a19f8cb09f8b145c6206fcd50">Phonon</a>
-</li>
-<li>fdTest
-: <a class="el" href="structMinimizeParams.html#a05d34ae3e3fa6f075d950002fb2cdb9e">MinimizeParams</a>
-</li>
-<li>fermiDensityLevels
-: <a class="el" href="classDump.html#a9e0d16c900c77208b07aa25a89a8c98d">Dump</a>
-</li>
-<li>fex
-: <a class="el" href="structFluidComponent.html#a50cef2bffb56c357df05950f6fdf3478">FluidComponent</a>
-</li>
-<li>filename
-: <a class="el" href="structDOS_1_1Weight.html#ac9c145a3bc067ee08184c6acc103fd92">DOS::Weight</a>
-</li>
-<li>fillingMode
-: <a class="el" href="structDOS_1_1Weight.html#a45cb9eafdbd1b50d7c2f5aa7666119e8">DOS::Weight</a>
-</li>
-<li>fillingsUpdate
-: <a class="el" href="classElecInfo.html#a82c964ae87d2169667ea8106f694a2b6">ElecInfo</a>
-</li>
-<li>fixed_H
-: <a class="el" href="classControl.html#a84f6403bc9c1c82d0a5ba37ea04fd030">Control</a>
-</li>
-<li>fluidGummel_Atol
-: <a class="el" href="classControl.html#a2eee7768242de2e3ee8910887e26b0c5">Control</a>
-</li>
-<li>fluidGummel_nIterations
-: <a class="el" href="classControl.html#a649d35df228605d792df72d6a0e3dc52">Control</a>
-</li>
-<li>fluidMinParams
-: <a class="el" href="classEverything.html#a382811b5e9ad644cdcaa52c551e73dd5">Everything</a>
-</li>
-<li>FmixList
-: <a class="el" href="structFluidSolverParams.html#a3089166840fce194fe0fcb13cf0d39a0">FluidSolverParams</a>
-</li>
-<li>FmixType
-: <a class="el" href="structFmixParams.html#abd744dd9b616d74dfb567f3f06143a30">FmixParams</a>
-</li>
-<li>forbids
-: <a class="el" href="classCommand.html#ab4c59ebff775ab3c4756cda522940aff">Command</a>
-</li>
-<li>force
-: <a class="el" href="structAtom.html#a8e174511a73f78abf347973fbedbaf3a">Atom</a>
-</li>
-<li>forces
-: <a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">IonInfo</a>
-</li>
-<li>forcesOutputCoords
-: <a class="el" href="classIonInfo.html#ad56b2c7a36dc7eb1add127d9441285f3">IonInfo</a>
-</li>
-<li>format
-: <a class="el" href="classCommand.html#a3cc87597cf639cd5207483bca6317663">Command</a>
-</li>
-<li>fpLog
-: <a class="el" href="structMinimizeParams.html#aeb1a34b795520bd9ce20a4e2d4d72f03">MinimizeParams</a>
-, <a class="el" href="structPulayParams.html#a85b83339734e55dc1209d0ed5a07a228">PulayParams</a>
-</li>
-<li>fromWildcard
-: <a class="el" href="classSpeciesInfo.html#adc14035ea627085a4aa3bbd51e803b68">SpeciesInfo</a>
-</li>
-<li>frozenUfilename
-: <a class="el" href="classWannier.html#af909dcf2f55a74c56480003c58895dc5">Wannier</a>
-</li>
+<div class="textblock"><h2>Syntax: </h2>
+<pre class="fragment">bgw-params &lt;key1&gt; &lt;value1&gt; &lt;key2&gt; &lt;value2&gt; ...
+</pre><h2>Description: </h2>
+<p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT. ">Control</a> BGW output. Possible keys and value types are:</p>
+<ul>
+<li>blockSize : blockSize</li>
+<li>clusterSize: clusterSize</li>
+<li>nBandsDense: nBandsDense</li>
 </ul>
-</div><!-- contents -->
+<p>Any number of these key-value pairs may be specified in any order.</p>
+<h2>Properties: </h2>
+<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
+<p><b>Default:</b> &#160;&#160;&#160; (None)</p>
+<p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

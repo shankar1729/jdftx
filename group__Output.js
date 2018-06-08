@@ -52,6 +52,7 @@ var group__Output =
       [ "DOS", "classDOS.html#aa281a9bc95534ec918029c550fdea5dc", null ],
       [ "dump", "classDOS.html#a93ca3f95a3834ec82eb179041079ee69", null ],
       [ "setup", "classDOS.html#a441c67681aac508d8af4e0ab82a66c34", null ],
+      [ "eigsFilename", "classDOS.html#ac5f2805dde6985d936cfe10e15fec8bb", null ],
       [ "Esigma", "classDOS.html#afe8744b0e8c82e78997e8bc12e479755", null ],
       [ "Etol", "classDOS.html#aea0c98200c1dc3b992ae58b5c3648629", null ],
       [ "weights", "classDOS.html#ab00b4e46fa1e5c7477b888f8610beb0b", null ]
@@ -66,6 +67,7 @@ var group__Output =
       [ "CommandDumpInterval", "classDump.html#ad018aac89b578fad3a7992b6d0ed2e0f", null ],
       [ "CommandDumpName", "classDump.html#a5ae384ac2e97f4efbab2677d2f37bea9", null ],
       [ "Phonon", "classDump.html#a11e682b702900987689e5aeaa68f3cbb", null ],
+      [ "bgwParams", "classDump.html#aa5ea4c78759f86404f90305ba8b10c9c", null ],
       [ "bulkEpsilon", "classDump.html#a57ec90fb4d588fd1378463bb539242e0", null ],
       [ "chargedDefect", "classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd", null ],
       [ "densityErange", "classDump.html#a09106dabf8b6940789e41a07914c774b", null ],
@@ -110,6 +112,12 @@ var group__Output =
       [ "rMin", "structChargedDefect.html#a7ac828b7e503da0f279db71c198c5c24", null ],
       [ "rSigma", "structChargedDefect.html#ad291e816a9bce1d3b4c9f88e2b7b26d6", null ],
       [ "slabEpsFname", "structChargedDefect.html#a618e24db40cf37a59522c15878c252d2", null ]
+    ] ],
+    [ "BGWparams", "structBGWparams.html", [
+      [ "BGWparams", "structBGWparams.html#aadc06cb3cddecbfa646218300fad538a", null ],
+      [ "blockSize", "structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97", null ],
+      [ "clusterSize", "structBGWparams.html#a4467718884cfb205934e3120d2912ecd", null ],
+      [ "nBandsDense", "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643", null ]
     ] ],
     [ "ElectronScattering", "structElectronScattering.html", [
       [ "ElectronScattering", "structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8", null ],
@@ -232,6 +240,7 @@ var group__Output =
       [ "WannierMinimizer", "classWannier.html#a9c6bb04ab13fd2f92d41d72889789c6f", null ],
       [ "bStart", "classWannier.html#a1268295ebe7dd976e77f655b745554f7", null ],
       [ "dumpFilename", "classWannier.html#ac7a562dac55dc18af42a2603b18ae512", null ],
+      [ "eigsFilename", "classWannier.html#abfe999854d4f8fa617ad64986beb147c", null ],
       [ "eInnerMax", "classWannier.html#ae5156864b89875184cdecffca245010e", null ],
       [ "eInnerMin", "classWannier.html#a0100245e181f644159057be8a3aaf5a5", null ],
       [ "eOuterMax", "classWannier.html#a415e7ca729d5ce43740f355256f74fe0", null ],

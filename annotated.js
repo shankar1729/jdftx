@@ -17,6 +17,7 @@ var annotated =
     [ "BandDavidson", "classBandDavidson.html", "classBandDavidson" ],
     [ "BandMinimizer", "classBandMinimizer.html", "classBandMinimizer" ],
     [ "Basis", "classBasis.html", "classBasis" ],
+    [ "BGWparams", "structBGWparams.html", "structBGWparams" ],
     [ "BlipConverter", "classBlipConverter.html", "classBlipConverter" ],
     [ "BlipResampler", "classBlipResampler.html", "classBlipResampler" ],
     [ "BlockRotationMatrix", "classBlockRotationMatrix.html", "classBlockRotationMatrix" ],

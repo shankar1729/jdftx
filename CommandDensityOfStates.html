@@ -137,6 +137,9 @@ $(document).ready(function(){initNavTree('CommandDensityOfStates.html','');});
 <li><p class="startli">Esigma &lt;Esigma&gt;</p>
 <p class="startli">Optional gaussian broadening of spectra in Hartrees. Applied after the tetrahedron method, so it is safe to use a width smaller than the typical level spacing. This flag affects all columns of output, and is 0 by default. Warning: if finite but too small, output size might be dangerously large; if non-zero, recommend at least 1e-4.</p>
 </li>
+<li><p class="startli">EigsOverride &lt;file&gt;</p>
+<p class="startli">Override eigenvalues from an external file with the same format as the eigenvals dump output. Useful for interfacing with outputs of other DFT or many-body perturbation theory codes. This flag affects all columns of output, and is 1e-6 by default.</p>
+</li>
 <li><p class="startli">Occupied</p>
 <p class="startli">All subsequent columns are occupied density of states, that is they are weighted by the band fillings.</p>
 </li>

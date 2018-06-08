@@ -1,5 +1,9 @@
 var NAVTREEINDEX4 =
 {
+"Util_8h.html#ga907316040fd97459f37e166f613b88cb":[2,5,0,1,32,28],
+"Util_8h.html#gaa1515ffce5133c99a71f4229f8221f48":[2,5,0,1,32,19],
+"Util_8h.html#gaab5b92a5e81a00388ded8fd4c9ee71f4":[2,5,0,1,32,10],
+"Util_8h.html#gabd502861db54565ab958658de49f3da1":[2,5,0,1,32,30],
 "Util_8h.html#gae33e980fb4eaf243be1c38d7e1fcdf0b":[2,5,0,1,32,31],
 "Util_8h.html#gae63b2082e1ef86f146a99592b64dbf16":[2,5,0,1,32,33],
 "Util_8h.html#gae7e8dd040686a93485798b7f7a70e799":[2,5,0,1,32,8],
@@ -146,11 +150,11 @@ var NAVTREEINDEX4 =
 "classBlipResampler.html#a6e6885657895804baf42f89e5961482b":[2,2,0,3,18,0],
 "classBlipResampler.html#a70f32633eb0eb6c2118c6bb2fc69747f":[2,2,0,3,18,1],
 "classBlipResampler.html#ada66c0ce2f9dbf525c7904c0d4c99c82":[2,2,0,3,18,2],
-"classBlockRotationMatrix.html":[2,2,1,4,20],
-"classBlockRotationMatrix.html#a27dfbbd7ab844fb547a7cf11b6aef625":[2,2,1,4,20,3],
-"classBlockRotationMatrix.html#a55c9a5b5267568a31393bb67e6ca0d6c":[2,2,1,4,20,0],
-"classBlockRotationMatrix.html#aa66827bafb769ca488c4d356fe75330c":[2,2,1,4,20,2],
-"classBlockRotationMatrix.html#aed8221ba4fe8834b40a647b28cf662d5":[2,2,1,4,20,1],
+"classBlockRotationMatrix.html":[2,2,1,4,21],
+"classBlockRotationMatrix.html#a27dfbbd7ab844fb547a7cf11b6aef625":[2,2,1,4,21,3],
+"classBlockRotationMatrix.html#a55c9a5b5267568a31393bb67e6ca0d6c":[2,2,1,4,21,0],
+"classBlockRotationMatrix.html#aa66827bafb769ca488c4d356fe75330c":[2,2,1,4,21,2],
+"classBlockRotationMatrix.html#aed8221ba4fe8834b40a647b28cf662d5":[2,2,1,4,21,1],
 "classColumnBundle.html":[2,2,0,0,36],
 "classColumnBundle.html#a0a014e30e538cc26a46f8875f5b99684":[2,2,0,0,36,9],
 "classColumnBundle.html#a123d8ec150c1cadfa1e5f055e68e1e52":[2,2,0,0,36,14],
@@ -245,9 +249,5 @@ var NAVTREEINDEX4 =
 "classCoulomb.html#a5f6fe1ae07f568916e154cb452080ae9":[2,2,1,3,10,8],
 "classCoulomb.html#a75a86b5422e00afe291bbfe3b729c95d":[2,2,1,3,10,19],
 "classCoulomb.html#a76dc817b3aa5574ed568a4c1b6c5d981":[2,2,1,3,10,10],
-"classCoulomb.html#a7d0ed793d8dbf590c3d90772dffed45e":[2,2,1,3,10,5],
-"classCoulomb.html#a8ea01a0ad564c2cce3320ae902eb7953":[2,2,1,3,10,2],
-"classCoulomb.html#ab9d47d08fd15a498a7901e4cd63c58bb":[2,2,1,3,10,11],
-"classCoulomb.html#abde3762ff0e671e453258d3991bdfac8":[2,2,1,3,10,15],
-"classCoulomb.html#acfb13bae7e41602bce0c2ca6f02d8c69":[2,2,1,3,10,18]
+"classCoulomb.html#a7d0ed793d8dbf590c3d90772dffed45e":[2,2,1,3,10,5]
 };
