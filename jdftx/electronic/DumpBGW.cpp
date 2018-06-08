@@ -50,6 +50,7 @@ class BGW
 	
 	int nBands; //!< eInfo.nBands, or overridden by nBandsDense
 	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
+	std::vector<matrix> VxcSub; //!< exchange-correlation matrix elements
 	
 public:
 	BGW(const Everything& e, const BGWparams& bgwp);
@@ -106,6 +107,7 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 	nBands = eInfo.nBands;
 	E = eVars.Hsub_eigs;
 	F = eVars.F;
+	VxcSub.resize(eInfo.nStates);
 }
 
 
@@ -184,9 +186,10 @@ void BGW::writeVxc() const
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	
 	//Calculate X-C matrix elements:
-	std::vector<matrix> VxcSub(eInfo.nStates);
+	std::vector<matrix>& VxcSub = ((BGW*)this)->VxcSub;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	ColumnBundle HCq = gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
+	{	if(VxcSub[q]) continue; //already calculated (dense version)
+		ColumnBundle HCq = gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
 		if(e.exCorr.needsKEdensity() && eVars.Vtau[eInfo.qnums[q].index()]) //metaGGA KE potential
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*gInfo.dV) * D(Idag_DiagV_I(D(eVars.C[q],iDir), eVars.Vtau), iDir);
@@ -196,36 +199,40 @@ void BGW::writeVxc() const
 		VxcSub[q] = eVars.C[q] ^ HCq;
 	}
 	
-	//Make available on all processes
-	for(int q=0; q<eInfo.nStates; q++)
-	{	if(!eInfo.isMine(q)) VxcSub[q] = zeroes(eInfo.nBands, eInfo.nBands);
-		VxcSub[q].bcast(eInfo.whose(q));
-	}
-	
 	//Output from head
 	if(mpiWorld->isHead())
 	{	FILE* fp = fopen(fname.c_str(), "w");
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
 		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2],
-				eInfo.nBands*nSpins, eInfo.nBands*eInfo.nBands*nSpins);
+				nBands*nSpins, nBands*nBands*nSpins);
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
+				if(!eInfo.isMine(q))
+				{	VxcSub[q] = zeroes(nBands, nBands);
+					VxcSub[q].recv(eInfo.whose(q), q);
+				}
 				//Diagonal elements:
-				for(int b=0; b<eInfo.nBands; b++)
+				for(int b=0; b<nBands; b++)
 				{	complex V_eV = VxcSub[q](b,b) / eV; //convert to eV
 					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
 				}
 				//Off-diagonal elements:
-				for(int b2=0; b2<eInfo.nBands; b2++)
-				{	for(int b1=0; b1<eInfo.nBands; b1++)
+				for(int b2=0; b2<nBands; b2++)
+				{	for(int b1=0; b1<nBands; b1++)
 					{	complex V_eV = VxcSub[q](b1,b2) / eV; //convert to eV
 						fprintf(fp, "%4d %4d %4d %+14.9f %+14.9f\n", iSpin+1, b1+1, b2+1, V_eV.real(), V_eV.imag());
 					}
 				}
+				if(!eInfo.isMine(q)) VxcSub[q] = 0; //cleanup temporary memory
 			}
 		}
 		fclose(fp);
+	}
+	else //send ones tored on other processes to head
+	{	for(int q=0; q<eInfo.nStates; q++)
+			if(eInfo.isMine(q))
+				VxcSub[q].send(0, q);
 	}
 	logPrintf("Done.\n");
 }
@@ -417,6 +424,11 @@ extern "C"
 		complex* z, const int* iz, const int* jz, int* descz, complex* work, int* lwork, double* rwork, int* lrwork,
 		int* iwork, int* liwork, int* ifail, int* iclustr, double* gap, int* info);
 	
+	void pzgemm_(const char* transa, const char* transb, const int* m, const int* n, const int* k,
+		const complex* alpha, const complex* a, const int* ia, const int* ja, const int* desca,
+		const complex* b, const int* ib, const int* jb, const int* descb, const complex* beta,
+		complex* c, const int* ic, const int* jc, const int* descc);
+	
 	void zlacpy_(const char* uplo, const int* m, const int* n, const complex* a, const int* lda, complex* b, const int* ldb);
 }
 
@@ -449,7 +461,7 @@ template<typename T> std::vector<T> indexVector(const T* v, const std::vector<in
 
 //Solve wavefunctions using ScaLAPACK and write to hdf5 file:
 void BGW::denseWriteWfn(hid_t gidWfns)
-{	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup");
+{	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup"), watchVxc("scalapackVxcTransform");
 	logPrintf("\n");
 #ifdef SCALAPACK_ENABLED
 	nBands = bgwp.nBandsDense;
@@ -469,6 +481,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		blacs_get_(&unused, &what, &blacsContext);
 		blacs_gridinit_(&blacsContext, "Row-major", &nProcsRow, &nProcsCol);
 		blacs_gridinfo_(&blacsContext, &nProcsRow, &nProcsCol, &iProcRow, &iProcCol);
+		assert(mpiWorld->iProcess() == iProcRow * nProcsCol + iProcCol); //this mapping is assumed below, so check
 	}
 	logPrintf("\tInitialized %d x %d process BLACS grid.\n", nProcsRow, nProcsCol);
 	
@@ -492,9 +505,11 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		//Initialize matrix distribution:
 		const int nRows = basis.nbasis * nSpinor; //Hamiltonian dimension
 		logPrintf(" with dimension %d\n", nRows); logFlush();
-		watchSetup.start();
 		const int blockSize = bgwp.blockSize; //block dimensions
 		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
+		if(nRows < blockSize * (std::max(nProcsRow, nProcsCol) - 1))
+			die("\tNo data on some processes: reduce blockSize or # processes.\n");
+		watchSetup.start();
 		std::vector<int> iRowsMine = distributedIndices(nRows, blockSize, iProcRow, nProcsRow); //indices of rows on current process
 		std::vector<int> iColsMine = distributedIndices(nRows, blockSize, iProcCol, nProcsCol); //indices of cols on current process
 		int nRowsMine = iRowsMine.size();
@@ -513,12 +528,17 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Initialize Hamiltonian matrix:
 		matrix H = zeroes(nRowsMine, nColsMine);
+		matrix Vxc = zeroes(nRowsMine, nColsMine);
 		//--- Kinetic, potential and kinetic-potential contributions:
 		{	complex* Hdata = H.data();
+			complex* VxcData = Vxc.data();
 			const vector3<int>* iGarr = basis.iGarr.data();
 			//Prepare potential in reciprocal space:
 			complexScalarFieldTilde Vtilde = Complex(J(eVars.Vscloc[qnum.index()]*(1./e.gInfo.dV)));
 			const complex* Vdata = Vtilde->data();
+			//Prepare potential in reciprocal space:
+			complexScalarFieldTilde VxcTilde = Complex(J(eVars.Vxc[qnum.index()]));
+			const complex* VxcTildeData = VxcTilde->data();
 			//Prepare kinetic potential in reciprocal space (if needed):
 			complexScalarFieldTilde VtauTilde; const complex* VtauData = 0;
 			if(e.exCorr.needsKEdensity() && eVars.Vtau[qnum.index()])
@@ -535,9 +555,15 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 					//Potential contributions:
 					size_t diffIndex = e.gInfo.fullGindex(iGarr[i] - iGarr[j]); //wrapped difference index into potential arrays
 					*Hdata += Vdata[diffIndex];
+					*VxcData += VxcTildeData[diffIndex]; //Hartree etc. not included here
 					if(VtauData)
-						*Hdata += VtauData[diffIndex] * (0.5*dot(iGarr[i]+qnum.k, gInfo.GGT * (iGarr[j]+qnum.k)));
+					{	complex VtauCur = VtauData[diffIndex] * (0.5*dot(iGarr[i]+qnum.k, gInfo.GGT * (iGarr[j]+qnum.k)));
+						*Hdata += VtauCur;
+						*VxcData += VtauCur;
+					}
+					//Increment pointers:
 					Hdata++;
+					VxcData++;
 				}
 			}
 		}
@@ -573,7 +599,9 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				for(int a=0; a<nAtoms; a++)
 				{	callPref(eblas_copy)(OpsiRow_a.dataPref(), OpsiRow.dataPref() + a*OpsiRow_a.nData(), OpsiRow_a.nData());
 					callPref(eblas_copy)(OpsiCol_a.dataPref(), OpsiCol.dataPref() + a*OpsiCol_a.nData(), OpsiCol_a.nData());
-					H += (1./(e.gInfo.detR*eInfo.spinWeight)) * OpsiRow_a * (*(U_rhoPtr++)) * dagger(OpsiCol_a);
+					matrix Ucontrib = (1./(e.gInfo.detR*eInfo.spinWeight)) * OpsiRow_a * (*(U_rhoPtr++)) * dagger(OpsiCol_a);
+					H += Ucontrib;
+					Vxc += Ucontrib; //DFT+U is logically an ex-corr extension
 				}
 				for(int s=qnum.index()+1; s<nSpins; s++) U_rhoPtr += nAtoms;
 			}
@@ -605,16 +633,16 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				iwork.data(), &liwork, iFail.data(), iClusters.data(), clusterGaps.data(), &info);
 			if(info < 0)
 			{	int errCode = -info;
-				if(errCode < 100) logPrintf("\tError in argument# %d to pzheevx.\n", errCode);
-				else logPrintf("\tError in entry %d of argument# %d to pzheevx.\n", errCode%100, errCode/100);
-				MPI_Abort(MPI_COMM_WORLD, 1);
+				if(errCode < 100) die("\tError in argument# %d to pzheevx.\n", errCode)
+				else die("\tError in entry %d of argument# %d to pzheevx.\n", errCode%100, errCode/100)
 			}
 			if(info > 0)
-			{	if(info & 0x01) logPrintf("\tSome eigenvectors failed to converge in pzheevx.\n");
-				if(info & 0x02) logPrintf("\tSome eigenvectors could not be orthogonalized in pzheevx.\n");
-				if(info & 0x04) logPrintf("\tInsufficeint space to compute eigenvectors in pzheevx.\n");
-				if(info & 0x08) logPrintf("\tFailed to compute tridiagonal-matrix eigenvalues in pzheevx.\n");
-				MPI_Abort(MPI_COMM_WORLD, 1);
+			{	string err;
+				if(info & 0x01) err += "\tSome eigenvectors failed to converge in pzheevx.\n";
+				if(info & 0x02) err += "\tSome eigenvectors could not be orthogonalized in pzheevx.\n";
+				if(info & 0x04) err += "\tInsufficeint space to compute eigenvectors in pzheevx.\n";
+				if(info & 0x08) err += "\tFailed to compute tridiagonal-matrix eigenvalues in pzheevx.\n";
+				die("%s", err.c_str());
 			}
 			if(pass) break; //done
 			//After first-pass, use results of work-space query to allocate:
@@ -637,10 +665,6 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		{	E[q] = eigs;
 			F[q].resize(nBands, 0.); //update to nBandsDense (padded with zeroes)
 		}
-		
-		//Debug print
-		//if(eInfo.isMine(q)) { eVars.Hsub_eigs[q].print(stdout); fflush(stdout); }
-		//eigs.print(globalLog);
 		
 		//Write the wavefunctions:
 		hsize_t offset[4] = { 0, hsize_t(iSpin), 0, 0 };
@@ -668,6 +692,55 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				H5Sclose(sidMem);
 			}
 		}
+		
+		//Transform Vxc to eigenbasis:
+		watchVxc.start();
+		matrix VxcEvecs = zeroes(nRowsMine, nColsMine); //local part of Vxc * evecs
+		//--- parallel matrix multiplies:
+		complex alpha(1.,0.), beta(0.,0.);
+		pzgemm_("N", "N", &nRows, &nRows, &nRows, &alpha,
+			Vxc.data(), &one, &one, descH,
+			evecs.data(), &one, &one, descH, &beta,
+			VxcEvecs.data(), &one, &one, descH); //VxcEvecs = Vxc * evecs
+		pzgemm_("C", "N", &nRows, &nRows, &nRows, &alpha,
+			evecs.data(), &one, &one, descH,
+			VxcEvecs.data(), &one, &one, descH, &beta,
+			Vxc.data(), &one, &one, descH); //VxcNew = evecx' * VxcEvecs
+		VxcEvecs = 0; //cleanup memory
+		
+		//Collect required portion of Vxc on a single process (the one that owns state q):
+		if(eInfo.isMine(q))
+		{	VxcSub[q] = zeroes(nEigs, nEigs);
+			for(int jProcRow=0; jProcRow<nProcsRow; jProcRow++)
+				for(int jProcCol=0; jProcCol<nProcsCol; jProcCol++)
+				{	int jProcess = jProcRow * nProcsCol + jProcCol;
+					//Determine indices within nEigs for this block:
+					std::vector<int> jEigRowsMine = distributedIndices(nEigs, blockSize, jProcRow, nProcsRow);
+					std::vector<int> jEigColsMine = distributedIndices(nEigs, blockSize, jProcCol, nProcsCol);
+					
+					if((!jEigRowsMine.size()) or (!jEigColsMine.size()))
+						continue; //nothing from this block
+					//Get current block: locally or from another process
+					matrix VxcCur;
+					if(jProcess == mpiWorld->iProcess())
+						VxcCur = Vxc(0,jEigRowsMine.size(), 0,jEigColsMine.size()); //local
+					else
+					{	VxcCur.init(jEigRowsMine.size(), jEigColsMine.size());
+						VxcCur.recv(jProcess);
+					}
+					//Distribute to full matrix:
+					const complex* inData = VxcCur.data();
+					for(int c: jEigColsMine)
+						for(int r: jEigRowsMine)
+							VxcSub[q].set(r, c, *(inData++));
+				}
+		}
+		else
+		{	std::vector<int> iEigRowsMine = distributedIndices(nEigs, blockSize, iProcRow, nProcsRow);
+			if(iEigRowsMine.size() and iEigColsMine.size())
+				Vxc(0,iEigRowsMine.size(), 0,iEigColsMine.size()).send(eInfo.whose(q));
+		}
+		watchVxc.stop();
 	}
 	H5Pclose(plid);
 	H5Dclose(did);
