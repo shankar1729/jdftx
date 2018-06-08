@@ -894,7 +894,7 @@ struct CommandBGWparams : public Command
 	{	
 		format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Control BGW output. Possible keys and value types are:"
-			+ addDescriptions(bgwpmMap.optionList(), linkDescription(bgwpmMap, bgwpmMap))
+			+ addDescriptions(bgwpmMap.optionList(), linkDescription(bgwpmMap, bgwpmDescMap))
 			+ "\n\nAny number of these key-value pairs may be specified in any order.";
 	}
 
