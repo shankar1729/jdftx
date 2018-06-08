@@ -103,9 +103,9 @@ $(document).ready(function(){initNavTree('CommandBgwParams.html','');});
 </pre><h2>Description: </h2>
 <p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT. ">Control</a> BGW output. Possible keys and value types are:</p>
 <ul>
-<li>blockSize : blockSize</li>
-<li>clusterSize: clusterSize</li>
-<li>nBandsDense: nBandsDense</li>
+<li>blockSize : Block size for ScaLAPACK diagonalization (default: 32)</li>
+<li>clusterSize: Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)</li>
+<li>nBandsDense: If non-zero, use a dense ScaLAPACK solver to calculate more bands</li>
 </ul>
 <p>Any number of these key-value pairs may be specified in any order.</p>
 <h2>Properties: </h2>
