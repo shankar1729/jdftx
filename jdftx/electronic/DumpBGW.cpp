@@ -615,7 +615,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		int eigStart=1, eigStop=nEigs; //find lowest nEigs eigs
 		double vlUnused=0., vuUnused=0.; //eigenvalue ranges (unused)
 		double absTol = -1.; //use default accuracy
-		double orFac = -1.; //default orthogonalization threshold
+		double orFac = 5e-7; //default orthogonalization threshold
 		int nEigsFound, nEvecsFound; //number of calculated eigenvalues and eigenvectors (output)
 		int lwork = -1, lrwork = -1, liwork = -1, one = 1;
 		ManagedArray<complex> work; 
