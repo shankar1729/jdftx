@@ -70,6 +70,7 @@ void IonInfo::setup(const Everything &everything)
 	{	nAtomsTot += sp->atpos.size();
 		sp->setup(*e);
 	}
+	logPrintf("\nInitialized %d species with %d total atoms.\n", int(species.size()), nAtomsTot);
 	if(!nAtomsTot) logPrintf("Warning: no atoms in the calculation.\n");
 	
 	if(not checkPositions())
