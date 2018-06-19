@@ -1,8 +1,27 @@
 /** \page ChangeLog Change log
 
-## Development version on git
+## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
 
-+ Support for dense-matrix diagonalization on the GPU using the cuSolver library
++ BerkeleyGW interface enhancements:
+	- ScaLAPACK diagonalizer for large-bands BerkeleyGW output, controlled by new command \ref CommandBgwParams
+	- Support for smearing in fixed-hamiltonian calculations such that fillings are updated at end, required for correct BerkeleyGW output for metals
+	- Added off-diagonal Vxc matrix elements output
+
++ Eigenvalue over-ride options in \ref CommandDensityOfStates and \ref CommandWannier (to take input from other DFT or MBPT codes)
+
++ Added option in command \ref CommandPcmParams to independently control ionic cavity mask
+
++ Added external magnetic field support with command \ref CommandTargetBz (z-spin only)
+
++ Added support for dense-matrix diagonalization and inversion on the GPU using the cuSolver library
+
++ Added support for LibXC 4 (with continued support for incompatible LibXC 3 API)
+
++ Added number of species and atoms report during initialization
+
++ Improved supercell construction to generate diagonal super matrix whenever possible (in order to fix spurious "not a uniform k-mesh" errors)
+
++ Added Fourier interpolation option in createVASP to generate high-resolution electron densities for Bader analysis
 
 
 ## 1.4.1 - 2018-02-28 ([Site archive](http://jdftx.org/1.4.1))

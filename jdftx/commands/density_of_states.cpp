@@ -110,7 +110,6 @@ struct CommandDensityOfStates : public Command
 			"   Override eigenvalues from an external file with the same format\n"
 			"   as the eigenvals dump output. Useful for interfacing with outputs\n"
 			"   of other DFT or many-body perturbation theory codes.\n"
-			"   This flag affects all columns of output, and is 1e-6 by default.\n"
 			"\n+ Occupied\n\n"
 			"   All subsequent columns are occupied density of states, that is\n"
 			"   they are weighted by the band fillings.\n"
