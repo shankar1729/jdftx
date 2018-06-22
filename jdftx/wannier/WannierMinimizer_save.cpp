@@ -319,6 +319,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				ki.U2 = ki.U2 * transPhase;
 			ki.U = ki.U * transPhase;
 		}
+		//Update rPinned accordingly (since it is used as origin for calculation):
+		for(int iCenter=0; iCenter<nCenters; iCenter++)
+			rPinned[iCenter] += vector3<>(offsets[iCenter]);
 		//Recalculate spreads:
 		Omega = getOmega(); //this updates rExpect etc.
 		OmegaI = getOmegaI();

@@ -39,7 +39,7 @@ public:
 	struct AtomicOrbital
 	{	vector3<> r; //!< guess for center of localized wannier function
 		double sigma; //!< width parameter of Gaussian orbital of current l
-		int sp, atom; //!< species code (<0 if not using a pseudopotential atomic orbital) and atom number (<0 if not using an orbital located on an atom)
+		int sp, atom; //!< species code (<0 if not using a pseudopotential atomic orbital) and atom number
 		int numericalOrbIndex; //!< index to a numerical orbital (<0 if not using a numerical orbital)
 		DOS::Weight::OrbitalDesc orbitalDesc; //!< orbital code
 		double coeff; //!< coefficient (prefactor) in contribution to trial orbital (1 if only using a single orbital)	
@@ -47,7 +47,7 @@ public:
 	};
 	struct TrialOrbital : public std::vector<AtomicOrbital>
 	{	bool pinned;
-		vector3<> rCenter;
+		vector3<> xCenter; //center of trial orbital in lattice coordinates (used for pinning and improved translation invariance correction)
 		TrialOrbital() : pinned(false) {}
 	};
 	std::vector<TrialOrbital> trialOrbitals; //!< group of centers

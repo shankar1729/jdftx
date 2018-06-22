@@ -96,8 +96,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 	//Initialized pinned arrays:
 	for(int n=nFrozen; n<nCenters; n++)
 	{	pinned[n] = wannier.trialOrbitals[n-nFrozen].pinned;
-		if(pinned[n])
-			rPinned[n] = e.gInfo.R * wannier.trialOrbitals[n-nFrozen].rCenter;
+		rPinned[n] = e.gInfo.R * wannier.trialOrbitals[n-nFrozen].xCenter;
 	}
 	
 	//Check phonon supercell validity:

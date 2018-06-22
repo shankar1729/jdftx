@@ -61,6 +61,17 @@ void Wannier::setup(const Everything& everything)
 	{	assert(spinMode==SpinAll);
 		iSpinArr.push_back(0);
 	}
+	//Initialize trial orbital centers:
+	for(TrialOrbital& t: trialOrbitals)
+	{	vector3<> xSum; double wSum = 0.;
+		for(const Wannier::AtomicOrbital& ao: t)
+		{	const vector3<>& x = (ao.sp<0 ? ao.r : e->iInfo.species[ao.sp]->atpos[ao.atom]);
+			double weight = std::pow(ao.coeff, 2);
+			xSum += weight * x;
+			wSum += weight;
+		}
+		t.xCenter = (1./wSum) * xSum;
+	}
 	//Initialize minimizer:
 	switch(localizationMeasure)
 	{	case LM_FiniteDifference: wmin = std::make_shared<WannierMinimizerFD>(*e, *this); break;

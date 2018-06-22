@@ -392,7 +392,6 @@ struct CommandWannierCenter : public Command
 		const Wannier::TrialOrbital& t = wannier.trialOrbitals[iRep];
 		for(const Wannier::AtomicOrbital& ao: t)
 		{	if(t.size()>1) logPrintf(" \\\n\t");
-			vector3<> r = ao.r;
 			bool isNumerical = (ao.numericalOrbIndex>=0);
 			bool isGaussian = (ao.sigma>0.);
 			if(isGaussian || isNumerical)
@@ -400,6 +399,7 @@ struct CommandWannierCenter : public Command
 					logPrintf("Numerical %d", ao.numericalOrbIndex);
 				else
 					logPrintf("Gaussian");
+				vector3<> r = ao.r;
 				if(e.iInfo.coordsType == CoordsCartesian)
 					r = e.gInfo.R * r; //report cartesian positions
 				logPrintf(" %lg %lg %lg", r[0], r[1], r[2]);
@@ -434,20 +434,6 @@ struct CommandWannierCenterPinned : public CommandWannierCenter
 		CommandWannierCenter::process(pl, e);
 		Wannier::TrialOrbital& t = wannier.trialOrbitals.back();
 		t.pinned = true;
-		vector3<> r0 = t.front().r;
-		vector3<> rSum; double wSum = 0.;
-		for(const Wannier::AtomicOrbital& ao: t)
-		{	//find position with minimum image convention from first position:
-			vector3<> dr = ao.r - r0;
-			for(int j=0; j<3; j++)
-				dr[j] = floor(0.5 + dr[j]);
-			vector3<> r = r0 + dr;
-			//collect with weights:
-			double weight = std::pow(ao.coeff, 2);
-			rSum += weight * r;
-			wSum += weight;
-		}
-		t.rCenter = (1./wSum) * rSum;
 	}
 }
 commandWannierCenterPinned;

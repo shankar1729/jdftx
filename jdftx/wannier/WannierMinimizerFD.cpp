@@ -219,7 +219,7 @@ double WannierMinimizerFD::getOmega(bool grad)
 {
 	//Compute the expectation values of r and rSq for each center (split over processes)
 	rSqExpect.assign(nCenters, 0.);
-	rExpect.assign(nCenters, vector3<>(0,0,0));
+	rExpect.assign(nCenters, vector3<>());
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const KmeshEntry& ki = kMesh[ik];
 		for(const Edge& edge: edges[ik])
@@ -227,7 +227,8 @@ double WannierMinimizerFD::getOmega(bool grad)
 			const matrix M = dagger(ki.U) * edge.M0 * kj.U;
 			const complex* Mdata = M.data();
 			for(int n=0; n<nCenters; n++)
-			{	complex Mnn = Mdata[M.index(n,n)];
+			{	complex Tnn = cis(dot(rPinned[n], edge.b)); //translation phase to rPinned as origin
+				complex Mnn = Mdata[M.index(n,n)] * Tnn;
 				double argMnn = Mnn.arg();
 				rExpect[n] -= (ki.point.weight * edge.wb * argMnn) * edge.b;
 				rSqExpect[n] += ki.point.weight * edge.wb * (argMnn*argMnn + 1. - Mnn.norm());
@@ -241,9 +242,13 @@ double WannierMinimizerFD::getOmega(bool grad)
 	double Omega = 0.;
 	std::vector< vector3<> > mHalf_Omega_rExpect(nCenters); //-1/2 dOmega/d(rExpect[n])
 	for(int n=0; n<nCenters; n++)
-	{	const vector3<> r0_n = pinned[n] ? rPinned[n] : rExpect[n];
+	{	const vector3<> r0_n = pinned[n] ? vector3<>() : rExpect[n];
 		Omega += (rSqExpect[n] - 2*dot(rExpect[n],r0_n) + r0_n.length_squared());
 		mHalf_Omega_rExpect[n] = r0_n;
+		//Shift back from rPinned to original origin for stored outputs:
+		rSqExpect[n] -= rExpect[n].length_squared();
+		rExpect[n] += rPinned[n]; 
+		rSqExpect[n] += rExpect[n].length_squared();
 	}
 	
 	//Compute gradients if required:
@@ -258,10 +263,11 @@ double WannierMinimizerFD::getOmega(bool grad)
 				const complex* Mdata = M.data();
 				complex* Omega_Mdata = Omega_M.data();
 				for(int n=0; n<nCenters; n++)
-				{	complex Mnn = Mdata[M.index(n,n)];
-					double argMnn = atan2(Mnn.imag(), Mnn.real());
+				{	complex Tnn = cis(dot(rPinned[n], edge.b));
+					complex Mnn = Mdata[M.index(n,n)] * Tnn;
+					double argMnn = Mnn.arg();
 					Omega_Mdata[Omega_M.index(n,n)] =
-						2. * ki.point.weight * edge.wb
+						2. * ki.point.weight * edge.wb * Tnn
 						* ((argMnn + dot(mHalf_Omega_rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate Omega_M to Omega_U:
