@@ -70,6 +70,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	Ufrozen[ik].init(nBands, nFrozen);
 			Ufrozen[ik].read(fp);
 		}
+		fread(rPinned.data(), sizeof(vector3<>), nFrozen, fp);
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
@@ -344,6 +345,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("Dumping '%s' ... ", fname.c_str());
 		FILE* fp = fopen(fname.c_str(), "w");
 		for(const auto& ke: kMesh) ke.U.write(fp);
+		fwrite(rPinned.data(), sizeof(vector3<>), nCenters, fp); //read back only if used as frozen centers
 		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}

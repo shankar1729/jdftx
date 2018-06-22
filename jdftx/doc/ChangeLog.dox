@@ -1,5 +1,10 @@
 /** \page ChangeLog Change log
 
+## Development version on git
+
++ Improved translational invariance of wannier localization measure within supercell, particularly important for cases with few k-points.
+
+
 ## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
 
 + BerkeleyGW interface enhancements:
