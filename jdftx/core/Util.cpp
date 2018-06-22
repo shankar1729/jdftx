@@ -245,6 +245,16 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 	if(!gpuInit(globalLog, &mpiHostGpu, &nGPUs)) die_alone("gpuInit() failed\n\n")
 	#endif
 	
+	//Override available cores per node if specified:
+	const char* envCpusPerNode = getenv("JDFTX_CPUS_PER_NODE");
+	if(envCpusPerNode)
+	{	int nCpusPerNode;
+		if(sscanf(envCpusPerNode, "%d", &nCpusPerNode)==1)
+			nProcsAvailable = nCpusPerNode; //Override found, update available processor count (Thread.h)
+		else
+			logPrintf("Could not determine total core count from JDFTX_CPUS_PER_NODE=\"%s\".\n", envCpusPerNode);
+	}
+	
 	//Divide up available cores between all MPI processes on a given node:
 	if(!manualThreadCount) //skip if number of cores per process has been set with -c
 	{	int nSiblings = mpiHost.nProcesses();

@@ -4,6 +4,8 @@
 
 + Improved translational invariance of wannier localization measure within supercell, particularly important for cases with few k-points.
 
++ Added environment variable input JDFTX_CPUS_PER_NODE to limit total number of cores used per node
+
 
 ## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
 
