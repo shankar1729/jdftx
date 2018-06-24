@@ -875,17 +875,23 @@ enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
+	BGWpm_EcutChiFluid,
+	BWGpm_q0,
 	BGWpm_Delim
 };
 EnumStringMap<BGWparamsMember> bgwpmMap
 (	BGWpm_nBandsDense, "nBandsDense",
 	BGWpm_blockSize, "blockSize",
-	BGWpm_clusterSize, "clusterSize"
+	BGWpm_clusterSize, "clusterSize",
+	BGWpm_EcutChiFluid, "EcutChiFluid",
+	BWGpm_q0, "q0"
 );
 EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
-	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)"
+	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
+	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
+	BWGpm_q0, "Zero wavevector replacement to be used for polarizability output 9default : (0,0,0)"
 );
 
 struct CommandBGWparams : public Command
@@ -913,6 +919,11 @@ struct CommandBGWparams : public Command
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
+				READ_AND_CHECK(EcutChiFluid, >=, 0.)
+				case BWGpm_q0:
+					for(int dir=0; dir<3; dir++)
+						pl.get(bgwp.q0[dir], 0., "q0", true);
+					break;
 				case BGWpm_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -926,6 +937,8 @@ struct CommandBGWparams : public Command
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
+		PRINT(EcutChiFluid, "%lg")
+		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);
 		#undef PRINT
 	}
 }

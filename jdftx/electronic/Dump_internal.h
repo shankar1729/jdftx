@@ -116,7 +116,11 @@ struct BGWparams
 	int blockSize; //!< block size for ScaLAPACK diagonalization
 	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
 	
-	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10) {}
+	double EcutChiFluid; //!< KE cutoff for fluid polarizability output (enabled if non-zero)
+	vector3<> q0; //!< zero wavevector replacement used for polarizability output
+	
+	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
+		EcutChiFluid(0.) {}
 };
 
 //! @}

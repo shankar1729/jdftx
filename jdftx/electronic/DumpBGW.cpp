@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/Dump_internal.h>
+#include <core/LatticeUtils.h>
 
 #ifndef HDF5_ENABLED
 void Dump::dumpBGW()
@@ -69,7 +70,7 @@ void Dump::dumpBGW()
 	BGW bgw(*e, *bgwParams);
 	bgw.writeWfn();
 	bgw.writeVxc();
-	if(e->eVars.fluidSolver)
+	if(e->eVars.fluidSolver and bgwParams->EcutChiFluid)
 		bgw.writeChiFluid();
 }
 
@@ -237,6 +238,18 @@ void BGW::writeVxc() const
 	logPrintf("Done.\n");
 }
 
+//Translate CoulombParams::Geometry to BerkeleyGW flag:
+inline int get_icutv(CoulombParams::Geometry geom)
+{	switch(geom)
+	{	case CoulombParams::Periodic: return 0; //no truncation
+		case CoulombParams::Spherical: return 1; //spherical truncation - 0D systems
+		case CoulombParams::Isolated: return 5; //cell box truncation - 0D systems
+		case CoulombParams::Cylindrical: return 4; //cell wire truncation - 1D systems
+		case CoulombParams::Wire: return 4; //cell  wire truncation - 1D systems
+		case CoulombParams::Slab: return 6; //cell slab truncation - 2D systems
+		default: return 0; //never encountered (only to prevent warning)
+	}
+}
 
 //Write fluid polarizability
 void BGW::writeChiFluid() const
@@ -257,12 +270,32 @@ void BGW::writeChiFluid() const
 	h5writeScalar(gidParams, "has_advanced", 0); //=> retarded response only
 	h5writeScalar(gidParams, "nmatrix", nSpins); //=> polarizability per spin
 	h5writeScalar(gidParams, "matrix_flavor", 2); //=> complex matrices
-	h5writeScalar(gidParams, "icutv", 0); //TODO: what is this?
-	h5writeScalar(gidParams, "ecuts", e.cntrl.Ecut); //TODO: what Ecut should I use here?
+	h5writeScalar(gidParams, "icutv", get_icutv(e.coulombParams.geometry)); //truncation geometry
+	h5writeScalar(gidParams, "ecuts", bgwp.EcutChiFluid/Ryd); //output cutoff for polarizability
 	h5writeScalar(gidParams, "nband", 0); //No bands used for fluid polarizability
 	h5writeScalar(gidParams, "efermi", 0.); //Not meaningful for fluid polarizability
+	H5Gclose(gidParams);
 	
 	//---- q-points group:
+	hid_t gidQpoints = h5createGroup(gidHeader, "qpoints");
+	std::vector<vector3<>> q = k; //same as k-mesh except for slight offset of Gamma
+	{	bool foundGamma = false;
+		for(vector3<>& qCur: q)
+			if(qCur.length_squared() < symmThresholdSq)
+			{	foundGamma = true;
+				qCur = bgwp.q0; //replace Gamma with slightly offset version
+				break;
+			}
+		if(not foundGamma)
+			die("Fluid polarizability output for BGW only supported for Gamma-centered mesh.\n");
+	}
+	h5writeScalar(gidQpoints, "nq", nReducedKpts);
+	hsize_t dimsQ[2] = { hsize_t(nReducedKpts), 3 };
+	h5writeVector(gidQpoints, "qpts", &q[0][0], dimsQ, 2);
+	h5writeVector(gidQpoints, "qgrid", &eInfo.kFoldingCount()[0], 3);
+	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nReducedKpts, 1));
+	H5Gclose(gidQpoints);
+	
 	die("Not yet implemented!\n"); //TODO
 	
 	//Close file:
