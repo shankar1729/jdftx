@@ -296,6 +296,34 @@ void BGW::writeChiFluid() const
 	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nReducedKpts, 1));
 	H5Gclose(gidQpoints);
 	
+	//---- freq group:
+	//------ Create frequency grid in eV:
+	std::vector<complex> freq;
+	for(double freqRe=0.; freqRe<bgwp.freqReMax_eV+symmThreshold; freqRe+=bgwp.freqReStep_eV)
+		freq.push_back(complex(freqRe, bgwp.freqBroaden_eV));
+	if(bgwp.freqPlasma)
+	{	//GW imaginary freq. grid
+		double freqPlasma_eV = bgwp.freqPlasma/eV;
+		for(int i=0; i<bgwp.freqNimag; i++)
+			freq.push_back(complex(0., i*freqPlasma_eV/(bgwp.freqNimag-i)));
+	}
+	else
+	{	//RPA imaginary freq. grid
+		for(int i=0; i<bgwp.freqNimag; i++)
+			freq.push_back(complex(0., (1./eV)*tan(0.5*M_PI*(1.-(i+1)*1./bgwp.freqNimag))));
+	}
+	//------ Output frequency grid in eV:
+	hid_t gidFreq = h5createGroup(gidHeader, "freq");
+	h5writeScalar(gidFreq, "freq_dep", 2); //=> full-frequency
+	h5writeScalar(gidFreq, "nfreq", int(freq.size())); //number of frequencies
+	h5writeScalar(gidFreq, "nfreq_imag", bgwp.freqNimag); //number of imaginary frequencies
+	hsize_t dimsFreq[2] = { hsize_t(freq.size()), 2 };
+	h5writeVector(gidFreq, "freqs", &(freq[0].real()), dimsFreq, 2);
+	H5Gclose(gidFreq);
+	//------ Convert to Hartrees for internal storage:
+	for(complex& f: freq)
+		f *= eV;
+	
 	die("Not yet implemented!\n"); //TODO
 	
 	//Close file:

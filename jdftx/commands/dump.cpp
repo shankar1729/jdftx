@@ -876,7 +876,12 @@ enum BGWparamsMember
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
 	BGWpm_EcutChiFluid,
-	BWGpm_q0,
+	BGWpm_q0,
+	BGWpm_freqReMax_eV,
+	BGWpm_freqReStep_eV,
+	BGWpm_freqBroaden_eV,
+	BGWpm_freqNimag,
+	BGWpm_freqPlasma,
 	BGWpm_Delim
 };
 EnumStringMap<BGWparamsMember> bgwpmMap
@@ -884,14 +889,24 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
-	BWGpm_q0, "q0"
+	BGWpm_q0, "q0",
+	BGWpm_freqReMax_eV, "freqReMax_eV",
+	BGWpm_freqReStep_eV, "freqReStep_eV",
+	BGWpm_freqBroaden_eV, "freqBroaden_eV",
+	BGWpm_freqNimag, "freqNimag",
+	BGWpm_freqPlasma, "freqPlasma"
 );
 EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
-	BWGpm_q0, "Zero wavevector replacement to be used for polarizability output 9default : (0,0,0)"
+	BGWpm_q0, "Zero wavevector replacement to be used for polarizability output (default: (0,0,0))",
+	BGWpm_freqReMax_eV, "Maximum real frequency in eV (default: 30.)",
+	BGWpm_freqReStep_eV, "Real frequency grid spacing in eV (default: 1.)",
+	BGWpm_freqBroaden_eV, "Broadening (imaginary part) of real frequency grid in eV (default: 0.1)",
+	BGWpm_freqNimag, "Number of imaginary frequencies (default: 25)",
+	BGWpm_freqPlasma, "Plasma frequency in Hartrees used in GW imaginary frequency grid (default: 1.), set to zero for RPA frequency grid"
 );
 
 struct CommandBGWparams : public Command
@@ -920,10 +935,15 @@ struct CommandBGWparams : public Command
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
-				case BWGpm_q0:
+				case BGWpm_q0:
 					for(int dir=0; dir<3; dir++)
 						pl.get(bgwp.q0[dir], 0., "q0", true);
 					break;
+				READ_AND_CHECK(freqReMax_eV, >, 0.)
+				READ_AND_CHECK(freqReStep_eV, >, 0.)
+				READ_AND_CHECK(freqBroaden_eV, >, 0.)
+				READ_AND_CHECK(freqNimag, >, 0)
+				READ_AND_CHECK(freqPlasma, >=, 0.)
 				case BGWpm_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -939,6 +959,11 @@ struct CommandBGWparams : public Command
 		PRINT(clusterSize, "%d")
 		PRINT(EcutChiFluid, "%lg")
 		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);
+		PRINT(freqReMax_eV, "%lg")
+		PRINT(freqReStep_eV, "%lg")
+		PRINT(freqBroaden_eV, "%lg")
+		PRINT(freqNimag, "%d")
+		PRINT(freqPlasma, "%lg")
 		#undef PRINT
 	}
 }

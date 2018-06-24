@@ -118,9 +118,16 @@ struct BGWparams
 	
 	double EcutChiFluid; //!< KE cutoff for fluid polarizability output (enabled if non-zero)
 	vector3<> q0; //!< zero wavevector replacement used for polarizability output
+	double freqReMax_eV; //!< maximum real frequency in eV
+	double freqReStep_eV; //!< real frequency grid spacing in eV
+	double freqBroaden_eV; //!< broadening (imaginary part) of real frequency grid in eV
+	int freqNimag; //!< number of imaginary frequencies
+	double freqPlasma; //!< plasma frequency in Hartrees used in GW imaginary frequency grid, set to zero for RPA frequency grid
 	
 	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
-		EcutChiFluid(0.) {}
+		EcutChiFluid(0.), freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
+		freqNimag(25), freqPlasma(1.)
+	{}
 };
 
 //! @}
