@@ -251,6 +251,26 @@ inline int get_icutv(CoulombParams::Geometry geom)
 	}
 }
 
+//Sort comparator for iG sorting
+struct IndexedComparator
+{	double* keyA; int* keyB; //sort first by keyA (KE), and then by keyB (grid index) to break ties
+	IndexedComparator(double* keyA, int* keyB) : keyA(keyA), keyB(keyB) {}
+	bool operator()(const int& i1, const int& i2) const
+	{	double A1=keyA[i1], A2=keyA[i2];
+		if(fabs(A1-A2) > symmThresholdSq) //tolerance for comparing double precision
+			return A1 < A2; //unequal at specified tolerance
+		else //check second key since first key is equal at specified tolerance
+			return keyB[i1] < keyB[i2];
+	}
+};
+
+template<typename T> void applyIndex(std::vector<T>& arr, const std::vector<int>& index)
+{	assert(arr.size() == index.size());
+	std::vector<T> arrCopy(arr);
+	for(size_t i=0; i<index.size(); i++)
+		arr[i] = arrCopy[index[i]];
+}
+
 //Write fluid polarizability
 void BGW::writeChiFluid() const
 {	assert(eVars.fluidSolver); //should only be called in solvated cases
@@ -264,7 +284,7 @@ void BGW::writeChiFluid() const
 	h5writeScalar(gidHeader, "versionnumber", 1);
 	h5writeScalar(gidHeader, "flavor", 2);  //=> complex wavefunctions
 	
-	//----- Params group:
+	//--- Params group:
 	hid_t gidParams = h5createGroup(gidHeader, "params");
 	h5writeScalar(gidParams, "matrix_type", 2); //=> chi
 	h5writeScalar(gidParams, "has_advanced", 0); //=> retarded response only
@@ -276,7 +296,7 @@ void BGW::writeChiFluid() const
 	h5writeScalar(gidParams, "efermi", 0.); //Not meaningful for fluid polarizability
 	H5Gclose(gidParams);
 	
-	//---- q-points group:
+	//--- q-points group:
 	hid_t gidQpoints = h5createGroup(gidHeader, "qpoints");
 	std::vector<vector3<>> q = k; //same as k-mesh except for slight offset of Gamma
 	{	bool foundGamma = false;
@@ -296,7 +316,7 @@ void BGW::writeChiFluid() const
 	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nReducedKpts, 1));
 	H5Gclose(gidQpoints);
 	
-	//---- freq group:
+	//--- freq group:
 	//------ Create frequency grid in eV:
 	std::vector<complex> freq;
 	for(double freqRe=0.; freqRe<bgwp.freqReMax_eV+symmThreshold; freqRe+=bgwp.freqReStep_eV)
@@ -323,6 +343,76 @@ void BGW::writeChiFluid() const
 	//------ Convert to Hartrees for internal storage:
 	for(complex& f: freq)
 		f *= eV;
+	
+	//--- gspace group:
+	//------ initialize list of G vectors for each q:
+	std::vector<std::vector<vector3<int>>> iGarr(nReducedKpts);
+	std::vector<int> nBasis(nReducedKpts);
+	int nBasisMax = 0;
+	logSuspend();
+	for(int iq=0; iq<nReducedKpts; iq++)
+	{	Basis basis_q;
+		basis_q.setup(e.gInfo, e.iInfo, bgwp.EcutChiFluid, q[iq]);
+		nBasis[iq] = basis_q.nbasis;
+		nBasisMax = std::max(nBasisMax, nBasis[iq]);
+		iGarr[iq].resize(nBasis[iq]);
+		eblas_copy(iGarr[iq].data(), basis_q.iGarr.data(), nBasis[iq]);
+	}
+	logResume();
+	//------ sort by kinetic energy in two ways required by BGW:
+	std::vector<double> KE(nReducedKpts * nBasisMax); //in Ryd
+	std::vector<int> indEpsToRho(nReducedKpts * nBasisMax);
+	std::vector<int> indRhoToEps(nReducedKpts * nBasisMax);
+	vector3<int> iGstride(e.gInfo.S[1]*e.gInfo.S[2], e.gInfo.S[2], 1);
+	std::vector<vector3<int>> iGall(nReducedKpts * nBasisMax);
+	for(int iq=0; iq<nReducedKpts; iq++)
+	{	//Calculate KE with q and sort by it (eps sorting):
+		std::vector<double> KEcur(nBasis[iq]); //KE in Ryd with q
+		std::vector<int> gridInd(nBasis[iq]); //grid index used for tie-breaking
+		std::vector<int> sortIndex(nBasis[iq]); //array that is sorted to retrieve sort index
+		for(int g=0; g<nBasis[iq]; g++)
+		{	KEcur[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g] + q[iq]); //no 0.5 since in Ryd
+			gridInd[g] = dot(iGarr[iq][g], iGstride);
+			sortIndex[g] = g;
+		}
+		std::sort(sortIndex.begin(), sortIndex.end(), IndexedComparator(KEcur.data(), gridInd.data()));
+		applyIndex(KEcur, sortIndex); //KEcur now in ascending order
+		applyIndex(iGarr[iq], sortIndex); //sort iGarr in KEcur order
+		//Determine sort indices based on KE without q (rho sorting):
+		std::vector<double> KErho(nBasis[iq]); //KE in Ryd without q
+		for(int g=0; g<nBasis[iq]; g++)
+		{	KErho[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g]); //no 0.5 since in Ryd
+			gridInd[g] = dot(iGarr[iq][g], iGstride);
+			sortIndex[g] = g;
+		}
+		std::sort(sortIndex.begin(), sortIndex.end(), IndexedComparator(KErho.data(), gridInd.data()));
+		applyIndex(KEcur, sortIndex); //KEcur now sorted by ascending KErho
+		//Invert sortIndex and switch both to 1-based:
+		std::vector<int> sortIndexInv(nBasis[iq]);
+		for(int g=0; g<nBasis[iq]; g++)
+			sortIndexInv[sortIndex[g]++] = g+1; //note switch from 0 to 1-based indexing for both
+		//Copy results to output arrays:
+		int offset = nBasisMax*iq; //offset in output array
+		eblas_copy(&KE[offset], KEcur.data(), nBasis[iq]);
+		eblas_copy(&indRhoToEps[offset], sortIndex.data(), nBasis[iq]);
+		eblas_copy(&indEpsToRho[offset], sortIndexInv.data(), nBasis[iq]);
+		eblas_copy(&iGall[offset], iGarr[iq].data(), nBasis[iq]);
+	}
+	//------ output g-space header to file:
+	hid_t gidGspace = h5createGroup(gidHeader, "gspace");
+	h5writeVector(gidGspace, "nmtx", nBasis); //matrix dimensions for each q
+	h5writeScalar(gidGspace, "nmtx_max", nBasisMax); //maximum value of above over all q
+	hsize_t dimsInd[2] = { hsize_t(nReducedKpts), hsize_t(nBasisMax) };
+	h5writeVector(gidGspace, "ekin", KE.data(), dimsInd, 2);
+	h5writeVector(gidGspace, "gind_eps2rho", indEpsToRho.data(), dimsInd, 2);
+	h5writeVector(gidGspace, "gind_rho2eps", indRhoToEps.data(), dimsInd, 2);
+	hsize_t dimsGeps[3] = { hsize_t(nReducedKpts), hsize_t(nBasisMax), 3 };
+	h5writeVector(gidGspace, "gvec_eps", &iGall[0][0], dimsGeps, 3); //G-vectors in eps order
+	H5Gclose(gidGspace);
+	KE.clear();
+	indEpsToRho.clear();
+	indRhoToEps.clear();
+	iGall.clear();
 	
 	die("Not yet implemented!\n"); //TODO
 	
