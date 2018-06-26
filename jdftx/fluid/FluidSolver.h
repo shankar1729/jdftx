@@ -64,6 +64,17 @@ struct FluidSolver
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
 	double get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* extraForces=0) const;
 
+	//! Structure to represent frequency-dependent fluid susceptibility response
+	//! [of the form prefactor[iOmega]*s[iSite] * 4*pi*(-1)^l/(2*l+1)] * Sum_m(Ylm(Ghat)*Ylm(Ghat')) * w(G)*w(G')
+	struct SusceptibilityTerm
+	{	int iSite; //!< index to site / shape function (into sTilde)
+		int l; //!< angular momentum of response
+		const RadialFunctionG* w; //!< weight function, none if null
+		std::vector<complex> prefactor; //!< frequency-dependent prefactor
+	};
+	//! Get susceptibility for a list of specified (complex) frequencies
+	void getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde);
+
 	virtual double bulkPotential() {return 0.0;}
 
 	//! Dump relevant fluid densities (eg. NO and NH) to file(s)
@@ -96,6 +107,9 @@ protected:
 
 	//! Fluid-dependent implementation of get_Adiel_and_grad()
 	virtual double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const =0;
+	
+	//! Fluid-dependent implementation of getSusceptibility()
+	virtual void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr);
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)

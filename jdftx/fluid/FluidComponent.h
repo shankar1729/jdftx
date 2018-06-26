@@ -117,6 +117,11 @@ struct FluidComponent
 	double Rvdw; //!< effective van der Waals radius of liquid (derived from equation of state) in bohrs
 	double Res; //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
 	
+	//Frequency-dependence parameters:
+	double tauNuc; //!< nuclear motion damping time: rotational for solvents, translational for ions
+	double omegaEl; //!< electronic response center frequency (Drude-Lorentz model)
+	double gammaEl; //!< electronic response frequency width (Drude-Lorentz model)
+	
 	double Nnorm; //!< If Nnorm>=0, this component is switched to the canonical ensemble (number fixed to Nnorm)
 	
 	//Molecule geometry and site properties:

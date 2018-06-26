@@ -124,6 +124,7 @@ FluidComponent::FluidComponent(FluidComponent::Name name, double T, FluidCompone
 : name(name), type(getType(name)), functional(functional), epsLJ(0.), representation(MuEps),
 s2quadType(Quad7design_24), quad_nBeta(0), quad_nAlpha(0), quad_nGamma(0), translationMode(LinearSpline),
 epsBulk(1.), Nbulk(pureNbulk(T)), pMol(0.), epsInf(1.), Pvap(0.), sigmaBulk(0.), Rvdw(0.), Res(0.),
+tauNuc(8.3e+3*fs), omegaEl(15.*eV), gammaEl(7.*eV), //defaults for water
 Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(0)
 {
 	//Nuclear widths = (1./6) vdW radius

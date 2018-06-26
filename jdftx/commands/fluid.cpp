@@ -252,6 +252,10 @@ enum FluidComponentMember
 	FCM_sigmaBulk, //!< bulk surface tension in Eh/bohr^2
 	FCM_Rvdw, //!< effective van der Waals radius of the fluid (derived from equation of state) in bohrs
 	FCM_Res, //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
+	//Extras for frequency dependence:
+	FCM_tauNuc, //!< nuclear motion damping time in fs: rotational for solvents, translational for ions
+	FCM_omegaEl, //!< electronic response center frequency in eV (Drude-Lorentz model)
+	FCM_gammaEl, //!< electronic response frequency width in eV (Drude-Lorentz model)
 	//Extras for ClassicalDFT:
 	FCM_epsLJ, //!< Lennard-Jones well depth for Mean-Field LJ excess functional
 	FCM_representation, //!< ideal gas representation
@@ -272,6 +276,9 @@ EnumStringMap<FluidComponentMember> fcmMap
 	FCM_sigmaBulk,     "sigmaBulk",
 	FCM_Rvdw,          "Rvdw",
 	FCM_Res,           "Res",
+	FCM_tauNuc,  "tauNuc",
+	FCM_omegaEl, "omegaEl",
+	FCM_gammaEl, "gammaEl",
 	FCM_epsLJ,          "epsLJ",
 	FCM_representation, "representation",
 	FCM_s2quadType,     "s2quadType",
@@ -289,6 +296,9 @@ EnumStringMap<FluidComponentMember> fcmDescMap
 	FCM_sigmaBulk, "bulk surface tension in Eh/bohr^2",
 	FCM_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs",
 	FCM_Res, "electrostatic radius of solvent (derived from nonlocal response) in bohrs",
+	FCM_tauNuc, "nuclear motion damping time in fs: rotational for solvents, translational for ions",
+	FCM_omegaEl, "electronic response center frequency in eV (Drude-Lorentz model)",
+	FCM_gammaEl, "electronic response frequency width in eV (Drude-Lorentz model)",
 	FCM_epsLJ, "Lennard-Jones well depth for Mean-Field LJ excess functional",
 	FCM_representation, "ideal gas representation: " + addDescriptions(representationMap.optionList(), nullDescription, "\n   - "),
 	FCM_s2quadType, "orientation quadrature type:" + addDescriptions(s2quadTypeMap.optionList(), nullDescription, "\n   - "),
@@ -372,6 +382,9 @@ public:
 				READ_AND_CHECK(sigmaBulk, >, 0.)
 				READ_AND_CHECK(Rvdw, >, 0.)
 				READ_AND_CHECK(Res, >, 0.)
+				READ_AND_CHECK(tauNuc, >, 0.)
+				READ_AND_CHECK(omegaEl, >, 0.)
+				READ_AND_CHECK(gammaEl, >, 0.)
 				READ_AND_CHECK(epsLJ, >, 0.)
 				READ_ENUM(representation, FluidComponent::MuEps)
 				READ_ENUM(s2quadType, QuadOctahedron)
@@ -399,6 +412,9 @@ public:
 		PRINT(sigmaBulk)
 		PRINT(Rvdw)
 		PRINT(Res)
+		PRINT(tauNuc)
+		PRINT(omegaEl)
+		PRINT(gammaEl)
 		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 		{	PRINT(epsLJ)
 			PRINT_ENUM(representation)
