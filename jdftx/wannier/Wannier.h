@@ -71,6 +71,9 @@ public:
 	bool saveWfns; //!< whether to write wavefunctions
 	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space
 	bool saveMomenta; //!< whether to output momentum matrix elements
+
+	double z0, zH, zSigma; //!< center (lattice coords), half-width (lattice coords) and smoothness (bohrs) for slab-weight function
+
 	bool loadRotations; //!< whether to load initial rotations from previous dump
 	string initFilename, dumpFilename; //!< filename patterns for input and output
 	string eigsFilename; //!< optional override for eigenvals file

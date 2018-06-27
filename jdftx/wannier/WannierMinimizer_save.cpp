@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizer.h>
 #include <core/ScalarFieldIO.h>
 #include <core/WignerSeitz.h>
+#include <core/SphericalHarmonics.h>
 
 //Apply cell map weights due to repeated images near supercell boundaries
 //nVector specifies number of vecor components in each cell eg. 3 for momentum, 1 for Hamiltonian.
@@ -32,6 +33,24 @@ void applyCellMapWeights(matrix& M, const std::map<vector3<int>,matrix>& cellMap
 			Mdata += w.nData();
 		}
 	}
+}
+
+//Thread function for setting fourier transform of z-slice of half-width zH centered at z0 with smoothness zSigma:
+inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
+	complex* w, double z0, double zH, double zSigma)
+{	double prefac = 2*zH; //= average value of weight in unit cell
+	THREAD_halfGspaceLoop
+	(	int iGsq = iG.length_squared();
+		int iGz = iG[2];
+		if(iGsq == iGz * iGz) // => iG || z (Cauchy-Schwarz)
+		{	double GzH = (2*M_PI) * fabs(zH * iGz);
+			double GzSigma = zSigma * sqrt(GGT.metric_length_squared(iG));
+			w[i] = prefac * bessel_jl(0,GzH) //norm and width
+				* cis(-(2.*M_PI)*iGz*z0) //translate
+				* exp(-0.5*GzSigma*GzSigma); //Gauss smoothing
+		}
+		else w[i] = 0.;
+	)
 }
 
 void WannierMinimizer::saveMLWF()
@@ -548,6 +567,45 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		pWannier.allReduce(MPIUtil::ReduceSum);
 		applyCellMapWeights(pWannier, iCellMap, 3);
 		dumpMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
+	}
+	
+	//Save slab-weight matrix elements in Wannier basis, if requested:
+	if(wannier.zH)
+	{	//Construct slab weight function:
+		ScalarField w;
+		{	ScalarFieldTilde wTilde; nullToZero(wTilde, e.gInfo);
+			threadLaunch(slabWeight_thread, e.gInfo.nG, e.gInfo.S, e.gInfo.GGT,
+				wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
+			w = I(wTilde);
+		}
+		//Compute slab-weight matrix elements of Bloch states:
+		std::vector<matrix> wBloch(e.eInfo.nStates);
+		ScalarFieldArray JdagOJw(1, JdagOJ(w));
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			if(e.eInfo.qnums[q].index()==iSpin)
+			{	//Direct contributions from bands:
+				const ColumnBundle& Cq = e.eVars.C[q];
+				wBloch[q] = Cq ^ Idag_DiagV_I(Cq, JdagOJw);
+
+				//Ultrasoft augmentation:
+				//TODO
+			}
+		//Convert to Wannier basis:
+		matrix wWannierTilde = zeroes(nCenters*nCenters, nqMine);
+		int iqMine = 0;
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	matrix wSub = wBloch[kMesh[i].point.iReduced + iSpin*qCount];
+			if(kMesh[i].point.invert<0) //apply complex conjugate if needed:
+				callPref(eblas_dscal)(wSub.nData(), -1., ((double*)wSub.dataPref())+1, 2);
+			wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
+			callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
+			iqMine++;
+		}
+		//Fourier transform to Wannier space and save
+		matrix wWannier = wWannierTilde * phase;
+		wWannier.allReduce(MPIUtil::ReduceSum);
+		applyCellMapWeights(wWannier, iCellMap);
+		dumpMatrix(wWannier, "mlwfW", realPartOnly, iSpin);
 	}
 	
 	//Electron-electron linewidths:

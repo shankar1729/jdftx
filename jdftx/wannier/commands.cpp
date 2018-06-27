@@ -31,6 +31,7 @@ enum WannierMember
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
+	WM_slabWeight,
 	WM_loadRotations,
 	WM_eigsOverride,
 	WM_numericalOrbitals,
@@ -52,6 +53,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
+	WM_slabWeight, "slabWeight",
 	WM_loadRotations, "loadRotations",
 	WM_eigsOverride, "eigsOverride",
 	WM_numericalOrbitals, "numericalOrbitals",
@@ -123,6 +125,10 @@ struct CommandWannier : public Command
 			"   Whether to write momentum matrix elements in the same format as Hamiltonian.\n"
 			"   The output is real and antisymmetric (drops the iota so as to half the output size).\n"
 			"   Default: no.\n"
+			"\n+ slabWeight <z0> <zH> <zSigma>\n\n"
+			"   If specified, output the Wannier matrix elements of a slab weight function\n"
+			"   centered at z0 (lattice coordinates) with half-width zH (lattice coordinates)\n"
+			"   and Gaussian/erfc smoothness zSigma in bohrs. (Default: none)\n"
 			"\n+ loadRotations yes|no\n\n"
 			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous %Wannier run.\n"
 			"   Default: no.\n"
@@ -198,6 +204,11 @@ struct CommandWannier : public Command
 				case WM_saveMomenta:
 					pl.get(wannier.saveMomenta, false, boolMap, "saveMomenta", true);
 					break;
+				case WM_slabWeight:
+					pl.get(wannier.z0, 0., "z0", true);
+					pl.get(wannier.zH, 0., "zH", true);
+					pl.get(wannier.zSigma, 0., "zSigma", true);
+					break;
 				case WM_loadRotations:
 					pl.get(wannier.loadRotations, false, boolMap, "loadRotations", true);
 					break;
@@ -242,6 +253,8 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
+		if(wannier.zH)
+			logPrintf(" \\\n\tslabWeight %lg %lg %lg", wannier.z0, wannier.zH, wannier.zSigma);
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
 		if(wannier.eigsFilename.length())
 			logPrintf(" \\\n\teigsFilename %s", wannier.eigsFilename.c_str());
