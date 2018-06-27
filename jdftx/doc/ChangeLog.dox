@@ -6,6 +6,8 @@
 
 + Added environment variable input JDFTX_CPUS_PER_NODE to limit total number of cores used per node
 
++ Fluid susceptibility output for BerkeleyGW
+
 
 ## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
 

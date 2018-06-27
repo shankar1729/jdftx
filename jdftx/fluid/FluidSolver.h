@@ -65,7 +65,7 @@ struct FluidSolver
 	double get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* extraForces=0) const;
 
 	//! Structure to represent frequency-dependent fluid susceptibility response
-	//! [of the form prefactor[iOmega]*s[iSite] * 4*pi*(-1)^l/(2*l+1)] * Sum_m(Ylm(Ghat)*Ylm(Ghat')) * w(G)*w(G')
+	//! [of the form prefactor[iOmega]*s[iSite] * 4*pi/(2*l+1) * Sum_m(Ylm(Ghat)*Ylm(Ghat')) * w(G)*w(G')]
 	struct SusceptibilityTerm
 	{	int iSite; //!< index to site / shape function (into sTilde)
 		int l; //!< angular momentum of response

@@ -21,6 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/Dump_internal.h>
+#include <fluid/FluidSolver.h>
+#include <core/SphericalHarmonics.h>
 #include <core/LatticeUtils.h>
 
 #ifndef HDF5_ENABLED
@@ -271,6 +273,36 @@ template<typename T> void applyIndex(std::vector<T>& arr, const std::vector<int>
 		arr[i] = arrCopy[index[i]];
 }
 
+inline void initYlmAndWeights(const  vector3<>& q, const std::vector<vector3<int>> iGarr, int start, int stop,
+	const matrix3<>& GT, const std::vector<FluidSolver::SusceptibilityTerm>& susceptibility,
+	std::vector<diagMatrix>& w, std::vector<std::vector<diagMatrix>>& YlmArr)
+{
+	int nTerms = susceptibility.size();
+	int nMine = stop - start;
+	w.assign(nTerms, diagMatrix(nMine, 1.)); //initialize to local
+	YlmArr.resize(nTerms);
+	//Calculate G-vector magnitudes and directions:
+	diagMatrix Gmag; Gmag.reserve(nMine);
+	std::vector<vector3<>> Gvec; Gvec.reserve(nMine);
+	for(int iG=start; iG<stop; iG++)
+	{	Gvec.push_back(GT * (iGarr[iG] + q));
+		Gmag.push_back(Gvec.back().length());
+	}
+	for(int iTerm=0; iTerm<nTerms; iTerm++)
+	{	const FluidSolver::SusceptibilityTerm& term = susceptibility[iTerm];
+		//Override weight function if needed:
+		if(term.w)
+		{	for(int iMine=0; iMine<nMine; iMine++)
+				w[iTerm][iMine] = (*term.w)(Gmag[iMine]);
+		}
+		//Calculate spherical harmonics
+		YlmArr[iTerm].assign(2*term.l+1, diagMatrix(nMine));
+		for(int m=-term.l; m<=term.l; m++)
+			for(int iMine=0; iMine<nMine; iMine++)
+				YlmArr[iTerm][m+term.l][iMine] = Ylm(term.l, m, Gvec[iMine]);
+	}
+}
+
 //Write fluid polarizability
 void BGW::writeChiFluid() const
 {	assert(eVars.fluidSolver); //should only be called in solvated cases
@@ -278,6 +310,7 @@ void BGW::writeChiFluid() const
 	//Open file and write common header:
 	hid_t fid = openHDF5(e.dump.getFilename("bgw.chiFluid.h5"));
 	writeHeaderMF(fid);
+	logPrintf("\n");
 	
 	//---------- Epsilon header ----------
 	hid_t gidHeader = h5createGroup(fid, "eps_header");
@@ -333,7 +366,7 @@ void BGW::writeChiFluid() const
 			freq.push_back(complex(0., (1./eV)*tan(0.5*M_PI*(1.-(i+1)*1./bgwp.freqNimag))));
 	}
 	//------ Output frequency grid in eV:
-	hid_t gidFreq = h5createGroup(gidHeader, "freq");
+	hid_t gidFreq = h5createGroup(gidHeader, "freqs");
 	h5writeScalar(gidFreq, "freq_dep", 2); //=> full-frequency
 	h5writeScalar(gidFreq, "nfreq", int(freq.size())); //number of frequencies
 	h5writeScalar(gidFreq, "nfreq_imag", bgwp.freqNimag); //number of imaginary frequencies
@@ -343,6 +376,7 @@ void BGW::writeChiFluid() const
 	//------ Convert to Hartrees for internal storage:
 	for(complex& f: freq)
 		f *= eV;
+	logPrintf("\tInitialized frequency grid of size %d.\n", int(freq.size()));
 	
 	//--- gspace group:
 	//------ initialize list of G vectors for each q:
@@ -414,11 +448,108 @@ void BGW::writeChiFluid() const
 	indRhoToEps.clear();
 	iGall.clear();
 	
-	die("Not yet implemented!\n"); //TODO
+	H5Gclose(gidHeader); //end eps header
+	
+	//------------ Calculate and write matrices --------------
+	//--- Process grid:
+	int nProcesses = mpiWorld->nProcesses();
+	int nProcsRow = int(round(sqrt(nProcesses)));
+	while(nProcesses % nProcsRow) nProcsRow--;
+	int nProcsCol = nProcesses / nProcsRow;
+	int iProcRow = mpiWorld->iProcess() / nProcsCol;
+	int iProcCol = mpiWorld->iProcess() % nProcsCol;
+	logPrintf("\tInitialized %d x %d process grid.\n", nProcsRow, nProcsCol);
+	//--- Determine matrix division:
+	int rowStart = (nBasisMax * iProcRow) / nProcsRow;
+	int rowStop = (nBasisMax * (iProcRow+1)) / nProcsRow;
+	int nRowsMine = rowStop - rowStart;
+	int colStart = (nBasisMax * iProcCol) / nProcsCol;
+	int colStop = (nBasisMax * (iProcCol+1)) / nProcsCol;
+	int nColsMine = colStop - colStart;
+	if(std::max(nProcsRow, nProcsCol) > nBasisMax)
+		die("\tNo data on some processes: reduce # processes.\n");
+	//--- Get susceptibility description from fluidSolver:
+	std::vector<FluidSolver::SusceptibilityTerm> susceptibility;
+	ScalarFieldTildeArray sTilde;
+	e.eVars.fluidSolver->getSusceptibility(freq, susceptibility, sTilde);
+	std::vector<const complex*> sTildeData; for(ScalarFieldTilde& sT: sTilde) sTildeData.push_back(sT->data());
+	//--- create dataset:
+	hid_t gidMats = h5createGroup(fid, "mats");
+	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins*nSpinor),
+		hsize_t(freq.size()), hsize_t(nBasisMax), hsize_t(nBasisMax), 2 };
+	hid_t sid = H5Screate_simple(6, dims, NULL);
+	hid_t did = H5Dcreate(gidMats, "matrix", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+	H5Sclose(sid);
+	//--- loop over q and frequencies:
+	matrix buf(nRowsMine, nColsMine);
+	for(int iq=0; iq<int(q.size()); iq++)
+	{	logPrintf("\tState %d, freq:", iq+1); logFlush();
+		//Initialize frequency-independent terms by row and column:
+		int nTerms = susceptibility.size();
+		std::vector<diagMatrix> wRow, wCol; //weight functions w(G)
+		std::vector<std::vector<diagMatrix>> YlmRow, YlmCol; //Ylm(Ghat) * G^l
+		initYlmAndWeights(q[iq], iGarr[iq], rowStart, rowStop, gInfo.GT, susceptibility, wRow, YlmRow);
+		initYlmAndWeights(q[iq], iGarr[iq], colStart, colStop, gInfo.GT, susceptibility, wCol, YlmCol);
+		//Loop over frequencies:
+		for(int iFreq=0; iFreq<int(freq.size()); iFreq++)
+		{	buf.zero();
+			for(int iColMine=0; iColMine<nColsMine; iColMine++)
+			{	int iCol = colStart + iColMine;
+				if(iCol >= nBasis[iq]) continue;
+				for(int iRowMine=0; iRowMine<nRowsMine; iRowMine++)
+				{	int iRow = rowStart + iRowMine;
+					if(iRow >= nBasis[iq]) continue;
+					//Determine index into shape arrays:
+					vector3<int> iGdiff = iGarr[iq][iRow] - iGarr[iq][iCol];
+					for(int dir=0; dir<3; dir++)
+						iGdiff[dir] = positiveRemainder(iGdiff[dir], gInfo.S[dir]); //wrap positive
+					bool conj = false;
+					if(iGdiff[2] > gInfo.S[2]/2) //account for half G space
+					{	conj = true; //pick up from -G with complex conjugate
+						for(int dir=0; dir<3; dir++)
+							iGdiff[dir] = iGdiff[dir] ? gInfo.S[dir]-iGdiff[dir] : 0; //G -> -G
+					}
+					int diffIndex = gInfo.halfGindex(iGdiff);
+					//Collect contributions to chi:
+					complex result;
+					for(int iTerm=0; iTerm<nTerms; iTerm++)
+					{	const FluidSolver::SusceptibilityTerm& term = susceptibility[iTerm];
+						//Spherical harmonics (div.grad for l=1) factor:
+						double Ydot = 0.;
+						int mCount = 2*term.l+1;
+						for(int lm=0; lm<mCount; lm++)
+							Ydot += YlmRow[iTerm][lm][iRowMine] * YlmCol[iTerm][lm][iColMine];
+						complex sTildeCur = sTildeData[term.iSite][diffIndex];
+						if(conj) sTildeCur = sTildeCur.conj();
+						result += term.prefactor[iFreq] * sTildeCur
+							* (wRow[iTerm][iRowMine] * wCol[iTerm][iColMine] * Ydot * (4*M_PI)/mCount);
+					}
+					buf.set(iRowMine, iColMine, result);
+				}
+			}
+			//Write results:
+			for(int iSpin=0; iSpin<nSpins*nSpinor; iSpin++)
+			{	hsize_t offset[6] = { hsize_t(iq), hsize_t(iSpin), hsize_t(iFreq), hsize_t(colStart), hsize_t(rowStart), 0 };
+				hsize_t count[6] = { 1, 1, 1, hsize_t(nColsMine), hsize_t(nRowsMine), 2 };
+				sid = H5Dget_space(did);
+				H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+				hid_t sidMem = H5Screate_simple(6, count, NULL);
+				H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf.data());
+				H5Sclose(sidMem);
+			}
+			logPrintf(" %d", iFreq+1); logFlush();
+		}
+		logPrintf("\n"); logFlush();
+	}
+	//--- close dataset:
+	H5Pclose(plid);
+	H5Dclose(did);
+	H5Gclose(gidMats);
 	
 	//Close file:
 	H5Fclose(fid);
-	logPrintf("Done.\n"); logFlush();
+	logPrintf("\tDone.\n"); logFlush();
 }
 
 
