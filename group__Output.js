@@ -117,7 +117,14 @@ var group__Output =
       [ "BGWparams", "structBGWparams.html#aadc06cb3cddecbfa646218300fad538a", null ],
       [ "blockSize", "structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97", null ],
       [ "clusterSize", "structBGWparams.html#a4467718884cfb205934e3120d2912ecd", null ],
-      [ "nBandsDense", "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643", null ]
+      [ "EcutChiFluid", "structBGWparams.html#aeb8db3ce3e4140a8df3cf633919980ff", null ],
+      [ "freqBroaden_eV", "structBGWparams.html#ab8a1894c2025db6e5ec1feb82690dbd9", null ],
+      [ "freqNimag", "structBGWparams.html#a5004f378cd1ab8288ee93c9c3888f831", null ],
+      [ "freqPlasma", "structBGWparams.html#ad14eaaa49709e10f9ff2b35513bb745e", null ],
+      [ "freqReMax_eV", "structBGWparams.html#adb9fef55d0b2f222132176e934562c4b", null ],
+      [ "freqReStep_eV", "structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426", null ],
+      [ "nBandsDense", "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643", null ],
+      [ "q0", "structBGWparams.html#a1b10175bb6aa1918d3aeaeb5f007190b", null ]
     ] ],
     [ "ElectronScattering", "structElectronScattering.html", [
       [ "ElectronScattering", "structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8", null ],
@@ -217,7 +224,7 @@ var group__Output =
       [ "TrialOrbital", "structWannier_1_1TrialOrbital.html", [
         [ "TrialOrbital", "structWannier_1_1TrialOrbital.html#a35276d4ba1e93bfff4e9988cac092902", null ],
         [ "pinned", "structWannier_1_1TrialOrbital.html#a11d606e9631fae27568b5b001a485052", null ],
-        [ "rCenter", "structWannier_1_1TrialOrbital.html#aa7f00e42a15d7940691bbaa6f734ef2d", null ]
+        [ "xCenter", "structWannier_1_1TrialOrbital.html#a5c74e14407f2fd6031c21b1e8f4f6367", null ]
       ] ],
       [ "FilenameType", "classWannier.html#a689ef8ce9c11ecca6e5e3f5812efcd60", [
         [ "FilenameInit", "classWannier.html#a689ef8ce9c11ecca6e5e3f5812efcd60ae25ca5a54fac4a8279a445591cb5ad00", null ],

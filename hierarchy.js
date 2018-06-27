@@ -324,6 +324,7 @@ var hierarchy =
     [ "StaticLoopYlmTag< lm >", "structStaticLoopYlmTag.html", null ],
     [ "StopWatch", "classStopWatch.html", null ],
     [ "Supercell", "structSupercell.html", null ],
+    [ "FluidSolver::SusceptibilityTerm", "structFluidSolver_1_1SusceptibilityTerm.html", null ],
     [ "Symmetries", "classSymmetries.html", null ],
     [ "TaskDivision", "classTaskDivision.html", null ],
     [ "tensor3< scalar >", "classtensor3.html", null ],

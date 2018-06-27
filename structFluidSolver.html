@@ -95,6 +95,7 @@ $(document).ready(function(){initNavTree('structFluidSolver.html','');});
 
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
@@ -121,6 +122,11 @@ Inheritance diagram for FluidSolver:</div>
 </map>
  </div></div>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:accfffddd849751ac7f424f0c43dbbb7b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#accfffddd849751ac7f424f0c43dbbb7b">FluidSolver</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const <a class="el" href="structFluidSolverParams.html">FluidSolverParams</a> &amp;fsp)</td></tr>
@@ -137,6 +143,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>useGummel</b> () cons
 <tr class="separator:af9cfa1a130a5dcb71d31228fcf70ee29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ea77776d06809c06f6bebb68ddecf52"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_rhoExplicitTilde=0, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_nCavityTilde=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces=0) const </td></tr>
 <tr class="separator:a9ea77776d06809c06f6bebb68ddecf52"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5e020dbbd04349863f3e8f6e1d6b604"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af5e020dbbd04349863f3e8f6e1d6b604"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#af5e020dbbd04349863f3e8f6e1d6b604">getSusceptibility</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;sTilde) const </td></tr>
+<tr class="memdesc:af5e020dbbd04349863f3e8f6e1d6b604"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get susceptibility for a list of specified (complex) frequencies. <br/></td></tr>
+<tr class="separator:af5e020dbbd04349863f3e8f6e1d6b604"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afcb1b31711e3924edbfaf10028e31a3c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afcb1b31711e3924edbfaf10028e31a3c"></a>
 virtual double&#160;</td><td class="memItemRight" valign="bottom"><b>bulkPotential</b> ()</td></tr>
 <tr class="separator:afcb1b31711e3924edbfaf10028e31a3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -202,6 +212,10 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#ab51960b652da3556179498326ca4b6d7">get_Adiel_and_grad_internal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_rhoExplicitTilde, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_nCavityTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces) const =0</td></tr>
 <tr class="memdesc:ab51960b652da3556179498326ca4b6d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad()</a> <br/></td></tr>
 <tr class="separator:ab51960b652da3556179498326ca4b6d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a888f17adfbb13a48c51b1d8c70a4cf46"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a888f17adfbb13a48c51b1d8c70a4cf46"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a888f17adfbb13a48c51b1d8c70a4cf46">getSusceptibility_internal</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;sArr) const </td></tr>
+<tr class="memdesc:a888f17adfbb13a48c51b1d8c70a4cf46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#af5e020dbbd04349863f3e8f6e1d6b604" title="Get susceptibility for a list of specified (complex) frequencies. ">getSusceptibility()</a> <br/></td></tr>
+<tr class="separator:a888f17adfbb13a48c51b1d8c70a4cf46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Abstract base class for the fluid solvers. </p>

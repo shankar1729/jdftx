@@ -4,6 +4,7 @@ var searchData=
   ['table',['table',['../structColumnBundleTransform_1_1BasisWrapper.html#a4af18b2a953630bd8bfba727f83d15cc',1,'ColumnBundleTransform::BasisWrapper']]],
   ['tau',['tau',['../classElecVars.html#a4b6036a8ff97b3b531ed6241f9260269',1,'ElecVars::tau()'],['../structRadialSchrodinger_1_1Outputs.html#ac585bb27a69adb0f471497d9eded8d3f',1,'RadialSchrodinger::Outputs::tau()'],['../structSCFvariable.html#a0b4b0e7678cebec9b056ef3f2a5cbcf6',1,'SCFvariable::tau()']]],
   ['taucore',['tauCore',['../classIonInfo.html#ab8c9e61990a9f1d31897823a43cc17ad',1,'IonInfo']]],
+  ['taunuc',['tauNuc',['../structFluidComponent.html#ac052c0d9b3e25a7611f7404f87bc75b2',1,'FluidComponent']]],
   ['tmax',['tMax',['../structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63',1,'IonDynamicsParams']]],
   ['trans',['trans',['../structFluidComponent.html#a2f904784243859158192d1d581e3fa98',1,'FluidComponent::trans()'],['../classIdealGasPomega.html#a7c17c90af285364be71faad22c45f047',1,'IdealGasPomega::trans()']]],
   ['transformmapsuper',['transformMapSuper',['../classWannierMinimizer.html#a7e2c55d452eca1a5a0164d38b1df914e',1,'WannierMinimizer']]],

@@ -130,7 +130,9 @@ $(document).ready(function(){initNavTree('CommandFluidSolvent.html','');});
 <li>epsBulk : bulk dielectric constant</li>
 <li>epsInf : optical-frequency dielectric constant</li>
 <li>epsLJ : Lennard-Jones well depth for Mean-Field LJ excess functional</li>
+<li>gammaEl : electronic response frequency width in eV (Drude-Lorentz model)</li>
 <li>Nnorm : unit cell molecule count constraint</li>
+<li>omegaEl : electronic response center frequency in eV (Drude-Lorentz model)</li>
 <li>pMol : dipole moment of each molecule in e-bohr</li>
 <li>Pvap : vapor pressure in Eh/bohr^3</li>
 <li>quad_nAlpha : number of alpha samples for Euler quadrature</li>
@@ -167,6 +169,7 @@ $(document).ready(function(){initNavTree('CommandFluidSolvent.html','');});
 </ul>
 </li>
 <li>sigmaBulk : bulk surface tension in Eh/bohr^2</li>
+<li>tauNuc : nuclear motion damping time in fs: rotational for solvents, translational for ions</li>
 <li>translation : translation operator type:<ul>
 <li>ConstantSpline</li>
 <li>Fourier</li>
@@ -187,7 +190,10 @@ $(document).ready(function(){initNavTree('CommandFluidSolvent.html','');});
     Pvap 1.06736e-10 \
     sigmaBulk 4.62e-05 \
     Rvdw 2.61727 \
-    Res 1.42
+    Res 1.42 \
+    tauNuc 343133 \
+    omegaEl 0.55124 \
+    gammaEl 0.257245
 </pre><p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->

@@ -20,6 +20,7 @@ var searchData=
   ['positions',['positions',['../structMolecule_1_1Site.html#aa293670c239b2ba6854fedd57de9d490',1,'Molecule::Site']]],
   ['potentialsubtraction',['potentialSubtraction',['../classDump.html#a713622fac53d455a012301aef4747f77',1,'Dump']]],
   ['potfilename',['potfilename',['../classSpeciesInfo.html#ade89254c19a6590f88ac41bc72a82e41',1,'SpeciesInfo']]],
+  ['prefactor',['prefactor',['../structFluidSolver_1_1SusceptibilityTerm.html#a45b340f3d67cfae92a91bb382c76313a',1,'FluidSolver::SusceptibilityTerm']]],
   ['prefacvw2',['prefacVW2',['../structJeffereyAustinEOS__eval.html#a8821f052b9a616b336dbf626867ab83e',1,'JeffereyAustinEOS_eval']]],
   ['printdefaults',['printDefaults',['../structInitParams.html#abb7f583b55c326d16ac655edf617cce4',1,'InitParams']]],
   ['psieff',['psiEff',['../structFluidMixture_1_1Outputs.html#a00ab563373b9abed65144a457053a3dc',1,'FluidMixture::Outputs']]],

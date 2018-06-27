@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['w',['w',['../structFluidSolver_1_1SusceptibilityTerm.html#a060873b5e3147b11d05ab0a4e3a56aa2',1,'FluidSolver::SusceptibilityTerm']]],
   ['w2m',['w2m',['../structMolecule_1_1Site.html#a9663f7b578052a9ce4710d6280efc829',1,'Molecule::Site']]],
   ['wb',['wb',['../structWannierMinimizerFD_1_1Edge.html#a11cc630b8595ea189c1dc4644dcb976f',1,'WannierMinimizerFD::Edge']]],
   ['weight',['weight',['../classQuantumNumber.html#a9afc04e07d4d22ed54cdd0c2b5d061d7',1,'QuantumNumber::weight()'],['../structS2quad.html#a2ede05511df8e6c15504740b0156eac1',1,'S2quad::weight()']]],

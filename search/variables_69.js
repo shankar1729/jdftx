@@ -32,6 +32,7 @@ var searchData=
   ['ionwidthmethod',['ionWidthMethod',['../classIonInfo.html#a0a9bc7f4768a644e153ddd9b84b07426',1,'IonInfo']]],
   ['iperturbation',['iPerturbation',['../classPhonon.html#a3c9c8645cc2ea47a68e66006ab107c6e',1,'Phonon']]],
   ['ireduced',['iReduced',['../structSupercell_1_1KmeshTransform.html#aab6908d4156515cb7f4b06f33aa65fc4',1,'Supercell::KmeshTransform']]],
+  ['isite',['iSite',['../structFluidSolver_1_1SusceptibilityTerm.html#ac176f0305761fca9c4ff9080b38850b2',1,'FluidSolver::SusceptibilityTerm']]],
   ['ispinarr',['iSpinArr',['../classWannier.html#a4475072d80cd66382e1cd3a919c0cbfa',1,'Wannier']]],
   ['israndom',['isRandom',['../classElecVars.html#abbe76718a018334491da6896284a7de6',1,'ElecVars']]],
   ['istruncated',['isTruncated',['../structCoulombKernel.html#aeeb7607dcc23eca592d30dee70285a3b',1,'CoulombKernel']]],

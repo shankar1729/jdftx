@@ -8,6 +8,7 @@ var PCM__internal_8h =
     [ "compute", "PCM__internal_8h.html#a61e44e9aff5350f79ba3b38c0d09260a", null ],
     [ "compute", "PCM__internal_8h.html#af652cf0229272c87b9c6fb7f29e0e793", null ],
     [ "expandDensity", "PCM__internal_8h.html#a7ce5694c6a10deea7d66beae05368e0a", null ],
+    [ "getChiPrefactor", "PCM__internal_8h.html#gabad041aa6275044eaf708d9753f52c2d", null ],
     [ "propagateGradient", "PCM__internal_8h.html#a285fff5c90b2e5be406a89ea2dd21cf9", null ],
     [ "propagateGradient", "PCM__internal_8h.html#ad45fc32dac92eb9b6be046e4b7619bb3", null ],
     [ "propagateGradient", "PCM__internal_8h.html#a4125cd1b32c3d7d0f8a9cdb9655beed2", null ],

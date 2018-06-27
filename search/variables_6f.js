@@ -6,6 +6,7 @@ var searchData=
   ['ohm',['Ohm',['../group__Utilities.html#ga0a0d6eb5d6e69e8d3d00e31903e5624f',1,'Units.h']]],
   ['omega',['omega',['../structCoulombKernel.html#a3c7e59b98eb5be548fdbe06170a7e9b8',1,'CoulombKernel']]],
   ['omega_5fu',['Omega_U',['../structWannierMinimizer_1_1KmeshEntry.html#ae404c469faa20e63ca0554da8c0f3e29',1,'WannierMinimizer::KmeshEntry']]],
+  ['omegael',['omegaEl',['../structFluidComponent.html#ad952d112eb6d3d0cf3e18bc35455e4bc',1,'FluidComponent']]],
   ['omegamax',['omegaMax',['../structElectronScattering.html#ac8a257b5ea44967516e8b52045688525',1,'ElectronScattering']]],
   ['omegamin',['omegaMin',['../classVibrations.html#a02a4e4dc7863c494252ac60d47f30544',1,'Vibrations']]],
   ['omegaresolution',['omegaResolution',['../classVibrations.html#a4e9af7ccfec82096a8f1879fbe2ecc75',1,'Vibrations']]],

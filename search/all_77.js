@@ -8,7 +8,7 @@ var searchData=
   ['wannier_2dminimize',['wannier-minimize',['../CommandWannierMinimize.html',1,'CommandIndex']]],
   ['wavefunction',['wavefunction',['../CommandWavefunction.html',1,'CommandIndex']]],
   ['wavefunction_2ddrag',['wavefunction-drag',['../CommandWavefunctionDrag.html',1,'CommandIndex']]],
-  ['w',['w',['../classTetrahedralDOS.html#a4b405468932434cbd7aca0d3cb89806b',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand)'],['../classTetrahedralDOS.html#a1336fab9ff99ae61b641950ec1920ed0',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand) const ']]],
+  ['w',['w',['../structFluidSolver_1_1SusceptibilityTerm.html#a060873b5e3147b11d05ab0a4e3a56aa2',1,'FluidSolver::SusceptibilityTerm::w()'],['../classTetrahedralDOS.html#a4b405468932434cbd7aca0d3cb89806b',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand)'],['../classTetrahedralDOS.html#a1336fab9ff99ae61b641950ec1920ed0',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand) const ']]],
   ['w2m',['w2m',['../structMolecule_1_1Site.html#a9663f7b578052a9ce4710d6280efc829',1,'Molecule::Site']]],
   ['wannier',['Wannier',['../classWannier.html',1,'']]],
   ['wannier_2eh',['Wannier.h',['../Wannier_8h.html',1,'']]],

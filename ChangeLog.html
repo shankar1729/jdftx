@@ -98,7 +98,13 @@ $(document).ready(function(){initNavTree('ChangeLog.html','');});
 <div class="title">Change log </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>1.4.2 - 2018-06-19 (<a href="http://jdftx.org/1.4.2">Site archive</a>)</h2>
+<div class="textblock"><h2>Development version on git</h2>
+<ul>
+<li>Improved translational invariance of wannier localization measure within supercell, particularly important for cases with few k-points.</li>
+<li>Added environment variable input JDFTX_CPUS_PER_NODE to limit total number of cores used per node</li>
+<li>Fluid susceptibility output for BerkeleyGW</li>
+</ul>
+<h2>1.4.2 - 2018-06-19 (<a href="http://jdftx.org/1.4.2">Site archive</a>)</h2>
 <ul>
 <li>BerkeleyGW interface enhancements:<ul>
 <li>ScaLAPACK diagonalizer for large-bands BerkeleyGW output, controlled by new command <a class="el" href="CommandBgwParams.html">bgw-params</a></li>

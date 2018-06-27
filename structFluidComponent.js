@@ -67,6 +67,7 @@ var structFluidComponent =
     [ "epsLJ", "structFluidComponent.html#a161e7f49bb4ba39e743a0a2c97cf63a3", null ],
     [ "fex", "structFluidComponent.html#a50cef2bffb56c357df05950f6fdf3478", null ],
     [ "functional", "structFluidComponent.html#ad43759db6c3521472e7ff19204bad0c9", null ],
+    [ "gammaEl", "structFluidComponent.html#a1b2d6ce8828ad6be400162dd2ee495d5", null ],
     [ "idealGas", "structFluidComponent.html#ab08ea2b391e9a816b3a21a805f6b2437", null ],
     [ "molecule", "structFluidComponent.html#ad3eb112ba6c0913e7c18e8ad55cff9fa", null ],
     [ "name", "structFluidComponent.html#a7ce7f48a0d32077b89485c44311f07c8", null ],
@@ -74,6 +75,7 @@ var structFluidComponent =
     [ "Nnorm", "structFluidComponent.html#ac41af2743138f0af48360a8d2e2e2481", null ],
     [ "offsetDensity", "structFluidComponent.html#afff9b824b81cce1655fd87938aa71512", null ],
     [ "offsetIndep", "structFluidComponent.html#aa67217f1257e0d226b1aad1e77f41d5b", null ],
+    [ "omegaEl", "structFluidComponent.html#ad952d112eb6d3d0cf3e18bc35455e4bc", null ],
     [ "pMol", "structFluidComponent.html#a853fef8a3a8634b62601b4229aac7a7b", null ],
     [ "Pvap", "structFluidComponent.html#a094c90b7c4bde7d4cb62c2ea02a820e3", null ],
     [ "quad", "structFluidComponent.html#ae27741331607ae87d008c07d5a6999ef", null ],
@@ -85,6 +87,7 @@ var structFluidComponent =
     [ "Rvdw", "structFluidComponent.html#aa0438935adaff2927aba6a0e7a130a74", null ],
     [ "s2quadType", "structFluidComponent.html#ad8973ff322f6c14fe84be613a17eec09", null ],
     [ "sigmaBulk", "structFluidComponent.html#a5818300669e2fe32fd3d623bc962450f", null ],
+    [ "tauNuc", "structFluidComponent.html#ac052c0d9b3e25a7611f7404f87bc75b2", null ],
     [ "trans", "structFluidComponent.html#a2f904784243859158192d1d581e3fa98", null ],
     [ "translationMode", "structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b", null ],
     [ "type", "structFluidComponent.html#a0da1e0992c3bec43111cb7785d85a07b", null ]

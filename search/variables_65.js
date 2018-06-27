@@ -3,6 +3,7 @@ var searchData=
   ['e',['e',['../structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19',1,'InitParams::e()'],['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()'],['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()']]],
   ['eband',['Eband',['../classEnergies.html#a9c98ca35cbf5d3a9cb87c5f266051dd6',1,'Energies']]],
   ['ecut',['Ecut',['../structElectronScattering.html#a4225dceed8ed61293fe254c8585585fa',1,'ElectronScattering::Ecut()'],['../structPolarizability.html#ac95cb89f7268fe6595cc4f75b143d758',1,'Polarizability::Ecut()']]],
+  ['ecutchifluid',['EcutChiFluid',['../structBGWparams.html#aeb8db3ce3e4140a8df3cf633919980ff',1,'BGWparams']]],
   ['ecutold',['EcutOld',['../structElecInfo_1_1ColumnBundleReadConversion.html#aaa2e8d1ecd7c327e7bdab19d6207ba01',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['ecutrho',['EcutRho',['../classControl.html#a187fdaa5c7f1e0048faf336df7db786e',1,'Control']]],
   ['ecuttransverse',['EcutTransverse',['../structElectronScattering.html#a6f332d6a588684f2985833addfbf713f',1,'ElectronScattering']]],

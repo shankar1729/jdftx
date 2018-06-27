@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: bgw-params</title>
+<title>JDFTx: FluidSolver::SusceptibilityTerm Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('CommandBgwParams.html','');});
+$(document).ready(function(){initNavTree('structFluidSolver_1_1SusceptibilityTerm.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -94,37 +94,45 @@ $(document).ready(function(){initNavTree('CommandBgwParams.html','');});
 </div>
 
 <div class="header">
+  <div class="summary">
+<a href="#pub-attribs">Public Attributes</a> &#124;
+<a href="structFluidSolver_1_1SusceptibilityTerm-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">bgw-params </div>  </div>
+<div class="title">FluidSolver::SusceptibilityTerm Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>Syntax: </h2>
-<pre class="fragment">bgw-params &lt;key1&gt; &lt;value1&gt; &lt;key2&gt; &lt;value2&gt; ...
-</pre><h2>Description: </h2>
-<p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT. ">Control</a> BGW output. Possible keys and value types are:</p>
-<ul>
-<li>blockSize : Block size for ScaLAPACK diagonalization (default: 32)</li>
-<li>clusterSize : Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)</li>
-<li>EcutChiFluid : KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)</li>
-<li>freqBroaden_eV: Broadening (imaginary part) of real frequency grid in eV (default: 0.1)</li>
-<li>freqNimag : Number of imaginary frequencies (default: 25)</li>
-<li>freqPlasma : Plasma frequency in Hartrees used in GW imaginary frequency grid (default: 1.), set to zero for RPA frequency grid</li>
-<li>freqReMax_eV : Maximum real frequency in eV (default: 30.)</li>
-<li>freqReStep_eV : Real frequency grid spacing in eV (default: 1.)</li>
-<li>nBandsDense : If non-zero, use a dense ScaLAPACK solver to calculate more bands</li>
-<li>q0 : Zero wavevector replacement to be used for polarizability output (default: (0,0,0))</li>
+
+<p><code>#include &lt;FluidSolver.h&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
+Public Attributes</h2></td></tr>
+<tr class="memitem:ac176f0305761fca9c4ff9080b38850b2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac176f0305761fca9c4ff9080b38850b2"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html#ac176f0305761fca9c4ff9080b38850b2">iSite</a></td></tr>
+<tr class="memdesc:ac176f0305761fca9c4ff9080b38850b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">index to site / shape function (into sTilde) <br/></td></tr>
+<tr class="separator:ac176f0305761fca9c4ff9080b38850b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa87e47835de37da9c111d4fe20983b13"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa87e47835de37da9c111d4fe20983b13"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html#aa87e47835de37da9c111d4fe20983b13">l</a></td></tr>
+<tr class="memdesc:aa87e47835de37da9c111d4fe20983b13"><td class="mdescLeft">&#160;</td><td class="mdescRight">angular momentum of response <br/></td></tr>
+<tr class="separator:aa87e47835de37da9c111d4fe20983b13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a060873b5e3147b11d05ab0a4e3a56aa2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a060873b5e3147b11d05ab0a4e3a56aa2"></a>
+const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html#a060873b5e3147b11d05ab0a4e3a56aa2">w</a></td></tr>
+<tr class="memdesc:a060873b5e3147b11d05ab0a4e3a56aa2"><td class="mdescLeft">&#160;</td><td class="mdescRight">weight function, none if null <br/></td></tr>
+<tr class="separator:a060873b5e3147b11d05ab0a4e3a56aa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45b340f3d67cfae92a91bb382c76313a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a45b340f3d67cfae92a91bb382c76313a"></a>
+std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html#a45b340f3d67cfae92a91bb382c76313a">prefactor</a></td></tr>
+<tr class="memdesc:a45b340f3d67cfae92a91bb382c76313a"><td class="mdescLeft">&#160;</td><td class="mdescRight">frequency-dependent prefactor <br/></td></tr>
+<tr class="separator:a45b340f3d67cfae92a91bb382c76313a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Structure to represent frequency-dependent fluid susceptibility response [of the form prefactor[iOmega]*s[iSite] * 4*pi/(2*l+1) * Sum_m(Ylm(Ghat)*Ylm(Ghat')) * w(G)*w(G')] </p>
+</div><hr/>The documentation for this struct was generated from the following file:<ul>
+<li>fluid/<a class="el" href="FluidSolver_8h.html">FluidSolver.h</a></li>
 </ul>
-<p>Any number of these key-value pairs may be specified in any order.</p>
-<h2>Properties: </h2>
-<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
-<p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
-<p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
-<p><b>Default:</b> &#160;&#160;&#160; (None)</p>
-<p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
-</div></div><!-- contents -->
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+    <li class="navelem"><a class="el" href="structFluidSolver.html">FluidSolver</a></li><li class="navelem"><a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a></li>
 </div>
 </body>
 </html>

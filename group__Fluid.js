@@ -72,6 +72,7 @@ var group__Fluid =
       [ "epsLJ", "structFluidComponent.html#a161e7f49bb4ba39e743a0a2c97cf63a3", null ],
       [ "fex", "structFluidComponent.html#a50cef2bffb56c357df05950f6fdf3478", null ],
       [ "functional", "structFluidComponent.html#ad43759db6c3521472e7ff19204bad0c9", null ],
+      [ "gammaEl", "structFluidComponent.html#a1b2d6ce8828ad6be400162dd2ee495d5", null ],
       [ "idealGas", "structFluidComponent.html#ab08ea2b391e9a816b3a21a805f6b2437", null ],
       [ "molecule", "structFluidComponent.html#ad3eb112ba6c0913e7c18e8ad55cff9fa", null ],
       [ "name", "structFluidComponent.html#a7ce7f48a0d32077b89485c44311f07c8", null ],
@@ -79,6 +80,7 @@ var group__Fluid =
       [ "Nnorm", "structFluidComponent.html#ac41af2743138f0af48360a8d2e2e2481", null ],
       [ "offsetDensity", "structFluidComponent.html#afff9b824b81cce1655fd87938aa71512", null ],
       [ "offsetIndep", "structFluidComponent.html#aa67217f1257e0d226b1aad1e77f41d5b", null ],
+      [ "omegaEl", "structFluidComponent.html#ad952d112eb6d3d0cf3e18bc35455e4bc", null ],
       [ "pMol", "structFluidComponent.html#a853fef8a3a8634b62601b4229aac7a7b", null ],
       [ "Pvap", "structFluidComponent.html#a094c90b7c4bde7d4cb62c2ea02a820e3", null ],
       [ "quad", "structFluidComponent.html#ae27741331607ae87d008c07d5a6999ef", null ],
@@ -90,11 +92,18 @@ var group__Fluid =
       [ "Rvdw", "structFluidComponent.html#aa0438935adaff2927aba6a0e7a130a74", null ],
       [ "s2quadType", "structFluidComponent.html#ad8973ff322f6c14fe84be613a17eec09", null ],
       [ "sigmaBulk", "structFluidComponent.html#a5818300669e2fe32fd3d623bc962450f", null ],
+      [ "tauNuc", "structFluidComponent.html#ac052c0d9b3e25a7611f7404f87bc75b2", null ],
       [ "trans", "structFluidComponent.html#a2f904784243859158192d1d581e3fa98", null ],
       [ "translationMode", "structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b", null ],
       [ "type", "structFluidComponent.html#a0da1e0992c3bec43111cb7785d85a07b", null ]
     ] ],
     [ "FluidSolver", "structFluidSolver.html", [
+      [ "SusceptibilityTerm", "structFluidSolver_1_1SusceptibilityTerm.html", [
+        [ "iSite", "structFluidSolver_1_1SusceptibilityTerm.html#ac176f0305761fca9c4ff9080b38850b2", null ],
+        [ "l", "structFluidSolver_1_1SusceptibilityTerm.html#aa87e47835de37da9c111d4fe20983b13", null ],
+        [ "prefactor", "structFluidSolver_1_1SusceptibilityTerm.html#a45b340f3d67cfae92a91bb382c76313a", null ],
+        [ "w", "structFluidSolver_1_1SusceptibilityTerm.html#a060873b5e3147b11d05ab0a4e3a56aa2", null ]
+      ] ],
       [ "FluidSolver", "structFluidSolver.html#accfffddd849751ac7f424f0c43dbbb7b", null ],
       [ "~FluidSolver", "structFluidSolver.html#a886857ffdd59a3ffd200a765106ab7a2", null ],
       [ "bulkPotential", "structFluidSolver.html#afcb1b31711e3924edbfaf10028e31a3c", null ],
@@ -102,6 +111,8 @@ var group__Fluid =
       [ "dumpDensities", "structFluidSolver.html#a6c55f7677ca951591f167b49f688dda8", null ],
       [ "get_Adiel_and_grad", "structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52", null ],
       [ "get_Adiel_and_grad_internal", "structFluidSolver.html#ab51960b652da3556179498326ca4b6d7", null ],
+      [ "getSusceptibility", "structFluidSolver.html#af5e020dbbd04349863f3e8f6e1d6b604", null ],
+      [ "getSusceptibility_internal", "structFluidSolver.html#a888f17adfbb13a48c51b1d8c70a4cf46", null ],
       [ "ionWidthMuCorrection", "structFluidSolver.html#aaecd86eb59b538426b887e4348491ffc", null ],
       [ "loadState", "structFluidSolver.html#ac6a70c8454fe32dee8a11e96ac380a90", null ],
       [ "minimizeFluid", "structFluidSolver.html#a6b9b58a179e6431b2670cfb3264548c7", null ],

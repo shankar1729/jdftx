@@ -20,6 +20,11 @@ var searchData=
   ['forcesoutputcoords',['forcesOutputCoords',['../classIonInfo.html#ad56b2c7a36dc7eb1add127d9441285f3',1,'IonInfo']]],
   ['format',['format',['../classCommand.html#a3cc87597cf639cd5207483bca6317663',1,'Command']]],
   ['fplog',['fpLog',['../structMinimizeParams.html#aeb1a34b795520bd9ce20a4e2d4d72f03',1,'MinimizeParams::fpLog()'],['../structPulayParams.html#a85b83339734e55dc1209d0ed5a07a228',1,'PulayParams::fpLog()']]],
+  ['freqbroaden_5fev',['freqBroaden_eV',['../structBGWparams.html#ab8a1894c2025db6e5ec1feb82690dbd9',1,'BGWparams']]],
+  ['freqnimag',['freqNimag',['../structBGWparams.html#a5004f378cd1ab8288ee93c9c3888f831',1,'BGWparams']]],
+  ['freqplasma',['freqPlasma',['../structBGWparams.html#ad14eaaa49709e10f9ff2b35513bb745e',1,'BGWparams']]],
+  ['freqremax_5fev',['freqReMax_eV',['../structBGWparams.html#adb9fef55d0b2f222132176e934562c4b',1,'BGWparams']]],
+  ['freqrestep_5fev',['freqReStep_eV',['../structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426',1,'BGWparams']]],
   ['fromwildcard',['fromWildcard',['../classSpeciesInfo.html#adc14035ea627085a4aa3bbd51e803b68',1,'SpeciesInfo']]],
   ['frozenufilename',['frozenUfilename',['../classWannier.html#af909dcf2f55a74c56480003c58895dc5',1,'Wannier']]],
   ['fs',['fs',['../group__Utilities.html#gae9b6ba26b138aafb089d93703ea2758c',1,'Units.h']]]

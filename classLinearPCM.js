@@ -4,6 +4,7 @@ var classLinearPCM =
     [ "~LinearPCM", "classLinearPCM.html#a4c1d99494821fc581b109ca057b37f72", null ],
     [ "dumpDensities", "classLinearPCM.html#ad974c84cdf4d4abcd6cf4136716b07ef", null ],
     [ "get_Adiel_and_grad_internal", "classLinearPCM.html#a071abb36a08267ef15a53556fc9fce26", null ],
+    [ "getSusceptibility_internal", "classLinearPCM.html#a06cd4d4cd905100dd59e94c32f2b6590", null ],
     [ "hessian", "classLinearPCM.html#ac43afd92e1178e2364fddc13d25da184", null ],
     [ "loadState", "classLinearPCM.html#a97b61c7f2495745d65d591c1f71c6c9c", null ],
     [ "minimizeFluid", "classLinearPCM.html#a1b25cc1d3c45e582dc0ada5829ddabd6", null ],

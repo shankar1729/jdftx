@@ -11,6 +11,7 @@ var searchData=
   ['taskdivision',['TaskDivision',['../classTaskDivision.html',1,'']]],
   ['tau',['tau',['../classElecVars.html#a4b6036a8ff97b3b531ed6241f9260269',1,'ElecVars::tau()'],['../structRadialSchrodinger_1_1Outputs.html#ac585bb27a69adb0f471497d9eded8d3f',1,'RadialSchrodinger::Outputs::tau()'],['../structSCFvariable.html#a0b4b0e7678cebec9b056ef3f2a5cbcf6',1,'SCFvariable::tau()']]],
   ['taucore',['tauCore',['../classIonInfo.html#ab8c9e61990a9f1d31897823a43cc17ad',1,'IonInfo']]],
+  ['taunuc',['tauNuc',['../structFluidComponent.html#ac052c0d9b3e25a7611f7404f87bc75b2',1,'FluidComponent']]],
   ['taxpy',['taxpy',['../classTranslationOperator.html#a959e9b996ec3be6280c440dc694981ff',1,'TranslationOperator::taxpy()'],['../classTranslationOperatorSpline.html#a0dc744f01cd4dea8548f4db176866528',1,'TranslationOperatorSpline::taxpy()'],['../classTranslationOperatorFourier.html#a3ba75fe8a19fee78d092aef3be901d6c',1,'TranslationOperatorFourier::taxpy()']]],
   ['tblip',['Tblip',['../group__Utilities.html#gac8baee974574e643a0e8b06f8b8fd1e8',1,'Blip.h']]],
   ['tensor3',['tensor3',['../classtensor3.html',1,'']]],
@@ -53,7 +54,7 @@ var searchData=
   ['transformvdagc',['transformVdagC',['../classColumnBundleTransform.html#a6e8ea54c27d11dd8600967fe0402f289',1,'ColumnBundleTransform']]],
   ['translate',['translate',['../group__DataStructures.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40',1,'translate(ColumnBundle &amp;&amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__DataStructures.html#ga1281b30e04ec70a4c9cd0fff1cc145be',1,'translate(const ColumnBundle &amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h']]],
   ['translatecolumns',['translateColumns',['../group__DataStructures.html#gad45659650b6bb083aabae792b10d2507',1,'ColumnBundle.h']]],
-  ['translationmode',['TranslationMode',['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent::TranslationMode()'],['../structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b',1,'FluidComponent::translationMode()']]],
+  ['translationmode',['translationMode',['../structFluidComponent.html#a28d9b6ae0cd8466d1deadb18e4cb012b',1,'FluidComponent::translationMode()'],['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent::TranslationMode()']]],
   ['translationoperator',['TranslationOperator',['../classTranslationOperator.html',1,'']]],
   ['translationoperator_2eh',['TranslationOperator.h',['../TranslationOperator_8h.html',1,'']]],
   ['translationoperatorfourier',['TranslationOperatorFourier',['../classTranslationOperatorFourier.html',1,'']]],
@@ -68,5 +69,5 @@ var searchData=
   ['ts',['TS',['../classEnergies.html#a93cbc9ce6ff54320c2b3e389245d39b3',1,'Energies']]],
   ['tutorials',['Tutorials',['../Tutorials.html',1,'Using']]],
   ['two_2ddimensional_20materials',['Two-dimensional materials',['../TwoDmaterials.html',1,'SurfaceTutorials']]],
-  ['type',['Type',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()'],['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()']]]
+  ['type',['type',['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()'],['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()']]]
 ];

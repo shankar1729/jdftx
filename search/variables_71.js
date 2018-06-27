@@ -1,6 +1,7 @@
 var searchData=
 [
   ['q',['q',['../structChargedDefect_1_1Center.html#aef917dd1afaef9b9aea9504580b1804a',1,'ChargedDefect::Center']]],
+  ['q0',['q0',['../structBGWparams.html#a1b10175bb6aa1918d3aeaeb5f007190b',1,'BGWparams']]],
   ['qcount',['qCount',['../classWannierMinimizer.html#aa3a3886e0d9ff527f620f86da9792076',1,'WannierMinimizer']]],
   ['qkappa',['qKappa',['../structSCFparams.html#ab869804bb418d170f603a8d83f52ab72',1,'SCFparams']]],
   ['qkerker',['qKerker',['../structSCFparams.html#a03211666973ab7f5f179b0e69dda1c6f',1,'SCFparams']]],

@@ -1,5 +1,6 @@
 var structFluidSolver =
 [
+    [ "SusceptibilityTerm", "structFluidSolver_1_1SusceptibilityTerm.html", "structFluidSolver_1_1SusceptibilityTerm" ],
     [ "FluidSolver", "structFluidSolver.html#accfffddd849751ac7f424f0c43dbbb7b", null ],
     [ "~FluidSolver", "structFluidSolver.html#a886857ffdd59a3ffd200a765106ab7a2", null ],
     [ "bulkPotential", "structFluidSolver.html#afcb1b31711e3924edbfaf10028e31a3c", null ],
@@ -7,6 +8,8 @@ var structFluidSolver =
     [ "dumpDensities", "structFluidSolver.html#a6c55f7677ca951591f167b49f688dda8", null ],
     [ "get_Adiel_and_grad", "structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52", null ],
     [ "get_Adiel_and_grad_internal", "structFluidSolver.html#ab51960b652da3556179498326ca4b6d7", null ],
+    [ "getSusceptibility", "structFluidSolver.html#af5e020dbbd04349863f3e8f6e1d6b604", null ],
+    [ "getSusceptibility_internal", "structFluidSolver.html#a888f17adfbb13a48c51b1d8c70a4cf46", null ],
     [ "ionWidthMuCorrection", "structFluidSolver.html#aaecd86eb59b538426b887e4348491ffc", null ],
     [ "loadState", "structFluidSolver.html#ac6a70c8454fe32dee8a11e96ac380a90", null ],
     [ "minimizeFluid", "structFluidSolver.html#a6b9b58a179e6431b2670cfb3264548c7", null ],

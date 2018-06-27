@@ -13,6 +13,7 @@ var group__Solvation =
       [ "~LinearPCM", "classLinearPCM.html#a4c1d99494821fc581b109ca057b37f72", null ],
       [ "dumpDensities", "classLinearPCM.html#ad974c84cdf4d4abcd6cf4136716b07ef", null ],
       [ "get_Adiel_and_grad_internal", "classLinearPCM.html#a071abb36a08267ef15a53556fc9fce26", null ],
+      [ "getSusceptibility_internal", "classLinearPCM.html#a06cd4d4cd905100dd59e94c32f2b6590", null ],
       [ "hessian", "classLinearPCM.html#ac43afd92e1178e2364fddc13d25da184", null ],
       [ "loadState", "classLinearPCM.html#a97b61c7f2495745d65d591c1f71c6c9c", null ],
       [ "minimizeFluid", "classLinearPCM.html#a1b25cc1d3c45e582dc0ada5829ddabd6", null ],
@@ -84,5 +85,6 @@ var group__Solvation =
       [ "sync", "classSaLSA.html#aef6ee2f6bddf52fbc6d4b2f75774f4c3", null ]
     ] ],
     [ "FLUID_DUMP", "group__Solvation.html#ga34c6c6d2f66ed655e51aa4e29d508216", null ],
-    [ "ScalarFieldMuEps", "group__Solvation.html#ga77b21812623ce58aebb6a0e1ca78bdc3", null ]
+    [ "ScalarFieldMuEps", "group__Solvation.html#ga77b21812623ce58aebb6a0e1ca78bdc3", null ],
+    [ "getChiPrefactor", "group__Solvation.html#gabad041aa6275044eaf708d9753f52c2d", null ]
 ];

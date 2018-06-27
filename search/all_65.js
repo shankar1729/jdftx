@@ -80,6 +80,7 @@ var searchData=
   ['eblas_5fzscal_5fgpu',['eblas_zscal_gpu',['../group__Operators.html#ga8f8e8322bf8d0729f1499680e0dfe7cb',1,'BlasExtra.h']]],
   ['ec',['EC',['../structFluidComponent.html#a21fb6a04c997caabd16d1f819a998eb5a2d759746ae5cd2f8f76e07b526c55fc0',1,'FluidComponent']]],
   ['ecut',['Ecut',['../structElectronScattering.html#a4225dceed8ed61293fe254c8585585fa',1,'ElectronScattering::Ecut()'],['../structPolarizability.html#ac95cb89f7268fe6595cc4f75b143d758',1,'Polarizability::Ecut()']]],
+  ['ecutchifluid',['EcutChiFluid',['../structBGWparams.html#aeb8db3ce3e4140a8df3cf633919980ff',1,'BGWparams']]],
   ['ecutold',['EcutOld',['../structElecInfo_1_1ColumnBundleReadConversion.html#aaa2e8d1ecd7c327e7bdab19d6207ba01',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['ecutrho',['EcutRho',['../classControl.html#a187fdaa5c7f1e0048faf336df7db786e',1,'Control']]],
   ['ecuttransverse',['EcutTransverse',['../structElectronScattering.html#a6f332d6a588684f2985833addfbf713f',1,'ElectronScattering']]],
