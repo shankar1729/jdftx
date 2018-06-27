@@ -581,14 +581,20 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		//Compute slab-weight matrix elements of Bloch states:
 		std::vector<matrix> wBloch(e.eInfo.nStates);
 		ScalarFieldArray JdagOJw(1, JdagOJ(w));
+		e.iInfo.augmentDensityGridGrad(JdagOJw);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			if(e.eInfo.qnums[q].index()==iSpin)
 			{	//Direct contributions from bands:
 				const ColumnBundle& Cq = e.eVars.C[q];
 				wBloch[q] = Cq ^ Idag_DiagV_I(Cq, JdagOJw);
-
 				//Ultrasoft augmentation:
-				//TODO
+				const std::vector<matrix>& VdagCq = e.eVars.VdagC[q];
+				std::vector<matrix> wVdagCq(e.iInfo.species.size());
+				const QuantumNumber& qnum = e.eInfo.qnums[q];
+				e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);
+				for(size_t sp=0; sp<VdagCq.size(); sp++)
+					if(wVdagCq[sp])
+						wBloch[q] += dagger(VdagCq[sp]) * wVdagCq[sp];
 			}
 		//Convert to Wannier basis:
 		matrix wWannierTilde = zeroes(nCenters*nCenters, nqMine);
