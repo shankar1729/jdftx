@@ -122,6 +122,29 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	return Adiel;
 }
 
+void LinearPCM::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+{	susceptibility.clear();
+	sArr = shape;
+	//Dielectric part:
+	const FluidComponent& solvent = *(fsp.solvents[0]);
+	SusceptibilityTerm st;
+	st.iSite = 0; //first shape function
+	st.l = 1; //dipolar
+	st.w = 0; //local
+	st.prefactor = getChiPrefactor(omega, (epsBulk-epsInf)/(4*M_PI), (epsInf-1.)/(4*M_PI),
+		solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+	susceptibility.push_back(st);
+	//Screening response:
+	if(k2factor)
+	{	st.iSite = int(shape.size())-1; //last shape function
+		st.l = 0; //monopolar
+		st.w = 0; //local
+		st.prefactor = getChiPrefactor(omega, k2factor/(4*M_PI), 0.,
+			solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+		susceptibility.push_back(st);
+	}
+}
+
 void LinearPCM::loadState(const char* filename)
 {	ScalarField Istate(ScalarFieldData::alloc(gInfo));
 	loadRawBinary(Istate, filename); //saved data is in real space

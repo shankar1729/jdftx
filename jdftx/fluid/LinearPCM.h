@@ -45,6 +45,7 @@ public:
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
 	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces) const;
+	void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const;
 private:
 	RadialFunctionG Kkernel; ScalarField epsInv; // for preconditioner
 	void updatePreconditioner(const ScalarField& epsilon, const ScalarField& kappaSq);
