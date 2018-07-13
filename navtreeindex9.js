@@ -107,6 +107,7 @@ var NAVTREEINDEX9 =
 "classWannier.html#a1268295ebe7dd976e77f655b745554f7":[2,2,1,4,24,11],
 "classWannier.html#a1d9d0462c529b315c38605fcd9cba4fd":[2,2,1,4,24,5],
 "classWannier.html#a2bec023f3540cb91e58bc2b4475439b5":[2,2,1,4,24,6],
+"classWannier.html#a38e85ce9ab458acd25ed06edf0230a44":[2,2,1,4,24,41],
 "classWannier.html#a415e7ca729d5ce43740f355256f74fe0":[2,2,1,4,24,16],
 "classWannier.html#a4475072d80cd66382e1cd3a919c0cbfa":[2,2,1,4,24,21],
 "classWannier.html#a44df300a5c7e4bdae38a7dec785bc310":[2,2,1,4,24,32],
@@ -114,6 +115,7 @@ var NAVTREEINDEX9 =
 "classWannier.html#a46308a6ccaefdceae0b39c4f259797a2":[2,2,1,4,24,36],
 "classWannier.html#a47af864b9e958b228b1dcf744affbb05":[2,2,1,4,24,24],
 "classWannier.html#a4cff06558c57af8d347613b4b7138141":[2,2,1,4,24,20],
+"classWannier.html#a6232136c34a7f6b2684b94579ee89b5a":[2,2,1,4,24,39],
 "classWannier.html#a689ef8ce9c11ecca6e5e3f5812efcd60":[2,2,1,4,24,2],
 "classWannier.html#a689ef8ce9c11ecca6e5e3f5812efcd60a25bee84e8cf0468137ffb8dfe4263179":[2,2,1,4,24,2,1],
 "classWannier.html#a689ef8ce9c11ecca6e5e3f5812efcd60ae25ca5a54fac4a8279a445591cb5ad00":[2,2,1,4,24,2,0],
@@ -135,6 +137,7 @@ var NAVTREEINDEX9 =
 "classWannier.html#aca2b5e0e9eb302ad4cd31823ecfa218f":[2,2,1,4,24,28],
 "classWannier.html#ace70414800c2db3e71a60a40e13ecce2":[2,2,1,4,24,22],
 "classWannier.html#acef9684e6397caa105741d6a19a50890":[2,2,1,4,24,26],
+"classWannier.html#ad51a869b88b3d8999cc5a607f1971e6a":[2,2,1,4,24,40],
 "classWannier.html#ad61db160589cea8bbce895f9845fcb90":[2,2,1,4,24,30],
 "classWannier.html#adc223a8c6f90dae91c49fbfe9251465b":[2,2,1,4,24,23],
 "classWannier.html#ae0085003e941128e2fd9222f621f390a":[2,2,1,4,24,3],
@@ -246,8 +249,5 @@ var NAVTREEINDEX9 =
 "classdiagMatrix.html#a6112316c801f9c12edee2742d1f6377f":[2,2,0,0,16,7],
 "classdiagMatrix.html#a67e5dcecbfeba9288198dc7bf74a3e0c":[2,2,0,0,16,3],
 "classdiagMatrix.html#a93b4da5e332eee0c61a90d39c5017c78":[2,2,0,0,16,8],
-"classdiagMatrix.html#ad37c80d5a4df8c9a2589fff4ac49439a":[2,2,0,0,16,12],
-"classdiagMatrix.html#afe012636e2e09c98188b9f64c561a8c3":[2,2,0,0,16,5],
-"classmatrix.html":[2,2,0,0,17],
-"classmatrix.html#a00d18c581323a1f4f155f41e0a6a57be":[2,2,0,0,17,25]
+"classdiagMatrix.html#ad37c80d5a4df8c9a2589fff4ac49439a":[2,2,0,0,16,12]
 };

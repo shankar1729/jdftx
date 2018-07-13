@@ -14,7 +14,7 @@ var searchData=
   ['vdagcother',['VdagCother',['../classWannierMinimizer.html#ab3cce3deb6c69af37f1e1c663554baed',1,'WannierMinimizer']]],
   ['vdwcoupling',['VDWCoupling',['../classVDWCoupling.html',1,'']]],
   ['vdwenable',['vdWenable',['../classIonInfo.html#a2d66570e234eb46b297246d4f079eafb',1,'IonInfo']]],
-  ['vdwscale',['vdWscale',['../classIonInfo.html#aec5ab9fe8aa095250aaf78fe83e84c24',1,'IonInfo::vdWscale()'],['../structFluidSolverParams.html#a614f8626026a0bc7ff20f10d53fa3148',1,'FluidSolverParams::vdwScale()']]],
+  ['vdwscale',['vdwScale',['../structFluidSolverParams.html#a614f8626026a0bc7ff20f10d53fa3148',1,'FluidSolverParams::vdwScale()'],['../classIonInfo.html#aec5ab9fe8aa095250aaf78fe83e84c24',1,'IonInfo::vdWscale()']]],
   ['vector3',['vector3',['../classvector3.html',1,'vector3&lt; scalar &gt;'],['../classvector3.html#af1f23976faeb2e07c8f2484cc10d76f9',1,'vector3::vector3(scalar a=0, scalar b=0, scalar c=0)'],['../classvector3.html#a5fb76a26a0994db34405f40858f23917',1,'vector3::vector3(std::vector&lt; scalar &gt; a)'],['../classvector3.html#a3458c7a5fffbc654e0100fb09f6839e6',1,'vector3::vector3(const vector3&lt; scalar2 &gt; &amp;a)']]],
   ['vector3_2eh',['vector3.h',['../vector3_8h.html',1,'']]],
   ['vector3_3c_20bool_20_3e',['vector3&lt; bool &gt;',['../classvector3.html',1,'']]],

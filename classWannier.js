@@ -48,5 +48,8 @@ var classWannier =
     [ "saveWfnsRealSpace", "classWannier.html#a9227b89e50bb5853456aab646572e8b5", null ],
     [ "spinMode", "classWannier.html#a46308a6ccaefdceae0b39c4f259797a2", null ],
     [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ],
-    [ "wrapWS", "classWannier.html#afa373e45069fdb9b0964aa1f5b0f5869", null ]
+    [ "wrapWS", "classWannier.html#afa373e45069fdb9b0964aa1f5b0f5869", null ],
+    [ "z0", "classWannier.html#a6232136c34a7f6b2684b94579ee89b5a", null ],
+    [ "zH", "classWannier.html#ad51a869b88b3d8999cc5a607f1971e6a", null ],
+    [ "zSigma", "classWannier.html#a38e85ce9ab458acd25ed06edf0230a44", null ]
 ];

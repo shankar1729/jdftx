@@ -1,7 +1,7 @@
 var searchData=
 [
   ['rhoexternal',['rhoExternal',['../CommandRhoExternal.html',1,'CommandIndex']]],
-  ['r',['r',['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()'],['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()']]],
+  ['r',['R',['../structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f',1,'CoulombKernel::R()'],['../classGridInfo.html#a01246abea9cb950074be7a679fe34595',1,'GridInfo::R()'],['../structRadialFunctionR.html#a8dd499510b07ea32b9606e8c0b2e0ed4',1,'RadialFunctionR::r()'],['../structWannier_1_1AtomicOrbital.html#a2558e14ab8c875059347970d59f41fab',1,'Wannier::AtomicOrbital::r()']]],
   ['radialfunction',['radialFunction',['../group__Operators.html#gab1abe1e7e20e216cc53c873e4859351d',1,'Operators.h']]],
   ['radialfunction_2eh',['RadialFunction.h',['../RadialFunction_8h.html',1,'']]],
   ['radialfunctiong',['RadialFunctionG',['../structRadialFunctionG.html',1,'RadialFunctionG'],['../group__Operators.html#ga0ad6e4116d1e13ad56d8db567923fe53',1,'radialFunctionG(const RadialFunctionG &amp;f, RealKernel &amp;Kernel):&#160;Operators.h'],['../group__Operators.html#ga863b1f8ec326f0263724a0c948a034fa',1,'radialFunctionG(const GridInfo &amp;gInfo, const RadialFunctionG &amp;f, vector3&lt;&gt; r0):&#160;Operators.h']]],
