@@ -212,7 +212,7 @@ EnumStringMap<FluidComponent::Name> cationMap
 (	FluidComponent::Sodium, "Na+",
 	FluidComponent::HydratedSodium, "Na(6H2O)+",
 	FluidComponent::Potassium, "K+",
-        FluidComponent::HydratedPotassium, "K(6H2O)+",
+	FluidComponent::HydratedPotassium, "K(6H2O)+",
 	FluidComponent::Hydronium, "H3O+",
 	FluidComponent::HydratedHydronium, "H3O(4H2O)+"
 );
@@ -448,7 +448,6 @@ struct CommandFluidSolvent : public CommandFluidComponent
 					throw string("PCMs require exactly one solvent component - more than one specified.");
 				e.eVars.fluidParams.setPCMparams();
 				break;
-				
 			case FluidClassicalDFT:
 				e.eVars.fluidParams.setCDFTparams();
 				break;
@@ -470,9 +469,6 @@ struct CommandFluidCation : public CommandFluidComponent
 	
 	void process(ParamList& pl, Everything& e)
 	{	CommandFluidComponent::process(pl, e);
-		//Ions not yet supported in this version of ClassicalDFT
-		//if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
-		//	throw string("Ions not yet supported in ClassicalDFT fluid.");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -489,9 +485,6 @@ struct CommandFluidAnion : public CommandFluidComponent
 	
 	void process(ParamList& pl, Everything& e)
 	{	CommandFluidComponent::process(pl, e);
-		//Ions not yet supported in this version of ClassicalDFT
-		//if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
-		//	throw string("Ions not yet supported in ClassicalDFT fluid.");
 	}
 
 	void printStatus(Everything& e, int iRep)
