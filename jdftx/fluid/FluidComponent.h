@@ -63,7 +63,7 @@ struct FluidComponent
 		CustomCation, //!< Custom cation (molecule and other parameters initialized manually)
 		//Anions:
 		Chloride, //!< Cl-
-		Fluoride, //!< Fl-
+		Fluoride, //!< F-
 		Perchlorate, //!< ClO4-
 		Hydroxide, //!< OH-
 		HydratedHydroxide, //!< OH- cluster with 4 H2O molecules

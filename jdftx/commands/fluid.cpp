@@ -210,18 +210,18 @@ EnumStringMap<FluidComponent::Name> solventMap
 );
 EnumStringMap<FluidComponent::Name> cationMap
 (	FluidComponent::Sodium, "Na+",
-	FluidComponent::HydratedSodium, "Na(6H2O)+",
-	FluidComponent::Potassium, "K+",
-	FluidComponent::HydratedPotassium, "K(6H2O)+",
-	FluidComponent::Hydronium, "H3O+",
-	FluidComponent::HydratedHydronium, "H3O(4H2O)+"
+	// FluidComponent::HydratedSodium, "Na(6H2O)+",
+	FluidComponent::Potassium, "K+"
+	// FluidComponent::HydratedPotassium, "K(6H2O)+",
+	// FluidComponent::Hydronium, "H3O+",
+	// FluidComponent::HydratedHydronium, "H3O(4H2O)+"
 );
 EnumStringMap<FluidComponent::Name> anionMap
 (	FluidComponent::Chloride, "Cl-",
 	FluidComponent::Fluoride, "F-",
-	FluidComponent::Perchlorate, "ClO4-",
-	FluidComponent::Hydroxide, "OH-",
-	FluidComponent::HydratedHydroxide, "OH(4H2O)-"
+	FluidComponent::Perchlorate, "ClO4-"
+	// FluidComponent::Hydroxide, "OH-",
+	// FluidComponent::HydratedHydroxide, "OH(4H2O)-"
 );
 EnumStringMap<FluidComponent::Functional> functionalMap
 (	FluidComponent::ScalarEOS, "ScalarEOS",
