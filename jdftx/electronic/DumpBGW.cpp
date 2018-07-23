@@ -60,7 +60,7 @@ public:
 	void writeWfn() const; //!< Write wavefunction file
 	void denseWriteWfn(hid_t gidWfns); //!< Solve wavefunctions using ScaLAPACK and write to hdf5 file
 	void writeVxc() const; //!< Write exchange-correlation matrix elements
-	void writeChiFluid() const; //!< Write fluid polarizability
+	void writeChiFluid(bool write_q0) const; //!< Write fluid polarizability (for q0 or for q != q0 depending on write_q0)
 private:
 	hid_t openHDF5(string fname) const; //!< Open HDF5 file for collective access
 	void writeHeaderMF(hid_t fid) const; //!< Write common HDF5 header specifying the mean-field claculation for BGW outputs
@@ -73,7 +73,9 @@ void Dump::dumpBGW()
 	bgw.writeWfn();
 	bgw.writeVxc();
 	if(e->eVars.fluidSolver and bgwParams->EcutChiFluid)
-		bgw.writeChiFluid();
+	{	bgw.writeChiFluid(true); //write q0
+		bgw.writeChiFluid(false); //write q != q0
+	}
 }
 
 
@@ -304,11 +306,11 @@ inline void initYlmAndWeights(const  vector3<>& q, const std::vector<vector3<int
 }
 
 //Write fluid polarizability
-void BGW::writeChiFluid() const
+void BGW::writeChiFluid(bool write_q0) const
 {	assert(eVars.fluidSolver); //should only be called in solvated cases
 	
 	//Open file and write common header:
-	hid_t fid = openHDF5(e.dump.getFilename("bgw.chiFluid.h5"));
+	hid_t fid = openHDF5(e.dump.getFilename(write_q0 ? "bgw.chi0Fluid.h5" : "bgw.chiFluid.h5"));
 	writeHeaderMF(fid);
 	logPrintf("\n");
 	
@@ -331,22 +333,26 @@ void BGW::writeChiFluid() const
 	
 	//--- q-points group:
 	hid_t gidQpoints = h5createGroup(gidHeader, "qpoints");
-	std::vector<vector3<>> q = k; //same as k-mesh except for slight offset of Gamma
-	{	bool foundGamma = false;
-		for(vector3<>& qCur: q)
+	std::vector<vector3<>> q;
+	if(write_q0)
+		q.assign(1, bgwp.q0); //only q0
+	else
+	{	//same as k-mesh except Gamma-point removed (since separate q0):
+		bool foundGamma = false;
+		for(const vector3<>& qCur: k)
 			if(qCur.length_squared() < symmThresholdSq)
-			{	foundGamma = true;
-				qCur = bgwp.q0; //replace Gamma with slightly offset version
-				break;
-			}
+				foundGamma = true;
+			else
+				q.push_back(qCur);
 		if(not foundGamma)
 			die("Fluid polarizability output for BGW only supported for Gamma-centered mesh.\n");
 	}
-	h5writeScalar(gidQpoints, "nq", nReducedKpts);
-	hsize_t dimsQ[2] = { hsize_t(nReducedKpts), 3 };
+	int nq = q.size();
+	h5writeScalar(gidQpoints, "nq", nq);
+	hsize_t dimsQ[2] = { hsize_t(nq), 3 };
 	h5writeVector(gidQpoints, "qpts", &q[0][0], dimsQ, 2);
 	h5writeVector(gidQpoints, "qgrid", &eInfo.kFoldingCount()[0], 3);
-	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nReducedKpts, 1));
+	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nq, 1));
 	H5Gclose(gidQpoints);
 	
 	//--- freq group:
@@ -380,11 +386,11 @@ void BGW::writeChiFluid() const
 	
 	//--- gspace group:
 	//------ initialize list of G vectors for each q:
-	std::vector<std::vector<vector3<int>>> iGarr(nReducedKpts);
-	std::vector<int> nBasis(nReducedKpts);
+	std::vector<std::vector<vector3<int>>> iGarr(nq);
+	std::vector<int> nBasis(nq);
 	int nBasisMax = 0;
 	logSuspend();
-	for(int iq=0; iq<nReducedKpts; iq++)
+	for(int iq=0; iq<nq; iq++)
 	{	Basis basis_q;
 		basis_q.setup(e.gInfo, e.iInfo, bgwp.EcutChiFluid, q[iq]);
 		nBasis[iq] = basis_q.nbasis;
@@ -394,12 +400,12 @@ void BGW::writeChiFluid() const
 	}
 	logResume();
 	//------ sort by kinetic energy in two ways required by BGW:
-	std::vector<double> KE(nReducedKpts * nBasisMax); //in Ryd
-	std::vector<int> indEpsToRho(nReducedKpts * nBasisMax);
-	std::vector<int> indRhoToEps(nReducedKpts * nBasisMax);
+	std::vector<double> KE(nq * nBasisMax); //in Ryd
+	std::vector<int> indEpsToRho(nq * nBasisMax);
+	std::vector<int> indRhoToEps(nq * nBasisMax);
 	vector3<int> iGstride(e.gInfo.S[1]*e.gInfo.S[2], e.gInfo.S[2], 1);
-	std::vector<vector3<int>> iGall(nReducedKpts * nBasisMax);
-	for(int iq=0; iq<nReducedKpts; iq++)
+	std::vector<vector3<int>> iGall(nq * nBasisMax);
+	for(int iq=0; iq<nq; iq++)
 	{	//Calculate KE with q and sort by it (eps sorting):
 		std::vector<double> KEcur(nBasis[iq]); //KE in Ryd with q
 		std::vector<int> gridInd(nBasis[iq]); //grid index used for tie-breaking
@@ -436,11 +442,11 @@ void BGW::writeChiFluid() const
 	hid_t gidGspace = h5createGroup(gidHeader, "gspace");
 	h5writeVector(gidGspace, "nmtx", nBasis); //matrix dimensions for each q
 	h5writeScalar(gidGspace, "nmtx_max", nBasisMax); //maximum value of above over all q
-	hsize_t dimsInd[2] = { hsize_t(nReducedKpts), hsize_t(nBasisMax) };
+	hsize_t dimsInd[2] = { hsize_t(nq), hsize_t(nBasisMax) };
 	h5writeVector(gidGspace, "ekin", KE.data(), dimsInd, 2);
 	h5writeVector(gidGspace, "gind_eps2rho", indEpsToRho.data(), dimsInd, 2);
 	h5writeVector(gidGspace, "gind_rho2eps", indRhoToEps.data(), dimsInd, 2);
-	hsize_t dimsGeps[3] = { hsize_t(nReducedKpts), hsize_t(nBasisMax), 3 };
+	hsize_t dimsGeps[3] = { hsize_t(nq), hsize_t(nBasisMax), 3 };
 	h5writeVector(gidGspace, "gvec_eps", &iGall[0][0], dimsGeps, 3); //G-vectors in eps order
 	H5Gclose(gidGspace);
 	KE.clear();
