@@ -165,6 +165,26 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 
 void WannierMinimizerFD::initialize(int iSpin)
 {
+	//Read overlap matrices, if available:
+	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfM0", &iSpin);
+	if(wannier.loadRotations && fileSize(fname.c_str())>0)
+	{	logPrintf("Reading initial overlaps from '%s' ... ", fname.c_str()); logFlush();
+		size_t sizePerK = edges[0].size() * nBands*nBands * sizeof(complex);
+		MPIUtil::File fp;
+		mpiWorld->fopenRead(fp, fname.c_str(), kMesh.size()*sizePerK);
+		for(size_t ik=0; ik<kMesh.size(); ik++)
+			if(isMine(ik))
+			{	mpiWorld->fseek(fp, ik*sizePerK, SEEK_SET);
+				for(Edge& edge: edges[ik])
+				{	edge.M0 = zeroes(nBands, nBands);
+					mpiWorld->fread(edge.M0.data(), sizeof(complex), edge.M0.nData(), fp);
+				}
+			}
+		mpiWorld->fclose(fp);
+		logPrintf("done.\n"); logFlush();
+		return; //read overlaps successfully rom file, so no need to recalculate below
+	}
+	
 	//Compute the overlap matrices for current spin:
 	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
@@ -205,13 +225,24 @@ void WannierMinimizerFD::initialize(int iSpin)
 	}
 	Cother.clear();
 	
-	//Broadcast the overlap matrices:
+	//Broadcast and dump the overlap matrices:
+	FILE* fp = 0;
+	if(mpiWorld->isHead())
+	{	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("failed to open file for writing.\n");
+	}
 	for(size_t ik=0; ik<edges.size(); ik++)
 		for(Edge& edge: edges[ik])
 		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nBands, nBands);
 			edge.M0.bcast(whose_q(ik,iSpin));
+			if(mpiWorld->isHead()) edge.M0.write(fp);
 			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
 		}
+	if(mpiWorld->isHead())
+	{	fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
 }
 
 
