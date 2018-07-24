@@ -410,8 +410,9 @@ void BGW::writeChiFluid(bool write_q0) const
 		std::vector<double> KEcur(nBasis[iq]); //KE in Ryd with q
 		std::vector<int> gridInd(nBasis[iq]); //grid index used for tie-breaking
 		std::vector<int> sortIndex(nBasis[iq]); //array that is sorted to retrieve sort index
+		vector3<> qCur = write_q0 ? vector3<>() : q[iq]; //don't account for small q0 offset in sorting
 		for(int g=0; g<nBasis[iq]; g++)
-		{	KEcur[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g] + q[iq]); //no 0.5 since in Ryd
+		{	KEcur[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g] + qCur); //no 0.5 since in Ryd
 			gridInd[g] = dot(iGarr[iq][g], iGstride);
 			sortIndex[g] = g;
 		}
