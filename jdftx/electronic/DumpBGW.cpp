@@ -50,6 +50,7 @@ class BGW
 	std::vector<vector3<>> k; //!< k-points in BGW convention [0,1)
 	std::vector<vector3<int>> kOffset; //!< k offsets to switch from JDFTx to BGW convention
 	std::vector<double> wk; //!< k-point weights
+	std::vector<vector3<int>> iGrho; //!< charge-density G-vector mesh
 	
 	int nBands; //!< eInfo.nBands, or overridden by nBandsDense
 	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
@@ -107,6 +108,19 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 		}
 		wk[q] = eInfo.qnums[q].weight / eInfo.spinWeight; //Set sum(wk) = 1 in all cases
 	}
+	
+	//G-vectors for charge-density mesh:
+	iGrho.resize(gInfo.nr);
+	{	const vector3<int>& S = gInfo.S;
+		size_t iStart = 0, iStop = gInfo.nr;
+		THREAD_fullGspaceLoop(
+			iGrho[i] = iG;
+			for(int iDir=0; iDir<3; iDir++)
+				if(2*iGrho[i][iDir]==gInfo.S[iDir])
+					iGrho[i][iDir]-=gInfo.S[iDir]; //[-S/2,S/2) in BGW (rather than (-S/2,S/2] in JDFTx)
+		)
+	}
+	
 	
 	//DFT nBands; corresponding E and F:
 	nBands = eInfo.nBands;
@@ -386,75 +400,52 @@ void BGW::writeChiFluid(bool write_q0) const
 	
 	//--- gspace group:
 	//------ initialize list of G vectors for each q:
+	int nG = iGrho.size();
+	std::vector<double> KE(nq * nG); //in Ryd, in rho order
+	std::vector<int> indEpsToRho(nq * nG);
+	std::vector<int> indRhoToEps(nq * nG);
 	std::vector<std::vector<vector3<int>>> iGarr(nq);
 	std::vector<int> nBasis(nq);
 	int nBasisMax = 0;
-	logSuspend();
-	for(int iq=0; iq<nq; iq++)
-	{	Basis basis_q;
-		basis_q.setup(e.gInfo, e.iInfo, bgwp.EcutChiFluid, q[iq]);
-		nBasis[iq] = basis_q.nbasis;
-		nBasisMax = std::max(nBasisMax, nBasis[iq]);
-		iGarr[iq].resize(nBasis[iq]);
-		eblas_copy(iGarr[iq].data(), basis_q.iGarr.data(), nBasis[iq]);
-	}
-	logResume();
-	//------ sort by kinetic energy in two ways required by BGW:
-	std::vector<double> KE(nq * nBasisMax); //in Ryd
-	std::vector<int> indEpsToRho(nq * nBasisMax);
-	std::vector<int> indRhoToEps(nq * nBasisMax);
-	vector3<int> iGstride(e.gInfo.S[1]*e.gInfo.S[2], e.gInfo.S[2], 1);
-	std::vector<vector3<int>> iGall(nq * nBasisMax);
-	for(int iq=0; iq<nq; iq++)
-	{	//Calculate KE with q and sort by it (eps sorting):
-		std::vector<double> KEcur(nBasis[iq]); //KE in Ryd with q
-		std::vector<int> gridInd(nBasis[iq]); //grid index used for tie-breaking
-		std::vector<int> sortIndex(nBasis[iq]); //array that is sorted to retrieve sort index
-		vector3<> qCur = write_q0 ? vector3<>() : q[iq]; //don't account for small q0 offset in sorting
-		for(int g=0; g<nBasis[iq]; g++)
-		{	KEcur[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g] + qCur); //no 0.5 since in Ryd
-			gridInd[g] = dot(iGarr[iq][g], iGstride);
-			sortIndex[g] = g;
+	{	//Grid index used for tie-breaking
+		vector3<int> iGstride(e.gInfo.S[1]*e.gInfo.S[2], e.gInfo.S[2], 1);
+		std::vector<int> gridInd(nG); 
+		for(int g=0; g<nG; g++)
+			gridInd[g] = dot(iGrho[g], iGstride);
+		for(int iq=0; iq<nq; iq++)
+		{	double* KEcur = &KE[nG*iq]; //KE in Ryd with q
+			int* sortIndex = &indEpsToRho[nG*iq];
+			int* sortIndexInv = &indRhoToEps[nG*iq];
+			//Calculate KE with q and sort by it (eps sorting):
+			vector3<> qCur = write_q0 ? vector3<>() : q[iq]; //don't account for small q0 offset in sorting
+			for(int g=0; g<nG; g++)
+			{	KEcur[g] = e.gInfo.GGT.metric_length_squared(iGrho[g] + qCur); //no 0.5 since in Ryd
+				sortIndex[g] = g;
+			}
+			std::sort(sortIndex, sortIndex+nG, IndexedComparator(KEcur, gridInd.data()));
+			//Collect basis functions within G-sphere in KE order:
+			double EcutRy = 2.*bgwp.EcutChiFluid;
+			for(int g=0; (g<nG && KEcur[sortIndex[g]]<=EcutRy); g++)
+				iGarr[iq].push_back(iGrho[sortIndex[g]]);
+			nBasis[iq] = iGarr[iq].size();
+			nBasisMax = std::max(nBasisMax, nBasis[iq]);
+			//Invert sort index and convert to 1-based:
+			for(int g=0; g<nG; g++)
+				sortIndexInv[sortIndex[g]++] = g+1; //switches both from 0 to 1-based indexing
 		}
-		std::sort(sortIndex.begin(), sortIndex.end(), IndexedComparator(KEcur.data(), gridInd.data()));
-		applyIndex(KEcur, sortIndex); //KEcur now in ascending order
-		applyIndex(iGarr[iq], sortIndex); //sort iGarr in KEcur order
-		//Determine sort indices based on KE without q (rho sorting):
-		std::vector<double> KErho(nBasis[iq]); //KE in Ryd without q
-		for(int g=0; g<nBasis[iq]; g++)
-		{	KErho[g] = e.gInfo.GGT.metric_length_squared(iGarr[iq][g]); //no 0.5 since in Ryd
-			gridInd[g] = dot(iGarr[iq][g], iGstride);
-			sortIndex[g] = g;
-		}
-		std::sort(sortIndex.begin(), sortIndex.end(), IndexedComparator(KErho.data(), gridInd.data()));
-		applyIndex(KEcur, sortIndex); //KEcur now sorted by ascending KErho
-		//Invert sortIndex and switch both to 1-based:
-		std::vector<int> sortIndexInv(nBasis[iq]);
-		for(int g=0; g<nBasis[iq]; g++)
-			sortIndexInv[sortIndex[g]++] = g+1; //note switch from 0 to 1-based indexing for both
-		//Copy results to output arrays:
-		int offset = nBasisMax*iq; //offset in output array
-		eblas_copy(&KE[offset], KEcur.data(), nBasis[iq]);
-		eblas_copy(&indRhoToEps[offset], sortIndex.data(), nBasis[iq]);
-		eblas_copy(&indEpsToRho[offset], sortIndexInv.data(), nBasis[iq]);
-		eblas_copy(&iGall[offset], iGarr[iq].data(), nBasis[iq]);
 	}
 	//------ output g-space header to file:
 	hid_t gidGspace = h5createGroup(gidHeader, "gspace");
 	h5writeVector(gidGspace, "nmtx", nBasis); //matrix dimensions for each q
 	h5writeScalar(gidGspace, "nmtx_max", nBasisMax); //maximum value of above over all q
-	hsize_t dimsInd[2] = { hsize_t(nq), hsize_t(nBasisMax) };
+	hsize_t dimsInd[2] = { hsize_t(nq), hsize_t(nG) };
 	h5writeVector(gidGspace, "ekin", KE.data(), dimsInd, 2);
 	h5writeVector(gidGspace, "gind_eps2rho", indEpsToRho.data(), dimsInd, 2);
 	h5writeVector(gidGspace, "gind_rho2eps", indRhoToEps.data(), dimsInd, 2);
-	hsize_t dimsGeps[3] = { hsize_t(nq), hsize_t(nBasisMax), 3 };
-	h5writeVector(gidGspace, "gvec_eps", &iGall[0][0], dimsGeps, 3); //G-vectors in eps order
 	H5Gclose(gidGspace);
 	KE.clear();
 	indEpsToRho.clear();
 	indRhoToEps.clear();
-	iGall.clear();
-	
 	H5Gclose(gidHeader); //end eps header
 	
 	//------------ Calculate and write matrices --------------
@@ -631,21 +622,11 @@ void BGW::writeHeaderMF(hid_t fid) const
 	
 	//---------- G-space group ----------
 	hid_t gidGspace = h5createGroup(gidHeader, "gspace");
-	std::vector<vector3<int>> iGarr(gInfo.nr);
-	{	const vector3<int>& S = gInfo.S;
-		size_t iStart = 0, iStop = gInfo.nr;
-		THREAD_fullGspaceLoop(
-			iGarr[i] = iG;
-			for(int iDir=0; iDir<3; iDir++)
-				if(2*iGarr[i][iDir]==gInfo.S[iDir])
-					iGarr[i][iDir]-=gInfo.S[iDir]; //[-S/2,S/2) in BGW (rather than (-S/2,S/2] in JDFTx)
-		)
-	}
 	hsize_t dimsG[2] = { hsize_t(gInfo.nr), 3 };
 	h5writeScalar(gidGspace, "ng", gInfo.nr);
 	h5writeScalar(gidGspace, "ecutrho", std::max(e.cntrl.EcutRho, 4*e.cntrl.Ecut)/Ryd);
 	h5writeVector(gidGspace, "FFTgrid", &gInfo.S[0], 3);
-	h5writeVector(gidGspace, "components", &iGarr[0][0], dimsG, 2);
+	h5writeVector(gidGspace, "components", &iGrho[0][0], dimsG, 2);
 	H5Gclose(gidGspace);
 	
 	//---------- Symmetries group ----------
