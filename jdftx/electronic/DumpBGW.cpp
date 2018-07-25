@@ -631,16 +631,17 @@ void BGW::writeHeaderMF(hid_t fid) const
 	
 	//---------- Symmetries group ----------
 	hid_t gidSymm = h5createGroup(gidHeader, "symmetry");
+	size_t nSymmMax = 48;
 	const std::vector<SpaceGroupOp> ops = e.symm.getMatrices();
-	std::vector<matrix3<int> > rots(ops.size());
-	std::vector<vector3<> > trans(ops.size());
-	for(size_t iSym=0; iSym<ops.size(); iSym++)
+	std::vector<matrix3<int> > rots(nSymmMax);
+	std::vector<vector3<> > trans(nSymmMax);
+	for(size_t iSym=0; iSym<std::min(ops.size(),nSymmMax); iSym++)
 	{	matrix3<int> rotInv = det(ops[iSym].rot) * adjugate(ops[iSym].rot); //since |det(rot)| = 1
 		rots[iSym] = rotInv; //BGW uses inverse convention
 		trans[iSym] = (2*M_PI)*ops[iSym].a; //BGW used 2*pi times translation
 	}
-	hsize_t dimsRot[3] = { ops.size(), 3, 3 };
-	hsize_t dimsTrans[2] = { ops.size(), 3 };
+	hsize_t dimsRot[3] = { nSymmMax, 3, 3 };
+	hsize_t dimsTrans[2] = { nSymmMax, 3 };
 	h5writeScalar(gidSymm, "ntran", int(ops.size()));
 	h5writeScalar(gidSymm, "cell_symmetry", 0);
 	h5writeVector(gidSymm, "mtrx", &rots[0](0,0), dimsRot, 3);
@@ -652,8 +653,8 @@ void BGW::writeHeaderMF(hid_t fid) const
 	hsize_t dims33[2] = { 3, 3 };
 	h5writeScalar(gidCrystal, "celvol", gInfo.detR);
 	h5writeScalar(gidCrystal, "recvol", fabs(det(gInfo.G)));
-	h5writeScalar(gidCrystal, "alat", 1);
-	h5writeScalar(gidCrystal, "blat", 1);
+	h5writeScalar(gidCrystal, "alat", 1.);
+	h5writeScalar(gidCrystal, "blat", 1.);
 	h5writeVector(gidCrystal, "avec", &gInfo.RT(0,0), dims33, 2); //BGW lattice vectors in rows
 	h5writeVector(gidCrystal, "bvec", &gInfo.G(0,0), dims33, 2); //BGW recip lattice vectors in rows
 	h5writeVector(gidCrystal, "adot", &gInfo.RTR(0,0), dims33, 2);
