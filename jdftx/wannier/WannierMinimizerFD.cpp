@@ -331,29 +331,47 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 
 WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 {	static StopWatch watch("WannierMinimizerFD::precondition"); watch.start();
-	assert(grad.size()==kMesh.size());
+	assert(grad.wmin == this);
 	WannierGradient Kgrad = grad;
 	constrain(Kgrad);
 	if(!kHelmholtzInv) //helmholtz preconditioning is disabled
 		return Kgrad;
-	//Figure out max input bands for any kpoint:
-	int nInMax = 0;
+	//Determine range of free bands:
+	int nInMax = 0, nFixedMin = nCenters;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
-		nInMax = std::max(nInMax, kMesh[ik].nIn);
+	{	nInMax = std::max(nInMax, kMesh[ik].nIn);
+		nFixedMin = std::min(nFixedMin, kMesh[ik].nFixed);
+	}
 	mpiWorld->allReduce(nInMax, MPIUtil::ReduceMax);
+	mpiWorld->allReduce(nFixedMin, MPIUtil::ReduceMin);
+	int nEntries1 = (nCenters-nFixedMin) * (nInMax-nCenters); //max for B1
+	int nEntries2 = (nCenters-nFrozen) * (nCenters-nFrozen); //constant for B2
+	int nEntries = nEntries1 + nEntries2;
 	//Copy each matrix of gradient into a column of a giant matrix:
-	matrix gradMat = zeroes(nCenters*nInMax, ikStop-ikStart);
-	complex* gradMatData = gradMat.dataPref();
+	matrix gradMat = zeroes(nEntries, ikStop-ikStart);
     for(size_t ik=ikStart; ik<ikStop; ik++)
-		callPref(eblas_copy)(gradMatData+gradMat.index(0,ik-ikStart), Kgrad[ik].dataPref(), Kgrad[ik].nData());
+	{	const KmeshEntry& ki = kMesh[ik];
+		complex* colPtr = gradMat.dataPref() + gradMat.index(0,ik-ikStart);
+		if(nCenters > ki.nFixed)
+		{	matrix B1 = zeroes(nCenters-nFixedMin, nInMax-nCenters);
+			B1.set(ki.nFixed-nFixedMin,nCenters-nFixedMin, 0,ki.nIn-nCenters, Kgrad.B1[ik]);
+			callPref(eblas_copy)(colPtr, B1.dataPref(), B1.nData());
+		}
+		callPref(eblas_copy)(colPtr+nEntries1, Kgrad.B2[ik].dataPref(), nEntries2);
+	}
 	//Apply preconditioner:
 	matrix KgradMat = gradMat * kHelmholtzInv;
-	KgradMat.allReduce(MPIUtil::ReduceSum);
+	KgradMat.allReduce(MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
 	//Copy result from each column to a small matrix per k-point:
-	const complex* KgradMatData = KgradMat.dataPref();
     for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	Kgrad[ik].init(nCenters, kMesh[ik].nIn, isGpuEnabled());
-		callPref(eblas_copy)(Kgrad[ik].dataPref(), KgradMatData+KgradMat.index(0,ik), Kgrad[ik].nData());
+	{	const KmeshEntry& ki = kMesh[ik];
+		const complex* colPtr = KgradMat.dataPref() + KgradMat.index(0,ik);
+		if(nCenters > ki.nFixed)
+		{	matrix B1 = zeroes(nCenters-nFixedMin, nInMax-nCenters);
+			callPref(eblas_copy)(B1.dataPref(), colPtr, B1.nData());
+			Kgrad.B1[ik] = B1(ki.nFixed-nFixedMin,nCenters-nFixedMin, 0,ki.nIn-nCenters);
+		}
+		callPref(eblas_copy)(Kgrad.B2[ik].dataPref(), colPtr+nEntries1, nEntries2);
 	}
 	constrain(Kgrad);
 	watch.stop();

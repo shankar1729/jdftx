@@ -24,7 +24,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void WannierGradient::init(const WannierMinimizer* wmin)
 {	this->wmin = wmin;
-	resize(wmin->kMesh.size());
+	B1.resize(wmin->kMesh.size());
+	B2.resize(wmin->kMesh.size());
 }
 size_t WannierGradient::ikStart() const { return wmin->ikStart; }
 size_t WannierGradient::ikStop() const { return wmin->ikStop; }
@@ -33,45 +34,33 @@ size_t WannierGradient::ikStop() const { return wmin->ikStop; }
 
 WannierGradient clone(const WannierGradient& grad) { return grad; }
 double dot(const WannierGradient& x, const WannierGradient& y)
-{	assert(x.size()==y.size());
+{	assert(x.wmin == y.wmin);
 	double result = 0.;
 	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
-	{	result += dotc(x[ik], y[ik]).real();
-		//For rectangular matrices, account for the fact that we are actually working with the hermitian completion
-		if(x[ik].nCols() != x[ik].nRows())
-		{	int rStart=0, rStop=x[ik].nRows();
-			int cStart=0, cStop=x[ik].nCols();
-			if(rStop>cStop) rStart=cStop; else cStart=rStop;
-			result += dotc(x[ik](rStart,rStop,cStart,cStop), y[ik](rStart,rStop,cStart,cStop)).real();
-		}
+	{	if(x.B1[ik]) result += dotc(x.B1[ik], y.B1[ik]).real() * 2.; //off-diagonal blocks of a Hermitian matrix
+		result += dotc(x.B2[ik], y.B2[ik]).real(); //diagonal block; always present
 	}
 	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
 	return result;
 }
 WannierGradient& operator*=(WannierGradient& x, double alpha)
 {	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
-		x[ik] *= alpha;
+	{	if(x.B1[ik]) x.B1[ik] *= alpha;
+		x.B2[ik] *= alpha;
+	}
 	return x;
 }
 void axpy(double alpha, const WannierGradient& x, WannierGradient& y)
-{	assert(x.size()==y.size());
+{	assert(x.wmin == y.wmin);
 	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
-		axpy(alpha, x[ik], y[ik]);
-}
-
-matrix randomMatrix(int nRows, int nCols)
-{	matrix ret(nRows, nCols, false);
-	complex* retData = ret.data();
-	for(unsigned j=0; j<ret.nData(); j++)
-		retData[j] = Random::normalComplex();
-	return ret;
+	{	if(x.B1[ik]) axpy(alpha, x.B1[ik], y.B1[ik]);
+		axpy(alpha, x.B2[ik], y.B2[ik]);
+	}
 }
 void randomize(WannierGradient& x)
-{	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++) if(x[ik].nData())
-	{	int minDim = std::min(x[ik].nRows(), x[ik].nCols());
-		x[ik].set(0,minDim, 0,minDim, dagger_symmetrize(randomMatrix(minDim,minDim)));
-		if(x[ik].nRows()>minDim) x[ik].set(minDim,x[ik].nRows(), 0,minDim, randomMatrix(x[ik].nRows()-minDim,minDim));
-		if(x[ik].nCols()>minDim) x[ik].set(0,minDim, minDim,x[ik].nCols(), randomMatrix(minDim,x[ik].nCols()-minDim));
+{	for(unsigned ik=x.ikStart(); ik<x.ikStop(); ik++)
+	{	if(x.B1[ik]) randomize(x.B1[ik]); //off-diagonal block of Hermitian
+		if(x.B2[ik]) { randomize(x.B2[ik]); x.B2[ik] = dagger_symmetrize(x.B2[ik]); } //diagonal block
 	}
 }
 
@@ -81,19 +70,20 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 {	assert(grad.wmin == this);
 	for(unsigned ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
-		matrix B = alpha * grad[ik];
 		//Stage 1:
 		if(ki.nIn > nCenters)
-		{	matrix B1block = B(ki.nFixed,nCenters, nCenters,ki.nIn);
-			matrix B1 = zeroes(ki.nIn, ki.nIn);
-			B1.set(ki.nFixed,nCenters, nCenters,ki.nIn, B1block);
-			B1.set(nCenters,ki.nIn, ki.nFixed,nCenters, dagger(B1block));
-			ki.U1 = ki.U1 * cis(B1);
+		{	int nFreeIn = ki.nIn - ki.nFixed;
+			int nFree = nCenters - ki.nFixed;
+			matrix B1 = zeroes(nFreeIn, nFreeIn);
+			B1.set(0,nFree, nFree,nFreeIn, alpha*grad.B1[ik]);
+			B1.set(nFree,nFreeIn, 0,nFree, alpha*dagger(grad.B1[ik]));
+			ki.U1.set(0,nBands, ki.nFixed,ki.nIn, ki.U1(0,nBands, ki.nFixed,ki.nIn) * cis(B1));
 		}
 		//Stage 2:
-		matrix B2 = zeroes(nCenters, nCenters);
-		B2.set(nFrozen,nCenters, nFrozen,nCenters, B(nFrozen,nCenters, nFrozen,nCenters));
-		ki.U2 = ki.U2 * cis(B2);
+		if(nFrozen)
+			ki.U2.set(nFrozen,nCenters, nFrozen,nCenters, ki.U2(nFrozen,nCenters, nFrozen,nCenters) * cis(alpha*grad.B2[ik]));
+		else
+			ki.U2 = ki.U2 * cis(alpha*grad.B2[ik]);
 		//Net rotation:
 		ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 	}
@@ -113,15 +103,13 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
-			(*grad)[ik] = zeroes(nCenters, ki.nIn);
 			if(ki.nIn > nCenters) //Stage 1:
 			{	matrix Omega_B1 = complex(0,0.5)*(ki.U2 * ki.Omega_U * ki.U1);
-				(*grad)[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn));
+				grad->B1[ik] = Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn);
 			}
 			matrix Omega_B2 = dagger_symmetrize(complex(0,1)*(ki.Omega_U * ki.U));
-			(*grad)[ik].set(nFrozen,nCenters, nFrozen,nCenters, Omega_B2(nFrozen,nCenters, nFrozen,nCenters));
+			grad->B2[ik] = (nFrozen ? Omega_B2(nFrozen,nCenters, nFrozen,nCenters) : Omega_B2);
 		}
-		
 		if(Kgrad) *Kgrad = precondition(*grad);
 	}
 	return Omega;
@@ -129,17 +117,7 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 
 void WannierMinimizer::constrain(WannierGradient& grad)
 {	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const KmeshEntry& ki = kMesh[ik];
-		//Pick out the parts that are allowed to be non-zero:
-		matrix gradB1;
-		if(ki.nIn > nCenters)
-			gradB1 = grad[ik](ki.nFixed,nCenters, nCenters,ki.nIn);
-		matrix gradB2 = grad[ik](nFrozen,nCenters, nFrozen,nCenters);
-		//Zero everything and only set back the non-zero parts:
-		grad[ik].zero();
-		if(gradB1) grad[ik].set(ki.nFixed,nCenters, nCenters,ki.nIn, gradB1);
-		grad[ik].set(nFrozen,nCenters, nFrozen,nCenters, dagger_symmetrize(gradB2));
-	}
+		grad.B2[ik] = dagger_symmetrize(grad.B2[ik]);
 }
 
 WannierGradient WannierMinimizer::precondition(const WannierGradient& grad)

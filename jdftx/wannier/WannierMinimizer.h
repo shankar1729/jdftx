@@ -34,8 +34,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @file WannierMinimizer.h
 
 //! State / vector space entry for wannier minimization
-struct WannierGradient : public std::vector<matrix>
-{	const class WannierMinimizer* wmin;
+struct WannierGradient
+{	std::vector<matrix> B1;
+	std::vector<matrix> B2;
+	const class WannierMinimizer* wmin;
     void init(const class WannierMinimizer* wmin);
 	size_t ikStart() const;
 	size_t ikStop() const;
