@@ -252,11 +252,14 @@ double WannierMinimizerFD::getOmega(bool grad)
 	//Compute the expectation values of r and rSq for each center (split over processes)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>());
+	std::vector<matrix> Mcache((ikStop-ikStart)*edges[0].size());
+	matrix* McachePtr = Mcache.data();
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const KmeshEntry& ki = kMesh[ik];
 		for(const Edge& edge: edges[ik])
 		{	const KmeshEntry& kj = kMesh[edge.ik];
-			const matrix M = dagger(ki.U) * edge.M0 * kj.U;
+			matrix& M = *(McachePtr++);
+			M = dagger(ki.U) * edge.M0 * kj.U;
 			const complex* Mdata = M.data();
 			for(int n=0; n<nCenters; n++)
 			{	complex Tnn = cis(dot(rPinned[n], edge.b)); //translation phase to rPinned as origin
@@ -285,11 +288,12 @@ double WannierMinimizerFD::getOmega(bool grad)
 	
 	//Compute gradients if required:
 	if(grad)
-	{	for(size_t ik=ikStart; ik<ikStop; ik++)
+	{	const matrix* McachePtr = Mcache.data();
+		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
 			for(Edge& edge: edges[ik])
 			{	KmeshEntry& kj = kMesh[edge.ik];
-				const matrix M = dagger(ki.U) * edge.M0 * kj.U;
+				const matrix& M = *(McachePtr++);
 				//Compute dOmega/dM:
 				matrix Omega_M = zeroes(nCenters, nCenters);
 				const complex* Mdata = M.data();
