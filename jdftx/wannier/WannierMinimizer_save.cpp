@@ -193,10 +193,11 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 			//--- determine the free columns of U1:
 			if(nFree > 0)
-			{	matrix U1free = ke.U;
+			{	matrix U1free = ke.U(bStart,bStop, 0,nCenters);
 				//project out the fixed columns (if any):
 				if(ke.nFixed > 0)
-				{	U1free -= ke.U1*(dagger(ke.U1) * ke.U);
+				{	matrix U1fixed = ke.U1(bStart,bStop, 0,ke.nFixed);
+					U1free -= U1fixed*(dagger(U1fixed) * U1free);
 					//SVD to find the remaining non-null columns:
 					matrix U, Vdag; diagMatrix S;
 					U1free.svd(U, S, Vdag);
@@ -204,9 +205,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					{	ossErr << "Initial rotations are incompatible with current inner window" << kString;
 						break;
 					}
-					U1free = U(0,nBands, 0,nFree); //discard null subspace
+					U1free = U(0,ke.nIn, 0,nFree); //discard null subspace
 				}
-				ke.U1.set(0,nBands, ke.nFixed,nCenters, U1free);
+				ke.U1.set(bStart,bStop, ke.nFixed,nCenters, U1free);
 			}
 			//--- check U1:
 			if(nrm2((dagger(ke.U1) * ke.U1)(0,nCenters, 0,nCenters) - eye(nCenters)) > tol)
@@ -229,8 +230,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//--- Compute extra linearly indep columns of U1 (if necessary):
 			if(ke.nIn > nCenters)
 			{	matrix U, Vdag; diagMatrix S;
-				ke.U1.svd(U, S, Vdag);
-				ke.U1 = U(0,nBands, 0,ke.nIn) * Vdag;
+				ke.U1(bStart,bStop, 0,ke.nIn).svd(U, S, Vdag);
+				ke.U1.set(bStart,bStop, 0,ke.nIn, U*Vdag);
 			}
 		}
 		else
