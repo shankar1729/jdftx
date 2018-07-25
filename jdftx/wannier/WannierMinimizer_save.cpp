@@ -63,19 +63,27 @@ void WannierMinimizer::saveMLWF()
 void WannierMinimizer::saveMLWF(int iSpin)
 {	
 	//Load initial rotations if necessary:
+	bool rotationsLoaded = false;
 	if(wannier.loadRotations)
 	{	//Read U
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
-		logPrintf("Reading initial rotations from '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "r");
-		if(!fp) die("could not open '%s' for reading.\n", fname.c_str());
-		for(auto& ke: kMesh)
-		{	ke.U.init(nBands, nCenters);
-			ke.U.read(fp);
+		if(fileSize(fname.c_str()) > 0)
+		{	logPrintf("Reading initial rotations from '%s' ... ", fname.c_str()); logFlush();
+			FILE* fp = fopen(fname.c_str(), "r");
+			if(!fp) die("could not open '%s' for reading.\n", fname.c_str());
+			for(auto& ke: kMesh)
+			{	ke.U.init(nBands, nCenters);
+				ke.U.read(fp);
+			}
+			fclose(fp);
+			logPrintf("done.\n"); logFlush();
+			logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
+			rotationsLoaded = true;
 		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-		logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
+		else
+		{	logPrintf("NOTE: no initial rotations in '%s'; using trial orbitals for first run.\n", fname.c_str());
+			logFlush();
+		}
 	}
 	
 	//Load frozen rotations if necessary:
@@ -179,7 +187,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 			ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, U1fixed);
 		}
-		if(wannier.loadRotations)
+		if(rotationsLoaded)
 		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
 			//--- check unitarity:
 			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol)
