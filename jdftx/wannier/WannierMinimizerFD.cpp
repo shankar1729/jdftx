@@ -247,7 +247,8 @@ void WannierMinimizerFD::initialize(int iSpin)
 
 
 double WannierMinimizerFD::getOmega(bool grad)
-{
+{	static StopWatch watch("WannierMinimizerFD::getOmega"); watch.start();
+	
 	//Compute the expectation values of r and rSq for each center (split over processes)
 	rSqExpect.assign(nCenters, 0.);
 	rExpect.assign(nCenters, vector3<>());
@@ -307,11 +308,13 @@ double WannierMinimizerFD::getOmega(bool grad)
 			}
 		}
 	}
+	watch.stop();
 	return Omega;
 }
 
 double WannierMinimizerFD::getOmegaI(bool grad)
-{	double OmegaI = 0.;
+{	static StopWatch watch("WannierMinimizerFD::getOmegaI"); watch.start();
+	double OmegaI = 0.;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
 		for(const Edge& edge: edges[ik])
@@ -326,11 +329,12 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 		}
 	}
 	mpiWorld->allReduce(OmegaI, MPIUtil::ReduceSum);
+	watch.stop();
 	return OmegaI;
 }
 
 WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
-{	static StopWatch watch("WannierMinimizerFD::precondition"); watch.start();
+{	static StopWatch watch("WannierMinimizerFD::precond"); watch.start();
 	assert(grad.wmin == this);
 	WannierGradient Kgrad = grad;
 	constrain(Kgrad);

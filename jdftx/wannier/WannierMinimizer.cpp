@@ -67,7 +67,8 @@ void randomize(WannierGradient& x)
 //---- energy/gradient functions required by Minimizable<WannierGradient> -----
 
 void WannierMinimizer::step(const WannierGradient& grad, double alpha)
-{	assert(grad.wmin == this);
+{	static StopWatch watch("WannierMinimizer::step"); watch.start();
+	assert(grad.wmin == this);
 	for(unsigned ik=ikStart; ik<ikStop; ik++)
 	{	KmeshEntry& ki = kMesh[ik];
 		//Stage 1:
@@ -88,18 +89,20 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 	}
 	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
+	watch.stop();
 }
 
 
 double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
-{
+{	static StopWatch watch("WannierMinimizer::compute");
 	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_U = zeroes(nCenters, nBands); //Clear Omega_U
 	
 	double Omega = getOmega(grad);
 	
 	//Collect Omega_U and propagate to Omega_B if necessary:
 	if(grad)
-	{	for(KmeshEntry& ki: kMesh) ki.Omega_U.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
+	{	watch.start();
+		for(KmeshEntry& ki: kMesh) ki.Omega_U.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
@@ -111,6 +114,7 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 			grad->B2[ik] = (nFrozen ? Omega_B2(nFrozen,nCenters, nFrozen,nCenters) : Omega_B2);
 		}
 		if(Kgrad) *Kgrad = precondition(*grad);
+		watch.stop();
 	}
 	return Omega;
 }
