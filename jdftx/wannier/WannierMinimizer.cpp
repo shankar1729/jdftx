@@ -82,9 +82,9 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		}
 		//Stage 2:
 		if(nFrozen)
-			ki.U2.set(nFrozen,nCenters, nFrozen,nCenters, ki.U2(nFrozen,nCenters, nFrozen,nCenters) * cis(alpha*grad.B2[ik]));
+			ki.U2.set(nFrozen,nCenters, nFrozen,nCenters, cis(alpha*grad.B2[ik]) * ki.U2(nFrozen,nCenters, nFrozen,nCenters));
 		else
-			ki.U2 = ki.U2 * cis(alpha*grad.B2[ik]);
+			ki.U2 = cis(alpha*grad.B2[ik]) * ki.U2;
 		//Net rotation:
 		ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
 	}
@@ -106,12 +106,11 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
+			matrix Omega_B = complex(0,0.5)*(ki.U2 * ki.Omega_U * ki.U1);
 			if(ki.nIn > nCenters) //Stage 1:
-			{	matrix Omega_B1 = complex(0,0.5)*(ki.U2 * ki.Omega_U * ki.U1);
-				grad->B1[ik] = Omega_B1(ki.nFixed,nCenters, nCenters,ki.nIn);
-			}
-			matrix Omega_B2 = dagger_symmetrize(complex(0,1)*(ki.Omega_U * ki.U));
-			grad->B2[ik] = (nFrozen ? Omega_B2(nFrozen,nCenters, nFrozen,nCenters) : Omega_B2);
+				grad->B1[ik] = Omega_B(ki.nFixed,nCenters, nCenters,ki.nIn);
+			matrix Omega_B2_hlf = Omega_B(nFrozen,nCenters, nFrozen,nCenters);
+			grad->B2[ik] = Omega_B2_hlf + dagger(Omega_B2_hlf);
 		}
 		if(Kgrad) *Kgrad = precondition(*grad);
 		watch.stop();
