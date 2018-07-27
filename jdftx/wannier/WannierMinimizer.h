@@ -81,9 +81,10 @@ public:
 		//State of system for Wannier minimize:
 		int nIn; //number of bands that contribute to the Wannier subspace
 		int nFixed; //number of bands that contribute fully to the Wannier subspace (cannot be partially mixed out)
-		matrix U, Omega_U; //!< net rotation (nBands x nCenters) and intermediate gradient w.r.t it
+		matrix U, Omega_UdotU; //!< net rotation (nBands x nIn) and intermediate gradient (Omega_U * U) w.r.t it
 		matrix U1; //Initial rotation into Wannier subspace (nBands x nIn)
-		matrix U2; //Rotation within Wannier subspace (nCenters x nCenters)
+		matrix U2; //Rotation within Wannier subspace (nIn x nIn)
+		//NOTE: U and U2 are truncated from nIn -> nCenters after minimization
 	};
 
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization

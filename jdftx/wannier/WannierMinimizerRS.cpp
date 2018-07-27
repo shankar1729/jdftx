@@ -129,7 +129,9 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 		//Propagate to rotations:
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	KmeshEntry& ki = kMesh[i];
-			axpyWfns_grad(ki.point.weight, ki.Omega_U, ki.point, iSpin, Omega_Csuper);
+			matrix Omega_U;
+			axpyWfns_grad(ki.point.weight, Omega_U, ki.point, iSpin, Omega_Csuper);
+			ki.Omega_UdotU += Omega_U * ki.U;
 		}
 	}
 	suspendOperatorThreading();

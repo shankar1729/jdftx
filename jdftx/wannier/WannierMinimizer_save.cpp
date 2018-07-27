@@ -188,7 +188,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, U1fixed);
 		}
 		if(rotationsLoaded)
-		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nCenters x nCenters):
+		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nIn x nIn):
 			//--- check unitarity:
 			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol)
 			{	ossErr << "Initial rotations U are not unitary" << kString;
@@ -228,10 +228,10 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				break;
 			}
 			//--- calculate and check U2:
-			ke.U2 = eye(nCenters);
+			ke.U2 = eye(ke.nIn);
 			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters,
 				dagger(ke.U1(0,nBands, nFrozen,nCenters)) * ke.U(0,nBands, nFrozen,nCenters));
-			if(nrm2(dagger(ke.U2) * ke.U2 - eye(nCenters)) > tol)
+			if(nrm2(dagger(ke.U2) * ke.U2 - eye(ke.nIn)) > tol)
 			{	ossErr << "Initial rotations U2 are not unitary" << kString;
 				break;
 			}
@@ -278,7 +278,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			
 			//Optimal initial rotation within Wannier subspace:
 			matrix WdagG = dagger(ke.U1(0,nBands, nFrozen,nCenters)) * CdagG;
-			ke.U2 = eye(nCenters);
+			ke.U2 = eye(ke.nIn);
 			bool isSingular = false;
 			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG, 0, 0, &isSingular));
 			if(isSingular)
@@ -294,7 +294,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	ossErr << "Initial rotations are singular" << kString;
 			break;
 		}
-		ke.U = ke.U1(0,nBands, 0,nCenters) * ke.U2;
+		ke.U = ke.U1 * ke.U2;
 	}
 	mpiWorld->checkErrors(ossErr);
 	suspendOperatorThreading();
@@ -306,8 +306,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		mpiWorld->bcast(ke.nFixed, whose_q(ik,iSpin));
 		if(!isMine_q(ik,iSpin))
 		{	ke.U1 = zeroes(nBands, ke.nIn);
-			ke.U2 = zeroes(nCenters, nCenters);
-			ke.U = zeroes(nBands, nCenters);
+			ke.U2 = zeroes(ke.nIn, ke.nIn); //truncated to nCenters x nCenters after minimization
+			ke.U = zeroes(nBands, ke.nIn); //truncated to nBands x nCenters after minimization
 		}
 		ke.U1.bcast(whose_q(ik,iSpin));
 		ke.U2.bcast(whose_q(ik,iSpin));
@@ -323,6 +323,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	
 	//Minimize:
 	double Omega = minimize(wannier.minParams);
+	for(size_t ik=0; ik<kMesh.size(); ik++)
+	{	KmeshEntry& ki = kMesh[ik];
+		ki.U = ki.U(0,nBands, 0,nCenters); //no longer need unitary completion after minimize
+		if(ki.U2)
+			ki.U2 = ki.U2(0,nCenters, 0,nCenters); //no longer need unitary completion after minimize
+	}
 	double OmegaI = getOmegaI();
 	logPrintf("\nOptimum spread:\n\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);
 	

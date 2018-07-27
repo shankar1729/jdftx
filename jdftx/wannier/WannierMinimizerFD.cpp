@@ -295,7 +295,7 @@ double WannierMinimizerFD::getOmega(bool grad)
 			{	KmeshEntry& kj = kMesh[edge.ik];
 				const matrix& M = *(McachePtr++);
 				//Compute dOmega/dM:
-				matrix Omega_M = zeroes(nCenters, nCenters);
+				matrix Omega_M = zeroes(M.nCols(), M.nRows());
 				const complex* Mdata = M.data();
 				complex* Omega_Mdata = Omega_M.data();
 				for(int n=0; n<nCenters; n++)
@@ -307,8 +307,8 @@ double WannierMinimizerFD::getOmega(bool grad)
 						* ((argMnn + dot(mHalf_Omega_rExpect[n],edge.b))*complex(0,-1)/Mnn - Mnn.conj());
 				}
 				//Propagate Omega_M to Omega_U:
-				ki.Omega_U += dagger(edge.M0 * kj.U * Omega_M);
-				kj.Omega_U += Omega_M * dagger(ki.U) * edge.M0;
+				ki.Omega_UdotU += dagger(M * Omega_M);
+				kj.Omega_UdotU += Omega_M * M;
 			}
 		}
 	}
@@ -327,8 +327,8 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 			OmegaI += ki.point.weight * edge.wb * (nCenters - trace(M * dagger(M)).real());
 			if(grad)
 			{	matrix Omega_M = 2. * ki.point.weight * edge.wb * (-dagger(M));
-				ki.Omega_U += dagger(edge.M0 * kj.U * Omega_M);
-				kj.Omega_U += Omega_M * dagger(ki.U) * edge.M0;
+				ki.Omega_UdotU += dagger(M * Omega_M);
+				kj.Omega_UdotU += Omega_M * M;
 			}
 		}
 	}

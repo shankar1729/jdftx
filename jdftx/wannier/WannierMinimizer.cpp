@@ -81,12 +81,9 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 			ki.U1.set(0,nBands, ki.nFixed,ki.nIn, ki.U1(0,nBands, ki.nFixed,ki.nIn) * cis(B1));
 		}
 		//Stage 2:
-		if(nFrozen)
-			ki.U2.set(nFrozen,nCenters, nFrozen,nCenters, cis(alpha*grad.B2[ik]) * ki.U2(nFrozen,nCenters, nFrozen,nCenters));
-		else
-			ki.U2 = cis(alpha*grad.B2[ik]) * ki.U2;
+		ki.U2.set(nFrozen,nCenters, nFrozen,nCenters, cis(alpha*grad.B2[ik]) * ki.U2(nFrozen,nCenters, nFrozen,nCenters));
 		//Net rotation:
-		ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
+		ki.U = ki.U1 * ki.U2;
 	}
 	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
 	watch.stop();
@@ -95,18 +92,18 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 
 double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 {	static StopWatch watch("WannierMinimizer::compute");
-	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_U = zeroes(nCenters, nBands); //Clear Omega_U
+	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_UdotU = zeroes(ki.nIn, ki.nIn); //Clear Omega_U
 	
 	double Omega = getOmega(grad);
 	
 	//Collect Omega_U and propagate to Omega_B if necessary:
 	if(grad)
 	{	watch.start();
-		for(KmeshEntry& ki: kMesh) ki.Omega_U.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
+		for(KmeshEntry& ki: kMesh) ki.Omega_UdotU.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
-			matrix Omega_B = complex(0,0.5)*(ki.U2 * ki.Omega_U * ki.U1);
+			matrix Omega_B = complex(0,0.5)*(ki.U2 * ki.Omega_UdotU * dagger(ki.U2));
 			if(ki.nIn > nCenters) //Stage 1:
 				grad->B1[ik] = Omega_B(ki.nFixed,nCenters, nCenters,ki.nIn);
 			matrix Omega_B2_hlf = Omega_B(nFrozen,nCenters, nFrozen,nCenters);
@@ -138,10 +135,12 @@ bool WannierMinimizer::report(int iter)
 {	//Check unitarity:
 	bool needRestart = false;
 	for(size_t ik=ikStart; ik<ikStop; ik++)
-		if(nrm2(dagger(kMesh[ik].U) * kMesh[ik].U - eye(nCenters)) > 1e-6)
+	{	KmeshEntry& ki = kMesh[ik];
+		if(nrm2(dagger(ki.U) * ki.U - eye(ki.nIn)) > 1e-6)
 		{	needRestart = true;
 			break;
 		}
+	}
 	mpiWorld->allReduce(needRestart, MPIUtil::ReduceLOr);
 	if(needRestart)
 	{	logPrintf("%s\tUpdating rotations to enforce unitarity\n", wannier.minParams.linePrefix);
@@ -156,7 +155,7 @@ bool WannierMinimizer::report(int iter)
 					<< ki.point.k[0] << ' ' << ki.point.k[1] << ' ' << ki.point.k[2] << " ]\n";
 				break;
 			}
-			ki.U = ki.U1(0,nBands, 0,nCenters) * ki.U2;
+			ki.U = ki.U1 * ki.U2;
 		}
 		mpiWorld->checkErrors(ossErr);
 		return true;
