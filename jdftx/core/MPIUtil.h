@@ -72,8 +72,8 @@ public:
 	void checkErrors(const ostringstream&) const; //!< collect error messages from all processes; if any, display them and quit
 	
 	//Asynchronous support functions (any function below with Request* is async if this parameter is non-null):
-	void wait(Request request); //!< wait till request finishes
-	void waitAll(const std::vector<Request>& requests); //!< wait till all requests finish
+	static void wait(Request request); //!< wait till request finishes
+	static void waitAll(const std::vector<Request>& requests); //!< wait till all requests finish
 	
 	//Point-to-point functions:
 	template<typename T> void send(const T* data, size_t nData, int dest, int tag, Request* request=0) const; //!< generic array send

@@ -86,9 +86,14 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		ki.U = ki.U1 * ki.U2;
 	}
 	//Make U available on all processes that need it:
+	std::vector<MPIUtil::Request> requests;
 	for(KmeshEntry& ki: kMesh)
 		if(ki.mpi)
-			ki.mpi->bcast(ki.U.data(), ki.U.nData()); 
+		{	MPIUtil::Request request;
+			ki.mpi->bcast(ki.U.data(), ki.U.nData(), 0, &request); 
+			requests.push_back(request);
+		}
+	MPIUtil::waitAll(requests);
 	watch.stop();
 }
 
@@ -102,9 +107,14 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 	//Collect Omega_U and propagate to Omega_B if necessary:
 	if(grad)
 	{	watch.start();
+		std::vector<MPIUtil::Request> requests;
 		for(KmeshEntry& ki: kMesh)
 			if(ki.mpi)
-				ki.mpi->allReduce(ki.Omega_UdotU.data(), ki.Omega_UdotU.nData(), MPIUtil::ReduceSum); //Collect Omega_U
+			{	MPIUtil::Request request;
+				ki.mpi->reduce(ki.Omega_UdotU.data(), ki.Omega_UdotU.nData(), MPIUtil::ReduceSum, 0, &request); //Collect Omega_U
+				requests.push_back(request);
+			}
+		MPIUtil::waitAll(requests);
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
