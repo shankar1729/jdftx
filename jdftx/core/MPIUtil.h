@@ -49,6 +49,9 @@ public:
 	bool isHead() const { return iProc==0; } //!< whether this is the root process (makes code more readable)
 	#ifdef MPI_ENABLED
 	MPI_Comm communicator() const { return comm; }; //!< retrieve underlying communicator
+	typedef MPI_Request Request;
+	#else
+	typedef int Request;
 	#endif
 
 	//! Helper for dividing MPI processes into groups
@@ -68,32 +71,43 @@ public:
 
 	void checkErrors(const ostringstream&) const; //!< collect error messages from all processes; if any, display them and quit
 	
+	//Asynchronous support functions (any function below with Request* is async if this parameter is non-null):
+	void wait(Request request); //!< wait till request finishes
+	void waitAll(const std::vector<Request>& requests); //!< wait till all requests finish
+	
 	//Point-to-point functions:
-	template<typename T> void send(const T* data, size_t nData, int dest, int tag) const; //!< generic array send
-	template<typename T> void recv(T* data, size_t nData, int src, int tag) const; //!< generic array receive
-	template<typename T> void send(const T& data, int dest, int tag) const; //!< generic scalar send
-	template<typename T> void recv(T& data, int src, int tag) const; //!< generic scalar receive
-	void send(const complex* data, size_t nData, int dest, int tag) const; //!< send specialization for complex which is not natively supported by MPI
-	void recv(complex* data, size_t nData, int src, int tag) const; //!< receive specialization for complex which is not natively supported by MPI
-	void send(const bool* data, size_t nData, int dest, int tag) const; //!< send specialization for bool which is not natively supported by MPI
-	void recv(bool* data, size_t nData, int src, int tag) const; //!< receive specialization for bool which is not natively supported by MPI
-	void send(const string& s, int dest, int tag) const; //!< send string
-	void recv(string& s, int src, int tag) const; //!< send string
+	template<typename T> void send(const T* data, size_t nData, int dest, int tag, Request* request=0) const; //!< generic array send
+	template<typename T> void recv(T* data, size_t nData, int src, int tag, Request* request=0) const; //!< generic array receive
+	template<typename T> void send(const T& data, int dest, int tag, Request* request=0) const; //!< generic scalar send
+	template<typename T> void recv(T& data, int src, int tag, Request* request=0) const; //!< generic scalar receive
+	void send(const complex* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for complex which is not natively supported by MPI
+	void recv(complex* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for complex which is not natively supported by MPI
+	void send(const bool* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for bool which is not natively supported by MPI
+	void recv(bool* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for bool which is not natively supported by MPI
+	void send(const string& s, int dest, int tag, Request* request=0) const; //!< send string
+	void recv(string& s, int src, int tag, Request* request=0) const; //!< send string
 	
 	//Broadcast functions:
-	template<typename T> void bcast(T* data, size_t nData, int root=0) const; //!< generic array broadcast
-	template<typename T> void bcast(T& data, int root=0) const; //!< generic scalar broadcast
-	void bcast(complex* data, size_t nData, int root=0) const; //!< specialization for complex which is not natively supported by MPI
-	void bcast(bool* data, size_t nData, int root=0) const; //!< specialization for bool which is not natively supported by MPI
-	void bcast(string& s, int root=0) const; //!< broadcast string
+	template<typename T> void bcast(T* data, size_t nData, int root=0, Request* request=0) const; //!< generic array broadcast
+	template<typename T> void bcast(T& data, int root=0, Request* request=0) const; //!< generic scalar broadcast
+	void bcast(complex* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for complex which is not natively supported by MPI
+	void bcast(bool* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for bool which is not natively supported by MPI
+	void bcast(string& s, int root=0, Request* request=0) const; //!< broadcast string
 
-	//Reduce functions (safe mode gaurantees identical results irrespective of round-off (but could be slower)):
+	//AllReduce functions (safe mode gaurantees identical results irrespective of round-off (but could be slower)):
 	enum ReduceOp { ReduceMin, ReduceMax, ReduceSum, ReduceProd, ReduceLAnd, ReduceBAnd, ReduceLOr, ReduceBOr, ReduceLXor, ReduceBXor };
-	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false) const; //!< generic array reduction
-	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false) const; //!< generic scalar reduction
-	void allReduce(complex* data, size_t nData, ReduceOp op, bool safeMode=false) const;  //!< specialization for complex which is not natively supported by MPI
-	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false) const;  //!< specialization for bool which is not natively supported by MPI
+	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic array reduction
+	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic scalar reduction
+	void allReduce(complex* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
+	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
 	template<typename T> void allReduce(T& data, int& index, ReduceOp op) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
+	
+	//Reduce functions (results only on root):
+	template<typename T> void reduce(T* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const; //!< generic array reduction
+	template<typename T> void reduce(T& data, ReduceOp op, int root=0, Request* request=0) const; //!< generic scalar reduction
+	void reduce(complex* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
+	void reduce(bool* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
+	template<typename T> void reduce(T& data, int& index, ReduceOp op, int root=0) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
 	
 	//File access (tiny subset of MPI-IO, using byte offsets alone, and made to closely resemble stdio):
 	#ifdef MPI_ENABLED
@@ -187,55 +201,75 @@ namespace MPIUtilPrivate
 #endif
 }
 
-template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, int tag) const
+template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Send((T*)data, nData, DataType<T>::get(), dest, tag, comm);
+	if(nProcs>1)
+	{	if(request)
+			MPI_Isend((T*)data, nData, DataType<T>::get(), dest, tag, comm, request);
+		else
+			MPI_Send((T*)data, nData, DataType<T>::get(), dest, tag, comm);
+	}
 	#endif
 }
 
-template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag) const
+template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Recv(data, nData, DataType<T>::get(), src, tag, comm, MPI_STATUS_IGNORE);
+	if(nProcs>1)
+	{	if(request)
+			MPI_Irecv(data, nData, DataType<T>::get(), src, tag, comm, request);
+		else
+			MPI_Recv(data, nData, DataType<T>::get(), src, tag, comm, MPI_STATUS_IGNORE);
+	}
 	#endif
 }
 
-template<typename T> void MPIUtil::send(const T& data, int dest, int tag) const
-{	send(&data, 1, dest, tag);
+template<typename T> void MPIUtil::send(const T& data, int dest, int tag, Request* request) const
+{	send(&data, 1, dest, tag, request);
 }
 
-template<typename T> void MPIUtil::recv(T& data, int src, int tag) const
-{	recv(&data, 1, src, tag);
+template<typename T> void MPIUtil::recv(T& data, int src, int tag, Request* request) const
+{	recv(&data, 1, src, tag, request);
 }
 
-template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root) const
+template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
-	if(nProcs>1) MPI_Bcast(data, nData, DataType<T>::get(), root, comm);
+	if(nProcs>1)
+	{	if(request)
+			MPI_Ibcast(data, nData, DataType<T>::get(), root, comm, request);
+		else
+			MPI_Bcast(data, nData, DataType<T>::get(), root, comm);
+	}
 	#endif
 }
 
-template<typename T> void MPIUtil::bcast(T& data, int root) const
-{	bcast(&data, 1, root);
+template<typename T> void MPIUtil::bcast(T& data, int root, Request* request) const
+{	bcast(&data, 1, root, request);
 }
 
-template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode) const
+template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(safeMode) //Reduce to root node and then broadcast result (to ensure identical values)
 		{	MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), 0, comm);
 			bcast(data, nData, 0);
+			if(request) throw string("Asynchronous allReduce not supported in safeMode");
 		}
 		else //standard Allreduce
-			MPI_Allreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm);
+		{	if(request)
+				MPI_Iallreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm, request);
+			else
+				MPI_Allreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm);
+		}
 	}
 	#endif
 }
 
-template<typename T> void MPIUtil::allReduce(T& data, MPIUtil::ReduceOp op, bool safeMode) const
-{	allReduce(&data, 1, op, safeMode);
+template<typename T> void MPIUtil::allReduce(T& data, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
+{	allReduce(&data, 1, op, safeMode, request);
 }
 
 template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::ReduceOp op) const
@@ -249,6 +283,35 @@ template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::Reduc
 	}
 	#endif
 }
+
+template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::ReduceOp op, int root, Request* request) const
+{	using namespace MPIUtilPrivate;
+	#ifdef MPI_ENABLED
+	if(nProcs>1)
+	{	if(request)
+			MPI_Ireduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), root, comm, request);
+		else
+			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), root, comm);
+	}
+	#endif
+}
+
+template<typename T> void MPIUtil::reduce(T& data, MPIUtil::ReduceOp op, int root, Request* request) const
+{	reduce(&data, 1, op, root, request);
+}
+
+template<typename T> void MPIUtil::reduce(T& data, int& index, MPIUtil::ReduceOp op, int root) const
+{	using namespace MPIUtilPrivate;
+	#ifdef MPI_ENABLED
+	if(nProcs>1)
+	{	struct Pair { T data; int index; } pair;
+		pair.data = data; pair.index = index;
+		MPI_Reduce(isHead()?MPI_IN_PLACE:&pair, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), root, comm);
+		data = pair.data; index = pair.index;
+	}
+	#endif
+}
+
 
 //!@endcond
 #endif // JDFTX_CORE_MPIUTIL_H
