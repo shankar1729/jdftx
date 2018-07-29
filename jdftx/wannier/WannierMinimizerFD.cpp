@@ -127,7 +127,9 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 	//Find edges :
 	PeriodicLookup<WannierMinimizer::KmeshEntry> plook(kMesh, e.gInfo.GGT); //look-up table for O(1) fuzzy searching
 	edges.resize(kMesh.size(), std::vector<Edge>(wb.size()));
+	std::vector<std::set<int>> ranksNeeded(kMesh.size()); //rank of other processes that need each rotation
 	for(size_t i=0; i<kMesh.size(); i++)
+	{	int iProc = whose(i);
 		for(unsigned j=0; j<wb.size(); j++)
 		{	Edge& edge = edges[i][j];
 			edge.wb = wb[j];
@@ -139,6 +141,22 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			edge.point.offset += round(kj - edge.point.k); //extra offset
 			edge.point.k = kj;
 			kpoints.insert(edge.point);
+			//Update info about when MPI communication is needed:
+			int jProc = whose(edge.ik);
+			if(jProc != iProc)
+				ranksNeeded[edge.ik].insert(iProc);
+		}
+	}
+	
+	//Create MPI communicators for rotations:
+	for(size_t i=0; i<kMesh.size(); i++)
+		if(ranksNeeded[i].size() //some communication is needed
+			&& ( isMine(i) //this  process is the source
+				|| ranksNeeded[i].count(mpiWorld->iProcess()) ) ) //this process is a consumer
+		{
+			std::vector<int> ranks(1, whose(i)); //source rank
+			ranks.insert(ranks.end(), ranksNeeded[i].begin(), ranksNeeded[i].end());
+			kMesh[i].mpi = std::make_shared<MPIUtil>(mpiWorld, ranks);
 		}
 	
 	//Initialize preconditioner:
@@ -272,7 +290,7 @@ double WannierMinimizerFD::getOmega(bool grad)
 	}
 	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
 	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
-	
+
 	//Compute the total variance of the Wannier centers
 	double Omega = 0.;
 	std::vector< vector3<> > mHalf_Omega_rExpect(nCenters); //-1/2 dOmega/d(rExpect[n])

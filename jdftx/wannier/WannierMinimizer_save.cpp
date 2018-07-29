@@ -315,6 +315,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		if(!isMine(ik)) //No longer need sub-matrices on this process
 		{	ke.U1 = matrix();
 			ke.U2 = matrix();
+			if(!ke.mpi) ke.U = matrix(); //No longer need U on this process either
 		}
 	}
 	
@@ -325,9 +326,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	double Omega = minimize(wannier.minParams);
 	for(size_t ik=0; ik<kMesh.size(); ik++)
 	{	KmeshEntry& ki = kMesh[ik];
-		ki.U = ki.U(0,nBands, 0,nCenters); //no longer need unitary completion after minimize
-		if(ki.U2)
-			ki.U2 = ki.U2(0,nCenters, 0,nCenters); //no longer need unitary completion after minimize
+		//Make U available on all processes:
+		if(isMine(ik))
+			ki.U = ki.U(0,nBands, 0,nCenters); //no longer need unitary completion after minimize
+		else
+			ki.U = zeroes(nBands, nCenters);
+		ki.U.bcast(whose(ik));
+		if(ki.U2) ki.U2 = ki.U2(0,nCenters, 0,nCenters); //no longer need unitary completion after minimize
 	}
 	double OmegaI = getOmegaI();
 	logPrintf("\nOptimum spread:\n\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);

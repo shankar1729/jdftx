@@ -85,6 +85,7 @@ public:
 		matrix U1; //Initial rotation into Wannier subspace (nBands x nIn)
 		matrix U2; //Rotation within Wannier subspace (nIn x nIn)
 		//NOTE: U and U2 are truncated from nIn -> nCenters after minimization
+		std::shared_ptr<MPIUtil> mpi; //MPI communicator with head=whose(ik) over which U must be bcast'd and reduced (created by subclass if needed)
 	};
 
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization

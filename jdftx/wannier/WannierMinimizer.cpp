@@ -85,21 +85,26 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		//Net rotation:
 		ki.U = ki.U1 * ki.U2;
 	}
-	for(size_t ik=0; ik<kMesh.size(); ik++) kMesh[ik].U.bcast(whose(ik)); //Make U available on all processes
+	//Make U available on all processes that need it:
+	for(KmeshEntry& ki: kMesh)
+		if(ki.mpi)
+			ki.mpi->bcast(ki.U.data(), ki.U.nData()); 
 	watch.stop();
 }
 
 
 double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 {	static StopWatch watch("WannierMinimizer::compute");
-	if(grad) for(KmeshEntry& ki: kMesh) ki.Omega_UdotU = zeroes(ki.nIn, ki.nIn); //Clear Omega_U
+	if(grad) for(KmeshEntry& ki: kMesh) if(ki.U) ki.Omega_UdotU = zeroes(ki.nIn, ki.nIn); //Clear gradient
 	
 	double Omega = getOmega(grad);
 	
 	//Collect Omega_U and propagate to Omega_B if necessary:
 	if(grad)
 	{	watch.start();
-		for(KmeshEntry& ki: kMesh) ki.Omega_UdotU.allReduce(MPIUtil::ReduceSum); //Collect Omega_U
+		for(KmeshEntry& ki: kMesh)
+			if(ki.mpi)
+				ki.mpi->allReduce(ki.Omega_UdotU.data(), ki.Omega_UdotU.nData(), MPIUtil::ReduceSum); //Collect Omega_U
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
