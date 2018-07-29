@@ -237,7 +237,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 					{	std::vector<matrix> RhoSub(Rho.size());
 						for(unsigned s=0; s<Rho.size(); s++)
 						{	RhoSub[s] = Rho[s]
-								? Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1])
+								? matrix(Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1]))
 								: zeroes(spOffset[iSp+1]-spOffset[iSp], spOffset[iSp+1]-spOffset[iSp]);
 							RhoSub[s].allReduce(MPIUtil::ReduceSum);
 						}

@@ -59,26 +59,34 @@ void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, Colum
 	watch.start();
 	double scaleFac = alpha * scale * Mst.scale;
 	bool spinorMode = (2*Y.nCols() == Mst.nRows()); //treat each column of non-spinor Y as two identical consecutive spinor ones with opposite spins
-	assert(Y.nCols()==Mst.nRows() || spinorMode);
-	CBLAS_TRANSPOSE Mop; const matrix* M; matrix Mtmp;
+	assert(spinorMode || Y.nCols()==Mst.nRows());
+	matrix Mtmp;
+	CBLAS_TRANSPOSE Mop;
+	const complex* Mdata; //pointer to start of M's data
+	int ldM; //leading dimension of M
+	int nColsOut; //number of columns in the result
 	if(spinorMode)
 	{	matrix mIn(Mst); Mop=CblasNoTrans; //pre-apply the op in this case
 		Mtmp.init(Y.nCols(), 2*mIn.nCols(), isGpuEnabled());
 		Mtmp.set(0,1,Y.nCols(), 0,2,Mtmp.nCols(), mIn(0,2,mIn.nRows(), 0,1,mIn.nCols()));
 		Mtmp.set(0,1,Y.nCols(), 1,2,Mtmp.nCols(), mIn(1,2,mIn.nRows(), 0,1,mIn.nCols()));
-		M = &Mtmp;
+		Mdata = Mtmp.dataPref();
+		ldM = Mtmp.nRows();
+		nColsOut = Mtmp.nCols();
 		assert(!Y.isSpinor());
 		if(beta) { assert(YM); assert(YM.nCols()==mIn.nCols()); assert(YM.colLength()==Y.colLength()*2); }
 		else YM.init(mIn.nCols(), Y.colLength()*2, Y.basis, Y.qnum, isGpuEnabled());
 	}
 	else
 	{	Mop = Mst.op;
-		M = &Mst.mat;
-		if(beta) { assert(YM); assert(YM.nCols()==Mst.nCols()); assert(YM.colLength()==Y.colLength()); }
-		else YM = Y.similar(Mst.nCols());
+		Mdata = Mst.mat.dataPref() + Mst.index(0,0);
+		ldM = Mst.mat.nRows();
+		nColsOut = Mst.nCols();
+		if(beta) { assert(YM); assert(YM.nCols()==nColsOut); assert(YM.colLength()==Y.colLength()); }
+		else YM = Y.similar(nColsOut);
 	}
-	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), M->nCols(), Y.nCols(),
-		scaleFac, Y.dataPref(), Y.colLength(), M->dataPref(), M->nRows(),
+	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), nColsOut, Y.nCols(),
+		scaleFac, Y.dataPref(), Y.colLength(), Mdata, ldM,
 		beta, YM.dataPref(), Y.colLength());
 	watch.stop();
 }

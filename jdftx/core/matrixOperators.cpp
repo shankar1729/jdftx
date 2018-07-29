@@ -38,6 +38,10 @@ complex matrix::operator()(int i, int j) const
 	else return data()[index(i,j)];
 }
 
+matrixScaledTransOp matrix::operator()(int iStart, int iStop, int jStart, int jStop) const
+{	return matrixScaledTransOp(*this, iStart,iStop, jStart,jStop);
+}
+
 #ifdef GPU_ENABLED
 void matrixSubGet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out); //implemented in operators.cu
 #endif
@@ -111,8 +115,10 @@ matrix operator*(const matrixScaledTransOp &m1st, const matrixScaledTransOp &m2s
 	const matrix& m2 = m2st.mat;
 	double scaleFac = m1st.scale * m2st.scale;
 	matrix ret(m1st.nRows(), m2st.nCols(), isGpuEnabled());
-	callPref(eblas_zgemm)(m1st.op, m2st.op, ret.nRows(), ret.nCols(), m1st.nCols(),
-		scaleFac, m1.dataPref(), m1.nRows(), m2.dataPref(), m2.nRows(),
+	callPref(eblas_zgemm)(m1st.op, m2st.op,
+		ret.nRows(), ret.nCols(), m1st.nCols(), scaleFac,
+		m1.dataPref()+m1st.index(0,0), m1.nRows(),
+		m2.dataPref()+m2st.index(0,0), m2.nRows(),
 		0.0, ret.dataPref(), ret.nRows());
 	return ret;
 }
@@ -246,13 +252,21 @@ matrix zeroes(int nRows, int nCols)
 
 //Apply pending transpose / dagger operations:
 matrixScaledTransOp::operator matrix() const
-{	if(op==CblasNoTrans) return scale * mat;
+{	if(op==CblasNoTrans)
+		return scale * mat(iStart,1,iStart+iDelta, jStart,1,jStart+jDelta);
 	else
-	{	const complex* matData = mat.data();
-		matrix ret(mat.nCols(), mat.nRows()); complex* retData = ret.data();
-		for(int i=0; i < mat.nCols(); i++)
-			for(int j=0; j < mat.nRows(); j++)
-				retData[ret.index(i,j)] = scale * conjOp(matData[mat.index(j,i)]);
+	{	matrix ret = zeroes(nRows(), nCols());
+		//Copy data, applying transpose and submatrix
+		complex* retData = ret.dataPref();
+		const complex* inData = mat.dataPref()+index(0,0);
+		for(int j=0; j<ret.nCols(); j++)
+		{	callPref(eblas_zaxpy)(ret.nRows(), scale, inData,mat.nRows(), retData,1);
+			retData += ret.nRows();
+			inData++;
+		}
+		//Apply conjugate if needed:
+		if(op==CblasConjTrans)
+			callPref(eblas_dscal)(ret.nData(), -1., ((double*)ret.dataPref())+1, 2); //negate imag part
 		return ret;
 	}
 }
@@ -267,18 +281,41 @@ matrix conj(const scaled<matrix>& A)
 }
 
 // Hermitian adjoint
-matrixScaledTransOp dagger(const scaled<matrix> &A)
-{	return matrixScaledTransOp(A.data, A.scale, CblasConjTrans);
+matrixScaledTransOp dagger(const matrixScaledTransOp& A)
+{	matrixScaledTransOp result(A);
+	assert(A.op != CblasTrans); //dagger(CblasTrans) = "CblasConj" is not supported in BLAS
+	result.op = (A.op==CblasNoTrans) ? CblasConjTrans : CblasNoTrans;
+	return result;
+	//Note: sub-matrix operation refers to input matrix and does not need to be handled above (because op applies after submatrix logically)
 }
-matrix dagger_symmetrize(const scaled<matrix> &A)
+matrix dagger_symmetrize(const matrixScaledTransOp& A)
 {	return 0.5*(dagger(A) + A);
 }
 // Transpose
-matrixScaledTransOp transpose(const scaled<matrix> &A)
-{	return matrixScaledTransOp(A.data, A.scale, CblasTrans);
+matrixScaledTransOp transpose(const matrixScaledTransOp& A)
+{	matrixScaledTransOp result(A);
+	assert(A.op != CblasConjTrans); //transpose(CblasConjTrans) = "CblasConj" is not supported in BLAS
+	result.op = (A.op==CblasNoTrans) ? CblasTrans : CblasNoTrans;
+	return result;
+	//Note: sub-matrix operation refers to input matrix and does not need to be handled above (because op applies after submatrix logically)
 }
-matrix transpose_symmetrize(const scaled<matrix>& A)
+matrix transpose_symmetrize(const matrixScaledTransOp& A)
 {	return 0.5*(transpose(A) + A);
+}
+
+double nrm2(const matrixScaledTransOp& A)
+{	const complex* Adata = A.mat.dataPref() + A.mat.index(A.iStart,A.jStart);
+	if(A.iDelta == A.mat.nRows()) //contiguous
+		return callPref(eblas_dznrm2)(A.iDelta*A.jDelta, Adata, 1);
+	else //not=contiguous
+	{	double resultSq = 0.;
+		for(int j=0; j<A.jDelta; j++) //loop over columns, each of which is contiguous
+		{	resultSq += std::pow(callPref(eblas_dznrm2)(A.iDelta, Adata, 1), 2);
+			Adata += A.mat.nRows(); //stride between columns of the matrix
+		}
+		return sqrt(resultSq);
+	}
+	//Note: transpose/conjugate do not affect nrm2 and hence do not need to be handled above
 }
 
 double relativeHermiticityError(int N, const complex* data)

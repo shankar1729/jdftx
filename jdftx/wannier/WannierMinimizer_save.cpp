@@ -238,7 +238,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			//--- Compute extra linearly indep columns of U1 (if necessary):
 			if(ke.nIn > nCenters)
 			{	matrix U, Vdag; diagMatrix S;
-				ke.U1(bStart,bStop, 0,ke.nIn).svd(U, S, Vdag);
+				matrix(ke.U1(bStart,bStop, 0,ke.nIn)).svd(U, S, Vdag);
 				ke.U1.set(bStart,bStop, 0,ke.nIn, U*Vdag);
 			}
 		}
@@ -253,7 +253,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				if(ke.nFixed > 0)
 				{	//SVD the fixed band contribution to the trial space:
 					matrix U, Vdag; diagMatrix S;
-					CdagG(bFixedStart,bFixedStop, 0,nNew).svd(U, S, Vdag);
+					matrix(CdagG(bFixedStart,bFixedStop, 0,nNew)).svd(U, S, Vdag);
 					//Project out the fixed bands (use only the zero singular values)
 					CdagGFree = CdagG * dagger(Vdag(nNew-nFree,nNew, 0,nNew));
 				}

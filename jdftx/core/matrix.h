@@ -84,7 +84,7 @@ public:
 	complex operator()(int i, int j) const;
 	
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop)
-	matrix operator()(int iStart, int iStop, int jStart, int jStop) const { return (*this)(iStart,1,iStop, jStart,1,jStop); }
+	struct matrixScaledTransOp operator()(int iStart, int iStop, int jStart, int jStop) const;
 	
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop) with arbitrary increments
 	matrix operator()(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop) const;
@@ -113,24 +113,35 @@ public:
 	matrix getPlane(vector3<int> normal, vector3<int> point, class GridInfo& gInfo); //!< get a planar slice from a Nx*Ny*Nzx1 matrix
 };
 
-//! Matrix with a pending scale and transpose operation
+//! Matrix with pending scale, submatrix and/or transpose operations
 struct matrixScaledTransOp
 {	const matrix& mat; //!< matrix
 	double scale; //!< pending scale factor
+	int iStart, iDelta, jStart, jDelta; //!< sub-matrix indexing (applies to mat before transpose)
 	CBLAS_TRANSPOSE op; //!< pending operation (none, transpose or dagger)
 	
-	int nRows() const { return op==CblasNoTrans ? mat.nRows() : mat.nCols(); }
-	int nCols() const { return op==CblasNoTrans ? mat.nCols() : mat.nRows(); }
+	int nRows() const { return op==CblasNoTrans ? iDelta : jDelta; }
+	int nCols() const { return op==CblasNoTrans ? jDelta : iDelta; }
 	complex conjOp(complex a) const { return (op==CblasConjTrans) ? a.conj() : a; } //!< return conjugate if op requires it
-	int index(int i, int j) const { return op==CblasNoTrans ? mat.index(i,j) : mat.index(j,i); } //!< Index into data() with possible transpose
+	int index(int i, int j) const { return op==CblasNoTrans ? mat.index(i+iStart,j+jStart) : mat.index(j+iStart,i+jStart); } //!< Index to mat.data() with transpose/submatrix
 	
 	//!Create from a matrix with an optional scale and op:
-	matrixScaledTransOp(const matrix& mat, double scale=1.0, CBLAS_TRANSPOSE op=CblasNoTrans)
-	: mat(mat), scale(scale), op(op) {}
+	matrixScaledTransOp(const matrix& mat, double scale=1., CBLAS_TRANSPOSE op=CblasNoTrans)
+	: mat(mat), scale(scale),
+		iStart(0), iDelta(mat.nRows()), jStart(0), jDelta(mat.nCols()),
+		op(op) {}
 	
 	//! Create from a scaled matrix, with an optional op
 	matrixScaledTransOp(const scaled<matrix>& smat, CBLAS_TRANSPOSE op=CblasNoTrans)
-	: mat(smat.data), scale(smat.scale), op(op) {}
+	: mat(smat.data), scale(smat.scale),
+		iStart(0), iDelta(mat.nRows()), jStart(0), jDelta(mat.nCols()),
+		op(op) {}
+	
+	//! Create from a matrix with sub-matrix indexing and an optional scale
+	matrixScaledTransOp(const matrix& mat, int iStart, int iStop, int jStart, int jStop, double scale=1.)
+	: mat(mat), scale(scale),
+		iStart(iStart), iDelta(iStop-iStart), jStart(jStart), jDelta(jStop-jStart),
+		op(CblasNoTrans) {}
 	
 	operator matrix() const; //!< convert to matrix
 	
@@ -140,11 +151,11 @@ struct matrixScaledTransOp
 	friend matrixScaledTransOp operator*(double s, const matrixScaledTransOp& A) { return A * s; }
 };
 matrix conj(const scaled<matrix>& A); //!< return element-wise complex conjugate of A
-matrixScaledTransOp dagger(const scaled<matrix>& A); //!< return hermitian adjoint of A
-matrixScaledTransOp transpose(const scaled<matrix>& A); //!< return transpose of A
-matrix dagger_symmetrize(const scaled<matrix>& A); //! return adjoint symmetric part: (A + Adag)/2
-matrix transpose_symmetrize(const scaled<matrix>& A); //! return transpose symmetric part: (A + AT)/2
-
+matrixScaledTransOp dagger(const matrixScaledTransOp& A); //!< return hermitian adjoint of A
+matrixScaledTransOp transpose(const matrixScaledTransOp& A); //!< return transpose of A
+matrix dagger_symmetrize(const matrixScaledTransOp& A); //! return adjoint symmetric part: (A + Adag)/2
+matrix transpose_symmetrize(const matrixScaledTransOp& A); //! return transpose symmetric part: (A + AT)/2
+double nrm2(const matrixScaledTransOp& A); //!< return 2-norm (avoid explicit transpose or sub-matrix operations)
 
 //------------ Arithmetic ------------------
 

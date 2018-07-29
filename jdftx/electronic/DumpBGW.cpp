@@ -1009,7 +1009,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		else
 		{	std::vector<int> iEigRowsMine = distributedIndices(nEigs, blockSize, iProcRow, nProcsRow);
 			if(iEigRowsMine.size() and iEigColsMine.size())
-				Vxc(0,iEigRowsMine.size(), 0,iEigColsMine.size()).send(eInfo.whose(q));
+				matrix(Vxc(0,iEigRowsMine.size(), 0,iEigColsMine.size())).send(eInfo.whose(q));
 		}
 		watchVxc.stop();
 	}
