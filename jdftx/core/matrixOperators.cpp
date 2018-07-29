@@ -85,27 +85,32 @@ void matrix::set(int i, int j, complex m)
 
 #ifdef GPU_ENABLED
 void matrixSubSet_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out);
+void matrixSubAccum_gpu(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out);
 #endif
-void matrix::set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m)
-{	assert(iStart>=0 && iStart<nr);
-	assert(iStop>iStart && iStop<=nr);
-	assert(iStep>0);
-	assert(jStart>=0 || jStart<nc);
-	assert(jStop>jStart || jStop<=nc);
-	assert(jStep>0);
-	int iDelta = ceildiv(iStop-iStart, iStep), jDelta = ceildiv(jStop-jStart, jStep);
-	assert(iDelta==m.nr);
-	assert(jDelta==m.nc);
-
-	const complex* mData = m.dataPref(); complex* thisData = this->dataPref();
-	#ifdef GPU_ENABLED
-	matrixSubSet_gpu(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, mData, thisData);
-	#else
-	for(int i=0; i<iDelta; i++)
-		for(int j=0; j<jDelta; j++)
-			thisData[this->index(i*iStep+iStart, j*jStep+jStart)] = mData[m.index(i,j)];
-	#endif
-}
+#define DECLARE_matrixSubSetAccum(nAME, NAME, OP) \
+	void matrixSub ##NAME(int nr, int iStart, int iStep, int iDelta, int jStart, int jStep, int jDelta, const complex* in, complex* out) \
+	{	for(int j=0; j<jDelta; j++) \
+			for(int i=0; i<iDelta; i++) \
+				out[nr*(j*jStep+jStart) + (i*iStep+iStart)] OP *(in++); \
+	} \
+	void matrix::nAME(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m) \
+	{	static StopWatch watch("matrix::" #nAME); watch.start(); \
+		assert(iStart>=0 && iStart<nr); \
+		assert(iStop>iStart && iStop<=nr); \
+		assert(iStep>0); \
+		assert(jStart>=0 || jStart<nc); \
+		assert(jStop>jStart || jStop<=nc); \
+		assert(jStep>0); \
+		int iDelta = ceildiv(iStop-iStart, iStep); \
+		int jDelta = ceildiv(jStop-jStart, jStep); \
+		assert(iDelta==m.nr); \
+		assert(jDelta==m.nc); \
+		callPref(matrixSub ##NAME)(nr, iStart,iStep,iDelta, jStart,jStep,jDelta, m.dataPref(), dataPref()); \
+		watch.stop(); \
+	}
+DECLARE_matrixSubSetAccum(set, Set, =)
+DECLARE_matrixSubSetAccum(accum, Accum, +=)
+#undef DECLARE_matrixSubSetAccum
 
 //----------------------- Arithmetic ---------------------
 
@@ -123,33 +128,55 @@ matrix operator*(const matrixScaledTransOp &m1st, const matrixScaledTransOp &m2s
 	return ret;
 }
 
-matrix operator*(const diagMatrix& d, const matrix& m)
-{	assert(d.nCols()==m.nRows());
-	matrix ret(m); //copy input to output
-	ManagedArray<double> dManaged(d); //transfer diagonal matrix to managed memory (for potential GPU access)
-	//Elementwise-multiply each column by the scale factors (better contiguous access pattern than row-wise)
-	for(int j=0; j<ret.nCols(); j++)
-		callPref(eblas_zmuld)(ret.nRows(), dManaged.dataPref(), 1, ret.dataPref()+ret.index(0,j), 1);
-	return ret;
+//----- diagonal matrix multiplies
+template<typename scalar> void mulMD(int nRows, int nCols, const complex* M, const scalar* D, complex* out)
+{	for(int j=0; j<nCols; j++)
+		for(int i=0; i<nRows; i++)
+			*(out++) = *(M++) * D[j];
 }
-
+template<typename scalar> void mulDM(int nRows, int nCols, const scalar* D, const complex* M, complex* out)
+{	for(int j=0; j<nCols; j++)
+		for(int i=0; i<nRows; i++)
+			*(out++) = D[i] * (*(M++));
+}
+#define mulMDdouble  mulMD<double>
+#define mulMDcomplex mulMD<complex>
+#define mulDMdouble  mulDM<double>
+#define mulDMcomplex mulDM<complex>
+#ifdef GPU_ENABLED
+void mulMDdouble_gpu(int nRows, int nCols, const complex* M, const double* D, complex* out);
+void mulDMdouble_gpu(int nRows, int nCols, const double* D, const complex* M, complex* out);
+void mulMDcomplex_gpu(int nRows, int nCols, const complex* M, const complex* D, complex* out);
+void mulDMcomplex_gpu(int nRows, int nCols, const complex* D, const complex* M, complex* out);
+#define GetData(D,scalar) ManagedArray<scalar>(D).dataGpu()
+#else
+#define GetData(D,scalar) D.data()
+#endif
 matrix operator*(const matrix& m, const diagMatrix& d)
 {	assert(m.nCols()==d.nRows());
-	matrix ret(m); //copy input to out
-	//Scale each column:
-	for(int j=0; j<ret.nCols(); j++)
-		callPref(eblas_zdscal)(ret.nRows(), d[j], ret.dataPref()+ret.index(0,j), 1);
+	matrix ret(m.nRows(), m.nCols(), isGpuEnabled());
+	callPref(mulMDdouble)(m.nRows(), m.nCols(), m.dataPref(), GetData(d,double), ret.dataPref());
+	return ret;
+}
+matrix operator*(const matrix& m, const std::vector<complex>& d)
+{	assert(m.nCols()==int(d.size()));
+	matrix ret(m.nRows(), m.nCols(), isGpuEnabled());
+	callPref(mulMDcomplex)(m.nRows(), m.nCols(), m.dataPref(), GetData(d,complex), ret.dataPref());
+	return ret;
+}
+matrix operator*(const diagMatrix& d, const matrix& m)
+{	assert(d.nCols()==m.nRows());
+	matrix ret(m.nRows(), m.nCols(), isGpuEnabled());
+	callPref(mulDMdouble)(m.nRows(), m.nCols(), GetData(d,double), m.dataPref(), ret.dataPref());
+	return ret;
+}
+matrix operator*(const std::vector<complex>& d, const matrix& m)
+{	assert(int(d.size())==m.nRows());
+	matrix ret(m.nRows(), m.nCols(), isGpuEnabled());
+	callPref(mulDMcomplex)(m.nRows(), m.nCols(), GetData(d,complex), m.dataPref(), ret.dataPref());
 	return ret;
 }
 
-matrix operator*(const matrix& m, const std::vector<complex>& d)
-{	assert(m.nCols()==int(d.size()));
-	matrix ret(m); //copy input to out
-	//Scale each column:
-	for(int j=0; j<ret.nCols(); j++)
-		callPref(eblas_zscal)(ret.nRows(), d[j], ret.dataPref()+ret.index(0,j), 1);
-	return ret;
-}
 
 diagMatrix operator*(const diagMatrix& d1, const diagMatrix& d2)
 {	assert(d1.nCols()==d2.nRows());
@@ -161,8 +188,8 @@ diagMatrix operator*(const diagMatrix& d1, const diagMatrix& d2)
 void axpy(double alpha, const diagMatrix& x, matrix& y)
 {	assert(x.nRows()==y.nRows());
 	assert(x.nCols()==y.nCols());
-	complex* yData = y.data();
-	for(int i=0; i<y.nRows(); i++) yData[y.index(i,i)] += alpha * x[i];
+	int diagStride = y.nRows() + 1;
+	callPref(eblas_daxpy)(x.nRows(), alpha, GetData(x,double),1, (double*)y.dataPref(),diagStride*2);
 }
 
 void axpy(double alpha, const diagMatrix& x, diagMatrix& y)
@@ -231,10 +258,18 @@ double nrm2(const diagMatrix& A)
 }
 
 diagMatrix diag(const matrix &A)
-{	assert(A.nRows()==A.nCols());
-	diagMatrix ret(A.nRows());
-	const complex* Adata = A.data();
-	for(int i=0; i<A.nRows(); i++) ret[i] = Adata[A.index(i,i)].real();
+{	int N = A.nRows();
+	assert(N==A.nCols());
+	diagMatrix ret(N);
+	int diagStride = N + 1;
+	#ifdef GPU_ENABLED
+	ManagedArray<double> retManaged; retManaged.init(N, true);
+	eblas_zero_gpu(N, retManaged.dataGpu());
+	eblas_daxpy_gpu(N, 1., (const double*)A.dataGpu(),diagStride*2, retManaged.dataGpu(),1);
+	eblas_copy(ret.data(), retManaged.data(), N);
+	#else
+	eblas_daxpy(N, 1., (const double*)A.data(),diagStride*2, ret.data(),1);
+	#endif
 	return ret;
 }
 

@@ -89,14 +89,11 @@ public:
 	//! get submatrix of elements (iStart \<= i \< iStop, jStart \<= j \< jStop) with arbitrary increments
 	matrix operator()(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop) const;
 
-	//! set element to m
-	void set(int i, int j, complex m);
-	
-	//! set submatrix to m
-	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m) { set(iStart,1,iStop, jStart,1,jStop, m); }
-	
-	//! set submatrix to m at arbitrary increments
-	void set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m);
+	void set(int i, int j, complex m); //!< set element to m
+	void set(int iStart, int iStop, int jStart, int jStop, const matrix& m) { set(iStart,1,iStop, jStart,1,jStop, m); } //!< set submatrix to m
+	void set(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m); //!< set submatrix to m at arbitrary increments
+	void accum(int iStart, int iStop, int jStart, int jStop, const matrix& m) { accum(iStart,1,iStop, jStart,1,jStop, m); } //!< accumulate m on submatrix
+	void accum(int iStart, int iStep, int iStop, int jStart, int jStep, int jStop, const matrix& m); //!< accumulate m on submatrix at arbitrary increments
 	
 	void scan(FILE* fp, const char* fmt="%lg%+lgi"); //!< read (ascii) from stream
 	void scan_real(FILE* fp); //!< read (ascii) real parts from stream, setting imaginary parts to 0
@@ -173,6 +170,7 @@ inline diagMatrix operator-(const diagMatrix &m) { return m * (-1); }
 matrix operator*(const matrixScaledTransOp&, const matrixScaledTransOp&);
 matrix operator*(const diagMatrix&, const matrix&);
 matrix operator*(const matrix&, const diagMatrix&);
+matrix operator*(const std::vector<complex>& d, const matrix& m);
 matrix operator*(const matrix& m, const std::vector<complex>& d);
 diagMatrix operator*(const diagMatrix&, const diagMatrix&);
 
