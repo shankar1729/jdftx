@@ -66,13 +66,39 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	if(!procDivision) Random::seed(iProc); //Reproducible random seed per process in mpiWorld
 }
 
+MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
+{
+	#ifdef MPI_ENABLED
+	//Create sub-communicator:
+	MPI_Group parent, subset;
+	MPI_Comm_group(mpiUtil->comm, &parent); //create group asociated with parent communicator
+	MPI_Group_incl(parent, int(ranks.size()), ranks.data(), &subset); //create subgroup
+	MPI_Comm_create_group(mpiUtil->comm, subset, 0, &comm);
+	MPI_Group_free(&subset);
+	MPI_Group_free(&parent);
+	//Get rank and count within it:
+	MPI_Comm_size(comm, &nProcs);
+	MPI_Comm_rank(comm, &iProc);
+	#else
+	//No MPI:
+	assert(ranks.size()==1 && ranks[0]==0);
+	nProcs = 1;
+	iProc = 0;
+	#endif
+}
+
 MPIUtil::~MPIUtil()
 {
 	#ifdef MPI_ENABLED
-	if(procDivision)
-		MPI_Comm_free(&comm);
-	else
+	//Check if MPI has already finalized:
+	int finalized;
+	MPI_Finalized(&finalized);
+	if(finalized) return; //to prevent double-free type errors
+	//Finalize communicators or MPI as appropriate:
+	if(comm == MPI_COMM_WORLD)
 		MPI_Finalize();
+	else
+		MPI_Comm_free(&comm);
 	#endif
 }
 

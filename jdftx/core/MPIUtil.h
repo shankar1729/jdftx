@@ -62,6 +62,7 @@ public:
 	procDivision;
 
 	MPIUtil(int argc, char** argv, ProcDivision procDivision=ProcDivision());
+	MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks); //!< create a sub-communicator from listed ranks in parent communicator
 	~MPIUtil();
 	void exit(int errCode) const; //!< global exit (kill other MPI processes as well)
 
