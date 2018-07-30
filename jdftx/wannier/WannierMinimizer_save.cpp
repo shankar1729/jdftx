@@ -22,19 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/SphericalHarmonics.h>
 
-//Apply cell map weights due to repeated images near supercell boundaries
-//nVector specifies number of vecor components in each cell eg. 3 for momentum, 1 for Hamiltonian.
-void applyCellMapWeights(matrix& M, const std::map<vector3<int>,matrix>& cellMap, int nVector=1)
-{	complex* Mdata = M.dataPref();
-	for(auto cell: cellMap)
-	{	const matrix& w = cell.second;
-		for(int iVector=0; iVector<nVector; iVector++)
-		{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Mdata, 1);
-			Mdata += w.nData();
-		}
-	}
-}
-
 //Thread function for setting fourier transform of z-slice of half-width zH centered at z0 with smoothness zSigma:
 inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
 	complex* w, double z0, double zH, double zSigma)
@@ -518,15 +505,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap", &iSpin));
 	//--- output cell map weights:
 	if(mpiWorld->isHead())
-	{	matrix w = zeroes(nCenters*nCenters, iCellMap.size());
-		complex* wData = w.dataPref();
-		for(auto iter: iCellMap)
-		{	callPref(eblas_copy)(wData, iter.second.dataPref(), w.nRows());
-			wData += w.nRows();
-		}
-		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights", &iSpin);
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeights", &iSpin);
 		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
-		w.write_real(fname.c_str());
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+		for(auto iter: iCellMap)
+			iter.second.write_real(fp);
+		fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
 	
@@ -549,10 +534,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
-		matrix Hwannier = HwannierTilde * phase;
-		Hwannier.allReduce(MPIUtil::ReduceSum);
-		applyCellMapWeights(Hwannier, iCellMap);
-		dumpMatrix(Hwannier, "mlwfH", realPartOnly, iSpin);
+		dumpWannierized(HwannierTilde, iCellMap, phase, 1, "mlwfH", realPartOnly, iSpin);
 	}
 	resumeOperatorThreading();
 	
@@ -583,10 +565,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
-		matrix pWannier = pWannierTilde * phase;
-		pWannier.allReduce(MPIUtil::ReduceSum);
-		applyCellMapWeights(pWannier, iCellMap, 3);
-		dumpMatrix(pWannier, "mlwfP", realPartOnly, iSpin);
+		dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
 	}
 	
 	//Save slab-weight matrix elements in Wannier basis, if requested:
@@ -628,10 +607,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			iqMine++;
 		}
 		//Fourier transform to Wannier space and save
-		matrix wWannier = wWannierTilde * phase;
-		wWannier.allReduce(MPIUtil::ReduceSum);
-		applyCellMapWeights(wWannier, iCellMap);
-		dumpMatrix(wWannier, "mlwfW", realPartOnly, iSpin);
+		dumpWannierized(wWannierTilde, iCellMap, phase, 1, "mlwfW", realPartOnly, iSpin);
 	}
 	
 	//Electron-electron linewidths:
@@ -696,10 +672,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 				callPref(eblas_copy)(ImSigma_eeWannierTilde.dataPref()+ImSigma_eeWannierTilde.index(0,iqMine), ImSigma_eeSub.dataPref(), ImSigma_eeSub.nData());
 				iqMine++;
 			}
-			matrix ImSigma_eeWannier = ImSigma_eeWannierTilde * phase;
-			ImSigma_eeWannier.allReduce(MPIUtil::ReduceSum);
-			applyCellMapWeights(ImSigma_eeWannier, iCellMap);
-			dumpMatrix(ImSigma_eeWannier, "mlwfImSigma_ee", realPartOnly, iSpin);
+			dumpWannierized(ImSigma_eeWannierTilde, iCellMap, phase, 1, "mlwfImSigma_ee", realPartOnly, iSpin);
 		}
 	}
 	
@@ -975,7 +948,53 @@ void WannierMinimizer::saveMLWF(int iSpin)
 }
 
 
-void WannierMinimizer::dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const
-{	if(mpiWorld->isHead())
-		H.dump(wannier.getFilename(Wannier::FilenameDump, varName, &iSpin).c_str(), realPartOnly);
+void WannierMinimizer::dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
+	const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const
+{
+	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	FILE* fp = 0; auto cmIter = iCellMap.begin();
+	if(mpiWorld->isHead())
+	{	fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+	}
+	//Determine block size:
+	int nCells = iCellMap.size();
+	int blockSize = ceildiv(nCells, mpiWorld->nProcesses()); //so that memory before and after FT roughly similar
+	int nBlocks = ceildiv(nCells, blockSize);
+	//Loop over blocks:
+	int iCellStart = 0;
+	double nrm2totSq = 0., nrm2imSq = 0.;
+	for(int iBlock=0; iBlock<nBlocks; iBlock++)
+	{	int iCellStop = std::min(iCellStart+blockSize, nCells);
+		matrix Hblock = Htilde * phase(0,phase.nRows(), iCellStart,iCellStop);
+		mpiWorld->reduce(Hblock.data(), Hblock.nData(), MPIUtil::ReduceSum);
+		if(mpiWorld->isHead())
+		{	//Apply cell map weights:
+			complex* Hdata = Hblock.dataPref();
+			for(int iCell=iCellStart; iCell<iCellStop; iCell++)
+			{	const matrix& w = (cmIter++)->second;
+				for(int iMatrix=0; iMatrix<nMatrices; iMatrix++)
+				{	callPref(eblas_zmul)(w.nData(), w.dataPref(),1, Hdata,1);
+					Hdata += w.nData();
+				}
+			}
+			//Write to file:
+			if(realPartOnly)
+			{	nrm2totSq += std::pow(nrm2(Hblock), 2); 
+				nrm2imSq += std::pow(callPref(eblas_dnrm2)(Hblock.nData(), ((double*)Hblock.dataPref())+1, 2), 2); //imaginary parts with a stride of 2
+				Hblock.write_real(fp);
+			}
+			else Hblock.write(fp);
+		}
+		iCellStart = iCellStop;
+	}
+	if(mpiWorld->isHead()) fclose(fp);
+	if(realPartOnly)
+	{	mpiWorld->bcast(nrm2totSq);
+		mpiWorld->bcast(nrm2imSq);
+		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+	}
+	else
+		logPrintf("done.\n");
 }

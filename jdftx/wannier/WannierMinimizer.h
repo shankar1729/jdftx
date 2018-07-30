@@ -160,8 +160,9 @@ protected:
 	//! If provided, use the cached projections instead of recomputing them.
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2, const std::vector<matrix>* VdagC1ptr=0, const std::vector<matrix>* VdagC2ptr=0) const;
 	
-	//! Dump a named matrix variable to file, optionally zeroing out the real parts
-	void dumpMatrix(const matrix& H, string varName, bool realPartOnly, int iSpin) const;
+	//! Wannierize and dump a Bloch-space matrix to file, optionally zeroing out the real parts
+	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
+		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
 	
 	//! Return an exactly unitary version of U (orthogonalize columns)
 	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
