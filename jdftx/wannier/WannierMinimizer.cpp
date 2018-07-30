@@ -100,7 +100,7 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 
 double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 {	static StopWatch watch("WannierMinimizer::compute");
-	if(grad) for(KmeshEntry& ki: kMesh) if(ki.U) ki.Omega_UdotU = zeroes(ki.nIn, ki.nIn); //Clear gradient
+	if(grad) for(KmeshEntry& ki: kMesh) if(ki.U) ki.Omega_UdotU = zeroes(nCenters, ki.nIn); //Clear gradient
 	
 	double Omega = getOmega(grad);
 	
@@ -118,7 +118,7 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 		grad->init(this);
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		{	KmeshEntry& ki = kMesh[ik];
-			matrix Omega_B = complex(0,0.5)*(ki.U2 * ki.Omega_UdotU * dagger(ki.U2));
+			matrix Omega_B = complex(0,0.5)*(ki.U2(0,ki.nIn, 0,nCenters) * ki.Omega_UdotU * dagger(ki.U2));
 			if(ki.nIn > nCenters) //Stage 1:
 				grad->B1[ik] = Omega_B(ki.nFixed,nCenters, nCenters,ki.nIn);
 			matrix Omega_B2_hlf = Omega_B(nFrozen,nCenters, nFrozen,nCenters);
