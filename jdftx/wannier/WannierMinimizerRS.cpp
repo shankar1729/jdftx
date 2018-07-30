@@ -42,6 +42,25 @@ WannierMinimizerRS::WannierMinimizerRS(const Everything& e, const Wannier& wanni
 	
 	//Split centers over MPI processes:
 	TaskDivision(nCenters, mpiWorld).myRange(nStart, nStop);
+	
+	//Create MPI communicators for rotations:
+	std::vector<std::set<int>> ranksNeeded(kMesh.size()); //rank of other processes that need each rotation
+	for(size_t i=0; i<kMesh.size(); i++)
+	{	int iProc = whose(i);
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
+		{	int jProc = whose_q(i, iSpin);
+			if(jProc != iProc) ranksNeeded[i].insert(jProc);
+		}
+	}
+	for(size_t i=0; i<kMesh.size(); i++)
+		if(ranksNeeded[i].size() //some communication is needed
+			&& ( isMine(i) //this  process is the source
+				|| ranksNeeded[i].count(mpiWorld->iProcess()) ) ) //this process is a consumer
+		{
+			std::vector<int> ranks(1, whose(i)); //source rank
+			ranks.insert(ranks.end(), ranksNeeded[i].begin(), ranksNeeded[i].end());
+			kMesh[i].mpi = std::make_shared<MPIUtil>(mpiWorld, ranks);
+		}
 }
 
 void WannierMinimizerRS::initialize(int iSpin)
@@ -61,9 +80,17 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	Csuper.zero();
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	const KmeshEntry& ki = kMesh[i];
-		axpyWfns(ki.point.weight, ki.U, ki.point, iSpin, Csuper);
+		axpyWfns(ki.point.weight, ki.U(0,nBands,0,nCenters), ki.point, iSpin, Csuper);
 	}
 	Csuper.allReduce(MPIUtil::ReduceSum);
+	
+	//Translation to handle high offsets
+	std::vector<vector3<>> dr(nCenters), drReverse(nCenters);
+	for(int n=0; n<nCenters; n++)
+	{	drReverse[n] = gInfoSuper.invR * rPinned[n]; //translation from origin to rPinned
+		dr[n] = -drReverse[n]; //and translation to rPinned as origin, both in supercell-lattice coords
+	}
+	translateColumns(Csuper, dr.data());
 	
 	//Compute spread (and optionally its gradient w.r.t Csuper):
 	double Omega = 0.;
@@ -85,8 +112,12 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 				rExpect[n][dir] += gInfoSuper.dV * dot(psi[s], r[dir]* psi[s]).real();
 		//Accumulate contributions to Omega:
 		bool shouldPin = pinned[n] && !invariant;
-		const vector3<> r0_n = shouldPin ? rPinned[n] : rExpect[n];
+		const vector3<> r0_n = shouldPin ? vector3<>() : rExpect[n];
 		Omega += (rSqExpect[n] - 2*dot(rExpect[n],r0_n) + r0_n.length_squared());
+		//Shift back from rPinned to original origin for stored outputs:
+		rSqExpect[n] -= rExpect[n].length_squared();
+		rExpect[n] += rPinned[n]; 
+		rSqExpect[n] += rExpect[n].length_squared();
 		//Propagate gradient via rExpect:
 		if(grad)
 		{	for(int dir=0; dir<3; dir++)
@@ -126,12 +157,13 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	if(grad)
 	{	//Collect across processes:
 		Omega_Csuper.allReduce(MPIUtil::ReduceSum);
+		translateColumns(Omega_Csuper, drReverse.data());
 		//Propagate to rotations:
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	KmeshEntry& ki = kMesh[i];
 			matrix Omega_U;
 			axpyWfns_grad(ki.point.weight, Omega_U, ki.point, iSpin, Omega_Csuper);
-			ki.Omega_UdotU += Omega_U * ki.U;
+			ki.Omega_UdotU += Omega_U(0,nCenters, 0,nBands) * ki.U;
 		}
 	}
 	suspendOperatorThreading();
