@@ -69,6 +69,7 @@ protected:
 	virtual void readVariable(Variable&, FILE*) const=0; //!< Read variable from stream
 	virtual void writeVariable(const Variable&, FILE*) const=0; //! Write variable to stream
 	virtual Variable getVariable() const=0; //!< Get the current variable from state of system
+	virtual Variable getResidual() const; //!< Get the current residual from state of system (override if not an SCF)
 	virtual void setVariable(const Variable&)=0; //!< Set the state of system to specified variable
 	virtual Variable precondition(const Variable&) const=0; //!< Apply preconditioner to variable/residual
 	virtual Variable applyMetric(const Variable&) const=0; //!< Apply metric to variable/residual
@@ -149,7 +150,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 			
 		//Calculate and cache residual:
 		double residualNorm = 0.;
-		{	Variable residual = getVariable(); axpy(-1., pastVariables.back(), residual);
+		{	Variable residual = getResidual();
 			pastResiduals.push_back(residual);
 			residualNorm = sync(sqrt(dot(residual,residual)));
 		}
@@ -224,6 +225,12 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 	return E;
 }
 
+template<typename Variable> Variable Pulay<Variable>::getResidual() const
+{	Variable residual = getVariable(); 
+	axpy(-1., pastVariables.back(), residual);
+	return residual;
+}
+ 
 template<typename Variable> void Pulay<Variable>::loadState(const char* filename)
 {
 	size_t nBytesCycle = 2 * variableSize(); //number of bytes per history entry
