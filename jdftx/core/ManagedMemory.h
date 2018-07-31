@@ -132,6 +132,7 @@ template<typename T> struct ManagedArray : public ManagedMemory<T>
 {	void init(size_t size, bool onGpu=false); //!< calls memInit with category "misc"
 	ManagedArray(const T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
 	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
+	ManagedArray(const ManagedArray&); //!< copy-constructor
 	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
 	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
 };
@@ -309,6 +310,13 @@ template<typename T> ManagedArray<T>::ManagedArray(const std::vector<T>& v)
 {	if(v.size())
 	{	init(v.size());
 		eblas_copy(this->data(), v.data(), v.size());
+	}
+}
+
+template<typename T> ManagedArray<T>::ManagedArray(const ManagedArray<T>& other)
+{	if(other.nData())
+	{	init(other.nData(), isGpuEnabled());
+		memcpy(*this, other);
 	}
 }
 
