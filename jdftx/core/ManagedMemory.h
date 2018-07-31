@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Util.h>
 #include <core/vector3.h>
 #include <core/BlasExtra.h>
+#include <core/GpuUtil.h>
 
 //! @addtogroup DataStructures
 //! @{
@@ -313,7 +314,7 @@ template<typename T> ManagedArray<T>::ManagedArray(const std::vector<T>& v)
 
 template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedArray<T>& other)
 {	if(other.nData())
-	{	init(other.nData());
+	{	init(other.nData(), isGpuEnabled());
 		memcpy(*this, other);
 	}
 	else ManagedMemory<T>::memFree();
