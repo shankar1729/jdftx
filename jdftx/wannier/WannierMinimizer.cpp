@@ -85,7 +85,12 @@ void WannierMinimizer::step(const WannierGradient& grad, double alpha)
 		//Net rotation:
 		ki.U = ki.U1 * ki.U2;
 	}
-	//Make U available on all processes that need it:
+	watch.stop();
+	bcastU(); //Make U available on all processes that need it
+}
+
+void WannierMinimizer::bcastU()
+{	static StopWatch watch("WannierMinimizer::bcastU"); watch.start();
 	std::vector<MPIUtil::Request> requests;
 	for(KmeshEntry& ki: kMesh)
 		if(ki.mpi)
@@ -173,6 +178,7 @@ bool WannierMinimizer::report(int iter)
 			ki.U = ki.U1 * ki.U2;
 		}
 		mpiWorld->checkErrors(ossErr);
+		bcastU();
 		return true;
 	}
     return false;

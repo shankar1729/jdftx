@@ -87,7 +87,8 @@ public:
 		//NOTE: U and U2 are truncated from nIn -> nCenters after minimization
 		std::shared_ptr<MPIUtil> mpi; //MPI communicator with head=whose(ik) over which U must be bcast'd and reduced (created by subclass if needed)
 	};
-
+	void bcastU(); //broadcast U to any processes that need it
+	
 	//-------- Interface for subclasses that provide the objective function for Wannier minimization
 	
 	//! Prepare for minimization of spin channel iSpin
