@@ -280,7 +280,7 @@ template<typename T> void ManagedMemory<T>::recv(int src, int tag)
 }
 template<typename T> void ManagedMemory<T>::bcast(int root)
 {	if(mpiWorld->nProcesses()>1)
-		mpiWorld->bcast(data(), nData(), root); //bcast fails from GPU pointers as of OpenMPI 2.1.1 (Needs extensive MPI testing)
+		mpiWorld->bcast(dataMPI(), nData(), root);
 }
 template<typename T> void ManagedMemory<T>::allReduce(MPIUtil::ReduceOp op, bool safeMode)
 {	if(mpiWorld->nProcesses()>1)
