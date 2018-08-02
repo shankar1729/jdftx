@@ -54,15 +54,16 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	if(wannier.loadRotations)
 	{	//Read U
 		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
-		if(fileSize(fname.c_str()) > 0)
+		bool Uexists = (fileSize(fname.c_str()) > 0);
+		mpiWorld->bcast(Uexists); //Ensure MPI consistency of file check (avoid occassional NFS errors)
+		if(Uexists)
 		{	logPrintf("Reading initial rotations from '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "r");
-			if(!fp) die("could not open '%s' for reading.\n", fname.c_str());
+			MPIUtil::File fp; mpiWorld->fopenRead(fp, fname.c_str());
 			for(auto& ke: kMesh)
 			{	ke.U.init(nBands, nCenters);
-				ke.U.read(fp);
+				mpiWorld->fread(ke.U.data(), sizeof(complex), ke.U.nData(), fp);
 			}
-			fclose(fp);
+			mpiWorld->fclose(fp);
 			logPrintf("done.\n"); logFlush();
 			logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
 			rotationsLoaded = true;
@@ -78,14 +79,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	if(nFrozen)
 	{	//Read U
 		logPrintf("Reading frozen rotations from '%s' ... ", wannier.frozenUfilename.c_str()); logFlush();
-		FILE* fp = fopen(wannier.frozenUfilename.c_str(), "r");
-		if(!fp) die("could not open '%s' for reading.\n", wannier.frozenUfilename.c_str());
+		MPIUtil::File fp; mpiWorld->fopenRead(fp, wannier.frozenUfilename.c_str());
 		for(size_t ik=0; ik<kMesh.size(); ik++)
 		{	Ufrozen[ik].init(nBands, nFrozen);
-			Ufrozen[ik].read(fp);
+			mpiWorld->fread(Ufrozen[ik].data(), sizeof(complex), Ufrozen[ik].nData(), fp);
 		}
-		fread(rPinned.data(), sizeof(vector3<>), nFrozen, fp);
-		fclose(fp);
+		mpiWorld->fread(rPinned.data(), sizeof(vector3<>), nFrozen, fp);
+		mpiWorld->fclose(fp);
 		logPrintf("done.\n"); logFlush();
 	}
 	

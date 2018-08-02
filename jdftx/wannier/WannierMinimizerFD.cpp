@@ -185,7 +185,9 @@ void WannierMinimizerFD::initialize(int iSpin)
 {
 	//Read overlap matrices, if available:
 	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfM0", &iSpin);
-	if(wannier.loadRotations && fileSize(fname.c_str())>0)
+	bool M0exists = (fileSize(fname.c_str()) > 0);
+	mpiWorld->bcast(M0exists); //Ensure MPI consistency of file check (avoid occassional NFS errors)
+	if(wannier.loadRotations && M0exists)
 	{	logPrintf("Reading initial overlaps from '%s' ... ", fname.c_str()); logFlush();
 		size_t sizePerK = edges[0].size() * nBands*nBands * sizeof(complex);
 		MPIUtil::File fp;
