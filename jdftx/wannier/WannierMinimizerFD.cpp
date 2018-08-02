@@ -190,13 +190,11 @@ void WannierMinimizerFD::initialize(int iSpin)
 		size_t sizePerK = edges[0].size() * nBands*nBands * sizeof(complex);
 		MPIUtil::File fp;
 		mpiWorld->fopenRead(fp, fname.c_str(), kMesh.size()*sizePerK);
-		for(size_t ik=0; ik<kMesh.size(); ik++)
-			if(isMine(ik))
-			{	mpiWorld->fseek(fp, ik*sizePerK, SEEK_SET);
-				for(Edge& edge: edges[ik])
-				{	edge.M0 = zeroes(nBands, nBands);
-					mpiWorld->fread(edge.M0.data(), sizeof(complex), edge.M0.nData(), fp);
-				}
+		mpiWorld->fseek(fp, ikStart*sizePerK, SEEK_SET);
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+			for(Edge& edge: edges[ik])
+			{	edge.M0 = zeroes(nBands, nBands);
+				mpiWorld->fread(edge.M0.data(), sizeof(complex), edge.M0.nData(), fp);
 			}
 		mpiWorld->fclose(fp);
 		logPrintf("done.\n"); logFlush();
