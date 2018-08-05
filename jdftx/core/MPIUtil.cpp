@@ -139,11 +139,17 @@ void MPIUtil::checkErrors(const ostringstream& oss) const
 //-------------------- Asynchronous support functions ---------------------------
 
 void MPIUtil::wait(MPIUtil::Request request)
-{	MPI_Wait(&request, MPI_STATUS_IGNORE);
+{
+#ifdef MPI_ENABLED
+	MPI_Wait(&request, MPI_STATUS_IGNORE);
+#endif
 }
 
 void MPIUtil::waitAll(const std::vector<Request>& requests)
-{	MPI_Waitall(requests.size(), (Request*)requests.data(), MPI_STATUS_IGNORE);
+{
+#ifdef MPI_ENABLED
+	MPI_Waitall(requests.size(), (Request*)requests.data(), MPI_STATUS_IGNORE);
+#endif
 }
 
 
