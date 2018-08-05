@@ -280,6 +280,13 @@ template<typename T> void MPIUtil::reduceData(ManagedMemory<T>& v, MPIUtil::Redu
 {	reduce(v.dataMPI(), v.nData(), op, root, request);
 }
 #undef dataMPI
+template<typename T> void MPIUtil::freadData(ManagedMemory<T>& v, File fp) const
+{	fread(v.data(), sizeof(T), v.nData(), fp);
+}
+template<typename T> void MPIUtil::fwriteData(const ManagedMemory<T>& v, File fp) const
+{	fwrite(v.data(), sizeof(T), v.nData(), fp);
+}
+
 
 template<typename T> void memcpy(ManagedMemory<T>& a, const ManagedMemory<T>& b)
 {	assert(a.nData() == b.nData());

@@ -133,6 +133,10 @@ public:
 	void fseek(File fp, long offset, int whence) const; //!< syntax consistent with fseek from stdio
 	void fread(void *ptr, size_t size, size_t nmemb, File fp) const;
 	void fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const;
+	template<typename T> void freadData(ManagedMemory<T>& v, File fp) const;
+	template<typename T> void freadData(std::vector<T>& v, File fp) const;
+	template<typename T> void fwriteData(const ManagedMemory<T>& v, File fp) const;
+	template<typename T> void fwriteData(const std::vector<T>& v, File fp) const;
 };
 
 
@@ -331,6 +335,13 @@ template<typename T> void MPIUtil::reduce(T& data, int& index, MPIUtil::ReduceOp
 	#endif
 }
 
+template<typename T> void MPIUtil::freadData(std::vector<T>& v, File fp) const
+{	fread(v.data(), sizeof(T), v.size(), fp);
+}
+
+template<typename T> void MPIUtil::fwriteData(const std::vector<T>& v, File fp) const
+{	fwrite(v.data(), sizeof(T), v.size(), fp);
+}
 
 //!@endcond
 #endif // JDFTX_CORE_MPIUTIL_H

@@ -306,14 +306,14 @@ void testHugeFileIO()
 	//Write:
 	logPrintf("Writing ... "); logFlush();
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
-	mpiWorld->fwrite(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->fwriteData(M, fp);
 	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Read back:
 	logPrintf("Reading ... "); logFlush();
 	M.zero();
 	mpiWorld->fopenRead(fp, fname, M.nData()*sizeof(complex));
-	mpiWorld->fread(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->freadData(M, fp);
 	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Check results:

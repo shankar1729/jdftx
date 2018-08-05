@@ -509,7 +509,7 @@ void ElecInfo::read(std::vector<diagMatrix>& M, const char *fname, int nRowsOver
 	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].resize(nRows);
-		mpiWorld->fread(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->freadData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 }
@@ -522,7 +522,7 @@ void ElecInfo::read(std::vector<matrix>& M, const char *fname, int nRowsOverride
 	mpiWorld->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].init(nRows, nCols);
-		mpiWorld->fread(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->freadData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 }
@@ -554,7 +554,7 @@ void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nR
 	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
-		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->fwriteData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 #endif
@@ -587,7 +587,7 @@ void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsO
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
 		assert(M[q].nCols()==nCols);
-		mpiWorld->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->fwriteData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 #endif

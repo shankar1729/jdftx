@@ -225,7 +225,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, offset, SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
-		mpiWorld->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
+		mpiWorld->fwriteData(Y[q], fp);
 	mpiWorld->fclose(fp);
 #endif
 }
@@ -308,7 +308,7 @@ void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const Colum
 		mpiWorld->fseek(fp, offset, SEEK_SET);
 		for(int q=qStart; q<qStop; q++)
 		{	ColumnBundle& Ycur = Ytmp[q] ? Ytmp[q] : Y[q];
-			mpiWorld->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
+			mpiWorld->freadData(Ycur, fp);
 			if(Ytmp[q]) //apply conversions:
 			{	if(Ytmp[q].basis!=Y[q].basis)
 				{	int nSpinor = Y[q].spinorLength();

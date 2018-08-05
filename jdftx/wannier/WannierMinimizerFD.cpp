@@ -196,7 +196,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 			for(Edge& edge: edges[ik])
 			{	edge.M0 = zeroes(nBands, nBands);
-				mpiWorld->fread(edge.M0.data(), sizeof(complex), edge.M0.nData(), fp);
+				mpiWorld->freadData(edge.M0, fp);
 			}
 		mpiWorld->fclose(fp);
 		logPrintf("done.\n"); logFlush();

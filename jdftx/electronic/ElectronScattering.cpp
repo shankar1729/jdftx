@@ -702,7 +702,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	mpiWorld->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
 	for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 	{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
-		mpiWorld->fwrite(chiExt.data(), sizeof(complex), chiExt.nData(), fp);
+		mpiWorld->fwriteData(chiExt, fp);
 	}
 	mpiWorld->fclose(fp); logPrintf("done.\n");
 	

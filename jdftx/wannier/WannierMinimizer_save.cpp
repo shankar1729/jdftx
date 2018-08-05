@@ -61,7 +61,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			MPIUtil::File fp; mpiWorld->fopenRead(fp, fname.c_str());
 			for(auto& ke: kMesh)
 			{	ke.U.init(nBands, nCenters);
-				mpiWorld->fread(ke.U.data(), sizeof(complex), ke.U.nData(), fp);
+				mpiWorld->freadData(ke.U, fp);
 			}
 			mpiWorld->fclose(fp);
 			logPrintf("done.\n"); logFlush();
@@ -82,7 +82,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		MPIUtil::File fp; mpiWorld->fopenRead(fp, wannier.frozenUfilename.c_str());
 		for(size_t ik=0; ik<kMesh.size(); ik++)
 		{	Ufrozen[ik].init(nBands, nFrozen);
-			mpiWorld->fread(Ufrozen[ik].data(), sizeof(complex), Ufrozen[ik].nData(), fp);
+			mpiWorld->freadData(Ufrozen[ik], fp);
 		}
 		mpiWorld->fread(rPinned.data(), sizeof(vector3<>), nFrozen, fp);
 		mpiWorld->fclose(fp);
@@ -842,7 +842,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 			{	matrix& phononHsubCur = phononHsub[iMode][iPair];
 				phononHsubCur.init(nBands, nBands);
-				mpiWorld->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
+				mpiWorld->freadData(phononHsubCur, fpIn); //read from file
 				//Translate for phonon basis wrapping (if any):
 				if(wannier.wrapWS)
 					phononHsubCur *= cis(-2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k1 - kpointPairs[iPair].k2));
