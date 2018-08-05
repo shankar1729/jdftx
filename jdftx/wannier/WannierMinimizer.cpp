@@ -95,7 +95,7 @@ void WannierMinimizer::bcastU()
 	for(KmeshEntry& ki: kMesh)
 		if(ki.mpi)
 		{	MPIUtil::Request request;
-			ki.mpi->bcast(ki.U.data(), ki.U.nData(), 0, &request); 
+			ki.mpi->bcastData(ki.U, 0, &request); 
 			requests.push_back(request);
 		}
 	MPIUtil::waitAll(requests);
@@ -116,7 +116,7 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 		for(KmeshEntry& ki: kMesh)
 			if(ki.mpi)
 			{	MPIUtil::Request request;
-				ki.mpi->reduce(ki.Omega_UdotU.data(), ki.Omega_UdotU.nData(), MPIUtil::ReduceSum, 0, &request); //Collect Omega_U
+				ki.mpi->reduceData(ki.Omega_UdotU, MPIUtil::ReduceSum, 0, &request); //Collect Omega_U
 				requests.push_back(request);
 			}
 		MPIUtil::waitAll(requests);

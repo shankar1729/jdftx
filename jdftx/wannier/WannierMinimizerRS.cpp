@@ -151,7 +151,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 				Omega_Csuper.accumColumn(n,s, Idag(Omega_psi[s]));
 	}
 	mpiWorld->allReduce(Omega, MPIUtil::ReduceSum);
-	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(rSqExpect, MPIUtil::ReduceSum);
 	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
 	
 	if(grad)

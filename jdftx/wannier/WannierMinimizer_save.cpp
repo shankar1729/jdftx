@@ -968,7 +968,7 @@ void WannierMinimizer::dumpWannierized(const matrix& Htilde, const std::map<vect
 	for(int iBlock=0; iBlock<nBlocks; iBlock++)
 	{	int iCellStop = std::min(iCellStart+blockSize, nCells);
 		matrix Hblock = Htilde * phase(0,phase.nRows(), iCellStart,iCellStop);
-		mpiWorld->reduce(Hblock.data(), Hblock.nData(), MPIUtil::ReduceSum);
+		mpiWorld->reduceData(Hblock, MPIUtil::ReduceSum);
 		if(mpiWorld->isHead())
 		{	//Apply cell map weights:
 			complex* Hdata = Hblock.dataPref();

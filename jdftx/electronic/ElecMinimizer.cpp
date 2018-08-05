@@ -58,7 +58,7 @@ double dot(const ElecGradient& x, const ElecGradient& y, double* auxContrib)
 	{	if(x.C[q] && y.C[q]) result[0] += dotc(x.C[q], y.C[q]).real()*2.0;
 		if(x.Haux[q] && y.Haux[q]) result[1] += dotc(x.Haux[q], y.Haux[q]).real();
 	}
-	mpiWorld->allReduce(result.data(), 2, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(result, MPIUtil::ReduceSum);
 	if(auxContrib) *auxContrib=result[1]; //store auxiliary contribution, if requested
 	return result[0]+result[1]; //return total
 }

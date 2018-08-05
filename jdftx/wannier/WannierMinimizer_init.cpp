@@ -46,8 +46,8 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 			{	eMin[b] = std::min(eMin[b], e.eVars.Hsub_eigs[q][b]);
 				eMax[b] = std::max(eMax[b], e.eVars.Hsub_eigs[q][b]);
 			}
-		mpiWorld->allReduce(eMin.data(), eMin.size(), MPIUtil::ReduceMin);
-		mpiWorld->allReduce(eMax.data(), eMax.size(), MPIUtil::ReduceMax);
+		mpiWorld->allReduceData(eMin, MPIUtil::ReduceMin);
+		mpiWorld->allReduceData(eMax, MPIUtil::ReduceMax);
 		if(mpiWorld->isHead())
 		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfBandRanges", &iSpin);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();

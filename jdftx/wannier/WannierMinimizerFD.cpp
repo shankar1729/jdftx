@@ -288,7 +288,7 @@ double WannierMinimizerFD::getOmega(bool grad)
 			}
 		}
 	}
-	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(rSqExpect, MPIUtil::ReduceSum);
 	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
 
 	//Compute the total variance of the Wannier centers

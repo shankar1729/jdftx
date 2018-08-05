@@ -104,8 +104,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 				}
 			}
 	//Sync map across processes
-	mpiWorld->allReduce(kmap.data(), kmap.size(), MPIUtil::ReduceMin);
-	mpiWorld->allReduce(isSymKmesh.data(), isSymKmesh.size(), MPIUtil::ReduceLAnd);
+	mpiWorld->allReduceData(kmap, MPIUtil::ReduceMin);
+	mpiWorld->allReduceData(isSymKmesh, MPIUtil::ReduceLAnd);
 	//Print symmetry-incommensurate kmesh warning if necessary:
 	size_t nSymKmesh = std::count(isSymKmesh.begin(), isSymKmesh.end(), true);
 	if(nSymKmesh < sym.size()) //if even one of them is false

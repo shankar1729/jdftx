@@ -106,8 +106,8 @@ void dumpExcitations(const Everything& e, const char* filename)
 			size_t nExcitations; mpiWorld->recv(nExcitations, jProcess, 0);
 			std::vector<int> msgInt(4 + nExcitations*3); 
 			std::vector<double> msgDbl(2 + nExcitations*4);
-			mpiWorld->recv(msgInt.data(), msgInt.size(), jProcess, 1);
-			mpiWorld->recv(msgDbl.data(), msgDbl.size(), jProcess, 2);
+			mpiWorld->recvData(msgInt, jProcess, 1);
+			mpiWorld->recvData(msgDbl, jProcess, 2);
 			//Unpack:
 			std::vector<int>::const_iterator intPtr = msgInt.begin();
 			std::vector<double>::const_iterator dblPtr = msgDbl.begin();
@@ -140,8 +140,8 @@ void dumpExcitations(const Everything& e, const char* filename)
 		}
 		//Send data:
 		mpiWorld->send(nExcitations, 0, 0);
-		mpiWorld->send(msgInt.data(), msgInt.size(), 0, 1);
-		mpiWorld->send(msgDbl.data(), msgDbl.size(), 0, 2);
+		mpiWorld->sendData(msgInt, 0, 1);
+		mpiWorld->sendData(msgDbl, 0, 2);
 	}
 
 	//Process and print excitations:

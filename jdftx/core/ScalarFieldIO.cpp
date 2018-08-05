@@ -124,9 +124,9 @@ std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nC
 				out[c+1][iRadial+1] += wRight * data[c][i];
 		}
 	)
-	mpiWorld->allReduce(weight.data(), nRadial, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(weight, MPIUtil::ReduceSum);
 	for(int c=0; c<nColumns; c++)
-	{	mpiWorld->allReduce(out[c+1].data(), nRadial, MPIUtil::ReduceSum);
+	{	mpiWorld->allReduceData(out[c+1], MPIUtil::ReduceSum);
 		eblas_ddiv(nRadial, weight.data(),1, out[c+1].data(),1); //convert from sum to mean
 	}
 	//Fix rows of zero weight:
