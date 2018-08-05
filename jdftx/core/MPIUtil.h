@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
+#include <array>
 
 #ifdef MPI_ENABLED
 #include <mpi.h>
@@ -161,7 +162,7 @@ namespace MPIUtilPrivate
 {
 #ifdef MPI_ENABLED
 	//Elementary data types directly supported by MPI:
-	template<typename T> struct DataType;
+	template<typename...> struct DataType;
 	#define DECLARE_DataType(cName, mpiName) \
 		template<> struct DataType<cName> \
 		{	static const int nElem = 1; \
@@ -187,11 +188,15 @@ namespace MPIUtilPrivate
 		static MPI_Datatype get() { return MPI_DOUBLE; }
 	};
 	template<typename T> struct DataType<vector3<T>>
-	{	static const int nElem = 3;
+	{	static const int nElem = 3*DataType<T>::nElem;
 		static MPI_Datatype get() { return DataType<T>::get(); }
 	};
 	template<typename T> struct DataType<matrix3<T>>
-	{	static const int nElem = 9;
+	{	static const int nElem = 9*DataType<T>::nElem;
+		static MPI_Datatype get() { return DataType<T>::get(); }
+	};
+	template<typename T, int N> struct DataType<std::array<T,N>>
+	{	static const int nElem = N*DataType<T>::nElem;
 		static MPI_Datatype get() { return DataType<T>::get(); }
 	};
 	#undef DECLARE_DataTypeMultiplet
