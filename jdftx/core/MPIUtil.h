@@ -77,25 +77,25 @@ public:
 	static void waitAll(const std::vector<Request>& requests); //!< wait till all requests finish
 	
 	//Point-to-point functions:
+	template<typename T> void sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory send
+	template<typename T> void sendData(const std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector send
 	template<typename T> void send(const T* data, size_t nData, int dest, int tag, Request* request=0) const; //!< generic array send
-	template<typename T> void send(const ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory send
-	template<typename T> void send(const std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector send
 	template<typename T> void send(const T& data, int dest, int tag, Request* request=0) const; //!< generic scalar send
 	void send(const complex* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for complex which is not natively supported by MPI
 	void send(const bool* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for bool which is not natively supported by MPI
 	void send(const string& s, int dest, int tag, Request* request=0) const; //!< send string
+	template<typename T> void recvData(ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory receive
+	template<typename T> void recvData(std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector receive
 	template<typename T> void recv(T* data, size_t nData, int src, int tag, Request* request=0) const; //!< generic array receive
-	template<typename T> void recv(ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory receive
-	template<typename T> void recv(std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector receive
 	template<typename T> void recv(T& data, int src, int tag, Request* request=0) const; //!< generic scalar receive
 	void recv(complex* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for complex which is not natively supported by MPI
 	void recv(bool* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for bool which is not natively supported by MPI
 	void recv(string& s, int src, int tag, Request* request=0) const; //!< send string
 	
 	//Broadcast functions:
+	template<typename T> void bcastData(ManagedMemory<T>& v, int root=0, Request* request=0) const; //!< managed memory broadcast
+	template<typename T> void bcastData(std::vector<T>& v, int root=0, Request* request=0) const; //!< vector broadcast
 	template<typename T> void bcast(T* data, size_t nData, int root=0, Request* request=0) const; //!< generic array broadcast
-	template<typename T> void bcast(ManagedMemory<T>& v, int root=0, Request* request=0) const; //!< managed memory broadcast
-	template<typename T> void bcast(std::vector<T>& v, int root=0, Request* request=0) const; //!< vector broadcast
 	template<typename T> void bcast(T& data, int root=0, Request* request=0) const; //!< generic scalar broadcast
 	void bcast(complex* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for complex which is not natively supported by MPI
 	void bcast(bool* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for bool which is not natively supported by MPI
@@ -103,18 +103,18 @@ public:
 
 	//AllReduce functions (safe mode gaurantees identical results irrespective of round-off (but could be slower)):
 	enum ReduceOp { ReduceMin, ReduceMax, ReduceSum, ReduceProd, ReduceLAnd, ReduceBAnd, ReduceLOr, ReduceBOr, ReduceLXor, ReduceBXor };
+	template<typename T> void allReduceData(ManagedMemory<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< managed memory reduction
+	template<typename T> void allReduceData(std::vector<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< vector reduction
 	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic array reduction
-	template<typename T> void allReduce(ManagedMemory<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< managed memory reduction
-	template<typename T> void allReduce(std::vector<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< vector reduction
 	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic scalar reduction
 	void allReduce(complex* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
 	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
 	template<typename T> void allReduce(T& data, int& index, ReduceOp op) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
 	
 	//Reduce functions (results only on root):
+	template<typename T> void reduceData(ManagedMemory<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< managed memory reduction
+	template<typename T> void reduceData(std::vector<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< vector reduction
 	template<typename T> void reduce(T* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const; //!< generic array reduction
-	template<typename T> void reduce(ManagedMemory<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< managed memory reduction
-	template<typename T> void reduce(std::vector<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< vector reduction
 	template<typename T> void reduce(T& data, ReduceOp op, int root=0, Request* request=0) const; //!< generic scalar reduction
 	void reduce(complex* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
 	void reduce(bool* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
@@ -212,6 +212,9 @@ namespace MPIUtilPrivate
 #endif
 }
 
+template<typename T> void MPIUtil::sendData(const std::vector<T>& v, int dest, int tag, Request* request) const
+{	send(v.data(), v.size(), dest, tag, request);
+}
 template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
@@ -223,13 +226,13 @@ template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, i
 	}
 	#endif
 }
-template<typename T> void MPIUtil::send(const std::vector<T>& v, int dest, int tag, Request* request) const
-{	send(v.data(), v.size(), dest, tag, request);
-}
 template<typename T> void MPIUtil::send(const T& data, int dest, int tag, Request* request) const
 {	send(&data, 1, dest, tag, request);
 }
 
+template<typename T> void MPIUtil::recvData(std::vector<T>& v, int dest, int tag, Request* request) const
+{	recv(v.data(), v.size(), dest, tag, request);
+}
 template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
@@ -241,13 +244,13 @@ template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag,
 	}
 	#endif
 }
-template<typename T> void MPIUtil::recv(std::vector<T>& v, int dest, int tag, Request* request) const
-{	recv(v.data(), v.size(), dest, tag, request);
-}
 template<typename T> void MPIUtil::recv(T& data, int src, int tag, Request* request) const
 {	recv(&data, 1, src, tag, request);
 }
 
+template<typename T> void MPIUtil::bcastData(std::vector<T>& v, int root, Request* request) const
+{	bcast(v.data(), v.size(), root, request);
+}
 template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
@@ -259,13 +262,13 @@ template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root, Reques
 	}
 	#endif
 }
-template<typename T> void MPIUtil::bcast(std::vector<T>& v, int root, Request* request) const
-{	bcast(v.data(), v.size(), root, request);
-}
 template<typename T> void MPIUtil::bcast(T& data, int root, Request* request) const
 {	bcast(&data, 1, root, request);
 }
 
+template<typename T> void MPIUtil::allReduceData(std::vector<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
+{	allReduce(v.data(), v.size(), op, safeMode, request);
+}
 template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
@@ -284,9 +287,6 @@ template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::Red
 	}
 	#endif
 }
-template<typename T> void MPIUtil::allReduce(std::vector<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
-{	allReduce(v.data(), v.size(), op, safeMode, request);
-}
 template<typename T> void MPIUtil::allReduce(T& data, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	allReduce(&data, 1, op, safeMode, request);
 }
@@ -302,6 +302,9 @@ template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::Reduc
 	#endif
 }
 
+template<typename T> void MPIUtil::reduceData(std::vector<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
+{	reduce(v.data(), v.size(), op, root, request);
+}
 template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::ReduceOp op, int root, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
@@ -312,9 +315,6 @@ template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::Reduce
 			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), root, comm);
 	}
 	#endif
-}
-template<typename T> void MPIUtil::reduce(std::vector<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
-{	reduce(v.data(), v.size(), op, root, request);
 }
 template<typename T> void MPIUtil::reduce(T& data, MPIUtil::ReduceOp op, int root, Request* request) const
 {	reduce(&data, 1, op, root, request);

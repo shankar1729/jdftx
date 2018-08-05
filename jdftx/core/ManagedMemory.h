@@ -287,19 +287,19 @@ template<typename T> void ManagedMemory<T>::allReduce(MPIUtil::ReduceOp op, bool
 		mpiWorld->allReduce(dataMPI(), nData(), op, safeMode);
 }
 
-template<typename T> void MPIUtil::send(const ManagedMemory<T>& v, int dest, int tag, Request* request) const
+template<typename T> void MPIUtil::sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request) const
 {       send(v.dataMPI(), v.nData(), dest, tag, request);
 }
-template<typename T> void MPIUtil::recv(ManagedMemory<T>& v, int dest, int tag, Request* request) const
+template<typename T> void MPIUtil::recvData(ManagedMemory<T>& v, int dest, int tag, Request* request) const
 {       recv(v.dataMPI(), v.nData(), dest, tag, request);
 }
-template<typename T> void MPIUtil::bcast(ManagedMemory<T>& v, int root, Request* request) const
+template<typename T> void MPIUtil::bcastData(ManagedMemory<T>& v, int root, Request* request) const
 {       bcast(v.dataMPI(), v.nData(), root, request);
 }
-template<typename T> void MPIUtil::allReduce(ManagedMemory<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
+template<typename T> void MPIUtil::allReduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {       allReduce(v.dataMPI(), v.nData(), op, safeMode, request);
 }
-template<typename T> void MPIUtil::reduce(ManagedMemory<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
+template<typename T> void MPIUtil::reduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
 {       reduce(v.dataMPI(), v.nData(), op, root, request);
 }
 #undef dataMPI
