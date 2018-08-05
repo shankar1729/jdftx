@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman
+Copyright 2018 Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -76,35 +76,6 @@ template<typename Callable,typename ... Args>
 void threadLaunch(Callable* func, size_t nJobs, Args... args);
 
 
-//! Maintain thread timing statistics and automatically choose the optimum number of threads
-class AutoThreadCount
-{
-public:
-	//! @param minThreads minimum number of threads to try
-	//! @param minStats minimum number of tries for each thread count
-	//! @param name if given, print debug messages & stats with that header
-	//! @param fpLog debug logging stream
-	AutoThreadCount(int minThreads=1, int minStats=3, const char* name=0, FILE* fpLog=stdout);
-	~AutoThreadCount();
-private:
-	template<typename Callable,typename ... Args>
-	friend void threadLaunch(AutoThreadCount*, Callable*, size_t, Args... args);
-
-	int getThreadCount();
-	void submitTime(int, double);
-	double* time; int* count; int minThreads, nMax, nOpt, minStats; bool settled;
-	char* name; FILE* fpLog;
-};
-
-/**
-Same as threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args)
-but with nThreads automatically adjusted over multiple runs using an AutoThreadCount object
-If the AutoThreadCount pointer is null, as many threads as processors will be launched
-*/
-template<typename Callable,typename ... Args>
-void threadLaunch(AutoThreadCount*, Callable* func, size_t nJobs, Args... args);
-
-
 /**
 @brief A parallelized loop
 
@@ -165,20 +136,6 @@ void threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args)
 template<typename Callable,typename ... Args>
 void threadLaunch(Callable* func, size_t nJobs, Args... args)
 {	threadLaunch(0, func, nJobs, args...);
-}
-
-
-template<typename Callable,typename ... Args>
-void threadLaunch(AutoThreadCount* atc, Callable* func, size_t nJobs, Args... args)
-{	if(!atc)
-		threadLaunch(func, nJobs, args...);
-	else
-	{	int nThreads = atc->getThreadCount();
-		double runTime = clock_us();
-		threadLaunch(nThreads, func, nJobs, args...);
-		runTime = clock_us() - runTime;
-		atc->submitTime(nThreads, runTime);
-	}
 }
 
 
