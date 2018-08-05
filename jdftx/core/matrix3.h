@@ -49,9 +49,9 @@ public:
 	}
 
 	//constructors:
-	explicit __hostanddev__ matrix3(scalar d0=0, scalar d1=0, scalar d2=0) //!< Construct diagonal
+	explicit __hostanddev__ matrix3(scalar d0=scalar(), scalar d1=scalar(), scalar d2=scalar()) //!< Construct diagonal
 	{	m[0][0] = d0; m[1][1] = d1, m[2][2] = d2;
-		m[0][1] = m[0][2] = m[1][0] = m[1][2] = m[2][0] = m[2][1] = 0.0;
+		m[0][1] = m[0][2] = m[1][0] = m[1][2] = m[2][0] = m[2][1] = scalar();
 	}
 	__hostanddev__ matrix3(
 		scalar m00, scalar m01, scalar m02,
@@ -123,8 +123,8 @@ public:
 	__hostanddev__ scalar metric_length_squared(const vector3<int> &v) const { METRIC_LENGTH_SQUARED } //!< Compute vector length with this as metric
 	#undef METRIC_LENGTH_SQUARED
 	
-	__hostanddev__ matrix3<scalar> operator/(scalar s) const { return (*this) * (1.0/s); }
-	__hostanddev__ matrix3<scalar>& operator/=(scalar s) { return (*this) *= (1.0/s); }
+	__hostanddev__ matrix3<scalar> operator/(scalar s) const { return (*this) * (1./s); }
+	__hostanddev__ matrix3<scalar>& operator/=(scalar s) { return (*this) *= (1./s); }
 
 	//! transpose
 	__hostanddev__ matrix3<scalar> operator~() const //!< Transpose matrix
