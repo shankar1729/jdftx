@@ -194,7 +194,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 			{	size_t nData = 0;
 				mpiWorld->recv(nData, whose(q), q);
 				ManagedArray<complex> buf; buf.init(nData);
-				buf.recv(whose(q), q);
+				mpiWorld->recvData(buf, whose(q), q);
 				buf.write(fp);
 			}
 			else Y[q].write(fp);
@@ -204,7 +204,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 	else
 		for(int q=qStart; q<qStop; q++)
 		{	mpiWorld->send(Y[q].nData(), 0, q);
-			Y[q].send(0, q);
+			mpiWorld->sendData(Y[q], 0, q);
 		}
 #else
 	//Compute output length from each process:

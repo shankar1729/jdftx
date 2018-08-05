@@ -139,7 +139,7 @@ WannierMinimizer::WannierMinimizer(const Everything& e, const Wannier& wannier, 
 		}
 		mpiWorld->bcast(nPhononModes);
 		invsqrtM.resize(nPhononModes);
-		invsqrtM.bcast();
+		mpiWorld->bcastData(invsqrtM);
 		if(!nPhononModes) die("Error reading phonon modes from '%s'\n", fname.c_str());
 		logPrintf("Found %d phonon modes in '%s'\n", nPhononModes, fname.c_str());
 	}

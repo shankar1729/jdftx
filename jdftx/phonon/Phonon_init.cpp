@@ -111,11 +111,11 @@ void Phonon::setup(bool printDefaults)
 		}
 		//Broadcast from owner:
 		int qSrc = e.eInfo.whose(q);
-		e.eVars.C[q].bcast(qSrc);
-		e.eVars.F[q].bcast(qSrc);
-		e.eVars.Hsub_eigs[q].bcast(qSrc);
+		mpiWorld->bcastData(e.eVars.C[q], qSrc);
+		mpiWorld->bcastData(e.eVars.F[q], qSrc);
+		mpiWorld->bcastData(e.eVars.Hsub_eigs[q], qSrc);
 		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
-			e.eVars.Haux_eigs[q].bcast(qSrc);
+			mpiWorld->bcastData(e.eVars.Haux_eigs[q], qSrc);
 	}
 
 	logPrintf("\n------- Configuring supercell and perturbation modes -------\n");
@@ -331,7 +331,8 @@ void Phonon::setup(bool printDefaults)
 					nSpinor, sym[kpoints[ik].iSym], kpoints[ik].invert).scatterAxpy(1., e.eVars.C[q], C[ik],0,1);
 			}
 		}
-		for(int ik=0; ik<prodSup; ik++) C[ik].bcast(whose_ik(ik)); //make available on all processes
+		for(int ik=0; ik<prodSup; ik++)
+			mpiWorld->bcastData(C[ik], whose_ik(ik)); //make available on all processes
 		//Determine max eigenvalue:
 		int nBands = e.eInfo.nBands;
 		double Emax = -INFINITY;

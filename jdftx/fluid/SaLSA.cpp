@@ -196,7 +196,7 @@ ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
 	}
-	nullToZero(rhoTilde, gInfo); rhoTilde->allReduce(MPIUtil::ReduceSum);
+	nullToZero(rhoTilde, gInfo); rhoTilde->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	return rhoTilde;
 }
 
@@ -274,7 +274,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 			Adiel_shape[0] += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
 	for(ScalarField& A_s : Adiel_shape)
 	{	nullToZero(A_s, gInfo);
-		A_s->allReduce(MPIUtil::ReduceSum);
+		A_s->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
 	
 	//Propagate shape gradients to A_nCavity:

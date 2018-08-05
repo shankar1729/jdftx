@@ -126,14 +126,14 @@ void ElectronScattering::dump(const Everything& everything)
 			F[q].resize(nBands);
 			VdagC[q].resize(e.iInfo.species.size());
 		}
-		C[q].bcast(procSrc);
-		E[q].bcast(procSrc);
-		F[q].bcast(procSrc);
+		mpiWorld->bcastData(C[q], procSrc);
+		mpiWorld->bcastData(E[q], procSrc);
+		mpiWorld->bcastData(F[q], procSrc);
 		for(unsigned iSp=0; iSp<e.iInfo.species.size(); iSp++)
 			if(e.iInfo.species[iSp]->isUltrasoft())
 			{	if(!e.eInfo.isMine(q))
 					VdagC[q][iSp].init(e.iInfo.species[iSp]->nProjectors(), nBands);
-				VdagC[q][iSp].bcast(procSrc);
+				mpiWorld->bcastData(VdagC[q][iSp], procSrc);
 			}
 	}
 	
@@ -282,7 +282,7 @@ void ElectronScattering::dump(const Everything& everything)
 			}
 		}
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-		{	chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
+		{	mpiWorld->allReduceData(chiKS[iOmega], MPIUtil::ReduceSum);
 			if(!omegaDiv.isMine(iOmega)) chiKS[iOmega] = 0; //no longer needed on this process
 		}
 		logPrintf("done.\n"); logFlush();
@@ -306,7 +306,7 @@ void ElectronScattering::dump(const Everything& everything)
 		chiKS.clear(); //free memory; no longer needed
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 		{	if(!omegaDiv.isMine(iOmega)) ImKscr[iOmega] = zeroes(nbasis,nbasis);
-			ImKscr[iOmega].bcast(omegaDiv.whose(iOmega));
+			mpiWorld->bcastData(ImKscr[iOmega], omegaDiv.whose(iOmega));
 		}
 		logPrintf("done.\n"); logFlush();
 		
@@ -349,9 +349,9 @@ void ElectronScattering::dump(const Everything& everything)
 	}
 	logPrintf("\n");
 	
-	ImKscrHead.allReduce(MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(ImKscrHead, MPIUtil::ReduceSum);
 	for(diagMatrix& IS: ImSigma)
-		IS.allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(IS, MPIUtil::ReduceSum);
 	for(int q=0; q<e.eInfo.nStates; q++)
 		for(int b=0; b<nBands; b++)
 		{	double Eqb = E[q][b];
@@ -689,7 +689,7 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	TaskDivision omegaDiv(omegaGrid.size(), mpiWorld);
 	omegaDiv.myRange(iOmegaStart, iOmegaStop);
 	for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-	{	chiKS[iOmega].allReduce(MPIUtil::ReduceSum);
+	{	mpiWorld->allReduceData(chiKS[iOmega], MPIUtil::ReduceSum);
 		if(!omegaDiv.isMine(iOmega)) chiKS[iOmega] = 0; //no longer needed on this process
 	}
 	logPrintf("done.\n"); logFlush();

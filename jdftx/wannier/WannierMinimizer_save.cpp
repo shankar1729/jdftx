@@ -296,9 +296,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ke.U2 = zeroes(ke.nIn, ke.nIn); //truncated to nCenters x nCenters after minimization
 			ke.U = zeroes(nBands, ke.nIn); //truncated to nBands x nCenters after minimization
 		}
-		ke.U1.bcast(whose_q(ik,iSpin));
-		ke.U2.bcast(whose_q(ik,iSpin));
-		ke.U.bcast(whose_q(ik,iSpin));
+		mpiWorld->bcastData(ke.U1, whose_q(ik,iSpin));
+		mpiWorld->bcastData(ke.U2, whose_q(ik,iSpin));
+		mpiWorld->bcastData(ke.U, whose_q(ik,iSpin));
 		if(!isMine(ik)) //No longer need sub-matrices on this process
 		{	ke.U1 = matrix();
 			ke.U2 = matrix();
@@ -318,7 +318,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ki.U = ki.U(0,nBands, 0,nCenters); //no longer need unitary completion after minimize
 		else
 			ki.U = zeroes(nBands, nCenters);
-		ki.U.bcast(whose(ik));
+		mpiWorld->bcastData(ki.U, whose(ik));
 		if(ki.U2) ki.U2 = ki.U2(0,nCenters, 0,nCenters); //no longer need unitary completion after minimize
 	}
 	double OmegaI = getOmegaI();
@@ -440,7 +440,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	const KmeshEntry& ki = kMesh[i];
 			axpyWfns(ki.point.weight, ki.U, ki.point, iSpin, Csuper);
 		}
-		Csuper.allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(Csuper, MPIUtil::ReduceSum);
 		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
 		logPrintf("done.\n"); logFlush();
 		
@@ -651,9 +651,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 					w[row] = fitWeight[q][b];
 					row++;
 				}
-			Lhs.allReduce(MPIUtil::ReduceSum);
-			rhs.allReduce(MPIUtil::ReduceSum);
-			w.allReduce(MPIUtil::ReduceSum);
+			mpiWorld->allReduceData(Lhs, MPIUtil::ReduceSum);
+			mpiWorld->allReduceData(rhs, MPIUtil::ReduceSum);
+			mpiWorld->allReduceData(w, MPIUtil::ReduceSum);
 			//--- weighted least squares polynomial fit
 			matrix rhsFit = Lhs * (inv(dagger(Lhs)*w*Lhs) * (dagger(Lhs)*w*rhs));
 			//--- fill in missing values
@@ -852,7 +852,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
 		for(int q=0; q<e.eInfo.nStates; q++)
 		{	Hsub_eigs[q].resize(nBands);
-			Hsub_eigs[q].bcast(e.eInfo.whose(q));
+			mpiWorld->bcastData(Hsub_eigs[q], e.eInfo.whose(q));
 		}
 		double nrmTot = 0., nrmCorr = 0.;
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
@@ -919,7 +919,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			}
 			//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
 			matrix HePh = HePhTilde * phase;
-			HePh.allReduce(MPIUtil::ReduceSum);
+			mpiWorld->allReduceData(HePh, MPIUtil::ReduceSum);
 			//apply cell weights:
 			complex* HePhData = HePh.dataPref();
 			for(const auto& entry2: ePhCellMap)

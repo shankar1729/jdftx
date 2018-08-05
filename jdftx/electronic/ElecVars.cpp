@@ -551,7 +551,7 @@ ScalarFieldArray ElecVars::KEdensity() const
 	for(ScalarField& tau_s: tau)
 	{	nullToZero(tau_s, e->gInfo);
 		e->symm.symmetrize(tau_s); //Symmetrize
-		tau_s->allReduce(MPIUtil::ReduceSum);
+		tau_s->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
 	//Add core KE density model:
 	if(e->iInfo.tauCore)
@@ -574,7 +574,7 @@ ScalarFieldArray ElecVars::calcDensity() const
 	for(ScalarField& ns: density)
 	{	nullToZero(ns, e->gInfo);
 		e->symm.symmetrize(ns); //Symmetrize
-		ns->allReduce(MPIUtil::ReduceSum);
+		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
 	return density;
 }

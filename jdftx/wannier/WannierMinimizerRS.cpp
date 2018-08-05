@@ -82,7 +82,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	{	const KmeshEntry& ki = kMesh[i];
 		axpyWfns(ki.point.weight, ki.U(0,nBands,0,nCenters), ki.point, iSpin, Csuper);
 	}
-	Csuper.allReduce(MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(Csuper, MPIUtil::ReduceSum);
 	
 	//Translation to handle high offsets
 	std::vector<vector3<>> dr(nCenters), drReverse(nCenters);
@@ -156,7 +156,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	
 	if(grad)
 	{	//Collect across processes:
-		Omega_Csuper.allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(Omega_Csuper, MPIUtil::ReduceSum);
 		translateColumns(Omega_Csuper, drReverse.data());
 		//Propagate to rotations:
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))

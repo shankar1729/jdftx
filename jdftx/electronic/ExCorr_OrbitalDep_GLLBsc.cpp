@@ -190,7 +190,7 @@ ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOM
 	e.iInfo.augmentDensityGrid(V);
 	for(int s=0; s<nSpins; s++)
 	{	nullToZero(V[s], e.gInfo);
-		V[s]->allReduce(MPIUtil::ReduceSum);
+		V[s]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 		e.symm.symmetrize(V[s]);
 		V[s] *= inv(e.eVars.n[s]); //denominator added here
 	}

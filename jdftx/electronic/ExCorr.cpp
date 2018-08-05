@@ -736,7 +736,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 					sigma[s1+s2] += Dn[s1][i] * Dn[s2][i];
 				watchComm.start();
 				nullToZero(sigma[s1+s2], gInfo);
-				sigma[s1+s2]->allReduce(MPIUtil::ReduceSum);
+				sigma[s1+s2]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 				watchComm.stop();
 			}
 		//Allocate gradient if required:
@@ -820,10 +820,10 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	//---------------- Collect results over processes ----------------
 	watchComm.start();
 	mpiWorld->allReduce(Exc, MPIUtil::ReduceSum);
-	for(ScalarField& x: E_n) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(ScalarField& x: E_sigma) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(ScalarField& x: E_lap) if(x) x->allReduce(MPIUtil::ReduceSum);
-	for(ScalarField& x: E_tau) if(x) x->allReduce(MPIUtil::ReduceSum);
+	for(ScalarField& x: E_n) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_sigma) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_lap) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_tau) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	watchComm.stop();
 
 	//--------------- Gradient propagation ---------------------
@@ -886,7 +886,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 			for(int s=0; s<nInCount; s++)
 			{	watchComm.start();
 				nullToZero(E_nTilde[s], gInfo);
-				E_nTilde[s]->allReduce(MPIUtil::ReduceSum);
+				E_nTilde[s]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 				watchComm.stop();
 				E_n[s] += Jdag(E_nTilde[s],true);
 			}

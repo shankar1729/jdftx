@@ -316,21 +316,21 @@ void Dump::dumpQMC()
 				else
 				{	Cq = &CqTemp;
 					CqTemp.init(eInfo.nBands, e->basis[q].nbasis, &e->basis[q], &eInfo.qnums[q]);
-					CqTemp.recv(eInfo.whose(q));
+					mpiWorld->recvData(CqTemp, eInfo.whose(q), q);
 					Hsub_eigsq = &Hsub_eigsqTemp;
 					Hsub_eigsqTemp.resize(eInfo.nBands);
-					Hsub_eigsqTemp.recv(eInfo.whose(q));
+					mpiWorld->recvData(Hsub_eigsqTemp, eInfo.whose(q), q);
 					if(Udeg.size())
 					{	Udeg[q].init(eInfo.nBands, eInfo.nBands);
-						Udeg[q].recv(eInfo.whose(q));
+						mpiWorld->recvData(Udeg[q], eInfo.whose(q), q);
 					}
 				}
 			}
 			else
 			{	if(eInfo.isMine(q))
-				{	eVars.C[q].send(0);
-					eVars.Hsub_eigs[q].send(0);
-					if(Udeg.size()) Udeg[q].send(0);
+				{	mpiWorld->sendData(eVars.C[q], 0, q);
+					mpiWorld->sendData(eVars.Hsub_eigs[q], 0, q);
+					if(Udeg.size()) mpiWorld->sendData(Udeg[q], 0, q);
 				}
 				continue; //only head performs computation below
 			}

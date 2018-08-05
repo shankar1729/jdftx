@@ -307,7 +307,7 @@ void BlockRotationMatrix::allReduce()
 		//Reduce:
 		mpiWorld->allReduce(colOffset[rowBlock], MPIUtil::ReduceMax);
 		if(!myRot) rots[rowBlock] = zeroes(blockSize, blockSize);
-		rots[rowBlock].allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(rots[rowBlock], MPIUtil::ReduceSum);
 	}
 }
 

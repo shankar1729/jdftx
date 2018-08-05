@@ -239,7 +239,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 						{	RhoSub[s] = Rho[s]
 								? matrix(Rho[s](spOffset[iSp],spOffset[iSp+1], spOffset[iSp],spOffset[iSp+1]))
 								: zeroes(spOffset[iSp+1]-spOffset[iSp], spOffset[iSp+1]-spOffset[iSp]);
-							RhoSub[s].allReduce(MPIUtil::ReduceSum);
+							mpiWorld->allReduceData(RhoSub[s], MPIUtil::ReduceSum);
 						}
 						sp.populationAnalysis(RhoSub);
 					}

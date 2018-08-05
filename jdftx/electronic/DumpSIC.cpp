@@ -60,7 +60,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	ScalarField orbitalDensity; nullToZero(orbitalDensity, e->gInfo);
 	if(e->eInfo.isMine(q))
 		orbitalDensity = diagouterI(eye(1), e->eVars.C[q].getSub(n,n+1), 1, &e->gInfo)[0];
-	orbitalDensity->bcast(e->eInfo.whose(q));
+	orbitalDensity->bcastData(mpiWorld, e->eInfo.whose(q));
 	ScalarFieldTilde orbitalDensityTilde = J(orbitalDensity);
 	
 	// Calculate the Coulomb energy
@@ -79,7 +79,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 		if(e->eInfo.isMine(q))
 			for(int iDir=0; iDir<3; iDir++)
 				KEdensity[0] += 0.5 * diagouterI(eye(1), DC[iDir].getSub(n,n+1), 1, &e->gInfo)[0];
-		KEdensity[0]->bcast(e->eInfo.whose(q));
+		KEdensity[0]->bcastData(mpiWorld, e->eInfo.whose(q));
 	}
 
 	double xcEnergy = e->exCorr(orbitalSpinDensity, 0, IncludeTXC(), &KEdensity, 0);

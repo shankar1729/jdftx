@@ -175,7 +175,7 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			}
 			helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
 		}
-		helmholtz.allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(helmholtz, MPIUtil::ReduceSum);
 		kHelmholtzInv = dagger_symmetrize(inv(helmholtz))(ikStart,ikStop, 0,kMesh.size()); //invert and split over MPI
 		logPrintf("done.\n"); logFlush();
 	}
@@ -210,22 +210,22 @@ void WannierMinimizerFD::initialize(int iSpin)
 		VdagCother.clear(); VdagCother.resize(e.eInfo.nStates);
 		if(jProcess == mpiWorld->iProcess()) //send
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			{	((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
+			{	mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 					if(e.iInfo.species[iSp]->isUltrasoft())
-						((matrix&)e.eVars.VdagC[q][iSp]).bcast(jProcess);
+						mpiWorld->bcastData((matrix&)e.eVars.VdagC[q][iSp], jProcess);
 			}
 		}
 		else //recv
 		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
 			{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
-				Cother[q].bcast(jProcess);
+				mpiWorld->bcastData(Cother[q], jProcess);
 				VdagCother[q].resize(e.iInfo.species.size());
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 				{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
 					if(sp.isUltrasoft())
 					{	VdagCother[q][iSp].init(sp.nProjectors(), nBands);
-						VdagCother[q][iSp].bcast(jProcess);
+						mpiWorld->bcastData(VdagCother[q][iSp], jProcess);
 					}
 				}
 			}
@@ -253,7 +253,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 	for(size_t ik=0; ik<edges.size(); ik++)
 		for(Edge& edge: edges[ik])
 		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nBands, nBands);
-			edge.M0.bcast(whose_q(ik,iSpin));
+			mpiWorld->bcastData(edge.M0, whose_q(ik,iSpin));
 			if(mpiWorld->isHead()) edge.M0.write(fp);
 			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
 		}
@@ -386,7 +386,7 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	}
 	//Apply preconditioner:
 	matrix KgradMat = gradMat * kHelmholtzInv;
-	KgradMat.allReduce(MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
+	mpiWorld->allReduceData(KgradMat, MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
 	//Copy result from each column to a small matrix per k-point:
     for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const KmeshEntry& ki = kMesh[ik];

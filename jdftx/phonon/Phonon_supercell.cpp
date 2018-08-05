@@ -252,7 +252,7 @@ std::vector<diagMatrix> Phonon::setSupState()
 				Hsub0[s].set(nBandsPrev,nBandsPrev+nBands, e.eVars.Hsub_eigs[sme.iReduced]);
 			}
 		}
-		Hsub0[s].bcast(eSup->eInfo.whose(qSup));
+		mpiWorld->bcastData(Hsub0[s], eSup->eInfo.whose(qSup));
 	}
 	if(collectPerturbations || eSup->eVars.wfnsFilename.length())
 	{	//skip state initialization below if already read in, or if not needed since in collect mode:
@@ -374,13 +374,13 @@ std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std
 					Hsub[s].set(start,stop, start2,stop2, Hsub12);
 				}
 			}
-		Hsub[s].allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(Hsub[s], MPIUtil::ReduceSum);
 	}
 	//Account for ultrasoft overlap augmentation (if any):
 	if(spPert.QintAll)
 	{	for(int s=0; s<nSpins; s++)
-		{	VdagC[s].allReduce(MPIUtil::ReduceSum);
-			V0dagC[s].allReduce(MPIUtil::ReduceSum);
+		{	mpiWorld->allReduceData(VdagC[s], MPIUtil::ReduceSum);
+			mpiWorld->allReduceData(V0dagC[s], MPIUtil::ReduceSum);
 			matrix dVdagC = VdagC[s] - V0dagC[s]; //change in projection of unperturbed states due to perturbation
 			matrix contrib = dagger(dVdagC) * spPert.QintAll * VdagC[s] * Hsub0[s];
 			Hsub[s] -= (contrib + dagger(contrib));

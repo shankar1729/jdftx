@@ -54,24 +54,9 @@ template<typename T> struct FieldData : private ManagedMemory<T>
 	double scale; //!< overall scale factor of the data array
 	const GridInfo& gInfo; //!< simulation grid info
 
-	FieldData(const GridInfo& gInfo, string category, int nElem, bool onGpu=false) : nElem(nElem), scale(1.), gInfo(gInfo)
-	{	ManagedMemory<T>::memInit(category, nElem, onGpu);
-	}
-	
-	//! Copy data and scale (used by clone())
-	void copyData(const FieldData<T>& other)
-	{	scale = other.scale;
-		memcpy((ManagedMemory<T>&)(*this), other);
-	}
-	
-	//! Absorb scale factor into data
-	void absorbScale() const
-	{	if(scale != 1.)
-		{	FieldData& X = (FieldData&)(*this); //cast to non-const (this function modifies data, but is logically constant)
-			::scale(scale, (ManagedMemory<T>&)X);
-			X.scale = 1.;
-		}
-	}
+	FieldData(const GridInfo& gInfo, string category, int nElem, bool onGpu=false);
+	void copyData(const FieldData<T>& other); //!< Copy data and scale (used by clone())
+	void absorbScale() const; //!< Absorb scale factor into data
 	
 	#define getDataCode(dataLoc) \
 		if(shouldAbsorbScale) absorbScale(); \
@@ -93,15 +78,15 @@ template<typename T> struct FieldData : private ManagedMemory<T>
 	const T* dataPref(bool shouldAbsorbScale=true) const { return data(shouldAbsorbScale); }
 	#endif
 	
+	void zero() { ManagedMemory<T>::zero(); } //!< initialize to zero
+	bool isOnGpu() const { return ManagedMemory<T>::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
 
-	inline void zero() { ManagedMemory<T>::zero(); } //!< initialize to zero
-	inline bool isOnGpu() const { return ManagedMemory<T>::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
-
-	//Inter-process communication (expose corresponding ManagedMemory functions):
-	inline void send(int dest, int tag=0) const { absorbScale(); ManagedMemory<T>::send(dest,tag); } //!< send to another process
-	inline void recv(int src, int tag=0) { absorbScale(); ManagedMemory<T>::recv(src,tag); } //!< receive from another process
-	inline void bcast(int root=0) { absorbScale(); ManagedMemory<T>::bcast(root); } //!< synchronize across processes (using value on specified root process)
-	inline void allReduce(MPIUtil::ReduceOp op, bool safeMode=false) { absorbScale(); ManagedMemory<T>::allReduce(op, safeMode); } //!< apply all-to-all reduction
+	//Inter-process communication (expose corresponding MPIUtil ManagedMemory operations):
+	void sendData(const MPIUtil* mpiUtil, int dest, int tag, MPIUtil::Request* request=0) const;
+	void recvData(const MPIUtil* mpiUtil, int dest, int tag, MPIUtil::Request* request=0);
+	void bcastData(const MPIUtil* mpiUtil, int root=0, MPIUtil::Request* request=0);
+	void allReduceData(const MPIUtil* mpiUtil, MPIUtil::ReduceOp op, bool safeMode=false, MPIUtil::Request* request=0);
+	void reduceData(const MPIUtil* mpiUtil, MPIUtil::ReduceOp op, int root=0, MPIUtil::Request* request=0);
 
 protected:
 	struct PrivateTag {}; //!< Used to prevent direct use of ScalarField constructors, and force the shared_ptr usage
@@ -173,4 +158,50 @@ struct RealKernel : public FieldData<double>
 };
 
 //! @}
+
+
+//-------------------------- Template implementations ------------------------------------
+//!@cond
+
+template<typename T> FieldData<T>::FieldData(const GridInfo& gInfo, string category, int nElem, bool onGpu)
+: nElem(nElem), scale(1.), gInfo(gInfo)
+{
+	ManagedMemory<T>::memInit(category, nElem, onGpu);
+}
+
+template<typename T> void FieldData<T>::copyData(const FieldData<T>& other)
+{	scale = other.scale;
+	memcpy((ManagedMemory<T>&)(*this), other);
+}
+
+template<typename T> void FieldData<T>::absorbScale() const
+{	if(scale != 1.)
+	{	FieldData& X = (FieldData&)(*this); //cast to non-const (this function modifies data, but is logically constant)
+		::scale(scale, (ManagedMemory<T>&)X);
+		X.scale = 1.;
+	}
+}
+
+template<typename T> void FieldData<T>::sendData(const MPIUtil* mpiUtil, int dest, int tag, MPIUtil::Request* request) const
+{	absorbScale();
+	mpiUtil->sendData(*this, dest, tag, request);
+}
+template<typename T> void FieldData<T>::recvData(const MPIUtil* mpiUtil, int dest, int tag, MPIUtil::Request* request)
+{	absorbScale();
+	mpiUtil->recvData(*this, dest, tag, request);
+}
+template<typename T> void FieldData<T>::bcastData(const MPIUtil* mpiUtil, int root, MPIUtil::Request* request)
+{	absorbScale();
+	mpiUtil->bcastData(*this, root, request);
+}
+template<typename T> void FieldData<T>::allReduceData(const MPIUtil* mpiUtil, MPIUtil::ReduceOp op, bool safeMode, MPIUtil::Request* request)
+{	absorbScale();
+	mpiUtil->allReduceData(*this, op, safeMode, request);
+}
+template<typename T> void FieldData<T>::reduceData(const MPIUtil* mpiUtil, MPIUtil::ReduceOp op, int root, MPIUtil::Request* request)
+{	absorbScale();
+	mpiUtil->reduceData(*this, op, root, request);
+}
+
+//!@endcond
 #endif //JDFTX_CORE_SCALARFIELD_H

@@ -107,12 +107,6 @@ public:
 	inline const T* dataPref() const { return data(); }
 	#endif
 
-	//Inter-process communication:
-	void send(int dest, int tag=0) const; //!< send to another process
-	void recv(int src, int tag=0); //!< receive from another process
-	void bcast(int root=0); //!< synchronize across processes (using value on specified root process)
-	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //!< apply all-to-all reduction (see MPIUtil::allReduce)
-
 	void read(const char *fname); //!< binary read from a file
 	void read(FILE *filep); //!< binary read from a stream
 	void write(const char *fname) const; //!< binary-write to a file
@@ -270,37 +264,20 @@ template<typename T> void ManagedMemory<T>::zero()
 #else
 #define dataMPI data
 #endif
-template<typename T> void ManagedMemory<T>::send(int dest, int tag) const
-{	assert(mpiWorld->nProcesses()>1);
-	mpiWorld->send(dataMPI(), nData(), dest, tag);
-}
-template<typename T> void ManagedMemory<T>::recv(int src, int tag)
-{	assert(mpiWorld->nProcesses()>1);
-	mpiWorld->recv(dataMPI(), nData(), src, tag);
-}
-template<typename T> void ManagedMemory<T>::bcast(int root)
-{	if(mpiWorld->nProcesses()>1)
-		mpiWorld->bcast(dataMPI(), nData(), root);
-}
-template<typename T> void ManagedMemory<T>::allReduce(MPIUtil::ReduceOp op, bool safeMode)
-{	if(mpiWorld->nProcesses()>1)
-		mpiWorld->allReduce(dataMPI(), nData(), op, safeMode);
-}
-
 template<typename T> void MPIUtil::sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request) const
-{       send(v.dataMPI(), v.nData(), dest, tag, request);
+{	send(v.dataMPI(), v.nData(), dest, tag, request);
 }
 template<typename T> void MPIUtil::recvData(ManagedMemory<T>& v, int dest, int tag, Request* request) const
-{       recv(v.dataMPI(), v.nData(), dest, tag, request);
+{	recv(v.dataMPI(), v.nData(), dest, tag, request);
 }
 template<typename T> void MPIUtil::bcastData(ManagedMemory<T>& v, int root, Request* request) const
-{       bcast(v.dataMPI(), v.nData(), root, request);
+{	bcast(v.dataMPI(), v.nData(), root, request);
 }
 template<typename T> void MPIUtil::allReduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
-{       allReduce(v.dataMPI(), v.nData(), op, safeMode, request);
+{	allReduce(v.dataMPI(), v.nData(), op, safeMode, request);
 }
 template<typename T> void MPIUtil::reduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
-{       reduce(v.dataMPI(), v.nData(), op, root, request);
+{	reduce(v.dataMPI(), v.nData(), op, root, request);
 }
 #undef dataMPI
 
