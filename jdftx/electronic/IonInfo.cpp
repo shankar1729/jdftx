@@ -237,7 +237,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		}
 	}
 	for(auto& force: forcesNL) //Accumulate contributions over processes
-		mpiWorld->allReduce((double*)force.data(), 3*force.size(), MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(force, MPIUtil::ReduceSum);
 	e->symm.symmetrize(forcesNL);
 	forces += forcesNL;
 	if(shouldPrintForceComponents)

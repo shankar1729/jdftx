@@ -290,8 +290,7 @@ void IonDynamics::step(const IonicGradient& accel, const double& dt)
 	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
 			spInfo.velocities[atom] = dpos[sp][atom]/dt;
-		
-		mpiWorld->bcast((double*)spInfo.atpos.data(), 3*spInfo.atpos.size());
+		mpiWorld->bcastData(spInfo.atpos);
 		spInfo.sync_atpos();
 	}
 }
@@ -355,15 +354,12 @@ void IonDynamics::centerOfMassToOrigin()
 		for(const auto& pos : spInfo->atpos)
 			centerOfMass += w * pos;
 	}
-	
 	//Move everything
 	for(auto& spInfo : e.iInfo.species)
 	{	for(auto& pos : spInfo->atpos)
 			pos -= centerOfMass;
-		mpiWorld->bcast((double*)spInfo->atpos.data(), 3*spInfo->atpos.size());
+		mpiWorld->bcastData(spInfo->atpos);
 		spInfo->sync_atpos();
 	}
-	
-	
 	logPrintf("Atoms are shifted to make the center of mass at origin\n");
 }

@@ -155,14 +155,6 @@ void MPIUtil::waitAll(const std::vector<Request>& requests)
 
 //----------------------- Point-to-point routines -------------------------------
 
-void MPIUtil::send(const complex* data, size_t nData, int dest, int tag, Request* request) const
-{	send((const double*)data, 2*nData, dest, tag, request);
-}
-
-void MPIUtil::recv(complex* data, size_t nData, int dest, int tag, Request* request) const
-{	recv((double*)data, 2*nData, dest, tag, request);
-}
-
 void MPIUtil::send(const bool* data, size_t nData, int dest, int tag, Request* request) const
 {	if(request) throw string("Asynchronous send not supported for bool");
 	std::vector<int> intCopy(nData);
@@ -194,10 +186,6 @@ void MPIUtil::recv(string& s, int src, int tag, Request* request) const
 
 //----------------------- Broadcast routines -------------------------------
 
-void MPIUtil::bcast(complex* data, size_t nData, int root, Request* request) const
-{	bcast((double*)data, 2*nData, root, request);
-}
-
 void MPIUtil::bcast(bool* data, size_t nData, int root, Request* request) const
 {	if(nProcs>1)
 	{	if(request) throw string("Asynchronous bcast not supported for bool");
@@ -222,11 +210,6 @@ void MPIUtil::bcast(string& s, int root, Request* request) const
 
 //----------------------- Reduction routines -------------------------------
 
-void MPIUtil::allReduce(complex* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
-{	assert(op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin && op!=MPIUtil::ReduceProd);
-	allReduce((double*)data, 2*nData, op, safeMode, request);
-}
-
 void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	if(nProcs>1)
 	{	if(request) throw string("Asynchronous allReduce not supported for bool");
@@ -235,11 +218,6 @@ void MPIUtil::allReduce(bool* data, size_t nData, MPIUtil::ReduceOp op, bool saf
 		allReduce(&intCopy[0], nData, op);
 		std::copy(intCopy.begin(), intCopy.end(), data);
 	}
-}
-
-void MPIUtil::reduce(complex* data, size_t nData, MPIUtil::ReduceOp op, int root, Request* request) const
-{	assert(op!=MPIUtil::ReduceMax && op!=MPIUtil::ReduceMin && op!=MPIUtil::ReduceProd);
-	allReduce((double*)data, 2*nData, op, root, request);
 }
 
 void MPIUtil::reduce(bool* data, size_t nData, MPIUtil::ReduceOp op, int root, Request* request) const

@@ -152,7 +152,7 @@ double WannierMinimizerRS::getOmega(bool grad, bool invariant)
 	}
 	mpiWorld->allReduce(Omega, MPIUtil::ReduceSum);
 	mpiWorld->allReduceData(rSqExpect, MPIUtil::ReduceSum);
-	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(rExpect, MPIUtil::ReduceSum);
 	
 	if(grad)
 	{	//Collect across processes:
