@@ -315,6 +315,39 @@ void testYlmDeriv()
 		}
 }
 
+void testVnlPrime()
+{
+	//Forward declaration from SpeciesInfo_internal.h:
+	void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
+		const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
+	
+	vector3<> k(0.25, 0.1, 0.3);
+	vector3<int> iG(1, -1, 0);
+	matrix3<> R(3.,1.,0., -2.,4.,1., 0.,2.,5.);
+	matrix3<> G = 2*M_PI*inv(R);
+	vector3<> pos(-0.2, 0.3, 0.1);
+	vector3<> derivDir(0.7, 0.2, -0.5);
+	nProcsAvailable = 1;
+	RadialFunctionG Vradial;
+	logPrintf("|kpG|: %le\n", ((k+iG)*G).length());
+	for(int l=0; l<=3; l++)
+	{	Vradial.init(l, 0.02, 20., RadialFunctionG::cusplessExpTilde, -8., 0.1);
+		for(int m=-l; m<=l; m++)
+		{	//Numerical derivative:
+			complex Vp, Vm; double alpha = 1e-4; vector3<> dkLat = alpha*derivDir*inv(G);
+			Vnl(1, 1, 1, l, m, k+dkLat, &iG, G, &pos, Vradial, &Vp);
+			Vnl(1, 1, 1, l, m, k-dkLat, &iG, G, &pos, Vradial, &Vm);
+			complex VprimeNum = (0.5/alpha)*(Vp - Vm);
+			//Analytic derivative:
+			complex Vprime;
+			Vnl(1, 1, 1, l, m, k, &iG, G, &pos, Vradial, &Vprime, &derivDir);
+			double err = (Vprime - VprimeNum).abs() / Vprime.abs();
+			logPrintf("Vprime(%d,%+d): %le%s\n", l,m, err, (fabs(err)>1e-8 ? " ERR" : ""));
+		}
+		Vradial.free();
+	}
+}
+
 void fdtest2D(double F(double,double,double&,double&), const char* name)
 {	double A = 1.23856;
 	double B = 3.104262;
@@ -428,7 +461,8 @@ int main(int argc, char** argv)
 {	initSystem(argc, argv);
 	//testHarmonics(); return 0;
 	//testYlmProd(); return 0;
-	testYlmDeriv(); return 0;
+	//testYlmDeriv(); return 0;
+	testVnlPrime(); return 0;
 	//fdtestGGAs(); return 0;
 	//testChangeGrid(); return 0;
 	//testHugeFileIO(); return 0;

@@ -58,7 +58,7 @@ void VnlPrime_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const 
 	double qhatDir = dot(qhat, dir);
 	//Spherical harmonic and its derivatives:
 	double Y = Ylm<l,m>(qhat);
-	double Y_qDir = dot(YlmPrime<l,m>(qhat), dir - qhat*(qhatDir*3.)) * qInv;
+	double Y_qDir = dot(YlmPrime<l,m>(qhat), dir - qhat*qhatDir) * qInv;
 	//Radial function and its derivative:
 	double Vradial = VnlRadial(q);
 	double Vradial_qDir = VnlRadial.deriv(q) * qhatDir;
