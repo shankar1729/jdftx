@@ -105,7 +105,6 @@ public:
 	double rhoAtom_computeU(const std::vector<matrix>& rhoAtom, std::vector<matrix>& U_rhoAtom) const; //!< compute U energy and gradient w.r.t atomic density matrices
 	void rhoAtom_grad(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, ColumnBundle& HCq) const; //!< propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure)
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const; //!< propagate U_rhoAtom to forces
-	void rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& Opsi, std::vector<matrix>& M) const; //!< get DFT+U Hamiltonian basis (atomic orbitals) and matrices
 	
 	matrix rHcommutator(const ColumnBundle &Y, int iDir, const matrix& YdagHY) const; //!< Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections
 	
