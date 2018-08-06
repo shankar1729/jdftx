@@ -69,6 +69,8 @@ namespace YlmInternal
 	#define X2Y2i X2 Y2 double x2y2 = x2 + y2;
 	#define DECLARE_Ylm(lm,code) \
 		template<> __hostanddev__ double Ylm<lm>(double x, double y, double z) { code; }
+	DECLARE_Ylm(-2, return 0.) //Corner case in YlmPrime; needed for compilation but never used
+	DECLARE_Ylm(-1, return 0.) //Corner case in YlmPrime; needed for compilation but never used
 	DECLARE_Ylm(0, return 0.28209479177387814)
 	DECLARE_Ylm(1, return 0.4886025119029199*y)
 	DECLARE_Ylm(2, return 0.4886025119029199*z)
@@ -353,6 +355,54 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 {	int lm1 = l1*(l1+1) + m1;
 	int lm2 = l2*(l2+1) + m2;
 	return expandYlmProd(lm1, lm2);
+}
+
+//! Derivative of spherical Harmonic with repect to iDir'th component of qHat
+template<int l, int m, int iDir> __hostanddev__ double YlmPrime(const vector3<>& qHat)
+{	const double alpha = sqrt((2*l+1.)/(2*l-1.));
+	if(m == 0)
+	{	switch(iDir)
+		{	case 0: return (l>1 ? (-alpha * sqrt(0.5*l*(l-1))) * Ylm<l-1,+1>(qHat) : 0.);
+			case 1: return (l>1 ? (-alpha * sqrt(0.5*l*(l-1))) * Ylm<l-1,-1>(qHat) : 0.);
+			default: return (l>0 ? (alpha * l) * Ylm<l-1,0>(qHat) : 0.);
+		}
+	}
+	else if(m > 0)
+	{	switch(iDir)
+		{	case 0: return (alpha*0.5) *
+				( (l>m+1 ? Ylm<l-1,m+1>(qHat) * (-sqrt((l-m)*(l-m-1.))) : 0.)
+				+ (l>=m  ? Ylm<l-1,m-1>(qHat) * ( sqrt((l+m)*(l+m-1.)) * (m==1 ? sqrt(2.) : 1.)) : 0.) );
+			case 1: return (alpha*0.5) *
+				( (l>m+1 ? Ylm<l-1,-(m+1)>(qHat) * (-sqrt((l-m)*(l-m-1.))) : 0.)
+				+ (l>=m  ? Ylm<l-1,-(m-1)>(qHat) * (-sqrt((l+m)*(l+m-1.)) * (m==1 ? 0. : 1.)) : 0.) );
+			default: return (l>0 ? (alpha * sqrt(double(l*l-m*m))) * Ylm<l-1,m>(qHat) : 0.);
+		}
+	}
+	else //m < 0
+	{	switch(iDir)
+		{	case 0: return alpha*0.5 *
+				( (-l<=m  ? Ylm<l-1,m+1>(qHat) * ( sqrt((l-m)*(l-m-1.)) * (m==-1 ? 0. : 1.)) : 0.)
+				+ (-l<m-1 ? Ylm<l-1,m-1>(qHat) * (-sqrt((l+m)*(l+m-1.))) : 0.) );
+			case 1: return alpha*0.5 *
+				( (-l<=m  ? Ylm<l-1,-(m+1)>(qHat) * ( sqrt((l-m)*(l-m-1.)) * (m==-1 ? sqrt(2.) : 1.)) : 0.)
+				+ (-l<m-1 ? Ylm<l-1,-(m-1)>(qHat) * ( sqrt((l+m)*(l+m-1.))) : 0.) );
+			default: return (l>0 ? (alpha * sqrt(double(l*l-m*m))) * Ylm<l-1,m>(qHat) : 0.);
+		}
+	}
+}
+//! Helper function to provide non-templated version of YlmPrime from templated version
+template<int l, int m> void set_YlmPrime(int iDir, const vector3<> qHat, double& result)
+{	switch(iDir)
+	{	case 0: result = YlmPrime<l,m,0>(qHat); break;
+		case 1: result = YlmPrime<l,m,1>(qHat); break;
+		case 2: result = YlmPrime<l,m,2>(qHat); break;
+	}
+}
+//! Non-templated version of YlmPrime (for debugging)
+inline double YlmPrime(int l, int m, int iDir, const vector3<>& qHat)
+{	double result=0.;
+	SwitchTemplate_lm(l,m, set_YlmPrime, (iDir, qHat, result));
+	return result; 
 }
 
 //! @}
