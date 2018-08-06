@@ -30,7 +30,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/SphericalHarmonics.h>
 #include <stdint.h>
 
-//! Compute Vnl and optionally its gradients for a subset of the basis space, and for multiple atomic positions
+//! Compute Vnl at specific l and m for several atomic positions
 template<int l, int m> __hostanddev__
 void Vnl_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr,
 	const matrix3<>& G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl)
@@ -44,11 +44,39 @@ void Vnl_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vecto
 	for(int atom=0; atom<nAtoms; atom++)
 		Vnl[atom*atomStride+n] = prefac * cis((-2*M_PI)*dot(pos[atom],kpG));
 }
+//! Derivative of above with respect to Cartesian k in direction iDir
+template<int l, int m> __hostanddev__
+void VnlPrime_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr,
+	const matrix3<>& G, const vector3<>* pos, const RadialFunctionG& VnlRadial,
+	const vector3<>& dir, const vector3<>& RTdir, complex* Vprime)
+{
+	vector3<> kpG = k + iGarr[n]; //k+G in reciprocal lattice coordinates:
+	vector3<> qvec = kpG * G; //k+G in cartesian coordinates
+	double q = qvec.length();
+	double qInv = (q ? 1.0/q : 0.0); //regularized 1/q
+	vector3<> qhat = qvec * qInv; //unit vector || qvec (set to 0 for q=0 (doesn't matter))
+	double qhatDir = dot(qhat, dir);
+	//Spherical harmonic and its derivatives:
+	double Y = Ylm<l,m>(qhat);
+	double Y_qDir = dot(YlmPrime<l,m>(qhat), dir - qhat*(qhatDir*3.)) * qInv;
+	//Radial function and its derivative:
+	double Vradial = VnlRadial(q);
+	double Vradial_qDir = VnlRadial.deriv(q) * qhatDir;
+	double prefac = Y*Vradial, predac_qDir = Y_qDir*Vradial + Y*Vradial_qDir;
+	//Loop over columns (multiple atoms at same l,m):
+	for(int atom=0; atom<nAtoms; atom++)
+	{	complex S = cis((-2*M_PI)*dot(pos[atom],kpG));
+		complex S_qDir = S * complex(0.,-dot(pos[atom],RTdir));
+		Vprime[atom*atomStride+n] = predac_qDir*S + prefac*S_qDir;
+	}
+}
+//! Driver routine for calculating Vnl for all basis functions
+//! If derivDir is non-null, then calculate derivative with respect to Cartesian k oprojected along *derivDir
 void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl);
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
 #ifdef GPU_ENABLED
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl);
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
 #endif
 
 

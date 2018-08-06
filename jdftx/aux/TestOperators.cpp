@@ -303,16 +303,16 @@ void testYlmDeriv()
 	const double dq = 1e-6;
 	for(int l=0; l<=lMax; l++)
 		for(int m=-l; m<=l; m++)
+		{	vector3<> Yprime = YlmPrime(l, m, qHat); //analyticla derivative
 			for(int iDir=0; iDir<3; iDir++)
 			{	//Numerical derivative:
 				vector3<> qHatP = qHat; qHatP[iDir] += dq;
 				vector3<> qHatM = qHat; qHatM[iDir] -= dq;
 				double YlmPrimeNum = (0.5/dq) * (Ylm(l,m,qHatP) - Ylm(l,m,qHatM));
-				//Analytical derivative:
-				double YlmPrimeAna = YlmPrime(l, m, iDir, qHat);
-				double err = YlmPrimeAna - YlmPrimeNum;
+				double err = Yprime[iDir] - YlmPrimeNum;
 				logPrintf("Y(%d,%+d)_%c: %le%s\n", l,m, "xyz"[iDir], err, (fabs(err)>1e-10 ? " ERR" : ""));
 			}
+		}
 }
 
 void fdtest2D(double F(double,double,double&,double&), const char* name)

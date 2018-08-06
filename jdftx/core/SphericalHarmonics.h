@@ -358,62 +358,50 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 }
 
 //! Derivative of spherical Harmonic with repect to iDir'th component of qHat
-namespace YlmInternal
-{	template<int l, int m, int iDir> struct YlmPrime;
-	template<int l, int m> struct YlmPrime<l,m,0> //!< x derivative of Ylm
-	{	__hostanddev__ double calc(const vector3<>& qHat)
-		{	const double alpha = 0.5*sqrt((2*l+1.)/(2*l-1.));
-			if(m == 0)
-				return (l>1 ? (-alpha * sqrt(2.*l*(l-1))) * Ylm<l-1,+1>(qHat) : 0.);
-			else if(m > 0)
-				return
-					( (l>m+1 ? Ylm<l-1,m+1>(qHat) * (-alpha*sqrt((l-m)*(l-m-1.))) : 0.)
-					+ (l>=m  ? Ylm<l-1,m-1>(qHat) * ( alpha*sqrt((l+m)*(l+m-1.)) * (m==1 ? sqrt(2.) : 1.)) : 0.) );
-			else //m < 0
-				return
-					( (-l<=m  ? Ylm<l-1,m+1>(qHat) * ( alpha*sqrt((l-m)*(l-m-1.)) * (m==-1 ? 0. : 1.)) : 0.)
-					+ (-l<m-1 ? Ylm<l-1,m-1>(qHat) * (-alpha*sqrt((l+m)*(l+m-1.))) : 0.) );
+template<int l, int m> __hostanddev__ vector3<> YlmPrime(const vector3<>& qHat)
+{	vector3<> result;
+	//z-component:
+	if(l > 0)
+		result[2] = sqrt((l*l-m*m)*(2*l+1.)/(2*l-1.)) * Ylm<l-1,m>(qHat);
+	//m-dependent expressions for x and y components:
+	if(m == 0)
+	{	if(l>1)
+		{	double alpha = sqrt(0.5*l*(l-1)*(2*l+1.)/(2*l-1.));
+			result[0] = -alpha * Ylm<l-1,+1>(qHat);
+			result[1] = -alpha * Ylm<l-1,-1>(qHat);
 		}
-	};
-	template<int l, int m> struct YlmPrime<l,m,1> //!< y derivative of Ylm
-	{	__hostanddev__ double calc(const vector3<>& qHat)
-		{	const double alpha = 0.5*sqrt((2*l+1.)/(2*l-1.));
-			if(m == 0)
-				return (l>1 ? (-alpha * sqrt(2.*l*(l-1))) * Ylm<l-1,-1>(qHat) : 0.);
-			else if(m > 0)
-				return
-					( (l>m+1 ? Ylm<l-1,-(m+1)>(qHat) * (-alpha*sqrt((l-m)*(l-m-1.))) : 0.)
-					+ (l>=m  ? Ylm<l-1,-(m-1)>(qHat) * (-alpha*sqrt((l+m)*(l+m-1.)) * (m==1 ? 0. : 1.)) : 0.) );
-			else //m < 0
-				return
-					( (-l<=m  ? Ylm<l-1,-(m+1)>(qHat) * (alpha*sqrt((l-m)*(l-m-1.)) * (m==-1 ? sqrt(2.) : 1.)) : 0.)
-					+ (-l<m-1 ? Ylm<l-1,-(m-1)>(qHat) * (alpha*sqrt((l+m)*(l+m-1.))) : 0.) );
+	}
+	else
+	{	double alphaM = 0.5*sqrt((l-m)*(l-m-1)*(2*l+1.)/(2*l-1.));
+		double alphaP = 0.5*sqrt((l+m)*(l+m-1)*(2*l+1.)/(2*l-1.));
+		if(m > 0)
+		{	if(l > m+1)
+			{	result[0] -= Ylm<l-1,  m+1 >(qHat) * alphaM;
+				result[1] -= Ylm<l-1,-(m+1)>(qHat) * alphaM;
+			}
+			if(l >= m)
+			{	result[0] += Ylm<l-1,  m-1 >(qHat) * (alphaP * (m==1 ? sqrt(2.) : 1.));
+				result[1] -= Ylm<l-1,-(m-1)>(qHat) * (alphaP * (m==1 ? 0. : 1.));
+			}
 		}
-	};
-	template<int l, int m> struct YlmPrime<l,m,2> //!< z derivative of Ylm
-	{	__hostanddev__ double calc(const vector3<>& qHat)
-		{	if(l > 0) return sqrt((l*l-m*m)*(2*l+1.)/(2*l-1.)) * Ylm<l-1,m>(qHat);
-			else return 0.;
+		else //m < 0
+		{	if(-l <= m)
+			{	result[0] += Ylm<l-1,  m+1 >(qHat) * (alphaM * (m==-1 ? 0. : 1.));
+				result[1] += Ylm<l-1,-(m+1)>(qHat) * (alphaM * (m==-1 ? sqrt(2.) : 1.));
+			}
+			if(-l < m-1)
+			{	result[0] -= Ylm<l-1,  m-1 >(qHat) * alphaP;
+				result[1] += Ylm<l-1,-(m-1)>(qHat) * alphaP;
+			}
 		}
-	};
-}
-template<int l, int m, int iDir> __hostanddev__ double YlmPrime(const vector3<>& qHat)
-{	return YlmInternal::YlmPrime<l,m,iDir>().calc(qHat);
+	}
+	return result;
 }
 
-//! Helper function to provide non-templated version of YlmPrime from templated version
-template<int l, int m> void set_YlmPrime(int iDir, const vector3<> qHat, double& result)
-{	switch(iDir)
-	{	case 0: result = YlmPrime<l,m,0>(qHat); break;
-		case 1: result = YlmPrime<l,m,1>(qHat); break;
-		case 2: result = YlmPrime<l,m,2>(qHat); break;
-	}
-}
 //! Non-templated version of YlmPrime (for debugging)
-inline double YlmPrime(int l, int m, int iDir, const vector3<>& qHat)
-{	double result=0.;
-	SwitchTemplate_lm(l,m, set_YlmPrime, (iDir, qHat, result));
-	return result; 
+template<int l, int m> void set_YlmPrime(const vector3<> qHat, vector3<>& result) { result = YlmPrime<l,m>(qHat); }
+inline vector3<> YlmPrime(int l, int m, const vector3<>& qHat)
+{	vector3<> result; SwitchTemplate_lm(l,m, set_YlmPrime, (qHat, result)); return result; 
 }
 
 //! @}
