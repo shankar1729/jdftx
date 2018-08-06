@@ -160,7 +160,7 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 	)
 }
 
-void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M) const
+void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M, const vector3<>* derivDir) const
 {	rhoAtom_COMMONinit
 	int matSizeTot = 0; UparamLOOP( matSizeTot += orbCount * atpos.size(); )
 	if(!matSizeTot) return;
@@ -170,7 +170,7 @@ void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 	UparamLOOP
 	(	U_rho_PACK
 		int s = Cq.qnum->index();
-		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l, matSizePrev);
+		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l, matSizePrev, 0, derivDir);
 		M.set(matSizePrev,matSizePrev+matSize, matSizePrev,matSizePrev+matSize, (1./e->eInfo.spinWeight) * U_rho[s]);
 		matSizePrev += matSize;
 	)
@@ -253,14 +253,14 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 	}
 }
 
-std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
+std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const vector3<>* derivDir) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
 	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
 	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
 	if(!nProj) return 0; //purely local psp
 	//First check cache
-	if(e->cntrl.cacheProjectors)
+	if(e->cntrl.cacheProjectors && (!derivDir))
 	{	auto iter = cachedV.find(cacheKey);
 		if(iter != cachedV.end()) //found
 			return iter->second; //return cached value
@@ -273,11 +273,12 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq) const
 			for(int m=-l; m<=l; m++)
 			{	size_t offs = iProj * basis.nbasis;
 				size_t atomStride = nProj * basis.nbasis;
-				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarr.dataPref(), basis.gInfo->G, atposManaged.dataPref(), VnlRadial[l][p], V->dataPref()+offs);
+				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarr.dataPref(),
+					basis.gInfo->G, atposManaged.dataPref(), VnlRadial[l][p], V->dataPref()+offs, derivDir);
 				iProj++;
 			}
 	//Add to cache if necessary:
-	if(e->cntrl.cacheProjectors)
+	if(e->cntrl.cacheProjectors && (!derivDir))
 		((SpeciesInfo*)this)->cachedV[cacheKey] = V;
 	return V;
 }

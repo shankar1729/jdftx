@@ -89,7 +89,9 @@ public:
 	//! Returns the pseudopotential format
 	PseudopotentialFormat getPSPFormat(){return pspFormat;}
 
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq) const; //!< get projectors with qnum and basis matching Cq  (optionally cached)
+	//! Get projectors with qnum and basis matching Cq  (optionally cached).
+	//! If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached).
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0) const;
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
@@ -119,13 +121,13 @@ public:
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
 	void rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
-	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
+	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M, const vector3<>* derivDir=0) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
 	void accumulateAtomicPotential(ScalarFieldTilde& dTilde) const; //!< Accumulate electrostatic potential of neutral atoms from this species
-	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset)
-	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0) const;  //!< Same as above, but for specific n and l.
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0, const vector3<>* derivDir=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calcluatulate k derivative if derivDir is non-null)
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0, const vector3<>* derivDir=0) const;  //!< Same as above, but for specific n and l.
 		//!< If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals
