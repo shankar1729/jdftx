@@ -226,7 +226,8 @@ void ElecVars::setup(const Everything &everything)
 		
 		//Orthogonalize initial wavefunctions:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	C[q] = C[q] * invsqrt(C[q]^O(C[q]));
+		{	matrix CdagOC = C[q] ^ O(C[q]);
+			C[q] = C[q] * invsqrt(CdagOC);
 			iInfo.project(C[q], VdagC[q]);
 		}
 	}
