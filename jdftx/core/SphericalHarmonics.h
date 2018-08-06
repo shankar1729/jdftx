@@ -358,38 +358,49 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 }
 
 //! Derivative of spherical Harmonic with repect to iDir'th component of qHat
-template<int l, int m, int iDir> __hostanddev__ double YlmPrime(const vector3<>& qHat)
-{	const double alpha = sqrt((2*l+1.)/(2*l-1.));
-	if(m == 0)
-	{	switch(iDir)
-		{	case 0: return (l>1 ? (-alpha * sqrt(0.5*l*(l-1))) * Ylm<l-1,+1>(qHat) : 0.);
-			case 1: return (l>1 ? (-alpha * sqrt(0.5*l*(l-1))) * Ylm<l-1,-1>(qHat) : 0.);
-			default: return (l>0 ? (alpha * l) * Ylm<l-1,0>(qHat) : 0.);
+namespace YlmInternal
+{	template<int l, int m, int iDir> struct YlmPrime;
+	template<int l, int m> struct YlmPrime<l,m,0> //!< x derivative of Ylm
+	{	__hostanddev__ double calc(const vector3<>& qHat)
+		{	const double alpha = 0.5*sqrt((2*l+1.)/(2*l-1.));
+			if(m == 0)
+				return (l>1 ? (-alpha * sqrt(2.*l*(l-1))) * Ylm<l-1,+1>(qHat) : 0.);
+			else if(m > 0)
+				return
+					( (l>m+1 ? Ylm<l-1,m+1>(qHat) * (-alpha*sqrt((l-m)*(l-m-1.))) : 0.)
+					+ (l>=m  ? Ylm<l-1,m-1>(qHat) * ( alpha*sqrt((l+m)*(l+m-1.)) * (m==1 ? sqrt(2.) : 1.)) : 0.) );
+			else //m < 0
+				return
+					( (-l<=m  ? Ylm<l-1,m+1>(qHat) * ( alpha*sqrt((l-m)*(l-m-1.)) * (m==-1 ? 0. : 1.)) : 0.)
+					+ (-l<m-1 ? Ylm<l-1,m-1>(qHat) * (-alpha*sqrt((l+m)*(l+m-1.))) : 0.) );
 		}
-	}
-	else if(m > 0)
-	{	switch(iDir)
-		{	case 0: return (alpha*0.5) *
-				( (l>m+1 ? Ylm<l-1,m+1>(qHat) * (-sqrt((l-m)*(l-m-1.))) : 0.)
-				+ (l>=m  ? Ylm<l-1,m-1>(qHat) * ( sqrt((l+m)*(l+m-1.)) * (m==1 ? sqrt(2.) : 1.)) : 0.) );
-			case 1: return (alpha*0.5) *
-				( (l>m+1 ? Ylm<l-1,-(m+1)>(qHat) * (-sqrt((l-m)*(l-m-1.))) : 0.)
-				+ (l>=m  ? Ylm<l-1,-(m-1)>(qHat) * (-sqrt((l+m)*(l+m-1.)) * (m==1 ? 0. : 1.)) : 0.) );
-			default: return (l>0 ? (alpha * sqrt(double(l*l-m*m))) * Ylm<l-1,m>(qHat) : 0.);
+	};
+	template<int l, int m> struct YlmPrime<l,m,1> //!< y derivative of Ylm
+	{	__hostanddev__ double calc(const vector3<>& qHat)
+		{	const double alpha = 0.5*sqrt((2*l+1.)/(2*l-1.));
+			if(m == 0)
+				return (l>1 ? (-alpha * sqrt(2.*l*(l-1))) * Ylm<l-1,-1>(qHat) : 0.);
+			else if(m > 0)
+				return
+					( (l>m+1 ? Ylm<l-1,-(m+1)>(qHat) * (-alpha*sqrt((l-m)*(l-m-1.))) : 0.)
+					+ (l>=m  ? Ylm<l-1,-(m-1)>(qHat) * (-alpha*sqrt((l+m)*(l+m-1.)) * (m==1 ? 0. : 1.)) : 0.) );
+			else //m < 0
+				return
+					( (-l<=m  ? Ylm<l-1,-(m+1)>(qHat) * (alpha*sqrt((l-m)*(l-m-1.)) * (m==-1 ? sqrt(2.) : 1.)) : 0.)
+					+ (-l<m-1 ? Ylm<l-1,-(m-1)>(qHat) * (alpha*sqrt((l+m)*(l+m-1.))) : 0.) );
 		}
-	}
-	else //m < 0
-	{	switch(iDir)
-		{	case 0: return alpha*0.5 *
-				( (-l<=m  ? Ylm<l-1,m+1>(qHat) * ( sqrt((l-m)*(l-m-1.)) * (m==-1 ? 0. : 1.)) : 0.)
-				+ (-l<m-1 ? Ylm<l-1,m-1>(qHat) * (-sqrt((l+m)*(l+m-1.))) : 0.) );
-			case 1: return alpha*0.5 *
-				( (-l<=m  ? Ylm<l-1,-(m+1)>(qHat) * ( sqrt((l-m)*(l-m-1.)) * (m==-1 ? sqrt(2.) : 1.)) : 0.)
-				+ (-l<m-1 ? Ylm<l-1,-(m-1)>(qHat) * ( sqrt((l+m)*(l+m-1.))) : 0.) );
-			default: return (l>0 ? (alpha * sqrt(double(l*l-m*m))) * Ylm<l-1,m>(qHat) : 0.);
+	};
+	template<int l, int m> struct YlmPrime<l,m,2> //!< z derivative of Ylm
+	{	__hostanddev__ double calc(const vector3<>& qHat)
+		{	if(l > 0) return sqrt((l*l-m*m)*(2*l+1.)/(2*l-1.)) * Ylm<l-1,m>(qHat);
+			else return 0.;
 		}
-	}
+	};
 }
+template<int l, int m, int iDir> __hostanddev__ double YlmPrime(const vector3<>& qHat)
+{	return YlmInternal::YlmPrime<l,m,iDir>().calc(qHat);
+}
+
 //! Helper function to provide non-templated version of YlmPrime from templated version
 template<int l, int m> void set_YlmPrime(int iDir, const vector3<> qHat, double& result)
 {	switch(iDir)
