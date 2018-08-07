@@ -248,9 +248,9 @@ template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, i
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(request)
-			MPI_Isend(data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm, request);
+			MPI_Isend((void*)data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm, request);
 		else
-			MPI_Send(data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm);
+			MPI_Send((void*)data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm);
 	}
 	#endif
 }
@@ -283,9 +283,14 @@ template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root, Reques
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	if(request)
+	{		
+		#if MPI_VERSION < 3
+		if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+		#else
+		if(request)
 			MPI_Ibcast(data, DataType<T>::nElem*nData, DataType<T>::get(), root, comm, request);
 		else
+		#endif
 			MPI_Bcast(data, DataType<T>::nElem*nData, DataType<T>::get(), root, comm);
 	}
 	#endif
@@ -307,9 +312,14 @@ template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::Red
 			if(request) throw string("Asynchronous allReduce not supported in safeMode");
 		}
 		else //standard Allreduce
-		{	if(request)
+		{		
+			#if MPI_VERSION < 3
+			if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+			#else
+			if(request)
 				MPI_Iallreduce(MPI_IN_PLACE, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), comm, request);
 			else
+			#endif
 				MPI_Allreduce(MPI_IN_PLACE, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), comm);
 		}
 	}
@@ -337,9 +347,14 @@ template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::Reduce
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	if(request)
+	{	
+		#if MPI_VERSION < 3
+		if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+		#else
+		if(request)
 			MPI_Ireduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm, request);
 		else
+		#endif
 			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm);
 	}
 	#endif

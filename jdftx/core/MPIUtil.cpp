@@ -69,6 +69,9 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
 {
 	#ifdef MPI_ENABLED
+	#if MPI_VERSION < 3
+		#define MPI_Comm_create_group MPIX_Comm_create_group //For older MPICH compatibility
+	#endif
 	//Create sub-communicator:
 	MPI_Group parent, subset;
 	MPI_Comm_group(mpiUtil->comm, &parent); //create group asociated with parent communicator
