@@ -180,13 +180,10 @@ namespace MPIUtilPrivate
 	DECLARE_DataType(unsigned long long, UNSIGNED_LONG_LONG)
 	DECLARE_DataType(float, FLOAT)
 	DECLARE_DataType(double, DOUBLE)
+	DECLARE_DataType(complex, C_DOUBLE_COMPLEX)
 	#undef DECLARE_DataType
 	
 	//Compund data types that are multiplets of MPI-supported types:
-	template<> struct DataType<complex>
-	{	static const int nElem = 2;
-		static MPI_Datatype get() { return MPI_DOUBLE; }
-	};
 	template<typename T> struct DataType<vector3<T>>
 	{	static const int nElem = 3*DataType<T>::nElem;
 		static MPI_Datatype get() { return DataType<T>::get(); }
