@@ -127,6 +127,7 @@ template<typename T> struct ManagedArray : public ManagedMemory<T>
 	ManagedArray(const T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
 	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
 	ManagedArray(const ManagedArray&); //!< copy-constructor
+	ManagedArray(ManagedArray&&); //!< move-constructor
 	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
 	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
 };
@@ -318,6 +319,10 @@ template<typename T> ManagedArray<T>::ManagedArray(const ManagedArray<T>& other)
 	{	init(other.nData(), isGpuEnabled());
 		memcpy(*this, other);
 	}
+}
+
+template<typename T> ManagedArray<T>::ManagedArray(ManagedArray<T>&& other)
+{	ManagedMemory<T>::memMove((ManagedMemory<T>&&)other);
 }
 
 template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedArray<T>& other)
