@@ -124,10 +124,12 @@ public:
 //! ManagedMemory and implement operators; do not use this wrapper.
 template<typename T> struct ManagedArray : public ManagedMemory<T>
 {	void init(size_t size, bool onGpu=false); //!< calls memInit with category "misc"
+	void free();
 	ManagedArray(const T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
 	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
 	ManagedArray(const ManagedArray&); //!< copy-constructor
 	ManagedArray(ManagedArray&&); //!< move-constructor
+	~ManagedArray();
 	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
 	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
 };
@@ -300,6 +302,10 @@ template<typename T> void ManagedArray<T>::init(size_t size, bool onGpu)
 {	ManagedMemory<T>::memInit("misc", size, onGpu);
 }
 
+template<typename T> void ManagedArray<T>::free()
+{	ManagedMemory<T>::memFree();
+}
+
 template<typename T> ManagedArray<T>::ManagedArray(const T* ptr, size_t N)
 {	if(ptr && N)
 	{	init(N);
@@ -323,6 +329,10 @@ template<typename T> ManagedArray<T>::ManagedArray(const ManagedArray<T>& other)
 
 template<typename T> ManagedArray<T>::ManagedArray(ManagedArray<T>&& other)
 {	ManagedMemory<T>::memMove((ManagedMemory<T>&&)other);
+}
+
+template<typename T> ManagedArray<T>::~ManagedArray()
+{	free();
 }
 
 template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedArray<T>& other)
