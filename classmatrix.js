@@ -6,6 +6,8 @@ var classmatrix =
     [ "matrix", "classmatrix.html#af8d05aaa0f954987bafca77961ee8174", null ],
     [ "matrix", "classmatrix.html#a337e262db7a2c2391f6168b8aeb401ef", null ],
     [ "matrix", "classmatrix.html#a2ed11dd6cdcc5411feb784f319326122", null ],
+    [ "accum", "classmatrix.html#ae8378b8fa9181790d92f0b276a487939", null ],
+    [ "accum", "classmatrix.html#a26dd03d56dd2cc937caff99533b0e9d0", null ],
     [ "diagonalize", "classmatrix.html#a7e5afdafc9213d5130a42d73dab264ba", null ],
     [ "diagonalize", "classmatrix.html#ab1949b4cd5cdbf94399a141151c21e55", null ],
     [ "getElement", "classmatrix.html#a18c20290065773f342ac5abdd2b8dc77", null ],
@@ -15,9 +17,9 @@ var classmatrix =
     [ "init", "classmatrix.html#ac277c5e1800e31bdd452519cd41588c2", null ],
     [ "nCols", "classmatrix.html#a13677483f381bd43911f588c81507e59", null ],
     [ "nRows", "classmatrix.html#aee2c8ae3630a0f73322e83bec71a0d95", null ],
+    [ "operator", "classmatrix.html#a5dfa14de9fb7014bf2c59f628fc338dd", null ],
     [ "operator bool", "classmatrix.html#ae84434e4e94a455c4a0d08a7ebd1b1b2", null ],
     [ "operator()", "classmatrix.html#af9190dfb7fcd3f55f73912b84ba2db2d", null ],
-    [ "operator()", "classmatrix.html#a659db1d72bdf9e8551713d30923420f4", null ],
     [ "operator()", "classmatrix.html#a672846a6db8671d9ceaa2e63c5da8353", null ],
     [ "operator=", "classmatrix.html#ab7b84798fbffc1bedb5f24a4f38d27cd", null ],
     [ "operator=", "classmatrix.html#a85fafe9436b5a3e36c99afa06da99b4d", null ],
@@ -29,5 +31,8 @@ var classmatrix =
     [ "set", "classmatrix.html#af653743c906fcc045df21990f816b14d", null ],
     [ "set", "classmatrix.html#a7ead7cfe9c0af457ba7a30a374046d54", null ],
     [ "set", "classmatrix.html#abcda9d6e0ae463dab732158ca0d327bf", null ],
-    [ "svd", "classmatrix.html#a51230ffd5868706ac9f7a21d613b3835", null ]
+    [ "svd", "classmatrix.html#a51230ffd5868706ac9f7a21d613b3835", null ],
+    [ "const", "classmatrix.html#ad2f1be140709d90d5029fff4252c2c7f", null ],
+    [ "iStop", "classmatrix.html#a0962220bb85c6a1bf539d1c28da2fbe6", null ],
+    [ "jStart", "classmatrix.html#a5bb6cda088bf964e70219fbc29045459", null ]
 ];

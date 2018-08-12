@@ -109,6 +109,9 @@ $(document).ready(function(){initNavTree('functions.html','');});
 <li>absorbScale()
 : <a class="el" href="structFieldData.html#ae339b4740d15c76a3f7d8b7fa39acb75">FieldData&lt; T &gt;</a>
 </li>
+<li>accum()
+: <a class="el" href="classmatrix.html#ae8378b8fa9181790d92f0b276a487939">matrix</a>
+</li>
 <li>accumColumn()
 : <a class="el" href="classColumnBundle.html#a16e52bd2417e2ad6e80868a429112089">ColumnBundle</a>
 </li>
@@ -152,11 +155,11 @@ $(document).ready(function(){initNavTree('functions.html','');});
 : <a class="el" href="classCommand.html#acb6734f7e2a87580c8cab761737d42bc">Command</a>
 </li>
 <li>allReduce()
-: <a class="el" href="classManagedMemory.html#ad1f6cf99f82711ed2d6ab4e731df0f0b">ManagedMemory&lt; T &gt;</a>
-, <a class="el" href="classdiagMatrix.html#a4518578510c8e803e4fb3771c3b471b0">diagMatrix</a>
-, <a class="el" href="classMPIUtil.html#ab6660635a0f6b294e65d082c5f7c2ff4">MPIUtil</a>
-, <a class="el" href="structFieldData.html#ae69aa5a9b43143537b964094bf1c9850">FieldData&lt; T &gt;</a>
+: <a class="el" href="classMPIUtil.html#ab1b10c6e736e07f7ffb6adddd1e276b2">MPIUtil</a>
 , <a class="el" href="classBlockRotationMatrix.html#a55c9a5b5267568a31393bb67e6ca0d6c">BlockRotationMatrix</a>
+</li>
+<li>allReduceData()
+: <a class="el" href="classMPIUtil.html#af314151e88f93b9b7f6430219555acfd">MPIUtil</a>
 </li>
 <li>alpha
 : <a class="el" href="structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878">IonDynamicsParams</a>
@@ -181,8 +184,8 @@ $(document).ready(function(){initNavTree('functions.html','');});
 </li>
 <li>apply()
 : <a class="el" href="classCoulomb.html#af268cc5e01552b760ce0408a44a8512e">Coulomb</a>
-, <a class="el" href="classCoulombIsolated.html#aaabd30ca654ab4662665fa04a2bfe532">CoulombIsolated</a>
 , <a class="el" href="classCoulombCylindrical.html#a8697a314999f79415f5dae48ba6f1d2e">CoulombCylindrical</a>
+, <a class="el" href="classCoulombIsolated.html#aaabd30ca654ab4662665fa04a2bfe532">CoulombIsolated</a>
 , <a class="el" href="classCoulombSpherical.html#a7c5372c035033aaf412ac7ea60fe0a09">CoulombSpherical</a>
 , <a class="el" href="classCoulombPeriodic.html#afa144965ff7c15f0e2e1dfeb3bfe0f6c">CoulombPeriodic</a>
 , <a class="el" href="classCoulombSlab.html#a96ed791a462cef98871348db911ec5ae">CoulombSlab</a>
@@ -203,9 +206,9 @@ $(document).ready(function(){initNavTree('functions.html','');});
 : <a class="el" href="structWannier_1_1AtomicOrbital.html#a71aec3c762aaa88efede1210ab341e37">Wannier::AtomicOrbital</a>
 </li>
 <li>atomicNumber
-: <a class="el" href="classSpeciesInfo.html#a4ad2967e0f4a8f54ca4805c8147e1edf">SpeciesInfo</a>
-, <a class="el" href="structAtom.html#a5d0de92e5794175e7ad02cad114a2fbf">Atom</a>
+: <a class="el" href="structAtom.html#a5d0de92e5794175e7ad02cad114a2fbf">Atom</a>
 , <a class="el" href="structMolecule_1_1Site.html#a1b3da2ed6bf253efa123277f49eca0db">Molecule::Site</a>
+, <a class="el" href="classSpeciesInfo.html#a4ad2967e0f4a8f54ca4805c8147e1edf">SpeciesInfo</a>
 </li>
 <li>atomicNumbers
 : <a class="el" href="classPCM.html#acaa1c869d9939acc144926b87d18826b">PCM</a>
@@ -235,31 +238,28 @@ $(document).ready(function(){initNavTree('functions.html','');});
 : <a class="el" href="structGpuLaunchConfig.html#a84c10c88fcce2eb00964019e389cb88c">GpuLaunchConfig</a>
 </li>
 <li>augmentDensityGrid()
-: <a class="el" href="classIonInfo.html#aa2999661e1fae3fbe97f4157a69d3868">IonInfo</a>
-, <a class="el" href="classSpeciesInfo.html#ae9b5302749cca4f0a67ac5c4bb130d77">SpeciesInfo</a>
+: <a class="el" href="classSpeciesInfo.html#ae9b5302749cca4f0a67ac5c4bb130d77">SpeciesInfo</a>
+, <a class="el" href="classIonInfo.html#aa2999661e1fae3fbe97f4157a69d3868">IonInfo</a>
 </li>
 <li>augmentDensityGridGrad()
 : <a class="el" href="classIonInfo.html#a6caabff0119bc343f71f5510e315ebd5">IonInfo</a>
 , <a class="el" href="classSpeciesInfo.html#a2fff3e83066c1b7b563ac524e1dd207d">SpeciesInfo</a>
 </li>
 <li>augmentDensityInit()
-: <a class="el" href="classIonInfo.html#a8258442f05d9c5c326f61086998abcb4">IonInfo</a>
-, <a class="el" href="classSpeciesInfo.html#a39ed9760278526f8e181386ce7eaf3da">SpeciesInfo</a>
+: <a class="el" href="classSpeciesInfo.html#a39ed9760278526f8e181386ce7eaf3da">SpeciesInfo</a>
+, <a class="el" href="classIonInfo.html#a8258442f05d9c5c326f61086998abcb4">IonInfo</a>
 </li>
 <li>augmentDensitySpherical()
 : <a class="el" href="classIonInfo.html#a036f7e4640255916764182e7f2a45c9d">IonInfo</a>
 , <a class="el" href="classSpeciesInfo.html#aa82b3bf9e47b567f6c7a1b36c3affde8">SpeciesInfo</a>
 </li>
 <li>augmentDensitySphericalGrad()
-: <a class="el" href="classIonInfo.html#aace084a8f52fd2634ed9ba91354592d9">IonInfo</a>
-, <a class="el" href="classSpeciesInfo.html#a00f6a8d8d933ff648ed66bab9065e1a2">SpeciesInfo</a>
+: <a class="el" href="classSpeciesInfo.html#a00f6a8d8d933ff648ed66bab9065e1a2">SpeciesInfo</a>
+, <a class="el" href="classIonInfo.html#aace084a8f52fd2634ed9ba91354592d9">IonInfo</a>
 </li>
 <li>augmentOverlap()
-: <a class="el" href="classIonInfo.html#a1ca3164f200f8780763f7ee6faefc5c8">IonInfo</a>
-, <a class="el" href="classSpeciesInfo.html#aac83a8328475697eabc610ef43f2a4aa">SpeciesInfo</a>
-</li>
-<li>AutoThreadCount()
-: <a class="el" href="classAutoThreadCount.html#aa89a9f813ea3d39075a24310a8eeb837">AutoThreadCount</a>
+: <a class="el" href="classSpeciesInfo.html#aac83a8328475697eabc610ef43f2a4aa">SpeciesInfo</a>
+, <a class="el" href="classIonInfo.html#a1ca3164f200f8780763f7ee6faefc5c8">IonInfo</a>
 </li>
 <li>AuxiliaryFunction
 : <a class="el" href="structCoulombParams.html#a4c748577e8daa85d6c37203d93842daca0d0fcd2843f2d80657f6a0f43f194977">CoulombParams</a>

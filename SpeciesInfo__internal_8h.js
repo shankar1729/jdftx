@@ -21,7 +21,8 @@ var SpeciesInfo__internal_8h =
     [ "updateLocal", "SpeciesInfo__internal_8h.html#gaf276d997914e671ab0daa5dae494225d", null ],
     [ "updateLocal_calc", "SpeciesInfo__internal_8h.html#gab47298832cb2a3a4e1c5523407a88bd9", null ],
     [ "updateLocal_gpu", "SpeciesInfo__internal_8h.html#gacc0b572b764c07253476375cbd7d5f57", null ],
-    [ "Vnl", "SpeciesInfo__internal_8h.html#gacf56e3da54fbfd28724652e670058d8a", null ],
+    [ "Vnl", "SpeciesInfo__internal_8h.html#ga2a8697d21c361c099889d32d7dbcb12d", null ],
     [ "Vnl_calc", "SpeciesInfo__internal_8h.html#gac8d837d27ce0457c35d152464e6c03a7", null ],
-    [ "Vnl_gpu", "SpeciesInfo__internal_8h.html#gafa8455d7af9c1030a7a36d278aad7b3d", null ]
+    [ "Vnl_gpu", "SpeciesInfo__internal_8h.html#ga11ade2da9b4ba81b1e582f85ed6ae89d", null ],
+    [ "VnlPrime_calc", "SpeciesInfo__internal_8h.html#ga5a1b14645d1f80b0c8ed0a2144b7fefd", null ]
 ];

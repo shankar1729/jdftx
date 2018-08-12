@@ -1,6 +1,6 @@
 var classvector3 =
 [
-    [ "vector3", "classvector3.html#af1f23976faeb2e07c8f2484cc10d76f9", null ],
+    [ "vector3", "classvector3.html#ae53eb15f0782055ae1439b8fa21794c2", null ],
     [ "vector3", "classvector3.html#a5fb76a26a0994db34405f40858f23917", null ],
     [ "vector3", "classvector3.html#a3458c7a5fffbc654e0100fb09f6839e6", null ],
     [ "isNonzero", "classvector3.html#aa5db635f66feb098af349030281a00cd", null ],

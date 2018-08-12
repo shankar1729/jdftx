@@ -186,22 +186,21 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFieldData.html#aef313732499ef7438943119fcd2adac8">isOnGpu</a> () const</td></tr>
 <tr class="memdesc:aef313732499ef7438943119fcd2adac8 inherit pub_methods_structFieldData"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED) <br/></td></tr>
 <tr class="separator:aef313732499ef7438943119fcd2adac8 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a414f57c1cb43a236f66a3dace45785fc inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a414f57c1cb43a236f66a3dace45785fc"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFieldData.html#a414f57c1cb43a236f66a3dace45785fc">send</a> (int dest, int tag=0) const</td></tr>
-<tr class="memdesc:a414f57c1cb43a236f66a3dace45785fc inherit pub_methods_structFieldData"><td class="mdescLeft">&#160;</td><td class="mdescRight">send to another process <br/></td></tr>
-<tr class="separator:a414f57c1cb43a236f66a3dace45785fc inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a684b5d38dd8c3a687fb40b0056917ba9 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a684b5d38dd8c3a687fb40b0056917ba9"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFieldData.html#a684b5d38dd8c3a687fb40b0056917ba9">recv</a> (int src, int tag=0)</td></tr>
-<tr class="memdesc:a684b5d38dd8c3a687fb40b0056917ba9 inherit pub_methods_structFieldData"><td class="mdescLeft">&#160;</td><td class="mdescRight">receive from another process <br/></td></tr>
-<tr class="separator:a684b5d38dd8c3a687fb40b0056917ba9 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a84c35b551f25245dd7c49b6af532cc04 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a84c35b551f25245dd7c49b6af532cc04"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFieldData.html#a84c35b551f25245dd7c49b6af532cc04">bcast</a> (int root=0)</td></tr>
-<tr class="memdesc:a84c35b551f25245dd7c49b6af532cc04 inherit pub_methods_structFieldData"><td class="mdescLeft">&#160;</td><td class="mdescRight">synchronize across processes (using value on specified root process) <br/></td></tr>
-<tr class="separator:a84c35b551f25245dd7c49b6af532cc04 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae69aa5a9b43143537b964094bf1c9850 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae69aa5a9b43143537b964094bf1c9850"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFieldData.html#ae69aa5a9b43143537b964094bf1c9850">allReduce</a> (MPIUtil::ReduceOp op, bool safeMode=false)</td></tr>
-<tr class="memdesc:ae69aa5a9b43143537b964094bf1c9850 inherit pub_methods_structFieldData"><td class="mdescLeft">&#160;</td><td class="mdescRight">apply all-to-all reduction <br/></td></tr>
-<tr class="separator:ae69aa5a9b43143537b964094bf1c9850 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac339c842c3e4845ae4f5ce7268e66879 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac339c842c3e4845ae4f5ce7268e66879"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>sendData</b> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, int dest, int tag, MPIUtil::Request *request=0) const</td></tr>
+<tr class="separator:ac339c842c3e4845ae4f5ce7268e66879 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adddf32f6eebc3a7d7e1ea5db6cdace40 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adddf32f6eebc3a7d7e1ea5db6cdace40"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>recvData</b> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, int dest, int tag, MPIUtil::Request *request=0)</td></tr>
+<tr class="separator:adddf32f6eebc3a7d7e1ea5db6cdace40 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed1586d92aa7956bbd22dd8dd934dfe3 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aed1586d92aa7956bbd22dd8dd934dfe3"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>bcastData</b> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, int root=0, MPIUtil::Request *request=0)</td></tr>
+<tr class="separator:aed1586d92aa7956bbd22dd8dd934dfe3 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a63dc49f3a0cc6e01e6473405188bf797 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a63dc49f3a0cc6e01e6473405188bf797"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>allReduceData</b> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, MPIUtil::ReduceOp op, bool safeMode=false, MPIUtil::Request *request=0)</td></tr>
+<tr class="separator:a63dc49f3a0cc6e01e6473405188bf797 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86cc74df6da1dc50e5f7d08e069785f6 inherit pub_methods_structFieldData"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a86cc74df6da1dc50e5f7d08e069785f6"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>reduceData</b> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, MPIUtil::ReduceOp op, int root=0, MPIUtil::Request *request=0)</td></tr>
+<tr class="separator:a86cc74df6da1dc50e5f7d08e069785f6 inherit pub_methods_structFieldData"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>

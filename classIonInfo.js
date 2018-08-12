@@ -25,7 +25,6 @@ var classIonInfo =
     [ "rhoAtom_calc", "classIonInfo.html#a410ac865460b60e415fc26d1bff4cf0c", null ],
     [ "rhoAtom_computeU", "classIonInfo.html#a39884c5be3b656f6e30a5f565facbd1d", null ],
     [ "rhoAtom_forces", "classIonInfo.html#ade05a0f025c8af8c1f4838338f69f48d", null ],
-    [ "rhoAtom_getV", "classIonInfo.html#a0afdf25b76e699ac3fa6c85f3c2bd5ba", null ],
     [ "rhoAtom_grad", "classIonInfo.html#a86fbebb5d6ca259ee166c9ab7341be69", null ],
     [ "rhoAtom_initZero", "classIonInfo.html#ac2c96565288643578d4a91d0ab8e6972", null ],
     [ "rhoAtom_nMatrices", "classIonInfo.html#a4032d8353bad0e2c3587c5cfb63c13c1", null ],

@@ -12,7 +12,7 @@ var searchData=
   ['tfkinetic',['TFKinetic',['../group__ExchangeCorrelation.html#ga54596c87b29b498cf7e81884d60ca8a0',1,'ExCorr_internal_GGA.h']]],
   ['threadedaccumulate',['threadedAccumulate',['../group__Utilities.html#gacd3e4ee4aa4c2a6b734065a8ac0bbafb',1,'Thread.h']]],
   ['threadedloop',['threadedLoop',['../group__Utilities.html#gaec6197210013eea976e5afa2346075a2',1,'Thread.h']]],
-  ['threadlaunch',['threadLaunch',['../group__Utilities.html#gaa90e7f5ea531ff4130ef6b8c5227599c',1,'threadLaunch(int nThreads, Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gaafbcc2af39da32d567705fae228ba7ba',1,'threadLaunch(Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gad9626870f1866cf08591b31a50776731',1,'threadLaunch(AutoThreadCount *, Callable *func, size_t nJobs, Args...args):&#160;Thread.h']]],
+  ['threadlaunch',['threadLaunch',['../group__Utilities.html#gaa90e7f5ea531ff4130ef6b8c5227599c',1,'threadLaunch(int nThreads, Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gaafbcc2af39da32d567705fae228ba7ba',1,'threadLaunch(Callable *func, size_t nJobs, Args...args):&#160;Thread.h']]],
   ['tocpu',['toCpu',['../classManagedMemoryBase.html#a058a98205d08b57317403a4a68959f17',1,'ManagedMemoryBase']]],
   ['togpu',['toGpu',['../classManagedMemoryBase.html#a8a6e9712c433a9d350a81cafac517705',1,'ManagedMemoryBase']]],
   ['tomatrix',['toMatrix',['../structScalarFieldData.html#a6e292b3211635bca1f2bd958d5b1b346',1,'ScalarFieldData::toMatrix()'],['../structcomplexScalarFieldData.html#a2b76b2f330c969cf14d969c878d5e60c',1,'complexScalarFieldData::toMatrix()']]],
@@ -24,8 +24,8 @@ var searchData=
   ['transformvdagc',['transformVdagC',['../classColumnBundleTransform.html#a6e8ea54c27d11dd8600967fe0402f289',1,'ColumnBundleTransform']]],
   ['translate',['translate',['../group__DataStructures.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40',1,'translate(ColumnBundle &amp;&amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__DataStructures.html#ga1281b30e04ec70a4c9cd0fff1cc145be',1,'translate(const ColumnBundle &amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h']]],
   ['translatecolumns',['translateColumns',['../group__DataStructures.html#gad45659650b6bb083aabae792b10d2507',1,'ColumnBundle.h']]],
-  ['transpose',['transpose',['../group__DataStructures.html#gaca8c1df1a31d5454598c8f51a60431f8',1,'matrix.h']]],
-  ['transpose_5fsymmetrize',['transpose_symmetrize',['../group__DataStructures.html#gaf3f986881fe08eb8031073a91796fda7',1,'matrix.h']]],
+  ['transpose',['transpose',['../group__DataStructures.html#gaa05c856636f737379dbd8fec5770e9be',1,'matrix.h']]],
+  ['transpose_5fsymmetrize',['transpose_symmetrize',['../group__DataStructures.html#gac37dc75be7afefcef5556c8946c77e95',1,'matrix.h']]],
   ['trialwfns',['trialWfns',['../classWannierMinimizer.html#a831c6894f642e539d50cf3a235299005',1,'WannierMinimizer']]],
   ['trim',['trim',['../group__Utilities.html#ga8bddc3dcbfa8ff455abebaf144a1f5cf',1,'string.h']]]
 ];

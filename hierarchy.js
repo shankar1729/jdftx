@@ -4,7 +4,6 @@ var hierarchy =
     [ "Atom", "structAtom.html", null ],
     [ "Wannier::AtomicOrbital", "structWannier_1_1AtomicOrbital.html", null ],
     [ "VanDerWaals::AtomParams", "structVanDerWaals_1_1AtomParams.html", null ],
-    [ "AutoThreadCount", "classAutoThreadCount.html", null ],
     [ "BandDavidson", "classBandDavidson.html", null ],
     [ "Basis", "classBasis.html", null ],
     [ "ColumnBundleTransform::BasisWrapper", "structColumnBundleTransform_1_1BasisWrapper.html", null ],
@@ -338,8 +337,7 @@ var hierarchy =
     [ "std::vector< T >", null, [
       [ "diagMatrix", "classdiagMatrix.html", null ],
       [ "IonicGradient", "structIonicGradient.html", null ],
-      [ "Wannier::TrialOrbital", "structWannier_1_1TrialOrbital.html", null ],
-      [ "WannierGradient", "structWannierGradient.html", null ]
+      [ "Wannier::TrialOrbital", "structWannier_1_1TrialOrbital.html", null ]
     ] ],
     [ "vector3< scalar >", "classvector3.html", null ],
     [ "vector3< bool >", "classvector3.html", null ],
@@ -348,6 +346,7 @@ var hierarchy =
     [ "vector3<>", "classvector3.html", null ],
     [ "Vibrations", "classVibrations.html", null ],
     [ "Wannier", "classWannier.html", null ],
+    [ "WannierGradient", "structWannierGradient.html", null ],
     [ "DOS::Weight", "structDOS_1_1Weight.html", null ],
     [ "WignerSeitz", "classWignerSeitz.html", null ],
     [ "YlmProdTerm", "structYlmProdTerm.html", null ]

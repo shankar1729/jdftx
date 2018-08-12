@@ -13,7 +13,6 @@ var annotated =
     [ "YlmInternal", "namespaceYlmInternal.html", null ],
     [ "array", "structarray.html", "structarray" ],
     [ "Atom", "structAtom.html", "structAtom" ],
-    [ "AutoThreadCount", "classAutoThreadCount.html", "classAutoThreadCount" ],
     [ "BandDavidson", "classBandDavidson.html", "classBandDavidson" ],
     [ "BandMinimizer", "classBandMinimizer.html", "classBandMinimizer" ],
     [ "Basis", "classBasis.html", "classBasis" ],

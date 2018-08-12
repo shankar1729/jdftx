@@ -1,5 +1,13 @@
 var NAVTREEINDEX4 =
 {
+"Util_8h.html#ga5a257bdbd657893e4bcc981de3067409":[2,5,0,1,32,4],
+"Util_8h.html#ga5c70fa36eb7403aa691c5c28c04c4c00":[2,5,0,1,32,21],
+"Util_8h.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe":[2,5,0,1,32,18],
+"Util_8h.html#ga5fef61c606012425069c5b49e27b000e":[2,5,0,1,32,15],
+"Util_8h.html#ga6882e40124f99c596a73986669bd7bab":[2,5,0,1,32,24],
+"Util_8h.html#ga7c8a9ccd40bd2053ca588d1b15e76a30":[2,5,0,1,32,5],
+"Util_8h.html#ga826bc16e893333c0ead2af397619ca62":[2,5,0,1,32,25],
+"Util_8h.html#ga88c9854a4a88877675f64663e75b73db":[2,5,0,1,32,22],
 "Util_8h.html#ga8ba71496e65bcc3dbbc022da69307265":[2,5,0,1,32,29],
 "Util_8h.html#ga907316040fd97459f37e166f613b88cb":[2,5,0,1,32,28],
 "Util_8h.html#gaa1515ffce5133c99a71f4229f8221f48":[2,5,0,1,32,19],
@@ -117,10 +125,6 @@ var NAVTREEINDEX4 =
 "binaryToText.html":[1,2,1,0],
 "calcPulay.html":[1,2,0,1],
 "citelist.html":[5],
-"classAutoThreadCount.html":[2,2,0,3,32],
-"classAutoThreadCount.html#a14611ab41a973b74b70978eee1deb97f":[2,2,0,3,32,1],
-"classAutoThreadCount.html#a3171d6b8ca56e191a11827faff335f4f":[2,2,0,3,32,2],
-"classAutoThreadCount.html#aa89a9f813ea3d39075a24310a8eeb837":[2,2,0,3,32,0],
 "classBandDavidson.html":[2,2,1,0,4],
 "classBandDavidson.html#a7891638edc63ac7ad397a36e86fbd395":[2,2,1,0,4,1],
 "classBandDavidson.html#add77d9e76cfc63bc15061a573ec38c8c":[2,2,1,0,4,0],
@@ -245,9 +249,5 @@ var NAVTREEINDEX4 =
 "classCoulomb.html#a233edca77acfc8a1cefef7918f798e65a4cf213a3260c24f8f0732e7f88db1538":[2,2,1,3,10,0,1],
 "classCoulomb.html#a233edca77acfc8a1cefef7918f798e65ac9d7d134ebad0d20f5d0863463415ee7":[2,2,1,3,10,0,0],
 "classCoulomb.html#a242f108fd4baa5b0c76c3b7d31e0e147":[2,2,1,3,10,16],
-"classCoulomb.html#a4bcc84945999f1c1fe7285ae6c580ac1":[2,2,1,3,10,17],
-"classCoulomb.html#a53ede18941600802c48b3c409a9432a2":[2,2,1,3,10,9],
-"classCoulomb.html#a5f6fe1ae07f568916e154cb452080ae9":[2,2,1,3,10,8],
-"classCoulomb.html#a75a86b5422e00afe291bbfe3b729c95d":[2,2,1,3,10,19],
-"classCoulomb.html#a76dc817b3aa5574ed568a4c1b6c5d981":[2,2,1,3,10,10]
+"classCoulomb.html#a4bcc84945999f1c1fe7285ae6c580ac1":[2,2,1,3,10,17]
 };

@@ -11,7 +11,7 @@ var searchData=
   ['dump_2donly',['dump-only',['../CommandDumpOnly.html',1,'CommandIndex']]],
   ['d',['d',['../structSpeciesInfo_1_1Constraint.html#aeb8103a2ad40eee65fd275b1c9ffc89a',1,'SpeciesInfo::Constraint::d()'],['../group__Operators.html#ga92cb5c0efe834a7b4739215a370ae060',1,'D(const ScalarFieldTilde &amp;, int iDir):&#160;Operators.h'],['../group__DataStructures.html#ga7ed74fe1efd5d6a3593b8db2e422643c',1,'D(const ColumnBundle &amp;Y, int iDir):&#160;ColumnBundle.h']]],
   ['d_5ffluid',['d_fluid',['../classElecVars.html#aa0809d61261103b86f6b7fa78e34f51b',1,'ElecVars']]],
-  ['dagger',['dagger',['../group__DataStructures.html#ga84c324f83adea3918d511ea041a8d4c8',1,'matrix.h']]],
+  ['dagger',['dagger',['../group__DataStructures.html#gafd7e7e82e805484f991fbc08f7da8a55',1,'matrix.h']]],
   ['data',['data',['../structscaled.html#a6ac2a9c3ba83f4aa1476eedbfba32341',1,'scaled::data()'],['../classManagedMemory.html#a49a157315fa34ed0d6369c30697fe6a4',1,'ManagedMemory::data()'],['../classManagedMemory.html#a65d85ab3e6499addd467c22464a4f2ac',1,'ManagedMemory::data() const '],['../structFieldData.html#adcee8ddc0ae1f62523c74c7bc9afb928',1,'FieldData::data(bool shouldAbsorbScale=true)'],['../structFieldData.html#ae5cc9616371610a30fffa4b822a95de0',1,'FieldData::data(bool shouldAbsorbScale=true) const '],['../structScalarFieldMultiplet.html#a7b87efc38a61cfb529434cbfb8420c45',1,'ScalarFieldMultiplet::data()'],['../structScalarFieldMultiplet.html#a9d21218c8bab4530c885438b01af04e6',1,'ScalarFieldMultiplet::data() const ']]],
   ['datagpu',['dataGpu',['../classManagedMemory.html#a614766e9be3131b62a1ee01ecd1937eb',1,'ManagedMemory::dataGpu()'],['../classManagedMemory.html#aff5d1642b398ca041b9bac69488f532c',1,'ManagedMemory::dataGpu() const '],['../structFieldData.html#a57474c3ba4810ebf4803eab3be30032c',1,'FieldData::dataGpu(bool shouldAbsorbScale=true)'],['../structFieldData.html#aa0bdfca0a266b30c090750fd3fb71b9c',1,'FieldData::dataGpu(bool shouldAbsorbScale=true) const '],['../structScalarFieldMultiplet.html#ac0c9af660f452f01f821fc06428bac0f',1,'ScalarFieldMultiplet::dataGpu()'],['../structScalarFieldMultiplet.html#a6b4a0e81470af179e69eb9851b8bbeb7',1,'ScalarFieldMultiplet::dataGpu() const ']]],
   ['datapref',['dataPref',['../group__DataStructures.html#ga1c45d78b51539468c7e6fadb996ae481',1,'ScalarFieldArray.h']]],
@@ -82,10 +82,10 @@ var searchData=
   ['dumpfreq_5finit',['DumpFreq_Init',['../group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea8e8f11c1ca44d94ca394bce63a418b91',1,'Dump.h']]],
   ['dumpfreq_5fionic',['DumpFreq_Ionic',['../group__Output.html#gga4a9d2cb5ab5cb83ddb6262b28be1069ea9646b3a2febe6e6164be45d692374b09',1,'Dump.h']]],
   ['dumpfrequency',['DumpFrequency',['../group__Output.html#ga4a9d2cb5ab5cb83ddb6262b28be1069e',1,'Dump.h']]],
-  ['dumpmatrix',['dumpMatrix',['../classWannierMinimizer.html#a4ba054e219cedd8aabe4fd9d482e38ad',1,'WannierMinimizer']]],
   ['dumpmoment',['dumpMoment',['../namespaceMoments.html#a23d792b0e8086483c56cfd6a001ad18a',1,'Moments']]],
   ['dumponly',['dumpOnly',['../classControl.html#a05fe9bfdcb1c6d391e302ae70f668698',1,'Control']]],
   ['dumpselfinteractioncorrection',['DumpSelfInteractionCorrection',['../classDumpSelfInteractionCorrection.html',1,'']]],
   ['dumpvariable',['DumpVariable',['../group__Output.html#gab78cde8e08849746f8d4ea413fb1a6d7',1,'Dump.h']]],
+  ['dumpwannierized',['dumpWannierized',['../classWannierMinimizer.html#a41a9be6e14389a61b9740ced3a7760c8',1,'WannierMinimizer']]],
   ['dv',['dV',['../classGridInfo.html#a37674a30217577ffff01fd8d40e8b747',1,'GridInfo']]]
 ];

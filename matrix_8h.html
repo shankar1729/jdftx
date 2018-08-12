@@ -115,7 +115,7 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">General complex matrix.  <a href="classmatrix.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Matrix with a pending scale and transpose operation.  <a href="structmatrixScaledTransOp.html#details">More...</a><br/></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Matrix with pending scale, submatrix and/or transpose operations.  <a href="structmatrixScaledTransOp.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtiledBlockMatrix.html">tiledBlockMatrix</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A block matrix formed by repeating (tiling) a dense matrix along the diagonal.  <a href="classtiledBlockMatrix.html#details">More...</a><br/></td></tr>
@@ -127,24 +127,26 @@ Functions</h2></td></tr>
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga97e8069845a1c3760c5c2f699811afc1">conj</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;A)</td></tr>
 <tr class="memdesc:ga97e8069845a1c3760c5c2f699811afc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">return element-wise complex conjugate of A <br/></td></tr>
 <tr class="separator:ga97e8069845a1c3760c5c2f699811afc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga84c324f83adea3918d511ea041a8d4c8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga84c324f83adea3918d511ea041a8d4c8"></a>
-<a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga84c324f83adea3918d511ea041a8d4c8">dagger</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;A)</td></tr>
-<tr class="memdesc:ga84c324f83adea3918d511ea041a8d4c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">return hermitian adjoint of A <br/></td></tr>
-<tr class="separator:ga84c324f83adea3918d511ea041a8d4c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaca8c1df1a31d5454598c8f51a60431f8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaca8c1df1a31d5454598c8f51a60431f8"></a>
-<a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaca8c1df1a31d5454598c8f51a60431f8">transpose</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;A)</td></tr>
-<tr class="memdesc:gaca8c1df1a31d5454598c8f51a60431f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">return transpose of A <br/></td></tr>
-<tr class="separator:gaca8c1df1a31d5454598c8f51a60431f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3e76fe6dd3b55628c4d32af35c1227fa"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga3e76fe6dd3b55628c4d32af35c1227fa"></a>
-<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dagger_symmetrize</b> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;A)</td></tr>
-<tr class="separator:ga3e76fe6dd3b55628c4d32af35c1227fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf3f986881fe08eb8031073a91796fda7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaf3f986881fe08eb8031073a91796fda7"></a>
-<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaf3f986881fe08eb8031073a91796fda7">transpose_symmetrize</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;A)</td></tr>
-<tr class="memdesc:gaf3f986881fe08eb8031073a91796fda7"><td class="mdescLeft">&#160;</td><td class="mdescRight">return adjoint symmetric part: (A + Adag)/2 <br/></td></tr>
-<tr class="separator:gaf3f986881fe08eb8031073a91796fda7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafd7e7e82e805484f991fbc08f7da8a55"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gafd7e7e82e805484f991fbc08f7da8a55"></a>
+<a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gafd7e7e82e805484f991fbc08f7da8a55">dagger</a> (const <a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a> &amp;A)</td></tr>
+<tr class="memdesc:gafd7e7e82e805484f991fbc08f7da8a55"><td class="mdescLeft">&#160;</td><td class="mdescRight">return hermitian adjoint of A <br/></td></tr>
+<tr class="separator:gafd7e7e82e805484f991fbc08f7da8a55"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa05c856636f737379dbd8fec5770e9be"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaa05c856636f737379dbd8fec5770e9be"></a>
+<a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaa05c856636f737379dbd8fec5770e9be">transpose</a> (const <a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a> &amp;A)</td></tr>
+<tr class="memdesc:gaa05c856636f737379dbd8fec5770e9be"><td class="mdescLeft">&#160;</td><td class="mdescRight">return transpose of A <br/></td></tr>
+<tr class="separator:gaa05c856636f737379dbd8fec5770e9be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga056818ab2bb62965747e05eaed306b16"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga056818ab2bb62965747e05eaed306b16"></a>
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dagger_symmetrize</b> (const <a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a> &amp;A)</td></tr>
+<tr class="separator:ga056818ab2bb62965747e05eaed306b16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac37dc75be7afefcef5556c8946c77e95"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gac37dc75be7afefcef5556c8946c77e95"></a>
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gac37dc75be7afefcef5556c8946c77e95">transpose_symmetrize</a> (const <a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a> &amp;A)</td></tr>
+<tr class="memdesc:gac37dc75be7afefcef5556c8946c77e95"><td class="mdescLeft">&#160;</td><td class="mdescRight">return adjoint symmetric part: (A + Adag)/2 <br/></td></tr>
+<tr class="separator:gac37dc75be7afefcef5556c8946c77e95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1cc096c7a659ec179de1717af409bdf6"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga1cc096c7a659ec179de1717af409bdf6">nrm2</a> (const <a class="el" href="structmatrixScaledTransOp.html">matrixScaledTransOp</a> &amp;A)</td></tr>
+<tr class="memdesc:ga1cc096c7a659ec179de1717af409bdf6"><td class="mdescLeft">&#160;</td><td class="mdescRight">return transpose symmetric part: (A + AT)/2  <a href="group__DataStructures.html#ga1cc096c7a659ec179de1717af409bdf6">More...</a><br/></td></tr>
+<tr class="separator:ga1cc096c7a659ec179de1717af409bdf6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab5254e7b426730011e95648579e2437f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gab5254e7b426730011e95648579e2437f"></a>
-<a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gab5254e7b426730011e95648579e2437f">operator*=</a> (<a class="el" href="classmatrix.html">matrix</a> &amp;m, double s)</td></tr>
-<tr class="memdesc:gab5254e7b426730011e95648579e2437f"><td class="mdescLeft">&#160;</td><td class="mdescRight">return transpose symmetric part: (A + AT)/2 <br/></td></tr>
+<a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator*=</b> (<a class="el" href="classmatrix.html">matrix</a> &amp;m, double s)</td></tr>
 <tr class="separator:gab5254e7b426730011e95648579e2437f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2c91da91fb2cf00e2ccd228cb783eb0e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga2c91da91fb2cf00e2ccd228cb783eb0e"></a>
 <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>operator*</b> (double s, const <a class="el" href="classmatrix.html">matrix</a> &amp;m)</td></tr>
@@ -182,6 +184,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gab372da1d5d6b53d97705ec29071b7e56"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gab372da1d5d6b53d97705ec29071b7e56"></a>
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator*</b> (const <a class="el" href="classmatrix.html">matrix</a> &amp;, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;)</td></tr>
 <tr class="separator:gab372da1d5d6b53d97705ec29071b7e56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga54e791a688ebac780acf4b93ca5a66a7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga54e791a688ebac780acf4b93ca5a66a7"></a>
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator*</b> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;d, const <a class="el" href="classmatrix.html">matrix</a> &amp;m)</td></tr>
+<tr class="separator:ga54e791a688ebac780acf4b93ca5a66a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf2740e67dffaafcea3eb7f46ecbd22d7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaf2740e67dffaafcea3eb7f46ecbd22d7"></a>
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator*</b> (const <a class="el" href="classmatrix.html">matrix</a> &amp;m, const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;d)</td></tr>
 <tr class="separator:gaf2740e67dffaafcea3eb7f46ecbd22d7"><td class="memSeparator" colspan="2">&#160;</td></tr>

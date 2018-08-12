@@ -118,11 +118,23 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a724d7c9183e504b583cddb0ac6d6fb18"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a724d7c9183e504b583cddb0ac6d6fb18"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>Power</b>&#160;&#160;&#160;<a class="el" href="group__Operators.html#ga499fcbc8528b9b777a3bdb2697fadde3">pow</a></td></tr>
-<tr class="separator:a724d7c9183e504b583cddb0ac6d6fb18"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a79ae03a0214cb30e57b9e8835f2a0019"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a79ae03a0214cb30e57b9e8835f2a0019"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>X2</b>&#160;&#160;&#160;double x2 = x*x;</td></tr>
+<tr class="separator:a79ae03a0214cb30e57b9e8835f2a0019"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3128cc29e366777d66d8b049451ca8a0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3128cc29e366777d66d8b049451ca8a0"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>Y2</b>&#160;&#160;&#160;double y2 = y*y;</td></tr>
+<tr class="separator:a3128cc29e366777d66d8b049451ca8a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3550f7bd3eb3a1d5d589bcd8482a1e28"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3550f7bd3eb3a1d5d589bcd8482a1e28"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>Z2</b>&#160;&#160;&#160;double z2 = z*z;</td></tr>
+<tr class="separator:a3550f7bd3eb3a1d5d589bcd8482a1e28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae0150d5da55e3ee6a583b641fc96f772"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae0150d5da55e3ee6a583b641fc96f772"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>X2Y2</b>&#160;&#160;&#160;double x2y2 = x*x + y*y;</td></tr>
+<tr class="separator:ae0150d5da55e3ee6a583b641fc96f772"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3665cf66ca319a4dd2375c82c5b1d944"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3665cf66ca319a4dd2375c82c5b1d944"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>X2Y2i</b>&#160;&#160;&#160;X2 Y2 double x2y2 = x2 + y2;</td></tr>
+<tr class="separator:a3665cf66ca319a4dd2375c82c5b1d944"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a767e775981c5dea3fb3f2bbecb960815"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a767e775981c5dea3fb3f2bbecb960815"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>DECLARE_Ylm</b>(lm, code)&#160;&#160;&#160;template&lt;&gt; __hostanddev__ double <a class="el" href="group__Utilities.html#ga6ab102bf63a678ba89b77dc2eed6fb18">Ylm</a>&lt;lm&gt;(double x, double y, double z) { return code; }</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>DECLARE_Ylm</b>(lm, code)&#160;&#160;&#160;template&lt;&gt; __hostanddev__ double <a class="el" href="group__Utilities.html#ga6ab102bf63a678ba89b77dc2eed6fb18">Ylm</a>&lt;lm&gt;(double x, double y, double z) { code; }</td></tr>
 <tr class="separator:a767e775981c5dea3fb3f2bbecb960815"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaabde4b0530466090debc4fa233f3b02f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaabde4b0530466090debc4fa233f3b02f"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaabde4b0530466090debc4fa233f3b02f">SwitchTemplate_lm</a>(l, m, fTemplate, argList)</td></tr>
@@ -142,82 +154,198 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 template&lt;int lm&gt; </td></tr>
 <tr class="memitem:a5490127766945eed72c66425b7cfc45b"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ double&#160;</td><td class="memTemplItemRight" valign="bottom"><b>YlmInternal::Ylm</b> (double x, double y, double z)</td></tr>
 <tr class="separator:a5490127766945eed72c66425b7cfc45b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a772297064b8dda59c02a229c44208942"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a772297064b8dda59c02a229c44208942"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (6,-0.31539156525252005 *(Power(x, 2)+Power(y, 2)-2.*Power(z, 2))) DECLARE_Ylm(8</td></tr>
-<tr class="separator:a772297064b8dda59c02a229c44208942"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad58a7b8ea757f59fff3243b0468fff1f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad58a7b8ea757f59fff3243b0468fff1f"></a>
-*x y *x y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (9,-0.5900435899266435 *y *(-3.*Power(x, 2)+Power(y, 2))) DECLARE_Ylm(11</td></tr>
-<tr class="separator:ad58a7b8ea757f59fff3243b0468fff1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a43936505f6d037e98338b10aa88a68aa"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a43936505f6d037e98338b10aa88a68aa"></a>
-*x y *x y *y *&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (x, 2)+Power(y</td></tr>
-<tr class="separator:a43936505f6d037e98338b10aa88a68aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a859b4190f52db3243dd4b696f21872e4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a859b4190f52db3243dd4b696f21872e4"></a>
-*x y *x y *y *&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (z, 2))) DECLARE_Ylm(12</td></tr>
-<tr class="separator:a859b4190f52db3243dd4b696f21872e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6c92abef42532d922b5375799687e252"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6c92abef42532d922b5375799687e252"></a>
-*x y *x y *y *z *x *x y *x y *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (15, 0.5900435899266435 *x *(Power(x, 2)-3.*Power(y, 2))) DECLARE_Ylm(16</td></tr>
-<tr class="separator:a6c92abef42532d922b5375799687e252"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd5d048c18769f9cc79b2c45de15ec53"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abd5d048c18769f9cc79b2c45de15ec53"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (17,-1.7701307697799304 *y *(-3.*Power(x, 2)+Power(y, 2))*z) DECLARE_Ylm(18</td></tr>
-<tr class="separator:abd5d048c18769f9cc79b2c45de15ec53"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a965fb14d6a32bfe5181c9f29b8cc37a0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a965fb14d6a32bfe5181c9f29b8cc37a0"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z **&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (Power(x, 2)+Power(y, 2), 2)-72.*(Power(x</td></tr>
-<tr class="separator:a965fb14d6a32bfe5181c9f29b8cc37a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af8c4bed1bb4cb7b690faca45803e5cc3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af8c4bed1bb4cb7b690faca45803e5cc3"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (y, 2))*Power(z</td></tr>
-<tr class="separator:af8c4bed1bb4cb7b690faca45803e5cc3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3074ca30edf6695d29280e822a008ccd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3074ca30edf6695d29280e822a008ccd"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z *&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (z, 4))) DECLARE_Ylm(21</td></tr>
-<tr class="separator:a3074ca30edf6695d29280e822a008ccd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a199e43e16a8c60159926b4165d645243"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a199e43e16a8c60159926b4165d645243"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (24, 0.6258357354491761 *(Power(x, 4)-6.*Power(x, 2)*Power(y, 2)+Power(y, 4))) DECLARE_Ylm(25</td></tr>
-<tr class="separator:a199e43e16a8c60159926b4165d645243"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0582641cf62b3f23358e16b7945c7a35"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0582641cf62b3f23358e16b7945c7a35"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y **&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (x, 4)-10.*Power(x</td></tr>
-<tr class="separator:a0582641cf62b3f23358e16b7945c7a35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1ad2318abd97a12c71e496c2f7a74ac"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1ad2318abd97a12c71e496c2f7a74ac"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (26, 8.302649259524166 *x *(x-y)*y *(x+y)*z) DECLARE_Ylm(27</td></tr>
-<tr class="separator:ad1ad2318abd97a12c71e496c2f7a74ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1756b2149369910005d9c4d77b164aec"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1756b2149369910005d9c4d77b164aec"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y *y *x <br class="typebreak"/>
-*y *z *y *z *x *x y *x y *z *x <br class="typebreak"/>
-*z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (35, 0.6563820568401701 *x *(Power(x, 4)-10.*Power(x, 2)*Power(y, 2)+5.*Power(y, 4))) DECLARE_Ylm(36</td></tr>
-<tr class="separator:a1756b2149369910005d9c4d77b164aec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a97676fe60fbed61daa11cc416ecdde4f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a97676fe60fbed61daa11cc416ecdde4f"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y *y *x <br class="typebreak"/>
-*y *z *y *z *x *x y *x y *z *x <br class="typebreak"/>
-*z *x *y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (37, 2.366619162231752 *y *(5.*Power(x, 4)-10.*Power(x, 2)*Power(y, 2)+Power(y, 4))*z) DECLARE_Ylm(38</td></tr>
-<tr class="separator:a97676fe60fbed61daa11cc416ecdde4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9bafd23378e7c2b0d4103eadd5793560"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9bafd23378e7c2b0d4103eadd5793560"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y *y *x <br class="typebreak"/>
-*y *z *y *z *x *x y *x y *z *x <br class="typebreak"/>
-*z *x *y *x *x y *y *x y *y *z <br class="typebreak"/>
-*x *y *y *z **&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (Power(x, 2)+Power(y, 2), 3)+90.*Power(Power(x</td></tr>
-<tr class="separator:a9bafd23378e7c2b0d4103eadd5793560"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6590f02e81de47b502a95ddd26b10cdf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6590f02e81de47b502a95ddd26b10cdf"></a>
-*x y *x y *y *z *x *x y *x y <br class="typebreak"/>
-*z *x *x y *y *x y *x *y *y *z <br class="typebreak"/>
-*x *z *x y *x y *x *z *y *y *x <br class="typebreak"/>
-*y *z *y *z *x *x y *x y *z *x <br class="typebreak"/>
-*z *x *y *x *x y *y *x y *y *z <br class="typebreak"/>
-*x *y *y *z *&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::Power</b> (z, 6))) DECLARE_Ylm(43</td></tr>
-<tr class="separator:a6590f02e81de47b502a95ddd26b10cdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a295c9e7372d69962cd7add425e278f4f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a295c9e7372d69962cd7add425e278f4f"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (-2, return 0.) DECLARE_Ylm(-1</td></tr>
+<tr class="separator:a295c9e7372d69962cd7add425e278f4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac6a55be3dc4c11dba4643227768483bc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac6a55be3dc4c11dba4643227768483bc"></a>
+return&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (8, return 0.5462742152960396 *(x-y)*(x+y)) DECLARE_Ylm(12</td></tr>
+<tr class="separator:ac6a55be3dc4c11dba4643227768483bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b0c7cc1e9a355094fcdd324886fb635"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5b0c7cc1e9a355094fcdd324886fb635"></a>
+return return *z **z *z *x *x y *y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (14, return 1.445305721320277 *(x-y)*(x+y)*z) DECLARE_Ylm(16</td></tr>
+<tr class="separator:a5b0c7cc1e9a355094fcdd324886fb635"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f58821d9f89eeaf4bc33351c94d219d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9f58821d9f89eeaf4bc33351c94d219d"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (19, return-0.6690465435572892 *y *z *(3.*(x *x+y *y)-4.*z *z)) DECLARE_Ylm(20</td></tr>
+<tr class="separator:a9f58821d9f89eeaf4bc33351c94d219d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a719db5bb45679c230d89c1320f80dfa2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a719db5bb45679c230d89c1320f80dfa2"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (21, return-0.6690465435572892 *x *z *(3.*(x *x+y *y)-4.*z *z)) DECLARE_Ylm(22</td></tr>
+<tr class="separator:a719db5bb45679c230d89c1320f80dfa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32bc756dcee9d0b3bdd818cfef29b9ed"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a32bc756dcee9d0b3bdd818cfef29b9ed"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (24, X2 Y2 return 0.6258357354491761 *(x2 *(x2-6.*y2)+y2 *y2)) DECLARE_Ylm(25</td></tr>
+<tr class="separator:a32bc756dcee9d0b3bdd818cfef29b9ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a410be70fbd768fc5e8d1c3ef1f3cb05f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a410be70fbd768fc5e8d1c3ef1f3cb05f"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (26, return 8.302649259524166 *x *y *z *(x-y)*(x+y)) DECLARE_Ylm(27</td></tr>
+<tr class="separator:a410be70fbd768fc5e8d1c3ef1f3cb05f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2696a886b349c63b6601099954962fd0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2696a886b349c63b6601099954962fd0"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (29, X2Y2 Z2 return 0.45294665119569694 *y *(x2y2 *(x2y2-12.*z2)+8.*z2 *z2)) DECLARE_Ylm(30</td></tr>
+<tr class="separator:a2696a886b349c63b6601099954962fd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a705bef06076ba44ac01d4cb68587dc6d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a705bef06076ba44ac01d4cb68587dc6d"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (31, X2Y2 Z2 return 0.45294665119569694 *x *(x2y2 *(x2y2-12.*z2)+8.*z2 *z2)) DECLARE_Ylm(32</td></tr>
+<tr class="separator:a705bef06076ba44ac01d4cb68587dc6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff5116ac6cc984f142db159e69efa5ed"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aff5116ac6cc984f142db159e69efa5ed"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (33, X2 Y2 return-0.4892382994352504 *x *(x2-3.*y2)*(x2+y2-8.*z *z)) DECLARE_Ylm(34</td></tr>
+<tr class="separator:aff5116ac6cc984f142db159e69efa5ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7aa6ccdb0d1e56512e7bd8aa0e6babd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac7aa6ccdb0d1e56512e7bd8aa0e6babd"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (35, X2 Y2 return 0.6563820568401701 *x *(x2 *(x2-10.*y2)+5.*y2 *y2)) DECLARE_Ylm(36</td></tr>
+<tr class="separator:ac7aa6ccdb0d1e56512e7bd8aa0e6babd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8b949e76753466dd682a3fb55292cb91"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8b949e76753466dd682a3fb55292cb91"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (37, X2 Y2 return 2.366619162231752 *y *z *(5.*x2 *(x2-2.*y2)+y2 *y2)) DECLARE_Ylm(38</td></tr>
+<tr class="separator:a8b949e76753466dd682a3fb55292cb91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf48a79f2508a8d8e255e285bf459f29"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abf48a79f2508a8d8e255e285bf459f29"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2 X2 Y2 return *x *y <br class="typebreak"/>
+*x2 y2 *x2 y2 *z *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (39, X2 Y2 return 0.9212052595149236 *y *z *(y2-3.*x2)*(3.*(x2+y2)-8.*z *z)) DECLARE_Ylm(40</td></tr>
+<tr class="separator:abf48a79f2508a8d8e255e285bf459f29"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e85406483c71ed9fbc0c5e59ec01585"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0e85406483c71ed9fbc0c5e59ec01585"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2 X2 Y2 return *x *y <br class="typebreak"/>
+*x2 y2 *x2 y2 *z *z X2Y2 Z2 <br class="typebreak"/>
+return *x *y *x2y2 *x2y2 *z2 <br class="typebreak"/>
+*z2 *z2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (41, X2Y2 Z2 return 0.5826213625187314 *y *z *(5.*x2y2 *(x2y2-4.*z2)+8.*z2 *z2)) DECLARE_Ylm(42</td></tr>
+<tr class="separator:a0e85406483c71ed9fbc0c5e59ec01585"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf8a0d9fb15f44e5224e4b4c88fcff0e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acf8a0d9fb15f44e5224e4b4c88fcff0e"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2 X2 Y2 return *x *y <br class="typebreak"/>
+*x2 y2 *x2 y2 *z *z X2Y2 Z2 <br class="typebreak"/>
+return *x *y *x2y2 *x2y2 *z2 <br class="typebreak"/>
+*z2 *z2 X2Y2 Z2 return **x2y2 <br class="typebreak"/>
+*x2y2 **z2 x2y2 *z2 *z2 **z2 <br class="typebreak"/>
+*x2y2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (43, X2Y2 Z2 return 0.5826213625187314 *x *z *(5.*x2y2 *(x2y2-4.*z2)+8.*z2 *z2)) DECLARE_Ylm(44</td></tr>
+<tr class="separator:acf8a0d9fb15f44e5224e4b4c88fcff0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af6b88c50e194951ab3eda9d32b0a8af3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af6b88c50e194951ab3eda9d32b0a8af3"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2 X2 Y2 return *x *y <br class="typebreak"/>
+*x2 y2 *x2 y2 *z *z X2Y2 Z2 <br class="typebreak"/>
+return *x *y *x2y2 *x2y2 *z2 <br class="typebreak"/>
+*z2 *z2 X2Y2 Z2 return **x2y2 <br class="typebreak"/>
+*x2y2 **z2 x2y2 *z2 *z2 **z2 <br class="typebreak"/>
+*x2y2 X2Y2i Z2 return *x2 y2 <br class="typebreak"/>
+*x2y2 *x2y2 *z2 *z2 *z2&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (45, X2 Y2 return-0.9212052595149236 *x *z *(x2-3.*y2)*(3.*(x2+y2)-8.*z *z)) DECLARE_Ylm(46</td></tr>
+<tr class="separator:af6b88c50e194951ab3eda9d32b0a8af3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c10bf0d76e6a4d9aa3de546dc3efa18"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c10bf0d76e6a4d9aa3de546dc3efa18"></a>
+return return *z **z *z *x *x <br class="typebreak"/>
+y *y return *x *y *x y *x y <br class="typebreak"/>
+X2Y2 Z2 return **x2y2 *x2y2 <br class="typebreak"/>
+*z2 *z2 *z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *x2 y2 *z *z X2 Y2 return <br class="typebreak"/>
+*y **x2 *x2 *y2 y2 *y2 X2 Y2 <br class="typebreak"/>
+return *y *y2 *x2 *x2 y2 *z *z <br class="typebreak"/>
+X2Y2 Z2 return *z **x2y2 *x2y2 <br class="typebreak"/>
+*z2 **x2y2 z2 X2 Y2 return *x2 <br class="typebreak"/>
+y2 *z *x2 y2 *z *z X2 Y2 <br class="typebreak"/>
+return *z *x2 *x2 *y2 y2 *y2 <br class="typebreak"/>
+X2 Y2 return *x *y *x2 **x2 <br class="typebreak"/>
+*y2 *y2 *y2 X2 Y2 return *x *y <br class="typebreak"/>
+*x2 y2 *x2 y2 *z *z X2Y2 Z2 <br class="typebreak"/>
+return *x *y *x2y2 *x2y2 *z2 <br class="typebreak"/>
+*z2 *z2 X2Y2 Z2 return **x2y2 <br class="typebreak"/>
+*x2y2 **z2 x2y2 *z2 *z2 **z2 <br class="typebreak"/>
+*x2y2 X2Y2i Z2 return *x2 y2 <br class="typebreak"/>
+*x2y2 *x2y2 *z2 *z2 *z2 X2 Y2 <br class="typebreak"/>
+return *x2 *x2 *y2 y2 *y2 *x2 <br class="typebreak"/>
+y2 *z *z&#160;</td><td class="memItemRight" valign="bottom"><b>YlmInternal::DECLARE_Ylm</b> (47, X2 Y2 return 2.366619162231752 *x *z *(x2 *(x2-10.*y2)+5.*y2 *y2)) DECLARE_Ylm(48</td></tr>
+<tr class="separator:a0c10bf0d76e6a4d9aa3de546dc3efa18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac4e153a6c6c335c903f27f320b5be223"><td class="memTemplParams" colspan="2"><a class="anchor" id="gac4e153a6c6c335c903f27f320b5be223"></a>
 template&lt;int lm&gt; </td></tr>
 <tr class="memitem:gac4e153a6c6c335c903f27f320b5be223"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ double&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gac4e153a6c6c335c903f27f320b5be223">Ylm</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qhat)</td></tr>
@@ -242,6 +370,19 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>Ylm</b> (int l, int
 std::vector&lt; <a class="el" href="structYlmProdTerm.html">YlmProdTerm</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gace768f02bdda85c37426e83522cb3957">expandYlmProd</a> (int l1, int m1, int l2, int m2)</td></tr>
 <tr class="memdesc:gace768f02bdda85c37426e83522cb3957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wrapper function expandYlmProd with individual indices. <br/></td></tr>
 <tr class="separator:gace768f02bdda85c37426e83522cb3957"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2"><a class="anchor" id="gabcc5f499214d7ae22da80692fe0fc123"></a>
+template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat. <br/></td></tr>
+<tr class="separator:gabcc5f499214d7ae22da80692fe0fc123"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaf7e7d2002e4e44f3405c5c3728f485f6"></a>
+template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaf7e7d2002e4e44f3405c5c3728f485f6">set_YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; qHat, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;result)</td></tr>
+<tr class="memdesc:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-templated version of YlmPrime (for debugging) <br/></td></tr>
+<tr class="separator:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga43338dfef72a746842e936a7f40540e7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga43338dfef72a746842e936a7f40540e7"></a>
+<a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YlmPrime</b> (int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="separator:ga43338dfef72a746842e936a7f40540e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Real spherical Harmonics and spherical bessel functions </p>

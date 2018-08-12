@@ -1,6 +1,8 @@
 var searchData=
 [
   ['w',['w',['../classTetrahedralDOS.html#a4b405468932434cbd7aca0d3cb89806b',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand)'],['../classTetrahedralDOS.html#a1336fab9ff99ae61b641950ec1920ed0',1,'TetrahedralDOS::w(int iWeight, int iState, int iBand) const ']]],
+  ['wait',['wait',['../classMPIUtil.html#ab87b7ca7749de69a00c580932d060134',1,'MPIUtil']]],
+  ['waitall',['waitAll',['../classMPIUtil.html#a515bcf1b4b6aa731226866f75ba7f92f',1,'MPIUtil']]],
   ['wb_5ff2',['WB_f2',['../group__ClassicalDFT.html#gabb1b7ece64be905c80e98dd9a845b5aa',1,'MixedFMT_internal.h']]],
   ['wb_5ff3',['WB_f3',['../group__ClassicalDFT.html#ga4d6e6f84f2abc6cc1575f2517a8d3706',1,'MixedFMT_internal.h']]],
   ['weight',['weight',['../classSO3quad.html#a2d966bffbe915e82c57e210440627f0c',1,'SO3quad']]],

@@ -120,6 +120,9 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#a21a8483586b8168c2b3020659390e3b8">init</a> (size_t size, bool <a class="el" href="classManagedMemoryBase.html#aee4220f5d309af010011bb20019c7ad3">onGpu</a>=false)</td></tr>
 <tr class="memdesc:a21a8483586b8168c2b3020659390e3b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">calls memInit with category "misc" <br/></td></tr>
 <tr class="separator:a21a8483586b8168c2b3020659390e3b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2043812574fd0d6ba9100e1f12aee579"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2043812574fd0d6ba9100e1f12aee579"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>free</b> ()</td></tr>
+<tr class="separator:a2043812574fd0d6ba9100e1f12aee579"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1aa526413fe3b5e9cccdbc374918f22f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1aa526413fe3b5e9cccdbc374918f22f"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#a1aa526413fe3b5e9cccdbc374918f22f">ManagedArray</a> (const T *ptr=0, size_t N=0)</td></tr>
 <tr class="memdesc:a1aa526413fe3b5e9cccdbc374918f22f"><td class="mdescLeft">&#160;</td><td class="mdescRight">optionally initialize N elements from a pointer <br/></td></tr>
@@ -128,6 +131,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#a39c2689a99fdfe83bab54a8847c5e072">ManagedArray</a> (const std::vector&lt; T &gt; &amp;)</td></tr>
 <tr class="memdesc:a39c2689a99fdfe83bab54a8847c5e072"><td class="mdescLeft">&#160;</td><td class="mdescRight">initialize from an std::vector <br/></td></tr>
 <tr class="separator:a39c2689a99fdfe83bab54a8847c5e072"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0831877329174b48a8584d6792fa964a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0831877329174b48a8584d6792fa964a"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#a0831877329174b48a8584d6792fa964a">ManagedArray</a> (const <a class="el" href="structManagedArray.html">ManagedArray</a> &amp;)</td></tr>
+<tr class="memdesc:a0831877329174b48a8584d6792fa964a"><td class="mdescLeft">&#160;</td><td class="mdescRight">copy-constructor <br/></td></tr>
+<tr class="separator:a0831877329174b48a8584d6792fa964a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaaa7fccdd28442c1c9f93bf5d088712c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaaa7fccdd28442c1c9f93bf5d088712c"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#aaaa7fccdd28442c1c9f93bf5d088712c">ManagedArray</a> (<a class="el" href="structManagedArray.html">ManagedArray</a> &amp;&amp;)</td></tr>
+<tr class="memdesc:aaaa7fccdd28442c1c9f93bf5d088712c"><td class="mdescLeft">&#160;</td><td class="mdescRight">move-constructor <br/></td></tr>
+<tr class="separator:aaaa7fccdd28442c1c9f93bf5d088712c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90a7476f6fc6f0e6df4bb8179788bcea"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a90a7476f6fc6f0e6df4bb8179788bcea"></a>
 <a class="el" href="structManagedArray.html">ManagedArray</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structManagedArray.html#a90a7476f6fc6f0e6df4bb8179788bcea">operator=</a> (const <a class="el" href="structManagedArray.html">ManagedArray</a> &amp;)</td></tr>
 <tr class="memdesc:a90a7476f6fc6f0e6df4bb8179788bcea"><td class="mdescLeft">&#160;</td><td class="mdescRight">copy-assignment <br/></td></tr>
@@ -191,22 +202,6 @@ T *&#160;</td><td class="memItemRight" valign="bottom"><b>dataPref</b> ()</td></
 <tr class="memitem:a746e0ec8a282bb1b892fec59f82397b8 inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a746e0ec8a282bb1b892fec59f82397b8"></a>
 const T *&#160;</td><td class="memItemRight" valign="bottom"><b>dataPref</b> () const </td></tr>
 <tr class="separator:a746e0ec8a282bb1b892fec59f82397b8 inherit pub_methods_classManagedMemory"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1378b182f79cc34819e929a07f234156 inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1378b182f79cc34819e929a07f234156"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html#a1378b182f79cc34819e929a07f234156">send</a> (int dest, int tag=0) const </td></tr>
-<tr class="memdesc:a1378b182f79cc34819e929a07f234156 inherit pub_methods_classManagedMemory"><td class="mdescLeft">&#160;</td><td class="mdescRight">send to another process <br/></td></tr>
-<tr class="separator:a1378b182f79cc34819e929a07f234156 inherit pub_methods_classManagedMemory"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af092bd66495df0cdadd7ec7c9da217b6 inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af092bd66495df0cdadd7ec7c9da217b6"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html#af092bd66495df0cdadd7ec7c9da217b6">recv</a> (int src, int tag=0)</td></tr>
-<tr class="memdesc:af092bd66495df0cdadd7ec7c9da217b6 inherit pub_methods_classManagedMemory"><td class="mdescLeft">&#160;</td><td class="mdescRight">receive from another process <br/></td></tr>
-<tr class="separator:af092bd66495df0cdadd7ec7c9da217b6 inherit pub_methods_classManagedMemory"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7d587f4e3e9a876747df5ec60d5138c6 inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7d587f4e3e9a876747df5ec60d5138c6"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html#a7d587f4e3e9a876747df5ec60d5138c6">bcast</a> (int root=0)</td></tr>
-<tr class="memdesc:a7d587f4e3e9a876747df5ec60d5138c6 inherit pub_methods_classManagedMemory"><td class="mdescLeft">&#160;</td><td class="mdescRight">synchronize across processes (using value on specified root process) <br/></td></tr>
-<tr class="separator:a7d587f4e3e9a876747df5ec60d5138c6 inherit pub_methods_classManagedMemory"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1f6cf99f82711ed2d6ab4e731df0f0b inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1f6cf99f82711ed2d6ab4e731df0f0b"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html#ad1f6cf99f82711ed2d6ab4e731df0f0b">allReduce</a> (MPIUtil::ReduceOp op, bool safeMode=false)</td></tr>
-<tr class="memdesc:ad1f6cf99f82711ed2d6ab4e731df0f0b inherit pub_methods_classManagedMemory"><td class="mdescLeft">&#160;</td><td class="mdescRight">apply all-to-all reduction (see <a class="el" href="classMPIUtil.html#ab6660635a0f6b294e65d082c5f7c2ff4" title="generic array reduction ">MPIUtil::allReduce</a>) <br/></td></tr>
-<tr class="separator:ad1f6cf99f82711ed2d6ab4e731df0f0b inherit pub_methods_classManagedMemory"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb6d080702eea220d4342e61b1b40d20 inherit pub_methods_classManagedMemory"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acb6d080702eea220d4342e61b1b40d20"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html#acb6d080702eea220d4342e61b1b40d20">read</a> (const char *fname)</td></tr>
 <tr class="memdesc:acb6d080702eea220d4342e61b1b40d20 inherit pub_methods_classManagedMemory"><td class="mdescLeft">&#160;</td><td class="mdescRight">binary read from a file <br/></td></tr>

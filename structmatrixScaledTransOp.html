@@ -104,7 +104,7 @@ $(document).ready(function(){initNavTree('structmatrixScaledTransOp.html','');})
 </div><!--header-->
 <div class="contents">
 
-<p>Matrix with a pending scale and transpose operation.  
+<p>Matrix with pending scale, submatrix and/or transpose operations.  
  <a href="structmatrixScaledTransOp.html#details">More...</a></p>
 
 <p><code>#include &lt;matrix.h&gt;</code></p>
@@ -123,16 +123,20 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nCols</b> () const </t
 <tr class="separator:ab84ff2709d1c694968ec26ce47c38f98"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10402fc54614bece14a25f74db7c806e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a10402fc54614bece14a25f74db7c806e"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a10402fc54614bece14a25f74db7c806e">index</a> (int i, int j) const </td></tr>
-<tr class="memdesc:a10402fc54614bece14a25f74db7c806e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index into data() with possible transpose. <br/></td></tr>
+<tr class="memdesc:a10402fc54614bece14a25f74db7c806e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index to mat.data() with transpose/submatrix. <br/></td></tr>
 <tr class="separator:a10402fc54614bece14a25f74db7c806e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad93049ec0c6bdfb382fa40fb67048b64"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad93049ec0c6bdfb382fa40fb67048b64"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#ad93049ec0c6bdfb382fa40fb67048b64">matrixScaledTransOp</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;<a class="el" href="structmatrixScaledTransOp.html#a7e8d0e11d8b2bd9dcdc268e2401c2aba">mat</a>, double <a class="el" href="structmatrixScaledTransOp.html#a240a9577ee47677b45fe0eb9d07505ec">scale</a>=1.0, CBLAS_TRANSPOSE <a class="el" href="structmatrixScaledTransOp.html#a9bb98342d564f97ebe9d3029b56de373">op</a>=CblasNoTrans)</td></tr>
-<tr class="memdesc:ad93049ec0c6bdfb382fa40fb67048b64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create from a matrix with an optional scale and op: <br/></td></tr>
-<tr class="separator:ad93049ec0c6bdfb382fa40fb67048b64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a555a9ad733ae0b27d6e2a7a3c4b9e62a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a555a9ad733ae0b27d6e2a7a3c4b9e62a"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a555a9ad733ae0b27d6e2a7a3c4b9e62a">matrixScaledTransOp</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;<a class="el" href="structmatrixScaledTransOp.html#a7e8d0e11d8b2bd9dcdc268e2401c2aba">mat</a>, double <a class="el" href="structmatrixScaledTransOp.html#a240a9577ee47677b45fe0eb9d07505ec">scale</a>=1., CBLAS_TRANSPOSE <a class="el" href="structmatrixScaledTransOp.html#a9bb98342d564f97ebe9d3029b56de373">op</a>=CblasNoTrans)</td></tr>
+<tr class="memdesc:a555a9ad733ae0b27d6e2a7a3c4b9e62a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create from a matrix with an optional scale and op: <br/></td></tr>
+<tr class="separator:a555a9ad733ae0b27d6e2a7a3c4b9e62a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a495ba92e5d1939678fcd51f4c7788a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6a495ba92e5d1939678fcd51f4c7788a"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a6a495ba92e5d1939678fcd51f4c7788a">matrixScaledTransOp</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;smat, CBLAS_TRANSPOSE <a class="el" href="structmatrixScaledTransOp.html#a9bb98342d564f97ebe9d3029b56de373">op</a>=CblasNoTrans)</td></tr>
 <tr class="memdesc:a6a495ba92e5d1939678fcd51f4c7788a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create from a scaled matrix, with an optional op. <br/></td></tr>
 <tr class="separator:a6a495ba92e5d1939678fcd51f4c7788a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69ea0d3e79e68f3ee89d925720d2f11e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a69ea0d3e79e68f3ee89d925720d2f11e"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a69ea0d3e79e68f3ee89d925720d2f11e">matrixScaledTransOp</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;<a class="el" href="structmatrixScaledTransOp.html#a7e8d0e11d8b2bd9dcdc268e2401c2aba">mat</a>, int iStart, int iStop, int jStart, int jStop, double <a class="el" href="structmatrixScaledTransOp.html#a240a9577ee47677b45fe0eb9d07505ec">scale</a>=1.)</td></tr>
+<tr class="memdesc:a69ea0d3e79e68f3ee89d925720d2f11e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create from a matrix with sub-matrix indexing and an optional scale. <br/></td></tr>
+<tr class="separator:a69ea0d3e79e68f3ee89d925720d2f11e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a83112ba18e4403941dedfeefe7dac303"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a83112ba18e4403941dedfeefe7dac303"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a83112ba18e4403941dedfeefe7dac303">operator matrix</a> () const </td></tr>
 <tr class="memdesc:a83112ba18e4403941dedfeefe7dac303"><td class="mdescLeft">&#160;</td><td class="mdescRight">convert to matrix <br/></td></tr>
@@ -154,6 +158,19 @@ const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td><td class
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a240a9577ee47677b45fe0eb9d07505ec">scale</a></td></tr>
 <tr class="memdesc:a240a9577ee47677b45fe0eb9d07505ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">pending scale factor <br/></td></tr>
 <tr class="separator:a240a9577ee47677b45fe0eb9d07505ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abed93225b796d510cb0a1e2276c77604"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abed93225b796d510cb0a1e2276c77604"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>iStart</b></td></tr>
+<tr class="separator:abed93225b796d510cb0a1e2276c77604"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97ffc5c6197f90e0c8d28f3c19f57373"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a97ffc5c6197f90e0c8d28f3c19f57373"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>iDelta</b></td></tr>
+<tr class="separator:a97ffc5c6197f90e0c8d28f3c19f57373"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a63e0c045dd021bafb0dcdfc3787d1c2a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a63e0c045dd021bafb0dcdfc3787d1c2a"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>jStart</b></td></tr>
+<tr class="separator:a63e0c045dd021bafb0dcdfc3787d1c2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a301596bdee3b1de719260566183f560e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a301596bdee3b1de719260566183f560e"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a301596bdee3b1de719260566183f560e">jDelta</a></td></tr>
+<tr class="memdesc:a301596bdee3b1de719260566183f560e"><td class="mdescLeft">&#160;</td><td class="mdescRight">sub-matrix indexing (applies to mat before transpose) <br/></td></tr>
+<tr class="separator:a301596bdee3b1de719260566183f560e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9bb98342d564f97ebe9d3029b56de373"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9bb98342d564f97ebe9d3029b56de373"></a>
 CBLAS_TRANSPOSE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmatrixScaledTransOp.html#a9bb98342d564f97ebe9d3029b56de373">op</a></td></tr>
 <tr class="memdesc:a9bb98342d564f97ebe9d3029b56de373"><td class="mdescLeft">&#160;</td><td class="mdescRight">pending operation (none, transpose or dagger) <br/></td></tr>
@@ -166,7 +183,7 @@ Friends</h2></td></tr>
 <tr class="separator:a6d0750deb7f1d41846af511ea5b5736e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Matrix with a pending scale and transpose operation. </p>
+<div class="textblock"><p>Matrix with pending scale, submatrix and/or transpose operations. </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>core/<a class="el" href="matrix_8h.html">matrix.h</a></li>
 </ul>

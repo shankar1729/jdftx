@@ -179,6 +179,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structGpuLaunchConfigHalf3D.html">GpuLaunchConfigHalf3D</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">3D launch configuration for symmetry-reduced G-space loops (z dimension folded for real data sets)  <a href="structGpuLaunchConfigHalf3D.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html">ManagedMemory&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class for managed memory of a specified data type.  <a href="classManagedMemory.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html">MPIUtil</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI wrapper class.  <a href="classMPIUtil.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -198,9 +201,6 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structistringstream.html">istringstream</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structostringstream.html">ostringstream</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classAutoThreadCount.html">AutoThreadCount</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maintain thread timing statistics and automatically choose the optimum number of threads.  <a href="classAutoThreadCount.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structInitParams.html">InitParams</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameters used for common initialization functions.  <a href="structInitParams.html#details">More...</a><br/></td></tr>
@@ -478,6 +478,19 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>Ylm</b> (int l, int
 std::vector&lt; <a class="el" href="structYlmProdTerm.html">YlmProdTerm</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gace768f02bdda85c37426e83522cb3957">expandYlmProd</a> (int l1, int m1, int l2, int m2)</td></tr>
 <tr class="memdesc:gace768f02bdda85c37426e83522cb3957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wrapper function expandYlmProd with individual indices. <br/></td></tr>
 <tr class="separator:gace768f02bdda85c37426e83522cb3957"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2"><a class="anchor" id="gabcc5f499214d7ae22da80692fe0fc123"></a>
+template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat. <br/></td></tr>
+<tr class="separator:gabcc5f499214d7ae22da80692fe0fc123"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaf7e7d2002e4e44f3405c5c3728f485f6"></a>
+template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaf7e7d2002e4e44f3405c5c3728f485f6">set_YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; qHat, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;result)</td></tr>
+<tr class="memdesc:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-templated version of YlmPrime (for debugging) <br/></td></tr>
+<tr class="separator:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga43338dfef72a746842e936a7f40540e7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga43338dfef72a746842e936a7f40540e7"></a>
+<a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YlmPrime</b> (int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="separator:ga43338dfef72a746842e936a7f40540e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8bddc3dcbfa8ff455abebaf144a1f5cf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga8bddc3dcbfa8ff455abebaf144a1f5cf"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga8bddc3dcbfa8ff455abebaf144a1f5cf">trim</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s)</td></tr>
 <tr class="memdesc:ga8bddc3dcbfa8ff455abebaf144a1f5cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove leading and trailing spaces from a string. <br/></td></tr>
@@ -508,9 +521,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:gaafbcc2af39da32d567705fae228ba7ba"><td class="memTemplParams" colspan="2">template&lt;typename Callable , typename... Args&gt; </td></tr>
 <tr class="memitem:gaafbcc2af39da32d567705fae228ba7ba"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaafbcc2af39da32d567705fae228ba7ba">threadLaunch</a> (Callable *func, size_t nJobs, Args...args)</td></tr>
 <tr class="separator:gaafbcc2af39da32d567705fae228ba7ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad9626870f1866cf08591b31a50776731"><td class="memTemplParams" colspan="2">template&lt;typename Callable , typename... Args&gt; </td></tr>
-<tr class="memitem:gad9626870f1866cf08591b31a50776731"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gad9626870f1866cf08591b31a50776731">threadLaunch</a> (<a class="el" href="classAutoThreadCount.html">AutoThreadCount</a> *, Callable *func, size_t nJobs, Args...args)</td></tr>
-<tr class="separator:gad9626870f1866cf08591b31a50776731"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaec6197210013eea976e5afa2346075a2"><td class="memTemplParams" colspan="2">template&lt;typename Callable , typename... Args&gt; </td></tr>
 <tr class="memitem:gaec6197210013eea976e5afa2346075a2"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaec6197210013eea976e5afa2346075a2">threadedLoop</a> (Callable *func, size_t nIter, Args...args)</td></tr>
 <tr class="memdesc:gaec6197210013eea976e5afa2346075a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">A parallelized loop.  <a href="#gaec6197210013eea976e5afa2346075a2">More...</a><br/></td></tr>
@@ -856,7 +866,7 @@ FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <div class="line">                exit(1); \</div>
 <div class="line">        }</div>
 <div class="ttc" id="group__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes. </div></div>
-<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:49</div></div>
+<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:51</div></div>
 <div class="ttc" id="group__Utilities_html_ga5fef61c606012425069c5b49e27b000e"><div class="ttname"><a href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">finalizeSystem</a></div><div class="ttdeci">void finalizeSystem(bool successful=true)</div><div class="ttdoc">Clean-up corresponding to initSystem(), final messages (depending on successful) and clean-up MPI...</div></div>
 </div><!-- fragment -->
 <p>Quit with an error message (formatted using printf()). Must be called from all processes. </p>
@@ -883,7 +893,7 @@ FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <div class="line"><a class="code" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">		mpiWorld</a>-&gt;<a class="code" href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">exit</a>(1); \</div>
 <div class="line">        }</div>
 <div class="ttc" id="group__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes. </div></div>
-<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:49</div></div>
+<div class="ttc" id="classMPIUtil_html_a073f840aa8e37b6c215f23789729bd60"><div class="ttname"><a href="classMPIUtil.html#a073f840aa8e37b6c215f23789729bd60">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const </div><div class="ttdoc">whether this is the root process (makes code more readable) </div><div class="ttdef"><b>Definition:</b> MPIUtil.h:51</div></div>
 <div class="ttc" id="classMPIUtil_html_aa67c624ff9127d7c6ad5d308e854ad1c"><div class="ttname"><a href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">MPIUtil::exit</a></div><div class="ttdeci">void exit(int errCode) const </div><div class="ttdoc">global exit (kill other MPI processes as well) </div></div>
 </div><!-- fragment -->
 <p>Version of die that should only be used when it is impossible to guarantee synchronized calls from all processes. </p>
@@ -1394,47 +1404,6 @@ template&lt;typename Callable , typename... Args&gt; </div>
       </table>
 </div><div class="memdoc">
 <p>Same as threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args) with nThreads = number of online processors. </p>
-
-</div>
-</div>
-<a class="anchor" id="gad9626870f1866cf08591b31a50776731"></a>
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Callable , typename... Args&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void threadLaunch </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classAutoThreadCount.html">AutoThreadCount</a> *&#160;</td>
-          <td class="paramname">, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">Callable *&#160;</td>
-          <td class="paramname"><em>func</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"><em>nJobs</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">Args...&#160;</td>
-          <td class="paramname"><em>args</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Same as threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args) but with nThreads automatically adjusted over multiple runs using an <a class="el" href="classAutoThreadCount.html" title="Maintain thread timing statistics and automatically choose the optimum number of threads. ">AutoThreadCount</a> object If the <a class="el" href="classAutoThreadCount.html" title="Maintain thread timing statistics and automatically choose the optimum number of threads. ">AutoThreadCount</a> pointer is null, as many threads as processors will be launched </p>
 
 </div>
 </div>

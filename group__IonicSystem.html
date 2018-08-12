@@ -238,15 +238,19 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="separator:ga5142ace55219448301c670db59d732ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac8d837d27ce0457c35d152464e6c03a7"><td class="memTemplParams" colspan="2"><a class="anchor" id="gac8d837d27ce0457c35d152464e6c03a7"></a>
 template&lt;int l, int m&gt; </td></tr>
-<tr class="memitem:gac8d837d27ce0457c35d152464e6c03a7"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__IonicSystem.html#gac8d837d27ce0457c35d152464e6c03a7">Vnl_calc</a> (int n, int atomStride, int nAtoms, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *Vnl)</td></tr>
-<tr class="memdesc:gac8d837d27ce0457c35d152464e6c03a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute Vnl and optionally its gradients for a subset of the basis space, and for multiple atomic positions. <br/></td></tr>
+<tr class="memitem:gac8d837d27ce0457c35d152464e6c03a7"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__IonicSystem.html#gac8d837d27ce0457c35d152464e6c03a7">Vnl_calc</a> (int n, int atomStride, int nAtoms, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *<a class="el" href="group__IonicSystem.html#ga2a8697d21c361c099889d32d7dbcb12d">Vnl</a>)</td></tr>
+<tr class="memdesc:gac8d837d27ce0457c35d152464e6c03a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute Vnl at specific l and m for several atomic positions. <br/></td></tr>
 <tr class="separator:gac8d837d27ce0457c35d152464e6c03a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacf56e3da54fbfd28724652e670058d8a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gacf56e3da54fbfd28724652e670058d8a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>Vnl</b> (int nbasis, int atomStride, int nAtoms, int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *Vnl)</td></tr>
-<tr class="separator:gacf56e3da54fbfd28724652e670058d8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gafa8455d7af9c1030a7a36d278aad7b3d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gafa8455d7af9c1030a7a36d278aad7b3d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>Vnl_gpu</b> (int nbasis, int atomStride, int nAtoms, int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *Vnl)</td></tr>
-<tr class="separator:gafa8455d7af9c1030a7a36d278aad7b3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5a1b14645d1f80b0c8ed0a2144b7fefd"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga5a1b14645d1f80b0c8ed0a2144b7fefd"></a>
+template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:ga5a1b14645d1f80b0c8ed0a2144b7fefd"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__IonicSystem.html#ga5a1b14645d1f80b0c8ed0a2144b7fefd">VnlPrime_calc</a> (int n, int atomStride, int nAtoms, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;dir, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;RTdir, <a class="el" href="structcomplex.html">complex</a> *Vprime)</td></tr>
+<tr class="memdesc:ga5a1b14645d1f80b0c8ed0a2144b7fefd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of above with respect to Cartesian k in direction iDir. <br/></td></tr>
+<tr class="separator:ga5a1b14645d1f80b0c8ed0a2144b7fefd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2a8697d21c361c099889d32d7dbcb12d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__IonicSystem.html#ga2a8697d21c361c099889d32d7dbcb12d">Vnl</a> (int nbasis, int atomStride, int nAtoms, int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *Vnl, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0)</td></tr>
+<tr class="separator:ga2a8697d21c361c099889d32d7dbcb12d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga11ade2da9b4ba81b1e582f85ed6ae89d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga11ade2da9b4ba81b1e582f85ed6ae89d"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>Vnl_gpu</b> (int nbasis, int atomStride, int nAtoms, int l, int m, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; k, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *iGarr, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; G, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *pos, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;VnlRadial, <a class="el" href="structcomplex.html">complex</a> *<a class="el" href="group__IonicSystem.html#ga2a8697d21c361c099889d32d7dbcb12d">Vnl</a>, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0)</td></tr>
+<tr class="separator:ga11ade2da9b4ba81b1e582f85ed6ae89d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga517f3df0fbf652f2100c9479dc2fb633"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga517f3df0fbf652f2100c9479dc2fb633"></a>
 template&lt;int Nlm, typename Functor &gt; </td></tr>
 <tr class="memitem:ga517f3df0fbf652f2100c9479dc2fb633"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>staticLoopYlm</b> (Functor *f)</td></tr>
@@ -427,6 +431,93 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>gradSGtoAtpos_gpu</b>
       </table>
 </div><div class="memdoc">
 <p>Propagate the complex conjugate gradient w.r.t the structure factor to the given atomic position this is still per G-vector, need to sum grad_atpos over G to get the force on that atom </p>
+
+</div>
+</div>
+<a class="anchor" id="ga2a8697d21c361c099889d32d7dbcb12d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Vnl </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>nbasis</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>atomStride</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>nAtoms</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>l</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>m</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt;&#160;</td>
+          <td class="paramname"><em>k</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; *&#160;</td>
+          <td class="paramname"><em>iGarr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt;&#160;</td>
+          <td class="paramname"><em>G</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>pos</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;&#160;</td>
+          <td class="paramname"><em>VnlRadial</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structcomplex.html">complex</a> *&#160;</td>
+          <td class="paramname"><em>Vnl</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>derivDir</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Driver routine for calculating Vnl for all basis functions If derivDir is non-null, then calculate derivative with respect to Cartesian k oprojected along *derivDir </p>
 
 </div>
 </div>

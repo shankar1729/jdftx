@@ -2,8 +2,6 @@ var classManagedMemory =
 [
     [ "ManagedMemory", "classManagedMemory.html#ad14859701e6bcf5d34ba275663dc8a47", null ],
     [ "~ManagedMemory", "classManagedMemory.html#a09d922447545b42684442a6e35c6940e", null ],
-    [ "allReduce", "classManagedMemory.html#ad1f6cf99f82711ed2d6ab4e731df0f0b", null ],
-    [ "bcast", "classManagedMemory.html#a7d587f4e3e9a876747df5ec60d5138c6", null ],
     [ "begin", "classManagedMemory.html#a481619f74caba904741709e44275a1ae", null ],
     [ "begin", "classManagedMemory.html#a010b0201c49539f75655d701a723382a", null ],
     [ "cbegin", "classManagedMemory.html#abc2e10b6060df57d17d61ad2518c0d99", null ],
@@ -26,8 +24,6 @@ var classManagedMemory =
     [ "read", "classManagedMemory.html#ab85a709ab349f926ca5d3d47128dc22d", null ],
     [ "read_real", "classManagedMemory.html#afcd0c271938d35e4712602433be20852", null ],
     [ "read_real", "classManagedMemory.html#a9d4f4f427376b07f636c236931a6a3f5", null ],
-    [ "recv", "classManagedMemory.html#af092bd66495df0cdadd7ec7c9da217b6", null ],
-    [ "send", "classManagedMemory.html#a1378b182f79cc34819e929a07f234156", null ],
     [ "write", "classManagedMemory.html#a1c45dd583a5e572d6f3c1d7b8f7274e9", null ],
     [ "write", "classManagedMemory.html#a182fc2225d033191ba1a92de53a5b4ca", null ],
     [ "write_real", "classManagedMemory.html#a79160ff09fef602a175f8a041ac9ad90", null ],

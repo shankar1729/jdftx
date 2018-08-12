@@ -155,10 +155,8 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <a class="el" href="classSpeciesInfo.html#a05f561d493a1dc4e65ef899d9cf16057">PseudopotentialFormat</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a16fb15241b052f11c5d85e7585388895">getPSPFormat</a> ()</td></tr>
 <tr class="memdesc:a16fb15241b052f11c5d85e7585388895"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the pseudopotential format. <br/></td></tr>
 <tr class="separator:a16fb15241b052f11c5d85e7585388895"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a51bc7d5c96fc9d4e355fe5eaa9ab5ed6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a51bc7d5c96fc9d4e355fe5eaa9ab5ed6"></a>
-std::shared_ptr&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a51bc7d5c96fc9d4e355fe5eaa9ab5ed6">getV</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq) const </td></tr>
-<tr class="memdesc:a51bc7d5c96fc9d4e355fe5eaa9ab5ed6"><td class="mdescLeft">&#160;</td><td class="mdescRight">get projectors with qnum and basis matching Cq (optionally cached) <br/></td></tr>
-<tr class="separator:a51bc7d5c96fc9d4e355fe5eaa9ab5ed6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a90b32bbcb32e9cf83933658898259e2a"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a90b32bbcb32e9cf83933658898259e2a">getV</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
+<tr class="separator:a90b32bbcb32e9cf83933658898259e2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a734f58b6f1454958b24c40d9b80a640e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a734f58b6f1454958b24c40d9b80a640e"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a734f58b6f1454958b24c40d9b80a640e">nProjectors</a> () const </td></tr>
 <tr class="memdesc:a734f58b6f1454958b24c40d9b80a640e"><td class="mdescLeft">&#160;</td><td class="mdescRight">total number of projectors for all atoms in this species (number of columns in result of getV) <br/></td></tr>
@@ -207,9 +205,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_grad</b> (con
 <tr class="memitem:a3fd8e5da12862fb0f19e1a70e68d6b0f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3fd8e5da12862fb0f19e1a70e68d6b0f"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_forces</b> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;forces) const </td></tr>
 <tr class="separator:a3fd8e5da12862fb0f19e1a70e68d6b0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a0a30a9d83422cd81901710faabc373"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7a0a30a9d83422cd81901710faabc373"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_getV</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Opsi, <a class="el" href="classmatrix.html">matrix</a> &amp;M) const </td></tr>
-<tr class="separator:a7a0a30a9d83422cd81901710faabc373"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_getV</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Opsi, <a class="el" href="classmatrix.html">matrix</a> &amp;M, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
+<tr class="separator:a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d7b7cdcedb9b50db478d40cf319dcb6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d7b7cdcedb9b50db478d40cf319dcb6"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a5d7b7cdcedb9b50db478d40cf319dcb6">accumulateAtomicDensity</a> (<a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;nTilde) const </td></tr>
 <tr class="memdesc:a5d7b7cdcedb9b50db478d40cf319dcb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate atomic density from this species. <br/></td></tr>
@@ -218,13 +216,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a4daf47eea1ba294bb6c1874bd88929f9">accumulateAtomicPotential</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;dTilde) const </td></tr>
 <tr class="memdesc:a4daf47eea1ba294bb6c1874bd88929f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate electrostatic potential of neutral atoms from this species. <br/></td></tr>
 <tr class="separator:a4daf47eea1ba294bb6c1874bd88929f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38dde82c2d1207e5c1ae866814de2777"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a38dde82c2d1207e5c1ae866814de2777"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a38dde82c2d1207e5c1ae866814de2777">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, int colOffset=0) const </td></tr>
-<tr class="memdesc:a38dde82c2d1207e5c1ae866814de2777"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset) <br/></td></tr>
-<tr class="separator:a38dde82c2d1207e5c1ae866814de2777"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd392fb875dcacabc0fc1770aa0125ad"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abd392fb875dcacabc0fc1770aa0125ad">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0) const </td></tr>
-<tr class="memdesc:abd392fb875dcacabc0fc1770aa0125ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)  <a href="#abd392fb875dcacabc0fc1770aa0125ad">More...</a><br/></td></tr>
-<tr class="separator:abd392fb875dcacabc0fc1770aa0125ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a832130e373e9a56223c1c0bfaf500d45"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a832130e373e9a56223c1c0bfaf500d45"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a832130e373e9a56223c1c0bfaf500d45">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, int colOffset=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
+<tr class="memdesc:a832130e373e9a56223c1c0bfaf500d45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calcluatulate k derivative if derivDir is non-null) <br/></td></tr>
+<tr class="separator:a832130e373e9a56223c1c0bfaf500d45"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abc84e4d9c2f88b23fb56e64c8b3364b4">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
+<tr class="memdesc:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)  <a href="#abc84e4d9c2f88b23fb56e64c8b3364b4">More...</a><br/></td></tr>
+<tr class="separator:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad54069ebe6187965a2aa00311a81db98"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad54069ebe6187965a2aa00311a81db98"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ad54069ebe6187965a2aa00311a81db98">nAtomicOrbitals</a> () const </td></tr>
 <tr class="memdesc:ad54069ebe6187965a2aa00311a81db98"><td class="mdescLeft">&#160;</td><td class="mdescRight">return number of atomic orbitals in this species (all atoms) <br/></td></tr>
@@ -500,6 +498,33 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 
 </div>
 </div>
+<a class="anchor" id="a90b32bbcb32e9cf83933658898259e2a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classColumnBundle.html">ColumnBundle</a>&gt; SpeciesInfo::getV </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;&#160;</td>
+          <td class="paramname"><em>Cq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>derivDir</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Get projectors with qnum and basis matching Cq (optionally cached). If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached). </p>
+
+</div>
+</div>
 <a class="anchor" id="ae4f586d7d82eef33755ad20eaeef6561"></a>
 <div class="memitem">
 <div class="memproto">
@@ -537,7 +562,7 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 
 </div>
 </div>
-<a class="anchor" id="abd392fb875dcacabc0fc1770aa0125ad"></a>
+<a class="anchor" id="abc84e4d9c2f88b23fb56e64c8b3364b4"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -575,7 +600,13 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>atomColStride</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>atomColStride</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>derivDir</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>

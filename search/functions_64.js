@@ -1,7 +1,7 @@
 var searchData=
 [
   ['d',['D',['../group__Operators.html#ga92cb5c0efe834a7b4739215a370ae060',1,'D(const ScalarFieldTilde &amp;, int iDir):&#160;Operators.h'],['../group__DataStructures.html#ga7ed74fe1efd5d6a3593b8db2e422643c',1,'D(const ColumnBundle &amp;Y, int iDir):&#160;ColumnBundle.h']]],
-  ['dagger',['dagger',['../group__DataStructures.html#ga84c324f83adea3918d511ea041a8d4c8',1,'matrix.h']]],
+  ['dagger',['dagger',['../group__DataStructures.html#gafd7e7e82e805484f991fbc08f7da8a55',1,'matrix.h']]],
   ['data',['data',['../classManagedMemory.html#a49a157315fa34ed0d6369c30697fe6a4',1,'ManagedMemory::data()'],['../classManagedMemory.html#a65d85ab3e6499addd467c22464a4f2ac',1,'ManagedMemory::data() const '],['../structFieldData.html#adcee8ddc0ae1f62523c74c7bc9afb928',1,'FieldData::data(bool shouldAbsorbScale=true)'],['../structFieldData.html#ae5cc9616371610a30fffa4b822a95de0',1,'FieldData::data(bool shouldAbsorbScale=true) const '],['../structScalarFieldMultiplet.html#a7b87efc38a61cfb529434cbfb8420c45',1,'ScalarFieldMultiplet::data()'],['../structScalarFieldMultiplet.html#a9d21218c8bab4530c885438b01af04e6',1,'ScalarFieldMultiplet::data() const ']]],
   ['datagpu',['dataGpu',['../classManagedMemory.html#a614766e9be3131b62a1ee01ecd1937eb',1,'ManagedMemory::dataGpu()'],['../classManagedMemory.html#aff5d1642b398ca041b9bac69488f532c',1,'ManagedMemory::dataGpu() const '],['../structFieldData.html#a57474c3ba4810ebf4803eab3be30032c',1,'FieldData::dataGpu(bool shouldAbsorbScale=true)'],['../structFieldData.html#aa0bdfca0a266b30c090750fd3fb71b9c',1,'FieldData::dataGpu(bool shouldAbsorbScale=true) const '],['../structScalarFieldMultiplet.html#ac0c9af660f452f01f821fc06428bac0f',1,'ScalarFieldMultiplet::dataGpu()'],['../structScalarFieldMultiplet.html#a6b4a0e81470af179e69eb9851b8bbeb7',1,'ScalarFieldMultiplet::dataGpu() const ']]],
   ['datapref',['dataPref',['../group__DataStructures.html#ga1c45d78b51539468c7e6fadb996ae481',1,'ScalarFieldArray.h']]],
@@ -20,6 +20,6 @@ var searchData=
   ['dumpdebug',['dumpDebug',['../structFluidSolver.html#a86686ce0790fc02565dcd62f0b1200a5',1,'FluidSolver::dumpDebug()'],['../classPCM.html#a7f9485c083f39a16c1d82fbaccece72c',1,'PCM::dumpDebug()']]],
   ['dumpdensities',['dumpDensities',['../structFluidSolver.html#a6c55f7677ca951591f167b49f688dda8',1,'FluidSolver::dumpDensities()'],['../classLinearPCM.html#ad974c84cdf4d4abcd6cf4136716b07ef',1,'LinearPCM::dumpDensities()'],['../classNonlinearPCM.html#a940cfbb844a5f35b1310d935979079be',1,'NonlinearPCM::dumpDensities()'],['../classPCM.html#a0c3633ed5e8fd101f2654bf790d3ec58',1,'PCM::dumpDensities()'],['../classSaLSA.html#a9e8c30c890ad4698c8823fe32b7275c0',1,'SaLSA::dumpDensities()']]],
   ['dumpexcitations',['dumpExcitations',['../group__Output.html#gae45f6c5bd0d6c46bc9eef1ed833dd344',1,'Dump_internal.h']]],
-  ['dumpmatrix',['dumpMatrix',['../classWannierMinimizer.html#a4ba054e219cedd8aabe4fd9d482e38ad',1,'WannierMinimizer']]],
-  ['dumpmoment',['dumpMoment',['../namespaceMoments.html#a23d792b0e8086483c56cfd6a001ad18a',1,'Moments']]]
+  ['dumpmoment',['dumpMoment',['../namespaceMoments.html#a23d792b0e8086483c56cfd6a001ad18a',1,'Moments']]],
+  ['dumpwannierized',['dumpWannierized',['../classWannierMinimizer.html#a41a9be6e14389a61b9740ced3a7760c8',1,'WannierMinimizer']]]
 ];

@@ -2,6 +2,7 @@ var structRadialFunctionG =
 [
     [ "RadialFunctionG", "structRadialFunctionG.html#a67eb2a972455c6d447acb49a61d2f4c1", null ],
     [ "coeffPref", "structRadialFunctionG.html#a9c4dc2cf73bc6cda45667166670486c8", null ],
+    [ "deriv", "structRadialFunctionG.html#ad6312212540c11fd7547c970127adc9d", null ],
     [ "free", "structRadialFunctionG.html#a182880431c1cf3375bafa5a0351cda53", null ],
     [ "getCoeff", "structRadialFunctionG.html#aeea167e2431fe41fc48d1daa0bdad1f5", null ],
     [ "init", "structRadialFunctionG.html#afa358a83ff11ad2ba4b051f5f7b9f115", null ],

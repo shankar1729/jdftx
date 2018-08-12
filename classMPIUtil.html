@@ -98,6 +98,7 @@ $(document).ready(function(){initNavTree('classMPIUtil.html','');});
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="classMPIUtil-members.html">List of all members</a>  </div>
   <div class="headertitle">
@@ -134,6 +135,9 @@ Public Types</h2></td></tr>
 <br/>
  }</td></tr>
 <tr class="separator:a72d71b0b3ea252d4cab0edcd08b20257"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ef31ec18caa4c2cf6fb73a696b39051"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3ef31ec18caa4c2cf6fb73a696b39051"></a>
+typedef int&#160;</td><td class="memItemRight" valign="bottom"><b>Request</b></td></tr>
+<tr class="separator:a3ef31ec18caa4c2cf6fb73a696b39051"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef5835d7ced6026d3ab3d26b9a735e47"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aef5835d7ced6026d3ab3d26b9a735e47"></a>
 typedef FILE *&#160;</td><td class="memItemRight" valign="bottom"><b>File</b></td></tr>
 <tr class="separator:aef5835d7ced6026d3ab3d26b9a735e47"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -155,6 +159,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:a9b80915d473183c627036a005b794b15"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9b80915d473183c627036a005b794b15"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>MPIUtil</b> (int argc, char **argv, <a class="el" href="structMPIUtil_1_1ProcDivision.html">ProcDivision</a> procDivision=<a class="el" href="structMPIUtil_1_1ProcDivision.html">ProcDivision</a>())</td></tr>
 <tr class="separator:a9b80915d473183c627036a005b794b15"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4db81ffbf87f9a45ae067f11ff3b6d6f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4db81ffbf87f9a45ae067f11ff3b6d6f"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a4db81ffbf87f9a45ae067f11ff3b6d6f">MPIUtil</a> (const <a class="el" href="classMPIUtil.html">MPIUtil</a> *mpiUtil, std::vector&lt; int &gt; ranks)</td></tr>
+<tr class="memdesc:a4db81ffbf87f9a45ae067f11ff3b6d6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">create a sub-communicator from listed ranks in parent communicator <br/></td></tr>
+<tr class="separator:a4db81ffbf87f9a45ae067f11ff3b6d6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa67c624ff9127d7c6ad5d308e854ad1c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa67c624ff9127d7c6ad5d308e854ad1c"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aa67c624ff9127d7c6ad5d308e854ad1c">exit</a> (int errCode) const </td></tr>
 <tr class="memdesc:aa67c624ff9127d7c6ad5d308e854ad1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">global exit (kill other MPI processes as well) <br/></td></tr>
@@ -163,95 +171,148 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a2dfefe425ead54e89583ac7e30e321ac">checkErrors</a> (const <a class="el" href="structostringstream.html">ostringstream</a> &amp;) const </td></tr>
 <tr class="memdesc:a2dfefe425ead54e89583ac7e30e321ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">collect error messages from all processes; if any, display them and quit <br/></td></tr>
 <tr class="separator:a2dfefe425ead54e89583ac7e30e321ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae64e9310587d4c2e12e17fec0b93227a"><td class="memTemplParams" colspan="2"><a class="anchor" id="ae64e9310587d4c2e12e17fec0b93227a"></a>
+<tr class="memitem:acb78565a871ead2db0ba5846624a6c48"><td class="memTemplParams" colspan="2"><a class="anchor" id="acb78565a871ead2db0ba5846624a6c48"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:ae64e9310587d4c2e12e17fec0b93227a"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ae64e9310587d4c2e12e17fec0b93227a">send</a> (const T *data, size_t nData, int dest, int tag) const </td></tr>
-<tr class="memdesc:ae64e9310587d4c2e12e17fec0b93227a"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array send <br/></td></tr>
-<tr class="separator:ae64e9310587d4c2e12e17fec0b93227a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9003f938cac325163b7eaa0c06f93906"><td class="memTemplParams" colspan="2"><a class="anchor" id="a9003f938cac325163b7eaa0c06f93906"></a>
+<tr class="memitem:acb78565a871ead2db0ba5846624a6c48"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#acb78565a871ead2db0ba5846624a6c48">sendData</a> (const <a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:acb78565a871ead2db0ba5846624a6c48"><td class="mdescLeft">&#160;</td><td class="mdescRight">managed memory send <br/></td></tr>
+<tr class="separator:acb78565a871ead2db0ba5846624a6c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a361cb9aa1e8c5957187ff0f90c2c0c6e"><td class="memTemplParams" colspan="2"><a class="anchor" id="a361cb9aa1e8c5957187ff0f90c2c0c6e"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a9003f938cac325163b7eaa0c06f93906"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a9003f938cac325163b7eaa0c06f93906">recv</a> (T *data, size_t nData, int src, int tag) const </td></tr>
-<tr class="memdesc:a9003f938cac325163b7eaa0c06f93906"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array receive <br/></td></tr>
-<tr class="separator:a9003f938cac325163b7eaa0c06f93906"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28500baefaec173b19f87e3a64c96961"><td class="memTemplParams" colspan="2"><a class="anchor" id="a28500baefaec173b19f87e3a64c96961"></a>
+<tr class="memitem:a361cb9aa1e8c5957187ff0f90c2c0c6e"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a361cb9aa1e8c5957187ff0f90c2c0c6e">sendData</a> (const std::vector&lt; T &gt; &amp;v, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a361cb9aa1e8c5957187ff0f90c2c0c6e"><td class="mdescLeft">&#160;</td><td class="mdescRight">vector send <br/></td></tr>
+<tr class="separator:a361cb9aa1e8c5957187ff0f90c2c0c6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a581bdc365093798946cd3896ec0a8960"><td class="memTemplParams" colspan="2"><a class="anchor" id="a581bdc365093798946cd3896ec0a8960"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a28500baefaec173b19f87e3a64c96961"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a28500baefaec173b19f87e3a64c96961">send</a> (const T &amp;data, int dest, int tag) const </td></tr>
-<tr class="memdesc:a28500baefaec173b19f87e3a64c96961"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar send <br/></td></tr>
-<tr class="separator:a28500baefaec173b19f87e3a64c96961"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a88b303e890eca3bdae8606607ff74f8e"><td class="memTemplParams" colspan="2"><a class="anchor" id="a88b303e890eca3bdae8606607ff74f8e"></a>
+<tr class="memitem:a581bdc365093798946cd3896ec0a8960"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a581bdc365093798946cd3896ec0a8960">send</a> (const T *data, size_t nData, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a581bdc365093798946cd3896ec0a8960"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array send <br/></td></tr>
+<tr class="separator:a581bdc365093798946cd3896ec0a8960"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a480683b9e2522cde509268fcf730f614"><td class="memTemplParams" colspan="2"><a class="anchor" id="a480683b9e2522cde509268fcf730f614"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a88b303e890eca3bdae8606607ff74f8e"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a88b303e890eca3bdae8606607ff74f8e">recv</a> (T &amp;data, int src, int tag) const </td></tr>
-<tr class="memdesc:a88b303e890eca3bdae8606607ff74f8e"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar receive <br/></td></tr>
-<tr class="separator:a88b303e890eca3bdae8606607ff74f8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09110157dfb87fedbda22e8653f6db43"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a09110157dfb87fedbda22e8653f6db43"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a09110157dfb87fedbda22e8653f6db43">send</a> (const <a class="el" href="structcomplex.html">complex</a> *data, size_t nData, int dest, int tag) const </td></tr>
-<tr class="memdesc:a09110157dfb87fedbda22e8653f6db43"><td class="mdescLeft">&#160;</td><td class="mdescRight">send specialization for complex which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:a09110157dfb87fedbda22e8653f6db43"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57d40312058f59357ebf890f94f818e0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a57d40312058f59357ebf890f94f818e0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a57d40312058f59357ebf890f94f818e0">recv</a> (<a class="el" href="structcomplex.html">complex</a> *data, size_t nData, int src, int tag) const </td></tr>
-<tr class="memdesc:a57d40312058f59357ebf890f94f818e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">receive specialization for complex which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:a57d40312058f59357ebf890f94f818e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38b841bbaade2fdff223074847c38a1d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a38b841bbaade2fdff223074847c38a1d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a38b841bbaade2fdff223074847c38a1d">send</a> (const bool *data, size_t nData, int dest, int tag) const </td></tr>
-<tr class="memdesc:a38b841bbaade2fdff223074847c38a1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">send specialization for bool which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:a38b841bbaade2fdff223074847c38a1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9d9697e3a57dc1afc9859f23756f43c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa9d9697e3a57dc1afc9859f23756f43c"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aa9d9697e3a57dc1afc9859f23756f43c">recv</a> (bool *data, size_t nData, int src, int tag) const </td></tr>
-<tr class="memdesc:aa9d9697e3a57dc1afc9859f23756f43c"><td class="mdescLeft">&#160;</td><td class="mdescRight">receive specialization for bool which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:aa9d9697e3a57dc1afc9859f23756f43c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4e9f0de93f42cb884008e04bdf7bba0a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4e9f0de93f42cb884008e04bdf7bba0a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a4e9f0de93f42cb884008e04bdf7bba0a">send</a> (const <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int dest, int tag) const </td></tr>
-<tr class="memdesc:a4e9f0de93f42cb884008e04bdf7bba0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">send string <br/></td></tr>
-<tr class="separator:a4e9f0de93f42cb884008e04bdf7bba0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a91be3179975311189829968ba77ac6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8a91be3179975311189829968ba77ac6"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a8a91be3179975311189829968ba77ac6">recv</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int src, int tag) const </td></tr>
-<tr class="memdesc:a8a91be3179975311189829968ba77ac6"><td class="mdescLeft">&#160;</td><td class="mdescRight">send string <br/></td></tr>
-<tr class="separator:a8a91be3179975311189829968ba77ac6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a725811200cbbcebae31f11a8f82e7e01"><td class="memTemplParams" colspan="2"><a class="anchor" id="a725811200cbbcebae31f11a8f82e7e01"></a>
+<tr class="memitem:a480683b9e2522cde509268fcf730f614"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a480683b9e2522cde509268fcf730f614">send</a> (const T &amp;data, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a480683b9e2522cde509268fcf730f614"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar send <br/></td></tr>
+<tr class="separator:a480683b9e2522cde509268fcf730f614"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1333ca836bcb961a1e584a6da0f41ad2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1333ca836bcb961a1e584a6da0f41ad2"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a1333ca836bcb961a1e584a6da0f41ad2">send</a> (const bool *data, size_t nData, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a1333ca836bcb961a1e584a6da0f41ad2"><td class="mdescLeft">&#160;</td><td class="mdescRight">send specialization for bool which is not natively supported by MPI <br/></td></tr>
+<tr class="separator:a1333ca836bcb961a1e584a6da0f41ad2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfb01be502c0cf5edc5fb0d7a3e21eb9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abfb01be502c0cf5edc5fb0d7a3e21eb9"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#abfb01be502c0cf5edc5fb0d7a3e21eb9">send</a> (const <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:abfb01be502c0cf5edc5fb0d7a3e21eb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">send string <br/></td></tr>
+<tr class="separator:abfb01be502c0cf5edc5fb0d7a3e21eb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad0b109e3e767a3056453e734b212011d"><td class="memTemplParams" colspan="2"><a class="anchor" id="ad0b109e3e767a3056453e734b212011d"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a725811200cbbcebae31f11a8f82e7e01"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a725811200cbbcebae31f11a8f82e7e01">bcast</a> (T *data, size_t nData, int root=0) const </td></tr>
-<tr class="memdesc:a725811200cbbcebae31f11a8f82e7e01"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array broadcast <br/></td></tr>
-<tr class="separator:a725811200cbbcebae31f11a8f82e7e01"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa7457de5e7446c8afc5387564fb79204"><td class="memTemplParams" colspan="2"><a class="anchor" id="aa7457de5e7446c8afc5387564fb79204"></a>
+<tr class="memitem:ad0b109e3e767a3056453e734b212011d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ad0b109e3e767a3056453e734b212011d">recvData</a> (<a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:ad0b109e3e767a3056453e734b212011d"><td class="mdescLeft">&#160;</td><td class="mdescRight">managed memory receive <br/></td></tr>
+<tr class="separator:ad0b109e3e767a3056453e734b212011d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8cd92d765453ee77a92ced682ac87d49"><td class="memTemplParams" colspan="2"><a class="anchor" id="a8cd92d765453ee77a92ced682ac87d49"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:aa7457de5e7446c8afc5387564fb79204"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aa7457de5e7446c8afc5387564fb79204">bcast</a> (T &amp;data, int root=0) const </td></tr>
-<tr class="memdesc:aa7457de5e7446c8afc5387564fb79204"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar broadcast <br/></td></tr>
-<tr class="separator:aa7457de5e7446c8afc5387564fb79204"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad66a23bb5e6b19f2dc087d59f06e83bd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad66a23bb5e6b19f2dc087d59f06e83bd"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ad66a23bb5e6b19f2dc087d59f06e83bd">bcast</a> (<a class="el" href="structcomplex.html">complex</a> *data, size_t nData, int root=0) const </td></tr>
-<tr class="memdesc:ad66a23bb5e6b19f2dc087d59f06e83bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for complex which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:ad66a23bb5e6b19f2dc087d59f06e83bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac231368ac4002ddc6b3550b808049aa1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac231368ac4002ddc6b3550b808049aa1"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ac231368ac4002ddc6b3550b808049aa1">bcast</a> (bool *data, size_t nData, int root=0) const </td></tr>
-<tr class="memdesc:ac231368ac4002ddc6b3550b808049aa1"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for bool which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:ac231368ac4002ddc6b3550b808049aa1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4eebb839a1e4377025243478fb4e9679"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4eebb839a1e4377025243478fb4e9679"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a4eebb839a1e4377025243478fb4e9679">bcast</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int root=0) const </td></tr>
-<tr class="memdesc:a4eebb839a1e4377025243478fb4e9679"><td class="mdescLeft">&#160;</td><td class="mdescRight">broadcast string <br/></td></tr>
-<tr class="separator:a4eebb839a1e4377025243478fb4e9679"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab6660635a0f6b294e65d082c5f7c2ff4"><td class="memTemplParams" colspan="2"><a class="anchor" id="ab6660635a0f6b294e65d082c5f7c2ff4"></a>
+<tr class="memitem:a8cd92d765453ee77a92ced682ac87d49"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a8cd92d765453ee77a92ced682ac87d49">recvData</a> (std::vector&lt; T &gt; &amp;v, int dest, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a8cd92d765453ee77a92ced682ac87d49"><td class="mdescLeft">&#160;</td><td class="mdescRight">vector receive <br/></td></tr>
+<tr class="separator:a8cd92d765453ee77a92ced682ac87d49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8f215fc641b1ed75d16db6b479b1ed1e"><td class="memTemplParams" colspan="2"><a class="anchor" id="a8f215fc641b1ed75d16db6b479b1ed1e"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:ab6660635a0f6b294e65d082c5f7c2ff4"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ab6660635a0f6b294e65d082c5f7c2ff4">allReduce</a> (T *data, size_t nData, ReduceOp op, bool safeMode=false) const </td></tr>
-<tr class="memdesc:ab6660635a0f6b294e65d082c5f7c2ff4"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array reduction <br/></td></tr>
-<tr class="separator:ab6660635a0f6b294e65d082c5f7c2ff4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2bbcc46bc0441603590fcc3fdc744323"><td class="memTemplParams" colspan="2"><a class="anchor" id="a2bbcc46bc0441603590fcc3fdc744323"></a>
+<tr class="memitem:a8f215fc641b1ed75d16db6b479b1ed1e"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a8f215fc641b1ed75d16db6b479b1ed1e">recv</a> (T *data, size_t nData, int src, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a8f215fc641b1ed75d16db6b479b1ed1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array receive <br/></td></tr>
+<tr class="separator:a8f215fc641b1ed75d16db6b479b1ed1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a248f267a6a84878bf0ae943047a46743"><td class="memTemplParams" colspan="2"><a class="anchor" id="a248f267a6a84878bf0ae943047a46743"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a2bbcc46bc0441603590fcc3fdc744323"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a2bbcc46bc0441603590fcc3fdc744323">allReduce</a> (T &amp;data, ReduceOp op, bool safeMode=false) const </td></tr>
-<tr class="memdesc:a2bbcc46bc0441603590fcc3fdc744323"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar reduction <br/></td></tr>
-<tr class="separator:a2bbcc46bc0441603590fcc3fdc744323"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9449eaec50e3c2d5e6ec7c02737a6cb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa9449eaec50e3c2d5e6ec7c02737a6cb"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aa9449eaec50e3c2d5e6ec7c02737a6cb">allReduce</a> (<a class="el" href="structcomplex.html">complex</a> *data, size_t nData, ReduceOp op, bool safeMode=false) const </td></tr>
-<tr class="memdesc:aa9449eaec50e3c2d5e6ec7c02737a6cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for complex which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:aa9449eaec50e3c2d5e6ec7c02737a6cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2bc6d44849e7cb3ceb8fd2070ba5e0a1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2bc6d44849e7cb3ceb8fd2070ba5e0a1"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a2bc6d44849e7cb3ceb8fd2070ba5e0a1">allReduce</a> (bool *data, size_t nData, ReduceOp op, bool safeMode=false) const </td></tr>
-<tr class="memdesc:a2bc6d44849e7cb3ceb8fd2070ba5e0a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for bool which is not natively supported by MPI <br/></td></tr>
-<tr class="separator:a2bc6d44849e7cb3ceb8fd2070ba5e0a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a248f267a6a84878bf0ae943047a46743"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a248f267a6a84878bf0ae943047a46743">recv</a> (T &amp;data, int src, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a248f267a6a84878bf0ae943047a46743"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar receive <br/></td></tr>
+<tr class="separator:a248f267a6a84878bf0ae943047a46743"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e23906a93013309335fe2ba9debd0a4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0e23906a93013309335fe2ba9debd0a4"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a0e23906a93013309335fe2ba9debd0a4">recv</a> (bool *data, size_t nData, int src, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a0e23906a93013309335fe2ba9debd0a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">receive specialization for bool which is not natively supported by MPI <br/></td></tr>
+<tr class="separator:a0e23906a93013309335fe2ba9debd0a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a77b5f38798f033d768144de49a62fe61"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a77b5f38798f033d768144de49a62fe61"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a77b5f38798f033d768144de49a62fe61">recv</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int src, int tag, Request *request=0) const </td></tr>
+<tr class="memdesc:a77b5f38798f033d768144de49a62fe61"><td class="mdescLeft">&#160;</td><td class="mdescRight">send string <br/></td></tr>
+<tr class="separator:a77b5f38798f033d768144de49a62fe61"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08bfb930f4e59b360c6f80eb71359291"><td class="memTemplParams" colspan="2"><a class="anchor" id="a08bfb930f4e59b360c6f80eb71359291"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a08bfb930f4e59b360c6f80eb71359291"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a08bfb930f4e59b360c6f80eb71359291">bcastData</a> (<a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:a08bfb930f4e59b360c6f80eb71359291"><td class="mdescLeft">&#160;</td><td class="mdescRight">managed memory broadcast <br/></td></tr>
+<tr class="separator:a08bfb930f4e59b360c6f80eb71359291"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5b893fbea39b55fa54a5b4a98619254"><td class="memTemplParams" colspan="2"><a class="anchor" id="ab5b893fbea39b55fa54a5b4a98619254"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ab5b893fbea39b55fa54a5b4a98619254"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ab5b893fbea39b55fa54a5b4a98619254">bcastData</a> (std::vector&lt; T &gt; &amp;v, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ab5b893fbea39b55fa54a5b4a98619254"><td class="mdescLeft">&#160;</td><td class="mdescRight">vector broadcast <br/></td></tr>
+<tr class="separator:ab5b893fbea39b55fa54a5b4a98619254"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8487607d15e72e2046f2a6080c4623e4"><td class="memTemplParams" colspan="2"><a class="anchor" id="a8487607d15e72e2046f2a6080c4623e4"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a8487607d15e72e2046f2a6080c4623e4"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a8487607d15e72e2046f2a6080c4623e4">bcast</a> (T *data, size_t nData, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:a8487607d15e72e2046f2a6080c4623e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array broadcast <br/></td></tr>
+<tr class="separator:a8487607d15e72e2046f2a6080c4623e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac4e2847b179578c16060e96836c5ed10"><td class="memTemplParams" colspan="2"><a class="anchor" id="ac4e2847b179578c16060e96836c5ed10"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ac4e2847b179578c16060e96836c5ed10"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ac4e2847b179578c16060e96836c5ed10">bcast</a> (T &amp;data, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ac4e2847b179578c16060e96836c5ed10"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar broadcast <br/></td></tr>
+<tr class="separator:ac4e2847b179578c16060e96836c5ed10"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64be2227b6d9975aa996b86e115df3e7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a64be2227b6d9975aa996b86e115df3e7"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a64be2227b6d9975aa996b86e115df3e7">bcast</a> (bool *data, size_t nData, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:a64be2227b6d9975aa996b86e115df3e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for bool which is not natively supported by MPI <br/></td></tr>
+<tr class="separator:a64be2227b6d9975aa996b86e115df3e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae0c27c4fd66b70b00841fa0e03871abc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae0c27c4fd66b70b00841fa0e03871abc"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ae0c27c4fd66b70b00841fa0e03871abc">bcast</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &amp;s, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ae0c27c4fd66b70b00841fa0e03871abc"><td class="mdescLeft">&#160;</td><td class="mdescRight">broadcast string <br/></td></tr>
+<tr class="separator:ae0c27c4fd66b70b00841fa0e03871abc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af314151e88f93b9b7f6430219555acfd"><td class="memTemplParams" colspan="2"><a class="anchor" id="af314151e88f93b9b7f6430219555acfd"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:af314151e88f93b9b7f6430219555acfd"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#af314151e88f93b9b7f6430219555acfd">allReduceData</a> (<a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, ReduceOp op, bool safeMode=false, Request *request=0) const </td></tr>
+<tr class="memdesc:af314151e88f93b9b7f6430219555acfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">managed memory reduction <br/></td></tr>
+<tr class="separator:af314151e88f93b9b7f6430219555acfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3f887bac3f44d83636b8ab911bb7c147"><td class="memTemplParams" colspan="2"><a class="anchor" id="a3f887bac3f44d83636b8ab911bb7c147"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a3f887bac3f44d83636b8ab911bb7c147"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a3f887bac3f44d83636b8ab911bb7c147">allReduceData</a> (std::vector&lt; T &gt; &amp;v, ReduceOp op, bool safeMode=false, Request *request=0) const </td></tr>
+<tr class="memdesc:a3f887bac3f44d83636b8ab911bb7c147"><td class="mdescLeft">&#160;</td><td class="mdescRight">vector reduction <br/></td></tr>
+<tr class="separator:a3f887bac3f44d83636b8ab911bb7c147"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1b10c6e736e07f7ffb6adddd1e276b2"><td class="memTemplParams" colspan="2"><a class="anchor" id="ab1b10c6e736e07f7ffb6adddd1e276b2"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ab1b10c6e736e07f7ffb6adddd1e276b2"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ab1b10c6e736e07f7ffb6adddd1e276b2">allReduce</a> (T *data, size_t nData, ReduceOp op, bool safeMode=false, Request *request=0) const </td></tr>
+<tr class="memdesc:ab1b10c6e736e07f7ffb6adddd1e276b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array reduction <br/></td></tr>
+<tr class="separator:ab1b10c6e736e07f7ffb6adddd1e276b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5cb35c61fb1a27a3afd84eff0822c9ec"><td class="memTemplParams" colspan="2"><a class="anchor" id="a5cb35c61fb1a27a3afd84eff0822c9ec"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a5cb35c61fb1a27a3afd84eff0822c9ec"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a5cb35c61fb1a27a3afd84eff0822c9ec">allReduce</a> (T &amp;data, ReduceOp op, bool safeMode=false, Request *request=0) const </td></tr>
+<tr class="memdesc:a5cb35c61fb1a27a3afd84eff0822c9ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar reduction <br/></td></tr>
+<tr class="separator:a5cb35c61fb1a27a3afd84eff0822c9ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aead564bf9787e811fc552a729e0d7356"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aead564bf9787e811fc552a729e0d7356"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#aead564bf9787e811fc552a729e0d7356">allReduce</a> (bool *data, size_t nData, ReduceOp op, bool safeMode=false, Request *request=0) const </td></tr>
+<tr class="memdesc:aead564bf9787e811fc552a729e0d7356"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for bool which is not natively supported by MPI <br/></td></tr>
+<tr class="separator:aead564bf9787e811fc552a729e0d7356"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad6ffa7dca36c925e1e04215586684633"><td class="memTemplParams" colspan="2"><a class="anchor" id="ad6ffa7dca36c925e1e04215586684633"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ad6ffa7dca36c925e1e04215586684633"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ad6ffa7dca36c925e1e04215586684633">allReduce</a> (T &amp;data, int &amp;index, ReduceOp op) const </td></tr>
 <tr class="memdesc:ad6ffa7dca36c925e1e04215586684633"><td class="mdescLeft">&#160;</td><td class="mdescRight">maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax <br/></td></tr>
 <tr class="separator:ad6ffa7dca36c925e1e04215586684633"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac35106f9c7fe4625f711d6f5894fadcb"><td class="memTemplParams" colspan="2"><a class="anchor" id="ac35106f9c7fe4625f711d6f5894fadcb"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ac35106f9c7fe4625f711d6f5894fadcb"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ac35106f9c7fe4625f711d6f5894fadcb">reduceData</a> (<a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, ReduceOp op, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ac35106f9c7fe4625f711d6f5894fadcb"><td class="mdescLeft">&#160;</td><td class="mdescRight">managed memory reduction <br/></td></tr>
+<tr class="separator:ac35106f9c7fe4625f711d6f5894fadcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae87c99332b63a8070c687c3202226c55"><td class="memTemplParams" colspan="2"><a class="anchor" id="ae87c99332b63a8070c687c3202226c55"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ae87c99332b63a8070c687c3202226c55"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ae87c99332b63a8070c687c3202226c55">reduceData</a> (std::vector&lt; T &gt; &amp;v, ReduceOp op, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ae87c99332b63a8070c687c3202226c55"><td class="mdescLeft">&#160;</td><td class="mdescRight">vector reduction <br/></td></tr>
+<tr class="separator:ae87c99332b63a8070c687c3202226c55"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4b6eab0281923d32c1ae418e61a6abb"><td class="memTemplParams" colspan="2"><a class="anchor" id="ab4b6eab0281923d32c1ae418e61a6abb"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ab4b6eab0281923d32c1ae418e61a6abb"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ab4b6eab0281923d32c1ae418e61a6abb">reduce</a> (T *data, size_t nData, ReduceOp op, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:ab4b6eab0281923d32c1ae418e61a6abb"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic array reduction <br/></td></tr>
+<tr class="separator:ab4b6eab0281923d32c1ae418e61a6abb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b6f46e37e086ec7cd650146d8dab53b"><td class="memTemplParams" colspan="2"><a class="anchor" id="a2b6f46e37e086ec7cd650146d8dab53b"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a2b6f46e37e086ec7cd650146d8dab53b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a2b6f46e37e086ec7cd650146d8dab53b">reduce</a> (T &amp;data, ReduceOp op, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:a2b6f46e37e086ec7cd650146d8dab53b"><td class="mdescLeft">&#160;</td><td class="mdescRight">generic scalar reduction <br/></td></tr>
+<tr class="separator:a2b6f46e37e086ec7cd650146d8dab53b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d8cb2a80e6f195e76214442b25778bf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7d8cb2a80e6f195e76214442b25778bf"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a7d8cb2a80e6f195e76214442b25778bf">reduce</a> (bool *data, size_t nData, ReduceOp op, int root=0, Request *request=0) const </td></tr>
+<tr class="memdesc:a7d8cb2a80e6f195e76214442b25778bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">specialization for bool which is not natively supported by MPI <br/></td></tr>
+<tr class="separator:a7d8cb2a80e6f195e76214442b25778bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96aa618c38d789240ed856111a2c42fb"><td class="memTemplParams" colspan="2"><a class="anchor" id="a96aa618c38d789240ed856111a2c42fb"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a96aa618c38d789240ed856111a2c42fb"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a96aa618c38d789240ed856111a2c42fb">reduce</a> (T &amp;data, int &amp;index, ReduceOp op, int root=0) const </td></tr>
+<tr class="memdesc:a96aa618c38d789240ed856111a2c42fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax <br/></td></tr>
+<tr class="separator:a96aa618c38d789240ed856111a2c42fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a31c6c91789b20ecfaa5121ac1bb14b3a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a31c6c91789b20ecfaa5121ac1bb14b3a"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a31c6c91789b20ecfaa5121ac1bb14b3a">fopenRead</a> (File &amp;fp, const char *fname, size_t fsizeExpected=0, const char *fsizeErrMsg=0) const </td></tr>
 <tr class="memdesc:a31c6c91789b20ecfaa5121ac1bb14b3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">open file for reading and optionally check file size <br/></td></tr>
@@ -277,6 +338,33 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>fread</b> (void *ptr,
 <tr class="memitem:a212bb20159c50643a2455d6a76c244e1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a212bb20159c50643a2455d6a76c244e1"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>fwrite</b> (const void *ptr, size_t size, size_t nmemb, File fp) const </td></tr>
 <tr class="separator:a212bb20159c50643a2455d6a76c244e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a20d329c1d7006b619af003f9f1dd4348"><td class="memTemplParams" colspan="2"><a class="anchor" id="a20d329c1d7006b619af003f9f1dd4348"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a20d329c1d7006b619af003f9f1dd4348"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>freadData</b> (<a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, File fp) const </td></tr>
+<tr class="separator:a20d329c1d7006b619af003f9f1dd4348"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4aeaa210b9d4e2ab67f69154c3be9e46"><td class="memTemplParams" colspan="2"><a class="anchor" id="a4aeaa210b9d4e2ab67f69154c3be9e46"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a4aeaa210b9d4e2ab67f69154c3be9e46"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>freadData</b> (std::vector&lt; T &gt; &amp;v, File fp) const </td></tr>
+<tr class="separator:a4aeaa210b9d4e2ab67f69154c3be9e46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ca337fe78db5fa056c776844ea0194a"><td class="memTemplParams" colspan="2"><a class="anchor" id="a0ca337fe78db5fa056c776844ea0194a"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a0ca337fe78db5fa056c776844ea0194a"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>fwriteData</b> (const <a class="el" href="classManagedMemory.html">ManagedMemory</a>&lt; T &gt; &amp;v, File fp) const </td></tr>
+<tr class="separator:a0ca337fe78db5fa056c776844ea0194a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a90b2fcedcfca79125cf2ff04b0ad4269"><td class="memTemplParams" colspan="2"><a class="anchor" id="a90b2fcedcfca79125cf2ff04b0ad4269"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a90b2fcedcfca79125cf2ff04b0ad4269"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>fwriteData</b> (const std::vector&lt; T &gt; &amp;v, File fp) const </td></tr>
+<tr class="separator:a90b2fcedcfca79125cf2ff04b0ad4269"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:ab87b7ca7749de69a00c580932d060134"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab87b7ca7749de69a00c580932d060134"></a>
+static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#ab87b7ca7749de69a00c580932d060134">wait</a> (Request request)</td></tr>
+<tr class="memdesc:ab87b7ca7749de69a00c580932d060134"><td class="mdescLeft">&#160;</td><td class="mdescRight">wait till request finishes <br/></td></tr>
+<tr class="separator:ab87b7ca7749de69a00c580932d060134"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a515bcf1b4b6aa731226866f75ba7f92f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a515bcf1b4b6aa731226866f75ba7f92f"></a>
+static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMPIUtil.html#a515bcf1b4b6aa731226866f75ba7f92f">waitAll</a> (const std::vector&lt; Request &gt; &amp;requests)</td></tr>
+<tr class="memdesc:a515bcf1b4b6aa731226866f75ba7f92f"><td class="mdescLeft">&#160;</td><td class="mdescRight">wait till all requests finish <br/></td></tr>
+<tr class="separator:a515bcf1b4b6aa731226866f75ba7f92f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>

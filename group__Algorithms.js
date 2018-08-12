@@ -67,6 +67,7 @@ var group__Algorithms =
       [ "clearState", "classPulay.html#a161a2b51d98cc74c03328f68b2c0fb4c", null ],
       [ "cycle", "classPulay.html#a39e78abc3b9f042d68dfb2488fcb8dd1", null ],
       [ "dot", "classPulay.html#adeb54b7f3611e29403e6c1115e34a8fe", null ],
+      [ "getResidual", "classPulay.html#a81159e4c884623a06772ffd4239b6ad5", null ],
       [ "getVariable", "classPulay.html#a01aa8897e8c9f3cb24f16489daa22115", null ],
       [ "loadState", "classPulay.html#ad9e40a418a72006b9102785ef901a7d5", null ],
       [ "minimize", "classPulay.html#af3a0d3e32a112d9e2745cd3f73670ca7", null ],

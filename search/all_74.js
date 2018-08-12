@@ -33,7 +33,7 @@ var searchData=
   ['thread_5frloop',['THREAD_rLoop',['../group__Utilities.html#ga00cc86ffef39ce838367f547435b4682',1,'LoopMacros.h']]],
   ['threadedaccumulate',['threadedAccumulate',['../group__Utilities.html#gacd3e4ee4aa4c2a6b734065a8ac0bbafb',1,'Thread.h']]],
   ['threadedloop',['threadedLoop',['../group__Utilities.html#gaec6197210013eea976e5afa2346075a2',1,'Thread.h']]],
-  ['threadlaunch',['threadLaunch',['../classAutoThreadCount.html#a3171d6b8ca56e191a11827faff335f4f',1,'AutoThreadCount::threadLaunch()'],['../group__Utilities.html#gaa90e7f5ea531ff4130ef6b8c5227599c',1,'threadLaunch(int nThreads, Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gaafbcc2af39da32d567705fae228ba7ba',1,'threadLaunch(Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gad9626870f1866cf08591b31a50776731',1,'threadLaunch(AutoThreadCount *, Callable *func, size_t nJobs, Args...args):&#160;Thread.h']]],
+  ['threadlaunch',['threadLaunch',['../group__Utilities.html#gaa90e7f5ea531ff4130ef6b8c5227599c',1,'threadLaunch(int nThreads, Callable *func, size_t nJobs, Args...args):&#160;Thread.h'],['../group__Utilities.html#gaafbcc2af39da32d567705fae228ba7ba',1,'threadLaunch(Callable *func, size_t nJobs, Args...args):&#160;Thread.h']]],
   ['tiledblockmatrix',['tiledBlockMatrix',['../classtiledBlockMatrix.html',1,'']]],
   ['time',['TIME',['../group__Utilities.html#ga41aec9e6b5a67316e6cd7eab79cf22f1',1,'Util.h']]],
   ['tmax',['tMax',['../structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63',1,'IonDynamicsParams']]],
@@ -60,8 +60,8 @@ var searchData=
   ['translationoperatorfourier',['TranslationOperatorFourier',['../classTranslationOperatorFourier.html',1,'']]],
   ['translationoperatorspline',['TranslationOperatorSpline',['../classTranslationOperatorSpline.html',1,'']]],
   ['translationsym',['translationSym',['../classVibrations.html#ae3f45a612db87d7dc45265f533e6bc47',1,'Vibrations']]],
-  ['transpose',['transpose',['../group__DataStructures.html#gaca8c1df1a31d5454598c8f51a60431f8',1,'matrix.h']]],
-  ['transpose_5fsymmetrize',['transpose_symmetrize',['../group__DataStructures.html#gaf3f986881fe08eb8031073a91796fda7',1,'matrix.h']]],
+  ['transpose',['transpose',['../group__DataStructures.html#gaa05c856636f737379dbd8fec5770e9be',1,'matrix.h']]],
+  ['transpose_5fsymmetrize',['transpose_symmetrize',['../group__DataStructures.html#gac37dc75be7afefcef5556c8946c77e95',1,'matrix.h']]],
   ['trialorbital',['TrialOrbital',['../structWannier_1_1TrialOrbital.html',1,'Wannier']]],
   ['trialorbitals',['trialOrbitals',['../classWannier.html#ae6db8ecc7b4a85492157748d7f703d79',1,'Wannier']]],
   ['trialwfns',['trialWfns',['../classWannierMinimizer.html#a831c6894f642e539d50cf3a235299005',1,'WannierMinimizer']]],
@@ -69,5 +69,5 @@ var searchData=
   ['ts',['TS',['../classEnergies.html#a93cbc9ce6ff54320c2b3e389245d39b3',1,'Energies']]],
   ['tutorials',['Tutorials',['../Tutorials.html',1,'Using']]],
   ['two_2ddimensional_20materials',['Two-dimensional materials',['../TwoDmaterials.html',1,'SurfaceTutorials']]],
-  ['type',['Type',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()'],['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()']]]
+  ['type',['type',['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()'],['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()']]]
 ];
