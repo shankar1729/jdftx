@@ -452,6 +452,21 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 	
+	if(ShouldDump(Spin) and eInfo.isNoncollinear())
+	{	StartDump("S")
+		std::vector<matrix> S(eInfo.nStates);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
+		{	//Calculate spin overlap:
+			vector3<matrix> Sq = spinOverlap(eVars.C[q], O(eVars.C[q]));
+			//Reshape to a N x 3N matrix:
+			S[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
+			for(int k=0; k<3; k++) //cartesian direction
+				S[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1), Sq[k]);
+		}
+		eInfo.write(S, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
+		EndDump
+	}
+	
 	if(ShouldDump(Momenta))
 	{	StartDump("momenta")
 		std::vector<matrix> momenta(eInfo.nStates);
