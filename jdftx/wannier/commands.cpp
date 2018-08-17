@@ -31,6 +31,7 @@ enum WannierMember
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
+	WM_saveSpin,
 	WM_slabWeight,
 	WM_loadRotations,
 	WM_eigsOverride,
@@ -53,6 +54,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
+	WM_saveSpin, "saveSpin",
 	WM_slabWeight, "slabWeight",
 	WM_loadRotations, "loadRotations",
 	WM_eigsOverride, "eigsOverride",
@@ -125,6 +127,9 @@ struct CommandWannier : public Command
 			"   Whether to write momentum matrix elements in the same format as Hamiltonian.\n"
 			"   The output is real and antisymmetric (drops the iota so as to half the output size).\n"
 			"   Default: no.\n"
+			"\n+ saveSpin yes|no\n\n"
+			"   Whether to write spin matrix elements (for non-collinear calculations only).\n"
+			"   Default: no.\n"
 			"\n+ slabWeight <z0> <zH> <zSigma>\n\n"
 			"   If specified, output the Wannier matrix elements of a slab weight function\n"
 			"   centered at z0 (lattice coordinates) with half-width zH (lattice coordinates)\n"
@@ -163,6 +168,8 @@ struct CommandWannier : public Command
 			"   If Up or Dn, only generate Wannier functions for that spin channel, allowing\n"
 			"   different input files for each channel (independent centers, windows etc.).\n"
 			"   Default: All, generate for all spin channels (only valid option for spintype != z-spin).";
+		
+		require("spintype");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -203,6 +210,11 @@ struct CommandWannier : public Command
 					break;
 				case WM_saveMomenta:
 					pl.get(wannier.saveMomenta, false, boolMap, "saveMomenta", true);
+					break;
+				case WM_saveSpin:
+					pl.get(wannier.saveSpin, false, boolMap, "saveSpin", true);
+					if(wannier.saveSpin and not e.eInfo.isNoncollinear())
+						throw string("saveSpin requires noncollinear spin mode");
 					break;
 				case WM_slabWeight:
 					pl.get(wannier.z0, 0., "z0", true);
