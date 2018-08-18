@@ -541,26 +541,26 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	//Save momenta in Wannier basis:
 	if(wannier.saveMomenta)
 	{	//--- compute momentum matrix elements of Bloch states:
-		std::vector< std::vector<matrix> > pBloch(3, std::vector<matrix>(e.eInfo.nStates));
+		std::vector<vector3<matrix>> pBloch(e.eInfo.nStates);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			if(e.eInfo.qnums[q].index()==iSpin)
 				for(int iDir=0; iDir<3; iDir++)
-					pBloch[iDir][q] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
+					pBloch[q][iDir] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
 		//--- convert to Wannier basis:
 		matrix pWannierTilde = zeroes(nCenters*nCenters*3, nqMine);
 		int iqMine = 0;
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	matrix pSub(nCenters*nCenters, 3);
 			for(int iDir=0; iDir<3; iDir++)
-			{	matrix pSubDir = pBloch[iDir][kMesh[i].point.iReduced + iSpin*qCount];
+			{	matrix pSubDir = pBloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
 				if(kMesh[i].point.invert<0) //apply complex conjugate:
 					callPref(eblas_dscal)(pSubDir.nData(), -1., ((double*)pSubDir.dataPref())+1, 2);
 				pSubDir = dagger(kMesh[i].U) * pSubDir * kMesh[i].U; //apply MLWF-optimized rotations
 				callPref(eblas_copy)(pSub.dataPref()+pSub.index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
 			}
 			//Store with spatial transformation:
-			matrix rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR)); //cartesian symmetry matrix
-			pSub = pSub * dagger(rot);
+			matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+			pSub = pSub * matrix(rot);
 			callPref(eblas_copy)(pWannierTilde.dataPref()+pWannierTilde.index(0,iqMine), pSub.dataPref(), pSub.nData());
 			iqMine++;
 		}
@@ -583,14 +583,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		{	matrix Ssub(nCenters*nCenters, 3);
 			for(int iDir=0; iDir<3; iDir++)
 			{	matrix SsubDir = Sbloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
-				if(kMesh[i].point.invert<0) //apply complex conjugate:
-					callPref(eblas_dscal)(SsubDir.nData(), -1., ((double*)SsubDir.dataPref())+1, 2);
+				if(kMesh[i].point.invert<0) //apply negative complex conjugate (because spin is a pseudo-vector):
+					callPref(eblas_dscal)(SsubDir.nData(), -1., ((double*)SsubDir.dataPref())+0, 2);
 				SsubDir = dagger(kMesh[i].U) * SsubDir * kMesh[i].U; //apply MLWF-optimized rotations
 				callPref(eblas_copy)(Ssub.dataPref()+Ssub.index(0,iDir), SsubDir.dataPref(), SsubDir.nData());
 			}
 			//Store with spatial transformation:
-			matrix rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR)); //cartesian symmetry matrix
-			Ssub = Ssub * dagger(rot);
+			matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+			Ssub = Ssub * matrix(rot * (1./det(rot))); //extra rotation sign because spin is a pseudo-vector
 			callPref(eblas_copy)(SwannierTilde.dataPref()+SwannierTilde.index(0,iqMine), Ssub.dataPref(), Ssub.nData());
 			iqMine++;
 		}
