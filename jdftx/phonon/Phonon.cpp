@@ -65,6 +65,18 @@ void Phonon::dump()
 	std::map<vector3<int>,matrix> cellMap = getCellMap(e.gInfo.R, eSupTemplate.gInfo.R,
 		e.coulombParams.isTruncated(), xAtoms, xAtoms, rSmooth, e.dump.getFilename("phononCellMap"));
 	
+	//--- output cell map weights:
+	if(mpiWorld->isHead())
+	{	string fname = e.dump.getFilename("phononCellWeights");
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+		for(auto iter: cellMap)
+			iter.second.write_real(fp);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
 	//--- remap force matrix on cells (with duplicated ones on WS-supercell boundary):
 	std::vector<matrix> F(cellMap.size());
 	auto iter = cellMap.begin();
