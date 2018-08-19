@@ -265,6 +265,7 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
+		logPrintf(" \\\n\tsaveSpin %s", boolMap.getString(wannier.saveSpin));
 		if(wannier.zH)
 			logPrintf(" \\\n\tslabWeight %lg %lg %lg", wannier.z0, wannier.zH, wannier.zSigma);
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
