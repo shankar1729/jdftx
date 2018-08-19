@@ -138,7 +138,7 @@ struct matrixScaledTransOp
 	
 	//Scaling:
 	matrixScaledTransOp& operator*=(double s) { scale *= s; return *this; }
-	matrixScaledTransOp operator*(double s) const { return matrixScaledTransOp(mat,scale*s,op); }
+	matrixScaledTransOp operator*(double s) const { matrixScaledTransOp result(*this); result *= s; return result; }
 	friend matrixScaledTransOp operator*(double s, const matrixScaledTransOp& A) { return A * s; }
 };
 matrix conj(const scaled<matrix>& A); //!< return element-wise complex conjugate of A
