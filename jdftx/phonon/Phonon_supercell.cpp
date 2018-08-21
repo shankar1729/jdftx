@@ -291,6 +291,7 @@ std::vector<diagMatrix> Phonon::setSupState()
 			}
 		}
 		eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wave function projections
+		if(eSup->cntrl.scf) eSup->eVars.orthonormalize(qSup); //SCF assumes orthonormal (not automatically so for ultrasoft)
 	}
 	
 	//Update entropy contributions:
