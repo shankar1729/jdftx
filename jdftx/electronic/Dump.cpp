@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true), curIter(0)
+: potentialSubtraction(true), curIter(0), Munfold(1,1,1)
 {
 }
 
@@ -353,6 +353,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 		EndDump
 	}
+	
+	if(ShouldDump(BandUnfold))
+		dumpUnfold();
 	
 	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && hasFluid)
 	{	ScalarFieldTilde nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);

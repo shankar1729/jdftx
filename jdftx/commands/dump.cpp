@@ -102,6 +102,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpEigStats, "EigStats",
 	DumpFillings, "Fillings",
 	DumpRhoAtom, "RhoAtom",
+	DumpBandUnfold, "BandUnfold",
 	DumpEcomponents, "Ecomponents",
 	DumpExcCompare, "ExcCompare",
 	DumpBoundCharge, "BoundCharge",
@@ -152,6 +153,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpEigStats,       "Band eigenvalue statistics: HOMO, LUMO, min, max and Fermi level",
 	DumpFillings,       "Fillings",
 	DumpRhoAtom,        "Atomic-orbital projected density matrices (only for species with +U enabled)",
+	DumpBandUnfold,     "Unfold band structure from supercell to unit cell (see command band-unfold)",
 	DumpEcomponents,    "Components of the energy",
 	DumpBoundCharge,    "Bound charge in the fluid",
 	DumpSolvationRadii, "Effective solvation radii based on fluid bound charge distribution",
@@ -871,6 +873,36 @@ struct CommandPotentialSubtraction : public Command
 	}
 }
 commandPotentialSubtraction;
+
+
+struct CommandBandUnfold : public Command
+{
+	CommandBandUnfold() : Command("band-unfold", "jdftx/Output")
+	{
+		format = " \\\n\t<M00> <M01> <M02> \\\n\t<M10> <M11> <M12> \\\n\t<M20> <M21> <M22>";
+		comments =
+			"Unfold band structure from a supercell calculation to a unit cell\n"
+			"with lattice vectors Runit, defined by the integer matrix M such\n"
+			"that current lattice vectors R = Runit * M.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	matrix3<int>& M = e.dump.Munfold;
+		for(int j=0; j<3; j++) for(int k=0; k<3; k++)
+		{	ostringstream oss; oss << "s" << j << k;
+			pl.get(M(j,k), 0, oss.str(), true);
+		}
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpBandUnfold));
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for (int j=0; j < 3; j++)
+		{	logPrintf(" \\\n\t");
+			for(int k=0; k<3; k++) logPrintf("%d ",e.dump.Munfold(j,k));
+		}
+	}
+}
+commandBandUnfold;
 
 
 enum BGWparamsMember

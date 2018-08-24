@@ -47,7 +47,7 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 	DumpElecDensity, DumpElecDensityAccum, DumpCoreDensity, DumpKEdensity, DumpFluidDensity, // electronic valence, core and KE densities, fluid densities
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
-	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom,
+	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom, DumpBandUnfold,
 	DumpEcomponents, DumpExcCompare,
  	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations, DumpSpin,
@@ -83,6 +83,7 @@ public:
 	std::shared_ptr<struct ChargedDefect> chargedDefect; //!< charged defect correction calculator
 	std::shared_ptr<struct BGWparams> bgwParams; //!< parameters for BGW claculation if any
 	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
+	matrix3<int> Munfold; //!< transformation matrix for band structure unfolding
 private:
 	const Everything* e;
 	string format; //!< Filename format containing $VAR, $STAMP, $FREQ etc.
@@ -98,6 +99,7 @@ private:
 	void dumpOcean(); //!< BSE code export implemented in DumpOcean.cpp
 	void dumpBGW(); //!< BerkeleyGW code export implemented in DumpBGW.cpp
 	void dumpRsol(ScalarField nbound, string fname);
+	void dumpUnfold();
 };
 
 //! @}

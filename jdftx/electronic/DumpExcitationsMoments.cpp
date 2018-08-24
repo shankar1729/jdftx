@@ -20,10 +20,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/ColumnBundleTransform.h>
 #include <electronic/Dump_internal.h>
 #include <core/WignerSeitz.h>
 #include <core/Operators.h>
 #include <core/Units.h>
+#include <core/LatticeUtils.h>
 
 //---------------------- Excitations -----------------------------------------------
 
@@ -334,3 +336,79 @@ void Dump::dumpRsol(ScalarField nbound, string fname)
 	fclose(fp);
 }
 
+void Dump::dumpUnfold()
+{	const GridInfo& gInfo = e->gInfo;
+	const ElecInfo& eInfo = e->eInfo;
+	//Header
+	//--- unit cell grid:
+	const matrix3<int>& M = Munfold;
+	matrix3<> invM = inv(matrix3<>(M));
+	int nUnits = abs(det(M));
+	GridInfo gInfoUnit;
+	gInfoUnit.R = gInfo.R * invM;
+	gInfoUnit.Gmax = sqrt(2*e->cntrl.Ecut); //Ecut = 0.5 Gmax^2
+	logSuspend();
+	gInfoUnit.initialize();
+	logResume();
+	//--- list of unit cell k-points for each supercell k:
+	std::vector<std::vector<vector3<>>> kUnit(eInfo.nStates);
+	for(int q=0; q<eInfo.nStates; q++)
+	{	PeriodicLookup<vector3<>> plook(kUnit[q], gInfoUnit.GGT, nUnits);
+		for(const vector3<int>& iG: e->basis[q].iGarr)
+		{	vector3<> k = (eInfo.qnums[q].k + iG) * invM; //corresponding unit cell k
+			for(int iDir=0; iDir<3; iDir++) k[iDir] -= ceil(-0.5+k[iDir]); //wrap to (-0.5,0.5]
+			if(plook.find(k) == string::npos) //not encountered yet
+			{	plook.addPoint(kUnit[q].size(), k); //update periodic look-up table
+				kUnit[q].push_back(k);
+				if(int(kUnit[q].size())==nUnits) break; //all unit cell k for this supercell k found
+			}
+		}
+		std::sort(kUnit[q].begin(), kUnit[q].end());
+	}
+	//--- write header:
+	string fname = getFilename("bandUnfoldHeader");
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	if(mpiWorld->isHead())
+	{	FILE* fp = fopen(fname.c_str(), "w");
+		for(int q=0; q<eInfo.nStates; q++)
+		{	fprintf(fp, "Supercell kpoint ");
+			eInfo.kpointPrint(fp, q, true);
+			fprintf(fp, "\n");
+			for(vector3<>& k:  kUnit[q])
+				fprintf(fp, "%+.7f %+.7f %+.7f\n", k[0], k[1], k[2]);
+			fprintf(fp, "\n");
+		}
+		fclose(fp);
+	}
+	logPrintf("done\n"); logFlush();
+	//Weights of each unit cell k:
+	fname = getFilename("bandUnfold");
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	std::vector<diagMatrix> unitWeights(eInfo.nStates);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	unitWeights[q].reserve(nUnits * eInfo.nBands);
+		for(const vector3<>& k: kUnit[q])
+		{	//Create basis and qnum for unit cell k:
+			Basis basisUnit;
+			logSuspend();
+			basisUnit.setup(gInfoUnit, e->iInfo, e->cntrl.Ecut, k);
+			logResume();
+			QuantumNumber qnumUnit; qnumUnit.k = k;
+			//Setup wave function transformation:
+			int nSpinor = eInfo.spinorLength();
+			ColumnBundleTransform cbt(k, basisUnit, eInfo.qnums[q].k, e->basis[q], nSpinor, SpaceGroupOp(), +1, M);
+			//Extract unit cell wavefunctions:
+			const ColumnBundle& C = e->eVars.C[q];
+			ColumnBundle OC = O(C);
+			ColumnBundle Cunit(1, basisUnit.nbasis*nSpinor, &basisUnit, &qnumUnit, isGpuEnabled());
+			ColumnBundle OCunit = Cunit.similar();
+			for(int b=0; b<eInfo.nBands; b++)
+			{	Cunit.zero(); cbt.gatherAxpy(1., C,b, Cunit,0);
+				OCunit.zero(); cbt.gatherAxpy(1., OC,b, OCunit,0);
+				unitWeights[q].push_back(trace(Cunit^OCunit).real());
+			}
+		}
+	}
+	eInfo.write(unitWeights, fname.c_str(), nUnits*eInfo.nBands);
+	logPrintf("done\n"); logFlush();
+}
