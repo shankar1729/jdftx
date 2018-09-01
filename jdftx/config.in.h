@@ -30,5 +30,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define VERSION_MAJOR_MINOR_PATCH "${VERSION_STRING}"
 #define VERSION_HASH "${GIT_HASH}"
 #define JDFTX_BUILD_DIR "${CMAKE_BINARY_DIR}"
+#define JDFTX_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}"
 
 #endif // JDFTX_CONFIG_H
