@@ -31,6 +31,17 @@ matrix Im(const matrix& m)
 {	return complex(0,-0.5)*(m - dagger(m)); //(m - dagger(m))/(2i)
 }
 
+//Pole function with imaginary being a Lorentzian:
+inline complex regularizedPole(double omega, double omega0, double etaInv)
+{	double t = etaInv*(omega-omega0);
+	return (etaInv/(1+t*t)) * complex(t,-1.);
+}
+//Corresponding delta function:
+double regularizedDelta(double omega, double omega0, double etaInv)
+{	double t = etaInv*(omega-omega0);
+	return (1./M_PI) * (etaInv/(1+t*t));
+}
+
 ElectronScattering::ElectronScattering()
 : eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), slabResponse(false), EcutTransverse(0.)
 {
@@ -51,10 +62,8 @@ void ElectronScattering::dump(const Everything& everything)
 	logFlush();
 	
 	//Update default parameters:
-	if(!eta)
-	{	eta = e.eInfo.smearingWidth;
-		if(!eta) die("eta must be specified explicitly since electronic temperature is zero.\n");
-	}
+	assert(eta > 0.);
+	double etaInv = 1./eta;
 	if(!Ecut) Ecut = e.cntrl.Ecut;
 	if(!EcutTransverse) EcutTransverse = e.cntrl.Ecut;
 	double oMin = DBL_MAX, oMax = -DBL_MAX; //occupied energy range
@@ -88,7 +97,7 @@ void ElectronScattering::dump(const Everything& everything)
 	diagMatrix omegaGrid, wOmega;
 	omegaGrid.push_back(0.);
 	wOmega.push_back(0.5*eta); //integration weight (halved at endpoint)
-	while(omegaGrid.back()<omegaMax + 10*eta) //add margin for covering enough of the Lorentzians
+	while(omegaGrid.back() < omegaMax + eta)
 	{	omegaGrid.push_back(omegaGrid.back() + eta);
 		wOmega.push_back(eta);
 	}
@@ -272,12 +281,11 @@ void ElectronScattering::dump(const Everything& everything)
 			//Collect contributions for each frequency:
 			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
 			{	double omega = omegaGrid[iOmega];
-				complex omegaTilde(omega, 2*eta);
-				complex one(1,0);
 				std::vector<complex> Xks; Xks.reserve(events.size());
 				for(const Event& event: events)
-					Xks.push_back(-e.gInfo.detR * kWeight * event.fWeight
-						* (one/(event.Eji - omegaTilde) + one/(event.Eji + omegaTilde)) );
+					Xks.push_back(-e.gInfo.detR * kWeight * event.fWeight *
+						( regularizedPole(omega, -event.Eji, etaInv)
+						- regularizedPole(omega, +event.Eji, etaInv) ) );
 				chiKS[iOmega] += (nij * Xks) * dagger(nij);
 			}
 		}
@@ -299,7 +307,14 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-		{	ImKscr[iOmega] = Im(inv(invKq - chiKS[iOmega]));
+		{	//Begin HACK
+			if(!chiKS[iOmega]) chiKS[iOmega] = zeroes(nbasis, nbasis); 
+			logPrintf("ChiJellium: %lg %lg %lg %lg %lg\n",
+				e.gInfo.GGT.metric_length_squared(qmesh[iq].k), omegaGrid[iOmega],
+				chiKS[iOmega](iHead,iHead).real(), chiKS[iOmega](iHead,iHead).imag(), invKq(iHead,iHead).real());
+			//End HACK
+			
+			ImKscr[iOmega] = Im(inv(invKq - chiKS[iOmega]));
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
@@ -332,8 +347,9 @@ void ElectronScattering::dump(const Everything& everything)
 				complex omegaTilde(omega, 2*eta);
 				diagMatrix delta; delta.reserve(events.size());
 				for(const Event& event: events)
-					delta.push_back(e.gInfo.detR * event.fWeight //overlap and sign for electron / hole
-						* (2*eta/M_PI) * ( 1./(event.Eji - omegaTilde).norm() - 1./(event.Eji + omegaTilde).norm()) ); //Normalized Lorentzians
+					delta.push_back(e.gInfo.detR * event.fWeight * //overlap and sign for electron / hole
+						( regularizedDelta(omega, +event.Eji, etaInv)
+						- regularizedDelta(omega, -event.Eji, etaInv) ) ); //pick up correct omega
 				eventContrib += wOmega[iOmega] * delta * diag(dagger(nij) * ImKscr[iOmega] * nij);
 			}
 			//Accumulate contributions to linewidth:

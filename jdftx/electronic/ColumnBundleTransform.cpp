@@ -127,6 +127,7 @@ std::vector<matrix> ColumnBundleTransform::transformVdagC(const std::vector<matr
 {	//Fetch required global properties:
 	assert(fabs(basisC.gInfo->detR - basisD.gInfo->detR) < symmThreshold); //supercell transformations not supported
 	const IonInfo& iInfo = *(basisC.iInfo);
+	if(!iInfo.species.size()) return std::vector<matrix>(); //jellium case
 	const Everything& e = *(iInfo.species[0]->e);
 	const std::vector<std::vector<std::vector<int> > >& atomMap = e.symm.getAtomMap();
 	assert(VdagC_C.size() == iInfo.species.size());

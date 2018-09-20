@@ -377,8 +377,7 @@ struct CommandElectronScattering : public Command
 			"\n"
 			"The following key-value pairs can appear in any order:\n"
 			"\n+ eta <eta>\n\n"
-			"   <eta> in Eh specifies frequency resolution and half the imaginary part\n"
-			"   ascribed to probe frequency (if zero, the electron temperature is used.)\n"
+			"   <eta> in Eh specifies frequency grid resolution (required)\n"
 			"\n+ Ecut <Ecut>\n\n"
 			"   <Ecut> in Eh specifies energy cut-off for dielectric matrices.\n"
 			"   (If zero, the wavefunction cutoff from elec-cutoff is used instead.)\n"
@@ -426,6 +425,7 @@ struct CommandElectronScattering : public Command
 		else
 		{	if(es.EcutTransverse) throw string("Cannot specify EcutTransverse when slabResponse = no");
 		}
+		if(es.eta <= 0.) throw string("Must specify frequency grid resolution eta > 0.");
 	}
 
 	void printStatus(Everything& e, int iRep)
