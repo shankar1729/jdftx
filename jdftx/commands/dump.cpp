@@ -353,6 +353,7 @@ enum ElectronScatteringMember
 	ESM_Ecut,
 	ESM_fCut,
 	ESM_omegaMax,
+	ESM_RPA,
 	ESM_slabResponse,
 	ESM_EcutTransverse,
 	ESM_delim
@@ -362,6 +363,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_Ecut, "Ecut",
 	ESM_fCut, "fCut",
 	ESM_omegaMax, "omegaMax",
+	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
 	ESM_EcutTransverse, "EcutTransverse"
 );
@@ -388,6 +390,8 @@ struct CommandElectronScattering : public Command
 			"   <omegaMax> in Eh is the maximum energy transfer to account for\n"
 			"   and hence the maximum frequency in dielectric function frequency grid.\n"
 			"   (if zero, autodetermine from available eigenvalues)\n"
+			"\n+ RPA yes|no\n\n"
+			"   If yes, use RPA response that ignores XC contribution. (default: no).\n"
 			"\n+ slabResponse yes|no\n\n"
 			"   Whether to output slab-normal-direction susceptibility instead.\n"
 			"   This needs slab geometry in coulomb-interaction, and will bypass the\n"
@@ -413,6 +417,7 @@ struct CommandElectronScattering : public Command
 				case ESM_Ecut: pl.get(es.Ecut, 0., "Ecut", true); break;
 				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
+				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
 				case ESM_delim: return; //end of input
@@ -434,6 +439,7 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tEcut     %lg", es.Ecut);
 		logPrintf(" \\\n\tfCut     %lg", es.fCut);
 		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
+		logPrintf(" \\\n\tRPA      %s", boolMap.getString(es.RPA));
 		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
 		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
 	}

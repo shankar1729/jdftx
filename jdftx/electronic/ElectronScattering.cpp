@@ -43,7 +43,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), slabResponse(false), EcutTransverse(0.)
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), slabResponse(false), EcutTransverse(0.)
 {
 }
 
@@ -258,8 +258,8 @@ void ElectronScattering::dump(const Everything& everything)
 		int nbasis = basisChi[iq].nbasis;
 		nAugRhoAtomInit(iq);
 		
-		//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
-		matrix invKq = inv(coulombMatrix(iq));
+		//Construct XC and Coulomb operators (regularizes G=0 using the tricks developed for EXX):
+		matrix Kxc, invKq = inv(coulombMatrix(iq, Kxc));
 		
 		//Calculate chi_KS:
 		std::vector<matrix> chiKS(omegaGrid.nRows());
@@ -314,8 +314,12 @@ void ElectronScattering::dump(const Everything& everything)
 				chiKS[iOmega](iHead,iHead).real(), chiKS[iOmega](iHead,iHead).imag(), invKq(iHead,iHead).real());
 			//End HACK
 			
-			ImKscr[iOmega] = Im(inv(invKq - chiKS[iOmega]));
+			matrix chi0 = RPA
+				? chiKS[iOmega]
+				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
+			ImKscr[iOmega] = Im(inv(invKq - chi0));
+			chi0 = 0; //free to save memory
 			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
 		chiKS.clear(); //free memory; no longer needed
@@ -536,16 +540,20 @@ ColumnBundle ElectronScattering::getWfns(size_t ik, int iSpin, const vector3<>& 
 	return result;
 }
 
-matrix ElectronScattering::coulombMatrix(size_t iq) const
-{	//Use function implemented in Polarizability:
+matrix ElectronScattering::coulombMatrix(size_t iq, matrix& Kxc) const
+{	//Use functions implemented in Polarizability:
 	matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk);
+	matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const ScalarField& n, vector3<> dk);
+	//Create identity ColumnBundle:
 	const Basis& basis_q = basisChi[iq];
-	ColumnBundle V(basis_q.nbasis, basis_q.nbasis, &basis_q);
+	ColumnBundle V(basis_q.nbasis, basis_q.nbasis, &basis_q, &qmesh[iq]);
 	V.zero();
 	complex* Vdata = V.data();
 	double normFac = 1./sqrt(e->gInfo.detR);
 	for(size_t b=0; b<basis_q.nbasis; b++)
 		Vdata[V.index(b,b)] = normFac;
+	//Evaluate:
+	if(!RPA) Kxc = exCorrMatrix(V, *e, e->eVars.get_nTot(), qmesh[iq].k);
 	return coulombMatrix(V, *e, qmesh[iq].k);
 }
 
@@ -670,8 +678,8 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	logPrintf("nbasis = %lu, %.2lf ideal\n", basisChi[0].nbasis, sqrt(2*Ecut)*(2*EcutTransverse)*(e.gInfo.detR/(6*M_PI*M_PI)));
 	nAugRhoAtomInit(0);
 	
-	//Construct Coulomb operator (regularizes G=0 using the tricks developed for EXX):
-	matrix invKq = inv(coulombMatrix(0));
+	//Construct XC and Coulomb operators (regularizes G=0 using the tricks developed for EXX):
+	matrix Kxc, invKq = inv(coulombMatrix(0, Kxc));
 	
 	//Calculate chi_KS:
 	std::vector<matrix> chiKS(omegaGrid.nRows());
@@ -717,7 +725,10 @@ void ElectronScattering::dumpSlabResponse(Everything& e, const diagMatrix& omega
 	mpiWorld->fopenWrite(fp, fname.c_str());
 	mpiWorld->fseek(fp, iOmegaStart*nBasisSlab*nBasisSlab*sizeof(complex), SEEK_SET);
 	for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-	{	matrix chiExt = (invKq*inv(invKq - chiKS[iOmega])*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
+	{	matrix chi0 = RPA
+			? chiKS[iOmega]
+			: inv(eye(basisChi[0].nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
+		matrix chiExt = (invKq*inv(invKq - chi0)*invKq - invKq)(0,nBasisSlab, 0,nBasisSlab); //external field susceptibility
 		mpiWorld->fwriteData(chiExt, fp);
 	}
 	mpiWorld->fclose(fp); logPrintf("done.\n");
