@@ -307,14 +307,7 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
-		{	//Begin HACK
-			if(!chiKS[iOmega]) chiKS[iOmega] = zeroes(nbasis, nbasis); 
-			logPrintf("ChiJellium: %lg %lg %lg %lg %lg\n",
-				e.gInfo.GGT.metric_length_squared(qmesh[iq].k), omegaGrid[iOmega],
-				chiKS[iOmega](iHead,iHead).real(), chiKS[iOmega](iHead,iHead).imag(), invKq(iHead,iHead).real());
-			//End HACK
-			
-			matrix chi0 = RPA
+		{	matrix chi0 = RPA
 				? chiKS[iOmega]
 				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
