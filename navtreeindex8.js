@@ -1,5 +1,11 @@
 var NAVTREEINDEX8 =
 {
+"classManagedMemory.html#ad14859701e6bcf5d34ba275663dc8a47":[2,2,0,0,12,0],
+"classManagedMemory.html#afcd0c271938d35e4712602433be20852":[2,2,0,3,24,22],
+"classManagedMemory.html#afcd0c271938d35e4712602433be20852":[2,2,0,0,12,22],
+"classManagedMemory.html#aff5d1642b398ca041b9bac69488f532c":[2,2,0,3,24,9],
+"classManagedMemory.html#aff5d1642b398ca041b9bac69488f532c":[2,2,0,0,12,9],
+"classManagedMemoryBase.html":[2,2,0,0,11],
 "classManagedMemoryBase.html#a058a98205d08b57317403a4a68959f17":[2,2,0,0,11,5],
 "classManagedMemoryBase.html#a37719e1a824d8b260690215d2fe5b1ff":[2,2,0,0,11,0],
 "classManagedMemoryBase.html#a5e3adfb44b28f6820777b4ed5255cc44":[2,2,0,0,11,9],
@@ -243,11 +249,5 @@ var NAVTREEINDEX8 =
 "classSpeciesInfo.html#a2a5fe2fb56d80f416d4ec3fd273af98f":[2,2,1,1,12,4],
 "classSpeciesInfo.html#a2b7d79fa72055ea4862368adf2841088":[2,2,1,1,12,26],
 "classSpeciesInfo.html#a2fff3e83066c1b7b563ac524e1dd207d":[2,2,1,1,12,9],
-"classSpeciesInfo.html#a32a28c9cd3a9f6f0c4ae06ad4e4ceff0":[2,2,1,1,12,29],
-"classSpeciesInfo.html#a343b757bb35b1ee545ec810781afc80c":[2,2,1,1,12,57],
-"classSpeciesInfo.html#a39ed9760278526f8e181386ce7eaf3da":[2,2,1,1,12,10],
-"classSpeciesInfo.html#a3fd8e5da12862fb0f19e1a70e68d6b0f":[2,2,1,1,12,28],
-"classSpeciesInfo.html#a442236647b83ab83a57df0bef17c424a":[2,2,1,1,12,15],
-"classSpeciesInfo.html#a45532830c42ec555bba5c6cda24d84d3":[2,2,1,1,12,35],
-"classSpeciesInfo.html#a47722120d310536855aaef07710b757a":[2,2,1,1,12,54]
+"classSpeciesInfo.html#a32a28c9cd3a9f6f0c4ae06ad4e4ceff0":[2,2,1,1,12,29]
 };

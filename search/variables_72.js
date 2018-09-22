@@ -22,6 +22,7 @@ var searchData=
   ['rmin',['rMin',['../structChargedDefect.html#a7ac828b7e503da0f279db71c198c5c24',1,'ChargedDefect']]],
   ['rot',['rot',['../structSpaceGroupOp.html#aa1703a3e6c4b09324d3523fcc0e9db46',1,'SpaceGroupOp']]],
   ['rotationsym',['rotationSym',['../classVibrations.html#a7569f41a9a3a9a5818efa1f788dd264b',1,'Vibrations']]],
+  ['rpa',['RPA',['../structElectronScattering.html#a70575b0010ac6ca551636ed066899587',1,'ElectronScattering']]],
   ['rpinned',['rPinned',['../classWannierMinimizer.html#a80e99b1b1318574f8b2ab4c02520f8bd',1,'WannierMinimizer']]],
   ['rsigma',['rSigma',['../structChargedDefect.html#ad291e816a9bce1d3b4c9f88e2b7b26d6',1,'ChargedDefect']]],
   ['rsmooth',['rSmooth',['../classPhonon.html#a0e91ea69468e75a7876ca20156512404',1,'Phonon::rSmooth()'],['../classWannier.html#a44df300a5c7e4bdae38a7dec785bc310',1,'Wannier::rSmooth()']]],

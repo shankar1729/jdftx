@@ -35,6 +35,7 @@ var searchData=
   ['bulkepsilon',['BulkEpsilon',['../structBulkEpsilon.html',1,'BulkEpsilon'],['../classDump.html#a57ec90fb4d588fd1378463bb539242e0',1,'Dump::bulkEpsilon()']]],
   ['bz',['Bz',['../classElecInfo.html#ab6fd0155603086ed27ba9b4ab66032f2',1,'ElecInfo']]],
   ['bibliographic_20references',['Bibliographic References',['../citelist.html',1,'']]],
+  ['band_2dunfold',['band-unfold',['../CommandBandUnfold.html',1,'CommandIndex']]],
   ['basis',['basis',['../CommandBasis.html',1,'CommandIndex']]],
   ['bgw_2dparams',['bgw-params',['../CommandBgwParams.html',1,'CommandIndex']]],
   ['box_2dpotential',['box-potential',['../CommandBoxPotential.html',1,'CommandIndex']]],

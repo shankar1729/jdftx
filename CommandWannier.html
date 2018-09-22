@@ -132,6 +132,9 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 <li><p class="startli">saveMomenta yes|no</p>
 <p class="startli">Whether to write momentum matrix elements in the same format as Hamiltonian. The output is real and antisymmetric (drops the iota so as to half the output size). Default: no.</p>
 </li>
+<li><p class="startli">saveSpin yes|no</p>
+<p class="startli">Whether to write spin matrix elements (for non-collinear calculations only). Default: no.</p>
+</li>
 <li><p class="startli">slabWeight &lt;z0&gt; &lt;zH&gt; &lt;zSigma&gt;</p>
 <p class="startli">If specified, output the <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> matrix elements of a slab weight function centered at z0 (lattice coordinates) with half-width zH (lattice coordinates) and Gaussian/erfc smoothness zSigma in bohrs. (Default: none)</p>
 </li>
@@ -161,7 +164,7 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 </li>
 </ul>
 <h2>Properties: </h2>
-<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
 <p><b>Default:</b> &#160;&#160;&#160; (None)</p>

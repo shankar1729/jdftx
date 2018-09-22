@@ -113,6 +113,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <p>and each &lt;var&gt; is one of:</p>
 <ul>
 <li>BandEigs : Band Eigenvalues</li>
+<li>BandUnfold : Unfold band structure from supercell to unit cell (see command <a class="el" href="CommandBandUnfold.html">band-unfold</a>)</li>
 <li>BGW : G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support)</li>
 <li>BoundCharge : Bound charge in the fluid</li>
 <li><a class="el" href="structBulkEpsilon.html" title="Bulk dielectric function calculator. ">BulkEpsilon</a> : Dielectric constant of a periodic solid (see command <a class="el" href="CommandBulkEpsilon.html">bulk-epsilon</a>)</li>
@@ -151,6 +152,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <li>SelfInteractionCorrection: Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues</li>
 <li><a class="el" href="structSlabEpsilon.html" title="Slab dielectric function calculator. ">SlabEpsilon</a> : Local dielectric function of a slab (see command <a class="el" href="CommandSlabEpsilon.html">slab-epsilon</a>)</li>
 <li>SolvationRadii : Effective solvation radii based on fluid bound charge distribution</li>
+<li>Spin : Spin matrix elements from non-collinear calculations in a binary file (indices outer to inner: state, cartesian direction, band1, band2)</li>
 <li>State : All variables needed to restart calculation: wavefunction and fluid state/fillings if any</li>
 <li>Stress : Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector</li>
 <li><a class="el" href="classSymmetries.html" title="Symmetry detection and symmetrization of various quantities. ">Symmetries</a> : List of symmetry matrices (in covariant lattice coordinates)</li>

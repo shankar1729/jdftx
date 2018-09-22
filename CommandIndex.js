@@ -1,6 +1,7 @@
 var CommandIndex =
 [
     [ "add-U", "CommandAddU.html", null ],
+    [ "band-unfold", "CommandBandUnfold.html", null ],
     [ "basis", "CommandBasis.html", null ],
     [ "bgw-params", "CommandBgwParams.html", null ],
     [ "box-potential", "CommandBoxPotential.html", null ],

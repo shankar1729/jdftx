@@ -11,6 +11,7 @@ var searchData=
   ['case_5fpcm_5fsccs_5fany',['case_PCM_SCCS_any',['../group__Fluid.html#ga619a9ea8b2d9d1d6e7d31a75a6a52583',1,'FluidSolverParams.h']]],
   ['category',['category',['../classCommand.html#ab36d2185082e1d590019dd728f414599',1,'Command::category()'],['../classManagedMemoryBase.html#abc8a9b4cad2fa101eb1e3559a493b8f6',1,'ManagedMemoryBase::category()']]],
   ['cations',['cations',['../structFluidSolverParams.html#a4b82e46dca7a11bb618f3d7be10f9cbc',1,'FluidSolverParams']]],
+  ['cavityfile',['cavityFile',['../structFluidSolverParams.html#ad49a63a52881bae26fbb63adfddd7c41',1,'FluidSolverParams']]],
   ['cavitypressure',['cavityPressure',['../structFluidSolverParams.html#ada4f7926ef2beb648f624a4d3a4ea342',1,'FluidSolverParams']]],
   ['cavityscale',['cavityScale',['../structFluidSolverParams.html#a61f035ba179e32f6df198277cc72c82e',1,'FluidSolverParams']]],
   ['cavitytension',['cavityTension',['../structFluidSolverParams.html#a0d9d83ace9cf64ad3a5815f4c57f2650',1,'FluidSolverParams']]],

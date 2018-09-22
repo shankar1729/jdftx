@@ -28,5 +28,6 @@ var searchData=
   ['mst',['Mst',['../structColumnBundleMatrixProduct.html#ab73f06ace2cb45e4e787288c98679f1c',1,'ColumnBundleMatrixProduct']]],
   ['mu',['mu',['../classElecInfo.html#aadc5ad75e7a0b2990fde3e880c70e23b',1,'ElecInfo::mu()'],['../classIdealGas.html#a4546439efeeaba603ab79b6f1496a709',1,'IdealGas::mu()']]],
   ['muloop',['muLoop',['../classElecInfo.html#a9b250bad2fcdae1e72497e389688527a',1,'ElecInfo']]],
-  ['mun',['muN',['../classEnergies.html#a5ead45d02f7e561010f176877a429913',1,'Energies']]]
+  ['mun',['muN',['../classEnergies.html#a5ead45d02f7e561010f176877a429913',1,'Energies']]],
+  ['munfold',['Munfold',['../classDump.html#a9aaf9b3a63629b3c93e75143ee3a76ca',1,'Dump']]]
 ];

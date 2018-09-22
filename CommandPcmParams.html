@@ -103,6 +103,7 @@ $(document).ready(function(){initNavTree('CommandPcmParams.html','');});
 </pre><h2>Description: </h2>
 <p>Adjust <a class="el" href="classPCM.html" title="Base class for all PCMs. ">PCM</a> solvent parameters. Possible keys and value types are:</p>
 <ul>
+<li>cavityFile : filename for fixed cavity model (should be on double-sized box when using <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> truncation)</li>
 <li>cavityPressure: effective pressure on the cavity (hartree per bohr^3) for SCCS and soft sphere models</li>
 <li>cavityScale : atomic radius scale factor for soft sphere model</li>
 <li>cavityTension : effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)</li>

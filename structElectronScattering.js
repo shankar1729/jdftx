@@ -7,5 +7,6 @@ var structElectronScattering =
     [ "eta", "structElectronScattering.html#a78b90b8f202342c4a39a9d6d2f8b0f37", null ],
     [ "fCut", "structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522", null ],
     [ "omegaMax", "structElectronScattering.html#ac8a257b5ea44967516e8b52045688525", null ],
+    [ "RPA", "structElectronScattering.html#a70575b0010ac6ca551636ed066899587", null ],
     [ "slabResponse", "structElectronScattering.html#aa7f97c4e228e3a44c0c605dd26ecdda5", null ]
 ];

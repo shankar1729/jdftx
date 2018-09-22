@@ -35,6 +35,7 @@ var ColumnBundle_8h =
     [ "precond_inv_kinetic_band", "ColumnBundle_8h.html#gace29b86767491a48256e630ddf1987ee", null ],
     [ "randomize", "ColumnBundle_8h.html#ga154f2b27888a17bca1abaa30af98e6a5", null ],
     [ "randomize", "ColumnBundle_8h.html#ga43d193ff0e3fd9054f0fae66b741fe7d", null ],
+    [ "spinOverlap", "ColumnBundle_8h.html#ga8d63a72f56bdfe7517dd17ec9d2e78a0", null ],
     [ "switchBasis", "ColumnBundle_8h.html#ga87862f94df4798ea5228ba9508aa598d", null ],
     [ "traceinner", "ColumnBundle_8h.html#gaa738ca3a7d2d3d6aac2c10fda8c7212c", null ],
     [ "translate", "ColumnBundle_8h.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40", null ],

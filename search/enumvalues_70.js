@@ -2,6 +2,7 @@ var searchData=
 [
   ['pc',['PC',['../structFluidComponent.html#a21fb6a04c997caabd16d1f819a998eb5acae6604ca28a08db78764f16783881a5',1,'FluidComponent']]],
   ['pcm_5fcandle',['PCM_CANDLE',['../group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a2e99edcdbafc804a807f2cc9200be225',1,'FluidSolverParams.h']]],
+  ['pcm_5ffixedcavity',['PCM_FixedCavity',['../group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2ad5f2315cde2bc183cf84432ed50862d9',1,'FluidSolverParams.h']]],
   ['pcm_5fglssa13',['PCM_GLSSA13',['../group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a91e8ad81b35b0e042efc56bab796fd17',1,'FluidSolverParams.h']]],
   ['pcm_5fla12',['PCM_LA12',['../group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a18e33995bf88e65813c1831d4af4f464',1,'FluidSolverParams.h']]],
   ['pcm_5fsalsa',['PCM_SaLSA',['../group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a871bad946651898c28b7e8ed2dc1eb88',1,'FluidSolverParams.h']]],

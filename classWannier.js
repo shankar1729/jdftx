@@ -44,6 +44,7 @@ var classWannier =
     [ "precond", "classWannier.html#a700c1f5b8331f22e53b9becb899b4d9c", null ],
     [ "rSmooth", "classWannier.html#a44df300a5c7e4bdae38a7dec785bc310", null ],
     [ "saveMomenta", "classWannier.html#a91db9d0742e6e012b2f6af22776b28f8", null ],
+    [ "saveSpin", "classWannier.html#a5aa878e27ad0f5593d4fa9496e7286ac", null ],
     [ "saveWfns", "classWannier.html#a75493237f96463466af51f1a6fe077c6", null ],
     [ "saveWfnsRealSpace", "classWannier.html#a9227b89e50bb5853456aab646572e8b5", null ],
     [ "spinMode", "classWannier.html#a46308a6ccaefdceae0b39c4f259797a2", null ],

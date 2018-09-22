@@ -105,7 +105,7 @@ $(document).ready(function(){initNavTree('CommandElectronScattering.html','');})
 <p>The following key-value pairs can appear in any order:</p>
 <ul>
 <li><p class="startli">eta &lt;eta&gt;</p>
-<p class="startli">&lt;eta&gt; in Eh specifies frequency resolution and half the imaginary part ascribed to probe frequency (if zero, the electron temperature is used.)</p>
+<p class="startli">&lt;eta&gt; in Eh specifies frequency grid resolution (required)</p>
 </li>
 <li><p class="startli">Ecut &lt;Ecut&gt;</p>
 <p class="startli">&lt;Ecut&gt; in Eh specifies energy cut-off for dielectric matrices. (If zero, the wavefunction cutoff from <a class="el" href="CommandElecCutoff.html">elec-cutoff</a> is used instead.)</p>
@@ -115,6 +115,9 @@ $(document).ready(function(){initNavTree('CommandElectronScattering.html','');})
 </li>
 <li><p class="startli">omegaMax &lt;omegaMax&gt;</p>
 <p class="startli">&lt;omegaMax&gt; in Eh is the maximum energy transfer to account for and hence the maximum frequency in dielectric function frequency grid. (if zero, autodetermine from available eigenvalues)</p>
+</li>
+<li><p class="startli">RPA yes|no</p>
+<p class="startli">If yes, use RPA response that ignores XC contribution. (default: no).</p>
 </li>
 <li><p class="startli">slabResponse yes|no</p>
 <p class="startli">Whether to output slab-normal-direction susceptibility instead. This needs slab geometry in <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a>, and will bypass the actual electron-electron scattering calculation and output.</p>

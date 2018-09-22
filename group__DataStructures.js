@@ -601,6 +601,7 @@ var group__DataStructures =
     [ "scale", "group__DataStructures.html#gaa788bc31a0280b4a1a5c24daaa4c6ad7", null ],
     [ "scale", "group__DataStructures.html#ga814e1a98d7205c5966e0dfb4c2236edb", null ],
     [ "setGzero", "group__DataStructures.html#ga7a4057bbfc4e6a6bdd3922af18f83e07", null ],
+    [ "spinOverlap", "group__DataStructures.html#ga8d63a72f56bdfe7517dd17ec9d2e78a0", null ],
     [ "sqrt_grad", "group__DataStructures.html#ga1b58e9e42000e97d0ad377deee9c8dec", null ],
     [ "storeTensor", "group__DataStructures.html#ga9c23ff44667923934270ef9228cc312c", null ],
     [ "storeVector", "group__DataStructures.html#gaf395da22d6f908b242322567e7cd0137", null ],

@@ -104,6 +104,7 @@ var searchData=
   ['multrealkernel_5fcalc',['multRealKernel_calc',['../group__LongRange.html#gaccc963d14e09b5f46a26091b2a3aacbf',1,'Coulomb_internal.h']]],
   ['multtransformedkernel_5fcalc',['multTransformedKernel_calc',['../group__LongRange.html#ga013221eeffc6b3dcb6f4344f98bcfdb5',1,'Coulomb_internal.h']]],
   ['mun',['muN',['../classEnergies.html#a5ead45d02f7e561010f176877a429913',1,'Energies']]],
+  ['munfold',['Munfold',['../classDump.html#a9aaf9b3a63629b3c93e75143ee3a76ca',1,'Dump']]],
   ['mv_5fdensity',['MV_Density',['../structSCFparams.html#aae2d281c49b029c1e04c3bb599bf4333af8675894162096e02ef2089ddf4f7c51',1,'SCFparams']]],
   ['mv_5fpotential',['MV_Potential',['../structSCFparams.html#aae2d281c49b029c1e04c3bb599bf4333a0128c094553f8f294cebb863f257915b',1,'SCFparams']]],
   ['myrange',['myRange',['../classTaskDivision.html#ab979a674a20bba21351f99701728e751',1,'TaskDivision']]]

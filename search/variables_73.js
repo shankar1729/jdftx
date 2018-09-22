@@ -5,6 +5,7 @@ var searchData=
   ['s_5fold',['S_old',['../structElecInfo_1_1ColumnBundleReadConversion.html#a98e75d45f1c2b89fdeb02bad1c2f9fa1',1,'ElecInfo::ColumnBundleReadConversion']]],
   ['savehsub',['saveHsub',['../classPhonon.html#a484fbacd997995d6e55f143ad10bd021',1,'Phonon']]],
   ['savemomenta',['saveMomenta',['../classWannier.html#a91db9d0742e6e012b2f6af22776b28f8',1,'Wannier']]],
+  ['savespin',['saveSpin',['../classWannier.html#a5aa878e27ad0f5593d4fa9496e7286ac',1,'Wannier']]],
   ['savewfns',['saveWfns',['../classWannier.html#a75493237f96463466af51f1a6fe077c6',1,'Wannier']]],
   ['savewfnsrealspace',['saveWfnsRealSpace',['../classWannier.html#a9227b89e50bb5853456aab646572e8b5',1,'Wannier']]],
   ['scalarfillings',['scalarFillings',['../classElecInfo.html#a50c60896262256863559e93775f78c43',1,'ElecInfo']]],

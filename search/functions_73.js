@@ -59,6 +59,7 @@ var searchData=
   ['spindiagonalizegrad_5fcalc',['spinDiagonalizeGrad_calc',['../group__ExchangeCorrelation.html#ga9bdb007062ae5c9e620b97a9e6654a25',1,'ExCorr_internal.h']]],
   ['spininterpolate',['spinInterpolate',['../group__ExchangeCorrelation.html#ga2693e311e8d99b568503eb7fba6a110a',1,'spinInterpolate(double rs, double zeta, double &amp;e_rs, double &amp;e_zeta, const Para &amp;para, const Ferro &amp;ferro):&#160;ExCorr_internal.h'],['../group__ExchangeCorrelation.html#gaf53b83f6a5abff79316c8598900536aa',1,'spinInterpolate(double rs, double zeta, double &amp;e_rs, double &amp;e_zeta, const Para &amp;para, const Ferro &amp;ferro, const Stiff &amp;stiff, const double fDblPrime0=4./(9 *(pow(2., 1./3)-1))):&#160;ExCorr_internal.h']]],
   ['spininterpolation',['spinInterpolation',['../group__ExchangeCorrelation.html#gabcb69fb8e4fed587c7cc35712f592daa',1,'ExCorr_internal.h']]],
+  ['spinoverlap',['spinOverlap',['../group__DataStructures.html#ga8d63a72f56bdfe7517dd17ec9d2e78a0',1,'ColumnBundle.h']]],
   ['splitefield',['splitEfield',['../structCoulombParams.html#a8346a42d566746d5be6102bfa03148e1',1,'CoulombParams']]],
   ['sqrt',['sqrt',['../group__Operators.html#gaf6f1c9912c0c31b376cf885f5a416584',1,'sqrt(const ScalarField &amp;):&#160;Operators.h'],['../group__Operators.html#ga599f994f39728032d389710de8cfd28f',1,'sqrt(ScalarField &amp;&amp;):&#160;Operators.h']]],
   ['sqrt_5fgrad',['sqrt_grad',['../group__DataStructures.html#ga1b58e9e42000e97d0ad377deee9c8dec',1,'matrix.h']]],

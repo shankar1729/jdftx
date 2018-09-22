@@ -16,6 +16,7 @@ var classDump =
     [ "dos", "classDump.html#aafc647540ca070745e3b965bfa5fad55", null ],
     [ "electronScattering", "classDump.html#a88dbb9bd5b3da42b90658c106f249b85", null ],
     [ "fermiDensityLevels", "classDump.html#a9e0d16c900c77208b07aa25a89a8c98d", null ],
+    [ "Munfold", "classDump.html#a9aaf9b3a63629b3c93e75143ee3a76ca", null ],
     [ "polarizability", "classDump.html#ad851c1dc9a8c5daa538cb7c977ef1d51", null ],
     [ "potentialSubtraction", "classDump.html#a713622fac53d455a012301aef4747f77", null ],
     [ "slabEpsilon", "classDump.html#aaa87e65140f362c8c72672b101c28a4e", null ]

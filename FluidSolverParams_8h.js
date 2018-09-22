@@ -25,6 +25,7 @@ var FluidSolverParams_8h =
       [ "PCM_GLSSA13", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a91e8ad81b35b0e042efc56bab796fd17", null ],
       [ "PCM_LA12", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a18e33995bf88e65813c1831d4af4f464", null ],
       [ "PCM_SoftSphere", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a3e93b840862e56b534a7de4eddacd0b4", null ],
+      [ "PCM_FixedCavity", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2ad5f2315cde2bc183cf84432ed50862d9", null ],
       [ "PCM_SCCS_g09", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a2854452b3ace7f66e0f2edbbd598f03b", null ],
       [ "PCM_SCCS_g03", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a617dd7852a6f36aa320b86a0136ed5bb", null ],
       [ "PCM_SCCS_g03p", "FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2aafac72606bd6539b6c9f28b8bd46a541", null ],
