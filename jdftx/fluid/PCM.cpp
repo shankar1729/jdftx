@@ -57,7 +57,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	shape.resize(1); //single component shape by default (overridden for soft-sphere model below)
 	
 	//Shared information for most models:
-	if(!isPCM_SCCS(fsp.pcmVariant) && (fsp.pcmVariant!=PCM_SoftSphere))
+	if(!isPCM_SCCS(fsp.pcmVariant) && (fsp.pcmVariant!=PCM_SoftSphere) && (fsp.pcmVariant!=PCM_FixedCavity))
 		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 
 	//Add citations, initialization and print information unique to the model:
@@ -118,7 +118,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			else
 				Citations::add("Linear dielectric fluid model",
 					"S.A. Petrosyan SA, A.A. Rigos and T.A. Arias, J Phys Chem B. 109, 15436 (2005)");
-			logPrintf("   No cavitation model.\n");
+			logPrintf("   No cavitation or dispersion model.\n");
 			break;
 		}
 		case PCM_SoftSphere:
@@ -128,6 +128,18 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			logPrintf("   Cavity determined with scale factor: %lg  width: %lg  atomic radii:\n", fsp.cavityScale, fsp.sigma);
 			break;
 		}
+		case PCM_FixedCavity:
+		{	if(!fsp.cavityFile.size())
+				die("Fixed-cavity solvation model requires cavityFile to be specified in pcm-params.\n\n");
+			logPrintf("   Reading cavity from file '%s' ...", fsp.cavityFile.c_str()); logFlush();
+			nullToZero(shape[0], gInfo);
+			loadRawBinary(shape[0], fsp.cavityFile.c_str());
+			fixedCavityMasked = false; //if any masks, they will be applied on first updateCavity()
+			logPrintf("done.\n");
+			logPrintf("   No cavitation or dispersion model.\n");
+			break;
+		}
+		
 		case_PCM_SCCS_any:
 		{	Citations::add("SCCS linear dielectric fluid model", "O. Andreussi et al., J. Chem. Phys. 136, 064102 (2012)");
 			if(fsp.pcmVariant==PCM_SCCS_cation || fsp.pcmVariant==PCM_SCCS_anion)
@@ -286,6 +298,11 @@ void PCM::updateCavity()
 		}
 		else cavityChanged = false; //cavity not updated (so don't re-apply masks below)
 	}
+	else if(fsp.pcmVariant == PCM_FixedCavity)
+	{	//Cavity read in at the beginning and never changed subsequently
+		cavityChanged = (not fixedCavityMasked); //true on first call, so that mask applied below
+		fixedCavityMasked = true; //mask will get applied this time, so need not be done again after.
+	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape[0], fsp.rhoMin, fsp.rhoMax, epsBulk);
 	else //Compute directly from nCavity (which is a density product for SaLSA):
@@ -352,6 +369,7 @@ void PCM::updateCavity()
 			}
 			break;
 		}
+		case PCM_FixedCavity:
 		case PCM_LA12:
 			break; //no contribution
 		case_PCM_SCCS_any:
@@ -410,7 +428,7 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
 	else if(fsp.pcmVariant == PCM_SoftSphere)
-	{	nullToZero(A_nCavity, gInfo);
+	{	nullToZero(A_nCavity, gInfo); //no electronic contributions
 		if(forces)
 		{	std::vector<vector3<>> A_atposAll; //gradient w.r.t atomic positions
 			std::vector<double> A_Rall; //gradient w.r.t atomic radii
@@ -423,6 +441,9 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
 			((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale; //gradient w.r.t scale factor used for fits
 		}
+	}
+	else if(fsp.pcmVariant == PCM_FixedCavity)
+	{	nullToZero(A_nCavity, gInfo); //No electronic or force contributions
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 	{	//Electrostatic and volumetric combinations via shape:
@@ -551,6 +572,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SoftSphere:
 			fprintf(fp, "   E_cavityScale = %.15lg\n", A_cavityScale);
 			fprintf(fp, "   E_tension = %.15lg\n", A_tension);
+		case PCM_FixedCavity:
 		case PCM_LA12:
 		case_PCM_SCCS_any:
 			break;
