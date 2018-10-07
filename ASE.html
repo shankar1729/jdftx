@@ -98,65 +98,101 @@ $(document).ready(function(){initNavTree('ASE.html','');});
 <div class="title">ASE Interface </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>JDFTx contains a python interface class to the Atomic Simulation Environment (<a href="https://wiki.fysik.dtu.dk/ase/">https://wiki.fysik.dtu.dk/ase/</a>), developed by <a href="http://www.fysik.dtu.dk/english/Research/camd/">CAMd</a> in <a href="http://www.dtu.dk/english">DTU</a>. This provides a quick but powerful interface to many features, including <a href="https://wiki.fysik.dtu.dk/ase/ase/phonons.html">phonons</a> and <a href="https://wiki.fysik.dtu.dk/ase/ase/md.html">ab-initio molecular dynamics</a>.</p>
-<p>The current implementation of the interface is as a force calculator. Potential energies and forces are implemented, but stresses are still under development.</p>
+<div class="textblock"><p>JDFTx contains a python interface class to the <a href="https://wiki.fysik.dtu.dk/ase/">Atomic Simulation Environment</a>. This provides a quick but powerful interface to many features, including <a href="https://wiki.fysik.dtu.dk/ase/ase/phonons.html">phonons</a> and <a href="https://wiki.fysik.dtu.dk/ase/ase/md.html">ab-initio molecular dynamics</a> alternative to the now built-in versions, or to barrier calculations using the <a href="https://wiki.fysik.dtu.dk/ase/ase/neb.html">nudged-elastic band</a> method.</p>
+<p>The current implementation of the interface is as a force calculator, which only exchanges forces and potential energies with ASE.</p>
 <h2>Installation </h2>
-<p>The interface is available with JDFTx source code, under the scripts directory (/jdftx/scripts/ase).</p>
-<p>Installing the JDFTx calculator can be done in three steps:</p>
-<ol type="1">
-<li><p class="startli"><b>Download and compile JDFTx</b></p>
-<p class="startli">See <a href="Compiling.html">here</a> for more details on compiling JDFTx.</p>
-</li>
-<li><p class="startli"><b>Install Atomic Simulation Environment (ASE):</b></p>
-<p class="startli">ASE is not distributed with JDFTx, and requires separate installation. See <a href="https://wiki.fysik.dtu.dk/ase/download.html">here</a> about installing ASE.</p>
-</li>
-<li><p class="startli"><b>Add JDFTx interface to PythonPath:</b></p>
-<p class="startli">To be able to use the JDFTx interface, python needs to know where the interface file is located. This is done by adding the <em>jdftx/scripts/ase</em> to your PythonPath variable.</p>
-<p class="startli">In unix based systems, the easiest way to do this is by adding the line </p>
-<pre class="fragment">export PYTHONPATH=/path-to-jdftx/scripts/ase:$PYTHONPATH
-</pre><p class="startli">to your ~/.bashrc or ~/.profile files. Once this is done, you can import the JDFTx calculator simply by </p>
-<pre class="fragment">from JDFTx import JDFTx
-</pre></li>
-</ol>
-<h2>Use </h2>
-<p>JDFTx interface needs to know where your executable and pseudopotentials are located. This can be done at runtime by specifying paths to the class constructor, or by setting environment variables in your system.</p>
-<p>A JDFTx calculator object uses variables <em>executable</em> and <em>pseudoDir</em> to find the executable and the pseudopotential directory. By default, they are set to the envionment variables $JDFTx and $JDFTx_pseudo. These can be set in the constructor or changed later.</p>
-<p>The easiest way to use the interface is to set these environment variables. On Ubuntu, this can be accomplished by to accomplish this is to have the lines </p>
+<p>The interface is available with the JDFTx source code, under the scripts directory (/jdftx/scripts/ase). After installing JDFTx and ASE (follow instructions for each), set the python path to access the interface file. For example, in unix-based systems, add </p>
+<pre class="fragment">   export PYTHONPATH=/path-to-jdftx/scripts/ase:$PYTHONPATH
+</pre><p>to ~/.bashrc or ~/.profile files. Once this is done, you can import the JDFTx calculator in python using: </p>
+<pre class="fragment">   from JDFTx import JDFTx
+</pre><h2>Use </h2>
+<p>The JDFTx interface needs to know the path to the executable and to pseudopotentials (if not using a built-in pseudopotential set). This can be done using arguments executable and pseudoDir in the constructor, or by setting environment variables JDFTx and JDFTx_pseudo respectively.</p>
+<p>The easiest way to use the interface is to set the environment variables </p>
 <pre class="fragment">export JDFTx=/path/to/jdftx
 export JDFTx_pseudo=/path/to/pseudopotential/directory
-</pre><p>in your ~/.bashrc or ~/.profile files.</p>
-<p>On clusters with resource management programs (e.g. slurm, torque...), you can override the executable with a command that submits a job to the queue. For example, on slurm, the following would work: </p>
-<pre class="fragment">calculator = JDFTx(executable='srun /path/to/jdftx')
-</pre><p>Take note that when you do that, the command that submits the job (in this case, srun) should not release the shell until the job is completed. For example, in slurm, srun would work, but not sbatch.</p>
+</pre><p>in the current shell, or in the ~/.bashrc or ~/.profile files. Using the constructor, these would be instead: </p>
+<pre class="fragment">calculator = JDFTx(
+    executable='/path/to/jdftx',
+    pseudoDir='/path/to/pseudopotential/directory'
+)
+</pre><p>The latter variable / argument is only needed if not using a built-in set like GBRV or SG15. If using one of these pseudopotential sets, it is sufficient to only specify the executable and name the set eg. using </p>
+<pre class="fragment">calculator = JDFTx(
+    executable='/path/to/jdftx',
+    pseudoSet='GBRV-pbe'
+)
+</pre><p>where the supported sets are GBRV (shorthand for GBRV-pbe), GBRV-lda, GBRV-pbesol and SG15.</p>
+<p>Finally, to use MPI or a job management system like SLURM, use: </p>
+<pre class="fragment">calculator = JDFTx(executable='mpirun -n Nprocs /path/to/jdftx')
+</pre><p>or </p>
+<pre class="fragment">calculator = JDFTx(executable='srun -n Nprocs /path/to/jdftx')
+</pre><p>Note that the command that submits the job eg. srun should not release the shell until the job is completed. Therefore, in slurm, srun would work, but not sbatch.</p>
 <h2>Example </h2>
-<p>Below is a sample python script that uses jdftx through the ASE interfae to calculate the bond length of CO molecule using the BFGS minimization algorithm. Keep in mind that in order for the script to run, you need to modify the paths for the executable and the pseudopotentials. </p>
+<p>Below is a sample python script that uses jdftx through the ASE interface to calculate the bond length of CO molecule using the BFGS minimization algorithm. Note that you must edit the executable path in the code below (or remove that argument and set the environment variable JDFTx). </p>
 <pre class="fragment">from ase import Atoms
-from JDFTx import *
+from JDFTx import JDFTx
 
-d = 1.25
-CO = Atoms('CO', positions=[(0, 0, 0), (0, 0, d)], cell=[(10,0,0),(0,10,0),(0,0,15)], pbc = [False, False, False])
+d = 1.1 #Initial bond length guess
+CO = Atoms('CO', 
+    positions=[(0, 0, 0), (0, 0, d)],
+    cell=[(6,0,0),(0,6,0),(0,0,7)],
+    pbc = [False, False, False])
 
-# set up JDFTx calculator
-jdftx_calculator = JDFTx(executable='/path/to/executable', pseudoDir='/path/to/pseudopotentials', commands={"elec-cutoff": 30})
-CO.set_calculator(jdftx_calculator)
+#Set up JDFTx calculator
+calculator = JDFTx(
+    pseudoSet='GBRV',
+    commands={'elec-cutoff' : '20 100'}
+)
+CO.set_calculator(calculator)
 
-# print the initial total energy
-print CO.get_potential_energy()
-
-# perform structure optimization
+#Structure optimization
 from ase.optimize import BFGS
 dyn = BFGS(CO)
 dyn.run(fmax=0.05)
-</pre><p>Output from this script is: </p>
-<pre class="fragment">-583.728565039
-BFGS:   0  12:37:44     -583.728565       8.6537
-BFGS:   1  12:38:44     -584.230224       3.4122
-BFGS:   2  12:39:45     -584.274439       2.0316
-BFGS:   3  12:40:48     -584.291420       0.2329
-BFGS:   4  12:41:50     -584.291665       0.0144
-</pre><p>(warning: the exact energies depend on the pseudopotentials you use.)</p>
-<p><a href="https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html">More examples on how to use ASE can be found here</a> </p>
-</div></div><!-- contents -->
+
+calculator.clean()  #Clean up run files from /tmp
+</pre><p>Output from this script will look something like: </p>
+<pre class="fragment">Set up JDFTx calculator with run files in '/tmp/tmpXXXXXXXX'
+  Step     Time          Energy         fmax
+BFGS:    0 16:54:05     -591.653710        5.8379
+BFGS:    1 16:54:13     -591.689501        3.9552
+BFGS:    2 16:54:20     -591.766731        0.7019
+BFGS:    3 16:54:26     -591.768793        0.1145
+BFGS:    4 16:54:30     -591.768846        0.0040
+</pre><p>See the <a href="https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html">ASE tutorials</a> for many examples illustrating ASE's features; it is then straightforward to instead use the JDFTx calculator in any of those examples.</p>
+<h2>Extracting outputs </h2>
+<div class="image">
+<img src="CO.png" alt="CO.png"/>
+</div>
+<p>Any feature of JDFTx, such as solvation, can be used simply by passing an appropriate dict of JDFTx input file commands, as shown in the example for elec-cutoff. However, dump-name and initial-state will be overridden to work in a temporary path.</p>
+<p>If you need to access the dumped files - you can add dumped variables using the dump command as usual, then copy them out from calculator.runDir before calling calculator.clean(). For example, this modified version of the above script outputs the electron density and visualizes it using the <a href="createXSF.html">createXSF script</a> and VESTA (add them to path or set absolute paths). It also uses the SG15 pseudopotentials set instead of GBRV for illustration: </p>
+<pre class="fragment">from ase import Atoms
+from JDFTx import JDFTx, shell
+
+d = 1.1 #Initial bond length guess
+CO = Atoms('CO', 
+    positions=[(0, 0, 0), (0, 0, d)],
+    cell=[(6,0,0),(0,6,0),(0,0,7)],
+    pbc = [False, False, False])
+
+#Set up JDFTx calculator
+calculator = JDFTx(
+    pseudoSet='SG15',
+    commands={
+        'elec-cutoff' : '30',
+        'dump' : 'End ElecDensity'
+    }
+)
+CO.set_calculator(calculator)
+
+#Structure optimization
+from ase.optimize import BFGS
+dyn = BFGS(CO)
+dyn.run(fmax=0.05)
+
+#Create XSF and visualize:
+shell('createXSF %s/out CO.xsf %s/n' % ((calculator.runDir,)*2))
+shell('VESTA CO.xsf &amp;')
+calculator.clean()         #Clean up run files from /tmp</pre> </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
