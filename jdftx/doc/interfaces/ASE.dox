@@ -70,15 +70,15 @@ until the job is completed. Therefore, in slurm, srun would work, but not sbatch
 Example
 -------
 
-Below is a sample python script that uses jdftx through the ASE interfae to calculate 
+Below is a sample python script that uses jdftx through the ASE interface to calculate 
 the bond length of CO molecule using the BFGS minimization algorithm.
 Note that you must edit the executable path in the code below
 (or remove that argument and set the environment variable JDFTx).
 
     from ase import Atoms
-    from JDFTx import *
+    from JDFTx import JDFTx
 
-    d = 1.25
+    d = 1.1 #Initial bond length guess
     CO = Atoms('CO', 
         positions=[(0, 0, 0), (0, 0, d)],
         cell=[(6,0,0),(0,6,0),(0,0,7)],
@@ -95,22 +95,69 @@ Note that you must edit the executable path in the code below
     from ase.optimize import BFGS
     dyn = BFGS(CO)
     dyn.run(fmax=0.05)
+    
+    calculator.clean()  #Clean up run files from /tmp
 
-Output from this script is:
+Output from this script will look something like:
 
-          Step     Time          Energy         fmax
-    BFGS:    0 15:40:16     -591.232059        8.6509
-    BFGS:    1 15:40:27     -591.723809        3.0366
-    BFGS:    2 15:40:37     -591.754824        1.8767
-    BFGS:    3 15:40:48     -591.768306        0.1966
-    BFGS:    4 15:41:00     -591.768465        0.0137
+    Set up JDFTx calculator with run files in '/tmp/tmpXXXXXXXX'
+      Step     Time          Energy         fmax
+    BFGS:    0 16:54:05     -591.653710        5.8379
+    BFGS:    1 16:54:13     -591.689501        3.9552
+    BFGS:    2 16:54:20     -591.766731        0.7019
+    BFGS:    3 16:54:26     -591.768793        0.1145
+    BFGS:    4 16:54:30     -591.768846        0.0040
 
-See [this page](https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html)
-for many other examples on how to use ASE. 
-It is straightforward to use the JDFTx calculator instead as shown above.
+See the [ASE tutorials](https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html)
+for many examples illustrating ASE's features; it is then straightforward
+to instead use the JDFTx calculator in any of those examples.
+
+Extracting outputs
+------------------
+
+\image html tutorials/CO.png
 
 Any feature of JDFTx, such as solvation, can be used simply by
 passing an appropriate dict of JDFTx input file commands,
 as shown in the example for elec-cutoff.
+However, dump-name and initial-state will be overridden to work in a temporary path.
+
+If you need to access the dumped files - you can add dumped variables
+using the dump command as usual, then copy them out from
+calculator.runDir before calling calculator.clean().
+For example, this modified version of the above script
+outputs the electron density and visualizes it using
+the [createXSF script](createXSF.html) and VESTA
+(add them to path or set absolute paths).
+It also uses the SG15 pseudopotentials set instead of GBRV for illustration:
+
+    from ase import Atoms
+    from JDFTx import JDFTx, shell
+
+    d = 1.1 #Initial bond length guess
+    CO = Atoms('CO', 
+        positions=[(0, 0, 0), (0, 0, d)],
+        cell=[(6,0,0),(0,6,0),(0,0,7)],
+        pbc = [False, False, False])
+
+    #Set up JDFTx calculator
+    calculator = JDFTx(
+        pseudoSet='SG15',
+        commands={
+            'elec-cutoff' : '30',
+            'dump' : 'End ElecDensity'
+        }
+    )
+    CO.set_calculator(calculator)
+
+    #Structure optimization
+    from ase.optimize import BFGS
+    dyn = BFGS(CO)
+    dyn.run(fmax=0.05)
+    
+    #Create XSF and visualize:
+    shell('createXSF %s/out CO.xsf %s/n' % ((calculator.runDir,)*2))
+    shell('VESTA CO.xsf &')
+    calculator.clean()         #Clean up run files from /tmp
 
 */

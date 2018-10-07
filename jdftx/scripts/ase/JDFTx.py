@@ -41,7 +41,7 @@ class JDFTx(Calculator):
 		if (self.executable is None):
 			raise Exception('Specify path to jdftx in argument \'executable\' or in environment variable \'JDFTx\'.')
 		if (self.pseudoDir is None) and (not (pseudoSet in pseudoSetMap)):
-			raise Exception('Specify pseudopotential path in argument \'pdeusoDir\' or in environment variable \'JDFTx_pseudo\', or specify a valid \'pseudoSet\'.')
+			raise Exception('Specify pseudopotential path in argument \'pseudoDir\' or in environment variable \'JDFTx_pseudo\', or specify a valid \'pseudoSet\'.')
 		
 		if pseudoSet in pseudoSetMap:
 			self.pseudoSetCmd = 'ion-species ' + pseudoSetMap[pseudoSet]
@@ -55,6 +55,8 @@ class JDFTx(Calculator):
 		for item in commands.items():
 			if(not self.validCommand(item[0])):
 				raise IOError('%s is not a valid JDFTx command!\nLook at the input file template (jdftx -t) for a list of commands.' % (item[0]))
+		commands['dump-name'] = '$VAR'
+		commands['initial-state'] = '$VAR'
 		self.input = copy.deepcopy(commands)
 
 		# Accepted pseudopotential formats
@@ -67,8 +69,15 @@ class JDFTx(Calculator):
 		# History
 		self.lastAtoms = None
 		self.lastInput = None
+		
+		#Run directory:
+		self.runDir = tempfile.mkdtemp()
+		print('Set up JDFTx calculator with run files in \'' + self.runDir + '\'')
 
 	########### Interface Functions ###########
+	
+	def clean(self):
+		shell('rm -rf ' + self.runDir)
 
 	def calculation_required(self, atoms, quantities):
 		if((self.E is None) or (self.Forces is None)):
@@ -115,19 +124,14 @@ class JDFTx(Calculator):
 	############## Running JDFTx ##############
 
 	def update(self, atoms):
-
 		self.runJDFTx(self.constructInput(atoms))
 
 	def runJDFTx(self, inputfile):
 		""" Runs a JDFTx calculation """
-		#Make a temp directory:
-		tmpDir = tempfile.mkdtemp()
 		#Run jdftx:
-		shell('cd %s && echo \'%s\' | %s -o temp.out' % (tmpDir, inputfile, self.executable))
-		self.E = self.__readEnergy('%s/temp.Ecomponents' % (tmpDir))
-		self.Forces = self.__readForces('%s/temp.force' % (tmpDir))
-		#Cleanup:
-		shell('rm -rf %s' % (tmpDir))
+		shell('cd %s && echo \'%s\' | %s -o out' % (self.runDir, inputfile, self.executable))
+		self.E = self.__readEnergy('%s/Ecomponents' % (self.runDir))
+		self.Forces = self.__readForces('%s/force' % (self.runDir))
 
 	def constructInput(self, atoms):
 		""" Constructs a JDFTx input string using the input atoms and the input file arguments (kwargs) in self.input """
@@ -188,15 +192,13 @@ class JDFTx(Calculator):
 			center = scipy.mean(scipy.array(atomPos), axis=0)
 			inputfile += 'coulomb-truncation-embed %g %g %g\n' % tuple(center.tolist())
 		
-		# Add dump commands
-		inputfile += '\ndump-name temp.$VAR'
-		inputfile += '\ndump End Forces Ecomponents'
+		#Add dump commands
+		inputfile += '\ndump End State Forces Ecomponents'
 
 		# Cache this calculation to history
 		self.lastAtoms = copy.deepcopy(atoms)
 		self.lastInput = copy.deepcopy(self.input)
 		return inputfile
-
 
 	############## JDFTx command structure ##############
 
