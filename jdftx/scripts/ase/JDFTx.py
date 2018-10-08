@@ -128,8 +128,12 @@ class JDFTx(Calculator):
 
 	def runJDFTx(self, inputfile):
 		""" Runs a JDFTx calculation """
+		#Write input file:
+		fp = open(self.runDir+'/in', 'w')
+		fp.write(inputfile)
+		fp.close()
 		#Run jdftx:
-		shell('cd %s && echo \'%s\' | %s -o out' % (self.runDir, inputfile, self.executable))
+		shell('cd %s && %s -i in -o out' % (self.runDir, self.executable))
 		self.E = self.__readEnergy('%s/Ecomponents' % (self.runDir))
 		self.Forces = self.__readForces('%s/force' % (self.runDir))
 
