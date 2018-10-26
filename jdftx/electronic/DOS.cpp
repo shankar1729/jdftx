@@ -73,7 +73,7 @@ string DOS::Weight::getDescription(const Everything& e) const
 			oss << "lattice";
 		}
 		else
-		{	c = e.gInfo.invR * center;
+		{	c = e.gInfo.R * center;
 			oss << "cartesian";
 		}
 		oss << " (" << c[0] << "," << c[1] << "," << c[2] << ")";
