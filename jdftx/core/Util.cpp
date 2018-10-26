@@ -544,11 +544,14 @@ void convertToLE(void* ptr, size_t size, size_t nmemb)
 			chunkSize = size;
 			nChunks = nmemb;
 			break;
-		case 16: //only for complex, which is two 8-byte doubles:
-			chunkSize = 8;
-			nChunks = 2*nmemb;
-			break; 
-		default: die("Unsupported size '%zu' for binary I/O on big-endian systems.\n", size)
+		default:
+			if(size % 8 == 0)
+			{	//assume composite data set of doubles eg. complex
+				chunkSize = 8;
+				nChunks = nmemb * (size/8);
+			}
+			else
+				die("Unsupported size '%zu' for binary I/O on big-endian systems.\n", size)
 	}
 	//Apply byte-swapping:
 	char* bytes = (char*)ptr;
