@@ -227,7 +227,7 @@ FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp
 add_library(jdftxlib ${LINK_TYPE} ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
-install(TARGETS jdftxlib LIBRARY DESTINATION lib)
+install(TARGETS jdftxlib LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 set_JDFTx_flags(jdftxlib OFF)
 
 #--------------- Nvidia GPU support using CUDA -----------------------
@@ -277,7 +277,7 @@ if(EnableCUDA)
 	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
-	install(TARGETS jdftxlib_gpu LIBRARY DESTINATION lib)
+	install(TARGETS jdftxlib_gpu LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 	set_JDFTx_flags(jdftxlib_gpu ON)
 endif()
 
