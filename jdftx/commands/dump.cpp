@@ -412,6 +412,7 @@ struct CommandElectronScattering : public Command
 		while(true)
 		{	ElectronScatteringMember key;
 			pl.get(key, ESM_delim, esmMap, "key");
+			if(key == ESM_delim) break; //end of input
 			switch(key)
 			{	case ESM_eta: pl.get(es.eta, 0., "eta", true); break;
 				case ESM_Ecut: pl.get(es.Ecut, 0., "Ecut", true); break;
@@ -420,7 +421,7 @@ struct CommandElectronScattering : public Command
 				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
-				case ESM_delim: return; //end of input
+				case ESM_delim: break; //never encountered; to suppress compiler warning
 			}
 		}
 		if(es.slabResponse)
