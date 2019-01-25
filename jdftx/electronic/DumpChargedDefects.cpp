@@ -362,7 +362,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			
 			//Include solvation model dielectric / screening, if present:
 			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab[0]->gInfo);
-			double epsilonBulk = 1., kappaSqBulk = 0.;
+			double epsilonBulk[2] = {1.,1.}, kappaSqBulk = 0.;
 			if(e.eVars.fluidSolver)
 			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
@@ -371,13 +371,25 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
 					ScalarField shapeSlab = getPlanarAvg(pcm.shape[0], iDir);
+					if(pcm.fsp.epsBulkTensor.length_squared())
+					{	//Slab normal unit vector:
+						vector3<> nHat = e.gInfo.R.column(iDir);
+						nHat *= 1./nHat.length();
+						//Dielectric function along normal:
+						epsilonBulk[0] = Diag(pcm.fsp.epsBulkTensor).metric_length_squared(nHat);
+						//Average dielectric function along other two directions:
+						epsilonBulk[1] = 0.5*(3.*pcm.epsBulk - epsilonBulk[0]); //using invariance of trace
+					}
+					else //isotropic
+					{	epsilonBulk[0] = pcm.epsBulk;
+						epsilonBulk[1] = pcm.epsBulk;
+					}
 					for(int dir=0; dir<2; dir++)
-						epsSlab[dir] += shapeSlab * (pcm.epsBulk - 1.); //fluid dielectric is isotropic
+						epsSlab[dir] += shapeSlab * (epsilonBulk[dir] - 1.);
 					if(pcm.shape.size() > 1)
 						shapeSlab = getPlanarAvg(pcm.shape[1], iDir); //planarly average separate ionic cavity
-					kappaSqSlab += shapeSlab * pcm.k2factor;
-					epsilonBulk = pcm.epsBulk;
 					kappaSqBulk = pcm.k2factor;
+					kappaSqSlab += shapeSlab * kappaSqBulk;
 				}
 			}
 			
@@ -404,7 +416,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					xTilde = truncatedCoulomb->embedExpand(xTilde); /*switch to embedding grid*/ \
 					x = xBulk + I(xTilde); \
 				}
-				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir], epsilonBulk)
+				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir], epsilonBulk[dir])
 				EMBED_EXPAND(kappaSqSlab, kappaSqBulk);
 				#undef EMBED_EXPAND
 			}
