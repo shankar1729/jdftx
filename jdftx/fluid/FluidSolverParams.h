@@ -101,6 +101,7 @@ struct FluidSolverParams
 	double T; //!< temperature
 	double P; //!< pressure
 	double epsBulkOverride, epsInfOverride; //!< Override default dielectric constants if non-zero
+	vector3<> epsBulkTensor; //!< Override default dielectric constants with a tensor if non-zero (assuming Cartesian coords are principal axes, LinearPCM only)
 	bool verboseLog; //!< whether iteration progress is printed for Linear PCM's, and whether sub-iteration progress is printed for others
 	FluidSolveFrequency solveFrequency;
 	

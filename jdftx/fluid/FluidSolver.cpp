@@ -272,7 +272,9 @@ FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp)
 			c->molecule.setup(gInfo, c->Rvdw);
 
 	//Set bulk dielectric constant
-	if(fsp.epsBulkOverride)
+	if(fsp.epsBulkTensor.length_squared()) //set epsBulk to be consistent with anisotropic override:
+		epsBulk = (1./3)*(fsp.epsBulkTensor[0] + fsp.epsBulkTensor[1] + fsp.epsBulkTensor[2]);
+	else if(fsp.epsBulkOverride)
 		epsBulk = fsp.epsBulkOverride;
 	else
 	{	epsBulk = 1.;

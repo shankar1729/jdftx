@@ -777,3 +777,31 @@ struct CommandFluidDielectricConstant : public Command
 	}
 }
 commandFluidDielectricConstant;
+
+struct CommandFluidDielectricTensor : public Command
+{
+    CommandFluidDielectricTensor() : Command("fluid-dielectric-tensor", "jdftx/Fluid/Parameters")
+	{
+		format = "<epsBulkXX> <epsBulkYY> <epsBulkZZ>";
+		comments =
+			"Override bulk static dielectric constant of fluid with a tensor, assuming\n"
+			"that the Cartesian axes are the principal axes, without loss of generality.\n"
+			"Supported only for LinearPCM.";
+		require("fluid");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.epsBulkTensor[0], 0., "epsBulkXX");
+		pl.get(fsp.epsBulkTensor[1], 0., "epsBulkYY");
+		pl.get(fsp.epsBulkTensor[2], 0., "epsBulkZZ");
+		if(fsp.fluidType != FluidLinearPCM)
+			throw string("Anisotropic epsilon supported only for LinearPCM.");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const vector3<>& eps = e.eVars.fluidParams.epsBulkTensor;
+		logPrintf("%lg %lg %lg", eps[0], eps[1], eps[2]);
+	}
+}
+commandFluidDielectricTensor;

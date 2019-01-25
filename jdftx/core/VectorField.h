@@ -157,6 +157,7 @@ inline vector3<> getGzero(const VectorFieldTilde& X) { vector3<> ret; for(int k=
 inline void setGzero(const VectorFieldTilde& X, vector3<> v) { for(int k=0; k<3; k++) if(X[k]) X[k]->setGzero(v[k]); } //!< set G=0 components
 inline vector3<> sumComponents(const VectorField& X) { return vector3<>(sum(X[0]), sum(X[1]), sum(X[2])); } //!< Sum of elements (component-wise)
 inline ScalarField lengthSquared(const VectorField& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; } //!< Elementwise length squared
+inline ScalarField lengthSquaredWeighted(const vector3<>& w, const VectorField& X) { return w[0]*X[0]*X[0] + w[1]*X[1]*X[1] + w[2]*X[2]*X[2]; } //!< Elementwise length squared (weighted)
 inline ScalarField dotElemwise(const VectorField& X, const VectorField& Y) { return X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2]; } //!< Elementwise dot
 
 //Extra operators in R-space alone for scalar additions:
