@@ -323,10 +323,14 @@ void FluidSolver::set(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFiel
 		for(std::vector<vector3<> >& posArr: atpos)
 			for(vector3<>& pos: posArr) //transform to embedded lattice coordinates:
 				pos = embedScaleMat *  e.coulomb->wsOrig->restrict(pos - e.coulomb->xCenter);
-		set_internal(e.coulomb->embedExpand(rhoExplicitTilde), e.coulomb->embedExpand(nCavityTilde));
+		ScalarFieldTilde rhoExplicitTildeExpand = e.coulomb->embedExpand(rhoExplicitTilde);
+		if(!k2factor) rhoExplicitTildeExpand->setGzero(0.); //No screening => apply neutralizing background charge
+		set_internal(rhoExplicitTildeExpand, e.coulomb->embedExpand(nCavityTilde));
 	}
 	else
+	{	if(!k2factor) ((ScalarFieldTilde&)rhoExplicitTilde)->setGzero(0.); //No screening => apply neutralizing background charge
 		set_internal(rhoExplicitTilde, nCavityTilde);
+	}
 }
 
 double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces) const

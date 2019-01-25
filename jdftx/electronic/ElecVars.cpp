@@ -305,7 +305,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 
 		//Net electric charge:
 		ScalarFieldTilde rhoExplicitTilde = nTilde + iInfo.rhoIon + rhoExternal;
-		if(!fluidSolver->k2factor) rhoExplicitTilde->setGzero(0.); //No screening => apply neutralizing background charge
 		fluidSolver->set(rhoExplicitTilde, nCavityTilde);
 		// If the fluid doesn't have a gummel loop, minimize it each time:
 		if(!fluidSolver->useGummel()) fluidSolver->minimizeFluid();
