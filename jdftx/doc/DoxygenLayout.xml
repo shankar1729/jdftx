@@ -23,7 +23,7 @@
         <tab type="globals" visible="yes" title="" intro=""/>
       </tab>
     </tab>
-	<tab type="user" title="Wiki"   url="https://github.com/shankar1729/jdftx/wiki"   />
+	<tab type="user" title="FAQ"   url="FAQ.html"   />
 	<tab type="user" title="Report Issues" url="https://github.com/shankar1729/jdftx/issues" />
 	<tab type="user" title="References" url="citelist.html" />
   </navindex>
