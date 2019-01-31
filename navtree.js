@@ -40,7 +40,7 @@ var NAVTREE =
         ] ]
       ] ]
     ] ],
-    [ "Wiki", "^https://github.com/shankar1729/jdftx/wiki", null ],
+    [ "FAQ", "FAQ.html", null ],
     [ "Report Issues", "^https://github.com/shankar1729/jdftx/issues", null ],
     [ "References", "citelist.html", null ]
   ] ]
@@ -49,25 +49,25 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "ASE.html",
-"Coulomb__internal_8h.html#ga6075c33817fa241ecfe1b5be600efc0e",
-"FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a91e8ad81b35b0e042efc56bab796fd17",
-"Operators_8h.html#gaf095663007df51c911b6434cd33ecfbd",
-"Util_8h.html#ga3e2a4f73141a2637d52da2d3ec93ccad",
-"classCoulomb.html#a233edca77acfc8a1cefef7918f798e65a0ab8087ed49f1c3cede83b86a712ac36",
-"classEverything.html#a1b13355efc79b437ba5e4bdf261a6047",
-"classIdealGas.html#a785113fef1a9b50c3acc2663b4efa517",
-"classManagedMemory.html#ad14859701e6bcf5d34ba275663dc8a47",
-"classSpeciesInfo.html#a343b757bb35b1ee545ec810781afc80c",
-"classWannierMinimizer.html#ac1422f605900b4666b14d9a3ae6b62f3",
-"functions_vars_0x6c.html",
-"group__DataStructures.html#gabe911022f6dc90a7ce8a11247c69d804",
-"group__Operators.html#ga04a7fa6ffc22d4a17c690bf3c538c377",
-"group__Utilities.html#ga369db504180734269f984d97191a3e10",
-"structCbar__k__sigma.html",
-"structFluidComponent.html#a21fb6a04c997caabd16d1f819a998eb5ad942e7945a1a7cc7c429e7aeb1b461ac",
-"structManagedArray.html#a0831877329174b48a8584d6792fa964a",
-"structScalarFieldMultiplet.html#a05b265b1ed675313e96390dce4d728c1",
-"symbols_8h.html#ggabedd0fe74c4efec04212cb4e8d4c8aafa20c4c6104a283ee7383776e722439342"
+"Coulomb__internal_8h.html#ga606f42e81f7f574db8c46030dd732876",
+"FluidSolverParams_8h.html#ggad53b127f79607410b6e76643c9cc23c2a7e3091841583396b97bc9e0bd2a0683e",
+"Operators_8h.html#gaeeba8d4962b0c4763cbfc3cb199f0ecb",
+"Util_8h.html#ga25b589a0c1b2371260e9870b166481e1",
+"classCoulomb.html#a0557e3a5974e41919365303fb98cac87",
+"classEverything.html#a00a2c3e4298375aff63f6ac6d0bf7779",
+"classIdealGas.html#a6adb05f30e1c0e7233b7e00219de1ca9",
+"classManagedMemory.html#acec9aa7d6228b91ebb692a5a50434b1e",
+"classSpeciesInfo.html#a2b7d79fa72055ea4862368adf2841088",
+"classWannierMinimizer.html#ab48d3244c6a4faab6e2f63a7152998e6",
+"functions_vars_0x69.html",
+"group__DataStructures.html#gab68f6f6faebe7a03a7f7246840243021",
+"group__LongRange.html#ga08c150dd07021253f546b59dcba8db81",
+"group__Utilities.html#ga2d85af88821df152c2edd97c64a6ce10",
+"structCbar.html",
+"structFluidComponent.html#a21fb6a04c997caabd16d1f819a998eb5aba0f07713cbadf380771681528528269",
+"structMPIUtil_1_1ProcDivision.html#a814770ada26212e51f171dec8d1e0ff1",
+"structScalarFieldData.html#a0bcb68c45afd597da761765e54037549",
+"symbols_8h.html#ggabedd0fe74c4efec04212cb4e8d4c8aafa13dd5366ed5f0098f6f581b7b8f24a1f"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

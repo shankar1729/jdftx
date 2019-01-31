@@ -136,7 +136,7 @@ var searchData=
   ['smearingcold',['SmearingCold',['../classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a58dc7ef3f1efccbbe639c28f121b699e',1,'ElecInfo']]],
   ['smearingfermi',['SmearingFermi',['../classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028ab33e87d552c26bfdffd850578ff7eaca',1,'ElecInfo']]],
   ['smearinggauss',['SmearingGauss',['../classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67',1,'ElecInfo']]],
-  ['smearingtype',['SmearingType',['../classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028',1,'ElecInfo::SmearingType()'],['../classElecInfo.html#a8c1c77ee8349db6032320b3f299ae191',1,'ElecInfo::smearingType()']]],
+  ['smearingtype',['smearingType',['../classElecInfo.html#a8c1c77ee8349db6032320b3f299ae191',1,'ElecInfo::smearingType()'],['../classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028',1,'ElecInfo::SmearingType()']]],
   ['smearingwidth',['smearingWidth',['../classElecInfo.html#ac383b8e4a2fddc10f32c35e7efec41d6',1,'ElecInfo']]],
   ['smearprime',['smearPrime',['../classElecInfo.html#a40627ed1cb8f97e10d0d7f8bb8a28ef6',1,'ElecInfo::smearPrime(double mu, double eps) const '],['../classElecInfo.html#ab418d53133e506a66b66cab7bcbc6263',1,'ElecInfo::smearPrime(double mu, const diagMatrix &amp;eps) const ']]],
   ['so3quad',['SO3quad',['../classSO3quad.html',1,'SO3quad'],['../classSO3quad.html#a5ea6425ee15e18b097f5fc82201dc70d',1,'SO3quad::SO3quad(const S2quad &amp;, const Molecule &amp;molecule)'],['../classSO3quad.html#a62be112f3d4d7ec3740bd20f728e7f41',1,'SO3quad::SO3quad(S2quadType type, const Molecule &amp;molecule, unsigned nBeta=0, unsigned nAlpha=0, unsigned nGamma=0)']]],

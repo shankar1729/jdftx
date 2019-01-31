@@ -49,6 +49,7 @@ var CommandIndex =
     [ "fluid-anion", "CommandFluidAnion.html", null ],
     [ "fluid-cation", "CommandFluidCation.html", null ],
     [ "fluid-dielectric-constant", "CommandFluidDielectricConstant.html", null ],
+    [ "fluid-dielectric-tensor", "CommandFluidDielectricTensor.html", null ],
     [ "fluid-ex-corr", "CommandFluidExCorr.html", null ],
     [ "fluid-gummel-loop", "CommandFluidGummelLoop.html", null ],
     [ "fluid-initial-state", "CommandFluidInitialState.html", null ],

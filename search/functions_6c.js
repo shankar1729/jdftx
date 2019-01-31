@@ -9,6 +9,7 @@ var searchData=
   ['lda_5feval_3c_20lda_5fxc_5fteter_20_3e',['LDA_eval&lt; LDA_XC_Teter &gt;',['../group__ExchangeCorrelation.html#gabe36907f0749cec4f4417359a179be18',1,'ExCorr_internal_LDA.h']]],
   ['ldivergence',['lDivergence',['../group__DataStructures.html#ga669c9ca358fcf20b5040d3230c47f1fd',1,'ScalarFieldArray.h']]],
   ['lengthsquared',['lengthSquared',['../group__DataStructures.html#ga50d4527e1bba1c7da1c2dc383db55dc2',1,'VectorField.h']]],
+  ['lengthsquaredweighted',['lengthSquaredWeighted',['../group__DataStructures.html#ga48c14533ed11f539a45f9a74cd748c3d',1,'VectorField.h']]],
   ['lgradient',['lGradient',['../group__DataStructures.html#gaf783a0aec720d55e34f5ba4727718ee9',1,'ScalarFieldArray.h']]],
   ['linearpcm',['LinearPCM',['../classLinearPCM.html#a5aca17dd2fe976308ab289e48eef4eb6',1,'LinearPCM']]],
   ['linkdescription',['LinkDescription',['../structLinkDescription.html#a632a18fcaa6a8e34d88a79f46b42bfbf',1,'LinkDescription::LinkDescription()'],['../group__Input.html#gac7b9dce2303e2f00e6fc538d9eda3593',1,'linkDescription():&#160;command.h']]],

@@ -29,6 +29,7 @@ var VectorField_8h =
     [ "Jdag", "VectorField_8h.html#ga751f65926d982537d2d1d894068b6d2e", null ],
     [ "Jdag", "VectorField_8h.html#ga9698fac6f97d192cd66e9200e09790c1", null ],
     [ "lengthSquared", "VectorField_8h.html#ga50d4527e1bba1c7da1c2dc383db55dc2", null ],
+    [ "lengthSquaredWeighted", "VectorField_8h.html#ga48c14533ed11f539a45f9a74cd748c3d", null ],
     [ "nrm2", "VectorField_8h.html#gaf386bef1db1495ec9e304f7f85136a04", null ],
     [ "nullToZero", "VectorField_8h.html#ga4b59cf96c985cc81c1f116605d054ada", null ],
     [ "O", "VectorField_8h.html#ga33c248efbc2c91f650adb3ca7650d5f2", null ],

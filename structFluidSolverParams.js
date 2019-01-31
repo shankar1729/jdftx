@@ -15,6 +15,7 @@ var structFluidSolverParams =
     [ "cavityTension", "structFluidSolverParams.html#a0d9d83ace9cf64ad3a5815f4c57f2650", null ],
     [ "components", "structFluidSolverParams.html#a001ee767d8b4f4e97d8e253a6842b8e0", null ],
     [ "epsBulkOverride", "structFluidSolverParams.html#a9b61354069819369b48f3cada4070031", null ],
+    [ "epsBulkTensor", "structFluidSolverParams.html#abd9caf1ec9f79797c93ec74c5a5430aa", null ],
     [ "epsInfOverride", "structFluidSolverParams.html#ac0799367b9bda3fc09e434bafc9e47ea", null ],
     [ "eta_wDiel", "structFluidSolverParams.html#a819e080231f1a5d3e8249256d4705576", null ],
     [ "exCorr", "structFluidSolverParams.html#a496f98ddcf73b03d41d2da5eab38c061", null ],

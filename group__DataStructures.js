@@ -496,6 +496,7 @@ var group__DataStructures =
     [ "L", "group__DataStructures.html#gaf6d4d30b7062edfd0f75a082814c3067", null ],
     [ "lDivergence", "group__DataStructures.html#ga669c9ca358fcf20b5040d3230c47f1fd", null ],
     [ "lengthSquared", "group__DataStructures.html#ga50d4527e1bba1c7da1c2dc383db55dc2", null ],
+    [ "lengthSquaredWeighted", "group__DataStructures.html#ga48c14533ed11f539a45f9a74cd748c3d", null ],
     [ "lGradient", "group__DataStructures.html#gaf783a0aec720d55e34f5ba4727718ee9", null ],
     [ "Linv", "group__DataStructures.html#ga20720de21af94d24497310b259876d2a", null ],
     [ "loadFromFile", "group__DataStructures.html#ga78f4d7456f5fb96dac2bd030b0a683ac", null ],

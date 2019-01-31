@@ -41,6 +41,7 @@ var searchData=
   ['ldivergence',['lDivergence',['../group__DataStructures.html#ga669c9ca358fcf20b5040d3230c47f1fd',1,'ScalarFieldArray.h']]],
   ['lengthscale',['lengthScale',['../structFmixParams.html#a7d89d796e19e5a2dff597347f8ed5363',1,'FmixParams']]],
   ['lengthsquared',['lengthSquared',['../group__DataStructures.html#ga50d4527e1bba1c7da1c2dc383db55dc2',1,'VectorField.h']]],
+  ['lengthsquaredweighted',['lengthSquaredWeighted',['../group__DataStructures.html#ga48c14533ed11f539a45f9a74cd748c3d',1,'VectorField.h']]],
   ['lgradient',['lGradient',['../group__DataStructures.html#gaf783a0aec720d55e34f5ba4727718ee9',1,'ScalarFieldArray.h']]],
   ['linear',['Linear',['../classTranslationOperatorSpline.html#ab408316375ca8464de2150ce759ee48cad3bdb60efa863b18fc958fb5744929df',1,'TranslationOperatorSpline::Linear()'],['../structNonlinearPCMeval_1_1Screening.html#abf52f427c6b4cc2f3754b5f0cee4dd1e',1,'NonlinearPCMeval::Screening::linear()'],['../structNonlinearPCMeval_1_1Dielectric.html#ac47b510516e7d810d76d48e2a40c75e5',1,'NonlinearPCMeval::Dielectric::linear()']]],
   ['lineardielectric',['linearDielectric',['../structFluidSolverParams.html#a66c40f0b3e5d187c90289cca4361e2d8',1,'FluidSolverParams']]],

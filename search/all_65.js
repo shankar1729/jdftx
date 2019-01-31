@@ -133,6 +133,7 @@ var searchData=
   ['eoutermax',['eOuterMax',['../classWannier.html#a415e7ca729d5ce43740f355256f74fe0',1,'Wannier']]],
   ['eps_5ffrom_5fx',['eps_from_x',['../structNonlinearPCMeval_1_1Dielectric.html#a6ba77f5aa727a4a2d5ab9b9e929ef95c',1,'NonlinearPCMeval::Dielectric']]],
   ['epsbulk',['epsBulk',['../structFluidComponent.html#af6df99d611e88940ad16b17692c33f7b',1,'FluidComponent']]],
+  ['epsbulktensor',['epsBulkTensor',['../structFluidSolverParams.html#abd9caf1ec9f79797c93ec74c5a5430aa',1,'FluidSolverParams']]],
   ['epsinf',['epsInf',['../structFluidComponent.html#a0f2e9b6707cadbc442ef7a715a15278c',1,'FluidComponent::epsInf()'],['../structFluidSolver.html#ad3ef73a0951a85e0f00b7b74987a0ba8',1,'FluidSolver::epsInf()']]],
   ['epsinfoverride',['epsInfOverride',['../structFluidSolverParams.html#ac0799367b9bda3fc09e434bafc9e47ea',1,'FluidSolverParams']]],
   ['epslj',['epsLJ',['../structFluidComponent.html#a161e7f49bb4ba39e743a0a2c97cf63a3',1,'FluidComponent']]],
