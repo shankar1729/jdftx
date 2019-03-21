@@ -200,7 +200,6 @@ ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 	return rhoTilde;
 }
 
-
 ScalarFieldTilde SaLSA::hessian(const ScalarFieldTilde& phiTilde) const
 {	return (-1./(4*M_PI*gInfo.detR)) * L(phiTilde) - chi(phiTilde);
 }
@@ -284,6 +283,30 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
+}
+
+void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+{	const FluidComponent& solvent = *(fsp.solvents[0]);
+	susceptibility.clear();
+	sArr.clear();
+	for(const std::shared_ptr<MultipoleResponse>& resp: response)
+	{	SusceptibilityTerm st;
+		//Add shape function:
+		const ScalarField& shapeCur = resp->selectSite(shape, siteShape);
+		st.iSite = sArr.size();
+		sArr.push_back(shapeCur);
+		//Response parameters:
+		st.l = resp->l;
+		st.w = &(resp->V);
+		//Frequency dependence:
+		double nucPrefac = 0., elPrefac = 0.;
+		if(resp->iSite >= 0)
+			elPrefac = 1.;
+		else
+			nucPrefac = 1.;
+		st.prefactor = getChiPrefactor(omega, nucPrefac, elPrefac, solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+		susceptibility.push_back(st);
+	}
 }
 
 void SaLSA::loadState(const char* filename)
