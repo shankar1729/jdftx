@@ -253,9 +253,9 @@ enum FluidComponentMember
 	FCM_Rvdw, //!< effective van der Waals radius of the fluid (derived from equation of state) in bohrs
 	FCM_Res, //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
 	//Extras for frequency dependence:
-	FCM_tauNuc, //!< nuclear motion damping time in fs: rotational for solvents, translational for ions
-	FCM_omegaEl, //!< electronic response center frequency in eV (Drude-Lorentz model)
-	FCM_gammaEl, //!< electronic response frequency width in eV (Drude-Lorentz model)
+	FCM_tauNuc, //!< nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions
+	FCM_omegaEl, //!< electronic response center frequency (in Eh) (Drude-Lorentz model)
+	FCM_gammaEl, //!< electronic response frequency width (in Eh) (Drude-Lorentz model)
 	//Extras for ClassicalDFT:
 	FCM_epsLJ, //!< Lennard-Jones well depth for Mean-Field LJ excess functional
 	FCM_representation, //!< ideal gas representation
@@ -296,9 +296,9 @@ EnumStringMap<FluidComponentMember> fcmDescMap
 	FCM_sigmaBulk, "bulk surface tension in Eh/bohr^2",
 	FCM_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs",
 	FCM_Res, "electrostatic radius of solvent (derived from nonlocal response) in bohrs",
-	FCM_tauNuc, "nuclear motion damping time in fs: rotational for solvents, translational for ions",
-	FCM_omegaEl, "electronic response center frequency in eV (Drude-Lorentz model)",
-	FCM_gammaEl, "electronic response frequency width in eV (Drude-Lorentz model)",
+	FCM_tauNuc, "nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions",
+	FCM_omegaEl, "electronic response center frequency (Drude-Lorentz model)",
+	FCM_gammaEl, "electronic response frequency width (Drude-Lorentz model)",
 	FCM_epsLJ, "Lennard-Jones well depth for Mean-Field LJ excess functional",
 	FCM_representation, "ideal gas representation: " + addDescriptions(representationMap.optionList(), nullDescription, "\n   - "),
 	FCM_s2quadType, "orientation quadrature type:" + addDescriptions(s2quadTypeMap.optionList(), nullDescription, "\n   - "),
