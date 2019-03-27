@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true), curIter(0), Munfold(1,1,1)
+: potentialSubtraction(true), Munfold(1,1,1), curIter(0)
 {
 }
 

@@ -351,9 +351,9 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 	}
 }
 
-void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde) const
+void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde, bool elecOnly) const
 {	ScalarFieldArray sArr;
-	getSusceptibility_internal(omega, susceptibility, sArr);
+	getSusceptibility_internal(omega, susceptibility, sArr, elecOnly);
 	sTilde.clear();
 	for(const ScalarField& s: sArr)
 	{	if(e.coulombParams.embed)
@@ -363,7 +363,7 @@ void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vect
 	}
 }
 
-void FluidSolver::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+void FluidSolver::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const
 {	die("\nSusceptibility not yet implemented for this fluid type.\n\n");
 }
 

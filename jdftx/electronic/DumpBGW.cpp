@@ -470,7 +470,7 @@ void BGW::writeChiFluid(bool write_q0) const
 	//--- Get susceptibility description from fluidSolver:
 	std::vector<FluidSolver::SusceptibilityTerm> susceptibility;
 	ScalarFieldTildeArray sTilde;
-	e.eVars.fluidSolver->getSusceptibility(freq, susceptibility, sTilde);
+	e.eVars.fluidSolver->getSusceptibility(freq, susceptibility, sTilde, bgwp.elecOnly);
 	std::vector<const complex*> sTildeData; for(ScalarFieldTilde& sT: sTilde) sTildeData.push_back(sT->data());
 	//--- create dataset:
 	hid_t gidMats = h5createGroup(fid, "mats");

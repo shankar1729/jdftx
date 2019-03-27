@@ -285,7 +285,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	return Adiel;
 }
 
-void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const
 {	const FluidComponent& solvent = *(fsp.solvents[0]);
 	susceptibility.clear();
 	sArr.clear();
@@ -303,7 +303,7 @@ void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::v
 		if(resp->iSite >= 0)
 			elPrefac = 1.;
 		else
-			nucPrefac = 1.;
+			nucPrefac = elecOnly ? 0. : 1.;
 		st.prefactor = getChiPrefactor(omega, nucPrefac, elPrefac, solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
 		susceptibility.push_back(st);
 	}

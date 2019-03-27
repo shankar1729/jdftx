@@ -917,6 +917,7 @@ enum BGWparamsMember
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
 	BGWpm_EcutChiFluid,
+	BGWpm_elecOnly,
 	BGWpm_q0,
 	BGWpm_freqReMax_eV,
 	BGWpm_freqReStep_eV,
@@ -930,6 +931,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
+	BGWpm_elecOnly, "elecOnly",
 	BGWpm_q0, "q0",
 	BGWpm_freqReMax_eV, "freqReMax_eV",
 	BGWpm_freqReStep_eV, "freqReStep_eV",
@@ -942,6 +944,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
+	BGWpm_elecOnly, "Whether fluid polarizability output should only include electronic response (default: true)",
 	BGWpm_q0, "Zero wavevector replacement to be used for polarizability output (default: (0,0,0))",
 	BGWpm_freqReMax_eV, "Maximum real frequency in eV (default: 30.)",
 	BGWpm_freqReStep_eV, "Real frequency grid spacing in eV (default: 1.)",
@@ -976,6 +979,9 @@ struct CommandBGWparams : public Command
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
+				case BGWpm_elecOnly:
+					pl.get(bgwp.elecOnly, true, boolMap, "elecOnly", true);
+					break;
 				case BGWpm_q0:
 					for(int dir=0; dir<3; dir++)
 						pl.get(bgwp.q0[dir], 0., "q0", true);
@@ -999,6 +1005,7 @@ struct CommandBGWparams : public Command
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
 		PRINT(EcutChiFluid, "%lg")
+		logPrintf(" \\\n\telecOnly %s", boolMap.getString(bgwp.elecOnly));
 		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);
 		PRINT(freqReMax_eV, "%lg")
 		PRINT(freqReStep_eV, "%lg")
