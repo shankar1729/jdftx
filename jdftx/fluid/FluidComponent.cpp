@@ -90,6 +90,19 @@ FluidComponent::Type FluidComponent::getType(FluidComponent::Name name)
 	}
 }
 
+std::vector<complex> FluidComponent::getChiPrefactor(const std::vector<complex>& omegaArr, double chi0nuc, double chi0el) const
+{	std::vector<complex> result; result.reserve(omegaArr.size());
+	for(const complex& omega: omegaArr)
+	{	complex chi = complex(chi0nuc)/(1. - complex(0,tauNuc)*omega); //nuclear part
+		//Add electronic poles
+		for(const PoleLD& pole: polesEl)
+			chi += complex(chi0el * pole.A0 * pole.omega0*pole.omega0) /
+				(pole.omega0*pole.omega0 - omega*(omega + complex(0,pole.gamma0)));
+		result.push_back(chi);
+	}
+	return result;
+}
+
 double FluidComponent::pureNbulk(double T) const
 {	if(type == Solvent)
 	{	switch(name) //TODO: add temperature dependence
@@ -124,8 +137,7 @@ FluidComponent::FluidComponent(FluidComponent::Name name, double T, FluidCompone
 : name(name), type(getType(name)), functional(functional), epsLJ(0.), representation(MuEps),
 s2quadType(Quad7design_24), quad_nBeta(0), quad_nAlpha(0), quad_nGamma(0), translationMode(LinearSpline),
 epsBulk(1.), Nbulk(pureNbulk(T)), pMol(0.), epsInf(1.), Pvap(0.), sigmaBulk(0.), Rvdw(0.), Res(0.),
-tauNuc(8.3e+3*fs), omegaEl(15.*eV), gammaEl(7.*eV), //defaults for water
-Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(0)
+tauNuc(8.3e+3*fs), Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(0)
 {
 	//Nuclear widths = (1./6) vdW radius
 	const double sigmaNucH = (1./6) * 1.20*Angstrom;
@@ -145,6 +157,12 @@ Nnorm(0), quad(0), trans(0), idealGas(0), fex(0), offsetIndep(0), offsetDensity(
 			eos = std::make_shared<JeffereyAustinEOS>(T, 2*(1.36*Angstrom));
 			Rvdw = 1.385*Angstrom;
 			Res = 1.42;
+			//Simgle-pole frequency model:
+			PoleLD pole;
+			pole.omega0 = 15.*eV;
+			pole.gamma0 = 7.*eV;
+			pole.A0 = 1.;
+			polesEl.assign(1, pole);
 			//Site properties:
 			molecule.name = "H2O";
 			auto siteO = std::make_shared<Molecule::Site>("O",int(AtomicSymbol::O));

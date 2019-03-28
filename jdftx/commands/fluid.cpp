@@ -254,8 +254,7 @@ enum FluidComponentMember
 	FCM_Res, //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
 	//Extras for frequency dependence:
 	FCM_tauNuc, //!< nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions
-	FCM_omegaEl, //!< electronic response center frequency (in Eh) (Drude-Lorentz model)
-	FCM_gammaEl, //!< electronic response frequency width (in Eh) (Drude-Lorentz model)
+	FCM_poleEl, //!< electronic response poles (Drude-Lorentz model)
 	//Extras for ClassicalDFT:
 	FCM_epsLJ, //!< Lennard-Jones well depth for Mean-Field LJ excess functional
 	FCM_representation, //!< ideal gas representation
@@ -276,9 +275,8 @@ EnumStringMap<FluidComponentMember> fcmMap
 	FCM_sigmaBulk,     "sigmaBulk",
 	FCM_Rvdw,          "Rvdw",
 	FCM_Res,           "Res",
-	FCM_tauNuc,  "tauNuc",
-	FCM_omegaEl, "omegaEl",
-	FCM_gammaEl, "gammaEl",
+	FCM_tauNuc,        "tauNuc",
+	FCM_poleEl,        "poleEl",
 	FCM_epsLJ,          "epsLJ",
 	FCM_representation, "representation",
 	FCM_s2quadType,     "s2quadType",
@@ -297,8 +295,7 @@ EnumStringMap<FluidComponentMember> fcmDescMap
 	FCM_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs",
 	FCM_Res, "electrostatic radius of solvent (derived from nonlocal response) in bohrs",
 	FCM_tauNuc, "nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions",
-	FCM_omegaEl, "electronic response center frequency (Drude-Lorentz model)",
-	FCM_gammaEl, "electronic response frequency width (Drude-Lorentz model)",
+	FCM_poleEl, "electronic response Lorentz poles with parameters ( omega0[eV] gamma0[eV] A0 ). [specify multiple times for several poles, with A0 adding up to 1]",
 	FCM_epsLJ, "Lennard-Jones well depth for Mean-Field LJ excess functional",
 	FCM_representation, "ideal gas representation: " + addDescriptions(representationMap.optionList(), nullDescription, "\n   - "),
 	FCM_s2quadType, "orientation quadrature type:" + addDescriptions(s2quadTypeMap.optionList(), nullDescription, "\n   - "),
@@ -362,6 +359,7 @@ public:
 			c->Nbulk = Nbulk * (mol/liter);
 		}
 		//Optional properties
+		bool poleElAdded = false; //whether electronic poles have been added already by this command
 		while(true)
 		{	FluidComponentMember key;
 			pl.get(key, FCM_Delim, fcmMap, "key");
@@ -383,8 +381,21 @@ public:
 				READ_AND_CHECK(Rvdw, >, 0.)
 				READ_AND_CHECK(Res, >, 0.)
 				READ_AND_CHECK(tauNuc, >, 0.)
-				READ_AND_CHECK(omegaEl, >, 0.)
-				READ_AND_CHECK(gammaEl, >, 0.)
+				case FCM_poleEl:
+				{	if(!poleElAdded) c->polesEl.clear(); //remove any default poles
+					FluidComponent::PoleLD pole;
+					pl.get(pole.omega0, 0., "poleEl::omega0", true);
+					pl.get(pole.gamma0, 0., "poleEl::gamma0", true);
+					pl.get(pole.A0, 0., "poleEl::A0", true);
+					//Check:
+					if(pole.omega0 < 0.) throw string("poleEl::omega0 must be >= 0");
+					if(pole.gamma0 <= 0.) throw string("poleEl::gamma0 must be > 0");
+					pole.omega0 *= eV; //convert from eV to Eh
+					pole.gamma0 *= eV; //convert from eV to Eh
+					c->polesEl.push_back(pole);
+					poleElAdded = true;
+					break;
+				}
 				READ_AND_CHECK(epsLJ, >, 0.)
 				READ_ENUM(representation, FluidComponent::MuEps)
 				READ_ENUM(s2quadType, QuadOctahedron)
@@ -397,6 +408,12 @@ public:
 			}
 			#undef READ_AND_CHECK
 			#undef READ_ENUM
+		}
+		if(poleElAdded)
+		{	double A0sum = 0.;
+			for(const FluidComponent::PoleLD& pole: c->polesEl)
+				A0sum += pole.A0;
+			if(fabs(A0sum-1) > 1e-3) throw string("poleEl::A0 should add up to 1.");
 		}
 	}
 	
@@ -413,8 +430,8 @@ public:
 		PRINT(Rvdw)
 		PRINT(Res)
 		PRINT(tauNuc)
-		PRINT(omegaEl)
-		PRINT(gammaEl)
+		for(const FluidComponent::PoleLD& pole: c.polesEl)
+			logPrintf(" \\\n\tpoleEl %lg %lg %lg", pole.omega0/eV, pole.gamma0/eV, pole.A0);
 		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 		{	PRINT(epsLJ)
 			PRINT_ENUM(representation)

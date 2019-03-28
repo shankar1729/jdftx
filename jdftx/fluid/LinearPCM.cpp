@@ -144,16 +144,14 @@ void LinearPCM::getSusceptibility_internal(const std::vector<complex>& omega, st
 	st.iSite = 0; //first shape function
 	st.l = 1; //dipolar
 	st.w = 0; //local
-	st.prefactor = getChiPrefactor(omega, elecOnly ? 0. : (epsBulk-epsInf)/(4*M_PI), (epsInf-1.)/(4*M_PI),
-		solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+	st.prefactor = solvent.getChiPrefactor(omega, elecOnly ? 0. : (epsBulk-epsInf)/(4*M_PI), (epsInf-1.)/(4*M_PI));
 	susceptibility.push_back(st);
 	//Screening response:
 	if(k2factor)
 	{	st.iSite = int(shape.size())-1; //last shape function
 		st.l = 0; //monopolar
 		st.w = 0; //local
-		st.prefactor = getChiPrefactor(omega, k2factor/(4*M_PI), 0.,
-			solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+		st.prefactor = solvent.getChiPrefactor(omega, k2factor/(4*M_PI), 0.);
 		susceptibility.push_back(st);
 	}
 }

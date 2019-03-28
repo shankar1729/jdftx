@@ -119,8 +119,13 @@ struct FluidComponent
 	
 	//Frequency-dependence parameters:
 	double tauNuc; //!< nuclear motion damping time: rotational for solvents, translational for ions
-	double omegaEl; //!< electronic response center frequency (Drude-Lorentz model)
-	double gammaEl; //!< electronic response frequency width (Drude-Lorentz model)
+	struct PoleLD
+	{	double omega0; //!< center frequency of Drude-Lorentz model
+		double gamma0; //!< damping / frequency width of Drude-Lorentz model
+		double A0; //!< scale factors for each pole (should add up to 1)
+	};
+	std::vector<PoleLD> polesEl; //!< electronic frequency dependence in Lorentz-oscillator model
+	std::vector<complex> getChiPrefactor(const std::vector<complex>& omegaArr, double chi0nuc, double chi0el) const; //!< get frequency dependence
 	
 	double Nnorm; //!< If Nnorm>=0, this component is switched to the canonical ensemble (number fixed to Nnorm)
 	

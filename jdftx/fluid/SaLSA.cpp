@@ -304,7 +304,7 @@ void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::v
 			elPrefac = 1.;
 		else
 			nucPrefac = elecOnly ? 0. : 1.;
-		st.prefactor = getChiPrefactor(omega, nucPrefac, elPrefac, solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+		st.prefactor = solvent.getChiPrefactor(omega, nucPrefac, elPrefac);
 		susceptibility.push_back(st);
 	}
 }
