@@ -500,7 +500,7 @@ void BGW::writeChiFluid(bool write_q0) const
 				{	int iRow = rowStart + iRowMine;
 					if(iRow >= nBasis[iq]) continue;
 					//Determine index into shape arrays:
-					vector3<int> iGdiff = iGarr[iq][iRow] - iGarr[iq][iCol];
+					vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow];
 					for(int dir=0; dir<3; dir++)
 						iGdiff[dir] = positiveRemainder(iGdiff[dir], gInfo.S[dir]); //wrap positive
 					bool conj = false;
