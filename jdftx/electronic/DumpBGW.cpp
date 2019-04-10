@@ -493,19 +493,6 @@ void BGW::writeChiFluid(bool write_q0) const
 		//Loop over frequencies:
 		for(int iFreq=0; iFreq<int(freq.size()); iFreq++)
 		{	buf.zero();
-		
-			//HACK:
-			const complex& omegaCur = freq[iFreq];
-			complex chiCur;
-			for(int iTerm=0; iTerm<nTerms; iTerm++)
-			{	const FluidSolver::SusceptibilityTerm& term = susceptibility[iTerm];
-				double sScale = sTildeData[iTerm][0].real() / sTildeData[0][0].real();
-				chiCur += term.prefactor[iFreq] * std::pow(term.w ? (*(term.w))(0.) : 1., 2) * (4*M_PI) * sScale;
-				if(not omegaCur.norm())
-					logPrintf("\nTERMDEBUG %d: %lg %lg %lg ", iTerm, term.prefactor[iFreq].real(), std::pow(term.w ? (*(term.w))(0.) : 1., 2), (4*M_PI)*sScale);
-			}
-			logPrintf("\nCHIDEBUG: %lg %lg  %lg %lg ", omegaCur.real(), omegaCur.imag(), chiCur.real(), chiCur.imag());
-		
 			for(int iColMine=0; iColMine<nColsMine; iColMine++)
 			{	int iCol = colStart + iColMine;
 				if(iCol >= nBasis[iq]) continue;
