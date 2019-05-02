@@ -199,7 +199,7 @@ struct CylindricalPoisson
 {
 	int NZ; //number of grid points along truncated direction
 	double L; //length along truncated direction
-	double epsilonBulk, kappaSqBulk; //bulk response
+	double epsPerpBulk, epsParBulk, kappaSqBulk; //bulk response
 	matrix epsParTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
 	
 	CylindricalPoisson(int iDir, const ScalarField& epsPerpSlab, const ScalarField& epsParSlab, const ScalarField& kappaSqSlab)
@@ -210,15 +210,16 @@ struct CylindricalPoisson
 		L = gInfo.R.column(iDir).length();
 		vector3<int> iRbulk; iRbulk[iDir] = NZ/2;
 		size_t iBulk = gInfo.fullRindex(iRbulk);
-		epsilonBulk = (epsPerpSlab->data()[iBulk] + 2.*epsParSlab->data()[iBulk])/3; //should be isotropic anyway
+		epsPerpBulk = epsPerpSlab->data()[iBulk];
+		epsParBulk  = epsParSlab->data()[iBulk];
 		kappaSqBulk = kappaSqSlab->data()[iBulk];
 		
 		//Initialize Fourier space operators along truncated direction:
 		G.resize(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
-		complexScalarFieldTilde epsPerpSlabTilde = J(Complex(epsPerpSlab - epsilonBulk));
-		complexScalarFieldTilde epsParSlabTilde  = J(Complex(epsParSlab  - epsilonBulk ));
+		complexScalarFieldTilde epsPerpSlabTilde = J(Complex(epsPerpSlab - epsPerpBulk));
+		complexScalarFieldTilde epsParSlabTilde  = J(Complex(epsParSlab  - epsParBulk ));
 		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
 		std::vector<complex> epsPerpDiagTilde(NZ), epsParDiagTilde(NZ), kappaSqDiagTilde(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
@@ -243,10 +244,10 @@ struct CylindricalPoisson
 	double integrand(double k, double sigma, const matrix& OgTilde) const
 	{	matrix KinvTot = zeroes(NZ,NZ);
 		//Set truncated Greens function
-		double alpha = sqrt(k*k + kappaSqBulk/epsilonBulk);
+		double alpha = sqrt((k*k*epsParBulk + kappaSqBulk)/epsPerpBulk);
 		double expMhlfAlphaL = exp(-0.5*alpha*L), cosMhlfGL = 1.;
 		for(int iZ=0; iZ<NZ; iZ++)
-		{	KinvTot.set(iZ,iZ, L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
+		{	KinvTot.set(iZ,iZ, L*epsPerpBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
 			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
 		}
 		//Add inhomogeneous screening terms:
