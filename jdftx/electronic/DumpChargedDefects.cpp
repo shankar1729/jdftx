@@ -363,7 +363,6 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			
 			//Include solvation model dielectric / screening, if present:
 			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab[0]->gInfo);
-			double epsilonBulk[2] = {1.,1.}, kappaSqBulk = 0.;
 			if(e.eVars.fluidSolver)
 			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
@@ -372,6 +371,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
 					ScalarField shapeSlab = getPlanarAvg(pcm.shape[0], iDir);
+					double epsilonBulk[2] = {1.,1.}, kappaSqBulk = 0.;
 					if(pcm.fsp.epsBulkTensor.length_squared())
 					{	//Slab normal unit vector:
 						vector3<> nHat = e.gInfo.R.column(iDir);
@@ -412,13 +412,23 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 				logSuspend();
 				truncatedCoulomb = truncatedParams.createCoulomb(e.gInfo);
 				logResume();
-				#define EMBED_EXPAND(x, xBulk) \
-				{	ScalarFieldTilde xTilde = J(x - xBulk); /*subtract bulk value*/ \
+				#define EMBED_EXPAND(x) \
+				{	/*--- Get bulk value ---*/ \
+					double iCut = (0.5 + truncatedParams.embedCenter[iDir]) * e.gInfo.S[iDir]; /* Mesh coordinates of cut point*/ \
+					double t = iCut - floor(iCut); /* Fractional part */ \
+					vector3<int> iL, iR; /* Indices of left and right points into mesh */ \
+					iL[iDir] = positiveRemainder(int(floor(iCut)),  e.gInfo.S[iDir]); \
+					iR[iDir] = positiveRemainder(1+int(floor(iCut)),  e.gInfo.S[iDir]); \
+					double xBulk /* Linearly interpolate: */ \
+						= x->data()[e.gInfo.fullRindex(iL)] * (1.-t) \
+						+ x->data()[e.gInfo.fullRindex(iR)] * t; \
+					/*--- Expand difference from bulk ---*/ \
+					ScalarFieldTilde xTilde = J(x - xBulk); /*subtract bulk value*/ \
 					xTilde = truncatedCoulomb->embedExpand(xTilde); /*switch to embedding grid*/ \
 					x = xBulk + I(xTilde); \
 				}
-				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir], epsilonBulk[dir])
-				EMBED_EXPAND(kappaSqSlab, kappaSqBulk);
+				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir])
+				EMBED_EXPAND(kappaSqSlab);
 				#undef EMBED_EXPAND
 			}
 			CylindricalPoisson cp(iDir, epsSlab[0], epsSlab[1], kappaSqSlab);
