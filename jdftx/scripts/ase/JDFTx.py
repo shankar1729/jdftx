@@ -23,7 +23,7 @@ def replaceVariable(var, varName):
 
 class JDFTx(Calculator):
 
-	def __init__(self, executable=None, pseudoDir=None, pseudoSet='GBRV', commands=None):
+	def __init__(self, executable=None, pseudoDir=None, pseudoSet='GBRV', commands=None, ignoreStress=False):
 		#Valid pseudopotential sets (mapping to path and suffix):
 		pseudoSetMap = {
 			'SG15' : 'SG15/$ID_ONCV_PBE.upf',
@@ -36,6 +36,7 @@ class JDFTx(Calculator):
 		#Get default values from environment:
 		self.executable = replaceVariable(executable, 'JDFTx')      #Path to the jdftx executable (cpu or gpu)
 		self.pseudoDir = replaceVariable(pseudoDir, 'JDFTx_pseudo') #Path to the pseudopotentials folder
+		self.ignoreStress = ignoreStress
 		
 		if (self.executable is None):
 			raise Exception('Specify path to jdftx in argument \'executable\' or in environment variable \'JDFTx\'.')
@@ -127,7 +128,10 @@ class JDFTx(Calculator):
 		return self.E
 
 	def get_stress(self, atoms):
-		raise NotImplementedError('Stress interface with JDFTx are not yet implemented')
+		if self.ignoreStress:
+			return scipy.zeros((3,3))
+		else:
+			raise NotImplementedError('Stress calculation not implemented in JDFTx interface: set ignoreStress=True to ignore.')
 
 	################### I/O ###################
 
