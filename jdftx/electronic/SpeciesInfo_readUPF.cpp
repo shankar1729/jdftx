@@ -202,7 +202,8 @@ void SpeciesInfo::readUPF(istream& is)
 			string date = tag.getAttribute("date", false); if(date.length()) logPrintf("  Date: %s", date.c_str());
 			if(author.length() || date.length()) logPrintf(".\n");
 			//Check for unsupported types:
-			if(tag.getAttribute("is_paw") == "T")
+			string isPaw = tag.getAttribute("is_paw");
+			if(isPaw == "T" or isPaw == "true")
 				die("  PAW datasets are not yet supported.\n");
 			//Valence properties:
 			Z = atof(tag.getAttribute("z_valence").c_str());
