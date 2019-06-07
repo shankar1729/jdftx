@@ -199,7 +199,7 @@ struct CylindricalPoisson
 {
 	int NZ; //number of grid points along truncated direction
 	double L; //length along truncated direction
-	double epsilonBulk, kappaSqBulk; //bulk response
+	double epsPerpBulk, epsParBulk, kappaSqBulk; //bulk response
 	matrix epsParTilde, GGepsKappaSq; diagMatrix G; //Fourier space operators
 	
 	CylindricalPoisson(int iDir, const ScalarField& epsPerpSlab, const ScalarField& epsParSlab, const ScalarField& kappaSqSlab)
@@ -210,15 +210,16 @@ struct CylindricalPoisson
 		L = gInfo.R.column(iDir).length();
 		vector3<int> iRbulk; iRbulk[iDir] = NZ/2;
 		size_t iBulk = gInfo.fullRindex(iRbulk);
-		epsilonBulk = (epsPerpSlab->data()[iBulk] + 2.*epsParSlab->data()[iBulk])/3; //should be isotropic anyway
+		epsPerpBulk = epsPerpSlab->data()[iBulk];
+		epsParBulk  = epsParSlab->data()[iBulk];
 		kappaSqBulk = kappaSqSlab->data()[iBulk];
 		
 		//Initialize Fourier space operators along truncated direction:
 		G.resize(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
 			G[iZ] = (2*M_PI/L) * (iZ<NZ/2 ? iZ : iZ-NZ);
-		complexScalarFieldTilde epsPerpSlabTilde = J(Complex(epsPerpSlab - epsilonBulk));
-		complexScalarFieldTilde epsParSlabTilde  = J(Complex(epsParSlab  - epsilonBulk ));
+		complexScalarFieldTilde epsPerpSlabTilde = J(Complex(epsPerpSlab - epsPerpBulk));
+		complexScalarFieldTilde epsParSlabTilde  = J(Complex(epsParSlab  - epsParBulk ));
 		complexScalarFieldTilde kappaSqSlabTilde = J(Complex(kappaSqSlab - kappaSqBulk));
 		std::vector<complex> epsPerpDiagTilde(NZ), epsParDiagTilde(NZ), kappaSqDiagTilde(NZ);
 		for(int iZ=0; iZ<NZ; iZ++)
@@ -243,10 +244,10 @@ struct CylindricalPoisson
 	double integrand(double k, double sigma, const matrix& OgTilde) const
 	{	matrix KinvTot = zeroes(NZ,NZ);
 		//Set truncated Greens function
-		double alpha = sqrt(k*k + kappaSqBulk/epsilonBulk);
+		double alpha = sqrt((k*k*epsParBulk + kappaSqBulk)/epsPerpBulk);
 		double expMhlfAlphaL = exp(-0.5*alpha*L), cosMhlfGL = 1.;
 		for(int iZ=0; iZ<NZ; iZ++)
-		{	KinvTot.set(iZ,iZ, L*epsilonBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
+		{	KinvTot.set(iZ,iZ, L*epsPerpBulk*(alpha*alpha + G[iZ]*G[iZ])/(1. - expMhlfAlphaL*cosMhlfGL));
 			cosMhlfGL = -cosMhlfGL; //since Gn L = 2 n pi
 		}
 		//Add inhomogeneous screening terms:
@@ -362,7 +363,6 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			
 			//Include solvation model dielectric / screening, if present:
 			ScalarField kappaSqSlab; nullToZero(kappaSqSlab, epsSlab[0]->gInfo);
-			double epsilonBulk[2] = {1.,1.}, kappaSqBulk = 0.;
 			if(e.eVars.fluidSolver)
 			{	if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 					logPrintf("WARNING: charged-defect-correction does not support ClassicalDFT; ignoring fluid response\n");
@@ -371,6 +371,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 					//(approx. fluid as linear and local response for this, even for NonlinearPCM and SaLSA)
 					const PCM& pcm = *((const PCM*)e.eVars.fluidSolver.get());
 					ScalarField shapeSlab = getPlanarAvg(pcm.shape[0], iDir);
+					double epsilonBulk[2] = {1.,1.}, kappaSqBulk = 0.;
 					if(pcm.fsp.epsBulkTensor.length_squared())
 					{	//Slab normal unit vector:
 						vector3<> nHat = e.gInfo.R.column(iDir);
@@ -411,13 +412,23 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 				logSuspend();
 				truncatedCoulomb = truncatedParams.createCoulomb(e.gInfo);
 				logResume();
-				#define EMBED_EXPAND(x, xBulk) \
-				{	ScalarFieldTilde xTilde = J(x - xBulk); /*subtract bulk value*/ \
+				#define EMBED_EXPAND(x) \
+				{	/*--- Get bulk value ---*/ \
+					double iCut = (0.5 + truncatedParams.embedCenter[iDir]) * e.gInfo.S[iDir]; /* Mesh coordinates of cut point*/ \
+					double t = iCut - floor(iCut); /* Fractional part */ \
+					vector3<int> iL, iR; /* Indices of left and right points into mesh */ \
+					iL[iDir] = positiveRemainder(int(floor(iCut)),  e.gInfo.S[iDir]); \
+					iR[iDir] = positiveRemainder(1+int(floor(iCut)),  e.gInfo.S[iDir]); \
+					double xBulk /* Linearly interpolate: */ \
+						= x->data()[e.gInfo.fullRindex(iL)] * (1.-t) \
+						+ x->data()[e.gInfo.fullRindex(iR)] * t; \
+					/*--- Expand difference from bulk ---*/ \
+					ScalarFieldTilde xTilde = J(x - xBulk); /*subtract bulk value*/ \
 					xTilde = truncatedCoulomb->embedExpand(xTilde); /*switch to embedding grid*/ \
 					x = xBulk + I(xTilde); \
 				}
-				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir], epsilonBulk[dir])
-				EMBED_EXPAND(kappaSqSlab, kappaSqBulk);
+				for(int dir=0; dir<2; dir++) EMBED_EXPAND(epsSlab[dir])
+				EMBED_EXPAND(kappaSqSlab);
 				#undef EMBED_EXPAND
 			}
 			CylindricalPoisson cp(iDir, epsSlab[0], epsSlab[1], kappaSqSlab);

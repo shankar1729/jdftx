@@ -6,7 +6,7 @@
 
 from __future__ import print_function #For Python2 compatibility
 
-import os, copy, scipy, subprocess, tempfile
+import os, scipy, subprocess, tempfile, re
 from ase.calculators.interface import Calculator
 from ase.units import Bohr, Hartree
 
@@ -23,8 +23,7 @@ def replaceVariable(var, varName):
 
 class JDFTx(Calculator):
 
-	def __init__(self, executable=None, pseudoDir=None, pseudoSet='GBRV', commands={}):
-		
+	def __init__(self, executable=None, pseudoDir=None, pseudoSet='GBRV', commands=None, ignoreStress=False):
 		#Valid pseudopotential sets (mapping to path and suffix):
 		pseudoSetMap = {
 			'SG15' : 'SG15/$ID_ONCV_PBE.upf',
@@ -37,6 +36,7 @@ class JDFTx(Calculator):
 		#Get default values from environment:
 		self.executable = replaceVariable(executable, 'JDFTx')      #Path to the jdftx executable (cpu or gpu)
 		self.pseudoDir = replaceVariable(pseudoDir, 'JDFTx_pseudo') #Path to the pseudopotentials folder
+		self.ignoreStress = ignoreStress
 		
 		if (self.executable is None):
 			raise Exception('Specify path to jdftx in argument \'executable\' or in environment variable \'JDFTx\'.')
@@ -49,15 +49,23 @@ class JDFTx(Calculator):
 			self.pseudoSetCmd = ''
 		
 		# Gets the input file template
-		self.template = str(shell('%s -t' % (self.executable)))
+		self.acceptableCommands = set(['electronic-SCF'])
+		template = str(shell('%s -t' % (self.executable)))
+		for match in re.findall(r"# (\S+) ", template):
+			self.acceptableCommands.add(match)
 
-		# Check commands for consistency
-		for item in commands.items():
-			if(not self.validCommand(item[0])):
-				raise IOError('%s is not a valid JDFTx command!\nLook at the input file template (jdftx -t) for a list of commands.' % (item[0]))
-		commands['dump-name'] = '$VAR'
-		commands['initial-state'] = '$VAR'
-		self.input = copy.deepcopy(commands)
+		self.input = [
+			('dump-name', '$VAR'),
+			('initial-state', '$VAR')
+		]
+
+		# Parse commands, which can be a dict or a list of 2-tuples.
+		if isinstance(commands, dict):
+			commands = commands.items()
+		elif commands is None:
+			commands = []
+		for cmd, v in commands:
+			self.addCommand(cmd, v)
 
 		# Accepted pseudopotential formats
 		self.pseudopotentials = ['fhi', 'uspp', 'upf']
@@ -69,12 +77,35 @@ class JDFTx(Calculator):
 		# History
 		self.lastAtoms = None
 		self.lastInput = None
+
+		# k-points
+		self.kpoints = None
+
+		# Dumps
+		self.dumps = []
+		self.addDump("End", "State")
+		self.addDump("End", "Forces")
+		self.addDump("End", "Ecomponents")
 		
 		#Run directory:
 		self.runDir = tempfile.mkdtemp()
 		print('Set up JDFTx calculator with run files in \'' + self.runDir + '\'')
 
 	########### Interface Functions ###########
+
+	def addCommand(self, cmd, v):
+		if(not self.validCommand(cmd)):
+			raise IOError('%s is not a valid JDFTx command!\nLook at the input file template (jdftx -t) for a list of commands.' % (cmd))
+		self.input.append((cmd, v))
+
+	def addDump(self, when, what):
+		self.dumps.append((when, what))
+
+	def addKPoint(self, pt, w=1):
+		b1, b2, b3 = pt
+		if self.kpoints is None:
+			self.kpoints = []
+		self.kpoints.append((b1, b2, b3, w))
 	
 	def clean(self):
 		shell('rm -rf ' + self.runDir)
@@ -97,7 +128,10 @@ class JDFTx(Calculator):
 		return self.E
 
 	def get_stress(self, atoms):
-		raise NotImplementedError('Stress interface with JDFTx are not yet implemented')
+		if self.ignoreStress:
+			return scipy.zeros((3,3))
+		else:
+			raise NotImplementedError('Stress calculation not implemented in JDFTx interface: set ignoreStress=True to ignore.')
 
 	################### I/O ###################
 
@@ -112,11 +146,19 @@ class JDFTx(Calculator):
 		return Efinal * Hartree #Return energy from final line (Etot, F or G)
 
 	def __readForces(self, filename):
-		forces = []
+		idxMap = {}
+		symbolList = self.lastAtoms.get_chemical_symbols()
+		for i, symbol in enumerate(symbolList):
+			if symbol not in idxMap:
+				idxMap[symbol] = []
+			idxMap[symbol].append(i)
+		forces = [0]*len(symbolList)
 		for line in open(filename):
 			if line.startswith('force '):
 				tokens = line.split()
-				forces.append(scipy.array([float(word) for word in tokens[2:5]]))
+				idx = idxMap[tokens[1]].pop(0) # tokens[1] is chemical symbol
+				forces[idx] = [float(word) for word in tokens[2:5]] # tokens[2:5]: force components
+
 		if(len(forces) == 0):
 			raise IOError('Error: Forces not found.')
 		return (Hartree / Bohr) * scipy.array(forces)
@@ -153,8 +195,8 @@ class JDFTx(Calculator):
 
 		# Construct most of the input file
 		inputfile += '\n'
-		for item in self.input.items():
-			inputfile += '%s %s\n' % (item[0], str(item[1]))
+		for cmd, v in self.input:
+			inputfile += '%s %s\n' % (cmd, str(v))
 
 		# Add ion info
 		atomPos = [x / Bohr for x in list(atoms.get_positions())]  # Also convert to bohr
@@ -164,6 +206,11 @@ class JDFTx(Calculator):
 			inputfile += 'ion %s %f %f %f \t 1\n' % (atomNames[i], atomPos[i][0], atomPos[i][1], atomPos[i][2])
 		del i
 
+		# Add k-points
+		if self.kpoints:
+			for pt in self.kpoints:
+				inputfile += 'kpoint %.8f %.8f %.8f %.14f\n' % pt
+
 		#Add pseudopotentials
 		inputfile += '\n'
 		if not (self.pseudoDir is None):
@@ -172,7 +219,7 @@ class JDFTx(Calculator):
 				if(sum([x == atom for x in added]) == 0.):  # Add ion-species command if not already added
 					for filetype in self.pseudopotentials:
 						try:
-							searchPseudo = shell('ls %s | grep %s.%s' % (self.pseudoDir, atom, filetype))
+							shell('ls %s | grep %s.%s' % (self.pseudoDir, atom, filetype))
 							inputfile += 'ion-species %s/%s.%s\n' % (self.pseudoDir, atom, filetype)
 							added.append(atom)
 							break
@@ -197,11 +244,11 @@ class JDFTx(Calculator):
 			inputfile += 'coulomb-truncation-embed %g %g %g\n' % tuple(center.tolist())
 		
 		#Add dump commands
-		inputfile += '\ndump End State Forces Ecomponents'
+		inputfile += "".join(["dump %s %s\n" % (when, what) for when, what in self.dumps])
 
 		# Cache this calculation to history
-		self.lastAtoms = copy.deepcopy(atoms)
-		self.lastInput = copy.deepcopy(self.input)
+		self.lastAtoms = atoms.copy()
+		self.lastInput = list(self.input)
 		return inputfile
 
 	############## JDFTx command structure ##############
@@ -210,7 +257,7 @@ class JDFTx(Calculator):
 		""" Checks whether the input string is a valid jdftx command \nby comparing to the input template (jdft -t)"""
 		if(type(command) != str):
 			raise IOError('Please enter a string as the name of the command!\n')
-		return (self.template.find('# ' + command + ' ') > -1)
+		return command in self.acceptableCommands
 
 	def help(self, command=None):
 		""" Use this function to get help about a JDFTx command """
