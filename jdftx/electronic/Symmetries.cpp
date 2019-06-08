@@ -363,7 +363,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 {	std::vector<SpaceGroupOp> spaceGroup;
 	//Loop over lattice symmetries:
 	for(const matrix3<int>& rot: symLattice)
-	{	
+	{	matrix3<> rotCart = e->gInfo.R * rot * inv(e->gInfo.R); //cartesian rotation matrix
 		//Determine offsets after this rotation that map the structure onto itself 
 		std::vector<vector3<>> aArr; //list of candidates for the offset
 		bool firstAtom = true;
@@ -375,7 +375,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 				std::vector<vector3<>> aCur;
 				PeriodicLookup<vector3<>> plook(aCur, (~e->gInfo.R) * e->gInfo.R);
 				vector3<> pos1rot = rot*sp->atpos[a1]; //rotated version of a1 position
-				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				for(size_t a2=0; a2<sp->atpos.size(); a2++)
 					if( (!M) || magMomEquivalent(M1rot, (*M)[a2]) )
 					{	vector3<> dpos = Diag(sup) * (sp->atpos[a2] - pos1rot); //note in unit cell coordinates (matters if this is a phonon supercell)
@@ -420,7 +420,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 				const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 				for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
 				{	vector3<> pos1rot = rot*sp->atpos[a1] + a; //now including offset
-					vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+					vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 					size_t a2 = plook.find(pos1rot, M1rot, M, magMomEquivalent); //match position and magentic moment
 					assert(a2 != string::npos); //the above algorithm should guarantee this
 					vector3<> da = sp->atpos[a2] - pos1rot;
@@ -538,11 +538,12 @@ void Symmetries::checkSymmetries()
 	std::vector<SpaceGroupOp> symReduced; //reduced symmetries for a perturbed supercell
 	for(const SpaceGroupOp& op: sym) //For each symmetry matrix
 	{	bool isPertSym = true;
+		matrix3<> rotCart = e->gInfo.R * op.rot * inv(e->gInfo.R); //cartesian rotation matrix
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? op.rot*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M1rot, M, magMomEquivalent)) //match position and spin
 				{	if(isPertSup)
 					{	isPertSym = false;
