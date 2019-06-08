@@ -131,12 +131,7 @@ void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const comple
 template<typename scalar> __global__
 void eblas_symmetrize_kernel(int N, int n, const int* symmIndex, scalar* x, double nInv)
 {	int i=kernelIndex1D();
-	if(i<N)
-	{	scalar xSum = 0.0;
-		for(int j=0; j<n; j++) xSum += x[symmIndex[n*i+j]];
-		xSum *= nInv; //average n in the equivalence class
-		for(int j=0; j<n; j++) x[symmIndex[n*i+j]] = xSum;
-	}
+	if(i<N) eblas_symmetrize_calc(i, n, symmIndex, x, nInv);
 }
 template<typename scalar> void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, scalar* x)
 {	GpuLaunchConfig1D glc(eblas_symmetrize_kernel<scalar>, N);
@@ -149,20 +144,22 @@ void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, complex* x) { ebla
 __global__
 void eblas_symmetrize_phase_kernel(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
 {	int i=kernelIndex1D();
-	if(i<N)
-	{	complex xSum = 0.;
-		for(int j=0; j<n; j++)
-			xSum += x[symmIndex[n*i+j]] * phase[n*i+j];
-		xSum *= 1./(n*symmMult[i]); //average n in the equivalence class, with weight for accumulation below accounted)
-		for(int j=0; j<n; j++)
-			x[symmIndex[n*i+j]] = 0.;
-		for(int j=0; j<n; j++)
-			x[symmIndex[n*i+j]] += xSum * phase[n*i+j].conj();
-	}
+	if(i<N) eblas_symmetrize_phase_calc(i, n, symmIndex, symmMult, phase, x);
 }
 void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
 {	GpuLaunchConfig1D glc(eblas_symmetrize_phase_kernel, N);
 	eblas_symmetrize_phase_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, symmIndex, symmMult, phase, x);
+	gpuErrorCheck();
+}
+
+__global__
+void eblas_symmetrize_phase_rot_kernel(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, const matrix3<>* rotSpin, complexPtr4 x)
+{	int i=kernelIndex1D();
+	if(i<N) eblas_symmetrize_phase_rot_calc(i, n, symmIndex, symmMult, phase, rotSpin, x);
+}
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, const matrix3<>* rotSpin, std::vector<complex*> x)
+{	GpuLaunchConfig1D glc(eblas_symmetrize_phase_rot_kernel, N);
+	eblas_symmetrize_phase_rot_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, n, symmIndex, symmMult, phase, rotSpin, complexPtr4(x));
 	gpuErrorCheck();
 }
 

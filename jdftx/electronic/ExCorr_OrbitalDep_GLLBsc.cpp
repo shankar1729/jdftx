@@ -191,8 +191,8 @@ ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOM
 	for(int s=0; s<nSpins; s++)
 	{	nullToZero(V[s], e.gInfo);
 		V[s]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-		e.symm.symmetrize(V[s]);
 		V[s] *= inv(e.eVars.n[s]); //denominator added here
 	}
+	e.symm.symmetrize(V);
 	return V;
 }

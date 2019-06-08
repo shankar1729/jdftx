@@ -224,6 +224,21 @@ void eblas_symmetrize(int N, int n, const int* symmIndex, const int* symmMult, c
 void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x);
 #endif
 
+//! @brief Symmetrize a quadruplet of complex arrays with phase factors, using N n-fold equivalence classes in symmIndex
+//! (useful for space group symmetrization of spin density matrices in reciprocal space)
+//! @param N Length of array x
+//! @param n Length of symmetry equivalence classes
+//! @param symmIndex Every consecutive set of n indices in this array forms an equivalence class
+//! @param symmMult Multiplicity per equivalence class (number of repetitions of each element in orbit)
+//! @param phase Phase factors corresponding to each entry in symmIndex
+//! @param rotSpin Cartesian pseudo-vector (eg. spin) rotations corresponding to each symmetry operation
+//! @param x Data array to be symmetrized in place
+void eblas_symmetrize(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, const matrix3<>* rotSpin, std::vector<complex*> x);
+#ifdef GPU_ENABLED
+//! @brief Equivalent of eblas_symmetrize() for complex GPU data pointers
+void eblas_symmetrize_gpu(int N, int n, const int* symmIndex, const int* symmMult, const complex* phase, const matrix3<>* rotSpin, std::vector<complex*> x);
+#endif
+
 //Threaded-wrappers for BLAS1 functions (Cblas)
 //! @brief Copy a data array
 //! @tparam T Data type of the input and output arrays

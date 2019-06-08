@@ -28,7 +28,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarField.h>
 #include <core/GridInfo.h>
 #include <core/Operators.h>
-#include <core/vector3.h>
 #include <core/RadialFunction.h>
 
 #define Tptr std::shared_ptr<T> //!< shorthand for writing the template operators (undef'd at end of header)

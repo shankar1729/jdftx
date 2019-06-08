@@ -169,6 +169,38 @@ void Symmetries::symmetrize(complexScalarFieldTilde& x) const
 	int nSymmClasses = symmIndex.nData() / sym.size(); //number of equivalence classes
 	callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex.dataPref(), symmMult.dataPref(), symmIndexPhase.dataPref(), x->dataPref());
 }
+void Symmetries::symmetrize(ScalarFieldArray& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	if(x.size()<=2) { for(ScalarField& x_s: x) symmetrize(x_s); } //everything but vector-spin mode
+	else
+	{	assert(x.size() == 4); //must be vector-spin
+		std::vector<complexScalarFieldTilde> xTilde(x.size());
+		for(unsigned s=0; s<x.size(); s++) xTilde[s] = J(Complex(x[s]));
+		symmetrize(xTilde);
+		for(unsigned s=0; s<x.size(); s++) x[s] = Real(I(xTilde[s]));
+	}
+}
+void Symmetries::symmetrize(ScalarFieldTildeArray& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	if(x.size()<=2) { for(ScalarFieldTilde& x_s: x) symmetrize(x_s); } //everything but vector-spin mode
+	else
+	{	assert(x.size() == 4); //must be vector-spin
+		std::vector<complexScalarFieldTilde> xComplex(x.size());
+		for(unsigned s=0; s<x.size(); s++) xComplex[s] = Complex(x[s]);
+		symmetrize(xComplex);
+		for(unsigned s=0; s<x.size(); s++) x[s] = Real(xComplex[s]);
+	}
+}
+void Symmetries::symmetrize(std::vector<complexScalarFieldTilde>& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	if(x.size()<=2) { for(complexScalarFieldTilde& x_s: x) symmetrize(x_s); } //everything but vector-spin mode
+	else
+	{	assert(x.size() == 4); //must be vector-spin
+		int nSymmClasses = symmIndex.nData() / sym.size(); //number of equivalence classes
+		callPref(eblas_symmetrize)(nSymmClasses, sym.size(), symmIndex.dataPref(), symmMult.dataPref(), symmIndexPhase.dataPref(), symmRotSpin.dataPref(), dataPref(x));
+	}
+}
+
 
 //Symmetrize forces:
 void Symmetries::symmetrize(IonicGradient& f) const
@@ -364,6 +396,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 	//Loop over lattice symmetries:
 	for(const matrix3<int>& rot: symLattice)
 	{	matrix3<> rotCart = e->gInfo.R * rot * inv(e->gInfo.R); //cartesian rotation matrix
+		matrix3<> rotSpin = rotCart * (1./det(rotCart)); //spin is a pseudo-vector invariant under inversion
 		//Determine offsets after this rotation that map the structure onto itself 
 		std::vector<vector3<>> aArr; //list of candidates for the offset
 		bool firstAtom = true;
@@ -375,7 +408,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 				std::vector<vector3<>> aCur;
 				PeriodicLookup<vector3<>> plook(aCur, (~e->gInfo.R) * e->gInfo.R);
 				vector3<> pos1rot = rot*sp->atpos[a1]; //rotated version of a1 position
-				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+				vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotSpin*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				for(size_t a2=0; a2<sp->atpos.size(); a2++)
 					if( (!M) || magMomEquivalent(M1rot, (*M)[a2]) )
 					{	vector3<> dpos = Diag(sup) * (sp->atpos[a2] - pos1rot); //note in unit cell coordinates (matters if this is a phonon supercell)
@@ -420,7 +453,7 @@ std::vector<SpaceGroupOp> Symmetries::findSpaceGroup(const std::vector< matrix3<
 				const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 				for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
 				{	vector3<> pos1rot = rot*sp->atpos[a1] + a; //now including offset
-					vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+					vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotSpin*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 					size_t a2 = plook.find(pos1rot, M1rot, M, magMomEquivalent); //match position and magentic moment
 					assert(a2 != string::npos); //the above algorithm should guarantee this
 					vector3<> da = sp->atpos[a2] - pos1rot;
@@ -457,10 +490,8 @@ void Symmetries::initSymmIndex()
 					complex phase = cis((-2*M_PI)*dot(iG,op.a));
 					//project back into range:
 					for(int k=0; k<3; k++)
-					{	iG2[k] = positiveRemainder(iG2[k], S[k]);
-						if(2*iG2[k]>S[k]) iG2[k]-=S[k];
-					}
-					int i2 = gInfo.fullGindex(iG2);
+						iG2[k] = positiveRemainder(iG2[k], S[k]);
+					int i2 = gInfo.fullRindex(iG2);
 					symmIndexPhaseVec.push_back(phase);
 					symmIndexVec.push_back(i2);
 					done[i2] = true;
@@ -476,14 +507,22 @@ void Symmetries::initSymmIndex()
 			}
 		)
 	}
-	//Set the final pointers:
+	//Initialize Cartesian rotation matrices:
+	std::vector<matrix3<>> symmRotSpinVec(sym.size());
+	for(unsigned iRot=0; iRot<sym.size(); iRot++)
+	{	matrix3<> rotCart = e->gInfo.R * sym[iRot].rot * inv(e->gInfo.R);
+		symmRotSpinVec[iRot] = rotCart * (1./det(rotCart)); //spin is a pseudo-vector invariant under inversion
+	}
+	//Set the final pointers (in managed cpu/gpu memory):
 	int nSymmIndex = symmIndexVec.size();
 	symmIndex.init(nSymmIndex);
 	symmMult.init(symmMultVec.size());
 	symmIndexPhase.init(nSymmIndex);
+	symmRotSpin.init(sym.size());
 	memcpy(symmIndex.data(), &symmIndexVec[0], nSymmIndex*sizeof(int));
 	memcpy(symmMult.data(), &symmMultVec[0], symmMultVec.size()*sizeof(int));
 	memcpy(symmIndexPhase.data(), &symmIndexPhaseVec[0], nSymmIndex*sizeof(complex));
+	memcpy(symmRotSpin.data(), &symmRotSpinVec[0], sym.size()*sizeof(matrix3<>));
 }
 
 void Symmetries::sortSymmetries()
@@ -539,11 +578,12 @@ void Symmetries::checkSymmetries()
 	for(const SpaceGroupOp& op: sym) //For each symmetry matrix
 	{	bool isPertSym = true;
 		matrix3<> rotCart = e->gInfo.R * op.rot * inv(e->gInfo.R); //cartesian rotation matrix
+		matrix3<> rotSpin = rotCart * (1./det(rotCart)); //spin is a pseudo-vector invariant under inversion
 		for(auto sp: e->iInfo.species) //For each species
 		{	PeriodicLookup< vector3<> > plook(sp->atpos, (~e->gInfo.R) * e->gInfo.R);
 			const std::vector< vector3<> >* M = sp->initialMagneticMoments.size() ? &sp->initialMagneticMoments : 0;
 			for(size_t a1=0; a1<sp->atpos.size(); a1++) //For each atom
-			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotCart*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
+			{	vector3<> M1rot; if(M) M1rot = (e->eInfo.spinType==SpinVector ? rotSpin*(*M)[a1] : (*M)[a1]); //original or rotated M[a1] depending on spin type
 				if(string::npos == plook.find(op.rot * sp->atpos[a1] + op.a, M1rot, M, magMomEquivalent)) //match position and spin
 				{	if(isPertSup)
 					{	isPertSym = false;

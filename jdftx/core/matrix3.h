@@ -185,6 +185,12 @@ template<typename scalar> __hostanddev__ vector3<scalar> operator*(const matrix3
 __hostanddev__ vector3<int> operator*(const matrix3<int>& m, const vector3<int> &v)
 {	MUL_MAT_VEC(int)
 }
+__hostanddev__ vector3<complex> operator*(const matrix3<complex>& m, const vector3<> &v)
+{	MUL_MAT_VEC(complex)
+}
+__hostanddev__ vector3<complex> operator*(const matrix3<>& m, const vector3<complex> &v)
+{	MUL_MAT_VEC(complex)
+}
 #undef MUL_MAT_VEC
 
 #define MUL_VEC_MAT(retType) \
@@ -204,6 +210,12 @@ template<typename scalar> __hostanddev__ vector3<scalar> operator*(const vector3
 }
 __hostanddev__ vector3<int> operator*(const vector3<int> &v, const matrix3<int>& m)
 {	MUL_VEC_MAT(int)
+}
+__hostanddev__ vector3<complex> operator*(const vector3<> &v, const matrix3<complex>& m)
+{	MUL_VEC_MAT(complex)
+}
+__hostanddev__ vector3<complex> operator*(const vector3<complex> &v, const matrix3<>& m)
+{	MUL_VEC_MAT(complex)
 }
 #undef MUL_VEC_MAT
 
