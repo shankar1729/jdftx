@@ -39,7 +39,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		SpeciesInfo& spOut = *(eSup->iInfo.species[sp]);
 		spOut.atpos = spIn.atpos;
 		spOut.constraints = spIn.constraints;
-		spOut.initialMagneticMoments.clear();
+		spOut.initialMagneticMoments = spIn.initialMagneticMoments;
 		for(SpeciesInfo::PlusU& Uparams: spOut.plusU)
 			Uparams.Vext.resize(spOut.atpos.size());
 		nAtomsTot += spOut.atpos.size();
