@@ -176,6 +176,19 @@ private:
 	//! Wannierize and dump a Bloch-space matrix to file, optionally zeroing out the real parts
 	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
 		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
+	
+	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
+	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)
+	bool realPartOnly; //whether outputs should have only real part
+	std::vector<vector3<>> xExpect; //converged wannier centers in lattice coordinates
+	std::map<vector3<int>,matrix> iCellMap; //cell map for wannier output accounting for xExpect
+	void saveMLWF_C(int iSpin); //Wavefunctions
+	void saveMLWF_H(int iSpin, const matrix& phase); //Hamiltonian
+	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
+	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
+	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
+	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
+	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 };
 
 //! @}
