@@ -122,8 +122,16 @@ protected:
 	GridInfo gInfoSuper; //!< supercell grid
 	Basis basisSuper; //!< supercell wavefcuntion basis
 	QuantumNumber qnumSuper; //!< supercell k-point
+	
+	//Phonon related:
+	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
+	std::map<vector3<int>,matrix> phononCellMap, ePhCellMap; //phonon and e-ph cell maps
 	int nPhononModes; //!< number of phonon modes
 	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
+	int prodPhononSup; //number of unit cells in phonon supercell
+	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
+	std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
+	int iPairStart, iPairStop; //MPI division for working on kpoint pairs during phonon processing
 	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
@@ -176,6 +184,9 @@ private:
 	//! Wannierize and dump a Bloch-space matrix to file, optionally zeroing out the real parts
 	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
 		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
+	
+	//! Wannierize and dump a Bloch-space-squared matrix (eg. e-ph matrix elements) to file, optionally zeroing out the real parts
+	void dumpWannierizedPh(const matrix& Htilde, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
 	
 	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
 	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)

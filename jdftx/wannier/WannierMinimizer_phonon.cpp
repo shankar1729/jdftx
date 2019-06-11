@@ -24,11 +24,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 void WannierMinimizer::saveMLWF_phonon(int iSpin)
 {
 	//Generate phonon cell map (will match that used by phonon):
-	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
+	xAtoms.clear();
 	for(const auto& sp: e.iInfo.species)
 		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
 	assert(3*int(xAtoms.size()) == nPhononModes);
-	std::map<vector3<int>,matrix> phononCellMap = getCellMap(
+	phononCellMap = getCellMap(
 		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
 		e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
 	
@@ -48,7 +48,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	
 	//Generate list of commensurate k-points in order present in the unit cell calculation
-	int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
+	prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
 	std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
 	for(unsigned ik=0; ik<kMesh.size(); ik++)
 	{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
@@ -111,7 +111,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	
 	//Generate electron-phonon cell map:
-	std::map<vector3<int>,matrix> ePhCellMap = getCellMap(
+	ePhCellMap = getCellMap(
 		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
 		e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
 	//--- Add ePhCellMap cells missing in phononCellMap:
@@ -168,8 +168,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	
 	//Generate pairs of commensurate k-points along with pointer to Wannier rotation
-	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
-	std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
+	kpointPairs.clear();
 	for(int ik1: ikArr)
 	for(int ik2: ikArr)
 	{	KpointPair kPair;
@@ -179,7 +178,6 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		kPair.ik2 = ik2;
 		kpointPairs.push_back(kPair);
 	}
-	int iPairStart, iPairStop;
 	TaskDivision(kpointPairs.size(), mpiWorld).myRange(iPairStart, iPairStop);
 	
 	//Read Bloch electron - nuclear displacement matrix elements
@@ -238,8 +236,10 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			}
 		}
 	}
+	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 	
 	//Apply Wannier rotations
+	logPrintf("Applying Wannier rotations ... "); logFlush();
 	int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
 	matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
 	for(int iMode=0; iMode<nPhononModes; iMode++)
@@ -250,17 +250,24 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
 				phononHsubCur.dataPref(), phononHsubCur.nData());
 		}
-	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
+	logPrintf("done.\n"); logFlush();
 	
-	//Calculate HePh and output one cell fixed at a time to minimize memory usage:
-	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
+	//Save Wanneirized:
+	dumpWannierizedPh(HePhTilde, 1, "mlwfHePh", realPartOnly, iSpin);
+}
+
+
+void WannierMinimizer::dumpWannierizedPh(const matrix& Htilde, int nMatrices, string varName, bool realPartOnly, int iSpin) const
+{
+	//Wannierize and output one cell fixed at a time to minimize memory usage:
+	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	FILE* fp = 0;
 	if(mpiWorld->isHead())
 	{	fp = fopen(fname.c_str(), "wb");
 		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 	}
-	matrix phase = zeroes(nPairsMine, phononCellMap.size());
+	matrix phase = zeroes(Htilde.nCols(), phononCellMap.size());
 	double kPairWeight = 1./prodPhononSup;
 	double nrm2totSq = 0., nrm2imSq = 0.;
 	for(const auto& entry1: ePhCellMap)
@@ -275,7 +282,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			}
 		}
 		//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
-		matrix HePh = HePhTilde * phase;
+		matrix HePh = Htilde * phase;
 		mpiWorld->allReduceData(HePh, MPIUtil::ReduceSum);
 		//apply cell weights:
 		complex* HePhData = HePh.dataPref();
