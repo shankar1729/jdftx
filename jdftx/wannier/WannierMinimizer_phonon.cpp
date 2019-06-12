@@ -213,6 +213,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	{	const KpointPair& pair = kpointPairs[iPair];
 		if(pair.ik1 == pair.ik2) //only Gamma-point phonons
 		{	const diagMatrix& E = Hsub_eigs[kMesh[pair.ik1].point.iReduced + iSpin*qCount];
+			const matrix& U = kMesh[pair.ik1].U;
 			int nAtoms = nPhononModes/3;
 			assert(nAtoms*3 == nPhononModes);
 			for(int iDir=0; iDir<3; iDir++)
@@ -221,14 +222,14 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
 				{	int iMode = 3*iAtom + iDir;
 					phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
-					nrmTot += std::pow(nrm2(phononHsub[iMode][iPair])/invsqrtM[iMode], 2);
+					nrmTot += std::pow(nrm2(dagger(U) * phononHsub[iMode][iPair] * U)/invsqrtM[iMode], 2);
 				}
 				//Restrict correction to degenerate subspaces:
 				for(int b2=0; b2<nBands; b2++)
 					for(int b1=0; b1<nBands; b1++)
 						if(fabs(E[b1]-E[b2]) > degeneracyThreshold)
 							phononHsubMean.set(b1,b2, 0.);
-				nrmCorr += nAtoms*std::pow(nrm2(phononHsubMean), 2);
+				nrmCorr += nAtoms*std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
 				//Apply correction:
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
 				{	int iMode = 3*iAtom + iDir;
