@@ -202,11 +202,15 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	
 	//Apply translational invariance correction:
-	const double degeneracyThreshold = 1e-5;
 	std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
 	for(int q=0; q<e.eInfo.nStates; q++)
 	{	Hsub_eigs[q].resize(nBands);
 		mpiWorld->bcastData(Hsub_eigs[q], e.eInfo.whose(q));
+	}
+	for(int ik: ikArr)
+	{	if(not isMine_q(ik, iSpin))
+			pBlochMesh[ik].init(nBands*nBands, 3);
+		mpiWorld->bcastData(pBlochMesh[ik], whose_q(ik, iSpin));
 	}
 	double nrmTot = 0., nrmCorr = 0.;
 	for(int iPair=iPairStart; iPair<iPairStop; iPair++)
@@ -222,14 +226,16 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
 				{	int iMode = 3*iAtom + iDir;
 					phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
-					nrmTot += std::pow(nrm2(dagger(U) * phononHsub[iMode][iPair] * U)/invsqrtM[iMode], 2);
 				}
-				//Restrict correction to degenerate subspaces:
+				nrmTot += std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
+				//Subtract the expected matrix elements from the sum rule connecting it to momentum matrix elements:
+				complex* Hdata = phononHsubMean.data();
+				const complex* Pdata = pBlochMesh[pair.ik1].data() + pBlochMesh[pair.ik1].index(0,iDir);
+				double normFac = 1./(nAtoms*prodPhononSup);
 				for(int b2=0; b2<nBands; b2++)
 					for(int b1=0; b1<nBands; b1++)
-						if(fabs(E[b1]-E[b2]) > degeneracyThreshold)
-							phononHsubMean.set(b1,b2, 0.);
-				nrmCorr += nAtoms*std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
+						*(Hdata++) -= *(Pdata++) * (E[b1]-E[b2]) * normFac;
+				nrmCorr += std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
 				//Apply correction:
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
 				{	int iMode = 3*iAtom + iDir;
@@ -238,6 +244,9 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			}
 		}
 	}
+	pBlochMesh.clear();
+	mpiWorld->allReduce(nrmCorr, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(nrmTot, MPIUtil::ReduceSum);
 	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 	
 	//Apply Wannier rotations

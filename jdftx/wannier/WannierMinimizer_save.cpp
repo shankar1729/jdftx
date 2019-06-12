@@ -198,14 +198,14 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	resumeOperatorThreading();
 	
 	//Electronic k-mesh outputs:
+	bool savePhonon = wannier.phononSup.length_squared();
 	saveMLWF_H(iSpin, phase); //Hamiltonian
-	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
+	if(wannier.saveMomenta or savePhonon) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	
 	//Phonon q-mesh outputs:
-	if(wannier.phononSup.length_squared())
-		saveMLWF_phonon(iSpin);
+	if(savePhonon) saveMLWF_phonon(iSpin);
 	
 	suspendOperatorThreading();
 }
@@ -299,7 +299,9 @@ void WannierMinimizer::saveMLWF_H(int iSpin, const matrix& phase)
 
 //Save momenta in Wannier basis:
 void WannierMinimizer::saveMLWF_P(int iSpin, const matrix& phase)
-{	assert(wannier.saveMomenta);
+{	bool savePhonon = wannier.phononSup.length_squared();
+	if(savePhonon) pBlochMesh.resize(kMesh.size()); //used for e-ph matrix element sum rule
+	assert(wannier.saveMomenta or savePhonon);
 	//Compute momentum matrix elements of Bloch states:
 	std::vector<vector3<matrix>> pBloch(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -311,21 +313,25 @@ void WannierMinimizer::saveMLWF_P(int iSpin, const matrix& phase)
 	int iqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	matrix pSub(nCenters*nCenters, 3);
+		if(savePhonon) pBlochMesh[i].init(nBands*nBands, 3);
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix pSubDir = pBloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
 			if(kMesh[i].point.invert<0) //apply complex conjugate:
 				callPref(eblas_dscal)(pSubDir.nData(), -1., ((double*)pSubDir.dataPref())+1, 2);
+			if(savePhonon) //copy before rotations
+				callPref(eblas_copy)(pBlochMesh[i].dataPref()+pBlochMesh[i].index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
 			pSubDir = dagger(kMesh[i].U) * pSubDir * kMesh[i].U; //apply MLWF-optimized rotations
 			callPref(eblas_copy)(pSub.dataPref()+pSub.index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
 		}
 		//Store with spatial transformation:
-		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
-		pSub = pSub * matrix(rot);
+		matrix rot(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR); //cartesian symmetry matrix
+		if(savePhonon) pBlochMesh[i] = pBlochMesh[i] * rot;
+		pSub = pSub * rot;
 		callPref(eblas_copy)(pWannierTilde.dataPref()+pWannierTilde.index(0,iqMine), pSub.dataPref(), pSub.nData());
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
+	if(wannier.saveMomenta) dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
 }
 
 
