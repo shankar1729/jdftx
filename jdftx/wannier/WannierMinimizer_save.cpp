@@ -333,27 +333,34 @@ void WannierMinimizer::saveMLWF_P(int iSpin, const matrix& phase)
 void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 {	assert(wannier.saveSpin);
 	assert(e.eInfo.isNoncollinear());
-	//--- compute spin matrix elements of Bloch states:
+	bool savePhonon = wannier.phononSup.length_squared();
+	//Compute spin matrix elements of Bloch states:
 	std::vector<vector3<matrix>> Sbloch(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		if(e.eInfo.qnums[q].index()==iSpin)
 			Sbloch[q] = spinOverlap(e.eVars.C[q], O(e.eVars.C[q]));
 	//--- convert to Wannier basis:
 	matrix SwannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
+	if(savePhonon) SblochMesh.assign(kMesh.size(), matrix());
 	int iqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	matrix Ssub(nCenters*nCenters, 3);
+		if(savePhonon) SblochMesh[i].init(nBands*nBands, 3); //same as Ssub, but without wannier rotations
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix SsubDir = Sbloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
 			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because spin is a pseudo-vector):
 				callPref(eblas_dscal)(SsubDir.nData(), -1., ((double*)SsubDir.dataPref())+0, 2);
+			if(savePhonon) //keep a copy before applying the Wannier rotations
+				callPref(eblas_copy)(SblochMesh[i].dataPref()+SblochMesh[i].index(0,iDir), SsubDir.dataPref(), SsubDir.nData());
 			SsubDir = dagger(kMesh[i].U) * SsubDir * kMesh[i].U; //apply MLWF-optimized rotations
 			callPref(eblas_copy)(Ssub.dataPref()+Ssub.index(0,iDir), SsubDir.dataPref(), SsubDir.nData());
 		}
 		//Store with spatial transformation:
 		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
-		Ssub = Ssub * matrix(rot * (1./det(rot))); //extra rotation sign because spin is a pseudo-vector
+		matrix rotS = matrix(rot * (1./det(rot))); //extra rotation sign because spin is a pseudo-vector
+		Ssub = Ssub * rotS;
 		callPref(eblas_copy)(SwannierTilde.dataPref()+SwannierTilde.index(0,iqMine), Ssub.dataPref(), Ssub.nData());
+		if(savePhonon) SblochMesh[i] = SblochMesh[i] * rotS;
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save

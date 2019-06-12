@@ -202,6 +202,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	
 	//Apply translational invariance correction:
+	const double degeneracyThreshold = 1e-5;
 	std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
 	for(int q=0; q<e.eInfo.nStates; q++)
 	{	Hsub_eigs[q].resize(nBands);
@@ -223,9 +224,9 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 					nrmTot += std::pow(nrm2(phononHsub[iMode][iPair])/invsqrtM[iMode], 2);
 				}
 				//Restrict correction to degenerate subspaces:
-				for(int b1=0; b1<nBands; b1++)
-					for(int b2=0; b2<nBands; b2++)
-						if(fabs(E[b1]-E[b2]) > 1e-4)
+				for(int b2=0; b2<nBands; b2++)
+					for(int b1=0; b1<nBands; b1++)
+						if(fabs(E[b1]-E[b2]) > degeneracyThreshold)
 							phononHsubMean.set(b1,b2, 0.);
 				nrmCorr += nAtoms*std::pow(nrm2(phononHsubMean), 2);
 				//Apply correction:
@@ -238,22 +239,63 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 	
+	//Prepare degenerate-projected spins if necessary:
+	std::vector<std::vector<matrix>> Sdeg;
+	if(wannier.saveSpin)
+	{	Sdeg.resize(kMesh.size());
+		for(int ik: ikArr) //only for commensurate ones
+		{	matrix& Sbloch = SblochMesh[ik];
+			//Prepare on source process:
+			if(isMine_q(ik, iSpin))
+			{	//Degeneracy projection:
+				const diagMatrix& E = Hsub_eigs[kMesh[ik].point.iReduced + iSpin*qCount];
+				for(int b2=0; b2<nBands; b2++)
+					for(int b1=0; b1<nBands; b1++)
+						if(fabs(E[b1]-E[b2]) > degeneracyThreshold)
+							for(int iDir=0; iDir<3; iDir++)
+								Sbloch.set(b1+b2*nBands, iDir, 0.);
+			}
+			else Sbloch.init(nBands*nBands, 3);
+			//Broadcast to all:
+			mpiWorld->bcastData(Sbloch, whose_q(ik, iSpin));
+			//Split into 3 nBandsxnBands matrices:
+			Sdeg[ik].resize(3);
+			for(int iDir=0; iDir<3; iDir++)
+			{	Sdeg[ik][iDir] = Sbloch(0,nBands*nBands, iDir,iDir+1);
+				Sdeg[ik][iDir].reshape(nBands, nBands);
+			}
+		}
+		SblochMesh.clear(); //save memory, and prevent inadvertent repeated usage since modified above
+	}
+	
 	//Apply Wannier rotations
 	logPrintf("Applying Wannier rotations ... "); logFlush();
 	int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
-	matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
+	matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine), HePhStilde;
+	if(wannier.saveSpin) HePhStilde = zeroes(nCenters*nCenters*3*nPhononModes, nPairsMine);
 	for(int iMode=0; iMode<nPhononModes; iMode++)
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 		{	const KpointPair& pair = kpointPairs[iPair];
-			matrix& phononHsubCur = phononHsub[iMode][iPair];
+			matrix& phononHsubCur = phononHsub[iMode][iPair]; //in Bloch basis
+			//Spin-phonon matrix elements:
+			if(wannier.saveSpin)
+			{	for(int iDir=0; iDir<3; iDir++)
+				{	matrix phononHS = Sdeg[pair.ik1][iDir] * phononHsubCur - phononHsubCur * Sdeg[pair.ik2][iDir]; //in Bloch basis
+					phononHS = (dagger(kMesh[pair.ik1].U) * phononHS * kMesh[pair.ik2].U); //apply Wannier rotations
+					callPref(eblas_copy)(HePhStilde.dataPref() + HePhStilde.index(0,iPair-iPairStart) + nCenters*nCenters*(iDir+3*iMode),
+						phononHS.dataPref(), phononHS.nData());
+				}
+			}
+			//Electron-phonon matrix elements
 			phononHsubCur = (dagger(kMesh[pair.ik1].U) * phononHsubCur * kMesh[pair.ik2].U); //apply Wannier rotations
 			callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
 				phononHsubCur.dataPref(), phononHsubCur.nData());
 		}
 	logPrintf("done.\n"); logFlush();
 	
-	//Save Wanneirized:
+	//Save Wannierized:
 	dumpWannierizedPh(HePhTilde, 1, "mlwfHePh", realPartOnly, iSpin);
+	if(wannier.saveSpin) dumpWannierizedPh(HePhStilde, 3, "mlwfHePhS", realPartOnly, iSpin);
 }
 
 
@@ -282,26 +324,27 @@ void WannierMinimizer::dumpWannierizedPh(const matrix& Htilde, int nMatrices, st
 			}
 		}
 		//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
-		matrix HePh = Htilde * phase;
-		mpiWorld->allReduceData(HePh, MPIUtil::ReduceSum);
+		matrix H = Htilde * phase;
+		mpiWorld->allReduceData(H, MPIUtil::ReduceSum);
 		//apply cell weights:
-		complex* HePhData = HePh.dataPref();
+		complex* Hdata = H.dataPref();
 		for(const auto& entry2: ePhCellMap)
 			for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
 			{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
 				matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
 				matrix w = transpose(w1i) * w2i;
 				for(int iVector=0; iVector<3; iVector++)
-				{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, HePhData, 1);
-					HePhData += w.nData();
-				}
+					for(int iMatrix=0; iMatrix<nMatrices; iMatrix++)
+					{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Hdata, 1);
+						Hdata += w.nData();
+					}
 			}
 		if(realPartOnly)
-		{	if(mpiWorld->isHead()) HePh.write_real(fp);
-			nrm2totSq += std::pow(nrm2(HePh), 2); 
-			nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+		{	if(mpiWorld->isHead()) H.write_real(fp);
+			nrm2totSq += std::pow(nrm2(H), 2); 
+			nrm2imSq += std::pow(callPref(eblas_dnrm2)(H.nData(), ((double*)H.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
 		}
-		else { if(mpiWorld->isHead()) HePh.write(fp); }
+		else { if(mpiWorld->isHead()) H.write(fp); }
 	}
 	if(mpiWorld->isHead()) fclose(fp);
 	if(realPartOnly)
