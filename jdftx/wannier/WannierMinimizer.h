@@ -185,9 +185,6 @@ private:
 	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
 		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
 	
-	//! Wannierize and dump a Bloch-space-squared matrix (eg. e-ph matrix elements) to file, optionally zeroing out the real parts
-	void dumpWannierizedPh(const matrix& Htilde, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
-	
 	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
 	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)
 	bool realPartOnly; //whether outputs should have only real part

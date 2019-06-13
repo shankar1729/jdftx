@@ -139,16 +139,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	//Output unified phonon cellMap:
 	if(mpiWorld->isHead())
 	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
-		for(const auto& entry: phononCellMap)
-		{	const vector3<int>& i = entry.first;
-			vector3<> r = e.gInfo.R * i;
-			fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
+		writeCellMap(phononCellMap, e.gInfo.R, fname);
 	}
 	
 	//Output phonon cellMapSq:
@@ -263,24 +254,18 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		}
 	logPrintf("done.\n"); logFlush();
 	
-	//Save Wannierized:
-	dumpWannierizedPh(HePhTilde, 1, "mlwfHePh", realPartOnly, iSpin);
-}
-
-
-void WannierMinimizer::dumpWannierizedPh(const matrix& Htilde, int nMatrices, string varName, bool realPartOnly, int iSpin) const
-{
 	//Wannierize and output one cell fixed at a time to minimize memory usage:
-	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
+	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	FILE* fp = 0;
 	if(mpiWorld->isHead())
 	{	fp = fopen(fname.c_str(), "wb");
 		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 	}
-	matrix phase = zeroes(Htilde.nCols(), phononCellMap.size());
+	matrix phase = zeroes(HePhTilde.nCols(), phononCellMap.size());
 	double kPairWeight = 1./prodPhononSup;
 	double nrm2totSq = 0., nrm2imSq = 0.;
+	std::map<vector3<int>, matrix> Hsum;
 	for(const auto& entry1: ePhCellMap)
 	{	//calculate Fourier transform phase (with integration weights):
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
@@ -293,21 +278,31 @@ void WannierMinimizer::dumpWannierizedPh(const matrix& Htilde, int nMatrices, st
 			}
 		}
 		//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
-		matrix H = Htilde * phase;
+		matrix H = HePhTilde * phase;
 		mpiWorld->allReduceData(H, MPIUtil::ReduceSum);
-		//apply cell weights:
+		//apply cell weights and collect sum rule:
 		complex* Hdata = H.dataPref();
 		for(const auto& entry2: ePhCellMap)
+		{	//prepare for sum rule collection:
+			vector3<int> iRdiff = entry2.first - entry1.first;
+			matrix& HsumCur = Hsum[iRdiff];
+			if(not HsumCur) HsumCur = zeroes(nCenters*nCenters, 3);
+			//Loop over atoms and directions:
+			int iMode = 0;
 			for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
 			{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
 				matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
 				matrix w = transpose(w1i) * w2i;
+				complex* HsumData = HsumCur.dataPref(); //summed over atoms, but not over directions
 				for(int iVector=0; iVector<3; iVector++)
-					for(int iMatrix=0; iMatrix<nMatrices; iMatrix++)
-					{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Hdata, 1);
-						Hdata += w.nData();
-					}
+				{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Hdata, 1); //apply weights
+					callPref(eblas_zaxpy)(w.nData(), 1./invsqrtM[iMode], Hdata, 1, HsumData, 1); //collect sum rule
+					Hdata += w.nData();
+					HsumData += w.nData();
+					iMode++;
+				}
 			}
+		}
 		if(realPartOnly)
 		{	if(mpiWorld->isHead()) H.write_real(fp);
 			nrm2totSq += std::pow(nrm2(H), 2); 
@@ -320,4 +315,32 @@ void WannierMinimizer::dumpWannierizedPh(const matrix& Htilde, int nMatrices, st
 		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
 	else
 		logPrintf("done.\n");
+	
+	//Write sum rule matrices and cell map:
+	if(mpiWorld->isHead())
+	{
+		//Matrices:
+		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePhSum", &iSpin);
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "wb");
+		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
+		double nrm2totSq = 0., nrm2imSq = 0.;
+		for(const auto& entry: Hsum)
+		{	const matrix& M = entry.second;
+			if(realPartOnly)
+			{	M.write_real(fp);
+				nrm2totSq += std::pow(nrm2(M), 2); 
+				nrm2imSq += std::pow(callPref(eblas_dnrm2)(M.nData(), ((double*)M.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
+			}
+			else M.write(fp);
+		}
+		if(realPartOnly)
+			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+		else
+			logPrintf("done.\n");
+		
+		//Cell map:
+		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPhSum", &iSpin);
+		writeCellMap(Hsum, e.gInfo.R, fname);
+	}
 }
