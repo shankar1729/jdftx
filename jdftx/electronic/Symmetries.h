@@ -70,7 +70,9 @@ private:
 	friend struct CommandSymmetries;
 	friend struct CommandSymmetryMatrix;
 	friend struct CommandDebug;
+	friend struct CommandKpointReduceInversion;
 	
+	bool kReduceUseInversion; //!< whether to use inversion symmetry to reduce k-point mesh
 	bool shouldPrintMatrices;
 	
 	void calcSymmetries(); //!< Calculate symmetries of the entire system
