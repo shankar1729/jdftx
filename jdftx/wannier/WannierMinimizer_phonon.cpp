@@ -140,8 +140,19 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	if(mpiWorld->isHead())
 	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
 		writeCellMap(phononCellMap, e.gInfo.R, fname);
+		
+		//Corresponding cell weights:
+		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeightsPh", &iSpin);
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+		for(auto iter: phononCellMap)
+			iter.second.write_real(fp);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
 	}
 	
+
 	//Output phonon cellMapSq:
 	if(mpiWorld->isHead())
 	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh", &iSpin);
@@ -240,15 +251,37 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	mpiWorld->allReduce(nrmTot, MPIUtil::ReduceSum);
 	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
 	
+	//Read quantities required for polar subtraction:
+	std::vector<vector3<>> Zeff; 
+	std::shared_ptr<LongRangeSum> lrs;
+	if (wannier.polar)
+	{	string fnameZeff = wannier.getFilename(Wannier::FilenameInit, "Zeff");
+		logPrintf("\n"); logFlush();
+		Zeff = readArrayVec3(fnameZeff);
+		string fnameEps = wannier.getFilename(Wannier::FilenameInit, "epsInf"); 
+		std::vector<vector3<>> eps = readArrayVec3(fnameEps);
+		matrix3<> epsInf; epsInf.set_rows(eps[0], eps[1], eps[2]);
+		lrs = std::make_shared<LongRangeSum>(e.gInfo.R, epsInf);
+	}
+
 	//Apply Wannier rotations
 	logPrintf("Applying Wannier rotations ... "); logFlush();
 	int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
 	matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
-	for(int iMode=0; iMode<nPhononModes; iMode++)
+	for(int iMode=0; iMode<nPhononModes; iMode++) //in Cartesian atom displacement basis
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 		{	const KpointPair& pair = kpointPairs[iPair];
 			matrix& phononHsubCur = phononHsub[iMode][iPair]; //in Bloch basis
 			phononHsubCur = (dagger(kMesh[pair.ik1].U) * phononHsubCur * kMesh[pair.ik2].U); //apply Wannier rotations
+			//Subtract polar part in wannier-rotated version
+			if(wannier.polar)
+			{	vector3<> q = kMesh[pair.ik1].point.k - kMesh[pair.ik2].point.k;
+				complex gLij =  complex(0,1)
+					* ((4*M_PI) * invsqrtM[iMode] / (e.gInfo.detR * prodPhononSup))
+					*  (*lrs)(q, Zeff[iMode]);
+				for(int b=0; b<nCenters; b++)   
+					phononHsubCur.data()[phononHsubCur.index(b,b)] -= gLij; //diagonal correction
+			}
 			callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
 				phononHsubCur.dataPref(), phononHsubCur.nData());
 		}

@@ -83,6 +83,9 @@ std::map<vector3<int>, class matrix> getCellMap(const matrix3<>& R, const matrix
 //! Write cell map to file
 void writeCellMap(const std::map<vector3<int>, class matrix>& iCellMap, const matrix3<>& R, string fname);
 
+//! Read an array of vector3<> from a plain text file, useful for reading in cellMap files
+std::vector<vector3<>> readArrayVec3(string fname);
+
 //Helper function for PeriodicLookup< vector3<> > used in Supercell::Supercell
 inline vector3<> getCoord(const vector3<>& pos) { return pos; }
 

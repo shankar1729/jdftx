@@ -200,5 +200,45 @@ private:
 	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 };
 
+
+//! Long range sum over G-vectors used for polar corrections
+class LongRangeSum
+{
+	const matrix3<> G, GGT, epsInfLat;
+	const double alphaInvBy4;
+	vector3<int> iGbox;
+public:
+	LongRangeSum(const matrix3<>& R, const matrix3<>& epsInf, const double alpha=0.1)
+	: G(2*M_PI*inv(R)), GGT(G*(~G)),
+		epsInfLat(G * epsInf * (~G)),
+		alphaInvBy4(0.25/alpha)
+	{	//Initialize sample counts
+		const double Gmax = 12.*sqrt(alpha); //such that exp(-Gmax^2/(4 alpha)) < 1e-16
+		for(int i=0; i<3; i++)
+			iGbox[i] = int(Gmax*R.column(i).length()/(2*M_PI)) + 2; //margin to account for q
+	}
+	
+	inline double operator()(const vector3<>& q, const vector3<>& Zeff)
+	{	//Wrap q to fundamental zone
+		vector3<> qBZ = q;
+		for(int iDir=0; iDir<3; iDir++)
+			qBZ[iDir] -= floor(qBZ[iDir] + 0.5);
+		//Convert Z to lattice coordinates:
+		vector3<> ZeffLat = G * Zeff;
+		//Loop over G-vectors:
+		double result = 0.;
+		vector3<int> iG;
+		for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
+		for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
+		for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
+		{	vector3<> iGq = iG + qBZ;
+			double expFac = alphaInvBy4 * GGT.metric_length_squared(iGq);
+			if(expFac > 1e-12 and expFac < 36.) //i.e. G != 0 and gaussian non-zero at double precision
+				result += exp(-expFac) * dot(ZeffLat, iGq) / epsInfLat.metric_length_squared(iGq);
+		}
+		return result;
+	}
+};
+
 //! @}
 #endif // JDFTX_WANNIER_WANNIERMINIMIZER_H

@@ -41,6 +41,7 @@ enum WannierMember
 	WM_rSmooth,
 	WM_wrapWignerSeitz,
 	WM_spinMode,
+	WM_polar,
 	WM_delim
 };
 
@@ -63,7 +64,8 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_phononSup, "phononSupercell",
 	WM_rSmooth, "rSmooth",
 	WM_wrapWignerSeitz, "wrapWignerSeitz",
-	WM_spinMode, "spinMode"
+	WM_spinMode, "spinMode",
+	WM_polar, "polar"
 );
 
 EnumStringMap<Wannier::LocalizationMeasure> localizationMeasureMap
@@ -167,7 +169,12 @@ struct CommandWannier : public Command
 			"\n+ spinMode" + spinModeMap.optionList() + "\n\n"
 			"   If Up or Dn, only generate Wannier functions for that spin channel, allowing\n"
 			"   different input files for each channel (independent centers, windows etc.).\n"
-			"   Default: All, generate for all spin channels (only valid option for spintype != z-spin).";
+			"   Default: All, generate for all spin channels (only valid option for spintype != z-spin).\n"
+			"\n+ polar" + boolMap.optionList() + "\n\n"
+			"   Whether to include polar contribution subtractions in electron-phonon matrix elements.\n"
+			"   Requires files 'totalE.Zeff' containing Born effective charges and 'totalE.epsInf'\n"
+			"   containing optical dielectric tensor computed externally.\n"
+			"   Default: false.";
 		
 		require("spintype");
 	}
@@ -252,6 +259,9 @@ struct CommandWannier : public Command
 					if(e.eInfo.spinType!=SpinZ && wannier.spinMode!=Wannier::SpinAll)
 						throw string("<spinMode> must be All for spintype != z-spin");
 					break;
+				case WM_polar:
+					pl.get(wannier.polar, false, boolMap, "polar", true);
+					break;
 				case WM_delim: //should never be encountered
 					break;
 			}
@@ -291,6 +301,7 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\trSmooth %lg", wannier.rSmooth);
 		logPrintf(" \\\n\twrapWignerSeitz %s", boolMap.getString(wannier.wrapWS));
 		logPrintf(" \\\n\tspinMode %s", spinModeMap.getString(wannier.spinMode));
+		logPrintf(" \\\n\tpolar %s", boolMap.getString(wannier.polar));
 	}
 }
 commandWannier;
