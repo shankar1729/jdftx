@@ -122,8 +122,16 @@ protected:
 	GridInfo gInfoSuper; //!< supercell grid
 	Basis basisSuper; //!< supercell wavefcuntion basis
 	QuantumNumber qnumSuper; //!< supercell k-point
+	
+	//Phonon related:
+	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
+	std::map<vector3<int>,matrix> phononCellMap, ePhCellMap; //phonon and e-ph cell maps
 	int nPhononModes; //!< number of phonon modes
 	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
+	int prodPhononSup; //number of unit cells in phonon supercell
+	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
+	std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
+	int iPairStart, iPairStop; //MPI division for working on kpoint pairs during phonon processing
 	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
@@ -152,25 +160,44 @@ protected:
 	//! Gradient propagation corresponding to axpyWfns: from dOmega/d(result) to dOmega/dA
 	void axpyWfns_grad(double alpha, matrix& Omega_A, const Kpoint& kpoint, int iSpin, const ColumnBundle& Omega_result) const;
 	
-	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
-	ColumnBundle trialWfns(const Kpoint& kpoint) const;
-	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
-	
 	//! Overlap between columnbundles of different k-points, with appropriate ultrasoft augmentation.
 	//! Note that the augmentation in the O() from electronic/ColumnBundle.h assumes both sides have same k-point.
 	//! If provided, use the cached projections instead of recomputing them.
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2, const std::vector<matrix>* VdagC1ptr=0, const std::vector<matrix>* VdagC2ptr=0) const;
 	
-	//! Wannierize and dump a Bloch-space matrix to file, optionally zeroing out the real parts
-	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
-		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
+	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
+	virtual WannierGradient precondition(const WannierGradient& grad);
+
+private:
+
+	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
+	ColumnBundle trialWfns(const Kpoint& kpoint) const;
+	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
 	
 	//! Return an exactly unitary version of U (orthogonalize columns)
 	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
 	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
 	
-	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
-	virtual WannierGradient precondition(const WannierGradient& grad);
+	//! Load / compute rotations for a given spin channel (used by saveMLWF)
+	void initRotations(int iSpin);
+	
+	//! Wannierize and dump a Bloch-space matrix to file, optionally zeroing out the real parts
+	void dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
+		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
+	
+	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
+	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)
+	bool realPartOnly; //whether outputs should have only real part
+	std::vector<vector3<>> xExpect; //converged wannier centers in lattice coordinates
+	std::map<vector3<int>,matrix> iCellMap; //cell map for wannier output accounting for xExpect
+	std::vector<matrix> pBlochMesh; //momentum matix elements in Bloch basis
+	void saveMLWF_C(int iSpin); //Wavefunctions
+	void saveMLWF_H(int iSpin, const matrix& phase); //Hamiltonian
+	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
+	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
+	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
+	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
+	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 };
 
 //! @}

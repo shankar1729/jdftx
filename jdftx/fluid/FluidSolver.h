@@ -73,7 +73,7 @@ struct FluidSolver
 		std::vector<complex> prefactor; //!< frequency-dependent prefactor
 	};
 	//! Get susceptibility for a list of specified (complex) frequencies
-	void getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde) const;
+	void getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde, bool elecOnly) const;
 
 	virtual double bulkPotential() {return 0.0;}
 
@@ -109,7 +109,7 @@ protected:
 	virtual double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const =0;
 	
 	//! Fluid-dependent implementation of getSusceptibility()
-	virtual void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const;
+	virtual void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const;
 };
 
 //! Create and return a JDFTx solver (the solver can be freed using delete)

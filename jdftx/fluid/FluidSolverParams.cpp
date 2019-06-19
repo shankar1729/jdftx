@@ -365,6 +365,9 @@ void FluidSolverParams::setPCMparams()
 				}
 			}
 		}
+		case PCM_FixedCavity:
+		{	//no default parameters
+		}
 		case_PCM_SCCS_any:
 		{	if(fluidType != FluidLinearPCM) initWarnings += "WARNING: SCCS has only been parametrized for LinearPCM.\n";
 			if(solvents[0]->name != FluidComponent::H2O)

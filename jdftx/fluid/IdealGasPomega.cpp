@@ -68,7 +68,10 @@ void IdealGasPomega::initState(const ScalarField* Vex, ScalarField* indep, doubl
 		initState_o(o, rot, scale, Emolecule, indep);
 	}
 	//MPI collect:
-	for(int k=0; k<nIndep; k++) { nullToZero(indep[k],gInfo); indep[k]->allReduce(MPIUtil::ReduceSum); }
+	for(int k=0; k<nIndep; k++)
+	{	nullToZero(indep[k],gInfo);
+		indep[k]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
 	mpiWorld->allReduce(Emin, MPIUtil::ReduceMin);
 	mpiWorld->allReduce(Emax, MPIUtil::ReduceMax);
 	mpiWorld->allReduce(Emean, MPIUtil::ReduceSum);
@@ -97,9 +100,9 @@ void IdealGasPomega::getDensities(const ScalarField* indep, ScalarField* N, vect
 		if(pMol.length_squared()) P += (rot * pMol) * N_o;
 	}
 	//MPI collect:
-	for(unsigned i=0; i<molecule.sites.size(); i++) { nullToZero(N[i],gInfo); N[i]->allReduce(MPIUtil::ReduceSum); }
+	for(unsigned i=0; i<molecule.sites.size(); i++) { nullToZero(N[i],gInfo); N[i]->allReduceData(mpiWorld, MPIUtil::ReduceSum); }
 	mpiWorld->allReduce(S, MPIUtil::ReduceSum);
-	if(pMol.length_squared()) for(int k=0; k<3; k++) { nullToZero(P[k],gInfo); P[k]->allReduce(MPIUtil::ReduceSum); }
+	if(pMol.length_squared()) for(int k=0; k<3; k++) { nullToZero(P[k],gInfo); P[k]->allReduceData(mpiWorld, MPIUtil::ReduceSum); }
 	//Compute and cache dipole correlation correction:
 	IdealGasPomega* cache = ((IdealGasPomega*)this);
 	if(pMol.length_squared())
@@ -151,6 +154,6 @@ void IdealGasPomega::convertGradients(const ScalarField* indep, const ScalarFiel
 		//Propagate Phi_N_o to Phi_logPomega_o and then to Phi_indep:
 		convertGradients_o(o, rot, N_o*Phi_N_o, Phi_indep);
 	}
-	for(int k=0; k<nIndep; k++) { nullToZero(Phi_indep[k],gInfo); Phi_indep[k]->allReduce(MPIUtil::ReduceSum); }
+	for(int k=0; k<nIndep; k++) { nullToZero(Phi_indep[k],gInfo); Phi_indep[k]->allReduceData(mpiWorld, MPIUtil::ReduceSum); }
 }
 

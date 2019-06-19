@@ -95,7 +95,7 @@ void WannierMinimizer::bcastU()
 	for(KmeshEntry& ki: kMesh)
 		if(ki.mpi)
 		{	MPIUtil::Request request;
-			ki.mpi->bcast(ki.U.data(), ki.U.nData(), 0, &request); 
+			ki.mpi->bcastData(ki.U, 0, &request); 
 			requests.push_back(request);
 		}
 	MPIUtil::waitAll(requests);
@@ -116,7 +116,7 @@ double WannierMinimizer::compute(WannierGradient* grad, WannierGradient* Kgrad)
 		for(KmeshEntry& ki: kMesh)
 			if(ki.mpi)
 			{	MPIUtil::Request request;
-				ki.mpi->reduce(ki.Omega_UdotU.data(), ki.Omega_UdotU.nData(), MPIUtil::ReduceSum, 0, &request); //Collect Omega_U
+				ki.mpi->reduceData(ki.Omega_UdotU, MPIUtil::ReduceSum, 0, &request); //Collect Omega_U
 				requests.push_back(request);
 			}
 		MPIUtil::waitAll(requests);
@@ -384,4 +384,55 @@ matrix WannierMinimizer::overlap(const ColumnBundle& C1, const ColumnBundle& C2,
 	}
 	watch.stop();
 	return ret;
+}
+
+void WannierMinimizer::dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
+	const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const
+{
+	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	FILE* fp = 0; auto cmIter = iCellMap.begin();
+	if(mpiWorld->isHead())
+	{	fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+	}
+	//Determine block size:
+	int nCells = iCellMap.size();
+	int blockSize = ceildiv(nCells, mpiWorld->nProcesses()); //so that memory before and after FT roughly similar
+	int nBlocks = ceildiv(nCells, blockSize);
+	//Loop over blocks:
+	int iCellStart = 0;
+	double nrm2totSq = 0., nrm2imSq = 0.;
+	for(int iBlock=0; iBlock<nBlocks; iBlock++)
+	{	int iCellStop = std::min(iCellStart+blockSize, nCells);
+		matrix Hblock = Htilde * phase(0,phase.nRows(), iCellStart,iCellStop);
+		mpiWorld->reduceData(Hblock, MPIUtil::ReduceSum);
+		if(mpiWorld->isHead())
+		{	//Apply cell map weights:
+			complex* Hdata = Hblock.dataPref();
+			for(int iCell=iCellStart; iCell<iCellStop; iCell++)
+			{	const matrix& w = (cmIter++)->second;
+				for(int iMatrix=0; iMatrix<nMatrices; iMatrix++)
+				{	callPref(eblas_zmul)(w.nData(), w.dataPref(),1, Hdata,1);
+					Hdata += w.nData();
+				}
+			}
+			//Write to file:
+			if(realPartOnly)
+			{	nrm2totSq += std::pow(nrm2(Hblock), 2); 
+				nrm2imSq += std::pow(callPref(eblas_dnrm2)(Hblock.nData(), ((double*)Hblock.dataPref())+1, 2), 2); //imaginary parts with a stride of 2
+				Hblock.write_real(fp);
+			}
+			else Hblock.write(fp);
+		}
+		iCellStart = iCellStop;
+	}
+	if(mpiWorld->isHead()) fclose(fp);
+	if(realPartOnly)
+	{	mpiWorld->bcast(nrm2totSq);
+		mpiWorld->bcast(nrm2imSq);
+		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+	}
+	else
+		logPrintf("done.\n");
 }

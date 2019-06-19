@@ -226,7 +226,8 @@ void ElecVars::setup(const Everything &everything)
 		
 		//Orthogonalize initial wavefunctions:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	C[q] = C[q] * invsqrt(C[q]^O(C[q]));
+		{	matrix CdagOC = C[q] ^ O(C[q]);
+			C[q] = C[q] * invsqrt(CdagOC);
 			iInfo.project(C[q], VdagC[q]);
 		}
 	}
@@ -304,7 +305,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 
 		//Net electric charge:
 		ScalarFieldTilde rhoExplicitTilde = nTilde + iInfo.rhoIon + rhoExternal;
-		if(!fluidSolver->k2factor) rhoExplicitTilde->setGzero(0.); //No screening => apply neutralizing background charge
 		fluidSolver->set(rhoExplicitTilde, nCavityTilde);
 		// If the fluid doesn't have a gummel loop, minimize it each time:
 		if(!fluidSolver->useGummel()) fluidSolver->minimizeFluid();
@@ -348,10 +348,10 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 		{	ener.E["Eexternal"] += e->gInfo.dV * dot(n[s], Vexternal[s]);
 			Vscloc[s] += JdagOJ(Vexternal[s]);
 		}
-		e->symm.symmetrize(Vscloc[s]);
 		if(VtauTilde) Vtau[s] += I(VtauTilde);
-		if(Vtau[s]) e->symm.symmetrize(Vtau[s]);
 	}
+	e->symm.symmetrize(Vscloc);
+	if(Vtau[0]) e->symm.symmetrize(Vtau);
 	watch.stop();
 }
 
@@ -550,13 +550,14 @@ ScalarFieldArray ElecVars::KEdensity() const
 			tau += (0.5*C[q].qnum->weight) * diagouterI(F[q], D(C[q],iDir), tau.size(), &e->gInfo);
 	for(ScalarField& tau_s: tau)
 	{	nullToZero(tau_s, e->gInfo);
-		e->symm.symmetrize(tau_s); //Symmetrize
-		tau_s->allReduce(MPIUtil::ReduceSum);
+		tau_s->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
+	e->symm.symmetrize(tau); //Symmetrize
 	//Add core KE density model:
 	if(e->iInfo.tauCore)
-	{	for(unsigned s=0; s<tau.size(); s++)
-			tau[s] += (1.0/tau.size()) * e->iInfo.tauCore; //add core KE density
+	{	int nSpins = std::min(2, int(tau.size())); //don't add to Re/Im(UpDn) in vector-spin mode
+		for(int s=0; s<nSpins; s++)
+			tau[s] += (1./nSpins) * e->iInfo.tauCore; //add core KE density
 	}
 	return tau;
 }
@@ -570,12 +571,11 @@ ScalarFieldArray ElecVars::calcDensity() const
 		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
-	
 	for(ScalarField& ns: density)
 	{	nullToZero(ns, e->gInfo);
-		e->symm.symmetrize(ns); //Symmetrize
-		ns->allReduce(MPIUtil::ReduceSum);
+		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
+	e->symm.symmetrize(density);
 	return density;
 }
 

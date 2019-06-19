@@ -84,19 +84,6 @@ namespace ShapeFunctionSCCS
 	void propagateGradient(const ScalarField& n, const ScalarField& E_shape, ScalarField& E_n, double rhoMin, double rhoMax, double epsBulk);
 }
 
-
-//! Model frequency dependence of susceptibility:
-inline std::vector<complex> getChiPrefactor(const std::vector<complex>& omegaArr,
-	double chi0nuc, double chi0el, double tauNuc, double omegaEl, double gammaEl)
-{
-	std::vector<complex> result; result.reserve(omegaArr.size());
-	double omegaElSq = omegaEl * omegaEl;
-	for(const complex& omega: omegaArr)
-		result.push_back( complex(chi0nuc)/(1. - complex(0,tauNuc)*omega)
-			+ complex(chi0el*omegaElSq)/(omegaElSq - omega*(omega + complex(0,gammaEl))) );
-	return result;
-}
-
 #endif
 
 

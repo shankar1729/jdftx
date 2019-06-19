@@ -229,7 +229,7 @@ void BGW::writeVxc() const
 			{	int q=iSpin*nReducedKpts+ik;
 				if(!eInfo.isMine(q))
 				{	VxcSub[q] = zeroes(nBands, nBands);
-					VxcSub[q].recv(eInfo.whose(q), q);
+					mpiWorld->recvData(VxcSub[q], eInfo.whose(q), q);
 				}
 				//Diagonal elements:
 				for(int b=0; b<nBands; b++)
@@ -251,7 +251,7 @@ void BGW::writeVxc() const
 	else //send ones tored on other processes to head
 	{	for(int q=0; q<eInfo.nStates; q++)
 			if(eInfo.isMine(q))
-				VxcSub[q].send(0, q);
+				mpiWorld->sendData(VxcSub[q], 0, q);
 	}
 	logPrintf("Done.\n");
 }
@@ -322,6 +322,7 @@ inline void initYlmAndWeights(const  vector3<>& q, const std::vector<vector3<int
 //Write fluid polarizability
 void BGW::writeChiFluid(bool write_q0) const
 {	assert(eVars.fluidSolver); //should only be called in solvated cases
+	if((not write_q0) and k.size()==1) return; //only q0 present, so nothing to do
 	
 	//Open file and write common header:
 	hid_t fid = openHDF5(e.dump.getFilename(write_q0 ? "bgw.chi0Fluid.h5" : "bgw.chiFluid.h5"));
@@ -469,7 +470,7 @@ void BGW::writeChiFluid(bool write_q0) const
 	//--- Get susceptibility description from fluidSolver:
 	std::vector<FluidSolver::SusceptibilityTerm> susceptibility;
 	ScalarFieldTildeArray sTilde;
-	e.eVars.fluidSolver->getSusceptibility(freq, susceptibility, sTilde);
+	e.eVars.fluidSolver->getSusceptibility(freq, susceptibility, sTilde, bgwp.elecOnly);
 	std::vector<const complex*> sTildeData; for(ScalarFieldTilde& sT: sTilde) sTildeData.push_back(sT->data());
 	//--- create dataset:
 	hid_t gidMats = h5createGroup(fid, "mats");
@@ -499,7 +500,7 @@ void BGW::writeChiFluid(bool write_q0) const
 				{	int iRow = rowStart + iRowMine;
 					if(iRow >= nBasis[iq]) continue;
 					//Determine index into shape arrays:
-					vector3<int> iGdiff = iGarr[iq][iRow] - iGarr[iq][iCol];
+					vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow];
 					for(int dir=0; dir<3; dir++)
 						iGdiff[dir] = positiveRemainder(iGdiff[dir], gInfo.S[dir]); //wrap positive
 					bool conj = false;
@@ -594,7 +595,7 @@ void BGW::writeHeaderMF(hid_t fid) const
 			ifmax[q] = b+1;
 		}
 	}
-	mpiWorld->allReduce(ifmax.data(), ifmax.size(), MPIUtil::ReduceMax);
+	mpiWorld->allReduceData(ifmax, MPIUtil::ReduceMax);
 	hsize_t dimsKspin[2] = { hsize_t(nSpins), hsize_t(nReducedKpts) };
 	h5writeVector(gidKpts, "ifmin", ifmin.data(), dimsKspin, 2);
 	h5writeVector(gidKpts, "ifmax", ifmax.data(), dimsKspin, 2);
@@ -611,8 +612,8 @@ void BGW::writeHeaderMF(hid_t fid) const
 	for(int q=0; q<eInfo.nStates; q++)
 	{	diagMatrix Ecur(nBands), Fcur(nBands);
 		if(eInfo.isMine(q)) { Ecur = E[q]*(1./Ryd); Fcur = F[q]; }
-		Ecur.bcast(eInfo.whose(q)); Eall.insert(Eall.end(), Ecur.begin(), Ecur.end());
-		Fcur.bcast(eInfo.whose(q)); Fall.insert(Fall.end(), Fcur.begin(), Fcur.end());
+		mpiWorld->bcastData(Ecur, eInfo.whose(q)); Eall.insert(Eall.end(), Ecur.begin(), Ecur.end());
+		mpiWorld->bcastData(Fcur, eInfo.whose(q)); Fall.insert(Fall.end(), Fcur.begin(), Fcur.end());
 	}
 	hsize_t dimsKspinBands[3] = { hsize_t(nSpins), hsize_t(nReducedKpts), hsize_t(nBands) };
 	h5writeVector(gidKpts, "el", Eall.data(), dimsKspinBands, 3);
@@ -997,7 +998,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 						VxcCur = Vxc(0,jEigRowsMine.size(), 0,jEigColsMine.size()); //local
 					else
 					{	VxcCur.init(jEigRowsMine.size(), jEigColsMine.size());
-						VxcCur.recv(jProcess);
+						mpiWorld->recvData(VxcCur, jProcess, 0);
 					}
 					//Distribute to full matrix:
 					const complex* inData = VxcCur.data();
@@ -1009,7 +1010,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		else
 		{	std::vector<int> iEigRowsMine = distributedIndices(nEigs, blockSize, iProcRow, nProcsRow);
 			if(iEigRowsMine.size() and iEigColsMine.size())
-				matrix(Vxc(0,iEigRowsMine.size(), 0,iEigColsMine.size())).send(eInfo.whose(q));
+				mpiWorld->sendData(matrix(Vxc(0,iEigRowsMine.size(), 0,iEigColsMine.size())), eInfo.whose(q), 0);
 		}
 		watchVxc.stop();
 	}

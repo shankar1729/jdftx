@@ -22,24 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/SphericalHarmonics.h>
 
-//Thread function for setting fourier transform of z-slice of half-width zH centered at z0 with smoothness zSigma:
-inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
-	complex* w, double z0, double zH, double zSigma)
-{	double prefac = 2*zH; //= average value of weight in unit cell
-	THREAD_halfGspaceLoop
-	(	int iGsq = iG.length_squared();
-		int iGz = iG[2];
-		if(iGsq == iGz * iGz) // => iG || z (Cauchy-Schwarz)
-		{	double GzH = (2*M_PI) * fabs(zH * iGz);
-			double GzSigma = zSigma * sqrt(GGT.metric_length_squared(iG));
-			w[i] = prefac * bessel_jl(0,GzH) //norm and width
-				* cis(-(2.*M_PI)*iGz*z0) //translate
-				* exp(-0.5*GzSigma*GzSigma); //Gauss smoothing
-		}
-		else w[i] = 0.;
-	)
-}
-
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin: wannier.iSpinArr)
 	{	logPrintf("\n");
@@ -49,262 +31,8 @@ void WannierMinimizer::saveMLWF()
 
 void WannierMinimizer::saveMLWF(int iSpin)
 {	
-	//Load initial rotations if necessary:
-	bool rotationsLoaded = false;
-	if(wannier.loadRotations)
-	{	//Read U
-		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfU", &iSpin);
-		if(fileSize(fname.c_str()) > 0)
-		{	logPrintf("Reading initial rotations from '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "r");
-			if(!fp) die("could not open '%s' for reading.\n", fname.c_str());
-			for(auto& ke: kMesh)
-			{	ke.U.init(nBands, nCenters);
-				ke.U.read(fp);
-			}
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-			logPrintf("NOTE: ignoring trial orbitals since we are resuming a previous WannierMinimize.\n");
-			rotationsLoaded = true;
-		}
-		else
-		{	logPrintf("NOTE: no initial rotations in '%s'; using trial orbitals for first run.\n", fname.c_str());
-			logFlush();
-		}
-	}
-	
-	//Load frozen rotations if necessary:
-	std::vector<matrix> Ufrozen(kMesh.size());
-	if(nFrozen)
-	{	//Read U
-		logPrintf("Reading frozen rotations from '%s' ... ", wannier.frozenUfilename.c_str()); logFlush();
-		FILE* fp = fopen(wannier.frozenUfilename.c_str(), "r");
-		if(!fp) die("could not open '%s' for reading.\n", wannier.frozenUfilename.c_str());
-		for(size_t ik=0; ik<kMesh.size(); ik++)
-		{	Ufrozen[ik].init(nBands, nFrozen);
-			Ufrozen[ik].read(fp);
-		}
-		fread(rPinned.data(), sizeof(vector3<>), nFrozen, fp);
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	
-	//Compute / check the initial rotations:
-	ostringstream ossErr;
-	for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
-	{	KmeshEntry& ke = kMesh[ik];
-		string kString;
-		{	ostringstream kOss;
-			kOss << " at k = [ " << ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
-			kString = kOss.str();
-		}
-		//Band ranges:
-		int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
-		const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
-		if(wannier.outerWindow)
-		{	bStart = 0;
-			while(bStart<nBands && eigs[bStart]<wannier.eOuterMin)
-				bStart++;
-			bStop = bStart;
-			while(bStop<nBands && eigs[bStop]<=wannier.eOuterMax)
-				bStop++;
-			if(bStop-bStart < nCenters)
-			{	ossErr << "Number of bands within outer window = " << bStop-bStart
-					<< " less than nCenters = " << nCenters << kString;
-				break;
-			}
-			//Optionally range for inner window:
-			if(wannier.innerWindow)
-			{	bFixedStart = bStart;
-				while(bFixedStart<bStop && eigs[bFixedStart]<wannier.eInnerMin)
-					bFixedStart++;
-				bFixedStop = bFixedStart;
-				while(bFixedStop<bStop && eigs[bFixedStop]<=wannier.eInnerMax)
-					bFixedStop++;
-				if(bFixedStop-bFixedStart > nCenters)
-				{	ossErr << "Number of bands within inner window = " << bFixedStop-bFixedStart
-						<< " exceeds nCenters = " << nCenters << kString;
-					break;
-				}
-			}
-			else bFixedStart = bFixedStop = bStart; //fixed interval is empty
-		}
-		else //fixed bands
-		{	bFixedStart = bStart = wannier.bStart;
-			bFixedStop  = bStop  = wannier.bStart + nCenters;
-		}
-		
-		//Check compatibility of frozen window with band range:
-		if(nFrozen)
-		{	const double tol = 1e-6 * nFrozen;
-			if( (bFixedStart>0 && nrm2(Ufrozen[ik](0,bFixedStart, 0,nFrozen)) > tol)
-			 || (bFixedStop<nBands && nrm2(Ufrozen[ik](bFixedStop,nBands, 0,nFrozen)) > tol) )
-			{	ossErr << "Frozen rotations are incompatible with current outer window" << kString;
-				break;
-			}
-		}
-		
-		//Initial rotation of bands to get to Wannier subspace:
-		ke.nFixed = bFixedStop - bFixedStart;
-		int nFree = nCenters - ke.nFixed;
-		ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace
-		const double tol = 1e-6 * nCenters; //tolerance for checking unitarity etc.
-		//--- Create fixed part of U1 (if any):
-		ke.U1 = zeroes(nBands, ke.nIn);
-		if(ke.nFixed > 0)
-		{	matrix U1fixed = eye(ke.nFixed);
-			if(nFrozen)
-			{	if(ke.nFixed < nFrozen)
-				{	ossErr << "Number of bands within " << (wannier.innerWindow ? "inner window" : "fixed band range")
-						<< " = " << bStop-bStart << " less than nFrozen = " << nFrozen << kString;
-					break;
-				}
-				//Rotate the fixed subspace so that the frozen centers come first:
-				matrix UfrozenNZ = Ufrozen[ik](bFixedStart,bFixedStop, 0,nFrozen); //drop the zero rows (should be zero, else SVD check below will fail)
-				U1fixed.set(0,ke.nFixed, 0,nFrozen, UfrozenNZ);
-				//fill in the null space of UfrozenNZ using an SVD
-				matrix U, Vdag; diagMatrix S;
-				UfrozenNZ.svd(U, S, Vdag);
-				if(nrm2(S(0,nFrozen)-eye(nFrozen))>tol)
-				{	ossErr << "Frozen rotations are incompatible with current outer window" << kString;
-					break;
-				}
-				if(nFrozen<ke.nFixed)
-					U1fixed.set(0,ke.nFixed, nFrozen,ke.nFixed, U(0,ke.nFixed, nFrozen,ke.nFixed));
-			}
-			ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, U1fixed);
-		}
-		if(rotationsLoaded)
-		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nIn x nIn):
-			//--- check unitarity:
-			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol)
-			{	ossErr << "Initial rotations U are not unitary" << kString;
-				break;
-			}
-			//--- check compatibility with frozen rotations:
-			if(nFrozen && nrm2(ke.U(0,nBands, 0,nFrozen) - Ufrozen[ik])>tol)
-			{	ossErr << "Initial rotations U are incompatible with frozen rotations" << kString;
-				break;
-			}
-			//--- determine the free columns of U1:
-			if(nFree > 0)
-			{	matrix U1free = ke.U(bStart,bStop, 0,nCenters);
-				//project out the fixed columns (if any):
-				if(ke.nFixed > 0)
-				{	matrix U1fixed = ke.U1(bStart,bStop, 0,ke.nFixed);
-					U1free -= U1fixed*(dagger(U1fixed) * U1free);
-					//SVD to find the remaining non-null columns:
-					matrix U, Vdag; diagMatrix S;
-					U1free.svd(U, S, Vdag);
-					if(nrm2(S(0,nFree)-eye(nFree))>tol || nrm2(S(nFree,nCenters))>tol)
-					{	ossErr << "Initial rotations are incompatible with current inner window" << kString;
-						break;
-					}
-					U1free = U(0,ke.nIn, 0,nFree); //discard null subspace
-				}
-				ke.U1.set(bStart,bStop, ke.nFixed,nCenters, U1free);
-			}
-			//--- check U1:
-			if(nrm2((dagger(ke.U1) * ke.U1)(0,nCenters, 0,nCenters) - eye(nCenters)) > tol)
-			{	ossErr << "Initial rotations U1 are not unitary" << kString;
-				break;
-			}
-			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
-				|| (bStop<nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
-			{	ossErr << "Initial rotations are incompatible with current outer window / band selection" << kString;
-				break;
-			}
-			//--- calculate and check U2:
-			ke.U2 = eye(ke.nIn);
-			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters,
-				dagger(ke.U1(0,nBands, nFrozen,nCenters)) * ke.U(0,nBands, nFrozen,nCenters));
-			if(nrm2(dagger(ke.U2) * ke.U2 - eye(ke.nIn)) > tol)
-			{	ossErr << "Initial rotations U2 are not unitary" << kString;
-				break;
-			}
-			//--- Compute extra linearly indep columns of U1 (if necessary):
-			if(ke.nIn > nCenters)
-			{	matrix U, Vdag; diagMatrix S;
-				matrix(ke.U1(bStart,bStop, 0,ke.nIn)).svd(U, S, Vdag);
-				ke.U1.set(bStart,bStop, 0,ke.nIn, U*Vdag);
-			}
-		}
-		else
-		{	//Determine from trial orbitals:
-			matrix CdagG = getWfns(ke.point, iSpin) ^ O(trialWfns(ke.point));
-			int nNew = nCenters - nFrozen; //number of new centers
-			//--- Pick up best linear combination of remaining bands (if any)
-			if(nFree > 0)
-			{	//Create overlap matrix with contribution from fixed bands projected out:
-				matrix CdagGFree;
-				if(ke.nFixed > 0)
-				{	//SVD the fixed band contribution to the trial space:
-					matrix U, Vdag; diagMatrix S;
-					matrix(CdagG(bFixedStart,bFixedStop, 0,nNew)).svd(U, S, Vdag);
-					//Project out the fixed bands (use only the zero singular values)
-					CdagGFree = CdagG * dagger(Vdag(nNew-nFree,nNew, 0,nNew));
-				}
-				else CdagGFree = CdagG;
-				//Truncate to non-zero rows:
-				int nLo = bFixedStart-bStart;
-				int nHi = bStop-bFixedStop;
-				int nOuter = nLo+nHi;
-				matrix CdagGFreeNZ = zeroes(nOuter, nOuter);
-				if(nLo>0) CdagGFreeNZ.set(0,nLo, 0,nFree, CdagGFree(bStart,bFixedStart, 0,nFree));
-				if(nHi>0) CdagGFreeNZ.set(nLo,nOuter, 0,nFree, CdagGFree(bFixedStop,bStop, 0,nFree));
-				//SVD to get best linear combinations first:
-				matrix U, Vdag; diagMatrix S;
-				CdagGFreeNZ.svd(U, S, Vdag);
-				//Convert left space from non-zero to all bands:
-				matrix Upad = zeroes(nBands, nOuter);
-				if(nLo>0) Upad.set(bStart,bFixedStart, 0,nOuter, U(0,nLo, 0,nOuter));
-				if(nHi>0) Upad.set(bFixedStop,bStop, 0,nOuter, U(nLo,nOuter, 0,nOuter));
-				//Include this combination in U1:
-				ke.U1.set(0,nBands, ke.nFixed,ke.nIn, Upad * Vdag);
-			}
-			
-			//Optimal initial rotation within Wannier subspace:
-			matrix WdagG = dagger(ke.U1(0,nBands, nFrozen,nCenters)) * CdagG;
-			ke.U2 = eye(ke.nIn);
-			bool isSingular = false;
-			ke.U2.set(nFrozen,nCenters, nFrozen,nCenters, WdagG * invsqrt(dagger(WdagG) * WdagG, 0, 0, &isSingular));
-			if(isSingular)
-			{	ossErr << "Trial orbitals are linearly dependent / do not cover desired subspace" << kString;
-				break;
-			}
-		}
-		//Make initial rotations exactly unitary:
-		bool isSingular = false;
-		ke.U1 = fixUnitary(ke.U1, &isSingular);
-		ke.U2 = fixUnitary(ke.U2, &isSingular);
-		if(isSingular)
-		{	ossErr << "Initial rotations are singular" << kString;
-			break;
-		}
-		ke.U = ke.U1 * ke.U2;
-	}
-	mpiWorld->checkErrors(ossErr);
-	suspendOperatorThreading();
-	
-	//Broadcast initial rotations:
-	for(size_t ik=0; ik<kMesh.size(); ik++)
-	{	KmeshEntry& ke = kMesh[ik];
-		mpiWorld->bcast(ke.nIn, whose_q(ik,iSpin));
-		mpiWorld->bcast(ke.nFixed, whose_q(ik,iSpin));
-		if(!isMine_q(ik,iSpin))
-		{	ke.U1 = zeroes(nBands, ke.nIn);
-			ke.U2 = zeroes(ke.nIn, ke.nIn); //truncated to nCenters x nCenters after minimization
-			ke.U = zeroes(nBands, ke.nIn); //truncated to nBands x nCenters after minimization
-		}
-		ke.U1.bcast(whose_q(ik,iSpin));
-		ke.U2.bcast(whose_q(ik,iSpin));
-		ke.U.bcast(whose_q(ik,iSpin));
-		if(!isMine(ik)) //No longer need sub-matrices on this process
-		{	ke.U1 = matrix();
-			ke.U2 = matrix();
-			if(!ke.mpi) ke.U = matrix(); //No longer need U on this process either
-		}
-	}
+	//Load / compute and broadcast initial rotations:
+	initRotations(iSpin);
 	
 	//Sub-class specific initialization:
 	initialize(iSpin);
@@ -318,14 +46,13 @@ void WannierMinimizer::saveMLWF(int iSpin)
 			ki.U = ki.U(0,nBands, 0,nCenters); //no longer need unitary completion after minimize
 		else
 			ki.U = zeroes(nBands, nCenters);
-		ki.U.bcast(whose(ik));
+		mpiWorld->bcastData(ki.U, whose(ik));
 		if(ki.U2) ki.U2 = ki.U2(0,nCenters, 0,nCenters); //no longer need unitary completion after minimize
 	}
 	double OmegaI = getOmegaI();
 	logPrintf("\nOptimum spread:\n\tOmega:  %.15le\n\tOmegaI: %.15le\n", Omega, OmegaI);
 	
 	//Wrap centers to WS cell (if requested):
-	std::shared_ptr<WignerSeitz> ws;
 	if(wannier.wrapWS)
 	{	logPrintf("\nWrapping wannier centers to Wigner-Seitz cell:\n\t");
 		ws = std::make_shared<WignerSeitz>(e.gInfo.R);
@@ -428,80 +155,19 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 	}
 	
-	bool realPartOnly = !e.eInfo.isNoncollinear(); //cannot save only real part in noncollinear calculations
+	realPartOnly = !e.eInfo.isNoncollinear(); //cannot save only real part in noncollinear calculations
 	
+	//Save wannier wave functions if needed:
 	if(wannier.saveWfns || wannier.saveWfnsRealSpace)
-	{	resumeOperatorThreading();
-		//--- Compute supercell wavefunctions:
-		logPrintf("Computing supercell wavefunctions ... "); logFlush();
-		ColumnBundle Csuper(nCenters, basisSuper.nbasis*nSpinor, &basisSuper, &qnumSuper, isGpuEnabled());
-		Csuper.zero();
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		{	const KmeshEntry& ki = kMesh[i];
-			axpyWfns(ki.point.weight, ki.U, ki.point, iSpin, Csuper);
-		}
-		Csuper.allReduce(MPIUtil::ReduceSum);
-		Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
-		logPrintf("done.\n"); logFlush();
-		
-		//--- Save supercell wavefunctions in reciprocal space:
-		if(mpiWorld->isHead() && wannier.saveWfns)
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfC", &iSpin);
-			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
-			Csuper.write(fname.c_str());
-			logPrintf("done.\n"); logFlush();
-			//Header:
-			fname = fname + ".header";
-			logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "w");
-			fprintf(fp, "%d %lu #nColumns, columnLength\n", nCenters, basisSuper.nbasis);
-			for(int i=0; i<3; i++)
-				for(int j=0; j<3; j++)
-					fprintf(fp, "%.15g ", gInfoSuper.GT(i,j));
-			fprintf(fp, "#GT row-major (G col-major), iGarr follows:\n");
-			for(const vector3<int>& iG: basisSuper.iGarr)
-				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-		}
-		
-		//--- Save supercell wavefunctions in real space:
-		if(mpiWorld->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++) for(int s=0; s<nSpinor; s++)
-		{	//Generate filename
-			ostringstream varName;
-			varName << (nSpinor*n+s) << ".mlwf";
-			string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
-			logPrintf("Dumping '%s':\n", fname.c_str());
-			//Convert to real space and optionally remove phase:
-			complexScalarField psi = I(Csuper.getColumn(n,s));
-			if(qnumSuper.k.length_squared() > symmThresholdSq)
-				multiplyBlochPhase(psi, qnumSuper.k);
-			if(realPartOnly)
-			{	complex* psiData = psi->data();
-				double meanPhase, sigmaPhase, rmsImagErr;
-				removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
-				logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
-				logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
-				logFlush();
-				//Write real part of supercell wavefunction to file:
-				FILE* fp = fopen(fname.c_str(), "wb");
-				if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
-				for(int i=0; i<gInfoSuper.nr; i++)
-					fwriteLE(psiData+i, sizeof(double), 1, fp);
-				fclose(fp);
-			}
-			else saveRawBinary(psi, fname.c_str());
-		}
-		suspendOperatorThreading();
-	}
+		saveMLWF_C(iSpin);
 	
 	//Initialize cell map (for matrix element output):
 	//--- get wannier centers in lattice coordinates:
-	std::vector<vector3<>> xExpect;
+	xExpect.clear();
 	for(vector3<> r: rExpect)
 		xExpect.push_back(e.gInfo.invR * r);
 	//--- get cell map with weights based on these center positions:
-	std::map<vector3<int>,matrix> iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
+	iCellMap = getCellMap(e.gInfo.R, gInfoSuper.R, e.coulombParams.isTruncated(),
 		xExpect, xExpect, wannier.rSmooth, wannier.getFilename(Wannier::FilenameDump, "mlwfCellMap", &iSpin));
 	//--- output cell map weights:
 	if(mpiWorld->isHead())
@@ -515,486 +181,317 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 	}
 	
-	//Save Hamiltonian in Wannier basis:
+	//Compute Fourier transform phase (common to all electronic k-mesh outputs below):
 	int nqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		nqMine++;
 	nqMine = std::max(nqMine,1); //avoid zero size matrices below
 	matrix phase = zeroes(nqMine, iCellMap.size());
-	{	matrix HwannierTilde = zeroes(nCenters*nCenters, nqMine);
-		int iqMine = 0;
+	{	int iqMine = 0;
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		{	//Apply MLWF-optimized unitary rotations to Hamiltonian at current k:
-			matrix Hsub = dagger(kMesh[i].U) * e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
-			callPref(eblas_copy)(HwannierTilde.dataPref()+HwannierTilde.index(0,iqMine), Hsub.dataPref(), Hsub.nData());
-			//Calculate required phases:
-			int iCell = 0;
+		{	int iCell = 0;
 			for(auto cell: iCellMap)
 				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(-2*M_PI*dot(kMesh[i].point.k, cell.first)));
 			iqMine++;
 		}
-		//Fourier transform to Wannier space and save
-		dumpWannierized(HwannierTilde, iCellMap, phase, 1, "mlwfH", realPartOnly, iSpin);
 	}
 	resumeOperatorThreading();
 	
-	//Save momenta in Wannier basis:
-	if(wannier.saveMomenta)
-	{	//--- compute momentum matrix elements of Bloch states:
-		std::vector< std::vector<matrix> > pBloch(3, std::vector<matrix>(e.eInfo.nStates));
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(e.eInfo.qnums[q].index()==iSpin)
-				for(int iDir=0; iDir<3; iDir++)
-					pBloch[iDir][q] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
-		//--- convert to Wannier basis:
-		matrix pWannierTilde = zeroes(nCenters*nCenters*3, nqMine);
-		int iqMine = 0;
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		{	matrix pSub(nCenters*nCenters, 3);
-			for(int iDir=0; iDir<3; iDir++)
-			{	matrix pSubDir = pBloch[iDir][kMesh[i].point.iReduced + iSpin*qCount];
-				if(kMesh[i].point.invert<0) //apply complex conjugate:
-					callPref(eblas_dscal)(pSubDir.nData(), -1., ((double*)pSubDir.dataPref())+1, 2);
-				pSubDir = dagger(kMesh[i].U) * pSubDir * kMesh[i].U; //apply MLWF-optimized rotations
-				callPref(eblas_copy)(pSub.dataPref()+pSub.index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
-			}
-			//Store with spatial transformation:
-			matrix rot(inv(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR)); //cartesian symmetry matrix
-			pSub = pSub * dagger(rot);
-			callPref(eblas_copy)(pWannierTilde.dataPref()+pWannierTilde.index(0,iqMine), pSub.dataPref(), pSub.nData());
-			iqMine++;
-		}
-		//Fourier transform to Wannier space and save
-		dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
-	}
+	//Electronic k-mesh outputs:
+	bool savePhonon = wannier.phononSup.length_squared();
+	saveMLWF_H(iSpin, phase); //Hamiltonian
+	if(wannier.saveMomenta or savePhonon) saveMLWF_P(iSpin, phase); //Momenta
+	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
+	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	
-	//Save slab-weight matrix elements in Wannier basis, if requested:
-	if(wannier.zH)
-	{	//Construct slab weight function:
-		ScalarField w;
-		{	ScalarFieldTilde wTilde; nullToZero(wTilde, e.gInfo);
-			threadLaunch(slabWeight_thread, e.gInfo.nG, e.gInfo.S, e.gInfo.GGT,
-				wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
-			w = I(wTilde);
-		}
-		//Compute slab-weight matrix elements of Bloch states:
-		std::vector<matrix> wBloch(e.eInfo.nStates);
-		ScalarFieldArray JdagOJw(1, JdagOJ(w));
-		e.iInfo.augmentDensityGridGrad(JdagOJw);
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(e.eInfo.qnums[q].index()==iSpin)
-			{	//Direct contributions from bands:
-				const ColumnBundle& Cq = e.eVars.C[q];
-				wBloch[q] = Cq ^ Idag_DiagV_I(Cq, JdagOJw);
-				//Ultrasoft augmentation:
-				const std::vector<matrix>& VdagCq = e.eVars.VdagC[q];
-				std::vector<matrix> wVdagCq(e.iInfo.species.size());
-				const QuantumNumber& qnum = e.eInfo.qnums[q];
-				e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);
-				for(size_t sp=0; sp<VdagCq.size(); sp++)
-					if(wVdagCq[sp])
-						wBloch[q] += dagger(VdagCq[sp]) * wVdagCq[sp];
-			}
-		//Convert to Wannier basis:
-		matrix wWannierTilde = zeroes(nCenters*nCenters, nqMine);
-		int iqMine = 0;
-		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-		{	matrix wSub = wBloch[kMesh[i].point.iReduced + iSpin*qCount];
-			if(kMesh[i].point.invert<0) //apply complex conjugate if needed:
-				callPref(eblas_dscal)(wSub.nData(), -1., ((double*)wSub.dataPref())+1, 2);
-			wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
-			callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
-			iqMine++;
-		}
-		//Fourier transform to Wannier space and save
-		dumpWannierized(wWannierTilde, iCellMap, phase, 1, "mlwfW", realPartOnly, iSpin);
-	}
+	//Phonon q-mesh outputs:
+	if(savePhonon) saveMLWF_phonon(iSpin);
 	
-	//Electron-electron linewidths:
-	{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee");
-		if(fileSize(fname.c_str()) >= 0)
-		{	//Read Bloch version:
-			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
-			std::vector<diagMatrix> ImSigma_ee;
-			e.eInfo.read(ImSigma_ee, fname.c_str());
-			logPrintf("done.\n"); logFlush();
-			//Fill in linewidths for states out of range (to ensure smoothness in Wannier interpolation)
-			//--- determine weights in fit:
-			std::vector<diagMatrix> fitWeight(e.eInfo.nStates);
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			{	fitWeight[q].reserve(nBands);
-				for(double IS: ImSigma_ee[q]) //first pass: whether ImSigma is valid or not
-					fitWeight[q].push_back(std::isnan(IS) ? 0. : 1.);
-				for(int b=0; b<nBands; b++) if(fitWeight[q][b])
-				{	double minEdist = 100.; //keep finite so that no error below if all ImSigma's already defined
-					for(int b2=0; b2<nBands; b2++)
-						if(!fitWeight[q][b2])
-							minEdist = std::min(minEdist, fabs(e.eVars.Hsub_eigs[q][b]-e.eVars.Hsub_eigs[q][b2]));
-					fitWeight[q][b] = 1./hypot(minEdist, 0.1); //cap the weights at some reasonable amount
-				}
-			}
-			//--- construct matrices for polynomial fit:
-			int order = 3; //quadratic
-			int nRows = e.eInfo.nStates * nBands;
-			matrix Lhs = zeroes(nRows, order);
-			matrix rhs = zeroes(nRows, 1);
-			diagMatrix w(nRows, 0.);
-			int row = e.eInfo.qStart * nBands;
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				for(int b=0; b<nBands; b++)
-				{	double E = e.eVars.Hsub_eigs[q][b], Epow = 1.;
-					for(int n=0; n<order; n++)
-					{	Lhs.set(row,n, Epow);
-						Epow *= E;
-					}
-					rhs.set(row,0, fitWeight[q][b] ? ImSigma_ee[q][b] : 0.); //Handle NANs correctly
-					w[row] = fitWeight[q][b];
-					row++;
-				}
-			Lhs.allReduce(MPIUtil::ReduceSum);
-			rhs.allReduce(MPIUtil::ReduceSum);
-			w.allReduce(MPIUtil::ReduceSum);
-			//--- weighted least squares polynomial fit
-			matrix rhsFit = Lhs * (inv(dagger(Lhs)*w*Lhs) * (dagger(Lhs)*w*rhs));
-			//--- fill in missing values
-			row = e.eInfo.qStart * nBands;
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				for(int b=0; b<nBands; b++)
-				{	if(std::isnan(ImSigma_ee[q][b]))
-						ImSigma_ee[q][b] =  rhsFit(row,0).real();
-					row++;
-				}
-			//Wannierize:
-			matrix ImSigma_eeWannierTilde = zeroes(nCenters*nCenters, nqMine);
-			int iqMine = 0;
-			for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-			{	matrix ImSigma_eeSub = dagger(kMesh[i].U) * ImSigma_ee[kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
-				callPref(eblas_copy)(ImSigma_eeWannierTilde.dataPref()+ImSigma_eeWannierTilde.index(0,iqMine), ImSigma_eeSub.dataPref(), ImSigma_eeSub.nData());
-				iqMine++;
-			}
-			dumpWannierized(ImSigma_eeWannierTilde, iCellMap, phase, 1, "mlwfImSigma_ee", realPartOnly, iSpin);
-		}
-	}
-	
-	//Electron-phonon matrix elements:
-	if(wannier.phononSup.length_squared())
-	{	//--- Generate phonon cell map (will match that used by phonon):
-		std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
-		for(const auto& sp: e.iInfo.species)
-			xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
-		assert(3*int(xAtoms.size()) == nPhononModes);
-		std::map<vector3<int>,matrix> phononCellMap = getCellMap(
-			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
-		//--- Read phonon force matrix:
-		std::map<vector3<int>, matrix> phononOmegaSq;
-		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameInit, "phononOmegaSq");
-			logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "r");
-			for(const auto iter: phononCellMap)
-			{	matrix omegaSqCur(nPhononModes, nPhononModes);
-				omegaSqCur.read_real(fp);
-				phononOmegaSq[iter.first] = omegaSqCur;
-			}
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-		}
-		//--- generate list of commensurate k-points in order present in the unit cell calculation
-		int prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
-		std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
-		for(unsigned ik=0; ik<kMesh.size(); ik++)
-		{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
-			double roundErr; round(kSup, &roundErr);
-			if(roundErr < symmThreshold) //integral => commensurate with supercell
-				ikArr.push_back(ik);
-		}
-		assert(int(ikArr.size()) == prodPhononSup);
-		//--- Wrap atoms to WS cell if necessary:
-		std::vector<vector3<int>> dxAtoms;
-		if(wannier.wrapWS)
-		{	logPrintf("\nWrapping phonon basis to Wigner-Seitz cell:\n");
-			//Calculate offsets and new atom positions:
-			std::vector<vector3<>> xAtomsNew;
-			for(const vector3<>& xAt: xAtoms)
-			{	vector3<> x = xAt - e.coulombParams.embedCenter; //lattice coordinates w.r.t Coulomb center
-				vector3<> xWS = ws->restrict(x);
-				vector3<int> dx = round(xWS-x);
-				logPrintf("\t[ %3d %3d %3d ]\n", dx[0], dx[1], dx[2]);
-				dxAtoms.push_back(dx);
-				xAtomsNew.push_back(xAt + dx);
-			}
-			//Construct offset force matrix:
-			std::map<vector3<int>, matrix> phononOmegaSqNew;
-			for(const auto& iter: phononOmegaSq)
-				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
-				for(size_t jAtom=0; jAtom<xAtoms.size(); jAtom++)
-				{	vector3<int> iRnew = iter.first - (dxAtoms[jAtom] - dxAtoms[iAtom]); //iR + x_j - x_i stays invariant
-					matrix& oSqCur = phononOmegaSqNew[iRnew];
-					if(!oSqCur) oSqCur = zeroes(nPhononModes, nPhononModes);
-					oSqCur.set(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3,
-						iter.second(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3) );
-				}
-			//Construct new cell map:
-			std::map<vector3<int>,matrix> phononCellMapNew = getCellMap(
-				e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-				e.coulombParams.isTruncated(), xAtomsNew, xAtomsNew, wannier.rSmooth);
-			//Reduce force matrix to it:
-			double nrmSqKept = 0., nrmSqDropped = 0.;
-			for(auto iter=phononOmegaSqNew.begin(); iter!=phononOmegaSqNew.end();)
-			{	double nrmSqCur = std::pow(nrm2(iter->second), 2);
-				if(phononCellMapNew.find(iter->first) == phononCellMapNew.end())
-				{	//Not in new cell map; remove
-					nrmSqDropped += nrmSqCur;
-					iter = phononOmegaSqNew.erase(iter);
-				}
-				else
-				{	//In new cell map; keep
-					nrmSqKept += nrmSqCur;
-					iter++;
-				}
-			}
-			logPrintf("\tRelative error in phonon force matrix remapping: %le\n\n",
-				sqrt(nrmSqDropped / (nrmSqKept + nrmSqDropped)));
-			//Replace originals:
-			xAtoms = xAtomsNew;
-			phononOmegaSq = phononOmegaSqNew;
-			phononCellMap = phononCellMapNew;
-		}
-		//--- Generate electron-phonon cell map:
-		std::map<vector3<int>,matrix> ePhCellMap = getCellMap(
-			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
-		//--- Add ePhCellMap cells missing in phononCellMap:
-		for(const auto iter: ePhCellMap)
-			if(phononCellMap.find(iter.first) == phononCellMap.end())
-			{	phononCellMap[iter.first] = zeroes(xAtoms.size(), xAtoms.size());
-				phononOmegaSq[iter.first] = zeroes(nPhononModes, nPhononModes);
-			}
-		//--- Add phononCellMap cells missing in ePhCellMap:
-		for(const auto iter: phononCellMap)
-			if(ePhCellMap.find(iter.first) == ePhCellMap.end())
-				ePhCellMap[iter.first] = zeroes(xAtoms.size(), xExpect.size());
-		//--- Output force matrix on unified phonon cellMap:
-		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh", &iSpin);
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "w");
-			for(const auto iter: phononOmegaSq)
-				iter.second.write_real(fp);
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-		}
-		//--- Output unified phonon cellMap:
-		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "w");
-			fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
-			for(const auto& entry: phononCellMap)
-			{	const vector3<int>& i = entry.first;
-				vector3<> r = e.gInfo.R * i;
-				fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
-			}
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-		}
-		//--- Output phonon cellMapSq:
-		if(mpiWorld->isHead())
-		{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh", &iSpin);
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			FILE* fp = fopen(fname.c_str(), "w");
-			fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
-			for(const auto& entry1: phononCellMap)
-			for(const auto& entry2: phononCellMap)
-			{	const vector3<int>& iR1 = entry1.first;
-				const vector3<int>& iR2 = entry2.first;
-				fprintf(fp, "%+2d %+2d %+2d  %+2d %+2d %+2d\n", iR1[0], iR1[1], iR1[2], iR2[0], iR2[1], iR2[2]);
-			}
-			fclose(fp);
-			logPrintf("done.\n"); logFlush();
-		}
-		//--- generate pairs of commensurate k-points along with pointer to Wannier rotation
-		struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
-		std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
-		for(int ik1: ikArr)
-		for(int ik2: ikArr)
-		{	KpointPair kPair;
-			kPair.k1 = kMesh[ik1].point.k;
-			kPair.k2 = kMesh[ik2].point.k;
-			kPair.ik1 = ik1;
-			kPair.ik2 = ik2;
-			kpointPairs.push_back(kPair);
-		}
-		int iPairStart, iPairStop;
-		TaskDivision(kpointPairs.size(), mpiWorld).myRange(iPairStart, iPairStop);
-		//--- read Bloch electron - nuclear displacement matrix elements
-		string fnameIn = wannier.getFilename(Wannier::FilenameInit, "phononHsub", &iSpin);
-		logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
-		MPIUtil::File fpIn;
-		size_t matSizeIn = nBands*nBands * sizeof(complex);
-		size_t modeStrideIn = kpointPairs.size() * matSizeIn; //input data size per phonon mode
-		mpiWorld->fopenRead(fpIn, fnameIn.c_str(), nPhononModes * modeStrideIn);
-		std::vector<std::vector<matrix>> phononHsub(nPhononModes, std::vector<matrix>(kpointPairs.size()));
-		for(int iMode=0; iMode<nPhononModes; iMode++)
-		{	//Read phononHsub and store with Wannier rotations:
-			mpiWorld->fseek(fpIn, iMode*modeStrideIn + iPairStart*matSizeIn, SEEK_SET);
-			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-			{	matrix& phononHsubCur = phononHsub[iMode][iPair];
-				phononHsubCur.init(nBands, nBands);
-				mpiWorld->fread(phononHsubCur.data(), sizeof(complex), phononHsubCur.nData(), fpIn); //read from file
-				//Translate for phonon basis wrapping (if any):
-				if(wannier.wrapWS)
-					phononHsubCur *= cis(-2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k1 - kpointPairs[iPair].k2));
-			}
-		}
-		//--- apply translational invariance correction:
-		std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
-		for(int q=0; q<e.eInfo.nStates; q++)
-		{	Hsub_eigs[q].resize(nBands);
-			Hsub_eigs[q].bcast(e.eInfo.whose(q));
-		}
-		double nrmTot = 0., nrmCorr = 0.;
-		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-		{	const KpointPair& pair = kpointPairs[iPair];
-			if(pair.ik1 == pair.ik2) //only Gamma-point phonons
-			{	const diagMatrix& E = Hsub_eigs[kMesh[pair.ik1].point.iReduced + iSpin*qCount];
-				int nAtoms = nPhononModes/3;
-				assert(nAtoms*3 == nPhononModes);
-				for(int iDir=0; iDir<3; iDir++)
-				{	//Calculate matrix element due to uniform translation of all atoms:
-					matrix phononHsubMean;
-					for(int iAtom=0; iAtom<nAtoms; iAtom++)
-					{	int iMode = 3*iAtom + iDir;
-						phononHsubMean += (1./(nAtoms*invsqrtM[iMode])) * phononHsub[iMode][iPair];
-						nrmTot += std::pow(nrm2(phononHsub[iMode][iPair])/invsqrtM[iMode], 2);
-					}
-					//Restrict correction to degenerate subspaces:
-					for(int b1=0; b1<nBands; b1++)
-						for(int b2=0; b2<nBands; b2++)
-							if(fabs(E[b1]-E[b2]) > 1e-4)
-								phononHsubMean.set(b1,b2, 0.);
-					nrmCorr += nAtoms*std::pow(nrm2(phononHsubMean), 2);
-					//Apply correction:
-					for(int iAtom=0; iAtom<nAtoms; iAtom++)
-					{	int iMode = 3*iAtom + iDir;
-						phononHsub[iMode][iPair] -= invsqrtM[iMode] * phononHsubMean;
-					}
-				}
-			}
-		}
-		//--- apply Wannier rotations
-		int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
-		matrix HePhTilde = zeroes(nCenters*nCenters*nPhononModes, nPairsMine);
-		for(int iMode=0; iMode<nPhononModes; iMode++)
-			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-			{	const KpointPair& pair = kpointPairs[iPair];
-				matrix& phononHsubCur = phononHsub[iMode][iPair];
-				phononHsubCur = (dagger(kMesh[pair.ik1].U) * phononHsubCur * kMesh[pair.ik2].U); //apply Wannier rotations
-				callPref(eblas_copy)(HePhTilde.dataPref() + HePhTilde.index(0,iPair-iPairStart) + nCenters*nCenters*iMode,
-					phononHsubCur.dataPref(), phononHsubCur.nData());
-			}
-		logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
-		//--- calculate HePh and output one cell fixed at a time to minimize memory usage:
-		string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHePh", &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = 0;
-		if(mpiWorld->isHead())
-		{	fp = fopen(fname.c_str(), "wb");
-			if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
-		}
-		matrix phase = zeroes(nPairsMine, phononCellMap.size());
-		double kPairWeight = 1./prodPhononSup;
-		double nrm2totSq = 0., nrm2imSq = 0.;
-		for(const auto& entry1: ePhCellMap)
-		{	//calculate Fourier transform phase (with integration weights):
-			for(int iPair=iPairStart; iPair<iPairStop; iPair++)
-			{	const KpointPair& pair = kpointPairs[iPair];
-				int iCell2 = 0;
-				for(const auto& entry2: ePhCellMap)
-				{	const vector3<int>& iR1 = entry1.first;
-					const vector3<int>& iR2 = entry2.first;
-					phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k1,iR1) - dot(pair.k2,iR2))) );
-				}
-			}
-			//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
-			matrix HePh = HePhTilde * phase;
-			HePh.allReduce(MPIUtil::ReduceSum);
-			//apply cell weights:
-			complex* HePhData = HePh.dataPref();
-			for(const auto& entry2: ePhCellMap)
-				for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
-				{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
-					matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
-					matrix w = transpose(w1i) * w2i;
-					for(int iVector=0; iVector<3; iVector++)
-					{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, HePhData, 1);
-						HePhData += w.nData();
-					}
-				}
-			if(realPartOnly)
-			{	if(mpiWorld->isHead()) HePh.write_real(fp);
-				nrm2totSq += std::pow(nrm2(HePh), 2); 
-				nrm2imSq += std::pow(callPref(eblas_dnrm2)(HePh.nData(), ((double*)HePh.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
-			}
-			else { if(mpiWorld->isHead()) HePh.write(fp); }
-		}
-		if(mpiWorld->isHead()) fclose(fp);
-		if(realPartOnly)
-			logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
-		else
-			logPrintf("done.\n");
-	}
+	suspendOperatorThreading();
 }
 
 
-void WannierMinimizer::dumpWannierized(const matrix& Htilde, const std::map<vector3<int>,matrix>& iCellMap,
-	const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const
-{
-	string fname = wannier.getFilename(Wannier::FilenameDump, varName, &iSpin);
-	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-	FILE* fp = 0; auto cmIter = iCellMap.begin();
-	if(mpiWorld->isHead())
-	{	fp = fopen(fname.c_str(), "w");
-		if(!fp) die_alone("could not open file for writing.\n");
+//-------- Function implementations for outputting each supported quantity above ---------
+
+
+void WannierMinimizer::saveMLWF_C(int iSpin)
+{	resumeOperatorThreading();
+	
+	//Compute supercell wavefunctions:
+	logPrintf("Computing supercell wavefunctions ... "); logFlush();
+	ColumnBundle Csuper(nCenters, basisSuper.nbasis*nSpinor, &basisSuper, &qnumSuper, isGpuEnabled());
+	Csuper.zero();
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	const KmeshEntry& ki = kMesh[i];
+		axpyWfns(ki.point.weight, ki.U, ki.point, iSpin, Csuper);
 	}
-	//Determine block size:
-	int nCells = iCellMap.size();
-	int blockSize = ceildiv(nCells, mpiWorld->nProcesses()); //so that memory before and after FT roughly similar
-	int nBlocks = ceildiv(nCells, blockSize);
-	//Loop over blocks:
-	int iCellStart = 0;
-	double nrm2totSq = 0., nrm2imSq = 0.;
-	for(int iBlock=0; iBlock<nBlocks; iBlock++)
-	{	int iCellStop = std::min(iCellStart+blockSize, nCells);
-		matrix Hblock = Htilde * phase(0,phase.nRows(), iCellStart,iCellStop);
-		mpiWorld->reduce(Hblock.data(), Hblock.nData(), MPIUtil::ReduceSum);
-		if(mpiWorld->isHead())
-		{	//Apply cell map weights:
-			complex* Hdata = Hblock.dataPref();
-			for(int iCell=iCellStart; iCell<iCellStop; iCell++)
-			{	const matrix& w = (cmIter++)->second;
-				for(int iMatrix=0; iMatrix<nMatrices; iMatrix++)
-				{	callPref(eblas_zmul)(w.nData(), w.dataPref(),1, Hdata,1);
-					Hdata += w.nData();
-				}
-			}
-			//Write to file:
-			if(realPartOnly)
-			{	nrm2totSq += std::pow(nrm2(Hblock), 2); 
-				nrm2imSq += std::pow(callPref(eblas_dnrm2)(Hblock.nData(), ((double*)Hblock.dataPref())+1, 2), 2); //imaginary parts with a stride of 2
-				Hblock.write_real(fp);
-			}
-			else Hblock.write(fp);
+	mpiWorld->allReduceData(Csuper, MPIUtil::ReduceSum);
+	Csuper = translate(Csuper, vector3<>(.5,.5,.5)); //center in supercell
+	logPrintf("done.\n"); logFlush();
+	
+	//Save supercell wavefunctions in reciprocal space:
+	if(mpiWorld->isHead() && wannier.saveWfns)
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfC", &iSpin);
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		Csuper.write(fname.c_str());
+		logPrintf("done.\n"); logFlush();
+		//Header:
+		fname = fname + ".header";
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "%d %lu #nColumns, columnLength\n", nCenters, basisSuper.nbasis);
+		for(int i=0; i<3; i++)
+			for(int j=0; j<3; j++)
+				fprintf(fp, "%.15g ", gInfoSuper.GT(i,j));
+		fprintf(fp, "#GT row-major (G col-major), iGarr follows:\n");
+		for(const vector3<int>& iG: basisSuper.iGarr)
+			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	
+	//Save supercell wavefunctions in real space:
+	if(mpiWorld->isHead() && wannier.saveWfnsRealSpace) for(int n=0; n<nCenters; n++) for(int s=0; s<nSpinor; s++)
+	{	//Generate filename
+		ostringstream varName;
+		varName << (nSpinor*n+s) << ".mlwf";
+		string fname = wannier.getFilename(Wannier::FilenameDump, varName.str(), &iSpin);
+		logPrintf("Dumping '%s':\n", fname.c_str());
+		//Convert to real space and optionally remove phase:
+		complexScalarField psi = I(Csuper.getColumn(n,s));
+		if(qnumSuper.k.length_squared() > symmThresholdSq)
+			multiplyBlochPhase(psi, qnumSuper.k);
+		if(realPartOnly)
+		{	complex* psiData = psi->data();
+			double meanPhase, sigmaPhase, rmsImagErr;
+			removePhase(gInfoSuper.nr, psiData, meanPhase, sigmaPhase, rmsImagErr);
+			logPrintf("\tPhase = %lf +/- %lf\n", meanPhase, sigmaPhase); logFlush();
+			logPrintf("\tRMS imaginary part = %le (after phase removal)\n", rmsImagErr);
+			logFlush();
+			//Write real part of supercell wavefunction to file:
+			FILE* fp = fopen(fname.c_str(), "wb");
+			if(!fp) die("Failed to open file '%s' for binary write.\n", fname.c_str());
+			for(int i=0; i<gInfoSuper.nr; i++)
+				fwriteLE(psiData+i, sizeof(double), 1, fp);
+			fclose(fp);
 		}
-		iCellStart = iCellStop;
+		else saveRawBinary(psi, fname.c_str());
 	}
-	if(mpiWorld->isHead()) fclose(fp);
-	if(realPartOnly)
-	{	mpiWorld->bcast(nrm2totSq);
-		mpiWorld->bcast(nrm2imSq);
-		logPrintf("done. Relative discarded imaginary part: %le\n", sqrt(nrm2imSq / nrm2totSq));
+	
+	suspendOperatorThreading();
+}
+
+
+//Save Hamiltonian in Wannier basis:
+void WannierMinimizer::saveMLWF_H(int iSpin, const matrix& phase)
+{	matrix HwannierTilde = zeroes(nCenters*nCenters, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	//Apply MLWF-optimized unitary rotations to Hamiltonian at current k:
+		matrix Hsub = dagger(kMesh[i].U) * e.eVars.Hsub_eigs[kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
+		callPref(eblas_copy)(HwannierTilde.dataPref()+HwannierTilde.index(0,iqMine), Hsub.dataPref(), Hsub.nData());
+		iqMine++;
 	}
-	else
-		logPrintf("done.\n");
+	//Fourier transform to Wannier space and save
+	dumpWannierized(HwannierTilde, iCellMap, phase, 1, "mlwfH", realPartOnly, iSpin);
+}
+
+
+//Save momenta in Wannier basis:
+void WannierMinimizer::saveMLWF_P(int iSpin, const matrix& phase)
+{	bool savePhonon = wannier.phononSup.length_squared();
+	if(savePhonon) pBlochMesh.resize(kMesh.size()); //used for e-ph matrix element sum rule
+	assert(wannier.saveMomenta or savePhonon);
+	//Compute momentum matrix elements of Bloch states:
+	std::vector<vector3<matrix>> pBloch(e.eInfo.nStates);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		if(e.eInfo.qnums[q].index()==iSpin)
+			for(int iDir=0; iDir<3; iDir++)
+				pBloch[q][iDir] = e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //note factor of -iota dropped to make it real (and anti-symmetric)
+	//Convert to Wannier basis:
+	matrix pWannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix pSub(nCenters*nCenters, 3);
+		if(savePhonon) pBlochMesh[i].init(nBands*nBands, 3);
+		for(int iDir=0; iDir<3; iDir++)
+		{	matrix pSubDir = pBloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
+			if(kMesh[i].point.invert<0) //apply complex conjugate:
+				callPref(eblas_dscal)(pSubDir.nData(), -1., ((double*)pSubDir.dataPref())+1, 2);
+			if(savePhonon) //copy before rotations
+				callPref(eblas_copy)(pBlochMesh[i].dataPref()+pBlochMesh[i].index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
+			pSubDir = dagger(kMesh[i].U) * pSubDir * kMesh[i].U; //apply MLWF-optimized rotations
+			callPref(eblas_copy)(pSub.dataPref()+pSub.index(0,iDir), pSubDir.dataPref(), pSubDir.nData());
+		}
+		//Store with spatial transformation:
+		matrix rot(e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR); //cartesian symmetry matrix
+		if(savePhonon) pBlochMesh[i] = pBlochMesh[i] * rot;
+		pSub = pSub * rot;
+		callPref(eblas_copy)(pWannierTilde.dataPref()+pWannierTilde.index(0,iqMine), pSub.dataPref(), pSub.nData());
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	if(wannier.saveMomenta) dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
+}
+
+
+//Save spin in Wannier basis:
+void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
+{	assert(wannier.saveSpin);
+	assert(e.eInfo.isNoncollinear());
+	//Compute spin matrix elements of Bloch states:
+	std::vector<vector3<matrix>> Sbloch(e.eInfo.nStates);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		if(e.eInfo.qnums[q].index()==iSpin)
+			Sbloch[q] = spinOverlap(e.eVars.C[q], O(e.eVars.C[q]));
+	//Convert to Wannier basis:
+	matrix SwannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix Ssub(nCenters*nCenters, 3);
+		for(int iDir=0; iDir<3; iDir++)
+		{	matrix SsubDir = Sbloch[kMesh[i].point.iReduced + iSpin*qCount][iDir];
+			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because spin is a pseudo-vector):
+				callPref(eblas_dscal)(SsubDir.nData(), -1., ((double*)SsubDir.dataPref())+0, 2);
+			SsubDir = dagger(kMesh[i].U) * SsubDir * kMesh[i].U; //apply MLWF-optimized rotations
+			callPref(eblas_copy)(Ssub.dataPref()+Ssub.index(0,iDir), SsubDir.dataPref(), SsubDir.nData());
+		}
+		//Store with spatial transformation:
+		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+		Ssub = Ssub * matrix(rot * (1./det(rot))); //extra rotation sign because spin is a pseudo-vector
+		callPref(eblas_copy)(SwannierTilde.dataPref()+SwannierTilde.index(0,iqMine), Ssub.dataPref(), Ssub.nData());
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	dumpWannierized(SwannierTilde, iCellMap, phase, 3, "mlwfS", realPartOnly, iSpin);
+}
+
+
+//Thread function for setting fourier transform of z-slice of half-width zH centered at z0 with smoothness zSigma:
+inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
+	complex* w, double z0, double zH, double zSigma)
+{	double prefac = 2*zH; //= average value of weight in unit cell
+	THREAD_halfGspaceLoop
+	(	int iGsq = iG.length_squared();
+		int iGz = iG[2];
+		if(iGsq == iGz * iGz) // => iG || z (Cauchy-Schwarz)
+		{	double GzH = (2*M_PI) * fabs(zH * iGz);
+			double GzSigma = zSigma * sqrt(GGT.metric_length_squared(iG));
+			w[i] = prefac * bessel_jl(0,GzH) //norm and width
+				* cis(-(2.*M_PI)*iGz*z0) //translate
+				* exp(-0.5*GzSigma*GzSigma); //Gauss smoothing
+		}
+		else w[i] = 0.;
+	)
+}
+
+//Save slab-weight matrix elements in Wannier basis, if requested:
+void WannierMinimizer::saveMLWF_W(int iSpin, const matrix& phase)
+{	assert(wannier.zH);
+	//Construct slab weight function:
+	ScalarField w;
+	{	ScalarFieldTilde wTilde; nullToZero(wTilde, e.gInfo);
+		threadLaunch(slabWeight_thread, e.gInfo.nG, e.gInfo.S, e.gInfo.GGT,
+			wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
+		w = I(wTilde);
+	}
+	//Compute slab-weight matrix elements of Bloch states:
+	std::vector<matrix> wBloch(e.eInfo.nStates);
+	ScalarFieldArray JdagOJw(1, JdagOJ(w));
+	e.iInfo.augmentDensityGridGrad(JdagOJw);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		if(e.eInfo.qnums[q].index()==iSpin)
+		{	//Direct contributions from bands:
+			const ColumnBundle& Cq = e.eVars.C[q];
+			wBloch[q] = Cq ^ Idag_DiagV_I(Cq, JdagOJw);
+			//Ultrasoft augmentation:
+			const std::vector<matrix>& VdagCq = e.eVars.VdagC[q];
+			std::vector<matrix> wVdagCq(e.iInfo.species.size());
+			const QuantumNumber& qnum = e.eInfo.qnums[q];
+			e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);
+			for(size_t sp=0; sp<VdagCq.size(); sp++)
+				if(wVdagCq[sp])
+					wBloch[q] += dagger(VdagCq[sp]) * wVdagCq[sp];
+		}
+	//Convert to Wannier basis:
+	matrix wWannierTilde = zeroes(nCenters*nCenters, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix wSub = wBloch[kMesh[i].point.iReduced + iSpin*qCount];
+		if(kMesh[i].point.invert<0) //apply complex conjugate if needed:
+			callPref(eblas_dscal)(wSub.nData(), -1., ((double*)wSub.dataPref())+1, 2);
+		wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
+		callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	dumpWannierized(wWannierTilde, iCellMap, phase, 1, "mlwfW", realPartOnly, iSpin);
+}
+
+
+//Electron-electron linewidths:
+void WannierMinimizer::saveMLWF_ImSigma_ee(int iSpin, const matrix& phase)
+{	string fname = wannier.getFilename(Wannier::FilenameInit, "ImSigma_ee");
+	if(fileSize(fname.c_str()) >= 0)
+	{	//Read Bloch version:
+		logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
+		std::vector<diagMatrix> ImSigma_ee;
+		e.eInfo.read(ImSigma_ee, fname.c_str());
+		logPrintf("done.\n"); logFlush();
+		//Fill in linewidths for states out of range (to ensure smoothness in Wannier interpolation)
+		//--- determine weights in fit:
+		std::vector<diagMatrix> fitWeight(e.eInfo.nStates);
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	fitWeight[q].reserve(nBands);
+			for(double IS: ImSigma_ee[q]) //first pass: whether ImSigma is valid or not
+				fitWeight[q].push_back(std::isnan(IS) ? 0. : 1.);
+			for(int b=0; b<nBands; b++) if(fitWeight[q][b])
+			{	double minEdist = 100.; //keep finite so that no error below if all ImSigma's already defined
+				for(int b2=0; b2<nBands; b2++)
+					if(!fitWeight[q][b2])
+						minEdist = std::min(minEdist, fabs(e.eVars.Hsub_eigs[q][b]-e.eVars.Hsub_eigs[q][b2]));
+				fitWeight[q][b] = 1./hypot(minEdist, 0.1); //cap the weights at some reasonable amount
+			}
+		}
+		//--- construct matrices for polynomial fit:
+		int order = 3; //quadratic
+		int nRows = e.eInfo.nStates * nBands;
+		matrix Lhs = zeroes(nRows, order);
+		matrix rhs = zeroes(nRows, 1);
+		diagMatrix w(nRows, 0.);
+		int row = e.eInfo.qStart * nBands;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			for(int b=0; b<nBands; b++)
+			{	double E = e.eVars.Hsub_eigs[q][b], Epow = 1.;
+				for(int n=0; n<order; n++)
+				{	Lhs.set(row,n, Epow);
+					Epow *= E;
+				}
+				rhs.set(row,0, fitWeight[q][b] ? ImSigma_ee[q][b] : 0.); //Handle NANs correctly
+				w[row] = fitWeight[q][b];
+				row++;
+			}
+		mpiWorld->allReduceData(Lhs, MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(rhs, MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(w, MPIUtil::ReduceSum);
+		//--- weighted least squares polynomial fit
+		matrix rhsFit = Lhs * (inv(dagger(Lhs)*w*Lhs) * (dagger(Lhs)*w*rhs));
+		//--- fill in missing values
+		row = e.eInfo.qStart * nBands;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			for(int b=0; b<nBands; b++)
+			{	if(std::isnan(ImSigma_ee[q][b]))
+					ImSigma_ee[q][b] =  rhsFit(row,0).real();
+				row++;
+			}
+		//Wannierize:
+		matrix ImSigma_eeWannierTilde = zeroes(nCenters*nCenters, phase.nRows());
+		int iqMine = 0;
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	matrix ImSigma_eeSub = dagger(kMesh[i].U) * ImSigma_ee[kMesh[i].point.iReduced + iSpin*qCount] * kMesh[i].U;
+			callPref(eblas_copy)(ImSigma_eeWannierTilde.dataPref()+ImSigma_eeWannierTilde.index(0,iqMine), ImSigma_eeSub.dataPref(), ImSigma_eeSub.nData());
+			iqMine++;
+		}
+		dumpWannierized(ImSigma_eeWannierTilde, iCellMap, phase, 1, "mlwfImSigma_ee", realPartOnly, iSpin);
+	}
 }

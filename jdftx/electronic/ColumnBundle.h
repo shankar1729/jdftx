@@ -136,6 +136,7 @@ ColumnBundle operator-(const ColumnBundleMatrixProduct &XM1, const ColumnBundleM
 
 ColumnBundle operator*(const scaled<ColumnBundle>&, const diagMatrix&);
 matrix operator^(const scaled<ColumnBundle>&, const scaled<ColumnBundle>&); //!< inner product
+vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY2); //!< spin-resolved inner product for spinorial ColumnBundle's
 
 //------------------------------ Other operators ---------------------------------
 

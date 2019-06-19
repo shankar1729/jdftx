@@ -64,6 +64,11 @@ struct RadialFunctionG
 		if(Gindex >= nCoeff-5) return 0.;
 		else return QuinticSpline::value(getCoeff(), Gindex);
 	}
+	__hostanddev__ double deriv(double G) const
+	{	double Gindex = G * dGinv;
+		if(Gindex >= nCoeff-5) return 0.;
+		else return QuinticSpline::deriv(getCoeff(), Gindex) * dGinv;
+	}
 	
 	RadialFunctionR* rFunc; //!< copy of the real-space radial version (if created from one)
 	

@@ -233,8 +233,118 @@ void testYlmProd()
 			std::vector<YlmProdTerm> expansion = expandYlmProd(l1,m1, l2,m2);
 			double YlmProd = 0.;
 			for(const auto& term: expansion) YlmProd += term.coeff * Ylm(term.l, term.m, qHat);
-			logPrintf("(%d,%+d)*(%d,%+d): %le\n", l1,m1, l2,m2, YlmProd-Ylm1*Ylm2);
+			double err = YlmProd-Ylm1*Ylm2;
+			logPrintf("(%d,%+d)*(%d,%+d): %le%s\n", l1,m1, l2,m2, err, (fabs(err)>1e-16 ? " ERR" : ""));
 		}
+	}
+}
+
+/*
+double YlmPrime(int l, int m, int iDir, const vector3<>& qHat)
+{	const double alpha = sqrt((2*l+1.)/(2*l-1));
+	if(m == 0)
+	{	switch(iDir)
+		{	case 0: return alpha * (l>1 ? -sqrt(0.5*l*(l-1))*Ylm(l-1,+1,qHat) : 0.);
+			case 1: return alpha * (l>1 ? -sqrt(0.5*l*(l-1))*Ylm(l-1,-1,qHat) : 0.);
+			case 2: return alpha * (l>0 ? l*Ylm(l-1,0,qHat) : 0.);
+		}
+	}
+	else if(m > 0)
+	{	switch(iDir)
+		{	case 0: return alpha*0.5 *
+				( (l>m+1 ? -sqrt((l-m)*(l-m-1))*Ylm(l-1,m+1,qHat) : 0.)
+				+ (l>=m  ?  sqrt((l+m)*(l+m-1))*Ylm(l-1,m-1,qHat) * (m==1 ? sqrt(2.) : 1.) : 0.) );
+			case 1: return alpha*0.5 *
+				( (l>m+1 ? -sqrt((l-m)*(l-m-1))*Ylm(l-1,-(m+1),qHat) : 0.)
+				+ (l>=m  ? -sqrt((l+m)*(l+m-1))*Ylm(l-1,-(m-1),qHat) * (m==1 ? 0. : 1.) : 0.) );
+			case 2: return alpha * (l>0 ? sqrt(l*l-m*m)*Ylm(l-1,m,qHat) : 0.);
+		}
+	}
+	else //m < 0
+	{	switch(iDir)
+		{	case 0: return alpha*0.5 *
+				( (-l<=m  ?  sqrt((l-m)*(l-m-1))*Ylm(l-1,m+1,qHat) * (m==-1 ? 0. : 1.) : 0.)
+				+ (-l<m-1 ? -sqrt((l+m)*(l+m-1))*Ylm(l-1,m-1,qHat) : 0.) );
+			case 1: return alpha*0.5 *
+				( (-l<=m  ?  sqrt((l-m)*(l-m-1))*Ylm(l-1,-(m+1),qHat) * (m==-1 ? sqrt(2.) : 1.) : 0.)
+				+ (-l<m-1 ?  sqrt((l+m)*(l+m-1))*Ylm(l-1,-(m-1),qHat) : 0.) );
+			case 2: return alpha * (l>0 ? sqrt(l*l-m*m)*Ylm(l-1,m,qHat) : 0.);
+		}
+	}
+}
+
+double YlmPrime(int l, int m, int iDir, const vector3<>& qHat)
+{	const double alpha = sqrt((2*l+1.)/(2*l-1));
+	if(iDir == 2)
+		return (l>0 ? (alpha*sqrt(l*l-m*m)) * Ylm(l-1,m,qHat) : 0.);
+	else
+	{	int dSign = (iDir==0 ? +1 : -1); //+1 for x, -1 for y
+		if(m == 0)
+			return (l>1 ? (-alpha * sqrt(0.5*l*(l-1))) * Ylm(l-1,dSign,qHat) : 0.);
+		else
+		{	double result = 0.;
+			int mSign = (m<0 ? -1 : +1);
+			for(int s=-1; s<=+1; s+=2)
+			{	int mOut = m - s;
+				if(abs(mOut) <= l-1)
+					result += ((0.5*alpha) * (iDir==0 ? mSign*s : -mSign)
+						* sqrt((l+m*s)*(l+m*s-1)*(mOut ? 1 : 1+dSign*mSign)))
+						* Ylm(l-1, dSign*mOut, qHat);
+			}
+			return result;
+		}
+	}
+}
+*/
+
+void testYlmDeriv()
+{	vector3<> qHat(Random::normal(),Random::normal(),Random::normal()); qHat *= 1./qHat.length(); //random test unit vector
+	const int lMax = 6;
+	const double dq = 1e-6;
+	for(int l=0; l<=lMax; l++)
+		for(int m=-l; m<=l; m++)
+		{	vector3<> Yprime = YlmPrime(l, m, qHat); //analyticla derivative
+			for(int iDir=0; iDir<3; iDir++)
+			{	//Numerical derivative:
+				vector3<> qHatP = qHat; qHatP[iDir] += dq;
+				vector3<> qHatM = qHat; qHatM[iDir] -= dq;
+				double YlmPrimeNum = (0.5/dq) * (Ylm(l,m,qHatP) - Ylm(l,m,qHatM));
+				double err = Yprime[iDir] - YlmPrimeNum;
+				logPrintf("Y(%d,%+d)_%c: %le%s\n", l,m, "xyz"[iDir], err, (fabs(err)>1e-10 ? " ERR" : ""));
+			}
+		}
+}
+
+void testVnlPrime()
+{
+	//Forward declaration from SpeciesInfo_internal.h:
+	void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
+		const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
+	
+	vector3<> k(0.25, 0.1, 0.3);
+	vector3<int> iG(1, -1, 0);
+	matrix3<> R(3.,1.,0., -2.,4.,1., 0.,2.,5.);
+	matrix3<> G = 2*M_PI*inv(R);
+	vector3<> pos(-0.2, 0.3, 0.1);
+	vector3<> derivDir(0.7, 0.2, -0.5);
+	nProcsAvailable = 1;
+	RadialFunctionG Vradial;
+	logPrintf("|kpG|: %le\n", ((k+iG)*G).length());
+	for(int l=0; l<=3; l++)
+	{	Vradial.init(l, 0.02, 20., RadialFunctionG::cusplessExpTilde, -8., 0.1);
+		for(int m=-l; m<=l; m++)
+		{	//Numerical derivative:
+			complex Vp, Vm; double alpha = 1e-4; vector3<> dkLat = alpha*derivDir*inv(G);
+			Vnl(1, 1, 1, l, m, k+dkLat, &iG, G, &pos, Vradial, &Vp);
+			Vnl(1, 1, 1, l, m, k-dkLat, &iG, G, &pos, Vradial, &Vm);
+			complex VprimeNum = (0.5/alpha)*(Vp - Vm);
+			//Analytic derivative:
+			complex Vprime;
+			Vnl(1, 1, 1, l, m, k, &iG, G, &pos, Vradial, &Vprime, &derivDir);
+			double err = (Vprime - VprimeNum).abs() / Vprime.abs();
+			logPrintf("Vprime(%d,%+d): %le%s\n", l,m, err, (fabs(err)>1e-8 ? " ERR" : ""));
+		}
+		Vradial.free();
 	}
 }
 
@@ -306,14 +416,14 @@ void testHugeFileIO()
 	//Write:
 	logPrintf("Writing ... "); logFlush();
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
-	mpiWorld->fwrite(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->fwriteData(M, fp);
 	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Read back:
 	logPrintf("Reading ... "); logFlush();
 	M.zero();
 	mpiWorld->fopenRead(fp, fname, M.nData()*sizeof(complex));
-	mpiWorld->fread(Mdata, sizeof(complex), M.nData(), fp);
+	mpiWorld->freadData(M, fp);
 	mpiWorld->fclose(fp);
 	logPrintf("done.\n"); logFlush();
 	//Check results:
@@ -351,6 +461,8 @@ int main(int argc, char** argv)
 {	initSystem(argc, argv);
 	//testHarmonics(); return 0;
 	//testYlmProd(); return 0;
+	//testYlmDeriv(); return 0;
+	testVnlPrime(); return 0;
 	//fdtestGGAs(); return 0;
 	//testChangeGrid(); return 0;
 	//testHugeFileIO(); return 0;

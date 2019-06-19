@@ -146,8 +146,8 @@ double ExactExchangeEval::calc(int iSpin, unsigned iReduced, unsigned iInvert, u
 		ki.transform->scatterAxpy(1., C[ikSrc], Ck,0,1);
 		Fk = F[ikSrc];
 	}
-	Ck.bcast(e.eInfo.whose(ikSrc));
-	Fk.bcast(e.eInfo.whose(ikSrc));
+	mpiWorld->bcastData(Ck, e.eInfo.whose(ikSrc));
+	mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
 	if(HC) { HCk = Ck.similar(); HCk.zero(); }
 	
 	//Calculate energy (and gradient):
@@ -197,7 +197,7 @@ double ExactExchangeEval::calc(int iSpin, unsigned iReduced, unsigned iInvert, u
 	
 	//Move ik state gradient back to host process (if necessary):
 	if(HC)
-	{	HCk.allReduce(MPIUtil::ReduceSum);
+	{	mpiWorld->allReduceData(HCk, MPIUtil::ReduceSum);
 		if(e.eInfo.isMine(ikSrc))
 			ki.transform->gatherAxpy(1., HCk,0,1, (*HC)[ikSrc]);
 	}

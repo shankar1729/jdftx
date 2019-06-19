@@ -35,9 +35,16 @@ LinearPCM::~LinearPCM()
 }
 
 ScalarFieldTilde LinearPCM::hessian(const ScalarFieldTilde& phiTilde) const
-{	//Dielectric term:
-	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape[0];
-	ScalarFieldTilde rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));
+{	ScalarFieldTilde rhoTilde;
+	//Dielectric term:
+	if(fsp.epsBulkTensor.length_squared()) //anisotropic response
+	{	VectorField epsilon = 1. + (-1.+fsp.epsBulkTensor) * shape[0];
+		rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));
+	}
+	else
+	{	ScalarField epsilon = epsilonOverride ? epsilonOverride : 1. + (epsBulk-1.) * shape[0];
+		rhoTilde = divergence(J(epsilon * I(gradient(phiTilde))));
+	}
 	//Screening term:
 	if(k2factor)
 	{	ScalarField kappaSq = kappaSqOverride ? kappaSqOverride : k2factor * shape.back();
@@ -87,7 +94,11 @@ void LinearPCM::override(const ScalarField& epsilon, const ScalarField& kappaSq)
 
 void LinearPCM::minimizeFluid()
 {	//Info:
-	logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
+	if(fsp.epsBulkTensor.length_squared())
+		logPrintf("\tLinear fluid (dielectric tensor: [ %g %g %g ]",
+			fsp.epsBulkTensor[0], fsp.epsBulkTensor[1], fsp.epsBulkTensor[2]);
+	else
+		logPrintf("\tLinear fluid (dielectric constant: %g", epsBulk);
 	if(k2factor) logPrintf(", screening length: %g Bohr", sqrt(epsBulk/k2factor));
 	logPrintf(") occupying %lf of unit cell:", integral(shape[0])/gInfo.detR); logFlush();
 	//Minimize:
@@ -110,7 +121,9 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	
 	//Compute gradient w.r.t shape function:
 	ScalarFieldArray Adiel_shape(shape.size());
-	Adiel_shape[0] = (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions
+	Adiel_shape[0] = fsp.epsBulkTensor.length_squared()
+		? lengthSquaredWeighted((-1./(8*M_PI))*(-1.+fsp.epsBulkTensor), I(gradient(phi))) //dielectric contributions (anisotropic case)
+		: (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions (isotropic case)
 	if(k2factor) Adiel_shape.back() -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
 	
 	//Propagate shape gradients to A_nCavity:
@@ -122,7 +135,7 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	return Adiel;
 }
 
-void LinearPCM::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+void LinearPCM::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const
 {	susceptibility.clear();
 	sArr = shape;
 	//Dielectric part:
@@ -131,16 +144,14 @@ void LinearPCM::getSusceptibility_internal(const std::vector<complex>& omega, st
 	st.iSite = 0; //first shape function
 	st.l = 1; //dipolar
 	st.w = 0; //local
-	st.prefactor = getChiPrefactor(omega, (epsBulk-epsInf)/(4*M_PI), (epsInf-1.)/(4*M_PI),
-		solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+	st.prefactor = solvent.getChiPrefactor(omega, elecOnly ? 0. : (epsBulk-epsInf)/(4*M_PI), (epsInf-1.)/(4*M_PI));
 	susceptibility.push_back(st);
 	//Screening response:
 	if(k2factor)
 	{	st.iSite = int(shape.size())-1; //last shape function
 		st.l = 0; //monopolar
 		st.w = 0; //local
-		st.prefactor = getChiPrefactor(omega, k2factor/(4*M_PI), 0.,
-			solvent.tauNuc, solvent.omegaEl, solvent.gammaEl);
+		st.prefactor = solvent.getChiPrefactor(omega, k2factor/(4*M_PI), 0.);
 		susceptibility.push_back(st);
 	}
 }
@@ -159,8 +170,9 @@ void LinearPCM::dumpDensities(const char* filenamePattern) const
 {	PCM::dumpDensities(filenamePattern);
 	//Output dielectric bound charge
 	string filename;
-	{	ScalarField chiDiel = ((epsBulk-1.)/(4*M_PI)) * shape[0];
-		ScalarField rhoDiel = divergence(chiDiel * I(gradient(state)));
+	{	ScalarField rhoDiel = fsp.epsBulkTensor.length_squared()
+			? divergence((((1./(4*M_PI))*(-1.+fsp.epsBulkTensor)) * shape[0]) * I(gradient(state))) //anisotropic
+			: ((epsBulk-1.)/(4*M_PI)) * divergence(shape[0] * I(gradient(state))); //isotropic
 		FLUID_DUMP(rhoDiel, "RhoDiel");
 	}
 	//Output ionic bound charge (if any):

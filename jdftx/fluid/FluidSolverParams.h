@@ -68,6 +68,7 @@ enum PCMVariant
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM
 	PCM_LA12, //!< Linear local-response electrolyte \cite PCM-Kendra
 	PCM_SoftSphere, //!< Soft-sphere continuum solvation model \cite PCM-SoftSphere
+	PCM_FixedCavity, //!< Fixed-cavity electrostatic-only continuum solvation model
 	PCM_SCCS_g09,      //!< g09 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03,      //!< g03 parametrization of SCCS local linear model for water \cite PCM-SCCS
 	PCM_SCCS_g03p,     //!< g03' parametrization of SCCS local linear model for water  \cite PCM-SCCS
@@ -100,6 +101,7 @@ struct FluidSolverParams
 	double T; //!< temperature
 	double P; //!< pressure
 	double epsBulkOverride, epsInfOverride; //!< Override default dielectric constants if non-zero
+	vector3<> epsBulkTensor; //!< Override default dielectric constants with a tensor if non-zero (assuming Cartesian coords are principal axes, LinearPCM only)
 	bool verboseLog; //!< whether iteration progress is printed for Linear PCM's, and whether sub-iteration progress is printed for others
 	FluidSolveFrequency solveFrequency;
 	
@@ -134,6 +136,9 @@ struct FluidSolverParams
 	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
 	double cavityScale; //!< radius scale factor
 	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs)
+	
+	//For fixed-cavity model alone:
+	string cavityFile; //!< filename of cavity to read in
 	
 	//Cavity masking parameters (erf slab centered at zMask0 with half-width zMaskH where fluid is excluded):
 	double zMask0; //z center in lattice coordinates for cavity mask

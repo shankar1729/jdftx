@@ -237,7 +237,7 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 		}
 	}
 	for(auto& force: forcesNL) //Accumulate contributions over processes
-		mpiWorld->allReduce((double*)force.data(), 3*force.size(), MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(force, MPIUtil::ReduceSum);
 	e->symm.symmetrize(forcesNL);
 	forces += forcesNL;
 	if(shouldPrintForceComponents)
@@ -350,47 +350,30 @@ void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector
 	}
 }
 
-void IonInfo::rhoAtom_getV(const ColumnBundle& Cq, const std::vector<matrix>& U_rhoAtom, std::vector<ColumnBundle>& Opsi, std::vector<matrix>& M) const
-{	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
-	Opsi.resize(species.size());
-	M.resize(species.size());
-	ColumnBundle* OpsiPtr = Opsi.data();
-	matrix* Mptr = M.data();
-	for(const auto& sp: species)
-	{	sp->rhoAtom_getV(Cq, U_rhoAtomPtr, *(OpsiPtr++), *(Mptr++));
-		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
-	}
-}
-
 matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& YdagHY) const
 {	matrix result = e->gInfo.detR * (Y ^ D(Y, iDir)); //contribution from kinetic term
-	//Determine optimum k's for finite difference calculation of r * projectors
-	double dkMag = pow(1e-14, 1./3); //optimum for a second order FD formula
-	complex riPrefacDag(0, -0.5/dkMag); //prefactor in central-difference formula to get r * projectors
-	vector3<> dkCart; dkCart[iDir] = dkMag; //cartesian k offset
-	vector3<> dk = inv(e->gInfo.GT) * dkCart; //reciprocal-lattice k offset
-	QuantumNumber qnumPlus  = *(Y.qnum); qnumPlus.k  += dk;
-	QuantumNumber qnumMinus = *(Y.qnum); qnumMinus.k -= dk;
-	//--- dummy ColumnBundles for the getV functions below:
-	ColumnBundle Yplus (1, Y.colLength(), Y.basis, &qnumPlus,  isGpuEnabled());
-	ColumnBundle Yminus(1, Y.colLength(), Y.basis, &qnumMinus, isGpuEnabled());
+	//k-space derivative contributions:
+	vector3<> dirHat; dirHat[iDir] = 1.; //Cartesian unit vector corresponding to iDir
+	complex minus_i(0,-1); //prefactor to k-derivatives
 	//DFT+U corrections:
 	if(e->eInfo.hasU)
-	{	std::vector<ColumnBundle> psi;
-		std::vector<matrix> Urho;
-		rhoAtom_getV(Y, e->eVars.U_rhoAtom, psi, Urho); //get atomic orbitals at k
-		//Finite difference for ri_psi:
-		std::vector<matrix> UrhoUnused;
-		std::vector<ColumnBundle> psiPlus, psiMinus;
-		rhoAtom_getV(Yplus,  e->eVars.U_rhoAtom, psiPlus,  UrhoUnused); //get atomic orbitals at k+
-		rhoAtom_getV(Yminus, e->eVars.U_rhoAtom, psiMinus, UrhoUnused); //get atomic orbitals at k-
-		for(size_t sp=0; sp<species.size(); sp++)
-			if(Urho[sp].nRows())
-			{	matrix psiDagY = psi[sp] ^ Y;
-				matrix ri_psiDagY = riPrefacDag * ((psiPlus[sp] - psiMinus[sp]) ^ Y);
-				matrix contrib = dagger(ri_psiDagY) * (Urho[sp] * psiDagY);
+	{	const matrix* U_rhoAtomPtr = e->eVars.U_rhoAtom.data();
+		for(const auto& sp: species)
+		{	if(sp->rhoAtom_nMatrices())
+			{	matrix Urho, psiDagY, ri_psiDagY, ri_psiDagYnew;
+				{	ColumnBundle psi;
+					sp->rhoAtom_getV(Y, U_rhoAtomPtr, psi, Urho);
+					psiDagY = psi ^ Y;
+				}
+				{	ColumnBundle psiPrime; matrix UrhoUnused;
+					sp->rhoAtom_getV(Y, U_rhoAtomPtr, psiPrime, UrhoUnused, &dirHat);
+					ri_psiDagY = minus_i * (psiPrime ^ Y);
+				}
+				matrix contrib = dagger(ri_psiDagY) * (Urho * psiDagY);
 				result += contrib - dagger(contrib);
+				U_rhoAtomPtr += sp->rhoAtom_nMatrices();
 			}
+		}
 	}
 	//Nonlocal corrections:
 	for(size_t sp=0; sp<species.size(); sp++)
@@ -400,7 +383,7 @@ matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& Ydag
 			//Get nonlocal psp matrices and projections:
 			matrix Mnl = s.MnlAll;
 			matrix VdagY = (*(s.getV(Y))) ^ Y;
-			matrix ri_VdagY = riPrefacDag * ((*(s.getV(Yplus)) - *(s.getV(Yminus))) ^ Y); //Finite difference for ri_V
+			matrix ri_VdagY = minus_i * (*(s.getV(Y, &dirHat)) ^ Y);
 			//Ultrasoft augmentation contribution (if any):
 			const matrix id = eye(Mnl.nRows()*nAtoms); //identity
 			matrix Maug = zeroes(id.nRows(), id.nCols());

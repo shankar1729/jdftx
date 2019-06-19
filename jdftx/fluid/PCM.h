@@ -69,6 +69,7 @@ private:
 	std::vector<double> RallIonic; //!< Rall + ion spacing adde, used for separate ionic cavity, if any (SoftSphere only)
 	ScalarFieldArray zMask; //optional cavity mask function
 	int nShape; //natural number of shape functions of the solvation model (2 if ionspacing is used to make ionic cavity, else 1)
+	bool fixedCavityMasked; //!< whether mask has already been applied to fixed cavity
 protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)

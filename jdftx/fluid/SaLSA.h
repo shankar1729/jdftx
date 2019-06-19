@@ -47,6 +47,7 @@ public:
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
 	double get_Adiel_and_grad_internal(ScalarFieldTilde& grad_rhoExplicitTilde, ScalarFieldTilde& grad_nCavityTilde, IonicGradient* extraForces) const;
+	void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const;
 
 private:
 	std::vector< std::shared_ptr<struct MultipoleResponse> > response; //array of multipolar components in chi

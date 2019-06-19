@@ -337,17 +337,20 @@ std::map<vector3<int>, matrix> getCellMap(const matrix3<>& R, const matrix3<>& R
 
 	//Write the cell map if requested
 	if(mpiWorld->isHead() && fname.length())
-	{	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
-		for(const auto& entry: iCellMap)
-		{	const vector3<int>& i = entry.first;
-			vector3<> r = R * i;
-			fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
+		writeCellMap(iCellMap, R, fname);
 	
 	return iCellMap;
+}
+
+void writeCellMap(const std::map<vector3<int>,matrix>& iCellMap, const matrix3< double >& R, string fname)
+{	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	FILE* fp = fopen(fname.c_str(), "w");
+	fprintf(fp, "#i0 i1 i2  x y z  (integer lattice combinations, and cartesian offsets)\n");
+	for(const auto& entry: iCellMap)
+	{	const vector3<int>& i = entry.first;
+		vector3<> r = R * i;
+		fprintf(fp, "%+2d %+2d %+2d  %+11.6lf %+11.6lf %+11.6lf\n", i[0], i[1], i[2], r[0], r[1], r[2]);
+	}
+	fclose(fp);
+	logPrintf("done.\n"); logFlush();
 }

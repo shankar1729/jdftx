@@ -194,7 +194,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 			{	size_t nData = 0;
 				mpiWorld->recv(nData, whose(q), q);
 				ManagedArray<complex> buf; buf.init(nData);
-				buf.recv(whose(q), q);
+				mpiWorld->recvData(buf, whose(q), q);
 				buf.write(fp);
 			}
 			else Y[q].write(fp);
@@ -204,7 +204,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 	else
 		for(int q=qStart; q<qStop; q++)
 		{	mpiWorld->send(Y[q].nData(), 0, q);
-			Y[q].send(0, q);
+			mpiWorld->sendData(Y[q], 0, q);
 		}
 #else
 	//Compute output length from each process:
@@ -225,7 +225,7 @@ void ElecInfo::write(const std::vector<ColumnBundle>& Y, const char* fname) cons
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, offset, SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
-		mpiWorld->fwrite(Y[q].data(), sizeof(complex), Y[q].nData(), fp);
+		mpiWorld->fwriteData(Y[q], fp);
 	mpiWorld->fclose(fp);
 #endif
 }
@@ -308,7 +308,7 @@ void ElecInfo::read(std::vector<ColumnBundle>& Y, const char *fname, const Colum
 		mpiWorld->fseek(fp, offset, SEEK_SET);
 		for(int q=qStart; q<qStop; q++)
 		{	ColumnBundle& Ycur = Ytmp[q] ? Ytmp[q] : Y[q];
-			mpiWorld->fread(Ycur.data(), sizeof(complex), Ycur.nData(), fp);
+			mpiWorld->freadData(Ycur, fp);
 			if(Ytmp[q]) //apply conversions:
 			{	if(Ytmp[q].basis!=Y[q].basis)
 				{	int nSpinor = Y[q].spinorLength();

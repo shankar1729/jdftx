@@ -47,7 +47,7 @@ public:
 	__hostanddev__ bool isNonzero() const { return v[0] || v[1] || v[2]; } //!< true if any component nonzero
 	
 	//Constructor
-	__hostanddev__ explicit vector3(scalar a=0, scalar b=0, scalar c=0) { v[0]=a; v[1]=b; v[2]=c; } //!< Construct from elements
+	__hostanddev__ explicit vector3(scalar a=scalar(), scalar b=scalar(), scalar c=scalar()) { v[0]=a; v[1]=b; v[2]=c; } //!< Construct from elements
 	vector3(std::vector<scalar> a) { LOOP3(v[k]=a[k];) } //!< convert from std::vector
 	template<typename scalar2> __hostanddev__ explicit vector3(const vector3<scalar2>& a) { LOOP3(v[k]=a[k];) } //!< convert scalar type
 	
@@ -61,8 +61,8 @@ public:
 	__hostanddev__ vector3 operator-(const vector3 &a) const { return vector3(v[0]-a[0], v[1]-a[1], v[2]-a[2]); }
 	__hostanddev__ vector3 operator-=(const vector3 &a) { LOOP3( v[k]-=a[k]; ) return *this; }
 
-	__hostanddev__ vector3 operator/(scalar s) const { return (*this)*(1.0/s); }
-	__hostanddev__ vector3& operator/=(scalar s) { return (*this)*=(1.0/s); }
+	__hostanddev__ vector3 operator/(scalar s) const { return (*this)*(1./s); }
+	__hostanddev__ vector3& operator/=(scalar s) { return (*this)*=(1./s); }
 
 	__hostanddev__ scalar length_squared() const { return v[0]*v[0] + v[1]*v[1] + v[2]*v[2]; }
 	__hostanddev__ scalar length() const { return sqrt(length_squared()); }

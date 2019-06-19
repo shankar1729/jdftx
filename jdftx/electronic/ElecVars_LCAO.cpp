@@ -205,11 +205,9 @@ int ElecVars::LCAO()
 			if(sp->atpos.size())  // Check for unused species
 				sp->accumulateAtomicDensity(nTilde);
 		nullToZero(nTilde, e->gInfo);
+		e->symm.symmetrize(nTilde);
 		for(unsigned s=0; s<n.size(); s++)
-		{	n[s] = I(nTilde[s]);
-			nTilde[s] = 0; //free memory
-			e->symm.symmetrize(n[s]);
-		}
+			n[s] = I(nTilde[s]);
 	}
 	
 	//Select a multi-pass method to use eVars.F, if it is non-default

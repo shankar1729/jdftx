@@ -26,24 +26,39 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 
-//Calculate non-local pseudopotential projector
+//Calculate non-local pseudopotential projector (or its k derivatives)
 template<int l, int m> __global__
 void Vnl_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
 	const matrix3<> G, const vector3<>* pos, const RadialFunctionG VnlRadial, complex* V)
 {	int n = kernelIndex1D();
 	if(n<nbasis) Vnl_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
 }
+template<int l, int m> __global__
+void VnlPrime_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG VnlRadial,
+	const vector3<> dir, const vector3<> RTdir, complex* V)
+{	int n = kernelIndex1D();
+	if(n<nbasis) VnlPrime_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, dir, RTdir, V);
+}
 template<int l, int m>
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
-{	GpuLaunchConfig1D glc(Vnl_kernel<l,m>, nbasis);
-	Vnl_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
-	gpuErrorCheck();
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
+{	if(derivDir) //derivative w.r.t Cartesian k
+	{	const vector3<> RTdir = (2*M_PI)*(*derivDir * inv(G));
+		GpuLaunchConfig1D glc(VnlPrime_kernel<l,m>, nbasis);
+		VnlPrime_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, *derivDir, RTdir, V);
+		gpuErrorCheck();
+	}
+	else //value
+	{	GpuLaunchConfig1D glc(Vnl_kernel<l,m>, nbasis);
+		Vnl_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
+		gpuErrorCheck();
+	}
 }
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
 {
-	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V) )
+	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, derivDir) )
 }
 
 

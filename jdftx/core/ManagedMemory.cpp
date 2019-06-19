@@ -276,6 +276,7 @@ void ManagedMemoryBase::memFree()
 	}
 	else MemPool::CPU().free(c);
 	MemUsageReport::manager(MemUsageReport::Remove, category, nBytes);
+	onGpu = false;
 	c = 0;
 	nBytes = 0;
 	category.clear();

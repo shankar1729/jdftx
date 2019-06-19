@@ -102,6 +102,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpEigStats, "EigStats",
 	DumpFillings, "Fillings",
 	DumpRhoAtom, "RhoAtom",
+	DumpBandUnfold, "BandUnfold",
 	DumpEcomponents, "Ecomponents",
 	DumpExcCompare, "ExcCompare",
 	DumpBoundCharge, "BoundCharge",
@@ -119,6 +120,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpDipole, "Dipole",
 	DumpStress, "Stress",
 	DumpExcitations, "Excitations",
+	DumpSpin, "Spin",
 	DumpMomenta, "Momenta",
 	DumpSymmetries, "Symmetries",
 	DumpKpoints, "Kpoints",
@@ -151,6 +153,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpEigStats,       "Band eigenvalue statistics: HOMO, LUMO, min, max and Fermi level",
 	DumpFillings,       "Fillings",
 	DumpRhoAtom,        "Atomic-orbital projected density matrices (only for species with +U enabled)",
+	DumpBandUnfold,     "Unfold band structure from supercell to unit cell (see command band-unfold)",
 	DumpEcomponents,    "Components of the energy",
 	DumpBoundCharge,    "Bound charge in the fluid",
 	DumpSolvationRadii, "Effective solvation radii based on fluid bound charge distribution",
@@ -168,6 +171,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpDipole,         "Dipole moment of explicit charges (ionic and electronic)",
 	DumpStress,         "Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector",
 	DumpExcitations,    "Dumps dipole moments and transition strength (electric-dipole) of excitations",
+	DumpSpin,           "Spin matrix elements from non-collinear calculations in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
@@ -349,6 +353,7 @@ enum ElectronScatteringMember
 	ESM_Ecut,
 	ESM_fCut,
 	ESM_omegaMax,
+	ESM_RPA,
 	ESM_slabResponse,
 	ESM_EcutTransverse,
 	ESM_delim
@@ -358,6 +363,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_Ecut, "Ecut",
 	ESM_fCut, "fCut",
 	ESM_omegaMax, "omegaMax",
+	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
 	ESM_EcutTransverse, "EcutTransverse"
 );
@@ -373,8 +379,7 @@ struct CommandElectronScattering : public Command
 			"\n"
 			"The following key-value pairs can appear in any order:\n"
 			"\n+ eta <eta>\n\n"
-			"   <eta> in Eh specifies frequency resolution and half the imaginary part\n"
-			"   ascribed to probe frequency (if zero, the electron temperature is used.)\n"
+			"   <eta> in Eh specifies frequency grid resolution (required)\n"
 			"\n+ Ecut <Ecut>\n\n"
 			"   <Ecut> in Eh specifies energy cut-off for dielectric matrices.\n"
 			"   (If zero, the wavefunction cutoff from elec-cutoff is used instead.)\n"
@@ -385,6 +390,8 @@ struct CommandElectronScattering : public Command
 			"   <omegaMax> in Eh is the maximum energy transfer to account for\n"
 			"   and hence the maximum frequency in dielectric function frequency grid.\n"
 			"   (if zero, autodetermine from available eigenvalues)\n"
+			"\n+ RPA yes|no\n\n"
+			"   If yes, use RPA response that ignores XC contribution. (default: no).\n"
 			"\n+ slabResponse yes|no\n\n"
 			"   Whether to output slab-normal-direction susceptibility instead.\n"
 			"   This needs slab geometry in coulomb-interaction, and will bypass the\n"
@@ -405,14 +412,16 @@ struct CommandElectronScattering : public Command
 		while(true)
 		{	ElectronScatteringMember key;
 			pl.get(key, ESM_delim, esmMap, "key");
+			if(key == ESM_delim) break; //end of input
 			switch(key)
 			{	case ESM_eta: pl.get(es.eta, 0., "eta", true); break;
 				case ESM_Ecut: pl.get(es.Ecut, 0., "Ecut", true); break;
 				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
+				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
-				case ESM_delim: return; //end of input
+				case ESM_delim: break; //never encountered; to suppress compiler warning
 			}
 		}
 		if(es.slabResponse)
@@ -422,6 +431,7 @@ struct CommandElectronScattering : public Command
 		else
 		{	if(es.EcutTransverse) throw string("Cannot specify EcutTransverse when slabResponse = no");
 		}
+		if(es.eta <= 0.) throw string("Must specify frequency grid resolution eta > 0.");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -430,6 +440,7 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tEcut     %lg", es.Ecut);
 		logPrintf(" \\\n\tfCut     %lg", es.fCut);
 		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
+		logPrintf(" \\\n\tRPA      %s", boolMap.getString(es.RPA));
 		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
 		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
 	}
@@ -871,11 +882,42 @@ struct CommandPotentialSubtraction : public Command
 commandPotentialSubtraction;
 
 
+struct CommandBandUnfold : public Command
+{
+	CommandBandUnfold() : Command("band-unfold", "jdftx/Output")
+	{
+		format = " \\\n\t<M00> <M01> <M02> \\\n\t<M10> <M11> <M12> \\\n\t<M20> <M21> <M22>";
+		comments =
+			"Unfold band structure from a supercell calculation to a unit cell\n"
+			"with lattice vectors Runit, defined by the integer matrix M such\n"
+			"that current lattice vectors R = Runit * M.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	matrix3<int>& M = e.dump.Munfold;
+		for(int j=0; j<3; j++) for(int k=0; k<3; k++)
+		{	ostringstream oss; oss << "s" << j << k;
+			pl.get(M(j,k), 0, oss.str(), true);
+		}
+		e.dump.insert(std::make_pair(DumpFreq_End, DumpBandUnfold));
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for (int j=0; j < 3; j++)
+		{	logPrintf(" \\\n\t");
+			for(int k=0; k<3; k++) logPrintf("%d ",e.dump.Munfold(j,k));
+		}
+	}
+}
+commandBandUnfold;
+
+
 enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
 	BGWpm_EcutChiFluid,
+	BGWpm_elecOnly,
 	BGWpm_q0,
 	BGWpm_freqReMax_eV,
 	BGWpm_freqReStep_eV,
@@ -889,6 +931,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
+	BGWpm_elecOnly, "elecOnly",
 	BGWpm_q0, "q0",
 	BGWpm_freqReMax_eV, "freqReMax_eV",
 	BGWpm_freqReStep_eV, "freqReStep_eV",
@@ -901,6 +944,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
+	BGWpm_elecOnly, "Whether fluid polarizability output should only include electronic response (default: true)",
 	BGWpm_q0, "Zero wavevector replacement to be used for polarizability output (default: (0,0,0))",
 	BGWpm_freqReMax_eV, "Maximum real frequency in eV (default: 30.)",
 	BGWpm_freqReStep_eV, "Real frequency grid spacing in eV (default: 1.)",
@@ -935,6 +979,9 @@ struct CommandBGWparams : public Command
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
+				case BGWpm_elecOnly:
+					pl.get(bgwp.elecOnly, true, boolMap, "elecOnly", true);
+					break;
 				case BGWpm_q0:
 					for(int dir=0; dir<3; dir++)
 						pl.get(bgwp.q0[dir], 0., "q0", true);
@@ -958,6 +1005,7 @@ struct CommandBGWparams : public Command
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
 		PRINT(EcutChiFluid, "%lg")
+		logPrintf(" \\\n\telecOnly %s", boolMap.getString(bgwp.elecOnly));
 		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);
 		PRINT(freqReMax_eV, "%lg")
 		PRINT(freqReStep_eV, "%lg")

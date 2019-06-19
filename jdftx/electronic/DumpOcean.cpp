@@ -86,7 +86,7 @@ void Dump::dumpOcean()
 				else
 				{	Ck[s] = &CkTemp[s];
 					CkTemp[s].init(eInfo.nBands, nbasis, &basis, &qnum);
-					CkTemp[s].recv(eInfo.whose(q), s);
+					mpiWorld->recvData(CkTemp[s], eInfo.whose(q), s);
 				}
 			}
 			
@@ -106,7 +106,7 @@ void Dump::dumpOcean()
 			for(int s=0; s<nSpins; s++)
 			{	int q = ik + nkPoints*s; //net quantum number
 				if(eInfo.isMine(q))
-					eVars.C[q].send(eInfo.whose(ik), s); //use spin as a tag
+					mpiWorld->sendData(eVars.C[q], eInfo.whose(ik), s); //use spin as a tag
 			}
 		}
 		logPrintf("done.\n"); logFlush();

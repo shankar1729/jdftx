@@ -203,7 +203,9 @@ macro(set_JDFTx_flags targetName isGpu)
 	endif()
 	set_target_properties(${targetName} PROPERTIES
 		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} ${GPU_ENABLED}"
-		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}")
+		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}"
+		INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib"
+		INSTALL_RPATH_USE_LINK_PATH TRUE)
 endmacro()
 
 #----------------------- Regular CPU targets ----------------
@@ -225,6 +227,7 @@ FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp
 add_library(jdftxlib ${LINK_TYPE} ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
+install(TARGETS jdftxlib LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 set_JDFTx_flags(jdftxlib OFF)
 
 #--------------- Nvidia GPU support using CUDA -----------------------
@@ -274,6 +277,7 @@ if(EnableCUDA)
 	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
+	install(TARGETS jdftxlib_gpu LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 	set_JDFTx_flags(jdftxlib_gpu ON)
 endif()
 
@@ -293,12 +297,18 @@ macro(add_JDFTx_executable execName execSources)
 	#CPU version
 	add_executable(${execName} ${ARGN} ${execSources})
 	target_link_libraries(${execName} ${LINK_PREFIX} jdftxlib ${LINK_SUFFIX})
+	if(NOT "${ARGN}" MATCHES EXCLUDE_FROM_ALL)
+		install(TARGETS ${execName} RUNTIME DESTINATION bin)
+	endif()
 	set_JDFTX_flags(${execName} OFF)
 	
 	if(EnableCUDA) #GPU version
-	        add_executable(${execName}_gpu ${ARGN} ${execSources})
-	        target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu ${LINK_SUFFIX})
-	        set_JDFTx_flags(${execName}_gpu ON)
+		add_executable(${execName}_gpu ${ARGN} ${execSources})
+		target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu ${LINK_SUFFIX})
+		if(NOT "${ARGN}" MATCHES EXCLUDE_FROM_ALL)
+			install(TARGETS ${execName}_gpu RUNTIME DESTINATION bin)
+		endif()
+		set_JDFTx_flags(${execName}_gpu ON)
 	endif()
 endmacro()
 
@@ -358,3 +368,24 @@ add_subdirectory(opt)
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
 
+
+#----------------------- Installation --------------------------
+#Executables and library install rules already added above
+#--- headers
+install(DIRECTORY
+	commands
+	core
+	electronic
+	fluid
+	phonon
+	wannier
+	DESTINATION include/jdftx
+	FILES_MATCHING PATTERN "*.h")
+install(FILES "${CMAKE_BINARY_DIR}/config.h" DESTINATION include/jdftx)
+#--- pseudopotentials
+install(DIRECTORY
+	"${CMAKE_BINARY_DIR}/pseudopotentials/GBRV"
+	"${CMAKE_BINARY_DIR}/pseudopotentials/SG15"
+	DESTINATION share/jdftx/pseudopotentials)
+#--- scripts
+install(DIRECTORY scripts DESTINATION share/jdftx USE_SOURCE_PERMISSIONS)

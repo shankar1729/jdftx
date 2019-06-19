@@ -25,15 +25,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <atomic>
 
-//Initialize non-local projector from a radial function at a particular l,m
+//Initialize non-local projector from a radial function at a particular l,m (or its k derivatives)
 template<int l, int m>
 void Vnl(int nbasis, int atomStride, int nAtoms, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
-{	threadedLoop(Vnl_calc<l,m>, nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
+{	if(derivDir) //derivative w.r.t Cartesian k
+	{	const vector3<> RTdir = (2*M_PI)*(*derivDir * inv(G));
+		threadedLoop(VnlPrime_calc<l,m>, nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, *derivDir, RTdir, V);
+	}
+	else threadedLoop(Vnl_calc<l,m>, nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V);
 }
 void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V)
-{	SwitchTemplate_lm(l,m, Vnl, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V) )
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
+{	SwitchTemplate_lm(l,m, Vnl, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, derivDir) )
 }
 
 //Augment electron density by spherical functions

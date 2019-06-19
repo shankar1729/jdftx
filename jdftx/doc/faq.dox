@@ -1,0 +1,27 @@
+/** \page FAQ Frequently Asked Questions
+
+<b>Q. How to restart an unfinished DFT calculation?</b>
+
+\b A. \ref CommandDump state with appropriate frequency.
+
+<b>Q. Why is initialization taking so long?</b>
+
+<b>Q. Which is better for electronic steps, \ref CommandElectronicScf or \ref CommandElectronicMinimize?</b>
+
+<b>Q. How to speed up convergence?</b>
+
+\b A. For metallic systems, using \ref CommandElecSmearing helps
+
+<b>Q. What's the suggested parallelization scheme for most efficient calculation?</b>
+
+\b A. Dry run your calculation to find the number of k-points in the calculation (nStates), then set number of processes less than or equal to \a nStates, and as many threads as possible.
+
+<b>Q. Fillings mismatch error</b>
+
+\b A. Ensure that the number of bands (\ref CommandElecNbands) were not changed between subsequent calculations.
+
+<b>Q. Core overlapping error</b>
+
+\b A. Atoms are positioned too close to each other. Check units (Bohr by default) of ionic positions and lattice constants, and whether \ref CommandCoordsType is set correctly. For example, if \a coords-type is set to \a lattice, then the ionic positions should conventionally be fractions.
+
+*/

@@ -171,7 +171,7 @@ void RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG& fu
 	int nGridMine = iGstop-iGstart;
 	if(nGridMine)
 		threadLaunch(RadialFunction_transform_sub, nGridMine, iGstart, l, dG, this, fTilde.data());
-	mpiWorld->allReduce(fTilde.data(), fTilde.size(), MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(fTilde, MPIUtil::ReduceSum);
 	func.free(this!=func.rFunc);
 	func.init(l, fTilde, dG);
 	if(this!=func.rFunc) func.rFunc = new RadialFunctionR(*this);

@@ -272,7 +272,9 @@ FluidSolver::FluidSolver(const Everything& e, const FluidSolverParams& fsp)
 			c->molecule.setup(gInfo, c->Rvdw);
 
 	//Set bulk dielectric constant
-	if(fsp.epsBulkOverride)
+	if(fsp.epsBulkTensor.length_squared()) //set epsBulk to be consistent with anisotropic override:
+		epsBulk = (1./3)*(fsp.epsBulkTensor[0] + fsp.epsBulkTensor[1] + fsp.epsBulkTensor[2]);
+	else if(fsp.epsBulkOverride)
 		epsBulk = fsp.epsBulkOverride;
 	else
 	{	epsBulk = 1.;
@@ -321,10 +323,14 @@ void FluidSolver::set(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFiel
 		for(std::vector<vector3<> >& posArr: atpos)
 			for(vector3<>& pos: posArr) //transform to embedded lattice coordinates:
 				pos = embedScaleMat *  e.coulomb->wsOrig->restrict(pos - e.coulomb->xCenter);
-		set_internal(e.coulomb->embedExpand(rhoExplicitTilde), e.coulomb->embedExpand(nCavityTilde));
+		ScalarFieldTilde rhoExplicitTildeExpand = e.coulomb->embedExpand(rhoExplicitTilde);
+		if(!k2factor) rhoExplicitTildeExpand->setGzero(0.); //No screening => apply neutralizing background charge
+		set_internal(rhoExplicitTildeExpand, e.coulomb->embedExpand(nCavityTilde));
 	}
 	else
+	{	if(!k2factor) ((ScalarFieldTilde&)rhoExplicitTilde)->setGzero(0.); //No screening => apply neutralizing background charge
 		set_internal(rhoExplicitTilde, nCavityTilde);
+	}
 }
 
 double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces) const
@@ -345,9 +351,9 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 	}
 }
 
-void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde) const
+void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldTildeArray& sTilde, bool elecOnly) const
 {	ScalarFieldArray sArr;
-	getSusceptibility_internal(omega, susceptibility, sArr);
+	getSusceptibility_internal(omega, susceptibility, sArr, elecOnly);
 	sTilde.clear();
 	for(const ScalarField& s: sArr)
 	{	if(e.coulombParams.embed)
@@ -357,7 +363,7 @@ void FluidSolver::getSusceptibility(const std::vector<complex>& omega, std::vect
 	}
 }
 
-void FluidSolver::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr) const
+void FluidSolver::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const
 {	die("\nSusceptibility not yet implemented for this fluid type.\n\n");
 }
 

@@ -131,7 +131,7 @@ void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
 	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
 	double dGinv = 1./gInfo.dGradial;
-	matrix nAugTot = nAug; nAugTot.allReduce(MPIUtil::ReduceSum); //collect radial functions from all processes, and split by G-vectors below
+	matrix nAugTot = nAug; mpiWorld->allReduceData(nAugTot, MPIUtil::ReduceSum); //collect radial functions from all processes, and split by G-vectors below
 	matrix nAugRadial = QradialMat * nAugTot; //transform from radial functions to spline coeffs
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
@@ -155,7 +155,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
 	matrix nAugRadial; const double* nAugRadialData=0;
 	if(forces)
-	{	matrix nAugTot = nAug; nAugTot.allReduce(MPIUtil::ReduceSum);
+	{	matrix nAugTot = nAug; mpiWorld->allReduceData(nAugTot, MPIUtil::ReduceSum);
 		nAugRadial = QradialMat * nAugTot;
 		nAugRadialData = (const double*)nAugRadial.dataPref();
 	}
@@ -171,7 +171,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 		}
 	}
 	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
-	E_nAug.allReduce(MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(E_nAug, MPIUtil::ReduceSum);
 	watch.stop();
 }
 

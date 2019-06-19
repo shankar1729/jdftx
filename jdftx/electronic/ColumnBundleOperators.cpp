@@ -164,6 +164,34 @@ matrix operator^(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY
 	else return Y1dY2; //normal mode (neither is a spinor)
 }
 
+vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY1, const scaled<ColumnBundle> &sY2)
+{	const ColumnBundle& Y1 = sY1.data;
+	const ColumnBundle& Y2 = sY2.data;
+	double scaleFac = sY1.scale * sY2.scale;
+	assert(Y1.colLength() == Y2.colLength());
+	assert(Y1.isSpinor()); //implies Y2 is also spinor
+	//Matrix multiply with an effective reshape to 2*nCols and 1/2 colLength:
+	int nCols1 = 2*Y1.nCols();
+	int nCols2 = 2*Y2.nCols();
+	int colLength = Y1.basis->nbasis; //= Y1.colLength()/2
+	matrix Y1dY2(nCols1, nCols2, isGpuEnabled());
+	callPref(eblas_zgemm)(CblasConjTrans, CblasNoTrans, nCols1, nCols2, colLength,
+		scaleFac, Y1.dataPref(), colLength, Y2.dataPref(), colLength,
+		0.0, Y1dY2.dataPref(), Y1dY2.nRows());
+	//Extract 2x2 components:
+	matrix S[2][2];
+	for(int s1=0; s1<2; s1++)
+		for(int s2=0; s2<2; s2++)
+			S[s1][s2] = Y1dY2(s1,2,nCols1, s2,2,nCols2);
+	//Recombine into spin vector components:
+	return vector3<matrix>(
+		S[0][1] + S[1][0], //Sx
+		(S[0][1] - S[1][0]) * complex(0,-1), //Sy
+		S[0][0] - S[1][1] //Sz
+	);
+}
+
+
 //------------------------------ Other operators ---------------------------------
 
 void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarFieldArray* V, ColumnBundle* VC)

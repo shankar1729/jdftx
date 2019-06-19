@@ -209,14 +209,14 @@ void ElecInfo::printFillings(FILE* fp) const
 			diagMatrix FqTemp;
 			if(!isMine(q))
 			{	FqTemp.resize(nBands);
-				FqTemp.recv(whose(q));
+				mpiWorld->recvData(FqTemp, whose(q), q);
 				Fq = &FqTemp;
 			}
 			((*Fq) * spinWeight).print(fp, "%.15lf ");
 		}
 	else
 		for(int q=qStart; q<qStop; q++)
-			e->eVars.F[q].send(0);
+			mpiWorld->sendData(e->eVars.F[q], 0, q);
 }
 
 void ElecInfo::smearReport(const double* muOverride) const
@@ -509,7 +509,7 @@ void ElecInfo::read(std::vector<diagMatrix>& M, const char *fname, int nRowsOver
 	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].resize(nRows);
-		mpiWorld->fread(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->freadData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 }
@@ -522,7 +522,7 @@ void ElecInfo::read(std::vector<matrix>& M, const char *fname, int nRowsOverride
 	mpiWorld->fseek(fp, qStart*nRows*nCols*sizeof(complex), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	M[q].init(nRows, nCols);
-		mpiWorld->fread(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->freadData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 }
@@ -540,21 +540,21 @@ void ElecInfo::write(const std::vector<diagMatrix>& M, const char *fname, int nR
 			diagMatrix buf;
 			if(!isMine(q))
 			{	buf.resize(nRows);
-				buf.recv(whose(q), q);
+				mpiWorld->recvData(buf, whose(q), q);
 				outData = buf.data();
 			}
 			fwriteLE(outData, sizeof(double), nRows, fp);
 		}
 		fclose(fp);
 	}
-	else for(int q=qStart; q<qStop; q++) M[q].send(0, q);
+	else for(int q=qStart; q<qStop; q++) mpiWorld->sendData(M[q], 0, q);
 #else
 	//Collective write using MPI I/O:
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
 	mpiWorld->fseek(fp, qStart*nRows*sizeof(double), SEEK_SET);
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
-		mpiWorld->fwrite(M[q].data(), sizeof(double), nRows, fp);
+		mpiWorld->fwriteData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 #endif
@@ -572,14 +572,14 @@ void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsO
 		for(int q=0; q<nStates; q++)
 		{	if(!isMine(q))
 			{	matrix buf(nRows, nCols);
-				buf.recv(whose(q), q);
+				mpiWorld->recvData(buf, whose(q), q);
 				buf.write(fp);
 			}
 			else M[q].write(fp);
 		}
 		fclose(fp);
 	}
-	else for(int q=qStart; q<qStop; q++) M[q].send(0, q);
+	else for(int q=qStart; q<qStop; q++) mpiWorld->sendData(M[q], 0, q);
 #else
 	//Collective write using MPI I/O:
 	MPIUtil::File fp; mpiWorld->fopenWrite(fp, fname);
@@ -587,7 +587,7 @@ void ElecInfo::write(const std::vector<matrix>& M, const char *fname, int nRowsO
 	for(int q=qStart; q<qStop; q++)
 	{	assert(M[q].nRows()==nRows);
 		assert(M[q].nCols()==nCols);
-		mpiWorld->fwrite(M[q].data(), sizeof(complex), M[q].nData(), fp);
+		mpiWorld->fwriteData(M[q], fp);
 	}
 	mpiWorld->fclose(fp);
 #endif

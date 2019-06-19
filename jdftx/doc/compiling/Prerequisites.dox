@@ -29,21 +29,24 @@ So here are the prerequisites to installing JDFTx on your system:
   <br><br>
   
 + <b>Windows</b>:
-  Install [Cygwin](https://cygwin.com/install.html)
-  which provides a POSIX-compatible environment on Windows
-  including a terminal with the bash shell
-  (assumed here and in the tutorials).
+  On Windows 10, use the [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl)
+  to get a minimal Linux environment and then follow the Linux installation procedure within it.
+  This option is easier on Windows and yields better performance, but does not support the graphical tools.
+  
+  The other alternative is to install [Cygwin](https://cygwin.com/install.html),
+  which provides a POSIX-compatible environment on Windows including a terminal
+  with the bash shell (assumed here and in the tutorials).
   You can select packages in the Cygwin installer graphical interface,
   and can rerun the installer to add / remove packages later.
   In addition, you should select the xinit package to get a [working X11 environment](http://x.cygwin.com),
-  which will be necessary for opearting many of the Unix tools in graphical mode.
+  which will be necessary for operating many of the Unix tools in graphical mode.
   <br><br>
   
 + <b>Supercomputing cluster</b>:
   All the dependencies will likely already be installed by the administrators,
   but you will have to load necessary modules and specify some paths manually.
   See explicit compilation instructions for NERSC and TACC in the \ref Supercomputers page.
-  If you compile sucessfully on other shared compute clusters,
+  If you compile successfully on other shared compute clusters,
   please post instructions in the [Wiki](https://github.com/shankar1729/jdftx/wiki).
   We would greatly appreciate it and include those instructions below as well. 
 

@@ -38,6 +38,7 @@ struct ElectronScattering
 	double Ecut; //!< energy cut-off for dielectric matrices (set to cntrl.Ecut if unspecified)
 	double fCut; //!< threshold for considering states fully occupied / unoccupied (default: 1e-6)
 	double omegaMax; //!< maximum energy transfer to account for and hence maximum frequency in dielectric grid (if zero, autodetermine from available eigenvalues)
+	bool RPA; //!< if true, ignore XC (RPA response)
 	
 	bool slabResponse; //!< whether to work in slab response output mode
 	double EcutTransverse; //!< energy cutoff in directions transverse to slab normal (same as Ecut above if unspecified)
@@ -77,7 +78,7 @@ private:
 	) const;
 	
 	ColumnBundle getWfns(size_t ik, int iSpin, const vector3<>& k, std::vector<matrix>* VdagCi=0) const; //get wavefunctions at an arbitrary point in k-mesh
-	matrix coulombMatrix(size_t iq) const; //retrieve the Coulomb operator for a specific momentum transfer
+	matrix coulombMatrix(size_t iq, matrix& Kxc) const; //retrieve the Coulomb and XC (if not RPA) operators for a specific momentum transfer
 	void nAugRhoAtomInit(size_t iq); //Initialize nAugRhoAtom for a specific momentum transfer
 	void dumpSlabResponse(Everything& e, const diagMatrix& omegaGrid);
 };

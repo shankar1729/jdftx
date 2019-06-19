@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_CORE_BLASEXTRA_INTERNAL_H
 #define JDFTX_CORE_BLASEXTRA_INTERNAL_H
 
-#include <core/scalar.h>
+#include <core/matrix3.h>
 
 //! @cond
 
@@ -62,6 +62,73 @@ template<> struct Conjugator<complex,true,true,true> { __hostanddev__ complex op
 	{	if(w) eblas_##type##_axpy##suffix(Nindex, a, index, x, y, w, Conjugator<double,false,true,false>()); \
 		else eblas_##type##_axpy##suffix(Nindex, a, index, x, y, w, Conjugator<double,false,false,false>()); \
 	}
+
+	
+//---- symmetrize helper routines ----
+
+template<typename scalar> __hostanddev__ void eblas_symmetrize_calc(size_t i, int n, const int* symmIndex, scalar* x, double nInv)
+{	scalar xSum=0.0;
+	for(int j=0; j<n; j++) xSum += x[symmIndex[n*i+j]];
+	xSum *= nInv; //average n in the equivalence class
+	for(int j=0; j<n; j++) x[symmIndex[n*i+j]] = xSum;
+}
+
+__hostanddev__ void eblas_symmetrize_phase_calc(size_t i, int n, const int* symmIndex, const int* symmMult, const complex* phase, complex* x)
+{	complex xSum = 0.;
+	for(int j=0; j<n; j++)
+		xSum += x[symmIndex[n*i+j]] * phase[n*i+j];
+	xSum *= 1./(n*symmMult[i]); //average n in the equivalence class, with weight for accumulation below accounted)
+	for(int j=0; j<n; j++)
+		x[symmIndex[n*i+j]] = 0.;
+	for(int j=0; j<n; j++)
+		x[symmIndex[n*i+j]] += xSum * phase[n*i+j].conj();
+}
+
+//! Quadruplet of complex arrays corresponding to spin density matrix channels
+class complexPtr4
+{	complex *up, *dn, *re, *im; //!< UpUp, DnDn, Re(UpDn), Im(UpDn) components respectively
+public:
+	complexPtr4(const std::vector<complex*>& v) : up(v[0]), dn(v[1]), re(v[2]), im(v[3]) {}
+	__hostanddev__ void get(int i, const complex& alpha, complex& s, vector3<complex>& v) const //get scalar and vector parts scaled by alpha
+	{	s = alpha*(up[i]+dn[i]);
+		v = alpha*vector3<complex>(2.*re[i], -2.*im[i], up[i]-dn[i]);
+	}
+	__hostanddev__ void accum(int i, const complex& alpha, const complex& s, const vector3<complex>& v) //set scalar and vector parts scaled by alpha
+	{	complex alphaHlf = 0.5*alpha;
+		up[i] += alphaHlf*(s+v[2]);
+		dn[i] += alphaHlf*(s-v[2]);
+		re[i] += alphaHlf*v[0];
+		im[i] -= alphaHlf*v[1];
+	}
+	__hostanddev__ void zero(int i) //set to zero
+	{	up[i] = 0.;
+		dn[i] = 0.;
+		re[i] = 0.;
+		im[i] = 0.;
+	}
+};
+
+__hostanddev__ void eblas_symmetrize_phase_rot_calc(size_t i, int n, const int* symmIndex, const int* symmMult, const complex* phase, const matrix3<>* rotSpin, complexPtr4 x)
+{	//Gather sums:
+	complex sSum = 0.;
+	vector3<complex> vSum;
+	for(int j=0; j<n; j++)
+	{	complex s; vector3<complex> v;
+		x.get(symmIndex[n*i+j], phase[n*i+j], s, v);
+		sSum += s;
+		vSum += rotSpin[j] * v;
+	}
+	//Normalize to average:
+	double scaleFac = 1./(n*symmMult[i]); //account for multiplicity in accumulation below
+	sSum *= scaleFac;
+	vSum *= scaleFac;
+	//Zero target:
+	for(int j=0; j<n; j++)
+		x.zero(symmIndex[n*i+j]);
+	//Scatter averages:
+	for(int j=0; j<n; j++)
+		x.accum(symmIndex[n*i+j], phase[n*i+j].conj(), sSum, vSum * rotSpin[j]); //rotation conjugate to above
+}
 
 //! @endcond
 

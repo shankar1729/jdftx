@@ -41,8 +41,8 @@ std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 				wExtremal[s] += w;
 			}
 		}
-		mpiWorld->allReduce(eExtremal.data(), eExtremal.size(), MPIUtil::ReduceSum);
-		mpiWorld->allReduce(wExtremal.data(), wExtremal.size(), MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(eExtremal, MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(wExtremal, MPIUtil::ReduceSum);
 		for(int s=0; s<nSpins; s++) eExtremal[s] /= wExtremal[s];
 		return eExtremal;
 	}
@@ -59,7 +59,7 @@ std::vector<double> ExCorr_OrbitalDep_GLLBsc::getExtremalEnergy(bool HOMO) const
 				}
 			}
 		}
-		mpiWorld->allReduce(eExtremal.data(), eExtremal.size(), HOMO ? MPIUtil::ReduceMax : MPIUtil::ReduceMin);
+		mpiWorld->allReduceData(eExtremal, HOMO ? MPIUtil::ReduceMax : MPIUtil::ReduceMin);
 		return eExtremal;
 	}
 }
@@ -145,8 +145,8 @@ void ExCorr_OrbitalDep_GLLBsc::dump() const
 			if(e.eVars.F[q][b]<=0.5) eLUMOqp[s] = std::min(eLUMOqp[s], eigsQP[q][b]);
 		}
 	}
-	mpiWorld->allReduce(eHOMOqp.data(), eHOMOqp.size(), MPIUtil::ReduceMax);
-	mpiWorld->allReduce(eLUMOqp.data(), eLUMOqp.size(), MPIUtil::ReduceMin);
+	mpiWorld->allReduceData(eHOMOqp, MPIUtil::ReduceMax);
+	mpiWorld->allReduceData(eLUMOqp, MPIUtil::ReduceMin);
 	#define PRINT_GAP(s, sName) \
 		{	double Egap = eLUMOqp[s] - eHOMOqp[s]; \
 			double Edisc = eLUMOqp[s] - eLUMO[s]; \
@@ -190,9 +190,9 @@ ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOM
 	e.iInfo.augmentDensityGrid(V);
 	for(int s=0; s<nSpins; s++)
 	{	nullToZero(V[s], e.gInfo);
-		V[s]->allReduce(MPIUtil::ReduceSum);
-		e.symm.symmetrize(V[s]);
+		V[s]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 		V[s] *= inv(e.eVars.n[s]); //denominator added here
 	}
+	e.symm.symmetrize(V);
 	return V;
 }

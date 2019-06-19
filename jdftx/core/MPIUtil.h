@@ -21,10 +21,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MPIUTIL_H
 
 #include <core/string.h>
-#include <core/scalar.h>
+#include <core/matrix3.h>
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
+#include <array>
 
 #ifdef MPI_ENABLED
 #include <mpi.h>
@@ -35,6 +36,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file MPIUtil.h Helper classes for MPI parallelization
 
+template<typename T> class ManagedMemory; //forward declaration of ManagedMemory for defining its communication functions
 
 //! MPI wrapper class
 class MPIUtil
@@ -76,36 +78,41 @@ public:
 	static void waitAll(const std::vector<Request>& requests); //!< wait till all requests finish
 	
 	//Point-to-point functions:
+	template<typename T> void sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory send
+	template<typename T> void sendData(const std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector send
 	template<typename T> void send(const T* data, size_t nData, int dest, int tag, Request* request=0) const; //!< generic array send
-	template<typename T> void recv(T* data, size_t nData, int src, int tag, Request* request=0) const; //!< generic array receive
 	template<typename T> void send(const T& data, int dest, int tag, Request* request=0) const; //!< generic scalar send
-	template<typename T> void recv(T& data, int src, int tag, Request* request=0) const; //!< generic scalar receive
-	void send(const complex* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for complex which is not natively supported by MPI
-	void recv(complex* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for complex which is not natively supported by MPI
 	void send(const bool* data, size_t nData, int dest, int tag, Request* request=0) const; //!< send specialization for bool which is not natively supported by MPI
-	void recv(bool* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for bool which is not natively supported by MPI
 	void send(const string& s, int dest, int tag, Request* request=0) const; //!< send string
+	template<typename T> void recvData(ManagedMemory<T>& v, int dest, int tag, Request* request=0) const; //!< managed memory receive
+	template<typename T> void recvData(std::vector<T>& v, int dest, int tag, Request* request=0) const; //!< vector receive
+	template<typename T> void recv(T* data, size_t nData, int src, int tag, Request* request=0) const; //!< generic array receive
+	template<typename T> void recv(T& data, int src, int tag, Request* request=0) const; //!< generic scalar receive
+	void recv(bool* data, size_t nData, int src, int tag, Request* request=0) const; //!< receive specialization for bool which is not natively supported by MPI
 	void recv(string& s, int src, int tag, Request* request=0) const; //!< send string
 	
 	//Broadcast functions:
+	template<typename T> void bcastData(ManagedMemory<T>& v, int root=0, Request* request=0) const; //!< managed memory broadcast
+	template<typename T> void bcastData(std::vector<T>& v, int root=0, Request* request=0) const; //!< vector broadcast
 	template<typename T> void bcast(T* data, size_t nData, int root=0, Request* request=0) const; //!< generic array broadcast
 	template<typename T> void bcast(T& data, int root=0, Request* request=0) const; //!< generic scalar broadcast
-	void bcast(complex* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for complex which is not natively supported by MPI
 	void bcast(bool* data, size_t nData, int root=0, Request* request=0) const; //!< specialization for bool which is not natively supported by MPI
 	void bcast(string& s, int root=0, Request* request=0) const; //!< broadcast string
 
 	//AllReduce functions (safe mode gaurantees identical results irrespective of round-off (but could be slower)):
 	enum ReduceOp { ReduceMin, ReduceMax, ReduceSum, ReduceProd, ReduceLAnd, ReduceBAnd, ReduceLOr, ReduceBOr, ReduceLXor, ReduceBXor };
+	template<typename T> void allReduceData(ManagedMemory<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< managed memory reduction
+	template<typename T> void allReduceData(std::vector<T>& v, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< vector reduction
 	template<typename T> void allReduce(T* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic array reduction
 	template<typename T> void allReduce(T& data, ReduceOp op, bool safeMode=false, Request* request=0) const; //!< generic scalar reduction
-	void allReduce(complex* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
 	void allReduce(bool* data, size_t nData, ReduceOp op, bool safeMode=false, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
 	template<typename T> void allReduce(T& data, int& index, ReduceOp op) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
 	
 	//Reduce functions (results only on root):
+	template<typename T> void reduceData(ManagedMemory<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< managed memory reduction
+	template<typename T> void reduceData(std::vector<T>& v, ReduceOp op, int root=0, Request* request=0) const; //!< vector reduction
 	template<typename T> void reduce(T* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const; //!< generic array reduction
 	template<typename T> void reduce(T& data, ReduceOp op, int root=0, Request* request=0) const; //!< generic scalar reduction
-	void reduce(complex* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for complex which is not natively supported by MPI
 	void reduce(bool* data, size_t nData, ReduceOp op, int root=0, Request* request=0) const;  //!< specialization for bool which is not natively supported by MPI
 	template<typename T> void reduce(T& data, int& index, ReduceOp op, int root=0) const; //!< maximum / minimum with index location (MAXLOC / MINLOC modes); use op = ReduceMin or ReduceMax
 	
@@ -122,6 +129,10 @@ public:
 	void fseek(File fp, long offset, int whence) const; //!< syntax consistent with fseek from stdio
 	void fread(void *ptr, size_t size, size_t nmemb, File fp) const;
 	void fwrite(const void *ptr, size_t size, size_t nmemb, File fp) const;
+	template<typename T> void freadData(ManagedMemory<T>& v, File fp) const;
+	template<typename T> void freadData(std::vector<T>& v, File fp) const;
+	template<typename T> void fwriteData(const ManagedMemory<T>& v, File fp) const;
+	template<typename T> void fwriteData(const std::vector<T>& v, File fp) const;
 };
 
 
@@ -150,8 +161,13 @@ private:
 namespace MPIUtilPrivate
 {
 #ifdef MPI_ENABLED
-	template<typename T> struct DataType;
-	#define DECLARE_DataType(cName, mpiName) template<> struct DataType<cName> { static MPI_Datatype get() { return MPI_##mpiName; } };
+	//Elementary data types directly supported by MPI:
+	template<typename...> struct DataType;
+	#define DECLARE_DataType(cName, mpiName) \
+		template<> struct DataType<cName> \
+		{	static const int nElem = 1; \
+			static MPI_Datatype get() { return MPI_##mpiName; } \
+		};
 	DECLARE_DataType(char, CHAR)
 	DECLARE_DataType(unsigned char, UNSIGNED_CHAR)
 	DECLARE_DataType(short, SHORT)
@@ -164,7 +180,23 @@ namespace MPIUtilPrivate
 	DECLARE_DataType(unsigned long long, UNSIGNED_LONG_LONG)
 	DECLARE_DataType(float, FLOAT)
 	DECLARE_DataType(double, DOUBLE)
+	DECLARE_DataType(complex, C_DOUBLE_COMPLEX)
 	#undef DECLARE_DataType
+	
+	//Compund data types that are multiplets of MPI-supported types:
+	template<typename T> struct DataType<vector3<T>>
+	{	static const int nElem = 3*DataType<T>::nElem;
+		static MPI_Datatype get() { return DataType<T>::get(); }
+	};
+	template<typename T> struct DataType<matrix3<T>>
+	{	static const int nElem = 9*DataType<T>::nElem;
+		static MPI_Datatype get() { return DataType<T>::get(); }
+	};
+	template<typename T, int N> struct DataType<std::array<T,N>>
+	{	static const int nElem = N*DataType<T>::nElem;
+		static MPI_Datatype get() { return DataType<T>::get(); }
+	};
+	#undef DECLARE_DataTypeMultiplet
 	
 	static inline MPI_Op mpiOp(MPIUtil::ReduceOp op)
 	{	switch(op)
@@ -183,7 +215,11 @@ namespace MPIUtilPrivate
 	}
 	
 	template<typename T> struct DataTypeIntPair;
-	#define DECLARE_DataTypeIntPair(cName, mpiName) template<> struct DataTypeIntPair<cName> { static MPI_Datatype get() { return mpiName; } };
+	#define DECLARE_DataTypeIntPair(cName, mpiName) \
+		template<> struct DataTypeIntPair<cName> \
+		{	typedef struct { cName data; int index; } Elem; \
+			static MPI_Datatype get() { return mpiName; } \
+		};
 	DECLARE_DataTypeIntPair(short, MPI_SHORT_INT)
 	DECLARE_DataTypeIntPair(int, MPI_2INT)
 	DECLARE_DataTypeIntPair(long, MPI_LONG_INT)
@@ -201,82 +237,99 @@ namespace MPIUtilPrivate
 #endif
 }
 
+template<typename T> void MPIUtil::sendData(const std::vector<T>& v, int dest, int tag, Request* request) const
+{	send(v.data(), v.size(), dest, tag, request);
+}
 template<typename T> void MPIUtil::send(const T* data, size_t nData, int dest, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(request)
-			MPI_Isend((T*)data, nData, DataType<T>::get(), dest, tag, comm, request);
+			MPI_Isend((void*)data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm, request);
 		else
-			MPI_Send((T*)data, nData, DataType<T>::get(), dest, tag, comm);
+			MPI_Send((void*)data, DataType<T>::nElem*nData, DataType<T>::get(), dest, tag, comm);
 	}
 	#endif
 }
+template<typename T> void MPIUtil::send(const T& data, int dest, int tag, Request* request) const
+{	send(&data, 1, dest, tag, request);
+}
 
+template<typename T> void MPIUtil::recvData(std::vector<T>& v, int dest, int tag, Request* request) const
+{	recv(v.data(), v.size(), dest, tag, request);
+}
 template<typename T> void MPIUtil::recv(T* data, size_t nData, int src, int tag, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(request)
-			MPI_Irecv(data, nData, DataType<T>::get(), src, tag, comm, request);
+			MPI_Irecv(data, DataType<T>::nElem*nData, DataType<T>::get(), src, tag, comm, request);
 		else
-			MPI_Recv(data, nData, DataType<T>::get(), src, tag, comm, MPI_STATUS_IGNORE);
+			MPI_Recv(data, DataType<T>::nElem*nData, DataType<T>::get(), src, tag, comm, MPI_STATUS_IGNORE);
 	}
 	#endif
 }
-
-template<typename T> void MPIUtil::send(const T& data, int dest, int tag, Request* request) const
-{	send(&data, 1, dest, tag, request);
-}
-
 template<typename T> void MPIUtil::recv(T& data, int src, int tag, Request* request) const
 {	recv(&data, 1, src, tag, request);
 }
 
+template<typename T> void MPIUtil::bcastData(std::vector<T>& v, int root, Request* request) const
+{	bcast(v.data(), v.size(), root, request);
+}
 template<typename T> void MPIUtil::bcast(T* data, size_t nData, int root, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	if(request)
-			MPI_Ibcast(data, nData, DataType<T>::get(), root, comm, request);
+	{		
+		#if MPI_VERSION < 3
+		if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+		#else
+		if(request)
+			MPI_Ibcast(data, DataType<T>::nElem*nData, DataType<T>::get(), root, comm, request);
 		else
-			MPI_Bcast(data, nData, DataType<T>::get(), root, comm);
+		#endif
+			MPI_Bcast(data, DataType<T>::nElem*nData, DataType<T>::get(), root, comm);
 	}
 	#endif
 }
-
 template<typename T> void MPIUtil::bcast(T& data, int root, Request* request) const
 {	bcast(&data, 1, root, request);
 }
 
+template<typename T> void MPIUtil::allReduceData(std::vector<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
+{	allReduce(v.data(), v.size(), op, safeMode, request);
+}
 template<typename T> void MPIUtil::allReduce(T* data, size_t nData, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
 	{	if(safeMode) //Reduce to root node and then broadcast result (to ensure identical values)
-		{	MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), 0, comm);
+		{	MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), 0, comm);
 			bcast(data, nData, 0);
 			if(request) throw string("Asynchronous allReduce not supported in safeMode");
 		}
 		else //standard Allreduce
-		{	if(request)
-				MPI_Iallreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm, request);
+		{		
+			#if MPI_VERSION < 3
+			if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+			#else
+			if(request)
+				MPI_Iallreduce(MPI_IN_PLACE, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), comm, request);
 			else
-				MPI_Allreduce(MPI_IN_PLACE, data, nData, DataType<T>::get(), mpiOp(op), comm);
+			#endif
+				MPI_Allreduce(MPI_IN_PLACE, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), comm);
 		}
 	}
 	#endif
 }
-
 template<typename T> void MPIUtil::allReduce(T& data, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	allReduce(&data, 1, op, safeMode, request);
 }
-
 template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::ReduceOp op) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	struct Pair { T data; int index; } pair;
+	{	typename DataTypeIntPair<T>::Elem pair;
 		pair.data = data; pair.index = index;
 		MPI_Allreduce(MPI_IN_PLACE, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), comm);
 		data = pair.data; index = pair.index;
@@ -284,27 +337,33 @@ template<typename T> void MPIUtil::allReduce(T& data, int& index, MPIUtil::Reduc
 	#endif
 }
 
+template<typename T> void MPIUtil::reduceData(std::vector<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
+{	reduce(v.data(), v.size(), op, root, request);
+}
 template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::ReduceOp op, int root, Request* request) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	if(request)
-			MPI_Ireduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), root, comm, request);
+	{	
+		#if MPI_VERSION < 3
+		if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
+		#else
+		if(request)
+			MPI_Ireduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm, request);
 		else
-			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, nData, DataType<T>::get(), mpiOp(op), root, comm);
+		#endif
+			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm);
 	}
 	#endif
 }
-
 template<typename T> void MPIUtil::reduce(T& data, MPIUtil::ReduceOp op, int root, Request* request) const
 {	reduce(&data, 1, op, root, request);
 }
-
 template<typename T> void MPIUtil::reduce(T& data, int& index, MPIUtil::ReduceOp op, int root) const
 {	using namespace MPIUtilPrivate;
 	#ifdef MPI_ENABLED
 	if(nProcs>1)
-	{	struct Pair { T data; int index; } pair;
+	{	typename DataTypeIntPair<T>::Elem pair;
 		pair.data = data; pair.index = index;
 		MPI_Reduce(isHead()?MPI_IN_PLACE:&pair, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), root, comm);
 		data = pair.data; index = pair.index;
@@ -312,6 +371,13 @@ template<typename T> void MPIUtil::reduce(T& data, int& index, MPIUtil::ReduceOp
 	#endif
 }
 
+template<typename T> void MPIUtil::freadData(std::vector<T>& v, File fp) const
+{	fread(v.data(), sizeof(T), v.size(), fp);
+}
+
+template<typename T> void MPIUtil::fwriteData(const std::vector<T>& v, File fp) const
+{	fwrite(v.data(), sizeof(T), v.size(), fp);
+}
 
 //!@endcond
 #endif // JDFTX_CORE_MPIUTIL_H

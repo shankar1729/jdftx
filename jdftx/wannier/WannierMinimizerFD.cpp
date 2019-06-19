@@ -175,7 +175,7 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			}
 			helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
 		}
-		helmholtz.allReduce(MPIUtil::ReduceSum);
+		mpiWorld->allReduceData(helmholtz, MPIUtil::ReduceSum);
 		kHelmholtzInv = dagger_symmetrize(inv(helmholtz))(ikStart,ikStop, 0,kMesh.size()); //invert and split over MPI
 		logPrintf("done.\n"); logFlush();
 	}
@@ -185,18 +185,18 @@ void WannierMinimizerFD::initialize(int iSpin)
 {
 	//Read overlap matrices, if available:
 	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfM0", &iSpin);
-	if(wannier.loadRotations && fileSize(fname.c_str())>0)
+	bool M0exists = (fileSize(fname.c_str()) > 0);
+	mpiWorld->bcast(M0exists); //Ensure MPI consistency of file check (avoid occassional NFS errors)
+	if(wannier.loadRotations && M0exists)
 	{	logPrintf("Reading initial overlaps from '%s' ... ", fname.c_str()); logFlush();
 		size_t sizePerK = edges[0].size() * nBands*nBands * sizeof(complex);
 		MPIUtil::File fp;
 		mpiWorld->fopenRead(fp, fname.c_str(), kMesh.size()*sizePerK);
-		for(size_t ik=0; ik<kMesh.size(); ik++)
-			if(isMine(ik))
-			{	mpiWorld->fseek(fp, ik*sizePerK, SEEK_SET);
-				for(Edge& edge: edges[ik])
-				{	edge.M0 = zeroes(nBands, nBands);
-					mpiWorld->fread(edge.M0.data(), sizeof(complex), edge.M0.nData(), fp);
-				}
+		mpiWorld->fseek(fp, ikStart*sizePerK, SEEK_SET);
+		for(size_t ik=ikStart; ik<ikStop; ik++)
+			for(Edge& edge: edges[ik])
+			{	edge.M0 = zeroes(nBands, nBands);
+				mpiWorld->freadData(edge.M0, fp);
 			}
 		mpiWorld->fclose(fp);
 		logPrintf("done.\n"); logFlush();
@@ -210,22 +210,22 @@ void WannierMinimizerFD::initialize(int iSpin)
 		VdagCother.clear(); VdagCother.resize(e.eInfo.nStates);
 		if(jProcess == mpiWorld->iProcess()) //send
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			{	((ColumnBundle&)e.eVars.C[q]).bcast(jProcess);
+			{	mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 					if(e.iInfo.species[iSp]->isUltrasoft())
-						((matrix&)e.eVars.VdagC[q][iSp]).bcast(jProcess);
+						mpiWorld->bcastData((matrix&)e.eVars.VdagC[q][iSp], jProcess);
 			}
 		}
 		else //recv
 		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
 			{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
-				Cother[q].bcast(jProcess);
+				mpiWorld->bcastData(Cother[q], jProcess);
 				VdagCother[q].resize(e.iInfo.species.size());
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 				{	const SpeciesInfo& sp = *(e.iInfo.species[iSp]);
 					if(sp.isUltrasoft())
 					{	VdagCother[q][iSp].init(sp.nProjectors(), nBands);
-						VdagCother[q][iSp].bcast(jProcess);
+						mpiWorld->bcastData(VdagCother[q][iSp], jProcess);
 					}
 				}
 			}
@@ -253,7 +253,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 	for(size_t ik=0; ik<edges.size(); ik++)
 		for(Edge& edge: edges[ik])
 		{	if(!isMine_q(ik,iSpin)) edge.M0 = zeroes(nBands, nBands);
-			edge.M0.bcast(whose_q(ik,iSpin));
+			mpiWorld->bcastData(edge.M0, whose_q(ik,iSpin));
 			if(mpiWorld->isHead()) edge.M0.write(fp);
 			if(!isMine(ik)) edge.M0 = matrix(); //not needed any more on this process
 		}
@@ -288,8 +288,8 @@ double WannierMinimizerFD::getOmega(bool grad)
 			}
 		}
 	}
-	mpiWorld->allReduce(rSqExpect.data(), nCenters, MPIUtil::ReduceSum);
-	mpiWorld->allReduce((double*)rExpect.data(), 3*nCenters, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(rSqExpect, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(rExpect, MPIUtil::ReduceSum);
 
 	//Compute the total variance of the Wannier centers
 	double Omega = 0.;
@@ -386,7 +386,7 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	}
 	//Apply preconditioner:
 	matrix KgradMat = gradMat * kHelmholtzInv;
-	KgradMat.allReduce(MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
+	mpiWorld->allReduceData(KgradMat, MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
 	//Copy result from each column to a small matrix per k-point:
     for(size_t ik=ikStart; ik<ikStop; ik++)
 	{	const KmeshEntry& ki = kMesh[ik];

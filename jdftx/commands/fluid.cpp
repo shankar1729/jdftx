@@ -253,9 +253,8 @@ enum FluidComponentMember
 	FCM_Rvdw, //!< effective van der Waals radius of the fluid (derived from equation of state) in bohrs
 	FCM_Res, //!< electrostatic radius of solvent (derived from nonlocal response) in bohrs
 	//Extras for frequency dependence:
-	FCM_tauNuc, //!< nuclear motion damping time in fs: rotational for solvents, translational for ions
-	FCM_omegaEl, //!< electronic response center frequency in eV (Drude-Lorentz model)
-	FCM_gammaEl, //!< electronic response frequency width in eV (Drude-Lorentz model)
+	FCM_tauNuc, //!< nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions
+	FCM_poleEl, //!< electronic response poles (Drude-Lorentz model)
 	//Extras for ClassicalDFT:
 	FCM_epsLJ, //!< Lennard-Jones well depth for Mean-Field LJ excess functional
 	FCM_representation, //!< ideal gas representation
@@ -276,9 +275,8 @@ EnumStringMap<FluidComponentMember> fcmMap
 	FCM_sigmaBulk,     "sigmaBulk",
 	FCM_Rvdw,          "Rvdw",
 	FCM_Res,           "Res",
-	FCM_tauNuc,  "tauNuc",
-	FCM_omegaEl, "omegaEl",
-	FCM_gammaEl, "gammaEl",
+	FCM_tauNuc,        "tauNuc",
+	FCM_poleEl,        "poleEl",
 	FCM_epsLJ,          "epsLJ",
 	FCM_representation, "representation",
 	FCM_s2quadType,     "s2quadType",
@@ -296,9 +294,8 @@ EnumStringMap<FluidComponentMember> fcmDescMap
 	FCM_sigmaBulk, "bulk surface tension in Eh/bohr^2",
 	FCM_Rvdw, "effective van der Waals radius of the fluid (derived from equation of state) in bohrs",
 	FCM_Res, "electrostatic radius of solvent (derived from nonlocal response) in bohrs",
-	FCM_tauNuc, "nuclear motion damping time in fs: rotational for solvents, translational for ions",
-	FCM_omegaEl, "electronic response center frequency in eV (Drude-Lorentz model)",
-	FCM_gammaEl, "electronic response frequency width in eV (Drude-Lorentz model)",
+	FCM_tauNuc, "nuclear motion damping time (in Eh^-1 atomic units): rotational for solvents, translational for ions",
+	FCM_poleEl, "electronic response Lorentz poles with parameters ( omega0[eV] gamma0[eV] A0 ). [specify multiple times for several poles, with A0 adding up to 1]",
 	FCM_epsLJ, "Lennard-Jones well depth for Mean-Field LJ excess functional",
 	FCM_representation, "ideal gas representation: " + addDescriptions(representationMap.optionList(), nullDescription, "\n   - "),
 	FCM_s2quadType, "orientation quadrature type:" + addDescriptions(s2quadTypeMap.optionList(), nullDescription, "\n   - "),
@@ -362,6 +359,7 @@ public:
 			c->Nbulk = Nbulk * (mol/liter);
 		}
 		//Optional properties
+		bool poleElAdded = false; //whether electronic poles have been added already by this command
 		while(true)
 		{	FluidComponentMember key;
 			pl.get(key, FCM_Delim, fcmMap, "key");
@@ -383,8 +381,21 @@ public:
 				READ_AND_CHECK(Rvdw, >, 0.)
 				READ_AND_CHECK(Res, >, 0.)
 				READ_AND_CHECK(tauNuc, >, 0.)
-				READ_AND_CHECK(omegaEl, >, 0.)
-				READ_AND_CHECK(gammaEl, >, 0.)
+				case FCM_poleEl:
+				{	if(!poleElAdded) c->polesEl.clear(); //remove any default poles
+					FluidComponent::PoleLD pole;
+					pl.get(pole.omega0, 0., "poleEl::omega0", true);
+					pl.get(pole.gamma0, 0., "poleEl::gamma0", true);
+					pl.get(pole.A0, 0., "poleEl::A0", true);
+					//Check:
+					if(pole.omega0 < 0.) throw string("poleEl::omega0 must be >= 0");
+					if(pole.gamma0 <= 0.) throw string("poleEl::gamma0 must be > 0");
+					pole.omega0 *= eV; //convert from eV to Eh
+					pole.gamma0 *= eV; //convert from eV to Eh
+					c->polesEl.push_back(pole);
+					poleElAdded = true;
+					break;
+				}
 				READ_AND_CHECK(epsLJ, >, 0.)
 				READ_ENUM(representation, FluidComponent::MuEps)
 				READ_ENUM(s2quadType, QuadOctahedron)
@@ -397,6 +408,12 @@ public:
 			}
 			#undef READ_AND_CHECK
 			#undef READ_ENUM
+		}
+		if(poleElAdded)
+		{	double A0sum = 0.;
+			for(const FluidComponent::PoleLD& pole: c->polesEl)
+				A0sum += pole.A0;
+			if(fabs(A0sum-1) > 1e-3) throw string("poleEl::A0 should add up to 1.");
 		}
 	}
 	
@@ -413,8 +430,8 @@ public:
 		PRINT(Rvdw)
 		PRINT(Res)
 		PRINT(tauNuc)
-		PRINT(omegaEl)
-		PRINT(gammaEl)
+		for(const FluidComponent::PoleLD& pole: c.polesEl)
+			logPrintf(" \\\n\tpoleEl %lg %lg %lg", pole.omega0/eV, pole.gamma0/eV, pole.A0);
 		if(e.eVars.fluidParams.fluidType == FluidClassicalDFT)
 		{	PRINT(epsLJ)
 			PRINT_ENUM(representation)
@@ -777,3 +794,31 @@ struct CommandFluidDielectricConstant : public Command
 	}
 }
 commandFluidDielectricConstant;
+
+struct CommandFluidDielectricTensor : public Command
+{
+    CommandFluidDielectricTensor() : Command("fluid-dielectric-tensor", "jdftx/Fluid/Parameters")
+	{
+		format = "<epsBulkXX> <epsBulkYY> <epsBulkZZ>";
+		comments =
+			"Override bulk static dielectric constant of fluid with a tensor, assuming\n"
+			"that the Cartesian axes are the principal axes, without loss of generality.\n"
+			"Supported only for LinearPCM.";
+		require("fluid");
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	FluidSolverParams& fsp = e.eVars.fluidParams;
+		pl.get(fsp.epsBulkTensor[0], 0., "epsBulkXX");
+		pl.get(fsp.epsBulkTensor[1], 0., "epsBulkYY");
+		pl.get(fsp.epsBulkTensor[2], 0., "epsBulkZZ");
+		if(fsp.fluidType != FluidLinearPCM)
+			throw string("Anisotropic epsilon supported only for LinearPCM.");
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	const vector3<>& eps = e.eVars.fluidParams.epsBulkTensor;
+		logPrintf("%lg %lg %lg", eps[0], eps[1], eps[2]);
+	}
+}
+commandFluidDielectricTensor;

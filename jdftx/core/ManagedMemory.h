@@ -107,12 +107,6 @@ public:
 	inline const T* dataPref() const { return data(); }
 	#endif
 
-	//Inter-process communication:
-	void send(int dest, int tag=0) const; //!< send to another process
-	void recv(int src, int tag=0); //!< receive from another process
-	void bcast(int root=0); //!< synchronize across processes (using value on specified root process)
-	void allReduce(MPIUtil::ReduceOp op, bool safeMode=false); //!< apply all-to-all reduction (see MPIUtil::allReduce)
-
 	void read(const char *fname); //!< binary read from a file
 	void read(FILE *filep); //!< binary read from a stream
 	void write(const char *fname) const; //!< binary-write to a file
@@ -130,9 +124,12 @@ public:
 //! ManagedMemory and implement operators; do not use this wrapper.
 template<typename T> struct ManagedArray : public ManagedMemory<T>
 {	void init(size_t size, bool onGpu=false); //!< calls memInit with category "misc"
+	void free();
 	ManagedArray(const T* ptr=0, size_t N=0); //!< optionally initialize N elements from a pointer
 	ManagedArray(const std::vector<T>&); //!< initialize from an std::vector
 	ManagedArray(const ManagedArray&); //!< copy-constructor
+	ManagedArray(ManagedArray&&); //!< move-constructor
+	~ManagedArray();
 	ManagedArray& operator=(const ManagedArray&); //!< copy-assignment
 	ManagedArray& operator=(ManagedArray&&); //!< move-assignment
 };
@@ -270,23 +267,29 @@ template<typename T> void ManagedMemory<T>::zero()
 #else
 #define dataMPI data
 #endif
-template<typename T> void ManagedMemory<T>::send(int dest, int tag) const
-{	assert(mpiWorld->nProcesses()>1);
-	mpiWorld->send(dataMPI(), nData(), dest, tag);
+template<typename T> void MPIUtil::sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request) const
+{	send(v.dataMPI(), v.nData(), dest, tag, request);
 }
-template<typename T> void ManagedMemory<T>::recv(int src, int tag)
-{	assert(mpiWorld->nProcesses()>1);
-	mpiWorld->recv(dataMPI(), nData(), src, tag);
+template<typename T> void MPIUtil::recvData(ManagedMemory<T>& v, int dest, int tag, Request* request) const
+{	recv(v.dataMPI(), v.nData(), dest, tag, request);
 }
-template<typename T> void ManagedMemory<T>::bcast(int root)
-{	if(mpiWorld->nProcesses()>1)
-		mpiWorld->bcast(dataMPI(), nData(), root);
+template<typename T> void MPIUtil::bcastData(ManagedMemory<T>& v, int root, Request* request) const
+{	bcast(v.dataMPI(), v.nData(), root, request);
 }
-template<typename T> void ManagedMemory<T>::allReduce(MPIUtil::ReduceOp op, bool safeMode)
-{	if(mpiWorld->nProcesses()>1)
-		mpiWorld->allReduce(dataMPI(), nData(), op, safeMode);
+template<typename T> void MPIUtil::allReduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
+{	allReduce(v.dataMPI(), v.nData(), op, safeMode, request);
+}
+template<typename T> void MPIUtil::reduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
+{	reduce(v.dataMPI(), v.nData(), op, root, request);
 }
 #undef dataMPI
+template<typename T> void MPIUtil::freadData(ManagedMemory<T>& v, File fp) const
+{	fread(v.data(), sizeof(T), v.nData(), fp);
+}
+template<typename T> void MPIUtil::fwriteData(const ManagedMemory<T>& v, File fp) const
+{	fwrite(v.data(), sizeof(T), v.nData(), fp);
+}
+
 
 template<typename T> void memcpy(ManagedMemory<T>& a, const ManagedMemory<T>& b)
 {	assert(a.nData() == b.nData());
@@ -297,6 +300,10 @@ template<typename T> void memcpy(ManagedMemory<T>& a, const ManagedMemory<T>& b)
 //---- Implementations of ManagedArray ----
 template<typename T> void ManagedArray<T>::init(size_t size, bool onGpu)
 {	ManagedMemory<T>::memInit("misc", size, onGpu);
+}
+
+template<typename T> void ManagedArray<T>::free()
+{	ManagedMemory<T>::memFree();
 }
 
 template<typename T> ManagedArray<T>::ManagedArray(const T* ptr, size_t N)
@@ -318,6 +325,14 @@ template<typename T> ManagedArray<T>::ManagedArray(const ManagedArray<T>& other)
 	{	init(other.nData(), isGpuEnabled());
 		memcpy(*this, other);
 	}
+}
+
+template<typename T> ManagedArray<T>::ManagedArray(ManagedArray<T>&& other)
+{	ManagedMemory<T>::memMove((ManagedMemory<T>&&)other);
+}
+
+template<typename T> ManagedArray<T>::~ManagedArray()
+{	free();
 }
 
 template<typename T> ManagedArray<T>& ManagedArray<T>::operator=(const ManagedArray<T>& other)

@@ -73,7 +73,7 @@ string DOS::Weight::getDescription(const Everything& e) const
 			oss << "lattice";
 		}
 		else
-		{	c = e.gInfo.invR * center;
+		{	c = e.gInfo.R * center;
 			oss << "cartesian";
 		}
 		oss << " (" << c[0] << "," << c[1] << "," << c[2] << ")";
@@ -494,7 +494,7 @@ void DOS::dump()
 			{	int qStart = eInfo.qStartOther(iSrc);
 				int qStop = eInfo.qStopOther(iSrc);
 				std::vector<double> message((qStop-qStart)*eInfo.nBands*(weights.size()+1));
-				mpiWorld->recv(message.data(), message.size(), iSrc, 0, 0);
+				mpiWorld->recvData(message, iSrc, 0, 0);
 				const double* messagePtr = message.data();
 				for(int iState=qStart; iState<qStop; iState++)
 					for(int iBand=0; iBand<eInfo.nBands; iBand++)
@@ -514,7 +514,7 @@ void DOS::dump()
 						*(messagePtr++) = eval.w(iWeight, iState, iBand);
 					*(messagePtr++) = eval.e(iState, iBand);
 				}
-			mpiWorld->send(message.data(), message.size(), 0, 0, 0);
+			mpiWorld->sendData(message, 0, 0, 0);
 		}
 	}
 	if(!mpiWorld->isHead()) return;

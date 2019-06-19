@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true), curIter(0)
+: potentialSubtraction(true), Munfold(1,1,1), curIter(0)
 {
 }
 
@@ -354,6 +354,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
+	if(ShouldDump(BandUnfold))
+		dumpUnfold();
+	
 	if((ShouldDump(BoundCharge) || ShouldDump(SolvationRadii)) && hasFluid)
 	{	ScalarFieldTilde nboundTilde = (-1.0/(4*M_PI*e->gInfo.detR)) * L(eVars.d_fluid);
 		if(iInfo.ionWidth) nboundTilde = gaussConvolve(nboundTilde, iInfo.ionWidth);
@@ -450,6 +453,21 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			dumpExcitations(*e, fname.c_str());
 			EndDump
 		}
+	}
+	
+	if(ShouldDump(Spin) and eInfo.isNoncollinear())
+	{	StartDump("S")
+		std::vector<matrix> S(eInfo.nStates);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
+		{	//Calculate spin overlap:
+			vector3<matrix> Sq = spinOverlap(eVars.C[q], O(eVars.C[q]));
+			//Reshape to a N x 3N matrix:
+			S[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
+			for(int k=0; k<3; k++) //cartesian direction
+				S[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1), Sq[k]);
+		}
+		eInfo.write(S, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
+		EndDump
 	}
 	
 	if(ShouldDump(Momenta))

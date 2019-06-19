@@ -21,8 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SYMMETRIES_H
 #define JDFTX_ELECTRONIC_SYMMETRIES_H
 
-#include <core/matrix3.h>
-#include <core/ScalarField.h>
+#include <core/ScalarFieldArray.h>
 #include <list>
 
 class Everything;
@@ -46,9 +45,12 @@ public:
 	//! Reduce a k-point mesh (and remember its inversion symmetry property in kpointInvertList)
 	std::vector<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
-	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field
-	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field
-	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a scalar field
+	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field in real space
+	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field in reciprocal space
+	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a complex scalar field in reciprocal space
+	void symmetrize(ScalarFieldArray&) const; //!< symmetrize an array of scalar fields in real space representing spin density / potentials
+	void symmetrize(ScalarFieldTildeArray&) const; //!< symmetrize an array of scalar fields in reciprocal space representing spin density / potentials
+	void symmetrize(std::vector<complexScalarFieldTilde>&) const; //!< symmetrize an array of complex scalar fields in reciprocal space representing spin density / potentials
 	void symmetrize(struct IonicGradient&) const; //!< symmetrize forces
 	void symmetrizeSpherical(matrix&, const class SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector<SpaceGroupOp>& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
@@ -85,9 +87,10 @@ private:
 	void checkSymmetries(); //!< check validity of manually specified symmetry matrices
 	
 	//Index map for scalar field (electron density, potential) symmetrization in reciprocal space
-	IndexArray symmIndex; //negative index corresponds to real-symmetry-folded part of G-space (which will be complex conjugated)
-	ManagedArray<complex> symmIndexPhase; //phase factor for entry at each index
+	IndexArray symmIndex; //sets of nSym consecutive G-space indices that should be averaged during symmetrization
 	IndexArray symmMult; //multiplicity (how many times each element is repeated) in each equivalence class
+	ManagedArray<complex> symmIndexPhase; //phase factor for entry at each index
+	ManagedArray<matrix3<>> symmRotSpin; //nSym Cartesian (pseudo-vector) rotation matrices for spin-density symmetrization
 	void initSymmIndex();
 	
 	//Atom maps:

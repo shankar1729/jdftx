@@ -196,10 +196,9 @@ ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 		double prefac = pow(-1,resp.l) * 4*M_PI/(2*resp.l+1);
 		rhoTilde -= prefac * (resp.V * lDivergence(J(s * I(lGradient(resp.V * phiTilde, resp.l))), resp.l));
 	}
-	nullToZero(rhoTilde, gInfo); rhoTilde->allReduce(MPIUtil::ReduceSum);
+	nullToZero(rhoTilde, gInfo); rhoTilde->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	return rhoTilde;
 }
-
 
 ScalarFieldTilde SaLSA::hessian(const ScalarFieldTilde& phiTilde) const
 {	return (-1./(4*M_PI*gInfo.detR)) * L(phiTilde) - chi(phiTilde);
@@ -274,7 +273,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 			Adiel_shape[0] += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
 	for(ScalarField& A_s : Adiel_shape)
 	{	nullToZero(A_s, gInfo);
-		A_s->allReduce(MPIUtil::ReduceSum);
+		A_s->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
 	
 	//Propagate shape gradients to A_nCavity:
@@ -284,6 +283,30 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
+}
+
+void SaLSA::getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const
+{	const FluidComponent& solvent = *(fsp.solvents[0]);
+	susceptibility.clear();
+	sArr.clear();
+	for(const std::shared_ptr<MultipoleResponse>& resp: response)
+	{	SusceptibilityTerm st;
+		//Add shape function:
+		const ScalarField& shapeCur = resp->selectSite(shape, siteShape);
+		st.iSite = sArr.size();
+		sArr.push_back(shapeCur);
+		//Response parameters:
+		st.l = resp->l;
+		st.w = &(resp->V);
+		//Frequency dependence:
+		double nucPrefac = 0., elPrefac = 0.;
+		if(resp->iSite >= 0)
+			elPrefac = 1.;
+		else
+			nucPrefac = elecOnly ? 0. : 1.;
+		st.prefactor = solvent.getChiPrefactor(omega, nucPrefac, elPrefac);
+		susceptibility.push_back(st);
+	}
 }
 
 void SaLSA::loadState(const char* filename)

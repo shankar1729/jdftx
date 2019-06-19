@@ -26,6 +26,7 @@ EnumStringMap<PCMVariant> pcmVariantMap
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12",
 	PCM_SoftSphere, "SoftSphere",
+	PCM_FixedCavity, "FixedCavity",
 	PCM_SCCS_g09,      "SCCS_g09",
 	PCM_SCCS_g03,      "SCCS_g03",
 	PCM_SCCS_g03p,     "SCCS_g03p",
@@ -41,6 +42,7 @@ EnumStringMap<PCMVariant> pcmVariantDescMap
 	PCM_GLSSA13, "PCM with empirical cavity tension \\cite NonlinearPCM",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions \\cite PCM-Kendra", 
 	PCM_SoftSphere, "Soft-sphere continuum solvation model \\cite PCM-SoftSphere",
+	PCM_FixedCavity, "Use a cavity read in using cavityFile in pcm-params and only calculate electrostatic solvation",
 	PCM_SCCS_g09,      "g09 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
 	PCM_SCCS_g03,      "g03 parametrization of SCCS local linear model for water \\cite PCM-SCCS",
 	PCM_SCCS_g03p,     "g03' parametrization of SCCS local linear model for water \\cite PCM-SCCS",
@@ -95,6 +97,7 @@ enum PCMparameter
 	PCMp_cavityPressure, //!< effective pressure on the cavity (hartree per bohr^3) for SCCS and SoftSphere models
 	PCMp_cavityScale, //!< atomic radius scale factor for soft sphere solvation model
 	PCMp_ionSpacing, //!< extra spacing from dielectric to ionic cavity in bohrs for soft sphere model
+	PCMp_cavityFile, //!< filename for fixed cavity model
 	PCMp_zMask0, //z center in lattice coordinates for cavity mask
 	PCMp_zMaskH, //half-width in z lattice coordinates for cavity mask
 	PCMp_zMaskIonH, //half-width in z lattice coordinates for ion cavity mask
@@ -117,6 +120,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_cavityPressure, "cavityPressure",
 	PCMp_cavityScale, "cavityScale",
 	PCMp_ionSpacing, "ionSpacing",
+	PCMp_cavityFile, "cavityFile",
 	PCMp_zMask0, "zMask0",
 	PCMp_zMaskH, "zMaskH",
 	PCMp_zMaskIonH, "zMaskIonH",
@@ -138,6 +142,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_cavityPressure, "effective pressure on the cavity (hartree per bohr^3) for SCCS and soft sphere models",
 	PCMp_cavityScale, "atomic radius scale factor for soft sphere model",
 	PCMp_ionSpacing, "extra spacing from dielectric to ionic cavity in bohrs for soft sphere model",
+	PCMp_cavityFile, "filename for fixed cavity model (should be on double-sized box when using Coulomb truncation)",
 	PCMp_zMask0, "center in z lattice coordinates for cavity mask (default: 0)",
 	PCMp_zMaskIonH, "half-width in z lattice coordinates for ion cavity mask (default: 0 => disabled)",
 	PCMp_zMaskH, "half-width in z lattice coordinates for cavity mask (default: 0 => disabled)",
@@ -182,6 +187,9 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(cavityPressure, <, DBL_MAX)
 				READ_AND_CHECK(cavityScale, >, 0.)
 				READ_AND_CHECK(ionSpacing, >=, 0.)
+				case PCMp_cavityFile:
+					pl.get(fsp.cavityFile, string(), "filename", true);
+					break;
 				READ_AND_CHECK(zMask0, <, DBL_MAX)
 				READ_AND_CHECK(zMaskH, >=, 0.)
 				READ_AND_CHECK(zMaskIonH, >=, 0.)
@@ -203,13 +211,14 @@ struct CommandPcmParams : public Command
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
 		#define PRINT(param) logPrintf(" \\\n\t" #param " %lg", fsp.param);
-		logPrintf(" \\\n\t lMax %d", fsp.lMax);
+		logPrintf(" \\\n\tlMax %d", fsp.lMax);
 		PRINT(nc)
 		PRINT(sigma)
 		PRINT(cavityTension)
 		PRINT(cavityPressure)
 		PRINT(cavityScale)
 		PRINT(ionSpacing)
+		logPrintf(" \\\n\tcavityFile %s", fsp.cavityFile.c_str());
 		PRINT(zMask0)
 		PRINT(zMaskH)
 		PRINT(zMaskIonH)
