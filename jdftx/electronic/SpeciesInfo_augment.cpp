@@ -37,6 +37,46 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matr
 	watch.stop();
 }
 
+void SpeciesInfo::augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const
+{	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	assert(e->eInfo.isNoncollinear());
+	matrix VdagCq = (*getV(Cq)) ^ Cq; //pseudopotential projection
+	//Pauli sigma matrices:
+	std::vector<matrix> pauli(3, zeroes(2,2));
+	pauli[0].set(0,1, +1); pauli[0].set(1,0, +1);
+	pauli[1].set(0,1, complex(0,1.)); pauli[1].set(1,0, complex(0,-1.));
+	pauli[2].set(0,0, +1); pauli[2].set(1,1, -1);
+	//Loop over spin components:
+	for(int iDir=0; iDir<3; iDir++)
+	{	//Version of QintAll based on Pauli matrix insted of eye(2):
+		int nProj = QintAll.nRows();
+		matrix Qspin = zeroes(nProj,nProj);
+		int lOffset = 0;
+		for(unsigned l=0; l<VnlRadial.size(); l++)
+		{	unsigned nMS = 2*(2*l+1); //number of m and spins at each l
+			int iProj = lOffset;
+			for(unsigned ni=0; ni<VnlRadial[l].size(); ni++)
+			{	int jProj = lOffset;
+				for(unsigned nj=0; nj<VnlRadial[l].size(); nj++)
+				{	if(Qint[l])
+					{	for(unsigned iMS=0; iMS<nMS; iMS+=2)
+							Qspin.set(iProj+iMS,iProj+iMS+2, jProj+iMS,jProj+iMS+2,
+								Qint[l].data()[Qint[l].index(ni,nj)] * pauli[iDir]);
+					}
+					jProj += nMS;
+				}
+				iProj += nMS;
+			}
+			lOffset = iProj;
+		}
+		if(isRelativistic())
+			Qspin = fljAll * Qspin * fljAll;
+		//Augment:
+		Sq[iDir] += dagger(VdagCq) * (tiledBlockMatrix(Qspin,atpos.size()) * VdagCq);
+	}
+}
+
 #define augmentDensity_COMMON_INIT \
 	if(!atpos.size()) return; /*unused species*/ \
 	if(!Qint.size()) return; /*no overlap augmentation*/ \

@@ -460,7 +460,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		std::vector<matrix> S(eInfo.nStates);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
 		{	//Calculate spin overlap:
-			vector3<matrix> Sq = spinOverlap(eVars.C[q], O(eVars.C[q]));
+			vector3<matrix> Sq = spinOverlap(eVars.C[q]);
 			//Reshape to a N x 3N matrix:
 			S[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
 			for(int k=0; k<3; k++) //cartesian direction

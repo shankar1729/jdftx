@@ -343,7 +343,12 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	std::vector<vector3<matrix>> Sbloch(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		if(e.eInfo.qnums[q].index()==iSpin)
-			Sbloch[q] = spinOverlap(e.eVars.C[q], O(e.eVars.C[q]));
+		{	Sbloch[q] = spinOverlap(e.eVars.C[q]);
+			//HACK:
+			for(int iDir=0; iDir<3; iDir++)
+				logPrintf("q: %d  iDir: %d  ShermErr: %le\n", q, iDir,
+					nrm2(Sbloch[q][iDir] - dagger(Sbloch[q][iDir])) / nrm2(Sbloch[q][iDir]) );
+		}
 	//Convert to Wannier basis:
 	matrix SwannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
 	int iqMine = 0;
