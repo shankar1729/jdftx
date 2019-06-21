@@ -45,7 +45,7 @@ void SpeciesInfo::augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq
 	//Pauli sigma matrices:
 	std::vector<matrix> pauli(3, zeroes(2,2));
 	pauli[0].set(0,1, +1); pauli[0].set(1,0, +1);
-	pauli[1].set(0,1, complex(0,1.)); pauli[1].set(1,0, complex(0,-1.));
+	pauli[1].set(0,1, complex(0,-1.)); pauli[1].set(1,0, complex(0,1.));
 	pauli[2].set(0,0, +1); pauli[2].set(1,1, -1);
 	//Loop over spin components:
 	for(int iDir=0; iDir<3; iDir++)
