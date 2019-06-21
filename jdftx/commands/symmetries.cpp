@@ -110,3 +110,24 @@ struct CommandSymmetryThreshold : public Command
 }
 commandSymmetryThreshold;
 
+struct CommandKpointReduceInversion : public Command
+{
+	CommandKpointReduceInversion() : Command("kpoint-reduce-inversion", "jdftx/Electronic/Parameters")
+	{
+		format = "yes|no";
+		comments =
+			"Whether to use inversion symmetry to reduce k-point mesh,\n"
+			"even when system is not inversion symmetric (using inversion\n"
+			"+ complex-conjugation symmetry in a real potential).\n"
+			"Default: yes.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.symm.kReduceUseInversion, true, boolMap, "useInversion", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s", boolMap.getString(e.symm.kReduceUseInversion));
+	}
+}
+commandKpointReduceInversion;

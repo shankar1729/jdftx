@@ -93,6 +93,7 @@ public:
 	}
 	spinMode; //!< which spin(s) to generate Wannier functions for
 	std::vector<int> iSpinArr; //!< set of spin indices corresponding to spinMode
+	bool polar; //whether to subtract long-range contributions in e-ph matrix elements
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	

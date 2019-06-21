@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 static const int lMaxSpherical = 3;
 
-Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), sup(vector3<int>(1,1,1)), isPertSup(false)
+Symmetries::Symmetries() : symSpherical(lMaxSpherical+1), symSpinAngle(lMaxSpherical+1), kReduceUseInversion(true), sup(vector3<int>(1,1,1)), isPertSup(false)
 {	shouldPrintMatrices = false;
 }
 
@@ -80,7 +80,8 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 	//Compile list of inversions to check:
 	std::vector<int> invertList;
 	invertList.push_back(+1);
-	invertList.push_back(-1);
+	if(kReduceUseInversion)
+		invertList.push_back(-1);
 	for(const SpaceGroupOp& op: sym)
 		if(op.rot==matrix3<int>(-1,-1,-1))
 		{	invertList.resize(1); //inversion explicitly found in symmetry list, so remove from invertList

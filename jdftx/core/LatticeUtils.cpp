@@ -354,3 +354,17 @@ void writeCellMap(const std::map<vector3<int>,matrix>& iCellMap, const matrix3< 
 	fclose(fp);
 	logPrintf("done.\n"); logFlush();
 }
+
+std::vector<vector3<>> readArrayVec3(string fname)
+{	logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
+	ifstream ifs(fname); if(!ifs.is_open()) die("could not open file.\n");
+	string headerLine; getline(ifs, headerLine); //read and ignore header line
+	std::vector<vector3<double>> fileData;
+	vector3<double> ij; //lattice coords version (store)
+	while(ifs >> ij[0] >> ij[1] >> ij[2])
+		fileData.push_back(ij);
+	ifs.close();
+	logPrintf("done.\n");
+	return fileData;
+}
+
