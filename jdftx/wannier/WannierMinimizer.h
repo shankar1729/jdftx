@@ -125,7 +125,7 @@ protected:
 	
 	//Phonon related:
 	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
-	std::map<vector3<int>,matrix> phononCellMap, ePhCellMap; //phonon and e-ph cell maps
+	std::map<vector3<int>,matrix> ePhCellMap; //cell map for e-ph matrix elements
 	int nPhononModes; //!< number of phonon modes
 	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
 	int prodPhononSup; //number of unit cells in phonon supercell

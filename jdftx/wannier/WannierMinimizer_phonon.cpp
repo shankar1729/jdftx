@@ -23,30 +23,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Output electron-phonon related quantities in Wannier basis:
 void WannierMinimizer::saveMLWF_phonon(int iSpin)
 {
-	//Generate phonon cell map (will match that used by phonon):
-	xAtoms.clear();
-	for(const auto& sp: e.iInfo.species)
-		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
-	assert(3*int(xAtoms.size()) == nPhononModes);
-	phononCellMap = getCellMap(
-		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-		e.coulombParams.isTruncated(), xAtoms, xAtoms, wannier.rSmooth); //phonon force-matrix cell map
-	
-	//Read phonon force matrix:
-	std::map<vector3<int>, matrix> phononOmegaSq;
-	if(mpiWorld->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameInit, "phononOmegaSq");
-		logPrintf("Reading '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "r");
-		for(const auto iter: phononCellMap)
-		{	matrix omegaSqCur(nPhononModes, nPhononModes);
-			omegaSqCur.read_real(fp);
-			phononOmegaSq[iter.first] = omegaSqCur;
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	
 	//Generate list of commensurate k-points in order present in the unit cell calculation
 	prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
 	std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
@@ -58,64 +34,15 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	assert(int(ikArr.size()) == prodPhononSup);
 	
-	//Generate electron-phonon cell map:
+	//Generate and write electron-phonon cell map:
+	xAtoms.clear();
+	for(const auto& sp: e.iInfo.species)
+		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
+	assert(3*int(xAtoms.size()) == nPhononModes);
 	ePhCellMap = getCellMap(
 		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-		e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth); //e-ph elements cell map
-	//--- Add ePhCellMap cells missing in phononCellMap:
-	for(const auto iter: ePhCellMap)
-		if(phononCellMap.find(iter.first) == phononCellMap.end())
-		{	phononCellMap[iter.first] = zeroes(xAtoms.size(), xAtoms.size());
-			phononOmegaSq[iter.first] = zeroes(nPhononModes, nPhononModes);
-		}
-	//--- Add phononCellMap cells missing in ePhCellMap:
-	for(const auto iter: phononCellMap)
-		if(ePhCellMap.find(iter.first) == ePhCellMap.end())
-			ePhCellMap[iter.first] = zeroes(xAtoms.size(), xExpect.size());
-	
-	//Output force matrix on unified phonon cellMap:
-	if(mpiWorld->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfOmegaSqPh", &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		for(const auto iter: phononOmegaSq)
-			iter.second.write_real(fp);
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	
-	//Output unified phonon cellMap:
-	if(mpiWorld->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin);
-		writeCellMap(phononCellMap, e.gInfo.R, fname);
-		
-		//Corresponding cell weights:
-		fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeightsPh", &iSpin);
-		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die_alone("could not open file for writing.\n");
-		for(auto iter: phononCellMap)
-			iter.second.write_real(fp);
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	
-
-	//Output phonon cellMapSq:
-	if(mpiWorld->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapSqPh", &iSpin);
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		fprintf(fp, "#i0 i1 i2  i0' i1' i2'   (integer lattice combinations for pairs of sites)\n");
-		for(const auto& entry1: phononCellMap)
-		for(const auto& entry2: phononCellMap)
-		{	const vector3<int>& iR1 = entry1.first;
-			const vector3<int>& iR2 = entry2.first;
-			fprintf(fp, "%+2d %+2d %+2d  %+2d %+2d %+2d\n", iR1[0], iR1[1], iR1[2], iR2[0], iR2[1], iR2[2]);
-		}
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
+		e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth,
+		wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin));
 	
 	//Generate pairs of commensurate k-points along with pointer to Wannier rotation
 	kpointPairs.clear();
@@ -240,7 +167,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	{	fp = fopen(fname.c_str(), "wb");
 		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 	}
-	matrix phase = zeroes(HePhTilde.nCols(), phononCellMap.size());
+	matrix phase = zeroes(HePhTilde.nCols(), ePhCellMap.size());
 	double kPairWeight = 1./prodPhononSup;
 	double nrm2totSq = 0., nrm2imSq = 0.;
 	std::map<vector3<int>, matrix> Hsum;
