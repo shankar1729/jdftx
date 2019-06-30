@@ -189,10 +189,11 @@ private:
 	bool realPartOnly; //whether outputs should have only real part
 	std::vector<vector3<>> xExpect; //converged wannier centers in lattice coordinates
 	std::map<vector3<int>,matrix> iCellMap; //cell map for wannier output accounting for xExpect
-	std::vector<matrix> pBlochMesh; //momentum matix elements in Bloch basis
+	std::vector<matrix> DblochMesh; //gradient matix elements in Bloch basis
 	void saveMLWF_C(int iSpin); //Wavefunctions
 	void saveMLWF_H(int iSpin, const matrix& phase); //Hamiltonian
 	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
+	void saveMLWF_D(int iSpin, const matrix& phase); //Gradient
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths

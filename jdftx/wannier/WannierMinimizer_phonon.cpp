@@ -83,8 +83,8 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	for(int ik: ikArr)
 	{	if(not isMine_q(ik, iSpin))
-			pBlochMesh[ik].init(nBands*nBands, 3);
-		mpiWorld->bcastData(pBlochMesh[ik], whose_q(ik, iSpin));
+			DblochMesh[ik].init(nBands*nBands, 3);
+		mpiWorld->bcastData(DblochMesh[ik], whose_q(ik, iSpin));
 	}
 	double nrmTot = 0., nrmCorr = 0.;
 	for(int iPair=iPairStart; iPair<iPairStop; iPair++)
@@ -104,11 +104,11 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 				nrmTot += std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
 				//Subtract the expected matrix elements from the sum rule connecting it to momentum matrix elements:
 				complex* Hdata = phononHsubMean.data();
-				const complex* Pdata = pBlochMesh[pair.ik1].data() + pBlochMesh[pair.ik1].index(0,iDir);
+				const complex* Ddata = DblochMesh[pair.ik1].data() + DblochMesh[pair.ik1].index(0,iDir);
 				double normFac = 1./(nAtoms*prodPhononSup);
 				for(int b2=0; b2<nBands; b2++)
 					for(int b1=0; b1<nBands; b1++)
-						*(Hdata++) -= *(Pdata++) * (E[b1]-E[b2]) * normFac;
+						*(Hdata++) -= *(Ddata++) * (E[b1]-E[b2]) * normFac;
 				nrmCorr += std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
 				//Apply correction:
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
@@ -118,7 +118,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			}
 		}
 	}
-	pBlochMesh.clear();
+	DblochMesh.clear();
 	mpiWorld->allReduce(nrmCorr, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(nrmTot, MPIUtil::ReduceSum);
 	logPrintf("done. Translation invariance correction: %le\n", sqrt(nrmCorr/nrmTot)); logFlush();
