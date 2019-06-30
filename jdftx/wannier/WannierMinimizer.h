@@ -186,7 +186,6 @@ private:
 		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
 	
 	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
-	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)
 	bool realPartOnly; //whether outputs should have only real part
 	std::vector<vector3<>> xExpect; //converged wannier centers in lattice coordinates
 	std::map<vector3<int>,matrix> iCellMap; //cell map for wannier output accounting for xExpect

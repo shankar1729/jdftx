@@ -26,7 +26,7 @@ Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDif
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false),
 	z0(0.), zH(0.), zSigma(0.),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5), rSmooth(1.),
-	wrapWS(false), spinMode(SpinAll), polar(false)
+	spinMode(SpinAll), polar(false)
 {
 }
 

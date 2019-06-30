@@ -58,58 +58,6 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	}
 	assert(int(ikArr.size()) == prodPhononSup);
 	
-	//Wrap atoms to WS cell if necessary:
-	std::vector<vector3<int>> dxAtoms;
-	if(wannier.wrapWS)
-	{	logPrintf("\nWrapping phonon basis to Wigner-Seitz cell:\n");
-		//Calculate offsets and new atom positions:
-		std::vector<vector3<>> xAtomsNew;
-		for(const vector3<>& xAt: xAtoms)
-		{	vector3<> x = xAt - e.coulombParams.embedCenter; //lattice coordinates w.r.t Coulomb center
-			vector3<> xWS = ws->restrict(x);
-			vector3<int> dx = round(xWS-x);
-			logPrintf("\t[ %3d %3d %3d ]\n", dx[0], dx[1], dx[2]);
-			dxAtoms.push_back(dx);
-			xAtomsNew.push_back(xAt + dx);
-		}
-		//Construct offset force matrix:
-		std::map<vector3<int>, matrix> phononOmegaSqNew;
-		for(const auto& iter: phononOmegaSq)
-			for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
-			for(size_t jAtom=0; jAtom<xAtoms.size(); jAtom++)
-			{	vector3<int> iRnew = iter.first - (dxAtoms[jAtom] - dxAtoms[iAtom]); //iR + x_j - x_i stays invariant
-				matrix& oSqCur = phononOmegaSqNew[iRnew];
-				if(!oSqCur) oSqCur = zeroes(nPhononModes, nPhononModes);
-				oSqCur.set(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3,
-					iter.second(3*iAtom, 3*iAtom+3, 3*jAtom, 3*jAtom+3) );
-			}
-		//Construct new cell map:
-		std::map<vector3<int>,matrix> phononCellMapNew = getCellMap(
-			e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-			e.coulombParams.isTruncated(), xAtomsNew, xAtomsNew, wannier.rSmooth);
-		//Reduce force matrix to it:
-		double nrmSqKept = 0., nrmSqDropped = 0.;
-		for(auto iter=phononOmegaSqNew.begin(); iter!=phononOmegaSqNew.end();)
-		{	double nrmSqCur = std::pow(nrm2(iter->second), 2);
-			if(phononCellMapNew.find(iter->first) == phononCellMapNew.end())
-			{	//Not in new cell map; remove
-				nrmSqDropped += nrmSqCur;
-				iter = phononOmegaSqNew.erase(iter);
-			}
-			else
-			{	//In new cell map; keep
-				nrmSqKept += nrmSqCur;
-				iter++;
-			}
-		}
-		logPrintf("\tRelative error in phonon force matrix remapping: %le\n\n",
-			sqrt(nrmSqDropped / (nrmSqKept + nrmSqDropped)));
-		//Replace originals:
-		xAtoms = xAtomsNew;
-		phononOmegaSq = phononOmegaSqNew;
-		phononCellMap = phononCellMapNew;
-	}
-	
 	//Generate electron-phonon cell map:
 	ePhCellMap = getCellMap(
 		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
@@ -197,9 +145,6 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		{	matrix& phononHsubCur = phononHsub[iMode][iPair];
 			phononHsubCur.init(nBands, nBands);
 			mpiWorld->freadData(phononHsubCur, fpIn); //read from file
-			//Translate for phonon basis wrapping (if any):
-			if(wannier.wrapWS)
-				phononHsubCur *= cis(-2*M_PI*dot(dxAtoms[iMode/3], kpointPairs[iPair].k1 - kpointPairs[iPair].k2));
 		}
 	}
 	
