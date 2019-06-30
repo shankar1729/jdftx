@@ -125,7 +125,7 @@ protected:
 	
 	//Phonon related:
 	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
-	std::map<vector3<int>,matrix> phononCellMap, ePhCellMap; //phonon and e-ph cell maps
+	std::map<vector3<int>,matrix> ePhCellMap; //cell map for e-ph matrix elements
 	int nPhononModes; //!< number of phonon modes
 	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
 	int prodPhononSup; //number of unit cells in phonon supercell
@@ -186,14 +186,14 @@ private:
 		const matrix& phase, int nMatrices, string varName, bool realPartOnly, int iSpin) const;
 	
 	//---- Shared variables and subroutines implementing various Wannier outputs within saveMLWF() ----
-	std::shared_ptr<WignerSeitz> ws; //Wigner-Seitz cell used for wrapping (if wrapWS = true)
 	bool realPartOnly; //whether outputs should have only real part
 	std::vector<vector3<>> xExpect; //converged wannier centers in lattice coordinates
 	std::map<vector3<int>,matrix> iCellMap; //cell map for wannier output accounting for xExpect
-	std::vector<matrix> pBlochMesh; //momentum matix elements in Bloch basis
+	std::vector<matrix> DblochMesh; //gradient matix elements in Bloch basis
 	void saveMLWF_C(int iSpin); //Wavefunctions
 	void saveMLWF_H(int iSpin, const matrix& phase); //Hamiltonian
 	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
+	void saveMLWF_D(int iSpin, const matrix& phase); //Gradient
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
