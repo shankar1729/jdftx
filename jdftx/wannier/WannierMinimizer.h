@@ -218,7 +218,7 @@ public:
 			iGbox[i] = int(Gmax*R.column(i).length()/(2*M_PI)) + 2; //margin to account for q
 	}
 	
-	inline double operator()(const vector3<>& q, const vector3<>& Zeff)
+	inline complex operator()(const vector3<>& q, const vector3<>& Zeff, const vector3<>& atpos)
 	{	//Wrap q to fundamental zone
 		vector3<> qBZ = q;
 		for(int iDir=0; iDir<3; iDir++)
@@ -226,7 +226,7 @@ public:
 		//Convert Z to lattice coordinates:
 		vector3<> ZeffLat = G * Zeff;
 		//Loop over G-vectors:
-		double result = 0.;
+		complex result = 0.;
 		vector3<int> iG;
 		for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
 		for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
@@ -234,7 +234,7 @@ public:
 		{	vector3<> iGq = iG + qBZ;
 			double expFac = alphaInvBy4 * GGT.metric_length_squared(iGq);
 			if(expFac > 1e-16 and expFac < 36.) //i.e. G != 0 and gaussian non-zero at double precision
-				result += exp(-expFac) * dot(ZeffLat, iGq) / epsInfLat.metric_length_squared(iGq);
+				result += cis((-2*M_PI)*dot(iGq,atpos)) * exp(-expFac) * dot(ZeffLat, iGq) / epsInfLat.metric_length_squared(iGq);
 		}
 		return result;
 	}
