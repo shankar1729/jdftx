@@ -233,7 +233,7 @@ public:
 		for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
 		{	vector3<> iGq = iG + qBZ;
 			double expFac = alphaInvBy4 * GGT.metric_length_squared(iGq);
-			if(expFac > 1e-12 and expFac < 36.) //i.e. G != 0 and gaussian non-zero at double precision
+			if(expFac > 1e-16 and expFac < 36.) //i.e. G != 0 and gaussian non-zero at double precision
 				result += exp(-expFac) * dot(ZeffLat, iGq) / epsInfLat.metric_length_squared(iGq);
 		}
 		return result;

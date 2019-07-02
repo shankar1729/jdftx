@@ -149,6 +149,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			if(wannier.polar)
 			{	vector3<> q = kMesh[pair.ik1].point.k - kMesh[pair.ik2].point.k;
 				complex gLij =  complex(0,1)
+					* cis((-2*M_PI)*dot(q,xAtoms[iMode/3])) //atom translation phase
 					* ((4*M_PI) * invsqrtM[iMode] / (e.gInfo.detR * prodPhononSup))
 					*  (*lrs)(q, Zeff[iMode]);
 				for(int b=0; b<nCenters; b++)   
