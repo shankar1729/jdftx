@@ -43,6 +43,34 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
 		e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth,
 		wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin));
+	//--- Corresponding cell map:
+	if(mpiWorld->isHead())
+	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeightsPh", &iSpin);
+		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		if(!fp) die_alone("could not open file for writing.\n");
+		for(const auto& entry: ePhCellMap)
+			entry.second.write_real(fp);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+	//--- Re-organize by unique cells in supercell:
+	struct UniqueCell
+	{	vector3<int> iR; //unique cell in supercell
+		std::vector<std::pair<vector3<int>,matrix>> cells; //equivalent ones with weights
+	};
+	std::vector<UniqueCell> uniqueCells(prodPhononSup);
+	vector3<int> stride(wannier.phononSup[1]*wannier.phononSup[2], wannier.phononSup[2], 1);
+	for(const auto& entry: ePhCellMap)
+	{	//Compute unique index:
+		vector3<int> iR = entry.first;
+		for(int iDir=0; iDir<3; iDir++)
+			iR[iDir] = positiveRemainder(iR[iDir], wannier.phononSup[iDir]);
+		int uniqIndex = dot(iR, stride);
+		//Set/collect unique cell properties:
+		uniqueCells[uniqIndex].iR = iR;
+		uniqueCells[uniqIndex].cells.push_back(entry);
+	}
 	
 	//Generate pairs of commensurate k-points along with pointer to Wannier rotation
 	kpointPairs.clear();
@@ -167,53 +195,61 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	{	fp = fopen(fname.c_str(), "wb");
 		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 	}
-	matrix phase = zeroes(HePhTilde.nCols(), ePhCellMap.size());
+	matrix phase = zeroes(HePhTilde.nCols(), prodPhononSup);
 	double kPairWeight = 1./prodPhononSup;
 	double nrm2totSq = 0., nrm2imSq = 0.;
 	std::map<vector3<int>, matrix> Hsum;
-	for(const auto& entry1: ePhCellMap)
+	for(const UniqueCell& cell1: uniqueCells)
 	{	//calculate Fourier transform phase (with integration weights):
 		for(int iPair=iPairStart; iPair<iPairStop; iPair++)
 		{	const KpointPair& pair = kpointPairs[iPair];
 			int iCell2 = 0;
-			for(const auto& entry2: ePhCellMap)
-			{	const vector3<int>& iR1 = entry1.first;
-				const vector3<int>& iR2 = entry2.first;
-				phase.set(iPair-iPairStart, iCell2++, kPairWeight * cis(2*M_PI*(dot(pair.k1,iR1) - dot(pair.k2,iR2))) );
-			}
+			for(const UniqueCell& cell2: uniqueCells)
+				phase.set(iPair-iPairStart, iCell2++, 
+					kPairWeight * cis(2*M_PI*(dot(pair.k1,cell1.iR) - dot(pair.k2,cell2.iR))) );
 		}
 		//convert phononHsub from Bloch to wannier for each nuclear displacement mode:
 		matrix H = HePhTilde * phase;
 		mpiWorld->allReduceData(H, MPIUtil::ReduceSum);
-		//apply cell weights and collect sum rule:
-		complex* Hdata = H.dataPref();
-		for(const auto& entry2: ePhCellMap)
-		{	//prepare for sum rule collection:
-			vector3<int> iRdiff = entry2.first - entry1.first;
-			matrix& HsumCur = Hsum[iRdiff];
-			if(not HsumCur) HsumCur = zeroes(nCenters*nCenters, 3);
-			//Loop over atoms and directions:
-			int iMode = 0;
-			for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
-			{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
-				matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
-				matrix w = transpose(w1i) * w2i;
-				complex* HsumData = HsumCur.dataPref(); //summed over atoms, but not over directions
-				for(int iVector=0; iVector<3; iVector++)
-				{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Hdata, 1); //apply weights
-					callPref(eblas_zaxpy)(w.nData(), 1./invsqrtM[iMode], Hdata, 1, HsumData, 1); //collect sum rule
-					Hdata += w.nData();
-					HsumData += w.nData();
-					iMode++;
-				}
-			}
-		}
+		//write results for unique cells to file:
 		if(realPartOnly)
 		{	if(mpiWorld->isHead()) H.write_real(fp);
 			nrm2totSq += std::pow(nrm2(H), 2); 
 			nrm2imSq += std::pow(callPref(eblas_dnrm2)(H.nData(), ((double*)H.dataPref())+1, 2), 2); //look only at imaginary parts with a stride of 2
 		}
 		else { if(mpiWorld->isHead()) H.write(fp); }
+		//collect sum rule, accounting for cell map and weights:
+		const complex* Hdata = H.dataPref();
+		int nDataPerCell = nPhononModes*nCenters*nCenters;
+		for(const UniqueCell& cell2: uniqueCells)
+		{	for(const auto& entry1: cell1.cells)
+			{	for(const auto& entry2: cell2.cells)
+				{	//copy H for current cells:
+					std::vector<complex> HcopyVec(Hdata, Hdata+nDataPerCell);
+					complex* Hcopy = HcopyVec.data();
+					//prepare for sum rule collection:
+					vector3<int> iRdiff = entry2.first - entry1.first;
+					matrix& HsumCur = Hsum[iRdiff];
+					if(not HsumCur) HsumCur = zeroes(nCenters*nCenters, 3);
+					//Loop over atoms and directions:
+					int iMode = 0;
+					for(size_t iAtom=0; iAtom<xAtoms.size(); iAtom++)
+					{	matrix w1i = entry1.second(iAtom,iAtom+1, 0,xExpect.size());
+						matrix w2i = entry2.second(iAtom,iAtom+1, 0,xExpect.size());
+						matrix w = transpose(w1i) * w2i;
+						complex* HsumData = HsumCur.dataPref(); //summed over atoms, but not over directions
+						for(int iVector=0; iVector<3; iVector++)
+						{	callPref(eblas_zmul)(w.nData(), w.dataPref(), 1, Hcopy, 1); //apply weights
+							callPref(eblas_zaxpy)(w.nData(), 1./invsqrtM[iMode], Hcopy, 1, HsumData, 1); //collect sum rule
+							Hcopy += w.nData();
+							HsumData += w.nData();
+							iMode++;
+						}
+					}
+				}
+			}
+			Hdata += nDataPerCell;
+		}
 	}
 	if(mpiWorld->isHead()) fclose(fp);
 	if(realPartOnly)
