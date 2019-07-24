@@ -151,17 +151,28 @@ void WannierMinimizer::saveMLWF(int iSpin)
 		logPrintf("done.\n"); logFlush();
 	}
 	
+	//Create unique cells
+	vector3<int> kfold = e.eInfo.kFoldingCount();
+	int kfoldProd = kfold[0]*kfold[1]*kfold[2];
+	std::vector<vector3<int>> uniqueCells; uniqueCells.reserve(kfoldProd);
+	{	vector3<int> iR;
+		for(iR[0]=0; iR[0]<kfold[0]; iR[0]++)
+		for(iR[1]=0; iR[1]<kfold[1]; iR[1]++)
+		for(iR[2]=0; iR[2]<kfold[2]; iR[2]++)
+			uniqueCells.push_back(iR);
+	}
+	
 	//Compute Fourier transform phase (common to all electronic k-mesh outputs below):
 	int nqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		nqMine++;
 	nqMine = std::max(nqMine,1); //avoid zero size matrices below
-	matrix phase = zeroes(nqMine, iCellMap.size());
+	matrix phase = zeroes(nqMine, uniqueCells.size());
 	{	int iqMine = 0;
 		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 		{	int iCell = 0;
-			for(auto cell: iCellMap)
-				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(-2*M_PI*dot(kMesh[i].point.k, cell.first)));
+			for(const vector3<int>& iR: uniqueCells)
+				phase.set(iqMine, iCell++, kMesh[i].point.weight * cis(-2*M_PI*dot(kMesh[i].point.k, iR)));
 			iqMine++;
 		}
 	}
@@ -264,7 +275,7 @@ void WannierMinimizer::saveMLWF_H(int iSpin, const matrix& phase)
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(HwannierTilde, iCellMap, phase, 1, "mlwfH", realPartOnly, iSpin);
+	dumpWannierized(HwannierTilde, phase, "mlwfH", realPartOnly, iSpin);
 }
 
 
@@ -296,7 +307,7 @@ void WannierMinimizer::saveMLWF_P(int iSpin, const matrix& phase)
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(pWannierTilde, iCellMap, phase, 3, "mlwfP", realPartOnly, iSpin);
+	dumpWannierized(pWannierTilde, phase, "mlwfP", realPartOnly, iSpin);
 }
 
 //Save gradient matrix elements in Wannier basis:
@@ -332,7 +343,7 @@ void WannierMinimizer::saveMLWF_D(int iSpin, const matrix& phase)
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(DwannierTilde, iCellMap, phase, 3, "mlwfD", realPartOnly, iSpin);
+	dumpWannierized(DwannierTilde, phase, "mlwfD", realPartOnly, iSpin);
 }
 
 
@@ -364,7 +375,7 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(SwannierTilde, iCellMap, phase, 3, "mlwfS", realPartOnly, iSpin);
+	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
 }
 
 
@@ -426,7 +437,7 @@ void WannierMinimizer::saveMLWF_W(int iSpin, const matrix& phase)
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(wWannierTilde, iCellMap, phase, 1, "mlwfW", realPartOnly, iSpin);
+	dumpWannierized(wWannierTilde, phase, "mlwfW", realPartOnly, iSpin);
 }
 
 
@@ -493,6 +504,6 @@ void WannierMinimizer::saveMLWF_ImSigma_ee(int iSpin, const matrix& phase)
 			callPref(eblas_copy)(ImSigma_eeWannierTilde.dataPref()+ImSigma_eeWannierTilde.index(0,iqMine), ImSigma_eeSub.dataPref(), ImSigma_eeSub.nData());
 			iqMine++;
 		}
-		dumpWannierized(ImSigma_eeWannierTilde, iCellMap, phase, 1, "mlwfImSigma_ee", realPartOnly, iSpin);
+		dumpWannierized(ImSigma_eeWannierTilde, phase, "mlwfImSigma_ee", realPartOnly, iSpin);
 	}
 }
