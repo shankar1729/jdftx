@@ -84,7 +84,7 @@ with additional options available by linking to [LibXC](http://octopus-code.org/
 DFT+<i>U</i> \cite DFTplusU is available for treating localized electrons.
 Pair potential dispersion corrections \cite Dispersion-Grimme are available for including van der Waals interactions.
 JDFTx supports several formats of norm-conserving and ultrasoft pseudopotentials
-and comes pre-installed with an opens-ource library for each (see \ref Pseudopotentials).
+and comes pre-installed with an open-source library for each (see \ref Pseudopotentials).
 With truncated %Coulomb interactions \cite TruncatedEXX, JDFTx enables accurate calculations
 of systems of any dimensionality from 0 to 3: molecules, wires, slabs / 2D materials and bulk.
 
