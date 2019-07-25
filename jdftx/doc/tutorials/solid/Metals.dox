@@ -74,7 +74,7 @@ Note the corresponding changes in the energy component printout at the end as we
 Additionally, in the initialization, note that nBands is now larger than nElectrons/2,
 since the code needs a few empty states  to use Fermi fillings.
 At the end of the calculation, when dumping State, note that the calculation
-now outputs filles with suffix wfns, fillings and Haux.
+now outputs files with suffix wfns, fillings and Haux.
 The wfns contain the wavefunctions (Kohn-Sham orbitals) as before,
 while fillings contains the occupations and Haux contains
 auxiliary Hamiltonian matrices used by the minimize algorithm with Fermi fillings.

@@ -31,7 +31,7 @@ The following commands may be used to invoke cmake (assuming bash shell):
 
     #Select the right compiler and load necessary modules
     module swap PrgEnv-intel PrgEnv-gnu
-    module load gcc cmake gsl fftw
+    module load gcc cmake gsl cray-fftw
     module unload darshan
     export CRAYPE_LINK_TYPE="dynamic"
     

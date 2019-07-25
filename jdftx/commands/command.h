@@ -75,7 +75,7 @@ public:
 
 	bool allowMultiple; //!< Whether this command can occur multiple times in an input file (default: false).
 	bool hasDefault; //!< Whether this command has a default (default: false). If true, process() will be called with an empty parameter list.
-	string emptyParamError; //!< Error message if command is manually issued with no parameters. Ddefault: empty i.e. allow empty parameter list.
+	string emptyParamError; //!< Error message if command is manually issued with no parameters. Default: empty i.e. allow empty parameter list.
 	
 	//! @brief Process the command from its command line
 	//! @param pl Parser utility object that simplifies extraction of parameters from the commandline
@@ -84,7 +84,7 @@ public:
 	virtual void process(ParamList& pl, Everything& e)=0;
 
 	//! @brief Print a command line that would result in the current status
-	//! @param e Objct of class Everything whose status to reproduce
+	//! @param e Object of class Everything whose status to reproduce
 	//! @param iRep For commands with allowMultiple=true, printStatus will be called multiple times and iRep is the index of the present call
 	virtual void printStatus(Everything& e, int iRep)=0;
 
