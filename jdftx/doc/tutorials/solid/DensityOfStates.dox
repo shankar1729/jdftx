@@ -63,7 +63,7 @@ Edit the last section of bandstruct.plot
       for [i=1:nCols] "bandstruct.eigenvals" binary format=formatString u 0:((column(i)-VBM)/eV) w l, \
       "Si.dos" u (xEnd+0.2*$2):(($1-VBM)/eV) with filledcurves y1=xEnd linecolor rgb "black"
 
-This rotates the density-of-states and aligns is energy with
+This rotates the density-of-states and aligns its energy with
 the y-axis of the band structure, producing the plot shown above.
 Note the correlations between features in the band structure
 and the density of states.

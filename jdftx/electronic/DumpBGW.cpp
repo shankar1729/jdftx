@@ -521,7 +521,7 @@ void BGW::writeChiFluid(bool write_q0) const
 							Ydot += YlmRow[iTerm][lm][iRowMine] * YlmCol[iTerm][lm][iColMine];
 						complex sTildeCur = sTildeData[term.iSite][diffIndex];
 						if(conj) sTildeCur = sTildeCur.conj();
-						result += term.prefactor[iFreq] * sTildeCur
+						result -= term.prefactor[iFreq] * sTildeCur
 							* (wRow[iTerm][iRowMine] * wCol[iTerm][iColMine] * Ydot * (4*M_PI)/mCount);
 					}
 					buf.set(iRowMine, iColMine, result);
