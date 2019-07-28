@@ -1,12 +1,45 @@
 /** \page ChangeLog Change log
 
-## Development version on git
+## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))
 
-+ Improved translational invariance of wannier localization measure within supercell, particularly important for cases with few k-points.
++ %Wannier enhancements:
+	- Condensed all %Wannier outputs to unique-cell only, with separate cell weights to be used in post-processing, which substantially reduces memory and disk requirements of wannier tight-binding in large systems.
+	- Added wannierization of spin matrix elements in non-collinear mode
+	- Added support for polar corrections to e-ph matrix elements
+	- Updated e-ph matrix sum rule evaluation to use gradient matrix element
+	- Added wannierization of slab-weight matrix elements
+	- Improved translational invariance of wannier localization measure within supercell, particularly important for cases with few k-points.
+	- Load/save of overlap matrix elements (in *.mlwfM0 file) to speed up initialization of %Wannier minimization
+	- Optimized performance of %Wannier minimization substantially by reducing number of matrix multiplications and communication
+	- Reduced memory requirement for %Wannier matrix-element output using block-wise Fourier transforms
+	- Refactored and split the wannierized-output code into smaller files for easier 
+	- Removed rarely-used wrapWignerSeitz option to simplify code, and with it, removed mlwf versions of pure phonon properties
+
++ Solvation features:
+	- Implemented fluid susceptibility output (LinearPCM and SaLSA) in BerkeleyGW interface
+	- Added a fixed-cavity solvation model for testing
+	- Added support for anisotropic dielectric response in LinearPCM, with corresponding support in charged defect corrections
+
++ Internal MPI wrapper changes:
+	- Added wrappers for all-to-one collective operators and asynchronous operators
+	- Added general interface for MPI operations on ManagedMemory and other containers
+	- Added support for multiplet datatypes including complex, vector3<> etc. in MPI wrapper
+
++ Fixed bug in symmetry detection and density symmetrization in noncollinear magnetic calculations
+
++ Revamped and optimized ASE interface to work with Python3, keep state for continuing, and to support pseudopotential sets
+
++ Added option for including exchange-correlation effects in electron-electron scattering
+
++ Optimized spherical harmonic templates, added analytic derivatives and used it to optimized [r,H] (momentum) matrix element evaluation
+
++ Added band-structure unfolding output option
+
++ Added option to control whether inversion symmetry is used in k-point symmetries (required for BerkeleyGW compatibility)
 
 + Added environment variable input JDFTX_CPUS_PER_NODE to limit total number of cores used per node
 
-+ Fluid susceptibility output for BerkeleyGW
++ Added an install target to the CMake build system, correctly handling pseudopotential paths etc. from installed directory
 
 
 ## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
