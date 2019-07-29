@@ -322,3 +322,26 @@ struct CommandExchangeParameters : public Command
 	}
 }
 commandExchangeParameters;
+
+
+struct CommandExchangeBlockSize : public Command
+{
+	CommandExchangeBlockSize() : Command("exchange-block-size", "jdftx/Electronic/Functional")
+	{
+		format = "<blockSize>";
+		comments =
+			"Number of bands in blocks of FFTs used in exact-exchange calculation.\n"
+			"Larger values should improve performance, at the expense of greater\n"
+			"memory requirements. (Default: 16)";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.exxBlockSize, 0, "blockSize", true);
+		if(e.cntrl.exxBlockSize < 1) throw string("<blockSize> must be >= 1");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf(" %d", e.cntrl.exxBlockSize);
+	}
+}
+commandExchangeBlockSize;

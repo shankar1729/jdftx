@@ -42,9 +42,8 @@ private:
 	const Everything& e;
 	const std::vector<SpaceGroupOp>& sym; //!< symmetry matrices in lattice coordinates
 	const std::vector<int>& invertList; //!< whether to add inversion explicitly over the symmetry group
-	int nSpins;
-	int nSpinor;
-	int qCount; //!< number of states of each spin
+	const int nSpins, nSpinor, qCount; //!< number of spin channels, spinor components and states per spin channel
+	const int blockSize; //!< number of bands FFT'd together
 	//Symmetry rotation map:
 	struct KmapEntry
 	{	vector3<> k;
@@ -102,6 +101,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	nSpins(e.eInfo.nSpins()),
 	nSpinor(e.eInfo.spinorLength()),
 	qCount(e.eInfo.nStates/nSpins),
+	blockSize(e.cntrl.exxBlockSize),
 	kmap(qCount * invertList.size() * sym.size())
 {
 	//Print cost estimate to give the user some idea of how long it might take!
@@ -150,48 +150,71 @@ double ExactExchangeEval::calc(int iSpin, unsigned iReduced, unsigned iInvert, u
 	mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
 	if(HC) { HCk = Ck.similar(); HCk.zero(); }
 	
+	//Prepare blocks
+	int nBlocks = ceildiv(e.eInfo.nBands, blockSize);
+	int bqStart = 0;
+	std::vector<std::vector<std::vector<complexScalarField>>> Ipsi(e.eInfo.nStates), grad_Ipsi(e.eInfo.nStates);
+	
 	//Calculate energy (and gradient):
 	const double prefac = -0.5*aXX / (sym.size()*invertList.size()*e.eInfo.spinWeight);
 	double EXX = 0.;
-	for(int bk=0; bk<e.eInfo.nBands; bk++)
-	{	//Put this state in real space:
-		std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
-		for(int s=0; s<nSpinor; s++)
-			Ipsik[s] = I(Ck.getColumn(bk,s));
-		double wFk = qnum_k.weight * Fk[bk];
-		
-		//Loop over states of same spin belonging to this MPI process:
+	for(int iBlock=0; iBlock<nBlocks; iBlock++)
+	{	//Prepare q-states in real space:
+		int bqStop = std::min(bqStart+blockSize, e.eInfo.nBands);
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
-			if(qnum_k.spin != qnum_q.spin) continue;
-			for(int bq=0; bq<e.eInfo.nBands; bq++)
-			{	double wFq = qnum_q.weight * F[q][bq];
-				if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
-				
-				std::vector<complexScalarField> Ipsiq(nSpinor);
-				complexScalarField In; //state pair density
+		{	Ipsi[q].resize(bqStop-bqStart);
+			if(HC) grad_Ipsi[q].assign(bqStop-bqStart, std::vector<complexScalarField>(nSpinor));
+			for(int bq=bqStart; bq<bqStop; bq++)
+			{	Ipsi[q][bq-bqStart].resize(nSpinor);
 				for(int s=0; s<nSpinor; s++)
-				{	Ipsiq[s] = I(C[q].getColumn(bq,s));
-					In += conj(Ipsik[s]) * Ipsiq[s];
-				}
-				complexScalarFieldTilde n = J(In);
-				complexScalarFieldTilde Kn = O((*e.coulomb)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
-				EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
-				
-				if(HC)
-				{	complexScalarField E_In = Jdag(Kn);
+					Ipsi[q][bq-bqStart][s] = I(C[q].getColumn(bq,s));
+			}
+		}
+		//Loop over k-states:
+		for(int bk=0; bk<e.eInfo.nBands; bk++)
+		{	//Put this state in real space:
+			std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
+			for(int s=0; s<nSpinor; s++)
+				Ipsik[s] = I(Ck.getColumn(bk,s));
+			double wFk = qnum_k.weight * Fk[bk];
+			//Loop over states of same spin belonging to this MPI process:
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			{	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
+				if(qnum_k.spin != qnum_q.spin) continue;
+				for(int bq=bqStart; bq<bqStop; bq++)
+				{	double wFq = qnum_q.weight * F[q][bq];
+					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
+					complexScalarField In; //state pair density
 					for(int s=0; s<nSpinor; s++)
-					{	grad_Ipsik[s] += (prefac*wFq) * conj(E_In) * Ipsiq[s];
-						(*HC)[q].accumColumn(bq,s, Idag((prefac*wFk) * E_In * Ipsik[s]));
+						In += conj(Ipsik[s]) * Ipsi[q][bq-bqStart][s];
+					complexScalarFieldTilde n = J(In);
+					complexScalarFieldTilde Kn = O((*e.coulomb)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
+					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
+					if(HC)
+					{	complexScalarField E_In = Jdag(Kn);
+						for(int s=0; s<nSpinor; s++)
+						{	grad_Ipsik[s] += (prefac*wFq) * conj(E_In) * Ipsi[q][bq-bqStart][s];
+							grad_Ipsi[q][bq-bqStart][s] += (prefac*wFk) * E_In * Ipsik[s];
+						}
 					}
 				}
 			}
+			//Convert k-state gradients back to reciprocal space (if needed):
+			if(HC)
+			{	for(int s=0; s<nSpinor; s++)
+					if(grad_Ipsik[s])
+						HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
+			}
 		}
+		//Convert k-state gradients back to reciprocal space (if needed):
 		if(HC)
-		{	for(int s=0; s<nSpinor; s++)
-				if(grad_Ipsik[s])
-					HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
+		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				for(int bq=bqStart; bq<bqStop; bq++)
+					for(int s=0; s<nSpinor; s++)
+						if(grad_Ipsi[q][bq-bqStart][s])
+							(*HC)[q].accumColumn(bq,s, Idag(grad_Ipsi[q][bq-bqStart][s]));
 		}
+		bqStart = bqStop;
 	}
 	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
 	
