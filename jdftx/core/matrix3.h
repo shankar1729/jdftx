@@ -287,6 +287,22 @@ struct SpaceGroupOp
 	vector3<> a; //!< translation in covariant lattice coordinates
 	
 	SpaceGroupOp(matrix3<int> rot = matrix3<int>(1,1,1), vector3<> a = vector3<>(0,0,0)) : rot(rot), a(a) {}
+	
+	vector3<> applyReal(const vector3<>& r) const { return rot * r + a; } //!< apply to real-space vector
+	vector3<> applyRecip(const vector3<>& k) const { return k * rot; } //!< apply to reciprocial-space vector (translation phase must be handled separately)
+	
+	//! Compose two space group operations
+	SpaceGroupOp operator*(const SpaceGroupOp& op) const
+	{	return SpaceGroupOp(rot*op.rot, rot*op.a + a);
+	}
+	
+	//! Invert space group operation
+	SpaceGroupOp inv() const
+	{	SpaceGroupOp result;
+		result.rot = det(rot) * adjugate(rot); //using det(rot) = +/-1 for symmetry matrix
+		result.a = -(result.rot * a);
+		return result;
+	}
 };
 
 //! @}
