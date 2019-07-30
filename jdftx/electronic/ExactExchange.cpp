@@ -40,6 +40,12 @@ public:
 		double weight;
 		std::shared_ptr<Basis> basis;
 		std::shared_ptr<ColumnBundleTransform> transform; //wavefunction transformation from reduced set
+		
+		inline bool operator==(const KpairEntry& kpair) const
+		{	if(invert != kpair.invert) return false;
+			if(sym.rot != kpair.sym.rot) return false;
+			return circDistanceSquared(sym.a, kpair.sym.a) < symmThresholdSq;
+		}
 	};
 	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
 	
@@ -124,6 +130,16 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 			kpair.invert = kj.invert * ki.invert;
 			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[ki.iReduced].k) * kpair.invert; 
 			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2);
+			//Add to an existing equivalent pair, if any:
+			bool done = false;
+			for(KpairEntry& prev: kpairs[ki.iReduced][kj.iReduced])
+				if(kpair == prev)
+				{	prev.weight += kpair.weight;
+					done = true;
+					break;
+				}
+			if(done) continue;
+			//Initialize pair not yet encountered:
 			if(e.eInfo.isMine(kj.iReduced) || e.eInfo.isMine(kj.iReduced + qCount))
 			{	kpair.basis = std::make_shared<Basis>();
 				kpair.basis->setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpair.k);
