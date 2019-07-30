@@ -33,7 +33,11 @@ namespace Random
 	double uniform(double start, double end)
 	{	return start + (end-start)*uniformDist(generator);
 	}
-
+	
+	int uniformInt(int end)
+	{	return int(end * uniform());
+	}
+	
 	double normal(double mean, double sigma, double cap)
 	{	double r = sigma*normdist(generator);
 		if(cap>0.0) while(fabs(r)>cap) r = sigma*normdist(generator); //regenerate till cap is satisfied
