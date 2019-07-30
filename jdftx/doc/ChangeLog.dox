@@ -1,5 +1,12 @@
 /** \page ChangeLog Change log
 
+## Development version on git
+
++ Exact exchange enhancements:
+	- Cached real space wavefunctions in blocks (size set by \ref CommandExchangeBlockSize) to asymptotically halve number of FFTs
+	- New symmetrization logic that globally minimizes the number of k-point pairs using a Metropolis algorithm during initialization
+
+
 ## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))
 
 + %Wannier enhancements:

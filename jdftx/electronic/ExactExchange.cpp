@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/GpuUtil.h>
 #include <core/Operators.h>
 #include <core/LatticeUtils.h>
+#include <core/Random.h>
 #include <list>
 
 //! Internal computation object for ExactExchange
@@ -40,12 +41,6 @@ public:
 		double weight;
 		std::shared_ptr<Basis> basis;
 		std::shared_ptr<ColumnBundleTransform> transform; //wavefunction transformation from reduced set
-		
-		inline bool operator==(const KpairEntry& kpair) const
-		{	if(invert != kpair.invert) return false;
-			if(sym.rot != kpair.sym.rot) return false;
-			return circDistanceSquared(sym.a, kpair.sym.a) < symmThresholdSq;
-		}
 	};
 	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
 	
@@ -99,7 +94,6 @@ double ExactExchange::operator()(double aXX, double omega,
 //--------------- class ExactExchangeEval implementation ----------------------
 
 
-
 ExactExchangeEval::ExactExchangeEval(const Everything& e)
 : e(e),
 	sym(e.symm.getMatrices()),
@@ -109,58 +103,125 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	qCount(e.eInfo.nStates/nSpins),
 	blockSize(e.cntrl.exxBlockSize)
 {
-	//Combine kmeshTransform and kmesh for convenience:
+	//Find all symmtries relating each kmesh point to corresponding reduced point:
 	const Supercell& supercell = *(e.coulombParams.supercell);
-	struct KmeshEntry : public Supercell::KmeshTransform { vector3<> k; };
-	std::vector<KmeshEntry> kmesh(supercell.kmesh.size());
+	struct Ktransform { SpaceGroupOp sym; int invert; int multiplicity;
+		inline bool operator==(const Ktransform& kt) const
+		{	if(invert != kt.invert) return false;
+			if(sym.rot != kt.sym.rot) return false;
+			return (sym.a - kt.sym.a).length_squared() < symmThresholdSq;
+		}
+	};
+	struct KmeshEntry { int iReduced; std::vector<Ktransform> transform; };
+	struct Kmesh : public std::vector<KmeshEntry>
+	{	int qCount;
+		Kmesh(size_t n, int qCount) : std::vector<KmeshEntry>(n), qCount(qCount) {}
+		//Function to generate unique pair transforms for each transform choice (and thereby score this choice)
+		int score(const std::vector<int> choice, std::vector<std::vector<std::vector<Ktransform>>>& transforms)
+		{	transforms.assign(qCount, std::vector<std::vector<Ktransform>>(qCount));
+			int nTransforms = 0;
+			for(size_t ik=0; ik<size(); ik++)
+			{	const int iq = (*this)[ik].iReduced;
+				const Ktransform& kti = (*this)[ik].transform[choice[ik]];
+				for(size_t jk=0; jk<size(); jk++)
+				{	const int jq = (*this)[jk].iReduced;
+					const Ktransform& ktj = (*this)[jk].transform[choice[jk]];
+					//Create net transform:
+					Ktransform kt;
+					kt.sym = kti.sym * ktj.sym.inv();
+					kt.invert = kti.invert * ktj.invert;
+					kt.multiplicity = 1;
+					//Add if unique:
+					bool found = false;
+					for(Ktransform& prev: transforms[iq][jq])
+						if(prev == kt)
+						{	found = true;
+							prev.multiplicity++;
+							break;
+						}
+					if(not found)
+					{	transforms[iq][jq].push_back(kt);
+						nTransforms++;
+					}
+				}
+			}
+			return nTransforms;
+		}
+	}
+	kmesh(supercell.kmesh.size(), qCount);
+	
 	for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
 	{	KmeshEntry& ki = kmesh[ik];
-		(Supercell::KmeshTransform&)ki = supercell.kmeshTransform[ik]; //copy over base class
-		ki.k = supercell.kmesh[ik];
+		ki.iReduced = supercell.kmeshTransform[ik].iReduced;
+		for(int invert: invertList)
+			for(const SpaceGroupOp& op: sym)
+			{	vector3<> k = invert * op.applyRecip(e.eInfo.qnums[ki.iReduced].k);
+				if(circDistanceSquared(k, supercell.kmesh[ik]) < symmThresholdSq)
+				{	Ktransform kt = { op, invert };
+					ki.transform.push_back(kt);
+				}
+			}
 	}
 	
-	//Reduce pairs of k-points under symmetries:
+	//Find best choice for transforms:
+	logPrintf("Optimizing transforms to minimize k-point pairs ... "); logFlush();
+	std::vector<std::vector<std::vector<Ktransform>>> transforms;
+	std::vector<int> choices(kmesh.size(), 0), bestChoices = choices;
+	int nSteps = 0;
+	for(size_t ik=0; ik<kmesh.size(); ik++)
+	{	int nChoices = kmesh[ik].transform.size();
+		choices[ik] = Random::uniformInt(nChoices);
+		nSteps += 10*(nChoices-1);
+	}
+	int score = kmesh.score(choices, transforms), bestScore = score;
+	for(int step=0; step<nSteps;)
+	{	//Random step:
+		std::vector<int> newChoices = choices;
+		int ikStep = Random::uniformInt(kmesh.size());
+		newChoices[ikStep] = Random::uniformInt(kmesh[ikStep].transform.size());
+		if(newChoices[ikStep]==choices[ikStep]) continue; //null step; don't count
+		int newScore = kmesh.score(newChoices, transforms);
+		//Update best encountered case:
+		if(newScore < bestScore)
+		{	bestScore = newScore;
+			bestChoices = newChoices;
+		}
+		//Metropolis accept-reject:
+		if(Random::uniform() < exp(score-newScore))
+		{	score = newScore;
+			choices = newChoices;
+		}
+		step++;
+	}
+	int bestProc = mpiWorld->iProcess();
+	mpiWorld->allReduce(bestScore, bestProc, MPIUtil::ReduceMin);
+	mpiWorld->bcastData(bestChoices, bestProc);
+	kmesh.score(bestChoices, transforms);
+	logPrintf("done (%d steps).\n", nSteps); logFlush();
+	
+	//Set up selected transforms:
 	kpairs.assign(qCount, std::vector<std::vector<KpairEntry>>(qCount));
-	logSuspend();
-	for(const KmeshEntry& ki: kmesh)
-		for(const KmeshEntry& kj: kmesh)
-		{	//Transform (ki,kj) by symmetry operation such that kj -> its reduced version
-			KpairEntry kpair;
-			kpair.sym = sym[ki.iSym] * sym[kj.iSym].inv();
-			kpair.invert = kj.invert * ki.invert;
-			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[ki.iReduced].k) * kpair.invert; 
-			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2);
-			//Add to an existing equivalent pair, if any:
-			bool done = false;
-			for(KpairEntry& prev: kpairs[ki.iReduced][kj.iReduced])
-				if(kpair == prev)
-				{	prev.weight += kpair.weight;
-					done = true;
-					break;
-				}
-			if(done) continue;
-			//Initialize pair not yet encountered:
-			if(e.eInfo.isMine(kj.iReduced) || e.eInfo.isMine(kj.iReduced + qCount))
+	for(int iq=0; iq<qCount; iq++)
+	for(int jq=0; jq<qCount; jq++)
+		for(const Ktransform& kt: transforms[iq][jq])
+		{	KpairEntry kpair;
+			kpair.sym = kt.sym;
+			kpair.invert = kt.invert;
+			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[iq].k) * kpair.invert; 
+			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2) * kt.multiplicity;
+			if(e.eInfo.isMine(jq) || e.eInfo.isMine(jq + qCount))
 			{	kpair.basis = std::make_shared<Basis>();
+				logSuspend();
 				kpair.basis->setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpair.k);
-				kpair.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[ki.iReduced].k, e.basis[ki.iReduced],
+				logResume();
+				kpair.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[iq].k, e.basis[iq],
 					kpair.k, *(kpair.basis), nSpinor, kpair.sym, kpair.invert);
 			}
-			kpairs[ki.iReduced][kj.iReduced].push_back(kpair);
+			kpairs[iq][jq].push_back(kpair);
 		}
-	logResume();
-	for(int iq=0; iq<qCount; iq++)
-	{	for(int jq=0; jq<qCount; jq++)
-			logPrintf("\t%lu", kpairs[iq][jq].size());
-		logPrintf("\n");
-	}
-	//die("Testing.\n");
-
+	
 	//Print cost estimate to give the user some idea of how long it might take!
-	size_t nkPairs = 0;
-	for(int iq=0; iq<qCount; iq++)
-		for(int jq=0; jq<qCount; jq++)
-			nkPairs += kpairs[iq][jq].size();
+	size_t nkPairs = bestScore;
 	logPrintf("Reduced %lu k-pairs to %lu under symmetries.\n", kmesh.size()*kmesh.size(), nkPairs);
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
 	double costBLAS3 = e.eInfo.nStates * pow(e.eInfo.nBands,2) * e.basis[0].nbasis;
