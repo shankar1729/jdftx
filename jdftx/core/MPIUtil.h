@@ -349,10 +349,10 @@ template<typename T> void MPIUtil::reduce(T* data, size_t nData, MPIUtil::Reduce
 		if(request) *request = MPI_REQUEST_NULL; //Non-blocking collective not supported (fall back to blocking version below)
 		#else
 		if(request)
-			MPI_Ireduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm, request);
+			MPI_Ireduce((iProc==root)?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm, request);
 		else
 		#endif
-			MPI_Reduce(isHead()?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm);
+			MPI_Reduce((iProc==root)?MPI_IN_PLACE:data, data, DataType<T>::nElem*nData, DataType<T>::get(), mpiOp(op), root, comm);
 	}
 	#endif
 }
@@ -365,7 +365,7 @@ template<typename T> void MPIUtil::reduce(T& data, int& index, MPIUtil::ReduceOp
 	if(nProcs>1)
 	{	typename DataTypeIntPair<T>::Elem pair;
 		pair.data = data; pair.index = index;
-		MPI_Reduce(isHead()?MPI_IN_PLACE:&pair, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), root, comm);
+		MPI_Reduce((iProc==root)?MPI_IN_PLACE:&pair, &pair, 1, DataTypeIntPair<T>::get(), mpiLocOp(op), root, comm);
 		data = pair.data; index = pair.index;
 	}
 	#endif
