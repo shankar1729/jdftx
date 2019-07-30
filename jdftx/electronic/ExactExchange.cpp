@@ -33,8 +33,18 @@ class ExactExchangeEval
 public:
 	ExactExchangeEval(const Everything& e);
 	
-	//! Calculate for one entry of the k-mesh at a particular spin:
-	double calc(int iSpin, unsigned iReduced, unsigned iInvert, unsigned iSym, 
+	struct KpairEntry
+	{	vector3<> k; //transformed k
+		SpaceGroupOp sym; //symmetry operation
+		int invert; //whether inversion involved (+/-1)
+		double weight;
+		std::shared_ptr<Basis> basis;
+		std::shared_ptr<ColumnBundleTransform> transform; //wavefunction transformation from reduced set
+	};
+	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
+	
+	//! Calculate for one transformed k-index at a particular spin:
+	double calc(int iSpin, int kReduced,
 		double aXX, double omega, const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const;
 	
 private:
@@ -44,14 +54,6 @@ private:
 	const std::vector<int>& invertList; //!< whether to add inversion explicitly over the symmetry group
 	const int nSpins, nSpinor, qCount; //!< number of spin channels, spinor components and states per spin channel
 	const int blockSize; //!< number of bands FFT'd together
-	//Symmetry rotation map:
-	struct KmapEntry
-	{	vector3<> k;
-		Basis basis;
-		std::shared_ptr<ColumnBundleTransform> transform; //wavefunction transformation from reduced set
-	};
-	std::vector<KmapEntry> kmap;
-	inline int kmapIndex(int iReduced, int iInvert, int iSym) const { return (iReduced*invertList.size() + iInvert)*sym.size() + iSym; }
 };
 
 
@@ -82,10 +84,8 @@ double ExactExchange::operator()(double aXX, double omega,
 	//Calculate:
 	double EXX = 0.0;
 	for(int iSpin=0; iSpin<eval->nSpins; iSpin++)
-		for(int iReduced=0; iReduced<eval->qCount; iReduced++)
-		for(unsigned iInvert=0; iInvert<eval->invertList.size(); iInvert++)
-		for(unsigned iSym=0; iSym<eval->sym.size(); iSym++)
-			EXX += eval->calc(iSpin, iReduced, iInvert, iSym, aXX, omega, F, C, HC);
+		for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
+			EXX += eval->calc(iSpin, ikReduced, aXX, omega, F, C, HC);
 	watch.stop();
 	return EXX;
 }
@@ -101,128 +101,157 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	nSpins(e.eInfo.nSpins()),
 	nSpinor(e.eInfo.spinorLength()),
 	qCount(e.eInfo.nStates/nSpins),
-	blockSize(e.cntrl.exxBlockSize),
-	kmap(qCount * invertList.size() * sym.size())
+	blockSize(e.cntrl.exxBlockSize)
 {
+	//Combine kmeshTransform and kmesh for convenience:
+	const Supercell& supercell = *(e.coulombParams.supercell);
+	struct KmeshEntry : public Supercell::KmeshTransform { vector3<> k; };
+	std::vector<KmeshEntry> kmesh(supercell.kmesh.size());
+	for(unsigned ik=0; ik<supercell.kmesh.size(); ik++)
+	{	KmeshEntry& ki = kmesh[ik];
+		(Supercell::KmeshTransform&)ki = supercell.kmeshTransform[ik]; //copy over base class
+		ki.k = supercell.kmesh[ik];
+	}
+	
+	//Reduce pairs of k-points under symmetries:
+	kpairs.assign(qCount, std::vector<std::vector<KpairEntry>>(qCount));
+	logSuspend();
+	for(const KmeshEntry& ki: kmesh)
+		for(const KmeshEntry& kj: kmesh)
+		{	//Transform (ki,kj) by symmetry operation such that kj -> its reduced version
+			KpairEntry kpair;
+			kpair.sym = sym[ki.iSym] * sym[kj.iSym].inv();
+			kpair.invert = kj.invert * ki.invert;
+			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[ki.iReduced].k) * kpair.invert; 
+			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2);
+			if(e.eInfo.isMine(kj.iReduced) || e.eInfo.isMine(kj.iReduced + qCount))
+			{	kpair.basis = std::make_shared<Basis>();
+				kpair.basis->setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpair.k);
+				kpair.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[ki.iReduced].k, e.basis[ki.iReduced],
+					kpair.k, *(kpair.basis), nSpinor, kpair.sym, kpair.invert);
+			}
+			kpairs[ki.iReduced][kj.iReduced].push_back(kpair);
+		}
+	logResume();
+	for(int iq=0; iq<qCount; iq++)
+	{	for(int jq=0; jq<qCount; jq++)
+			logPrintf("\t%lu", kpairs[iq][jq].size());
+		logPrintf("\n");
+	}
+	//die("Testing.\n");
+
 	//Print cost estimate to give the user some idea of how long it might take!
+	size_t nkPairs = 0;
+	for(int iq=0; iq<qCount; iq++)
+		for(int jq=0; jq<qCount; jq++)
+			nkPairs += kpairs[iq][jq].size();
+	logPrintf("Reduced %lu k-pairs to %lu under symmetries.\n", kmesh.size()*kmesh.size(), nkPairs);
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
 	double costBLAS3 = e.eInfo.nStates * pow(e.eInfo.nBands,2) * e.basis[0].nbasis;
-	double costSemiLocal = 8 * costBLAS3 + 3 * costFFT; //very rough estimates of course!
-	double costEXX = costFFT * ( sym.size() * invertList.size() * qCount * e.eInfo.nBands );
+	double costSemiLocal = (8 * costBLAS3 + 3 * costFFT) * (qCount * e.eInfo.nBands); //rough estimate
+	double costEXX = costFFT * ( nkPairs * std::pow(e.eInfo.nBands,2) );
 	double relativeCost = 1+costEXX/costSemiLocal;
 	double relativeCostOrder = pow(10, floor(log(relativeCost)/log(10)));
 	relativeCost = round(relativeCost/relativeCostOrder) * relativeCostOrder; //eliminate extra sigfigs
 	logPrintf("Per-iteration cost relative to semi-local calculation ~ %lg\n", relativeCost);
-	if(qCount==1 && sym.size()>1)
-		logPrintf("HINT: For gamma-point only calculations, turn off symmetries to speed up exact exchange.\n");
-	
-	//Initialize kmap:
-	logSuspend();
-	for(int iReduced=0; iReduced<qCount; iReduced++)
-	for(unsigned iInvert=0; iInvert<invertList.size(); iInvert++)
-	for(unsigned iSym=0; iSym<sym.size(); iSym++)
-	{	KmapEntry& ki = kmap[kmapIndex(iReduced, iInvert, iSym)];
-		ki.k = e.eInfo.qnums[iReduced].k * sym[iSym].rot * invertList[iInvert];
-		ki.basis.setup(e.gInfo, e.iInfo, e.cntrl.Ecut, ki.k);
-		if(e.eInfo.isMine(iReduced) || e.eInfo.isMine(iReduced + qCount))
-			ki.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[iReduced].k, e.basis[iReduced],
-				ki.k, ki.basis, nSpinor, sym[iSym], invertList[iInvert]);
-	}
-	logResume();
 }
 
-double ExactExchangeEval::calc(int iSpin, unsigned iReduced, unsigned iInvert, unsigned iSym,
+double ExactExchangeEval::calc(int iSpin, int ikReduced,
 	double aXX, double omega, const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, std::vector<ColumnBundle>* HC) const
 {
-	//Prepare ik state and gradient on all processes:
-	const KmapEntry& ki = kmap[kmapIndex(iReduced, iInvert, iSym)];
-	int ikSrc = iReduced + iSpin*qCount; //source state number
-	const Basis& basis_k = ki.basis;
-	QuantumNumber qnum_k = e.eInfo.qnums[ikSrc]; qnum_k.k =  ki.k;
-	ColumnBundle Ck(e.eInfo.nBands, basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled()), HCk;
+	//Prepare (reduced) ik state and gradient on all processes:
+	int ikSrc = ikReduced + iSpin*qCount; //source state number
+	ColumnBundle CkTmp, HCkTmp;
 	diagMatrix Fk(e.eInfo.nBands);
 	if(e.eInfo.isMine(ikSrc))
-	{	Ck.zero();
-		ki.transform->scatterAxpy(1., C[ikSrc], Ck,0,1);
 		Fk = F[ikSrc];
+	else
+	{	CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
+		if(HC) { HCkTmp = CkTmp.similar(); HCkTmp.zero(); }
 	}
-	mpiWorld->bcastData(Ck, e.eInfo.whose(ikSrc));
+	ColumnBundle& CkRed = e.eInfo.isMine(ikSrc) ? (ColumnBundle&)(C[ikSrc]) : CkTmp; 
+	mpiWorld->bcastData(CkRed, e.eInfo.whose(ikSrc));
 	mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
-	if(HC) { HCk = Ck.similar(); HCk.zero(); }
-	
-	//Prepare blocks
+	ColumnBundle& HCkRed = (HC && e.eInfo.isMine(ikSrc)) ? (*HC)[ikSrc] : HCkTmp;
 	int nBlocks = ceildiv(e.eInfo.nBands, blockSize);
-	int bqStart = 0;
-	std::vector<std::vector<std::vector<complexScalarField>>> Ipsi(e.eInfo.nStates), grad_Ipsi(e.eInfo.nStates);
 	
 	//Calculate energy (and gradient):
-	const double prefac = -0.5*aXX / (sym.size()*invertList.size()*e.eInfo.spinWeight);
 	double EXX = 0.;
-	for(int iBlock=0; iBlock<nBlocks; iBlock++)
-	{	//Prepare q-states in real space:
-		int bqStop = std::min(bqStart+blockSize, e.eInfo.nBands);
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{	Ipsi[q].resize(bqStop-bqStart);
-			if(HC) grad_Ipsi[q].assign(bqStop-bqStart, std::vector<complexScalarField>(nSpinor));
-			for(int bq=bqStart; bq<bqStop; bq++)
-			{	Ipsi[q][bq-bqStart].resize(nSpinor);
-				for(int s=0; s<nSpinor; s++)
-					Ipsi[q][bq-bqStart][s] = I(C[q].getColumn(bq,s));
-			}
-		}
-		//Loop over k-states:
-		for(int bk=0; bk<e.eInfo.nBands; bk++)
-		{	//Put this state in real space:
-			std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
-			for(int s=0; s<nSpinor; s++)
-				Ipsik[s] = I(Ck.getColumn(bk,s));
-			double wFk = qnum_k.weight * Fk[bk];
-			//Loop over states of same spin belonging to this MPI process:
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			{	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
-				if(qnum_k.spin != qnum_q.spin) continue;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
+		if(qnum_q.spin != e.eInfo.qnums[ikSrc].spin) continue;
+		for(const KpairEntry& kpair: kpairs[ikReduced][q-iSpin*qCount])
+		{	//Prepare ik state and gradient:
+			const Basis& basis_k = *(kpair.basis);
+			QuantumNumber qnum_k = e.eInfo.qnums[ikSrc]; qnum_k.k =  kpair.k;
+			ColumnBundle Ck(e.eInfo.nBands, basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled()), HCk;
+			if(HC) { HCk = Ck.similar(); HCk.zero(); }
+			Ck.zero();
+			kpair.transform->scatterAxpy(1., CkRed, Ck,0,1);
+			const double prefac = -0.5*aXX * kpair.weight / (qnum_k.weight * qnum_q.weight);
+			
+			//Loop over blocks:
+			int bqStart = 0;
+			for(int iBlock=0; iBlock<nBlocks; iBlock++)
+			{	int bqStop = std::min(bqStart+blockSize, e.eInfo.nBands);
+				//Prepare q-states in real space:
+				std::vector<std::vector<complexScalarField>> Ipsiq(bqStop-bqStart), grad_Ipsiq;
+				if(HC) grad_Ipsiq.assign(bqStop-bqStart, std::vector<complexScalarField>(nSpinor));
 				for(int bq=bqStart; bq<bqStop; bq++)
-				{	double wFq = qnum_q.weight * F[q][bq];
-					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
-					complexScalarField In; //state pair density
+				{	Ipsiq[bq-bqStart].resize(nSpinor);
 					for(int s=0; s<nSpinor; s++)
-						In += conj(Ipsik[s]) * Ipsi[q][bq-bqStart][s];
-					complexScalarFieldTilde n = J(In);
-					complexScalarFieldTilde Kn = O((*e.coulomb)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
-					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
-					if(HC)
-					{	complexScalarField E_In = Jdag(Kn);
+						Ipsiq[bq-bqStart][s] = I(C[q].getColumn(bq,s));
+				}
+				//Loop over k-states:
+				for(int bk=0; bk<e.eInfo.nBands; bk++)
+				{	//Put this state in real space:
+					std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
+					for(int s=0; s<nSpinor; s++)
+						Ipsik[s] = I(Ck.getColumn(bk,s));
+					double wFk = qnum_k.weight * Fk[bk];
+					//Loop over q-bands within block:
+					for(int bq=bqStart; bq<bqStop; bq++)
+					{	double wFq = qnum_q.weight * F[q][bq];
+						if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
+						complexScalarField In; //state pair density
 						for(int s=0; s<nSpinor; s++)
-						{	grad_Ipsik[s] += (prefac*wFq) * conj(E_In) * Ipsi[q][bq-bqStart][s];
-							grad_Ipsi[q][bq-bqStart][s] += (prefac*wFk) * E_In * Ipsik[s];
+							In += conj(Ipsik[s]) * Ipsiq[bq-bqStart][s];
+						complexScalarFieldTilde n = J(In);
+						complexScalarFieldTilde Kn = O((*e.coulomb)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
+						EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
+						if(HC)
+						{	complexScalarField E_In = Jdag(Kn);
+							for(int s=0; s<nSpinor; s++)
+							{	grad_Ipsik[s] += (prefac*wFq) * conj(E_In) * Ipsiq[bq-bqStart][s];
+								grad_Ipsiq[bq-bqStart][s] += (prefac*wFk) * E_In * Ipsik[s];
+							}
 						}
 					}
+					//Convert k-state gradients back to reciprocal space (if needed):
+					if(HC)
+					{	for(int s=0; s<nSpinor; s++)
+							if(grad_Ipsik[s])
+								HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
+					}
 				}
+				//Convert q-state gradients back to reciprocal space (if needed):
+				if(HC)
+				{	for(int bq=bqStart; bq<bqStop; bq++)
+						for(int s=0; s<nSpinor; s++)
+							if(grad_Ipsiq[bq-bqStart][s])
+								(*HC)[q].accumColumn(bq,s, Idag(grad_Ipsiq[bq-bqStart][s]));
+				}
+				bqStart = bqStop;
 			}
-			//Convert k-state gradients back to reciprocal space (if needed):
-			if(HC)
-			{	for(int s=0; s<nSpinor; s++)
-					if(grad_Ipsik[s])
-						HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
-			}
+			
+			//Transform HCk to HCkRed (if needed)
+			if(HC) kpair.transform->gatherAxpy(1., HCk,0,1, HCkRed);
 		}
-		//Convert k-state gradients back to reciprocal space (if needed):
-		if(HC)
-		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				for(int bq=bqStart; bq<bqStop; bq++)
-					for(int s=0; s<nSpinor; s++)
-						if(grad_Ipsi[q][bq-bqStart][s])
-							(*HC)[q].accumColumn(bq,s, Idag(grad_Ipsi[q][bq-bqStart][s]));
-		}
-		bqStart = bqStop;
 	}
 	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
 	
 	//Move ik state gradient back to host process (if necessary):
-	if(HC)
-	{	mpiWorld->allReduceData(HCk, MPIUtil::ReduceSum);
-		if(e.eInfo.isMine(ikSrc))
-			ki.transform->gatherAxpy(1., HCk,0,1, (*HC)[ikSrc]);
-	}
+	if(HC) mpiWorld->reduceData(HCkRed, MPIUtil::ReduceSum, e.eInfo.whose(ikSrc));
+	
 	return EXX;
 }
