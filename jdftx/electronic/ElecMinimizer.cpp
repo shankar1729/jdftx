@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/BandMinimizer.h>
 #include <electronic/BandDavidson.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/ExactExchange.h>
 #include <electronic/Everything.h>
 #include <electronic/Dump.h>
 #include <fluid/FluidSolver.h>
@@ -272,6 +273,8 @@ double ElecMinimizer::sync(double x) const
 
 void bandMinimize(Everything& e)
 {	bool fixed_H = true; std::swap(fixed_H, e.cntrl.fixed_H); //remember fixed_H flag and temporarily set it to true
+	if(e.exCorr.exxFactor())
+		e.exx->setOccupied(e.eVars.F, e.eVars.C);
 	logPrintf("Minimization will be done independently for each quantum number.\n");
 	e.ener.Eband = 0.;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)

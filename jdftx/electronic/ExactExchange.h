@@ -40,6 +40,13 @@ public:
 	double operator()(double aXX, double omega,
 		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC = 0) const;
+	
+	//! Set the occupied wavefunctions and occupation factors in preparation for applyHamiltonian
+	void setOccupied(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C);
+	
+	//! Apply Hamiltonian:
+	void applyHamiltonian(double aXX, double omega, int q, const ColumnBundle& Cq, ColumnBundle& HCq);
+
 private:
 	const Everything& e;
 	class ExactExchangeEval* eval; //!< opaque pointer to an internal computation class

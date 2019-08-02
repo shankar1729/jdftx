@@ -589,7 +589,7 @@ void ElecVars::orthonormalize(int q, matrix* extraRotation)
 }
 
 double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
-{	assert(C[q]); //make sure wavefunction is available for this states
+{	assert(C[q]); //make sure wavefunction is available for this state
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	
@@ -603,6 +603,14 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 		}
 		if(e->eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
 			e->iInfo.rhoAtom_grad(C[q], U_rhoAtom, HCq);
+		
+		//Exact exchange in fixed H mode (totalE mode handled above):
+		//--- note exx->setOccupied() must be set beforehand
+		if(e->exCorr.exxFactor() and e->cntrl.fixed_H)
+		{	double aXX = e->exCorr.exxFactor();
+			double omega = e->exCorr.exxRange();
+			e->exx->applyHamiltonian(aXX, omega, q, C[q], HCq);
+		}
 	}
 
 	//Kinetic energy:
