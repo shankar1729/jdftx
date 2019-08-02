@@ -394,7 +394,7 @@ void elecFluidMinimize(Everything &e)
 	
 	double Evac0 = NAN;
 	if(eVars.isRandom && eVars.fluidParams.fluidType!=FluidNone)
-	{	logPrintf("Fluid solver invoked on fresh (partially random / LCAO) wavefunctions\n");
+	{	logPrintf("Fluid solver invoked on fresh (random / LCAO) wavefunctions\n");
 		logPrintf("Running a vacuum solve first:\n");
 		FluidType origType = eVars.fluidParams.fluidType;
 		eVars.fluidParams.fluidType = FluidNone; //temporarily disable the fluid

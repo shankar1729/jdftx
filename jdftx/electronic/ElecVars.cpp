@@ -196,7 +196,7 @@ void ElecVars::setup(const Everything &everything)
 			if(readConversion) readConversion->Ecut = e->cntrl.Ecut;
 			eInfo.read(C, wfnsFilename.c_str(), readConversion.get());
 			nBandsInited = (readConversion && readConversion->nBandsOld) ? readConversion->nBandsOld : eInfo.nBands;
-			isRandom = (nBandsInited<eInfo.nBands);
+			isRandom = false;
 		}
 		else if(initLCAO)
 		{	nBandsInited = LCAO();
