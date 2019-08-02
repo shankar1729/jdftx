@@ -154,10 +154,10 @@ void ExactExchange::setOccupied(const std::vector<diagMatrix>& F, const std::vec
 
 void ExactExchange::applyHamiltonian(double aXX, double omega, int q, const ColumnBundle& Cq, ColumnBundle& HCq)
 {	int iSpin = q / eval->qCount;
-	diagMatrix Fq = eye(Cq.nCols());
+	diagMatrix Fq = eval->Focc[q]; Fq.resize(Cq.nCols());
 	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
 	{	int ikSrc = ikReduced + iSpin*eval->qCount;
-		eval->calc(ikReduced, q-iSpin*eval->qCount, 2.*aXX, omega,
+		eval->calc(ikReduced, q-iSpin*eval->qCount, 2.*aXX, omega, //factor of 2 to account for k <-> q symmetry
 				eval->Focc[ikSrc], eval->Cocc[ikSrc], 0,
 				Fq, Cq, &HCq);
 	}
