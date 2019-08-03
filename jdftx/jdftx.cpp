@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 			}
 		}
 		if(e.exCorr.exxFactor() and e.eVars.isRandom)
-			die("Fixed Hamiltonian calculations with EXX require occupied wavefunctions to be read in.\n");
+			die("Fixed Hamiltonian calculations with EXX require occupied wavefunctions to be read in (use initial-state or wavefunction commands).\n");
 		e.iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's 
 		logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 		bandMinimize(e); // Do the band-structure minimization

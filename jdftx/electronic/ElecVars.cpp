@@ -172,10 +172,6 @@ void ElecVars::setup(const Everything &everything)
 		}
 		#undef READ
 		#undef READchannel
-		//Handle hybrid functionals
-		if(e->exCorr.exxFactor())
-			die("Band-structure (fixed electron density) calculations temporarily\n"
-				"unsupported with hybrid functionals: use v1.1.2 or earlier.\n");
 	}
 	
 	//Wavefunction initialiation (bypass in dry runs and phonon supercell calculations)
