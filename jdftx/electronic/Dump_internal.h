@@ -108,29 +108,5 @@ struct ChargedDefect
 	void dump(const Everything& e, ScalarField d_tot) const;
 };
 
-
-
-//! Parameters for BGW output
-struct BGWparams
-{	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
-	int blockSize; //!< block size for ScaLAPACK diagonalization
-	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
-	
-	double EcutChiFluid; //!< KE cutoff for fluid polarizability output (enabled if non-zero)
-	bool elecOnly; //!< whether to only output electronic polarizability of fluid (default: true)
-	vector3<> q0; //!< zero wavevector replacement used for polarizability output
-	double freqReMax_eV; //!< maximum real frequency in eV
-	double freqReStep_eV; //!< real frequency grid spacing in eV
-	double freqBroaden_eV; //!< broadening (imaginary part) of real frequency grid in eV
-	int freqNimag; //!< number of imaginary frequencies
-	double freqPlasma; //!< plasma frequency in Hartrees used in GW imaginary frequency grid, set to zero for RPA frequency grid
-	
-	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
-		EcutChiFluid(0.), elecOnly(true),
-		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
-		freqNimag(25), freqPlasma(1.)
-	{}
-};
-
 //! @}
 #endif // JDFTX_ELECTRONIC_DUMP_INTERNAL_H

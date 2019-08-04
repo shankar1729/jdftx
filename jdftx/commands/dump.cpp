@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElectronScattering.h>
 #include <electronic/Vibrations.h>
 #include <electronic/Dump_internal.h>
+#include <electronic/DumpBGW_internal.h>
 #include <core/Units.h>
 
 struct CommandDumpOnly : public Command
