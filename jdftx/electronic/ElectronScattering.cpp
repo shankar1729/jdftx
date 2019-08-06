@@ -191,7 +191,9 @@ void ElectronScattering::dump(const Everything& everything)
 		qmesh[iq].spin = 0;
 	}
 	logPrintf("Symmetries reduced momentum transfers (q-mesh) from %d to ", int(qmesh.size()));
+	logSuspend();
 	qmesh = e.symm.reduceKmesh(qmesh);
+	logResume();
 	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
 	
 	//Initialize polarizability/dielectric bases corresponding to qmesh:

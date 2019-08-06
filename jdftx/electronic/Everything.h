@@ -69,6 +69,7 @@ public:
 	
 	CoulombParams coulombParams; //!< Coulomb truncation parameters
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
+	std::shared_ptr<Coulomb> coulombWfns; //!< Coulomb interaction (optionally truncated) on wave-function grid
 
 	std::shared_ptr<VanDerWaals> vanDerWaals; //! Pair potential for vdw correction
 	std::shared_ptr<class Vibrations> vibrations; //! Vibrational mode calculator

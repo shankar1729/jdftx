@@ -33,9 +33,9 @@ CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(fal
 {
 }
 
-std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) const
+std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo, string purpose) const
 {	if(geometry != Periodic)
-	{	logPrintf("\n---------- Setting up coulomb interaction ----------\n");
+	{	logPrintf("\n---------- Setting up coulomb interaction%s ----------\n", purpose.c_str());
 		Citations::add("Truncated Coulomb potentials", wsTruncationPaper);
 	}
 	
@@ -57,6 +57,26 @@ std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo) con
 		default: return 0; //never encountered (to suppress warning)
 	}
 }
+
+
+std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo,
+		const std::shared_ptr<GridInfo> gInfoWfns, std::shared_ptr<Coulomb>& coulombWfns) const
+{
+	bool wfnsNeeded = gInfoWfns and this->omegaSet.size(); //only need wfns version if separate grid and omegaSet non-empty
+	
+	//Construct for gInfo, disabling exchangeEval initialization if needed:
+	std::set<double> omegaSet; //blank omegaSet swapped in to bypass exchangeEval init, if needed
+	if(wfnsNeeded) std::swap(omegaSet, ((CoulombParams*)this)->omegaSet); //disable omegaSet
+	std::shared_ptr<Coulomb> coulomb = createCoulomb(gInfo);
+	if(wfnsNeeded) std::swap(omegaSet, ((CoulombParams*)this)->omegaSet); //restore omegaSet
+	
+	//Construct separate one for gInfoWfns, or point to same, as appropriate:
+	coulombWfns = wfnsNeeded
+		? createCoulomb(*gInfoWfns, " for tighter wavefunction grid")
+		: coulomb;
+	return coulomb;
+}
+
 
 vector3<bool> CoulombParams::isTruncated() const
 {	switch(geometry)

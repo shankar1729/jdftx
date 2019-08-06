@@ -113,7 +113,7 @@ void Everything::setup()
 	
 	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
 	updateSupercell();
-	coulomb = coulombParams.createCoulomb(gInfo);
+	coulomb = coulombParams.createCoulomb(gInfo, gInfoWfns, coulombWfns);
 	
 	//Exact exchange (if required)
 	if(exxPresent)

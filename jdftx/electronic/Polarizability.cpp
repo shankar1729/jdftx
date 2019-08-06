@@ -170,20 +170,14 @@ private:
 };
 
 inline void coulomb_thread(int bStart, int bStop, const Everything* e, vector3<> dk, const ColumnBundle* rho, ColumnBundle* Krho)
-{	const GridInfo& gInfoWfns = *(rho->basis->gInfo);
-	for(int b=bStart; b<bStop; b++)
-	{	complexScalarFieldTilde rho_b = rho->getColumn(b,0);
-		if(&gInfoWfns != &e->gInfo) rho_b = changeGrid(rho_b, e->gInfo);
-		complexScalarFieldTilde Krho_b = (*(e->coulomb))(rho_b, dk, 0.);
-		if(&gInfoWfns != &e->gInfo) Krho_b = changeGrid(Krho_b, gInfoWfns);
-		Krho->setColumn(b,0, Krho_b);
-	}
+{	for(int b=bStart; b<bStop; b++)
+		Krho->setColumn(b,0, (*(e->coulombWfns))(rho->getColumn(b,0), dk, 0.));
 }
 
 matrix coulombMatrix(const ColumnBundle& V, const Everything& e, vector3<> dk)
-{	ColumnBundle KV = V.similar();
+{	logPrintf("\tForming Coulomb matrix\n"); logFlush();
+	ColumnBundle KV = V.similar();
 	threadLaunch(isGpuEnabled() ? 1 : 0, coulomb_thread, V.nCols(), &e, dk, &V, &KV);
-	logPrintf("\tForming Coulomb matrix\n"); logFlush();
 	return e.gInfo.detR * (V^KV);
 }
 
@@ -252,15 +246,25 @@ inline void exCorr_thread(int bStart, int bStop, const ScalarField* exc_nn, cons
 }
 
 matrix exCorrMatrix(const ColumnBundle& V, const Everything& e, const ScalarField& n, vector3<> dk)
-{	//Get second derivatives w.r.t density (and gradients)
+{	logPrintf("\tForming Exchange-Correlation matrix\n"); logFlush();
+	//Get second derivatives w.r.t density (and gradients)
 	ScalarField exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma;
 	VectorField Dn;
 	e.exCorr.getSecondDerivatives(n, exc_nn, exc_sigma, exc_nsigma, exc_sigmasigma);
 	if(exc_sigma) Dn = gradient(n); //needed for GGAs
+	//Change grid if necessary:
+	if(&(n->gInfo) != V.basis->gInfo)
+	{	exc_nn = changeGrid(exc_nn, *(V.basis->gInfo));
+		if(exc_sigma)
+		{	for(int k=0; k<3; k++) Dn[k] = changeGrid(Dn[k], *(V.basis->gInfo));
+			exc_sigma = changeGrid(exc_sigma, *(V.basis->gInfo));
+			exc_nsigma = changeGrid(exc_nsigma, *(V.basis->gInfo));
+			exc_sigmasigma = changeGrid(exc_sigmasigma, *(V.basis->gInfo));
+		}
+	}
 	//Compute matrix:
 	ColumnBundle KXCV = V.similar();
 	threadLaunch(isGpuEnabled() ? 1 : 0, exCorr_thread, V.nCols(), &exc_nn, &Dn, &exc_sigma, &exc_nsigma, &exc_sigmasigma, &V, &KXCV);
-	logPrintf("\tForming Exchange-Correlation matrix\n"); logFlush();
 	return e.gInfo.detR * (V^KXCV);
 }
 

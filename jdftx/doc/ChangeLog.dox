@@ -6,8 +6,11 @@
 	- Added support for exact-exchange in fixed-Hamiltonian mode, including for SCF and \ref CommandConvergeEmptyStates
 	- Cached real space wavefunctions in blocks (size set by \ref CommandExchangeBlockSize) to asymptotically halve number of FFTs
 	- New symmetrization logic that globally minimizes the number of k-point pairs using a Metropolis algorithm during initialization
+	- Added exact-exchange support in dense diagonalization for BGW output
 
 + Split and reorganized the BGW output code into manageable chunks divided by core, fluid and dense diagonalization functionality
+
++ Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.
 
 
 ## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))

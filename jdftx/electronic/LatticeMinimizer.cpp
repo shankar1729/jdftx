@@ -275,7 +275,7 @@ void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectron
 		e.gInfoWfns->update();
 	}
 	e.updateSupercell();
-	e.coulomb = e.coulombParams.createCoulomb(e.gInfo);
+	e.coulomb = e.coulombParams.createCoulomb(e.gInfo, e.gInfoWfns, e.coulombWfns);
 	e.iInfo.update(e.ener);
 	if(!ignoreElectronic)
 	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)

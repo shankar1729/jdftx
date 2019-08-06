@@ -69,7 +69,11 @@ struct CoulombParams
 	CoulombParams();
 	
 	//! Create a Coulomb object corresponding to the parameters of this class
-	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo) const;
+	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo, string purpose=string()) const;
+	
+	//! Create one or two Coulomb objects as needed, based on whether a separate wave-function grid gInfoWfns exists
+	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo,
+		const std::shared_ptr<GridInfo> gInfoWfns, std::shared_ptr<class Coulomb>& coulombWfns) const;
 	
 	//! Get a list of which directions are truncated:
 	vector3<bool> isTruncated() const;

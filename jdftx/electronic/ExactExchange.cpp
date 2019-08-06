@@ -355,7 +355,7 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 					for(int s=0; s<nSpinor; s++)
 						In += conj(Ipsik[s]) * Ipsiq[bq-bqStart][s];
 					complexScalarFieldTilde n = J(In);
-					complexScalarFieldTilde Kn = O((*e.coulomb)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
+					complexScalarFieldTilde Kn = O((*e.coulombWfns)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
 					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
 					if(HCq or HCk)
 					{	complexScalarField E_In = Jdag(Kn);
@@ -449,7 +449,7 @@ void ExactExchange::addHamiltonian(double aXX, double omega, int q, matrix& H,
 							psiData[gInfoWfns.fullGindex(iGqArr[j] - iGkArr[n])] = CkbData[n].conj();
 						
 						//Apply Coulomb operator:
-						complexScalarFieldTilde Kpsi = (*e.coulomb)(psi_kbConj, qnum_q.k-qnum_k.k, omega);
+						complexScalarFieldTilde Kpsi = (*e.coulombWfns)(psi_kbConj, qnum_q.k-qnum_k.k, omega);
 						const complex* KpsiData = Kpsi->data();
 						
 						//Collect results for each row:
