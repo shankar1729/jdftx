@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/DumpBGW_internal.h>
 #include <electronic/ColumnBundle.h>
+#include <electronic/ExactExchange.h>
 
 #ifndef SCALAPACK_ENABLED //Dense solve requires ScaLAPACK
 
@@ -232,6 +233,9 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				for(int s=qnum.index()+1; s<nSpins; s++) U_rhoPtr += nAtoms;
 			}
 		}
+		//--- EXX contributions:
+		if(e.exCorr.exxFactor())
+			e.exx->addHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, H, iRowsMine, iColsMine);
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
 		watchSetup.stop();

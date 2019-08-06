@@ -47,6 +47,10 @@ public:
 	//! Apply Hamiltonian:
 	void applyHamiltonian(double aXX, double omega, int q, const ColumnBundle& Cq, ColumnBundle& HCq);
 
+	//! Add Hamiltonian in plane-wave basis (used for dense diagonalization for BGW):
+	void addHamiltonian(double aXX, double omega, int q, matrix& H,
+		const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine);
+
 private:
 	const Everything& e;
 	class ExactExchangeEval* eval; //!< opaque pointer to an internal computation class

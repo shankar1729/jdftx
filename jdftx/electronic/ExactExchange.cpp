@@ -41,6 +41,15 @@ public:
 		double weight;
 		std::shared_ptr<Basis> basis;
 		std::shared_ptr<ColumnBundleTransform> transform; //wavefunction transformation from reduced set
+		
+		void setup(const Everything& e, int q, bool needTransform=true)
+		{	basis = std::make_shared<Basis>();
+			logSuspend();
+			basis->setup((e.gInfoWfns ? *(e.gInfoWfns) : e.gInfo), e.iInfo, e.cntrl.Ecut, k);
+			logResume();
+			if(needTransform)
+				transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[q].k, e.basis[q], k, *basis, e.eInfo.spinorLength(), sym, invert);
+		}
 	};
 	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
 	
@@ -283,13 +292,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[iq].k) * kpair.invert; 
 			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2) * kt.multiplicity;
 			if(e.eInfo.isMine(jq) || e.eInfo.isMine(jq + qCount))
-			{	kpair.basis = std::make_shared<Basis>();
-				logSuspend();
-				kpair.basis->setup(e.gInfo, e.iInfo, e.cntrl.Ecut, kpair.k);
-				logResume();
-				kpair.transform = std::make_shared<ColumnBundleTransform>(e.eInfo.qnums[iq].k, e.basis[iq],
-					kpair.k, *(kpair.basis), nSpinor, kpair.sym, kpair.invert);
-			}
+				kpair.setup(e, iq);
 			kpairs[iq][jq].push_back(kpair);
 		}
 	
@@ -383,4 +386,92 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 		if(HCk) kpair.transform->gatherAxpy(1., HCk,0,1, *HCkRed);
 	}
 	return EXX;
+}
+
+void ExactExchange::addHamiltonian(double aXX, double omega, int q, matrix& H,
+	const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine)
+{
+	logPrintf("\t\tInitializing EXX:"); logFlush();
+	assert(eval->nSpinor == 1); //currently implemented only for non-spinorial calculations
+	
+	//Setup:
+	int iSpin = q / eval->qCount;
+	int iqReduced = q - iSpin*eval->qCount;
+	int nColOrbitals = 0;
+	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
+		nColOrbitals += eval->kpairs[ikReduced][iqReduced].size() * e.eInfo.nBands * iColsMine.size();
+	int iColOrbInterval = std::max(1, int(round(nColOrbitals/20.))); //interval for reporting progress
+	const double Fcut = 1e-8; //threshold for determining occupied states
+	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
+	const Basis& basis_q = e.basis[q];
+	const vector3<int>* iGqArr = basis_q.iGarr.data();
+	const GridInfo& gInfoWfns = e.gInfoWfns ? *(e.gInfoWfns) : e.gInfo;
+	
+	//Loop over k orbitals:
+	int iColOrbital = 0;
+	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
+	{	int ikSrc = ikReduced + iSpin*eval->qCount;
+		for(ExactExchangeEval::KpairEntry kpair: eval->kpairs[ikReduced][iqReduced])
+		{	//Set up qnum and basis on all processes (and column transform on ikSrc owner):
+			QuantumNumber qnum_k = e.eInfo.qnums[ikSrc]; qnum_k.k =  kpair.k;
+			kpair.setup(e, ikReduced, e.eInfo.isMine(ikSrc));
+			const Basis& basis_k = *(kpair.basis);
+			const vector3<int>* iGkArr = basis_k.iGarr.data();
+			ColumnBundle Ckb(1, basis_k.nbasis, &basis_k, &qnum_k, isGpuEnabled());
+			//Broadcast fillings:
+			diagMatrix Fk(e.eInfo.nBands);
+			if(e.eInfo.isMine(ikSrc))
+				Fk = e.eVars.F[ikSrc];
+			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
+			//Loop over occupied k bands:
+			for(int b=0; b<e.eInfo.nBands; b++) 
+			{	if(Fk[b] > Fcut)
+				{
+					//Broadcast k orbital:
+					if(e.eInfo.isMine(ikSrc))
+					{	Ckb.zero();
+						kpair.transform->scatterAxpy(1., e.eVars.C[ikSrc],b, Ckb,0);
+					}
+					mpiWorld->bcastData(Ckb, e.eInfo.whose(ikSrc));
+					const complex* CkbData = Ckb.data();
+					const double prefac = -aXX * Fk[b] * kpair.weight / qnum_q.weight;
+					
+					//Loop over local columns of iG:
+					complexScalarFieldTilde psi_kbConj;
+					nullToZero(psi_kbConj, gInfoWfns);
+					complex* Hdata = H.data();
+					for(int j: iColsMine)
+					{
+						//Expand psi_kb with Gj offset:
+						psi_kbConj->zero();
+						complex* psiData = psi_kbConj->data();
+						for(size_t n=0; n<basis_k.nbasis; n++)
+							psiData[gInfoWfns.fullGindex(iGqArr[j] - iGkArr[n])] = CkbData[n].conj();
+						
+						//Apply Coulomb operator:
+						complexScalarFieldTilde Kpsi = (*e.coulomb)(psi_kbConj, qnum_q.k-qnum_k.k, omega);
+						const complex* KpsiData = Kpsi->data();
+						
+						//Collect results for each row:
+						for(int i: iRowsMine)
+						{	complex result;
+							for(size_t n=0; n<basis_k.nbasis; n++)
+								result += CkbData[n] * KpsiData[gInfoWfns.fullGindex(iGqArr[i] - iGkArr[n])];
+							*(Hdata++) += prefac * result;
+						}
+						
+						//Report progress:
+						iColOrbital++;
+						if(iColOrbital % iColOrbInterval == 0)
+						{	logPrintf(" %d%%", int(round(iColOrbital*100./nColOrbitals)));
+							logFlush();
+						}
+					}
+				}
+				else iColOrbital += iColsMine.size();
+			}
+		}
+	}
+	
+	logPrintf(" done.\n"); logFlush();
 }
