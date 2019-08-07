@@ -235,7 +235,11 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		}
 		//--- EXX contributions:
 		if(e.exCorr.exxFactor())
-			e.exx->addHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, H, iRowsMine, iColsMine);
+		{	matrix HXX = zeroes(nRowsMine, nColsMine);
+			e.exx->addHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, HXX, iRowsMine, iColsMine);
+			H += HXX;
+			Vxc += HXX;
+		}
 		matrix evecs(nRowsMine, nColsMine);
 		diagMatrix eigs(nRows);
 		watchSetup.stop();

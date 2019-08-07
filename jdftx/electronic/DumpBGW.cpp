@@ -18,8 +18,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Dump.h>
-#include <electronic/ColumnBundle.h>
 #include <electronic/DumpBGW_internal.h>
+#include <electronic/ColumnBundle.h>
+#include <electronic/ExactExchange.h>
 
 #ifndef HDF5_ENABLED
 void Dump::dumpBGW()
@@ -165,6 +166,7 @@ void BGW::writeVxc() const
 	
 	//Calculate X-C matrix elements:
 	std::vector<matrix>& VxcSub = ((BGW*)this)->VxcSub;
+	if(e.exCorr.exxFactor()) e.exx->setOccupied(e.eVars.F, e.eVars.C);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	if(VxcSub[q]) continue; //already calculated (dense version)
 		ColumnBundle HCq = gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
@@ -174,6 +176,8 @@ void BGW::writeVxc() const
 		}
 		if(e.eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
 			e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq);
+		if(e.exCorr.exxFactor()) //Exact-exchange contributions:
+			e.exx->applyHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, eVars.C[q], HCq);
 		VxcSub[q] = eVars.C[q] ^ HCq;
 	}
 	
