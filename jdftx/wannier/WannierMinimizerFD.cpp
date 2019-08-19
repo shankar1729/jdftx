@@ -21,8 +21,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //Find a finite difference formula given a list of relative neighbour positions (in cartesian coords)
 //[Appendix B of Phys Rev B 56, 12847]
+//Optionally select subspaces of 3D using mask (only work in directions that are true)
 //Returns an empty weight set on failure
-std::vector<double> getFDformula(const std::vector< vector3<> >& b)
+std::vector<double> getFDformula(const std::vector< vector3<> >& b, const vector3<bool> mask)
 {	//Group elements of b into shells:
 	std::vector<unsigned> shellMax; //cumulative count within each shell
 	for(unsigned i=1; i<b.size(); i++)
@@ -30,24 +31,34 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 			shellMax.push_back(i);
 	shellMax.push_back(b.size());
 	int nShells = shellMax.size();
+	//Determine number of equations:
+	int nEquations = 0;
+	for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
+	{	nEquations++; //diagonal
+		for(int jDir=0; jDir<iDir; jDir++) if(mask[jDir])
+			nEquations++; //off-diagonal
+	}
+	assert(nEquations > 0);
 	//Setup the equations satisfied by the weights:
-	const int nEquations = 6;
 	matrix Lhs = zeroes(nEquations, nShells);
 	complex* LhsData = Lhs.data();
 	for(int s=0; s<nShells; s++)
 		for(unsigned j = (s ? shellMax[s-1] : 0); j<shellMax[s]; j++)
-		{	//Equations from ref.:
-			int iEqn = 0;
-			//Rank-two sum is identity:
-			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][0];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][1];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][2];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][1]*b[j][2];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][2]*b[j][0];
-			LhsData[Lhs.index(iEqn++, s)] += b[j][0]*b[j][1];
+		{	int iEqn = 0;
+			//Diagonal equations:
+			for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
+				LhsData[Lhs.index(iEqn++, s)] += b[j][iDir]*b[j][iDir];
+			//Off-diagonal equations:
+			for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
+			{	for(int jDir=0; jDir<iDir; jDir++) if(mask[jDir])
+					LhsData[Lhs.index(iEqn++, s)] += b[j][iDir]*b[j][jDir];
+			}
 		}
 	matrix rhs = zeroes(nEquations, 1);
-	for(unsigned i=0; i<3; i++) rhs.data()[i] = 1; //first three components = diagonals of rank-two sum
+	{	int iEqn = 0;
+		for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
+			rhs.data()[iEqn++] = 1; //diagonal rhs = 1
+	}
 	//Solve using a singular value decomposition:
 	matrix U, Vdag; diagMatrix S;
 	Lhs.svd(U, S, Vdag);
@@ -66,26 +77,20 @@ std::vector<double> getFDformula(const std::vector< vector3<> >& b)
 	return w;
 }
 
-//Helper function for PeriodicLookup<WannierMinimizer::KmeshEntry> used in WannierMinimizerFD constructor
-inline vector3<> getCoord(const WannierMinimizer::KmeshEntry& ke) { return ke.point.k; }
-
-WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wannier)
-: WannierMinimizer(e, wannier)
-{
-	//Determine finite difference formula:
-	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
-	const Supercell& supercell = *(e.coulombParams.supercell);
-	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
-	//--- determine maximum dk among lattice directions:
+//Determine minimal FD formula given a kbasis, using successively expanding shells in the above version
+//Optionally select subspaces of 3D using mask (only work in directions that are true)
+//Returns nodes and weights of FD formula in b and wb respectively
+void getFDformula(const matrix3<>& kbasis, const vector3<bool> mask, std::vector<vector3<>>& b, std::vector<double>& wb)
+{	//Determine maximum dk among lattice directions:
 	double dkMax = 0.;
-	for(int iDir=0; iDir<3; iDir++)
+	for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
 		dkMax = std::max(dkMax, kbasis.column(iDir).length());
-	//--- determine ik bounding box to contain dkMax sphere (with margins)
+	//Determine ik bounding box to contain dkMax sphere (with margins)
 	vector3<int> ikBound;
 	const matrix3<> kbasisInvT = ~inv(kbasis);
-	for(int iDir=0; iDir<3; iDir++)
+	for(int iDir=0; iDir<3; iDir++) if(mask[iDir])
 		ikBound[iDir] = std::max(2, 1+int(ceil(dkMax * kbasisInvT.column(iDir).length())));
-	//--- collect non-zero dk's within ik boudning box in ascending order of magnitude:
+	//Collect non-zero dk's within ik boudning box in ascending order of magnitude:
 	std::multimap<double, vector3<> > dkMap; //cartesian offsets from one k-point to other k-points sorted by distance
 	vector3<int> ik;
 	for(ik[0]=-ikBound[0]; ik[0]<=+ikBound[0]; ik[0]++)
@@ -95,7 +100,7 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 		{	vector3<> dk = kbasis * ik;
 			dkMap.insert(std::make_pair<>(dk.length_squared(), dk));
 		}
-	//--- remove inversion partners (handled by symmetry)
+	//Remove inversion partners (handled by symmetry)
 	for(auto iter=dkMap.begin(); iter!=dkMap.end(); iter++)
 	{	auto iter2=iter; iter2++;
 		while(iter2!=dkMap.end() && iter2->first < iter->first + symmThreshold)
@@ -104,9 +109,9 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			else iter2++;
 		}
 	}
-	//--- find FD formula shell by shell
-	std::vector< vector3<> > b; //list of cartesian offsets to corresponding neighbours
-	std::vector<double> wb; //corresponding weights in finite difference formula
+	//Find FD formula shell by shell
+	b.clear(); //list of cartesian offsets to corresponding neighbours
+	wb.clear(); //corresponding weights in finite difference formula
 	for(auto iter=dkMap.begin(); iter!=dkMap.end(); )
 	{	//Add all the neighbours with equivalent distances:
 		while(true)
@@ -118,10 +123,39 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 				break;
 		}
 		//Check if this list of neighbours is sufficient to get a finite difference formula
-		wb = getFDformula(b);
+		wb = getFDformula(b, mask);
 		if(wb.size() == b.size()) break; //success
 	}
 	if(!wb.size()) die("failed.\n");
+}
+
+//Helper function for PeriodicLookup<WannierMinimizer::KmeshEntry> used in WannierMinimizerFD constructor
+inline vector3<> getCoord(const WannierMinimizer::KmeshEntry& ke) { return ke.point.k; }
+
+WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wannier)
+: WannierMinimizer(e, wannier)
+{
+	//Determine finite difference formula:
+	logPrintf("Setting up finite difference formula on k-mesh ... "); logFlush();
+	const Supercell& supercell = *(e.coulombParams.supercell);
+	matrix3<> kbasis = e.gInfo.GT * inv(~matrix3<>(supercell.super)); //basis vectors in reciprocal space for the k-mesh (in cartesian coords)
+	std::vector<vector3<>> b; std::vector<double> wb;
+	//--- loop over orthogonal subspaces:
+	vector3<bool> dirDone(false,false,false);
+	for(int iDir=0; iDir<3; iDir++) if(not dirDone[iDir])
+	{	//Set mask for subspace not orthogonal to iDir:
+		vector3<bool> mask(false,false,false);
+		for(int jDir=0; jDir<3; jDir++)
+			if(fabs(dot(kbasis.column(iDir), kbasis.column(jDir))) > symmThreshold)
+			{	mask[jDir] = true; //include in current subspace
+				dirDone[jDir] = true; //mark those directions done
+			}
+		//Find FD formula for subspace and append:
+		std::vector<vector3<>> bSub; std::vector<double> wbSub;
+		getFDformula(kbasis, mask, bSub, wbSub);
+		b.insert(b.end(), bSub.begin(), bSub.end());
+		wb.insert(wb.end(), wbSub.begin(), wbSub.end());
+	}
 	logPrintf("found a %lu neighbour formula.\n", 2*wb.size());
 	
 	//Find edges :
