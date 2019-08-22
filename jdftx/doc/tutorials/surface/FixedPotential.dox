@@ -126,7 +126,7 @@ Finally, we will extract the charging curve of the Pt(111) surface:
 
     #!/bin/bash
     for file in Charged*.out; do
-        awk '/FillingsAux/ {mu=$3; N=$5} END {print mu, N}' "$file"
+        awk '/FillingsUpdate/ {mu=$3; N=$5} END {print mu, N}' "$file"
     done
 
 Save the above to collectResults.sh, give execute permissions using
