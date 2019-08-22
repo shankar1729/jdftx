@@ -12,6 +12,8 @@
 
 + Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.
 
++ Fixed Wannier finite-difference formula bug for highly anisotropic supercells (encountered primarily with large k-point sampling in 2D)
+
 
 ## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))
 
