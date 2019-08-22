@@ -468,7 +468,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 
 //Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 
 void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)
-{	const double tol = 1e-4;
+{	const double tol = 1e-7;
 	//Pick out the head elements:
 	const std::vector<int>& head = C.basis->head;
 	int nSpinor = C.spinorLength();
