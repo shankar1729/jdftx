@@ -17,7 +17,7 @@ var searchData=
   ['kinetictype',['KineticType',['../group__ExchangeCorrelation.html#gafc67e3227e14be722f08c9c1f2649bcd',1,'ExCorr.h']]],
   ['kineticvw',['KineticVW',['../group__ExchangeCorrelation.html#ggafc67e3227e14be722f08c9c1f2649bcda342eecd16bdd2e067a858776ec4092ab',1,'ExCorr.h']]],
   ['kjoule',['KJoule',['../group__Utilities.html#gabcd6046add257d90eb89f41e3a2ccb13',1,'Units.h']]],
-  ['kmesh',['kmesh',['../structSupercell.html#a403c702a88d6431c3ee0f05a7d49b772',1,'Supercell::kmesh()'],['../classWannierMinimizer.html#ae22b719a00f758551fb2086511f73cee',1,'WannierMinimizer::kMesh()']]],
+  ['kmesh',['kMesh',['../classWannierMinimizer.html#ae22b719a00f758551fb2086511f73cee',1,'WannierMinimizer::kMesh()'],['../structSupercell.html#a403c702a88d6431c3ee0f05a7d49b772',1,'Supercell::kmesh()']]],
   ['kmeshentry',['KmeshEntry',['../structWannierMinimizer_1_1KmeshEntry.html',1,'WannierMinimizer']]],
   ['kmeshtransform',['KmeshTransform',['../structSupercell_1_1KmeshTransform.html',1,'Supercell']]],
   ['knormthreshold',['knormThreshold',['../structMinimizeParams.html#ae37a5c6511498eb6a0b7b6ca1edc9e90',1,'MinimizeParams']]],

@@ -40,6 +40,7 @@ var CommandIndex =
     [ "electronic-minimize", "CommandElectronicMinimize.html", null ],
     [ "electronic-scf", "CommandElectronicScf.html", null ],
     [ "electron-scattering", "CommandElectronScattering.html", null ],
+    [ "exchange-block-size", "CommandExchangeBlockSize.html", null ],
     [ "exchange-parameters", "CommandExchangeParameters.html", null ],
     [ "exchange-regularization", "CommandExchangeRegularization.html", null ],
     [ "fftbox", "CommandFftbox.html", null ],

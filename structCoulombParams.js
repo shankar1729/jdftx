@@ -16,7 +16,8 @@ var structCoulombParams =
       [ "Spherical", "structCoulombParams.html#adc8b5539ad34d7b28da698fd685fa2bba5c4da389cb4e7524d6bfdff4066552d5", null ]
     ] ],
     [ "CoulombParams", "structCoulombParams.html#ad1f8af7749457d22b899b2a29275eb83", null ],
-    [ "createCoulomb", "structCoulombParams.html#a2789937d3cb242aa8d195cb299d8fb66", null ],
+    [ "createCoulomb", "structCoulombParams.html#a77f35f976c0104c7ae8fa77871d278f0", null ],
+    [ "createCoulomb", "structCoulombParams.html#aa115995516687c5ffae6be033a1cea7d", null ],
     [ "isTruncated", "structCoulombParams.html#abe92561efc38d050ed5dedff4827e063", null ],
     [ "splitEfield", "structCoulombParams.html#a8346a42d566746d5be6102bfa03148e1", null ],
     [ "Efield", "structCoulombParams.html#ad26c31ff87d569441b00ec3402f7f76b", null ],

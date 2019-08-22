@@ -4,6 +4,7 @@ var group__Output =
     [ "ScalarFieldIO.h", "ScalarFieldIO_8h.html", null ],
     [ "Dump.h", "Dump_8h.html", null ],
     [ "Dump_internal.h", "Dump__internal_8h.html", null ],
+    [ "DumpBGW_internal.h", "DumpBGW__internal_8h.html", null ],
     [ "RadialSchrodinger.h", "RadialSchrodinger_8h.html", null ],
     [ "Phonon.h", "Phonon_8h.html", null ],
     [ "Wannier.h", "Wannier_8h.html", null ],

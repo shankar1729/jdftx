@@ -14,6 +14,7 @@ var searchData=
   ['electronic_2dminimize',['electronic-minimize',['../CommandElectronicMinimize.html',1,'CommandIndex']]],
   ['electronic_2dscf',['electronic-scf',['../CommandElectronicScf.html',1,'CommandIndex']]],
   ['electron_2dscattering',['electron-scattering',['../CommandElectronScattering.html',1,'CommandIndex']]],
+  ['exchange_2dblock_2dsize',['exchange-block-size',['../CommandExchangeBlockSize.html',1,'CommandIndex']]],
   ['exchange_2dparameters',['exchange-parameters',['../CommandExchangeParameters.html',1,'CommandIndex']]],
   ['exchange_2dregularization',['exchange-regularization',['../CommandExchangeRegularization.html',1,'CommandIndex']]],
   ['entangled_20bands',['Entangled bands',['../EntangledBands.html',1,'WannierTutorials']]]

@@ -98,7 +98,20 @@ $(document).ready(function(){initNavTree('ChangeLog.html','');});
 <div class="title">Change log </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>1.5.0 - 2019-07-28 (<a href="http://jdftx.org/1.5.0">Site archive</a>)</h2>
+<div class="textblock"><h2>Development version on git</h2>
+<ul>
+<li>Exact exchange enhancements:<ul>
+<li>Added support for exact-exchange in fixed-Hamiltonian mode, including for <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state. ">SCF</a> and <a class="el" href="CommandConvergeEmptyStates.html">converge-empty-states</a></li>
+<li>Cached real space wavefunctions in blocks (size set by <a class="el" href="CommandExchangeBlockSize.html">exchange-block-size</a>) to asymptotically halve number of FFTs</li>
+<li>New symmetrization logic that globally minimizes the number of k-point pairs using a Metropolis algorithm during initialization</li>
+<li>Added exact-exchange support in dense diagonalization for BGW output</li>
+</ul>
+</li>
+<li>Split and reorganized the BGW output code into manageable chunks divided by core, fluid and dense diagonalization functionality</li>
+<li>Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.</li>
+<li>Fixed <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> finite-difference formula bug for highly anisotropic supercells (encountered primarily with large k-point sampling in 2D)</li>
+</ul>
+<h2>1.5.0 - 2019-07-28 (<a href="http://jdftx.org/1.5.0">Site archive</a>)</h2>
 <ul>
 <li>Wannier enhancements:<ul>
 <li>Condensed all Wannier outputs to unique-cell only, with separate cell weights to be used in post-processing, which substantially reduces memory and disk requirements of wannier tight-binding in large systems.</li>

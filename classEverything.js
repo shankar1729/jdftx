@@ -6,6 +6,7 @@ var classEverything =
     [ "cntrl", "classEverything.html#a0861dc24d754878632bcbf5f898fe65d", null ],
     [ "coulomb", "classEverything.html#abe00ed0913bb2861e2ce22806faa34fb", null ],
     [ "coulombParams", "classEverything.html#ae6cd84317b70bf9dc57e37c9b97ab080", null ],
+    [ "coulombWfns", "classEverything.html#a70bcaa50bf3a466ac0b856b0304b4d40", null ],
     [ "dump", "classEverything.html#aa27fec5491dda94b239c8c5ac12d359c", null ],
     [ "eInfo", "classEverything.html#aaa070005c7f05e95b583cbddf930b318", null ],
     [ "elecMinParams", "classEverything.html#a5430caf7826ba3f7847a248f6bdec358", null ],

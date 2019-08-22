@@ -31,6 +31,7 @@ var searchData=
   ['coul',['Coul',['../group__Utilities.html#gafd04f111d5fd8e870ef649913247cff4',1,'Units.h']]],
   ['coulomb',['coulomb',['../classEverything.html#abe00ed0913bb2861e2ce22806faa34fb',1,'Everything']]],
   ['coulombparams',['coulombParams',['../classEverything.html#ae6cd84317b70bf9dc57e37c9b97ab080',1,'Everything']]],
+  ['coulombwfns',['coulombWfns',['../classEverything.html#a70bcaa50bf3a466ac0b856b0304b4d40',1,'Everything']]],
   ['cublashandle',['cublasHandle',['../group__Utilities.html#gaee45391854905ae20d85d37211fe1754',1,'cublasHandle():&#160;GpuKernelUtils.h'],['../group__Utilities.html#gaee45391854905ae20d85d37211fe1754',1,'cublasHandle():&#160;GpuUtil.h']]],
   ['cudadevprops',['cudaDevProps',['../group__Utilities.html#gac05c6e7e2788683fda8f63d711576be7',1,'GpuKernelUtils.h']]]
 ];

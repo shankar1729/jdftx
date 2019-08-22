@@ -4,6 +4,7 @@ var dir_fb14a786583251f601b9ef38383b6929 =
     [ "Control.h", "Control_8h.html", "Control_8h" ],
     [ "Dump.h", "Dump_8h.html", "Dump_8h" ],
     [ "Dump_internal.h", "Dump__internal_8h.html", "Dump__internal_8h" ],
+    [ "DumpBGW_internal.h", "DumpBGW__internal_8h.html", null ],
     [ "ElecInfo.h", "ElecInfo_8h.html", "ElecInfo_8h" ],
     [ "ElecMinimizer.h", "ElecMinimizer_8h.html", "ElecMinimizer_8h" ],
     [ "Energies.h", "Energies_8h.html", "Energies_8h" ],

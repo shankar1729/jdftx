@@ -172,7 +172,7 @@ createXSF Charged-0.1648.out Charged-0.1648.xsf Charged-0.1648.nbound
 <p>Finally, we will extract the charging curve of the Pt(111) surface: </p>
 <pre class="fragment">#!/bin/bash
 for file in Charged*.out; do
-    awk '/FillingsAux/ {mu=$3; N=$5} END {print mu, N}' "$file"
+    awk '/FillingsUpdate/ {mu=$3; N=$5} END {print mu, N}' "$file"
 done
 </pre><p>Save the above to collectResults.sh, give execute permissions using "chmod +x collectResults.sh", and execute using "./collectResults.sh | tee mu_N.dat". Note that the above script uses awk to extract the final mu and nElectrons from each calculation. We can plot the extracted results using gnuplot: </p>
 <pre class="fragment">#Within an interactive gnuplot session:

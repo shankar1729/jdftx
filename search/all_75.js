@@ -2,6 +2,7 @@ var searchData=
 [
   ['u_5frhoatom',['U_rhoAtom',['../classElecVars.html#ad6234c58f1faa4ffcb4e58a57830b651',1,'ElecVars']]],
   ['uniform',['uniform',['../namespaceRandom.html#a0e737669e51cc2f011c0944bcc369b1f',1,'Random']]],
+  ['uniformint',['uniformInt',['../namespaceRandom.html#acf804ea7a11a77b6febf3c38afff4a59',1,'Random']]],
   ['unitparticle',['unitParticle',['../classVanDerWaals.html#a67b11bea9b7ac80470dde47a8036e803',1,'VanDerWaals']]],
   ['units_2eh',['Units.h',['../Units_8h.html',1,'']]],
   ['update',['update',['../classGridInfo.html#a6eabc447e7ba9ecad8fdd89c643cdf3c',1,'GridInfo::update()'],['../classIonInfo.html#a38b5c7e87e6b546117cf07eec5f8d75a',1,'IonInfo::update()']]],

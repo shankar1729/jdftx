@@ -45,5 +45,6 @@ var searchData=
   ['exchangeregularization',['exchangeRegularization',['../structCoulombParams.html#adc02818f2b4158d4bf49f1686e62d404',1,'CoulombParams']]],
   ['excorr',['exCorr',['../classEverything.html#ad58a47455c8ee118043b6a3e0f05f8d7',1,'Everything::exCorr()'],['../structFluidSolverParams.html#a496f98ddcf73b03d41d2da5eab38c061',1,'FluidSolverParams::exCorr()']]],
   ['excorrdiff',['exCorrDiff',['../classEverything.html#abfa12d766a43bd3945149cc1b6289263',1,'Everything']]],
-  ['exx',['exx',['../classEverything.html#a2e0b87b75f28ee7a5f9810679db5eaf8',1,'Everything']]]
+  ['exx',['exx',['../classEverything.html#a2e0b87b75f28ee7a5f9810679db5eaf8',1,'Everything']]],
+  ['exxblocksize',['exxBlockSize',['../classControl.html#ae106fdba9fe100f1b37459f7c70fd520',1,'Control']]]
 ];

@@ -10,6 +10,7 @@ var classControl =
     [ "Ecut", "classControl.html#a0dc8d19b124673a3688d77cf4ea6cf1c", null ],
     [ "EcutRho", "classControl.html#a187fdaa5c7f1e0048faf336df7db786e", null ],
     [ "elecEigenAlgo", "classControl.html#a3ebc9a72430c3bf0785456ff41eb5803", null ],
+    [ "exxBlockSize", "classControl.html#ae106fdba9fe100f1b37459f7c70fd520", null ],
     [ "fixed_H", "classControl.html#a84f6403bc9c1c82d0a5ba37ea04fd030", null ],
     [ "fluidGummel_Atol", "classControl.html#a2eee7768242de2e3ee8910887e26b0c5", null ],
     [ "fluidGummel_nIterations", "classControl.html#a649d35df228605d792df72d6a0e3dc52", null ],

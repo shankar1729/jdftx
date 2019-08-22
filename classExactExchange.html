@@ -114,6 +114,18 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a0493fb1a1da53043cfcd9342a54f75d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b85824af633fd94b37a9864b9d2dd0a"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a5b85824af633fd94b37a9864b9d2dd0a">operator()</a> (double aXX, double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *HC=0) const </td></tr>
 <tr class="separator:a5b85824af633fd94b37a9864b9d2dd0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8a8a0edd33831e7270590f4508cae962"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8a8a0edd33831e7270590f4508cae962"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a8a8a0edd33831e7270590f4508cae962">setOccupied</a> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C)</td></tr>
+<tr class="memdesc:a8a8a0edd33831e7270590f4508cae962"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the occupied wavefunctions and occupation factors in preparation for applyHamiltonian. <br/></td></tr>
+<tr class="separator:a8a8a0edd33831e7270590f4508cae962"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8b9b8165f9f4979e3201ed007bc0cdaf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8b9b8165f9f4979e3201ed007bc0cdaf"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a8b9b8165f9f4979e3201ed007bc0cdaf">applyHamiltonian</a> (double aXX, double omega, int q, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;HCq)</td></tr>
+<tr class="memdesc:a8b9b8165f9f4979e3201ed007bc0cdaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply Hamiltonian: <br/></td></tr>
+<tr class="separator:a8b9b8165f9f4979e3201ed007bc0cdaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a158652a993f396580c421c511264bce9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a158652a993f396580c421c511264bce9"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a158652a993f396580c421c511264bce9">addHamiltonian</a> (double aXX, double omega, int q, <a class="el" href="classmatrix.html">matrix</a> &amp;H, const std::vector&lt; int &gt; &amp;iRowsMine, const std::vector&lt; int &gt; &amp;iColsMine)</td></tr>
+<tr class="memdesc:a158652a993f396580c421c511264bce9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add Hamiltonian in plane-wave basis (used for dense diagonalization for BGW): <br/></td></tr>
+<tr class="separator:a158652a993f396580c421c511264bce9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Exact-exchange calculator. </p>

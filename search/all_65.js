@@ -14,6 +14,7 @@ var searchData=
   ['electronic_2dminimize',['electronic-minimize',['../CommandElectronicMinimize.html',1,'CommandIndex']]],
   ['electronic_2dscf',['electronic-scf',['../CommandElectronicScf.html',1,'CommandIndex']]],
   ['electron_2dscattering',['electron-scattering',['../CommandElectronScattering.html',1,'CommandIndex']]],
+  ['exchange_2dblock_2dsize',['exchange-block-size',['../CommandExchangeBlockSize.html',1,'CommandIndex']]],
   ['exchange_2dparameters',['exchange-parameters',['../CommandExchangeParameters.html',1,'CommandIndex']]],
   ['exchange_2dregularization',['exchange-regularization',['../CommandExchangeRegularization.html',1,'CommandIndex']]],
   ['e',['e',['../structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19',1,'InitParams::e()'],['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../classTetrahedralDOS.html#a8d7ec66f3b2d29e8bfc0cf4ba4d22dde',1,'TetrahedralDOS::e(int iState, int iBand)'],['../classTetrahedralDOS.html#aee1b27d51d958db44b754d553f7db75e',1,'TetrahedralDOS::e(int iState, int iBand) const '],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()'],['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()']]],
@@ -197,6 +198,7 @@ var searchData=
   ['expandylmprod',['expandYlmProd',['../group__Utilities.html#gaf1099f584031330852506ecacc687226',1,'expandYlmProd(int lm1, int lm2):&#160;SphericalHarmonics.h'],['../group__Utilities.html#gace768f02bdda85c37426e83522cb3957',1,'expandYlmProd(int l1, int m1, int l2, int m2):&#160;SphericalHarmonics.h']]],
   ['external',['External',['../structPolarizability.html#a8f0791b2a76670a0dfc379a0fffcbc13a44b1b96144aeb8cdcab5ef2d5afe557a',1,'Polarizability']]],
   ['exx',['exx',['../classEverything.html#a2e0b87b75f28ee7a5f9810679db5eaf8',1,'Everything']]],
+  ['exxblocksize',['exxBlockSize',['../classControl.html#ae106fdba9fe100f1b37459f7c70fd520',1,'Control']]],
   ['exxfactor',['exxFactor',['../classExCorr.html#afb6c5e91a24e4d0b1e1415cafdd1d32a',1,'ExCorr']]],
   ['exxrange',['exxRange',['../classExCorr.html#ad6cdf859e9180841836ac1f968e0d82b',1,'ExCorr']]],
   ['eye',['eye',['../group__DataStructures.html#gaf3158612f3015079598ca4652dba8803',1,'matrix.h']]]
