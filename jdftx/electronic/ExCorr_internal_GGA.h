@@ -398,7 +398,7 @@ template<> __hostanddev__ double GGA_eval<GGA_X_wPBE_SR>(double rs, double s2, d
 	
 	//Accumulate contributions from each gaussian-erfc-polynomial integral:
 	//(The prefactor of -8/9 in the enhancement factor is included at the end)
-	const double erfcArgPrefac = omega * pow(4./(9*M_PI),1./3); //prefactor to rs in the argument to erfc
+	const double erfcArgPrefac = omega * pow(2./(9*M_PI),1./3); //prefactor to rs in the argument to erfc
 	double erfcArg = erfcArgPrefac * rs;
 	double I=0., I_s2=0., I_erfcArg=0.;
 	//5 fit gaussians for the 1/y part of the hole from the HSE paper:
