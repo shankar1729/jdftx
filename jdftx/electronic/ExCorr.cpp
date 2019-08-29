@@ -204,7 +204,7 @@ public:
 	bool hasCorrelation() const { return funcUnpolarized.info->kind == XC_CORRELATION || funcUnpolarized.info->kind == XC_EXCHANGE_CORRELATION; }
 	bool hasKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
 	bool hasEnergy() const { return true; }
-	double exxScale() const { return funcUnpolarized.cam_alpha; }
+	double exxScale() const { return funcUnpolarized.cam_omega>0 ? funcUnpolarized.cam_beta : funcUnpolarized.cam_alpha; }
 	double exxOmega() const { return funcUnpolarized.cam_omega; }
 	
 	FunctionalLibXC(int xcCode, const char* typeName)
