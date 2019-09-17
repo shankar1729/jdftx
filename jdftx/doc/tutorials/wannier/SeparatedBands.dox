@@ -152,12 +152,22 @@ The following Python script calculates band structure from MLWF Hamiltonian:
     import numpy as np
     from scipy.interpolate import interp1d
     
-    #Read the MLWF cell map and Hamiltonian:    
+    #Read the MLWF cell map, weights and Hamiltonian:    
     cellMap = np.loadtxt("wannier.mlwfCellMap")[:,0:3].astype(np.int)
-    Hwannier = np.fromfile("wannier.mlwfH", dtype=np.float64)
+    Wwannier = np.fromfile("wannier.mlwfCellWeights")
     nCells = cellMap.shape[0]
-    nBands = int(np.sqrt(Hwannier.shape[0] / nCells))
-    Hwannier = np.reshape(Hwannier, (nCells,nBands,nBands))
+    nBands = int(np.sqrt(Wwannier.shape[0] / nCells))
+    Wwannier = Wwannier.reshape((nCells,nBands,nBands)).swapaxes(1,2)
+    #--- Get k-point folding from totalE.out:
+    for line in open('totalE.out'):
+        if line.startswith('kpoint-folding'):
+            kfold = np.array([int(tok) for tok in line.split()[1:4]])
+    kfoldProd = np.prod(kfold)
+    kStride = np.array([kfold[1]*kfold[2], kfold[2], 1])
+    #--- Read reduced Wannier Hamiltonian and expand it:
+    Hreduced = np.fromfile("wannier.mlwfH").reshape((kfoldProd,nBands,nBands)).swapaxes(1,2)
+    iReduced = np.dot(np.mod(cellMap, kfold[None,:]), kStride)
+    Hwannier = Wwannier * Hreduced[iReduced]
     
     #Read the band structure k-points:
     kpointsIn = np.loadtxt('bandstruct.kpoints', skiprows=2, usecols=(1,2,3))
@@ -175,9 +185,16 @@ The following Python script calculates band structure from MLWF Hamiltonian:
     Ek,Vk = np.linalg.eigh(Hk)
     #--- Save:
     np.savetxt("wannier.eigenvals", Ek)
+    
+The first two sections read in the MLWF data and set up the k-point path
+respectively; all the real action happens in two lines of code in the final block!
 
-Note that the first two sections read in the MLWF data and set up the
-k-point path respectively; all the real action happens in two lines of code!
+Note that the MLWF Hamitonian file format changed starting in version 1.5.0:
+only irreducible cells are stored in the file for compactness, and the first
+block of code above reads and expands the Hamiltonian to the full cell map.
+(See the [older version of this tutorial](http://jdftx.org/1.4.2/SeparatedBands)
+for working with the pre-1.5.0 %Wannier output.)
+
 The Bloch Hamiltonian Hk is calculated by Fourier transforming the MLWF-basis Hamiltonian,
 and then we obtain the eigenvalues at each k (the band structure) by diagonalizing Hk.
 Run the above script "python WannierBandstruct.py",
