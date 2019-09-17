@@ -355,11 +355,27 @@ double integralErfcGaussian<5>(double A, double B, double& result_A, double& res
 
 //! Short-ranged omega-PBE GGA exchange - used in the HSE06 hybrid functional
 //! [J Heyd, G E Scuseria, and M Ernzerhof, J. Chem. Phys. 118, 3865 (2003)]
-template<> __hostanddev__ double GGA_eval<GGA_X_wPBE_SR>(double rs, double s2, double& e_rs, double& e_s2)
+template<> __hostanddev__ double GGA_eval<GGA_X_wPBE_SR>(double rs, double sIn2, double& e_rs, double& e_sIn2)
 {	//Slater exchange:
 	double eSlater_rs, eSlater = slaterExchange(rs, eSlater_rs);
 	//omega-PBE enhancement factor:
 	const double omega = 0.11; //range-parameter recommended in the HSE06 paper
+	
+	//Scaling of s and its derivative:
+	double s2 = sIn2, s2_sIn2 = 1.;
+	const double sMax = 8.572844;
+	if(sIn2 > 225.)
+	{	s2 = sMax*sMax;
+		s2_sIn2 = 0.;
+	}
+	else if(sIn2 > 1.)
+	{	double sIn = sqrt(sIn2);
+		double expTerm = exp(sIn-sMax);
+		double s = sIn - log(1. + expTerm);
+		double s_sIn = 1./(1.+expTerm);
+		s2 = s*s;
+		s2_sIn2 = s*s_sIn/sIn;
+    }
 	
 	//Parametrization of PBE hole [J. Perdew and M. Ernzerhof, J. Chem. Phys. 109, 3313 (1998)]
 	const double A = 1.0161144;
@@ -424,7 +440,7 @@ template<> __hostanddev__ double GGA_eval<GGA_X_wPBE_SR>(double rs, double s2, d
 	I_erfcArg += B*term1_erfcArg + f*term2_erfcArg + g*term3_erfcArg;
 	//GGA result:
 	e_rs = (-8./9)* (eSlater_rs * I + eSlater * I_erfcArg * erfcArgPrefac);
-	e_s2 = (-8./9)* eSlater * I_s2;
+	e_sIn2 = (-8./9)* eSlater * I_s2 * s2_sIn2;
 	return (-8./9)* eSlater * I;
 }
 
