@@ -111,14 +111,24 @@ $(document).ready(function(){initNavTree('DirectTransitions.html','');});
 <pre class="fragment">#Save the following to WannierImEps.py:
 import numpy as np
 
-#Read the MLWF cell map, Hamiltonian and momentum matrix elements:    
+#Read the MLWF cell map, weights and Hamiltonian:    
 cellMap = np.loadtxt("wannier.mlwfCellMap")[:,0:3].astype(np.int)
-Hwannier = np.fromfile("wannier.mlwfH", dtype=np.float64)
-Pwannier = np.fromfile("wannier.mlwfP", dtype=np.float64)
+Wwannier = np.fromfile("wannier.mlwfCellWeights")
 nCells = cellMap.shape[0]
-nBands = int(np.sqrt(Hwannier.shape[0] / nCells))
-Hwannier = np.reshape(Hwannier, (nCells,nBands,nBands))
-Pwannier = np.reshape(Pwannier, (nCells,3,nBands,nBands))
+nBands = int(np.sqrt(Wwannier.shape[0] / nCells))
+Wwannier = Wwannier.reshape((nCells,nBands,nBands)).swapaxes(1,2)
+#--- Get k-point folding from totalE.out:
+for line in open('totalE.out'):
+    if line.startswith('kpoint-folding'):
+        kfold = np.array([int(tok) for tok in line.split()[1:4]])
+kfoldProd = np.prod(kfold)
+kStride = np.array([kfold[1]*kfold[2], kfold[2], 1])
+#--- Read reduced Wannier Hamiltonian, momenta and expand them:
+Hreduced = np.fromfile("wannier.mlwfH").reshape((kfoldProd,nBands,nBands)).swapaxes(1,2)
+Preduced = np.fromfile("wannier.mlwfP").reshape((kfoldProd,3,nBands,nBands)).swapaxes(2,3)
+iReduced = np.dot(np.mod(cellMap, kfold[None,:]), kStride)
+Hwannier = Wwannier * Hreduced[iReduced]
+Pwannier = Wwannier[:,None] * Preduced[iReduced]
 
 #Constants / calculation parameters:
 mu = 0.399     #in Hartrees
@@ -156,7 +166,7 @@ for iBlock in range(nBlocks):
     )[0]
     omegaAll.append(omega[sel])
     weightAll.append(prefactor * Psq[sel] / (omega[sel]**2))
-    print "Block", iBlock+1, "of", nBlocks #Report progress
+    print("Block", iBlock+1, "of", nBlocks) #Report progress
 
 #Histogram:
 nBins = 200
@@ -166,7 +176,7 @@ hist,binEdges = np.histogram(omegaAll, nBins, weights=weightAll, density=True)
 hist *= np.sum(weightAll)  #Integral should be sum(weights), but np.histogram normalizes to 1
 bins = 0.5*(binEdges[1:]+binEdges[:-1])  #bin centers
 #--- Save:
-outData = np.vstack((bins,hist)).T #Put together in columns
+outData = np.vstack((bins/eV,hist)).T #Put together in columns, converting omega to eV
 np.savetxt("wannier.ImEps", outData)
 </pre><p>The overall structure is quite similar to WannierDOS.py from the previous tutorial. In addition to the Hamiltonian, now we also transform the momentum matrix elements, first from MLWF to k space, and then to the Kohn-Sham eigenbasis. Then the code considers pairs of states at each k-point and finds transitions that contribute to light absorption at relevant frequencies. Finally, these transitions are histogrammed by frequency, appropriately weighted by the matrix elements, to calculate ImEps as a function of frequency.</p>
 <p>Run "python WannierImEps.py" and plot the results saved to wannier.ImEps.</p>

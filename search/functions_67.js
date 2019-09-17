@@ -80,7 +80,7 @@ var searchData=
   ['gga_5feval_3c_20gga_5fx_5fpbe_20_3e',['GGA_eval&lt; GGA_X_PBE &gt;',['../group__ExchangeCorrelation.html#ga66113049ba0d5614d5eb7880946c4a9a',1,'ExCorr_internal_GGA.h']]],
   ['gga_5feval_3c_20gga_5fx_5fpbesol_20_3e',['GGA_eval&lt; GGA_X_PBEsol &gt;',['../group__ExchangeCorrelation.html#ga554108e4d56bda1ef346bb08f75c9266',1,'ExCorr_internal_GGA.h']]],
   ['gga_5feval_3c_20gga_5fx_5fpw91_20_3e',['GGA_eval&lt; GGA_X_PW91 &gt;',['../group__ExchangeCorrelation.html#ga87dd6a156644bdae7749eda745482bcb',1,'ExCorr_internal_GGA.h']]],
-  ['gga_5feval_3c_20gga_5fx_5fwpbe_5fsr_20_3e',['GGA_eval&lt; GGA_X_wPBE_SR &gt;',['../group__ExchangeCorrelation.html#ga19583657ce6fd67d447b409ea42d2d7e',1,'ExCorr_internal_GGA.h']]],
+  ['gga_5feval_3c_20gga_5fx_5fwpbe_5fsr_20_3e',['GGA_eval&lt; GGA_X_wPBE_SR &gt;',['../group__ExchangeCorrelation.html#ga4c9a62e0ab1827fa2c9d98a87faec19b',1,'ExCorr_internal_GGA.h']]],
   ['gga_5fpbe_5fcorrelation',['GGA_PBE_correlation',['../group__ExchangeCorrelation.html#ga56ea2e0c2137288cad488a6245940a6b',1,'ExCorr_internal_GGA.h']]],
   ['gga_5fpbe_5fexchange',['GGA_PBE_exchange',['../group__ExchangeCorrelation.html#ga12824dbc892d99cb9612a3d5ce0e8151',1,'ExCorr_internal_GGA.h']]],
   ['gga_5fpw91_5fenhancement',['GGA_PW91_Enhancement',['../group__ExchangeCorrelation.html#ga2135f9e4dfe653f147d9e46db66129d3',1,'ExCorr_internal_GGA.h']]],

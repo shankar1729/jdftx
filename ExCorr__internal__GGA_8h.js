@@ -24,7 +24,7 @@ var ExCorr__internal__GGA_8h =
     [ "GGA_eval< GGA_X_PBE >", "ExCorr__internal__GGA_8h.html#ga66113049ba0d5614d5eb7880946c4a9a", null ],
     [ "GGA_eval< GGA_X_PBEsol >", "ExCorr__internal__GGA_8h.html#ga554108e4d56bda1ef346bb08f75c9266", null ],
     [ "GGA_eval< GGA_X_PW91 >", "ExCorr__internal__GGA_8h.html#ga87dd6a156644bdae7749eda745482bcb", null ],
-    [ "GGA_eval< GGA_X_wPBE_SR >", "ExCorr__internal__GGA_8h.html#ga19583657ce6fd67d447b409ea42d2d7e", null ],
+    [ "GGA_eval< GGA_X_wPBE_SR >", "ExCorr__internal__GGA_8h.html#ga4c9a62e0ab1827fa2c9d98a87faec19b", null ],
     [ "GGA_PBE_correlation", "ExCorr__internal__GGA_8h.html#ga56ea2e0c2137288cad488a6245940a6b", null ],
     [ "GGA_PBE_exchange", "ExCorr__internal__GGA_8h.html#ga12824dbc892d99cb9612a3d5ce0e8151", null ],
     [ "GGA_PW91_Enhancement", "ExCorr__internal__GGA_8h.html#ga2135f9e4dfe653f147d9e46db66129d3", null ],
