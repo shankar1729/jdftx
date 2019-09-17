@@ -183,12 +183,12 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
+	saveMLWF_ImSigma_ee(iSpin, phase);
 	
 	//Phonon q-mesh outputs:
 	bool savePhonon = wannier.phononSup.length_squared();
 	if(savePhonon) saveMLWF_D(iSpin, phase); //Gradient (for phonon sum rule)
 	if(savePhonon) saveMLWF_phonon(iSpin);
-	saveMLWF_ImSigma_ee(iSpin, phase);
 	suspendOperatorThreading();
 }
 
