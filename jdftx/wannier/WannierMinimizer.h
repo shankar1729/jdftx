@@ -239,5 +239,50 @@ public:
 	}
 };
 
+//! Long range sum over G-vectors used for polar corrections
+class LongRangeSum2D
+{
+	const matrix3<> G, GGT; 
+	const std::vector<vector3<>> epsInf;
+	const double alphaInvBy4, Lz;
+	vector3<int> iGbox;
+public:
+	LongRangeSum2D(const matrix3<>& R, const std::vector<vector3<>>& epsInf, const double alpha=0.1)
+	: G(2*M_PI*inv(R)), GGT(G*(~G)),
+		epsInf(epsInf),
+		alphaInvBy4(0.25/alpha),
+		Lz(R(2,2))
+	{	//Initialize sample counts
+		const double Gmax = 12.*sqrt(alpha); //such that exp(-Gmax^2/(4 alpha)) < 1e-16
+		for(int i=0; i<3; i++)
+			iGbox[i] =  int(Gmax*R.column(i).length()/(2*M_PI)) + 2; //margin to account for q TODO isTruncated[i] ? 0 :
+	}
+	inline double getepspm(const double epspQE, const double t, const double Lz)
+	{	return (Lz/t)*((epspQE) - 1) + 1;
+	}
+	inline double getepszm(const double epszQE, const double t, const double Lz)
+	{	return 1./(1-(Lz/t)*((1./epszQE) + 1));
+	}
+	inline double operator()(const vector3<>& qG, const std::vector<vector3<>>& epsInf)
+	{	double eps1 = epsInf[3][0];
+		double eps2 = epsInf[3][1];
+		double t = epsInf[3][2];
+		double epspm = getepspm(epsInf[0][0], t, Lz);
+		double epszm = getepspm(epsInf[0][0], t, Lz);
+		double epsbar = sqrt(epspm*epszm);
+		double alpha1 = (epszm - eps1)/(epsbar + eps1);
+		double alpha1b = (epsbar - eps1)/(epsbar + eps1); //alpha1 bar
+		double alpha2 = (epszm - eps2)/(epsbar + eps2);
+		double alpha2b = (epsbar - eps2)/(epsbar + eps2); //alpha2 bar
+		double ql = sqrt(epspm/epszm)*qG.length(); // |q+G| scaled by the sqrt(...)
+		double expFac = ql*t;
+		return (2./(ql*t*epsbar)) * (1 + ((exp(-expFac)-1)/expFac))
+				+ std::pow((1-exp(-expFac)),2)/(ql*t*qG.length()*t)
+				* (( alpha1+alpha2 + (alpha1b*alpha2+alpha2b*alpha1)*exp(-expFac))
+				/ (1. - alpha1b*alpha2b*exp(-2*expFac)));
+	}
+};
+
+
 //! @}
 #endif // JDFTX_WANNIER_WANNIERMINIMIZER_H

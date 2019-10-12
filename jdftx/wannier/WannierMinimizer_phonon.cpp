@@ -162,6 +162,13 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		std::vector<vector3<>> eps = readArrayVec3(fnameEps);
 		matrix3<> epsInf; epsInf.set_rows(eps[0], eps[1], eps[2]);
 		lrs = std::make_shared<LongRangeSum>(e.gInfo.R, epsInf);
+		/*
+		if (e.coulombParams.isTruncated()[0] || e.coulombParams.isTruncated()[0], e.coulombParams.isTruncated()[2] ) //TODO change the check
+		{	std::vector<vector3<>> epsInf = eps;
+		}else
+		{	matrix3<> epsInf; epsInf.set_rows(eps[0], eps[1], eps[2]);
+			lrs = std::make_shared<LongRangeSum>(e.gInfo.R, epsInf);
+		}*/
 	}
 
 	//Apply Wannier rotations
