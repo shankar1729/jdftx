@@ -25,11 +25,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 EnumStringMap<ElecInfo::SmearingType> smearingTypeMap(
 	ElecInfo::SmearingFermi, "Fermi",
 	ElecInfo::SmearingGauss, "Gauss",
+	ElecInfo::SmearingMP1, "MP1",
 	ElecInfo::SmearingCold, "Cold" );
 
 EnumStringMap<ElecInfo::SmearingType> smearingTypeDescMap(
 	ElecInfo::SmearingFermi, "Use a Fermi-Dirac function for fillings",
 	ElecInfo::SmearingGauss, "Use a gaussian-based (erfc) function for fillings",
+	ElecInfo::SmearingMP1, "Use an order-1 Methfessel-Paxton \\cite MP1 function for fillings",
 	ElecInfo::SmearingCold, "Use the cold smearing function \\cite ColdSmearing to approximate zero temperature" );
 
 struct CommandElecSmearing : public Command
@@ -42,10 +44,10 @@ struct CommandElecSmearing : public Command
 			+ addDescriptions(smearingTypeMap.optionList(), linkDescription(smearingTypeMap, smearingTypeDescMap))
 			+ "\n\nwith width set by <smearingWidth> in Hartrees.\n"
 			"The width corresponds to kT (electronic temperature) for Fermi smearing,\n"
-			"and sigma/2 for the Gauss and Cold smearing options: this convention\n"
-			"results in roughly the same rate of k-point convergence for all three\n"
+			"and sigma/2 for the remaining gaussian-based options: this convention\n"
+			"results in roughly the same rate of k-point convergence for all smearing\n"
 			"methods using the same width. However, the entropy contribution at the\n"
-			"same width will follow the order Fermi > Gauss >> Cold.";
+			"same width will follow the order Fermi > Gauss >> (Cold, MP1).";
 		
 		require("lcao-params");
 	}

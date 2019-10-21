@@ -89,6 +89,7 @@ public:
 	enum SmearingType
 	{	SmearingFermi, //!< Fermi-Dirac smearing
 		SmearingGauss, //!< Gaussian smearing
+		SmearingMP1, //!< Methfessel-Paxton order 1
 		SmearingCold //!< Cold smearing
 	}
 	smearingType; //!< smearing option

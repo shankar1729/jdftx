@@ -283,6 +283,7 @@ double ElecInfo::smear(double mu, double eps) const
 	switch(smearingType)
 	{	case SmearingFermi: return 0.5*(1.-tanh(x));
 		case SmearingGauss: return 0.5*erfc(x);
+		case SmearingMP1: return 0.5*erfc(x) - x*exp(-x*x)/(2.*sqrt(M_PI));
 		case SmearingCold: return 0.5*erfc(x+sqrt(0.5)) + exp(-std::pow(x+sqrt(0.5),2))/sqrt(2*M_PI);
 		default: return NAN; //to suppress warning
 	}
@@ -293,6 +294,7 @@ double ElecInfo::smearPrime(double mu, double eps) const
 	switch(smearingType)
 	{	case SmearingFermi: return -0.25/(smearingWidth * std::pow(cosh(x), 2));
 		case SmearingGauss: return -exp(-x*x) / (2.*sqrt(M_PI)*smearingWidth);
+		case SmearingMP1: return (x*x - 1.5) * exp(-x*x) / (2.*sqrt(M_PI)*smearingWidth);
 		case SmearingCold: return -exp(-std::pow(x+sqrt(0.5),2)) * (2.+x*sqrt(2.)) / (2.*sqrt(M_PI)*smearingWidth);
 		default: return NAN; //to suppress warning
 	}
@@ -309,6 +311,7 @@ double ElecInfo::smearEntropy(double mu, double eps) const
 			return S;
 		}
 		case SmearingGauss: return exp(-x*x) / sqrt(M_PI);
+		case SmearingMP1: return (0.5-x*x) * exp(-x*x) / sqrt(M_PI);
 		case SmearingCold: return exp(-std::pow(x+sqrt(0.5),2)) * (1.+x*sqrt(2.)) / sqrt(M_PI);
 		default: return NAN; //to suppress warning
 	}
