@@ -244,42 +244,74 @@ class LongRangeSum2D
 {
 	const matrix3<> G, GGT; 
 	const std::vector<vector3<>> epsInf;
+	const int truncDir;
 	const double alphaInvBy4, Lz;
 	vector3<int> iGbox;
+	double t, epsbar, epspm, epszm, alpha1, alpha1b, alpha2, alpha2b;
 public:
-	LongRangeSum2D(const matrix3<>& R, const std::vector<vector3<>>& epsInf, const double alpha=0.1)
+	LongRangeSum2D(const matrix3<>& R, const std::vector<vector3<>>& epsInf, const int truncDir, const double alpha=0.1)
 	: G(2*M_PI*inv(R)), GGT(G*(~G)),
-		epsInf(epsInf),
+		epsInf(epsInf), truncDir(truncDir),
 		alphaInvBy4(0.25/alpha),
 		Lz(R(2,2))
-	{	//Initialize sample counts
+	{
+		//Initialize sample counts
 		const double Gmax = 12.*sqrt(alpha); //such that exp(-Gmax^2/(4 alpha)) < 1e-16
 		for(int i=0; i<3; i++)
-			iGbox[i] =  int(Gmax*R.column(i).length()/(2*M_PI)) + 2; //margin to account for q TODO isTruncated[i] ? 0 :
+		{	if (i == truncDir)
+			{	iGbox[i] = 0;
+			}else
+			{	iGbox[i] = int(Gmax*R.column(i).length()/(2*M_PI)) + 2;} //margin to account for q 
+		}
+		//Initialized epsilon combinations:
+		double eps1 = epsInf[3][0];
+		double eps2 = epsInf[3][1];
+		t = epsInf[3][2]; 
+		epspm = getepspm(epsInf[0][0], t, Lz); 
+		epszm = getepszm(epsInf[2][2], t, Lz);  
+		logPrintf("epspm, %lg, epszm %lg, t %lg \n", epspm, epszm, t); 
+		epsbar = sqrt(epspm*epszm);
+		alpha1 = (epszm - eps1)/(epsbar + eps1);
+		alpha1b = (epsbar - eps1)/(epsbar + eps1); //alpha1 bar
+		alpha2 = (epszm - eps2)/(epsbar + eps2);
+		alpha2b = (epsbar - eps2)/(epsbar + eps2); //alpha2 bar
 	}
 	inline double getepspm(const double epspQE, const double t, const double Lz)
 	{	return (Lz/t)*((epspQE) - 1) + 1;
 	}
 	inline double getepszm(const double epszQE, const double t, const double Lz)
-	{	return 1./(1-(Lz/t)*((1./epszQE) + 1));
+	{	return 1./(1+(Lz/t)*((1./epszQE) - 1));
 	}
-	inline double operator()(const vector3<>& qG, const std::vector<vector3<>>& epsInf)
-	{	double eps1 = epsInf[3][0];
-		double eps2 = epsInf[3][1];
-		double t = epsInf[3][2];
-		double epspm = getepspm(epsInf[0][0], t, Lz);
-		double epszm = getepspm(epsInf[0][0], t, Lz);
-		double epsbar = sqrt(epspm*epszm);
-		double alpha1 = (epszm - eps1)/(epsbar + eps1);
-		double alpha1b = (epsbar - eps1)/(epsbar + eps1); //alpha1 bar
-		double alpha2 = (epszm - eps2)/(epsbar + eps2);
-		double alpha2b = (epsbar - eps2)/(epsbar + eps2); //alpha2 bar
-		double ql = sqrt(epspm/epszm)*qG.length(); // |q+G| scaled by the sqrt(...)
-		double expFac = ql*t;
-		return (2./(ql*t*epsbar)) * (1 + ((exp(-expFac)-1)/expFac))
-				+ std::pow((1-exp(-expFac)),2)/(ql*t*qG.length()*t)
-				* (( alpha1+alpha2 + (alpha1b*alpha2+alpha2b*alpha1)*exp(-expFac))
-				/ (1. - alpha1b*alpha2b*exp(-2*expFac)));
+	inline double wkernel(const vector3<>& qG)
+	{	double qMag = qG.length();
+		double x = sqrt(epspm/epszm)*qMag * t;
+		return (1./epsbar)* ( 
+			(2./x) * (1 + ((exp(-x)-1)/x))
+			+ std::pow((1-exp(-x)),2)/(x * qMag*t)
+			* (( alpha1+alpha2 + (alpha1b*alpha2+alpha2b*alpha1)*exp(-x))
+			/ (1. - alpha1b*alpha2b*exp(-2*x)))
+		) ;
+	}
+	
+	inline complex operator()(const vector3<>& q, const vector3<>& Zeff, const vector3<>& atpos)
+	{	//Wrap q to fundamental zone
+		vector3<> qBZ = q;
+		for(int iDir=0; iDir<3; iDir++)
+			qBZ[iDir] -= floor(qBZ[iDir] + 0.5);
+		//Loop over G-vectors:
+		complex result = 0.;
+		vector3<int> iG;
+		for(iG[0]=-iGbox[0]; iG[0]<=iGbox[0]; iG[0]++)
+		for(iG[1]=-iGbox[1]; iG[1]<=iGbox[1]; iG[1]++)
+		for(iG[2]=-iGbox[2]; iG[2]<=iGbox[2]; iG[2]++)
+		{	vector3<> iGq = iG + qBZ;
+			double expFac = alphaInvBy4 * GGT.metric_length_squared(iGq);
+			if(expFac > 1e-16 and expFac < 36.) //i.e. G != 0 and gaussian non-zero at double precision
+			{	vector3<> iGqCart = ~G * iGq;
+				result += cis((-2*M_PI)*dot(iGq,atpos)) * exp(-expFac) * dot(Zeff, iGqCart) * wkernel(iGqCart) * (1./iGqCart.length());
+			}
+		}
+		return result;
 	}
 };
 

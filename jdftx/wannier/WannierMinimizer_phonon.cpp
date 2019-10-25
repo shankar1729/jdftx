@@ -154,21 +154,28 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	//Read quantities required for polar subtraction:
 	std::vector<vector3<>> Zeff; 
 	std::shared_ptr<LongRangeSum> lrs;
+	std::shared_ptr<LongRangeSum2D> lrs2D;
+	int truncDir;
+	double omegaEff = e.gInfo.detR;
 	if (wannier.polar)
 	{	string fnameZeff = wannier.getFilename(Wannier::FilenameInit, "Zeff");
 		logPrintf("\n"); logFlush();
 		Zeff = readArrayVec3(fnameZeff);
 		string fnameEps = wannier.getFilename(Wannier::FilenameInit, "epsInf"); 
 		std::vector<vector3<>> eps = readArrayVec3(fnameEps);
-		matrix3<> epsInf; epsInf.set_rows(eps[0], eps[1], eps[2]);
-		lrs = std::make_shared<LongRangeSum>(e.gInfo.R, epsInf);
-		/*
-		if (e.coulombParams.isTruncated()[0] || e.coulombParams.isTruncated()[0], e.coulombParams.isTruncated()[2] ) //TODO change the check
-		{	std::vector<vector3<>> epsInf = eps;
+		for (int iDir=0; iDir<3; iDir++)
+		{	if(e.coulombParams.isTruncated()[iDir])
+			{	truncDir = iDir;
+				omegaEff /= fabs(e.gInfo.R(iDir, iDir));
+			}
+		} 
+		if (truncDir > 0) 
+		{	std::vector<vector3<>> epsInf2D = eps;
+			lrs2D = std::make_shared<LongRangeSum2D>(e.gInfo.R, epsInf2D, truncDir);
 		}else
 		{	matrix3<> epsInf; epsInf.set_rows(eps[0], eps[1], eps[2]);
 			lrs = std::make_shared<LongRangeSum>(e.gInfo.R, epsInf);
-		}*/
+		}
 	}
 
 	//Apply Wannier rotations
@@ -183,9 +190,16 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			//Subtract polar part in wannier-rotated version
 			if(wannier.polar)
 			{	vector3<> q = kMesh[pair.ik1].point.k - kMesh[pair.ik2].point.k;
-				complex gLij =  complex(0,1)
-					* ((4*M_PI) * invsqrtM[iMode] / (e.gInfo.detR * prodPhononSup))
-					*  (*lrs)(q, Zeff[iMode], xAtoms[iMode/3]);
+				complex gLij;
+				if (truncDir > 0)
+				{	gLij =  complex(0,1)
+							* ((2*M_PI) * invsqrtM[iMode] / (omegaEff * prodPhononSup))
+							*  (*lrs2D)(q, Zeff[iMode], xAtoms[iMode/3]);
+				}else
+				{	gLij =  complex(0,1)
+							* ((4*M_PI) * invsqrtM[iMode] / (e.gInfo.detR * prodPhononSup))
+							*  (*lrs)(q, Zeff[iMode], xAtoms[iMode/3]);
+				} 
 				for(int b=0; b<nCenters; b++)   
 					phononHsubCur.data()[phononHsubCur.index(b,b)] -= gLij; //diagonal correction
 			}
