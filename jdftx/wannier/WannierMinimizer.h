@@ -245,15 +245,14 @@ class LongRangeSum2D
 	const matrix3<> G, GGT; 
 	const std::vector<vector3<>> epsInf;
 	const int truncDir;
-	const double alphaInvBy4, Lz;
+	const double alphaInvBy4;
 	vector3<int> iGbox;
 	double t, epsbar, epspm, epszm, alpha1, alpha1b, alpha2, alpha2b;
 public:
 	LongRangeSum2D(const matrix3<>& R, const std::vector<vector3<>>& epsInf, const int truncDir, const double alpha=0.1)
 	: G(2*M_PI*inv(R)), GGT(G*(~G)),
 		epsInf(epsInf), truncDir(truncDir),
-		alphaInvBy4(0.25/alpha),
-		Lz(R(2,2))
+		alphaInvBy4(0.25/alpha)
 	{
 		//Initialize sample counts
 		const double Gmax = 12.*sqrt(alpha); //such that exp(-Gmax^2/(4 alpha)) < 1e-16
@@ -267,20 +266,14 @@ public:
 		double eps1 = epsInf[3][0];
 		double eps2 = epsInf[3][1];
 		t = epsInf[3][2]; 
-		epspm = getepspm(epsInf[0][0], t, Lz); 
-		epszm = getepszm(epsInf[2][2], t, Lz);  
+		epspm = epsInf[0][0]; 
+		epszm = epsInf[2][2];  
 		logPrintf("epspm, %lg, epszm %lg, t %lg \n", epspm, epszm, t); 
 		epsbar = sqrt(epspm*epszm);
 		alpha1 = (epszm - eps1)/(epsbar + eps1);
 		alpha1b = (epsbar - eps1)/(epsbar + eps1); //alpha1 bar
 		alpha2 = (epszm - eps2)/(epsbar + eps2);
 		alpha2b = (epsbar - eps2)/(epsbar + eps2); //alpha2 bar
-	}
-	inline double getepspm(const double epspQE, const double t, const double Lz)
-	{	return (Lz/t)*((epspQE) - 1) + 1;
-	}
-	inline double getepszm(const double epszQE, const double t, const double Lz)
-	{	return 1./(1+(Lz/t)*((1./epszQE) - 1));
 	}
 	inline double wkernel(const vector3<>& qG)
 	{	double qMag = qG.length();

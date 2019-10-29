@@ -159,7 +159,6 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	double omegaEff = e.gInfo.detR;
 	if (wannier.polar)
 	{	string fnameZeff = wannier.getFilename(Wannier::FilenameInit, "Zeff");
-		logPrintf("\n"); logFlush();
 		Zeff = readArrayVec3(fnameZeff);
 		string fnameEps = wannier.getFilename(Wannier::FilenameInit, "epsInf"); 
 		std::vector<vector3<>> eps = readArrayVec3(fnameEps);
