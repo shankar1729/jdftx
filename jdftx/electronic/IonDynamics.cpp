@@ -251,10 +251,8 @@ bool IonDynamics::report(double t)
 	//Dump:
 	e.dump(DumpFreq_Ionic, iter);
 	
-	logPrintf("\nVerletMD t = %f fs (dt = %f in atomic units) Iter: %d",t/fs,e.ionDynamicsParams.dt, iter);
-	logPrintf("\nE_Kin = %lg \t E_pot = %lg \t E_tot = %lg \t pressure(in Bar) = %lg Momentum = %lg",
-		  kineticEnergy, potentialEnergy - initialPotentialEnergy, 
-		  kineticEnergy + potentialEnergy - initialPotentialEnergy, pressure/Bar, totalMomentumNorm);
+	logPrintf("\nVerletMD: Iter: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  Momentum: %8.4le  t[s]: %9.2lf\n",
+		iter, t/fs, kineticEnergy, potentialEnergy, kineticEnergy + potentialEnergy, pressure/Bar, totalMomentumNorm, clock_sec());
 	logPrintf("\n"); e.iInfo.printPositions(globalLog);
 	logPrintf("\n"); e.iInfo.forces.print(e, globalLog);
 	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
@@ -326,7 +324,7 @@ void IonDynamics::run()
 	}
 }
 
-void IonDynamics::removeNetDriftVelocity()  
+void IonDynamics::removeNetDriftVelocity()
 {	vector3<> averageDrift = totalMomentum / totalMass;
 	//Subtract average drift velocity of center of mass from the individual velocities
 	for(auto& spInfo : e.iInfo.species)
