@@ -380,7 +380,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Dipole))
 	{	StartDump("Moments")
-		if(mpiWorld->isHead()) Moments::dumpMoment(*e, fname.c_str(), 1, vector3<>(0.,0.,0.));
+		if(mpiWorld->isHead()) dumpMoment(*e, fname.c_str());
 		EndDump
 	}
 	

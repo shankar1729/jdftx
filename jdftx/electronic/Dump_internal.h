@@ -54,10 +54,7 @@ private:
 void dumpExcitations(const Everything& e, const char* filename);
 
 //! Helper functions for moment calculations
-namespace Moments
-{	void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx); //!< set multipole spatial weights
-	void dumpMoment(const Everything& e, const char* filename, int n, vector3<> origin); //!< output multipole moments
-}
+void dumpMoment(const Everything& e, const char* filename); //!< output dipole moments
 
 namespace XC_Analysis
 {	ScalarFieldArray tauWeizsacker(const Everything& e); //!< Output Weizsacker KE density

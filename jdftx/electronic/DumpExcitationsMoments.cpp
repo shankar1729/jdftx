@@ -63,11 +63,24 @@ void dumpExcitations(const Everything& e, const char* filename)
 	const std::vector<diagMatrix>& eigs = eigsQP.size() ? eigsQP : e.eVars.Hsub_eigs;
 	
 	// Integral kernel's for Fermi's golden rule
-	ScalarField r0, r1, r2;
-	nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
-	applyFunc_r(g, Moments::rn_pow_x, 0, g.R, 1, vector3<>(0.,0.,0.), r0->data());
-	applyFunc_r(g, Moments::rn_pow_x, 1, g.R, 1, vector3<>(0.,0.,0.), r1->data());
-	applyFunc_r(g, Moments::rn_pow_x, 2, g.R, 1, vector3<>(0.,0.,0.), r2->data());
+	VectorField r;
+	{	nullToZero(r, g);
+		logSuspend();
+		WignerSeitz ws(e.gInfo.R);
+		logResume();
+		const vector3<>& x0 = e.coulombParams.embedCenter; //origin
+		
+		vector3<double*> rData(r.data());
+		matrix3<> invS = inv(Diag(vector3<>(e.gInfo.S)));
+		vector3<int> iv;
+		size_t i = 0;
+		for(iv[0]=0; iv[0]<e.gInfo.S[0]; iv[0]++)
+		for(iv[1]=0; iv[1]<e.gInfo.S[1]; iv[1]++)
+		for(iv[2]=0; iv[2]<e.gInfo.S[2]; iv[2]++)
+		{	vector3<> x = x0 + ws.restrict(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
+			storeVector(e.gInfo.R*x, rData, i++);
+		}
+	}
 	
 	//Find and cache all excitations in system (between same qnums)
 	bool insufficientBands = false;
@@ -82,12 +95,13 @@ void dumpExcitations(const Everything& e, const char* filename)
 		
 		for(int o=HOMO; o>=0; o--)
 		{	for(int u=(HOMO+1); u<e.eInfo.nBands; u++)
-			{	complex x = integral(I(e.eVars.C[q].getColumn(u,0))*r0*I(e.eVars.C[q].getColumn(o,0)));
-				complex y = integral(I(e.eVars.C[q].getColumn(u,0))*r1*I(e.eVars.C[q].getColumn(o,0)));
-				complex z = integral(I(e.eVars.C[q].getColumn(u,0))*r2*I(e.eVars.C[q].getColumn(o,0)));
-				vector3<> dreal(x.real(), y.real(),z.real());
-				vector3<> dimag(x.imag(), y.imag(),z.imag());
-				vector3<> dnorm(sqrt(x.norm()), sqrt(y.norm()),sqrt(z.norm()));
+			{	vector3<> dreal, dimag, dnorm;
+				for(int iDir=0; iDir<3; iDir++)
+				{	complex xi = integral(I(e.eVars.C[q].getColumn(u,0)) * r[iDir] * I(e.eVars.C[q].getColumn(o,0)));
+					dreal[iDir] = xi.real();
+					dimag[iDir] = xi.imag();
+					dnorm[iDir] = xi.abs();
+				}
 				double dE = eigs[q][u]-eigs[q][o]; //Excitation energy
 				excitations.push_back(excitation(q, o, u, dE, dreal.length_squared(), dimag.length_squared(), dnorm.length_squared()));
 			}
@@ -167,60 +181,54 @@ void dumpExcitations(const Everything& e, const char* filename)
 
 //---------------------------- Moments ------------------------------------
 
-namespace Moments
-{
-	inline double map_to_interval(double x)
-	{	double temp =  modf(x, new double);
-		if(temp>0.5)
-			return temp-1.;
-		else if(temp<-0.5)
-			return temp+1.;
-		else
-			return temp;
-	}
-	inline vector3<> map_to_interval(vector3<> x)
-	{	for(int j=0;j<3;j++)
-			x[j] = map_to_interval(x[j]);
-		return x;
-	}
-
-	void rn_pow_x(int i, vector3<> r, int dir, matrix3<> R, double moment, vector3<> r0, double* rx)
-	{	vector3<> lx = map_to_interval(inv(R)*(r-r0));
-		rx[i] = pow((R*lx)[dir], moment);
-	}
+void dumpMoment(const Everything& e, const char* filename)
+{	logSuspend();
+	WignerSeitz ws(e.gInfo.R);
+	logResume();
+	const vector3<>& x0 = e.coulombParams.embedCenter; //origin
 	
-	void dumpMoment(const Everything& e, const char* filename, int moment, vector3<> origin)
-	{	const GridInfo& g = e.gInfo;
-		
-		FILE* fp = fopen(filename, "w");
-		if(!fp) die("Error opening %s for writing.\n", filename);	
-		
-		// Calculates the electronic moment about origin
-		ScalarField r0, r1, r2;
-		nullToZero(r0, g); 	nullToZero(r1, g); 	nullToZero(r2, g);
-		applyFunc_r(g, rn_pow_x, 0, g.R, moment, origin, r0->data());
-		applyFunc_r(g, rn_pow_x, 1, g.R, moment, origin, r1->data());
-		applyFunc_r(g, rn_pow_x, 2, g.R, moment, origin, r2->data());
-		vector3<> elecMoment;
-		elecMoment[0] = integral(e.eVars.n[0]*r0);
-		elecMoment[1] = integral(e.eVars.n[0]*r1);
-		elecMoment[2] = integral(e.eVars.n[0]*r2);
-		fprintf(fp, "Electron moment of order %i: %f\t%f\t%f", moment, elecMoment[0], elecMoment[1], elecMoment[2]);
-		
-		// Calculates the ionic moment about the origin
-		vector3<> ionMoment(0., 0., 0.);
-		for(auto sp: e.iInfo.species)
-			for(unsigned n=0; n < sp->atpos.size(); n++)
-			{	vector3<> cartesianCoord = g.R * map_to_interval(sp->atpos[n]);
-				for(int j=0; j<3; j++)
-					ionMoment[j] += -sp->Z * pow(cartesianCoord[j], moment); 
-			}
-		fprintf(fp, "\nIon moment of order %i: %f\t%f\t%f", moment, ionMoment[0], ionMoment[1], ionMoment[2]);
-
-		
-		// Calculates the total (elec+ion) dipole moment
-		fprintf(fp, "\nTotal moment of order %i: %f\t%f\t%f", moment, ionMoment[0]+elecMoment[0], ionMoment[1]+elecMoment[1], ionMoment[2]+elecMoment[2]);		
+	//Compute electronic moment in lattice coordinates:
+	vector3<> elecMoment;
+	ScalarField n = e.eVars.get_nTot();
+	double* nData = n->data();
+	matrix3<> invS = inv(Diag(vector3<>(e.gInfo.S)));
+	vector3<int> iv;
+	for(iv[0]=0; iv[0]<e.gInfo.S[0]; iv[0]++)
+	for(iv[1]=0; iv[1]<e.gInfo.S[1]; iv[1]++)
+	for(iv[2]=0; iv[2]<e.gInfo.S[2]; iv[2]++)
+	{	vector3<> x = x0 + ws.restrict(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
+		elecMoment += x * (*(nData)++); //collect in lattice coordinates
 	}
+	elecMoment *= e.gInfo.dV; //integration weight
+	
+	//Compute ionic moment in lattice coordinates:
+	vector3<> ionMoment;
+	for(auto sp: e.iInfo.species)
+		for(vector3<> pos: sp->atpos)
+		{	vector3<> x = x0 + ws.restrict(pos - x0); //wrap atom position to WS centered on x0
+			ionMoment -= sp->Z * x;
+		}
+	
+	//Zero contributions in periodic directions:
+	for(int iDir=0; iDir<3; iDir++)
+		if(not e.coulombParams.isTruncated()[iDir])
+		{	elecMoment[iDir] = 0.;
+			ionMoment[iDir] = 0.;
+		}
+	
+	//Convert to Cartesian and compute total:
+	elecMoment = e.gInfo.R * elecMoment;
+	ionMoment = e.gInfo.R * ionMoment;
+	vector3<> totalMoment = elecMoment + ionMoment;
+	
+	//Output:
+	FILE* fp = fopen(filename, "w");
+	if(!fp) die("Error opening %s for writing.\n", filename);	
+	fprintf(fp, "#Contribution %4s %12s %12s\n", "x", "y", "z");
+	fprintf(fp, "%10s %12.6lf %12.6lf %12.6lf\n", "Electronic", elecMoment[0], elecMoment[1], elecMoment[2]);
+	fprintf(fp, "%10s %12.6lf %12.6lf %12.6lf\n", "Ionic", ionMoment[0], ionMoment[1], ionMoment[2]);
+	fprintf(fp, "%10s %12.6lf %12.6lf %12.6lf\n", "Total", totalMoment[0], totalMoment[1], totalMoment[2]);
+	fclose(fp);
 }
 
 
