@@ -155,11 +155,10 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	std::vector<vector3<>> Zeff; 
 	std::shared_ptr<LongRangeSum> lrs;
 	std::shared_ptr<LongRangeSum2D> lrs2D;
-	int truncDir;
+	int truncDir = 3; //initialize to something greater than 3 dimensions
 	double omegaEff = e.gInfo.detR;
 	if (wannier.polar)
 	{	string fnameZeff = wannier.getFilename(Wannier::FilenameInit, "Zeff");
-		logPrintf("\n"); logFlush();
 		Zeff = readArrayVec3(fnameZeff);
 		string fnameEps = wannier.getFilename(Wannier::FilenameInit, "epsInf"); 
 		std::vector<vector3<>> eps = readArrayVec3(fnameEps);
@@ -168,8 +167,8 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			{	truncDir = iDir;
 				omegaEff /= fabs(e.gInfo.R(iDir, iDir));
 			}
-		} 
-		if (truncDir > 0) 
+		}
+		if (truncDir < 3) 
 		{	std::vector<vector3<>> epsInf2D = eps;
 			lrs2D = std::make_shared<LongRangeSum2D>(e.gInfo.R, epsInf2D, truncDir);
 		}else
@@ -191,7 +190,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			if(wannier.polar)
 			{	vector3<> q = kMesh[pair.ik1].point.k - kMesh[pair.ik2].point.k;
 				complex gLij;
-				if (truncDir > 0)
+				if (truncDir < 3)
 				{	gLij =  complex(0,1)
 							* ((2*M_PI) * invsqrtM[iMode] / (omegaEff * prodPhononSup))
 							*  (*lrs2D)(q, Zeff[iMode], xAtoms[iMode/3]);
