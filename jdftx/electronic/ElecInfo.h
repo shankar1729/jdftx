@@ -163,6 +163,7 @@ private:
 	friend struct CommandInitialState;
 	friend class ElecVars;
 	friend struct LCAOminimizer;
+	friend void dumpFCI(const Everything& e, const char* filename);
 	
 	//!Calculate nElectrons and return magnetization at given mu, Bz and eigenvalues eps
 	double magnetizationCalc(double mu, double Bz, const std::vector<diagMatrix>& eps, double& nElectrons) const; 

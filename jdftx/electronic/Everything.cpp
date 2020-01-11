@@ -110,6 +110,7 @@ void Everything::setup()
 			coulombParams.omegaSet.insert(ec->exxRange());
 	bool exxPresent = coulombParams.omegaSet.size();
 	if(dump.polarizability || dump.electronScattering) coulombParams.omegaSet.insert(0.); //These are not EXX, but they use Coulomb_ExchangeEval
+	for(const auto& entry: dump) if(entry.second==DumpFCI) coulombParams.omegaSet.insert(0.); //DumpFCI also uses Coulomb_ExchangeEval
 	
 	//Coulomb-interaction setup (with knowledge of exact-exchange requirements):
 	updateSupercell();

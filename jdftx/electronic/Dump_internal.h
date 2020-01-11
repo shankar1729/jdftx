@@ -53,8 +53,11 @@ private:
 //! Dump information about excitation energies and matrix elements
 void dumpExcitations(const Everything& e, const char* filename);
 
-//! Helper functions for moment calculations
-void dumpMoment(const Everything& e, const char* filename); //!< output dipole moments
+//! Dump coulomb matrix elements in FCIDUMP format
+void dumpFCI(const Everything& e, const char* filename);
+
+//! Dump dipole moments
+void dumpMoment(const Everything& e, const char* filename);
 
 namespace XC_Analysis
 {	ScalarFieldArray tauWeizsacker(const Everything& e); //!< Output Weizsacker KE density

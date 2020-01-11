@@ -455,6 +455,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 	
+	if(ShouldDump(FCI))
+	{	StartDump("FCI")
+		dumpFCI(*e, fname.c_str());
+		EndDump
+	}
+	
 	if(ShouldDump(Spin) and eInfo.isNoncollinear())
 	{	StartDump("S")
 		std::vector<matrix> S(eInfo.nStates);

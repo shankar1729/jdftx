@@ -164,7 +164,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 	if(!mpiWorld->isHead()) return;
 	
 	FILE* fp = fopen(filename, "w");
-	if(!fp) die("Error opening %s for writing.\n", filename);
+	if(!fp) die_alone("Error opening %s for writing.\n", filename);
 	
 	std::sort(excitations.begin(), excitations.end());
 	const excitation& opt = excitations.front();
@@ -178,6 +178,223 @@ void dumpExcitations(const Everything& e, const char* filename)
 	fclose(fp);
 }
 
+//---------------------------- FCI ------------------------------------
+
+//Split doublet index i12 that ends on N^2 or N(N+1)/2 depending on sym = false or true, into i1 and i2
+inline void splitDoubletIndex(size_t i12, size_t N, bool sym, size_t& i1, size_t& i2)
+{	if(sym) //N(N+1)/2 case
+	{	i1 = 0; while((i1+1)*(i1+2)<=2*i12) i1++;
+		i2 = i12 - (i1*(i1+1))/2;
+	}
+	else //N^2 case
+	{	i1 = i12 / N;
+		i2 = i12 - i1 * N;
+	}
+}
+
+void dumpFCI(const Everything& e, const char* filename)
+{	static StopWatch watch("dumpFCI"); watch.start();
+	
+	const size_t nBands = e.eInfo.nBands;
+	const int nStates = e.eInfo.nStates;
+	const int nOrbitals = nBands * nStates;
+	const int nSpinor = e.eInfo.spinorLength();
+	const double Kcut = 1e-8; //threshold for non-zero matrix element
+	
+	FILE* fp = NULL;
+	if(mpiWorld->isHead())
+	{	fp = fopen(filename, "w");
+		if(!fp) die_alone("Error opening %s for writing.\n", filename);
+		
+		//Write header:
+		fprintf(fp, " &FCI\n  NORB=%d,\n  NELEC=%d,\n  MS2=%d,\n  UHF=TRUE,\n  ORBSYM= ",
+			nOrbitals, int(round(e.eInfo.nElectrons)), int(round(fabs(e.eInfo.Minitial))) );
+		for(int i=0; i<nOrbitals; i++)
+			fprintf(fp, "0, ");
+		fprintf(fp, "\n  ISYM=1,\n  NPROP= 1 1 1,\n  PROPBITLEN= 15\n &END\n");
+	}
+	
+	//Coulomb integrals:
+	#define GETwfns(a) \
+		ColumnBundle Ctmp##a; \
+		if(not e.eInfo.isMine(q##a)) \
+			Ctmp##a.init(nBands, e.basis[q##a].nbasis*nSpinor, &(e.basis[q##a]), &(e.eInfo.qnums[q##a]), isGpuEnabled()); \
+		const ColumnBundle& C##a = e.eInfo.isMine(q##a) ? e.eVars.C[q##a] : Ctmp##a; \
+		mpiWorld->bcastData((ColumnBundle&)C##a, e.eInfo.whose(q##a));
+	#define UPDATE_conjIpsi(a) \
+		for(int s=0; s<nSpinor; s++) \
+			conjIpsi##a[s] = conj(I(C##a.getColumn(i##a,s)));
+	#define UPDATE_nPair(a,b, dk) \
+		{	complexScalarField nPair; \
+			for(int s=0; s<nSpinor; s++) \
+				nPair += conjIpsi##a[s] * I(C##b.getColumn(i##b,s)); \
+			if((dk).length_squared() > symmThresholdSq) \
+				multiplyBlochPhase(nPair, dk); /*correct for k-wrapping upto reciprocal lattice vector*/ \
+			n##a##b = J(nPair); \
+		}
+	#define UPDATE_12 \
+		{	complexScalarFieldTilde n12; \
+			UPDATE_nPair(1,2, vector3<>()) \
+			Kn12 = O((*e.coulombWfns)(n12, dk21, 0.)); \
+		}
+	#define UPDATE_34 \
+		UPDATE_nPair(3,4, dk43-dk21)
+	
+	//--- Quadruple loop over k-spin indices such that 12 and 34 have same spin indices
+	for(int q1=0; q1<nStates; q1++)
+	{	GETwfns(1)
+		for(int q2=0; q2<=q1; q2++) if(e.eInfo.qnums[q1].spin == e.eInfo.qnums[q2].spin)
+		{	GETwfns(2)
+			vector3<> dk21 = e.eInfo.qnums[q2].k - e.eInfo.qnums[q1].k;
+			for(int q3=0; q3<nStates; q3++)
+			{	GETwfns(3)
+				for(int q4=0; q4<=q3; q4++) if(e.eInfo.qnums[q3].spin == e.eInfo.qnums[q4].spin)
+				{	vector3<> dk43 = e.eInfo.qnums[q4].k - e.eInfo.qnums[q3].k;
+					if(circDistanceSquared(dk21, dk43) > symmThresholdSq) continue; //momentum conservation
+					GETwfns(4)
+					
+					//Split band quadruplets over MPI:
+					size_t N12 = (q1==q2 ? (nBands*(nBands+1))/2 : nBands*nBands);
+					size_t N34 = (q3==q4 ? (nBands*(nBands+1))/2 : nBands*nBands);
+					size_t N1234 = N12 * N34;
+					size_t i1234start=0, i1234stop=0;
+					TaskDivision(N1234, mpiWorld).myRange(i1234start, i1234stop);
+					
+					//Initial indices on this process:
+					size_t i1234 = i1234start; //quaruplet index
+					size_t i12 = i1234 / N34; //12 doublet index
+					size_t i34 = i1234 - i12*N34; //34 doublet index
+					size_t i1, i2, i3, i4; //individual band indices
+					splitDoubletIndex(i12, nBands, q1==q2, i1, i2);
+					splitDoubletIndex(i34, nBands, q3==q4, i3, i4);
+					
+					//Initialize wavefunctions, pair densities for initial indices:
+					std::vector<complexScalarField> conjIpsi1(nSpinor), conjIpsi3(nSpinor);
+					complexScalarFieldTilde Kn12, n34;
+					//--- 12 pair
+					UPDATE_conjIpsi(1)
+					UPDATE_12
+					//--- 34 pair
+					UPDATE_conjIpsi(3)
+					UPDATE_34
+					
+					//Loop over band quadruplets for this process:
+					ostringstream oss; //buffer containing output from this process
+					while(i1234 < i1234stop)
+					{	
+						complex K1234 = dot(Kn12, n34);
+						if(K1234.abs() > Kcut)
+						{	if(fabs(K1234.imag()) > Kcut)
+								oss << "( " << K1234.real() << ", " << K1234.imag() << ") "; //complex element
+							else
+								oss << K1234.real() << ' '; //real element
+							oss << i1*nStates+q1+1 << ' '
+								<< i2*nStates+q2+1 << ' '
+								<< i3*nStates+q3+1 << ' '
+								<< i4*nStates+q4+1 << '\n';
+						}
+						
+						i1234++; if(i1234==i1234stop) break;
+						i4++;
+						if(i4==(q3==q4 ? i3+1 : nBands))
+						{	i4=0;
+							i3++;
+							if(i3==nBands)
+							{	i3=0;
+								i2++;
+								if(i2==(q1==q2 ? i1+1 : nBands))
+								{	i2=0;
+									i1++;
+									UPDATE_conjIpsi(1)
+								}
+								UPDATE_12
+							}
+							UPDATE_conjIpsi(3)
+						}
+						UPDATE_34
+					}
+					
+					//Write matrix elements from HEAD:
+					if(mpiWorld->isHead())
+					{	fputs(oss.str().c_str(), fp); //local data
+						oss.clear();
+						for(int jProcess=1; jProcess<mpiWorld->nProcesses(); jProcess++)
+						{	string buf; mpiWorld->recv(buf, jProcess, 0);
+							fputs(buf.c_str(), fp); //data from other processes
+						}
+						fflush(fp);
+					}
+					else mpiWorld->send(oss.str(), 0, 0);
+				}
+			}
+		}
+	}
+	#undef GETwfns
+	#undef UPDATE_conjIpsi
+	#undef UPDATE_nPair
+	#undef UPDATE_12
+	#undef UPDATE_34
+	
+	//Compute and collect one-particle matrix elements / eigenvalues:
+	std::vector<matrix> H0(nStates);
+	std::vector<diagMatrix> E(nStates);
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{
+		const ColumnBundle& Cq = e.eVars.C[q];
+		ScalarFieldArray Vloc(e.eInfo.nDensities); nullToZero(Vloc, e.gInfo);
+		for(unsigned s=0; s<Vloc.size(); s++)
+			if(s<2) Vloc[s] = Jdag(O(e.iInfo.Vlocps));
+		ColumnBundle H0Cq = Idag_DiagV_I(Cq, Vloc) - 0.5*L(Cq); //local PS and KE
+		{	//Add nonlocal PS contribution:
+			std::vector<matrix> HVdagCq(e.iInfo.species.size());
+			e.iInfo.EnlAndGrad(e.eInfo.qnums[q], e.eVars.F[q], e.eVars.VdagC[q], HVdagCq);
+			e.iInfo.projectGrad(HVdagCq, Cq, H0Cq); //HCq += (nonlocalPS projectors) * Cq
+		}
+		H0[q] = Cq ^ H0Cq; //matrix elements of KE + net pseudopotential
+		E[q] = e.eVars.Hsub_eigs[q];
+		
+		if(not mpiWorld->isHead())
+		{	mpiWorld->sendData(E[q], 0, q);
+			mpiWorld->sendData(H0[q], 0, q);
+		}
+	}
+	if(mpiWorld->isHead())
+	{	for(int q=0; q<nStates; q++)
+			if(!e.eInfo.isMine(q))
+			{	H0[q].init(nBands, nBands);
+				E[q].resize(nBands);
+				mpiWorld->recvData(E[q], e.eInfo.whose(q), q);
+				mpiWorld->recvData(H0[q], e.eInfo.whose(q), q);
+			}
+	}
+	
+	//Output one-particle matrix elements / eigenvalues:
+	if(mpiWorld->isHead())
+	{	//One-particle
+		for(int q=0; q<nStates; q++)
+			for(size_t b1=0; b1<nBands; b1++)
+				for(size_t b2=0; b2<=b1; b2++)
+				{	complex M = H0[q](b1,b2);
+					if(M.abs() > Kcut)
+					{	if(fabs(M.imag()) > Kcut)
+							fprintf(fp, "( %lg, %lg )", M.real(), M.imag()); //complex element
+						else
+							fprintf(fp, "%lg", M.real()); //real element
+						fprintf(fp, " %lu %lu 0 0\n", b1*nStates+q+1, b2*nStates+q+1);
+					}
+				}
+		//Eigenvalues
+		for(int q=0; q<nStates; q++)
+			for(size_t b=0; b<nBands; b++)
+				fprintf(fp, "%lg %lu 0 0 0\n", E[q][b], b*nStates+q+1);
+		//Ewald energy
+		double Eewald = e.ener.E["Eewald"];
+		if(fabs(Eewald) > Kcut)
+			fprintf(fp, "%lg 0 0 0 0\n", Eewald);
+		fclose(fp);
+	}
+	watch.stop();
+}
 
 //---------------------------- Moments ------------------------------------
 
