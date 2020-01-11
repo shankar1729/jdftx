@@ -59,9 +59,10 @@ public:
 	
 	//! Contains the information on the constraints of motion for each ion.
 	struct Constraint
-	{	double moveScale; //! preconditioning factor (0 fixes ion)
-		vector3<> d; //! The direction or plane normal of the constraint (in cartesian coordinates)
-		enum ConstraintType {None, Linear, Planar, HyperPlane} type; //! Type of the constraint that is being applied to the ion
+	{	double moveScale; //!< preconditioning factor (0 fixes ion)
+		vector3<> d; //!< The direction or plane normal of the constraint (in cartesian coordinates)
+		enum ConstraintType {None, Linear, Planar, HyperPlane} type; //!< Type of the constraint that is being applied to the ion
+		string groupLabel; //!< group label for hyper plane constraint
 		
 		vector3<> operator()(const vector3<>& grad) const;
 		bool isEquivalent(const Constraint& otherConstraint, const matrix3<>& transform) const;

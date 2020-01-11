@@ -26,7 +26,7 @@ struct CommandIon : public Command
 	CommandIon() : Command("ion", "jdftx/Ionic/Geometry")
 	{
 		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
-			+ constraintTypeMap.optionList() + " <d0> <d1> <d2>]";
+			+ constraintTypeMap.optionList() + " <d0> <d1> <d2> [<group>]]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
 			"\n"
@@ -35,7 +35,13 @@ struct CommandIon : public Command
 			"In addition, the ion may be constrained to a line or a plane with line\n"
 			"direction or plane normal equal to (<d0>,<d1>,<d2>) in the coordinate\n"
 			"system selected by command coords-type. Note that the constraints must\n"
-			"be consistent with respect to symmetries (if enabled).";
+			"be consistent with respect to symmetries (if enabled).\n"
+			"\n"
+			"The HyperPlane constraint allows constraining collective motion of many\n"
+			"ions by restricting their motion to a hyperplane with normal specified\n"
+			"by (<d0>,<d1>,<d2>) for all ions specifying a hyperplane constraint.\n"
+			"By default, all hyperplane-constrained ions are included in a single\n"
+			"group; use optional <group> label to specify multiple hyper-planes.";
 		allowMultiple = true;
 
 		require("ion-species");
@@ -74,9 +80,11 @@ struct CommandIon : public Command
 			pl.get(constraint.d[0], 0.0, "d0", true);				  
 			pl.get(constraint.d[1], 0.0, "d1", true);
 			pl.get(constraint.d[2], 0.0, "d2", true);
-			if(not constraint.d.length_squared() && constraint.type != SpeciesInfo::Constraint::HyperPlane)
-				throw string("Constraint vector must be non-null if not of type HyperPlane");
-			if(e.iInfo.coordsType == CoordsLattice) //Constraints transform like forces: (or maybe not) (constrain is not a force in lattice coordinate)
+			if(constraint.type == SpeciesInfo::Constraint::HyperPlane)
+				pl.get(constraint.groupLabel, string(), "group"); //optional group label for hyperplane constraint
+			if(not constraint.d.length_squared())
+				throw string("Constraint vector must be non-null");
+			if(e.iInfo.coordsType == CoordsLattice) //Transform to Cartesian (taking care of covariant/contravariant for line/plane directions)
 				switch(constraint.type)
 				{	case SpeciesInfo::Constraint::Linear:       constraint.d = e.gInfo.R * constraint.d; break;
 					case SpeciesInfo::Constraint::Planar:       constraint.d = ~inv(e.gInfo.R) * constraint.d; break;

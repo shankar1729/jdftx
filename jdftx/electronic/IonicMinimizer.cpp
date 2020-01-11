@@ -330,16 +330,27 @@ void IonicMinimizer::constrain(IonicGradient& x)
 			x[sp][atom] = spInfo.constraints[atom](x[sp][atom]);
 	}
 	
-	//HyperPlane (collective) constraint:
-	IonicGradient D; D.init(e.iInfo); // initialize direction to zero
-	for(unsigned sp=0; sp<D.size(); sp++)
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<D[sp].size(); atom++)
-			if (spInfo.constraints[atom].type == SpeciesInfo::Constraint::HyperPlane)
-				D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
+	//HyperPlane (collective) constraints:
+	//--- get list of unique group labels:
+	std::set<string> groupLabels;
+	for(const auto& spInfo: e.iInfo.species)
+		for(const SpeciesInfo::Constraint& constraint: spInfo->constraints)
+			if(constraint.type == SpeciesInfo::Constraint::HyperPlane)
+				groupLabels.insert(constraint.groupLabel);
+	//--- apply constraint to each group:
+	for(const string& groupLabel: groupLabels)
+	{	IonicGradient D; D.init(e.iInfo); // initialize direction to zero
+		for(unsigned sp=0; sp<D.size(); sp++)
+		{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+			for(unsigned atom=0; atom<D[sp].size(); atom++)
+			{	const SpeciesInfo::Constraint& constraint = spInfo.constraints[atom];
+				if(constraint.type==SpeciesInfo::Constraint::HyperPlane and constraint.groupLabel==groupLabel)
+					D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
+			}
+		}
+		double Dsq = dot(D,D);
+		if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
 	}
-	double Dsq = dot(D,D);
-	if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
 
 	//Ensure zero total force (if no atom is constrained):
 	if(!anyConstrained)
