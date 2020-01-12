@@ -325,6 +325,13 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
+	
+	//HACK BEGIN
+	ener.E["Exc"] = 0.;
+	if(Vxc[0]) Vxc *= 0.;
+	if(Vtau[0]) Vtau *= 0.;
+	//HACK END
+	
 	if(!exCorr.hasEnergy() && !e->cntrl.scf)
 		die("Potential functionals do not support total-energy minimization; use SCF instead.\n")
 	if(exCorr.orbitalDep)
@@ -465,6 +472,13 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	
 	return relevantFreeEnergy(*e);
 }
+
+//Latice derivative
+matrix3<> ElecVars::latticeGrad() const
+{
+	return matrix3<>();
+}
+
 
 //Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 
 void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)

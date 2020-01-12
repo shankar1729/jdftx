@@ -253,6 +253,15 @@ double IonInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, cons
 	return Enlq;
 }
 
+void IonInfo::computeStress()
+{
+	matrix3<> E_R = e->eVars.latticeGrad();
+	//TODO: add ionic components
+	
+	stress = (e->gInfo.RT * E_R) * (1./e->gInfo.detR);
+}
+
+
 void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq) const
 {	if(VdagCq) VdagCq->resize(species.size());
 	for(unsigned sp=0; sp<species.size(); sp++)

@@ -106,6 +106,9 @@ public:
 	//! Optionally compute the gradient, preconditioned gradient and/or the subspace hamiltonian
 	double elecEnergyAndGrad(Energies& ener, ElecGradient* grad=0, ElecGradient* Kgrad=0, bool calc_Hsub=false); 
 	
+	//! Compute gradient of electronic energy with respect to lattice vectors
+	matrix3<> latticeGrad() const;
+	
 	//! Set C to eigenvectors of the subspace hamiltonian
 	void setEigenvectors(); 
 	

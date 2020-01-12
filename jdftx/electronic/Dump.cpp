@@ -558,7 +558,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		{	//IonInfo::stress needs to be calculated:
 			//(This part needs to happen on all processes)
 			logSuspend();
-			LatticeMinimizer(*((Everything*)e)).calculateStress();
+			((Everything*)e)->iInfo.computeStress();
 			logResume();
 		}
 		if(mpiWorld->isHead())

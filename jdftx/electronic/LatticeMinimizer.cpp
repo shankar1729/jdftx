@@ -186,11 +186,11 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 	//! Calculate lattice gradients (stresses) if necessary:
 	if(grad)
 	{	//Update IonInfo::stress (in Eh/a0^3 units):
-		logPrintf("Calculating stress tensor... "); logFlush();
-		calculateStress();
+		logPrintf("Calculating stress tensor ... "); logFlush();
+		e.iInfo.computeStress();
 		logPrintf(" done!\n");
 		//Calculate grad->lattice (in Eh units):
-		grad->lattice = e.iInfo.stress * e.gInfo.detR;
+		grad->lattice = ((~Rorig) * e.gInfo.invRT) * (e.iInfo.stress * e.gInfo.detR);
 		//Set Kgrad->lattice if necessary (in Eh/a0^2 units):
 		if(Kgrad)
 			Kgrad->lattice = Diag(K) * grad->lattice * Diag(K);
@@ -200,6 +200,7 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 	return relevantFreeEnergy(e);
 }
 
+/*
 void LatticeMinimizer::calculateStress()
 {	matrix3<> E_strain;
 	for(size_t i=0; i<strainBasis.size(); i++)
@@ -210,6 +211,7 @@ void LatticeMinimizer::calculateStress()
 	e.iInfo.stress = E_strain * (1./e.gInfo.detR);
 	bcast(e.iInfo.stress); //ensure consistency to numerical precision
 }
+*/
 
 double LatticeMinimizer::minimize(const MinimizeParams& params)
 {	double result = Minimizable<LatticeGradient>::minimize(params);
@@ -218,7 +220,7 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 	return result;
 }
 
-
+/*
 double LatticeMinimizer::centralDifference(matrix3<> direction)
 { 	//Central difference derivative with O(h^4)
 	double hArr[4] = { -2*h, -h, +h, +2*h };
@@ -231,7 +233,7 @@ double LatticeMinimizer::centralDifference(matrix3<> direction)
 	}
 	return (1./(12.*h))*(Earr[0] - 8.*Earr[1] + 8.*Earr[2] - Earr[3]);
 }
-
+*/
 
 bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n"); e.gInfo.printLattice();

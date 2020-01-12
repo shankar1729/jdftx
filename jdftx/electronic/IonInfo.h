@@ -84,6 +84,9 @@ public:
 	//! Optionally accumulate the corresponding electronic gradient in HCq and ionic gradient in forces
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
 	
+	//! Compute stress tensor
+	void computeStress();
+	
 	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
 	
