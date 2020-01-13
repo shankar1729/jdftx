@@ -258,8 +258,7 @@ void IonInfo::computeStress()
 	matrix3<> E_R = e->eVars.latticeGrad();
 	//TODO: add ionic components
 	
-	stress = (e->gInfo.RT * E_R) * (1./e->gInfo.detR);
-	//stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
+	stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
 }
 
 

@@ -61,7 +61,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 	logPrintf("\n--------- Lattice Minimization ---------\n");
 	
 	//Ensure that lattice-move-scale is commensurate with symmetries:
-	std::vector<SpaceGroupOp> sym = e.symm.getMatrices();
+	const std::vector<SpaceGroupOp>& sym = e.symm.getMatrices();
 	for(const SpaceGroupOp& op: sym)
 		for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
@@ -72,55 +72,9 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 						i, j, e.cntrl.lattMoveScale[i], e.cntrl.lattMoveScale[j]);
 	
 	//Check which lattice vectors can be altered:
-	vector3<bool> isFixed, isTruncated = e.coulombParams.isTruncated();
+	vector3<bool> isTruncated = e.coulombParams.isTruncated();
 	for(int k=0; k<3; k++)
 		isFixed[k] = (e.cntrl.lattMoveScale[k]==0.) || isTruncated[k];
-	
-	//Create a orthonormal basis for strain commensurate with symmetries:
-	for(int k=0; k<6; k++)
-	{	//Initialize a basis element for arbitrary symmetric matrices:
-		matrix3<int> s; //all zero:
-		if(k<3) //diagonal strain
-		{	s(k,k) = 1;
-			if(isFixed[k]) continue; //strain alters fixed direction
-		}
-		else //off-diagonal strain
-		{	int i=(k+1)%3;
-			int j=(k+2)%3;
-			s(i,j) = s(j,i) = 1;
-			if(isFixed[i] || isFixed[j]) continue;  //strain alters fixed direction
-		}
-		//Symmetrize:
-		matrix3<int> sSym;
-		for(const SpaceGroupOp& op: sym)
-		{	matrix3<int> mInv = det(op.rot) * adjugate(op.rot); //since |det(rot)| = 1
-			sSym += mInv * s * op.rot;
-		}
-		//Orthonormalize w.r.t previous basis elements:
-		matrix3<> strain(sSym); //convert from integer to double matrix
-		for(const matrix3<>& sPrev: strainBasis)
-			strain -= sPrev * dot(sPrev, strain);
-		double strainNorm = nrm2(strain);
-		if(strainNorm < symmThresholdSq) continue; //linearly dependent
-		strainBasis.push_back((1./strainNorm) * strain);
-	}
-	if(!strainBasis.size())
-		die("All lattice-vectors are constrained by coulomb truncation and/or\n"
-			"latt-move-scale: please disable lattice minimization.\n");
-	
-	//Print initialization status:
-	e.latticeMinParams.nDim = strainBasis.size();
-	logPrintf("Minimization of dimension %lu over strains spanned by:\n", strainBasis.size());
-	for(const matrix3<>& s: strainBasis)
-	{	s.print(globalLog, " %lg ");
-		logPrintf("\n");
-	}
-
-	h = 1e-5;
-	
-	//Set preconditioner (brings lattice Hessian to same dimensions as ionic):
-	for(int iDir=0; iDir<3; iDir++)
-		K[iDir] = e.cntrl.lattMoveScale[iDir] / e.gInfo.R.column(iDir).length();
 }
 
 void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
@@ -147,12 +101,11 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 		}
 	
 	//Change lattice:
-	strain += alpha * dir.lattice;
-	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
-	//e.gInfo.R = Rorig + strain*Rorig; // Updates the lattice vectors to current strain
-	bcast(strain); //ensure consistency to numerical precision
+	e.gInfo.R += alpha * dir.lattice;
+	strain = e.gInfo.R * inv(Rorig) - matrix3<>(1.,1.,1.); //update strain to match current lattice vectors
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
-	updateLatticeDependent(e, true); // Updates lattice information but does not touch electronic state / calc electronic energy
+	bcast(strain); //ensure consistency to numerical precision
+	updateLatticeDependent(e); // Updates lattice information
 
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Restore wavefunctions from atomic orbitals:
@@ -190,30 +143,15 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 		logPrintf("Calculating stress tensor ... "); logFlush();
 		e.iInfo.computeStress();
 		logPrintf(" done!\n");
-		//Calculate grad->lattice (in Eh units):
-		grad->lattice = ((~Rorig) * e.gInfo.invRT) * (e.iInfo.stress * e.gInfo.detR);
-//		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * (e.gInfo.invRT * (~Rorig));
-		//Set Kgrad->lattice if necessary (in Eh/a0^2 units):
-		if(Kgrad)
-			Kgrad->lattice = Diag(K) * grad->lattice * Diag(K);
+		//Calculate grad->lattice (in Eh/a0 units):
+		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * e.gInfo.invRT;
+		//Set Kgrad->lattice if necessary:
+		if(Kgrad) Kgrad->lattice = grad->lattice;
 	}
 	
 	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
 	return relevantFreeEnergy(e);
 }
-
-/*
-void LatticeMinimizer::calculateStress()
-{	matrix3<> E_strain;
-	for(size_t i=0; i<strainBasis.size(); i++)
-		E_strain += strainBasis[i]*centralDifference(strainBasis[i]);
-	e.gInfo.R = Rorig + Rorig*strain;
-	bcast(e.gInfo.R); //ensure consistency to numerical precision
-	updateLatticeDependent(e);
-	e.iInfo.stress = E_strain * (1./e.gInfo.detR);
-	bcast(e.iInfo.stress); //ensure consistency to numerical precision
-}
-*/
 
 double LatticeMinimizer::minimize(const MinimizeParams& params)
 {	double result = Minimizable<LatticeGradient>::minimize(params);
@@ -221,21 +159,6 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 	step(dir, 0.); //so that population analysis may be performed at final positions / lattice
 	return result;
 }
-
-/*
-double LatticeMinimizer::centralDifference(matrix3<> direction)
-{ 	//Central difference derivative with O(h^4)
-	double hArr[4] = { -2*h, -h, +h, +2*h };
-	double Earr[4];
-	for(int j=0; j<4; j++)
-	{	e.gInfo.R = Rorig + Rorig*(strain+(hArr[j]*direction));
-		bcast(e.gInfo.R); //ensure consistency to numerical precision
-		updateLatticeDependent(e);
-		Earr[j] = sync(relevantFreeEnergy(e));
-	}
-	return (1./(12.*h))*(Earr[0] - 8.*Earr[1] + 8.*Earr[2] - Earr[3]);
-}
-*/
 
 bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n"); e.gInfo.printLattice();
@@ -248,18 +171,18 @@ bool LatticeMinimizer::report(int iter)
 void LatticeMinimizer::constrain(LatticeGradient& dir)
 {	//Ionic part:
 	imin.constrain(dir.ionic);
-	//Lattice part:
-	matrix3<> latticeNew;
-	for(const matrix3<>& s: strainBasis)
-		latticeNew += s * dot(s, dir.lattice); //projection in basis
-	dir.lattice = latticeNew;
+	/*
+	//TODO: implement symmetrization and constraining of fixed directions
+	
+	*/
 }
 
 double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const
 {	//Lattice criterion:
-	double alphaMaxLattice = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir.lattice);
+	matrix3<> dirStrain = dir.lattice * inv(Rorig);
+	double alphaMaxLattice = 0.5 * GridInfo::maxAllowedStrain / nrm2(dirStrain);
 	if(nrm2(strain) < GridInfo::maxAllowedStrain) //not already at a disallowed strain
-		while(nrm2(strain+alphaMaxLattice*dir.lattice) > GridInfo::maxAllowedStrain)
+		while(nrm2(strain+alphaMaxLattice*dirStrain) > GridInfo::maxAllowedStrain)
 			alphaMaxLattice *= 0.5; //reduce step size further till new position will become safe
 	//Ionic criterion:
 	double alphaMaxIonic = imin.safeStepSize(dir.ionic);
@@ -271,7 +194,7 @@ double LatticeMinimizer::sync(double x) const
 	return x;
 }
 
-void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectronic)
+void LatticeMinimizer::updateLatticeDependent(Everything& e)
 {	logSuspend();
 	e.gInfo.update();
 	if(e.gInfoWfns)
@@ -281,10 +204,5 @@ void LatticeMinimizer::updateLatticeDependent(Everything& e, bool ignoreElectron
 	e.updateSupercell();
 	e.coulomb = e.coulombParams.createCoulomb(e.gInfo, e.gInfoWfns, e.coulombWfns);
 	e.iInfo.update(e.ener);
-	if(!ignoreElectronic)
-	{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			e.eVars.orthonormalize(q);
-		e.eVars.elecEnergyAndGrad(e.ener);
-	}
 	logResume();
 }

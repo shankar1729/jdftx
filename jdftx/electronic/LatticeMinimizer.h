@@ -61,19 +61,12 @@ private:
 	IonicMinimizer imin;
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
-	vector3<> K; //!< preconditioner (scale factors on each lattice gradient direction)
 	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
-	
-	//!Set of independent directions in the space of all allowed strains.
-	//!Their span is consistent with symmetries and truncation (if any).
-	std::vector<matrix3<>> strainBasis;
-
-	double h; //! Finite difference step size
-	double centralDifference(matrix3<> direction);  //! Returns the numerical derivative along the given strain
+	vector3<bool> isFixed; //!< whether each lattice direction is constrained (by lattMoveScale or truncation)
 	
 	//! Updates lattice dependent quantities, but does not
 	//! reconverge ionic positions or wavefunctions
-	static void updateLatticeDependent(Everything& e, bool ignoreElectronic=false);
+	static void updateLatticeDependent(Everything& e);
 	
 	friend class IonDynamics;
 };
