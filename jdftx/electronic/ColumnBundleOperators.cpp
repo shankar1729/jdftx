@@ -251,12 +251,12 @@ ColumnBundle L(const ColumnBundle &Y)
 	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	const matrix3<>& GGT = basis.gInfo->GGT;
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
+	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
 	#else
 	threadedLoop(reducedL_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), LY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
 	#endif
 	return LY;
 }
@@ -271,16 +271,46 @@ ColumnBundle Linv(const ColumnBundle &Y)
 	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	const matrix3<>& GGT = basis.gInfo->GGT;
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	reducedLinv_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), LinvY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
+	reducedLinv_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), LinvY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
 	#else
 	threadedLoop(reducedLinv_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), LinvY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), LinvY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
 	#endif
 	return LinvY;
 }
 
+// Lattice vector derivative of Tr[Y^LYF] (for KE stress calculation)
+#ifdef GPU_ENABLED
+void reducedLstress_gpu(int nbasis, int ncols, const complex* Y, const double* F,
+	const vector3<int>* iGarr, const vector3<>& k, matrix3<>* result);
+#endif
+matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F)
+{	int nSpinor = Y.spinorLength();
+	const Basis& basis = *(Y.basis);
+	const GridInfo& gInfo = *(basis.gInfo);
+	//Store F with repetitions for spinor if needed:
+	ManagedArray<double> Fbuf; Fbuf.init(F.nRows()*nSpinor, false);
+	{	double* Fdata = Fbuf.data();
+		for(double f: F)
+			for(int s=0; s<nSpinor; s++)
+				*(Fdata++) = f;
+	}
+	//Collect derivative contributions for each basis function:
+	ManagedArray<matrix3<>> result;
+	result.init(basis.nbasis, isGpuEnabled());
+	result.zero();
+	#ifdef GPU_ENABLED
+	reducedLstress_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), Fbuf.dataGpu(), basis.iGarr.dataGpu(), Y.qnum->k, result.dataGpu());
+	#else
+	threadedLoop(reducedLstress_calc, basis.nbasis,
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), Fbuf.data(), basis.iGarr.data(), Y.qnum->k, result.data());
+	#endif
+	matrix3<> resultSum = callPref(eblas_sum)(basis.nbasis, result.dataPref());
+	//Process result:
+	return 2*gInfo.detR * (gInfo.GT * resultSum * gInfo.G * gInfo.invRT); //note explicit detR derivative not included here
+}
 
 // Overlap operator (scale by unit cell volume in PW basis)
 ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
@@ -298,14 +328,14 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 {	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	ColumnBundle DY = Y.similar();
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	const vector3<> Ge = basis.gInfo->G.column(iDir);
 	double kdotGe = dot(Y.qnum->k, Ge);
 	#ifdef GPU_ENABLED
-	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
+	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
 	#else
 	threadedLoop(reducedD_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DY.data(), basis.iGarr.data(), kdotGe, Ge);
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), DY.data(), basis.iGarr.data(), kdotGe, Ge);
 	#endif
 	return DY;
 }
@@ -320,16 +350,16 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 {	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	ColumnBundle DDY = Y.similar();
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	const vector3<> Ge1 = basis.gInfo->G.column(iDir);
 	const vector3<> Ge2 = basis.gInfo->G.column(jDir);
 	double kdotGe1 = dot(Y.qnum->k, Ge1);
 	double kdotGe2 = dot(Y.qnum->k, Ge2);
 	#ifdef GPU_ENABLED
-	reducedDD_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), DDY.dataGpu(), basis.iGarr.dataGpu(), kdotGe1, kdotGe2, Ge1, Ge2);
+	reducedDD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DDY.dataGpu(), basis.iGarr.dataGpu(), kdotGe1, kdotGe2, Ge1, Ge2);
 	#else
 	threadedLoop(reducedDD_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinors, Y.data(), DDY.data(), basis.iGarr.data(), kdotGe1, kdotGe2, Ge1, Ge2);
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), DDY.data(), basis.iGarr.data(), kdotGe1, kdotGe2, Ge1, Ge2);
 	#endif
 	return DDY;
 }
@@ -350,8 +380,8 @@ void precond_inv_kinetic(ColumnBundle &Y, double KErollover)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	const matrix3<>& GGT = basis.gInfo->GGT;
-	int  nSpinors = Y.spinorLength();
-	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(),
+	int  nSpinor = Y.spinorLength();
+	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinor, Y.dataPref(),
 		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR);
 }
 
@@ -378,13 +408,13 @@ void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KErefIn)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	assert(Y.nCols()==KErefIn.nCols());
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	//Adapt KEref array for spinors:
 	diagMatrix KEtmp;
-	if(nSpinors > 1)
-	{	KEtmp.reserve(Y.nCols()*nSpinors);
+	if(nSpinor > 1)
+	{	KEtmp.reserve(Y.nCols()*nSpinor);
 		for(const double& KE: KErefIn)
-			KEtmp.insert(KEtmp.end(), nSpinors, KE);
+			KEtmp.insert(KEtmp.end(), nSpinor, KE);
 	}
 	const diagMatrix& KEref = KEtmp.size() ? KEtmp : KErefIn;
 	#ifdef GPU_ENABLED
@@ -394,7 +424,7 @@ void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KErefIn)
 	#else
 	const double* KErefData = KEref.data();
 	#endif
-	callPref(precond_inv_kinetic_band)(basis.nbasis, Y.nCols()*nSpinors, Y.dataPref(), KErefData,
+	callPref(precond_inv_kinetic_band)(basis.nbasis, Y.nCols()*nSpinor, Y.dataPref(), KErefData,
 		basis.gInfo->GGT, basis.iGarr.dataPref(), Y.qnum->k);
 }
 
@@ -405,11 +435,11 @@ void translate_gpu(int nbasis, int ncols, complex* Y, const vector3<int>* iGarr,
 ColumnBundle translate(ColumnBundle&& Y, vector3<> dr)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
-	int nSpinors = Y.spinorLength();
+	int nSpinor = Y.spinorLength();
 	#ifdef GPU_ENABLED
-	translate_gpu(basis.nbasis, Y.nCols()*nSpinors, Y.dataGpu(), basis.iGarr.dataGpu(), Y.qnum->k, dr);
+	translate_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), basis.iGarr.dataGpu(), Y.qnum->k, dr);
 	#else
-	threadedLoop(translate_calc, basis.nbasis, basis.nbasis, Y.nCols()*nSpinors, Y.data(), basis.iGarr.data(), Y.qnum->k, dr);
+	threadedLoop(translate_calc, basis.nbasis, basis.nbasis, Y.nCols()*nSpinor, Y.data(), basis.iGarr.data(), Y.qnum->k, dr);
 	#endif
 	return Y;
 }
@@ -426,8 +456,8 @@ void translateColumns_gpu(int nbasis, int ncols, complex* Y, const vector3<int>*
 void translateColumns(ColumnBundle& Y, const vector3<>* dr)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
-	int nSpinors = Y.spinorLength();
-	int nColsTot = Y.nCols()*nSpinors;
+	int nSpinor = Y.spinorLength();
+	int nColsTot = Y.nCols()*nSpinor;
 	ManagedArray<vector3<>> drManaged(dr, nColsTot);
 	callPref(translateColumns)(basis.nbasis, nColsTot, Y.dataPref(), basis.iGarr.dataPref(), Y.qnum->k, drManaged.dataPref());
 }
@@ -435,10 +465,10 @@ void translateColumns(ColumnBundle& Y, const vector3<>* dr)
 
 ColumnBundle switchBasis(const ColumnBundle& in, const Basis& basisOut)
 {	if(in.basis == &basisOut) return in; //no basis change required
-	int nSpinors = in.spinorLength();
-	ColumnBundle out(in.nCols(), basisOut.nbasis*nSpinors, &basisOut, 0, isGpuEnabled());
+	int nSpinor = in.spinorLength();
+	ColumnBundle out(in.nCols(), basisOut.nbasis*nSpinor, &basisOut, 0, isGpuEnabled());
 	for(int b=0; b<in.nCols(); b++)
-		for(int s=0; s<nSpinors; s++)
+		for(int s=0; s<nSpinor; s++)
 			out.setColumn(b,s, in.getColumn(b,s)); //convert using the full G-space as an intermediate
 	return out;
 }

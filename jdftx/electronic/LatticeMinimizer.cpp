@@ -149,6 +149,7 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 	//Change lattice:
 	strain += alpha * dir.lattice;
 	e.gInfo.R = Rorig + Rorig*strain; // Updates the lattice vectors to current strain
+	//e.gInfo.R = Rorig + strain*Rorig; // Updates the lattice vectors to current strain
 	bcast(strain); //ensure consistency to numerical precision
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	updateLatticeDependent(e, true); // Updates lattice information but does not touch electronic state / calc electronic energy
@@ -191,6 +192,7 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 		logPrintf(" done!\n");
 		//Calculate grad->lattice (in Eh units):
 		grad->lattice = ((~Rorig) * e.gInfo.invRT) * (e.iInfo.stress * e.gInfo.detR);
+//		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * (e.gInfo.invRT * (~Rorig));
 		//Set Kgrad->lattice if necessary (in Eh/a0^2 units):
 		if(Kgrad)
 			Kgrad->lattice = Diag(K) * grad->lattice * Diag(K);

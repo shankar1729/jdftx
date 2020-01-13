@@ -259,6 +259,7 @@ void IonInfo::computeStress()
 	//TODO: add ionic components
 	
 	stress = (e->gInfo.RT * E_R) * (1./e->gInfo.detR);
+	//stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
 }
 
 

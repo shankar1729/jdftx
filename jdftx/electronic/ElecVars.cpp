@@ -476,7 +476,12 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 //Latice derivative
 matrix3<> ElecVars::latticeGrad() const
 {
-	return matrix3<>();
+	matrix3<> result;
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
+		result -= (e->eInfo.qnums[q].weight*0.5)*Lstress(C[q], F[q]);
+	mpiWorld->allReduce(result, MPIUtil::ReduceSum, true);
+	//TODO: remaining components
+	return result;
 }
 
 

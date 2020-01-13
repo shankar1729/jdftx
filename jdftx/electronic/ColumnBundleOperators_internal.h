@@ -25,17 +25,31 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @cond
 
 __hostanddev__ void reducedL_calc(int j, int nbasis, int ncols, const complex* Y, complex* LY,
-	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<>& k, double detR)
 {	for (int i=0; i < ncols; i++)
 		LY[nbasis*i+j] = (-detR * GGT.metric_length_squared(iGarr[j]+k)) * Y[nbasis*i+j];
 }
+
 __hostanddev__ void reducedLinv_calc(int j, int nbasis, int ncols, const complex* Y, complex* LinvY,
-	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double detR)
+	const matrix3<> GGT, const vector3<int>* iGarr, const vector3<>& k, double detR)
 {	for (int i=0; i < ncols; i++)
 	{	double G2 = GGT.metric_length_squared(iGarr[j]+k);
 		LinvY[nbasis*i+j] = (G2 ? -1./(detR*G2) : 0.) * Y[nbasis*i+j];
 	}
 }
+
+//Kernel for lattice derivative of Tr[Y^LYF] calculation
+__hostanddev__ void reducedLstress_calc(int j, int nbasis, int ncols, const complex* Y, const double* F,
+	const vector3<int>* iGarr, const vector3<>& k, matrix3<>* result)
+{	//Sum wave function norm at each iG over bands / columns:
+	double bandSum = 0.;
+	for (int i=0; i<ncols; i++)
+		bandSum += F[i] * Y[nbasis*i+j].norm();
+	//Collect weighted iG outer product (subsequently reduced over iG):
+	vector3<> iGk = iGarr[j]+k;
+	result[j] = bandSum * outer(iGk,iGk);
+}
+
 
 __hostanddev__ void precond_inv_kinetic_calc(int j, int nbasis, int ncols, complex* Ydata,
 	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
