@@ -19,7 +19,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/BlasExtra.h>
 #include <core/BlasExtra_internal.h>
+#include <core/ManagedMemory.h>
 #include <cstring>
+
+#define DECLARE_eblas_sumStrided(funcName, dataName) \
+	void funcName(const int N, const int stride, const double* X, double* result) \
+	{	ManagedArray<double> dataOne(std::vector<double>(1, 1.)); /* Managed data storing "1" */ \
+		for(int i=0; i<stride; i++) \
+			result[i] = callPref(eblas_ddot)(N, X+i, stride, dataOne.dataName(), 0); \
+	}
+DECLARE_eblas_sumStrided(eblas_sumStrided, data)
+#ifdef GPU_ENABLED
+DECLARE_eblas_sumStrided(eblas_sumStrided_gpu, dataGpu)
+#endif
+#undef DECLARE_eblas_sumStrided
 
 void eblas_lincomb_sub(int iMin, int iMax,
 	const complex& sX, const complex* X, const int incX,

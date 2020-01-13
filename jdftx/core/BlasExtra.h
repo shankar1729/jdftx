@@ -93,6 +93,20 @@ void eblas_zdiv_gpu(const int N, const complex* X, const int incX, complex* Y, c
 void eblas_zdivd_gpu(const int N, const double* X, const int incX, complex* Y, const int incY);
 #endif
 
+//! Return sum over array of doubles with specified stride
+void eblas_sumStrided(const int N, const int stride, const double* X, double* result);
+#ifdef GPU_ENABLED
+//! Equivalent of eblas_sumStrided() for X on GPU; result is on CPU
+void eblas_sumStrided_gpu(const int N, const int stride, const double* X, double* result);
+#endif
+
+//! Return sum over array of generic type T composed only of a certain number of double members
+template<typename T> T eblas_sum(const int N, const T* X);
+#ifdef GPU_ENABLED
+//! Equivalent of eblas_sum() for GPU data pointers
+template<typename T> T eblas_sum_gpu(const int N, const T* X);
+#endif
+
 //! @brief Elementwise linear combination Z = sX * X + sY * Y
 //! @param N Number of elements in X, Y and X
 //! @param sX Scale factor for input X
@@ -350,5 +364,19 @@ void eblas_div(const int N, const Tx* X, const int incX, Ty* Y, const int incY)
 		eblas_div_sub<Ty,Tx>, N, X, incX, Y, incY);
 }
 //!@endcond
+
+//Generic sum implementation:
+#define DECLARE_eblas_sum(sumFunc, sumStridedFunc) \
+	template<typename T> T sumFunc(const int N, const T* X) \
+	{	int Ndoubles = sizeof(T)/sizeof(double); \
+		assert(Ndoubles * sizeof(double) == sizeof(T)); \
+		T result; sumStridedFunc(N, Ndoubles, (const double*)X, (double*)&result); \
+		return result; \
+	}
+DECLARE_eblas_sum(eblas_sum, eblas_sumStrided)
+#ifdef GPU_ENABLED
+DECLARE_eblas_sum(eblas_sum_gpu, eblas_sumStrided_gpu)
+#endif
+#undef DECLARE_eblas_sum
 
 #endif // JDFTX_CORE_BLASEXTRA_H
