@@ -470,18 +470,18 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 //Latice derivative
 matrix3<> ElecVars::latticeGrad() const
 {
-	const matrix3<> detR_R = absDetGrad(e->gInfo.R);
+	const matrix3<> id(1.,1.,1.); //identity
 	
 	//Compute q-dependent contributions:
 	matrix3<> result;
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 		result += e->eInfo.qnums[q].weight * (
 			-0.5*Lstress(C[q], F[q]) //contribution to KE stress via laplacian operator
-			- traceinner(Hsub_eigs[q]*F[q], C[q], C[q]).real() * detR_R); //volume contribution to orthonormality constraint
+			- traceinner(Hsub_eigs[q]*F[q], C[q], C[q]).real() * e->gInfo.detR * id); //volume contribution to orthonormality constraint
 	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
 	
 	//Add q-independent contributions:
-	result += detR_R * ((e->ener.E["KE"] + e->ener.E["Exc"]) / e->gInfo.detR); //volume contribution to KE and XC stress
+	result += id * (e->ener.E["KE"] + e->ener.E["Exc"]); //volume contribution to KE and XC stress
 	
 	//TODO: remaining components
 	return result;

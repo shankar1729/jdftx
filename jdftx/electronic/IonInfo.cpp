@@ -184,9 +184,9 @@ double IonInfo::ionicEnergyAndGrad()
 	const ElecVars &eVars = e->eVars;
 	
 	//Initialize lattice gradient for stress if needed:
-	matrix3<> E_R;
+	matrix3<> E_RRT; //symmetric matrix derivative E_R . RT
 	if(computeStress)
-		E_R = e->eVars.latticeGrad();
+		E_RRT = e->eVars.latticeGrad();
 	
 	//---------- Pair potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
@@ -234,7 +234,7 @@ double IonInfo::ionicEnergyAndGrad()
 	//Propagate those gradients to stresses:
 	if(computeStress)
 		for(const auto& sp: species)
-		E_R += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
+		E_RRT += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
 			ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------
@@ -263,7 +263,7 @@ double IonInfo::ionicEnergyAndGrad()
 	
 	//Compute stress tensor from lattice gradient if needed:
 	if(computeStress)
-		stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
+		stress = E_RRT * (1./e->gInfo.detR);
 	
 	return relevantFreeEnergy(*e);
 }

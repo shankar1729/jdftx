@@ -309,7 +309,7 @@ matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F)
 	#endif
 	matrix3<> resultSum = callPref(eblas_sum)(basis.nbasis, result.dataPref());
 	//Process result:
-	return 2*gInfo.detR * (gInfo.GT * resultSum * gInfo.G * gInfo.invRT); //note explicit detR derivative not included here
+	return 2*gInfo.detR * (gInfo.GT * resultSum * gInfo.G); //note explicit detR derivative not included here
 }
 
 // Overlap operator (scale by unit cell volume in PW basis)
