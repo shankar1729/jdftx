@@ -326,12 +326,6 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	
-	//HACK BEGIN
-	ener.E["Exc"] = 0.;
-	if(Vxc[0]) Vxc *= 0.;
-	if(Vtau[0]) Vtau *= 0.;
-	//HACK END
-	
 	if(!exCorr.hasEnergy() && !e->cntrl.scf)
 		die("Potential functionals do not support total-energy minimization; use SCF instead.\n")
 	if(exCorr.orbitalDep)
@@ -476,14 +470,22 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 //Latice derivative
 matrix3<> ElecVars::latticeGrad() const
 {
+	const matrix3<> detR_R = absDetGrad(e->gInfo.R);
+	
+	//Compute q-dependent contributions:
 	matrix3<> result;
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-		result -= (e->eInfo.qnums[q].weight*0.5)*Lstress(C[q], F[q]);
-	mpiWorld->allReduce(result, MPIUtil::ReduceSum, true);
+		result += e->eInfo.qnums[q].weight * (
+			-0.5*Lstress(C[q], F[q]) //contribution to KE stress via laplacian operator
+			- traceinner(Hsub_eigs[q]*F[q], C[q], C[q]).real() * detR_R); //volume contribution to orthonormality constraint
+	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
+	
+	//Add q-independent contributions:
+	result += detR_R * ((e->ener.E["KE"] + e->ener.E["Exc"]) / e->gInfo.detR); //volume contribution to KE and XC stress
+	
 	//TODO: remaining components
 	return result;
 }
-
 
 //Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 
 void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)

@@ -85,16 +85,13 @@ public:
 	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
 	//! and the corresponding gradient will be returned in Vtau if non-null
 	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
+	//! Optionally compute stress due to XC if Exc_R is non-null
 	double operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc=0, IncludeTXC includeTXC=IncludeTXC(),
-		const ScalarFieldArray* tau=0, ScalarFieldArray* Vtau=0) const;
+		const ScalarFieldArray* tau=0, ScalarFieldArray* Vtau=0, matrix3<>* Exc_R=0) const;
 	
-	//! Compute the exchange-correlation energy (and optionally gradient) for a unpolarized density n
-	//! includeTXC selects which components to include in result (XC without kinetic by default).
-	//! Orbital KE density tau must be provided if needsKEdensity() is true (for meta GGAs)
-	//! and the corresponding gradient will be returned in Vtau if non-null.
-	//! For metaGGAs, Vtau should be non-null if Vxc is non-null
+	//! Unpolarized wrapper to above function
 	double operator()(const ScalarField& n, ScalarField* Vxc=0, IncludeTXC includeTXC=IncludeTXC(),
-		const ScalarField* tau=0, ScalarField* Vtau=0) const;
+		const ScalarField* tau=0, ScalarField* Vtau=0, matrix3<>* Exc_R=0) const;
 
 	double exxFactor() const; //!< retrieve the exact exchange scale factor (0 if no exact exchange)
 	double exxRange() const; //!< range parameter (omega) for screened exchange (0 for long-range exchange)

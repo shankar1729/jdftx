@@ -617,7 +617,7 @@ template<typename Func> bool shouldInclude(const std::shared_ptr<Func>& function
 }
 
 double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC,
-		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau) const
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, matrix3<>* Exc_R) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
 	watch.start();
@@ -633,11 +633,10 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	ScalarField E; nullToZero(E, gInfo);
 	
 	//Gradient w.r.t spin densities:
+	bool needGradients = (Vxc or Exc_R); //need gradient propagation (for Vxc/Vtau, or for Exc_R)
+	if(Vxc) Vxc->clear();
 	ScalarFieldArray E_n(nCount);
-	if(Vxc)
-	{	Vxc->clear();
-		nullToZero(E_n, gInfo);
-	}
+	if(needGradients) nullToZero(E_n, gInfo);
 	
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
@@ -676,7 +675,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		for(int s=0; s<nInCount; s++)
 			lap[s] = (1./gInfo.detR) * I(L(J(n[s])));
 		//Allocate gradient w.r.t laplacian if required
-		if(Vxc) nullToZero(E_lap, gInfo);
+		if(needGradients) nullToZero(E_lap, gInfo);
 	}
 	ScalarFieldArray tau(nInCount), E_tau(nCount);
 	if(needsTau)
@@ -687,8 +686,8 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		if(Vxc)
 		{	assert(Vtau); //if computing gradients, all gradients must be computed
 			Vtau->clear();
-			nullToZero(E_tau, gInfo);
 		}
+		if(needGradients) nullToZero(E_tau, gInfo);
 	}
 	
 	//Transform to local spin-diagonal basis (noncollinear magnetism mode only)
@@ -740,7 +739,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 				watchComm.stop();
 			}
 		//Allocate gradient if required:
-		if(Vxc) nullToZero(E_sigma, gInfo, sigmaCount);
+		if(needGradients) nullToZero(E_sigma, gInfo, sigmaCount);
 	}
 	
 	#ifdef LIBXC_ENABLED
@@ -754,7 +753,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 			if(needsSigma) sigmaData = sigma[0]->data();
 			if(needsLap) lapData = lap[0]->data();
 			if(needsTau) tauData = tau[0]->data();
-			if(Vxc)
+			if(needGradients)
 			{	E_nData = E_n[0]->data();
 				if(needsSigma) E_sigmaData = E_sigma[0]->data();
 				if(needsLap) E_lapData = E_lap[0]->data();
@@ -766,7 +765,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 			if(needsSigma) sigmaData = transpose<3>(sigma);
 			if(needsLap) lapData = transpose<2>(lap);
 			if(needsTau) tauData = transpose<2>(tau);
-			if(Vxc)
+			if(needGradients)
 			{	E_nData = new double[2*gInfo.nr]; eblas_zero(2*gInfo.nr, E_nData);
 				if(needsSigma) { E_sigmaData = new double[3*gInfo.nr]; eblas_zero(3*gInfo.nr, E_sigmaData); }
 				if(needsLap) { E_lapData = new double[2*gInfo.nr]; eblas_zero(2*gInfo.nr, E_lapData); }
@@ -788,7 +787,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 			if(needsSigma) delete[] sigmaData;
 			if(needsLap) delete[] lapData;
 			if(needsTau) delete[] tauData;
-			if(Vxc)
+			if(needGradients)
 			{	transpose<2>(E_nData, E_n); delete[] E_nData;
 				if(needsSigma) { transpose<3>(E_sigmaData, E_sigma); delete[] E_sigmaData; }
 				if(needsLap) { transpose<2>(E_lapData, E_lap); delete[] E_lapData; }
@@ -827,7 +826,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	watchComm.stop();
 
 	//--------------- Gradient propagation ---------------------
-	if(Vxc)
+	if(needGradients)
 	{	//Change gradients from diagonal to spin-density-matrix if necessary
 		if(nCount != nInCount)
 		{	//Density:
@@ -901,11 +900,11 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 
 //Unpolarized wrapper to above function:
 double ExCorr::operator()(const ScalarField& n, ScalarField* Vxc, IncludeTXC includeTXC,
-		const ScalarField* tau, ScalarField* Vtau) const
+		const ScalarField* tau, ScalarField* Vtau, matrix3<>* Exc_R) const
 {	ScalarFieldArray VxcArr(1), tauArr(1), VtauArr(1);
 	if(tau) tauArr[0] = *tau;
 	double Exc =  (*this)(ScalarFieldArray(1, n), Vxc ? &VxcArr : 0, includeTXC,
-		tau ? &tauArr :0, Vtau ? &VtauArr : 0);
+		tau ? &tauArr :0, Vtau ? &VtauArr : 0, Exc_R);
 	if(Vxc) *Vxc = VxcArr[0];
 	if(Vtau) *Vtau = VtauArr[0];
 	return Exc;
