@@ -188,7 +188,7 @@ double IonInfo::ionicEnergyAndGrad()
 	if(computeStress)
 		E_R = e->eVars.latticeGrad();
 	
-	//---------- Forces from pair potential terms (Ewald etc.) ---------
+	//---------- Pair potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
 	pairPotentialsAndGrad(0, &forcesPairPot);
 	e->symm.symmetrize(forcesPairPot);
@@ -196,7 +196,7 @@ double IonInfo::ionicEnergyAndGrad()
 	if(shouldPrintForceComponents)
 		forcesPairPot.print(*e, globalLog, "forcePairPot");
 	
-	//---------- local part: Vlocps, chargeball, partial core etc.: --------------
+	//---------- Local part: Vlocps, chargeball, partial core etc.: --------------
 	//compute the complex-conjugate gradient w.r.t the relevant densities/potentials:
 	const ScalarFieldTilde ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
 	const ScalarFieldTilde ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
@@ -231,6 +231,11 @@ double IonInfo::ionicEnergyAndGrad()
 	forces += forcesLoc;
 	if(shouldPrintForceComponents)
 		forcesLoc.print(*e, globalLog, "forceLoc");
+	//Propagate those gradients to stresses:
+	if(computeStress)
+		for(const auto& sp: species)
+		E_R += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
+			ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------
 	IonicGradient forcesNL; forcesNL.init(*this);

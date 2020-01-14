@@ -61,6 +61,9 @@ public:
 	{	double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
 		double sigmaSq = sigma * sigma;
 		double detR = fabs(det(R)); //cell volume
+		
+		return 0.; //HACK
+		
 		//Position independent terms:
 		double Ztot = 0., ZsqTot = 0.;
 		for(const Atom& a: atoms)
@@ -122,6 +125,9 @@ CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfoOrig, const CoulombParams&
 
 ScalarFieldTilde CoulombPeriodic::apply(ScalarFieldTilde&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombPeriodic_calc(), in->dataPref(false));
+	
+	in->zero(); //HACK
+	
 	return in;
 }
 

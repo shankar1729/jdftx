@@ -231,6 +231,13 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const ScalarFieldTild
 	return forces;
 }
 
+matrix3<> SpeciesInfo::getLocalStress(const ScalarFieldTilde& ccgrad_Vlocps,
+	const ScalarFieldTilde& ccgrad_rhoIon, const ScalarFieldTilde& ccgrad_nChargeball,
+	const ScalarFieldTilde& ccgrad_nCore, const ScalarFieldTilde& ccgrad_tauCore) const
+{	
+	return matrix3<>();
+}
+
 void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const
 {	matrix DVdagC[3]; //cartesian gradient of VdagC
 	{	auto V = getV(Cq);
