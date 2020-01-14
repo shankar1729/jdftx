@@ -146,7 +146,7 @@ void Phonon::setup(bool printDefaults)
 	
 	//Store ideal energy and forces for unperturbed supercell:
 	E0 = prodSup * relevantFreeEnergy(e);
-	e.iInfo.ionicEnergyAndGrad(e.iInfo.forces); //compute forces in lattice coordinates
+	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
 	IonicGradient grad0unit = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
 	grad0.assign(e.iInfo.forces.size(), std::vector<vector3<>>());
 	for(size_t iSp=0; iSp<grad0.size(); iSp++)

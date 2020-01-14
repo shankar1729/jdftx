@@ -134,16 +134,12 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 		return NAN;
 	}
 	
-	//! Compute energy (and ionic gradients if needed)
+	//! Compute energy (and ionic gradients, stress if needed)
 	imin.compute(grad ? &grad->ionic : 0, Kgrad ? &Kgrad->ionic : 0);
 	
-	//! Calculate lattice gradients (stresses) if necessary:
+	//! Calculate lattice gradients (from stress computed along with forces above) if necessary:
 	if(grad)
-	{	//Update IonInfo::stress (in Eh/a0^3 units):
-		logPrintf("Calculating stress tensor ... "); logFlush();
-		e.iInfo.computeStress();
-		logPrintf(" done!\n");
-		//Calculate grad->lattice (in Eh/a0 units):
+	{	//Calculate grad->lattice (in Eh/a0 units):
 		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * e.gInfo.invRT;
 		//Set Kgrad->lattice if necessary:
 		if(Kgrad) Kgrad->lattice = grad->lattice;
@@ -162,10 +158,8 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 
 bool LatticeMinimizer::report(int iter)
 {	logPrintf("\n"); e.gInfo.printLattice();
-	logPrintf("\n# Strain Tensor:\n"); strain.print(globalLog, "%12lg ");
-	logPrintf("\n# Stress Tensor:\n"); e.iInfo.stress.print(globalLog, "%12lg ");
-	logPrintf("\n");
-	return imin.report(iter); //IonicMinimizer::report will print atomic positions, forces etc.
+	logPrintf("\n# Strain tensor in Cartesian coordinates:\n"); strain.print(globalLog, "%12lg ");
+	return imin.report(iter); //IonicMinimizer::report will print stress, atomic positions, forces etc.
 }
 
 void LatticeMinimizer::constrain(LatticeGradient& dir)

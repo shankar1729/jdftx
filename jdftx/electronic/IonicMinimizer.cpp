@@ -285,7 +285,7 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 	
 	//Calculate forces if needed:
 	if(grad)
-	{	e.iInfo.ionicEnergyAndGrad(e.iInfo.forces); //compute forces in lattice coordinates
+	{	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
 		*grad = -e.gInfo.invRT * e.iInfo.forces; //gradient in cartesian coordinates (and negative of force)
 		
 		//Preconditioned gradient:
@@ -306,8 +306,13 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 }
 
 bool IonicMinimizer::report(int iter)
-{	logPrintf("\n"); e.iInfo.printPositions(globalLog);
-	logPrintf("\n"); e.iInfo.forces.print(e, globalLog);
+{	if(e.iInfo.computeStress)
+	{	logPrintf("\n# Stress tensor in Cartesian coordinates [Eh/a0^3]:\n");
+		e.iInfo.stress.print(globalLog, "%12lg ");
+	}
+	logPrintf("\n"); 
+	e.iInfo.printPositions(globalLog);
+	e.iInfo.forces.print(e, globalLog);
 	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
 	e.dump(DumpFreq_Ionic, iter);
 	populationAnalysisPending = true; //population analysis will be performed the next time step() is called

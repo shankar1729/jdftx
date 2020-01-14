@@ -36,6 +36,7 @@ IonInfo::IonInfo()
 {	shouldPrintForceComponents = false;
 	vdWenable = false;
 	vdWscale = 0.;
+	computeStress = false;
 }
 
 void IonInfo::setup(const Everything &everything)
@@ -75,6 +76,13 @@ void IonInfo::setup(const Everything &everything)
 	
 	if(not checkPositions())
 		die("\nAtoms are too close, have overlapping pseudopotential cores.\n\n");
+	
+	//Determine whether to compute stress with forces:
+	if(e->latticeMinParams.nIterations)
+		computeStress = true; //needed for lattice minimization
+	for(auto dumpPair: e->dump)
+		if(dumpPair.second == DumpStress)
+			computeStress = true; //needed for stress output
 }
 
 void IonInfo::printPositions(FILE* fp) const
@@ -171,9 +179,14 @@ void IonInfo::update(Energies& ener)
 }
 
 
-double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
+double IonInfo::ionicEnergyAndGrad()
 {	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
+	
+	//Initialize lattice gradient for stress if needed:
+	matrix3<> E_R;
+	if(computeStress)
+		E_R = e->eVars.latticeGrad();
 	
 	//---------- Forces from pair potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
@@ -243,6 +256,10 @@ double IonInfo::ionicEnergyAndGrad(IonicGradient& forces) const
 	if(shouldPrintForceComponents)
 		forcesNL.print(*e, globalLog, "forceNL");
 	
+	//Compute stress tensor from lattice gradient if needed:
+	if(computeStress)
+		stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
+	
 	return relevantFreeEnergy(*e);
 }
 
@@ -253,13 +270,6 @@ double IonInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, cons
 	return Enlq;
 }
 
-void IonInfo::computeStress()
-{
-	matrix3<> E_R = e->eVars.latticeGrad();
-	//TODO: add ionic components
-	
-	stress = (E_R * e->gInfo.RT) * (1./e->gInfo.detR);
-}
 
 
 void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq) const

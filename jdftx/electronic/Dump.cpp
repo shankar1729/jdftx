@@ -554,13 +554,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(Stress))
 	{	StartDump("stress")
-		if(!e->latticeMinParams.nIterations)
-		{	//IonInfo::stress needs to be calculated:
-			//(This part needs to happen on all processes)
-			logSuspend();
-			((Everything*)e)->iInfo.computeStress();
-			logResume();
-		}
 		if(mpiWorld->isHead())
 		{	FILE* fp = fopen(fname.c_str(), "w");
 			if(!fp) die("Error opening %s for writing.\n", fname.c_str());

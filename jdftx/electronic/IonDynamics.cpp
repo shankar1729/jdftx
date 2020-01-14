@@ -115,7 +115,7 @@ double IonDynamics::computeAcceleration(IonicGradient& accel)
 	elecFluidMinimize(e);
 	
 	//Calculate forces
-	e.iInfo.ionicEnergyAndGrad(e.iInfo.forces); //compute forces in lattice coordinates
+	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
 	accel = e.gInfo.invRT * e.iInfo.forces; //forces in cartesian coordinates (not accel. yet)
 	
 	vector3<> netAccel;

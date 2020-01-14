@@ -58,8 +58,9 @@ public:
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
 	double vdWscale; //!< If non-zero, override the default scale parameter
 	
-	IonicGradient forces; //!< forces at current atomic positions
+	IonicGradient forces; //!< forces at current atomic positions in latice coordinates
 	matrix3<> stress; //!< stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress)
+	bool computeStress; //!< flagto control whether ionicEnergyAndGrad() computes the stress tensor in addition to forces
 	
 	ScalarFieldTilde Vlocps; //!< Net local pseudopotential
 	ScalarFieldTilde rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)
@@ -77,15 +78,13 @@ public:
 	//! Update Vlocps, rhoIon, nChargeball, nCore and the energies dependent only on ionic positions
 	void update(class Energies&); 
 
-	//! Return the total (free) energy and calculate the ionic gradient (forces)
-	double ionicEnergyAndGrad(IonicGradient& forces) const;
+	//! Return the total (free) energy and update the ionic gradient in IonInfo::forces
+	//! If IonInfo::computeStress = true, also update the lattice gradient in IonInfo::stress
+	double ionicEnergyAndGrad();
 
 	//! Return the non-local pseudopotential energy due to a single state.
 	//! Optionally accumulate the corresponding electronic gradient in HCq and ionic gradient in forces
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
-	
-	//! Compute stress tensor
-	void computeStress();
 	
 	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
