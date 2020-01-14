@@ -38,7 +38,8 @@ public:
 	
 	//! Van der Waal correction energy for a collection of discrete atoms at fixed locations
 	//! Corresponding forces are accumulated to Atom::force for each atom
-	double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const;
+	//! If E_RRT is non-null, accumulate contributions to the symmetric lattice derivative (stress * volume)
+	double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT=0) const;
 	
 	//! Van der Waal correction to the interaction energy between the explicit atoms
 	//! (from IonInfo) and the continuous fields Ntilde with specified atomic numbers.

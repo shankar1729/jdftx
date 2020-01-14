@@ -59,8 +59,9 @@ public:
 		Nrecip.print(globalLog, " %d ");
 	}
 	
-	double energyAndGrad(std::vector<Atom>& atoms) const
-	{	if(!atoms.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
+	{	if(E_RRT) die("EwaldSlab stress not yet implemented.\n\n");
+		if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta, etaSqrtPiInv = 1./(eta*sqrt(M_PI));
 		double sigmaSq = sigma * sigma;
 		//Position independent terms: (Self-energy correction)

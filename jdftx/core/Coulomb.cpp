@@ -194,9 +194,10 @@ complexScalarFieldTilde Coulomb::operator()(const complexScalarFieldTilde& in, v
 	return (*this)((complexScalarFieldTilde&&)out, kDiff, omega);
 }
 
-double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
+double Coulomb::energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
 {	if(!ewald) ((Coulomb*)this)->ewald = createEwald(gInfo.R, atoms.size());
 	double Eewald = 0.;
+	
 	if(params.embed)
 	{	matrix3<> embedScaleMat = Diag(embedScale);
 		matrix3<> invEmbedScaleMat = inv(embedScaleMat);
@@ -232,14 +233,15 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms) const
 			a.force = invEmbedScaleMat * a.force;
 		}
 		//Compute on the unit cell of the embedding mesh:
-		Eewald += ewald->energyAndGrad(atoms);
+		Eewald += ewald->energyAndGrad(atoms, E_RRT);
 		//Convert positions and forces back to original mesh:
 		for(Atom& a: atoms)
 		{	a.pos = xCenter + invEmbedScaleMat * a.pos;
 			a.force = embedScaleMat * a.force;
 		}
 	}
-	else Eewald = ewald->energyAndGrad(atoms);
+	else Eewald = ewald->energyAndGrad(atoms, E_RRT);
+	
 	//Electric field contributions if any:
 	if(params.Efield.length_squared())
 	{	vector3<> RT_Efield_ramp, RT_Efield_wave;

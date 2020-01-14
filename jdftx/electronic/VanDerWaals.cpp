@@ -134,8 +134,10 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	}
 }
 
-double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac) const
+double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT) const
 {
+	if(E_RRT) die("vdW stress not yet implemented.\n\n");
+	
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
 	vector3<int> S; //number of unit cells sampled in each direction

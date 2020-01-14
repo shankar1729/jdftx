@@ -161,8 +161,9 @@ public:
 		}
 	}
 	
-	double energyAndGrad(std::vector<Atom>& atoms) const
-	{	if(!atoms.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
+	{	if(E_RRT) die("EwaldWire stress not yet implemented.\n\n");
+		if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
 		//Position independent terms: (Self-energy correction)
 		double ZsqTot = 0.;

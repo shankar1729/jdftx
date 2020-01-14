@@ -106,7 +106,8 @@ public:
 	//!Get the energy of a point charge configurtaion, and accumulate corresponding forces
 	//!The implementation will shift each Atom::pos by lattice vectors to bring it to
 	//!the fundamental zone (or Wigner-Seitz cell as appropriate)
-	virtual double energyAndGrad(std::vector<Atom>& atoms) const=0;
+	//!If E_RRT is non-null, accumulate contrbutions to the symmetric lattice derivative (stress * volume)
+	virtual double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT=0) const=0;
 };
 
 
@@ -131,7 +132,8 @@ public:
 	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
 	//! Includes interaction with Efield, if present (Requires embedded truncation)
-	double energyAndGrad(std::vector<Atom>& atoms) const; 
+	//!If E_RRT is non-null, accumulate contrbutions to the symmetric lattice derivative (stress * volume)
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT=0) const; 
 
 	//! Generate the potential due to the Efield (if any) (Requires embedded truncation)
 	ScalarField getEfieldPotential() const;

@@ -38,7 +38,7 @@ struct EwaldIsolated : public Ewald
 	{
 	}
 	
-	double energyAndGrad(std::vector<Atom>& atoms) const
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
 	{	if(!atoms.size()) return 0.;
 		double E = 0.;
 		//Shift all points into a Wigner-Seitz cell centered on one of the atoms; choice of this atom
@@ -68,6 +68,7 @@ struct EwaldIsolated : public Ewald
 				a2.force -= dF;
 			}
 		}
+		//Note: no need to calculate E_RRT for an isolated system
 		return E;
 	}
 };

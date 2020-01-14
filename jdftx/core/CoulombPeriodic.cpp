@@ -57,12 +57,11 @@ public:
 		Nrecip.print(globalLog, " %d ");
 	}
 
-	double energyAndGrad(std::vector<Atom>& atoms) const
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRTptr) const
 	{	double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
 		double sigmaSq = sigma * sigma;
 		double detR = fabs(det(R)); //cell volume
-		
-		return 0.; //HACK
+		matrix3<> E_RRT; //stress * volume (computed if E_RRTptr non-null)
 		
 		//Position independent terms:
 		double Ztot = 0., ZsqTot = 0.;
@@ -73,10 +72,14 @@ public:
 		double E
 			= 0.5 * 4*M_PI * Ztot*Ztot * (-0.5*sigmaSq) / detR //G=0 correction
 			- 0.5 * ZsqTot * eta * (2./sqrt(M_PI)); //Self-energy correction
+		if(E_RRTptr)
+			E_RRT = (-0.5 * 4*M_PI * Ztot*Ztot * (-0.5*sigmaSq) / detR) * matrix3<>(1,1,1);
+		
 		//Reduce positions to first centered unit cell:
 		for(Atom& a: atoms)
 			for(int k=0; k<3; k++)
 				a.pos[k] -= floor(0.5 + a.pos[k]);
+		
 		//Real space sum:
 		vector3<int> iR; //integer cell number
 		for(const Atom& a2: atoms)
@@ -89,9 +92,15 @@ public:
 							if(!rSq) continue; //exclude self-interaction
 							double r = sqrt(rSq);
 							E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-							a1.force += (RTR * x) *
-								(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
+							double minus_E_r_by_r = a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq;
+							a1.force += (RTR * x) * minus_E_r_by_r;
+							if(E_RRTptr)
+							{	vector3<> rVec = R * x;
+								E_RRT -= (0.5*minus_E_r_by_r) * outer(rVec,rVec);
+							}
 						}
+		
+		
 		//Reciprocal space sum:
 		vector3<int> iG; //integer reciprocal cell number
 		for(iG[0]=-Nrecip[0]; iG[0]<=Nrecip[0]; iG[0]++)
@@ -109,7 +118,15 @@ public:
 					//Accumulate forces:
 					for(Atom& a: atoms)
 						a.force -= (eG * a.Z * 2*M_PI * (SG.conj() * cis(-2*M_PI*dot(iG,a.pos))).imag()) * iG;
+					//Accumulate stresses:
+					if(E_RRTptr)
+					{	vector3<> Gcart = iG * G;
+						double minus_eGprime_by_G = eG * (sigmaSq + 2./Gsq);
+						E_RRT += (0.5*SG.norm()) * (minus_eGprime_by_G * outer(Gcart,Gcart) - eG*matrix3<>(1,1,1));
+					}
 				}
+		
+		if(E_RRTptr) *E_RRTptr += E_RRT;
 		return E;
 	}
 };

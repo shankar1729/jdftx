@@ -190,7 +190,7 @@ double IonInfo::ionicEnergyAndGrad()
 	
 	//---------- Pair potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
-	pairPotentialsAndGrad(0, &forcesPairPot);
+	pairPotentialsAndGrad(0, &forcesPairPot, computeStress ? &E_RRT : 0);
 	e->symm.symmetrize(forcesPairPot);
 	forces = forcesPairPot;
 	if(shouldPrintForceComponents)
@@ -448,7 +448,7 @@ ColumnBundle IonInfo::getAtomicOrbitals(int q, bool applyO, int extraCols) const
 }
 
 
-void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
+void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matrix3<>* E_RRT) const
 {
 	//Obtain the list of atomic positions and charges:
 	std::vector<Atom> atoms;
@@ -458,12 +458,12 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces) const
 			atoms.push_back(Atom(sp.Z, pos, vector3<>(0.,0.,0.), sp.atomicNumber, spIndex));
 	}
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
-	double Eewald = e->coulomb->energyAndGrad(atoms);
+	double Eewald = e->coulomb->energyAndGrad(atoms, E_RRT);
 	//Compute optional pair-potential terms:
 	double EvdW = 0.;
 	if(vdWenable)
 	{	double scaleFac = e->vanDerWaals->getScaleFactor(e->exCorr.getName(), vdWscale);
-		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac); //vanDerWaals energy+force
+		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy+force
 	}
 	//Store energies and/or forces if requested:
 	if(ener)
