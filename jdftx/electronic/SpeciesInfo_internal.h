@@ -232,7 +232,7 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 	complex *Vlocps, complex *rhoIon, complex *nChargeball, complex* nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {
 	double Gsq = GGT.metric_length_squared(iG);
 
@@ -247,7 +247,7 @@ __hostanddev__ void updateLocal_calc(int i, const vector3<int>& iG, const matrix
 
 	//Chargeball:
 	if(nChargeball)
-		nChargeball[i] += SGinvVol * Zchargeball * exp(-0.5*Gsq*pow(wChargeball,2));
+		nChargeball[i] += SGinvVol * Zchargeball * exp(-0.5*Gsq*wChargeballSq);
 
 	//Partial core:
 	if(nCore) nCore[i] += SGinvVol * nCoreRadial(sqrt(Gsq));
@@ -257,13 +257,13 @@ void updateLocal(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *n_chargeball, complex* n_core, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball);
+	double Zchargeball, double wChargeballSq);
 #ifdef GPU_ENABLED
 void updateLocal_gpu(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *n_chargeball, complex* n_core, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball);
+	double Zchargeball, double wChargeballSq);
 #endif
 
 
@@ -273,7 +273,7 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {
 	double Gsq = GGT.metric_length_squared(iG);
 	complex ccgrad_SGinvVol(0,0); //result for this G value (gradient w.r.t structure factor/volume)
@@ -287,7 +287,7 @@ __hostanddev__ void gradLocalToSG_calc(int i, const vector3<int> iG, const matri
 
 	//Chargeball:
 	if(ccgrad_nChargeball)
-		ccgrad_SGinvVol += ccgrad_nChargeball[i] * Zchargeball * exp(-0.5*Gsq*pow(wChargeball,2));
+		ccgrad_SGinvVol += ccgrad_nChargeball[i] * Zchargeball * exp(-0.5*Gsq*wChargeballSq);
 
 	//Partial core:
 	if(ccgrad_nCore) ccgrad_SGinvVol += ccgrad_nCore[i] * nCoreRadial(sqrt(Gsq));
@@ -301,14 +301,14 @@ void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball);
+	double Zchargeball, double wChargeballSq);
 #ifdef GPU_ENABLED
 void gradLocalToSG_gpu(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball);
+	double Zchargeball, double wChargeballSq);
 #endif
 
 
@@ -325,6 +325,51 @@ void gradSGtoAtpos(const vector3<int> S, const vector3<> atpos,
 #ifdef GPU_ENABLED
 void gradSGtoAtpos_gpu(const vector3<int> S, const vector3<> atpos,
 	const complex* ccgrad_SG, vector3<complex*> grad_atpos);
+#endif
+
+
+//! Propagate (complex conjugates of) gradients w.r.t Vlocps, rhoIon etc to symmetric gradient w.r.t lattice vectors
+__hostanddev__ void gradLocalToStress_calc(int i, const vector3<int> iG, const vector3<int> S, const matrix3<> GGT,
+	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, symmetricMatrix3<>* grad_RRT,
+	int nAtoms, const vector3<>* atpos, const RadialFunctionG& VlocRadial, double Z,
+	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Zchargeball, double wChargeballSq)
+{
+	double Gsq = GGT.metric_length_squared(iG);
+	double Gmag = sqrt(Gsq), GmagInv = Gsq ? 1./Gmag : 0.;
+	
+	//Collect the ccgrad * radial derivative contributions:
+	//--- Local potential (short ranged part in the radial function - Z/r):
+	complex ccgradRadial = ccgrad_Vlocps[i] * VlocRadial.deriv(Gmag);
+	//--- Nuclear charge does not contribute to lattice derivative
+	//--- Chargeball:
+	if(ccgrad_nChargeball)
+		ccgradRadial += ccgrad_nChargeball[i] * Zchargeball * exp(-0.5*Gsq*wChargeballSq) * (-wChargeballSq*Gmag);
+	//--- Partial cores:
+	if(ccgrad_nCore) ccgradRadial += ccgrad_nCore[i] * nCoreRadial.deriv(Gmag);
+	if(ccgrad_tauCore) ccgradRadial += ccgrad_tauCore[i] * tauCoreRadial.deriv(Gmag);
+	
+	//Compute structure factor:
+	complex SG = getSG_calc(iG, nAtoms, atpos);
+	
+	//Store result:
+	int weight = (((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2); //weight factor for points in reduced reciprocal space of real scalar fields
+	grad_RRT[i] = (-weight * real(ccgradRadial.conj() * SG) * GmagInv) * outer(vector3<>(iG));
+}
+void gradLocalToStress(const vector3<int> S, const matrix3<> GGT,
+	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, symmetricMatrix3<>* grad_RRT,
+	int nAtoms, const vector3<>* atpos, const RadialFunctionG& VlocRadial, double Z,
+	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Zchargeball, double wChargeballSq);
+#ifdef GPU_ENABLED
+void gradLocalToStress_gpu(const vector3<int> S, const matrix3<> GGT,
+	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, symmetricMatrix3<>* grad_RRT,
+	int nAtoms, const vector3<>* atpos, const RadialFunctionG& VlocRadial, double Z,
+	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Zchargeball, double wChargeballSq);
 #endif
 
 //! @}

@@ -127,22 +127,22 @@ void updateLocal_sub(size_t iStart, size_t iStop, const vector3<int> S, const ma
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {	THREAD_halfGspaceLoop(
 		updateLocal_calc(i, iG, GGT,
 			Vlocps, rhoIon, nChargeball, nCore, tauCore,
 			nAtoms, atpos, invVol, VlocRadial,
-			Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
+			Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq); )
 }
 void updateLocal(const vector3<int> S, const matrix3<> GGT,
 	complex *Vlocps,  complex *rhoIon, complex *nChargeball, complex *nCore, complex* tauCore,
 	int nAtoms, const vector3<>* atpos, double invVol, const RadialFunctionG& VlocRadial,
 	double Z, const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {	threadLaunch(updateLocal_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
 		Vlocps, rhoIon, nChargeball, nCore, tauCore,
 		nAtoms, atpos, invVol, VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq);
 }
 
 //Forces due to local pseudopotential, ionic charge, chargeball and partial cores (to gradient w.r.t structure factor)
@@ -151,23 +151,23 @@ void gradLocalToSG_sub(size_t iStart, size_t iStop, const vector3<int> S, const 
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {	THREAD_halfGspaceLoop(
 		gradLocalToSG_calc(i, iG, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
 		ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball); )
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq); )
 }
 void gradLocalToSG(const vector3<int> S, const matrix3<> GGT,
 	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
 	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, complex* ccgrad_SG,
 	const RadialFunctionG& VlocRadial, double Z,
 	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
-	double Zchargeball, double wChargeball)
+	double Zchargeball, double wChargeballSq)
 {	threadLaunch(gradLocalToSG_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
 		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
 		ccgrad_nCore, ccgrad_tauCore, ccgrad_SG, VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeball);
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq);
 }
 
 //Gradient w.r.t structure factor -> gradient w.r.t atom positions
@@ -178,4 +178,29 @@ void gradSGtoAtpos_sub(size_t iStart, size_t iStop, const vector3<int> S, const 
 void gradSGtoAtpos(const vector3<int> S, const vector3<> atpos,
 	const complex* ccgrad_SG, vector3<complex*> grad_atpos)
 {	threadLaunch(gradSGtoAtpos_sub, S[0]*S[1]*(S[2]/2+1), S, atpos, ccgrad_SG, grad_atpos);
+}
+
+//Stress due to local pseudopotential, ionic charge, chargeball and partial cores
+void gradLocalToStress_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT,
+	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, symmetricMatrix3<>* grad_RRT,
+	int nAtoms, const vector3<>* atpos, const RadialFunctionG& VlocRadial, double Z,
+	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Zchargeball, double wChargeballSq)
+{	THREAD_halfGspaceLoop(
+		gradLocalToStress_calc(i, iG, S, GGT,
+		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
+		ccgrad_nCore, ccgrad_tauCore, grad_RRT, nAtoms, atpos, VlocRadial,
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq); )
+}
+void gradLocalToStress(const vector3<int> S, const matrix3<> GGT,
+	const complex* ccgrad_Vlocps, const complex* ccgrad_rhoIon, const complex* ccgrad_nChargeball,
+	const complex* ccgrad_nCore, const complex* ccgrad_tauCore, symmetricMatrix3<>* grad_RRT,
+	int nAtoms, const vector3<>* atpos, const RadialFunctionG& VlocRadial, double Z,
+	const RadialFunctionG& nCoreRadial, const RadialFunctionG& tauCoreRadial,
+	double Zchargeball, double wChargeballSq)
+{	threadLaunch(gradLocalToStress_sub, S[0]*S[1]*(S[2]/2+1), S, GGT,
+		ccgrad_Vlocps, ccgrad_rhoIon, ccgrad_nChargeball,
+		ccgrad_nCore, ccgrad_tauCore, grad_RRT, nAtoms, atpos, VlocRadial,
+		Z, nCoreRadial, tauCoreRadial, Zchargeball, wChargeballSq);
 }

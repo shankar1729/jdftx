@@ -196,7 +196,7 @@ void SpeciesInfo::updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon
 	callPref(::updateLocal)(gInfo.S, gInfo.GGT,
 		Vlocps->dataPref(), rhoIon->dataPref(), nChargeballData, nCoreData, tauCoreData,
 		atpos.size(), atposManaged.dataPref(), invVol, VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
+		Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
 }
 
 
@@ -217,7 +217,7 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const ScalarFieldTild
 	callPref(gradLocalToSG)(gInfo.S, gInfo.GGT,
 		ccgrad_Vlocps->dataPref(), ccgrad_rhoIonData, ccgrad_nChargeballData,
 		ccgrad_nCoreData, ccgrad_tauCoreData, ccgrad_SG->dataPref(), VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Z_chargeball, width_chargeball);
+		Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
 	
 	//Now propagate that gradient to each atom of this species:
 	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
@@ -234,8 +234,23 @@ std::vector< vector3<double> > SpeciesInfo::getLocalForces(const ScalarFieldTild
 matrix3<> SpeciesInfo::getLocalStress(const ScalarFieldTilde& ccgrad_Vlocps,
 	const ScalarFieldTilde& ccgrad_rhoIon, const ScalarFieldTilde& ccgrad_nChargeball,
 	const ScalarFieldTilde& ccgrad_nCore, const ScalarFieldTilde& ccgrad_tauCore) const
-{	
-	return matrix3<>();
+{
+	if(!atpos.size()) return matrix3<>(); //unused species, no stress
+	
+	const GridInfo& gInfo = e->gInfo;
+	complex* ccgrad_rhoIonData = ccgrad_rhoIon ? ccgrad_rhoIon->dataPref() : 0;
+	complex* ccgrad_nChargeballData = (Z_chargeball && ccgrad_nChargeball) ? ccgrad_nChargeball->dataPref() : 0;
+	complex* ccgrad_nCoreData = nCoreRadial ? ccgrad_nCore->dataPref() : 0;
+	complex* ccgrad_tauCoreData = (tauCoreRadial && ccgrad_tauCore) ? ccgrad_tauCore->dataPref() : 0;
+	
+	//Propagate ccgrad* to lattice derivative:
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(gradLocalToStress)(gInfo.S, gInfo.GGT,
+		ccgrad_Vlocps->dataPref(), ccgrad_rhoIonData, ccgrad_nChargeballData,
+		ccgrad_nCoreData, ccgrad_tauCoreData, result.dataPref(), atpos.size(), atposManaged.dataPref(),
+		VlocRadial, Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.GT * resultSum * gInfo.G;
 }
 
 void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const
