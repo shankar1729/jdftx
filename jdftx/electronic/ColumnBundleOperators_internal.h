@@ -40,14 +40,14 @@ __hostanddev__ void reducedLinv_calc(int j, int nbasis, int ncols, const complex
 
 //Kernel for lattice derivative of Tr[Y^LYF] calculation
 __hostanddev__ void reducedLstress_calc(int j, int nbasis, int ncols, const complex* Y, const double* F,
-	const vector3<int>* iGarr, const vector3<>& k, matrix3<>* result)
+	const vector3<int>* iGarr, const vector3<>& k, symmetricMatrix3<>* result)
 {	//Sum wave function norm at each iG over bands / columns:
 	double bandSum = 0.;
 	for (int i=0; i<ncols; i++)
 		bandSum += F[i] * Y[nbasis*i+j].norm();
 	//Collect weighted iG outer product (subsequently reduced over iG):
 	vector3<> iGk = iGarr[j]+k;
-	result[j] = bandSum * outer(iGk,iGk);
+	result[j] = outer(iGk) * bandSum;
 }
 
 

@@ -49,12 +49,12 @@ void reducedLinv_gpu(int nbasis, int ncols, const complex* Y, complex* LinvY,
 
 __global__
 void reducedLstress_kernel(int nbasis, int ncols, const complex* Y, const double* F,
-	const vector3<int>* iGarr, const vector3<> k, matrix3<>* result)
+	const vector3<int>* iGarr, const vector3<> k, symmetricMatrix3<>* result)
 {	int j = kernelIndex1D();
 	if(j<nbasis) reducedLstress_calc(j, nbasis, ncols, Y, F, iGarr, k, result);
 }
 void reducedLstress_gpu(int nbasis, int ncols, const complex* Y, const double* F,
-	const vector3<int>* iGarr, const vector3<>& k, matrix3<>* result)
+	const vector3<int>* iGarr, const vector3<>& k, symmetricMatrix3<>* result)
 {	GpuLaunchConfig1D glc(reducedLstress_kernel, nbasis);
 	reducedLstress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nbasis, ncols, Y, F, iGarr, k, result);
 	gpuErrorCheck();

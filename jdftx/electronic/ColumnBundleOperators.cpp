@@ -284,7 +284,7 @@ ColumnBundle Linv(const ColumnBundle &Y)
 // Lattice vector derivative of Tr[Y^LYF] (for KE stress calculation)
 #ifdef GPU_ENABLED
 void reducedLstress_gpu(int nbasis, int ncols, const complex* Y, const double* F,
-	const vector3<int>* iGarr, const vector3<>& k, matrix3<>* result);
+	const vector3<int>* iGarr, const vector3<>& k, symmetricMatrix3<>* result);
 #endif
 matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F)
 {	int nSpinor = Y.spinorLength();
@@ -298,7 +298,7 @@ matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F)
 				*(Fdata++) = f;
 	}
 	//Collect derivative contributions for each basis function:
-	ManagedArray<matrix3<>> result;
+	ManagedArray<symmetricMatrix3<>> result;
 	result.init(basis.nbasis, isGpuEnabled());
 	result.zero();
 	#ifdef GPU_ENABLED

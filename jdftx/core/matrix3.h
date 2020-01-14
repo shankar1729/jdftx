@@ -259,21 +259,6 @@ __hostanddev__ matrix3<> inv(const matrix3<> &m) //!< Matrix inverse
 template<typename scalar> __hostanddev__ scalar nrm2sq(const matrix3<scalar>& m) { return trace((~m)*m); } //!< square of 2-norm of matrix
 template<typename scalar> __hostanddev__ double nrm2(const matrix3<scalar>& m) { return sqrt(nrm2sq(m)); } //!< 2-norm of matrix
 
-//! Gradient of matrix determinant
-template<typename scalar> __hostanddev__ matrix3<scalar> detGrad(const matrix3<scalar>& m)
-{	matrix3<scalar> result;
-	result.set_rows(
-		cross(m.row(1), m.row(2)),
-		cross(m.row(2), m.row(0)),
-		cross(m.row(0), m.row(1)) );
-	return result;
-}
-
-//! Gradient of absolute value of matrix determinant (used repeatedly in propagation of unit cell lattice derivatives)
-template<typename scalar> __hostanddev__ matrix3<scalar> absDetGrad(const matrix3<scalar>& m)
-{	return detGrad(m) * copysign(1.,det(m));
-}
-
 //! Create a rotation matrix
 __hostanddev__ matrix3<> rotation(double theta, int axis)
 {	double s, c; sincos(theta, &s, &c);
@@ -295,6 +280,39 @@ __hostanddev__ matrix3<> rotation(double theta, int axis)
 			 0,  0,  1 );
 	}
 }
+
+//! Symmetric matrix that stores only non-redundant entries (with limited operations)
+template<typename scalar=double> struct symmetricMatrix3
+{
+	scalar xx, yy, zz, yz, zx, xy;
+	
+	__hostanddev__ symmetricMatrix3(scalar xx=scalar(), scalar yy=scalar(), scalar zz=scalar(),
+		scalar yz=scalar(), scalar zx=scalar(), scalar xy=scalar())
+	: xx(xx), yy(yy), zz(zz), yz(yz), zx(zx), xy(xy)
+	{
+	}
+	
+	//! Convert to regular matrix (for most operations)
+	__hostanddev__ operator matrix3<scalar>() const
+	{	return matrix3<scalar>(
+			xx, xy, zx,
+			xy, yy, yz,
+			zx, yz, zz );
+	}
+	
+	//! Scale
+	__hostanddev__ symmetricMatrix3<scalar> operator*(scalar s) const
+	{	return symmetricMatrix3(s*xx, s*yy, s*zz, s*yz, s*zx, s*xy);
+	}
+};
+template<typename scalar> __hostanddev__ symmetricMatrix3<scalar> operator*(scalar s, symmetricMatrix3<scalar> m) { return m * s; } //!< Scale
+
+
+//! Symmetric outer product of vector
+template<typename scalar> __hostanddev__ symmetricMatrix3<scalar> outer(const vector3<scalar> &v)
+{	return symmetricMatrix3<scalar>(v[0]*v[0], v[1]*v[1], v[2]*v[2], v[1]*v[2], v[2]*v[0], v[0]*v[1]);
+}
+
 
 //! Space group operation r -> rot * r + a in real-space lattice coordinates
 struct SpaceGroupOp
