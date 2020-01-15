@@ -164,3 +164,8 @@ ScalarFieldTilde CoulombSlab::apply(ScalarFieldTilde&& in) const
 std::shared_ptr<Ewald> CoulombSlab::createEwald(matrix3<> R, size_t nAtoms) const
 {	return std::make_shared<EwaldSlab>(R, params.iDir, params.ionMargin);
 }
+
+matrix3<> CoulombSlab::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	die("Lattice gradient of CoulombSlab not yet implemented.\n\n");
+	return matrix3<>();
+}

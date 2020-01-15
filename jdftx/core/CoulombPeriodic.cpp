@@ -142,12 +142,14 @@ CoulombPeriodic::CoulombPeriodic(const GridInfo& gInfoOrig, const CoulombParams&
 
 ScalarFieldTilde CoulombPeriodic::apply(ScalarFieldTilde&& in) const
 {	callPref(coulombAnalytic)(gInfo.S, gInfo.GGT, CoulombPeriodic_calc(), in->dataPref(false));
-	
-	in->zero(); //HACK
-	
 	return in;
 }
 
 std::shared_ptr<Ewald> CoulombPeriodic::createEwald(matrix3<> R, size_t nAtoms) const
 {	return std::make_shared<EwaldPeriodic>(R, nAtoms);
+}
+
+matrix3<> CoulombPeriodic::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	die("Lattice gradient of CoulombPeriodic not yet implemented.\n\n");
+	return matrix3<>();
 }

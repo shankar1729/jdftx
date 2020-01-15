@@ -130,6 +130,9 @@ public:
 	//! Apply Coulomb kernel (parameters same as destructible input version above)
 	ScalarFieldTilde operator()(const ScalarFieldTilde&, PointChargeMode pointChargeMode=PointChargeNone) const;
 	
+	//! Return the lattice gradient of dot(X, O(coulomb(Y))
+	matrix3<> latticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y, PointChargeMode pointChargeMode=PointChargeNone) const;
+	
 	//! Create the appropriate Ewald class, if required, and call Ewald::energyAndGrad
 	//! Includes interaction with Efield, if present (Requires embedded truncation)
 	//!If E_RRT is non-null, accumulate contrbutions to the symmetric lattice derivative (stress * volume)
@@ -145,6 +148,9 @@ public:
 	//! Apply regularized coulomb kernel for exchange integral with k-point difference kDiff
 	//! and optionally screened with range parameter omega (destructible input)
 	complexScalarFieldTilde operator()(const complexScalarFieldTilde&, vector3<> kDiff, double omega) const;
+
+	//! Return the lattice gradient of exchange integral dot(X, O(coulomb(X)) for given k-point difference and screening parameter
+	matrix3<> latticeGradient(const complexScalarFieldTilde& X, vector3<> kDiff, double omega) const;
 
 private:
 	const GridInfo& gInfoOrig; //!< original grid
@@ -172,6 +178,9 @@ protected:
 	//!The number of atoms may be used for choosing the optimum gaussian width sigma
 	virtual std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const=0;
 
+	//! Return the lattice gradient of dot(X, O(coulomb(Y))
+	virtual matrix3<> getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const=0;
+	
 private:
 	//Data for mesh-embedded truncation:
 	GridInfo gInfoEmbed; //!< embedding grid - internal object initialized only if params.embed == true
@@ -184,7 +193,7 @@ private:
 	double ionWidth; //!< Range separation parameter for dealing with point charges in the embedded method
 	std::shared_ptr<RealKernel> ionKernel;
 	ScalarFieldTilde embedExpand(const ScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
-	complexScalarFieldTilde embedExpand(complexScalarFieldTilde&& in) const; //!< expand to embedding grid and symmetrize boundaries
+	complexScalarFieldTilde embedExpand(const complexScalarFieldTilde& in) const; //!< expand to embedding grid and symmetrize boundaries
 	ScalarFieldTilde embedShrink(const ScalarFieldTilde& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
 	complexScalarFieldTilde embedShrink(complexScalarFieldTilde&& in) const; //!< symmetrize boundaries and shrink to original grid (dagger of embedExpand)
 	friend struct FluidSolver;

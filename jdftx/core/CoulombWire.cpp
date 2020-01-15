@@ -250,6 +250,11 @@ std::shared_ptr<Ewald> CoulombWire::createEwald(matrix3<> R, size_t nAtoms) cons
 {	return std::make_shared<EwaldWire>(R, params.iDir, ws, params.ionMargin);
 }
 
+matrix3<> CoulombWire::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	die("Lattice gradient of CoulombWire not yet implemented.\n\n");
+	return matrix3<>();
+}
+
 
 //----------------- class CoulombCylindrical ---------------------
 
@@ -294,3 +299,9 @@ ScalarFieldTilde CoulombCylindrical::apply(ScalarFieldTilde&& in) const
 std::shared_ptr<Ewald> CoulombCylindrical::createEwald(matrix3<> R, size_t nAtoms) const
 {	return std::make_shared<EwaldWire>(R, params.iDir, ws, params.ionMargin, Rc, Rc);
 }
+
+matrix3<> CoulombCylindrical::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	die("Lattice gradient of CoulombCylindrical not yet implemented.\n\n");
+	return matrix3<>();
+}
+

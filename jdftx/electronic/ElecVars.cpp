@@ -482,6 +482,8 @@ matrix3<> ElecVars::latticeGrad() const
 	
 	//Add q-independent contributions:
 	result += id * (e->ener.E["KE"] + e->ener.E["Exc"]); //volume contribution to KE and XC stress
+	ScalarFieldTilde nTilde = J(get_nTot());
+	result += 0.5 * e->coulomb->latticeGradient(nTilde, nTilde); //Hartree term
 	
 	//TODO: remaining components
 	return result;

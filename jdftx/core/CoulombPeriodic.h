@@ -34,6 +34,7 @@ public:
 protected:
 	ScalarFieldTilde apply(ScalarFieldTilde&&) const;
 	std::shared_ptr<Ewald> createEwald(matrix3<> R, size_t nAtoms) const;
+	matrix3<> getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const;
 };
 
 //! @}

@@ -223,9 +223,11 @@ double IonInfo::ionicEnergyAndGrad()
 		forcesLoc.print(*e, globalLog, "forceLoc");
 	//Propagate those gradients to stresses:
 	if(computeStress)
-		for(const auto& sp: species)
-		E_RRT += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
-			ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
+	{	for(const auto& sp: species)
+			E_RRT += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
+				ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
+		E_RRT += e->coulomb->latticeGradient(rhoIon, ccgrad_Vlocps, Coulomb::PointChargeLeft);
+	}
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------
 	IonicGradient forcesNL; forcesNL.init(*this);

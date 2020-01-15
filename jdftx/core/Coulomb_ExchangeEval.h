@@ -33,6 +33,9 @@ struct ExchangeEval
 	~ExchangeEval();
 	complexScalarFieldTilde operator()(complexScalarFieldTilde&& in, vector3<> kDiff) const;
 
+	//! Return the lattice gradient of exchange integral dot(X, O(coulomb(X)) for given k-point difference
+	matrix3<> latticeGradient(const complexScalarFieldTilde& X, vector3<> kDiff) const;
+
 private:
 	const GridInfo& gInfo;
 	double omega;

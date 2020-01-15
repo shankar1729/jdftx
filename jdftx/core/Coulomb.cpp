@@ -136,11 +136,11 @@ ScalarFieldTilde Coulomb::embedExpand(const ScalarFieldTilde& in) const
 	return J(out);
 }
 
-complexScalarFieldTilde Coulomb::embedExpand(complexScalarFieldTilde&& in) const
+complexScalarFieldTilde Coulomb::embedExpand(const complexScalarFieldTilde& in) const
 {	assert(params.embed);
 	assert(&(in->gInfo) == &gInfoOrig);
 	complexScalarField out; nullToZero(out, gInfo);
-	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), I(Complex(centerToO) * ((complexScalarFieldTilde&&)in))->dataPref(), out->dataPref());
+	callPref(eblas_scatter_zdaxpy)(gInfoOrig.nr, 1., embedIndex.dataPref(), I(Complex(centerToO) * in)->dataPref(), out->dataPref());
 	boundarySymmetrize(symmIndex, out->dataPref());
 	return J((complexScalarField&&)out);
 }
@@ -185,7 +185,7 @@ ScalarFieldTilde Coulomb::operator()(const ScalarFieldTilde& in, PointChargeMode
 complexScalarFieldTilde Coulomb::operator()(complexScalarFieldTilde&& in, vector3<> kDiff, double omega) const
 {	auto exEvalOmega = exchangeEval.find(omega);
 	assert(exEvalOmega != exchangeEval.end());
-	if(params.embed) return embedShrink((*exEvalOmega->second)(embedExpand((complexScalarFieldTilde&&)in), kDiff));
+	if(params.embed) return embedShrink((*exEvalOmega->second)(embedExpand(in), kDiff));
 	else return (*exEvalOmega->second)((complexScalarFieldTilde&&)in, kDiff);
 }
 
@@ -193,6 +193,27 @@ complexScalarFieldTilde Coulomb::operator()(const complexScalarFieldTilde& in, v
 {	complexScalarFieldTilde out(in->clone()); //create destructible copy
 	return (*this)((complexScalarFieldTilde&&)out, kDiff, omega);
 }
+
+matrix3<> Coulomb::latticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y, Coulomb::PointChargeMode pointChargeMode) const
+{	if(params.embed)
+	{	const ScalarFieldTilde& Xreg = pointChargeMode==Coulomb::PointChargeLeft ? gaussConvolve(X, ionWidth) : X;
+		const ScalarFieldTilde& Yreg = pointChargeMode==Coulomb::PointChargeRight ? gaussConvolve(Y, ionWidth) : Y;
+		matrix3<> result = getLatticeGradient(Xreg, Yreg);
+		if(pointChargeMode != PointChargeNone)
+		{	//TODO: handle contributions of LR part and from gauss kernel
+			die("Point charge modes not yet implemented in embedded truncated coulomb stress.\n\n");
+		}
+		return result;
+	}
+	else return getLatticeGradient(X, Y);
+}
+
+matrix3<> Coulomb::latticeGradient(const complexScalarFieldTilde& X, vector3< double > kDiff, double omega) const
+{	auto exEvalOmega = exchangeEval.find(omega);
+	assert(exEvalOmega != exchangeEval.end());
+	return exEvalOmega->second->latticeGradient(params.embed ? embedExpand(X) : X, kDiff);
+}
+
 
 double Coulomb::energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
 {	if(!ewald) ((Coulomb*)this)->ewald = createEwald(gInfo.R, atoms.size());

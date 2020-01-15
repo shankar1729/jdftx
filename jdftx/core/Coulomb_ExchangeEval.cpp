@@ -547,3 +547,9 @@ complexScalarFieldTilde ExchangeEval::operator()(complexScalarFieldTilde&& in, v
 	#undef CALL_exchangeAnalytic
 	return in;
 }
+
+matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector3< double > kDiff) const
+{
+	die("Lattice gradient of exchange integral not yet implemented.\n\n");
+	return matrix3<>();
+}
