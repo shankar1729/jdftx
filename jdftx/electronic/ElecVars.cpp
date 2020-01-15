@@ -473,20 +473,24 @@ matrix3<> ElecVars::latticeGrad() const
 	const matrix3<> id(1.,1.,1.); //identity
 	
 	//Compute q-dependent contributions:
-	matrix3<> result;
+	matrix3<> E_RRT;
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-		result += e->eInfo.qnums[q].weight * (
+		E_RRT += e->eInfo.qnums[q].weight * (
 			-0.5*Lstress(C[q], F[q]) //contribution to KE stress via laplacian operator
 			- traceinner(Hsub_eigs[q]*F[q], C[q], C[q]).real() * e->gInfo.detR * id); //volume contribution to orthonormality constraint
-	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum);
 	
 	//Add q-independent contributions:
-	result += id * (e->ener.E["KE"] + e->ener.E["EH"] + e->ener.E["Exc"]); //volume contribution to various energy terms
+	//--- volume contribution in various terms
+	E_RRT += id * (e->ener.E["KE"] + e->ener.E["EH"] + e->ener.E["Exc"]);
+	//--- Hartree
 	ScalarFieldTilde nTilde = J(get_nTot());
-	result += 0.5 * e->coulomb->latticeGradient(nTilde, nTilde); //Hartree term
+	E_RRT += 0.5 * e->coulomb->latticeGradient(nTilde, nTilde);
+	//--- Excange-correlation
+	e->exCorr(get_nXC(), 0, false, &tau, 0, &E_RRT);
 	
 	//TODO: remaining components
-	return result;
+	return E_RRT;
 }
 
 //Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 

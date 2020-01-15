@@ -617,7 +617,7 @@ template<typename Func> bool shouldInclude(const std::shared_ptr<Func>& function
 }
 
 double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC,
-		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, matrix3<>* Exc_R) const
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, matrix3<>* Exc_RRT) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
 	watch.start();
@@ -633,7 +633,7 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	ScalarField E; nullToZero(E, gInfo);
 	
 	//Gradient w.r.t spin densities:
-	bool needGradients = (Vxc or Exc_R); //need gradient propagation (for Vxc/Vtau, or for Exc_R)
+	bool needGradients = (Vxc or Exc_RRT); //need gradient propagation (for Vxc/Vtau, or for Exc_RRT)
 	if(Vxc) Vxc->clear();
 	ScalarFieldArray E_n(nCount);
 	if(needGradients) nullToZero(E_n, gInfo);
@@ -860,6 +860,15 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		//Propagate spatial gradient contribution to density
 		if(needsSigma)
 		{	ScalarFieldTildeArray E_nTilde(nInCount); //contribution to the potential in fourier space
+			matrix3<> Esigma_RRT; //stress contribution through gradients
+			std::vector<VectorField> DnAll(nInCount); //gradients of all density components required for stress calculation
+			if(Exc_RRT)
+			{	for(int s=0; s<nInCount; s++)
+				{	const ScalarFieldTilde Jn = J(n[s]);
+					for(int i=0; i<3; i++)
+						DnAll[s][i] = (i>=iDirStart and i<iDirStop and nInCount==nCount) ? Dn[s][i] : I(D(Jn,i));
+				}
+			}
 			for(int i=iDirStart; i<iDirStop; i++)
 			{	//Propagate from contraction sigma to the spatial derivatives
 				ScalarFieldArray E_Dni(nCount);
@@ -880,6 +889,12 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 				//Propagate to E_nTilde:
 				for(int s=0; s<nInCount; s++)
 					E_nTilde[s] -= D(Idag(E_Dni[s]), i);
+				//Propagate to lattice derivative:
+				if(Exc_RRT)
+				{	for(int s=0; s<nInCount; s++)
+						for(int j=0; j<3; j++)
+							Esigma_RRT(i,j) -= dot(E_Dni[s], DnAll[s][j]) * gInfo.dV;
+				}
 			}
 			//Accumulate over processes:
 			for(int s=0; s<nInCount; s++)
@@ -887,7 +902,11 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 				nullToZero(E_nTilde[s], gInfo);
 				E_nTilde[s]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 				watchComm.stop();
-				E_n[s] += Jdag(E_nTilde[s],true);
+				E_n[s] += Jdag(E_nTilde[s]);
+			}
+			if(Exc_RRT)
+			{	mpiWorld->allReduce(Esigma_RRT, MPIUtil::ReduceSum);
+				*Exc_RRT += Esigma_RRT;
 			}
 		}
 	}
@@ -900,11 +919,11 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 
 //Unpolarized wrapper to above function:
 double ExCorr::operator()(const ScalarField& n, ScalarField* Vxc, IncludeTXC includeTXC,
-		const ScalarField* tau, ScalarField* Vtau, matrix3<>* Exc_R) const
+		const ScalarField* tau, ScalarField* Vtau, matrix3<>* Exc_RRT) const
 {	ScalarFieldArray VxcArr(1), tauArr(1), VtauArr(1);
 	if(tau) tauArr[0] = *tau;
 	double Exc =  (*this)(ScalarFieldArray(1, n), Vxc ? &VxcArr : 0, includeTXC,
-		tau ? &tauArr :0, Vtau ? &VtauArr : 0, Exc_R);
+		tau ? &tauArr :0, Vtau ? &VtauArr : 0, Exc_RRT);
 	if(Vxc) *Vxc = VxcArr[0];
 	if(Vtau) *Vtau = VtauArr[0];
 	return Exc;
