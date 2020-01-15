@@ -164,20 +164,8 @@ void IonInfo::update(Energies& ener)
 	pairPotentialsAndGrad(&ener);
 	
 	//Pulay corrections:
-	double dEtot_dnG = 0.0; //derivative of Etot w.r.t nG  (G-vectors/unit volume)
-	for(auto sp: species)
-		dEtot_dnG += sp->atpos.size() * sp->dE_dnG;
-	
-	double nbasisAvg = 0.0;
-	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-		nbasisAvg += 0.5*e->eInfo.qnums[q].weight * e->basis[q].nbasis;
-	mpiWorld->allReduce(nbasisAvg, MPIUtil::ReduceSum);
-	
-	ener.E["Epulay"] = dEtot_dnG * 
-		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
-		-  nbasisAvg/e->gInfo.detR ); //actual nG
+	ener.E["Epulay"] = calcEpulay();
 }
-
 
 double IonInfo::ionicEnergyAndGrad()
 {	const ElecInfo &eInfo = e->eInfo;
@@ -186,7 +174,9 @@ double IonInfo::ionicEnergyAndGrad()
 	//Initialize lattice gradient for stress if needed:
 	matrix3<> E_RRT; //symmetric matrix derivative E_R . RT
 	if(computeStress)
-		E_RRT = e->eVars.latticeGrad();
+	{	E_RRT += e->eVars.latticeGrad(); //Electronic contributions
+		calcEpulay(&E_RRT); //Pulay stress
+	}
 	
 	//---------- Pair potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
@@ -476,4 +466,22 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
 				(*forces)[sp][at] = (atom++)->force;
 	}
+}
+
+double IonInfo::calcEpulay(matrix3<>* E_RRT) const
+{	double dEtot_dnG = 0.0; //derivative of Etot w.r.t nG  (G-vectors/unit volume)
+	for(auto sp: species)
+		dEtot_dnG += sp->atpos.size() * sp->dE_dnG;
+	
+	double nbasisAvg = 0.0;
+	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
+		nbasisAvg += 0.5*e->eInfo.qnums[q].weight * e->basis[q].nbasis;
+	mpiWorld->allReduce(nbasisAvg, MPIUtil::ReduceSum);
+	
+	if(E_RRT)
+		*E_RRT += matrix3<>(1,1,1) * (dEtot_dnG * nbasisAvg/e->gInfo.detR);
+	
+	return dEtot_dnG * 
+		( sqrt(2.0)*pow(e->cntrl.Ecut,1.5)/(3.0*M_PI*M_PI) //ideal nG
+		-  nbasisAvg/e->gInfo.detR ); //actual nG
 }

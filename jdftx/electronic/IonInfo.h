@@ -128,6 +128,9 @@ private:
 	
 	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
 	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
+	
+	//! Compute pulay contributions to energy and optionally stress
+	double calcEpulay(matrix3<>* E_RRT=0) const;
 };
 
 //! @}
