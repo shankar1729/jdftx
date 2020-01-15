@@ -150,6 +150,8 @@ std::shared_ptr<Ewald> CoulombPeriodic::createEwald(matrix3<> R, size_t nAtoms) 
 }
 
 matrix3<> CoulombPeriodic::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	die("Lattice gradient of CoulombPeriodic not yet implemented.\n\n");
-	return matrix3<>();
+{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombAnalyticStress)(gInfo.S, gInfo.GGT, CoulombPeriodic_calc(), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref()); //for contribution through coulomb kernel
+	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
 }

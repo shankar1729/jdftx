@@ -37,6 +37,25 @@ DECLARE_coulombAnalytic(Spherical)
 #undef DECLARE_coulombAnalytic
 
 
+template<typename Coulomb_calc>
+void coulombAnalyticStress_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const Coulomb_calc& calc,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+{
+	THREAD_halfGspaceLoop
+	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+		grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
+	)
+}
+#define DECLARE_coulombAnalyticStress(Type) \
+	void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const Coulomb##Type##_calc& calc, \
+		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR) \
+	{	\
+		threadLaunch(coulombAnalyticStress_thread<Coulomb##Type##_calc>, S[0]*S[1]*(1+S[2]/2), S, GGT, calc, X, Y, grad_RTR); \
+	}
+DECLARE_coulombAnalyticStress(Periodic)
+#undef DECLARE_coulombAnalyticStress
+
+
 template<typename Exchange_calc>
 void exchangeAnalytic_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const Exchange_calc& calc,
 	complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq)

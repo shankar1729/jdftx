@@ -39,6 +39,26 @@ DECLARE_coulombAnalytic_gpu(Spherical)
 #undef DECLARE_coulombAnalytic_gpu
 
 
+template<typename Coulomb_calc> __global__
+void coulombAnalyticStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const Coulomb_calc calc,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+{
+	COMPUTE_halfGindices
+	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+	grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
+}
+#define DECLARE_coulombAnalyticStress_gpu(Type) \
+	void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const Coulomb##Type##_calc& calc, \
+		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR) \
+	{	\
+		GpuLaunchConfigHalf3D glc(coulombAnalyticStress_kernel<Coulomb##Type##_calc>, S); \
+		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++) \
+			coulombAnalyticStress_kernel<Coulomb##Type##_calc><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, calc, X, Y, grad_RTR); \
+	}
+DECLARE_coulombAnalyticStress_gpu(Periodic)
+#undef DECLARE_coulombAnalytic_gpu
+
+
 template<typename Exchange_calc> __global__
 void exchangeAnalytic_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const Exchange_calc calc,
 	complex* data, const vector3<> kDiff, double Vzero, double thresholdSq)
