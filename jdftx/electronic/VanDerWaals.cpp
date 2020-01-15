@@ -134,10 +134,8 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	}
 }
 
-double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT) const
+double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
 {
-	if(E_RRT) die("vdW stress not yet implemented.\n\n");
-	
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
 	vector3<int> S; //number of unit cells sampled in each direction
@@ -148,6 +146,7 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 	
 	double Etot = 0.;  //Total VDW Energy
 	std::vector<vector3<>> forces(atoms.size()); //VDW forces per atom
+	matrix3<> E_RRT; //Stress * volume (updated only if E_RRTptr is non-null)
 	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const AtomParams& c1params = getParams(atoms[c1].atomicNumber, atoms[c1].sp);
 		for(int c2=0; c2<int(atoms.size()); c2++)
@@ -165,15 +164,23 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 					vector3<> E_x = (cellWeight * scaleFac * E_r/r) * (e->gInfo.RTR * x); 
 					forces[c1] += E_x;
 					forces[c2] -= E_x;
+					if(E_RRTptr)
+					{	const vector3<> rVec = e->gInfo.R * x;
+						E_RRT -= (cellWeight * scaleFac * E_r/r) * outer(rVec, rVec);
+					}
 				}
 			)
 		}
 	}
 	//Collect over MPI:
 	mpiWorld->allReduce(Etot, MPIUtil::ReduceSum, true);
-	mpiWorld->allReduce(&forces[0][0], 3*atoms.size(), MPIUtil::ReduceSum, true);
+	mpiWorld->allReduceData(forces, MPIUtil::ReduceSum, true);
 	for(int c=0; c<int(atoms.size()); c++)
 		atoms[c].force += forces[c];
+	if(E_RRTptr)
+	{	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum, true);
+		*E_RRTptr += E_RRT;
+	}
 	return Etot;
 }
 
