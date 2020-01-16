@@ -853,7 +853,9 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		//Propagate Laplacian contribution to density
 		if(needsLap)
 		{	for(int s=0; s<nInCount; s++)
-				E_n[s] += Jdag((1./gInfo.detR) * L(Idag(E_lap[s])));
+			{	E_n[s] += Jdag((1./gInfo.detR) * L(Idag(E_lap[s])));
+				if(Exc_RRT) *Exc_RRT += Lstress(J(n[s]), J(E_lap[s]));
+			}
 			E_lap.clear();
 		}
 

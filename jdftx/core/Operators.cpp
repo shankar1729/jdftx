@@ -301,6 +301,26 @@ complexScalarFieldTilde Linv(complexScalarFieldTilde&& in)
 complexScalarFieldTilde Linv(const complexScalarFieldTilde& in) { return Linv(in->clone()); }
 
 
+void Lstress_thread(size_t iStart, size_t iStop, const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+{	THREAD_halfGspaceLoop
+	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+		grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
+	)
+}
+inline void Lstress(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+{	threadLaunch(Lstress_thread, S[0]*S[1]*(S[2]/2+1), S, X, Y, grad_RTR);
+}
+#ifdef GPU_ENABLED //implemented in Operators.cu
+void Lstress_gpu(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+#endif
+matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y)
+{	const GridInfo& gInfo = X->gInfo;
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(Lstress)(gInfo.S, X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return (2.*gInfo.detR) * (gInfo.GT * resultSum * gInfo.G);
+}
+
 
 template<typename Scalar> void zeroNyquist_sub(size_t iStart, size_t iStop, const vector3<int> S, Scalar* data)
 {	THREAD_halfGspaceLoop( if(IS_NYQUIST) data[i] = Scalar(0.0); )

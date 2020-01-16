@@ -79,6 +79,7 @@ ScalarFieldTilde L(const ScalarFieldTilde&); //!< Laplacian
 ScalarFieldTilde L(ScalarFieldTilde&&); //!< Laplacian
 complexScalarFieldTilde L(const complexScalarFieldTilde&); //!< Laplacian
 complexScalarFieldTilde L(complexScalarFieldTilde&&); //!< Laplacian
+matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,LY)
 
 ScalarFieldTilde Linv(const ScalarFieldTilde&); //!< Inverse Laplacian
 ScalarFieldTilde Linv(ScalarFieldTilde&&); //!< Inverse Laplacian
