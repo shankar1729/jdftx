@@ -475,9 +475,24 @@ matrix3<> ElecVars::latticeGrad() const
 	//Compute q-dependent contributions:
 	matrix3<> E_RRT;
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
-		E_RRT += e->eInfo.qnums[q].weight * (
+	{	E_RRT += e->eInfo.qnums[q].weight * (
 			-0.5*Lstress(C[q], F[q]) //contribution to KE stress via laplacian operator
 			- traceinner(Hsub_eigs[q]*F[q], C[q], C[q]).real() * e->gInfo.detR * id); //volume contribution to orthonormality constraint
+		
+		//KE-density contribution for meta-GGAs:
+		if(e->exCorr.needsKEdensity())
+		{	for(int iDir=0; iDir<3; iDir++)
+			{	ColumnBundle VCi = Idag_DiagV_I(D(C[q],iDir), Vtau);
+				for(int jDir=iDir; jDir<3; jDir++)
+				{	double tauStress_ij = (-e->eInfo.qnums[q].weight * e->gInfo.dV)
+						* traceinner(F[q], VCi, D(C[q],jDir)).real();
+					E_RRT(iDir,jDir) += tauStress_ij;
+					if(iDir!=jDir)
+						E_RRT(jDir,iDir) += tauStress_ij;
+				}
+			}
+		}
+	}
 	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum);
 	
 	//Add q-independent contributions:
