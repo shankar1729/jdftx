@@ -231,9 +231,10 @@ double IonInfo::ionicEnergyAndGrad()
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------
 	IonicGradient forcesNL; forcesNL.init(*this);
+	matrix3<> Enl_RRT, *Enl_RRTptr = computeStress ? &Enl_RRT : 0;
 	if(eInfo.hasU) //Include DFT+U contribution if any:
-		rhoAtom_forces(eVars.F, eVars.C, eVars.U_rhoAtom, forcesNL);
-	augmentDensityGridGrad(eVars.Vscloc, &forcesNL);
+		rhoAtom_forces(eVars.F, eVars.C, eVars.U_rhoAtom, forcesNL, Enl_RRTptr);
+	augmentDensityGridGrad(eVars.Vscloc, &forcesNL, Enl_RRTptr);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	const QuantumNumber& qnum = e->eInfo.qnums[q];
 		//Collect gradients with respect to VdagCq (not including fillings and state weight):
@@ -243,7 +244,7 @@ double IonInfo::ionicEnergyAndGrad()
 		//Propagate to atomic positions:
 		for(unsigned sp=0; sp<species.size(); sp++) if(HVdagCq[sp])
 		{	matrix grad_CdagOCq = -(eVars.Hsub_eigs[q] * eVars.F[q]); //gradient of energy w.r.t overlap matrix
-			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], grad_CdagOCq, forcesNL[sp]);
+			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], grad_CdagOCq, forcesNL[sp], Enl_RRTptr);
 		}
 	}
 	for(auto& force: forcesNL) //Accumulate contributions over processes
@@ -252,6 +253,10 @@ double IonInfo::ionicEnergyAndGrad()
 	forces += forcesNL;
 	if(shouldPrintForceComponents)
 		forcesNL.print(*e, globalLog, "forceNL");
+	if(computeStress)
+	{	mpiWorld->allReduce(Enl_RRT, MPIUtil::ReduceSum);
+		E_RRT += Enl_RRT;
+	}
 	
 	//Compute stress tensor from lattice gradient if needed:
 	if(computeStress)
@@ -285,9 +290,9 @@ void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatri
 void IonInfo::augmentDensityGrid(ScalarFieldArray& n) const
 {	for(auto sp: species) sp->augmentDensityGrid(n);
 }
-void IonInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces) const
+void IonInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces, matrix3<>* Eaug_RRT) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
-		((SpeciesInfo&)(*species[sp])).augmentDensityGridGrad(E_n, forces ? &forces->at(sp) : 0);
+		((SpeciesInfo&)(*species[sp])).augmentDensityGridGrad(E_n, forces ? &forces->at(sp) : 0, Eaug_RRT);
 }
 void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
@@ -356,11 +361,11 @@ void IonInfo::rhoAtom_grad(const ColumnBundle& Cq, const std::vector<matrix>& U_
 	}
 }
 
-void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces) const
+void IonInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom, IonicGradient& forces, matrix3<>* EU_RRT) const
 {	const matrix* U_rhoAtomPtr = U_rhoAtom.data();
 	auto forces_sp = forces.begin();
 	for(const auto& sp: species)
-	{	sp->rhoAtom_forces(F, C, U_rhoAtomPtr, *forces_sp);
+	{	sp->rhoAtom_forces(F, C, U_rhoAtomPtr, *forces_sp, EU_RRT);
 		U_rhoAtomPtr += sp->rhoAtom_nMatrices();
 		forces_sp++;
 	}

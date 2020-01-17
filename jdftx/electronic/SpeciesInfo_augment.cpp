@@ -185,7 +185,7 @@ void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces)
+void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<>>* forces, matrix3<>* Eaug_RRT)
 {	static StopWatch watch("augmentDensityGridGrad"); watch.start();
 	augmentDensityGrid_COMMON_INIT
 	if(!nAug) augmentDensityInit();
@@ -198,6 +198,9 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 	{	matrix nAugTot = nAug; mpiWorld->allReduceData(nAugTot, MPIUtil::ReduceSum);
 		nAugRadial = QradialMat * nAugTot;
 		nAugRadialData = (const double*)nAugRadial.dataPref();
+	}
+	if(Eaug_RRT)
+	{	die("Augmentation stress calculation not yet implemented.\n\n");
 	}
 	VectorFieldTilde E_atpos; if(forces) nullToZero(E_atpos, gInfo);
 	for(unsigned s=0; s<E_n.size(); s++)

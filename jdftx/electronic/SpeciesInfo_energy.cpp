@@ -138,8 +138,12 @@ void SpeciesInfo::rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 	watch.stop();
 }
 
-void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const
+void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr,
+	std::vector<vector3<> >& forces, matrix3<>* EU_RRT) const
 {	rhoAtom_COMMONinit
+	if(EU_RRT)
+	{	die("DFT+U stress calculation not yet implemented.\n\n");
+	}
 	UparamLOOP
 	(	U_rho_PACK
 		for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
@@ -160,13 +164,16 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 	)
 }
 
-void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M, const vector3<>* derivDir) const
+void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M, const vector3<>* derivDir, const int stressDir) const
 {	rhoAtom_COMMONinit
 	int matSizeTot = 0; UparamLOOP( matSizeTot += orbCount * atpos.size(); )
 	if(!matSizeTot) return;
 	Opsi = Cq.similar(matSizeTot);
 	M = zeroes(matSizeTot, matSizeTot);
 	int matSizePrev = 0;
+	if(stressDir>=0)
+	{	die("DFT+U stress projectors not yet implemented.\n\n");
+	}
 	UparamLOOP
 	(	U_rho_PACK
 		int s = Cq.qnum->index();
@@ -253,11 +260,25 @@ matrix3<> SpeciesInfo::getLocalStress(const ScalarFieldTilde& ccgrad_Vlocps,
 	return gInfo.GT * resultSum * gInfo.G;
 }
 
-void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const
-{	matrix DVdagC[3]; //cartesian gradient of VdagC
+void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq,
+	std::vector<vector3<>>& forces, matrix3<>* Enl_RRT) const
+{
+	//Cartesian gradient of VdagC:
+	matrix DVdagC[3]; 
 	{	auto V = getV(Cq);
 		for(int k=0; k<3; k++)
 			DVdagC[k] = D(*V,k)^Cq;
+	}
+	//Lattice derivative of VdagC
+	matrix VdagC_RRT[6]; 
+	int RRTindex[6][2] = {{0,0}, {1,1}, {2,2}, {1,2}, {2,0}, {0,1}}; //symmetric matrix indexing
+	if(Enl_RRT)
+	{	for(int ij=0; ij<6; ij++) //loop over stress components
+		{	int iDir = RRTindex[ij][0];
+			int jDir = RRTindex[ij][1];
+			int stressDir = 3*iDir+jDir; //combined index for stress projector functions
+			VdagC_RRT[ij] = (*getV(Cq, 0, stressDir)) ^ Cq;
+		}
 	}
 	int nProj = MnlAll.nRows();
 	//Loop over atoms:
@@ -272,17 +293,29 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 			fCart[k] = trace(E_atomVdagC * dagger(atomDVdagC)).real();
 		}
 		forces[atom] += 2.*Cq.qnum->weight * (e->gInfo.RT * fCart);
+		
+		if(Enl_RRT)
+		{	for(int ij=0; ij<6; ij++) //loop over stress components
+			{	int iDir = RRTindex[ij][0];
+				int jDir = RRTindex[ij][1];
+				matrix atomVdagC_RRT = VdagC_RRT[ij](atom*nProj,(atom+1)*nProj, 0,E_VdagC.nCols());
+				double Enl_RRT_ij = 2.*Cq.qnum->weight * trace(E_atomVdagC * dagger(atomVdagC_RRT)).real();
+				(*Enl_RRT)(iDir,jDir) += Enl_RRT_ij;
+				if(iDir != jDir)
+					(*Enl_RRT)(jDir,iDir) += Enl_RRT_ij;
+			}
+		}
 	}
 }
 
-std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const vector3<>* derivDir) const
+std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const vector3<>* derivDir, const int stressDir) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
 	std::pair<vector3<>,const Basis*> cacheKey = std::make_pair(qnum.k, &basis);
 	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
 	if(!nProj) return 0; //purely local psp
 	//First check cache
-	if(e->cntrl.cacheProjectors && (!derivDir))
+	if(e->cntrl.cacheProjectors && (!derivDir) && (!stressDir))
 	{	auto iter = cachedV.find(cacheKey);
 		if(iter != cachedV.end()) //found
 			return iter->second; //return cached value
@@ -296,11 +329,11 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const ve
 			{	size_t offs = iProj * basis.nbasis;
 				size_t atomStride = nProj * basis.nbasis;
 				callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, qnum.k, basis.iGarr.dataPref(),
-					basis.gInfo->G, atposManaged.dataPref(), VnlRadial[l][p], V->dataPref()+offs, derivDir);
+					basis.gInfo->G, atposManaged.dataPref(), VnlRadial[l][p], V->dataPref()+offs, derivDir, stressDir);
 				iProj++;
 			}
 	//Add to cache if necessary:
-	if(e->cntrl.cacheProjectors && (!derivDir))
+	if(e->cntrl.cacheProjectors && (!derivDir) && (!stressDir))
 		((SpeciesInfo*)this)->cachedV[cacheKey] = V;
 	return V;
 }

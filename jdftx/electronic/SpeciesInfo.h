@@ -92,7 +92,8 @@ public:
 
 	//! Get projectors with qnum and basis matching Cq  (optionally cached).
 	//! If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached).
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0) const;
+	//! If stressDir is >=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0, const int stressDir=-1) const;
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
@@ -112,8 +113,8 @@ public:
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
 	void augmentDensityGrid(ScalarFieldArray& n) const;
 	
-	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) 
-	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0);
+	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions
+	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0, matrix3<>* Eaug_RRT=0);
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const;
 	
@@ -124,8 +125,9 @@ public:
 	void rhoAtom_calc(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, matrix* rhoAtomPtr) const;
 	double rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtomPtr) const;
 	void rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& HCq) const;
-	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces) const;
-	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M, const vector3<>* derivDir=0) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
+	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr, std::vector<vector3<> >& forces, matrix3<>* EU_RRT) const;
+	void rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPtr, ColumnBundle& Opsi, matrix& M,
+		const vector3<>* derivDir=0, const int stressDir=-1) const; //get DFT+U Hamiltonian in the same format as the nonlocal pseudopotential (psi = atomic orbitals, M = matrix in that order)
 
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
@@ -151,8 +153,9 @@ public:
 	matrix3<> getLocalStress(const ScalarFieldTilde& ccgrad_Vlocps, const ScalarFieldTilde& ccgrad_rhoIon,
 		const ScalarFieldTilde& ccgrad_nChargeball, const ScalarFieldTilde& ccgrad_nCore, const ScalarFieldTilde& ccgrad_tauCore) const;
 
-	//! Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces:
-	void accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces) const;
+	//! Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces
+	//! Additionally accumulate nonlocal stresses if Enl_RRT is non-null
+	void accumNonlocalForces(const ColumnBundle& Cq, const matrix& VdagC, const matrix& E_VdagC, const matrix& grad_CdagOCq, std::vector<vector3<> >& forces, matrix3<>* Enl_RRT) const;
 	
 	//! Spin-angle helper functions:
 	static matrix getYlmToSpinAngleMatrix(int l, int j2); //!< Get the ((2l+1)*2)x(j2+1) matrix that transforms the Ylm+spin to the spin-angle functions, where j2=2*j with j = l+/-0.5

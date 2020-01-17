@@ -40,10 +40,27 @@ void VnlPrime_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const 
 {	int n = kernelIndex1D();
 	if(n<nbasis) VnlPrime_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, dir, RTdir, V);
 }
+template<int l, int m> __global__
+void VnlStress_kernel(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG VnlRadial,
+	int iDir, int jDir, complex* V)
+{	int n = kernelIndex1D();
+	if(n<nbasis) VnlStress_calc<l,m>(n, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, iDir, jDir, V);
+}
 template<int l, int m>
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
-{	if(derivDir) //derivative w.r.t Cartesian k
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V,
+	const vector3<>* derivDir, const int stressDir)
+{
+	if(stressDir >= 0) //stress component
+	{	assert(stressDir < 9);
+		int iDir = stressDir / 3;
+		int jDir = stressDir - 3*iDir;
+		GpuLaunchConfig1D glc(VnlStress_kernel<l,m>, nbasis);
+		VnlStress_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, iDir, jDir, V);
+		gpuErrorCheck();
+	}
+	else if(derivDir) //derivative w.r.t Cartesian k
 	{	const vector3<> RTdir = (2*M_PI)*(*derivDir * inv(G));
 		GpuLaunchConfig1D glc(VnlPrime_kernel<l,m>, nbasis);
 		VnlPrime_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, *derivDir, RTdir, V);
@@ -56,9 +73,10 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, vector3<> k, const vector3<
 	}
 }
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V, const vector3<>* derivDir)
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* V,
+	const vector3<>* derivDir, const int stressDir)
 {
-	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, derivDir) )
+	SwitchTemplate_lm(l,m, Vnl_gpu, (nbasis, atomStride, nAtoms, k, iGarr, G, pos, VnlRadial, V, derivDir, stressDir) )
 }
 
 

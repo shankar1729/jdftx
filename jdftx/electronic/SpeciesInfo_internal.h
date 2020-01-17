@@ -44,7 +44,7 @@ void Vnl_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vecto
 	for(int atom=0; atom<nAtoms; atom++)
 		Vnl[atom*atomStride+n] = prefac * cis((-2*M_PI)*dot(pos[atom],kpG));
 }
-//! Derivative of above with respect to Cartesian k in direction iDir
+//! Derivative of Vnl with respect to cartesian direction dir
 template<int l, int m> __hostanddev__
 void VnlPrime_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr,
 	const matrix3<>& G, const vector3<>* pos, const RadialFunctionG& VnlRadial,
@@ -62,21 +62,45 @@ void VnlPrime_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const 
 	//Radial function and its derivative:
 	double Vradial = VnlRadial(q);
 	double Vradial_qDir = VnlRadial.deriv(q) * qhatDir;
-	double prefac = Y*Vradial, predac_qDir = Y_qDir*Vradial + Y*Vradial_qDir;
+	double prefac = Y*Vradial, prefac_qDir = Y_qDir*Vradial + Y*Vradial_qDir;
 	//Loop over columns (multiple atoms at same l,m):
 	for(int atom=0; atom<nAtoms; atom++)
 	{	complex S = cis((-2*M_PI)*dot(pos[atom],kpG));
 		complex S_qDir = S * complex(0.,-dot(pos[atom],RTdir));
-		Vprime[atom*atomStride+n] = predac_qDir*S + prefac*S_qDir;
+		Vprime[atom*atomStride+n] = prefac_qDir*S + prefac*S_qDir;
 	}
+}
+//! Derivative of Vnl with respect to lattice vectors (V_RRT) for specified iDir,jDir Cartesian components
+template<int l, int m> __hostanddev__
+void VnlStress_calc(int n, int atomStride, int nAtoms, const vector3<>& k, const vector3<int>* iGarr,
+	const matrix3<>& G, const vector3<>* pos, const RadialFunctionG& VnlRadial,
+	int iDir, int jDir, complex* V_RRT_ij)
+{
+	vector3<> kpG = k + iGarr[n]; //k+G in reciprocal lattice coordinates:
+	vector3<> qvec = kpG * G; //k+G in cartesian coordinates
+	double q = qvec.length();
+	double qInv = (q ? 1.0/q : 0.0); //regularized 1/q
+	vector3<> qhat = qvec * qInv; //unit vector || qvec (set to 0 for q=0 (doesn't matter))
+	//Spherical harmonic, radial function and their derivatives:
+	double Y = Ylm<l,m>(qhat); vector3<> Yprime = YlmPrime<l,m>(qhat);
+	double Vradial = VnlRadial(q), VradialPrime = VnlRadial.deriv(q);
+	//q-gradient of Vradial * Y:
+	double VYprime_j = Vradial*Yprime[jDir]*qInv + qhat[jDir] * (VradialPrime*Y - Vradial*qInv*dot(Yprime, qhat));
+	double prefac_ij = -qvec[iDir] * VYprime_j; //for ij component of stress tensor
+	//Loop over columns (multiple atoms at same l,m):
+	for(int atom=0; atom<nAtoms; atom++)
+		V_RRT_ij[atom*atomStride+n] = prefac_ij * cis((-2*M_PI)*dot(pos[atom],kpG));
 }
 //! Driver routine for calculating Vnl for all basis functions
 //! If derivDir is non-null, then calculate derivative with respect to Cartesian k oprojected along *derivDir
+//! If stressDir is >=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j
 void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl,
+	const vector3<>* derivDir=0, const int stressDir=-1);
 #ifdef GPU_ENABLED
 void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
+	const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl,
+	const vector3<>* derivDir=0, const int stressDir=-1);
 #endif
 
 
