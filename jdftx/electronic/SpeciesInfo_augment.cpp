@@ -194,24 +194,36 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 	matrix E_nAugRadial = zeroes(nCoeffHlf, e->eInfo.nDensities * atpos.size() * Nlm);
 	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
 	matrix nAugRadial; const double* nAugRadialData=0;
-	if(forces)
+	if(forces or Eaug_RRT)
 	{	matrix nAugTot = nAug; mpiWorld->allReduceData(nAugTot, MPIUtil::ReduceSum);
 		nAugRadial = QradialMat * nAugTot;
 		nAugRadialData = (const double*)nAugRadial.dataPref();
 	}
-	if(Eaug_RRT)
-	{	die("Augmentation stress calculation not yet implemented.\n\n");
-	}
 	VectorFieldTilde E_atpos; if(forces) nullToZero(E_atpos, gInfo);
+	ScalarFieldTildeArray E_RRT(6); if(Eaug_RRT) nullToZero(E_RRT, gInfo);
 	for(unsigned s=0; s<E_n.size(); s++)
 	{	ScalarFieldTilde ccE_n = Idag(E_n[s]);
 		for(unsigned atom=0; atom<atpos.size(); atom++)
 		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
 			if(forces) initZero(E_atpos);
-			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, forces? (nAugRadialData+atomOffs) :0, atpos[atom],
-				ccE_n->dataPref(), E_nAugRadialData+atomOffs, forces ? E_atpos.dataPref() : vector3<complex*>(), nagIndex.dataPref(), nagIndexPtr.dataPref());
+			callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv,
+				nAugRadialData ? (nAugRadialData+atomOffs) : 0,
+				atpos[atom], ccE_n->dataPref(), E_nAugRadialData+atomOffs,
+				forces ? E_atpos.dataPref() : vector3<complex*>(),
+				Eaug_RRT ? array<complex*,6>(dataPref(E_RRT)) : array<complex*,6>(),
+				nagIndex.dataPref(), nagIndexPtr.dataPref());
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
+	}
+	if(Eaug_RRT)
+	{	symmetricMatrix3<> E_RRTsum;
+		double* E_RRTsumData = (double*)&E_RRTsum;
+		for(int ij=0; ij<6; ij++)
+			E_RRTsumData[ij] = sum(E_RRT[ij]);
+		
+		logPrintf("\nE_RRTsum:\n"); matrix3<>(E_RRTsum).print(globalLog, " %lg "); logFlush();
+		
+		*Eaug_RRT += matrix3<>(E_RRTsum);
 	}
 	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
 	mpiWorld->allReduceData(E_nAug, MPIUtil::ReduceSum);

@@ -357,7 +357,7 @@ inline std::vector<YlmProdTerm> expandYlmProd(int l1, int m1, int l2, int m2)
 	return expandYlmProd(lm1, lm2);
 }
 
-//! Derivative of spherical Harmonic with repect to iDir'th component of qHat
+//! Derivative of spherical Harmonic with repect to iDir'th component of qHat with separate l,m indices
 template<int l, int m> __hostanddev__ vector3<> YlmPrime(const vector3<>& qHat)
 {	vector3<> result;
 	//z-component:
@@ -397,6 +397,60 @@ template<int l, int m> __hostanddev__ vector3<> YlmPrime(const vector3<>& qHat)
 	}
 	return result;
 }
+
+//! Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index
+template<int lm> __hostanddev__ vector3<> YlmPrime(const vector3<>& qHat);
+#define DECLARE_YlmPrime(l,m) template<> __hostanddev__ vector3<> YlmPrime<l*(l+1)+m>(const vector3<>& qHat) { return YlmPrime<l,m>(qHat); }
+DECLARE_YlmPrime(0,0)
+DECLARE_YlmPrime(1,-1)
+DECLARE_YlmPrime(1,0)
+DECLARE_YlmPrime(1,1)
+DECLARE_YlmPrime(2,-2)
+DECLARE_YlmPrime(2,-1)
+DECLARE_YlmPrime(2,0)
+DECLARE_YlmPrime(2,1)
+DECLARE_YlmPrime(2,2)
+DECLARE_YlmPrime(3,-3)
+DECLARE_YlmPrime(3,-2)
+DECLARE_YlmPrime(3,-1)
+DECLARE_YlmPrime(3,0)
+DECLARE_YlmPrime(3,1)
+DECLARE_YlmPrime(3,2)
+DECLARE_YlmPrime(3,3)
+DECLARE_YlmPrime(4,-4)
+DECLARE_YlmPrime(4,-3)
+DECLARE_YlmPrime(4,-2)
+DECLARE_YlmPrime(4,-1)
+DECLARE_YlmPrime(4,0)
+DECLARE_YlmPrime(4,1)
+DECLARE_YlmPrime(4,2)
+DECLARE_YlmPrime(4,3)
+DECLARE_YlmPrime(4,4)
+DECLARE_YlmPrime(5,-5)
+DECLARE_YlmPrime(5,-4)
+DECLARE_YlmPrime(5,-3)
+DECLARE_YlmPrime(5,-2)
+DECLARE_YlmPrime(5,-1)
+DECLARE_YlmPrime(5,0)
+DECLARE_YlmPrime(5,1)
+DECLARE_YlmPrime(5,2)
+DECLARE_YlmPrime(5,3)
+DECLARE_YlmPrime(5,4)
+DECLARE_YlmPrime(5,5)
+DECLARE_YlmPrime(6,-6)
+DECLARE_YlmPrime(6,-5)
+DECLARE_YlmPrime(6,-4)
+DECLARE_YlmPrime(6,-3)
+DECLARE_YlmPrime(6,-2)
+DECLARE_YlmPrime(6,-1)
+DECLARE_YlmPrime(6,0)
+DECLARE_YlmPrime(6,1)
+DECLARE_YlmPrime(6,2)
+DECLARE_YlmPrime(6,3)
+DECLARE_YlmPrime(6,4)
+DECLARE_YlmPrime(6,5)
+DECLARE_YlmPrime(6,6)
+#undef DECLARE_YlmPrime
 
 //! Non-templated version of YlmPrime (for debugging)
 template<int l, int m> void set_YlmPrime(const vector3<> qHat, vector3<>& result) { result = YlmPrime<l,m>(qHat); }

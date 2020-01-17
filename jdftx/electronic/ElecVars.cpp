@@ -501,7 +501,7 @@ matrix3<> ElecVars::latticeGrad() const
 	//--- Hartree
 	ScalarFieldTilde nTilde = J(get_nTot());
 	E_RRT += 0.5 * e->coulomb->latticeGradient(nTilde, nTilde);
-	//--- Excange-correlation
+	//--- Exchange-correlation
 	e->exCorr(get_nXC(), 0, false, &tau, 0, &E_RRT);
 	
 	//TODO: remaining components

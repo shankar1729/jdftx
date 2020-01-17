@@ -183,16 +183,19 @@ void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGs
 //Gradient propragation corresponding to nAugment:
 //(The MPI division happens implicitly here, because nagIndex is limited to each process's share (see above))
 struct nAugmentGradFunctor
-{	vector3<> qhat; double q;
+{	vector3<> qhat; double q, qInv;
 	int nCoeff; double dGinv; const double* nRadial;
 	complex E_n, nE_n;
+	vector3<> nPrimeE_n; //dn/dq * E_n for stress calculation
 	double* E_nRadial;
 	int dotPrefac; //prefactor in dot-product (1 or 2 for each reciprocal space point, because of real symmetry)
-
-	__hostanddev__ nAugmentGradFunctor(const vector3<>& qvec, int nCoeff, double dGinv, const double* nRadial, const complex& E_n, double* E_nRadial, int dotPrefac)
-	: nCoeff(nCoeff), dGinv(dGinv), nRadial(nRadial), E_n(E_n), E_nRadial(E_nRadial), dotPrefac(dotPrefac)
+	bool calcStress;
+	
+	__hostanddev__ nAugmentGradFunctor(const vector3<>& qvec, int nCoeff, double dGinv, const double* nRadial, const complex& E_n, double* E_nRadial, int dotPrefac, bool calcStress)
+	: nCoeff(nCoeff), dGinv(dGinv), nRadial(nRadial), E_n(E_n), E_nRadial(E_nRadial), dotPrefac(dotPrefac), calcStress(calcStress)
 	{	q = qvec.length();
-		qhat = qvec * (q ? 1.0/q : 0.0); //the unit vector along qvec (set qhat to 0 for q=0 (doesn't matter))
+		qInv = q ? 1./q : 0.;  //set 1/q to 0 for q=0 (doesn't contribute)
+		qhat = qvec * qInv; //the unit vector along qvec
 	}
 	
 	template<int lm> __hostanddev__ void operator()(const StaticLoopYlmTag<lm>&)
@@ -202,16 +205,25 @@ struct nAugmentGradFunctor
 		//Accumulate result:
 		double Gindex = q * dGinv;
 		if(Gindex < nCoeff-5)
-		{	complex term = phase * Ylm<lm>(qhat) * E_n;
+		{	double Y = Ylm<lm>(qhat);
+			complex term = phase * Y * E_n;
 			QuinticSpline::valueGrad(dotPrefac * term.real(), E_nRadial+lm*nCoeff, Gindex);
-			if(nRadial) nE_n += term * QuinticSpline::value(nRadial+lm*nCoeff, Gindex); //needed again only when computing forces
+			if(nRadial)
+			{	double n = QuinticSpline::value(nRadial+lm*nCoeff, Gindex);
+				nE_n += n * term; //needed again only when computing forces
+				if(calcStress)
+				{	double nPrime = QuinticSpline::deriv(nRadial+lm*nCoeff, Gindex) * dGinv;
+					vector3<> Yprime = YlmPrime<lm>(qhat);
+					nPrimeE_n += real(phase * E_n) * (n*qInv*Yprime + qhat*(nPrime*Y - n*qInv*dot(Yprime,qhat)));
+				}
+			}
 		}
 	}
 };
 template<int Nlm> __hostanddev__
 void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, bool dummyGpuThread=false)
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, bool dummyGpuThread=false)
 {
 	//Obtain 3D index iG and array offset i for this point (similar to COMPUTE_halfGindices)
 	vector3<int> iG;
@@ -221,19 +233,34 @@ void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	size_t i = iG[2] + (S[2]/2+1)*size_t(iG[1] + S[1]*iG[0]);
 	for(int j=0; j<3; j++) if(2*iG[j]>S[j]) iG[j]-=S[j];
 	int dotPrefac = (iG[2]==0||2*iG[2]==S[2]) ? 1 : 2;
+	vector3<> qvec = iG*G;
 	
-	nAugmentGradFunctor functor(iG*G, nCoeff, dGinv, nRadial, dummyGpuThread ? complex() : ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)), E_nRadial, dotPrefac);
+	nAugmentGradFunctor functor(qvec, nCoeff, dGinv, nRadial,
+		dummyGpuThread ? complex() : ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)),
+		E_nRadial, dotPrefac, E_RRT[0]);
 	staticLoopYlm<Nlm>(&functor);
-	if(nRadial && !dummyGpuThread) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
+	if(nRadial && !dummyGpuThread)
+	{	if(E_atpos[0]) accumVector((functor.nE_n * complex(0,-2*M_PI)) * iG, E_atpos, i);
+		if(E_RRT[0])
+		{	for(int iDir=0; iDir<3; iDir++)
+				E_RRT[iDir][i] -= functor.nPrimeE_n[iDir] * qvec[iDir] //from radial function
+					+ functor.nE_n.real(); //from 1/detR in nAugmentSpherical()
+			for(int iDir=0; iDir<3; iDir++)
+			{	int jDir = (iDir+1)%3;
+				int kDir = (iDir+2)%3;
+				E_RRT[iDir+3][i] -= functor.nPrimeE_n[jDir] * qvec[kDir]; //from radial function
+			}
+		}
+	}
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #ifdef GPU_ENABLED
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #endif
 
