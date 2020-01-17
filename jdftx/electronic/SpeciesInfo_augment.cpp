@@ -220,9 +220,6 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 		double* E_RRTsumData = (double*)&E_RRTsum;
 		for(int ij=0; ij<6; ij++)
 			E_RRTsumData[ij] = sum(E_RRT[ij]);
-		
-		logPrintf("\nE_RRTsum:\n"); matrix3<>(E_RRTsum).print(globalLog, " %lg "); logFlush();
-		
 		*Eaug_RRT += matrix3<>(E_RRTsum);
 	}
 	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
