@@ -197,7 +197,8 @@ double IonInfo::ionicEnergyAndGrad()
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
 	{	ScalarField VxcCore, VtauCore;
 		ScalarFieldArray Vxc(eVars.n.size()), Vtau;
-		e->exCorr(nCore, &VxcCore, false, &tauCore, &VtauCore);
+		matrix3<> ExcCore_RRT;
+		double ExcCore = e->exCorr(nCore, &VxcCore, false, &tauCore, &VtauCore, (computeStress ? &ExcCore_RRT : 0));
 		e->exCorr(eVars.get_nXC(), &Vxc, false, &eVars.tau, &Vtau);
 		ScalarField VxcAvg = (Vxc.size()==1) ? Vxc[0] : 0.5*(Vxc[0]+Vxc[1]); //spin-avgd potential
 		ccgrad_nCore = eVars.V_cavity + J(VxcAvg - VxcCore);
@@ -205,6 +206,14 @@ double IonInfo::ionicEnergyAndGrad()
 		if(e->exCorr.needsKEdensity())
 		{	ScalarField VtauAvg = (eVars.Vtau.size()==1) ? eVars.Vtau[0] : 0.5*(eVars.Vtau[0]+eVars.Vtau[1]);
 			if(VtauAvg) ccgrad_tauCore += J(VtauAvg - VtauCore);
+		}
+		//Core contribution to stress:
+		if(computeStress)
+		{	E_RRT -= ExcCore_RRT;
+			//Additional terms through volume integration factors:
+			double volTerm = ExcCore + dot(ccgrad_nCore, J(nCore))*e->gInfo.detR;
+			if(ccgrad_tauCore) volTerm += dot(ccgrad_tauCore, J(tauCore))*e->gInfo.detR;
+			E_RRT -= matrix3<>(1.,1.,1.) * volTerm;
 		}
 	}
 	//Propagate those gradients to forces:
