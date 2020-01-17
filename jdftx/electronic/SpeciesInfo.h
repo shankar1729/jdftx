@@ -132,8 +132,10 @@ public:
 	//Atomic orbital related functions:
 	void accumulateAtomicDensity(ScalarFieldTildeArray& nTilde) const; //!< Accumulate atomic density from this species
 	void accumulateAtomicPotential(ScalarFieldTilde& dTilde) const; //!< Accumulate electrostatic potential of neutral atoms from this species
-	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0, const vector3<>* derivDir=0) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calcluatulate k derivative if derivDir is non-null)
-	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0, const vector3<>* derivDir=0) const;  //!< Same as above, but for specific n and l.
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset=0,
+		const vector3<>* derivDir=0, const int stressDir=-1) const; //!< Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calculate derivatives instead)
+	void setAtomicOrbitals(ColumnBundle& Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0,
+		const vector3<>* derivDir=0, const int stressDir=-1) const;  //!< Same as above, but for specific n and l.
 		//!< If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)
 	int nAtomicOrbitals() const; //!< return number of atomic orbitals in this species (all atoms)
 	int lMaxAtomicOrbitals() const; //!< return maximum angular momentum in available atomic orbitals

@@ -152,7 +152,7 @@ void SpeciesInfo::accumulateAtomicPotential(ScalarFieldTilde& dTilde) const
 }
 
 //Set atomic orbitals in column bundle from radial functions (almost same operation as setting Vnl)
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset, const vector3<>* derivDir) const
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset, const vector3<>* derivDir, const int stressDir) const
 {	if(!atpos.size()) return;
 	const auto& fRadial = applyO ? OpsiRadial : psiRadial; //!< select radial function set (psi or Opsi)
 	int nSpinCopies = 2/e->eInfo.qWeightSum;
@@ -162,11 +162,11 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& Y, bool applyO, int colOffset,
 	int iCol = colOffset;
 	for(int l=0; l<int(fRadial.size()); l++)
 		for(int n=0; n<nAtomicOrbitals(l); n++)
-		{	setAtomicOrbitals(Y, applyO, n, l, iCol, nOrbitalsPerAtom, derivDir);
+		{	setAtomicOrbitals(Y, applyO, n, l, iCol, nOrbitalsPerAtom, derivDir, stressDir);
 			iCol += (2*l+1)*nSpinCopies;
 		}
 }
-void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, int l, int colOffset, int atomColStride, const vector3<>* derivDir) const
+void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, int l, int colOffset, int atomColStride, const vector3<>* derivDir, const int stressDir) const
 {	if(!atpos.size()) return;
 	assert(l < int(psiRadial.size()));
 	assert(int(n) < nAtomicOrbitals(l));
@@ -196,7 +196,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 		{	size_t atomStride = V.colLength() * nOrbitalsPerAtom;
 			size_t offs = iCol * V.colLength();
 			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(),
-				e->gInfo.G, atposManaged.dataPref(), fRadial[l][p], V.dataPref()+offs, derivDir);
+				e->gInfo.G, atposManaged.dataPref(), fRadial[l][p], V.dataPref()+offs, derivDir, stressDir);
 			iCol++;
 		}
 		//Transform the non-spinor ColumnBundle to the spinorial j eigenfunctions:
@@ -214,7 +214,7 @@ void SpeciesInfo::setAtomicOrbitals(ColumnBundle& psi, bool applyO, unsigned n, 
 			size_t atomStride = psi.colLength() * atomColStride;
 			size_t offs = iCol * psi.colLength();
 			callPref(Vnl)(basis.nbasis, atomStride, atpos.size(), l, m, psi.qnum->k, basis.iGarr.dataPref(),
-				e->gInfo.G, atposManaged.dataPref(), fRadial[l][n], psi.dataPref()+offs, derivDir);
+				e->gInfo.G, atposManaged.dataPref(), fRadial[l][n], psi.dataPref()+offs, derivDir, stressDir);
 			if(nSpinCopies>1) //make copy for other spin
 			{	complex* dataPtr = psi.dataPref()+offs;
 				for(size_t a=0; a<atpos.size(); a++)

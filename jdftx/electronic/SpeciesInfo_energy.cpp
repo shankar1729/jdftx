@@ -138,12 +138,12 @@ void SpeciesInfo::rhoAtom_grad(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 	watch.stop();
 }
 
+//Symmetric matrix indexing used for stress calculations
+static const int RRTindex[6][2] = {{0,0}, {1,1}, {2,2}, {1,2}, {2,0}, {0,1}};
+
 void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const matrix* U_rhoAtomPtr,
 	std::vector<vector3<> >& forces, matrix3<>* EU_RRT) const
 {	rhoAtom_COMMONinit
-	if(EU_RRT)
-	{	die("DFT+U stress calculation not yet implemented.\n\n");
-	}
 	UparamLOOP
 	(	U_rho_PACK
 		for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
@@ -160,6 +160,19 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 				for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));
 				forces[a] += 2.*qnum.weight * (e->gInfo.RT * fCart);
 			}
+			if(EU_RRT)
+				for(int ij=0; ij<6; ij++) //loop over stress components
+				{	int iDir = RRTindex[ij][0];
+					int jDir = RRTindex[ij][1];
+					int stressDir = 3*iDir+jDir; //combined index for stress projector functions
+					ColumnBundle& Opsi_RRT_ij = Opsi; //replace Opsi with Opsi_RRT_ij in-place below
+					setAtomicOrbitals(Opsi_RRT_ij, true, Uparams.n, Uparams.l, 0, 0, 0, stressDir);
+					double EU_RRT_ij = (2.*C[q].qnum->weight/e->eInfo.spinWeight)
+						*  trace(U_rho[s] * psiOCdag * F[q] * (C[q]^Opsi_RRT_ij)).real();
+					(*EU_RRT)(iDir,jDir) += EU_RRT_ij;
+					if(iDir != jDir)
+						(*EU_RRT)(jDir,iDir) += EU_RRT_ij;
+				}
 		}
 	)
 }
@@ -171,13 +184,10 @@ void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 	Opsi = Cq.similar(matSizeTot);
 	M = zeroes(matSizeTot, matSizeTot);
 	int matSizePrev = 0;
-	if(stressDir>=0)
-	{	die("DFT+U stress projectors not yet implemented.\n\n");
-	}
 	UparamLOOP
 	(	U_rho_PACK
 		int s = Cq.qnum->index();
-		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l, matSizePrev, 0, derivDir);
+		setAtomicOrbitals(Opsi, true, Uparams.n, Uparams.l, matSizePrev, 0, derivDir, stressDir);
 		M.set(matSizePrev,matSizePrev+matSize, matSizePrev,matSizePrev+matSize, (1./e->eInfo.spinWeight) * U_rho[s]);
 		matSizePrev += matSize;
 	)
@@ -271,7 +281,6 @@ void SpeciesInfo::accumNonlocalForces(const ColumnBundle& Cq, const matrix& Vdag
 	}
 	//Lattice derivative of VdagC
 	matrix VdagC_RRT[6]; 
-	int RRTindex[6][2] = {{0,0}, {1,1}, {2,2}, {1,2}, {2,0}, {0,1}}; //symmetric matrix indexing
 	if(Enl_RRT)
 	{	for(int ij=0; ij<6; ij++) //loop over stress components
 		{	int iDir = RRTindex[ij][0];
