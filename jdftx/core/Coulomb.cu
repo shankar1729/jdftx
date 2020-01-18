@@ -56,6 +56,7 @@ void coulombAnalyticStress_kernel(int zBlock, vector3<int> S, const matrix3<> GG
 			coulombAnalyticStress_kernel<Coulomb##Type##_calc><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, calc, X, Y, grad_RTR); \
 	}
 DECLARE_coulombAnalyticStress_gpu(Periodic)
+DECLARE_coulombAnalyticStress_gpu(Slab)
 #undef DECLARE_coulombAnalytic_gpu
 
 

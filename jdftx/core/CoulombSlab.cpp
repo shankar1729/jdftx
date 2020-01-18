@@ -59,16 +59,19 @@ public:
 		Nrecip.print(globalLog, " %d ");
 	}
 	
-	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
-	{	if(E_RRT) die("EwaldSlab stress not yet implemented.\n\n");
-		if(!atoms.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRTptr) const
+	{	if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta, etaSqrtPiInv = 1./(eta*sqrt(M_PI));
 		double sigmaSq = sigma * sigma;
+		matrix3<> E_RRT; //stress * volume (computed if E_RRTptr non-null)
+		double E_RRTzz = 0.; //stress contribution along truncated direction
+		
 		//Position independent terms: (Self-energy correction)
 		double ZsqTot = 0.;
 		for(const Atom& a: atoms)
 			ZsqTot += a.Z * a.Z;
 		double E = -0.5 * ZsqTot * eta * (2./sqrt(M_PI));
+		
 		//Reduce positions to first unit cell:
 		//Shift all points in the truncated direction into the 1D Wigner-Seitz cell
 		//centered on one of the atoms; choice of this atom is irrelevant if every atom
@@ -78,6 +81,7 @@ public:
 		for(Atom& a: atoms)
 			for(int k=0; k<3; k++)
 				a.pos[k] -= floor(0.5 + a.pos[k] - pos0[k]);
+		
 		//Real space sum:
 		vector3<int> iR; //integer cell number
 		for(const Atom& a2: atoms)
@@ -90,9 +94,14 @@ public:
 							if(!rSq) continue; //exclude self-interaction
 							double r = sqrt(rSq);
 							E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-							a1.force += (RTR * x) *
-								(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
+							double minus_E_r_by_r = a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq;
+							a1.force += (RTR * x) * minus_E_r_by_r;
+							if(E_RRTptr)
+							{	vector3<> rVec = R * x;
+								E_RRT -= (0.5*minus_E_r_by_r) * outer(rVec,rVec);
+							}
 						}
+		
 		//Reciprocal space sum:
 		double L = sqrt(RTR(iDir,iDir)); //length of truncated direction
 		double volPrefac = M_PI * L / fabs(det(R));
@@ -114,7 +123,7 @@ public:
 							double c, s; sincos((2*M_PI)*dot(iG,r12), &s, &c);
 							//Contribution from truncated direction:
 							double Gsq = GGT.metric_length_squared(iG);
-							double zTerm, zTermPrime;
+							double zTerm, zTermPrime, minus_zTerm_G_by_G = 0.;
 							if(Gsq)
 							{	double G = sqrt(Gsq);
 								if(fabs(G*z12) > 100.) continue; //negligible contribution
@@ -123,6 +132,8 @@ public:
 								double erfcMinus = erfc(eta*(sigmaSq*G - z12));
 								zTerm = (0.5/G) * (expPlus * erfcPlus + expMinus * erfcMinus);
 								zTermPrime = 0.5 * (expPlus * erfcPlus - expMinus * erfcMinus);
+								if(E_RRTptr)
+									minus_zTerm_G_by_G = (zTerm - z12 *zTermPrime + sigma*sqrt(2./M_PI)*exp(-(0.5*sigmaSq*Gsq + etaSq*z12*z12)))/Gsq;
 							}
 							else
 							{	double erfz = erf(eta * z12);
@@ -134,11 +145,30 @@ public:
 							E12 += prefac * c * zTerm;
 							E12_r12 += (prefac * -s * zTerm * (2*M_PI)) * iG;
 							E12_r12[iDir] += prefac * c * zTermPrime * L;
+							//Accumulate stresses::
+							if(E_RRTptr)
+							{	vector3<> Gcart = iG * G;
+								E_RRT += (prefac * c * minus_zTerm_G_by_G) * outer(Gcart,Gcart);
+								E_RRTzz += prefac * c * zTermPrime * z12;
+							}
 						}
 				E += E12;
 				a1.force -= E12_r12;
 				a2.force += E12_r12;
+				if(E_RRTptr)
+				{	//Stress contributions propagated through volume prefactor:
+					E_RRT -= E12*matrix3<>(1,1,1);
+					E_RRTzz += E12;
+				}
 			}
+		}
+		
+		if(E_RRTptr)
+		{	//Add zz contribution collected separately above into E_RRT:
+			vector3<> zHat = R.column(iDir); zHat *= (1./zHat.length());
+			E_RRT += E_RRTzz * outer(zHat,zHat);
+			//Accumulate to total stress:
+			*E_RRTptr += E_RRT;
 		}
 		return E;
 	}
@@ -166,6 +196,10 @@ std::shared_ptr<Ewald> CoulombSlab::createEwald(matrix3<> R, size_t nAtoms) cons
 }
 
 matrix3<> CoulombSlab::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	die("Lattice gradient of CoulombSlab not yet implemented.\n\n");
-	return matrix3<>();
+{	int iDir = params.iDir;
+	double hlfL = 0.5*sqrt(gInfo.RTR(iDir,iDir));
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombAnalyticStress)(gInfo.S, gInfo.GGT, CoulombSlab_calc(iDir, hlfL), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
 }

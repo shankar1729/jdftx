@@ -57,6 +57,28 @@ struct CoulombSlab_calc
 		Gplane = Gplane>0. ? sqrt(Gplane) : 0.; //safe sqrt to prevent NaN from roundoff errors
 		return (4*M_PI) * (Gsq ? (1. - exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]))/Gsq : -0.5*hlfL*hlfL);
 	}
+	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& GGT) const
+	{	double Gsq = GGT.metric_length_squared(iG);
+		symmetricMatrix3<> result;
+		if(Gsq)
+		{	double GsqInv = 1./Gsq;
+			vector3<int> iGplane = iG; iGplane[iDir] = 0.; //iG along non-truncated directions
+			double Gplane = sqrt(GGT.metric_length_squared(iGplane));
+			double GplaneInv = Gplane ? 1./Gplane : 0.;
+			double expCosTerm = exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]);
+			//Compute planar part:
+			double prefac1 = 2.*(1.-expCosTerm)*GsqInv;
+			symmetricMatrix3<> result = (prefac1 - expCosTerm*hlfL*GplaneInv) * outer(vector3<>(iGplane));
+			//Fix normal part:
+			((double*)&result)[iDir] = prefac1*iG[iDir]*iG[iDir] + expCosTerm*hlfL*Gplane/GGT(iDir,iDir);
+			return (4*M_PI*GsqInv) * result;
+		}
+		else
+		{	symmetricMatrix3<> result;
+			((double*)&result)[iDir] = (-4*M_PI)*hlfL*hlfL/GGT(iDir,iDir);
+			return result;
+		}
+	}
 };
 
 //! Sphere-truncated coulomb interaction
@@ -74,11 +96,13 @@ void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeri
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
 void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 #endif
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
 void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 
 //! Compute erf(x)/x (with x~0 handled properly)
 __hostanddev__ double erf_by_x(double x)

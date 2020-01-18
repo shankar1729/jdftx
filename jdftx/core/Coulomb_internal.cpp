@@ -53,6 +53,7 @@ void coulombAnalyticStress_thread(size_t iStart, size_t iStop, vector3<int> S, c
 		threadLaunch(coulombAnalyticStress_thread<Coulomb##Type##_calc>, S[0]*S[1]*(1+S[2]/2), S, GGT, calc, X, Y, grad_RTR); \
 	}
 DECLARE_coulombAnalyticStress(Periodic)
+DECLARE_coulombAnalyticStress(Slab)
 #undef DECLARE_coulombAnalyticStress
 
 
