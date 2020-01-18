@@ -216,6 +216,16 @@ void Symmetries::symmetrize(IonicGradient& f) const
 	}
 }
 
+//Symmetrize Cartesian tensor:
+void Symmetries::symmetrize(matrix3<>& m) const
+{	matrix3<> result;
+	for(const SpaceGroupOp& op: sym)
+	{	matrix3<> rot = e->gInfo.R * op.rot * e->gInfo.invR; //cartesian rotation matrix
+		result += rot * m * (~rot);
+	}
+	m = (1./sym.size()) * result;
+}
+
 //Symmetrize Ylm-basis matrices:
 void Symmetries::symmetrizeSpherical(matrix& X, const SpeciesInfo* specie) const
 {	//Find index of specie (so as to access atom map)

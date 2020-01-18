@@ -269,7 +269,9 @@ double IonInfo::ionicEnergyAndGrad()
 	
 	//Compute stress tensor from lattice gradient if needed:
 	if(computeStress)
-		stress = E_RRT * (1./e->gInfo.detR);
+	{	stress = E_RRT * (1./e->gInfo.detR);
+		e->symm.symmetrize(stress);
+	}
 	
 	return relevantFreeEnergy(*e);
 }

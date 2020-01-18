@@ -43,8 +43,8 @@ inline double nrm2(LatticeGradient& x) { return sqrt(dot(x,x)); }
 LatticeGradient clone(const LatticeGradient& x) { return x; }
 void randomize(LatticeGradient& x)
 {	for(int i=0; i<3; i++)
-		for(int j=0; j<3; j++)
-			x.lattice(i,j) = Random::normal();
+		for(int j=i; j<3; j++)
+			x.lattice(i,j) = (x.lattice(j,i) = Random::normal());
 	randomize(x.ionic);
 }
 
@@ -72,9 +72,20 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 						i, j, e.cntrl.lattMoveScale[i], e.cntrl.lattMoveScale[j]);
 	
 	//Check which lattice vectors can be altered:
-	vector3<bool> isTruncated = e.coulombParams.isTruncated();
+	const vector3<bool> isTruncated = e.coulombParams.isTruncated();
+	std::vector<vector3<>> vFixed; //unit vectors spanning fixed subspace
+	Pfree = matrix3<>(1,1,1); //initially identity (no projection)
 	for(int k=0; k<3; k++)
-		isFixed[k] = (e.cntrl.lattMoveScale[k]==0.) || isTruncated[k];
+		if((e.cntrl.lattMoveScale[k]==0.) || isTruncated[k])
+		{	vector3<> vk = Rorig.column(k);
+			for(vector3<> vPrev: vFixed)
+				vk -= vPrev*dot(vPrev, vk); //orthogonal to previous fixed vectors
+			vk *= (1./vk.length()); //normalize
+			vFixed.push_back(vk); //remember this direction to orthogonalize future ones
+			Pfree -= outer(vk, vk); //project out this direction
+		}
+	if(vFixed.size()==3)
+		die("No lattice directions free for lattice minimization due to truncation and/or latt-move-scale.\n\n");
 }
 
 void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
@@ -101,8 +112,8 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 		}
 	
 	//Change lattice:
-	e.gInfo.R += alpha * dir.lattice;
-	strain = e.gInfo.R * inv(Rorig) - matrix3<>(1.,1.,1.); //update strain to match current lattice vectors
+	strain  += alpha * dir.lattice;
+	e.gInfo.R = Rorig + strain * Rorig;
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	bcast(strain); //ensure consistency to numerical precision
 	updateLatticeDependent(e); // Updates lattice information
@@ -139,11 +150,13 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 	
 	//! Calculate lattice gradients (from stress computed along with forces above) if necessary:
 	if(grad)
-	{	//Calculate grad->lattice (in Eh/a0 units):
-		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * e.gInfo.invRT;
+	{	//Calculate grad->lattice (in Eh units):
+		grad->lattice = e.iInfo.stress * e.gInfo.detR;
 		//Set Kgrad->lattice if necessary:
-		if(Kgrad) Kgrad->lattice = grad->lattice;
-		constrain(*Kgrad);
+		if(Kgrad)
+		{	Kgrad->lattice = grad->lattice * std::pow(fabs(det(Rorig)), -2./3); //match dimensions to ionic Hessian
+			constrain(*Kgrad);
+		}
 	}
 	
 	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
@@ -167,20 +180,16 @@ void LatticeMinimizer::constrain(LatticeGradient& dir)
 {	//Ionic part:
 	imin.constrain(dir.ionic);
 	//Lattice part:
-	//--- Constrain fixed directions:
-	for(int iDir=0; iDir<3; iDir++)
-		if(isFixed[iDir]) //zero out gradient along fixed lattice vectors
-			dir.lattice.set_col(iDir, vector3<>());
-	//--- Symmetrize:
-	//TODO: implement symmetrization
+	dir.lattice = 0.5*(dir.lattice + ~(dir.lattice)); //ensure symmetric tensor
+	dir.lattice = Pfree * dir.lattice * Pfree; //latt-move-scale and truncation constraints
+	e.symm.symmetrize(dir.lattice); //lattice symmetries
 }
 
 double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const
 {	//Lattice criterion:
-	matrix3<> dirStrain = dir.lattice * inv(Rorig);
-	double alphaMaxLattice = 0.5 * GridInfo::maxAllowedStrain / nrm2(dirStrain);
+	double alphaMaxLattice = 0.5 * GridInfo::maxAllowedStrain / nrm2(dir.lattice);
 	if(nrm2(strain) < GridInfo::maxAllowedStrain) //not already at a disallowed strain
-		while(nrm2(strain+alphaMaxLattice*dirStrain) > GridInfo::maxAllowedStrain)
+		while(nrm2(strain+alphaMaxLattice*dir.lattice) > GridInfo::maxAllowedStrain)
 			alphaMaxLattice *= 0.5; //reduce step size further till new position will become safe
 	//Ionic criterion:
 	double alphaMaxIonic = imin.safeStepSize(dir.ionic);

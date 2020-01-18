@@ -504,7 +504,6 @@ matrix3<> ElecVars::latticeGrad() const
 	//--- Exchange-correlation
 	e->exCorr(get_nXC(), 0, false, &tau, 0, &E_RRT);
 	
-	//TODO: remaining components
 	return E_RRT;
 }
 

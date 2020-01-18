@@ -52,6 +52,7 @@ public:
 	void symmetrize(ScalarFieldTildeArray&) const; //!< symmetrize an array of scalar fields in reciprocal space representing spin density / potentials
 	void symmetrize(std::vector<complexScalarFieldTilde>&) const; //!< symmetrize an array of complex scalar fields in reciprocal space representing spin density / potentials
 	void symmetrize(struct IonicGradient&) const; //!< symmetrize forces
+	void symmetrize(matrix3<>&) const; //!< symmetrize a tensor in Cartesian coordinates
 	void symmetrizeSpherical(matrix&, const class SpeciesInfo* specie) const; //!< symmetrize matrices in Ylm basis per atom of species sp (accounting for atom maps)
 	const std::vector<SpaceGroupOp>& getMatrices() const; //!< directly access the symmetry matrices (in lattice coords)
 	const std::vector<matrix>& getSphericalMatrices(int l, bool relativistic) const; //!< directly access the symmetry matrices (in Ylm or spin-angle basis at specified l, depending on relativistic)

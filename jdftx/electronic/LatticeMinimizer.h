@@ -62,7 +62,7 @@ private:
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
-	vector3<bool> isFixed; //!< whether each lattice direction is constrained (by lattMoveScale or truncation)
+	matrix3<> Pfree; //!< projection operator onto free directions (accounting for lattMoveScale and truncation)
 	
 	//! Updates lattice dependent quantities, but does not
 	//! reconverge ionic positions or wavefunctions
