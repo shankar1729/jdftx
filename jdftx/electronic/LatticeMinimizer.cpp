@@ -143,6 +143,7 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 		grad->lattice = (e.iInfo.stress * e.gInfo.detR) * e.gInfo.invRT;
 		//Set Kgrad->lattice if necessary:
 		if(Kgrad) Kgrad->lattice = grad->lattice;
+		constrain(*Kgrad);
 	}
 	
 	skipWfnsDrag = false; //computed at physical strain; safe to drag wfns at next step
@@ -165,10 +166,13 @@ bool LatticeMinimizer::report(int iter)
 void LatticeMinimizer::constrain(LatticeGradient& dir)
 {	//Ionic part:
 	imin.constrain(dir.ionic);
-	/*
-	//TODO: implement symmetrization and constraining of fixed directions
-	
-	*/
+	//Lattice part:
+	//--- Constrain fixed directions:
+	for(int iDir=0; iDir<3; iDir++)
+		if(isFixed[iDir]) //zero out gradient along fixed lattice vectors
+			dir.lattice.set_col(iDir, vector3<>());
+	//--- Symmetrize:
+	//TODO: implement symmetrization
 }
 
 double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const
